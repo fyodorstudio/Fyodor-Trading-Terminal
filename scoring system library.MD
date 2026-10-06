@@ -30,8 +30,9 @@ not promises about the release candle or a future price move.
 | USD NFP original | Scoring system | Payrolls, inverse unemployment change and monthly wage change each have weight 1; seven supporting readings excluded from the USD total. Implemented. |
 | USD NFP v2 | Scoring system v2 | Hiring pace, unemployment with participation context, wage pace, preceding-month payroll revision and working hours. Weights 40/30/15/10/5; earlier-history calibration and grouped evidence. Implemented. |
 | USD PCE v1 | Scoring system | Core monthly pace, annual core change, headline monthly pace and annual headline change. Weights 45/30/15/10; revision-aware comparisons, grouped evidence and visible magnitudes. Implemented. |
-| USD ISM Services v1 | Scoring system | New orders, business activity, employment and prices paid versus the higher of 50 and preceding three-month average. Weights 35/25/25/15; composite is context only. Implemented; retained for comparison. |
+| USD ISM Services v1 | Retired standalone screen | Original 35/25/25/15 sector policy is documented and retained internally for v2/v3 and audit reproduction. |
 | USD ISM monthly context v2 | Scoring system v2 on either ISM family | Services 70% plus Manufacturing 30%, same reference month, publication-time reconstruction, one bias and grouped evidence. Implemented; user audit next. |
+| USD ISM monthly resolution v3 | Scoring system v3 on either ISM family | One latest available monthly bias, weighted sector contributions and a plain explanation of which evidence wins. V2 component math and evidence policy are preserved. |
 
 Inspector's other families have release tables and descriptive magnitude tools;
 that does not mean they already have directional scorers. FOMC/ECB episode
@@ -183,10 +184,17 @@ totals, evidence strength and change size. No automated visual audit was run.
 - Manual review belongs to the user: PCE release interpretations, flat dock layout,
   historical signal inspection and applied boundaries.
 
-### Implemented: USD ISM Services v1
+### Archived screen: USD ISM Services v1 sector policy
 
-Inspector → US ISM Services → **Scoring system** now displays a single bias,
-weak/moderate/strong evidence, separate change size and a plain explanation.
+The standalone v1 screen and registry binding were removed during the responsiveness
+refactor. Its feature and assessment rules remain under `ISM/sectors/services/`
+because monthly v2/v3 depend on them. The explanation and audit below document how
+v1 scored each release. Its saved magnitude key is retained to preserve existing
+manual boundaries and workspace exports. Older ISM view selections saved as
+**Scoring system** now display v3. Other active families' versions remain available.
+
+The original Inspector → US ISM Services → **Scoring system** screen displayed a
+single sector bias, weak/moderate/strong evidence, separate change size and a plain explanation.
 Scatter Plot → ISM Services → **Scoring signal** shows its four components,
 source/comparison values, earlier-only automatic bands and independent manual
 overrides. Applied settings update Inspector and travel in workspace exports.
@@ -242,6 +250,63 @@ change sizes. Visual UI verification remains with the user.
 - Manual review: interpretations across older/newer releases, reduced-height dock
   layout, signal selection and preview/apply/reset. Visual checks belong to the user.
 
+### Implemented: ISM v3 single monthly resolution and responsiveness refactor
+
+Select **Scoring system v3** on either ISM family. The view displays one final
+EURUSD bias and its weak/moderate/strong evidence, with one component table split
+into Manufacturing and Services. V2 retains its publication snapshots below the
+same final headline. V3 explains the weighted sector contributions and which
+one wins when they disagree. This is a resolution/presentation upgrade; it does
+not change the original 70% Services / 30% Manufacturing policy or fit chart moves.
+
+The latest elapsed publication determines the context timestamp. At Manufacturing,
+Services stays pending. At Services, both eligible same-reference-month reports
+can vote. V3 sums the original seven component votes once. It never adds the two
+publication scores or chooses between their labels: the Services-time score
+already contains Manufacturing, so doing that would double-count Manufacturing.
+If opposing sector contributions differ, the larger weighted contribution wins.
+Exact cancellation follows Services orders, activity, employment, prices, then
+Manufacturing orders, employment, prices, with weak evidence. All-zero or invalid
+inputs remain Uncomputed; unpublished context remains pending. Disagreement keeps
+the existing evidence cap. No forecasts, market prices or other families enter.
+
+Responsiveness changes:
+
+- Full ISM analysis and Scatter scoring-signal derivation run in separate workers.
+  A worker keeps one running job and only the latest pending input; obsolete
+  results cannot replace the current broker/release. Closing the view terminates
+  its worker. Worker errors are visible and leave the output Uncomputed.
+- Clock/quote updates reuse the current calculation until another publication
+  becomes available. Inspector flattens source inventory once per real change;
+  identical calendar rows reuse their array even if an unrelated storage revision
+  changes. Raw magnitude history is not fetched for closed Inspector or ISM derived-scoring views.
+- Indexed reference-month lookups replace repeated scans across the full history,
+  preserving latest-duplicate rejection, revisions and all native/reference gates.
+- Candle chart rendering has a memo boundary and stable overlay callbacks.
+  Event-marker placement depends on candle timestamps, independently of OHLC
+  price updates. Pan geometry, drawings, price updates and navigation remain active.
+- ISM features/assessments live in sector folders; worker lifecycle, orchestration,
+  summaries, table, publication snapshots and notes have separate small modules.
+  Inspector's raw reading table moved to `inspector/readings/`. The unused
+  standalone Services v1 UI, registry binding and CSS were removed. The calculation
+  and persistence key remain because current versions use them.
+
+A terminal benchmark of 1,278 stored readings measured three assessments at
+411 ms before indexing and approximately 93–100 ms after indexing. Both built
+production workers returned identical results while the main event loop kept
+running (ISM 102 ms and Scatter 71 ms roundtrip including startup in the final run). These are machine-specific
+measurements, not a guarantee of a particular pan frame rate. Reproduce after a
+frontend build with `node frontend/scripts/benchmark-ism-runtime.mjs <calendar.json>`.
+Workers run in supported browsers; headless/non-worker environments use the same
+pure calculation. Visual/panning verification remains with the user.
+
+The 284-update ISM audit after refactoring exactly matches the previous v2 JSON
+report, including labels, totals, component magnitudes and evidence. Future-removal
+and source-chart parity checks pass. Tests cover one v3 output, dominance/ties,
+pending inputs, no extra jobs on clock ticks, obsolete-result rejection, worker
+errors and termination. Manual next check: pan the chart with v2/v3 open, inspect
+a disagreeing month, and check Scatter previews, navigation and dock resizing.
+
 ### Implemented: monthly ISM context v2
 
 Open either US ISM Services or US ISM Manufacturing in Inspector and select
@@ -251,6 +316,8 @@ its original timestamp, EURUSD bias, evidence grade, change size and explanation
 The earlier output uses Manufacturing-time context; the later output combines
 same-month Manufacturing and Services. These are chronological snapshots of the
 context, rather than two standalone sector scores. Unpublished outputs stay pending.
+V2 now also shows the latest monthly bias above those snapshots; this is the same
+resolution as v3, with the publication history retained for comparison.
 An update message states whether the newest publication established, changed,
 strengthened or weakened weighted support for the monthly bias. One chart symbol
 and one Inspector list entry now group the month's two publications, anchored at

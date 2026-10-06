@@ -11,13 +11,14 @@ import { useStoredCalendar } from './useStoredCalendar'
 import { useFamilyMagnitudeHistory } from './magnitude/useFamilyMagnitudeHistory'
 import { policyEpisodeWindowMs } from './episodes/policy-episodes'
 import { groupIsmEpisodes, ismEpisodeWindowMs } from './episodes/ism-episodes'
+import { useMarkerBars } from './chart/useMarkerBars'
 
 const noEvents: EconomicCalendarEvent[] = []
 
-export function useInspector({ events = noEvents, symbol, bars, timeframe, timeDisplay, clockOffsetMs, brokerId, brokerOffsetSeconds = 0 }: {
+export function useInspector({ events = noEvents, symbol, bars, timeframe, timeDisplay, clockOffsetMs, brokerId, brokerOffsetSeconds = 0, detailOpen = true }: {
   events?: EconomicCalendarEvent[]; symbol: string; bars: OhlcBar[]; timeframe: ChartTimeframe
   timeDisplay: TimeDisplayPreference; clockOffsetMs: number
-  brokerId?: string | null; brokerOffsetSeconds?: number
+  brokerId?: string | null; brokerOffsetSeconds?: number; detailOpen?: boolean
 }) {
   const brokerTime = brokerId !== undefined
   const rangeDisplay = useMemo<TimeDisplayPreference>(() => brokerTime ? { mode: 'utc', utcOffsetMinutes: 0 } : timeDisplay, [brokerTime, timeDisplay])
@@ -54,9 +55,12 @@ export function useInspector({ events = noEvents, symbol, bars, timeframe, timeD
   const displayReleases = useMemo(() => groupIsmEpisodes(allReleases), [allReleases])
   const releases = useMemo(() => supported ? filterInspectorReleases(displayReleases, preferences, range, brokerTime) : [],
     [supported, displayReleases, preferences, range, brokerTime])
-  const markers = useMemo(() => buildInspectorMarkers(releases, preferences, bars, timeframe), [releases, preferences, bars, timeframe])
+  const markerBars = useMarkerBars(bars)
+  const markers = useMemo(() => buildInspectorMarkers(releases, preferences, markerBars, timeframe), [releases, preferences, markerBars, timeframe])
   const selectedRelease = releases.find((release) => release.id === selectedId) ?? null
-  const magnitudeHistory = useFamilyMagnitudeHistory(brokerId, selectedRelease?.ismPublications?.[0] ?? selectedRelease, undefined, clockOffsetMs)
+  const isIsm = selectedRelease?.familyId === 'ism-services' || selectedRelease?.familyId === 'ism-manufacturing'
+  const needsMagnitude = detailOpen && (preferences.detailView === 'table' || (preferences.detailView === 'scoring' && !isIsm))
+  const magnitudeHistory = useFamilyMagnitudeHistory(brokerId, needsMagnitude ? selectedRelease?.ismPublications?.[0] ?? selectedRelease : null, undefined, clockOffsetMs)
   function applyPreferences(next: InspectorPreferences) {
     setPreferences(next)
     try { localStorage.setItem(inspectorStorageKey, JSON.stringify(next)); setStorageFailed(false) }

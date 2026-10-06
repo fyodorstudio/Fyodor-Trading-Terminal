@@ -31,9 +31,9 @@ NFP/CPI score versions, magnitude persistence keys, boundaries or dataset admiss
 
 The Inspector view dropdown contains Table only, Scoring system and Scatter Plot,
 with Scoring system v2 available for US/USD CPI, NFP and both ISM families on EURUSD, and v3
-available for US/USD CPI. The saved v2 mode selects the appropriate family scorer.
-US/USD PCE and ISM Services on EURUSD have their first derived scorers under
-Scoring system.
+available for US/USD CPI and both ISM families. The saved v2 mode selects the appropriate family scorer.
+US/USD PCE has its derived scorer under Scoring system. The retired ISM v1
+selection opens v3; its sector formula remains documented below.
 Scatter Plot opens the selected release without changing the saved Inspector view.
 Table only is the default Inspector view. Scoring system replaces the readings
 table with the registered family's scores; CPI retains separate index/rate
@@ -322,11 +322,11 @@ node scripts/audit-pce-v1.mjs <calendar.json> <output-prefix>
 This chronological implementation audit checks chart/scorer parity and reports
 coverage/components without tuning parameters or evaluating price outcomes.
 
-## USD ISM Services v1
+## Retired USD ISM Services v1 screen; retained sector policy
 
-`PAIR/EURUSD/USD/ISM-SERVICES/assessment/ism-services-score.ts` owns the first
-policy; `ui/IsmServicesScore.tsx` provides a flat full Inspector view under
-**Scoring system**. Its four votes are New Orders 35%, Business Activity 25%,
+`PAIR/EURUSD/USD/ISM/sectors/services/` retains the original feature and sector
+assessment policy. The standalone v1 UI and its registry binding are removed.
+Existing ISM selections saved as **Scoring system** now open v3. Its four votes are New Orders 35%, Business Activity 25%,
 Employment 25%, Prices Paid 15%. Each feature is the actual diffusion index minus
 max(50, preceding three-month mean), using supplied Revised Previous for the
 nearest month when available. All inputs must be native index values in [0,100]
@@ -351,7 +351,7 @@ not official ISM calculations, fitted weights or validated market probabilities.
 
 `tests/inspector/ism-services/test_ism_services_score.mjs` covers contraction
 rebounds, expansion cooling, conflicting/tied votes, evidence grouping, composite
-exclusion, revisions/domains, chronology and data gates. Mounted terminal tests
+exclusion, revisions/domains, chronology and data gates. The combined ISM v2/v3 mounted terminal tests
 cover registry/menu/navigation, scoped requests, chart parity, manual
 preview/apply/reset, isolation and portable live settings. No browser or visual
 automation is used. Reproduce the chronological parity/coverage audit with:
@@ -375,12 +375,12 @@ source publication to the unchanged scorer. The Services output combines both
 sectors; the Manufacturing output excludes later Services. Future publications
 stay pending until the supplied Inspector clock reaches them. No publication
 selector is shown. Both sections retain exact-source Scatter buttons; the generic
-Scatter shortcut and Services v1 use the latest elapsed source. Adding Services
+Scatter shortcut uses the latest elapsed source. Adding Services
 preserves the monthly selection ID. On narrow screens the output cards stack.
 
 `PAIR/EURUSD/USD/ISM/assessment/ism-score-v2.ts` combines same-reference-month
 Services (70%) and Manufacturing (30%) at the selected publication timestamp.
-Manufacturing uses `ism-manufacturing-score.ts`: orders/employment/prices
+Manufacturing uses `sectors/manufacturing/ism-manufacturing-score.ts`: orders/employment/prices
 50/35/15. Services reuses v1 features and settings. All native indexes compare
 with max(50, preceding three-month mean), including supplied Revised Previous
 for the nearest month. Magnitudes retain each source's strictly earlier history
@@ -424,7 +424,7 @@ Reproduce the chronological implementation audit with:
 
 ## Shared signal magnitude visibility
 
-CPI v3, NFP v2, PCE v1 and ISM Services v1 expose their exact component inputs
+CPI v3, NFP v2, PCE v1 and both ISM sectors expose their exact component inputs
 in Scatter Plot's
 **Scoring signal** measure. Exported feature extractors and
 `shared/core/historical-release-signals.ts` are shared with the chart; weights,
@@ -444,3 +444,34 @@ historical classifications too, and does not reconstruct historical settings or
 provider vintages. The sidebar discloses the source; **Use automatic** restores
 earlier-history calibration. These are magnitude controls, not new scoring weights
 or additional family/context votes. See the [Scatter Plot documentation](../../scatter-plot/README.md).
+
+## ISM v3 and calculation boundaries
+
+`ISM/assessment/ism-score-v3.ts` resolves the latest v2 context's original
+component votes once, preserving 70/30 weights, evidence, missing-data rules,
+timing exclusions and exact cancellation priority. It exposes separate weighted
+sector contributions and a dominance explanation. Do not sum publication scores:
+the Services-time context already includes Manufacturing. V3 renders one bias;
+v2 also renders that headline with publication-time comparisons below it.
+
+`ISM/sectors/{manufacturing,services}/` separates features from sector assessment.
+`ISM/runtime/` owns pure analysis, the module worker and publication-aware hook.
+`ISM/ui/components/` owns summary, component table, snapshots and notes.
+`shared/runtime/` owns the latest-job client and worker hook; stale results are
+ignored, pending work coalesces, errors are visible and unmount terminates workers.
+`shared/core/reference-history-index.ts` caches immutable history by series,
+reference month and publication time with duplicate ambiguity preserved.
+
+`inspector/storage/` retains identical row arrays across unrelated revisions.
+`inspector/readings/` owns the raw table. Clock ticks use stable publication cutoffs;
+flattened source inventories are memoized. Closed Inspector and ISM derived views avoid raw magnitude
+history. Chart markers depend on candle times; the memoized candlestick chart and
+stable overlay callback avoid chart work on unrelated Inspector/status updates.
+Scatter's worker derives signal history and uses the same pure feature functions.
+Headless or non-worker environments retain a pure fallback for compatibility.
+
+The worker path and its errors/cancellation are covered by mounted terminal tests.
+`node scripts/benchmark-ism-runtime.mjs <calendar.json>` checks the built production
+ISM and Scatter workers in native background threads against the pure calculations and reports event-loop
+progress. The existing chronological audit preserves source/chart parity and
+future-data removal. Visual frame rate and pointer feel are left to the user.

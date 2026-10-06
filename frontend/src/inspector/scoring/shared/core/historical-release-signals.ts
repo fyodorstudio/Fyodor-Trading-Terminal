@@ -1,6 +1,7 @@
 import type { EconomicCalendarEvent } from '../../../calendar-event'
 import type { InspectorRelease } from '../../../inspector-data'
 import { validMagnitudeLimits, type MagnitudeLimits } from '../../../magnitude/magnitude-distribution'
+import { priorReferenceRows } from './reference-history-index'
 
 export type SignalInputs = { actual: number; baseline: number; actualLabel: string; baselineLabel: string; unit: string }
 export type HistoricalFeature = { value: number | null; reason: string; inputs?: SignalInputs }
@@ -70,11 +71,9 @@ export function releaseSignalContext(release: InspectorRelease, history: readonl
   }
   function previousActual(id: string, reference: number) {
     const rule = series.find((s) => s.id === id)!
-    const candidates = history.filter((e) => e.event_id === id && referenceMonth(e) === reference && e.release_at < at!)
-    if (!candidates.length) return null
-    const latest = Math.max(...candidates.map((e) => e.release_at))
-    const rows = candidates.filter((e) => e.release_at === latest), e = rows[0]
-    const publication = new Date(latest)
+    const rows = priorReferenceRows(history, id, reference, at!), e = rows[0]
+    if (!e) return null
+    const publication = new Date(e.release_at)
     return rows.length !== 1 || !rule.units.includes(e.unit) || e.multiplier !== rule.multiplier ||
       reference >= publication.getUTCFullYear() * 12 + publication.getUTCMonth() ? null : nativeNumber(e)
   }

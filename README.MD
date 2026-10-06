@@ -72,7 +72,7 @@ PCE's **Scoring system** view uses core/headline monthly pace and annual change,
 with explicit revised-prior comparisons, one pair bias and an evidence grade.
 ISM Services scores orders, activity, employment and input-price pressure against
 a recent benchmark floored at 50; its composite PMI supplies context without a
-second vote. Its first **Scoring system** view includes bias, evidence, change size
+second vote. Its retired first **Scoring system** view included bias, evidence, change size
 and component visibility. **Scoring system v2** on either ISM family adds
 a monthly Services/Manufacturing context with distinct publication times, one
 bias, grouped evidence, pending sections and source-date discrepancy exclusions.
@@ -81,6 +81,13 @@ timed series in a table with sector sections. Two adjacent outputs show the
 Manufacturing-time and Services-time context snapshots, each with its own bias
 and evidence grade. Earlier snapshots exclude future data; unpublished outputs
 stay pending. No publication dropdown is needed.
+**Scoring system v3** shows one latest monthly bias with the weighted sector
+contributions and which evidence wins. V2 keeps publication snapshots below the
+same final headline. The standalone Services v1 screen is retired; its formula
+and saved magnitude key are retained internally and documented in the scoring
+library. ISM and Scatter signal calculations run in workers, clock updates reuse
+results, unchanged inventory preserves model identity, and chart overlays have
+stable callbacks behind a memoized chart boundary.
 Manufacturing has three configurable source signals; Services shares its v1
 component settings. All weights are explicit prototype interpretation rules.
 

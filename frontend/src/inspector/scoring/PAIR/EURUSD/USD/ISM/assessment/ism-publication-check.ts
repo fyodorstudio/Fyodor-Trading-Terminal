@@ -1,6 +1,6 @@
 import type { EconomicCalendarEvent } from '../../../../../../calendar-event'
 import type { InspectorRelease } from '../../../../../../inspector-data'
-import { ismServicesSeriesIds } from '../../ISM-SERVICES/assessment/ism-services-score'
+import { ismServicesSeriesIds } from '../sectors/services/ism-services-score'
 
 export const ismCalendarSource = 'https://www.ismworld.org/supply-management-news-and-reports/reports/rob-report-calendar/'
 // Verified official 2026 release calendar, checked 6 October 2026. Do not

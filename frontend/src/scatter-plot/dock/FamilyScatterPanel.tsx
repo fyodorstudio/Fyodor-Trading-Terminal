@@ -13,8 +13,13 @@ import type { MagnitudeFamily } from '../../inspector/magnitude/magnitude-famili
 import type { StoredCalendarEvent } from '../../inspector/useStoredCalendar'
 import { magnitudeDistribution, type MagnitudeLimits } from '../../inspector/magnitude/magnitude-distribution'
 import { scatterRecentWindow } from '../plot/scatter-recent-window'
-import { scoringSignalBinding, prepareScoringSignalHistory, scoringSignalModel } from '../inspection/scoring-signal-model'
+import { scoringSignalBinding, scoringSignalModel } from '../inspection/scoring-signal-model'
+import { useSignalHistory } from '../runtime/useSignalHistory'
+import { calendarAdmissionTime } from '../../inspector/storage/calendar-admission-time'
 import { SignalBoundaryEditor } from '../settings/SignalBoundaryEditor'
+import type { SignalHistory } from '../inspection/scoring-signal-model'
+
+const emptySignalHistory: SignalHistory = []
 
 export type ScatterFamilyBinding = {
   family: MagnitudeFamily
@@ -49,10 +54,12 @@ export function FamilyScatterPanel({ brokerId, clockOffsetMs = 0, target, bindin
   const magnitudeSettings = useMagnitudeSettings(family.settings)
   const signalSettings = useMagnitudeSettings(signalBinding?.settings ?? null)
   const selectedReleaseId = selection.broker === brokerId ? selection.releaseId : null
-  const signalHistory = useMemo(() => scoring ? prepareScoringSignalHistory(storage.events, now, signalBinding) : [], [storage.events, now, scoring, signalBinding])
+  const calculationAt = calendarAdmissionTime(storage.events, now)
+  const calculatedHistory = useSignalHistory(family.familyId, storage.events, calculationAt, scoring)
+  const signalHistory = calculatedHistory.result ?? emptySignalHistory
   const savedModel = useMemo(() => scoring ? scoringSignalModel(signalHistory, signalBinding, signalId, selectedReleaseId, signalSettings) :
-    binding.model(storage.events, now, seriesId, selectedReleaseId, magnitudeSettings),
-  [storage.events, now, seriesId, selectedReleaseId, magnitudeSettings, binding, scoring, signalHistory, signalBinding, signalId, signalSettings])
+    binding.model(storage.events, calculationAt, seriesId, selectedReleaseId, magnitudeSettings),
+  [storage.events, calculationAt, seriesId, selectedReleaseId, magnitudeSettings, binding, scoring, signalHistory, signalBinding, signalId, signalSettings])
   const config = magnitudeConfiguration(scoring ? signalSettings : magnitudeSettings, activeId)
   const editorScope = JSON.stringify([brokerId, measure, activeId, savedModel.inspection?.releaseId, config.mode, config.limits, scoring ? savedModel.inspection?.signal?.automaticLimits : null])
   // Scope changes discard a preview, including a return to a previously edited
@@ -74,7 +81,7 @@ export function FamilyScatterPanel({ brokerId, clockOffsetMs = 0, target, bindin
     setDateView({ broker: brokerId, all: false, anchor: null, reset: dateView.reset + 1 })
   }
   const clearPreview = () => setPreview({ scope: editorScope, limits: null })
-  const message = storage.message ?? (!model.inspection ? selectedReleaseId ? 'Requested release is unavailable in this broker’s stored history' :
+  const message = storage.message ?? (scoring && calculatedHistory.loading ? 'Calculating scoring history…' : calculatedHistory.error) ?? (!model.inspection ? selectedReleaseId ? 'Requested release is unavailable in this broker’s stored history' :
     `No completed ${family.label} release available` : null)
   return <section className="scatter-plot-dock" aria-label="Scatter Plot">
     <ScatterPlotControls scope={activeScope} seriesId={activeId} onSeriesChange={(id) => { if (scoring) setSignalId(id); else setSeriesId(id); setZoom(true) }} zoom={zoom && !magnitudeUndefined}

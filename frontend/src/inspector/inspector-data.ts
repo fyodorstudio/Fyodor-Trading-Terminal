@@ -155,7 +155,7 @@ export function filterInspectorReleases(groups: InspectorRelease[], preferences:
 const timeframeSeconds: Record<ChartTimeframe, number> = { M1: 60, M5: 300, M15: 900, M30: 1800, H1: 3600, H4: 14400, D1: 86400 }
 export type InspectorMarker = { release: InspectorRelease; symbol: EventSymbol; time: number;
   projection?: { anchorTime: number; barsAhead: number } }
-export function buildInspectorMarkers(groups: InspectorRelease[], preferences: InspectorPreferences, bars: OhlcBar[], timeframe: ChartTimeframe): InspectorMarker[] {
+export function buildInspectorMarkers(groups: InspectorRelease[], preferences: InspectorPreferences, bars: readonly Pick<OhlcBar, 'time'>[], timeframe: ChartTimeframe): InspectorMarker[] {
   if (!preferences.showSymbols || !bars.length) return []
   return groups.flatMap((release) => {
     if (release.timingUncertain || release.chartTime === null || !Number.isFinite(release.chartTime)) return []

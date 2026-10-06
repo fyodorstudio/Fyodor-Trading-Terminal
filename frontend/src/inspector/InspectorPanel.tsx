@@ -1,21 +1,16 @@
 import { currencyColorStyle } from './currency-colors'
-import { Fragment, useId, useState } from 'react'
+import { useId, useMemo, useState } from 'react'
 import { formatAppTimestamp, type TimeDisplayPreference } from '../appearance/time-display/time-display-preference'
 import type { CalendarSourceHealth } from '../system-connectivity/bridge-status/bridge-contract'
 import { symbolGlyph } from './event-symbols'
-import { formatInspectorValue, hasRevisedPreviousChange, inspectorDelta, inspectorSurprise, isInspectorCommentary, supportsInspector, type InspectorRelease } from './inspector-data'
+import { isInspectorCommentary, supportsInspector, type InspectorRelease } from './inspector-data'
 import { InspectorFiltersModal } from './InspectorFiltersModal'
 import { InspectorDateRangePicker } from './InspectorDateRangePicker'
 import { InspectorReleaseHeading } from './InspectorReleaseHeading'
 import { InspectorInfoTooltip } from './InspectorInfoTooltip'
-import { InspectorReadingTime } from './InspectorReadingTime'
-import { policyEpisodeRule } from './episodes/policy-episodes'
 import { ismSourceRelease } from './episodes/ism-episodes'
-import { useFamilyMagnitudeHistory } from './magnitude/useFamilyMagnitudeHistory'
-import { gradePolicyRateDecision } from './grading/policy-rate-grading'
-import { gradeLabels, gradeFamilyReading, matchesReadingFamily, revisedFamilyComparison } from './grading/reading-grading'
+import { matchesReadingFamily } from './grading/reading-grading'
 import { magnitudeFamilies } from './magnitude/magnitude-families'
-import { FamilyMagnitudeCell } from './magnitude/FamilyMagnitudeCell'
 import { InspectorScoringView } from './scoring/InspectorScoringView'
 import { inspectorScoringBinding } from './scoring/scoring-registry'
 import { supportsCpiV2 } from './scoring/PAIR/EURUSD/USD/CPI/assessment/cpi-score-v2'
@@ -27,6 +22,9 @@ import { NfpScoreV2 } from './scoring/PAIR/EURUSD/USD/NFP/ui/NfpScoreV2'
 import { supportsIsmV2 } from './scoring/PAIR/EURUSD/USD/ISM/assessment/ism-score-v2'
 import { IsmScoreV2 } from './scoring/PAIR/EURUSD/USD/ISM/ui/IsmScoreV2'
 import type { InspectorView } from './useInspector'
+import { InspectorReadingsTable } from './readings/InspectorReadingsTable'
+import { supportsIsmV3 } from './scoring/PAIR/EURUSD/USD/ISM/assessment/ism-score-v3'
+import { IsmScoreV3 } from './scoring/PAIR/EURUSD/USD/ISM/ui/IsmScoreV3'
 import './inspector.css'
 
 function HistogramIcon() {
@@ -63,11 +61,8 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
   const [listOpen, setListOpen] = useState(true)
   const panelId = useId()
   const release = view.selectedRelease
+  const scoringEvents = useMemo(() => view.allReleases.flatMap((item) => item.events), [view.allReleases])
   const scoreRelease = ismSourceRelease(release, null, view.now)
-  const policyTimes = !!release && !!policyEpisodeRule(release.familyId)
-  const showReadingTimes = policyTimes || !!release?.ismPublications
-  const extraIsmSource = release?.ismPublications?.[1] ?? null
-  const extraIsmHistory = useFamilyMagnitudeHistory(view.brokerId, extraIsmSource)
   const magnitudeFamily = magnitudeFamilies.find((family) => matchesReadingFamily(release, family)) ?? null
   const hasMagnitude = !!magnitudeFamily && !!release?.events.some((event) => Object.hasOwn(magnitudeFamily.readingRules, event.event_id))
   const scoringBinding = inspectorScoringBinding(symbol, scoreRelease)
@@ -76,10 +71,10 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
   const ismV2Available = supportsInspector(symbol) && supportsIsmV2(release)
   const v2Available = (supportsInspector(symbol) && supportsCpiV2(release)) || nfpV2Available || ismV2Available
   const showScoringV2 = view.preferences.detailView === 'scoring-v2' && v2Available
-  const v3Available = supportsInspector(symbol) && supportsCpiV3(release)
-  const showScoringV3 = view.preferences.detailView === 'scoring-v3' && v3Available
+  const ismV3Available = supportsInspector(symbol) && supportsIsmV3(release)
+  const v3Available = (supportsInspector(symbol) && supportsCpiV3(release)) || ismV3Available
+  const showScoringV3 = v3Available && (view.preferences.detailView === 'scoring-v3' || (ismV3Available && view.preferences.detailView === 'scoring'))
   const visibleView = showScoringV3 ? 'scoring-v3' : showScoringV2 ? 'scoring-v2' : showScoring ? 'scoring' : 'table'
-  const showHistograms = hasMagnitude && view.preferences.showHistograms
   const releaseTime = (item: InspectorRelease) => view.brokerTime
     ? `${formatAppTimestamp(item.serverTime * 1000, { mode: 'utc', utcOffsetMinutes: 0 })} · broker time`
     : item.releaseAt === null ? 'Time unavailable' : formatAppTimestamp(item.releaseAt, timeDisplay)
@@ -164,62 +159,20 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
         </nav>
         <div className="inspector-detail" aria-live="polite">
           {!release ? <p className="inspector-empty">Click a chart symbol or select a release to inspect Actual, Previous and A−P.</p> : <>
-            {showScoringV3 ? <CpiScoreV3 key={release.id} release={release} brokerId={view.brokerId}
-              events={view.allReleases.flatMap((item) => item.events)} /> :
+            {showScoringV3 && ismV3Available ? <IsmScoreV3 key={release.id} release={release} brokerId={view.brokerId} now={view.now}
+              events={scoringEvents} timeDisplay={timeDisplay} onOpenScatter={scatterAvailable ? onOpenScatter : undefined} /> :
+            showScoringV3 ? <CpiScoreV3 key={release.id} release={release} brokerId={view.brokerId}
+              events={scoringEvents} /> :
             showScoringV2 && ismV2Available ? <IsmScoreV2 key={release.id} release={release} brokerId={view.brokerId} now={view.now}
-              events={view.allReleases.flatMap((item) => item.events)} timeDisplay={timeDisplay}
+              events={scoringEvents} timeDisplay={timeDisplay}
               onOpenScatter={scatterAvailable ? onOpenScatter : undefined} /> :
             showScoringV2 && nfpV2Available ? <NfpScoreV2 key={release.id} release={release} brokerId={view.brokerId}
-              events={view.allReleases.flatMap((item) => item.events)} /> :
+              events={scoringEvents} /> :
             showScoringV2 ? <CpiScoreV2 key={release.id} release={release} brokerId={view.brokerId}
-              events={view.allReleases.flatMap((item) => item.events)} /> :
-            showScoring && scoringBinding ? <InspectorScoringView binding={scoringBinding} release={scoreRelease} history={scoreRelease?.id === extraIsmSource?.id ? extraIsmHistory : view.magnitudeHistory}
-              brokerId={view.brokerId} events={view.allReleases.flatMap((item) => item.events)} /> :
-            <div className="inspector-table-scroll"><table className={showHistograms ? 'inspector-magnitude-table' : undefined} aria-label={`${release.label} release readings`}>
-              <thead><tr><th>Series</th>{showReadingTimes && <th>Release time</th>}<th>Actual</th><th>Previous</th>
-                {policyTimes && <th>Forecast</th>}<th>A−P</th>{policyTimes && <th
-                  title="Actual minus this broker's supplied Forecast, in basis points. Informational only; does not affect A−P, magnitude or scoring.">A−F (Surprise)</th>}{hasMagnitude && <th
-                title={showHistograms ? "Seven A−P bands: three negative, exact zero, three positive. Boundaries follow the selected series' Scatter Plot configuration. Undefined magnitude leaves this cell empty. Height counts all usable released readings since January 2015 through now; Extreme values sit beyond the configured range." :
-                  "Magnitude follows this series' frozen manual boundaries in Scatter Plot. Undefined magnitude leaves this cell empty."}>
-                {showHistograms ? 'A−P magnitude · History' : 'Magnitude'}</th>}</tr></thead>
-              <tbody>{release.events.map((event) => {
-                const delta = inspectorDelta(event)
-                const commentary = isInspectorCommentary(event)
-                const sourceRelease = release.ismPublications?.find((member) => member.events.some((row) => row.value_id === event.value_id)) ?? release
-                const rowFamily = release.ismPublications ? magnitudeFamilies.find((family) => matchesReadingFamily(sourceRelease, family)) ?? null : magnitudeFamily
-                const numericReading = !!rowFamily && Object.hasOwn(rowFamily.readingRules, event.event_id)
-                const grading = numericReading ? gradeFamilyReading(event, sourceRelease.familyId, rowFamily!) : gradePolicyRateDecision(event, sourceRelease.familyId)
-                const surpriseGrading = policyTimes ? gradePolicyRateDecision(event, release.familyId, 'forecast') : null
-                const revisedComparison = revisedFamilyComparison(event, sourceRelease.familyId, rowFamily)
-                return <Fragment key={event.value_id}>
-                  {release.ismPublications && sourceRelease.events[0].value_id === event.value_id && <tr className="inspector-ism-section-heading">
-                    <th scope="rowgroup" colSpan={4 + (showReadingTimes ? 1 : 0) + (policyTimes ? 2 : 0) + (hasMagnitude ? 1 : 0)}>
-                      {sourceRelease.familyId === 'ism-manufacturing' ? 'Manufacturing' : 'Services'} · {releaseTime(sourceRelease)}
-                    </th>
-                  </tr>}
-                  <tr>
-                  <td><strong>{event.name}</strong>{release.ismPublications && <small>{sourceRelease.familyId === 'ism-manufacturing' ? 'Manufacturing' : 'Services'}</small>}{event.revision > 0 && <span className="inspector-revision"> · Revision {event.revision}</span>}
-                    {sharedPeriod === null && release.events.some((reading) => reading.period_seconds > 0) &&
-                      <small>Period: {event.period_seconds > 0 ? formatAppTimestamp(event.period_seconds * 1000,
-                        { mode: 'utc', utcOffsetMinutes: 0 }, 'date') : '—'}</small>}</td>
-                  {showReadingTimes && <InspectorReadingTime event={event} brokerTime={view.brokerTime} timeDisplay={timeDisplay} />}
-                  <td>{formatInspectorValue(event.actual, event)}</td>
-                  <td>{formatInspectorValue(event.previous, event)}{hasRevisedPreviousChange(event) &&
-                    <small>Rev: {formatInspectorValue(event.revised_previous, event)}</small>}</td>
-                  {policyTimes && <td>{formatInspectorValue(event.forecast, event)}</td>}
-                  <td className={grading ? `inspector-graded-delta inspector-grade-${grading.grade}` : undefined} title={grading?.explanation}>
-                    {commentary ? 'Not applicable' : formatInspectorValue(delta, event, true)}
-                    {grading && numericReading && <span className="inspector-row-grade">{gradeLabels[grading.grade]}</span>}
-                    {revisedComparison && <div className={`inspector-secondary-reading inspector-grade-${revisedComparison.grade}`}
-                      title={revisedComparison.explanation}>{revisedComparison.label}: {formatInspectorValue(revisedComparison.delta, event, true)}
-                      <span className="inspector-row-grade">{gradeLabels[revisedComparison.grade]}</span></div>}</td>
-                  {policyTimes && <td className={surpriseGrading ? `inspector-graded-delta inspector-grade-${surpriseGrading.grade}` : undefined}
-                    title={surpriseGrading?.explanation}>{commentary ? 'Not applicable' : formatInspectorValue(inspectorSurprise(event), event, true)}</td>}
-                  {hasMagnitude && (numericReading ? <FamilyMagnitudeCell event={event} history={sourceRelease.id === extraIsmSource?.id ? extraIsmHistory : view.magnitudeHistory} grade={grading?.grade ?? 'unrated'}
-                    deltaScale={rowFamily?.deltaScale} showHistogram={showHistograms} secondaryComparison={revisedComparison} /> : <td>Not applicable</td>)}
-                </tr></Fragment>
-              })}</tbody>
-            </table></div>}
+              events={scoringEvents} /> :
+            showScoring && scoringBinding ? <InspectorScoringView binding={scoringBinding} release={scoreRelease} history={view.magnitudeHistory}
+              brokerId={view.brokerId} events={scoringEvents} /> :
+            <InspectorReadingsTable release={release} view={view} timeDisplay={timeDisplay} sharedPeriod={sharedPeriod} />}
           </>}
         </div>
       </div>

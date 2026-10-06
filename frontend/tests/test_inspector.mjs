@@ -49,6 +49,27 @@ function mount(Component, props) {
 }
 
 try {
+  const { useMarkerBars } = await server.ssrLoadModule('./src/inspector/chart/useMarkerBars.ts')
+  const { sameCalendarRows } = await server.ssrLoadModule('./src/inspector/storage/calendar-snapshot-identity.ts')
+  let placement
+  function PlacementHarness({ candles }) {
+    const next = useMarkerBars(candles)
+    React.useLayoutEffect(() => { placement = next }, [next])
+    return null
+  }
+  const placementApp = mount(PlacementHarness, { candles: bars })
+  await placementApp.render()
+  const originalPlacement = placement
+  await placementApp.render({ candles: bars.map(bar => ({ ...bar, close: bar.close + .01 })) })
+  assert.equal(placement, originalPlacement, 'Live OHLC changes must preserve marker placement identity')
+  await placementApp.render({ candles: [...bars, { ...bars.at(-1), time: anchor + 7200 }] })
+  assert.notEqual(placement, originalPlacement, 'A new candle must update marker placement')
+  assert.equal(placement.length, bars.length + 1)
+  assert.equal(sameCalendarRows([event()], [{ ...event() }]), true)
+  assert.equal(sameCalendarRows([event()], [event({ revised_previous: .1 })]), false,
+    'A revised reading must invalidate calculation inputs')
+  assert.equal(sameCalendarRows([event()], [event({ release_at: anchor * 1000 + 1000 })]), false,
+    'A corrected publication time must invalidate calculation inputs')
   const data = await server.ssrLoadModule('./src/inspector/inspector-data.ts')
   const { useInspector } = await server.ssrLoadModule('./src/inspector/useInspector.ts')
   const { InspectorPanel } = await server.ssrLoadModule('./src/inspector/InspectorPanel.tsx')

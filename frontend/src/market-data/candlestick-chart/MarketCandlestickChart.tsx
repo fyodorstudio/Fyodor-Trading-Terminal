@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { memo, useEffect, useRef, useState, type ReactNode } from 'react'
 import {
   CandlestickSeries,
   createChart,
@@ -47,7 +47,7 @@ type MarketCandlestickChartProps = {
   ) => ReactNode
 }
 
-export function MarketCandlestickChart({
+function MarketCandlestickChartComponent({
   bars,
   fitContentKey,
   precision,
@@ -346,3 +346,5 @@ export function MarketCandlestickChart({
     </div>
   )
 }
+
+export const MarketCandlestickChart = memo(MarketCandlestickChartComponent)

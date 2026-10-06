@@ -1,45 +1,14 @@
 import assert from 'node:assert/strict'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import React from 'react'
 import { createServer } from 'vite'
-import { Window } from 'happy-dom'
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')
 const server = await createServer({ root: rootDir, server: { middlewareMode: true } })
-const dom = new Window({ url: 'http://localhost:5173' })
-const keys = ['window', 'document', 'HTMLElement', 'Node', 'navigator', 'localStorage', 'IS_REACT_ACT_ENVIRONMENT', 'fetch']
-const previous = Object.fromEntries(keys.map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]))
-for (const key of keys.slice(0, 7)) Object.defineProperty(globalThis, key, { configurable: true, writable: true,
-  value: key === 'window' ? dom : key === 'document' ? dom.document : key === 'IS_REACT_ACT_ENVIRONMENT' ? true : dom[key] })
-const { createRoot } = await import('react-dom/client')
-const roots = []
-const mount = (Component, props) => {
-  const container = document.createElement('div'); document.body.appendChild(container)
-  const root = createRoot(container); roots.push(root)
-  return { container, render: (next = props) => React.act(async () => root.render(React.createElement(Component, next))) }
-}
-const choose = (element, value) => React.act(async () => {
-  assert.ok(element); element.value = value; element.dispatchEvent(new dom.Event('change', { bubbles: true }))
-})
-const click = (element) => React.act(async () => { assert.ok(element); element.click() })
-const input = (element, value) => React.act(async () => {
-  assert.ok(element)
-  Object.getOwnPropertyDescriptor(dom.HTMLInputElement.prototype, 'value').set.call(element, String(value))
-  element.dispatchEvent(new dom.Event('input', { bubbles: true })); element.dispatchEvent(new dom.Event('change', { bubbles: true }))
-})
-
 try {
-  const { assessIsmServicesScore, supportsIsmServicesScore, ismServicesSignals, ismServicesSeriesIds, ismServicesScoreVersion } = await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/ISM-SERVICES/assessment/ism-services-score.ts')
-  const { groupInspectorReleases, defaultInspectorPreferences, inspectorStorageKey, readInspectorPreferences } = await server.ssrLoadModule('./src/inspector/inspector-data.ts')
-  const { IsmServicesScore } = await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/ISM-SERVICES/ui/IsmServicesScore.tsx')
-  const { InspectorPanel } = await server.ssrLoadModule('./src/inspector/InspectorPanel.tsx')
-  const { inspectorScoringBinding } = await server.ssrLoadModule('./src/inspector/scoring/scoring-registry.ts')
+  const { assessIsmServicesScore, supportsIsmServicesScore, ismServicesSignals, ismServicesSeriesIds, ismServicesScoreVersion } = await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/ISM/sectors/services/ism-services-score.ts')
+  const { groupInspectorReleases } = await server.ssrLoadModule('./src/inspector/inspector-data.ts')
   const { scoringSignalBinding, prepareScoringSignalHistory, scoringSignalModel } = await server.ssrLoadModule('./src/scatter-plot/inspection/scoring-signal-model.ts')
-  const { ScatterPlotDock } = await server.ssrLoadModule('./src/scatter-plot/index.ts')
-  const { ismServicesSignalSettings, cpiSignalSettings, nfpSignalSettings, pceSignalSettings } = await server.ssrLoadModule('./src/inspector/scoring/shared/core/signal-magnitude-settings.ts')
-  const { magnitudeFamilies } = await server.ssrLoadModule('./src/inspector/magnitude/magnitude-families.ts')
-  const { exportWorkspace, restoreWorkspace, parseWorkspaceSnapshot } = await server.ssrLoadModule('./src/workspace-portability/workspace-snapshot.ts')
   assert.equal(ismServicesScoreVersion, 'ism-services-eurusd-activity-change-v1')
   assert.deepEqual(ismServicesSignals.map((s) => s.weight), [35, 25, 25, 15])
   const raw = (value) => value === null ? null : String(Math.round(value * 1e6))
@@ -143,81 +112,5 @@ try {
     const truncated = signalHistory.filter((entry) => entry.release.releaseAt <= cool.releaseAt)
     assert.deepEqual(scoringSignalModel(truncated, binding, definition.id, cool.id).inspection.signal, model.inspection.signal)
   }
-  assert.equal(inspectorScoringBinding('EURUSD.a', cool).familyId, 'ism-services')
-  assert.equal(inspectorScoringBinding('GBPUSD', cool), null)
-  const app = mount(IsmServicesScore, { release: cool, events, history: {} }); await app.render()
-  assert.equal(app.container.querySelector('[aria-label="ISM Services pair direction"]').textContent, 'EURUSD Long')
-  assert.equal(app.container.querySelectorAll('details').length, 0)
-  assert.equal(app.container.querySelectorAll('tbody tr').length, 4)
-  const prefs = { ...defaultInspectorPreferences(), detailView: 'scoring' }
-  let saved, opened
-  const view = { supported: true, selectedRelease: cool, preferences: prefs, brokerId: null, now: cool.releaseAt + 1000, brokerTime: false,
-    releases: [cool], allReleases: groupInspectorReleases(events), range: { from: cool.releaseAt - 86400000, to: cool.releaseAt + 86400000 },
-    storage: { coverage: {}, loading: false, error: null, source: null }, magnitudeHistory: { rows: {}, loading: false, error: null, coverageMissing: false }, selectRelease() {},
-    rangeDates: { from: '2026-08-01', to: '2026-08-31' }, rangePreset: 'custom', setRangePreset() {},
-    customFrom: '2026-08-01', customTo: '2026-08-31', setCustomFrom() {}, setCustomTo() {}, selectCustomRange() {},
-    applyPreferences(next) { saved = next }, brokerOffsetSeconds: 0 }
-  const props = { view, symbol: 'EURUSD.a', source: null, error: null, timeDisplay: { mode: 'utc', utcOffsetMinutes: 0 }, onOpenScatter(release) { opened = release } }
-  const panel = mount(InspectorPanel, props); await panel.render()
-  const dropdown = panel.container.querySelector('[aria-label="Inspector view"]')
-  assert.equal(dropdown.value, 'scoring'); assert.equal(dropdown.querySelector('[value="scoring"]').disabled, false)
-  assert.equal(panel.container.querySelector('[aria-label="ISM Services pair direction"]').textContent, 'EURUSD Long')
-  assert.equal(panel.container.querySelectorAll('.inspector-scoring-view').length, 1, 'Flat full view has no extra scrolling wrapper')
-  assert.ok(dropdown.querySelector('[value="scoring-v2"]'), 'ISM monthly context v2 is available alongside Services v1')
-  await choose(dropdown, 'scatter'); assert.equal(opened.id, cool.id); assert.equal(dropdown.value, 'scoring'); assert.equal(saved, undefined)
-  await choose(dropdown, 'table'); assert.equal(saved.detailView, 'table')
-  await panel.render({ ...props, view: { ...view, preferences: { ...prefs, detailView: 'scoring-v3' } } })
-  assert.equal(panel.container.querySelector('[aria-label="Inspector view"]').value, 'table', 'CPI-only saved versions stay isolated')
-  await panel.render({ ...props, symbol: 'GBPUSD', view: { ...view, supported: false } })
-  assert.equal(panel.container.querySelector('[aria-label="ISM Services pair direction"]'), null)
-  localStorage.setItem(inspectorStorageKey, JSON.stringify(prefs))
-  assert.equal(readInspectorPreferences().detailView, 'scoring')
-
-  const paths = []
-  globalThis.fetch = async (url) => {
-    paths.push(String(url))
-    if (url === '/storage-api/health') return { ok: true, json: async () => ({ revision: 1, collector_error: null,
-      sources: [{ id: 'test-broker', publisher_status: 'live', server_now: now / 1000 }] }) }
-    const params = new URL(url, 'http://localhost').searchParams
-    assert.equal(params.get('currency'), 'USD'); assert.equal(params.get('time_basis'), 'chart')
-    assert.deepEqual(params.get('event_ids').split(',').sort(), [...ismServicesSeriesIds].sort())
-    return { ok: true, json: async () => ({ source_id: 'test-broker', revision: 1, timestamp_convention: 'trade_server_time', time_basis: 'chart',
-      event_ids: ismServicesSeriesIds, events, coverage: { USD: { missing: [] } }, next_cursor: null }) }
-  }
-  const stored = mount(IsmServicesScore, { release: cool, events: [], brokerId: 'test-broker', history: {} }); await stored.render()
-  assert.equal(stored.container.querySelector('[aria-label="ISM Services pair direction"]').textContent, 'EURUSD Long')
-  const target = { brokerId: 'test-broker', familyId: 'ism-services', releaseId: cool.id, at: cool.releaseAt }
-  const dock = mount(ScatterPlotDock, { brokerId: 'test-broker', clockOffsetMs: now - Date.now(), target }); await dock.render()
-  const requestsBeforeEdits = paths.length
-  await choose(dock.container.querySelector('[aria-label="Scatter Plot Measure"]'), 'signal')
-  assert.equal(dock.container.querySelector('[aria-label="Scatter Plot Signal"]').options.length, 4)
-  assert.equal(dock.container.querySelector('.scatter-plot-inspection time').textContent, new Date(cool.releaseAt).toISOString().slice(0, 10))
-  const beforePreview = app.container.textContent
-  await choose(dock.container.querySelector('[aria-label="Signal magnitude mode"]'), 'custom')
-  for (const [index, name] of ['Small', 'Medium', 'Large'].entries()) await input(dock.container.querySelector(`[aria-label="${name} signal upper boundary"]`), (index + 1) * .001)
-  assert.equal(app.container.textContent, beforePreview, 'Unsaved preview never updates scorer')
-  await React.act(async () => dock.container.querySelector('[aria-label="Scoring signal boundaries"]').dispatchEvent(new dom.Event('submit', { bubbles: true, cancelable: true })))
-  assert.deepEqual(ismServicesSignalSettings.read(), { 'orders': [.001, .002, .003] })
-  assert.match(app.container.textContent, /manual override boundaries/)
-  assert.deepEqual(cpiSignalSettings.read(), {}); assert.deepEqual(nfpSignalSettings.read(), {}); assert.deepEqual(pceSignalSettings.read(), {})
-  assert.deepEqual(magnitudeFamilies.find((family) => family.familyId === 'ism-services').settings.read(), {})
-  assert.equal(paths.length, requestsBeforeEdits, 'Scoring signal mode reuses ISM Services inventory')
-  const workspace = exportWorkspace()
-  assert.deepEqual(JSON.parse(workspace.entries[ismServicesSignalSettings.key]), { 'orders': [.001, .002, .003] })
-  assert.throws(() => parseWorkspaceSnapshot(JSON.stringify({ ...workspace, entries: { [ismServicesSignalSettings.key]: JSON.stringify({ wrong: [1, 2, 3] }) } })))
-  await React.act(async () => ismServicesSignalSettings.save('orders', null))
-  assert.equal(app.container.textContent, beforePreview)
-  await React.act(async () => restoreWorkspace(workspace))
-  assert.match(app.container.textContent, /manual override boundaries/)
-  await click([...dock.container.querySelectorAll('button')].find((button) => button.textContent === 'Use automatic'))
-  assert.equal(app.container.textContent, beforePreview)
-  console.log('✓ ISM Services chart/scorer parity, full flat Inspector view, saved-view isolation, scoped fetching, preview/apply/reset and workspace/live updates')
-} finally {
-  await React.act(async () => { for (const root of roots) root.unmount() })
-  await dom.happyDOM.abort(); dom.close()
-  for (const key of keys) {
-    if (previous[key]) Object.defineProperty(globalThis, key, previous[key])
-    else delete globalThis[key]
-  }
-  await server.close()
-}
+  console.log('ISM Services retained sector policy and chart calibration parity passed')
+} finally { await server.close() }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { EconomicCalendarEvent } from './calendar-event'
 import type { CalendarDisplayRange } from './calendar-display-range'
+import { sameCalendarRows } from './storage/calendar-snapshot-identity'
 
 export type StoredCalendarEvent = EconomicCalendarEvent & {
   chart_time_seconds: number | null
@@ -15,6 +16,8 @@ type Page = { source_id: string; revision: number; timestamp_convention: string;
   coverage: Coverage; next_cursor: { after_time: number; after_id: string } | null }
 type Snapshot = { key: string; events: StoredCalendarEvent[]; coverage: Coverage; loading: boolean;
   error: string | null; source: StorageSource | null; collectorError: string | null }
+const noStoredEvents: StoredCalendarEvent[] = []
+const noCoverage: Coverage = {}
 
 export function useStoredCalendar(brokerId: string | null | undefined, range: CalendarDisplayRange | null, enabled: boolean,
   scope?: { currency?: 'EUR' | 'USD'; eventIds?: readonly string[] }) {
@@ -84,7 +87,8 @@ export function useStoredCalendar(brokerId: string | null | undefined, range: Ca
           if (changed) continue
           revision = pageRevision
           coverageSignature = currentCoverage
-          if (current()) setSnapshot({ key, events, coverage, loading: false, error: null, source, collectorError: health.collector_error })
+          if (current()) setSnapshot((old) => ({ key, events: old?.key === key && sameCalendarRows(old.events, events) ? old.events : events,
+            coverage, loading: false, error: null, source, collectorError: health.collector_error }))
           return
         }
         throw new Error('Calendar changed during paging; retrying shortly')
@@ -101,7 +105,7 @@ export function useStoredCalendar(brokerId: string | null | undefined, range: Ca
     return () => { cancelled = true; controller.abort(); window.clearTimeout(timer) }
   }, [enabled, brokerId, from, to, key, currency, eventIds])
   const active = enabled && brokerId && snapshot?.key === key ? snapshot : null
-  return { events: active?.events ?? [], coverage: active?.coverage ?? {}, source: active?.source ?? null,
+  return { events: active?.events ?? noStoredEvents, coverage: active?.coverage ?? noCoverage, source: active?.source ?? null,
     loading: Boolean(enabled && brokerId && range && (!active || active.loading)),
     error: active?.error ?? null, collectorError: active?.collectorError ?? null }
 }

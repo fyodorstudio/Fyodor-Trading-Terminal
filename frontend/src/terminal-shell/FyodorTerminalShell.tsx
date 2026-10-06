@@ -6,7 +6,7 @@ import {
   timeDisplayLabel,
   type TimeDisplayPreference,
 } from '../appearance/time-display/time-display-preference'
-import { useInspector, InspectorPanel, InspectorChartMarkers } from '../inspector'
+import { useInspector, InspectorPanel } from '../inspector'
 import { ScatterPlotDock, scatterReleaseTarget, type ScatterReleaseTarget } from '../scatter-plot'
 import { AlertDock } from '../alert'
 import { MarketCandlestickChart } from '../market-data/candlestick-chart/MarketCandlestickChart'
@@ -28,8 +28,8 @@ import { DataHeartbeatPanel } from '../system-connectivity/bridge-status/DataHea
 import { useBridgeStatus } from '../system-connectivity/bridge-status/use-bridge-status'
 import { ActivityLogPanel } from '../system-observability/activity-log/ActivityLogPanel'
 import { useActivityLog } from '../system-observability/activity-log/use-activity-log'
-import { PlannedTradePriceLines } from '../trader-notebook/chart-levels/PlannedTradePriceLines'
-import type { PlannedTradeState } from '../trader-notebook/contracts/trader-notebook-types'
+import { useTerminalChartOverlay } from './chart-overlays/useTerminalChartOverlay'
+import type { PlannedTradeState, RegisteredTradeArrow } from '../trader-notebook/contracts/trader-notebook-types'
 import { TraderNotebookPanel } from '../trader-notebook/notebook-dock/TraderNotebookPanel'
 import { useRegisteredArrows } from '../trader-notebook/storage/use-registered-arrows'
 import { BottomDockPanel } from '../workspace-docking/bottom-dock/BottomDockPanel'
@@ -110,6 +110,7 @@ export function FyodorTerminalShell() {
   const activeSymbol = marketData.activeSymbol
   const bars = marketData.bars
   const inspector = useInspector({ symbol: activeSymbol, bars, timeframe, timeDisplay,
+    detailOpen: bottomDockWindow === 'inspector',
     clockOffsetMs: bridge.clockOffsetMs, brokerId: bridge.health?.mt5.account_server ?? null,
     brokerOffsetSeconds: bridge.health?.calendar.server_utc_offset_seconds ?? 0 })
   const quote = marketData.symbols.find((item) => item.symbol === activeSymbol) ?? null
@@ -194,14 +195,28 @@ export function FyodorTerminalShell() {
     appendActivity('Drawing', 'All drawings deleted', `${totalDrawingCount} removed`)
   }
 
-  const selectBottomDock = (window: BottomDockWindow | null) => {
+  const selectBottomDock = useCallback((window: BottomDockWindow | null) => {
     setScatterTarget(null)
     setBottomDockWindow(window)
-  }
+  }, [])
   const toggleBottomDock = (window: BottomDockWindow) => {
     setScatterTarget(null)
     setBottomDockWindow((current) => current === window ? null : window)
   }
+
+  const exitDrawingMode = useCallback(() => setActiveDrawingTool(null), [])
+  const setArrowSelection = registeredArrows.setSelectedArrowId
+  const selectChartArrow = useCallback((arrow: RegisteredTradeArrow) => {
+    setArrowSelection(arrow.id); selectBottomDock('notebook')
+  }, [setArrowSelection, selectBottomDock])
+  const setReleaseSelection = inspector.selectRelease
+  const selectChartRelease = useCallback((id: string) => {
+    setReleaseSelection(id); selectBottomDock('inspector')
+  }, [setReleaseSelection, selectBottomDock])
+  const renderChartOverlay = useTerminalChartOverlay({ arrows: registeredArrows.symbolArrows,
+    selectedArrowId: registeredArrows.selectedArrowId, draftPlan: plannedTrade, onSelectArrow: selectChartArrow,
+    supported: inspector.supported, markers: inspector.markers, currencyColors: inspector.preferences.currencyColors,
+    timeDisplay, onSelectRelease: selectChartRelease })
 
   const sourceState = !bridge.reachable || marketData.marketWatchStatus === 'unavailable'
     ? 'error'
@@ -258,31 +273,12 @@ export function FyodorTerminalShell() {
                 onUpdatePositionWidth={updatePositionWidth}
                 onUpdateDrawingText={updateDrawingText}
                 onDeleteDrawing={handleDeleteDrawing}
-                onExitDrawingMode={() => setActiveDrawingTool(null)}
+                onExitDrawingMode={exitDrawingMode}
                 onDataApplied={recordChartData}
                 hasOlderData={!marketData.chartHistoryComplete}
                 isLoadingOlderData={marketData.chartHistoryLoading}
                 onRequestOlderData={marketData.requestOlderBars}
-                renderChartOverlay={(_chartApi, seriesApi) => (
-                  <>
-                    <PlannedTradePriceLines
-                      chartApi={_chartApi}
-                      seriesApi={seriesApi}
-                      arrows={registeredArrows.symbolArrows}
-                      selectedArrowId={registeredArrows.selectedArrowId}
-                      draftPlan={plannedTrade}
-                      onSelectArrow={(arrow) => {
-                        registeredArrows.setSelectedArrowId(arrow.id)
-                        selectBottomDock('notebook')
-                      }}
-                    />
-                    {inspector.supported && <InspectorChartMarkers chartApi={_chartApi} markers={inspector.markers} currencyColors={inspector.preferences.currencyColors}
-                      timeDisplay={timeDisplay} onSelectRelease={(id) => {
-                        inspector.selectRelease(id)
-                        selectBottomDock('inspector')
-                      }} />}
-                  </>
-                )}
+                renderChartOverlay={renderChartOverlay}
               />
             </MarketChartErrorBoundary>
             <MarketDataNotice status={marketData.chartStatus} symbol={activeSymbol} timeframe={timeframe} error={marketData.chartError} />

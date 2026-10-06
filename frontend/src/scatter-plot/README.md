@@ -152,3 +152,16 @@ preview/apply/reset, live Inspector updates, scope isolation and workspace resto
 Visual/manual checks belong to the user: layout/dock sizing, pointer feel,
 contrast/hit targets, colors/guide styling and full-range/boundary zoom readability.
 No screenshot or browser automation is part of this verification.
+
+## Responsiveness boundaries
+
+`runtime/` derives scoring-signal history in a module worker using the canonical
+feature functions. Clock ticks invalidate the calculation only when another
+publication becomes eligible. A-P models and signal previews reuse stable inventory
+and publication cutoffs; selection and boundary changes retain the same formulas.
+Storage keeps identical row arrays across unrelated revision updates. Only the
+latest pending worker request runs after the active job, obsolete results are
+ignored, and closing/changing the view terminates its worker. Loading/error output
+prevents an old broker/release from being shown as the new request. Headless tests
+and non-worker environments retain the pure calculation fallback. Production build
+emits a separate signal-history worker asset. No screenshot audit is required.

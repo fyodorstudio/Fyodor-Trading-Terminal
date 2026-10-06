@@ -31,8 +31,11 @@ const input = (element, value) => React.act(async () => {
 
 try {
   const {assessIsmScoreV2, ismV2SeriesIds, supportsIsmV2} = await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/ISM/assessment/ism-score-v2.ts')
-  const {assessIsmManufacturing, ismManufacturingSeriesIds} = await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/ISM/assessment/ism-manufacturing-score.ts')
-  const {ismServicesSeriesIds, assessIsmServicesScore} = await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/ISM-SERVICES/assessment/ism-services-score.ts')
+  const {resolveIsmV3, assessIsmScoreV3} = await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/ISM/assessment/ism-score-v3.ts')
+  const {IsmScoreV3} = await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/ISM/ui/IsmScoreV3.tsx')
+  const {calculateIsmAnalysis} = await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/ISM/runtime/ism-analysis.ts')
+  const {assessIsmManufacturing, ismManufacturingSeriesIds} = await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/ISM/sectors/manufacturing/ism-manufacturing-score.ts')
+  const {ismServicesSeriesIds, assessIsmServicesScore} = await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/ISM/sectors/services/ism-services-score.ts')
   const {expectedIsmPublication} = await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/ISM/assessment/ism-publication-check.ts')
   const {groupInspectorReleases, defaultInspectorPreferences, inspectorStorageKey, readInspectorPreferences} = await server.ssrLoadModule('./src/inspector/inspector-data.ts')
   const {IsmScoreV2} = await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/ISM/ui/IsmScoreV2.tsx')
@@ -68,6 +71,12 @@ try {
   assert.equal(combined.services.release.id,selected.id);assert.equal(combined.manufacturing.release.id,manufacturing.id)
   assert.equal(combined.sectorConflict,true);assert.notEqual(combined.strength,'strong')
   assert.equal(combined.total,combined.readings.reduce((sum,r)=>sum+(r.points??0)*r.weight,0)/10000)
+  const resolved=resolveIsmV3(combined)
+  assert.equal(resolved.label,combined.label);assert.equal(resolved.winner,'services')
+  assert.ok(Math.abs(resolved.servicesContribution)>Math.abs(resolved.manufacturingContribution))
+  assert.match(resolved.dominance,/Services wins/)
+  assert.ok(Math.abs(resolved.total-resolved.servicesContribution-resolved.manufacturingContribution)<1e-12)
+  assert.equal(assessIsmScoreV3(selected,events).label,combined.label)
   assert.ok(combined.explanation.includes('employment'));assert.equal(new Set(combined.readings.map(r=>r.group)).size,3)
   const hotServices=groupInspectorReleases(rows('services',2026,6,[55,57,57,57,57]))[0]
   const agreement=assessIsmScoreV2(hotServices,[...history,...manufacturingRows,...hotServices.events])
@@ -132,8 +141,10 @@ try {
   const cancelMfg=rows('manufacturing',2026,6,[55,54.5,54.5,55.5])
   const canceled=assessIsmScoreV2(neutralService,[...history,...cancelMfg,...neutralService.events],manual)
   assert.equal(canceled.total,0);assert.equal(canceled.tieBreak.id,'manufacturing:orders');assert.equal(canceled.label,'EURUSD Short');assert.equal(canceled.strength,'weak')
+  assert.equal(resolveIsmV3(canceled).winner,'priority');assert.match(resolveIsmV3(canceled).dominance,/cancel/)
   const allZero=assessIsmScoreV2(neutralService,[...history,...rows('manufacturing',2026,6,[55,55,55,55]),...neutralService.events])
   assert.equal(allZero.label,'Uncomputed')
+  assert.equal(resolveIsmV3(allZero).winner,null)
   const uncalibrated=groupInspectorReleases(rows('manufacturing',2015,4,[55,57,57,57]))[0]
   assert.equal(assessIsmScoreV2(uncalibrated,historic,manual).label,'Uncomputed')
   // Early broker dates cannot leak an officially later publication into context.
@@ -178,6 +189,11 @@ try {
   await app.render({release:{...manufacturing,releaseAt:null,timingUncertain:true},events})
   assert.equal(app.container.querySelector('[aria-label="ISM Manufacturing release pair direction"]').textContent,'Uncomputed')
   await app.render(props)
+  const v3=mount(IsmScoreV3,{release:grouped[0],events,now:selected.releaseAt});await v3.render()
+  assert.equal(v3.container.querySelector('[aria-label="ISM v3 final pair direction"]').textContent,combined.label)
+  assert.equal(v3.container.querySelectorAll('.inspector-majority').length,1,'V3 has one final bias')
+  assert.match(v3.container.textContent,/Services wins/)
+  assert.equal(v3.container.querySelectorAll('[data-ism-signal]').length,7)
   const prefs={...defaultInspectorPreferences(),detailView:'scoring-v2'};let saved,opened
   const view={supported:true,selectedRelease:selected,preferences:prefs,brokerId:null,now:selected.releaseAt+1000,brokerTime:false,releases:[manufacturing,selected],allReleases:groupInspectorReleases(events),
     range:{from:manufacturing.releaseAt,to:selected.releaseAt+86400000},storage:{coverage:{},loading:false,error:null,source:null},magnitudeHistory:{rows:{},loading:false,error:null,coverageMissing:false},selectRelease(){},
@@ -189,7 +205,7 @@ try {
   await click([...panel.container.querySelectorAll('button')].find(b=>b.textContent==='Inspect Manufacturing signals'));assert.equal(opened.id,manufacturing.id)
   await choose(select,'table');assert.equal(saved.detailView,'table')
   await panel.render({...panelProps,view:{...view,selectedRelease:manufacturing}});assert.equal(panel.container.querySelector('[aria-label="Inspector view"]').value,'scoring-v2')
-  await panel.render({...panelProps,view:{...view,preferences:{...prefs,detailView:'scoring'}}});assert.ok(panel.container.querySelector('[aria-label="ISM Services pair direction"]'))
+  await panel.render({...panelProps,view:{...view,preferences:{...prefs,detailView:'scoring'}}});assert.ok(panel.container.querySelector('[aria-label="ISM v3 final pair direction"]'))
   localStorage.setItem(inspectorStorageKey,JSON.stringify(prefs));assert.equal(readInspectorPreferences().detailView,'scoring-v2')
   let groupedView
   const groupedClockOffset=selected.releaseAt+1000-Date.now()
@@ -252,6 +268,45 @@ try {
   assert.match(app.container.querySelector('[aria-label="ISM services context"]').textContent,/manual override boundaries/)
   assert.deepEqual(ismManufacturingSignalSettings.read(),{})
   await React.act(async()=>ismServicesSignalSettings.save('orders',null))
+  // Production worker path: unchanged parent/clock ticks do not submit new jobs.
+  const originalWorker=Object.getOwnPropertyDescriptor(globalThis,'Worker'), workers=[]
+  class FakeWorker {
+    constructor(){this.jobs=[];this.closed=false;workers.push(this)}
+    postMessage(job){this.jobs.push(job)}
+    terminate(){this.closed=true}
+    complete(){const job=this.jobs.at(-1);this.onmessage({data:{id:job.id,result:calculateIsmAnalysis(job.input)}})}
+  }
+  Object.defineProperty(globalThis,'Worker',{configurable:true,writable:true,value:FakeWorker})
+  try {
+    const workerProps={release:grouped[0],events,now:selected.releaseAt}
+    const background=mount(IsmScoreV3,workerProps);await background.render()
+    assert.equal(workers.length,1);assert.equal(workers[0].jobs.length,1)
+    await React.act(async()=>workers[0].complete())
+    assert.equal(background.container.querySelector('[aria-label="ISM v3 final pair direction"]').textContent,combined.label)
+    for(let i=1;i<=5;i++)await background.render({...workerProps,now:selected.releaseAt+i*3000})
+    assert.equal(workers.length,1);assert.equal(workers[0].jobs.length,1,'Heartbeat ticks reuse the same calculation')
+    const changed={...workerProps,events:[...events]};await background.render(changed)
+    assert.equal(workers[0].jobs.length,2);assert.match(background.container.textContent,/Calculating ISM context/)
+    await React.act(async()=>workers[0].complete())
+    assert.equal(background.container.querySelector('[aria-label="ISM v3 final pair direction"]').textContent,combined.label)
+    await background.render({...workerProps,release:grouped[0],now:manufacturing.releaseAt})
+    await background.render(workerProps)
+    assert.equal(workers[0].jobs.length,3,'A rapid later request queues until the active job finishes')
+    await React.act(async()=>workers[0].complete())
+    assert.equal(workers[0].jobs.length,4,'Only the latest queued request runs next')
+    assert.match(background.container.textContent,/Calculating ISM context/,'The superseded earlier result is not exposed')
+    await React.act(async()=>workers[0].complete())
+    assert.equal(background.container.querySelector('[aria-label="ISM v3 final pair direction"]').textContent,combined.label)
+    await background.render({...workerProps,events:[...events]})
+    await React.act(async()=>workers[0].onerror())
+    assert.match(background.container.querySelector('[role="alert"]').textContent,/Background calculation failed/)
+    assert.equal(background.container.querySelector('[aria-label="ISM v3 final pair direction"]').textContent,'Uncomputed')
+    await background.render({...workerProps,release:null})
+    assert.equal(workers[0].closed,true,'Closing the release stops its worker')
+  } finally {
+    if(originalWorker)Object.defineProperty(globalThis,'Worker',originalWorker);else delete globalThis.Worker
+  }
+  console.log('✓ ISM v3 single weighted resolution, tie priority, pending data, worker dispatch and no recalculation on heartbeat updates')
   console.log('✓ ISM v2 flat two-section Inspector, both-family menu/persistence, scoped storage, source navigation, chart parity, independent overrides and portable live settings')
 } finally {
   await React.act(async () => { for (const root of roots) root.unmount() })
