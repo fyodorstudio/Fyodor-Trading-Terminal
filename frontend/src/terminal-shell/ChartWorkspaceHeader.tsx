@@ -10,6 +10,9 @@ type ChartWorkspaceHeaderProps = {
   onSelectTimeframe: (timeframe: ChartTimeframe) => void
   drawingToolbarVisible?: boolean
   onToggleDrawingToolbar?: () => void
+  raycasterVisible?: boolean
+  raycasterSupported?: boolean
+  onToggleRaycaster?: () => void
 }
 
 function PaintbrushIcon() {
@@ -38,6 +41,9 @@ export function ChartWorkspaceHeader({
   onSelectTimeframe,
   drawingToolbarVisible = true,
   onToggleDrawingToolbar,
+  raycasterVisible = false,
+  raycasterSupported = false,
+  onToggleRaycaster,
 }: ChartWorkspaceHeaderProps) {
   return (
     <div className="chart-toolbar">
@@ -82,6 +88,17 @@ export function ChartWorkspaceHeader({
             onClick={onToggleDrawingToolbar}
           >
             <PaintbrushIcon />
+          </button>
+        )}
+        {onToggleRaycaster && (
+          <button type="button" className={`chart-drawing-toggle${raycasterVisible && raycasterSupported ? ' active' : ''}`}
+            aria-pressed={raycasterVisible && raycasterSupported} disabled={!raycasterSupported}
+            aria-label={raycasterVisible && raycasterSupported ? 'Hide Raycaster' : 'Show Raycaster'}
+            title={raycasterSupported ? 'Raycaster · USD context at the hovered candle' : 'Raycaster supports the seven major USD forex pairs'}
+            onClick={onToggleRaycaster}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+              <path d="M2 12h4l3-7 6 14 3-7h4" />
+            </svg>
           </button>
         )}
       </div>

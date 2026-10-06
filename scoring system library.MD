@@ -33,7 +33,7 @@ not promises about the release candle or a future price move.
 | USD ISM Services v1 | Retired standalone screen | Original 35/25/25/15 sector policy is documented and retained internally for v2/v3 and audit reproduction. |
 | USD ISM monthly context v2 | Scoring system v2 on either ISM family | Services 70% plus Manufacturing 30%, same reference month, publication-time reconstruction, one bias and grouped evidence. Implemented; user audit next. |
 | USD ISM monthly resolution v3 | Scoring system v3 on either ISM family | One latest available monthly bias, weighted sector contributions and a plain explanation of which evidence wins. V2 component math and evidence policy are preserved. |
-| USD context memory v1 / Raycaster | Paintbrush toolbar → Raycaster | Latest active NFP v2 / CPI v3.1 / ISM v3 assessments, 40/40/20 weights, one USD-side pair bias at the hovered candle end, evidence and update explanation. Implemented prototype. |
+| USD context memory v1 / Raycaster | Chart header → Raycaster | Latest active NFP v2 / CPI v3.1 / ISM v3 assessments, 40/40/20 weights, one USD-side pair bias at the hovered candle end, evidence and update explanation. Implemented prototype. |
 
 Inspector's other families have release tables and descriptive magnitude tools;
 that does not mean they already have directional scorers. FOMC/ECB episode
@@ -144,11 +144,15 @@ broader context expansion will follow the remaining inputs.
 
 ### Implemented: USD context memory v1 and Raycaster
 
-Open the paintbrush toolbar beside the timeframe selector, then press the wave
-button **Show Raycaster**. × or the same button hides it; the paintbrush hides
-both the toolbar and active Raycaster. Drag the box by its header. Visibility and
-position are saved and included in workspace transfer. The first version follows
-Inspector's enabled CPI, NFP and ISM families, without a separate settings popover.
+Press the wave button **Show Raycaster** beside the paintbrush toggle near the
+timeframe selector. × or the same button hides it. Drawing-toolbar visibility is
+independent. Drag the box by its header. Visibility and position are saved and
+included in workspace transfer. The gear beside the draggable title opens a
+calculation popover: current enabled/off CPI, NFP and ISM inputs, scorer versions,
+40/40/20 weights, replacement/expiry, evidence, tie and timing rules. Escape,
+its close button or clicking outside dismisses it. Input selection stays in
+Inspector filters; the popover explains the current configuration without
+introducing separate overrides.
 Its scoring versions are fixed to CPI v3.1, NFP v2 and ISM v3, independently of the
 Inspector detail-view selector, date range or symbol visibility.
 

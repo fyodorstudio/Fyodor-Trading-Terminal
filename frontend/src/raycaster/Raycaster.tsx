@@ -21,5 +21,5 @@ export function Raycaster({ chartApi, seriesApi, ...props }: RaycasterProps & { 
       (history.storage.error && !history.result ? history.storage.error : null)
   const partial = history.storage.error || Object.values(history.storage.coverage).some(c => c.missing.length > 0) || history.result?.excludedTiming
   return <RaycasterBox symbol={props.symbol} point={point} cutoff={cutoff} loading={history.loading} message={message}
-    notice={partial ? 'Partial or timing-excluded history' : null} timeDisplay={props.timeDisplay} onClose={props.onClose} />
+    families={history.selected} notice={partial ? 'Partial or timing-excluded history' : null} timeDisplay={props.timeDisplay} onClose={props.onClose} />
 }

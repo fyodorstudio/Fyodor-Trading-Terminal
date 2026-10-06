@@ -113,10 +113,12 @@
   transition: all 0.15s ease;
 }
 
-.chart-drawing-toggle:hover {
+.chart-drawing-toggle:hover:not(:disabled) {
   color: var(--text-strong);
   background: var(--surface-hover);
 }
+
+.chart-drawing-toggle:disabled { opacity: 0.45; cursor: default; }
 
 .chart-drawing-toggle.active {
   color: #ffffff;

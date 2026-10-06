@@ -238,10 +238,10 @@ export function FyodorTerminalShell() {
   const brokerId = bridge.health?.mt5.account_server ?? null
   const brokerOffsetSeconds = bridge.health?.calendar.server_utc_offset_seconds ?? 0
   const raycasterSupported = !!usdPair(activeSymbol)
-  const raycaster = useMemo(() => drawingToolbarVisible && raycasterVisible && raycasterSupported ?
+  const raycaster = useMemo(() => raycasterVisible && raycasterSupported ?
     { symbol: activeSymbol, timeframe, brokerId, brokerOffsetSeconds, clockOffsetMs: bridge.clockOffsetMs,
       families: inspector.preferences.families, timeDisplay, onClose: closeRaycaster } : null,
-    [drawingToolbarVisible, raycasterVisible, raycasterSupported, activeSymbol, timeframe, brokerId, brokerOffsetSeconds,
+    [raycasterVisible, raycasterSupported, activeSymbol, timeframe, brokerId, brokerOffsetSeconds,
       bridge.clockOffsetMs, inspector.preferences.families, timeDisplay, closeRaycaster])
   const renderChartOverlay = useTerminalChartOverlay({ arrows: registeredArrows.symbolArrows,
     selectedArrowId: registeredArrows.selectedArrowId, draftPlan: plannedTrade, onSelectArrow: selectChartArrow,
@@ -280,6 +280,9 @@ export function FyodorTerminalShell() {
             onSelectTimeframe={selectTimeframe}
             drawingToolbarVisible={drawingToolbarVisible}
             onToggleDrawingToolbar={toggleDrawingToolbar}
+            raycasterVisible={raycasterVisible}
+            raycasterSupported={raycasterSupported}
+            onToggleRaycaster={toggleRaycaster}
           />
           <div className="chart-frame">
             <MarketChartErrorBoundary
@@ -324,9 +327,6 @@ export function FyodorTerminalShell() {
               onSelectCrosshair={selectCrosshair}
               onToolChange={chooseDrawingTool}
               onClearAll={deleteAllDrawings}
-              raycasterVisible={raycasterVisible}
-              raycasterSupported={raycasterSupported}
-              onToggleRaycaster={toggleRaycaster}
             />
             )}
             <div className="chart-watermark" aria-hidden="true">

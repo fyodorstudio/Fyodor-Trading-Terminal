@@ -1,15 +1,21 @@
+import { useCallback, useId, useRef, useState } from 'react'
 import type { ContextPoint } from '../../usd-context/core/contracts'
+import { RaycasterDetails } from './RaycasterDetails'
 import { contextPairLabel } from '../../usd-context/core/usd-pair'
 import { useRaycasterPosition } from './useRaycasterPosition'
 import { formatAppTimestamp, type TimeDisplayPreference } from '../../appearance/time-display/time-display-preference'
 import { familyTitle } from '../../usd-context/core/explanation'
 import './raycaster.css'
 
-export function RaycasterBox({ symbol, point, cutoff, loading, message, notice, timeDisplay, onClose }: {
+export function RaycasterBox({ symbol, point, cutoff, loading, message, notice, timeDisplay, onClose, families }: {
   symbol: string; point: ContextPoint | null; cutoff: number | null; loading: boolean; message: string | null;
-  timeDisplay: TimeDisplayPreference; onClose: () => void; notice?: string | null
+  timeDisplay: TimeDisplayPreference; onClose: () => void; notice?: string | null; families: readonly string[]
 }) {
   const { ref, position, drag } = useRaycasterPosition()
+  const [detailsOpen, setDetailsOpen] = useState(false)
+  const detailsId = useId()
+  const detailsTrigger = useRef<HTMLButtonElement>(null)
+  const closeDetails = useCallback(() => setDetailsOpen(false), [])
   const result = point?.result
   const label = loading ? 'Calculating USD context…' : message ? 'USD context unavailable' : cutoff === null ? 'Hover a candle to inspect' :
     result ? contextPairLabel(symbol, result.direction) : 'Uncomputed'
@@ -17,7 +23,15 @@ export function RaycasterBox({ symbol, point, cutoff, loading, message, notice, 
   return <aside ref={ref} className="raycaster-box" aria-label="Raycaster USD context"
     style={{ transform: `translate(${position.x}px, ${position.y}px)` }}>
     <header><button type="button" onPointerDown={drag} className="raycaster-handle" aria-label="Move Raycaster" title="Drag to move Raycaster">⠿ Raycaster</button>
+      <button ref={detailsTrigger} type="button" className="raycaster-settings" aria-label="Raycaster calculation and inputs"
+        title="Raycaster calculation and inputs" aria-haspopup="dialog" aria-expanded={detailsOpen} aria-controls={detailsOpen ? detailsId : undefined}
+        onClick={() => setDetailsOpen(open => !open)}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+          <path d="m10 2-.6 3-2.3 1.4-2.9-1L2.2 9l2.3 2v2l-2.3 2 2 3.6 2.9-1L9.4 19l.6 3h4l.6-3 2.3-1.4 2.9 1 2-3.6-2.3-2v-2l2.3-2-2-3.6-2.9 1L14.6 5 14 2z" /><circle cx="12" cy="12" r="3" />
+        </svg>
+      </button>
       <button type="button" onClick={onClose} aria-label="Hide Raycaster" title="Hide Raycaster">×</button></header>
+    {detailsOpen && <RaycasterDetails id={detailsId} families={families} trigger={detailsTrigger} onClose={closeDetails} />}
     <strong className={`raycaster-bias ${tone}`}>{label}{!loading && !message && cutoff !== null && result?.strength && ` · ${result.strength.charAt(0).toUpperCase() + result.strength.slice(1)} evidence`}</strong>
     <p>{loading ? 'Preparing the historical release timeline.' : message ?? (cutoff === null ? 'Move across the chart to read the USD context at each candle’s end.' :
       result?.explanation ?? 'No eligible release history is available at this candle.')}</p>

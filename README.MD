@@ -91,12 +91,11 @@ stable callbacks behind a memoized chart boundary.
 Manufacturing has three configurable source signals; Services shares its v1
 component settings. All weights are explicit prototype interpretation rules.
 
-**Raycaster** opens from the wave button in the paintbrush toolbar. Its movable
+**Raycaster** opens from the wave button beside the paintbrush toggle near the timeframe selector, independently of drawing-toolbar visibility. Its movable
 chart box reads the USD context at the hovered candle's end, with one pair bias,
 evidence and an update explanation. The first memory engine retains latest NFP
 v2, CPI v3.1 and ISM v3 assessments with explicit 40/40/20 weights and a 45-day
-freshness gate. It follows Inspector's enabled families; no second settings menu
-is needed. Supported major USD forex pairs invert the direction when USD is base.
+freshness gate. It follows Inspector's enabled families; the gear beside its draggable title opens a calculation popover showing selected inputs, scorer versions, weights, memory and evidence rules. Input selection stays in Inspector filters. Supported major USD forex pairs invert the direction when USD is base.
 The footer labels this as the USD side only. Timeline scoring runs in a worker;
 hover only looks up prepared snapshots. See [Raycaster](frontend/src/raycaster/README.md)
 and [USD context policy](frontend/src/usd-context/README.md) for timing and limitations.
