@@ -35,6 +35,8 @@
 .inspector-cpi-v2 p, .inspector-cpi-v3 p, .inspector-nfp-v2 p, .inspector-pce-v1 p, .inspector-ism-services-v1 p, .inspector-ism-v2 p { max-width: 100ch; margin: 8px 0; }
 .inspector-scoring-view { flex: 1; min-height: 0; overflow: auto; align-content: flex-start; }
 .inspector-view-select { flex-shrink: 0; }
+.inspector-ism-publication-select { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; flex-shrink: 0; min-width: 0; padding: 4px 12px; border-bottom: 1px solid var(--border); }
+.inspector-ism-publication-select select { min-width: 0; max-width: 100%; }
 .inspector-detail-heading { flex: 1 1 480px; min-width: 0; min-height: 24px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
 .inspector-detail-heading span { color: var(--text-muted); font-size: 10px; }
 .inspector-release-date { white-space: nowrap; }

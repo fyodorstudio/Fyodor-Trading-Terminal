@@ -76,6 +76,9 @@ second vote. Its first **Scoring system** view includes bias, evidence, change s
 and component visibility. **Scoring system v2** on either ISM family adds
 a monthly Services/Manufacturing context with distinct publication times, one
 bias, grouped evidence, pending sections and source-date discrepancy exclusions.
+The month's two reports share one chart symbol and Inspector entry, with separate
+timed series in the table. **Scoring publication** switches between the earlier
+Manufacturing snapshot and the later Services snapshot without future data.
 Manufacturing has three configurable source signals; Services shares its v1
 component settings. All weights are explicit prototype interpretation rules.
 

@@ -10,6 +10,8 @@ import { InspectorReleaseHeading } from './InspectorReleaseHeading'
 import { InspectorInfoTooltip } from './InspectorInfoTooltip'
 import { InspectorReadingTime } from './InspectorReadingTime'
 import { policyEpisodeRule } from './episodes/policy-episodes'
+import { ismSourceRelease } from './episodes/ism-episodes'
+import { useFamilyMagnitudeHistory } from './magnitude/useFamilyMagnitudeHistory'
 import { gradePolicyRateDecision } from './grading/policy-rate-grading'
 import { gradeLabels, gradeFamilyReading, matchesReadingFamily, revisedFamilyComparison } from './grading/reading-grading'
 import { magnitudeFamilies } from './magnitude/magnitude-families'
@@ -61,10 +63,15 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
   const [listOpen, setListOpen] = useState(true)
   const panelId = useId()
   const release = view.selectedRelease
-  const showReadingTimes = !!release && !!policyEpisodeRule(release.familyId)
+  const [ismSelection, setIsmSelection] = useState<{ group: string; source: string } | null>(null)
+  const scoreRelease = ismSourceRelease(release, ismSelection?.group === release?.id ? ismSelection?.source : null, view.now)
+  const policyTimes = !!release && !!policyEpisodeRule(release.familyId)
+  const showReadingTimes = policyTimes || !!release?.ismPublications
+  const extraIsmSource = release?.ismPublications?.[1] ?? null
+  const extraIsmHistory = useFamilyMagnitudeHistory(view.brokerId, extraIsmSource)
   const magnitudeFamily = magnitudeFamilies.find((family) => matchesReadingFamily(release, family)) ?? null
   const hasMagnitude = !!magnitudeFamily && !!release?.events.some((event) => Object.hasOwn(magnitudeFamily.readingRules, event.event_id))
-  const scoringBinding = inspectorScoringBinding(symbol, release)
+  const scoringBinding = inspectorScoringBinding(symbol, scoreRelease)
   const showScoring = view.preferences.detailView === 'scoring' && !!scoringBinding
   const nfpV2Available = supportsInspector(symbol) && supportsNfpV2(release)
   const ismV2Available = supportsInspector(symbol) && supportsIsmV2(release)
@@ -131,7 +138,7 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
           if (next === 'scatter') {
             // Scatter is navigation; keep the selected Inspector view when returning.
             event.target.value = visibleView
-            if (hasMagnitude && scatterAvailable && onOpenScatter) onOpenScatter(release)
+            if (hasMagnitude && scatterAvailable && onOpenScatter) onOpenScatter(scoreRelease ?? release)
           } else if (next === 'table' || (next === 'scoring' && scoringBinding) || (next === 'scoring-v2' && v2Available) || (next === 'scoring-v3' && v3Available)) {
             view.applyPreferences({ ...view.preferences, detailView: next })
           }
@@ -142,6 +149,7 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
         {v3Available && <option value="scoring-v3">Scoring system v3</option>}
         <option value="scatter" disabled={!hasMagnitude || !scatterAvailable || !onOpenScatter}>Scatter Plot</option>
       </select>}
+
     </header>
     {!view.supported ? <p className="inspector-empty">Inspector currently supports EURUSD. Select EURUSD to inspect monetary policy, inflation, labor/wages and growth/activity releases.</p> : <>
       <div className={`inspector-body${listOpen ? '' : ' releases-collapsed'}`}>
@@ -157,20 +165,26 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
         </nav>
         <div className="inspector-detail" aria-live="polite">
           {!release ? <p className="inspector-empty">Click a chart symbol or select a release to inspect Actual, Previous and A−P.</p> : <>
+            {release.ismPublications && <label className="inspector-ism-publication-select">Scoring publication <select aria-label="ISM scoring publication"
+              value={scoreRelease?.id} onChange={(event) => setIsmSelection({ group: release.id, source: event.target.value })}>
+              {release.ismPublications.map((member) => <option key={member.id} value={member.id}>
+                {member.familyId === 'ism-manufacturing' ? 'Manufacturing' : 'Services'} · {releaseTime(member)}
+              </option>)}
+            </select></label>}
             {showScoringV3 ? <CpiScoreV3 key={release.id} release={release} brokerId={view.brokerId}
               events={view.allReleases.flatMap((item) => item.events)} /> :
-            showScoringV2 && ismV2Available ? <IsmScoreV2 key={release.id} release={release} brokerId={view.brokerId}
+            showScoringV2 && ismV2Available ? <IsmScoreV2 key={release.id} release={scoreRelease} brokerId={view.brokerId}
               events={view.allReleases.flatMap((item) => item.events)} timeDisplay={timeDisplay}
               onOpenScatter={scatterAvailable ? onOpenScatter : undefined} /> :
             showScoringV2 && nfpV2Available ? <NfpScoreV2 key={release.id} release={release} brokerId={view.brokerId}
               events={view.allReleases.flatMap((item) => item.events)} /> :
             showScoringV2 ? <CpiScoreV2 key={release.id} release={release} brokerId={view.brokerId}
               events={view.allReleases.flatMap((item) => item.events)} /> :
-            showScoring && scoringBinding ? <InspectorScoringView binding={scoringBinding} release={release} history={view.magnitudeHistory}
+            showScoring && scoringBinding ? <InspectorScoringView binding={scoringBinding} release={scoreRelease} history={scoreRelease?.id === extraIsmSource?.id ? extraIsmHistory : view.magnitudeHistory}
               brokerId={view.brokerId} events={view.allReleases.flatMap((item) => item.events)} /> :
             <div className="inspector-table-scroll"><table className={showHistograms ? 'inspector-magnitude-table' : undefined} aria-label={`${release.label} release readings`}>
               <thead><tr><th>Series</th>{showReadingTimes && <th>Release time</th>}<th>Actual</th><th>Previous</th>
-                {showReadingTimes && <th>Forecast</th>}<th>A−P</th>{showReadingTimes && <th
+                {policyTimes && <th>Forecast</th>}<th>A−P</th>{policyTimes && <th
                   title="Actual minus this broker's supplied Forecast, in basis points. Informational only; does not affect A−P, magnitude or scoring.">A−F (Surprise)</th>}{hasMagnitude && <th
                 title={showHistograms ? "Seven A−P bands: three negative, exact zero, three positive. Boundaries follow the selected series' Scatter Plot configuration. Undefined magnitude leaves this cell empty. Height counts all usable released readings since January 2015 through now; Extreme values sit beyond the configured range." :
                   "Magnitude follows this series' frozen manual boundaries in Scatter Plot. Undefined magnitude leaves this cell empty."}>
@@ -178,12 +192,14 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
               <tbody>{release.events.map((event) => {
                 const delta = inspectorDelta(event)
                 const commentary = isInspectorCommentary(event)
-                const numericReading = !!magnitudeFamily && Object.hasOwn(magnitudeFamily.readingRules, event.event_id)
-                const grading = numericReading ? gradeFamilyReading(event, release.familyId, magnitudeFamily!) : gradePolicyRateDecision(event, release.familyId)
-                const surpriseGrading = showReadingTimes ? gradePolicyRateDecision(event, release.familyId, 'forecast') : null
-                const revisedComparison = revisedFamilyComparison(event, release.familyId, magnitudeFamily)
+                const sourceRelease = release.ismPublications?.find((member) => member.events.some((row) => row.value_id === event.value_id)) ?? release
+                const rowFamily = release.ismPublications ? magnitudeFamilies.find((family) => matchesReadingFamily(sourceRelease, family)) ?? null : magnitudeFamily
+                const numericReading = !!rowFamily && Object.hasOwn(rowFamily.readingRules, event.event_id)
+                const grading = numericReading ? gradeFamilyReading(event, sourceRelease.familyId, rowFamily!) : gradePolicyRateDecision(event, sourceRelease.familyId)
+                const surpriseGrading = policyTimes ? gradePolicyRateDecision(event, release.familyId, 'forecast') : null
+                const revisedComparison = revisedFamilyComparison(event, sourceRelease.familyId, rowFamily)
                 return <tr key={event.value_id}>
-                  <td><strong>{event.name}</strong>{event.revision > 0 && <span className="inspector-revision"> · Revision {event.revision}</span>}
+                  <td><strong>{event.name}</strong>{release.ismPublications && <small>{sourceRelease.familyId === 'ism-manufacturing' ? 'Manufacturing' : 'Services'}</small>}{event.revision > 0 && <span className="inspector-revision"> · Revision {event.revision}</span>}
                     {sharedPeriod === null && release.events.some((reading) => reading.period_seconds > 0) &&
                       <small>Period: {event.period_seconds > 0 ? formatAppTimestamp(event.period_seconds * 1000,
                         { mode: 'utc', utcOffsetMinutes: 0 }, 'date') : '—'}</small>}</td>
@@ -191,17 +207,17 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
                   <td>{formatInspectorValue(event.actual, event)}</td>
                   <td>{formatInspectorValue(event.previous, event)}{hasRevisedPreviousChange(event) &&
                     <small>Rev: {formatInspectorValue(event.revised_previous, event)}</small>}</td>
-                  {showReadingTimes && <td>{formatInspectorValue(event.forecast, event)}</td>}
+                  {policyTimes && <td>{formatInspectorValue(event.forecast, event)}</td>}
                   <td className={grading ? `inspector-graded-delta inspector-grade-${grading.grade}` : undefined} title={grading?.explanation}>
                     {commentary ? 'Not applicable' : formatInspectorValue(delta, event, true)}
                     {grading && numericReading && <span className="inspector-row-grade">{gradeLabels[grading.grade]}</span>}
                     {revisedComparison && <div className={`inspector-secondary-reading inspector-grade-${revisedComparison.grade}`}
                       title={revisedComparison.explanation}>{revisedComparison.label}: {formatInspectorValue(revisedComparison.delta, event, true)}
                       <span className="inspector-row-grade">{gradeLabels[revisedComparison.grade]}</span></div>}</td>
-                  {showReadingTimes && <td className={surpriseGrading ? `inspector-graded-delta inspector-grade-${surpriseGrading.grade}` : undefined}
+                  {policyTimes && <td className={surpriseGrading ? `inspector-graded-delta inspector-grade-${surpriseGrading.grade}` : undefined}
                     title={surpriseGrading?.explanation}>{commentary ? 'Not applicable' : formatInspectorValue(inspectorSurprise(event), event, true)}</td>}
-                  {hasMagnitude && (numericReading ? <FamilyMagnitudeCell event={event} history={view.magnitudeHistory} grade={grading?.grade ?? 'unrated'}
-                    deltaScale={magnitudeFamily?.deltaScale} showHistogram={showHistograms} secondaryComparison={revisedComparison} /> : <td>Not applicable</td>)}
+                  {hasMagnitude && (numericReading ? <FamilyMagnitudeCell event={event} history={sourceRelease.id === extraIsmSource?.id ? extraIsmHistory : view.magnitudeHistory} grade={grading?.grade ?? 'unrated'}
+                    deltaScale={rowFamily?.deltaScale} showHistogram={showHistograms} secondaryComparison={revisedComparison} /> : <td>Not applicable</td>)}
                 </tr>
               })}</tbody>
             </table></div>}

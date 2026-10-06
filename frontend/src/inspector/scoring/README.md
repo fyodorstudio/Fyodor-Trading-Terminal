@@ -360,6 +360,19 @@ automation is used. Reproduce the chronological parity/coverage audit with:
 
 ## Monthly ISM v2
 
+`episodes/ism-episodes.ts` assembles one monthly display release and chart symbol
+at the first publication, preserving original Manufacturing and Services
+publications in `ismPublications`. `useInspector` keeps `allReleases` unmerged for
+scoring/history/Scatter and groups only the displayed releases. Pairing requires
+one reference month, verified timestamps, unique sectors, Manufacturing first
+and at most ten days separation. Invalid/ambiguous candidates stay separate.
+Ten-day query padding supplies neighboring companions; display filtering accepts
+either enabled member and either member in range. The table retains all source
+series and times, each sector's grading and magnitude store. The Scoring
+publication selector passes an original source release to the scorer and Scatter,
+defaulting to the latest elapsed publication. Selecting Manufacturing keeps the
+later Services report pending; adding Services preserves the monthly selection ID.
+
 `PAIR/EURUSD/USD/ISM/assessment/ism-score-v2.ts` combines same-reference-month
 Services (70%) and Manufacturing (30%) at the selected publication timestamp.
 Manufacturing uses `ism-manufacturing-score.ts`: orders/employment/prices

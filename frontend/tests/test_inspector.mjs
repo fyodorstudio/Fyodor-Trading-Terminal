@@ -658,8 +658,8 @@ try {
   await respond(storageRequests[3], storedHealth())
   const historicRequest = storageRequests[4]
   const query = new URL('http://localhost' + historicRequest.url).searchParams
-  assert.equal(Number(query.get('from_server_seconds')), Date.UTC(2015, 0, 1) / 1000 - 3600, 'Episode queries include one hour before the visible broker range')
-  assert.equal(Number(query.get('to_server_seconds')), Date.UTC(2015, 1, 1) / 1000 + 3600, 'Episode queries include one hour after the visible broker range')
+  assert.equal(Number(query.get('from_server_seconds')), Date.UTC(2015, 0, 1) / 1000 - 10 * 86400, 'Episode queries include ten days before the visible broker range for ISM pairing')
+  assert.equal(Number(query.get('to_server_seconds')), Date.UTC(2015, 1, 1) / 1000 + 10 * 86400, 'Episode queries include ten days after the visible broker range for ISM pairing')
   assert.equal(query.get('time_basis'), 'chart', 'Range dates refer to the native broker candle clock')
   const historic = { ...stored(event({ server_time_seconds: Date.UTC(2015, 0, 15, 15, 30) / 1000 })),
     chart_time_seconds: Date.UTC(2015, 0, 15, 14, 30) / 1000 }
@@ -830,8 +830,8 @@ try {
   assert.equal(storageRequests.length, start + 1, 'A completed calendar range starts one storage lifecycle')
   await respond(storageRequests[start], storedHealth())
   const completedParams = new URL('http://localhost' + storageRequests[start + 1].url).searchParams
-  assert.equal(Number(completedParams.get('from_server_seconds')), Date.UTC(2026, 9, 1) / 1000 - 3600)
-  assert.equal(Number(completedParams.get('to_server_seconds')), Date.UTC(2026, 9, 3) / 1000 + 3600)
+  assert.equal(Number(completedParams.get('from_server_seconds')), Date.UTC(2026, 9, 1) / 1000 - 10 * 86400)
+  assert.equal(Number(completedParams.get('to_server_seconds')), Date.UTC(2026, 9, 3) / 1000 + 10 * 86400)
   await respond(storageRequests[start + 1], page([rawRow]))
   assert.equal(rangeView.releases.length, 1)
   await click(document.querySelector('[aria-label="Close date range picker"]'))

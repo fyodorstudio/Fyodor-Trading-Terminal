@@ -37,6 +37,9 @@ try {
   const {groupInspectorReleases, defaultInspectorPreferences, inspectorStorageKey, readInspectorPreferences} = await server.ssrLoadModule('./src/inspector/inspector-data.ts')
   const {IsmScoreV2} = await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/ISM/ui/IsmScoreV2.tsx')
   const {InspectorPanel} = await server.ssrLoadModule('./src/inspector/InspectorPanel.tsx')
+  const {groupIsmEpisodes, ismSourceRelease} = await server.ssrLoadModule('./src/inspector/episodes/ism-episodes.ts')
+  const {useInspector} = await server.ssrLoadModule('./src/inspector/useInspector.ts')
+  const {buildInspectorMarkers, filterInspectorReleases} = await server.ssrLoadModule('./src/inspector/inspector-data.ts')
   const {scoringSignalBinding, prepareScoringSignalHistory, scoringSignalModel} = await server.ssrLoadModule('./src/scatter-plot/inspection/scoring-signal-model.ts')
   const {ScatterPlotDock} = await server.ssrLoadModule('./src/scatter-plot/index.ts')
   const {ismServicesSignalSettings, ismManufacturingSignalSettings} = await server.ssrLoadModule('./src/inspector/scoring/shared/core/signal-magnitude-settings.ts')
@@ -77,6 +80,27 @@ try {
   assert.equal(early.services.release,null);assert.equal(early.services.status,'pending');assert.equal(early.strength,'weak')
   assert.equal(early.label,'EURUSD Short');assert.equal(early.contextId,combined.contextId)
   assert.equal(combined.previous.label,early.label)
+  const grouped=groupIsmEpisodes([selected,manufacturing])
+  assert.equal(grouped.length,1);assert.equal(grouped[0].id,combined.contextId)
+  assert.equal(grouped[0].releaseAt,manufacturing.releaseAt);assert.equal(grouped[0].chartTime,manufacturing.chartTime)
+  assert.deepEqual(grouped[0].ismPublications,[manufacturing,selected]);assert.equal(grouped[0].events.length,9)
+  assert.equal(groupIsmEpisodes([manufacturing])[0].id,grouped[0].id,'The monthly marker identity survives the Services update')
+  assert.equal(ismSourceRelease(grouped[0],null,manufacturing.releaseAt).id,manufacturing.id)
+  assert.equal(ismSourceRelease(grouped[0],null,selected.releaseAt).id,selected.id)
+  const markerBars=[manufacturing.chartTime,selected.chartTime].map(time=>({time,open:1,high:2,low:0.5,close:1.5}))
+  assert.equal(buildInspectorMarkers(grouped,defaultInspectorPreferences(),markerBars,'H1').length,1)
+  const serviceRange={from:selected.releaseAt,to:selected.releaseAt+86400000}
+  assert.equal(filterInspectorReleases(grouped,{...defaultInspectorPreferences(),families:['ism-services']},serviceRange).length,1,
+    'A Services-only filter/range retains the shared monthly entry')
+  assert.equal(filterInspectorReleases(grouped,{...defaultInspectorPreferences(),families:['jobs']},serviceRange).length,0)
+  for(const patch of [{timingUncertain:true},{chartTime:null},{events:selected.events.map(e=>({...e,period_seconds:0}))},
+    {events:selected.events.map((e,i)=>i?e:{...e,period_seconds:Date.UTC(2026,5,1)/1000})}]) {
+    assert.equal(groupIsmEpisodes([manufacturing,{...selected,...patch}]).length,2)
+  }
+  assert.equal(groupIsmEpisodes([manufacturing,selected,{...selected,id:'duplicate'}]).length,3)
+  assert.equal(groupIsmEpisodes([manufacturing,{...selected,releaseAt:manufacturing.releaseAt-1000,
+    events:selected.events.map(e=>({...e,release_at:manufacturing.releaseAt-1000}))}]).length,2)
+  assert.deepEqual(assessIsmScoreV2(ismSourceRelease(grouped[0],manufacturing.id),events),early)
   const future=rows('services',2026,7,[99,99,99,99,99],3)
   assert.deepEqual(assessIsmScoreV2(selected,[...events,...future]),combined)
   assert.deepEqual(assessIsmScoreV2(manufacturing,events.filter(e=>e.release_at<=manufacturing.releaseAt)),early)
@@ -152,6 +176,36 @@ try {
   await panel.render({...panelProps,view:{...view,selectedRelease:manufacturing}});assert.equal(panel.container.querySelector('[aria-label="Inspector view"]').value,'scoring-v2')
   await panel.render({...panelProps,view:{...view,preferences:{...prefs,detailView:'scoring'}}});assert.ok(panel.container.querySelector('[aria-label="ISM Services pair direction"]'))
   localStorage.setItem(inspectorStorageKey,JSON.stringify(prefs));assert.equal(readInspectorPreferences().detailView,'scoring-v2')
+  let groupedView
+  const groupedClockOffset=selected.releaseAt+1000-Date.now()
+  function GroupedInspector({input}) {
+    const state=useInspector({events:input,symbol:'EURUSD',bars:markerBars,timeframe:'H1',timeDisplay:{mode:'utc',utcOffsetMinutes:0},clockOffsetMs:groupedClockOffset})
+    React.useEffect(()=>{groupedView=state},[state])
+    return React.createElement(InspectorPanel,{view:state,symbol:'EURUSD',source:null,error:null,timeDisplay:{mode:'utc',utcOffsetMinutes:0},onOpenScatter(r){opened=r}})
+  }
+  const groupedApp=mount(GroupedInspector,{input:events});await groupedApp.render()
+  await React.act(async()=>groupedView.selectCustomRange('2026-08-01','2026-08-31'))
+  assert.equal(groupedView.releases.length,1);assert.equal(groupedView.markers.length,1)
+  assert.equal(groupedView.allReleases.filter(r=>['ism-manufacturing','ism-services'].includes(r.familyId)&&r.releaseAt>=manufacturing.releaseAt).length,2,
+    'Source publication inventory remains separate for scoring and Scatter')
+  await React.act(async()=>groupedView.selectRelease(grouped[0].id))
+  assert.equal(groupedApp.container.querySelector('[aria-label="ISM scoring publication"]').options.length,2)
+  assert.equal(groupedApp.container.querySelector('[aria-label="ISM v2 pair direction"]').textContent,combined.label)
+  await choose(groupedApp.container.querySelector('[aria-label="ISM scoring publication"]'),manufacturing.id)
+  assert.match(groupedApp.container.querySelector('[aria-label="ISM services context"]').textContent,/Pending/)
+  assert.equal(groupedApp.container.querySelector('[aria-label="ISM v2 pair direction"]').textContent,early.label)
+  await choose(groupedApp.container.querySelector('[aria-label="ISM scoring publication"]'),selected.id)
+  assert.equal(groupedApp.container.querySelector('[aria-label="ISM v2 pair direction"]').textContent,combined.label)
+  await choose(groupedApp.container.querySelector('[aria-label="Inspector view"]'),'table')
+  assert.equal(groupedApp.container.querySelectorAll('tbody tr').length,9)
+  assert.equal(groupedApp.container.querySelectorAll('[data-reading-clock="display"]').length,9)
+  assert.equal(groupedApp.container.querySelectorAll('.inspector-row-grade').length,9,'Both sectors retain row grading')
+  assert.ok(![...groupedApp.container.querySelectorAll('th')].some(th=>th.textContent==='Forecast'))
+  await choose(groupedApp.container.querySelector('[aria-label="Inspector view"]'),'scatter');assert.equal(opened.id,selected.id)
+  await groupedApp.render({input:events.filter(e=>e.release_at<=manufacturing.releaseAt)})
+  assert.equal(groupedView.releases.length,1);assert.equal(groupedView.selectedRelease.id,grouped[0].id)
+  await groupedApp.render({input:events});assert.equal(groupedView.selectedRelease.id,grouped[0].id)
+  console.log('✓ One monthly ISM chart marker/list entry, stable updates, distinct timed series, source navigation and selectable as-of scoring without future leakage')
   let requests=0
   globalThis.fetch=async(url)=>{
     if(url==='/storage-api/health')return{ok:true,json:async()=>({revision:1,collector_error:null,sources:[{id:'test-broker',publisher_status:'live',server_now:Date.UTC(2026,9,6)/1000}]})}

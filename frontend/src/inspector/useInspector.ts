@@ -10,6 +10,7 @@ import { buildInspectorMarkers, filterInspectorReleases, groupInspectorReleases,
 import { useStoredCalendar } from './useStoredCalendar'
 import { useFamilyMagnitudeHistory } from './magnitude/useFamilyMagnitudeHistory'
 import { policyEpisodeWindowMs } from './episodes/policy-episodes'
+import { groupIsmEpisodes, ismEpisodeWindowMs } from './episodes/ism-episodes'
 
 const noEvents: EconomicCalendarEvent[] = []
 
@@ -42,19 +43,20 @@ export function useInspector({ events = noEvents, symbol, bars, timeframe, timeD
     if (!inspectorDisplayRange({ from, to }, rangeDisplay)) return
     setCustomFrom(from); setCustomTo(to); setRangePreset('custom')
   }
-  // Fetch neighboring instants so episodes crossing a date boundary remain
-  // intact. Visible releases still filter against the decision's original range.
-  const storageRange = useMemo(() => range ? { from: range.from - policyEpisodeWindowMs,
-    to: range.to + policyEpisodeWindowMs } : null, [range])
+  // Fetch neighboring days so monthly ISM reports and policy companions stay
+  // together even when the visible range contains only one publication.
+  const storageRange = useMemo(() => range ? { from: range.from - Math.max(policyEpisodeWindowMs, ismEpisodeWindowMs),
+    to: range.to + Math.max(policyEpisodeWindowMs, ismEpisodeWindowMs) } : null, [range])
   const storage = useStoredCalendar(brokerId, storageRange, supported && brokerTime)
   const readings = useMemo(() => brokerTime ? storage.events.filter((event) => event.availability === 'observed') : events,
     [brokerTime, storage.events, events])
   const allReleases = useMemo(() => groupInspectorReleases(readings), [readings])
-  const releases = useMemo(() => supported ? filterInspectorReleases(allReleases, preferences, range, brokerTime) : [],
-    [supported, allReleases, preferences, range, brokerTime])
+  const displayReleases = useMemo(() => groupIsmEpisodes(allReleases), [allReleases])
+  const releases = useMemo(() => supported ? filterInspectorReleases(displayReleases, preferences, range, brokerTime) : [],
+    [supported, displayReleases, preferences, range, brokerTime])
   const markers = useMemo(() => buildInspectorMarkers(releases, preferences, bars, timeframe), [releases, preferences, bars, timeframe])
   const selectedRelease = releases.find((release) => release.id === selectedId) ?? null
-  const magnitudeHistory = useFamilyMagnitudeHistory(brokerId, selectedRelease, undefined, clockOffsetMs)
+  const magnitudeHistory = useFamilyMagnitudeHistory(brokerId, selectedRelease?.ismPublications?.[0] ?? selectedRelease, undefined, clockOffsetMs)
   function applyPreferences(next: InspectorPreferences) {
     setPreferences(next)
     try { localStorage.setItem(inspectorStorageKey, JSON.stringify(next)); setStorageFailed(false) }

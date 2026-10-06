@@ -249,8 +249,32 @@ Open either US ISM Services or US ISM Manufacturing in Inspector and select
 its original publication time, plus one combined EURUSD bias, evidence grade,
 change size and explanation of demand, employment and input-price contributions.
 An update message states whether the newest publication established, changed,
-strengthened or weakened weighted support for the monthly bias. Chart markers,
-raw release IDs, filter families and source inventory remain separate.
+strengthened or weakened weighted support for the monthly bias. One chart symbol
+and one Inspector list entry now group the month's two publications, anchored at
+the first publication. The table shows Manufacturing and Services as separate
+series with their actual publication timestamps. **Scoring publication** selects
+the earlier Manufacturing update or the later Services update; it defaults to the
+latest member whose publication time has passed. Raw release IDs, filter families
+and source inventory remain separate for calculations and Scatter navigation.
+
+Display pairing requires a single valid reference month, verified source/chart
+times, at most one publication per sector, Manufacturing before Services, and
+no more than ten days between them. Ambiguous, mixed-reference or unverified
+publications remain separate rather than being guessed into a group. A lone
+verified sector retains the monthly display ID when its companion arrives.
+The Inspector requests ten neighboring days on either side of its visible range
+to assemble companions. Either enabled family and either publication inside the
+selected range can retain the shared entry; its symbol stays at the first report.
+This display grouping does not change scoring weights or release-time admission.
+
+Display integration verification: the stored snapshot's 284 publications now
+produce 142 monthly symbols, preserving all 1,278 source readings and clocks.
+Mounted terminal checks cover one marker/list entry, nine separately timed rows,
+stable selection as Services arrives, source Scatter navigation and switching
+between publication snapshots without future leakage. Full frontend tests,
+production build and lint pass. Visual chart/dock review remains with the user.
+Next refinement should follow a user audit recording each publication's bias,
+evidence and first H1 reaction separately, even though the symbol is shared.
 
 The group's identity is **ISM/reference-year-month**, not proximity on the chart.
 At a Manufacturing publication, the later Services section is pending. At the

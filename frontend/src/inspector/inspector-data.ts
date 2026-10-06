@@ -66,6 +66,7 @@ export type InspectorRelease = {
   serverTime: number
   timingUncertain: boolean
   events: EconomicCalendarEvent[]
+  ismPublications?: InspectorRelease[]
 }
 
 function releaseLabel(event: EconomicCalendarEvent, familyId: string): string | null {
@@ -142,7 +143,12 @@ export function filterInspectorReleases(groups: InspectorRelease[], preferences:
   if (!range) return []
   return groups.filter((group) => {
     const at = brokerTime ? group.serverTime * 1000 : group.releaseAt
-    return preferences.families.includes(group.familyId) && at !== null && at >= range.from && at < range.to
+    const members = group.ismPublications ?? [group]
+    return members.some((member) => preferences.families.includes(member.familyId)) &&
+      (group.ismPublications ? members.some((member) => {
+        const time = brokerTime ? member.serverTime * 1000 : member.releaseAt
+        return time !== null && time >= range.from && time < range.to
+      }) : at !== null && at >= range.from && at < range.to)
   })
 }
 
