@@ -68,6 +68,12 @@
 .positive { color: var(--positive) !important; }
 .negative { color: var(--negative) !important; }
 
+.chart-toolbar-center {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .timeframe-selector {
   display: flex;
   padding: 3px;
@@ -92,6 +98,32 @@
 
 .timeframe-selector button:hover { color: var(--text-strong); background: var(--surface-hover); }
 .timeframe-selector button.active { color: #ffffff; background: var(--accent); box-shadow: 0 3px 12px color-mix(in srgb, var(--accent) 26%, transparent); }
+ 
+.chart-drawing-toggle {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  color: var(--text-muted);
+  background: var(--surface-inset);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.chart-drawing-toggle:hover {
+  color: var(--text-strong);
+  background: var(--surface-hover);
+}
+
+.chart-drawing-toggle.active {
+  color: #ffffff;
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 3px 12px color-mix(in srgb, var(--accent) 26%, transparent);
+}
 
 .quote-summary {
   display: flex;

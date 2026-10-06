@@ -12,6 +12,10 @@ import { AlertDock } from '../alert'
 import { MarketCandlestickChart } from '../market-data/candlestick-chart/MarketCandlestickChart'
 import { MarketChartErrorBoundary } from '../market-data/candlestick-chart/MarketChartErrorBoundary'
 import { FloatingDrawingToolbar } from '../market-data/chart-drawings/FloatingDrawingToolbar'
+import {
+  readDrawingToolbarVisible,
+  saveDrawingToolbarVisible,
+} from '../market-data/chart-drawings/drawing-toolbar-visibility'
 import type { ChartDrawingPoint } from '../market-data/chart-drawings/chart-drawing-record'
 import type { DrawingToolId } from '../market-data/chart-drawings/drawing-tool'
 import { useChartDrawings } from '../market-data/chart-drawings/use-chart-drawings'
@@ -57,6 +61,7 @@ export function FyodorTerminalShell() {
   const [timeDisplay, setTimeDisplay] = useState<TimeDisplayPreference>(readTimeDisplayPreference)
   const [activeDrawingTool, setActiveDrawingTool] = useState<DrawingToolId | null>(null)
   const [selectedDrawingId, setSelectedDrawingId] = useState<string | null>(null)
+  const [drawingToolbarVisible, setDrawingToolbarVisible] = useState<boolean>(readDrawingToolbarVisible)
   const [bottomDockWindow, setBottomDockWindow] = useState<BottomDockWindow | null>('notebook')
   const [scatterTarget, setScatterTarget] = useState<ScatterReleaseTarget | null>(null)
   const dockSize = useBottomDockSize(bottomDockWindow)
@@ -205,6 +210,15 @@ export function FyodorTerminalShell() {
   }
 
   const exitDrawingMode = useCallback(() => setActiveDrawingTool(null), [])
+  const toggleDrawingToolbar = useCallback(() => {
+    setDrawingToolbarVisible((current) => {
+      const next = !current
+      saveDrawingToolbarVisible(next)
+      appendActivity('Drawing', next ? 'Drawing toolbar shown' : 'Drawing toolbar hidden')
+      return next
+    })
+    setActiveDrawingTool(null)
+  }, [appendActivity])
   const setArrowSelection = registeredArrows.setSelectedArrowId
   const selectChartArrow = useCallback((arrow: RegisteredTradeArrow) => {
     setArrowSelection(arrow.id); selectBottomDock('notebook')
@@ -248,6 +262,8 @@ export function FyodorTerminalShell() {
             quote={quote}
             timeframe={timeframe}
             onSelectTimeframe={selectTimeframe}
+            drawingToolbarVisible={drawingToolbarVisible}
+            onToggleDrawingToolbar={toggleDrawingToolbar}
           />
           <div className="chart-frame">
             <MarketChartErrorBoundary
@@ -285,13 +301,15 @@ export function FyodorTerminalShell() {
             {marketData.chartStatus === 'live' && marketData.chartHistoryLoading && (
               <CandleHistoryLoadingNotice symbol={activeSymbol} timeframe={timeframe} />
             )}
-            <FloatingDrawingToolbar
+            {drawingToolbarVisible && (
+              <FloatingDrawingToolbar
               activeTool={activeDrawingTool}
               drawingCount={totalDrawingCount}
               onSelectCrosshair={selectCrosshair}
               onToolChange={chooseDrawingTool}
               onClearAll={deleteAllDrawings}
             />
+            )}
             <div className="chart-watermark" aria-hidden="true">
               <strong>{activeSymbol}</strong>
               <span>{`${timeframe} Â· ${marketData.chartStatus === 'live' ? 'MT5 broker data' : 'Awaiting MT5 data'}`}</span>
