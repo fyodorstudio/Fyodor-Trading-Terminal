@@ -1,3 +1,4 @@
+import { RelativePublicationContext } from '../../../../../../../pair-context/ui/RelativePublicationContext'
 import type { InspectorEvent, InspectorRelease } from '../../../../../../inspector-data'
 import type { TimeDisplayPreference } from '../../../../../../../appearance/time-display/time-display-preference'
 import { ContextInputTable } from '../../../../../../../usd-context/ui/ContextInputTable'
@@ -44,5 +45,6 @@ export function CpiScoreV4({ release, brokerId = null, events, now, timeDisplay 
     <p>These context controls are shared with Raycaster. Inspector’s marker filters do not change them. The table uses the selected publication time; later releases are excluded. Claims expires after 14 days, GDP after 120; other families after 45. NFP and Claims share the labor budget.</p>
     <h3>CPI readings and standalone rules</h3>
     {ready && <><p>{assessment.strengthReason}</p><CpiScoreDetails assessment={assessment} label="CPI v4 standalone" /></>}
+    <RelativePublicationContext release={release} brokerId={brokerId} events={events} now={now} />
   </div>
 }

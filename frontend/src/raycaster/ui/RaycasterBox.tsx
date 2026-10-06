@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react'
+import type { relativeContext } from '../../pair-context/core/relative-context'
 import { useCallback, useId, useRef } from 'react'
 import type { ContextFamily, ContextPoint } from '../../usd-context/core/contracts'
 import { RaycasterDetails } from './RaycasterDetails'
@@ -8,7 +10,8 @@ import { familyTitle } from '../../usd-context/core/explanation'
 import './raycaster.css'
 
 export function RaycasterBox({ symbol, point, cutoff, loading, message, notice, timeDisplay, onClose, families,
-  detailsOpen, onDetailsChange, onToggleFamily, held }: {
+  detailsOpen, onDetailsChange, onToggleFamily, held, relative, relativeUpdate, extraDetails }: {
+  relative?: ReturnType<typeof relativeContext> | null; relativeUpdate?: string | null; extraDetails?: ReactNode;
   symbol: string; point: ContextPoint | null; cutoff: number | null; loading: boolean; message: string | null;
   timeDisplay: TimeDisplayPreference; onClose: () => void; notice?: string | null; families: readonly ContextFamily[];
   detailsOpen: boolean; onDetailsChange: (open: boolean) => void; onToggleFamily: (family: ContextFamily) => void; held: boolean
@@ -18,9 +21,10 @@ export function RaycasterBox({ symbol, point, cutoff, loading, message, notice, 
   const detailsTrigger = useRef<HTMLButtonElement>(null)
   const closeDetails = useCallback(() => onDetailsChange(false), [onDetailsChange])
   const result = point?.result
-  const label = loading ? 'Calculating USD context…' : message ? 'USD context unavailable' : cutoff === null ? 'Hover a candle to inspect' :
-    result ? contextPairLabel(symbol, result.direction) : 'Uncomputed'
-  const tone = result?.direction === 'uncomputed' || !result ? '' : label.endsWith('Long') ? 'long' : 'short'
+  const strength = relative ? relative.strength : result?.strength
+  const label = loading ? (relative ? 'Calculating EUR / USD context…' : 'Calculating USD context…') : message ? 'USD context unavailable' : cutoff === null ? 'Hover a candle to inspect' :
+    relative ? relative.label : result ? contextPairLabel(symbol, result.direction) : 'Uncomputed'
+  const tone = label === 'Uncomputed' || loading || message || cutoff === null ? '' : label.endsWith('Long') ? 'long' : 'short'
   return <aside ref={ref} className={`raycaster-box${detailsOpen ? ' raycaster-details-open' : ''}`} aria-label="Raycaster USD context"
     style={{ transform: `translate(${position.x}px, ${position.y}px)` }}>
     <header><button type="button" onPointerDown={drag} className="raycaster-handle" aria-label="Move Raycaster" title="Drag to move Raycaster">⠿ Raycaster</button>
@@ -33,13 +37,13 @@ export function RaycasterBox({ symbol, point, cutoff, loading, message, notice, 
       </button>
       <button type="button" onClick={onClose} aria-label="Hide Raycaster" title="Hide Raycaster">×</button></header>
     {detailsOpen && <RaycasterDetails id={detailsId} families={families} trigger={detailsTrigger} onClose={closeDetails}
-      onToggleFamily={onToggleFamily} result={result ?? null} symbol={symbol} loading={loading} unavailable={!!message} cutoff={cutoff} held={held} timeDisplay={timeDisplay} summaryLabel={label} />}
-    <strong className={`raycaster-bias ${tone}`}>{label}{!loading && !message && cutoff !== null && result?.strength && ` · ${result.strength.charAt(0).toUpperCase() + result.strength.slice(1)} evidence`}</strong>
+      extraDetails={extraDetails} onToggleFamily={onToggleFamily} result={result ?? null} symbol={symbol} loading={loading} unavailable={!!message} cutoff={cutoff} held={held} timeDisplay={timeDisplay} summaryLabel={label} />}
+    <strong className={`raycaster-bias ${tone}`}>{label}{!loading && !message && cutoff !== null && strength && ` · ${strength.charAt(0).toUpperCase() + strength.slice(1)} evidence`}</strong>
     <p>{loading ? 'Preparing the historical release timeline.' : message ?? (cutoff === null ? 'Move across the chart to read the USD context at each candle’s end.' :
-      result?.explanation ?? 'No eligible release history is available at this candle.')}</p>
-    {!loading && !message && point && cutoff !== null && <p className="raycaster-update">Latest update: {point.update}</p>}
-    <small title={result ? `${result.reason}\n${result.members.map(m => `${familyTitle(m)} · ${formatAppTimestamp(m.releaseAt, timeDisplay)} · weighted score ${m.contribution.toFixed(3)}`).join('\n')}` : undefined}>
-      USD side only · Raycaster filters{cutoff !== null && <> · As of {formatAppTimestamp(cutoff, { mode: 'utc', utcOffsetMinutes: 0 })} broker time (candle end / current time)</>}
+      relative?.explanation ?? result?.explanation ?? 'No eligible release history is available at this candle.')}</p>
+    {!loading && !message && point && cutoff !== null && <p className="raycaster-update">Latest update: {relative ? `EUR: ${relativeUpdate ?? 'no eligible update'} · USD: ${point.update}` : point.update}</p>}
+    <small title={relative ? `${relative.explanation}\nEUR ${relative.eurTotal?.toFixed(3) ?? 'unavailable'}; USD ${relative.usdTotal?.toFixed(3) ?? 'unavailable'}` : result ? `${result.reason}\n${result.members.map(m => `${familyTitle(m)} · ${formatAppTimestamp(m.releaseAt, timeDisplay)} · weighted score ${m.contribution.toFixed(3)}`).join('\n')}` : undefined}>
+      {relative ? 'Relative EUR / USD' : 'USD side only'} · Raycaster filters{cutoff !== null && <> · As of {formatAppTimestamp(cutoff, { mode: 'utc', utcOffsetMinutes: 0 })} broker time (candle end / current time)</>}
     </small>
     {notice && <small role="status">{notice}</small>}
   </aside>

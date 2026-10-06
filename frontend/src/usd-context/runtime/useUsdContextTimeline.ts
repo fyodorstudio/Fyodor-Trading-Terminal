@@ -2,14 +2,12 @@ import { useMemo } from 'react'
 import { useStoredCalendar } from '../../inspector/useStoredCalendar'
 import { calendarAdmissionTime } from '../../inspector/storage/calendar-admission-time'
 import { cpiSignalSettings, nfpSignalSettings, ismServicesSignalSettings, ismManufacturingSignalSettings, retailSignalSettings, claimsSignalSettings, pceSignalSettings, ppiSignalSettings, gdpSignalSettings } from '../../inspector/scoring/shared/core/signal-magnitude-settings'
-import { useBackgroundCalculation } from '../../inspector/scoring/shared/runtime/useBackgroundCalculation'
+import { useSharedContextCalculation } from './useSharedContextCalculation'
 import { contextSeriesIds } from '../core/score-publication'
 import { enabledContextFamilies } from '../core/policy'
-import { buildContextTimeline } from '../core/build-context-timeline'
 import type { InspectorEvent } from '../../inspector/inspector-data'
 
 const scope = { currency: 'USD' as const, eventIds: contextSeriesIds }
-const createWorker = () => new Worker(new URL('./context-timeline.worker.ts', import.meta.url), { type: 'module' })
 const emptyEvents: readonly InspectorEvent[] = []
 export function useUsdContextTimeline(brokerId: string | null, families: readonly string[], now: number, events: readonly InspectorEvent[] = emptyEvents, loadHistory = false) {
   // Whole historical inventory, independent of Inspector's visible date range.
@@ -29,6 +27,6 @@ export function useUsdContextTimeline(brokerId: string | null, families: readonl
   const input = useMemo(() => !storage.loading && selected.length && (brokerId || inventory.length) ?
     { events: inventory, families: selected, settings: { cpi, nfp, services, manufacturing, retail, claims, pce, ppi, gdp }, asOf } : null,
     [brokerId, inventory, storage.loading, selected, cpi, nfp, services, manufacturing, retail, claims, pce, ppi, gdp, asOf])
-  const calculation = useBackgroundCalculation(input, buildContextTimeline, createWorker)
+  const calculation = useSharedContextCalculation(input, brokerId)
   return { ...calculation, loading: storage.loading || calculation.loading, storage, selected, inventory }
 }

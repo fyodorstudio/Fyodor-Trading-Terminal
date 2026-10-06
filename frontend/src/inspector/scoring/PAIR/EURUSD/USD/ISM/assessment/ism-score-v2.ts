@@ -68,14 +68,15 @@ function buildContext(month: number | null, at: number | null, events: readonly 
     explanation, sectorConflict, laborConflict, ...evidence, version: ismScoreV2Version }
 }
 
-export function assessIsmScoreV2(release: InspectorRelease | null, events: readonly EconomicCalendarEvent[], settings: IsmV2Settings = {}) {
+export function assessIsmScoreV2(release: InspectorRelease | null, events: readonly EconomicCalendarEvent[], settings: IsmV2Settings = {}, includePrevious = true) {
   if (!release || !supportsIsmV2(release)) return null
   const month = contextReference(release), at = release.timingUncertain ? null : release.releaseAt
   // Include selected source rows even when the caller's inventory range omits
   // that publication. Different value IDs still preserve duplicate ambiguity.
   const inventory = [...release.events, ...events]
   const assessment = buildContext(month, at, inventory, settings)
-  const before = buildContext(month, at === null ? null : at - 1, inventory, settings)
+  const before = includePrevious ? buildContext(month, at === null ? null : at - 1, inventory, settings) : null
+  if (!before) return { ...assessment, previous: null, update: '' }
   const update = assessment.direction === 'uncomputed' ? 'This update does not establish a usable direction.' : before.direction === 'uncomputed' ?
     `This publication establishes ${assessment.label} for the monthly context.` : assessment.direction !== before.direction ?
       `This publication changes the monthly context from ${before.label} to ${assessment.label}.` :

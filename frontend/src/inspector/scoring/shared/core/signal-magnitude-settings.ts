@@ -1,4 +1,5 @@
 import { createMagnitudeSettingsStore } from '../../../magnitude/settings/magnitude-settings-store'
+import { eurMagnitudeStores } from '../../PAIR/EURUSD/EUR/policy/eur-magnitude-settings'
 
 // These cutoffs grade derived scorer inputs, separately from the original A−P series.
 export const cpiSignalSettings = createMagnitudeSettingsStore(
@@ -31,4 +32,4 @@ export const ppiSignalSettings = createMagnitudeSettingsStore(
 export const gdpSignalSettings = createMagnitudeSettingsStore(
   { pair: 'EURUSD', currency: 'USD', side: 'quote', family: 'GDP-V1-SIGNALS' },
   ['growth', 'consumption', 'sales'])
-export const signalMagnitudeStores = [cpiSignalSettings, nfpSignalSettings, pceSignalSettings, ismServicesSignalSettings, ismManufacturingSignalSettings, retailSignalSettings, claimsSignalSettings, legacyClaimsSignalSettings, ppiSignalSettings, gdpSignalSettings] as const
+export const signalMagnitudeStores = [cpiSignalSettings, nfpSignalSettings, pceSignalSettings, ismServicesSignalSettings, ismManufacturingSignalSettings, retailSignalSettings, claimsSignalSettings, legacyClaimsSignalSettings, ppiSignalSettings, gdpSignalSettings, ...Object.values(eurMagnitudeStores)] as const

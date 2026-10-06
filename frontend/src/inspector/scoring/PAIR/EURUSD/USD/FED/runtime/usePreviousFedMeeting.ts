@@ -1,3 +1,4 @@
+import { fedRatePath } from '../assessment/fed-rate-path'
 import { useMemo } from 'react'
 import type { EconomicCalendarEvent } from '../../../../../../calendar-event'
 import type { InspectorRelease } from '../../../../../../inspector-data'
@@ -12,5 +13,6 @@ export function usePreviousFedMeeting(release: InspectorRelease, brokerId: strin
   const storage = useStoredCalendar(brokerId, range, !!range, scope)
   const history = brokerId ? storage.events : events
   const previous = useMemo(() => previousFedMeeting(release, history), [release, history])
-  return { previous, storage }
+  const path = useMemo(() => fedRatePath(release, history), [release, history])
+  return { previous, storage, path }
 }

@@ -1,16 +1,19 @@
 import type { EconomicCalendarEvent } from '../../../../../../calendar-event'
-import { groupInspectorReleases, type InspectorRelease } from '../../../../../../inspector-data'
+import type { InspectorRelease } from '../../../../../../inspector-data'
 import type { MagnitudeSettings } from '../../../../../../magnitude/settings/magnitude-settings-store'
-import { earlierSignalReadings, calibrateHistoricalSignal } from '../../../../../shared/core/historical-release-signals'
+import { calibrateHistoricalSignal } from '../../../../../shared/core/historical-release-signals'
+import { chronologicalFeatureHistory } from '../../../../../shared/core/chronological-feature-history'
 import { magnitudeEvidence } from '../../../../../shared/core/magnitude-evidence'
 import { claimsFeatures, supportsClaimsScore } from './claims-features'
 import { claimsLevelContext } from './claims-level-context'
+import { claimsRevisionContext } from './claims-revision-context'
 import { claimsScoreVersion, claimsSeriesIds, claimsSignals } from '../policy/claims-policy'
+
+const featureHistory = chronologicalFeatureHistory(claimsSeriesIds, supportsClaimsScore, claimsFeatures)
 
 export function assessClaimsScore(release: InspectorRelease | null, events: readonly EconomicCalendarEvent[], settings: MagnitudeSettings = {}) {
   if (!release || !supportsClaimsScore(release)) return null
-  const history = earlierSignalReadings(release, events, claimsSeriesIds)
-  const past = groupInspectorReleases(history).filter(supportsClaimsScore).map(r => claimsFeatures(r, history))
+  const { history, past } = featureHistory(release, events)
   const current = claimsFeatures(release, history)
   const readings = claimsSignals.map(signal => {
     const samples = past.map(features => features[signal.id].value).filter((n): n is number => n !== null)
@@ -42,7 +45,7 @@ export function assessClaimsScore(release: InspectorRelease | null, events: read
   const cautions = weekly.points !== null && weekly.points !== 0 && trend.points === 0 && continuing.points === 0 ?
     ['Only the latest week changed; sustained deterioration or improvement is not confirmed.'] : []
   const evidence = magnitudeEvidence(readings, direction, !!tieBreak, cautions)
-  return { readings, levels, shape, total, tieBreak, direction, label,
+  return { readings, levels, revisions: claimsRevisionContext(release, history), shape, total, tieBreak, direction, label,
     explanation: `${shape} ${explanation}${levels.some(level => level.state === 'elevated') ? ' Some claims levels remain elevated relative to their own preceding year.' : ''}`,
     ...evidence, ...(cautions.length && direction !== 'uncomputed' ? { strength: 'weak' as const } : {}), version: claimsScoreVersion }
 }

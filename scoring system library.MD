@@ -1,11 +1,12 @@
 # Scoring system library
 
-Updated: 6 October 2026. Scope: EURUSD, starting with USD event families.
+Updated: 7 October 2026. Scope: EURUSD, starting with USD event families.
 
-## Accepted EUR roadmap — deferred implementation
+## Accepted EUR roadmap — numerical v1 implemented
 
-The user accepted this sequence on 6 October 2026. It is planned work, not
-implemented coverage. Investigate the current USD-context audit before expanding.
+The user authorized the dataset-only implementation on 6 October 2026 after the
+USD audit. The numerical scorers and selectable relative view are now implemented;
+text guidance remains outside scope. See the latest implementation section below.
 
 1. Euro-area inflation, with German CPI/HICP as supporting country context.
 2. Euro-area PMIs, incorporating German and French publications at their actual
@@ -177,7 +178,7 @@ broader context expansion will follow the remaining inputs.
 | After the surrounding inputs | FOMC | Rate action plus changes in statement, projections and press-conference guidance | Rate action v1 implemented; statement/projection/conference interpretation needs timestamped source text |
 | Later | PPI, Fed Chair speeches | Additional context after the core families are useful | PPI v1 implemented and integrated; Fed Chair text coverage unavailable |
 | After FOMC | Broader USD context | Add policy guidance to inflation, employment and growth context | Planned |
-| Later | ECB and euro-area families | Relative EUR versus USD context for EURUSD | Proposed |
+| Current | ECB and euro-area families | Relative EUR versus USD context for EURUSD | Numerical v1 implemented; user audit next |
 | Later | Other currencies | Reuse infrastructure with explicit currency-specific policies | Proposed |
 
 ### Implemented: USD Retail Sales v1
@@ -1390,3 +1391,165 @@ Validation and stored replay are recorded in
 Manual checks belong to the user: Claims shape/level explanations, V2 Scatter
 magnitudes, Fed hold headline parity with Raycaster, previous-meeting comparison,
 shared toggles and short dock heights. There was no automated visual UI audit.
+
+## Fed v2 / Claims v2 user audit follow-up — October 6, 2026
+
+[Detailed findings and proposed next pass](reports/Fed-v2-Claims-v2-user-findings-audit.md)
+replay all 13 reported Fed directions and four Claims directions with automatic
+magnitudes and every Raycaster family enabled. Three difficult Fed meetings and
+all four Claims cases pass physical future-removal checks. The production worker
+matches the pure timeline. The audit makes no scoring or application UI changes.
+
+The full numerical context build takes approximately 15 seconds in a headless
+replay (production worker roundtrip approximately 17 seconds). Context jobs/results
+are not shared across consumers/remounts; Claims and ISM repeatedly reconstruct
+historical calibration inputs. Next priority is equivalent-request reuse and
+chronological feature/calibration prefixes, with exact output parity and complete
+broker/filter/settings/cutoff invalidation. No hover-time rescoring is proposed.
+
+Fed v2's main bias is numerical economic context, not an interpretation of Fed
+guidance. October 2025's December-cut caution and April 2026's statement easing
+bias identify omitted policy information. Speeches remain excluded; adding any
+structured policy/projection/balance-sheet information is a proposed later scope,
+not implemented by this audit. No weights were tuned to force these dates to match.
+
+The July 2025 hold's Short context flips to Long at August 1 NFP before the user's
+reported later rally. April 7–8, 2026 also contains a ceasefire announcement outside
+the numerical menu. The later April 30 ECB decision reinforces the previously
+deferred EUR-side roadmap, but does not establish a cause for the earlier reversal.
+
+Keep Claims v2 voting rules pending broader review. Investigate adjustment-vintage
+consistency around annual seasonal revisions: March 27, 2025 revised prior years,
+whereas stored feature windows lack a complete same-vintage history. The existence
+of that risk is verified; its effect on individual scores is not yet quantified.
+
+
+## Implemented: dataset-only performance, revision visibility and EUR context v1 — October 6–7, 2026
+
+This supersedes the deferred EUR status and proposed source acquisition above.
+The user explicitly restricted the scope to stored numerical calendar data.
+No transcripts, geopolitical feeds, forecasts or price-return training enter
+these rules. The existing USD scorer weights, formulas, evidence grades and
+context policy stay unchanged.
+
+### Performance and integrity
+
+Claims and NFP now prepare historical features once per immutable inventory.
+Every feature still uses only prior publications available at its own release.
+Duplicate value identities use the original cutoff-dependent path. Context
+assessment skips the unused ISM previous-publication display calculation.
+Equivalent Inspector/Raycaster requests share a worker and a bounded completed
+result cache; broker, inventory, settings, enabled families and admission time
+form the key. Abandoned jobs terminate, stale replies cannot overwrite a newer
+job, and hover remains a binary timeline lookup.
+
+The full 5,696-point USD replay and all 606 Claims / 141 NFP assessments match
+the reference path exactly. Cold pure calculation was approximately 8.3 seconds
+versus 15.0 seconds on this machine in the final replay. This is a local benchmark, not a live-load
+latency guarantee; warm equivalent requests reuse results. See
+[dataset expansion audit](reports/Dataset-context-expansion-audit.md).
+
+Claims shows supplied prior revisions that differ from the stored preceding
+weekly publication. They add no vote. Only the nearest revised week is available;
+older windows retain stored values. A complete common-vintage series cannot be
+reconstructed, and no guessed seasonal-revision penalty is added. NFP's existing
+preceding-reference-month revision safeguard remains intact; hiring history still
+uses stored earlier actuals. Neither feed provides certified original vintages.
+
+Fed v2 now also displays the rate change against the stored previous meeting and
+whether a hold follows the most recent verifiable cut/increase. Supplied-prior
+inconsistency is disclosed and its action-only interpretation withheld. These
+facts do not add a second vote, refresh old evidence or claim policy guidance.
+Null statement/conference/projection rows remain unscored.
+
+### EUR standalone scorers
+
+Select **Scoring system** for the supported EUR family. Scatter Plot's **Scoring
+signal** measure exposes each derived feature, its earlier calibration population
+and automatic/custom magnitude boundaries. Settings are independent per EUR family
+and portable with workspace exports. Original Actual minus Previous plots remain.
+
+| Family | Voting interpretation | Release weights |
+| --- | --- | --- |
+| Euro-area inflation | Annual core change, annual core trend, annual headline change | 50 / 35 / 15 |
+| German inflation | Annual HICP change/trend and annual CPI change | 60 / 25 / 15 |
+| Euro-area / German / French PMI | Composite replaces overlapping sector votes; otherwise Services, then Manufacturing | One activity vote, 100% |
+| Monthly euro-area unemployment | Inverse change from preceding distinct reference month | 100% |
+| Quarterly euro-area employment | Quarterly growth change and annual growth change | 75 / 25 |
+| Euro-area wages / labor costs | Changes in annual wage costs and total labor costs | 70 / 30 |
+| Euro-area GDP | Quarterly and annual growth changes against preceding quarter | 80 / 20 |
+| ECB rates | Deposit-rate action anchors a single action; other rates must have consistent available action signs | Action-only Weak evidence; hold has no vote |
+
+Inflation's trend compares overlapping three-reference-period averages, with
+related annual features treated as one evidence group. PMI below 50 remains a
+contraction signal even when rebounding; above 50 compares against its preceding
+three-period average, floored at 50. Other growth/wage rules describe acceleration
+or deceleration, rather than universal healthy/unhealthy levels.
+
+Annual inflation anchors v1: raw monthly/index rows stay visible but do not vote.
+This avoids treating seasonal monthly readings and index levels as additional
+independent inflation evidence. It also avoids guessing corrections for apparent
+provider monthly-field inconsistencies in the stored EUR inventory.
+
+Historical comparisons use the preceding distinct reference period, not a final
+publication's supplied Previous that may refer to its own flash estimate. Final
+rows replace flash rows for that period only after publication. Calibration uses
+one latest eligible earlier publication per reference period, excludes the current
+period, and requires 24 usable earlier signals. Missing/ambiguous/latest-invalid
+readings are not filled from an older valid publication. All-zero or unavailable
+directional evidence stays Uncomputed; exact cancellation uses declared priority
+and Weak evidence. Monthly and quarterly labor publications have their own
+expected component weights; an absent quarterly report is not falsely labelled
+missing inside a monthly unemployment release.
+
+### Relative EUR / USD context
+
+Raycaster gear → **Context view → EUR vs USD** enables the bilateral prototype on
+EURUSD only. **USD side** remains the default and retains the existing behavior
+on all supported USD pairs. EUR input toggles are independent of USD toggles and
+Inspector marker filters. The mode and EUR toggles are saved and exported.
+When relative mode is enabled, full registered Inspector scoring views and CPI
+v4 (including Fed and EUR releases) also show relative context at the selected publication alongside the
+existing interpretations.
+
+Both legs have a 100% nominal domain budget: inflation 40%, labor/wages 40%,
+activity 20%. Each signed magnitude contribution is divided by 4, giving a
+comparable declared score scale, not an estimated economic exchange-rate effect.
+Relative pressure = normalized EUR pressure minus normalized USD pressure.
+Positive supports EURUSD Long; negative supports EURUSD Short. Missing weight is
+never redistributed; both legs need usable context.
+
+| EUR context slot | Budget |
+| --- | ---: |
+| Inflation | 40% |
+| Monthly unemployment | 20% |
+| Quarterly employment | 10% |
+| Wages / labor costs | 10% |
+| PMI activity | 15% |
+| GDP | 5% |
+
+Euro-area aggregates replace country proxies for the same reference period.
+Germany alone has at most 40% of the inflation slot while the aggregate is absent;
+this is a conservative proxy limit, not a claim about Germany's economic share.
+German / French PMI proxy shares are 60 / 40 within the PMI slot. They never add
+to an available same-period euro-area aggregate. A newer country reference period
+can update context before the aggregate arrives. Old reference-period revisions
+cannot replace a newer known period.
+
+EUR monthly slots halve after 30 broker-calendar days and expire after 60 days.
+Quarterly employment, wages and GDP halve after 90 and expire after 150 days.
+Latest missing readings invalidate the corresponding old vote. Rate holds and
+empty policy text add no memory vote. USD retention and conditional labor policies
+remain unchanged. Relative evidence is capped at Moderate for v1; incomplete
+coverage, proxy dependence, cancellation or a narrow lead give Weak evidence.
+Exact cancellation follows the USD leg's declared direction; no directional fact
+on either leg stays Uncomputed.
+
+### Next audit
+
+Review EUR standalone meaning first, then relative contributions and publication
+chronology on the same H1 dates. Record release bias, combined bias and price
+reaction separately. Audit proxy replacement, flash/final updates, lagged quarterly
+labor and GDP, saved settings, historical cursor movement and short dock heights.
+Visual UI checks remain the user's responsibility. Broader price disagreements
+remain open findings; no rule was fitted to make a particular candle agree.

@@ -1,0 +1,19 @@
+# EURUSD relative numerical context
+
+`core/` owns pure EUR publication replay, bounded domain budgets, country/aggregate
+replacement and normalized leg comparison. `runtime/` owns scoped storage and
+shared worker calculation. `storage/` owns saved mode/EUR toggles. `ui/` exposes
+relative contributions in Raycaster and Inspector without importing either
+subsystem's view or runtime.
+
+The USD engine is unchanged and remains the default. Relative mode is EURUSD-only.
+Both legs use signed magnitude points with nominal 100% budgets. EUR is normalized
+inside its timeline; USD is divided by 4 at comparison. Missing weight is not
+redistributed. EUR aggregates replace overlapping national proxies per reference
+period. Publication and broker chart-clock order are verified; daily aging is
+precomputed and cursor lookup is binary. No mouse movement triggers scoring.
+
+Standalone EUR rules/settings live in
+`inspector/scoring/PAIR/EURUSD/EUR/{policy,assessment,runtime,ui}`. ECB numeric
+rate actions remain separate, with no hold/text vote. See the root scoring library
+for weights, retention, evidence limits and the current audit scope.

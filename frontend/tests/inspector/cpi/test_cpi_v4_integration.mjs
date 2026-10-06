@@ -89,7 +89,7 @@ try {
   const storedProps = { ...props, brokerId: 'v4-broker', events: [] }
   await render(CpiScoreV4, storedProps)
   assert.equal(workers.length, 2)
-  const contextWorker = workers.find(w => w.jobs[0]?.input.families), cpiWorker = workers.find(w => w.jobs[0]?.input.release)
+  let contextWorker = workers.find(w => w.jobs[0]?.input.families), cpiWorker = workers.find(w => w.jobs[0]?.input.release)
   const reply = async (worker, job = worker.jobs.at(-1)) => React.act(async () => worker.onmessage({ data: { id: job.id,
     result: job.input.release ? calculateCpiRelease(job.input) : buildContextTimeline(job.input) } }))
   await reply(contextWorker); await reply(cpiWorker)
@@ -107,10 +107,12 @@ try {
   await render(CpiScoreV4, { ...storedProps, release: previousRelease, now: now + 2000 })
   assert.equal(contextWorker.jobs.length, 1); assert.equal(cpiWorker.jobs.length, 2)
   await React.act(async () => claimsSignalSettings.save('initial-trend', [1, 2, 3]))
-  assert.equal(contextWorker.jobs.length, 2); assert.equal(cpiWorker.jobs.length, 2)
+  contextWorker = workers.filter(w => w.jobs[0]?.input.families).at(-1)
+  assert.equal(workers.length, 3); assert.equal(contextWorker.jobs.length, 1); assert.equal(cpiWorker.jobs.length, 2)
   await reply(contextWorker)
   await React.act(async () => cpiSignalSettings.save('fresh', [.01, .02, .03]))
-  assert.equal(contextWorker.jobs.length, 3); assert.equal(cpiWorker.jobs.length, 3)
+  contextWorker = workers.filter(w => w.jobs[0]?.input.families).at(-1)
+  assert.equal(workers.length, 4); assert.equal(contextWorker.jobs.length, 1); assert.equal(cpiWorker.jobs.length, 3)
   assert.equal(requests.length, requestCount, 'Magnitude edits cannot reload the calendar')
   await reply(contextWorker); await reply(cpiWorker)
   await React.act(async () => preferences.saveContextFamilies([]))

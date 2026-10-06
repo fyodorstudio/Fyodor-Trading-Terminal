@@ -1,3 +1,4 @@
+import { relativePreferencesKey, validRelativePreferences } from '../pair-context/storage/relative-preferences'
 import { magnitudeFamilies } from '../inspector/magnitude/magnitude-families'
 import { signalMagnitudeStores } from '../inspector/scoring/shared/core/signal-magnitude-settings'
 import { validMagnitudeLimits } from '../inspector/magnitude/magnitude-distribution'
@@ -31,6 +32,7 @@ const validators: Record<string, (v: unknown) => boolean> = {
   'fyodor.market-watch.collapsed.v1': (v) => typeof v === 'boolean',
   'fyodor.raycaster.visible.v1': (v) => typeof v === 'boolean',
   [contextFamiliesKey]: validContextFamilyPreference,
+  [relativePreferencesKey]: validRelativePreferences,
   'fyodor.raycaster.position.v1': (v) => record(v) && finite(v.x) && finite(v.y) && v.x >= 0 && v.y >= 0,
   'fyodor.drawing-toolbar-position.v1': (v) => record(v) && finite(v.x) && finite(v.y) && v.x >= 0 && v.y >= 0,
   'fyodor.activity-visible-sources.v2': (v) => array(v, (source) => activitySources.includes(source as typeof activitySources[number])),

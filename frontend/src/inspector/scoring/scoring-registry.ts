@@ -1,3 +1,4 @@
+import { EcbScore } from './PAIR/EURUSD/EUR/ui/EcbScore'
 import type { InspectorRelease } from '../inspector-data'
 import { NfpMagnitudeScoreTables } from './PAIR/EURUSD/USD/NFP/ui/NfpMagnitudeScoreTables'
 import { CpiMagnitudeScoreTables } from './PAIR/EURUSD/USD/CPI/ui/CpiMagnitudeScoreTables'
@@ -6,12 +7,17 @@ import { RetailScore } from './PAIR/EURUSD/USD/RETAIL/ui/RetailScore'
 import { ClaimsScore } from './PAIR/EURUSD/USD/CLAIMS/ui/ClaimsScore'
 import { ExpandedReleaseScore } from './shared/ui/ExpandedReleaseScore'
 import { FedScore } from './PAIR/EURUSD/USD/FED/ui/FedScore'
+import { EurScore } from './PAIR/EURUSD/EUR/ui/EurScore'
+import { eurPolicies } from './PAIR/EURUSD/EUR/policy/eur-policies'
 import type { InspectorScoringBinding } from './scoring-contracts'
 
 // Pair bindings stay explicit even when Inspector adds support for other pairs.
 const matchesEurusdSymbol = (symbol: string) => /^EURUSD(?:[._-].*|[a-z]*)$/i.test(symbol)
 
 export const inspectorScoringBindings: readonly InspectorScoringBinding[] = [
+  { pair: 'EURUSD', country: 'EU', currency: 'EUR', familyId: 'ecb', matchesSymbol: matchesEurusdSymbol, Component: EcbScore, fullView: true },
+  ...eurPolicies.map(policy => ({ pair: 'EURUSD', country: policy.country, currency: 'EUR' as const, familyId: policy.family,
+    matchesSymbol: matchesEurusdSymbol, Component: EurScore, fullView: true })),
   ...['gdp', 'ppi'].map(familyId => ({ pair: 'EURUSD', country: 'US', currency: 'USD' as const, familyId, matchesSymbol: matchesEurusdSymbol, Component: ExpandedReleaseScore, fullView: true })),
   ...['fomc', 'fed-chair'].map(familyId => ({ pair: 'EURUSD', country: 'US', currency: 'USD' as const, familyId, matchesSymbol: matchesEurusdSymbol, Component: FedScore, fullView: true, includesContext: familyId === 'fomc' })),
   { pair: 'EURUSD', country: 'US', currency: 'USD', familyId: 'jobs', matchesSymbol: matchesEurusdSymbol, Component: NfpMagnitudeScoreTables },

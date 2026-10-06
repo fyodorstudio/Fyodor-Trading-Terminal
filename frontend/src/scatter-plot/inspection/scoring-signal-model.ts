@@ -19,15 +19,23 @@ import { gdpSignalSettings, ppiSignalSettings } from '../../inspector/scoring/sh
 import { magnitudeDistribution } from '../../inspector/magnitude/magnitude-distribution'
 import type { MagnitudeSettings, MagnitudeSettingsStore } from '../../inspector/magnitude/settings/magnitude-settings-store'
 import type { ScatterModel, ScatterPoint, ScatterSignal } from '../contracts/scatter-plot-types'
+import { eurPolicy } from '../../inspector/scoring/PAIR/EURUSD/EUR/policy/eur-policies'
+import { eurMagnitudeStores } from '../../inspector/scoring/PAIR/EURUSD/EUR/policy/eur-magnitude-settings'
+import { eurFeatures } from '../../inspector/scoring/PAIR/EURUSD/EUR/assessment/eur-features'
+import { observedEur, eurReleaseMonth } from '../../inspector/scoring/PAIR/EURUSD/EUR/assessment/eur-history'
 
 export type ScoringSignalBinding = {
   label: string; settings: MagnitudeSettingsStore; seriesIds: readonly string[]
   signals: readonly { id: string; label: string; description: string; unit: string }[]
   calibrationClass?: (release: InspectorRelease, history: readonly TimedReading[]) => string
+  currency?: 'EUR' | 'USD'
   supports: (release: InspectorRelease | null) => boolean
   features: (release: InspectorRelease, history: readonly TimedReading[]) => Record<string, HistoricalFeature>
 }
 export function scoringSignalBinding(familyId: string): ScoringSignalBinding | null {
+  const eur = eurPolicy(familyId)
+  if (eur) return { label: eur.label, currency: 'EUR', settings: eurMagnitudeStores[eur.family], seriesIds: eur.signals.map(s => s.seriesId),
+    signals: eur.signals, supports: release => !!release && release.familyId === eur.family && release.country === eur.country && release.currency === 'EUR', features: eurFeatures }
   if (familyId === 'gdp') return { label: 'GDP v1', settings: gdpSignalSettings, seriesIds: gdpSeriesIds, signals: gdpSignals, supports: supportsGdpScore, features: gdpFeatures, calibrationClass: gdpStage }
   if (familyId === 'ppi') return { label: 'PPI v1', settings: ppiSignalSettings, seriesIds: ppiSeriesIds, signals: ppiSignals, supports: supportsPpiScore, features: ppiFeatures }
   if (familyId === 'claims') return {
@@ -66,11 +74,11 @@ export type SignalHistory = { release: InspectorRelease; features: Record<string
 export function prepareScoringSignalHistory(events: readonly EconomicCalendarEvent[], now: number, binding: ScoringSignalBinding): SignalHistory {
   const seen = new Set<string>()
   const history = events.filter((e): e is TimedReading => {
-    if (!observedReading(e) || e.release_at > now || !binding.seriesIds.includes(e.event_id) || seen.has(e.value_id)) return false
+    if (!(binding.currency === 'EUR' ? observedEur(e) : observedReading(e)) || e.release_at! > now || !binding.seriesIds.includes(e.event_id) || seen.has(e.value_id)) return false
     seen.add(e.value_id); return true
   })
   // Keep observed family releases with missing scoring rows inspectable.
-  const releases = groupInspectorReleases(events.filter((e) => observedReading(e) && e.release_at <= now))
+  const releases = groupInspectorReleases(events.filter((e) => (binding.currency === 'EUR' ? observedEur(e) : observedReading(e)) && e.release_at! <= now))
     .filter(binding.supports).sort((a, b) => a.releaseAt! - b.releaseAt!)
   return releases.map((release) => ({ release, features: binding.features(release, history), ...(binding.calibrationClass ? { calibrationClass: binding.calibrationClass(release, history) } : {}) }))
 }
@@ -86,9 +94,24 @@ export function scoringSignalModel(history: SignalHistory, binding: ScoringSigna
   const formatReading = (value: number | null) => value === null ? '—' : `${number(value)} ${selected?.features[signalId]?.inputs?.unit ?? definition.unit}`
   const base = { measure: 'signal' as const, axisLabel: 'Scoring signal', description: `${binding.label}${selected?.calibrationClass ? ` · ${selected.calibrationClass}` : ''} · ${definition.description}`,
     deltaUnit: definition.unit, formatDelta, formatReading }
+  const samplesByRelease = new Map<string, number[]>()
   const calibrated = history.map((entry): ScatterSignal => {
-    const earlier = history.filter((past) => past.release.releaseAt! < entry.release.releaseAt! && past.calibrationClass === entry.calibrationClass)
+    let comparable = history.filter((past) => past.release.releaseAt! < entry.release.releaseAt! && past.calibrationClass === entry.calibrationClass)
+    if (binding.currency === 'EUR') {
+      const policy = eurPolicy(entry.release.familyId)!, signal = policy.signals.find(s => s.id === signalId)!, currentMonth = eurReleaseMonth(entry.release, policy)
+      const latest = new Map<number, typeof entry[]>()
+      for (const past of comparable) {
+        const month = eurReleaseMonth(past.release, policy)
+        if (month === null || currentMonth === null || month >= currentMonth || !past.release.events.some(e => e.event_id === signal.seriesId)) continue
+        const rows = latest.get(month) ?? [], at = rows[0]?.release.releaseAt ?? -Infinity
+        if (past.release.releaseAt! > at) latest.set(month, [past])
+        else if (past.release.releaseAt === at) rows.push(past)
+      }
+      comparable = [...latest.values()].flatMap(rows => rows.length === 1 ? rows : [])
+    }
+    const earlier = comparable
       .map((past) => past.features[signalId].value).filter((value): value is number => value !== null)
+    samplesByRelease.set(entry.release.id, earlier)
     return { ...calibrateHistoricalSignal(entry.features[signalId], earlier, settings[signalId]), description: definition.description }
   })
   let previousPosition = -1
@@ -108,7 +131,7 @@ export function scoringSignalModel(history: SignalHistory, binding: ScoringSigna
   const sameClass = new Set(history.filter(entry => entry.calibrationClass === selected.calibrationClass).map(entry => entry.release.id))
   const earlier = points.filter((point) => point.at < selected.release.releaseAt! && sameClass.has(point.releaseId))
   // Guide bands belong to the inspected release, not to later chart context.
-  const distribution = signal.limits ? magnitudeDistribution(earlier.map((point) => point.delta), signal.value, signal.limits, signal.magnitudeMode === 'automatic') : null
+  const distribution = signal.limits ? magnitudeDistribution(binding.currency === 'EUR' ? samplesByRelease.get(selected.release.id)! : earlier.map((point) => point.delta), signal.value, signal.limits, signal.magnitudeMode === 'automatic') : null
   return { ...base, points, inspection: {
     releaseId: selected.release.id, at: selected.release.releaseAt!, point: points.find((point) => point.releaseId === selected.release.id) ?? null,
     actual: signal.inputs?.actual ?? null, previous: signal.inputs?.baseline ?? null, delta: signal.value, signal,

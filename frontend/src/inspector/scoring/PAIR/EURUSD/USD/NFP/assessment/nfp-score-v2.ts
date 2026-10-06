@@ -1,9 +1,10 @@
 import type { EconomicCalendarEvent } from '../../../../../../calendar-event'
-import { groupInspectorReleases, type InspectorRelease } from '../../../../../../inspector-data'
-import { calibrateHistoricalSignal, earlierSignalReadings, nativeNumber, releaseSignalContext,
+import type { InspectorRelease } from '../../../../../../inspector-data'
+import { calibrateHistoricalSignal, nativeNumber, releaseSignalContext,
   usableSignal, unavailableSignal, type TimedReading, type HistoricalFeature } from '../../../../../shared/core/historical-release-signals'
 import { magnitudeEvidence } from '../../../../../shared/core/magnitude-evidence'
 import { payrollRevisionFeature } from './payroll-revision'
+import { chronologicalFeatureHistory } from '../../../../../shared/core/chronological-feature-history'
 import type { MagnitudeSettings } from '../../../../../../magnitude/settings/magnitude-settings-store'
 
 export const nfpScoreV2Version = 'nfp-eurusd-labor-context-v2'
@@ -59,10 +60,11 @@ export function nfpV2Features(release: InspectorRelease, history: readonly Timed
   return { features, context }
 }
 
+const featureHistory = chronologicalFeatureHistory(nfpV2SeriesIds, supportsNfpV2,
+  (release, history) => nfpV2Features(release, history).features)
 export function assessNfpScoreV2(release: InspectorRelease | null, events: readonly EconomicCalendarEvent[], settings: MagnitudeSettings = {}) {
   if (!release || !supportsNfpV2(release)) return null
-  const history = earlierSignalReadings(release, events, nfpV2SeriesIds)
-  const past = groupInspectorReleases(history).filter(supportsNfpV2).map((r) => nfpV2Features(r, history).features)
+  const { history, past } = featureHistory(release, events)
   const { features, context } = nfpV2Features(release, history)
   const participation = context.delta('840030017')
   const unemploymentFall = features.unemployment.value !== null && features.unemployment.value > 0

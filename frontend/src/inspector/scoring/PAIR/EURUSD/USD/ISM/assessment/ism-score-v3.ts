@@ -26,6 +26,6 @@ export function resolveIsmV3(context: Context | null) {
   return { ...context, manufacturingContribution, servicesContribution, winner, dominance, version: ismScoreV3Version }
 }
 
-export function assessIsmScoreV3(release: InspectorRelease | null, events: readonly EconomicCalendarEvent[], settings: IsmV2Settings = {}) {
-  return resolveIsmV3(assessIsmScoreV2(release, events, settings))
+export function assessIsmScoreV3(release: InspectorRelease | null, events: readonly EconomicCalendarEvent[], settings: IsmV2Settings = {}, includePrevious = true) {
+  return resolveIsmV3(assessIsmScoreV2(release, events, settings, includePrevious))
 }

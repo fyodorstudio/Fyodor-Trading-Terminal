@@ -34,6 +34,7 @@ try {
 
   const change = (id, patch) => ({ ...low, events: low.events.map(e => e.event_id === id ? { ...e, ...patch } : e) })
   const revised = assessClaimsScore(change('840140002', { revised_previous: 1.84, revised_previous_raw_scaled_1e6: raw(1.84) }), flat, settings)
+  assert.equal(revised.revisions.find(r=>r.seriesId==='840140002').delta,40,'Revision notice compares supplied prior with stored preceding publication in thousands')
   assert.equal(revised.readings[1].value, -5); assert.equal(revised.readings[1].inputs.baseline, 1800)
   assert.equal(revised.readings[1].inputs.actual, 1805, 'Nearest revision belongs to the latest window, not the older window')
   const zeroRevision = assessClaimsScore(change('840140001', { revised_previous: 0, revised_previous_raw_scaled_1e6: '0' }), flat, settings)

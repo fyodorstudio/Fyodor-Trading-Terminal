@@ -23,7 +23,7 @@ export function scorePublication(release: InspectorRelease, events: readonly Ins
   const family = publicationFamily(release.familyId)!
   const score = family === 'pce' ? assessPceScore(release, events, settings.pce) : family === 'ppi' ? assessPpiScore(release, events, settings.ppi) : family === 'gdp' ? assessGdpScore(release, events, settings.gdp) : family === 'nfp' ? assessNfpScoreV2(release, events, settings.nfp) : family === 'cpi' ?
     assessCpiScoreV3(release, events, settings.cpi) : family === 'claims' ? assessClaimsScore(release, events, settings.claims) : family === 'retail' ? assessRetailScore(release, events, settings.retail) : assessIsmScoreV3(release, events,
-      { services: settings.services, manufacturing: settings.manufacturing })
+      { services: settings.services, manufacturing: settings.manufacturing }, false)
   return { family, sourceId: release.id, sourceLabel: release.familyId === 'ism-services' ? 'ISM Services' :
     release.familyId === 'ism-manufacturing' ? 'ISM Manufacturing' : family === 'nfp' ? 'NFP' : family === 'claims' ? 'Jobless Claims' : family === 'retail' ? 'Retail Sales' : family === 'pce' ? 'PCE' : family === 'ppi' ? 'PPI' : family === 'gdp' ? 'GDP' : 'CPI',
     releaseAt: release.releaseAt!, chartAt: release.chartTime! * 1000, total: score?.total ?? null,

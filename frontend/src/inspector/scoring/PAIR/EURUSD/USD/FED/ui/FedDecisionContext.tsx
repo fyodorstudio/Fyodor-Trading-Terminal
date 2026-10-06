@@ -16,7 +16,7 @@ export function FedDecisionContext({ release, action, brokerId = null, events, n
   release: InspectorRelease; action: NonNullable<ReturnType<typeof assessFedScore>>
 }) {
   const { families, context, eligible, at, result, ready } = usePublicationContext(release, brokerId, events, now)
-  const { previous, storage } = usePreviousFedMeeting(release, brokerId, events)
+  const { previous, storage, path } = usePreviousFedMeeting(release, brokerId, events)
   const earlier = previous && context.result ? contextAt(context.result, previous.chartTime! * 1000) : null
   const direction = ready && result?.direction === 'stronger' ? 'short' : ready && result?.direction === 'weaker' ? 'long' : 'uncomputed'
   const label = ready ? contextPairLabel('EURUSD', result?.direction ?? 'uncomputed') : 'Uncomputed'
@@ -28,8 +28,9 @@ export function FedDecisionContext({ release, action, brokerId = null, events, n
     </div>
     <p>{context.loading ? 'Calculating decision context…' : context.error ?? (!eligible ?
       'A verified, already published chart time is required.' : result?.explanation ?? 'No enabled context assessment is available.')}</p>
-    <p><strong>Decision: {eligible ? action.action : 'Unavailable at this cutoff'}</strong>{eligible && action.actual !== null && ` · ${action.actual}%`}</p>
-    <p>Rate action alone: {!eligible || action.delta === null ? 'Unavailable.' : action.delta === 0 ? 'No directional change.' : `${action.label} · weak rate-action evidence.`}</p>
+    <p><strong>Decision: {eligible ? path?.priorConsistent === false ? 'Prior-rate inconsistency' : action.action : 'Unavailable at this cutoff'}</strong>{eligible && action.actual !== null && ` · ${action.actual}%`}</p>
+    <p>Rate action alone: {path?.priorConsistent === false ? 'Unavailable: supplied prior conflicts with the stored preceding meeting.' : !eligible || action.delta === null ? 'Unavailable.' : action.delta === 0 ? 'No directional change.' : `${action.label} · weak rate-action evidence.`}</p>
+    {eligible && path && !storage.loading && !storage.error && <p aria-label="Fed numerical rate path"><strong>Stored rate path:</strong> {path.path}. Meeting change: {path.meetingChangeBps} bp.{path.priorConsistent === false && ' The feed’s supplied prior rate differs from the stored preceding meeting.'} This describes rate history; it adds no extra vote and does not infer guidance.</p>}
     {ready && <p aria-label="Fed economic policy pressure">{fedContextPressure(result)}</p>}
     <p><strong>Fed guidance: Not scored.</strong> Statements, projections and speech content are outside this numerical interpreter. The contextual bias does not claim what the Fed said.</p>
     {ready && earlier && previous && !storage.loading && !storage.error ? <div aria-label="Fed previous meeting comparison">

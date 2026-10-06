@@ -616,3 +616,20 @@ The separate level explanation compares current smoothed initial and current con
 `CLAIMS-V2-SIGNALS` isolates magnitude overrides because the feature formulas changed. Legacy V1 cutoffs remain portable under their old key, without affecting V2. Raw Actual-minus-Previous settings are unchanged. The new `scripts/audit-claims-v2.mjs` checks all stored publications, scorer/Scatter parity, future removal and compiled worker parity.
 
 Fed v2 owns a single context panel instead of receiving a duplicate generic panel. The main bias equals Raycaster at the exact numeric decision time; the factual hold/hike/cut and action-only interpretation remain separate. Previous-meeting context uses an independently scoped prior numeric rate record, the same active context filters/settings and each meeting's historical cutoff. Ambiguous/missing previous records are not silently replaced by an older meeting. A Fed hold adds no vote or renewed memory. Policy-pressure descriptions are declared interpretations, not observed Fed guidance. Speeches, statements, projections and conference content are excluded from this implementation.
+
+
+## EUR numerical v1 and relative view
+
+EUR standalone policies, distinct-period history, analysis worker and flat views
+live under `PAIR/EURUSD/EUR/`. Calibration excludes the current reference period;
+latest earlier finals replace flash rows without double-counting N. PMI composite
+replaces overlapping sector votes. Monthly unemployment and quarterly employment
+have separate publication weights. ECB deposit-rate action is a single Weak action
+interpretation and holds have no action bias. Text is outside the dataset scope.
+
+`pair-context/` provides a selectable relative EUR/USD view, with visible normalized
+leg contributions and independent EUR inputs. Inspector and Raycaster consume the
+same engines and cutoff rules; neither depends on the other's UI. Claims revision
+notices and verified Fed rate-path facts add no directional votes. Shared context
+jobs and prepared Claims/NFP histories preserve existing USD outputs. See the root
+library and `reports/Dataset-context-expansion-audit.md` for the latest audit.

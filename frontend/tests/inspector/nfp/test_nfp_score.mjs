@@ -198,7 +198,7 @@ try {
   await reloaded.render(); await click(reloaded.container.querySelector('.inspector-release'))
   assert.equal(reloaded.container.querySelector('.inspector-scoring-view').textContent, summary, 'Fresh mounts restore the chosen view and score')
   assert.equal(reloaded.container.querySelector('.inspector-table-scroll'), null)
-  const decision = { ...selected.events[0], event_id: '999010007', name: 'ECB rate decision', country_code: 'EU', currency: 'EUR', unit: 1, multiplier: 0 }
+  const decision = { ...selected.events[0], event_id: '999010004', name: 'ECB President speech', country_code: 'EU', currency: 'EUR', unit: 1, multiplier: 0 }
   await inspector.render({ current: groupInspectorReleases([decision])[0] })
   await click(inspector.container.querySelector('.inspector-release'))
   assert.equal(selector().querySelector('[value="scoring"]').disabled, true)

@@ -1,0 +1,6 @@
+.relative-context-inputs { width: 100%; table-layout: fixed; overflow-wrap: anywhere; }
+.relative-context-inputs th:first-child { width: 24%; }
+.relative-context-inputs th:nth-child(2) { width: 10%; }
+.relative-context-inputs th:nth-child(3) { width: 66%; }
+.relative-context-inputs button { cursor: pointer; color: var(--text-muted); background: transparent; border: 1px solid var(--border-strong); border-radius: 4px; padding: 3px; }
+.relative-context-inputs button[aria-pressed="true"] { color: var(--accent); }
