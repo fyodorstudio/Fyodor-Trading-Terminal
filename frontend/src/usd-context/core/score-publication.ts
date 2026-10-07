@@ -15,15 +15,35 @@ import { gdpSeriesIds } from '../../inspector/scoring/PAIR/EURUSD/USD/GDP/policy
 import type { ContextFamily, ContextSettings, FamilyAssessment } from './contracts'
 import { cpiContextTraits, nfpContextTraits } from './interaction/source-traits'
 import { sourceCoverage } from './source-coverage'
+import type { ComboSource } from '../sequences/core/contracts'
+import { magnitudeEvidence } from '../../inspector/scoring/shared/core/magnitude-evidence'
 
 export const contextSeriesIds: readonly string[] = [...cpiV3SeriesIds, ...nfpV2SeriesIds, ...ismV2SeriesIds, ...retailSeriesIds, ...claimsSeriesIds, ...pceSeriesIds, ...ppiSeriesIds, ...gdpSeriesIds]
 export const publicationFamily = (id: string): ContextFamily | null => id === 'jobs' ? 'nfp' : id === 'us-cpi' ? 'cpi' :
   id === 'ism-services' || id === 'ism-manufacturing' ? 'ism' : id === 'retail' ? 'retail' : id === 'claims' ? 'claims' : id === 'pce' ? 'pce' : id === 'ppi' ? 'ppi' : id === 'gdp' ? 'gdp' : null
-export function scorePublication(release: InspectorRelease, events: readonly InspectorEvent[], settings: ContextSettings): FamilyAssessment {
+export function scorePublication(release: InspectorRelease, events: readonly InspectorEvent[], settings: ContextSettings,
+  onIsmSources?: (sources: ComboSource[]) => void): FamilyAssessment {
   const family = publicationFamily(release.familyId)!
   const score = family === 'pce' ? assessPceScore(release, events, settings.pce) : family === 'ppi' ? assessPpiScore(release, events, settings.ppi) : family === 'gdp' ? assessGdpScore(release, events, settings.gdp) : family === 'nfp' ? assessNfpScoreV2(release, events, settings.nfp) : family === 'cpi' ?
     assessCpiScoreV3(release, events, settings.cpi) : family === 'claims' ? assessClaimsScore(release, events, settings.claims) : family === 'retail' ? assessRetailScore(release, events, settings.retail) : assessIsmScoreV3(release, events,
       { services: settings.services, manufacturing: settings.manufacturing }, false)
+  if (family === 'ism' && onIsmSources) {
+    const ism = score as ReturnType<typeof assessIsmScoreV3>
+    onIsmSources(ism ? [ism.manufacturing, ism.services].flatMap(sector => {
+      const r = sector.release, a = sector.assessment
+      const deciding = a?.total === 0 ? a.readings.find(row => row.points !== null && row.points !== 0)?.points ?? 0 : a?.total
+      const direction = deciding == null || deciding === 0 ? 'uncomputed' : deciding > 0 ? 'short' : 'long'
+      const evidence = a ? magnitudeEvidence(a.readings, direction, a.total === 0 && deciding !== 0) : null
+      return sector.included && r && r.chartTime !== null && r.releaseAt !== null && a ? [{
+        family: 'ism' as const, sourceId: r.id, sourceLabel: `ISM ${sector.sector === 'services' ? 'Services' : 'Manufacturing'}`,
+        chartAt: r.chartTime * 1000, releaseAt: r.releaseAt, total: a.total,
+        usdDirection: direction === 'short' ? 'stronger' as const : direction === 'long' ? 'weaker' as const : 'uncomputed' as const,
+        strength: evidence?.strength === 'strong' || evidence?.strength === 'moderate' || evidence?.strength === 'weak' ? evidence.strength : null,
+        role: `${sector.weight}% of the ISM sector budget`,
+        contribution: sector.readings.reduce((sum, row) => sum + (row.contribution ?? 0), 0),
+      }] : []
+    }) : [])
+  }
   return { family, sourceId: release.id, sourceLabel: release.familyId === 'ism-services' ? 'ISM Services' :
     release.familyId === 'ism-manufacturing' ? 'ISM Manufacturing' : family === 'nfp' ? 'NFP' : family === 'claims' ? 'Jobless Claims' : family === 'retail' ? 'Retail Sales' : family === 'pce' ? 'PCE' : family === 'ppi' ? 'PPI' : family === 'gdp' ? 'GDP' : 'CPI',
     releaseAt: release.releaseAt!, chartAt: release.chartTime! * 1000, total: score?.total ?? null,

@@ -17,3 +17,21 @@ Standalone EUR rules/settings live in
 `inspector/scoring/PAIR/EURUSD/EUR/{policy,assessment,runtime,ui}`. ECB numeric
 rate actions remain separate, with no hold/text vote. See the root scoring library
 for weights, retention, evidence limits and the current audit scope.
+
+The replay implementation is split by responsibility:
+
+- `core/publication/eur-publications.ts` validates clocks and batches releases.
+- `core/publication/eur-sources.ts` separates monthly and quarterly labor slots.
+- `core/memory/eur-members.ts` selects aggregate/proxy sources and applies aging.
+- `core/eur-context-timeline.ts` schedules publication, daily and expiry stages.
+
+Scorer and Scatter use `earlierEurSignalReleases` from EUR assessment history for
+the same distinct-reference-period calibration population. The hygiene audit
+compares complete timeline, assessment and Scatter output hashes against a
+pre-refactor stored-data baseline; these are behavior-preserving changes.
+
+Run `scripts/pair-context/check-refactor-parity.mjs` to capture/compare an EUR
+snapshot, or `scripts/pair-context/audit-release-sequence.mjs` to replay a date
+window using both calendar snapshots and a broker H1 snapshot. Local inventories
+and generated audit JSON belong in ignored `storage/data/`; reviewed findings
+belong in `reports/`. Price is used only for evaluation.

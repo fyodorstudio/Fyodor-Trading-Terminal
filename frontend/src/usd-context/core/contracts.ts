@@ -24,4 +24,5 @@ export type ContextMember = FamilyAssessment & { status: 'active' | 'expired' | 
 export type ContextResult = { direction: UsdDirection; total: number | null; strength: Evidence | null;
   explanation: string; reason: string; members: ContextMember[]; missing: ContextFamily[]; tie: boolean; policy?: ContextPolicy }
 export type ContextPoint = { chartAt: number; result: ContextResult; latest: FamilyAssessment | null; update: string }
-export type ContextTimeline = { points: ContextPoint[]; enabled: ContextFamily[]; version: string; excludedTiming: number }
+export type ContextTimeline = { points: ContextPoint[]; enabled: ContextFamily[]; version: string; excludedTiming: number;
+  relationships?: import('../sequences/core/contracts').ContextRelationships }

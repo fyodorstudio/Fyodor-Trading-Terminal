@@ -1,8 +1,13 @@
-# USD context memory v6.1
+# USD context memory v6.2
 
 The shared engine consumes standalone CPI v3.1, NFP v2, Claims v2,
 monthly ISM v3, Retail Sales v1, PCE v1, PPI v1 and GDP v1 scores. It interprets the USD side of supported
 pairs. Forecasts, price outcomes and the other currency do not vote.
+
+V6.2 adds [clickable relationship snapshots](sequences/README.md) and an explicitly
+experimental fresh-news comparison. The accumulated scoring rules below remain
+unchanged; all 5,696 points in the saved USD replay match the preceding builder.
+The version change invalidates shared caches so roofs and scores arrive together.
 
 ## Declared policy
 

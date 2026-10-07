@@ -1,0 +1,10 @@
+.combo-inspector { height: 100%; min-height: 0; min-width: 0; display: flex; flex-direction: column; color: var(--text); font-size: 11px; }
+.combo-inspector header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--border); }
+.combo-inspector-scroll { flex: 1; min-height: 0; overflow: auto; overflow-x: hidden; padding: 8px 12px; overflow-wrap: anywhere; }
+.combo-inspector h3 { font-size: 11px; margin: 12px 0 5px; }
+.combo-inspector p { margin: 6px 0; }
+.combo-inspector table { width: 100%; table-layout: fixed; border-collapse: collapse; }
+.combo-inspector th, .combo-inspector td { padding: 6px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }
+.combo-inspector small { display: block; color: var(--text-muted); }
+.combo-inspector button { font: inherit; cursor: pointer; color: var(--accent); background: var(--surface-panel); border: 1px solid var(--border); border-radius: 4px; padding: 4px 7px; }
+.combo-inspector button:focus-visible { outline: 2px solid var(--accent); }

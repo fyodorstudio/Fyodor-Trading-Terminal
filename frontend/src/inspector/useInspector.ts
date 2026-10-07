@@ -57,7 +57,7 @@ export function useInspector({ events = noEvents, symbol, bars, timeframe, timeD
     [supported, displayReleases, preferences, range, brokerTime])
   const markerBars = useMarkerBars(bars)
   const markers = useMemo(() => buildInspectorMarkers(releases, preferences, markerBars, timeframe), [releases, preferences, markerBars, timeframe])
-  const selectedRelease = releases.find((release) => release.id === selectedId) ?? null
+  const selectedRelease = releases.find((release) => release.id === selectedId || release.ismPublications?.some(r => r.id === selectedId)) ?? null
   const isIsm = selectedRelease?.familyId === 'ism-services' || selectedRelease?.familyId === 'ism-manufacturing'
   const needsMagnitude = detailOpen && (preferences.detailView === 'table' || (preferences.detailView === 'scoring' && !isIsm))
   const magnitudeHistory = useFamilyMagnitudeHistory(brokerId, needsMagnitude ? selectedRelease?.ismPublications?.[0] ?? selectedRelease : null, undefined, clockOffsetMs)

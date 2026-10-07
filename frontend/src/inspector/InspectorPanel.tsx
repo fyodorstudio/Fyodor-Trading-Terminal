@@ -27,6 +27,8 @@ import { InspectorReadingsTable } from './readings/InspectorReadingsTable'
 import { supportsIsmV3 } from './scoring/PAIR/EURUSD/USD/ISM/assessment/ism-score-v3'
 import { IsmScoreV3 } from './scoring/PAIR/EURUSD/USD/ISM/ui/IsmScoreV3'
 import './inspector.css'
+import { ComboInspector } from '../usd-context/sequences/ui/ComboInspector'
+import type { ComboSnapshot, ComboSource } from '../usd-context/sequences/core/contracts'
 
 function HistogramIcon() {
   return (
@@ -53,7 +55,8 @@ function sourceLabel(source: CalendarSourceHealth | null, error: string | null):
   if (source.status === 'awaiting-snapshot') return 'Receiving calendar snapshot'
   return 'Waiting for the calendar publisher'
 }
-export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpenScatter, scatterAvailable = true }: {
+export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpenScatter, scatterAvailable = true, combo, onCloseCombo, onOpenComboRelease }: {
+  combo?: ComboSnapshot | null; onCloseCombo?: () => void; onOpenComboRelease?: (source: ComboSource) => void;
   view: InspectorView; symbol: string; source: CalendarSourceHealth | null; error: string | null
   timeDisplay: TimeDisplayPreference
   onOpenScatter?: (release: InspectorRelease) => void; scatterAvailable?: boolean
@@ -97,6 +100,8 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
   const offset = source?.server_utc_offset_seconds
   const hasCoverage = coverageStart != null && coverageEnd != null && offset != null
   const outsideCoverage = !view.brokerTime && hasCoverage && view.range && (view.range.from < (coverageStart - offset) * 1000 || view.range.to > (coverageEnd - offset) * 1000)
+  if (combo && onCloseCombo && onOpenComboRelease) return <ComboInspector combo={combo} symbol={symbol} timeDisplay={timeDisplay}
+    onClose={onCloseCombo} onOpenRelease={onOpenComboRelease} />
   return <section className="inspector-panel" style={currencyColorStyle(view.preferences.currencyColors)} aria-label="Inspector">
     <header className="inspector-header">
       <div className="inspector-header-sidebar">

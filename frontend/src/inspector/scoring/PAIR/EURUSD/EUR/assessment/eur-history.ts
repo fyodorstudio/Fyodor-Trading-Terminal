@@ -46,3 +46,13 @@ export function distinctEurCalibration(releases: readonly InspectorRelease[], po
   }
   return [...periods.values()].flatMap(rows => rows.length === 1 ? rows : [])
 }
+
+/** Shared scorer/Scatter population: one earlier publication per prior period. */
+export function earlierEurSignalReleases(releases: readonly InspectorRelease[], policy: EurPolicy,
+  signal: EurSignal, current: InspectorRelease) {
+  const reference = eurReleaseMonth(current, policy)
+  if (reference === null) return []
+  const containingSignal = releases.filter(r => r.events.some(e => e.event_id === signal.seriesId))
+  return distinctEurCalibration(containingSignal, policy, current.releaseAt ?? 0)
+    .filter(r => eurReleaseMonth(r, policy)! < reference)
+}

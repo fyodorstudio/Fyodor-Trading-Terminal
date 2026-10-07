@@ -1,7 +1,9 @@
 import { groupInspectorReleases, inspectorEventChartTime } from '../../inspector/inspector-data'
 import { observedReading } from '../../inspector/scoring/shared/core/historical-release-signals'
 import { combineContext } from './combine-context'
-import type { ContextInput, ContextFamily, ContextTimeline, FamilyAssessment } from './contracts'
+import type { ContextInput, ContextFamily, ContextResult, ContextTimeline, FamilyAssessment } from './contracts'
+import { buildContextRelationships } from '../sequences/core/build-relationships'
+import type { IsmSourceMap } from '../sequences/core/contracts'
 import { contextFamilyExpiry, contextVersion, enabledContextFamilies } from './policy'
 import { scorePublication, publicationFamily, contextSeriesIds } from './score-publication'
 import { explainUpdate } from './explanation'
@@ -23,8 +25,9 @@ export function buildContextTimeline({ events, families, settings, asOf }: Conte
   const selectedIds = new Set(selected.flatMap(r => r.events.map(e => e.value_id)))
   const scoringInventory = inventory.filter(e => selectedIds.has(e.value_id))
   const recentClaims: FamilyAssessment[] = []
+  const ismSources: IsmSourceMap = new Map()
   const assessments = valid.map(r => {
-    const source = scorePublication(r, scoringInventory, settings)
+    const source = scorePublication(r, scoringInventory, settings, sectors => ismSources.set(r.id, sectors))
     if (source.family === 'claims') {
       source.traits = claimsConfirmation(source, recentClaims)
       recentClaims.push(source)
@@ -45,9 +48,11 @@ export function buildContextTimeline({ events, families, settings, asOf }: Conte
   const latest: Partial<Record<ContextFamily, FamilyAssessment>> = {}
   const points: ContextTimeline['points'] = []
   let lastPublication: FamilyAssessment | null = null
+  const beforeByTime = new Map<number, ContextResult>()
   for (const chartAt of stages) {
     const before = combineContext(latest, enabled, chartAt - 1)
     const incoming = updates.get(chartAt) ?? []
+    if (incoming.length) beforeByTime.set(chartAt, before)
     // Same-time publications resolve as one atomic snapshot.
     for (const source of incoming) { latest[source.family] = source; lastPublication = source }
     const result = combineContext(latest, enabled, chartAt)
@@ -62,5 +67,6 @@ export function buildContextTimeline({ events, families, settings, asOf }: Conte
       result.members[i]?.status === m.status && result.members[i]?.contribution === m.contribution)) continue
     points.push({ chartAt, result, latest: lastPublication, update })
   }
-  return { points, enabled, version: contextVersion, excludedTiming: selected.length - valid.length }
+  return { points, enabled, version: contextVersion, excludedTiming: selected.length - valid.length,
+    relationships: buildContextRelationships(points, beforeByTime, ismSources) }
 }

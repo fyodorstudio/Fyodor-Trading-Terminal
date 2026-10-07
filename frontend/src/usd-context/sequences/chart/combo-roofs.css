@@ -1,0 +1,11 @@
+.combo-roofs { position: absolute; left: 0; right: 70px; bottom: 64px; height: 132px; z-index: 8; pointer-events: none; }
+.combo-roofs svg { position: absolute; inset: 0; overflow: hidden; }
+.combo-roofs path { fill: none; stroke: var(--accent); stroke-width: 1; opacity: .5; }
+.combo-roofs .experimental path { stroke-dasharray: 3 3; }
+.combo-roof-label { position: absolute; transform: translateX(-50%); max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.combo-roofs button { pointer-events: auto; font-size: 9px; cursor: pointer; border: 1px solid var(--border-strong); border-radius: 4px; padding: 3px 6px; background: var(--surface-panel); color: var(--text); }
+.combo-roofs button:hover { border-color: var(--accent); color: var(--accent); }
+.combo-roofs button:focus-visible { outline: 2px solid var(--accent); }
+.combo-roof-label.experimental { border-style: dashed; }
+.combo-roof-overflow { position: absolute; right: 8px; top: 0; pointer-events: auto; }
+.combo-roof-overflow > div { max-height: 120px; overflow: auto; display: grid; background: var(--surface-panel); border: 1px solid var(--border); }

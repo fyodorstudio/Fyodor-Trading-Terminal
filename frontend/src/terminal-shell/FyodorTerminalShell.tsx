@@ -46,6 +46,7 @@ import './terminal-shell.layout.css'
 import { WorkspaceTransfer } from '../workspace-portability/WorkspaceTransfer'
 import { usdPair } from '../usd-context/core/usd-pair'
 import { readRaycasterVisible, saveRaycasterVisible } from '../raycaster/storage/raycaster-preferences'
+import type { ComboSnapshot, ComboSource } from '../usd-context/sequences/core/contracts'
 
 const defaultTradePlan: PlannedTradeState = {
   direction: 'long',
@@ -65,6 +66,7 @@ export function FyodorTerminalShell() {
   const [selectedDrawingId, setSelectedDrawingId] = useState<string | null>(null)
   const [drawingToolbarVisible, setDrawingToolbarVisible] = useState<boolean>(readDrawingToolbarVisible)
   const [raycasterVisible, setRaycasterVisible] = useState(readRaycasterVisible)
+  const [comboSelection, setComboSelection] = useState<{ combo: ComboSnapshot; symbol: string; broker: string | null } | null>(null)
   const [bottomDockWindow, setBottomDockWindow] = useState<BottomDockWindow | null>('notebook')
   const [scatterTarget, setScatterTarget] = useState<ScatterReleaseTarget | null>(null)
   const dockSize = useBottomDockSize(bottomDockWindow)
@@ -117,8 +119,12 @@ export function FyodorTerminalShell() {
   const marketData = useMt5MarketData(mt5Connected, bridge.health?.mt5.generation ?? 0, selectedSymbol, timeframe)
   const activeSymbol = marketData.activeSymbol
   const bars = marketData.bars
+  const brokerId = bridge.health?.mt5.account_server ?? null
+  const selectedCombo = comboSelection?.symbol === activeSymbol && comboSelection.broker === brokerId ? comboSelection.combo : null
+  // A captured roof belongs to one symbol/broker; do not resurrect it on return.
+  if (comboSelection && !selectedCombo) setComboSelection(null)
   const inspector = useInspector({ symbol: activeSymbol, bars, timeframe, timeDisplay,
-    detailOpen: bottomDockWindow === 'inspector',
+    detailOpen: bottomDockWindow === 'inspector' && !selectedCombo,
     clockOffsetMs: bridge.clockOffsetMs, brokerId: bridge.health?.mt5.account_server ?? null,
     brokerOffsetSeconds: bridge.health?.calendar.server_utc_offset_seconds ?? 0 })
   const quote = marketData.symbols.find((item) => item.symbol === activeSymbol) ?? null
@@ -228,21 +234,32 @@ export function FyodorTerminalShell() {
   }, [setArrowSelection, selectBottomDock])
   const setReleaseSelection = inspector.selectRelease
   const selectChartRelease = useCallback((id: string) => {
-    setReleaseSelection(id); selectBottomDock('inspector')
+    setComboSelection(null); setReleaseSelection(id); selectBottomDock('inspector')
   }, [setReleaseSelection, selectBottomDock])
   const closeRaycaster = useCallback(() => { setRaycasterVisible(false); saveRaycasterVisible(false) }, [])
   const toggleRaycaster = useCallback(() => {
     setRaycasterVisible(current => { saveRaycasterVisible(!current); return !current })
     setActiveDrawingTool(null)
   }, [])
-  const brokerId = bridge.health?.mt5.account_server ?? null
   const brokerOffsetSeconds = bridge.health?.calendar.server_utc_offset_seconds ?? 0
+  const selectCombo = useCallback((combo: ComboSnapshot) => {
+    setComboSelection({ combo, symbol: activeSymbol, broker: brokerId }); selectBottomDock('inspector')
+  }, [activeSymbol, brokerId, selectBottomDock])
+  const openComboRelease = (source: ComboSource) => {
+    const family = source.family === 'cpi' ? 'us-cpi' : source.family === 'nfp' ? 'jobs' : source.family
+    const families = source.family === 'ism' ? ['ism-manufacturing', 'ism-services'] : [family]
+    inspector.applyPreferences({ ...inspector.preferences, detailView: 'table',
+      families: [...new Set([...inspector.preferences.families, ...families])] })
+    const date = new Date(source.chartAt).toISOString().slice(0, 10)
+    inspector.selectCustomRange(date, date)
+    selectChartRelease(source.sourceId)
+  }
   const raycasterSupported = !!usdPair(activeSymbol)
   const raycaster = useMemo(() => raycasterVisible && raycasterSupported ?
     { symbol: activeSymbol, timeframe, brokerId, brokerOffsetSeconds, clockOffsetMs: bridge.clockOffsetMs,
-      timeDisplay, onClose: closeRaycaster } : null,
+      timeDisplay, onClose: closeRaycaster, bars, markers: inspector.markers, onSelectCombo: selectCombo } : null,
     [raycasterVisible, raycasterSupported, activeSymbol, timeframe, brokerId, brokerOffsetSeconds,
-      bridge.clockOffsetMs, timeDisplay, closeRaycaster])
+      bridge.clockOffsetMs, timeDisplay, closeRaycaster, bars, inspector.markers, selectCombo])
   const renderChartOverlay = useTerminalChartOverlay({ arrows: registeredArrows.symbolArrows,
     selectedArrowId: registeredArrows.selectedArrowId, draftPlan: plannedTrade, onSelectArrow: selectChartArrow,
     supported: inspector.supported, markers: inspector.markers, currencyColors: inspector.preferences.currencyColors,
@@ -390,6 +407,7 @@ export function FyodorTerminalShell() {
             />
           )}
           {bottomDockWindow === 'inspector' && <InspectorPanel view={inspector} symbol={activeSymbol}
+            combo={selectedCombo} onCloseCombo={() => setComboSelection(null)} onOpenComboRelease={openComboRelease}
             source={bridge.health?.calendar ?? null} error={null} timeDisplay={timeDisplay}
             scatterAvailable={!!scatterReleaseTarget(inspector.selectedRelease, inspector.brokerId, inspector.now)}
             onOpenScatter={(release) => {

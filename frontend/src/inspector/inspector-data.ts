@@ -152,7 +152,7 @@ export function filterInspectorReleases(groups: InspectorRelease[], preferences:
   })
 }
 
-const timeframeSeconds: Record<ChartTimeframe, number> = { M1: 60, M5: 300, M15: 900, M30: 1800, H1: 3600, H4: 14400, D1: 86400 }
+export const timeframeSeconds: Record<ChartTimeframe, number> = { M1: 60, M5: 300, M15: 900, M30: 1800, H1: 3600, H4: 14400, D1: 86400 }
 export type InspectorMarker = { release: InspectorRelease; symbol: EventSymbol; time: number;
   projection?: { anchorTime: number; barsAhead: number } }
 export function buildInspectorMarkers(groups: InspectorRelease[], preferences: InspectorPreferences, bars: readonly Pick<OhlcBar, 'time'>[], timeframe: ChartTimeframe): InspectorMarker[] {

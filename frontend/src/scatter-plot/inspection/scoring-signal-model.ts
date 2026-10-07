@@ -22,7 +22,7 @@ import type { ScatterModel, ScatterPoint, ScatterSignal } from '../contracts/sca
 import { eurPolicy } from '../../inspector/scoring/PAIR/EURUSD/EUR/policy/eur-policies'
 import { eurMagnitudeStores } from '../../inspector/scoring/PAIR/EURUSD/EUR/policy/eur-magnitude-settings'
 import { eurFeatures } from '../../inspector/scoring/PAIR/EURUSD/EUR/assessment/eur-features'
-import { observedEur, eurReleaseMonth } from '../../inspector/scoring/PAIR/EURUSD/EUR/assessment/eur-history'
+import { observedEur, earlierEurSignalReleases } from '../../inspector/scoring/PAIR/EURUSD/EUR/assessment/eur-history'
 
 export type ScoringSignalBinding = {
   label: string; settings: MagnitudeSettingsStore; seriesIds: readonly string[]
@@ -95,19 +95,13 @@ export function scoringSignalModel(history: SignalHistory, binding: ScoringSigna
   const base = { measure: 'signal' as const, axisLabel: 'Scoring signal', description: `${binding.label}${selected?.calibrationClass ? ` · ${selected.calibrationClass}` : ''} · ${definition.description}`,
     deltaUnit: definition.unit, formatDelta, formatReading }
   const samplesByRelease = new Map<string, number[]>()
+  const entriesById = new Map(history.map(entry => [entry.release.id, entry]))
   const calibrated = history.map((entry): ScatterSignal => {
     let comparable = history.filter((past) => past.release.releaseAt! < entry.release.releaseAt! && past.calibrationClass === entry.calibrationClass)
     if (binding.currency === 'EUR') {
-      const policy = eurPolicy(entry.release.familyId)!, signal = policy.signals.find(s => s.id === signalId)!, currentMonth = eurReleaseMonth(entry.release, policy)
-      const latest = new Map<number, typeof entry[]>()
-      for (const past of comparable) {
-        const month = eurReleaseMonth(past.release, policy)
-        if (month === null || currentMonth === null || month >= currentMonth || !past.release.events.some(e => e.event_id === signal.seriesId)) continue
-        const rows = latest.get(month) ?? [], at = rows[0]?.release.releaseAt ?? -Infinity
-        if (past.release.releaseAt! > at) latest.set(month, [past])
-        else if (past.release.releaseAt === at) rows.push(past)
-      }
-      comparable = [...latest.values()].flatMap(rows => rows.length === 1 ? rows : [])
+      const policy = eurPolicy(entry.release.familyId)!, signal = policy.signals.find(s => s.id === signalId)!
+      comparable = earlierEurSignalReleases(comparable.map(past => past.release), policy, signal, entry.release)
+        .map(release => entriesById.get(release.id)!)
     }
     const earlier = comparable
       .map((past) => past.features[signalId].value).filter((value): value is number => value !== null)

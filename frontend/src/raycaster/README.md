@@ -1,4 +1,4 @@
-# Raycaster / USD context memory v6
+# Raycaster / USD context memory v6.2
 
 Press **Show Raycaster** (the wave glyph) beside the paintbrush toggle near the
 timeframe selector. Its active button toggles the box, and × hides it. Raycaster
@@ -92,3 +92,49 @@ infer policy tone from a hold or event title. Their Inspector views show availab
 rate actions and the same economic context separately.
 
 Claims v2 uses nonoverlapping underlying trends; only joint trend agreement can qualify weekly confirmation. Fed decision v2 displays this same contextual headline and a prior-meeting comparison in Inspector. Fed rates and speeches add no vote or evidence-age reset.
+
+## Clickable roofs and the organized gear
+
+The gear now has flat, labeled sections: accumulated result; input contributions;
+active relationship conditions; experimental fresh-news change; chart controls;
+calculation/evidence notes. The optional relative EUR/USD controls remain within
+Inputs. The fresh-news and roof results specifically describe the USD side;
+they do not substitute for the optional relative main result.
+
+On EURUSD, **Show clickable combo roofs** connects already-qualified ISM-sector,
+labor/inflation and weekly-labor relationships above visible event markers.
+Dashed roofs identify the seven-day fresh-news experiment. Both display controls
+default On and are saved/exported independently of the context-family switches.
+Hiding Raycaster hides its roofs. Turning a display control Off does not change
+weights, fetch calendar history or rerun scorers.
+
+Click a roof to open a captured **Combo details** snapshot in the bottom Inspector.
+It lists original publications and their own bias, roles/replacement effects,
+before/after accumulated context, applicable conditions and source contributions.
+Click a publication to enable its Inspector family, select its broker date and
+open its original readings; ISM still uses one grouped table. Return to releases
+restores normal Inspector. Snapshots are ephemeral, cleared on broker/symbol
+changes, and do not change when a gear setting is later edited: reopen a roof.
+
+Roofs are fixed dated annotations at the first known qualifying snapshot, not
+projections onto price highs and not completed sequences available before their
+publication times. A prior candle's hover cannot include a later endpoint even
+when the full historical chart displays later annotations. Source visibility
+follows Inspector marker filters/date range; hidden inputs are disclosed and do
+not lose their context vote. All-hidden sequences are omitted. Three lanes and
+an overflow chooser preserve crowded roof access. Candle gaps and future bars
+are not used as guessed endpoints. Range/resize updates coalesce into one frame;
+hover uses binary lookup plus at most eight fresh-family expiry checks.
+
+The fresh-news comparison keeps the latest replacement effect per family within
+seven elapsed broker-clock days. A weaker Long replacement can be a USD-positive
+change; its standalone Long label remains intact. Two agreeing economic domains
+are required for a fresh-news roof. The comparison is always Weak evidence,
+adds no vote to accumulated memory and makes no historical-volatility claim.
+See [sequence rules](../usd-context/sequences/README.md) and the implementation
+audit in `reports/Context-sequence-implementation-audit.md`.
+
+Manual UI checks: pan/zoom with roofs enabled, inspect overflow, click into Combo
+details and source releases, toggle either display control, hide event families,
+resize the bottom dock, and confirm the gear's section layout. No visual UI audit
+or browser automation was performed.

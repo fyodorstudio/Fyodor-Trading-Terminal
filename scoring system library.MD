@@ -71,7 +71,8 @@ not promises about the release candle or a future price move.
 | USD GDP v1 | Scoring system | GDP/real consumption/final sales weights 50/30/20; first stored quarter estimate versus prior four quarters, or same-quarter estimate revision; separate calibration populations. Implemented. |
 | USD PPI v1 | Scoring system | Core monthly/annual weights 50/30; headline monthly/annual 15/5. Earlier-history calibration and core gate. Implemented. |
 | USD FOMC context v2 / Fed Chair coverage | Scoring system | Shared contextual headline even for holds; separate rate action and previous-meeting comparison. No policy-text or speech interpretation and no new Fed vote. |
-| USD context memory v6.1 / Raycaster | Chart header → Raycaster; CPI v4 and registered publication panels | V5 source budgets plus cadence aging and explicit usable-component coverage; qualified opposing weekly Claims can receive 10 points from an aging Weak/incomplete NFP. Earlier labor–inflation rule retained, transfers do not stack. Visible factors and effective weights. Implemented; audit below. |
+| USD context memory v6.2 / Raycaster | Chart header → Raycaster; CPI v4 and registered publication panels | V6.1 arithmetic preserved; adds shared relationship snapshots, clickable roofs and an experimental fresh-news comparison. Base/conditional budgets, age and coverage unchanged. |
+| Combo roofs v1 | Above visible event markers while Raycaster is shown; click → Inspector Combo details | Existing ISM, guarded labor/inflation and weekly-labor relationships plus dashed experimental fresh-news sequences. Original release links, qualification time, before/after context and source contributions. |
 
 Inspector's other families have release tables and descriptive magnitude tools;
 that does not mean they already have directional scorers. FOMC/ECB episode
@@ -1553,3 +1554,136 @@ reaction separately. Audit proxy replacement, flash/final updates, lagged quarte
 labor and GDP, saved settings, historical cursor movement and short dock heights.
 Visual UI checks remain the user's responsibility. Broader price disagreements
 remain open findings; no rule was fitted to make a particular candle agree.
+
+## 7 October 2026 — Context hygiene and release-sequence research
+
+The latest pass is a behavior-preserving hygiene chore plus research/design.
+No scorer weights, economic interpretation rules or chart overlay were changed.
+See [Context hygiene audit](reports/Context-hygiene-audit.md) for files and checks.
+
+EUR context now separates publication validation/source extraction from memory
+selection/aging and timeline scheduling. Scorer and Scatter share the same
+distinct-period calibration selector. Tests use an explicit sequential 41-suite
+manifest instead of a long package command. All 41 suites, lint and build passed;
+8,299 EUR context points, 2,239 standalone assessments and 22 complete Scatter
+models exactly match the recorded pre-refactor outputs. Existing selectable
+legacy views/dependencies remain supported. Visual checks remain with the user.
+
+### February 27–March 7, 2025 finding
+
+See [Release-sequence audit](reports/Feb-Mar-2025-release-sequence-audit.md).
+The stored H1 prices fell on February 27 and 28; the sustained rise starts March 3.
+About 80.3 of March 3's 83.5 daily net pips occurred before Manufacturing ISM.
+GDP's unchanged growth revision is no new directional vote; Claims and ISM lean
+Long, while PCE's monthly/annual conflict leaves only a +0.05 Weak Short score.
+March 5 Services, March 6 Claims and March 7 NFP are relevant subsequent updates.
+
+All-enabled USD and relative EURUSD context both stay Weak Short until March 7
+NFP changes them to Weak Long. Older CPI/NFP memory explains the arithmetic, but
+does not establish the cause of the rally or prove that those weights should be
+changed. Six publication-cutoff future-removal checks pass. Saved-inventory
+revisions and coarse H1 event timing remain limitations.
+
+### Deferred roof and fresh-news layer
+
+[Release sequence roof design](reports/Release-sequence-roof-design.md) proposes
+a compact bracket above existing markers, with actual publication endpoints,
+atomic same-time releases, separate ISM sector publication ticks and a reused
+Raycaster bias/evidence chip. It reveals fresh supporting/opposing sequences
+without changing the combined score. Hidden markers, historical visibility,
+cache ownership, expiry and overlap are specified. **Design only; not implemented.**
+
+Next research should compare fresh independent labor/activity updates with the
+stock of older context, and distinguish standalone direction from the incremental
+effect of replacing an old vote. PCE spending companions are a possible future
+demand-context extension, not an active vote. Freeze candidate rules, audit broad
+non-overlapping historical cases and reserve chronological validation before
+changing scoring. Do not label a roof “historically high volatility” until that
+claim has separate price-evaluation evidence; forecast and price remain excluded
+from interpretation inputs.
+
+## 7 October 2026 — Clickable roofs and organized Raycaster implemented
+
+The earlier research-only roof section is superseded by this implementation.
+See [implementation audit](reports/Context-sequence-implementation-audit.md) and
+[sequence rule registry](frontend/src/usd-context/sequences/README.md).
+
+### Where to see combinations
+
+Show Raycaster. Its gear now presents **Accumulated context**, **Inputs and
+contributions**, **Active relationships**, **Fresh-news change · Experimental**,
+**Chart relationships**, then **Calculation and evidence**. The shared input
+table still controls calculation independently of Inspector marker filters.
+Conditions use a readable Met / Not met / Unavailable table.
+
+On EURUSD, a clickable roof above the event symbols identifies:
+
+| Relationship | Meaning of the roof bias |
+| --- | --- |
+| Manufacturing + Services | Existing single ISM v3 resolution after both sectors are known |
+| Labor + inflation priority | Accumulated context when the existing guarded priority qualifies |
+| Claims challenge older NFP | Accumulated context when the existing three-report weekly rule qualifies; older reports confirm, not vote |
+| Fresh-news sequence · Experimental | Recent replacement changes across at least two agreeing economic domains; always Weak evidence |
+
+Click a roof to open flat **Combo details** in the bottom Inspector: original
+source dates/links, each standalone interpretation, roles/change effects,
+qualifying conditions, accumulated before/after direction and the contribution
+table. Click a publication to open its original readings; ISM remains one table
+with sector sections. **Return to releases** restores ordinary Inspector.
+Reopen a roof after changing settings to inspect the new calculation.
+
+### Fresh news versus older memory
+
+The experiment compares a new family score with the eligible score it replaced,
+including old age retention and component coverage. Both use the same **base**
+family budget; conditional priority changes are excluded from this comparison.
+It keeps only the latest replacement per family within **seven elapsed broker-clock
+days**. Earlier overlapping Claims publications do not stack. An uncomputed
+replacement contributes zero; an unchanged GDP may appear as a non-voting
+companion. No eligible predecessor means a zero baseline.
+
+Inflation (CPI/PCE/PPI), labor (NFP/Claims) and activity (ISM/Retail/GDP) each form
+one domain. Sum within a domain before counting agreement; at least two domain
+nets must support the recent combined direction to create a dashed roof.
+Opposing sources stay visible. Exact cancellation uses the declared family
+priority with Weak evidence; no directional changes stay Uncomputed.
+
+This shows **change in interpreted support**, rather than replacing the standalone
+interpretation or adding another vote to memory. A new Long report can be less
+negative than an older Long report and increase USD support. The fresh-news
+direction can oppose the accumulated result and is always labeled Experimental / Weak.
+The ordinary Raycaster box, CPI v4 and Fed context retain their existing scores.
+The optional EUR/USD relative main view remains separate from these USD roofs.
+
+### Controls, chronology and responsiveness
+
+Two portable gear switches — **Show clickable combo roofs** and **Include
+experimental fresh-news sequences** — default On. They change display, not
+weights or scoring jobs. Hiding Raycaster hides roofs. Inspector marker filters
+and date range determine visible endpoints; hidden calculation inputs are
+disclosed without silently dropping their votes. Three lanes plus overflow
+preserve access to crowded snapshots. No endpoint snaps onto a broker gap or a
+nonexistent future candle.
+
+Qualification uses only known source publications. Each roof is a dated snapshot;
+it does not expose later Services or Claims confirmations at an earlier clock.
+A historical chart can show later dated roofs while a prior candle's hover
+continues to use only its own cutoff. Construction runs in the shared background
+timeline. Hover uses binary lookup plus at most eight expiry checks; pan/resize
+projects visible endpoints in one animation frame and never reruns scorers.
+
+### Validation and next research
+
+All **43** sequential terminal suites, lint and the production build pass.
+All **5,696** accumulated context points in the saved USD replay exactly match
+the committed prior builder. **3,571** roof endpoints satisfy publication chronology;
+six future-removal checks preserve earlier snapshots. In the March 3 example,
+fresh-news becomes Weak Long while memory stays Weak Short; GDP does not vote and
+PCE remains an opposing input. This exposes the disagreement, not its price cause.
+
+The broader research list is still a roadmap. This pass supplies visibility and
+one bounded experiment; PCE spending/income companions, further regime policies
+and automatic fixed-window price audit remain deferred. Dated roof counts include
+overlapping updates, not independent trials or validated high-volatility setups.
+Audit release meaning, combined context and price reaction separately before
+promoting new rules. Visual placement/readability checks remain with the user.

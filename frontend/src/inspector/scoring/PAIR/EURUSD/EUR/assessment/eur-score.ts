@@ -4,7 +4,7 @@ import type { MagnitudeSettings } from '../../../../../magnitude/settings/magnit
 import { calibrateHistoricalSignal } from '../../../../shared/core/historical-release-signals'
 import { magnitudeEvidence } from '../../../../shared/core/magnitude-evidence'
 import { eurPolicy, eurScoreVersion } from '../policy/eur-policies'
-import { distinctEurCalibration, observedEur, eurReleaseMonth } from './eur-history'
+import { earlierEurSignalReleases, observedEur, eurReleaseMonth } from './eur-history'
 import { eurFeatures } from './eur-features'
 
 const cache = new WeakMap<readonly EconomicCalendarEvent[], { history: ReturnType<typeof prepare>['history']; releases: InspectorRelease[]; features: Map<string, ReturnType<typeof eurFeatures>> }>()
@@ -21,7 +21,6 @@ export function assessEurScore(release: InspectorRelease | null, events: readonl
   if (!prepared) { prepared = prepare(events); cache.set(events, prepared) }
   const { history, releases, features: past } = prepared
   const current = eurFeatures(release, history)
-  const reference = eurReleaseMonth(release, policy)
   const isPmi = policy.family.endsWith('pmi')
   // A composite covers both sectors. Where absent in this publication, its
   // available sector reading is the one vote, not an extra composite vote.
@@ -30,8 +29,7 @@ export function assessEurScore(release: InspectorRelease | null, events: readonl
   const laborPublication = policy.family === 'euro-labor' ? hasUnemployment && hasEmployment ? 'combined' : hasUnemployment ? 'monthly' : 'quarterly' : null
   const activePmi = isPmi ? ['composite', 'services', 'manufacturing'].find(id => current[id].value !== null) : null
   const readings = policy.signals.map(signal => {
-    const earlier = distinctEurCalibration(releases.filter(r => r.events.some(e => e.event_id === signal.seriesId)), policy, release.releaseAt ?? 0)
-      .filter(r => reference !== null && eurReleaseMonth(r, policy)! < reference)
+    const earlier = earlierEurSignalReleases(releases, policy, signal, release)
     const samples = earlier.map(r => past.get(r.id)?.[signal.id]?.value).filter((v): v is number => v != null)
     const calibrated = calibrateHistoricalSignal(current[signal.id], samples, settings[signal.id])
     const weight = isPmi ? signal.id === activePmi ? 100 : 0 : laborPublication === 'monthly' ? signal.id === 'unemployment' ? 100 : 0 : laborPublication === 'quarterly' ? signal.id === 'employment' ? 75 : signal.id === 'employment-annual' ? 25 : 0 : signal.weight
