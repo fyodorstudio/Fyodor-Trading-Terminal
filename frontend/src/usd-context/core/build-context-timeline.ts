@@ -9,6 +9,7 @@ import { scorePublication, publicationFamily, contextSeriesIds } from './score-p
 import { explainUpdate } from './explanation'
 import { contextDayMs } from './memory/source-retention'
 import { claimsConfirmation } from './memory/claims-confirmation'
+import { coherentFedSources, fedRelationshipSources, withFedRelationshipStages } from '../sequences/core/fed-relationships'
 
 export function buildContextTimeline({ events, families, settings, asOf }: ContextInput): ContextTimeline {
   const enabled = enabledContextFamilies(families)
@@ -67,6 +68,7 @@ export function buildContextTimeline({ events, families, settings, asOf }: Conte
       result.members[i]?.status === m.status && result.members[i]?.contribution === m.contribution)) continue
     points.push({ chartAt, result, latest: lastPublication, update })
   }
+  const fedSources = coherentFedSources(fedRelationshipSources(all), assessments)
   return { points, enabled, version: contextVersion, excludedTiming: selected.length - valid.length,
-    relationships: buildContextRelationships(points, beforeByTime, ismSources) }
+    relationships: buildContextRelationships(withFedRelationshipStages(points, fedSources), beforeByTime, ismSources, fedSources) }
 }

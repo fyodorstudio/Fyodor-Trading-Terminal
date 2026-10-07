@@ -1,5 +1,8 @@
 import { useId, useState } from 'react'
-import type { ComboSnapshot, ComboSource } from '../core/contracts'
+import { relationshipVersion, type ComboSnapshot, type ComboSource } from '../core/contracts'
+import { roofResultLabel, roofSupport } from '../core/relationship-support'
+import { RelationshipSupport } from './RelationshipSupport'
+import { RelationshipCatalogue } from './RelationshipCatalogue'
 import { contextPairLabel, contextResultLabel } from '../../core/usd-pair'
 import { formatAppTimestamp, type TimeDisplayPreference } from '../../../appearance/time-display/time-display-preference'
 import { contextVersion } from '../../core/policy'
@@ -14,18 +17,24 @@ export function ComboInspector({ combo, timeDisplay, symbol, broker = null, onCl
   onClose: () => void; onOpenRelease: (source: ComboSource) => void
 }) {
   const [advanced, setAdvanced] = useState(false), advancedId = useId()
-  const summary = comboSummary(combo), bias = contextResultLabel(symbol, combo)
+  const summary = comboSummary(combo), bias = roofResultLabel(combo)
+  const support = roofSupport(combo)
+  const fed = combo.sources.find(s => s.family === 'fed')
   const after = combo.after, before = combo.before
   return <section className="combo-inspector" aria-label="Combo details">
     <header><strong>Combo details · {combo.title}</strong><button type="button" onClick={onClose}>Return to releases</button></header>
     <div className="combo-inspector-scroll">
       <div className="combo-result" aria-label="Roof interpretation">
-        <strong className={`combo-bias ${bias.endsWith(' Long') ? 'long' : bias.endsWith(' Short') ? 'short' : ''}`}>{bias}</strong>
-        <span>{combo.strength ? `${combo.strength} evidence` : 'Direction withheld'}</span>
+        <strong className={`combo-bias ${support.direction ?? ''}`}>{bias}</strong>
+        <span>{support.narrow ? 'weak evidence · narrow lead' : support.qualified ? 'weak evidence · limited inputs' : combo.strength ? `${combo.strength} evidence` : 'evidence ungraded'}</span>
         {combo.experimental && <small>Experimental</small>}
       </div>
+      <RelationshipSupport support={support} />
       <p className="combo-meaning">{summary.meaning}</p>
-      <small className="combo-version">{contextVersion} · Relationship roofs v3 · USD inputs only · Display v{roofDisplayVersion}. Snapshot captured when opened; reopen after changing inputs.</small>
+      <small className="combo-version">{contextVersion} · Relationship roofs v{relationshipVersion} · USD inputs only · Display v{roofDisplayVersion}. Snapshot captured when opened; reopen after changing inputs.</small>
+      {fed && <section className="combo-card" aria-label="Numerical Fed action"><h3>Fed action · separate from macro support</h3>
+        <p>{fed.policyAction?.action ?? 'Unavailable'}{fed.policyAction?.delta != null && ` · ${fed.policyAction.delta} bp`}. {fed.role}</p>
+        <p>The weighted support above covers macro inputs only. An opposing action exposes conflict; no overall numeric winner is asserted. Statements, projections and speeches are outside this dataset interpretation.</p></section>}
       <div className="combo-overview">
         <section className="combo-card" aria-label="Why this direction"><h3>Why this direction?</h3><p>{summary.why}</p></section>
         <section className="combo-card" aria-label="Activation and changes"><h3>What changed?</h3>
@@ -47,6 +56,7 @@ export function ComboInspector({ combo, timeDisplay, symbol, broker = null, onCl
             <td>{summary.updates.includes(source) ? 'Activation update' : 'Earlier context'}<small>{source.role ?? 'Participating context vote'}</small></td></tr>)}
         </tbody></table>
       </section>
+      <RelationshipCatalogue combo={combo} />
       <RoofAuditControls key={`${broker}/${symbol}/${combo.id}`} combo={combo} symbol={symbol} broker={broker} />
       <div className="combo-advanced-control"><button type="button" aria-expanded={advanced} aria-controls={advancedId} onClick={() => setAdvanced(!advanced)}>
         {advanced ? 'Hide advanced calculations' : 'Advanced calculations'}</button></div>

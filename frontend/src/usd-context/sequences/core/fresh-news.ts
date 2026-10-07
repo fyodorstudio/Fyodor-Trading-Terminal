@@ -42,7 +42,12 @@ export function updateFreshNews(latest: Map<ContextFamily, FreshChange>, before:
 }
 
 export function freshNewsAt(latest: ReadonlyMap<ContextFamily, FreshChange>, chartAt: number): FreshPoint {
-  const members = [...latest.values()].filter(m => m.chartAt <= chartAt && chartAt - m.chartAt < freshWindowMs)
+  const members = [...latest.values()].filter(m => m.chartAt <= chartAt && chartAt - m.chartAt < freshWindowMs).map(m => {
+    if (m.family !== 'ism' || !m.participants) return m
+    const participants = m.participants.filter(p => p.chartAt <= chartAt && chartAt - p.chartAt < freshWindowMs)
+    return { ...m, participants, comparable: participants.some(p => p.comparable),
+      change: Math.round(participants.reduce((sum, p) => sum + (p.change ?? 0), 0) * 1e12) / 1e12 }
+  })
   const directional = members.filter(m => m.change !== 0)
   const total = directional.length ? Math.round(directional.reduce((sum, m) => sum + m.change, 0) * 1e12) / 1e12 : null
   const deciding = total

@@ -47,6 +47,7 @@ export const suites = [
   "tests/inspector/eur/test_eur_integration.mjs",
   "tests/inspector/eur/test_pmi_episodes.mjs",
   "tests/usd-context/test_sequences.mjs",
+  "tests/usd-context/test_relationship_catalogue.mjs",
   "tests/usd-context/test_sequence_ui.mjs",
   "tests/usd-context/test_roof_workflow.mjs",
   "tests/usd-context/test_context_ribbon.mjs",

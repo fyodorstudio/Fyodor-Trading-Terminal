@@ -55,8 +55,10 @@ try{
  assert.equal(previousFedMeeting(fedRelease,fedEvents).releaseAt,priorFed.release_at)
  assert.equal(previousFedMeeting(fedRelease,[...fedEvents,{...priorFed,value_id:'ambiguous-prior'}]),null)
  assert.equal(previousFedMeeting(fedRelease,[currentFed,futureFed]),null)
- assert.deepEqual(buildContextTimeline(input),buildContextTimeline({...input,events:events}),
+ const withFed=buildContextTimeline(input),withoutFed=buildContextTimeline({...input,events:events})
+ assert.deepEqual({...withFed,relationships:undefined},{...withoutFed,relationships:undefined},
    'Fed rates, holds and future meetings do not vote or renew macro evidence')
+ assert.ok(withFed.relationships.episodes.some(e=>e.kind==='fed-relationship'),'Fed adds an annotation separately from accumulated context')
  const fedProps={release:fedRelease,events:fedEvents,now:fedAt,history:{}}
  await React.act(async()=>root.render(React.createElement(InspectorScoringView,{...fedProps,binding:inspectorScoringBinding('EURUSD',fedRelease)})))
  assert.equal(container.querySelector('[aria-label="Fed contextual pair direction"]').textContent,contextPairLabel('EURUSD',expected.direction))

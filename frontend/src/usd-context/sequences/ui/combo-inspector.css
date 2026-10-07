@@ -25,4 +25,13 @@
 .combo-audit [aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: var(--surface-raised); }
 .combo-audit small { margin-top: 8px; }
 .combo-footnote { color: var(--text-muted); }
+.relationship-support { padding: 8px 0; }
+.relationship-split { display: flex; justify-content: space-between; gap: 12px; }
+.relationship-bar { display: flex; height: 6px; background: var(--border); margin: 6px 0; border-radius: 3px; overflow: hidden; }
+.relationship-bar span:first-child { background: #19a986; }
+.relationship-bar span:last-child { background: #e87979; }
+.relationship-families { display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0; border: 1px solid var(--border); }
+.combo-inspector select { font: inherit; color: var(--text); background: var(--surface-panel); border: 1px solid var(--border); padding: 4px; }
+.combo-inspector details { margin-top: 10px; }
+.combo-inspector summary { cursor: pointer; color: var(--accent); }
 @media (max-width: 850px) { .combo-overview { grid-template-columns: minmax(0, 1fr); gap: 0; } }

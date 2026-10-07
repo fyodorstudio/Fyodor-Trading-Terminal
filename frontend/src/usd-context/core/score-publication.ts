@@ -18,7 +18,7 @@ import { sourceCoverage } from './source-coverage'
 import type { ComboSource } from '../sequences/core/contracts'
 import { magnitudeEvidence } from '../../inspector/scoring/shared/core/magnitude-evidence'
 
-export const contextSeriesIds: readonly string[] = [...cpiV3SeriesIds, ...nfpV2SeriesIds, ...ismSeriesIds, ...retailSeriesIds, ...claimsSeriesIds, ...pceSeriesIds, ...ppiSeriesIds, ...gdpSeriesIds]
+export const contextSeriesIds: readonly string[] = [...cpiV3SeriesIds, ...nfpV2SeriesIds, ...ismSeriesIds, ...retailSeriesIds, ...claimsSeriesIds, ...pceSeriesIds, ...ppiSeriesIds, ...gdpSeriesIds, '840050014']
 export const publicationFamily = (id: string): ContextFamily | null => id === 'jobs' ? 'nfp' : id === 'us-cpi' ? 'cpi' :
   id === 'ism-services' || id === 'ism-manufacturing' ? 'ism' : id === 'retail' ? 'retail' : id === 'claims' ? 'claims' : id === 'pce' ? 'pce' : id === 'ppi' ? 'ppi' : id === 'gdp' ? 'gdp' : null
 export function scorePublication(release: InspectorRelease, events: readonly InspectorEvent[], settings: ContextSettings,
@@ -41,6 +41,14 @@ export function scorePublication(release: InspectorRelease, events: readonly Ins
         strength: evidence?.strength === 'strong' || evidence?.strength === 'moderate' || evidence?.strength === 'weak' ? evidence.strength : null,
         role: `${sector.weight}% of the ISM sector budget`,
         contribution: sector.readings.reduce((sum, row) => sum + (row.contribution ?? 0), 0),
+        sector: sector.sector, referenceMonth: ism.referenceMonth,
+        assessment: { family: 'ism' as const, sourceId: r.id, sourceLabel: `ISM ${sector.sector}`, chartAt: r.chartTime * 1000,
+          releaseAt: r.releaseAt, total: a.total, usdDirection: direction === 'short' ? 'stronger' as const : direction === 'long' ? 'weaker' as const : 'uncomputed' as const,
+          strength: evidence?.strength === 'strong' || evidence?.strength === 'moderate' || evidence?.strength === 'weak' ? evidence.strength : null,
+          reason: evidence!.strengthReason, explanation: evidence!.strengthReason, changeSize: evidence!.changeSize, reduced: evidence!.reduced, tie: a.total === 0 && deciding !== 0,
+          coverage: sourceCoverage(a.readings), comparisonBasis: `${sector.sector}:${a.readings.filter(x => x.points !== null).map(x => `${x.id}:${x.weight}`).sort().join('|')}`,
+          calibrationBasis: `ism-v3/${sector.sector}:${a.readings.filter(x => x.points !== null).map(x => `${x.id}:${x.limits?.join(',') ?? 'zero-only'}`).sort().join('|')}`,
+          components: a.readings.map(x => ({ id: x.id, weight: x.weight, points: x.points, value: x.value, limits: x.limits })) },
       }] : []
     }) : [])
   }

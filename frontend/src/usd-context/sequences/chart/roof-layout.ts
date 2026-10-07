@@ -4,6 +4,7 @@ import type { RoofEndpoint } from './roof-symbols'
 export type RoofCandidate = { combo: ComboSnapshot; left: number; right: number; endpoints: RoofEndpoint[]; hidden: number; labelX: number }
 export type PositionedRoof = RoofCandidate & { lane: number }
 const strengthRank = { strong: 3, moderate: 2, weak: 1 }
+const pairRank = (c: ComboSnapshot) => Number(c.kind === 'release-relationship' || c.kind === 'fed-relationship')
 const overlaps = (a: [number, number], b: [number, number]) => a[0] < b[1] + 8 && b[0] < a[1] + 8
 function intervalIndex(occupied: readonly [number, number][], start: number) {
   let lo = 0, hi = occupied.length
@@ -19,6 +20,7 @@ function insert(occupied: [number, number][], span: [number, number]) { occupied
 /** Display priority only: never changes qualification, scores or snapshots. */
 export function layoutRoofs(candidates: readonly RoofCandidate[], focused: boolean) {
   const ranked = focused ? [...candidates].sort((a, b) =>
+    pairRank(a.combo) - pairRank(b.combo) ||
     (strengthRank[b.combo.strength ?? 'weak'] - strengthRank[a.combo.strength ?? 'weak']) ||
     Number(a.combo.experimental) - Number(b.combo.experimental) || b.combo.chartAt - a.combo.chartAt || a.combo.id.localeCompare(b.combo.id)) : [...candidates]
   const lanes: [number, number][][] = Array.from({ length: 3 }, () => [])

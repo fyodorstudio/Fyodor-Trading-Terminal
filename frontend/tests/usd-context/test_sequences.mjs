@@ -62,22 +62,22 @@ try {
   assert.equal(roof.strength, 'weak'); assert.equal(roof.experimental, true)
   assert.equal(relationships.fresh[0].agreeingDomains, 2, 'Only labor and inflation qualify; Uncomputed GDP supplies no domain')
   const unknownBefore = combine([], atomicAt - 1, ['claims', 'gdp', 'pce'])
-  assert.equal(buildContextRelationships(points, new Map([[atomicAt, unknownBefore]]), new Map()).episodes.length, 0,
+  assert.equal(buildContextRelationships(points, new Map([[atomicAt, unknownBefore]]), new Map()).episodes.filter(e => e.kind === 'fresh-news').length, 0,
     'Newly available readings without comparable predecessors cannot establish an economic change roof')
   const opposingBefore = combine(['claims', 'ism', 'cpi'].map(f => source(f, 1, at - day)), at - 1)
   const opposed = combine([source('claims', 2), source('ism', 2), source('cpi', .3)], at)
   const nearCancellation = buildContextRelationships([{ chartAt: at, result: opposed }], new Map([[at, opposingBefore]]), new Map())
   const mixedRoof = nearCancellation.episodes.find(e => e.kind === 'fresh-news')
   assert.ok(mixedRoof, 'Two domains agree, but the opposing inflation change nearly cancels them')
-  assert.equal(mixedRoof.decision.state, 'mixed'); assert.equal(mixedRoof.strength, null)
+  assert.equal(mixedRoof.decision.state, 'mixed'); assert.equal(mixedRoof.strength, 'weak', 'Roof exposes a narrow lead while the separate accumulated gate still withholds direction')
   const exact = combine([source('claims', 2), source('ism', 2), source('cpi', 2 / 7)], at)
-  assert.equal(buildContextRelationships([{ chartAt: at, result: exact }], new Map([[at, opposingBefore]]), new Map()).episodes.length, 0,
-    'Exact cancellation cannot use a family priority to invent a directional fresh roof')
+  assert.equal(buildContextRelationships([{ chartAt: at, result: exact }], new Map([[at, opposingBefore]]), new Map()).episodes.find(e => e.kind === 'fresh-news').direction, 'uncomputed',
+    'Exact cancellation is exposed without inventing a directional fresh roof')
   assert.equal(lookupFreshNews(relationships.fresh, atomicAt - 1), null)
   assert.equal(lookupFreshNews(relationships.fresh, atomicAt + freshWindowMs - 1).direction, 'weaker')
   assert.equal(lookupFreshNews(relationships.fresh, atomicAt + freshWindowMs).direction, 'uncomputed', 'Exact seven-day expiry works between precomputed stages')
   const inflationOnly = combine([source('cpi', -1), source('pce', -1)], at)
-  assert.equal(buildContextRelationships([{ chartAt: at, result: inflationOnly }], new Map([[at, atomicBefore]]), new Map()).episodes.length, 0,
+  assert.equal(buildContextRelationships([{ chartAt: at, result: inflationOnly }], new Map([[at, atomicBefore]]), new Map()).episodes.filter(e => e.kind === 'fresh-news').length, 0,
     'Two inflation families alone are one domain, not a cross-domain sequence')
 
   const ismAt = at + day, ism = source('ism', -.3, ismAt)

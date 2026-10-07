@@ -2,7 +2,7 @@
 
 Use the chart to assess price and the fundamental overlays to understand the declared interpretation of the stored releases. A direction is a thesis input, not an instruction to buy, sell, hold, or close. Evidence describes agreement between inputs, not a probability of profit.
 
-## Current interpretation rules: context v8 / relative v3 / relationship v3
+## Current interpretation rules: context v8 / relative v3 / relationship v4
 
 Candy has four meanings. **Green: pair Long. Red: pair Short. Amber: Mixed
 evidence. Gray: Insufficient context or unavailable history.** Hover/click shows
@@ -19,13 +19,15 @@ contributions. These declared prototype safeguards are not price-fitted success
 guarantees. Advanced controls change the configured inputs; leave the agreed
 defaults for comparisons and record any exclusions when auditing.
 
-Roofs have three meanings:
+Roofs expose several distinct relationships:
 
 | Roof type | What its output describes |
 | --- | --- |
 | ISM sectors, solid | Standalone monthly ISM sector resolution |
 | Labor relationships, solid | Accumulated USD context when the priority rule qualified |
-| Named fresh sequence, dashed | Comparable changes in interpreted support over seven days, across at least two agreeing domains |
+| Named macro pair, solid | Available standalone support from two families, at retained base family weights |
+| Fed + macro, solid | Numerical rate action alongside macro support; Fed has no invented magnitude weight |
+| Named fresh sequence, dashed | Comparable changes in interpreted support over seven days, across at least two domains, including conflict |
 
 Every Roof is **USD-only**, even with EUR-vs-USD Candy. Open its direction label
 for the type, scope, participating standalone readings and accumulated result at
@@ -34,9 +36,38 @@ Roof is a change in evidence, not the new release's standalone bias or a second
 Raycaster vote. Renewal of an old score, changed components/weights or coverage,
 calibration drift, and a new source without a comparable predecessor do not create
 support-change votes. Both features are graded under limits known at activation;
-a Roof does not claim a native-unit economic growth estimate. Advanced details retain their replacement effects for audit. Near
-cancellation shows Mixed evidence; exact cancellation does not create a
-directional fresh Roof.
+a Roof does not claim a native-unit economic growth estimate. Advanced details retain their replacement effects for audit.
+Roof v4 says **Conflicted · Long leads** or **Conflicted · Short leads** when both
+sides contribute and one has more weighted support. A net lead below one third
+of gross support is explicitly narrow and Weak. **Balanced conflict · No lead**
+means exact cancellation; **Unchanged · No lead** means zero usable support;
+**Insufficient evidence** means a required input or comparable predecessor is
+missing. Missing evidence never counts as zero confirmation.
+
+Open **direction label → USD relationship catalogue**. The catalogue registers
+all **28 macro pairs plus eight Fed/macro pairs**. Select a pair or tick any
+larger group; the same resolver composes all 247 macro groups and 255 groups
+containing Fed. It shows eligibility and absence reasons at the selected Roof's
+activation time. It does not invent 502 extra scoring formulas or context votes.
+Switch between **Standalone support at activation** and **Comparable support
+changes · seven days**. Release support is the available source interpretation;
+fresh support is the change versus a comparable predecessor under the current
+calibration. They can oppose each other. ISM compares Manufacturing with prior
+Manufacturing, and Services with prior Services, within one 30/70 family budget.
+Its two sector changes expire separately seven days after their own publication.
+
+The support bar displays each side's share of weighted support, **not win
+probabilities**. For example, equal-budget support of Long 1 versus Short 2
+shows Conflicted · Short leads, with roughly 33% / 67% support. Unequal family
+budgets or source aging can change the winner; magnitude words alone cannot
+decide it. Family weights remain declared interpretation policy, not proven
+empirical causal coefficients. Partial evidence stays qualified.
+
+Fed holds add no rate-action direction. A cut or increase is named separately
+from the macro support split. An opposing action exposes conflict but does not
+claim a numeric winner between basis points and magnitude points. Statements
+and speeches are unavailable. **Raycaster/Candy retain their current context
+gates and labels; extending their conflict labels is deferred to a separate pass.**
 
 NFP v2.2 uses valid supplied revisions for comparable preceding reference months.
 Missing consecutive months prevent monthly comparisons and three-month hiring
@@ -83,7 +114,7 @@ The three roof levels are space for labels and connecting lines. Their height is
 
 Set **Fundamental tools gear → Roofs → Display density**:
 
-- **Focused** prioritizes Strong over Moderate over Weak evidence. Within the same evidence level it prefers nonexperimental relationships, then newer activation times, with a stable identity tie-breaker. It also removes overlapping repetitions with the same relationship type, direction and participating family set. This makes a crowded chart easier to scan; it is a display choice, not a claim that omitted roofs are invalid.
+- **Focused** prioritizes specialized ISM/labor/fresh relationships before generic pair annotations, then Strong over Moderate over Weak evidence. Within the same evidence level it prefers nonexperimental relationships, then newer activation times, with a stable identity tie-breaker. It also removes overlapping repetitions with the same relationship type, direction and participating family set. This makes a crowded chart easier to scan; it is a display choice, not a claim that omitted roofs are invalid.
 - **All roofs** does not apply the Focused ranking or repeated-relationship suppression. It tries to show the eligible roofs in chronological order using the same three levels and collision avoidance.
 - **+N more** retains eligible roofs omitted because of repetition or insufficient room. Open it to inspect their direction, evidence and activation time, then click an entry for Combo details. All roofs still has a physical space limit; it does not promise every label can be drawn at once.
 

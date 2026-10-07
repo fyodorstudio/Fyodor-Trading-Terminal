@@ -2,7 +2,7 @@
 
 ## Current integrity refinement — 7 October 2026
 
-USD memory v8; relative EURUSD v3; relationship derivation v3; CPI Inspector v4.1
+USD memory v8; relative EURUSD v3; relationship derivation v4; CPI Inspector v4.1
 with standalone v3.2; NFP v2.2; EUR numerical v1.1. Other family versions remain.
 
 Retired rules: v6/v7 and relative v2 multiplied component coverage into an already
@@ -16,6 +16,42 @@ Relationship v2 could confuse moving calibration limits with fresh economic
 change. V3 compares both derived features under the latest release's known limits;
 calibration drift, renewal and changed availability are separately disclosed and
 cannot vote as fresh news. Unknown provenance blocks comparison.
+
+### Relationship Roofs v4 — exhaustive USD catalogue
+
+All 28 pairs among CPI, PCE, PPI, NFP, Claims, ISM, Retail and GDP are registered,
+plus eight Fed/macro pairs. Any larger selected group composes on demand from
+the same source snapshot (247 macro groups; 255 groups including Fed). No pair
+or group adds a context vote. Pair release support uses base weights and source
+retention; specialized labor policy Roofs retain their existing context weights.
+
+Roof labels expose Aligned, Conflicted · Long/Short leads, Balanced conflict ·
+No lead, Unchanged · No lead and Insufficient evidence. Opposing shares, net
+separation and leading contributors remain visible. Narrow net/gross separation
+below one third is Weak, not equal support. Exact zero never uses priority to
+invent a winner. Shares describe support under declared policy, not probability.
+
+ISM fresh comparisons now use consecutive preceding publications of each
+sector, at common current calibration and matching components/coverage ≥60%.
+Manufacturing and Services retain 30/70 shares of one ISM budget. Their changes
+expire at their own seven-day clocks. Earlier sector changes remain in the
+seven-day view but are not charged again to a later replacement. Calibration,
+renewal and availability residuals remain separately auditable.
+
+Fed action is an unweighted annotation with a 45-day eligibility window. A hold
+adds no action direction; basis points are not converted into macro magnitude
+points. An opposing action and macro support show conflict without asserting
+an overall numerical winner. Speeches/guidance have no numerical vote.
+
+Retired v3 behavior: only specialized and cross-domain agreeing sequences were
+registered; ISM partial-to-complete assembly could block a legitimate fresh
+sector comparison; narrow conflicts were shown only as Mixed and balanced
+sequences were omitted. V4 exposes the split and exact balance in Roofs.
+Raycaster/Candy labels, gates, colors and accumulated votes are explicitly
+unchanged in this pass. Their conflict-label extension is deferred.
+
+Verification: reports/Roof-v4-expansion-audit.md and terminal suites. Existing
+v3 audit records retain their original snapshot metadata; new openings use v4.
 
 NFP v2.2 blocks invalid raw supplied revisions and accepts a valid revised-only
 prior when its preceding reference is established. CPI v3.2 rejects unsafe native

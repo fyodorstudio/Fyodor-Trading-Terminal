@@ -270,6 +270,30 @@ and left the main event loop active. Full frontend tests, lint and build passed.
 
 ## Claims v2 and Fed decision context
 
+### USD relationship Roofs v4
+
+`sequences/core/relationship-registry.ts` declares all 28 macro pairs plus eight
+Fed/macro pairs. Pair annotations reuse canonical results and source age; they
+never add votes. `relationship-support.ts` exposes both weighted sides, their
+net/separation, lead and availability. Arbitrary larger groups are resolved on
+demand in the Inspector catalogue rather than enumerated into the chart.
+
+Release mode uses base family weights (and retention). Fresh mode uses matching
+components and coverage under common current calibration, within seven days.
+`ism-fresh.ts` compares each sector to its own preceding month, carries 30/70
+sector changes within one ISM budget and keeps incoming replacement effects
+separate from earlier retained changes. Unknown predecessors supply no vote.
+
+Fed-only stages reuse the prior accumulated result in relationship derivation;
+they do not modify `ContextTimeline.points` or renew macro sources. Fed action
+is unweighted and hold is neutral. Ambiguous meetings displace earlier action
+without claiming a usable numerical action. Raycaster/Candy conflict-label
+changes are deferred; canonical versions/gates stay at USD v8 / relative v3.
+
+Focused display prioritizes specialized annotations over generic pairs, keeping
+every omitted Roof available in More and every pair inspectable in the catalogue.
+World-space layout is cached per zoom/density; panning projects the existing plan.
+
 Claims v2 replaces the Claims source slot without changing base family budgets or memory half-lives. Its two underlying trends use nonoverlapping four-week windows; latest-week weight is smaller. The three-release weekly confirmation additionally requires both underlying trends to agree with each report direction. Confirmation is also explained when Claims and NFP agree, without an extra vote.
 
 Fed v2 reuses `runtime/usePublicationContext.ts` to display exactly this engine at the decision publication, including holds. A separately fetched earlier numeric decision anchors the previous-meeting comparison. Both meetings use the same enabled families/settings; no future speech, conference, minutes or macro reading is moved into an earlier result. Fed meetings add no timeline vote and do not refresh source memory. Speeches remain outside scoring. See the `docs/scoring system library.MD` for rules and limitations.

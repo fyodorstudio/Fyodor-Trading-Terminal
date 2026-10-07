@@ -22,6 +22,7 @@ try {
   const { eurContextAt, relativeContext } = await load('pair-context/core/relative-context')
   const { buildRibbonTimeline } = await load('raycaster/ribbon/ribbon-timeline')
   const { currentScorerLabels } = await load('inspector/scoring/shared/core/current-scoring-versions')
+  const { relationshipVersion } = await load('usd-context/sequences/core/contracts')
   const usd = buildContextTimeline(input.inputUSD), eur = buildEurContextTimeline(input.inputEUR)
   const assessments = new Map(), samples = [], counts = {}, outliers = []
   for (const point of usd.points) {
@@ -110,7 +111,7 @@ try {
   assert.deepEqual(forecast, usd, 'Forecast fields cannot influence release/change interpretation')
   const report = { source: input.source, revision: input.revision, asOf: input.asOf, settings: input.inputUSD.settings,
     settingsProvenance: 'Explicit automatic snapshot settings; not a claim to read browser-local user preferences',
-    versions: { usd: usd.version, relative: 'eurusd-relative-context-v3', relationships: 3,
+    versions: { usd: usd.version, relative: 'eurusd-relative-context-v3', relationships: relationshipVersion,
       cpi: currentScorerLabels.cpi, nfp: currentScorerLabels.nfp, eur: 'v1.1' },
     rows: { USD: input.inputUSD.events.length, EUR: input.inputEUR.events.length },
     range: { first: new Date(usd.points[0].chartAt).toISOString(), lastPublication: new Date(Math.max(...[...assessments.values()].map(a => a.chartAt))).toISOString() },

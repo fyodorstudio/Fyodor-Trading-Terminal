@@ -99,13 +99,15 @@ signal exposes exact inputs and configurable magnitudes. Assessment runs in a
 worker. Retail sales are nominal; no forecasts or price inputs enter scoring.
 See the [scoring library](scoring%20system%20library.MD) for policy and audit.
 
-**Raycaster** opens from the wave button beside the paintbrush toggle near the
-timeframe selector. Its movable box reads USD context at the hovered candle end.
-Memory v6.1 combines CPI v3.1 (28%), PCE v1 (10%), PPI v1 (2%), NFP v2 (30%),
+**Raycaster** opens from the wave button in the outlined Fundamental tools group
+on the header's right. Its movable box reads selected context at the hovered candle end.
+Memory v8 combines CPI v3.2 (28%), PCE v1 (10%), PPI v1 (2%), NFP v2.2 (30%),
 Claims v2 (10%), ISM v3 (10%), Retail v1 (7%) and GDP v1 (3%). Qualified labor deterioration with inflation inside declared
 guards shifts CPI to 8% and NFP to 50%; the breakdown shows conditions and
 effective/base weights. Claims has a 14-day freshness gate, GDP 120 days; others use 45 days.
-V6 reduces retained votes with cadence-based aging and usable component coverage.
+V8 retains component weights once, reduces votes with cadence-based aging and
+tracks usable coverage separately. Direction requires 60% configured coverage
+and one-third net/gross agreement; incomplete directional evidence is Weak.
 Qualified repeated Claims against an aging Weak/incomplete NFP can shift NFP to
 20% and Claims to 20%, within the same labor budget. Transfers do not stack.
 The gear exposes age, retention, coverage, effective weight and weekly confirmation.
@@ -117,6 +119,15 @@ the popover; its footer marks this as the USD side only. Supported major USD
 pairs invert direction when USD is base. Background scoring leaves hover as a
 snapshot lookup. See [Raycaster](frontend/src/raycaster/README.md) and
 [USD context policy](frontend/src/usd-context/README.md) for timing and limits.
+
+**Roof relationships v4** register all 28 USD macro pairs and eight Fed/macro
+pairs. Open a direction label, then the USD relationship catalogue, to inspect
+any pair or larger selected group at activation. Conflicted · Long/Short leads
+exposes unequal weighted support; exact balance and missing evidence stay
+explicit. The catalogue separates standalone support from comparable seven-day
+changes. Fed action stays unweighted alongside macro support. Raycaster/Candy
+conflict-label changes are deferred. See [trading workflow](docs/trading%20workflow.md)
+and [manual audit backlog](docs/manual%20edit.md).
 
 Inspector Filters has one **US ISM Manufacturing / Services** checkbox and symbol
 selector controlling both original source families. Legacy partial selections

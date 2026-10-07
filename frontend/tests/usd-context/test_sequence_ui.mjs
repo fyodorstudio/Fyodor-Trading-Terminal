@@ -35,7 +35,7 @@ try {
   const after = combineContext(Object.fromEntries(inputs.map(s => [s.family, s])), ['claims', 'pce', 'cpi'], at + hour)
   const before = combineContext({ claims: inputs[0] }, ['claims', 'pce', 'cpi'], at + hour - 1)
   const episode = { id: 'roof', kind: 'fresh-news', title: 'Fresh-news sequence', chartAt: at + hour + hour / 2,
-    sources: inputs.map(s => ({ ...s, role: 'Latest replacement effect', change: -.1 })), before, after,
+    sources: inputs.map(s => ({ ...s, role: 'Latest replacement effect', change: -.1, comparable: true })), before, after,
     direction: 'weaker', strength: 'weak', explanation: 'Labor and inflation replacement effects reduce USD support.', checks: [], experimental: true }
   assert.equal(roofLabel(episode), 'Claims + PCE')
   const companions = { ...episode, sources: [...episode.sources, { ...episode.sources[0], sourceId: 'claims-2' },
@@ -68,7 +68,7 @@ try {
   assert.ok(button, 'A mid-candle publication is included on the final visible H1 bar')
   assert.match(button.textContent, /Claims \+ PCE.*Long/)
   assert.doesNotMatch(button.textContent, /Fresh news/)
-  assert.equal(button.querySelector('.combo-roof-direction').textContent.trim(), '· Long', 'Direction stays outside the truncating name span')
+  assert.equal(button.querySelector('.combo-roof-direction').textContent.trim(), '· Aligned · Long', 'Direction stays outside the truncating name span')
   assert.match(button.title, /claims.*interpreted support decreased/)
   assert.match(button.title, /1 inputs hidden/)
   assert.match(button.title, /Available from.*broker time/)
@@ -168,7 +168,7 @@ try {
   assert.match(container.textContent, /Available from/)
   assert.match(container.textContent, /Memory update; no new publication/)
   assert.equal(container.querySelector('[aria-label="Combo context contributions"]'), null, 'Calculations are optional and not mounted by default')
-  assert.match(container.querySelector('[aria-label="Why this direction"]').textContent, /Jobless Claims and PCE updates favor USD weakness/)
+  assert.match(container.querySelector('[aria-label="Why this direction"]').textContent, /claims and pce contribute most to the Long side/)
   await React.act(async () => [...container.querySelectorAll('button')].find(b => b.textContent === 'Advanced calculations').click())
   assert.match(container.textContent, /Accumulated context before → after/)
   assert.match(container.textContent, /No later publications or prices/)
@@ -179,13 +179,26 @@ try {
   await React.act(async () => [...container.querySelectorAll('button')].find(b => b.textContent === 'Return to releases').click())
   assert.equal(returned, true)
 
-  const mixedEpisode = { ...episode, decision: { state: 'mixed', coverage: 1, agreement: .01, reason: 'Economic changes nearly cancel.' }, strength: null }
+  const mixedEpisode = { ...episode, sources: episode.sources.map((s, i) => ({ ...s, change: i ? .105 : -.1, comparable: true })),
+    catalogue: { enabled: ['claims', 'pce', 'cpi'], fresh: episode.sources.map((s, i) => ({ ...s, change: i ? .105 : -.1, comparable: true })), fed: null },
+    decision: { state: 'mixed', coverage: 1, agreement: .01, reason: 'Economic changes nearly cancel.' }, strength: null }
   await render(React.createElement(ComboInspector, { combo: mixedEpisode, symbol: 'EURUSD', timeDisplay, onClose() {}, onOpenRelease() {} }))
-  assert.equal(container.querySelector('.combo-bias').textContent, 'Mixed evidence')
-  assert.equal(container.querySelector('.combo-bias.long, .combo-bias.short'), null)
-  assert.match(container.querySelector('[aria-label="Why this direction"]').textContent, /nearly cancel/)
+  assert.equal(container.querySelector('.combo-bias').textContent, 'Conflicted · Short leads')
+  assert.ok(container.querySelector('.combo-bias.short'))
+  assert.match(container.querySelector('[aria-label="Why this direction"]').textContent, /weighted lead is narrow/)
   assert.match(container.querySelector('[aria-label="Accumulated context comparison"]').textContent, /Insufficient context → Insufficient context/)
   assert.match(container.querySelector('[aria-label="Participating publications"]').textContent, /EURUSD Long/, 'Standalone directions remain separate from withheld combined output')
+  const catalogue = container.querySelector('[aria-label="USD relationship catalogue"]')
+  await React.act(async () => catalogue.querySelector('button').click())
+  assert.equal(catalogue.querySelectorAll('details tbody tr').length, 36, 'Every USD pair is inspectable')
+  assert.equal(catalogue.querySelectorAll('fieldset input').length, 9, 'Any larger group can be selected')
+  const mode = catalogue.querySelector('select')
+  await React.act(async () => { mode.value = 'fresh'; mode.dispatchEvent(new dom.Event('change', { bubbles: true })) })
+  assert.match(catalogue.querySelector('.combo-bias').textContent, /Conflicted.*Short leads/)
+  const cpiPair = [...catalogue.querySelectorAll('details button')].find(b => b.textContent.includes('CPI') && b.textContent.includes('PCE'))
+  await React.act(async () => cpiPair.click())
+  assert.equal(catalogue.querySelector('.combo-bias').textContent, 'Insufficient evidence')
+  assert.match(catalogue.textContent, /No preceding publication available/)
 
   familySettings.saveRaycasterFamilies(['claims', 'pce', 'cpi'])
   const relative = readRelativePreferences()

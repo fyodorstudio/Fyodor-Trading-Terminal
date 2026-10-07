@@ -1,0 +1,99 @@
+{
+  "source": "Elev8-Demo2",
+  "revision": 78619,
+  "relationshipVersion": 4,
+  "scope": "Frozen current stored vintage; automatic magnitude settings, no price-fit or original-vintage certification.",
+  "builtMs": 8981,
+  "usdPoints": 5696,
+  "roofCount": 12467,
+  "pairCounts": {
+    "claims+fed": 654,
+    "fed+ppi": 188,
+    "claims+ppi": 568,
+    "cpi+fed": 190,
+    "claims+cpi": 585,
+    "cpi+ppi": 230,
+    "claims+pce": 573,
+    "cpi+pce": 227,
+    "pce+ppi": 226,
+    "fed+pce": 188,
+    "fed+nfp": 192,
+    "cpi+nfp": 228,
+    "claims+nfp": 600,
+    "nfp+pce": 226,
+    "nfp+ppi": 228,
+    "fed+ism": 297,
+    "claims+ism": 711,
+    "cpi+ism": 343,
+    "ism+ppi": 341,
+    "ism+nfp": 339,
+    "ism+pce": 336,
+    "fed+retail": 177,
+    "claims+retail": 568,
+    "cpi+retail": 216,
+    "ism+retail": 338,
+    "nfp+retail": 222,
+    "pce+retail": 222,
+    "ppi+retail": 213,
+    "fed+gdp": 145,
+    "claims+gdp": 401,
+    "cpi+gdp": 172,
+    "gdp+ppi": 172,
+    "gdp+ism": 263,
+    "gdp+nfp": 171,
+    "gdp+pce": 161,
+    "gdp+retail": 173
+  },
+  "states": {
+    "aligned": 7541,
+    "conflicted": 4896,
+    "unchanged": 26,
+    "balanced": 4
+  },
+  "headlessProjection": {
+    "syntheticHourlyBars": 103162,
+    "anchors": 12467,
+    "planMs": 137,
+    "pans": 100,
+    "panMs": 9,
+    "maximumPositioned": 11,
+    "maximumOverflow": 154,
+    "caveat": "Pure projection benchmark; browser painting and manual UI performance remain unverified."
+  },
+  "september": {
+    "claimsActivation": "2026-09-03T15:30:00.000Z",
+    "label": "Aligned · Long",
+    "sources": [
+      {
+        "family": "claims",
+        "at": "2026-09-03T15:30:00.000Z",
+        "total": -0.65,
+        "coverage": 1
+      },
+      {
+        "family": "ism",
+        "at": "2026-09-01T17:00:00.000Z",
+        "total": -0.285,
+        "coverage": 0.3
+      }
+    ],
+    "servicesActivation": "2026-09-03T17:00:00.000Z",
+    "freshChange": 0.0015,
+    "incomingChange": 0.0525,
+    "sectorChanges": [
+      {
+        "sector": "manufacturing",
+        "change": -0.051,
+        "comparable": true,
+        "at": "2026-09-01T17:00:00.000Z"
+      },
+      {
+        "sector": "services",
+        "change": 0.0525,
+        "comparable": true,
+        "at": "2026-09-03T17:00:00.000Z"
+      }
+    ]
+  },
+  "timing": "Chart clocks are broker time; source releaseAt remains separate."
+}

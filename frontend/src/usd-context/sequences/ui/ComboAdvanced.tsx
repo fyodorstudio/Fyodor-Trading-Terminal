@@ -18,6 +18,7 @@ export function ComboAdvanced({ combo, symbol, timeDisplay }: { combo: ComboSnap
     <table aria-label="Source calculation effects"><thead><tr><th>Source</th><th>Role</th><th>Effect</th></tr></thead><tbody>
       {combo.sources.map(source => <tr key={source.sourceId}><td>{source.sourceLabel}</td><td>{source.role ?? 'Participating context vote'}</td>
         <td>{source.change !== undefined && <span>Change in interpreted support: {source.change.toFixed(3)}</span>}
+          {source.participants && <small>Seven-day sector changes are carried within one ISM budget. Incoming sector change for this replacement: {source.scoreChange?.toFixed(3)}. Earlier sector changes are not charged twice.</small>}
           {source.replacementChange !== undefined && <><small>Replacement at base family weight: {source.replacementChange.toFixed(3)}</small>
             <small>Calibration effect: {source.calibrationChange?.toFixed(3)} · Memory renewal: {source.memoryRenewal?.toFixed(3)} · Changed coverage / availability / non-comparable residual: {source.availabilityChange?.toFixed(3)}</small></>}
           {combo.kind === 'ism-sectors' && source.contribution !== undefined && <span>Within ISM: {source.contribution.toFixed(3)}</span>}</td></tr>)}

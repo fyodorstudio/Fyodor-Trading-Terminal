@@ -1,6 +1,29 @@
 # Manual audit backlog
 
-## Current integrity pass — context v8 / relative v3 / relationships v3
+## USD Roof expansion v4 — ready for manual audit after terminal verification
+
+- [ ] Sep 1–3, 2026: open the ISM + Jobless Claims direction box activated at
+  Sep 3 19:30 Asia/Jakarta. It should say Aligned · Long with partial/Weak
+  evidence, linking Sep 1 Manufacturing to Claims. The later Services completion
+  is a separate snapshot, not backdated into this pair.
+- [ ] Open USD relationship catalogue: inspect all 36 pairs, a three-family
+  group, disabled/expired inputs and the release/fresh mode switch. Settings
+  also lists the complete registry. Fresh absence must give a reason.
+- [ ] Find Conflicted · Long leads / Short leads. Check the support split and
+  contributors; a narrow lead stays Weak. Exact cancellation says Balanced
+  conflict · No lead; missing required data says Insufficient evidence.
+- [ ] Inspect a Fed hold, cut/increase and opposing macro reading: rate action
+  is separate, the bar covers macro support only, hold adds no direction.
+- [ ] Inspect ISM fresh detail: Sep 3 sector changes are Manufacturing -0.051
+  and Services +0.0525, aggregate +0.0015 with automatic frozen settings. Saved
+  custom magnitude settings can produce different scores; note their provenance.
+  Prior sector changes are not counted again in the incoming replacement effect.
+- [ ] Pan/zoom dense periods, inspect +N more, two-line direction labels,
+  hidden-source disclosures and source-dot navigation. Check narrow/dark docks.
+- [ ] Confirm existing Raycaster/Candy labels and gates remain familiar. Their
+  conflict-label extension is deferred. Preferences and historical audits remain.
+
+## Earlier integrity pass — context v8 / relative v3 / relationships v3
 
 - [ ] Compare the same publication clock in Inspector, Raycaster and Candy; inspect
   the selected USD-only / EUR-vs-USD scope and version labels.

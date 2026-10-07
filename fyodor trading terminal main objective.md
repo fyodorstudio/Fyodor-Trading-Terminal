@@ -241,3 +241,41 @@ not silently certified by the passing arithmetic tests.
 No services were started, observations/preferences overwritten, changes committed,
 or UI/browser automation performed. Existing uncommitted work and user document
 moves are preserved. The reviewable pass is ready for manual audit.
+
+# Authorized USD Roof expansion — 7 October 2026
+
+Raycaster/Candy conflict-label changes are explicitly deferred. This pass expands
+Roofs only; their accumulated-context votes, direction gates and colors stay intact.
+
+- [x] R1: Register all 28 macro pairs and eight Fed/macro pairs. Explain unavailable
+  relationships as well as eligible ones. Compose every larger selected subset
+  on demand with the same budgets rather than generating hundreds of fake votes.
+- [x] R2: Repair ISM fresh comparisons per sector against its own preceding
+  comparable publication. Retain 70/30 sector budget, original clocks, common
+  calibration, explicit availability residual and seven-day expiry.
+- [x] R3: Resolve Roof support into Aligned, Conflicted · Long/Short leads,
+  Balanced conflict and Insufficient evidence; show numerical support split,
+  leading contributors and narrow-lead qualification. Preserve net-zero honesty.
+- [x] R4: Add publication-time relationship Roofs and an inspectable complete
+  catalogue with release/fresh modes and multi-family selection. Use shared
+  snapshots and bounded chart display; do not create all subsets on every frame.
+- [x] R5: Add Fed action/context relationships without inventing a Fed magnitude
+  budget or converting basis points into comparable macro points. Hold is no
+  rate-action direction; macro evidence remains explicit and separate.
+- [x] R6: Verify registry completeness, all subset compositions, source/clock and
+  budget invariants, ISM September audit, conflict/zero/missing cases, UI headless
+  interaction, full regressions/build/lint; document manual visual audit.
+
+A catalogue entry is a declared interpretation relationship, not a discovered
+causal coefficient. Same-domain readings retain existing domain budgets. Pair
+and subset inspection never adds a second vote to Raycaster. Only known sources
+can contribute. A source at zero is available unchanged evidence, not missing.
+
+Evidence: `reports/Roof-v4-expansion-audit.md` and selected frozen replay JSON.
+All 54 suites passed; final affected suites, build and lint passed. All 502 USD
+groups compose without new votes. The Sep 3 Claims clock now exposes ISM +
+Claims, with later Services kept separate. Pure cached projection remains
+bounded (100 pans / nine ms in the synthetic benchmark); visual performance
+and UI readability are explicitly left to the user's checklist. Raycaster/Candy
+conflict labels remain a separate deferred pass. No commit or preference/data
+mutation was performed.
