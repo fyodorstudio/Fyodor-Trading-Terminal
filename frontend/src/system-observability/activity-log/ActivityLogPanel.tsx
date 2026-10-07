@@ -1,7 +1,8 @@
 import { useMemo, useState, type ReactNode } from 'react'
-import { formatAppTimestamp, type TimeDisplayPreference } from '../../appearance/time-display/time-display-preference'
+import type { TimeDisplayPreference } from '../../appearance/time-display/time-display-preference'
 import { activitySources, type ActivityLogEntry, type ActivitySource } from './activity-log-entry'
 import { readVisibleActivitySources, saveVisibleActivitySources } from './activity-source-preference'
+import { ActivityLogRows } from './ActivityLogRows'
 import './activity-log-panel.css'
 
 type ActivityLogPanelProps = {
@@ -15,7 +16,7 @@ type ActivityLogPanelProps = {
 export function ActivityLogPanel({ entries, timeDisplay, onClear, renderHeartbeat, heartbeat }: ActivityLogPanelProps) {
   const [visibleSources, setVisibleSources] = useState<Set<ActivitySource>>(readVisibleActivitySources)
   const visibleEntries = useMemo(
-    () => entries.filter((entry) => visibleSources.has(entry.source)),
+    () => entries.filter((entry) => visibleSources.has(entry.source)).reverse(),
     [entries, visibleSources],
   )
 
@@ -52,22 +53,7 @@ export function ActivityLogPanel({ entries, timeDisplay, onClear, renderHeartbea
     <section className="activity-panel" aria-label="Activity log">
       {heartbeatNode}
 
-      <div className="activity-table" role="log" aria-live="polite">
-        <div className="activity-table-columns" aria-hidden="true">
-          <span>Time</span><span>Source</span><span>Action</span><span>Detail</span>
-        </div>
-        <div className="activity-table-rows">
-          {[...visibleEntries].reverse().map((entry) => (
-            <div className={`activity-row ${entry.severity ?? 'info'}`} key={entry.id}>
-              <time dateTime={new Date(entry.occurredAt).toISOString()}>{formatAppTimestamp(entry.occurredAt, timeDisplay, 'time')}</time>
-              <strong>{entry.source}</strong>
-              <span>{entry.action}</span>
-              <span>{entry.detail ?? '—'}</span>
-            </div>
-          ))}
-          {visibleEntries.length === 0 && <p className="activity-empty">No activity matches the selected sources.</p>}
-        </div>
-      </div>
+      <ActivityLogRows entries={visibleEntries} mode={timeDisplay.mode} utcOffsetMinutes={timeDisplay.utcOffsetMinutes} />
     </section>
   )
 }

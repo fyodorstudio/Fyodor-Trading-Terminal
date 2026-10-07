@@ -6,6 +6,7 @@ export const suites = [
   "tests/inspector/test_upcoming_markers.mjs",
   "tests/test_terminal_navigation.mjs",
   "tests/test_publisher_activity.mjs",
+  "tests/test_activity_log.mjs",
   "tests/scatter-plot/test_scoring_signals.mjs",
   "tests/scatter-plot/test_scatter_plot.mjs",
   "tests/scatter-plot/test_scatter_plot_interaction.mjs",

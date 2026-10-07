@@ -94,3 +94,29 @@ the active model's nine unconfigured series; the corrected CPI suite and all
 remaining suites passed. Lint, TypeScript and production build pass. The source
 import graph, including worker entry paths, reaches all 288 remaining TS/TSX
 modules, with none outside that graph. Validation is also recorded in the library.
+
+## Follow-up — Activity log during “Checking”
+
+The user still observed panning pauses and tied them to the bridge's Checking
+indicator. A focused headless probe using the actual health hook and Activity
+components with 200 synthetic entries found 200 new date formatters and roughly
+50–60 ms of Activity rendering on each Checking/Running transition.
+
+This follow-up changes only Activity presentation: the unchanged list is memoized,
+individual retained rows are memoized, and each timestamp depends on its actual
+time/display fields. Filtering/reversal runs when entries or selected sources
+change. Appending one entry formats one timestamp; changing timezone updates all
+visible timestamps. Health polling, its root state updates, the visible Checking
+indicator and numerical scoring behavior are unchanged in this targeted pass.
+
+The new `test_activity_log.mjs` checks real pending/completed health transitions,
+zero formatter creation for unchanged rows, append/detail updates, timezone,
+source filters, Clear and timer cleanup. Headless Checking samples were about
+1.3–1.8 ms; these are diagnostic samples, not a browser frame-rate guarantee.
+Publisher activity, terminal navigation, Activity regression and responsiveness
+suites pass sequentially; lint and TypeScript/production build pass. The full
+43-suite suite list was not rerun for this presentation-only change.
+
+Manual check remains pending: pan with Activity open and a populated log, and
+watch whether the Checking transition still pauses the chart. Broader Inspector
+or Raycaster lag remains unproven by this scoped result.
