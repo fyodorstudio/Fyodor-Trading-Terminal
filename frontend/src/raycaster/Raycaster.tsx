@@ -1,3 +1,6 @@
+import { relativeContextVersion } from '../pair-context/core/eur-policy'
+import { ContextRibbon } from './ribbon/ContextRibbon'
+import { buildRibbonTimeline } from './ribbon/ribbon-timeline'
 import { useRelativePreferences } from '../pair-context/storage/relative-preferences'
 import { useEurContextTimeline } from '../pair-context/runtime/useEurContextTimeline'
 import { relativeContext, eurContextAt } from '../pair-context/core/relative-context'
@@ -21,7 +24,7 @@ import { ComboRoofs } from '../usd-context/sequences/chart/ComboRoofs'
 import { useSequencePreferences } from '../usd-context/sequences/storage/sequence-preferences'
 import { lookupFreshNews } from '../usd-context/sequences/core/fresh-news'
 
-export type RaycasterProps = { symbol: string; timeframe: ChartTimeframe; brokerId: string | null;
+export type RaycasterProps = { boxVisible?: boolean; symbol: string; timeframe: ChartTimeframe; brokerId: string | null;
   brokerOffsetSeconds: number; clockOffsetMs: number; timeDisplay: TimeDisplayPreference; onClose: () => void;
   bars?: readonly Pick<OhlcBar, 'time'>[]; markers?: readonly InspectorMarker[]; onSelectCombo?: (combo: ComboSnapshot) => void }
 function RaycasterComponent({ chartApi, seriesApi, ...props }: RaycasterProps & { chartApi: IChartApi; seriesApi: ISeriesApi<'Candlestick', Time> }) {
@@ -35,7 +38,7 @@ function RaycasterComponent({ chartApi, seriesApi, ...props }: RaycasterProps & 
   const sequencePreferences = useSequencePreferences()
   const eurHistory = useEurContextTimeline(props.brokerId, relativePreferences.families, now, relativeEnabled)
   const [detailsOpen, setDetailsOpen] = useState(false)
-  const hover = useRaycasterHover(chartApi, seriesApi, `${props.brokerId}:${props.symbol}:${props.timeframe}`)
+  const hover = useRaycasterHover(chartApi, seriesApi, `${props.brokerId}:${props.symbol}:${props.timeframe}`, props.boxVisible !== false)
   const open = hover.open ?? (detailsOpen ? hover.lastOpen : null)
   const cutoff = open === null ? null : candleContextCutoff(open, props.timeframe, now, props.brokerOffsetSeconds)
   const point = history.result && cutoff !== null ? contextAt(history.result, cutoff) : null
@@ -47,13 +50,18 @@ function RaycasterComponent({ chartApi, seriesApi, ...props }: RaycasterProps & 
     'Enable an input in Raycaster’s gear popover.' : history.error ?? (relativeEnabled ? eurHistory.error ?? eurHistory.storage.error : null) ??
       (history.storage.error && !history.result ? history.storage.error : null)
   const partial = (relativeEnabled && (eurHistory.storage.error || eurHistory.result?.excludedTiming || Object.values(eurHistory.storage.coverage).some(c => c.missing.length > 0))) || history.storage.error || Object.values(history.storage.coverage).some(c => c.missing.length > 0) || history.result?.excludedTiming
-  return <><RaycasterBox symbol={props.symbol} point={point} cutoff={cutoff} loading={history.loading || eurHistory.loading} message={message}
+  const ribbonPoints = useMemo(() => buildRibbonTimeline(history.result, eurHistory.result, relativeEnabled, props.symbol),
+    [history.result, eurHistory.result, relativeEnabled, props.symbol])
+  return <>{props.boxVisible !== false && <RaycasterBox symbol={props.symbol} point={point} cutoff={cutoff} loading={history.loading || eurHistory.loading} message={message}
     fresh={fresh}
     relative={combined} relativeUpdate={eurPoint?.update ?? null}
     extraDetails={<RelativeContextDetails eur={eurPoint} usd={point} loading={history.loading || eurHistory.loading} supported={relativeSupported} />}
     families={families} detailsOpen={detailsOpen} onDetailsChange={setDetailsOpen} onToggleFamily={toggleRaycasterFamily}
     held={detailsOpen && hover.open === null && open !== null} notice={partial ? 'Partial or timing-excluded history' : null}
-    timeDisplay={props.timeDisplay} onClose={props.onClose} />
+    timeDisplay={props.timeDisplay} onClose={props.onClose} />}
+    {sequencePreferences.ribbon && props.bars && <ContextRibbon chartApi={chartApi} bars={props.bars} timeframe={props.timeframe}
+      points={ribbonPoints} now={now + props.brokerOffsetSeconds * 1000} relative={relativeEnabled} version={`${history.result?.version ?? "Context engine"}${relativeEnabled ? ` / ${relativeContextVersion}` : ""}`}
+      loading={history.loading || eurHistory.loading} notice={message} partial={!!partial} />}
     {relativeSupported && sequencePreferences.roofs && relationships && !history.loading && !message && props.bars && props.markers && props.onSelectCombo &&
       <ComboRoofs chartApi={chartApi} episodes={relationships.episodes} bars={props.bars} markers={props.markers}
         timeframe={props.timeframe} now={now + props.brokerOffsetSeconds * 1000} experimental={sequencePreferences.fresh} onSelect={props.onSelectCombo} />}

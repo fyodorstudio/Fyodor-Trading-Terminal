@@ -44,8 +44,8 @@ try {
     candidate('strong', { kind: 'ism-sectors', strength: 'strong', experimental: false }), candidate('far', { chartAt: at + 2 })]
   crowded.at(-1).left = 600; crowded.at(-1).right = 700; crowded.at(-1).labelX = 650
   const focused = layoutRoofs(crowded, true)
-  assert.deepEqual(focused.positioned.map(p => p.combo.id).sort(), ['established', 'far', 'strong'], 'Evidence and established relationships take priority before freshness')
-  assert.equal(focused.overflow.length, 2)
+  assert.deepEqual(focused.positioned.map(p => p.combo.id).sort(), ['established', 'far', 'new', 'strong'], 'Evidence and established relationships take priority before freshness')
+  assert.equal(focused.overflow.length, 1)
   assert.deepEqual(layoutRoofs(crowded.slice(0, 2), true).positioned.map(p => p.combo.id), ['new'], 'Newest repeated combination is the representative')
   for (const focus of [true, false]) {
     const result = layoutRoofs(crowded, focus)

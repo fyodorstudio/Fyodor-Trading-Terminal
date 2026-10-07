@@ -129,7 +129,7 @@ try {
   assert.equal(container.querySelector('[aria-label="Experimental fresh news"]'), null)
   const exported = exportWorkspace(); assert.equal(JSON.parse(exported.entries[prefs.sequencePreferencesKey]).fresh, false)
   await React.act(async () => { prefs.saveSequencePreferences({ roofs: false, fresh: true }); restoreWorkspace(exported) })
-  assert.deepEqual(prefs.readSequencePreferences(), { roofs: true, fresh: false })
+  assert.deepEqual(prefs.readSequencePreferences(), { roofs: true, fresh: false, ribbon: false })
   assert.throws(() => parseWorkspaceSnapshot(JSON.stringify({ ...exported, entries: { [prefs.sequencePreferencesKey]: '{"roofs":true,"fresh":"yes"}' } })))
   let changes = 0; const listener = () => { changes++ }
   dom.addEventListener(prefs.sequencePreferencesKey + ':changed', listener)

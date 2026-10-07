@@ -57,6 +57,35 @@ try {
   const job = workers[0].jobs[0]
   await React.act(async () => workers[0].onmessage({ data: { id: job.id, result: buildContextTimeline(job.input) } }))
   assert.match(container.textContent, /Hover a candle/)
+  const initialSubscriptions = subscribed
+  await render({ ...props, boxVisible: false })
+  assert.equal(container.querySelector('.raycaster-bias'), null, 'The hover box can be hidden while the shared context controller remains mounted')
+  assert.equal(unsubscribed, initialSubscriptions, 'Hidden hover box removes its crosshair listener')
+  assert.equal(workers[0].jobs.length, 1, 'Independent visibility does not rebuild the timeline')
+  await render(props)
+  assert.equal(subscribed, initialSubscriptions + 1)
+  const { NotebookContextCapture } = await server.ssrLoadModule('./src/trader-notebook/workflow/NotebookContextCapture.tsx')
+  const captureContainer = document.createElement('div'); document.body.append(captureContainer)
+  const captureRoot = createRoot(captureContainer)
+  let contextRecord = null
+  try {
+    const requestCount = requests.length
+    await React.act(async () => captureRoot.render(React.createElement(NotebookContextCapture, { symbol: props.symbol,
+      scope: { brokerId: props.brokerId, brokerOffsetSeconds: props.brokerOffsetSeconds, clockOffsetMs: props.clockOffsetMs }, onRecord: record => { contextRecord = record } })))
+    assert.equal(requests.length, requestCount, 'Opening Notebook does not request a second history')
+    await React.act(async () => captureContainer.querySelector('button').click())
+    assert.equal(workers.length, 1, 'Notebook current-context capture shares Raycaster’s calculation job')
+    assert.equal(workers[0].jobs.length, 1)
+    assert.match(captureContainer.textContent, /EURUSD (Long|Short)/)
+    await React.act(async () => captureContainer.querySelector('button').click())
+    assert.equal(contextRecord.mode, 'usd')
+    assert.equal(contextRecord.symbol, props.symbol)
+    assert.equal(contextRecord.broker, props.brokerId)
+    assert.match(contextRecord.version, /v6/)
+    assert.equal(contextRecord.asOf, contextRecord.recordedAt + props.brokerOffsetSeconds * 1000)
+    assert.match(contextRecord.label, /EURUSD (Long|Short)/)
+    assert.ok(contextRecord.inputs.includes('USD:cpi'))
+  } finally { await React.act(async () => captureRoot.unmount()); captureContainer.remove() }
   const selected = latestRows.find(e => e.event_id === '840030008')
   const open = Math.floor(selected.chart_time_seconds / 3600) * 3600
   await React.act(async () => { for (let i = 0; i < 200; i++) handler({ time: open, point: { x: i, y: 5 }, seriesData: new Map([[series, {}]]) }) })
@@ -66,6 +95,11 @@ try {
   assert.match(container.textContent, /Latest update: CPI/)
   assert.match(container.textContent, /broker time \(candle end/)
   assert.equal(workers[0].jobs.length, 1, 'Hovering must not dispatch any scoring work')
+  await render({ ...props, boxVisible: false })
+  await render(props)
+  assert.match(container.textContent, /Hover a candle/, 'Reopening the hover box cannot revive an old candle')
+  await React.act(async () => handler({ time: open, point: { x: 1, y: 5 }, seriesData: new Map([[series, {}]]) }))
+  await tick()
   const gear = container.querySelector('button[aria-label="Raycaster calculation and inputs"]')
   await React.act(async () => gear.click())
   const details = container.querySelector('[role="dialog"]')

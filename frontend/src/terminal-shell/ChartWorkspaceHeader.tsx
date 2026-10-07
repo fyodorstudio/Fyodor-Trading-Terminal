@@ -1,3 +1,4 @@
+import { ContextViewControls } from './chart-overlays/ContextViewControls'
 import type { ChartTimeframe } from '../market-data/contracts/ChartTimeframe'
 import type { SymbolQuote } from '../market-data/contracts/SymbolQuote'
 
@@ -101,6 +102,7 @@ export function ChartWorkspaceHeader({
             </svg>
           </button>
         )}
+        <ContextViewControls symbol={symbol} supported={raycasterSupported} />
       </div>
 
       <div className="quote-summary">

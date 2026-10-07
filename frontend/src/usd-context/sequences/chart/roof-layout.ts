@@ -10,7 +10,7 @@ export function layoutRoofs(candidates: readonly RoofCandidate[], focused: boole
   const ranked = focused ? [...candidates].sort((a, b) =>
     (strengthRank[b.combo.strength ?? 'weak'] - strengthRank[a.combo.strength ?? 'weak']) ||
     Number(a.combo.experimental) - Number(b.combo.experimental) || b.combo.chartAt - a.combo.chartAt || a.combo.id.localeCompare(b.combo.id)) : [...candidates]
-  const lanes: [number, number][][] = Array.from({ length: focused ? 2 : 3 }, () => [])
+  const lanes: [number, number][][] = Array.from({ length: 3 }, () => [])
   const positioned: PositionedRoof[] = [], overflow: ComboSnapshot[] = []
   for (const item of ranked) {
     const label: [number, number] = [item.labelX - 85, item.labelX + 85]

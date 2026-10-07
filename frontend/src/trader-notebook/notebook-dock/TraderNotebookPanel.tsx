@@ -1,3 +1,6 @@
+import { TradeWorkflowEditor } from '../workflow/TradeWorkflowEditor'
+import { workflowSnapshot } from '../workflow/workflow-model'
+import type { CaptureScope } from '../workflow/NotebookContextCapture'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { SymbolQuote } from '../../market-data/contracts/SymbolQuote'
 import {
@@ -55,6 +58,7 @@ function computeTpPrice({
 }
 
 type TraderNotebookPanelProps = {
+  contextScope?: CaptureScope
   selectedSymbol: string
   quote: SymbolQuote | null
   latestBarTime: number
@@ -68,6 +72,7 @@ type TraderNotebookPanelProps = {
 }
 
 export function TraderNotebookPanel({
+  contextScope,
   selectedSymbol,
   quote,
   latestBarTime,
@@ -89,6 +94,8 @@ export function TraderNotebookPanel({
   const [isNoteDirty, setIsNoteDirty] = useState(false)
   const [saveStatus, setSaveStatus] = useState<string>('Saved')
   const [regSuccessMsg, setRegSuccessMsg] = useState<string | null>(null)
+  const regSuccessTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(() => () => { if (regSuccessTimer.current !== null) clearTimeout(regSuccessTimer.current) }, [selectedSymbol])
   const [rrDropdownOpen, setRrDropdownOpen] = useState(false)
   const [targetRr, setTargetRr] = useState<number | null>(null)
   const [customRrInput, setCustomRrInput] = useState<string | null>(null)
@@ -341,9 +348,11 @@ export function TraderNotebookPanel({
       slPips: calculatedMetrics.slPips!,
       rrRatio: calculatedMetrics.rrRatio!,
       note,
+      workflow: workflowSnapshot(plan.workflow),
     })
     setRegSuccessMsg('✓ Pinned!')
-    setTimeout(() => setRegSuccessMsg(null), 2500)
+    if (regSuccessTimer.current !== null) clearTimeout(regSuccessTimer.current)
+    regSuccessTimer.current = setTimeout(() => setRegSuccessMsg(null), 2500)
   }
 
   return (
@@ -352,7 +361,7 @@ export function TraderNotebookPanel({
       <div className="notebook-col notebook-levels-col">
         <div className="notebook-col-header">
           <span className="notebook-eyebrow">
-            {selectedArrow ? 'Edit Execution Plan' : 'Draft Execution Plan'}
+            {selectedArrow ? 'Pinned Execution Plan' : 'Draft Execution Plan'}
           </span>
           {selectedArrow ? (
             <div className="selected-arrow-header-actions">
@@ -714,6 +723,9 @@ export function TraderNotebookPanel({
           </div>
         </div>
 
+        <div className="notebook-workflow-scroll">
+        <TradeWorkflowEditor workflow={selectedArrow ? selectedArrow.workflow : plan.workflow} readOnly={!!selectedArrow}
+          onChange={workflow => onPlanChange({ ...plan, workflow })} symbol={selectedSymbol} scope={contextScope} />
         <div className="journal-textarea-container">
           <textarea
             className="journal-textarea"
@@ -728,6 +740,7 @@ export function TraderNotebookPanel({
             placeholder={`Type your trade thesis, catalyst observation, technical structure, or post-trade audit notes for ${selectedSymbol}...\n\nClick "Save Note" or press Ctrl+Enter to preserve locally.`}
             aria-label="Trader journal note"
           />
+        </div>
         </div>
       </div>
     </section>

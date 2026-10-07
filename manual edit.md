@@ -279,3 +279,30 @@ Terminal checks cover modeless opening, live edits, Save/Cancel, search-independ
 currency toggles, saved preference isolation, bottom positioning, collision
 avoidance and resize cleanup. Visual placement and chart interaction remain for
 manual verification.
+
+## 7 October 2026 — Independent roofs, Raycaster Candy and Notebook workflow
+
+- [ ] Toggle Roofs, Candy and Raycaster separately near the timeframe selector.
+  Hide the hover box and confirm roofs/ribbon stay visible; hide roofs and confirm
+  the ribbon stays visible. Reload and restore a workspace to check preferences.
+- [ ] Open the roof gear. Check the four relationship types and Enabled/Off inputs
+  are clear. Verify the right dot's activation clock, three lanes, Focused/All and
+  More. Bracket width should not be interpreted as a bias duration.
+- [ ] In USD side and EUR vs USD modes, hover ribbon colors and click explanations.
+  Compare the same timestamp with Inspector / Raycaster; the hover box uses candle
+  end while the ribbon retains exact publication times inside H1. Check an EUR-only
+  update and simultaneous EUR/USD releases. Check USDJPY's pair-direction inversion.
+- [ ] Check gray leading/missing history, partial coverage notes, publication versus
+  memory aging versus expiry, weekends, current-time clipping and future chart space.
+- [ ] Pan/zoom/rescale and resize short/tall docks in both themes with all three views
+  open. Confirm labels, roof density tools and ribbon explanations do not collide,
+  and panning stays responsive. No screenshot or browser audit was performed.
+- [ ] Write a Notebook thesis, price/fundamental invalidation, risk, horizon and exit
+  rule. Change symbols / reload and check automatic workflow persistence. Journal
+  notes should still use Save Note. Clear workflow should preserve planned levels.
+- [ ] Load and record current context, then pin a valid price setup. Verify mode,
+  broker time, inputs, engine version, partial notice and written rules are preserved
+  read-only in the pinned workflow. Later input changes must not rewrite that record.
+- [ ] Reopen older pinned setups without workflow data; verify their original price
+  and note data survives. Export/import a new workspace and check both draft and
+  pinned workflow records. All entry, review and exit execution remains manual.

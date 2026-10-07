@@ -6,5 +6,5 @@ export type EurSlot = 'inflation' | 'unemployment' | 'employment' | 'wages' | 'p
 export type EurSource = { slot: EurSlot; family: EurFamily; label: string; chartAt: number; releaseAt: number;
   reference: number | null; score: number | null; coverage: number; provisional: boolean }
 export type EurMember = EurSource & { weight: number; retention: number; contribution: number; status: 'active' | 'expired' | 'unavailable' }
-export type EurContextPoint = { chartAt: number; total: number | null; members: EurMember[]; coverage: number; update: string }
+export type EurContextPoint = { chartAt: number; total: number | null; members: EurMember[]; coverage: number; update: string; updateKind?: 'publication' | 'memory' }
 export type EurContextTimeline = { points: EurContextPoint[]; excludedTiming: number }

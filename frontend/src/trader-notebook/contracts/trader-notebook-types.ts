@@ -1,7 +1,9 @@
+import type { TradeWorkflow } from '../workflow/workflow-model'
 export type RegisteredTradeArrow = {
   id: string
   symbol: string
   time: number // candle bar time in seconds
+  workflow?: TradeWorkflow
   direction: 'long' | 'short'
   entryPrice: number
   tpPrice: number
@@ -14,6 +16,7 @@ export type RegisteredTradeArrow = {
 }
 
 export type PlannedTradeState = {
+  workflow?: TradeWorkflow
   direction: 'long' | 'short'
   entryPrice: number | null
   tpPrice: number | null

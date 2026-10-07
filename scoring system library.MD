@@ -1921,3 +1921,40 @@ Validation: nine targeted terminal suites passed, covering PMI grouping and
 clock-only worker reuse, EUR interpretation/context, Inspector, navigation, ISM,
 publication layout, roofs and responsiveness. Lint, TypeScript and production
 build passed. Visual confirmation remains in manual edit.md.
+
+## 7 October 2026 — Context display v3 and Notebook trading workflow
+
+Roofs, the Raycaster hover box and the new **Raycaster Candy** context ribbon have
+independent controls beside the timeframe selector. Roofs retain their saved On
+default; the ribbon starts Off and can be enabled independently. Focused and All
+now both use three lanes, with the existing priority/deduplication and complete
+overflow access. The roof gear explains activation, source span, four relationship
+types and current input scope. This supersedes display v2's two-lane Focused view
+and Raycaster-dependent roof visibility; their numerical rules are unchanged.
+
+The ribbon reads the same selected histories and mode as Raycaster. USD-side pair
+direction or relative EUR-minus-USD context is clearly labeled. Both histories'
+update boundaries merge atomically; viewport projection retains exact within-bar
+publication times, compresses session gaps, clips at current time and preserves
+gray unavailable history. Green/red indicates pair Long/Short and shade indicates
+evidence. Hover and click disclose the responsible publication, memory aging or
+expiry. EUR timeline metadata identifies publications even when an aggregate
+already owns that vote. It changes no score, budget, engine version or proxy rule.
+
+Notebook adds a saved thesis, observable price/fundamental invalidation, risk limit,
+review horizon and manual exit action. Optional paper-test review triggers concern
+a new publication changing **combined** context against the trade, either any
+evidence or at least Moderate. They execute nothing. Explicit current-context
+capture shares the calculation job, recording clock/mode/inputs/version/bias and
+coverage status. Pinning copies the workflow; old arrows remain compatible and
+new records travel in workspace exports. Saved records are display snapshots,
+not a complete archived dataset or historical-calibration replay.
+
+User guidance: [trading workflow.md](trading%20workflow.md). Implementation plan:
+[temporary plan.md](temporary%20plan.md). Remaining visual/manual checks are in
+[manual edit.md](manual%20edit.md). The scoring versions remain as documented above.
+
+Validation: all 47 frontend terminal suites passed, including shared-worker reuse,
+exact-time ribbon chronology/geometry, expiry classification, independent view
+controls, Notebook snapshot isolation and workspace roundtrip. Lint and production
+build passed. Visual placement and perceived interaction remain for user review.

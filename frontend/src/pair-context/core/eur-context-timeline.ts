@@ -22,6 +22,7 @@ export function buildEurContextTimeline(input: EurContextInput): EurContextTimel
     const active = members.filter(m => m.status === 'active')
     const total = active.length ? members.reduce((sum, m) => sum + m.contribution, 0) : null
     points.push({ chartAt, total, members,
+      updateKind: incoming.length ? 'publication' : 'memory',
       coverage: active.reduce((sum, m) => sum + m.weight / 100 * m.coverage * m.retention, 0),
       update: incoming.length ? [...new Set(incoming.map(s => s.label))].join(' + ') : 'EUR memory aging; no new release.',
     })

@@ -1,3 +1,4 @@
+import { useSequencePreferences } from '../usd-context/sequences/storage/sequence-preferences'
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { applyColorTheme, readColorTheme, type ColorTheme } from '../appearance/color-theme/color-theme-preference'
 import {
@@ -261,11 +262,14 @@ export function FyodorTerminalShell() {
     const target = scatterReleaseTarget(release, inspector.brokerId, inspector.now)
     if (target) { setScatterTarget(target); setBottomDockWindow('scatter-plot') }
   }, [inspector.brokerId, inspector.now])
+  const contextViews = useSequencePreferences()
+  const roofsSupported = /^EURUSD(?:[._-].*|[a-z]*)$/i.test(activeSymbol)
+  const contextVisible = raycasterVisible || !!contextViews.ribbon || (roofsSupported && contextViews.roofs)
   const raycasterSupported = !!usdPair(activeSymbol)
-  const raycaster = useMemo(() => raycasterVisible && raycasterSupported ?
-    { symbol: activeSymbol, timeframe, brokerId, brokerOffsetSeconds, clockOffsetMs: bridge.clockOffsetMs,
+  const raycaster = useMemo(() => contextVisible && raycasterSupported ?
+    { boxVisible: raycasterVisible, symbol: activeSymbol, timeframe, brokerId, brokerOffsetSeconds, clockOffsetMs: bridge.clockOffsetMs,
       timeDisplay, onClose: closeRaycaster, bars: inspector.markerBars, markers: inspector.markers, onSelectCombo: selectCombo } : null,
-    [raycasterVisible, raycasterSupported, activeSymbol, timeframe, brokerId, brokerOffsetSeconds,
+    [contextVisible, raycasterVisible, raycasterSupported, activeSymbol, timeframe, brokerId, brokerOffsetSeconds,
       bridge.clockOffsetMs, timeDisplay, closeRaycaster, inspector.markerBars, inspector.markers, selectCombo])
   const renderChartOverlay = useTerminalChartOverlay({ arrows: registeredArrows.symbolArrows,
     selectedArrowId: registeredArrows.selectedArrowId, draftPlan: plannedTrade, onSelectArrow: selectChartArrow,
@@ -367,6 +371,7 @@ export function FyodorTerminalShell() {
         >
           {bottomDockWindow === 'notebook' && (
             <TraderNotebookPanel
+              contextScope={{ brokerId, brokerOffsetSeconds, clockOffsetMs: bridge.clockOffsetMs }}
               selectedSymbol={activeSymbol}
               quote={quote}
               latestBarTime={latestBarTime}

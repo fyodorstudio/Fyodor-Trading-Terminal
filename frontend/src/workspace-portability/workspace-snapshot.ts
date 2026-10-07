@@ -1,3 +1,4 @@
+import { validTradeWorkflow } from '../trader-notebook/workflow/workflow-model'
 import { relativePreferencesKey, validRelativePreferences } from '../pair-context/storage/relative-preferences'
 import { sequencePreferencesKey, validSequencePreferences } from '../usd-context/sequences/storage/sequence-preferences'
 import { roofAuditsKey } from '../usd-context/sequences/audit/audit-storage'
@@ -45,7 +46,7 @@ const validators: Record<string, (v: unknown) => boolean> = {
   'fyodor.drawing-toolbar-position.v1': (v) => record(v) && finite(v.x) && finite(v.y) && v.x >= 0 && v.y >= 0,
   'fyodor.activity-visible-sources.v2': (v) => array(v, (source) => activitySources.includes(source as typeof activitySources[number])),
   'fyodor.chart-drawings.v1': (v) => array(v, (d) => record(d) && text(d.id) && text(d.symbol) && frame(d.timeframe) && drawingTools.some((t) => t.id === d.tool) && finite(d.createdAt) && (d.text === undefined || text(d.text)) && array(d.points, (p) => record(p) && finite(p.time) && finite(p.price))),
-  'fyodor.registered_arrows.v1': (v) => array(v, (a) => record(a) && text(a.id) && text(a.symbol) && direction(a.direction) && text(a.note) && ['time', 'entryPrice', 'tpPrice', 'slPrice', 'tpPips', 'slPips', 'rrRatio', 'createdAt'].every((key) => finite(a[key]))),
+  'fyodor.registered_arrows.v1': (v) => array(v, (a) => record(a) && text(a.id) && text(a.symbol) && direction(a.direction) && text(a.note) && (a.workflow === undefined || validTradeWorkflow(a.workflow)) && ['time', 'entryPrice', 'tpPrice', 'slPrice', 'tpPips', 'slPips', 'rrRatio', 'createdAt'].every((key) => finite(a[key]))),
 }
 for (const dock of ['inspector', 'notebook', 'activity', 'scatter-plot', 'alert']) validators[`fyodor.${dock}.dock-height.v1`] = (v) => finite(v) && v > 0 && v <= 100000
 for (const family of magnitudeFamilies) validators[family.settings.key] = (v) => record(v) && Object.entries(v).every(([id, limits]) => family.seriesIds.includes(id) && validMagnitudeLimits(limits))
@@ -54,7 +55,7 @@ for (const store of signalMagnitudeStores) validators[store.key] = (v) => record
 function validator(key: string) {
   if (Object.hasOwn(validators, key)) return validators[key]
   if (symbolKey(key, 'trader_notebook_note_')) return text
-  if (symbolKey(key, 'trader_plan_')) return (v: unknown) => record(v) && direction(v.direction) && nullableNumber(v.entryPrice) && nullableNumber(v.tpPrice) && nullableNumber(v.slPrice) && typeof v.showOnChart === 'boolean'
+  if (symbolKey(key, 'trader_plan_')) return (v: unknown) => record(v) && direction(v.direction) && nullableNumber(v.entryPrice) && nullableNumber(v.tpPrice) && nullableNumber(v.slPrice) && typeof v.showOnChart === 'boolean' && (v.workflow === undefined || validTradeWorkflow(v.workflow))
   return null
 }
 const rawStringKeys = (key: string) => key === 'fyodor.color-theme' || key.startsWith('trader_notebook_note_')

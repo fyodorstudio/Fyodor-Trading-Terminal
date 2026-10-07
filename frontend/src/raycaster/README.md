@@ -105,7 +105,8 @@ On EURUSD, **Show clickable combo roofs** connects already-qualified ISM-sector,
 labor/inflation and weekly-labor relationships above visible event markers.
 Dashed roofs identify the seven-day fresh-news experiment. Both display controls
 default On and are saved/exported independently of the context-family switches.
-Hiding Raycaster hides its roofs. Turning a display control Off does not change
+Roofs and the context ribbon now have independent header controls; hiding Raycaster's
+hover box leaves those views visible. Turning a display control Off does not change
 weights, fetch calendar history or rerun scorers.
 
 Click a roof to open a captured **Combo details** snapshot in the bottom Inspector.
@@ -138,3 +139,20 @@ Manual UI checks: pan/zoom with roofs enabled, inspect overflow, click into Comb
 details and source releases, toggle either display control, hide event families,
 resize the bottom dock, and confirm the gear's section layout. No visual UI audit
 or browser automation was performed.
+
+## Raycaster Candy / context ribbon
+
+`ribbon/ribbon-timeline.ts` merges selected USD/EUR histories into one dated state
+timeline. Simultaneous updates are atomic; EUR-only publications affect relative
+mode. `ribbon-geometry.ts` maps exact publication times into candle intervals and
+maps hover coordinates back through the compressed session axis. Viewport lookup
+is binary; only visible intervals are projected. Pan/resize and pointer bursts
+are RAF-coalesced. The box, ribbon and Notebook capture reuse shared calculation
+jobs, with no scoring on pointer movement.
+
+The ribbon starts Off, saved as an optional backwards-compatible `ribbon` field
+in `fyodor.context-sequences.v1`. Green/red means pair Long/Short, evidence shade
+is not probability, and gray is unavailable. Mode, exact broker clock, triggering
+publication/memory/expiry update and clicked contribution explanation are explicit.
+The box still uses candle-end cutoff. Roof relationships remain USD-only, even
+when the box/ribbon compare EUR against USD. Numerical engine versions are unchanged.
