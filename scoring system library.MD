@@ -1900,3 +1900,24 @@ Validation: eight targeted terminal suites passed, including chronology, roof UI
 workflow/audit persistence, workspace portability, Raycaster, publication layout,
 responsiveness and unchanged Activity polling. Lint, TypeScript and production
 build passed. Visual density, theme and dock checks remain with the user.
+
+## 7 October 2026 — Grouped Euro-area PMI display
+
+Inspector combines verified French, German and euro-area PMI reports for the same
+reference month and publication day into one display round and chart marker.
+The filter uses one Euro-area PMI control for the three existing source IDs;
+legacy partial selections remain partial. Raw readings share one sectioned table.
+The original standalone v1 outputs remain separately labeled, with per-source
+Scatter links. Context uses the latest already-published member's cutoff.
+
+The display anchor is the first publication; country and aggregate series keep
+their original availability times. Later finals remain separate rounds; ambiguous
+reissues, unknown reference periods and uncertain clocks stay separate. Numerical
+scoring, the EUR proxy/aggregate replacement rules, raw histories and Alert
+inventory are unchanged. Grouping is implemented only in the Inspector display
+pipeline. Details are in [episode README](frontend/src/inspector/episodes/README.md).
+
+Validation: nine targeted terminal suites passed, covering PMI grouping and
+clock-only worker reuse, EUR interpretation/context, Inspector, navigation, ISM,
+publication layout, roofs and responsiveness. Lint, TypeScript and production
+build passed. Visual confirmation remains in manual edit.md.

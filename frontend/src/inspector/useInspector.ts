@@ -11,6 +11,8 @@ import { useStoredCalendar } from './useStoredCalendar'
 import { useFamilyMagnitudeHistory } from './magnitude/useFamilyMagnitudeHistory'
 import { policyEpisodeWindowMs } from './episodes/policy-episodes'
 import { groupIsmEpisodes, ismEpisodeWindowMs } from './episodes/ism-episodes'
+import { groupPmiEpisodes } from './episodes/pmi-episodes'
+import { episodePublications } from './episodes/display-episodes'
 import { useMarkerBars } from './chart/useMarkerBars'
 
 import { normalizeInspectorDetailView } from './inspector-detail-view'
@@ -49,14 +51,16 @@ export function useInspector({ events = noEvents, symbol, bars, timeframe, timeD
   const readings = useMemo(() => brokerTime ? storage.events.filter((event) => event.availability === 'observed') : events,
     [brokerTime, storage.events, events])
   const allReleases = useMemo(() => groupInspectorReleases(readings), [readings])
-  const displayReleases = useMemo(() => groupIsmEpisodes(allReleases), [allReleases])
+  const displayReleases = useMemo(() => groupPmiEpisodes(groupIsmEpisodes(allReleases)), [allReleases])
   const releases = useMemo(() => supported ? filterInspectorReleases(displayReleases, preferences, range, brokerTime) : [],
     [supported, displayReleases, preferences, range, brokerTime])
   const markerBars = useMarkerBars(bars)
   const markers = useMemo(() => buildInspectorMarkers(releases, preferences, markerBars, timeframe), [releases, preferences, markerBars, timeframe])
-  const selectedRelease = releases.find((release) => release.id === selectedId || release.ismPublications?.some(r => r.id === selectedId)) ?? null
+  const selectedRelease = releases.find((release) => release.id === selectedId || episodePublications(release)?.some(r => r.id === selectedId)) ?? null
   const needsMagnitude = detailOpen && preferences.detailView === 'table'
-  const magnitudeHistory = useFamilyMagnitudeHistory(brokerId, needsMagnitude ? selectedRelease?.ismPublications?.[0] ?? selectedRelease : null, undefined, clockOffsetMs)
+  // PMI table sections own their original per-country magnitude histories.
+  const magnitudeRelease = needsMagnitude && !selectedRelease?.pmiPublications ? selectedRelease?.ismPublications?.[0] ?? selectedRelease : null
+  const magnitudeHistory = useFamilyMagnitudeHistory(brokerId, magnitudeRelease, undefined, clockOffsetMs)
   const applyPreferences = useCallback((next: InspectorPreferences, mode: InspectorPreferenceUpdate = 'save') => {
     const normalized = { ...next, detailView: normalizeInspectorDetailView(next.detailView) }
     setPreferences(normalized)

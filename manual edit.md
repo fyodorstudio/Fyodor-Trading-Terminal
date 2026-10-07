@@ -1,5 +1,16 @@
 # Manual audit backlog
 
+## 7 October 2026 — Grouped Euro-area PMI
+
+- [ ] Check the July 24, 2026 round: one marker/Inspector entry, with France,
+  Germany and Euro area sections and their own release clocks in one raw table.
+- [ ] Check the combined PMI filter, including an existing one-country-only
+  selection, live preview/Save, symbol selection and refresh persistence.
+- [ ] Compare each standalone v1 output and country Scatter link with the original
+  publication; context must use the latest already-known member's cutoff.
+- [ ] Check flash versus final rounds on different days, missing country/aggregate
+  sections, narrow date windows, chart panning and Inspector responsiveness.
+
 ## 7 October 2026 — Roof workflow refinement (display v2)
 
 - [ ] Pan/zoom dense periods in Focused mode; check that repeated brackets are

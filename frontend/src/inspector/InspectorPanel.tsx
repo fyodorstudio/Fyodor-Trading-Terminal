@@ -8,7 +8,7 @@ import { InspectorDateRangePicker } from './InspectorDateRangePicker'
 import { inspectorPopoversFit } from './inspector-popover-layout'
 import { InspectorReleaseHeading } from './InspectorReleaseHeading'
 import { InspectorInfoTooltip } from './InspectorInfoTooltip'
-import { ismSourceRelease } from './episodes/ism-episodes'
+import { displaySourceRelease } from './episodes/display-episodes'
 import { matchesReadingFamily } from './grading/reading-grading'
 import { magnitudeFamilies } from './magnitude/magnitude-families'
 import { InspectorScoringView } from './scoring/InspectorScoringView'
@@ -17,6 +17,7 @@ import type { InspectorView } from './useInspector'
 import { InspectorReleaseList } from './releases/InspectorReleaseList'
 import { releaseStatus } from './releases/release-status'
 import { InspectorReadingsTable } from './readings/InspectorReadingsTable'
+import { PmiReadingsTable } from './readings/PmiReadingsTable'
 import './inspector.css'
 import { normalizeInspectorDetailView } from './inspector-detail-view'
 import { ComboInspector } from '../usd-context/sequences/ui/ComboInspector'
@@ -62,8 +63,8 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
   const panelId = useId()
   const release = view.selectedRelease
   const scoringEvents = useMemo(() => view.allReleases.flatMap((item) => item.events), [view.allReleases])
-  const scoreRelease = ismSourceRelease(release, null, view.now)
-  const magnitudeFamily = magnitudeFamilies.find((family) => matchesReadingFamily(release, family)) ?? null
+  const scoreRelease = displaySourceRelease(release, null, view.now)
+  const magnitudeFamily = magnitudeFamilies.find((family) => matchesReadingFamily(scoreRelease, family)) ?? null
   const hasMagnitude = !!magnitudeFamily && !!release?.events.some((event) => Object.hasOwn(magnitudeFamily.readingRules, event.event_id))
   const scoringBinding = inspectorScoringBinding(symbol, scoreRelease)
   const showScoring = normalizeInspectorDetailView(view.preferences.detailView) === 'scoring' && !!scoringBinding
@@ -133,7 +134,7 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
           }
         }}>
         <option value="table">Table only</option>
-        <option value="scoring" disabled={!scoringBinding}>Scoring system{scoringBinding ? ` · ${scoringBinding.versionLabel}` : ''}</option>
+        <option value="scoring" disabled={!scoringBinding}>Scoring system{scoringBinding ? ` · ${release.pmiPublications ? 'PMI interpreters v1' : scoringBinding.versionLabel}` : ''}</option>
         <option value="scatter" disabled={!hasMagnitude || !scatterAvailable || !onOpenScatter}>Scatter Plot</option>
       </select>}
 
@@ -148,6 +149,7 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
             {showScoring && scoringBinding ? <InspectorScoringView binding={scoringBinding} release={release}
               brokerId={view.brokerId} events={scoringEvents} now={view.now} timeDisplay={timeDisplay}
               onOpenScatter={scatterAvailable ? onOpenScatter : undefined} /> :
+            release.pmiPublications ? <PmiReadingsTable release={release} view={view} timeDisplay={timeDisplay} /> :
             <InspectorReadingsTable release={release} view={view} timeDisplay={timeDisplay} sharedPeriod={sharedPeriod} />}
           </>}
         </div>

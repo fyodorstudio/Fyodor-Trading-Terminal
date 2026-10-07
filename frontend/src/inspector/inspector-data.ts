@@ -7,6 +7,7 @@ import type { OhlcBar } from '../market-data/contracts/OhlcBar'
 import type { CalendarDisplayRange } from './calendar-display-range'
 import { groupPolicyEpisodes, isPolicyRateDecision, policyEpisodeRule, policyEpisodeRules } from './episodes/policy-episodes'
 import { normalizeInspectorDetailView, type InspectorDetailView } from './inspector-detail-view'
+import { episodePublications } from './episodes/display-episodes'
 
 const originalInspectorFamilies = ['ecb', 'ecb-president', 'fomc', 'fed-chair', 'euro-inflation', 'german-inflation', 'us-cpi', 'pce', 'ppi']
 const inspectorFamilyOrder = [...originalInspectorFamilies, 'euro-labor', 'euro-wages', 'jobs', 'claims',
@@ -69,6 +70,7 @@ export type InspectorRelease = {
   timingUncertain: boolean
   events: EconomicCalendarEvent[]
   ismPublications?: InspectorRelease[]
+  pmiPublications?: InspectorRelease[]
 }
 
 function releaseLabel(event: EconomicCalendarEvent, familyId: string): string | null {
@@ -145,9 +147,9 @@ export function filterInspectorReleases(groups: InspectorRelease[], preferences:
   if (!range) return []
   return groups.filter((group) => {
     const at = brokerTime ? group.serverTime * 1000 : group.releaseAt
-    const members = group.ismPublications ?? [group]
+    const publications = episodePublications(group), members = publications ?? [group]
     return members.some((member) => preferences.families.includes(member.familyId)) &&
-      (group.ismPublications ? members.some((member) => {
+      (publications ? members.some((member) => {
         const time = brokerTime ? member.serverTime * 1000 : member.releaseAt
         return time !== null && time >= range.from && time < range.to
       }) : at !== null && at >= range.from && at < range.to)
@@ -164,7 +166,8 @@ export function buildInspectorMarkers(groups: InspectorRelease[], preferences: I
     const timestamp = release.chartTime
     const duration = timeframeSeconds[timeframe]
     const lastTime = Number(bars[bars.length - 1].time)
-    const symbol = preferences.symbols[release.familyId] ?? 'star'
+    const selectedFamily = episodePublications(release)?.find(member => preferences.families.includes(member.familyId))?.familyId ?? release.familyId
+    const symbol = preferences.symbols[selectedFamily] ?? 'star'
     // There is no future candle to anchor to. Project timeframe slots into the
     // blank chart area without inserting price data or snapping to the last bar.
     // Rebuilding against incoming bars replaces this with a real candle anchor.

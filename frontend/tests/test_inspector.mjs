@@ -452,7 +452,7 @@ try {
   assert.ok(document.querySelector('[aria-label="US Jobs report / NFP"]'))
   await change(document.querySelector('[aria-label="US Jobs report / NFP"]'), { checked: false })
   await click(document.querySelector('[aria-label="Clear family search"]'))
-  assert.equal(document.querySelectorAll('.inspector-family').length, 20)
+  assert.equal(document.querySelectorAll('.inspector-family').length, 18, 'ISM and the three PMI sources have combined filter controls')
   const groupedIsm = document.querySelector('[aria-label="US ISM Manufacturing / Services"]')
   assert.ok(groupedIsm)
   assert.equal(document.querySelector('[aria-label="US ISM Manufacturing"]'), null)
