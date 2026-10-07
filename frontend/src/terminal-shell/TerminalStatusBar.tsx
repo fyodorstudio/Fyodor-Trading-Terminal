@@ -1,6 +1,4 @@
 import { useEffect, useState } from 'react'
-import { ColorThemeButton } from '../appearance/color-theme/ColorThemeButton'
-import type { ColorTheme } from '../appearance/color-theme/color-theme-preference'
 import {
   formatAppTimestamp,
   timeDisplayLabel,
@@ -21,7 +19,6 @@ type TerminalStatusBarProps = {
   settingsOpen: boolean
   timeDisplay: TimeDisplayPreference
   onToggleBottomDock: (window: BottomDockWindow) => void
-  onThemeChanged: (theme: ColorTheme) => void
   onToggleSettings: () => void
 }
 
@@ -37,7 +34,6 @@ export function TerminalStatusBar({
   settingsOpen,
   timeDisplay,
   onToggleBottomDock,
-  onThemeChanged,
   onToggleSettings,
 }: TerminalStatusBarProps) {
   const [now, setNow] = useState(() => Date.now())
@@ -53,20 +49,19 @@ export function TerminalStatusBar({
       <span className="status-clock">{formatAppTimestamp(now, timeDisplay, 'time')} · {timeDisplayLabel(timeDisplay)}</span>
       <span className="status-selection">{selectedSymbol} · {timeframe} · {barCount} bars</span>
       <div className="status-actions">
+        <button className={`status-action${bottomDockWindow === 'inspector' ? ' active' : ''}`} type="button" onClick={() => onToggleBottomDock('inspector')} aria-expanded={bottomDockWindow === 'inspector'}>
+          Inspector
+        </button>
+        <button className={`status-action${bottomDockWindow === 'alert' ? ' active' : ''}`} type="button"
+          onClick={() => onToggleBottomDock('alert')} aria-expanded={bottomDockWindow === 'alert'}>Alert</button>
+        <button className={`status-action${bottomDockWindow === 'scatter-plot' ? ' active' : ''}`} type="button"
+          onClick={() => onToggleBottomDock('scatter-plot')} aria-expanded={bottomDockWindow === 'scatter-plot'}>Scatter Plot</button>
         <button className={`status-action${bottomDockWindow === 'notebook' ? ' active' : ''}`} type="button" onClick={() => onToggleBottomDock('notebook')} aria-expanded={bottomDockWindow === 'notebook'}>
           Notebook
         </button>
         <button className={`status-action${bottomDockWindow === 'activity' ? ' active' : ''}`} type="button" onClick={() => onToggleBottomDock('activity')} aria-expanded={bottomDockWindow === 'activity'}>
           Activity <span className="activity-count">{activityCount}</span>
         </button>
-        <button className={`status-action${bottomDockWindow === 'inspector' ? ' active' : ''}`} type="button" onClick={() => onToggleBottomDock('inspector')} aria-expanded={bottomDockWindow === 'inspector'}>
-          Inspector
-        </button>
-        <button className={`status-action${bottomDockWindow === 'scatter-plot' ? ' active' : ''}`} type="button"
-          onClick={() => onToggleBottomDock('scatter-plot')} aria-expanded={bottomDockWindow === 'scatter-plot'}>Scatter Plot</button>
-        <button className={`status-action${bottomDockWindow === 'alert' ? ' active' : ''}`} type="button"
-          onClick={() => onToggleBottomDock('alert')} aria-expanded={bottomDockWindow === 'alert'}>Alert</button>
-        <ColorThemeButton onThemeChanged={onThemeChanged} />
         <button className={`status-action${settingsOpen ? ' active' : ''}`} type="button" onClick={onToggleSettings} aria-expanded={settingsOpen}>
           <span aria-hidden="true">⚙</span> Settings
         </button>

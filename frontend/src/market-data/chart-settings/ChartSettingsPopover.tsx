@@ -1,4 +1,6 @@
 import { useEffect, type ReactNode } from 'react'
+import { ColorThemeButton } from '../../appearance/color-theme/ColorThemeButton'
+import type { ColorTheme } from '../../appearance/color-theme/color-theme-preference'
 import {
   defaultTimeDisplayPreference,
   formatUtcOffset,
@@ -18,6 +20,7 @@ type ChartSettingsPopoverProps = {
   timeDisplay: TimeDisplayPreference
   onChange: (appearance: ChartAppearance) => void
   onTimeDisplayChange: (preference: TimeDisplayPreference) => void
+  onThemeChanged: (theme: ColorTheme) => void
   onClose: () => void
   children?: ReactNode
 }
@@ -29,6 +32,7 @@ export function ChartSettingsPopover({
   timeDisplay,
   onChange,
   onTimeDisplayChange,
+  onThemeChanged,
   onClose,
   children,
 }: ChartSettingsPopoverProps) {
@@ -89,6 +93,14 @@ export function ChartSettingsPopover({
               <option value="red">Crimson Red</option>
             </select>
           </label>
+        </div>
+
+        <div className="chart-settings-section theme-section">
+          <h2>Appearance</h2>
+          <div className="theme-setting">
+            <span>Color theme</span>
+            <ColorThemeButton onThemeChanged={onThemeChanged} />
+          </div>
         </div>
 
         <div className="chart-settings-section time-display-section">

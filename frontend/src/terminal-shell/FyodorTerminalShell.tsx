@@ -437,7 +437,6 @@ export function FyodorTerminalShell() {
         settingsOpen={settingsOpen}
         timeDisplay={timeDisplay}
         onToggleBottomDock={toggleBottomDock}
-        onThemeChanged={changeTheme}
         onToggleSettings={() => setSettingsOpen((current) => !current)}
       />
 
@@ -447,6 +446,7 @@ export function FyodorTerminalShell() {
           timeDisplay={timeDisplay}
           onChange={changeChartAppearance}
           onTimeDisplayChange={changeTimeDisplay}
+          onThemeChanged={changeTheme}
           onClose={() => setSettingsOpen(false)}
         ><WorkspaceTransfer /></ChartSettingsPopover>
       )}
