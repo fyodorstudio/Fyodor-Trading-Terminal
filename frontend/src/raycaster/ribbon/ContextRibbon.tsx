@@ -9,6 +9,7 @@ import { RibbonExplanation } from './RibbonExplanation'
 import { brokerClock } from './broker-clock'
 import './context-ribbon.css'
 import { ExternalEventsStrip } from '../../external-events/chart/ExternalEventsStrip'
+import { usdPresentationVersion } from '../core/usd-context-presentation'
 
 type Segment = { left: number; width: number; from: number; to: number; point: RibbonPoint | null }
 function ContextRibbonComponent({ chartApi, bars, timeframe, points, now, relative, version, loading, notice, partial = false, symbol = '', brokerId = null }: {
@@ -52,10 +53,10 @@ function ContextRibbonComponent({ chartApi, bars, timeframe, points, now, relati
   }, [chartApi, bars, timeframe, points, now, loading, notice])
   return <div className="context-ribbon" aria-label={`Raycaster Candy · ${mode}`}>
     <ExternalEventsStrip key={`${brokerId}:${symbol}`} chartApi={chartApi} bars={bars} timeframe={timeframe} now={now} symbol={symbol} brokerId={brokerId} />
-    <div className="context-ribbon-legend">Context · {mode} · Green Long / Red Short / Amber Mixed / Gray Insufficient · {loading ? 'Loading' : notice ?? `shade = evidence${partial ? ' · Partial history' : ''}`}</div>
+    <div className="context-ribbon-legend">Context · {mode} · {relative ? 'Green Long / Red Short / Amber Mixed / Gray Insufficient' : 'Green Long / Red Short / Amber Conflict or No lead · edge = lead / Gray Insufficient'} · {loading ? 'Loading' : notice ?? `shade = evidence${partial ? ' · Partial history' : ''}`}</div>
     <div className="context-ribbon-track" onPointerLeave={clearHover}>
       {segments.map(segment => <button type="button" key={segment.from}
-        className={`ribbon-segment ${segment.point?.direction ?? 'uncomputed'} ${segment.point?.evidence ?? ''}`}
+        className={`ribbon-segment ${segment.point?.direction ?? 'uncomputed'} ${segment.point?.evidence ?? ''}${!relative && segment.point?.presentation?.state === 'conflicted' ? ` lead-${segment.point.presentation.direction}` : ''}`}
         style={{ left: segment.left, width: segment.width }}
         aria-label={`${segment.point?.label ?? 'Unavailable'} · ${segment.point?.evidence ?? 'No'} evidence · ${brokerClock(segment.from)}`}
         title={`${segment.point?.label ?? 'Unavailable'} · ${segment.point?.evidence ?? 'No'} evidence\n${brokerClock(segment.from)} to ${brokerClock(segment.to)}\n${segment.point?.update ?? notice ?? 'No usable context yet'}`}
@@ -74,7 +75,7 @@ function ContextRibbonComponent({ chartApi, bars, timeframe, points, now, relati
     </div>
     {hover && <div className="ribbon-hover" role="status"><strong>{hover.segment.point?.label ?? 'Unavailable'} · {hover.segment.point?.evidence ?? 'No'} evidence</strong>
       <span>{brokerClock(hover.at)}</span><span>{hover.segment.point?.kind === 'publication' ? 'Publication' : hover.segment.point?.kind === 'expiry' ? 'Expiry' : 'Memory aging'}: {hover.segment.point?.update ?? notice ?? 'No usable context'}</span></div>}
-    {selected && <RibbonExplanation point={selected} mode={mode} version={version} partial={partial} onClose={close} />}
+    {selected && <RibbonExplanation point={selected} mode={mode} version={relative ? version : `${version} / ${usdPresentationVersion}`} partial={partial} onClose={close} />}
   </div>
 }
 export const ContextRibbon = memo(ContextRibbonComponent)

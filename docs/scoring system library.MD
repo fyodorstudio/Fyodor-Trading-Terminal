@@ -1,5 +1,37 @@
 # Scoring system library
 
+## Current USD Raycaster / Candy presentation v1 — 7 October 2026
+
+This presentation uses existing USD memory v8 retained policy-weighted votes.
+Canonical scorers, magnitude settings, policy transfers, retention, publication
+Inspector gates and EUR-vs-USD v3 outputs remain unchanged. Roofs v6 is the public
+release name; relationship v4 and display v5 are internal version counters.
+
+USD Raycaster/Candy now show Aligned · Long/Short, Conflicted · Long/Short leads,
+Balanced conflict · No lead, Unchanged · No lead or Insufficient context. The
+60% usable configured coverage gate remains. Opposition is disclosed rather
+than omitted: narrow leads below one-third net/gross separation are Weak;
+broader conflicts are at most Moderate; incomplete evidence is Weak. Exact
+balance uses no priority winner. Measured zero remains distinct from missing.
+
+The resolver partitions the retained contributions into pair-oriented support,
+without applying a second magnitude, family weight, coverage or retention factor.
+Shares, separation, coverage and leading contributors are visible in the gear
+and Candy explanation; the box shows a compact split. Shares are not probabilities.
+Candy conflicts are amber with a Long/Short bottom edge. Neutral amber has no
+edge. Unavailable context is gray. EUR-vs-USD retains its original labels/colors.
+
+Retired USD display behavior: narrow opposing support was presented only as
+Mixed evidence without its weighted lead. Publication/relative Mixed gates
+remain in use. Older stored Notebook captures retain their original version;
+new USD captures identify USD presentation v1. Immutable snapshot caching and
+existing frame-coalesced projection avoid rescoring on pointer movement.
+
+Verification and limitations: reports/USD-raycaster-candy-v1-audit.md. No price
+fitting or predictive claim; original publication vintages remain uncertified.
+Only the USD pass is implemented. User audit, EUR scoring refinement and relative
+presentation extension remain separate later steps.
+
 ## Current integrity refinement — 7 October 2026
 
 USD memory v8; relative EURUSD v3; relationship derivation v4; CPI Inspector v4.1
@@ -17,7 +49,7 @@ change. V3 compares both derived features under the latest release's known limit
 calibration drift, renewal and changed availability are separately disclosed and
 cannot vote as fresh news. Unknown provenance blocks comparison.
 
-### Relationship Roofs v4 — exhaustive USD catalogue
+### Roofs v6 / relationship engine v4 — exhaustive USD catalogue
 
 All 28 pairs among CPI, PCE, PPI, NFP, Claims, ISM, Retail and GDP are registered,
 plus eight Fed/macro pairs. Any larger selected group composes on demand from
@@ -47,8 +79,8 @@ Retired v3 behavior: only specialized and cross-domain agreeing sequences were
 registered; ISM partial-to-complete assembly could block a legitimate fresh
 sector comparison; narrow conflicts were shown only as Mixed and balanced
 sequences were omitted. V4 exposes the split and exact balance in Roofs.
-Raycaster/Candy labels, gates, colors and accumulated votes are explicitly
-unchanged in this pass. Their conflict-label extension is deferred.
+Raycaster/Candy labels, gates, colors and accumulated votes were unchanged in
+that Roof pass. The later USD presentation pass is documented above.
 
 Verification: reports/Roof-v4-expansion-audit.md and terminal suites. Existing
 v3 audit records retain their original snapshot metadata; new openings use v4.

@@ -1,11 +1,9 @@
-import { contextNames, contextPriority } from '../../usd-context/core/policy'
-
-export function RaycasterNotes() {
+export function RaycasterNotes({ relative = false }: { relative?: boolean }) {
   return <section className="raycaster-section" aria-label="Raycaster calculation notes">
     <h3>Calculation and evidence</h3>
     <ol>
       <li>Read each enabled standalone scorer using its applied Scatter Plot magnitude settings.</li>
-      <li>Apply its assigned weight, age retention and usable component coverage, then add the signed USD votes.</li>
+      <li>Apply its assigned policy weight and age retention, then add the signed USD votes. Missing component weights are already reflected in the source score; do not multiply coverage again.</li>
       <li>Positive supports USD; negative weakens USD. EURUSD maps weaker USD to Long; USD-base pairs reverse that mapping.</li>
     </ol>
     <h4>How long information remains influential</h4>
@@ -19,9 +17,10 @@ export function RaycasterNotes() {
     <ul><li><strong>Weak:</strong> missing components, cancellation or a narrow weighted lead.</li>
       <li><strong>Moderate:</strong> broader support with qualified or opposing evidence.</li>
       <li><strong>Strong:</strong> strong agreeing CPI and NFP, broad agreement and no active Weak family. Opposing Claims and NFP cap combined evidence at Moderate.</li></ul>
-    <p>Evidence is not a probability or multiplier. Component coverage reduces incomplete votes; overlapping Claims reports and ISM sectors do not add independent votes.</p>
+    <p>Evidence is not a probability or multiplier. Coverage qualifies usability and evidence strength separately; overlapping Claims reports and ISM sectors do not add independent votes.</p>
     <h4>Timing and limits</h4>
     <p>Uses information known by the candle’s end, capped at current time. Forecasts are excluded. Stored readings can contain provider revisions; Fed speech/statement text has no numerical vote.</p>
-    <p>Exact cancellation follows {contextPriority.map(f => contextNames[f]).join(' → ')} with Weak evidence. No usable votes stays Uncomputed. These are declared interpretation rules, not a prediction of price or Fed guidance.</p>
+    <p>{relative ? 'EUR-vs-USD retains its existing coverage and agreement gates. Mixed evidence does not assert a direction; the USD conflict presentation is deferred for this mode.' :
+      'USD presentation v1 shows Conflicted · Long/Short leads from existing retained contributions. Narrow leads are Weak. Balanced conflict and unchanged evidence assert no lead; insufficient coverage cannot establish a direction.'} These are declared interpretation rules, not a prediction of price or Fed guidance.</p>
   </section>
 }

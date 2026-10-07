@@ -13,6 +13,8 @@
 .raycaster-bias { display: block; color: var(--text-strong); }
 .raycaster-bias.long { color: var(--positive); }
 .raycaster-bias.short { color: var(--negative); }
+.raycaster-bias.conflicted, .raycaster-bias.balanced, .raycaster-bias.unchanged { color: #a66a00; }
+:root[data-theme='dark'] .raycaster-bias.conflicted, :root[data-theme='dark'] .raycaster-bias.balanced, :root[data-theme='dark'] .raycaster-bias.unchanged { color: #e8c77a; }
 .raycaster-box p { margin: 5px 0; }
 .raycaster-box small { display: block; color: var(--text-muted); font-size: 9px; }
 .raycaster-update { color: var(--text-muted); }

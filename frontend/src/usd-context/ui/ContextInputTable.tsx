@@ -1,5 +1,5 @@
 import { memo } from 'react'
-import type { ContextFamily, ContextResult } from '../core/contracts'
+import type { ContextFamily, ContextResult, Evidence } from '../core/contracts'
 import { contextPriority, contextScorers, contextWeights } from '../core/policy'
 import { contextPairLabel } from '../core/usd-pair'
 import { formatAppTimestamp, type TimeDisplayPreference } from '../../appearance/time-display/time-display-preference'
@@ -8,11 +8,13 @@ import { cpiStandaloneVersionLabel } from '../../inspector/scoring/shared/core/c
 import { ScoringInputSettings } from '../../inspector/scoring/shared/ui/ScoringInputSettings'
 
 const score = (value: number | null) => value === null ? '—' : value.toLocaleString(undefined, { maximumFractionDigits: 3, signDisplay: 'exceptZero' })
-function ContextInputTableComponent({ families, onToggleFamily, result, symbol, loading, unavailable, cutoff, timeDisplay, summaryLabel, tableLabel = "Raycaster event inputs" }: {
+function ContextInputTableComponent({ families, onToggleFamily, result, symbol, loading, unavailable, cutoff, timeDisplay, summaryLabel, tableLabel = "Raycaster event inputs", summaryEvidence, presentationNote }: {
   families: readonly ContextFamily[]; onToggleFamily?: (family: ContextFamily) => void; result: ContextResult | null;
-  symbol: string; loading: boolean; unavailable: boolean; cutoff: number | null; timeDisplay: TimeDisplayPreference; summaryLabel: string; tableLabel?: string
+  symbol: string; loading: boolean; unavailable: boolean; cutoff: number | null; timeDisplay: TimeDisplayPreference; summaryLabel: string; tableLabel?: string;
+  summaryEvidence?: Evidence | null; presentationNote?: string
 }) {
   const ready = !loading && !unavailable && cutoff !== null
+  const evidence = summaryEvidence === undefined ? result?.strength : summaryEvidence
   const weights = ready ? result?.policy?.weights ?? contextWeights : contextWeights
   const activeWeight = ready ? result?.members.filter(m => m.status === 'active').reduce((sum, m) => sum + weights[m.family], 0) ?? 0 : null
   const retainedWeight = ready ? result?.members.filter(m => m.status === 'active').reduce((sum, m) =>
@@ -40,7 +42,7 @@ function ContextInputTableComponent({ families, onToggleFamily, result, symbol, 
       })}</tbody>
       <tfoot><tr><th>Total</th><td>{Object.values(weights).reduce((a, b) => a + b, 0)}%</td><td />
         <td>{summaryLabel}
-          {ready && result?.strength && <small>{result.strength} evidence</small>}</td>
+          {ready && evidence && <small>{evidence} evidence</small>}</td>
         <td title="Raw pressure is retained for audit even when the directional conclusion is withheld.">{ready ? score(result?.total ?? null) : '—'}<small>Raw USD pressure</small></td></tr></tfoot>
     </table>
     <dl className="context-weight-summary" aria-label="Context weight coverage">
@@ -56,7 +58,7 @@ function ContextInputTableComponent({ families, onToggleFamily, result, symbol, 
     <ScoringNotes items={[
       { label: 'Calculation', content: <>USD vote = source score × assigned weight × age retention. Missing component weights are already reflected in the source score; coverage is not multiplied again.</> },
       { label: 'Missing inputs', content: <>Enabled/active weights are assigned budgets before retention. Off or unavailable votes are not redistributed.</> },
-      { label: 'Directional safeguards', content: <>At least 60% of the configured budget must have usable components. Below that: Insufficient context. With incomplete coverage, a direction describes available evidence and stays Weak; missing CPI/NFP do not imply agreement or automatically veto other usable inputs. A net lead below one third of gross contributions, or unchanged/cancelling evidence: Mixed evidence. Age reduces votes separately.</> },
+      { label: 'Directional safeguards', content: presentationNote ?? <>At least 60% of the configured budget must have usable components. Below that: Insufficient context. With incomplete coverage, a direction describes available evidence and stays Weak; missing CPI/NFP do not imply agreement or automatically veto other usable inputs. A net lead below one third of gross contributions, or unchanged/cancelling evidence: Mixed evidence. Age reduces votes separately.</> },
       ...(ready && result?.policy ? [{ label: 'Active rule', content: result.policy.label }] : []),
     ]} />
   </>

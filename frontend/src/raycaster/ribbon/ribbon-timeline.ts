@@ -1,10 +1,10 @@
 import type { ContextPoint, ContextTimeline, Evidence } from '../../usd-context/core/contracts'
 import type { EurContextPoint, EurContextTimeline } from '../../pair-context/core/contracts'
 import { relativeContext } from '../../pair-context/core/relative-context'
-import { contextResultLabel } from '../../usd-context/core/usd-pair'
+import { usdContextPresentation, usdPresentationUpdate, type UsdContextPresentation } from '../core/usd-context-presentation'
 
-export type RibbonPoint = { at: number; label: string; direction: 'long' | 'short' | 'mixed' | 'insufficient' | 'uncomputed'; evidence: Evidence | null;
-  explanation: string; update: string; kind: 'publication' | 'memory' | 'expiry'; usd: ContextPoint | null; eur: EurContextPoint | null }
+export type RibbonPoint = { at: number; label: string; direction: 'long' | 'short' | 'mixed' | 'conflicted' | 'balanced' | 'unchanged' | 'insufficient' | 'uncomputed'; evidence: Evidence | null;
+  explanation: string; update: string; kind: 'publication' | 'memory' | 'expiry'; usd: ContextPoint | null; eur: EurContextPoint | null; presentation?: UsdContextPresentation }
 
 /** Merge both clocks once, including atomic simultaneous publications. Pointer movement never scores. */
 export function buildRibbonTimeline(usd: ContextTimeline | null, eur: EurContextTimeline | null, relative: boolean, symbol: string): RibbonPoint[] {
@@ -17,17 +17,19 @@ export function buildRibbonTimeline(usd: ContextTimeline | null, eur: EurContext
     if (us[i]?.chartAt === at) { u = us[i++]; newUsd = true }
     if (eu[j]?.chartAt === at) { e = eu[j++]; newEur = true }
     const pair = relative ? relativeContext(e, u) : null
-    const label = pair?.label ?? contextResultLabel(symbol, u?.result)
-    const direction: RibbonPoint['direction'] = (pair?.direction ?? (label === 'Mixed evidence' ? 'mixed' : label === 'Insufficient context' ? 'insufficient' :
-      label.endsWith(' Long') ? 'long' : label.endsWith(' Short') ? 'short' : 'uncomputed')) as RibbonPoint['direction']
-    const update = [newUsd ? u?.update : null, newEur ? `EUR: ${e?.update}` : null].filter(Boolean).join(' · ')
+    const presentation = relative ? null : usdContextPresentation(symbol, u?.result, at)
+    const label = pair?.label ?? presentation!.label
+    const direction: RibbonPoint['direction'] = (pair?.direction ?? (presentation!.state === 'aligned' ? presentation!.direction! : presentation!.state)) as RibbonPoint['direction']
+    const update = [newUsd ? !relative && u ? usdPresentationUpdate(symbol, u, presentation!) : u?.update : null,
+      newEur ? `EUR: ${e?.update}` : null].filter(Boolean).join(' · ')
     const publication = (newUsd && u?.latest?.chartAt === at) ||
       (newEur && (e?.updateKind === 'publication' || (!e?.updateKind && e?.members.some(m => m.chartAt === at))))
     const expired = (newUsd && previousUsd?.result.members.some(m => m.status === 'active' && u?.result.members.find(n => n.family === m.family)?.status === 'expired')) ||
       (newEur && previousEur?.members.some(m => m.status === 'active' && e?.members.find(n => n.slot === m.slot)?.status === 'expired'))
-    points.push({ at, label, direction, evidence: (pair?.strength ?? (relative ? null : u?.result.strength ?? null)) as Evidence | null,
-      explanation: pair?.explanation ?? u?.result.explanation ?? 'No usable context.', update,
-      kind: publication ? 'publication' : expired ? 'expiry' : 'memory', usd: u, eur: e })
+    points.push({ at, label, direction, evidence: (pair?.strength ?? (relative ? null : presentation!.evidence)) as Evidence | null,
+      explanation: pair?.explanation ?? presentation!.explanation, update,
+      kind: publication ? 'publication' : expired ? 'expiry' : 'memory', usd: u, eur: e,
+      ...(!relative ? { presentation: presentation! } : {}) })
   }
   return points
 }

@@ -63,9 +63,10 @@ try {
   assert.equal(eurConfiguredWeight(['euro-labor']), 30)
   const points = [{ ...usd, result: primary }, { ...usd, chartAt: at + day, result: mixed }]
   const ribbon = buildRibbonTimeline({ points, version: 'v7' }, null, false, 'EURUSD')
-  assert.deepEqual(ribbon.map(p => p.direction), ['short', 'mixed'])
+  assert.deepEqual(ribbon.map(p => p.direction), ['short', 'conflicted'])
   assert.equal(ribbon[0].evidence, 'weak')
-  assert.ok(!/Long|Short/.test(ribbon[1].label) && ribbon[1].evidence === null, 'Candy never leaks a withheld raw pressure as direction')
+  assert.match(ribbon[1].label, /Conflicted · Short leads/)
+  assert.equal(ribbon[1].evidence, 'weak', 'Candy discloses a narrow lead without upgrading its evidence; publication gates stay unchanged')
   const sparse = combine([source('cpi', .5, .2)])
   assert.equal(sparse.decision.state, 'insufficient', 'Partial primary alone does not satisfy the overall usable-budget rule')
   for (const args of [[NaN, 1, 1], [Infinity, 1, 1], [1, Infinity, 1], [1, -1, 1], [1, 1, NaN], [1, 1, 1.1], [2, 1, 1]]) {

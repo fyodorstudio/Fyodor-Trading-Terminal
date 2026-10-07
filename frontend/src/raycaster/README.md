@@ -1,5 +1,28 @@
 # Raycaster / USD context memory v8
 
+## USD presentation v1
+
+`core/usd-context-presentation.ts` is a cached read-only projection of canonical
+retained **policy** contributions. It partitions pair-oriented Long/Short support
+once and resolves aligned, conflicted with a named lead, balanced, unchanged and
+insufficient states. It preserves the 60% usable configured coverage gate; a
+conflicted lead below one-third net/gross separation is Weak, other conflicts
+are capped at Moderate, and incomplete evidence remains Weak. Zero never uses
+the raw priority tie-break. Coverage and retention are not applied twice.
+
+Box, settings, Candy and current Notebook captures share this projection.
+Publication panels continue to use the canonical agreement gate. Relative mode
+continues to use its original labels, grades, colors, updates and gates; no USD
+presentation metadata is inserted into its ribbon points. Existing capture
+schemas and saved records remain valid. Immutable result identity invalidates
+the WeakMap cache naturally when inputs or magnitude settings rebuild history.
+Clock validation runs before cache access. Hover performs no scoring.
+
+USD Candy conflicts are amber with a green/red bottom lead edge. Balanced and
+unchanged are amber without an edge; unavailable is gray. Relative amber keeps
+its original Mixed meaning. Shares are support, not probabilities. Public Roofs
+v6 retains its separate relationship v4 / display v5 counters and calculations.
+
 Press **Show Raycaster** (the wave glyph) in the outlined Fundamental tools group
 on the header's right, before Bid/Ask. Its active button toggles the box, and × hides it. Raycaster
 visibility is independent of the drawing toolbar. The header
@@ -38,7 +61,7 @@ Their agreement adds no independent confirmation. The conditional rule gives
 priority to confirmed labor deterioration only when active CPI passes declared
 level/acceleration guards. It implies easing pressure, not observed Fed guidance.
 Hotter inflation, incomplete/expired or disabled CPI/NFP restores base priorities.
-The collapsed explanation identifies Labor priority when active. Standalone scorer math remains
+The gear identifies Labor priority when active. Standalone scorer math remains
 CPI engine v3.2 (Inspector v4.1), NFP v2.2, Claims v2, ISM v3, Retail v1, PCE v1, PPI v1 and GDP v1. ISM switches both sectors together;
 they update one slot. Inspector's view, date range and marker visibility do not
 select context inputs. Applied Scatter signal magnitudes still affect both tools.
@@ -126,17 +149,19 @@ publication times. A prior candle's hover cannot include a later endpoint even
 when the full historical chart displays later annotations. Source visibility
 follows Inspector marker filters/date range; hidden inputs are disclosed and do
 not lose their context vote. All-hidden sequences are omitted. Three lanes and
-an overflow chooser preserve crowded roof access. Release symbols replace dots at
-each roof level; Starts/Update tags identify activation. Symbol clicks open releases
-and direction boxes open Combo details. Candle gaps and future bars
+an overflow chooser preserve crowded roof access. Hollow dots identify contributing
+releases; a filled dot identifies activation. Dot clicks inspect releases without
+changing marker filters/date range; direction boxes open Combo details. The bottom
+release-symbol row remains separate. Candle gaps and future bars
 are not used as guessed endpoints. Range/resize updates coalesce into one frame;
 hover uses binary lookup plus at most eight fresh-family expiry checks.
 
 The fresh-news comparison keeps the latest comparable economic score change per
 family within seven days. Calibration drift, renewal, coverage changes and unknown predecessors
-are disclosed separately and do not vote. Two agreeing economic domains qualify
-a roof; near-cancelling changes show Mixed evidence. Directional changes have
-Weak evidence, add no accumulated vote and make no volatility claim.
+are disclosed separately and do not vote. The exhaustive USD relationship catalogue
+composes eligible named inputs without adding votes. Opposing support shows a
+named conflicted lead; narrow leads remain Weak and exact balance has no lead.
+Fresh Roofs add no accumulated vote and make no volatility claim.
 See [sequence rules](../usd-context/sequences/README.md) and the implementation
 audit in `reports/Context-sequence-implementation-audit.md`.
 
@@ -156,11 +181,14 @@ are RAF-coalesced. The box, ribbon and Notebook capture reuse shared calculation
 jobs, with no scoring on pointer movement.
 
 The ribbon starts Off, saved as an optional backwards-compatible `ribbon` field
-in `fyodor.context-sequences.v1`. Green/red means pair Long/Short, evidence shade
-is not probability, amber means Mixed evidence and gray means Insufficient context/unavailable history. Mode, exact broker clock, triggering
+in `fyodor.context-sequences.v1`. USD colors follow presentation v1 above;
+relative green/red means pair Long/Short and amber means Mixed evidence. Gray
+means Insufficient context/unavailable history. Evidence shade is not probability. Mode, exact broker clock, triggering
 publication/memory/expiry update and clicked contribution explanation are explicit.
 The box still uses candle-end cutoff. Roof relationships remain USD-only, even
-when the box/ribbon compare EUR against USD. USD engine v8 and relative v3 apply completeness/agreement gates before coloring a direction.
+when the box/ribbon compare EUR against USD. USD engine v8 keeps its canonical
+gates; USD presentation v1 exposes qualified conflicted leads separately.
+Relative v3 still applies completeness/agreement gates before coloring a direction.
 
 The separate gray strip immediately above Candy contains manual outside-event
 notes. The shared gear's Manage outside events opens title/range/observation editing

@@ -3,6 +3,8 @@ export const suites = [
   "tests/test_responsiveness.mjs",
   "tests/usd-context/test_memory_v6.mjs",
   "tests/usd-context/test_quality_v7.mjs",
+  "tests/usd-context/test_usd_presentation.mjs",
+  "tests/usd-context/test_usd_presentation_ui.mjs",
   "tests/usd-context/test_context_arithmetic.mjs",
   "tests/usd-context/test_fresh_calibration.mjs",
   "tests/inspector/test_interpretation_integrity.mjs",

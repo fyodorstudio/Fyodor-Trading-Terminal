@@ -2,16 +2,40 @@
 
 Use the chart to assess price and the fundamental overlays to understand the declared interpretation of the stored releases. A direction is a thesis input, not an instruction to buy, sell, hold, or close. Evidence describes agreement between inputs, not a probability of profit.
 
-## Current interpretation rules: context v8 / relative v3 / relationship v4
+## Current interpretation rules: USD presentation v1 / context v8 / relative v3 / Roofs v6
 
-Candy has four meanings. **Green: pair Long. Red: pair Short. Amber: Mixed
-evidence. Gray: Insufficient context or unavailable history.** Hover/click shows
-the exact reason. Color darkness is an evidence grade, not probability. Gray and
-amber do not establish a direction and do not mean “no event occurred.” Missing
-observations remain missing. They can coexist with directional standalone
-releases in Inspector.
+Choose **USD side** for the new Raycaster/Candy presentation. Both read the same
+latest retained, policy-weighted family contributions. No Roof adds another vote.
 
-Combined Long/Short needs at least 60% usable components of each configured
+| USD output | Candy | Meaning |
+| --- | --- | --- |
+| Aligned · Long / Short | Green / red | Nonzero active family contributions support one side |
+| Conflicted · Long / Short leads | Amber with green / red bottom edge | Both sides contribute; the named side has more weighted support |
+| Balanced conflict · No lead | Amber without an edge | Opposing support cancels at the engine's score precision |
+| Unchanged · No lead | Amber without an edge | Usable votes are zero; this differs from missing data |
+| Insufficient context | Gray | Usable configured evidence cannot establish a direction |
+
+Hover shows the label, evidence, exact clock and responsible update. Click Candy
+or open the Raycaster gear for Long/Short support shares, net separation, usable
+coverage and leading contributors. Shares are **not probabilities**. A conflicted
+lead below one-third net/gross separation stays Weak. It is a narrow lead, not
+equal support. Conflicted evidence is at most Moderate; incomplete coverage is
+Weak. Aligned evidence retains the existing grade. Neutral outputs have no
+directional grade. Source votes already reflect incomplete components once;
+coverage does not multiply the score again. Age retention remains separate.
+
+USD presentation requires at least 60% of its configured budget to be usable.
+It uses the resolved policy weights, including any qualified labor priority,
+rather than Roof base weights or fresh-change scores. Publication Inspector
+panels still use their existing agreement gate; they can show Mixed evidence
+where the USD Raycaster discloses a Weak conflicted lead. These are different
+presentations of the same auditable votes. Notebook **Record current context**
+captures the current visible USD presentation and version, not a hovered candle;
+older saved records keep their original labels and versions.
+
+**EUR vs USD** retains its existing meaning: green Long, red Short, amber Mixed
+evidence, gray Insufficient/unavailable. Its amber output asserts no pair
+direction and has no new lead edge. This mode needs at least 60% usable components of each configured
 leg's budget. There is no separate CPI/NFP veto. Incomplete usable coverage
 qualifies a directional result as Weak; missing inputs do not confirm it. Usable coverage is
 separate from aging. Net support must be at least one third of gross opposing
@@ -37,12 +61,18 @@ Raycaster vote. Renewal of an old score, changed components/weights or coverage,
 calibration drift, and a new source without a comparable predecessor do not create
 support-change votes. Both features are graded under limits known at activation;
 a Roof does not claim a native-unit economic growth estimate. Advanced details retain their replacement effects for audit.
-Roof v4 says **Conflicted · Long leads** or **Conflicted · Short leads** when both
+Roofs v6 says **Conflicted · Long leads** or **Conflicted · Short leads** when both
 sides contribute and one has more weighted support. A net lead below one third
 of gross support is explicitly narrow and Weak. **Balanced conflict · No lead**
 means exact cancellation; **Unchanged · No lead** means zero usable support;
 **Insufficient evidence** means a required input or comparable predecessor is
 missing. Missing evidence never counts as zero confirmation.
+
+Roofs v6 is the public release name. Relationship engine v4 and display engine
+v5 are separate internal counters, not the public Roof version. This USD
+presentation pass changes neither their calculations nor the EUR scorers. The
+next steps are your USD audit, EUR scoring audit/refinement, and then a separate
+extension of this presentation to EUR-vs-USD.
 
 Open **direction label → USD relationship catalogue**. The catalogue registers
 all **28 macro pairs plus eight Fed/macro pairs**. Select a pair or tick any

@@ -1,6 +1,44 @@
 # Manual audit backlog
 
-## USD Roof expansion v4 — ready for manual audit after terminal verification
+## USD Raycaster / Candy presentation v1 — audit in USD-side mode first
+
+This checklist supersedes older USD Mixed-only display checks below. Roofs v6
+is the public Roof release; relationship engine v4 / display engine v5 are
+internal counters. Visual verification remains yours.
+
+- [ ] Select **USD side**, keep the same broker, inputs and magnitude settings.
+  Compare Raycaster, its gear and Candy at the same exact clock. Candy retains
+  exact update times; the hover box reads through the candle end, which may
+  include a later release within H1. Use a finer timeframe at that boundary.
+- [ ] Find **Conflicted · Long leads** and **Conflicted · Short leads**. Amber
+  has the matching green/red bottom edge. Click for identical support shares,
+  separation, coverage and leading contributors. Narrow leads remain Weak;
+  shares are support, not probabilities. Opposing votes stay visible.
+- [ ] Compare aligned green/red, balanced or unchanged amber without an edge,
+  and gray Insufficient. Missing/expired evidence never supplies confirmation.
+  Balanced and unchanged may require a deliberately selected zero/cancelling
+  example; the frozen default replay contains neither state.
+- [ ] Revisit Sep 3, 2026 and Dec 16, 2025–Jan 28, 2026. A Roof describes its
+  named relationship; Candy describes all selected retained policy votes. They
+  can differ. In the frozen automatic snapshot the December–January samples
+  remain Insufficient; the new display does not invent an explanation of price.
+- [ ] Check publication, midnight memory and expiry updates. Aging is not a
+  release. Inspect a qualified labor priority and the current policy weights.
+  Toggle an input under Advanced and restore it: rebuilt output must agree
+  across the views without changing Inspector marker filters.
+- [ ] Record current Notebook context. Its USD label/evidence matches now and
+  includes **USD presentation v1**; older captures remain intact. It must not
+  capture your previously hovered historical candle.
+- [ ] Switch to **EUR vs USD**: original Long/Short/Mixed/Insufficient meanings,
+  shades and no new conflict edge. The USD support block must disappear. EUR
+  scoring refinement and presentation extension remain later separate passes.
+- [ ] Pan/zoom, hover, click Candy, scroll the gear and resize the dock. Confirm
+  readable bars/edges in both themes and responsive chart navigation.
+
+Terminal evidence: reports/USD-raycaster-candy-v1-audit.md. No visual/browser
+audit was performed. Numerical integrity is not price-prediction certification.
+
+## USD Roofs v6 / relationship engine v4 — ready for manual audit after terminal verification
 
 - [ ] Sep 1–3, 2026: open the ISM + Jobless Claims direction box activated at
   Sep 3 19:30 Asia/Jakarta. It should say Aligned · Long with partial/Weak

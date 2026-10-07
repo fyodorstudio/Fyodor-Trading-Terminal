@@ -1,0 +1,6 @@
+.usd-support { margin: 8px 0; font-size: 10px; }
+.usd-support-split { display: flex; justify-content: space-between; gap: 8px; }
+.usd-support-bar { display: flex; height: 5px; margin: 4px 0; background: var(--border); border-radius: 3px; overflow: hidden; }
+.usd-support-bar span:first-child { background: #19a986; }
+.usd-support-bar span:last-child { background: #e87979; }
+.usd-support small, .usd-support-note { display: block; color: var(--text-muted); }

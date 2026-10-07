@@ -279,3 +279,36 @@ bounded (100 pans / nine ms in the synthetic benchmark); visual performance
 and UI readability are explicitly left to the user's checklist. Raycaster/Candy
 conflict labels remain a separate deferred pass. No commit or preference/data
 mutation was performed.
+
+# Authorized USD Raycaster / Candy presentation — 7 October 2026
+
+Only step 1 is authorized for implementation: USD presentation, then the user's
+audit, then EUR scoring audit/refinement, then extension to EUR-vs-USD. Preserve
+existing relative outputs, canonical scores, weights, retention, publication
+scoring, Roof calculations and stored preferences. Roofs v6 is the public release
+name; relationship engine v4 and display engine v5 are separate internal counters.
+
+- [x] P1: One USD presentation resolver over current retained policy-weighted
+  family contributions: aligned, conflicted Long/Short lead, balanced, unchanged
+  and insufficient. Keep 60% usability safeguard, exact-zero honesty and weak
+  narrow-lead grading. Expose shares, separation and leading contributors.
+- [x] P2: Raycaster box and settings use that resolver, with an identifiable
+  presentation version and plain scope/limitations. No source rescoring on hover.
+- [x] P3: Candy uses the same labels/grades/explanation; conflicts stay amber
+  with green/red lead edges. Neutral amber and unavailable gray remain distinct.
+  Preserve exact update clocks, cached viewport lookup and click details.
+- [x] P4: Preserve EUR-vs-USD numerical and visual semantics. Ensure captures,
+  version notes and workflow/audit guidance describe the visible USD output.
+- [x] P5: Pure, headless and historical replay verification: arithmetic and
+  policy weights, orientation, narrow/balanced/missing cases, memory/expiry,
+  relative parity, user preferences, responsiveness, full tests/build/lint.
+  Leave visual UI checks to the user; do not implement steps 2–4 automatically.
+
+Completed evidence: reports/USD-raycaster-candy-v1-audit.md. All 56 serial
+frontend suites, final focused presentation checks, TypeScript/production build
+and lint passed. Frozen replay checked 5,696 USD states; 9,788 relative ribbon
+states exactly match the committed pre-pass implementation, field for field.
+Full arithmetic/future-removal/magnitude integrity remains intact. No commit,
+dataset/preferences overwrite or browser/visual automation was performed. The
+USD manual audit checklist is ready; EUR refinement and relative presentation
+extension remain deferred until the user's subsequent instructions.

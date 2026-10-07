@@ -18,6 +18,7 @@ try {
   const { buildContextTimeline } = await load('usd-context/core/build-context-timeline')
   const { contextAt } = await load('usd-context/core/context-lookup')
   const { contextResultLabel } = await load('usd-context/core/usd-pair')
+  const { usdContextPresentation, usdPresentationVersion } = await load('raycaster/core/usd-context-presentation')
   const { buildEurContextTimeline } = await load('pair-context/core/eur-context-timeline')
   const { eurContextAt, relativeContext } = await load('pair-context/core/relative-context')
   const { buildRibbonTimeline } = await load('raycaster/ribbon/ribbon-timeline')
@@ -80,7 +81,10 @@ try {
     if (roof.kind === 'fresh-news') assert.ok(roof.sources.filter(s => s.change !== 0).every(s => s.comparable))
   }
   const ribbonUsd = buildRibbonTimeline(usd, eur, false, 'EURUSD'), ribbonPair = buildRibbonTimeline(usd, eur, true, 'EURUSD')
-  for (const p of ribbonUsd) assert.equal(p.label, contextResultLabel('EURUSD', contextAt(usd, p.at)?.result))
+  for (const p of ribbonUsd) {
+    const presentation = usdContextPresentation('EURUSD', contextAt(usd, p.at)?.result, p.at)
+    assert.equal(p.label, presentation.label); assert.equal(p.evidence, presentation.evidence)
+  }
   for (const p of ribbonPair) {
     const relative = relativeContext(eurContextAt(eur, p.at), contextAt(usd, p.at))
     assert.equal(p.label, relative.label); assert.equal(p.evidence, relative.strength)
@@ -111,7 +115,7 @@ try {
   assert.deepEqual(forecast, usd, 'Forecast fields cannot influence release/change interpretation')
   const report = { source: input.source, revision: input.revision, asOf: input.asOf, settings: input.inputUSD.settings,
     settingsProvenance: 'Explicit automatic snapshot settings; not a claim to read browser-local user preferences',
-    versions: { usd: usd.version, relative: 'eurusd-relative-context-v3', relationships: relationshipVersion,
+    versions: { usd: usd.version, usdPresentation: usdPresentationVersion, relative: 'eurusd-relative-context-v3', relationships: relationshipVersion,
       cpi: currentScorerLabels.cpi, nfp: currentScorerLabels.nfp, eur: 'v1.1' },
     rows: { USD: input.inputUSD.events.length, EUR: input.inputEUR.events.length },
     range: { first: new Date(usd.points[0].chartAt).toISOString(), lastPublication: new Date(Math.max(...[...assessments.values()].map(a => a.chartAt))).toISOString() },
