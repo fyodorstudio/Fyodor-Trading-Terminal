@@ -1,6 +1,6 @@
 import { useId, useState } from 'react'
 import type { ComboSnapshot, ComboSource } from '../core/contracts'
-import { contextPairLabel } from '../../core/usd-pair'
+import { contextPairLabel, contextResultLabel } from '../../core/usd-pair'
 import { formatAppTimestamp, type TimeDisplayPreference } from '../../../appearance/time-display/time-display-preference'
 import { contextVersion } from '../../core/policy'
 import { comboSummary } from './combo-summary'
@@ -14,18 +14,18 @@ export function ComboInspector({ combo, timeDisplay, symbol, broker = null, onCl
   onClose: () => void; onOpenRelease: (source: ComboSource) => void
 }) {
   const [advanced, setAdvanced] = useState(false), advancedId = useId()
-  const summary = comboSummary(combo), bias = contextPairLabel(symbol, combo.direction)
+  const summary = comboSummary(combo), bias = contextResultLabel(symbol, combo)
   const after = combo.after, before = combo.before
   return <section className="combo-inspector" aria-label="Combo details">
     <header><strong>Combo details · {combo.title}</strong><button type="button" onClick={onClose}>Return to releases</button></header>
     <div className="combo-inspector-scroll">
       <div className="combo-result" aria-label="Roof interpretation">
         <strong className={`combo-bias ${bias.endsWith(' Long') ? 'long' : bias.endsWith(' Short') ? 'short' : ''}`}>{bias}</strong>
-        <span>{combo.strength ?? 'weak'} evidence</span>
+        <span>{combo.strength ? `${combo.strength} evidence` : 'Direction withheld'}</span>
         {combo.experimental && <small>Experimental</small>}
       </div>
       <p className="combo-meaning">{summary.meaning}</p>
-      <small className="combo-version">{contextVersion} · Relationship roofs v1 · Display v{roofDisplayVersion}. Snapshot captured when opened; reopen after changing inputs.</small>
+      <small className="combo-version">{contextVersion} · Relationship roofs v3 · USD inputs only · Display v{roofDisplayVersion}. Snapshot captured when opened; reopen after changing inputs.</small>
       <div className="combo-overview">
         <section className="combo-card" aria-label="Why this direction"><h3>Why this direction?</h3><p>{summary.why}</p></section>
         <section className="combo-card" aria-label="Activation and changes"><h3>What changed?</h3>
@@ -35,7 +35,7 @@ export function ComboInspector({ combo, timeDisplay, symbol, broker = null, onCl
         </section>
       </div>
       <section className="combo-card" aria-label="Accumulated context comparison"><h3>Combined context at activation</h3>
-        <p>{contextPairLabel(symbol, before?.direction ?? 'uncomputed')}{' → '}{contextPairLabel(symbol, after.direction)}
+        <p>{contextResultLabel(symbol, before)}{' → '}{contextResultLabel(symbol, after)}
           {after.strength && ` · ${after.strength} context evidence`}</p>
         {combo.experimental && <p>The roof describes recent changes; this combined result also includes older eligible evidence. They can disagree.</p>}
       </section>

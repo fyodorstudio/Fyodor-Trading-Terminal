@@ -1,9 +1,11 @@
-# USD relationship snapshots / roofs v1
+# USD relationship snapshots / roofs v3
 
-Implemented 7 October 2026 alongside `usd-context-memory-v6.2`. This layer
-exposes existing rules and a separately labeled fresh-news experiment. It never
-fits to candle direction, uses survey forecasts, or adds a second vote to the
-accumulated engine. Standalone scorers and the existing context math are preserved.
+Implemented 7 October 2026 alongside `usd-context-memory-v8`. Price never enters
+this derivation. Roofs remain USD-only regardless of Candy mode. ISM sectors
+resolve standalone ISM; labor relationships use quality-gated accumulated USD
+context; fresh-news sequences use changes in interpreted support at common calibration. This distinction is
+shown in tool settings, tooltips and Combo details. Participating standalone
+readings remain visible; no context output is fed back as another family vote.
 
 ## What qualifies
 
@@ -12,7 +14,7 @@ accumulated engine. Standalone scorers and the existing context math are preserv
 | Manufacturing + Services | Both included ISM sector publications are known for the same reference month | One existing ISM v3 resolution; own sector biases remain in details |
 | Labor + inflation priority | Existing guarded labor-priority policy is active | Accumulated USD context at qualification |
 | Claims challenge older NFP | Existing weekly-labor-priority policy is active | Accumulated USD context; preceding two Claims reports are confirmation only |
-| Fresh-news sequence · Experimental | Net replacement changes agree across at least two economic domains within seven days | Sign of the recent replacement-effect sum, always Weak evidence |
+| Fresh-news sequence · Experimental | Comparable interpreted-support changes agree across at least two domains within seven days | Net change; Weak when directional, Mixed when near-cancelling |
 
 Snapshot identities retain kind, qualification clock and source IDs. New inputs
 can produce another dated snapshot; unchanged membership does not emit one every
@@ -22,17 +24,29 @@ publication. Sources never postdate the snapshot.
 
 ## Fresh news is a change, not a source label
 
-For each publication, compare its score with the eligible score it replaced:
+For a comparable preceding/current family assessment:
 
-`change = base family weight / 100 × (new total × new coverage − old total × old retention × old coverage)`.
+`support change = base weight / 100 × (new total − old features regraded under current limits)`.
 
-The old score is evaluated immediately before the update; the new score has its
-age reset. Fixed base weights on both sides exclude conditional policy transfers
-from the experimental change. The recent change can include that age reset and
-coverage change: it is not an isolated measurement of economic acceleration.
-When no eligible predecessor exists, compare against zero and show the original
-source. An uncomputed new publication replaces the old fresh slot with a zero
-change; it does not turn missing information into a directional vote.
+Both need active calibrated totals, matching usable component IDs/weights and
+assessment stage (including GDP new-quarter/revision), equal coverage and at
+least 60% usable components. Unknown predecessors, changed coverage and unavailable readings
+replace the fresh slot with a zero support-change vote, with a disclosed reason.
+Neither age renewal nor calibration drift adds a support-change vote. Base weights exclude conditional
+policy transfers. Advanced details separately decompose the actual replacement:
+
+- Change in interpreted support, only when comparable under common limits.
+- Calibration effect: old features under current limits minus the old published score.
+- Memory renewal at the old published score.
+- Availability / non-comparable residual.
+
+Those parts sum to total replacement effect. Changed component membership,
+weights or assessment stage makes the comparison unavailable. This does not
+certify an original provider vintage. Old snapshots stay intact; only the
+comparison regrades their derived features using limits known at the new release.
+Missing calibration provenance blocks the comparison. Component weights already
+reflect missing data; no additional coverage multiplier is applied. Archived v2
+subtracted differently calibrated totals and could mistake drift for fresh news.
 
 Keep only the latest update per family; do not sum several overlapping Claims
 reports. Drop it exactly seven elapsed broker-clock days after publication, even
@@ -42,8 +56,9 @@ update** and contributes zero. Opposing PCE/other inputs remain visible.
 Inflation = CPI/PCE/PPI; labor = NFP/Claims; activity = ISM/Retail/GDP. Sum changes
 within each domain first. At least two domain nets must agree with the overall
 direction before drawing a fresh roof. Two inflation reports, or NFP plus Claims,
-cannot alone qualify as two domains. Exact cancellation follows the existing
-family priority with Weak evidence. No nonzero change stays Uncomputed.
+cannot alone qualify as two domains. Exact cancellation supplies no directional roof. A net lead below one third
+of gross changes is Mixed evidence, with no strength grade. No comparable
+changes produce Insufficient context in the fresh-news summary.
 
 The seven-day window, budgets and domain grouping are declared prototype rules,
 not fitted optimal parameters or statistically independent evidence. The
@@ -89,7 +104,7 @@ These remain research tracks; this layer makes existing relationships reviewable
 
 ## Roof names
 
-`chart/roof-label.ts` names nonzero fresh replacement families once, with up to
+`chart/roof-label.ts` names nonzero comparable economic-change families once, with up to
 three compact names and an additional-family count. Opposing effects still
 participate in that list; names do not imply agreement. Zero-change companions
 stay in the full tooltip and Inspector. Tooltips include full release names,

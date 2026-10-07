@@ -28,7 +28,7 @@ export function layoutRoofs(candidates: readonly RoofCandidate[], focused: boole
     const label: [number, number] = [item.labelX - 85, item.labelX + 85]
     const span: [number, number] = [Math.min(label[0], item.left - 16), Math.max(label[1], item.right + 36)]
     const families = [...new Set(item.combo.sources.map(s => s.family))].sort().join('|')
-    const key = `${item.combo.kind}:${item.combo.direction}:${families}`
+    const key = `${item.combo.kind}:${item.combo.decision?.state ?? 'directional'}:${item.combo.direction}:${families}`
     const repeats = repetitions.get(key) ?? []
     const repeated = focused && intersects(repeats, [item.left, item.right])
     const lane = repeated ? -1 : lanes.findIndex(occupied => !intersects(occupied, span))

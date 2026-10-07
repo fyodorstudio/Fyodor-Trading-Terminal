@@ -1,4 +1,4 @@
-# Raycaster / USD context memory v6.2
+# Raycaster / USD context memory v8
 
 Press **Show Raycaster** (the wave glyph) in the outlined Fundamental tools group
 on the header's right, before Bid/Ask. Its active button toggles the box, and × hides it. Raycaster
@@ -19,11 +19,12 @@ RaycasterDetails and compatibility table re-export are retired. Base weights are
 Retail 7%, GDP 3%. Qualified Labor priority uses CPI 8%, NFP 50%, with other weights
 unchanged. The table shows effective/base weights; the rule details explain
 every condition using canonical publication-time CPI/NFP facts.
-V6 multiplies each vote by cadence retention (7-day Claims, 30-day monthly,
-90-day GDP half-life) and usable nominal component coverage. Age changes at broker
+V8 multiplies each vote by cadence retention (7-day Claims, 30-day monthly,
+90-day GDP half-life). Missing component weights are already reflected once
+in the source total; usable nominal component coverage is a separate qualifier. Age changes at broker
 calendar midnights, precomputed in the worker. The table exposes these factors,
-source age and final effective weight. Standalone scores remain unchanged; this
-is an additional cautious context policy, not a probability transformation.
+source age and final effective weight. Standalone roles and budgets remain intact; the numerical integrity repairs
+are separately versioned. This is a declared context policy, not a probability transformation.
 Qualified three-report weekly confirmation against an aging Weak/incomplete NFP
 can shift NFP 30→20 and Claims 10→20 inside the existing labor budget. It does
 not stack with Labor priority or accumulate old weekly votes. See the shared
@@ -38,7 +39,7 @@ priority to confirmed labor deterioration only when active CPI passes declared
 level/acceleration guards. It implies easing pressure, not observed Fed guidance.
 Hotter inflation, incomplete/expired or disabled CPI/NFP restores base priorities.
 The collapsed explanation identifies Labor priority when active. Standalone scorer math remains
-CPI v3.1, NFP v2, Claims v2, ISM v3, Retail v1, PCE v1, PPI v1 and GDP v1. ISM switches both sectors together;
+CPI engine v3.2 (Inspector v4.1), NFP v2.2, Claims v2, ISM v3, Retail v1, PCE v1, PPI v1 and GDP v1. ISM switches both sectors together;
 they update one slot. Inspector's view, date range and marker visibility do not
 select context inputs. Applied Scatter signal magnitudes still affect both tools.
 
@@ -131,11 +132,11 @@ and direction boxes open Combo details. Candle gaps and future bars
 are not used as guessed endpoints. Range/resize updates coalesce into one frame;
 hover uses binary lookup plus at most eight fresh-family expiry checks.
 
-The fresh-news comparison keeps the latest replacement effect per family within
-seven elapsed broker-clock days. A weaker Long replacement can be a USD-positive
-change; its standalone Long label remains intact. Two agreeing economic domains
-are required for a fresh-news roof. The comparison is always Weak evidence,
-adds no vote to accumulated memory and makes no historical-volatility claim.
+The fresh-news comparison keeps the latest comparable economic score change per
+family within seven days. Calibration drift, renewal, coverage changes and unknown predecessors
+are disclosed separately and do not vote. Two agreeing economic domains qualify
+a roof; near-cancelling changes show Mixed evidence. Directional changes have
+Weak evidence, add no accumulated vote and make no volatility claim.
 See [sequence rules](../usd-context/sequences/README.md) and the implementation
 audit in `reports/Context-sequence-implementation-audit.md`.
 
@@ -156,10 +157,10 @@ jobs, with no scoring on pointer movement.
 
 The ribbon starts Off, saved as an optional backwards-compatible `ribbon` field
 in `fyodor.context-sequences.v1`. Green/red means pair Long/Short, evidence shade
-is not probability, and gray is unavailable. Mode, exact broker clock, triggering
+is not probability, amber means Mixed evidence and gray means Insufficient context/unavailable history. Mode, exact broker clock, triggering
 publication/memory/expiry update and clicked contribution explanation are explicit.
 The box still uses candle-end cutoff. Roof relationships remain USD-only, even
-when the box/ribbon compare EUR against USD. Numerical engine versions are unchanged.
+when the box/ribbon compare EUR against USD. USD engine v8 and relative v3 apply completeness/agreement gates before coloring a direction.
 
 The separate gray strip immediately above Candy contains manual outside-event
 notes. The shared gear's Manage outside events opens title/range/observation editing

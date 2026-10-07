@@ -47,10 +47,10 @@ try{
  const missingAt=groupInspectorReleases(missingRows)[0].chartTime*1000
  const missingPoint=eurContextAt(buildEurContextTimeline({...input,events:[...input.events,...missingRows],asOf:missingRows[0].release_at}),missingAt)
  assert.equal(missingPoint.members.find(m=>m.slot==='pmi').status,'unavailable','Latest missing aggregate cannot silently restore old votes')
- const usd={result:{total:-1,strength:'moderate',members:[{status:'active',contribution:-.25,memory:{effectiveWeight:100}}]}}
+ const usd={result:{total:-1,strength:'moderate',members:[{status:'active',contribution:-1,memory:{effectiveWeight:100}}]}}
  const relative=relativeContext({total:.2,coverage:1,members:[{contribution:.2}]},usd)
  assert.equal(relative.total,.45);assert.equal(relative.label,'EURUSD Long');assert.equal(relative.strength,'moderate')
- assert.equal(relativeContext(null,usd).label,'Uncomputed','A missing EUR leg is not silently treated as zero')
+ assert.equal(relativeContext(null,usd).label,'Insufficient context','A missing EUR leg is not silently treated as zero')
  const rates=['999010006','999010007','999010015'].map(id=>row(id,48,3,'EU',{previous:3}))
  const ecb=groupInspectorReleases(rates)[0]
  assert.equal(assessEcbRateAction(ecb).action,'Rate hold');assert.equal(assessEcbRateAction(ecb).label,'Uncomputed')

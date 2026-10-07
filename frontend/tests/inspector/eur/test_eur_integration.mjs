@@ -55,8 +55,8 @@ try{
  assert.equal(workers.length,2,'Other USD pairs never dispatch an EUR context calculation')
  await render();assert.equal(workers.length,2,'Returning to EURUSD reuses completed EUR work')
  await React.act(async()=>host.querySelector('[aria-label="Fundamental tools settings"]').click())
- if (!host.querySelector('[aria-label="Use Euro-area inflation v1"]')) await React.act(async () => host.querySelector('[aria-label="Advanced EUR input settings"]').click())
- await React.act(async()=>host.querySelector('[aria-label="Use Euro-area inflation v1"]').click())
+ if (!host.querySelector('[aria-label="Use Euro-area inflation v1.1"]')) await React.act(async () => host.querySelector('[aria-label="Advanced EUR input settings"]').click())
+ await React.act(async()=>host.querySelector('[aria-label="Use Euro-area inflation v1.1"]').click())
  assert.equal(workers.length,3,'EUR input changes invalidate only EUR calculation');assert.equal(usdWorker.jobs.length,1)
  console.log('✓ Relative view selection, scoped workers, USD reuse, historical output parity, independent EUR inputs, other-pair isolation and workspace portability')
 }finally{await React.act(async()=>root.unmount());await server.close();await dom.happyDOM.abort();dom.close();for(const [key,value]of Object.entries(previous)){if(value)Object.defineProperty(globalThis,key,value);else delete globalThis[key]}}

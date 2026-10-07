@@ -2,6 +2,53 @@
 
 Use the chart to assess price and the fundamental overlays to understand the declared interpretation of the stored releases. A direction is a thesis input, not an instruction to buy, sell, hold, or close. Evidence describes agreement between inputs, not a probability of profit.
 
+## Current interpretation rules: context v8 / relative v3 / relationship v3
+
+Candy has four meanings. **Green: pair Long. Red: pair Short. Amber: Mixed
+evidence. Gray: Insufficient context or unavailable history.** Hover/click shows
+the exact reason. Color darkness is an evidence grade, not probability. Gray and
+amber do not establish a direction and do not mean “no event occurred.” Missing
+observations remain missing. They can coexist with directional standalone
+releases in Inspector.
+
+Combined Long/Short needs at least 60% usable components of each configured
+leg's budget. There is no separate CPI/NFP veto. Incomplete usable coverage
+qualifies a directional result as Weak; missing inputs do not confirm it. Usable coverage is
+separate from aging. Net support must be at least one third of gross opposing
+contributions. These declared prototype safeguards are not price-fitted success
+guarantees. Advanced controls change the configured inputs; leave the agreed
+defaults for comparisons and record any exclusions when auditing.
+
+Roofs have three meanings:
+
+| Roof type | What its output describes |
+| --- | --- |
+| ISM sectors, solid | Standalone monthly ISM sector resolution |
+| Labor relationships, solid | Accumulated USD context when the priority rule qualified |
+| Named fresh sequence, dashed | Comparable changes in interpreted support over seven days, across at least two agreeing domains |
+
+Every Roof is **USD-only**, even with EUR-vs-USD Candy. Open its direction label
+for the type, scope, participating standalone readings and accumulated result at
+activation. Do not interpret an ISM Roof as the entire pair context. A dashed
+Roof is a change in evidence, not the new release's standalone bias or a second
+Raycaster vote. Renewal of an old score, changed components/weights or coverage,
+calibration drift, and a new source without a comparable predecessor do not create
+support-change votes. Both features are graded under limits known at activation;
+a Roof does not claim a native-unit economic growth estimate. Advanced details retain their replacement effects for audit. Near
+cancellation shows Mixed evidence; exact cancellation does not create a
+directional fresh Roof.
+
+NFP v2.2 uses valid supplied revisions for comparable preceding reference months.
+Missing consecutive months prevent monthly comparisons and three-month hiring
+benchmarks; raw broker fields are retained. The calendar is the currently stored
+vintage, so complete original as-published reconstruction is not certified.
+
+When a trade thesis needs directional context, amber/gray means that this tool
+cannot supply that part of the thesis. For an existing position, use the review
+and exit rules you wrote in Notebook. It is not an automatic opposing signal or
+an instruction to close. Record model/market disagreements without assuming the
+release caused the price move.
+
 ## Read the chart
 
 - **Roofs** connect the source releases behind a relationship on three levels. Hollow dots mark contributing releases; the final filled dot marks when the complete combo became available. Thin connectors lead to the ordinary bottom release-symbol row. Click a dot to inspect its release, or the direction box for **Combo details**. A filled dot without a visible activating release opens Combo details instead. Width connects sources to activation; it does not promise how long the direction lasts. Focused display reduces repetition; More retains omitted roofs. The detailed guide below explains availability and click behavior.
@@ -71,7 +118,7 @@ An activation can also occur when stored evidence ages and a relationship condit
 
 A roof records what its relationship said when it activated. It is not a continuously renewed approval to trade in that direction. Later publications, memory decay, expiry, or changed inputs may alter the combined context. Check Candy or Raycaster at the time you actually intend to enter or review a position.
 
-A dashed Long roof can coexist with red Short Candy: recent replacement effects favor Long, while the accumulated eligible context still favors Short. That disagreement is information to inspect, not a display error by itself. Roof relationships currently use USD inputs; EUR-vs-USD Candy also includes the selected EUR side, so their directions can differ for that reason too.
+A dashed Long roof can coexist with red Short Candy: recent comparable economic score changes favor Long, while the accumulated eligible context still favors Short. That disagreement is information to inspect, not a display error by itself. Roof relationships currently use USD inputs; EUR-vs-USD Candy also includes the selected EUR side, so their directions can differ for that reason too.
 
 The roof ends at activation, not at a calculated expiry time. Its width is neither an active-output period nor a recommended holding period. A roof disappearing when you pan, hide markers or change density is not fundamental invalidation. Those actions change visibility, not the economic inputs.
 

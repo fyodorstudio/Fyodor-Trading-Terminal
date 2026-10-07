@@ -6,7 +6,7 @@ const server = await createServer({ root: path.resolve(path.dirname(fileURLToPat
 try {
   const { assessCpiScoreV3, cpiScoreV3Version, supportsCpiV3 } = await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/CPI/assessment/cpi-score-v3.ts')
   const { groupInspectorReleases } = await server.ssrLoadModule('./src/inspector/inspector-data.ts')
-  assert.equal(cpiScoreV3Version, 'cpi-eurusd-release-change-v3.1')
+  assert.equal(cpiScoreV3Version, 'cpi-eurusd-release-change-v3.2')
   const ids = ['840030005', '840030006', '840030007', '840030008']
   const raw = (value) => value === null ? null : String(Math.round(value * 1e6))
   const reading = (year, referenceMonth, values, prior) => {

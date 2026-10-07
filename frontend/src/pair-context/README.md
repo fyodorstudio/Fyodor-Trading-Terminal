@@ -6,7 +6,7 @@ shared worker calculation. `storage/` owns saved mode/EUR toggles. `ui/` exposes
 relative contributions in Raycaster and Inspector without importing either
 subsystem's view or runtime.
 
-The USD engine is unchanged and remains the default. Relative mode is EURUSD-only.
+USD-side context remains the default. Relative v3 uses USD context v8. Relative mode is EURUSD-only.
 Both legs use signed magnitude points with nominal 100% budgets. EUR is normalized
 inside its timeline; USD is divided by 4 at comparison. Missing weight is not
 redistributed. EUR aggregates replace overlapping national proxies per reference
@@ -15,7 +15,7 @@ precomputed and cursor lookup is binary. No mouse movement triggers scoring.
 
 Standalone EUR rules/settings live in
 `inspector/scoring/PAIR/EURUSD/EUR/{policy,assessment,runtime,ui}`. ECB numeric
-rate actions remain separate, with no hold/text vote. See the root scoring library
+rate actions remain separate, with no hold/text vote. See the `docs/scoring system library.MD`
 for weights, retention, evidence limits and the current audit scope.
 
 The replay implementation is split by responsibility:
@@ -35,3 +35,23 @@ snapshot, or `scripts/pair-context/audit-release-sequence.mjs` to replay a date
 window using both calendar snapshots and a broker H1 snapshot. Local inventories
 and generated audit JSON belong in ignored `storage/data/`; reviewed findings
 belong in `reports/`. Price is used only for evaluation.
+
+## Relative v3 completeness and agreement
+
+Each currency leg needs at least 60% usable components of its enabled configured
+budget. Proxy overlap does not expand that budget: German-only inflation is at
+most 40% of its inflation slot, so cannot masquerade as complete aggregate
+coverage. No individual CPI/NFP veto is applied. Each source already retains
+missing component weights; neither leg multiplies coverage into its score again.
+Age retention is separate. A leg below 60% yields Insufficient context; usable
+neutral/cancelling pressure or net/gross below one third yields Mixed evidence.
+No exact-cancellation fallback supplies a direction. Directional evidence stays
+capped at Moderate; incomplete usable leg coverage caps it at Weak and is
+explicitly disclosed. EUR numerical scorers are v1.1 (calibrated PMI fallback).
+The current stored vintage cannot certify original publication vintages.
+
+Archived relative v2 used the individual USD primary veto and an additional
+coverage multiplier. Those are superseded by v3.
+
+Archived v1 used USD-leg priority on exact relative cancellation and assigned
+Weak rather than withholding direction under sparse or near-cancelling context.

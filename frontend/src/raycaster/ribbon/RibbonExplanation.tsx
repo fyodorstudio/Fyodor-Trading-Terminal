@@ -11,7 +11,7 @@ export function RibbonExplanation({ point, mode, version, partial, onClose }: { 
     return () => document.removeEventListener('keydown', key)
   }, [onClose])
   return <div ref={panel} tabIndex={-1} role="dialog" aria-label="Context ribbon explanation" className="ribbon-explanation">
-    <header><strong>{point.label} · {point.evidence ?? 'Unavailable'} evidence</strong><button type="button" onClick={onClose} aria-label="Close ribbon explanation">×</button></header>
+    <header><strong>{point.label}{point.evidence ? ` · ${point.evidence} evidence` : ''}</strong><button type="button" onClick={onClose} aria-label="Close ribbon explanation">×</button></header>
     <p>{mode} · {version}{partial ? ' · Partial or timing-excluded history' : ''}</p><p>State available from {brokerClock(point.at)}</p>
     <p>{point.explanation}</p><h3>{point.kind === 'publication' ? 'Publication update' : point.kind === 'expiry' ? 'Expiry update' : 'Memory aging update'}</h3><p>{point.update}</p>
     <h3>USD contributions at this time</h3><table><thead><tr><th>Input / latest source</th><th>Status</th><th>Vote</th></tr></thead><tbody>

@@ -1,6 +1,6 @@
 import type { ContextFamily } from './contracts'
 import { currentScorerLabels } from '../../inspector/scoring/shared/core/current-scoring-versions'
-export const contextVersion = 'usd-context-memory-v6.2'
+export const contextVersion = 'usd-context-memory-v8'
 // Domain budgets: inflation 40, labor 40, activity 20. Weights never redistribute when off/missing.
 export const contextWeights: Record<ContextFamily, number> = { cpi: 28, pce: 10, ppi: 2, nfp: 30, claims: 10, ism: 10, retail: 7, gdp: 3 }
 export const contextPriority: ContextFamily[] = ['cpi', 'nfp', 'claims', 'pce', 'ism', 'retail', 'gdp', 'ppi']

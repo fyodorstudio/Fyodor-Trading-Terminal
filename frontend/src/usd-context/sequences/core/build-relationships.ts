@@ -19,14 +19,14 @@ export function buildContextRelationships(points: readonly ContextPoint[], befor
     const flow = freshNewsAt(latestFresh, point.chartAt)
     fresh.push(flow)
     const add = (kind: ComboSnapshot['kind'], title: string, sources: ComboSource[], explanation: string,
-      direction = point.result.direction, strength = point.result.strength, experimental = false) => {
+      direction = point.result.direction, strength = point.result.strength, experimental = false, decision: ComboSnapshot['decision'] | null = point.result.decision) => {
       if (sources.length < 2 || sources.some(s => s.chartAt > point.chartAt)) return
       const signature = sources.map(s => s.sourceId).join('|')
       if (seen.get(kind) === signature) return
       seen.set(kind, signature)
       episodes.push({ id: `${kind}/${point.chartAt}/${signature}`, kind, title, chartAt: point.chartAt,
         sources, before: before ?? points[index - 1]?.result ?? null, after: point.result,
-        direction, strength, explanation, experimental, checks: kind === 'labor-inflation' || kind === 'weekly-labor' ? point.result.policy?.checks ?? [] : [] })
+        direction, strength, explanation, experimental, decision: decision ?? undefined, checks: kind === 'labor-inflation' || kind === 'weekly-labor' ? point.result.policy?.checks ?? [] : [] })
     }
     const active = point.result.members.filter(m => m.status === 'active')
     const policy = point.result.policy
@@ -40,9 +40,10 @@ export function buildContextRelationships(points: readonly ContextPoint[], befor
     const ism = active.find(m => m.family === 'ism' && m.chartAt === point.chartAt)
     const sectors = ism && ismSources.get(ism.sourceId)
     if (sectors?.length === 2) add('ism-sectors', 'Manufacturing + Services', sectors,
-      'Both sector publications are known. Their original weighted components resolve one ISM vote; the sector readings are not added again to Raycaster.', ism!.usdDirection, ism!.strength)
+      'Both sector publications are known. Their original weighted components resolve one ISM vote; the sector readings are not added again to Raycaster.', ism!.usdDirection, ism!.strength, false,
+      null)
     if (flow.agreeingDomains >= 2 && flow.direction !== 'uncomputed') add('fresh-news', 'Fresh-news sequence', flow.members,
-      flow.explanation, flow.direction, 'weak', true)
+      flow.explanation, flow.direction, flow.decision?.state === 'directional' ? 'weak' : null, true, flow.decision)
     else seen.delete('fresh-news')
   }
   return { episodes, fresh }

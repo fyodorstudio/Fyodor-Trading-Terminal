@@ -41,8 +41,8 @@ try {
   assert.equal(container.querySelectorAll('[aria-label="CPI v4 context inputs"] tbody tr').length, 8)
   assert.equal(container.querySelector('details, summary'), null)
   const standaloneLabel = container.querySelector('[aria-label="CPI v4 standalone direction"]').textContent
-  if (!container.querySelector('[aria-label="Use CPI v4"]')) await React.act(async () => container.querySelector('[aria-label="Advanced USD input settings"]').click())
-  await React.act(async () => container.querySelector('[aria-label="Use CPI v4"]').click())
+  if (!container.querySelector('[aria-label="Use CPI v4.1"]')) await React.act(async () => container.querySelector('[aria-label="Advanced USD input settings"]').click())
+  await React.act(async () => container.querySelector('[aria-label="Use CPI v4.1"]').click())
   assert.equal(preferences.readContextFamilies().includes('cpi'), false)
   assert.equal(container.querySelector('[aria-label="CPI v4 standalone direction"]').textContent, standaloneLabel)
   assert.match(container.querySelector('[aria-label="CPI v4 context change"]').textContent, /CPI is Off/)

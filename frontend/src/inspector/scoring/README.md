@@ -1,3 +1,16 @@
+# Current interpretation integrity pass — 7 October 2026
+
+Current CPI Inspector v4.1 uses standalone engine v3.2; NFP v2.2 guards supplied
+raw revisions and consecutive references; EUR numerical v1.1 selects a calibrated
+PMI fallback without double-counting sectors. USD memory v8 and relative v3 retain
+component budgets once and qualify available evidence. Relationship v3 separates
+common-calibration support changes, calibration drift, age renewal and availability.
+Other family formulas, configured magnitudes and saved settings remain intact.
+
+Sections below document implementation history. Version-specific older formulas
+are archived records; the current registry and the objective document take priority.
+See `docs/scoring system library.MD` and the root main-objective checklist.
+
 # Inspector scoring — current interface
 
 Every family has one current scoring view. The menu contains **Table only**,
@@ -497,7 +510,7 @@ Tests: `tests/inspector/retail/test_retail_score.mjs` and
 `test_retail_integration.mjs`. After building, run
 `node scripts/audit-retail-v1.mjs <calendar.json> <output-prefix>` to verify every
 stored signal against the chart, future-removal replay and both production
-workers. The full design and stored coverage are in the root scoring library.
+workers. The full design and stored coverage are in the `docs/scoring system library.MD`.
 
 
 ## Archived: USD Jobless Claims v1 weekly pressure

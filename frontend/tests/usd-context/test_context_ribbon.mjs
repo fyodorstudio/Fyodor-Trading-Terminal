@@ -41,7 +41,7 @@ try {
   assert.deepEqual(buildRibbonTimeline(usd, null, false, 'USDJPY').map(p => p.direction), ['long', 'short', 'long', 'short'], 'USD-base pair orientation is inverted')
   const merged = buildRibbonTimeline(usd, eur, true, 'EURUSD')
   assert.deepEqual(merged.map(p => p.at), [at, at + hour / 4, at + hour / 2, at + hour, at + 4 * hour])
-  assert.equal(merged[0].direction, 'uncomputed', 'Relative mode needs both legs')
+  assert.equal(merged[0].direction, 'insufficient', 'Relative mode needs both legs')
   assert.equal(merged[0].evidence, null)
   assert.equal(merged[1].direction, 'long', 'An EUR-only update changes relative context')
   assert.equal(merged[2].direction, 'short', 'Simultaneous EUR/USD publications resolve atomically')
@@ -98,7 +98,7 @@ try {
   await render(React.createElement(ContextRibbon, { ...props, points: merged, relative: true }))
   assert.equal(container.querySelector('[role="dialog"]'), null, 'Changing mode clears the old explanation')
   assert.match(container.textContent, /EUR vs USD/)
-  assert.ok(container.querySelector('.ribbon-segment.uncomputed'))
+  assert.ok(container.querySelector('.ribbon-segment.insufficient'))
   await render(null); assert.equal(unsubscribed, 4)
 
   preferences.saveSequencePreferences({ roofs: true, fresh: true, ribbon: false })

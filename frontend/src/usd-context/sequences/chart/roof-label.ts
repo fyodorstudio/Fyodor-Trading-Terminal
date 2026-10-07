@@ -1,5 +1,5 @@
 import type { ComboSnapshot } from '../core/contracts'
-import { contextPairLabel } from '../../core/usd-pair'
+import { contextResultLabel } from '../../core/usd-pair'
 import { contextNames } from '../../core/policy'
 import type { ContextFamily } from '../../core/contracts'
 
@@ -25,9 +25,9 @@ export function roofTooltip(combo: ComboSnapshot, hidden = 0) {
   let description = descriptions.get(combo)
   if (description === undefined) {
     const sources = combo.sources.map(s => `${s.sourceLabel} — ${s.role ?? 'Participating release'}${s.change === undefined ? '' :
-    s.change === 0 ? ' (no replacement effect)' : s.change > 0 ? ' (adds USD support)' : ' (reduces USD support)'}`)
+    s.change === 0 ? ' (no comparable support change)' : s.change > 0 ? ' (interpreted support increased)' : ' (interpreted support decreased)'}`)
     description = `${sources.join('\n')}\n${combo.explanation}`
     descriptions.set(combo, description)
   }
-  return `${combo.title} · ${contextPairLabel('EURUSD', combo.direction)} · ${combo.strength ?? 'weak'} evidence${hidden ? ` · ${hidden} inputs hidden by marker filters` : ''}\nAvailable from ${new Date(combo.chartAt).toISOString().slice(0, 19).replace('T', ' ')} broker time (right endpoint). Earlier connecting lines identify prior inputs.\n${description}`
+  return `${combo.title} · USD inputs only · ${contextResultLabel('EURUSD', combo)} · ${combo.strength ? `${combo.strength} evidence` : 'direction withheld'}${hidden ? ` · ${hidden} inputs hidden by marker filters` : ''}\nAvailable from ${new Date(combo.chartAt).toISOString().slice(0, 19).replace('T', ' ')} broker time (right endpoint). Earlier connecting lines identify prior inputs.\n${description}`
 }

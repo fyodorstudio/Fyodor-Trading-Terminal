@@ -52,6 +52,11 @@ export function scorePublication(release: InspectorRelease, events: readonly Ins
     reason: score?.strengthReason ?? 'No usable assessment.',
     explanation: score?.explanation ?? 'No usable assessment.', changeSize: score?.changeSize ?? null,
     reduced: score?.reduced ?? true, tie: !!score?.tieBreak, coverage: sourceCoverage(score?.readings),
+    comparisonBasis: score ? `${'stage' in score ? score.stage : 'release'}:${score.readings.filter(r => r.points !== null).map(r => `${r.id}:${r.weight}`).sort().join('|')}` : '',
+    calibrationBasis: score ? `${score.version}:${score.readings.filter(r => r.points !== null)
+      .map(r => `${r.id}:${r.limits?.join(',') ?? 'zero-only'}`).sort().join('|')}` : '',
+    components: score?.readings.map(r => ({ id: r.id, value: r.value, points: r.points,
+      weight: family === 'ism' ? r.weight / 100 : r.weight, limits: r.limits })) ?? [],
     ...(family === 'cpi' ? { traits: cpiContextTraits(score as ReturnType<typeof assessCpiScoreV3>) } :
       family === 'nfp' ? { traits: nfpContextTraits(score as ReturnType<typeof assessNfpScoreV2>) } :
       family === 'claims' ? { traits: { kind: 'claims' as const, streak: 0, confirmed: false,

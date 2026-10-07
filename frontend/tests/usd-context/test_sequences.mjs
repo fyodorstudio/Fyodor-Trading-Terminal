@@ -15,7 +15,7 @@ try {
   const day = 86400000, at = Date.UTC(2020, 0, 1, 12)
   const source = (family, total, chartAt = at, patch = {}) => ({ family, total, chartAt, releaseAt: chartAt - 3 * 3600000,
     sourceId: family + '/' + chartAt, sourceLabel: family, usdDirection: total === null ? 'uncomputed' : total > 0 ? 'stronger' : 'weaker',
-    strength: total === null ? null : 'moderate', reduced: false, tie: false, coverage: 1, reason: '', explanation: '', changeSize: null, ...patch })
+    strength: total === null ? null : 'moderate', reduced: false, tie: false, coverage: 1, comparisonBasis: family + ':100', calibrationBasis: 'fixed-fixture-calibration', reason: '', explanation: '', changeSize: null, ...patch })
   const combine = (sources, chartAt, enabled = sources.map(s => s.family)) => combineContext(Object.fromEntries(sources.map(s => [s.family, s])), enabled, chartAt)
   const old = source('claims', -2, at - day), replacement = source('claims', -1)
   const before = combine([old], at - 1), after = combine([replacement], at)
@@ -24,8 +24,21 @@ try {
   const flow = freshNewsAt(latest, at)
   assert.equal(flow.direction, 'stronger', 'A still-Long but less negative report can increase USD support')
   assert.equal(flow.members[0].usdDirection, 'weaker', 'Standalone direction stays distinct')
-  const expected = Math.round((-1 - before.members[0].total * before.members[0].memory.retention) * contextWeights.claims / 100 * 1e12) / 1e12
+  const expected = contextWeights.claims / 100
   assert.equal(flow.total, expected)
+  assert.ok(flow.members[0].memoryRenewal < 0, 'Renewal of a negative prior strengthens its old adverse vote separately')
+  const effect = flow.members[0]
+  assert.ok(Math.abs(effect.replacementChange - effect.scoreChange - effect.calibrationChange - effect.memoryRenewal - effect.availabilityChange) < 1e-11)
+  const renewalOnly = new Map()
+  updateFreshNews(renewalOnly, before, combine([source('claims', -2)], at), at)
+  assert.equal(freshNewsAt(renewalOnly, at).direction, 'uncomputed', 'An unchanged score never becomes directional fresh news from renewal alone')
+  assert.notEqual(renewalOnly.get('claims').memoryRenewal, 0)
+  const changedCoverage = new Map()
+  updateFreshNews(changedCoverage, before, combine([source('claims', -1, at, { coverage: .8 })], at), at)
+  assert.equal(changedCoverage.get('claims').change, 0, 'Unequal component coverage withholds economic comparability')
+  const changedComponents = new Map()
+  updateFreshNews(changedComponents, before, combine([source('claims', -1, at, { comparisonBasis: 'different-components:100' })], at), at)
+  assert.equal(changedComponents.get('claims').change, 0, 'Equal total coverage cannot conceal different usable components')
   const shifted = { ...after, policy: { ...after.policy, weights: { ...after.policy.weights, claims: 20, nfp: 20 } } }
   const alternative = new Map(); updateFreshNews(alternative, before, shifted, at)
   assert.equal(freshNewsAt(alternative, at).total, expected, 'Policy reweighting is not counted as new data')
@@ -39,7 +52,7 @@ try {
 
   const atomicAt = at + 3 * day
   const atomicSources = [source('claims', -1, atomicAt), source('gdp', null, atomicAt), source('pce', -.5, atomicAt)]
-  const atomicBefore = combine([], atomicAt - 1, ['claims', 'gdp', 'pce'])
+  const atomicBefore = combine([source('claims', 0, atomicAt - day), source('pce', 0, atomicAt - day)], atomicAt - 1, ['claims', 'gdp', 'pce'])
   const atomicAfter = combine(atomicSources, atomicAt)
   const points = [{ chartAt: atomicAt, result: atomicAfter, latest: atomicSources[0], update: 'Same-time publications' }]
   const relationships = buildContextRelationships(points, new Map([[atomicAt, atomicBefore]]), new Map())
@@ -48,6 +61,18 @@ try {
   assert.equal(roof.sources.find(s => s.family === 'gdp').change, 0)
   assert.equal(roof.strength, 'weak'); assert.equal(roof.experimental, true)
   assert.equal(relationships.fresh[0].agreeingDomains, 2, 'Only labor and inflation qualify; Uncomputed GDP supplies no domain')
+  const unknownBefore = combine([], atomicAt - 1, ['claims', 'gdp', 'pce'])
+  assert.equal(buildContextRelationships(points, new Map([[atomicAt, unknownBefore]]), new Map()).episodes.length, 0,
+    'Newly available readings without comparable predecessors cannot establish an economic change roof')
+  const opposingBefore = combine(['claims', 'ism', 'cpi'].map(f => source(f, 1, at - day)), at - 1)
+  const opposed = combine([source('claims', 2), source('ism', 2), source('cpi', .3)], at)
+  const nearCancellation = buildContextRelationships([{ chartAt: at, result: opposed }], new Map([[at, opposingBefore]]), new Map())
+  const mixedRoof = nearCancellation.episodes.find(e => e.kind === 'fresh-news')
+  assert.ok(mixedRoof, 'Two domains agree, but the opposing inflation change nearly cancels them')
+  assert.equal(mixedRoof.decision.state, 'mixed'); assert.equal(mixedRoof.strength, null)
+  const exact = combine([source('claims', 2), source('ism', 2), source('cpi', 2 / 7)], at)
+  assert.equal(buildContextRelationships([{ chartAt: at, result: exact }], new Map([[at, opposingBefore]]), new Map()).episodes.length, 0,
+    'Exact cancellation cannot use a family priority to invent a directional fresh roof')
   assert.equal(lookupFreshNews(relationships.fresh, atomicAt - 1), null)
   assert.equal(lookupFreshNews(relationships.fresh, atomicAt + freshWindowMs - 1).direction, 'weaker')
   assert.equal(lookupFreshNews(relationships.fresh, atomicAt + freshWindowMs).direction, 'uncomputed', 'Exact seven-day expiry works between precomputed stages')

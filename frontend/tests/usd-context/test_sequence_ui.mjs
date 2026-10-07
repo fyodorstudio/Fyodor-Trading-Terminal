@@ -43,9 +43,9 @@ try {
     { ...episode.sources[1], family: 'ism', sourceLabel: 'ISM opposing release', change: .2 },
     { ...episode.sources[1], family: 'retail', sourceLabel: 'Retail Sales', change: -.2 }] }
   assert.equal(roofLabel(companions), 'Claims + PCE + ISM +1', 'Deduplicate families, exclude zero companions, name opposing drivers too')
-  assert.match(roofTooltip(companions), /GDP companion.*no replacement effect/)
-  assert.match(roofTooltip(companions), /ISM opposing release.*adds USD support/)
-  assert.match(roofTooltip(companions), /Retail Sales.*reduces USD support/)
+  assert.match(roofTooltip(companions), /GDP companion.*no comparable support change/)
+  assert.match(roofTooltip(companions), /ISM opposing release.*interpreted support increased/)
+  assert.match(roofTooltip(companions), /Retail Sales.*interpreted support decreased/)
   assert.equal(roofLabel({ ...episode, kind: 'ism-sectors', experimental: false }), 'ISM sectors')
   const bars = [0, 1, 3].map(n => ({ time: (at + n * hour) / 1000, open: 1, close: 1, high: 1, low: 1 }))
   let range = { from: at / 1000, to: (at + hour) / 1000 }, rangeHandler, sizeHandler, unsubscribed = 0, coordinateCalls = 0, pan = 0
@@ -69,7 +69,7 @@ try {
   assert.match(button.textContent, /Claims \+ PCE.*Long/)
   assert.doesNotMatch(button.textContent, /Fresh news/)
   assert.equal(button.querySelector('.combo-roof-direction').textContent.trim(), '· Long', 'Direction stays outside the truncating name span')
-  assert.match(button.title, /claims.*reduces USD support/)
+  assert.match(button.title, /claims.*interpreted support decreased/)
   assert.match(button.title, /1 inputs hidden/)
   assert.match(button.title, /Available from.*broker time/)
   assert.equal(container.querySelector('.combo-roof-start').style.left, '300px', 'Activation endpoint stays on the containing candle')
@@ -178,6 +178,14 @@ try {
   await React.act(async () => participant.click()); assert.equal(opened.sourceId, 'pce')
   await React.act(async () => [...container.querySelectorAll('button')].find(b => b.textContent === 'Return to releases').click())
   assert.equal(returned, true)
+
+  const mixedEpisode = { ...episode, decision: { state: 'mixed', coverage: 1, agreement: .01, reason: 'Economic changes nearly cancel.' }, strength: null }
+  await render(React.createElement(ComboInspector, { combo: mixedEpisode, symbol: 'EURUSD', timeDisplay, onClose() {}, onOpenRelease() {} }))
+  assert.equal(container.querySelector('.combo-bias').textContent, 'Mixed evidence')
+  assert.equal(container.querySelector('.combo-bias.long, .combo-bias.short'), null)
+  assert.match(container.querySelector('[aria-label="Why this direction"]').textContent, /nearly cancel/)
+  assert.match(container.querySelector('[aria-label="Accumulated context comparison"]').textContent, /Insufficient context → Insufficient context/)
+  assert.match(container.querySelector('[aria-label="Participating publications"]').textContent, /EURUSD Long/, 'Standalone directions remain separate from withheld combined output')
 
   familySettings.saveRaycasterFamilies(['claims', 'pce', 'cpi'])
   const relative = readRelativePreferences()

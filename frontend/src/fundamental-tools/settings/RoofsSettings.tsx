@@ -21,10 +21,10 @@ export function RoofsSettings({ supported }: { supported: boolean }) {
       <dt>ISM sectors</dt><dd>Manufacturing and Services resolve the existing ISM vote together.</dd>
       <dt>Labor + inflation</dt><dd>Confirmed labor weakness takes priority when inflation guard conditions allow it.</dd>
       <dt>Claims + NFP</dt><dd>Persistent weekly claims can challenge an older weak or incomplete jobs report.</dd>
-      <dt>Fresh news · Experimental</dt><dd>Replacement effects over seven days align across at least two economic domains. This has Weak evidence and is separate from accumulated context.</dd>
+      <dt>Fresh news · Experimental v3</dt><dd>Changes in interpreted support over seven days align across at least two domains. Both readings use the latest release calibration, matching component membership and coverage of at least 60%. Calibration drift, renewal and newly available inputs do not vote. A net lead below one third of gross changes shows Mixed evidence. This is separate from accumulated context and a native-unit economic change.</dd>
     </dl></section>
     <section><h3>Inputs and scope</h3>
-      <p>Roofs use enabled USD inputs. Fed decisions, speeches and EUR publications add no roof vote. Raycaster’s input settings determine calculation; Inspector filters determine visible symbols. Hidden inputs are disclosed.</p>
+      <p>Roofs use enabled USD inputs in both Candy modes. ISM sectors show a standalone family interpretation; labor relationships show combined USD context; fresh news shows comparable score changes. Candy shows accumulated context in its selected USD-side or EUR-vs-USD mode. They answer different questions and can disagree. Fed decisions, speeches and EUR publications add no roof vote. Raycaster’s input settings determine calculation; Inspector filters determine visible symbols. Hidden inputs are disclosed.</p>
       <ul>{['cpi', 'nfp', 'claims', 'pce', 'ppi', 'ism', 'retail', 'gdp'].map(f => <li key={f}>{f.toUpperCase()}: {families.some(enabled => enabled === f) ? 'Enabled' : 'Off'}</li>)}</ul>
     </section>
   </div>

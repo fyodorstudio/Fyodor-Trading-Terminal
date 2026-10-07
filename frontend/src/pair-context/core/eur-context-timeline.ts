@@ -2,6 +2,7 @@ import type { EurContextInput, EurContextPoint, EurContextTimeline, EurSource } 
 import { eurExpiry } from './eur-policy'
 import { eurDayMs, eurMembers, updateEurMemory } from './memory/eur-members'
 import { eurPublications } from './publication/eur-publications'
+import { eurConfiguredWeight } from './eur-quality'
 
 /** Publication batches are atomic; aging uses the stored broker day boundary. */
 export function buildEurContextTimeline(input: EurContextInput): EurContextTimeline {
@@ -15,6 +16,7 @@ export function buildEurContextTimeline(input: EurContextInput): EurContextTimel
   for (let day = (Math.floor(first / eurDayMs) + 1) * eurDayMs; day < last; day += eurDayMs) stages.push(day)
 
   const latest = new Map<string, EurSource>(), points: EurContextPoint[] = []
+  const configured = eurConfiguredWeight(input.families)
   for (const chartAt of [...new Set(stages)].sort((a, b) => a - b)) {
     const incoming = updates.get(chartAt) ?? []
     updateEurMemory(latest, incoming)
@@ -24,6 +26,7 @@ export function buildEurContextTimeline(input: EurContextInput): EurContextTimel
     points.push({ chartAt, total, members,
       updateKind: incoming.length ? 'publication' : 'memory',
       coverage: active.reduce((sum, m) => sum + m.weight / 100 * m.coverage * m.retention, 0),
+      usableCoverage: configured ? active.reduce((sum, m) => sum + m.weight * m.coverage, 0) / configured : 0,
       update: incoming.length ? [...new Set(incoming.map(s => s.label))].join(' + ') : 'EUR memory aging; no new release.',
     })
   }

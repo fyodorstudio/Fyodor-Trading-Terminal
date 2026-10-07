@@ -70,7 +70,8 @@ try {
     assert.equal(right.querySelector('[aria-label^="Use "]'), null, 'Input toggles stay behind Advanced settings on first open')
     assert.ok(right.querySelector('[aria-label="Advanced USD input settings"]'))
     assert.ok(right.querySelector('[aria-label="Inputs & contributions"]'), `${binding.familyId}: context calculation is grouped`)
-    assert.equal(right.querySelectorAll('[aria-label="Context weight coverage"] dt').length, 3)
+    assert.equal(right.querySelectorAll('[aria-label="Context weight coverage"] dt').length, 5)
+    assert.match(right.querySelector('[aria-label="Context weight coverage"]').textContent, /Usable configured budget.*Net \/ gross agreement/)
   }
 
   const fedAt = base.releaseAt + 3 * 86400000

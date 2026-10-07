@@ -1,4 +1,5 @@
-import type { UsdDirection } from './contracts'
+import type { ContextResult, UsdDirection } from './contracts'
+import { decisionLabel } from './interpretation-quality'
 
 const majors = ['EURUSD', 'GBPUSD', 'AUDUSD', 'NZDUSD', 'USDJPY', 'USDCHF', 'USDCAD']
 export function usdPair(symbol: string) {
@@ -10,4 +11,13 @@ export function contextPairLabel(symbol: string, direction: UsdDirection) {
   if (!pair || direction === 'uncomputed') return 'Uncomputed'
   const long = pair.usdSide === 'base' ? direction === 'stronger' : direction === 'weaker'
   return `${symbol} ${long ? 'Long' : 'Short'}`
+}
+
+/** Raw pressure remains available for audit; every combined output uses this gate. */
+export function contextResultLabel(symbol: string, result: Pick<ContextResult, 'direction' | 'decision'> | null | undefined) {
+  return decisionLabel(result?.decision) ?? contextPairLabel(symbol, result?.direction ?? 'uncomputed')
+}
+export function contextResultTone(result: Pick<ContextResult, 'direction' | 'decision'> | null | undefined) {
+  return result?.decision?.state === 'mixed' ? 'mixed' : result?.decision?.state === 'insufficient' ? 'insufficient' :
+    result?.direction === 'stronger' ? 'short' : result?.direction === 'weaker' ? 'long' : 'uncomputed'
 }

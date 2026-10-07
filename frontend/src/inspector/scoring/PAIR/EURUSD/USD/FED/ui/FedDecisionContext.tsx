@@ -4,7 +4,7 @@ import type { InspectorRelease } from '../../../../../../inspector-data'
 import { formatAppTimestamp } from '../../../../../../../appearance/time-display/time-display-preference'
 import { usePublicationContext } from '../../../../../../../usd-context/runtime/usePublicationContext'
 import { contextAt } from '../../../../../../../usd-context/core/context-lookup'
-import { contextPairLabel } from '../../../../../../../usd-context/core/usd-pair'
+import { contextResultLabel, contextResultTone } from '../../../../../../../usd-context/core/usd-pair'
 import { toggleContextFamily } from '../../../../../../../usd-context/storage/context-family-settings'
 import { ContextInputTable } from '../../../../../../../usd-context/ui/ContextInputTable'
 import { ContextPolicyDetails } from '../../../../../../../usd-context/ui/ContextPolicyDetails'
@@ -23,8 +23,8 @@ export function FedDecisionContext({ release, action, brokerId = null, events, n
   const { families, context, eligible, at, result, ready } = usePublicationContext(release, brokerId, events, now)
   const { previous, storage, path } = usePreviousFedMeeting(release, brokerId, events)
   const earlier = previous && context.result ? contextAt(context.result, previous.chartTime! * 1000) : null
-  const direction = ready && result?.direction === 'stronger' ? 'short' : ready && result?.direction === 'weaker' ? 'long' : 'uncomputed'
-  const label = ready ? contextPairLabel('EURUSD', result?.direction ?? 'uncomputed') : 'Uncomputed'
+  const direction = ready ? contextResultTone(result) : 'uncomputed'
+  const label = ready ? contextResultLabel('EURUSD', result) : 'Uncomputed'
   const contextView = (controls: ReactNode) => <section className="inspector-detail-overview inspector-scoring-view inspector-structured-score" aria-label="Fed policy interpretation">
     <div className="inspector-release-score-summary">
       <strong className={`inspector-majority inspector-direction-${direction}`} aria-label="Fed contextual pair direction">{label}</strong>
@@ -38,8 +38,8 @@ export function FedDecisionContext({ release, action, brokerId = null, events, n
     <ScoringSection title="Policy pressure & previous meeting">
     {ready && <p aria-label="Fed economic policy pressure">{fedContextPressure(result)}</p>}
     {ready && earlier && previous && !storage.loading && !storage.error ? <div aria-label="Fed previous meeting comparison">
-      <p>At the previous meeting ({formatAppTimestamp(previous.releaseAt!, timeDisplay)}): {contextPairLabel('EURUSD', earlier.result.direction)} · {earlier.result.strength ?? 'no'} context evidence.</p>
-      <p>{earlier.result.direction === 'uncomputed' || result?.direction === 'uncomputed' ?
+      <p>At the previous meeting ({formatAppTimestamp(previous.releaseAt!, timeDisplay)}): {contextResultLabel('EURUSD', earlier.result)} · {earlier.result.strength ?? 'no'} context evidence.</p>
+      <p>{earlier.result.direction === 'uncomputed' || result?.direction === 'uncomputed' || earlier.result.decision?.state !== 'directional' || result?.decision?.state !== 'directional' ?
         'A directional comparison cannot be established because one meeting lacks a usable context bias.' :
         earlier.result.direction !== result?.direction ? 'The economic-context direction changed since that meeting.' :
         'The economic-context direction stayed the same; the contribution table shows the current balance.'}</p>

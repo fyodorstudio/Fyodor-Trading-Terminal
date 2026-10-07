@@ -1,11 +1,13 @@
 import type { ContextMember, UsdDirection } from './contracts'
 import { contextNames, contextPriority } from './policy'
+import { decisionLabel, type ContextDecision } from './interpretation-quality'
 
 const evidenceNames = { nfp: 'labor', cpi: 'inflation', claims: 'weekly claims', ism: 'surveyed activity', retail: 'retail spending', pce: 'PCE inflation', ppi: 'producer prices', gdp: 'real growth' }
 export function explainContext(direction: UsdDirection, members: ContextMember[], tie: boolean) {
   if (direction === 'uncomputed') return 'No usable USD direction is available from the enabled releases.'
-  const supporting = members.filter(m => m.status === 'active' && m.usdDirection === direction)
-  const opposing = members.filter(m => m.status === 'active' && m.usdDirection !== direction)
+  const sign = direction === 'stronger' ? 1 : -1
+  const supporting = members.filter(m => m.status === 'active' && Math.sign(m.contribution) === sign)
+  const opposing = members.filter(m => m.status === 'active' && Math.sign(m.contribution) === -sign)
   const describe = (rows: ContextMember[]) => {
     const names = rows.map(r => evidenceNames[r.family])
     return names.length < 3 ? names.join(' and ') : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`
@@ -19,14 +21,18 @@ export function explainContext(direction: UsdDirection, members: ContextMember[]
   return (opposing.length ? `${subject.charAt(0).toUpperCase() + subject.slice(1)} outweighs ${describe(opposing)} in favor of ${noun}.` :
     `${subject.charAt(0).toUpperCase() + subject.slice(1)} favors ${noun}.`) + labor
 }
-export function explainUpdate(name: string, previous: { direction: UsdDirection; total: number | null },
-  current: { direction: UsdDirection; total: number | null }, sources: readonly ContextMember[]) {
+export function explainUpdate(name: string, previous: { direction: UsdDirection; total: number | null; decision?: ContextDecision },
+  current: { direction: UsdDirection; total: number | null; decision?: ContextDecision }, sources: readonly ContextMember[]) {
   const readings = sources.length ? sources.map(source => source.status !== 'active' ?
     `${source.sourceLabel}: no usable new vote` : source.total === 0 ?
       `${source.sourceLabel}: zero net source vote` :
       `${source.sourceLabel} supports USD ${source.total! > 0 ? 'strength' : 'weakness'}`).join('; ') : `${name}: no usable new vote`
+  const withheld = decisionLabel(current.decision)
+  if (withheld) return `${readings}. Combined context: ${withheld}. ${current.decision!.reason}`
   if (current.direction === 'uncomputed') return `${readings}. No usable combined direction.`
   const noun = current.direction === 'weaker' ? 'USD-weakness' : 'USD-strength'
+  const beforeWithheld = decisionLabel(previous.decision)
+  if (beforeWithheld) return `${readings}. Combined context changes from ${beforeWithheld} to an available-evidence ${noun} interpretation.`
   if (previous.direction !== current.direction) return `${readings}. Combined context ${previous.direction === 'uncomputed' ? 'starts with' : 'changes to'} the ${noun} bias.`
   const before = Math.abs(previous.total ?? 0), after = Math.abs(current.total ?? 0)
   return `${readings}. Combined context remains ${noun} with ${after > before ? 'a larger' : after < before ? 'a smaller' : 'the same'} weighted lead.`

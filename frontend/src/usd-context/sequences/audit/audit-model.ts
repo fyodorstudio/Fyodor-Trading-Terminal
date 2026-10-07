@@ -15,7 +15,7 @@ export type RoofAudit = RoofAuditScope & { observations: Partial<Record<AuditWin
 /** A changed result/input configuration gets its own audit; never inherits old verdicts. */
 export function roofAuditScope(combo: ComboSnapshot, symbol: string, broker: string | null): RoofAuditScope {
   return { broker, symbol, comboId: combo.id, snapshot: JSON.stringify({ version: contextVersion, chartAt: combo.chartAt,
-    direction: combo.direction, strength: combo.strength, sources: combo.sources,
+    decision: combo.decision, relationshipVersion: 3, direction: combo.direction, strength: combo.strength, sources: combo.sources,
     before: combo.before, after: combo.after, checks: combo.checks, experimental: combo.experimental }) }
 }
 export const sameRoofAudit = (a: RoofAuditScope, b: RoofAuditScope) =>

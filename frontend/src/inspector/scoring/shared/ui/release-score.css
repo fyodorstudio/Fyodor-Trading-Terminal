@@ -28,3 +28,5 @@
 .inspector-structured-score h3 { font-size: inherit; }
 .inspector-release-score-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
 .inspector-release-score-summary small { color: var(--text-muted); }
+.inspector-majority.inspector-direction-mixed { color: var(--text-strong); background: #e8c77a33; border-color: #b28b35; }
+.inspector-majority.inspector-direction-insufficient { color: var(--text-muted); background: var(--surface-panel); border-color: var(--border-strong); }

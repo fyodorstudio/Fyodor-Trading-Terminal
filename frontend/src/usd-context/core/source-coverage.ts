@@ -5,6 +5,6 @@ type Reading = { points: number | null; weight: number; baseWeight?: number }
 export function sourceCoverage(readings: readonly Reading[] | undefined) {
   if (!readings?.length) return 0
   const nominal = readings.reduce((sum, r) => sum + (r.baseWeight ?? r.weight), 0)
-  const usable = readings.reduce((sum, r) => sum + (r.points === null ? 0 : r.baseWeight ?? r.weight), 0)
+  const usable = readings.reduce((sum, r) => sum + (r.points === null || !Number.isFinite(r.points) ? 0 : r.baseWeight ?? r.weight), 0)
   return nominal > 0 ? usable / nominal : 0
 }

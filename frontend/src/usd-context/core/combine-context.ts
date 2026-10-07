@@ -4,16 +4,19 @@ import { explainContext } from './explanation'
 import { resolveLaborInflationPolicy } from './interaction/labor-inflation-policy'
 import { resolveWeeklyLaborPolicy } from './interaction/weekly-labor-policy'
 import { sourceMemory } from './memory/source-retention'
+import { interpretationQuality } from './interpretation-quality'
 
 // Existing scorers share signed magnitude points: positive supports USD.
-// Preserve signed source totals; age and component coverage reduce context
-// influence transparently. Evidence grades are not probability multipliers.
+// Source totals retain missing component weights once; age reduces their votes
+// separately. Coverage qualifies evidence, rather than multiplying totals again.
 export function combineContext(latest: Partial<Record<ContextFamily, FamilyAssessment>>, enabled: readonly ContextFamily[], chartAt: number): ContextResult {
+  enabled = [...new Set(enabled)]
   const baseMembers = enabled.flatMap(family => {
     const source = latest[family]
     if (!source) return []
     const status = chartAt >= source.chartAt + contextFamilyExpiry(family) ? 'expired' as const :
-      source.usdDirection === 'uncomputed' || source.total === null || !Number.isFinite(source.total) ||
+      source.total === null || !Number.isFinite(source.total) || !Number.isFinite(chartAt) ||
+        !Number.isFinite(source.chartAt) || source.chartAt > chartAt ||
         (source.coverage !== undefined && (!Number.isFinite(source.coverage) || source.coverage <= 0 || source.coverage > 1)) ?
         'unavailable' as const : 'active' as const
     const memory = sourceMemory(source, chartAt, contextWeights[family])
@@ -33,11 +36,14 @@ export function combineContext(latest: Partial<Record<ContextFamily, FamilyAsses
   const direction = deciding ?? 'uncomputed'
   const gross = active.reduce((sum, m) => sum + Math.abs(m.contribution), 0)
   const agreement = gross ? Math.abs(total ?? 0) / gross : 0
+  const configured = enabled.reduce((sum, f) => sum + policy.weights[f], 0)
+  const coverage = configured ? active.reduce((sum, m) => sum + policy.weights[m.family] * (m.coverage ?? 1), 0) / configured : 0
+  const decision = interpretationQuality(total, gross, coverage)
   const coreAgreement = ['nfp', 'cpi'].every(f => active.some(m => m.family === f && m.usdDirection === direction && m.strength === 'strong'))
   const nfp = active.find(m => m.family === 'nfp'), claims = active.find(m => m.family === 'claims')
-  const laborConflict = !!nfp && !!claims && nfp.usdDirection !== claims.usdDirection
-  const reduced = active.some(m => m.reduced)
-  const strength = direction === 'uncomputed' ? null : missing.length || reduced || tie || agreement < 1 / 3 ? 'weak' :
+  const laborConflict = !!nfp && !!claims && nfp.contribution * claims.contribution < 0
+  const reduced = active.some(m => m.reduced || (m.coverage ?? 1) < 1)
+  const strength = decision.state !== 'directional' || direction === 'uncomputed' ? null : missing.length || reduced || tie || agreement < 1 / 3 ? 'weak' :
     coreAgreement && !laborConflict && agreement >= 2 / 3 && active.every(m => m.strength !== 'weak') ? 'strong' : 'moderate'
   const reason = direction === 'uncomputed' ? 'No calibrated active family assessment.' : missing.length ?
     'Some enabled families are missing, expired or uncomputed; their weight is not redistributed.' : tie ?
@@ -46,7 +52,9 @@ export function combineContext(latest: Partial<Record<ContextFamily, FamilyAsses
           'One active family establishes the direction; strong combined evidence requires labor and inflation confirmation.' :
           'Source disagreement or qualified evidence limits the combined evidence grade.'
   const laborNote = laborConflict ? ' NFP and Claims disagree within the shared labor budget; combined evidence is capped at Moderate.' : ''
-  return { direction, total, strength, explanation: explainContext(direction, members, tie) +
-    (policy.mode === 'labor-priority' ? ' Labor priority is active.' : policy.mode === 'weekly-labor-priority' ? ' Weekly labor priority is active.' : ''),
-    reason: reason + laborNote, members, missing, tie, policy }
+  const limited = enabled.filter(f => !active.some(m => m.family === f && (m.coverage ?? 1) >= 1))
+  const qualification = limited.length ? ` Available-evidence interpretation only: ${limited.join(', ').toUpperCase()} has missing, incomplete or expired evidence; no agreement is inferred from it.` : ''
+  return { direction, total, strength, decision, explanation: decision.state !== 'directional' ? decision.reason : explainContext(direction, members, tie) +
+    (policy.mode === 'labor-priority' ? ' Labor priority is active.' : policy.mode === 'weekly-labor-priority' ? ' Weekly labor priority is active.' : '') + qualification,
+    reason: decision.state !== 'directional' ? decision.reason : reason + laborNote + qualification, members, missing, tie, policy }
 }

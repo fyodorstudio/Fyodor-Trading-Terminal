@@ -1,12 +1,30 @@
 # Manual audit backlog
 
+## Current integrity pass — context v8 / relative v3 / relationships v3
+
+- [ ] Compare the same publication clock in Inspector, Raycaster and Candy; inspect
+  the selected USD-only / EUR-vs-USD scope and version labels.
+- [ ] Check amber Mixed versus gray Insufficient; neither supplies a direction.
+  Incomplete but sufficient available evidence must say Weak and name limitations.
+- [ ] Open a dashed Roof: it describes common-calibration interpreted-support
+  changes, not an accumulated-context vote or guaranteed price direction.
+- [ ] In Advanced details verify calibration effect / renewal / availability remain
+  separate; drifting magnitude limits alone must not create a fresh Roof.
+- [ ] Revisit Dec 16–Jan 28 and a different period without changing weights to
+  match price. Record numerical disagreements separately from price disagreement.
+- [ ] Check preserved magnitude settings, input switches, workspace import/export,
+  chart panning, Inspector scrolling and dense Roof readability.
+
+All older backlog entries below remain manual visual checks, not new math.
+
+
 ## 7 October 2026 — Grouped Euro-area PMI
 
 - [ ] Check the July 24, 2026 round: one marker/Inspector entry, with France,
   Germany and Euro area sections and their own release clocks in one raw table.
 - [ ] Check the combined PMI filter, including an existing one-country-only
   selection, live preview/Save, symbol selection and refresh persistence.
-- [ ] Compare each standalone v1 output and country Scatter link with the original
+- [ ] Compare each standalone v1.1 output and country Scatter link with the original
   publication; context must use the latest already-known member's cutoff.
 - [ ] Check flash versus final rounds on different days, missing country/aggregate
   sections, narrow date windows, chart panning and Inspector responsiveness.
@@ -426,3 +444,34 @@ inputs, hidden activators, choosers, cutoff, stable panning and shared settings.
   can load separately without widening/narrowing the chart calendar. Change pair
   or broker while loading: a late response must not restore the old selection.
 - [ ] Check drawing tools and Notebook arrow clicks retain their normal behavior.
+
+## Context v7 / relative v2 / relationship v2 / NFP v2.1 audit
+
+Begin after terminal checks pass. Use the same broker, automatic magnitude
+settings and enabled inputs when comparing periods; record exclusions explicitly.
+
+- [ ] Revisit 16 December 2025–28 January 2026 in both Candy modes. In the default
+  replay, sampled combined states now show gray Insufficient context. Open one
+  to see the incomplete primary reason and raw pressure. Do not mark gray as an
+  aligned prediction of the rally. The model still does not explain that reversal.
+- [ ] Open December 16 NFP and January 9 NFP. Verify v2.1 appears in the latest
+  dropdown/input table. Missing preceding-month comparisons explain Unavailable;
+  January uses revised November unemployment. Raw calendar table stays unchanged.
+- [ ] Inspect a complete historical period and a near-cancelling one. Green/red
+  requires usable/agreeing evidence; amber Mixed must not appear as Long/Short in
+  the headline, Combo details or recorded Notebook context. Standalone source
+  directions and advanced raw pressure can remain directional.
+- [ ] Compare solid ISM and labor Roofs with dashed fresh Roofs. Read their scope
+  and meaning. Both modes retain USD-only Roofs; relative Candy can differ. Fresh
+  details show economic change separately from renewal, coverage and availability.
+  This pass removes the old 12 fresh Roofs from the December–January default replay.
+- [ ] Audit the activation candle and next 4/24 H1 candles separately; avoid using
+  a later multiweek trend as the isolated causal effect of one release. Record
+  Aligned/Opposed/Unclear for directional Roofs, and Unclear for withheld outputs.
+- [ ] Pan/zoom with all overlays, inspect dots/labels/More and scroll Inspector.
+  Confirm stable positions, selection/range preservation and no Checking lag.
+  Toggle an input under Advanced, reload and verify the configured coverage and
+  shared output update consistently. Changing settings is not a new release.
+
+For every finding send broker time, mode, active inputs, output/evidence, selected
+horizon and a screenshot. Your visual audit remains the final UI check.

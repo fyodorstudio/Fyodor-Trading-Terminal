@@ -5,7 +5,7 @@ import type { InspectorEvent, InspectorRelease } from '../../../../../../inspect
 import type { TimeDisplayPreference } from '../../../../../../../appearance/time-display/time-display-preference'
 import { ContextInputTable } from '../../../../../../../usd-context/ui/ContextInputTable'
 import { ContextPolicyDetails } from '../../../../../../../usd-context/ui/ContextPolicyDetails'
-import { contextPairLabel } from '../../../../../../../usd-context/core/usd-pair'
+import { contextResultLabel } from '../../../../../../../usd-context/core/usd-pair'
 import { toggleContextFamily } from '../../../../../../../usd-context/storage/context-family-settings'
 import { useCpiV4Analysis } from '../runtime/useCpiV4Analysis'
 import { CpiScoreDetails } from './CpiScoreDetails'
@@ -34,7 +34,7 @@ function CpiPublicationScore({ release, brokerId = null, events, now, timeDispla
       {ready && assessment.strength && <span title="Agreement about this CPI release, not expected price direction">{assessment.strength} inflation evidence</span>}
       {ready && assessment.changeSize && <span>{assessment.changeSize}</span>}
     </div>
-    <small className="scoring-engine-version">Scoring system v4 · CPI interpretation + publication context · Experimental</small>
+    <small className="scoring-engine-version">Scoring system v4.1 · CPI interpretation + publication context · Experimental</small>
     <small className="scoring-engine-version">{cpiStandaloneVersionLabel} · same CPI release calculation used by Raycaster</small>
     <p>{loading ? 'Calculating CPI interpretation…' : standalone.error ?? assessment?.explanation ?? 'No usable CPI assessment.'}</p>
     {ready && <><p>{assessment.strengthReason}</p><CpiScoreDetails assessment={assessment} label="CPI v4 standalone" /></>}
@@ -47,7 +47,7 @@ function CpiPublicationScore({ release, brokerId = null, events, now, timeDispla
     <ScoringSection title="Inputs & contributions">
     <ContextInputTable families={families} onToggleFamily={toggleContextFamily} result={result} symbol="EURUSD"
       loading={context.loading} unavailable={contextUnavailable} cutoff={comparison.at} timeDisplay={timeDisplay}
-      tableLabel="CPI v4 context inputs" summaryLabel={contextUnavailable ? 'Uncomputed' : contextPairLabel('EURUSD', result?.direction ?? 'uncomputed')} /></ScoringSection>
+      tableLabel="CPI v4 context inputs" summaryLabel={contextUnavailable ? 'Uncomputed' : contextResultLabel('EURUSD', result)} /></ScoringSection>
     {!context.loading && !contextUnavailable && <ScoringSection title="Active relationships"><ContextPolicyDetails policy={result?.policy} /></ScoringSection>}
     <ScoringSection title="Coverage & controls"><p>These context controls are shared with Raycaster. Inspector’s marker filters do not change them. The table uses the selected publication time; later releases are excluded. Claims expires after 14 days, GDP after 120; other families after 45. NFP and Claims share the labor budget.</p></ScoringSection>
   </section>

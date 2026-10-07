@@ -6,9 +6,9 @@ export function resolveWeeklyLaborPolicy(members: readonly ContextMember[], base
   const claims = members.find(m => m.family === 'claims' && m.status === 'active')
   const traits = claims?.traits?.kind === 'claims' ? claims.traits : null
   const checks: ContextPolicyCheck[] = [
-    { label: 'Aging qualified NFP', state: !nfp ? 'unavailable' : nfp.memory && nfp.memory.ageDays >= 14 &&
+    { label: 'Aging qualified NFP', state: !nfp ? 'unavailable' : nfp.total !== 0 && nfp.memory && nfp.memory.ageDays >= 14 &&
       (nfp.reduced || nfp.strength === 'weak') ? 'pass' : 'fail',
-      detail: 'NFP must be at least 14 broker calendar days old and Weak or incomplete. Fresh or complete Moderate/Strong NFP keeps its budget.' },
+      detail: 'NFP must have a nonzero vote, be at least 14 broker calendar days old and Weak or incomplete. Zero/cancelling NFP has no opposing net direction. Fresh or complete Moderate/Strong NFP keeps its budget.' },
     { label: 'Sustained opposing weekly claims', state: !claims || !traits ? 'unavailable' :
       traits.confirmed && claims.usdDirection !== nfp?.usdDirection ? 'pass' : 'fail',
       detail: 'Requires three consecutive complete opposing Claims directions with both underlying trends agreeing, 4–10 days apart, at least 80% component coverage each, and a Moderate/Strong latest report.' },

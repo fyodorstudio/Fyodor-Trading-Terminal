@@ -92,7 +92,7 @@ try {
         'Manual overrides do not bypass minimum-history requirement')
     }
   }
-  assert.equal(scoringSignalBinding('us-cpi').label, 'CPI v4')
+  assert.equal(scoringSignalBinding('us-cpi').label, 'CPI v4.1')
   assert.equal(scoringSignalBinding('ism-services').label, 'ISM Services v3')
   assert.equal(scoringSignalBinding('ism-manufacturing').label, 'ISM Manufacturing v3')
   assert.equal(scoringSignalBinding('pce').label, 'PCE v1'); assert.equal(scoringSignalBinding('fomc'), null)

@@ -26,13 +26,13 @@ export function compareCpiPublication(timeline: ContextTimeline | null, release:
   const oldWeights = before?.result.policy?.weights ?? contextWeights, newWeights = after?.result.policy?.weights ?? contextWeights
   const changedWeights = Object.keys(newWeights).some(f => newWeights[f as keyof typeof newWeights] !== oldWeights[f as keyof typeof oldWeights])
   const retained = (member: typeof source | typeof previous) => member?.status === 'active' ?
-    member.total! * (member.memory?.retention ?? 1) * (member.memory?.coverage ?? 1) : 0
+    member.total! * (member.memory?.retention ?? 1) : 0
   const sourceChange = Math.round((retained(source) - retained(previous)) * oldWeights.cpi / 100 * 1e12) / 1e12
   const weightChange = Math.round(retained(source) * (newWeights.cpi - oldWeights.cpi) / 100 * 1e12) / 1e12
   const policyNote = changedWeights ? ` Context priorities changed to ${after?.result.policy?.label ?? 'Balanced priorities'}: CPI ${oldWeights.cpi}% → ${newWeights.cpi}%, NFP ${oldWeights.nfp}% → ${newWeights.nfp}%. CPI source replacement at prior weight ${format(sourceChange)}; CPI priority effect ${format(weightChange)}. Other existing votes also use the new priorities.` : ''
   const other = after?.result.members.filter(m => m.family !== 'cpi' &&
     (m.chartAt === at || before?.result.members.find(b => b.family === m.family)?.status !== m.status)).map(m => m.sourceLabel) ?? []
   return { at, before, after, voteChange, explanation:
-    `${stance}; it ${oldState}. CPI contribution change ${format(voteChange)}, ${directionChange}. Age retention and component coverage are included.` +
+    `${stance}; it ${oldState}. CPI contribution change ${format(voteChange)}, ${directionChange}. Age retention is included; missing component weights are already reflected in the source score.` +
     policyNote + (other.length ? ` Other updates or status changes at this timestamp: ${other.join(', ')}.` : '') }
 }

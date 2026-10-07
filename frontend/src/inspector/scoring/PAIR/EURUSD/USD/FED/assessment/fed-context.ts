@@ -16,6 +16,7 @@ export function previousFedMeeting(release: InspectorRelease, events: readonly E
 }
 
 export function fedContextPressure(result: ContextResult | null) {
+  if (result?.decision && result.decision.state !== 'directional') return result.decision.reason
   if (!result || result.direction === 'uncomputed') return 'No usable economic-context direction is available from the enabled families.'
   const active = result.members.filter(m => m.status === 'active')
   const domain = (families: string[]) => active.filter(m => families.includes(m.family)).reduce((sum, m) => sum + m.contribution, 0)

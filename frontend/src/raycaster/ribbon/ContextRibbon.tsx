@@ -52,7 +52,7 @@ function ContextRibbonComponent({ chartApi, bars, timeframe, points, now, relati
   }, [chartApi, bars, timeframe, points, now, loading, notice])
   return <div className="context-ribbon" aria-label={`Raycaster Candy · ${mode}`}>
     <ExternalEventsStrip key={`${brokerId}:${symbol}`} chartApi={chartApi} bars={bars} timeframe={timeframe} now={now} symbol={symbol} brokerId={brokerId} />
-    <div className="context-ribbon-legend">Context · {mode} · Green Long / Red Short · {loading ? 'Loading' : notice ?? `shade = evidence${partial ? ' · Partial history' : ''}`}</div>
+    <div className="context-ribbon-legend">Context · {mode} · Green Long / Red Short / Amber Mixed / Gray Insufficient · {loading ? 'Loading' : notice ?? `shade = evidence${partial ? ' · Partial history' : ''}`}</div>
     <div className="context-ribbon-track" onPointerLeave={clearHover}>
       {segments.map(segment => <button type="button" key={segment.from}
         className={`ribbon-segment ${segment.point?.direction ?? 'uncomputed'} ${segment.point?.evidence ?? ''}`}

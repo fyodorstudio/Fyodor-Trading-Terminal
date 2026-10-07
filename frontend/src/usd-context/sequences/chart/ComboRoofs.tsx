@@ -5,7 +5,7 @@ import type { ChartTimeframe } from '../../../market-data/contracts/ChartTimefra
 import type { InspectorMarker } from '../../../inspector/inspector-data'
 import type { ComboSnapshot, ComboSource } from '../core/contracts'
 import { currencyColorStyle, type CurrencyColors } from '../../../inspector/currency-colors'
-import { contextPairLabel } from '../../core/usd-pair'
+import { contextResultLabel } from '../../core/usd-pair'
 import { createRoofPlan, knownRoofCount, prepareRoofAnchors, projectRoofPlan, type RoofPlan } from './roof-plan'
 import { roofLabel, roofTooltip } from './roof-label'
 import { type PositionedRoof } from './roof-layout'
@@ -72,7 +72,7 @@ function ComboRoofsComponent({ chartApi, episodes, bars, timeframe, markers, now
       title={roofTooltip(p.combo, p.hidden)}
       aria-label={`Inspect combo ${p.combo.title}`} onClick={() => onSelect(p.combo)}>
       <span className="combo-roof-names">{roofLabel(p.combo)}</span>
-      <span className="combo-roof-direction"> · {p.combo.direction === 'weaker' ? 'Long' : p.combo.direction === 'stronger' ? 'Short' : 'Uncomputed'}</span>
+      <span className="combo-roof-direction"> · {contextResultLabel('EURUSD', p.combo).replace(/^EURUSD /, '')}</span>
     </button>)}
     {positioned.flatMap(p => p.endpoints.map(endpoint => {
       const publications = endpointPublications(endpoint, p.combo.chartAt), active = endpoint.activation
@@ -97,8 +97,8 @@ function ComboRoofsComponent({ chartApi, episodes, bars, timeframe, markers, now
     <div className="combo-roof-tools">
       {overflow.length > 0 && <div className="combo-roof-overflow"><button type="button" aria-expanded={chooser} onClick={() => setChooser(!chooser)}>+{overflow.length} more</button>
         {chooser && <div aria-label="More combo roofs">{overflow.map(combo => <button type="button" key={combo.id} title={roofTooltip(combo)} onClick={() => { onSelect(combo); setChooser(false) }}>
-          <span>{roofLabel(combo)} · {contextPairLabel('EURUSD', combo.direction)}</span>
-          <small>{combo.strength ?? 'weak'} evidence · {new Date(combo.chartAt).toISOString().slice(0, 16).replace('T', ' ')} broker time</small>
+          <span>{roofLabel(combo)} · {contextResultLabel('EURUSD', combo)}</span>
+          <small>{combo.strength ? `${combo.strength} evidence` : 'Direction withheld'} · {new Date(combo.chartAt).toISOString().slice(0, 16).replace('T', ' ')} broker time</small>
         </button>)}</div>}
       </div>}
     </div>

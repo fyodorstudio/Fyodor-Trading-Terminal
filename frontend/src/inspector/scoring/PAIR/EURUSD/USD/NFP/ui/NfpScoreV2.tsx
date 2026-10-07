@@ -29,7 +29,7 @@ export function NfpScoreV2({ release, brokerId, events = [] }: InspectorScoringP
       {!loading && assessment.strength && <span aria-label="NFP v2 evidence strength">{assessment.strength} evidence</span>}
       {!loading && assessment.direction !== 'uncomputed' && assessment.changeSize && <span aria-label="NFP v2 change size">{assessment.changeSize}</span>}
     </div>
-    <small className="scoring-engine-version">Scoring system v2 · Experimental</small>
+    <small className="scoring-engine-version">Scoring system v2.2 · Experimental</small>
     <p className="scoring-result-explanation">{loading ? 'Loading earlier employment releases…' : assessment.explanation}</p>
     {storage.error && <p role="alert">Employment history: {storage.error}</p>}
     {!loading && assessment.strength && <p aria-label="NFP v2 evidence explanation">{assessment.strengthReason}</p>}
@@ -55,7 +55,7 @@ export function NfpScoreV2({ release, brokerId, events = [] }: InspectorScoringP
       <tbody>{assessment.supporting.map((row) => <tr key={row.id}><td>{row.label}</td><td>{loading ? 'Loading' : row.text}</td></tr>)}</tbody>
     </table></div></ScoringSection>
     <ScoringSection title="How this scorer works"><ScoringNotes items={[
-        { label: 'Hiring benchmark', content: <>Hiring and unemployment have the largest votes. Hiring and monthly wage growth are compared with their preceding three-month pace. A negative hiring benchmark is floored at zero so job losses cannot count as stronger hiring merely because earlier losses were larger.</> },
+        { label: 'Hiring benchmark', content: <>Hiring and unemployment have the largest votes. Hiring and monthly wage growth are compared with their preceding three-month pace, using the supplied revision for the nearest preceding month when that reference month exists. Missing months are never filled. Unemployment, participation and hours require an observed immediately preceding reference month and use its supplied revision when available. A negative hiring benchmark is floored at zero so job losses cannot count as stronger hiring merely because earlier losses were larger.</> },
         { label: 'Participation & composition', content: <>Falling unemployment receives half its usual weight when participation also falls. Participation does not vote by itself. Payroll revisions and working hours add smaller votes; private, government and manufacturing payrolls explain composition without being added again.</> },
         { label: 'Revision coverage', content: <>The revision component covers only the preceding month supplied by this provider, not the full two-month BLS revision. It requires an earlier publication for that reference month. After a skipped report, the provider prior may be a newly published month instead of a revision; that component stays unavailable. An absent revision also remains unavailable.</> },
         { label: 'Evidence & change size', content: <>Evidence strength describes agreement across employment, unemployment and wage groups. Change size describes historical signal magnitude. Neither is a probability or a size of a price move. Limited data and conflicting readings have separate explanations.</> },

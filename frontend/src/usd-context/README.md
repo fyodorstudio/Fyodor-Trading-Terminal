@@ -1,20 +1,24 @@
-# USD context memory v6.2
+# USD context memory v8
 
-The shared engine consumes CPI v4’s standalone engine v3.1, NFP v2, Claims v2,
+The shared engine consumes CPI v4.1’s standalone engine v3.2, NFP v2.2, Claims v2,
 monthly ISM v3, Retail Sales v1, PCE v1, PPI v1 and GDP v1 scores. It interprets the USD side of supported
 pairs. Forecasts, price outcomes and the other currency do not vote.
 
-V6.2 adds [clickable relationship snapshots](sequences/README.md) and an explicitly
-experimental fresh-news comparison. The accumulated scoring rules below remain
-unchanged; all 5,696 points in the saved USD replay match the preceding builder.
-The version change invalidates shared caches so roofs and scores arrive together.
+V8 retains missing component weights once, separates usable coverage from age,
+and qualifies an available-evidence direction through aggregate coverage rather
+than an individual CPI/NFP veto. Relationship derivation v3 compares preceding
+features under the latest available calibration; calibration drift and renewal
+cannot generate a fresh-news vote. No price enters scoring. V7/v6.2 and their
+reports are historical records, not the current acceptance test. Current and
+archived rules are recorded in `docs/scoring system library.MD`.
+Versioned shared jobs are invalidated; hover/pan remain cached binary lookups.
 
 ## Declared policy
 
 | Input | Base weight | Freshness | Update behavior |
 | --- | ---: | --- | --- |
-| CPI v4 (standalone engine v3.1) | 28% | 45 days | Latest inflation report replaces the previous CPI slot |
-| NFP v2 | 30% | 45 days | Latest jobs report replaces the previous NFP slot |
+| CPI v4.1 (standalone engine v3.2) | 28% | 45 days | Latest inflation report replaces the previous CPI slot |
+| NFP v2.2 | 30% | 45 days | Latest jobs report replaces the previous NFP slot |
 | Claims v2 | 10% | 14 days | Latest weekly report replaces the previous Claims slot |
 | ISM v3 | 10% | 45 days | Manufacturing then Services update one monthly ISM slot at their original times |
 | Retail Sales v1 | 7% | 45 days | Latest spending report replaces the previous Retail slot |
@@ -31,18 +35,30 @@ accumulate. Freshness boundaries use the recorded broker chart clock and expire
 at the boundary. A new uncomputed publication replaces the previous assessment;
 missing, disabled, expired and uncomputed weights are not redistributed.
 
-Signed source magnitude totals multiply assigned weight, age retention and
-usable component coverage. Positive supports USD;
-negative weakens USD. Exact cancellation follows CPI → NFP → Claims → PCE → ISM → Retail → GDP → PPI
-with Weak evidence. A source's declared zero-score tie direction remains eligible.
-All unavailable/expired evidence is Uncomputed; no direction is fabricated.
+Signed source magnitude totals multiply assigned weight and age retention.
+Missing component weights are already retained inside each source total; usable
+coverage is measured separately and never multiplied a second time. Positive supports USD; negative weakens USD. Raw
+priority tie direction is retained for internal audit math, never exposed as a
+combined Long/Short when quality safeguards withhold a conclusion. A usable
+zero stays active, with zero contribution; missing data remains unavailable.
 
-Evidence describes agreement, not probability or price-move size. Missing or
-reduced inputs, exact cancellation or net/gross agreement below one third give
-Weak evidence. Strong requires strong supporting NFP and CPI, net/gross agreement
-at least two thirds, and no active Weak family. Opposing active NFP and Claims cap
-combined evidence at Moderate; Weak still takes precedence. Their agreement does
-not substitute for inflation confirmation or create an extra independent domain.
+Every canonical result carries a decision:
+
+- **Insufficient context:** usable components are below 60% of the configured
+  enabled budget. There is no separate primary-family veto.
+- **Mixed evidence:** usable unchanged/cancelling evidence, or absolute net / gross
+  contributions below one third. No family priority converts this to Long/Short.
+- **Directional:** completeness and agreement pass; existing evidence grades
+  describe agreement, not probability. Incomplete usable coverage caps strength at
+  Weak and names the missing/incomplete/expired families.
+  Strong requires strong supporting NFP and CPI, net/gross at least two thirds
+  and no active Weak family. Opposing NFP and Claims cap strength at Moderate.
+
+Usable coverage excludes age; retention separately reduces votes. Off weights
+remain off, so explicitly selecting a subset changes the configured coverage
+denominator without redistributing its budget. These are declared experimental
+safeguards, not calibrated market-probability thresholds. Use `contextResultLabel`
+for public combined outputs; `contextPairLabel` remains for standalone sources.
 
 ## Conditional labor–inflation interaction
 
@@ -75,17 +91,16 @@ A narrow weighted lead remains Weak. Applied magnitude settings affect the
 acceleration guard, while raw level ceilings remain fixed and visible.
 
 Overlap review: CPI's two monthly features already divide a fixed 70% source
-budget (35/35), and share one evidence group. Preserve standalone v3.1 rather
+budget (35/35), and share one evidence group. Preserve the standalone 35/35/20/10 formula rather
 than silently change its meaning. The interaction assesses one monthly core
 block and lowers CPI's *context* budget only in the qualified competing regime.
 `ui/ContextPolicyDetails.tsx` shows every condition and its result in both views.
 
-## V6 age, coverage and weekly confirmation
+## Current age, coverage and weekly confirmation
 
-`core/memory/` owns retention and Claims confirmation. Source math and magnitude
-settings are unchanged. Each vote is now:
+`core/memory/` owns retention and Claims confirmation. Magnitude preferences are preserved. Each vote is:
 
-`source total × assigned weight / 100 × 2^(-ageDays / halfLifeDays) × coverage`.
+`source total × assigned weight / 100 × 2^(-ageDays / halfLifeDays)`.
 
 Age counts elapsed broker calendar date boundaries, not cursor movements or the
 machine's current date. Half-lives follow release cadence: Claims 7 days, monthly
@@ -102,16 +117,17 @@ sector/component weights normalize to the same 0–1 fraction. Zeros remain usab
 invalid or zero coverage cannot vote. Legacy in-memory assessments without
 coverage use 1; canonical source adapters always supply it.
 
-Standalone totals already omit unavailable components. Multiplying coverage is
-an additional declared context caution, not a correction to standalone math.
-It specifically reduces the influence of a thin annual-only CPI or partial NFP
-without changing their release labels. Evidence grades mix agreement and
-limitations, so Weak/Moderate/Strong are not numeric probability multipliers.
+Standalone totals retain missing component weights once. For example, a +3
+annual-only CPI component with 20% standalone weight and 28% family weight
+contributes +.168 before aging, not +.0336. Coverage measures completeness;
+Weak/Moderate/Strong are not numeric probability multipliers. The archived v6/v7
+coverage multiplication is retired.
 
 Claims can qualify **Weekly labor priority** when three consecutive complete observed
 reports agree, are 4–10 days apart, have at least 80% component coverage each,
 and the latest is Moderate/Strong. They must oppose an active NFP
-at least 14 broker calendar days old that is Weak or incomplete. NFP shifts
+at least 14 broker calendar days old that is Weak or incomplete and has a
+nonzero opposing vote. A standalone zero-total tie priority cannot trigger it. NFP shifts
 30→20%, Claims 10→20%. Only the latest weekly report votes: the streak supplies
 a condition, not an additional sum or independent confirmation. A broken,
 unavailable, ambiguous or widely spaced report breaks confirmation. Fresh or
@@ -122,7 +138,7 @@ The shared table shows age, half-life, retained percentage, component coverage,
 assigned/effective weight, current Claims confirmation and each final vote.
 Enabled/active budgets are shown before retention; retained weight is separate.
 Unused weight is never reallocated. CPI publication comparisons include the
-age reset and coverage change in source replacement and separate priority effects.
+age reset and changed component availability in source replacement and separate priority effects.
 
 ## One engine, two views
 
@@ -205,7 +221,7 @@ records its exact version, source and revision. The same-revision v5 baseline
 must be preserved to reproduce this comparison. No price returns select defaults.
 The expanded GDP/PPI runner remains available for source/Scatter checks; reports
 must retain their actual current engine version rather than claiming a v5 replay.
-Archived v1–v4 weights and audit results remain in the root scoring library.
+Archived v1–v4 weights and audit results remain in the `docs/scoring system library.MD`.
 The older `audit-usd-context.mjs` is retained as the previous five-family audit
 runner; its v3 invariance expectations are not a current validation command.
 Visual checks and price-reaction diagnostics belong to the user.
@@ -256,4 +272,4 @@ and left the main event loop active. Full frontend tests, lint and build passed.
 
 Claims v2 replaces the Claims source slot without changing base family budgets or memory half-lives. Its two underlying trends use nonoverlapping four-week windows; latest-week weight is smaller. The three-release weekly confirmation additionally requires both underlying trends to agree with each report direction. Confirmation is also explained when Claims and NFP agree, without an extra vote.
 
-Fed v2 reuses `runtime/usePublicationContext.ts` to display exactly this engine at the decision publication, including holds. A separately fetched earlier numeric decision anchors the previous-meeting comparison. Both meetings use the same enabled families/settings; no future speech, conference, minutes or macro reading is moved into an earlier result. Fed meetings add no timeline vote and do not refresh source memory. Speeches remain outside scoring. See the root scoring library for rules and limitations.
+Fed v2 reuses `runtime/usePublicationContext.ts` to display exactly this engine at the decision publication, including holds. A separately fetched earlier numeric decision anchors the previous-meeting comparison. Both meetings use the same enabled families/settings; no future speech, conference, minutes or macro reading is moved into an earlier result. Fed meetings add no timeline vote and do not refresh source memory. Speeches remain outside scoring. See the `docs/scoring system library.MD` for rules and limitations.

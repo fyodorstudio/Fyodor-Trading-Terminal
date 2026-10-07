@@ -9,7 +9,7 @@ export function EurScore(props: InspectorScoringProps) {
   return <section className="inspector-detail-overview inspector-scoring-view inspector-structured-score" aria-label="EUR release interpretation">
     <div className="inspector-release-score-summary"><strong className={`inspector-majority inspector-direction-${ready ? score.direction : 'uncomputed'}`}>{ready ? score.label : 'Uncomputed'}</strong>
       {ready && score.strength && <span>{score.strength} evidence</span>}{ready && score.changeSize && <span>{score.changeSize}</span>}</div>
-    <small className="scoring-engine-version">EUR scoring v1 · Dataset only</small>
+    <small className="scoring-engine-version">EUR scoring v1.1 · Dataset only</small>
     <p>{analysis.loading ? 'Calculating EUR release interpretation…' : analysis.error ?? score?.explanation ?? 'No usable EUR assessment.'}</p>
     {analysis.storage.error && <p role="alert">{analysis.storage.error}</p>}
     {ready && <><p>{score.strengthReason}</p><ScoringSection title="What drove the result"><div className="inspector-table-scroll"><table aria-label="EUR component scores">

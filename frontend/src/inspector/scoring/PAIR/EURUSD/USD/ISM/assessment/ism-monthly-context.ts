@@ -37,7 +37,8 @@ function buildContext(month: number | null, at: number | null, events: readonly 
       const weight = definition.weight * ismSectorWeights[sector]
       const points = included && reading ? reading.points : null
       return { id: `${sector}:${definition.id}`, label: `${sector === 'services' ? 'Services' : 'Manufacturing'} ${definition.label}`,
-        group: definition.group, weight, points, contribution: points === null ? null : points * weight / 10000 }
+        group: definition.group, weight, points, value: reading?.value ?? null, limits: reading?.limits ?? null,
+        contribution: points === null ? null : points * weight / 10000 }
     })
     return { sector, weight: ismSectorWeights[sector], release, assessment, included, readings, issue,
       status: issue ? 'excluded' : !release ? 'pending' : included ? 'included' : 'unavailable' }

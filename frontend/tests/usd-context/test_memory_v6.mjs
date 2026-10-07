@@ -24,7 +24,8 @@ try {
     assert.equal(sourceMemory(source(family, 2, halfLife), at, 10).effectiveWeight, 5)
   }
   const partial = source('cpi', -.6, 0, { coverage: .2, reduced: true })
-  assert.equal(combineContext({ cpi: partial }, ['cpi'], at).total, -.0336)
+  assert.equal(combineContext({ cpi: partial }, ['cpi'], at).total, -.168,
+    'Missing component weights are already retained in the partial source total; coverage must not multiply it again')
   assert.equal(partial.total, -.6, 'Context caution never changes standalone totals')
   assert.equal(sourceCoverage([{ points: 2, weight: 15, baseWeight: 30 }, { points: 1, weight: 70 }]), 1,
     'An intentional participation qualifier is not missing data')
@@ -56,7 +57,7 @@ try {
   assert.equal(resolution.policy.weights.nfp, 20); assert.equal(resolution.policy.weights.claims, 20)
   assert.equal(Object.values(resolution.policy.weights).reduce((a, b) => a + b, 0), 100)
   assert.equal(resolution.members.length, 2, 'Prior weekly observations add no extra votes')
-  for (const patch of [{ chartAt: at - 13 * day }, { strength: 'strong' }, { usdDirection: 'stronger', total: 1 }]) {
+  for (const patch of [{ chartAt: at - 13 * day }, { strength: 'strong' }, { usdDirection: 'stronger', total: 1 }, { total: 0 }]) {
     assert.equal(combineContext({ nfp: { ...nfp, ...patch }, claims: confirmed }, ['nfp', 'claims'], at).policy.mode, 'balanced')
   }
   assert.equal(combineContext({ nfp, claims: confirmed }, ['nfp'], at).policy.mode, 'balanced')

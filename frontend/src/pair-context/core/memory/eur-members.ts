@@ -26,12 +26,15 @@ export function updateEurMemory(latest: Map<string, EurSource>, incoming: readon
 
 export function eurMembers(chartAt: number, inventory: readonly EurSource[]): EurMember[] {
   return eurSlots.flatMap(slot => chooseSources(slot, inventory).map(row => {
-    const age = Math.max(0, Math.floor(chartAt / eurDayMs) - Math.floor(row.chartAt / eurDayMs))
+    const validTime = Number.isFinite(chartAt) && Number.isFinite(row.chartAt) && row.chartAt <= chartAt
+    const age = validTime ? Math.max(0, Math.floor(chartAt / eurDayMs) - Math.floor(row.chartAt / eurDayMs)) : 0
     const status = age >= eurExpiry(slot) ? 'expired' : row.score === null || !Number.isFinite(row.score) ||
-      !Number.isFinite(row.coverage) || row.coverage <= 0 || row.coverage > 1 ? 'unavailable' : 'active'
+      !validTime || !Number.isFinite(row.coverage) || row.coverage <= 0 || row.coverage > 1 ? 'unavailable' : 'active'
     const retention = status === 'active' ? 2 ** (-age / eurHalfLife(slot)) : 0
     const weight = eurSlotWeights[slot] * row.proxyShare
-    const contribution = status === 'active' ? row.score! / 4 * weight / 100 * row.coverage * retention : 0
+    // The weighted slot score already omits missing components; retain that
+    // budget once. Coverage remains a separate completeness qualification.
+    const contribution = status === 'active' ? row.score! / 4 * weight / 100 * retention : 0
     return { ...row, weight, retention, status, contribution }
   }))
 }

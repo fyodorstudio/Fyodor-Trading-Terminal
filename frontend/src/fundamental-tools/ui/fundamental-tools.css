@@ -23,4 +23,5 @@
 .tool-settings-sections ul { columns: 2; padding-left: 18px; }
 .candy-color-key { display: flex; gap: 8px; }.candy-color-key span { padding: 3px 8px; border-radius: 3px; }
 .candy-color-key .long { background: #b8e5d7; color: #004f3b; }.candy-color-key .short { background: #facac3; color: #7e2419; }.candy-color-key .unavailable { background: #9aa4b5; color: #142035; }
+.candy-color-key { flex-wrap: wrap; }.candy-color-key .mixed { background: #e8c77a; color: #493500; }
 .fundamental-tools-popover .external-event-manager.embedded { position: static; width: auto; max-height: none; overflow: visible; padding: 0; border: 0; background: transparent; box-shadow: none; }

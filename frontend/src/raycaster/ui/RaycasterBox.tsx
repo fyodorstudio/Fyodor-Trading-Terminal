@@ -15,7 +15,7 @@ export function RaycasterBox({ symbol, point, cutoff, loading, message, notice, 
   const result = point?.result
   const strength = relative ? relative.strength : result?.strength
   const label = raycasterLabel({ loading, message, cutoff, relative, result, symbol })
-  const tone = label === 'Uncomputed' || loading || message || cutoff === null ? '' : label.endsWith('Long') ? 'long' : 'short'
+  const tone = loading || message || cutoff === null ? '' : label.endsWith('Long') ? 'long' : label.endsWith('Short') ? 'short' : ''
   return <aside ref={ref} className="raycaster-box" aria-label="Raycaster USD context"
     style={{ transform: `translate(${position.x}px, ${position.y}px)` }}>
     <header><button type="button" onPointerDown={drag} className="raycaster-handle" aria-label="Move Raycaster" title="Drag to move Raycaster">⠿ Raycaster</button>

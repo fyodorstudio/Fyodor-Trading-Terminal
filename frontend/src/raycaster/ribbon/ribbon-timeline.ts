@@ -1,9 +1,9 @@
 import type { ContextPoint, ContextTimeline, Evidence } from '../../usd-context/core/contracts'
 import type { EurContextPoint, EurContextTimeline } from '../../pair-context/core/contracts'
 import { relativeContext } from '../../pair-context/core/relative-context'
-import { contextPairLabel } from '../../usd-context/core/usd-pair'
+import { contextResultLabel } from '../../usd-context/core/usd-pair'
 
-export type RibbonPoint = { at: number; label: string; direction: 'long' | 'short' | 'uncomputed'; evidence: Evidence | null;
+export type RibbonPoint = { at: number; label: string; direction: 'long' | 'short' | 'mixed' | 'insufficient' | 'uncomputed'; evidence: Evidence | null;
   explanation: string; update: string; kind: 'publication' | 'memory' | 'expiry'; usd: ContextPoint | null; eur: EurContextPoint | null }
 
 /** Merge both clocks once, including atomic simultaneous publications. Pointer movement never scores. */
@@ -17,8 +17,9 @@ export function buildRibbonTimeline(usd: ContextTimeline | null, eur: EurContext
     if (us[i]?.chartAt === at) { u = us[i++]; newUsd = true }
     if (eu[j]?.chartAt === at) { e = eu[j++]; newEur = true }
     const pair = relative ? relativeContext(e, u) : null
-    const label = pair?.label ?? contextPairLabel(symbol, u?.result.direction ?? 'uncomputed')
-    const direction: RibbonPoint['direction'] = (pair?.direction ?? (label.endsWith(' Long') ? 'long' : label.endsWith(' Short') ? 'short' : 'uncomputed')) as RibbonPoint['direction']
+    const label = pair?.label ?? contextResultLabel(symbol, u?.result)
+    const direction: RibbonPoint['direction'] = (pair?.direction ?? (label === 'Mixed evidence' ? 'mixed' : label === 'Insufficient context' ? 'insufficient' :
+      label.endsWith(' Long') ? 'long' : label.endsWith(' Short') ? 'short' : 'uncomputed')) as RibbonPoint['direction']
     const update = [newUsd ? u?.update : null, newEur ? `EUR: ${e?.update}` : null].filter(Boolean).join(' · ')
     const publication = (newUsd && u?.latest?.chartAt === at) ||
       (newEur && (e?.updateKind === 'publication' || (!e?.updateKind && e?.members.some(m => m.chartAt === at))))

@@ -1,13 +1,14 @@
 import type { EconomicCalendarEvent } from '../../../../../../calendar-event'
 import type { InspectorRelease } from '../../../../../../inspector-data'
-import { calibrateHistoricalSignal, nativeNumber, releaseSignalContext,
+import { calibrateHistoricalSignal, nativeNumber, releaseSignalContext, hasSuppliedRevision,
   usableSignal, unavailableSignal, type TimedReading, type HistoricalFeature } from '../../../../../shared/core/historical-release-signals'
 import { magnitudeEvidence } from '../../../../../shared/core/magnitude-evidence'
 import { payrollRevisionFeature } from './payroll-revision'
 import { chronologicalFeatureHistory } from '../../../../../shared/core/chronological-feature-history'
+import { monthlyComparison } from './monthly-comparison'
 import type { MagnitudeSettings } from '../../../../../../magnitude/settings/magnitude-settings-store'
 
-export const nfpScoreV2Version = 'nfp-eurusd-labor-context-v2'
+export const nfpScoreV2Version = 'nfp-eurusd-labor-context-v2.2'
 export const nfpV2SeriesIds = ['840030015', '840030016', '840030017', '840030018', '840030019',
   '840030020', '840030022', '840030023', '840030024', '840030032'] as const
 const rules = nfpV2SeriesIds.map((id) => ({ id, units: id === '840030020' ? [3] :
@@ -18,13 +19,13 @@ export const nfpV2Signals = [
   { id: 'hiring', label: 'Hiring pace', group: 'employment', weight: 40, unit: 'thousand jobs',
     description: 'Actual payroll job change minus the preceding three-month average, with the comparison average floored at zero.' },
   { id: 'unemployment', label: 'Unemployment', group: 'slack', weight: 30, unit: 'pp',
-    description: 'Inverse Actual minus supplied Previous unemployment change. Weight halves when unemployment and participation both fall.' },
+    description: 'Inverse Actual minus verified preceding-month Revised Previous, otherwise Previous. Weight halves when unemployment and participation both fall.' },
   { id: 'wages', label: 'Wage pace', group: 'wages', weight: 15, unit: 'pp',
     description: 'Actual monthly earnings growth minus its preceding three-month average.' },
   { id: 'revision', label: 'Payroll revision', group: 'employment', weight: 10, unit: 'thousand jobs',
     description: 'Provider prior minus Previous payrolls, only with a unique earlier publication for the preceding reference month. Covers that month only, not the full two-month BLS revision.' },
   { id: 'hours', label: 'Working hours', group: 'employment', weight: 5, unit: 'hours',
-    description: 'Actual weekly hours minus supplied Previous weekly hours.' },
+    description: 'Actual weekly hours minus verified preceding-month Revised Previous, otherwise Previous.' },
 ] as const
 const signals = nfpV2Signals
 type SignalId = typeof signals[number]['id']
@@ -36,21 +37,19 @@ export function supportsNfpV2(release: InspectorRelease | null) {
 }
 export function nfpV2Features(release: InspectorRelease, history: readonly TimedReading[]) {
   const context = releaseSignalContext(release, history, rules, scoringIds)
-  const { current, reasons, recent, delta } = context
+  const { current, reasons, recent } = context
   function pace(id: string, floor: boolean) {
-    const actual = nativeNumber(current.get(id)), preceding = recent(id)
+    const row = current.get(id), actual = nativeNumber(row), stored = recent(id)
+    const revised = nativeNumber(row, 'revised_previous')
+    if (hasSuppliedRevision(row) && revised === null) return unavailableSignal('The supplied preceding-month revision is invalid.')
+    const preceding = stored && revised !== null ? [revised, ...stored.slice(1)] : stored
     return actual === null ? unavailableSignal(reasons.get(id)!) : !preceding ?
       unavailableSignal('Requires usable actuals for the preceding three consecutive reference months.') :
       usableSignal(actual - (floor ? Math.max(0, mean(preceding)) : mean(preceding)), {
         actual, baseline: floor ? Math.max(0, mean(preceding)) : mean(preceding), actualLabel: 'Actual',
-        baselineLabel: floor ? 'Prior three-month average (floor 0)' : 'Prior three-month average', unit: floor ? 'thousand jobs' : '%' })
+        baselineLabel: `${floor ? 'Prior three-month average (floor 0)' : 'Prior three-month average'}${revised !== null ? ' · nearest month revised' : ''}`, unit: floor ? 'thousand jobs' : '%' })
   }
-  function change(id: string, inverse = false) {
-    const value = delta(id)
-    return value === null ? unavailableSignal(reasons.get(id) || 'Actual and supplied Previous are required.') : usableSignal(inverse ? -value : value, {
-      actual: nativeNumber(current.get(id))!, baseline: nativeNumber(current.get(id), 'previous')!,
-      actualLabel: 'Actual', baselineLabel: 'Supplied Previous', unit: inverse ? '%' : 'hours' })
-  }
+  const change = (id: string, inverse = false) => monthlyComparison(current.get(id), history, inverse)
   const payroll = current.get('840030016')
   const features: Features = {
     hiring: pace('840030016', true), unemployment: change('840030015', true), wages: pace('840030018', false),
@@ -66,13 +65,13 @@ export function assessNfpScoreV2(release: InspectorRelease | null, events: reado
   if (!release || !supportsNfpV2(release)) return null
   const { history, past } = featureHistory(release, events)
   const { features, context } = nfpV2Features(release, history)
-  const participation = context.delta('840030017')
+  const participationChange = monthlyComparison(context.current.get('840030017'), history).value
   const unemploymentFall = features.unemployment.value !== null && features.unemployment.value > 0
-  const participationCaution = unemploymentFall && (participation === null || participation < 0)
+  const participationCaution = unemploymentFall && (participationChange === null || participationChange < 0)
   const readings = signals.map((signal) => {
     const samples = past.map((f) => f[signal.id].value).filter((n): n is number => n !== null)
     const calibrated = calibrateHistoricalSignal(features[signal.id], samples, settings[signal.id])
-    const weight = signal.id === 'unemployment' && unemploymentFall && participation !== null && participation < 0 ? signal.weight / 2 : signal.weight
+    const weight = signal.id === 'unemployment' && unemploymentFall && participationChange !== null && participationChange < 0 ? signal.weight / 2 : signal.weight
     return { ...signal, ...calibrated, baseWeight: signal.weight, weight,
       contribution: calibrated.points === null ? null : calibrated.points * weight / 100 }
   })
@@ -84,7 +83,7 @@ export function assessNfpScoreV2(release: InspectorRelease | null, events: reado
   const deciding = units === 0 ? tieBreak?.points ?? 0 : units
   const direction = deciding === null || deciding === 0 ? 'uncomputed' : deciding > 0 ? 'short' : 'long'
   const label = direction === 'short' ? 'EURUSD Short' : direction === 'long' ? 'EURUSD Long' : 'Uncomputed'
-  const cautions = participationCaution ? [participation === null ?
+  const cautions = participationCaution ? [participationChange === null ?
     'Participation is unavailable; the unemployment improvement has limited context.' :
     'Unemployment fell alongside lower participation; its positive vote is halved. This does not establish why unemployment fell.'] : []
   const evidence = magnitudeEvidence(readings, direction, !!tieBreak, cautions)
@@ -101,11 +100,11 @@ export function assessNfpScoreV2(release: InspectorRelease | null, events: reado
   const explanation = !hasEmployment ? 'No usable hiring or unemployment component; supporting readings alone cannot establish this bias.' :
     units === 0 ? tieBreak ? `Scores cancel; ${tieBreak.label.toLowerCase()} breaks the tie.` : 'Usable signals show no directional change.' : driver ? messages[driver.id] : ''
   const supporting = [
-    { id: '840030017', label: 'Participation', text: participation === null ? 'Unavailable.' : participation < 0 ?
-      'Participation decreased; it has no standalone directional vote.' : participation > 0 ?
+    { id: '840030017', label: 'Participation', text: participationChange === null ? 'Comparable monthly change unavailable.' : participationChange < 0 ?
+      'Participation decreased; it has no standalone directional vote.' : participationChange > 0 ?
         'Participation increased; it has no standalone directional vote.' : 'Participation was unchanged.' },
     ...[['840030019', 'Annual wages'], ['840030024', 'Broader unemployment']].map(([id, label]) => {
-      const value = context.delta(id)
+      const value = monthlyComparison(context.current.get(id), history).value
       return { id, label, text: value === null ? 'Unavailable.' : value < 0 ? 'Decreased; supporting context only.' :
         value > 0 ? 'Increased; supporting context only.' : 'Unchanged; supporting context only.' }
     }),

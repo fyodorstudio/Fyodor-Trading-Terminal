@@ -27,13 +27,17 @@ export function assessEurScore(release: InspectorRelease | null, events: readonl
   const hasUnemployment = release.events.some(e => e.event_id === '999030020')
   const hasEmployment = release.events.some(e => ['999030001','999030002'].includes(e.event_id))
   const laborPublication = policy.family === 'euro-labor' ? hasUnemployment && hasEmployment ? 'combined' : hasUnemployment ? 'monthly' : 'quarterly' : null
-  const activePmi = isPmi ? ['composite', 'services', 'manufacturing'].find(id => current[id].value !== null) : null
-  const readings = policy.signals.map(signal => {
+  const calibratedReadings = policy.signals.map(signal => {
     const earlier = earlierEurSignalReleases(releases, policy, signal, release)
     const samples = earlier.map(r => past.get(r.id)?.[signal.id]?.value).filter((v): v is number => v != null)
     const calibrated = calibrateHistoricalSignal(current[signal.id], samples, settings[signal.id])
+    return { ...signal, ...calibrated }
+  })
+  const activePmi = isPmi ? ['composite', 'services', 'manufacturing']
+    .find(id => calibratedReadings.find(r => r.id === id)?.points != null) : null
+  const readings = calibratedReadings.map(signal => {
     const weight = isPmi ? signal.id === activePmi ? 100 : 0 : laborPublication === 'monthly' ? signal.id === 'unemployment' ? 100 : 0 : laborPublication === 'quarterly' ? signal.id === 'employment' ? 75 : signal.id === 'employment-annual' ? 25 : 0 : signal.weight
-    return { ...signal, ...calibrated, weight, contribution: calibrated.points === null ? null : calibrated.points * weight / 100 }
+    return { ...signal, weight, contribution: signal.points === null ? null : signal.points * weight / 100 }
   })
   const voting = readings.filter(r => r.weight > 0), usable = voting.filter(r => r.points !== null)
   const total = usable.length ? Math.round(usable.reduce((sum, r) => sum + r.contribution!, 0) * 1e12) / 1e12 : null

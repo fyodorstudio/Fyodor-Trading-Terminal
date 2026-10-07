@@ -1,11 +1,11 @@
 import type { EconomicCalendarEvent } from '../../../../../../calendar-event'
-import { groupInspectorReleases, inspectorDelta, type InspectorRelease } from '../../../../../../inspector-data'
+import { groupInspectorReleases, type InspectorRelease } from '../../../../../../inspector-data'
 import { magnitudeEvidence } from '../../../../../shared/core/magnitude-evidence'
-import { calibrateHistoricalSignal, type HistoricalFeature, type SignalInputs } from '../../../../../shared/core/historical-release-signals'
+import { calibrateHistoricalSignal, nativeNumber, usableSignal, type HistoricalFeature, type SignalInputs } from '../../../../../shared/core/historical-release-signals'
 import type { MagnitudeSettings } from '../../../../../../magnitude/settings/magnitude-settings-store'
 import { priorReferenceRows } from '../../../../../shared/core/reference-history-index'
 
-export const cpiScoreV3Version = 'cpi-eurusd-release-change-v3.1'
+export const cpiScoreV3Version = 'cpi-eurusd-release-change-v3.2'
 export const cpiV3HistoryStart = Date.UTC(2015, 0, 1)
 export const cpiV3SeriesIds = ['840030005', '840030006', '840030008'] as const
 export const cpiV3MinimumHistory = 24
@@ -25,9 +25,8 @@ type SignalId = typeof signals[number]['id']
 type Feature = HistoricalFeature
 type Features = Record<SignalId, Feature>
 type TimedEvent = EconomicCalendarEvent & { release_at: number }
-const clean = (n: number) => Math.round(n * 1e12) / 1e12 || 0
 const unavailable = (reason: string): Feature => ({ value: null, reason })
-const feature = (value: number, inputs: SignalInputs): Feature => ({ value: clean(value), reason: '', inputs })
+const feature = (value: number, inputs: SignalInputs): Feature => usableSignal(value, inputs)
 
 export function supportsCpiV3(release: InspectorRelease | null) {
   return !!release && release.familyId === 'us-cpi' && release.country === 'US' && release.currency === 'USD'
@@ -44,13 +43,7 @@ function month(event: EconomicCalendarEvent) {
 }
 function rate(event: EconomicCalendarEvent | undefined) {
   if (!event || event.unit !== 1 || event.multiplier !== 0 || event.actual === null || !Number.isFinite(event.actual)) return null
-  const raw = event.actual_raw_scaled_1e6
-  if (raw != null) {
-    if (!/^[+-]?\d+$/.test(raw)) return null
-    const value = Number(raw) / 1e6
-    return Number.isFinite(value) ? value : null
-  }
-  return event.actual
+  return nativeNumber(event)
 }
 export function cpiV3Features(release: InspectorRelease, history: readonly TimedEvent[]): Features {
   const failed = (reason: string): Features => Object.fromEntries(signals.map((s) => [s.id, unavailable(reason)])) as Features
@@ -87,13 +80,14 @@ export function cpiV3Features(release: InspectorRelease, history: readonly Timed
   const core = monthly('840030006'), headline = monthly('840030005')
   const mean = (values: number[]) => values.reduce((sum, value) => sum + value, 0) / values.length
   const annual = current.get('840030008')
-  const annualDelta = annual ? inspectorDelta(annual) : null
+  const annualPrevious = nativeNumber(annual, 'previous')
+  const annualDelta = annual && annualPrevious !== null ? rate(annual)! - annualPrevious : null
   const inputs = (actual: number, baseline: number, actualLabel: string, baselineLabel: string): SignalInputs =>
     ({ actual, baseline, actualLabel, baselineLabel, unit: '%' })
   return {
     fresh: core.values ? feature(core.values[0] - mean(core.values.slice(1)), inputs(core.values[0], mean(core.values.slice(1)), 'Actual core m/m', 'Prior three-month average')) : unavailable(core.reason),
     trend: core.values ? feature(mean(core.values.slice(0, 3)) - mean(core.values.slice(1)), inputs(mean(core.values.slice(0, 3)), mean(core.values.slice(1)), 'Latest three-month average', 'Prior three-month average')) : unavailable(core.reason),
-    annual: annualDelta === null ? unavailable(reasons.get('840030008') || 'Core y/y Actual and supplied Previous are required.') : feature(annualDelta, inputs(rate(annual)!, rate(annual)! - annualDelta, 'Actual core y/y', 'Supplied Previous core y/y')),
+    annual: annualDelta === null ? unavailable(reasons.get('840030008') || 'Core y/y Actual and supplied Previous are required.') : feature(annualDelta, inputs(rate(annual)!, annualPrevious!, 'Actual core y/y', 'Supplied Previous core y/y')),
     headline: headline.values ? feature(headline.values[0] - mean(headline.values.slice(1)), inputs(headline.values[0], mean(headline.values.slice(1)), 'Actual headline m/m', 'Prior three-month average')) : unavailable(headline.reason),
   }
 }

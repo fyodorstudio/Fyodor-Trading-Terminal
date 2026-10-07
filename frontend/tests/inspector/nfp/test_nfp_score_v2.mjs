@@ -22,9 +22,10 @@ const mount = (Component, props) => {
 
 try {
   const { assessNfpScoreV2, supportsNfpV2, nfpScoreV2Version, nfpV2SeriesIds, nfpV2Features } = await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/NFP/assessment/nfp-score-v2.ts')
+  const { monthlyComparison } = await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/NFP/assessment/monthly-comparison.ts')
   const { groupInspectorReleases, defaultInspectorPreferences, inspectorStorageKey, readInspectorPreferences } = await server.ssrLoadModule('./src/inspector/inspector-data.ts')
   const { exportWorkspace, restoreWorkspace } = await server.ssrLoadModule('./src/workspace-portability/workspace-snapshot.ts')
-  assert.equal(nfpScoreV2Version, 'nfp-eurusd-labor-context-v2')
+  assert.equal(nfpScoreV2Version, 'nfp-eurusd-labor-context-v2.2')
   const raw = (value) => value === null ? null : String(Math.round(value * 1e6))
   const reading = (year, reference, values = {}, prior = {}, revision = 150) => {
     const at = Date.UTC(year, reference + 1, 7, 12, 30), period = Date.UTC(year, reference, 1) / 1000
@@ -54,8 +55,19 @@ try {
   const weak = select({ '840030016': 50, '840030015': 4.3, '840030018': .1, '840030020': 34.2 },
     { '840030015': 4.2, '840030020': 34.3, '840030016': 180 }, 130)
   const score = assessNfpScoreV2(weak, weakHistory)
+  const unemploymentRow = weak.events.find(e => e.event_id === '840030015')
+  const revisedUnemployment = { ...unemploymentRow, actual: 4.4, actual_raw_scaled_1e6: '4400000', previous: 4.6,
+    previous_raw_scaled_1e6: '4600000', revised_previous: 4.5, revised_previous_raw_scaled_1e6: '4500000' }
+  assert.equal(monthlyComparison(revisedUnemployment, weakHistory, true).value, .1, 'Compare December 4.4 with its known revised November 4.5, not old 4.6')
+  assert.equal(monthlyComparison({ ...revisedUnemployment, revised_previous_raw_scaled_1e6: 'bad' }, weakHistory, true).value, null,
+    'An invalid supplied revision must not silently fall back to a stale Previous')
+  const priorUnemployment = weakHistory.find(e => e.event_id === '840030015' && e.period_seconds === Date.UTC(2026, 5, 1) / 1000)
+  const gapHousehold = weakHistory.filter(e => e !== priorUnemployment)
+  assert.equal(monthlyComparison(revisedUnemployment, gapHousehold, true).value, null)
+  assert.equal(monthlyComparison(revisedUnemployment, [...gapHousehold, { ...priorUnemployment, release_at: weak.releaseAt + 1 }], true).value, null)
+  assert.equal(monthlyComparison(revisedUnemployment, [...weakHistory, { ...priorUnemployment, value_id: 'duplicate-household' }], true).value, null)
   assert.equal(score.label, 'EURUSD Long'); assert.equal(score.strength, 'strong')
-  assert.deepEqual(score.readings.map((r) => r.value), [-130, -.1, -.2, -50, -.1])
+  assert.deepEqual(score.readings.map((r) => r.value), [-120, -.1, -.2, -50, -.1], 'The nearest hiring month uses the revision known in this publication')
   assert.equal(score.availableWeight, 100); assert.equal(score.reduced, false)
   assert.equal(score.total, score.readings.reduce((sum, r) => sum + r.points * r.weight, 0) / 100)
   assert.match(score.explanation, /Hiring is below/)
@@ -112,6 +124,8 @@ try {
   assert.equal(nfpV2Features(skipped, skippedHistory).features.revision.value, null)
   const skippedScore = assessNfpScoreV2(skipped, skippedHistory)
   assert.equal(skippedScore.readings[3].points, null)
+  assert.equal(skippedScore.readings[1].points, null, 'Missing October household data cannot establish November monthly unemployment')
+  assert.equal(skippedScore.readings[4].points, null, 'A gap cannot silently become a one-month hours comparison')
   assert.match(skippedScore.readings[3].reason, /preceding reference month/)
   assert.equal(skipped.events.find(e => e.event_id === '840030016').revised_previous, -105,
     'Keep valid broker values; exclude an invalid interpretation, not the data')
@@ -156,7 +170,7 @@ try {
   const revision = { ...monthly, value_id: 'timed-revision', actual: 300, actual_raw_scaled_1e6: '300000000' }
   assert.deepEqual(assessNfpScoreV2(weak, [...weakHistory, { ...revision, release_at: weak.releaseAt + 1 }]), score)
   assert.equal(assessNfpScoreV2(weak, [...weakHistory, { ...revision, release_at: weak.releaseAt - 1 }]).readings[0].value,
-    -176.666666666667)
+    -120, 'The publication-supplied nearest-month revision supersedes an earlier vintage of that month')
   assert.equal(assessNfpScoreV2(weak, weakHistory.map((e) => e === monthly ?
     { ...e, availability: 'not-returned-by-latest-query' } : e)).readings[0].points, null)
   for (const change of [{ unit: 1 }, { multiplier: 0 }, { actual: null }, { actual_raw_scaled_1e6: 'bad' },
@@ -181,6 +195,7 @@ try {
   globalThis.fetch = async () => { throw new Error('Unexpected fetch') }
   const table = mount(NfpScoreV2, { release: weak, brokerId: null, events: weakHistory })
   await table.render()
+  assert.match(table.container.querySelector('.scoring-engine-version').textContent, /v2\.2/)
   assert.equal(table.container.querySelector('[aria-label="NFP v2 pair direction"]').textContent, 'EURUSD Long')
   assert.equal(table.container.querySelector('[aria-label="NFP v2 evidence strength"]').textContent, 'strong evidence')
   assert.ok(table.container.querySelector('[aria-label="NFP v2 change size"]'))

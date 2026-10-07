@@ -1,5 +1,33 @@
 # Scoring system library
 
+## Current integrity refinement — 7 October 2026
+
+USD memory v8; relative EURUSD v3; relationship derivation v3; CPI Inspector v4.1
+with standalone v3.2; NFP v2.2; EUR numerical v1.1. Other family versions remain.
+
+Retired rules: v6/v7 and relative v2 multiplied component coverage into an already
+partial score; v7 also vetoed direction for an individual partial CPI/NFP even
+when aggregate available evidence qualified. Current votes retain component
+weights once, keep usable coverage separate, and require 60% configured coverage
+and one-third net/gross agreement. Incomplete directional context is Weak and
+names its limitations. Missing inputs never supply a confirming vote.
+
+Relationship v2 could confuse moving calibration limits with fresh economic
+change. V3 compares both derived features under the latest release's known limits;
+calibration drift, renewal and changed availability are separately disclosed and
+cannot vote as fresh news. Unknown provenance blocks comparison.
+
+NFP v2.2 blocks invalid raw supplied revisions and accepts a valid revised-only
+prior when its preceding reference is established. CPI v3.2 rejects unsafe native
+rates; shared signals reject non-finite values. EUR v1.1 chooses the first calibrated
+PMI Composite / Services / Manufacturing reading, never a sum of overlapping PMI.
+
+Budgets, automatic quantiles, manual magnitude preferences, half-lives, expiries
+and guarded policy-transfer thresholds were not fitted to price or replaced.
+The older version sections below preserve what those implementations were. See
+`fyodor trading terminal main objective.md` for tranche evidence and audit limits.
+
+
 Updated: 7 October 2026. Scope: EURUSD, starting with USD event families.
 
 ## Accepted EUR roadmap — numerical v1 implemented
@@ -43,16 +71,21 @@ not promises about the release candle or a future price move.
 
 - No survey forecasts enter scoring.
 - Unequal family-specific priorities resolve conflicting readings into one bias.
-- Exact cancellation uses a documented priority; no Mixed/Neutral label.
+- Standalone scorers retain their declared tie priorities. Combined context v7 /
+  relative v2 withhold direction for Mixed evidence or Insufficient context.
 - Missing data, insufficient calibration or no directional change can produce
   **Uncomputed**, with a reason. A direction is never fabricated to fill a label.
 - Evidence strength describes agreement, not probability. Change size is separate.
-- Original scorers remain available for comparison. Magnitude settings and stored
-  preferences remain compatible.
+- The interface exposes the latest scorer only; old policies are documented below.
+  Magnitude settings and stored preferences remain compatible.
 - Visual UI verification belongs to the user; terminal tests, lint and builds
   verify implementation.
 
-## Existing systems
+## Systems and archived lineage
+
+The current implementation section at the end supersedes older menu names and
+policies in this historical inventory. Current NFP is v2.1, shared context v7,
+relative context v2 and relationship derivation v2.
 
 | System | Inspector menu | Policy and status |
 | --- | --- | --- |
@@ -2089,3 +2122,103 @@ are reused; out-of-range participant details use an isolated cancellable query.
 Blank chart clicks clear release/combo inspection and dismiss roof choosers/More.
 Drawing-mode clicks and Notebook object hits retain their own purpose. No scoring
 rule or context input changed.
+
+## Implemented: context v7, relative v2, relationships v2 and NFP v2.1 — 7 October 2026
+
+The December 2025–January 2026 Candy/Roof audit identified unjustified direction
+under incomplete data, near cancellation and renewal effects. These refinements
+improve integrity and interpretation boundaries. They do not force Long to match
+the January rally or prove a causal explanation of it. Dataset-only scope stays
+in place: no speeches, consensus forecasts, geopolitical feed or price input is
+added to scoring. Raw calendar readings remain unchanged.
+
+### Current outputs and safeguards
+
+Combined interpretation has three decision states: directional (existing Long or
+Short), Mixed evidence, and Insufficient context. Candy colors are green/red,
+amber and gray respectively. Public combined labels in Raycaster, Inspector,
+Combo details, Candy and Notebook use the same decision metadata. Raw signed
+pressure remains visible in advanced calculations and cannot substitute for a
+withheld directional output.
+
+Usable components must cover at least 60% of the configured enabled budget.
+Enabled primary USD CPI and NFP must each have at least 60% usable components;
+missing/expired primaries fail this check. EUR relative mode requires usable
+coverage on both legs, with aggregates/proxies occupying their existing shared
+slots. Age retention is separate from usable coverage. An explicitly selected
+subset changes the configured denominator; it does not redistribute votes.
+Unchanged/cancelling pressure or absolute net below one third of gross
+contributions is Mixed evidence. Directional evidence keeps its existing grade
+rules; EUR relative evidence is capped at Moderate. These are declared prototype
+completeness/agreement safeguards, not fitted accuracy or probability thresholds.
+
+### Reference periods and revisions: NFP v2.1
+
+Unemployment, participation, hours and non-voting annual wages/broader unemployment
+need a unique observed immediately preceding reference month. They use the
+publication's supplied Revised Previous when valid, otherwise supplied Previous.
+An invalid supplied revision cannot silently fall back to a stale value. The
+preceding three-month hiring/wage pace uses the supplied revision for its nearest
+month only when all three consecutive months already exist. Gaps are never filled.
+The existing same-reference payroll revision guard remains.
+
+The official January 9 report compares December unemployment 4.4% with revised
+November 4.5%, not old 4.6%. The December 16 household report has no October
+observation; monthly comparisons across that gap remain unavailable. October
+payrolls −105k were newly published with November +64k, so the broker field is
+retained without treating it as a −224k September revision. Earlier calibration
+uses the same revised rules. No NFP weight or unrelated standalone math changes.
+
+Official cross-checks: [December employment](https://www.bls.gov/news.release/archives/empsit_12162025.htm),
+[January employment](https://www.bls.gov/news.release/archives/empsit_01092026.htm)
+and [November CPI](https://www.bls.gov/news.release/archives/cpi_12182025.htm).
+The latter lacks usual October/November monthly observations; the existing CPI
+continuity gates preserve that limitation rather than inferring a monthly value.
+These sources establish release facts, not what caused the FX reversal.
+
+### Roof meanings and comparable economic changes
+
+ISM-sector Roofs retain the standalone monthly resolution. Labor priority Roofs
+show quality-gated accumulated USD context at qualification. Experimental fresh
+Roofs show recent comparable economic score changes, not total context. All
+remain USD-only in both Candy modes, disclosed in settings/tooltips/details.
+Participating standalone directions remain plainly visible.
+
+Fresh v2 requires an active predecessor/current assessment with matching usable
+component IDs, component weights and coverage, with coverage at least 60% on
+both. Economic change = fixed base weight × matched coverage × score difference.
+Only the latest change per family is kept for seven days; two agreeing domain
+nets qualify a Roof. Memory renewal, changed coverage and non-comparable/new
+availability are separately decomposed and add no economic vote. A near-cancelling
+net shows Mixed; exact cancellation supplies no directional Roof. Repeated Claims
+confirmations remain one labor vote, and conditional priority transfers are not
+new economic evidence.
+
+### Archived rules superseded by this pass
+
+- **NFP v2:** supplied Previous for unemployment/hours regardless of a missing
+  preceding reference month; hiring/wage pace used stored nearest-month actual
+  without the revision supplied by the current publication. It remains documented
+  in earlier sections; v2.1 replaces it in the latest-only interface.
+- **USD context v6.2:** incomplete sources and narrow/cancelling net could still
+  show Long/Short with Weak evidence; exact ties exposed family-priority direction.
+  Current raw pressure preserves the audit math, but v7 gates public conclusions.
+- **Relative context v1:** sparse legs could show Weak direction and exact ties
+  followed the USD leg. V2 withholds incomplete or mixed conclusions.
+- **Relationship v1 fresh news:** replacement against retained old evidence mixed
+  economic change with renewal, coverage and availability; no predecessor meant
+  compare with zero. V2 separates these effects and requires comparability.
+
+Old manual audit verdicts are retained as old snapshots; v7/relationship v2
+metadata makes them distinct from newly opened combinations. Roof display v5,
+activation clocks, stable pan anchors, selection and marker filtering are retained.
+No pointer-triggered rescoring is introduced. Reviewed replay findings belong in
+reports/Context-v7-refinement-audit.md; the manual checklist is in manual edit.md.
+
+### Remaining limitations
+
+The calendar is the currently stored provider vintage, not certified original
+as-published observations. Matching components do not establish identical
+historical calibration thresholds. Economic scoring does not include positioning,
+market expectations, policy text or outside shocks. Abstention fixes an unsupported
+claim; it does not explain a rally. These assumptions require continued audit.
