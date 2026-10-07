@@ -53,7 +53,8 @@ try {
     timeToCoordinate: time => { coordinateCalls++; return (time - at / 1000) / 3600 * 200 + 100 + pan },
     subscribeVisibleLogicalRangeChange: fn => { rangeHandler = fn }, unsubscribeVisibleLogicalRangeChange: fn => { assert.equal(fn, rangeHandler); unsubscribed++ },
     subscribeSizeChange: fn => { sizeHandler = fn }, unsubscribeSizeChange: fn => { assert.equal(fn, sizeHandler); unsubscribed++ } }
-  const chartApi = { timeScale: () => scale }
+  const chartClicks = new Set()
+  const chartApi = { timeScale: () => scale, subscribeClick: fn => chartClicks.add(fn), unsubscribeClick: fn => chartClicks.delete(fn) }
   assert.equal(roofBarIndex(bars, at + hour / 2, 'H1'), 0)
   assert.equal(roofBarIndex(bars, at - 1, 'H1'), null)
   assert.equal(roofBarIndex(bars, at + 2 * hour, 'H1'), null, 'Do not project onto a gap or future bar')
@@ -127,6 +128,11 @@ try {
   await React.act(async () => document.dispatchEvent(new dom.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })))
   assert.equal(container.querySelector('[role="dialog"]'), null)
   assert.equal(document.activeElement, container.querySelector('.combo-roof-start'))
+  await React.act(async () => container.querySelector('.combo-roof-start').click())
+  assert.ok(container.querySelector('[role="dialog"]'))
+  await React.act(async () => { for (const click of chartClicks) click({ point: { x: 500, y: 50 } }) })
+  assert.equal(container.querySelector('[role="dialog"]'), null, 'Blank chart click dismisses the release chooser')
+  assert.equal(chartClicks.size, 0, 'Transient chooser subscriptions detach after dismissal')
   const zoomed = await load('usd-context/sequences/chart/roof-plan.ts')
   const compact = zoomed.createRoofPlan(zoomed.prepareRoofAnchors([current], bars, 'H1', visibleMarkers, true, 1), 12, false)
   assert.equal(compact.entries[0].positioned.endpoints.length, 2, 'Zooming out never moves an earlier candle onto the activation dot')

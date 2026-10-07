@@ -145,7 +145,9 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
           selectedId={release?.id ?? null} symbols={view.preferences.symbols} timeDisplay={timeDisplay}
           brokerTime={view.brokerTime} now={view.now + (view.brokerTime ? view.brokerOffsetSeconds * 1000 : 0)} onSelect={view.selectRelease} />
         <div className="inspector-detail" aria-live="polite">
-          {!release ? <p className="inspector-empty">Click a chart symbol or select a release to inspect Actual, Previous and A−P.</p> : <>
+          {!release ? <p className="inspector-empty" role={view.inspectingPublication ? 'status' : undefined}>{view.inspectingPublication ?
+            view.publicationLoading ? 'Loading selected publication…' : view.publicationError ?? 'Selected publication is unavailable in stored history.' :
+            'Click a chart symbol or select a release to inspect Actual, Previous and A−P.'}</p> : <>
             {showScoring && scoringBinding ? <InspectorScoringView binding={scoringBinding} release={release}
               brokerId={view.brokerId} events={scoringEvents} now={view.now} timeDisplay={timeDisplay}
               onOpenScatter={scatterAvailable ? onOpenScatter : undefined} /> :

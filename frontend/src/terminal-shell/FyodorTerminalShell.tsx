@@ -247,17 +247,14 @@ export function FyodorTerminalShell() {
   const selectCombo = useCallback((combo: ComboSnapshot) => {
     setComboSelection({ combo, symbol: activeSymbol, broker: brokerId }); selectBottomDock('inspector')
   }, [activeSymbol, brokerId, selectBottomDock])
-  const applyInspectorPreferences = inspector.applyPreferences, inspectorPreferences = inspector.preferences
-  const selectInspectorRange = inspector.selectCustomRange
+  const inspectorPreferences = inspector.preferences
+  const inspectPublication = inspector.inspectPublication
   const openComboRelease = useCallback((source: ComboSource) => {
-    const family = source.family === 'cpi' ? 'us-cpi' : source.family === 'nfp' ? 'jobs' : source.family
-    const families = source.family === 'ism' ? ['ism-manufacturing', 'ism-services'] : [family]
-    applyInspectorPreferences({ ...inspectorPreferences, detailView: 'table',
-      families: [...new Set([...inspectorPreferences.families, ...families])] }, 'preview')
-    const date = new Date(source.chartAt).toISOString().slice(0, 10)
-    selectInspectorRange(date, date)
-    selectChartRelease(source.sourceId)
-  }, [applyInspectorPreferences, inspectorPreferences, selectInspectorRange, selectChartRelease])
+    setComboSelection(null); inspectPublication(source.sourceId, source.chartAt); selectBottomDock('inspector')
+  }, [inspectPublication, selectBottomDock])
+  const clearChartInspection = useCallback(() => {
+    setComboSelection(null); setReleaseSelection(null)
+  }, [setReleaseSelection])
   const openScatter = useCallback((release: Parameters<typeof scatterReleaseTarget>[0]) => {
     const target = scatterReleaseTarget(release, inspector.brokerId, inspector.now)
     if (target) { setScatterTarget(target); setBottomDockWindow('scatter-plot') }
@@ -275,7 +272,8 @@ export function FyodorTerminalShell() {
   const renderChartOverlay = useTerminalChartOverlay({ arrows: registeredArrows.symbolArrows,
     selectedArrowId: registeredArrows.selectedArrowId, draftPlan: plannedTrade, onSelectArrow: selectChartArrow,
     supported: inspector.supported, markers: inspector.markers, currencyColors: inspector.preferences.currencyColors,
-    timeDisplay, onSelectRelease: selectChartRelease, raycaster })
+    timeDisplay, onSelectRelease: selectChartRelease, raycaster,
+    onClearInspection: !activeDrawingTool && (selectedCombo || inspector.selectedRelease || inspector.inspectingPublication) ? clearChartInspection : undefined })
 
   const sourceState = !bridge.reachable || marketData.marketWatchStatus === 'unavailable'
     ? 'error'

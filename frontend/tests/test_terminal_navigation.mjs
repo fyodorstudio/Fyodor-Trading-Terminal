@@ -189,6 +189,22 @@ try {
   }
   assert.equal(lines.size, 0); assert.equal(clicks.size, 0); assert.equal(primitives.size, 0)
   console.log('✓ Mounted Notebook markers, selection, draft/registered levels and cleanup')
+  const { ChartInspectionDismiss } = await server.ssrLoadModule('./src/terminal-shell/chart-overlays/ChartInspectionDismiss.tsx')
+  const dismissRoot = createRoot(container)
+  let cleared = 0
+  try {
+    await React.act(async () => dismissRoot.render(React.createElement(ChartInspectionDismiss, { chartApi })))
+    assert.equal(clicks.size, 0, 'No click subscription without an active inspection')
+    await React.act(async () => dismissRoot.render(React.createElement(ChartInspectionDismiss, { chartApi, onClear: () => cleared++ })))
+    assert.equal(clicks.size, 1)
+    await React.act(async () => { for (const handler of clicks) handler({ point: { x: 50, y: 50 }, hoveredObjectId: 'manual' }) })
+    assert.equal(cleared, 0, 'Clicking a Notebook arrow does not clear release inspection')
+    await React.act(async () => { for (const handler of clicks) handler({ point: { x: 50, y: 50 } }) })
+    assert.equal(cleared, 1, 'A blank chart click clears inspection')
+    await React.act(async () => dismissRoot.render(React.createElement(ChartInspectionDismiss, { chartApi })))
+    assert.equal(clicks.size, 0, 'Deselecting or entering drawing mode detaches the inspection listener')
+  } finally { await React.act(async () => dismissRoot.unmount()) }
+  console.log('✓ Blank chart deselection, object-hit preservation and listener lifecycle')
 } finally {
   await React.act(async () => root.unmount())
   await server.close()

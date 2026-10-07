@@ -17,6 +17,7 @@ import { useMarkerBars } from './chart/useMarkerBars'
 
 import { normalizeInspectorDetailView } from './inspector-detail-view'
 import { useCalendarNow } from './useCalendarNow'
+import { usePublicationInspection } from './releases/usePublicationInspection'
 
 const noEvents: EconomicCalendarEvent[] = []
 
@@ -34,7 +35,7 @@ export function useInspector({ events = noEvents, symbol, bars, timeframe, timeD
   const initialWeek = displayWeekDateKeys(displayDateKey(now + (brokerTime ? brokerOffsetSeconds * 1000 : 0), rangeDisplay))
   const [customFrom, setCustomFrom] = useState(initialWeek.start)
   const [customTo, setCustomTo] = useState(initialWeek.end)
-  const [selectedId, selectRelease] = useState<string | null>(null)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
   const supported = supportsInspector(symbol)
   const today = displayDateKey(now + (brokerTime ? brokerOffsetSeconds * 1000 : 0), rangeDisplay)
   const rangeDates = useMemo(() => inspectorRangeDates(rangePreset, today, customFrom, customTo), [rangePreset, today, customFrom, customTo])
@@ -56,7 +57,13 @@ export function useInspector({ events = noEvents, symbol, bars, timeframe, timeD
     [supported, displayReleases, preferences, range, brokerTime])
   const markerBars = useMarkerBars(bars)
   const markers = useMemo(() => buildInspectorMarkers(releases, preferences, markerBars, timeframe), [releases, preferences, markerBars, timeframe])
-  const selectedRelease = releases.find((release) => release.id === selectedId || episodePublications(release)?.some(r => r.id === selectedId)) ?? null
+  const inspection = usePublicationInspection(symbol, brokerId, displayReleases, supported)
+  const { inspectPublication, clearPublicationInspection, inspectingPublication, inspectedRelease, publicationLoading, publicationError } = inspection
+  const selectRelease = useCallback((id: string | null) => {
+    clearPublicationInspection(); setSelectedId(id)
+  }, [clearPublicationInspection])
+  const selectedRelease = inspectingPublication ? inspectedRelease :
+    releases.find((release) => release.id === selectedId || episodePublications(release)?.some(r => r.id === selectedId)) ?? null
   const needsMagnitude = detailOpen && preferences.detailView === 'table'
   // PMI table sections own their original per-country magnitude histories.
   const magnitudeRelease = needsMagnitude && !selectedRelease?.pmiPublications ? selectedRelease?.ismPublications?.[0] ?? selectedRelease : null
@@ -72,8 +79,10 @@ export function useInspector({ events = noEvents, symbol, bars, timeframe, timeD
   }, [])
   return useMemo(() => ({ supported, preferences, applyPreferences, storageFailed, rangePreset, setRangePreset, customFrom, setCustomFrom,
     customTo, setCustomTo, range, rangeDates, today, selectCustomRange, allReleases, releases, markers, selectedRelease, selectRelease, now,
-    markerBars, brokerTime, brokerOffsetSeconds, brokerId, storage, magnitudeHistory }),
+    markerBars, brokerTime, brokerOffsetSeconds, brokerId, storage, magnitudeHistory,
+    inspectPublication, inspectingPublication, publicationLoading, publicationError }),
     [supported, preferences, applyPreferences, storageFailed, rangePreset, customFrom, customTo, range, rangeDates, today,
-      selectCustomRange, allReleases, releases, markers, selectedRelease, now, markerBars, brokerTime, brokerOffsetSeconds, brokerId, storage, magnitudeHistory])
+      selectCustomRange, allReleases, releases, markers, selectedRelease, selectRelease, now, markerBars, brokerTime, brokerOffsetSeconds, brokerId, storage, magnitudeHistory,
+      inspectPublication, inspectingPublication, publicationLoading, publicationError])
 }
 export type InspectorView = ReturnType<typeof useInspector>

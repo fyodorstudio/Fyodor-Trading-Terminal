@@ -53,6 +53,10 @@ Neither mode changes scores, qualification, selected inputs, Candy, or Raycaster
 
 The dot tooltips explain the purpose and clock without permanent Starts/Update badges. Marker filters can hide a contributing symbol without removing its calculation input. Hidden contributors remain disclosed in the roof tooltip and Combo details. If no participating marker is visible, the roof is not drawn; the underlying context calculation is unchanged.
 
+Dot clicks and participant links inspect a release temporarily. They **do not change your date range, selected families, symbol visibility, or preferred Table/Scoring view**. A hidden or out-of-range participant can be loaded separately for its detail panel; this does not replace the chart's release query or shrink its symbol timeline.
+
+Click blank chart space to deselect the release or combo and dismiss an open roof release chooser or More list. Inspector remains open with its normal unselected prompt; chart symbols retain your current range and filters. This does not enable families you intentionally hid, change scoring inputs, or reset the chart viewport. During an active drawing tool, chart clicks retain their drawing purpose; exit drawing mode before using blank-click deselection. Clicking an existing Notebook arrow retains its selection behavior.
+
 ### Availability is not an entry instruction
 
 The **filled dot is the earliest point at which this complete combo can inform a trading thesis**. The earlier span explains where its inputs came from. Do not interpret a Long/Short roof as if its final output were already known at the first hollow dot.

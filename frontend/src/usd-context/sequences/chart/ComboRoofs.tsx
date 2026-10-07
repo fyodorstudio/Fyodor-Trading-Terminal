@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useState } from 'react'
-import type { IChartApi } from 'lightweight-charts'
+import type { IChartApi, MouseEventParams, Time } from 'lightweight-charts'
 import type { OhlcBar } from '../../../market-data/contracts/OhlcBar'
 import type { ChartTimeframe } from '../../../market-data/contracts/ChartTimeframe'
 import type { InspectorMarker } from '../../../inspector/inspector-data'
@@ -25,6 +25,14 @@ function ComboRoofsComponent({ chartApi, episodes, bars, timeframe, markers, now
   const [releaseSelection, setReleaseSelection] = useState<{ roof: PositionedRoof; endpoint: RoofEndpoint; trigger: HTMLButtonElement } | null>(null)
   const closeReleases = useCallback(() => setReleaseSelection(null), [])
   const releaseChooser = releaseSelection && positioned.includes(releaseSelection.roof) ? releaseSelection : null
+  useEffect(() => {
+    if (!releaseChooser && !chooser) return
+    const clear = (event: MouseEventParams<Time>) => {
+      if (event.point && !event.hoveredObjectId) { setReleaseSelection(null); setChooser(false) }
+    }
+    chartApi.subscribeClick(clear)
+    return () => chartApi.unsubscribeClick(clear)
+  }, [chartApi, releaseChooser, chooser])
   const count = knownRoofCount(episodes, now)
   const anchors = useMemo(() => prepareRoofAnchors(episodes, bars, timeframe, markers, experimental, count),
     [episodes, bars, timeframe, markers, experimental, count])
@@ -48,7 +56,8 @@ function ComboRoofsComponent({ chartApi, episodes, bars, timeframe, markers, now
     return () => { if (frame !== null) window.cancelAnimationFrame(frame); scale.unsubscribeVisibleLogicalRangeChange(schedule); scale.unsubscribeSizeChange(schedule) }
   }, [chartApi, anchors, bars, focused])
   if (!positioned.length && !overflow.length) return null
-  return <div className={`combo-roofs${releaseChooser ? ' combo-roof-choosing' : ''}`} style={currencyColorStyle(currencyColors)} aria-label="Clickable combo roofs">
+  return <div className={`combo-roofs${releaseChooser ? ' combo-roof-choosing' : ''}`} style={currencyColorStyle(currencyColors)} aria-label="Clickable combo roofs"
+    onClick={e => e.stopPropagation()}>
     <div className="combo-roof-content">
     <svg className="combo-roof-lines" width="100%" height="132" aria-hidden="true">{positioned.map(p => {
       const y = roofLaneY(p.lane)

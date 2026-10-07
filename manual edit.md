@@ -413,3 +413,16 @@ inline hidden counts. Numerical audit findings and stable panning checks remain.
 
 Terminal checks cover dot routing, exact activation versus earlier same-candle
 inputs, hidden activators, choosers, cutoff, stable panning and shared settings.
+
+## Roof selection and blank-chart deselection fix
+
+- [ ] Set a broad Inspector date range and custom family filters. Click hollow
+  and filled dots: the release opens without changing range, filters, Table/Scoring
+  preference or removing any existing chart symbols.
+- [ ] Click blank chart space after inspecting a release, direction label, or
+  opening a roof chooser/More list. Selection/popups clear; Inspector remains open
+  and symbols still follow your original range and filters.
+- [ ] Open a filtered or out-of-range participant from Combo details. Its detail
+  can load separately without widening/narrowing the chart calendar. Change pair
+  or broker while loading: a late response must not restore the old selection.
+- [ ] Check drawing tools and Notebook arrow clicks retain their normal behavior.

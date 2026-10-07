@@ -308,6 +308,31 @@ try {
   await click(document.querySelector('[aria-label="Close date range picker"]'))
   const id = view.releases.find((release) => release.familyId === 'us-cpi').id
   await act(async () => view.selectRelease(id))
+  const savedInspectionPreferences = localStorage.getItem(data.inspectorStorageKey)
+  const inspectionRange = view.range, inspectionDates = view.rangeDates, inspectionMarkers = view.markers
+  const inspectionPreferences = view.preferences
+  await act(async () => view.inspectPublication(id, anchor * 1000))
+  assert.equal(view.selectedRelease.id, id)
+  assert.equal(view.inspectingPublication, true)
+  assert.equal(view.range, inspectionRange, 'Roof selection cannot narrow the calendar range')
+  assert.equal(view.rangeDates, inspectionDates)
+  assert.equal(view.preferences, inspectionPreferences, 'Roof selection cannot enable filters or switch the preferred view')
+  assert.equal(view.markers, inspectionMarkers, 'All chart symbols retain their identity during inspection')
+  assert.equal(localStorage.getItem(data.inspectorStorageKey), savedInspectionPreferences)
+  await act(async () => view.selectRelease(null))
+  assert.equal(view.selectedRelease, null)
+  assert.equal(view.inspectingPublication, false)
+  assert.equal(view.markers, inspectionMarkers, 'Deselecting leaves the complete symbol view intact')
+  await act(async () => view.applyPreferences({ ...inspectionPreferences, families: [] }, 'preview'))
+  await act(async () => view.inspectPublication(id, anchor * 1000))
+  assert.equal(view.selectedRelease.id, id, 'Explicit inspection can show a filtered-out release without enabling its family')
+  assert.equal(view.markers.length, 0)
+  assert.deepEqual(view.preferences.families, [])
+  await app.render({ symbol: 'GBPUSD' })
+  assert.equal(view.inspectingPublication, false, 'Changing the pair clears temporary inspection')
+  await app.render()
+  assert.equal(view.inspectingPublication, false, 'Returning to the pair cannot revive a dismissed selection')
+  await act(async () => { view.applyPreferences(inspectionPreferences, 'preview'); view.selectRelease(id) })
   await app.render({ panel: false })
   assert.ok(view.markers.length, 'Closing the panel keeps marker state active')
   await app.render({ events: [event({ actual: .5 }), core] })
@@ -1202,6 +1227,39 @@ try {
   await historyApp.render({ selected: selectedNfp, brokerId: null })
   assert.match(historyApp.container.textContent, /History needs calendar storage/)
   console.log('✓ Seven zero-centered NFP bands, all-dataset frozen magnitudes, hidden extremes, earlier/total hover details and selection-independent history lifecycle')
+
+  const { usePublicationInspection } = await server.ssrLoadModule('./src/inspector/releases/usePublicationInspection.ts')
+  let detailInspection
+  function DetailInspection({ brokerId = 'Broker-A' }) {
+    const inspection = usePublicationInspection('EURUSD', brokerId, [], true)
+    React.useLayoutEffect(() => { detailInspection = inspection }, [inspection])
+    return null
+  }
+  const detailApp = mount(DetailInspection, {})
+  await detailApp.render()
+  const outsideRelease = data.groupInspectorReleases([stored(event())])[0]
+  start = storageRequests.length
+  await act(async () => detailInspection.inspectPublication(outsideRelease.id, anchor * 1000))
+  await respond(storageRequests[start], storedHealth())
+  const isolatedRequest = storageRequests[start + 1]
+  assert.equal(new URL('http://localhost' + isolatedRequest.url).searchParams.get('time_basis'), 'chart')
+  await respond(isolatedRequest, page([stored(event())]))
+  assert.equal(detailInspection.inspectedRelease.id, outsideRelease.id, 'Out-of-range participant detail has an isolated storage query')
+  await act(async () => detailInspection.clearPublicationInspection())
+  assert.equal(detailInspection.inspectedRelease, null)
+  assert.equal(detailInspection.inspectingPublication, false)
+  assert.ok(isolatedRequest.signal.aborted, 'Deselect cancels the supplemental storage polling session')
+  start = storageRequests.length
+  await act(async () => detailInspection.inspectPublication(outsideRelease.id, anchor * 1000))
+  await respond(storageRequests[start], storedHealth())
+  const lateDetail = storageRequests[start + 1]
+  await detailApp.render({ brokerId: 'Broker-B' })
+  assert.ok(lateDetail.signal.aborted)
+  await respond(lateDetail, page([stored(event())]))
+  assert.equal(detailInspection.inspectedRelease, null, 'A late old-broker detail response cannot restore inspection')
+  await detailApp.render()
+  assert.equal(detailInspection.inspectingPublication, false)
+  console.log('✓ Temporary roof inspection preserves range/filter/view/markers, hidden participant access and scoped query cancellation')
 } finally {
   await act(async () => { for (const root of roots) root.unmount() })
   await server.close()

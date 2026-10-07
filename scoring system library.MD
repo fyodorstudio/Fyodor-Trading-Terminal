@@ -2078,3 +2078,14 @@ The filled dot establishes availability, not an entry or holding instruction.
 Validation: five targeted terminal suites passed (roof UI, roof workflow,
 Candy, shared Fundamental tools and Raycaster), plus lint, TypeScript and the
 production build. Visual spacing and wide-zoom appearance remain for user audit.
+
+### Roof selection correction
+
+Dot/participant navigation previously narrowed Inspector to one release day,
+enabled that family and forced Table view. This also removed unrelated chart
+symbols. Replaced it with a temporary publication inspection that preserves the
+calendar query, marker identity, family filters and view preferences. Existing rows
+are reused; out-of-range participant details use an isolated cancellable query.
+Blank chart clicks clear release/combo inspection and dismiss roof choosers/More.
+Drawing-mode clicks and Notebook object hits retain their own purpose. No scoring
+rule or context input changed.
