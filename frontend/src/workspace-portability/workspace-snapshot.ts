@@ -1,4 +1,6 @@
 import { validTradeWorkflow } from '../trader-notebook/workflow/workflow-model'
+import { validExternalEvents } from '../external-events/core/external-event'
+import { externalEventsKey } from '../external-events/storage/external-event-store'
 import { relativePreferencesKey, validRelativePreferences } from '../pair-context/storage/relative-preferences'
 import { sequencePreferencesKey, validSequencePreferences } from '../usd-context/sequences/storage/sequence-preferences'
 import { roofAuditsKey } from '../usd-context/sequences/audit/audit-storage'
@@ -30,6 +32,7 @@ const symbolKey = (key: string, prefix: string) => key.startsWith(prefix) && key
   key.length <= prefix.length + 128 && [...key.slice(prefix.length)].every((char) => char.charCodeAt(0) >= 32)
 
 const validators: Record<string, (v: unknown) => boolean> = {
+  [externalEventsKey]: validExternalEvents,
   [bottomDockHeightKey]: validBottomDockHeight,
   'fyodor.color-theme': (v) => v === 'dark' || v === 'light',
   'fyodor.time-display.v1': (v) => record(v) && ['local', 'utc', 'fixed-offset'].includes(v.mode as string) && finite(v.utcOffsetMinutes) && v.utcOffsetMinutes >= -720 && v.utcOffsetMinutes <= 840,

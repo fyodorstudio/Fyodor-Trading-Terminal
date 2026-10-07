@@ -8,11 +8,12 @@ import { ribbonCoordinate, ribbonClockAtCoordinate } from './ribbon-geometry'
 import { RibbonExplanation } from './RibbonExplanation'
 import { brokerClock } from './broker-clock'
 import './context-ribbon.css'
+import { ExternalEventsStrip } from '../../external-events/chart/ExternalEventsStrip'
 
 type Segment = { left: number; width: number; from: number; to: number; point: RibbonPoint | null }
-function ContextRibbonComponent({ chartApi, bars, timeframe, points, now, relative, version, loading, notice, partial = false }: {
+function ContextRibbonComponent({ chartApi, bars, timeframe, points, now, relative, version, loading, notice, partial = false, symbol = '', brokerId = null }: {
   chartApi: IChartApi; bars: readonly Pick<OhlcBar, 'time'>[]; timeframe: ChartTimeframe; points: readonly RibbonPoint[];
-  now: number; relative: boolean; version: string; loading: boolean; notice: string | null; partial?: boolean
+  now: number; relative: boolean; version: string; loading: boolean; notice: string | null; partial?: boolean; symbol?: string; brokerId?: string | null
 }) {
   const [segments, setSegments] = useState<Segment[]>([])
   const [hoverState, setHover] = useState<{ segment: Segment; at: number } | null>(null)
@@ -50,6 +51,7 @@ function ContextRibbonComponent({ chartApi, bars, timeframe, points, now, relati
     return () => { if (frame) window.cancelAnimationFrame(frame); scale.unsubscribeVisibleLogicalRangeChange(schedule); scale.unsubscribeSizeChange(schedule) }
   }, [chartApi, bars, timeframe, points, now, loading, notice])
   return <div className="context-ribbon" aria-label={`Raycaster Candy · ${mode}`}>
+    <ExternalEventsStrip key={`${brokerId}:${symbol}`} chartApi={chartApi} bars={bars} timeframe={timeframe} now={now} symbol={symbol} brokerId={brokerId} />
     <div className="context-ribbon-legend">Context · {mode} · Green Long / Red Short · {loading ? 'Loading' : notice ?? `shade = evidence${partial ? ' · Partial history' : ''}`}</div>
     <div className="context-ribbon-track" onPointerLeave={clearHover}>
       {segments.map(segment => <button type="button" key={segment.from}

@@ -1958,3 +1958,69 @@ Validation: all 47 frontend terminal suites passed, including shared-worker reus
 exact-time ribbon chronology/geometry, expiry classification, independent view
 controls, Notebook snapshot isolation and workspace roundtrip. Lint and production
 build passed. Visual placement and perceived interaction remain for user review.
+
+## 7 October 2026 — Roof anchoring refinement
+
+Zoomed-out roofs now use a layout prepared across eligible loaded history instead
+of repacking the current viewport. Panning translates the same lanes and original
+source / activation anchors. Offscreen sources retain their connection; crossing
+brackets survive viewport edges, and labels clip at their original midpoint rather
+than sliding against screen boundaries. Hollow source dots complement the solid
+activation dot. Zoom, changed history/filters or density can legitimately reflow.
+
+The plan is cached by spacing and queried by indexed spans, with sorted interval
+collision checks and existing RAF coalescing. More preserves crowded access. This
+does not merge combinations, change their activation clocks or change scoring.
+The former viewport-only packing / edge-clamped labels are retired. Manual visual
+checks are recorded in manual edit.md.
+
+Validation: seven targeted terminal suites, lint and production build passed.
+Regression coverage includes wide-view pan translation, fixed lanes, offscreen
+source/activation clipping, return-to-viewport identity, future/filter exclusions,
+indexed span lookup over 100,000 roofs and the existing RAF/worker boundaries.
+
+## 7 October 2026 — Manual outside-event annotations v1
+
+Candy now carries a separate thin gray strip immediately above its context colors.
+Outside events + records a manual title, broker-chart-time window and optional
+observation/source reference. Hover lists overlapping notes; click opens editing
+and deletion. Blank end means ongoing, clipped to current chart time. Notes persist
+per broker/pair, retain actual UTC creation time and travel in workspace backups.
+
+This is audit metadata, not a scorer or relationship rule. It adds no directional
+vote, evidence upgrade, inference about causation or measured impact period. No
+scoring version changes. There are no preloaded geopolitical events. The feature
+lives in frontend/src/external-events; visible range lookup is indexed and panning
+projection is RAF-coalesced. Empty note histories subscribe to no chart updates.
+
+Manual visual checks are listed in manual edit.md; user guidance is in trading
+workflow.md. Terminal checks cover broker-clock validation, overlap/ongoing ranges,
+pan batching, local create/edit/delete, scope isolation and workspace roundtrip.
+
+Validation: seven targeted terminal suites passed, including annotation editing,
+ribbon, Raycaster, roof workflow, workspace portability, responsiveness and
+navigation. Lint, TypeScript and production build passed. Visual checks remain
+with the user.
+
+## 7 October 2026 — Roof display v4: release-symbol endpoints
+
+Retired the hollow source dots, filled activation dots and long vertical stems.
+Each of the three roof levels now uses the configured event glyphs/color on its
+connecting line. Clicking a symbol opens its release; counted nearby symbols open
+a release chooser. The direction box and More entries still open Combo details.
+Starts marks publication activation, while Update marks memory-only activation.
+Hidden activating releases use a text endpoint rather than an invented glyph.
+
+Symbol grouping is prepared at the current zoom and translated with the fixed
+roof plan during panning. Both density modes reserve full spans and symbol/label
+footprints; crowded roofs remain in More. The ordinary bottom release row remains
+available. This is display v4, not a new scorer: relationship v1, numerical context
+versions and existing saved audit identities remain unchanged.
+
+Guidance is updated in trading workflow.md; visual checks are in manual edit.md.
+
+Validation: seven targeted terminal suites, lint, TypeScript and production build
+passed. Coverage includes symbol-to-release routing, direction-box Combo details,
+counted choosers and Escape focus restoration, actual versus memory activation,
+custom colors, stable pan projection, overflow and existing responsiveness boundaries.
+Visual spacing across zoom levels remains for the user's audit.

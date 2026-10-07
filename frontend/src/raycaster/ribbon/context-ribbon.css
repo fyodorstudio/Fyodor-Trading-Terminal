@@ -1,5 +1,5 @@
 .context-ribbon { position: absolute; bottom: 226px; left: 0; right: 70px; height: 14px; z-index: 9; pointer-events: none; }
-.context-ribbon-legend { position: absolute; bottom: 20px; left: 6px; max-width: calc(100% - 12px); padding: 2px 5px; border-radius: 3px; background: var(--surface-panel); color: var(--text-muted); font-size: 9px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.context-ribbon-legend { position: absolute; bottom: 36px; left: 6px; max-width: calc(100% - 125px); padding: 2px 5px; border-radius: 3px; background: var(--surface-panel); color: var(--text-muted); font-size: 9px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .context-ribbon-track { height: 14px; position: relative; }
 .ribbon-segment { position: absolute; top: 0; height: 14px; border: 0; border-right: 1px solid var(--surface-panel); padding: 0; cursor: pointer; pointer-events: auto; }
 .ribbon-segment.long { background: #b8e5d7; }.ribbon-segment.long.moderate { background: #55bda2; }.ribbon-segment.long.strong { background: #008c68; }

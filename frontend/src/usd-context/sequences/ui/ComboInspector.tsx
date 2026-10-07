@@ -6,6 +6,7 @@ import { contextVersion } from '../../core/policy'
 import { comboSummary } from './combo-summary'
 import { ComboAdvanced } from './ComboAdvanced'
 import { RoofAuditControls } from './RoofAuditControls'
+import { roofDisplayVersion } from '../chart/roof-symbols'
 import './combo-inspector.css'
 
 export function ComboInspector({ combo, timeDisplay, symbol, broker = null, onClose, onOpenRelease }: {
@@ -24,13 +25,13 @@ export function ComboInspector({ combo, timeDisplay, symbol, broker = null, onCl
         {combo.experimental && <small>Experimental</small>}
       </div>
       <p className="combo-meaning">{summary.meaning}</p>
-      <small className="combo-version">{contextVersion} · Relationship roofs v1 · Display v2. Snapshot captured when opened; reopen after changing inputs.</small>
+      <small className="combo-version">{contextVersion} · Relationship roofs v1 · Display v{roofDisplayVersion}. Snapshot captured when opened; reopen after changing inputs.</small>
       <div className="combo-overview">
         <section className="combo-card" aria-label="Why this direction"><h3>Why this direction?</h3><p>{summary.why}</p></section>
         <section className="combo-card" aria-label="Activation and changes"><h3>What changed?</h3>
           <p><strong>Available from {formatAppTimestamp(combo.chartAt, { mode: 'utc', utcOffsetMinutes: 0 })} broker time.</strong></p>
           <p>Activated by: {summary.activation}.</p><p>{summary.changed}</p>
-          <small>The right endpoint marks activation within its chart candle. Connecting lines to earlier inputs do not backdate the result.</small>
+          <small>The endpoint tagged Starts marks activation within its chart candle. Update marks activation without a new publication. Earlier release symbols do not backdate the result.</small>
         </section>
       </div>
       <section className="combo-card" aria-label="Accumulated context comparison"><h3>Combined context at activation</h3>

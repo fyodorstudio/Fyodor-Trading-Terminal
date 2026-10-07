@@ -306,3 +306,56 @@ manual verification.
 - [ ] Reopen older pinned setups without workflow data; verify their original price
   and note data survives. Export/import a new workspace and check both draft and
   pinned workflow records. All entry, review and exit execution remains manual.
+
+## 7 October 2026 — Roof anchoring during wide-view panning
+
+- [ ] Zoom out considerably, then pan left/right in Focused and All roofs. Follow
+  the same roof: lane, source dots, activation dot and label should travel together
+  with the candles. Pan back and check its earlier layout returns.
+- [ ] Pan a source, label and activation past each screen edge. The original bracket
+  should remain anchored and clip naturally, without jumping to another visible
+  source or sticking its label to an edge. More must stay visible and clickable.
+- [ ] Zoom in/out, resize the dock, toggle marker filters and open source/activation
+  dots. Zoom/changed inputs may reflow lanes; pure panning should not. Verify both
+  themes, source hollow dots versus solid activation dots, and smooth chart motion.
+
+## 7 October 2026 — Manual outside-event strip
+
+- [ ] Enable Candy, open Outside events + and save a titled broker-time window.
+  Check the small gray rectangle sits above Candy and neither its button nor
+  the context legend collides with roofs, other overlays or the price scale.
+- [ ] Hover/click highlights, edit and delete a note, close with X/Escape, and check
+  focus returns to Outside events +. Check the editor fits both themes and shorter
+  chart heights when the bottom dock is open.
+- [ ] Record overlapping windows and an ongoing note. Confirm hover lists active
+  notes, the saved list opens each one, and ongoing highlights stop at current time.
+  Pan/zoom across gaps and endpoints: highlights should stay anchored and responsive.
+- [ ] Reload, switch broker/pair, export and restore a workspace. Saved notes should
+  retain their original scope and UTC recording date. With no notes the strip is
+  empty; unavailable Candy remains a separate gray status below it.
+- [ ] Compare Candy/roof output before and after saving a manual note. No bias,
+  evidence or numerical contribution should change. Retrospective notes are audit
+  annotations; their user-selected window is not proven market impact.
+
+## 7 October 2026 — Release-symbol roof endpoints / display v4
+
+This replaces the dot/stem display described in earlier checks. The earlier pan,
+timing, disclosure and overflow checks still apply with symbols instead of dots.
+
+- [ ] Check all three roof levels have event symbols on their connecting lines,
+  with the direction box above. No old endpoint dots or stems to the bottom row
+  should remain. Check both themes, custom USD color/glyph choices and dock sizes.
+- [ ] Click a source symbol and the final Starts symbol to open the corresponding
+  release. Click the direction box to open Combo details. Check grouped ISM members
+  keep their individual dates and open the existing grouped Inspector table.
+- [ ] Zoom out until symbols gain counts. Open the chooser, inspect each exact
+  release date and open either release. Check Escape/Close restores focus. Pan or
+  change zoom while it is open; a stale chooser should disappear.
+- [ ] Check Starts for publication activation and Update for memory-only activation.
+  Hide the final release family: the endpoint should have no fabricated release
+  glyph, and the direction box should still disclose hidden inputs. All-hidden
+  combos remain omitted. Future activation stays hidden.
+- [ ] Pan back/forth widely in Focused/All: symbols and direction boxes must keep
+  their rows and travel with chart time. Check clipping, neighboring label/symbol
+  spacing and access to crowded roofs through More. The bottom row still lists
+  every ordinary release; roof symbols identify participation in each combo.

@@ -19,14 +19,16 @@ import { useRaycasterFamilies, toggleRaycasterFamily } from './storage/raycaster
 import { contextSourceFamilies } from '../usd-context/core/policy'
 import type { OhlcBar } from '../market-data/contracts/OhlcBar'
 import type { InspectorMarker } from '../inspector/inspector-data'
-import type { ComboSnapshot } from '../usd-context/sequences/core/contracts'
+import type { ComboSnapshot, ComboSource } from '../usd-context/sequences/core/contracts'
+import type { CurrencyColors } from '../inspector/currency-colors'
 import { ComboRoofs } from '../usd-context/sequences/chart/ComboRoofs'
 import { useSequencePreferences } from '../usd-context/sequences/storage/sequence-preferences'
 import { lookupFreshNews } from '../usd-context/sequences/core/fresh-news'
 
 export type RaycasterProps = { boxVisible?: boolean; symbol: string; timeframe: ChartTimeframe; brokerId: string | null;
   brokerOffsetSeconds: number; clockOffsetMs: number; timeDisplay: TimeDisplayPreference; onClose: () => void;
-  bars?: readonly Pick<OhlcBar, 'time'>[]; markers?: readonly InspectorMarker[]; onSelectCombo?: (combo: ComboSnapshot) => void }
+  bars?: readonly Pick<OhlcBar, 'time'>[]; markers?: readonly InspectorMarker[]; onSelectCombo?: (combo: ComboSnapshot) => void;
+  onOpenComboSource?: (source: ComboSource) => void; currencyColors?: CurrencyColors }
 function RaycasterComponent({ chartApi, seriesApi, ...props }: RaycasterProps & { chartApi: IChartApi; seriesApi: ISeriesApi<'Candlestick', Time> }) {
   const now = useCalendarNow(props.clockOffsetMs)
   const families = useRaycasterFamilies()
@@ -60,10 +62,12 @@ function RaycasterComponent({ chartApi, seriesApi, ...props }: RaycasterProps & 
     held={detailsOpen && hover.open === null && open !== null} notice={partial ? 'Partial or timing-excluded history' : null}
     timeDisplay={props.timeDisplay} onClose={props.onClose} />}
     {sequencePreferences.ribbon && props.bars && <ContextRibbon chartApi={chartApi} bars={props.bars} timeframe={props.timeframe}
+      symbol={props.symbol} brokerId={props.brokerId}
       points={ribbonPoints} now={now + props.brokerOffsetSeconds * 1000} relative={relativeEnabled} version={`${history.result?.version ?? "Context engine"}${relativeEnabled ? ` / ${relativeContextVersion}` : ""}`}
       loading={history.loading || eurHistory.loading} notice={message} partial={!!partial} />}
     {relativeSupported && sequencePreferences.roofs && relationships && !history.loading && !message && props.bars && props.markers && props.onSelectCombo &&
       <ComboRoofs chartApi={chartApi} episodes={relationships.episodes} bars={props.bars} markers={props.markers}
+        onOpenSource={props.onOpenComboSource} currencyColors={props.currencyColors}
         timeframe={props.timeframe} now={now + props.brokerOffsetSeconds * 1000} experimental={sequencePreferences.fresh} onSelect={props.onSelectCombo} />}
   </>
 }

@@ -16,6 +16,7 @@ const container = document.createElement('div'); document.body.append(container)
 try {
   const load = p => server.ssrLoadModule('./src/' + p)
   const { layoutRoofs } = await load('usd-context/sequences/chart/roof-layout.ts')
+  const { createRoofPlan, prepareRoofAnchors, projectRoofPlan, knownRoofCount } = await load('usd-context/sequences/chart/roof-plan.ts')
   const { comboSummary } = await load('usd-context/sequences/ui/combo-summary.ts')
   const { RoofAuditControls } = await load('usd-context/sequences/ui/RoofAuditControls.tsx')
   const { roofAuditScope, sameRoofAudit, validRoofAudits } = await load('usd-context/sequences/audit/audit-model.ts')
@@ -39,7 +40,7 @@ try {
   assert.match(comboSummary({ ...combo, direction: 'uncomputed' }).why, /do not establish/)
   assert.match(comboSummary({ ...combo, kind: 'ism-sectors', sources: [{ ...inputs[0], usdDirection: 'uncomputed' }, inputs[1]] }).why, /Only part/)
 
-  const candidate = (id, props = {}) => ({ combo: { ...combo, id, ...props }, left: 100, right: 300, labelX: 200, ticks: [100, 300], hidden: 0 })
+  const candidate = (id, props = {}) => ({ combo: { ...combo, id, ...props }, left: 100, right: 300, labelX: 200, endpoints: [], hidden: 0 })
   const crowded = [candidate('old'), candidate('new', { chartAt: at + 1 }), candidate('established', { kind: 'weekly-labor', experimental: false }),
     candidate('strong', { kind: 'ism-sectors', strength: 'strong', experimental: false }), candidate('far', { chartAt: at + 2 })]
   crowded.at(-1).left = 600; crowded.at(-1).right = 700; crowded.at(-1).labelX = 650
@@ -55,6 +56,50 @@ try {
       for (let i = 1; i < labels.length; i++) assert.ok(labels[i].labelX - labels[i - 1].labelX >= 178, 'Same-lane labels do not overlap')
     }
   }
+
+  const hour = 3600000
+  const bars = Array.from({ length: 100 }, (_, i) => ({ time: (at + i * hour) / 1000 }))
+  const roofSources = (start, end, suffix) => [source('claims', -1, at + start * hour), source('pce', -1, at + end * hour)]
+    .map((s, i) => ({ ...s, sourceId: suffix + '/' + i }))
+  const episodes = Array.from({ length: 18 }, (_, i) => ({ ...combo, id: 'stable/' + i, chartAt: at + (i * 4 + 3) * hour,
+    sources: roofSources(i * 4, i * 4 + 3, i), kind: i % 2 ? 'ism-sectors' : 'fresh-news', experimental: i % 2 === 0 }))
+  const markers = episodes.flatMap(e => e.sources.map(s => ({ release: { id: s.sourceId } })))
+  const count = knownRoofCount(episodes, episodes[5].chartAt - 1)
+  assert.equal(count, 5, 'Only already-activated roofs enter the fixed history layout')
+  assert.equal(prepareRoofAnchors(episodes, bars, 'H1', markers, true, count).length, count)
+  for (const focused of [true, false]) {
+    const anchors = prepareRoofAnchors(episodes, bars, 'H1', markers, true, episodes.length)
+    const plan = createRoofPlan(anchors, 12, focused)
+    const a = projectRoofPlan(plan, 20, 500), b = projectRoofPlan(plan, -40, 500), c = projectRoofPlan(plan, 20, 500)
+    const shared = a.positioned.filter(p => b.positioned.some(q => q.combo.id === p.combo.id))
+    assert.ok(shared.length > 2, 'Zoomed-out fixture keeps several roofs across shifted viewports')
+    for (const p of shared) {
+      const q = b.positioned.find(q => q.combo.id === p.combo.id)
+      assert.equal(q.lane, p.lane, 'Panning cannot repack a shared roof into a different lane')
+      assert.equal(q.labelX - p.labelX, -60)
+      assert.equal(q.left - p.left, -60); assert.equal(q.right - p.right, -60)
+      assert.deepEqual(q.endpoints.map(e => e.x), p.endpoints.map(e => e.x - 60))
+      assert.deepEqual(q.endpoints.map(e => e.publications), p.endpoints.map(e => e.publications), 'Panning keeps the same source identities and cluster members')
+    }
+    assert.deepEqual(c, a, 'Returning to a viewport restores identical roofs and overflow')
+    assert.equal(new Set([...a.positioned.map(p => p.combo.id), ...a.overflow.map(p => p.id)]).size, a.positioned.length + a.overflow.length)
+  }
+  const crossing = { ...combo, id: 'crossing', chartAt: at + 20 * hour, sources: roofSources(0, 20, 'crossing') }
+  const crossingMarkers = crossing.sources.map(s => ({ release: { id: s.sourceId } }))
+  const crossingPlan = createRoofPlan(prepareRoofAnchors([crossing], bars, 'H1', crossingMarkers, true, 1), 10, true)
+  const edge = projectRoofPlan(crossingPlan, -50, 200).positioned[0]
+  assert.equal(edge.left, -50, 'An offscreen source stays the original anchor instead of jumping to a later visible source')
+  assert.equal(edge.labelX, 50, 'The label keeps the full-source midpoint instead of clamping to the screen edge')
+  assert.equal(projectRoofPlan(crossingPlan, 50, 100).positioned[0].right, 250, 'Crossing roofs survive an offscreen activation; the viewport clips the release symbol')
+  const malformed = { ...crossing, sources: [{ ...crossing.sources[0], chartAt: crossing.chartAt + 1 }] }
+  assert.equal(prepareRoofAnchors([malformed], bars, 'H1', crossingMarkers, true, 1).length, 0)
+  assert.equal(prepareRoofAnchors([crossing], bars, 'H1', [], true, 1).length, 0)
+  assert.equal(prepareRoofAnchors([crossing], bars, 'H1', crossingMarkers, false, 1).length, 0)
+  const many = { entries: [], prefixRight: [] }; let reads = 0
+  for (let i = 0; i < 100000; i++) { const start = i * 200; many.entries.push({ get left() { reads++; return start }, get right() { reads++; return start + 170 },
+    roof: { combo }, positioned: null }); many.prefixRight.push(start + 170) }
+  assert.equal(projectRoofPlan(many, -5000000, 400).overflow.length, 3)
+  assert.ok(reads < 15, 'Panning queries intersecting roof spans rather than scanning the complete plan')
 
   const scope = roofAuditScope(combo, 'EURUSD', 'Broker A')
   const props = { combo, symbol: 'EURUSD', broker: 'Broker A' }

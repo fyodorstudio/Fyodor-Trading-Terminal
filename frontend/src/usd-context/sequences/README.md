@@ -100,7 +100,7 @@ The snapshot title/type and publication qualification are unchanged.
 
 ## Roof workflow / display v2 — 7 October 2026
 
-Display v2 originally used two lanes in **Focused**; current display v3 uses three in both modes. Display priority is evidence strength,
+Display v2 originally used two lanes in **Focused**; current display v4 uses three in both modes with release-symbol endpoints. Display priority is evidence strength,
 then established relationships ahead of experimental fresh-news sequences, then
 most recent activation, with ID as a stable tie-breaker. Bracket spans as well as
 label footprints reserve space. Repeated overlapping roofs of the same kind,
@@ -108,10 +108,10 @@ direction and family set keep the highest-ranked representative. Opposing roofs
 are never deduplicated as the same direction, but can still overflow crowded lanes.
 Every omitted eligible roof remains in **+N more**, newest activation first, with
 its direction, evidence and broker time. **All roofs** uses three lanes and
-only label collision avoidance. Focus is a session display choice; neither mode
+full-span collision avoidance, including symbol/label footprints. Focus is a session display choice; neither mode
 changes relationship qualification or scoring and neither fits to price.
 
-The filled right-endpoint dot marks the containing activation candle. The tooltip
+The endpoint tagged Starts/Update marks the containing activation candle. The tooltip
 and Inspector give the precise broker clock; lines back to earlier publications
 identify context, not an earlier available signal. Future activation and any
 snapshot with a future source are excluded before display prioritization.
@@ -153,3 +153,40 @@ whose aggregate already controls the vote. All numerical policies are unchanged.
 Notebook's workflow record remains separate from manual roof reaction audits.
 Pinning preserves written conditions and an optional explicitly captured current
 context snapshot. Neither feature places orders or implements exit strategies.
+
+## Pan-stable roof anchoring
+
+`chart/roof-plan.ts` prepares the original source and activation candle indices
+across eligible loaded history, including sources outside the viewport. The layout
+is cached per candle spacing / density / input history, independently of panning.
+Each pan translates that plan, using an indexed span query that includes crossing
+brackets even when their activation or label lies beyond a screen edge. Labels keep
+their full-source midpoint and are clipped naturally instead of clamped to the edge.
+Release symbols replace source/activation dots and long stems. Symbol clicks open
+the original release; the direction box opens the dated combo snapshot. More remains
+outside the clipping layer and retains overflow.
+
+Lane collision and repeated-roof checks use sorted interval lookups. Panning does
+not scan/repack complete history; range/resize callbacks remain RAF-coalesced. Zoom,
+new eligible publications/history, timeframe, marker filters or density changes
+can rebuild the plan. This is a display change only, with no combination merging,
+numerical model change, future-source admission or inferred signal duration. The
+old activation-only viewport layout and screen-edge label clamping are retired.
+
+## Release-symbol endpoints / display v4
+
+`chart/roof-symbols.ts` groups nearby publications at fixed candle anchors once per
+zoom. The plan translates both symbols and labels on pan without regrouping. Three
+42px-separated rows leave room above each line for its direction box. Both density
+modes reserve the full span so endpoints on different roofs cannot overlap in the
+same lane; crowded roofs remain accessible in More. Inspector's original bottom
+row still lists all releases, including those outside displayed combinations.
+
+Endpoint glyphs/colors follow Inspector preferences, including grouped ISM source
+aliases, without replacing their individual publication clocks. Counted symbols
+open a keyboard-accessible chooser; individual symbols use the existing release
+navigation handler. Choosers dismiss on pan/repacking rather than retaining a stale
+anchor. Starts identifies publication activation; Update identifies a memory update.
+A hidden activation publication uses a text badge, not a fabricated visible glyph.
+The direction box and overflow entries remain the paths to Combo details. Numerical
+scoring, qualification clocks, context budgets and stored audit snapshots are unchanged.

@@ -17,8 +17,9 @@ export function RoofGuide({ onClose, relativeSupported }: { onClose: () => void;
   return <div ref={panel} tabIndex={-1} role="dialog" aria-label="Roof and ribbon guide" className="roof-guide">
     <header><strong>Roofs &amp; context ribbon</strong><button type="button" onClick={onClose} aria-label="Close roof guide">×</button></header>
     <section><h3>Read the shapes</h3>
-      <p>The right-endpoint dot marks activation: when all required information was available. The bracket connects source publications to that dot. Its width is not an active duration or a holding period.</p>
-      <p>Three lanes keep labels apart. Focused prioritizes evidence and removes repetition; More keeps every omitted roof accessible. Click a roof to inspect its dated explanation.</p></section>
+      <p>The endpoint tagged Starts marks activation: when all required information was available. Update marks a memory change without a new publication. The line connects source releases to activation; its width is not an active duration or a holding period.</p>
+      <p>Three lanes keep labels apart. Focused prioritizes evidence and removes repetition; More keeps every omitted roof accessible. Click a roof to inspect its dated explanation.</p>
+      <p>Release symbols sit on each of the three roof levels. Click a symbol for its release, or a counted symbol to choose among nearby releases. Click the direction box for Combo details. Panning preserves the anchors and lanes; screen edges clip them. Zooming, new history or changed inputs can rearrange the layout and symbol clusters.</p></section>
     <section><h3>Available USD relationships</h3><dl>
       <dt>ISM sectors</dt><dd>Manufacturing and Services resolve the existing ISM vote together.</dd>
       <dt>Labor + inflation</dt><dd>Confirmed labor weakness takes priority when the inflation guard conditions allow it.</dd>
@@ -34,5 +35,8 @@ export function RoofGuide({ onClose, relativeSupported }: { onClose: () => void;
         <option value="usd">USD side</option>{relativeSupported && <option value="relative">EUR vs USD</option>}</select></label>
       <p>The ribbon and hover box share this mode and their context inputs. Green means pair Long; red means pair Short. Pale / medium / deep shades show Weak / Moderate / Strong evidence. Gray means unavailable, not neutral.</p>
       <p>A segment lasts until the next context update. Hover for its exact time and responsible update; click for sources. Publication, aging and expiry updates are distinguished. Evidence is rule agreement, not a winning probability.</p></section>
+    <section><h3>Outside events · Manual gray strip</h3>
+      <p>Use Outside events + above Candy to record an event title, chart-clock window and observation. Hover or click a gray highlight to review it. Notes belong to this broker and pair, save locally and travel with workspace backups.</p>
+      <p>Gray highlights are manually selected windows outside our dataset. They add no directional vote and do not prove what caused a price move. Retrospective notes keep their recording date.</p></section>
   </div>
 }

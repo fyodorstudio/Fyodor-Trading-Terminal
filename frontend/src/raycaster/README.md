@@ -123,7 +123,9 @@ publication times. A prior candle's hover cannot include a later endpoint even
 when the full historical chart displays later annotations. Source visibility
 follows Inspector marker filters/date range; hidden inputs are disclosed and do
 not lose their context vote. All-hidden sequences are omitted. Three lanes and
-an overflow chooser preserve crowded roof access. Candle gaps and future bars
+an overflow chooser preserve crowded roof access. Release symbols replace dots at
+each roof level; Starts/Update tags identify activation. Symbol clicks open releases
+and direction boxes open Combo details. Candle gaps and future bars
 are not used as guessed endpoints. Range/resize updates coalesce into one frame;
 hover uses binary lookup plus at most eight fresh-family expiry checks.
 
@@ -156,3 +158,9 @@ is not probability, and gray is unavailable. Mode, exact broker clock, triggerin
 publication/memory/expiry update and clicked contribution explanation are explicit.
 The box still uses candle-end cutoff. Roof relationships remain USD-only, even
 when the box/ribbon compare EUR against USD. Numerical engine versions are unchanged.
+
+The separate gray strip immediately above Candy contains manual outside-event
+notes. Outside events + opens title/range/observation editing; these annotations
+are stored per broker/pair and exported with the workspace. Their chart clocks and
+actual UTC recording dates are separate. They add no votes, history fetches or
+worker rebuilds. See [outside-event ownership](../external-events/README.md).

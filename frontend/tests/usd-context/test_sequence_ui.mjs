@@ -17,7 +17,7 @@ const frames = new Map(); let frameId = 0
 dom.requestAnimationFrame = fn => { frames.set(++frameId, fn); return frameId }; dom.cancelAnimationFrame = id => frames.delete(id)
 try {
   const load = p => server.ssrLoadModule('./src/' + p)
-  const { roofCoordinate, visibleRoofCandidates } = await load('usd-context/sequences/chart/roof-geometry.ts')
+  const { roofBarIndex } = await load('usd-context/sequences/chart/roof-geometry.ts')
   const { ComboRoofs } = await load('usd-context/sequences/chart/ComboRoofs.tsx')
   const { roofLabel, roofTooltip } = await load('usd-context/sequences/chart/roof-label.ts')
   const { ComboInspector } = await load('usd-context/sequences/ui/ComboInspector.tsx')
@@ -45,19 +45,18 @@ try {
   assert.match(roofTooltip(companions), /Retail Sales.*reduces USD support/)
   assert.equal(roofLabel({ ...episode, kind: 'ism-sectors', experimental: false }), 'ISM sectors')
   const bars = [0, 1, 3].map(n => ({ time: (at + n * hour) / 1000, open: 1, close: 1, high: 1, low: 1 }))
-  let range = { from: at / 1000, to: (at + hour) / 1000 }, rangeHandler, sizeHandler, unsubscribed = 0, coordinateCalls = 0
+  let range = { from: at / 1000, to: (at + hour) / 1000 }, rangeHandler, sizeHandler, unsubscribed = 0, coordinateCalls = 0, pan = 0
   const scale = { getVisibleRange: () => range, width: () => 800,
-    timeToCoordinate: time => { coordinateCalls++; return (time - at / 1000) / 3600 * 200 + 100 },
+    timeToCoordinate: time => { coordinateCalls++; return (time - at / 1000) / 3600 * 200 + 100 + pan },
     subscribeVisibleLogicalRangeChange: fn => { rangeHandler = fn }, unsubscribeVisibleLogicalRangeChange: fn => { assert.equal(fn, rangeHandler); unsubscribed++ },
     subscribeSizeChange: fn => { sizeHandler = fn }, unsubscribeSizeChange: fn => { assert.equal(fn, sizeHandler); unsubscribed++ } }
   const chartApi = { timeScale: () => scale }
-  assert.equal(roofCoordinate(scale, bars, at + hour / 2, 'H1'), 100)
-  assert.equal(roofCoordinate(scale, bars, at - 1, 'H1'), null)
-  assert.equal(roofCoordinate(scale, bars, at + 2 * hour, 'H1'), null, 'Do not project onto a gap or future bar')
-  assert.deepEqual(visibleRoofCandidates([episode], at, episode.chartAt), [episode])
-  assert.deepEqual(visibleRoofCandidates([episode], at, episode.chartAt - 1), [])
+  assert.equal(roofBarIndex(bars, at + hour / 2, 'H1'), 0)
+  assert.equal(roofBarIndex(bars, at - 1, 'H1'), null)
+  assert.equal(roofBarIndex(bars, at + 2 * hour, 'H1'), null, 'Do not project onto a gap or future bar')
   let selected = null, opened = null, returned = false
-  const roofProps = { chartApi, episodes: [episode], bars, timeframe: 'H1', markers: [{ release: { id: 'claims' } }],
+  const roofProps = { chartApi, episodes: [episode], bars, timeframe: 'H1', markers: [{ release: { id: 'claims' }, symbol: 'cloud' }],
+    currencyColors: { USD: '#123456' }, onOpenSource: source => { opened = source },
     now: episode.chartAt, experimental: true, onSelect: value => { selected = value } }
   const render = value => React.act(async () => root.render(value))
   await render(React.createElement(ComboRoofs, roofProps))
@@ -69,13 +68,32 @@ try {
   assert.match(button.title, /claims.*reduces USD support/)
   assert.match(button.title, /1 inputs hidden/)
   assert.match(button.title, /Available from.*broker time/)
-  assert.equal(container.querySelector('.combo-roof-activation').getAttribute('cx'), '300', 'Activation endpoint stays on the containing candle')
+  assert.equal(container.querySelector('.combo-roof-start').style.left, '300px', 'Activation endpoint stays on the containing candle')
+  assert.equal(container.querySelectorAll('circle').length, 0, 'Release symbols replace all source and activation dots')
+  assert.equal(container.querySelector('.combo-roof-start').textContent, 'Update', 'Memory activation is explicit rather than inventing a new release')
+  assert.match(container.querySelector('.combo-roof-start').title, /Memory update; no new publication/)
+  assert.equal(container.querySelector('.combo-roofs').style.getPropertyValue('--inspector-usd-color'), '#123456')
   await React.act(async () => button.click()); assert.equal(selected, episode)
   const previousCalls = coordinateCalls
   await React.act(async () => { for (let i = 0; i < 200; i++) rangeHandler(); sizeHandler() })
   assert.equal(frames.size, 1, 'Panning and resizing coalesce; no mouse-move rescoring')
   await React.act(async () => { for (const [id, fn] of frames) { frames.delete(id); fn() } })
   assert.ok(coordinateCalls - previousCalls < 10)
+  const sourceSymbol = container.querySelector('.combo-roof-symbol:not(.combo-roof-start)')
+  assert.match(sourceSymbol.textContent, /☁/, 'Use the configured Inspector release symbol')
+  await React.act(async () => sourceSymbol.click())
+  assert.equal(opened.sourceId, 'claims', 'A release symbol opens its original publication')
+  assert.equal(selected, episode, 'Release routing leaves the direction-box Combo callback untouched')
+  const originalLeft = Number.parseFloat(button.style.left), originalTop = button.style.top
+  pan = -160; range = { from: (at + hour) / 1000, to: (at + 3 * hour) / 1000 }
+  await React.act(async () => rangeHandler())
+  await React.act(async () => { for (const [id, fn] of frames) { frames.delete(id); fn() } })
+  const shifted = container.querySelector('.combo-roof-label')
+  assert.equal(Number.parseFloat(shifted.style.left), originalLeft - 160, 'Label moves with the candles even after the source leaves the screen')
+  assert.equal(shifted.style.top, originalTop)
+  assert.equal(container.querySelector('.combo-roof-symbol:not(.combo-roof-start)').style.left, '-60px', 'Offscreen sources remain the anchor and are clipped, not replaced')
+  assert.equal(container.querySelector('.combo-roof-start').style.left, '140px')
+  pan = 0; range = { from: at / 1000, to: (at + hour) / 1000 }
   await render(React.createElement(ComboRoofs, { ...roofProps, now: episode.chartAt - 1 }))
   assert.equal(container.querySelector('[aria-label="Clickable combo roofs"]'), null, 'Future activation is hidden')
   await render(React.createElement(ComboRoofs, { ...roofProps, experimental: false }))
@@ -84,6 +102,27 @@ try {
   assert.equal(container.querySelector('[aria-label="Clickable combo roofs"]'), null)
   await render(React.createElement(ComboRoofs, { ...roofProps, episodes: [{ ...episode, sources: [{ ...episode.sources[0], chartAt: episode.chartAt + 1 }] }] }))
   assert.equal(container.querySelector('[aria-label="Clickable combo roofs"]'), null, 'Defensively reject a snapshot containing future publications')
+  const current = { ...episode, sources: [episode.sources[0], { ...episode.sources[1], chartAt: episode.chartAt }] }
+  const visibleMarkers = [{ release: { id: 'claims' }, symbol: 'cloud' }, { release: { id: 'pce' }, symbol: 'star' }]
+  await render(React.createElement(ComboRoofs, { ...roofProps, episodes: [current], markers: visibleMarkers }))
+  const start = container.querySelector('.combo-roof-start')
+  assert.match(start.textContent, /★.*Starts/)
+  await React.act(async () => start.click()); assert.equal(opened.sourceId, 'pce', 'The final release symbol opens the actual activation publication')
+  const nearby = { ...current, sources: [...current.sources, { ...current.sources[1], sourceId: 'gdp', sourceLabel: 'GDP', family: 'gdp' }] }
+  await render(React.createElement(ComboRoofs, { ...roofProps, episodes: [nearby], markers: [...visibleMarkers, { release: { id: 'gdp' }, symbol: 'umbrella' }] }))
+  await React.act(async () => container.querySelector('.combo-roof-start').click())
+  assert.match(container.querySelector('[role="dialog"]').textContent, /pce.*GDP|GDP.*pce/)
+  await React.act(async () => [...container.querySelectorAll('.combo-roof-release-chooser > button')].find(b => b.textContent.includes('GDP')).click())
+  assert.equal(opened.sourceId, 'gdp')
+  assert.equal(container.querySelector('[role="dialog"]'), null)
+  await React.act(async () => container.querySelector('.combo-roof-start').click())
+  await React.act(async () => document.dispatchEvent(new dom.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })))
+  assert.equal(container.querySelector('[role="dialog"]'), null)
+  assert.equal(document.activeElement, container.querySelector('.combo-roof-start'))
+  const zoomed = await load('usd-context/sequences/chart/roof-plan.ts')
+  const compact = zoomed.createRoofPlan(zoomed.prepareRoofAnchors([current], bars, 'H1', visibleMarkers, true, 1), 12, false)
+  assert.equal(compact.entries[0].positioned.endpoints.length, 1, 'Nearby source symbols group at a fixed zoom before viewport projection')
+  assert.equal(compact.entries[0].positioned.endpoints[0].publications.length, 2)
   range = { from: at / 1000, to: (at + 4 * hour) / 1000 }
   const crowded = Array.from({ length: 4 }, (_, i) => ({ ...episode, id: 'roof/' + i }))
   await render(React.createElement(ComboRoofs, { ...roofProps, episodes: crowded }))
