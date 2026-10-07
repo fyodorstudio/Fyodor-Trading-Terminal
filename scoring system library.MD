@@ -1867,3 +1867,36 @@ input controls, saved exclusions, worker reuse and existing lag regressions.
 
 Validation: ten targeted terminal suites, lint, TypeScript and production build
 pass. Visual verification remains with the user.
+
+## 7 October 2026 — Roof workflow / display v2
+
+Focused roof display prioritizes evidence, established relationships and recent
+activation, with two lanes and repeated overlapping combinations tucked into
++N more. All roofs restores three-lane display. Every eligible omitted roof,
+including opposing interpretations, remains accessible with its date and evidence.
+The right endpoint now marks activation; precise broker times are explicit in
+tooltips and the result-first Combo Inspector. Earlier bracket sources are context,
+not an earlier available signal.
+
+Direction, a short explanation and the activating publication (or memory update)
+come first. Recent-news direction and accumulated context remain separate.
+Participant links show standalone interpretations; numerical contributions and
+conditions are optional under Advanced calculations. The former always-expanded
+calculation presentation is retired; its content remains available there.
+
+Optional Aligned/Opposed/Unclear observations persist independently for activation
+H1, next-four and next-24 trading candles, keyed to broker/pair/interpretation.
+Workspace exports/imports include them. Changing results or input configuration
+does not silently carry old verdicts onto a different snapshot. These are manual
+observations, not automatic tuning, price signals or validated performance scores.
+
+Standalone scoring, relationship rules v1 and USD context v6.2 are unchanged.
+Display v2 adds visibility and auditing, not a new numerical model. Implementation
+and persistence semantics are documented in
+[sequence README](frontend/src/usd-context/sequences/README.md); visual checks are
+listed in [manual edit.md](manual%20edit.md).
+
+Validation: eight targeted terminal suites passed, including chronology, roof UI,
+workflow/audit persistence, workspace portability, Raycaster, publication layout,
+responsiveness and unchanged Activity polling. Lint, TypeScript and production
+build passed. Visual density, theme and dock checks remain with the user.

@@ -1,5 +1,21 @@
 # Manual audit backlog
 
+## 7 October 2026 — Roof workflow refinement (display v2)
+
+- [ ] Pan/zoom dense periods in Focused mode; check that repeated brackets are
+  reduced and chart interaction remains smooth. Compare All roofs and +N more.
+- [ ] Open an omitted opposing roof through +N more; check its date, direction
+  and full source list. Focused priority is display selection, not a stronger claim.
+- [ ] Check activation dots against the correct H1 candle and precise broker time;
+  lines to previous reports should not be read as earlier signal availability.
+- [ ] Click fresh-news, ISM, labor/inflation and Claims/NFP roofs; check that bias,
+  reason and activating release come first, and numerical details are optional.
+- [ ] Check light/dark themes and narrow/resized docks for wrapping and readability.
+- [ ] Record separate activation-H1, next-four and next-24 observations. Reopen,
+  refresh and export/import the workspace; confirm labels persist. Clear one by
+  clicking it again, then change calculation inputs and check that prior verdicts
+  are not silently inherited. These labels do not tune scores.
+
 Updated 7 October 2026. Checkboxes mean **your manual audit**, not automated tests.
 Your reported reviews of earlier versions are retained below; they do not certify
 later changes. Items stay open unless you explicitly reported completing them.

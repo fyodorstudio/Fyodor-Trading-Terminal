@@ -2,6 +2,7 @@
 .combo-roofs svg { position: absolute; inset: 0; overflow: hidden; }
 .combo-roofs path { fill: none; stroke: var(--accent); stroke-width: 1; opacity: .5; }
 .combo-roofs .experimental path { stroke-dasharray: 3 3; }
+.combo-roof-activation { fill: var(--accent); }
 .combo-roof-label { position: absolute; transform: translateX(-50%); max-width: 170px; display: inline-flex; align-items: center; white-space: nowrap; }
 .combo-roof-names { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .combo-roof-direction, .combo-roof-label small { flex-shrink: 0; }
@@ -9,5 +10,10 @@
 .combo-roofs button:hover { border-color: var(--accent); color: var(--accent); }
 .combo-roofs button:focus-visible { outline: 2px solid var(--accent); }
 .combo-roof-label.experimental { border-style: dashed; }
-.combo-roof-overflow { position: absolute; right: 8px; top: 0; pointer-events: auto; }
-.combo-roof-overflow > div { max-height: 120px; overflow: auto; display: grid; background: var(--surface-panel); border: 1px solid var(--border); }
+.combo-roof-tools { position: absolute; right: 8px; top: -26px; display: flex; gap: 6px; pointer-events: auto; }
+.combo-roof-density { display: flex; gap: 2px; }
+.combo-roof-density [aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+.combo-roof-overflow { position: relative; }
+.combo-roof-overflow > div { position: absolute; right: 0; top: 100%; width: min(340px, 75vw); max-height: 180px; overflow: auto; display: grid; background: var(--surface-panel); border: 1px solid var(--border); box-shadow: 0 4px 12px #0002; }
+.combo-roof-overflow > div button { text-align: left; white-space: normal; }
+.combo-roof-overflow small { display: block; color: var(--text-muted); margin-top: 3px; }

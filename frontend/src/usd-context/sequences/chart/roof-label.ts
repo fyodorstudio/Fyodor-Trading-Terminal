@@ -29,5 +29,5 @@ export function roofTooltip(combo: ComboSnapshot, hidden = 0) {
     description = `${sources.join('\n')}\n${combo.explanation}`
     descriptions.set(combo, description)
   }
-  return `${combo.title} · ${contextPairLabel('EURUSD', combo.direction)} · ${combo.strength ?? 'weak'} evidence${hidden ? ` · ${hidden} inputs hidden by marker filters` : ''}\n${description}`
+  return `${combo.title} · ${contextPairLabel('EURUSD', combo.direction)} · ${combo.strength ?? 'weak'} evidence${hidden ? ` · ${hidden} inputs hidden by marker filters` : ''}\nAvailable from ${new Date(combo.chartAt).toISOString().slice(0, 19).replace('T', ' ')} broker time (right endpoint). Earlier connecting lines identify prior inputs.\n${description}`
 }

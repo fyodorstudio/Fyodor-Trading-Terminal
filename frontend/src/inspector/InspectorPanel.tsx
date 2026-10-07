@@ -85,7 +85,7 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
   const hasCoverage = coverageStart != null && coverageEnd != null && offset != null
   const outsideCoverage = !view.brokerTime && hasCoverage && view.range && (view.range.from < (coverageStart - offset) * 1000 || view.range.to > (coverageEnd - offset) * 1000)
   if (combo && onCloseCombo && onOpenComboRelease) return <ComboInspector combo={combo} symbol={symbol} timeDisplay={timeDisplay}
-    onClose={onCloseCombo} onOpenRelease={onOpenComboRelease} />
+    broker={view.brokerId ?? null} onClose={onCloseCombo} onOpenRelease={onOpenComboRelease} />
   return <section className="inspector-panel" style={currencyColorStyle(view.preferences.currencyColors)} aria-label="Inspector">
     <header className="inspector-header">
       <div className="inspector-header-sidebar">

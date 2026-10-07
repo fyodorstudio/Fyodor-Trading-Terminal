@@ -8,3 +8,21 @@
 .combo-inspector small { display: block; color: var(--text-muted); }
 .combo-inspector button { font: inherit; cursor: pointer; color: var(--accent); background: var(--surface-panel); border: 1px solid var(--border); border-radius: 4px; padding: 4px 7px; }
 .combo-inspector button:focus-visible { outline: 2px solid var(--accent); }
+.combo-result { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 10px; border: 1px solid var(--border); border-radius: 5px; background: var(--surface-raised); }
+.combo-bias { padding: 3px 7px; border: 1px solid currentColor; border-radius: 4px; }
+.combo-bias.long { color: #13743a; }
+.combo-bias.short { color: #bd2935; }
+:root[data-theme='dark'] .combo-bias.long { color: #6ee7a0; }
+:root[data-theme='dark'] .combo-bias.short { color: #fda4af; }
+.combo-meaning { line-height: 1.5; }
+.combo-version { margin-bottom: 12px; }
+.combo-overview { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.combo-card, .combo-audit { margin: 10px 0; padding: 10px; border: 1px solid var(--border); border-radius: 5px; min-width: 0; }
+.combo-inspector .combo-card h3:first-child, .combo-audit h3 { margin-top: 0; }
+.combo-card p, .combo-audit p { line-height: 1.5; }
+.combo-audit-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.combo-audit-row [role="group"] { display: flex; flex-wrap: wrap; gap: 5px; }
+.combo-audit [aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: var(--surface-raised); }
+.combo-audit small { margin-top: 8px; }
+.combo-footnote { color: var(--text-muted); }
+@media (max-width: 850px) { .combo-overview { grid-template-columns: minmax(0, 1fr); gap: 0; } }
