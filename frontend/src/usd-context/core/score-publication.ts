@@ -2,7 +2,7 @@ import type { InspectorEvent, InspectorRelease } from '../../inspector/inspector
 import { assessCpiScoreV3, cpiV3SeriesIds } from '../../inspector/scoring/PAIR/EURUSD/USD/CPI/assessment/cpi-score-v3'
 import { assessNfpScoreV2, nfpV2SeriesIds } from '../../inspector/scoring/PAIR/EURUSD/USD/NFP/assessment/nfp-score-v2'
 import { assessIsmScoreV3 } from '../../inspector/scoring/PAIR/EURUSD/USD/ISM/assessment/ism-score-v3'
-import { ismV2SeriesIds } from '../../inspector/scoring/PAIR/EURUSD/USD/ISM/assessment/ism-score-v2'
+import { ismSeriesIds } from '../../inspector/scoring/PAIR/EURUSD/USD/ISM/assessment/ism-monthly-context'
 import { assessRetailScore } from '../../inspector/scoring/PAIR/EURUSD/USD/RETAIL/assessment/retail-score'
 import { retailSeriesIds } from '../../inspector/scoring/PAIR/EURUSD/USD/RETAIL/policy/retail-policy'
 import { assessClaimsScore } from '../../inspector/scoring/PAIR/EURUSD/USD/CLAIMS/assessment/claims-score'
@@ -18,7 +18,7 @@ import { sourceCoverage } from './source-coverage'
 import type { ComboSource } from '../sequences/core/contracts'
 import { magnitudeEvidence } from '../../inspector/scoring/shared/core/magnitude-evidence'
 
-export const contextSeriesIds: readonly string[] = [...cpiV3SeriesIds, ...nfpV2SeriesIds, ...ismV2SeriesIds, ...retailSeriesIds, ...claimsSeriesIds, ...pceSeriesIds, ...ppiSeriesIds, ...gdpSeriesIds]
+export const contextSeriesIds: readonly string[] = [...cpiV3SeriesIds, ...nfpV2SeriesIds, ...ismSeriesIds, ...retailSeriesIds, ...claimsSeriesIds, ...pceSeriesIds, ...ppiSeriesIds, ...gdpSeriesIds]
 export const publicationFamily = (id: string): ContextFamily | null => id === 'jobs' ? 'nfp' : id === 'us-cpi' ? 'cpi' :
   id === 'ism-services' || id === 'ism-manufacturing' ? 'ism' : id === 'retail' ? 'retail' : id === 'claims' ? 'claims' : id === 'pce' ? 'pce' : id === 'ppi' ? 'ppi' : id === 'gdp' ? 'gdp' : null
 export function scorePublication(release: InspectorRelease, events: readonly InspectorEvent[], settings: ContextSettings,

@@ -120,6 +120,18 @@ proof of historically high volatility. Fresh-news comparison remains Experimenta
 
 ## UI / settings / repository changes
 
+- [ ] Check named fresh-news roofs (for example **Claims + PCE · Long**), full
+  release names/effects on hover, repeated-family deduplication and `+N` overflow.
+  Zero-change companions stay in details; opposing drivers stay named. Direction
+  remains visible when the name needs truncation.
+- [ ] Review this pass's flat Inspector blocks: result first, **What drove the
+  result**, supporting/level context, **How this scorer works**, **Calibration &
+  settings**, and **Coverage & limits**. Read both currency-context tables and
+  the active-relationship conditions without opening collapsible controls.
+- [ ] Check these blocks in short/tall docks, narrow widths and light/dark themes.
+  Confirm custom magnitude labels, units, missing-history notices and input
+  toggles remain readable; visual audit is still pending with the user.
+
 - [ ] Audit this pass's consistent left **Standalone Scoring** / right
   **Context-Aware at Publication Scoring** across every selectable scoring view.
 - [ ] Check long USD vote/retention text stays inside its table column; no overlap
@@ -149,3 +161,25 @@ a roadmap, not a list of completed combo scorers.
 References: [scoring library](scoring%20system%20library.MD),
 [roof implementation audit](reports/Context-sequence-implementation-audit.md),
 [February–March research](reports/Feb-Mar-2025-release-sequence-audit.md).
+
+## 7 October 2026 — Latest-only scoring cleanup
+
+The older comparison screens listed in historical audit notes are retired. Audit
+the current replacement views; earlier price/context findings remain unresolved
+unless separately recorded as audited.
+
+- [ ] Check the Inspector menu has Table only, one versioned Scoring option and
+  Scatter Plot for CPI, NFP, ISM, Claims, Fed, PCE, Retail, GDP/PPI and EUR/ECB.
+- [ ] Check CPI is labeled v4 in Inspector and Raycaster; its details identify the
+  unchanged standalone engine v3.1 without adding another selectable CPI mode.
+- [ ] Check ISM shows one v3 final output and both sector sections, preserving
+  original publication clocks and pending later Services at earlier selections.
+- [ ] Import an older workspace with scoring-v2/v3/v4 selected: it should open
+  the current scorer and preserve magnitude overrides, filters and chart settings.
+- [ ] Check current Scatter/raw A−P views still work; latest scoring no longer
+  loads the raw-magnitude history merely to show a deleted comparison screen.
+- [ ] Check short/tall/narrow docks, both themes and chart responsiveness. Visual
+  inspection is left to the user; terminal checks do not mark these boxes done.
+
+Retired formulas and replacement rationale:
+[Retired scoring systems](reports/Retired-scoring-systems.md).

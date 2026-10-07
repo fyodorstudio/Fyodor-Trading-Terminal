@@ -1,3 +1,8 @@
+> Historical original scorer documentation. Its executable formula and matrix
+> screens were retired on 7 October 2026. Current CPI is v4 with standalone engine
+> v3.1. See [retired-method archive](../../../../../../reports/Retired-scoring-systems.md)
+> for the preserved formulas; raw Higher/Lower grading remains active.
+
 # US CPI / core CPI
 
 

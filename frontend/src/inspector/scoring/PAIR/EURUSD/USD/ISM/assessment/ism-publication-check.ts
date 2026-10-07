@@ -27,8 +27,8 @@ export function ismPublicationIssue(release: InspectorRelease) {
   const expected = expectedIsmPublication(release.releaseAt, release.familyId)
   const date = new Date(release.releaseAt).toISOString().slice(0, 10)
   if (expected !== null && date !== new Date(expected).toISOString().slice(0, 10))
-    return `Broker publication date ${date} differs from the verified ISM calendar date ${new Date(expected).toISOString().slice(0, 10)}. This sector is excluded from v2; stored timestamps are unchanged.`
+    return `Broker publication date ${date} differs from the verified ISM calendar date ${new Date(expected).toISOString().slice(0, 10)}. This sector is excluded from the ISM context; stored timestamps are unchanged.`
   // Both reports publish on business days. This checks UTC daytime dates only.
   const day = new Date(release.releaseAt).getUTCDay()
-  return day === 0 || day === 6 ? 'Broker publication is on a weekend. This sector is excluded from v2 pending timing verification.' : ''
+  return day === 0 || day === 6 ? 'Broker publication is on a weekend. This sector is excluded from the ISM context pending timing verification.' : ''
 }

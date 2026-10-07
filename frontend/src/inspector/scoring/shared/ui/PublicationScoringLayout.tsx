@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import './release-score.css'
+import './scoring-sections.css'
 
 /** One layout owns both interpretations; nested scorers never add grid columns. */
 export function PublicationScoringLayout({ standalone, context, label = 'Publication scoring' }: {

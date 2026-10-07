@@ -6,6 +6,7 @@ import type { ChartTimeframe } from '../market-data/contracts/ChartTimeframe'
 import type { OhlcBar } from '../market-data/contracts/OhlcBar'
 import type { CalendarDisplayRange } from './calendar-display-range'
 import { groupPolicyEpisodes, isPolicyRateDecision, policyEpisodeRule, policyEpisodeRules } from './episodes/policy-episodes'
+import { normalizeInspectorDetailView, type InspectorDetailView } from './inspector-detail-view'
 
 const originalInspectorFamilies = ['ecb', 'ecb-president', 'fomc', 'fed-chair', 'euro-inflation', 'german-inflation', 'us-cpi', 'pce', 'ppi']
 const inspectorFamilyOrder = [...originalInspectorFamilies, 'euro-labor', 'euro-wages', 'jobs', 'claims',
@@ -24,7 +25,7 @@ export type InspectorPreferences = {
   families: string[]
   showSymbols: boolean
   showHistograms: boolean
-  detailView: 'table' | 'scoring' | 'scoring-v2' | 'scoring-v3' | 'scoring-v4'
+  detailView: InspectorDetailView
   currencyColors: CurrencyColors
   symbols: Record<string, EventSymbol>
 }
@@ -45,7 +46,7 @@ export function readInspectorPreferences(): InspectorPreferences {
       originalInspectorFamilies.every((id) => selected.includes(id))
     return { version: 2, families: oldDefault ? defaults.families : selected,
     showHistograms: typeof saved.showHistograms === 'boolean' ? saved.showHistograms : defaults.showHistograms,
-    detailView: saved.detailView === 'scoring' || saved.detailView === 'scoring-v2' || saved.detailView === 'scoring-v3' || saved.detailView === 'scoring-v4' ? saved.detailView : defaults.detailView,
+    detailView: normalizeInspectorDetailView(saved.detailView),
     showSymbols: typeof saved.showSymbols === 'boolean' ? saved.showSymbols : defaults.showSymbols,
     currencyColors: normalizeCurrencyColors(saved.currencyColors),
     symbols: { ...defaults.symbols, ...Object.fromEntries(Object.entries(saved.symbols ?? {}).filter(([id, symbol]) =>

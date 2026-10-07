@@ -1,3 +1,4 @@
+import { currentScorerLabels } from '../../inspector/scoring/shared/core/current-scoring-versions'
 import type { EconomicCalendarEvent } from '../../inspector/calendar-event'
 import { groupInspectorReleases, type InspectorRelease } from '../../inspector/inspector-data'
 import { cpiV3Features, cpiV3Signals, cpiV3SeriesIds, supportsCpiV3 } from '../../inspector/scoring/PAIR/EURUSD/USD/CPI/assessment/cpi-score-v3'
@@ -43,7 +44,7 @@ export function scoringSignalBinding(familyId: string): ScoringSignalBinding | n
     signals: claimsSignals, supports: supportsClaimsScore, features: claimsFeatures,
   }
   if (familyId === 'us-cpi') return {
-    label: 'CPI v3', settings: cpiSignalSettings, seriesIds: cpiV3SeriesIds,
+    label: currentScorerLabels.cpi, settings: cpiSignalSettings, seriesIds: cpiV3SeriesIds,
     signals: cpiV3Signals.map((signal) => ({ ...signal, unit: 'pp' })), supports: supportsCpiV3, features: cpiV3Features,
   }
   if (familyId === 'jobs') return {
@@ -59,11 +60,11 @@ export function scoringSignalBinding(familyId: string): ScoringSignalBinding | n
     signals: retailSignals, supports: supportsRetailScore, features: retailFeatures,
   }
   if (familyId === 'ism-services') return {
-    label: 'ISM Services v2 / v3', settings: ismServicesSignalSettings, seriesIds: ismServicesSeriesIds,
+    label: 'ISM Services v3', settings: ismServicesSignalSettings, seriesIds: ismServicesSeriesIds,
     signals: ismServicesSignals, supports: supportsIsmServicesScore, features: ismServicesFeatures,
   }
   if (familyId === 'ism-manufacturing') return {
-    label: 'ISM Manufacturing v2 / v3', settings: ismManufacturingSignalSettings, seriesIds: ismManufacturingSeriesIds,
+    label: 'ISM Manufacturing v3', settings: ismManufacturingSignalSettings, seriesIds: ismManufacturingSeriesIds,
     signals: ismManufacturingSignals, supports: supportsIsmManufacturing, features: ismManufacturingFeatures,
   }
   return null

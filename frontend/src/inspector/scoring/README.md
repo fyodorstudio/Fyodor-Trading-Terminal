@@ -1,46 +1,33 @@
-# Inspector scoring
+# Inspector scoring — current interface
 
-Signed scores and pair directions live here, separately from the descriptive
-Higher/Lower reading labels in `../grading` and the histogram/settings/history
-machinery in `../magnitude`.
+Every family has one current scoring view. The menu contains **Table only**,
+**Scoring system · [family/version]**, and **Scatter Plot**. Scoring stays flat:
+**Standalone Scoring** on the left, **Context-Aware at Publication Scoring** on
+the right. Versions remain visible; users no longer choose superseded methods.
 
-```text
-scoring/
-  scoring-contracts.ts        View props and explicit pair/family bindings
-  scoring-registry.ts         Supported symbols, country, currency and family
-  InspectorScoringView.tsx    Scoring-only, scrollable presentation
-  shared/
-    core/signed-magnitude-score.ts
-    ui/SignedMagnitudeMatrix.tsx
-  PAIR/EURUSD/USD/
-    NFP/
-      assessment/nfp-magnitude-score.ts
-      ui/NfpMagnitudeScoreTables.tsx
-    CPI/
-      assessment/cpi-magnitude-score.ts
-      assessment/cpi-index-magnitude-score.ts
-      ui/CpiMagnitudeScoreTables.tsx
-      ui/CpiMagnitudeScoreTable.tsx
-      ui/CpiIndexMagnitudeTable.tsx
-```
+Current versions: CPI v4, NFP v2, Claims v2, ISM v3, Fed v2, PCE/Retail/GDP/PPI v1,
+and EUR numerical families/ECB v1. `shared/core/current-scoring-versions.ts`
+provides the USD display labels; the registry declares a version for every binding.
+Raycaster identifies CPI as v4 too, and discloses its retained standalone engine
+v3.1. Combined CPI context is never fed back as its own inflation vote.
 
-USD is EURUSD's quote currency. Assessment modules own the family's selected
-series, signs, coefficients, cancellation priority and completeness requirements.
-UI modules compose shared matrices. Moving these files does not change existing
-NFP/CPI score versions, magnitude persistence keys, boundaries or dataset admission.
+The old CPI magnitude/index screens, CPI v2 formula/screen, CPI v3 screen, original
+NFP magnitude scorer, ISM v2 screen and unused signed-matrix helpers are removed.
+The active CPI v3.1 math remains inside v4. ISM's live shared sector aggregation is
+named `assessment/ism-monthly-context.ts`; `ism-score-v3.ts` resolves its final bias.
+The component audit is `frontend/scripts/audit-ism-components.mjs`.
 
-The Inspector view dropdown contains Table only, Scoring system and Scatter Plot,
-with Scoring system v2 available for US/USD CPI, NFP and both ISM families on EURUSD, and v3
-available for US/USD CPI and both ISM families. V4 adds shared publication context
-for US/USD CPI on EURUSD. The saved v2 mode selects the appropriate family scorer.
-US/USD PCE has its derived scorer under Scoring system. The retired ISM v1
-selection opens v3; its sector formula remains documented below.
-Scatter Plot opens the selected release without changing the saved Inspector view.
-Table only is the default Inspector view. Scoring system replaces the readings
-table with the registered family's scores; CPI retains separate index/rate
-matrices and NFP retains separate supporting/primary matrices. The selected view
-is saved and travels in workspace exports. Unsupported families fall back to the
-table, with the Scoring system option disabled, without discarding that preference.
+[Retired scoring methods](../../../../reports/Retired-scoring-systems.md) preserves
+the deleted formulas, historical weights and replacement rationale. The development
+entries below are historical records; mentions of old files or selectable modes
+are not instructions for the current implementation.
+
+Saved `scoring-v2/v3/v4` choices migrate to `scoring` on read, update and workspace
+import/export. Raw tables, descriptive Higher/Lower grading, A−P magnitude settings,
+current derived-signal overrides, Scatter views and historical reports remain.
+Unknown saved modes fall back to the table; unavailable data still stays Uncomputed.
+Unsupported families show the table with Scoring disabled, preserving the preference.
+Scatter opens the selected publication without changing the stored view.
 
 To add an agreed scoring policy, create `PAIR/<pair>/<currency>/<family>` with
 `assessment` and `ui` modules, then register its explicit symbol matcher, country,
@@ -421,7 +408,7 @@ Mounted terminal tests check both-family version selection, flat sections,
 scoped requests, source navigation, preview/apply/reset and workspace updates.
 Reproduce the chronological implementation audit with:
 
-`node scripts/audit-ism-v2.mjs <calendar.json> <output-prefix>`
+`node scripts/audit-ism-components.mjs <calendar.json> <output-prefix>`
 
 ## Shared signal magnitude visibility
 
@@ -640,3 +627,16 @@ same engines and cutoff rules; neither depends on the other's UI. Claims revisio
 notices and verified Fed rate-path facts add no directional votes. Shared context
 jobs and prepared Claims/NFP histories preserve existing USD outputs. See the root
 library and `reports/Dataset-context-expansion-audit.md` for the latest audit.
+
+
+## Flat reading hierarchy
+
+`shared/ui/ScoringSection.tsx` and `ScoringNotes` give active numerical views a
+common result → drivers → supporting context → rules → calibration → limits
+hierarchy. `SignalCalibration` presents each signal's value/unit, earlier N,
+automatic/custom boundaries and unavailable reason without changing assessment
+inputs. These are presentational components, with no storage or worker access.
+`scoring-sections.css` uses theme tokens and wraps inside the existing two-column
+publication layout. Sections remain expanded; there is no `details` control.
+Shared USD and EUR context tables keep their input toggles and add labeled
+calculation/coverage notes. The user performs visual review.

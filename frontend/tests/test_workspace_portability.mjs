@@ -32,6 +32,15 @@ try {
   const original = exportWorkspace()
   assert.equal(original.entries['unrelated-site-secret'], undefined)
   assert.equal(original.entries['fyodor.source-clock.verified'], undefined, 'Machine clock verification never travels')
+  const { normalizeInspectorDetailView } = await server.ssrLoadModule('./src/inspector/inspector-detail-view.ts')
+  assert.equal(normalizeInspectorDetailView('unknown-future-view'), 'table')
+  assert.equal(normalizeInspectorDetailView('table'), 'table')
+  for (const oldView of ['scoring-v2', 'scoring-v3', 'scoring-v4']) {
+    const saved = { ...defaultInspectorPreferences(), detailView: oldView, families: ['us-cpi'], showHistograms: false }
+    const imported = parseWorkspaceSnapshot(JSON.stringify({ ...original, entries: { ...original.entries, [inspectorStorageKey]: JSON.stringify(saved) } }))
+    assert.deepEqual(JSON.parse(imported.entries[inspectorStorageKey]), { ...saved, detailView: 'scoring' }, 'Historical views migrate without changing other settings')
+    assert.equal(imported.entries[nfpMagnitudeFamily.settings.key], original.entries[nfpMagnitudeFamily.settings.key], 'Magnitude overrides survive view migration')
+  }
   const parsed = parseWorkspaceSnapshot(JSON.stringify(original))
   localStorage.setItem('fyodor.color-theme', 'light')
   localStorage.setItem('trader_notebook_note_GBPUSD', 'extra')

@@ -1,6 +1,6 @@
 # USD context memory v6.2
 
-The shared engine consumes standalone CPI v3.1, NFP v2, Claims v2,
+The shared engine consumes CPI v4’s standalone engine v3.1, NFP v2, Claims v2,
 monthly ISM v3, Retail Sales v1, PCE v1, PPI v1 and GDP v1 scores. It interprets the USD side of supported
 pairs. Forecasts, price outcomes and the other currency do not vote.
 
@@ -13,7 +13,7 @@ The version change invalidates shared caches so roofs and scores arrive together
 
 | Input | Base weight | Freshness | Update behavior |
 | --- | ---: | --- | --- |
-| CPI v3.1 | 28% | 45 days | Latest inflation report replaces the previous CPI slot |
+| CPI v4 (standalone engine v3.1) | 28% | 45 days | Latest inflation report replaces the previous CPI slot |
 | NFP v2 | 30% | 45 days | Latest jobs report replaces the previous NFP slot |
 | Claims v2 | 10% | 14 days | Latest weekly report replaces the previous Claims slot |
 | ISM v3 | 10% | 45 days | Manufacturing then Services update one monthly ISM slot at their original times |

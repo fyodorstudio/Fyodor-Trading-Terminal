@@ -6,10 +6,10 @@ import { useCalendarNow } from '../../../../../../useCalendarNow'
 import { signalHistoryStart } from '../../../../../shared/core/historical-release-signals'
 import { ismServicesSignalSettings, ismManufacturingSignalSettings } from '../../../../../shared/core/signal-magnitude-settings'
 import { useBackgroundCalculation } from '../../../../../shared/runtime/useBackgroundCalculation'
-import { ismV2SeriesIds } from '../assessment/ism-score-v2'
+import { ismSeriesIds } from '../assessment/ism-monthly-context'
 import { calculateIsmAnalysis } from './ism-analysis'
 
-const scope = { currency: 'USD' as const, eventIds: ismV2SeriesIds }
+const scope = { currency: 'USD' as const, eventIds: ismSeriesIds }
 const emptyEvents: EconomicCalendarEvent[] = []
 const createWorker = () => new Worker(new URL('./ism-analysis.worker.ts', import.meta.url), { type: 'module' })
 export type IsmAnalysisProps = { release: InspectorRelease | null; brokerId?: string | null; events?: EconomicCalendarEvent[]; now?: number }

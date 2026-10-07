@@ -5,11 +5,13 @@ import type { TimeDisplayPreference } from '../../appearance/time-display/time-d
 import type { EconomicCalendarEvent } from '../calendar-event'
 
 export type InspectorScoringProps = { release: InspectorRelease | null; history: FamilyMagnitudeHistory;
-  brokerId?: string | null; events?: EconomicCalendarEvent[]; now?: number; timeDisplay?: TimeDisplayPreference }
+  brokerId?: string | null; events?: EconomicCalendarEvent[]; now?: number; timeDisplay?: TimeDisplayPreference;
+  onOpenScatter?: (release: InspectorRelease) => void }
 export type InspectorScoringBinding = {
   pair: string; country: string; currency: 'USD' | 'EUR'; familyId: string
   matchesSymbol: (symbol: string) => boolean
   Component: ComponentType<InspectorScoringProps>
-  // Component already owns the shared standalone/publication layout (Fed).
+  versionLabel: string
+  // Component already owns the shared standalone/publication layout (Fed/CPI).
   includesContext?: boolean
 }

@@ -42,7 +42,7 @@ try {
   const { MagnitudeCalculationDetails } = await server.ssrLoadModule('./src/scatter-plot/inspection/MagnitudeCalculationDetails.tsx')
   const { MagnitudeScatterPlot } = await server.ssrLoadModule('./src/scatter-plot/plot/MagnitudeScatterPlot.tsx')
   const { ScatterPlotDock } = await server.ssrLoadModule('./src/scatter-plot/index.ts')
-  const { CpiScoreV3 } = await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/CPI/ui/CpiScoreV3.tsx')
+  const { CpiScoreV4 } = await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/CPI/ui/CpiScoreV4.tsx')
   const { NfpScoreV2 } = await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/NFP/ui/NfpScoreV2.tsx')
   const { exportWorkspace, restoreWorkspace, parseWorkspaceSnapshot } = await server.ssrLoadModule('./src/workspace-portability/workspace-snapshot.ts')
   const fixtures = {}
@@ -92,6 +92,9 @@ try {
         'Manual overrides do not bypass minimum-history requirement')
     }
   }
+  assert.equal(scoringSignalBinding('us-cpi').label, 'CPI v4')
+  assert.equal(scoringSignalBinding('ism-services').label, 'ISM Services v3')
+  assert.equal(scoringSignalBinding('ism-manufacturing').label, 'ISM Manufacturing v3')
   assert.equal(scoringSignalBinding('pce').label, 'PCE v1'); assert.equal(scoringSignalBinding('fomc'), null)
   console.log('✓ CPI/NFP component parity, publication cutoffs, contextual later dots and manual calibration parity')
 
@@ -132,7 +135,7 @@ try {
   }
   const target = { brokerId: 'test-broker', familyId: 'us-cpi', releaseId: selected.id, at: selected.releaseAt }
   const dock = await mount(ScatterPlotDock, { brokerId: 'test-broker', clockOffsetMs: now - Date.now(), target })
-  const inspector = await mount(CpiScoreV3, { release: selected, events })
+  const inspector = await mount(CpiScoreV4, { release: selected, events, now, timeDisplay: { mode: 'utc', utcOffsetMinutes: 0 } })
   const nfpInspector = await mount(NfpScoreV2, { release: fixtures.jobs.history.at(-1).release, events: fixtures.jobs.events })
   const before = requests.length
   const inspectorBefore = inspector.textContent

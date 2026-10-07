@@ -1,0 +1,25 @@
+.scoring-section { min-width: 0; margin: 14px 0; border: 1px solid var(--border); border-radius: 5px; overflow-wrap: anywhere; }
+.scoring-section > h4 { margin: 0; padding: 8px 10px; font-size: 11px; font-weight: 600; background: var(--surface-raised); border-bottom: 1px solid var(--border); color: var(--text-strong); }
+.scoring-section-content { min-width: 0; padding: 8px 10px; }
+.scoring-section-content > :first-child { margin-top: 0; }
+.scoring-section-content > :last-child { margin-bottom: 0; }
+.scoring-notes { margin: 0; }
+.scoring-notes > div { display: grid; grid-template-columns: minmax(0, 125px) minmax(0, 1fr); gap: 8px 12px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.scoring-notes > div:first-child { padding-top: 0; }
+.scoring-notes > div:last-child { padding-bottom: 0; border: 0; }
+.scoring-notes dt { font-weight: 600; color: var(--text-strong); }
+.scoring-notes dd { margin: 0; line-height: 1.5; }
+.scoring-notes dd p { margin: 0; }
+.scoring-section-hint { color: var(--text-muted); }
+.scoring-calibration small { display: block; color: var(--text-muted); }
+.inspector-detail .inspector-scoring-column .scoring-calibration :is(th, td):first-child { width: 30%; }
+.inspector-detail .inspector-scoring-column .scoring-calibration :is(th, td):nth-child(2) { width: 25%; }
+@container (max-width: 900px) { .scoring-notes > div { grid-template-columns: minmax(0, 1fr); gap: 4px; } }
+.inspector-scoring-column :is(.inspector-release-score-summary, .inspector-cpi-v4-summary, .inspector-nfp-v2-summary, .inspector-claims-v2-summary, .inspector-retail-v1-summary, .inspector-pce-v1-summary, .inspector-ism-v3-summary) { padding: 10px; margin: 0 0 8px; background: var(--surface-raised); border: 1px solid var(--border); border-radius: 5px; }
+.scoring-result-explanation { flex-basis: 100%; line-height: 1.5; }
+.scoring-engine-version { display: block; color: var(--text-muted); margin: 4px 0; }
+.inspector-scoring-column-body > .publication-context-cutoff { color: var(--text-muted); margin: 0 0 8px; }
+.inspector-scoring-column :is(h3, .scoring-section h4) { line-height: 1.4; }
+.context-weight-summary { display: flex; flex-wrap: wrap; gap: 8px 20px; margin: 10px 0; padding: 8px 10px; background: var(--surface-raised); border-radius: 4px; }
+.context-weight-summary dt { color: var(--text-muted); }
+.context-weight-summary dd { margin: 3px 0 0; font-weight: 600; color: var(--text-strong); }

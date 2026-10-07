@@ -72,12 +72,13 @@ try {
   assert.ok(details); assert.equal(gear.getAttribute('aria-expanded'), 'true')
   assert.equal(document.activeElement, details)
   const inputRow = name => details.querySelector(`[aria-label="Use ${name}"]`).closest('tr')
-  for (const [name, weight] of [['CPI v3.1', '28%'], ['NFP v2', '30%'], ['Claims v2', '10%'], ['ISM v3', '10%'], ['Retail Sales v1', '7%']]) {
+  for (const [name, weight] of [['CPI v4', '28%'], ['NFP v2', '30%'], ['Claims v2', '10%'], ['ISM v3', '10%'], ['Retail Sales v1', '7%']]) {
     assert.equal(inputRow(name).children[1].textContent, weight)
     assert.equal(inputRow(name).querySelector('button').getAttribute('aria-pressed'), 'true')
     assert.match(inputRow(name).children[3].textContent, /EURUSD (Long|Short)/)
     assert.match(inputRow(name).children[4].textContent, /Source .* ×/)
   }
+  assert.match(inputRow('CPI v4').children[0].textContent, /Standalone engine v3.1/)
   assert.match(details.querySelector('tfoot').textContent, /100%EURUSD (Long|Short)/)
   assert.match(details.textContent, /Inspector’s marker filters do not affect/)
   for (const [name, weight] of [['PCE v1', '10%'], ['PPI v1', '2%'], ['GDP v1', '3%']]) {
@@ -141,7 +142,7 @@ try {
   assert.match(container.textContent, /Enable an input in Raycaster/)
   await React.act(async () => gear.click())
   const allOff = container.querySelector('[role="dialog"]')
-  assert.equal(allOff.querySelector('[aria-label="Use CPI v3.1"]').textContent, 'Off')
+  assert.equal(allOff.querySelector('[aria-label="Use CPI v4"]').textContent, 'Off')
   assert.match(allOff.textContent, /Enabled weight: 0%/)
   await React.act(async () => allOff.querySelector('[aria-label="Use Retail Sales v1"]').click())
   assert.deepEqual(familySettings.readRaycasterFamilies(), ['retail'])

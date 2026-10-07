@@ -1718,3 +1718,78 @@ mode switching, Fed action/context independence and table cascade in either CSS
 load order. Actual placement, resizing and readability remain user visual checks.
 All 44 suites were verified in sequential runs; lint and the TypeScript/production
 build pass. The manual checklist remains unchecked pending the user's review.
+
+## 7 October 2026 — Named roofs and Inspector reading order
+
+Fresh-news roofs now name the nonzero replacement-effect families, for example
+**Claims + PCE · Long**. Repeated Claims/ISM publications share one family name;
+up to three names appear with `+N` for additional families. The direction has its
+own untruncated label. The tooltip lists every full release name, role and effect,
+including zero-change companions and opposing inputs. These labels describe
+participation, not unanimous agreement or a new scoring rule. The crowded-roof
+chooser uses the same names. Clicking still opens the captured snapshot.
+
+Inspector retains **Standalone Scoring** on the left and **Context-Aware at
+Publication Scoring** on the right. Active numerical scorer views now organize
+contribution tables, supporting/level context, declared rules, calibration and
+coverage into flat labeled sections. Rule notes use labeled rows instead of an
+undifferentiated paragraph stack. Calibration tables retain signal values,
+units, earlier-history counts, automatic/custom boundaries and missing data.
+USD input coverage is separated into enabled/active/retained weight summaries;
+EUR context separates contributions from budgets, overlap and aging rules.
+Fed action, rate path, policy pressure and previous-meeting comparison have
+separate blocks. There are no new collapsible controls.
+
+All assessment formulas, weights, cutoffs, memory policies and saved preferences
+are unchanged. Reusable presentation lives in `scoring/shared/ui/ScoringSection`
+and `SignalCalibration`; roof naming lives in `sequences/chart/roof-label` and
+runs only over a snapshot's small source list. Panning still coalesces coordinate
+projection and does not calculate scores. Manual layout/readability checks remain
+unchecked in [manual edit.md](manual%20edit.md).
+
+Validation: all 44 terminal suites were verified in sequential runs; lint and the
+TypeScript/production build pass. Regression coverage includes named/zero/opposing
+roof participants, bounded names with a separately visible direction, overflow
+entries, coalesced panning, flat sections, input ownership, custom calibration
+units/values, and context/calibration table widths in either CSS load order.
+Existing settings-integration checks now target the component table separately
+from the new calibration table. Numerical assessment and worker code were not
+modified; source-output parity and chronology tests continue to pass. No automated
+visual inspection was performed.
+
+## 7 October 2026 — One current scorer per family
+
+Inspector now has only Table, current Scoring, and Scatter choices. Its scoring
+option names the active family and version: CPI v4, NFP v2, Claims v2, ISM v3,
+Fed v2, PCE/Retail/GDP/PPI v1 and EUR/ECB v1. The two flat scoring columns remain.
+Raycaster also names CPI v4; both identify **Standalone engine v3.1** in details.
+That engine remains the CPI release vote, independent of publication context.
+
+Removed executable methods and screens are documented in
+[Retired scoring systems](reports/Retired-scoring-systems.md): original CPI rate/index
+matrices, CPI v2, the separate CPI v3 screen, original NFP magnitude scoring,
+ISM v2's two-output screen, and unused signed-matrix helpers. Legacy-only tests
+and the obsolete CPI v2/v3 comparison script are retired too; published historical
+reports remain. ISM's active same-month sector aggregation was renamed for its
+purpose and retained inside v3. Current formula, chronology, calibration, worker,
+Scatter and portability tests remain.
+
+Existing view preferences migrate to the current family scorer on read/update and
+workspace import/export. Sector/series magnitude keys stay compatible, including
+historically named keys used by current formulas. Current math, weights, memory,
+event filters and numerical results are unchanged. This is interface cleanup,
+not a new interpretation version. Earlier library entries describe historical
+implementations and their prior menu selections.
+
+Manual verification remains with the user: latest-only menus, visible versions,
+short/narrow docks, old-workspace import, grouped ISM and unchanged Scatter controls.
+
+Scatter scoring-signal labels now identify CPI v4 and ISM sector v3, matching the
+active public versions. Timing exclusions describe the current ISM context rather
+than a retired V2 screen. Their numerical admission rules are unchanged.
+
+Validation: all 41 remaining terminal suites were verified in sequential runs,
+including corrected latest-view expectations and old-workspace migration. Lint,
+TypeScript and production build pass. Three legacy-only scorer suites were retired;
+current standalone/context, chronology, worker and Scatter tests remain. Visual
+audit remains pending with the user.

@@ -142,7 +142,7 @@ try {
   const app = mount(PceScore, { release: cool, events, history: {} }); await app.render()
   assert.equal(app.container.querySelector('[aria-label="PCE pair direction"]').textContent, 'EURUSD Long')
   assert.equal(app.container.querySelectorAll('details').length, 0)
-  assert.equal(app.container.querySelectorAll('tbody tr').length, 4)
+  assert.equal(app.container.querySelectorAll('[aria-label="PCE component scores"] tbody tr').length, 4)
   const prefs = { ...defaultInspectorPreferences(), detailView: 'scoring' }
   let saved, opened
   const view = { supported: true, selectedRelease: cool, preferences: prefs, brokerId: null, now: cool.releaseAt + 1000, brokerTime: false,
@@ -161,7 +161,7 @@ try {
   await choose(dropdown, 'scatter'); assert.equal(opened.id, cool.id); assert.equal(dropdown.value, 'scoring'); assert.equal(saved, undefined)
   await choose(dropdown, 'table'); assert.equal(saved.detailView, 'table')
   await panel.render({ ...props, view: { ...view, preferences: { ...prefs, detailView: 'scoring-v3' } } })
-  assert.equal(panel.container.querySelector('[aria-label="Inspector view"]').value, 'table', 'CPI-only saved versions stay isolated')
+  assert.equal(panel.container.querySelector('[aria-label="Inspector view"]').value, 'scoring', 'Saved version choices migrate to the latest family scorer')
   await panel.render({ ...props, symbol: 'GBPUSD', view: { ...view, supported: false } })
   assert.equal(panel.container.querySelector('[aria-label="PCE pair direction"]'), null)
   localStorage.setItem(inspectorStorageKey, JSON.stringify(prefs))

@@ -1,9 +1,9 @@
 import { currencyColorStyle } from './currency-colors'
-import { useId, useMemo, useState, type ReactNode } from 'react'
+import { useId, useMemo, useState } from 'react'
 import { formatAppTimestamp, type TimeDisplayPreference } from '../appearance/time-display/time-display-preference'
 import type { CalendarSourceHealth } from '../system-connectivity/bridge-status/bridge-contract'
 import { symbolGlyph } from './event-symbols'
-import { isInspectorCommentary, supportsInspector, type InspectorRelease } from './inspector-data'
+import { isInspectorCommentary, type InspectorRelease } from './inspector-data'
 import { InspectorFiltersModal } from './InspectorFiltersModal'
 import { InspectorDateRangePicker } from './InspectorDateRangePicker'
 import { InspectorReleaseHeading } from './InspectorReleaseHeading'
@@ -13,24 +13,12 @@ import { matchesReadingFamily } from './grading/reading-grading'
 import { magnitudeFamilies } from './magnitude/magnitude-families'
 import { InspectorScoringView } from './scoring/InspectorScoringView'
 import { inspectorScoringBinding } from './scoring/scoring-registry'
-import { supportsCpiV2 } from './scoring/PAIR/EURUSD/USD/CPI/assessment/cpi-score-v2'
-import { CpiScoreV2 } from './scoring/PAIR/EURUSD/USD/CPI/ui/CpiScoreV2'
-import { supportsCpiV3 } from './scoring/PAIR/EURUSD/USD/CPI/assessment/cpi-score-v3'
-import { CpiScoreV3 } from './scoring/PAIR/EURUSD/USD/CPI/ui/CpiScoreV3'
-import { CpiScoreV4 } from './scoring/PAIR/EURUSD/USD/CPI/ui/CpiScoreV4'
-import { supportsNfpV2 } from './scoring/PAIR/EURUSD/USD/NFP/assessment/nfp-score-v2'
-import { NfpScoreV2 } from './scoring/PAIR/EURUSD/USD/NFP/ui/NfpScoreV2'
-import { supportsIsmV2 } from './scoring/PAIR/EURUSD/USD/ISM/assessment/ism-score-v2'
-import { IsmScoreV2 } from './scoring/PAIR/EURUSD/USD/ISM/ui/IsmScoreV2'
 import type { InspectorView } from './useInspector'
 import { InspectorReadingsTable } from './readings/InspectorReadingsTable'
-import { supportsIsmV3 } from './scoring/PAIR/EURUSD/USD/ISM/assessment/ism-score-v3'
-import { IsmScoreV3 } from './scoring/PAIR/EURUSD/USD/ISM/ui/IsmScoreV3'
 import './inspector.css'
+import { normalizeInspectorDetailView } from './inspector-detail-view'
 import { ComboInspector } from '../usd-context/sequences/ui/ComboInspector'
 import type { ComboSnapshot, ComboSource } from '../usd-context/sequences/core/contracts'
-import { PublicationScoringLayout } from './scoring/shared/ui/PublicationScoringLayout'
-import { PublicationScoringContext } from './scoring/shared/ui/PublicationScoringContext'
 
 function HistogramIcon() {
   return (
@@ -72,17 +60,8 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
   const magnitudeFamily = magnitudeFamilies.find((family) => matchesReadingFamily(release, family)) ?? null
   const hasMagnitude = !!magnitudeFamily && !!release?.events.some((event) => Object.hasOwn(magnitudeFamily.readingRules, event.event_id))
   const scoringBinding = inspectorScoringBinding(symbol, scoreRelease)
-  const showScoring = view.preferences.detailView === 'scoring' && !!scoringBinding
-  const nfpV2Available = supportsInspector(symbol) && supportsNfpV2(release)
-  const ismV2Available = supportsInspector(symbol) && supportsIsmV2(release)
-  const v2Available = (supportsInspector(symbol) && supportsCpiV2(release)) || nfpV2Available || ismV2Available
-  const showScoringV2 = view.preferences.detailView === 'scoring-v2' && v2Available
-  const ismV3Available = supportsInspector(symbol) && supportsIsmV3(release)
-  const v3Available = (supportsInspector(symbol) && supportsCpiV3(release)) || ismV3Available
-  const showScoringV3 = v3Available && (view.preferences.detailView === 'scoring-v3' || (ismV3Available && view.preferences.detailView === 'scoring'))
-  const v4Available = supportsInspector(symbol) && supportsCpiV3(release)
-  const showScoringV4 = v4Available && view.preferences.detailView === 'scoring-v4'
-  const visibleView = showScoringV4 ? 'scoring-v4' : showScoringV3 ? 'scoring-v3' : showScoringV2 ? 'scoring-v2' : showScoring ? 'scoring' : 'table'
+  const showScoring = normalizeInspectorDetailView(view.preferences.detailView) === 'scoring' && !!scoringBinding
+  const visibleView = showScoring ? 'scoring' : 'table'
   const releaseTime = (item: InspectorRelease) => view.brokerTime
     ? `${formatAppTimestamp(item.serverTime * 1000, { mode: 'utc', utcOffsetMinutes: 0 })} · broker time`
     : item.releaseAt === null ? 'Time unavailable' : formatAppTimestamp(item.releaseAt, timeDisplay)
@@ -104,8 +83,6 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
   const outsideCoverage = !view.brokerTime && hasCoverage && view.range && (view.range.from < (coverageStart - offset) * 1000 || view.range.to > (coverageEnd - offset) * 1000)
   if (combo && onCloseCombo && onOpenComboRelease) return <ComboInspector combo={combo} symbol={symbol} timeDisplay={timeDisplay}
     onClose={onCloseCombo} onOpenRelease={onOpenComboRelease} />
-  const advancedScoring = (standalone: ReactNode) => <PublicationScoringLayout standalone={standalone}
-    context={<PublicationScoringContext release={scoreRelease ?? release} brokerId={view.brokerId} events={scoringEvents} now={view.now} timeDisplay={timeDisplay} />} />
   return <section className="inspector-panel" style={currencyColorStyle(view.preferences.currencyColors)} aria-label="Inspector">
     <header className="inspector-header">
       <div className="inspector-header-sidebar">
@@ -145,15 +122,12 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
             // Scatter is navigation; keep the selected Inspector view when returning.
             event.target.value = visibleView
             if (hasMagnitude && scatterAvailable && onOpenScatter) onOpenScatter(scoreRelease ?? release)
-          } else if (next === 'table' || (next === 'scoring' && scoringBinding) || (next === 'scoring-v2' && v2Available) || (next === 'scoring-v3' && v3Available) || (next === 'scoring-v4' && v4Available)) {
+          } else if (next === 'table' || (next === 'scoring' && scoringBinding)) {
             view.applyPreferences({ ...view.preferences, detailView: next })
           }
         }}>
         <option value="table">Table only</option>
-        <option value="scoring" disabled={!scoringBinding}>Scoring system</option>
-        {v2Available && <option value="scoring-v2">Scoring system v2</option>}
-        {v3Available && <option value="scoring-v3">Scoring system v3</option>}
-        {v4Available && <option value="scoring-v4">Scoring system v4</option>}
+        <option value="scoring" disabled={!scoringBinding}>Scoring system{scoringBinding ? ` · ${scoringBinding.versionLabel}` : ''}</option>
         <option value="scatter" disabled={!hasMagnitude || !scatterAvailable || !onOpenScatter}>Scatter Plot</option>
       </select>}
 
@@ -172,20 +146,9 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
         </nav>
         <div className="inspector-detail" aria-live="polite">
           {!release ? <p className="inspector-empty">Click a chart symbol or select a release to inspect Actual, Previous and A−P.</p> : <>
-            {showScoringV4 ? <CpiScoreV4 release={release} brokerId={view.brokerId} now={view.now} events={scoringEvents} timeDisplay={timeDisplay} /> :
-            showScoringV3 && ismV3Available ? advancedScoring(<IsmScoreV3 key={release.id} release={release} brokerId={view.brokerId} now={view.now}
-              events={scoringEvents} timeDisplay={timeDisplay} onOpenScatter={scatterAvailable ? onOpenScatter : undefined} />) :
-            showScoringV3 ? advancedScoring(<CpiScoreV3 key={release.id} release={release} brokerId={view.brokerId}
-              events={scoringEvents} />) :
-            showScoringV2 && ismV2Available ? advancedScoring(<IsmScoreV2 key={release.id} release={release} brokerId={view.brokerId} now={view.now}
-              events={scoringEvents} timeDisplay={timeDisplay}
-              onOpenScatter={scatterAvailable ? onOpenScatter : undefined} />) :
-            showScoringV2 && nfpV2Available ? advancedScoring(<NfpScoreV2 key={release.id} release={release} brokerId={view.brokerId}
-              events={scoringEvents} />) :
-            showScoringV2 ? advancedScoring(<CpiScoreV2 key={release.id} release={release} brokerId={view.brokerId}
-              events={scoringEvents} />) :
-            showScoring && scoringBinding ? <InspectorScoringView binding={scoringBinding} release={scoreRelease} history={view.magnitudeHistory}
-              brokerId={view.brokerId} events={scoringEvents} now={view.now} timeDisplay={timeDisplay} /> :
+            {showScoring && scoringBinding ? <InspectorScoringView binding={scoringBinding} release={release} history={view.magnitudeHistory}
+              brokerId={view.brokerId} events={scoringEvents} now={view.now} timeDisplay={timeDisplay}
+              onOpenScatter={scatterAvailable ? onOpenScatter : undefined} /> :
             <InspectorReadingsTable release={release} view={view} timeDisplay={timeDisplay} sharedPeriod={sharedPeriod} />}
           </>}
         </div>

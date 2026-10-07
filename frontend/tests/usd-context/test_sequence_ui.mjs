@@ -19,6 +19,7 @@ try {
   const load = p => server.ssrLoadModule('./src/' + p)
   const { roofCoordinate, visibleRoofCandidates } = await load('usd-context/sequences/chart/roof-geometry.ts')
   const { ComboRoofs } = await load('usd-context/sequences/chart/ComboRoofs.tsx')
+  const { roofLabel, roofTooltip } = await load('usd-context/sequences/chart/roof-label.ts')
   const { ComboInspector } = await load('usd-context/sequences/ui/ComboInspector.tsx')
   const { RaycasterDetails } = await load('raycaster/ui/RaycasterDetails.tsx')
   const prefs = await load('usd-context/sequences/storage/sequence-preferences.ts')
@@ -33,6 +34,16 @@ try {
   const episode = { id: 'roof', kind: 'fresh-news', title: 'Fresh-news sequence', chartAt: at + hour + hour / 2,
     sources: inputs.map(s => ({ ...s, role: 'Latest replacement effect', change: -.1 })), before, after,
     direction: 'weaker', strength: 'weak', explanation: 'Labor and inflation replacement effects reduce USD support.', checks: [], experimental: true }
+  assert.equal(roofLabel(episode), 'Claims + PCE')
+  const companions = { ...episode, sources: [...episode.sources, { ...episode.sources[0], sourceId: 'claims-2' },
+    { ...episode.sources[0], family: 'gdp', sourceLabel: 'GDP companion', change: 0 },
+    { ...episode.sources[1], family: 'ism', sourceLabel: 'ISM opposing release', change: .2 },
+    { ...episode.sources[1], family: 'retail', sourceLabel: 'Retail Sales', change: -.2 }] }
+  assert.equal(roofLabel(companions), 'Claims + PCE + ISM +1', 'Deduplicate families, exclude zero companions, name opposing drivers too')
+  assert.match(roofTooltip(companions), /GDP companion.*no replacement effect/)
+  assert.match(roofTooltip(companions), /ISM opposing release.*adds USD support/)
+  assert.match(roofTooltip(companions), /Retail Sales.*reduces USD support/)
+  assert.equal(roofLabel({ ...episode, kind: 'ism-sectors', experimental: false }), 'ISM sectors')
   const bars = [0, 1, 3].map(n => ({ time: (at + n * hour) / 1000, open: 1, close: 1, high: 1, low: 1 }))
   let range = { from: at / 1000, to: (at + hour) / 1000 }, rangeHandler, sizeHandler, unsubscribed = 0, coordinateCalls = 0
   const scale = { getVisibleRange: () => range, width: () => 800,
@@ -52,6 +63,10 @@ try {
   await render(React.createElement(ComboRoofs, roofProps))
   const button = container.querySelector('[aria-label="Inspect combo Fresh-news sequence"]')
   assert.ok(button, 'A mid-candle publication is included on the final visible H1 bar')
+  assert.match(button.textContent, /Claims \+ PCE.*Long/)
+  assert.doesNotMatch(button.textContent, /Fresh news/)
+  assert.equal(button.querySelector('.combo-roof-direction').textContent.trim(), '· Long', 'Direction stays outside the truncating name span')
+  assert.match(button.title, /claims.*reduces USD support/)
   assert.match(button.title, /1 inputs hidden/)
   await React.act(async () => button.click()); assert.equal(selected, episode)
   const previousCalls = coordinateCalls
@@ -71,6 +86,7 @@ try {
   assert.equal(container.querySelectorAll('.combo-roof-label').length, 3)
   const more = container.querySelector('.combo-roof-overflow button'); assert.match(more.textContent, /\+1/)
   await React.act(async () => more.click()); assert.equal(more.getAttribute('aria-expanded'), 'true')
+  assert.match(container.querySelector('.combo-roof-overflow > div button').textContent, /Claims \+ PCE/)
 
   const timeDisplay = { mode: 'utc', utcOffsetMinutes: 0 }
   await render(React.createElement(ComboInspector, { combo: episode, symbol: 'EURUSD', timeDisplay,

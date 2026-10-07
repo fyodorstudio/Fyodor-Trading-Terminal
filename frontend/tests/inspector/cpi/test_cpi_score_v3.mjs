@@ -1,30 +1,11 @@
 import assert from 'node:assert/strict'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import React from 'react'
 import { createServer } from 'vite'
-import { Window } from 'happy-dom'
-
-const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')
-const server = await createServer({ root: rootDir, server: { middlewareMode: true } })
-const dom = new Window({ url: 'http://localhost:5173' })
-const keys = ['window', 'document', 'HTMLElement', 'Node', 'navigator', 'localStorage', 'IS_REACT_ACT_ENVIRONMENT', 'fetch']
-const previous = Object.fromEntries(keys.map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]))
-for (const key of keys.slice(0, 7)) Object.defineProperty(globalThis, key, { configurable: true, writable: true,
-  value: key === 'window' ? dom : key === 'document' ? dom.document : key === 'IS_REACT_ACT_ENVIRONMENT' ? true : dom[key] })
-const { createRoot } = await import('react-dom/client')
-const roots = []
-const mount = (Component, props) => {
-  const container = document.createElement('div'); document.body.appendChild(container)
-  const root = createRoot(container); roots.push(root)
-  return { container, render: (next = props) => React.act(async () => root.render(React.createElement(Component, next))) }
-}
-
+const server = await createServer({ root: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..'), server: { middlewareMode: true, hmr: false } })
 try {
   const { assessCpiScoreV3, cpiScoreV3Version, supportsCpiV3 } = await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/CPI/assessment/cpi-score-v3.ts')
-  const { assessCpiScoreV2 } = await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/CPI/assessment/cpi-score-v2.ts')
-  const { groupInspectorReleases, defaultInspectorPreferences, inspectorStorageKey, readInspectorPreferences } = await server.ssrLoadModule('./src/inspector/inspector-data.ts')
-  const { exportWorkspace, restoreWorkspace } = await server.ssrLoadModule('./src/workspace-portability/workspace-snapshot.ts')
+  const { groupInspectorReleases } = await server.ssrLoadModule('./src/inspector/inspector-data.ts')
   assert.equal(cpiScoreV3Version, 'cpi-eurusd-release-change-v3.1')
   const ids = ['840030005', '840030006', '840030007', '840030008']
   const raw = (value) => value === null ? null : String(Math.round(value * 1e6))
@@ -55,7 +36,6 @@ try {
   assert.equal(score.total, score.readings.reduce((sum, row) => sum + row.points * row.weight, 0) / 100)
   // October 2025-style latest deceleration overrides v2's static level pressure.
   const coolingHistory = withMonths([.2, .3, .3], [.2, .3, .4]), cooling = select(.2, .3, 3, 3.1)
-  assert.equal(assessCpiScoreV2(cooling, coolingHistory).label, 'EURUSD Short')
   const cool = assessCpiScoreV3(cooling, coolingHistory)
   assert.equal(cool.label, 'EURUSD Long')
   assert.deepEqual(cool.readings.map((r) => r.value), [-.066666666667, 0, -.1, 0])
@@ -134,79 +114,4 @@ try {
   assert.match(opposed.strengthReason, /Conflicting readings/)
   console.log('✓ V3 fresh pace, rebound/deceleration, partial data, earlier-only calibration, weights, cancellation and evidence grades')
 
-  const { CpiScoreV3 } = await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/CPI/ui/CpiScoreV3.tsx')
-  globalThis.fetch = async () => { throw new Error('Unexpected fetch') }
-  const table = mount(CpiScoreV3, { release: august, brokerId: null, events: augustHistory })
-  await table.render()
-  assert.equal(table.container.querySelector('[aria-label="CPI v3 pair direction"]').textContent, 'EURUSD Long')
-  assert.equal(table.container.querySelector('[aria-label="CPI v3 evidence strength"]').textContent, 'strong evidence')
-  assert.ok(table.container.querySelector('[aria-label="CPI v3 change size"]'))
-  assert.match(table.container.querySelector('[aria-label="CPI v3 evidence explanation"]').textContent, /evidence groups/)
-  assert.equal(table.container.querySelector('details, summary'), null)
-  assert.equal(table.container.querySelectorAll('[aria-label="CPI v3 component scores"] tbody tr').length, 4)
-  await table.render({ release: annualOnly, brokerId: null, events: augustHistory })
-  assert.match(table.container.textContent, /Reduced data: 1 of 4/)
-  assert.match(table.container.textContent, /weak evidence/)
-
-  const { InspectorPanel } = await server.ssrLoadModule('./src/inspector/InspectorPanel.tsx')
-  const prefs = { ...defaultInspectorPreferences(), detailView: 'scoring-v3' }
-  let saved, opened
-  const view = { selectedRelease: august, preferences: prefs, supported: true, now: Date.UTC(2026, 9, 1),
-    brokerTime: false, brokerId: null, brokerOffsetSeconds: 0, range: { from: august.releaseAt - 1000, to: august.releaseAt + 1000 },
-    rangePreset: 'custom', rangeDates: { from: '2026-08-12', to: '2026-08-12' }, customFrom: '2026-08-12', customTo: '2026-08-12',
-    releases: [august], allReleases: groupInspectorReleases([...augustHistory, ...august.events]), magnitudeHistory: { rows: {}, partial: false },
-    storage: { loading: false, error: null, coverage: {}, source: null }, selectRelease() {}, selectCustomRange() {},
-    applyPreferences(next) { saved = next }, setRangePreset() {}, setCustomFrom() {}, setCustomTo() {} }
-  const props = { view, symbol: 'EURUSD.a', source: null, error: null, timeDisplay: { mode: 'utc', utcOffsetMinutes: 0 }, onOpenScatter(r) { opened = r } }
-  const panel = mount(InspectorPanel, props)
-  await panel.render()
-  const dropdown = panel.container.querySelector('[aria-label="Inspector view"]')
-  assert.equal(dropdown.value, 'scoring-v3')
-  assert.ok(panel.container.querySelector('option[value="scoring-v2"]'), 'V2 remains selectable')
-  assert.equal(panel.container.querySelector('[aria-label="CPI v3 pair direction"]').textContent, 'EURUSD Long')
-  await React.act(async () => { dropdown.value = 'scatter'; dropdown.dispatchEvent(new dom.Event('change', { bubbles: true })) })
-  assert.equal(opened.id, august.id); assert.equal(dropdown.value, 'scoring-v3'); assert.equal(saved, undefined)
-  await React.act(async () => { dropdown.value = 'scoring-v2'; dropdown.dispatchEvent(new dom.Event('change', { bubbles: true })) })
-  assert.equal(saved.detailView, 'scoring-v2')
-  await panel.render({ ...props, view: { ...view, preferences: { ...prefs, detailView: 'table' } } })
-  const tableDropdown = panel.container.querySelector('[aria-label="Inspector view"]')
-  await React.act(async () => { tableDropdown.value = 'scoring-v3'; tableDropdown.dispatchEvent(new dom.Event('change', { bubbles: true })) })
-  assert.equal(saved.detailView, 'scoring-v3')
-  const nfp = { ...august, familyId: 'jobs', label: 'US Jobs report / NFP' }
-  await panel.render({ ...props, view: { ...view, selectedRelease: nfp, releases: [nfp] } })
-  assert.equal(panel.container.querySelector('[aria-label="Inspector view"]').value, 'table')
-  assert.equal(panel.container.querySelector('option[value="scoring-v3"]'), null)
-  await panel.render({ ...props, symbol: 'USDJPY', view: { ...view, supported: false } })
-  assert.equal(panel.container.querySelector('[aria-label="CPI v3 pair direction"]'), null)
-  localStorage.setItem(inspectorStorageKey, JSON.stringify(prefs))
-  assert.equal(readInspectorPreferences().detailView, 'scoring-v3')
-  const snapshot = exportWorkspace()
-  localStorage.clear(); restoreWorkspace(snapshot)
-  assert.equal(readInspectorPreferences().detailView, 'scoring-v3')
-
-  const paths = []
-  globalThis.fetch = async (url) => {
-    paths.push(url)
-    if (url === '/storage-api/health') return { ok: true, json: async () => ({ revision: 1, sources: [{ id: 'test-broker', publisher_status: 'live', server_now: 1 }], collector_error: null }) }
-    const params = new URL(url, 'http://localhost').searchParams
-    assert.equal(params.get('currency'), 'USD'); assert.equal(params.get('time_basis'), 'chart')
-    assert.equal(params.get('event_ids'), '840030005,840030006,840030008')
-    assert.ok(Number(params.get('to_server_seconds')) <= (august.releaseAt + 2 * 86400000) / 1000)
-    return { ok: true, json: async () => ({ source_id: 'test-broker', revision: 1, timestamp_convention: 'trade_server_time', time_basis: 'chart',
-      event_ids: ['840030005', '840030006', '840030008'], events: augustHistory, coverage: {}, next_cursor: null }) }
-  }
-  const stored = mount(CpiScoreV3, { release: august, brokerId: 'test-broker', events: [] })
-  await stored.render()
-  await React.act(async () => { await new Promise((resolve) => setTimeout(resolve, 25)) })
-  assert.ok(paths.some((p) => p.startsWith('/storage-api/calendar?')))
-  assert.equal(stored.container.querySelector('[aria-label="CPI v3 pair direction"]').textContent, 'EURUSD Long')
-  console.log('✓ Flat presentation, reduced-data reasons, CPI-only selector, persistence, navigation and scoped history loading')
-} finally {
-  await React.act(async () => { for (const root of roots) root.unmount() })
-  await dom.happyDOM.abort(); dom.close()
-  for (const key of keys) {
-    if (previous[key]) Object.defineProperty(globalThis, key, previous[key])
-    else delete globalThis[key]
-  }
-  await server.close()
-}
+} finally { await server.close() }

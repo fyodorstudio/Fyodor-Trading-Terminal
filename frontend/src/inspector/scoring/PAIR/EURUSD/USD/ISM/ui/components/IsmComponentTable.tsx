@@ -2,9 +2,9 @@ import type { IsmAnalysis } from '../../runtime/ism-analysis'
 import type { InspectorRelease } from '../../../../../../../inspector-data'
 import { sectorLabel, format } from '../presentation'
 import { ismCalendarSource } from '../../assessment/ism-publication-check'
-export function IsmComponentTable({ snapshots, loading, timestamp, onOpenScatter, version }: { snapshots: IsmAnalysis['snapshots']; loading: boolean; timestamp: (at: number | null) => string; onOpenScatter?: (release: InspectorRelease) => void; version: 2 | 3 }) {
+export function IsmComponentTable({ snapshots, loading, timestamp, onOpenScatter }: { snapshots: IsmAnalysis['snapshots']; loading: boolean; timestamp: (at: number | null) => string; onOpenScatter?: (release: InspectorRelease) => void }) {
   return (
-    <div className="inspector-table-scroll"><table aria-label={`ISM v${version} components`}>
+    <div className="inspector-table-scroll"><table aria-label={'ISM v3 components'}>
       <thead><tr><th>Signal</th><th>Reading</th><th>Sector weight</th><th>Context contribution</th></tr></thead>
       {snapshots.map(({ sector, source, member }) => <tbody key={sector} aria-label={`ISM ${sector} context`}>
         <tr className="inspector-ism-section-heading"><th colSpan={4} scope="rowgroup">{sectorLabel(sector)} · {sector === 'services' ? 70 : 30}% of context</th></tr>

@@ -30,8 +30,8 @@ try{
  const rows=m=>['840030001','840030002','840030003','840030004'].map((id,i)=>({value_id:id+'/'+m,event_id:id,name:id,event_code:id,server_time_seconds:Date.UTC(2015,m+1,14)/1000,release_at:Date.UTC(2015,m+1,14),period_seconds:Date.UTC(2015,m,1)/1000,revision:0,currency:'USD',country_code:'US',country_name:'United States',importance:'high',unit:1,multiplier:0,digits:1,time_mode:0,impact:'none',actual:m===42?i<2?.8:4:i<2?.2+m%3*.1:3+m%3*.1,previous:i<2?.2:3,forecast:null,revised_previous:null}))
  const events=Array.from({length:43},(_,m)=>rows(m)).flat(),release=groupInspectorReleases(rows(42))[0]
  await React.act(async()=>root.render(React.createElement(ExpandedReleaseScore,{release,events,history:{}})))
- assert.match(container.textContent,/EURUSD Short/);assert.equal(container.querySelectorAll('tbody tr').length,4);assert.equal(container.querySelector('details'),null)
- await React.act(async()=>ppiSignalSettings.save('core-pace',[.001,.002,.003]));assert.match(container.textContent,/custom boundaries/)
+ assert.match(container.textContent,/EURUSD Short/);assert.equal(container.querySelectorAll('[aria-label="PPI component scores"] tbody tr').length,4);assert.equal(container.querySelector('details'),null)
+ await React.act(async()=>ppiSignalSettings.save('core-pace',[.001,.002,.003]));assert.match(container.querySelector('[aria-label="PPI signal calibration"] tbody tr:first-child td:last-child').textContent,/0.001 \/ 0.002 \/ 0.003 pp.*manual override boundaries/)
  assert.deepEqual(gdpSignalSettings.read(),{})
  await React.act(async()=>gdpSignalSettings.save('growth',[.1,.2,.3]));const exported=exportWorkspace()
  assert.deepEqual(JSON.parse(exported.entries[gdpSignalSettings.key]),{growth:[.1,.2,.3]})

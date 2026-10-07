@@ -6,6 +6,7 @@ import { usePublicationContext } from '../runtime/usePublicationContext'
 import { contextPairLabel } from '../core/usd-pair'
 import { ContextInputTable } from './ContextInputTable'
 import { ContextPolicyDetails } from './ContextPolicyDetails'
+import { ScoringSection } from '../../inspector/scoring/shared/ui/ScoringSection'
 const empty: readonly InspectorEvent[] = []
 const defaultTime: TimeDisplayPreference = { mode: 'utc', utcOffsetMinutes: 0 }
 export function PublicationContext({ release, brokerId = null, events = empty, now = 0, timeDisplay = defaultTime }: {
@@ -19,9 +20,9 @@ export function PublicationContext({ release, brokerId = null, events = empty, n
     <p>{context.loading ? 'Calculating publication context…' : context.error ?? (!eligible ? 'A verified, already published chart time is required.' : result?.explanation ?? 'No enabled context assessment is available.')}</p>
     {ready && before && <p>Before publication: {contextPairLabel('EURUSD', before.result.direction)} · {before.result.strength ?? 'no'} evidence.</p>}
     {context.storage.error && <p role="alert">Context history: {context.storage.error}</p>}
-    <ContextInputTable families={families} onToggleFamily={toggleContextFamily} result={result} symbol="EURUSD" loading={context.loading}
-      unavailable={!eligible || !!context.error} cutoff={at} timeDisplay={timeDisplay} tableLabel="Publication context inputs" summaryLabel={ready ? contextPairLabel('EURUSD', result?.direction ?? 'uncomputed') : 'Uncomputed'} />
-    {ready && <ContextPolicyDetails policy={result?.policy} />}
-    <p>Uses only releases available at this publication. These controls are shared with Raycaster and CPI v4, independently of chart-marker filters. This context is separate from Standalone Scoring and uses the family policies listed in its input table, including when a legacy release view is selected. Policy text coverage is unavailable.</p>
+    <ScoringSection title="Inputs & contributions"><ContextInputTable families={families} onToggleFamily={toggleContextFamily} result={result} symbol="EURUSD" loading={context.loading}
+      unavailable={!eligible || !!context.error} cutoff={at} timeDisplay={timeDisplay} tableLabel="Publication context inputs" summaryLabel={ready ? contextPairLabel('EURUSD', result?.direction ?? 'uncomputed') : 'Uncomputed'} /></ScoringSection>
+    {ready && <ScoringSection title="Active relationships"><ContextPolicyDetails policy={result?.policy} /></ScoringSection>}
+    <ScoringSection title="Coverage & controls"><p>Uses only releases available at this publication. These controls are shared with Raycaster and CPI v4, independently of chart-marker filters. This context is separate from Standalone Scoring and uses the family policies listed in its input table, including when a legacy release view is selected. Policy text coverage is unavailable.</p></ScoringSection>
   </section>
 }

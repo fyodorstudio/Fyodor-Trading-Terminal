@@ -7,16 +7,16 @@ import { assessIsmServicesScore, ismServicesSeriesIds, ismServicesSignals } from
 import { assessIsmManufacturing, ismManufacturingSeriesIds, ismManufacturingSignals } from '../sectors/manufacturing/ism-manufacturing-score'
 import { ismPublicationIssue, ismEarliestKnownTime } from './ism-publication-check'
 
-export const ismScoreV2Version = 'ism-eurusd-monthly-context-v2'
-export const ismV2SeriesIds = [...ismServicesSeriesIds, ...ismManufacturingSeriesIds] as const
+export const ismMonthlyContextVersion = 'ism-eurusd-monthly-context-v2'
+export const ismSeriesIds = [...ismServicesSeriesIds, ...ismManufacturingSeriesIds] as const
 export const ismSectorWeights = { services: 70, manufacturing: 30 } as const
-export type IsmV2Settings = { services?: MagnitudeSettings; manufacturing?: MagnitudeSettings }
-export const supportsIsmV2 = (release: InspectorRelease | null) => !!release && release.currency === 'USD' &&
+export type IsmSectorSettings = { services?: MagnitudeSettings; manufacturing?: MagnitudeSettings }
+export const supportsIsmScore = (release: InspectorRelease | null) => !!release && release.currency === 'USD' &&
   release.country === 'US' && ['ism-services', 'ism-manufacturing'].includes(release.familyId)
 
-function buildContext(month: number | null, at: number | null, events: readonly EconomicCalendarEvent[], settings: IsmV2Settings) {
+function buildContext(month: number | null, at: number | null, events: readonly EconomicCalendarEvent[], settings: IsmSectorSettings) {
   const validTime = at !== null && Number.isFinite(at)
-  const sourceEvents = validTime ? publicationsAsOf(events.filter((e) => ismV2SeriesIds.includes(e.event_id as typeof ismV2SeriesIds[number])), at) : []
+  const sourceEvents = validTime ? publicationsAsOf(events.filter((e) => ismSeriesIds.includes(e.event_id as typeof ismSeriesIds[number])), at) : []
   const publications = contextPublications(sourceEvents)
   // Broker and official availability bounds both apply. A flagged publication
   // may enter later comparison history only once both bounds have passed.
@@ -65,11 +65,11 @@ function buildContext(month: number | null, at: number | null, events: readonly 
     `${describe(demand, 'Demand supports USD', 'Demand weighs on USD', 'Demand provides no net directional vote')}; ${describe(labor, 'employment supports USD', 'employment weighs on USD', 'employment provides no net directional vote')}. ${describe(prices, 'Input-price pressure adds a smaller USD-supportive vote.', 'Easing input-price pressure adds a smaller USD-adverse vote.', 'Input prices add no net directional vote.')}`
   const contextId = month === null ? null : `ISM/${Math.floor(month / 12)}-${String(month % 12 + 1).padStart(2, '0')}`
   return { contextId, referenceMonth: month, asOf: at, services, manufacturing, readings, total, tieBreak, direction, label,
-    explanation, sectorConflict, laborConflict, ...evidence, version: ismScoreV2Version }
+    explanation, sectorConflict, laborConflict, ...evidence, version: ismMonthlyContextVersion }
 }
 
-export function assessIsmScoreV2(release: InspectorRelease | null, events: readonly EconomicCalendarEvent[], settings: IsmV2Settings = {}, includePrevious = true) {
-  if (!release || !supportsIsmV2(release)) return null
+export function assessIsmMonthlyContext(release: InspectorRelease | null, events: readonly EconomicCalendarEvent[], settings: IsmSectorSettings = {}, includePrevious = true) {
+  if (!release || !supportsIsmScore(release)) return null
   const month = contextReference(release), at = release.timingUncertain ? null : release.releaseAt
   // Include selected source rows even when the caller's inventory range omits
   // that publication. Different value IDs still preserve duplicate ambiguity.

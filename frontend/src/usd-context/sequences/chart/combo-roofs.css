@@ -2,7 +2,9 @@
 .combo-roofs svg { position: absolute; inset: 0; overflow: hidden; }
 .combo-roofs path { fill: none; stroke: var(--accent); stroke-width: 1; opacity: .5; }
 .combo-roofs .experimental path { stroke-dasharray: 3 3; }
-.combo-roof-label { position: absolute; transform: translateX(-50%); max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.combo-roof-label { position: absolute; transform: translateX(-50%); max-width: 170px; display: inline-flex; align-items: center; white-space: nowrap; }
+.combo-roof-names { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.combo-roof-direction, .combo-roof-label small { flex-shrink: 0; }
 .combo-roofs button { pointer-events: auto; font-size: 9px; cursor: pointer; border: 1px solid var(--border-strong); border-radius: 4px; padding: 3px 6px; background: var(--surface-panel); color: var(--text); }
 .combo-roofs button:hover { border-color: var(--accent); color: var(--accent); }
 .combo-roofs button:focus-visible { outline: 2px solid var(--accent); }

@@ -13,6 +13,8 @@ import { policyEpisodeWindowMs } from './episodes/policy-episodes'
 import { groupIsmEpisodes, ismEpisodeWindowMs } from './episodes/ism-episodes'
 import { useMarkerBars } from './chart/useMarkerBars'
 
+import { normalizeInspectorDetailView } from './inspector-detail-view'
+
 const noEvents: EconomicCalendarEvent[] = []
 
 export function useInspector({ events = noEvents, symbol, bars, timeframe, timeDisplay, clockOffsetMs, brokerId, brokerOffsetSeconds = 0, detailOpen = true }: {
@@ -58,12 +60,12 @@ export function useInspector({ events = noEvents, symbol, bars, timeframe, timeD
   const markerBars = useMarkerBars(bars)
   const markers = useMemo(() => buildInspectorMarkers(releases, preferences, markerBars, timeframe), [releases, preferences, markerBars, timeframe])
   const selectedRelease = releases.find((release) => release.id === selectedId || release.ismPublications?.some(r => r.id === selectedId)) ?? null
-  const isIsm = selectedRelease?.familyId === 'ism-services' || selectedRelease?.familyId === 'ism-manufacturing'
-  const needsMagnitude = detailOpen && (preferences.detailView === 'table' || (preferences.detailView === 'scoring' && !isIsm))
+  const needsMagnitude = detailOpen && preferences.detailView === 'table'
   const magnitudeHistory = useFamilyMagnitudeHistory(brokerId, needsMagnitude ? selectedRelease?.ismPublications?.[0] ?? selectedRelease : null, undefined, clockOffsetMs)
   function applyPreferences(next: InspectorPreferences) {
-    setPreferences(next)
-    try { localStorage.setItem(inspectorStorageKey, JSON.stringify(next)); setStorageFailed(false) }
+    const normalized = { ...next, detailView: normalizeInspectorDetailView(next.detailView) }
+    setPreferences(normalized)
+    try { localStorage.setItem(inspectorStorageKey, JSON.stringify(normalized)); setStorageFailed(false) }
     catch { setStorageFailed(true) }
   }
   return { supported, preferences, applyPreferences, storageFailed, rangePreset, setRangePreset, customFrom, setCustomFrom,

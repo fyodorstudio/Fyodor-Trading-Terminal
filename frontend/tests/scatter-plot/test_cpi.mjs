@@ -135,9 +135,9 @@ try {
   assert.equal(inspector.container.querySelectorAll('.inspector-table-scroll td.inspector-grade-lower').length, 1)
   assert.equal(inspector.container.querySelectorAll('.inspector-table-scroll td.inspector-grade-unchanged').length, 1)
   await showView('Scoring system')
-  assert.equal(inspector.container.querySelector('[aria-label="CPI pair direction"]').textContent, 'Uncomputed')
-  assert.equal(inspector.container.querySelectorAll('.inspector-cpi-score tbody tr').length, 4)
-  assert.equal(inspector.container.querySelectorAll('.inspector-cpi-index-score tbody tr').length, 4)
+  assert.equal(inspector.container.querySelector('[aria-label="CPI v4 standalone direction"]').textContent, 'Uncomputed')
+  assert.equal(inspector.container.querySelectorAll('[aria-label="CPI v4 standalone component scores"] tbody tr').length, 4)
+  assert.equal(inspector.container.querySelector('.inspector-cpi-index-score'), null, 'Retired index scorer is absent')
   await showView('Table only')
   assert.equal(inspector.container.querySelectorAll('[aria-label="Magnitude undefined"]').length, 10)
 
@@ -188,7 +188,7 @@ try {
   const toggleHistogram = (label) => [...inspector.container.querySelectorAll('button')].find((button) => button.textContent.trim() === label)
   assert.equal(inspector.container.querySelectorAll('.magnitude-histogram').length, 1)
   await showView('Scoring system')
-  const summaryBeforeHide = inspector.container.querySelector('.inspector-detail-overview').textContent
+  const summaryBeforeHide = inspector.container.querySelector('[aria-label="CPI v4 this release"]').textContent
   await showView('Table only')
   const cutoffsBeforeHide = cpiMagnitudeFamily.settings.read()
   const distributionBeforeHide = historyView.rows[current[0].value_id].distribution
@@ -203,7 +203,7 @@ try {
   assert.equal(inspector.container.querySelectorAll('[aria-label="Magnitude undefined"]').length, 9, 'Undefined remains empty in magnitude-only mode')
   for (const row of inspector.container.querySelectorAll('.inspector-table-scroll tbody tr')) assert.equal(row.children.length, 5)
   await showView('Scoring system')
-  assert.equal(inspector.container.querySelector('.inspector-detail-overview').textContent, summaryBeforeHide, 'Hiding histograms never changes score matrices')
+  assert.equal(inspector.container.querySelector('[aria-label="CPI v4 this release"]').textContent, summaryBeforeHide, 'Hiding histograms never changes the current scoring interpretation')
   await showView('Table only')
   assert.equal(JSON.parse(localStorage.getItem(inspectorStorageKey)).showHistograms, false)
   assert.equal(readInspectorPreferences().showHistograms, false, 'A fresh preference read preserves hidden histograms')

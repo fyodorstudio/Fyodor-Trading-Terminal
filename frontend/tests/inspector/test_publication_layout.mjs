@@ -45,12 +45,15 @@ try {
   }
   const props = { history: magnitudeHistory, events, now, timeDisplay, brokerId: null }
   for (const binding of inspectorScoringBindings) {
+    assert.match(binding.versionLabel, /v\d/, 'Every registered scorer declares its visible current version')
     const release = releases.findLast(r => r.familyId === binding.familyId) ?? { ...base, id: 'test/' + binding.familyId,
       familyId: binding.familyId, country: binding.country, currency: binding.currency, events: [] }
     await render(InspectorScoringView, { ...props, release, binding })
     const { left, right } = columns()
     assert.equal(left.querySelector('.usd-context-inputs'), null, `${binding.familyId}: context inputs belong on the right`)
     assert.ok(right.querySelector('.usd-context-inputs'), `${binding.familyId}: publication context is available`)
+    assert.ok(right.querySelector('[aria-label="Inputs & contributions"]'), `${binding.familyId}: context calculation is grouped`)
+    assert.equal(right.querySelectorAll('[aria-label="Context weight coverage"] dt').length, 3)
   }
 
   const fedAt = base.releaseAt + 3 * 86400000
@@ -65,6 +68,8 @@ try {
   assert.equal(fedColumns.left.querySelector('[aria-label="Fed standalone direction"]').textContent, 'Uncomputed')
   assert.match(fedColumns.left.textContent, /Rate hold/)
   assert.ok(fedColumns.left.querySelector('[aria-label="Fed numerical rate path"]'))
+  assert.ok(fedColumns.left.querySelector('[aria-label="Decision & rate action"]'))
+  assert.ok(fedColumns.right.querySelector('[aria-label="Policy pressure & previous meeting"]'))
   assert.ok(fedColumns.right.querySelector('[aria-label="Fed previous meeting comparison"]'))
   const expected = contextAt(buildContextTimeline({ events: fedEvents, families: contextSourceFamilies(contextPriority),
     settings: { cpi: {}, nfp: {}, claims: {}, services: {}, manufacturing: {}, retail: {}, pce: {}, ppi: {}, gdp: {} }, asOf: now }), fedRelease.chartTime * 1000).result
@@ -94,17 +99,25 @@ try {
     assert.ok(release)
     await render(InspectorPanel, panel(release, view))
     const { left, right } = columns()
+    const menu = host.querySelector('[aria-label="Inspector view"]')
+    assert.equal(menu.value, 'scoring', 'Old saved version choices migrate to the latest scorer')
+    assert.deepEqual([...menu.options].map(o => o.value), ['table', 'scoring', 'scatter'])
+    assert.ok(menu.selectedOptions[0].textContent.includes(inspectorScoringBinding('EURUSD', release).versionLabel))
     assert.equal(left.querySelector('.usd-context-inputs'), null)
     assert.ok(right.querySelector('.usd-context-inputs'))
     if (view === 'scoring-v4') {
       assert.ok(left.querySelector('[aria-label="CPI v4 standalone component scores"]'))
       assert.ok(right.querySelector('[aria-label="CPI v4 context change"]'))
     }
+    {
+      assert.ok(left.querySelector('[aria-label="What drove the result"]'), `${family} ${view}: result drivers have their own section`)
+      assert.ok(left.querySelector('[aria-label="How this scorer works"]'))
+    }
   }
 
   await render(InspectorScoringView, fedProps)
   await React.act(async () => preferences.saveRelativePreferences({ ...preferences.readRelativePreferences(), mode: 'relative' }))
-  const css = ['inspector/inspector.css', 'inspector/scoring/shared/ui/release-score.css', 'pair-context/ui/relative-context.css']
+  const css = ['inspector/inspector.css', 'inspector/scoring/shared/ui/release-score.css', 'inspector/scoring/shared/ui/scoring-sections.css', 'pair-context/ui/relative-context.css']
   const style = document.createElement('style'); document.head.append(style)
   for (const order of [css, [...css].reverse()]) {
     style.textContent = order.map(p => fs.readFileSync(path.join(frontend, 'src', p), 'utf8')).join('\n')
@@ -119,7 +132,21 @@ try {
     assert.equal(dom.getComputedStyle(usdVote).overflowWrap, 'anywhere')
   }
   assert.match(style.textContent, /@container \(max-width: 760px\)/, 'Narrow docks preserve standalone-first stacking')
-  console.log('✓ All registered/advanced scoring columns, Fed action/context separation, relative mode, CPI v4 ownership and table cascade in either load order')
+  const { SignalCalibration } = await load('inspector/scoring/shared/ui/SignalCalibration.tsx')
+  const { PublicationScoringLayout } = await load('inspector/scoring/shared/ui/PublicationScoringLayout.tsx')
+  await render(PublicationScoringLayout, { standalone: React.createElement(SignalCalibration, { readings: [{ id: 'claims', label: 'Initial claims', value: -2, sampleCount: 24,
+    limits: [1, 2, 3], magnitudeMode: 'custom', unit: 'k claims' }, { id: 'missing', label: 'Missing signal', value: null,
+    sampleCount: 0, limits: null }] }), context: React.createElement('p', null, 'Context sample') })
+  assert.equal(host.querySelector('details'), null)
+  const calibration = host.querySelector('[aria-label="Signal calibration"]')
+  assert.match(calibration.rows[1].textContent, /-2 k claims.*N = 24.*1 \/ 2 \/ 3 k claims.*manual override boundaries/)
+  assert.match(calibration.rows[2].textContent, /Missing signal.*— pp.*N = 0.*Unavailable/)
+  for (const order of [css, [...css].reverse()]) {
+    style.textContent = order.map(p => fs.readFileSync(path.join(frontend, 'src', p), 'utf8')).join('\n')
+    assert.equal(dom.getComputedStyle(calibration.rows[1].cells[0]).width, '30%', 'Calibration budgets override the generic first-column rule in either load order')
+    assert.equal(dom.getComputedStyle(calibration.rows[1].cells[1]).width, '25%')
+  }
+  console.log('✓ All current scoring columns and legacy-choice migration, Fed action/context separation, relative mode, CPI v4 ownership and table cascade in either load order')
 } finally {
   await React.act(async () => root.unmount()); await server.close(); await dom.happyDOM.abort(); dom.close()
   for (const key of keys) { if (previous[key]) Object.defineProperty(globalThis, key, previous[key]); else delete globalThis[key] }

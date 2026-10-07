@@ -46,7 +46,7 @@ try {
   assert.ok(app.container.querySelector('[aria-label="Jobless Claims level context"]'))
   assert.equal(app.container.querySelector('[aria-label="Jobless Claims pair direction"]').textContent, 'EURUSD Long')
   assert.equal(app.container.querySelectorAll('details').length, 0)
-  assert.equal(app.container.querySelectorAll('tbody tr').length, 3)
+  assert.equal(app.container.querySelectorAll('[aria-label="Jobless Claims component scores"] tbody tr').length, 3)
   assert.match(app.container.textContent, /benefit eligibility/)
   const prefs = { ...defaultInspectorPreferences(), detailView: 'scoring' }
   let saved, opened
@@ -65,7 +65,7 @@ try {
   await choose(dropdown, 'scatter'); assert.equal(opened.id, release.id); assert.equal(saved, undefined)
   await choose(dropdown, 'table'); assert.equal(saved.detailView, 'table')
   await panel.render({ ...props, view: { ...view, preferences: { ...prefs, detailView: 'scoring-v3' } } })
-  assert.equal(panel.container.querySelector('[aria-label="Inspector view"]').value, 'table')
+  assert.equal(panel.container.querySelector('[aria-label="Inspector view"]').value, 'scoring')
   await panel.render({ ...props, symbol: 'GBPUSD', view: { ...view, supported: false } })
   assert.equal(panel.container.querySelector('[aria-label="Jobless Claims pair direction"]'), null)
 

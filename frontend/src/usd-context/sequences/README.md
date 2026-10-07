@@ -83,3 +83,15 @@ roofs with future rows physically removed. The user performs visual UI checks.
 Not implemented: PCE income/spending sub-context, generalized new interaction
 weights, automatic price-audit labeling or a historical volatility detector.
 These remain research tracks; this layer makes existing relationships reviewable.
+
+
+## Roof names
+
+`chart/roof-label.ts` names nonzero fresh replacement families once, with up to
+three compact names and an additional-family count. Opposing effects still
+participate in that list; names do not imply agreement. Zero-change companions
+stay in the full tooltip and Inspector. Tooltips include full release names,
+roles and replacement-effect direction, even for filtered markers. The existing
+three-lane 170px footprint is preserved; only the name span truncates, leaving
+the directional label visible. Overflow entries share the same presentation.
+The snapshot title/type and publication qualification are unchanged.

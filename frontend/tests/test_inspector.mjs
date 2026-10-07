@@ -208,14 +208,14 @@ try {
   assert.doesNotMatch(app.container.querySelector('.inspector-table-scroll table').textContent, /Sum|Direction|Long|Short|Gross/)
   assert.equal(app.container.querySelector('.inspector-scoring-view'), null, 'Table only is the default')
   await showView('Scoring system')
-  assert.equal(app.container.querySelector('.inspector-table-scroll'), null, 'Scoring view contains no readings table')
-  assert.equal(app.container.querySelector('[aria-label="CPI pair direction"]').textContent, 'Uncomputed',
+  assert.equal(app.container.querySelector('table[aria-label$="release readings"]'), null, 'Scoring view contains no raw readings table')
+  assert.equal(app.container.querySelector('[aria-label="CPI v4 standalone direction"]').textContent, 'Uncomputed',
     'Incomplete CPI primary readings cannot produce a direction')
-  assert.equal(app.container.querySelectorAll('.inspector-cpi-score tbody tr').length, 4)
+  assert.equal(app.container.querySelectorAll('[aria-label="CPI v4 standalone component scores"] tbody tr').length, 4)
   assert.ok(app.container.querySelector('.inspector-header .inspector-detail-heading'), 'Selected release metadata shares the toolbar with calendar status')
   assert.equal(app.container.querySelector('.inspector-detail .inspector-detail-heading'), null, 'Metadata leaves no separate summary heading row')
   assert.deepEqual([...app.container.querySelectorAll('[aria-label="Standalone Scoring"] table')].map((table) => table.getAttribute('aria-label')),
-    ['CPI price index magnitude score', 'CPI signed magnitude score'], 'Index matrix precedes the rate matrix')
+    ['CPI v4 standalone component scores', 'CPI signal calibration'], 'Latest CPI contribution and calibration tables replace the retired matrices')
   await showView('Table only')
   assert.equal(app.container.querySelectorAll('.inspector-shared-period').length, 1)
   assert.doesNotMatch(app.container.querySelector('.inspector-table-scroll tbody').textContent, /Period:/, 'Shared period is shown once above the table')
@@ -428,7 +428,7 @@ try {
   assert.match(app.container.querySelector('.inspector-table-scroll tbody').textContent, /-0.1 h/)
   assert.deepEqual(grading.tallyNfpRelease(view.selectedRelease).counts, { higher: 2, lower: 1, unchanged: 0, missing: 0, unrated: 0 })
   await showView('Scoring system')
-  assert.equal(app.container.querySelector('[aria-label="NFP pair direction"]').textContent, 'Uncomputed')
+  assert.equal(app.container.querySelector('[aria-label="NFP v2 pair direction"]').textContent, 'Uncomputed')
   await showView('Table only')
   const unemploymentDelta = app.container.querySelectorAll('.inspector-table-scroll tbody tr')[1].querySelector('td.inspector-graded-delta')
   assert.equal(unemploymentDelta.childNodes[0].textContent + unemploymentDelta.querySelector('.inspector-row-grade').textContent, '+0.1 ppHigher', 'Rising unemployment describes the number, without an economic judgment')
@@ -469,13 +469,13 @@ try {
   await click(app.container.querySelector('.inspector-release'))
   assert.deepEqual(grading.tallyNfpRelease(view.selectedRelease).counts, { higher: 2, lower: 7, unchanged: 1, missing: 0, unrated: 0 })
   await showView('Scoring system')
-  assert.equal(app.container.querySelectorAll('.inspector-nfp-score tbody tr').length, 3)
-  assert.equal(app.container.querySelectorAll('.inspector-nfp-supporting tbody tr').length, 7)
-  assert.equal(app.container.querySelectorAll('.inspector-signed-magnitude-matrix tbody td[colspan="5"]').length, 10)
+  assert.equal(app.container.querySelectorAll('[aria-label="NFP v2 component scores"] tbody tr').length, 5)
+  assert.ok(app.container.querySelector('[aria-label="NFP v2 supporting context"]'))
+  assert.equal(app.container.querySelector('.inspector-signed-magnitude-matrix'), null, 'Retired original magnitude matrices are absent')
   assert.equal(app.container.querySelector('.magnitude-histogram'), null, 'Undefined never invents a histogram')
-  const directionLabel = () => app.container.querySelector('[aria-label="NFP pair direction"]').textContent
-  assert.equal(directionLabel(), 'Uncomputed', 'Undefined primary boundaries do not invent a direction')
-  assert.doesNotMatch(app.container.querySelector('[aria-label="NFP signed magnitude score"]').textContent,
+  const directionLabel = () => app.container.querySelector('[aria-label="NFP v2 pair direction"]').textContent
+  assert.equal(directionLabel(), 'Uncomputed', 'Insufficient derived-signal history does not invent a direction')
+  assert.doesNotMatch(app.container.querySelector('[aria-label="NFP v2 component scores"]').textContent,
     /NFP majority rule · Experimental|Compared with Previous|A−P magnitude/)
   assert.equal(app.container.querySelector('.inspector-grade-summary'), null, 'The table replaces the old summary strip')
   await showView('Table only')
@@ -504,16 +504,16 @@ try {
   const heldScoreId = view.selectedRelease.id
   await app.render({ events: gradedRows })
   assert.equal(view.selectedRelease.id, heldScoreId, 'Incoming readings preserve selection')
-  assert.equal(directionLabel(), 'Uncomputed', 'Direction still requires defined primary magnitudes')
+  assert.equal(directionLabel(), 'Uncomputed', 'Direction still requires usable derived-signal history')
   await app.render({ events: [core] })
   await click(app.container.querySelector('.inspector-release'))
   assert.equal(app.container.querySelector('[aria-label="NFP reading tally"]'), null)
-  assert.equal(app.container.querySelector('[aria-label="NFP signed magnitude score"]'), null)
+  assert.equal(app.container.querySelector('[aria-label="NFP v2 component scores"]'), null)
   await showView('Table only')
   assert.ok(app.container.querySelector('.inspector-row-grade'), 'CPI readings retain descriptive Higher/Lower labels')
-  assert.equal(app.container.querySelector('[aria-label="NFP pair direction"]'), null)
+  assert.equal(app.container.querySelector('[aria-label="NFP v2 pair direction"]'), null)
   console.log('✓ Mounted NFP ten-reading Higher/Lower labels, raw sign colors, zero/missing states, live updates and family isolation')
-  console.log('✓ Mounted NFP three-primary/seven-supporting matrices, explicit Undefined direction and incoming changes')
+  console.log('✓ Mounted latest NFP component/supporting tables, explicit Uncomputed direction and incoming changes')
 
   await app.render({ events: [event(), decision] })
   const subscriptions = new Set()

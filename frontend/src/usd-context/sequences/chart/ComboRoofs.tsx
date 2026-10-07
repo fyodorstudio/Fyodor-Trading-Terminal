@@ -7,6 +7,7 @@ import type { ComboSnapshot } from '../core/contracts'
 import { contextPairLabel } from '../../core/usd-pair'
 import { roofCoordinate, visibleRoofCandidates } from './roof-geometry'
 import { timeframeSeconds } from '../../../inspector/inspector-data'
+import { roofLabel, roofTooltip } from './roof-label'
 import './combo-roofs.css'
 
 type Positioned = { combo: ComboSnapshot; left: number; right: number; ticks: number[]; lane: number; hidden: number }
@@ -60,14 +61,14 @@ export function ComboRoofs({ chartApi, episodes, bars, timeframe, markers, now, 
     })}</svg>
     {positioned.map(p => <button type="button" key={p.combo.id} className={`combo-roof-label ${p.combo.experimental ? 'experimental' : ''}`}
       style={{ left: Math.max(85, Math.min(chartApi.timeScale().width() - 85, (p.left + p.right) / 2)), top: 87 - p.lane * 34 }}
-      title={`${p.combo.title} · ${contextPairLabel('EURUSD', p.combo.direction)} · ${p.combo.strength ?? 'weak'} evidence${p.hidden ? ` · ${p.hidden} inputs hidden by marker filters` : ''}\n${p.combo.explanation}`}
+      title={roofTooltip(p.combo, p.hidden)}
       aria-label={`Inspect combo ${p.combo.title}`} onClick={() => onSelect(p.combo)}>
-      {p.combo.experimental ? 'Fresh news' : p.combo.kind === 'ism-sectors' ? 'ISM sectors' : p.combo.kind === 'weekly-labor' ? 'Claims + NFP' : 'Labor + inflation'}
-      {' · '}{p.combo.direction === 'weaker' ? 'Long' : p.combo.direction === 'stronger' ? 'Short' : 'Uncomputed'}
+      <span className="combo-roof-names">{roofLabel(p.combo)}</span>
+      <span className="combo-roof-direction"> · {p.combo.direction === 'weaker' ? 'Long' : p.combo.direction === 'stronger' ? 'Short' : 'Uncomputed'}</span>
       {p.hidden > 0 && <small> · {p.hidden} hidden</small>}
     </button>)}
     {overflow.length > 0 && <div className="combo-roof-overflow"><button type="button" aria-expanded={chooser} onClick={() => setChooser(!chooser)}>+{overflow.length} combo roofs</button>
-      {chooser && <div>{overflow.map(combo => <button type="button" key={combo.id} onClick={() => { onSelect(combo); setChooser(false) }}>{combo.title} · {contextPairLabel('EURUSD', combo.direction)}</button>)}</div>}
+      {chooser && <div>{overflow.map(combo => <button type="button" key={combo.id} title={roofTooltip(combo)} onClick={() => { onSelect(combo); setChooser(false) }}>{roofLabel(combo)} · {contextPairLabel('EURUSD', combo.direction)}</button>)}</div>}
     </div>}
   </div>
 }

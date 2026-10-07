@@ -13,6 +13,7 @@ import { usePreviousFedMeeting } from '../runtime/usePreviousFedMeeting'
 import { PublicationScoringLayout } from '../../../../../shared/ui/PublicationScoringLayout'
 import { PublicationScoringContext } from '../../../../../shared/ui/PublicationScoringContext'
 import { FedRateAction } from './FedRateAction'
+import { ScoringSection } from '../../../../../shared/ui/ScoringSection'
 
 const defaultTime = { mode: 'utc' as const, utcOffsetMinutes: 0 }
 export function FedDecisionContext({ release, action, history, brokerId = null, events, now = 0, timeDisplay = defaultTime }: InspectorScoringProps & {
@@ -32,6 +33,7 @@ export function FedDecisionContext({ release, action, history, brokerId = null, 
     </div>
     <p>{context.loading ? 'Calculating decision context…' : context.error ?? (!eligible ?
       'A verified, already published chart time is required.' : result?.explanation ?? 'No enabled context assessment is available.')}</p>
+    <ScoringSection title="Policy pressure & previous meeting">
     {ready && <p aria-label="Fed economic policy pressure">{fedContextPressure(result)}</p>}
     {ready && earlier && previous && !storage.loading && !storage.error ? <div aria-label="Fed previous meeting comparison">
       <p>At the previous meeting ({formatAppTimestamp(previous.releaseAt!, timeDisplay)}): {contextPairLabel('EURUSD', earlier.result.direction)} · {earlier.result.strength ?? 'no'} context evidence.</p>
@@ -39,12 +41,12 @@ export function FedDecisionContext({ release, action, history, brokerId = null, 
         'A directional comparison cannot be established because one meeting lacks a usable context bias.' :
         earlier.result.direction !== result?.direction ? 'The economic-context direction changed since that meeting.' :
         'The economic-context direction stayed the same; the contribution table shows the current balance.'}</p>
-    </div> : <p>{storage.loading ? 'Loading earlier decision timing…' : storage.error ?? 'Previous meeting comparison unavailable.'}</p>}
+    </div> : <p>{storage.loading ? 'Loading earlier decision timing…' : storage.error ?? 'Previous meeting comparison unavailable.'}</p>}</ScoringSection>
     {(context.error || context.storage.error) && <p role="alert">{context.error ?? context.storage.error}</p>}
-    <ContextInputTable families={families} onToggleFamily={toggleContextFamily} result={result} symbol="EURUSD" loading={context.loading}
-      unavailable={!eligible || !!context.error} cutoff={at} timeDisplay={timeDisplay} tableLabel="Fed economic context inputs" summaryLabel={label} />
-    {ready && <ContextPolicyDetails policy={result?.policy} />}
-    <p>This is the same publication-time context used by Raycaster, with its shared independent filters. Both meetings use the same currently configured rules and only releases available at their respective publication times. A hold adds no vote, does not refresh old evidence, and does not reset its age. Rate actions remain separate from the combined score.</p>
+    <ScoringSection title="Inputs & contributions"><ContextInputTable families={families} onToggleFamily={toggleContextFamily} result={result} symbol="EURUSD" loading={context.loading}
+      unavailable={!eligible || !!context.error} cutoff={at} timeDisplay={timeDisplay} tableLabel="Fed economic context inputs" summaryLabel={label} /></ScoringSection>
+    {ready && <ScoringSection title="Active relationships"><ContextPolicyDetails policy={result?.policy} /></ScoringSection>}
+    <ScoringSection title="Coverage & controls"><p>This is the same publication-time context used by Raycaster, with its shared independent filters. Both meetings use the same currently configured rules and only releases available at their respective publication times. A hold adds no vote, does not refresh old evidence, and does not reset its age. Rate actions remain separate from the combined score.</p></ScoringSection>
   </section>
   return <PublicationScoringLayout standalone={<FedRateAction action={action} eligible={eligible} path={path} pathLoading={storage.loading} pathError={storage.error} />}
     context={<PublicationScoringContext release={release} history={history} brokerId={brokerId} events={events} now={now} timeDisplay={timeDisplay}>{contextView}</PublicationScoringContext>} />

@@ -1,11 +1,11 @@
 import type { EconomicCalendarEvent } from '../../../../../../calendar-event'
 import type { InspectorRelease } from '../../../../../../inspector-data'
-import { assessIsmScoreV2, type IsmV2Settings } from './ism-score-v2'
+import { assessIsmMonthlyContext, type IsmSectorSettings } from './ism-monthly-context'
 
 export const supportsIsmV3 = (release: InspectorRelease | null) => !!release && release.country === 'US' &&
   release.currency === 'USD' && ['ism-manufacturing', 'ism-services'].includes(release.familyId)
 export const ismScoreV3Version = 'ism-eurusd-monthly-resolution-v3'
-type Context = NonNullable<ReturnType<typeof assessIsmScoreV2>>
+type Context = NonNullable<ReturnType<typeof assessIsmMonthlyContext>>
 const number = (value: number) => value.toLocaleString(undefined, { maximumFractionDigits: 3, signDisplay: 'exceptZero' })
 
 // Resolve the latest context's original component votes once. Combining the two
@@ -26,6 +26,6 @@ export function resolveIsmV3(context: Context | null) {
   return { ...context, manufacturingContribution, servicesContribution, winner, dominance, version: ismScoreV3Version }
 }
 
-export function assessIsmScoreV3(release: InspectorRelease | null, events: readonly EconomicCalendarEvent[], settings: IsmV2Settings = {}, includePrevious = true) {
-  return resolveIsmV3(assessIsmScoreV2(release, events, settings, includePrevious))
+export function assessIsmScoreV3(release: InspectorRelease | null, events: readonly EconomicCalendarEvent[], settings: IsmSectorSettings = {}, includePrevious = true) {
+  return resolveIsmV3(assessIsmMonthlyContext(release, events, settings, includePrevious))
 }
