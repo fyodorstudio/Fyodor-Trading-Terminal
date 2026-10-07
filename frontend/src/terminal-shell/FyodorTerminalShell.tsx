@@ -69,7 +69,7 @@ export function FyodorTerminalShell() {
   const [drawingToolbarVisible, setDrawingToolbarVisible] = useState<boolean>(readDrawingToolbarVisible)
   const [raycasterVisible, setRaycasterVisible] = useState(readRaycasterVisible)
   const [comboSelection, setComboSelection] = useState<{ combo: ComboSnapshot; symbol: string; broker: string | null } | null>(null)
-  const [bottomDockWindow, setBottomDockWindow] = useState<BottomDockWindow | null>('activity')
+  const [bottomDockWindow, setBottomDockWindow] = useState<BottomDockWindow | null>('inspector')
   const [scatterTarget, setScatterTarget] = useState<ScatterReleaseTarget | null>(null)
   const dockSize = useBottomDockSize(bottomDockWindow)
   const [settingsOpen, setSettingsOpen] = useState(false)

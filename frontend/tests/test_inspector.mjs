@@ -933,7 +933,8 @@ try {
   await respond(storageRequests[start + 1], page([]))
   start = storageRequests.length
   await click(rangeApp.container.querySelector('[aria-label="Inspector date range"]'))
-  await click(document.querySelector('[aria-label="Next calendar month"]'))
+  // The Year to date start calendar opens in January; browse to the October fixture.
+  for (let month = 1; month < 10; month++) await click(document.querySelector('[aria-label="Next calendar month"]'))
   await click(document.querySelector('[data-calendar="from"][aria-label="Choose 2026-10-01"]'))
   assert.equal(storageRequests.length, start, 'Choosing only the start date does not request a partial range')
   await click(document.querySelector('[data-calendar="to"][aria-label="Choose 2026-10-02"]'))

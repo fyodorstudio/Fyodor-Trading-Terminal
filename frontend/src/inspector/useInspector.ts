@@ -30,7 +30,7 @@ export function useInspector({ events = noEvents, symbol, bars, timeframe, timeD
   const rangeDisplay = useMemo<TimeDisplayPreference>(() => brokerTime ? { mode: 'utc', utcOffsetMinutes: 0 } : timeDisplay, [brokerTime, timeDisplay])
   const [preferences, setPreferences] = useState(readInspectorPreferences)
   const [storageFailed, setStorageFailed] = useState(false)
-  const [rangePreset, setRangePreset] = useState<InspectorRangePreset>('this-week')
+  const [rangePreset, setRangePreset] = useState<InspectorRangePreset>('year-to-date')
   const now = useCalendarNow(clockOffsetMs)
   const initialWeek = displayWeekDateKeys(displayDateKey(now + (brokerTime ? brokerOffsetSeconds * 1000 : 0), rangeDisplay))
   const [customFrom, setCustomFrom] = useState(initialWeek.start)
