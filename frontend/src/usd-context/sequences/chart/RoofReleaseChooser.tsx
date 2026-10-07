@@ -15,7 +15,7 @@ export function RoofReleaseChooser({ endpoint, left, trigger, onClose, onOpen }:
     return () => document.removeEventListener('keydown', escape)
   }, [onClose, trigger])
   return <div ref={panel} tabIndex={-1} role="dialog" aria-label="Choose a roof release" className="combo-roof-release-chooser" style={{ left }}>
-    <header><strong>Releases at this symbol</strong><button type="button" onClick={() => { onClose(); trigger.focus({ preventScroll: true }) }}>Close</button></header>
+    <header><strong>Releases at this point</strong><button type="button" onClick={() => { onClose(); trigger.focus({ preventScroll: true }) }}>Close</button></header>
     {endpoint.publications.map(({ source, symbol }) => <button type="button" key={source.sourceId} onClick={() => { onClose(); onOpen(source) }}>
       <span className="combo-roof-glyph">{symbolGlyph(symbol)}</span> {source.sourceLabel}
       <small>{new Date(source.chartAt).toISOString().slice(0, 16).replace('T', ' ')} · broker time</small>

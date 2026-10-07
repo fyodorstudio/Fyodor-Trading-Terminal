@@ -31,7 +31,7 @@ export function ComboInspector({ combo, timeDisplay, symbol, broker = null, onCl
         <section className="combo-card" aria-label="Activation and changes"><h3>What changed?</h3>
           <p><strong>Available from {formatAppTimestamp(combo.chartAt, { mode: 'utc', utcOffsetMinutes: 0 })} broker time.</strong></p>
           <p>Activated by: {summary.activation}.</p><p>{summary.changed}</p>
-          <small>The endpoint tagged Starts marks activation within its chart candle. Update marks activation without a new publication. Earlier release symbols do not backdate the result.</small>
+          <small>The filled dot marks availability within its chart candle. Use the exact activation time, not the candle open. A memory update can activate a combo without a new publication. Hollow dots identify earlier inputs; they do not backdate the result or mark a trade entry.</small>
         </section>
       </div>
       <section className="combo-card" aria-label="Accumulated context comparison"><h3>Combined context at activation</h3>

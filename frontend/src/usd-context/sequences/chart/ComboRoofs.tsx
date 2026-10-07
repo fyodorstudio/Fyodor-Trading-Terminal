@@ -5,12 +5,11 @@ import type { ChartTimeframe } from '../../../market-data/contracts/ChartTimefra
 import type { InspectorMarker } from '../../../inspector/inspector-data'
 import type { ComboSnapshot, ComboSource } from '../core/contracts'
 import { currencyColorStyle, type CurrencyColors } from '../../../inspector/currency-colors'
-import { symbolGlyph } from '../../../inspector/event-symbols'
 import { contextPairLabel } from '../../core/usd-pair'
 import { createRoofPlan, knownRoofCount, prepareRoofAnchors, projectRoofPlan, type RoofPlan } from './roof-plan'
 import { roofLabel, roofTooltip } from './roof-label'
 import { type PositionedRoof } from './roof-layout'
-import { roofEndpointKey, roofEndpointTooltip, roofLaneY, type RoofEndpoint } from './roof-symbols'
+import { endpointPublications, roofEndpointKey, roofEndpointTooltip, roofLaneY, type RoofEndpoint } from './roof-symbols'
 import { RoofReleaseChooser } from './RoofReleaseChooser'
 import { useSequencePreferences } from '../storage/sequence-preferences'
 import './combo-roofs.css'
@@ -51,37 +50,36 @@ function ComboRoofsComponent({ chartApi, episodes, bars, timeframe, markers, now
   if (!positioned.length && !overflow.length) return null
   return <div className={`combo-roofs${releaseChooser ? ' combo-roof-choosing' : ''}`} style={currencyColorStyle(currencyColors)} aria-label="Clickable combo roofs">
     <div className="combo-roof-content">
-    <svg width="100%" height="132" aria-hidden="true">{positioned.map(p => {
+    <svg className="combo-roof-lines" width="100%" height="132" aria-hidden="true">{positioned.map(p => {
       const y = roofLaneY(p.lane)
       return <g key={p.combo.id} className={p.combo.experimental ? 'experimental' : ''}>
         <path d={`M ${p.endpoints[0]?.x ?? p.left} ${y} H ${p.right}`} />
+        {p.endpoints.map(endpoint => <path key={roofEndpointKey(endpoint)} className="combo-roof-stem"
+          d={`M ${endpoint.x} ${y} V ${endpointPublications(endpoint, p.combo.chartAt).length ? 132 : y + 8}`} />)}
       </g>
     })}</svg>
     {positioned.map(p => <button type="button" key={p.combo.id} className={`combo-roof-label ${p.combo.experimental ? 'experimental' : ''}`}
-      style={{ left: p.labelX, top: roofLaneY(p.lane) - 32 }}
+      style={{ left: p.labelX, top: roofLaneY(p.lane) - 27 }}
       title={roofTooltip(p.combo, p.hidden)}
       aria-label={`Inspect combo ${p.combo.title}`} onClick={() => onSelect(p.combo)}>
       <span className="combo-roof-names">{roofLabel(p.combo)}</span>
       <span className="combo-roof-direction"> · {p.combo.direction === 'weaker' ? 'Long' : p.combo.direction === 'stronger' ? 'Short' : 'Uncomputed'}</span>
-      {p.hidden > 0 && <small> · {p.hidden} hidden</small>}
     </button>)}
     {positioned.flatMap(p => p.endpoints.map(endpoint => {
-      const publications = endpoint.publications, active = endpoint.activation
+      const publications = endpointPublications(endpoint, p.combo.chartAt), active = endpoint.activation
       const publicationUpdate = p.combo.sources.some(s => s.chartAt === p.combo.chartAt)
-      const activationPublication = publications.find(published => published.source.chartAt === p.combo.chartAt)
-      const glyph = active ? activationPublication?.symbol : publications.at(-1)?.symbol
       const tooltip = roofEndpointTooltip(endpoint, p.combo.chartAt, publicationUpdate)
-      return <button type="button" key={`${p.combo.id}/${roofEndpointKey(endpoint)}`} className={`combo-roof-symbol${active ? ' combo-roof-start' : ''}`}
-        style={{ left: endpoint.x, top: roofLaneY(p.lane) - 10 }} title={tooltip}
+      return <button type="button" key={`${p.combo.id}/${roofEndpointKey(endpoint)}`} className={`combo-roof-endpoint${active ? ' combo-roof-start' : ''}`}
+        style={{ left: endpoint.x, top: roofLaneY(p.lane) }} title={tooltip}
         aria-label={`${active ? publicationUpdate ? 'Combo starts' : 'Combo memory update' : 'Inspect roof release'}: ${publications.map(s => s.source.sourceLabel).join(' + ') || 'No visible activation release'}`}
         aria-haspopup={publications.length > 1 ? 'dialog' : undefined}
-        disabled={!publications.length || !onOpenSource}
+        disabled={!active && (!publications.length || !onOpenSource)}
         onClick={e => {
-          if (publications.length === 1) onOpenSource?.(publications[0].source)
-          else setReleaseSelection({ roof: p, endpoint, trigger: e.currentTarget })
+          if (!publications.length || !onOpenSource) onSelect(p.combo)
+          else if (publications.length === 1) onOpenSource(publications[0].source)
+          else setReleaseSelection({ roof: p, endpoint: { ...endpoint, publications }, trigger: e.currentTarget })
         }}>
-        {glyph && <span className="combo-roof-glyph">{symbolGlyph(glyph)}</span>}
-        {publications.length > 1 && <sup>{publications.length}</sup>}{active && <small>{publicationUpdate ? 'Starts' : 'Update'}</small>}
+        <svg viewBox="0 0 14 14" width="14" height="14" aria-hidden="true"><circle cx="7" cy="7" r="2.5" /></svg>
       </button>
     }))}
     </div>

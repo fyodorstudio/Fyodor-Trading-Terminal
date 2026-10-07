@@ -4,7 +4,7 @@ import type { InspectorMarker } from '../../../inspector/inspector-data'
 import type { ComboSnapshot } from '../core/contracts'
 import { roofBarIndex } from './roof-geometry'
 import { layoutRoofs, type RoofCandidate, type PositionedRoof } from './roof-layout'
-import { clusterRoofSymbols, type RoofPublication } from './roof-symbols'
+import { clusterRoofEndpoints, type RoofPublication } from './roof-symbols'
 
 type RoofAnchor = { combo: ComboSnapshot; start: number; end: number; publications: { index: number; publication: RoofPublication }[]; hidden: number }
 type PlanEntry = { left: number; right: number; roof: RoofCandidate; positioned: PositionedRoof | null }
@@ -43,7 +43,7 @@ export function createRoofPlan(anchors: readonly RoofAnchor[], spacing: number, 
     const right = a.end * spacing, left = Math.min(a.start * spacing, right - 4)
     const points = a.publications.map(p => ({ x: p.index * spacing, publications: [p.publication], activation: false }))
     points.push({ x: right, publications: [], activation: true })
-    return { combo: a.combo, left, right, endpoints: clusterRoofSymbols(points), hidden: a.hidden, labelX: (left + right) / 2 }
+    return { combo: a.combo, left, right, endpoints: clusterRoofEndpoints(points), hidden: a.hidden, labelX: (left + right) / 2 }
   })
   const layout = layoutRoofs(candidates, focused), chosen = new Map(layout.positioned.map(p => [p.combo.id, p]))
     const entries = candidates.map(roof => ({ left: Math.min(roof.left - 16, roof.labelX - 85), right: Math.max(roof.right + 36, roof.labelX + 85),

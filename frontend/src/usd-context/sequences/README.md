@@ -100,7 +100,7 @@ The snapshot title/type and publication qualification are unchanged.
 
 ## Roof workflow / display v2 — 7 October 2026
 
-Display v2 originally used two lanes in **Focused**; current display v4 uses three in both modes with release-symbol endpoints. Display priority is evidence strength,
+Display v2 originally used two lanes in **Focused**; current display v5 uses three in both modes with hollow source dots and a filled activation dot. Display priority is evidence strength,
 then established relationships ahead of experimental fresh-news sequences, then
 most recent activation, with ID as a stable tie-breaker. Bracket spans as well as
 label footprints reserve space. Repeated overlapping roofs of the same kind,
@@ -111,7 +111,7 @@ its direction, evidence and broker time. **All roofs** uses three lanes and
 full-span collision avoidance, including symbol/label footprints. Density is a saved display choice in the shared gear's Roofs tab; neither mode
 changes relationship qualification or scoring and neither fits to price.
 
-The endpoint tagged Starts/Update marks the containing activation candle. The tooltip
+The filled endpoint marks the containing activation candle. The tooltip
 and Inspector give the precise broker clock; lines back to earlier publications
 identify context, not an earlier available signal. Future activation and any
 snapshot with a future source are excluded before display prioritization.
@@ -162,8 +162,9 @@ is cached per candle spacing / density / input history, independently of panning
 Each pan translates that plan, using an indexed span query that includes crossing
 brackets even when their activation or label lies beyond a screen edge. Labels keep
 their full-source midpoint and are clipped naturally instead of clamped to the edge.
-Release symbols replace source/activation dots and long stems. Symbol clicks open
-the original release; the direction box opens the dated combo snapshot. More remains
+Current display v5 restores source/activation dots and stems to the existing bottom
+release-symbol row. Dot clicks open the original release, or Combo details for an
+activation without a visible publication; the direction box opens the dated combo snapshot. More remains
 outside the clipping layer and retains overflow.
 
 Lane collision and repeated-roof checks use sorted interval lookups. Panning does
@@ -173,7 +174,7 @@ can rebuild the plan. This is a display change only, with no combination merging
 numerical model change, future-source admission or inferred signal duration. The
 old activation-only viewport layout and screen-edge label clamping are retired.
 
-## Release-symbol endpoints / display v4
+## Retired release-symbol endpoints / display v4
 
 `chart/roof-symbols.ts` groups nearby publications at fixed candle anchors once per
 zoom. The plan translates both symbols and labels on pan without regrouping. Three
@@ -190,3 +191,29 @@ anchor. Starts identifies publication activation; Update identifies a memory upd
 A hidden activation publication uses a text badge, not a fabricated visible glyph.
 The direction box and overflow entries remain the paths to Combo details. Numerical
 scoring, qualification clocks, context budgets and stored audit snapshots are unchanged.
+
+## Restored brackets / display v5
+
+Display v4's duplicate symbols, Starts/Update badges, and inline hidden-input counts
+are retired. The original Inspector marker row is the single release-symbol baseline.
+Three roof rows hold direction labels, hollow source dots, a filled activation dot,
+and thin vertical stems. Exact hidden-input disclosures remain in tooltips and details.
+
+`clusterRoofEndpoints` combines only publications at the same containing candle,
+not different candles that happen to be close at wide zoom. A filled dot routes only
+publications whose exact clock equals activation. Earlier inputs sharing its candle
+do not become the activating release. Multiple targets open the existing chooser;
+memory-only or filtered-publication activation opens Combo details. Those points
+have a short stem rather than pretending a new visible release exists below them.
+
+Dot targets are 14px with a small circle, accessible button names and precise clock
+tooltips. Label clicks retain the dated relationship explanation. The cached
+whole-history plan, three-level collisions, Focused priorities, overflow access,
+RAF-coalesced panning and release navigation are preserved. No scoring version,
+qualification rule, trade action or audit snapshot changes.
+
+`trading workflow.md` documents all clicks, both density modes, exact availability
+inside H1 candles, memory activations, relationship snapshots versus changing Candy,
+and Notebook invalidation/review guidance. Terminal tests cover hidden activators,
+same-candle earlier sources, release choosers, pan stability and future rejection.
+The user performs the final visual audit.

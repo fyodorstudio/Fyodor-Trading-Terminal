@@ -13,8 +13,9 @@ export function RoofsSettings({ supported }: { supported: boolean }) {
       {!supported && <p>Chart roofs are available on EURUSD. These display preferences are retained for supported pairs.</p>}
     </section>
     <section><h3>Read the shapes</h3>
-      <p>The endpoint tagged Starts marks activation: when all required information was available. Update marks a memory change without a new publication. The line connects source releases to activation; its width is not an active duration or a holding period.</p>
-      <p>Click a symbol for its release, or a counted symbol to choose among nearby releases. Click the direction box for Combo details. Panning preserves the rows and anchors. Zooming can rearrange rows and symbol clusters.</p>
+      <p>The filled dot marks activation: when all required information was available. Hollow dots identify contributing releases. The line connects source releases to activation; its width is not an active duration or a holding period.</p>
+      <p>Click a hollow dot for its contributing release. Click a filled dot for the activating release, or Combo details if activation is a memory update or its publication is hidden. Several releases at the point open a chooser. Click the direction box for Combo details. Release symbols stay in the bottom row.</p>
+      <p>Read the combo from the exact activation time onward, not from the candle open. Availability is not a trade entry signal. Panning preserves the rows and anchors; zooming can rearrange rows.</p>
     </section>
     <section><h3>Available USD relationships</h3><dl>
       <dt>ISM sectors</dt><dd>Manufacturing and Services resolve the existing ISM vote together.</dd>

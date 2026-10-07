@@ -2051,3 +2051,30 @@ passed. Regression coverage includes scoped shared-gear inspection, unchanged
 worker reuse, EUR/USD modes, hidden-view annotation editing, keyboard/focus cleanup,
 saved density and portability, chart render boundaries and existing roof/ribbon
 timing/pan behavior. Visual positioning remains with the user.
+
+## 7 October 2026 — Roof display v5: restored brackets and dots
+
+Restored the earlier bracket presentation with three roof levels, hollow input
+dots, a filled activation dot, and vertical connectors toward Inspector's existing
+bottom release-symbol row. Direction boxes retain Combo details. Display v4's
+duplicate raised release symbols, permanent Starts/Update badges and inline hidden
+counts are retired; their meanings and hidden inputs remain in explanations.
+
+Hollow dots open contributing releases or a shared-candle chooser. Filled dots
+open only the exact activating publication(s); memory activation or a hidden
+activating publication opens Combo details. Different candles are no longer merged
+onto activation at wide zoom. Earlier releases within the same activation candle
+cannot be substituted for the final publication. Precise clocks remain explicit.
+
+The whole-history cached plan, panning translation, Focused/All priorities, overflow,
+independent toolbar controls and shared gear are preserved. All numerical scorers,
+context weights, qualification rules and existing audit snapshots are unchanged.
+
+Expanded trading workflow.md with all dot/label clicks, density selection, exact
+mid-candle availability, memory-only activations, snapshot versus Candy context,
+and how to document trade invalidation/reassessment separately in Notebook.
+The filled dot establishes availability, not an entry or holding instruction.
+
+Validation: five targeted terminal suites passed (roof UI, roof workflow,
+Candy, shared Fundamental tools and Raycaster), plus lint, TypeScript and the
+production build. Visual spacing and wide-zoom appearance remain for user audit.

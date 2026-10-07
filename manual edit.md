@@ -387,3 +387,29 @@ buttons and Outside events +. Numerical and pan-anchoring checks still apply.
 
 Terminal checks cover navigation, hidden-view editing, shared worker reuse,
 signature/scope isolation and chart render boundaries. Visual checks remain manual.
+
+## 7 October 2026 — Restored roof brackets / display v5
+
+This supersedes display v4's release-symbol endpoints, Starts/Update badges and
+inline hidden counts. Numerical audit findings and stable panning checks remain.
+
+- [ ] Confirm one bottom row of ordinary release symbols, with three rows of
+  bracket labels, hollow input dots and filled activation dots above it. Check
+  thin connectors, both themes, wide zoom and neighboring label spacing.
+- [ ] Click a hollow dot for its contributing release; at a shared candle point,
+  choose a publication by name/time. Click the filled dot for the activating
+  release. Direction labels and More entries must still open Combo details.
+- [ ] Check a memory activation and a hidden activating publication: the filled
+  dot opens Combo details, with no invented release or permanent text badge.
+  Earlier publications sharing the activation candle must not replace its target.
+- [ ] Read precise dot/Inspector times on H1. A mid-candle activation must not be
+  mistaken for knowledge available at the candle open. Check the gear guide and
+  expanded trading workflow.md match the new shapes and interaction.
+- [ ] Pan left/right at wide zoom in Focused/All: rows and anchors stay attached
+  to chart time. Zooming changes spacing without folding different input candles
+  into the activation point. Clipped and omitted roofs remain accessible in More.
+- [ ] Compare direction/evidence and Candy with the same inputs before this
+  display pass. No score should change merely from panning, density or dot clicks.
+
+Terminal checks cover dot routing, exact activation versus earlier same-candle
+inputs, hidden activators, choosers, cutoff, stable panning and shared settings.
