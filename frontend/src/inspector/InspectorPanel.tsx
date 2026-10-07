@@ -1,10 +1,11 @@
 import { currencyColorStyle } from './currency-colors'
-import { useId, useMemo, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useState } from 'react'
 import { type TimeDisplayPreference } from '../appearance/time-display/time-display-preference'
 import type { CalendarSourceHealth } from '../system-connectivity/bridge-status/bridge-contract'
 import { type InspectorRelease } from './inspector-data'
 import { InspectorFiltersModal } from './InspectorFiltersModal'
 import { InspectorDateRangePicker } from './InspectorDateRangePicker'
+import { inspectorPopoversFit } from './inspector-popover-layout'
 import { InspectorReleaseHeading } from './InspectorReleaseHeading'
 import { InspectorInfoTooltip } from './InspectorInfoTooltip'
 import { ismSourceRelease } from './episodes/ism-episodes'
@@ -47,6 +48,16 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
   onOpenScatter?: (release: InspectorRelease) => void; scatterAvailable?: boolean
 }) {
   const [filtersOpen, setFiltersOpen] = useState(false)
+  const [calendarOpen, setCalendarOpen] = useState(false)
+  const changeCalendarOpen = useCallback((open: boolean) => {
+    if (open && !inspectorPopoversFit(window.innerWidth)) setFiltersOpen(false)
+    setCalendarOpen(open)
+  }, [])
+  useEffect(() => {
+    const resize = () => { if (filtersOpen && !inspectorPopoversFit(window.innerWidth)) setCalendarOpen(false) }
+    window.addEventListener('resize', resize)
+    return () => window.removeEventListener('resize', resize)
+  }, [filtersOpen])
   const [listOpen, setListOpen] = useState(true)
   const panelId = useId()
   const release = view.selectedRelease
@@ -82,12 +93,15 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
           title={`${view.releases.length} releases`} onClick={() => setListOpen((open) => !open)}>
           <strong>{symbol}</strong>
         </button>
-        <button type="button" disabled={!view.supported} aria-haspopup="dialog" aria-expanded={filtersOpen} onClick={() => setFiltersOpen(true)}>Filters</button>
-        <InspectorDateRangePicker view={view} />
+        <button type="button" data-inspector-filter-trigger disabled={!view.supported} aria-haspopup="dialog" aria-expanded={filtersOpen} onClick={() => {
+          if (!inspectorPopoversFit(window.innerWidth)) setCalendarOpen(false)
+          setFiltersOpen(true)
+        }}>Filters</button>
+        <InspectorDateRangePicker view={view} open={calendarOpen} onOpenChange={changeCalendarOpen} filtersOpen={filtersOpen} />
         {view.supported && <button type="button" className="inspector-histogram-btn" aria-pressed={view.preferences.showHistograms}
           title={view.preferences.showHistograms ? 'Hide histogram' : 'Show histogram'}
           aria-label={view.preferences.showHistograms ? 'Hide histogram' : 'Show histogram'}
-          onClick={() => view.applyPreferences({ ...view.preferences, showHistograms: !view.preferences.showHistograms })}>
+          onClick={() => view.applyPreferences({ ...view.preferences, showHistograms: !view.preferences.showHistograms }, 'view')}>
           <HistogramIcon />
           <span className="inspector-sr-only">{view.preferences.showHistograms ? 'Hide histogram' : 'Show histogram'}</span>
         </button>}
@@ -115,7 +129,7 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
             event.target.value = visibleView
             if (hasMagnitude && scatterAvailable && onOpenScatter) onOpenScatter(scoreRelease ?? release)
           } else if (next === 'table' || (next === 'scoring' && scoringBinding)) {
-            view.applyPreferences({ ...view.preferences, detailView: next })
+            view.applyPreferences({ ...view.preferences, detailView: next }, 'view')
           }
         }}>
         <option value="table">Table only</option>

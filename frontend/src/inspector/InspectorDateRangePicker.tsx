@@ -2,11 +2,12 @@ import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from
 import { createPortal } from 'react-dom'
 import { inspectorRangeLabel, inspectorRangePresets, shiftInspectorDate, shiftInspectorMonth, validInspectorDate } from './inspector-date-range'
 import type { InspectorView } from './useInspector'
+import { inspectorCalendarPosition } from './inspector-popover-layout'
 
 const weekdays = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']
 const monthNames = Array.from({ length: 12 }, (_, month) => new Intl.DateTimeFormat(undefined, { month: 'long', timeZone: 'UTC' }).format(new Date(Date.UTC(2026, month, 1))))
 
-function RangePopover({ view, trigger, onClose, id }: { view: InspectorView; trigger: React.RefObject<HTMLButtonElement | null>; onClose: () => void; id: string }) {
+function RangePopover({ view, trigger, onClose, id, filtersOpen }: { view: InspectorView; trigger: React.RefObject<HTMLButtonElement | null>; onClose: () => void; id: string; filtersOpen: boolean }) {
   const popup = useRef<HTMLDivElement>(null)
   const initialFrom = validInspectorDate(view.rangeDates.from) ? view.rangeDates.from : view.today
   const initialTo = validInspectorDate(view.rangeDates.to) ? view.rangeDates.to : view.today
@@ -15,7 +16,7 @@ function RangePopover({ view, trigger, onClose, id }: { view: InspectorView; tri
   const [fromMonth, setFromMonth] = useState(() => initialFrom.slice(0, 7))
   const [toMonth, setToMonth] = useState(() => initialTo.slice(0, 7))
   const [focusedDay, setFocusedDay] = useState(initialFrom)
-  const [position, setPosition] = useState({ top: 16, left: 16 })
+  const [position, setPosition] = useState(() => inspectorCalendarPosition(window.innerWidth, window.innerHeight, window.innerWidth / 2, filtersOpen))
   const error = !validInspectorDate(from) || !validInspectorDate(to) ? 'Enter complete, valid dates.' : from > to ? 'End must be on or after Start.' : null
   const closeAndFocus = () => {
     if (validInspectorDate(from) && validInspectorDate(to) && from <= to) {
@@ -32,15 +33,11 @@ function RangePopover({ view, trigger, onClose, id }: { view: InspectorView; tri
     const place = () => {
       const button = trigger.current, panel = popup.current
       if (!button || !panel) return
-      const rect = button.getBoundingClientRect(), size = panel.getBoundingClientRect()
+      const rect = button.getBoundingClientRect()
       const host = dock?.getBoundingClientRect()
       const center = host && host.width > 0 ? host.left + host.width / 2 : rect.left + rect.width / 2
-      const margin = 16, gap = 12
-      const above = rect.top - size.height - gap, below = rect.bottom + gap
-      const top = above >= margin ? above : below + size.height <= window.innerHeight - margin ? below :
-        Math.max(margin, (window.innerHeight - size.height) / 2)
-      const left = Math.max(margin, Math.min(center - size.width / 2, window.innerWidth - size.width - margin))
-      setPosition((current) => current.top === top && current.left === left ? current : { top, left })
+      const next = inspectorCalendarPosition(window.innerWidth, window.innerHeight, center, filtersOpen)
+      setPosition(current => Object.keys(next).every(key => current[key as keyof typeof next] === next[key as keyof typeof next]) ? current : next)
     }
     place()
     const observer = window.ResizeObserver ? new window.ResizeObserver(place) : null
@@ -50,10 +47,11 @@ function RangePopover({ view, trigger, onClose, id }: { view: InspectorView; tri
     window.addEventListener('resize', place)
     window.addEventListener('scroll', place, true)
     return () => { observer?.disconnect(); window.removeEventListener('resize', place); window.removeEventListener('scroll', place, true) }
-  }, [trigger, fromMonth, toMonth, from, to])
+  }, [trigger, fromMonth, toMonth, from, to, filtersOpen])
 
   useEffect(() => {
     const outside = (event: Event) => {
+      if (event.target instanceof HTMLElement && event.target.closest('.inspector-modal, [data-inspector-filter-trigger]')) return
       if (event.target instanceof Node && !popup.current?.contains(event.target) && !trigger.current?.contains(event.target)) onClose()
     }
     const escape = (event: KeyboardEvent) => {
@@ -316,7 +314,7 @@ function RangePopover({ view, trigger, onClose, id }: { view: InspectorView; tri
   }
 
   return createPortal(
-    <div ref={popup} id={id} role="dialog" aria-label="Inspector date range picker" className="inspector-date-popover" style={position}>
+    <div ref={popup} id={id} role="dialog" aria-label="Inspector date range picker" className="inspector-date-popover" data-compact={position.width < 620} style={position}>
       <header>
         <strong>Date range</strong>
         <span>{view.brokerTime ? 'Broker time' : 'Display time'} · End date included</span>
@@ -432,20 +430,21 @@ function RangePopover({ view, trigger, onClose, id }: { view: InspectorView; tri
   )
 }
 
-export function InspectorDateRangePicker({ view }: { view: InspectorView }) {
-  const [open, setOpen] = useState(false)
+export function InspectorDateRangePicker({ view, open, onOpenChange, filtersOpen }: {
+  view: InspectorView; open: boolean; onOpenChange: (open: boolean) => void; filtersOpen: boolean
+}) {
   const trigger = useRef<HTMLButtonElement>(null)
   const id = useId()
-  const close = useCallback(() => setOpen(false), [])
+  const close = useCallback(() => onOpenChange(false), [onOpenChange])
   const label = inspectorRangeLabel(view.rangeDates.from, view.rangeDates.to)
   return <div className="inspector-range"><button ref={trigger} type="button" aria-label="Inspector date range" aria-haspopup="dialog"
-    aria-expanded={open} aria-controls={open ? id : undefined} title={`Date range: ${label}`} onClick={() => setOpen((value) => !value)}>
+    aria-expanded={open} aria-controls={open ? id : undefined} title={`Date range: ${label}`} onClick={() => onOpenChange(!open)}>
     <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <rect x="2" y="3" width="12" height="11" rx="2" />
       <line x1="2" y1="7" x2="14" y2="7" />
       <line x1="5" y1="1.5" x2="5" y2="3.5" />
       <line x1="11" y1="1.5" x2="11" y2="3.5" />
     </svg></button>
-    {open && <RangePopover view={view} trigger={trigger} onClose={close} id={id} />}
+    {open && <RangePopover view={view} trigger={trigger} onClose={close} id={id} filtersOpen={filtersOpen} />}
   </div>
 }

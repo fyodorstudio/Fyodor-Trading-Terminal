@@ -252,7 +252,7 @@ export function FyodorTerminalShell() {
     const family = source.family === 'cpi' ? 'us-cpi' : source.family === 'nfp' ? 'jobs' : source.family
     const families = source.family === 'ism' ? ['ism-manufacturing', 'ism-services'] : [family]
     applyInspectorPreferences({ ...inspectorPreferences, detailView: 'table',
-      families: [...new Set([...inspectorPreferences.families, ...families])] })
+      families: [...new Set([...inspectorPreferences.families, ...families])] }, 'preview')
     const date = new Date(source.chartAt).toISOString().slice(0, 10)
     selectInspectorRange(date, date)
     selectChartRelease(source.sourceId)

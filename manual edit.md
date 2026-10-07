@@ -232,3 +232,23 @@ unchecked: automated tests do not verify perceived scrolling or frame rate.
 - [ ] Export/import the workspace and verify the shared height travels with it.
   Older per-dock heights migrate once, preferring the initially active dock's
   saved size when available. Check chart panning and Activity Checking remain smooth.
+
+## 7 October 2026 — Live right-side filters and bottom calendar
+
+- [ ] Open Filters: check the panel fills the right edge from top to bottom,
+  with no background blur or dimming. Check both themes and small viewports.
+- [ ] Tick/untick Select all for Base and Quote. Check it includes hidden search
+  results and both grouped ISM source families, without changing the other side.
+- [ ] Check family/symbol/color changes update the chart immediately. Save should
+  preserve them after refresh. X/Escape keep unsaved session edits; Cancel rolls
+  back to the choices from when the panel opened. Check restored focus.
+- [ ] Pan/zoom while Filters stays open. Check unsaved edits survive opening and
+  closing the panel, and other view controls do not accidentally save them.
+- [ ] Open the calendar: check it sits above the bottom status bar and fits beside
+  Filters without overlap. On narrow screens, opening either panel should close
+  the other; compact calendars should remain scrollable and usable.
+
+Terminal checks cover modeless opening, live edits, Save/Cancel, search-independent
+currency toggles, saved preference isolation, bottom positioning, collision
+avoidance and resize cleanup. Visual placement and chart interaction remain for
+manual verification.

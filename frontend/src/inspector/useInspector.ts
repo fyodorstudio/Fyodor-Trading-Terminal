@@ -6,7 +6,7 @@ import type { TimeDisplayPreference } from '../appearance/time-display/time-disp
 import { displayDateKey, displayWeekDateKeys } from './calendar-display-range'
 import { inspectorDisplayRange, inspectorRangeDates, type InspectorRangePreset } from './inspector-date-range'
 import { buildInspectorMarkers, filterInspectorReleases, groupInspectorReleases, inspectorStorageKey,
-  readInspectorPreferences, supportsInspector, type InspectorPreferences } from './inspector-data'
+  readInspectorPreferences, supportsInspector, type InspectorPreferences, type InspectorPreferenceUpdate } from './inspector-data'
 import { useStoredCalendar } from './useStoredCalendar'
 import { useFamilyMagnitudeHistory } from './magnitude/useFamilyMagnitudeHistory'
 import { policyEpisodeWindowMs } from './episodes/policy-episodes'
@@ -57,10 +57,13 @@ export function useInspector({ events = noEvents, symbol, bars, timeframe, timeD
   const selectedRelease = releases.find((release) => release.id === selectedId || release.ismPublications?.some(r => r.id === selectedId)) ?? null
   const needsMagnitude = detailOpen && preferences.detailView === 'table'
   const magnitudeHistory = useFamilyMagnitudeHistory(brokerId, needsMagnitude ? selectedRelease?.ismPublications?.[0] ?? selectedRelease : null, undefined, clockOffsetMs)
-  const applyPreferences = useCallback((next: InspectorPreferences) => {
+  const applyPreferences = useCallback((next: InspectorPreferences, mode: InspectorPreferenceUpdate = 'save') => {
     const normalized = { ...next, detailView: normalizeInspectorDetailView(next.detailView) }
     setPreferences(normalized)
-    try { localStorage.setItem(inspectorStorageKey, JSON.stringify(normalized)); setStorageFailed(false) }
+    if (mode === 'preview') return
+    // View controls must not accidentally persist live, unsaved filter edits.
+    const saved = mode === 'view' ? { ...readInspectorPreferences(), detailView: normalized.detailView, showHistograms: normalized.showHistograms } : normalized
+    try { localStorage.setItem(inspectorStorageKey, JSON.stringify(saved)); setStorageFailed(false) }
     catch { setStorageFailed(true) }
   }, [])
   return useMemo(() => ({ supported, preferences, applyPreferences, storageFailed, rangePreset, setRangePreset, customFrom, setCustomFrom,

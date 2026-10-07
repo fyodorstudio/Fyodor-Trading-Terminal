@@ -181,10 +181,10 @@ try {
   assert.equal(inspector.container.querySelector('option[value="scatter"]').disabled, true)
   assert.equal(inspector.container.querySelector('.inspector-magnitude-cell'), null)
 
-  // Draft identity colors remain separate from sign and magnitude colors, save only on Apply.
-  let applied = null
+  // Draft identity colors remain separate from sign and magnitude colors, preview immediately and persist only on Save.
+  let applied = null, savedColors = null
   const prefs = defaultInspectorPreferences()
-  const modal = mount(InspectorFiltersModal, { preferences: prefs, onApply: (next) => { applied = next }, onClose: () => {} })
+  const modal = mount(InspectorFiltersModal, { preferences: prefs, onApply: (next, mode) => { applied = next; if (mode === 'save') savedColors = next.currencyColors }, onClose: () => {} })
   await modal.render()
   for (const name of ['Monetary policy', 'Inflation', 'Labor / wages', 'Growth / activity']) {
     const eur = document.querySelector(`[aria-label="EUR ${name}"]`).closest('fieldset')
@@ -196,9 +196,11 @@ try {
   await change(document.querySelector('[aria-label="USD Quote color"]'), '#654321')
   assert.equal(document.querySelector('dialog').style.getPropertyValue('--inspector-eur-color'), '#123456')
   await click([...document.querySelectorAll('dialog button')].find((b) => b.textContent === 'Cancel'))
-  assert.equal(applied, null); assert.deepEqual(prefs.currencyColors, {})
-  await click([...document.querySelectorAll('dialog button')].find((b) => b.textContent === 'Apply'))
+  assert.deepEqual(applied.currencyColors, {}); assert.deepEqual(prefs.currencyColors, {})
+  assert.equal(savedColors, null, 'Preview and Cancel do not persist colors')
+  await click([...document.querySelectorAll('dialog button')].find((b) => b.textContent === 'Save'))
   assert.deepEqual(applied.currencyColors, { EUR: '#123456', USD: '#654321' })
+  assert.deepEqual(savedColors, applied.currencyColors)
   localStorage.setItem(inspectorStorageKey, JSON.stringify(applied))
   assert.deepEqual(readInspectorPreferences().currencyColors, applied.currencyColors)
   assert.deepEqual(currencyColorStyle(applied.currencyColors), { '--inspector-eur-color': '#123456', '--inspector-usd-color': '#654321' })
@@ -246,7 +248,7 @@ try {
   assert.equal(dock.container.querySelector('[aria-label="Small upper boundary"]').disabled, false)
   await change(dock.container.querySelector('[aria-label="Large upper boundary"]'), 2)
   assert.deepEqual(labor.settings.read()['999030020'], [.1, .5, 1], 'Unfrozen drafts never overwrite saved magnitudes')
-  console.log('✓ All 19 numeric families, native-unit magnitudes/bp rates, series-specific schedules, optional revised comparisons, stable N, color Apply/Cancel/migration/portability, aligned filter categories, EUR/USD scatter and Freeze')
+  console.log('✓ All 19 numeric families, native-unit magnitudes/bp rates, series-specific schedules, optional revised comparisons, stable N, live color preview/Save/Cancel/portability, aligned filter categories, EUR/USD scatter and Freeze')
 } finally {
   await React.act(async () => roots.forEach((root) => root.unmount()))
   await server.close(); await dom.happyDOM.abort(); dom.close()

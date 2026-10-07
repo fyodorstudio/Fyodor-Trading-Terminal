@@ -29,6 +29,7 @@ export type InspectorPreferences = {
   currencyColors: CurrencyColors
   symbols: Record<string, EventSymbol>
 }
+export type InspectorPreferenceUpdate = 'save' | 'preview' | 'view'
 export const inspectorStorageKey = 'fyodor.inspector.eurusd.v1'
 export function defaultInspectorPreferences(): InspectorPreferences {
   return { version: 2, families: inspectorFamilies.map((family) => family.id), showSymbols: true, showHistograms: true, detailView: 'table', currencyColors: {},
