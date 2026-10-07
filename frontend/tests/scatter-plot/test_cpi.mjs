@@ -38,7 +38,6 @@ try {
   const { groupInspectorReleases, inspectorDelta, inspectorCategories, inspectorStorageKey, readInspectorPreferences } = await server.ssrLoadModule('./src/inspector/inspector-data.ts')
   const { useFamilyMagnitudeHistory } = await server.ssrLoadModule('./src/inspector/magnitude/useFamilyMagnitudeHistory.ts')
   const { FamilyMagnitudeCell } = await server.ssrLoadModule('./src/inspector/magnitude/FamilyMagnitudeCell.tsx')
-  const { FamilyMagnitudeTally } = await server.ssrLoadModule('./src/inspector/magnitude/FamilyMagnitudeTally.tsx')
   const { InspectorPanel } = await server.ssrLoadModule('./src/inspector/InspectorPanel.tsx')
   const { useInspector } = await server.ssrLoadModule('./src/inspector/useInspector.ts')
   const { ScatterPlotDock } = await server.ssrLoadModule('./src/scatter-plot/index.ts')
@@ -111,16 +110,14 @@ try {
   function HistoryApp() {
     const history = useFamilyMagnitudeHistory('Broker-A', selected, undefined, clockOffsetMs)
     React.useEffect(() => { historyView = history }, [history])
-    return React.createElement(React.Fragment, {}, React.createElement(FamilyMagnitudeTally, { release: selected, history, family: cpiMagnitudeFamily }),
-      React.createElement('table', {}, React.createElement('tbody', {}, React.createElement('tr', {},
-        React.createElement(FamilyMagnitudeCell, { event: current[0], history, grade: 'higher' })))))
+    return React.createElement('table', {}, React.createElement('tbody', {}, React.createElement('tr', {},
+      React.createElement(FamilyMagnitudeCell, { event: current[0], history, grade: 'higher' }))))
   }
   const historyApp = mount(HistoryApp, {})
   await historyApp.render()
   assert.equal(requests.length, 0, 'Undefined Inspector magnitudes do not fetch a hidden P95 baseline')
   assert.equal(historyApp.container.querySelector('[aria-label="Magnitude undefined"]').textContent, '')
   assert.equal(historyApp.container.querySelector('.magnitude-histogram'), null)
-  assert.match(historyApp.container.textContent, /Higher · 8.*Lower · 1.*8 Higher undefined.*1 Lower undefined/)
   assert.doesNotMatch(historyApp.container.textContent, /Long|Short|Neutral/)
 
   // The actual Inspector table applies the CPI grade/color adapter, including unconfigured magnitudes.
@@ -183,7 +180,8 @@ try {
   await respond(requests[4], page(events, cpiMagnitudeFamily))
   assert.deepEqual(historyView.rows[current[0].value_id].distribution, cpiScatterModel(events, now, ids[0], null, cpiMagnitudeFamily.settings.read()).inspection.distribution)
   assert.equal(historyApp.container.querySelector('.magnitude-size').textContent, 'Medium')
-  assert.match(historyApp.container.textContent, /7 Higher undefined/)
+  assert.equal(Object.values(historyView.rows).filter(row => row.mode === 'undefined').length, 9,
+    'Configuring one reading must leave the other nine series unconfigured')
   await inspector.render({ history: historyView })
   const toggleHistogram = (label) => [...inspector.container.querySelectorAll('button')].find((button) => button.textContent.trim() === label)
   assert.equal(inspector.container.querySelectorAll('.magnitude-histogram').length, 1)
@@ -253,7 +251,7 @@ try {
   assert.equal(dock.container.querySelector('[aria-label="Small band color"]').value, '#e76f51', 'A color edited in NFP Custom also applies in CPI P95')
   await change(dock.container.querySelector('[aria-label="Scatter Plot Series"]'), index)
   assert.equal(dock.container.querySelector('[data-threshold]').dataset.threshold, '3', 'Family switching preserves custom boundaries')
-  console.log('✓ CPI Inspector delta colors/tally, empty Undefined cells, isolated settings, family cancellation, raw dots, mode drafts/apply, shared live histograms and native-unit guides')
+  console.log('✓ CPI Inspector delta colors, empty Undefined cells, isolated settings, family cancellation, raw dots, mode drafts/apply, shared live histograms and native-unit guides')
 } finally {
   for (const root of roots) await React.act(async () => root.unmount())
   await server.close(); await dom.happyDOM.abort(); dom.close()

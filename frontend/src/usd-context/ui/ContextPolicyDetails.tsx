@@ -1,8 +1,9 @@
+import { memo } from 'react'
 import { contextNames, contextPriority, contextWeights } from '../core/policy'
 import type { ContextPolicy } from '../core/contracts'
 import { ScoringNotes } from '../../inspector/scoring/shared/ui/ScoringSection'
 
-export function ContextPolicyDetails({ policy }: { policy: ContextPolicy | undefined }) {
+function ContextPolicyDetailsComponent({ policy }: { policy: ContextPolicy | undefined }) {
   if (!policy) return null
   return <div aria-label="USD context interaction rule">
     <p><strong>{policy.label}.</strong> {policy.reason}</p>
@@ -17,3 +18,5 @@ export function ContextPolicyDetails({ policy }: { policy: ContextPolicy | undef
     ]} />
   </div>
 }
+
+export const ContextPolicyDetails = memo(ContextPolicyDetailsComponent)

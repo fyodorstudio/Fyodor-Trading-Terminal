@@ -7,6 +7,7 @@ import type { ChartDrawingPoint, ChartDrawingRecord } from './chart-drawing-reco
 import type { ChartDrawingScreenPoint } from './chart-drawing-screen-point'
 import { drawingTools, type DrawingToolId } from './drawing-tool'
 import { normalizeDrawingPoints } from './position-drawing-geometry'
+import { useDrawingViewport } from './useDrawingViewport'
 import './chart-drawing-overlay.css'
 
 type ChartDrawingOverlayProps = {
@@ -102,26 +103,8 @@ export function ChartDrawingOverlay({
   const pathPointsRef = useRef<ChartDrawingPoint[]>([])
   const editingHandleRef = useRef<EditingHandle | null>(null)
   const [draft, setDraft] = useState<ChartDrawingPoint[]>([])
-  const [viewport, setViewport] = useState({ width: 0, height: 0, revision: 0 })
+  const viewport = useDrawingViewport(chartApi, overlayRef)
   const [editingTextId, setEditingTextId] = useState<string | null>(null)
-
-  useEffect(() => {
-    const overlay = overlayRef.current
-    if (!overlay) return
-    const refresh = () => setViewport((current) => ({
-      width: overlay.clientWidth,
-      height: overlay.clientHeight,
-      revision: current.revision + 1,
-    }))
-    const resizeObserver = new ResizeObserver(refresh)
-    resizeObserver.observe(overlay)
-    chartApi.timeScale().subscribeVisibleLogicalRangeChange(refresh)
-    refresh()
-    return () => {
-      resizeObserver.disconnect()
-      chartApi.timeScale().unsubscribeVisibleLogicalRangeChange(refresh)
-    }
-  }, [chartApi])
 
   useEffect(() => {
     if (!selectedDrawingId || !onDeleteSelectedDrawing) return

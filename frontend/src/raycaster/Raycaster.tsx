@@ -3,7 +3,7 @@ import { useEurContextTimeline } from '../pair-context/runtime/useEurContextTime
 import { relativeContext, eurContextAt } from '../pair-context/core/relative-context'
 import { RelativeContextDetails } from '../pair-context/ui/RelativeContextDetails'
 import type { IChartApi, ISeriesApi, Time } from 'lightweight-charts'
-import { useMemo, useState } from 'react'
+import { memo, useMemo, useState } from 'react'
 import type { ChartTimeframe } from '../market-data/contracts/ChartTimeframe'
 import type { TimeDisplayPreference } from '../appearance/time-display/time-display-preference'
 import { useUsdContextTimeline } from '../usd-context/runtime/useUsdContextTimeline'
@@ -23,8 +23,8 @@ import { lookupFreshNews } from '../usd-context/sequences/core/fresh-news'
 
 export type RaycasterProps = { symbol: string; timeframe: ChartTimeframe; brokerId: string | null;
   brokerOffsetSeconds: number; clockOffsetMs: number; timeDisplay: TimeDisplayPreference; onClose: () => void;
-  bars?: readonly OhlcBar[]; markers?: readonly InspectorMarker[]; onSelectCombo?: (combo: ComboSnapshot) => void }
-export function Raycaster({ chartApi, seriesApi, ...props }: RaycasterProps & { chartApi: IChartApi; seriesApi: ISeriesApi<'Candlestick', Time> }) {
+  bars?: readonly Pick<OhlcBar, 'time'>[]; markers?: readonly InspectorMarker[]; onSelectCombo?: (combo: ComboSnapshot) => void }
+function RaycasterComponent({ chartApi, seriesApi, ...props }: RaycasterProps & { chartApi: IChartApi; seriesApi: ISeriesApi<'Candlestick', Time> }) {
   const now = useCalendarNow(props.clockOffsetMs)
   const families = useRaycasterFamilies()
   const sourceFamilies = useMemo(() => contextSourceFamilies(families), [families])
@@ -59,3 +59,4 @@ export function Raycaster({ chartApi, seriesApi, ...props }: RaycasterProps & { 
         timeframe={props.timeframe} now={now + props.brokerOffsetSeconds * 1000} experimental={sequencePreferences.fresh} onSelect={props.onSelectCombo} />}
   </>
 }
+export const Raycaster = memo(RaycasterComponent)

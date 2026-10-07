@@ -1,9 +1,11 @@
-.inspector-publication-score { flex: 1; min-height: 0; min-width: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; overflow-x: hidden; overflow-y: auto; container-type: inline-size; }
+.inspector-publication-score { flex: 1; min-height: 0; min-width: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; overflow-x: hidden; overflow-y: auto; container-type: inline-size; contain: layout paint; }
 .inspector-scoring-column { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
 .inspector-scoring-column > h2 { font-size: 12px; margin: 0; padding: 9px 12px; border-bottom: 1px solid var(--border); color: var(--text-strong); }
 .inspector-scoring-column-body { min-width: 0; padding: 8px 12px; }
 .inspector-scoring-column-body > .inspector-detail-overview { padding: 0; margin: 0 0 12px; border: 0; }
-.inspector-scoring-column .inspector-scoring-view { flex: none; min-width: 0; max-width: 100%; overflow: visible; }
+.inspector-publication-score .inspector-scoring-column .inspector-scoring-view { flex: none; min-width: 0; max-width: 100%; overflow: visible; }
+.inspector-publication-score .inspector-scoring-column .inspector-table-scroll { overflow: visible; }
+.inspector-publication-score .inspector-scoring-column th { position: static; }
 .inspector-detail .inspector-scoring-column table { width: 100%; max-width: 100%; table-layout: fixed; }
 .inspector-detail .inspector-scoring-column th, .inspector-detail .inspector-scoring-column td { white-space: normal; overflow-wrap: anywhere; vertical-align: top; }
 .inspector-detail .inspector-scoring-column th:first-child, .inspector-detail .inspector-scoring-column td:first-child { width: auto; }
@@ -17,7 +19,7 @@
 .inspector-detail .inspector-scoring-column .relative-context-inputs :is(th, td):nth-child(2) { width: 14%; }
 .inspector-detail .inspector-scoring-column .relative-context-inputs :is(th, td):nth-child(3) { width: 59%; }
 @container (max-width: 760px) { .inspector-scoring-column { grid-column: 1 / -1; } }
-.inspector-scoring-view.inspector-structured-score { display: block; min-width: 0; overflow-wrap: anywhere; overflow-x: hidden; overflow-y: auto; }
+.inspector-scoring-view.inspector-structured-score { display: block; min-width: 0; overflow-wrap: anywhere; }
 .inspector-structured-score .inspector-table-scroll { overflow: visible; }
 .inspector-structured-score table { width: 100%; table-layout: fixed; }
 .inspector-structured-score th, .inspector-structured-score td { white-space: normal; overflow-wrap: anywhere; }

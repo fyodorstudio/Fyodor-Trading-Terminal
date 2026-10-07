@@ -1,10 +1,11 @@
+import { memo } from 'react'
 import { SignalCalibration } from '../../../../../shared/ui/SignalCalibration'
 import { ScoringSection, ScoringNotes } from '../../../../../shared/ui/ScoringSection'
 import type { assessCpiScoreV3 } from '../assessment/cpi-score-v3'
 
 const format = (value: number | null) => value === null ? '—' : value.toLocaleString(undefined, { maximumFractionDigits: 3, signDisplay: 'exceptZero' })
 export type CpiAssessment = NonNullable<ReturnType<typeof assessCpiScoreV3>>
-export function CpiScoreDetails({ assessment, loading = false, coverageMissing = false, label = 'CPI v4 standalone' }: {
+function CpiScoreDetailsComponent({ assessment, loading = false, coverageMissing = false, label = 'CPI v4 standalone' }: {
   assessment: CpiAssessment; loading?: boolean; coverageMissing?: boolean; label?: string
 }) {
   return (
@@ -35,3 +36,5 @@ export function CpiScoreDetails({ assessment, loading = false, coverageMissing =
     </div>
   )
 }
+
+export const CpiScoreDetails = memo(CpiScoreDetailsComponent)

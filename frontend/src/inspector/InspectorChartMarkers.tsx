@@ -1,49 +1,41 @@
 import { currencyColorStyle, type CurrencyColors } from './currency-colors'
-import { useEffect, useState } from 'react'
+import { memo, useEffect, useMemo, useState } from 'react'
 import type { IChartApi } from 'lightweight-charts'
-import { formatAppTimestamp, type TimeDisplayPreference } from '../appearance/time-display/time-display-preference'
+import type { TimeDisplayPreference } from '../appearance/time-display/time-display-preference'
 import { symbolGlyph } from './event-symbols'
 import type { InspectorMarker } from './inspector-data'
-import { inspectorMarkerCoordinate } from './marker-position'
+import { indexMarkers, projectMarkers, sameMarkerClusters, type MarkerCluster } from './chart/marker-projection'
+import { markerLabel } from './chart/marker-label'
 import './inspector.css'
 
-export function InspectorChartMarkers({ chartApi, markers, timeDisplay, onSelectRelease, currencyColors = {} }: {
+function InspectorChartMarkersComponent({ chartApi, markers, timeDisplay, onSelectRelease, currencyColors = {} }: {
   currencyColors?: CurrencyColors
   chartApi: IChartApi; markers: InspectorMarker[]; timeDisplay: TimeDisplayPreference; onSelectRelease: (id: string) => void
 }) {
-  const [positions, setPositions] = useState<{ x: number; markers: InspectorMarker[] }[]>([])
+  const [positions, setPositions] = useState<MarkerCluster[]>([])
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const index = useMemo(() => indexMarkers(markers), [markers])
   useEffect(() => {
     const scale = chartApi.timeScale()
+    let frame: number | null = null
     function update() {
-      const positioned = markers.map((marker) => {
-        const coordinate = inspectorMarkerCoordinate(scale, marker)
-        return { marker, x: coordinate === null ? null : Number(coordinate) }
-      })
-        .filter((item): item is { marker: InspectorMarker; x: number } => item.x !== null && Number.isFinite(item.x) && item.x >= 0 && item.x <= scale.width())
-        .sort((a, b) => a.x - b.x)
-      const clusters: { x: number; markers: InspectorMarker[] }[] = []
-      for (const item of positioned) {
-        const previous = clusters[clusters.length - 1]
-        if (previous && item.x - previous.x < 36) previous.markers.push(item.marker)
-        else clusters.push({ x: item.x, markers: [item.marker] })
-      }
-      setPositions(clusters)
+      frame = null
+      const clusters = projectMarkers(scale, index)
+      setPositions(previous => sameMarkerClusters(previous, clusters) ? previous : clusters)
       // An off-screen or regrouped anchor ends this interaction. Returning to
       // the same candle must not reopen a chooser from an earlier chart view.
       setExpandedId((current) => current !== null && clusters.some((cluster) =>
         cluster.markers.length > 1 && cluster.markers[0].release.id === current) ? current : null)
     }
+    const schedule = () => { if (frame === null) frame = window.requestAnimationFrame(update) }
     update()
-    scale.subscribeVisibleLogicalRangeChange(update)
-    scale.subscribeSizeChange(update)
-    return () => { scale.unsubscribeVisibleLogicalRangeChange(update); scale.unsubscribeSizeChange(update) }
-  }, [chartApi, markers])
+    scale.subscribeVisibleLogicalRangeChange(schedule)
+    scale.subscribeSizeChange(schedule)
+    return () => { if (frame !== null) window.cancelAnimationFrame(frame); scale.unsubscribeVisibleLogicalRangeChange(schedule); scale.unsubscribeSizeChange(schedule) }
+  }, [chartApi, index])
   if (!markers.length) return null
-  const releaseTime = (marker: InspectorMarker) => marker.release.events.some((event) => 'chart_time_seconds' in event)
-    ? `${formatAppTimestamp(marker.release.chartTime! * 1000, { mode: 'utc', utcOffsetMinutes: 0 })} · broker time`
-    : formatAppTimestamp(marker.release.releaseAt!, timeDisplay)
-  const description = (marker: InspectorMarker) => `${marker.release.currency} · ${marker.release.label} · ${releaseTime(marker)}`
+  const releaseTime = (marker: InspectorMarker) => markerLabel(marker, timeDisplay).time
+  const description = (marker: InspectorMarker) => markerLabel(marker, timeDisplay).description
   return <div className="inspector-chart-markers" style={currencyColorStyle(currencyColors)} aria-label="Inspector event symbols">
     {positions.map((cluster) => {
       const first = cluster.markers[0], multiple = cluster.markers.length > 1
@@ -71,3 +63,4 @@ export function InspectorChartMarkers({ chartApi, markers, timeDisplay, onSelect
     })}
   </div>
 }
+export const InspectorChartMarkers = memo(InspectorChartMarkersComponent)

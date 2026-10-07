@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import './relative-context.css'
 import type { EurContextPoint } from '../core/contracts'
 import { relativeContext } from '../core/relative-context'
@@ -6,7 +7,7 @@ import { eurPolicies } from '../../inspector/scoring/PAIR/EURUSD/EUR/policy/eur-
 import { useRelativePreferences, toggleEurFamily } from '../storage/relative-preferences'
 import { ContextViewSelector } from './ContextViewSelector'
 import { ScoringSection, ScoringNotes } from '../../inspector/scoring/shared/ui/ScoringSection'
-export function RelativeContextDetails({eur,usd,loading,supported}:{eur:EurContextPoint|null;usd:ContextPoint|null;loading:boolean;supported:boolean}){
+function RelativeContextDetailsComponent({eur,usd,loading,supported}:{eur:EurContextPoint|null;usd:ContextPoint|null;loading:boolean;supported:boolean}){
   const preferences=useRelativePreferences(), result=relativeContext(eur,usd)
   return <section aria-label="Relative EURUSD calculation">
     <ContextViewSelector supported={supported}/>
@@ -27,3 +28,5 @@ export function RelativeContextDetails({eur,usd,loading,supported}:{eur:EurConte
     {!supported && <p>Relative EUR / USD context is available on EURUSD only. This pair keeps its USD-side interpretation.</p>}
   </section>
 }
+
+export const RelativeContextDetails = memo(RelativeContextDetailsComponent)

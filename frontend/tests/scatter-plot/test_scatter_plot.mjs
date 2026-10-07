@@ -35,11 +35,13 @@ try {
   const { nfpScatterScope } = await server.ssrLoadModule(domain + 'nfp-scatter-config.ts')
   assert.equal(nfpScatterScope.series[0].id, '840030016', 'Headline payrolls is the default series, matching Inspector ordering')
   const { nfpScatterModel: buildNfpScatterModel } = await server.ssrLoadModule(domain + 'nfp-scatter-adapter.ts')
-  const { nfpMagnitudeHistory: buildNfpMagnitudeHistory, nfpHistoryReleases } = await server.ssrLoadModule('./src/inspector/magnitude/nfp-magnitude-history.ts')
+  const { familyMagnitudeHistory, familyHistoryReleases } = await server.ssrLoadModule('./src/inspector/magnitude/family-magnitude-history.ts')
+  const { nfpMagnitudeFamily } = await server.ssrLoadModule('./src/inspector/magnitude/magnitude-families.ts')
+  const nfpHistoryReleases = (events, before) => familyHistoryReleases(events, before, nfpMagnitudeFamily)
   // Explicit manual fixture boundaries; Undefined never synthesizes a baseline.
   const automaticSettings = Object.fromEntries(nfpScatterScope.series.map((series) => [series.id, [6.4 / 3, 6.4 * 2 / 3, 6.4]]))
   const nfpScatterModel = (events, now, series, release, settings = automaticSettings) => buildNfpScatterModel(events, now, series, release, settings)
-  const nfpMagnitudeHistory = (events, selected, settings = automaticSettings) => buildNfpMagnitudeHistory(events, selected, settings, now)
+  const nfpMagnitudeHistory = (events, selected, settings = automaticSettings) => familyMagnitudeHistory(events, selected, nfpMagnitudeFamily, settings, now)
   const { scatterPlotGeometry } = await server.ssrLoadModule('./src/scatter-plot/plot/scatter-plot-geometry.ts')
   const { MagnitudeScatterPlot } = await server.ssrLoadModule('./src/scatter-plot/plot/MagnitudeScatterPlot.tsx')
   const { MagnitudeCalculationDetails } = await server.ssrLoadModule('./src/scatter-plot/inspection/MagnitudeCalculationDetails.tsx')
@@ -57,7 +59,6 @@ try {
   assert.deepEqual(normalizeScatterAppearance(restoredAppearance), restoredAppearance, 'Restored canonical P95 guides survive normalization and reopen')
   assert.deepEqual(magnitudeBandGuideStyles(restoredAppearance, false).map((level) => level.color), ['#112233', '#445566', '#778899'])
   const { magnitudeDistribution, selectedMagnitudeBin } = await server.ssrLoadModule('./src/inspector/magnitude/magnitude-distribution.ts')
-  const { tallyNfpMagnitudes } = await server.ssrLoadModule('./src/inspector/magnitude/nfp-magnitude-tally.ts')
   const { normalizeNfpMagnitudeSettings, readNfpMagnitudeSettings, saveNfpMagnitudeLimits, nfpMagnitudeSettingsKey } =
     await server.ssrLoadModule(domain + 'magnitude/nfp-magnitude-settings.ts')
   assert.deepEqual(normalizeNfpMagnitudeSettings({ '840030016': [1, 4, 10], '840030015': [1, 1, 2], unknown: [1, 2, 3], '840030019': [0, 2, 3] }),
@@ -174,8 +175,8 @@ try {
     assert.equal(scatter.quantile, undefined, 'Custom scoring has no P95 interpolation sources')
   }
   const lastComplete = groups.find((group) => group.releaseAt === third[0].release_at)
-  const customTally = tallyNfpMagnitudes(lastComplete, nfpMagnitudeHistory(events, lastComplete, customSettings))
-  assert.equal(customTally.higher.Medium + customTally.lower.Medium, 10, 'The tally uses the same ten custom classifications')
+  const customRows = Object.values(nfpMagnitudeHistory(events, lastComplete, customSettings))
+  assert.equal(customRows.filter(row => row.distribution.currentSize === 'Medium').length, 10, 'The history model uses the same ten custom classifications')
   const separateSeries = { [seriesId]: [10, 20, 100] }
   assert.equal(nfpScatterModel(events, now, seriesId, null, separateSeries).inspection.distribution.currentSize, 'Small')
   assert.equal(nfpScatterModel(events, now, '840030015', null, separateSeries).inspection.distribution, null)
@@ -458,7 +459,7 @@ try {
   assert.equal(remounted.container.querySelector('[data-threshold]'), null)
   assert.equal(remounted.container.querySelector('[data-cutoff]'), null)
   assert.ok(remounted.container.querySelector('[data-point-id]'), 'Undefined keeps raw points visible')
-  console.log('✓ Independent native-unit boundaries, inclusive ties, shared Inspector models/tally, exact blue guides, invalid drafts, persistence and live subscriptions')
+  console.log('✓ Independent native-unit boundaries, inclusive ties, shared Inspector models, exact blue guides, invalid drafts, persistence and live subscriptions')
 
   let start = requests.length
   await app.render({ ...props, brokerId: 'Broker-B' })

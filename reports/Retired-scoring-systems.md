@@ -118,3 +118,18 @@ view on read and workspace import/export. Unknown values are not promoted.
 
 Original implementation history remains in the scoring library and Git. This
 archive documents formulas, not trading accuracy or a promise of price alignment.
+
+## 7 October 2026 — Remaining unused magnitude presentation
+
+The old `FamilyMagnitudeTally` screen was no longer mounted anywhere in the app.
+It grouped Higher/Lower A−P readings into Small/Medium/Large/Extreme counts, with
+unclassified/undefined and partial-history notes. It did not supply the current
+standalone or context bias. Its renderer, family/NFP tally helpers and five obsolete
+wrapper/re-export modules are removed in the responsiveness cleanup. Applicable
+tests now use the active shared family history/cell modules; the retired screen's
+own rendering assertions are removed.
+
+Current per-reading magnitude cells, seven-band histograms, native-unit boundaries,
+Scatter models, settings keys and all current scorer versions remain active.
+See [Responsiveness refactor](Responsiveness-refactor.md) for the retained behavior
+and terminal regression checks.

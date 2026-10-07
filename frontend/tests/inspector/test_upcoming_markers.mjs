@@ -8,6 +8,12 @@ import { Window } from 'happy-dom'
 const server = await createServer({ root: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..'),
   server: { middlewareMode: true, hmr: false } })
 const dom = new Window({ url: 'http://localhost:5173' })
+const animationFrames = new Map(); let nextFrame = 0
+// Projection is deferred to one animation frame, as in the real chart.
+dom.requestAnimationFrame = fn => { animationFrames.set(++nextFrame, fn); return nextFrame }
+dom.cancelAnimationFrame = id => animationFrames.delete(id)
+const flushAnimationFrames = () => { for (const [id, fn] of animationFrames) { animationFrames.delete(id); fn() } }
+
 const keys = ['window', 'document', 'HTMLElement', 'Node', 'navigator', 'localStorage', 'IS_REACT_ACT_ENVIRONMENT', 'fetch']
 const previous = Object.fromEntries(keys.map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]))
 for (const key of keys.slice(0, 7)) Object.defineProperty(globalThis, key, { configurable: true, writable: true,
@@ -95,13 +101,13 @@ try {
   await React.act(async () => markerButton().click())
   assert.equal(view.selectedRelease.id, markers[0].release.id)
   assert.match(container.querySelector('table').textContent, /CPI m\/m/)
-  await React.act(async () => { origin = 600; for (const fn of subscriptions) fn() })
+  await React.act(async () => { origin = 600; for (const fn of subscriptions) fn(); flushAnimationFrames() })
   assert.equal(markerButton(), null, 'Future markers outside the visible viewport stay off-screen')
-  await React.act(async () => { origin = 100; spacing = 80; for (const fn of subscriptions) fn() })
+  await React.act(async () => { origin = 100; spacing = 80; for (const fn of subscriptions) fn(); flushAnimationFrames() })
   assert.equal(container.querySelector('.inspector-marker-cluster').style.left, '180px', 'Zoom changes projected positions')
-  await React.act(async () => { width = 150; for (const fn of subscriptions) fn() })
+  await React.act(async () => { width = 150; for (const fn of subscriptions) fn(); flushAnimationFrames() })
   assert.equal(markerButton(), null)
-  await React.act(async () => { width = 500; for (const fn of subscriptions) fn() })
+  await React.act(async () => { width = 500; for (const fn of subscriptions) fn(); flushAnimationFrames() })
   assert.ok(markerButton())
   await render({ chartBars: [...bars, candle], rows: [event({ actual: .4 })] })
   assert.equal(view.selectedRelease.id, markers[0].release.id)

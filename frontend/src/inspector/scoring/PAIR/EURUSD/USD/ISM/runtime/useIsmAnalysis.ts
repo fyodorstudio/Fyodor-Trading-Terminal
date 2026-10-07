@@ -15,7 +15,7 @@ const createWorker = () => new Worker(new URL('./ism-analysis.worker.ts', import
 export type IsmAnalysisProps = { release: InspectorRelease | null; brokerId?: string | null; events?: EconomicCalendarEvent[]; now?: number }
 
 export function useIsmAnalysis({ release, brokerId, events = emptyEvents, now: suppliedNow }: IsmAnalysisProps) {
-  const clock = useCalendarNow(), now = suppliedNow ?? clock
+  const clock = useCalendarNow(0, 10_000, suppliedNow === undefined), now = suppliedNow ?? clock
   const publications = release?.ismPublications
   const last = publications?.[publications.length - 1]?.releaseAt ?? release?.releaseAt ?? null
   // Clock/quote changes invalidate analysis only when a publication becomes available.

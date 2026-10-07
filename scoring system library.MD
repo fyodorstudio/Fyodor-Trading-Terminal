@@ -1793,3 +1793,33 @@ including corrected latest-view expectations and old-workspace migration. Lint,
 TypeScript and production build pass. Three legacy-only scorer suites were retired;
 current standalone/context, chronology, worker and Scatter tests remain. Visual
 audit remains pending with the user.
+
+## 7 October 2026 — Chart and Inspector responsiveness
+
+This pass reduces repeated rendering and projection without changing the current
+scoring versions, numerical rules, weights or stored magnitude settings. Small
+bridge-clock corrections no longer restart calendar timers or force an immediate
+second render. Scoring bodies/tables and release navigation have stable component
+boundaries, and the unused raw-history scorer prop is removed.
+
+Chart marker projection selects visible historical anchors from an index and
+batches pan/resize callbacks into one animation frame. Visible marker labels and
+roof text are cached. Raycaster/roofs share time-only candle snapshots that survive
+price-only updates. Publication admission uses a cached as-of index; raw magnitude
+history changes only when its admitted data, selection or settings change.
+Drawing projection has its own batched lifecycle and no empty overlay is mounted.
+Publication scoring uses one scrolling container with flowing inner sections.
+
+Eight unused source modules and their old magnitude-tally styles are retired;
+their prior behavior is recorded in [Retired scoring systems](reports/Retired-scoring-systems.md).
+Active family history, histogram, Scatter and current scorer coverage is retained.
+See [Responsiveness refactor](reports/Responsiveness-refactor.md) for the findings,
+module boundaries and operation-count regressions. Visual panning/scrolling checks
+remain pending with the user in [manual edit.md](manual%20edit.md).
+
+Validation: all 42 terminal suites were verified sequentially, including the new
+responsiveness suite and migrated active-history checks. Lint, TypeScript and
+production build pass. A source import-graph audit (including workers) reaches
+all 288 remaining TS/TSX modules; the eight unused modules are removed. Work-count
+regressions verify 100,000 historical markers project only ten visible anchors,
+and 200 pan callbacks produce one frame update. No visual audit was performed.

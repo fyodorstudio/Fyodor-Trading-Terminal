@@ -1,9 +1,8 @@
 import { currencyColorStyle } from './currency-colors'
 import { useId, useMemo, useState } from 'react'
-import { formatAppTimestamp, type TimeDisplayPreference } from '../appearance/time-display/time-display-preference'
+import { type TimeDisplayPreference } from '../appearance/time-display/time-display-preference'
 import type { CalendarSourceHealth } from '../system-connectivity/bridge-status/bridge-contract'
-import { symbolGlyph } from './event-symbols'
-import { isInspectorCommentary, type InspectorRelease } from './inspector-data'
+import { type InspectorRelease } from './inspector-data'
 import { InspectorFiltersModal } from './InspectorFiltersModal'
 import { InspectorDateRangePicker } from './InspectorDateRangePicker'
 import { InspectorReleaseHeading } from './InspectorReleaseHeading'
@@ -14,6 +13,8 @@ import { magnitudeFamilies } from './magnitude/magnitude-families'
 import { InspectorScoringView } from './scoring/InspectorScoringView'
 import { inspectorScoringBinding } from './scoring/scoring-registry'
 import type { InspectorView } from './useInspector'
+import { InspectorReleaseList } from './releases/InspectorReleaseList'
+import { releaseStatus } from './releases/release-status'
 import { InspectorReadingsTable } from './readings/InspectorReadingsTable'
 import './inspector.css'
 import { normalizeInspectorDetailView } from './inspector-detail-view'
@@ -31,12 +32,6 @@ function HistogramIcon() {
   )
 }
 
-function releaseStatus(release: InspectorRelease, now: number, brokerTime = false): string {
-  if (release.events.some((event) => event.actual !== null)) return 'Released'
-  if ((brokerTime ? release.serverTime * 1000 : release.releaseAt ?? 0) > now) return 'Upcoming'
-  if (release.events.every(isInspectorCommentary)) return 'Commentary'
-  return 'Awaiting actual'
-}
 function sourceLabel(source: CalendarSourceHealth | null, error: string | null): string {
   if (error) return error
   if (!source) return 'Waiting for the local bridge'
@@ -62,9 +57,6 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
   const scoringBinding = inspectorScoringBinding(symbol, scoreRelease)
   const showScoring = normalizeInspectorDetailView(view.preferences.detailView) === 'scoring' && !!scoringBinding
   const visibleView = showScoring ? 'scoring' : 'table'
-  const releaseTime = (item: InspectorRelease) => view.brokerTime
-    ? `${formatAppTimestamp(item.serverTime * 1000, { mode: 'utc', utcOffsetMinutes: 0 })} · broker time`
-    : item.releaseAt === null ? 'Time unavailable' : formatAppTimestamp(item.releaseAt, timeDisplay)
   const status = (item: InspectorRelease) => releaseStatus(item, view.now + (view.brokerTime ? view.brokerOffsetSeconds * 1000 : 0), view.brokerTime)
   const storageStatus = view.storage.loading ? 'Loading stored calendar' : view.storage.error ??
     (view.storage.source ? 'Stored calendar available' : 'Waiting for the broker calendar')
@@ -134,19 +126,12 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
     </header>
     {!view.supported ? <p className="inspector-empty">Inspector currently supports EURUSD. Select EURUSD to inspect monetary policy, inflation, labor/wages and growth/activity releases.</p> : <>
       <div className={`inspector-body${listOpen ? '' : ' releases-collapsed'}`}>
-        <nav id={`${panelId}-releases`} hidden={!listOpen} className="inspector-releases" aria-label="Inspector releases">
-          {!view.releases.length && <p className="inspector-empty">No releases match this date range and filter selection.</p>}
-          {view.releases.map((item) => <button type="button" key={item.id} aria-pressed={release?.id === item.id}
-            className={`inspector-release${release?.id === item.id ? ' selected' : ''}`} onClick={() => view.selectRelease(item.id)}>
-            <span className={`inspector-currency-${item.currency}`}><b>{symbolGlyph(view.preferences.symbols[item.familyId] ?? 'star')} {item.currency}</b> · {item.country}</span>
-            <strong>{item.label}</strong>
-            <time>{releaseTime(item)}</time>
-            <small>{item.timingUncertain ? 'Time uncertain · ' : ''}{status(item)} · {item.events.length} readings</small>
-          </button>)}
-        </nav>
+        <InspectorReleaseList id={`${panelId}-releases`} hidden={!listOpen} releases={view.releases}
+          selectedId={release?.id ?? null} symbols={view.preferences.symbols} timeDisplay={timeDisplay}
+          brokerTime={view.brokerTime} now={view.now + (view.brokerTime ? view.brokerOffsetSeconds * 1000 : 0)} onSelect={view.selectRelease} />
         <div className="inspector-detail" aria-live="polite">
           {!release ? <p className="inspector-empty">Click a chart symbol or select a release to inspect Actual, Previous and A−P.</p> : <>
-            {showScoring && scoringBinding ? <InspectorScoringView binding={scoringBinding} release={release} history={view.magnitudeHistory}
+            {showScoring && scoringBinding ? <InspectorScoringView binding={scoringBinding} release={release}
               brokerId={view.brokerId} events={scoringEvents} now={view.now} timeDisplay={timeDisplay}
               onOpenScatter={scatterAvailable ? onOpenScatter : undefined} /> :
             <InspectorReadingsTable release={release} view={view} timeDisplay={timeDisplay} sharedPeriod={sharedPeriod} />}

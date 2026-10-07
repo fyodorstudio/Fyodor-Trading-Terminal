@@ -1,10 +1,11 @@
+import { memo } from 'react'
 import { ScoringSection } from './ScoringSection'
 
 type Reading = { id: string; label: string; value: number | null; sampleCount: number;
   limits: readonly number[] | null; magnitudeMode?: string; unit?: string; reason?: string | null }
 const number = (n: number | null, precision = 3) => n === null ? '—' : n.toLocaleString(undefined, { maximumFractionDigits: precision })
 
-export function SignalCalibration({ readings, unit = 'pp', label = 'Signal calibration' }: {
+function SignalCalibrationComponent({ readings, unit = 'pp', label = 'Signal calibration' }: {
   readings: readonly Reading[]; unit?: string; label?: string
 }) {
   return <ScoringSection title="Calibration & settings">
@@ -19,3 +20,5 @@ export function SignalCalibration({ readings, unit = 'pp', label = 'Signal calib
     <p className="scoring-section-hint">View or configure these boundaries in Scatter Plot → Scoring signal. Original Actual − Previous settings remain separate.</p>
   </ScoringSection>
 }
+
+export const SignalCalibration = memo(SignalCalibrationComponent)

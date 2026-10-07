@@ -183,3 +183,22 @@ unless separately recorded as audited.
 
 Retired formulas and replacement rationale:
 [Retired scoring systems](reports/Retired-scoring-systems.md).
+
+## 7 October 2026 — Responsiveness refactor
+
+- [ ] Pan and zoom repeatedly with a long history while ISM, CPI and Fed scoring
+  are open, with Raycaster/roofs visible. Check for the former periodic pause.
+- [ ] Scroll both scoring columns in short/tall/narrow docks and both themes.
+  Confirm one shared scroll region, no overlapping sticky headings and readable
+  contribution/calibration tables.
+- [ ] Leave live candles running while scrolling: bias/details should remain
+  stable until their actual inputs change. Check new candles, chart gaps, range
+  changes and future symbols still align with the correct candle.
+- [ ] Check existing/new drawings follow panning, resizing and live price-scale
+  changes. Check editing, selection and deleting still work.
+- [ ] Switch releases, families, brokers and magnitude settings; verify no stale
+  scorer or histogram survives a meaningful input change, and roofs remain clickable.
+
+Terminal operation-count checks are documented in
+[Responsiveness refactor](reports/Responsiveness-refactor.md). These boxes remain
+unchecked: automated tests do not verify perceived scrolling or frame rate.

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { memo, useEffect, useState } from 'react'
 import type { IChartApi } from 'lightweight-charts'
 import type { OhlcBar } from '../../../market-data/contracts/OhlcBar'
 import type { ChartTimeframe } from '../../../market-data/contracts/ChartTimeframe'
@@ -11,8 +11,8 @@ import { roofLabel, roofTooltip } from './roof-label'
 import './combo-roofs.css'
 
 type Positioned = { combo: ComboSnapshot; left: number; right: number; ticks: number[]; lane: number; hidden: number }
-export function ComboRoofs({ chartApi, episodes, bars, timeframe, markers, now, experimental, onSelect }: {
-  chartApi: IChartApi; episodes: readonly ComboSnapshot[]; bars: readonly OhlcBar[]; timeframe: ChartTimeframe;
+function ComboRoofsComponent({ chartApi, episodes, bars, timeframe, markers, now, experimental, onSelect }: {
+  chartApi: IChartApi; episodes: readonly ComboSnapshot[]; bars: readonly Pick<OhlcBar, 'time'>[]; timeframe: ChartTimeframe;
   markers: readonly InspectorMarker[]; now: number; experimental: boolean; onSelect: (combo: ComboSnapshot) => void
 }) {
   const [positioned, setPositioned] = useState<Positioned[]>([])
@@ -72,3 +72,4 @@ export function ComboRoofs({ chartApi, episodes, bars, timeframe, markers, now, 
     </div>}
   </div>
 }
+export const ComboRoofs = memo(ComboRoofsComponent)

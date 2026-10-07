@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import type { ContextFamily, ContextResult } from '../core/contracts'
 import { contextPriority, contextScorers, contextWeights } from '../core/policy'
 import { contextPairLabel } from '../core/usd-pair'
@@ -6,7 +7,7 @@ import { ScoringNotes } from '../../inspector/scoring/shared/ui/ScoringSection'
 import { cpiStandaloneVersionLabel } from '../../inspector/scoring/shared/core/current-scoring-versions'
 
 const score = (value: number | null) => value === null ? '—' : value.toLocaleString(undefined, { maximumFractionDigits: 3, signDisplay: 'exceptZero' })
-export function ContextInputTable({ families, onToggleFamily, result, symbol, loading, unavailable, cutoff, timeDisplay, summaryLabel, tableLabel = "Raycaster event inputs" }: {
+function ContextInputTableComponent({ families, onToggleFamily, result, symbol, loading, unavailable, cutoff, timeDisplay, summaryLabel, tableLabel = "Raycaster event inputs" }: {
   families: readonly ContextFamily[]; onToggleFamily?: (family: ContextFamily) => void; result: ContextResult | null;
   symbol: string; loading: boolean; unavailable: boolean; cutoff: number | null; timeDisplay: TimeDisplayPreference; summaryLabel: string; tableLabel?: string
 }) {
@@ -54,3 +55,5 @@ export function ContextInputTable({ families, onToggleFamily, result, symbol, lo
     ]} />
   </>
 }
+
+export const ContextInputTable = memo(ContextInputTableComponent)

@@ -322,7 +322,7 @@ function MarketCandlestickChartComponent({
         onWheel={() => { historyPagingArmedRef.current = true }}
       />
       {chartApi && seriesApi && renderChartOverlay?.(chartApi, seriesApi)}
-      {chartApi && seriesApi && (
+      {chartApi && seriesApi && (activeDrawingTool || drawings.length > 0) && (
         <ChartDrawingOverlay
           key={activeDrawingTool ?? 'chart-navigation'}
           chartApi={chartApi}

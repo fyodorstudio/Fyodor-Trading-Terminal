@@ -8,6 +8,12 @@ import { Window } from 'happy-dom'
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const server = await createServer({ root: rootDir, server: { middlewareMode: true } })
 const dom = new Window({ url: 'http://localhost:5173' })
+const animationFrames = new Map(); let nextFrame = 0
+// Projection is deferred to one animation frame, as in the real chart.
+dom.requestAnimationFrame = fn => { animationFrames.set(++nextFrame, fn); return nextFrame }
+dom.cancelAnimationFrame = id => animationFrames.delete(id)
+const flushAnimationFrames = () => { for (const [id, fn] of animationFrames) { animationFrames.delete(id); fn() } }
+
 const globals = ['window', 'document', 'HTMLElement', 'HTMLDialogElement', 'Node', 'navigator', 'DOMException', 'localStorage', 'IS_REACT_ACT_ENVIRONMENT', 'fetch']
 const previous = Object.fromEntries(globals.map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]))
 for (const key of globals.slice(0, 8)) Object.defineProperty(globalThis, key, { configurable: true, writable: true,
@@ -535,20 +541,20 @@ try {
   assert.match(app.container.querySelector('table').getAttribute('aria-label'), /Fed rate decision/)
   await click(chart.container.querySelector('.inspector-chart-symbol'))
   assert.ok(chart.container.querySelector('.inspector-marker-popup'))
-  await act(async () => { coordinate = -60; for (const update of subscriptions) update() })
+  await act(async () => { coordinate = -60; for (const update of subscriptions) update(); flushAnimationFrames() })
   assert.equal(chart.container.querySelector('.inspector-chart-symbol'), null)
   assert.equal(chart.container.querySelector('.inspector-marker-popup'), null)
   assert.equal(view.selectedRelease.id, selectedId, 'Panning out closes the chooser without clearing the selected table')
-  await act(async () => { coordinate = 120; for (const update of subscriptions) update() })
+  await act(async () => { coordinate = 120; for (const update of subscriptions) update(); flushAnimationFrames() })
   assert.ok(chart.container.querySelector('.inspector-chart-symbol'))
   assert.equal(chart.container.querySelector('.inspector-marker-popup'), null, 'Panning back does not reopen an old chooser')
   await click(chart.container.querySelector('.inspector-chart-symbol'))
-  await act(async () => { coordinate = 600; for (const update of subscriptions) update() })
-  await act(async () => { coordinate = 120; for (const update of subscriptions) update() })
+  await act(async () => { coordinate = 600; for (const update of subscriptions) update(); flushAnimationFrames() })
+  await act(async () => { coordinate = 120; for (const update of subscriptions) update(); flushAnimationFrames() })
   assert.equal(chart.container.querySelector('.inspector-marker-popup'), null, 'Right-edge exit also clears expansion')
   await click(chart.container.querySelector('.inspector-chart-symbol'))
-  await act(async () => { coordinate = null; for (const update of subscriptions) update() })
-  await act(async () => { coordinate = 120; for (const update of subscriptions) update() })
+  await act(async () => { coordinate = null; for (const update of subscriptions) update(); flushAnimationFrames() })
+  await act(async () => { coordinate = 120; for (const update of subscriptions) update(); flushAnimationFrames() })
   assert.equal(chart.container.querySelector('.inspector-marker-popup'), null, 'Unavailable coordinates cannot retain expansion')
   console.log('✓ Mounted chart selection, off-screen collapse, closed re-entry and selected-table preservation')
 
@@ -882,15 +888,13 @@ try {
   console.log('✓ Mounted date picker/storage integration uses one complete broker range and preserves results during incomplete edits')
 
   const { magnitudeDistribution, magnitudeBin, selectedMagnitudeBin } = await server.ssrLoadModule('./src/inspector/magnitude/magnitude-distribution.ts')
-  const { nfpMagnitudeHistory: buildNfpMagnitudeHistory, nfpHistoryStart, nfpHistoryScope } = await server.ssrLoadModule('./src/inspector/magnitude/nfp-magnitude-history.ts')
-  const nfpMagnitudeHistory = (events, selected, settings) => buildNfpMagnitudeHistory(events, selected, settings, anchor * 1000)
-  const { useNfpMagnitudeHistory } = await server.ssrLoadModule('./src/inspector/magnitude/useNfpMagnitudeHistory.ts')
-  const { NfpMagnitudeCell } = await server.ssrLoadModule('./src/inspector/magnitude/NfpMagnitudeCell.tsx')
+  const { familyMagnitudeHistory } = await server.ssrLoadModule('./src/inspector/magnitude/family-magnitude-history.ts')
+  const { useFamilyMagnitudeHistory } = await server.ssrLoadModule('./src/inspector/magnitude/useFamilyMagnitudeHistory.ts')
+  const { FamilyMagnitudeCell } = await server.ssrLoadModule('./src/inspector/magnitude/FamilyMagnitudeCell.tsx')
   const { MagnitudeHistogram } = await server.ssrLoadModule('./src/inspector/magnitude/MagnitudeHistogram.tsx')
-  const { tallyNfpMagnitudes } = await server.ssrLoadModule('./src/inspector/magnitude/nfp-magnitude-tally.ts')
-  const { FamilyMagnitudeTally } = await server.ssrLoadModule('./src/inspector/magnitude/FamilyMagnitudeTally.tsx')
   const { nfpMagnitudeFamily } = await server.ssrLoadModule('./src/inspector/magnitude/magnitude-families.ts')
-  const MagnitudeTally = (props) => React.createElement(FamilyMagnitudeTally, { ...props, family: nfpMagnitudeFamily })
+  const nfpHistoryStart = nfpMagnitudeFamily.historyStart, nfpHistoryScope = nfpMagnitudeFamily.historyScope
+  const nfpMagnitudeHistory = (events, selected, settings) => familyMagnitudeHistory(events, selected, nfpMagnitudeFamily, settings, anchor * 1000)
   assert.equal(magnitudeDistribution([-4, 0, 4], 0), null, 'Undefined has no automatic fallback')
   const binFixture = (current) => magnitudeDistribution([-6, -4, -2, 0, 2, 4, 6], current, [2, 4, 6])
   const distribution = magnitudeDistribution([-4, -2, 0, 2, 4], -2, [4 / 3, 8 / 3, 4])
@@ -1021,63 +1025,6 @@ try {
   await act(async () => reusablePlot.blur())
   assert.equal(document.querySelector('.magnitude-details'), null)
 
-  const magnitudeRows = gradedRows.map((row, index) => {
-    const magnitude = [1, 3, 5, 7][index % 4]
-    return { ...row, previous: 10, actual: index === 9 ? null : index === 8 ? 10 :
-      10 + (index < 4 ? 1 : -1) * magnitude }
-  })
-  const magnitudeRelease = data.groupInspectorReleases(magnitudeRows)[0]
-  const readyHistory = (rows = magnitudeRows) => ({ rows: Object.fromEntries(rows.map((row) => [row.value_id,
-    { distribution: magnitudeDistribution([-6, 6], data.inspectorDelta(row), [2, 4, 6]), excluded: 0, first: anchor - 86400000, last: anchor - 86400000 }])),
-    message: null, error: null, partial: false })
-  const oneOfEach = { Small: 1, Medium: 1, Large: 1, Extreme: 1, Unclassified: 0 }
-  assert.deepEqual(tallyNfpMagnitudes(magnitudeRelease, readyHistory().rows), { higher: oneOfEach, lower: oneOfEach },
-    'Count all four sizes separately for each grade, based on signed A−P; exclude zero/missing readings')
-  assert.equal(tallyNfpMagnitudes(null, {}), null)
-  assert.equal(tallyNfpMagnitudes({ ...magnitudeRelease, country: 'GB' }, {}), null)
-  assert.equal(tallyNfpMagnitudes({ ...magnitudeRelease, familyId: 'us-cpi' }, {}), null)
-  const magnitudeTallyApp = mount(MagnitudeTally, { release: magnitudeRelease, history: readyHistory() })
-  await magnitudeTallyApp.render()
-  const summary = () => magnitudeTallyApp.container.querySelector('[aria-label="NFP magnitude tally"]')
-  const sizeCells = (grade) => [...summary().querySelectorAll(`[data-grade="${grade}"] td[data-size]`)].map((cell) => cell.textContent.trim())
-  assert.equal(summary().tagName, 'TABLE')
-  assert.deepEqual([...summary().querySelectorAll('thead th')].slice(1).map((cell) => cell.textContent), ['Small', 'Medium', 'Large', 'Extreme'])
-  assert.deepEqual([...summary().querySelectorAll('tbody th[scope="row"]')].map((cell) => cell.textContent), ['Higher', 'Lower'])
-  assert.deepEqual(sizeCells('higher'), ['1', '1', '1', '1'])
-  assert.deepEqual(sizeCells('lower'), ['1', '1', '1', '1'])
-  const updatedRows = magnitudeRows.map((row, index) => index === 2 ? { ...row, actual: 11 } : row)
-  const updatedRelease = data.groupInspectorReleases(updatedRows)[0]
-  await magnitudeTallyApp.render({ release: updatedRelease, history: readyHistory(updatedRows) })
-  assert.deepEqual(sizeCells('higher'), ['2', '1', '–', '1'], 'Incoming Actual changes refresh the table, with a dash for zero')
-  assert.equal(summary().querySelector('[data-grade="higher"] [data-size="Large"]').getAttribute('aria-label'), '0 Higher Large',
-    'A dash retains its exact zero meaning for assistive technology')
-  const incompleteHistory = readyHistory()
-  incompleteHistory.rows[magnitudeRows[0].value_id].distribution = null
-  await magnitudeTallyApp.render({ release: magnitudeRelease, history: incompleteHistory })
-  assert.deepEqual(sizeCells('higher'), ['–', '1', '1', '1'])
-  assert.match(summary().querySelector('tfoot').textContent, /1 Higher unclassified/,
-    'A reading without history is explicit rather than silently scored Small')
-  await magnitudeTallyApp.render({ release: magnitudeRelease, history: { ...readyHistory(), partial: true } })
-  assert.match(summary().textContent, /Partial history/)
-  for (const message of ['Loading history…', 'History unavailable', 'No earlier history']) {
-    await magnitudeTallyApp.render({ release: magnitudeRelease, history: { ...readyHistory(), message } })
-    assert.match(summary().textContent, new RegExp(message))
-    assert.equal(summary().querySelector('[data-grade]'), null, 'An unavailable snapshot cannot leave stale magnitude counts visible')
-  }
-  const snapshotThresholds = { '840030016': 652.9, '840030015': .52, '840030017': .3, '840030018': .6,
-    '840030019': 1.005, '840030020': .2, '840030023': 465.1, '840030022': 171.65, '840030032': 66.1, '840030024': .83 }
-  const octoberHistory = { ...readyHistory(), rows: Object.fromEntries(gradedRows.map((row) => [row.value_id,
-    { distribution: magnitudeDistribution([snapshotThresholds[row.event_id], snapshotThresholds[row.event_id]], data.inspectorDelta(row), [snapshotThresholds[row.event_id] / 3, snapshotThresholds[row.event_id] * 2 / 3, snapshotThresholds[row.event_id]]) }])) }
-  const octoberRelease = data.groupInspectorReleases(gradedRows)[0]
-  await magnitudeTallyApp.render({ release: octoberRelease, history: octoberHistory })
-  assert.deepEqual(sizeCells('higher'), ['1', '1', '–', '–'])
-  assert.deepEqual(sizeCells('lower'), ['7', '–', '–', '–'])
-  assert.doesNotMatch(summary().textContent, /NFP majority rule · Experimental|Compared with Previous|A−P magnitude/)
-  assert.equal(summary().querySelector('tfoot'), null, 'A complete snapshot has just the header and two grade rows')
-  await magnitudeTallyApp.render({ release: { ...magnitudeRelease, familyId: 'us-cpi' }, history: readyHistory() })
-  assert.equal(summary(), null)
-  console.log('✓ Shared Higher/Lower magnitude tally utility, live updates, unavailable/partial history and October inventory example')
-
   const selectedNfp = data.groupInspectorReleases([stored(event({ event_id: '840030016', name: 'Nonfarm Payrolls', unit: 0, multiplier: 1,
     actual: 12, previous: 10, actual_raw_scaled_1e6: '12000000', previous_raw_scaled_1e6: '10000000' }))])[0]
   const historyRow = (id, at, overrides = {}) => ({ ...selectedNfp.events[0], value_id: id, release_at: at,
@@ -1119,10 +1066,10 @@ try {
 
   let nfpHistoryView
   function NfpHistoryApp({ selected = selectedNfp, brokerId = 'Broker-A' }) {
-    const history = useNfpMagnitudeHistory(brokerId, selected, fixtureClockOffset)
+    const history = useFamilyMagnitudeHistory(brokerId, selected, nfpMagnitudeFamily, fixtureClockOffset)
     React.useEffect(() => { nfpHistoryView = history }, [history])
     return selected ? React.createElement('table', {}, React.createElement('tbody', {}, React.createElement('tr', {},
-      React.createElement(NfpMagnitudeCell, { event: selected.events[0], history, grade: 'higher' })))) : null
+      React.createElement(FamilyMagnitudeCell, { event: selected.events[0], history, grade: 'higher' })))) : null
   }
   const { saveNfpMagnitudeLimits } = await server.ssrLoadModule('./src/inspector/magnitude/nfp-magnitude-settings.ts')
   saveNfpMagnitudeLimits('840030016', [.9, 1.8, 2.8])

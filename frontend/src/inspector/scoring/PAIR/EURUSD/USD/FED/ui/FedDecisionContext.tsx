@@ -16,7 +16,7 @@ import { FedRateAction } from './FedRateAction'
 import { ScoringSection } from '../../../../../shared/ui/ScoringSection'
 
 const defaultTime = { mode: 'utc' as const, utcOffsetMinutes: 0 }
-export function FedDecisionContext({ release, action, history, brokerId = null, events, now = 0, timeDisplay = defaultTime }: InspectorScoringProps & {
+export function FedDecisionContext({ release, action, brokerId = null, events, now = 0, timeDisplay = defaultTime }: InspectorScoringProps & {
   release: InspectorRelease; action: NonNullable<ReturnType<typeof assessFedScore>>
 }) {
   const { families, context, eligible, at, result, ready } = usePublicationContext(release, brokerId, events, now)
@@ -49,5 +49,5 @@ export function FedDecisionContext({ release, action, history, brokerId = null, 
     <ScoringSection title="Coverage & controls"><p>This is the same publication-time context used by Raycaster, with its shared independent filters. Both meetings use the same currently configured rules and only releases available at their respective publication times. A hold adds no vote, does not refresh old evidence, and does not reset its age. Rate actions remain separate from the combined score.</p></ScoringSection>
   </section>
   return <PublicationScoringLayout standalone={<FedRateAction action={action} eligible={eligible} path={path} pathLoading={storage.loading} pathError={storage.error} />}
-    context={<PublicationScoringContext release={release} history={history} brokerId={brokerId} events={events} now={now} timeDisplay={timeDisplay}>{contextView}</PublicationScoringContext>} />
+    context={<PublicationScoringContext release={release} brokerId={brokerId} events={events} now={now} timeDisplay={timeDisplay}>{contextView}</PublicationScoringContext>} />
 }

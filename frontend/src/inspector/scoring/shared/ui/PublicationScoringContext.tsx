@@ -8,8 +8,8 @@ import { ContextViewSelector } from '../../../../pair-context/ui/ContextViewSele
 import { formatAppTimestamp } from '../../../../appearance/time-display/time-display-preference'
 
 /** Both currency legs stay inside the context column; the release stays separate. */
-export function PublicationScoringContext({ children, ...props }: Omit<InspectorScoringProps, 'history' | 'events'> & {
-  children?: ReactNode; history?: InspectorScoringProps['history']; events?: readonly InspectorEvent[]
+export function PublicationScoringContext({ children, ...props }: Omit<InspectorScoringProps, 'events'> & {
+  children?: ReactNode; events?: readonly InspectorEvent[]
 }) {
   const preferences = useRelativePreferences()
   if (!props.release) return null

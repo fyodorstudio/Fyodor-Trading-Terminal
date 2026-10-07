@@ -121,6 +121,7 @@ export function FyodorTerminalShell() {
   const bars = marketData.bars
   const brokerId = bridge.health?.mt5.account_server ?? null
   const selectedCombo = comboSelection?.symbol === activeSymbol && comboSelection.broker === brokerId ? comboSelection.combo : null
+  const closeCombo = useCallback(() => setComboSelection(null), [])
   // A captured roof belongs to one symbol/broker; do not resurrect it on return.
   if (comboSelection && !selectedCombo) setComboSelection(null)
   const inspector = useInspector({ symbol: activeSymbol, bars, timeframe, timeDisplay,
@@ -245,21 +246,27 @@ export function FyodorTerminalShell() {
   const selectCombo = useCallback((combo: ComboSnapshot) => {
     setComboSelection({ combo, symbol: activeSymbol, broker: brokerId }); selectBottomDock('inspector')
   }, [activeSymbol, brokerId, selectBottomDock])
-  const openComboRelease = (source: ComboSource) => {
+  const applyInspectorPreferences = inspector.applyPreferences, inspectorPreferences = inspector.preferences
+  const selectInspectorRange = inspector.selectCustomRange
+  const openComboRelease = useCallback((source: ComboSource) => {
     const family = source.family === 'cpi' ? 'us-cpi' : source.family === 'nfp' ? 'jobs' : source.family
     const families = source.family === 'ism' ? ['ism-manufacturing', 'ism-services'] : [family]
-    inspector.applyPreferences({ ...inspector.preferences, detailView: 'table',
-      families: [...new Set([...inspector.preferences.families, ...families])] })
+    applyInspectorPreferences({ ...inspectorPreferences, detailView: 'table',
+      families: [...new Set([...inspectorPreferences.families, ...families])] })
     const date = new Date(source.chartAt).toISOString().slice(0, 10)
-    inspector.selectCustomRange(date, date)
+    selectInspectorRange(date, date)
     selectChartRelease(source.sourceId)
-  }
+  }, [applyInspectorPreferences, inspectorPreferences, selectInspectorRange, selectChartRelease])
+  const openScatter = useCallback((release: Parameters<typeof scatterReleaseTarget>[0]) => {
+    const target = scatterReleaseTarget(release, inspector.brokerId, inspector.now)
+    if (target) { setScatterTarget(target); setBottomDockWindow('scatter-plot') }
+  }, [inspector.brokerId, inspector.now])
   const raycasterSupported = !!usdPair(activeSymbol)
   const raycaster = useMemo(() => raycasterVisible && raycasterSupported ?
     { symbol: activeSymbol, timeframe, brokerId, brokerOffsetSeconds, clockOffsetMs: bridge.clockOffsetMs,
-      timeDisplay, onClose: closeRaycaster, bars, markers: inspector.markers, onSelectCombo: selectCombo } : null,
+      timeDisplay, onClose: closeRaycaster, bars: inspector.markerBars, markers: inspector.markers, onSelectCombo: selectCombo } : null,
     [raycasterVisible, raycasterSupported, activeSymbol, timeframe, brokerId, brokerOffsetSeconds,
-      bridge.clockOffsetMs, timeDisplay, closeRaycaster, bars, inspector.markers, selectCombo])
+      bridge.clockOffsetMs, timeDisplay, closeRaycaster, inspector.markerBars, inspector.markers, selectCombo])
   const renderChartOverlay = useTerminalChartOverlay({ arrows: registeredArrows.symbolArrows,
     selectedArrowId: registeredArrows.selectedArrowId, draftPlan: plannedTrade, onSelectArrow: selectChartArrow,
     supported: inspector.supported, markers: inspector.markers, currencyColors: inspector.preferences.currencyColors,
@@ -407,13 +414,10 @@ export function FyodorTerminalShell() {
             />
           )}
           {bottomDockWindow === 'inspector' && <InspectorPanel view={inspector} symbol={activeSymbol}
-            combo={selectedCombo} onCloseCombo={() => setComboSelection(null)} onOpenComboRelease={openComboRelease}
+            combo={selectedCombo} onCloseCombo={closeCombo} onOpenComboRelease={openComboRelease}
             source={bridge.health?.calendar ?? null} error={null} timeDisplay={timeDisplay}
             scatterAvailable={!!scatterReleaseTarget(inspector.selectedRelease, inspector.brokerId, inspector.now)}
-            onOpenScatter={(release) => {
-              const target = scatterReleaseTarget(release, inspector.brokerId, inspector.now)
-              if (target) { setScatterTarget(target); setBottomDockWindow('scatter-plot') }
-            }} />}
+            onOpenScatter={openScatter} />}
           {bottomDockWindow === 'scatter-plot' && <ScatterPlotDock brokerId={bridge.health?.mt5.account_server ?? null}
             clockOffsetMs={bridge.clockOffsetMs} target={scatterTarget} />}
           {bottomDockWindow === 'alert' && <AlertDock brokerId={inspector.brokerId ?? null} preferences={inspector.preferences}

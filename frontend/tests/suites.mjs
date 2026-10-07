@@ -1,5 +1,6 @@
 // Explicit order preserves the existing suites and serial Vite SSR execution.
 export const suites = [
+  "tests/test_responsiveness.mjs",
   "tests/usd-context/test_memory_v6.mjs",
   "tests/test_inspector.mjs",
   "tests/inspector/test_upcoming_markers.mjs",

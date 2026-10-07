@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { EconomicCalendarEvent } from './calendar-event'
 import type { CalendarDisplayRange } from './calendar-display-range'
 import { sameCalendarRows } from './storage/calendar-snapshot-identity'
@@ -105,7 +105,7 @@ export function useStoredCalendar(brokerId: string | null | undefined, range: Ca
     return () => { cancelled = true; controller.abort(); window.clearTimeout(timer) }
   }, [enabled, brokerId, from, to, key, currency, eventIds])
   const active = enabled && brokerId && snapshot?.key === key ? snapshot : null
-  return { events: active?.events ?? noStoredEvents, coverage: active?.coverage ?? noCoverage, source: active?.source ?? null,
-    loading: Boolean(enabled && brokerId && range && (!active || active.loading)),
-    error: active?.error ?? null, collectorError: active?.collectorError ?? null }
+  const loading = Boolean(enabled && brokerId && range && (!active || active.loading))
+  return useMemo(() => ({ events: active?.events ?? noStoredEvents, coverage: active?.coverage ?? noCoverage, source: active?.source ?? null,
+    loading, error: active?.error ?? null, collectorError: active?.collectorError ?? null }), [active, loading])
 }
