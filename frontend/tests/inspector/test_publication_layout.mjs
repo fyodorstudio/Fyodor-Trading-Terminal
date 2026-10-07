@@ -66,6 +66,9 @@ try {
     assert.equal(right.querySelector('.publication-context-controls select').value, 'usd')
     assert.equal(left.querySelector('.usd-context-inputs'), null, `${binding.familyId}: context inputs belong on the right`)
     assert.ok(right.querySelector('.usd-context-inputs'), `${binding.familyId}: publication context is available`)
+    assert.equal(right.querySelector('.usd-context-inputs button'), null, 'Contribution tables show status without editing controls')
+    assert.equal(right.querySelector('[aria-label^="Use "]'), null, 'Input toggles stay behind Advanced settings on first open')
+    assert.ok(right.querySelector('[aria-label="Advanced USD input settings"]'))
     assert.ok(right.querySelector('[aria-label="Inputs & contributions"]'), `${binding.familyId}: context calculation is grouped`)
     assert.equal(right.querySelectorAll('[aria-label="Context weight coverage"] dt').length, 3)
   }

@@ -215,3 +215,20 @@ unchecked: automated tests do not verify perceived scrolling or frame rate.
 - [ ] Check loading, missing-history and Fed-hold states, short/narrow docks and
   both themes. Confirm wrapping is readable and the shared scroll region still
   pans/scrolls smoothly. Use toggles retain their current calculation behavior.
+
+## 7 October 2026 — Advanced input settings and shared bottom dock
+
+- [ ] In Inspector and Raycaster, check USD/EUR contribution tables show read-only
+  Enabled/Off status. Open Advanced settings to edit inputs; close it again and
+  confirm the table status and calculated result still reflect the saved choices.
+- [ ] Check Advanced settings in both themes and a narrow dock/popover. Versions,
+  publication cutoffs and interpretation rules should remain unchanged.
+- [ ] Use the bottom status buttons to switch between Notebook, Activity,
+  Inspector, Scatter Plot and Alert, and click the active button to close/reopen.
+  Check the duplicated top tabs, maximize/minimize button and X are gone.
+- [ ] Resize any dock, then switch through the others and reload the app. All
+  should share that height. Check dragging and Arrow Up/Down, Home/End on the
+  resize handle; small viewports should clamp without overwriting the preference.
+- [ ] Export/import the workspace and verify the shared height travels with it.
+  Older per-dock heights migrate once, preferring the initially active dock's
+  saved size when available. Check chart panning and Activity Checking remain smooth.

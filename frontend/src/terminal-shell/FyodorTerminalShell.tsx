@@ -363,13 +363,6 @@ export function FyodorTerminalShell() {
 
       {bottomDockWindow && (
         <BottomDockPanel
-          activeWindow={bottomDockWindow}
-          activityCount={entries.length}
-          selectedSymbol={activeSymbol}
-          onSelectWindow={selectBottomDock}
-          onClose={() => selectBottomDock(null)}
-          onToggleHeight={dockSize.toggleHeight}
-          isMaxHeight={dockSize.isMaxHeight}
           resizeHandle={dockSize.resizeHandle}
         >
           {bottomDockWindow === 'notebook' && (

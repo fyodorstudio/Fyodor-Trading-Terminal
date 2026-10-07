@@ -25,3 +25,12 @@
 .context-weight-summary { display: flex; flex-wrap: wrap; gap: 8px 20px; margin: 10px 0; padding: 8px 10px; background: var(--surface-raised); border-radius: 4px; }
 .context-weight-summary dt { color: var(--text-muted); }
 .context-weight-summary dd { margin: 3px 0 0; font-weight: 600; color: var(--text-strong); }
+.scoring-input-settings { margin: 10px 0; }
+.scoring-input-settings > button, .scoring-input-settings-panel button { font: inherit; color: var(--text-strong); background: var(--surface-panel); border: 1px solid var(--border-strong); border-radius: 4px; padding: 4px 8px; cursor: pointer; }
+.scoring-input-settings-panel button[aria-pressed='true'] { color: var(--accent); }
+.scoring-input-settings button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.scoring-input-settings-panel { margin-top: 8px; padding: 10px; border: 1px solid var(--border); border-radius: 5px; background: var(--surface-raised); }
+.scoring-input-settings .scoring-input-settings-panel ul { list-style: none; padding: 0; margin: 8px 0 0; }
+.scoring-input-settings-panel li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--border); }
+.scoring-input-settings-panel li:last-child { border-bottom: 0; }
+.scoring-input-settings-panel button { flex-shrink: 0; }

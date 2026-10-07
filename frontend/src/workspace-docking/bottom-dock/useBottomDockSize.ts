@@ -1,29 +1,11 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react'
 import type { BottomDockWindow } from './bottom-dock-window'
+import { bottomDockHeightKey, readBottomDockHeight, saveBottomDockHeight } from './bottom-dock-height'
 
-export const inspectorDockHeightKey = 'fyodor.inspector.dock-height.v1'
-export const bottomDockHeightKeys: Record<BottomDockWindow, string> = {
-  inspector: inspectorDockHeightKey,
-  notebook: 'fyodor.notebook.dock-height.v1',
-  activity: 'fyodor.activity.dock-height.v1',
-  'scatter-plot': 'fyodor.scatter-plot.dock-height.v1',
-  alert: 'fyodor.alert.dock-height.v1',
-}
-const defaultHeights: Record<BottomDockWindow, number> = { inspector: 380, notebook: 258, activity: 258, 'scatter-plot': 420, alert: 258 }
 const dockLabels: Record<BottomDockWindow, string> = { inspector: 'Inspector', notebook: 'Notebook', activity: 'Activity', 'scatter-plot': 'Scatter Plot', alert: 'Alert' }
-function readHeight(dock: BottomDockWindow) {
-  try {
-    const stored = localStorage.getItem(bottomDockHeightKeys[dock])
-    const height = stored === null ? NaN : Number(stored)
-    return Number.isFinite(height) && height > 0 ? height : defaultHeights[dock]
-  } catch { return defaultHeights[dock] }
-}
 
 export function useBottomDockSize(activeWindow: BottomDockWindow | null) {
-  const [preferredHeights, setPreferredHeights] = useState(() => ({
-    inspector: readHeight('inspector'), notebook: readHeight('notebook'), activity: readHeight('activity'),
-    'scatter-plot': readHeight('scatter-plot'), alert: readHeight('alert'),
-  }))
+  const [preferredHeight, setPreferredHeight] = useState(() => readBottomDockHeight(activeWindow))
   const [viewportHeight, setViewportHeight] = useState(() => window.innerHeight)
   const [resizingDock, setResizingDock] = useState<BottomDockWindow | null>(null)
   if (resizingDock !== null && resizingDock !== activeWindow) setResizingDock(null)
@@ -35,19 +17,32 @@ export function useBottomDockSize(activeWindow: BottomDockWindow | null) {
     return () => window.removeEventListener('resize', update)
   }, [])
   useEffect(() => {
-    return () => {
-      const current = drag.current
+    const current = drag.current
+    if (current && current.dock !== activeWindow) {
       drag.current = null
-      if (current?.element.hasPointerCapture(current.pointerId)) current.element.releasePointerCapture(current.pointerId)
+      setPreferredHeight(current.startHeight)
+      if (current.element.hasPointerCapture(current.pointerId)) current.element.releasePointerCapture(current.pointerId)
     }
+  }, [activeWindow])
+  useEffect(() => () => {
+    const current = drag.current
+    drag.current = null
+    if (current?.element.hasPointerCapture(current.pointerId)) current.element.releasePointerCapture(current.pointerId)
+  }, [])
+  useEffect(() => {
+    const restore = (event: StorageEvent) => {
+      if (event.key === bottomDockHeightKey || event.key === null) setPreferredHeight(readBottomDockHeight(activeWindow))
+    }
+    window.addEventListener('storage', restore)
+    return () => window.removeEventListener('storage', restore)
   }, [activeWindow])
   const maxHeight = Math.max(140, Math.floor(Math.min(viewportHeight * .65, viewportHeight - 240)))
   const minHeight = Math.min(240, maxHeight)
   const clamp = (height: number) => Math.max(minHeight, Math.min(maxHeight, Math.round(height)))
-  const height = activeWindow ? clamp(preferredHeights[activeWindow]) : 258
-  function save(dock: BottomDockWindow, nextHeight: number) {
-    setPreferredHeights((current) => ({ ...current, [dock]: nextHeight }))
-    try { localStorage.setItem(bottomDockHeightKeys[dock], String(nextHeight)) }
+  const height = clamp(preferredHeight)
+  function save(nextHeight: number) {
+    setPreferredHeight(nextHeight)
+    try { saveBottomDockHeight(nextHeight) }
     catch { /* Resizing remains available for this session. */ }
   }
   function onPointerDown(event: PointerEvent<HTMLDivElement>) {
@@ -62,14 +57,14 @@ export function useBottomDockSize(activeWindow: BottomDockWindow | null) {
     const current = drag.current
     if (!current || current.pointerId !== event.pointerId) return
     current.height = clamp(current.startHeight + current.startY - event.clientY)
-    setPreferredHeights((heights) => ({ ...heights, [current.dock]: current.height }))
+    setPreferredHeight(current.height)
   }
   function finishDrag(event: PointerEvent<HTMLDivElement>) {
     const current = drag.current
     if (!current || current.pointerId !== event.pointerId) return
     drag.current = null
     setResizingDock(null)
-    save(current.dock, current.height)
+    save(current.height)
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
   }
   function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
@@ -78,24 +73,9 @@ export function useBottomDockSize(activeWindow: BottomDockWindow | null) {
       event.key === 'Home' ? minHeight : event.key === 'End' ? maxHeight : null
     if (next === null) return
     event.preventDefault()
-    save(activeWindow, clamp(next))
+    save(clamp(next))
   }
-  const [restoredHeights, setRestoredHeights] = useState<Record<BottomDockWindow, number>>(() => ({
-    inspector: 380, notebook: 258, activity: 258, 'scatter-plot': 420, alert: 258,
-  }))
-  const isMaxHeight = height >= maxHeight
-  function toggleHeight() {
-    if (!activeWindow) return
-    if (isMaxHeight) {
-      const restored = restoredHeights[activeWindow] ?? minHeight
-      const nextHeight = restored < maxHeight ? Math.max(minHeight, restored) : minHeight
-      save(activeWindow, nextHeight)
-    } else {
-      setRestoredHeights((current) => ({ ...current, [activeWindow]: height }))
-      save(activeWindow, maxHeight)
-    }
-  }
-  return { height, isMaxHeight, toggleHeight, resizeHandle: activeWindow ? {
+  return { height, resizeHandle: activeWindow ? {
     role: 'separator' as const, tabIndex: 0, 'aria-label': `Resize ${dockLabels[activeWindow]} dock`, 'aria-orientation': 'horizontal' as const,
     'aria-valuemin': minHeight, 'aria-valuemax': maxHeight, 'aria-valuenow': height, 'aria-valuetext': `${height} pixels high`,
     'data-resizing': resizingDock === activeWindow, onPointerDown, onPointerMove, onPointerUp: finishDrag, onPointerCancel: finishDrag,

@@ -29,7 +29,9 @@ try {
   localStorage.setItem(scatterAppearanceKey, JSON.stringify({ ...defaultScatterAppearance, magnitudeColors: ['#123456', '#abcdef', '#654321'] }))
   nfpMagnitudeFamily.settings.save(nfpMagnitudeFamily.seriesIds[0], [100, 150, 320])
   cpiMagnitudeFamily.settings.save(cpiMagnitudeFamily.seriesIds[0], [.1, .2, .4])
+  localStorage.setItem('fyodor.bottom-dock.height.v2', '444')
   const original = exportWorkspace()
+  assert.equal(original.entries['fyodor.bottom-dock.height.v2'], '444', 'Shared dock height travels with the workspace')
   assert.equal(original.entries['unrelated-site-secret'], undefined)
   assert.equal(original.entries['fyodor.source-clock.verified'], undefined, 'Machine clock verification never travels')
   const { normalizeInspectorDetailView } = await server.ssrLoadModule('./src/inspector/inspector-detail-view.ts')
@@ -55,6 +57,15 @@ try {
     assert.deepEqual(exportWorkspace().entries, original.entries)
   }
   assert.throws(() => parseWorkspaceSnapshot(' '.repeat(workspaceMaxBytes + 1)))
+  for (const height of [-1, 0, 100001, '444']) {
+    assert.throws(() => parseWorkspaceSnapshot(JSON.stringify({ ...original, entries: { 'fyodor.bottom-dock.height.v2': JSON.stringify(height) } })), /Invalid/)
+  }
+  const legacyDock = parseWorkspaceSnapshot(JSON.stringify({ ...original, entries: { 'fyodor.inspector.dock-height.v1': '420' } }))
+  restoreWorkspace(legacyDock)
+  const { readBottomDockHeight } = await server.ssrLoadModule('./src/workspace-docking/bottom-dock/bottom-dock-height.ts')
+  assert.equal(readBottomDockHeight('inspector'), 420, 'Legacy workspace heights migrate into the shared preference')
+  assert.deepEqual(exportWorkspace().entries, { 'fyodor.bottom-dock.height.v2': '420' })
+  restoreWorkspace(original)
   let once = false
   const failingStorage = {
     get length() { return localStorage.length }, key: (index) => localStorage.key(index),

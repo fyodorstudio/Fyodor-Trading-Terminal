@@ -1842,3 +1842,28 @@ Validation: nine targeted terminal suites pass, covering publication layout,
 CPI, expanded USD/Fed, EUR, Claims, Retail, Raycaster, responsiveness and Activity
 heartbeat reuse. Lint, TypeScript and production build pass. Visual alignment and
 wrapping remain for the user's manual audit.
+
+## 7 October 2026 — Advanced input settings
+
+USD and EUR contribution tables now show read-only Enabled/Off status. Their
+Advanced settings buttons reveal the existing input toggles. Inspector and
+Raycaster still share the same saved calculation inputs; marker filters remain
+independent. Existing partial/all-off selections are preserved. New configurations
+retain the existing all-supported-inputs default. Opening settings does not
+recalculate; changing an input retains its existing calculation behavior. No
+scoring version or numerical rule changes in this pass.
+
+The bottom dock uses only the status-bar buttons for navigation and closing.
+Its duplicated tab bar and maximize/minimize/close controls are removed, with
+the resize handle retained. All dock windows share one saved height. Legacy
+per-dock preferences migrate once, preferring the initially active dock's saved
+height, then the first valid saved height. Workspace export/import supports the
+shared preference and old exports. Viewport clamping preserves the preferred
+height. The retired independent-height and restore/maximize state are removed.
+
+Manual checks are listed in manual edit.md. Terminal checks cover shared resizing,
+legacy migration, workspace validation/roundtrip, status-bar navigation, hidden
+input controls, saved exclusions, worker reuse and existing lag regressions.
+
+Validation: ten targeted terminal suites, lint, TypeScript and production build
+pass. Visual verification remains with the user.

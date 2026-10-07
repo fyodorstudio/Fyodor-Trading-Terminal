@@ -89,8 +89,7 @@ try {
         selectedSymbol: symbol, timeframe: 'H4', barCount: 0, activityCount: 0, bottomDockWindow: dock,
         settingsOpen: false, timeDisplay: utc, onToggleBottomDock: (next) => setDock((current) => current === next ? null : next),
         onThemeChanged: noop, onToggleSettings: noop }),
-      dock && React.createElement(BottomDockPanel, { activeWindow: dock, activityCount: 0, selectedSymbol: symbol,
-        onSelectWindow: setDock, onClose: () => setDock(null) }, dock === 'inspector'
+      dock && React.createElement(BottomDockPanel, null, dock === 'inspector'
         ? React.createElement(InspectorPanel, { view: inspector, symbol, source: null, error: null, timeDisplay: utc })
         : dock === 'scatter-plot' ? React.createElement(ScatterPlotDock, { brokerId: null })
         : dock === 'alert' ? React.createElement(AlertDock, { brokerId: null, preferences: inspector.preferences, timeDisplay: utc })
@@ -116,12 +115,12 @@ try {
   console.log('✓ Market Watch collapse/reopen control, saved preference, accessible state and retained search')
   await click(findButton('.status-actions button', 'Inspector'))
   assert.ok(container.querySelector('.inspector-panel'))
-  assert.deepEqual([...container.querySelectorAll('.bottom-dock-tabs button')].slice(0, -1)
-    .map((button) => button.textContent.trim()), ['Notebook EURUSD', 'Activity 0', 'Inspector', 'Scatter Plot', 'Alert'])
+  assert.equal(container.querySelector('.bottom-dock > header'), null, 'Bottom buttons are the only dock navigation')
+  assert.equal(container.querySelector('[aria-label="Close bottom dock"]'), null)
   const gbp = [...container.querySelectorAll('button')].find((button) => button.textContent.includes('GBPUSD'))
   await click(gbp)
   assert.match(container.querySelector('.inspector-panel').textContent, /currently supports EURUSD/)
-  await click(container.querySelector('[aria-label="Close bottom dock"]'))
+  await click(findButton('.status-actions button', 'Inspector'))
   assert.equal(container.querySelector('.bottom-dock'), null)
   await click(findButton('.status-actions button', 'Inspector'))
   assert.ok(container.querySelector('.inspector-panel'))
@@ -131,24 +130,24 @@ try {
   assert.ok(container.querySelector('[aria-label="Scatter Plot"]'))
   assert.equal(container.querySelector('[aria-label="Scatter Plot Pair"]').value, 'EURUSD')
   assert.equal(container.querySelector('[aria-label="Scatter Plot Base/Quote"]').value, 'USD/QUOTE')
-  await click(findButton('.bottom-dock-tabs button', 'Inspector'))
+  await click(findButton('.status-actions button', 'Inspector'))
   assert.ok(container.querySelector('.inspector-panel'))
   assert.equal(container.querySelector('[aria-label="Scatter Plot"]'), null)
-  await click(findButton('.bottom-dock-tabs button', 'Scatter Plot'))
+  await click(findButton('.status-actions button', 'Scatter Plot'))
   assert.ok(container.querySelector('[aria-label="Scatter Plot"]'))
   await click(findButton('.status-actions button', 'Scatter Plot'))
   assert.equal(container.querySelector('.bottom-dock'), null)
   console.log('✓ Mounted navigation opens/closes Inspector and retains EURUSD-only support')
-  console.log('✓ Scatter Plot opens from the status bar and dock tab with fixed EURUSD/USD Quote scope')
+  console.log('✓ Scatter Plot opens from the status bar with fixed EURUSD/USD Quote scope')
   await click(findButton('.status-actions button', 'Alert'))
   assert.ok(container.querySelector('[aria-label="Alert"]'))
-  await click(findButton('.bottom-dock-tabs button', 'Inspector'))
+  await click(findButton('.status-actions button', 'Inspector'))
   assert.equal(container.querySelector('[aria-label="Alert"]'), null)
-  await click(findButton('.bottom-dock-tabs button', 'Alert'))
+  await click(findButton('.status-actions button', 'Alert'))
   assert.ok(container.querySelector('[aria-label="Alert"]'))
   await click(findButton('.status-actions button', 'Alert'))
   assert.equal(container.querySelector('.bottom-dock'), null)
-  console.log('✓ Alert opens/closes from status bar and dock tabs')
+  console.log('✓ Alert opens/closes from status bars')
 
   localStorage.setItem(marketWatchCollapsedKey, 'true')
   const leftDockProps = { symbols: quotes, selectedSymbol: 'EURUSD', marketWatchStatus: 'live', marketWatchError: null, onSelectSymbol: noop }

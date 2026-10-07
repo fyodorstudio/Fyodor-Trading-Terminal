@@ -45,7 +45,7 @@ export function RaycasterDetails({ id, families, trigger, onClose, held, extraDe
       <p>{table.result?.explanation ?? 'Hover a candle to inspect its result.'}</p></section>
     <section className="raycaster-section" aria-label="Raycaster inputs and contributions"><h3>Inputs and contributions</h3>
       {extraDetails}<RaycasterInputTable families={families} {...table} />
-      <p>Click Enabled / Off to change inputs shared with CPI v4. Inspector’s marker filters do not affect this tool. Inflation shares 40%, labor 40%, activity 20%. ISM resolves both sectors as one vote.</p>
+      <p>Use Advanced settings to change inputs shared with publication scoring. Inspector’s marker filters do not affect this tool. Inflation shares 40%, labor 40%, activity 20%. ISM resolves both sectors as one vote.</p>
     </section>
     <section className="raycaster-section"><h3>Active relationships</h3>
       {!table.loading && !table.unavailable && <ContextPolicyDetails policy={table.result?.policy} />}

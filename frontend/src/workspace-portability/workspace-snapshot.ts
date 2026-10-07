@@ -10,6 +10,7 @@ import { drawingTools } from '../market-data/chart-drawings/drawing-tool'
 import { activitySources } from '../system-observability/activity-log/activity-log-entry'
 import { contextFamiliesKey, validContextFamilyPreference } from '../usd-context/storage/context-family-settings'
 import { isStoredInspectorDetailView, normalizeInspectorDetailView } from '../inspector/inspector-detail-view'
+import { bottomDockHeightKey, validBottomDockHeight } from '../workspace-docking/bottom-dock/bottom-dock-height'
 
 export const workspaceFormat = 'fyodor-workspace'
 export const workspaceMaxBytes = 10 * 1024 * 1024
@@ -26,6 +27,7 @@ const symbolKey = (key: string, prefix: string) => key.startsWith(prefix) && key
   key.length <= prefix.length + 128 && [...key.slice(prefix.length)].every((char) => char.charCodeAt(0) >= 32)
 
 const validators: Record<string, (v: unknown) => boolean> = {
+  [bottomDockHeightKey]: validBottomDockHeight,
   'fyodor.color-theme': (v) => v === 'dark' || v === 'light',
   'fyodor.time-display.v1': (v) => record(v) && ['local', 'utc', 'fixed-offset'].includes(v.mode as string) && finite(v.utcOffsetMinutes) && v.utcOffsetMinutes >= -720 && v.utcOffsetMinutes <= 840,
   'fyodor.chart-appearance.v1': (v) => record(v) && color(v.upCandleColor) && color(v.downCandleColor) && color(v.priceLineColor) && typeof v.showGrid === 'boolean' && finite(v.barSpacing) && v.barSpacing >= 3 && v.barSpacing <= 16 && ['adaptive', 'charcoal', 'blue', 'red'].includes(v.scrollbarStyle as string),

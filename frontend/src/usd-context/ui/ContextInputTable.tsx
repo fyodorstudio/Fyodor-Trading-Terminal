@@ -5,6 +5,7 @@ import { contextPairLabel } from '../core/usd-pair'
 import { formatAppTimestamp, type TimeDisplayPreference } from '../../appearance/time-display/time-display-preference'
 import { ScoringNotes } from '../../inspector/scoring/shared/ui/ScoringSection'
 import { cpiStandaloneVersionLabel } from '../../inspector/scoring/shared/core/current-scoring-versions'
+import { ScoringInputSettings } from '../../inspector/scoring/shared/ui/ScoringInputSettings'
 
 const score = (value: number | null) => value === null ? '—' : value.toLocaleString(undefined, { maximumFractionDigits: 3, signDisplay: 'exceptZero' })
 function ContextInputTableComponent({ families, onToggleFamily, result, symbol, loading, unavailable, cutoff, timeDisplay, summaryLabel, tableLabel = "Raycaster event inputs" }: {
@@ -18,7 +19,7 @@ function ContextInputTableComponent({ families, onToggleFamily, result, symbol, 
     sum + (m.memory?.effectiveWeight ?? weights[m.family]), 0) ?? 0 : null
   const enabledWeight = families.reduce((sum, family) => sum + weights[family], 0)
   return <>
-    <table className="usd-context-inputs" aria-label={tableLabel}><thead><tr><th>Input / scorer</th><th>Weight</th><th>Use</th><th>Output</th><th>USD vote</th></tr></thead>
+    <table className="usd-context-inputs" aria-label={tableLabel}><thead><tr><th>Input / scorer</th><th>Weight</th><th>Status</th><th>Output</th><th>USD vote</th></tr></thead>
       <tbody>{contextPriority.map(family => {
         const enabled = families.includes(family), member = ready ? result?.members.find(m => m.family === family) : null
         const output = !enabled ? 'Excluded' : loading ? 'Calculating…' : !ready ? '—' : !member ? 'No history' :
@@ -27,8 +28,7 @@ function ContextInputTableComponent({ families, onToggleFamily, result, symbol, 
         return <tr key={family}>
           <td>{contextScorers[family]}{family === 'cpi' && <small title="CPI v4 adds publication context around this unchanged release interpreter. Only the standalone score enters this table; combined context is never fed back as a CPI vote.">{cpiStandaloneVersionLabel}</small>}{member && <small>{formatAppTimestamp(member.releaseAt, timeDisplay)}</small>}</td>
           <td>{weights[family]}%{weights[family] !== contextWeights[family] && <small>Base {contextWeights[family]}%</small>}</td>
-          <td>{onToggleFamily ? <button type="button" className="raycaster-input-toggle" aria-label={`Use ${contextScorers[family]}`} aria-pressed={enabled}
-            onClick={() => onToggleFamily(family)}>{enabled ? 'Enabled' : 'Off'}</button> : enabled ? 'Enabled' : 'Off'}</td>
+          <td>{enabled ? 'Enabled' : 'Off'}</td>
           <td title={member ? `${member.explanation} ${member.reason}` : undefined}>{output}
             {member?.status === 'active' && member.strength && <small>{member.strength} evidence</small>}</td>
           <td>{!enabled ? '0' : !ready ? '—' : score(member?.contribution ?? 0)}
@@ -48,6 +48,9 @@ function ContextInputTableComponent({ families, onToggleFamily, result, symbol, 
       <div><dt>Active weight: </dt><dd>{activeWeight === null ? '—' : `${activeWeight}%`}</dd></div>
       <div><dt>Retained weight: </dt><dd>{retainedWeight === null ? '—' : `${retainedWeight.toFixed(2)}%`}</dd></div>
     </dl>
+    {onToggleFamily && <ScoringInputSettings currency="USD" inputs={contextPriority.map(family => ({
+      id: family, label: contextScorers[family], enabled: families.includes(family), onToggle: () => onToggleFamily(family),
+    }))} />}
     <ScoringNotes items={[
       { label: 'Calculation', content: <>USD vote = source score × assigned weight × age retention × component coverage.</> },
       { label: 'Missing inputs', content: <>Enabled/active weights are assigned budgets before retention. Off or unavailable votes are not redistributed.</> },
