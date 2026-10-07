@@ -41,6 +41,7 @@ import { BottomDockPanel } from '../workspace-docking/bottom-dock/BottomDockPane
 import type { BottomDockWindow } from '../workspace-docking/bottom-dock/bottom-dock-window'
 import { useBottomDockSize } from '../workspace-docking/bottom-dock/useBottomDockSize'
 import { LeftDockPanel } from '../workspace-docking/left-dock/LeftDockPanel'
+import { useMarketWatchDock } from '../workspace-docking/left-dock/useMarketWatchDock'
 import { ChartWorkspaceHeader } from './ChartWorkspaceHeader'
 import { TerminalStatusBar } from './TerminalStatusBar'
 import './terminal-shell.layout.css'
@@ -72,6 +73,7 @@ export function FyodorTerminalShell() {
   const [scatterTarget, setScatterTarget] = useState<ScatterReleaseTarget | null>(null)
   const dockSize = useBottomDockSize(bottomDockWindow)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const marketWatch = useMarketWatchDock()
   const { entries, appendActivity, clearActivity } = useActivityLog()
 
   useEffect(() => {
@@ -290,8 +292,9 @@ export function FyodorTerminalShell() {
   return (
     <div className={`terminal-shell${bottomDockWindow ? ' bottom-dock-open' : ''}`}
       style={{ '--bottom-dock-height': `${dockSize.height}px` } as CSSProperties}>
-      <main className="terminal-workspace">
+      <main className={`terminal-workspace${marketWatch.collapsed ? ' market-watch-collapsed' : ''}`}>
         <LeftDockPanel
+          marketWatch={marketWatch}
           symbols={marketData.symbols}
           selectedSymbol={activeSymbol}
           marketWatchStatus={marketData.marketWatchStatus}
@@ -301,6 +304,7 @@ export function FyodorTerminalShell() {
 
         <section className="chart-workspace" aria-label={`${activeSymbol} chart workspace`}>
           <ChartWorkspaceHeader
+            marketWatch={marketWatch}
             symbol={activeSymbol}
             quote={quote}
             timeframe={timeframe}

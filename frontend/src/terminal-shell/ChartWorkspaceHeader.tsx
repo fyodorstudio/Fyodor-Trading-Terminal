@@ -2,10 +2,12 @@ import { ContextViewControls } from './chart-overlays/ContextViewControls'
 import type { ChartTimeframe } from '../market-data/contracts/ChartTimeframe'
 import type { SymbolQuote } from '../market-data/contracts/SymbolQuote'
 import type { TimeDisplayPreference } from '../appearance/time-display/time-display-preference'
+import type { MarketWatchDock } from '../workspace-docking/left-dock/useMarketWatchDock'
 
 const timeframes: ChartTimeframe[] = ['M1', 'M5', 'M15', 'M30', 'H1', 'H4', 'D1']
 
 type ChartWorkspaceHeaderProps = {
+  marketWatch?: MarketWatchDock
   symbol: string
   quote: SymbolQuote | null
   timeframe: ChartTimeframe
@@ -41,6 +43,7 @@ function PaintbrushIcon() {
 }
 
 export function ChartWorkspaceHeader({
+  marketWatch,
   symbol,
   quote,
   timeframe,
@@ -69,6 +72,17 @@ export function ChartWorkspaceHeader({
             {quote?.description ?? 'Waiting for MT5 broker data'}
           </p>
         </div>
+        {marketWatch && (
+          <button
+            type="button"
+            className="market-watch-toggle"
+            onClick={marketWatch.toggle}
+            aria-expanded={!marketWatch.collapsed}
+            aria-controls={marketWatch.contentId}
+            aria-label={marketWatch.collapsed ? 'Show Market Watch' : 'Collapse Market Watch'}
+            title={marketWatch.collapsed ? 'Show Market Watch' : 'Collapse Market Watch'}
+          />
+        )}
       </div>
 
       <div className="chart-toolbar-center">

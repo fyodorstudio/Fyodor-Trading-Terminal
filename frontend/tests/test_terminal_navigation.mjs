@@ -70,7 +70,9 @@ try {
   assert.ok(shell.querySelector('.floating-drawing-toolbar, .drawing-toolbar'))
   console.log('✓ Production shell renders live chart, drawings and surviving navigation')
 
-  const { LeftDockPanel, marketWatchCollapsedKey } = await server.ssrLoadModule('./src/workspace-docking/left-dock/LeftDockPanel.tsx')
+  const { LeftDockPanel } = await server.ssrLoadModule('./src/workspace-docking/left-dock/LeftDockPanel.tsx')
+  const { useMarketWatchDock, marketWatchCollapsedKey } = await server.ssrLoadModule('./src/workspace-docking/left-dock/useMarketWatchDock.ts')
+  const { ChartWorkspaceHeader } = await server.ssrLoadModule('./src/terminal-shell/ChartWorkspaceHeader.tsx')
   const { BottomDockPanel } = await server.ssrLoadModule('./src/workspace-docking/bottom-dock/BottomDockPanel.tsx')
   const { TerminalStatusBar } = await server.ssrLoadModule('./src/terminal-shell/TerminalStatusBar.tsx')
   const { useInspector, InspectorPanel } = await server.ssrLoadModule('./src/inspector/index.ts')
@@ -81,14 +83,17 @@ try {
   function Navigation() {
     const [symbol, setSymbol] = React.useState('EURUSD')
     const [dock, setDock] = React.useState(null)
+    const marketWatch = useMarketWatchDock()
     const inspector = useInspector({ symbol, bars, timeframe: 'H4', timeDisplay: utc, clockOffsetMs: 0, brokerId: null })
-    return React.createElement(React.Fragment, null,
-      React.createElement(LeftDockPanel, { symbols: quotes, selectedSymbol: symbol, marketWatchStatus: 'live',
+    return React.createElement('main', { className: `terminal-workspace${marketWatch.collapsed ? ' market-watch-collapsed' : ''}` },
+      React.createElement(LeftDockPanel, { marketWatch, symbols: quotes, selectedSymbol: symbol, marketWatchStatus: 'live',
         marketWatchError: null, onSelectSymbol: setSymbol }),
+      React.createElement(ChartWorkspaceHeader, { marketWatch, symbol, quote: quotes.find((quote) => quote.symbol === symbol),
+        timeframe: 'H4', onSelectTimeframe: noop }),
       React.createElement(TerminalStatusBar, { sourceState: 'live', sourceLabel: 'MT5 broker source', sourceSymbolCount: 2,
         selectedSymbol: symbol, timeframe: 'H4', barCount: 0, activityCount: 0, bottomDockWindow: dock,
         settingsOpen: false, timeDisplay: utc, onToggleBottomDock: (next) => setDock((current) => current === next ? null : next),
-        onThemeChanged: noop, onToggleSettings: noop }),
+        onToggleSettings: noop }),
       dock && React.createElement(BottomDockPanel, null, dock === 'inspector'
         ? React.createElement(InspectorPanel, { view: inspector, symbol, source: null, error: null, timeDisplay: utc })
         : dock === 'scatter-plot' ? React.createElement(ScatterPlotDock, { brokerId: null })
@@ -101,18 +106,29 @@ try {
   const marketSearch = container.querySelector('[aria-label="Search symbols"]')
   const searchProps = marketSearch[Object.getOwnPropertyNames(marketSearch).find((key) => key.startsWith('__reactProps$'))]
   await React.act(async () => searchProps.onChange({ target: { value: 'EUR' } }))
-  await click(container.querySelector('[aria-label="Collapse Market Watch"]'))
+  const marketToggle = () => container.querySelector('.active-market .market-watch-toggle')
+  assert.ok(marketToggle().parentElement.querySelector('.market-icon'))
+  assert.ok(marketToggle().parentElement.querySelector('h1'))
+  assert.equal(marketToggle().getAttribute('aria-controls'), container.querySelector('.left-dock-content').id)
+  await click(marketToggle())
   assert.ok(container.querySelector('.left-dock.collapsed'))
+  assert.equal(container.querySelector('.left-dock').hidden, true, 'Collapse hides the entire sidebar, including its rail')
+  assert.ok(container.querySelector('.terminal-workspace.market-watch-collapsed'))
   assert.equal(container.querySelector('.left-dock-content').hidden, true)
   assert.equal(container.querySelector('[aria-label="Show Market Watch"]').getAttribute('aria-expanded'), 'false')
   assert.equal(localStorage.getItem(marketWatchCollapsedKey), 'true')
-  await click(container.querySelector('[aria-label="Show Market Watch"]'))
+  await click(marketToggle())
+  assert.equal(container.querySelector('.left-dock').hidden, false)
+  assert.equal(container.querySelector('.terminal-workspace.market-watch-collapsed'), null)
   assert.equal(container.querySelector('.left-dock-content').hidden, false)
   assert.equal(container.querySelector('[aria-label="Search symbols"]').value, 'EUR', 'Collapse keeps search and category state mounted')
-  assert.equal(container.querySelector('[aria-label="Collapse Market Watch"]').getAttribute('aria-controls'), container.querySelector('.left-dock-content').id)
+  assert.equal(marketToggle().getAttribute('aria-expanded'), 'true')
   assert.equal(localStorage.getItem(marketWatchCollapsedKey), 'false')
   await React.act(async () => searchProps.onChange({ target: { value: '' } }))
-  console.log('✓ Market Watch collapse/reopen control, saved preference, accessible state and retained search')
+  await click(container.querySelector('.left-dock-tabs button'))
+  assert.equal(marketToggle().getAttribute('aria-expanded'), 'false', 'The sidebar collapse button shares state with the symbol trigger')
+  await click(marketToggle())
+  console.log('✓ Symbol header toggles the entire Market Watch sidebar, with accessible state and retained search')
   await click(findButton('.status-actions button', 'Inspector'))
   assert.ok(container.querySelector('.inspector-panel'))
   assert.equal(container.querySelector('.bottom-dock > header'), null, 'Bottom buttons are the only dock navigation')
@@ -150,17 +166,18 @@ try {
   console.log('✓ Alert opens/closes from status bars')
 
   localStorage.setItem(marketWatchCollapsedKey, 'true')
-  const leftDockProps = { symbols: quotes, selectedSymbol: 'EURUSD', marketWatchStatus: 'live', marketWatchError: null, onSelectSymbol: noop }
-  await React.act(async () => root.render(React.createElement(LeftDockPanel, leftDockProps)))
+  await React.act(async () => root.render(React.createElement(Navigation, { key: 'restored' })))
   assert.ok(container.querySelector('.left-dock.collapsed'), 'A fresh mount restores the saved collapsed state')
-  await click(container.querySelector('[aria-label="Show Market Watch"]'))
+  assert.equal(container.querySelector('.left-dock').hidden, true)
+  assert.equal(marketToggle().getAttribute('aria-expanded'), 'false')
+  await click(marketToggle())
   assert.equal(container.querySelector('.left-dock-content').hidden, false)
   const storageDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'localStorage')
   Object.defineProperty(globalThis, 'localStorage', { configurable: true, get() { throw new Error('Storage unavailable') } })
   try {
-    await click(container.querySelector('[aria-label="Collapse Market Watch"]'))
+    await click(marketToggle())
     assert.equal(container.querySelector('.left-dock-content').hidden, true, 'Storage failures never prevent session collapse')
-    await click(container.querySelector('[aria-label="Show Market Watch"]'))
+    await click(marketToggle())
   } finally { Object.defineProperty(globalThis, 'localStorage', storageDescriptor) }
 
   // Mount the actual Notebook overlay against the chart library API boundary.

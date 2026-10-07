@@ -72,7 +72,7 @@
   border-right: 0;
 }
 .left-dock-content[hidden] { display: none; }
+.left-dock[hidden] { display: none; }
 .left-dock-tabs i { font-style: normal; font-size: 18px; }
-.left-dock:not(.collapsed) .left-dock-tabs i { margin-left: auto; }
-.left-dock.collapsed .left-dock-tabs > button { padding: 0; }
+.left-dock-tabs i { margin-left: auto; }
 .left-dock-tabs > button:focus-visible { outline: 2px solid var(--accent); outline-offset: -3px; }
