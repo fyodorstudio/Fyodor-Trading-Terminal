@@ -1,4 +1,5 @@
 import { currentScorerLabels } from '../../inspector/scoring/shared/core/current-scoring-versions'
+import { scatterNumber as number } from './scatter-number-format'
 import type { EconomicCalendarEvent } from '../../inspector/calendar-event'
 import { groupInspectorReleases, type InspectorRelease } from '../../inspector/inspector-data'
 import { cpiV3Features, cpiV3Signals, cpiV3SeriesIds, supportsCpiV3 } from '../../inspector/scoring/PAIR/EURUSD/USD/CPI/assessment/cpi-score-v3'
@@ -83,9 +84,6 @@ export function prepareScoringSignalHistory(events: readonly EconomicCalendarEve
     .filter(binding.supports).sort((a, b) => a.releaseAt! - b.releaseAt!)
   return releases.map((release) => ({ release, features: binding.features(release, history), ...(binding.calibrationClass ? { calibrationClass: binding.calibrationClass(release, history) } : {}) }))
 }
-const number = (value: number | null, digits = 6, signed = false) => value === null ? '—' : value.toLocaleString(undefined,
-  { maximumFractionDigits: digits, signDisplay: signed ? 'exceptZero' : 'auto' })
-
 export function scoringSignalModel(history: SignalHistory, binding: ScoringSignalBinding, signalId: string,
   selectedReleaseId: string | null, settings: MagnitudeSettings = {}): ScatterModel {
   const definition = binding.signals.find((signal) => signal.id === signalId)!

@@ -197,9 +197,12 @@ try {
   const svgGeometry = scatterPlotGeometry(model.points, model.inspection.distribution, false, 900, 280, model.inspection.at)
   assert.deepEqual(yTicks.map((tick) => tick.textContent), svgGeometry.deltaTicks.map((delta) => model.formatDelta(delta, 2)),
     'The production axis uses at most two decimal places while retaining exact coordinates')
-  await React.act(async () => svgApp.container.querySelector('svg').dispatchEvent(new dom.PointerEvent('pointermove', {
-    clientX: svgGeometry.left + 50, clientY: svgGeometry.top + 35, pointerId: 1, isPrimary: true, bubbles: true,
-  })))
+  await React.act(async () => {
+    svgApp.container.querySelector('svg').dispatchEvent(new dom.PointerEvent('pointermove', {
+      clientX: svgGeometry.left + 50, clientY: svgGeometry.top + 35, pointerId: 1, isPrimary: true, bubbles: true,
+    }))
+    await new Promise(resolve => dom.requestAnimationFrame(resolve))
+  })
   const roundedCrosshair = svgApp.container.querySelector('.scatter-plot-crosshair')
   assert.equal(roundedCrosshair.querySelector('text').textContent, model.formatDelta(Number(roundedCrosshair.dataset.crosshairDelta), 2),
     'Crosshair rounding follows the same display policy as the axis')

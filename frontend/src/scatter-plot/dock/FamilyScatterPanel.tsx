@@ -39,6 +39,7 @@ export function FamilyScatterPanel({ brokerId, clockOffsetMs = 0, target, bindin
   const activeId = scoring ? signalId : seriesId
   const activeScope = scoring ? { ...scope, series: signalBinding.signals } : scope
   const [selection, setSelection] = useState<{ broker: string | null; releaseId: string | null }>({ broker: brokerId, releaseId: target?.releaseId ?? null })
+  const inspectRelease = useCallback((releaseId: string) => setSelection({ broker: brokerId, releaseId }), [brokerId])
   // Reset with the source change, including a return to a previously inspected broker.
   if (selection.broker !== brokerId) setSelection({ broker: brokerId, releaseId: null })
   const [zoom, setZoom] = useState(true)
@@ -97,7 +98,7 @@ export function FamilyScatterPanel({ brokerId, clockOffsetMs = 0, target, bindin
         <MagnitudeScatterPlot model={model} zoom={zoom && !magnitudeUndefined} appearance={appearance} dateWindow={dateWindow}
           dateResetKey={`${dateView.all}/${dateView.reset}`}
           viewKey={JSON.stringify([scope.pair.id, scope.side.id, scope.family.id, brokerId, measure, activeId, magnitudeUndefined])}
-          onInspect={(releaseId) => setSelection({ broker: brokerId, releaseId })} />
+          onInspect={inspectRelease} />
         <MagnitudeCalculationDetails model={model} preview={!!previewLimits} seriesLabel={activeScope.series.find((series) => series.id === activeId)!.label}>
           {scoring ? <SignalBoundaryEditor key={editorScope} limits={savedModel.inspection?.signal?.limits ?? null} manual={!!config.limits} unit={model.deltaUnit}
             onPreview={(limits) => setPreview({ scope: editorScope, limits })}

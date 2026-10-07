@@ -10,6 +10,7 @@ export const suites = [
   "tests/scatter-plot/test_scoring_signals.mjs",
   "tests/scatter-plot/test_scatter_plot.mjs",
   "tests/scatter-plot/test_scatter_plot_interaction.mjs",
+  "tests/scatter-plot/test_scatter_responsiveness.mjs",
   "tests/scatter-plot/test_scatter_line_navigation.mjs",
   "tests/scatter-plot/test_magnitude_settings.mjs",
   "tests/scatter-plot/test_scatter_appearance.mjs",

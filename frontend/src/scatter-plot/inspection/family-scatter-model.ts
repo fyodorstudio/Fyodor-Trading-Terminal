@@ -1,4 +1,5 @@
-import { inspectorDelta, formatInspectorValue, inspectorValueUnit } from '../../inspector/inspector-data'
+import { inspectorDelta, inspectorValueUnit } from '../../inspector/inspector-data'
+import { scatterReading } from './scatter-number-format'
 import { gradeFamilyReading } from '../../inspector/grading/reading-grading'
 import { familyHistoryReleases, familyMagnitudeSamples, scaledMagnitudeDelta } from '../../inspector/magnitude/family-magnitude-history'
 import type { MagnitudeFamily } from '../../inspector/magnitude/magnitude-families'
@@ -19,8 +20,8 @@ export function familyScatterModel(events: StoredCalendarEvent[], now: number, s
   const current = currentRows.length === 1 ? currentRows[0] : null
   const reference = current ?? releases.flatMap((release) => release.events).findLast((row) => row.event_id === seriesId)
   const deltaUnit = reference ? inspectorValueUnit(reference, true).trim() : ''
-  const formatDelta = (value: number | null, maximumFractionDigits = 6) => reference ? formatInspectorValue(value === null ? null : value / (family.deltaScale ?? 1), reference, true, maximumFractionDigits) : '—'
-  const formatReading = (value: number | null) => reference ? formatInspectorValue(value, reference) : '—'
+  const formatDelta = (value: number | null, maximumFractionDigits = 6) => reference ? scatterReading(value === null ? null : value / (family.deltaScale ?? 1), reference, true, maximumFractionDigits) : '—'
+  const formatReading = (value: number | null) => reference ? scatterReading(value, reference) : '—'
   if (!reference || !selected || !family.seriesIds.includes(seriesId)) return { points: [], inspection: null, deltaUnit, formatDelta, formatReading }
   const toPoint = (sample: ReturnType<typeof familyMagnitudeSamples>['samples'][number]): ScatterPoint => ({
     id: sample.event.value_id, releaseId: sample.releaseId, at: sample.at, delta: sample.delta,

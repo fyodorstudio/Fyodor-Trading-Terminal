@@ -7,6 +7,14 @@ import { Window } from 'happy-dom'
 
 const server = await createServer({ root: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..'), server: { middlewareMode: true } })
 const dom = new Window({ url: 'http://localhost:5173' })
+let nextFrame = 0
+const frames = new Map()
+dom.requestAnimationFrame = (callback) => { frames.set(++nextFrame, callback); return nextFrame }
+dom.cancelAnimationFrame = (id) => frames.delete(id)
+const flushFrame = () => {
+  const callbacks = [...frames.values()]; frames.clear()
+  for (const callback of callbacks) callback(0)
+}
 const keys = ['window', 'document', 'HTMLElement', 'Node', 'navigator', 'IS_REACT_ACT_ENVIRONMENT']
 const previous = Object.fromEntries(keys.map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]))
 for (const key of keys) Object.defineProperty(globalThis, key, { configurable: true, writable: true,
@@ -35,8 +43,11 @@ try {
   // Verify SVG/viewBox coordinate conversion under CSS scaling and a nonzero page offset.
   svg.getBoundingClientRect = () => ({ left: 100, top: 50, width: 450, height: 140, right: 550, bottom: 190 })
   const client = (x, y) => ({ clientX: 100 + x / 2, clientY: 50 + y / 2 })
-  const pointer = (type, x, y, target = svg, extras = {}) => React.act(async () => target.dispatchEvent(new dom.PointerEvent(type,
-    { ...client(x, y), pointerId: 1, isPrimary: true, button: 0, bubbles: true, cancelable: true, ...extras })))
+  const pointer = (type, x, y, target = svg, extras = {}) => React.act(async () => {
+    target.dispatchEvent(new dom.PointerEvent(type,
+      { ...client(x, y), pointerId: 1, isPrimary: true, button: 0, bubbles: true, cancelable: true, ...extras }))
+    flushFrame()
+  })
   const doubleClick = (x, y) => React.act(async () => svg.dispatchEvent(new dom.MouseEvent('dblclick', { ...client(x, y), bubbles: true })))
   const key = (axis, value) => React.act(async () => container.querySelector(`[data-scale-axis="${axis}"]`).dispatchEvent(new dom.KeyboardEvent('keydown', { key: value, bubbles: true })))
   const wheel = async (x, y, extras = {}) => {

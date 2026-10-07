@@ -2,9 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent, t
 import type { ScatterModel } from '../contracts/scatter-plot-types'
 import { scatterPlotGeometry, type ScatterViewport, type ScatterAxisRange } from './scatter-plot-geometry'
 import { limitScatterDates, scaleScatterAxis, scatterPointerZone, translateScatterAxis, type ScatterGeometry, type ScatterPointerZone } from './scatter-plot-viewport'
+import { useScatterPointerFrame } from './useScatterPointerFrame'
 
 type Position = { x: number; y: number }
-type Drag = { start: Position; geometry: ScatterGeometry; zone: ScatterPointerZone; pointerId: number; moved: boolean }
+type Drag = { start: Position; startClient: Position; clientScale: Position; geometry: ScatterGeometry; zone: ScatterPointerZone; pointerId: number; moved: boolean }
 const day = 86400000
 const dateSpanLimit = (Date.UTC(2200, 0, 1) - Date.UTC(1900, 0, 1)) / 2
 const emptyViewport: ScatterViewport = {}
@@ -22,12 +23,15 @@ export function useScatterPlotInteraction(model: ScatterModel, zoom: boolean, wi
   const [state, setState] = useState<{ key: string; dateKey: string; viewport: ScatterViewport }>({ key: resetKey, dateKey: dateResetKey, viewport: {} })
   const drag = useRef<Drag | null>(null)
   const suppressClick = useRef(false)
+  const pointerFrame = useScatterPointerFrame()
   if (state.key !== resetKey) {
     setState({ key: resetKey, dateKey: dateResetKey, viewport: {} })
   } else if (state.dateKey !== dateResetKey) {
     setState({ ...state, dateKey: dateResetKey, viewport: { y: state.viewport.y } })
   }
-  useEffect(() => { drag.current = null; suppressClick.current = false }, [resetKey, dateResetKey])
+  useEffect(() => {
+    pointerFrame.cancel(); drag.current = null; suppressClick.current = false
+  }, [resetKey, dateResetKey, width, height, pointerFrame])
   const viewport = useMemo(() => state.key !== resetKey ? emptyViewport : state.dateKey !== dateResetKey ? { y: state.viewport.y } : state.viewport,
     [state, resetKey, dateResetKey])
   const g = useMemo(() => scatterPlotGeometry(model.points, model.inspection?.distribution ?? null, zoom, width, height,
@@ -45,6 +49,7 @@ export function useScatterPlotInteraction(model: ScatterModel, zoom: boolean, wi
     if (!svg) return
     // A native non-passive listener lets the chart consume wheel zoom without scrolling the dock.
     const wheel = (event: WheelEvent) => {
+      pointerFrame.flush()
       const p = position(event, svg), zone = scatterPointerZone(g, p.x, p.y)
       if (!zone || !event.deltaY || event.ctrlKey || event.metaKey) return
       event.preventDefault()
@@ -55,30 +60,49 @@ export function useScatterPlotInteraction(model: ScatterModel, zoom: boolean, wi
     }
     svg.addEventListener('wheel', wheel, { passive: false })
     return () => svg.removeEventListener('wheel', wheel)
-  }, [svg, g, height, viewport, position, change])
+  }, [svg, g, height, viewport, position, change, pointerFrame])
 
   const reset = (axis: 'x' | 'y' | 'plot') => {
+    pointerFrame.cancel()
     const next = { ...viewport }
     if (axis === 'x' || axis === 'plot') delete next.x
     if (axis === 'y' || axis === 'plot') delete next.y
     change(next)
   }
-  const endDrag = () => { drag.current = null; setDragging(null) }
+  const endDrag = () => {
+    // A fast drag can finish before the scheduled frame. Preserve its final
+    // movement and click suppression before releasing the active gesture.
+    pointerFrame.flush(); drag.current = null; setDragging(null)
+  }
   const onPointerDown = (event: PointerEvent<SVGSVGElement>) => {
     if (event.button !== 0 || !event.isPrimary || event.ctrlKey || event.metaKey || event.altKey) return
-    const p = position(event, event.currentTarget), zone = scatterPointerZone(g, p.x, p.y)
+    const rect = event.currentTarget.getBoundingClientRect()
+    const clientScale = { x: width / (rect.width || width), y: height / (rect.height || height) }
+    const p = { x: (event.clientX - rect.left) * clientScale.x, y: (event.clientY - rect.top) * clientScale.y }
+    const zone = scatterPointerZone(g, p.x, p.y)
     if (!zone) return
+    pointerFrame.cancel()
     suppressClick.current = false
-    drag.current = { start: p, geometry: g, zone, pointerId: event.pointerId, moved: false }
+    drag.current = { start: p, startClient: { x: event.clientX, y: event.clientY }, clientScale, geometry: g, zone, pointerId: event.pointerId, moved: false }
     // Capture the original hit target so a simple point click still selects its publication.
     const target = event.target as Element
     if (target.setPointerCapture) target.setPointerCapture(event.pointerId)
   }
   const onPointerMove = (event: PointerEvent<SVGSVGElement>) => {
-    const p = position(event, event.currentTarget)
+    const { clientX, clientY, pointerId, currentTarget } = event
+    const active = drag.current
+    // Remember any drag excursion, even if the pointer returns to its starting
+    // point before the frame. Cached scaling avoids a layout read per event.
+    if (active?.pointerId === pointerId && Math.hypot((clientX - active.startClient.x) * active.clientScale.x,
+      (clientY - active.startClient.y) * active.clientScale.y) >= 3) {
+      active.moved = true; suppressClick.current = true
+    }
+    pointerFrame.schedule(() => movePointer(position({ clientX, clientY }, currentTarget), pointerId))
+  }
+  const movePointer = (p: Position, pointerId: number) => {
     setCursor(scatterPointerZone(g, p.x, p.y) === 'plot' ? { key: interactionKey, position: p } : null)
     const active = drag.current
-    if (!active || active.pointerId !== event.pointerId) return
+    if (!active || active.pointerId !== pointerId) return
     const dx = p.x - active.start.x, dy = p.y - active.start.y
     if (!active.moved && Math.hypot(dx, dy) < 3) return
     active.moved = true
@@ -94,6 +118,7 @@ export function useScatterPlotInteraction(model: ScatterModel, zoom: boolean, wi
     }
   }
   const onAxisKeyDown = (axis: 'x' | 'y', event: KeyboardEvent<SVGRectElement>) => {
+    pointerFrame.cancel()
     if (['0', 'Home', 'Enter', ' '].includes(event.key)) reset(axis)
     else if (['+', '=', '-'].includes(event.key)) change({ ...viewport, [axis]: scaled(g, axis, event.key === '-' ? 1.25 : .8) })
     else return
@@ -102,9 +127,9 @@ export function useScatterPlotInteraction(model: ScatterModel, zoom: boolean, wi
   const visibleCursor = cursor?.key === interactionKey && scatterPointerZone(g, cursor.position.x, cursor.position.y) === 'plot' ? cursor.position : null
   return { g, cursor: visibleCursor, dragging: dragging === interactionKey, setSvg, onAxisKeyDown, svgEvents: {
     onPointerDown, onPointerMove, onPointerUp: endDrag,
-    onPointerCancel: () => { endDrag(); suppressClick.current = false; setCursor(null) },
+    onPointerCancel: () => { pointerFrame.cancel(); endDrag(); suppressClick.current = false; setCursor(null) },
     onLostPointerCapture: endDrag,
-    onPointerLeave: () => setCursor(null),
+    onPointerLeave: () => { pointerFrame.flush(); setCursor(null) },
     onClickCapture: (event: MouseEvent<SVGSVGElement>) => {
       if (suppressClick.current) { event.preventDefault(); event.stopPropagation(); suppressClick.current = false }
     },
