@@ -43,6 +43,16 @@ try {
     assert.equal(host.querySelector('details'), null, 'Scoring remains flat')
     return { left: layout.children[0], right: layout.children[1] }
   }
+  const resultFirst = (column, name) => {
+    const body = column.querySelector('.inspector-scoring-column-body')
+    const direction = body.querySelector('.inspector-majority')
+    assert.ok(direction, `${name}: bias has a summary even when unavailable`)
+    const text = document.createTreeWalker(body, dom.NodeFilter.SHOW_TEXT)
+    let first
+    while ((first = text.nextNode()) && !first.textContent.trim()) { /* Skip JSX spacing. */ }
+    assert.equal(first?.textContent.trim(), direction.textContent.trim(), `${name}: bias is the first readable content, ahead of versions, headings and controls`)
+    assert.equal(direction.parentElement.querySelector('small, .scoring-result-explanation'), null, `${name}: long explanations and metadata cannot stretch the bias row`)
+  }
   const props = { history: magnitudeHistory, events, now, timeDisplay, brokerId: null }
   for (const binding of inspectorScoringBindings) {
     assert.match(binding.versionLabel, /v\d/, 'Every registered scorer declares its visible current version')
@@ -50,6 +60,10 @@ try {
       familyId: binding.familyId, country: binding.country, currency: binding.currency, events: [] }
     await render(InspectorScoringView, { ...props, release, binding })
     const { left, right } = columns()
+    resultFirst(left, binding.familyId + ' standalone')
+    resultFirst(right, binding.familyId + ' context')
+    assert.equal(right.querySelectorAll('.publication-context-controls').length, 1)
+    assert.equal(right.querySelector('.publication-context-controls select').value, 'usd')
     assert.equal(left.querySelector('.usd-context-inputs'), null, `${binding.familyId}: context inputs belong on the right`)
     assert.ok(right.querySelector('.usd-context-inputs'), `${binding.familyId}: publication context is available`)
     assert.ok(right.querySelector('[aria-label="Inputs & contributions"]'), `${binding.familyId}: context calculation is grouped`)
@@ -77,12 +91,16 @@ try {
 
   await React.act(async () => preferences.saveRelativePreferences({ ...preferences.readRelativePreferences(), mode: 'relative' }))
   const relativeColumns = columns()
+  resultFirst(relativeColumns.left, 'Fed hold')
+  resultFirst(relativeColumns.right, 'Relative context')
+  assert.equal(relativeColumns.right.querySelectorAll('select').length, 1, 'The top context controls own the selector in relative mode')
   assert.ok(relativeColumns.right.querySelector('[aria-label="Relative context at publication"]'))
   assert.equal(relativeColumns.left.querySelector('[aria-label="Relative context at publication"]'), null)
   assert.equal(relativeColumns.left.querySelector('[aria-label="Fed standalone direction"]').textContent, 'Uncomputed')
   const selector = relativeColumns.right.querySelector('[aria-label="Raycaster context view"]')
   await React.act(async () => { selector.value = 'usd'; selector.dispatchEvent(new dom.Event('change', { bubbles: true })) })
   assert.equal(columns().right.querySelector('[aria-label="Relative context at publication"]'), null)
+  resultFirst(columns().right, 'Restored USD context')
   assert.ok(columns().right.querySelector('[aria-label="Publication context view"]'), 'USD mode can switch back to relative')
 
   const grouped = groupIsmEpisodes(groupInspectorReleases(latestRows))
@@ -117,7 +135,9 @@ try {
 
   await render(InspectorScoringView, fedProps)
   await React.act(async () => preferences.saveRelativePreferences({ ...preferences.readRelativePreferences(), mode: 'relative' }))
-  const css = ['inspector/inspector.css', 'inspector/scoring/shared/ui/release-score.css', 'inspector/scoring/shared/ui/scoring-sections.css', 'pair-context/ui/relative-context.css']
+  const css = ['inspector/inspector.css', 'inspector/scoring/shared/ui/release-score.css', 'inspector/scoring/shared/ui/scoring-sections.css', 'pair-context/ui/relative-context.css',
+    'inspector/scoring/PAIR/EURUSD/USD/CPI/ui/v4/cpi-v4.css', 'inspector/scoring/PAIR/EURUSD/USD/CLAIMS/ui/claims-score.css',
+    'inspector/scoring/PAIR/EURUSD/USD/RETAIL/ui/retail-score.css']
   const style = document.createElement('style'); document.head.append(style)
   for (const order of [css, [...css].reverse()]) {
     style.textContent = order.map(p => fs.readFileSync(path.join(frontend, 'src', p), 'utf8')).join('\n')
@@ -130,6 +150,13 @@ try {
     assert.equal(dom.getComputedStyle(relativeFirst).width, '27%')
     assert.equal(dom.getComputedStyle(usdVote).whiteSpace, 'normal', 'Inherited table nowrap must not leak into the vote column')
     assert.equal(dom.getComputedStyle(usdVote).overflowWrap, 'anywhere')
+    for (const column of Object.values(columns())) {
+      const row = column.querySelector('.inspector-majority').parentElement
+      const computed = dom.getComputedStyle(row)
+      assert.equal(computed.minHeight, '44px', 'Both results share the same minimum row height')
+      assert.equal(computed.marginTop, '0px', 'No extra space above either result')
+      assert.equal(computed.paddingTop, '10px')
+    }
   }
   assert.match(style.textContent, /@container \(max-width: 760px\)/, 'Narrow docks preserve standalone-first stacking')
   const { SignalCalibration } = await load('inspector/scoring/shared/ui/SignalCalibration.tsx')

@@ -7,10 +7,10 @@ import { eurPolicies } from '../../inspector/scoring/PAIR/EURUSD/EUR/policy/eur-
 import { useRelativePreferences, toggleEurFamily } from '../storage/relative-preferences'
 import { ContextViewSelector } from './ContextViewSelector'
 import { ScoringSection, ScoringNotes } from '../../inspector/scoring/shared/ui/ScoringSection'
-function RelativeContextDetailsComponent({eur,usd,loading,supported}:{eur:EurContextPoint|null;usd:ContextPoint|null;loading:boolean;supported:boolean}){
+function RelativeContextDetailsComponent({eur,usd,loading,supported,showSelector=true}:{eur:EurContextPoint|null;usd:ContextPoint|null;loading:boolean;supported:boolean;showSelector?:boolean}){
   const preferences=useRelativePreferences(), result=relativeContext(eur,usd)
   return <section aria-label="Relative EURUSD calculation">
-    <ContextViewSelector supported={supported}/>
+    {showSelector && <ContextViewSelector supported={supported}/>}
     {supported && preferences.mode==='relative' && <>
       <ScoringSection title="EUR inputs & contributions">
       <table className="relative-context-inputs" aria-label="EUR relative context inputs"><thead><tr><th>EUR input</th><th>Use</th><th>Contribution</th></tr></thead><tbody>

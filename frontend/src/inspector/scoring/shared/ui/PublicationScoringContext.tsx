@@ -9,15 +9,18 @@ import { formatAppTimestamp } from '../../../../appearance/time-display/time-dis
 
 /** Both currency legs stay inside the context column; the release stays separate. */
 export function PublicationScoringContext({ children, ...props }: Omit<InspectorScoringProps, 'events'> & {
-  children?: ReactNode; events?: readonly InspectorEvent[]
+  children?: (controls: ReactNode) => ReactNode; events?: readonly InspectorEvent[]
 }) {
   const preferences = useRelativePreferences()
   if (!props.release) return null
-  return <>
+  const controls = <div className="publication-context-controls">
     <p className="publication-context-cutoff">Publication cutoff: {props.release.releaseAt === null ? 'Unverified' :
       formatAppTimestamp(props.release.releaseAt, props.timeDisplay ?? { mode: 'utc', utcOffsetMinutes: 0 })}</p>
-    {preferences.mode === 'relative' ? <RelativePublicationContext {...props} /> :
-      <ContextViewSelector supported label="Publication context view" />}
-    {children ?? <PublicationContext {...props} release={props.release} />}
+    <ContextViewSelector supported label={preferences.mode === 'relative' ? 'Raycaster context view' : 'Publication context view'} />
+  </div>
+  const usdControls = preferences.mode === 'relative' ? null : controls
+  return <>
+    {preferences.mode === 'relative' && <RelativePublicationContext {...props} controls={controls} />}
+    {children ? children(usdControls) : <PublicationContext {...props} release={props.release} controls={usdControls} />}
   </>
 }

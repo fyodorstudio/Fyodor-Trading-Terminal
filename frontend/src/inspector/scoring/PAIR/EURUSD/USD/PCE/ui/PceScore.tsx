@@ -26,9 +26,9 @@ export function PceScore({ release, brokerId, events = [] }: InspectorScoringPro
       <strong className={`inspector-majority inspector-direction-${direction}`} aria-label="PCE pair direction">{loading ? 'Uncomputed' : assessment.label}</strong>
       {!loading && assessment.strength && <span aria-label="PCE evidence strength">{assessment.strength} evidence</span>}
       {!loading && assessment.direction !== 'uncomputed' && assessment.changeSize && <span aria-label="PCE change size">{assessment.changeSize}</span>}
-      <span className="scoring-result-explanation">{loading ? 'Loading earlier PCE releases…' : assessment.explanation}</span>
-      <small>Scoring system v1 · Experimental</small>
     </div>
+    <small className="scoring-engine-version">Scoring system v1 · Experimental</small>
+    <p className="scoring-result-explanation">{loading ? 'Loading earlier PCE releases…' : assessment.explanation}</p>
     {storage.error && <p role="alert">PCE history: {storage.error}</p>}
     {!loading && assessment.strength && <p aria-label="PCE evidence explanation">{assessment.strengthReason}</p>}
     {!loading && assessment.reduced && <p>Reduced data: {assessment.readings.filter((row) => row.points !== null).length} of 4 components usable. Missing components do not vote.</p>}

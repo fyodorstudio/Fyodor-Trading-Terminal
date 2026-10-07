@@ -1,4 +1,5 @@
 import '../../inspector/scoring/shared/ui/release-score.css'
+import type { ReactNode } from 'react'
 import type { InspectorEvent, InspectorRelease } from '../../inspector/inspector-data'
 import type { TimeDisplayPreference } from '../../appearance/time-display/time-display-preference'
 import { toggleContextFamily } from '../storage/context-family-settings'
@@ -9,14 +10,15 @@ import { ContextPolicyDetails } from './ContextPolicyDetails'
 import { ScoringSection } from '../../inspector/scoring/shared/ui/ScoringSection'
 const empty: readonly InspectorEvent[] = []
 const defaultTime: TimeDisplayPreference = { mode: 'utc', utcOffsetMinutes: 0 }
-export function PublicationContext({ release, brokerId = null, events = empty, now = 0, timeDisplay = defaultTime }: {
-  release: InspectorRelease; brokerId?: string | null; events?: readonly InspectorEvent[]; now?: number; timeDisplay?: TimeDisplayPreference
+export function PublicationContext({ release, brokerId = null, events = empty, now = 0, timeDisplay = defaultTime, controls }: {
+  release: InspectorRelease; brokerId?: string | null; events?: readonly InspectorEvent[]; now?: number; timeDisplay?: TimeDisplayPreference; controls?: ReactNode
 }) {
   const { families, context, eligible, at, before, result, ready } = usePublicationContext(release, brokerId, events, now)
   return <section className="inspector-detail-overview inspector-scoring-view inspector-structured-score" aria-label="Combined USD context at publication">
-    <h3>USD context at publication</h3>
     <div className="inspector-release-score-summary"><strong className={`inspector-majority inspector-direction-${ready && result?.direction === 'stronger' ? 'short' : ready && result?.direction === 'weaker' ? 'long' : 'uncomputed'}`}>{ready ? contextPairLabel('EURUSD', result?.direction ?? 'uncomputed') : 'Uncomputed'}</strong>
       {ready && result?.strength && <span>{result.strength} context evidence</span>}</div>
+    {controls}
+    <h3>USD context at publication</h3>
     <p>{context.loading ? 'Calculating publication context…' : context.error ?? (!eligible ? 'A verified, already published chart time is required.' : result?.explanation ?? 'No enabled context assessment is available.')}</p>
     {ready && before && <p>Before publication: {contextPairLabel('EURUSD', before.result.direction)} · {before.result.strength ?? 'no'} evidence.</p>}
     {context.storage.error && <p role="alert">Context history: {context.storage.error}</p>}

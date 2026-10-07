@@ -13,8 +13,8 @@ export function IsmScoreView({ timeDisplay = { mode: 'utc', utcOffsetMinutes: 0 
   if (!supportsIsmScore(props.release)) return null
   const timestamp = (at: number | null) => at === null ? 'Time unavailable' : formatAppTimestamp(at, timeDisplay)
   return <div className="inspector-detail-overview inspector-scoring-view inspector-ism-v3" aria-label="ISM monthly context scoring system">
-    <p aria-label="ISM context identity">{analysis?.latest?.contextId ?? props.release?.id ?? 'Reference month unavailable'}</p>
     <IsmContextSummary analysis={analysis} loading={loading} error={error} timestamp={timestamp} />
+    <p aria-label="ISM context identity">{analysis?.latest?.contextId ?? props.release?.id ?? 'Reference month unavailable'}</p>
     {error && <p role="alert">{error}</p>}
     {storage.error && <p role="alert">ISM history: {storage.error}</p>}
     {analysis && <>

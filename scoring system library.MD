@@ -1823,3 +1823,22 @@ production build pass. A source import-graph audit (including workers) reaches
 all 288 remaining TS/TSX modules; the eight unused modules are removed. Work-count
 regressions verify 100,000 historical markers project only ten visible anchors,
 and 200 pan callbacks produce one frame update. No visual audit was performed.
+
+## 7 October 2026 — Result-first scoring presentation
+
+All current standalone and publication-context views start with the direction
+and evidence row. The columns share result padding and a minimum row height;
+long explanations and version notes follow outside that row. Context cutoff and
+view selection follow the selected context's result, with one selector in either
+USD-side or relative mode. Contribution tables and rule sections remain below.
+
+This is presentation only: versions, interpretation rules, weights, history,
+publication cutoffs and Enabled/Off behavior are unchanged. The existing shared
+scroll container and calculation reuse remain. Terminal layout checks cover
+result-first reading order across all registered scorers, relative/USD switching,
+Fed holds and stylesheet load order. Visual checks are listed in manual edit.md.
+
+Validation: nine targeted terminal suites pass, covering publication layout,
+CPI, expanded USD/Fed, EUR, Claims, Retail, Raycaster, responsiveness and Activity
+heartbeat reuse. Lint, TypeScript and production build pass. Visual alignment and
+wrapping remain for the user's manual audit.

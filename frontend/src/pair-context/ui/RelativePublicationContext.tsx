@@ -1,5 +1,6 @@
 import type { InspectorRelease, InspectorEvent } from '../../inspector/inspector-data'
-type RelativeProps = { release: InspectorRelease | null; brokerId?: string | null; events?: readonly InspectorEvent[]; now?: number }
+import type { ReactNode } from 'react'
+type RelativeProps = { release: InspectorRelease | null; brokerId?: string | null; events?: readonly InspectorEvent[]; now?: number; controls?: ReactNode }
 import { useRelativePreferences } from '../storage/relative-preferences'
 import { useEurContextTimeline } from '../runtime/useEurContextTimeline'
 import { usePublicationContext } from '../../usd-context/runtime/usePublicationContext'
@@ -16,11 +17,12 @@ function RelativePublication(props:RelativeProps){
   const result=relativeContext(point,usd.after),loading=usd.context.loading || eur.loading
   const error=usd.context.error ?? eur.error, ready=usd.eligible && !loading && !error
   return <section className="inspector-detail-overview inspector-scoring-view inspector-structured-score" aria-label="Relative context at publication">
-    <h3>Relative EUR / USD context at publication</h3>
     <div className="inspector-release-score-summary"><strong className={`inspector-majority inspector-direction-${ready?result.direction:'uncomputed'}`}>{ready?result.label:'Uncomputed'}</strong>{ready && result.strength && <span>{result.strength} relative context evidence</span>}</div>
+    {props.controls}
+    <h3>Relative EUR / USD context at publication</h3>
     <p>{loading?'Calculating relative context…':error ?? (!usd.eligible?'A verified, already published chart time is required.':result.explanation)}</p>
     {(eur.storage.error || usd.context.storage.error) && <p role="alert">{eur.storage.error ?? usd.context.storage.error}</p>}
-    <RelativeContextDetails eur={ready?point:null} usd={ready?usd.after:null} loading={loading} supported/>
+    <RelativeContextDetails eur={ready?point:null} usd={ready?usd.after:null} loading={loading} supported showSelector={!props.controls}/>
     <p>The standalone release and USD-side context remain visible separately. This uses the same saved relative inputs and publication cutoff as Raycaster, without later releases.</p>
   </section>
 }

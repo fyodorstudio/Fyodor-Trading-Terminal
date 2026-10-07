@@ -10,7 +10,8 @@ export function ExpandedReleaseScore(props: InspectorScoringProps) {
   const ready = !calculation.loading && !calculation.error && !!a
   return <div className="inspector-detail-overview inspector-scoring-view inspector-structured-score" aria-label={`${name} scoring system v1`}>
     <div className="inspector-release-score-summary"><strong className={`inspector-majority inspector-direction-${ready ? a.direction : 'uncomputed'}`}>{ready ? a.label : 'Uncomputed'}</strong>
-      {ready && a.strength && <span>{a.strength} evidence</span>} {ready && a.changeSize && <span>{a.changeSize}</span>}<small>{name} v1 · Experimental</small></div>
+      {ready && a.strength && <span>{a.strength} evidence</span>} {ready && a.changeSize && <span>{a.changeSize}</span>}</div>
+    <small className="scoring-engine-version">{name} v1 · Experimental</small>
     <p>{calculation.loading ? `Calculating ${name} interpretation…` : calculation.error ?? a?.explanation}</p>
     {calculation.storage.error && <p role="alert">History: {calculation.storage.error}</p>}
     {ready && <><p>{a.strengthReason}</p>{'stage' in a && <p>{a.stage === 'revision' ? 'Same-quarter estimate revision: measures the change to the previously published estimate.' : 'New quarter: compares growth with the preceding four quarters.'}</p>}

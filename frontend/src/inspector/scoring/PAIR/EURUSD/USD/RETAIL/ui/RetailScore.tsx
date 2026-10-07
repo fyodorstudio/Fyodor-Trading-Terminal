@@ -13,9 +13,9 @@ export function RetailScore(props: InspectorScoringProps) {
       <strong className={`inspector-majority inspector-direction-${direction}`} aria-label="Retail Sales pair direction">{loading || error ? 'Uncomputed' : assessment?.label ?? 'Uncomputed'}</strong>
       {!loading && !error && assessment?.strength && <span aria-label="Retail Sales evidence strength" title="Agreement within this release; not expected price-move strength">{assessment.strength} evidence</span>}
       {!loading && !error && direction !== 'uncomputed' && assessment?.changeSize && <span aria-label="Retail Sales change size">{assessment.changeSize}</span>}
-      <span className="scoring-result-explanation">{loading ? 'Calculating Retail Sales context…' : error ?? assessment?.explanation}</span>
-      <small>Scoring system v1 · Experimental</small>
     </div>
+    <small className="scoring-engine-version">Scoring system v1 · Experimental</small>
+    <p className="scoring-result-explanation">{loading ? 'Calculating Retail Sales context…' : error ?? assessment?.explanation}</p>
     {error && <p role="alert">{error}</p>}
     {storage.error && <p role="alert">Retail Sales history: {storage.error}</p>}
     {!loading && !error && assessment && <RetailScoreDetails assessment={assessment} />}

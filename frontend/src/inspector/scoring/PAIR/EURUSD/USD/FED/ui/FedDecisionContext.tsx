@@ -1,4 +1,5 @@
 import type { InspectorScoringProps } from '../../../../../scoring-contracts'
+import type { ReactNode } from 'react'
 import type { InspectorRelease } from '../../../../../../inspector-data'
 import { formatAppTimestamp } from '../../../../../../../appearance/time-display/time-display-preference'
 import { usePublicationContext } from '../../../../../../../usd-context/runtime/usePublicationContext'
@@ -24,13 +25,14 @@ export function FedDecisionContext({ release, action, brokerId = null, events, n
   const earlier = previous && context.result ? contextAt(context.result, previous.chartTime! * 1000) : null
   const direction = ready && result?.direction === 'stronger' ? 'short' : ready && result?.direction === 'weaker' ? 'long' : 'uncomputed'
   const label = ready ? contextPairLabel('EURUSD', result?.direction ?? 'uncomputed') : 'Uncomputed'
-  const contextView = <section className="inspector-detail-overview inspector-scoring-view inspector-structured-score" aria-label="Fed policy interpretation">
-    <h3>USD context at the Fed publication</h3>
+  const contextView = (controls: ReactNode) => <section className="inspector-detail-overview inspector-scoring-view inspector-structured-score" aria-label="Fed policy interpretation">
     <div className="inspector-release-score-summary">
       <strong className={`inspector-majority inspector-direction-${direction}`} aria-label="Fed contextual pair direction">{label}</strong>
       {ready && result?.strength && <span>{result.strength} context evidence</span>}
-      <small>Fed v2 · Economic context</small>
     </div>
+    <small className="scoring-engine-version">Fed v2 · Economic context</small>
+    {controls}
+    <h3>USD context at the Fed publication</h3>
     <p>{context.loading ? 'Calculating decision context…' : context.error ?? (!eligible ?
       'A verified, already published chart time is required.' : result?.explanation ?? 'No enabled context assessment is available.')}</p>
     <ScoringSection title="Policy pressure & previous meeting">

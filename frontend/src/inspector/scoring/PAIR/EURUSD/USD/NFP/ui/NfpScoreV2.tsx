@@ -28,9 +28,9 @@ export function NfpScoreV2({ release, brokerId, events = [] }: InspectorScoringP
       </strong>
       {!loading && assessment.strength && <span aria-label="NFP v2 evidence strength">{assessment.strength} evidence</span>}
       {!loading && assessment.direction !== 'uncomputed' && assessment.changeSize && <span aria-label="NFP v2 change size">{assessment.changeSize}</span>}
-      <span className="scoring-result-explanation">{loading ? 'Loading earlier employment releases…' : assessment.explanation}</span>
-      <small>Scoring system v2 · Experimental</small>
     </div>
+    <small className="scoring-engine-version">Scoring system v2 · Experimental</small>
+    <p className="scoring-result-explanation">{loading ? 'Loading earlier employment releases…' : assessment.explanation}</p>
     {storage.error && <p role="alert">Employment history: {storage.error}</p>}
     {!loading && assessment.strength && <p aria-label="NFP v2 evidence explanation">{assessment.strengthReason}</p>}
     {!loading && assessment.reduced && <p>Reduced data: {assessment.readings.filter((r) => r.points !== null).length} of 5 components usable. Missing components do not vote.</p>}

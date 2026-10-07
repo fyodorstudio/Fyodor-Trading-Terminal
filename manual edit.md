@@ -202,3 +202,16 @@ Retired formulas and replacement rationale:
 Terminal operation-count checks are documented in
 [Responsiveness refactor](reports/Responsiveness-refactor.md). These boxes remain
 unchecked: automated tests do not verify perceived scrolling or frame rate.
+
+## 7 October 2026 — Result-first scoring layout
+
+- [ ] Check every current scorer shows its bias and evidence immediately below
+  the column heading, with both result boxes starting at the same height.
+- [ ] Check CPI, NFP, Claims, ISM, Retail, PCE, GDP/PPI and EUR/ECB keep visible
+  version notes below the result, followed by their explanations and tables.
+- [ ] Switch USD side / EUR vs USD: the context result should remain first, with
+  one cutoff/view control row below it. Check CPI publication changes and Fed
+  previous-meeting details remain available.
+- [ ] Check loading, missing-history and Fed-hold states, short/narrow docks and
+  both themes. Confirm wrapping is readable and the shared scroll region still
+  pans/scrolls smoothly. Use toggles retain their current calculation behavior.

@@ -13,9 +13,9 @@ export function ClaimsScore(props: InspectorScoringProps) {
       <strong className={`inspector-majority inspector-direction-${direction}`} aria-label="Jobless Claims pair direction">{loading || error ? 'Uncomputed' : assessment?.label ?? 'Uncomputed'}</strong>
       {!loading && !error && assessment?.strength && <span aria-label="Jobless Claims evidence strength" title="Agreement within this release; not expected price-move strength">{assessment.strength} evidence</span>}
       {!loading && !error && direction !== 'uncomputed' && assessment?.changeSize && <span aria-label="Jobless Claims change size">{assessment.changeSize}</span>}
-      <span className="scoring-result-explanation">{loading ? 'Calculating Jobless Claims context…' : error ?? assessment?.explanation}</span>
-      <small>Scoring system v2 · Experimental</small>
     </div>
+    <small className="scoring-engine-version">Scoring system v2 · Experimental</small>
+    <p className="scoring-result-explanation">{loading ? 'Calculating Jobless Claims context…' : error ?? assessment?.explanation}</p>
     {error && <p role="alert">{error}</p>}
     {storage.error && <p role="alert">Jobless Claims history: {storage.error}</p>}
     {!loading && !error && assessment && <ClaimsScoreDetails assessment={assessment} />}
