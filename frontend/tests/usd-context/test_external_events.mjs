@@ -22,6 +22,7 @@ try {
   const { externalIntervals, visibleExternalIntervals, validExternalEvents, parseClockInput, clockInput } = await load('external-events/core/external-event.ts')
   const store = await load('external-events/storage/external-event-store.ts')
   const { ExternalEventsStrip } = await load('external-events/chart/ExternalEventsStrip.tsx')
+  const { ExternalEventManager } = await load('external-events/ui/ExternalEventManager.tsx')
   const workspace = await load('workspace-portability/workspace-snapshot.ts')
   const at = Date.UTC(2025, 0, 1, 12), hour = 3600000
   const draft = { brokerId: 'Broker A', symbol: 'EURUSD', title: 'Outside context example', note: 'A manually recorded observation, not a verified cause.', from: at + hour / 2, to: at + 2 * hour }
@@ -84,8 +85,8 @@ try {
   assert.equal(store.readExternalEvents().some(e => e.id === first.id), false)
   await React.act(async () => container.querySelector('[aria-label="Close outside events"]').click())
   assert.equal(container.querySelector('[role="dialog"]'), null)
-  assert.equal(document.activeElement, container.querySelector('.external-events-add'))
-  await React.act(async () => container.querySelector('.external-events-add').click())
+  assert.equal(container.querySelector('.external-events-add'), null, 'The chart no longer carries a separate add button')
+  await render(React.createElement(ExternalEventManager, { events: [], initialId: null, defaults: { from: at, to: at + hour }, symbol: 'EURUSD', brokerId: 'Broker A', onClose() {} }))
   const form = container.querySelector('[role="dialog"] form')
   await setValue(form.querySelector('input'), 'New manual event')
   await setValue(form.querySelectorAll('input')[2], '')
@@ -102,7 +103,7 @@ try {
   await render(React.createElement(ExternalEventsStrip, { ...props, brokerId: 'Broker C' }))
   assert.equal(container.querySelectorAll('.external-event-highlight').length, 0)
   await render(React.createElement(ExternalEventsStrip, { ...props, brokerId: null }))
-  assert.equal(container.querySelector('.external-events-add').disabled, true)
+  assert.equal(container.querySelectorAll('.external-event-highlight').length, 0)
   await render(null); assert.equal(unsubscribed, subscriptions)
   console.log('✓ Manual outside-event range/overlap/ongoing clocks, exact strip projection, pan batching, create/edit/delete, immutable storage, retrospective disclosure, scoped notes and workspace roundtrip')
 } finally {

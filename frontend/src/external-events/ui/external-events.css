@@ -2,8 +2,6 @@
 .external-events-track { position: absolute; left: 0; right: 0; bottom: 20px; height: 8px; }
 .external-event-highlight { position: absolute; height: 8px; border: 1px solid #737b88; border-radius: 2px; padding: 0; background: #a4abb6; cursor: pointer; pointer-events: auto; }
 .external-event-highlight:hover, .external-event-highlight:focus-visible { outline: 2px solid var(--text); z-index: 1; }
-.external-events-add { position: absolute; right: 4px; bottom: 34px; font-size: 9px; padding: 2px 5px; border-radius: 3px; border: 1px solid var(--border); color: var(--text-muted); background: var(--surface-panel); pointer-events: auto; cursor: pointer; }
-.external-events-add:disabled { opacity: .5; cursor: default; }
 .external-event-manager { position: absolute; bottom: 55px; right: 4px; width: min(460px, calc(100vw - 100px)); max-height: min(60vh, 580px); overflow: auto; padding: 12px; border: 1px solid var(--border-strong); border-radius: 6px; background: var(--surface-panel); color: var(--text); box-shadow: 0 4px 16px #0002; pointer-events: auto; font-size: 11px; line-height: 1.5; }
 .external-event-manager header, .external-event-actions { display: flex; justify-content: space-between; gap: 6px; align-items: center; }
 .external-event-manager label { display: grid; gap: 4px; margin: 8px 0; }.external-event-dates { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }

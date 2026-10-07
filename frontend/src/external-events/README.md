@@ -1,7 +1,9 @@
 # Manual outside-event annotations v1
 
 This feature records user-selected audit windows outside the numerical dataset.
-It is mounted above Candy, so Candy's visibility controls it. No module here is
+Its strip is mounted above Candy, so Candy's visibility controls the highlights.
+The header gear's Manage outside events editor works independently of Candy.
+No module here is
 used by a scorer, context engine, fresh-news detector or calculation worker.
 
 - `core/`: validated records, strict broker-wall-clock form parsing, overlap sweep
@@ -23,7 +25,9 @@ causation, and an empty strip never establishes absence of an outside event.
 
 Overlapping intervals show all active titles/observations on hover. Clicking opens
 the first note; the saved list provides access to every note in the current scope.
-The editor defaults a new range to the visible chart window, capped at current time.
+The gear editor defaults a new range to the shared controller's captured chart
+window when available, otherwise the current broker-clock hour. A chart-highlight
+editor uses the visible range, capped at current time.
 There are no inferred, fetched or preloaded geopolitical events.
 
 Terminal regression coverage: `tests/usd-context/test_external_events.mjs`.

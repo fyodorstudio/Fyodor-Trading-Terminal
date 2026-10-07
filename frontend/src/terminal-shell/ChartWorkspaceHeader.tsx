@@ -1,6 +1,7 @@
 import { ContextViewControls } from './chart-overlays/ContextViewControls'
 import type { ChartTimeframe } from '../market-data/contracts/ChartTimeframe'
 import type { SymbolQuote } from '../market-data/contracts/SymbolQuote'
+import type { TimeDisplayPreference } from '../appearance/time-display/time-display-preference'
 
 const timeframes: ChartTimeframe[] = ['M1', 'M5', 'M15', 'M30', 'H1', 'H4', 'D1']
 
@@ -14,6 +15,10 @@ type ChartWorkspaceHeaderProps = {
   raycasterVisible?: boolean
   raycasterSupported?: boolean
   onToggleRaycaster?: () => void
+  brokerId?: string | null
+  brokerOffsetSeconds?: number
+  clockOffsetMs?: number
+  timeDisplay?: TimeDisplayPreference
 }
 
 function PaintbrushIcon() {
@@ -45,6 +50,7 @@ export function ChartWorkspaceHeader({
   raycasterVisible = false,
   raycasterSupported = false,
   onToggleRaycaster,
+  brokerId, brokerOffsetSeconds, clockOffsetMs, timeDisplay,
 }: ChartWorkspaceHeaderProps) {
   return (
     <div className="chart-toolbar">
@@ -91,23 +97,15 @@ export function ChartWorkspaceHeader({
             <PaintbrushIcon />
           </button>
         )}
-        {onToggleRaycaster && (
-          <button type="button" className={`chart-drawing-toggle${raycasterVisible && raycasterSupported ? ' active' : ''}`}
-            aria-pressed={raycasterVisible && raycasterSupported} disabled={!raycasterSupported}
-            aria-label={raycasterVisible && raycasterSupported ? 'Hide Raycaster' : 'Show Raycaster'}
-            title={raycasterSupported ? 'Raycaster · USD context at the hovered candle' : 'Raycaster supports the seven major USD forex pairs'}
-            onClick={onToggleRaycaster}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-              <path d="M2 12h4l3-7 6 14 3-7h4" />
-            </svg>
-          </button>
-        )}
-        <ContextViewControls symbol={symbol} supported={raycasterSupported} />
       </div>
 
+      <div className="chart-toolbar-right">
+        <ContextViewControls symbol={symbol} supported={raycasterSupported} raycasterVisible={raycasterVisible} onToggleRaycaster={onToggleRaycaster}
+          brokerId={brokerId} timeframe={timeframe} brokerOffsetSeconds={brokerOffsetSeconds} clockOffsetMs={clockOffsetMs} timeDisplay={timeDisplay} />
       <div className="quote-summary">
         <span><small>Bid</small>{quote ? quote.bid.toFixed(quote.precision) : '—'}</span>
         <span><small>Ask</small>{quote ? quote.ask.toFixed(quote.precision) : '—'}</span>
+      </div>
       </div>
     </div>
   )

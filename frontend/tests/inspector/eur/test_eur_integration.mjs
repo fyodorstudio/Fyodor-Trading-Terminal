@@ -19,6 +19,7 @@ const eur=Array.from({length:42},(_,m)=>['999030012','999030013'].map((id,i)=>({
 try{
  const load=p=>server.ssrLoadModule('./src/'+p)
  const {Raycaster}=await load('raycaster/Raycaster.tsx'),{buildContextTimeline}=await load('usd-context/core/build-context-timeline.ts')
+ const {ContextViewControls}=await load('terminal-shell/chart-overlays/ContextViewControls.tsx')
  const {buildEurContextTimeline}=await load('pair-context/core/eur-context-timeline.ts'),{relativeContext,eurContextAt}=await load('pair-context/core/relative-context.ts')
  const {contextAt}=await load('usd-context/core/context-lookup.ts')
  const pref=await load('pair-context/storage/relative-preferences.ts')
@@ -26,13 +27,13 @@ try{
  globalThis.fetch=async url=>{requests.push(url);if(url.endsWith('/health'))return{ok:true,json:async()=>({revision:1,sources:[{id:'relative-broker',server_now:Date.UTC(2018,7,1)/1000}]})}
   const params=new URL(url,'http://localhost').searchParams,events=params.get('currencies')==='EUR' || params.get('currency')==='EUR'?eur:[...history,...latestRows]
   return{ok:true,json:async()=>({source_id:'relative-broker',revision:1,time_basis:'chart',timestamp_convention:'trade_server_time',event_ids:params.get('event_ids').split(','),events,coverage:{},next_cursor:null})}}
- const series={},props={chartApi:{subscribeCrosshairMove(fn){handler=fn},unsubscribeCrosshairMove(){}},seriesApi:series,symbol:'EURUSD',timeframe:'H1',brokerId:'relative-broker',brokerOffsetSeconds:0,clockOffsetMs:Date.UTC(2018,7,1)-Date.now(),timeDisplay:{mode:'utc',utcOffsetMinutes:0},onClose(){}}
- const render=(next=props)=>React.act(async()=>root.render(React.createElement(Raycaster,next)))
+ const series={},props={chartApi:{subscribeCrosshairMove(fn){handler=fn},unsubscribeCrosshairMove(){},timeScale(){return{getVisibleRange(){return null}}}},seriesApi:series,symbol:'EURUSD',timeframe:'H1',brokerId:'relative-broker',brokerOffsetSeconds:0,clockOffsetMs:Date.UTC(2018,7,1)-Date.now(),timeDisplay:{mode:'utc',utcOffsetMinutes:0},onClose(){}}
+ const render=(next=props)=>React.act(async()=>root.render(React.createElement(React.Fragment,null,React.createElement(ContextViewControls,{...next,supported:true,raycasterVisible:true,onToggleRaycaster:next.onClose}),React.createElement(Raycaster,next))))
  await render();assert.equal(workers.length,1,'USD default does not load EUR calculation')
  const usdWorker=workers[0],usdInput=usdWorker.jobs[0].input,usdTimeline=buildContextTimeline(usdInput)
  await React.act(async()=>usdWorker.onmessage({data:{id:1,result:usdTimeline}}))
- await React.act(async()=>host.querySelector('[aria-label="Raycaster calculation and inputs"]').click())
- const selector=host.querySelector('[aria-label="Raycaster context view"]');assert.equal(selector.value,'usd')
+ await React.act(async()=>host.querySelector('[aria-label="Fundamental tools settings"]').click())
+ const selector=host.querySelector('[aria-label="Shared Raycaster and Candy context view"]');assert.equal(selector.value,'usd')
  await React.act(async()=>{selector.value='relative';selector.dispatchEvent(new dom.Event('change',{bubbles:true}))})
  assert.equal(workers.length,2);assert.equal(usdWorker.jobs.length,1,'Mode changes reuse USD calculation')
  const eurWorker=workers[1],eurInput=eurWorker.jobs[0].input
@@ -48,9 +49,12 @@ try{
  assert.throws(()=>parseWorkspaceSnapshot(JSON.stringify({...exportValue,entries:{[pref.relativePreferencesKey]:'{"mode":"relative","families":["bad"]}'}})),/Invalid/)
  await React.act(async()=>{pref.saveRelativePreferences({mode:'usd',families:[]});restoreWorkspace(exportValue)})
  assert.equal(pref.readRelativePreferences().mode,'relative')
- await render({...props,symbol:'USDJPY'});assert.equal(host.querySelector('[aria-label="Raycaster context view"]').disabled,true)
+ await render({...props,symbol:'USDJPY'});assert.equal(host.querySelector('[role="dialog"]'),null,'Changing pair closes the shared settings')
+ await React.act(async()=>host.querySelector('[aria-label="Fundamental tools settings"]').click())
+ assert.equal(host.querySelector('[aria-label="Shared Raycaster and Candy context view"]').disabled,true)
  assert.equal(workers.length,2,'Other USD pairs never dispatch an EUR context calculation')
  await render();assert.equal(workers.length,2,'Returning to EURUSD reuses completed EUR work')
+ await React.act(async()=>host.querySelector('[aria-label="Fundamental tools settings"]').click())
  if (!host.querySelector('[aria-label="Use Euro-area inflation v1"]')) await React.act(async () => host.querySelector('[aria-label="Advanced EUR input settings"]').click())
  await React.act(async()=>host.querySelector('[aria-label="Use Euro-area inflation v1"]').click())
  assert.equal(workers.length,3,'EUR input changes invalidate only EUR calculation');assert.equal(usdWorker.jobs.length,1)

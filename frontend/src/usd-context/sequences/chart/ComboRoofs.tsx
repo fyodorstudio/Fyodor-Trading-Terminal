@@ -12,6 +12,7 @@ import { roofLabel, roofTooltip } from './roof-label'
 import { type PositionedRoof } from './roof-layout'
 import { roofEndpointKey, roofEndpointTooltip, roofLaneY, type RoofEndpoint } from './roof-symbols'
 import { RoofReleaseChooser } from './RoofReleaseChooser'
+import { useSequencePreferences } from '../storage/sequence-preferences'
 import './combo-roofs.css'
 
 function ComboRoofsComponent({ chartApi, episodes, bars, timeframe, markers, now, experimental, onSelect, onOpenSource, currencyColors = {} }: {
@@ -21,7 +22,7 @@ function ComboRoofsComponent({ chartApi, episodes, bars, timeframe, markers, now
 }) {
   const [positioned, setPositioned] = useState<PositionedRoof[]>([])
   const [overflow, setOverflow] = useState<ComboSnapshot[]>([]), [chooser, setChooser] = useState(false)
-  const [focused, setFocused] = useState(true)
+  const focused = useSequencePreferences().density !== 'all'
   const [releaseSelection, setReleaseSelection] = useState<{ roof: PositionedRoof; endpoint: RoofEndpoint; trigger: HTMLButtonElement } | null>(null)
   const closeReleases = useCallback(() => setReleaseSelection(null), [])
   const releaseChooser = releaseSelection && positioned.includes(releaseSelection.roof) ? releaseSelection : null
@@ -87,11 +88,6 @@ function ComboRoofsComponent({ chartApi, episodes, bars, timeframe, markers, now
     {releaseChooser && onOpenSource && <RoofReleaseChooser endpoint={releaseChooser.endpoint} trigger={releaseChooser.trigger}
       left={Math.max(0, Math.min(releaseChooser.endpoint.x - 130, chartApi.timeScale().width() - 280))} onClose={closeReleases} onOpen={onOpenSource} />}
     <div className="combo-roof-tools">
-      <div className="combo-roof-density" aria-label="Roof display density">
-        <button type="button" aria-pressed={focused} title="Prioritize evidence, established relationships and recent updates; repeated overlapping roofs stay in More. This changes display only."
-          onClick={() => { setFocused(true); setChooser(false) }}>Focused</button>
-        <button type="button" aria-pressed={!focused} onClick={() => { setFocused(false); setChooser(false) }}>All roofs</button>
-      </div>
       {overflow.length > 0 && <div className="combo-roof-overflow"><button type="button" aria-expanded={chooser} onClick={() => setChooser(!chooser)}>+{overflow.length} more</button>
         {chooser && <div aria-label="More combo roofs">{overflow.map(combo => <button type="button" key={combo.id} title={roofTooltip(combo)} onClick={() => { onSelect(combo); setChooser(false) }}>
           <span>{roofLabel(combo)} · {contextPairLabel('EURUSD', combo.direction)}</span>

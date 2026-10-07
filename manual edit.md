@@ -359,3 +359,31 @@ timing, disclosure and overflow checks still apply with symbols instead of dots.
   their rows and travel with chart time. Check clipping, neighboring label/symbol
   spacing and access to crowded roofs through More. The bottom row still lists
   every ordinary release; roof symbols identify participation in each combo.
+
+## 7 October 2026 — Right-side Fundamental tools group / UI v1
+
+This replaces earlier references to separate Raycaster/roof gears, chart density
+buttons and Outside events +. Numerical and pan-anchoring checks still apply.
+
+- [ ] Confirm timeframe/drawing controls remain together. On the right, check the
+  outlined group has waveform, chevrons-up, candy and gear icons before Bid/Ask.
+  Check tooltips, active/off/unsupported states, both themes and narrower charts.
+- [ ] Toggle each view independently. Open/close settings while views are hidden:
+  no tool should enable itself. Check the modeless popover fits the window with
+  the bottom dock open and does not blur/block chart navigation.
+- [ ] Use Raycaster/Roofs/Candy tabs, keyboard arrows, Escape and Close. Check
+  restored focus, outside-click dismissal and closure on broker/pair/timeframe
+  changes. Former scopes should not revive a previously closed popover.
+- [ ] Inspect a candle, open the gear, leave the chart and verify the Raycaster
+  tab holds that candle's contributions. Change USD/EUR inputs under Advanced
+  settings and verify the breakdown refreshes without showing older-config votes.
+- [ ] Set Focused/All in Roofs, check chart density/More, reload and restore a
+  workspace. Check the density persists and does not alter directional scoring.
+- [ ] With Candy hidden, use Manage outside events to create/edit/delete a note.
+  Return with Back; enable Candy to inspect its gray highlight. Check broker-time
+  fields, scope, persistence and the single embedded editor inside the popover.
+- [ ] Pan while settings are open, inspect crowded roofs and scroll the breakdown.
+  Confirm responsiveness and no overlap among labels, strip legend or header tools.
+
+Terminal checks cover navigation, hidden-view editing, shared worker reuse,
+signature/scope isolation and chart render boundaries. Visual checks remain manual.

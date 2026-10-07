@@ -47,5 +47,6 @@ export const suites = [
   "tests/usd-context/test_roof_workflow.mjs",
   "tests/usd-context/test_context_ribbon.mjs",
   "tests/usd-context/test_external_events.mjs",
+  "tests/usd-context/test_fundamental_tools.mjs",
   "tests/inspector/test_publication_layout.mjs"
 ]

@@ -3,8 +3,8 @@ import { clockInput, parseClockInput, type ExternalEvent } from '../core/externa
 import { deleteExternalEvent, saveExternalEvent } from '../storage/external-event-store'
 import { brokerClock } from '../../raycaster/ribbon/broker-clock'
 
-export function ExternalEventManager({ events, initialId, defaults, symbol, brokerId, onClose }: {
-  events: readonly ExternalEvent[]; initialId: string | null; defaults: { from: number; to: number }; symbol: string; brokerId: string; onClose: () => void
+export function ExternalEventManager({ events, initialId, defaults, symbol, brokerId, onClose, embedded = false }: {
+  events: readonly ExternalEvent[]; initialId: string | null; defaults: { from: number; to: number }; symbol: string; brokerId: string; onClose: () => void; embedded?: boolean
 }) {
   const panel = useRef<HTMLDivElement>(null)
   const blank = () => ({ id: null as string | null, title: '', note: '', from: clockInput(defaults.from), to: clockInput(defaults.to) })
@@ -13,13 +13,14 @@ export function ExternalEventManager({ events, initialId, defaults, symbol, brok
   const [status, setStatus] = useState(''), [error, setError] = useState('')
   useEffect(() => {
     panel.current?.focus({ preventScroll: true })
+    if (embedded) return
     const key = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); onClose() } }
     document.addEventListener('keydown', key)
     return () => document.removeEventListener('keydown', key)
-  }, [onClose])
+  }, [onClose, embedded])
   const selected = events.find(e => e.id === draft.id)
-  return <div ref={panel} tabIndex={-1} role="dialog" aria-label="Manual outside events" className="external-event-manager">
-    <header><strong>Outside events · Manual notes</strong><button type="button" aria-label="Close outside events" onClick={onClose}>×</button></header>
+  return <div ref={panel} tabIndex={-1} role={embedded ? 'group' : 'dialog'} aria-label="Manual outside events" className={`external-event-manager${embedded ? ' embedded' : ''}`}>
+    <header><strong>Outside events · Manual notes</strong><button type="button" aria-label={embedded ? 'Back to tool settings' : 'Close outside events'} onClick={onClose}>{embedded ? 'Back' : '×'}</button></header>
     <p>Gray highlights flag context outside the dataset. Your selected window is an annotation, not a measured impact period or a directional vote. These notes never change Candy or scoring.</p>
     <small>{symbol} · {brokerId} · Enter dates in broker chart time. Notes may be added retrospectively.</small>
     <form onSubmit={e => {

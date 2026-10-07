@@ -4,9 +4,8 @@ import { buildRibbonTimeline } from './ribbon/ribbon-timeline'
 import { useRelativePreferences } from '../pair-context/storage/relative-preferences'
 import { useEurContextTimeline } from '../pair-context/runtime/useEurContextTimeline'
 import { relativeContext, eurContextAt } from '../pair-context/core/relative-context'
-import { RelativeContextDetails } from '../pair-context/ui/RelativeContextDetails'
 import type { IChartApi, ISeriesApi, Time } from 'lightweight-charts'
-import { memo, useMemo, useState } from 'react'
+import { memo, useEffect, useMemo } from 'react'
 import type { ChartTimeframe } from '../market-data/contracts/ChartTimeframe'
 import type { TimeDisplayPreference } from '../appearance/time-display/time-display-preference'
 import { useUsdContextTimeline } from '../usd-context/runtime/useUsdContextTimeline'
@@ -15,7 +14,8 @@ import { useRaycasterHover } from './chart/useRaycasterHover'
 import { candleContextCutoff } from './chart/candle-cutoff'
 import { RaycasterBox } from './ui/RaycasterBox'
 import { useCalendarNow } from '../inspector/useCalendarNow'
-import { useRaycasterFamilies, toggleRaycasterFamily } from './storage/raycaster-family-settings'
+import { useRaycasterFamilies } from './storage/raycaster-family-settings'
+import { timeframeSeconds } from '../inspector/inspector-data'
 import { contextSourceFamilies } from '../usd-context/core/policy'
 import type { OhlcBar } from '../market-data/contracts/OhlcBar'
 import type { InspectorMarker } from '../inspector/inspector-data'
@@ -24,6 +24,7 @@ import type { CurrencyColors } from '../inspector/currency-colors'
 import { ComboRoofs } from '../usd-context/sequences/chart/ComboRoofs'
 import { useSequencePreferences } from '../usd-context/sequences/storage/sequence-preferences'
 import { lookupFreshNews } from '../usd-context/sequences/core/fresh-news'
+import { inspectionSignature, publishInspection, toolScope, useToolsOpen } from '../fundamental-tools/runtime/inspection-session'
 
 export type RaycasterProps = { boxVisible?: boolean; symbol: string; timeframe: ChartTimeframe; brokerId: string | null;
   brokerOffsetSeconds: number; clockOffsetMs: number; timeDisplay: TimeDisplayPreference; onClose: () => void;
@@ -39,7 +40,8 @@ function RaycasterComponent({ chartApi, seriesApi, ...props }: RaycasterProps & 
   const relativeEnabled = relativeSupported && relativePreferences.mode === 'relative'
   const sequencePreferences = useSequencePreferences()
   const eurHistory = useEurContextTimeline(props.brokerId, relativePreferences.families, now, relativeEnabled)
-  const [detailsOpen, setDetailsOpen] = useState(false)
+  const scope = toolScope(props.brokerId, props.symbol, props.timeframe)
+  const detailsOpen = useToolsOpen(scope)
   const hover = useRaycasterHover(chartApi, seriesApi, `${props.brokerId}:${props.symbol}:${props.timeframe}`, props.boxVisible !== false)
   const open = hover.open ?? (detailsOpen ? hover.lastOpen : null)
   const cutoff = open === null ? null : candleContextCutoff(open, props.timeframe, now, props.brokerOffsetSeconds)
@@ -49,17 +51,25 @@ function RaycasterComponent({ chartApi, seriesApi, ...props }: RaycasterProps & 
   const relationships = history.result?.relationships
   const fresh = relationships && cutoff !== null ? lookupFreshNews(relationships.fresh, cutoff) : null
   const message = !props.brokerId ? 'Select a connected broker with stored calendar history.' : !history.selected.length ?
-    'Enable an input in Raycaster’s gear popover.' : history.error ?? (relativeEnabled ? eurHistory.error ?? eurHistory.storage.error : null) ??
+    'Enable an input in Fundamental tools → Raycaster → Advanced settings.' : history.error ?? (relativeEnabled ? eurHistory.error ?? eurHistory.storage.error : null) ??
       (history.storage.error && !history.result ? history.storage.error : null)
   const partial = (relativeEnabled && (eurHistory.storage.error || eurHistory.result?.excludedTiming || Object.values(eurHistory.storage.coverage).some(c => c.missing.length > 0))) || history.storage.error || Object.values(history.storage.coverage).some(c => c.missing.length > 0) || history.result?.excludedTiming
   const ribbonPoints = useMemo(() => buildRibbonTimeline(history.result, eurHistory.result, relativeEnabled, props.symbol),
     [history.result, eurHistory.result, relativeEnabled, props.symbol])
+  useEffect(() => {
+    if (!detailsOpen) return
+    const range = chartApi.timeScale().getVisibleRange()
+    const end = now + props.brokerOffsetSeconds * 1000
+    publishInspection(scope, { usd: point, eur: eurPoint, fresh, cutoff, loading: history.loading || eurHistory.loading,
+      message, held: hover.open === null && open !== null,
+      signature: inspectionSignature(families, relativePreferences.mode, relativePreferences.families),
+      window: range ? { from: Math.min(Number(range.from) * 1000, end - 60000), to: Math.min(end, (Number(range.to) + timeframeSeconds[props.timeframe]) * 1000) } : null })
+  }, [detailsOpen, scope, point, eurPoint, fresh, cutoff, history.loading, eurHistory.loading, message, hover.open, open,
+    families, relativePreferences.mode, relativePreferences.families, chartApi, now, props.brokerOffsetSeconds, props.timeframe])
+  useEffect(() => () => publishInspection(scope, null), [scope])
   return <>{props.boxVisible !== false && <RaycasterBox symbol={props.symbol} point={point} cutoff={cutoff} loading={history.loading || eurHistory.loading} message={message}
-    fresh={fresh}
     relative={combined} relativeUpdate={eurPoint?.update ?? null}
-    extraDetails={<RelativeContextDetails eur={eurPoint} usd={point} loading={history.loading || eurHistory.loading} supported={relativeSupported} />}
-    families={families} detailsOpen={detailsOpen} onDetailsChange={setDetailsOpen} onToggleFamily={toggleRaycasterFamily}
-    held={detailsOpen && hover.open === null && open !== null} notice={partial ? 'Partial or timing-excluded history' : null}
+    notice={partial ? 'Partial or timing-excluded history' : null}
     timeDisplay={props.timeDisplay} onClose={props.onClose} />}
     {sequencePreferences.ribbon && props.bars && <ContextRibbon chartApi={chartApi} bars={props.bars} timeframe={props.timeframe}
       symbol={props.symbol} brokerId={props.brokerId}

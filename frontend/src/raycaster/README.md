@@ -1,7 +1,7 @@
 # Raycaster / USD context memory v6.2
 
-Press **Show Raycaster** (the wave glyph) beside the paintbrush toggle near the
-timeframe selector. Its active button toggles the box, and × hides it. Raycaster
+Press **Show Raycaster** (the wave glyph) in the outlined Fundamental tools group
+on the header's right, before Bid/Ask. Its active button toggles the box, and × hides it. Raycaster
 visibility is independent of the drawing toolbar. The header
 handle drags the box, constrained to the chart area. Visibility and position are
 saved locally and included in workspace export/import. Non-USD supported pairs
@@ -10,11 +10,12 @@ back to a supported major USD pair.
 
 Raycaster has saved CPI/NFP/Claims/ISM/Retail/PCE/PPI/GDP context filters, independent of
 Inspector marker filters. These controls are shared with CPI v4's publication
-context table; all eight inputs default On. The gear opens `ui/RaycasterDetails.tsx`;
-the shared `usd-context/ui/ContextInputTable.tsx` shows versions, clickable Enabled/
-Off controls, each source bias/evidence/date, source score, weighted contribution
-and the combined total. The compatibility `RaycasterInputTable.tsx` re-export
-keeps existing imports. Base weights are CPI 28%, PCE 10%, PPI 2%, NFP 30%, Claims 10%, ISM 10%,
+context table; all eight inputs default On. The shared header gear's Raycaster tab
+uses `fundamental-tools/settings/RaycasterSettings.tsx`. The shared
+`usd-context/ui/ContextInputTable.tsx` shows versions, read-only Enabled/Off status,
+each source bias/evidence/date, source score, weighted contribution and combined
+total. Input switches remain under Advanced settings. The old box gear, standalone
+RaycasterDetails and compatibility table re-export are retired. Base weights are CPI 28%, PCE 10%, PPI 2%, NFP 30%, Claims 10%, ISM 10%,
 Retail 7%, GDP 3%. Qualified Labor priority uses CPI 8%, NFP 50%, with other weights
 unchanged. The table shows effective/base weights; the rule details explain
 every condition using canonical publication-time CPI/NFP facts.
@@ -95,13 +96,14 @@ Claims v2 uses nonoverlapping underlying trends; only joint trend agreement can 
 
 ## Clickable roofs and the organized gear
 
-The gear now has flat, labeled sections: accumulated result; input contributions;
-active relationship conditions; experimental fresh-news change; chart controls;
-calculation/evidence notes. The optional relative EUR/USD controls remain within
-Inputs. The fresh-news and roof results specifically describe the USD side;
+The header gear has Raycaster, Roofs and Candy tabs. The Raycaster tab retains
+accumulated result, input contributions, active conditions, experimental fresh-news
+change and calculation notes. Roof controls/guide belong to Roofs; color/timing
+guidance belongs to Candy. The optional EUR/USD mode is shared above the tabs.
+The fresh-news and roof results specifically describe the USD side;
 they do not substitute for the optional relative main result.
 
-On EURUSD, **Show clickable combo roofs** connects already-qualified ISM-sector,
+On EURUSD, the **Roofs** chevrons-up icon shows already-qualified ISM-sector,
 labor/inflation and weekly-labor relationships above visible event markers.
 Dashed roofs identify the seven-day fresh-news experiment. Both display controls
 default On and are saved/exported independently of the context-family switches.
@@ -160,7 +162,8 @@ The box still uses candle-end cutoff. Roof relationships remain USD-only, even
 when the box/ribbon compare EUR against USD. Numerical engine versions are unchanged.
 
 The separate gray strip immediately above Candy contains manual outside-event
-notes. Outside events + opens title/range/observation editing; these annotations
+notes. The shared gear's Manage outside events opens title/range/observation editing
+even with Candy hidden; clicking a highlight can still open its note. These annotations
 are stored per broker/pair and exported with the workspace. Their chart clocks and
 actual UTC recording dates are separate. They add no votes, history fetches or
 worker rebuilds. See [outside-event ownership](../external-events/README.md).

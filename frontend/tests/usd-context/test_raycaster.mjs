@@ -26,7 +26,7 @@ globalThis.Worker = class {
 const { createRoot } = await import('react-dom/client')
 const container = document.createElement('div'); document.body.appendChild(container)
 const root = createRoot(container)
-const series = {}, chart = { subscribeCrosshairMove: callback => { handler = callback; subscribed++ }, unsubscribeCrosshairMove: () => { unsubscribed++ } }
+const series = {}, chart = { subscribeCrosshairMove: callback => { handler = callback; subscribed++ }, unsubscribeCrosshairMove: () => { unsubscribed++ }, timeScale: () => ({ getVisibleRange: () => null }) }
 const tick = async () => React.act(async () => { for (const [id, callback] of frames) { frames.delete(id); callback() } })
 try {
   const { Raycaster } = await server.ssrLoadModule('./src/raycaster/Raycaster.tsx')
@@ -34,6 +34,7 @@ try {
   const { contextSeriesIds } = await server.ssrLoadModule('./src/usd-context/core/score-publication.ts')
   const { FloatingDrawingToolbar } = await server.ssrLoadModule('./src/market-data/chart-drawings/FloatingDrawingToolbar.tsx')
   const { ChartWorkspaceHeader } = await server.ssrLoadModule('./src/terminal-shell/ChartWorkspaceHeader.tsx')
+  const { ContextViewControls } = await server.ssrLoadModule('./src/terminal-shell/chart-overlays/ContextViewControls.tsx')
   const { defaultInspectorPreferences } = await server.ssrLoadModule('./src/inspector/inspector-data.ts')
   const { exportWorkspace, parseWorkspaceSnapshot, restoreWorkspace } = await server.ssrLoadModule('./src/workspace-portability/workspace-snapshot.ts')
   const preference = await server.ssrLoadModule('./src/raycaster/storage/raycaster-preferences.ts')
@@ -50,7 +51,9 @@ try {
   const props = { chartApi: chart, seriesApi: series, symbol: 'EURUSD', timeframe: 'H1', brokerId: 'Broker-A',
     brokerOffsetSeconds: 10800, clockOffsetMs: Date.UTC(2018, 7, 1) - Date.now(),
     timeDisplay: { mode: 'utc', utcOffsetMinutes: 0 }, onClose: () => { closed++ } }
-  const render = (next = props) => React.act(async () => root.render(React.createElement(Raycaster, next)))
+  const render = (next = props) => React.act(async () => root.render(React.createElement(React.Fragment, null,
+    React.createElement(ContextViewControls, { ...next, supported: true, raycasterVisible: next.boxVisible !== false, onToggleRaycaster: next.onClose }),
+    React.createElement(Raycaster, next))))
   await render()
   assert.equal(workers.length, 1); assert.equal(workers[0].jobs.length, 1)
   assert.match(container.textContent, /Calculating USD context/)
@@ -100,7 +103,7 @@ try {
   assert.match(container.textContent, /Hover a candle/, 'Reopening the hover box cannot revive an old candle')
   await React.act(async () => handler({ time: open, point: { x: 1, y: 5 }, seriesData: new Map([[series, {}]]) }))
   await tick()
-  const gear = container.querySelector('button[aria-label="Raycaster calculation and inputs"]')
+  const gear = container.querySelector('button[aria-label="Fundamental tools settings"]')
   await React.act(async () => gear.click())
   const details = container.querySelector('[role="dialog"]')
   assert.ok(details); assert.equal(gear.getAttribute('aria-expanded'), 'true')
@@ -183,7 +186,7 @@ try {
   assert.match(container.textContent, /Background calculation failed/)
   await React.act(async () => familySettings.saveRaycasterFamilies([]))
   assert.equal(workers[0].terminated, true)
-  assert.match(container.textContent, /Enable an input in Raycaster/)
+  assert.match(container.textContent, /Enable an input in Fundamental tools/)
   await React.act(async () => gear.click())
   const allOff = container.querySelector('[role="dialog"]')
   assert.equal(allOff.querySelector('[aria-label="Use CPI v4"]'), null)
@@ -197,7 +200,7 @@ try {
   const retailJob = workers[3].jobs[0]
   await React.act(async () => workers[3].onmessage({ data: { id: retailJob.id, result: buildContextTimeline(retailJob.input) } }))
   assert.match(allOff.textContent, /Enabled weight: 7%/)
-  await React.act(async () => container.querySelector('[aria-label="Close Raycaster details"]').click())
+  await React.act(async () => container.querySelector('[aria-label="Close fundamental tools settings"]').click())
   assert.equal(document.activeElement, gear)
   await React.act(async () => container.querySelector('[aria-label="Hide Raycaster"]').click())
   assert.equal(closed, 1)
@@ -212,7 +215,8 @@ try {
   await React.act(async () => root.render(React.createElement(ChartWorkspaceHeader, headerProps)))
   const toggle = container.querySelector('[aria-label="Show Raycaster"]')
   assert.ok(toggle); assert.equal(toggle.getAttribute('aria-pressed'), 'false')
-  assert.equal(container.querySelector('[aria-label="Hide drawing toolbar"]').nextElementSibling, toggle)
+  assert.equal(container.querySelector('[aria-label="Hide drawing toolbar"]').closest('.chart-toolbar-center').querySelector('[aria-label="Show Raycaster"]'), null)
+  assert.equal(toggle.closest('.chart-toolbar-right').querySelector('[aria-label="Fundamental tools"]'), toggle.parentElement)
   await React.act(async () => toggle.click()); assert.equal(toggles, 1)
   await React.act(async () => root.render(React.createElement(ChartWorkspaceHeader, { ...headerProps, drawingToolbarVisible: false, raycasterVisible: true })))
   assert.equal(container.querySelector('[aria-label="Hide Raycaster"]').getAttribute('aria-pressed'), 'true')
@@ -247,7 +251,7 @@ try {
   assert.throws(() => parseWorkspaceSnapshot(JSON.stringify({ ...exported, entries: { [preference.raycasterPositionKey]: '{"x":-1,"y":0}' } })), /Invalid/)
   assert.equal(preference.readRaycasterVisible(), true)
   assert.equal(buildContextTimeline({ events: [], families: [], settings, asOf: 0 }).points.length, 0)
-  console.log('✓ Mounted Raycaster hover, worker reuse/cleanup, calculation popover, adjacent independent header toggle and portable preferences')
+  console.log('✓ Mounted Raycaster hover, shared gear inspection, worker reuse/cleanup, right-side independent header toggle and portable preferences')
 } finally {
   await React.act(async () => root.unmount())
   await server.close(); await dom.happyDOM.close()

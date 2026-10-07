@@ -68,7 +68,7 @@ export function FyodorTerminalShell() {
   const [drawingToolbarVisible, setDrawingToolbarVisible] = useState<boolean>(readDrawingToolbarVisible)
   const [raycasterVisible, setRaycasterVisible] = useState(readRaycasterVisible)
   const [comboSelection, setComboSelection] = useState<{ combo: ComboSnapshot; symbol: string; broker: string | null } | null>(null)
-  const [bottomDockWindow, setBottomDockWindow] = useState<BottomDockWindow | null>('notebook')
+  const [bottomDockWindow, setBottomDockWindow] = useState<BottomDockWindow | null>('activity')
   const [scatterTarget, setScatterTarget] = useState<ScatterReleaseTarget | null>(null)
   const dockSize = useBottomDockSize(bottomDockWindow)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -312,6 +312,10 @@ export function FyodorTerminalShell() {
             raycasterVisible={raycasterVisible}
             raycasterSupported={raycasterSupported}
             onToggleRaycaster={toggleRaycaster}
+            brokerId={brokerId}
+            brokerOffsetSeconds={brokerOffsetSeconds}
+            clockOffsetMs={bridge.clockOffsetMs}
+            timeDisplay={timeDisplay}
           />
           <div className="chart-frame">
             <MarketChartErrorBoundary

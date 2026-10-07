@@ -1,0 +1,26 @@
+.fundamental-tools { position: relative; z-index: 30; display: flex; align-items: center; flex-shrink: 0; gap: 2px; padding: 3px; border: 1px solid var(--border-strong); border-radius: 9px; background: var(--surface-panel); }
+.fundamental-tools > .chart-drawing-toggle { width: 32px; height: 32px; border: 0; border-radius: 5px; background: transparent; box-shadow: none; }
+.fundamental-tools > .chart-drawing-toggle.active { background: var(--accent); color: #fff; }
+.fundamental-tools > .fundamental-tools-gear { border-left: 1px solid var(--border); border-radius: 0 5px 5px 0; margin-left: 2px; }
+.fundamental-tools button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.fundamental-tools-popover { position: absolute; right: 0; top: calc(100% + 8px); width: min(620px, calc(100vw - 24px)); max-height: min(72vh, 680px); overflow: auto; padding: 12px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--surface-panel); box-shadow: var(--shadow); color: var(--text); font-size: 11px; line-height: 1.5; }
+.fundamental-tools-popover > header { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 10px; }
+.fundamental-tools-popover button { font: inherit; color: var(--text); background: var(--surface-panel); border: 1px solid var(--border-strong); border-radius: 4px; padding: 4px 7px; cursor: pointer; }
+.fundamental-tools-popover button:disabled { opacity: .5; cursor: default; }
+.fundamental-tools-popover select { padding: 4px 6px; border: 1px solid var(--border); border-radius: 4px; background: var(--surface-panel); color: var(--text); font: inherit; }
+.shared-context-mode { padding: 7px 0 10px; border-top: 1px solid var(--border); }
+.shared-context-mode label, .tool-settings-sections label { display: flex; align-items: center; gap: 8px; margin: 5px 0; }
+.shared-context-mode small, .fundamental-tools-popover footer small { display: block; color: var(--text-muted); font-size: 10px; }
+.fundamental-tools-popover [role="tablist"] { display: flex; gap: 4px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+.fundamental-tools-popover [role="tab"] { flex: 1; }
+.fundamental-tools-popover [role="tab"][aria-selected="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.fundamental-tools-popover .raycaster-details { border: 0; background: transparent; margin: 0; padding: 0; }
+.fundamental-tools-popover footer { border-top: 1px solid var(--border); padding-top: 10px; margin-top: 10px; }
+.tool-settings-sections section { padding: 10px 0; border-bottom: 1px solid var(--border); }
+.tool-settings-sections h3 { font-size: 11px; margin: 0 0 6px; }
+.tool-settings-sections p { margin: 6px 0; }
+.tool-settings-sections dt { font-weight: 600; }.tool-settings-sections dd { margin: 0 0 8px; color: var(--text-muted); }
+.tool-settings-sections ul { columns: 2; padding-left: 18px; }
+.candy-color-key { display: flex; gap: 8px; }.candy-color-key span { padding: 3px 8px; border-radius: 3px; }
+.candy-color-key .long { background: #b8e5d7; color: #004f3b; }.candy-color-key .short { background: #facac3; color: #7e2419; }.candy-color-key .unavailable { background: #9aa4b5; color: #142035; }
+.fundamental-tools-popover .external-event-manager.embedded { position: static; width: auto; max-height: none; overflow: visible; padding: 0; border: 0; background: transparent; box-shadow: none; }

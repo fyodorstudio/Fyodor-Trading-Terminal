@@ -2024,3 +2024,30 @@ passed. Coverage includes symbol-to-release routing, direction-box Combo details
 counted choosers and Escape focus restoration, actual versus memory activation,
 custom colors, stable pan projection, overflow and existing responsiveness boundaries.
 Visual spacing across zoom levels remains for the user's audit.
+
+## 7 October 2026 — Fundamental tools UI v1
+
+Raycaster, Roofs and Candy now use SVG buttons in one outlined header group on the
+right, with the shared settings gear. The original timeframe/drawing controls stay
+together. The popover has Raycaster, Roofs and Candy tabs, common context mode and
+Manage outside events, available with all views hidden. Focused/All moved into the
+Roofs tab and is now saved/exported as an optional compatible display preference.
+
+Retired the Raycaster box gear/details wrapper, compatibility input-table re-export,
+standalone RoofGuide/SequenceControls, chart density buttons and chart Outside
+events + button. Their input controls, guides, contribution breakdown and manual
+editor are retained within the shared popover. Highlight-click note editing stays.
+
+A scoped transient channel carries the existing inspected snapshot to the popover
+only while it is open. It starts no scoring/fetch job and avoids forwarding hover
+updates through the chart parent. Scope/input signatures prevent stale readings.
+No scorer, numerical engine, roof qualification or audit identity changed.
+
+Implementation ownership is documented in frontend/src/fundamental-tools/README.md;
+user guidance and pending visual checks are in trading workflow.md and manual edit.md.
+
+Validation: ten targeted terminal suites, lint, TypeScript and production build
+passed. Regression coverage includes scoped shared-gear inspection, unchanged
+worker reuse, EUR/USD modes, hidden-view annotation editing, keyboard/focus cleanup,
+saved density and portability, chart render boundaries and existing roof/ribbon
+timing/pan behavior. Visual positioning remains with the user.

@@ -69,7 +69,7 @@ existing point results; they do not copy the full calendar or price history.
 
 ## Auditing
 
-Enable Roofs near the timeframe selector, enable desired context inputs and Inspector markers/date range,
+Enable Roofs with the chevrons-up icon in the right-side Fundamental tools group, enable desired context inputs and Inspector markers/date range,
 then click a roof. Read its known-by clock, source roles, standalone outputs and
 before/after result. Open any source to inspect its actual readings. Record H1
 release-candle reaction separately from later 4/24-bar reactions; a delayed rally
@@ -108,7 +108,7 @@ direction and family set keep the highest-ranked representative. Opposing roofs
 are never deduplicated as the same direction, but can still overflow crowded lanes.
 Every omitted eligible roof remains in **+N more**, newest activation first, with
 its direction, evidence and broker time. **All roofs** uses three lanes and
-full-span collision avoidance, including symbol/label footprints. Focus is a session display choice; neither mode
+full-span collision avoidance, including symbol/label footprints. Density is a saved display choice in the shared gear's Roofs tab; neither mode
 changes relationship qualification or scoring and neither fits to price.
 
 The endpoint tagged Starts/Update marks the containing activation candle. The tooltip
@@ -139,7 +139,7 @@ observations with a visible message. Automatic price labeling remains deferred.
 
 Header controls independently toggle Roofs, Candy (the accumulated context ribbon)
 and Raycaster's hover box. The shared controller remains mounted while any view is
-active; hiding the box unsubscribes its crosshair listener. The roof gear explains
+active; hiding the box unsubscribes its crosshair listener. The shared gear's Roofs tab explains
 the four relationship types, current USD input exclusions and shape semantics.
 Focused keeps the previous ranking and deduplication, now with three lanes.
 

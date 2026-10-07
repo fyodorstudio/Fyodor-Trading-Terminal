@@ -18,8 +18,8 @@ function ExternalEventsStripComponent({ chartApi, bars, timeframe, now, symbol, 
   const intervals = useMemo(() => externalIntervals(events), [events])
   const [positions, setPositions] = useState<(ExternalInterval & { left: number; width: number })[]>([])
   const [manager, setManager] = useState<{ id: string | null; from: number; to: number } | null>(null)
-  const addButton = useRef<HTMLButtonElement>(null)
-  const close = useCallback(() => { setManager(null); addButton.current?.focus({ preventScroll: true }) }, [])
+  const trigger = useRef<HTMLButtonElement>(null)
+  const close = useCallback(() => { setManager(null); trigger.current?.focus({ preventScroll: true }) }, [])
   useEffect(() => {
     if (!intervals.length) return
     const scale = chartApi.timeScale(), duration = timeframeSeconds[timeframe]
@@ -41,17 +41,16 @@ function ExternalEventsStripComponent({ chartApi, bars, timeframe, now, symbol, 
     update(); scale.subscribeVisibleLogicalRangeChange(schedule); scale.subscribeSizeChange(schedule)
     return () => { if (frame) window.cancelAnimationFrame(frame); scale.unsubscribeVisibleLogicalRangeChange(schedule); scale.unsubscribeSizeChange(schedule) }
   }, [chartApi, bars, timeframe, now, intervals])
-  const open = (id: string | null) => {
+  const open = (id: string, button: HTMLButtonElement) => {
+    trigger.current = button
     const range = chartApi.timeScale().getVisibleRange(), duration = timeframeSeconds[timeframe] * 1000
     const from = range ? Math.min(now - 60000, Number(range.from) * 1000) : now - duration
     const to = Math.max(from + 60000, Math.min(now, range ? (Number(range.to) * 1000 + duration) : now))
     setManager({ id, from, to })
   }
   return <div className="external-events" aria-label="Manually highlighted outside events">
-    <button ref={addButton} className="external-events-add" type="button" disabled={!brokerId || !symbol} onClick={() => open(null)}
-      title="Record an outside event in broker chart time; no scoring contribution">Outside events +</button>
     <div className="external-events-track">{(intervals.length ? positions : []).map(p => <button type="button" key={p.from} className="external-event-highlight"
-      style={{ left: p.left, width: p.width }} onClick={() => open(p.events[0].id)}
+      style={{ left: p.left, width: p.width }} onClick={e => open(p.events[0].id, e.currentTarget)}
       aria-label={`Manual outside event: ${p.events.map(e => e.title).join(' + ')}`}
       title={`${p.events.map(e => e.title + (e.note ? ': ' + e.note : '')).join('\n')}\n${brokerClock(p.from)} → ${brokerClock(p.to)}\nManual annotation · outside dataset · no directional vote`} />)}</div>
     {manager && brokerId && <ExternalEventManager key={manager.id ?? 'new'} events={events} initialId={manager.id} defaults={manager}

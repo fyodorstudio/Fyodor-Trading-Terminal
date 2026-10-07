@@ -2,11 +2,12 @@ import { useSyncExternalStore } from 'react'
 
 export const sequencePreferencesKey = 'fyodor.context-sequences.v1'
 const changed = sequencePreferencesKey + ':changed'
-export type SequencePreferences = { roofs: boolean; fresh: boolean; ribbon?: boolean }
-const defaults = Object.freeze({ roofs: true, fresh: true, ribbon: false })
+export type SequencePreferences = { roofs: boolean; fresh: boolean; ribbon?: boolean; density?: 'focused' | 'all' }
+const defaults: Readonly<SequencePreferences> = Object.freeze({ roofs: true, fresh: true, ribbon: false })
 let cached: SequencePreferences = defaults, cachedRaw: string | null | undefined
 export function validSequencePreferences(v: unknown): v is SequencePreferences {
-  return !!v && typeof v === 'object' && 'roofs' in v && typeof v.roofs === 'boolean' && 'fresh' in v && typeof v.fresh === 'boolean' && (!('ribbon' in v) || typeof v.ribbon === 'boolean')
+  return !!v && typeof v === 'object' && 'roofs' in v && typeof v.roofs === 'boolean' && 'fresh' in v && typeof v.fresh === 'boolean' &&
+    (!('ribbon' in v) || typeof v.ribbon === 'boolean') && (!('density' in v) || v.density === 'focused' || v.density === 'all')
 }
 export function readSequencePreferences() {
   if (typeof window === 'undefined') return defaults
@@ -16,7 +17,7 @@ export function readSequencePreferences() {
       cachedRaw = raw
       let value: unknown = null
       try { value = JSON.parse(raw ?? 'null') } catch { /* Invalid saved values use defaults. */ }
-      cached = validSequencePreferences(value) ? Object.freeze({ roofs: value.roofs, fresh: value.fresh, ...(value.ribbon === undefined ? {} : { ribbon: value.ribbon }) }) : defaults
+      cached = validSequencePreferences(value) ? Object.freeze({ roofs: value.roofs, fresh: value.fresh, ...(value.ribbon === undefined ? {} : { ribbon: value.ribbon }), ...(value.density === undefined ? {} : { density: value.density }) }) : defaults
     }
   } catch { /* Retain session settings if storage is unavailable. */ }
   return cached
