@@ -1687,3 +1687,34 @@ and automatic fixed-window price audit remain deferred. Dated roof counts includ
 overlapping updates, not independent trials or validated high-volatility setups.
 Audit release meaning, combined context and price reaction separately before
 promoting new rules. Visual placement/readability checks remain with the user.
+
+## 7 October 2026 — Manual backlog and consistent publication layout
+
+[manual edit.md](manual%20edit.md) records the outstanding manual audits,
+previously reported spot checks and unresolved dates. Unchecked means the user
+has not reported completing that review; successful terminal checks do not mark
+an economic or visual audit complete. Deferred research is listed separately
+from implemented features that need review.
+
+Every selectable Inspector scoring view now shares two labeled columns:
+**Standalone Scoring** on the left; **Context-Aware at Publication Scoring** on
+the right. This covers registered USD/EUR families, legacy comparisons, advanced
+CPI/NFP/ISM versions, CPI v4 and Fed decisions. Relative EUR/USD and USD inputs
+remain in the context column, with a visible publication cutoff and saved mode
+selector. Narrow docks stack standalone first. Tables have explicit context
+column budgets and wrap long source/retention text; the generic first-column and
+nowrap rules cannot spill into neighboring tables.
+
+Fed's left side now shows the numerical action, rate-path facts and guidance
+coverage; a hold has no standalone direction. Its contextual direction and prior
+meeting comparison appear on the right. CPI v4 keeps its original release
+components on the left and before/after context, conditions and contributions
+on the right. Scoring formulas, weights, input preferences and worker engines
+are unchanged. Context uses the current family policies even when a legacy
+standalone version is selected, as disclosed in its input table.
+
+The new terminal integration suite checks all registry/advanced views, relative
+mode switching, Fed action/context independence and table cascade in either CSS
+load order. Actual placement, resizing and readability remain user visual checks.
+All 44 suites were verified in sequential runs; lint and the TypeScript/production
+build pass. The manual checklist remains unchecked pending the user's review.

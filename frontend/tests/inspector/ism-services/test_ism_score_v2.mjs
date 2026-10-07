@@ -201,7 +201,8 @@ try {
   const panelProps={view,symbol:'EURUSD.a',source:null,error:null,timeDisplay:{mode:'utc',utcOffsetMinutes:0},onOpenScatter(r){opened=r}}
   const panel=mount(InspectorPanel,panelProps);await panel.render()
   const select=panel.container.querySelector('[aria-label="Inspector view"]');assert.equal(select.value,'scoring-v2')
-  assert.equal(panel.container.querySelectorAll('.inspector-scoring-view').length,1)
+  assert.equal(panel.container.querySelectorAll('[aria-label="Standalone Scoring"] .inspector-scoring-view').length,1)
+  assert.equal(panel.container.querySelectorAll('[aria-label="Context-Aware at Publication Scoring"] .inspector-scoring-view').length,1)
   await click([...panel.container.querySelectorAll('button')].find(b=>b.textContent==='Inspect Manufacturing signals'));assert.equal(opened.id,manufacturing.id)
   await choose(select,'table');assert.equal(saved.detailView,'table')
   await panel.render({...panelProps,view:{...view,selectedRelease:manufacturing}});assert.equal(panel.container.querySelector('[aria-label="Inspector view"]').value,'scoring-v2')

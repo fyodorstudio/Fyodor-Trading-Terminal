@@ -15,16 +15,16 @@ import type { InspectorScoringBinding } from './scoring-contracts'
 const matchesEurusdSymbol = (symbol: string) => /^EURUSD(?:[._-].*|[a-z]*)$/i.test(symbol)
 
 export const inspectorScoringBindings: readonly InspectorScoringBinding[] = [
-  { pair: 'EURUSD', country: 'EU', currency: 'EUR', familyId: 'ecb', matchesSymbol: matchesEurusdSymbol, Component: EcbScore, fullView: true },
+  { pair: 'EURUSD', country: 'EU', currency: 'EUR', familyId: 'ecb', matchesSymbol: matchesEurusdSymbol, Component: EcbScore },
   ...eurPolicies.map(policy => ({ pair: 'EURUSD', country: policy.country, currency: 'EUR' as const, familyId: policy.family,
-    matchesSymbol: matchesEurusdSymbol, Component: EurScore, fullView: true })),
-  ...['gdp', 'ppi'].map(familyId => ({ pair: 'EURUSD', country: 'US', currency: 'USD' as const, familyId, matchesSymbol: matchesEurusdSymbol, Component: ExpandedReleaseScore, fullView: true })),
-  ...['fomc', 'fed-chair'].map(familyId => ({ pair: 'EURUSD', country: 'US', currency: 'USD' as const, familyId, matchesSymbol: matchesEurusdSymbol, Component: FedScore, fullView: true, includesContext: familyId === 'fomc' })),
+    matchesSymbol: matchesEurusdSymbol, Component: EurScore })),
+  ...['gdp', 'ppi'].map(familyId => ({ pair: 'EURUSD', country: 'US', currency: 'USD' as const, familyId, matchesSymbol: matchesEurusdSymbol, Component: ExpandedReleaseScore })),
+  ...['fomc', 'fed-chair'].map(familyId => ({ pair: 'EURUSD', country: 'US', currency: 'USD' as const, familyId, matchesSymbol: matchesEurusdSymbol, Component: FedScore, includesContext: true })),
   { pair: 'EURUSD', country: 'US', currency: 'USD', familyId: 'jobs', matchesSymbol: matchesEurusdSymbol, Component: NfpMagnitudeScoreTables },
   { pair: 'EURUSD', country: 'US', currency: 'USD', familyId: 'us-cpi', matchesSymbol: matchesEurusdSymbol, Component: CpiMagnitudeScoreTables },
-  { pair: 'EURUSD', country: 'US', currency: 'USD', familyId: 'pce', matchesSymbol: matchesEurusdSymbol, Component: PceScore, fullView: true },
-  { pair: 'EURUSD', country: 'US', currency: 'USD', familyId: 'retail', matchesSymbol: matchesEurusdSymbol, Component: RetailScore, fullView: true },
-  { pair: 'EURUSD', country: 'US', currency: 'USD', familyId: 'claims', matchesSymbol: matchesEurusdSymbol, Component: ClaimsScore, fullView: true },
+  { pair: 'EURUSD', country: 'US', currency: 'USD', familyId: 'pce', matchesSymbol: matchesEurusdSymbol, Component: PceScore },
+  { pair: 'EURUSD', country: 'US', currency: 'USD', familyId: 'retail', matchesSymbol: matchesEurusdSymbol, Component: RetailScore },
+  { pair: 'EURUSD', country: 'US', currency: 'USD', familyId: 'claims', matchesSymbol: matchesEurusdSymbol, Component: ClaimsScore },
 ]
 
 export function inspectorScoringBinding(symbol: string, release: InspectorRelease | null) {

@@ -3,13 +3,12 @@ import type { EurContextPoint } from '../core/contracts'
 import { relativeContext } from '../core/relative-context'
 import type { ContextPoint } from '../../usd-context/core/contracts'
 import { eurPolicies } from '../../inspector/scoring/PAIR/EURUSD/EUR/policy/eur-policies'
-import { useRelativePreferences, saveRelativePreferences, toggleEurFamily } from '../storage/relative-preferences'
+import { useRelativePreferences, toggleEurFamily } from '../storage/relative-preferences'
+import { ContextViewSelector } from './ContextViewSelector'
 export function RelativeContextDetails({eur,usd,loading,supported}:{eur:EurContextPoint|null;usd:ContextPoint|null;loading:boolean;supported:boolean}){
   const preferences=useRelativePreferences(), result=relativeContext(eur,usd)
   return <section aria-label="Relative EURUSD calculation">
-    <label>Context view <select aria-label="Raycaster context view" value={supported?preferences.mode:'usd'} disabled={!supported}
-      onChange={e=>saveRelativePreferences({...preferences,mode:e.target.value as 'usd'|'relative'})}>
-      <option value="usd">USD side</option><option value="relative">EUR vs USD</option></select></label>
+    <ContextViewSelector supported={supported}/>
     {supported && preferences.mode==='relative' && <>
       <p>EUR and USD each have a 100% budget: inflation 40%, labor / wages 40%, activity 20%. Each leg is normalized by the maximum magnitude of 4. EUR pressure minus USD pressure gives the pair direction; missing weights stay missing.</p>
       <table className="relative-context-inputs" aria-label="EUR relative context inputs"><thead><tr><th>EUR input</th><th>Use</th><th>Contribution</th></tr></thead><tbody>

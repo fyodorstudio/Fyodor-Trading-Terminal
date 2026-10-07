@@ -1,10 +1,1 @@
-.inspector-scoring-view.inspector-cpi-v4 { display: block; min-width: 0; overflow-x: hidden; overflow-y: auto; overflow-wrap: anywhere; }
-.inspector-cpi-v4-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 12px; margin: 10px 0; }
-.inspector-cpi-v4-cards section { min-width: 0; padding: 10px; border: 1px solid var(--border); border-radius: 5px; }
-.inspector-cpi-v4 h3 { font-size: inherit; margin: 10px 0 7px; }
-.inspector-cpi-v4 p { max-width: 110ch; margin: 7px 0; }
 .inspector-cpi-v4-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
-.inspector-cpi-v4 .inspector-table-scroll { overflow: visible; }
-.inspector-cpi-v4 table { width: 100%; table-layout: fixed; }
-.inspector-cpi-v4 th, .inspector-cpi-v4 td { white-space: normal; overflow-wrap: anywhere; }
-.inspector-cpi-v4 td small { display: block; color: var(--text-muted); }

@@ -13,7 +13,7 @@ export function PublicationContext({ release, brokerId = null, events = empty, n
 }) {
   const { families, context, eligible, at, before, result, ready } = usePublicationContext(release, brokerId, events, now)
   return <section className="inspector-detail-overview inspector-scoring-view inspector-structured-score" aria-label="Combined USD context at publication">
-    <h3>Combined context at this publication</h3>
+    <h3>USD context at publication</h3>
     <div className="inspector-release-score-summary"><strong className={`inspector-majority inspector-direction-${ready && result?.direction === 'stronger' ? 'short' : ready && result?.direction === 'weaker' ? 'long' : 'uncomputed'}`}>{ready ? contextPairLabel('EURUSD', result?.direction ?? 'uncomputed') : 'Uncomputed'}</strong>
       {ready && result?.strength && <span>{result.strength} context evidence</span>}</div>
     <p>{context.loading ? 'Calculating publication context…' : context.error ?? (!eligible ? 'A verified, already published chart time is required.' : result?.explanation ?? 'No enabled context assessment is available.')}</p>
@@ -22,6 +22,6 @@ export function PublicationContext({ release, brokerId = null, events = empty, n
     <ContextInputTable families={families} onToggleFamily={toggleContextFamily} result={result} symbol="EURUSD" loading={context.loading}
       unavailable={!eligible || !!context.error} cutoff={at} timeDisplay={timeDisplay} tableLabel="Publication context inputs" summaryLabel={ready ? contextPairLabel('EURUSD', result?.direction ?? 'uncomputed') : 'Uncomputed'} />
     {ready && <ContextPolicyDetails policy={result?.policy} />}
-    <p>Uses only releases available at this publication. These controls are shared with Raycaster and CPI v4, independently of chart-marker filters. This context does not replace the standalone interpretation above. Policy text coverage is unavailable.</p>
+    <p>Uses only releases available at this publication. These controls are shared with Raycaster and CPI v4, independently of chart-marker filters. This context is separate from Standalone Scoring and uses the family policies listed in its input table, including when a legacy release view is selected. Policy text coverage is unavailable.</p>
   </section>
 }

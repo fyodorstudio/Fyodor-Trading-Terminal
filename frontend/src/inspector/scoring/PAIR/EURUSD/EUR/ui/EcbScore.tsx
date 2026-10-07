@@ -7,6 +7,6 @@ export function EcbScore({release,now=0}:InspectorScoringProps){
       {eligible && score?.strength && <span>{score.strength} rate-action evidence</span>}<small>ECB v1 · Numerical action</small></div>
     <p>{eligible?score?.explanation:'A verified, already published release is required.'}</p><p><strong>{eligible?score?.action:'Action unavailable'}</strong></p>
     <div className="inspector-table-scroll"><table aria-label="ECB rate actions"><thead><tr><th>Rate</th><th>Actual</th><th>Change</th></tr></thead><tbody>{score?.readings.map(row=><tr key={row.id}><td>{row.label}</td><td>{eligible && row.actual!==null?`${row.actual}%`:'—'}</td><td>{eligible && row.delta!==null?`${row.delta} bp`:'—'}</td></tr>)}</tbody></table></div>
-    <p>Deposit facility anchors the action; overlapping policy rates do not cast three independent votes. A hold adds no vote and never renews macro evidence. Statement and press-conference rows have no numerical content in the dataset. Select EUR vs USD in Raycaster to show relative economic context alongside releases.</p>
+    <p>Deposit facility anchors the action; overlapping policy rates do not cast three independent votes. A hold adds no vote and never renews macro evidence. Statement and press-conference rows have no numerical content in the dataset. Select EUR vs USD in the context column or Raycaster to show relative economic context alongside releases.</p>
   </section>
 }

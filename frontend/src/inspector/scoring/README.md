@@ -595,9 +595,16 @@ calibrate numeric event labels as speeches. The `FED/ui` view marks guidance
 coverage unavailable. Its context panel describes the economic background,
 not what an unstored statement communicated.
 
-`InspectorScoringView` composes registered full standalone views with
-`usd-context/ui/PublicationContext`. Source output stays separate from combined
-output, and all shared controls operate on the same saved preference as Raycaster.
+`InspectorScoringView` composes every registered scorer through
+`shared/ui/PublicationScoringLayout`: Standalone Scoring on the left and
+Context-Aware at Publication Scoring on the right. `PublicationScoringContext`
+keeps both USD and optional relative EUR/USD panels inside the right column.
+Advanced CPI/NFP/ISM selections use the same layout; CPI v4 retains its original
+before/after comparison there. Fed owns this shared layout internally to keep
+rate action separate from its previous-meeting contextual comparison. Legacy
+selected release scorers remain unchanged; context always uses the current family
+policies listed in its shared input table. All controls retain the same saved
+preferences as Raycaster. Narrow docks stack standalone before context.
 Tests: `tests/inspector/expanded/test_usd_menu.mjs`, context/portability regressions
 and the chronological `scripts/audit-usd-menu-v5.mjs`.
 
@@ -615,7 +622,7 @@ The separate level explanation compares current smoothed initial and current con
 
 `CLAIMS-V2-SIGNALS` isolates magnitude overrides because the feature formulas changed. Legacy V1 cutoffs remain portable under their old key, without affecting V2. Raw Actual-minus-Previous settings are unchanged. The new `scripts/audit-claims-v2.mjs` checks all stored publications, scorer/Scatter parity, future removal and compiled worker parity.
 
-Fed v2 owns a single context panel instead of receiving a duplicate generic panel. The main bias equals Raycaster at the exact numeric decision time; the factual hold/hike/cut and action-only interpretation remain separate. Previous-meeting context uses an independently scoped prior numeric rate record, the same active context filters/settings and each meeting's historical cutoff. Ambiguous/missing previous records are not silently replaced by an older meeting. A Fed hold adds no vote or renewed memory. Policy-pressure descriptions are declared interpretations, not observed Fed guidance. Speeches, statements, projections and conference content are excluded from this implementation.
+Fed v2 owns a single USD context panel instead of receiving a duplicate generic panel. The contextual bias on the right equals Raycaster's USD interpretation at the exact numeric decision time; the factual hold/hike/cut and action-only interpretation appear on the left. Previous-meeting context uses an independently scoped prior numeric rate record, the same active context filters/settings and each meeting's historical cutoff. Ambiguous/missing previous records are not silently replaced by an older meeting. A Fed hold adds no vote or renewed memory and has no standalone direction. Policy-pressure descriptions are declared interpretations, not observed Fed guidance. Speeches, statements, projections and conference content are excluded from this implementation.
 
 
 ## EUR numerical v1 and relative view

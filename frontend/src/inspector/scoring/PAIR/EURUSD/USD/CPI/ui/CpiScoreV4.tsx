@@ -1,4 +1,5 @@
-import { RelativePublicationContext } from '../../../../../../../pair-context/ui/RelativePublicationContext'
+import { PublicationScoringLayout } from '../../../../../shared/ui/PublicationScoringLayout'
+import { PublicationScoringContext } from '../../../../../shared/ui/PublicationScoringContext'
 import type { InspectorEvent, InspectorRelease } from '../../../../../../inspector-data'
 import type { TimeDisplayPreference } from '../../../../../../../appearance/time-display/time-display-preference'
 import { ContextInputTable } from '../../../../../../../usd-context/ui/ContextInputTable'
@@ -20,20 +21,20 @@ export function CpiScoreV4({ release, brokerId = null, events, now, timeDisplay 
   const contextUnavailable = !!context.error || !!comparison.explanation && comparison.before === null && comparison.after === null
   const result = comparison.after?.result ?? null
   const coverageMissing = Object.values(context.storage.coverage).some(c => c.missing.length > 0)
-  return <div className="inspector-detail-overview inspector-scoring-view inspector-cpi-v4" aria-label="CPI scoring system v4">
+  const standaloneView = <section className="inspector-scoring-view inspector-structured-score" aria-label="CPI v4 this release">
     <small>Scoring system v4 · CPI interpretation + publication context · Experimental</small>
-    <div className="inspector-cpi-v4-cards">
-      <section aria-label="CPI v4 this release">
-        <h3>This CPI release</h3>
-        <div className="inspector-cpi-v4-summary">
-          <strong className={`inspector-majority inspector-direction-${ready ? assessment.direction : 'uncomputed'}`} aria-label="CPI v4 standalone direction">{ready ? assessment.label : 'Uncomputed'}</strong>
-          {ready && assessment.strength && <span title="Agreement about this CPI release, not expected price direction">{assessment.strength} inflation evidence</span>}
-          {ready && assessment.changeSize && <span>{assessment.changeSize}</span>}
-        </div>
-        <p>{loading ? 'Calculating CPI interpretation…' : standalone.error ?? assessment?.explanation ?? 'No usable CPI assessment.'}</p>
-      </section>
-      <CpiContextComparison comparison={comparison} loading={context.loading} error={context.error} families={families} />
+    <h3>This CPI release</h3>
+    <div className="inspector-cpi-v4-summary">
+      <strong className={`inspector-majority inspector-direction-${ready ? assessment.direction : 'uncomputed'}`} aria-label="CPI v4 standalone direction">{ready ? assessment.label : 'Uncomputed'}</strong>
+      {ready && assessment.strength && <span title="Agreement about this CPI release, not expected price direction">{assessment.strength} inflation evidence</span>}
+      {ready && assessment.changeSize && <span>{assessment.changeSize}</span>}
     </div>
+    <p>{loading ? 'Calculating CPI interpretation…' : standalone.error ?? assessment?.explanation ?? 'No usable CPI assessment.'}</p>
+    <h3>CPI readings and standalone rules</h3>
+    {ready && <><p>{assessment.strengthReason}</p><CpiScoreDetails assessment={assessment} label="CPI v4 standalone" /></>}
+  </section>
+  const contextView = <section className="inspector-scoring-view inspector-structured-score">
+    <CpiContextComparison comparison={comparison} loading={context.loading} error={context.error} families={families} />
     {context.storage.error && <p role="alert">Context history: {context.storage.error}</p>}
     {context.result?.excludedTiming ? <p>Some stored publications have excluded timing. The combined result uses eligible history only.</p> : null}
     {coverageMissing && <p>Partial calendar coverage; the results use available observations.</p>}
@@ -43,8 +44,7 @@ export function CpiScoreV4({ release, brokerId = null, events, now, timeDisplay 
       tableLabel="CPI v4 context inputs" summaryLabel={contextUnavailable ? 'Uncomputed' : contextPairLabel('EURUSD', result?.direction ?? 'uncomputed')} />
     {!context.loading && !contextUnavailable && <ContextPolicyDetails policy={result?.policy} />}
     <p>These context controls are shared with Raycaster. Inspector’s marker filters do not change them. The table uses the selected publication time; later releases are excluded. Claims expires after 14 days, GDP after 120; other families after 45. NFP and Claims share the labor budget.</p>
-    <h3>CPI readings and standalone rules</h3>
-    {ready && <><p>{assessment.strengthReason}</p><CpiScoreDetails assessment={assessment} label="CPI v4 standalone" /></>}
-    <RelativePublicationContext release={release} brokerId={brokerId} events={events} now={now} />
-  </div>
+  </section>
+  return <PublicationScoringLayout label="CPI scoring system v4" standalone={standaloneView}
+    context={<PublicationScoringContext release={release} brokerId={brokerId} events={events} now={now} timeDisplay={timeDisplay}>{contextView}</PublicationScoringContext>} />
 }

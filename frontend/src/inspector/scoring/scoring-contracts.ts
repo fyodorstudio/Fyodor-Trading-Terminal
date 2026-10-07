@@ -10,6 +10,6 @@ export type InspectorScoringBinding = {
   pair: string; country: string; currency: 'USD' | 'EUR'; familyId: string
   matchesSymbol: (symbol: string) => boolean
   Component: ComponentType<InspectorScoringProps>
-  fullView?: boolean
+  // Component already owns the shared standalone/publication layout (Fed).
   includesContext?: boolean
 }

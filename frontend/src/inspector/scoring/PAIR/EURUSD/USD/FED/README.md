@@ -3,7 +3,11 @@
 `assessment/fed-score.ts` retains the factual numerical rate-action interpreter:
 hike supports USD, cut weighs on USD with Weak action-only evidence; hold has no
 action direction. `ui/FedDecisionContext.tsx` gives actual FOMC decisions a
-prominent shared economic-context bias even when the rate is unchanged. Speeches
+shared economic-context bias in the right **Context-Aware at Publication Scoring**
+column even when the rate is unchanged. The left **Standalone Scoring** column
+uses `ui/FedRateAction.tsx` for numerical action, supplied-prior checks, stored rate
+path and text-coverage limits. A hold's standalone result remains Uncomputed;
+it is not mislabeled with the contextual bias. Speeches
 remain outside scoring.
 
 The shared publication hook runs the existing background context worker. It uses
@@ -21,8 +25,11 @@ inflation/labor contributions and interaction policy. It does not infer observed
 Fed intent, quantify surprises or predict the speech/price reaction. Official text
 integration is outside this pass. The main result must equal Raycaster at the
 same exact publication cutoff. The wrapper owns its one context table, avoiding
-a second generic context panel.
+a second generic context panel. Optional relative EUR/USD context stays within
+the same right column. Both modes remain selectable without leaving Inspector.
 
 Verification: `tests/inspector/expanded/test_expanded_integration.mjs` covers
 holds with contextual bias, prior/future/ambiguous meetings, all-off filters,
 publication gating and no duplicated table or numeric Fed vote.
+`tests/inspector/test_publication_layout.mjs` also checks correct column ownership,
+separate rate action, relative mode and table wrapping regardless of CSS load order.

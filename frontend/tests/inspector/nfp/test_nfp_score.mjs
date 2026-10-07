@@ -188,7 +188,7 @@ try {
   const configured = nfpMagnitudeFamily.settings.read()
   await chooseView('scoring')
   assert.equal(inspector.container.querySelector('.inspector-table-scroll'), null)
-  assert.equal(inspector.container.querySelectorAll('.inspector-scoring-view table').length, 2)
+  assert.equal(inspector.container.querySelectorAll('[aria-label="Standalone Scoring"] table').length, 2)
   const summary = inspector.container.querySelector('.inspector-scoring-view').textContent
   assert.equal(readInspectorPreferences().detailView, 'scoring')
   await chooseView('scatter'); assert.equal(scatterRelease.id, selected.id, 'Scatter shortcut also works from scoring view')

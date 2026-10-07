@@ -1,5 +1,5 @@
 import { currencyColorStyle } from './currency-colors'
-import { useId, useMemo, useState } from 'react'
+import { useId, useMemo, useState, type ReactNode } from 'react'
 import { formatAppTimestamp, type TimeDisplayPreference } from '../appearance/time-display/time-display-preference'
 import type { CalendarSourceHealth } from '../system-connectivity/bridge-status/bridge-contract'
 import { symbolGlyph } from './event-symbols'
@@ -29,6 +29,8 @@ import { IsmScoreV3 } from './scoring/PAIR/EURUSD/USD/ISM/ui/IsmScoreV3'
 import './inspector.css'
 import { ComboInspector } from '../usd-context/sequences/ui/ComboInspector'
 import type { ComboSnapshot, ComboSource } from '../usd-context/sequences/core/contracts'
+import { PublicationScoringLayout } from './scoring/shared/ui/PublicationScoringLayout'
+import { PublicationScoringContext } from './scoring/shared/ui/PublicationScoringContext'
 
 function HistogramIcon() {
   return (
@@ -102,6 +104,8 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
   const outsideCoverage = !view.brokerTime && hasCoverage && view.range && (view.range.from < (coverageStart - offset) * 1000 || view.range.to > (coverageEnd - offset) * 1000)
   if (combo && onCloseCombo && onOpenComboRelease) return <ComboInspector combo={combo} symbol={symbol} timeDisplay={timeDisplay}
     onClose={onCloseCombo} onOpenRelease={onOpenComboRelease} />
+  const advancedScoring = (standalone: ReactNode) => <PublicationScoringLayout standalone={standalone}
+    context={<PublicationScoringContext release={scoreRelease ?? release} brokerId={view.brokerId} events={scoringEvents} now={view.now} timeDisplay={timeDisplay} />} />
   return <section className="inspector-panel" style={currencyColorStyle(view.preferences.currencyColors)} aria-label="Inspector">
     <header className="inspector-header">
       <div className="inspector-header-sidebar">
@@ -169,17 +173,17 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
         <div className="inspector-detail" aria-live="polite">
           {!release ? <p className="inspector-empty">Click a chart symbol or select a release to inspect Actual, Previous and A−P.</p> : <>
             {showScoringV4 ? <CpiScoreV4 release={release} brokerId={view.brokerId} now={view.now} events={scoringEvents} timeDisplay={timeDisplay} /> :
-            showScoringV3 && ismV3Available ? <IsmScoreV3 key={release.id} release={release} brokerId={view.brokerId} now={view.now}
-              events={scoringEvents} timeDisplay={timeDisplay} onOpenScatter={scatterAvailable ? onOpenScatter : undefined} /> :
-            showScoringV3 ? <CpiScoreV3 key={release.id} release={release} brokerId={view.brokerId}
-              events={scoringEvents} /> :
-            showScoringV2 && ismV2Available ? <IsmScoreV2 key={release.id} release={release} brokerId={view.brokerId} now={view.now}
+            showScoringV3 && ismV3Available ? advancedScoring(<IsmScoreV3 key={release.id} release={release} brokerId={view.brokerId} now={view.now}
+              events={scoringEvents} timeDisplay={timeDisplay} onOpenScatter={scatterAvailable ? onOpenScatter : undefined} />) :
+            showScoringV3 ? advancedScoring(<CpiScoreV3 key={release.id} release={release} brokerId={view.brokerId}
+              events={scoringEvents} />) :
+            showScoringV2 && ismV2Available ? advancedScoring(<IsmScoreV2 key={release.id} release={release} brokerId={view.brokerId} now={view.now}
               events={scoringEvents} timeDisplay={timeDisplay}
-              onOpenScatter={scatterAvailable ? onOpenScatter : undefined} /> :
-            showScoringV2 && nfpV2Available ? <NfpScoreV2 key={release.id} release={release} brokerId={view.brokerId}
-              events={scoringEvents} /> :
-            showScoringV2 ? <CpiScoreV2 key={release.id} release={release} brokerId={view.brokerId}
-              events={scoringEvents} /> :
+              onOpenScatter={scatterAvailable ? onOpenScatter : undefined} />) :
+            showScoringV2 && nfpV2Available ? advancedScoring(<NfpScoreV2 key={release.id} release={release} brokerId={view.brokerId}
+              events={scoringEvents} />) :
+            showScoringV2 ? advancedScoring(<CpiScoreV2 key={release.id} release={release} brokerId={view.brokerId}
+              events={scoringEvents} />) :
             showScoring && scoringBinding ? <InspectorScoringView binding={scoringBinding} release={scoreRelease} history={view.magnitudeHistory}
               brokerId={view.brokerId} events={scoringEvents} now={view.now} timeDisplay={timeDisplay} /> :
             <InspectorReadingsTable release={release} view={view} timeDisplay={timeDisplay} sharedPeriod={sharedPeriod} />}

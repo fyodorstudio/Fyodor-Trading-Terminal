@@ -214,7 +214,7 @@ try {
   assert.equal(app.container.querySelectorAll('.inspector-cpi-score tbody tr').length, 4)
   assert.ok(app.container.querySelector('.inspector-header .inspector-detail-heading'), 'Selected release metadata shares the toolbar with calendar status')
   assert.equal(app.container.querySelector('.inspector-detail .inspector-detail-heading'), null, 'Metadata leaves no separate summary heading row')
-  assert.deepEqual([...app.container.querySelectorAll('.inspector-detail-overview table')].map((table) => table.getAttribute('aria-label')),
+  assert.deepEqual([...app.container.querySelectorAll('[aria-label="Standalone Scoring"] table')].map((table) => table.getAttribute('aria-label')),
     ['CPI price index magnitude score', 'CPI signed magnitude score'], 'Index matrix precedes the rate matrix')
   await showView('Table only')
   assert.equal(app.container.querySelectorAll('.inspector-shared-period').length, 1)

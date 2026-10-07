@@ -42,5 +42,6 @@ export const suites = [
   "tests/inspector/eur/test_eur_score.mjs",
   "tests/inspector/eur/test_eur_integration.mjs",
   "tests/usd-context/test_sequences.mjs",
-  "tests/usd-context/test_sequence_ui.mjs"
+  "tests/usd-context/test_sequence_ui.mjs",
+  "tests/inspector/test_publication_layout.mjs"
 ]

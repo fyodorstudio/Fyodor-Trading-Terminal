@@ -10,9 +10,12 @@ import { ContextPolicyDetails } from '../../../../../../../usd-context/ui/Contex
 import { fedContextPressure } from '../assessment/fed-context'
 import type { assessFedScore } from '../assessment/fed-score'
 import { usePreviousFedMeeting } from '../runtime/usePreviousFedMeeting'
+import { PublicationScoringLayout } from '../../../../../shared/ui/PublicationScoringLayout'
+import { PublicationScoringContext } from '../../../../../shared/ui/PublicationScoringContext'
+import { FedRateAction } from './FedRateAction'
 
 const defaultTime = { mode: 'utc' as const, utcOffsetMinutes: 0 }
-export function FedDecisionContext({ release, action, brokerId = null, events, now = 0, timeDisplay = defaultTime }: InspectorScoringProps & {
+export function FedDecisionContext({ release, action, history, brokerId = null, events, now = 0, timeDisplay = defaultTime }: InspectorScoringProps & {
   release: InspectorRelease; action: NonNullable<ReturnType<typeof assessFedScore>>
 }) {
   const { families, context, eligible, at, result, ready } = usePublicationContext(release, brokerId, events, now)
@@ -20,7 +23,8 @@ export function FedDecisionContext({ release, action, brokerId = null, events, n
   const earlier = previous && context.result ? contextAt(context.result, previous.chartTime! * 1000) : null
   const direction = ready && result?.direction === 'stronger' ? 'short' : ready && result?.direction === 'weaker' ? 'long' : 'uncomputed'
   const label = ready ? contextPairLabel('EURUSD', result?.direction ?? 'uncomputed') : 'Uncomputed'
-  return <section className="inspector-detail-overview inspector-scoring-view inspector-structured-score" aria-label="Fed policy interpretation">
+  const contextView = <section className="inspector-detail-overview inspector-scoring-view inspector-structured-score" aria-label="Fed policy interpretation">
+    <h3>USD context at the Fed publication</h3>
     <div className="inspector-release-score-summary">
       <strong className={`inspector-majority inspector-direction-${direction}`} aria-label="Fed contextual pair direction">{label}</strong>
       {ready && result?.strength && <span>{result.strength} context evidence</span>}
@@ -28,11 +32,7 @@ export function FedDecisionContext({ release, action, brokerId = null, events, n
     </div>
     <p>{context.loading ? 'Calculating decision context…' : context.error ?? (!eligible ?
       'A verified, already published chart time is required.' : result?.explanation ?? 'No enabled context assessment is available.')}</p>
-    <p><strong>Decision: {eligible ? path?.priorConsistent === false ? 'Prior-rate inconsistency' : action.action : 'Unavailable at this cutoff'}</strong>{eligible && action.actual !== null && ` · ${action.actual}%`}</p>
-    <p>Rate action alone: {path?.priorConsistent === false ? 'Unavailable: supplied prior conflicts with the stored preceding meeting.' : !eligible || action.delta === null ? 'Unavailable.' : action.delta === 0 ? 'No directional change.' : `${action.label} · weak rate-action evidence.`}</p>
-    {eligible && path && !storage.loading && !storage.error && <p aria-label="Fed numerical rate path"><strong>Stored rate path:</strong> {path.path}. Meeting change: {path.meetingChangeBps} bp.{path.priorConsistent === false && ' The feed’s supplied prior rate differs from the stored preceding meeting.'} This describes rate history; it adds no extra vote and does not infer guidance.</p>}
     {ready && <p aria-label="Fed economic policy pressure">{fedContextPressure(result)}</p>}
-    <p><strong>Fed guidance: Not scored.</strong> Statements, projections and speech content are outside this numerical interpreter. The contextual bias does not claim what the Fed said.</p>
     {ready && earlier && previous && !storage.loading && !storage.error ? <div aria-label="Fed previous meeting comparison">
       <p>At the previous meeting ({formatAppTimestamp(previous.releaseAt!, timeDisplay)}): {contextPairLabel('EURUSD', earlier.result.direction)} · {earlier.result.strength ?? 'no'} context evidence.</p>
       <p>{earlier.result.direction === 'uncomputed' || result?.direction === 'uncomputed' ?
@@ -46,4 +46,6 @@ export function FedDecisionContext({ release, action, brokerId = null, events, n
     {ready && <ContextPolicyDetails policy={result?.policy} />}
     <p>This is the same publication-time context used by Raycaster, with its shared independent filters. Both meetings use the same currently configured rules and only releases available at their respective publication times. A hold adds no vote, does not refresh old evidence, and does not reset its age. Rate actions remain separate from the combined score.</p>
   </section>
+  return <PublicationScoringLayout standalone={<FedRateAction action={action} eligible={eligible} path={path} pathLoading={storage.loading} pathError={storage.error} />}
+    context={<PublicationScoringContext release={release} history={history} brokerId={brokerId} events={events} now={now} timeDisplay={timeDisplay}>{contextView}</PublicationScoringContext>} />
 }
