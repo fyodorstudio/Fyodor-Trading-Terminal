@@ -60,7 +60,7 @@ const defaultTradePlan: PlannedTradeState = {
 
 export function FyodorTerminalShell() {
   const [selectedSymbol, setSelectedSymbol] = useState('EURUSD')
-  const [timeframe, setTimeframe] = useState<ChartTimeframe>('H4')
+  const [timeframe, setTimeframe] = useState<ChartTimeframe>('H1')
   const [theme, setTheme] = useState<ColorTheme>(readColorTheme)
   const [chartAppearance, setChartAppearance] = useState<ChartAppearance>(readChartAppearance)
   const [timeDisplay, setTimeDisplay] = useState<TimeDisplayPreference>(readTimeDisplayPreference)
@@ -69,7 +69,7 @@ export function FyodorTerminalShell() {
   const [drawingToolbarVisible, setDrawingToolbarVisible] = useState<boolean>(readDrawingToolbarVisible)
   const [raycasterVisible, setRaycasterVisible] = useState(readRaycasterVisible)
   const [comboSelection, setComboSelection] = useState<{ combo: ComboSnapshot; symbol: string; broker: string | null } | null>(null)
-  const [bottomDockWindow, setBottomDockWindow] = useState<BottomDockWindow | null>('inspector')
+  const [bottomDockWindow, setBottomDockWindow] = useState<BottomDockWindow | null>(null)
   const [scatterTarget, setScatterTarget] = useState<ScatterReleaseTarget | null>(null)
   const dockSize = useBottomDockSize(bottomDockWindow)
   const [settingsOpen, setSettingsOpen] = useState(false)

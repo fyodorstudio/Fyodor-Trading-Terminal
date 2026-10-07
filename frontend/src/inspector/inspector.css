@@ -102,7 +102,10 @@
 .inspector-modal footer button { min-width: 80px; padding: 7px 14px; }
 .inspector-modal footer .inspector-primary { color: #fff; background: var(--accent); border-color: var(--accent); }
 .inspector-chart-markers { position: absolute; bottom: 34px; left: 0; right: 70px; height: 30px; pointer-events: none; z-index: 7; }
+/* Raise the owning layer: a popup's own z-index cannot escape its parent. */
+.inspector-chart-markers:has(.inspector-marker-popup) { z-index: 13; }
 .inspector-marker-cluster { position: absolute; bottom: 0; transform: translateX(-50%); }
+.inspector-marker-cluster:has(.inspector-marker-popup) { z-index: 1; }
 .inspector-chart-symbol { display: flex; gap: 5px; align-items: center; pointer-events: auto; padding: 3px 6px; border: 1px solid var(--border-strong); background: var(--surface-panel); border-radius: 5px; cursor: pointer; font-size: 19px; line-height: 1; box-shadow: 0 2px 4px #0001; }
 .inspector-chart-symbol sup { font-size: 9px; margin-left: 2px; }
 .inspector-marker-popup { position: absolute; bottom: 34px; width: 290px; max-height: 190px; overflow: auto; pointer-events: auto; border: 1px solid var(--border-strong); border-radius: 5px; background: var(--surface-panel); box-shadow: 0 4px 18px #0003; }
