@@ -4,6 +4,8 @@
 .combo-roofs path { fill: none; stroke: var(--accent); stroke-width: 1; opacity: .5; }
 .combo-roofs .experimental path { stroke-dasharray: 3 3; }
 .combo-roofs .combo-roof-stem { stroke-dasharray: 3 3; }
+.combo-roofs .combo-roof-anchor { opacity: .35; }
+.combo-roofs .preview path { opacity: .8; }
 .combo-roof-choosing { z-index: 13; }
 .combo-roofs .selected path { opacity: 1; stroke-width: 1.5; }
 .combo-roof-label[aria-pressed='true'] { outline: 2px solid var(--accent); }
@@ -18,8 +20,9 @@
 .combo-roofs button:focus-visible { outline: 2px solid var(--accent); }
 .combo-roof-label.experimental { border-style: dashed; }
 .combo-roof-label > .support-split { margin-top: 2px; }
-.combo-roof-tools { position: absolute; right: 8px; top: -26px; display: flex; gap: 6px; pointer-events: auto; }
-.combo-roof-overflow { position: relative; }
-.combo-roof-overflow > div { position: absolute; right: 0; top: 100%; width: min(340px, 75vw); max-height: 180px; overflow: auto; display: grid; background: var(--surface-panel); border: 1px solid var(--border); box-shadow: 0 4px 12px #0002; }
+.combo-roof-overflow { position: absolute; transform: translateX(-50%); }
+.combo-roof-overflow:has(> button[aria-expanded='true']) { z-index: 1; }
+.combo-roof-overflow > button { height: 20px; white-space: nowrap; }
+.combo-roof-overflow > div { position: absolute; bottom: calc(100% + 4px); max-height: 180px; overflow: auto; display: grid; pointer-events: auto; background: var(--surface-panel); border: 1px solid var(--border); box-shadow: 0 4px 12px #0002; }
 .combo-roof-overflow > div button { text-align: left; white-space: normal; }
 .combo-roof-overflow small { display: block; color: var(--text-muted); margin-top: 3px; }

@@ -111,3 +111,33 @@ This section supersedes the previous three-row, midpoint-label and blank-click-d
 - [ ] **Interpretation against price:** when a reading feels misleading, send the selected combo (or All news), the displayed time and what price did afterward. I can then inspect that specific input/baseline/weight combination. No need to reconstruct the numbers or complete a terminology checklist.
 
 Scoring, magnitudes, comparison baselines, family weights, retention, expiry rules and EUR numerical outputs are unchanged. No dataset/preference rewrite, commit or deployment is part of this repair.
+
+## Roof connection visibility refinement — 8 October 2026
+
+The user approved a small visual refinement after observing that roof connections crossed candles and competed for attention.
+
+- Idle combo labels now have an eight-pixel stem at their available-from column. Their long roof lines and source stems appear only on hover, keyboard focus or selection.
+- Leaving an unselected label hides its full connection. A selected connection stays visible through pan/zoom; previewing another label also leaves the selection visible. Chart navigation clears transient pointer previews.
+- Contributing release symbols receive an accent outline. Grouped monthly ISM symbols match their underlying member IDs. Emphasis is transient, isolated to each chart, and cleared when Roofs unmount.
+- Scoring, support percentages, activation clocks, density priorities, lane packing and the current More eligibility/count rules are unchanged. Pointer/focus interaction uses existing positioned snapshots without reprojection, history scoring or preference writes.
+- The Roofs guide and Combo details explain the new interaction. The existing headless suite now checks default/preview/pinned connections, pointer/focus behavior, selected pan/zoom stability, grouped symbol emphasis, cleanup, chart isolation and unchanged snapshots/preferences.
+
+Validation: the uninterrupted `pnpm --dir frontend test` passed all 60 suites. A final keyboard-focus cleanup prevents a filtered/offscreen label from reviving an old preview when it returns; `node tests/usd-context/test_sequence_ui.mjs` was rerun after that adjustment and passed. Final `pnpm --dir frontend build` and `pnpm --dir frontend lint` passed; the existing bundle-size advisory remains. Final whitespace and scope checks passed. No browser automation or live visual audit was performed.
+
+Remaining user check: in Focused and All roofs, hover a label, move away, then select it and pan/zoom. Judge whether the reduced line clutter and symbol highlights make that combo easier to follow.
+
+## Visible label allocation and local More — 8 October 2026
+
+This supersedes the whole-history packing and single global More descriptions above. The user reported an isolated visible label disappearing after one zoom-out step and approved local overflow at each available-from candle column.
+
+- Row allocation now starts with activation columns inside the chart viewport. Binary indexing selects those columns from cached source geometry; offscreen activations neither occupy rows nor add More counts. A visible combo can still connect to an offscreen source when hovered/selected.
+- Row collision and Focused repetition use label boxes, independently of the full source-to-activation connection. Existing label rows are reused when they still fit, including across zoom; selected combos retain display priority. Selection/details/Candy remain open when their activation column leaves the viewport.
+- Each candle column has its own More button below the labels. Its menu contains only hidden combos at that column, with original exact timestamps preserved even when multiple updates share an H1 candle. Choosing an entry promotes that combo at its original column. Pan/zoom carries local buttons with their candles and closes menus.
+- Neighboring More controls use staggered footer rows so their buttons remain distinct. Extra footer rows reduce available label rows as needed. Menus open above their owning buttons, stay within the chart horizontally, and raise the active column above neighboring controls.
+- Scoring, source admission, support percentages, economic clocks, weights, retention/expiry and saved preferences remain unchanged. This is a projection/layout repair; pointer events never rescore history.
+
+Targeted terminal checks pass for the one-step zoom disappearance in both density modes, an offscreen source with visible activation, rejection of crossing-only offscreen activations, connector-independent label rows, exact-time local grouping, selected overflow promotion, neighboring footer separation, pan-following menus, row reuse and binary lookup over 100,000 entries. Headless UI checks verify per-column menus, complete access, selection, navigation dismissal and existing hover/symbol emphasis behavior.
+
+Final validation: uninterrupted `pnpm --dir frontend test` passed all **60 suites**, exit 0. The read-only frozen replay passed **5,696 context snapshots, 24 selected relationships, 29,006 projected states, and 126 chart views across seven historical selections**; source/activation alignment, selected rows and immutable numerical history remain intact. `pnpm --dir frontend build` and `pnpm --dir frontend lint` passed, exit 0. Whitespace/scope checks passed. The existing >500 kB bundle advisory remains. No scoring modules, stored data/settings, user icon catalogue, commits or deployments were changed.
+
+Remaining user check: revisit the Oct 8, 04:00 example and zoom out once; its label should remain while that candle is visible and no visible labels crowd it. At a crowded candle, open its local More and select a combo; its label should appear at that same column. Visual rendering is left to the user; no live browser or screenshot audit is performed.

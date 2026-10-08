@@ -48,8 +48,8 @@ try {
   assert.match(roofTooltip(companions), /Retail Sales.*interpreted support decreased/)
   assert.equal(roofLabel({ ...episode, kind: 'ism-sectors', experimental: false }), 'ISM sectors')
   const bars = [0, 1, 3].map(n => ({ time: (at + n * hour) / 1000, open: 1, close: 1, high: 1, low: 1 }))
-  let range = { from: at / 1000, to: (at + hour) / 1000 }, rangeHandler, sizeHandler, unsubscribed = 0, coordinateCalls = 0, pan = 0, spacing = 200, paneHeight = 480
-  const scale = { getVisibleRange: () => range, width: () => 800, options: () => ({ barSpacing: spacing }),
+  let range = { from: at / 1000, to: (at + hour) / 1000 }, rangeHandler, sizeHandler, unsubscribed = 0, coordinateCalls = 0, pan = 0, spacing = 200, paneHeight = 480, chartWidth = 800
+  const scale = { getVisibleRange: () => range, width: () => chartWidth, options: () => ({ barSpacing: spacing }),
     timeToCoordinate: time => { coordinateCalls++; const index = bars.findIndex(b => b.time === time); return index < 0 ? null : index * spacing + 100 + pan },
     subscribeVisibleLogicalRangeChange: fn => { rangeHandler = fn }, unsubscribeVisibleLogicalRangeChange: fn => { assert.equal(fn, rangeHandler); unsubscribed++ },
     subscribeSizeChange: fn => { sizeHandler = fn }, unsubscribeSizeChange: fn => { assert.equal(fn, sizeHandler); unsubscribed++ } }
@@ -70,6 +70,19 @@ try {
   assert.equal(button.style.left, '300px', 'The combo label sits on its available-from candle, rather than the bracket midpoint')
   assert.equal(container.querySelector('.combo-roof-endpoint'), null, 'Redundant source and activation dot buttons are removed')
   assert.equal(container.querySelector('circle'), null)
+  assert.equal(container.querySelector('.combo-roof-connection'), null, 'Idle labels do not draw lines across the candles')
+  assert.equal(container.querySelector('.combo-roof-anchor').getAttribute('d'), 'M 300 56 v 8', 'Idle stems stay short and on the activation column')
+  const hoverCalls = coordinateCalls
+  await React.act(async () => button.dispatchEvent(new dom.PointerEvent('pointerover', { bubbles: true })))
+  assert.equal(container.querySelectorAll('.combo-roof-connection').length, 1, 'Hover reveals only the inspected connection')
+  assert.equal(container.querySelector('.combo-roof-anchor'), null)
+  await React.act(async () => button.dispatchEvent(new dom.PointerEvent('pointerout', { bubbles: true })))
+  assert.equal(container.querySelector('.combo-roof-connection'), null, 'Leaving an unselected label restores its short stem')
+  await React.act(async () => button.focus())
+  assert.ok(container.querySelector('.combo-roof-connection'), 'Keyboard focus also reveals the connection')
+  await React.act(async () => button.blur())
+  assert.equal(container.querySelector('.combo-roof-connection'), null)
+  assert.equal(coordinateCalls, hoverCalls, 'Pointer and focus interactions never reproject or repack chart history')
   assert.equal(button.querySelector('.combo-roof-direction').textContent.trim(), '· Change: Aligned · Long')
   assert.match(button.title, /claims.*interpreted support decreased/)
   assert.match(button.title, /1 inputs hidden/)
@@ -77,6 +90,8 @@ try {
   assert.equal(container.querySelector('.combo-roof-update-badge').textContent, 'Aging update')
   assert.equal(container.querySelector('.combo-roofs').style.getPropertyValue('--inspector-usd-color'), '#123456')
   await React.act(async () => button.click()); assert.equal(selected, episode)
+  await render(React.createElement(ComboRoofs, { ...roofProps, selectedId: episode.id }))
+  assert.ok(container.querySelector('.combo-roof-connection.selected'), 'A selected connection stays visible without hover or focus')
   const previousCalls = coordinateCalls
   await React.act(async () => { for (let i = 0; i < 200; i++) rangeHandler(); sizeHandler() })
   assert.equal(frames.size, 1, 'Panning and resizing coalesce')
@@ -88,6 +103,7 @@ try {
   assert.equal(container.querySelector('.combo-roof-label').style.top, originalTop)
   assert.match(container.querySelector('.combo-roof-stem').getAttribute('d'), /^M -60 /, 'Offscreen input remains the source of the crossing connector')
   pan = 0; range = { from: at / 1000, to: (at + 3 * hour) / 1000 }
+  await React.act(async () => button.focus())
   for (const patch of [{ now: episode.chartAt - 1 }, { experimental: false }, { markers: [] },
     { episodes: [{ ...episode, sources: [{ ...episode.sources[0], chartAt: episode.chartAt + 1 }] }] }]) {
     await render(React.createElement(ComboRoofs, { ...roofProps, ...patch }))
@@ -98,6 +114,8 @@ try {
     family: 'ism', sourceId: i ? 'ism-services' : 'ism-manufacturing', sourceLabel: i ? 'ISM Services' : 'ISM Manufacturing' })) }
   const sectorMarker = { time: at / 1000, release: { id: 'ISM/month', ismPublications: [{ id: 'ism-manufacturing' }, { id: 'ism-services' }] }, symbol: 'umbrella' }
   await render(React.createElement(ComboRoofs, { ...roofProps, episodes: [sectorCombo], markers: [sectorMarker] }))
+  assert.equal(container.querySelector('.combo-roof-connection'), null, 'A removed focused label does not revive its keyboard preview when it reappears')
+  await render(React.createElement(ComboRoofs, { ...roofProps, episodes: [sectorCombo], markers: [sectorMarker], selectedId: sectorCombo.id }))
   assert.equal(container.querySelector('.combo-roof-label').style.left, '300px', 'Later Services still determines the label clock')
   assert.equal(container.querySelectorAll('.combo-roof-stem').length, 1, 'Grouped monthly symbol receives one connector; no false stem at Services')
   assert.match(container.querySelector('.combo-roof-stem').getAttribute('d'), /^M 100 /)
@@ -111,7 +129,8 @@ try {
   assert.equal(container.querySelectorAll('.combo-roof-label').length, 1, 'Focused mode suppresses repeated overlapping combos')
   await React.act(async () => prefs.saveSequencePreferences({ ...prefs.readSequencePreferences(), density: 'all' }))
   assert.equal(container.querySelectorAll('.combo-roof-label').length, 6, 'Rows grow beyond three when the chart has room')
-  assert.equal(container.querySelector('.combo-roofs').style.height, '304px')
+  assert.equal(container.querySelector('.combo-roofs').style.height, '326px')
+  assert.equal(container.querySelector('.combo-roof-overflow').style.left, '300px', 'More stays on the same candle column as its crowded labels')
   const more = container.querySelector('.combo-roof-overflow button'); assert.match(more.textContent, /\+3/)
   await React.act(async () => more.click())
   assert.ok(container.querySelector('.combo-roofs').classList.contains('combo-roof-choosing'), 'Opening More raises the owning layer above Candy')
@@ -119,9 +138,82 @@ try {
   assert.equal(container.querySelector('[aria-label="More combo roofs"]'), null)
   await render(React.createElement(ComboRoofs, { ...roofProps, episodes: crowded, selectedId: crowded[8].id }))
   assert.equal(container.querySelector('.combo-roof-label[aria-pressed="true"]').dataset.roofId, crowded[8].id, 'The selected combo cannot be replaced by another candidate after zoom')
+  const other = container.querySelector('.combo-roof-label[aria-pressed="false"]')
+  await React.act(async () => other.dispatchEvent(new dom.PointerEvent('pointerover', { bubbles: true })))
+  assert.equal(container.querySelectorAll('.combo-roof-connection').length, 2, 'Previewing another label keeps the selected connection visible')
+  await React.act(async () => other.dispatchEvent(new dom.PointerEvent('pointerout', { bubbles: true })))
+  assert.equal(container.querySelectorAll('.combo-roof-connection').length, 1)
+  await React.act(async () => other.dispatchEvent(new dom.PointerEvent('pointerover', { bubbles: true })))
   paneHeight = 280; await React.act(async () => sizeHandler()); await flush()
   assert.equal(container.querySelectorAll('.combo-roof-label').length, 2, 'Short charts keep the remaining combos in More')
   assert.equal(container.querySelector('.combo-roof-label[aria-pressed="true"]').dataset.roofId, crowded[8].id)
+  assert.equal(container.querySelectorAll('.combo-roof-connection').length, 1, 'Chart navigation clears a transient hover preview while retaining selection')
+
+  const laterColumn = crowded.map((c, i) => ({ ...c, id: 'later/' + i, chartAt: at + 3 * hour + i * 60000 }))
+  const localProps = { ...roofProps, episodes: [...crowded, ...laterColumn], now: at + 4 * hour }
+  await render(React.createElement(ComboRoofs, localProps))
+  const localButtons = container.querySelectorAll('.combo-roof-overflow')
+  assert.equal(localButtons.length, 2, 'Each competing candle gets its own More control')
+  assert.deepEqual([...localButtons].map(b => b.style.left), ['300px', '500px'])
+  await React.act(async () => localButtons[1].querySelector('button').click())
+  const localMenu = container.querySelector('[aria-label="More combo roofs"]')
+  assert.ok([...localMenu.querySelectorAll('button')].every(b => b.dataset.roofId.startsWith('later/')), 'A local menu contains only combos from that candle')
+  const hiddenChoice = localMenu.querySelector('button').dataset.roofId
+  await React.act(async () => localMenu.querySelector('button').click())
+  assert.equal(selected.id, hiddenChoice)
+  assert.equal(container.querySelector('[aria-label="More combo roofs"]'), null)
+  await render(React.createElement(ComboRoofs, { ...localProps, selectedId: hiddenChoice }))
+  assert.equal(container.querySelector('.combo-roof-label[aria-pressed="true"]').style.left, '500px', 'Choosing local overflow promotes the combo at its original time column')
+  const hiddenCount = [...container.querySelectorAll('.combo-roof-overflow > button')].reduce((sum, b) => sum + Number(b.textContent.match(/\d+/)[0]), 0)
+  assert.equal(hiddenCount + container.querySelectorAll('.combo-roof-label').length, localProps.episodes.length, 'Every visible combo is either shown or in exactly one local menu')
+  await React.act(async () => container.querySelector('.combo-roof-overflow > button').click())
+  pan = -80; await React.act(async () => rangeHandler()); await flush()
+  assert.equal(container.querySelector('[aria-label="More combo roofs"]'), null, 'Chart navigation closes local overflow')
+  assert.deepEqual([...container.querySelectorAll('.combo-roof-overflow')].map(b => b.style.left), ['220px', '420px'], 'Panning carries each More control with its candle')
+
+  const offscreen = { ...episode, id: 'offscreen', chartAt: at, sources: [episode.sources[0]] }
+  const isolated = { ...episode, id: 'isolated', chartAt: at + 3 * hour }
+  chartWidth = 150
+  for (const zoom of [70, 60]) {
+    spacing = zoom; pan = 75 - 2 * spacing - 100
+    await render(React.createElement(ComboRoofs, { ...roofProps, episodes: [offscreen, isolated], now: at + 4 * hour }))
+    await React.act(async () => rangeHandler()); await flush()
+    assert.equal(container.querySelectorAll('.combo-roof-label').length, 1)
+    assert.equal(container.querySelector('.combo-roof-label').dataset.roofId, isolated.id, 'The visible label survives one zoom-out step with only offscreen competitors')
+    assert.equal(container.querySelector('.combo-roof-label').style.left, '75px')
+    assert.equal(container.querySelector('.combo-roof-overflow'), null, 'Offscreen competition cannot create a stray More button')
+  }
+  chartWidth = 800; spacing = 200; pan = 0
+
+  const { InspectorChartMarkers } = await load('inspector/InspectorChartMarkers.tsx')
+  const emphasisScale = { ...scale, subscribeVisibleLogicalRangeChange() {}, unsubscribeVisibleLogicalRangeChange() {},
+    subscribeSizeChange() {}, unsubscribeSizeChange() {} }
+  const emphasisChart = { ...chartApi, timeScale: () => emphasisScale }
+  const symbolMarkers = [sectorMarker, { time: bars[2].time, release: { id: 'unrelated', currency: 'USD', label: 'Other', releaseAt: at }, symbol: 'cloud' }]
+    .map(m => ({ ...m, release: { currency: 'USD', label: 'ISM', releaseAt: at, ...m.release } }))
+  const markerLayer = chart => React.createElement(InspectorChartMarkers, { chartApi: chart, markers: symbolMarkers,
+    timeDisplay: { mode: 'utc', utcOffsetMinutes: 0 }, onSelectRelease() {} })
+  const emphasisView = selectedId => React.createElement(React.Fragment, null, markerLayer(emphasisChart),
+    React.createElement(ComboRoofs, { ...roofProps, chartApi: emphasisChart, episodes: [sectorCombo], markers: symbolMarkers, selectedId }))
+  const snapshot = JSON.stringify(sectorCombo), savedPreferences = localStorage.getItem(prefs.sequencePreferencesKey)
+  await render(emphasisView(undefined))
+  assert.equal(container.querySelector('.inspector-chart-symbol.roof-source'), null)
+  await React.act(async () => container.querySelector('.combo-roof-label').dispatchEvent(new dom.PointerEvent('pointerover', { bubbles: true })))
+  assert.equal(container.querySelectorAll('.inspector-chart-symbol.roof-source').length, 1, 'Grouped ISM members highlight their actual shared symbol, leaving unrelated symbols alone')
+  await React.act(async () => container.querySelector('.combo-roof-label').dispatchEvent(new dom.PointerEvent('pointerout', { bubbles: true })))
+  assert.equal(container.querySelector('.inspector-chart-symbol.roof-source'), null)
+  await render(emphasisView(sectorCombo.id))
+  assert.equal(container.querySelectorAll('.inspector-chart-symbol.roof-source').length, 1, 'Selection pins contributing symbol emphasis')
+  await render(React.createElement(React.Fragment, null, emphasisView(sectorCombo.id), markerLayer({ ...emphasisChart })))
+  const layers = container.querySelectorAll('.inspector-chart-markers')
+  assert.equal(layers[0].querySelectorAll('.roof-source').length, 1)
+  assert.equal(layers[1].querySelector('.roof-source'), null, 'A separate chart inherits no source emphasis from an active selection')
+  await render(markerLayer(emphasisChart))
+  assert.equal(container.querySelector('.inspector-chart-symbol.roof-source'), null, 'Removing Roofs clears symbol emphasis')
+  await render(markerLayer({ ...emphasisChart }))
+  assert.equal(container.querySelector('.inspector-chart-symbol.roof-source'), null, 'A separate chart inherits no source emphasis')
+  assert.equal(JSON.stringify(sectorCombo), snapshot, 'Connection inspection does not mutate interpretation snapshots')
+  assert.equal(localStorage.getItem(prefs.sequencePreferencesKey), savedPreferences, 'Connection inspection writes no display preferences')
 
   const timeDisplay = { mode: 'utc', utcOffsetMinutes: 0 }
   await render(React.createElement(ComboInspector, { combo: episode, symbol: 'EURUSD', timeDisplay,
@@ -196,7 +288,7 @@ try {
   await React.act(async () => prefs.saveSequencePreferences(prefs.readSequencePreferences()))
   assert.equal(changes, 0, 'No-op preference writes do not invalidate UI')
   dom.removeEventListener(prefs.sequencePreferencesKey + ':changed', listener)
-  console.log('✓ Roof geometry, publication cutoff, focused/all overflow, coalesced pan, result-first optional calculations, Inspector links and portable display settings')
+  console.log('✓ Roof geometry, transient/pinned connections, grouped symbol emphasis and cleanup, publication cutoff, focused/all overflow, coalesced pan, result-first optional calculations, Inspector links and portable display settings')
 } finally {
   await React.act(async () => root.unmount()); await server.close(); await dom.happyDOM.abort(); dom.close()
   for (const key of keys) { if (previous[key]) Object.defineProperty(globalThis, key, previous[key]); else delete globalThis[key] }

@@ -19,7 +19,8 @@ function intersects(occupied: readonly [number, number][], span: [number, number
 function insert(occupied: [number, number][], span: [number, number]) { occupied.splice(intervalIndex(occupied, span[0]), 0, span) }
 
 /** Display priority only: never changes qualification, scores or snapshots. */
-export function layoutRoofs(candidates: readonly RoofCandidate[], focused: boolean, maxRows = Infinity, selectedId?: string) {
+export function layoutRoofs(candidates: readonly RoofCandidate[], focused: boolean, maxRows = Infinity, selectedId?: string,
+  previousLanes: ReadonlyMap<string, number> = new Map()) {
   const ranked = [...candidates].sort((a, b) =>
     Number(b.combo.id === selectedId) - Number(a.combo.id === selectedId) || (focused ?
     pairRank(a.combo) - pairRank(b.combo) ||
@@ -31,19 +32,22 @@ export function layoutRoofs(candidates: readonly RoofCandidate[], focused: boole
   const repetitions = new Map<string, [number, number][]>()
   for (const item of ranked) {
     const halfWidth = comboActivation(item.combo).kind === 'publication' ? 85 : 110
-    // Reserve grouped-symbol clearance without repacking on pan. The label
-    // stays at activation while source connectors follow symbol clusters.
-    const label: [number, number] = [item.labelX - halfWidth - 18, item.labelX + halfWidth]
-    const span: [number, number] = [Math.min(label[0], item.left - 52), Math.max(label[1], item.right + 36)]
+    // Only the label occupies a row. Hover connections are an independent layer.
+    const span: [number, number] = [item.labelX - halfWidth, item.labelX + halfWidth]
     const families = [...new Set(item.combo.sources.map(s => s.family))].sort().join('|')
     const key = `${item.combo.kind}:${item.combo.decision?.state ?? 'directional'}:${item.combo.direction}:${families}`
     const repeats = repetitions.get(key) ?? []
-    const repeated = focused && intersects(repeats, [item.left, item.right])
-    let lane = repeated ? -1 : lanes.findIndex(occupied => !intersects(occupied, span))
+    const repeated = focused && intersects(repeats, span)
+    const saved = previousLanes.get(item.combo.id)
+    const previous = saved !== undefined && Number.isInteger(saved) && saved >= 0 && saved < maxRows ? saved : undefined
+    if (!repeated && previous !== undefined && previous >= 0 && previous < maxRows)
+      while (lanes.length <= previous) lanes.push([])
+    let lane = repeated ? -1 : previous !== undefined && previous < lanes.length && !intersects(lanes[previous], span) ?
+      previous : lanes.findIndex(occupied => !intersects(occupied, span))
     if (!repeated && lane === -1 && lanes.length < maxRows) { lane = lanes.length; lanes.push([]) }
     if (lane === -1) { overflow.push(item.combo); continue }
     insert(lanes[lane], span); positioned.push({ ...item, lane })
-    if (focused) { insert(repeats, [item.left, item.right]); repetitions.set(key, repeats) }
+    if (focused) { insert(repeats, span); repetitions.set(key, repeats) }
   }
   return { positioned: positioned.sort((a, b) => a.combo.chartAt - b.combo.chartAt),
     overflow: overflow.sort((a, b) => b.chartAt - a.chartAt || a.id.localeCompare(b.id)) }

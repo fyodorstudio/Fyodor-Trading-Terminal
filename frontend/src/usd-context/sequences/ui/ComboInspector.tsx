@@ -45,7 +45,7 @@ export function ComboInspector({ combo, timeDisplay, symbol, broker = null, onCl
           <p>{summary.cause.kind === 'publication' ? 'Activated by' : 'Update cause'}: {summary.activation}.</p><p>{summary.changed}</p>
           {summary.cause.removed.map(s => <p key={s.sourceId}>{removalReason(s.reason)}: <strong>{s.sourceLabel}</strong> · {clock.utc(s.releaseAt)} ({clock.zone}).</p>)}
           {summary.cause.kind !== 'publication' && <p>No new participating publication. This snapshot reassesses the remaining evidence.</p>}
-          <small>The combo label sits above its available-from candle. Lines connect its contributing release symbols. Aging and expiry labels have no new participating release. Use the exact time shown above, not the candle open.</small>
+          <small>The combo label sits above its available-from candle. Hidden combos are under More at that same column. Hover, keyboard-focus or select a label to reveal its connections and highlight contributing release symbols. Aging and expiry labels have no new participating release. Use the exact time shown above, not the candle open.</small>
         </section>
       </div>
       <section className="combo-card" aria-label="Accumulated context comparison"><h3>Combined context at activation</h3>

@@ -10,14 +10,14 @@ export function RoofsSettings({ supported }: { supported: boolean }) {
       <label>Display density <select aria-label="Roof display density" value={preferences.density ?? 'focused'}
         onChange={e => saveSequencePreferences({ ...preferences, density: e.target.value as 'focused' | 'all' })}>
         <option value="focused">Focused</option><option value="all">All roofs</option></select></label>
-      <p>Focused prioritizes specialized relationships, then evidence, and removes repetition. Rows grow to fit the available chart height, beyond three when there is room. More keeps hidden combinations accessible. A selected combo takes priority when zoom changes the available space.</p>
+      <p>Only combos whose available-from candle is visible compete for label space. Focused prioritizes specialized relationships, then evidence, and removes crowded repetition. Rows grow to fit the chart height, beyond three when there is room. Each candle column has its own More button for hidden combos there; every entry keeps its exact time. Nearby More buttons use staggered rows. A selected combo takes display priority.</p>
       <label><input type="checkbox" checked={preferences.fresh} onChange={e => saveSequencePreferences({ ...preferences, fresh: e.target.checked })} /> Include experimental fresh-news combinations</label>
       {!supported && <p>Chart roofs are available on EURUSD. These display preferences are retained for supported pairs.</p>}
     </section>
     <section><h3>Read the labels and lines</h3>
-      <p>Each combo label sits above the candle where it became available. Connecting lines identify its contributing release symbols; their width is not an active duration or a holding period. Click the combo label for its combined reading. Use the ordinary bottom-row symbols for individual releases.</p>
+      <p>Each combo label sits above the candle where it became available, with a short stem below it. Hover or keyboard-focus a label to reveal its connecting lines and highlight the contributing release symbols. Click the label to keep that connection visible and open its combined reading. Other labels keep only their short stems. Use the ordinary bottom-row symbols for individual releases.</p>
       <p>Aging update means older news lost weight. Expiry update means an input reached its time limit. These labels have no new release below them. For monthly ISM, a grouped symbol can sit at Manufacturing while the combo becomes available later, at Services.</p>
-      <p>Read from the exact time shown in the box, not the candle open. Panning keeps the same rows; zooming can change rows while labels stay attached to their original candles. Selecting a label highlights its connector.</p>
+      <p>Read from the exact time shown in the box, not the candle open. A connection shows which releases contributed; its width is not an active duration or holding period. Labels and local More buttons stay attached to their original candles. Panning and zooming reuse label rows whenever they still fit. Offscreen combos appear when you pan to their available-from candles. Selection remains open while its chart label leaves the view.</p>
       <p>Green Long and red Short boxes show each side’s share of weighted support. Conflict stays explicit. Select a direction box to show its frozen snapshot beside accumulated context in the draggable Raycaster box.</p>
     </section>
     <section><h3>Selected Roof Candy</h3>

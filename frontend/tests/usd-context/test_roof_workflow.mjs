@@ -70,18 +70,19 @@ try {
   for (const focused of [true, false]) {
     const anchors = prepareRoofAnchors(episodes, bars, 'H1', markers, true, episodes.length)
     const plan = createRoofPlan(anchors, 12, focused)
-    const a = projectRoofPlan(plan, 20, 500), b = projectRoofPlan(plan, -40, 500), c = projectRoofPlan(plan, 20, 500)
+    const lanes = view => new Map(view.positioned.map(p => [p.combo.id, p.lane]))
+    const a = projectRoofPlan(plan, 20, 500), b = projectRoofPlan(plan, -40, 500, lanes(a)), c = projectRoofPlan(plan, 20, 500, lanes(b))
     const shared = a.positioned.filter(p => b.positioned.some(q => q.combo.id === p.combo.id))
     assert.ok(shared.length > 2, 'Zoomed-out fixture keeps several roofs across shifted viewports')
     for (const p of shared) {
       const q = b.positioned.find(q => q.combo.id === p.combo.id)
-      assert.equal(q.lane, p.lane, 'Panning cannot repack a shared roof into a different lane')
+      assert.equal(q.lane, p.lane, 'Panning reuses a shared label row when it still fits')
       assert.equal(q.labelX - p.labelX, -60)
       assert.equal(q.left - p.left, -60); assert.equal(q.right - p.right, -60)
       assert.deepEqual(q.endpoints.map(e => e.x), p.endpoints.map(e => e.x - 60))
       assert.deepEqual(q.endpoints.map(e => e.publications), p.endpoints.map(e => e.publications), 'Panning keeps the same source identities and cluster members')
     }
-    assert.deepEqual(c, a, 'Returning to a viewport restores identical roofs and overflow')
+    assert.deepEqual(c.positioned.map(p => p.combo.id), a.positioned.map(p => p.combo.id), 'Returning restores the same visible combo inventory')
     assert.equal(new Set([...a.positioned.map(p => p.combo.id), ...a.overflow.map(p => p.id)]).size, a.positioned.length + a.overflow.length)
   }
   const crossing = { ...combo, id: 'crossing', chartAt: at + 20 * hour, sources: roofSources(0, 20, 'crossing') }
@@ -90,7 +91,9 @@ try {
   const edge = projectRoofPlan(crossingPlan, -50, 200).positioned[0]
   assert.equal(edge.left, -50, 'An offscreen source stays the original anchor instead of jumping to a later visible source')
   assert.equal(edge.labelX, 150, 'The label stays on activation even when its source leaves the screen')
-  assert.equal(projectRoofPlan(crossingPlan, 50, 100).positioned[0].right, 250, 'Crossing roofs survive an offscreen activation; the viewport clips the release symbol')
+  const outside = projectRoofPlan(crossingPlan, 50, 100)
+  assert.equal(outside.positioned.length, 0, 'An offscreen activation does not show a label merely because its connection crosses the chart')
+  assert.equal(outside.overflowColumns.length, 0, 'Offscreen activation adds no local More count')
   const groupedSource = { ...crossing, id: 'grouped-crossing', sources: [
     { ...crossing.sources[0], family: 'ism', sourceId: 'services', chartAt: at + 10 * hour }, crossing.sources[1],
   ] }
@@ -98,8 +101,9 @@ try {
     { time: (at + 20 * hour) / 1000, release: { id: crossing.sources[1].sourceId }, symbol: 'cloud' }]
   for (const zoom of [10, 12, 20]) {
     const groupedPlan = createRoofPlan(prepareRoofAnchors([groupedSource], bars, 'H1', groupedMarkers, true, 1), zoom, true)
-    const clipped = projectRoofPlan(groupedPlan, 0, 12).positioned[0]
-    assert.ok(clipped, 'The grouped symbol remains connected even with both actual publications beyond the visible range')
+    assert.equal(projectRoofPlan(groupedPlan, 0, 12).positioned.length, 0, 'A visible grouped source alone cannot make an offscreen combo label eligible')
+    const clipped = projectRoofPlan(groupedPlan, 0, 20 * zoom + 1).positioned[0]
+    assert.ok(clipped, 'A visible activation retains its real grouped source for hover connections')
     assert.equal(clipped.left, 0, 'Viewport indexing uses the earlier monthly symbol, not the later Services publication')
     assert.equal(clipped.labelX, 20 * zoom)
   }
@@ -107,11 +111,36 @@ try {
   assert.equal(prepareRoofAnchors([malformed], bars, 'H1', crossingMarkers, true, 1).length, 0)
   assert.equal(prepareRoofAnchors([crossing], bars, 'H1', [], true, 1).length, 0)
   assert.equal(prepareRoofAnchors([crossing], bars, 'H1', crossingMarkers, false, 1).length, 0)
-  const many = { entries: [], prefixRight: [] }; let reads = 0
-  for (let i = 0; i < 100000; i++) { const start = i * 200; many.entries.push({ get left() { reads++; return start }, get right() { reads++; return start + 170 },
-    roof: { combo }, positioned: null }); many.prefixRight.push(start + 170) }
+  const earlier = { ...combo, id: 'offscreen-earlier', chartAt: at + 2 * hour, sources: roofSources(2, 2, 'earlier') }
+  const alone = { ...combo, id: 'visible-alone', chartAt: at + 6 * hour, sources: roofSources(6, 6, 'alone') }
+  const aloneMarkers = [...earlier.sources, ...alone.sources].map(s => ({ release: { id: s.sourceId } }))
+  for (const focus of [true, false]) for (const zoom of [70, 60]) {
+    const plan = createRoofPlan(prepareRoofAnchors([earlier, alone], bars, 'H1', aloneMarkers, true, 2), zoom, focus, 1)
+    const view = projectRoofPlan(plan, 75 - 6 * zoom, 150)
+    assert.deepEqual(view.positioned.map(p => p.combo.id), [alone.id], 'One zoom step cannot let an offscreen label displace the only visible combo')
+    assert.equal(view.overflow.length, 0)
+  }
+  const longConnections = [crossing, { ...crossing, id: 'other-long', chartAt: at + 40 * hour, sources: roofSources(0, 40, 'other') }]
+  const longMarkers = longConnections.flatMap(c => c.sources.map(s => ({ release: { id: s.sourceId } })))
+  const longPlan = createRoofPlan(prepareRoofAnchors(longConnections, bars, 'H1', longMarkers, true, 2), 20, false, 1)
+  assert.equal(projectRoofPlan(longPlan, 0, 1000).positioned.length, 2, 'Crossing hover connections do not compete for label rows')
+
+  const simultaneous = [0, 1, 2, 3].map(i => ({ ...alone, id: 'same-candle/' + i, chartAt: alone.chartAt + i * 60000 }))
+  const nearby = { ...alone, id: 'nearby', chartAt: at + 7 * hour }
+  const groups = createRoofPlan(prepareRoofAnchors([...simultaneous, nearby], bars, 'H1', aloneMarkers, true, 5), 40, false, 1, simultaneous[3].id)
+  const groupedView = projectRoofPlan(groups, -6 * 40 + 100, 250)
+  assert.equal(groupedView.positioned[0].combo.id, simultaneous[3].id, 'The selected combo takes a display slot at its own column')
+  assert.deepEqual(groupedView.overflowColumns.map(g => [g.column, g.x, g.combos.length]), [[6, 100, 3], [7, 140, 1]], 'Hidden combos stay grouped at their own activation candle')
+  assert.notEqual(groupedView.overflowColumns[0].lane, groupedView.overflowColumns[1].lane, 'Nearby More controls use separate footer rows')
+  assert.deepEqual(groupedView.overflowColumns[0].combos.map(c => c.chartAt), simultaneous.slice(0, 3).map(c => c.chartAt).reverse(), 'Same-candle grouping retains each exact timestamp')
+  const pannedGroups = projectRoofPlan(groups, -6 * 40 + 70, 250)
+  assert.deepEqual(pannedGroups.overflowColumns.map(g => g.x), [70, 110], 'Local More travels with its time column')
+
+  const many = { entries: [], focused: false, maxRows: 0 }; let reads = 0
+  for (let i = 0; i < 100000; i++) { const start = i * 200; many.entries.push({ column: i,
+    roof: { ...candidate('indexed/' + i), get labelX() { reads++; return start } } }) }
   assert.equal(projectRoofPlan(many, -5000000, 400).overflow.length, 3)
-  assert.ok(reads < 15, 'Panning queries intersecting roof spans rather than scanning the complete plan')
+  assert.ok(reads < 60, 'Panning uses binary lookup plus visible activations, rather than scanning the complete history')
 
   const scope = roofAuditScope(combo, 'EURUSD', 'Broker A')
   const props = { combo, symbol: 'EURUSD', broker: 'Broker A' }

@@ -6,6 +6,7 @@ import { symbolGlyph } from './event-symbols'
 import type { InspectorMarker } from './inspector-data'
 import { indexMarkers, projectMarkers, sameMarkerClusters, type MarkerCluster } from './chart/marker-projection'
 import { markerLabel } from './chart/marker-label'
+import { useMarkerEmphasis } from './chart/marker-emphasis'
 import './inspector.css'
 
 function InspectorChartMarkersComponent({ chartApi, markers, timeDisplay, onSelectRelease, currencyColors = {} }: {
@@ -14,6 +15,7 @@ function InspectorChartMarkersComponent({ chartApi, markers, timeDisplay, onSele
 }) {
   const [positions, setPositions] = useState<MarkerCluster[]>([])
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const emphasized = useMarkerEmphasis(chartApi)
   const index = useMemo(() => indexMarkers(markers), [markers])
   useEffect(() => {
     const scale = chartApi.timeScale()
@@ -40,8 +42,10 @@ function InspectorChartMarkersComponent({ chartApi, markers, timeDisplay, onSele
     {positions.map((cluster) => {
       const first = cluster.markers[0], multiple = cluster.markers.length > 1
       const expanded = expandedId === first.release.id
+      const source = cluster.markers.some(marker => emphasized.has(marker.release.id) ||
+        marker.release.ismPublications?.some(publication => emphasized.has(publication.id)))
       return <div key={first.release.id} className="inspector-marker-cluster" style={{ left: cluster.x }}>
-        <button type="button" className="inspector-chart-symbol" title={cluster.markers.map(description).join('\n')}
+        <button type="button" className={`inspector-chart-symbol${source ? ' roof-source' : ''}`} title={cluster.markers.map(description).join('\n')}
           aria-label={multiple ? `${cluster.markers.length} nearby Inspector releases` : `Inspect ${description(first)}`}
           aria-expanded={multiple ? expanded : undefined} onClick={() => multiple ?
             setExpandedId(expanded ? null : first.release.id) : onSelectRelease(first.release.id)}>

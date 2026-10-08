@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Icon catalogue · Inspector</title>
+<style>
+  :root { color-scheme: light; --bg:#f6f7fb; --paper:#fff; --ink:#172136; --muted:#647189; --line:#dce2ed; --soft:#edf2fa; --accent:#5369da; --symbol:#305de8; --icon-size:42px; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:14px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif; }
+  body.dark { color-scheme:dark; --bg:#121722; --paper:#1b2332; --ink:#edf1fa; --muted:#a3b0c6; --line:#334057; --soft:#253147; }
+  button,input,select { font:inherit; }
+  button { cursor:pointer; }
+  button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible { outline:3px solid var(--accent); outline-offset:3px; }
+  button,input[type=search],select { background:var(--paper); color:var(--ink); border:1px solid var(--line); border-radius:8px; }
+  .shell { max-width:1440px; margin:auto; padding:42px 36px 120px; }
+  .eyebrow { text-transform:uppercase; letter-spacing:.16em; color:var(--muted); font-size:11px; font-weight:650; }
+  h1 { font-size:clamp(30px,4vw,46px); letter-spacing:-.04em; line-height:1.12; margin:10px 0 14px; font-weight:650; }
+  .intro { max-width:780px; color:var(--muted); margin:0; font-size:15px; }
+  .top { display:flex; gap:30px; align-items:flex-start; justify-content:space-between; }
+  .mode { padding:9px 14px; white-space:nowrap; }
+  .originals { display:flex; flex-wrap:wrap; gap:8px; margin-top:24px; }
+  .original-chip { display:flex; align-items:center; gap:9px; padding:6px 12px; border:1px solid var(--line); border-radius:8px; background:var(--paper); }
+  .original-chip .glyph { font-size:25px; }
+  .glyph { font-family:"Segoe UI Symbol","Apple Symbols","Noto Sans Symbols 2","Noto Sans Symbols","Segoe UI Emoji",sans-serif; color:var(--symbol); font-weight:400; }
+  .controls { display:flex; flex-wrap:wrap; gap:16px; align-items:end; margin:30px 0 18px; padding:20px 0; border-block:1px solid var(--line); }
+  .field { display:grid; gap:6px; }
+  .field > span { color:var(--muted); font-size:12px; }
+  .search-field { flex:1 1 250px; }
+  input[type=search] { width:100%; min-height:42px; padding:9px 12px; }
+  select { min-height:42px; padding:8px 30px 8px 10px; }
+  .size-row,.color-row { display:flex; gap:9px; align-items:center; height:42px; }
+  input[type=range] { width:120px; accent-color:var(--accent); }
+  input[type=color] { width:38px; height:36px; padding:2px; border:1px solid var(--line); border-radius:6px; background:var(--paper); }
+  .swatch { height:28px; width:28px; padding:0; background:var(--swatch); border:2px solid var(--paper); outline:1px solid var(--line); border-radius:50%; }
+  .small-button { padding:6px 10px; }
+  .tabs { display:flex; flex-wrap:wrap; gap:7px; margin:0 0 18px; }
+  .tab { border-radius:30px; padding:7px 13px; }
+  .tab[aria-pressed=true] { background:var(--ink); color:var(--paper); border-color:var(--ink); }
+  .tab .count { opacity:.65; margin-left:6px; font-size:12px; }
+  .results { display:flex; flex-wrap:wrap; justify-content:space-between; gap:10px; align-items:center; margin:15px 0; color:var(--muted); }
+  .check { display:flex; gap:8px; align-items:center; }
+  input[type=checkbox] { accent-color:var(--accent); width:16px; height:16px; }
+  .note { color:var(--muted); font-size:12px; max-width:950px; margin:0 0 26px; }
+  .group { margin-top:32px; }
+  .group-header { display:flex; flex-wrap:wrap; align-items:baseline; gap:12px; margin-bottom:14px; }
+  .group-header h2 { font-size:18px; letter-spacing:-.015em; margin:0; font-weight:650; }
+  .group-header p { font-size:12px; margin:0; color:var(--muted); }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(142px,1fr)); gap:10px; }
+  .tile { position:relative; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:4px; min-height:166px; padding:13px 7px 11px; border-radius:11px; transition:border-color .12s,background .12s; }
+  .tile:hover { border-color:var(--accent); background:var(--soft); }
+  .tile[aria-pressed=true] { border-color:var(--accent); background:var(--soft); box-shadow:inset 0 0 0 1px var(--accent); }
+  .tile .glyph { font-size:var(--icon-size); height:70px; width:100%; display:flex; align-items:center; justify-content:center; line-height:1; }
+  .name { font-weight:600; font-size:12px; line-height:1.4; text-align:center; }
+  .code { font-size:10px; color:var(--muted); font-family:ui-monospace,Consolas,monospace; }
+  .tag { font-size:10px; color:var(--muted); }
+  .pick-mark { position:absolute; right:8px; top:7px; color:var(--accent); font-size:15px; opacity:0; }
+  .tile[aria-pressed=true] .pick-mark { opacity:1; }
+  .empty { padding:50px 0; text-align:center; color:var(--muted); }
+  .tray { position:fixed; bottom:0; left:0; right:0; z-index:3; border-top:1px solid var(--line); background:var(--paper); box-shadow:0 -4px 22px #00000008; }
+  .tray-inner { max-width:1440px; margin:auto; display:flex; align-items:center; gap:16px; padding:14px 36px; }
+  .tray-title { flex-shrink:0; }
+  .tray-title strong { display:block; }
+  .tray-title span { display:block; color:var(--muted); font-size:11px; }
+  .picks { display:flex; gap:5px; flex:1; overflow-x:auto; padding:4px 3px; min-width:0; }
+  .pick { flex-shrink:0; padding:4px 7px; min-width:34px; border-radius:6px; }
+  .pick .glyph { font-size:23px; line-height:1.15; }
+  .actions { display:flex; gap:7px; flex-shrink:0; }
+  .actions button { padding:9px 13px; }
+  .primary { background:var(--accent); border-color:var(--accent); color:white; }
+  .actions button:disabled { opacity:.5; cursor:default; }
+  .status { min-height:20px; color:var(--muted); font-size:12px; margin-top:10px; }
+  dialog { width:min(620px,calc(100% - 32px)); border:1px solid var(--line); border-radius:12px; background:var(--paper); color:var(--ink); padding:24px; }
+  dialog::backdrop { background:#0006; }
+  dialog h2 { margin:0 0 10px; font-size:20px; }
+  textarea { width:100%; min-height:220px; padding:10px; border:1px solid var(--line); background:var(--bg); color:var(--ink); border-radius:7px; font:13px/1.6 ui-monospace,Consolas,monospace; }
+  dialog button { padding:8px 14px; margin-top:12px; }
+  @media(max-width:650px) { .shell { padding:26px 16px 170px; } .top { gap:10px; } .mode { padding:7px 10px; } .grid { grid-template-columns:repeat(auto-fill,minmax(115px,1fr)); } .tray-inner { padding:12px 16px; flex-wrap:wrap; gap:8px; } .picks { flex-basis:60%; } .actions { width:100%; justify-content:flex-end; } .controls { gap:12px; } }
+  @media(prefers-reduced-motion:reduce) { * { transition:none!important; } }
+</style>
+</head>
+<body>
+<main class="shell">
+  <header class="top">
+    <div><div class="eyebrow">Fyodor / Inspector / visual shortlist</div><h1>Icon catalogue<span style="color:var(--accent)">.</span></h1>
+    <p class="intro"><span id="total-count"></span> real Unicode characters to browse. Start with the sky and weather, then explore nearby nature motifs and simple shapes. Click any tile to keep it in your shortlist.</p></div>
+    <button id="theme" class="mode" type="button" aria-pressed="false">Dark mode</button>
+  </header>
+  <div class="originals" id="originals" aria-label="Current Inspector symbols"></div>
+  <div class="controls">
+    <label class="field search-field"><span>Find an icon</span><input id="search" type="search" placeholder="Try moon, rain, leaf, star, or U+2605" autocomplete="off"></label>
+    <label class="field"><span>Character collection</span><select id="collection"><option value="all">All characters</option><option value="text">Text symbols</option><option value="extended">Extended pictographs</option></select></label>
+    <div class="field"><span>Preview size · <output id="size-label" for="size">42 px</output></span><div class="size-row"><input id="size" type="range" min="18" max="64" value="42" aria-label="Icon preview size"><button id="chart-size" type="button" class="small-button">Chart size</button></div></div>
+    <div class="field"><span>Currency color</span><div class="color-row"><input id="color" type="color" value="#305de8" aria-label="Icon color"><button type="button" class="swatch" style="--swatch:#305de8" data-color="#305de8" aria-label="EUR blue"></button><button type="button" class="swatch" style="--swatch:#9633e8" data-color="#9633e8" aria-label="USD purple"></button><button type="button" class="swatch" style="--swatch:#768399" data-color="#768399" aria-label="Neutral gray"></button></div></div>
+  </div>
+  <nav id="tabs" class="tabs" aria-label="Icon categories"></nav>
+  <div class="results"><span id="result-count"></span><label class="check"><input id="only-selected" type="checkbox">Show shortlist only</label></div>
+  <p class="note">Text symbols are closest to the current six. Extended pictographs broaden the visual options, but may display as colored emoji or a missing glyph on your system. All previews request text presentation; this is a Unicode catalogue, not Lucide. Selections are saved locally when browser storage is available.</p>
+  <div id="catalogue"></div>
+  <div id="status" class="status" role="status" aria-live="polite"></div>
+</main>
+<aside class="tray" aria-label="Your icon shortlist"><div class="tray-inner">
+  <div class="tray-title"><strong id="selected-count" aria-live="polite">0 selected</strong><span>Click a selected icon to remove it</span></div>
+  <div id="picks" class="picks"></div>
+  <div class="actions"><button type="button" id="clear">Clear</button><button type="button" id="download">Save JSON</button><button type="button" class="primary" id="copy">Copy shortlist</button></div>
+</div></aside>
+<dialog id="copy-dialog"><h2>Your shortlist</h2><p>Copy this text and send it back in the chat.</p><textarea id="copy-text" readonly aria-label="Shortlist text"></textarea><form method="dialog"><button>Close</button></form></dialog>
+<script>
+'use strict';
+const groups = [
+  { id:'original', name:'The original six', note:'The reference set you already like.', items:[
+    ['★','Star'],['☀','Sun'],['☁','Cloud'],['☂','Umbrella'],['❄','Snowflake'],['☾','Moon']
+  ]},
+  { id:'sky', name:'Sky & weather', note:'The closest expansion of the original mood.', items:[
+    ['☼','Outline sun'],['☽','Waxing crescent'],['☉','Sun disc'],['⛅','Sun behind cloud'],['⛈','Thunderstorm'],['⛆','Rain'],['⛇','Black snowman'],['☔','Rain umbrella'],['⛱','Beach umbrella'],['☇','Lightning'],['☈','Thunderbolt'],['⚡','Lightning bolt'],
+    ['🌤','Sun with small cloud'],['🌥','Sun with large cloud'],['🌦','Sun with rain'],['🌧','Rain cloud'],['🌨','Snow cloud'],['🌩','Lightning cloud'],['🌪','Tornado'],['🌫','Fog'],['🌬','Wind face'],['💨','Wind gust'],['🌈','Rainbow'],['💧','Water drop'],['☃','Snowman'],['⛄','Snowman without snow']
+  ]},
+  { id:'space', name:'Celestial & night', note:'Moon phases, distant worlds and the horizon.', items:[
+    ['☄','Comet'],['☿','Mercury'],['♀','Venus'],['♁','Earth symbol'],['♂','Mars'],['♃','Jupiter'],['♄','Saturn'],['♅','Uranus'],['♆','Neptune'],['♇','Pluto'],['🌑','New moon'],['🌒','Waxing crescent moon'],['🌓','First quarter moon'],['🌔','Waxing gibbous moon'],['🌕','Full moon'],['🌖','Waning gibbous moon'],['🌗','Last quarter moon'],['🌘','Waning crescent moon'],['🌙','Crescent moon'],['🪐','Ringed planet'],['🌌','Milky Way'],['🌠','Shooting star'],['🌅','Sunrise'],['🌄','Sunrise over mountains'],['🌇','Sunset'],['🌆','Dusk']
+  ]},
+  { id:'stars', name:'Stars & sparkles', note:'Compact silhouettes that work well as small markers.', items:[
+    ['☆','Outline star'],['✦','Four-point star'],['✧','Outline four-point star'],['✨','Sparkles'],['✩','Outline stressed star'],['✪','Circled star'],['✫','Open-center star'],['✬','Center-filled star'],['✭','Outlined solid star'],['✮','Heavy outlined star'],['✯','Pinwheel star'],['✰','Shadowed star'],['✴','Eight-point star'],['✵','Pinwheel eight-point star'],['✶','Six-point star'],['✷','Eight-point burst'],['✸','Heavy eight-point burst'],['✹','Twelve-point burst'],['✺','Sixteen-point burst'],['✻','Teardrop asterisk'],['✼','Open-center asterisk'],['✽','Heavy teardrop asterisk'],['❅','Three-spoke snowflake'],['❆','Heavy snowflake'],['❇','Sparkle'],['❈','Heavy sparkle'],['❉','Balloon asterisk'],['❊','Eight-spoke asterisk'],['❋','Heavy eight-spoke asterisk'],['⚝','Outlined white star']
+  ]},
+  { id:'nature', name:'Leaves & quiet nature', note:'A wider family of soft, familiar outdoor motifs.', items:[
+    ['☘','Shamrock'],['⚘','Flower'],['✿','Solid flower'],['❀','Outline flower'],['❁','Petal flower'],['❃','Pinwheel flower'],['❦','Floral heart'],['❧','Leaf flourish'],['☙','Reversed leaf flourish'],['🌱','Seedling'],['🌿','Herb'],['🍃','Leaf in wind'],['🍂','Fallen leaf'],['🍁','Maple leaf'],['🍀','Four-leaf clover'],['🌾','Rice stalk'],['🌷','Tulip'],['🌼','Blossom'],['🌸','Cherry blossom'],['🌻','Sunflower'],['🪷','Lotus'],['🪶','Feather'],['🌲','Evergreen tree'],['🌳','Deciduous tree'],['🌴','Palm tree'],['🌵','Cactus'],['🍄','Mushroom'],['🪸','Coral']
+  ]},
+  { id:'land', name:'Land & water', note:'Broader landscape motifs for comparison.', items:[
+    ['⛰','Mountain'],['🏔','Snow-capped mountain'],['🌋','Volcano'],['🏕','Camping'],['🏞','Landscape'],['🏝','Island'],['🏜','Desert'],['🌊','Wave'],['💦','Water droplets'],['🫧','Bubbles'],['🐚','Shell'],['🪨','Rock'],['💎','Crystal'],['♨','Hot springs']
+  ]},
+  { id:'shapes', name:'Simple shapes', note:'Less thematic, but easy to tell apart at chart size.', items:[
+    ['●','Solid circle'],['○','Outline circle'],['◉','Circle with center'],['◎','Double circle'],['◌','Dotted circle'],['◍','Striped circle'],['◐','Left half circle'],['◑','Right half circle'],['◒','Lower half circle'],['◓','Upper half circle'],['◔','Quarter circle'],['◕','Three-quarter circle'],['◖','Left semicircle'],['◗','Right semicircle'],['◦','Small outline circle'],['•','Small solid circle'],
+    ['◆','Solid diamond'],['◇','Outline diamond'],['◈','Diamond with center'],['◊','Lozenge'],['⬟','Solid pentagon'],['⬠','Outline pentagon'],['⬢','Solid hexagon'],['⬡','Outline hexagon'],['■','Solid square'],['□','Outline square'],['▣','Square with center'],['▧','Striped square'],['▲','Solid triangle'],['△','Outline triangle'],['▼','Down triangle'],['▽','Outline down triangle'],['✚','Heavy cross'],['✛','Open-center cross'],['✜','Heavy open-center cross'],['✥','Four-way ornament']
+  ]},
+  { id:'ornaments', name:'Gentle ornaments', note:'A few nearby alternatives if weather alone feels too narrow.', items:[
+    ['♡','Outline heart'],['♥','Solid heart'],['♢','Outline diamond suit'],['♦','Solid diamond suit'],['♧','Outline club'],['♣','Solid club'],['♤','Outline spade'],['♠','Solid spade'],['☯','Yin-yang'],['☮','Peace'],['∞','Infinity'],['♾','Circled infinity'],['⌁','Wave ornament'],['∿','Sine wave'],['≋','Triple wave'],['⚬','Small ring']
+  ]}
+];
+const $ = id => document.getElementById(id);
+const codepoints = glyph => Array.from(glyph).map(c=>'U+'+c.codePointAt(0).toString(16).toUpperCase().padStart(4,'0')).join(' ');
+const icons = groups.flatMap(group=>group.items.map(([glyph,name],i)=>({id:group.id+'-'+String(i+1).padStart(2,'0'),glyph,name,group:group.id,codepoints:codepoints(glyph),extended:Array.from(glyph).some(c=>c.codePointAt(0)>0xffff)})));
+const storageKey = 'fyodor.icon-catalogue.shortlist.v1';
+const selected = new Set();
+try { const saved = JSON.parse(localStorage.getItem(storageKey)||'[]'); if(Array.isArray(saved)) saved.forEach(id=>{if(icons.some(icon=>icon.id===id))selected.add(id);}); } catch {}
+let category = 'all';
+function element(tag,className,text) { const el=document.createElement(tag); if(className)el.className=className; if(text!==undefined)el.textContent=text; return el; }
+function symbol(icon) { return element('span','glyph',icon.glyph+'\uFE0E'); }
+function save() { try { localStorage.setItem(storageKey,JSON.stringify([...selected])); } catch { $('status').textContent='Browser storage is unavailable. Copy or save your shortlist before closing.'; } }
+function toggle(id) { selected.has(id)?selected.delete(id):selected.add(id); save(); render(); }
+function filtered() { const terms=$('search').value.trim().toLowerCase().split(/\s+/).filter(Boolean); const collection=$('collection').value; return icons.filter(icon=>(category==='all'||icon.group===category)&&(! $('only-selected').checked||selected.has(icon.id))&&(collection==='all'||(collection==='extended')===icon.extended)&&terms.every(term=>(icon.name+' '+icon.glyph+' '+icon.codepoints+' '+icon.id).toLowerCase().includes(term))); }
+function renderTabs() { $('tabs').replaceChildren(); [{id:'all',name:'All icons'},...groups].forEach(group=>{ const button=element('button','tab',group.name); button.type='button'; button.setAttribute('aria-pressed',String(category===group.id)); button.append(element('span','count',String(group.id==='all'?icons.length:icons.filter(icon=>icon.group===group.id).length))); button.addEventListener('click',()=>{category=group.id;render();}); $('tabs').append(button); }); }
+function render() {
+  const focusId=document.activeElement?.dataset?.iconId;
+  renderTabs(); const visible=filtered(); const root=$('catalogue'); root.replaceChildren();
+  $('result-count').textContent=visible.length+' of '+icons.length+' icons shown';
+  groups.forEach(group=>{ const items=visible.filter(icon=>icon.group===group.id); if(!items.length)return; const section=element('section','group'); const header=element('div','group-header'); header.append(element('h2',null,group.name),element('p',null,group.note)); section.append(header); const grid=element('div','grid');
+    items.forEach(icon=>{ const button=element('button','tile'); button.type='button'; button.dataset.iconId=icon.id; button.setAttribute('aria-pressed',String(selected.has(icon.id))); button.setAttribute('aria-label',icon.name+', '+icon.codepoints+', '+(icon.extended?'extended pictograph':'text symbol')); button.append(element('span','pick-mark','✓'),symbol(icon),element('span','name',icon.name),element('span','code',icon.codepoints),element('span','tag',icon.group==='original'?'Current icon':icon.extended?'Extended pictograph':'Text symbol')); button.addEventListener('click',()=>toggle(icon.id)); grid.append(button); }); section.append(grid);root.append(section);
+  });
+  if(!visible.length)root.append(element('p','empty','No icons match. Try a different search or category.'));
+  renderTray(); if(focusId)root.querySelector('[data-icon-id="'+focusId+'"]')?.focus({preventScroll:true});
+}
+function shortlist() { return icons.filter(icon=>selected.has(icon.id)); }
+function renderTray() { $('selected-count').textContent=selected.size+' selected'; $('picks').replaceChildren(); shortlist().forEach(icon=>{ const button=element('button','pick'); button.type='button'; button.title='Remove '+icon.name; button.setAttribute('aria-label','Remove '+icon.name);button.append(symbol(icon));button.addEventListener('click',()=>toggle(icon.id));$('picks').append(button); }); ['clear','copy','download'].forEach(id=>$(id).disabled=selected.size===0); }
+$('total-count').textContent=icons.length;
+icons.filter(icon=>icon.group==='original').forEach(icon=>{const chip=element('span','original-chip');chip.append(symbol(icon),element('span',null,icon.name));$('originals').append(chip);});
+$('search').addEventListener('input',render);$('collection').addEventListener('change',render);$('only-selected').addEventListener('change',render);
+function setSize(size) { $('size').value=String(size);document.documentElement.style.setProperty('--icon-size',size+'px');$('size-label').textContent=size+' px'; }
+$('size').addEventListener('input',()=>setSize($('size').value));$('chart-size').addEventListener('click',()=>setSize(19));
+function setColor(color) { $('color').value=color;document.documentElement.style.setProperty('--symbol',color); }
+$('color').addEventListener('input',()=>setColor($('color').value));document.querySelectorAll('[data-color]').forEach(button=>button.addEventListener('click',()=>setColor(button.dataset.color)));
+$('theme').addEventListener('click',()=>{const dark=document.body.classList.toggle('dark');$('theme').textContent=dark?'Light mode':'Dark mode';$('theme').setAttribute('aria-pressed',String(dark));});
+$('clear').addEventListener('click',()=>{selected.clear();save();render();});
+$('copy').addEventListener('click',async()=>{const text=shortlist().map(icon=>icon.glyph+' '+icon.name+' ('+icon.codepoints+')').join('\n');try { if(!navigator.clipboard?.writeText)throw new Error('Clipboard unavailable');await navigator.clipboard.writeText(text);$('status').textContent='Copied '+selected.size+' icons. Paste the shortlist into the chat.';$('copy').textContent='Copied!';setTimeout(()=>$('copy').textContent='Copy shortlist',1800); } catch { $('copy-text').value=text;$('copy-dialog').showModal();$('copy-text').focus();$('copy-text').select(); } });
+$('download').addEventListener('click',()=>{const data=shortlist().map(({id,name,glyph,codepoints,group,extended})=>({id,name,glyph,codepoints,category:group,collection:extended?'extended-pictograph':'text-symbol'}));const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json;charset=utf-8'}));const link=element('a');link.href=url;link.download='inspector-icon-shortlist.json';document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);$('status').textContent='Saved '+data.length+' icons to inspector-icon-shortlist.json.';});
+render();
+</script>
+</body>
+</html>
