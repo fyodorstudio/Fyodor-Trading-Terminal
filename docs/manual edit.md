@@ -1,5 +1,30 @@
 # Manual audit backlog
 
+## 8 October 2026 — Roof endpoint clarity / display v6 — not visually audited
+
+- At wide zoom, check the earlier hollow dot lands directly above a grouped
+  cloud² symbol. Click it and confirm the relevant contributing releases are
+  selectable, while the range, filters and viewport stay unchanged.
+- Check single- and two-line labels across all three levels: centered over their
+  spans, sitting fully above the horizontal connector. Preserve the neat
+  ISM + Claims + NFP +2 midpoint. Check the second-level rightmost label too.
+- Pan both directions at fixed zoom: lanes stay fixed; source dots follow their
+  symbols. Activation remains on its true containing candle even if its symbol
+  box includes an earlier nearby release. At viewport edges, grouping may change
+  when releases leave the visible marker row; assess whether alignment stays clear.
+- Revisit the Oct 8, 2026 04:00 Jakarta ghost endpoint. If it is a memory update,
+  expect an outlined diamond and Aging/Expiry badge rather than a news circle.
+  Click it: Combo details should say no new participating publication and identify
+  removed releases/reasons when evidence left its window or expired.
+- Hide an activating publication with chart filters: its filled circle must remain
+  a publication circle and open Combo details. Visibility does not define cause.
+- Compare publication, aging and expiry Candy explanations with the matching
+  terminology; remember Candy shows accumulated context and Roofs their named scope.
+- Confirm blank-chart clicks dismiss selection/choosers and grouped release
+  popovers still appear in front. Scores, weights and activation clocks should
+  match the committed interpretation; this pass changes display/provenance only.
+
+
 ## Unified display clock — 8 October 2026 (ready for your visual audit)
 
 This pass supersedes earlier checklist requests to show broker times. Broker

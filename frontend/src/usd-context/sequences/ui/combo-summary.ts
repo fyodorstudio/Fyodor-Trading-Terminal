@@ -1,3 +1,4 @@
+import { activationLabel, comboActivation } from '../core/combo-activation'
 import type { ComboSnapshot } from '../core/contracts'
 import { roofSupport, supportLabel } from '../core/relationship-support'
 
@@ -5,7 +6,8 @@ const joinNames = (names: string[]) => names.length < 2 ? names[0] ?? '' : `${na
 
 export function comboSummary(combo: ComboSnapshot) {
   const updates = combo.sources.filter(source => source.chartAt === combo.chartAt)
-  const activation = updates.length ? joinNames([...new Set(updates.map(s => s.sourceLabel))]) : 'Memory update; no new publication'
+  const cause = comboActivation(combo)
+  const activation = cause.kind === 'publication' ? joinNames([...new Set(updates.map(s => s.sourceLabel))]) : `${activationLabel(cause.kind)} · Memory update; no new publication`
   const policy = combo.kind === 'labor-inflation' || combo.kind === 'weekly-labor'
   const support = roofSupport(combo)
   const why = support.state === 'insufficient' ? `Usable evidence is missing${support.missing.length ? ` for ${joinNames(support.missing)}` : ''}. No complete relationship conclusion is available.` :
@@ -16,6 +18,6 @@ export function comboSummary(combo: ComboSnapshot) {
     policy ? 'Named labor policy relationship · combined USD evidence is shown separately.' :
     combo.kind === 'fed-relationship' ? 'Numerical rate action alongside macro evidence. Basis points and macro magnitude points are not interchangeable.' :
     'Relationship between available standalone interpretations · base family budgets and source age retained.'
-  return { activation, updates, why, meaning,
-    changed: `${supportLabel(support)} at this snapshot. ${combo.kind === 'fresh-news' ? 'This describes changes in support, rather than the level of accumulated context.' : 'Earlier inputs become jointly inspectable at the activation publication.'}` }
+  return { activation, cause, updates, why, meaning,
+    changed: `${supportLabel(support)} at this snapshot. ${combo.kind === 'fresh-news' ? 'This describes changes in support, rather than the level of accumulated context.' : cause.kind === 'publication' ? 'Earlier inputs become jointly inspectable at the activation publication.' : 'Stored inputs are reassessed at this memory update; no new participating publication was added.'}` }
 }

@@ -1,3 +1,4 @@
+import { activationLabel, comboActivation, removalReason } from '../core/combo-activation'
 import type { ComboSnapshot } from '../core/contracts'
 import { roofResultLabel } from '../core/relationship-support'
 import { relationshipName } from '../core/relationship-registry'
@@ -30,5 +31,6 @@ export function roofTooltip(combo: ComboSnapshot, hidden = 0, clock = (t: number
     description = `${sources.join('\n')}\n${combo.explanation}`
     descriptions.set(combo, description)
   }
-  return `${combo.title} · USD inputs only · ${roofResultLabel(combo)} · ${combo.strength ? `${combo.strength} evidence` : 'evidence ungraded'}${hidden ? ` · ${hidden} inputs hidden by marker filters` : ''}\nAvailable from ${clock(combo.chartAt)} (right endpoint). Earlier connecting lines identify prior inputs.\n${description}`
+  const activation = comboActivation(combo)
+  return `${combo.title} · USD inputs only · ${roofResultLabel(combo)} · ${combo.strength ? `${combo.strength} evidence` : 'evidence ungraded'}${hidden ? ` · ${hidden} inputs hidden by marker filters` : ''}\nAvailable from ${clock(combo.chartAt)} (right endpoint). ${activationLabel(activation.kind)}${activation.kind !== 'publication' ? '; no new participating publication' : ''}. ${activation.removed.map(s => `${removalReason(s.reason)}: ${s.sourceLabel}`).join('; ')} Earlier connecting lines identify prior inputs.\n${description}`
 }

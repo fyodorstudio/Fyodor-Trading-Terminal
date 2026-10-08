@@ -73,14 +73,16 @@ try {
   assert.match(button.title, /1 inputs hidden/)
   assert.match(button.title, /Available from/)
   assert.equal(container.querySelector('.combo-roof-start').style.left, '300px', 'Activation endpoint stays on the containing candle')
-  assert.equal(container.querySelectorAll('circle').length, 2, 'Contributing and activation dots replace duplicate roof symbols')
-  assert.equal(container.querySelector('.combo-roof-start').textContent, '', 'Memory activation has no permanent badge')
-  assert.match(container.querySelector('.combo-roof-start').title, /Memory update; no new publication/)
+  assert.equal(container.querySelectorAll('circle').length, 1, 'Earlier contributors keep a hollow circle')
+  assert.ok(container.querySelector('.combo-roof-start .combo-roof-diamond'), 'Memory activation uses an outlined diamond')
+  assert.equal(container.querySelector('.combo-roof-update-badge').textContent, 'Aging update')
+  assert.equal(container.querySelector('.combo-roof-start').textContent, '', 'The endpoint remains a compact geometric marker')
+  assert.match(container.querySelector('.combo-roof-start').title, /Memory update; no new participating publication/)
   assert.equal(container.querySelector('.combo-roof-start').disabled, false, 'Memory activation opens its explanation')
   await React.act(async () => container.querySelector('.combo-roof-start').click()); assert.equal(selected, episode)
   assert.equal(button.querySelector('small'), null, 'Hidden input counts stay in explanations rather than crowding labels')
   assert.equal(container.querySelector('.combo-roof-symbol'), null, 'The ordinary marker row owns release symbols')
-  assert.match(container.querySelector('.combo-roof-stem').getAttribute('d'), /V 132$/, 'Source connectors reach the existing bottom symbol row')
+  assert.match(container.querySelector('.combo-roof-stem').getAttribute('d'), /132$/, 'Source connectors reach the existing bottom symbol row')
   assert.equal(container.querySelector('.combo-roofs').style.getPropertyValue('--inspector-usd-color'), '#123456')
   await React.act(async () => button.click()); assert.equal(selected, episode)
   const previousCalls = coordinateCalls
@@ -116,6 +118,8 @@ try {
   await render(React.createElement(ComboRoofs, { ...roofProps, episodes: [current], markers: visibleMarkers }))
   const start = container.querySelector('.combo-roof-start')
   assert.equal(start.textContent, '')
+  assert.ok(start.querySelector('circle'), 'Publication activation keeps the filled circle')
+  assert.equal(container.querySelector('.combo-roof-update-badge'), null, 'Publication Roof labels retain their compact layout')
   await React.act(async () => start.click()); assert.equal(opened.sourceId, 'pce', 'The final release symbol opens the actual activation publication')
   const nearby = { ...current, sources: [...current.sources, { ...current.sources[1], sourceId: 'gdp', sourceLabel: 'GDP', family: 'gdp' }] }
   await render(React.createElement(ComboRoofs, { ...roofProps, episodes: [nearby], markers: [...visibleMarkers, { release: { id: 'gdp' }, symbol: 'umbrella' }] }))
@@ -178,6 +182,19 @@ try {
   await React.act(async () => participant.click()); assert.equal(opened.sourceId, 'pce')
   await React.act(async () => [...container.querySelectorAll('button')].find(b => b.textContent === 'Return to releases').click())
   assert.equal(returned, true)
+
+  const expired = { ...episode, activation: { kind: 'expiry', removed: [{ sourceId: 'ppi-old', sourceLabel: 'PPI removed publication',
+    chartAt: at - 7 * 24 * hour, releaseAt: at - 7 * 24 * hour - 3 * hour, reason: 'fresh-window' }] } }
+  await render(React.createElement(ComboRoofs, { ...roofProps, episodes: [expired] }))
+  assert.equal(container.querySelector('.combo-roof-update-badge').textContent, 'Expiry update')
+  assert.match(container.querySelector('.combo-roof-start').title, /seven-day fresh-news window: PPI removed publication/)
+  const previousOpened = opened
+  await React.act(async () => container.querySelector('.combo-roof-start').click())
+  assert.equal(selected, expired, 'Expiry diamonds open the snapshot explanation')
+  assert.equal(opened, previousOpened, 'Memory endpoints do not pretend to open a new release')
+  await render(React.createElement(ComboInspector, { combo: expired, symbol: 'EURUSD', timeDisplay, onClose() {}, onOpenRelease() {} }))
+  assert.match(container.textContent, /Expiry update.*Memory update; no new publication/)
+  assert.match(container.textContent, /Removed from the seven-day fresh-news window: PPI removed publication/)
 
   const mixedEpisode = { ...episode, sources: episode.sources.map((s, i) => ({ ...s, change: i ? .105 : -.1, comparable: true })),
     catalogue: { enabled: ['claims', 'pce', 'cpi'], fresh: episode.sources.map((s, i) => ({ ...s, change: i ? .105 : -.1, comparable: true })), fed: null },

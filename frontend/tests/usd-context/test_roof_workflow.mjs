@@ -35,7 +35,7 @@ try {
   const summary = comboSummary(combo)
   assert.match(summary.why, /claims contribute most to the Long side.*Opposing support remains visible/)
   assert.equal(summary.activation, 'pce', 'Activation names only the publication at the qualification time')
-  assert.equal(comboSummary({ ...combo, chartAt: at + 1 }).activation, 'Memory update; no new publication')
+  assert.equal(comboSummary({ ...combo, chartAt: at + 1 }).activation, 'Aging update · Memory update; no new publication')
   assert.match(comboSummary({ ...combo, sources: combo.sources.map(s => ({ ...s, change: s.family === 'claims' ? -.1 : .1 })) }).why, /cancel/)
   assert.match(comboSummary({ ...combo, sources: combo.sources.map(s => ({ ...s, comparable: false })) }).why, /Usable evidence is missing/)
   assert.match(comboSummary({ ...combo, kind: 'ism-sectors', sources: [{ ...inputs[0], total: null, usdDirection: 'uncomputed' }, inputs[1]] }).why, /Usable evidence is missing/)

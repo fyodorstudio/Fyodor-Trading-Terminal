@@ -1,10 +1,11 @@
+import { activationLabel, removalReason } from '../core/combo-activation'
 import type { EventSymbol } from '../../../inspector/event-symbols'
-import type { ComboSource } from '../core/contracts'
+import type { ComboActivation, ComboSource } from '../core/contracts'
 
 export type RoofPublication = { source: ComboSource; symbol: EventSymbol }
-export type RoofEndpoint = { x: number; publications: RoofPublication[]; activation: boolean }
-export const roofDisplayVersion = 5
-export const roofLaneY = (lane: number) => 116 - lane * 42
+export type RoofEndpoint = { x: number; publications: RoofPublication[]; activation: boolean; symbolX?: number }
+export const roofDisplayVersion = 6
+export const roofLaneY = (lane: number) => 124 - lane * 42
 
 /** Merge only a shared candle anchor; never move an older release to activation. */
 export function clusterRoofEndpoints(points: readonly RoofEndpoint[]): RoofEndpoint[] {
@@ -23,12 +24,14 @@ export function clusterRoofEndpoints(points: readonly RoofEndpoint[]): RoofEndpo
 export const roofEndpointKey = (endpoint: RoofEndpoint) => endpoint.activation ? 'activation' : endpoint.publications.map(p => p.source.sourceId).join('|')
 export const endpointPublications = (endpoint: RoofEndpoint, at: number) => endpoint.activation ?
   endpoint.publications.filter(p => p.source.chartAt === at) : endpoint.publications
-export function roofEndpointTooltip(endpoint: RoofEndpoint, at: number, publicationUpdate: boolean, clock = (t: number) => new Date(t).toISOString().slice(0, 19).replace('T', ' ')) {
+export function roofEndpointTooltip(endpoint: RoofEndpoint, at: number, activation: ComboActivation | boolean, clock = (t: number) => new Date(t).toISOString().slice(0, 19).replace('T', ' ')) {
   const publications = endpointPublications(endpoint, at)
+  const cause = typeof activation === 'boolean' ? { kind: activation ? 'publication' as const : 'aging' as const, removed: [] } : activation
   return [endpoint.activation ? `Combo available from: ${clock(at)}` : 'Earlier contributing releases',
-    ...(endpoint.activation && !publicationUpdate ? ['Memory update; no new publication.'] : []),
+    ...(endpoint.activation ? [activationLabel(cause.kind), ...(cause.kind !== 'publication' ? ['Memory update; no new participating publication.'] : []), ...cause.removed.map(s => `${removalReason(s.reason)}: ${s.sourceLabel} · ${clock(s.chartAt)}`)] : []),
     ...publications.map(p => `${p.source.sourceLabel} · ${clock(p.source.chartAt)}`),
-    publications.length > 1 ? 'Several releases share this candle. Click to choose a release.' :
+    endpoint.activation && cause.kind !== 'publication' ? 'Click for Combo details.' :
+    publications.length > 1 ? 'Several releases share this point. Click to choose a release.' :
       publications.length ? 'Click to inspect this release.' : 'Click for Combo details; no visible activation release.',
     ...(endpoint.activation ? ['Availability is not a trade entry signal. Use the exact time, not the candle open.'] : [])].join('\n')
 }

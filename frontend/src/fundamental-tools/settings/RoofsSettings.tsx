@@ -15,9 +15,9 @@ export function RoofsSettings({ supported }: { supported: boolean }) {
       {!supported && <p>Chart roofs are available on EURUSD. These display preferences are retained for supported pairs.</p>}
     </section>
     <section><h3>Read the shapes</h3>
-      <p>The filled dot marks activation: when all required information was available. Hollow dots identify contributing releases. The line connects source releases to activation; its width is not an active duration or a holding period.</p>
-      <p>Click a hollow dot for its contributing release. Click a filled dot for the activating release, or Combo details if activation is a memory update or its publication is hidden. Several releases at the point open a chooser. Click the direction box for Combo details. Release symbols stay in the bottom row.</p>
-      <p>Read the combo from the exact activation time onward, not from the candle open. Availability is not a trade entry signal. Panning preserves the rows and anchors; zooming can rearrange rows.</p>
+      <p>The filled circle marks a new publication activation. An outlined diamond marks an Aging update or Expiry update, with no new participating publication. Hollow circles identify earlier contributing releases. The line connects source releases to activation; its width is not an active duration or a holding period.</p>
+      <p>Click a hollow dot for its contributing release. Click a filled dot for the activating release, or Combo details if its publication is hidden. Click a diamond for Combo details and the named inputs that aged out or expired. Several releases at the point open a chooser. Click the direction box for Combo details. Release symbols stay in the bottom row.</p>
+      <p>Read the combo from the exact activation time onward, not from the candle open. Availability is not a trade entry signal. Labels sit centered above their connector. Hollow inputs align with grouped release symbols; publication activation keeps its original candle anchor. Panning preserves the planned rows; zooming can rearrange rows.</p>
     </section>
     <section><h3>Available USD relationships · v{relationshipVersion}</h3><dl>
       <dt>Complete pair catalogue</dt><dd>28 macro pairs plus eight Fed/macro pairs. Open a direction box, then USD relationship catalogue, to inspect all pairs, unavailable inputs and any larger selected group at that activation time.</dd>
@@ -30,7 +30,7 @@ export function RoofsSettings({ supported }: { supported: boolean }) {
     </dl></section>
     <section><details><summary>All 36 registered pairs</summary><ul>{relationshipPairs.map(pair => <li key={pair.id}>{pair.label}</li>)}</ul></details></section>
     <section><h3>Inputs and scope</h3>
-      <p>Roofs use enabled USD inputs in both Candy modes. Pair annotations compare available standalone support; ISM sectors resolve one family; labor policy relationships show combined USD support; fresh news shows comparable changes. Candy retains accumulated context in its selected USD-side or EUR-vs-USD mode. They answer different questions and can disagree. Fed actions are unweighted annotations; speeches and EUR publications add no Roof vote. Raycaster’s input settings determine macro calculation; Inspector filters determine visible symbols. Hidden inputs are disclosed. Raycaster/Candy conflict-label changes are deferred.</p>
+      <p>Roofs use enabled USD inputs in both Candy modes. Pair annotations compare available standalone support; ISM sectors resolve one family; labor policy relationships show combined USD support; fresh news shows comparable changes. Candy retains accumulated context in its selected USD-side or EUR-vs-USD mode. They answer different questions and can disagree. Fed actions are unweighted annotations; speeches and EUR publications add no Roof vote. Raycaster’s input settings determine macro calculation; Inspector filters determine visible symbols. Hidden inputs are disclosed. USD-side Raycaster/Candy disclose conflicted leads separately from Roof support changes.</p>
       <ul>{['cpi', 'nfp', 'claims', 'pce', 'ppi', 'ism', 'retail', 'gdp'].map(f => <li key={f}>{f.toUpperCase()}: {families.some(enabled => enabled === f) ? 'Enabled' : 'Off'}</li>)}</ul>
     </section>
   </div>

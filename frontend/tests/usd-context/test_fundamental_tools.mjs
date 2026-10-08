@@ -49,7 +49,7 @@ try {
   assert.deepEqual([...panel().querySelectorAll('[role="tab"]')].map(b => b.textContent), ['Raycaster', 'Roofs', 'Candy'])
   await React.act(async () => tab('Raycaster').dispatchEvent(new dom.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })))
   assert.equal(tab('Roofs').getAttribute('aria-selected'), 'true'); assert.equal(document.activeElement, tab('Roofs'))
-  assert.match(panel().textContent, /filled dot.*width is not an active duration/)
+  assert.match(panel().textContent, /filled circle.*width is not an active duration/)
   const density = panel().querySelector('[aria-label="Roof display density"]')
   await React.act(async () => { density.value = 'all'; density.dispatchEvent(new dom.Event('change', { bubbles: true })) })
   assert.equal(sequence.readSequencePreferences().density, 'all')

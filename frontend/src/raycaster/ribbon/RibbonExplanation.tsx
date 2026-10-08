@@ -15,7 +15,7 @@ export function RibbonExplanation({ point, mode, version, partial, onClose }: { 
   return <div ref={panel} tabIndex={-1} role="dialog" aria-label="Context ribbon explanation" className="ribbon-explanation">
     <header><strong>{point.label}{point.evidence ? ` · ${point.evidence} evidence` : ''}</strong><button type="button" onClick={onClose} aria-label="Close ribbon explanation">×</button></header>
     <p>{mode} · {version}{partial ? ' · Partial or timing-excluded history' : ''}</p><p>State available from {displayClock(point.at)} ({clock.zone})</p>
-    <p>{point.explanation}</p><h3>{point.kind === 'publication' ? 'Publication update' : point.kind === 'expiry' ? 'Expiry update' : 'Memory aging update'}</h3><p>{point.update}</p>
+    <p>{point.explanation}</p><h3>{point.kind === 'publication' ? 'New publication' : point.kind === 'expiry' ? 'Expiry update' : 'Aging update'}</h3><p>{point.update}</p>{point.kind !== 'publication' && <p>No new publication. Existing evidence changed through {point.kind === 'expiry' ? 'expiry' : 'aging'}.</p>}
     {mode === 'USD side' && point.presentation && <UsdSupportDetails presentation={point.presentation} />}
     <h3>USD contributions at this time</h3><table><thead><tr><th>Input / latest source</th><th>Status</th><th>Vote</th></tr></thead><tbody>
       {point.usd?.result.members.map(m => <tr key={m.family}><td>{m.sourceLabel}<small>{displayClock(m.chartAt)}</small></td><td>{m.status}</td><td>{m.contribution.toFixed(3)}</td></tr>)}

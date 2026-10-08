@@ -1,3 +1,4 @@
+import { comboActivation } from '../core/combo-activation'
 import type { OhlcBar } from '../../../market-data/contracts/OhlcBar'
 import type { ChartTimeframe } from '../../../market-data/contracts/ChartTimeframe'
 import type { InspectorMarker } from '../../../inspector/inspector-data'
@@ -46,8 +47,11 @@ export function createRoofPlan(anchors: readonly RoofAnchor[], spacing: number, 
     return { combo: a.combo, left, right, endpoints: clusterRoofEndpoints(points), hidden: a.hidden, labelX: (left + right) / 2 }
   })
   const layout = layoutRoofs(candidates, focused), chosen = new Map(layout.positioned.map(p => [p.combo.id, p]))
-    const entries = candidates.map(roof => ({ left: Math.min(roof.left - 16, roof.labelX - 85), right: Math.max(roof.right + 36, roof.labelX + 85),
-    roof, positioned: chosen.get(roof.combo.id) ?? null })).sort((a, b) => a.left - b.left || a.roof.combo.id.localeCompare(b.roof.combo.id))
+  const entries = candidates.map(roof => {
+    const halfWidth = comboActivation(roof.combo).kind === 'publication' ? 85 : 110
+    return { left: Math.min(roof.left - 52, roof.labelX - halfWidth - 18), right: Math.max(roof.right + 36, roof.labelX + halfWidth),
+      roof, positioned: chosen.get(roof.combo.id) ?? null }
+  }).sort((a, b) => a.left - b.left || a.roof.combo.id.localeCompare(b.roof.combo.id))
   let right = -Infinity
   const prefixRight = entries.map(e => { right = Math.max(right, e.right); return right })
   return { entries, prefixRight }

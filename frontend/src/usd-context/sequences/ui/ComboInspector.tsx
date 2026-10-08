@@ -1,3 +1,4 @@
+import { removalReason } from '../core/combo-activation'
 import { useId, useState } from 'react'
 import { relationshipVersion, type ComboSnapshot, type ComboSource } from '../core/contracts'
 import { roofResultLabel, roofSupport } from '../core/relationship-support'
@@ -41,8 +42,10 @@ export function ComboInspector({ combo, timeDisplay, symbol, broker = null, onCl
         <section className="combo-card" aria-label="Why this direction"><h3>Why this direction?</h3><p>{summary.why}</p></section>
         <section className="combo-card" aria-label="Activation and changes"><h3>What changed?</h3>
           <p><strong>Available from {clock.chart(combo.chartAt)} ({clock.zone}).</strong></p>
-          <p>Activated by: {summary.activation}.</p><p>{summary.changed}</p>
-          <small>The filled dot marks availability within its chart candle. Use the exact activation time, not the candle open. A memory update can activate a combo without a new publication. Hollow dots identify earlier inputs; they do not backdate the result or mark a trade entry.</small>
+          <p>{summary.cause.kind === 'publication' ? 'Activated by' : 'Update cause'}: {summary.activation}.</p><p>{summary.changed}</p>
+          {summary.cause.removed.map(s => <p key={s.sourceId}>{removalReason(s.reason)}: <strong>{s.sourceLabel}</strong> · {clock.utc(s.releaseAt)} ({clock.zone}).</p>)}
+          {summary.cause.kind !== 'publication' && <p>No new participating publication. This snapshot reassesses the remaining evidence.</p>}
+          <small>A filled circle marks a publication activation; an outlined diamond marks an aging or expiry update. Hollow circles identify earlier inputs. Use the exact availability time, not the candle open. None of these markers backdate knowledge or mark a trade entry.</small>
         </section>
       </div>
       <section className="combo-card" aria-label="Accumulated context comparison"><h3>Combined context at activation</h3>

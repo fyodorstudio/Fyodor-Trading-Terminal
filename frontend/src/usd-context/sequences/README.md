@@ -115,7 +115,7 @@ The snapshot title/type and publication qualification are unchanged.
 
 ## Roof workflow / display v2 — 7 October 2026
 
-Display v2 originally used two lanes in **Focused**; current display v5 uses three in both modes with hollow source dots and a filled activation dot. Display priority is evidence strength,
+Display v2 originally used two lanes in **Focused**; current display v6 uses three in both modes with hollow source circles, filled publication circles and outlined memory diamonds. Display priority is evidence strength,
 then established relationships ahead of experimental fresh-news sequences, then
 most recent activation, with ID as a stable tie-breaker. Bracket spans as well as
 label footprints reserve space. Repeated overlapping roofs of the same kind,
@@ -177,7 +177,7 @@ is cached per candle spacing / density / input history, independently of panning
 Each pan translates that plan, using an indexed span query that includes crossing
 brackets even when their activation or label lies beyond a screen edge. Labels keep
 their full-source midpoint and are clipped naturally instead of clamped to the edge.
-Current display v5 restores source/activation dots and stems to the existing bottom
+Display v5 restored source/activation dots and stems to the existing bottom
 release-symbol row. Dot clicks open the original release, or Combo details for an
 activation without a visible publication; the direction box opens the dated combo snapshot. More remains
 outside the clipping layer and retains overflow.
@@ -232,3 +232,21 @@ inside H1 candles, memory activations, relationship snapshots versus changing Ca
 and Notebook invalidation/review guidance. Terminal tests cover hidden activators,
 same-candle earlier sources, release choosers, pan stability and future rejection.
 The user performs the final visual audit.
+
+## Endpoint clarity / display v6
+
+Display provenance is attached to existing relationship snapshots without changing
+IDs, scores, weights or qualification: publication, aging, or expiry. Removed
+seven-day fresh contributors (including individual ISM sector publications) and
+expired assessments retain their names/timestamps for explanations. Cause does
+not depend on chart marker visibility. A publication simultaneous with removal
+keeps its publication classification.
+
+Hollow sources align with `projectMarkers` grouped symbol boxes; activation keeps
+its native containing-candle anchor. Alignment is a viewport projection, leaving
+the cached global lane plan intact. Labels use their actual CSS height above the
+connector and the midpoint of its span. Outlined diamonds route to Combo details;
+filled circles retain publication routing, including hidden-release fallback.
+Candy uses matching New publication / Aging update / Expiry update terminology.
+The public Roofs v6 and relationship engine v4 remain unchanged; display v6 tracks
+this presentation pass.

@@ -1,3 +1,6 @@
+import { activationLabel, comboActivation } from '../core/combo-activation'
+import { alignRoofMarkers } from './roof-marker-alignment'
+import { indexMarkers, projectMarkers } from '../../../inspector/chart/marker-projection'
 import { memo, useCallback, useEffect, useMemo, useState } from 'react'
 import type { IChartApi, MouseEventParams, Time } from 'lightweight-charts'
 import type { OhlcBar } from '../../../market-data/contracts/OhlcBar'
@@ -35,6 +38,7 @@ function ComboRoofsComponent({ chartApi, episodes, bars, timeframe, markers, now
     chartApi.subscribeClick(clear)
     return () => chartApi.unsubscribeClick(clear)
   }, [chartApi, releaseChooser, chooser])
+  const markerIndex = useMemo(() => indexMarkers(markers), [markers])
   const count = knownRoofCount(episodes, now)
   const anchors = useMemo(() => prepareRoofAnchors(episodes, bars, timeframe, markers, experimental, count),
     [episodes, bars, timeframe, markers, experimental, count])
@@ -50,13 +54,13 @@ function ComboRoofsComponent({ chartApi, episodes, bars, timeframe, markers, now
       if (!Number.isFinite(spacing) || spacing <= 0) { setPositioned([]); setOverflow([]); return }
       if (!cached || cached.spacing !== spacing) cached = { spacing, plan: createRoofPlan(anchors, spacing, focused) }
       const layout = projectRoofPlan(cached.plan, Number(offset), scale.width())
-      setPositioned(layout.positioned); setOverflow(layout.overflow)
+      setPositioned(alignRoofMarkers(layout.positioned, projectMarkers(scale, markerIndex))); setOverflow(layout.overflow)
     }
     const schedule = () => { if (frame === null) frame = window.requestAnimationFrame(update) }
     update()
     scale.subscribeVisibleLogicalRangeChange(schedule); scale.subscribeSizeChange(schedule)
     return () => { if (frame !== null) window.cancelAnimationFrame(frame); scale.unsubscribeVisibleLogicalRangeChange(schedule); scale.unsubscribeSizeChange(schedule) }
-  }, [chartApi, anchors, bars, focused])
+  }, [chartApi, anchors, bars, focused, markerIndex])
   if (!positioned.length && !overflow.length) return null
   return <div className={`combo-roofs${releaseChooser ? ' combo-roof-choosing' : ''}`} style={currencyColorStyle(currencyColors)} aria-label="Clickable combo roofs"
     onClick={e => e.stopPropagation()}>
@@ -66,31 +70,32 @@ function ComboRoofsComponent({ chartApi, episodes, bars, timeframe, markers, now
       return <g key={p.combo.id} className={p.combo.experimental ? 'experimental' : ''}>
         <path d={`M ${p.endpoints[0]?.x ?? p.left} ${y} H ${p.right}`} />
         {p.endpoints.map(endpoint => <path key={roofEndpointKey(endpoint)} className="combo-roof-stem"
-          d={`M ${endpoint.x} ${y} V ${endpointPublications(endpoint, p.combo.chartAt).length ? 132 : y + 8}`} />)}
+          d={endpointPublications(endpoint, p.combo.chartAt).length ? `M ${endpoint.x} ${y} V 128 L ${endpoint.symbolX ?? endpoint.x} 132` : `M ${endpoint.x} ${y} V ${y + 8}`} />)}
       </g>
     })}</svg>
-    {positioned.map(p => <button type="button" key={p.combo.id} className={`combo-roof-label ${p.combo.experimental ? 'experimental' : ''}`}
-      style={{ left: p.labelX, top: roofLaneY(p.lane) - 27 }}
+    {positioned.map(p => <button type="button" key={p.combo.id} className={`combo-roof-label ${p.combo.experimental ? 'experimental' : ''}${comboActivation(p.combo).kind !== 'publication' ? ' combo-roof-memory-label' : ''}`}
+      style={{ left: p.labelX, top: roofLaneY(p.lane) }}
       title={roofTooltip(p.combo, p.hidden, clock.chart)}
       aria-label={`Inspect combo ${p.combo.title}`} onClick={() => onSelect(p.combo)}>
-      <span className="combo-roof-names">{roofLabel(p.combo)}</span>
+      <span className="combo-roof-heading"><span className="combo-roof-names">{roofLabel(p.combo)}</span>
+        {comboActivation(p.combo).kind !== 'publication' && <span className="combo-roof-update-badge">{activationLabel(comboActivation(p.combo).kind)}</span>}</span>
       <span className="combo-roof-direction"> · {p.combo.kind === 'fresh-news' ? 'Change: ' : ''}{roofResultLabel(p.combo)}</span>
     </button>)}
     {positioned.flatMap(p => p.endpoints.map(endpoint => {
       const publications = endpointPublications(endpoint, p.combo.chartAt), active = endpoint.activation
-      const publicationUpdate = p.combo.sources.some(s => s.chartAt === p.combo.chartAt)
-      const tooltip = roofEndpointTooltip(endpoint, p.combo.chartAt, publicationUpdate, clock.chart)
-      return <button type="button" key={`${p.combo.id}/${roofEndpointKey(endpoint)}`} className={`combo-roof-endpoint${active ? ' combo-roof-start' : ''}`}
+      const activation = comboActivation(p.combo), publicationUpdate = activation.kind === 'publication'
+      const tooltip = roofEndpointTooltip(endpoint, p.combo.chartAt, activation, clock.chart)
+      return <button type="button" key={`${p.combo.id}/${roofEndpointKey(endpoint)}`} className={`combo-roof-endpoint${active ? ` combo-roof-start${publicationUpdate ? '' : ' combo-roof-memory'}` : ''}`}
         style={{ left: endpoint.x, top: roofLaneY(p.lane) }} title={tooltip}
-        aria-label={`${active ? publicationUpdate ? 'Combo starts' : 'Combo memory update' : 'Inspect roof release'}: ${publications.map(s => s.source.sourceLabel).join(' + ') || 'No visible activation release'}`}
+        aria-label={`${active ? publicationUpdate ? 'Combo starts' : `Combo ${activation.kind} update` : 'Inspect roof release'}: ${publications.map(s => s.source.sourceLabel).join(' + ') || 'No visible activation release'}`}
         aria-haspopup={publications.length > 1 ? 'dialog' : undefined}
         disabled={!active && (!publications.length || !onOpenSource)}
         onClick={e => {
-          if (!publications.length || !onOpenSource) onSelect(p.combo)
+          if ((active && !publicationUpdate) || !publications.length || !onOpenSource) onSelect(p.combo)
           else if (publications.length === 1) onOpenSource(publications[0].source)
           else setReleaseSelection({ roof: p, endpoint: { ...endpoint, publications }, trigger: e.currentTarget })
         }}>
-        <svg viewBox="0 0 14 14" width="14" height="14" aria-hidden="true"><circle cx="7" cy="7" r="2.5" /></svg>
+        <svg viewBox="0 0 14 14" width="14" height="14" aria-hidden="true">{active && !publicationUpdate ? <path className="combo-roof-diamond" d="M 7 3 L 11 7 L 7 11 L 3 7 Z" /> : <circle cx="7" cy="7" r="2.5" />}</svg>
       </button>
     }))}
     </div>

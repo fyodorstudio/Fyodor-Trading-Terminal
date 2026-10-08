@@ -16,11 +16,13 @@ export type FreshChange = ComboSource & { family: ContextFamily; change: number 
 export type FreshPoint = { chartAt: number; total: number | null; direction: UsdDirection;
   members: FreshChange[]; agreeingDomains: number; explanation: string;
   decision?: import('../../core/interpretation-quality').ContextDecision }
+export type ComboActivation = { kind: 'publication' | 'aging' | 'expiry'; removed: { sourceId: string; sourceLabel: string; chartAt: number; releaseAt: number; reason: 'fresh-window' | 'assessment-expiry' }[] }
 export type ComboSnapshot = { id: string; kind: ComboKind; title: string; chartAt: number;
   sources: ComboSource[]; before: ContextResult | null; after: ContextResult;
   direction: UsdDirection; strength: Evidence | null; explanation: string;
   checks: ContextPolicyCheck[]; experimental: boolean;
   decision?: import('../../core/interpretation-quality').ContextDecision;
+  activation?: ComboActivation;
   catalogue?: { enabled: ContextFamily[]; fresh: FreshChange[]; fed: ComboSource | null } }
 export type ContextRelationships = { episodes: ComboSnapshot[]; fresh: FreshPoint[] }
 export type IsmSourceMap = Map<string, ComboSource[]>

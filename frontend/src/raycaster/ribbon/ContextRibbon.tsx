@@ -75,7 +75,7 @@ function ContextRibbonComponent({ chartApi, bars, timeframe, points, now, relati
         onClick={() => { if (segment.point) setSelected({ point: segment.point, timeline: points }) }} />)}
     </div>
     {hover && <div className="ribbon-hover" role="status"><strong>{hover.segment.point?.label ?? 'Unavailable'} · {hover.segment.point?.evidence ?? 'No'} evidence</strong>
-      <span>{displayClock(hover.at)}</span><span>{hover.segment.point?.kind === 'publication' ? 'Publication' : hover.segment.point?.kind === 'expiry' ? 'Expiry' : 'Memory aging'}: {hover.segment.point?.update ?? notice ?? 'No usable context'}</span></div>}
+      <span>{displayClock(hover.at)}</span><span>{hover.segment.point?.kind === 'publication' ? 'New publication' : hover.segment.point?.kind === 'expiry' ? 'Expiry update' : 'Aging update'}: {hover.segment.point?.update ?? notice ?? 'No usable context'}</span></div>}
     {selected && <RibbonExplanation point={selected} mode={mode} version={relative ? version : `${version} / ${usdPresentationVersion}`} partial={partial} onClose={close} />}
   </div>
 }

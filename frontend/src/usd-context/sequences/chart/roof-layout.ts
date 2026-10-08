@@ -1,3 +1,4 @@
+import { comboActivation } from '../core/combo-activation'
 import type { ComboSnapshot } from '../core/contracts'
 import type { RoofEndpoint } from './roof-symbols'
 
@@ -27,8 +28,11 @@ export function layoutRoofs(candidates: readonly RoofCandidate[], focused: boole
   const positioned: PositionedRoof[] = [], overflow: ComboSnapshot[] = []
   const repetitions = new Map<string, [number, number][]>()
   for (const item of ranked) {
-    const label: [number, number] = [item.labelX - 85, item.labelX + 85]
-    const span: [number, number] = [Math.min(label[0], item.left - 16), Math.max(label[1], item.right + 36)]
+    const halfWidth = comboActivation(item.combo).kind === 'publication' ? 85 : 110
+    // A source can shift left by <36px onto its symbol cluster. Its midpoint
+    // shifts by <18px; reserve that clearance without repacking lanes on pan.
+    const label: [number, number] = [item.labelX - halfWidth - 18, item.labelX + halfWidth]
+    const span: [number, number] = [Math.min(label[0], item.left - 52), Math.max(label[1], item.right + 36)]
     const families = [...new Set(item.combo.sources.map(s => s.family))].sort().join('|')
     const key = `${item.combo.kind}:${item.combo.decision?.state ?? 'directional'}:${item.combo.direction}:${families}`
     const repeats = repetitions.get(key) ?? []

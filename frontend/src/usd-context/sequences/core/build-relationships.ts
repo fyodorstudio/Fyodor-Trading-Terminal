@@ -1,5 +1,6 @@
 import type { ContextFamily, ContextPoint, ContextResult } from '../../core/contracts'
 import type { ComboSnapshot, ComboSource, ContextRelationships, FreshChange, IsmSourceMap } from './contracts'
+import { describeComboActivation } from './combo-activation'
 import { freshNewsAt, updateFreshNews } from './fresh-news'
 import { createIsmFreshMemory, updateIsmFresh } from './ism-fresh'
 import { relationshipDomain, relationshipPairs } from './relationship-registry'
@@ -34,6 +35,7 @@ export function buildContextRelationships(points: readonly ContextPoint[], befor
     while (fedIndex < fedHistory.length && fedHistory[fedIndex][0] <= point.chartAt) latestFed = fedHistory[fedIndex++][1]
     const catalogue = { enabled: [...new Set([...point.result.members.map(m => m.family), ...point.result.missing])],
       fresh: flow.members, fed: latestFed && point.chartAt - latestFed.chartAt < 45 * 86400000 ? latestFed : null }
+    const previousFresh = fresh.at(-1)
     fresh.push(flow)
     const add = (kind: ComboSnapshot['kind'], title: string, sources: ComboSource[], explanation: string,
       direction = point.result.direction, strength = point.result.strength, experimental = false, decision: ComboSnapshot['decision'] | null = point.result.decision) => {
@@ -42,6 +44,7 @@ export function buildContextRelationships(points: readonly ContextPoint[], befor
       if (seen.get(kind) === signature) return
       seen.set(kind, signature)
       episodes.push({ id: `${kind}/${point.chartAt}/${signature}`, kind, title, chartAt: point.chartAt,
+        activation: describeComboActivation(kind, sources, point.chartAt, previousFresh, points[index - 1]?.result, point.result),
         sources, before: before ?? points[index - 1]?.result ?? null, after: point.result,
         direction, strength, explanation, experimental, catalogue, decision: decision ?? undefined, checks: kind === 'labor-inflation' || kind === 'weekly-labor' ? point.result.policy?.checks ?? [] : [] })
     }
@@ -72,7 +75,7 @@ export function buildContextRelationships(points: readonly ContextPoint[], befor
       if (sources.length !== 2 || !sources.some(s => s.chartAt === point.chartAt)) continue
       const kind = pair.families.includes('fed') ? 'fed-relationship' : 'release-relationship'
       const combo: ComboSnapshot = { id: `${kind}/${pair.id}/${point.chartAt}/${sources.map(s => s.sourceId).join('|')}`,
-        kind, title: pair.label, chartAt: point.chartAt, sources, before: before ?? points[index - 1]?.result ?? null, after: point.result, catalogue,
+        kind, title: pair.label, chartAt: point.chartAt, sources, activation: describeComboActivation(kind, sources, point.chartAt, previousFresh, points[index - 1]?.result, point.result), before: before ?? points[index - 1]?.result ?? null, after: point.result, catalogue,
         direction: 'uncomputed', strength: null, explanation: 'Available standalone interpretations at their retained base family weights. This annotation adds no context vote.',
         checks: [], experimental: false }
       const support = relationshipSupport(combo)

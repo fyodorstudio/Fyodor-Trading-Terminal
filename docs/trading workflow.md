@@ -2,6 +2,38 @@
 
 Use the chart to assess price and the fundamental overlays to understand the declared interpretation of the stored releases. A direction is a thesis input, not an instruction to buy, sell, hold, or close. Evidence describes agreement between inputs, not a probability of profit.
 
+## Roof endpoint clarity — display v6, 8 October 2026
+
+A Roof can become available because of a publication or a change in stored
+memory. The endpoint now tells you which occurred:
+
+| Marker | Meaning | Click |
+| --- | --- | --- |
+| Hollow circle ○ | Earlier contributing publication(s) | Open the release, or choose between publications sharing the symbol box |
+| Filled circle ● | New participating publication activates this snapshot | Open the activating release(s); open Combo details if hidden by marker filters |
+| Outlined diamond ◇ | Aging or expiry changes the available relationship without a new participating publication | Open Combo details |
+
+Memory labels carry **Aging update** or **Expiry update**. Hover the diamond or
+open Combo details to see the reason and named releases removed from the
+seven-day fresh-news window or whose assessments expired. A daily memory
+boundary may have no news symbol beneath it; the diamond makes that explicit.
+A publication happening at the same time as a removal retains its filled circle;
+its explanation still lists removed evidence. Hiding a publication with marker
+filters never converts that circle into a memory diamond.
+
+Earlier dots align horizontally with the ordinary grouped release-symbol box.
+Several contributing publications in that box share a source dot/chooser.
+Activation keeps its own containing-candle anchor, even if its bottom symbol is
+grouped with an earlier candle: grouping must not backdate availability. Read
+its exact selected-display-clock time in the explanation. Labels stay centered
+above their connector span, with clearance based on their actual text height.
+The three lane assignments remain stable while panning at the same zoom.
+
+Candy uses the matching terms **New publication**, **Aging update**, and
+**Expiry update** for its own accumulated-context timeline. Its scope and
+percentages can differ from a Roof. These display changes do not adjust votes,
+weights, relationship qualification, activation times or the live polling rate.
+
 ## One display clock across the terminal — 8 October 2026
 
 Choose **Chart settings → Universal time presentation** from the bottom-right
@@ -159,7 +191,7 @@ release caused the price move.
 
 ## Read the chart
 
-- **Roofs** connect the source releases behind a relationship on three levels. Hollow dots mark contributing releases; the final filled dot marks when the complete combo became available. Thin connectors lead to the ordinary bottom release-symbol row. Click a dot to inspect its release, or the direction box for **Combo details**. A filled dot without a visible activating release opens Combo details instead. Width connects sources to activation; it does not promise how long the direction lasts. Focused display reduces repetition; More retains omitted roofs. The detailed guide below explains availability and click behavior.
+- **Roofs** connect the source releases behind a relationship on three levels. Hollow circles mark contributing releases; the final filled circle marks publication activation, while an outlined diamond marks aging/expiry availability. Thin connectors lead to the ordinary bottom release-symbol row. Click a dot to inspect its release, or the direction box for **Combo details**. A filled circle without a visible activating release, or any memory diamond, opens Combo details instead. Width connects sources to activation; it does not promise how long the direction lasts. Focused display reduces repetition; More retains omitted roofs. The detailed guide below explains availability and click behavior.
 - **Context ribbon (Raycaster Candy)** shows accumulated context across time. Green means pair Long, red means pair Short; stronger shades indicate stronger evidence. Gray means unavailable. Its label identifies USD-side or EUR-vs-USD mode. Hover for the time and responsible update; click for an explanation.
 - **Outside events** are your manual gray highlights on the separate thin strip immediately above Candy. Open the header's **Fundamental tools gear → Manage outside events**, enter a title, start/end in the selected display clock and an optional observation/source reference, then Save highlight. The editor works with Candy hidden; enable Candy to see the highlights. Blank end means ongoing. Hover for the note; click to edit or delete it. Overlapping highlights show all active notes. Notes are saved per broker and pair and included in workspace backups.
 - **Raycaster** inspects the context at the hovered candle's end, capped at the current time. A publication within that candle can change its result. The ribbon retains the publication's exact timestamp.
@@ -202,11 +234,12 @@ Neither mode changes scores, qualification, selected inputs, Candy, or Raycaster
 | Target | Meaning | Click behavior |
 | --- | --- | --- |
 | Hollow dot **○** | One or more earlier contributing publications at that chart candle | Opens the contributing release in Inspector. If several publications share the point, opens a chooser with their individual names and exact clocks. |
-| Filled dot **●** | The complete combo becomes available at the exact activation time | Opens the actual activating publication. If several publications activated it at that time, opens a chooser. If activation is a memory update, or the activating publication is hidden by marker filters, opens Combo details. Earlier data in the same candle is not substituted for the activating publication. |
+| Filled circle **●** | A new participating publication makes the complete combo available | Opens the actual activating publication(s), or Combo details if hidden by marker filters. Earlier data in the same candle is not substituted. |
+| Outlined diamond **◇** | An aging/expiry memory update makes the snapshot available | Opens Combo details, including the removed evidence when applicable. |
 | Direction label, such as **Claims + NFP · Long** | The relationship interpretation captured at activation | Opens Combo details: direction and evidence, why it formed, what changed, exact availability clock, participating releases and their standalone interpretations, and combined context at activation. Advanced calculations are optional. |
 | Bottom release symbol | A release on the full event timeline | Opens Inspector or the normal grouped-release chooser. The row also includes releases that are not part of any visible roof. |
 
-The dot tooltips explain the purpose and clock without permanent Starts/Update badges. Marker filters can hide a contributing symbol without removing its calculation input. Hidden contributors remain disclosed in the roof tooltip and Combo details. If no participating marker is visible, the roof is not drawn; the underlying context calculation is unchanged.
+Tooltips explain purpose and clock. Memory labels carry compact Aging/Expiry badges; publication labels retain their compact name and direction. Marker filters can hide a contributing symbol without removing its calculation input. Hidden contributors remain disclosed in the roof tooltip and Combo details. If no participating marker is visible, the roof is not drawn; the underlying context calculation is unchanged.
 
 Dot clicks and participant links inspect a release temporarily. They **do not change your date range, selected families, symbol visibility, or preferred Table/Scoring view**. A hidden or out-of-range participant can be loaded separately for its detail panel; this does not replace the chart's release query or shrink its symbol timeline.
 
@@ -214,13 +247,13 @@ Click blank chart space to deselect the release or combo and dismiss an open roo
 
 ### Availability is not an entry instruction
 
-The **filled dot is the earliest point at which this complete combo can inform a trading thesis**. The earlier span explains where its inputs came from. Do not interpret a Long/Short roof as if its final output were already known at the first hollow dot.
+The **final endpoint (filled publication circle or memory diamond) marks the earliest point at which this snapshot can inform a trading thesis**. The earlier span explains where its inputs came from. Do not interpret a Long/Short roof as if its final output were already known at the first hollow dot.
 
 Use the exact clock in the tooltip or Combo details. For example, a combo activated at **19:30 in the selected display clock** may be drawn over the H1 candle beginning at **19:00**. It was unavailable during that candle's first 30 minutes. Multiple publications in one candle may also arrive at different times. A visual anchor at the candle does not backdate knowledge.
 
 Raycaster's hover result is evaluated at the candle's **end**, capped at now. Therefore, hovering the 19:00 H1 candle can include the 19:30 release. Candy retains exact update boundaries. When auditing a potential entry within that candle, use the exact activation/update clocks rather than assuming the hovered output describes the candle open.
 
-An activation can also occur when stored evidence ages and a relationship condition changes, without a new release. The filled dot still marks availability, but Combo details identifies it as a **memory update; no new publication**. This is different from a fresh surprise in the dataset.
+An activation can also occur when stored evidence ages and a relationship condition changes, without a new release. An **outlined diamond** marks that availability, with an Aging/Expiry badge and **no new participating publication** explanation in Combo details. This is different from a fresh surprise in the dataset.
 
 ### A roof is a snapshot; Candy is the changing context
 
@@ -233,7 +266,7 @@ The roof ends at activation, not at a calculated expiry time. Its width is neith
 ### From interpretation to a trading decision
 
 ```text
-Filled dot: combo becomes available
+Final circle/diamond: snapshot becomes available
                  ↓
 Read its reason and evidence; check current Candy context
                  ↓
@@ -244,7 +277,7 @@ Write entry, invalidation, risk and exit rules in Notebook
 Consider opening if your written conditions are satisfied
 ```
 
-You may begin considering the thesis from the filled dot onward. The dot itself is not a buy/sell signal, and evidence is not a win probability. An aligned release alone does not justify holding; an opposing release is a reason to reassess under the rules written before entry.
+You may begin considering the thesis from the final endpoint onward. The marker itself is not a buy/sell signal, and evidence is not a win probability. An aligned release alone does not justify holding; an opposing release is a reason to reassess under the rules written before entry.
 
 For a usable fundamental invalidation condition, name the **output**, **mode**, **inputs**, **evidence threshold** and **trigger** you intend to watch. For example, a paper-test condition might be: “Review my Long thesis when a new publication changes accumulated EUR-vs-USD context to Short with at least Moderate evidence, using the input selection saved at entry.” This is more precise than “close when news is opposite”: a standalone release or experimental roof can oppose the trade while accumulated context remains unchanged. Write separately whether a memory-only change should also prompt review, and what action follows. This example is an audit rule to evaluate, not a validated exit strategy.
 
