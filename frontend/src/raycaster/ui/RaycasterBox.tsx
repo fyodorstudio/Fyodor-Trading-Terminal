@@ -8,13 +8,15 @@ import { raycasterLabel } from './raycaster-label'
 import { usdContextPresentation, usdPresentationVersion, usdPresentationUpdate } from '../core/usd-context-presentation'
 import { contextVersion } from '../../usd-context/core/policy'
 import { UsdSupportDetails } from './UsdSupportDetails'
+import { useDisplayClock } from '../../appearance/time-display/useDisplayClock'
 
-export function RaycasterBox({ symbol, point, cutoff, loading, message, notice, timeDisplay, onClose, relative, relativeUpdate }: {
-  relative?: ReturnType<typeof relativeContext> | null; relativeUpdate?: string | null;
+export function RaycasterBox({ symbol, point, cutoff, loading, message, notice, timeDisplay, onClose, relative, relativeUpdate, relativeUpdateAt }: {
+  relative?: ReturnType<typeof relativeContext> | null; relativeUpdate?: string | null; relativeUpdateAt?: number | null;
   symbol: string; point: ContextPoint | null; cutoff: number | null; loading: boolean; message: string | null;
   timeDisplay: TimeDisplayPreference; onClose: () => void; notice?: string | null
 }) {
   const { ref, position, drag } = useRaycasterPosition()
+  const clock = useDisplayClock()
   const result = point?.result
   const presentation = relative ? null : usdContextPresentation(symbol, result, cutoff ?? undefined)
   const strength = relative ? relative.strength : presentation?.evidence
@@ -31,8 +33,9 @@ export function RaycasterBox({ symbol, point, cutoff, loading, message, notice, 
     {!relative && !loading && !message && cutoff !== null && presentation && <UsdSupportDetails presentation={presentation} compact />}
     {!loading && !message && point && cutoff !== null && <p className="raycaster-update">Latest update: {relative ? `EUR: ${relativeUpdate ?? 'no eligible update'} · USD: ${point.update}` : usdPresentationUpdate(symbol, point, presentation!)}</p>}
     <small title={relative ? `${relative.explanation}\nEUR ${relative.eurTotal?.toFixed(3) ?? 'unavailable'}; USD ${relative.usdTotal?.toFixed(3) ?? 'unavailable'}` : result ? `Publication / relative gate: ${result.reason}\n${result.members.map(m => `${familyTitle(m)} · ${formatAppTimestamp(m.releaseAt, timeDisplay)} · weighted score ${m.contribution.toFixed(3)}`).join('\n')}` : undefined}>
-      {relative ? 'Relative EUR / USD' : `USD side only · ${usdPresentationVersion} · ${contextVersion}`} · Raycaster filters{cutoff !== null && <> · As of {formatAppTimestamp(cutoff, { mode: 'utc', utcOffsetMinutes: 0 })} broker time (candle end / current time)</>}
+      {relative ? 'Relative EUR / USD' : `USD side only · ${usdPresentationVersion} · ${contextVersion}`} · Raycaster filters{cutoff !== null && <> · Read through {clock.chart(cutoff)} ({clock.zone}) · candle end, capped at current time</>}
     </small>
+    {!loading && !message && point && cutoff !== null && <small>Last context update: {clock.chart(relative ? Math.max(point.chartAt, relativeUpdateAt ?? point.chartAt) : point.chartAt)} ({clock.zone}). Historical candle readings include releases through the candle end.</small>}
     {notice && <small role="status">{notice}</small>}
   </aside>
 }

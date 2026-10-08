@@ -1,5 +1,37 @@
 # Manual audit backlog
 
+## Unified display clock — 8 October 2026 (ready for your visual audit)
+
+This pass supersedes earlier checklist requests to show broker times. Broker
+offset information now belongs only in Chart settings. Historical checklists
+below remain a record of previous passes.
+
+- [ ] Set Local/Asia/Jakarta or UTC+07:00 in Chart settings. At July 2, 2026
+  NFP + Claims, confirm **19:30** on the chart, symbol chooser, Inspector,
+  Roof activation and Candy click explanation. The old 22:30 label should vanish.
+- [ ] Hover the historical 19:00 H1 candle: **Read through 19:59** may include
+  the 19:30 news. Hover the preceding candle: it excludes it. Inspect M15/M30
+  around 19:30; Candy's boundary stays at the release instant in every timeframe.
+- [ ] Compare the same moment in UTC (12:30), UTC+7 (19:30), and another offset.
+  Check January winter history separately. Chart candles, symbols, drawings,
+  Roof participants, output percentages and versions must remain unchanged.
+- [ ] Check selected-day filter edges around midnight. Changing display clock
+  can reload the date-range query; reloaded releases retain their identities.
+- [ ] Check both USD-side and EUR-vs-USD modes. Raycaster's last-update clock
+  should include the later EUR update when that leg updates most recently.
+- [ ] Check all visible dates in scoring panels, Scatter Plot, Activity, Alert,
+  Notebook records and pinned arrows. Report reference periods remain period
+  dates; broker offset information should appear only in Chart settings.
+- [ ] Open an existing Outside-event note: changing the clock must preserve its
+  highlight location. Create/edit a note in the selected clock, refresh, and
+  confirm the same span. Changing clock with a valid draft preserves its instant.
+- [ ] Check chart panning and Scatter Plot responsiveness. This pass retains
+  projection batching and uses bounded cached date formatters.
+- [ ] Check live release visibility with the existing polling cadence. Record
+  observed arrival latency separately from candle placement; ten-second polling
+  is retained and no live zero-delay claim is made.
+
+
 ## USD Raycaster / Candy presentation v1 — audit in USD-side mode first
 
 This checklist supersedes older USD Mixed-only display checks below. Roofs v6

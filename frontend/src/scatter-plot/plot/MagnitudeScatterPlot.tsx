@@ -4,12 +4,15 @@ import { useScatterPlotInteraction } from './useScatterPlotInteraction'
 import { defaultScatterAppearance, type ScatterAppearance } from '../settings/scatter-plot-appearance'
 import { ScatterPlotLayer } from './ScatterPlotLayer'
 import type { ScatterAxisRange } from './scatter-plot-geometry'
+import { displayClockInput } from '../../appearance/time-display/display-clock-input'
+import { useDisplayClock } from '../../appearance/time-display/useDisplayClock'
 
 export const MagnitudeScatterPlot = memo(function MagnitudeScatterPlot({ model, zoom, onInspect, viewKey = '', appearance: a = defaultScatterAppearance, dateWindow, dateResetKey }: {
   model: ScatterModel; zoom: boolean; onInspect: (releaseId: string) => void; viewKey?: string; appearance?: ScatterAppearance
   dateWindow?: ScatterAxisRange; dateResetKey?: string
 }) {
   const [element, setElement] = useState<HTMLDivElement | null>(null)
+  const clock = useDisplayClock()
   const [size, setSize] = useState({ width: 900, height: 280 })
   useEffect(() => {
     if (!element) return
@@ -59,7 +62,7 @@ export const MagnitudeScatterPlot = memo(function MagnitudeScatterPlot({ model, 
         <text x={g.left / 2} y={Math.max(g.top + 12, Math.min(g.bottom - 6, cursor.y + 3))} textAnchor="middle">{formatDelta(g.deltaAt(cursor.y), 2)}</text>
         <g transform={`translate(${Math.max(g.left, Math.min(g.right - 112, cursor.x - 56))} ${g.bottom + 2})`}>
           <rect width={112} height={18} rx={2} />
-          <text x={56} y={12} textAnchor="middle">{new Date(g.dateAt(cursor.x)).toISOString().slice(0, 16).replace('T', ' ')}</text>
+          <text x={56} y={12} textAnchor="middle">{displayClockInput(g.dateAt(cursor.x), clock.preference).replace('T', ' ')}</text>
         </g>
       </g>}
     </svg>

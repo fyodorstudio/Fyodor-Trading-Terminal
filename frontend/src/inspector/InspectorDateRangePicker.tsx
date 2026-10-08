@@ -317,7 +317,7 @@ function RangePopover({ view, trigger, onClose, id, filtersOpen }: { view: Inspe
     <div ref={popup} id={id} role="dialog" aria-label="Inspector date range picker" className="inspector-date-popover" data-compact={position.width < 620} style={position}>
       <header>
         <strong>Date range</strong>
-        <span>{view.brokerTime ? 'Broker time' : 'Display time'} · End date included</span>
+        <span>Display time · End date included</span>
         <button type="button" aria-label="Close date range picker" onClick={closeAndFocus}>×</button>
       </header>
       <div className="inspector-date-body">

@@ -20,7 +20,7 @@ Draghi/Lagarde speeches stay under `ecb-president`; meeting accounts are exclude
 
 Show the three numeric rates first, then statement and press conference.
 Each source row retains its own time, value ID, revision, period and values.
-The table shows each row's display time and native broker time in storage mode.
+The table shows each row's selected display time.
 Commentary A−P is Not applicable. Missing numeric values remain missing.
 
 Rate A−P uses Actual minus supplied Previous. Positive is green, negative red,

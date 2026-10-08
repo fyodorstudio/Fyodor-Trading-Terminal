@@ -1,4 +1,5 @@
 import { ColorType, CrosshairMode, type ChartOptions, type DeepPartial, type TickMarkType, type Time } from 'lightweight-charts'
+import { defaultChartClock, type ChartClockScope } from '../../appearance/time-display/chart-clock'
 import {
   formatChartCrosshairTime,
   formatChartTick,
@@ -14,6 +15,7 @@ export function lightweightChartOptions(
   appearance: ChartAppearance,
   timeDisplay: TimeDisplayPreference,
   isInitial = false,
+  clock: ChartClockScope = defaultChartClock,
 ): DeepPartial<ChartOptions> {
   const gridColor = appearance.showGrid ? cssColor('--chart-grid') : 'rgba(0, 0, 0, 0)'
   return {
@@ -30,7 +32,7 @@ export function lightweightChartOptions(
       horzLines: { color: gridColor },
     },
     localization: {
-      timeFormatter: (time: Time) => formatChartCrosshairTime(time, timeDisplay),
+      timeFormatter: (time: Time) => formatChartCrosshairTime(time, timeDisplay, clock),
     },
     crosshair: {
       mode: CrosshairMode.Normal,
@@ -52,7 +54,7 @@ export function lightweightChartOptions(
       timeVisible: true,
       secondsVisible: false,
       ...(isInitial ? { rightOffset: 8, barSpacing: appearance.barSpacing } : {}),
-      tickMarkFormatter: (time: Time, tickType: TickMarkType) => formatChartTick(time, tickType, timeDisplay),
+      tickMarkFormatter: (time: Time, tickType: TickMarkType) => formatChartTick(time, tickType, timeDisplay, clock),
     },
     handleScale: {
       axisPressedMouseMove: {

@@ -759,7 +759,7 @@ try {
   assert.equal(storedView.releases[0].events.length, 2)
   assert.equal(storedView.releases[0].events[0].actual, .008, 'Stored values and timing are authoritative')
   assert.equal(data.inspectorDelta(storedView.releases[0].events[0]), .007, 'Raw integers retain precision beyond metadata digits')
-  assert.ok(storageApp.container.textContent.includes('broker time'))
+  assert.doesNotMatch(storageApp.container.textContent, /broker time/i)
   assert.equal(storedView.markers.length, 1)
   await storageApp.render({ liveEvents: [] })
   assert.equal(storedView.markers.length, 1, 'Publisher restarts and empty live windows cannot remove stored symbols')
@@ -768,9 +768,9 @@ try {
   await respond(storageRequests[3], storedHealth())
   const historicRequest = storageRequests[4]
   const query = new URL('http://localhost' + historicRequest.url).searchParams
-  assert.equal(Number(query.get('from_server_seconds')), Date.UTC(2015, 0, 1) / 1000 - 10 * 86400, 'Episode queries include ten days before the visible broker range for ISM pairing')
-  assert.equal(Number(query.get('to_server_seconds')), Date.UTC(2015, 1, 1) / 1000 + 10 * 86400, 'Episode queries include ten days after the visible broker range for ISM pairing')
-  assert.equal(query.get('time_basis'), 'chart', 'Range dates refer to the native broker candle clock')
+  assert.equal(Number(query.get('from_server_seconds')), Date.UTC(2015, 0, 1) / 1000 - 4 * 3600 - 10 * 86400, 'Display-day UTC+7 bounds convert to source +3 with ten days of pairing margin')
+  assert.equal(Number(query.get('to_server_seconds')), Date.UTC(2015, 1, 1) / 1000 - 4 * 3600 + 10 * 86400, 'The display-day end converts to source coordinates with pairing margin')
+  assert.equal(query.get('time_basis'), 'chart', 'Storage query coordinates remain native while visible range uses the selected clock')
   const historic = { ...stored(event({ server_time_seconds: Date.UTC(2015, 0, 15, 15, 30) / 1000 })),
     chart_time_seconds: Date.UTC(2015, 0, 15, 14, 30) / 1000 }
   await respond(historicRequest, page([historic, { ...historic, value_id: 'b', event_id: core.event_id }]))
@@ -782,41 +782,48 @@ try {
   assert.equal(storedView.markers[0].time, historicBars[0].time, 'Winter history uses native broker time, not UTC or export summer time')
   await click(storageApp.container.querySelector('.inspector-release'))
   assert.ok(storageApp.container.querySelector('table'))
-  assert.ok(storageApp.container.textContent.includes('broker time'))
-  assert.match(storageApp.container.querySelector('.inspector-detail-heading').textContent, /14:30/)
+  assert.doesNotMatch(storageApp.container.textContent, /broker time/i)
+  assert.match(storageApp.container.querySelector('.inspector-detail-heading').textContent, /19:30/)
   const historicId = storedView.selectedRelease.id
   const clockText = (clock) => storageApp.container.querySelector(`[data-clock="${clock}"]`).textContent
-  assert.match(clockText('broker'), /broker time.*14:30/)
+  assert.equal(storageApp.container.querySelector('[data-clock="broker"]'), null)
   assert.match(clockText('display'), /19:30.*\(UTC\+07:00\)/,
     'Display clock converts established UTC, not the raw export or projected broker timestamp')
   const requestsBeforeClockChange = storageRequests.length
-  await storageApp.render({ chartBars: historicBars, timeDisplay: utc })
+  const renderClock = async timeDisplay => {
+    const first = storageRequests.length
+    await storageApp.render({ chartBars: historicBars, timeDisplay })
+    await respond(storageRequests[first], storedHealth())
+    await respond(storageRequests[first + 1], page([historic, { ...historic, value_id: 'b', event_id: core.event_id }]))
+    assert.equal(storedView.selectedRelease.id, historicId, 'Changing display range bounds preserves the selected publication identity after refresh')
+  }
+  await renderClock(utc)
   assert.match(clockText('display'), /12:30.*\(UTC\)/)
-  await storageApp.render({ chartBars: historicBars, timeDisplay: { mode: 'fixed-offset', utcOffsetMinutes: -300 } })
+  await renderClock({ mode: 'fixed-offset', utcOffsetMinutes: -300 })
   assert.match(clockText('display'), /07:30.*\(UTC-05:00\)/)
-  await storageApp.render({ chartBars: historicBars, timeDisplay: { mode: 'local', utcOffsetMinutes: 0 } })
+  await renderClock({ mode: 'local', utcOffsetMinutes: 0 })
   const { formatAppTimestamp, timeDisplayZoneLabel } = await server.ssrLoadModule('./src/appearance/time-display/time-display-preference.ts')
   assert.equal(clockText('display'), `${formatAppTimestamp(historic.release_at, { mode: 'local', utcOffsetMinutes: 0 })} (${timeDisplayZoneLabel({ mode: 'local', utcOffsetMinutes: 0 })})`)
-  assert.match(clockText('broker'), /broker time.*14:30/)
+  assert.equal(storageApp.container.querySelector('[data-clock="broker"]'), null)
   assert.equal(storedView.selectedRelease.id, historicId)
   assert.equal(storedView.markers[0].time, historicBars[0].time)
-  assert.equal(storageRequests.length, requestsBeforeClockChange, 'Display settings do not refetch a broker-clock range')
+  assert.equal(storageRequests.length, requestsBeforeClockChange + 6, 'Display-day bounds refresh without changing native marker coordinates')
   const clockPanel = mount(InspectorPanel, { view: { ...storedView,
     selectedRelease: { ...storedView.selectedRelease, releaseAt: null, chartTime: null } }, symbol: 'EURUSD',
     source: source(), error: null, timeDisplay: utc })
   await clockPanel.render()
-  assert.match(clockPanel.container.querySelector('[data-clock="broker"]').textContent, /Broker time unavailable/)
+  assert.equal(clockPanel.container.querySelector('[data-clock="broker"]'), null)
   assert.match(clockPanel.container.querySelector('[data-clock="display"]').textContent, /Display time unavailable/)
   await clockPanel.render({ view: { ...storedView, selectedRelease: { ...storedView.selectedRelease,
     serverTime: Date.UTC(2025, 0, 10, 15, 30) / 1000, chartTime: Date.UTC(2025, 0, 10, 15, 30) / 1000,
     releaseAt: Date.UTC(2025, 0, 10, 13, 30) } }, symbol: 'EURUSD', source: source(), error: null,
     timeDisplay: { mode: 'fixed-offset', utcOffsetMinutes: 420 } })
-  assert.match(clockPanel.container.querySelector('[data-clock="broker"]').textContent, /broker time.*15:30/)
+  assert.equal(clockPanel.container.querySelector('[data-clock="broker"]'), null)
   assert.match(clockPanel.container.querySelector('[data-clock="display"]').textContent, /20:30.*\(UTC\+07:00\)/,
     'January 10 NFP shows Jakarta time without double-applying the broker offset')
   const releaseHeading = clockPanel.container.querySelector('.inspector-detail-heading')
   const information = releaseHeading.querySelector('[role="tooltip"]')
-  assert.ok(information.querySelector('[data-clock="broker"]'), 'Broker time lives only inside the information tooltip')
+  assert.equal(information.querySelector('[data-clock="broker"]'), null, 'Release information uses only the selected clock')
   assert.ok(information.querySelector('.inspector-shared-period'), 'Shared reference period lives in the same tooltip')
   assert.equal(releaseHeading.querySelector('[data-clock="display"]').parentElement, releaseHeading, 'Only the display timestamp remains beside the unchanged family title')
   assert.doesNotMatch(releaseHeading.querySelector('[data-clock="display"]').textContent, /Display ·|Local ·|Released|Period/)
@@ -848,34 +855,35 @@ try {
     coverage: { EUR: { missing: [] }, USD: { missing: [] } } } },
     symbol: 'EURUSD', source: source(), error: null, timeDisplay: utc })
   assert.doesNotMatch(clockPanel.container.querySelector('[role="tooltip"]').textContent, /Coverage pending/)
-  console.log('✓ Compact selected-release date, broker/reference-period tooltip, UTC/local/offset changes, unavailable timing and loading-only status')
+  console.log('✓ Compact selected-release date, reference-period tooltip, UTC/local/offset changes, unavailable timing and loading-only status')
   const winterRefresh = { ...historic, server_time_seconds: historic.server_time_seconds - 3600 }
   assert.equal(data.groupInspectorReleases([winterRefresh])[0].id, historicId,
     'Retrieval-offset changes preserve the selected release identity')
   const archiveChart = mount(InspectorChartMarkers, { chartApi: { timeScale: () => scale }, markers: storedView.markers,
     timeDisplay: { mode: 'fixed-offset', utcOffsetMinutes: 420 }, onSelectRelease: storedView.selectRelease })
   await archiveChart.render()
-  assert.match(archiveChart.container.querySelector('.inspector-chart-symbol').title, /14:30.*broker time/,
-    'Chart tooltip and table use the same native broker clock regardless of appearance offset')
+  assert.match(archiveChart.container.querySelector('.inspector-chart-symbol').title, /19:30/,
+    'Chart tooltip and table use the same selected clock from the authoritative UTC release instant')
+  const resumed = storageRequests.length
   await act(async () => { storedView.setCustomFrom('2016-01-01'); storedView.setCustomTo('2016-01-31') })
-  const obsolete = storageRequests[5]
+  const obsolete = storageRequests[resumed + 0]
   await storageApp.render({ brokerId: 'Broker-B' })
   assert.equal(obsolete.signal.aborted, true)
-  await respond(storageRequests[6], storedHealth('Broker-B'))
-  await respond(storageRequests[7], page([], 1, null, 'Broker-B'))
+  await respond(storageRequests[resumed + 1], storedHealth('Broker-B'))
+  await respond(storageRequests[resumed + 2], page([], 1, null, 'Broker-B'))
   await respond(obsolete, storedHealth())
   assert.equal(storedView.releases.length, 0, 'Canceled responses cannot cross broker identities')
   await storageApp.render({ brokerId: 'Broker-A' })
-  await respond(storageRequests[8], storedHealth())
-  await respond(storageRequests[9], page([historic], 1, { after_time: anchor, after_id: 'a' }))
-  await respond(storageRequests[10], page([], 2))
+  await respond(storageRequests[resumed + 3], storedHealth())
+  await respond(storageRequests[resumed + 4], page([historic], 1, { after_time: anchor, after_id: 'a' }))
+  await respond(storageRequests[resumed + 5], page([], 2))
   assert.equal(storedView.releases.length, 0, 'Mixed revisions cannot be published')
-  await respond(storageRequests[11], page([], 2))
+  await respond(storageRequests[resumed + 6], page([], 2))
   assert.equal(storedView.storage.error, null)
   await storageApp.render({ symbol: 'GBPUSD' })
   assert.equal(storedView.releases.length, 0)
   assert.equal(storedView.storage.events.length, 0)
-  console.log('✓ Mounted stored Inspector paging, broker clock, precise delta, cancellation and snapshot consistency')
+  console.log('✓ Mounted stored Inspector paging, selected clock, precise delta, cancellation and snapshot consistency')
 
   const { useStoredCalendar } = await server.ssrLoadModule('./src/inspector/useStoredCalendar.ts')
   const originalTimeout = window.setTimeout
@@ -941,12 +949,12 @@ try {
   assert.equal(storageRequests.length, start + 1, 'A completed calendar range starts one storage lifecycle')
   await respond(storageRequests[start], storedHealth())
   const completedParams = new URL('http://localhost' + storageRequests[start + 1].url).searchParams
-  assert.equal(Number(completedParams.get('from_server_seconds')), Date.UTC(2026, 9, 1) / 1000 - 10 * 86400)
-  assert.equal(Number(completedParams.get('to_server_seconds')), Date.UTC(2026, 9, 3) / 1000 + 10 * 86400)
+  assert.equal(Number(completedParams.get('from_server_seconds')), Date.UTC(2026, 9, 1) / 1000 + 3 * 3600 - 10 * 86400)
+  assert.equal(Number(completedParams.get('to_server_seconds')), Date.UTC(2026, 9, 3) / 1000 + 3 * 3600 + 10 * 86400)
   await respond(storageRequests[start + 1], page([rawRow]))
   assert.equal(rangeView.releases.length, 1)
   await click(document.querySelector('[aria-label="Close date range picker"]'))
-  console.log('✓ Mounted date picker/storage integration uses one complete broker range and preserves results during incomplete edits')
+  console.log('✓ Mounted date picker/storage integration uses one complete display range converted for storage and preserves results during incomplete edits')
 
   const { magnitudeDistribution, magnitudeBin, selectedMagnitudeBin } = await server.ssrLoadModule('./src/inspector/magnitude/magnitude-distribution.ts')
   const { familyMagnitudeHistory } = await server.ssrLoadModule('./src/inspector/magnitude/family-magnitude-history.ts')

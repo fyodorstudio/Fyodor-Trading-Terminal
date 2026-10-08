@@ -19,9 +19,7 @@ export function InspectorReadingsTable({ release, view, timeDisplay, sharedPerio
   const showHistograms = hasMagnitude && view.preferences.showHistograms
   const extraIsmSource = release.ismPublications?.[1] ?? null
   const extraIsmHistory = useFamilyMagnitudeHistory(view.brokerId, extraIsmSource)
-  const releaseTime = (item: InspectorRelease) => view.brokerTime
-    ? `${formatAppTimestamp(item.serverTime * 1000, { mode: 'utc', utcOffsetMinutes: 0 })} (broker time)`
-    : item.releaseAt === null ? 'Time unavailable' : formatAppTimestamp(item.releaseAt, timeDisplay)
+  const releaseTime = (item: InspectorRelease) => item.releaseAt === null ? 'Time unavailable' : formatAppTimestamp(item.releaseAt, timeDisplay)
   return (
             <div className="inspector-table-scroll"><table className={showHistograms ? 'inspector-magnitude-table' : undefined} aria-label={`${release.label} release readings`}>
               <thead><tr><th>Series</th>{showReadingTimes && <th>Release time</th>}<th>Actual</th><th>Previous</th>

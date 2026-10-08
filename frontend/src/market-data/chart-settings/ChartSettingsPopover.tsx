@@ -1,4 +1,6 @@
 import { useEffect, type ReactNode } from 'react'
+import { useDisplayClock } from '../../appearance/time-display/useDisplayClock'
+
 import { ColorThemeButton } from '../../appearance/color-theme/ColorThemeButton'
 import type { ColorTheme } from '../../appearance/color-theme/color-theme-preference'
 import {
@@ -27,6 +29,11 @@ type ChartSettingsPopoverProps = {
 
 const offsetOptions = Array.from({ length: 53 }, (_, index) => -720 + index * 30)
 
+function BrokerClockInformation() {
+  const { scope } = useDisplayClock()
+  return <small>Broker clock · {scope.brokerId ?? 'No connected broker'} · Current offset {formatUtcOffset(scope.brokerOffsetSeconds / 60)}.
+    {' '}{scope.brokerId === 'Elev8-Demo2' ? 'Historical chart conversion uses the recorded EET/EEST profile.' : 'Historical offset profile unavailable; chart display uses the supplied current offset.'}</small>
+}
 export function ChartSettingsPopover({
   appearance,
   timeDisplay,
@@ -105,7 +112,8 @@ export function ChartSettingsPopover({
 
         <div className="chart-settings-section time-display-section">
           <h2>Universal time presentation</h2>
-          <p>One clock applies to the chart, Activity, and Calendar timestamps.</p>
+          <p>One display clock applies to the chart, releases, overlays, Notebook, Activity and alerts.</p>
+          <BrokerClockInformation />
           <div className="time-setting-row">
             <label>
               <span>Display clock</span>

@@ -80,7 +80,7 @@ share classification, validation and matrix rendering. Index-specific series
 and subtotals live in `scoring/PAIR/EURUSD/USD/CPI/assessment/cpi-index-magnitude-score.ts`; its table wrapper
 is `scoring/PAIR/EURUSD/USD/CPI/ui/CpiIndexMagnitudeTable.tsx`.
 
-The selected release title, display/broker clocks and shared period now occupy
+The selected release title, selected display clock and shared period now occupy
 the main Inspector toolbar beside release-list controls and calendar status.
 The summary row contains only the matrices and wraps when the dock is narrow.
 

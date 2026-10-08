@@ -14,7 +14,7 @@ used by a scorer, context engine, fresh-news detector or calculation worker.
   reporting if saving fails. Workspace portability validates this key.
 - `chart/`: reuses Candy's exact-time coordinate mapping and current-time limit.
   RAF coalesces pan/size updates; no notes means no chart subscriptions.
-- `ui/`: create/edit/delete with optional observation/source text, broker-time
+- `ui/`: create/edit/delete with optional observation/source text, selected-clock
   range fields, UTC recording date, Escape dismissal and focus restoration.
 
 `from`/`to` are broker chart-wall-clock milliseconds, matching plotted bars.

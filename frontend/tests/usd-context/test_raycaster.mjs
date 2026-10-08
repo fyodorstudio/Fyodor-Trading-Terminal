@@ -97,7 +97,7 @@ try {
   await tick()
   assert.match(container.querySelector('.raycaster-bias').textContent, /EURUSD.*(Aligned|Conflicted).*(Long|Short)/)
   assert.match(container.textContent, /Latest update: CPI/)
-  assert.match(container.textContent, /broker time \(candle end/)
+  assert.match(container.textContent, /Read through.*candle end, capped at current time/)
   assert.equal(workers[0].jobs.length, 1, 'Hovering must not dispatch any scoring work')
   await render({ ...props, boxVisible: false })
   await render(props)

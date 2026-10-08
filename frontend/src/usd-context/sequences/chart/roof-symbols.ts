@@ -23,8 +23,7 @@ export function clusterRoofEndpoints(points: readonly RoofEndpoint[]): RoofEndpo
 export const roofEndpointKey = (endpoint: RoofEndpoint) => endpoint.activation ? 'activation' : endpoint.publications.map(p => p.source.sourceId).join('|')
 export const endpointPublications = (endpoint: RoofEndpoint, at: number) => endpoint.activation ?
   endpoint.publications.filter(p => p.source.chartAt === at) : endpoint.publications
-export function roofEndpointTooltip(endpoint: RoofEndpoint, at: number, publicationUpdate: boolean) {
-  const clock = (t: number) => new Date(t).toISOString().slice(0, 19).replace('T', ' ') + ' broker time'
+export function roofEndpointTooltip(endpoint: RoofEndpoint, at: number, publicationUpdate: boolean, clock = (t: number) => new Date(t).toISOString().slice(0, 19).replace('T', ' ')) {
   const publications = endpointPublications(endpoint, at)
   return [endpoint.activation ? `Combo available from: ${clock(at)}` : 'Earlier contributing releases',
     ...(endpoint.activation && !publicationUpdate ? ['Memory update; no new publication.'] : []),

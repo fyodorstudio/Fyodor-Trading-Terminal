@@ -23,9 +23,14 @@ dom.clearInterval = id => intervals.delete(id)
 const healthRequests = []
 globalThis.fetch = url => String(url).includes('/health') ? new Promise(resolve => healthRequests.push(resolve)) :
   Promise.resolve({ ok: true, json: async () => ({ events: [], latest_sequence: 0 }) })
-const originalFormatter = Intl.DateTimeFormat; let formatterCount = 0
+const originalFormatter = Intl.DateTimeFormat; let formatterCount = 0, formatCount = 0
 Intl.DateTimeFormat = new Proxy(originalFormatter, {
-  construct(target, args) { formatterCount++; return Reflect.construct(target, args) },
+  construct(target, args) {
+    formatterCount++
+    const formatter = Reflect.construct(target, args), format = formatter.format
+    Object.defineProperty(formatter, 'format', { value: (...values) => { formatCount++; return format(...values) } })
+    return formatter
+  },
   apply(target, thisArg, args) { formatterCount++; return Reflect.apply(target, thisArg, args) },
 })
 const utc = { mode: 'utc', utcOffsetMinutes: 0 }
@@ -57,12 +62,13 @@ try {
   const bridgeCard = () => [...container.querySelectorAll('.heartbeat-card')].find(card => card.textContent.startsWith('Bridge'))
 
   await render(); await reply()
-  assert.equal(formatterCount, 200)
+  assert.equal(formatCount, 200)
+  assert.equal(formatterCount, 1, 'All initial timestamps share one cached formatter')
   assert.equal(container.querySelectorAll('.activity-row').length, 200)
   assert.match(container.querySelector('.activity-row').textContent, /Entry 199/)
   const firstRow = container.querySelector('.activity-row')
   const log = container.querySelector('[role="log"]')
-  const before = formatterCount
+  const before = formatCount
   const timings = []
   for (let i = 0; i < 3; i++) {
     const timer = [...timers].find(([, value]) => value.ms === 2000)
@@ -70,32 +76,33 @@ try {
     timers.delete(timer[0]); commits.length = 0
     await React.act(async () => { void timer[1].callback() })
     assert.match(bridgeCard().textContent, /Checking/)
-    assert.equal(formatterCount, before, 'Checking must not recreate any existing log timestamp formatter')
+    assert.equal(formatCount, before, 'Checking must not recreate any existing log timestamp formatter')
     assert.equal(container.querySelector('[role="log"]'), log)
     assert.equal(container.querySelector('.activity-row'), firstRow)
     timings.push(...commits)
     await reply()
     assert.match(bridgeCard().textContent, /Running/)
-    assert.equal(formatterCount, before, 'The health reply must also retain unchanged rows')
+    assert.equal(formatCount, before, 'The health reply must also retain unchanged rows')
   }
   await React.act(async () => { for (const timer of intervals.values()) timer.callback() })
-  assert.equal(formatterCount, before, 'Heartbeat age updates must not rebuild the log')
+  assert.equal(formatCount, before, 'Heartbeat age updates must not rebuild the log')
   await render(entries, { ...utc })
-  assert.equal(formatterCount, before, 'An equivalent display preference must retain row formatting')
+  assert.equal(formatCount, before, 'An equivalent display preference must retain row formatting')
 
   const next = [...entries.slice(1), { id: 'new', occurredAt: at + 200_000, source: 'Application', action: 'Newest', severity: 'success' }]
   await render(next)
-  assert.equal(formatterCount, before + 1, 'Appending one entry should format just one new timestamp')
+  assert.equal(formatCount, before + 1, 'Appending one entry should format just one new timestamp')
   assert.equal(container.querySelectorAll('.activity-row').length, 200)
   assert.match(container.querySelector('.activity-row').textContent, /Newest/)
   assert.ok(container.querySelector('.activity-row').classList.contains('success'))
   const updated = next.map(entry => entry.id === 'new' ? { ...entry, detail: 'Updated detail' } : entry)
   await render(updated)
-  assert.equal(formatterCount, before + 1, 'A detail-only edit should preserve its timestamp')
+  assert.equal(formatCount, before + 1, 'A detail-only edit should preserve its timestamp')
   assert.match(container.querySelector('.activity-row').textContent, /Updated detail/)
 
   await render(updated, { mode: 'fixed-offset', utcOffsetMinutes: 420 })
-  assert.equal(formatterCount, before + 201, 'A real timezone change must update all visible timestamps')
+  assert.equal(formatCount, before + 201, 'A real timezone change must update all visible timestamps')
+  assert.equal(formatterCount, 1, 'UTC and fixed-offset displays share the UTC formatter after shifting the date')
   assert.match(container.querySelector('time').textContent, /19:03:20/)
   assert.equal(container.querySelector('time').dateTime, new Date(at + 200_000).toISOString())
   const applicationToggle = [...container.querySelectorAll('.activity-source-filter label')].find(label => label.textContent === 'Application').querySelector('input')
@@ -110,7 +117,7 @@ try {
   await render([])
   assert.equal(container.querySelectorAll('.activity-row').length, 0)
   assert.ok([...container.querySelectorAll('button')].find(button => button.textContent === 'Clear').disabled)
-  console.log(`Activity: 200 existing rows create zero formatters across Checking/Running; one appended row creates one. Checking render samples: ${timings.map(value => value.toFixed(2)).join(', ')} ms (headless, no timing assertion).`)
+  console.log(`Activity: 200 existing rows are not reformatted across Checking/Running; one appended row formats once, using the cached formatter. Checking render samples: ${timings.map(value => value.toFixed(2)).join(', ')} ms (headless, no timing assertion).`)
   console.log('✓ Real health transitions, timer cleanup, heartbeat ages, append/detail updates, timezone changes, source filters, persistence and Clear')
 } finally {
   await React.act(async () => root.unmount())

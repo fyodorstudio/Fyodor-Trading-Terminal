@@ -2,6 +2,55 @@
 
 Use the chart to assess price and the fundamental overlays to understand the declared interpretation of the stored releases. A direction is a thesis input, not an instruction to buy, sell, hold, or close. Evidence describes agreement between inputs, not a probability of profit.
 
+## One display clock across the terminal — 8 October 2026
+
+Choose **Chart settings → Universal time presentation** from the bottom-right
+Settings button. Local uses the device timezone; for Jakarta, either use Local
+on an Asia/Jakarta device or choose **UTC+07:00**. This selection controls chart
+axis/crosshair labels, release symbols and choosers, Inspector and its date range,
+publication scoring dates, Roof activation dates, Candy, Raycaster, Scatter Plot,
+Notebook, Outside-event forms, Activity and Alert. Broker offset information is
+shown only inside Chart settings.
+
+A date range means calendar days in that selected clock. Changing the clock can
+refresh the stored-calendar query to retrieve the correct day edges. It does not
+move the release to a different chart candle or change a scoring vote. Existing
+outside-event notes and pinned Notebook records keep their original stored
+coordinates, identity and version; their visible dates follow the current clock.
+Dates identifying a report's reference month or quarter remain economic period
+labels, rather than timezone-shifted publication times.
+
+For **July 2, 2026**, NFP and Claims are available from **19:30 Jakarta**
+(**12:30 UTC**). The former 22:30 chart label applied the display offset directly
+to a broker wall clock and was three hours late. That was a presentation defect;
+the underlying timeline admitted the releases at their stored publication time.
+Historical Elev8 chart conversion now follows the same summer/winter profile as
+storage. For a source without a historical offset profile, Chart settings
+explicitly discloses that chart conversion uses its supplied current offset.
+An ambiguous or invalid historical chart clock shows unavailable time rather
+than an invented instant.
+
+Read **Raycaster → Read through** as the cutoff used for the result. A historical
+19:00 H1 hover reads through 19:59:59, so it can include a 19:30 publication; it
+does not describe information available at 19:00. **Last context update** names
+the latest update time included in that reading. Live readings are capped at the
+current clock. Candy's color boundary and its click explanation use the exact
+activation time within the candle. M15/M30 already support finer inspection:
+the bar ending immediately before 19:30 excludes that release, while the bar
+starting at 19:30 can include it. Switching timeframe changes inspection
+resolution, not the timestamp of news availability.
+
+There is no requirement to wait for the release candle to close. Live display
+still depends on the publisher, calendar polling (currently ten seconds), and
+context processing. This pass does not promise zero latency or measure an
+end-to-end live delay.
+
+A dashed Roof now prefixes its direction with **Change:**. It compares recent
+comparable support changes; Raycaster/Candy show accumulated support. Their
+percentages can differ at the same time. A solid named relationship has its own
+participating-family scope. These outputs retain their existing calculations,
+weights, support shares, coverage rules and versions.
+
 ## Current interpretation rules: USD presentation v1 / context v8 / relative v3 / Roofs v6
 
 Choose **USD side** for the new Raycaster/Candy presentation. Both read the same
@@ -96,16 +145,14 @@ empirical causal coefficients. Partial evidence stays qualified.
 Fed holds add no rate-action direction. A cut or increase is named separately
 from the macro support split. An opposing action exposes conflict but does not
 claim a numeric winner between basis points and magnitude points. Statements
-and speeches are unavailable. **Raycaster/Candy retain their current context
-gates and labels; extending their conflict labels is deferred to a separate pass.**
+and speeches are unavailable. **USD-side Raycaster/Candy now expose conflicted leads and support shares; EUR-vs-USD retains its existing gates and presentation.**
 
 NFP v2.2 uses valid supplied revisions for comparable preceding reference months.
 Missing consecutive months prevent monthly comparisons and three-month hiring
 benchmarks; raw broker fields are retained. The calendar is the currently stored
 vintage, so complete original as-published reconstruction is not certified.
 
-When a trade thesis needs directional context, amber/gray means that this tool
-cannot supply that part of the thesis. For an existing position, use the review
+When a trade thesis needs directional context, distinguish an amber conflicted lead from a balanced or insufficient output. Gray supplies no direction; an amber USD lead remains qualified evidence. For an existing position, use the review
 and exit rules you wrote in Notebook. It is not an automatic opposing signal or
 an instruction to close. Record model/market disagreements without assuming the
 release caused the price move.
@@ -114,7 +161,7 @@ release caused the price move.
 
 - **Roofs** connect the source releases behind a relationship on three levels. Hollow dots mark contributing releases; the final filled dot marks when the complete combo became available. Thin connectors lead to the ordinary bottom release-symbol row. Click a dot to inspect its release, or the direction box for **Combo details**. A filled dot without a visible activating release opens Combo details instead. Width connects sources to activation; it does not promise how long the direction lasts. Focused display reduces repetition; More retains omitted roofs. The detailed guide below explains availability and click behavior.
 - **Context ribbon (Raycaster Candy)** shows accumulated context across time. Green means pair Long, red means pair Short; stronger shades indicate stronger evidence. Gray means unavailable. Its label identifies USD-side or EUR-vs-USD mode. Hover for the time and responsible update; click for an explanation.
-- **Outside events** are your manual gray highlights on the separate thin strip immediately above Candy. Open the header's **Fundamental tools gear → Manage outside events**, enter a title, start/end in broker chart time and an optional observation/source reference, then Save highlight. The editor works with Candy hidden; enable Candy to see the highlights. Blank end means ongoing. Hover for the note; click to edit or delete it. Overlapping highlights show all active notes. Notes are saved per broker and pair and included in workspace backups.
+- **Outside events** are your manual gray highlights on the separate thin strip immediately above Candy. Open the header's **Fundamental tools gear → Manage outside events**, enter a title, start/end in the selected display clock and an optional observation/source reference, then Save highlight. The editor works with Candy hidden; enable Candy to see the highlights. Blank end means ongoing. Hover for the note; click to edit or delete it. Overlapping highlights show all active notes. Notes are saved per broker and pair and included in workspace backups.
 - **Raycaster** inspects the context at the hovered candle's end, capped at the current time. A publication within that candle can change its result. The ribbon retains the publication's exact timestamp.
 - Roofs, Candy and Raycaster have separate icon buttons in the outlined **Fundamental tools** group on the header's right, before Bid/Ask. The waveform toggles Raycaster, upward chevrons toggle Roofs, and the candy icon toggles Candy. The timeframe selector and drawing button stay together in the center. Roof relationships currently use USD inputs, even when Candy compares EUR with USD.
 - Inspector shows **Standalone Scoring** on the left and **Context-Aware at Publication Scoring** on the right. An opposing standalone release can coexist with an unchanged combined direction.
@@ -169,7 +216,7 @@ Click blank chart space to deselect the release or combo and dismiss an open roo
 
 The **filled dot is the earliest point at which this complete combo can inform a trading thesis**. The earlier span explains where its inputs came from. Do not interpret a Long/Short roof as if its final output were already known at the first hollow dot.
 
-Use the exact clock in the tooltip or Combo details. For example, a combo activated at **19:30 broker time** may be drawn over the H1 candle beginning at **19:00**. It was unavailable during that candle's first 30 minutes. Multiple publications in one candle may also arrive at different times. A visual anchor at the candle does not backdate knowledge.
+Use the exact clock in the tooltip or Combo details. For example, a combo activated at **19:30 in the selected display clock** may be drawn over the H1 candle beginning at **19:00**. It was unavailable during that candle's first 30 minutes. Multiple publications in one candle may also arrive at different times. A visual anchor at the candle does not backdate knowledge.
 
 Raycaster's hover result is evaluated at the candle's **end**, capped at now. Therefore, hovering the 19:00 H1 candle can include the 19:30 release. Candy retains exact update boundaries. When auditing a potential entry within that candle, use the exact activation/update clocks rather than assuming the hovered output describes the candle open.
 
@@ -211,7 +258,7 @@ Record your independent price invalidation and risk limit alongside that fundame
 4. Define entry, stop, target, risk limit, and review horizon. The chart's planned levels help record these; they do not place broker orders.
 5. Choose an exit rule before entry. Save the context mode, input selection and observed bias in the Notebook plan. Pin the setup to preserve the plan as it stood at that moment.
 
-Notebook workflow fields save automatically with the symbol's draft. **Load current context**, then **Record current context**, captures the current interpretation, broker clock, mode, selected inputs, engine version and coverage notice. It does not capture the historical candle under your cursor. Clear workflow starts fresh without deleting the chart's entry/stop/target levels. Pinned workflow fields are read-only; the journal remains available for subsequent observations.
+Notebook workflow fields save automatically with the symbol's draft. **Load current context**, then **Record current context**, captures the current interpretation, exact read-through instant, mode, selected inputs, engine version and coverage notice. It does not capture the historical candle under your cursor. Clear workflow starts fresh without deleting the chart's entry/stop/target levels. Pinned workflow fields are read-only; the journal remains available for subsequent observations.
 
 ## Review new information
 
@@ -230,7 +277,7 @@ Record the source, activation time, mode, bias and evidence. Compare price at co
 
 Read Candy and roofs as two different observations. Red Candy with dashed Long roofs means the accumulated context still favors pair Short while fresh USD release changes pull toward Long. A solid ISM roof describes that sector relationship. Roofs use USD inputs; relative Candy can also include EUR readings. Read a roof only from its filled activation dot onward, using the exact clock rather than the containing candle's open, not from the start of its source span.
 
-Add an outside-event highlight when you want to record a possible missing explanation for an audit discrepancy. Your chosen window marks where to investigate, not a measured impact duration or proof of causation. These notes never contribute a vote, modify evidence, or change the dataset. Historical notes may be added later: the editor keeps the actual UTC recording time separate from the broker-time highlight range. An empty strip means no saved annotation, not that no outside event occurred.
+Add an outside-event highlight when you want to record a possible missing explanation for an audit discrepancy. Your chosen window marks where to investigate, not a measured impact duration or proof of causation. These notes never contribute a vote, modify evidence, or change the dataset. Historical notes may be added later: the editor keeps the actual recording instant separate from the chosen highlight range; both display in your selected clock. An empty strip means no saved annotation, not that no outside event occurred.
 
 Stored values may contain revisions and missing history. Speeches and narrative guidance are not inferred from candles. An unavailable result remains unavailable. Activity shows data/bridge health; Settings workspace backup preserves supported preferences and Notebook records. Bottom docks share their saved height.
 

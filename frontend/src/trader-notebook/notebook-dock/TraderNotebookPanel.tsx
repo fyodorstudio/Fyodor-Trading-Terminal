@@ -1,4 +1,5 @@
 import { TradeWorkflowEditor } from '../workflow/TradeWorkflowEditor'
+import { useDisplayClock } from '../../appearance/time-display/useDisplayClock'
 import { workflowSnapshot } from '../workflow/workflow-model'
 import type { CaptureScope } from '../workflow/NotebookContextCapture'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -85,6 +86,7 @@ export function TraderNotebookPanel({
   onDeleteArrow,
 }: TraderNotebookPanelProps) {
   const [prevSymbol, setPrevSymbol] = useState(selectedSymbol)
+  const clock = useDisplayClock()
   const [note, setNote] = useState<string>(() => {
     return localStorage.getItem(`trader_notebook_note_${selectedSymbol}`) || ''
   })
@@ -632,10 +634,7 @@ export function TraderNotebookPanel({
                 {registeredArrows.map((arrow) => {
                   const isSelected = arrow.id === selectedArrowId
                   const isLong = arrow.direction === 'long'
-                  const dateStr = new Date(arrow.time * 1000).toLocaleDateString([], {
-                    month: 'short',
-                    day: 'numeric',
-                  })
+                  const dateStr = clock.chart(arrow.time * 1000)
                   return (
                     <tr
                       key={arrow.id}

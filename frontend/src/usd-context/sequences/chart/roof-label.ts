@@ -22,7 +22,7 @@ export function roofLabel(combo: ComboSnapshot) {
   return label
 }
 
-export function roofTooltip(combo: ComboSnapshot, hidden = 0) {
+export function roofTooltip(combo: ComboSnapshot, hidden = 0, clock = (t: number) => new Date(t).toISOString().slice(0, 19).replace('T', ' ')) {
   let description = descriptions.get(combo)
   if (description === undefined) {
     const sources = combo.sources.map(s => `${s.sourceLabel} — ${s.role ?? 'Participating release'}${s.change === undefined ? '' :
@@ -30,5 +30,5 @@ export function roofTooltip(combo: ComboSnapshot, hidden = 0) {
     description = `${sources.join('\n')}\n${combo.explanation}`
     descriptions.set(combo, description)
   }
-  return `${combo.title} · USD inputs only · ${roofResultLabel(combo)} · ${combo.strength ? `${combo.strength} evidence` : 'evidence ungraded'}${hidden ? ` · ${hidden} inputs hidden by marker filters` : ''}\nAvailable from ${new Date(combo.chartAt).toISOString().slice(0, 19).replace('T', ' ')} broker time (right endpoint). Earlier connecting lines identify prior inputs.\n${description}`
+  return `${combo.title} · USD inputs only · ${roofResultLabel(combo)} · ${combo.strength ? `${combo.strength} evidence` : 'evidence ungraded'}${hidden ? ` · ${hidden} inputs hidden by marker filters` : ''}\nAvailable from ${clock(combo.chartAt)} (right endpoint). Earlier connecting lines identify prior inputs.\n${description}`
 }

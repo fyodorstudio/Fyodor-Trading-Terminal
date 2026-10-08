@@ -12,7 +12,7 @@ export function RaycasterNotes({ relative = false }: { relative?: boolean }) {
       <tr><td>Monthly families</td><td>30 days</td><td>45 days</td></tr>
       <tr><td>GDP</td><td>90 days</td><td>120 days</td></tr>
     </tbody></table>
-    <p>A new family publication replaces its old vote, even if uncomputed. Aging follows broker day boundaries. Off, missing and expired weight is not redistributed.</p>
+    <p>A new family publication replaces its old vote, even if uncomputed. Aging follows source day boundaries, displayed in your selected clock. Off, missing and expired weight is not redistributed.</p>
     <h4>What evidence strength means</h4>
     <ul><li><strong>Weak:</strong> missing components, cancellation or a narrow weighted lead.</li>
       <li><strong>Moderate:</strong> broader support with qualified or opposing evidence.</li>

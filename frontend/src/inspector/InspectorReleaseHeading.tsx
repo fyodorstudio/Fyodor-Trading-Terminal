@@ -15,8 +15,6 @@ export function InspectorReleaseHeading({ release, view, timeDisplay, status, sh
     <span className="inspector-release-date" data-clock="display">{release.releaseAt === null ? 'Display time unavailable' :
       formatAppTimestamp(release.releaseAt, timeDisplay)} ({timeDisplayZoneLabel(timeDisplay)})</span>
     <InspectorInfoTooltip label="Release information">
-      {view.brokerTime && <span className="inspector-info-line" data-clock="broker">{release.chartTime === null ? 'Broker time unavailable' :
-        `broker time · ${formatAppTimestamp(release.chartTime * 1000, { mode: 'utc', utcOffsetMinutes: 0 })}`}</span>}
       <span className="inspector-info-line">{status}{sharedPeriod !== null && <> <span className="inspector-shared-period"
         title="Reference period covered by these readings. The source represents the period by its starting date.">Period: {formatAppTimestamp(sharedPeriod * 1000,
           { mode: 'utc', utcOffsetMinutes: 0 }, 'date')}</span></>}</span>

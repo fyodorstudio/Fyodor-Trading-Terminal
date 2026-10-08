@@ -22,7 +22,7 @@ The numeric decision appears first, followed by statement, projections and
 press conference. Every row retains its original publication instant, reference
 period, revision, value ID and values. FOMC tables show a Release time column
 with the current display timezone and, in stored-calendar mode, each row's
-native broker time. Commentary has no numeric delta: A−P is Not applicable.
+selected display time. Commentary has no numeric delta: A−P is Not applicable.
 
 Stored Inspector queries include a one-hour buffer on both sides of the chosen
 range so an episode crossing midnight is complete. Visible releases and chart
@@ -44,7 +44,7 @@ size uses the same limits and never changes primary A−P history counts.
 
 - `episodes/policy-episodes.ts`: explicit companion IDs, bounded attachment and
   ambiguity checks.
-- `InspectorReadingTime.tsx`: per-row display and broker clocks.
+- `InspectorReadingTime.tsx`: per-row selected display clocks.
 - `grading/policy-rate-grading.ts`: rate-only sign colors.
 - `tests/inspector/monetary-policy/test_fomc_episodes.mjs`: one-hour edges,
   cross-midnight dates, missing/uncertain/overlapping anchors, no chaining,

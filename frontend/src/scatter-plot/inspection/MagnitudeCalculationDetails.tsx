@@ -1,9 +1,10 @@
 import type { ReactNode } from 'react'
 import type { ScatterModel } from '../contracts/scatter-plot-types'
 
-const date = (at: number) => new Date(at).toISOString().slice(0, 10)
+import { useDisplayClock } from '../../appearance/time-display/useDisplayClock'
 export function MagnitudeCalculationDetails({ model, seriesLabel, children, preview = false }: { model: ScatterModel; seriesLabel: string; children?: ReactNode; preview?: boolean }) {
   const { inspection, formatDelta, formatReading } = model
+  const { date } = useDisplayClock()
   if (!inspection) return null
   const { distribution: d } = inspection
   const signal = inspection.signal

@@ -7,13 +7,14 @@ import { externalIntervals, visibleExternalIntervals, type ExternalInterval } fr
 import { useExternalEvents } from '../storage/external-event-store'
 import { ExternalEventManager } from '../ui/ExternalEventManager'
 import { ribbonCoordinate } from '../../raycaster/ribbon/ribbon-geometry'
-import { brokerClock } from '../../raycaster/ribbon/broker-clock'
+import { useDisplayClock } from '../../appearance/time-display/useDisplayClock'
 import '../ui/external-events.css'
 
 function ExternalEventsStripComponent({ chartApi, bars, timeframe, now, symbol, brokerId }: {
   chartApi: IChartApi; bars: readonly Pick<OhlcBar, 'time'>[]; timeframe: ChartTimeframe; now: number; symbol: string; brokerId: string | null
 }) {
   const all = useExternalEvents()
+  const brokerClock = useDisplayClock().chart
   const events = useMemo(() => all.filter(e => e.symbol === symbol && e.brokerId === brokerId), [all, symbol, brokerId])
   const intervals = useMemo(() => externalIntervals(events), [events])
   const [positions, setPositions] = useState<(ExternalInterval & { left: number; width: number })[]>([])

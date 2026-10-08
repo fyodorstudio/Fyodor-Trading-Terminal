@@ -13,6 +13,7 @@ import { endpointPublications, roofEndpointKey, roofEndpointTooltip, roofLaneY, 
 import { RoofReleaseChooser } from './RoofReleaseChooser'
 import { useSequencePreferences } from '../storage/sequence-preferences'
 import './combo-roofs.css'
+import { useDisplayClock } from '../../../appearance/time-display/useDisplayClock'
 
 function ComboRoofsComponent({ chartApi, episodes, bars, timeframe, markers, now, experimental, onSelect, onOpenSource, currencyColors = {} }: {
   chartApi: IChartApi; episodes: readonly ComboSnapshot[]; bars: readonly Pick<OhlcBar, 'time'>[]; timeframe: ChartTimeframe;
@@ -20,6 +21,7 @@ function ComboRoofsComponent({ chartApi, episodes, bars, timeframe, markers, now
   onOpenSource?: (source: ComboSource) => void; currencyColors?: CurrencyColors
 }) {
   const [positioned, setPositioned] = useState<PositionedRoof[]>([])
+  const clock = useDisplayClock()
   const [overflow, setOverflow] = useState<ComboSnapshot[]>([]), [chooser, setChooser] = useState(false)
   const focused = useSequencePreferences().density !== 'all'
   const [releaseSelection, setReleaseSelection] = useState<{ roof: PositionedRoof; endpoint: RoofEndpoint; trigger: HTMLButtonElement } | null>(null)
@@ -69,15 +71,15 @@ function ComboRoofsComponent({ chartApi, episodes, bars, timeframe, markers, now
     })}</svg>
     {positioned.map(p => <button type="button" key={p.combo.id} className={`combo-roof-label ${p.combo.experimental ? 'experimental' : ''}`}
       style={{ left: p.labelX, top: roofLaneY(p.lane) - 27 }}
-      title={roofTooltip(p.combo, p.hidden)}
+      title={roofTooltip(p.combo, p.hidden, clock.chart)}
       aria-label={`Inspect combo ${p.combo.title}`} onClick={() => onSelect(p.combo)}>
       <span className="combo-roof-names">{roofLabel(p.combo)}</span>
-      <span className="combo-roof-direction"> · {roofResultLabel(p.combo)}</span>
+      <span className="combo-roof-direction"> · {p.combo.kind === 'fresh-news' ? 'Change: ' : ''}{roofResultLabel(p.combo)}</span>
     </button>)}
     {positioned.flatMap(p => p.endpoints.map(endpoint => {
       const publications = endpointPublications(endpoint, p.combo.chartAt), active = endpoint.activation
       const publicationUpdate = p.combo.sources.some(s => s.chartAt === p.combo.chartAt)
-      const tooltip = roofEndpointTooltip(endpoint, p.combo.chartAt, publicationUpdate)
+      const tooltip = roofEndpointTooltip(endpoint, p.combo.chartAt, publicationUpdate, clock.chart)
       return <button type="button" key={`${p.combo.id}/${roofEndpointKey(endpoint)}`} className={`combo-roof-endpoint${active ? ' combo-roof-start' : ''}`}
         style={{ left: endpoint.x, top: roofLaneY(p.lane) }} title={tooltip}
         aria-label={`${active ? publicationUpdate ? 'Combo starts' : 'Combo memory update' : 'Inspect roof release'}: ${publications.map(s => s.source.sourceLabel).join(' + ') || 'No visible activation release'}`}
@@ -96,9 +98,9 @@ function ComboRoofsComponent({ chartApi, episodes, bars, timeframe, markers, now
       left={Math.max(0, Math.min(releaseChooser.endpoint.x - 130, chartApi.timeScale().width() - 280))} onClose={closeReleases} onOpen={onOpenSource} />}
     <div className="combo-roof-tools">
       {overflow.length > 0 && <div className="combo-roof-overflow"><button type="button" aria-expanded={chooser} onClick={() => setChooser(!chooser)}>+{overflow.length} more</button>
-        {chooser && <div aria-label="More combo roofs">{overflow.map(combo => <button type="button" key={combo.id} title={roofTooltip(combo)} onClick={() => { onSelect(combo); setChooser(false) }}>
+        {chooser && <div aria-label="More combo roofs">{overflow.map(combo => <button type="button" key={combo.id} title={roofTooltip(combo, 0, clock.chart)} onClick={() => { onSelect(combo); setChooser(false) }}>
           <span>{roofLabel(combo)} · {roofResultLabel(combo)}</span>
-          <small>{combo.strength ? `${combo.strength} evidence` : 'Direction withheld'} · {new Date(combo.chartAt).toISOString().slice(0, 16).replace('T', ' ')} broker time</small>
+          <small>{combo.strength ? `${combo.strength} evidence` : 'Direction withheld'} · {clock.chart(combo.chartAt)}</small>
         </button>)}</div>}
       </div>}
     </div>

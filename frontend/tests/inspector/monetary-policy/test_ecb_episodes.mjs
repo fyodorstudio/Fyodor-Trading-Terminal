@@ -117,7 +117,7 @@ try {
   assert.equal(rendered.length, 5)
   assert.match(rendered[0].querySelector('[data-reading-clock="display"]').textContent, /12:15/)
   assert.match(rendered[4].querySelector('[data-reading-clock="display"]').textContent, /13:00/)
-  assert.match(rendered[4].querySelector('[data-reading-clock="broker"]').textContent, /16:00/)
+  assert.equal(rendered[4].querySelector('[data-reading-clock="broker"]'), null)
   assert.equal(container.querySelectorAll('td:nth-child(6).inspector-grade-higher').length, 3)
   for (const row of rendered.slice(0, 3)) {
     assert.equal(row.children[4].textContent, '3.25%')
@@ -143,7 +143,7 @@ try {
   await render({ rows: input, timeDisplay: { mode: 'fixed-offset', utcOffsetMinutes: 420 } })
   assert.equal(view.selectedRelease.id, anchorId); assert.equal(view.markers[0].time, chartAt)
   assert.match(container.querySelectorAll('[data-reading-clock="display"]')[4].textContent, /20:00/)
-  assert.match(container.querySelectorAll('[data-reading-clock="broker"]')[4].textContent, /16:00/)
+  assert.equal(container.querySelectorAll('[data-reading-clock="broker"]').length, 0)
   await React.act(async () => view.applyPreferences({ ...preferences, families: ['ecb-president'] }))
   assert.equal(container.querySelectorAll('.inspector-release').length, 0)
   await render({ rows: [...input, event('999010029', 2700)] })

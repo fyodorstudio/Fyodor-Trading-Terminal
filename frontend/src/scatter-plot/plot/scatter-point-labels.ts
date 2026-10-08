@@ -2,13 +2,13 @@ import { magnitudeSizeForValue } from '../../inspector/magnitude/magnitude-distr
 import type { ScatterModel } from '../contracts/scatter-plot-types'
 import { scatterNumber } from '../inspection/scatter-number-format'
 
-export function scatterPointLabels(model: ScatterModel): string[] {
+export function scatterPointLabels(model: ScatterModel, formatDate = (at: number) => new Date(at).toISOString().slice(0, 10)): string[] {
   const { points, inspection, formatDelta, formatReading } = model
   const distribution = inspection?.distribution
   return points.map((point) => {
     const selected = point.releaseId === inspection?.releaseId
     const later = inspection ? point.at > inspection.at : false
-    const date = new Date(point.at).toISOString().slice(0, 10)
+    const date = formatDate(point.at)
     const signal = point.signal
     if (signal) {
       const reading = (value: number) => `${scatterNumber(value)} ${signal.inputs!.unit ?? model.deltaUnit}`

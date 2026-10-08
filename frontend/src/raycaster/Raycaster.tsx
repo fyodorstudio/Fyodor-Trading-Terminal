@@ -68,7 +68,7 @@ function RaycasterComponent({ chartApi, seriesApi, ...props }: RaycasterProps & 
     families, relativePreferences.mode, relativePreferences.families, chartApi, now, props.brokerOffsetSeconds, props.timeframe])
   useEffect(() => () => publishInspection(scope, null), [scope])
   return <>{props.boxVisible !== false && <RaycasterBox symbol={props.symbol} point={point} cutoff={cutoff} loading={history.loading || eurHistory.loading} message={message}
-    relative={combined} relativeUpdate={eurPoint?.update ?? null}
+    relative={combined} relativeUpdate={eurPoint?.update ?? null} relativeUpdateAt={eurPoint?.chartAt ?? null}
     notice={partial ? 'Partial or timing-excluded history' : null}
     timeDisplay={props.timeDisplay} onClose={props.onClose} />}
     {sequencePreferences.ribbon && props.bars && <ContextRibbon chartApi={chartApi} bars={props.bars} timeframe={props.timeframe}

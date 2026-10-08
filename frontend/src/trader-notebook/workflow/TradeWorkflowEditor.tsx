@@ -1,6 +1,7 @@
 import { emptyWorkflow, type TradeWorkflow } from './workflow-model'
 import { NotebookContextCapture, type CaptureScope } from './NotebookContextCapture'
 import './trade-workflow.css'
+import { useDisplayClock } from '../../appearance/time-display/useDisplayClock'
 
 const fields = [
   ['thesis', 'Trade thesis', 'Why does this setup make sense?'],
@@ -14,6 +15,7 @@ export function TradeWorkflowEditor({ workflow, onChange, readOnly, symbol, scop
   workflow?: TradeWorkflow; onChange: (workflow: TradeWorkflow) => void; readOnly: boolean; symbol: string; scope?: CaptureScope
 }) {
   const value = workflow ?? emptyWorkflow
+  const clock = useDisplayClock()
   return <section className="trade-workflow" aria-label="Trade thesis and invalidation">
     <header><h3>{readOnly ? 'Pinned workflow snapshot' : 'Trade workflow · Saved automatically'}</h3>
       {!readOnly && <button type="button" onClick={() => onChange({ ...emptyWorkflow })}>Clear workflow</button>}</header>
@@ -30,7 +32,7 @@ export function TradeWorkflowEditor({ workflow, onChange, readOnly, symbol, scop
     <p>These are paper-test review rules, not validated exit strategies. Aging, expiry and changed settings are separate from new publications. An opposing standalone release alone does not trigger these combined-context rules. All execution remains manual.</p>
     <h3>Context recorded for this plan</h3>
     {value.context ? <div className="notebook-context-record"><strong>{value.context.label} · {value.context.evidence} evidence</strong>
-      <small>{new Date(value.context.asOf).toISOString().slice(0, 19).replace('T', ' ')} · broker time · {value.context.mode === 'relative' ? 'EUR vs USD' : 'USD side'}</small>
+      <small>Recorded at {clock.utc(value.context.recordedAt)} ({clock.zone}) · {value.context.mode === 'relative' ? 'EUR vs USD' : 'USD side'}</small>
       <small>{value.context.symbol} · {value.context.broker} · {value.context.version}{value.context.partial ? ' · Partial history' : ''}</small>
       <p>Inputs: {value.context.inputs.join(', ')}</p><p>{value.context.update}</p>
     </div> : <p>No context recorded. Older pinned setups keep their original data.</p>}

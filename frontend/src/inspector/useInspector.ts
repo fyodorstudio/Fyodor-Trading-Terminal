@@ -18,6 +18,7 @@ import { useMarkerBars } from './chart/useMarkerBars'
 import { normalizeInspectorDetailView } from './inspector-detail-view'
 import { useCalendarNow } from './useCalendarNow'
 import { usePublicationInspection } from './releases/usePublicationInspection'
+import { utcToChartClock } from '../appearance/time-display/chart-clock'
 
 const noEvents: EconomicCalendarEvent[] = []
 
@@ -27,17 +28,17 @@ export function useInspector({ events = noEvents, symbol, bars, timeframe, timeD
   brokerId?: string | null; brokerOffsetSeconds?: number; detailOpen?: boolean
 }) {
   const brokerTime = brokerId !== undefined
-  const rangeDisplay = useMemo<TimeDisplayPreference>(() => brokerTime ? { mode: 'utc', utcOffsetMinutes: 0 } : timeDisplay, [brokerTime, timeDisplay])
+  const rangeDisplay = timeDisplay
   const [preferences, setPreferences] = useState(readInspectorPreferences)
   const [storageFailed, setStorageFailed] = useState(false)
   const [rangePreset, setRangePreset] = useState<InspectorRangePreset>('year-to-date')
   const now = useCalendarNow(clockOffsetMs)
-  const initialWeek = displayWeekDateKeys(displayDateKey(now + (brokerTime ? brokerOffsetSeconds * 1000 : 0), rangeDisplay))
+  const initialWeek = displayWeekDateKeys(displayDateKey(now, rangeDisplay))
   const [customFrom, setCustomFrom] = useState(initialWeek.start)
   const [customTo, setCustomTo] = useState(initialWeek.end)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const supported = supportsInspector(symbol)
-  const today = displayDateKey(now + (brokerTime ? brokerOffsetSeconds * 1000 : 0), rangeDisplay)
+  const today = displayDateKey(now, rangeDisplay)
   const rangeDates = useMemo(() => inspectorRangeDates(rangePreset, today, customFrom, customTo), [rangePreset, today, customFrom, customTo])
   const range = useMemo(() => inspectorDisplayRange(rangeDates, rangeDisplay), [rangeDates, rangeDisplay])
   const selectCustomRange = useCallback((from: string, to: string) => {
@@ -46,15 +47,19 @@ export function useInspector({ events = noEvents, symbol, bars, timeframe, timeD
   }, [rangeDisplay])
   // Fetch neighboring days so monthly ISM reports and policy companions stay
   // together even when the visible range contains only one publication.
-  const storageRange = useMemo(() => range ? { from: range.from - Math.max(policyEpisodeWindowMs, ismEpisodeWindowMs),
-    to: range.to + Math.max(policyEpisodeWindowMs, ismEpisodeWindowMs) } : null, [range])
+  const storageRange = useMemo(() => {
+    if (!range) return null
+    const margin = Math.max(policyEpisodeWindowMs, ismEpisodeWindowMs), scope = { brokerId: brokerId ?? null, brokerOffsetSeconds }
+    const from = utcToChartClock(range.from - margin, scope), to = utcToChartClock(range.to + margin, scope)
+    return from === null || to === null ? null : { from, to }
+  }, [range, brokerId, brokerOffsetSeconds])
   const storage = useStoredCalendar(brokerId, storageRange, supported && brokerTime)
   const readings = useMemo(() => brokerTime ? storage.events.filter((event) => event.availability === 'observed') : events,
     [brokerTime, storage.events, events])
   const allReleases = useMemo(() => groupInspectorReleases(readings), [readings])
   const displayReleases = useMemo(() => groupPmiEpisodes(groupIsmEpisodes(allReleases)), [allReleases])
-  const releases = useMemo(() => supported ? filterInspectorReleases(displayReleases, preferences, range, brokerTime) : [],
-    [supported, displayReleases, preferences, range, brokerTime])
+  const releases = useMemo(() => supported ? filterInspectorReleases(displayReleases, preferences, range, false) : [],
+    [supported, displayReleases, preferences, range])
   const markerBars = useMarkerBars(bars)
   const markers = useMemo(() => buildInspectorMarkers(releases, preferences, markerBars, timeframe), [releases, preferences, markerBars, timeframe])
   const inspection = usePublicationInspection(symbol, brokerId, displayReleases, supported)

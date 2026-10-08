@@ -1,4 +1,5 @@
 import { TickMarkType, type Time } from 'lightweight-charts'
+import { chartClockToUtc, defaultChartClock, type ChartClockScope } from './chart-clock'
 
 export type TimeDisplayMode = 'local' | 'utc' | 'fixed-offset'
 
@@ -64,6 +65,19 @@ function displayDate(epochMilliseconds: number, preference: TimeDisplayPreferenc
   }
 }
 
+// Reuse bounded formatter instances during chart panning and overlay projection.
+const formatters = new Map<string, Intl.DateTimeFormat>()
+function dateFormatter(options: Intl.DateTimeFormatOptions) {
+  const key = JSON.stringify(options)
+  let formatter = formatters.get(key)
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat(undefined, options)
+    if (formatters.size >= 64) formatters.delete(formatters.keys().next().value!)
+    formatters.set(key, formatter)
+  }
+  return formatter
+}
+
 export function formatAppTimestamp(
   epochMilliseconds: number,
   preference: TimeDisplayPreference,
@@ -72,7 +86,7 @@ export function formatAppTimestamp(
   const { date, timeZone } = displayDate(epochMilliseconds, preference)
   const dateOptions: Intl.DateTimeFormatOptions = { day: '2-digit', month: 'short', year: 'numeric' }
   const timeOptions: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit', second: format === 'time' ? '2-digit' : undefined, hourCycle: 'h23' }
-  return new Intl.DateTimeFormat(undefined, {
+  return dateFormatter({
     ...(format === 'time' || format === 'time-short' ? timeOptions : format === 'date' ? dateOptions : { ...dateOptions, ...timeOptions }),
     timeZone,
   }).format(date)
@@ -84,12 +98,15 @@ function chartTimeToMilliseconds(time: Time) {
   return Date.UTC(time.year, time.month - 1, time.day)
 }
 
-export function formatChartCrosshairTime(time: Time, preference: TimeDisplayPreference) {
-  return formatAppTimestamp(chartTimeToMilliseconds(time), preference, 'date-time')
+export function formatChartCrosshairTime(time: Time, preference: TimeDisplayPreference, scope: ChartClockScope = defaultChartClock) {
+  const utc = chartClockToUtc(chartTimeToMilliseconds(time), scope)
+  return utc === null ? 'Time unavailable' : formatAppTimestamp(utc, preference, 'date-time')
 }
 
-export function formatChartTick(time: Time, tickType: TickMarkType, preference: TimeDisplayPreference) {
-  const { date, timeZone } = displayDate(chartTimeToMilliseconds(time), preference)
+export function formatChartTick(time: Time, tickType: TickMarkType, preference: TimeDisplayPreference, scope: ChartClockScope = defaultChartClock) {
+  const utc = chartClockToUtc(chartTimeToMilliseconds(time), scope)
+  if (utc === null) return ''
+  const { date, timeZone } = displayDate(utc, preference)
   const options: Intl.DateTimeFormatOptions = tickType === TickMarkType.Year
     ? { year: 'numeric' }
     : tickType === TickMarkType.Month
@@ -97,5 +114,5 @@ export function formatChartTick(time: Time, tickType: TickMarkType, preference: 
       : tickType === TickMarkType.DayOfMonth
         ? { day: '2-digit', month: 'short' }
         : { hour: '2-digit', minute: '2-digit', second: tickType === TickMarkType.TimeWithSeconds ? '2-digit' : undefined, hourCycle: 'h23' }
-  return new Intl.DateTimeFormat(undefined, { ...options, timeZone }).format(date)
+  return dateFormatter({ ...options, timeZone }).format(date)
 }

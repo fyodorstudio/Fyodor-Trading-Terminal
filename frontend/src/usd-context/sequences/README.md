@@ -122,12 +122,12 @@ label footprints reserve space. Repeated overlapping roofs of the same kind,
 direction and family set keep the highest-ranked representative. Opposing roofs
 are never deduplicated as the same direction, but can still overflow crowded lanes.
 Every omitted eligible roof remains in **+N more**, newest activation first, with
-its direction, evidence and broker time. **All roofs** uses three lanes and
+its direction, evidence and selected display time. **All roofs** uses three lanes and
 full-span collision avoidance, including symbol/label footprints. Density is a saved display choice in the shared gear's Roofs tab; neither mode
 changes relationship qualification or scoring and neither fits to price.
 
 The filled endpoint marks the containing activation candle. The tooltip
-and Inspector give the precise broker clock; lines back to earlier publications
+and Inspector give the precise selected clock; lines back to earlier publications
 identify context, not an earlier available signal. Future activation and any
 snapshot with a future source are excluded before display prioritization.
 

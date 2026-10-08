@@ -1,5 +1,4 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { formatUtcOffset } from '../../appearance/time-display/time-display-preference'
 import type { BridgeHealth, BridgeOperation } from './bridge-contract'
 import './data-heartbeat-panel.css'
 
@@ -133,10 +132,10 @@ export function DataHeartbeatPanel({ health, reachable, lastContactAt, roundTrip
       detail: !healthFresh
         ? 'Fresh bridge health is unavailable'
         : calendar?.server_utc_offset_seconds === null || calendar?.server_utc_offset_seconds === undefined
-        ? 'Waiting for broker clock'
+        ? 'Waiting for source clock'
         : clockVerified
-        ? `Broker ${formatUtcOffset(calendar.server_utc_offset_seconds / 60)} · verified (click to reset)`
-        : `Broker ${formatUtcOffset(calendar.server_utc_offset_seconds / 60)} · click to verify`,
+        ? 'Source clock verified (click to reset)'
+        : 'Click to verify the source clock in Chart settings',
       onClick: calendar?.clock_trust === 'observed' && calendar.status === 'live' ? toggleClockVerification : undefined,
       extra: clockExtra,
     },

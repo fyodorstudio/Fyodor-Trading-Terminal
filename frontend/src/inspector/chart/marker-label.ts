@@ -10,9 +10,7 @@ export function markerLabel(marker: InspectorMarker, timeDisplay: TimeDisplayPre
   if (!cache) { cache = new WeakMap(); labels.set(timeDisplay, cache) }
   const known = cache.get(marker)
   if (known) return known
-  const time = marker.release.events.some(event => 'chart_time_seconds' in event)
-    ? `${formatAppTimestamp(marker.release.chartTime! * 1000, { mode: 'utc', utcOffsetMinutes: 0 })} · broker time`
-    : formatAppTimestamp(marker.release.releaseAt!, timeDisplay)
+  const time = marker.release.releaseAt === null ? 'Time unavailable' : formatAppTimestamp(marker.release.releaseAt, timeDisplay)
   const value = { time, description: `${marker.release.currency} · ${marker.release.label} · ${time}` }
   cache.set(marker, value)
   return value

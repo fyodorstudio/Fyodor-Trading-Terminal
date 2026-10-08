@@ -1,4 +1,5 @@
 import { useSequencePreferences } from '../usd-context/sequences/storage/sequence-preferences'
+import { DisplayClockProvider } from '../appearance/time-display/DisplayClock'
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { applyColorTheme, readColorTheme, type ColorTheme } from '../appearance/color-theme/color-theme-preference'
 import {
@@ -290,6 +291,7 @@ export function FyodorTerminalShell() {
         ? 'MT5 disconnected'
         : 'Waiting for MT5'
   return (
+    <DisplayClockProvider brokerId={brokerId} brokerOffsetSeconds={brokerOffsetSeconds} preference={timeDisplay}>
     <div className={`terminal-shell${bottomDockWindow ? ' bottom-dock-open' : ''}`}
       style={{ '--bottom-dock-height': `${dockSize.height}px` } as CSSProperties}>
       <main className={`terminal-workspace${marketWatch.collapsed ? ' market-watch-collapsed' : ''}`}>
@@ -457,5 +459,6 @@ export function FyodorTerminalShell() {
         ><WorkspaceTransfer /></ChartSettingsPopover>
       )}
     </div>
+    </DisplayClockProvider>
   )
 }

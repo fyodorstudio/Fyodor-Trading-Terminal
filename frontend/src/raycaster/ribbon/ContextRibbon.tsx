@@ -6,7 +6,7 @@ import { timeframeSeconds } from '../../inspector/inspector-data'
 import { visibleRibbonIntervals, type RibbonPoint } from './ribbon-timeline'
 import { ribbonCoordinate, ribbonClockAtCoordinate } from './ribbon-geometry'
 import { RibbonExplanation } from './RibbonExplanation'
-import { brokerClock } from './broker-clock'
+import { useDisplayClock } from '../../appearance/time-display/useDisplayClock'
 import './context-ribbon.css'
 import { ExternalEventsStrip } from '../../external-events/chart/ExternalEventsStrip'
 import { usdPresentationVersion } from '../core/usd-context-presentation'
@@ -17,6 +17,7 @@ function ContextRibbonComponent({ chartApi, bars, timeframe, points, now, relati
   now: number; relative: boolean; version: string; loading: boolean; notice: string | null; partial?: boolean; symbol?: string; brokerId?: string | null
 }) {
   const [segments, setSegments] = useState<Segment[]>([])
+  const clock = useDisplayClock(), displayClock = clock.chart
   const [hoverState, setHover] = useState<{ segment: Segment; at: number } | null>(null)
   const [selection, setSelected] = useState<{ point: RibbonPoint; timeline: readonly RibbonPoint[] } | null>(null)
   const hover = hoverState && segments.includes(hoverState.segment) ? hoverState : null
@@ -53,13 +54,13 @@ function ContextRibbonComponent({ chartApi, bars, timeframe, points, now, relati
   }, [chartApi, bars, timeframe, points, now, loading, notice])
   return <div className="context-ribbon" aria-label={`Raycaster Candy · ${mode}`}>
     <ExternalEventsStrip key={`${brokerId}:${symbol}`} chartApi={chartApi} bars={bars} timeframe={timeframe} now={now} symbol={symbol} brokerId={brokerId} />
-    <div className="context-ribbon-legend">Context · {mode} · {relative ? 'Green Long / Red Short / Amber Mixed / Gray Insufficient' : 'Green Long / Red Short / Amber Conflict or No lead · edge = lead / Gray Insufficient'} · {loading ? 'Loading' : notice ?? `shade = evidence${partial ? ' · Partial history' : ''}`}</div>
+    <div className="context-ribbon-legend">Context · {mode} · {clock.zone} · {relative ? 'Green Long / Red Short / Amber Mixed / Gray Insufficient' : 'Green Long / Red Short / Amber Conflict or No lead · edge = lead / Gray Insufficient'} · {loading ? 'Loading' : notice ?? `shade = evidence${partial ? ' · Partial history' : ''}`}</div>
     <div className="context-ribbon-track" onPointerLeave={clearHover}>
       {segments.map(segment => <button type="button" key={segment.from}
         className={`ribbon-segment ${segment.point?.direction ?? 'uncomputed'} ${segment.point?.evidence ?? ''}${!relative && segment.point?.presentation?.state === 'conflicted' ? ` lead-${segment.point.presentation.direction}` : ''}`}
         style={{ left: segment.left, width: segment.width }}
-        aria-label={`${segment.point?.label ?? 'Unavailable'} · ${segment.point?.evidence ?? 'No'} evidence · ${brokerClock(segment.from)}`}
-        title={`${segment.point?.label ?? 'Unavailable'} · ${segment.point?.evidence ?? 'No'} evidence\n${brokerClock(segment.from)} to ${brokerClock(segment.to)}\n${segment.point?.update ?? notice ?? 'No usable context yet'}`}
+        aria-label={`${segment.point?.label ?? 'Unavailable'} · ${segment.point?.evidence ?? 'No'} evidence · ${displayClock(segment.from)}`}
+        title={`${segment.point?.label ?? 'Unavailable'} · ${segment.point?.evidence ?? 'No'} evidence\n${displayClock(segment.from)} to ${displayClock(segment.to)}\n${segment.point?.update ?? notice ?? 'No usable context yet'}`}
         onPointerMove={e => {
           pendingHover.current = { segment, x: segment.left + e.clientX - e.currentTarget.getBoundingClientRect().left }
           if (!hoverFrame.current) hoverFrame.current = window.requestAnimationFrame(() => {
@@ -74,7 +75,7 @@ function ContextRibbonComponent({ chartApi, bars, timeframe, points, now, relati
         onClick={() => { if (segment.point) setSelected({ point: segment.point, timeline: points }) }} />)}
     </div>
     {hover && <div className="ribbon-hover" role="status"><strong>{hover.segment.point?.label ?? 'Unavailable'} · {hover.segment.point?.evidence ?? 'No'} evidence</strong>
-      <span>{brokerClock(hover.at)}</span><span>{hover.segment.point?.kind === 'publication' ? 'Publication' : hover.segment.point?.kind === 'expiry' ? 'Expiry' : 'Memory aging'}: {hover.segment.point?.update ?? notice ?? 'No usable context'}</span></div>}
+      <span>{displayClock(hover.at)}</span><span>{hover.segment.point?.kind === 'publication' ? 'Publication' : hover.segment.point?.kind === 'expiry' ? 'Expiry' : 'Memory aging'}: {hover.segment.point?.update ?? notice ?? 'No usable context'}</span></div>}
     {selected && <RibbonExplanation point={selected} mode={mode} version={relative ? version : `${version} / ${usdPresentationVersion}`} partial={partial} onClose={close} />}
   </div>
 }

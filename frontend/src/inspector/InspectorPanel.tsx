@@ -69,7 +69,7 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
   const scoringBinding = inspectorScoringBinding(symbol, scoreRelease)
   const showScoring = normalizeInspectorDetailView(view.preferences.detailView) === 'scoring' && !!scoringBinding
   const visibleView = showScoring ? 'scoring' : 'table'
-  const status = (item: InspectorRelease) => releaseStatus(item, view.now + (view.brokerTime ? view.brokerOffsetSeconds * 1000 : 0), view.brokerTime)
+  const status = (item: InspectorRelease) => releaseStatus(item, view.now)
   const storageStatus = view.storage.loading ? 'Loading stored calendar' : view.storage.error ??
     (view.storage.source ? 'Stored calendar available' : 'Waiting for the broker calendar')
   const calendarDetail = view.brokerTime ? storageStatus : sourceLabel(source, error)
@@ -143,7 +143,7 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
       <div className={`inspector-body${listOpen ? '' : ' releases-collapsed'}`}>
         <InspectorReleaseList id={`${panelId}-releases`} hidden={!listOpen} releases={view.releases}
           selectedId={release?.id ?? null} symbols={view.preferences.symbols} timeDisplay={timeDisplay}
-          brokerTime={view.brokerTime} now={view.now + (view.brokerTime ? view.brokerOffsetSeconds * 1000 : 0)} onSelect={view.selectRelease} />
+          brokerTime={view.brokerTime} now={view.now} onSelect={view.selectRelease} />
         <div className="inspector-detail" aria-live="polite">
           {!release ? <p className="inspector-empty" role={view.inspectingPublication ? 'status' : undefined}>{view.inspectingPublication ?
             view.publicationLoading ? 'Loading selected publication…' : view.publicationError ?? 'Selected publication is unavailable in stored history.' :

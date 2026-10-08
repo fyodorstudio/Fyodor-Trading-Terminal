@@ -1,4 +1,5 @@
 import { memo, useEffect, useRef, useState, type ReactNode } from 'react'
+import { useDisplayClock } from '../../appearance/time-display/useDisplayClock'
 import {
   CandlestickSeries,
   createChart,
@@ -74,6 +75,8 @@ function MarketCandlestickChartComponent({
   renderChartOverlay,
 }: MarketCandlestickChartProps) {
   const containerRef = useRef<HTMLDivElement>(null)
+  const { scope: clock } = useDisplayClock()
+  const initialClock = useRef(clock)
   const initialAppearanceRef = useRef(appearance)
   const initialTimeDisplayRef = useRef(timeDisplay)
   const chartRef = useRef<IChartApi | null>(null)
@@ -101,7 +104,7 @@ function MarketCandlestickChartComponent({
     if (!container) return
 
     const initialAppearance = initialAppearanceRef.current
-    const chart = createChart(container, lightweightChartOptions(initialAppearance, initialTimeDisplayRef.current, true))
+    const chart = createChart(container, lightweightChartOptions(initialAppearance, initialTimeDisplayRef.current, true, initialClock.current))
     const series = chart.addSeries(CandlestickSeries, {
       upColor: initialAppearance.upCandleColor,
       downColor: initialAppearance.downCandleColor,
@@ -149,7 +152,7 @@ function MarketCandlestickChartComponent({
     const barSpacingChanged = prevBarSpacingRef.current !== appearance.barSpacing
     prevBarSpacingRef.current = appearance.barSpacing
 
-    chart.applyOptions(lightweightChartOptions(appearance, timeDisplay, false))
+    chart.applyOptions(lightweightChartOptions(appearance, timeDisplay, false, clock))
     if (barSpacingChanged) {
       chart.applyOptions({ timeScale: { barSpacing: appearance.barSpacing } })
     }
@@ -170,7 +173,7 @@ function MarketCandlestickChartComponent({
         // Ignored if range cannot be set in current state
       }
     }
-  }, [appearance, theme, timeDisplay])
+  }, [appearance, theme, timeDisplay, clock])
 
   useEffect(() => {
     const series = seriesRef.current

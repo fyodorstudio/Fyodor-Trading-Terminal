@@ -11,11 +11,10 @@ import type { InspectorView } from '../useInspector'
 function PmiSection({ release, view, timeDisplay, showPeriod }: { release: InspectorRelease; view: InspectorView; timeDisplay: TimeDisplayPreference; showPeriod: boolean }) {
   const family = magnitudeFamilies.find(item => matchesReadingFamily(release, item))!
   const history = useFamilyMagnitudeHistory(view.brokerId, release)
-  const clock = view.brokerTime ? release.serverTime * 1000 : release.releaseAt
+  const clock = release.releaseAt
   return <tbody>
     <tr className="inspector-ism-section-heading"><th scope="rowgroup" colSpan={6}>
-      {pmiSectionLabel(release)} · {clock === null ? 'Time unavailable' : formatAppTimestamp(clock, view.brokerTime ? { mode: 'utc', utcOffsetMinutes: 0 } : timeDisplay)}
-      {view.brokerTime && ' · broker time'}
+      {pmiSectionLabel(release)} · {clock === null ? 'Time unavailable' : formatAppTimestamp(clock, timeDisplay)}
     </th></tr>
     {release.events.map(event => {
       const grading = gradeFamilyReading(event, release.familyId, family)

@@ -11,6 +11,7 @@ import { ComboAdvanced } from './ComboAdvanced'
 import { RoofAuditControls } from './RoofAuditControls'
 import { roofDisplayVersion } from '../chart/roof-symbols'
 import './combo-inspector.css'
+import { useDisplayClock } from '../../../appearance/time-display/useDisplayClock'
 
 export function ComboInspector({ combo, timeDisplay, symbol, broker = null, onClose, onOpenRelease }: {
   combo: ComboSnapshot; timeDisplay: TimeDisplayPreference; symbol: string; broker?: string | null;
@@ -18,6 +19,7 @@ export function ComboInspector({ combo, timeDisplay, symbol, broker = null, onCl
 }) {
   const [advanced, setAdvanced] = useState(false), advancedId = useId()
   const summary = comboSummary(combo), bias = roofResultLabel(combo)
+  const clock = useDisplayClock()
   const support = roofSupport(combo)
   const fed = combo.sources.find(s => s.family === 'fed')
   const after = combo.after, before = combo.before
@@ -38,7 +40,7 @@ export function ComboInspector({ combo, timeDisplay, symbol, broker = null, onCl
       <div className="combo-overview">
         <section className="combo-card" aria-label="Why this direction"><h3>Why this direction?</h3><p>{summary.why}</p></section>
         <section className="combo-card" aria-label="Activation and changes"><h3>What changed?</h3>
-          <p><strong>Available from {formatAppTimestamp(combo.chartAt, { mode: 'utc', utcOffsetMinutes: 0 })} broker time.</strong></p>
+          <p><strong>Available from {clock.chart(combo.chartAt)} ({clock.zone}).</strong></p>
           <p>Activated by: {summary.activation}.</p><p>{summary.changed}</p>
           <small>The filled dot marks availability within its chart candle. Use the exact activation time, not the candle open. A memory update can activate a combo without a new publication. Hollow dots identify earlier inputs; they do not backdate the result or mark a trade entry.</small>
         </section>

@@ -5,7 +5,7 @@ import type { ScatterGeometry } from './scatter-plot-viewport'
 import { scatterLinePath } from './scatter-line-path'
 import { scatterPointLabels } from './scatter-point-labels'
 
-const date = (at: number) => new Date(at).toISOString().slice(0, 10)
+import { useDisplayClock } from '../../appearance/time-display/useDisplayClock'
 
 // Cursor-only updates leave this historical SVG layer untouched.
 export const ScatterPlotLayer = memo(function ScatterPlotLayer({ model, g, appearance: a, clipId, height, onInspect }: {
@@ -13,10 +13,11 @@ export const ScatterPlotLayer = memo(function ScatterPlotLayer({ model, g, appea
   onInspect: (releaseId: string) => void
 }) {
   const { points, inspection, formatDelta } = model
+  const { date, zone } = useDisplayClock()
   const distribution = inspection?.distribution ?? null
   const currentIndex = points.findIndex((point) => point.releaseId === inspection?.releaseId)
   // Geometry changes during panning; the readings and accessible labels do not.
-  const labels = useMemo(() => scatterPointLabels(model), [model])
+  const labels = useMemo(() => scatterPointLabels(model, date), [model, date])
   const guides = distribution && distribution.threshold > 0 ? scatterGuideLevels(a, distribution.threshold, distribution.limits) : []
   return <>
       <defs><clipPath id={clipId}><rect x={g.left} y={g.top} width={g.right - g.left} height={g.bottom - g.top} /></clipPath></defs>
@@ -71,7 +72,7 @@ export const ScatterPlotLayer = memo(function ScatterPlotLayer({ model, g, appea
       {g.deltaTicks.map((delta) => <text key={delta} className="scatter-plot-tick" x={g.left - 8} y={g.y(delta) + 3} textAnchor="end">{formatDelta(delta, 2)}</text>)}
       {g.dateTicks.map((at, index) => <text key={at} className="scatter-plot-tick" x={g.x(at)} y={g.bottom + 18}
         textAnchor={index === 0 ? 'start' : index === g.dateTicks.length - 1 ? 'end' : 'middle'}>{date(at)}</text>)}
-      <text className="scatter-plot-axis-label" x={(g.left + g.right) / 2} y={height - 6} textAnchor="middle">Release date (UTC)</text>
+      <text className="scatter-plot-axis-label" x={(g.left + g.right) / 2} y={height - 6} textAnchor="middle">Release date ({zone})</text>
       <text className="scatter-plot-axis-label" transform={`translate(13 ${(g.top + g.bottom) / 2}) rotate(-90)`} textAnchor="middle">{model.axisLabel ?? 'A−P / Delta'}</text>
   </>
 })

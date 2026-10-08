@@ -73,7 +73,7 @@ choices. Opening the gear alone does not fetch or rescore; input changes rebuild
 the background timeline. Escape/close/outside pointer presses dismiss it;
 Escape/close restores gear focus.
 
-The footer labels the reading as **USD side only** and identifies the broker time.
+The footer labels the reading as **USD side only** and identifies the selected display-clock cutoff.
 Source dates, weighted contributions, evidence and unavailable or expired status
 remain available in the context snapshots and chronological audit. Partial coverage, timing exclusions or storage outages are
 disclosed. A retained snapshot during a storage outage is reconstructed stored
@@ -183,7 +183,7 @@ jobs, with no scoring on pointer movement.
 The ribbon starts Off, saved as an optional backwards-compatible `ribbon` field
 in `fyodor.context-sequences.v1`. USD colors follow presentation v1 above;
 relative green/red means pair Long/Short and amber means Mixed evidence. Gray
-means Insufficient context/unavailable history. Evidence shade is not probability. Mode, exact broker clock, triggering
+means Insufficient context/unavailable history. Evidence shade is not probability. Mode, exact selected clock, triggering
 publication/memory/expiry update and clicked contribution explanation are explicit.
 The box still uses candle-end cutoff. Roof relationships remain USD-only, even
 when the box/ribbon compare EUR against USD. USD engine v8 keeps its canonical
