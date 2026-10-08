@@ -24,5 +24,7 @@ export type ComboSnapshot = { id: string; kind: ComboKind; title: string; chartA
   decision?: import('../../core/interpretation-quality').ContextDecision;
   activation?: ComboActivation;
   catalogue?: { enabled: ContextFamily[]; fresh: FreshChange[]; fed: ComboSource | null } }
-export type ContextRelationships = { episodes: ComboSnapshot[]; fresh: FreshPoint[] }
+export type ContextRelationships = { episodes: ComboSnapshot[]; fresh: FreshPoint[];
+  /** Existing sector/action assessments exposed for read-only selected relationship timelines. */
+  ismSources?: { sourceId: string; sources: ComboSource[] }[]; fedSources?: ComboSource[] }
 export type IsmSourceMap = Map<string, ComboSource[]>

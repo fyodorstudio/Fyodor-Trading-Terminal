@@ -5,7 +5,7 @@ import { useRelativePreferences } from '../pair-context/storage/relative-prefere
 import { useEurContextTimeline } from '../pair-context/runtime/useEurContextTimeline'
 import { relativeContext, eurContextAt } from '../pair-context/core/relative-context'
 import type { IChartApi, ISeriesApi, Time } from 'lightweight-charts'
-import { memo, useEffect, useMemo } from 'react'
+import { memo, useEffect, useMemo, useState } from 'react'
 import type { ChartTimeframe } from '../market-data/contracts/ChartTimeframe'
 import type { TimeDisplayPreference } from '../appearance/time-display/time-display-preference'
 import { useUsdContextTimeline } from '../usd-context/runtime/useUsdContextTimeline'
@@ -25,11 +25,14 @@ import { ComboRoofs } from '../usd-context/sequences/chart/ComboRoofs'
 import { useSequencePreferences } from '../usd-context/sequences/storage/sequence-preferences'
 import { lookupFreshNews } from '../usd-context/sequences/core/fresh-news'
 import { inspectionSignature, publishInspection, toolScope, useToolsOpen } from '../fundamental-tools/runtime/inspection-session'
+import { selectedRoofProjection } from './ribbon/roof-ribbon-timeline'
+import { roofLabel } from '../usd-context/sequences/chart/roof-label'
 
 export type RaycasterProps = { boxVisible?: boolean; symbol: string; timeframe: ChartTimeframe; brokerId: string | null;
   brokerOffsetSeconds: number; clockOffsetMs: number; timeDisplay: TimeDisplayPreference; onClose: () => void;
   bars?: readonly Pick<OhlcBar, 'time'>[]; markers?: readonly InspectorMarker[]; onSelectCombo?: (combo: ComboSnapshot) => void;
-  onOpenComboSource?: (source: ComboSource) => void; currencyColors?: CurrencyColors }
+  onOpenComboSource?: (source: ComboSource) => void; currencyColors?: CurrencyColors;
+  selectedCombo?: ComboSnapshot | null; onClearCombo?: () => void }
 function RaycasterComponent({ chartApi, seriesApi, ...props }: RaycasterProps & { chartApi: IChartApi; seriesApi: ISeriesApi<'Candlestick', Time> }) {
   const now = useCalendarNow(props.clockOffsetMs)
   const families = useRaycasterFamilies()
@@ -42,17 +45,23 @@ function RaycasterComponent({ chartApi, seriesApi, ...props }: RaycasterProps & 
   const eurHistory = useEurContextTimeline(props.brokerId, relativePreferences.families, now, relativeEnabled)
   const scope = toolScope(props.brokerId, props.symbol, props.timeframe)
   const detailsOpen = useToolsOpen(scope)
-  const hover = useRaycasterHover(chartApi, seriesApi, `${props.brokerId}:${props.symbol}:${props.timeframe}`, props.boxVisible !== false)
-  const open = hover.open ?? (detailsOpen ? hover.lastOpen : null)
-  const cutoff = open === null ? null : candleContextCutoff(open, props.timeframe, now, props.brokerOffsetSeconds)
+  const [roofCandyVisible, setRoofCandyVisible] = useState(true)
+  const boxVisible = props.boxVisible !== false || !!props.selectedCombo
+  const hover = useRaycasterHover(chartApi, seriesApi, `${props.brokerId}:${props.symbol}:${props.timeframe}`, boxVisible)
+  const open = hover.open ?? (detailsOpen || props.selectedCombo ? hover.lastOpen : null)
+  const cutoff = open === null ? props.selectedCombo?.chartAt ?? null : candleContextCutoff(open, props.timeframe, now, props.brokerOffsetSeconds)
   const point = history.result && cutoff !== null ? contextAt(history.result, cutoff) : null
   const eurPoint = eurHistory.result && cutoff !== null ? eurContextAt(eurHistory.result, cutoff) : null
   const combined = relativeEnabled ? relativeContext(eurPoint, point) : null
   const relationships = history.result?.relationships
+  const { current: selectionCurrent, points: roofRibbonPoints } = selectedRoofProjection(history.result, props.selectedCombo)
+  const selectionNotice = props.selectedCombo && !history.loading && !selectionCurrent ? 'Inputs or history changed. This roof is a captured snapshot; reopen it to refresh Roof Candy.' : null
   const fresh = relationships && cutoff !== null ? lookupFreshNews(relationships.fresh, cutoff) : null
   const message = !props.brokerId ? 'Select a connected broker with stored calendar history.' : !history.selected.length ?
     'Enable an input in Fundamental tools → Raycaster → Advanced settings.' : history.error ?? (relativeEnabled ? eurHistory.error ?? eurHistory.storage.error : null) ??
       (history.storage.error && !history.result ? history.storage.error : null)
+  const usdMessage = !props.brokerId ? 'Select a connected broker with stored calendar history.' : !history.selected.length ?
+    'Enable a USD input in Raycaster settings.' : history.error ?? (history.storage.error && !history.result ? history.storage.error : null)
   const partial = (relativeEnabled && (eurHistory.storage.error || eurHistory.result?.excludedTiming || Object.values(eurHistory.storage.coverage).some(c => c.missing.length > 0))) || history.storage.error || Object.values(history.storage.coverage).some(c => c.missing.length > 0) || history.result?.excludedTiming
   const ribbonPoints = useMemo(() => buildRibbonTimeline(history.result, eurHistory.result, relativeEnabled, props.symbol),
     [history.result, eurHistory.result, relativeEnabled, props.symbol])
@@ -67,14 +76,21 @@ function RaycasterComponent({ chartApi, seriesApi, ...props }: RaycasterProps & 
   }, [detailsOpen, scope, point, eurPoint, fresh, cutoff, history.loading, eurHistory.loading, message, hover.open, open,
     families, relativePreferences.mode, relativePreferences.families, chartApi, now, props.brokerOffsetSeconds, props.timeframe])
   useEffect(() => () => publishInspection(scope, null), [scope])
-  return <>{props.boxVisible !== false && <RaycasterBox symbol={props.symbol} point={point} cutoff={cutoff} loading={history.loading || eurHistory.loading} message={message}
+  return <>{boxVisible && <RaycasterBox symbol={props.symbol} point={point} cutoff={cutoff} loading={history.loading || eurHistory.loading} message={message}
+    brokerId={props.brokerId}
+    selectedCombo={props.selectedCombo} selectionNotice={selectionNotice} onClearCombo={props.onClearCombo}
+    roofCandyVisible={roofCandyVisible} onToggleRoofCandy={() => setRoofCandyVisible(v => !v)}
     relative={combined} relativeUpdate={eurPoint?.update ?? null} relativeUpdateAt={eurPoint?.chartAt ?? null}
     notice={partial ? 'Partial or timing-excluded history' : null}
-    timeDisplay={props.timeDisplay} onClose={props.onClose} />}
+    timeDisplay={props.timeDisplay} onClose={() => { props.onClearCombo?.(); props.onClose() }} />}
     {sequencePreferences.ribbon && props.bars && <ContextRibbon chartApi={chartApi} bars={props.bars} timeframe={props.timeframe}
       symbol={props.symbol} brokerId={props.brokerId}
       points={ribbonPoints} now={now + props.brokerOffsetSeconds * 1000} relative={relativeEnabled} version={`${history.result?.version ?? "Context engine"}${relativeEnabled ? ` / ${relativeContextVersion}` : ""}`}
       loading={history.loading || eurHistory.loading} notice={message} partial={!!partial} />}
+    {props.selectedCombo && roofCandyVisible && props.bars && <ContextRibbon chartApi={chartApi} bars={props.bars} timeframe={props.timeframe}
+      symbol={props.symbol} brokerId={props.brokerId} points={roofRibbonPoints} startAt={props.selectedCombo.chartAt}
+      relationshipTitle={props.selectedCombo.kind === 'fresh-news' ? `Fresh change · ${roofLabel(props.selectedCombo)}` : props.selectedCombo.title} relative={false} version="Selected relationship presentation v1"
+      now={now + props.brokerOffsetSeconds * 1000} loading={history.loading} notice={usdMessage ?? selectionNotice} partial={!!partial} />}
     {relativeSupported && sequencePreferences.roofs && relationships && !history.loading && !message && props.bars && props.markers && props.onSelectCombo &&
       <ComboRoofs chartApi={chartApi} episodes={relationships.episodes} bars={props.bars} markers={props.markers}
         onOpenSource={props.onOpenComboSource} currencyColors={props.currencyColors}

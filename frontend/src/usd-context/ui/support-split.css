@@ -1,0 +1,13 @@
+.support-split { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-variant-numeric: tabular-nums; }
+.support-split > .support-long, .support-split > .support-short { flex: 1; border-radius: 4px; padding: 5px 8px; font-weight: 600; }
+.support-long { color: #126146; background: #d8f1e8; }
+.support-short { color: #9e2d28; background: #fbe2de; }
+.support-split.conflicted { border-left: 3px solid #b38222; padding-left: 5px; }
+.support-split.insufficient > span, .support-split.unchanged > span { color: var(--text-muted); background: var(--surface-raised); }
+.support-state { color: #936915; font-size: 8px; }
+.support-split.compact { gap: 3px; flex-wrap: nowrap; font-size: 9px; }
+.support-split.compact > .support-long, .support-split.compact > .support-short { flex: none; padding: 1px 4px; }
+:root[data-theme='dark'] .support-long { color: #8ce4be; background: #173f34; }
+:root[data-theme='dark'] .support-short { color: #ffb3aa; background: #482826; }
+:root[data-theme='dark'] .support-state { color: #e8c77a; }
+:root[data-theme='dark'] .support-split.insufficient > span, :root[data-theme='dark'] .support-split.unchanged > span { color: var(--text-muted); background: var(--surface-raised); }

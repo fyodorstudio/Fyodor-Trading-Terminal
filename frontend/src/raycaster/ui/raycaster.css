@@ -18,6 +18,17 @@
 .raycaster-box p { margin: 5px 0; }
 .raycaster-box small { display: block; color: var(--text-muted); font-size: 9px; }
 .raycaster-update { color: var(--text-muted); }
+.raycaster-reading { padding: 7px 0; }
+.selected-roof-reading { border-top: 1px solid var(--border); pointer-events: auto; }
+.selected-roof-reading > .support-split { margin: 6px 0; }
+.raycaster-calculations { pointer-events: auto; border-top: 1px solid var(--border); padding-top: 6px; }
+.raycaster-calculations summary { cursor: pointer; color: var(--accent); }
+.raycaster-calculations table { width: 100%; text-align: left; }
+.raycaster-reaction { margin-top: 6px; }
+.raycaster-reaction summary { cursor: pointer; color: var(--accent); }
+.raycaster-box .combo-audit { padding: 0; border: 0; }
+.raycaster-box .combo-audit button { padding: 3px 5px; border: 1px solid var(--border); }
+.usd-support-split > .support-split, .relationship-split > .support-split { width: 100%; }
 .raycaster-details {
   pointer-events: auto; margin: 6px 0 10px; padding: 8px;
   border: 1px solid var(--border-strong); border-radius: 5px; background: var(--surface-inset);

@@ -84,5 +84,6 @@ export function buildContextRelationships(points: readonly ContextPoint[], befor
       episodes.push(combo)
     }
   }
-  return { episodes: episodes.sort((a,b) => a.chartAt - b.chartAt || a.id.localeCompare(b.id)), fresh }
+  return { episodes: episodes.sort((a,b) => a.chartAt - b.chartAt || a.id.localeCompare(b.id)), fresh,
+    ismSources: [...ismSources].map(([sourceId, sources]) => ({ sourceId, sources })), fedSources: fedHistory.map(([, source]) => source) }
 }

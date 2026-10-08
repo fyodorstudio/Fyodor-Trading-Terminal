@@ -2,9 +2,11 @@ import type { ContextPoint, ContextTimeline, Evidence } from '../../usd-context/
 import type { EurContextPoint, EurContextTimeline } from '../../pair-context/core/contracts'
 import { relativeContext } from '../../pair-context/core/relative-context'
 import { usdContextPresentation, usdPresentationUpdate, type UsdContextPresentation } from '../core/usd-context-presentation'
+import type { RelationshipPoint } from '../../usd-context/sequences/core/relationship-timeline'
 
 export type RibbonPoint = { at: number; label: string; direction: 'long' | 'short' | 'mixed' | 'conflicted' | 'balanced' | 'unchanged' | 'insufficient' | 'uncomputed'; evidence: Evidence | null;
-  explanation: string; update: string; kind: 'publication' | 'memory' | 'expiry'; usd: ContextPoint | null; eur: EurContextPoint | null; presentation?: UsdContextPresentation }
+  explanation: string; update: string; kind: 'publication' | 'memory' | 'expiry'; usd: ContextPoint | null; eur: EurContextPoint | null; presentation?: UsdContextPresentation;
+  relationship?: RelationshipPoint }
 
 /** Merge both clocks once, including atomic simultaneous publications. Pointer movement never scores. */
 export function buildRibbonTimeline(usd: ContextTimeline | null, eur: EurContextTimeline | null, relative: boolean, symbol: string): RibbonPoint[] {

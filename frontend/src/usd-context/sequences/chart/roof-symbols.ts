@@ -5,7 +5,7 @@ import type { ComboActivation, ComboSource } from '../core/contracts'
 export type RoofPublication = { source: ComboSource; symbol: EventSymbol }
 export type RoofEndpoint = { x: number; publications: RoofPublication[]; activation: boolean }
 export const roofDisplayVersion = 6
-export const roofLaneY = (lane: number) => 124 - lane * 42
+export const roofLaneY = (lane: number) => 152 - lane * 48
 
 /** Merge only a shared candle anchor; never move an older release to activation. */
 export function clusterRoofEndpoints(points: readonly RoofEndpoint[]): RoofEndpoint[] {

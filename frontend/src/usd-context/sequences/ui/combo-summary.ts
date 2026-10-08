@@ -1,6 +1,7 @@
 import { activationLabel, comboActivation } from '../core/combo-activation'
 import type { ComboSnapshot } from '../core/contracts'
 import { roofSupport, supportLabel } from '../core/relationship-support'
+import { relationshipReading } from '../../core/support-reading'
 
 const joinNames = (names: string[]) => names.length < 2 ? names[0] ?? '' : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`
 
@@ -10,14 +11,12 @@ export function comboSummary(combo: ComboSnapshot) {
   const activation = cause.kind === 'publication' ? joinNames([...new Set(updates.map(s => s.sourceLabel))]) : `${activationLabel(cause.kind)} · Memory update; no new publication`
   const policy = combo.kind === 'labor-inflation' || combo.kind === 'weekly-labor'
   const support = roofSupport(combo)
-  const why = support.state === 'insufficient' ? `Usable evidence is missing${support.missing.length ? ` for ${joinNames(support.missing)}` : ''}. No complete relationship conclusion is available.` :
-    support.direction ? `${joinNames([...new Set(support.leaders)])} contribute most to the ${support.direction === 'long' ? 'Long' : 'Short'} side.${support.state === 'conflicted' ? ' Opposing support remains visible; the lead is the weighted difference, not unanimity.' : ''}${support.narrow ? ' The weighted lead is narrow.' : ''}` :
-    support.state === 'balanced' ? 'The two weighted sides cancel exactly; neither side wins.' : 'The available comparable readings add no directional support.'
-  const meaning = combo.kind === 'fresh-news' ? 'Recent comparable support changes · USD inputs only. Calibration drift, aging, renewal and coverage changes do not vote.' :
-    combo.kind === 'ism-sectors' ? 'Manufacturing / Services resolution · one ISM family budget.' :
-    policy ? 'Named labor policy relationship · combined USD evidence is shown separately.' :
-    combo.kind === 'fed-relationship' ? 'Numerical rate action alongside macro evidence. Basis points and macro magnitude points are not interchangeable.' :
-    'Relationship between available standalone interpretations · base family budgets and source age retained.'
+  const why = relationshipReading(support)
+  const meaning = combo.kind === 'fresh-news' ? 'How recent news is changing USD support. Older accumulated context can still point the other way.' :
+    combo.kind === 'ism-sectors' ? 'What Services and Manufacturing say together. They share one ISM vote.' :
+    policy ? 'A labor relationship changed the priorities. The support split includes all active USD inputs.' :
+    combo.kind === 'fed-relationship' ? 'The Fed rate action alongside the selected economic reading. The percentages cover economic support only.' :
+    'What the selected releases say together, allowing for their weights and age. USD inputs only.'
   return { activation, cause, updates, why, meaning,
     changed: `${supportLabel(support)} at this snapshot. ${combo.kind === 'fresh-news' ? 'This describes changes in support, rather than the level of accumulated context.' : cause.kind === 'publication' ? 'Earlier inputs become jointly inspectable at the activation publication.' : 'Stored inputs are reassessed at this memory update; no new participating publication was added.'}` }
 }

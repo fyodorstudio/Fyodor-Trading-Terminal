@@ -5,7 +5,8 @@ import { relationshipName } from './relationship-registry'
 export type RelationshipMode = 'release' | 'fresh'
 export type RelationshipSupport = { state: 'aligned' | 'conflicted' | 'balanced' | 'unchanged' | 'insufficient';
   direction: 'long' | 'short' | null; long: number; short: number; net: number; separation: number;
-  leaders: string[]; missing: string[]; narrow: boolean; qualified: boolean; sources: ComboSource[] }
+  leaders: string[]; missing: string[]; narrow: boolean; qualified: boolean; sources: ComboSource[];
+  votes: { source: ComboSource; vote: number }[] }
 
 /** No extra vote or missing-weight redistribution. Fed rates remain unweighted context. */
 export function relationshipSupport(combo: ComboSnapshot, requested?: readonly RelationshipFamily[], mode: RelationshipMode = 'release', policyWeights = false): RelationshipSupport {
@@ -41,7 +42,7 @@ export function relationshipSupport(combo: ComboSnapshot, requested?: readonly R
     .sort((a, b) => Math.abs(b.vote) - Math.abs(a.vote)).map(x => x.source.sourceLabel)
   return { state, direction: state === 'insufficient' ? null : direction, long, short, net, separation, leaders, missing: [...new Set(missing)],
     narrow: state === 'conflicted' && separation < 1 / 3,
-    qualified: missing.length > 0 || usable.some(x => (x.source.coverage ?? 1) < 1), sources: usable.map(x => x.source) }
+    qualified: missing.length > 0 || usable.some(x => (x.source.coverage ?? 1) < 1), sources: usable.map(x => x.source), votes: usable }
 }
 
 export function supportLabel(s: RelationshipSupport) {

@@ -264,14 +264,15 @@ export function FyodorTerminalShell() {
   }, [inspector.brokerId, inspector.now])
   const contextViews = useSequencePreferences()
   const roofsSupported = /^EURUSD(?:[._-].*|[a-z]*)$/i.test(activeSymbol)
-  const contextVisible = raycasterVisible || !!contextViews.ribbon || (roofsSupported && contextViews.roofs)
+  const contextVisible = raycasterVisible || !!selectedCombo || !!contextViews.ribbon || (roofsSupported && contextViews.roofs)
   const raycasterSupported = !!usdPair(activeSymbol)
   const raycaster = useMemo(() => contextVisible && raycasterSupported ?
     { boxVisible: raycasterVisible, symbol: activeSymbol, timeframe, brokerId, brokerOffsetSeconds, clockOffsetMs: bridge.clockOffsetMs,
       timeDisplay, onClose: closeRaycaster, bars: inspector.markerBars, markers: inspector.markers, onSelectCombo: selectCombo,
+      selectedCombo, onClearCombo: closeCombo,
       onOpenComboSource: openComboRelease, currencyColors: inspectorPreferences.currencyColors } : null,
     [contextVisible, raycasterVisible, raycasterSupported, activeSymbol, timeframe, brokerId, brokerOffsetSeconds,
-      bridge.clockOffsetMs, timeDisplay, closeRaycaster, inspector.markerBars, inspector.markers, selectCombo, openComboRelease, inspectorPreferences.currencyColors])
+      bridge.clockOffsetMs, timeDisplay, closeRaycaster, inspector.markerBars, inspector.markers, selectCombo, selectedCombo, closeCombo, openComboRelease, inspectorPreferences.currencyColors])
   const renderChartOverlay = useTerminalChartOverlay({ arrows: registeredArrows.symbolArrows,
     selectedArrowId: registeredArrows.selectedArrowId, draftPlan: plannedTrade, onSelectArrow: selectChartArrow,
     supported: inspector.supported, markers: inspector.markers, currencyColors: inspector.preferences.currencyColors,

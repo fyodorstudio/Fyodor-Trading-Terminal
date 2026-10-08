@@ -1,5 +1,7 @@
 import { relationshipVersion, type ComboSnapshot } from '../core/contracts'
 import { contextVersion } from '../../core/policy'
+import { roofSupport, type RelationshipSupport } from '../core/relationship-support'
+import { supportDisplayVersion } from '../../core/support-reading'
 
 export const auditWindows = [
   { id: 'h1', label: 'Activation H1 candle' },
@@ -13,8 +15,10 @@ export type RoofAuditScope = { broker: string | null; symbol: string; comboId: s
 export type RoofAudit = RoofAuditScope & { observations: Partial<Record<AuditWindow, AuditVerdict>>; updatedAt: number }
 
 /** A changed result/input configuration gets its own audit; never inherits old verdicts. */
-export function roofAuditScope(combo: ComboSnapshot, symbol: string, broker: string | null): RoofAuditScope {
+export function roofAuditScope(combo: ComboSnapshot, symbol: string, broker: string | null, support: RelationshipSupport = roofSupport(combo)): RoofAuditScope {
   return { broker, symbol, comboId: combo.id, snapshot: JSON.stringify({ version: contextVersion, chartAt: combo.chartAt,
+    presentationVersion: supportDisplayVersion, kind: combo.kind, title: combo.title, displayedSupport: { state: support.state, direction: support.direction, long: support.long, short: support.short,
+      narrow: support.narrow, qualified: support.qualified, missing: support.missing },
     decision: combo.decision, relationshipVersion, direction: combo.direction, strength: combo.strength, sources: combo.sources,
     before: combo.before, after: combo.after, checks: combo.checks, experimental: combo.experimental }) }
 }

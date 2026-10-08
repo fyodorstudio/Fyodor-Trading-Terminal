@@ -14,3 +14,7 @@
 .ribbon-explanation { position: absolute; bottom: 22px; right: 8px; width: min(460px, calc(100vw - 100px)); max-height: min(55vh, 500px); overflow: auto; background: var(--surface-panel); border: 1px solid var(--border-strong); border-radius: 6px; padding: 12px; pointer-events: auto; color: var(--text); font-size: 11px; line-height: 1.5; box-shadow: 0 5px 20px #0002; }
 .ribbon-explanation header { display: flex; justify-content: space-between; gap: 8px; }.ribbon-explanation h3 { font-size: 11px; margin: 12px 0 5px; }
 .ribbon-explanation table { width: 100%; border-collapse: collapse; }.ribbon-explanation td, .ribbon-explanation th { border-bottom: 1px solid var(--border); padding: 5px; text-align: left; }.ribbon-explanation small { display: block; color: var(--text-muted); }
+.roof-ribbon { bottom: 304px; }
+.roof-ribbon .context-ribbon-legend { bottom: 18px; }
+.roof-ribbon .ribbon-hover { bottom: 38px; }
+.roof-ribbon .ribbon-explanation { bottom: 22px; }

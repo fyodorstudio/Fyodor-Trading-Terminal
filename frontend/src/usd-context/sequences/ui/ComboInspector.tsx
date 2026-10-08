@@ -28,13 +28,13 @@ export function ComboInspector({ combo, timeDisplay, symbol, broker = null, onCl
     <header><strong>Combo details · {combo.title}</strong><button type="button" onClick={onClose}>Return to releases</button></header>
     <div className="combo-inspector-scroll">
       <div className="combo-result" aria-label="Roof interpretation">
-        <strong className={`combo-bias ${support.direction ?? ''}`}>{bias}</strong>
+        <strong className={`combo-bias ${support.direction ?? ''} ${support.state}`}>{bias}</strong>
         <span>{support.narrow ? 'weak evidence · narrow lead' : support.qualified ? 'weak evidence · limited inputs' : combo.strength ? `${combo.strength} evidence` : 'evidence ungraded'}</span>
         {combo.experimental && <small>Experimental</small>}
       </div>
-      <RelationshipSupport support={support} />
+      <RelationshipSupport support={support} calculations={advanced} />
       <p className="combo-meaning">{summary.meaning}</p>
-      <small className="combo-version">{contextVersion} · Relationship roofs v{relationshipVersion} · USD inputs only · Display v{roofDisplayVersion}. Snapshot captured when opened; reopen after changing inputs.</small>
+      <small>Snapshot at {clock.chart(combo.chartAt)} ({clock.zone}). Select the roof to compare it with accumulated context and follow its Roof Candy.</small>
       {fed && <section className="combo-card" aria-label="Numerical Fed action"><h3>Fed action · separate from macro support</h3>
         <p>{fed.policyAction?.action ?? 'Unavailable'}{fed.policyAction?.delta != null && ` · ${fed.policyAction.delta} bp`}. {fed.role}</p>
         <p>The weighted support above covers macro inputs only. An opposing action exposes conflict; no overall numeric winner is asserted. Statements, projections and speeches are outside this dataset interpretation.</p></section>}
@@ -65,7 +65,7 @@ export function ComboInspector({ combo, timeDisplay, symbol, broker = null, onCl
       <RoofAuditControls key={`${broker}/${symbol}/${combo.id}`} combo={combo} symbol={symbol} broker={broker} />
       <div className="combo-advanced-control"><button type="button" aria-expanded={advanced} aria-controls={advancedId} onClick={() => setAdvanced(!advanced)}>
         {advanced ? 'Hide advanced calculations' : 'Advanced calculations'}</button></div>
-      {advanced && <div id={advancedId}><ComboAdvanced combo={combo} symbol={symbol} timeDisplay={timeDisplay} /></div>}
+      {advanced && <div id={advancedId}><small className="combo-version">{contextVersion} · Relationship roofs v{relationshipVersion} · USD inputs only · Display v{roofDisplayVersion}. Snapshot captured when opened; reopen after changing inputs.</small><ComboAdvanced combo={combo} symbol={symbol} timeDisplay={timeDisplay} /></div>}
       <p className="combo-footnote">This is a dataset interpretation, not a prediction of candle direction or volatility. Your audit records what price did; it does not change the rules.</p>
     </div>
   </section>

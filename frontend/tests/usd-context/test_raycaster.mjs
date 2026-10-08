@@ -26,7 +26,8 @@ globalThis.Worker = class {
 const { createRoot } = await import('react-dom/client')
 const container = document.createElement('div'); document.body.appendChild(container)
 const root = createRoot(container)
-const series = {}, chart = { subscribeCrosshairMove: callback => { handler = callback; subscribed++ }, unsubscribeCrosshairMove: () => { unsubscribed++ }, timeScale: () => ({ getVisibleRange: () => null }) }
+const series = {}, chart = { subscribeCrosshairMove: callback => { handler = callback; subscribed++ }, unsubscribeCrosshairMove: () => { unsubscribed++ }, timeScale: () => ({ getVisibleRange: () => null,
+  width: () => 500, subscribeVisibleLogicalRangeChange() {}, unsubscribeVisibleLogicalRangeChange() {}, subscribeSizeChange() {}, unsubscribeSizeChange() {} }) }
 const tick = async () => React.act(async () => { for (const [id, callback] of frames) { frames.delete(id); callback() } })
 try {
   const { Raycaster } = await server.ssrLoadModule('./src/raycaster/Raycaster.tsx')
@@ -58,7 +59,8 @@ try {
   assert.equal(workers.length, 1); assert.equal(workers[0].jobs.length, 1)
   assert.match(container.textContent, /Calculating USD context/)
   const job = workers[0].jobs[0]
-  await React.act(async () => workers[0].onmessage({ data: { id: job.id, result: buildContextTimeline(job.input) } }))
+  const canonicalTimeline = buildContextTimeline(job.input)
+  await React.act(async () => workers[0].onmessage({ data: { id: job.id, result: canonicalTimeline } }))
   assert.match(container.textContent, /Hover a candle/)
   const initialSubscriptions = subscribed
   await render({ ...props, boxVisible: false })
@@ -67,6 +69,26 @@ try {
   assert.equal(workers[0].jobs.length, 1, 'Independent visibility does not rebuild the timeline')
   await render(props)
   assert.equal(subscribed, initialSubscriptions + 1)
+  const roof = canonicalTimeline.relationships.episodes.find(e => e.kind === 'release-relationship')
+  assert.ok(roof)
+  const savedView = localStorage.getItem(preference.raycasterVisibleKey)
+  const selectedProps = { ...props, boxVisible: false, selectedCombo: roof, bars: [] }
+  await render(selectedProps)
+  assert.ok(container.querySelector('[aria-label="Selected roof snapshot"]'), 'Selecting a roof temporarily reveals its snapshot even with the hover view hidden')
+  assert.ok(container.querySelector('[aria-label^="Roof Candy"]'))
+  assert.equal(workers[0].jobs.length, 1, 'Selecting a roof projects existing history without another scoring job')
+  assert.equal(localStorage.getItem(preference.raycasterVisibleKey), savedView, 'Temporary selected view does not change the saved Raycaster visibility')
+  await React.act(async () => [...container.querySelectorAll('button')].find(b => b.textContent === 'Hide Roof Candy').click())
+  assert.equal(container.querySelector('[aria-label^="Roof Candy"]'), null)
+  await React.act(async () => [...container.querySelectorAll('button')].find(b => b.textContent === 'Show Roof Candy').click())
+  assert.ok(container.querySelector('[aria-label^="Roof Candy"]'))
+  await render({ ...selectedProps, selectedCombo: { ...roof, after: { ...roof.after, total: 123 } } })
+  assert.match(container.querySelector('[aria-label="Selected roof snapshot"]').textContent, /Inputs or history changed/)
+  assert.equal(workers[0].jobs.length, 1)
+  await render({ ...props, boxVisible: false })
+  assert.equal(container.querySelector('[aria-label="Selected roof snapshot"]'), null)
+  assert.equal(container.querySelector('[aria-label^="Roof Candy"]'), null)
+  await render(props)
   const { NotebookContextCapture } = await server.ssrLoadModule('./src/trader-notebook/workflow/NotebookContextCapture.tsx')
   const captureContainer = document.createElement('div'); document.body.append(captureContainer)
   const captureRoot = createRoot(captureContainer)

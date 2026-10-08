@@ -2,8 +2,11 @@ import { useEffect, useRef } from 'react'
 import type { RibbonPoint } from './ribbon-timeline'
 import { useDisplayClock } from '../../appearance/time-display/useDisplayClock'
 import { UsdSupportDetails } from '../ui/UsdSupportDetails'
+import { RelationshipSupport } from '../../usd-context/sequences/ui/RelationshipSupport'
+import { RoofAuditControls } from '../../usd-context/sequences/ui/RoofAuditControls'
+import { usdContextPresentation } from '../core/usd-context-presentation'
 
-export function RibbonExplanation({ point, mode, version, partial, onClose }: { point: RibbonPoint; mode: string; version: string; partial: boolean; onClose: () => void }) {
+export function RibbonExplanation({ point, mode, version, partial, onClose, symbol = '', brokerId = null }: { point: RibbonPoint; mode: string; version: string; partial: boolean; onClose: () => void; symbol?: string; brokerId?: string | null }) {
   const panel = useRef<HTMLDivElement>(null)
   const clock = useDisplayClock(), displayClock = clock.chart
   useEffect(() => {
@@ -12,6 +15,27 @@ export function RibbonExplanation({ point, mode, version, partial, onClose }: { 
     document.addEventListener('keydown', key)
     return () => document.removeEventListener('keydown', key)
   }, [onClose])
+  if (point.relationship) {
+    const p = point.relationship
+    const accumulated = usdContextPresentation(symbol, point.usd?.result, p.at)
+    return <div ref={panel} tabIndex={-1} role="dialog" aria-label="Selected relationship explanation" className="ribbon-explanation">
+      <header><strong>{p.snapshot.title} · {p.label}</strong><button type="button" onClick={onClose} aria-label="Close ribbon explanation">×</button></header>
+      <p>{p.snapshot.kind === 'fresh-news' ? 'Recent support change' : 'Relationship support'} · USD inputs · available from {displayClock(p.at)} ({clock.zone})</p>
+      <RelationshipSupport support={p.support} calculations={false} />
+      <small>{p.evidence ? `${p.evidence} evidence` : 'No directional lead'}</small>
+      <p>{p.explanation}</p><p>{p.update}</p>
+      {p.snapshot.sources.find(s => s.family === 'fed') && <p>Fed action: {p.snapshot.sources.find(s => s.family === 'fed')?.policyAction?.action ?? 'Unavailable'}. Separate from the macro percentages.{p.actionConflict ? ' The action opposes the macro lead.' : ''}</p>}
+      {p.support.missing.length > 0 && <p>Unavailable: {p.support.missing.join(', ')}.</p>}
+      <h3>Accumulated USD context at the same time</h3><strong>{accumulated.label}</strong>
+      <UsdSupportDetails presentation={accumulated} compact />
+      <RoofAuditControls combo={p.snapshot} support={p.support} symbol={symbol} broker={brokerId} />
+      <details><summary>Calculations and sources</summary><p>{version}{partial ? ' · Partial history' : ''}</p>
+        <RelationshipSupport support={p.support} />
+        <table><thead><tr><th>Input</th><th>USD vote</th></tr></thead><tbody>{p.support.votes.map(v => <tr key={v.source.sourceId}><td>{v.source.sourceLabel}</td><td>{v.vote.toFixed(3)}</td></tr>)}</tbody></table>
+        <p>The selected relationship follows latest known inputs. The original roof remains a snapshot at activation.</p>
+      </details>
+    </div>
+  }
   return <div ref={panel} tabIndex={-1} role="dialog" aria-label="Context ribbon explanation" className="ribbon-explanation">
     <header><strong>{point.label}{point.evidence ? ` · ${point.evidence} evidence` : ''}</strong><button type="button" onClick={onClose} aria-label="Close ribbon explanation">×</button></header>
     <p>{mode} · {version}{partial ? ' · Partial or timing-excluded history' : ''}</p><p>State available from {displayClock(point.at)} ({clock.zone})</p>

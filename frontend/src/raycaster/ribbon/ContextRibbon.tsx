@@ -12,9 +12,10 @@ import { ExternalEventsStrip } from '../../external-events/chart/ExternalEventsS
 import { usdPresentationVersion } from '../core/usd-context-presentation'
 
 type Segment = { left: number; width: number; from: number; to: number; point: RibbonPoint | null }
-function ContextRibbonComponent({ chartApi, bars, timeframe, points, now, relative, version, loading, notice, partial = false, symbol = '', brokerId = null }: {
+function ContextRibbonComponent({ chartApi, bars, timeframe, points, now, relative, version, loading, notice, partial = false, symbol = '', brokerId = null, relationshipTitle, startAt }: {
   chartApi: IChartApi; bars: readonly Pick<OhlcBar, 'time'>[]; timeframe: ChartTimeframe; points: readonly RibbonPoint[];
   now: number; relative: boolean; version: string; loading: boolean; notice: string | null; partial?: boolean; symbol?: string; brokerId?: string | null
+  relationshipTitle?: string; startAt?: number
 }) {
   const [segments, setSegments] = useState<Segment[]>([])
   const clock = useDisplayClock(), displayClock = clock.chart
@@ -38,7 +39,7 @@ function ContextRibbonComponent({ chartApi, bars, timeframe, points, now, relati
       frame = 0
       const range = scale.getVisibleRange(), width = scale.width()
       if (!range || !bars.length) { setSegments([]); return }
-      const from = Math.max(Number(range.from) * 1000, Number(bars[0].time) * 1000)
+      const from = Math.max(Number(range.from) * 1000, Number(bars[0].time) * 1000, startAt ?? -Infinity)
       const to = Math.min((Number(range.to) + duration) * 1000, now, (Number(bars.at(-1)!.time) + duration) * 1000)
       const visible = visibleRibbonIntervals(loading || notice ? [] : points, from, to)
       setSegments(visible.flatMap(interval => {
@@ -51,13 +52,13 @@ function ContextRibbonComponent({ chartApi, bars, timeframe, points, now, relati
     const schedule = () => { if (!frame) frame = window.requestAnimationFrame(update) }
     update(); scale.subscribeVisibleLogicalRangeChange(schedule); scale.subscribeSizeChange(schedule)
     return () => { if (frame) window.cancelAnimationFrame(frame); scale.unsubscribeVisibleLogicalRangeChange(schedule); scale.unsubscribeSizeChange(schedule) }
-  }, [chartApi, bars, timeframe, points, now, loading, notice])
-  return <div className="context-ribbon" aria-label={`Raycaster Candy · ${mode}`}>
-    <ExternalEventsStrip key={`${brokerId}:${symbol}`} chartApi={chartApi} bars={bars} timeframe={timeframe} now={now} symbol={symbol} brokerId={brokerId} />
-    <div className="context-ribbon-legend">Context · {mode} · {clock.zone} · {relative ? 'Green Long / Red Short / Amber Mixed / Gray Insufficient' : 'Green Long / Red Short / Amber Conflict or No lead · edge = lead / Gray Insufficient'} · {loading ? 'Loading' : notice ?? `shade = evidence${partial ? ' · Partial history' : ''}`}</div>
+  }, [chartApi, bars, timeframe, points, now, loading, notice, startAt])
+  return <div className={`context-ribbon${relationshipTitle ? ' roof-ribbon' : ''}`} aria-label={relationshipTitle ? `Roof Candy · ${relationshipTitle} · USD inputs` : `Raycaster Candy · ${mode}`}>
+    {!relationshipTitle && <ExternalEventsStrip key={`${brokerId}:${symbol}`} chartApi={chartApi} bars={bars} timeframe={timeframe} now={now} symbol={symbol} brokerId={brokerId} />}
+    <div className="context-ribbon-legend">{relationshipTitle ? `Roof Candy · ${relationshipTitle} · USD inputs · follows latest releases` : `Context · ${mode}`} · {clock.zone} · {relative ? 'Green Long / Red Short / Amber Mixed / Gray Insufficient' : 'Green Long / Red Short / Amber Conflict or No lead · edge = lead / Gray Insufficient'} · {loading ? 'Loading' : notice ?? `shade = evidence${partial ? ' · Partial history' : ''}`}</div>
     <div className="context-ribbon-track" onPointerLeave={clearHover}>
       {segments.map(segment => <button type="button" key={segment.from}
-        className={`ribbon-segment ${segment.point?.direction ?? 'uncomputed'} ${segment.point?.evidence ?? ''}${!relative && segment.point?.presentation?.state === 'conflicted' ? ` lead-${segment.point.presentation.direction}` : ''}`}
+        className={`ribbon-segment ${segment.point?.direction ?? 'uncomputed'} ${segment.point?.evidence ?? ''}${!relative && (segment.point?.presentation?.state === 'conflicted' || segment.point?.relationship?.support.state === 'conflicted' || segment.point?.relationship?.actionConflict) ? ` lead-${segment.point?.presentation?.direction ?? segment.point?.relationship?.support.direction}` : ''}`}
         style={{ left: segment.left, width: segment.width }}
         aria-label={`${segment.point?.label ?? 'Unavailable'} · ${segment.point?.evidence ?? 'No'} evidence · ${displayClock(segment.from)}`}
         title={`${segment.point?.label ?? 'Unavailable'} · ${segment.point?.evidence ?? 'No'} evidence\n${displayClock(segment.from)} to ${displayClock(segment.to)}\n${segment.point?.update ?? notice ?? 'No usable context yet'}`}
@@ -76,7 +77,7 @@ function ContextRibbonComponent({ chartApi, bars, timeframe, points, now, relati
     </div>
     {hover && <div className="ribbon-hover" role="status"><strong>{hover.segment.point?.label ?? 'Unavailable'} · {hover.segment.point?.evidence ?? 'No'} evidence</strong>
       <span>{displayClock(hover.at)}</span><span>{hover.segment.point?.kind === 'publication' ? 'New publication' : hover.segment.point?.kind === 'expiry' ? 'Expiry update' : 'Aging update'}: {hover.segment.point?.update ?? notice ?? 'No usable context'}</span></div>}
-    {selected && <RibbonExplanation point={selected} mode={mode} version={relative ? version : `${version} / ${usdPresentationVersion}`} partial={partial} onClose={close} />}
+    {selected && <RibbonExplanation point={selected} mode={mode} version={relative ? version : `${version} / ${usdPresentationVersion}`} partial={partial} onClose={close} symbol={symbol} brokerId={brokerId} />}
   </div>
 }
 export const ContextRibbon = memo(ContextRibbonComponent)

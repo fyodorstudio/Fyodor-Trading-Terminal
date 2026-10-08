@@ -33,12 +33,12 @@ try {
     direction: 'weaker', strength: 'weak', explanation: 'Test snapshot', checks: [], experimental: true }
   const preserved = JSON.stringify(combo)
   const summary = comboSummary(combo)
-  assert.match(summary.why, /claims contribute most to the Long side.*Opposing support remains visible/)
+  assert.match(summary.why, /claims gives most Long support.*pce gives opposing Short support/)
   assert.equal(summary.activation, 'pce', 'Activation names only the publication at the qualification time')
   assert.equal(comboSummary({ ...combo, chartAt: at + 1 }).activation, 'Aging update · Memory update; no new publication')
   assert.match(comboSummary({ ...combo, sources: combo.sources.map(s => ({ ...s, change: s.family === 'claims' ? -.1 : .1 })) }).why, /cancel/)
-  assert.match(comboSummary({ ...combo, sources: combo.sources.map(s => ({ ...s, comparable: false })) }).why, /Usable evidence is missing/)
-  assert.match(comboSummary({ ...combo, kind: 'ism-sectors', sources: [{ ...inputs[0], total: null, usdDirection: 'uncomputed' }, inputs[1]] }).why, /Usable evidence is missing/)
+  assert.match(comboSummary({ ...combo, sources: combo.sources.map(s => ({ ...s, comparable: false })) }).why, /not enough usable evidence/)
+  assert.match(comboSummary({ ...combo, kind: 'ism-sectors', sources: [{ ...inputs[0], total: null, usdDirection: 'uncomputed' }, inputs[1]] }).why, /not enough usable evidence/)
 
   const candidate = (id, props = {}) => ({ combo: { ...combo, id, ...props }, left: 100, right: 300, labelX: 200, endpoints: [], hidden: 0 })
   const crowded = [candidate('old'), candidate('new', { chartAt: at + 1 }), candidate('established', { kind: 'weekly-labor', experimental: false }),

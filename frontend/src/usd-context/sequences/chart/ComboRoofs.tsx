@@ -8,7 +8,8 @@ import type { ChartTimeframe } from '../../../market-data/contracts/ChartTimefra
 import type { InspectorMarker } from '../../../inspector/inspector-data'
 import type { ComboSnapshot, ComboSource } from '../core/contracts'
 import { currencyColorStyle, type CurrencyColors } from '../../../inspector/currency-colors'
-import { roofResultLabel } from '../core/relationship-support'
+import { roofResultLabel, roofSupport } from '../core/relationship-support'
+import { SupportSplit } from '../../ui/SupportSplit'
 import { createRoofPlan, knownRoofCount, prepareRoofAnchors, projectRoofPlan, type RoofPlan } from './roof-plan'
 import { roofLabel, roofTooltip } from './roof-label'
 import { type PositionedRoof } from './roof-layout'
@@ -65,12 +66,12 @@ function ComboRoofsComponent({ chartApi, episodes, bars, timeframe, markers, now
   return <div className={`combo-roofs${releaseChooser ? ' combo-roof-choosing' : ''}`} style={currencyColorStyle(currencyColors)} aria-label="Clickable combo roofs"
     onClick={e => e.stopPropagation()}>
     <div className="combo-roof-content">
-    <svg className="combo-roof-lines" width="100%" height="132" aria-hidden="true">{positioned.map(p => {
+    <svg className="combo-roof-lines" width="100%" height="160" aria-hidden="true">{positioned.map(p => {
       const y = roofLaneY(p.lane)
       return <g key={p.combo.id} className={p.combo.experimental ? 'experimental' : ''}>
         <path d={`M ${p.endpoints[0]?.x ?? p.left} ${y} H ${p.right}`} />
         {p.endpoints.map(endpoint => <path key={roofEndpointKey(endpoint)} className="combo-roof-stem"
-          d={`M ${endpoint.x} ${y} V ${endpointPublications(endpoint, p.combo.chartAt).length ? 132 : y + 8}`} />)}
+          d={`M ${endpoint.x} ${y} V ${endpointPublications(endpoint, p.combo.chartAt).length ? 160 : y + 8}`} />)}
       </g>
     })}</svg>
     {positioned.map(p => <button type="button" key={p.combo.id} className={`combo-roof-label ${p.combo.experimental ? 'experimental' : ''}${comboActivation(p.combo).kind !== 'publication' ? ' combo-roof-memory-label' : ''}`}
@@ -80,6 +81,7 @@ function ComboRoofsComponent({ chartApi, episodes, bars, timeframe, markers, now
       <span className="combo-roof-heading"><span className="combo-roof-names">{roofLabel(p.combo)}</span>
         {comboActivation(p.combo).kind !== 'publication' && <span className="combo-roof-update-badge">{activationLabel(comboActivation(p.combo).kind)}</span>}</span>
       <span className="combo-roof-direction"> · {p.combo.kind === 'fresh-news' ? 'Change: ' : ''}{roofResultLabel(p.combo)}</span>
+      <SupportSplit support={roofSupport(p.combo)} compact />
     </button>)}
     {positioned.flatMap(p => p.endpoints.map(endpoint => {
       const publications = endpointPublications(endpoint, p.combo.chartAt), active = endpoint.activation
@@ -105,6 +107,7 @@ function ComboRoofsComponent({ chartApi, episodes, bars, timeframe, markers, now
       {overflow.length > 0 && <div className="combo-roof-overflow"><button type="button" aria-expanded={chooser} onClick={() => setChooser(!chooser)}>+{overflow.length} more</button>
         {chooser && <div aria-label="More combo roofs">{overflow.map(combo => <button type="button" key={combo.id} title={roofTooltip(combo, 0, clock.chart)} onClick={() => { onSelect(combo); setChooser(false) }}>
           <span>{roofLabel(combo)} · {roofResultLabel(combo)}</span>
+          <SupportSplit support={roofSupport(combo)} compact />
           <small>{combo.strength ? `${combo.strength} evidence` : 'Direction withheld'} · {clock.chart(combo.chartAt)}</small>
         </button>)}</div>}
       </div>}
