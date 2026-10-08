@@ -152,6 +152,19 @@ try {
   await render(React.createElement(ComboRoofs, { ...roofProps, episodes: [current], markers: visibleMarkers.slice(0, 1) }))
   await React.act(async () => container.querySelector('.combo-roof-start').click())
   assert.equal(selected, current, 'A hidden activation publication opens Combo details instead of an earlier source')
+  // Monthly ISM grouping anchors the symbol to Manufacturing even though the
+  // Services publication activates the relationship later. Do not draw a
+  // nearly horizontal stem returning from Services to that earlier symbol.
+  const sectorCombo = { ...current, kind: 'ism-sectors', experimental: false, sources: current.sources.map((s, i) => ({ ...s,
+    family: 'ism', sourceId: i ? 'ism-services' : 'ism-manufacturing', sourceLabel: i ? 'ISM Services' : 'ISM Manufacturing' })) }
+  const sectorMarker = { time: at / 1000, release: { id: 'ISM/month', ismPublications: [{ id: 'ism-manufacturing' }, { id: 'ism-services' }] }, symbol: 'umbrella' }
+  await render(React.createElement(ComboRoofs, { ...roofProps, episodes: [sectorCombo], markers: [sectorMarker] }))
+  assert.equal(container.querySelector('.combo-roof-start').style.left, '300px', 'Grouped sector activation keeps the later candle')
+  const sectorStems = [...container.querySelectorAll('.combo-roof-stem')].map(path => path.getAttribute('d'))
+  assert.ok(sectorStems.length)
+  assert.ok(sectorStems.every(d => /^M [-\d.]+ [-\d.]+ V [-\d.]+$/.test(d)), 'Only vertical stems; no extra diagonal or horizontal return line')
+  await React.act(async () => container.querySelector('.combo-roof-start').click())
+  assert.equal(opened.sourceId, 'ism-services', 'The later sector publication remains inspectable despite its earlier grouped symbol')
   range = { from: at / 1000, to: (at + 4 * hour) / 1000 }
   const crowded = Array.from({ length: 4 }, (_, i) => ({ ...episode, id: 'roof/' + i }))
   await render(React.createElement(ComboRoofs, { ...roofProps, episodes: crowded }))

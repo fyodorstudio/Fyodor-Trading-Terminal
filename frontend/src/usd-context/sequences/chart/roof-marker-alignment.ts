@@ -16,7 +16,7 @@ export function alignRoofMarkers(roofs: readonly PositionedRoof[], clusters: rea
     for (const endpoint of roof.endpoints) {
       const xs = endpoint.publications.flatMap(p => positions.has(p.source.sourceId) ? [positions.get(p.source.sourceId)!] : [])
       const symbolX = xs.length ? Math.min(...xs) : undefined
-      const aligned = { ...endpoint, x: endpoint.activation ? endpoint.x : symbolX ?? endpoint.x, symbolX }
+      const aligned = { ...endpoint, x: endpoint.activation ? endpoint.x : symbolX ?? endpoint.x }
       const same = !aligned.activation && endpoints.find(e => !e.activation && e.x === aligned.x)
       if (same) same.publications = [...same.publications, ...aligned.publications]
       else endpoints.push(aligned)

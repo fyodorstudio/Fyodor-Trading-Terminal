@@ -3,7 +3,7 @@ import type { EventSymbol } from '../../../inspector/event-symbols'
 import type { ComboActivation, ComboSource } from '../core/contracts'
 
 export type RoofPublication = { source: ComboSource; symbol: EventSymbol }
-export type RoofEndpoint = { x: number; publications: RoofPublication[]; activation: boolean; symbolX?: number }
+export type RoofEndpoint = { x: number; publications: RoofPublication[]; activation: boolean }
 export const roofDisplayVersion = 6
 export const roofLaneY = (lane: number) => 124 - lane * 42
 

@@ -2,6 +2,12 @@
 
 ## 8 October 2026 — Roof endpoint clarity / display v6 — not visually audited
 
+- Follow-up: at grouped ISM sectors, check there is no extra near-horizontal
+  return line underneath the bracket. Stems now stay vertical; the solid ISM
+  bracket still describes sector resolution, while dashed brackets describe
+  experimental fresh-news changes. Activation remains the final circle/diamond,
+  not the centered label or the earlier monthly symbol box.
+
 - At wide zoom, check the earlier hollow dot lands directly above a grouped
   cloud² symbol. Click it and confirm the relevant contributing releases are
   selectable, while the range, filters and viewport stay unchanged.

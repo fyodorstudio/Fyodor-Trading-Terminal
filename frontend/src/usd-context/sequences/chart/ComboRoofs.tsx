@@ -70,7 +70,7 @@ function ComboRoofsComponent({ chartApi, episodes, bars, timeframe, markers, now
       return <g key={p.combo.id} className={p.combo.experimental ? 'experimental' : ''}>
         <path d={`M ${p.endpoints[0]?.x ?? p.left} ${y} H ${p.right}`} />
         {p.endpoints.map(endpoint => <path key={roofEndpointKey(endpoint)} className="combo-roof-stem"
-          d={endpointPublications(endpoint, p.combo.chartAt).length ? `M ${endpoint.x} ${y} V 128 L ${endpoint.symbolX ?? endpoint.x} 132` : `M ${endpoint.x} ${y} V ${y + 8}`} />)}
+          d={`M ${endpoint.x} ${y} V ${endpointPublications(endpoint, p.combo.chartAt).length ? 132 : y + 8}`} />)}
       </g>
     })}</svg>
     {positioned.map(p => <button type="button" key={p.combo.id} className={`combo-roof-label ${p.combo.experimental ? 'experimental' : ''}${comboActivation(p.combo).kind !== 'publication' ? ' combo-roof-memory-label' : ''}`}
