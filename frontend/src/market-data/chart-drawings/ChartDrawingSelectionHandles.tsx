@@ -1,8 +1,9 @@
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import type { ChartDrawingRecord } from './chart-drawing-record'
 import type { ChartDrawingScreenPoint } from './chart-drawing-screen-point'
+import { parallelChannelCorners } from './parallel-channel-geometry'
 
-export type DrawingHandleKind = 'point' | 'position-price' | 'position-entry-price' | 'position-width' | 'position-move-all'
+export type DrawingHandleKind = 'point' | 'channel-corner' | 'position-price' | 'position-entry-price' | 'position-width' | 'position-move-all'
 
 type ChartDrawingSelectionHandlesProps = {
   drawing: ChartDrawingRecord
@@ -35,6 +36,23 @@ export function ChartDrawingSelectionHandles({
   onStartHandleEdit,
 }: ChartDrawingSelectionHandlesProps) {
   const isPosition = drawing.tool === 'long-position' || drawing.tool === 'short-position'
+
+  if (drawing.tool === 'parallel-channel') {
+    return <>
+      {parallelChannelCorners(screenPoints).map((point, index) => (
+        <circle
+          className="drawing-resize-handle"
+          key={`${drawing.id}-${index}`}
+          cx={point.x}
+          cy={point.y}
+          r="5"
+          style={{ cursor: index >= 2 ? 'ns-resize' : 'move' }}
+          aria-label={index >= 2 ? `Resize channel height ${index - 1}` : `Move channel endpoint ${index + 1}`}
+          onPointerDown={(event) => onStartHandleEdit(event, drawing.id, index, 'channel-corner')}
+        />
+      ))}
+    </>
+  }
 
   if (isPosition && screenPoints[0] && screenPoints[1] && screenPoints[2]) {
     const entry = screenPoints[0]

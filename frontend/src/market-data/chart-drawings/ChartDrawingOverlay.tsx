@@ -7,6 +7,7 @@ import type { ChartDrawingPoint, ChartDrawingRecord } from './chart-drawing-reco
 import type { ChartDrawingScreenPoint } from './chart-drawing-screen-point'
 import { drawingTools, type DrawingToolId } from './drawing-tool'
 import { normalizeDrawingPoints } from './position-drawing-geometry'
+import { defaultChannelOffset, editParallelChannel } from './parallel-channel-geometry'
 import { useDrawingViewport } from './useDrawingViewport'
 import './chart-drawing-overlay.css'
 
@@ -155,8 +156,16 @@ export function ChartDrawingOverlay({
     setDraft([])
   }
 
+  const withChannelAnchor = (points: ChartDrawingPoint[]) => {
+    if (points.length !== 2) return points
+    const y = seriesApi.priceToCoordinate(points[0].price)
+    const price = y === null ? null : seriesApi.coordinateToPrice(y + defaultChannelOffset)
+    return price === null ? points : [...points, { time: points[0].time, price }]
+  }
+
   const createAndSelectDrawing = (tool: DrawingToolId, points: ChartDrawingPoint[]) => {
-    const drawingId = onCreateDrawing(tool, normalizeDrawingPoints(tool, points, timeframe))
+    const normalized = normalizeDrawingPoints(tool, points, timeframe)
+    const drawingId = onCreateDrawing(tool, tool === 'parallel-channel' ? withChannelAnchor(normalized) : normalized)
     onSelectDrawing(drawingId)
     resetDraft()
     if (tool === 'text') {
@@ -239,7 +248,9 @@ export function ChartDrawingOverlay({
 
     const editing = editingHandleRef.current
     if (editing) {
-      if (editing.kind === 'position-move-all') {
+      if (editing.kind === 'channel-corner') {
+        updateChannelCorner(editing, point, false)
+      } else if (editing.kind === 'position-move-all') {
         if (onUpdateDrawingPoints) {
           const shifted = calcShiftedPoints(editing, point, event)
           if (shifted) onUpdateDrawingPoints(editing.drawingId, shifted, false)
@@ -271,7 +282,9 @@ export function ChartDrawingOverlay({
     const editing = editingHandleRef.current
     if (editing) {
       if (point) {
-        if (editing.kind === 'position-move-all') {
+        if (editing.kind === 'channel-corner') {
+          updateChannelCorner(editing, point, true)
+        } else if (editing.kind === 'position-move-all') {
           if (onUpdateDrawingPoints) {
             const shifted = calcShiftedPoints(editing, point, event)
             if (shifted) onUpdateDrawingPoints(editing.drawingId, shifted, true)
@@ -341,11 +354,19 @@ export function ChartDrawingOverlay({
       pointIndex,
       kind,
       startPoint: point ?? undefined,
-      initialPoints: drawing ? [...drawing.points] : undefined,
+      initialPoints: drawing ? (kind === 'channel-corner' ? withChannelAnchor(drawing.points) : [...drawing.points]) : undefined,
       startLogical: startLogical !== null ? startLogical : undefined,
       initialLogicals,
     }
     onSelectDrawing(drawingId)
+  }
+
+  const updateChannelCorner = (editing: EditingHandle, point: ChartDrawingPoint, persist: boolean) => {
+    if (!editing.initialPoints || !editing.startPoint || !onUpdateDrawingPoints) return
+    const points = editParallelChannel(
+      editing.initialPoints, editing.pointIndex, point, point.price - editing.startPoint.price,
+    )
+    onUpdateDrawingPoints(editing.drawingId, points, persist)
   }
 
   const normalizedDraft = activeTool ? normalizeDrawingPoints(activeTool, draft, timeframe) : draft

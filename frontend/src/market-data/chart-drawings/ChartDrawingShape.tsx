@@ -1,5 +1,6 @@
 import type { ChartDrawingRecord } from './chart-drawing-record'
 import type { ChartDrawingScreenPoint } from './chart-drawing-screen-point'
+import { parallelChannelCorners } from './parallel-channel-geometry'
 
 type ChartDrawingShapeProps = {
   drawing: ChartDrawingRecord
@@ -135,13 +136,14 @@ export function ChartDrawingShape({ drawing, points, width, height, precision = 
         </g>
       )
     case 'parallel-channel': {
-      const offset = 22
+      const [start, end, oppositeStart, oppositeEnd] = parallelChannelCorners(points)
+      if (!start || !end || !oppositeStart || !oppositeEnd) return null
       return (
         <g className="drawing-stroke">
-          <line x1={first.x} y1={first.y} x2={last.x} y2={last.y} />
-          <line x1={first.x} y1={first.y + offset} x2={last.x} y2={last.y + offset} />
-          <line x1={first.x} y1={first.y} x2={first.x} y2={first.y + offset} />
-          <line x1={last.x} y1={last.y} x2={last.x} y2={last.y + offset} />
+          <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} />
+          <line x1={oppositeStart.x} y1={oppositeStart.y} x2={oppositeEnd.x} y2={oppositeEnd.y} />
+          <line x1={start.x} y1={start.y} x2={oppositeStart.x} y2={oppositeStart.y} />
+          <line x1={end.x} y1={end.y} x2={oppositeEnd.x} y2={oppositeEnd.y} />
         </g>
       )
     }

@@ -47,6 +47,11 @@ time preferences and the storage API. Renderers do not own collection.
 
 ## Interpretation and data
 
+Read the [main objective](fyodor%20trading%20terminal%20main%20objective.md) for the
+current user contract, implemented status and scoped next reviews. It requires
+a primary weighted directional lead, however slight, with strength explaining
+its support. Completed plans are archived there rather than active tasks.
+
 Inspector supports EURUSD and 21 families in four categories. All 19 numeric families’ magnitude
 uses all usable released Actual/Previous deltas since January 2015 through now,
 including the selected and newer readings. Scheduled unusable values stay outside
@@ -106,8 +111,12 @@ Claims v2 (10%), ISM v3 (10%), Retail v1 (7%) and GDP v1 (3%). Qualified labor d
 guards shifts CPI to 8% and NFP to 50%; the breakdown shows conditions and
 effective/base weights. Claims has a 14-day freshness gate, GDP 120 days; others use 45 days.
 V8 retains component weights once, reduces votes with cadence-based aging and
-tracks usable coverage separately. Direction requires 60% configured coverage
-and one-third net/gross agreement; incomplete directional evidence is Weak.
+tracks usable coverage separately. Canonical/publication context retains 60%
+configured coverage and one-third net/gross agreement safeguards. USD
+Raycaster/Candy presentation v1 names a nonzero conflicted lead even below the
+agreement threshold, grading a narrow lead Weak; it retains the coverage gate.
+Legacy publication and relative-mode agreement gates remain a documented gap
+against the clarified directional contract. Incomplete directional evidence is Weak.
 Qualified repeated Claims against an aging Weak/incomplete NFP can shift NFP to
 20% and Claims to 20%, within the same labor budget. Transfers do not stack.
 The gear exposes age, retention, coverage, effective weight and weekly confirmation.
@@ -120,13 +129,14 @@ pairs invert direction when USD is base. Background scoring leaves hover as a
 snapshot lookup. See [Raycaster](frontend/src/raycaster/README.md) and
 [USD context policy](frontend/src/usd-context/README.md) for timing and limits.
 
-**Roof relationships v4** register all 28 USD macro pairs and eight Fed/macro
+**Roof relationships (public Roofs v6)** register all 28 USD macro pairs and eight Fed/macro
 pairs. Open a direction label, then the USD relationship catalogue, to inspect
 any pair or larger selected group at activation. Conflicted · Long/Short leads
 exposes unequal weighted support; exact balance and missing evidence stay
 explicit. The catalogue separates standalone support from comparable seven-day
-changes. Fed action stays unweighted alongside macro support. Raycaster/Candy
-conflict-label changes are deferred. See [trading workflow](docs/trading%20workflow.md)
+changes. Fed action stays unweighted alongside macro support. USD Raycaster/Candy
+already display conflicted leads; EUR-vs-USD changes remain deferred.
+See [trading workflow](docs/trading%20workflow.md)
 and [manual audit backlog](docs/manual%20edit.md).
 
 Inspector Filters has one **US ISM Manufacturing / Services** checkbox and symbol
