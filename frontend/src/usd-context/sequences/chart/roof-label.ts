@@ -32,5 +32,5 @@ export function roofTooltip(combo: ComboSnapshot, hidden = 0, clock = (t: number
     descriptions.set(combo, description)
   }
   const activation = comboActivation(combo)
-  return `${combo.title} · USD inputs only · ${roofResultLabel(combo)} · ${combo.strength ? `${combo.strength} evidence` : 'evidence ungraded'}${hidden ? ` · ${hidden} inputs hidden by marker filters` : ''}\nAvailable from ${clock(combo.chartAt)} (right endpoint). ${activationLabel(activation.kind)}${activation.kind !== 'publication' ? '; no new participating publication' : ''}. ${activation.removed.map(s => `${removalReason(s.reason)}: ${s.sourceLabel}`).join('; ')} Earlier connecting lines identify prior inputs.\n${description}`
+  return `${combo.title} · USD inputs only · ${roofResultLabel(combo)} · ${combo.strength ? `${combo.strength} evidence` : 'evidence ungraded'}${hidden ? ` · ${hidden} inputs hidden by marker filters` : ''}\nAvailable from ${clock(combo.chartAt)} (label’s candle). ${activationLabel(activation.kind)}${activation.kind !== 'publication' ? '; no new participating publication' : ''}. ${activation.removed.map(s => `${removalReason(s.reason)}: ${s.sourceLabel}`).join('; ')} Connecting lines identify contributing releases. Click the label for the combined reading.\n${description}`
 }

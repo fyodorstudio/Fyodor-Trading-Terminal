@@ -64,6 +64,9 @@ try {
   const balanced = { ...roofSupport(combo), state: 'balanced', direction: null, long: 1, short: 1 }
   await render(React.createElement(SupportSplit, { support: balanced, compact: true }))
   assert.match(container.textContent, /L 50\.0%S 50\.0%Balanced/)
+  await render(React.createElement(SupportSplit, { support: { ...balanced, state: 'conflicted', direction: 'long' }, compact: true }))
+  assert.equal(container.querySelector('.support-state'), null, 'Percentages no longer repeat the yellow Conflict text')
+  assert.ok(container.querySelector('.support-split.conflicted'), 'Opposing support retains its amber cue')
   for (const state of ['unchanged', 'insufficient']) {
     await render(React.createElement(SupportSplit, { support: { ...balanced, state, long: 0, short: 0 }, compact: true }))
     assert.match(container.textContent, /L —S —/); assert.doesNotMatch(container.textContent, /100|50/)
@@ -102,6 +105,14 @@ try {
   assert.equal(snapshot.kind, 'release-relationship'); assert.equal(snapshot.chartAt, at)
   await React.act(async () => document.dispatchEvent(new dom.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })))
   assert.equal(container.querySelector('[role="dialog"]'), null)
+  const originalRange = scale.getVisibleRange
+  scale.getVisibleRange = () => ({ from: (at - 2 * hour) / 1000, to: (at - hour) / 1000 })
+  await React.act(async () => { for (const fn of handlers) fn() })
+  await React.act(async () => { for (const [id, fn] of frames) { frames.delete(id); fn() } })
+  assert.equal(container.querySelector('.ribbon-segment'), null)
+  assert.match(container.querySelector('.ribbon-empty').textContent, /combo starts.*Move the chart/, 'A view before activation explains the empty strip')
+  assert.match(container.querySelector('.context-ribbon-legend').textContent, /Selected combo.*starts/)
+  scale.getVisibleRange = originalRange
   await render(React.createElement(ContextRibbon, { ...ribbonProps, points: staleProjection.points, notice: 'Inputs changed; reopen the roof.' }))
   assert.ok(container.querySelector('.ribbon-segment.uncomputed'))
   assert.match(container.textContent, /reopen the roof/)

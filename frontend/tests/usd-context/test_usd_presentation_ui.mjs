@@ -73,7 +73,8 @@ try {
     React.createElement(RaycasterBox, { ...boxProps, point, relative: pair, relativeUpdate: eur.update }),
     React.createElement(ContextRibbon, { ...ribbonProps, points: timeline, relative: true })))
   assert.ok(container.querySelector('.raycaster-bias').textContent.startsWith(pair.label))
-  assert.match(container.querySelector('.context-ribbon-legend').textContent, /Green Long \/ Red Short \/ Amber Mixed \/ Gray Insufficient/)
+  assert.match(container.querySelector('.context-ribbon-legend').textContent, /All news · EUR vs USD/)
+  assert.match(container.querySelector('.context-ribbon-legend').title, /Green: Long.*Red: Short.*Amber: mixed.*Gray: not enough usable data/)
   assert.equal(container.querySelector('.ribbon-segment').classList.contains(pair.direction), true)
   await React.act(async () => container.querySelector('.ribbon-segment').click())
   assert.equal(container.querySelector('.usd-support'), null, 'USD share block and lead edges do not leak into EUR mode')

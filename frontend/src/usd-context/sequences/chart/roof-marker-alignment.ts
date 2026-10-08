@@ -2,7 +2,7 @@ import type { MarkerCluster } from '../../../inspector/chart/marker-projection'
 import type { PositionedRoof } from './roof-layout'
 import type { RoofEndpoint } from './roof-symbols'
 
-/** Match hollow inputs to the actual grouped symbol box. Activation retains its
+/** Match connector inputs to the actual grouped symbol box. Activation retains its
  * native candle anchor: an older clustered release never backdates availability.
  * Projection only; lane assignment remains the cached history-wide plan. */
 export function alignRoofMarkers(roofs: readonly PositionedRoof[], clusters: readonly MarkerCluster[]): PositionedRoof[] {
@@ -16,13 +16,14 @@ export function alignRoofMarkers(roofs: readonly PositionedRoof[], clusters: rea
     for (const endpoint of roof.endpoints) {
       const xs = endpoint.publications.flatMap(p => positions.has(p.source.sourceId) ? [positions.get(p.source.sourceId)!] : [])
       const symbolX = xs.length ? Math.min(...xs) : undefined
-      const aligned = { ...endpoint, x: endpoint.activation ? endpoint.x : symbolX ?? endpoint.x }
+      const aligned = { ...endpoint, x: endpoint.activation ? endpoint.x : symbolX ?? endpoint.x,
+        symbolX: endpoint.activation ? symbolX ?? endpoint.symbolX : undefined }
       const same = !aligned.activation && endpoints.find(e => !e.activation && e.x === aligned.x)
       if (same) same.publications = [...same.publications, ...aligned.publications]
       else endpoints.push(aligned)
     }
     endpoints.sort((a, b) => a.x - b.x || Number(a.activation) - Number(b.activation))
     const left = Math.min(roof.right - 4, ...endpoints.map(e => e.x))
-    return { ...roof, endpoints, left, labelX: (left + roof.right) / 2 }
+    return { ...roof, endpoints, left, labelX: roof.right }
   })
 }

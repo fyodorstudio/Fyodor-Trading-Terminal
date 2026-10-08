@@ -1,26 +1,16 @@
-.combo-roofs { position: absolute; left: 0; right: 70px; bottom: 64px; height: 160px; z-index: 8; pointer-events: none; }
+.combo-roofs { position: absolute; left: 0; right: 70px; bottom: 64px; z-index: 8; pointer-events: none; }
 .combo-roof-content { position: absolute; inset: 0; overflow: hidden; }
 .combo-roof-lines { position: absolute; inset: 0; overflow: hidden; }
 .combo-roofs path { fill: none; stroke: var(--accent); stroke-width: 1; opacity: .5; }
 .combo-roofs .experimental path { stroke-dasharray: 3 3; }
 .combo-roofs .combo-roof-stem { stroke-dasharray: 3 3; }
-.combo-roofs .combo-roof-endpoint { position: absolute; transform: translate(-50%, -50%); display: grid; place-items: center; width: 14px; height: 14px; padding: 0; border: 0; border-radius: 50%; background: transparent; }
-.combo-roof-endpoint circle { stroke: var(--accent); stroke-width: 1; fill: var(--surface-panel); }
-.combo-roof-start circle { fill: var(--accent); }
-.combo-roof-endpoint:hover circle { stroke-width: 2; }
-.combo-roof-glyph { font-size: 15px; line-height: 1; color: var(--inspector-usd-color, #9333ea); }
-.combo-roofs .combo-roof-endpoint:disabled { cursor: default; opacity: 1; }
-.combo-roof-choosing { z-index: 12; }
-.combo-roof-release-chooser { position: absolute; top: 0; width: min(270px, calc(100vw - 90px)); max-height: 180px; overflow: auto; pointer-events: auto; background: var(--surface-panel); border: 1px solid var(--border-strong); border-radius: 5px; padding: 6px; box-shadow: 0 4px 12px #0002; }
-.combo-roof-release-chooser header { display: flex; align-items: center; justify-content: space-between; gap: 6px; font-size: 10px; }
-.combo-roof-release-chooser > button { display: block; width: 100%; text-align: left; margin-top: 4px; }
-.combo-roof-release-chooser small { display: block; color: var(--text-muted); padding-top: 3px; }
-.combo-roof-label { position: absolute; transform: translate(-50%, calc(-100% - 5px)); max-width: 170px; display: inline-flex; flex-direction: column; align-items: center; white-space: nowrap; }
+.combo-roof-choosing { z-index: 13; }
+.combo-roofs .selected path { opacity: 1; stroke-width: 1.5; }
+.combo-roof-label[aria-pressed='true'] { outline: 2px solid var(--accent); }
+.combo-roof-label { position: absolute; transform: translate(-50%, -100%); max-width: 170px; display: inline-flex; flex-direction: column; align-items: center; white-space: nowrap; }
 .combo-roof-memory-label { max-width: 220px; }
 .combo-roof-heading { display: inline-flex; align-items: center; gap: 5px; max-width: 100%; min-width: 0; }
 .combo-roof-update-badge { flex-shrink: 0; color: var(--text-muted); font-size: 8px; border-left: 1px solid var(--border); padding-left: 5px; }
-.combo-roofs .combo-roof-diamond { stroke: var(--accent); stroke-width: 1; fill: var(--surface-panel); opacity: 1; }
-.combo-roof-endpoint:hover .combo-roof-diamond { stroke-width: 2; }
 .combo-roof-names { min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .combo-roof-direction { flex-shrink: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .combo-roofs button { pointer-events: auto; font-size: 9px; cursor: pointer; border: 1px solid var(--border-strong); border-radius: 4px; padding: 3px 6px; background: var(--surface-panel); color: var(--text); }

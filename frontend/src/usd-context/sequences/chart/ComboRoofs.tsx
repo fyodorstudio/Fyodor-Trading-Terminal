@@ -1,81 +1,89 @@
 import { activationLabel, comboActivation } from '../core/combo-activation'
 import { alignRoofMarkers } from './roof-marker-alignment'
 import { indexMarkers, projectMarkers } from '../../../inspector/chart/marker-projection'
-import { memo, useCallback, useEffect, useMemo, useState } from 'react'
+import { memo, useEffect, useMemo, useState } from 'react'
 import type { IChartApi, MouseEventParams, Time } from 'lightweight-charts'
 import type { OhlcBar } from '../../../market-data/contracts/OhlcBar'
 import type { ChartTimeframe } from '../../../market-data/contracts/ChartTimeframe'
 import type { InspectorMarker } from '../../../inspector/inspector-data'
-import type { ComboSnapshot, ComboSource } from '../core/contracts'
+import type { ComboSnapshot } from '../core/contracts'
 import { currencyColorStyle, type CurrencyColors } from '../../../inspector/currency-colors'
 import { roofResultLabel, roofSupport } from '../core/relationship-support'
 import { SupportSplit } from '../../ui/SupportSplit'
 import { createRoofPlan, knownRoofCount, prepareRoofAnchors, projectRoofPlan, type RoofPlan } from './roof-plan'
 import { roofLabel, roofTooltip } from './roof-label'
 import { type PositionedRoof } from './roof-layout'
-import { endpointPublications, roofEndpointKey, roofEndpointTooltip, roofLaneY, type RoofEndpoint } from './roof-symbols'
-import { RoofReleaseChooser } from './RoofReleaseChooser'
+import { endpointPublications, roofEndpointKey, roofLaneY } from './roof-symbols'
 import { useSequencePreferences } from '../storage/sequence-preferences'
 import './combo-roofs.css'
 import { useDisplayClock } from '../../../appearance/time-display/useDisplayClock'
 
-function ComboRoofsComponent({ chartApi, episodes, bars, timeframe, markers, now, experimental, onSelect, onOpenSource, currencyColors = {} }: {
+function ComboRoofsComponent({ chartApi, episodes, bars, timeframe, markers, now, experimental, onSelect, selectedId, currencyColors = {} }: {
   chartApi: IChartApi; episodes: readonly ComboSnapshot[]; bars: readonly Pick<OhlcBar, 'time'>[]; timeframe: ChartTimeframe;
   markers: readonly InspectorMarker[]; now: number; experimental: boolean; onSelect: (combo: ComboSnapshot) => void;
-  onOpenSource?: (source: ComboSource) => void; currencyColors?: CurrencyColors
+  selectedId?: string; currencyColors?: CurrencyColors
 }) {
   const [positioned, setPositioned] = useState<PositionedRoof[]>([])
   const clock = useDisplayClock()
   const [overflow, setOverflow] = useState<ComboSnapshot[]>([]), [chooser, setChooser] = useState(false)
   const focused = useSequencePreferences().density !== 'all'
-  const [releaseSelection, setReleaseSelection] = useState<{ roof: PositionedRoof; endpoint: RoofEndpoint; trigger: HTMLButtonElement } | null>(null)
-  const closeReleases = useCallback(() => setReleaseSelection(null), [])
-  const releaseChooser = releaseSelection && positioned.includes(releaseSelection.roof) ? releaseSelection : null
   useEffect(() => {
-    if (!releaseChooser && !chooser) return
+    if (!chooser) return
     const clear = (event: MouseEventParams<Time>) => {
-      if (event.point && !event.hoveredObjectId) { setReleaseSelection(null); setChooser(false) }
+      if (event.point && !event.hoveredObjectId) setChooser(false)
     }
+    const key = (event: KeyboardEvent) => { if (event.key === 'Escape') setChooser(false) }
+    document.addEventListener('keydown', key)
     chartApi.subscribeClick(clear)
-    return () => chartApi.unsubscribeClick(clear)
-  }, [chartApi, releaseChooser, chooser])
+    return () => { chartApi.unsubscribeClick(clear); document.removeEventListener('keydown', key) }
+  }, [chartApi, chooser])
   const markerIndex = useMemo(() => indexMarkers(markers), [markers])
   const count = knownRoofCount(episodes, now)
   const anchors = useMemo(() => prepareRoofAnchors(episodes, bars, timeframe, markers, experimental, count),
     [episodes, bars, timeframe, markers, experimental, count])
   useEffect(() => {
     const scale = chartApi.timeScale()
-    let frame: number | null = null, cached: { spacing: number; plan: RoofPlan } | null = null
+    let frame: number | null = null, cached: { spacing: number; rows: number; plan: RoofPlan } | null = null
     const update = () => {
       frame = null
+      setChooser(false)
       const offset = bars.length ? scale.timeToCoordinate(bars[0].time) : null
       if (offset === null || !scale.getVisibleRange()) { setPositioned([]); setOverflow([]); return }
       const second = bars[1] && scale.timeToCoordinate(bars[1].time)
       const spacing = Math.round((second == null ? scale.options().barSpacing : Number(second) - Number(offset)) * 1e6) / 1e6
       if (!Number.isFinite(spacing) || spacing <= 0) { setPositioned([]); setOverflow([]); return }
-      if (!cached || cached.spacing !== spacing) cached = { spacing, plan: createRoofPlan(anchors, spacing, focused) }
+      const paneHeight = chartApi.paneSize?.().height ?? 420
+      // Leave space for both Candy strips, outside-event notes and More.
+      const rows = Math.max(1, Math.floor((paneHeight - 176) / 48))
+      if (!cached || cached.spacing !== spacing || cached.rows !== rows)
+        cached = { spacing, rows, plan: createRoofPlan(anchors, spacing, focused, rows, selectedId) }
       const layout = projectRoofPlan(cached.plan, Number(offset), scale.width())
       setPositioned(alignRoofMarkers(layout.positioned, projectMarkers(scale, markerIndex))); setOverflow(layout.overflow)
     }
     const schedule = () => { if (frame === null) frame = window.requestAnimationFrame(update) }
+    const element = chartApi.chartElement?.()
+    const observer = element ? new ResizeObserver(schedule) : null
+    if (element) observer?.observe(element)
     update()
     scale.subscribeVisibleLogicalRangeChange(schedule); scale.subscribeSizeChange(schedule)
-    return () => { if (frame !== null) window.cancelAnimationFrame(frame); scale.unsubscribeVisibleLogicalRangeChange(schedule); scale.unsubscribeSizeChange(schedule) }
-  }, [chartApi, anchors, bars, focused, markerIndex])
+    return () => { if (frame !== null) window.cancelAnimationFrame(frame); observer?.disconnect(); scale.unsubscribeVisibleLogicalRangeChange(schedule); scale.unsubscribeSizeChange(schedule) }
+  }, [chartApi, anchors, bars, focused, markerIndex, selectedId])
   if (!positioned.length && !overflow.length) return null
-  return <div className={`combo-roofs${releaseChooser ? ' combo-roof-choosing' : ''}`} style={currencyColorStyle(currencyColors)} aria-label="Clickable combo roofs"
+  const height = Math.max(1, ...positioned.map(p => p.lane + 1)) * 48 + 16
+  return <div className={`combo-roofs${chooser ? ' combo-roof-choosing' : ''}`} style={{ ...currencyColorStyle(currencyColors), height }} aria-label="Clickable combo roofs"
     onClick={e => e.stopPropagation()}>
     <div className="combo-roof-content">
-    <svg className="combo-roof-lines" width="100%" height="160" aria-hidden="true">{positioned.map(p => {
-      const y = roofLaneY(p.lane)
-      return <g key={p.combo.id} className={p.combo.experimental ? 'experimental' : ''}>
+    <svg className="combo-roof-lines" width="100%" height={height} aria-hidden="true">{positioned.map(p => {
+      const y = roofLaneY(p.lane, height)
+      return <g key={p.combo.id} data-roof-id={p.combo.id} className={`${p.combo.experimental ? 'experimental' : ''}${p.combo.id === selectedId ? ' selected' : ''}`}>
         <path d={`M ${p.endpoints[0]?.x ?? p.left} ${y} H ${p.right}`} />
-        {p.endpoints.map(endpoint => <path key={roofEndpointKey(endpoint)} className="combo-roof-stem"
-          d={`M ${endpoint.x} ${y} V ${endpointPublications(endpoint, p.combo.chartAt).length ? 160 : y + 8}`} />)}
+        {p.endpoints.filter(endpoint => endpointPublications(endpoint, p.combo.chartAt).length &&
+          (!endpoint.activation || endpoint.symbolX === undefined || Math.abs(endpoint.symbolX - endpoint.x) < .01))
+          .map(endpoint => <path key={roofEndpointKey(endpoint)} className="combo-roof-stem" d={`M ${endpoint.x} ${y} V ${height}`} />)}
       </g>
     })}</svg>
     {positioned.map(p => <button type="button" key={p.combo.id} className={`combo-roof-label ${p.combo.experimental ? 'experimental' : ''}${comboActivation(p.combo).kind !== 'publication' ? ' combo-roof-memory-label' : ''}`}
-      style={{ left: p.labelX, top: roofLaneY(p.lane) }}
+      style={{ left: p.labelX, top: roofLaneY(p.lane, height) }} data-roof-id={p.combo.id} aria-pressed={p.combo.id === selectedId}
       title={roofTooltip(p.combo, p.hidden, clock.chart)}
       aria-label={`Inspect combo ${p.combo.title}`} onClick={() => onSelect(p.combo)}>
       <span className="combo-roof-heading"><span className="combo-roof-names">{roofLabel(p.combo)}</span>
@@ -83,26 +91,7 @@ function ComboRoofsComponent({ chartApi, episodes, bars, timeframe, markers, now
       <span className="combo-roof-direction"> · {p.combo.kind === 'fresh-news' ? 'Change: ' : ''}{roofResultLabel(p.combo)}</span>
       <SupportSplit support={roofSupport(p.combo)} compact />
     </button>)}
-    {positioned.flatMap(p => p.endpoints.map(endpoint => {
-      const publications = endpointPublications(endpoint, p.combo.chartAt), active = endpoint.activation
-      const activation = comboActivation(p.combo), publicationUpdate = activation.kind === 'publication'
-      const tooltip = roofEndpointTooltip(endpoint, p.combo.chartAt, activation, clock.chart)
-      return <button type="button" key={`${p.combo.id}/${roofEndpointKey(endpoint)}`} className={`combo-roof-endpoint${active ? ` combo-roof-start${publicationUpdate ? '' : ' combo-roof-memory'}` : ''}`}
-        style={{ left: endpoint.x, top: roofLaneY(p.lane) }} title={tooltip}
-        aria-label={`${active ? publicationUpdate ? 'Combo starts' : `Combo ${activation.kind} update` : 'Inspect roof release'}: ${publications.map(s => s.source.sourceLabel).join(' + ') || 'No visible activation release'}`}
-        aria-haspopup={publications.length > 1 ? 'dialog' : undefined}
-        disabled={!active && (!publications.length || !onOpenSource)}
-        onClick={e => {
-          if ((active && !publicationUpdate) || !publications.length || !onOpenSource) onSelect(p.combo)
-          else if (publications.length === 1) onOpenSource(publications[0].source)
-          else setReleaseSelection({ roof: p, endpoint: { ...endpoint, publications }, trigger: e.currentTarget })
-        }}>
-        <svg viewBox="0 0 14 14" width="14" height="14" aria-hidden="true">{active && !publicationUpdate ? <path className="combo-roof-diamond" d="M 7 3 L 11 7 L 7 11 L 3 7 Z" /> : <circle cx="7" cy="7" r="2.5" />}</svg>
-      </button>
-    }))}
     </div>
-    {releaseChooser && onOpenSource && <RoofReleaseChooser endpoint={releaseChooser.endpoint} trigger={releaseChooser.trigger}
-      left={Math.max(0, Math.min(releaseChooser.endpoint.x - 130, chartApi.timeScale().width() - 280))} onClose={closeReleases} onOpen={onOpenSource} />}
     <div className="combo-roof-tools">
       {overflow.length > 0 && <div className="combo-roof-overflow"><button type="button" aria-expanded={chooser} onClick={() => setChooser(!chooser)}>+{overflow.length} more</button>
         {chooser && <div aria-label="More combo roofs">{overflow.map(combo => <button type="button" key={combo.id} title={roofTooltip(combo, 0, clock.chart)} onClick={() => { onSelect(combo); setChooser(false) }}>

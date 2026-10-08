@@ -1,5 +1,7 @@
 # Presentation first — accepted order
 
+**Current status — 8 October:** the follow-up repair and self-audit are complete. Combo labels now sit at their available-from candles, redundant dot buttons are gone, and rows can grow beyond three. The original pass below is historical; the follow-up section supersedes its old layout and manual checklist. Only the two judgment checks at the end remain for the user.
+
 ## Objective
 
 Make the numerical news interpretation understandable without reconstructing the numbers. Show which side leads, its opposing support, the information driving it, what changed and when it was available. The user performs visual checks and flags disagreements with price; those observations start investigation, not automatic fitting of weights to price.
@@ -55,19 +57,57 @@ Preserve source scores, magnitude boundaries, component/family weights, conditio
 5. Audit: `roofAuditScope` records `support-display-v1`, displayed direction/support/qualification, relationship kind, exact clock and existing input/version provenance. Controls are available in the box, bottom dock and relationship segment explanation. Headless save/clear and existing portability/snapshot-isolation checks pass.
 6. Handoff: this file is the single maintained Markdown plan/report, with review assumptions and manual checks. No visual verification is claimed. The accepted implementation is complete; weight, baseline and aging refinement remain deferred to the user's concrete disagreements.
 
-## Manual audit for the user
+## First audit feedback — preserved
 
-- [ ] On EURUSD, select a roof direction/percentage box. Confirm the draggable box shows accumulated context and a separately named selected-roof snapshot, with independent clocks and support splits.
-- [ ] Check green Long / red Short percentage boxes, amber conflict, balanced 50/50 and unavailable/unchanged dashes in light and dark themes. Confirm the three roof rows remain legible when zooming and panning; use More for overflow.
-- [ ] Follow Roof Candy from the final activation time onward. Its earlier connecting span must not be painted as if the combo already existed. Click a segment to compare its explanation and accumulated USD context at the same clock.
-- [ ] Try a fresh-news roof that opposes accumulated Candy, an ISM sector conflict and a labor-policy roof. Confirm the scope labels explain what each split compares. A fresh relationship tracks its original changing families, not non-voting companions or every later unrelated release.
-- [ ] Check a participant expiry/pending ISM sector/inactive priority rule: Roof Candy becomes insufficient instead of silently replacing the relationship with a surviving subset. A later qualifying release can restore it.
-- [ ] Check a Fed relationship: its action remains separate from macro percentages; an opposing action is disclosed and the relationship strip stays amber.
-- [ ] Use Show/Hide Roof Candy; drag and resize the box; expand Details and calculations only when needed. Clear the selected roof or click blank chart space and confirm the temporary selected view closes normally.
-- [ ] Record price reaction from the selected roof in Raycaster, Combo details or a Roof Candy segment. Check H1 / next four / next 24 H1 observations, clear a verdict by clicking it again, and confirm records remain scoped to this broker/pair/reading. Begin comparison after the exact available-from time, even inside an H1 candle.
-- [ ] Change a USD input or magnitude setting. The old selected roof must remain visibly captured and ask to be reopened; it must not silently acquire new percentages. Reopen it to refresh its relationship timeline.
-- [ ] In EUR-vs-USD mode, accumulated Candy retains its existing meaning while Roof Candy and its same-clock comparison explicitly use USD inputs.
+The original long checklist is retired. Its technical cases are covered by the follow-up tests below; it is no longer homework for the user. These are the user's original responses:
+
+- [YES] On EURUSD, select a roof direction/percentage box. Confirm the draggable box shows accumulated context and a separately named selected-roof snapshot, with independent clocks and support splits.
+- [personally i dont like the "Conflict" yellow text showing after the long %, short%. as for the "More overflow" the box is overlapping and is hidden behind the candy itself ] Check green Long / red Short percentage boxes, amber conflict, balanced 50/50 and unavailable/unchanged dashes in light and dark themes. Confirm the three roof rows remain legible when zooming and panning; use More for overflow.
+- [im not sure how to check this, i'll just attach a pic for you to see, what i know is zooming and panning the chart makes roofs behave weirdly as in some connecting dashes are gone ] Follow Roof Candy from the final activation time onward. Its earlier connecting span must not be painted as if the combo already existed. Click a segment to compare its explanation and accumulated USD context at the same clock.
 
 ## Reporting a disagreement
 
 Send the pair/broker, selected roof or accumulated reading, exact available-from time, mode, visible Long/Short split and whether price opposed it immediately, over the next four H1 candles or over the next 24. A note about what felt misleading is useful. Investigate the comparison baseline and magnitude first, then the retained contributions/policy and relationship scope. Keep weighting and baseline changes deferred until a concrete case is reviewed.
+
+## Follow-up repair and self-audit — 8 October 2026
+
+This section supersedes the previous three-row, midpoint-label and blank-click-deselection descriptions above. The user explicitly requested a refactor and self-audit, supplied three screenshots, and then requested combo labels at the release columns with more rows when needed.
+
+### Plan
+
+- [x] Inspect the supplied images and trace selection, Candy placement, grouped ISM symbols, connector projection, label packing and popup stacking.
+- [x] Put combo labels at the candle where the combo became available; remove duplicate clickable dots and their release chooser. Ordinary release symbols continue to open individual releases. Aging/expiry updates keep their actual update column and explanatory badge.
+- [x] Let rows grow beyond three according to chart height. Keep every hidden combo in More, give the selected combo priority after zoom, and highlight its connector.
+- [x] Keep the selected combo when blank chart space is clicked. Scope Hide Roof Candy to the selected combo, so selecting a different one shows its strip.
+- [x] Shorten the strip/box wording and explain empty or gray areas. Remove the repeated yellow Conflict badge after the percentages.
+- [x] Complete the final full regression/build/lint/whitespace checks and record their actual outcomes.
+- [x] Replace the technical user checklist with the small remaining judgment checks below.
+
+### Findings and repairs
+
+- The June 3 boundary in image 1 is the selected combo's **start**, not an early stop. The other strip combines all enabled news. A later gray section means the selected combo no longer has enough usable inputs; it is not a prediction of a sideways market. The implementation now names these **Selected combo** and **All news**, shows the combo's start time, and exposes the reason when hovering/clicking gray.
+- Selection could previously disappear after a blank-chart click. That click now clears only individual-release inspection. Close the combo using its ×, select another combo, or open an individual release. Hiding affects the current selection only; switching or clearing the selection resets it, so the next selection starts visible.
+- Both Candy strips were previously positioned at fixed distances above the bottom of the chart. A short chart could clip the selected strip entirely. They now stay at the top: Selected combo above All news when both are shown. Manual outside-event highlights sit below All news, and their editor opens downward.
+- ISM display grouping places the monthly symbol at Manufacturing even when it represents Services. The old plan indexed later Services before moving its connector toward the earlier symbol; viewport culling could discard a connector that should cross the screen. The plan now includes the real symbol anchor **before** packing/culling. The combo's availability clock remains the actual later publication/update; the geometry change does not backdate its reading.
+- Labels no longer float at the middle of a bracket. Their horizontal position is the available-from candle. Source connectors point at displayed symbol groups. A grouped earlier symbol does not receive a false vertical stem at the later Services column. There are no clickable hollow/filled dots.
+- Roof rows are no longer capped at three. The chart uses as many rows as fit below Candy; More contains repetition and overflow. The selected combo is placed first, so another candidate cannot displace it on zoom. Opening More raises its parent layer above Candy; Escape or chart navigation closes the menu.
+- The compact support chips retain green Long / red Short percentages and their amber side cue, without repeating a yellow Conflict word. Details still explain opposing support and exact balance.
+- Deleted the unused roof-release chooser and its old styles/tooltips. Updated the in-app Roofs/Candy guides and the bottom dock's shape explanation.
+- A separate workspace change made Inspector start with its release list closed during this pass. That change was preserved. Its regression fixture now opens the actual release list before selecting a release and uses the specific release-list selector. This repair did not change Inspector behavior.
+
+### Self-audit evidence
+
+- Targeted headless tests pass for activation-column labels, no duplicate dot buttons, monthly-symbol connectors across several zooms, offscreen-source clipping, six-row expansion, short-chart overflow, selected-combo priority and More's owning-layer class/Escape behavior.
+- Selection/controller fixtures pass for temporary box visibility, no saved visibility changes or extra scoring jobs, per-combo Candy hiding, a newly selected combo showing its strip, stale-input notice and explicit clearing.
+- Shared presentation fixtures pass for different combo/all-news splits, plain leading/opposing drivers, no repeated Conflict badge, exact start clipping, an explicit message before the combo's start, gray/stale states, coalesced hover, saved actual shares and listener cleanup.
+- Existing timeline/core tests cover fresh seven-day expiry, missing participants, pending ISM sectors, inactive labor rules, unweighted Fed action/expiry, fixed scope, future removal and original-snapshot preservation. These technical checks no longer need to be performed manually.
+- Read-only frozen replay passed again: **5,696 context snapshots, 24 selected roofs, 29,006 projected states**. Added **126 chart views over seven historical selections**, including the July 6 ISM roof, at three zooms, two row limits and repeated pans. Checked correct activation-column labels, displayed grouped-symbol targets, row bounds and selected-roof stability. Candle times were synthetic; no prices were fitted or user data/settings written.
+- Final uninterrupted `pnpm --dir frontend test`: **all 60 suites passed**, exit 0. Final `pnpm --dir frontend build`: TypeScript and Vite passed, exit 0 (383 modules). Final `pnpm --dir frontend lint`: clean, exit 0. Final `git -c core.safecrlf=false diff --check`: clean. The existing >500 kB main-bundle advisory remains (529.83 kB / 154.35 kB gzip). Direct diff checks show no edits to standalone scorers, weighting/combination arithmetic, retention/expiry modules or EUR engines.
+- Reviewed only the three images supplied by the user. No live browser automation or new screenshots were used. Headless and projection checks verify behavior/geometry; they do not certify pixel rendering in the running app or this broker's current saved configuration.
+
+### Only these checks remain for the user
+
+- [ ] **Comfort/readability:** in your normal chart layout, are the combo labels, percentages and the two named strips easy to read? No need to find expiry, policy or Fed test cases. If anything is still clipped, send that view.
+- [ ] **Interpretation against price:** when a reading feels misleading, send the selected combo (or All news), the displayed time and what price did afterward. I can then inspect that specific input/baseline/weight combination. No need to reconstruct the numbers or complete a terminology checklist.
+
+Scoring, magnitudes, comparison baselines, family weights, retention, expiry rules and EUR numerical outputs are unchanged. No dataset/preference rewrite, commit or deployment is part of this repair.

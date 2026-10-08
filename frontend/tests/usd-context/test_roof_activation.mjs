@@ -53,13 +53,13 @@ try {
   const aligned = alignRoofMarkers([roof], clusters)[0]
   assert.equal(aligned.endpoints[0].x, 10, 'Hollow input aligns to the cloud-count box, rather than its second concealed candle')
   assert.equal(aligned.right, 46, 'Publication activation is never moved to an older clustered release')
-  assert.equal(aligned.labelX, 28, 'Label is centered between the actual connector endpoints')
+  assert.equal(aligned.labelX, 46, 'The combo label stays above its activation candle while grouped inputs move')
   assert.equal(JSON.stringify(roof), preserved)
   const grouped = alignRoofMarkers([{ ...roof, endpoints: [
     { x: 10, activation: false, publications: [{ source: { sourceId: 'release-0' }, symbol: 'cloud' }] }, earlier, activation,
   ] }], clusters)[0]
   assert.equal(grouped.endpoints.length, 2, 'One hollow point represents earlier inputs sharing a grouped symbol box')
-  assert.deepEqual(grouped.endpoints[0].publications.map(p => p.source.sourceId), ['release-0', 'release-1'], 'Both publications remain available to the source chooser')
+  assert.deepEqual(grouped.endpoints[0].publications.map(p => p.source.sourceId), ['release-0', 'release-1'], 'Both publications remain named in the combined reading')
   offset -= 5
   const shiftedRoof = { ...roof, left: 17, right: 41, labelX: 29, endpoints: roof.endpoints.map(e => ({ ...e, x: e.x - 5 })) }
   const shifted = alignRoofMarkers([shiftedRoof], projectMarkers(scale, indexMarkers(markers)))[0]
@@ -67,5 +67,5 @@ try {
   assert.equal(shifted.lane, aligned.lane)
   const crowdedActivation = { ...roof, right: 22, endpoints: [earlier, { ...activation, x: 22, publications: [{ source: { sourceId: 'release-1' }, symbol: 'cloud' }] }] }
   assert.equal(alignRoofMarkers([crowdedActivation], clusters)[0].right, 22, 'The final circle preserves its candle even when its release belongs to an older symbol cluster')
-  console.log('✓ Publication/aging/expiry provenance, named seven-day and sector roll-off, simultaneous releases, immutable scores, grouped symbol alignment, centered labels and stable pan lanes')
+  console.log('✓ Publication/aging/expiry provenance, named seven-day and sector roll-off, simultaneous releases, immutable scores, grouped symbol alignment, activation labels and stable pan lanes')
 } finally { await server.close() }

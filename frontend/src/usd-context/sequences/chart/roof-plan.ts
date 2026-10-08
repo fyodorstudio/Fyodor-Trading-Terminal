@@ -5,7 +5,7 @@ import type { InspectorMarker } from '../../../inspector/inspector-data'
 import type { ComboSnapshot } from '../core/contracts'
 import { roofBarIndex } from './roof-geometry'
 import { layoutRoofs, type RoofCandidate, type PositionedRoof } from './roof-layout'
-import { clusterRoofEndpoints, type RoofPublication } from './roof-symbols'
+import { clusterRoofEndpoints, type RoofPublication, type RoofEndpoint } from './roof-symbols'
 
 type RoofAnchor = { combo: ComboSnapshot; start: number; end: number; publications: { index: number; publication: RoofPublication }[]; hidden: number }
 type PlanEntry = { left: number; right: number; roof: RoofCandidate; positioned: PositionedRoof | null }
@@ -29,7 +29,10 @@ export function prepareRoofAnchors(episodes: readonly ComboSnapshot[], bars: rea
     if (end === null) continue
     const sources = combo.sources.filter(s => visible.has(s.sourceId))
     const publications = sources.flatMap(source => {
-      const index = roofBarIndex(bars, source.chartAt, timeframe)
+      const marker = visible.get(source.sourceId)!
+      // Monthly ISM symbols stay at Manufacturing even when representing
+      // Services. Include that real anchor before packing and viewport culling.
+      const index = roofBarIndex(bars, Number.isFinite(marker.time) ? marker.time * 1000 : source.chartAt, timeframe)
       return index === null ? [] : [{ index, publication: { source, symbol: visible.get(source.sourceId)!.symbol } }]
     })
     if (!publications.length) continue
@@ -39,14 +42,16 @@ export function prepareRoofAnchors(episodes: readonly ComboSnapshot[], bars: rea
 }
 
 /** Lay out the entire eligible loaded history once per zoom/density, never per pan. */
-export function createRoofPlan(anchors: readonly RoofAnchor[], spacing: number, focused: boolean): RoofPlan {
+export function createRoofPlan(anchors: readonly RoofAnchor[], spacing: number, focused: boolean, maxRows = Infinity, selectedId?: string): RoofPlan {
   const candidates = anchors.map(a => {
     const right = a.end * spacing, left = Math.min(a.start * spacing, right - 4)
-    const points = a.publications.map(p => ({ x: p.index * spacing, publications: [p.publication], activation: false }))
-    points.push({ x: right, publications: [], activation: true })
-    return { combo: a.combo, left, right, endpoints: clusterRoofEndpoints(points), hidden: a.hidden, labelX: (left + right) / 2 }
+    const points: RoofEndpoint[] = a.publications.map(p => ({ x: p.index * spacing, publications: [p.publication], activation: false }))
+    const incoming = a.publications.filter(p => p.publication.source.chartAt === a.combo.chartAt)
+    points.push({ x: right, publications: incoming.map(p => p.publication), activation: true,
+      symbolX: incoming.length ? Math.min(...incoming.map(p => p.index * spacing)) : undefined })
+    return { combo: a.combo, left, right, endpoints: clusterRoofEndpoints(points), hidden: a.hidden, labelX: right }
   })
-  const layout = layoutRoofs(candidates, focused), chosen = new Map(layout.positioned.map(p => [p.combo.id, p]))
+  const layout = layoutRoofs(candidates, focused, maxRows, selectedId), chosen = new Map(layout.positioned.map(p => [p.combo.id, p]))
   const entries = candidates.map(roof => {
     const halfWidth = comboActivation(roof.combo).kind === 'publication' ? 85 : 110
     return { left: Math.min(roof.left - 52, roof.labelX - halfWidth - 18), right: Math.max(roof.right + 36, roof.labelX + halfWidth),
@@ -68,7 +73,7 @@ export function projectRoofPlan(plan: RoofPlan, offset: number, width: number) {
     if (entry.right < from) continue
     const p = entry.positioned
     if (p) positioned.push({ ...p, left: p.left + offset, right: p.right + offset, labelX: p.labelX + offset,
-      endpoints: p.endpoints.map(e => ({ ...e, x: e.x + offset })) })
+      endpoints: p.endpoints.map(e => ({ ...e, x: e.x + offset, symbolX: e.symbolX === undefined ? undefined : e.symbolX + offset })) })
     else overflow.push(entry.roof.combo)
   }
   return { positioned: positioned.sort((a, b) => a.combo.chartAt - b.combo.chartAt),

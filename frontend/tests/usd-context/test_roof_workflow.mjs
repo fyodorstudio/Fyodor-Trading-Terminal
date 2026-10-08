@@ -89,8 +89,20 @@ try {
   const crossingPlan = createRoofPlan(prepareRoofAnchors([crossing], bars, 'H1', crossingMarkers, true, 1), 10, true)
   const edge = projectRoofPlan(crossingPlan, -50, 200).positioned[0]
   assert.equal(edge.left, -50, 'An offscreen source stays the original anchor instead of jumping to a later visible source')
-  assert.equal(edge.labelX, 50, 'The label keeps the full-source midpoint instead of clamping to the screen edge')
+  assert.equal(edge.labelX, 150, 'The label stays on activation even when its source leaves the screen')
   assert.equal(projectRoofPlan(crossingPlan, 50, 100).positioned[0].right, 250, 'Crossing roofs survive an offscreen activation; the viewport clips the release symbol')
+  const groupedSource = { ...crossing, id: 'grouped-crossing', sources: [
+    { ...crossing.sources[0], family: 'ism', sourceId: 'services', chartAt: at + 10 * hour }, crossing.sources[1],
+  ] }
+  const groupedMarkers = [{ time: at / 1000, release: { id: 'ISM/month', ismPublications: [{ id: 'services' }] }, symbol: 'umbrella' },
+    { time: (at + 20 * hour) / 1000, release: { id: crossing.sources[1].sourceId }, symbol: 'cloud' }]
+  for (const zoom of [10, 12, 20]) {
+    const groupedPlan = createRoofPlan(prepareRoofAnchors([groupedSource], bars, 'H1', groupedMarkers, true, 1), zoom, true)
+    const clipped = projectRoofPlan(groupedPlan, 0, 12).positioned[0]
+    assert.ok(clipped, 'The grouped symbol remains connected even with both actual publications beyond the visible range')
+    assert.equal(clipped.left, 0, 'Viewport indexing uses the earlier monthly symbol, not the later Services publication')
+    assert.equal(clipped.labelX, 20 * zoom)
+  }
   const malformed = { ...crossing, sources: [{ ...crossing.sources[0], chartAt: crossing.chartAt + 1 }] }
   assert.equal(prepareRoofAnchors([malformed], bars, 'H1', crossingMarkers, true, 1).length, 0)
   assert.equal(prepareRoofAnchors([crossing], bars, 'H1', [], true, 1).length, 0)

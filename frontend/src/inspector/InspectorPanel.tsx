@@ -59,7 +59,7 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
     window.addEventListener('resize', resize)
     return () => window.removeEventListener('resize', resize)
   }, [filtersOpen])
-  const [listOpen, setListOpen] = useState(true)
+  const [listOpen, setListOpen] = useState(false)
   const panelId = useId()
   const release = view.selectedRelease
   const scoringEvents = useMemo(() => view.allReleases.flatMap((item) => item.events), [view.allReleases])

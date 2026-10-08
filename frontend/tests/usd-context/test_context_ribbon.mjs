@@ -79,7 +79,7 @@ try {
   const segments = [...container.querySelectorAll('.ribbon-segment')]
   assert.deepEqual(segments.map(b => b.classList.contains('long')), [false, true, false])
   assert.deepEqual(segments.map(b => b.style.width), ['50px', '50px', '50px'], 'Publication and current-time clipping are exact within H1')
-  assert.match(container.textContent, /USD side/)
+  assert.match(container.textContent, /All news · USD inputs/)
   const pointerCalls = coordinates
   await React.act(async () => { for (let i = 0; i < 200; i++) segments[1].dispatchEvent(new dom.PointerEvent('pointermove', { clientX: 25, bubbles: true })) })
   assert.equal(coordinates, pointerCalls); assert.equal(frames.size, 1, 'Ribbon hover coalesces a pointer burst without re-scoring')
@@ -112,8 +112,8 @@ try {
   await React.act(async () => container.querySelector('[aria-label="Fundamental tools settings"]').click())
   const guide = container.querySelector('[role="dialog"]')
   await React.act(async () => [...guide.querySelectorAll('[role="tab"]')].find(b => b.textContent === 'Roofs').click())
-  assert.match(guide.textContent, /filled circle marks a new publication activation.*width is not an active duration/)
-  assert.match(guide.textContent, /Click a hollow dot for its contributing release/)
+  assert.match(guide.textContent, /combo label sits above the candle.*width is not an active duration/)
+  assert.match(guide.textContent, /ordinary bottom-row symbols for individual releases/)
   assert.match(guide.textContent, /Claims \+ NFP/)
   await React.act(async () => { guide.querySelector('select').value = 'relative'; guide.querySelector('select').dispatchEvent(new dom.Event('change', { bubbles: true })) })
   assert.equal(relativePreferences.readRelativePreferences().mode, 'relative')

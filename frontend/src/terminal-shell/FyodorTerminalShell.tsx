@@ -256,7 +256,7 @@ export function FyodorTerminalShell() {
     setComboSelection(null); inspectPublication(source.sourceId, source.chartAt); selectBottomDock('inspector')
   }, [inspectPublication, selectBottomDock])
   const clearChartInspection = useCallback(() => {
-    setComboSelection(null); setReleaseSelection(null)
+    setReleaseSelection(null)
   }, [setReleaseSelection])
   const openScatter = useCallback((release: Parameters<typeof scatterReleaseTarget>[0]) => {
     const target = scatterReleaseTarget(release, inspector.brokerId, inspector.now)
@@ -277,7 +277,7 @@ export function FyodorTerminalShell() {
     selectedArrowId: registeredArrows.selectedArrowId, draftPlan: plannedTrade, onSelectArrow: selectChartArrow,
     supported: inspector.supported, markers: inspector.markers, currencyColors: inspector.preferences.currencyColors,
     timeDisplay, onSelectRelease: selectChartRelease, raycaster,
-    onClearInspection: !activeDrawingTool && (selectedCombo || inspector.selectedRelease || inspector.inspectingPublication) ? clearChartInspection : undefined })
+    onClearInspection: !activeDrawingTool && (inspector.selectedRelease || inspector.inspectingPublication) ? clearChartInspection : undefined })
 
   const sourceState = !bridge.reachable || marketData.marketWatchStatus === 'unavailable'
     ? 'error'

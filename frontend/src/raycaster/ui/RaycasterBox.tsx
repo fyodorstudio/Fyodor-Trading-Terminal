@@ -15,6 +15,7 @@ import { relationshipReading, supportReading, supportEvidenceNote } from '../../
 import { usdPair } from '../../usd-context/core/usd-pair'
 import { SupportSplit } from '../../usd-context/ui/SupportSplit'
 import { RoofAuditControls } from '../../usd-context/sequences/ui/RoofAuditControls'
+import { roofLabel } from '../../usd-context/sequences/chart/roof-label'
 
 export function RaycasterBox({ symbol, point, cutoff, loading, message, notice, timeDisplay, onClose, relative, relativeUpdate, relativeUpdateAt, selectedCombo, selectionNotice, onClearCombo, roofCandyVisible, onToggleRoofCandy, brokerId = null }: {
   relative?: ReturnType<typeof relativeContext> | null; relativeUpdate?: string | null; relativeUpdateAt?: number | null;
@@ -39,7 +40,7 @@ export function RaycasterBox({ symbol, point, cutoff, loading, message, notice, 
     <header><button type="button" onPointerDown={drag} className="raycaster-handle" aria-label="Move Raycaster" title="Drag to move Raycaster">⠿ Raycaster</button>
       <button type="button" onClick={onClose} aria-label="Hide Raycaster" title="Hide Raycaster">×</button></header>
     <section className="raycaster-reading" aria-label="Accumulated context">
-    <small>Accumulated context · {relative ? 'EUR vs USD' : 'USD inputs'}{cutoff !== null && ` · through ${clock.chart(cutoff)} (${clock.zone})`}</small>
+    <small>All news together · {relative ? 'EUR vs USD' : 'USD inputs'}{cutoff !== null && ` · through ${clock.chart(cutoff)} (${clock.zone})`}</small>
     <strong className={`raycaster-bias ${tone}`}>{label}{!loading && !message && cutoff !== null && strength && ` · ${strength.charAt(0).toUpperCase() + strength.slice(1)} evidence`}</strong>
     <p>{loading ? 'Preparing the historical release timeline.' : message ?? (cutoff === null ? 'Move across the chart to read the USD context at each candle’s end.' :
       relative?.explanation ?? (presentation ? supportReading(presentation, result?.members.filter(m => m.status === 'active').map(m => ({ label: m.sourceLabel, towardLong: orient * m.contribution })) ?? []) : 'No eligible release history is available at this candle.'))}</p>
@@ -47,8 +48,8 @@ export function RaycasterBox({ symbol, point, cutoff, loading, message, notice, 
     {!relative && presentation && !loading && !message && cutoff !== null && <small>{supportEvidenceNote(presentation)}</small>}
     </section>
     {selectedCombo && selectedSupport && <section className="raycaster-reading selected-roof-reading" aria-label="Selected roof snapshot">
-      <header><strong>Selected roof · {selectedCombo.title}</strong>{onClearCombo && <button type="button" onClick={onClearCombo} aria-label="Clear selected roof">×</button>}</header>
-      <small>{selectedCombo.kind === 'fresh-news' ? 'Recent support change' : selectedCombo.kind === 'labor-inflation' || selectedCombo.kind === 'weekly-labor' ? 'Combined USD evidence · policy relationship' : 'Selected release support'} · USD inputs</small>
+      <header><strong>Selected combo · {roofLabel(selectedCombo)}</strong>{onClearCombo && <button type="button" onClick={onClearCombo} aria-label="Clear selected roof">×</button>}</header>
+      <small>{selectedCombo.kind === 'fresh-news' ? 'What changed in these releases' : selectedCombo.kind === 'labor-inflation' || selectedCombo.kind === 'weekly-labor' ? 'All USD news under this labor rule' : 'What these releases say together'} · USD inputs</small>
       <strong className={`raycaster-bias ${selectedSupport.state}`}>{roofResultLabel(selectedCombo)}</strong>
       <SupportSplit support={selectedSupport} />
       <p>{relationshipReading(selectedSupport)}</p>
@@ -56,6 +57,7 @@ export function RaycasterBox({ symbol, point, cutoff, loading, message, notice, 
       {selectedCombo.sources.find(s => s.family === 'fed') && <small>Fed action: {selectedCombo.sources.find(s => s.family === 'fed')?.policyAction?.action ?? 'Unavailable'} · separate from macro support</small>}
       {selectionNotice && <p role="status">{selectionNotice}</p>}
       {onToggleRoofCandy && <button type="button" aria-pressed={roofCandyVisible} onClick={onToggleRoofCandy}>{roofCandyVisible ? 'Hide Roof Candy' : 'Show Roof Candy'}</button>}
+      <small>The percentages above keep the original reading. Selected combo Candy follows newer releases. It stays selected while you click, pan or zoom the chart; × closes it. Opening an individual release also closes it.</small>
       <details className="raycaster-reaction"><summary>Record price reaction</summary><RoofAuditControls combo={selectedCombo} symbol={symbol} broker={brokerId} /></details>
     </section>}
     <details className="raycaster-calculations"><summary>Details and calculations</summary>

@@ -8,6 +8,6 @@ export function SupportSplit({ support: s, compact = false }: { support: Support
   return <span className={`support-split ${s.state}${compact ? ' compact' : ''}`} aria-label="Long and Short weighted support">
     <span className="support-long">{compact ? 'L' : 'Long'} {share(s.long)}</span>
     <span className="support-short">{compact ? 'S' : 'Short'} {share(s.short)}</span>
-    {compact && (s.state === 'conflicted' || s.state === 'balanced' || !available) && <span className="support-state">{s.state === 'conflicted' ? 'Conflict' : s.state === 'balanced' ? 'Balanced' : s.state === 'unchanged' ? 'Unchanged' : 'Insufficient'}</span>}
+    {compact && (s.state === 'balanced' || !available) && <span className="support-state">{s.state === 'balanced' ? 'Balanced' : s.state === 'unchanged' ? 'Unchanged' : 'Insufficient'}</span>}
   </span>
 }

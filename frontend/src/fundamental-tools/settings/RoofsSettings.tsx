@@ -10,18 +10,19 @@ export function RoofsSettings({ supported }: { supported: boolean }) {
       <label>Display density <select aria-label="Roof display density" value={preferences.density ?? 'focused'}
         onChange={e => saveSequencePreferences({ ...preferences, density: e.target.value as 'focused' | 'all' })}>
         <option value="focused">Focused</option><option value="all">All roofs</option></select></label>
-      <p>Focused prioritizes specialized relationships, then evidence, and removes repetition. Both modes use three levels; More keeps every omitted roof accessible. Pair annotations add no votes.</p>
+      <p>Focused prioritizes specialized relationships, then evidence, and removes repetition. Rows grow to fit the available chart height, beyond three when there is room. More keeps hidden combinations accessible. A selected combo takes priority when zoom changes the available space.</p>
       <label><input type="checkbox" checked={preferences.fresh} onChange={e => saveSequencePreferences({ ...preferences, fresh: e.target.checked })} /> Include experimental fresh-news combinations</label>
       {!supported && <p>Chart roofs are available on EURUSD. These display preferences are retained for supported pairs.</p>}
     </section>
-    <section><h3>Read the shapes</h3>
-      <p>The filled circle marks a new publication activation. An outlined diamond marks an Aging update or Expiry update, with no new participating publication. Hollow circles identify earlier contributing releases. The line connects source releases to activation; its width is not an active duration or a holding period.</p>
-      <p>Click a hollow dot for its contributing release. Click a filled dot for the activating release, or Combo details if its publication is hidden. Click a diamond for Combo details and the named inputs that aged out or expired. Several releases at the point open a chooser. Click the direction box for Combo details. Release symbols stay in the bottom row.</p>
-      <p>Read the combo from the exact activation time onward, not from the candle open. Availability is not a trade entry signal. Labels sit centered above their connector. Hollow inputs align with grouped release symbols; publication activation keeps its original candle anchor. Panning preserves the planned rows; zooming can rearrange rows.</p>
+    <section><h3>Read the labels and lines</h3>
+      <p>Each combo label sits above the candle where it became available. Connecting lines identify its contributing release symbols; their width is not an active duration or a holding period. Click the combo label for its combined reading. Use the ordinary bottom-row symbols for individual releases.</p>
+      <p>Aging update means older news lost weight. Expiry update means an input reached its time limit. These labels have no new release below them. For monthly ISM, a grouped symbol can sit at Manufacturing while the combo becomes available later, at Services.</p>
+      <p>Read from the exact time shown in the box, not the candle open. Panning keeps the same rows; zooming can change rows while labels stay attached to their original candles. Selecting a label highlights its connector.</p>
       <p>Green Long and red Short boxes show each side’s share of weighted support. Conflict stays explicit. Select a direction box to show its frozen snapshot beside accumulated context in the draggable Raycaster box.</p>
     </section>
     <section><h3>Selected Roof Candy</h3>
-      <p>Select a roof to follow that relationship on its own Candy strip, beginning at its exact activation time. Later publications, aging and expiry update the same selected inputs. The original roof remains a frozen snapshot. Use Show/Hide Roof Candy in the Raycaster box to control this strip.</p>
+      <p>Select a combo label to show Selected combo Candy at the top of the chart. It begins when the combo became available and follows newer releases of the same inputs. All news Candy combines all enabled news and appears below it. The label and box keep the original percentages.</p>
+      <p>Clicking blank chart space, panning and zooming keep the selection. Use × in the box to close it, or Show/Hide Roof Candy to hide its strip. Opening an individual release closes the combo. A different combo shows its own strip automatically.</p>
       <p>Generic pairs keep their selected families; a missing participant turns the strip gray. Labor-policy relationships include combined USD evidence and turn gray when their named rule is inactive. Fresh-news relationships follow comparable support changes with their seven-day limits. Fed actions stay outside macro percentages.</p>
       <p>Click a Roof Candy segment for its percentages, plain explanation and accumulated USD context at the same clock. Record Aligned, Opposed or Unclear there or in Combo details. Only compare prices after the exact reading time.</p>
     </section>

@@ -51,7 +51,7 @@ try {
   const sourceIds = [...new Set(roofs.flatMap(r => r.sources.map(s => s.sourceId)))]
   const markers = sourceIds.map(id => ({ release: { id }, symbol: 'cloud' }))
   const planStarted = performance.now(), anchors = prepareRoofAnchors(roofs, bars, 'H1', markers, true, roofs.length)
-  const plan = createRoofPlan(anchors, 3, true), planMs = performance.now() - planStarted
+  const plan = createRoofPlan(anchors, 3, true, 3), planMs = performance.now() - planStarted
   const panStarted = performance.now(); let maximumPositioned = 0, maximumOverflow = 0
   for (let i = 0; i < 100; i++) {
     const layout = projectRoofPlan(plan, -3 * bars.length * i / 100, 1600)

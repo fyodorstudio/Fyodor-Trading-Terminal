@@ -55,13 +55,17 @@ function ContextRibbonComponent({ chartApi, bars, timeframe, points, now, relati
   }, [chartApi, bars, timeframe, points, now, loading, notice, startAt])
   return <div className={`context-ribbon${relationshipTitle ? ' roof-ribbon' : ''}`} aria-label={relationshipTitle ? `Roof Candy · ${relationshipTitle} · USD inputs` : `Raycaster Candy · ${mode}`}>
     {!relationshipTitle && <ExternalEventsStrip key={`${brokerId}:${symbol}`} chartApi={chartApi} bars={bars} timeframe={timeframe} now={now} symbol={symbol} brokerId={brokerId} />}
-    <div className="context-ribbon-legend">{relationshipTitle ? `Roof Candy · ${relationshipTitle} · USD inputs · follows latest releases` : `Context · ${mode}`} · {clock.zone} · {relative ? 'Green Long / Red Short / Amber Mixed / Gray Insufficient' : 'Green Long / Red Short / Amber Conflict or No lead · edge = lead / Gray Insufficient'} · {loading ? 'Loading' : notice ?? `shade = evidence${partial ? ' · Partial history' : ''}`}</div>
+    <div className="context-ribbon-legend" title={`${relative ? 'Green: Long. Red: Short. Amber: mixed.' : 'Green/red: support on one side. Amber: support on both sides or no lead. The green/red bottom edge shows which side has more support.'} Gray: not enough usable data. Darker color means stronger evidence.${relationshipTitle ? ' This follows newer releases of the selected combo; the roof label keeps its original reading.' : ' This combines all enabled news.'}`}>
+      <strong>{relationshipTitle ? `Selected combo · ${relationshipTitle}` : `All news · ${relative ? mode : 'USD inputs'}`}</strong>
+      {startAt !== undefined && <> · starts {displayClock(startAt)}</>} · {clock.zone}{partial && ' · some history missing'}
+      {loading ? ' · Loading' : notice ? ` · ${notice}` : ''}
+    </div>
     <div className="context-ribbon-track" onPointerLeave={clearHover}>
       {segments.map(segment => <button type="button" key={segment.from}
         className={`ribbon-segment ${segment.point?.direction ?? 'uncomputed'} ${segment.point?.evidence ?? ''}${!relative && (segment.point?.presentation?.state === 'conflicted' || segment.point?.relationship?.support.state === 'conflicted' || segment.point?.relationship?.actionConflict) ? ` lead-${segment.point?.presentation?.direction ?? segment.point?.relationship?.support.direction}` : ''}`}
         style={{ left: segment.left, width: segment.width }}
         aria-label={`${segment.point?.label ?? 'Unavailable'} · ${segment.point?.evidence ?? 'No'} evidence · ${displayClock(segment.from)}`}
-        title={`${segment.point?.label ?? 'Unavailable'} · ${segment.point?.evidence ?? 'No'} evidence\n${displayClock(segment.from)} to ${displayClock(segment.to)}\n${segment.point?.update ?? notice ?? 'No usable context yet'}`}
+        title={`${segment.point?.label ?? 'Unavailable'} · ${segment.point?.evidence ?? 'No'} evidence\n${displayClock(segment.from)} to ${displayClock(segment.to)}\n${segment.point?.explanation ?? notice ?? 'No usable context yet'}\n${segment.point?.update ?? ''}`}
         onPointerMove={e => {
           pendingHover.current = { segment, x: segment.left + e.clientX - e.currentTarget.getBoundingClientRect().left }
           if (!hoverFrame.current) hoverFrame.current = window.requestAnimationFrame(() => {
@@ -74,6 +78,7 @@ function ContextRibbonComponent({ chartApi, bars, timeframe, points, now, relati
         }}
         onFocus={() => { clearHover(); setHover({ segment, at: segment.from }) }} onBlur={clearHover}
         onClick={() => { if (segment.point) setSelected({ point: segment.point, timeline: points }) }} />)}
+      {!segments.length && <span className="ribbon-empty" role="status">{loading ? 'Preparing this timeline…' : notice ?? (!bars.length ? 'No chart candles loaded yet.' : startAt !== undefined ? `This combo starts ${displayClock(startAt)}. Move the chart to that date or later.` : 'No candles available in this view.')}</span>}
     </div>
     {hover && <div className="ribbon-hover" role="status"><strong>{hover.segment.point?.label ?? 'Unavailable'} · {hover.segment.point?.evidence ?? 'No'} evidence</strong>
       <span>{displayClock(hover.at)}</span><span>{hover.segment.point?.kind === 'publication' ? 'New publication' : hover.segment.point?.kind === 'expiry' ? 'Expiry update' : 'Aging update'}: {hover.segment.point?.update ?? notice ?? 'No usable context'}</span></div>}

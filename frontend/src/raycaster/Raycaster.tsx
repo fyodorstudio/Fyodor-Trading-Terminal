@@ -45,7 +45,9 @@ function RaycasterComponent({ chartApi, seriesApi, ...props }: RaycasterProps & 
   const eurHistory = useEurContextTimeline(props.brokerId, relativePreferences.families, now, relativeEnabled)
   const scope = toolScope(props.brokerId, props.symbol, props.timeframe)
   const detailsOpen = useToolsOpen(scope)
-  const [roofCandyVisible, setRoofCandyVisible] = useState(true)
+  const [roofCandyChoice, setRoofCandyChoice] = useState<{ id: string; visible: boolean } | null>(null)
+  const roofCandyVisible = roofCandyChoice?.id === props.selectedCombo?.id ? roofCandyChoice?.visible !== false : true
+  if (roofCandyChoice && roofCandyChoice.id !== props.selectedCombo?.id) setRoofCandyChoice(null)
   const boxVisible = props.boxVisible !== false || !!props.selectedCombo
   const hover = useRaycasterHover(chartApi, seriesApi, `${props.brokerId}:${props.symbol}:${props.timeframe}`, boxVisible)
   const open = hover.open ?? (detailsOpen || props.selectedCombo ? hover.lastOpen : null)
@@ -79,7 +81,9 @@ function RaycasterComponent({ chartApi, seriesApi, ...props }: RaycasterProps & 
   return <>{boxVisible && <RaycasterBox symbol={props.symbol} point={point} cutoff={cutoff} loading={history.loading || eurHistory.loading} message={message}
     brokerId={props.brokerId}
     selectedCombo={props.selectedCombo} selectionNotice={selectionNotice} onClearCombo={props.onClearCombo}
-    roofCandyVisible={roofCandyVisible} onToggleRoofCandy={() => setRoofCandyVisible(v => !v)}
+    roofCandyVisible={roofCandyVisible} onToggleRoofCandy={() => {
+      if (props.selectedCombo) setRoofCandyChoice({ id: props.selectedCombo.id, visible: !roofCandyVisible })
+    }}
     relative={combined} relativeUpdate={eurPoint?.update ?? null} relativeUpdateAt={eurPoint?.chartAt ?? null}
     notice={partial ? 'Partial or timing-excluded history' : null}
     timeDisplay={props.timeDisplay} onClose={() => { props.onClearCombo?.(); props.onClose() }} />}
@@ -89,11 +93,11 @@ function RaycasterComponent({ chartApi, seriesApi, ...props }: RaycasterProps & 
       loading={history.loading || eurHistory.loading} notice={message} partial={!!partial} />}
     {props.selectedCombo && roofCandyVisible && props.bars && <ContextRibbon chartApi={chartApi} bars={props.bars} timeframe={props.timeframe}
       symbol={props.symbol} brokerId={props.brokerId} points={roofRibbonPoints} startAt={props.selectedCombo.chartAt}
-      relationshipTitle={props.selectedCombo.kind === 'fresh-news' ? `Fresh change · ${roofLabel(props.selectedCombo)}` : props.selectedCombo.title} relative={false} version="Selected relationship presentation v1"
+      relationshipTitle={`${roofLabel(props.selectedCombo)}${props.selectedCombo.kind === 'fresh-news' ? ' · recent change' : ''}`} relative={false} version="Selected relationship presentation v1"
       now={now + props.brokerOffsetSeconds * 1000} loading={history.loading} notice={usdMessage ?? selectionNotice} partial={!!partial} />}
     {relativeSupported && sequencePreferences.roofs && relationships && !history.loading && !message && props.bars && props.markers && props.onSelectCombo &&
       <ComboRoofs chartApi={chartApi} episodes={relationships.episodes} bars={props.bars} markers={props.markers}
-        onOpenSource={props.onOpenComboSource} currencyColors={props.currencyColors}
+        selectedId={props.selectedCombo?.id} currencyColors={props.currencyColors}
         timeframe={props.timeframe} now={now + props.brokerOffsetSeconds * 1000} experimental={sequencePreferences.fresh} onSelect={props.onSelectCombo} />}
   </>
 }

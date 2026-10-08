@@ -10,8 +10,10 @@ export function CandySettings() {
     </section>
     <section><h3>Time and updates</h3><p>A segment lasts until the next context update. Hover for its exact time in the selected display clock and responsible update; click for sources. Publications, memory aging and expiry are identified separately.</p>
       <p>Candy retains exact update boundaries; the Raycaster box reads through the hovered candle’s end. Roof relationships remain USD-only even when Candy compares EUR with USD.</p></section>
-    <section><h3>Roof Candy</h3><p>Select a roof to show a separate strip for that relationship from activation onward. Its label names the selected relationship and USD scope. This strip follows latest eligible inputs; the original roof and its percentage boxes remain an activation snapshot. Show or hide it in the Raycaster box.</p></section>
-    <section><h3>Manual outside-event strip</h3><p>The thin gray strip above Candy shows your manually selected outside-event windows. Use Manage outside events below to create or edit notes even with Candy hidden. Enable Candy to see the highlights on the chart.</p>
+    <section><h3>Two Candy strips</h3><p>All news combines every enabled news input. Selected combo follows only the combo you clicked, starting when it became available. A blank area before its start is expected. Gray afterward means there is not enough usable data for that combo; click the gray section to see why.</p>
+      <p>Both strips stay at the top of the chart so a shorter chart does not hide them. The selected combo remains while you click, pan or zoom. Close it with × in Raycaster, open an individual release, or hide its strip with Hide Roof Candy. Selecting a different combo shows its strip again.</p>
+      <p>The original label percentages do not change. Selected combo Candy follows newer releases. The strips can disagree because they combine different inputs; fresh combos also describe what changed rather than the full accumulated reading.</p></section>
+    <section><h3>Manual outside-event strip</h3><p>The thin gray strip below All news Candy shows your manually selected outside-event windows. Use Manage outside events below to create or edit notes even with Candy hidden. Enable Candy to see the highlights on the chart.</p>
       <p>These notes change no score and establish no cause or measured impact duration. Historical notes retain their actual recording instant, shown in the selected display clock.</p></section>
   </div>
 }
