@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ActivitySeverity, ActivitySource } from '../../system-observability/activity-log/activity-log-entry'
-import { useActivityLog } from '../../system-observability/activity-log/use-activity-log'
+import { useActivityActions } from '../../system-observability/activity-log/use-activity-log'
 import { bridgeRequest } from './bridge-client'
 import type { BridgeActivityEvent, BridgeHealth } from './bridge-contract'
 
@@ -22,7 +22,7 @@ export type BridgeStatusState = {
 }
 
 export function useBridgeStatus(): BridgeStatusState {
-  const { appendActivity } = useActivityLog()
+  const { appendActivity } = useActivityActions()
   const [state, setState] = useState<BridgeStatusState>({
     health: null,
     reachable: false,

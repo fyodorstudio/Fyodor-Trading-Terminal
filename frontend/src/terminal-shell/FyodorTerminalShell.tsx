@@ -8,7 +8,7 @@ import {
   timeDisplayLabel,
   type TimeDisplayPreference,
 } from '../appearance/time-display/time-display-preference'
-import { useInspector, InspectorPanel } from '../inspector'
+import { useInspector } from '../inspector'
 import { ScatterPlotDock, scatterReleaseTarget, type ScatterReleaseTarget } from '../scatter-plot'
 import { AlertDock } from '../alert'
 import { MarketCandlestickChart } from '../market-data/candlestick-chart/MarketCandlestickChart'
@@ -30,10 +30,9 @@ import {
 import type { ChartTimeframe } from '../market-data/contracts/ChartTimeframe'
 import { CandleHistoryLoadingNotice, MarketDataNotice } from '../market-data/mt5-feed/MarketDataNotice'
 import { useMt5MarketData } from '../market-data/mt5-feed/use-mt5-market-data'
-import { DataHeartbeatPanel } from '../system-connectivity/bridge-status/DataHeartbeatPanel'
-import { useBridgeStatus } from '../system-connectivity/bridge-status/use-bridge-status'
-import { ActivityLogPanel } from '../system-observability/activity-log/ActivityLogPanel'
-import { useActivityLog } from '../system-observability/activity-log/use-activity-log'
+import { BridgeStatusProvider } from '../system-connectivity/bridge-status/BridgeStatusProvider'
+import { useBridgeConnection } from '../system-connectivity/bridge-status/bridge-status-context'
+import { useActivityActions } from '../system-observability/activity-log/use-activity-log'
 import { useTerminalChartOverlay } from './chart-overlays/useTerminalChartOverlay'
 import type { PlannedTradeState, RegisteredTradeArrow } from '../trader-notebook/contracts/trader-notebook-types'
 import { TraderNotebookPanel } from '../trader-notebook/notebook-dock/TraderNotebookPanel'
@@ -44,7 +43,7 @@ import { useBottomDockSize } from '../workspace-docking/bottom-dock/useBottomDoc
 import { LeftDockPanel } from '../workspace-docking/left-dock/LeftDockPanel'
 import { useMarketWatchDock } from '../workspace-docking/left-dock/useMarketWatchDock'
 import { ChartWorkspaceHeader } from './ChartWorkspaceHeader'
-import { TerminalStatusBar } from './TerminalStatusBar'
+import { ActivityDock, InspectorDock, LiveTerminalStatusBar } from './LiveTerminalPanels'
 import './terminal-shell.layout.css'
 import { WorkspaceTransfer } from '../workspace-portability/WorkspaceTransfer'
 import { usdPair } from '../usd-context/core/usd-pair'
@@ -62,6 +61,10 @@ const defaultTradePlan: PlannedTradeState = {
 }
 
 export function FyodorTerminalShell() {
+  return <BridgeStatusProvider><FyodorTerminalWorkspace /></BridgeStatusProvider>
+}
+
+function FyodorTerminalWorkspace() {
   const [selectedSymbol, setSelectedSymbol] = useState('EURUSD')
   const [timeframe, setTimeframe] = useState<ChartTimeframe>('H1')
   const [theme, setTheme] = useState<ColorTheme>(readColorTheme)
@@ -79,7 +82,7 @@ export function FyodorTerminalShell() {
   const dockSize = useBottomDockSize(bottomDockWindow)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const marketWatch = useMarketWatchDock()
-  const { entries, appendActivity, clearActivity } = useActivityLog()
+  const { appendActivity } = useActivityActions()
 
   useEffect(() => {
     applyColorTheme(theme)
@@ -122,12 +125,12 @@ export function FyodorTerminalShell() {
     localStorage.setItem(`trader_plan_${selectedSymbol}`, JSON.stringify(nextPlan))
   }
 
-  const bridge = useBridgeStatus()
-  const mt5Connected = bridge.health?.mt5.connected === true
-  const marketData = useMt5MarketData(mt5Connected, bridge.health?.mt5.generation ?? 0, selectedSymbol, timeframe)
+  const bridge = useBridgeConnection()
+  const mt5Connected = bridge.connected
+  const marketData = useMt5MarketData(mt5Connected, bridge.generation, selectedSymbol, timeframe)
   const activeSymbol = marketData.activeSymbol
   const bars = marketData.bars
-  const brokerId = bridge.health?.mt5.account_server ?? null
+  const brokerId = bridge.brokerId
   const selectedCombo = comboSelection?.symbol === activeSymbol && comboSelection.broker === brokerId ? comboSelection.combo : null
   const closeCombo = useCallback(() => { setComboSelection(null); setRaycasterView('context') }, [])
   // A captured roof belongs to one symbol/broker; do not resurrect it on return.
@@ -135,8 +138,8 @@ export function FyodorTerminalShell() {
   if (!selectedCombo && raycasterView !== 'context') setRaycasterView('context')
   const inspector = useInspector({ symbol: activeSymbol, bars, timeframe, timeDisplay,
     detailOpen: bottomDockWindow === 'inspector',
-    clockOffsetMs: bridge.clockOffsetMs, brokerId: bridge.health?.mt5.account_server ?? null,
-    brokerOffsetSeconds: bridge.health?.calendar.server_utc_offset_seconds ?? 0 })
+    clockOffsetMs: 0, brokerId,
+    brokerOffsetSeconds: bridge.brokerOffsetSeconds })
   const quote = marketData.symbols.find((item) => item.symbol === activeSymbol) ?? null
   const latestBarTime = bars.length > 0 ? (bars[bars.length - 1].time as number) : 0
   const registeredArrows = useRegisteredArrows(activeSymbol)
@@ -159,19 +162,19 @@ export function FyodorTerminalShell() {
     appendActivity('Drawing', 'Drawing deleted', `${activeSymbol} ${timeframe}`)
   }, [activeSymbol, appendActivity, deleteDrawing, selectedDrawingId, timeframe])
 
-  const selectSymbol = (symbol: string) => {
+  const selectSymbol = useCallback((symbol: string) => {
     if (symbol === selectedSymbol) return
     setSelectedSymbol(symbol)
     setSelectedDrawingId(null)
     appendActivity('Market Watch', 'Symbol selected', symbol)
-  }
+  }, [selectedSymbol, appendActivity])
 
-  const selectTimeframe = (nextTimeframe: ChartTimeframe) => {
+  const selectTimeframe = useCallback((nextTimeframe: ChartTimeframe) => {
     if (nextTimeframe === timeframe) return
     setTimeframe(nextTimeframe)
     setSelectedDrawingId(null)
     appendActivity('Chart', 'Timeframe selected', `${activeSymbol} ${nextTimeframe}`)
-  }
+  }, [timeframe, activeSymbol, appendActivity])
 
   const recordChartData = useCallback(
     (barCount: number) => appendActivity('Chart', 'Candle data applied', `${activeSymbol} ${timeframe} Â· ${barCount} bars`),
@@ -254,7 +257,7 @@ export function FyodorTerminalShell() {
     setRaycasterVisible(current => { saveRaycasterVisible(!current); return !current })
     setActiveDrawingTool(null)
   }, [])
-  const brokerOffsetSeconds = bridge.health?.calendar.server_utc_offset_seconds ?? 0
+  const brokerOffsetSeconds = bridge.brokerOffsetSeconds
   const selectCombo = useCallback((combo: ComboSnapshot) => {
     setComboSelection({ combo, symbol: activeSymbol, broker: brokerId }); selectBottomDock('roofs')
   }, [activeSymbol, brokerId, selectBottomDock])
@@ -275,12 +278,12 @@ export function FyodorTerminalShell() {
   const contextVisible = raycasterVisible || !!selectedCombo || !!contextViews.ribbon || (roofsSupported && contextViews.roofs)
   const raycasterSupported = !!usdPair(activeSymbol)
   const raycaster = useMemo(() => contextVisible && raycasterSupported ?
-    { boxVisible: raycasterVisible, symbol: activeSymbol, timeframe, brokerId, brokerOffsetSeconds, clockOffsetMs: bridge.clockOffsetMs,
+    { boxVisible: raycasterVisible, symbol: activeSymbol, timeframe, brokerId, brokerOffsetSeconds, clockOffsetMs: 0,
       timeDisplay, onClose: closeRaycaster, bars: inspector.markerBars, markers: inspector.markers, onSelectCombo: selectCombo,
       selectedCombo, onClearCombo: closeCombo, view: raycasterView, onViewChange: setRaycasterView,
       onOpenComboSource: openComboRelease, currencyColors: inspectorPreferences.currencyColors } : null,
     [contextVisible, raycasterVisible, raycasterSupported, activeSymbol, timeframe, brokerId, brokerOffsetSeconds,
-      bridge.clockOffsetMs, timeDisplay, closeRaycaster, inspector.markerBars, inspector.markers, selectCombo, selectedCombo, closeCombo, openComboRelease, inspectorPreferences.currencyColors, raycasterView])
+      timeDisplay, closeRaycaster, inspector.markerBars, inspector.markers, selectCombo, selectedCombo, closeCombo, openComboRelease, inspectorPreferences.currencyColors, raycasterView])
   const renderChartOverlay = useTerminalChartOverlay({ arrows: registeredArrows.symbolArrows,
     selectedArrowId: registeredArrows.selectedArrowId, draftPlan: plannedTrade, onSelectArrow: selectChartArrow,
     supported: inspector.supported, markers: inspector.markers, currencyColors: inspector.preferences.currencyColors,
@@ -296,7 +299,7 @@ export function FyodorTerminalShell() {
     ? 'Bridge unreachable'
     : mt5Connected
       ? 'MT5 broker source'
-      : bridge.health?.mt5.process_running
+      : bridge.processRunning
         ? 'MT5 disconnected'
         : 'Waiting for MT5'
   return (
@@ -327,7 +330,6 @@ export function FyodorTerminalShell() {
             onToggleRaycaster={toggleRaycaster}
             brokerId={brokerId}
             brokerOffsetSeconds={brokerOffsetSeconds}
-            clockOffsetMs={bridge.clockOffsetMs}
             timeDisplay={timeDisplay}
           />
           <div className="chart-frame">
@@ -389,7 +391,7 @@ export function FyodorTerminalShell() {
         >
           {bottomDockWindow === 'notebook' && (
             <TraderNotebookPanel
-              contextScope={{ brokerId, brokerOffsetSeconds, clockOffsetMs: bridge.clockOffsetMs }}
+              contextScope={{ brokerId, brokerOffsetSeconds, clockOffsetMs: 0 }}
               selectedSymbol={activeSymbol}
               quote={quote}
               latestBarTime={latestBarTime}
@@ -413,24 +415,10 @@ export function FyodorTerminalShell() {
             />
           )}
           {bottomDockWindow === 'activity' && (
-            <ActivityLogPanel
-              entries={entries}
-              timeDisplay={timeDisplay}
-              onClear={clearActivity}
-              renderHeartbeat={(actions) => (
-                <DataHeartbeatPanel
-                  health={bridge.health}
-                  reachable={bridge.reachable}
-                  lastContactAt={bridge.lastContactAt}
-                  roundTripMs={bridge.roundTripMs}
-                  probeStartedAt={bridge.probeStartedAt}
-                  clockExtra={actions}
-                />
-              )}
-            />
+            <ActivityDock timeDisplay={timeDisplay} />
           )}
-          {bottomDockWindow === 'inspector' && <InspectorPanel view={inspector} symbol={activeSymbol}
-            source={bridge.health?.calendar ?? null} error={null} timeDisplay={timeDisplay}
+          {bottomDockWindow === 'inspector' && <InspectorDock view={inspector} symbol={activeSymbol}
+            timeDisplay={timeDisplay}
             scatterAvailable={!!scatterReleaseTarget(inspector.selectedRelease, inspector.brokerId, inspector.now)}
             onOpenScatter={openScatter} />}
           {bottomDockWindow === 'roofs' && (selectedCombo ? <ComboInspector combo={selectedCombo} symbol={activeSymbol}
@@ -439,22 +427,20 @@ export function FyodorTerminalShell() {
             onClose={() => selectBottomDock('inspector')} onOpenRelease={openComboRelease} /> :
             <section className="combo-inspector combo-empty" aria-label="Combo details"><header><strong>Roofs · Combo details</strong></header>
               <p>Select a roof label or a combo from More on the chart to inspect its weighted support and participating releases.</p></section>)}
-          {bottomDockWindow === 'scatter-plot' && <ScatterPlotDock brokerId={bridge.health?.mt5.account_server ?? null}
-            clockOffsetMs={bridge.clockOffsetMs} target={scatterTarget} />}
+          {bottomDockWindow === 'scatter-plot' && <ScatterPlotDock brokerId={brokerId} target={scatterTarget} />}
           {bottomDockWindow === 'alert' && <AlertDock brokerId={inspector.brokerId ?? null} preferences={inspector.preferences}
-            clockOffsetMs={bridge.clockOffsetMs} brokerOffsetSeconds={inspector.brokerOffsetSeconds}
+            brokerOffsetSeconds={inspector.brokerOffsetSeconds}
             timeDisplay={timeDisplay} supported={inspector.supported} />}
         </BottomDockPanel>
       )}
 
-      <TerminalStatusBar
+      <LiveTerminalStatusBar
         sourceState={sourceState}
         sourceLabel={sourceLabel}
         sourceSymbolCount={marketData.symbols.length}
         selectedSymbol={activeSymbol}
         timeframe={timeframe}
         barCount={bars.length}
-        activityCount={entries.length}
         bottomDockWindow={bottomDockWindow}
         settingsOpen={settingsOpen}
         timeDisplay={timeDisplay}

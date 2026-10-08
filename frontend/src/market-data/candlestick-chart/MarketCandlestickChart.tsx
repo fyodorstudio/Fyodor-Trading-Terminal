@@ -15,6 +15,7 @@ import type { DrawingToolId } from '../chart-drawings/drawing-tool'
 import type { ChartAppearance } from '../chart-settings/chart-appearance-preference'
 import type { ChartTimeframe } from '../contracts/ChartTimeframe'
 import type { OhlcBar } from '../contracts/OhlcBar'
+import { changedRecentBarStart } from '../mt5-feed/market-snapshots'
 import { lightweightChartOptions } from './lightweight-chart-options'
 import './market-candlestick-chart.css'
 
@@ -234,7 +235,8 @@ function MarketCandlestickChartComponent({
     if (
       prevBars.length > 0 &&
       bars[0]?.time === prevBars[0]?.time &&
-      (bars.length === prevBars.length || bars.length === prevBars.length + 1)
+      (bars.length === prevBars.length || bars.length === prevBars.length + 1) &&
+      (changedRecentBarStart(bars, prevBars) ?? -1) >= bars.length - 1
     ) {
       const latestBar = bars[bars.length - 1]
       series.update(latestBar)
@@ -257,6 +259,8 @@ function MarketCandlestickChartComponent({
 
   const isPanningRef = useRef(false)
   const lastClientYRef = useRef<number | null>(null)
+  const stopPanRef = useRef<(() => void) | null>(null)
+  useEffect(() => () => { stopPanRef.current?.() }, [])
 
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     historyPagingArmedRef.current = true
@@ -268,6 +272,7 @@ function MarketCandlestickChartComponent({
     // Do not intercept if clicking on the right price scale area
     if (event.clientX > rect.right - 55) return
 
+    stopPanRef.current?.()
     isPanningRef.current = true
     lastClientYRef.current = event.clientY
 
@@ -302,11 +307,13 @@ function MarketCandlestickChartComponent({
       window.removeEventListener('pointermove', onPointerMove)
       window.removeEventListener('pointerup', onPointerUp)
       window.removeEventListener('pointercancel', onPointerUp)
+      stopPanRef.current = null
     }
 
     window.addEventListener('pointermove', onPointerMove)
     window.addEventListener('pointerup', onPointerUp)
     window.addEventListener('pointercancel', onPointerUp)
+    stopPanRef.current = onPointerUp
   }
 
   const handleDoubleClick = () => {

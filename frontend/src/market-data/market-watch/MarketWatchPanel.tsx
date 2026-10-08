@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { memo, useMemo, useState } from 'react'
 import type { SymbolQuote } from '../contracts/SymbolQuote'
 import type { FeedStatus } from '../mt5-feed/use-mt5-market-data'
 import './market-watch-panel.css'
@@ -9,6 +9,7 @@ type MarketWatchPanelProps = {
   status: FeedStatus
   error: string | null
   onSelect: (symbol: string) => void
+  visible?: boolean
 }
 
 type MarketCategory = 'all' | 'majors' | 'crosses' | 'metals' | 'indices' | 'commodities' | 'crypto'
@@ -69,9 +70,19 @@ function formatPrice(value: number, precision: number) {
   return value.toFixed(precision)
 }
 
-export function MarketWatchPanel({ symbols, selectedSymbol, status, error, onSelect }: MarketWatchPanelProps) {
+export const MarketWatchPanel = memo(function MarketWatchPanel({ visible = true, ...props }: MarketWatchPanelProps) {
   const [query, setQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<MarketCategory>('all')
+  // Keep the controls' state mounted, but do no row/filter work while collapsed.
+  return visible ? <MarketWatchContents {...props} query={query} onQueryChange={setQuery}
+    selectedCategory={selectedCategory} onCategoryChange={setSelectedCategory} /> : null
+})
+
+function MarketWatchContents({ symbols, selectedSymbol, status, error, onSelect, query, onQueryChange,
+  selectedCategory, onCategoryChange }: MarketWatchPanelProps & {
+  query: string; onQueryChange: (query: string) => void
+  selectedCategory: MarketCategory; onCategoryChange: (category: MarketCategory) => void
+}) {
 
   const categoryCounts = useMemo(() => {
     const counts: Record<MarketCategory, number> = {
@@ -126,7 +137,7 @@ export function MarketWatchPanel({ symbols, selectedSymbol, status, error, onSel
         <span aria-hidden="true">⌕</span>
         <input
           value={query}
-          onChange={(event) => setQuery(event.target.value)}
+          onChange={(event) => onQueryChange(event.target.value)}
           placeholder="Search symbols"
           aria-label="Search symbols"
         />
@@ -141,7 +152,7 @@ export function MarketWatchPanel({ symbols, selectedSymbol, status, error, onSel
               role="tab"
               aria-selected={selectedCategory === cat}
               className={`market-watch-category-pill${selectedCategory === cat ? ' active' : ''}`}
-              onClick={() => setSelectedCategory(cat)}
+              onClick={() => onCategoryChange(cat)}
             >
               <span>{categoryLabels[cat]}</span>
               <small>{categoryCounts[cat]}</small>
@@ -163,33 +174,24 @@ export function MarketWatchPanel({ symbols, selectedSymbol, status, error, onSel
             <span>{status === 'loading' ? 'Loading MT5 Market Watch…' : error ?? 'Waiting for MT5 connection'}</span>
           </div>
         )}
-        {filteredSymbols.map((quote) => {
-          const selected = quote.symbol === selectedSymbol
-          const positive = quote.dailyChange >= 0
-
-          return (
-            <button
-              className={`market-watch-row${selected ? ' selected' : ''}`}
-              key={quote.symbol}
-              type="button"
-              role="option"
-              aria-selected={selected}
-              onClick={() => onSelect(quote.symbol)}
-            >
-              <span className="market-watch-identity">
-                <strong>{quote.symbol}</strong>
-                <small className={positive ? 'positive' : 'negative'}>
-                  {positive ? '+' : ''}{quote.dailyChange.toFixed(2)}%
-                </small>
-              </span>
-              <span>{formatPrice(quote.bid, quote.precision)}</span>
-              <span>{formatPrice(quote.ask, quote.precision)}</span>
-            </button>
-          )
-        })}
+        {filteredSymbols.map(quote => <MarketWatchRow key={quote.symbol} quote={quote}
+          selected={quote.symbol === selectedSymbol} onSelect={onSelect} />)}
 
         {filteredSymbols.length === 0 && symbols.length > 0 && <p className="market-watch-empty">No matching symbol</p>}
       </div>
     </aside>
   )
 }
+
+const MarketWatchRow = memo(function MarketWatchRow({ quote, selected, onSelect }: {
+  quote: SymbolQuote; selected: boolean; onSelect: (symbol: string) => void
+}) {
+  const positive = quote.dailyChange >= 0
+  return <button className={`market-watch-row${selected ? ' selected' : ''}`} type="button" role="option"
+    aria-selected={selected} onClick={() => onSelect(quote.symbol)}>
+    <span className="market-watch-identity"><strong>{quote.symbol}</strong>
+      <small className={positive ? 'positive' : 'negative'}>{positive ? '+' : ''}{quote.dailyChange.toFixed(2)}%</small>
+    </span>
+    <span>{formatPrice(quote.bid, quote.precision)}</span><span>{formatPrice(quote.ask, quote.precision)}</span>
+  </button>
+})

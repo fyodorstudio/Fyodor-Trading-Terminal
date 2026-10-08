@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { UTCTimestamp } from 'lightweight-charts'
 import { BridgeRequestError, bridgeRequest } from '../../system-connectivity/bridge-status/bridge-client'
-import { useActivityLog } from '../../system-observability/activity-log/use-activity-log'
+import { useActivityActions } from '../../system-observability/activity-log/use-activity-log'
+import { replaceRecentBars, retainSymbolQuotes } from './market-snapshots'
 import type { ChartTimeframe } from '../contracts/ChartTimeframe'
 import type { OhlcBar } from '../contracts/OhlcBar'
 import type { SymbolQuote } from '../contracts/SymbolQuote'
@@ -54,7 +55,6 @@ export type Mt5MarketData = {
   chartStatus: FeedStatus
   marketWatchError: string | null
   chartError: string | null
-  barsObservedAt: number | null
   chartHistoryLoading: boolean
   chartHistoryComplete: boolean
   requestOlderBars: () => void
@@ -77,27 +77,19 @@ function mergeBars(older: OhlcBar[], current: OhlcBar[]) {
   return [...byTime.values()].sort((left, right) => (left.time as number) - (right.time as number))
 }
 
-function barFingerprint(bars: OhlcBar[]) {
-  if (bars.length === 0) return 'empty'
-  return `${bars.length}:` + bars.slice(-3).map(
-    (bar) => `${bar.time}:${bar.open}:${bar.high}:${bar.low}:${bar.close}`,
-  ).join('|')
-}
-
 export function useMt5MarketData(
   connected: boolean,
   sourceGeneration: number,
   selectedSymbol: string,
   timeframe: ChartTimeframe,
 ): Mt5MarketData {
-  const { appendActivity } = useActivityLog()
+  const { appendActivity } = useActivityActions()
   const [symbols, setSymbols] = useState<SymbolQuote[]>([])
   const [bars, setBars] = useState<OhlcBar[]>([])
   const [marketWatchStatus, setMarketWatchStatus] = useState<FeedStatus>('waiting')
   const [chartStatus, setChartStatus] = useState<FeedStatus>('waiting')
   const [marketWatchError, setMarketWatchError] = useState<string | null>(null)
   const [chartError, setChartError] = useState<string | null>(null)
-  const [barsObservedAt, setBarsObservedAt] = useState<number | null>(null)
   const [marketGeneration, setMarketGeneration] = useState<number | null>(null)
   const [marketAttemptGeneration, setMarketAttemptGeneration] = useState<number | null>(null)
   const [chartDataKey, setChartDataKey] = useState<string | null>(null)
@@ -109,7 +101,6 @@ export function useMt5MarketData(
   const chartDataKeyRef = useRef<string | null>(null)
   const barsRef = useRef<OhlcBar[]>([])
   const lastFullFetchAtRef = useRef(0)
-  const fingerprintRef = useRef('empty')
   const historyRequestRef = useRef<() => void>(() => undefined)
   const requestOlderBars = useCallback(() => historyRequestRef.current(), [])
 
@@ -135,7 +126,7 @@ export function useMt5MarketData(
           dailyChange: symbol.daily_change,
           precision: symbol.precision,
         }))
-        setSymbols(nextSymbols)
+        setSymbols(current => retainSymbolQuotes(current, nextSymbols))
         setMarketGeneration(sourceGeneration)
         marketGenerationRef.current = sourceGeneration
         setMarketWatchStatus('live')
@@ -182,7 +173,6 @@ export function useMt5MarketData(
     let olderLoading = false
     let hasOlder = false
     let nextHistoryStart = 0
-    fingerprintRef.current = 'empty'
     chartWasLive.current = false
     lastFullFetchAtRef.current = 0
 
@@ -206,12 +196,8 @@ export function useMt5MarketData(
         ) return
         const receivedBars = toBars(response)
         const nextBars = mergeBars(receivedBars, barsRef.current)
-        const fingerprint = barFingerprint(nextBars)
-        if (fingerprint !== fingerprintRef.current) {
-          fingerprintRef.current = fingerprint
-          barsRef.current = nextBars
-          setBars(nextBars)
-        }
+        barsRef.current = nextBars
+        setBars(nextBars)
         nextHistoryStart = response.next_start_pos
         hasOlder = response.has_older
         setHistoryState({ key: requestedChartKey, loading: false, complete: !response.has_older })
@@ -251,13 +237,8 @@ export function useMt5MarketData(
         )
         if (disposed || response.symbol !== activeSymbol || response.timeframe !== timeframe || response.start_pos !== 0) return
         const receivedBars = toBars(response)
-        const firstReceivedTime = receivedBars[0]?.time
-        const nextBars = firstLoad || firstReceivedTime === undefined
-          ? receivedBars
-          : [...barsRef.current.filter((bar) => bar.time < firstReceivedTime), ...receivedBars]
-        const fingerprint = barFingerprint(nextBars)
-        if (fingerprint !== fingerprintRef.current) {
-          fingerprintRef.current = fingerprint
+        const nextBars = firstLoad ? receivedBars : replaceRecentBars(barsRef.current, receivedBars)
+        if (nextBars !== barsRef.current) {
           barsRef.current = nextBars
           setBars(nextBars)
         }
@@ -269,7 +250,6 @@ export function useMt5MarketData(
         if (firstLoad || reconciliation) lastFullFetchAtRef.current = Date.now()
         setChartDataKey(requestedChartKey)
         chartDataKeyRef.current = requestedChartKey
-        setBarsObservedAt(response.observed_at)
         setChartStatus('live')
         setChartError(null)
         if (!chartWasLive.current) {
@@ -314,7 +294,6 @@ export function useMt5MarketData(
     chartStatus: !connected ? 'waiting' : chartIsCurrent ? chartStatus : chartFailureIsCurrent ? 'unavailable' : 'loading',
     marketWatchError: connected ? marketWatchError : null,
     chartError: chartIsCurrent || chartFailureIsCurrent ? chartError : null,
-    barsObservedAt: chartIsCurrent ? barsObservedAt : null,
     chartHistoryLoading: chartIsCurrent && historyIsCurrent && historyState.loading,
     chartHistoryComplete: chartIsCurrent && historyIsCurrent && historyState.complete,
     requestOlderBars,

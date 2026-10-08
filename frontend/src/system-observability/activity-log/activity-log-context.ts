@@ -12,4 +12,6 @@ export type ActivityLogState = {
   clearActivity: () => void
 }
 
-export const ActivityLogContext = createContext<ActivityLogState | null>(null)
+export type ActivityLogActions = Pick<ActivityLogState, 'appendActivity' | 'clearActivity'>
+export const ActivityLogActionsContext = createContext<ActivityLogActions | null>(null)
+export const ActivityLogEntriesContext = createContext<ActivityLogEntry[] | null>(null)

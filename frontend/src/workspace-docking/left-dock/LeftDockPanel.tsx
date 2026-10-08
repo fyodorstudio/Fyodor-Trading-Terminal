@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import type { SymbolQuote } from '../../market-data/contracts/SymbolQuote'
 import { MarketWatchPanel } from '../../market-data/market-watch/MarketWatchPanel'
 import type { FeedStatus } from '../../market-data/mt5-feed/use-mt5-market-data'
@@ -13,7 +14,7 @@ type LeftDockPanelProps = {
   onSelectSymbol: (symbol: string) => void
 }
 
-export function LeftDockPanel({ marketWatch, symbols, selectedSymbol, marketWatchStatus,
+function LeftDockPanelComponent({ marketWatch, symbols, selectedSymbol, marketWatchStatus,
   marketWatchError, onSelectSymbol }: LeftDockPanelProps) {
   const { collapsed, contentId, toggle } = marketWatch
   return <aside className={`left-dock${collapsed ? ' collapsed' : ''}`} hidden={collapsed} aria-label="Market Watch dock">
@@ -25,7 +26,8 @@ export function LeftDockPanel({ marketWatch, symbols, selectedSymbol, marketWatc
     </header>
     <div id={contentId} className="left-dock-content" hidden={collapsed}>
       <MarketWatchPanel symbols={symbols} selectedSymbol={selectedSymbol}
-        status={marketWatchStatus} error={marketWatchError} onSelect={onSelectSymbol} />
+        status={marketWatchStatus} error={marketWatchError} onSelect={onSelectSymbol} visible={!collapsed} />
     </div>
   </aside>
 }
+export const LeftDockPanel = memo(LeftDockPanelComponent)

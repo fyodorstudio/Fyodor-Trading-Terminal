@@ -5,7 +5,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { ActivityLogContext } from './activity-log-context'
+import { ActivityLogActionsContext, ActivityLogEntriesContext } from './activity-log-context'
 import type { AppendActivityOptions } from './activity-log-context'
 import type { ActivityLogEntry, ActivitySource } from './activity-log-entry'
 
@@ -50,13 +50,15 @@ export function ActivityLogProvider({ children }: { children: ReactNode }) {
 
   const clearActivity = useCallback(() => setEntries([]), [])
   const value = useMemo(
-    () => ({ entries, appendActivity, clearActivity }),
-    [appendActivity, clearActivity, entries],
+    () => ({ appendActivity, clearActivity }),
+    [appendActivity, clearActivity],
   )
 
   return (
-    <ActivityLogContext.Provider value={value}>
-      {children}
-    </ActivityLogContext.Provider>
+    <ActivityLogActionsContext.Provider value={value}>
+      <ActivityLogEntriesContext.Provider value={entries}>
+        {children}
+      </ActivityLogEntriesContext.Provider>
+    </ActivityLogActionsContext.Provider>
   )
 }

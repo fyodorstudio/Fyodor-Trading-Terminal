@@ -120,3 +120,71 @@ suites pass sequentially; lint and TypeScript/production build pass. The full
 Manual check remains pending: pan with Activity open and a populated log, and
 watch whether the Checking transition still pauses the chart. Broader Inspector
 or Raycaster lag remains unproven by this scoped result.
+
+## Follow-up — Terminal update isolation, 8 October 2026
+
+The repeated Checking pause was inspected again before implementation. A mounted
+shell diagnostic reproduced unrelated Market Watch rendering from probe starts,
+identical quotes, observation timestamps and Activity appends. Small clock
+corrections also changed the chart-overlay callback. The previous Activity-row
+optimization remained intact; its isolated regression could not detect these
+broader paths. An unchanged three-candle poll with 50,800 loaded candles still
+visited all 50,800 timestamps before retaining the snapshot.
+
+Bridge polling now lives in `BridgeStatusProvider`. The workspace subscribes only
+to meaningful connection/broker/generation fields; Activity heartbeat consumers
+receive full probe, latency and operation telemetry locally. Corrected UTC has a
+stable subscription source: small corrections update clock samples at their
+existing tick, and corrections of at least one second still apply immediately.
+Standalone clocks outside the provider retain their explicit offset behavior.
+Polling cadence, timeout and recovery behavior remain unchanged.
+
+Activity entries and logging actions have separate contexts. The Activity dock
+and status count own their entry subscriptions; producers and the workspace do
+not subscribe to the list. Market Watch callbacks/dock state are stable,
+unchanged quote objects and arrays are retained, and individual rows are memoized.
+Collapsed Market Watch retains its search/category state without mounting the
+expensive contents. The unused candle observation state is removed.
+
+Recent candle windows find their boundary by binary lookup and compare only the
+returned window. Equivalent replies retain the original snapshot. Real updates
+retain unchanged row objects. The old three-candle fingerprint is removed: an
+interior correction in an 800-candle reconciliation is no longer ignored. Compact
+weak metadata identifies changes relative to the exact preceding snapshot;
+metadata does not retain chains of full histories. The chart uses its existing
+latest-candle update path only when just the latest candle changes. Corrections
+to older candles, including a previous close alongside a newly opened candle,
+use full data application with range preservation. Active chart drag listeners
+are also released on unmount or replacement by another drag.
+
+Root `AGENTS.md` records these responsiveness rules and the user's preference for
+terminal verification. Two new suites are registered in the existing serial test
+runner and therefore the existing CI `pnpm test` job:
+
+- `test_market_snapshots.mjs`: an unchanged three-candle reply with 100,000 loaded
+  candles reads 19 timestamps; changed prices, append/gaps/removals, interior
+  reconciliation corrections, quote fields/order/removals and retained identities.
+- `test_terminal_responsiveness.mjs`: production shell, polling, chart and overlays
+  mounted together, with 200 quotes and 200 Activity entries. Only network,
+  worker ports and the external canvas library are faked. Checking, unchanged
+  replies and Activity appends make no quote-row, chart or worker updates. Real
+  quote/price changes, historical corrections, UTC sampling, pan overlap,
+  outage/timeout/recovery, broker changes, exact publication admission and timer,
+  frame/subscription/active-drag cleanup are checked, including development
+  StrictMode effect replay.
+
+These are deterministic work-count and behavior regressions, not browser FPS
+measurements. Remaining user check: pan with Activity open through Checking,
+with Market Watch both visible and collapsed; verify the familiar controls and
+price/history placement still behave normally. Numerical scoring rules, versions,
+budgets and workers are unchanged.
+
+Final verification: `pnpm test` passed all 62 frontend suites and all 27 storage
+tests. The integrated terminal suite passed again after its final test-setup
+cleanup and additional StrictMode lifecycle check. `pnpm lint` passes without
+warnings; `pnpm build` passes TypeScript and production bundling (the existing
+large-chunk advisory remains). All 360 source TS/TSX modules are reachable from
+the production entry, including worker URL entries; none are orphaned. Scoring
+worker bundle names/hashes and the stylesheet bundle hash are unchanged.
+`git diff --check` passes. No live UI audit, dataset write, commit or deployment
+was performed in this pass.
