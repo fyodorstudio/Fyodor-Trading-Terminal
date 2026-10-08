@@ -16,6 +16,7 @@ function isDrawingRecord(value: unknown): value is ChartDrawingRecord {
         point &&
         typeof point === 'object' &&
         typeof point.time === 'number' &&
+        Number.isFinite(point.time) &&
         typeof point.price === 'number' &&
         Number.isFinite(point.price),
     )

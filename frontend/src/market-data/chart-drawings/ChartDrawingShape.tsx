@@ -140,6 +140,7 @@ export function ChartDrawingShape({ drawing, points, width, height, precision = 
       if (!start || !end || !oppositeStart || !oppositeEnd) return null
       return (
         <g className="drawing-stroke">
+          <polygon className="drawing-body-hit-area" points={[start, end, oppositeEnd, oppositeStart].map(point => `${point.x},${point.y}`).join(' ')} />
           <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} />
           <line x1={oppositeStart.x} y1={oppositeStart.y} x2={oppositeEnd.x} y2={oppositeEnd.y} />
           <line x1={start.x} y1={start.y} x2={oppositeStart.x} y2={oppositeStart.y} />
@@ -163,7 +164,7 @@ export function ChartDrawingShape({ drawing, points, width, height, precision = 
             width={Math.max(50, ((drawing.text?.length ?? 4) + 1) * 9)}
             height={24}
             fill="transparent"
-            className="drawing-hit-area"
+            className="drawing-body-hit-area"
           />
           <text className="drawing-text" x={first.x + 5} y={first.y - 6}>
             {drawing.text && drawing.text.trim() !== '' ? drawing.text : 'Text'}
@@ -173,6 +174,7 @@ export function ChartDrawingShape({ drawing, points, width, height, precision = 
     case 'price-note':
       return (
         <g>
+          <rect className="drawing-body-hit-area" x={first.x - 12} y={first.y - 12} width={Math.max(60, first.price.toFixed(precision).length * 7 + 20)} height={24} />
           <circle className="drawing-note-dot" cx={first.x} cy={first.y} r={3} />
           <text className="drawing-note" x={first.x + 7} y={first.y + 4}>{first.price.toFixed(precision)}</text>
         </g>
@@ -184,6 +186,7 @@ export function ChartDrawingShape({ drawing, points, width, height, precision = 
       const ratios = [0, 0.236, 0.382, 0.5, 0.618, 1]
       return (
         <g>
+          <rect className="drawing-body-hit-area" x={left} y={top} width={shapeWidth} height={shapeHeight} />
           {ratios.map((ratio) => {
             const y = first.y + (last.y - first.y) * ratio
             return (

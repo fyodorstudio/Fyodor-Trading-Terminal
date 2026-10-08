@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
-import type { IChartApi, ISeriesApi, Logical, Time } from 'lightweight-charts'
+import { useEffect, useId, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import type { IChartApi, ISeriesApi, Time } from 'lightweight-charts'
 import type { ChartTimeframe } from '../contracts/ChartTimeframe'
 import { ChartDrawingShape } from './ChartDrawingShape'
 import { ChartDrawingSelectionHandles, type DrawingHandleKind } from './ChartDrawingSelectionHandles'
@@ -9,6 +9,7 @@ import { drawingTools, type DrawingToolId } from './drawing-tool'
 import { normalizeDrawingPoints } from './position-drawing-geometry'
 import { defaultChannelOffset, editParallelChannel } from './parallel-channel-geometry'
 import { useDrawingViewport } from './useDrawingViewport'
+import { drawingCoordinates, emptyDrawingTimeline, type DrawingTimeline } from './drawing-coordinates'
 import './chart-drawing-overlay.css'
 
 type ChartDrawingOverlayProps = {
@@ -17,6 +18,7 @@ type ChartDrawingOverlayProps = {
   activeTool: DrawingToolId | null
   drawings: ChartDrawingRecord[]
   selectedDrawingId: string | null
+  bars?: DrawingTimeline
   timeframe?: ChartTimeframe
   precision?: number
   onSelectDrawing: (drawingId: string | null) => void
@@ -38,6 +40,13 @@ type EditingHandle = {
   initialPoints?: ChartDrawingPoint[]
   startLogical?: number
   initialLogicals?: (number | null)[]
+  originalPoints?: ChartDrawingPoint[]
+  startX: number
+  startY: number
+  moved: boolean
+  captureTarget: Element
+  pointerId: number
+  tool: DrawingToolId
 }
 
 type InlineTextEditorProps = {
@@ -87,6 +96,7 @@ export function ChartDrawingOverlay({
   activeTool,
   drawings,
   selectedDrawingId,
+  bars = emptyDrawingTimeline,
   timeframe,
   precision = 5,
   onSelectDrawing,
@@ -103,8 +113,11 @@ export function ChartDrawingOverlay({
   const dragDraftRef = useRef<ChartDrawingPoint[]>([])
   const pathPointsRef = useRef<ChartDrawingPoint[]>([])
   const editingHandleRef = useRef<EditingHandle | null>(null)
+  const cancelRef = useRef<() => void>(() => {})
   const [draft, setDraft] = useState<ChartDrawingPoint[]>([])
-  const viewport = useDrawingViewport(chartApi, overlayRef)
+  const viewport = useDrawingViewport(chartApi, seriesApi, overlayRef)
+  const clipId = useId()
+  const coordinates = drawingCoordinates(chartApi, seriesApi, bars, timeframe)
   const [editingTextId, setEditingTextId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -123,27 +136,29 @@ export function ChartDrawingOverlay({
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [onDeleteSelectedDrawing, selectedDrawingId])
 
-  const eventToDataPoint = (event: ReactPointerEvent<Element>) => {
+  const eventPosition = (event: ReactPointerEvent<Element>) => {
     const overlay = overlayRef.current
     const rectangle = overlay ? overlay.getBoundingClientRect() : event.currentTarget.getBoundingClientRect()
     const x = event.clientX - rectangle.left
     const y = event.clientY - rectangle.top
-    const time = chartApi.timeScale().coordinateToTime(x)
-    const price = seriesApi.coordinateToPrice(y)
-    if (typeof time !== 'number' || price === null) return null
-    return { time, price } as ChartDrawingPoint
+    return { x, y }
+  }
+
+  const eventToDataPoint = (event: ReactPointerEvent<Element>) => {
+    const { x, y } = eventPosition(event)
+    return coordinates.pointAt(x, y)
   }
 
   const toScreenPoints = (drawing: ChartDrawingRecord) => {
-    const timeScale = chartApi.timeScale()
-    const points = drawing.points.map((point) => {
-      let x = timeScale.timeToCoordinate(point.time as unknown as Time)
-      if (x === null) {
-        const index = timeScale.timeToIndex(point.time as unknown as Time, true)
-        if (index !== null) {
-          x = timeScale.logicalToCoordinate(index as unknown as Logical)
-        }
-      }
+    const xs = drawing.points.map(point => coordinates.timeToX(point.time))
+    if (xs.some(x => x === null)) return []
+    // Skip price projection for shapes entirely outside the horizontal pane.
+    // Horizontal lines span the pane independently of their saved timestamp.
+    const padding = drawing.tool.includes('position') ? 320 : drawing.tool === 'text' ? 220 : 24
+    if (drawing.tool !== 'horizontal-line' && viewport.width > 0
+      && (Math.max(...xs as number[]) < -padding || Math.min(...xs as number[]) > viewport.width + padding)) return []
+    const points = drawing.points.map((point, index) => {
+      const x = xs[index]
       const y = seriesApi.priceToCoordinate(point.price)
       return x === null || y === null ? null : { x, y, price: point.price }
     })
@@ -176,6 +191,8 @@ export function ChartDrawingOverlay({
 
   const startInteraction = (event: ReactPointerEvent<SVGSVGElement>) => {
     if (event.button !== 0 || !activeTool || editingHandleRef.current) return
+    const { x, y } = eventPosition(event)
+    if (viewport.width > 0 && (x < 0 || y < 0 || x > viewport.width || y > viewport.height)) return
     const point = eventToDataPoint(event)
     if (!point) return
     const tool = drawingTools.find((candidate) => candidate.id === activeTool)
@@ -207,39 +224,56 @@ export function ChartDrawingOverlay({
   ): ChartDrawingPoint[] | null => {
     if (!editing.startPoint || !editing.initialPoints) return null
     const deltaPrice = point.price - editing.startPoint.price
+    const deltaTime = point.time - editing.startPoint.time
 
-    const overlay = overlayRef.current
-    const timeScale = chartApi.timeScale()
-    const currentX = overlay ? event.clientX - overlay.getBoundingClientRect().left : 0
-    const currentLogical = timeScale.coordinateToLogical(currentX)
+    const currentLogical = coordinates.xToLogical(eventPosition(event).x)
 
     if (currentLogical !== null && editing.startLogical !== undefined && editing.initialLogicals) {
-      const deltaLogical = Math.round(currentLogical - editing.startLogical)
+      const deltaLogical = currentLogical - editing.startLogical
       return editing.initialPoints.map((p, idx) => {
         const initLogical = editing.initialLogicals?.[idx]
-        let newTime = p.time
+        let newTime = (p.time + deltaTime) as ChartDrawingPoint['time']
         if (initLogical !== null && initLogical !== undefined) {
-          const targetLogical = initLogical + deltaLogical
-          const coord = timeScale.logicalToCoordinate(targetLogical as unknown as Logical)
-          if (coord !== null) {
-            const t = timeScale.coordinateToTime(coord)
-            if (typeof t === 'number') {
-              newTime = t as ChartDrawingPoint['time']
-            }
-          }
+          newTime = coordinates.logicalToTime(initLogical + deltaLogical) ?? newTime
         }
         return {
-          time: newTime,
-          price: p.price + deltaPrice,
+          time: editing.tool === 'horizontal-line' ? p.time : newTime,
+          price: editing.tool === 'vertical-line' ? p.price : p.price + deltaPrice,
         }
       })
     }
 
-    const deltaTime = point.time - editing.startPoint.time
     return editing.initialPoints.map((p) => ({
-      time: (p.time + deltaTime) as ChartDrawingPoint['time'],
-      price: p.price + deltaPrice,
+      time: editing.tool === 'horizontal-line' ? p.time : (p.time + deltaTime) as ChartDrawingPoint['time'],
+      price: editing.tool === 'vertical-line' ? p.price : p.price + deltaPrice,
     }))
+  }
+
+  const updateEdit = (editing: EditingHandle, point: ChartDrawingPoint, event: ReactPointerEvent<SVGSVGElement>, persist: boolean) => {
+    if (!editing.startPoint || !editing.initialPoints) return
+    const { x, y } = eventPosition(event)
+    if (!editing.moved && Math.hypot(x - editing.startX, y - editing.startY) < 3) return
+    editing.moved = true
+    const shifted = calcShiftedPoints(editing, point, event)
+    if (!shifted) return
+    const original = editing.initialPoints[editing.pointIndex]
+    const moved = shifted[editing.pointIndex]
+    if (editing.kind === 'channel-corner') {
+      const channelPoint = moved ?? point
+      const points = editParallelChannel(editing.initialPoints, editing.pointIndex, channelPoint, point.price - editing.startPoint.price)
+      onUpdateDrawingPoints?.(editing.drawingId, points, persist)
+    } else if (editing.kind === 'move-all' || editing.kind === 'position-move-all') {
+      onUpdateDrawingPoints?.(editing.drawingId, shifted, persist)
+    } else if (editing.kind === 'position-width' && moved) {
+      onUpdatePositionWidth(editing.drawingId, moved.time, persist)
+    } else if (original && moved) {
+      const tool = editing.tool
+      const priceOnly = editing.kind === 'position-price' || editing.kind === 'position-entry-price' || tool === 'horizontal-line'
+      onUpdateDrawingPoint(editing.drawingId, editing.pointIndex, {
+        time: priceOnly ? original.time : moved.time,
+        price: tool === 'vertical-line' ? original.price : moved.price,
+      }, persist)
+    }
   }
 
   const continueInteraction = (event: ReactPointerEvent<SVGSVGElement>) => {
@@ -248,22 +282,7 @@ export function ChartDrawingOverlay({
 
     const editing = editingHandleRef.current
     if (editing) {
-      if (editing.kind === 'channel-corner') {
-        updateChannelCorner(editing, point, false)
-      } else if (editing.kind === 'position-move-all') {
-        if (onUpdateDrawingPoints) {
-          const shifted = calcShiftedPoints(editing, point, event)
-          if (shifted) onUpdateDrawingPoints(editing.drawingId, shifted, false)
-        }
-      } else if (editing.kind === 'position-width') {
-        onUpdatePositionWidth(editing.drawingId, point.time, false)
-      } else if (editing.kind === 'position-price' || editing.kind === 'position-entry-price') {
-        const drawing = drawings.find((candidate) => candidate.id === editing.drawingId)
-        const original = drawing?.points[editing.pointIndex]
-        if (original) onUpdateDrawingPoint(editing.drawingId, editing.pointIndex, { time: original.time, price: point.price }, false)
-      } else {
-        onUpdateDrawingPoint(editing.drawingId, editing.pointIndex, point, false)
-      }
+      updateEdit(editing, point, event, false)
       return
     }
 
@@ -281,25 +300,10 @@ export function ChartDrawingOverlay({
     const point = eventToDataPoint(event)
     const editing = editingHandleRef.current
     if (editing) {
-      if (point) {
-        if (editing.kind === 'channel-corner') {
-          updateChannelCorner(editing, point, true)
-        } else if (editing.kind === 'position-move-all') {
-          if (onUpdateDrawingPoints) {
-            const shifted = calcShiftedPoints(editing, point, event)
-            if (shifted) onUpdateDrawingPoints(editing.drawingId, shifted, true)
-          }
-        } else if (editing.kind === 'position-width') {
-          onUpdatePositionWidth(editing.drawingId, point.time, true)
-        } else if (editing.kind === 'position-price' || editing.kind === 'position-entry-price') {
-          const drawing = drawings.find((candidate) => candidate.id === editing.drawingId)
-          const original = drawing?.points[editing.pointIndex]
-          if (original) onUpdateDrawingPoint(editing.drawingId, editing.pointIndex, { time: original.time, price: point.price }, true)
-        } else {
-          onUpdateDrawingPoint(editing.drawingId, editing.pointIndex, point, true)
-        }
-      }
+      if (point) updateEdit(editing, point, event, true)
+      else if (editing.moved && editing.originalPoints) onUpdateDrawingPoints?.(editing.drawingId, editing.originalPoints, false)
       editingHandleRef.current = null
+      releaseCapture(editing)
       return
     }
 
@@ -309,7 +313,12 @@ export function ChartDrawingOverlay({
   }
 
   const cancelInteraction = () => {
+    const editing = editingHandleRef.current
     editingHandleRef.current = null
+    if (editing) {
+      if (editing.moved && editing.originalPoints) onUpdateDrawingPoints?.(editing.drawingId, editing.originalPoints, false)
+      releaseCapture(editing)
+    }
     dragDraftRef.current = []
     setDraft(pathPointsRef.current)
   }
@@ -324,12 +333,12 @@ export function ChartDrawingOverlay({
       resetDraft()
       onSelectDrawing(null)
     }
-    editingHandleRef.current = null
+    cancelInteraction()
     onExitDrawingMode()
   }
 
   const startHandleEdit = (
-    event: ReactPointerEvent<SVGCircleElement | SVGRectElement>,
+    event: ReactPointerEvent<SVGElement>,
     drawingId: string,
     pointIndex: number,
     kind: DrawingHandleKind = 'point',
@@ -337,37 +346,53 @@ export function ChartDrawingOverlay({
     if (event.button !== 0) return
     event.preventDefault()
     event.stopPropagation()
-    event.currentTarget.setPointerCapture(event.pointerId)
     const drawing = drawings.find((candidate) => candidate.id === drawingId)
     const point = eventToDataPoint(event)
+    if (!drawing || !point) return
+    const captureTarget = overlayRef.current?.setPointerCapture ? overlayRef.current : event.currentTarget
+    captureTarget.setPointerCapture?.(event.pointerId)
 
-    const overlay = overlayRef.current
-    const timeScale = chartApi.timeScale()
-    const currentX = overlay ? event.clientX - overlay.getBoundingClientRect().left : 0
-    const startLogical = timeScale.coordinateToLogical(currentX)
-    const initialLogicals = drawing
-      ? drawing.points.map((p) => timeScale.timeToIndex(p.time as unknown as Time, true))
-      : undefined
+    const { x, y } = eventPosition(event)
+    const startLogical = coordinates.xToLogical(x)
+    const initialPoints = drawing.tool === 'parallel-channel' ? withChannelAnchor(drawing.points) : drawing.points
+    const initialLogicals = initialPoints.map(p => coordinates.timeToLogical(p.time))
 
     editingHandleRef.current = {
       drawingId,
       pointIndex,
       kind,
       startPoint: point ?? undefined,
-      initialPoints: drawing ? (kind === 'channel-corner' ? withChannelAnchor(drawing.points) : [...drawing.points]) : undefined,
+      initialPoints,
+      originalPoints: drawing.points,
       startLogical: startLogical !== null ? startLogical : undefined,
       initialLogicals,
+      startX: x,
+      startY: y,
+      moved: false,
+      captureTarget,
+      pointerId: event.pointerId,
+      tool: drawing.tool,
     }
     onSelectDrawing(drawingId)
   }
 
-  const updateChannelCorner = (editing: EditingHandle, point: ChartDrawingPoint, persist: boolean) => {
-    if (!editing.initialPoints || !editing.startPoint || !onUpdateDrawingPoints) return
-    const points = editParallelChannel(
-      editing.initialPoints, editing.pointIndex, point, point.price - editing.startPoint.price,
-    )
-    onUpdateDrawingPoints(editing.drawingId, points, persist)
+  const releaseCapture = (editing: EditingHandle) => {
+    if (editing.captureTarget.hasPointerCapture?.(editing.pointerId)) editing.captureTarget.releasePointerCapture(editing.pointerId)
   }
+
+  useEffect(() => () => {
+    if (editingHandleRef.current) releaseCapture(editingHandleRef.current)
+  }, [])
+
+  useEffect(() => { cancelRef.current = cancelInteraction })
+
+  useEffect(() => {
+    const cancel = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && editingHandleRef.current) cancelRef.current()
+    }
+    window.addEventListener('keydown', cancel)
+    return () => window.removeEventListener('keydown', cancel)
+  }, [])
 
   const normalizedDraft = activeTool ? normalizeDrawingPoints(activeTool, draft, timeframe) : draft
   const draftDrawing: ChartDrawingRecord | null = activeTool && normalizedDraft.length > 0
@@ -382,14 +407,17 @@ export function ChartDrawingOverlay({
       onPointerMove={continueInteraction}
       onPointerUp={finishInteraction}
       onPointerCancel={cancelInteraction}
+      onLostPointerCapture={cancelInteraction}
       onContextMenu={handleContextMenu}
       aria-label={activeTool ? `Draw with ${activeTool}` : 'Saved chart drawings'}
     >
       <defs>
+        <clipPath id={clipId}><rect width={viewport.width || '100%'} height={viewport.height || '100%'} /></clipPath>
         <marker id="drawing-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
           <path d="M0,0 L8,4 L0,8 Z" className="drawing-arrow-head" />
         </marker>
       </defs>
+      <g clipPath={`url(#${clipId})`}>
       {drawings.map((drawing) => {
         const screenPoints = toScreenPoints(drawing)
         const selected = drawing.id === selectedDrawingId
@@ -400,7 +428,8 @@ export function ChartDrawingOverlay({
             onPointerDown={(event) => {
               if (activeTool || event.button !== 0) return
               event.stopPropagation()
-              onSelectDrawing(drawing.id)
+              if (selected) startHandleEdit(event, drawing.id, 0, 'move-all')
+              else onSelectDrawing(drawing.id)
             }}
             onDoubleClick={(event) => {
               if (drawing.tool === 'text') {
@@ -470,6 +499,7 @@ export function ChartDrawingOverlay({
           })()}
         </g>
       )}
+      </g>
     </svg>
   )
 }

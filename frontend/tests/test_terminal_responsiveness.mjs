@@ -32,6 +32,15 @@ dom.cancelAnimationFrame = id => frames.delete(id)
 localStorage.setItem('fyodor.raycaster.visible.v1', 'true')
 localStorage.setItem('fyodor.context-sequences.v1', JSON.stringify({ roofs: true, fresh: true, ribbon: true, density: 'concise' }))
 localStorage.setItem('fyodor.time-display.v1', JSON.stringify({ mode: 'utc', utcOffsetMinutes: 0 }))
+localStorage.setItem('fyodor.chart-drawings.v1', JSON.stringify([{ id: 'drawing', symbol: 'EURUSD', timeframe: 'H1', tool: 'parallel-channel',
+  points: [{ time: now / 1000 - 5 * 3600, price: 1.1 }, { time: now / 1000 - 3 * 3600, price: 1.2 },
+    { time: now / 1000 - 5 * 3600, price: 1 }], createdAt: 1 }]))
+const primitives = new Set(), captures = new Set(), pointerPrices = []
+let priceShift = 0, priceRange = { from: 1, to: 2 }
+dom.SVGElement.prototype.setPointerCapture = id => captures.add(id)
+dom.SVGElement.prototype.hasPointerCapture = id => captures.has(id)
+dom.SVGElement.prototype.releasePointerCapture = id => captures.delete(id)
+const drawChartFrame = () => { for (const primitive of primitives) for (const view of primitive.paneViews()) view.renderer().draw() }
 
 const counters = {}, clocks = [], workerInputs = [], rangeListeners = new Set(), sizeListeners = new Set(), hoverListeners = new Set(), clickListeners = new Set()
 const count = name => { counters[name] = (counters[name] ?? 0) + 1 }
@@ -41,7 +50,8 @@ const scale = {
   width: () => 900, options: () => ({ barSpacing: 80 }), getVisibleRange: () => range,
   getVisibleLogicalRange: () => logicalRange,
   timeToCoordinate: time => (Number(time) - Number(range.from)) / 3600 * 80,
-  timeToIndex: time => plotted.findIndex(bar => bar.time === time), logicalToCoordinate: index => index * 80,
+  timeToIndex: time => plotted.findIndex(bar => bar.time === time), logicalToCoordinate: index => (index - logicalRange.from) * 80,
+  coordinateToLogical: x => Math.ceil(x / 80 + logicalRange.from),
   subscribeVisibleLogicalRangeChange: fn => rangeListeners.add(fn), unsubscribeVisibleLogicalRangeChange: fn => rangeListeners.delete(fn),
   subscribeSizeChange: fn => sizeListeners.add(fn), unsubscribeSizeChange: fn => sizeListeners.delete(fn),
   setVisibleLogicalRange: next => { logicalRange = next }, setVisibleRange: next => { range = next }, fitContent: () => {},
@@ -49,10 +59,12 @@ const scale = {
 const series = { applyOptions: () => {},
   setData: bars => { count('setData'); plotted = [...bars] },
   update: bar => { count('update'); if (plotted.at(-1)?.time === bar.time) plotted[plotted.length - 1] = bar; else plotted.push(bar) },
-  priceToCoordinate: price => price * 100, coordinateToPrice: coordinate => coordinate / 100,
+  priceToCoordinate: price => price * 100 + priceShift, coordinateToPrice: coordinate => { pointerPrices.push(coordinate); return (coordinate - priceShift) / 100 },
+  attachPrimitive: primitive => primitives.add(primitive), detachPrimitive: primitive => primitives.delete(primitive),
   createPriceLine: () => ({}), removePriceLine: () => {},
 }
-const priceScale = { applyOptions: () => {}, getVisibleRange: () => ({ from: 1, to: 2 }), setVisibleRange: () => {} }
+const priceScale = { applyOptions: () => {}, getVisibleRange: () => priceRange,
+  setVisibleRange: next => { priceRange = next; priceShift = (1 - next.from) * 100 } }
 const chart = { addSeries: () => series, timeScale: () => scale, priceScale: () => priceScale,
   applyOptions: () => count('chartOptions'), paneSize: () => ({ width: 900, height: 420 }),
   subscribeCrosshairMove: fn => hoverListeners.add(fn), unsubscribeCrosshairMove: fn => hoverListeners.delete(fn),
@@ -164,6 +176,39 @@ try {
   assert.equal(plotted.length, 800)
   assert.ok(workerInputs.length > 0, 'Production context calculation has actually run')
   assert.ok(workerInputs.every(input => input.asOf < events.at(-1).release_at), 'Future publication has not been admitted')
+  // Exercise drawing selection, body drag and blank-space deselection through
+  // the assembled terminal, including chart navigation and the shared storage.
+  const drawing = () => container.querySelector('.drawing-object')
+  const drawingSvg = () => container.querySelector('.chart-drawing-overlay')
+  const canvasForDrawing = container.querySelector('.market-chart-canvas')
+  canvasForDrawing.getBoundingClientRect = () => ({ top: 200, left: 0, right: 900 })
+  drawingSvg().getBoundingClientRect = () => ({ top: 200, left: 0 })
+  async function pointer(element, type, x, y) {
+    await React.act(async () => element.dispatchEvent(new dom.PointerEvent(type, { bubbles: true, button: 0, pointerId: 1, clientX: x, clientY: y })))
+  }
+  await pointer(drawing(), 'pointerdown', 400, 310)
+  assert.ok(drawing().classList.contains('selected'), 'The terminal selects a saved channel')
+  await pointer(drawing(), 'pointerdown', 400, 310)
+  await pointer(drawingSvg(), 'pointermove', 440, 315)
+  await pointer(drawingSvg(), 'pointerup', 440, 315)
+  assert.equal(captures.size, 0)
+  const dragged = JSON.parse(localStorage.getItem('fyodor.chart-drawings.v1'))[0]
+  assert.equal(dragged.points[0].time, now / 1000 - 5 * 3600 + 1800, 'Fractional body movement is persisted through terminal callbacks')
+  assert.ok(Math.abs(dragged.points[0].price - 1.15) < 1e-9)
+  assert.equal([...panListeners.values()].reduce((sum, listeners) => sum + listeners.size, 0), 0, 'Dragging drawings does not start chart panning')
+  await pointer(canvasForDrawing, 'pointerdown', 100, 300)
+  assert.ok(!drawing().classList.contains('selected'), 'Clicking blank chart space deselects drawings through the host capture handler')
+  pointerPrices.length = 0
+  const priorY = Number(drawing().querySelector('line').getAttribute('y1'))
+  const postsBeforeDrawingPan = workerInputs.length
+  await pointer(window, 'pointermove', 100, 315)
+  assert.deepEqual(pointerPrices, [100, 115], 'Vertical pan converts client coordinates to chart-local coordinates')
+  await React.act(async () => drawChartFrame())
+  assert.ok(Math.abs(Number(drawing().querySelector('line').getAttribute('y1')) - priorY - 15) < 1e-9,
+    'A vertical pan without a horizontal event updates the drawing in the same chart frame')
+  await pointer(window, 'pointerup', 100, 315)
+  assert.equal(workerInputs.length, postsBeforeDrawingPan, 'Drawing navigation never starts calculation workers')
+  assert.deepEqual(JSON.parse(localStorage.getItem('fyodor.chart-drawings.v1'))[0], dragged, 'Chart pan preserves saved drawing anchors')
   await click(button('Activity'))
   const search = container.querySelector('[aria-label="Search symbols"]')
   await React.act(async () => props(search).onChange({ target: { value: 'EUR' } }))
@@ -276,6 +321,7 @@ try {
   assert.equal(timers.size, 0); assert.equal(intervals.size, 0); assert.equal(frames.size, 0)
   assert.equal(rangeListeners.size, 0); assert.equal(sizeListeners.size, 0); assert.equal(hoverListeners.size, 0); assert.equal(clickListeners.size, 0)
   assert.equal([...panListeners.values()].reduce((sum, listeners) => sum + listeners.size, 0), 0, 'Unmount during a drag releases global pointer listeners')
+  assert.equal(primitives.size, 0, 'Unmount detaches drawing primitives'); assert.equal(captures.size, 0)
   Date.now = originalNow
   await server.close(); await dom.happyDOM.abort(); dom.close()
   for (const [key, descriptor] of previous) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete globalThis[key] }

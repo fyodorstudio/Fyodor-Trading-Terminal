@@ -285,8 +285,9 @@ function MarketCandlestickChartComponent({
       const series = seriesRef.current
       if (!chart || !series) return
 
-      const p1 = series.coordinateToPrice(lastClientYRef.current)
-      const p2 = series.coordinateToPrice(moveEvent.clientY)
+      const paneTop = container.getBoundingClientRect().top
+      const p1 = series.coordinateToPrice(lastClientYRef.current - paneTop)
+      const p2 = series.coordinateToPrice(moveEvent.clientY - paneTop)
       if (p1 !== null && p2 !== null) {
         const deltaPrice = p1 - p2
         const currentRange = chart.priceScale('right').getVisibleRange()
@@ -322,7 +323,12 @@ function MarketCandlestickChartComponent({
   }
 
   return (
-    <div className="market-chart-host">
+    <div className="market-chart-host" onPointerDownCapture={(event) => {
+      const target = event.target as Element
+      if (event.button === 0 && selectedDrawingId && !target.closest('.drawing-object, .drawing-text-foreign-object')) {
+        onSelectDrawing(null)
+      }
+    }}>
       <div
         ref={containerRef}
         className="market-chart-canvas"
@@ -339,6 +345,7 @@ function MarketCandlestickChartComponent({
           seriesApi={seriesApi}
           activeTool={activeDrawingTool}
           drawings={drawings}
+          bars={bars}
           selectedDrawingId={selectedDrawingId}
           timeframe={timeframe}
           precision={precision}

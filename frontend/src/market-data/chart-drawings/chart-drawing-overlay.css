@@ -12,7 +12,10 @@
 .drawing-object { pointer-events: visiblePainted; cursor: pointer; }
 .chart-drawing-overlay.drawing-active .drawing-object { pointer-events: none; }
 .drawing-object.selected .drawing-stroke { stroke-width: 2; }
-.drawing-hit-area { fill: none; stroke: transparent; stroke-width: 12; pointer-events: stroke; }
+.drawing-object.selected { cursor: move; }
+.drawing-hit-area { fill: none; stroke: transparent; stroke-width: 16; pointer-events: stroke; }
+.drawing-body-hit-area { fill: transparent; stroke: transparent; stroke-width: 16; pointer-events: all; }
+.drawing-handle-hit-area { fill: transparent; pointer-events: all; cursor: inherit; }
 .drawing-stroke { fill: none; stroke: var(--accent); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
 .drawing-fill { fill: color-mix(in srgb, var(--accent) 9%, transparent); }
 .drawing-arrow-head { fill: var(--accent); }

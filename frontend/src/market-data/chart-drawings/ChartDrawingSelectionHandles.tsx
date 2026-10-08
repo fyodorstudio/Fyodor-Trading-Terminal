@@ -1,20 +1,30 @@
-import type { PointerEvent as ReactPointerEvent } from 'react'
+import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react'
 import type { ChartDrawingRecord } from './chart-drawing-record'
 import type { ChartDrawingScreenPoint } from './chart-drawing-screen-point'
 import { parallelChannelCorners } from './parallel-channel-geometry'
 
-export type DrawingHandleKind = 'point' | 'channel-corner' | 'position-price' | 'position-entry-price' | 'position-width' | 'position-move-all'
+export type DrawingHandleKind = 'point' | 'channel-corner' | 'position-price' | 'position-entry-price' | 'position-width' | 'position-move-all' | 'move-all'
 
 type ChartDrawingSelectionHandlesProps = {
   drawing: ChartDrawingRecord
   screenPoints: ChartDrawingScreenPoint[]
   viewport: { width: number; height: number }
   onStartHandleEdit: (
-    event: ReactPointerEvent<SVGCircleElement | SVGRectElement>,
+    event: ReactPointerEvent<SVGElement>,
     drawingId: string,
     pointIndex: number,
     kind?: DrawingHandleKind,
   ) => void
+}
+
+function DrawingHandle({ cx, cy, style, onPointerDown, 'aria-label': label }: {
+  cx: number; cy: number; style?: CSSProperties; 'aria-label'?: string
+  onPointerDown: (event: ReactPointerEvent<SVGElement>) => void
+}) {
+  return <g style={style} onPointerDown={onPointerDown} aria-label={label}>
+    <circle className="drawing-handle-hit-area" cx={cx} cy={cy} r="12" />
+    <circle className="drawing-resize-handle" cx={cx} cy={cy} r="7" style={style} />
+  </g>
 }
 
 function handlePoint(
@@ -40,12 +50,10 @@ export function ChartDrawingSelectionHandles({
   if (drawing.tool === 'parallel-channel') {
     return <>
       {parallelChannelCorners(screenPoints).map((point, index) => (
-        <circle
-          className="drawing-resize-handle"
+        <DrawingHandle
           key={`${drawing.id}-${index}`}
           cx={point.x}
           cy={point.y}
-          r="5"
           style={{ cursor: index >= 2 ? 'ns-resize' : 'move' }}
           aria-label={index >= 2 ? `Resize channel height ${index - 1}` : `Move channel endpoint ${index + 1}`}
           onPointerDown={(event) => onStartHandleEdit(event, drawing.id, index, 'channel-corner')}
@@ -80,41 +88,33 @@ export function ChartDrawingSelectionHandles({
         />
 
         {/* Target handle - top-left corner */}
-        <circle
-          className="drawing-resize-handle"
+        <DrawingHandle
           cx={left}
           cy={target.y}
-          r="5"
           style={{ cursor: 'ns-resize' }}
           onPointerDown={(event) => onStartHandleEdit(event, drawing.id, 1, 'position-price')}
         />
 
         {/* Stop handle - bottom-left corner */}
-        <circle
-          className="drawing-resize-handle"
+        <DrawingHandle
           cx={left}
           cy={stop.y}
-          r="5"
           style={{ cursor: 'ns-resize' }}
           onPointerDown={(event) => onStartHandleEdit(event, drawing.id, 2, 'position-price')}
         />
 
         {/* Entry price handle - mid-left corner (resizes TP/SL ratio) */}
-        <circle
-          className="drawing-resize-handle"
+        <DrawingHandle
           cx={left}
           cy={entry.y}
-          r="5"
           style={{ cursor: 'ns-resize' }}
           onPointerDown={(event) => onStartHandleEdit(event, drawing.id, 0, 'position-entry-price')}
         />
 
         {/* Width handle - mid-right edge */}
-        <circle
-          className="drawing-resize-handle"
+        <DrawingHandle
           cx={right}
           cy={entry.y}
-          r="5"
           style={{ cursor: 'ew-resize' }}
           onPointerDown={(event) => onStartHandleEdit(event, drawing.id, 1, 'position-width')}
         />
@@ -127,12 +127,10 @@ export function ChartDrawingSelectionHandles({
       {screenPoints.map((point, pointIndex) => {
         const displayedPoint = handlePoint(drawing, point, pointIndex, screenPoints, viewport)
         return (
-          <circle
-            className="drawing-resize-handle"
+          <DrawingHandle
             key={`${drawing.id}-${pointIndex}`}
             cx={displayedPoint.x}
             cy={displayedPoint.y}
-            r="5"
             onPointerDown={(event) => onStartHandleEdit(event, drawing.id, pointIndex, 'point')}
           />
         )
