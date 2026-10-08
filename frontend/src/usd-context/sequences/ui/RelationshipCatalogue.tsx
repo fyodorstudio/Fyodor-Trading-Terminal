@@ -14,7 +14,7 @@ export function RelationshipCatalogue({ combo }: { combo: ComboSnapshot }) {
     <button type="button" aria-expanded={open} onClick={() => setOpen(!open)}>USD relationship catalogue · 36 pairs + larger groups</button>
     {open && <>
       <p>Compare any selection at this activation time. These annotations reuse source evidence and add no Raycaster vote. Missing weights stay missing.</p>
-      <small>This is a group preview. Audit controls below record the original Roof displayed at the top, not this selection.</small>
+      <small>This is a group preview. Raycaster's price-reaction controls record the original selected Roof, not this group preview.</small>
       <label>Interpretation <select aria-label="Relationship interpretation" value={mode} onChange={e => setMode(e.target.value as RelationshipMode)}>
         <option value="release">Standalone support at activation</option><option value="fresh">Comparable support changes · seven days</option></select></label>
       <fieldset className="relationship-families"><legend>Compose a group · select two or more families</legend>

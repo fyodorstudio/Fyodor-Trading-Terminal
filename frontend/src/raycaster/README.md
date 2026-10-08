@@ -135,12 +135,12 @@ Roofs and the context ribbon now have independent header controls; hiding Raycas
 hover box leaves those views visible. Turning a display control Off does not change
 weights, fetch calendar history or rerun scorers.
 
-Click a roof to open a captured **Combo details** snapshot in the bottom Inspector.
+Click a roof to open a captured **Combo details** snapshot in the dedicated **Roofs** bottom dock.
 It lists original publications and their own bias, roles/replacement effects,
 before/after accumulated context, applicable conditions and source contributions.
 Click a publication to enable its Inspector family, select its broker date and
 open its original readings; ISM still uses one grouped table. Return to releases
-restores normal Inspector. Snapshots are ephemeral, cleared on broker/symbol
+opens Inspector while retaining the selected combo for return through the Roofs tab. Collapse keeps the header and proportional Long/Short bar visible; Expand restores the expanded dock size. The summary stays outside the scrolling body, and price-reaction recording remains in Raycaster. Snapshots are ephemeral, cleared on broker/symbol
 changes, and do not change when a gear setting is later edited: reopen a roof.
 
 Roofs are fixed dated annotations at the first known qualifying snapshot, not

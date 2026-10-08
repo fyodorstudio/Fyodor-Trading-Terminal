@@ -220,12 +220,19 @@ try {
     onClose: () => { returned = true }, onOpenRelease: s => { opened = s } }))
   assert.ok(unsubscribed >= 2, 'Chart handlers detach when opening Inspector')
   assert.equal(container.querySelector('details'), null, 'Combo details remain flat')
-  assert.equal(container.querySelector('.combo-inspector-scroll').firstElementChild.getAttribute('aria-label'), 'Roof interpretation', 'Direction is the first content')
+  assert.ok(container.querySelector('.combo-inspector > header [aria-label="Roof interpretation"]'), 'Result and evidence share the header')
+  assert.match(container.querySelector('.combo-result').textContent, /weak evidence/)
+  assert.equal(container.querySelector('.combo-inspector > header').nextElementSibling.getAttribute('aria-label'), 'Weighted directional support', 'Support stays above the scrolling body')
+  assert.match(container.querySelector('.combo-support-values').textContent, /Long 100.0%Short 0.0%/)
+  assert.equal(container.querySelector('.combo-support-fill > span').style.width, '100%')
+  assert.match(container.querySelector('.combo-support-caption').textContent, /Main contributors: claims, pce/)
+  assert.doesNotMatch(container.textContent, /Experimental|What did price do\?|Net .*separation/)
   assert.match(container.textContent, /Available from/)
   assert.match(container.textContent, /Memory update; no new publication/)
   assert.equal(container.querySelector('[aria-label="Combo context contributions"]'), null, 'Calculations are optional and not mounted by default')
   assert.match(container.querySelector('[aria-label="Why this direction"]').textContent, /claims gives most Long support/)
   await React.act(async () => [...container.querySelectorAll('button')].find(b => b.textContent === 'Advanced calculations').click())
+  assert.match(container.querySelector('.combo-calculations').textContent, /Net -0.200 · Separation 100.0%/)
   assert.match(container.textContent, /Accumulated context before → after/)
   assert.match(container.textContent, /No later publications or prices/)
   const cpiRow = [...container.querySelectorAll('[aria-label="Combo context contributions"] tbody tr')].find(r => r.textContent.includes('CPI'))
@@ -234,6 +241,45 @@ try {
   await React.act(async () => participant.click()); assert.equal(opened.sourceId, 'pce')
   await React.act(async () => [...container.querySelectorAll('button')].find(b => b.textContent === 'Return to releases').click())
   assert.equal(returned, true)
+
+  let dockCombo = episode
+  const capturedCombo = JSON.stringify(episode)
+  function CollapsibleCombo() {
+    const [collapsed, setCollapsed] = React.useState(false)
+    return React.createElement(ComboInspector, { combo: dockCombo, symbol: 'EURUSD', timeDisplay, collapsed,
+      onToggleCollapsed: () => setCollapsed(value => !value), onClose() {}, onOpenRelease() {} })
+  }
+  await render(React.createElement(CollapsibleCombo))
+  const action = label => [...container.querySelectorAll('button')].find(b => b.textContent === label)
+  await React.act(async () => action('Advanced calculations').click())
+  const detailsNode = container.querySelector('[aria-label="Advanced calculation details"]')
+  await React.act(async () => action('Collapse').click())
+  assert.equal(container.querySelector('.combo-inspector-scroll').hidden, true)
+  assert.equal(action('Expand').getAttribute('aria-expanded'), 'false')
+  assert.equal(action('Expand').getAttribute('aria-controls'), container.querySelector('.combo-inspector-scroll').id)
+  assert.ok(container.querySelector('.combo-support-values'))
+  assert.equal(container.querySelector('.combo-support-caption'), null, 'Collapsed summary contains only the percentage bar')
+  dockCombo = { ...episode, sources: episode.sources.map(s => ({ ...s, change: .1 })) }
+  await render(React.createElement(CollapsibleCombo))
+  assert.ok(container.querySelector('.combo-inspector.collapsed'), 'Choosing another combo does not force expansion')
+  assert.match(container.querySelector('.combo-support-values').textContent, /Long 0.0%Short 100.0%/)
+  await React.act(async () => action('Expand').click())
+  assert.equal(container.querySelector('.combo-inspector-scroll').hidden, false)
+  assert.equal(container.querySelector('[aria-label="Advanced calculation details"]'), detailsNode, 'Collapse preserves the mounted details and advanced state')
+  assert.equal(JSON.stringify(episode), capturedCombo, 'Presentation never edits the captured snapshot')
+
+  const { ComboSupportSummary } = await load('usd-context/sequences/ui/ComboSupportSummary.tsx')
+  const { roofSupport } = await load('usd-context/sequences/core/relationship-support.ts')
+  const summarySupport = roofSupport(episode)
+  for (const state of ['insufficient', 'unchanged']) {
+    await render(React.createElement(ComboSupportSummary, { support: { ...summarySupport, state, long: 0, short: 0 }, compact: false }))
+    assert.match(container.textContent, /Long —Short —/)
+    assert.doesNotMatch(container.textContent, /NaN|100\.0%/)
+    assert.equal(container.querySelector('.combo-support-fill > span').style.width, '0%')
+  }
+  await render(React.createElement(ComboSupportSummary, { support: { ...summarySupport, state: 'balanced', long: 1, short: 1 }, compact: false }))
+  assert.match(container.textContent, /Long 50.0%Short 50.0%/)
+  assert.equal(container.querySelector('.combo-support-fill > span').style.width, '50%')
 
   const expired = { ...episode, activation: { kind: 'expiry', removed: [{ sourceId: 'ppi-old', sourceLabel: 'PPI removed publication',
     chartAt: at - 7 * 24 * hour, releaseAt: at - 7 * 24 * hour - 3 * hour, reason: 'fresh-window' }] } }

@@ -1,7 +1,7 @@
 import type { BottomDockWindow } from './bottom-dock-window'
 
 export const bottomDockHeightKey = 'fyodor.bottom-dock.height.v2'
-export const legacyBottomDockHeightKeys: Record<BottomDockWindow, string> = {
+export const legacyBottomDockHeightKeys: Partial<Record<BottomDockWindow, string>> = {
   inspector: 'fyodor.inspector.dock-height.v1', notebook: 'fyodor.notebook.dock-height.v1',
   activity: 'fyodor.activity.dock-height.v1', 'scatter-plot': 'fyodor.scatter-plot.dock-height.v1', alert: 'fyodor.alert.dock-height.v1',
 }
@@ -21,7 +21,9 @@ export function readBottomDockHeight(activeWindow: BottomDockWindow | null): num
     if (validBottomDockHeight(shared)) return shared
     const order = [...new Set([...(activeWindow ? [activeWindow] : []), ...Object.keys(legacyBottomDockHeightKeys) as BottomDockWindow[]])]
     for (const dock of order) {
-      const height = Number(localStorage.getItem(legacyBottomDockHeightKeys[dock]))
+      const key = legacyBottomDockHeightKeys[dock]
+      if (!key) continue
+      const height = Number(localStorage.getItem(key))
       if (!validBottomDockHeight(height)) continue
       try { saveBottomDockHeight(height) } catch { /* Keep the migrated size for this session. */ }
       return height

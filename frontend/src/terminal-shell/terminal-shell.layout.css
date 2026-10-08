@@ -9,6 +9,7 @@
 }
 
 .terminal-shell.bottom-dock-open { grid-template-rows: minmax(0, 1fr) var(--bottom-dock-height, 258px) 32px; }
+.terminal-shell.bottom-dock-open.roofs-collapsed { grid-template-rows: minmax(0, 1fr) auto 32px; }
 
 .terminal-workspace {
   min-height: 0;

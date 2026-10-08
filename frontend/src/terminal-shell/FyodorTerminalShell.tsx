@@ -50,6 +50,7 @@ import { WorkspaceTransfer } from '../workspace-portability/WorkspaceTransfer'
 import { usdPair } from '../usd-context/core/usd-pair'
 import { readRaycasterVisible, saveRaycasterVisible } from '../raycaster/storage/raycaster-preferences'
 import type { ComboSnapshot, ComboSource } from '../usd-context/sequences/core/contracts'
+import { ComboInspector } from '../usd-context/sequences/ui/ComboInspector'
 
 const defaultTradePlan: PlannedTradeState = {
   direction: 'long',
@@ -71,6 +72,7 @@ export function FyodorTerminalShell() {
   const [raycasterVisible, setRaycasterVisible] = useState(readRaycasterVisible)
   const [comboSelection, setComboSelection] = useState<{ combo: ComboSnapshot; symbol: string; broker: string | null } | null>(null)
   const [bottomDockWindow, setBottomDockWindow] = useState<BottomDockWindow | null>(null)
+  const [roofsCollapsed, setRoofsCollapsed] = useState(false)
   const [scatterTarget, setScatterTarget] = useState<ScatterReleaseTarget | null>(null)
   const dockSize = useBottomDockSize(bottomDockWindow)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -129,7 +131,7 @@ export function FyodorTerminalShell() {
   // A captured roof belongs to one symbol/broker; do not resurrect it on return.
   if (comboSelection && !selectedCombo) setComboSelection(null)
   const inspector = useInspector({ symbol: activeSymbol, bars, timeframe, timeDisplay,
-    detailOpen: bottomDockWindow === 'inspector' && !selectedCombo,
+    detailOpen: bottomDockWindow === 'inspector',
     clockOffsetMs: bridge.clockOffsetMs, brokerId: bridge.health?.mt5.account_server ?? null,
     brokerOffsetSeconds: bridge.health?.calendar.server_utc_offset_seconds ?? 0 })
   const quote = marketData.symbols.find((item) => item.symbol === activeSymbol) ?? null
@@ -239,7 +241,7 @@ export function FyodorTerminalShell() {
   }, [setArrowSelection, selectBottomDock])
   const setReleaseSelection = inspector.selectRelease
   const selectChartRelease = useCallback((id: string) => {
-    setComboSelection(null); setReleaseSelection(id); selectBottomDock('inspector')
+    setReleaseSelection(id); selectBottomDock('inspector')
   }, [setReleaseSelection, selectBottomDock])
   const closeRaycaster = useCallback(() => { setRaycasterVisible(false); saveRaycasterVisible(false) }, [])
   const toggleRaycaster = useCallback(() => {
@@ -248,12 +250,12 @@ export function FyodorTerminalShell() {
   }, [])
   const brokerOffsetSeconds = bridge.health?.calendar.server_utc_offset_seconds ?? 0
   const selectCombo = useCallback((combo: ComboSnapshot) => {
-    setComboSelection({ combo, symbol: activeSymbol, broker: brokerId }); selectBottomDock('inspector')
+    setComboSelection({ combo, symbol: activeSymbol, broker: brokerId }); selectBottomDock('roofs')
   }, [activeSymbol, brokerId, selectBottomDock])
   const inspectorPreferences = inspector.preferences
   const inspectPublication = inspector.inspectPublication
   const openComboRelease = useCallback((source: ComboSource) => {
-    setComboSelection(null); inspectPublication(source.sourceId, source.chartAt); selectBottomDock('inspector')
+    inspectPublication(source.sourceId, source.chartAt); selectBottomDock('inspector')
   }, [inspectPublication, selectBottomDock])
   const clearChartInspection = useCallback(() => {
     setReleaseSelection(null)
@@ -293,7 +295,7 @@ export function FyodorTerminalShell() {
         : 'Waiting for MT5'
   return (
     <DisplayClockProvider brokerId={brokerId} brokerOffsetSeconds={brokerOffsetSeconds} preference={timeDisplay}>
-    <div className={`terminal-shell${bottomDockWindow ? ' bottom-dock-open' : ''}`}
+    <div className={`terminal-shell${bottomDockWindow ? ' bottom-dock-open' : ''}${bottomDockWindow === 'roofs' && selectedCombo && roofsCollapsed ? ' roofs-collapsed' : ''}`}
       style={{ '--bottom-dock-height': `${dockSize.height}px` } as CSSProperties}>
       <main className={`terminal-workspace${marketWatch.collapsed ? ' market-watch-collapsed' : ''}`}>
         <LeftDockPanel
@@ -377,7 +379,7 @@ export function FyodorTerminalShell() {
 
       {bottomDockWindow && (
         <BottomDockPanel
-          resizeHandle={dockSize.resizeHandle}
+          resizeHandle={bottomDockWindow === 'roofs' && selectedCombo && roofsCollapsed ? null : dockSize.resizeHandle}
         >
           {bottomDockWindow === 'notebook' && (
             <TraderNotebookPanel
@@ -422,10 +424,14 @@ export function FyodorTerminalShell() {
             />
           )}
           {bottomDockWindow === 'inspector' && <InspectorPanel view={inspector} symbol={activeSymbol}
-            combo={selectedCombo} onCloseCombo={closeCombo} onOpenComboRelease={openComboRelease}
             source={bridge.health?.calendar ?? null} error={null} timeDisplay={timeDisplay}
             scatterAvailable={!!scatterReleaseTarget(inspector.selectedRelease, inspector.brokerId, inspector.now)}
             onOpenScatter={openScatter} />}
+          {bottomDockWindow === 'roofs' && (selectedCombo ? <ComboInspector combo={selectedCombo} symbol={activeSymbol}
+            timeDisplay={timeDisplay} collapsed={roofsCollapsed} onToggleCollapsed={() => setRoofsCollapsed(value => !value)}
+            onClose={() => selectBottomDock('inspector')} onOpenRelease={openComboRelease} /> :
+            <section className="combo-inspector combo-empty" aria-label="Combo details"><header><strong>Roofs · Combo details</strong></header>
+              <p>Select a roof label or a combo from More on the chart to inspect its weighted support and participating releases.</p></section>)}
           {bottomDockWindow === 'scatter-plot' && <ScatterPlotDock brokerId={bridge.health?.mt5.account_server ?? null}
             clockOffsetMs={bridge.clockOffsetMs} target={scatterTarget} />}
           {bottomDockWindow === 'alert' && <AlertDock brokerId={inspector.brokerId ?? null} preferences={inspector.preferences}

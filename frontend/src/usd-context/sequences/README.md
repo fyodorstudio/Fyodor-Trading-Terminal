@@ -131,12 +131,18 @@ and Inspector give the precise selected clock; lines back to earlier publication
 identify context, not an earlier available signal. Future activation and any
 snapshot with a future source are excluded before display prioritization.
 
-Inspector starts with direction/evidence, a short reason and **What changed?**,
+The dedicated **Roofs** bottom dock puts direction and evidence together in its header,
+followed by a proportional Long/Short support bar and its main contributors. Collapse
+keeps the header and percentages visible; selecting another combo preserves that state.
+The scrolling body uses compact newspaper-style columns, a short reason and **What changed?**,
 including the actual activating source or a memory update with no new publication.
 Recent replacement-effect direction and older accumulated context stay explicitly
 separate. Participant links retain release navigation and standalone outputs.
 Weights, numerical effects, guard checks and contribution tables are mounted only
-when **Advanced calculations** is opened. Context remains `usd-context-memory-v6.2`;
+when **Advanced calculations** is opened. Net and separation also stay in that section.
+Participating releases open Inspector without discarding the selected combo; the Roofs tab
+returns to it. The visible Experimental badge and duplicate price audit are removed from
+Combo details; the existing price-reaction controls remain in Raycaster. Context remains `usd-context-memory-v6.2`;
 relationship derivation remains v1; display v2 is not a new scoring engine.
 
 Manual labels are **Aligned / Opposed / Unclear**, separately for the activation

@@ -1,1 +1,1 @@
-export type BottomDockWindow = 'notebook' | 'activity' | 'inspector' | 'scatter-plot' | 'alert'
+export type BottomDockWindow = 'notebook' | 'activity' | 'inspector' | 'roofs' | 'scatter-plot' | 'alert'
