@@ -21,7 +21,3 @@ export function supportReading(s: SupportBalance, votes: readonly Vote[]) {
 export function relationshipReading(s: RelationshipSupport) {
   return supportReading(s, s.votes.map(v => ({ label: v.source.sourceLabel, towardLong: -v.vote })))
 }
-
-export const supportEvidenceNote = (s: SupportBalance) => s.state === 'insufficient' ? 'Insufficient evidence' :
-  s.state === 'balanced' ? 'Balanced conflict' : s.state === 'unchanged' ? 'No lead' :
-  s.narrow ? 'Weak · narrow lead' : s.qualified ? 'Weak · limited inputs' : s.state === 'conflicted' ? 'Conflicting inputs' : 'Inputs agree'

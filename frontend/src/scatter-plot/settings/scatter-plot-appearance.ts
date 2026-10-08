@@ -100,9 +100,6 @@ export function withMagnitudeBandColor(appearance: ScatterAppearance, index: num
   return { ...appearance, levels, magnitudeColors: palette,
     customLevels: appearance.customLevels.map((level, at) => at === index ? { ...level, color: nextColor } : level) }
 }
-export function magnitudeGuideColorIndex(level: ScatterGuideLevel) {
-  return magnitudeFactors.findIndex((_, index) => matchesMagnitudeFactor(level, index))
-}
 export function scatterGuideLevels(appearance: ScatterAppearance, threshold: number, customLimits?: readonly number[]) {
   if (customLimits) return customMagnitudeGuideStyles(appearance).map((level, index) => ({ ...level,
     factor: customLimits[index] / threshold, inner: index ? customLimits[index - 1] : 0, limit: customLimits[index],

@@ -1,6 +1,5 @@
 import type { InspectorRelease } from '../inspector-data'
 
-export const pmiFamilyIds = ['euro-pmi', 'german-pmi', 'french-pmi'] as const
 export const pmiEpisodeWindowMs = 3 * 3600000
 const countries: Record<string, string> = { 'euro-pmi': 'EU', 'german-pmi': 'DE', 'french-pmi': 'FR' }
 export const pmiSectionLabel = (release: InspectorRelease) => release.familyId === 'french-pmi' ? 'France' : release.familyId === 'german-pmi' ? 'Germany' : 'Euro area'

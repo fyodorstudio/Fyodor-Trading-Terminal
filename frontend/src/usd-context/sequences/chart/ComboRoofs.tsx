@@ -9,7 +9,7 @@ import type { ChartTimeframe } from '../../../market-data/contracts/ChartTimefra
 import type { InspectorMarker } from '../../../inspector/inspector-data'
 import type { ComboSnapshot } from '../core/contracts'
 import { currencyColorStyle, type CurrencyColors } from '../../../inspector/currency-colors'
-import { roofResultLabel, roofSupport } from '../core/relationship-support'
+import { roofSupport } from '../core/relationship-support'
 import { SupportSplit } from '../../ui/SupportSplit'
 import { createRoofPlan, knownRoofCount, prepareRoofAnchors, projectRoofPlan, roofOverflowRowHeight, roofOverflowWidth, roofConciseWidth,
   type RoofPlan, type RoofOverflowColumn } from './roof-plan'
@@ -21,6 +21,7 @@ import { roofDisplayVisible } from '../core/relationship-display'
 import './combo-roofs.css'
 import { useDisplayClock } from '../../../appearance/time-display/useDisplayClock'
 import { comboColumnSummary } from './combo-column-summary'
+import { RoofColumnMenu } from './RoofColumnMenu'
 
 function ComboRoofsComponent({ chartApi, episodes, bars, timeframe, markers, now, experimental, onSelect, selectedId, currencyColors = {} }: {
   chartApi: IChartApi; episodes: readonly ComboSnapshot[]; bars: readonly Pick<OhlcBar, 'time'>[]; timeframe: ChartTimeframe;
@@ -146,32 +147,12 @@ function ComboRoofsComponent({ chartApi, episodes, bars, timeframe, markers, now
       <SupportSplit support={support} />
     </button>})}
     </div>
-    {overflow.map(group => {
-      const summary = columnSummaries.get(group.column)
-      return <div className="combo-roof-overflow" key={group.column} data-roof-column={group.column}
-      style={{ left: group.x, top: buttonTop(group) }}>
-      <button type="button" style={{ width: buttonWidth }} aria-expanded={chooser === group.column}
-        aria-pressed={concise ? group.combos.some(combo => combo.id === selectedId) : undefined}
-        title={summary?.updates.map(update => `${clock.chart(update.at)} · ${update.kind === 'publication' ? `${update.releases.join(' + ')} · New release` : `${activationLabel(update.kind)} · No new release`}`).join('\n')}
-        aria-label={`${concise ? 'Combos' : 'More combos'} on candle ${clock.chart((bars[group.column]?.time ?? group.combos[0].chartAt / 1000) * 1000)} · ${group.combos.length} ${concise ? 'combinations' : 'hidden'}`}
-        onClick={() => setChooser(chooser === group.column ? null : group.column)}>+{group.combos.length} {concise ? 'Combo' : 'more'}</button>
-        {chooser === group.column && <div aria-label="More combo roofs" style={{ width: menuWidth,
-          left: Math.max(8, Math.min(group.x - menuWidth / 2, width - menuWidth - 8)) - group.x + buttonWidth / 2 }}>
-          {summary && <header className="combo-column-summary">
-            <strong>{group.combos.length} combinations</strong>
-            <span>Long leads: {summary.counts.long} · Short leads: {summary.counts.short}
-              {summary.counts.balanced > 0 && <> · Balanced: {summary.counts.balanced}</>}
-              {summary.counts.unchanged > 0 && <> · Unchanged: {summary.counts.unchanged}</>}
-              {summary.counts.insufficient > 0 && <> · Insufficient: {summary.counts.insufficient}</>}</span>
-            {summary.updates.map(update => <small key={update.at}>{clock.chart(update.at)} · {update.kind === 'publication' ?
-              `${update.releases.join(' + ')} · New release` : `${activationLabel(update.kind)} · No new release`}</small>)}
-          </header>}
-          {group.combos.map(combo => <button type="button" key={combo.id} data-roof-id={combo.id} title={roofTooltip(combo, 0, clock.chart)} onClick={() => { onSelect(combo); setChooser(null) }}>
-          <span>{roofLabel(combo)} · {roofResultLabel(combo)}</span>
-          <SupportSplit support={roofSupport(combo)} compact />
-          <small>{combo.strength ? `${combo.strength} evidence` : 'Direction withheld'} · {clock.chart(combo.chartAt)}</small>
-        </button>)}</div>}
-      </div>})}
+    {overflow.map(group => <RoofColumnMenu key={group.column} group={group} summary={columnSummaries.get(group.column)}
+      concise={concise} open={chooser === group.column} selectedId={selectedId} top={buttonTop(group)}
+      buttonWidth={buttonWidth} menuWidth={menuWidth} chartWidth={width}
+      candleAt={(bars[group.column]?.time ?? group.combos[0].chartAt / 1000) * 1000} clock={clock.chart}
+      onToggle={() => setChooser(chooser === group.column ? null : group.column)}
+      onSelect={combo => { onSelect(combo); setChooser(null) }} />)}
   </div>
 }
 export const ComboRoofs = memo(ComboRoofsComponent)

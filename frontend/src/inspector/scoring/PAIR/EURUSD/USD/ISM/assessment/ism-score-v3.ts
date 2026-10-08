@@ -2,8 +2,6 @@ import type { EconomicCalendarEvent } from '../../../../../../calendar-event'
 import type { InspectorRelease } from '../../../../../../inspector-data'
 import { assessIsmMonthlyContext, type IsmSectorSettings } from './ism-monthly-context'
 
-export const supportsIsmV3 = (release: InspectorRelease | null) => !!release && release.country === 'US' &&
-  release.currency === 'USD' && ['ism-manufacturing', 'ism-services'].includes(release.familyId)
 export const ismScoreV3Version = 'ism-eurusd-monthly-resolution-v3'
 type Context = NonNullable<ReturnType<typeof assessIsmMonthlyContext>>
 const number = (value: number) => value.toLocaleString(undefined, { maximumFractionDigits: 3, signDisplay: 'exceptZero' })

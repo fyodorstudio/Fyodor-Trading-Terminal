@@ -102,12 +102,14 @@ try {
     subscribeSizeChange: fn => handlers.add(fn), unsubscribeSizeChange: fn => handlers.delete(fn) }
   const ribbonProps = { chartApi: { timeScale: () => scale }, bars: [{ time: (at - hour / 2) / 1000 }, { time: (at + hour / 2) / 1000 }],
     timeframe: 'H1', points: projection.points, now: at + hour / 2, relative: false, version: 'Selected relationship presentation v1',
-    relationshipTitle: combo.title, startAt: at, loading: false, notice: null, symbol: 'EURUSD', brokerId: 'Broker' }
+    relationshipTitle: combo.title, loading: false, notice: null, symbol: 'EURUSD', brokerId: 'Broker' }
   await render(React.createElement(ContextRibbon, ribbonProps))
   const strip = container.querySelector('[aria-label="Roof Candy · CPI + Claims · USD inputs"]')
   assert.ok(strip); assert.equal(container.querySelector('[aria-label="Outside events"]'), null, 'Roof Candy does not duplicate outside-event controls')
-  const segment = strip.querySelector('.ribbon-segment')
-  assert.equal(segment.style.left, '50px'); assert.equal(segment.style.width, '50px', 'Strip starts at exact activation, never the source span')
+  const unavailable = strip.querySelector('.ribbon-segment.uncomputed')
+  assert.equal(unavailable.style.left, '0px'); assert.equal(unavailable.style.width, '50px', 'Unavailable relationship history is shown before its first known reading')
+  const segment = strip.querySelector('.ribbon-segment.conflicted')
+  assert.equal(segment.style.left, '50px'); assert.equal(segment.style.width, '50px', 'The reading starts at its own exact available-from clock')
   assert.ok(segment.classList.contains('conflicted')); assert.ok(segment.classList.contains('lead-short'))
   const oldCoordinates = coordinates
   await React.act(async () => { for (let i = 0; i < 200; i++) segment.dispatchEvent(new dom.PointerEvent('pointermove', { clientX: 20, bubbles: true })) })
@@ -128,12 +130,17 @@ try {
   await React.act(async () => document.dispatchEvent(new dom.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })))
   assert.equal(container.querySelector('[role="dialog"]'), null)
   const originalRange = scale.getVisibleRange
-  scale.getVisibleRange = () => ({ from: (at - 2 * hour) / 1000, to: (at - hour) / 1000 })
+  scale.getVisibleRange = () => ({ from: (at - 3 * hour) / 1000, to: (at - 2 * hour) / 1000 })
   await React.act(async () => { for (const fn of handlers) fn() })
   await React.act(async () => { for (const [id, fn] of frames) { frames.delete(id); fn() } })
-  assert.equal(container.querySelector('.ribbon-segment'), null)
-  assert.match(container.querySelector('.ribbon-empty').textContent, /combo starts.*Move the chart/, 'A view before activation explains the empty strip')
-  assert.match(container.querySelector('.context-ribbon-legend').textContent, /Relationship history.*starts/)
+  assert.ok(!container.querySelector('.ribbon-segment'))
+  assert.match(container.querySelector('.ribbon-empty').textContent, /No candles available/, 'A view before loaded candles has no projected intervals')
+  assert.doesNotMatch(container.querySelector('.context-ribbon-legend').textContent, /starts/, 'The selected snapshot imposes no history cutoff')
+  const earlier = { ...projection.points[0], at: at - 2 * hour, label: 'Earlier relationship reading' }
+  const historyScale = { ...scale, timeToCoordinate: t => (t - (at - 2 * hour) / 1000) / 3600 * 100 }
+  await render(React.createElement(ContextRibbon, { ...ribbonProps, chartApi: { timeScale: () => historyScale },
+    bars: [{ time: (at - 2 * hour) / 1000 }, ...ribbonProps.bars], points: [earlier, ...projection.points] }))
+  assert.match(container.querySelector('.ribbon-segment').getAttribute('aria-label'), /Earlier relationship reading/, 'Earlier available relationship history remains visible before the selected snapshot')
   scale.getVisibleRange = originalRange
   await render(React.createElement(ContextRibbon, { ...ribbonProps, points: staleProjection.points, notice: 'Inputs changed; reopen the roof.' }))
   assert.ok(container.querySelector('.ribbon-segment.uncomputed'))
@@ -142,7 +149,7 @@ try {
   assert.equal([...container.querySelectorAll('[role="group"] button')].filter(b => b.disabled).length, 6, 'No directional agreement verdict for an insufficient reading')
   assert.equal(JSON.stringify([combo, timeline]), captured)
   await render(null); assert.equal(handlers.size, 0, 'Relationship chart subscriptions detach')
-  console.log('✓ Headless roof/accumulated distinction, shared percentage boxes, plain drivers, neutral states, activation-only Candy, conflict edges, coalesced hover, stale selection, audit capture and cleanup')
+  console.log('✓ Headless roof/accumulated distinction, shared percentage boxes, plain drivers, neutral states, full-history Candy, exact reading clocks, conflict edges, coalesced hover, stale selection, audit capture and cleanup')
 } finally {
   await React.act(async () => root.unmount()); await server.close(); await dom.happyDOM.close()
   for (const key of keys) { if (previous[key]) Object.defineProperty(globalThis, key, previous[key]); else delete globalThis[key] }

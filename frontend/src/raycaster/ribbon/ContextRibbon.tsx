@@ -12,10 +12,10 @@ import { ExternalEventsStrip } from '../../external-events/chart/ExternalEventsS
 import { usdPresentationVersion } from '../core/usd-context-presentation'
 
 type Segment = { left: number; width: number; from: number; to: number; point: RibbonPoint | null }
-function ContextRibbonComponent({ chartApi, bars, timeframe, points, now, relative, version, loading, notice, partial = false, symbol = '', brokerId = null, relationshipTitle, startAt }: {
+function ContextRibbonComponent({ chartApi, bars, timeframe, points, now, relative, version, loading, notice, partial = false, symbol = '', brokerId = null, relationshipTitle }: {
   chartApi: IChartApi; bars: readonly Pick<OhlcBar, 'time'>[]; timeframe: ChartTimeframe; points: readonly RibbonPoint[];
   now: number; relative: boolean; version: string; loading: boolean; notice: string | null; partial?: boolean; symbol?: string; brokerId?: string | null
-  relationshipTitle?: string; startAt?: number
+  relationshipTitle?: string
 }) {
   const [segments, setSegments] = useState<Segment[]>([])
   const clock = useDisplayClock(), displayClock = clock.chart
@@ -39,7 +39,7 @@ function ContextRibbonComponent({ chartApi, bars, timeframe, points, now, relati
       frame = 0
       const range = scale.getVisibleRange(), width = scale.width()
       if (!range || !bars.length) { setSegments([]); return }
-      const from = Math.max(Number(range.from) * 1000, Number(bars[0].time) * 1000, startAt ?? -Infinity)
+      const from = Math.max(Number(range.from) * 1000, Number(bars[0].time) * 1000)
       const to = Math.min((Number(range.to) + duration) * 1000, now, (Number(bars.at(-1)!.time) + duration) * 1000)
       const visible = visibleRibbonIntervals(loading || notice ? [] : points, from, to)
       setSegments(visible.flatMap(interval => {
@@ -52,12 +52,12 @@ function ContextRibbonComponent({ chartApi, bars, timeframe, points, now, relati
     const schedule = () => { if (!frame) frame = window.requestAnimationFrame(update) }
     update(); scale.subscribeVisibleLogicalRangeChange(schedule); scale.subscribeSizeChange(schedule)
     return () => { if (frame) window.cancelAnimationFrame(frame); scale.unsubscribeVisibleLogicalRangeChange(schedule); scale.unsubscribeSizeChange(schedule) }
-  }, [chartApi, bars, timeframe, points, now, loading, notice, startAt])
+  }, [chartApi, bars, timeframe, points, now, loading, notice])
   return <div className={`context-ribbon${relationshipTitle ? ' roof-ribbon' : ''}`} aria-label={relationshipTitle ? `Roof Candy · ${relationshipTitle} · USD inputs` : `Raycaster Candy · ${mode}`}>
     {!relationshipTitle && <ExternalEventsStrip key={`${brokerId}:${symbol}`} chartApi={chartApi} bars={bars} timeframe={timeframe} now={now} symbol={symbol} brokerId={brokerId} />}
     <div className="context-ribbon-legend" title={`${relative ? 'Green: Long. Red: Short. Amber: mixed.' : 'Green/red: support on one side. Amber: support on both sides or no lead. The green/red bottom edge shows which side has more support.'} Gray: not enough usable data. Darker color means stronger evidence.${relationshipTitle ? ' This follows the selected relationship through earlier and later releases, using evidence known at each time; the roof label keeps its original reading.' : ' This combines all enabled news.'}`}>
       <strong>{relationshipTitle ? `Relationship history · ${relationshipTitle}` : `All news · ${relative ? mode : 'USD inputs'}`}</strong>
-      {startAt !== undefined && <> · starts {displayClock(startAt)}</>} · {clock.zone}{partial && ' · some history missing'}
+       · {clock.zone}{partial && ' · some history missing'}
       {loading ? ' · Loading' : notice ? ` · ${notice}` : ''}
     </div>
     <div className="context-ribbon-track" onPointerLeave={clearHover}>
@@ -78,7 +78,7 @@ function ContextRibbonComponent({ chartApi, bars, timeframe, points, now, relati
         }}
         onFocus={() => { clearHover(); setHover({ segment, at: segment.from }) }} onBlur={clearHover}
         onClick={() => { if (segment.point) setSelected({ point: segment.point, timeline: points }) }} />)}
-      {!segments.length && <span className="ribbon-empty" role="status">{loading ? 'Preparing this timeline…' : notice ?? (!bars.length ? 'No chart candles loaded yet.' : startAt !== undefined ? `This combo starts ${displayClock(startAt)}. Move the chart to that date or later.` : 'No candles available in this view.')}</span>}
+      {!segments.length && <span className="ribbon-empty" role="status">{loading ? 'Preparing this timeline…' : notice ?? (!bars.length ? 'No chart candles loaded yet.' : 'No candles available in this view.')}</span>}
     </div>
     {hover && <div className="ribbon-hover" role="status"><strong>{hover.segment.point?.label ?? 'Unavailable'} · {hover.segment.point?.evidence ?? 'No'} evidence</strong>
       <span>{displayClock(hover.at)}</span><span>{hover.segment.point?.kind === 'publication' ? 'New publication' : hover.segment.point?.kind === 'expiry' ? 'Expiry update' : 'Aging update'}: {hover.segment.point?.update ?? notice ?? 'No usable context'}</span></div>}

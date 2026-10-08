@@ -4,7 +4,7 @@ import type { RoofEndpoint } from './roof-symbols'
 
 /** Match connector inputs to the actual grouped symbol box. Activation retains its
  * native candle anchor: an older clustered release never backdates availability.
- * Projection only; lane assignment remains the cached history-wide plan. */
+ * Projection only; lane assignment is determined by visible label boxes. */
 export function alignRoofMarkers(roofs: readonly PositionedRoof[], clusters: readonly MarkerCluster[]): PositionedRoof[] {
   const positions = new Map<string, number>()
   for (const cluster of clusters) for (const marker of cluster.markers) {

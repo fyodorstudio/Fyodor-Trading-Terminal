@@ -21,7 +21,7 @@ Clock validation runs before cache access. Hover performs no scoring.
 USD Candy conflicts are amber with a green/red bottom lead edge. Balanced and
 unchanged are amber without an edge; unavailable is gray. Relative amber keeps
 its original Mixed meaning. Shares are support, not probabilities. Public Roofs
-v6 retains its separate relationship v4 / display v5 counters and calculations.
+v6 retains its separate relationship v4 / display v8 counters and calculations.
 
 Press **Show Raycaster** (the wave glyph) in the outlined Fundamental tools group
 on the header's right, before Bid/Ask. Its active button toggles the box, and × hides it. Raycaster
@@ -169,8 +169,11 @@ follows Inspector marker filters/date range and loaded candle history. The combo
 own available-from candle admits its label, even with no drawable source symbols;
 missing symbol connections do not remove the label or its local More entry. Full
 sources remain disclosed and retain their context votes. Uniform tinted labels
-sit at activation, with rows growing to fit the chart. Hover/focus/selection draws
+sit at activation in Focused/All roofs, with rows growing to fit the chart. Hover/focus/selection draws
 available connections and emphasizes release symbols; label clicks open Combo details.
+Concise instead shows one +N Combo button per visible candle, with time-axis stems
+and every enabled combo in the existing local chooser. Selecting an entry opens the
+same details/Candy scope while retaining the compact chart.
 The bottom release-symbol row remains separate. Candle gaps and future bars
 are not used as guessed endpoints. Range/resize updates coalesce into one frame;
 hover uses binary lookup plus at most eight fresh-family expiry checks.
@@ -201,6 +204,8 @@ segment uses only then-known evidence, with canonical publication shares retaine
 and missing/expired participants shown as insufficient. Fed actions remain
 unweighted annotations. The selected roof's label/details remain its frozen snapshot.
 The outside-event strip follows Raycaster Candy visibility.
+The ribbon has no selected-snapshot activation cutoff; individual historical
+readings and unavailable intervals follow their own available-from clocks.
 
 `ribbon/ribbon-timeline.ts` merges selected USD/EUR histories into one dated state
 timeline. Simultaneous updates are atomic; EUR-only publications affect relative

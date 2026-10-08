@@ -27,7 +27,6 @@
 .selected-roof-reading { pointer-events: auto; }
 .raycaster-selected-title { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
 .raycaster-selected-title > button { flex: none; font: inherit; font-size: 10px; }
-.selected-roof-reading > .support-split { margin: 6px 0; }
 .raycaster-calculations { pointer-events: auto; border-top: 1px solid var(--border); padding-top: 6px; }
 .raycaster-calculations summary { cursor: pointer; color: var(--accent); }
 .raycaster-calculations table { width: 100%; text-align: left; table-layout: fixed; border-collapse: collapse; font-size: 10px; margin: 6px 0; }

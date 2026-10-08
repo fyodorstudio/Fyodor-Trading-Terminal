@@ -3,5 +3,3 @@ import { createMagnitudeSettingsStore, type MagnitudeScope } from './settings/ma
 
 export const cpiMagnitudeScope: MagnitudeScope = { pair: 'EURUSD', currency: 'USD', side: 'QUOTE', family: 'CPI' }
 export const cpiMagnitudeSettingsStore = createMagnitudeSettingsStore(cpiMagnitudeScope, Object.keys(cpiReadingRules))
-export const saveCpiMagnitudeLimits = cpiMagnitudeSettingsStore.save
-export const readCpiMagnitudeSettings = cpiMagnitudeSettingsStore.read

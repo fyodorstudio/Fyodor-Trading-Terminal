@@ -1,6 +1,6 @@
-# USD relationship snapshots / roofs v3
+# USD Roofs: relationships and chart display
 
-Implemented 7 October 2026 alongside `usd-context-memory-v8`. Price never enters
+Current engines: `usd-context-memory-v8`, relationship v4, display v8. Price never enters
 this derivation. Roofs remain USD-only regardless of Candy mode. ISM sectors
 resolve standalone ISM; labor relationships use quality-gated accumulated USD
 context; fresh-news sequences use changes in interpreted support at common calibration. This distinction is
@@ -69,8 +69,9 @@ The optional EUR/USD relative result remains a separate selected view.
 ## Ownership and performance
 
 - `core/`: typed snapshots, single-pass derivation and binary fresh lookup.
-- `chart/`: containing-candle projection, visible-range lookup, focused/all layout,
-  overflow access and animation-frame-coalesced subscriptions.
+- `chart/`: containing-candle projection, visible-range lookup, three density modes,
+  local combo menus and animation-frame-coalesced subscriptions. `RoofColumnMenu`
+  renders the shared chooser; `ComboRoofs` owns viewport and selection lifecycles.
 - `ui/`: result-first Inspector details, optional calculations, manual audit actions,
   gear comparison and display controls.
 - `storage/`: validated, portable, cross-window display preferences.
@@ -133,23 +134,21 @@ unchanged/insufficient support is gray. Full state/evidence stays in the tooltip
 and details. Overflow retains full state explanations and exact timestamps.
 The snapshot title/type and publication qualification are unchanged.
 
-## Roof workflow / display v2 — 7 October 2026
+## Current Roof workflow
 
-Display v2 originally used two lanes in **Focused**; current display v6 uses three in both modes with hollow source circles, filled publication circles and outlined memory diamonds. Display priority is evidence strength,
-then established relationships ahead of experimental fresh-news sequences, then
-most recent activation, with ID as a stable tie-breaker. Bracket spans as well as
-label footprints reserve space. Repeated overlapping roofs of the same kind,
-direction and family set keep the highest-ranked representative. Opposing roofs
-are never deduplicated as the same direction, but can still overflow crowded lanes.
-Every omitted eligible roof remains in **+N more**, newest activation first, with
-its direction, evidence and selected display time. **All roofs** uses three lanes and
-full-span collision avoidance, including symbol/label footprints. Density is a saved display choice in the shared gear's Roofs tab; neither mode
-changes relationship qualification or scoring and neither fits to price.
+**Concise** groups all enabled relationships at each visible containing candle into
+**+N Combo**. **Focused** prioritizes the selected snapshot, specialized relationships,
+evidence and recent activation, while suppressing overlapping repetitions. **All roofs**
+keeps every eligible label that fits. Both label modes allocate rows according to
+chart height using the uniform label footprint, with every omitted snapshot in its
+own candle's **+N more** menu. Connecting lines do not occupy label rows. Neighboring
+menu buttons stagger without moving their candle anchors.
 
-The filled endpoint marks the containing activation candle. The tooltip
-and Inspector give the precise selected clock; lines back to earlier publications
-identify context, not an earlier available signal. Future activation and any
-snapshot with a future source are excluded before display prioritization.
+Labels sit at their own available-from candle. Hover, keyboard focus and selection
+reveal connections to drawable sources; redundant source/activation dot buttons are
+retired. Concise keeps only the time stems, even after selection. Tooltips and details
+give exact clocks. Future activation and any snapshot with a future source are
+excluded before display prioritization. Saved density changes no qualification or score.
 
 The dedicated **Roofs** bottom dock puts direction and evidence together in its header,
 followed by a proportional Long/Short support bar and its main contributors. Collapse
@@ -162,8 +161,8 @@ Weights, numerical effects, guard checks and contribution tables are mounted onl
 when **Advanced calculations** is opened. Net and separation also stay in that section.
 Participating releases open Inspector without discarding the selected combo; the Roofs tab
 returns to it. The visible Experimental badge and duplicate price audit are removed from
-Combo details; the existing price-reaction controls remain in Raycaster. Context remains `usd-context-memory-v6.2`;
-relationship derivation remains v1; display v2 is not a new scoring engine.
+Combo details; the existing price-reaction controls remain in Raycaster. Presentation
+uses the current context and relationship engines without adding a scoring vote.
 
 Raycaster now has explicit Context and Selected combo views. Roof selection only
 opens the Roofs dock; Open in Raycaster explicitly opens the selected-combo view.
@@ -192,13 +191,12 @@ interpretation snapshot distinguish observations; changed settings/results start
 unaudited while previous records remain stored. Storage failures retain session
 observations with a visible message. Automatic price labeling remains deferred.
 
-## Independent context views / display v3
+## Independent context views
 
 Header controls independently toggle Roofs, Candy (the accumulated context ribbon)
 and Raycaster's hover box. The shared controller remains mounted while any view is
 active; hiding the box unsubscribes its crosshair listener. The shared gear's Roofs tab explains
-the four relationship types, current USD input exclusions and shape semantics.
-Focused keeps the previous ranking and deduplication, now with three lanes.
+the pair catalogue, specialized relationships, current USD input exclusions and shape semantics.
 
 `raycaster/ribbon` merges USD/EUR update clocks once and projects only visible
 intervals, plus the preceding state. Precise clocks interpolate within bars;
@@ -216,20 +214,19 @@ context snapshot. Neither feature places orders or implements exit strategies.
 `chart/roof-plan.ts` prepares the original source and activation candle indices
 across eligible loaded history, including sources outside the viewport. The layout
 is cached per candle spacing / density / input history, independently of panning.
-Each pan translates that plan, using an indexed span query that includes crossing
-brackets even when their activation or label lies beyond a screen edge. Labels keep
-their full-source midpoint and are clipped naturally instead of clamped to the edge.
-Display v5 restored source/activation dots and stems to the existing bottom
-release-symbol row. Dot clicks open the original release, or Combo details for an
-activation without a visible publication; the direction box opens the dated combo snapshot. More remains
-outside the clipping layer and retains overflow.
+Each pan translates cached source geometry, then binary lookup admits only visible
+available-from candle columns. Offscreen activations neither reserve label rows nor
+add menu counts. Label boxes reserve rows independently of their source spans, and
+previous rows are reused when they still fit. An admitted label may connect to an
+offscreen source on hover/selection; absent source symbols never remove that label.
+Menus remain outside the clipping layer and keep complete per-column access.
 
 Lane collision and repeated-roof checks use sorted interval lookups. Panning does
 not scan/repack complete history; range/resize callbacks remain RAF-coalesced. Zoom,
 new eligible publications/history, timeframe, marker filters or density changes
 can rebuild the plan. This is a display change only, with no combination merging,
 numerical model change, future-source admission or inferred signal duration. The
-old activation-only viewport layout and screen-edge label clamping are retired.
+old whole-history row packing and screen-edge label clamping are retired.
 
 ## Retired release-symbol endpoints / display v4
 
@@ -249,7 +246,7 @@ A hidden activation publication uses a text badge, not a fabricated visible glyp
 The direction box and overflow entries remain the paths to Combo details. Numerical
 scoring, qualification clocks, context budgets and stored audit snapshots are unchanged.
 
-## Restored brackets / display v5
+## Historical restored brackets / display v5
 
 Display v4's duplicate symbols, Starts/Update badges, and inline hidden-input counts
 are retired. The original Inspector marker row is the single release-symbol baseline.
@@ -275,7 +272,7 @@ and Notebook invalidation/review guidance. Terminal tests cover hidden activator
 same-candle earlier sources, release choosers, pan stability and future rejection.
 The user performs the final visual audit.
 
-## Endpoint clarity / display v6
+## Historical endpoint clarity / display v6
 
 Display provenance is attached to existing relationship snapshots without changing
 IDs, scores, weights or qualification: publication, aging, or expiry. Removed

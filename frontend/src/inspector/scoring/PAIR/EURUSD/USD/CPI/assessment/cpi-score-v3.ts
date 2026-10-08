@@ -8,7 +8,6 @@ import { priorReferenceRows } from '../../../../../shared/core/reference-history
 export const cpiScoreV3Version = 'cpi-eurusd-release-change-v3.2'
 export const cpiV3HistoryStart = Date.UTC(2015, 0, 1)
 export const cpiV3SeriesIds = ['840030005', '840030006', '840030008'] as const
-export const cpiV3MinimumHistory = 24
 // Keep v2's weights and supporting signals to isolate the new primary signal.
 export const cpiV3Signals = [
   { id: 'fresh', label: 'Latest core pace', group: 'core-monthly', weight: 35,
