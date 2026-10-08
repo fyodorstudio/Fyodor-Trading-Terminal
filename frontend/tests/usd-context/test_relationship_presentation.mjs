@@ -42,23 +42,45 @@ try {
   const staleProjection = selectedRoofProjection(timeline, stale)
   assert.equal(staleProjection.current, false); assert.equal(staleProjection.points.length, 0)
   assert.equal(selectedRoofProjection(timeline, stale), staleProjection, 'Stale selections do not rebuild on hover')
-  let cleared = 0, toggled = 0
+  let cleared = 0, closed = 0
   const boxProps = { symbol: 'EURUSD', point: context, cutoff: at, loading: false, message: null,
-    timeDisplay: { mode: 'utc', utcOffsetMinutes: 0 }, selectedCombo: combo, onClose() {}, onClearCombo: () => cleared++,
-    roofCandyVisible: true, onToggleRoofCandy: () => toggled++ }
+    timeDisplay: { mode: 'utc', utcOffsetMinutes: 0 }, selectedCombo: combo, onClose: () => closed++, onClearCombo: () => cleared++ }
   await render(React.createElement(RaycasterBox, boxProps))
   const accumulated = container.querySelector('[aria-label="Accumulated context"]')
+  assert.equal(container.querySelector('[aria-label="Selected roof snapshot"]'), null, 'Selecting a combo does not switch the Context view')
+  assert.match(accumulated.textContent, /Long leads/)
+  const accumulatedShares = accumulated.querySelector('.combo-support-values').textContent
+  const chooseView = async value => React.act(async () => {
+    const select = container.querySelector('[aria-label="Raycaster view"]')
+    select.value = value; select.dispatchEvent(new dom.Event('change', { bubbles: true }))
+  })
+  await chooseView('combo')
   const selected = container.querySelector('[aria-label="Selected roof snapshot"]')
-  assert.match(accumulated.textContent, /Long leads/); assert.match(selected.textContent, /Short leads/)
-  assert.notEqual(accumulated.querySelector('.support-split').textContent, selected.querySelector('.support-split').textContent, 'Combo shares do not borrow accumulated percentages')
+  assert.equal(container.querySelector('[aria-label="Accumulated context"]'), null, 'Only one reading occupies the box')
+  assert.match(selected.textContent, /Short leads/)
+  assert.notEqual(accumulatedShares, selected.querySelector('.combo-support-values').textContent, 'Combo shares do not borrow accumulated percentages')
   assert.match(selected.textContent, /CPI gives most Short support.*CLAIMS gives opposing Long support/)
   assert.match(selected.textContent, /Snapshot at/)
   assert.equal(container.querySelector('.raycaster-calculations').open, false)
   assert.equal(container.querySelector('.raycaster-reaction').open, false, 'Price observations are directly accessible without occupying the default reading')
-  await React.act(async () => container.querySelector('[aria-label="Clear selected roof"]').click()); assert.equal(cleared, 1)
-  await React.act(async () => [...selected.querySelectorAll('button')].find(b => b.textContent === 'Hide Roof Candy').click()); assert.equal(toggled, 1)
+  await React.act(async () => [...selected.querySelectorAll('button')].find(b => b.textContent === 'Clear combo').click()); assert.equal(cleared, 1)
+  await React.act(async () => container.querySelector('[aria-label="Hide Raycaster"]').click())
+  assert.equal(closed, 1); assert.equal(cleared, 1, 'Closing the box does not clear the roof')
+  assert.equal([...selected.querySelectorAll('button')].find(b => /Roof Candy/.test(b.textContent)), undefined, 'Candy controls have moved to Roofs')
   await render(React.createElement(RaycasterBox, { ...boxProps, selectionNotice: 'Inputs or history changed. Reopen the roof.' }))
   assert.match(container.querySelector('[role="status"]').textContent, /Reopen/)
+  await chooseView('context')
+  assert.equal(container.querySelector('.raycaster-reaction'), null, 'The combo audit does not compete with accumulated context')
+  const calculations = container.querySelector('.raycaster-calculations')
+  assert.equal(calculations.open, false)
+  const contributionRow = container.querySelector('[aria-label="Accumulated USD contributions"] tbody tr')
+  assert.equal(contributionRow.cells.length, 4)
+  assert.match(contributionRow.cells[1].textContent, /Stronger/)
+  await chooseView('combo')
+  await render(React.createElement(RaycasterBox, { ...boxProps, selectedCombo: null }))
+  assert.equal(container.querySelector('[aria-label="Raycaster view"]').value, 'context')
+  await render(React.createElement(RaycasterBox, boxProps))
+  assert.equal(container.querySelector('[aria-label="Selected roof snapshot"]'), null, 'A cleared combo does not revive the previous combo view')
   assert.equal(JSON.stringify({ ...localStorage }), storage, 'Display, clearing and toggling do not write preferences')
 
   const balanced = { ...roofSupport(combo), state: 'balanced', direction: null, long: 1, short: 1 }
@@ -111,7 +133,7 @@ try {
   await React.act(async () => { for (const [id, fn] of frames) { frames.delete(id); fn() } })
   assert.equal(container.querySelector('.ribbon-segment'), null)
   assert.match(container.querySelector('.ribbon-empty').textContent, /combo starts.*Move the chart/, 'A view before activation explains the empty strip')
-  assert.match(container.querySelector('.context-ribbon-legend').textContent, /Selected combo.*starts/)
+  assert.match(container.querySelector('.context-ribbon-legend').textContent, /Relationship history.*starts/)
   scale.getVisibleRange = originalRange
   await render(React.createElement(ContextRibbon, { ...ribbonProps, points: staleProjection.points, notice: 'Inputs changed; reopen the roof.' }))
   assert.ok(container.querySelector('.ribbon-segment.uncomputed'))

@@ -106,6 +106,46 @@ try {
   const fedPoints = buildRelationshipTimeline(fedTimeline, fedCombo)
   assert.equal(fedPoints[0].support.votes.length, 1, 'Fed basis points never enter support shares')
   assert.equal(fedPoints.find(p => p.at === at + 45 * day).support.state, 'insufficient')
+  // Selecting a later Fed action chooses the pair, not the beginning of history.
+  const claimsContext = (time, total, id) => ({ chartAt: time,
+    result: combineContext({ claims: source('claims', total, time, id) }, ['claims'], time), latest: source('claims', total, time, id), update: '' })
+  const historicalContexts = [claimsContext(at, -1, 'early-claims'), claimsContext(at + day, 1, 'hold-claims'),
+    claimsContext(at + 10 * day, -2, 'cut-claims'), claimsContext(at + 20 * day, 3, 'increase-claims'), claimsContext(at + 66 * day, 1, 'late-claims')]
+  const actions = [['Hold', 0, 1], ['Cut', -25, 10], ['Increase', 25, 20]].map(([name, delta, days]) => ({
+    ...source('fed', null, at + days * day, 'fed-' + name), usdDirection: delta > 0 ? 'stronger' : delta < 0 ? 'weaker' : 'uncomputed',
+    policyAction: { action: name, delta, actual: 4.25 } }))
+  const historicalCombos = actions.map((fedAction, i) => ({ ...fedCombo, id: 'claims-fed/' + i, chartAt: fedAction.chartAt,
+    sources: [historicalContexts[i + 1].result.members[0], fedAction], after: historicalContexts[i + 1].result,
+    checks: [], catalogue: { enabled: ['claims'], fresh: [], fed: fedAction } }))
+  const historicalTimeline = { ...timeline, enabled: ['claims'], points: historicalContexts,
+    relationships: { episodes: historicalCombos, fresh: [], fedSources: actions } }
+  const immutableHistory = JSON.stringify(historicalTimeline)
+  const completeHistory = buildRelationshipTimeline(historicalTimeline, historicalCombos[2], true)
+  assert.equal(completeHistory[0].at, at)
+  assert.equal(completeHistory[0].support.state, 'insufficient', 'No future Fed action is backfilled')
+  for (const historicalCombo of historicalCombos) {
+    const point = completeHistory.find(p => p.at === historicalCombo.chartAt)
+    assert.deepEqual(point.support, roofSupport(historicalCombo), 'Each historical publication preserves its canonical shares')
+    assert.equal(point.snapshot, historicalCombo)
+    assert.equal(point.support.votes.length, 1, 'No Fed action type becomes a numerical vote')
+    assert.match(point.label, new RegExp(historicalCombo.catalogue.fed.policyAction.action, 'i'))
+  }
+  assert.equal(completeHistory.find(p => p.at === at + 65 * day).support.state, 'insufficient', 'Latest action expires at its own boundary')
+  assert.deepEqual(buildRelationshipTimeline(historicalTimeline, historicalCombos[0], true), completeHistory,
+    'Selecting a different date or Fed action of the same pair yields the same history')
+  for (const point of completeHistory) {
+    assert.ok(point.snapshot.sources.every(s => s.chartAt <= point.at), 'Historical snapshots contain no future source')
+    assert.ok(!point.snapshot.catalogue.fed || point.snapshot.catalogue.fed.chartAt <= point.at)
+  }
+  const truncatedHistory = { ...historicalTimeline, points: historicalContexts.slice(0, 3), relationships: {
+    ...historicalTimeline.relationships, episodes: historicalCombos.slice(0, 2), fedSources: actions.slice(0, 2) } }
+  assert.deepEqual(buildRelationshipTimeline(truncatedHistory, historicalCombos[1], true), completeHistory.filter(p => p.at <= at + 10 * day),
+    'Removing future history preserves every earlier segment')
+  assert.equal(buildRoofRibbonTimeline(historicalTimeline, historicalCombos[2])[0].at, at, 'Production Candy includes pre-selection history')
+  assert.equal(JSON.stringify(historicalTimeline), immutableHistory)
+  const states = points => points.map(p => ({ at: p.at, support: p.support, kind: p.kind }))
+  assert.deepEqual(states(buildRelationshipTimeline(freshTimeline, freshCombo, true)), states(freshPoints),
+    'Full fresh history retains exact seven-day boundaries')
   const audit = JSON.parse(roofAuditScope(combo, 'EURUSD', 'Broker').snapshot)
   assert.equal(audit.kind, combo.kind); assert.equal(audit.displayedSupport.state, 'conflicted')
   assert.equal(audit.presentationVersion, 'support-display-v1')

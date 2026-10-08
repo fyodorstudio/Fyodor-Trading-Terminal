@@ -51,6 +51,7 @@ import { usdPair } from '../usd-context/core/usd-pair'
 import { readRaycasterVisible, saveRaycasterVisible } from '../raycaster/storage/raycaster-preferences'
 import type { ComboSnapshot, ComboSource } from '../usd-context/sequences/core/contracts'
 import { ComboInspector } from '../usd-context/sequences/ui/ComboInspector'
+import type { RaycasterView } from '../raycaster/ui/RaycasterBox'
 
 const defaultTradePlan: PlannedTradeState = {
   direction: 'long',
@@ -70,6 +71,7 @@ export function FyodorTerminalShell() {
   const [selectedDrawingId, setSelectedDrawingId] = useState<string | null>(null)
   const [drawingToolbarVisible, setDrawingToolbarVisible] = useState<boolean>(readDrawingToolbarVisible)
   const [raycasterVisible, setRaycasterVisible] = useState(readRaycasterVisible)
+  const [raycasterView, setRaycasterView] = useState<RaycasterView>('context')
   const [comboSelection, setComboSelection] = useState<{ combo: ComboSnapshot; symbol: string; broker: string | null } | null>(null)
   const [bottomDockWindow, setBottomDockWindow] = useState<BottomDockWindow | null>(null)
   const [roofsCollapsed, setRoofsCollapsed] = useState(false)
@@ -127,9 +129,10 @@ export function FyodorTerminalShell() {
   const bars = marketData.bars
   const brokerId = bridge.health?.mt5.account_server ?? null
   const selectedCombo = comboSelection?.symbol === activeSymbol && comboSelection.broker === brokerId ? comboSelection.combo : null
-  const closeCombo = useCallback(() => setComboSelection(null), [])
+  const closeCombo = useCallback(() => { setComboSelection(null); setRaycasterView('context') }, [])
   // A captured roof belongs to one symbol/broker; do not resurrect it on return.
   if (comboSelection && !selectedCombo) setComboSelection(null)
+  if (!selectedCombo && raycasterView !== 'context') setRaycasterView('context')
   const inspector = useInspector({ symbol: activeSymbol, bars, timeframe, timeDisplay,
     detailOpen: bottomDockWindow === 'inspector',
     clockOffsetMs: bridge.clockOffsetMs, brokerId: bridge.health?.mt5.account_server ?? null,
@@ -244,6 +247,9 @@ export function FyodorTerminalShell() {
     setReleaseSelection(id); selectBottomDock('inspector')
   }, [setReleaseSelection, selectBottomDock])
   const closeRaycaster = useCallback(() => { setRaycasterVisible(false); saveRaycasterVisible(false) }, [])
+  const openComboRaycaster = useCallback(() => {
+    setRaycasterView('combo'); setRaycasterVisible(true); saveRaycasterVisible(true)
+  }, [])
   const toggleRaycaster = useCallback(() => {
     setRaycasterVisible(current => { saveRaycasterVisible(!current); return !current })
     setActiveDrawingTool(null)
@@ -271,10 +277,10 @@ export function FyodorTerminalShell() {
   const raycaster = useMemo(() => contextVisible && raycasterSupported ?
     { boxVisible: raycasterVisible, symbol: activeSymbol, timeframe, brokerId, brokerOffsetSeconds, clockOffsetMs: bridge.clockOffsetMs,
       timeDisplay, onClose: closeRaycaster, bars: inspector.markerBars, markers: inspector.markers, onSelectCombo: selectCombo,
-      selectedCombo, onClearCombo: closeCombo,
+      selectedCombo, onClearCombo: closeCombo, view: raycasterView, onViewChange: setRaycasterView,
       onOpenComboSource: openComboRelease, currencyColors: inspectorPreferences.currencyColors } : null,
     [contextVisible, raycasterVisible, raycasterSupported, activeSymbol, timeframe, brokerId, brokerOffsetSeconds,
-      bridge.clockOffsetMs, timeDisplay, closeRaycaster, inspector.markerBars, inspector.markers, selectCombo, selectedCombo, closeCombo, openComboRelease, inspectorPreferences.currencyColors])
+      bridge.clockOffsetMs, timeDisplay, closeRaycaster, inspector.markerBars, inspector.markers, selectCombo, selectedCombo, closeCombo, openComboRelease, inspectorPreferences.currencyColors, raycasterView])
   const renderChartOverlay = useTerminalChartOverlay({ arrows: registeredArrows.symbolArrows,
     selectedArrowId: registeredArrows.selectedArrowId, draftPlan: plannedTrade, onSelectArrow: selectChartArrow,
     supported: inspector.supported, markers: inspector.markers, currencyColors: inspector.preferences.currencyColors,
@@ -429,6 +435,7 @@ export function FyodorTerminalShell() {
             onOpenScatter={openScatter} />}
           {bottomDockWindow === 'roofs' && (selectedCombo ? <ComboInspector combo={selectedCombo} symbol={activeSymbol}
             timeDisplay={timeDisplay} collapsed={roofsCollapsed} onToggleCollapsed={() => setRoofsCollapsed(value => !value)}
+            onOpenRaycaster={openComboRaycaster}
             onClose={() => selectBottomDock('inspector')} onOpenRelease={openComboRelease} /> :
             <section className="combo-inspector combo-empty" aria-label="Combo details"><header><strong>Roofs · Combo details</strong></header>
               <p>Select a roof label or a combo from More on the chart to inspect its weighted support and participating releases.</p></section>)}

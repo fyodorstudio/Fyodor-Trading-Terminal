@@ -11,6 +11,7 @@ type PlanEntry = { column: number; roof: RoofCandidate }
 export type RoofPlan = { entries: PlanEntry[]; focused: boolean; maxRows: number; selectedId?: string }
 export type RoofOverflowColumn = { column: number; x: number; lane: number; combos: ComboSnapshot[] }
 export const roofOverflowWidth = 64
+export const roofConciseWidth = 84
 export const roofOverflowRowHeight = 22
 
 export function knownRoofCount(episodes: readonly ComboSnapshot[], now: number) {
@@ -37,8 +38,10 @@ export function prepareRoofAnchors(episodes: readonly ComboSnapshot[], bars: rea
       const index = roofBarIndex(bars, Number.isFinite(marker.time) ? marker.time * 1000 : source.chartAt, timeframe)
       return index === null ? [] : [{ index, publication: { source, symbol: visible.get(source.sourceId)!.symbol } }]
     })
-    if (!publications.length) continue
-    anchors.push({ combo, start: Math.min(...publications.map(p => p.index)), end, publications, hidden: combo.sources.length - sources.length })
+    // The available-from candle admits the label. Source symbols only supply
+    // drawable connections, including when older price history is not loaded.
+    anchors.push({ combo, start: Math.min(end, ...publications.map(p => p.index)), end, publications,
+      hidden: combo.sources.length - publications.length })
   }
   return anchors
 }
@@ -60,13 +63,14 @@ export function createRoofPlan(anchors: readonly RoofAnchor[], spacing: number, 
 
 /** An offscreen activation neither consumes a row nor contributes to local More. */
 export function projectRoofPlan(plan: RoofPlan, offset: number, width: number,
-  previousLanes: ReadonlyMap<string, number> = new Map(), maxRows = plan.maxRows) {
+  previousLanes: ReadonlyMap<string, number> = new Map(), maxRows = plan.maxRows, concise = false) {
   const from = -offset, to = width - offset
   let lo = 0, hi = plan.entries.length
   while (lo < hi) { const mid = (lo + hi) >>> 1; if (plan.entries[mid].roof.labelX < from) lo = mid + 1; else hi = mid }
   const visible: PlanEntry[] = []
   for (let i = lo; i < plan.entries.length && plan.entries[i].roof.labelX <= to; i++) visible.push(plan.entries[i])
-  const layout = layoutRoofs(visible.map(e => e.roof), plan.focused, maxRows, plan.selectedId, previousLanes)
+  const layout = concise ? { positioned: [], overflow: visible.map(e => e.roof.combo) } :
+    layoutRoofs(visible.map(e => e.roof), plan.focused, maxRows, plan.selectedId, previousLanes)
   const hidden = new Set(layout.overflow.map(c => c.id)), columns = new Map<number, RoofOverflowColumn>()
   for (const { column, roof } of visible) {
     if (!hidden.has(roof.combo.id)) continue
@@ -74,12 +78,12 @@ export function projectRoofPlan(plan: RoofPlan, offset: number, width: number,
     if (!group) { group = { column, x: roof.labelX + offset, lane: 0, combos: [] }; columns.set(column, group) }
     group.combos.push(roof.combo)
   }
-  const overflowColumns = [...columns.values()], ends: number[] = []
+  const overflowColumns = [...columns.values()], ends: number[] = [], buttonWidth = concise ? roofConciseWidth : roofOverflowWidth
   for (const group of overflowColumns) {
     group.combos.sort((a, b) => b.chartAt - a.chartAt || a.id.localeCompare(b.id))
-    let lane = ends.findIndex(end => group.x - roofOverflowWidth / 2 >= end + 4)
+    let lane = ends.findIndex(end => group.x - buttonWidth / 2 >= end + 4)
     if (lane < 0) { lane = ends.length; ends.push(-Infinity) }
-    group.lane = lane; ends[lane] = group.x + roofOverflowWidth / 2
+    group.lane = lane; ends[lane] = group.x + buttonWidth / 2
   }
   const positioned: PositionedRoof[] = layout.positioned.map(p => ({ ...p, left: p.left + offset, right: p.right + offset, labelX: p.labelX + offset,
     endpoints: p.endpoints.map(e => ({ ...e, x: e.x + offset, symbolX: e.symbolX === undefined ? undefined : e.symbolX + offset })) }))

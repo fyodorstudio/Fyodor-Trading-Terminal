@@ -53,7 +53,7 @@ try {
     assert.deepEqual([...result.positioned.map(p => p.combo.id), ...result.overflow.map(c => c.id)].sort(), crowded.map(p => p.combo.id).sort(), 'Every roof remains accessible')
     for (const lane of new Set(result.positioned.map(p => p.lane))) {
       const labels = result.positioned.filter(p => p.lane === lane).sort((a, b) => a.labelX - b.labelX)
-      for (let i = 1; i < labels.length; i++) assert.ok(labels[i].labelX - labels[i - 1].labelX >= 178, 'Same-lane labels do not overlap')
+      for (let i = 1; i < labels.length; i++) assert.ok(labels[i].labelX - labels[i - 1].labelX >= 228, 'Uniform 220px labels retain their collision gutter')
     }
   }
 
@@ -71,7 +71,7 @@ try {
     const anchors = prepareRoofAnchors(episodes, bars, 'H1', markers, true, episodes.length)
     const plan = createRoofPlan(anchors, 12, focused)
     const lanes = view => new Map(view.positioned.map(p => [p.combo.id, p.lane]))
-    const a = projectRoofPlan(plan, 20, 500), b = projectRoofPlan(plan, -40, 500, lanes(a)), c = projectRoofPlan(plan, 20, 500, lanes(b))
+    const a = projectRoofPlan(plan, 20, 1000), b = projectRoofPlan(plan, -40, 1000, lanes(a)), c = projectRoofPlan(plan, 20, 1000, lanes(b))
     const shared = a.positioned.filter(p => b.positioned.some(q => q.combo.id === p.combo.id))
     assert.ok(shared.length > 2, 'Zoomed-out fixture keeps several roofs across shifted viewports')
     for (const p of shared) {
@@ -109,8 +109,40 @@ try {
   }
   const malformed = { ...crossing, sources: [{ ...crossing.sources[0], chartAt: crossing.chartAt + 1 }] }
   assert.equal(prepareRoofAnchors([malformed], bars, 'H1', crossingMarkers, true, 1).length, 0)
-  assert.equal(prepareRoofAnchors([crossing], bars, 'H1', [], true, 1).length, 0)
+  const symbolFree = prepareRoofAnchors([crossing], bars, 'H1', [], true, 1)
+  assert.equal(symbolFree.length, 1, 'Source availability never decides label eligibility')
+  assert.equal(symbolFree[0].publications.length, 0); assert.equal(symbolFree[0].hidden, crossing.sources.length)
   assert.equal(prepareRoofAnchors([crossing], bars, 'H1', crossingMarkers, false, 1).length, 0)
+  // Oct 8 memory update with Oct 1/2/5 sources: loaded history varies by TF.
+  const { buildInspectorMarkers, timeframeSeconds } = await load('inspector/inspector-data.ts')
+  const updateAt = Date.UTC(2026, 9, 8)
+  const memorySources = [source('claims', -1, Date.UTC(2026, 9, 1, 15, 30)),
+    source('nfp', -1, Date.UTC(2026, 9, 2, 15, 30)), source('ism', -1, Date.UTC(2026, 9, 5, 17))]
+  const memoryRoof = { ...combo, chartAt: updateAt, sources: memorySources, activation: { kind: 'expiry', removed: [] } }
+  const releaseGroups = memorySources.map(s => ({ id: s.sourceId, chartTime: s.chartAt / 1000, familyId: s.family }))
+  releaseGroups[2] = { id: 'ism-month', chartTime: Date.UTC(2026, 9, 1, 17) / 1000, familyId: 'ism-manufacturing', ismPublications: [{ id: 'ism', familyId: 'ism-services' }] }
+  const originalMemory = JSON.stringify(memoryRoof)
+  for (const tf of ['M1', 'M5', 'M15', 'M30', 'H1', 'H4', 'D1']) {
+    const duration = timeframeSeconds[tf], last = Math.floor((updateAt / 1000 + 12 * 3600) / duration) * duration
+    const shortHistory = Array.from({ length: 800 }, (_, i) => ({ time: last - (799 - i) * duration }))
+    const projectedMarkers = buildInspectorMarkers(releaseGroups, { showSymbols: true, families: [], symbols: {} }, shortHistory, tf)
+    const shortAnchors = prepareRoofAnchors([memoryRoof], shortHistory, tf, projectedMarkers, true, 1)
+    assert.equal(shortAnchors.length, 1, `${tf}: available-from candle keeps the expiry label eligible`)
+    if (tf === 'M1' || tf === 'M5') assert.equal(shortAnchors[0].publications.length, 0, 'The regression exercises genuinely unloaded sources')
+    const activation = shortAnchors[0].end
+    const repeatedRoofs = [0, 1, 2].map(i => ({ ...memoryRoof, id: 'memory/' + i }))
+    const noSourcePlan = createRoofPlan(prepareRoofAnchors(repeatedRoofs, shortHistory, tf, [], true, 3), 12, false, 1)
+    const view = projectRoofPlan(noSourcePlan, 100 - activation * 12, 400)
+    assert.equal(view.positioned.length, 1); assert.equal(view.overflowColumns[0].combos.length, 2, 'Source-free updates remain accessible in local More')
+    assert.equal(view.positioned[0].labelX, 100)
+    assert.ok(view.positioned[0].endpoints.every(e => e.publications.length === 0), 'No guessed source connector')
+    const missingCandle = shortHistory.filter((_, index) => index !== activation)
+    assert.equal(prepareRoofAnchors([memoryRoof], missingCandle, tf, projectedMarkers, true, 1).length, 0, 'An actual activation-candle gap stays a gap')
+    const loadedSources = prepareRoofAnchors([memoryRoof], shortHistory, tf,
+      [{ ...projectedMarkers[0], time: shortHistory[0].time - duration, release: { id: memorySources[0].sourceId } }], true, 1)
+    assert.equal(loadedSources.length, 1); assert.equal(loadedSources[0].hidden, 3, 'An unprojectable symbol does not hide the label or undercount unavailable inputs')
+  }
+  assert.equal(JSON.stringify(memoryRoof), originalMemory, 'Timeframe projection never changes the expiry snapshot')
   const earlier = { ...combo, id: 'offscreen-earlier', chartAt: at + 2 * hour, sources: roofSources(2, 2, 'earlier') }
   const alone = { ...combo, id: 'visible-alone', chartAt: at + 6 * hour, sources: roofSources(6, 6, 'alone') }
   const aloneMarkers = [...earlier.sources, ...alone.sources].map(s => ({ release: { id: s.sourceId } }))
@@ -135,12 +167,39 @@ try {
   assert.deepEqual(groupedView.overflowColumns[0].combos.map(c => c.chartAt), simultaneous.slice(0, 3).map(c => c.chartAt).reverse(), 'Same-candle grouping retains each exact timestamp')
   const pannedGroups = projectRoofPlan(groups, -6 * 40 + 70, 250)
   assert.deepEqual(pannedGroups.overflowColumns.map(g => g.x), [70, 110], 'Local More travels with its time column')
+  const conciseGroups = projectRoofPlan(groups, -6 * 40 + 100, 250, new Map(), 1, true)
+  assert.equal(conciseGroups.positioned.length, 0)
+  assert.deepEqual(conciseGroups.overflowColumns.map(g => [g.column, g.x, g.combos.length]), [[6, 100, 4], [7, 140, 1]])
+  assert.notEqual(conciseGroups.overflowColumns[0].lane, conciseGroups.overflowColumns[1].lane, 'Adjacent Concise buttons stagger without moving their time anchors')
+  assert.deepEqual(conciseGroups.overflowColumns[0].combos.map(c => c.chartAt), simultaneous.map(c => c.chartAt).reverse())
+  const { comboColumnSummary } = await load('usd-context/sequences/chart/combo-column-summary.ts')
+  const countCases = [combo, { ...combo, sources: combo.sources.map(s => ({ ...s, change: .1 })) },
+    { ...combo, sources: combo.sources.map((s, i) => ({ ...s, change: i ? .1 : -.1 })) },
+    { ...combo, kind: 'release-relationship', sources: combo.sources.map(s => ({ ...s, total: 0 })) },
+    { ...combo, sources: combo.sources.map(s => ({ ...s, change: 0 })) }]
+  const frozenCounts = JSON.stringify(countCases)
+  assert.deepEqual(comboColumnSummary(countCases).counts, { long: 1, short: 1, balanced: 1, unchanged: 1, insufficient: 1 })
+  assert.equal(JSON.stringify(countCases), frozenCounts, 'Counting relationships does not rewrite their shares or sources')
+  const service = { ...inputs[0], family: 'ism', sourceLabel: 'ISM Services', chartAt: at }
+  const serviceCombo = { ...combo, sources: [service, inputs[0]], activation: { kind: 'publication', removed: [] } }
+  assert.deepEqual(comboColumnSummary([serviceCombo]).updates[0].releases, ['ISM Services'], 'The popover names Services at its actual release clock, independently of the grouped marker')
+  const expirySummary = comboColumnSummary([{ ...combo, chartAt: at + hour, activation: { kind: 'expiry', removed: [] } }])
+  assert.equal(expirySummary.updates[0].kind, 'expiry'); assert.deepEqual(expirySummary.updates[0].releases, [])
+  let totalReads = 0
+  const cachedSource = { ...inputs[0], get total() { totalReads++; return -1 } }
+  const cachedCombo = { ...combo, kind: 'release-relationship', sources: [cachedSource, inputs[1]] }
+  comboColumnSummary([cachedCombo]); const initialReads = totalReads
+  for (let i = 0; i < 200; i++) comboColumnSummary([cachedCombo])
+  assert.equal(totalReads, initialReads, 'Viewport/chooser changes reuse each frozen snapshot reading')
 
   const many = { entries: [], focused: false, maxRows: 0 }; let reads = 0
   for (let i = 0; i < 100000; i++) { const start = i * 200; many.entries.push({ column: i,
     roof: { ...candidate('indexed/' + i), get labelX() { reads++; return start } } }) }
   assert.equal(projectRoofPlan(many, -5000000, 400).overflow.length, 3)
   assert.ok(reads < 60, 'Panning uses binary lookup plus visible activations, rather than scanning the complete history')
+  reads = 0
+  assert.equal(projectRoofPlan(many, -5000000, 400, new Map(), 0, true).overflowColumns.length, 3)
+  assert.ok(reads < 60, 'Concise retains the binary visible-column lookup')
 
   const scope = roofAuditScope(combo, 'EURUSD', 'Broker A')
   const props = { combo, symbol: 'EURUSD', broker: 'Broker A' }

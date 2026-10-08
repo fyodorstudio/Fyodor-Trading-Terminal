@@ -7,19 +7,29 @@
 .combo-roofs .combo-roof-anchor { opacity: .35; }
 .combo-roofs .preview path { opacity: .8; }
 .combo-roof-choosing { z-index: 13; }
+.combo-roofs.concise { z-index: 6; }
+.combo-roofs.concise.combo-roof-choosing { z-index: 13; }
+.combo-roofs .combo-column-stem { opacity: .4; }
+.combo-roofs.concise .combo-roof-overflow > button[aria-pressed='true'] { outline: 2px solid var(--accent); }
+.combo-column-summary { display: grid; gap: 3px; padding: 6px 8px; border-bottom: 1px solid var(--border); font-size: 10px; color: var(--text); }
+.combo-column-summary > span { color: var(--text-muted); }
 .combo-roofs .selected path { opacity: 1; stroke-width: 1.5; }
 .combo-roof-label[aria-pressed='true'] { outline: 2px solid var(--accent); }
-.combo-roof-label { position: absolute; transform: translate(-50%, -100%); max-width: 170px; display: inline-flex; flex-direction: column; align-items: center; white-space: nowrap; }
-.combo-roof-memory-label { max-width: 220px; }
-.combo-roof-heading { display: inline-flex; align-items: center; gap: 5px; max-width: 100%; min-width: 0; }
-.combo-roof-update-badge { flex-shrink: 0; color: var(--text-muted); font-size: 8px; border-left: 1px solid var(--border); padding-left: 5px; }
-.combo-roof-names { min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
-.combo-roof-direction { flex-shrink: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.combo-roof-label { position: absolute; transform: translate(-50%, -100%); box-sizing: border-box; display: grid; grid-template-rows: 14px 11px 12px 15px; justify-items: center; align-items: center; white-space: nowrap; }
+.combo-roof-heading { width: 100%; min-width: 0; text-align: center; font-weight: 600; }
+.combo-roof-annotations { display: flex; justify-content: center; gap: 6px; max-width: 100%; min-width: 0; overflow: hidden; font-size: 8px; color: var(--text-muted); }
+.combo-roof-scope { color: var(--text-muted); font-size: 9px; }
+.combo-roof-names { display: block; min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .combo-roofs button { pointer-events: auto; font-size: 9px; cursor: pointer; border: 1px solid var(--border-strong); border-radius: 4px; padding: 3px 6px; background: var(--surface-panel); color: var(--text); }
 .combo-roofs button:hover { border-color: var(--accent); color: var(--accent); }
 .combo-roofs button:focus-visible { outline: 2px solid var(--accent); }
 .combo-roof-label.experimental { border-style: dashed; }
-.combo-roof-label > .support-split { margin-top: 2px; }
+.combo-roofs .combo-roof-label.long { background: color-mix(in srgb, #1aaf79 15%, var(--surface-panel)); }
+.combo-roofs .combo-roof-label.short { background: color-mix(in srgb, #e34c44 15%, var(--surface-panel)); }
+.combo-roofs .combo-roof-label.balanced { background: color-mix(in srgb, #c99528 15%, var(--surface-panel)); }
+.combo-roofs .combo-roof-label.insufficient, .combo-roofs .combo-roof-label.unchanged { background: var(--surface-raised); }
+.combo-roofs .combo-roof-label > .support-split { gap: 14px; flex-wrap: nowrap; border: 0; padding: 0; font-size: 10px; }
+:root .combo-roofs button.combo-roof-label > .support-split > span { flex: none; background: none; color: inherit; padding: 0; border-radius: 0; font-weight: 400; }
 .combo-roof-overflow { position: absolute; transform: translateX(-50%); }
 .combo-roof-overflow:has(> button[aria-expanded='true']) { z-index: 1; }
 .combo-roof-overflow > button { height: 20px; white-space: nowrap; }

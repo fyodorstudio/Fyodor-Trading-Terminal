@@ -70,7 +70,7 @@ export function buildContextRelationships(points: readonly ContextPoint[], befor
     // Pair annotations are publication snapshots, not independent votes. Missing
     // pairs and arbitrary larger subsets remain inspectable in the catalogue.
     if (before || fed) for (const pair of relationshipPairs) {
-      const sources = pair.families.flatMap(f => f === 'fed' ? catalogue.fed ? [catalogue.fed] : [] :
+      const sources = pair.families.flatMap<ComboSource>(f => f === 'fed' ? catalogue.fed ? [catalogue.fed] : [] :
         point.result.members.filter(m => m.family === f && m.status === 'active'))
       if (sources.length !== 2 || !sources.some(s => s.chartAt === point.chartAt)) continue
       const kind = pair.families.includes('fed') ? 'fed-relationship' : 'release-relationship'

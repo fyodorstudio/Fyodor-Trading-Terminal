@@ -64,7 +64,7 @@ try {
     React.createElement(RaycasterBox, { symbol: 'EURUSD', point, cutoff: chart + 1800000 - 1, loading: false, message: null, timeDisplay: jakarta, onClose() {} }),
     React.createElement(RibbonExplanation, { point: ribbon, mode: 'USD side', version: 'test', partial: false, onClose() {} }),
     React.createElement(ComboInspector, { combo, timeDisplay: jakarta, symbol: 'EURUSD', onClose() {}, onOpenRelease() {} })))
-  assert.match(container.querySelector('.raycaster-box').textContent, /Read through.*19:59.*Last context update:.*19:30/s)
+  assert.match(container.querySelector('.raycaster-box').textContent, /Through.*19:59.*Last context update:.*19:30/s)
   assert.match(container.querySelector('.ribbon-explanation').textContent, /State available from.*19:30/)
   assert.match(container.querySelector('[aria-label="Activation and changes"]').textContent, /Available from.*19:30/)
   assert.doesNotMatch(container.textContent, /broker time/i)

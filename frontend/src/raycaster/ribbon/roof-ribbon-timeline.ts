@@ -23,7 +23,7 @@ export function selectedRoofProjection(timeline: ContextTimeline | null, selecte
 }
 
 export function buildRoofRibbonTimeline(timeline: ContextTimeline, selected: ComboSnapshot): RibbonPoint[] {
-  return buildRelationshipTimeline(timeline, selected).map(p => ({ at: p.at,
+  return buildRelationshipTimeline(timeline, selected, true).map(p => ({ at: p.at,
     label: p.label, direction: p.actionConflict ? 'conflicted' : p.support.state === 'aligned' ? p.support.direction! : p.support.state,
     evidence: p.evidence, explanation: p.explanation, update: p.update,
     kind: p.kind === 'aging' ? 'memory' : p.kind, usd: contextAt(timeline, p.at), eur: null, relationship: p }))

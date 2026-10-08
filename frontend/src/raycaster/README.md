@@ -31,6 +31,23 @@ saved locally and included in workspace export/import. Non-USD supported pairs
 disable the header button; the user's saved visibility is retained when switching
 back to a supported major USD pair.
 
+The draggable box has an explicit **Context / Selected combo** view selector.
+Context reads accumulated news at the last inspected chart candle's end; Selected
+combo reads the original roof snapshot at its exact activation clock. A roof click
+opens the dedicated Roofs dock without opening Raycaster or switching its view.
+**Open in Raycaster** in that dock explicitly opens the selected-combo view. The
+box's close button hides only Raycaster, leaving the selected roof and Roof Candy
+intact. The toolbar Candy button shows or hides both configured strips; choose
+Raycaster Candy and/or Roof Candy in Fundamental tool settings → Candy.
+**Clear combo** separately clears that selection.
+
+Both USD readings use a proportional Long/Short bar with one result/evidence badge,
+a visible clock, and a short reason. Relative mode retains its existing reading
+and does not acquire USD-only percentage shares. Contributions are in compact
+input/direction/evidence/vote columns under **Details and calculations**. Manual
+price observations remain under **Record price reaction** in the selected-combo
+view; both disclosures start collapsed. These UI choices do not rescore history.
+
 Raycaster has saved CPI/NFP/Claims/ISM/Retail/PCE/PPI/GDP context filters, independent of
 Inspector marker filters. These controls are shared with CPI v4's publication
 context table; all eight inputs default On. The shared header gear's Raycaster tab
@@ -80,15 +97,16 @@ disclosed. A retained snapshot during a storage outage is reconstructed stored
 context, with a warning; a new broker never displays the previous broker's results.
 
 `chart/useRaycasterHover.ts` subscribes to the native chart crosshair. Only actual
-numeric candle times with series data are inspected; whitespace or leaving the
-chart clears the reading while the popover is closed. While open, the last
-valid candle is retained and explicitly labelled so the breakdown remains usable.
-Changing filters recomputes that candle from new inputs, not stale totals. Closing
-the popover restores the hover prompt if the cursor is outside the chart.
+numeric candle times with series data are inspected. While the box or settings are
+open, the last valid chart candle is retained when the cursor leaves the candles,
+so the selector and disclosures remain usable. The visible Through clock identifies
+that reading. Combo activation never supplies a fallback Context clock. Changing
+filters recomputes that candle from new inputs, not stale totals. Hiding the box
+with settings closed detaches the listener; reopening requires a fresh hover.
 Broker, symbol or timeframe changes clear the held candle; a new chart scope
 requires a fresh valid candle hover. Pair changes still reuse the USD timeline. Mouse movement coalesces into one animation frame and
 updates local Raycaster state only. Unmount cancels its frame and subscription.
-The box itself does not capture pan/zoom gestures; only its handle, buttons and open explanation popover
+The box itself does not capture pan/zoom gestures; its handle, buttons, selector and disclosures
 accept pointer input. Selecting Raycaster exits drawing mode but creates no
 persisted chart drawing and does not disable normal navigation.
 
@@ -147,12 +165,13 @@ Roofs are fixed dated annotations at the first known qualifying snapshot, not
 projections onto price highs and not completed sequences available before their
 publication times. A prior candle's hover cannot include a later endpoint even
 when the full historical chart displays later annotations. Source visibility
-follows Inspector marker filters/date range; hidden inputs are disclosed and do
-not lose their context vote. All-hidden sequences are omitted. Three lanes and
-an overflow chooser preserve crowded roof access. Hollow dots identify contributing
-releases; a filled dot identifies activation. Dot clicks inspect releases without
-changing marker filters/date range; direction boxes open Combo details. The bottom
-release-symbol row remains separate. Candle gaps and future bars
+follows Inspector marker filters/date range and loaded candle history. The combo's
+own available-from candle admits its label, even with no drawable source symbols;
+missing symbol connections do not remove the label or its local More entry. Full
+sources remain disclosed and retain their context votes. Uniform tinted labels
+sit at activation, with rows growing to fit the chart. Hover/focus/selection draws
+available connections and emphasizes release symbols; label clicks open Combo details.
+The bottom release-symbol row remains separate. Candle gaps and future bars
 are not used as guessed endpoints. Range/resize updates coalesce into one frame;
 hover uses binary lookup plus at most eight fresh-family expiry checks.
 
@@ -171,6 +190,17 @@ resize the bottom dock, and confirm the gear's section layout. No visual UI audi
 or browser automation was performed.
 
 ## Raycaster Candy / context ribbon
+
+The toolbar Candy control is the shared visibility switch. The Candy settings
+choose Raycaster Candy (all enabled news), Roof Candy (selected relationship),
+or both; these optional preferences are saved and included in workspace portability.
+Selecting a combo respects the switch and does not force a hidden strip on.
+Roof Candy follows that relationship throughout available history, before and
+after the clicked roof. Claims + Fed includes holds, cuts and increases. Each
+segment uses only then-known evidence, with canonical publication shares retained
+and missing/expired participants shown as insufficient. Fed actions remain
+unweighted annotations. The selected roof's label/details remain its frozen snapshot.
+The outside-event strip follows Raycaster Candy visibility.
 
 `ribbon/ribbon-timeline.ts` merges selected USD/EUR histories into one dated state
 timeline. Simultaneous updates are atomic; EUR-only publications affect relative

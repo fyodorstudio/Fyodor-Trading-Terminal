@@ -1,0 +1,7 @@
+.weighted-support-bar { position: relative; height: 32px; border: 1px solid var(--border); border-radius: 4px; overflow: hidden; background: var(--surface-raised); }
+.weighted-support-bar .combo-support-fill { position: absolute; inset: 0; display: flex; }
+.weighted-support-bar .combo-support-fill > span:first-child { background: #19a986; }
+.weighted-support-bar .combo-support-fill > span:last-child { background: #e87979; }
+.weighted-support-bar .combo-support-values { position: absolute; inset: 0; display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 0 6px; font-variant-numeric: tabular-nums; font-size: 12px; }
+.weighted-support-bar .combo-support-values > strong { padding: 2px 6px; border-radius: 3px; white-space: nowrap; }
+.weighted-support-bar.unavailable .combo-support-values > strong { background: var(--surface-raised); color: var(--text-muted); }

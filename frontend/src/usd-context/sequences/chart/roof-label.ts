@@ -23,6 +23,13 @@ export function roofLabel(combo: ComboSnapshot) {
   return label
 }
 
+export function roofRateLabel(combo: ComboSnapshot) {
+  const fed = combo.sources.find(source => source.family === 'fed')
+  if (!fed || fed.chartAt > combo.chartAt || !fed.policyAction) return null
+  const delta = fed.policyAction.delta
+  return delta !== null && Number.isFinite(delta) ? `Rate ${delta > 0 ? '+' : ''}${delta} bp` : `Rate ${fed.policyAction.action}`
+}
+
 export function roofTooltip(combo: ComboSnapshot, hidden = 0, clock = (t: number) => new Date(t).toISOString().slice(0, 19).replace('T', ' ')) {
   let description = descriptions.get(combo)
   if (description === undefined) {
@@ -32,5 +39,5 @@ export function roofTooltip(combo: ComboSnapshot, hidden = 0, clock = (t: number
     descriptions.set(combo, description)
   }
   const activation = comboActivation(combo)
-  return `${combo.title} · USD inputs only · ${roofResultLabel(combo)} · ${combo.strength ? `${combo.strength} evidence` : 'evidence ungraded'}${hidden ? ` · ${hidden} inputs hidden by marker filters` : ''}\nAvailable from ${clock(combo.chartAt)} (label’s candle). ${activationLabel(activation.kind)}${activation.kind !== 'publication' ? '; no new participating publication' : ''}. ${activation.removed.map(s => `${removalReason(s.reason)}: ${s.sourceLabel}`).join('; ')} Connecting lines identify contributing releases. Click the label for the combined reading.\n${description}`
+  return `${combo.title} · USD inputs only · ${roofResultLabel(combo)} · ${combo.strength ? `${combo.strength} evidence` : 'evidence ungraded'}${hidden ? ` · ${hidden} inputs have no drawable symbol (filtered or outside loaded chart history)` : ''}\nAvailable from ${clock(combo.chartAt)} (label’s candle). ${activationLabel(activation.kind)}${activation.kind !== 'publication' ? '; no new participating publication' : ''}. ${activation.removed.map(s => `${removalReason(s.reason)}: ${s.sourceLabel}`).join('; ')} Connecting lines identify contributing releases. Click the label for the combined reading.\n${description}`
 }

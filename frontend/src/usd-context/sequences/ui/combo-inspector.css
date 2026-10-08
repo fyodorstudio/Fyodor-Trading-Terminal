@@ -2,7 +2,7 @@
 .combo-inspector.collapsed { height: auto; }
 .combo-inspector > header { flex: none; display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; padding: 8px 14px; border-bottom: 1px solid var(--border-strong); }
 .combo-title { font-size: 12px; color: var(--text-strong); }
-.combo-header-actions { margin-left: auto; display: flex; gap: 6px; }
+.combo-header-actions { margin-left: auto; display: flex; flex-wrap: wrap; gap: 6px; }
 .combo-inspector-scroll { flex: 1; min-height: 0; overflow: auto; overflow-x: hidden; padding: 0 14px 10px; overflow-wrap: anywhere; }
 .combo-inspector-scroll[hidden] { display: none; }
 .combo-inspector h3 { font-family: Georgia, 'Times New Roman', serif; font-size: 14px; margin: 0 0 5px; color: var(--text-strong); }
@@ -48,13 +48,6 @@
 .combo-audit small { margin-top: 8px; }
 .combo-footnote { color: var(--text-muted); }
 .combo-support-summary { flex: none; padding: 8px 14px 6px; border-bottom: 1px solid var(--border); }
-.combo-support-bar { position: relative; height: 32px; border: 1px solid var(--border); border-radius: 4px; overflow: hidden; background: var(--surface-raised); }
-.combo-support-fill { position: absolute; inset: 0; display: flex; }
-.combo-support-fill > span:first-child { background: #19a986; }
-.combo-support-fill > span:last-child { background: #e87979; }
-.combo-support-values { position: absolute; inset: 0; display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 0 6px; font-variant-numeric: tabular-nums; font-size: 12px; }
-.combo-support-values > strong { padding: 2px 6px; border-radius: 3px; white-space: nowrap; }
-.combo-support-bar.unavailable .combo-support-values > strong { background: var(--surface-raised); color: var(--text-muted); }
 .combo-support-caption { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 3px 12px; padding-top: 4px; color: var(--text-muted); font-size: 10px; }
 .combo-support-caption strong { color: var(--text); font-weight: 600; }
 .combo-calculations { font-variant-numeric: tabular-nums; }

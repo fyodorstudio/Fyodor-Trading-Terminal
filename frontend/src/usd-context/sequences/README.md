@@ -104,13 +104,33 @@ These remain research tracks; this layer makes existing relationships reviewable
 
 ## Roof names
 
+Display v8 adds **Concise** in Fundamental tool settings → Roofs → Display density.
+It replaces stacks with one `+N Combo` button per visible available-from candle,
+counting every enabled relationship at that column. A tick and vertical stem mark
+that candle on the time axis; neighboring buttons stagger without changing their
+X anchors. Selection opens the existing Roofs details/Candy scope and keeps the
+chart concise. Focused and All roofs retain their previous behavior.
+
+The existing popover entries preserve exact clocks, support splits and source
+inspection. Concise adds Long/Short lead counts, with separate balanced, unchanged
+and insufficient counts. These describe overlapping snapshots, not independent
+votes or another combined percentage. Triggering publications are named at their
+real available-from clocks (including Services despite its grouped ISM symbol
+being at Manufacturing). Aging/expiry updates explicitly state No new release.
+Counts cache frozen snapshot readings; pan/hover/chooser actions never rescore news.
+Concise is a portable saved density choice; previous preferences keep their mode.
+
 `chart/roof-label.ts` names nonzero comparable economic-change families once, with up to
 three compact names and an additional-family count. Opposing effects still
 participate in that list; names do not imply agreement. Zero-change companions
 stay in the full tooltip and Inspector. Tooltips include full release names,
-roles and replacement-effect direction, even for filtered markers. The existing
-three-lane 170px footprint is preserved; only the name span truncates, leaving
-the directional label visible. Overflow entries share the same presentation.
+roles and replacement-effect direction, even for filtered markers. Display v7 uses
+uniform 220×60px labels in 64px rows. The centered name span truncates while
+Changes in support / Release support and plain Long/Short percentages remain
+visible. Aging/expiry and rate annotations occupy a reserved row inside each box.
+The whole box is tinted by the support lead; balanced conflict is amber and
+unchanged/insufficient support is gray. Full state/evidence stays in the tooltip
+and details. Overflow retains full state explanations and exact timestamps.
 The snapshot title/type and publication qualification are unchanged.
 
 ## Roof workflow / display v2 — 7 October 2026
@@ -144,6 +164,22 @@ Participating releases open Inspector without discarding the selected combo; the
 returns to it. The visible Experimental badge and duplicate price audit are removed from
 Combo details; the existing price-reaction controls remain in Raycaster. Context remains `usd-context-memory-v6.2`;
 relationship derivation remains v1; display v2 is not a new scoring engine.
+
+Raycaster now has explicit Context and Selected combo views. Roof selection only
+opens the Roofs dock; Open in Raycaster explicitly opens the selected-combo view.
+Hiding Raycaster preserves the roof selection and its Candy. The toolbar Candy
+button is the shared switch; Candy settings choose either or both timelines.
+Roof Candy projects the selected relationship across all available history,
+including before activation. Fed relationships include every action type; each
+segment resolves the evidence and action known then. Missing inputs stay gray.
+Original labels/details retain their dated percentages.
+
+Roofs settings expose all 36 registered pairs and four specialized categories,
+with search, grouped checkboxes, Show all and Hide all. These saved display filters
+remove annotations before label/More allocation. They do not alter scores, enabled
+inputs, the exhaustive catalogue, or an already selected relationship's Candy.
+Legacy `fresh` visibility remains compatible; optional Candy choices default to
+both enabled when absent and `hiddenRoofs` defaults to an empty exclusion list.
 
 Manual labels are **Aligned / Opposed / Unclear**, separately for the activation
 H1 candle, the next four H1 trading candles and the next 24 H1 trading candles.

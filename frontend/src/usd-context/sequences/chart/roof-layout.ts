@@ -1,9 +1,11 @@
-import { comboActivation } from '../core/combo-activation'
 import type { ComboSnapshot } from '../core/contracts'
 import type { RoofEndpoint } from './roof-symbols'
 
 export type RoofCandidate = { combo: ComboSnapshot; left: number; right: number; endpoints: RoofEndpoint[]; hidden: number; labelX: number }
 export type PositionedRoof = RoofCandidate & { lane: number }
+export const roofLabelWidth = 220
+export const roofLabelHeight = 60
+export const roofRowHeight = 64
 const strengthRank = { strong: 3, moderate: 2, weak: 1 }
 const pairRank = (c: ComboSnapshot) => Number(c.kind === 'release-relationship' || c.kind === 'fed-relationship')
 const overlaps = (a: [number, number], b: [number, number]) => a[0] < b[1] + 8 && b[0] < a[1] + 8
@@ -31,7 +33,7 @@ export function layoutRoofs(candidates: readonly RoofCandidate[], focused: boole
   const positioned: PositionedRoof[] = [], overflow: ComboSnapshot[] = []
   const repetitions = new Map<string, [number, number][]>()
   for (const item of ranked) {
-    const halfWidth = comboActivation(item.combo).kind === 'publication' ? 85 : 110
+    const halfWidth = roofLabelWidth / 2
     // Only the label occupies a row. Hover connections are an independent layer.
     const span: [number, number] = [item.labelX - halfWidth, item.labelX + halfWidth]
     const families = [...new Set(item.combo.sources.map(s => s.family))].sort().join('|')

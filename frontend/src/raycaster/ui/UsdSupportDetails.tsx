@@ -1,13 +1,14 @@
 import type { UsdContextPresentation } from '../core/usd-context-presentation'
 import './usd-support.css'
 import { SupportSplit } from '../../usd-context/ui/SupportSplit'
+import { WeightedSupportBar } from '../../usd-context/ui/WeightedSupportBar'
 
-export function UsdSupportDetails({ presentation: p, compact = false }: { presentation: UsdContextPresentation; compact?: boolean }) {
+export function UsdSupportDetails({ presentation: p, compact = false, unified = false }: { presentation: UsdContextPresentation; compact?: boolean; unified?: boolean }) {
   if (p.state === 'insufficient') return <small className="usd-support-note">No directional lead is asserted with insufficient context. Usable configured coverage {(100 * p.coverage).toFixed(1)}% (60% required).</small>
   const gross = p.long + p.short
   return <div className="usd-support" aria-label="USD directional support">
-    <div className="usd-support-split"><SupportSplit support={p} /></div>
-    <div className="usd-support-bar" aria-hidden="true"><span style={{ width: gross ? `${100 * p.long / gross}%` : '0%' }} /><span style={{ width: gross ? `${100 * p.short / gross}%` : '0%' }} /></div>
+    <div className="usd-support-split">{unified ? <WeightedSupportBar support={p} /> : <SupportSplit support={p} />}</div>
+    {!unified && <div className="usd-support-bar" aria-hidden="true"><span style={{ width: gross ? `${100 * p.long / gross}%` : '0%' }} /><span style={{ width: gross ? `${100 * p.short / gross}%` : '0%' }} /></div>}
     <small>Weighted support, not probabilities.{p.narrow ? ' Narrow lead.' : ''}</small>
     {!compact && <>
       <p>Long support {p.long.toFixed(3)} · Short support {p.short.toFixed(3)} · Net toward Long {p.net.toFixed(3)}.</p>

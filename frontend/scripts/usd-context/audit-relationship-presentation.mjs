@@ -19,7 +19,7 @@ try {
   const { prepareRoofAnchors, createRoofPlan, projectRoofPlan } = await load('usd-context/sequences/chart/roof-plan')
   const { roofBarIndex } = await load('usd-context/sequences/chart/roof-geometry')
   const { alignRoofMarkers } = await load('usd-context/sequences/chart/roof-marker-alignment')
-  const { groupInspectorReleases, defaultInspectorPreferences, buildInspectorMarkers } = await load('inspector/inspector-data')
+  const { groupInspectorReleases, defaultInspectorPreferences, buildInspectorMarkers, timeframeSeconds } = await load('inspector/inspector-data')
   const { groupIsmEpisodes } = await load('inspector/episodes/ism-episodes')
   const { indexMarkers, projectMarkers } = await load('inspector/chart/marker-projection')
   const start = performance.now()
@@ -40,13 +40,18 @@ try {
   const original = fingerprint()
   let checks = 0, projected = 0
   const projectionStart = performance.now()
-  for (const roof of selections) {
-    const points = buildRelationshipTimeline(timeline, roof)
-    assert.equal(points[0].at, roof.chartAt)
-    assert.deepEqual(points[0].support, roofSupport(roof), 'Activation reuses canonical relationship support')
+  for (const roof of selections) for (const fullHistory of [false, true]) {
+    const points = buildRelationshipTimeline(timeline, roof, fullHistory)
+    if (!fullHistory) {
+      assert.equal(points[0].at, roof.chartAt)
+      assert.deepEqual(points[0].support, roofSupport(roof), 'Activation reuses canonical relationship support')
+    } else {
+      assert.equal(points[0].at, timeline.points[0].chartAt, 'Full relationship history begins with available context')
+      assert.deepEqual(points.findLast(p => p.at <= roof.chartAt).support, roofSupport(roof), 'Selected canonical reading remains intact')
+    }
     projected += points.length
     for (const point of points) {
-      assert.ok(point.at >= roof.chartAt)
+      assert.ok(point.at >= (fullHistory ? timeline.points[0].chartAt : roof.chartAt))
       assert.ok(point.support.sources.every(s => s.chartAt <= point.at), 'No future input')
       const votes = point.support.votes
       const long = votes.reduce((n, v) => n + Math.max(0, -v.vote), 0)
@@ -66,10 +71,27 @@ try {
   const bars = Array.from({ length: Math.ceil((last - first) / hour) + 1 }, (_, i) => ({ time: (first + i * hour) / 1000 }))
   const releases = groupIsmEpisodes(groupInspectorReleases(input.inputUSD.events.filter(e => e.release_at <= input.inputUSD.asOf)))
   const markers = buildInspectorMarkers(releases, defaultInspectorPreferences(), bars, 'H1'), markerIndex = indexMarkers(markers)
+  // The reported Oct 8 expiry label must survive a short loaded candle history
+  // on every timeframe, even when every contributing source symbol is absent.
+  const expiryRoof = byKind.get('fresh-news')?.find(roof => roof.chartAt === Date.UTC(2026, 9, 8) && roof.activation?.kind === 'expiry')
+  let timeframeChecks = 0
+  if (expiryRoof) for (const timeframe of ['M1', 'M5', 'M15', 'M30', 'H1', 'H4', 'D1']) {
+    const duration = timeframeSeconds[timeframe], lastBar = Math.floor((expiryRoof.chartAt / 1000 + 12 * 3600) / duration) * duration
+    const shortBars = Array.from({ length: 800 }, (_, i) => ({ time: lastBar - (799 - i) * duration }))
+    const shortMarkers = buildInspectorMarkers(releases, defaultInspectorPreferences(), shortBars, timeframe)
+    const anchors = prepareRoofAnchors([expiryRoof], shortBars, timeframe, shortMarkers, true, 1)
+    assert.equal(anchors.length, 1, `${timeframe}: the expiry label remains admitted by its own candle`)
+    if (timeframe === 'M1' || timeframe === 'M5') assert.equal(anchors[0].publications.length, 0, 'Actual historical sources are outside short loaded history')
+    const offset = 400 - anchors[0].end * 12
+    const view = projectRoofPlan(createRoofPlan(anchors, 12, false, 1), offset, 800)
+    assert.equal(view.positioned[0]?.combo, expiryRoof)
+    assert.equal(view.positioned[0].labelX, 400, 'Each timeframe retains the correct available-from candle')
+    timeframeChecks++
+  }
   const chartSelections = [...byKind.values()].map(group => group.at(-1))
   const julyIsm = byKind.get('ism-sectors')?.find(r => r.chartAt === Date.UTC(2026, 6, 6, 17))
   if (julyIsm) chartSelections.push(julyIsm)
-  let chartViews = 0
+  let chartViews = 0, conciseChartViews = 0
   for (const roof of chartSelections) {
     const episodes = timeline.relationships.episodes.filter(r => Math.abs(r.chartAt - roof.chartAt) < 90 * 86400000)
     const anchors = prepareRoofAnchors(episodes, bars, 'H1', markers, true, episodes.length)
@@ -82,6 +104,15 @@ try {
           to: (first + (1600 - offset) / spacing * hour) / 1000 }), timeToCoordinate: t => (t - first / 1000) / 3600 * spacing + offset }
         const clusters = projectMarkers(scale, markerIndex)
         const view = alignRoofMarkers(projectRoofPlan(plan, offset, 1600).positioned, clusters)
+        const concise = projectRoofPlan(plan, offset, 1600, new Map(), rows, true)
+        assert.equal(concise.positioned.length, 0, 'Concise never displays a stack')
+        const selectedColumn = concise.overflowColumns.find(group => group.column === roofBarIndex(bars, roof.chartAt, 'H1'))
+        assert.ok(selectedColumn?.combos.some(combo => combo.id === roof.id), 'The Concise column includes the selected relationship')
+        assert.equal(selectedColumn.x, roofBarIndex(bars, roof.chartAt, 'H1') * spacing + offset, 'Concise button preserves its actual candle column')
+        assert.equal(concise.overflowColumns.reduce((sum, group) => sum + group.combos.length, 0),
+          plan.entries.filter(entry => entry.roof.labelX + offset >= 0 && entry.roof.labelX + offset <= 1600).length,
+          'Concise includes every visible relationship exactly once')
+        conciseChartViews++
         const selected = view.find(p => p.combo.id === roof.id)
         assert.ok(selected, 'Selected roof keeps its chart place across zoom/row limits')
         assert.equal(selected.labelX, selected.right, 'Label stays on its activation candle')
@@ -99,6 +130,6 @@ try {
   }
   assert.equal(fingerprint(), original, 'Canonical history was not changed')
   console.log(JSON.stringify({ snapshotCount: timeline.points.length, kinds: Object.fromEntries([...byKind].map(([kind, values]) => [kind, values.length])),
-    selectedRoofs: selections.length, projectedStates: projected, invariantChecks: checks, chartSelections: chartSelections.length, chartViews,
+    selectedRoofs: selections.length, projectedStates: projected, invariantChecks: checks, chartSelections: chartSelections.length, chartViews, conciseChartViews, timeframeChecks,
     projectionMs: Math.round(performance.now() - projectionStart), totalMs: Math.round(performance.now() - start) }))
 } finally { await server.close() }

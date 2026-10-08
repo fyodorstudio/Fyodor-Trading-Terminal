@@ -104,7 +104,7 @@ try {
   preferences.saveSequencePreferences({ roofs: true, fresh: true, ribbon: false })
   await render(React.createElement(ContextViewControls, { symbol: 'EURUSD', supported: true }))
   assert.equal(container.querySelector('[aria-label="Show Raycaster"]'), null)
-  await React.act(async () => container.querySelector('[aria-label="Show context ribbon"]').click())
+  await React.act(async () => container.querySelector('[aria-label="Show Candy"]').click())
   assert.equal(preferences.readSequencePreferences().ribbon, true)
   await React.act(async () => container.querySelector('[aria-label="Hide roofs"]').click())
   assert.equal(preferences.readSequencePreferences().ribbon, true, 'Roof visibility does not disable ribbon')
@@ -119,7 +119,7 @@ try {
   assert.equal(relativePreferences.readRelativePreferences().mode, 'relative')
   await render(React.createElement(ContextViewControls, { symbol: 'USDJPY', supported: true }))
   assert.equal(container.querySelector('[aria-label="Show roofs"]').disabled, true)
-  assert.equal(container.querySelector('[aria-label="Hide context ribbon"]').disabled, false)
+  assert.equal(container.querySelector('[aria-label="Hide Candy"]').disabled, false)
   assert.equal(preferences.validSequencePreferences({ roofs: true, fresh: false }), true, 'Old display preference remains valid')
   assert.equal(preferences.validSequencePreferences({ roofs: true, fresh: false, ribbon: 'yes' }), false)
 

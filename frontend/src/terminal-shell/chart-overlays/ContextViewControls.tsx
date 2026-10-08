@@ -25,7 +25,7 @@ export function ContextViewControls({ symbol, supported, raycasterVisible = fals
       aria-pressed={relativeSupported && preferences.roofs} aria-label={preferences.roofs ? 'Hide roofs' : 'Show roofs'} title="Roofs · Connected release combinations"
       onClick={() => saveSequencePreferences({ ...preferences, roofs: !preferences.roofs })}><RoofsIcon /></button>
     <button type="button" className={`chart-drawing-toggle${supported && preferences.ribbon ? ' active' : ''}`} disabled={!supported}
-      aria-pressed={supported && !!preferences.ribbon} aria-label={preferences.ribbon ? 'Hide context ribbon' : 'Show context ribbon'} title="Candy · Context timeline"
+      aria-pressed={supported && !!preferences.ribbon} aria-label={preferences.ribbon ? 'Hide Candy' : 'Show Candy'} title="Candy · Show configured timelines"
       onClick={() => saveSequencePreferences({ ...preferences, ribbon: !preferences.ribbon })}><CandyIcon /></button>
     <button ref={trigger} type="button" className={`chart-drawing-toggle fundamental-tools-gear${open ? ' active' : ''}`}
       aria-label="Fundamental tools settings" title="Fundamental tools settings" aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? id : undefined}

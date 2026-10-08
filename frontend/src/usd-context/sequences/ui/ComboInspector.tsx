@@ -13,9 +13,10 @@ import { roofDisplayVersion } from '../chart/roof-symbols'
 import './combo-inspector.css'
 import { useDisplayClock } from '../../../appearance/time-display/useDisplayClock'
 
-export function ComboInspector({ combo, timeDisplay, symbol, collapsed = false, onToggleCollapsed, onClose, onOpenRelease }: {
+export function ComboInspector({ combo, timeDisplay, symbol, collapsed = false, onToggleCollapsed, onClose, onOpenRelease, onOpenRaycaster }: {
   combo: ComboSnapshot; timeDisplay: TimeDisplayPreference; symbol: string;
   collapsed?: boolean; onToggleCollapsed?: () => void;
+  onOpenRaycaster?: () => void;
   onClose: () => void; onOpenRelease: (source: ComboSource) => void
 }) {
   const [advanced, setAdvanced] = useState(false), advancedId = useId(), bodyId = useId()
@@ -30,7 +31,9 @@ export function ComboInspector({ combo, timeDisplay, symbol, collapsed = false, 
         <strong className={`combo-bias ${support.direction ?? ''} ${support.state}`}>{bias}</strong>
         <span>{support.narrow ? 'weak evidence · narrow lead' : support.qualified ? 'weak evidence · limited inputs' : combo.strength ? `${combo.strength} evidence` : 'evidence ungraded'}</span>
       </div>
-      <div className="combo-header-actions">{onToggleCollapsed && <button type="button" aria-expanded={!collapsed} aria-controls={bodyId}
+      <div className="combo-header-actions">
+        {onOpenRaycaster && <button type="button" onClick={onOpenRaycaster}>Open in Raycaster</button>}
+        {onToggleCollapsed && <button type="button" aria-expanded={!collapsed} aria-controls={bodyId}
         onClick={onToggleCollapsed}>{collapsed ? 'Expand' : 'Collapse'}</button>}
         <button type="button" onClick={onClose}>Return to releases</button></div>
     </header>

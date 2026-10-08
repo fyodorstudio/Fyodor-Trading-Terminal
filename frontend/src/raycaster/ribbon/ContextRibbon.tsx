@@ -55,8 +55,8 @@ function ContextRibbonComponent({ chartApi, bars, timeframe, points, now, relati
   }, [chartApi, bars, timeframe, points, now, loading, notice, startAt])
   return <div className={`context-ribbon${relationshipTitle ? ' roof-ribbon' : ''}`} aria-label={relationshipTitle ? `Roof Candy · ${relationshipTitle} · USD inputs` : `Raycaster Candy · ${mode}`}>
     {!relationshipTitle && <ExternalEventsStrip key={`${brokerId}:${symbol}`} chartApi={chartApi} bars={bars} timeframe={timeframe} now={now} symbol={symbol} brokerId={brokerId} />}
-    <div className="context-ribbon-legend" title={`${relative ? 'Green: Long. Red: Short. Amber: mixed.' : 'Green/red: support on one side. Amber: support on both sides or no lead. The green/red bottom edge shows which side has more support.'} Gray: not enough usable data. Darker color means stronger evidence.${relationshipTitle ? ' This follows newer releases of the selected combo; the roof label keeps its original reading.' : ' This combines all enabled news.'}`}>
-      <strong>{relationshipTitle ? `Selected combo · ${relationshipTitle}` : `All news · ${relative ? mode : 'USD inputs'}`}</strong>
+    <div className="context-ribbon-legend" title={`${relative ? 'Green: Long. Red: Short. Amber: mixed.' : 'Green/red: support on one side. Amber: support on both sides or no lead. The green/red bottom edge shows which side has more support.'} Gray: not enough usable data. Darker color means stronger evidence.${relationshipTitle ? ' This follows the selected relationship through earlier and later releases, using evidence known at each time; the roof label keeps its original reading.' : ' This combines all enabled news.'}`}>
+      <strong>{relationshipTitle ? `Relationship history · ${relationshipTitle}` : `All news · ${relative ? mode : 'USD inputs'}`}</strong>
       {startAt !== undefined && <> · starts {displayClock(startAt)}</>} · {clock.zone}{partial && ' · some history missing'}
       {loading ? ' · Loading' : notice ? ` · ${notice}` : ''}
     </div>

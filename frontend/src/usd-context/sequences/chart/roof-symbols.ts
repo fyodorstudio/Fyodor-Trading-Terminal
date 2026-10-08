@@ -1,10 +1,11 @@
 import type { EventSymbol } from '../../../inspector/event-symbols'
 import type { ComboSource } from '../core/contracts'
+import { roofRowHeight } from './roof-layout'
 
 export type RoofPublication = { source: ComboSource; symbol: EventSymbol }
 export type RoofEndpoint = { x: number; publications: RoofPublication[]; activation: boolean; symbolX?: number }
-export const roofDisplayVersion = 6
-export const roofLaneY = (lane: number, height = 160) => height - 8 - lane * 48
+export const roofDisplayVersion = 8
+export const roofLaneY = (lane: number, height = 160) => height - 8 - lane * roofRowHeight
 
 /** Merge only a shared candle anchor; never move an older release to activation. */
 export function clusterRoofEndpoints(points: readonly RoofEndpoint[]): RoofEndpoint[] {

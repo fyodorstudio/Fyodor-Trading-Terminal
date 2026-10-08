@@ -19,6 +19,11 @@
 .tool-settings-sections section { padding: 10px 0; border-bottom: 1px solid var(--border); }
 .tool-settings-sections h3 { font-size: 11px; margin: 0 0 6px; }
 .tool-settings-sections p { margin: 6px 0; }
+.roof-filter-actions { display: flex; flex-wrap: wrap; gap: 6px; margin: 7px 0; }
+.roof-combination-group { border-top: 1px solid var(--border); padding: 6px 0; }
+.roof-combination-group > summary { cursor: pointer; font-weight: 600; color: var(--text); }
+.roof-combination-group > label { padding-left: 8px; }
+.tool-settings-sections input[type='search'] { min-width: 0; flex: 1; font: inherit; color: var(--text); background: var(--surface-panel); border: 1px solid var(--border); border-radius: 4px; padding: 4px 6px; }
 .tool-settings-sections dt { font-weight: 600; }.tool-settings-sections dd { margin: 0 0 8px; color: var(--text-muted); }
 .tool-settings-sections ul { columns: 2; padding-left: 18px; }
 .candy-color-key { display: flex; gap: 8px; }.candy-color-key span { padding: 3px 8px; border-radius: 3px; }
