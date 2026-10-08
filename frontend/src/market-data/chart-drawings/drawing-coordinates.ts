@@ -58,7 +58,14 @@ export function drawingCoordinates(
     logicalToTime,
     timeToX(time: ChartDrawingPoint['time']) {
       const logical = timeToLogical(time)
-      return logical === null ? scale.timeToCoordinate(time) : scale.logicalToCoordinate(logical as Logical)
+      if (logical === null) return scale.timeToCoordinate(time)
+      // This library also rejects fractional logicalToCoordinate inputs and
+      // returns zero. Interpolate its integer coordinates in both directions.
+      const index = Math.floor(logical)
+      const left = scale.logicalToCoordinate(index as Logical)
+      if (left === null || logical === index) return left
+      const right = scale.logicalToCoordinate((index + 1) as Logical)
+      return right === null ? null : left + (right - left) * (logical - index)
     },
     xToLogical,
     pointAt(x: number, y: number): ChartDrawingPoint | null {

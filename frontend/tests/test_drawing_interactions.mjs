@@ -25,7 +25,7 @@ let shiftX = 0, shiftY = 0, spacing = 40, priceSpacing = 10, width = 600, height
 let timeline = [1000, 1060, 1120, 1180].map(time => ({ time }))
 const scale = {
   coordinateToLogical: x => Math.ceil((x - 100 - shiftX) / spacing),
-  logicalToCoordinate: logical => logical * spacing + 100 + shiftX,
+  logicalToCoordinate: logical => Number.isInteger(logical) ? logical * spacing + 100 + shiftX : 0,
   // Real coordinateToTime cannot resolve empty space. The drawing layer must.
   coordinateToTime: x => timeline[Math.round((x - 100 - shiftX) / spacing)]?.time ?? null,
   timeToCoordinate: time => { const index = timeline.findIndex(bar => bar.time === time); return index < 0 ? null : index * spacing + 100 + shiftX },
@@ -107,6 +107,8 @@ try {
     // A quarter-bar move must remain fractional, and the grab can be far from an anchor.
     await drag(body(), 140, 100, 150, 105)
     const moved = api.drawings[0].points
+    close(Number(handles()[0].getAttribute('cx')), tool === 'horizontal-line' ? width / 2 : 110,
+      `${tool}: fractional movement renders at the translated x coordinate, rather than the left edge`)
     original.points.forEach((point, index) => {
       close(moved[index].time, point.time + (tool === 'horizontal-line' ? 0 : 15), `${tool}: translates every time anchor equally`)
       close(moved[index].price, point.price + (tool === 'vertical-line' ? 0 : -.5), `${tool}: translates every price anchor equally`)
@@ -135,6 +137,8 @@ try {
     assert.equal(api.drawings.length, 1, `${tool}: creation works without a candle under any vertex`)
     assert.ok(api.drawings[0].points.every(point => point.time > timeline.at(-1).time), `${tool}: future timestamps are saved`)
     assert.ok(handles().length > 0, `${tool}: future shapes remain visible and editable`)
+    close(Number(handles()[0].getAttribute('cx')), tool === 'horizontal-line' ? width / 2 : 360,
+      `${tool}: a fractional future anchor stays at the creation cursor`)
     // Resize a real endpoint in empty past space. Axis lines lock their irrelevant dimension.
     const handle = handles()[tool.includes('position') ? 3 : 0]
     const x = Number(handle.getAttribute('cx')), y = Number(handle.getAttribute('cy'))
