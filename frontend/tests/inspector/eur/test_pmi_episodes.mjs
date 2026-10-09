@@ -21,6 +21,7 @@ try {
   const { inspectorFilterRows } = await load('inspector/filters/inspector-filter-rows.ts')
   const { PmiReadingsTable } = await load('inspector/readings/PmiReadingsTable.tsx')
   const { InspectorScoringView } = await load('inspector/scoring/InspectorScoringView.tsx')
+  const { ContextDetailed } = await load('raycaster/ui/ContextDetailed.tsx')
   const { inspectorScoringBinding } = await load('inspector/scoring/scoring-registry.ts')
   const { assessEurScore } = await load('inspector/scoring/PAIR/EURUSD/EUR/assessment/eur-score.ts')
   const { useInspector } = await load('inspector/useInspector.ts')
@@ -81,7 +82,12 @@ try {
   await React.act(async () => sections[1].querySelector('button').click()); assert.equal(opened.id, latest[1].id, 'Scatter gets the original German publication')
   await render(InspectorScoringView, { ...scoringProps, now: latest[1].releaseAt })
   assert.equal(host.querySelector('[aria-label="Euro area PMI scoring"] .inspector-majority').textContent, 'Uncomputed', 'Grouped standalone view cannot expose a future score')
+  assert.equal(host.querySelectorAll('.publication-context-cutoff').length, 0, 'Inspector keeps only the grouped standalone interpreters')
+  await render(ContextDetailed, { point: null, symbol: 'EURUSD', cutoff: null, loading: false, message: null,
+    label: 'Uncomputed', presentation: null, relative: false, timeDisplay,
+    publication: { ...scoringProps, now: latest[1].releaseAt } })
   assert.match(host.querySelector('.publication-context-cutoff').textContent, /08:30/, 'Context cutoff uses Germany while the aggregate is pending')
+  assert.match(host.querySelector('.raycaster-publication').textContent, /France and Germany supply earlier proxies/, 'Grouped publication replacement details survive the move to Raycaster')
   const workers = []
   globalThis.Worker = class {
     jobs = []; constructor() { workers.push(this) }

@@ -38,7 +38,8 @@ row controls all three existing IDs, preserving legacy partial selections and
 their symbol preferences. Original IDs resolve to the grouped Inspector entry.
 One raw table has country sections with each series' original clock, grading,
 revision and magnitude history. Each country/aggregate retains its standalone
-v1 interpreter and its own Scatter navigation. The context column evaluates at
+v1 interpreter and its own Scatter navigation. Raycaster Context-detailed's
+At publication section evaluates at
 the latest already-published member; a later aggregate never enters an earlier
 cutoff. Existing country proxy replacement and overlapping PMI rules are unchanged.
 

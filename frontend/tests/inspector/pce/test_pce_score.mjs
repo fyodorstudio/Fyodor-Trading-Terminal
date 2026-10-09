@@ -156,7 +156,7 @@ try {
   const dropdown = panel.container.querySelector('[aria-label="Inspector view"]')
   assert.equal(dropdown.value, 'scoring'); assert.equal(dropdown.querySelector('[value="scoring"]').disabled, false)
   assert.equal(panel.container.querySelector('[aria-label="PCE pair direction"]').textContent, 'EURUSD Long')
-  assert.equal(panel.container.querySelectorAll('.inspector-scoring-view').length, 2, 'Standalone and combined context share the flat publication wrapper')
+  assert.equal(panel.container.querySelectorAll('.inspector-scoring-view').length, 1, 'Inspector mounts standalone scoring; publication context belongs to Raycaster')
   assert.equal(dropdown.querySelector('[value="scoring-v2"]'), null)
   await choose(dropdown, 'scatter'); assert.equal(opened.id, cool.id); assert.equal(dropdown.value, 'scoring'); assert.equal(saved, undefined)
   await choose(dropdown, 'table'); assert.equal(saved.detailView, 'table')

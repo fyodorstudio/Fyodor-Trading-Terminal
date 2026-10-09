@@ -27,15 +27,18 @@ import { lookupFreshNews } from '../usd-context/sequences/core/fresh-news'
 import { inspectionSignature, publishInspection, toolScope, useToolsOpen } from '../fundamental-tools/runtime/inspection-session'
 import { selectedRoofProjection } from './ribbon/roof-ribbon-timeline'
 import { roofLabel } from '../usd-context/sequences/chart/roof-label'
+import type { InspectorScoringProps } from '../inspector/scoring/scoring-contracts'
 
 export type RaycasterProps = { boxVisible?: boolean; symbol: string; timeframe: ChartTimeframe; brokerId: string | null;
   brokerOffsetSeconds: number; clockOffsetMs: number; timeDisplay: TimeDisplayPreference; onClose: () => void;
   bars?: readonly Pick<OhlcBar, 'time'>[]; markers?: readonly InspectorMarker[]; onSelectCombo?: (combo: ComboSnapshot) => void;
   onOpenComboSource?: (source: ComboSource) => void; currencyColors?: CurrencyColors;
   selectedCombo?: ComboSnapshot | null; onClearCombo?: () => void;
+  publication?: Omit<InspectorScoringProps, 'now'>;
   view?: RaycasterView; onViewChange?: (view: RaycasterView) => void }
 function RaycasterComponent({ chartApi, seriesApi, ...props }: RaycasterProps & { chartApi: IChartApi; seriesApi: ISeriesApi<'Candlestick', Time> }) {
   const now = useCalendarNow(props.clockOffsetMs)
+  const publication = useMemo(() => props.publication ? { ...props.publication, now } : undefined, [props.publication, now])
   const families = useRaycasterFamilies()
   const sourceFamilies = useMemo(() => contextSourceFamilies(families), [families])
   const history = useUsdContextTimeline(props.brokerId, sourceFamilies, now)
@@ -81,6 +84,8 @@ function RaycasterComponent({ chartApi, seriesApi, ...props }: RaycasterProps & 
     selectedCombo={props.selectedCombo} selectionNotice={selectionNotice} onClearCombo={props.onClearCombo}
     view={props.view} onViewChange={props.onViewChange}
     relative={combined} relativeUpdate={eurPoint?.update ?? null} relativeUpdateAt={eurPoint?.chartAt ?? null}
+    eurPoint={eurPoint} fresh={fresh}
+    publication={publication}
     notice={partial ? 'Partial or timing-excluded history' : null}
     timeDisplay={props.timeDisplay} onClose={props.onClose} />}
     {sequencePreferences.ribbon && sequencePreferences.raycasterCandy !== false && props.bars && <ContextRibbon chartApi={chartApi} bars={props.bars} timeframe={props.timeframe}

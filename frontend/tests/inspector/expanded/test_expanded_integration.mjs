@@ -60,7 +60,7 @@ try{
    'Fed rates, holds and future meetings do not vote or renew macro evidence')
  assert.ok(withFed.relationships.episodes.some(e=>e.kind==='fed-relationship'),'Fed adds an annotation separately from accumulated context')
  const fedProps={release:fedRelease,events:fedEvents,now:fedAt,history:{}}
- await React.act(async()=>root.render(React.createElement(InspectorScoringView,{...fedProps,binding:inspectorScoringBinding('EURUSD',fedRelease)})))
+ await React.act(async()=>root.render(React.createElement(InspectorScoringView,{...fedProps,surface:'both',binding:inspectorScoringBinding('EURUSD',fedRelease)})))
  assert.equal(container.querySelector('[aria-label="Fed contextual pair direction"]').textContent,contextPairLabel('EURUSD',expected.direction))
  assert.match(container.textContent,/Decision: Rate hold/)
  assert.match(container.textContent,/Rate action alone: No directional change/)

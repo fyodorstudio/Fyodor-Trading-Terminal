@@ -10,7 +10,7 @@ conflicted lead below one-third net/gross separation is Weak, other conflicts
 are capped at Moderate, and incomplete evidence remains Weak. Zero never uses
 the raw priority tie-break. Coverage and retention are not applied twice.
 
-Box, settings, Candy and current Notebook captures share this projection.
+Box, Candy and current Notebook captures share this projection.
 Publication panels continue to use the canonical agreement gate. Relative mode
 continues to use its original labels, grades, colors, updates and gates; no USD
 presentation metadata is inserted into its ribbon points. Existing capture
@@ -31,7 +31,7 @@ saved locally and included in workspace export/import. Non-USD supported pairs
 disable the header button; the user's saved visibility is retained when switching
 back to a supported major USD pair.
 
-The draggable box has an explicit **Context / Selected combo** view selector.
+The draggable box has an explicit **Context / Context-detailed / Selected combo** view selector.
 Context reads accumulated news at the last inspected chart candle's end; Selected
 combo reads the original roof snapshot at its exact activation clock. A roof click
 opens the dedicated Roofs dock without opening Raycaster or switching its view.
@@ -41,18 +41,38 @@ intact. The toolbar Candy button shows or hides both configured strips; choose
 Raycaster Candy and/or Roof Candy in Fundamental tool settings → Candy.
 **Clear combo** separately clears that selection.
 
-Both USD readings use a proportional Long/Short bar with one result/evidence badge,
-a visible clock, and a short reason. Relative mode retains its existing reading
-and does not acquire USD-only percentage shares. Contributions are in compact
-input/direction/evidence/vote columns under **Details and calculations**. Manual
-price observations remain under **Record price reaction** in the selected-combo
-view; both disclosures start collapsed. These UI choices do not rescore history.
+USD readings use equal-width Long/Short percentage cards and a proportional bar,
+with direction, evidence and conflict presented separately. Relative mode retains
+its existing interpretation and does not acquire USD-only percentage shares.
+Context-detailed uses a larger stable frame for always-open source score, weight,
+retention and vote columns, active conditions, fresh-news changes and notes.
+Each input has a dedicated age/influence row (cumulative influence lost, including
+expiry) and a new-release row. New releases are identified by source availability
+at the context update, never by the timeline's remembered last publication;
+aging-only updates show `-`. Generic Latest update / Memory update prose is omitted.
+Manual price observations remain under **Record price reaction** in the selected-combo
+view. Content changes never move the frame; scrolling stays inside it. These UI
+choices do not rescore history or start calculation workers.
+
+The compact frame is 400 × 560 px; Context-detailed is 700 × 740 px. Maximum
+dimensions depend only on the chart viewport, never the dragged x/y position.
+Chart resizing or an explicit frame-size change clamps the anchor; reading
+updates neither restart the placement observer nor save a new position.
+
+**At publication** in Context-detailed preserves the Inspector’s original
+publication panels for the selected release: CPI before/after replacement,
+Fed economic pressure and previous-meeting comparison, publication-time USD
+inputs/relationships/coverage, optional relative EUR/USD context and grouped PMI
+publication notes. The Inspector now mounts standalone scoring only, with an
+**Open publication context in Raycaster** shortcut. Publication cutoffs remain
+independent of hovered candle ends. The publication surface is memoized so chart
+hover does not rerender its scorers; it unmounts outside Context-detailed.
 
 Raycaster has saved CPI/NFP/Claims/ISM/Retail/PCE/PPI/GDP context filters, independent of
 Inspector marker filters. These controls are shared with CPI v4's publication
 context table; all eight inputs default On. The shared header gear's Raycaster tab
-uses `fundamental-tools/settings/RaycasterSettings.tsx`. The shared
-`usd-context/ui/ContextInputTable.tsx` shows versions, read-only Enabled/Off status,
+uses `fundamental-tools/settings/RaycasterSettings.tsx` for input controls only.
+Context-detailed reuses `usd-context/ui/ContextInputTable.tsx` to show versions, read-only Enabled/Off status,
 each source bias/evidence/date, source score, weighted contribution and combined
 total. Input switches remain under Advanced settings. The old box gear, standalone
 RaycasterDetails and compatibility table re-export are retired. Base weights are CPI 28%, PCE 10%, PPI 2%, NFP 30%, Claims 10%, ISM 10%,
@@ -78,7 +98,7 @@ Their agreement adds no independent confirmation. The conditional rule gives
 priority to confirmed labor deterioration only when active CPI passes declared
 level/acceleration guards. It implies easing pressure, not observed Fed guidance.
 Hotter inflation, incomplete/expired or disabled CPI/NFP restores base priorities.
-The gear identifies Labor priority when active. Standalone scorer math remains
+Context-detailed identifies Labor priority when active. Standalone scorer math remains
 CPI engine v3.2 (Inspector v4.1), NFP v2.2, Claims v2, ISM v3, Retail v1, PCE v1, PPI v1 and GDP v1. ISM switches both sectors together;
 they update one slot. Inspector's view, date range and marker visibility do not
 select context inputs. Applied Scatter signal magnitudes still affect both tools.
@@ -138,10 +158,11 @@ Claims v2 uses nonoverlapping underlying trends; only joint trend agreement can 
 
 ## Clickable roofs and the organized gear
 
-The header gear has Raycaster, Roofs and Candy tabs. The Raycaster tab retains
-accumulated result, input contributions, active conditions, experimental fresh-news
-change and calculation notes. Roof controls/guide belong to Roofs; color/timing
-guidance belongs to Candy. The optional EUR/USD mode is shared above the tabs.
+The header gear has Raycaster, Roofs and Candy tabs containing settings only:
+USD/EUR input switches, roof density/combination filters and Candy timeline choices.
+Accumulated contributions, active conditions, experimental fresh-news changes and
+calculation notes belong to Raycaster's Context-detailed view. The optional EUR/USD
+mode is shared above the tabs.
 The fresh-news and roof results specifically describe the USD side;
 they do not substitute for the optional relative main result.
 

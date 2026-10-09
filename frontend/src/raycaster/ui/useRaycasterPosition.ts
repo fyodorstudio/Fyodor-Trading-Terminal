@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { readRaycasterPosition, saveRaycasterPosition } from '../storage/raycaster-preferences'
 
-export function useRaycasterPosition() {
+export function useRaycasterPosition(layout: string) {
   const ref = useRef<HTMLElement>(null)
   const [position, setPosition] = useState(readRaycasterPosition)
   const cleanup = useRef<(() => void) | null>(null)
@@ -19,9 +19,10 @@ export function useRaycasterPosition() {
       saveRaycasterPosition(next); return next
     }))
     observer.observe(parent)
-    if (ref.current) observer.observe(ref.current)
+    // A new observation also clamps after an explicit frame/view change.
+    // Reading changes never restart this observer or move the anchor.
     return () => { observer.disconnect(); cleanup.current?.() }
-  }, [])
+  }, [layout])
   const drag = (event: ReactPointerEvent<HTMLButtonElement>) => {
     if (event.button !== 0) return
     event.preventDefault(); event.stopPropagation(); cleanup.current?.()

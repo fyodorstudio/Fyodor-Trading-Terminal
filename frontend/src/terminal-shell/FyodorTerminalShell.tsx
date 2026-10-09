@@ -135,7 +135,7 @@ function FyodorTerminalWorkspace() {
   const closeCombo = useCallback(() => { setComboSelection(null); setRaycasterView('context') }, [])
   // A captured roof belongs to one symbol/broker; do not resurrect it on return.
   if (comboSelection && !selectedCombo) setComboSelection(null)
-  if (!selectedCombo && raycasterView !== 'context') setRaycasterView('context')
+  if (!selectedCombo && raycasterView === 'combo') setRaycasterView('context')
   const inspector = useInspector({ symbol: activeSymbol, bars, timeframe, timeDisplay,
     detailOpen: bottomDockWindow === 'inspector',
     clockOffsetMs: 0, brokerId,
@@ -253,6 +253,9 @@ function FyodorTerminalWorkspace() {
   const openComboRaycaster = useCallback(() => {
     setRaycasterView('combo'); setRaycasterVisible(true); saveRaycasterVisible(true)
   }, [])
+  const openPublicationContext = useCallback(() => {
+    setRaycasterView('context-detailed'); setRaycasterVisible(true); saveRaycasterVisible(true)
+  }, [])
   const toggleRaycaster = useCallback(() => {
     setRaycasterVisible(current => { saveRaycasterVisible(!current); return !current })
     setActiveDrawingTool(null)
@@ -277,13 +280,16 @@ function FyodorTerminalWorkspace() {
   const roofsSupported = /^EURUSD(?:[._-].*|[a-z]*)$/i.test(activeSymbol)
   const contextVisible = raycasterVisible || !!selectedCombo || !!contextViews.ribbon || (roofsSupported && contextViews.roofs)
   const raycasterSupported = !!usdPair(activeSymbol)
+  const publicationEvents = useMemo(() => inspector.allReleases.flatMap(release => release.events), [inspector.allReleases])
+  const publication = useMemo(() => ({ release: inspector.selectedRelease, brokerId, events: publicationEvents,
+    timeDisplay }), [inspector.selectedRelease, brokerId, publicationEvents, timeDisplay])
   const raycaster = useMemo(() => contextVisible && raycasterSupported ?
     { boxVisible: raycasterVisible, symbol: activeSymbol, timeframe, brokerId, brokerOffsetSeconds, clockOffsetMs: 0,
       timeDisplay, onClose: closeRaycaster, bars: inspector.markerBars, markers: inspector.markers, onSelectCombo: selectCombo,
-      selectedCombo, onClearCombo: closeCombo, view: raycasterView, onViewChange: setRaycasterView,
+      selectedCombo, onClearCombo: closeCombo, view: raycasterView, onViewChange: setRaycasterView, publication,
       onOpenComboSource: openComboRelease, currencyColors: inspectorPreferences.currencyColors } : null,
     [contextVisible, raycasterVisible, raycasterSupported, activeSymbol, timeframe, brokerId, brokerOffsetSeconds,
-      timeDisplay, closeRaycaster, inspector.markerBars, inspector.markers, selectCombo, selectedCombo, closeCombo, openComboRelease, inspectorPreferences.currencyColors, raycasterView])
+      timeDisplay, closeRaycaster, inspector.markerBars, inspector.markers, selectCombo, selectedCombo, closeCombo, openComboRelease, inspectorPreferences.currencyColors, raycasterView, publication])
   const renderChartOverlay = useTerminalChartOverlay({ arrows: registeredArrows.symbolArrows,
     selectedArrowId: registeredArrows.selectedArrowId, draftPlan: plannedTrade, onSelectArrow: selectChartArrow,
     supported: inspector.supported, markers: inspector.markers, currencyColors: inspector.preferences.currencyColors,
@@ -420,7 +426,7 @@ function FyodorTerminalWorkspace() {
           {bottomDockWindow === 'inspector' && <InspectorDock view={inspector} symbol={activeSymbol}
             timeDisplay={timeDisplay}
             scatterAvailable={!!scatterReleaseTarget(inspector.selectedRelease, inspector.brokerId, inspector.now)}
-            onOpenScatter={openScatter} />}
+            onOpenScatter={openScatter} onOpenPublicationContext={openPublicationContext} />}
           {bottomDockWindow === 'roofs' && (selectedCombo ? <ComboInspector combo={selectedCombo} symbol={activeSymbol}
             timeDisplay={timeDisplay} collapsed={roofsCollapsed} onToggleCollapsed={() => setRoofsCollapsed(value => !value)}
             onOpenRaycaster={openComboRaycaster}

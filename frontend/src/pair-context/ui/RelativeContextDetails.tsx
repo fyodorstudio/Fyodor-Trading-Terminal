@@ -8,7 +8,7 @@ import { useRelativePreferences, toggleEurFamily } from '../storage/relative-pre
 import { ContextViewSelector } from './ContextViewSelector'
 import { ScoringSection, ScoringNotes } from '../../inspector/scoring/shared/ui/ScoringSection'
 import { ScoringInputSettings } from '../../inspector/scoring/shared/ui/ScoringInputSettings'
-function RelativeContextDetailsComponent({eur,usd,loading,supported,showSelector=true}:{eur:EurContextPoint|null;usd:ContextPoint|null;loading:boolean;supported:boolean;showSelector?:boolean}){
+function RelativeContextDetailsComponent({eur,usd,loading,supported,showSelector=true,showInputSettings=true}:{eur:EurContextPoint|null;usd:ContextPoint|null;loading:boolean;supported:boolean;showSelector?:boolean;showInputSettings?:boolean}){
   const preferences=useRelativePreferences(), result=relativeContext(eur,usd)
   return <section aria-label="Relative EURUSD calculation">
     {showSelector && <ContextViewSelector supported={supported}/>}
@@ -18,9 +18,9 @@ function RelativeContextDetailsComponent({eur,usd,loading,supported,showSelector
         {eurPolicies.map(policy=><tr key={policy.family}><td>{policy.label}</td><td>{preferences.families.includes(policy.family)?'Enabled':'Off'}</td>
           <td>{loading?'Calculating…':eur?.members.filter(m=>m.family===policy.family).map(m=>`${m.slot}: ${m.contribution.toFixed(3)} (${m.status}${m.provisional?', country proxy':''}; ${m.weight}%, ${(m.retention*100).toFixed(0)}% retention)`).join('; ') || 'No active aggregate / proxy contribution'}</td></tr>)}
       </tbody><tfoot><tr><td colSpan={3}>{loading?'Calculating relative context…':`${result.label} · EUR ${result.eurTotal?.toFixed(3)??'—'} − USD ${result.usdTotal?.toFixed(3)??'—'} = ${result.total?.toFixed(3)??'—'}`}</td></tr></tfoot></table>
-      <ScoringInputSettings currency="EUR" inputs={eurPolicies.map(policy => ({
+      {showInputSettings && <ScoringInputSettings currency="EUR" inputs={eurPolicies.map(policy => ({
         id: policy.family, label: policy.label, enabled: preferences.families.includes(policy.family), onToggle: () => toggleEurFamily(policy.family),
-      }))} />
+      }))} />}
       </ScoringSection>
       <ScoringSection title="How the currency comparison works"><ScoringNotes items={[
         { label: 'Budgets & direction', content: <>EUR and USD each have a 100% budget: inflation 40%, labor / wages 40%, activity 20%. Each leg is normalized by the maximum magnitude of 4. EUR pressure minus USD pressure gives the pair direction; missing weights stay missing.</> },

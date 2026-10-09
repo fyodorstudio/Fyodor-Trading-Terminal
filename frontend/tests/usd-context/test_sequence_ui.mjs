@@ -422,9 +422,9 @@ try {
     inspection: { usd: { chartAt: episode.chartAt, result: after }, eur: null, fresh: null, cutoff: episode.chartAt, held: true,
       loading: false, message: null, signature: inspectionSignature(familySettings.readRaycasterFamilies(), relative.mode, relative.families), window: null } }))
   const headings = [...container.querySelectorAll('h3')].map(h => h.textContent)
-  assert.deepEqual(headings, ['Accumulated context', 'Inputs and contributions', 'Active relationships', 'Fresh-news change · Experimental', 'Calculation and evidence'])
+  assert.deepEqual(headings, ['USD inputs', 'EUR inputs'])
   assert.equal(container.querySelector('details'), null)
-  assert.match(container.textContent, /last inspected candle/)
+  assert.equal(container.querySelector('table'), null, 'Readings are in Context-detailed, not settings')
   await React.act(async () => prefs.saveSequencePreferences({ roofs: true, fresh: false, ribbon: false }))
   assert.equal(prefs.readSequencePreferences().fresh, false)
   assert.equal(container.querySelector('[aria-label="Experimental fresh news"]'), null)

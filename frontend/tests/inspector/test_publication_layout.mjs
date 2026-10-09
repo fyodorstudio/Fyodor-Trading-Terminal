@@ -22,6 +22,7 @@ try {
   const { InspectorScoringView } = await load('inspector/scoring/InspectorScoringView.tsx')
   const { inspectorScoringBindings, inspectorScoringBinding } = await load('inspector/scoring/scoring-registry.ts')
   const { InspectorPanel } = await load('inspector/InspectorPanel.tsx')
+  const { ContextDetailed } = await load('raycaster/ui/ContextDetailed.tsx')
   const { groupInspectorReleases, defaultInspectorPreferences } = await load('inspector/inspector-data.ts')
   const { groupIsmEpisodes } = await load('inspector/episodes/ism-episodes.ts')
   const preferences = await load('pair-context/storage/relative-preferences.ts')
@@ -58,7 +59,7 @@ try {
     assert.match(binding.versionLabel, /v\d/, 'Every registered scorer declares its visible current version')
     const release = releases.findLast(r => r.familyId === binding.familyId) ?? { ...base, id: 'test/' + binding.familyId,
       familyId: binding.familyId, country: binding.country, currency: binding.currency, events: [] }
-    await render(InspectorScoringView, { ...props, release, binding })
+    await render(InspectorScoringView, { ...props, release, binding, surface: 'both' })
     const { left, right } = columns()
     resultFirst(left, binding.familyId + ' standalone')
     resultFirst(right, binding.familyId + ' context')
@@ -72,6 +73,16 @@ try {
     assert.ok(right.querySelector('[aria-label="Inputs & contributions"]'), `${binding.familyId}: context calculation is grouped`)
     assert.equal(right.querySelectorAll('[aria-label="Context weight coverage"] dt').length, 5)
     assert.match(right.querySelector('[aria-label="Context weight coverage"]').textContent, /Usable configured budget.*Net \/ gross agreement/)
+    const preserved = right.querySelector('.inspector-scoring-column-body').textContent
+    await render(InspectorScoringView, { ...props, release, binding })
+    assert.equal(host.querySelectorAll('[aria-label="Standalone Scoring"]').length, 1)
+    assert.equal(host.querySelectorAll('[aria-label="Context-Aware at Publication Scoring"]').length, 0, `${binding.familyId}: Inspector no longer mounts publication context`)
+    await render(ContextDetailed, { point: null, symbol: 'EURUSD', cutoff: null, loading: false, message: null,
+      label: 'Uncomputed', presentation: null, relative: false, timeDisplay, publication: { ...props, release } })
+    const migrated = host.querySelector('.raycaster-publication .inspector-scoring-column-body')
+    assert.ok(migrated, `${binding.familyId}: Context-detailed owns the publication view`)
+    assert.equal(migrated.textContent, preserved, `${binding.familyId}: every publication detail is preserved`)
+    assert.equal(host.querySelectorAll('.raycaster-publication [aria-label="Standalone Scoring"]').length, 0)
   }
 
   const fedAt = base.releaseAt + 3 * 86400000
@@ -80,7 +91,7 @@ try {
     actual: 3.75, previous: 3.75, actual_raw_scaled_1e6: '3750000', previous_raw_scaled_1e6: '3750000', period_seconds: 0 })
   const fedEvents = [...events, fedRow(fedAt - 45 * 86400000), fedRow(fedAt)]
   const fedRelease = groupInspectorReleases([fedRow(fedAt)])[0]
-  const fedProps = { ...props, events: fedEvents, release: fedRelease, binding: inspectorScoringBinding('EURUSD', fedRelease) }
+  const fedProps = { ...props, events: fedEvents, release: fedRelease, binding: inspectorScoringBinding('EURUSD', fedRelease), surface: 'both' }
   await render(InspectorScoringView, fedProps)
   const fedColumns = columns()
   assert.equal(fedColumns.left.querySelector('[aria-label="Fed standalone direction"]').textContent, 'Uncomputed')
@@ -101,9 +112,15 @@ try {
   assert.ok(relativeColumns.right.querySelector('[aria-label="Relative context at publication"]'))
   assert.equal(relativeColumns.left.querySelector('[aria-label="Relative context at publication"]'), null)
   assert.equal(relativeColumns.left.querySelector('[aria-label="Fed standalone direction"]').textContent, 'Uncomputed')
-  const selector = relativeColumns.right.querySelector('[aria-label="Raycaster context view"]')
+  const relativePreserved = relativeColumns.right.querySelector('.inspector-scoring-column-body').textContent
+  await render(ContextDetailed, { point: null, symbol: 'EURUSD', cutoff: null, loading: false, message: null,
+    label: 'Uncomputed', presentation: null, relative: true, timeDisplay, publication: fedProps })
+  assert.equal(host.querySelector('.raycaster-publication .inspector-scoring-column-body').textContent, relativePreserved,
+    'Relative leg details and Fed previous-meeting context are preserved together in Raycaster')
+  await render(InspectorScoringView, fedProps)
+  const selector = columns().right.querySelector('[aria-label="Raycaster context view"]')
   await React.act(async () => { selector.value = 'usd'; selector.dispatchEvent(new dom.Event('change', { bubbles: true })) })
-  assert.equal(columns().right.querySelector('[aria-label="Relative context at publication"]'), null)
+  assert.equal(columns().right.querySelectorAll('[aria-label="Relative context at publication"]').length, 0)
   resultFirst(columns().right, 'Restored USD context')
   assert.ok(columns().right.querySelector('[aria-label="Publication context view"]'), 'USD mode can switch back to relative')
 
@@ -120,16 +137,15 @@ try {
     const release = grouped.find(r => r.familyId === family)
     assert.ok(release)
     await render(InspectorPanel, panel(release, view))
-    const { left, right } = columns()
+    const left = host.querySelector('[aria-label="Standalone Scoring"]')
+    assert.equal(host.querySelectorAll('[aria-label="Context-Aware at Publication Scoring"]').length, 0)
     const menu = host.querySelector('[aria-label="Inspector view"]')
     assert.equal(menu.value, 'scoring', 'Old saved version choices migrate to the latest scorer')
     assert.deepEqual([...menu.options].map(o => o.value), ['table', 'scoring', 'scatter'])
     assert.ok(menu.selectedOptions[0].textContent.includes(inspectorScoringBinding('EURUSD', release).versionLabel))
     assert.equal(left.querySelector('.usd-context-inputs'), null)
-    assert.ok(right.querySelector('.usd-context-inputs'))
     if (view === 'scoring-v4') {
       assert.ok(left.querySelector('[aria-label="CPI v4 standalone component scores"]'))
-      assert.ok(right.querySelector('[aria-label="CPI v4 context change"]'))
     }
     {
       assert.ok(left.querySelector('[aria-label="What drove the result"]'), `${family} ${view}: result drivers have their own section`)
@@ -177,7 +193,7 @@ try {
     assert.equal(dom.getComputedStyle(calibration.rows[1].cells[0]).width, '30%', 'Calibration budgets override the generic first-column rule in either load order')
     assert.equal(dom.getComputedStyle(calibration.rows[1].cells[1]).width, '25%')
   }
-  console.log('✓ All current scoring columns and legacy-choice migration, Fed action/context separation, relative mode, CPI v4 ownership and table cascade in either load order')
+  console.log('✓ Standalone-only Inspector; every publication detail preserved in Context-detailed across all scorers; legacy choices, Fed/CPI comparisons, relative mode and table cascade')
 } finally {
   await React.act(async () => root.unmount()); await server.close(); await dom.happyDOM.abort(); dom.close()
   for (const key of keys) { if (previous[key]) Object.defineProperty(globalThis, key, previous[key]); else delete globalThis[key] }

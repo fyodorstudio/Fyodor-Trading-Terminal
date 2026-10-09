@@ -72,12 +72,12 @@ const chart = { addSeries: () => series, timeScale: () => scale, priceScale: () 
   subscribeClick: fn => clickListeners.add(fn), unsubscribeClick: fn => clickListeners.delete(fn),
   remove: () => count('chartRemoved'), chartElement: () => document.querySelector('.market-chart-canvas') }
 globalThis.__terminalProbe = { count, clocks, createChart: () => { count('chartCreated'); return chart } }
-let calculate
+let calculate, calculateCpi
 globalThis.Worker = class {
   constructor() { count('workerCreated'); this.terminated = false }
   postMessage(message) {
     count('workerPosts'); workerInputs.push(message.input)
-    void Promise.resolve().then(() => { if (!this.terminated) this.onmessage?.({ data: { id: message.id, result: calculate(message.input) } }) })
+    void Promise.resolve().then(() => { if (!this.terminated) this.onmessage?.({ data: { id: message.id, result: (message.input.release ? calculateCpi : calculate)(message.input) } }) })
   }
   terminate() { this.terminated = true; count('workerTerminated') }
 }
@@ -99,6 +99,7 @@ const server = await createServer({ root: path.resolve(path.dirname(fileURLToPat
       if (id.endsWith('/MarketCandlestickChart.tsx')) return code.replace('}: MarketCandlestickChartProps) {',
         "}: MarketCandlestickChartProps) { globalThis.__terminalProbe.count('chartRender');")
       if (id.endsWith('/useCalendarNow.ts')) return code.replace('return now', 'globalThis.__terminalProbe.clocks.push(now); return now')
+      if (id.endsWith('/InspectorScoringView.tsx')) return code.replace('const Component = binding.Component', "globalThis.__terminalProbe.count('scoringRender'); const Component = binding.Component")
     },
   }] })
 
@@ -164,6 +165,7 @@ try {
   const { ActivityLogProvider } = await server.ssrLoadModule('./src/system-observability/activity-log/activity-log-store.tsx')
   const { useActivityActions } = await server.ssrLoadModule('./src/system-observability/activity-log/use-activity-log.ts')
   calculate = (await server.ssrLoadModule('./src/usd-context/core/build-context-timeline.ts')).buildContextTimeline
+  calculateCpi = (await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/CPI/runtime/cpi-release-analysis.ts')).calculateCpiRelease
   function CommandOnly() {
     count('commandSubscriber')
     const actions = useActivityActions()
@@ -232,6 +234,37 @@ try {
   savedText = JSON.parse(localStorage.getItem('fyodor.chart-drawings.v1')).find(item => item.tool === 'text')
   assert.equal(savedText.text, 'Edited annotation')
   assert.equal(workerInputs.length, postsBeforeText, 'Text creation and editing never launch calculation jobs')
+  const postsBeforeContextView = workerInputs.length
+  const raycasterView = container.querySelector('[aria-label="Raycaster view"]')
+  assert.ok(raycasterView)
+  await React.act(async () => { raycasterView.value = 'context-detailed'; raycasterView.dispatchEvent(new dom.Event('change', { bubbles: true })) })
+  assert.equal(container.querySelector('[aria-label="Raycaster view"]').value, 'context-detailed', 'The assembled shell retains detailed context with no selected combo')
+  assert.ok(container.querySelector('[aria-label="Context-detailed calculations"]'))
+  assert.equal(workerInputs.length, postsBeforeContextView, 'Opening the detailed reading reuses the existing scores')
+  await React.act(async () => { const view = container.querySelector('[aria-label="Raycaster view"]'); view.value = 'context'; view.dispatchEvent(new dom.Event('change', { bubbles: true })) })
+  assert.equal(container.querySelector('.context-detailed-content'), null)
+  if (!container.querySelector('.inspector-panel')) await click(button('Inspector'))
+  await click(container.querySelector('.inspector-pair-toggle'))
+  await click(container.querySelector('.inspector-release'))
+  await React.act(async () => {
+    const view = container.querySelector('[aria-label="Inspector view"]')
+    view.value = 'scoring'; view.dispatchEvent(new dom.Event('change', { bubbles: true }))
+  })
+  assert.equal(container.querySelectorAll('.inspector-panel [aria-label="Context-Aware at Publication Scoring"]').length, 0)
+  await click(button('Open publication context in Raycaster'))
+  assert.equal(container.querySelector('[aria-label="Raycaster view"]').value, 'context-detailed')
+  const publication = container.querySelector('.raycaster-publication')
+  assert.ok(publication.querySelector('[aria-label="CPI v4 context change"]'), 'The shell routes the selected CPI publication and its comparison into Raycaster')
+  assert.ok(publication.querySelector('[aria-label="CPI v4 context inputs"]'))
+  const publicationText = publication.textContent, jobsBeforeHover = workerInputs.length, rendersBeforeHover = counters.scoringRender
+  await React.act(async () => {
+    for (const handler of hoverListeners) handler({ time: now / 1000 - 3600, point: { x: 400, y: 200 }, seriesData: new Map([[series, {}]]) })
+    for (const [id, fn] of frames) { frames.delete(id); fn() }
+  })
+  assert.equal(publication.textContent, publicationText, 'Candle hover never changes the selected publication cutoff or comparison')
+  assert.equal(workerInputs.length, jobsBeforeHover, 'Hover with publication details open launches no workers')
+  assert.equal(counters.scoringRender, rendersBeforeHover, 'Hover performs zero publication scorer renders')
+  await React.act(async () => { const view = container.querySelector('[aria-label="Raycaster view"]'); view.value = 'context'; view.dispatchEvent(new dom.Event('change', { bubbles: true })) })
   await pointer(canvasForDrawing, 'pointerdown', 100, 300)
   await pointer(window, 'pointerup', 100, 300)
   await click(button('Activity'))

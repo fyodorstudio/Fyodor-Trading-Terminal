@@ -15,8 +15,10 @@ See `docs/scoring system library.MD` and the root main-objective checklist.
 
 Every family has one current scoring view. The menu contains **Table only**,
 **Scoring system · [family/version]**, and **Scatter Plot**. Scoring stays flat:
-**Standalone Scoring** on the left, **Context-Aware at Publication Scoring** on
-the right. Versions remain visible; users no longer choose superseded methods.
+**Standalone Scoring** fills the Inspector. **Context-Aware at Publication Scoring**
+lives in Raycaster → **Context-detailed** → **At publication**. The Inspector’s
+“Open publication context in Raycaster” button opens that view for the selected
+release. Versions remain visible; users no longer choose superseded methods.
 
 Current versions: CPI v4, NFP v2, Claims v2, ISM v3, Fed v2, PCE/Retail/GDP/PPI v1,
 and EUR numerical families/ECB v1. `shared/core/current-scoring-versions.ts`
@@ -596,15 +598,16 @@ coverage unavailable. Its context panel describes the economic background,
 not what an unstored statement communicated.
 
 `InspectorScoringView` composes every registered scorer through
-`shared/ui/PublicationScoringLayout`: Standalone Scoring on the left and
-Context-Aware at Publication Scoring on the right. `PublicationScoringContext`
-keeps both USD and optional relative EUR/USD panels inside the right column.
-Advanced CPI/NFP/ISM selections use the same layout; CPI v4 retains its original
+`shared/ui/PublicationScoringLayout`: the surface selects standalone content in
+Inspector and publication content in Raycaster Context-detailed. Hidden content
+does not mount. `PublicationScoringContext` keeps both USD and optional relative
+EUR/USD panels inside the publication section. CPI v4 retains its original
 before/after comparison there. Fed owns this shared layout internally to keep
 rate action separate from its previous-meeting contextual comparison. Legacy
 selected release scorers remain unchanged; context always uses the current family
 policies listed in its shared input table. All controls retain the same saved
-preferences as Raycaster. Narrow docks stack standalone before context.
+preferences as Raycaster. Publication comparisons retain the selected release’s
+exact cutoff; they are distinct from the hovered candle-end calculations.
 Tests: `tests/inspector/expanded/test_usd_menu.mjs`, context/portability regressions
 and the chronological `scripts/audit-usd-menu-v5.mjs`.
 

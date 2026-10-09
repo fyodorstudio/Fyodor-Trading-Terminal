@@ -7,7 +7,7 @@ import { useRelativePreferences } from '../../../../pair-context/storage/relativ
 import { ContextViewSelector } from '../../../../pair-context/ui/ContextViewSelector'
 import { formatAppTimestamp } from '../../../../appearance/time-display/time-display-preference'
 
-/** Both currency legs stay inside the context column; the release stays separate. */
+/** Both currency legs stay inside Raycaster's publication section. */
 export function PublicationScoringContext({ children, ...props }: Omit<InspectorScoringProps, 'events'> & {
   children?: (controls: ReactNode) => ReactNode; events?: readonly InspectorEvent[]
 }) {

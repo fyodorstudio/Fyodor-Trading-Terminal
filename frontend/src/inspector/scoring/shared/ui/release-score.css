@@ -1,4 +1,4 @@
-.inspector-publication-score { flex: 1; min-height: 0; min-width: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; overflow-x: hidden; overflow-y: auto; container-type: inline-size; contain: layout paint; }
+.inspector-publication-score { flex: 1; min-height: 0; min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; align-items: start; overflow-x: hidden; overflow-y: auto; container-type: inline-size; contain: layout paint; }
 .inspector-scoring-column { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
 .inspector-scoring-column > h2 { font-size: 12px; margin: 0; padding: 9px 12px; border-bottom: 1px solid var(--border); color: var(--text-strong); }
 .inspector-scoring-column-body { min-width: 0; padding: 8px 12px; }

@@ -8,7 +8,9 @@ a shared context-mode selector and Manage outside events. It stays modeless and
 restores gear focus on Close/Escape; outside clicks dismiss it. Broker, symbol or
 timeframe changes close it without reviving a former scope's panel.
 
-`settings/` contains presentation and existing preference controls. USD/EUR input
+`settings/` contains preference controls and brief help only. Readings, contribution
+tables and calculation notes live in the draggable Raycaster's **Context-detailed**
+view. USD/EUR input
 editing stays under Advanced settings. Roof density is an optional backwards-
 compatible `density` field in `fyodor.context-sequences.v1`, included in workspace
 exports and validation. The old chart density buttons, standalone roof guide,
@@ -21,7 +23,7 @@ the popover, so ordinary hover never causes Terminal-shell/chart parent renders.
 Scope and input/mode signatures reject old readings. The latest inspected candle
 is retained while settings are open, matching the former box gear behavior. No
 new timeline is requested on open, even when all chart views are hidden; controls
-still work, and the breakdown asks for a Raycaster candle inspection.
+still work. The retained chart window supplies outside-event annotation defaults.
 
 Outside-event editing uses the existing note store and form, embedded within the
 popover. It works with Candy hidden and uses the captured chart window or current

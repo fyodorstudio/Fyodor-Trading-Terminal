@@ -13,7 +13,7 @@ import '../../external-events/ui/external-events.css'
 
 const tabs = ['Raycaster', 'Roofs', 'Candy'] as const
 export function FundamentalToolsPopover({ id, scope, trigger, onClose, symbol, supported, relativeSupported, brokerId,
-  timeDisplay, clockOffsetMs, brokerOffsetSeconds }: {
+  clockOffsetMs, brokerOffsetSeconds }: {
   id: string; scope: string; trigger: RefObject<HTMLButtonElement | null>; onClose: () => void; symbol: string;
   supported: boolean; relativeSupported: boolean; brokerId: string | null; timeDisplay: TimeDisplayPreference;
   clockOffsetMs: number; brokerOffsetSeconds: number
@@ -42,7 +42,7 @@ export function FundamentalToolsPopover({ id, scope, trigger, onClose, symbol, s
           if (next !== null) { e.preventDefault(); setTab(tabs[next]); tabButtons.current[next]?.focus() }
         }}>{name}</button>)}</div>
       <div id={`${id}-panel`} role="tabpanel" aria-labelledby={`${id}-tab-${tab}`} tabIndex={0}>
-        {tab === 'Raycaster' && <RaycasterSettings inspection={inspection} symbol={symbol} supported={supported} relativeSupported={relativeSupported} timeDisplay={timeDisplay} />}
+        {tab === 'Raycaster' && <RaycasterSettings supported={supported} relativeSupported={relativeSupported} />}
         {tab === 'Roofs' && <RoofsSettings supported={relativeSupported} />}
         {tab === 'Candy' && <CandySettings />}
       </div>

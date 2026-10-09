@@ -3,7 +3,9 @@
 .fundamental-tools > .chart-drawing-toggle.active { background: var(--accent); color: #fff; }
 .fundamental-tools > .fundamental-tools-gear { border-left: 1px solid var(--border); border-radius: 0 5px 5px 0; margin-left: 2px; }
 .fundamental-tools button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-.fundamental-tools-popover { position: absolute; right: 0; top: calc(100% + 8px); width: min(620px, calc(100vw - 24px)); max-height: min(72vh, 680px); overflow: auto; padding: 12px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--surface-panel); box-shadow: var(--shadow); color: var(--text); font-size: 11px; line-height: 1.5; }
+.fundamental-tools-popover { position: absolute; right: 0; top: calc(100% + 8px); width: min(660px, calc(100vw - 24px)); height: min(76vh, 740px); box-sizing: border-box; display: flex; flex-direction: column; overflow: hidden; padding: 12px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--surface-panel); box-shadow: var(--shadow); color: var(--text); font-size: 11px; line-height: 1.5; }
+.fundamental-tools-popover > header, .fundamental-tools-popover > .shared-context-mode, .fundamental-tools-popover > [role='tablist'], .fundamental-tools-popover > footer { flex: none; }
+.fundamental-tools-popover > [role='tabpanel'] { flex: 1; min-height: 0; overflow: auto; scrollbar-gutter: stable; padding-right: 5px; overscroll-behavior: contain; }
 .fundamental-tools-popover > header { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 10px; }
 .fundamental-tools-popover button { font: inherit; color: var(--text); background: var(--surface-panel); border: 1px solid var(--border-strong); border-radius: 4px; padding: 4px 7px; cursor: pointer; }
 .fundamental-tools-popover button:disabled { opacity: .5; cursor: default; }
@@ -29,4 +31,4 @@
 .candy-color-key { display: flex; gap: 8px; }.candy-color-key span { padding: 3px 8px; border-radius: 3px; }
 .candy-color-key .long { background: #b8e5d7; color: #004f3b; }.candy-color-key .short { background: #facac3; color: #7e2419; }.candy-color-key .unavailable { background: #9aa4b5; color: #142035; }
 .candy-color-key { flex-wrap: wrap; }.candy-color-key .mixed { background: #e8c77a; color: #493500; }
-.fundamental-tools-popover .external-event-manager.embedded { position: static; width: auto; max-height: none; overflow: visible; padding: 0; border: 0; background: transparent; box-shadow: none; }
+.fundamental-tools-popover .external-event-manager.embedded { position: static; width: auto; min-height: 0; flex: 1; max-height: none; overflow: auto; padding: 0; border: 0; background: transparent; box-shadow: none; }
