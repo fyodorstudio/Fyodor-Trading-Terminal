@@ -1,0 +1,50 @@
+.roof-release-overview { height: 100%; min-height: 0; min-width: 0; display: flex; flex-direction: column; color: var(--text); background: var(--surface-panel); font-size: 12px; container-type: inline-size; }
+.roof-release-overview.collapsed { height: auto; }
+.roof-overview-header { display: flex; flex: none; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 16px; border-bottom: 1px solid var(--border); }
+.roof-overview-header h2 { margin: 0 0 3px; font-size: 15px; color: var(--text-strong); }
+.roof-overview-header span, .roof-overview-anchor small { color: var(--text-muted); font-size: 11px; }
+.roof-overview-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.roof-release-overview button { font: inherit; cursor: pointer; color: var(--accent); background: var(--surface-panel); border: 1px solid var(--border); border-radius: 5px; padding: 6px 9px; }
+.roof-release-overview button:hover { background: var(--surface-raised); border-color: var(--accent); }
+.roof-release-overview button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.roof-overview-anchor { flex: none; display: flex; flex-wrap: wrap; gap: 5px 20px; padding: 9px 16px; border-bottom: 1px solid var(--border); background: var(--surface-raised); }
+.roof-overview-anchor > div:not(.roof-overview-counts) { display: flex; flex-wrap: wrap; gap: 5px 12px; }
+.roof-overview-anchor strong { color: var(--text-strong); }
+.roof-overview-anchor span { color: var(--text-muted); }
+.roof-overview-counts { margin-left: auto; font-variant-numeric: tabular-nums; }
+.roof-overview-anchor small { flex-basis: 100%; }
+.roof-overview-scroll { flex: 1; min-height: 0; overflow: auto; overflow-x: hidden; }
+.roof-overview-columns, .roof-overview-row-main { display: grid; grid-template-columns: minmax(180px, 1.6fr) minmax(140px, 1.2fr) minmax(100px, .8fr) minmax(170px, 1fr) 112px; gap: 16px; align-items: center; }
+.roof-overview-columns { padding: 8px 16px; background: var(--surface-panel); position: sticky; top: 0; z-index: 1; color: var(--text-muted); font-size: 11px; border-bottom: 1px solid var(--border); }
+.roof-overview-row { padding: 12px 16px; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }
+.roof-overview-row.selected { box-shadow: inset 3px 0 var(--accent); background: var(--surface-raised); }
+.roof-overview-name h3 { font-size: 13px; font-weight: 600; color: var(--text-strong); margin: 0 0 4px; }
+.roof-overview-name > span, .roof-overview-row-meta, .roof-overview-evidence { color: var(--text-muted); font-size: 11px; }
+.roof-overview-bias { font-size: 13px; line-height: 1.4; }
+.roof-overview-bias.long { color: #13743a; }
+.roof-overview-bias.short { color: #bd2935; }
+.roof-overview-bias.balanced { color: #855d13; }
+.roof-overview-bias.insufficient, .roof-overview-bias.unchanged { color: var(--text-muted); }
+:root[data-theme='dark'] .roof-overview-bias.long { color: #6ee7a0; }
+:root[data-theme='dark'] .roof-overview-bias.short { color: #fda4af; }
+:root[data-theme='dark'] .roof-overview-bias.balanced { color: #e8c77a; }
+.roof-overview-row .weighted-support-bar .combo-support-values { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; }
+.roof-overview-row .weighted-support-bar .combo-support-values > strong { padding: 0; background: transparent; }
+.roof-overview-row .weighted-support-bar .combo-support-fill { height: 4px; }
+.roof-overview-reason { margin: 8px 0 5px; line-height: 1.45; }
+.roof-overview-row-meta { display: flex; flex-wrap: wrap; gap: 4px 20px; line-height: 1.45; }
+.roof-overview-footnote { padding: 10px 16px; margin: 0; font-size: 11px; color: var(--text-muted); line-height: 1.45; }
+@container (max-width: 1000px) {
+  .roof-overview-columns { display: none; }
+  .roof-overview-row-main { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) 112px; gap: 8px 14px; }
+  .roof-overview-name { grid-column: 1 / 3; }
+  .roof-overview-row-main > button { grid-column: 3; grid-row: 1; }
+  .roof-overview-row-main > .weighted-support-bar { grid-column: 1 / 3; }
+}
+@container (max-width: 550px) {
+  .roof-overview-header { align-items: flex-start; flex-wrap: wrap; }
+  .roof-overview-row-main { grid-template-columns: minmax(0, 1fr) 112px; }
+  .roof-overview-name { grid-column: 1; }
+  .roof-overview-row-main > button { grid-column: 2; }
+  .roof-overview-row-main > .weighted-support-bar { grid-column: 1 / -1; }
+}

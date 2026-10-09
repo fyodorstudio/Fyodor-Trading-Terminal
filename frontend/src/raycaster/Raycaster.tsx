@@ -19,7 +19,7 @@ import { timeframeSeconds } from '../inspector/inspector-data'
 import { contextSourceFamilies } from '../usd-context/core/policy'
 import type { OhlcBar } from '../market-data/contracts/OhlcBar'
 import type { InspectorMarker } from '../inspector/inspector-data'
-import type { ComboSnapshot, ComboSource } from '../usd-context/sequences/core/contracts'
+import type { ComboSnapshot, ComboSource, RoofComboGroup } from '../usd-context/sequences/core/contracts'
 import type { CurrencyColors } from '../inspector/currency-colors'
 import { ComboRoofs } from '../usd-context/sequences/chart/ComboRoofs'
 import { useSequencePreferences } from '../usd-context/sequences/storage/sequence-preferences'
@@ -34,6 +34,7 @@ export type RaycasterProps = { boxVisible?: boolean; symbol: string; timeframe: 
   bars?: readonly Pick<OhlcBar, 'time'>[]; markers?: readonly InspectorMarker[]; onSelectCombo?: (combo: ComboSnapshot) => void;
   onOpenComboSource?: (source: ComboSource) => void; currencyColors?: CurrencyColors;
   selectedCombo?: ComboSnapshot | null; onClearCombo?: () => void;
+  onOpenRoofGroup?: (group: RoofComboGroup) => void; activeRoofGroupCandleAt?: number;
   publication?: Omit<InspectorScoringProps, 'now'>;
   view?: RaycasterView; onViewChange?: (view: RaycasterView) => void }
 function RaycasterComponent({ chartApi, seriesApi, ...props }: RaycasterProps & { chartApi: IChartApi; seriesApi: ISeriesApi<'Candlestick', Time> }) {
@@ -98,6 +99,7 @@ function RaycasterComponent({ chartApi, seriesApi, ...props }: RaycasterProps & 
       now={now + props.brokerOffsetSeconds * 1000} loading={history.loading} notice={usdMessage ?? selectionNotice} partial={!!partial} />}
     {relativeSupported && sequencePreferences.roofs && relationships && !history.loading && !message && props.bars && props.markers && props.onSelectCombo &&
       <ComboRoofs chartApi={chartApi} episodes={relationships.episodes} bars={props.bars} markers={props.markers}
+        onOpenGroup={props.onOpenRoofGroup} activeGroupCandleAt={props.activeRoofGroupCandleAt}
         selectedId={props.selectedCombo?.id} currencyColors={props.currencyColors}
         timeframe={props.timeframe} now={now + props.brokerOffsetSeconds * 1000} experimental={sequencePreferences.fresh} onSelect={props.onSelectCombo} />}
   </>

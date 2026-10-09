@@ -27,4 +27,6 @@ export type ComboSnapshot = { id: string; kind: ComboKind; title: string; chartA
 export type ContextRelationships = { episodes: ComboSnapshot[]; fresh: FreshPoint[];
   /** Existing sector/action assessments exposed for read-only selected relationship timelines. */
   ismSources?: { sourceId: string; sources: ComboSource[] }[]; fedSources?: ComboSource[] }
+/** Captured chart group for dock navigation; adds no interpretation or vote. */
+export type RoofComboGroup = { candleAt: number; combos: readonly ComboSnapshot[] }
 export type IsmSourceMap = Map<string, ComboSource[]>

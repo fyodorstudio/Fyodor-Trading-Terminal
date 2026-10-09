@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import React from 'react'
 import { createServer } from 'vite'
 import { Window } from 'happy-dom'
-import { cpi } from './usd-context/fixtures.mjs'
+import { cpi, nfp, history } from './usd-context/fixtures.mjs'
 
 // Mount production hooks, shell, chart and overlays. Only external network,
 // worker ports and the canvas library are faked; no production boundary is stubbed.
@@ -108,7 +108,14 @@ let broker = 'fixture-broker', generation = 1, observed = 0, connected = true, c
 let quotes = Array.from({ length: 200 }, (_, i) => ({ symbol: i === 0 ? 'EURUSD' : `TEST${i}`, description: `Quote ${i}`,
   bid: 1.1, ask: 1.2, daily_change: 0, precision: 5 }))
 let bars = Array.from({ length: 800 }, (_, i) => ({ time: now / 1000 + (i - 799) * 3600, open: 1.1, high: 1.2, low: 1, close: 1.15 }))
-let events = [...cpi(2026, 7, [.2, .2, 3]), ...cpi(2026, 8, [.3, .3, 3.1])]
+const recentNfpAt = now - 2 * 3600000
+const recentHistory = Array.from({ length: 36 }, (_, index) => [
+  ...cpi(2023, 8 + index, [.1 + index % 4 * .1, .1 + (index + 1) % 4 * .1, 3 + index % 3 * .1]),
+  ...nfp(2023, 8 + index, [100 + index % 4 * 50, 4 + index % 3 * .1, 62.3, .1 + index % 4 * .1, 34.2 + index % 3 * .1]),
+]).flat()
+let events = [...history, ...recentHistory, ...nfp(2026, 8, [200, 4, 62.3, .4, 34.4]).map(event => ({ ...event,
+  release_at: recentNfpAt, chart_time_seconds: recentNfpAt / 1000, server_time_seconds: recentNfpAt / 1000 })),
+  ...cpi(2026, 8, [.3, .3, 3.1])]
 const health = () => ({ api_version: '1', bridge: { status: 'running', started_at: 1, now: now + clockOffset },
   mt5: { connected, process_running: true, generation, account_server: broker },
   calendar: { status: 'live', instance_id: 'fixture', server_utc_offset_seconds: 0 }, operations: {} })
@@ -179,6 +186,34 @@ try {
   assert.equal(plotted.length, 800)
   assert.ok(workerInputs.length > 0, 'Production context calculation has actually run')
   assert.ok(workerInputs.every(input => input.asOf < events.at(-1).release_at), 'Future publication has not been admitted')
+  // Exercise the real chart -> shell -> Roofs dock path with scored CPI/NFP inputs.
+  await React.act(async () => { for (const [id, fn] of frames) { frames.delete(id); fn() } })
+  const comboTrigger = container.querySelector('.combo-roof-overflow > button')
+  assert.ok(comboTrigger, 'Genuine eligible release relationships produce a Concise chart group')
+  const comboCount = Number(comboTrigger.textContent.match(/\d+/)[0]), jobsBeforeRoofs = workerInputs.length
+  await click(comboTrigger)
+  assert.equal(container.querySelector('[aria-label="More combo roofs"]'), null)
+  assert.equal(container.querySelectorAll('.roof-overview-row').length, comboCount, 'Production wiring passes every relationship into the release overview')
+  assert.equal(container.querySelector('[aria-label="Selected roof snapshot"]'), null, 'Group opening does not silently select a relationship')
+  const overviewScroll = container.querySelector('.roof-overview-scroll')
+  overviewScroll.scrollTop = 87
+  await React.act(async () => overviewScroll.dispatchEvent(new dom.Event('scroll', { bubbles: true })))
+  await click(container.querySelector('.roof-overview-row button'))
+  assert.ok(container.querySelector('[aria-label="Combo details"]'))
+  assert.equal(container.querySelector('.roof-overview-row'), null, 'Overview rows are unmounted while inspecting details')
+  await click(button('← All'))
+  assert.equal(container.querySelector('.roof-overview-scroll').scrollTop, 87)
+  await click(button('Collapse'))
+  assert.ok(container.querySelector('.terminal-shell.roofs-collapsed'))
+  assert.equal(container.querySelector('.roof-overview-row'), null, 'Collapsed overview mounts no relationship presentation')
+  await click(button('Expand'))
+  assert.equal(container.querySelectorAll('.roof-overview-row').length, comboCount)
+  assert.equal(container.querySelector('.roof-overview-scroll').scrollTop, 87)
+  await click(button('Roofs'))
+  await click(button('Roofs'))
+  assert.equal(container.querySelector('.roof-overview-scroll').scrollTop, 87, 'Closing and reopening the dock retains its captured overview')
+  assert.equal(workerInputs.length, jobsBeforeRoofs, 'Group opening, detail/back, collapse and dock navigation launch no scoring workers')
+  await click(button('Roofs'))
   // Exercise drawing selection, body drag and blank-space deselection through
   // the assembled terminal, including chart navigation and the shared storage.
   const drawing = () => container.querySelector('.drawing-object')
@@ -245,7 +280,7 @@ try {
   assert.equal(container.querySelector('.context-detailed-content'), null)
   if (!container.querySelector('.inspector-panel')) await click(button('Inspector'))
   await click(container.querySelector('.inspector-pair-toggle'))
-  await click(container.querySelector('.inspector-release'))
+  await click([...container.querySelectorAll('.inspector-release')].find(element => element.textContent.includes('CPI')))
   await React.act(async () => {
     const view = container.querySelector('[aria-label="Inspector view"]')
     view.value = 'scoring'; view.dispatchEvent(new dom.Event('change', { bubbles: true }))
@@ -352,6 +387,9 @@ try {
   while (pending.get('ohlc')?.length) await reply('ohlc')
   assert.ok(requests.some(url => url.includes('source_id=second-broker')), 'Broker/generation changes refresh stored history')
   assert.equal(plotted.length, 800)
+  await click(button('Roofs'))
+  assert.ok(container.querySelector('.combo-empty'), 'A broker change clears the captured overview and individual selection')
+  await click(button('Roofs'))
 
   const futureAt = events.at(-1).release_at
   now = futureAt - clockOffset

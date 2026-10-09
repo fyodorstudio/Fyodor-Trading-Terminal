@@ -44,9 +44,10 @@ Raycaster Candy and/or Roof Candy in Fundamental tool settings → Candy.
 USD readings use equal-width Long/Short percentage cards and a proportional bar,
 with direction, evidence and conflict presented separately. Relative mode retains
 its existing interpretation and does not acquire USD-only percentage shares.
-Context-detailed uses a larger stable frame for always-open source score, weight,
-retention and vote columns, active conditions, fresh-news changes and notes.
-Each input has a dedicated age/influence row (cumulative influence lost, including
+Context-detailed uses a larger stable frame with one bordered card per input.
+Each card groups its direction/status, aligned source score × weight × retention
+and vote values, and labeled publication/calculation/memory details. All
+calculations stay open. Each input has a dedicated age/influence row (cumulative influence lost, including
 expiry) and a new-release row. New releases are identified by source availability
 at the context update, never by the timeline's remembered last publication;
 aging-only updates show `-`. Generic Latest update / Memory update prose is omitted.
@@ -72,7 +73,8 @@ Raycaster has saved CPI/NFP/Claims/ISM/Retail/PCE/PPI/GDP context filters, indep
 Inspector marker filters. These controls are shared with CPI v4's publication
 context table; all eight inputs default On. The shared header gear's Raycaster tab
 uses `fundamental-tools/settings/RaycasterSettings.tsx` for input controls only.
-Context-detailed reuses `usd-context/ui/ContextInputTable.tsx` to show versions, read-only Enabled/Off status,
+Context-detailed reuses `usd-context/ui/ContextInputTable.tsx` and its
+`ContextInputCards.tsx` audit layout to show versions, read-only Enabled/Off status,
 each source bias/evidence/date, source score, weighted contribution and combined
 total. Input switches remain under Advanced settings. The old box gear, standalone
 RaycasterDetails and compatibility table re-export are retired. Base weights are CPI 28%, PCE 10%, PPI 2%, NFP 30%, Claims 10%, ISM 10%,

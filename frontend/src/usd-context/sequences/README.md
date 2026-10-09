@@ -109,8 +109,10 @@ Display v8 adds **Concise** in Fundamental tool settings → Roofs → Display d
 It replaces stacks with one `+N Combo` button per visible available-from candle,
 counting every enabled relationship at that column. A tick and vertical stem mark
 that candle on the time axis; neighboring buttons stagger without changing their
-X anchors. Selection opens the existing Roofs details/Candy scope and keeps the
-chart concise. Focused and All roofs retain their previous behavior.
+X anchors. Clicking **+N Combo** opens a captured release overview in the Roofs
+dock, containing every enabled relationship at that candle. No individual
+relationship is selected merely by opening the overview. Focused and All roofs
+retain their existing label and More-menu behavior.
 
 The existing popover entries preserve exact clocks, support splits and source
 inspection. Concise adds Long/Short lead counts, with separate balanced, unchanged
@@ -150,7 +152,21 @@ retired. Concise keeps only the time stems, even after selection. Tooltips and d
 give exact clocks. Future activation and any snapshot with a future source are
 excluded before display prioritization. Saved density changes no qualification or score.
 
-The dedicated **Roofs** bottom dock puts direction and evidence together in its header,
+The dedicated **Roofs** bottom dock has a release overview and individual details.
+In Concise, **+N Combo** opens all N snapshots together as compact rows, each with
+its relationship name, directional result, evidence strength, support split,
+short explanation and participating release names. Header counts describe
+overlapping relationships, not a combined vote. Exact activation times are
+retained even when multiple updates share one containing candle; the header names
+the actual triggering publications or memory update, not the candle open.
+**View details** selects that relationship for the existing details/Raycaster/Candy
+scope. **All N combinations** returns to the overview with its scroll position
+retained. Collapse and dock close/reopen preserve the captured group and overview
+scroll; collapsed and detail views do not mount overview rows. Opening a new group
+resets overview scroll. Groups are cleared on broker, symbol or timeframe changes.
+Reopening **+N Combo** captures current filtered snapshots after input/history changes.
+
+Individual details put direction and evidence together in their header,
 followed by a proportional Long/Short support bar and its main contributors. Collapse
 keeps the header and percentages visible; selecting another combo preserves that state.
 The scrolling body uses compact newspaper-style columns, a short reason and **What changed?**,

@@ -229,6 +229,22 @@ try {
   await React.act(async () => container.querySelector('.combo-roof-overflow > button').click())
   await React.act(async () => document.dispatchEvent(new dom.KeyboardEvent('keydown', { key: 'Escape' })))
   assert.equal(coordinateCalls, coordinatesBeforeMenu, 'Opening and closing the popover does not reproject history')
+  let openedGroup = null
+  const selectedBeforeOverview = selected
+  await render(React.createElement(ComboRoofs, { ...localProps, onOpenGroup: group => { openedGroup = group },
+    activeGroupCandleAt: at + 3 * hour }))
+  const coordinatesBeforeOverview = coordinateCalls
+  const overviewButtons = container.querySelectorAll('.combo-roof-overflow > button')
+  assert.equal(overviewButtons[1].getAttribute('aria-pressed'), 'true', 'The overview anchor is highlighted without choosing a relationship')
+  await React.act(async () => overviewButtons[1].click())
+  assert.equal(openedGroup.candleAt, at + 3 * hour)
+  assert.equal(openedGroup.combos.length, 9)
+  assert.ok(openedGroup.combos.every(combo => combo.id.startsWith('later/')))
+  assert.equal(new Set(openedGroup.combos.map(combo => combo.chartAt)).size, 9, 'A containing candle retains each exact activation clock')
+  assert.equal(container.querySelector('[aria-label="More combo roofs"]'), null, 'Production Concise opens the dock instead of the chooser')
+  assert.equal(selected, selectedBeforeOverview, 'Opening a group does not choose a Candy or Raycaster relationship')
+  assert.equal(coordinateCalls, coordinatesBeforeOverview, 'Group navigation does no viewport projection')
+  assert.equal(JSON.stringify(localProps.episodes), snapshotBeforeConcise)
   await React.act(async () => prefs.saveSequencePreferences({ ...prefs.readSequencePreferences(), hiddenRoofs: ['fresh-news'] }))
   assert.equal(container.querySelector('.combo-roof-overflow'), null, 'Roof filters also remove Concise buttons and counts')
   await React.act(async () => prefs.saveSequencePreferences({ ...prefs.readSequencePreferences(), hiddenRoofs: [], density: 'all' }))

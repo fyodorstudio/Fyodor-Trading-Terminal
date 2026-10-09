@@ -7,7 +7,7 @@ import type { IChartApi, MouseEventParams, Time } from 'lightweight-charts'
 import type { OhlcBar } from '../../../market-data/contracts/OhlcBar'
 import type { ChartTimeframe } from '../../../market-data/contracts/ChartTimeframe'
 import type { InspectorMarker } from '../../../inspector/inspector-data'
-import type { ComboSnapshot } from '../core/contracts'
+import type { ComboSnapshot, RoofComboGroup } from '../core/contracts'
 import { currencyColorStyle, type CurrencyColors } from '../../../inspector/currency-colors'
 import { roofSupport } from '../core/relationship-support'
 import { SupportSplit } from '../../ui/SupportSplit'
@@ -23,10 +23,11 @@ import { useDisplayClock } from '../../../appearance/time-display/useDisplayCloc
 import { comboColumnSummary } from './combo-column-summary'
 import { RoofColumnMenu } from './RoofColumnMenu'
 
-function ComboRoofsComponent({ chartApi, episodes, bars, timeframe, markers, now, experimental, onSelect, selectedId, currencyColors = {} }: {
+function ComboRoofsComponent({ chartApi, episodes, bars, timeframe, markers, now, experimental, onSelect, selectedId, currencyColors = {}, onOpenGroup, activeGroupCandleAt }: {
   chartApi: IChartApi; episodes: readonly ComboSnapshot[]; bars: readonly Pick<OhlcBar, 'time'>[]; timeframe: ChartTimeframe;
   markers: readonly InspectorMarker[]; now: number; experimental: boolean; onSelect: (combo: ComboSnapshot) => void;
   selectedId?: string; currencyColors?: CurrencyColors
+  onOpenGroup?: (group: RoofComboGroup) => void; activeGroupCandleAt?: number
 }) {
   const [positioned, setPositioned] = useState<PositionedRoof[]>([])
   const [hoveredId, setHoveredId] = useState<string | null>(null)
@@ -151,6 +152,8 @@ function ComboRoofsComponent({ chartApi, episodes, bars, timeframe, markers, now
       concise={concise} open={chooser === group.column} selectedId={selectedId} top={buttonTop(group)}
       buttonWidth={buttonWidth} menuWidth={menuWidth} chartWidth={width}
       candleAt={(bars[group.column]?.time ?? group.combos[0].chartAt / 1000) * 1000} clock={clock.chart}
+      groupActive={activeGroupCandleAt === undefined ? undefined : activeGroupCandleAt === (bars[group.column]?.time ?? group.combos[0].chartAt / 1000) * 1000}
+      onOpenGroup={onOpenGroup ? () => { setChooser(null); onOpenGroup({ candleAt: (bars[group.column]?.time ?? group.combos[0].chartAt / 1000) * 1000, combos: [...group.combos] }) } : undefined}
       onToggle={() => setChooser(chooser === group.column ? null : group.column)}
       onSelect={combo => { onSelect(combo); setChooser(null) }} />)}
   </div>

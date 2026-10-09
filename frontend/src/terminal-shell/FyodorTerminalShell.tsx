@@ -1,6 +1,6 @@
 import { useSequencePreferences } from '../usd-context/sequences/storage/sequence-preferences'
 import { DisplayClockProvider } from '../appearance/time-display/DisplayClock'
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { applyColorTheme, readColorTheme, type ColorTheme } from '../appearance/color-theme/color-theme-preference'
 import {
   readTimeDisplayPreference,
@@ -48,8 +48,8 @@ import './terminal-shell.layout.css'
 import { WorkspaceTransfer } from '../workspace-portability/WorkspaceTransfer'
 import { usdPair } from '../usd-context/core/usd-pair'
 import { readRaycasterVisible, saveRaycasterVisible } from '../raycaster/storage/raycaster-preferences'
-import type { ComboSnapshot, ComboSource } from '../usd-context/sequences/core/contracts'
-import { ComboInspector } from '../usd-context/sequences/ui/ComboInspector'
+import type { ComboSnapshot, ComboSource, RoofComboGroup } from '../usd-context/sequences/core/contracts'
+import { RoofsDock } from '../usd-context/sequences/ui/RoofsDock'
 import type { RaycasterView } from '../raycaster/ui/RaycasterBox'
 
 const defaultTradePlan: PlannedTradeState = {
@@ -76,6 +76,11 @@ function FyodorTerminalWorkspace() {
   const [raycasterVisible, setRaycasterVisible] = useState(readRaycasterVisible)
   const [raycasterView, setRaycasterView] = useState<RaycasterView>('context')
   const [comboSelection, setComboSelection] = useState<{ combo: ComboSnapshot; symbol: string; broker: string | null } | null>(null)
+  const [roofGroupSelection, setRoofGroupSelection] = useState<{ group: RoofComboGroup; symbol: string; broker: string | null; timeframe: ChartTimeframe } | null>(null)
+  const [roofsPage, setRoofsPage] = useState<'overview' | 'details'>('overview')
+  const roofsOverviewScroll = useRef(0)
+  const restoreOverviewScroll = useCallback(() => roofsOverviewScroll.current, [])
+  const rememberOverviewScroll = useCallback((position: number) => { roofsOverviewScroll.current = position }, [])
   const [bottomDockWindow, setBottomDockWindow] = useState<BottomDockWindow | null>(null)
   const [roofsCollapsed, setRoofsCollapsed] = useState(false)
   const [scatterTarget, setScatterTarget] = useState<ScatterReleaseTarget | null>(null)
@@ -132,9 +137,12 @@ function FyodorTerminalWorkspace() {
   const bars = marketData.bars
   const brokerId = bridge.brokerId
   const selectedCombo = comboSelection?.symbol === activeSymbol && comboSelection.broker === brokerId ? comboSelection.combo : null
-  const closeCombo = useCallback(() => { setComboSelection(null); setRaycasterView('context') }, [])
+  const selectedRoofGroup = roofGroupSelection?.symbol === activeSymbol && roofGroupSelection.broker === brokerId &&
+    roofGroupSelection.timeframe === timeframe ? roofGroupSelection.group : null
+  const closeCombo = useCallback(() => { setComboSelection(null); setRaycasterView('context'); setRoofsPage('overview') }, [])
   // A captured roof belongs to one symbol/broker; do not resurrect it on return.
   if (comboSelection && !selectedCombo) setComboSelection(null)
+  if (roofGroupSelection && !selectedRoofGroup) setRoofGroupSelection(null)
   if (!selectedCombo && raycasterView === 'combo') setRaycasterView('context')
   const inspector = useInspector({ symbol: activeSymbol, bars, timeframe, timeDisplay,
     detailOpen: bottomDockWindow === 'inspector',
@@ -262,8 +270,17 @@ function FyodorTerminalWorkspace() {
   }, [])
   const brokerOffsetSeconds = bridge.brokerOffsetSeconds
   const selectCombo = useCallback((combo: ComboSnapshot) => {
+    setRoofGroupSelection(null); setRoofsPage('details'); roofsOverviewScroll.current = 0
     setComboSelection({ combo, symbol: activeSymbol, broker: brokerId }); selectBottomDock('roofs')
   }, [activeSymbol, brokerId, selectBottomDock])
+  const openRoofGroup = useCallback((group: RoofComboGroup) => {
+    setRoofGroupSelection({ group, symbol: activeSymbol, broker: brokerId, timeframe })
+    setRoofsPage('overview'); roofsOverviewScroll.current = 0; selectBottomDock('roofs')
+  }, [activeSymbol, brokerId, timeframe, selectBottomDock])
+  const selectGroupCombo = useCallback((combo: ComboSnapshot) => {
+    setComboSelection({ combo, symbol: activeSymbol, broker: brokerId }); setRoofsPage('details')
+  }, [activeSymbol, brokerId])
+  const showRoofOverview = useCallback(() => setRoofsPage('overview'), [])
   const inspectorPreferences = inspector.preferences
   const inspectPublication = inspector.inspectPublication
   const openComboRelease = useCallback((source: ComboSource) => {
@@ -278,7 +295,7 @@ function FyodorTerminalWorkspace() {
   }, [inspector.brokerId, inspector.now])
   const contextViews = useSequencePreferences()
   const roofsSupported = /^EURUSD(?:[._-].*|[a-z]*)$/i.test(activeSymbol)
-  const contextVisible = raycasterVisible || !!selectedCombo || !!contextViews.ribbon || (roofsSupported && contextViews.roofs)
+  const contextVisible = raycasterVisible || !!selectedCombo || !!selectedRoofGroup || !!contextViews.ribbon || (roofsSupported && contextViews.roofs)
   const raycasterSupported = !!usdPair(activeSymbol)
   const publicationEvents = useMemo(() => inspector.allReleases.flatMap(release => release.events), [inspector.allReleases])
   const publication = useMemo(() => ({ release: inspector.selectedRelease, brokerId, events: publicationEvents,
@@ -286,10 +303,11 @@ function FyodorTerminalWorkspace() {
   const raycaster = useMemo(() => contextVisible && raycasterSupported ?
     { boxVisible: raycasterVisible, symbol: activeSymbol, timeframe, brokerId, brokerOffsetSeconds, clockOffsetMs: 0,
       timeDisplay, onClose: closeRaycaster, bars: inspector.markerBars, markers: inspector.markers, onSelectCombo: selectCombo,
+      onOpenRoofGroup: openRoofGroup, activeRoofGroupCandleAt: selectedRoofGroup?.candleAt,
       selectedCombo, onClearCombo: closeCombo, view: raycasterView, onViewChange: setRaycasterView, publication,
       onOpenComboSource: openComboRelease, currencyColors: inspectorPreferences.currencyColors } : null,
     [contextVisible, raycasterVisible, raycasterSupported, activeSymbol, timeframe, brokerId, brokerOffsetSeconds,
-      timeDisplay, closeRaycaster, inspector.markerBars, inspector.markers, selectCombo, selectedCombo, closeCombo, openComboRelease, inspectorPreferences.currencyColors, raycasterView, publication])
+      timeDisplay, closeRaycaster, inspector.markerBars, inspector.markers, selectCombo, openRoofGroup, selectedRoofGroup, selectedCombo, closeCombo, openComboRelease, inspectorPreferences.currencyColors, raycasterView, publication])
   const renderChartOverlay = useTerminalChartOverlay({ arrows: registeredArrows.symbolArrows,
     selectedArrowId: registeredArrows.selectedArrowId, draftPlan: plannedTrade, onSelectArrow: selectChartArrow,
     supported: inspector.supported, markers: inspector.markers, currencyColors: inspector.preferences.currencyColors,
@@ -310,7 +328,7 @@ function FyodorTerminalWorkspace() {
         : 'Waiting for MT5'
   return (
     <DisplayClockProvider brokerId={brokerId} brokerOffsetSeconds={brokerOffsetSeconds} preference={timeDisplay}>
-    <div className={`terminal-shell${bottomDockWindow ? ' bottom-dock-open' : ''}${bottomDockWindow === 'roofs' && selectedCombo && roofsCollapsed ? ' roofs-collapsed' : ''}`}
+    <div className={`terminal-shell${bottomDockWindow ? ' bottom-dock-open' : ''}${bottomDockWindow === 'roofs' && (selectedCombo || selectedRoofGroup) && roofsCollapsed ? ' roofs-collapsed' : ''}`}
       style={{ '--bottom-dock-height': `${dockSize.height}px` } as CSSProperties}>
       <main className={`terminal-workspace${marketWatch.collapsed ? ' market-watch-collapsed' : ''}`}>
         <LeftDockPanel
@@ -393,7 +411,7 @@ function FyodorTerminalWorkspace() {
 
       {bottomDockWindow && (
         <BottomDockPanel
-          resizeHandle={bottomDockWindow === 'roofs' && selectedCombo && roofsCollapsed ? null : dockSize.resizeHandle}
+          resizeHandle={bottomDockWindow === 'roofs' && (selectedCombo || selectedRoofGroup) && roofsCollapsed ? null : dockSize.resizeHandle}
         >
           {bottomDockWindow === 'notebook' && (
             <TraderNotebookPanel
@@ -427,12 +445,11 @@ function FyodorTerminalWorkspace() {
             timeDisplay={timeDisplay}
             scatterAvailable={!!scatterReleaseTarget(inspector.selectedRelease, inspector.brokerId, inspector.now)}
             onOpenScatter={openScatter} onOpenPublicationContext={openPublicationContext} />}
-          {bottomDockWindow === 'roofs' && (selectedCombo ? <ComboInspector combo={selectedCombo} symbol={activeSymbol}
+          {bottomDockWindow === 'roofs' && <RoofsDock group={selectedRoofGroup} combo={selectedCombo} page={roofsPage} symbol={activeSymbol}
             timeDisplay={timeDisplay} collapsed={roofsCollapsed} onToggleCollapsed={() => setRoofsCollapsed(value => !value)}
+            restoreOverviewScroll={restoreOverviewScroll} rememberOverviewScroll={rememberOverviewScroll} onViewDetails={selectGroupCombo} onBack={showRoofOverview}
             onOpenRaycaster={openComboRaycaster}
-            onClose={() => selectBottomDock('inspector')} onOpenRelease={openComboRelease} /> :
-            <section className="combo-inspector combo-empty" aria-label="Combo details"><header><strong>Roofs · Combo details</strong></header>
-              <p>Select a roof label or a combo from More on the chart to inspect its weighted support and participating releases.</p></section>)}
+            onClose={() => selectBottomDock('inspector')} onOpenRelease={openComboRelease} />}
           {bottomDockWindow === 'scatter-plot' && <ScatterPlotDock brokerId={brokerId} target={scatterTarget} />}
           {bottomDockWindow === 'alert' && <AlertDock brokerId={inspector.brokerId ?? null} preferences={inspector.preferences}
             brokerOffsetSeconds={inspector.brokerOffsetSeconds}

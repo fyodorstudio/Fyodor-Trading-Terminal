@@ -12,11 +12,13 @@ import { ComboAdvanced } from './ComboAdvanced'
 import { roofDisplayVersion } from '../chart/roof-symbols'
 import './combo-inspector.css'
 import { useDisplayClock } from '../../../appearance/time-display/useDisplayClock'
+import { roofEvidenceLabel } from './roof-evidence-label'
 
-export function ComboInspector({ combo, timeDisplay, symbol, collapsed = false, onToggleCollapsed, onClose, onOpenRelease, onOpenRaycaster }: {
+export function ComboInspector({ combo, timeDisplay, symbol, collapsed = false, onToggleCollapsed, onClose, onOpenRelease, onOpenRaycaster, onBackToOverview, overviewCount }: {
   combo: ComboSnapshot; timeDisplay: TimeDisplayPreference; symbol: string;
   collapsed?: boolean; onToggleCollapsed?: () => void;
   onOpenRaycaster?: () => void;
+  onBackToOverview?: () => void; overviewCount?: number;
   onClose: () => void; onOpenRelease: (source: ComboSource) => void
 }) {
   const [advanced, setAdvanced] = useState(false), advancedId = useId(), bodyId = useId()
@@ -29,9 +31,10 @@ export function ComboInspector({ combo, timeDisplay, symbol, collapsed = false, 
     <header><strong className="combo-title">Combo details · {combo.title}</strong>
       <div className={`combo-result ${support.state} ${support.direction ?? ''}`} aria-label="Roof interpretation">
         <strong className={`combo-bias ${support.direction ?? ''} ${support.state}`}>{bias}</strong>
-        <span>{support.narrow ? 'weak evidence · narrow lead' : support.qualified ? 'weak evidence · limited inputs' : combo.strength ? `${combo.strength} evidence` : 'evidence ungraded'}</span>
+        <span>{roofEvidenceLabel(combo, support)}</span>
       </div>
       <div className="combo-header-actions">
+        {onBackToOverview && <button type="button" onClick={onBackToOverview}>← All {overviewCount} combinations</button>}
         {onOpenRaycaster && <button type="button" onClick={onOpenRaycaster}>Open in Raycaster</button>}
         {onToggleCollapsed && <button type="button" aria-expanded={!collapsed} aria-controls={bodyId}
         onClick={onToggleCollapsed}>{collapsed ? 'Expand' : 'Collapse'}</button>}
