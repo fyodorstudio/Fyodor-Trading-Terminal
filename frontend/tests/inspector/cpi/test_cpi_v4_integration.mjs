@@ -39,7 +39,8 @@ try {
   assert.match(container.querySelector('[aria-label="CPI v4 context change"]').textContent, /replaces the previous CPI vote/)
   assert.equal(container.querySelectorAll('[aria-label="CPI v4 standalone component scores"] tbody tr').length, 4)
   assert.equal(container.querySelectorAll('[aria-label="CPI v4 context inputs"] tbody tr').length, 8)
-  assert.equal(container.querySelector('details, summary'), null)
+  assert.equal(container.querySelector('[aria-label="How this scorer works"]').open, false)
+  assert.equal(container.querySelector('[aria-label="CPI v4 standalone component scores"]').closest('details'), null)
   const standaloneLabel = container.querySelector('[aria-label="CPI v4 standalone direction"]').textContent
   if (!container.querySelector('[aria-label="Use CPI v4.1"]')) await React.act(async () => container.querySelector('[aria-label="Advanced USD input settings"]').click())
   await React.act(async () => container.querySelector('[aria-label="Use CPI v4.1"]').click())
@@ -75,7 +76,7 @@ try {
   localStorage.setItem(inspectorStorageKey, JSON.stringify(prefs))
   const workspace = exportWorkspace(); localStorage.clear(); restoreWorkspace(workspace)
   assert.equal(readInspectorPreferences().detailView, 'scoring')
-  console.log('✓ CPI v4 flat dual interpretation, shared toggles/all-off independence, latest-only menu, saved-version migration/Scatter compatibility and portable preferences')
+  console.log('✓ CPI v4 separate standalone/context views, shared toggles/all-off independence, latest-only menu, saved-version migration/Scatter compatibility and portable preferences')
 
   await React.act(async () => root.render(null))
   const workers = [], requests = []

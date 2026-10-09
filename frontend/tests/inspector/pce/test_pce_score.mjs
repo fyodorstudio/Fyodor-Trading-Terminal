@@ -141,7 +141,8 @@ try {
   assert.equal(inspectorScoringBinding('GBPUSD', cool), null)
   const app = mount(PceScore, { release: cool, events, history: {} }); await app.render()
   assert.equal(app.container.querySelector('[aria-label="PCE pair direction"]').textContent, 'EURUSD Long')
-  assert.equal(app.container.querySelectorAll('details').length, 0)
+  assert.equal(app.container.querySelector('[aria-label="How this scorer works"]').open, false)
+  assert.equal(app.container.querySelector('[aria-label="PCE component scores"]').closest('details'), null)
   assert.equal(app.container.querySelectorAll('[aria-label="PCE component scores"] tbody tr').length, 4)
   const prefs = { ...defaultInspectorPreferences(), detailView: 'scoring' }
   let saved, opened
@@ -205,7 +206,7 @@ try {
   assert.match(app.container.textContent, /manual override boundaries/)
   await click([...dock.container.querySelectorAll('button')].find((button) => button.textContent === 'Use automatic'))
   assert.equal(app.container.textContent, beforePreview)
-  console.log('✓ PCE chart/scorer parity, full flat Inspector view, saved-view isolation, scoped fetching, preview/apply/reset and workspace/live updates')
+  console.log('✓ PCE chart/scorer parity, Inspector result and optional details, saved-view isolation, scoped fetching, preview/apply/reset and workspace/live updates')
 } finally {
   await React.act(async () => { for (const root of roots) root.unmount() })
   await dom.happyDOM.abort(); dom.close()

@@ -19,7 +19,6 @@ export function TradeWorkflowEditor({ workflow, onChange, readOnly, symbol, scop
   return <section className="trade-workflow" aria-label="Trade thesis and invalidation">
     <header><h3>{readOnly ? 'Pinned workflow snapshot' : 'Trade workflow · Saved automatically'}</h3>
       {!readOnly && <button type="button" onClick={() => onChange({ ...emptyWorkflow })}>Clear workflow</button>}</header>
-    <p><strong>Invalidation:</strong> What observable condition would make my reason for this trade no longer hold?</p>
     <div className="trade-workflow-fields">{fields.map(([key, label, placeholder]) => <label key={key}>{label}
       <textarea rows={2} readOnly={readOnly} value={value[key]} placeholder={readOnly ? 'Not recorded' : placeholder}
         onChange={e => onChange({ ...value, [key]: e.target.value })} />
@@ -29,14 +28,14 @@ export function TradeWorkflowEditor({ workflow, onChange, readOnly, symbol, scop
       <option value="manual">My written rule</option><option value="opposing-publication">New publication changes combined direction against trade · any evidence</option>
       <option value="opposing-moderate">New publication changes combined direction against trade · Moderate or stronger</option>
     </select></label>
-    <p>These are paper-test review rules, not validated exit strategies. Aging, expiry and changed settings are separate from new publications. An opposing standalone release alone does not trigger these combined-context rules. All execution remains manual.</p>
+    <p>Publication triggers use combined context; aging, expiry and settings changes do not activate them. Execution remains manual.</p>
     <h3>Context recorded for this plan</h3>
     {value.context ? <div className="notebook-context-record"><strong>{value.context.label} · {value.context.evidence} evidence</strong>
       <small>Recorded at {clock.utc(value.context.recordedAt)} ({clock.zone}) · {value.context.mode === 'relative' ? 'EUR vs USD' : 'USD side'}</small>
       <small>{value.context.symbol} · {value.context.broker} · {value.context.version}{value.context.partial ? ' · Partial history' : ''}</small>
       <p>Inputs: {value.context.inputs.join(', ')}</p><p>{value.context.update}</p>
-    </div> : <p>No context recorded. Older pinned setups keep their original data.</p>}
+    </div> : <p>No context recorded.</p>}
     {!readOnly && scope && <NotebookContextCapture key={`${symbol}:${scope.brokerId}`} symbol={symbol} scope={scope} onRecord={context => onChange({ ...value, context })} />}
-    <small>Pin Arrow preserves this workflow and its context record. A pinned setup is not a broker trade.</small>
+    <small>Pin Arrow saves this workflow and its context.</small>
   </section>
 }

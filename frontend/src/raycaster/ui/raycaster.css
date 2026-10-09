@@ -92,6 +92,7 @@
 .raycaster-details .context-weight-summary dt { font-size: 10px; color: var(--text-muted); }
 .raycaster-details .context-weight-summary dd { margin: 2px 0 0; font-variant-numeric: tabular-nums; }
 .reading-documentation { color: var(--text-muted); }
+.reading-documentation summary { cursor: pointer; color: var(--accent); }
 @media (max-height: 600px) {
   .raycaster-reading:not(.selected-roof-reading), .selected-roof-reading > .reading-summary, .raycaster-details > .raycaster-summary { position: static; }
 }

@@ -7,8 +7,8 @@ import { ScoringNotes } from '../../inspector/scoring/shared/ui/ScoringSection'
 import { cpiStandaloneVersionLabel } from '../../inspector/scoring/shared/core/current-scoring-versions'
 import { ScoringInputSettings } from '../../inspector/scoring/shared/ui/ScoringInputSettings'
 import { ContextInputCards } from './ContextInputCards'
+import { formatScore as score } from '../../inspector/scoring/shared/ui/format-score'
 
-const score = (value: number | null) => value === null ? '—' : value.toLocaleString(undefined, { maximumFractionDigits: 3, signDisplay: 'exceptZero' })
 function ContextInputTableComponent({ families, onToggleFamily, result, symbol, loading, unavailable, cutoff, timeDisplay, summaryLabel, tableLabel = "Raycaster event inputs", summaryEvidence, presentationNote, layout = 'publication', activityAt }: {
   families: readonly ContextFamily[]; onToggleFamily?: (family: ContextFamily) => void; result: ContextResult | null;
   symbol: string; loading: boolean; unavailable: boolean; cutoff: number | null; timeDisplay: TimeDisplayPreference; summaryLabel: string; tableLabel?: string;

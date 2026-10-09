@@ -5,9 +5,9 @@ hike supports USD, cut weighs on USD with Weak action-only evidence; hold has no
 action direction. `ui/FedDecisionContext.tsx` gives actual FOMC decisions a
 shared economic-context bias in Raycaster **Context-detailed → At publication**
 even when the rate is unchanged. Inspector’s **Standalone Scoring** section
-uses `ui/FedRateAction.tsx` for numerical action, supplied-prior checks, stored rate
-path and text-coverage limits. A hold's standalone result remains Uncomputed;
-it is not mislabeled with the contextual bias. Speeches
+uses `ui/FedRateAction.tsx` for numerical action and supplied-prior checks, with
+optional rate history. A hold shows one explanation and the Actual/Previous/Change
+table; its underlying direction remains Uncomputed. Speeches
 remain outside scoring.
 
 The shared publication hook runs the existing background context worker. It uses

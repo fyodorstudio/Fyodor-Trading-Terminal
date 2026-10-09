@@ -1,6 +1,6 @@
 export function RaycasterNotes({ relative = false }: { relative?: boolean }) {
-  return <section className="raycaster-section" aria-label="Raycaster calculation notes">
-    <h3>Calculation and evidence</h3>
+  return <details className="raycaster-section" aria-label="Raycaster calculation notes">
+    <summary>Calculation and evidence</summary>
     <ol>
       <li>Read each enabled standalone scorer using its applied Scatter Plot magnitude settings.</li>
       <li>Apply its assigned policy weight and age retention, then add the signed USD votes. Missing component weights are already reflected in the source score; do not multiply coverage again.</li>
@@ -22,5 +22,5 @@ export function RaycasterNotes({ relative = false }: { relative?: boolean }) {
     <p>Uses information known by the candle’s end, capped at current time. Forecasts are excluded. Stored readings can contain provider revisions; Fed speech/statement text has no numerical vote.</p>
     <p>{relative ? 'EUR-vs-USD retains its existing coverage and agreement gates. Mixed evidence does not assert a direction; the USD conflict presentation is deferred for this mode.' :
       'USD presentation v1 shows Conflicted · Long/Short leads from existing retained contributions. Narrow leads are Weak. Balanced conflict and unchanged evidence assert no lead; insufficient coverage cannot establish a direction.'} These are declared interpretation rules, not a prediction of price or Fed guidance.</p>
-  </section>
+  </details>
 }

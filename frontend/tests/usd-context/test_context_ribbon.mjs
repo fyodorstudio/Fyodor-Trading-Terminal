@@ -132,7 +132,7 @@ try {
     onPlanChange: p => { plan = p; setDraft(p); localStorage.setItem('trader_plan_EURUSD', JSON.stringify(p)) }, onSelectArrowId() {},
     onRegisterArrow: arrow => { pinned = arrow }, onDeleteArrow() {} }) }
   await render(React.createElement(Notebook))
-  assert.match(container.textContent, /What observable condition would make my reason for this trade no longer hold/)
+  assert.equal(container.querySelectorAll('.trade-workflow textarea')[1].value, 'H1 closes below support')
   assert.equal(container.querySelector('.trade-workflow textarea').value, 'My thesis')
   const risk = container.querySelectorAll('.trade-workflow textarea')[3]
   await React.act(async () => { const setter = Object.getOwnPropertyDescriptor(dom.HTMLTextAreaElement.prototype, 'value').set; setter.call(risk, 'One planned risk unit'); risk.dispatchEvent(new dom.Event('input', { bubbles: true })) })

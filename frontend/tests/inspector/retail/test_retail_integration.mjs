@@ -41,7 +41,8 @@ try {
   assert.equal(inspectorScoringBinding('GBPUSD', release), null)
   const app = mount(RetailScore, { release, events, history: {} }); await app.render()
   assert.equal(app.container.querySelector('[aria-label="Retail Sales pair direction"]').textContent, 'EURUSD Long')
-  assert.equal(app.container.querySelectorAll('details').length, 0)
+  assert.equal(app.container.querySelector('[aria-label="How this scorer works"]').open, false)
+  assert.equal(app.container.querySelector('[aria-label="Retail Sales component scores"]').closest('details'), null)
   assert.equal(app.container.querySelectorAll('[aria-label="Retail Sales component scores"] tbody tr').length, 3)
   assert.match(app.container.textContent, /nominal spending/)
   const prefs = { ...defaultInspectorPreferences(), detailView: 'scoring' }
@@ -102,7 +103,7 @@ try {
   assert.match(app.container.textContent, /manual override boundaries/)
   await click([...dock.container.querySelectorAll('button')].find(button => button.textContent === 'Use automatic'))
   assert.equal(app.container.textContent, beforePreview)
-  console.log('✓ Retail Inspector menu/flat view, scoped inventory, plotted controls, preview/apply/reset and portable live settings')
+  console.log('✓ Retail Inspector menu/result-first view, scoped inventory, plotted controls, preview/apply/reset and portable live settings')
 
   await React.act(async () => { for (const root of roots.splice(0)) root.unmount() })
   const workers = []

@@ -22,7 +22,7 @@ function RelativeContextDetailsComponent({eur,usd,loading,supported,showSelector
         id: policy.family, label: policy.label, enabled: preferences.families.includes(policy.family), onToggle: () => toggleEurFamily(policy.family),
       }))} />}
       </ScoringSection>
-      <ScoringSection title="How the currency comparison works"><ScoringNotes items={[
+      <ScoringSection title="How the currency comparison works" collapsible><ScoringNotes items={[
         { label: 'Budgets & direction', content: <>EUR and USD each have a 100% budget: inflation 40%, labor / wages 40%, activity 20%. Each leg is normalized by the maximum magnitude of 4. EUR pressure minus USD pressure gives the pair direction; missing weights stay missing.</> },
         { label: 'Country overlap', content: <>Euro-area inflation replaces Germany for the same reference month. Germany alone carries at most 40% of the inflation slot. Euro-area composite PMI replaces overlapping German / French proxies; country PMI shares are 60% / 40% of the 15% activity slot. Final readings update flash readings without extra votes.</> },
         { label: 'Age & replacements', content: <>Monthly slots halve after 30 days and expire after 60; quarterly employment, wages and GDP halve after 90 days and expire after 150. Latest unavailable readings replace earlier votes. ECB text and holds add no vote.</> },

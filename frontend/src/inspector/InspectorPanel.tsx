@@ -40,11 +40,10 @@ function sourceLabel(source: CalendarSourceHealth | null, error: string | null):
   if (source.status === 'awaiting-snapshot') return 'Receiving calendar snapshot'
   return 'Waiting for the calendar publisher'
 }
-export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpenScatter, onOpenPublicationContext, scatterAvailable = true }: {
+export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpenScatter, scatterAvailable = true }: {
   view: InspectorView; symbol: string; source: CalendarSourceHealth | null; error: string | null
   timeDisplay: TimeDisplayPreference
   onOpenScatter?: (release: InspectorRelease) => void; scatterAvailable?: boolean
-  onOpenPublicationContext?: () => void
 }) {
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [calendarOpen, setCalendarOpen] = useState(false)
@@ -133,7 +132,6 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
         <option value="scoring" disabled={!scoringBinding}>Scoring system{scoringBinding ? ` · ${release.pmiPublications ? 'PMI interpreters v1' : scoringBinding.versionLabel}` : ''}</option>
         <option value="scatter" disabled={!hasMagnitude || !scatterAvailable || !onOpenScatter}>Scatter Plot</option>
       </select>}
-      {showScoring && onOpenPublicationContext && <button type="button" onClick={onOpenPublicationContext}>Open publication context in Raycaster</button>}
 
     </header>
     {!view.supported ? <p className="inspector-empty">Inspector currently supports EURUSD. Select EURUSD to inspect monetary policy, inflation, labor/wages and growth/activity releases.</p> : <>

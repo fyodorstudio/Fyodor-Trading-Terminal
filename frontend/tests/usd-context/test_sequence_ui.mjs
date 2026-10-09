@@ -58,7 +58,7 @@ try {
   assert.equal(roofBarIndex(bars, at + hour / 2, 'H1'), 0)
   assert.equal(roofBarIndex(bars, at - 1, 'H1'), null)
   assert.equal(roofBarIndex(bars, at + 2 * hour, 'H1'), null, 'Do not project onto a gap or future bar')
-  let selected = null, opened = null, returned = false
+  let selected = null, opened = null
   const roofProps = { chartApi, episodes: [episode], bars, timeframe: 'H1', markers: [{ time: at / 1000, release: { id: 'claims' }, symbol: 'cloud' }],
     currencyColors: { USD: '#123456' }, now: episode.chartAt, experimental: true, onSelect: value => { selected = value } }
   const render = value => React.act(async () => root.render(value))
@@ -304,7 +304,7 @@ try {
 
   const timeDisplay = { mode: 'utc', utcOffsetMinutes: 0 }
   await render(React.createElement(ComboInspector, { combo: episode, symbol: 'EURUSD', timeDisplay,
-    onClose: () => { returned = true }, onOpenRelease: s => { opened = s } }))
+    onOpenRelease: s => { opened = s } }))
   assert.ok(unsubscribed >= 2, 'Chart handlers detach when opening Inspector')
   assert.equal(container.querySelector('details'), null, 'Combo details remain flat')
   assert.ok(container.querySelector('.combo-inspector > header [aria-label="Roof interpretation"]'), 'Result and evidence share the header')
@@ -326,39 +326,33 @@ try {
   assert.match(cpiRow.textContent, /Enabled/); assert.match(cpiRow.textContent, /No history/)
   const participant = [...container.querySelectorAll('button')].find(b => b.textContent === 'pce')
   await React.act(async () => participant.click()); assert.equal(opened.sourceId, 'pce')
-  await React.act(async () => [...container.querySelectorAll('button')].find(b => b.textContent === 'Return to releases').click())
-  assert.equal(returned, true)
+  assert.ok(![...container.querySelectorAll('.combo-header-actions button')].some(button => ['Collapse', 'Expand', 'Return to releases'].includes(button.textContent)))
 
   let dockCombo = episode
   let raycasterOpens = 0
   const capturedCombo = JSON.stringify(episode)
-  function CollapsibleCombo() {
-    const [collapsed, setCollapsed] = React.useState(false)
-    return React.createElement(ComboInspector, { combo: dockCombo, symbol: 'EURUSD', timeDisplay, collapsed,
-      onToggleCollapsed: () => setCollapsed(value => !value), onClose() {}, onOpenRelease() {},
+  function ComboDetails() {
+    return React.createElement(ComboInspector, { combo: dockCombo, symbol: 'EURUSD', timeDisplay,
+      onOpenRelease() {},
       onOpenRaycaster: () => raycasterOpens++ })
   }
-  await render(React.createElement(CollapsibleCombo))
+  await render(React.createElement(ComboDetails))
   const action = label => [...container.querySelectorAll('button')].find(b => b.textContent === label)
   await React.act(async () => action('Advanced calculations').click())
   const detailsNode = container.querySelector('[aria-label="Advanced calculation details"]')
-  await React.act(async () => action('Collapse').click())
-  assert.equal(container.querySelector('.combo-inspector-scroll').hidden, true)
-  assert.equal(action('Expand').getAttribute('aria-expanded'), 'false')
-  assert.equal(action('Expand').getAttribute('aria-controls'), container.querySelector('.combo-inspector-scroll').id)
+  assert.equal(container.querySelector('.combo-inspector-scroll').hidden, false)
+  assert.equal(action('Expand'), undefined)
+  assert.equal(action('Collapse'), undefined)
   assert.ok(container.querySelector('.combo-support-values'))
-  assert.equal(container.querySelector('.combo-support-caption'), null, 'Collapsed summary contains only the percentage bar')
+  assert.ok(container.querySelector('.combo-support-caption'))
   assert.equal(action('Hide Roof Candy'), undefined, 'Candy visibility uses the shared toolbar switch')
   await React.act(async () => action('Open in Raycaster').click())
   assert.equal(raycasterOpens, 1, 'The combo opens Raycaster only through an explicit action')
-  assert.ok(container.querySelector('.combo-inspector.collapsed'), 'Opening Raycaster preserves the collapsed dock')
   dockCombo = { ...episode, sources: episode.sources.map(s => ({ ...s, change: .1 })) }
-  await render(React.createElement(CollapsibleCombo))
-  assert.ok(container.querySelector('.combo-inspector.collapsed'), 'Choosing another combo does not force expansion')
+  await render(React.createElement(ComboDetails))
   assert.match(container.querySelector('.combo-support-values').textContent, /Long 0.0%Short 100.0%/)
-  await React.act(async () => action('Expand').click())
   assert.equal(container.querySelector('.combo-inspector-scroll').hidden, false)
-  assert.equal(container.querySelector('[aria-label="Advanced calculation details"]'), detailsNode, 'Collapse preserves the mounted details and advanced state')
+  assert.equal(container.querySelector('[aria-label="Advanced calculation details"]'), detailsNode, 'Updating the relationship preserves advanced state')
   assert.equal(JSON.stringify(episode), capturedCombo, 'Presentation never edits the captured snapshot')
 
   const { ComboSupportSummary } = await load('usd-context/sequences/ui/ComboSupportSummary.tsx')
@@ -391,12 +385,12 @@ try {
   }
   assert.equal(JSON.stringify(labelCases), untouchedLabels)
   for (const state of ['insufficient', 'unchanged']) {
-    await render(React.createElement(ComboSupportSummary, { support: { ...summarySupport, state, long: 0, short: 0 }, compact: false }))
+    await render(React.createElement(ComboSupportSummary, { support: { ...summarySupport, state, long: 0, short: 0 } }))
     assert.match(container.textContent, /Long —Short —/)
     assert.doesNotMatch(container.textContent, /NaN|100\.0%/)
     assert.equal(container.querySelector('.combo-support-fill > span').style.width, '0%')
   }
-  await render(React.createElement(ComboSupportSummary, { support: { ...summarySupport, state: 'balanced', long: 1, short: 1 }, compact: false }))
+  await render(React.createElement(ComboSupportSummary, { support: { ...summarySupport, state: 'balanced', long: 1, short: 1 } }))
   assert.match(container.textContent, /Long 50.0%Short 50.0%/)
   assert.equal(container.querySelector('.combo-support-fill > span').style.width, '50%')
 
@@ -407,14 +401,14 @@ try {
   assert.match(container.querySelector('.combo-roof-label').title, /seven-day fresh-news window: PPI removed publication/)
   await React.act(async () => container.querySelector('.combo-roof-label').click())
   assert.equal(selected, expired, 'An expiry combo label opens its combined reading')
-  await render(React.createElement(ComboInspector, { combo: expired, symbol: 'EURUSD', timeDisplay, onClose() {}, onOpenRelease() {} }))
+  await render(React.createElement(ComboInspector, { combo: expired, symbol: 'EURUSD', timeDisplay, onOpenRelease() {} }))
   assert.match(container.textContent, /Expiry update.*Memory update; no new publication/)
   assert.match(container.textContent, /Removed from the seven-day fresh-news window: PPI removed publication/)
 
   const mixedEpisode = { ...episode, sources: episode.sources.map((s, i) => ({ ...s, change: i ? .105 : -.1, comparable: true })),
     catalogue: { enabled: ['claims', 'pce', 'cpi'], fresh: episode.sources.map((s, i) => ({ ...s, change: i ? .105 : -.1, comparable: true })), fed: null },
     decision: { state: 'mixed', coverage: 1, agreement: .01, reason: 'Economic changes nearly cancel.' }, strength: null }
-  await render(React.createElement(ComboInspector, { combo: mixedEpisode, symbol: 'EURUSD', timeDisplay, onClose() {}, onOpenRelease() {} }))
+  await render(React.createElement(ComboInspector, { combo: mixedEpisode, symbol: 'EURUSD', timeDisplay, onOpenRelease() {} }))
   assert.equal(container.querySelector('.combo-bias').textContent, 'Conflicted · Short leads')
   assert.ok(container.querySelector('.combo-bias.short'))
   assert.match(container.querySelector('[aria-label="Why this direction"]').textContent, /lead is narrow/)

@@ -8,7 +8,6 @@
 :root[data-theme='dark'] .reading-badges .reading-conflict { color: #e8c77a; background: #45371d; }
 .reading-summary .usd-support { margin: 9px 0; }
 .reading-summary .usd-support-split { display: block; width: 100%; }
-.reading-summary .usd-support > small { display: block; margin-top: 4px; font-size: 10px; color: var(--text-muted); }
 .reading-facts { display: grid; gap: 5px; margin: 10px 0 0; font-size: 11px; }
 .reading-facts > div { display: grid; grid-template-columns: 98px minmax(0, 1fr); gap: 8px; align-items: baseline; }
 .reading-facts dt { color: var(--text-muted); font-weight: 400; }

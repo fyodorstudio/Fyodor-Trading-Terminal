@@ -1,6 +1,6 @@
 import { activationLabel, comboActivation } from '../core/combo-activation'
 import type { ComboSnapshot } from '../core/contracts'
-import { roofSupport, supportLabel } from '../core/relationship-support'
+import { roofSupport } from '../core/relationship-support'
 import { relationshipReading } from '../../core/support-reading'
 
 const joinNames = (names: string[]) => names.length < 2 ? names[0] ?? '' : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`
@@ -18,5 +18,6 @@ export function comboSummary(combo: ComboSnapshot) {
     combo.kind === 'fed-relationship' ? 'The Fed rate action alongside the selected economic reading. The percentages cover economic support only.' :
     'What the selected releases say together, allowing for their weights and age. USD inputs only.'
   return { activation, cause, updates, why, meaning,
-    changed: `${supportLabel(support)} at this snapshot. ${combo.kind === 'fresh-news' ? 'This describes changes in support, rather than the level of accumulated context.' : cause.kind === 'publication' ? 'Earlier inputs become jointly inspectable at the activation publication.' : 'Stored inputs are reassessed at this memory update; no new participating publication was added.'}` }
+    changed: combo.kind === 'fresh-news' ? 'Recent changes in support; accumulated context appears separately.' : cause.kind === 'publication' ?
+      'Earlier inputs become jointly inspectable at this publication.' : 'Stored inputs are reassessed at this memory update.' }
 }

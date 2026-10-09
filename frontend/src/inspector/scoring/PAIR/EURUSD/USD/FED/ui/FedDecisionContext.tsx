@@ -39,16 +39,11 @@ export function FedDecisionContext({ release, action, brokerId = null, events, n
     {ready && <p aria-label="Fed economic policy pressure">{fedContextPressure(result)}</p>}
     {ready && earlier && previous && !storage.loading && !storage.error ? <div aria-label="Fed previous meeting comparison">
       <p>At the previous meeting ({formatAppTimestamp(previous.releaseAt!, timeDisplay)}): {contextResultLabel('EURUSD', earlier.result)} · {earlier.result.strength ?? 'no'} context evidence.</p>
-      <p>{earlier.result.direction === 'uncomputed' || result?.direction === 'uncomputed' || earlier.result.decision?.state !== 'directional' || result?.decision?.state !== 'directional' ?
-        'A directional comparison cannot be established because one meeting lacks a usable context bias.' :
-        earlier.result.direction !== result?.direction ? 'The economic-context direction changed since that meeting.' :
-        'The economic-context direction stayed the same; the contribution table shows the current balance.'}</p>
     </div> : <p>{storage.loading ? 'Loading earlier decision timing…' : storage.error ?? 'Previous meeting comparison unavailable.'}</p>}</ScoringSection>
     {(context.error || context.storage.error) && <p role="alert">{context.error ?? context.storage.error}</p>}
     <ScoringSection title="Inputs & contributions"><ContextInputTable families={families} onToggleFamily={toggleContextFamily} result={result} symbol="EURUSD" loading={context.loading}
       unavailable={!eligible || !!context.error} cutoff={at} timeDisplay={timeDisplay} tableLabel="Fed economic context inputs" summaryLabel={label} /></ScoringSection>
     {ready && <ScoringSection title="Active relationships"><ContextPolicyDetails policy={result?.policy} /></ScoringSection>}
-    <ScoringSection title="Coverage & controls"><p>This is the same publication-time context used by Raycaster, with its shared independent filters. Both meetings use the same currently configured rules and only releases available at their respective publication times. A hold adds no vote, does not refresh old evidence, and does not reset its age. Rate actions remain separate from the combined score.</p></ScoringSection>
   </section>
   return <PublicationScoringLayout standalone={<FedRateAction action={action} eligible={eligible} path={path} pathLoading={storage.loading} pathError={storage.error} />}
     context={<PublicationScoringContext release={release} brokerId={brokerId} events={events} now={now} timeDisplay={timeDisplay}>{contextView}</PublicationScoringContext>} />

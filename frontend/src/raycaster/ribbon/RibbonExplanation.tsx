@@ -17,6 +17,7 @@ export function RibbonExplanation({ point, mode, version, partial, onClose, symb
   }, [onClose])
   if (point.relationship) {
     const p = point.relationship
+    const fed = p.snapshot.sources.find(source => source.family === 'fed')
     const accumulated = usdContextPresentation(symbol, point.usd?.result, p.at)
     return <div ref={panel} tabIndex={-1} role="dialog" aria-label="Selected relationship explanation" className="ribbon-explanation">
       <header><strong>{p.snapshot.title} · {p.label}</strong><button type="button" onClick={onClose} aria-label="Close ribbon explanation">×</button></header>
@@ -24,7 +25,7 @@ export function RibbonExplanation({ point, mode, version, partial, onClose, symb
       <RelationshipSupport support={p.support} calculations={false} />
       <small>{p.evidence ? `${p.evidence} evidence` : 'No directional lead'}</small>
       <p>{p.explanation}</p><p>{p.update}</p>
-      {p.snapshot.sources.find(s => s.family === 'fed') && <p>Fed action: {p.snapshot.sources.find(s => s.family === 'fed')?.policyAction?.action ?? 'Unavailable'}. Separate from the macro percentages.{p.actionConflict ? ' The action opposes the macro lead.' : ''}</p>}
+      {fed && <p>Fed action: {fed.policyAction?.action ?? 'Unavailable'}. Separate from the macro percentages.{p.actionConflict ? ' The action opposes the macro lead.' : ''}</p>}
       {p.support.missing.length > 0 && <p>Unavailable: {p.support.missing.join(', ')}.</p>}
       <h3>Accumulated USD context at the same time</h3><strong>{accumulated.label}</strong>
       <UsdSupportDetails presentation={accumulated} compact />
@@ -47,6 +48,5 @@ export function RibbonExplanation({ point, mode, version, partial, onClose, symb
     {mode === 'EUR vs USD' && <><h3>EUR contributions at this time</h3><table><thead><tr><th>Input / source</th><th>Status</th><th>Vote</th></tr></thead><tbody>
       {point.eur?.members.map(m => <tr key={m.slot}><td>{m.label}<small>{displayClock(m.chartAt)}</small></td><td>{m.status}</td><td>{m.contribution.toFixed(3)}</td></tr>)}
     </tbody></table></>}
-    <p>Missing inputs stay missing. These are stored numerical interpretations, not a price forecast. A later configuration change rebuilds this view; it is not a new publication.</p>
   </div>
 }

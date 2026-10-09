@@ -32,7 +32,7 @@ export function ExternalEventManager({ events, initialId, defaults, symbol, brok
   const selected = events.find(e => e.id === draft.id)
   return <div ref={panel} tabIndex={-1} role={embedded ? 'group' : 'dialog'} aria-label="Manual outside events" className={`external-event-manager${embedded ? ' embedded' : ''}`}>
     <header><strong>Outside events · Manual notes</strong><button type="button" aria-label={embedded ? 'Back to tool settings' : 'Close outside events'} onClick={onClose}>{embedded ? 'Back' : '×'}</button></header>
-    <p>Gray highlights flag context outside the dataset. Your selected window is an annotation, not a measured impact period or a directional vote. These notes never change Candy or scoring.</p>
+    <p>Gray highlights mark your notes and chosen window; they do not affect scores.</p>
     <small>{symbol} · {brokerId} · Enter dates in {clock.zone}. Notes may be added retrospectively.</small>
     <form onSubmit={e => {
       e.preventDefault(); setError(''); setStatus('')

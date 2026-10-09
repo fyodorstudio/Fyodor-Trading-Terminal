@@ -199,7 +199,8 @@ try {
   assert.equal(table.container.querySelector('[aria-label="NFP v2 pair direction"]').textContent, 'EURUSD Long')
   assert.equal(table.container.querySelector('[aria-label="NFP v2 evidence strength"]').textContent, 'strong evidence')
   assert.ok(table.container.querySelector('[aria-label="NFP v2 change size"]'))
-  assert.equal(table.container.querySelector('details, summary'), null)
+  assert.equal(table.container.querySelector('[aria-label="How this scorer works"]').open, false)
+  assert.equal(table.container.querySelector('[aria-label="NFP v2 component scores"]').closest('details'), null)
   assert.equal(table.container.querySelectorAll('[aria-label="NFP v2 component scores"] tbody tr').length, 5)
   assert.equal(table.container.querySelectorAll('[aria-label="NFP v2 supporting context"] tbody tr').length, 6)
   await table.render({ release: noHours, brokerId: null, events: weakHistory })
@@ -256,7 +257,7 @@ try {
   await React.act(async () => { await new Promise((resolve) => setTimeout(resolve, 25)) })
   assert.ok(paths.some((p) => p.startsWith('/storage-api/calendar?')))
   assert.equal(stored.container.querySelector('[aria-label="NFP v2 pair direction"]').textContent, 'EURUSD Long')
-  console.log('✓ NFP v2 flat evidence/context display, scoped navigation, saved selection and independent history fetch')
+  console.log('✓ NFP v2 result and optional context details, scoped navigation, saved selection and independent history fetch')
 } finally {
   await React.act(async () => { for (const root of roots) root.unmount() })
   await dom.happyDOM.abort(); dom.close()

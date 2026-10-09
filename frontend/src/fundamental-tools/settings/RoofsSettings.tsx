@@ -1,6 +1,4 @@
 import { saveSequencePreferences, useSequencePreferences } from '../../usd-context/sequences/storage/sequence-preferences'
-
-
 import { roofDisplayOptions } from '../../usd-context/sequences/core/relationship-display'
 import { useState } from 'react'
 
@@ -19,13 +17,13 @@ export function RoofsSettings({ supported }: { supported: boolean }) {
       <label>Display density <select aria-label="Roof display density" value={preferences.density ?? 'focused'}
         onChange={e => saveSequencePreferences({ ...preferences, density: e.target.value as 'focused' | 'all' | 'concise' })}>
         <option value="concise">Concise</option><option value="focused">Focused</option><option value="all">All roofs</option></select></label>
-      <p>Concise groups combinations at each candle. Focused prioritizes important relationships. All roofs shows every enabled combination.</p>
+      <p>Concise groups by candle; Focused prioritizes relationships; All roofs shows every enabled label.</p>
 
-      {!supported && <p>Chart roofs are available on EURUSD. These display preferences are retained for supported pairs.</p>}
+      {!supported && <p>Roofs are available on EURUSD.</p>}
     </section>
     <section><h3>Visible combinations</h3>
       <label>Search combinations <input type="search" value={search} onChange={event => setSearch(event.target.value)} /></label>
-      <p>Choose chart labels and More entries. These filters do not change scores, Raycaster inputs, the catalogue or an already selected Candy history.</p>
+      <p>Display filters only; scores and context inputs stay unchanged.</p>
       <div className="roof-filter-actions"><button type="button" onClick={() => saveSequencePreferences({ ...preferences, hiddenRoofs: [], fresh: true })}>Show all combinations</button>
         <button type="button" onClick={() => saveSequencePreferences({ ...preferences, hiddenRoofs: roofDisplayOptions.filter(option => option.id !== 'fresh-news').map(option => option.id), fresh: false })}>Hide all combinations</button></div>
       {['Macro pairs', 'Fed pairs', 'Specialized relationships'].map(group => {

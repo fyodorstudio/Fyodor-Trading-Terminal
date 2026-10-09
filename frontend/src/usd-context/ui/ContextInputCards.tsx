@@ -4,9 +4,8 @@ import { contextPriority, contextScorers, contextWeights } from '../core/policy'
 import { contextPairLabel } from '../core/usd-pair'
 import { formatAppTimestamp, type TimeDisplayPreference } from '../../appearance/time-display/time-display-preference'
 import { cpiStandaloneVersionLabel } from '../../inspector/scoring/shared/core/current-scoring-versions'
+import { formatScore as score } from '../../inspector/scoring/shared/ui/format-score'
 import './context-input-cards.css'
-
-const score = (value: number | null) => value === null ? '—' : value.toLocaleString(undefined, { maximumFractionDigits: 3, signDisplay: 'exceptZero' })
 
 export function ContextInputCards({ families, result, symbol, loading, ready, weights, activityAt, timeDisplay, label, summaryLabel, evidence }: {
   families: readonly ContextFamily[]; result: ContextResult | null; symbol: string; loading: boolean; ready: boolean;

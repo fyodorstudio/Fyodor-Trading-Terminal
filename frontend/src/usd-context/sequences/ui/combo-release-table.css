@@ -1,0 +1,4 @@
+.combo-release-table { width: 100%; table-layout: fixed; border-collapse: collapse; }
+.combo-release-table :is(th, td) { padding: 6px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }
+.combo-release-table th { color: var(--text-strong); font-weight: 600; }
+.combo-release-table small { display: block; color: var(--text-muted); line-height: 1.45; }

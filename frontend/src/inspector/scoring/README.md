@@ -14,21 +14,20 @@ See `docs/scoring system library.MD` and the root main-objective checklist.
 # Inspector scoring — current interface
 
 Every family has one current scoring view. The menu contains **Table only**,
-**Scoring system · [family/version]**, and **Scatter Plot**. Scoring stays flat:
+**Scoring system · [family/version]**, and **Scatter Plot**. The result and drivers stay visible; method, calibration and supporting context are expandable:
 **Standalone Scoring** fills the Inspector. **Context-Aware at Publication Scoring**
-lives in Raycaster → **Context-detailed** → **At publication**. The Inspector’s
-“Open publication context in Raycaster” button opens that view for the selected
-release. Versions remain visible; users no longer choose superseded methods.
+lives in Raycaster → **Context-detailed** → **At publication** for the selected
+Inspector release. Open that view through Raycaster's existing controls.
+Versions remain visible; users no longer choose superseded methods.
 
 Current versions: CPI v4, NFP v2, Claims v2, ISM v3, Fed v2, PCE/Retail/GDP/PPI v1,
 and EUR numerical families/ECB v1. `shared/core/current-scoring-versions.ts`
 provides the USD display labels; the registry declares a version for every binding.
-Raycaster identifies CPI as v4 too, and discloses its retained standalone engine
-v3.1. Combined CPI context is never fed back as its own inflation vote.
+Raycaster identifies CPI as v4 too; its standalone engine is v3.2. Combined CPI context is never fed back as its own inflation vote.
 
 The old CPI magnitude/index screens, CPI v2 formula/screen, CPI v3 screen, original
 NFP magnitude scorer, ISM v2 screen and unused signed-matrix helpers are removed.
-The active CPI v3.1 math remains inside v4. ISM's live shared sector aggregation is
+The active CPI v3.2 math remains inside v4. ISM's live shared sector aggregation is
 named `assessment/ism-monthly-context.ts`; `ism-score-v3.ts` resolves its final bias.
 The component audit is `frontend/scripts/audit-ism-components.mjs`.
 

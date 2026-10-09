@@ -7,7 +7,7 @@ import { signalHistoryStart } from '../../../../../shared/core/historical-releas
 import { pceSignalSettings } from '../../../../../shared/core/signal-magnitude-settings'
 import { assessPceScore, pceSeriesIds } from '../assessment/pce-score'
 
-const format = (value: number | null) => value === null ? '—' : value.toLocaleString(undefined, { maximumFractionDigits: 3, signDisplay: 'exceptZero' })
+import { formatScore as format } from '../../../../../shared/ui/format-score'
 const scope = { currency: 'USD' as const, eventIds: pceSeriesIds }
 
 export function PceScore({ release, brokerId, events = [] }: InspectorScoringProps) {
@@ -31,7 +31,7 @@ export function PceScore({ release, brokerId, events = [] }: InspectorScoringPro
     <p className="scoring-result-explanation">{loading ? 'Loading earlier PCE releases…' : assessment.explanation}</p>
     {storage.error && <p role="alert">PCE history: {storage.error}</p>}
     {!loading && assessment.strength && <p aria-label="PCE evidence explanation">{assessment.strengthReason}</p>}
-    {!loading && assessment.reduced && <p>Reduced data: {assessment.readings.filter((row) => row.points !== null).length} of 4 components usable. Missing components do not vote.</p>}
+    {!loading && assessment.reduced && <p>Reduced data: {assessment.readings.filter((row) => row.points !== null).length} of 4 components usable.</p>}
     <ScoringSection title="What drove the result"><div className="inspector-table-scroll"><table aria-label="PCE component scores">
       <thead><tr><th>Signal</th><th>Reading</th><th>Weight</th><th>USD contribution</th></tr></thead>
       <tbody>{assessment.readings.map((row) => <tr key={row.id}>
@@ -47,14 +47,13 @@ export function PceScore({ release, brokerId, events = [] }: InspectorScoringPro
       <tfoot><tr><td colSpan={4}>USD score {loading ? '—' : format(assessment.total)} · Positive → EURUSD Short · Negative → EURUSD Long</td></tr>
         {!loading && assessment.tieBreak && <tr><td colSpan={4}>Tie-break: {assessment.tieBreak.label} · weak evidence</td></tr>}</tfoot>
     </table></div></ScoringSection>
-    {!loading && <ScoringSection title="Inflation level · no additional vote"><p aria-label="PCE target context">{assessment.targetContext}</p></ScoringSection>}
-    <ScoringSection title="How this scorer works"><ScoringNotes items={[
+    {!loading && <ScoringSection title="Inflation level" collapsible><p aria-label="PCE target context">{assessment.targetContext}</p></ScoringSection>}
+    <ScoringSection title="How this scorer works" collapsible><ScoringNotes items={[
         { label: 'Voting rules & revisions', content: <>Core inflation has 75% of the vote: latest core pace 45%, annual core change 30%. Headline pace has 15% and annual headline change 10%. Monthly pace compares this reading with the preceding three-month average, including the release’s revised preceding month when supplied. Annual change compares with Revised Previous when supplied, otherwise Previous. A high inflation level alone does not create a fresh directional vote.</> },
         { label: 'Evidence groups', content: <>Monthly core and headline share one evidence group; annual core and headline share another. Agreement across both horizons can strengthen evidence. These related readings are not independent statistical confirmations. Evidence strength and change size do not describe price probabilities or the size of a price move.</> },
         { label: 'History & tie-break', content: <>Each component uses its own earlier history since January 2015, with at least 24 usable signals. Missing weights are not redistributed. Exact cancellation follows the table order. At least one usable core component is required; absent directional evidence remains Uncomputed.</> }
       ]} /></ScoringSection>
     <SignalCalibration readings={assessment.readings} unit="pp" label="PCE signal calibration" />
-    <ScoringSection title="Coverage & limits"><p>This interprets PCE alone without forecasts, CPI, policy decisions or price inputs. Stored readings may include provider revisions. Scatter Plot → Scoring signal shows these components and their configurable magnitude boundaries. Original A−P settings remain separate.</p>
-    {coverageMissing && <p>Partial calendar coverage; earlier calibration uses the available observations.</p>}</ScoringSection>
+    {coverageMissing && <p>Partial calendar history; calibration uses the available observations.</p>}
   </div>
 }

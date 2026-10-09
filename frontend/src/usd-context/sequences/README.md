@@ -155,20 +155,24 @@ excluded before display prioritization. Saved density changes no qualification o
 The dedicated **Roofs** bottom dock has a release overview and individual details.
 In Concise, **+N Combo** opens all N snapshots together as compact rows, each with
 its relationship name, directional result, evidence strength, support split,
-short explanation and participating release names. Header counts describe
+short explanation and an always-visible **Which releases are involved?** table.
+Each source includes its exact publication time, standalone bias/evidence and role;
+release links open Inspector directly. **View details** remains available.
+Header counts describe
 overlapping relationships, not a combined vote. Exact activation times are
 retained even when multiple updates share one containing candle; the header names
 the actual triggering publications or memory update, not the candle open.
 **View details** selects that relationship for the existing details/Raycaster/Candy
 scope. **All N combinations** returns to the overview with its scroll position
-retained. Collapse and dock close/reopen preserve the captured group and overview
-scroll; collapsed and detail views do not mount overview rows. Opening a new group
+retained. Bottom dock navigation closes/reopens Roofs and preserves the captured
+group and overview scroll; detail views do not mount overview rows. Opening a new group
 resets overview scroll. Groups are cleared on broker, symbol or timeframe changes.
 Reopening **+N Combo** captures current filtered snapshots after input/history changes.
 
 Individual details put direction and evidence together in their header,
-followed by a proportional Long/Short support bar and its main contributors. Collapse
-keeps the header and percentages visible; selecting another combo preserves that state.
+followed by a proportional Long/Short support bar and its main contributors.
+The bottom dock controls handle switching panels; Roofs has no separate collapse
+or Return to releases controls.
 The scrolling body uses compact newspaper-style columns, a short reason and **What changed?**,
 including the actual activating source or a memory update with no new publication.
 Recent replacement-effect direction and older accumulated context stay explicitly

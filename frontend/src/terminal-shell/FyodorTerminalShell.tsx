@@ -82,7 +82,6 @@ function FyodorTerminalWorkspace() {
   const restoreOverviewScroll = useCallback(() => roofsOverviewScroll.current, [])
   const rememberOverviewScroll = useCallback((position: number) => { roofsOverviewScroll.current = position }, [])
   const [bottomDockWindow, setBottomDockWindow] = useState<BottomDockWindow | null>(null)
-  const [roofsCollapsed, setRoofsCollapsed] = useState(false)
   const [scatterTarget, setScatterTarget] = useState<ScatterReleaseTarget | null>(null)
   const dockSize = useBottomDockSize(bottomDockWindow)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -261,9 +260,6 @@ function FyodorTerminalWorkspace() {
   const openComboRaycaster = useCallback(() => {
     setRaycasterView('combo'); setRaycasterVisible(true); saveRaycasterVisible(true)
   }, [])
-  const openPublicationContext = useCallback(() => {
-    setRaycasterView('context-detailed'); setRaycasterVisible(true); saveRaycasterVisible(true)
-  }, [])
   const toggleRaycaster = useCallback(() => {
     setRaycasterVisible(current => { saveRaycasterVisible(!current); return !current })
     setActiveDrawingTool(null)
@@ -328,7 +324,7 @@ function FyodorTerminalWorkspace() {
         : 'Waiting for MT5'
   return (
     <DisplayClockProvider brokerId={brokerId} brokerOffsetSeconds={brokerOffsetSeconds} preference={timeDisplay}>
-    <div className={`terminal-shell${bottomDockWindow ? ' bottom-dock-open' : ''}${bottomDockWindow === 'roofs' && (selectedCombo || selectedRoofGroup) && roofsCollapsed ? ' roofs-collapsed' : ''}`}
+    <div className={`terminal-shell${bottomDockWindow ? ' bottom-dock-open' : ''}`}
       style={{ '--bottom-dock-height': `${dockSize.height}px` } as CSSProperties}>
       <main className={`terminal-workspace${marketWatch.collapsed ? ' market-watch-collapsed' : ''}`}>
         <LeftDockPanel
@@ -411,7 +407,7 @@ function FyodorTerminalWorkspace() {
 
       {bottomDockWindow && (
         <BottomDockPanel
-          resizeHandle={bottomDockWindow === 'roofs' && (selectedCombo || selectedRoofGroup) && roofsCollapsed ? null : dockSize.resizeHandle}
+          resizeHandle={dockSize.resizeHandle}
         >
           {bottomDockWindow === 'notebook' && (
             <TraderNotebookPanel
@@ -444,12 +440,12 @@ function FyodorTerminalWorkspace() {
           {bottomDockWindow === 'inspector' && <InspectorDock view={inspector} symbol={activeSymbol}
             timeDisplay={timeDisplay}
             scatterAvailable={!!scatterReleaseTarget(inspector.selectedRelease, inspector.brokerId, inspector.now)}
-            onOpenScatter={openScatter} onOpenPublicationContext={openPublicationContext} />}
+            onOpenScatter={openScatter} />}
           {bottomDockWindow === 'roofs' && <RoofsDock group={selectedRoofGroup} combo={selectedCombo} page={roofsPage} symbol={activeSymbol}
-            timeDisplay={timeDisplay} collapsed={roofsCollapsed} onToggleCollapsed={() => setRoofsCollapsed(value => !value)}
+            timeDisplay={timeDisplay}
             restoreOverviewScroll={restoreOverviewScroll} rememberOverviewScroll={rememberOverviewScroll} onViewDetails={selectGroupCombo} onBack={showRoofOverview}
             onOpenRaycaster={openComboRaycaster}
-            onClose={() => selectBottomDock('inspector')} onOpenRelease={openComboRelease} />}
+            onOpenRelease={openComboRelease} />}
           {bottomDockWindow === 'scatter-plot' && <ScatterPlotDock brokerId={brokerId} target={scatterTarget} />}
           {bottomDockWindow === 'alert' && <AlertDock brokerId={inspector.brokerId ?? null} preferences={inspector.preferences}
             brokerOffsetSeconds={inspector.brokerOffsetSeconds}

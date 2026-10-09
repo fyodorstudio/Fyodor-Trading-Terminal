@@ -32,7 +32,6 @@ export function ReadingSummary({ symbol, label, direction, evidence, support, sc
     </div>
     {support && <div className="usd-support" aria-label="USD directional support">
       <div className="usd-support-split"><WeightedSupportBar support={support} /></div>
-      <small>Weighted support, not probabilities.</small>
     </div>}
     <dl className="reading-facts">
       <div><dt>Scope</dt><dd>{scope}</dd></div>

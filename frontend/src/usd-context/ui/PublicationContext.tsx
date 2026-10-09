@@ -25,6 +25,5 @@ export function PublicationContext({ release, brokerId = null, events = empty, n
     <ScoringSection title="Inputs & contributions"><ContextInputTable families={families} onToggleFamily={toggleContextFamily} result={result} symbol="EURUSD" loading={context.loading}
       unavailable={!eligible || !!context.error} cutoff={at} timeDisplay={timeDisplay} tableLabel="Publication context inputs" summaryLabel={ready ? contextResultLabel('EURUSD', result) : 'Uncomputed'} /></ScoringSection>
     {ready && <ScoringSection title="Active relationships"><ContextPolicyDetails policy={result?.policy} /></ScoringSection>}
-    <ScoringSection title="Coverage & controls"><p>Uses only releases available at this publication. These controls are shared with Raycaster and CPI v4, independently of chart-marker filters. This context is separate from Standalone Scoring and uses the family policies listed in its input table, including when a legacy release view is selected. Policy text coverage is unavailable.</p></ScoringSection>
   </section>
 }

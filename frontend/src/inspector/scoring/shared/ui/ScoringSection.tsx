@@ -1,7 +1,11 @@
 import type { ReactNode } from 'react'
 import './scoring-sections.css'
 
-export function ScoringSection({ title, children }: { title: string; children: ReactNode }) {
+export function ScoringSection({ title, children, collapsible = false }: { title: string; children: ReactNode; collapsible?: boolean }) {
+  if (collapsible) return <details className="scoring-section" aria-label={title}>
+    <summary>{title}</summary>
+    <div className="scoring-section-content">{children}</div>
+  </details>
   return <section className="scoring-section" aria-label={title}>
     <h4>{title}</h4>
     <div className="scoring-section-content">{children}</div>

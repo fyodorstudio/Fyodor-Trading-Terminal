@@ -64,8 +64,8 @@ updates neither restart the placement observer nor save a new position.
 publication panels for the selected release: CPI before/after replacement,
 Fed economic pressure and previous-meeting comparison, publication-time USD
 inputs/relationships/coverage, optional relative EUR/USD context and grouped PMI
-publication notes. The Inspector now mounts standalone scoring only, with an
-**Open publication context in Raycaster** shortcut. Publication cutoffs remain
+publication notes. The Inspector mounts standalone scoring only; publication
+context is accessed through Raycaster's **Context-detailed** view. Publication cutoffs remain
 independent of hovered candle ends. The publication surface is memoized so chart
 hover does not rerender its scorers; it unmounts outside Context-detailed.
 
@@ -180,8 +180,10 @@ Click a roof to open a captured **Combo details** snapshot in the dedicated **Ro
 It lists original publications and their own bias, roles/replacement effects,
 before/after accumulated context, applicable conditions and source contributions.
 Click a publication to enable its Inspector family, select its broker date and
-open its original readings; ISM still uses one grouped table. Return to releases
-opens Inspector while retaining the selected combo for return through the Roofs tab. Collapse keeps the header and proportional Long/Short bar visible; Expand restores the expanded dock size. The summary stays outside the scrolling body, and price-reaction recording remains in Raycaster. Snapshots are ephemeral, cleared on broker/symbol
+open its original readings; ISM still uses one grouped table. Use the bottom dock
+navigation to switch between Inspector and Roofs while retaining the selection.
+The summary stays outside the scrolling body, and price-reaction recording remains
+in Raycaster. Snapshots are ephemeral, cleared on broker/symbol
 changes, and do not change when a gear setting is later edited: reopen a roof.
 
 Roofs are fixed dated annotations at the first known qualifying snapshot, not

@@ -45,7 +45,8 @@ try {
   assert.match(app.container.textContent, /Scoring system v2/)
   assert.ok(app.container.querySelector('[aria-label="Jobless Claims level context"]'))
   assert.equal(app.container.querySelector('[aria-label="Jobless Claims pair direction"]').textContent, 'EURUSD Long')
-  assert.equal(app.container.querySelectorAll('details').length, 0)
+  assert.equal(app.container.querySelector('[aria-label="How this scorer works"]').open, false)
+  assert.equal(app.container.querySelector('[aria-label="Jobless Claims component scores"]').closest('details'), null)
   assert.equal(app.container.querySelectorAll('[aria-label="Jobless Claims component scores"] tbody tr').length, 3)
   assert.match(app.container.textContent, /benefit eligibility/)
   const prefs = { ...defaultInspectorPreferences(), detailView: 'scoring' }
@@ -106,7 +107,7 @@ try {
   assert.match(app.container.textContent, /manual override boundaries/)
   await click([...dock.container.querySelectorAll('button')].find(button => button.textContent === 'Use automatic'))
   assert.equal(app.container.textContent, beforePreview)
-  console.log('✓ Claims Inspector menu/flat view, scoped inventory, plotted controls, preview/apply/reset and portable live settings')
+  console.log('✓ Claims Inspector menu/result-first view, scoped inventory, plotted controls, preview/apply/reset and portable live settings')
 
   await React.act(async () => { for (const root of roots.splice(0)) root.unmount() })
   const workers = []

@@ -23,6 +23,5 @@ function RelativePublication(props:RelativeProps){
     <p>{loading?'Calculating relative context…':error ?? (!usd.eligible?'A verified, already published chart time is required.':result.explanation)}</p>
     {(eur.storage.error || usd.context.storage.error) && <p role="alert">{eur.storage.error ?? usd.context.storage.error}</p>}
     <RelativeContextDetails eur={ready?point:null} usd={ready?usd.after:null} loading={loading} supported showSelector={!props.controls}/>
-    <p>The standalone release and USD-side context remain visible separately. This uses the same saved relative inputs and publication cutoff as Raycaster, without later releases.</p>
   </section>
 }

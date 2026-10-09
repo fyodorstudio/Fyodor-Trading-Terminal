@@ -170,7 +170,9 @@ try {
   const props={release:selected,events,now:selected.releaseAt}
   const app=mount(IsmScoreV3,props);await app.render()
   assert.equal(app.container.querySelector('[aria-label="ISM v3 final pair direction"]').textContent,combined.label)
-  assert.equal(app.container.querySelectorAll('[data-ism-signal]').length,7);assert.equal(app.container.querySelectorAll('details').length,0)
+  assert.equal(app.container.querySelectorAll('[data-ism-signal]').length,7)
+  assert.equal(app.container.querySelector('[aria-label="How this scorer works"]').open,false)
+  assert.equal(app.container.querySelector('[aria-label="What drove the result"]').closest('details'),null)
   assert.equal(app.container.querySelectorAll('table').length,1)
   await app.render({release:grouped[0],events,now:manufacturing.releaseAt})
   assert.equal(app.container.querySelector('[aria-label="ISM v3 final pair direction"]').textContent,early.label)
@@ -306,7 +308,7 @@ try {
     if(originalWorker)Object.defineProperty(globalThis,'Worker',originalWorker);else delete globalThis.Worker
   }
   console.log('✓ ISM v3 single weighted resolution, tie priority, pending data, worker dispatch and no recalculation on heartbeat updates')
-  console.log('✓ ISM v3 flat two-section Inspector, both-family menu/persistence, scoped storage, source navigation, chart parity, independent overrides and portable live settings')
+  console.log('✓ ISM v3 result-first Inspector, both-family menu/persistence, scoped storage, source navigation, chart parity, independent overrides and portable live settings')
 } finally {
   await React.act(async () => { for (const root of roots) root.unmount() })
   await dom.happyDOM.abort(); dom.close()

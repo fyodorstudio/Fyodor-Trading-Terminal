@@ -41,12 +41,16 @@ try {
     assert.equal(layout.children.length, 2, 'Relative panels must not create a third grid column')
     assert.deepEqual([...layout.children].map(c => c.getAttribute('aria-label')), ['Standalone Scoring', 'Context-Aware at Publication Scoring'])
     assert.equal(host.querySelectorAll('.inspector-publication-score').length, 1, 'One shared layout, no nested two-column grids')
-    assert.equal(host.querySelector('details'), null, 'Scoring remains flat')
+    for (const details of host.querySelectorAll('details.scoring-section')) assert.equal(details.open, false, 'Audit details start closed')
     return { left: layout.children[0], right: layout.children[1] }
   }
   const resultFirst = (column, name) => {
     const body = column.querySelector('.inspector-scoring-column-body')
     const direction = body.querySelector('.inspector-majority')
+    if (body.querySelector('[aria-label="Fed rate-action interpretation"]') && !direction) {
+      assert.match(body.querySelector('[aria-label="Decision & rate action"] p').textContent, /^Rate held at .*A hold alone does not establish currency strength or weakness\.$/)
+      return
+    }
     assert.ok(direction, `${name}: bias has a summary even when unavailable`)
     const text = document.createTreeWalker(body, dom.NodeFilter.SHOW_TEXT)
     let first
@@ -94,8 +98,8 @@ try {
   const fedProps = { ...props, events: fedEvents, release: fedRelease, binding: inspectorScoringBinding('EURUSD', fedRelease), surface: 'both' }
   await render(InspectorScoringView, fedProps)
   const fedColumns = columns()
-  assert.equal(fedColumns.left.querySelector('[aria-label="Fed standalone direction"]').textContent, 'Uncomputed')
-  assert.match(fedColumns.left.textContent, /Rate hold/)
+  assert.equal(fedColumns.left.querySelector('[aria-label="Fed standalone direction"]'), null)
+  assert.match(fedColumns.left.textContent, /Rate held at 3.75%/)
   assert.ok(fedColumns.left.querySelector('[aria-label="Fed numerical rate path"]'))
   assert.ok(fedColumns.left.querySelector('[aria-label="Decision & rate action"]'))
   assert.ok(fedColumns.right.querySelector('[aria-label="Policy pressure & previous meeting"]'))
@@ -111,7 +115,7 @@ try {
   assert.equal(relativeColumns.right.querySelectorAll('select').length, 1, 'The top context controls own the selector in relative mode')
   assert.ok(relativeColumns.right.querySelector('[aria-label="Relative context at publication"]'))
   assert.equal(relativeColumns.left.querySelector('[aria-label="Relative context at publication"]'), null)
-  assert.equal(relativeColumns.left.querySelector('[aria-label="Fed standalone direction"]').textContent, 'Uncomputed')
+  assert.equal(relativeColumns.left.querySelector('[aria-label="Fed standalone direction"]'), null)
   const relativePreserved = relativeColumns.right.querySelector('.inspector-scoring-column-body').textContent
   await render(ContextDetailed, { point: null, symbol: 'EURUSD', cutoff: null, loading: false, message: null,
     label: 'Uncomputed', presentation: null, relative: true, timeDisplay, publication: fedProps })
@@ -171,7 +175,9 @@ try {
     assert.equal(dom.getComputedStyle(usdVote).whiteSpace, 'normal', 'Inherited table nowrap must not leak into the vote column')
     assert.equal(dom.getComputedStyle(usdVote).overflowWrap, 'anywhere')
     for (const column of Object.values(columns())) {
-      const row = column.querySelector('.inspector-majority').parentElement
+      const direction = column.querySelector('.inspector-majority')
+      if (!direction) { resultFirst(column, 'Fed hold'); continue }
+      const row = direction.parentElement
       const computed = dom.getComputedStyle(row)
       assert.equal(computed.minHeight, '44px', 'Both results share the same minimum row height')
       assert.equal(computed.marginTop, '0px', 'No extra space above either result')
@@ -184,7 +190,7 @@ try {
   await render(PublicationScoringLayout, { standalone: React.createElement(SignalCalibration, { readings: [{ id: 'claims', label: 'Initial claims', value: -2, sampleCount: 24,
     limits: [1, 2, 3], magnitudeMode: 'custom', unit: 'k claims' }, { id: 'missing', label: 'Missing signal', value: null,
     sampleCount: 0, limits: null }] }), context: React.createElement('p', null, 'Context sample') })
-  assert.equal(host.querySelector('details'), null)
+  assert.equal(host.querySelector('[aria-label="Calibration & settings"]').open, false)
   const calibration = host.querySelector('[aria-label="Signal calibration"]')
   assert.match(calibration.rows[1].textContent, /-2 k claims.*N = 24.*1 \/ 2 \/ 3 k claims.*manual override boundaries/)
   assert.match(calibration.rows[2].textContent, /Missing signal.*— pp.*N = 0.*Unavailable/)

@@ -1,5 +1,8 @@
 .scoring-section { min-width: 0; margin: 14px 0; border: 1px solid var(--border); border-radius: 5px; overflow-wrap: anywhere; }
-.scoring-section > h4 { margin: 0; padding: 8px 10px; font-size: 11px; font-weight: 600; background: var(--surface-raised); border-bottom: 1px solid var(--border); color: var(--text-strong); }
+.scoring-section > h4, .scoring-section > summary { margin: 0; padding: 8px 10px; font-size: 11px; font-weight: 600; background: var(--surface-raised); color: var(--text-strong); }
+.scoring-section > h4, .scoring-section[open] > summary { border-bottom: 1px solid var(--border); }
+.scoring-section > summary { cursor: pointer; }
+.scoring-section > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .scoring-section-content { min-width: 0; padding: 8px 10px; }
 .scoring-section-content > :first-child { margin-top: 0; }
 .scoring-section-content > :last-child { margin-bottom: 0; }
