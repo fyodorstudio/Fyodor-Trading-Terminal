@@ -14,16 +14,14 @@ export function parallelChannelCorners(points: ChartDrawingScreenPoint[]) {
 export function editParallelChannel(
   points: ChartDrawingPoint[],
   cornerIndex: number,
-  point: ChartDrawingPoint,
   deltaPrice: number,
 ): ChartDrawingPoint[] {
   const [first, second, anchor] = points
   if (!first || !second || !anchor) return points
-  const offset = anchor.price - first.price
   if (cornerIndex >= 2) {
     return [first, second, { time: first.time, price: anchor.price + deltaPrice }]
   }
-  const nextFirst = cornerIndex === 0 ? point : first
-  const nextSecond = cornerIndex === 1 ? point : second
-  return [nextFirst, nextSecond, { time: nextFirst.time, price: nextFirst.price + offset }]
+  // Either baseline corner moves that entire edge vertically. The opposite
+  // edge remains fixed, and time span and slope remain unchanged.
+  return [{ ...first, price: first.price + deltaPrice }, { ...second, price: second.price + deltaPrice }, anchor]
 }

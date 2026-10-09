@@ -85,7 +85,7 @@ try {
   }
   const pointsFor = tool => {
     const points = [{ time: 1000, price: 10 }, { time: 1120, price: 12 }]
-    if (['horizontal-line', 'vertical-line', 'text', 'price-note'].includes(tool)) return points.slice(0, 1)
+    if (['horizontal-line', 'vertical-line', 'text'].includes(tool)) return points.slice(0, 1)
     if (tool === 'parallel-channel') return [...points, { time: 1000, price: 8 }]
     if (tool === 'short-position') return [points[0], { time: 1120, price: 8 }, { time: 1120, price: 12 }]
     if (tool === 'long-position') return [...points, { time: 1120, price: 8 }]
@@ -125,6 +125,76 @@ try {
     assert.equal(captures.size, 0)
   }
 
+  // Every rectangle corner holds its diagonal opposite fixed, including when
+  // dragged past it. Existing rectangles retain their two-anchor storage.
+  const rectangleCoordinates = () => handles().map(handle => [Number(handle.getAttribute('cx')), Number(handle.getAttribute('cy'))])
+  for (let index = 0; index < 4; index++) {
+    seed(recordFor('rectangle')); await render({ initiallySelected: 'drawing' }, `rectangle-${index}`)
+    const original = rectangleCoordinates()
+    assert.deepEqual(original, [[100, 100], [180, 80], [100, 80], [180, 100]])
+    const opposite = [1, 0, 3, 2][index]
+    const [x, y] = original[index]
+    await drag(handles()[index], x, y, x + 120, y - 35)
+    assert.deepEqual(rectangleCoordinates()[index], [x + 120, y - 35], `Rectangle corner ${index}: the grabbed corner follows the cursor across its opposite`)
+    assert.deepEqual(rectangleCoordinates()[opposite], original[opposite], `Rectangle corner ${index}: the diagonal opposite stays fixed`)
+    assert.equal(readChartDrawings()[0].points.length, 2, 'Rectangle derived corners do not duplicate storage anchors')
+    const saved = rectangleCoordinates()
+    await render({ initiallySelected: 'drawing' }, `rectangle-reload-${index}`)
+    assert.deepEqual(rectangleCoordinates(), saved, 'Four rectangle handles survive reload')
+  }
+
+  // An arrowhead is explicit geometry whose tip is exactly the second anchor.
+  // It cannot disappear because of an SVG marker reference or duplicate ID.
+  seed(recordFor('arrow')); await render({ initiallySelected: 'drawing' }, 'arrow-tip')
+  const arrowTip = () => host.querySelector('.drawing-arrow-head').getAttribute('points').split(' ').map(pair => pair.split(',').map(Number))
+  assert.deepEqual(arrowTip()[0], [180, 80])
+  assert.equal(arrowTip().length, 3)
+  assert.ok(arrowTip()[1][0] < 180 && arrowTip()[2][0] < 180, 'Arrowhead wings sit behind the endpoint')
+  await drag(handles()[1], 180, 80, 60, 130)
+  assert.deepEqual(arrowTip()[0], [60, 130], 'Reversing an arrow keeps its tip attached to the end anchor')
+  assert.ok(arrowTip()[1][0] > 60 && arrowTip()[2][0] > 60, 'The arrowhead turns with the reversed line')
+
+  // Price notes are trend-line gestures with two anchors and a live end price.
+  seed(recordFor('price-note')); await render({ initiallySelected: 'drawing' }, 'price-note-line')
+  assert.equal(handles().length, 2)
+  assert.equal(body().querySelector('.drawing-stroke').getAttribute('x2'), '180')
+  assert.equal(body().querySelector('.drawing-note').textContent, '12.00000')
+  await drag(handles()[1], 180, 80, 230, 60)
+  assert.equal(body().querySelector('.drawing-note').textContent, '14.00000', 'Editing the note endpoint updates its displayed price')
+  assert.equal(body().querySelector('.drawing-stroke').getAttribute('x2'), '230')
+  assert.equal(body().querySelector('.drawing-stroke').getAttribute('y2'), '60')
+  const legacyNote = { ...recordFor('price-note'), points: [{ time: 1060, price: 10 }] }
+  seed(legacyNote); await render({ initiallySelected: 'drawing' }, 'legacy-price-note')
+  assert.deepEqual(rectangleCoordinates(), [[60, 100], [140, 100]], 'Legacy notes retain their original labeled endpoint and gain a line behind it')
+  assert.deepEqual(readChartDrawings()[0], legacyNote, 'Viewing a legacy note does not write a migration')
+  await drag(handles()[1], 140, 100, 160, 90)
+  assert.equal(readChartDrawings()[0].points.length, 2, 'The first legacy note edit stores both actual line anchors')
+  assert.equal(body().querySelector('.drawing-note').textContent, '11.00000')
+
+  // Text can be reopened by double-click (including captured SVG events) or
+  // keyboard; commit and cancellation are safe even if blur follows them.
+  const reactProps = node => node[Object.getOwnPropertyNames(node).find(key => key.startsWith('__reactProps$'))]
+  const key = async (node, value) => React.act(async () => node.dispatchEvent(new dom.KeyboardEvent('keydown', { bubbles: true, key: value })))
+  seed(recordFor('text')); await render({ initiallySelected: 'drawing' }, 'text-edit')
+  await React.act(async () => body().dispatchEvent(new dom.MouseEvent('dblclick', { bubbles: true })))
+  let input = host.querySelector('[aria-label="Drawing text"]')
+  assert.equal(document.activeElement, input, 'Text double-click focuses the inline editor')
+  await React.act(async () => reactProps(input).onChange({ target: { value: 'Updated text' } }))
+  await key(input, 'Enter')
+  assert.equal(readChartDrawings()[0].text, 'Updated text')
+  assert.equal(host.querySelector('input'), null)
+  await key(window, 'Enter')
+  input = host.querySelector('input')
+  assert.equal(input.value, 'Updated text', 'Keyboard editing reopens saved text')
+  await React.act(async () => reactProps(input).onChange({ target: { value: 'Cancelled text' } }))
+  const cancelledBlur = reactProps(input).onBlur
+  await key(input, 'Escape')
+  await React.act(async () => cancelledBlur())
+  assert.equal(readChartDrawings()[0].text, 'Updated text', 'Escape plus subsequent blur cannot commit cancelled text')
+  await React.act(async () => svg().dispatchEvent(new dom.MouseEvent('dblclick', { bubbles: true })))
+  assert.ok(host.querySelector('input'), 'A double-click retargeted to the captured SVG still opens the selected text')
+  await key(host.querySelector('input'), 'Escape')
+
   // Create every gesture type wholly beyond the last available candle.
   for (const { id: tool, gesture } of drawingTools) {
     seed(null); await render({ tool }, `create-${tool}`)
@@ -143,7 +213,8 @@ try {
     const handle = handles()[tool.includes('position') ? 3 : 0]
     const x = Number(handle.getAttribute('cx')), y = Number(handle.getAttribute('cy'))
     await drag(handle, x, y, 50, y - 15)
-    if (tool !== 'horizontal-line') assert.ok(api.drawings[0].points[tool.includes('position') ? 1 : 0].time < timeline[0].time, `${tool}: endpoint can move before loaded history`)
+    if (tool !== 'horizontal-line' && tool !== 'parallel-channel') assert.ok(api.drawings[0].points[tool.includes('position') ? 1 : 0].time < timeline[0].time, `${tool}: endpoint can move before loaded history`)
+    if (tool === 'parallel-channel') assert.equal(api.drawings[0].points[0].time, 1390, 'Channel corners only resize vertically, even in empty space')
   }
 
   // Forgiving handle targets retain the offset at the initial grab.

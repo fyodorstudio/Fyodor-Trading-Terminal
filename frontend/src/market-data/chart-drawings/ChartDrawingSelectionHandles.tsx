@@ -2,8 +2,9 @@ import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react'
 import type { ChartDrawingRecord } from './chart-drawing-record'
 import type { ChartDrawingScreenPoint } from './chart-drawing-screen-point'
 import { parallelChannelCorners } from './parallel-channel-geometry'
+import { rectangleCorners } from './rectangle-drawing-geometry'
 
-export type DrawingHandleKind = 'point' | 'channel-corner' | 'position-price' | 'position-entry-price' | 'position-width' | 'position-move-all' | 'move-all'
+export type DrawingHandleKind = 'point' | 'channel-corner' | 'rectangle-corner' | 'position-price' | 'position-entry-price' | 'position-width' | 'position-move-all' | 'move-all'
 
 type ChartDrawingSelectionHandlesProps = {
   drawing: ChartDrawingRecord
@@ -54,12 +55,23 @@ export function ChartDrawingSelectionHandles({
           key={`${drawing.id}-${index}`}
           cx={point.x}
           cy={point.y}
-          style={{ cursor: index >= 2 ? 'ns-resize' : 'move' }}
-          aria-label={index >= 2 ? `Resize channel height ${index - 1}` : `Move channel endpoint ${index + 1}`}
+          style={{ cursor: 'ns-resize' }}
+          aria-label={`Resize channel edge vertically ${index + 1}`}
           onPointerDown={(event) => onStartHandleEdit(event, drawing.id, index, 'channel-corner')}
         />
       ))}
     </>
+  }
+
+  if (drawing.tool === 'rectangle') {
+    const corners = rectangleCorners(screenPoints)
+    const diagonal = corners[0] && corners[1] && (corners[1].x - corners[0].x) * (corners[1].y - corners[0].y) >= 0
+    return <>{corners.map((point, index) => (
+      <DrawingHandle key={`${drawing.id}-${index}`} cx={point.x} cy={point.y}
+        style={{ cursor: (index < 2 ? diagonal : !diagonal) ? 'nwse-resize' : 'nesw-resize' }}
+        aria-label={`Resize rectangle corner ${index + 1}`}
+        onPointerDown={event => onStartHandleEdit(event, drawing.id, index, 'rectangle-corner')} />
+    ))}</>
   }
 
   if (isPosition && screenPoints[0] && screenPoints[1] && screenPoints[2]) {

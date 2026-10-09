@@ -71,15 +71,15 @@ try {
   await drag(3, 180, 82)
   assert.deepEqual(coordinates(), [[10, 20], [100, 30], [10, 72], [100, 82]], 'The second opposite corner also controls channel height')
   await drag(0, 20, 10)
-  assert.deepEqual(coordinates(), [[20, 10], [100, 30], [20, 62], [100, 82]], 'Moving the first baseline endpoint retains channel spacing')
+  assert.deepEqual(coordinates(), [[10, 10], [100, 20], [10, 72], [100, 82]], 'The first upper corner resizes vertically while the lower edge, slope and times stay fixed')
   await drag(1, 120, 40)
-  assert.deepEqual(coordinates(), [[20, 10], [120, 40], [20, 62], [120, 92]], 'Moving the second endpoint changes slope while keeping edges parallel')
+  assert.deepEqual(coordinates(), [[10, 30], [100, 40], [10, 72], [100, 82]], 'The second upper corner controls the same vertical edge without horizontal movement')
   const saved = readChartDrawings()[0]
   await render({}, 'reload')
   assert.deepEqual(api.drawings[0], saved, 'All channel edits survive a remount through the real drawing store')
   multiplier = 2
   await render()
-  assert.deepEqual(coordinates(), [[20, 20], [120, 80], [20, 124], [120, 184]], 'Saved height follows price-scale zoom')
+  assert.deepEqual(coordinates(), [[10, 60], [100, 80], [10, 144], [100, 164]], 'Saved height follows price-scale zoom')
   multiplier = 1
 
   seed({ ...legacy, points: [...legacy.points].reverse() })

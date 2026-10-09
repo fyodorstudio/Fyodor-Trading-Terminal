@@ -340,7 +340,7 @@ function MarketCandlestickChartComponent({
       {chartApi && seriesApi && renderChartOverlay?.(chartApi, seriesApi)}
       {chartApi && seriesApi && (activeDrawingTool || drawings.length > 0) && (
         <ChartDrawingOverlay
-          key={activeDrawingTool ?? 'chart-navigation'}
+          key={fitContentKey}
           chartApi={chartApi}
           seriesApi={seriesApi}
           activeTool={activeDrawingTool}

@@ -143,7 +143,9 @@ export function FloatingDrawingToolbar({
           aria-label={tool.label}
           title={`${tool.label}${activeTool === tool.id ? ' · click again to return to chart navigation' : ''}`}
         >
-          <span aria-hidden="true">{tool.icon}</span>
+          {tool.id === 'rectangle'
+            ? <svg aria-hidden="true" width="18" height="18" viewBox="0 0 20 20"><rect x="2" y="4" width="16" height="12" rx="1" fill="none" stroke="currentColor" strokeWidth="1.8" /></svg>
+            : <span aria-hidden="true">{tool.icon}</span>}
         </button>
       ))}
 

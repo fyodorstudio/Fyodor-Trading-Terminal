@@ -23,7 +23,7 @@ export type DrawingToolDefinition = {
 
 export const drawingTools: DrawingToolDefinition[] = [
   { id: 'trend-line', label: 'Trend line', icon: '╱', gesture: 'drag' },
-  { id: 'rectangle', label: 'Rectangle', icon: '□', gesture: 'drag' },
+  { id: 'rectangle', label: 'Rectangle', icon: '▭', gesture: 'drag' },
   { id: 'horizontal-line', label: 'Horizontal line', icon: '—', gesture: 'point' },
   { id: 'parallel-channel', label: 'Parallel channel', icon: '≋', gesture: 'drag' },
   { id: 'path', label: 'Path', icon: '⌁', gesture: 'path' },
@@ -32,7 +32,7 @@ export const drawingTools: DrawingToolDefinition[] = [
   { id: 'long-position', label: 'Long position', icon: 'L', gesture: 'drag' },
   { id: 'short-position', label: 'Short position', icon: 'S', gesture: 'drag' },
   { id: 'circle', label: 'Circle', icon: '○', gesture: 'drag' },
-  { id: 'price-note', label: 'Price note', icon: '$', gesture: 'point' },
+  { id: 'price-note', label: 'Price note', icon: '$', gesture: 'drag' },
   { id: 'vertical-line', label: 'Vertical line', icon: '│', gesture: 'point' },
   { id: 'fib-retracement', label: 'Fib retracement', icon: 'F', gesture: 'drag' },
   { id: 'date-price-range', label: 'Date and price range', icon: '↔', gesture: 'drag' },

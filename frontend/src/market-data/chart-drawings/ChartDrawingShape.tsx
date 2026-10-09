@@ -110,13 +110,22 @@ export function ChartDrawingShape({ drawing, points, width, height, precision = 
           <line className="drawing-stroke" x1={first.x} y1={first.y} x2={last.x} y2={last.y} />
         </g>
       )
-    case 'arrow':
+    case 'arrow': {
+      const length = Math.hypot(last.x - first.x, last.y - first.y)
+      const headLength = Math.min(12, length)
+      const halfWidth = Math.min(5.5, headLength / 2)
+      const ux = length ? (last.x - first.x) / length : 0
+      const uy = length ? (last.y - first.y) / length : 0
+      const baseX = last.x - ux * headLength
+      const baseY = last.y - uy * headLength
       return (
         <g>
           <line className="drawing-hit-area" x1={first.x} y1={first.y} x2={last.x} y2={last.y} />
-          <line className="drawing-stroke" markerEnd="url(#drawing-arrow)" x1={first.x} y1={first.y} x2={last.x} y2={last.y} />
+          <line className="drawing-stroke" x1={first.x} y1={first.y} x2={last.x} y2={last.y} />
+          {length > 0 && <polygon className="drawing-arrow-head" points={`${last.x},${last.y} ${baseX - uy * halfWidth},${baseY + ux * halfWidth} ${baseX + uy * halfWidth},${baseY - ux * halfWidth}`} />}
         </g>
       )
+    }
     case 'rectangle':
       return <rect className="drawing-stroke drawing-fill" x={left} y={top} width={shapeWidth} height={shapeHeight} />
     case 'circle':
@@ -158,6 +167,7 @@ export function ChartDrawingShape({ drawing, points, width, height, precision = 
     case 'text':
       return (
         <g>
+          <title>Double-click or select and press Enter to edit text</title>
           <rect
             x={first.x}
             y={first.y - 20}
@@ -174,9 +184,11 @@ export function ChartDrawingShape({ drawing, points, width, height, precision = 
     case 'price-note':
       return (
         <g>
-          <rect className="drawing-body-hit-area" x={first.x - 12} y={first.y - 12} width={Math.max(60, first.price.toFixed(precision).length * 7 + 20)} height={24} />
-          <circle className="drawing-note-dot" cx={first.x} cy={first.y} r={3} />
-          <text className="drawing-note" x={first.x + 7} y={first.y + 4}>{first.price.toFixed(precision)}</text>
+          <line className="drawing-hit-area" x1={first.x} y1={first.y} x2={last.x} y2={last.y} />
+          <line className="drawing-stroke" x1={first.x} y1={first.y} x2={last.x} y2={last.y} />
+          <rect className="drawing-body-hit-area" x={last.x - 12} y={last.y - 12} width={Math.max(60, last.price.toFixed(precision).length * 7 + 20)} height={24} />
+          <circle className="drawing-note-dot" cx={last.x} cy={last.y} r={3} />
+          <text className="drawing-note" x={last.x + 7} y={last.y + 4}>{last.price.toFixed(precision)}</text>
         </g>
       )
     case 'long-position':

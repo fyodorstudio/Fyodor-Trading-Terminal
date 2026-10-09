@@ -82,9 +82,14 @@ try {
   const props = { chartApi: chart, seriesApi: series, bars, timeframe: 'M1', activeTool: null, selectedDrawingId: 'drawing',
     onSelectDrawing() {}, onCreateDrawing: () => 'drawing', onUpdateDrawingPoint() {}, onUpdateDrawingPoints() {}, onUpdatePositionWidth() {}, onExitDrawingMode() {} }
   const handles = () => [...overlayHost.querySelectorAll('.drawing-resize-handle')]
+  const hoverEvents = []
+  const hover = event => hoverEvents.push(event)
+  chart.subscribeCrosshairMove(hover)
+  const paneCanvas = chart.panes()[0].getHTMLElement().querySelector('canvas:last-of-type')
+  paneCanvas.getBoundingClientRect = () => ({ left: 37, top: 81 })
   for (const { id: tool } of drawingTools) {
     let points = [first, second]
-    if (['horizontal-line', 'vertical-line', 'text', 'price-note'].includes(tool)) points = [first]
+    if (['horizontal-line', 'vertical-line', 'text'].includes(tool)) points = [first]
     if (tool === 'parallel-channel') points = [first, second, { ...first, price: 9 }]
     if (tool.includes('position')) points = [first, second, { ...second, price: 9 }]
     const drawing = { id: 'drawing', symbol: 'TEST', timeframe: 'M1', tool, points, createdAt: 1 }
@@ -93,6 +98,20 @@ try {
     assert.ok(handles().length, `${tool}: the real chart projects visible editing handles`)
     close(Number(handles()[0].getAttribute('cx')), tool === 'horizontal-line' ? chart.paneSize().width / 2 : xAt(3.25),
       `${tool}: fractional anchors render at their actual chart location`)
+    // Hover on the SVG never reaches the chart canvas naturally. The bridge
+    // must restore the native crosshair, including on blank future time slots.
+    hoverEvents.length = 0
+    const hoverX = xAt(12.25), hoverY = series.priceToCoordinate(10)
+    await React.act(async () => {
+      for (let i = 0; i < 200; i++) overlayHost.querySelector('.drawing-object').dispatchEvent(new dom.PointerEvent('pointermove', {
+        bubbles: true, clientX: hoverX + 37, clientY: hoverY + 81, pointerType: 'mouse',
+      }))
+    })
+    assert.equal(hoverEvents.length, 0, `${tool}: SVG hover work waits for a frame`)
+    await paint()
+    assert.ok(hoverEvents.length > 0 && hoverEvents.length <= 2, `${tool}: a pointer burst forwards one native move with at most one enter`)
+    close(hoverEvents.at(-1).point.x, hoverX, `${tool}: native crosshair follows exact future-space cursor x`)
+    close(hoverEvents.at(-1).point.y, hoverY, `${tool}: native crosshair follows cursor price y`)
     // Test the actual primitive rendering callback, not an emulated notifier.
     const snapshot = JSON.stringify(drawing)
     const prices = chart.priceScale('right').getVisibleRange()
@@ -102,6 +121,13 @@ try {
     if (!tool.includes('position') && tool !== 'vertical-line') close(Number(handles()[0].getAttribute('cy')), series.priceToCoordinate(10), `${tool}: SVG follows the real price scale draw`)
     assert.equal(JSON.stringify(drawing), snapshot, 'Chart movement never rewrites drawing anchors')
   }
+  // Leaving the SVG for outside the chart must clear the native crosshair and
+  // its subscribers, including any hover presentation layered on the terminal.
+  await React.act(async () => overlayHost.querySelector('.drawing-object').dispatchEvent(new dom.PointerEvent('pointerout', {
+    bubbles: true, relatedTarget: document.body, clientX: 900, clientY: 600,
+  })))
+  await paint()
+  assert.equal(hoverEvents.at(-1).point, undefined, 'Leaving a drawing for outside the chart clears native crosshair subscribers')
   const beforeAppend = coordinates().timeToX(first.time)
   bars = [...bars, { ...bars.at(-1), time: bars.at(-1).time + 60 }]
   series.setData(bars); await paint()
