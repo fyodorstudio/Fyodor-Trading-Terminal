@@ -46,11 +46,14 @@ import { ChartWorkspaceHeader } from './ChartWorkspaceHeader'
 import { ActivityDock, InspectorDock, LiveTerminalStatusBar } from './LiveTerminalPanels'
 import './terminal-shell.layout.css'
 import { WorkspaceTransfer } from '../workspace-portability/WorkspaceTransfer'
-import { usdPair } from '../usd-context/core/usd-pair'
+import { usdPair } from '../scoring-system/context/usd/usd-pair'
 import { readRaycasterVisible, saveRaycasterVisible } from '../raycaster/storage/raycaster-preferences'
-import type { ComboSnapshot, ComboSource, RoofComboGroup } from '../usd-context/sequences/core/contracts'
+import type { ComboSnapshot, ComboSource, RoofComboGroup } from '../scoring-system/relationships/contracts'
 import { RoofsDock } from '../usd-context/sequences/ui/RoofsDock'
 import type { RaycasterView } from '../raycaster/ui/RaycasterBox'
+import { FundamentalSettingsPanel } from '../fundamental-tools/ui/FundamentalSettingsPanel'
+import { fundamentalSettingsEvent } from '../fundamental-tools/runtime/settings-navigation'
+import { usdScoringFamilies } from '../scoring-system/scoring-catalog'
 
 const defaultTradePlan: PlannedTradeState = {
   direction: 'long',
@@ -82,6 +85,16 @@ function FyodorTerminalWorkspace() {
   const restoreOverviewScroll = useCallback(() => roofsOverviewScroll.current, [])
   const rememberOverviewScroll = useCallback((position: number) => { roofsOverviewScroll.current = position }, [])
   const [bottomDockWindow, setBottomDockWindow] = useState<BottomDockWindow | null>(null)
+  const [scoringFamily, setScoringFamily] = useState('claims')
+  useEffect(() => {
+    const open = (event: Event) => {
+      const requested = (event as CustomEvent<{ family?: string }>).detail?.family
+      if (requested && usdScoringFamilies.some(f => f.id === requested)) setScoringFamily(requested)
+      setBottomDockWindow('fundamental-settings')
+    }
+    window.addEventListener(fundamentalSettingsEvent, open)
+    return () => window.removeEventListener(fundamentalSettingsEvent, open)
+  }, [])
   const [scatterTarget, setScatterTarget] = useState<ScatterReleaseTarget | null>(null)
   const dockSize = useBottomDockSize(bottomDockWindow)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -348,6 +361,7 @@ function FyodorTerminalWorkspace() {
             raycasterVisible={raycasterVisible}
             raycasterSupported={raycasterSupported}
             onToggleRaycaster={toggleRaycaster}
+            fundamentalSettingsActive={bottomDockWindow === 'fundamental-settings'}
             brokerId={brokerId}
             brokerOffsetSeconds={brokerOffsetSeconds}
             timeDisplay={timeDisplay}
@@ -409,6 +423,9 @@ function FyodorTerminalWorkspace() {
         <BottomDockPanel
           resizeHandle={dockSize.resizeHandle}
         >
+          {bottomDockWindow === 'fundamental-settings' && <FundamentalSettingsPanel family={scoringFamily} onFamilyChange={setScoringFamily}
+            symbol={activeSymbol} brokerId={brokerId} timeframe={timeframe} brokerOffsetSeconds={bridge.brokerOffsetSeconds}
+            release={inspector.selectedRelease} events={publicationEvents} />}
           {bottomDockWindow === 'notebook' && (
             <TraderNotebookPanel
               contextScope={{ brokerId, brokerOffsetSeconds, clockOffsetMs: 0 }}

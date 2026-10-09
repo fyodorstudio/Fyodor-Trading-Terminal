@@ -6,12 +6,12 @@ import { history, latestRows, settings, families } from './fixtures.mjs'
 
 const server = await createServer({ root: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..'), server: { middlewareMode: true, hmr: false } })
 try {
-  const load = p => server.ssrLoadModule('./src/usd-context/' + p + '.ts')
-  const { updateFreshNews, freshNewsAt, lookupFreshNews, freshWindowMs } = await load('sequences/core/fresh-news')
-  const { buildContextRelationships } = await load('sequences/core/build-relationships')
-  const { buildContextTimeline } = await load('core/build-context-timeline')
-  const { combineContext } = await load('core/combine-context')
-  const { contextWeights } = await load('core/policy')
+  const load = p => server.ssrLoadModule('./src/' + p + '.ts')
+  const { updateFreshNews, freshNewsAt, lookupFreshNews, freshWindowMs } = await load('scoring-system/relationships/fresh-news')
+  const { buildContextRelationships } = await load('scoring-system/relationships/build-relationships')
+  const { buildContextTimeline } = await load('scoring-system/context/usd/build-context-timeline')
+  const { combineContext } = await load('scoring-system/context/usd/combine-context')
+  const { contextWeights } = await load('scoring-system/context/usd/policy')
   const day = 86400000, at = Date.UTC(2020, 0, 1, 12)
   const source = (family, total, chartAt = at, patch = {}) => ({ family, total, chartAt, releaseAt: chartAt - 3 * 3600000,
     sourceId: family + '/' + chartAt, sourceLabel: family, usdDirection: total === null ? 'uncomputed' : total > 0 ? 'stronger' : 'weaker',

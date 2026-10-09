@@ -5,7 +5,7 @@ import type { InspectorEvent, InspectorRelease } from '../../../../../../inspect
 import type { TimeDisplayPreference } from '../../../../../../../appearance/time-display/time-display-preference'
 import { ContextInputTable } from '../../../../../../../usd-context/ui/ContextInputTable'
 import { ContextPolicyDetails } from '../../../../../../../usd-context/ui/ContextPolicyDetails'
-import { contextResultLabel } from '../../../../../../../usd-context/core/usd-pair'
+import { contextResultLabel } from '../../../../../../../scoring-system/context/usd/usd-pair'
 import { toggleContextFamily } from '../../../../../../../usd-context/storage/context-family-settings'
 import { useCpiV4Analysis } from '../runtime/useCpiV4Analysis'
 import { CpiScoreDetails } from './CpiScoreDetails'
@@ -13,7 +13,7 @@ import { CpiContextComparison } from './v4/CpiContextComparison'
 import './v4/cpi-v4.css'
 import { ScoringSection } from '../../../../../shared/ui/ScoringSection'
 import type { InspectorScoringProps } from '../../../../../scoring-contracts'
-import { cpiStandaloneVersionLabel } from '../../../../../shared/core/current-scoring-versions'
+import { cpiStandaloneVersionLabel } from '../../../../../../../scoring-system/shared/core/current-scoring-versions'
 
 export function CpiScoreV4({ release, brokerId, events = [], now = 0, timeDisplay = { mode: 'utc', utcOffsetMinutes: 0 } }: InspectorScoringProps) {
   return release ? <CpiPublicationScore release={release} brokerId={brokerId} events={events} now={now} timeDisplay={timeDisplay} /> : null

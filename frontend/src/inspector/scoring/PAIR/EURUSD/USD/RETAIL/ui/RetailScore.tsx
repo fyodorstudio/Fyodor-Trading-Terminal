@@ -1,5 +1,5 @@
 import type { InspectorScoringProps } from '../../../../../scoring-contracts'
-import { supportsRetailScore } from '../assessment/retail-features'
+import { supportsRetailScore } from '../../../../../../../scoring-system/PAIR/EURUSD/USD/RETAIL/assessment/retail-features'
 import { useRetailAnalysis } from '../runtime/useRetailAnalysis'
 import { RetailScoreDetails } from './RetailScoreDetails'
 import './retail-score.css'

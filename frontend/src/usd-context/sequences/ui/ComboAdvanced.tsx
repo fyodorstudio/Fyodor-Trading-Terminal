@@ -1,6 +1,6 @@
-import type { ComboSnapshot } from '../core/contracts'
-import { contextResultLabel } from '../../core/usd-pair'
-import { contextVersion } from '../../core/policy'
+import type { ComboSnapshot } from '../../../scoring-system/relationships/contracts'
+import { contextResultLabel } from '../../../scoring-system/context/usd/usd-pair'
+import { contextVersion } from '../../../scoring-system/context/usd/policy'
 import { ContextInputTable } from '../../ui/ContextInputTable'
 import type { TimeDisplayPreference } from '../../../appearance/time-display/time-display-preference'
 

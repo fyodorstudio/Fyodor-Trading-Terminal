@@ -1,3 +1,11 @@
+# Shared calculation location — 9 October 2026
+
+Pure context calculations now live in `../scoring-system/context/usd/` and
+relationship calculations in `../scoring-system/relationships/`. This module
+retains storage, hooks, chart projection and UI. The move preserves context math,
+versions and settings. Claims v2 remains its source; new standalone Claims v3
+weights and magnitudes do not affect Roofs/Raycaster/Candy.
+
 # USD context memory v8
 
 The shared engine consumes CPI v4.1’s standalone engine v3.2, NFP v2.2, Claims v2,
@@ -10,7 +18,7 @@ than an individual CPI/NFP veto. Relationship derivation v3 compares preceding
 features under the latest available calibration; calibration drift and renewal
 cannot generate a fresh-news vote. No price enters scoring. V7/v6.2 and their
 reports are historical records, not the current acceptance test. Current and
-archived rules are recorded in `docs/scoring system library.MD`.
+archived rules are recorded in root main-objective history and dated reports.
 Versioned shared jobs are invalidated; hover/pan remain cached binary lookups.
 
 ## Declared policy
@@ -62,7 +70,7 @@ for public combined outputs; `contextPairLabel` remains for standalone sources.
 
 ## Conditional labor–inflation interaction
 
-`core/interaction/` holds the separate rule and canonical source traits. Every
+`../scoring-system/context/usd/interaction/` holds the separate rule and canonical source traits. Every
 condition must pass on active, enabled, publication-time inputs:
 
 - NFP is complete, Strong, USD-weakening, with hiring below its recent mean and
@@ -98,7 +106,7 @@ block and lowers CPI's *context* budget only in the qualified competing regime.
 
 ## Current age, coverage and weekly confirmation
 
-`core/memory/` owns retention and Claims confirmation. Magnitude preferences are preserved. Each vote is:
+`../scoring-system/context/usd/memory/` owns retention and Claims confirmation. Magnitude preferences are preserved. Each vote is:
 
 `source total × assigned weight / 100 × 2^(-ageDays / halfLifeDays)`.
 
@@ -160,7 +168,7 @@ Magnitude settings remain shared with the existing USD standalone scorers/Scatte
 
 ## Chronology and runtime
 
-`core/score-publication.ts` adapts canonical scorers; `build-context-timeline.ts`
+`../scoring-system/context/usd/score-publication.ts` adapts canonical scorers; `build-context-timeline.ts`
 builds atomic publication/expiry snapshots; `combine-context.ts` resolves eight
 slots; `context-lookup.ts` performs binary lookup; `publication-comparison.ts`
 compares CPI snapshots, separating source replacement from a change of context
@@ -221,7 +229,7 @@ records its exact version, source and revision. The same-revision v5 baseline
 must be preserved to reproduce this comparison. No price returns select defaults.
 The expanded GDP/PPI runner remains available for source/Scatter checks; reports
 must retain their actual current engine version rather than claiming a v5 replay.
-Archived v1–v4 weights and audit results remain in the `docs/scoring system library.MD`.
+Archived v1–v4 weights and audit results remain in the root main-objective history and dated reports.
 The older `audit-usd-context.mjs` is retained as the previous five-family audit
 runner; its v3 invariance expectations are not a current validation command.
 Visual checks and price-reaction diagnostics belong to the user.
@@ -272,7 +280,7 @@ and left the main event loop active. Full frontend tests, lint and build passed.
 
 ### USD relationship Roofs v4
 
-`sequences/core/relationship-registry.ts` declares all 28 macro pairs plus eight
+`../scoring-system/relationships/relationship-registry.ts` declares all 28 macro pairs plus eight
 Fed/macro pairs. Pair annotations reuse canonical results and source age; they
 never add votes. `relationship-support.ts` exposes both weighted sides, their
 net/separation, lead and availability. Arbitrary larger groups are resolved on
@@ -296,4 +304,4 @@ World-space layout is cached per zoom/density; panning projects the existing pla
 
 Claims v2 replaces the Claims source slot without changing base family budgets or memory half-lives. Its two underlying trends use nonoverlapping four-week windows; latest-week weight is smaller. The three-release weekly confirmation additionally requires both underlying trends to agree with each report direction. Confirmation is also explained when Claims and NFP agree, without an extra vote.
 
-Fed v2 reuses `runtime/usePublicationContext.ts` to display exactly this engine at the decision publication, including holds. A separately fetched earlier numeric decision anchors the previous-meeting comparison. Both meetings use the same enabled families/settings; no future speech, conference, minutes or macro reading is moved into an earlier result. Fed meetings add no timeline vote and do not refresh source memory. Speeches remain outside scoring. See the `docs/scoring system library.MD` for rules and limitations.
+Fed v2 reuses `runtime/usePublicationContext.ts` to display exactly this engine at the decision publication, including holds. A separately fetched earlier numeric decision anchors the previous-meeting comparison. Both meetings use the same enabled families/settings; no future speech, conference, minutes or macro reading is moved into an earlier result. Fed meetings add no timeline vote and do not refresh source memory. Speeches remain outside scoring. See the root main-objective history and dated reports for rules and limitations.

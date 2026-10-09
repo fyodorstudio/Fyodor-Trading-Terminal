@@ -1,15 +1,15 @@
 import { useMemo } from 'react'
 import type { InspectorScoringProps } from '../../scoring-contracts'
 import { useStoredCalendar } from '../../../useStoredCalendar'
-import { signalHistoryStart } from '../core/historical-release-signals'
-import { gdpSignalSettings, ppiSignalSettings } from '../core/signal-magnitude-settings'
-import { gdpSeriesIds } from '../../PAIR/EURUSD/USD/GDP/policy/gdp-policy'
-import { ppiSeriesIds } from '../../PAIR/EURUSD/USD/PPI/policy/ppi-policy'
+import { signalHistoryStart } from '../../../../scoring-system/shared/core/historical-release-signals'
+import { gdpSignalSettings, ppiSignalSettings } from '../../../../scoring-system/shared/core/signal-magnitude-settings'
+import { gdpSeriesIds } from '../../../../scoring-system/PAIR/EURUSD/USD/GDP/policy/gdp-policy'
+import { ppiSeriesIds } from '../../../../scoring-system/PAIR/EURUSD/USD/PPI/policy/ppi-policy'
 import { useBackgroundCalculation } from './useBackgroundCalculation'
-import { calculateExpandedRelease } from './expanded-release-analysis'
+import { calculateExpandedRelease } from '../../../../scoring-system/shared/runtime/expanded-release-analysis'
 const scopes = { gdp: { currency: 'USD' as const, eventIds: gdpSeriesIds }, ppi: { currency: 'USD' as const, eventIds: ppiSeriesIds } }
 const empty: NonNullable<InspectorScoringProps['events']> = []
-const createWorker = () => new Worker(new URL('./expanded-release.worker.ts', import.meta.url), { type: 'module' })
+const createWorker = () => new Worker(new URL('../../../../scoring-system/shared/runtime/expanded-release.worker.ts', import.meta.url), { type: 'module' })
 export function useExpandedRelease({ release, brokerId, events = empty }: InspectorScoringProps) {
   const family = release?.familyId === 'gdp' ? 'gdp' : 'ppi'
   const gdp = gdpSignalSettings.useSettings(), ppi = ppiSignalSettings.useSettings()

@@ -1,8 +1,52 @@
 # Fyodor Trading Terminal — main objective
 
-Last clarified with the user: **8 October 2026**. This is the active project
+Last clarified with the user: **9 October 2026**. This is the active project
 contract and handoff for a new Codex session. Completed plans and their historical
 findings are in [the archived objective](reports/Main-objective-history-through-2026-10-08.md).
+
+## Active implementation: standalone scoring first
+
+The agreed implementation order is in [temporary plan](temporary%20plan.md):
+centralise existing calculations and fundamental settings, implement and validate
+Claims standalone, then review other labor models, relationships and finally
+Raycaster. Reuse the existing Inspector scoring views for supported USD releases.
+
+Claims standalone will have **This release** (weekly change against revised prior)
+and **Four-week trend** (separate four-week periods). Each has its own calibrated
+USD strength/weakness bias, evidence strength and EURUSD translation. Do not merge
+them into another vote. Forecasts remain excluded; revisions and calibration must
+respect publication time. Evaluate the proposed 60/40 initial/continuing split
+through historical replay and sensitivity checks before accepting defaults.
+
+Calculation definitions, weights, calibration and settings belong in the shared
+`frontend/src/scoring-system/` module. The gear opens a dedicated Fundamental
+Settings dock tab, including the canonical Scoring System explanation/settings
+page. Inspector retains concise results and release-specific supporting numbers.
+
+Raycaster is quarantined as experimental. Preserve its existing calculations and
+those of Roofs/Candy, including Claims v2, while the new standalone models are
+developed with separate versions/settings. Their redesign and migration are
+deferred. Preserve Roofs View Details; no removal has been authorised.
+
+Foundation and Claims standalone v3 are now implemented. The existing Inspector
+view has two independently calibrated assessments; its Scoring explanation &
+settings link opens the model in Fundamental Settings. Claims previews require
+explicit Apply; weights, calibration and view selection are workspace-portable.
+
+The [standalone Claims audit](reports/Claims-standalone-v3-audit.md) replays 607
+stored publications per view. October 8, 19:30 Asia/Jakarta gives **weekly USD
+weakness / EURUSD Long, weak, −0.2**, versus **four-week USD strength / EURUSD
+Short, strong, +2.4**. The 60/40 weights remain a starting policy with documented
+sensitivity. Claims v2 remains the context source at +2.25. Review standalone
+before extending to NFP, relationships or Raycaster; visual audits remain with
+the user.
+
+Verification for this pass: all 67 frontend suites passed, with affected suites
+rerun after final UI fixes; lint and production build passed. The existing bundle
+size warning remains. Browser visual/performance validation has not been performed.
+
+Historical result descriptions below refer to the models used in their dated
+audits. They do not redefine the new standalone development scope.
 
 ## What the user wants
 
@@ -130,8 +174,8 @@ Existing data-usability gates have not been changed by this documentation update
 
 Relative/EUR behavior was deliberately preserved in the prior USD pass. EUR
 scoring refinement and relative presentation changes remain deferred for a
-subsequent scoped request. This documentation request does not authorize changing
-scorers, weights, gates, preferences or datasets.
+subsequent scoped request. The current implementation authorises the standalone
+Claims work above, not retuning EUR or quarantined relationship/context models.
 
 ## Current work and next reviews
 
@@ -141,8 +185,8 @@ scorers, weights, gates, preferences or datasets.
 | 8 October Claims release review | Completed read-only at Elev8-Demo2 revision 79473 with all eight USD families and automatic signal magnitudes. |
 | Scatter calibration / Extreme cap inspection | Completed for the current Claims signals, including 2020 extremes and scorer parity; relevant scatter suites passed. No magnitude or weight change was justified. |
 | Next CPI/core CPI release | User plans to request a review after the release listed for **14 October 2026, 19:30 Asia/Jakarta**. Check the actual stored release when asked; no monitor or scheduled job has been requested. |
-| Claims historical revision propagation | Candidate for a scoped follow-up: reconstructed continuing mean differs from the official fully revised mean. Determine which revisions were known and used; no repair was implemented or confirmed by this review. |
-| Nonzero-lead consistency across legacy publication and relative surfaces | Known contract gap to assess in a separately authorized implementation; preserve current runtime behavior during this docs-only task. |
+| Claims historical revision propagation | Implemented for standalone v3 with publication-time provenance and revised comparison windows; the quarantined v2 model is unchanged. Stored original-vintage limitations remain. |
+| Nonzero-lead consistency across legacy publication and relative surfaces | Known contract gap for a separately scoped review; preserve quarantined context and EUR behavior during standalone development. |
 | Broader weighting/calibration changes | Evidence-driven review when needed; no blanket retuning plan is active. |
 | EUR scoring and EUR-vs-USD presentation | Deferred; do not automatically implement while reviewing a USD release. |
 
@@ -163,21 +207,16 @@ preferences were not read. See the detailed release report below.
 ## Evidence and reference map
 
 - [8 October Claims review](reports/Claims-2026-10-08-review.md).
+- [Claims standalone v3 audit](reports/Claims-standalone-v3-audit.md).
 - [Interpretation integrity v8](reports/Interpretation-integrity-v8-audit.md).
 - [USD Roof expansion](reports/Roof-v4-expansion-audit.md).
 - [USD Raycaster/Candy presentation v1](reports/USD-raycaster-candy-v1-audit.md).
 - [Unified display clock](reports/Unified-display-clock-audit.md).
-- [Current scoring library](docs/scoring%20system%20library.MD).
-- [Trading workflow and current UI semantics](docs/trading%20workflow.md).
-- [User's manual visual audit checklist](docs/manual%20edit.md).
+- [Active scoring implementation plan](temporary%20plan.md).
 - [Completed plans and historical objective](reports/Main-objective-history-through-2026-10-08.md).
 
-Prior test counts belong to their dated passes, not a claim that future changes
-were tested. In this session, the parallel-channel implementation passed all
-63 frontend suites, lint and build. Subsequent Claims/scatter reviews performed
-read-only arithmetic/chronology/cap checks and focused scatter suites; they made
-no runtime interpretation changes. This docs-only update requires link/content
-and whitespace checks, rather than a new frontend build.
+Prior test counts belong to their dated passes, not a claim that the active
+implementation was tested. Record fresh checks with each completed phase.
 
 ## Engineering and review guardrails
 

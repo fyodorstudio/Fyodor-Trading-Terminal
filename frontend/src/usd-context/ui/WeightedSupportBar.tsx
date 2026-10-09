@@ -1,4 +1,4 @@
-import type { SupportBalance } from '../core/support-reading'
+import type { SupportBalance } from '../../scoring-system/context/usd/support-reading'
 import './support-split.css'
 import './weighted-support-bar.css'
 

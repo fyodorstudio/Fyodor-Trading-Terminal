@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react'
-import type { ContextPoint } from '../../usd-context/core/contracts'
-import type { EurContextPoint } from '../../pair-context/core/contracts'
-import type { FreshPoint } from '../../usd-context/sequences/core/contracts'
+import type { ContextPoint } from '../../scoring-system/context/usd/contracts'
+import type { EurContextPoint } from '../../scoring-system/context/relative/contracts'
+import type { FreshPoint } from '../../scoring-system/relationships/contracts'
 
 export type ToolInspection = {
   usd: ContextPoint | null; eur: EurContextPoint | null; fresh: FreshPoint | null;

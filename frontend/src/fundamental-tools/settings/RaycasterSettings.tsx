@@ -1,7 +1,7 @@
 import { useRaycasterFamilies, toggleRaycasterFamily } from '../../raycaster/storage/raycaster-family-settings'
 import { useRelativePreferences, toggleEurFamily } from '../../pair-context/storage/relative-preferences'
-import { contextPriority, contextScorers } from '../../usd-context/core/policy'
-import { eurPolicies } from '../../inspector/scoring/PAIR/EURUSD/EUR/policy/eur-policies'
+import { contextPriority, contextScorers } from '../../scoring-system/context/usd/policy'
+import { eurPolicies } from '../../scoring-system/PAIR/EURUSD/EUR/policy/eur-policies'
 import { ScoringInputSettings } from '../../inspector/scoring/shared/ui/ScoringInputSettings'
 
 export function RaycasterSettings({ supported, relativeSupported }: { supported: boolean; relativeSupported: boolean }) {

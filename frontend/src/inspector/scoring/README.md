@@ -1,3 +1,22 @@
+# Current layout — 9 October 2026
+
+Inspector owns the existing standalone presentation. Shared formulas, policies,
+calibration and worker entry points now live in
+[`../../scoring-system/`](../../scoring-system/README.md). USD methodology and
+calibration controls are in the gear's **Fundamental Settings → Scoring System**
+dock; Inspector shows results and release-specific comparisons.
+
+Claims standalone is **v3**, with independent **This release** and **Four-week
+trend** views. Scatter follows the selected view. Roofs, Raycaster and Candy retain
+Claims v2 and its saved settings. Other numerical models are unchanged. The
+registry owns Inspector version labels; context labels remain in the shared
+current-version module.
+
+The root objective and [Claims audit](../../../../reports/Claims-standalone-v3-audit.md)
+record active scope and validation. The dated sections below are implementation
+history, including earlier UI/calibration locations; they do not override this
+layout.
+
 # Current interpretation integrity pass — 7 October 2026
 
 Current CPI Inspector v4.1 uses standalone engine v3.2; NFP v2.2 guards supplied
@@ -9,7 +28,7 @@ Other family formulas, configured magnitudes and saved settings remain intact.
 
 Sections below document implementation history. Version-specific older formulas
 are archived records; the current registry and the objective document take priority.
-See `docs/scoring system library.MD` and the root main-objective checklist.
+See the root main objective and the shared scoring-system README.
 
 # Inspector scoring — current interface
 
@@ -511,7 +530,7 @@ Tests: `tests/inspector/retail/test_retail_score.mjs` and
 `test_retail_integration.mjs`. After building, run
 `node scripts/audit-retail-v1.mjs <calendar.json> <output-prefix>` to verify every
 stored signal against the chart, future-removal replay and both production
-workers. The full design and stored coverage are in the `docs/scoring system library.MD`.
+workers. The full design and stored coverage are in the root main-objective history and dated reports.
 
 
 ## Archived: USD Jobless Claims v1 weekly pressure
@@ -618,7 +637,7 @@ The December 16, 2025 BLS report published October (-105k) for the first time to
 
 ## Implemented: Jobless Claims v2 and Fed decision context v2
 
-Claims v2 is the active Inspector/Scatter/Raycaster source. Initial trend 45% compares reported four-week averages four weeks apart; continuing trend 40% compares adjacent four-week means (latest plus prior three versus prior four through seven); weekly initial 15% compares latest with its preceding four-week mean. A supplied revision replaces the nearest week only where that week is used. The initial-trend older four-week average is not replaced by a one-week revised value. Strict weekly/native/time gates and earlier-only minimum-24 calibration remain. Initial and latest share a confirmation group. A latest-week-only move is Weak evidence. Missing/all-zero data remain honest Uncomputed.
+At the v2 implementation, Claims v2 was the Inspector/Scatter/Raycaster source. It remains the quarantined context source. Initial trend 45% compares reported four-week averages four weeks apart; continuing trend 40% compares adjacent four-week means (latest plus prior three versus prior four through seven); weekly initial 15% compares latest with its preceding four-week mean. A supplied revision replaces the nearest week only where that week is used. The initial-trend older four-week average is not replaced by a one-week revised value. Strict weekly/native/time gates and earlier-only minimum-24 calibration remain. Initial and latest share a confirmation group. A latest-week-only move is Weak evidence. Missing/all-zero data remain honest Uncomputed.
 
 The separate level explanation compares current smoothed initial and current continuing readings with the middle half (nearest-rank 25th/75th percentiles) within their own preceding 52 reference weeks, with at least 40 usable readings required and partial coverage disclosed. Missing weeks are not filled or replaced by older observations. It has no score, no fixed health threshold and no effect on coverage/evidence. Missing level history does not erase a valid trend vote.
 

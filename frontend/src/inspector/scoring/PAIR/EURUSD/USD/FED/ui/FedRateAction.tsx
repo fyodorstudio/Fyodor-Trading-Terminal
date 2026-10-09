@@ -1,4 +1,4 @@
-import type { assessFedScore } from '../assessment/fed-score'
+import type { assessFedScore } from '../../../../../../../scoring-system/PAIR/EURUSD/USD/FED/assessment/fed-score'
 import type { usePreviousFedMeeting } from '../runtime/usePreviousFedMeeting'
 import { ScoringSection } from '../../../../../shared/ui/ScoringSection'
 

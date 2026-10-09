@@ -9,8 +9,8 @@ const data = JSON.parse(fs.readFileSync(path.resolve(snapshot), 'utf8'))
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const server = await createServer({ root, server: { middlewareMode: true, hmr: false } })
 try {
-  const { buildContextTimeline } = await server.ssrLoadModule('./src/usd-context/core/build-context-timeline.ts')
-  const { contextPriority, contextSourceFamilies } = await server.ssrLoadModule('./src/usd-context/core/policy.ts')
+  const { buildContextTimeline } = await server.ssrLoadModule('./src/scoring-system/context/usd/build-context-timeline.ts')
+  const { contextPriority, contextSourceFamilies } = await server.ssrLoadModule('./src/scoring-system/context/usd/policy.ts')
   const asOf = Date.UTC(2026, 9, 7)
   const timeline = buildContextTimeline({ events: data.events, asOf, families: contextSourceFamilies(contextPriority),
     settings: { cpi: {}, nfp: {}, services: {}, manufacturing: {}, retail: {}, claims: {}, pce: {}, ppi: {}, gdp: {} } })

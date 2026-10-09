@@ -1,75 +1,15 @@
-import { currentScorerLabels } from '../../inspector/scoring/shared/core/current-scoring-versions'
 import { scatterNumber as number } from './scatter-number-format'
 import type { EconomicCalendarEvent } from '../../inspector/calendar-event'
 import { groupInspectorReleases, type InspectorRelease } from '../../inspector/inspector-data'
-import { cpiV3Features, cpiV3Signals, cpiV3SeriesIds, supportsCpiV3 } from '../../inspector/scoring/PAIR/EURUSD/USD/CPI/assessment/cpi-score-v3'
-import { nfpV2Features, nfpV2Signals, nfpV2SeriesIds, supportsNfpV2 } from '../../inspector/scoring/PAIR/EURUSD/USD/NFP/assessment/nfp-score-v2'
-import { pceFeatures, pceSignals, pceSeriesIds, supportsPceScore } from '../../inspector/scoring/PAIR/EURUSD/USD/PCE/assessment/pce-score'
-import { retailFeatures, supportsRetailScore } from '../../inspector/scoring/PAIR/EURUSD/USD/RETAIL/assessment/retail-features'
-import { retailSignals, retailSeriesIds } from '../../inspector/scoring/PAIR/EURUSD/USD/RETAIL/policy/retail-policy'
-import { claimsFeatures, supportsClaimsScore } from '../../inspector/scoring/PAIR/EURUSD/USD/CLAIMS/assessment/claims-features'
-import { claimsSignals, claimsSeriesIds } from '../../inspector/scoring/PAIR/EURUSD/USD/CLAIMS/policy/claims-policy'
-import { ismServicesFeatures, ismServicesSignals, ismServicesSeriesIds, supportsIsmServicesScore } from '../../inspector/scoring/PAIR/EURUSD/USD/ISM/sectors/services/ism-services-score'
-import { ismManufacturingFeatures, ismManufacturingSignals, ismManufacturingSeriesIds, supportsIsmManufacturing } from '../../inspector/scoring/PAIR/EURUSD/USD/ISM/sectors/manufacturing/ism-manufacturing-score'
-import { calibrateHistoricalSignal, observedReading, type HistoricalFeature, type TimedReading } from '../../inspector/scoring/shared/core/historical-release-signals'
-import { cpiSignalSettings, nfpSignalSettings, pceSignalSettings, ismServicesSignalSettings, ismManufacturingSignalSettings, retailSignalSettings, claimsSignalSettings } from '../../inspector/scoring/shared/core/signal-magnitude-settings'
-import { gdpFeatures, gdpStage, supportsGdpScore } from '../../inspector/scoring/PAIR/EURUSD/USD/GDP/assessment/gdp-features'
-import { gdpSignals, gdpSeriesIds } from '../../inspector/scoring/PAIR/EURUSD/USD/GDP/policy/gdp-policy'
-import { ppiFeatures, supportsPpiScore } from '../../inspector/scoring/PAIR/EURUSD/USD/PPI/assessment/ppi-features'
-import { ppiSignals, ppiSeriesIds } from '../../inspector/scoring/PAIR/EURUSD/USD/PPI/policy/ppi-policy'
-import { gdpSignalSettings, ppiSignalSettings } from '../../inspector/scoring/shared/core/signal-magnitude-settings'
+import { calibrateHistoricalSignal, observedReading, type HistoricalFeature, type TimedReading } from '../../scoring-system/shared/core/historical-release-signals'
 import { magnitudeDistribution } from '../../inspector/magnitude/magnitude-distribution'
-import type { MagnitudeSettings, MagnitudeSettingsStore } from '../../inspector/magnitude/settings/magnitude-settings-store'
 import type { ScatterModel, ScatterPoint, ScatterSignal } from '../contracts/scatter-plot-types'
-import { eurPolicy } from '../../inspector/scoring/PAIR/EURUSD/EUR/policy/eur-policies'
-import { eurMagnitudeStores } from '../../inspector/scoring/PAIR/EURUSD/EUR/policy/eur-magnitude-settings'
-import { eurFeatures } from '../../inspector/scoring/PAIR/EURUSD/EUR/assessment/eur-features'
-import { observedEur, earlierEurSignalReleases } from '../../inspector/scoring/PAIR/EURUSD/EUR/assessment/eur-history'
+import { eurPolicy } from '../../scoring-system/PAIR/EURUSD/EUR/policy/eur-policies'
+import { observedEur, earlierEurSignalReleases } from '../../scoring-system/PAIR/EURUSD/EUR/assessment/eur-history'
+import type { MagnitudeSettings } from '../../inspector/magnitude/settings/magnitude-settings-store'
+import { type ScoringSignalBinding } from '../../scoring-system/scoring-signal-bindings'
+export { scoringSignalBinding, type ScoringSignalBinding } from '../../scoring-system/scoring-signal-bindings'
 
-export type ScoringSignalBinding = {
-  label: string; settings: MagnitudeSettingsStore; seriesIds: readonly string[]
-  signals: readonly { id: string; label: string; description: string; unit: string }[]
-  calibrationClass?: (release: InspectorRelease, history: readonly TimedReading[]) => string
-  currency?: 'EUR' | 'USD'
-  supports: (release: InspectorRelease | null) => boolean
-  features: (release: InspectorRelease, history: readonly TimedReading[]) => Record<string, HistoricalFeature>
-}
-export function scoringSignalBinding(familyId: string): ScoringSignalBinding | null {
-  const eur = eurPolicy(familyId)
-  if (eur) return { label: eur.label, currency: 'EUR', settings: eurMagnitudeStores[eur.family], seriesIds: eur.signals.map(s => s.seriesId),
-    signals: eur.signals, supports: release => !!release && release.familyId === eur.family && release.country === eur.country && release.currency === 'EUR', features: eurFeatures }
-  if (familyId === 'gdp') return { label: 'GDP v1', settings: gdpSignalSettings, seriesIds: gdpSeriesIds, signals: gdpSignals, supports: supportsGdpScore, features: gdpFeatures, calibrationClass: gdpStage }
-  if (familyId === 'ppi') return { label: 'PPI v1', settings: ppiSignalSettings, seriesIds: ppiSeriesIds, signals: ppiSignals, supports: supportsPpiScore, features: ppiFeatures }
-  if (familyId === 'claims') return {
-    label: 'Jobless Claims v2', settings: claimsSignalSettings, seriesIds: claimsSeriesIds,
-    signals: claimsSignals, supports: supportsClaimsScore, features: claimsFeatures,
-  }
-  if (familyId === 'us-cpi') return {
-    label: currentScorerLabels.cpi, settings: cpiSignalSettings, seriesIds: cpiV3SeriesIds,
-    signals: cpiV3Signals.map((signal) => ({ ...signal, unit: 'pp' })), supports: supportsCpiV3, features: cpiV3Features,
-  }
-  if (familyId === 'jobs') return {
-    label: 'NFP v2', settings: nfpSignalSettings, seriesIds: nfpV2SeriesIds,
-    signals: nfpV2Signals, supports: supportsNfpV2, features: (release, history) => nfpV2Features(release, history).features,
-  }
-  if (familyId === 'pce') return {
-    label: 'PCE v1', settings: pceSignalSettings, seriesIds: pceSeriesIds,
-    signals: pceSignals, supports: supportsPceScore, features: pceFeatures,
-  }
-  if (familyId === 'retail') return {
-    label: 'Retail Sales v1', settings: retailSignalSettings, seriesIds: retailSeriesIds,
-    signals: retailSignals, supports: supportsRetailScore, features: retailFeatures,
-  }
-  if (familyId === 'ism-services') return {
-    label: 'ISM Services v3', settings: ismServicesSignalSettings, seriesIds: ismServicesSeriesIds,
-    signals: ismServicesSignals, supports: supportsIsmServicesScore, features: ismServicesFeatures,
-  }
-  if (familyId === 'ism-manufacturing') return {
-    label: 'ISM Manufacturing v3', settings: ismManufacturingSignalSettings, seriesIds: ismManufacturingSeriesIds,
-    signals: ismManufacturingSignals, supports: supportsIsmManufacturing, features: ismManufacturingFeatures,
-  }
-  return null
-}
 export type SignalHistory = { release: InspectorRelease; features: Record<string, HistoricalFeature>; calibrationClass?: string }[]
 // Cache derivation independently of chart selection and boundary edits. Each
 // extractor itself admits only publications preceding its own release.

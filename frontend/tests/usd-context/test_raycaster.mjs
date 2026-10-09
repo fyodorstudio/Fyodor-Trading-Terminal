@@ -31,17 +31,19 @@ const series = {}, chart = { subscribeCrosshairMove: callback => { handler = cal
 const tick = async () => React.act(async () => { for (const [id, callback] of frames) { frames.delete(id); callback() } })
 try {
   const { Raycaster } = await server.ssrLoadModule('./src/raycaster/Raycaster.tsx')
-  const { buildContextTimeline } = await server.ssrLoadModule('./src/usd-context/core/build-context-timeline.ts')
-  const { contextSeriesIds } = await server.ssrLoadModule('./src/usd-context/core/score-publication.ts')
+  const { buildContextTimeline } = await server.ssrLoadModule('./src/scoring-system/context/usd/build-context-timeline.ts')
+  const { contextSeriesIds } = await server.ssrLoadModule('./src/scoring-system/context/usd/score-publication.ts')
   const { FloatingDrawingToolbar } = await server.ssrLoadModule('./src/market-data/chart-drawings/FloatingDrawingToolbar.tsx')
   const { ChartWorkspaceHeader } = await server.ssrLoadModule('./src/terminal-shell/ChartWorkspaceHeader.tsx')
   const { ContextViewControls } = await server.ssrLoadModule('./src/terminal-shell/chart-overlays/ContextViewControls.tsx')
+  const { FundamentalSettingsPanel } = await server.ssrLoadModule('./src/fundamental-tools/ui/FundamentalSettingsPanel.tsx')
+  const { fundamentalSettingsEvent } = await server.ssrLoadModule('./src/fundamental-tools/runtime/settings-navigation.ts')
   const { defaultInspectorPreferences } = await server.ssrLoadModule('./src/inspector/inspector-data.ts')
   const { exportWorkspace, parseWorkspaceSnapshot, restoreWorkspace } = await server.ssrLoadModule('./src/workspace-portability/workspace-snapshot.ts')
   const preference = await server.ssrLoadModule('./src/raycaster/storage/raycaster-preferences.ts')
   const familySettings = await server.ssrLoadModule('./src/raycaster/storage/raycaster-family-settings.ts')
   const sequence = await server.ssrLoadModule('./src/usd-context/sequences/storage/sequence-preferences.ts')
-  const { nfpSignalSettings } = await server.ssrLoadModule('./src/inspector/scoring/shared/core/signal-magnitude-settings.ts')
+  const { nfpSignalSettings } = await server.ssrLoadModule('./src/scoring-system/shared/core/signal-magnitude-settings.ts')
   const events = [...history, ...latestRows]
   globalThis.fetch = async (url, options) => {
     requests.push({ url, signal: options?.signal })
@@ -53,9 +55,18 @@ try {
   const props = { chartApi: chart, seriesApi: series, symbol: 'EURUSD', timeframe: 'H1', brokerId: 'Broker-A',
     brokerOffsetSeconds: 10800, clockOffsetMs: Date.UTC(2018, 7, 1) - Date.now(),
     timeDisplay: { mode: 'utc', utcOffsetMinutes: 0 }, onClose: () => { closed++ } }
-  const render = (next = props) => React.act(async () => root.render(React.createElement(React.Fragment, null,
-    React.createElement(ContextViewControls, { ...next, supported: true, raycasterVisible: next.boxVisible !== false, onToggleRaycaster: next.onClose }),
-    React.createElement(Raycaster, next))))
+  function Harness({next}) {
+    const [open,setOpen] = React.useState(false)
+    React.useEffect(()=>{const show=()=>setOpen(true);window.addEventListener(fundamentalSettingsEvent,show);return()=>window.removeEventListener(fundamentalSettingsEvent,show)},[])
+    return React.createElement(React.Fragment,null,
+      React.createElement(ContextViewControls,{...next,supported:true,settingsActive:open,raycasterVisible:next.boxVisible!==false,onToggleRaycaster:next.onClose}),
+      React.createElement(Raycaster,next),
+      open && React.createElement(FundamentalSettingsPanel,{...next,family:'claims',onFamilyChange(){}}),
+      open && React.createElement('button',{'aria-label':'Close settings dock',onClick:()=>setOpen(false)},'Close dock'))
+  }
+  const render = (next = props) => React.act(async () => root.render(React.createElement(Harness,{next})))
+  const settingsPanel = () => container.querySelector('[aria-label="Fundamental Settings"]')
+  const chooseRaycaster = () => [...settingsPanel().querySelectorAll('[role="tab"]')].find(b=>b.textContent==='Raycaster').click()
   await render()
   assert.equal(workers.length, 1); assert.equal(workers[0].jobs.length, 1)
   assert.match(container.textContent, /Calculating USD context/)
@@ -165,9 +176,10 @@ try {
   assert.equal(workers[0].jobs.length, 1, 'Changing Raycaster view must not launch scoring work')
   const gear = container.querySelector('button[aria-label="Fundamental tools settings"]')
   await React.act(async () => gear.click())
-  const details = container.querySelector('[role="dialog"]')
+  const details = settingsPanel()
   assert.ok(details); assert.equal(gear.getAttribute('aria-expanded'), 'true')
-  assert.equal(document.activeElement, details)
+  await React.act(async()=>chooseRaycaster())
+  assert.equal(container.querySelector('[role="dialog"]'),null)
   assert.equal(details.querySelector('table'), null, 'Fundamental settings contain no calculation tables')
   const detailedBox = container.querySelector('.raycaster-box-detailed')
   const inputRow = name => [...detailedBox.querySelectorAll('.context-input-card')].find(card => card.querySelector('h4').textContent.startsWith(name))
@@ -202,13 +214,13 @@ try {
   assert.equal(container.querySelector('[aria-label="Raycaster view"]').value, 'context-detailed')
   assert.match(container.querySelector('.raycaster-bias').getAttribute('aria-label'), /EURUSD.*(Aligned|Conflicted).*(Long|Short)/)
   assert.equal(workers[0].jobs.length, 1, 'Holding a candle while inspecting details must not rescore')
-  await React.act(async () => details.dispatchEvent(new dom.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })))
+  await React.act(async () => container.querySelector('[aria-label="Close settings dock"]').click())
   assert.equal(container.querySelector('[role="dialog"]'), null)
-  assert.equal(document.activeElement, gear)
   assert.match(container.querySelector('.raycaster-bias').getAttribute('aria-label'), /EURUSD.*(Aligned|Conflicted).*(Long|Short)/, 'Closing settings keeps the last chart reading available for the box controls')
   await React.act(async () => gear.click())
   await React.act(async () => document.body.dispatchEvent(new dom.PointerEvent('pointerdown', { bubbles: true })))
-  assert.equal(container.querySelector('[role="dialog"]'), null)
+  assert.ok(settingsPanel(),'Dock remains open after outside clicks')
+  await React.act(async()=>container.querySelector('[aria-label="Close settings dock"]').click())
   await React.act(async () => handler({ time: open, point: { x: 1, y: 5 }, seriesData: new Map([[series, {}]]) }))
   await tick()
   await React.act(async () => {
@@ -250,7 +262,8 @@ try {
   assert.equal(workers[0].terminated, true)
   assert.match(container.textContent, /Enable an input in Fundamental tools/)
   await React.act(async () => gear.click())
-  const allOff = container.querySelector('[role="dialog"]')
+  const allOff = settingsPanel()
+  await React.act(async()=>chooseRaycaster())
   assert.equal(allOff.querySelector('[aria-label="Use CPI v4.1"]'), null)
   await React.act(async () => allOff.querySelector('[aria-label="Advanced USD input settings"]').click())
   assert.equal(allOff.querySelector('[aria-label="Use CPI v4.1"]').textContent, 'Off')
@@ -263,8 +276,7 @@ try {
   await React.act(async () => workers[3].onmessage({ data: { id: retailJob.id, result: buildContextTimeline(retailJob.input) } }))
   assert.equal(allOff.querySelector('[aria-label="Use Retail Sales v1"]').getAttribute('aria-pressed'), 'true')
   assert.equal(allOff.querySelector('table'), null)
-  await React.act(async () => container.querySelector('[aria-label="Close fundamental tools settings"]').click())
-  assert.equal(document.activeElement, gear)
+  await React.act(async () => container.querySelector('[aria-label="Close settings dock"]').click())
   await React.act(async () => container.querySelector('[aria-label="Hide Raycaster"]').click())
   assert.equal(closed, 1)
   await React.act(async () => root.render(null))

@@ -10,10 +10,10 @@ const calendar = JSON.parse(fs.readFileSync(path.resolve(input), 'utf8').replace
 if (!Array.isArray(calendar.events)) throw new Error('Snapshot requires an events array.')
 const server = await createServer({ root: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'), server: { middlewareMode: true } })
 try {
-  const { assessIsmMonthlyContext, ismMonthlyContextVersion, supportsIsmScore } = await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/ISM/assessment/ism-monthly-context.ts')
-  const { assessIsmServicesScore } = await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/ISM/sectors/services/ism-services-score.ts')
+  const { assessIsmMonthlyContext, ismMonthlyContextVersion, supportsIsmScore } = await server.ssrLoadModule('./src/scoring-system/PAIR/EURUSD/USD/ISM/assessment/ism-monthly-context.ts')
+  const { assessIsmServicesScore } = await server.ssrLoadModule('./src/scoring-system/PAIR/EURUSD/USD/ISM/sectors/services/ism-services-score.ts')
   const { groupInspectorReleases } = await server.ssrLoadModule('./src/inspector/inspector-data.ts')
-  const { observedReading } = await server.ssrLoadModule('./src/inspector/scoring/shared/core/historical-release-signals.ts')
+  const { observedReading } = await server.ssrLoadModule('./src/scoring-system/shared/core/historical-release-signals.ts')
   const { prepareScoringSignalHistory, scoringSignalBinding, scoringSignalModel } = await server.ssrLoadModule('./src/scatter-plot/inspection/scoring-signal-model.ts')
   const chart = Object.fromEntries(['services', 'manufacturing'].map((sector) => {
     const binding = scoringSignalBinding(`ism-${sector}`)

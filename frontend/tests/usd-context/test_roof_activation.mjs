@@ -6,9 +6,9 @@ import { createServer } from 'vite'
 const server = await createServer({ root: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..'), server: { middlewareMode: true, hmr: false } })
 try {
   const load = p => server.ssrLoadModule('./src/' + p + '.ts')
-  const { describeComboActivation } = await load('usd-context/sequences/core/combo-activation')
-  const { buildContextRelationships } = await load('usd-context/sequences/core/build-relationships')
-  const { combineContext } = await load('usd-context/core/combine-context')
+  const { describeComboActivation } = await load('scoring-system/relationships/combo-activation')
+  const { buildContextRelationships } = await load('scoring-system/relationships/build-relationships')
+  const { combineContext } = await load('scoring-system/context/usd/combine-context')
   const { alignRoofMarkers } = await load('usd-context/sequences/chart/roof-marker-alignment')
   const { indexMarkers, projectMarkers } = await load('inspector/chart/marker-projection')
   const at = Date.UTC(2026, 9, 1), day = 86400000

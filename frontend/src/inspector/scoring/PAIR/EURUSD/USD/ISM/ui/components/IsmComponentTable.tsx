@@ -1,7 +1,7 @@
-import type { IsmAnalysis } from '../../runtime/ism-analysis'
+import type { IsmAnalysis } from '../../../../../../../../scoring-system/PAIR/EURUSD/USD/ISM/runtime/ism-analysis'
 import type { InspectorRelease } from '../../../../../../../inspector-data'
 import { sectorLabel, format } from '../presentation'
-import { ismCalendarSource } from '../../assessment/ism-publication-check'
+import { ismCalendarSource } from '../../../../../../../../scoring-system/PAIR/EURUSD/USD/ISM/assessment/ism-publication-check'
 export function IsmComponentTable({ snapshots, loading, timestamp, onOpenScatter }: { snapshots: IsmAnalysis['snapshots']; loading: boolean; timestamp: (at: number | null) => string; onOpenScatter?: (release: InspectorRelease) => void }) {
   return (
     <div className="inspector-table-scroll"><table aria-label={'ISM v3 components'}>

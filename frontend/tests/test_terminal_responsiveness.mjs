@@ -171,8 +171,8 @@ try {
   const { FyodorTerminalShell } = await server.ssrLoadModule('./src/terminal-shell/FyodorTerminalShell.tsx')
   const { ActivityLogProvider } = await server.ssrLoadModule('./src/system-observability/activity-log/activity-log-store.tsx')
   const { useActivityActions } = await server.ssrLoadModule('./src/system-observability/activity-log/use-activity-log.ts')
-  calculate = (await server.ssrLoadModule('./src/usd-context/core/build-context-timeline.ts')).buildContextTimeline
-  calculateCpi = (await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/CPI/runtime/cpi-release-analysis.ts')).calculateCpiRelease
+  calculate = (await server.ssrLoadModule('./src/scoring-system/context/usd/build-context-timeline.ts')).buildContextTimeline
+  calculateCpi = (await server.ssrLoadModule('./src/scoring-system/PAIR/EURUSD/USD/CPI/runtime/cpi-release-analysis.ts')).calculateCpiRelease
   function CommandOnly() {
     count('commandSubscriber')
     const actions = useActivityActions()
@@ -223,6 +223,14 @@ try {
   assert.equal(container.querySelector('.roof-overview-scroll').scrollTop, 87, 'Closing and reopening the dock retains its captured overview')
   assert.equal(workerInputs.length, jobsBeforeRoofs, 'Group opening, detail/back and bottom dock navigation launch no scoring workers')
   await click(button('Roofs'))
+  const settingsJobs = workerInputs.length, settingsRequests = requests.length, settingsCharts = counters.chartCreated
+  await click(container.querySelector('[aria-label="Fundamental tools settings"]'))
+  assert.ok(container.querySelector('[aria-label="Fundamental Settings"]'), 'The production gear opens the settings dock')
+  assert.equal(container.querySelector('[role="dialog"]'), null)
+  assert.equal(workerInputs.length, settingsJobs, 'Opening methodology without a Claims selection does no scoring work')
+  assert.equal(requests.length, settingsRequests, 'Opening methodology does not refetch calendar history')
+  assert.equal(counters.chartCreated, settingsCharts, 'Opening the settings dock preserves the chart instance')
+  await click(button('Fundamental Settings'))
   // Exercise drawing selection, body drag and blank-space deselection through
   // the assembled terminal, including chart navigation and the shared storage.
   const drawing = () => container.querySelector('.drawing-object')
@@ -296,6 +304,12 @@ try {
   })
   assert.equal(container.querySelectorAll('.inspector-panel [aria-label="Context-Aware at Publication Scoring"]').length, 0)
   assert.equal(button('Open publication context in Raycaster'), undefined, 'Inspector has no redundant publication shortcut')
+  const methodJobs = workerInputs.length
+  await click(button('Scoring explanation & settings'))
+  assert.equal(container.querySelector('[aria-label="Scoring family"]').value, 'us-cpi', 'Inspector opens the selected model explanation')
+  assert.equal(container.querySelectorAll('[aria-label="Scoring rules"] tbody tr').length, 4)
+  assert.equal(workerInputs.length, methodJobs, 'Opening the scoring explanation launches no new calculation')
+  await click(button('Inspector'))
   await React.act(async () => {
     const view = container.querySelector('[aria-label="Raycaster view"]')
     view.value = 'context-detailed'; view.dispatchEvent(new dom.Event('change', { bubbles: true }))

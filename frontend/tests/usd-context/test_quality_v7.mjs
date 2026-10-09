@@ -6,11 +6,11 @@ import { createServer } from 'vite'
 const server = await createServer({ root: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..'), server: { middlewareMode: true, hmr: false } })
 try {
   const load = p => server.ssrLoadModule('./src/' + p + '.ts')
-  const { interpretationQuality } = await load('usd-context/core/interpretation-quality')
-  const { combineContext } = await load('usd-context/core/combine-context')
-  const { contextResultLabel, contextResultTone } = await load('usd-context/core/usd-pair')
-  const { relativeContext } = await load('pair-context/core/relative-context')
-  const { eurConfiguredWeight } = await load('pair-context/core/eur-quality')
+  const { interpretationQuality } = await load('scoring-system/context/usd/interpretation-quality')
+  const { combineContext } = await load('scoring-system/context/usd/combine-context')
+  const { contextResultLabel, contextResultTone } = await load('scoring-system/context/usd/usd-pair')
+  const { relativeContext } = await load('scoring-system/context/relative/relative-context')
+  const { eurConfiguredWeight } = await load('scoring-system/context/relative/eur-quality')
   const { buildRibbonTimeline } = await load('raycaster/ribbon/ribbon-timeline')
   const at = Date.UTC(2025, 0, 1), day = 86400000
   const source = (family, total, coverage = 1, patch = {}) => ({ family, sourceId: family, sourceLabel: family, chartAt: at, releaseAt: at,

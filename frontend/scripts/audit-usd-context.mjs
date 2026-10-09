@@ -19,13 +19,13 @@ const server = await createServer({ root, server: { middlewareMode: true, hmr: f
 let timeline, replays, calculationMs, cpiInput, cpiExpected, interactionAudit
 const checked = {}
 try {
-  const { buildContextTimeline } = await server.ssrLoadModule('./src/usd-context/core/build-context-timeline.ts')
-  const { contextAt } = await server.ssrLoadModule('./src/usd-context/core/context-lookup.ts')
-  const { compareCpiPublication } = await server.ssrLoadModule('./src/usd-context/core/publication-comparison.ts')
-  const { calculateCpiRelease } = await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/CPI/runtime/cpi-release-analysis.ts')
+  const { buildContextTimeline } = await server.ssrLoadModule('./src/scoring-system/context/usd/build-context-timeline.ts')
+  const { contextAt } = await server.ssrLoadModule('./src/scoring-system/context/usd/context-lookup.ts')
+  const { compareCpiPublication } = await server.ssrLoadModule('./src/scoring-system/context/usd/publication-comparison.ts')
+  const { calculateCpiRelease } = await server.ssrLoadModule('./src/scoring-system/PAIR/EURUSD/USD/CPI/runtime/cpi-release-analysis.ts')
   const { groupInspectorReleases } = await server.ssrLoadModule('./src/inspector/inspector-data.ts')
-  const { resolveLaborInflationPolicy, laborPriorityGuards } = await server.ssrLoadModule('./src/usd-context/core/interaction/labor-inflation-policy.ts')
-  const { contextPriority, contextVersion } = await server.ssrLoadModule('./src/usd-context/core/policy.ts')
+  const { resolveLaborInflationPolicy, laborPriorityGuards } = await server.ssrLoadModule('./src/scoring-system/context/usd/interaction/labor-inflation-policy.ts')
+  const { contextPriority, contextVersion } = await server.ssrLoadModule('./src/scoring-system/context/usd/policy.ts')
   if (contextVersion !== 'usd-context-memory-v4') throw new Error('This archived audit targets context v4 and its v3 comparison. On the current engine run audit-usd-menu-v5.mjs with the expanded snapshot.')
   const start = performance.now(); timeline = buildContextTimeline(input); calculationMs = performance.now() - start
   const publications = groupInspectorReleases(events).filter(r => input.families.includes(r.familyId))

@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react'
-import { validRoofDisplayId } from '../core/relationship-display'
+import { validRoofDisplayId } from '../../../scoring-system/relationships/relationship-display'
 
 export const sequencePreferencesKey = 'fyodor.context-sequences.v1'
 const changed = sequencePreferencesKey + ':changed'

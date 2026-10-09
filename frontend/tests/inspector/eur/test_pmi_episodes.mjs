@@ -23,7 +23,7 @@ try {
   const { InspectorScoringView } = await load('inspector/scoring/InspectorScoringView.tsx')
   const { ContextDetailed } = await load('raycaster/ui/ContextDetailed.tsx')
   const { inspectorScoringBinding } = await load('inspector/scoring/scoring-registry.ts')
-  const { assessEurScore } = await load('inspector/scoring/PAIR/EURUSD/EUR/assessment/eur-score.ts')
+  const { assessEurScore } = await load('scoring-system/PAIR/EURUSD/EUR/assessment/eur-score.ts')
   const { useInspector } = await load('inspector/useInspector.ts')
   const rows = Array.from({ length: 48 }, (_, month) => [['FR', '250', 15], ['DE', '276', 30], ['EU', '999', 60]].flatMap(([country, prefix, minute]) =>
     [1, 2, 3].map(series => {

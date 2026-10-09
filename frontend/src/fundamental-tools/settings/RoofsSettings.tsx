@@ -1,5 +1,5 @@
 import { saveSequencePreferences, useSequencePreferences } from '../../usd-context/sequences/storage/sequence-preferences'
-import { roofDisplayOptions } from '../../usd-context/sequences/core/relationship-display'
+import { roofDisplayOptions } from '../../scoring-system/relationships/relationship-display'
 import { useState } from 'react'
 
 export function RoofsSettings({ supported }: { supported: boolean }) {

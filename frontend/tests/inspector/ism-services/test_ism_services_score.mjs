@@ -6,7 +6,7 @@ import { createServer } from 'vite'
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')
 const server = await createServer({ root: rootDir, server: { middlewareMode: true } })
 try {
-  const { assessIsmServicesScore, supportsIsmServicesScore, ismServicesSignals, ismServicesSeriesIds, ismServicesScoreVersion } = await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/ISM/sectors/services/ism-services-score.ts')
+  const { assessIsmServicesScore, supportsIsmServicesScore, ismServicesSignals, ismServicesSeriesIds, ismServicesScoreVersion } = await server.ssrLoadModule('./src/scoring-system/PAIR/EURUSD/USD/ISM/sectors/services/ism-services-score.ts')
   const { groupInspectorReleases } = await server.ssrLoadModule('./src/inspector/inspector-data.ts')
   const { scoringSignalBinding, prepareScoringSignalHistory, scoringSignalModel } = await server.ssrLoadModule('./src/scatter-plot/inspection/scoring-signal-model.ts')
   assert.equal(ismServicesScoreVersion, 'ism-services-eurusd-activity-change-v1')

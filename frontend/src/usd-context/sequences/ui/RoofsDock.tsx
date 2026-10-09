@@ -1,5 +1,5 @@
 import type { TimeDisplayPreference } from '../../../appearance/time-display/time-display-preference'
-import type { ComboSnapshot, ComboSource, RoofComboGroup } from '../core/contracts'
+import type { ComboSnapshot, ComboSource, RoofComboGroup } from '../../../scoring-system/relationships/contracts'
 import { ComboInspector } from './ComboInspector'
 import { RoofReleaseOverview } from './RoofReleaseOverview'
 

@@ -15,15 +15,15 @@ const close = (actual, expected, label) => assert.ok(Number.isFinite(actual) && 
 const count = (rows, key) => rows.reduce((result, row) => { const name = key(row); result[name] = (result[name] ?? 0) + 1; return result }, {})
 try {
   const load = p => server.ssrLoadModule('./src/' + p + '.ts')
-  const { buildContextTimeline } = await load('usd-context/core/build-context-timeline')
-  const { contextAt } = await load('usd-context/core/context-lookup')
-  const { contextResultLabel } = await load('usd-context/core/usd-pair')
+  const { buildContextTimeline } = await load('scoring-system/context/usd/build-context-timeline')
+  const { contextAt } = await load('scoring-system/context/usd/context-lookup')
+  const { contextResultLabel } = await load('scoring-system/context/usd/usd-pair')
   const { usdContextPresentation, usdPresentationVersion } = await load('raycaster/core/usd-context-presentation')
-  const { buildEurContextTimeline } = await load('pair-context/core/eur-context-timeline')
-  const { eurContextAt, relativeContext } = await load('pair-context/core/relative-context')
+  const { buildEurContextTimeline } = await load('scoring-system/context/relative/eur-context-timeline')
+  const { eurContextAt, relativeContext } = await load('scoring-system/context/relative/relative-context')
   const { buildRibbonTimeline } = await load('raycaster/ribbon/ribbon-timeline')
-  const { currentScorerLabels } = await load('inspector/scoring/shared/core/current-scoring-versions')
-  const { relationshipVersion } = await load('usd-context/sequences/core/contracts')
+  const { currentScorerLabels } = await load('scoring-system/shared/core/current-scoring-versions')
+  const { relationshipVersion } = await load('scoring-system/relationships/contracts')
   const usd = buildContextTimeline(input.inputUSD), eur = buildEurContextTimeline(input.inputEUR)
   const assessments = new Map(), samples = [], counts = {}, outliers = []
   for (const point of usd.points) {

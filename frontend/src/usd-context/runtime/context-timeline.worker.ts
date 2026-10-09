@@ -1,5 +1,5 @@
-import { buildContextTimeline } from '../core/build-context-timeline'
-import type { ContextInput } from '../core/contracts'
+import { buildContextTimeline } from '../../scoring-system/context/usd/build-context-timeline'
+import type { ContextInput } from '../../scoring-system/context/usd/contracts'
 
 self.onmessage = (event: MessageEvent<{ id: number; input: ContextInput }>) => {
   const { id, input } = event.data

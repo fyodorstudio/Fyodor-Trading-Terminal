@@ -1,8 +1,8 @@
-import { activationLabel, comboActivation, removalReason } from '../core/combo-activation'
-import type { ComboSnapshot } from '../core/contracts'
-import { roofResultLabel } from '../core/relationship-support'
-import { relationshipName } from '../core/relationship-registry'
-import type { RelationshipFamily } from '../core/contracts'
+import { activationLabel, comboActivation, removalReason } from '../../../scoring-system/relationships/combo-activation'
+import type { ComboSnapshot } from '../../../scoring-system/relationships/contracts'
+import { roofResultLabel } from '../../../scoring-system/relationships/relationship-support'
+import { relationshipName } from '../../../scoring-system/relationships/relationship-registry'
+import type { RelationshipFamily } from '../../../scoring-system/relationships/contracts'
 
 const compactNames: Partial<Record<RelationshipFamily, string>> = { claims: 'Claims', retail: 'Retail' }
 const labels = new WeakMap<ComboSnapshot, string>()

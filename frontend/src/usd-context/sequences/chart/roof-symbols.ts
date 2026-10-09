@@ -1,5 +1,5 @@
 import type { EventSymbol } from '../../../inspector/event-symbols'
-import type { ComboSource } from '../core/contracts'
+import type { ComboSource } from '../../../scoring-system/relationships/contracts'
 import { roofRowHeight } from './roof-layout'
 
 export type RoofPublication = { source: ComboSource; symbol: EventSymbol }

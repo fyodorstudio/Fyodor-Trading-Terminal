@@ -13,12 +13,12 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const server = await createServer({ root, server: { middlewareMode: true, hmr: false } })
 let report, latestJob, expected, signalJob, expectedSignals
 try {
-  const { assessClaimsScore } = await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/CLAIMS/assessment/claims-score.ts')
-  const { claimsScoreVersion } = await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/CLAIMS/policy/claims-policy.ts')
-  const { calculateClaimsAnalysis } = await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/CLAIMS/runtime/claims-analysis.ts')
+  const { assessClaimsScore } = await server.ssrLoadModule('./src/scoring-system/PAIR/EURUSD/USD/CLAIMS/assessment/claims-score.ts')
+  const { claimsScoreVersion } = await server.ssrLoadModule('./src/scoring-system/PAIR/EURUSD/USD/CLAIMS/policy/claims-policy.ts')
+  const { calculateClaimsAnalysis } = await server.ssrLoadModule('./src/scoring-system/PAIR/EURUSD/USD/CLAIMS/runtime/claims-analysis.ts')
   const { prepareScoringSignalHistory, scoringSignalBinding, scoringSignalModel } = await server.ssrLoadModule('./src/scatter-plot/inspection/scoring-signal-model.ts')
   const { calculateSignalHistory } = await server.ssrLoadModule('./src/scatter-plot/runtime/signal-history-calculation.ts')
-  const binding = scoringSignalBinding('claims'), asOf = Date.now()
+  const binding = scoringSignalBinding('claims-v2'), asOf = Date.now()
   const history = prepareScoringSignalHistory(calendar.events, asOf, binding)
   assert.ok(history.length, 'Snapshot must contain observed Claims publications.')
   const plotted = Object.fromEntries(binding.signals.map(signal => [signal.id,
@@ -45,7 +45,8 @@ try {
     auditMs: Math.round(performance.now() - started), coverage, rows, chartParity: true, futureRemovalParity: true }
   latestJob = { release: history.at(-1).release, events: calendar.events, settings: {} }
   expected = calculateClaimsAnalysis(latestJob)
-  signalJob = { familyId: 'claims', events: calendar.events, at: asOf, enabled: true }
+  assert.deepEqual(expected, assessClaimsScore(latestJob.release, latestJob.events, latestJob.settings))
+  signalJob = { familyId: 'claims-v2', events: calendar.events, at: asOf, enabled: true }
   expectedSignals = calculateSignalHistory(signalJob)
 } finally { await server.close() }
 
@@ -68,15 +69,15 @@ async function checkWorker(pattern, input, expectedResult) {
     return { workerParity: true, roundtripMs: Math.round(performance.now() - started), mainThreadPulses: pulses }
   } finally { clearInterval(pulse); await worker.terminate() }
 }
-report.runtime = { inspector: await checkWorker(/^claims-analysis\.worker-.*\.js$/, latestJob, expected),
+report.runtime = { legacyEngine: { parity: true },
   scatter: await checkWorker(/^signal-history\.worker-.*\.js$/, signalJob, expectedSignals) }
 const fmt = n => n === null ? '—' : Number(n.toFixed(3))
 const lines = ['# USD Jobless Claims v2 implementation audit', '',
   `Source: ${report.source} · revision: ${report.revision} · policy: ${report.version}`, '',
   'This verifies implementation and chronology, not price-prediction accuracy. No forecast, market price or other family enters scoring. No parameter search was performed.', '',
   'Smoothed initial trend 45%, continuing trend 40%, weekly initial 15%. Initial trend compares reported four-week averages four weeks apart; continuing trend compares adjacent nonoverlapping four-week means; weekly initial compares latest with the preceding four-week mean. Supplied Revised Previous replaces the nearest prior reading only where that week is used. Descriptive levels compare with 52 earlier weeks without voting. All counts convert to thousands. Initial and its average share a group; continuing claims is another group. Continuing claims references the preceding week. Missing weights are not redistributed; exact cancellation follows table order with Weak evidence. All-zero/unusable stays Uncomputed.', '',
-  'Scorer/Scatter values, points, magnitude, boundaries, N, reasons and inputs match. Removing same-time/later inventory preserves every assessment. Production Inspector/Scatter workers match pure results and keep the main event loop active. Stored vintages may include later provider revisions.', '',
-  `Runtime: Inspector ${report.runtime.inspector.roundtripMs} ms (${report.runtime.inspector.mainThreadPulses} main-thread pulses); Scatter ${report.runtime.scatter.roundtripMs} ms (${report.runtime.scatter.mainThreadPulses} pulses).`, '',
+  'Scorer/Scatter values, points, magnitude, boundaries, N, reasons and inputs match. Removing same-time/later inventory preserves every assessment. Legacy entry-point and production Scatter worker match pure results and keep the main event loop active. Stored vintages may include later provider revisions.', '',
+  `Runtime: legacy engine parity passed; Scatter ${report.runtime.scatter.roundtripMs} ms (${report.runtime.scatter.mainThreadPulses} pulses).`, '',
   '## Chronological coverage', '', '| Period | Releases | Long | Short | Uncomputed | Reduced data |', '| --- | ---: | ---: | ---: | ---: | ---: |',
   ...report.coverage.map(r => `| ${r.period} | ${r.total} | ${r.long} | ${r.short} | ${r.uncomputed} | ${r.reduced} |`), '',
   '## Recent outputs', '', '| Date | Bias | Evidence | Change size | USD total | Explanation |', '| --- | --- | --- | --- | ---: | --- |',

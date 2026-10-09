@@ -1,6 +1,6 @@
 import { formatAppTimestamp, type TimeDisplayPreference } from '../../../appearance/time-display/time-display-preference'
-import { contextPairLabel } from '../../core/usd-pair'
-import type { ComboSnapshot, ComboSource } from '../core/contracts'
+import { contextPairLabel } from '../../../scoring-system/context/usd/usd-pair'
+import type { ComboSnapshot, ComboSource } from '../../../scoring-system/relationships/contracts'
 import './combo-release-table.css'
 
 export function ComboReleaseTable({ combo, symbol, timeDisplay, onOpenRelease }: {

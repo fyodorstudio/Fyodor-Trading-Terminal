@@ -1,6 +1,6 @@
 import type { MagnitudeDistribution } from '../../inspector/magnitude/magnitude-distribution'
 import type { MagnitudeMode } from '../../inspector/magnitude/settings/magnitude-settings-store'
-import type { calibrateHistoricalSignal } from '../../inspector/scoring/shared/core/historical-release-signals'
+import type { calibrateHistoricalSignal } from '../../scoring-system/shared/core/historical-release-signals'
 
 export type ScatterSignal = ReturnType<typeof calibrateHistoricalSignal> & { description: string }
 

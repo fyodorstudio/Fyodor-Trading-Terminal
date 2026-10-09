@@ -12,15 +12,15 @@ const server = await createServer({root,server:{middlewareMode:true,hmr:false}})
 let report, timelineInput, expectedTimeline, latestJobs = []
 try {
   const load = p => server.ssrLoadModule('./src/'+p)
-  const { assessGdpScore } = await load('inspector/scoring/PAIR/EURUSD/USD/GDP/assessment/gdp-score.ts')
-  const { assessPpiScore } = await load('inspector/scoring/PAIR/EURUSD/USD/PPI/assessment/ppi-score.ts')
-  const { assessFedScore, fedSeriesIds } = await load('inspector/scoring/PAIR/EURUSD/USD/FED/assessment/fed-score.ts')
+  const { assessGdpScore } = await load('scoring-system/PAIR/EURUSD/USD/GDP/assessment/gdp-score.ts')
+  const { assessPpiScore } = await load('scoring-system/PAIR/EURUSD/USD/PPI/assessment/ppi-score.ts')
+  const { assessFedScore, fedSeriesIds } = await load('scoring-system/PAIR/EURUSD/USD/FED/assessment/fed-score.ts')
   const { groupInspectorReleases } = await load('inspector/inspector-data.ts')
   const { scoringSignalBinding,prepareScoringSignalHistory,scoringSignalModel } = await load('scatter-plot/inspection/scoring-signal-model.ts')
-  const { buildContextTimeline } = await load('usd-context/core/build-context-timeline.ts')
-  const { contextAt } = await load('usd-context/core/context-lookup.ts')
-  const { contextPriority,contextSourceFamilies,contextWeights } = await load('usd-context/core/policy.ts')
-  const { contextSeriesIds } = await load('usd-context/core/score-publication.ts')
+  const { buildContextTimeline } = await load('scoring-system/context/usd/build-context-timeline.ts')
+  const { contextAt } = await load('scoring-system/context/usd/context-lookup.ts')
+  const { contextPriority,contextSourceFamilies,contextWeights } = await load('scoring-system/context/usd/policy.ts')
+  const { contextSeriesIds } = await load('scoring-system/context/usd/score-publication.ts')
   const asOf = Date.UTC(2026,9,7), events = data.events.filter(e=>[...contextSeriesIds,...fedSeriesIds].includes(e.event_id) && e.release_at<=asOf)
   const families = {}
   for(const [family, assess] of [['gdp',assessGdpScore],['ppi',assessPpiScore]]) {

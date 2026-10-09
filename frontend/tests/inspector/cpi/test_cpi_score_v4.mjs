@@ -6,11 +6,11 @@ import { history, latestRows, families, settings } from '../../usd-context/fixtu
 
 const server = await createServer({ root: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..'), server: { middlewareMode: true, hmr: false } })
 try {
-  const { buildContextTimeline } = await server.ssrLoadModule('./src/usd-context/core/build-context-timeline.ts')
-  const { compareCpiPublication } = await server.ssrLoadModule('./src/usd-context/core/publication-comparison.ts')
-  const { contextAt } = await server.ssrLoadModule('./src/usd-context/core/context-lookup.ts')
-  const { calculateCpiRelease } = await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/CPI/runtime/cpi-release-analysis.ts')
-  const { assessCpiScoreV3 } = await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/CPI/assessment/cpi-score-v3.ts')
+  const { buildContextTimeline } = await server.ssrLoadModule('./src/scoring-system/context/usd/build-context-timeline.ts')
+  const { compareCpiPublication } = await server.ssrLoadModule('./src/scoring-system/context/usd/publication-comparison.ts')
+  const { contextAt } = await server.ssrLoadModule('./src/scoring-system/context/usd/context-lookup.ts')
+  const { calculateCpiRelease } = await server.ssrLoadModule('./src/scoring-system/PAIR/EURUSD/USD/CPI/runtime/cpi-release-analysis.ts')
+  const { assessCpiScoreV3 } = await server.ssrLoadModule('./src/scoring-system/PAIR/EURUSD/USD/CPI/assessment/cpi-score-v3.ts')
   const { groupInspectorReleases } = await server.ssrLoadModule('./src/inspector/inspector-data.ts')
   const events = [...history, ...latestRows], now = Date.UTC(2018, 7, 1)
   const release = groupInspectorReleases(latestRows).find(r => r.familyId === 'us-cpi')

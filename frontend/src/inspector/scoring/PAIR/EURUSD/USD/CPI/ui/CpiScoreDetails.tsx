@@ -1,7 +1,6 @@
 import { memo } from 'react'
-import { SignalCalibration } from '../../../../../shared/ui/SignalCalibration'
-import { ScoringSection, ScoringNotes } from '../../../../../shared/ui/ScoringSection'
-import type { assessCpiScoreV3 } from '../assessment/cpi-score-v3'
+import { ScoringSection } from '../../../../../shared/ui/ScoringSection'
+import type { assessCpiScoreV3 } from '../../../../../../../scoring-system/PAIR/EURUSD/USD/CPI/assessment/cpi-score-v3'
 
 import { formatScore as format } from '../../../../../shared/ui/format-score'
 export type CpiAssessment = NonNullable<ReturnType<typeof assessCpiScoreV3>>
@@ -25,12 +24,8 @@ function CpiScoreDetailsComponent({ assessment, loading = false, coverageMissing
         <tfoot><tr><td colSpan={4}>USD score {loading ? '—' : format(assessment.total)} · Positive → EURUSD Short · Negative → EURUSD Long</td></tr>
           {!loading && assessment.tieBreak && <tr><td colSpan={4}>Tie-break: {assessment.tieBreak.label} · weak evidence</td></tr>}</tfoot>
       </table></div></ScoringSection>
-      <ScoringSection title="How this scorer works" collapsible><ScoringNotes items={[
-        { label: 'Voting rules', content: <>The latest core pace gets the first vote: is it hotter or cooler than the preceding three months? The rolling core trend and annual core change support it. Headline has a smaller vote. Inflation levels do not automatically add a directional vote.</> },
-        { label: 'Evidence & change size', content: <>Conflicting readings still produce one weighted bias. Evidence strength describes agreement; the overlapping core monthly signals count as one group when assessing confirmation. Change size describes the average historical magnitude of usable signals, separately from agreement. Neither describes a probability or size of a price move.</> },
-        { label: 'History & tie-break', content: <>Magnitude points (0–4) use each component’s earlier history since January 2015, with at least 24 usable observations. Weights remain 35 / 35 / 20 / 10. Exact cancellation follows latest core pace, core trend, annual core, then headline. The two core monthly signals overlap and are related.</> }
-      ]} /></ScoringSection>
-    <SignalCalibration readings={assessment.readings} unit="pp" label="CPI signal calibration" />
+
+
       {coverageMissing && <p>Partial calendar history; calibration uses the available observations.</p>}
     </div>
   )

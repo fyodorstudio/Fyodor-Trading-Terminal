@@ -1,14 +1,14 @@
 import { useMemo } from 'react'
 import type { InspectorEvent, InspectorRelease } from '../../../../../../inspector-data'
-import { cpiSignalSettings } from '../../../../../shared/core/signal-magnitude-settings'
+import { cpiSignalSettings } from '../../../../../../../scoring-system/shared/core/signal-magnitude-settings'
 import { useBackgroundCalculation } from '../../../../../shared/runtime/useBackgroundCalculation'
 import { useUsdContextTimeline } from '../../../../../../../usd-context/runtime/useUsdContextTimeline'
 import { useContextFamilies } from '../../../../../../../usd-context/storage/context-family-settings'
-import { contextSourceFamilies } from '../../../../../../../usd-context/core/policy'
-import { compareCpiPublication } from '../../../../../../../usd-context/core/publication-comparison'
-import { calculateCpiRelease } from './cpi-release-analysis'
+import { contextSourceFamilies } from '../../../../../../../scoring-system/context/usd/policy'
+import { compareCpiPublication } from '../../../../../../../scoring-system/context/usd/publication-comparison'
+import { calculateCpiRelease } from '../../../../../../../scoring-system/PAIR/EURUSD/USD/CPI/runtime/cpi-release-analysis'
 
-const createWorker = () => new Worker(new URL('./cpi-release.worker.ts', import.meta.url), { type: 'module' })
+const createWorker = () => new Worker(new URL('../../../../../../../scoring-system/PAIR/EURUSD/USD/CPI/runtime/cpi-release.worker.ts', import.meta.url), { type: 'module' })
 export function useCpiV4Analysis(release: InspectorRelease, brokerId: string | null, events: readonly InspectorEvent[], now: number) {
   const families = useContextFamilies()
   const sourceFamilies = useMemo(() => contextSourceFamilies(families), [families])

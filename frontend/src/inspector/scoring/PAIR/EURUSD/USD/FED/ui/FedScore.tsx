@@ -1,6 +1,6 @@
 import '../../../../../shared/ui/release-score.css'
 import type { InspectorScoringProps } from '../../../../../scoring-contracts'
-import { assessFedScore } from '../assessment/fed-score'
+import { assessFedScore } from '../../../../../../../scoring-system/PAIR/EURUSD/USD/FED/assessment/fed-score'
 import { FedDecisionContext } from './FedDecisionContext'
 import { FedRateAction } from './FedRateAction'
 import { PublicationScoringLayout } from '../../../../../shared/ui/PublicationScoringLayout'

@@ -1,5 +1,5 @@
-import type { FreshPoint } from '../core/contracts'
-import { contextResultLabel } from '../../core/usd-pair'
+import type { FreshPoint } from '../../../scoring-system/relationships/contracts'
+import { contextResultLabel } from '../../../scoring-system/context/usd/usd-pair'
 
 export function FreshNewsSummary({ point, symbol }: { point: FreshPoint | null; symbol: string }) {
   return <section className="raycaster-section" aria-label="Experimental fresh news">

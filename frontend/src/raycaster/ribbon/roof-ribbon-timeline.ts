@@ -1,7 +1,7 @@
-import type { ContextTimeline } from '../../usd-context/core/contracts'
-import { contextAt } from '../../usd-context/core/context-lookup'
-import type { ComboSnapshot } from '../../usd-context/sequences/core/contracts'
-import { buildRelationshipTimeline } from '../../usd-context/sequences/core/relationship-timeline'
+import type { ContextTimeline } from '../../scoring-system/context/usd/contracts'
+import { contextAt } from '../../scoring-system/context/usd/context-lookup'
+import type { ComboSnapshot } from '../../scoring-system/relationships/contracts'
+import { buildRelationshipTimeline } from '../../scoring-system/relationships/relationship-timeline'
 import type { RibbonPoint } from './ribbon-timeline'
 
 type Projection = { current: boolean; points: readonly RibbonPoint[] }

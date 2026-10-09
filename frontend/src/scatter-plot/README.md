@@ -1,3 +1,15 @@
+# Current Claims scoring signals — 9 October 2026
+
+Claims scoring-signal mode follows Inspector's selected v3 assessment: two weekly
+change signals or two separate four-week trend signals. Each view uses its own
+magnitude settings and the shared feature extractor in `../scoring-system/`.
+Raw A−P tables and calibration remain separate. Claims v2 is retained for context
+and historical audits, with explicit `claims-v2` bindings.
+
+The gear's Fundamental Settings dock owns the canonical model explanations and
+settings. Scatter retains its inspection/preview/Apply workflow. The dated
+sections below describe implementation history.
+
 # Scatter Plot
 
 Bottom dock for EURUSD / EUR Base or USD Quote, with all 19 numeric filterable
@@ -188,6 +200,6 @@ both plotted values and standalone scoring; automatic cutoffs use strictly earli
 signals with the 24-observation gate. `CLAIMS-V1-SIGNALS` provides independent,
 portable custom boundaries and the existing preview/Apply/reset workflow.
 
-## Active Jobless Claims v2 signals
+## Historical Jobless Claims v2 signals
 
 The same three component selectors now show the V2 features: initial trend between nonoverlapping reported four-week averages, continuing trend between adjacent four-week means, and weekly initial versus its prior four-week mean. Inspector, Scatter and Raycaster use identical feature extraction and earlier-only calibration. The new `CLAIMS-V2-SIGNALS` key prevents old custom cutoffs from silently grading changed formulas; V1 settings remain exportable/importable as legacy data. Raw A−P magnitude settings are unchanged. The non-voting 52-week level comparison appears in Inspector rather than as a fourth scorer input.

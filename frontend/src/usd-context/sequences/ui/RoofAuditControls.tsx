@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react'
-import type { ComboSnapshot } from '../core/contracts'
+import type { ComboSnapshot } from '../../../scoring-system/relationships/contracts'
 import { auditWindows, auditVerdicts, roofAuditScope, sameRoofAudit } from '../audit/audit-model'
 import { useRoofAudits, saveRoofObservation } from '../audit/audit-storage'
-import type { RelationshipSupport } from '../core/relationship-support'
-import { roofSupport } from '../core/relationship-support'
+import type { RelationshipSupport } from '../../../scoring-system/relationships/relationship-support'
+import { roofSupport } from '../../../scoring-system/relationships/relationship-support'
 import { useDisplayClock } from '../../../appearance/time-display/useDisplayClock'
 
 export function RoofAuditControls({ combo, symbol, broker, support }: { combo: ComboSnapshot; symbol: string; broker: string | null; support?: RelationshipSupport }) {

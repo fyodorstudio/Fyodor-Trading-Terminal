@@ -6,9 +6,9 @@ import { createServer } from 'vite'
 const server = await createServer({ root: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..'), server: { middlewareMode: true, hmr: false } })
 try {
   const load = p => server.ssrLoadModule('./src/' + p)
-  const { combineContext } = await load('usd-context/core/combine-context.ts')
-  const { buildRelationshipTimeline } = await load('usd-context/sequences/core/relationship-timeline.ts')
-  const { roofSupport } = await load('usd-context/sequences/core/relationship-support.ts')
+  const { combineContext } = await load('scoring-system/context/usd/combine-context.ts')
+  const { buildRelationshipTimeline } = await load('scoring-system/relationships/relationship-timeline.ts')
+  const { roofSupport } = await load('scoring-system/relationships/relationship-support.ts')
   const { buildRoofRibbonTimeline } = await load('raycaster/ribbon/roof-ribbon-timeline.ts')
   const { ribbonIndex } = await load('raycaster/ribbon/ribbon-timeline.ts')
   const { roofAuditScope } = await load('usd-context/sequences/audit/audit-model.ts')

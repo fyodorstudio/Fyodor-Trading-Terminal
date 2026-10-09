@@ -2,8 +2,8 @@ import { useMemo } from 'react'
 import type { InspectorEvent, InspectorRelease } from '../../inspector/inspector-data'
 import { useContextFamilies } from '../storage/context-family-settings'
 import { useUsdContextTimeline } from './useUsdContextTimeline'
-import { contextSourceFamilies } from '../core/policy'
-import { contextAt } from '../core/context-lookup'
+import { contextSourceFamilies } from '../../scoring-system/context/usd/policy'
+import { contextAt } from '../../scoring-system/context/usd/context-lookup'
 
 const empty: readonly InspectorEvent[] = []
 export function usePublicationContext(release: InspectorRelease, brokerId: string | null = null,

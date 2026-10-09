@@ -1,6 +1,5 @@
-import { SignalCalibration } from '../../../../../shared/ui/SignalCalibration'
-import { ScoringSection, ScoringNotes } from '../../../../../shared/ui/ScoringSection'
-import type { RetailAssessment } from '../assessment/retail-score'
+import { ScoringSection } from '../../../../../shared/ui/ScoringSection'
+import type { RetailAssessment } from '../../../../../../../scoring-system/PAIR/EURUSD/USD/RETAIL/assessment/retail-score'
 
 import { formatScore as format } from '../../../../../shared/ui/format-score'
 export function RetailScoreDetails({ assessment }: { assessment: RetailAssessment }) {
@@ -23,12 +22,8 @@ export function RetailScoreDetails({ assessment }: { assessment: RetailAssessmen
         {assessment.tieBreak && <tr><td colSpan={4}>Tie-break: {assessment.tieBreak.label} · weak evidence</td></tr>}</tfoot>
     </table></div></ScoringSection>
     <ScoringSection title="Supporting context" collapsible><ul aria-label="Retail Sales spending context">{assessment.supporting.map(row => <li key={row.id}>{row.label}: {row.text}</li>)}</ul></ScoringSection>
-    <ScoringSection title="How this scorer works" collapsible><ScoringNotes items={[
-        { label: 'Voting rules & revisions', content: <>Control-group pace has 60% of the vote, sales excluding autos and gas 25%, headline pace 15%. Each compares the latest monthly growth reading with the preceding three-month average. A supplied Revised Previous replaces the nearest month in that average. The comparison average is floored at zero so smaller sales losses still count as falling sales. Revisions affect the comparison, without a separate revision vote.</> },
-        { label: 'Evidence groups', content: <>Control-group pace is one evidence group. Ex-autos-and-gas and headline share a breadth group. These sales aggregates overlap: evidence describes agreement, not independent confirmation or price probabilities. Core retail (ex autos) and annual headline sales provide context without extra votes.</> },
-        { label: 'History & tie-break', content: <>Each component needs 24 earlier usable signals since January 2015. At least one calibrated control-group or ex-autos-and-gas component is required. Exact cancellation follows table order with weak evidence. All-zero or unavailable evidence stays Uncomputed.</> }
-      ]} /></ScoringSection>
-    <SignalCalibration readings={assessment.readings} unit="pp" label="Retail Sales signal calibration" />
+
+
     <p>Retail sales measure nominal spending, not inflation-adjusted volume.</p>
   </>
 }

@@ -1,7 +1,7 @@
-import type { compareCpiPublication } from '../../../../../../../../usd-context/core/publication-comparison'
+import type { compareCpiPublication } from '../../../../../../../../scoring-system/context/usd/publication-comparison'
 import type { ReactNode } from 'react'
-import type { ContextFamily } from '../../../../../../../../usd-context/core/contracts'
-import { contextResultLabel, contextResultTone } from '../../../../../../../../usd-context/core/usd-pair'
+import type { ContextFamily } from '../../../../../../../../scoring-system/context/usd/contracts'
+import { contextResultLabel, contextResultTone } from '../../../../../../../../scoring-system/context/usd/usd-pair'
 import { ScoringSection } from '../../../../../../shared/ui/ScoringSection'
 
 export function CpiContextComparison({ comparison, loading, error, families, controls }: {

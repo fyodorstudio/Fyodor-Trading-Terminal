@@ -1,16 +1,16 @@
 import { useMemo } from 'react'
 import type { InspectorScoringProps } from '../../../../../scoring-contracts'
 import { useStoredCalendar } from '../../../../../../useStoredCalendar'
-import { signalHistoryStart } from '../../../../../shared/core/historical-release-signals'
-import { retailSignalSettings } from '../../../../../shared/core/signal-magnitude-settings'
+import { signalHistoryStart } from '../../../../../../../scoring-system/shared/core/historical-release-signals'
+import { retailSignalSettings } from '../../../../../../../scoring-system/shared/core/signal-magnitude-settings'
 import { useBackgroundCalculation } from '../../../../../shared/runtime/useBackgroundCalculation'
-import { retailSeriesIds } from '../policy/retail-policy'
-import { supportsRetailScore } from '../assessment/retail-features'
-import { calculateRetailAnalysis } from './retail-analysis'
+import { retailSeriesIds } from '../../../../../../../scoring-system/PAIR/EURUSD/USD/RETAIL/policy/retail-policy'
+import { supportsRetailScore } from '../../../../../../../scoring-system/PAIR/EURUSD/USD/RETAIL/assessment/retail-features'
+import { calculateRetailAnalysis } from '../../../../../../../scoring-system/PAIR/EURUSD/USD/RETAIL/runtime/retail-analysis'
 
 const scope = { currency: 'USD' as const, eventIds: retailSeriesIds }
 const emptyEvents: NonNullable<InspectorScoringProps['events']> = []
-const createWorker = () => new Worker(new URL('./retail-analysis.worker.ts', import.meta.url), { type: 'module' })
+const createWorker = () => new Worker(new URL('../../../../../../../scoring-system/PAIR/EURUSD/USD/RETAIL/runtime/retail-analysis.worker.ts', import.meta.url), { type: 'module' })
 
 export function useRetailAnalysis({ release, brokerId, events = emptyEvents }: InspectorScoringProps) {
   const at = release?.releaseAt ?? null

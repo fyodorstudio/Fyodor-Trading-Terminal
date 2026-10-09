@@ -1,9 +1,9 @@
 import { useId } from 'react'
-import type { ContextFamily, ContextResult, Evidence } from '../core/contracts'
-import { contextPriority, contextScorers, contextWeights } from '../core/policy'
-import { contextPairLabel } from '../core/usd-pair'
+import type { ContextFamily, ContextResult, Evidence } from '../../scoring-system/context/usd/contracts'
+import { contextPriority, contextScorers, contextWeights } from '../../scoring-system/context/usd/policy'
+import { contextPairLabel } from '../../scoring-system/context/usd/usd-pair'
 import { formatAppTimestamp, type TimeDisplayPreference } from '../../appearance/time-display/time-display-preference'
-import { cpiStandaloneVersionLabel } from '../../inspector/scoring/shared/core/current-scoring-versions'
+import { cpiStandaloneVersionLabel } from '../../scoring-system/shared/core/current-scoring-versions'
 import { formatScore as score } from '../../inspector/scoring/shared/ui/format-score'
 import './context-input-cards.css'
 

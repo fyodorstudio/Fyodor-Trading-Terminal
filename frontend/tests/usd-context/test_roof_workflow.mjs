@@ -22,7 +22,7 @@ try {
   const { roofAuditScope, sameRoofAudit, validRoofAudits } = await load('usd-context/sequences/audit/audit-model.ts')
   const audit = await load('usd-context/sequences/audit/audit-storage.ts')
   const workspace = await load('workspace-portability/workspace-snapshot.ts')
-  const { combineContext } = await load('usd-context/core/combine-context.ts')
+  const { combineContext } = await load('scoring-system/context/usd/combine-context.ts')
   const at = Date.UTC(2025, 1, 28, 15, 30)
   const source = (family, total, chartAt) => ({ family, total, chartAt, releaseAt: chartAt, sourceId: family, sourceLabel: family,
     usdDirection: total < 0 ? 'weaker' : 'stronger', strength: 'moderate', reduced: false, tie: false, coverage: 1, reason: '', explanation: '', changeSize: null })

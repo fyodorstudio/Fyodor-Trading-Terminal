@@ -13,17 +13,17 @@ const snapshot = JSON.parse(fs.readFileSync(path.resolve(snapshotFile), 'utf8'))
 const asOf = Date.parse(asOfDay + 'T23:59:59.999Z')
 assert.ok(Number.isFinite(asOf))
 const referenceName = `.sequence-reference-${process.pid}.ts`
-const referencePath = path.join(root, 'src/usd-context/core', referenceName)
-const reference = execFileSync('git', ['show', 'HEAD:frontend/src/usd-context/core/build-context-timeline.ts'], { cwd: root, encoding: 'utf8' })
+const referencePath = path.join(root, 'src/scoring-system/context/usd', referenceName)
+const reference = execFileSync('git', ['show', 'HEAD:frontend/src/scoring-system/context/usd/build-context-timeline.ts'], { cwd: root, encoding: 'utf8' })
 // Exclusive creation and exact-file cleanup leave the shared checkout intact.
 fs.writeFileSync(referencePath, reference, { encoding: 'utf8', flag: 'wx' })
 const server = await createServer({ root, server: { middlewareMode: true, hmr: false } })
 try {
   const load = p => server.ssrLoadModule('./src/' + p)
-  const { buildContextTimeline } = await load('usd-context/core/build-context-timeline.ts')
-  const { buildContextTimeline: referenceTimeline } = await load('usd-context/core/' + referenceName)
-  const { contextPriority, contextSourceFamilies } = await load('usd-context/core/policy.ts')
-  const { lookupFreshNews } = await load('usd-context/sequences/core/fresh-news.ts')
+  const { buildContextTimeline } = await load('scoring-system/context/usd/build-context-timeline.ts')
+  const { buildContextTimeline: referenceTimeline } = await load('scoring-system/context/usd/' + referenceName)
+  const { contextPriority, contextSourceFamilies } = await load('scoring-system/context/usd/policy.ts')
+  const { lookupFreshNews } = await load('scoring-system/relationships/fresh-news.ts')
   const settings = { cpi: {}, nfp: {}, claims: {}, services: {}, manufacturing: {}, retail: {}, pce: {}, ppi: {}, gdp: {} }
   const input = { events: snapshot.events, settings, families: contextSourceFamilies(contextPriority), asOf }
   const timeline = buildContextTimeline(input), original = referenceTimeline(input)

@@ -1,10 +1,10 @@
 import { useMemo } from 'react'
 import { useStoredCalendar } from '../../inspector/useStoredCalendar'
 import { calendarAdmissionTime } from '../../inspector/storage/calendar-admission-time'
-import { cpiSignalSettings, nfpSignalSettings, ismServicesSignalSettings, ismManufacturingSignalSettings, retailSignalSettings, claimsSignalSettings, pceSignalSettings, ppiSignalSettings, gdpSignalSettings } from '../../inspector/scoring/shared/core/signal-magnitude-settings'
+import { cpiSignalSettings, nfpSignalSettings, ismServicesSignalSettings, ismManufacturingSignalSettings, retailSignalSettings, claimsSignalSettings, pceSignalSettings, ppiSignalSettings, gdpSignalSettings } from '../../scoring-system/shared/core/signal-magnitude-settings'
 import { useSharedContextCalculation } from './useSharedContextCalculation'
-import { contextSeriesIds } from '../core/score-publication'
-import { enabledContextFamilies } from '../core/policy'
+import { contextSeriesIds } from '../../scoring-system/context/usd/score-publication'
+import { enabledContextFamilies } from '../../scoring-system/context/usd/policy'
 import type { InspectorEvent } from '../../inspector/inspector-data'
 
 const scope = { currency: 'USD' as const, eventIds: contextSeriesIds }

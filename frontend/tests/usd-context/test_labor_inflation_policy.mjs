@@ -8,15 +8,15 @@ import { history, latestRows, families, settings } from './fixtures.mjs'
 
 const server = await createServer({ root: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..'), server: { middlewareMode: true, hmr: false } })
 try {
-  const { combineContext } = await server.ssrLoadModule('./src/usd-context/core/combine-context.ts')
-  const { buildContextTimeline } = await server.ssrLoadModule('./src/usd-context/core/build-context-timeline.ts')
-  const { contextAt } = await server.ssrLoadModule('./src/usd-context/core/context-lookup.ts')
-  const { compareCpiPublication } = await server.ssrLoadModule('./src/usd-context/core/publication-comparison.ts')
+  const { combineContext } = await server.ssrLoadModule('./src/scoring-system/context/usd/combine-context.ts')
+  const { buildContextTimeline } = await server.ssrLoadModule('./src/scoring-system/context/usd/build-context-timeline.ts')
+  const { contextAt } = await server.ssrLoadModule('./src/scoring-system/context/usd/context-lookup.ts')
+  const { compareCpiPublication } = await server.ssrLoadModule('./src/scoring-system/context/usd/publication-comparison.ts')
   const { groupInspectorReleases } = await server.ssrLoadModule('./src/inspector/inspector-data.ts')
-  const { contextWeights, contextExpiryMs } = await server.ssrLoadModule('./src/usd-context/core/policy.ts')
+  const { contextWeights, contextExpiryMs } = await server.ssrLoadModule('./src/scoring-system/context/usd/policy.ts')
   const { ContextInputTable } = await server.ssrLoadModule('./src/usd-context/ui/ContextInputTable.tsx')
   const { ContextPolicyDetails } = await server.ssrLoadModule('./src/usd-context/ui/ContextPolicyDetails.tsx')
-  const { resolveLaborInflationPolicy } = await server.ssrLoadModule('./src/usd-context/core/interaction/labor-inflation-policy.ts')
+  const { resolveLaborInflationPolicy } = await server.ssrLoadModule('./src/scoring-system/context/usd/interaction/labor-inflation-policy.ts')
   const source = (family, total, patch = {}) => ({ family, sourceId: family, sourceLabel: family,
     chartAt: 1, releaseAt: 1, total, usdDirection: total > 0 ? 'stronger' : 'weaker', strength: 'strong',
     reduced: false, tie: false, explanation: '', reason: '', changeSize: 'Noticeable change', ...patch })

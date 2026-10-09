@@ -1,6 +1,6 @@
 import { memo } from 'react'
-import { contextNames, contextPriority, contextWeights } from '../core/policy'
-import type { ContextPolicy } from '../core/contracts'
+import { contextNames, contextPriority, contextWeights } from '../../scoring-system/context/usd/policy'
+import type { ContextPolicy } from '../../scoring-system/context/usd/contracts'
 import { ScoringNotes } from '../../inspector/scoring/shared/ui/ScoringSection'
 
 function ContextPolicyDetailsComponent({ policy }: { policy: ContextPolicy | undefined }) {

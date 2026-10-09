@@ -18,7 +18,7 @@
 .inspector-detail .inspector-scoring-column .scoring-calibration :is(th, td):first-child { width: 30%; }
 .inspector-detail .inspector-scoring-column .scoring-calibration :is(th, td):nth-child(2) { width: 25%; }
 @container (max-width: 900px) { .scoring-notes > div { grid-template-columns: minmax(0, 1fr); gap: 4px; } }
-.inspector-scoring-column :is(.inspector-release-score-summary, .inspector-cpi-v4-summary, .inspector-nfp-v2-summary, .inspector-claims-v2-summary, .inspector-retail-v1-summary, .inspector-pce-v1-summary, .inspector-ism-v3-summary) { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; box-sizing: border-box; min-height: 44px; padding: 10px; margin: 0 0 8px; background: var(--surface-raised); border: 1px solid var(--border); border-radius: 5px; }
+.inspector-scoring-column :is(.inspector-release-score-summary, .inspector-cpi-v4-summary, .inspector-nfp-v2-summary, .inspector-claims-summary, .inspector-retail-v1-summary, .inspector-pce-v1-summary, .inspector-ism-v3-summary) { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; box-sizing: border-box; min-height: 44px; padding: 10px; margin: 0 0 8px; background: var(--surface-raised); border: 1px solid var(--border); border-radius: 5px; }
 .scoring-result-explanation { line-height: 1.5; }
 .scoring-engine-version { display: block; color: var(--text-muted); margin: 4px 0; }
 .publication-context-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; margin: 8px 0; }

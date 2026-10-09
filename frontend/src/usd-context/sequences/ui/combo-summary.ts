@@ -1,7 +1,7 @@
-import { activationLabel, comboActivation } from '../core/combo-activation'
-import type { ComboSnapshot } from '../core/contracts'
-import { roofSupport } from '../core/relationship-support'
-import { relationshipReading } from '../../core/support-reading'
+import { activationLabel, comboActivation } from '../../../scoring-system/relationships/combo-activation'
+import type { ComboSnapshot } from '../../../scoring-system/relationships/contracts'
+import { roofSupport } from '../../../scoring-system/relationships/relationship-support'
+import { relationshipReading } from '../../../scoring-system/context/usd/support-reading'
 
 const joinNames = (names: string[]) => names.length < 2 ? names[0] ?? '' : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`
 

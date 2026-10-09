@@ -7,14 +7,14 @@ import { settings, families, history, latestRows, cpi } from './fixtures.mjs'
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const server = await createServer({ root, server: { middlewareMode: true, hmr: false } })
 try {
-  const { combineContext } = await server.ssrLoadModule('./src/usd-context/core/combine-context.ts')
-  const { buildContextTimeline } = await server.ssrLoadModule('./src/usd-context/core/build-context-timeline.ts')
-  const { contextAt } = await server.ssrLoadModule('./src/usd-context/core/context-lookup.ts')
-  const { scorePublication } = await server.ssrLoadModule('./src/usd-context/core/score-publication.ts')
-  const { contextExpiryMs, contextFamilyExpiry } = await server.ssrLoadModule('./src/usd-context/core/policy.ts')
-  const { usdPair, contextPairLabel } = await server.ssrLoadModule('./src/usd-context/core/usd-pair.ts')
+  const { combineContext } = await server.ssrLoadModule('./src/scoring-system/context/usd/combine-context.ts')
+  const { buildContextTimeline } = await server.ssrLoadModule('./src/scoring-system/context/usd/build-context-timeline.ts')
+  const { contextAt } = await server.ssrLoadModule('./src/scoring-system/context/usd/context-lookup.ts')
+  const { scorePublication } = await server.ssrLoadModule('./src/scoring-system/context/usd/score-publication.ts')
+  const { contextExpiryMs, contextFamilyExpiry } = await server.ssrLoadModule('./src/scoring-system/context/usd/policy.ts')
+  const { usdPair, contextPairLabel } = await server.ssrLoadModule('./src/scoring-system/context/usd/usd-pair.ts')
   const { candleContextCutoff } = await server.ssrLoadModule('./src/raycaster/chart/candle-cutoff.ts')
-  const { explainUpdate } = await server.ssrLoadModule('./src/usd-context/core/explanation.ts')
+  const { explainUpdate } = await server.ssrLoadModule('./src/scoring-system/context/usd/explanation.ts')
   const { groupInspectorReleases } = await server.ssrLoadModule('./src/inspector/inspector-data.ts')
   const source = (family, total, patch = {}) => ({ family, sourceId: family, sourceLabel: family, releaseAt: 1, chartAt: 1,
     total, usdDirection: total > 0 ? 'stronger' : 'weaker', strength: 'strong', reason: '', explanation: '',

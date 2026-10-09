@@ -1,7 +1,7 @@
-import type { ContextPoint, ContextResult, Evidence } from '../../usd-context/core/contracts'
-import { contextWeights, contextNames } from '../../usd-context/core/policy'
-import { interpretationLimits } from '../../usd-context/core/interpretation-quality'
-import { contextPairLabel, usdPair } from '../../usd-context/core/usd-pair'
+import type { ContextPoint, ContextResult, Evidence } from '../../scoring-system/context/usd/contracts'
+import { contextWeights, contextNames } from '../../scoring-system/context/usd/policy'
+import { interpretationLimits } from '../../scoring-system/context/usd/interpretation-quality'
+import { contextPairLabel, usdPair } from '../../scoring-system/context/usd/usd-pair'
 
 export const usdPresentationVersion = 'USD presentation v1'
 export type UsdContextPresentation = {

@@ -1,5 +1,5 @@
 import type { InspectorScoringProps } from '../../../../scoring-contracts'
-import { assessEcbRateAction } from '../assessment/ecb-rate-action'
+import { assessEcbRateAction } from '../../../../../../scoring-system/PAIR/EURUSD/EUR/assessment/ecb-rate-action'
 import { ScoringSection } from '../../../../shared/ui/ScoringSection'
 export function EcbScore({release,now=0}:InspectorScoringProps){
   const score=assessEcbRateAction(release), eligible=release?.releaseAt!=null && release.releaseAt<=now

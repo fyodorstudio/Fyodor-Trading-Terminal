@@ -45,11 +45,11 @@ function baselineRelative(e, u) {
 }
 try {
   const load = p => server.ssrLoadModule('./src/' + p + '.ts')
-  const { buildContextTimeline } = await load('usd-context/core/build-context-timeline')
-  const { contextAt } = await load('usd-context/core/context-lookup')
-  const { contextResultLabel } = await load('usd-context/core/usd-pair')
-  const { buildEurContextTimeline } = await load('pair-context/core/eur-context-timeline')
-  const { eurContextAt, relativeContext } = await load('pair-context/core/relative-context')
+  const { buildContextTimeline } = await load('scoring-system/context/usd/build-context-timeline')
+  const { contextAt } = await load('scoring-system/context/usd/context-lookup')
+  const { contextResultLabel } = await load('scoring-system/context/usd/usd-pair')
+  const { buildEurContextTimeline } = await load('scoring-system/context/relative/eur-context-timeline')
+  const { eurContextAt, relativeContext } = await load('scoring-system/context/relative/relative-context')
   const usd = buildContextTimeline(baseline.inputUSD), eur = buildEurContextTimeline(baseline.inputEUR)
   let unchangedEurSnapshots = 0
   for (const old of baseline.eur.points) {

@@ -15,9 +15,9 @@ const server = await createServer({ root, server: { middlewareMode: true, hmr: f
 const hash = value => createHash('sha256').update(JSON.stringify(value)).digest('hex')
 try {
   const load = p => server.ssrLoadModule('./src/' + p + '.ts')
-  const { eurPolicies } = await load('inspector/scoring/PAIR/EURUSD/EUR/policy/eur-policies')
-  const { buildEurContextTimeline } = await load('pair-context/core/eur-context-timeline')
-  const { assessEurScore } = await load('inspector/scoring/PAIR/EURUSD/EUR/assessment/eur-score')
+  const { eurPolicies } = await load('scoring-system/PAIR/EURUSD/EUR/policy/eur-policies')
+  const { buildEurContextTimeline } = await load('scoring-system/context/relative/eur-context-timeline')
+  const { assessEurScore } = await load('scoring-system/PAIR/EURUSD/EUR/assessment/eur-score')
   const { groupInspectorReleases } = await load('inspector/inspector-data')
   const { scoringSignalBinding, prepareScoringSignalHistory, scoringSignalModel } = await load('scatter-plot/inspection/scoring-signal-model')
   const asOf = Date.UTC(2026, 9, 7)

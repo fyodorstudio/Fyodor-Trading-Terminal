@@ -1,9 +1,9 @@
-import { fedRatePath } from '../assessment/fed-rate-path'
+import { fedRatePath } from '../../../../../../../scoring-system/PAIR/EURUSD/USD/FED/assessment/fed-rate-path'
 import { useMemo } from 'react'
 import type { EconomicCalendarEvent } from '../../../../../../calendar-event'
 import type { InspectorRelease } from '../../../../../../inspector-data'
 import { useStoredCalendar } from '../../../../../../useStoredCalendar'
-import { previousFedMeeting } from '../assessment/fed-context'
+import { previousFedMeeting } from '../../../../../../../scoring-system/PAIR/EURUSD/USD/FED/assessment/fed-context'
 
 const scope = { currency: 'USD' as const, eventIds: ['840050014'] }
 const empty: EconomicCalendarEvent[] = []

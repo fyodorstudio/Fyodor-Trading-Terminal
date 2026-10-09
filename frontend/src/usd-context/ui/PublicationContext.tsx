@@ -4,7 +4,7 @@ import type { InspectorEvent, InspectorRelease } from '../../inspector/inspector
 import type { TimeDisplayPreference } from '../../appearance/time-display/time-display-preference'
 import { toggleContextFamily } from '../storage/context-family-settings'
 import { usePublicationContext } from '../runtime/usePublicationContext'
-import { contextResultLabel, contextResultTone } from '../core/usd-pair'
+import { contextResultLabel, contextResultTone } from '../../scoring-system/context/usd/usd-pair'
 import { ContextInputTable } from './ContextInputTable'
 import { ContextPolicyDetails } from './ContextPolicyDetails'
 import { ScoringSection } from '../../inspector/scoring/shared/ui/ScoringSection'

@@ -23,7 +23,7 @@ const container = document.createElement('div'); document.body.append(container)
 const render = node => React.act(async () => root.render(node))
 try {
   const load = p => server.ssrLoadModule('./src/' + p)
-  const { combineContext } = await load('usd-context/core/combine-context.ts')
+  const { combineContext } = await load('scoring-system/context/usd/combine-context.ts')
   const { usdContextPresentation } = await load('raycaster/core/usd-context-presentation.ts')
   const { buildRibbonTimeline } = await load('raycaster/ribbon/ribbon-timeline.ts')
   const { RaycasterBox } = await load('raycaster/ui/RaycasterBox.tsx')
@@ -32,7 +32,7 @@ try {
   const { inspectionSignature } = await load('fundamental-tools/runtime/inspection-session.ts')
   const families = await load('raycaster/storage/raycaster-family-settings.ts')
   const prefs = await load('pair-context/storage/relative-preferences.ts')
-  const { relativeContext } = await load('pair-context/core/relative-context.ts')
+  const { relativeContext } = await load('scoring-system/context/relative/relative-context.ts')
   const at = Date.UTC(2026, 0, 1), hour = 3600000
   const source = (family, total) => ({ family, total, chartAt: at, releaseAt: at, sourceId: family, sourceLabel: family.toUpperCase(),
     usdDirection: total > 0 ? 'stronger' : total < 0 ? 'weaker' : 'uncomputed', strength: 'strong', reduced: false, tie: false, coverage: 1, reason: '', explanation: '' })

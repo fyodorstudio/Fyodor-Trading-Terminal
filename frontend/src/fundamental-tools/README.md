@@ -1,35 +1,27 @@
-# Fundamental tools UI v1
+# Fundamental Settings
 
-The header's right-side outlined group contains Raycaster waveform, Roofs
-chevrons-up, Candy SVG and one gear. Timeframe/drawing controls remain together.
-Header controls toggle saved visibility independently; opening settings changes no
-visibility or calculation inputs. The popover has Raycaster, Roofs and Candy tabs,
-a shared context-mode selector and Manage outside events. It stays modeless and
-restores gear focus on Close/Escape; outside clicks dismiss it. Broker, symbol or
-timeframe changes close it without reviving a former scope's panel.
+The chart gear opens the **Fundamental Settings** bottom dock. Scoring System,
+Raycaster, Roofs and Candy each have a section. The existing global Settings
+button still owns application settings. Settings persist through workspace export
+and import; the new Claims models have separate keys from Claims v2.
 
-`settings/` contains preference controls and brief help only. Readings, contribution
-tables and calculation notes live in the draggable Raycaster's **Context-detailed**
-view. USD/EUR input
-editing stays under Advanced settings. Roof density is an optional backwards-
-compatible `density` field in `fyodor.context-sequences.v1`, included in workspace
-exports and validation. The old chart density buttons, standalone roof guide,
-Raycaster box gear/details wrapper and separate chart Outside events + are retired.
+Scoring System is the canonical USD methodology/calibration page. Definitions
+come from `../scoring-system/`. Claims offers independent weekly/trend weights,
+manual magnitude overrides, selected-release preview, Apply and Reset to defaults.
+Draft changes do not alter Inspector until applied. Other USD families retain
+their existing magnitude controls. Raw A−P boundaries stay in Scatter.
 
-`runtime/inspection-session.ts` is a transient UI-only channel. It owns no fetch,
-worker or scoring code. The active Raycaster controller publishes its existing
-inspection only while the scoped popover is open. Header settings subscribe at
-the popover, so ordinary hover never causes Terminal-shell/chart parent renders.
-Scope and input/mode signatures reject old readings. The latest inspected candle
-is retained while settings are open, matching the former box gear behavior. No
-new timeline is requested on open, even when all chart views are hidden; controls
-still work. The retained chart window supplies outside-event annotation defaults.
+Inspector retains its existing standalone views and a link to the selected
+model's explanation. Raycaster, Roofs and Candy retain their current controls and
+calculations; Raycaster development is deferred. Outside events remain accessible
+from their settings sections.
 
-Outside-event editing uses the existing note store and form, embedded within the
-popover. It works with Candy hidden and uses the captured chart window or current
-broker-clock hour as a starting range. Highlight clicks can still edit a note on
-the chart. Saving annotations affects neither visibility nor numerical output.
+`runtime/settings-navigation.ts` opens the dock without coupling Inspector to its
+UI. `runtime/inspection-session.ts` is a transient UI channel, with no fetch or
+calculation ownership. Raycaster publishes its held chart window while its tool
+settings are open; outside-event defaults use that window or the current chart
+hour. Ordinary hover does not invalidate the shell.
 
-Icons use 16px SVG line paths; Candy/ChevronsUp attribution is in
-`../../public/third-party-notices.txt` and ship with the build. Existing numerical engine versions and roof display v4 rules
-are unchanged. Visual audits remain user-owned.
+Opening methodology without a selected Claims release performs no history fetch
+or scoring. Preview uses the same scoped background calculation as Inspector.
+Visual audits remain user-owned.

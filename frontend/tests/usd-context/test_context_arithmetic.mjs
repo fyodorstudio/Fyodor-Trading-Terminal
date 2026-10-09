@@ -6,12 +6,12 @@ import { createServer } from 'vite'
 const server = await createServer({ root: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..'), server: { middlewareMode: true, hmr: false } })
 try {
   const load = p => server.ssrLoadModule('./src/' + p + '.ts')
-  const { combineContext } = await load('usd-context/core/combine-context')
-  const { contextWeights } = await load('usd-context/core/policy')
-  const { eurMembers } = await load('pair-context/core/memory/eur-members')
-  const { relativeContext } = await load('pair-context/core/relative-context')
-  const { explainContext, explainUpdate } = await load('usd-context/core/explanation')
-  const { compareCpiPublication } = await load('usd-context/core/publication-comparison')
+  const { combineContext } = await load('scoring-system/context/usd/combine-context')
+  const { contextWeights } = await load('scoring-system/context/usd/policy')
+  const { eurMembers } = await load('scoring-system/context/relative/memory/eur-members')
+  const { relativeContext } = await load('scoring-system/context/relative/relative-context')
+  const { explainContext, explainUpdate } = await load('scoring-system/context/usd/explanation')
+  const { compareCpiPublication } = await load('scoring-system/context/usd/publication-comparison')
   const at = Date.UTC(2025, 0, 1), close = (a, b, label) => assert.ok(Math.abs(a - b) < 1e-12, label)
   const source = (family, total, coverage = 1) => ({ family, sourceId: family, sourceLabel: family,
     chartAt: at, releaseAt: at, total, coverage, reduced: coverage < 1, usdDirection: total > 0 ? 'stronger' : total < 0 ? 'weaker' : 'uncomputed',

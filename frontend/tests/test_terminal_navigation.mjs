@@ -46,6 +46,7 @@ try {
           assert.ok(relative.startsWith('appearance/time-display/') || relative.startsWith('market-data/contracts/')
             // Inspector consumes shared currency engines, never Raycaster's UI/runtime.
             || relative.startsWith('usd-context/') || relative.startsWith('pair-context/')
+            || relative.startsWith('scoring-system/') || relative === 'fundamental-tools/runtime/settings-navigation.ts'
             || relative === 'system-connectivity/bridge-status/bridge-contract.ts', `Unexpected Inspector coupling: ${relative}`)
         }
         if (/\.tsx?$/.test(resolved)) inspectGraph(resolved, inspectorOnly)

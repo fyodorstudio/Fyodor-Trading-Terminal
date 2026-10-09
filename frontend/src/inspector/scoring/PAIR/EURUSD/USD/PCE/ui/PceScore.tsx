@@ -1,11 +1,10 @@
-import { SignalCalibration } from '../../../../../shared/ui/SignalCalibration'
-import { ScoringSection, ScoringNotes } from '../../../../../shared/ui/ScoringSection'
+import { ScoringSection } from '../../../../../shared/ui/ScoringSection'
 import { useMemo } from 'react'
 import type { InspectorScoringProps } from '../../../../../scoring-contracts'
 import { useStoredCalendar } from '../../../../../../useStoredCalendar'
-import { signalHistoryStart } from '../../../../../shared/core/historical-release-signals'
-import { pceSignalSettings } from '../../../../../shared/core/signal-magnitude-settings'
-import { assessPceScore, pceSeriesIds } from '../assessment/pce-score'
+import { signalHistoryStart } from '../../../../../../../scoring-system/shared/core/historical-release-signals'
+import { pceSignalSettings } from '../../../../../../../scoring-system/shared/core/signal-magnitude-settings'
+import { assessPceScore, pceSeriesIds } from '../../../../../../../scoring-system/PAIR/EURUSD/USD/PCE/assessment/pce-score'
 
 import { formatScore as format } from '../../../../../shared/ui/format-score'
 const scope = { currency: 'USD' as const, eventIds: pceSeriesIds }
@@ -48,12 +47,8 @@ export function PceScore({ release, brokerId, events = [] }: InspectorScoringPro
         {!loading && assessment.tieBreak && <tr><td colSpan={4}>Tie-break: {assessment.tieBreak.label} · weak evidence</td></tr>}</tfoot>
     </table></div></ScoringSection>
     {!loading && <ScoringSection title="Inflation level" collapsible><p aria-label="PCE target context">{assessment.targetContext}</p></ScoringSection>}
-    <ScoringSection title="How this scorer works" collapsible><ScoringNotes items={[
-        { label: 'Voting rules & revisions', content: <>Core inflation has 75% of the vote: latest core pace 45%, annual core change 30%. Headline pace has 15% and annual headline change 10%. Monthly pace compares this reading with the preceding three-month average, including the release’s revised preceding month when supplied. Annual change compares with Revised Previous when supplied, otherwise Previous. A high inflation level alone does not create a fresh directional vote.</> },
-        { label: 'Evidence groups', content: <>Monthly core and headline share one evidence group; annual core and headline share another. Agreement across both horizons can strengthen evidence. These related readings are not independent statistical confirmations. Evidence strength and change size do not describe price probabilities or the size of a price move.</> },
-        { label: 'History & tie-break', content: <>Each component uses its own earlier history since January 2015, with at least 24 usable signals. Missing weights are not redistributed. Exact cancellation follows the table order. At least one usable core component is required; absent directional evidence remains Uncomputed.</> }
-      ]} /></ScoringSection>
-    <SignalCalibration readings={assessment.readings} unit="pp" label="PCE signal calibration" />
+
+
     {coverageMissing && <p>Partial calendar history; calibration uses the available observations.</p>}
   </div>
 }

@@ -14,8 +14,8 @@ let job, expected, signalJob, expectedSignals, assessmentMs
 try {
   const { groupInspectorReleases } = await server.ssrLoadModule('./src/inspector/inspector-data.ts')
   const { groupIsmEpisodes } = await server.ssrLoadModule('./src/inspector/episodes/ism-episodes.ts')
-  const { assessIsmMonthlyContext } = await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/ISM/assessment/ism-monthly-context.ts')
-  const { calculateIsmAnalysis } = await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/ISM/runtime/ism-analysis.ts')
+  const { assessIsmMonthlyContext } = await server.ssrLoadModule('./src/scoring-system/PAIR/EURUSD/USD/ISM/assessment/ism-monthly-context.ts')
+  const { calculateIsmAnalysis } = await server.ssrLoadModule('./src/scoring-system/PAIR/EURUSD/USD/ISM/runtime/ism-analysis.ts')
   const { calculateSignalHistory } = await server.ssrLoadModule('./src/scatter-plot/runtime/signal-history-calculation.ts')
   const publications = groupInspectorReleases(events)
   const latest = publications.filter(r => r.familyId === 'ism-services').at(-1)

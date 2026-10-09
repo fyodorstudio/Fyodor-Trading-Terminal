@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react'
-import { contextPriority } from '../core/policy'
-import type { ContextFamily } from '../core/contracts'
+import { contextPriority } from '../../scoring-system/context/usd/policy'
+import type { ContextFamily } from '../../scoring-system/context/usd/contracts'
 
 export const contextFamiliesKey = 'fyodor.raycaster.families.v1'
 const changed = `${contextFamiliesKey}:changed`

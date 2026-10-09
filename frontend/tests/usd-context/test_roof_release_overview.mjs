@@ -16,7 +16,7 @@ const container = document.createElement('div'); document.body.append(container)
 try {
   const load = file => server.ssrLoadModule('./src/' + file)
   const { RoofsDock } = await load('usd-context/sequences/ui/RoofsDock.tsx')
-  const { combineContext } = await load('usd-context/core/combine-context.ts')
+  const { combineContext } = await load('scoring-system/context/usd/combine-context.ts')
   const { DisplayClockProvider } = await load('appearance/time-display/DisplayClock.tsx')
   const at = Date.UTC(2026, 9, 8, 15, 30), day = 86400000
   let timeDisplay = { mode: 'fixed-offset', utcOffsetMinutes: 420 }

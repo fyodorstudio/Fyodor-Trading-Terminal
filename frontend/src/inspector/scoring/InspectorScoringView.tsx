@@ -5,11 +5,14 @@ import type { InspectorScoringBinding, InspectorScoringProps } from './scoring-c
 import { ismSourceRelease } from '../episodes/ism-episodes'
 import { memo } from 'react'
 import { PmiEpisodeScore } from './PAIR/EURUSD/EUR/ui/PmiEpisodeScore'
+import { ScoringMethodLink } from './shared/ui/ScoringMethodLink'
 
 function InspectorScoringViewComponent({ surface = 'standalone', ...props }: InspectorScoringProps & {
   binding: InspectorScoringBinding; surface?: 'standalone' | 'context' | 'both'
 }) {
-  return <ScoringSurface value={surface}><ScoringContent {...props} /></ScoringSurface>
+  return <ScoringSurface value={surface}><ScoringContent {...props} />
+    {surface === 'standalone' && props.release?.currency === 'USD' && <ScoringMethodLink family={props.release.familyId === 'fed-chair' ? 'fomc' : props.release.familyId} />}
+  </ScoringSurface>
 }
 function ScoringContent({ binding, ...props }: InspectorScoringProps & { binding: InspectorScoringBinding }) {
   const Component = binding.Component

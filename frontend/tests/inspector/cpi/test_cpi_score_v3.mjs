@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { createServer } from 'vite'
 const server = await createServer({ root: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..'), server: { middlewareMode: true, hmr: false } })
 try {
-  const { assessCpiScoreV3, cpiScoreV3Version, supportsCpiV3 } = await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/CPI/assessment/cpi-score-v3.ts')
+  const { assessCpiScoreV3, cpiScoreV3Version, supportsCpiV3 } = await server.ssrLoadModule('./src/scoring-system/PAIR/EURUSD/USD/CPI/assessment/cpi-score-v3.ts')
   const { groupInspectorReleases } = await server.ssrLoadModule('./src/inspector/inspector-data.ts')
   assert.equal(cpiScoreV3Version, 'cpi-eurusd-release-change-v3.2')
   const ids = ['840030005', '840030006', '840030007', '840030008']

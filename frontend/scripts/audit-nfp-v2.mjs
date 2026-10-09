@@ -11,7 +11,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const server = await createServer({ root, server: { middlewareMode: true } })
 try {
   const { groupInspectorReleases } = await server.ssrLoadModule('./src/inspector/inspector-data.ts')
-  const { assessNfpScoreV2, supportsNfpV2, nfpScoreV2Version } = await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/NFP/assessment/nfp-score-v2.ts')
+  const { assessNfpScoreV2, supportsNfpV2, nfpScoreV2Version } = await server.ssrLoadModule('./src/scoring-system/PAIR/EURUSD/USD/NFP/assessment/nfp-score-v2.ts')
   const rows = groupInspectorReleases(calendar.events).filter(supportsNfpV2)
     .sort((a, b) => a.releaseAt - b.releaseAt).map((release) => ({ date: new Date(release.releaseAt).toISOString().slice(0, 10),
       releaseAt: release.releaseAt, assessment: assessNfpScoreV2(release, calendar.events),

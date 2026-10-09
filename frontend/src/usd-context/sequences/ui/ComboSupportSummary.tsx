@@ -1,4 +1,4 @@
-import type { RelationshipSupport } from '../core/relationship-support'
+import type { RelationshipSupport } from '../../../scoring-system/relationships/relationship-support'
 import { WeightedSupportBar } from '../../ui/WeightedSupportBar'
 
 export function ComboSupportSummary({ support }: { support: RelationshipSupport }) {

@@ -8,12 +8,12 @@ const row=(id,m,actual,country='EU',patch={})=>({value_id:`${id}/${m}/${patch.re
 try{
  const load=p=>server.ssrLoadModule('./src/'+p+'.ts')
  const {groupInspectorReleases}=await load('inspector/inspector-data')
- const {assessEurScore}=await load('inspector/scoring/PAIR/EURUSD/EUR/assessment/eur-score')
- const {assessEcbRateAction}=await load('inspector/scoring/PAIR/EURUSD/EUR/assessment/ecb-rate-action')
- const {buildEurContextTimeline}=await load('pair-context/core/eur-context-timeline')
- const {relativeContext,eurContextAt}=await load('pair-context/core/relative-context')
- const {fedRatePath}=await load('inspector/scoring/PAIR/EURUSD/USD/FED/assessment/fed-rate-path')
- const {eurPolicies}=await load('inspector/scoring/PAIR/EURUSD/EUR/policy/eur-policies')
+ const {assessEurScore}=await load('scoring-system/PAIR/EURUSD/EUR/assessment/eur-score')
+ const {assessEcbRateAction}=await load('scoring-system/PAIR/EURUSD/EUR/assessment/ecb-rate-action')
+ const {buildEurContextTimeline}=await load('scoring-system/context/relative/eur-context-timeline')
+ const {relativeContext,eurContextAt}=await load('scoring-system/context/relative/relative-context')
+ const {fedRatePath}=await load('scoring-system/PAIR/EURUSD/USD/FED/assessment/fed-rate-path')
+ const {eurPolicies}=await load('scoring-system/PAIR/EURUSD/EUR/policy/eur-policies')
  const {scoringSignalBinding,prepareScoringSignalHistory,scoringSignalModel}=await load('scatter-plot/inspection/scoring-signal-model')
  const monthly=['999030012','999030013','276010023','276010021','999500001','999500002','999500003','276500001','276500002','276500003','250500001','250500002','250500003','999030020']
  const country=id=>id.startsWith('276')?'DE':id.startsWith('250')?'FR':'EU'

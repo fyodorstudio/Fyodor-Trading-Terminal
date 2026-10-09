@@ -37,23 +37,23 @@ function reaction(chartTime) {
 
 try {
   const load = p => server.ssrLoadModule('./src/' + p + '.ts')
-  const { buildContextTimeline } = await load('usd-context/core/build-context-timeline')
-  const { contextAt } = await load('usd-context/core/context-lookup')
-  const { contextPriority, contextSourceFamilies } = await load('usd-context/core/policy')
-  const { scorePublication, contextSeriesIds, publicationFamily } = await load('usd-context/core/score-publication')
+  const { buildContextTimeline } = await load('scoring-system/context/usd/build-context-timeline')
+  const { contextAt } = await load('scoring-system/context/usd/context-lookup')
+  const { contextPriority, contextSourceFamilies } = await load('scoring-system/context/usd/policy')
+  const { scorePublication, contextSeriesIds, publicationFamily } = await load('scoring-system/context/usd/score-publication')
   const { groupInspectorReleases } = await load('inspector/inspector-data')
-  const { buildEurContextTimeline } = await load('pair-context/core/eur-context-timeline')
-  const { eurContextAt, relativeContext } = await load('pair-context/core/relative-context')
-  const { eurPolicies, eurNumericSeriesIds } = await load('inspector/scoring/PAIR/EURUSD/EUR/policy/eur-policies')
-  const { assessEurScore } = await load('inspector/scoring/PAIR/EURUSD/EUR/assessment/eur-score')
-  const { assessEcbRateAction } = await load('inspector/scoring/PAIR/EURUSD/EUR/assessment/ecb-rate-action')
+  const { buildEurContextTimeline } = await load('scoring-system/context/relative/eur-context-timeline')
+  const { eurContextAt, relativeContext } = await load('scoring-system/context/relative/relative-context')
+  const { eurPolicies, eurNumericSeriesIds } = await load('scoring-system/PAIR/EURUSD/EUR/policy/eur-policies')
+  const { assessEurScore } = await load('scoring-system/PAIR/EURUSD/EUR/assessment/eur-score')
+  const { assessEcbRateAction } = await load('scoring-system/PAIR/EURUSD/EUR/assessment/ecb-rate-action')
   const usdAssessors = {}
   for (const [family, folder, file, exported] of [
     ['gdp', 'GDP', 'gdp-score', 'assessGdpScore'], ['pce', 'PCE', 'pce-score', 'assessPceScore'],
     ['claims', 'CLAIMS', 'claims-score', 'assessClaimsScore'], ['jobs', 'NFP', 'nfp-score-v2', 'assessNfpScoreV2'],
     ['ism-manufacturing', 'ISM', 'ism-score-v3', 'assessIsmScoreV3'],
     ['ism-services', 'ISM', 'ism-score-v3', 'assessIsmScoreV3'],
-  ]) usdAssessors[family] = (await load(`inspector/scoring/PAIR/EURUSD/USD/${folder}/assessment/${file}`))[exported]
+  ]) usdAssessors[family] = (await load(`scoring-system/PAIR/EURUSD/USD/${folder}/assessment/${file}`))[exported]
   const utcInventory = usd.events.filter(e => e.release_at !== null && e.release_at <= end)
   const eurInventory = eur.events.filter(e => e.release_at !== null && e.release_at <= end)
   const usdInput = { events: utcInventory, families: contextSourceFamilies(contextPriority), settings, asOf: end }

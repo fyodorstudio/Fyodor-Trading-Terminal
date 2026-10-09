@@ -24,7 +24,7 @@ try {
   const { RibbonExplanation } = await load('raycaster/ribbon/RibbonExplanation.tsx')
   const { ComboInspector } = await load('usd-context/sequences/ui/ComboInspector.tsx')
   const { ExternalEventManager } = await load('external-events/ui/ExternalEventManager.tsx')
-  const { combineContext } = await load('usd-context/core/combine-context.ts')
+  const { combineContext } = await load('scoring-system/context/usd/combine-context.ts')
   const { buildRibbonTimeline } = await load('raycaster/ribbon/ribbon-timeline.ts')
   const scope = { brokerId: 'Elev8-Demo2', brokerOffsetSeconds: 10800 }, jakarta = { mode: 'fixed-offset', utcOffsetMinutes: 420 }
   const utc = Date.UTC(2026, 6, 2, 12, 30), chart = Date.UTC(2026, 6, 2, 15, 30), hour = 3600000

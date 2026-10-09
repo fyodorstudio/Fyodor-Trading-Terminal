@@ -16,7 +16,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const server = await createServer({ root, server: { middlewareMode: true, hmr: false } })
 let report
 try {
-  const load = p => server.ssrLoadModule('./src/usd-context/core/' + p + '.ts')
+  const load = p => server.ssrLoadModule('./src/scoring-system/context/usd/' + p + '.ts')
   const { buildContextTimeline } = await load('build-context-timeline')
   const { contextAt } = await load('context-lookup')
   const { contextPriority, contextSourceFamilies } = await load('policy')

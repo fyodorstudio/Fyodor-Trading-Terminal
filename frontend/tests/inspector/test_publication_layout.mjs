@@ -26,10 +26,10 @@ try {
   const { groupInspectorReleases, defaultInspectorPreferences } = await load('inspector/inspector-data.ts')
   const { groupIsmEpisodes } = await load('inspector/episodes/ism-episodes.ts')
   const preferences = await load('pair-context/storage/relative-preferences.ts')
-  const { buildContextTimeline } = await load('usd-context/core/build-context-timeline.ts')
-  const { contextAt } = await load('usd-context/core/context-lookup.ts')
-  const { contextPriority, contextSourceFamilies } = await load('usd-context/core/policy.ts')
-  const { contextPairLabel } = await load('usd-context/core/usd-pair.ts')
+  const { buildContextTimeline } = await load('scoring-system/context/usd/build-context-timeline.ts')
+  const { contextAt } = await load('scoring-system/context/usd/context-lookup.ts')
+  const { contextPriority, contextSourceFamilies } = await load('scoring-system/context/usd/policy.ts')
+  const { contextPairLabel } = await load('scoring-system/context/usd/usd-pair.ts')
   const events = [...history, ...latestRows], releases = groupInspectorReleases(events)
   const base = groupInspectorReleases(latestRows).find(r => r.familyId === 'us-cpi')
   const now = Date.UTC(2018, 7, 1), timeDisplay = { mode: 'utc', utcOffsetMinutes: 0 }
@@ -153,7 +153,8 @@ try {
     }
     {
       assert.ok(left.querySelector('[aria-label="What drove the result"]'), `${family} ${view}: result drivers have their own section`)
-      assert.ok(left.querySelector('[aria-label="How this scorer works"]'))
+      assert.equal(left.querySelector('[aria-label="How this scorer works"]'), null)
+      assert.ok(host.querySelector('.scoring-method-link'), 'Methodology is reached through the canonical settings page')
     }
   }
 

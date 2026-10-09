@@ -1,6 +1,6 @@
 # EURUSD relative numerical context
 
-`core/` owns pure EUR publication replay, bounded domain budgets, country/aggregate
+`../scoring-system/context/relative/` owns pure EUR publication replay, bounded domain budgets, country/aggregate
 replacement and normalized leg comparison. `runtime/` owns scoped storage and
 shared worker calculation. `storage/` owns saved mode/EUR toggles. `ui/` exposes
 relative contributions in Raycaster and Inspector without importing either
@@ -14,16 +14,15 @@ period. Publication and broker chart-clock order are verified; daily aging is
 precomputed and cursor lookup is binary. No mouse movement triggers scoring.
 
 Standalone EUR rules/settings live in
-`inspector/scoring/PAIR/EURUSD/EUR/{policy,assessment,runtime,ui}`. ECB numeric
-rate actions remain separate, with no hold/text vote. See the `docs/scoring system library.MD`
-for weights, retention, evidence limits and the current audit scope.
+`scoring-system/PAIR/EURUSD/EUR/{policy,assessment,runtime}`; Inspector keeps the UI. ECB numeric
+rate actions remain separate, with no hold/text vote. See the root main objective for the current audit scope.
 
 The replay implementation is split by responsibility:
 
-- `core/publication/eur-publications.ts` validates clocks and batches releases.
-- `core/publication/eur-sources.ts` separates monthly and quarterly labor slots.
-- `core/memory/eur-members.ts` selects aggregate/proxy sources and applies aging.
-- `core/eur-context-timeline.ts` schedules publication, daily and expiry stages.
+- `../scoring-system/context/relative/publication/eur-publications.ts` validates clocks and batches releases.
+- `../scoring-system/context/relative/publication/eur-sources.ts` separates monthly and quarterly labor slots.
+- `../scoring-system/context/relative/memory/eur-members.ts` selects aggregate/proxy sources and applies aging.
+- `../scoring-system/context/relative/eur-context-timeline.ts` schedules publication, daily and expiry stages.
 
 Scorer and Scatter use `earlierEurSignalReleases` from EUR assessment history for
 the same distinct-reference-period calibration population. The hygiene audit

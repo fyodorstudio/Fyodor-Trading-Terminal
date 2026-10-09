@@ -2,13 +2,13 @@ import { useMemo, useSyncExternalStore } from 'react'
 import type { InspectorEvent } from '../../inspector/inspector-data'
 import { useStoredCalendar } from '../../inspector/useStoredCalendar'
 import { calendarAdmissionTime } from '../../inspector/storage/calendar-admission-time'
-import { eurMagnitudeStores } from '../../inspector/scoring/PAIR/EURUSD/EUR/policy/eur-magnitude-settings'
-import { eurNumericSeriesIds, type EurFamily } from '../../inspector/scoring/PAIR/EURUSD/EUR/policy/eur-policies'
+import { eurMagnitudeStores } from '../../scoring-system/PAIR/EURUSD/EUR/policy/eur-magnitude-settings'
+import { eurNumericSeriesIds, type EurFamily } from '../../scoring-system/PAIR/EURUSD/EUR/policy/eur-policies'
 import { sharedContextJobs, type JobState } from '../../usd-context/runtime/shared-context-jobs'
 import { contextInventoryIdentity } from '../../usd-context/runtime/context-inventory-identity'
-import { buildEurContextTimeline } from '../core/eur-context-timeline'
-import type { EurContextTimeline } from '../core/contracts'
-import { relativeContextVersion } from '../core/eur-policy'
+import { buildEurContextTimeline } from '../../scoring-system/context/relative/eur-context-timeline'
+import type { EurContextTimeline } from '../../scoring-system/context/relative/contracts'
+import { relativeContextVersion } from '../../scoring-system/context/relative/eur-policy'
 const scope={currency:'EUR' as const,eventIds:eurNumericSeriesIds}
 const empty: readonly InspectorEvent[]=[]
 const disabled:JobState<EurContextTimeline>={result:null,error:null,loading:false}

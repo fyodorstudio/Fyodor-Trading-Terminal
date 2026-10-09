@@ -18,6 +18,8 @@ import { useSignalHistory } from '../runtime/useSignalHistory'
 import { calendarAdmissionTime } from '../../inspector/storage/calendar-admission-time'
 import { SignalBoundaryEditor } from '../settings/SignalBoundaryEditor'
 import type { SignalHistory } from '../inspection/scoring-signal-model'
+import { claimsHorizons, type ClaimsHorizon } from '../../scoring-system/PAIR/EURUSD/USD/CLAIMS/policy/claims-standalone-policy'
+import { useClaimsPreferences, saveClaimsPreferences } from '../../scoring-system/PAIR/EURUSD/USD/CLAIMS/policy/claims-standalone-settings'
 
 const emptySignalHistory: SignalHistory = []
 
@@ -32,9 +34,12 @@ export function FamilyScatterPanel({ brokerId, clockOffsetMs = 0, target, bindin
   const { scope, family } = binding
   const now = useCalendarNow(clockOffsetMs)
   const [seriesId, setSeriesId] = useState(scope.series[0].id)
-  const signalBinding = useMemo(() => scoringSignalBinding(family.familyId), [family.familyId])
+  const claimsPreferences = useClaimsPreferences(), horizon = family.familyId === 'claims' ? claimsPreferences.horizon : undefined
+  const signalBinding = useMemo(() => scoringSignalBinding(family.familyId, horizon), [family.familyId, horizon])
   const [measure, setMeasure] = useState<'ap' | 'signal'>('ap')
-  const [signalId, setSignalId] = useState(signalBinding?.signals[0].id ?? '')
+  const [requestedSignalId, setSignalId] = useState(signalBinding?.signals[0].id ?? '')
+  const signalId = signalBinding?.signals.some(s => s.id === requestedSignalId) ? requestedSignalId : signalBinding?.signals[0].id ?? ''
+  if (signalId !== requestedSignalId) setSignalId(signalId)
   const scoring = measure === 'signal' && !!signalBinding
   const activeId = scoring ? signalId : seriesId
   const activeScope = scoring ? { ...scope, series: signalBinding.signals } : scope
@@ -56,7 +61,7 @@ export function FamilyScatterPanel({ brokerId, clockOffsetMs = 0, target, bindin
   const signalSettings = useMagnitudeSettings(signalBinding?.settings ?? null)
   const selectedReleaseId = selection.broker === brokerId ? selection.releaseId : null
   const calculationAt = calendarAdmissionTime(storage.events, now)
-  const calculatedHistory = useSignalHistory(family.familyId, storage.events, calculationAt, scoring)
+  const calculatedHistory = useSignalHistory(family.familyId, storage.events, calculationAt, scoring, horizon)
   const signalHistory = calculatedHistory.result ?? emptySignalHistory
   const savedModel = useMemo(() => scoring ? scoringSignalModel(signalHistory, signalBinding, signalId, selectedReleaseId, signalSettings) :
     binding.model(storage.events, calculationAt, seriesId, selectedReleaseId, magnitudeSettings),
@@ -85,6 +90,9 @@ export function FamilyScatterPanel({ brokerId, clockOffsetMs = 0, target, bindin
   const message = storage.message ?? (scoring && calculatedHistory.loading ? 'Calculating scoring history…' : calculatedHistory.error) ?? (!model.inspection ? selectedReleaseId ? 'Requested release is unavailable in this broker’s stored history' :
     `No completed ${family.label} release available` : null)
   return <section className="scatter-plot-dock" aria-label="Scatter Plot">
+    {scoring && horizon && <label>Claims assessment<select aria-label="Claims Scatter assessment" value={horizon}
+      onChange={e => saveClaimsPreferences({ ...claimsPreferences, horizon: e.target.value as ClaimsHorizon })}>
+      {claimsHorizons.map(h => <option key={h.id} value={h.id}>{h.label}</option>)}</select></label>}
     <ScatterPlotControls scope={activeScope} seriesId={activeId} onSeriesChange={(id) => { if (scoring) setSignalId(id); else setSeriesId(id); setZoom(true) }} zoom={zoom && !magnitudeUndefined}
       measure={measure} onMeasureChange={signalBinding ? (next) => { setMeasure(next); setZoom(true) } : undefined}
       onZoomChange={setZoom} onLatest={latest}

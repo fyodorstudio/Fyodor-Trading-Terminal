@@ -11,7 +11,7 @@ if (!Array.isArray(calendar.events)) throw new Error('Calendar snapshot must con
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const server = await createServer({ root, server: { middlewareMode: true } })
 try {
-  const { assessPceScore, pceScoreVersion } = await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/PCE/assessment/pce-score.ts')
+  const { assessPceScore, pceScoreVersion } = await server.ssrLoadModule('./src/scoring-system/PAIR/EURUSD/USD/PCE/assessment/pce-score.ts')
   const { prepareScoringSignalHistory, scoringSignalBinding, scoringSignalModel } = await server.ssrLoadModule('./src/scatter-plot/inspection/scoring-signal-model.ts')
   const binding = scoringSignalBinding('pce')
   const history = prepareScoringSignalHistory(calendar.events, Date.now(), binding)

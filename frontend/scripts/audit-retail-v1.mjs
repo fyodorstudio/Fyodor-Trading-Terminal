@@ -13,9 +13,9 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const server = await createServer({ root, server: { middlewareMode: true, hmr: false } })
 let report, latestJob, expected, signalJob, expectedSignals
 try {
-  const { assessRetailScore } = await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/RETAIL/assessment/retail-score.ts')
-  const { retailScoreVersion } = await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/RETAIL/policy/retail-policy.ts')
-  const { calculateRetailAnalysis } = await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/RETAIL/runtime/retail-analysis.ts')
+  const { assessRetailScore } = await server.ssrLoadModule('./src/scoring-system/PAIR/EURUSD/USD/RETAIL/assessment/retail-score.ts')
+  const { retailScoreVersion } = await server.ssrLoadModule('./src/scoring-system/PAIR/EURUSD/USD/RETAIL/policy/retail-policy.ts')
+  const { calculateRetailAnalysis } = await server.ssrLoadModule('./src/scoring-system/PAIR/EURUSD/USD/RETAIL/runtime/retail-analysis.ts')
   const { prepareScoringSignalHistory, scoringSignalBinding, scoringSignalModel } = await server.ssrLoadModule('./src/scatter-plot/inspection/scoring-signal-model.ts')
   const { calculateSignalHistory } = await server.ssrLoadModule('./src/scatter-plot/runtime/signal-history-calculation.ts')
   const binding = scoringSignalBinding('retail'), asOf = Date.now()

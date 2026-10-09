@@ -21,8 +21,8 @@ const mount = (Component, props) => {
 }
 
 try {
-  const { assessNfpScoreV2, supportsNfpV2, nfpScoreV2Version, nfpV2SeriesIds, nfpV2Features } = await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/NFP/assessment/nfp-score-v2.ts')
-  const { monthlyComparison } = await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/NFP/assessment/monthly-comparison.ts')
+  const { assessNfpScoreV2, supportsNfpV2, nfpScoreV2Version, nfpV2SeriesIds, nfpV2Features } = await server.ssrLoadModule('./src/scoring-system/PAIR/EURUSD/USD/NFP/assessment/nfp-score-v2.ts')
+  const { monthlyComparison } = await server.ssrLoadModule('./src/scoring-system/PAIR/EURUSD/USD/NFP/assessment/monthly-comparison.ts')
   const { groupInspectorReleases, defaultInspectorPreferences, inspectorStorageKey, readInspectorPreferences } = await server.ssrLoadModule('./src/inspector/inspector-data.ts')
   const { exportWorkspace, restoreWorkspace } = await server.ssrLoadModule('./src/workspace-portability/workspace-snapshot.ts')
   assert.equal(nfpScoreV2Version, 'nfp-eurusd-labor-context-v2.2')
@@ -199,7 +199,7 @@ try {
   assert.equal(table.container.querySelector('[aria-label="NFP v2 pair direction"]').textContent, 'EURUSD Long')
   assert.equal(table.container.querySelector('[aria-label="NFP v2 evidence strength"]').textContent, 'strong evidence')
   assert.ok(table.container.querySelector('[aria-label="NFP v2 change size"]'))
-  assert.equal(table.container.querySelector('[aria-label="How this scorer works"]').open, false)
+  assert.equal(table.container.querySelector('[aria-label="How this scorer works"]'),null)
   assert.equal(table.container.querySelector('[aria-label="NFP v2 component scores"]').closest('details'), null)
   assert.equal(table.container.querySelectorAll('[aria-label="NFP v2 component scores"] tbody tr').length, 5)
   assert.equal(table.container.querySelectorAll('[aria-label="NFP v2 supporting context"] tbody tr').length, 6)

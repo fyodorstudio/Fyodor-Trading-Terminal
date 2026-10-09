@@ -1,4 +1,4 @@
-import type { IsmAnalysis } from '../../runtime/ism-analysis'
+import type { IsmAnalysis } from '../../../../../../../../scoring-system/PAIR/EURUSD/USD/ISM/runtime/ism-analysis'
 import { format } from '../presentation'
 export function IsmContextSummary({ analysis, loading, timestamp, error }: {
   analysis: IsmAnalysis | null; loading: boolean; timestamp: (at: number | null) => string; error?: string | null

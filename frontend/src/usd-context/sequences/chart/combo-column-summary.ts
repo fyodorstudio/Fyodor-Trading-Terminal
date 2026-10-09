@@ -1,6 +1,6 @@
-import type { ComboSnapshot } from '../core/contracts'
-import { comboActivation } from '../core/combo-activation'
-import { roofSupport } from '../core/relationship-support'
+import type { ComboSnapshot } from '../../../scoring-system/relationships/contracts'
+import { comboActivation } from '../../../scoring-system/relationships/combo-activation'
+import { roofSupport } from '../../../scoring-system/relationships/relationship-support'
 
 type CountKey = 'long' | 'short' | 'balanced' | 'unchanged' | 'insufficient'
 const readings = new WeakMap<ComboSnapshot, CountKey>()

@@ -3,14 +3,15 @@ import type { InspectorRelease } from '../inspector-data'
 import { NfpScoreV2 } from './PAIR/EURUSD/USD/NFP/ui/NfpScoreV2'
 import { CpiScoreV4 } from './PAIR/EURUSD/USD/CPI/ui/CpiScoreV4'
 import { IsmScoreV3 } from './PAIR/EURUSD/USD/ISM/ui/IsmScoreV3'
-import { currentScorerLabels, fedScorerLabel } from './shared/core/current-scoring-versions'
+import { currentScorerLabels, fedScorerLabel } from '../../scoring-system/shared/core/current-scoring-versions'
 import { PceScore } from './PAIR/EURUSD/USD/PCE/ui/PceScore'
 import { RetailScore } from './PAIR/EURUSD/USD/RETAIL/ui/RetailScore'
 import { ClaimsScore } from './PAIR/EURUSD/USD/CLAIMS/ui/ClaimsScore'
+import { claimsStandaloneLabel } from '../../scoring-system/PAIR/EURUSD/USD/CLAIMS/policy/claims-standalone-policy'
 import { ExpandedReleaseScore } from './shared/ui/ExpandedReleaseScore'
 import { FedScore } from './PAIR/EURUSD/USD/FED/ui/FedScore'
 import { EurScore } from './PAIR/EURUSD/EUR/ui/EurScore'
-import { eurPolicies } from './PAIR/EURUSD/EUR/policy/eur-policies'
+import { eurPolicies } from '../../scoring-system/PAIR/EURUSD/EUR/policy/eur-policies'
 import type { InspectorScoringBinding } from './scoring-contracts'
 
 // Pair bindings stay explicit even when Inspector adds support for other pairs.
@@ -27,7 +28,7 @@ export const inspectorScoringBindings: readonly InspectorScoringBinding[] = [
   ...['ism-manufacturing', 'ism-services'].map(familyId => ({ pair: 'EURUSD', country: 'US', currency: 'USD' as const, familyId, matchesSymbol: matchesEurusdSymbol, Component: IsmScoreV3, versionLabel: currentScorerLabels.ism })),
   { pair: 'EURUSD', country: 'US', currency: 'USD', familyId: 'pce', matchesSymbol: matchesEurusdSymbol, Component: PceScore, versionLabel: currentScorerLabels.pce },
   { pair: 'EURUSD', country: 'US', currency: 'USD', familyId: 'retail', matchesSymbol: matchesEurusdSymbol, Component: RetailScore, versionLabel: currentScorerLabels.retail },
-  { pair: 'EURUSD', country: 'US', currency: 'USD', familyId: 'claims', matchesSymbol: matchesEurusdSymbol, Component: ClaimsScore, versionLabel: currentScorerLabels.claims },
+  { pair: 'EURUSD', country: 'US', currency: 'USD', familyId: 'claims', matchesSymbol: matchesEurusdSymbol, Component: ClaimsScore, versionLabel: claimsStandaloneLabel },
 ]
 
 export function inspectorScoringBinding(symbol: string, release: InspectorRelease | null) {

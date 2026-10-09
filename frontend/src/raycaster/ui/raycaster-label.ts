@@ -1,4 +1,4 @@
-import type { ContextResult } from '../../usd-context/core/contracts'
+import type { ContextResult } from '../../scoring-system/context/usd/contracts'
 import { usdContextPresentation } from '../core/usd-context-presentation'
 export function raycasterLabel({ loading, message, cutoff, relative, result, symbol }: {
   loading: boolean; message: string | null; cutoff: number | null;

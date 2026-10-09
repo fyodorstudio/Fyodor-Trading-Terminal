@@ -6,9 +6,9 @@ import { reading, history, withMonths, raw, settings, ids } from './fixtures.mjs
 
 const server = await createServer({ root: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..'), server: { middlewareMode: true, hmr: false } })
 try {
-  const { assessRetailScore } = await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/RETAIL/assessment/retail-score.ts')
-  const { supportsRetailScore } = await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/RETAIL/assessment/retail-features.ts')
-  const { retailScoreVersion, retailSignals, retailSeriesIds } = await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/RETAIL/policy/retail-policy.ts')
+  const { assessRetailScore } = await server.ssrLoadModule('./src/scoring-system/PAIR/EURUSD/USD/RETAIL/assessment/retail-score.ts')
+  const { supportsRetailScore } = await server.ssrLoadModule('./src/scoring-system/PAIR/EURUSD/USD/RETAIL/assessment/retail-features.ts')
+  const { retailScoreVersion, retailSignals, retailSeriesIds } = await server.ssrLoadModule('./src/scoring-system/PAIR/EURUSD/USD/RETAIL/policy/retail-policy.ts')
   const { groupInspectorReleases } = await server.ssrLoadModule('./src/inspector/inspector-data.ts')
   const { scoringSignalBinding, prepareScoringSignalHistory, scoringSignalModel } = await server.ssrLoadModule('./src/scatter-plot/inspection/scoring-signal-model.ts')
   const select = values => groupInspectorReleases(reading(2026, 6, values))[0]

@@ -1,3 +1,11 @@
+# Experimental development quarantine — 9 October 2026
+
+Raycaster and Candy retain their current calculations, including Claims v2.
+Their settings now live in the gear's Fundamental Settings dock. Shared numerical
+modules moved to `../scoring-system/`; this move does not adopt Claims standalone
+v3 or authorize context redesign. The dated records below describe existing
+behavior.
+
 # Raycaster / USD context memory v8
 
 ## USD presentation v1
@@ -144,7 +152,7 @@ timing. UTC publication metadata remains separate from broker chart coordinates.
 `ui/` contains the small box, styles and drag lifecycle; `storage/` contains local
 preferences. Calculation lives in `usd-context/`, off the chart's main thread.
 
-Manual checks belong to the user: open/hide via the header Raycaster toggle independently of paintbrush, open/close the gear popover,
+Manual checks belong to the user: open/hide via the header Raycaster toggle independently of paintbrush, open/close the Fundamental Settings dock,
 drag and resize the box/dock, pan while active, compare the August snapshots,
 inspect H1 versus M15 boundaries, toggle context families independently of Inspector markers, compare CPI v4 at the same timestamp, and check
 USDJPY inversion. No browser automation or screenshot audit is used.

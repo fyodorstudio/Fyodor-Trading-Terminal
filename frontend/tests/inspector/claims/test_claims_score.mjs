@@ -6,7 +6,7 @@ import { reading, history, flat, settings, raw, week, start } from './fixtures.m
 
 const server = await createServer({ root: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..'), server: { middlewareMode: true, hmr: false } })
 try {
-  const { assessClaimsScore } = await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/CLAIMS/assessment/claims-score.ts')
+  const { assessClaimsScore } = await server.ssrLoadModule('./src/scoring-system/PAIR/EURUSD/USD/CLAIMS/assessment/claims-score.ts')
   const { groupInspectorReleases } = await server.ssrLoadModule('./src/inspector/inspector-data.ts')
   const { scoringSignalBinding, prepareScoringSignalHistory, scoringSignalModel } = await server.ssrLoadModule('./src/scatter-plot/inspection/scoring-signal-model.ts')
   const release = values => groupInspectorReleases(reading(52, values))[0]
@@ -94,7 +94,7 @@ try {
     'Missing long-term context does not remove usable short-term features')
   console.log('✓ Consecutive weekly references, lagged continuing claims, revision/zero handling, ambiguity/native/timing gates, no future/forecast inputs')
 
-  const binding = scoringSignalBinding('claims'), events = [...history, ...low.events, ...reading(53)]
+  const binding = scoringSignalBinding('claims-v2'), events = [...history, ...low.events, ...reading(53)]
   const prepared = prepareScoringSignalHistory(events, low.releaseAt + week, binding)
   for (const definition of binding.signals) {
     const model = scoringSignalModel(prepared, binding, definition.id, low.id)

@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react'
-import { eurPolicies, type EurFamily } from '../../inspector/scoring/PAIR/EURUSD/EUR/policy/eur-policies'
+import { eurPolicies, type EurFamily } from '../../scoring-system/PAIR/EURUSD/EUR/policy/eur-policies'
 export const relativePreferencesKey = 'fyodor.raycaster.relative.v1'
 const changed = relativePreferencesKey + ':changed'
 const defaults = Object.freeze({ mode: 'usd' as 'usd' | 'relative', families: eurPolicies.map(p=>p.family) as readonly EurFamily[] })

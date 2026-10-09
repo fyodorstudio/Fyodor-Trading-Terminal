@@ -45,6 +45,7 @@ export const suites = [
   "tests/inspector/retail/test_retail_score.mjs",
   "tests/inspector/retail/test_retail_integration.mjs",
   "tests/inspector/claims/test_claims_score.mjs",
+  "tests/inspector/claims/test_claims_standalone.mjs",
   "tests/inspector/claims/test_claims_integration.mjs",
   "tests/inspector/cpi/test_cpi_score_v4.mjs",
   "tests/inspector/cpi/test_cpi_v4_integration.mjs",

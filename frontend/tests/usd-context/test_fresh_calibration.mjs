@@ -5,11 +5,11 @@ import { createServer } from 'vite'
 
 const server = await createServer({ root: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..'), server: { middlewareMode: true, hmr: false } })
 try {
-  const load = p => server.ssrLoadModule('./src/usd-context/' + p + '.ts')
-  const { combineContext } = await load('core/combine-context')
-  const { updateFreshNews, freshNewsAt } = await load('sequences/core/fresh-news')
-  const { compareSourceSupport } = await load('sequences/core/compare-source-support')
-  const { buildContextRelationships } = await load('sequences/core/build-relationships')
+  const load = p => server.ssrLoadModule('./src/' + p + '.ts')
+  const { combineContext } = await load('scoring-system/context/usd/combine-context')
+  const { updateFreshNews, freshNewsAt } = await load('scoring-system/relationships/fresh-news')
+  const { compareSourceSupport } = await load('scoring-system/relationships/compare-source-support')
+  const { buildContextRelationships } = await load('scoring-system/relationships/build-relationships')
   const at = Date.UTC(2025, 0, 20, 12), day = 86400000
   const source = (family, value, points, limits, clock) => ({ family, sourceId: `${family}/${clock}`, sourceLabel: family,
     chartAt: clock, releaseAt: clock, total: points, coverage: 1, reduced: false, tie: false,

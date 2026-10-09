@@ -3,10 +3,10 @@ import { useMemo } from 'react'
 import type { InspectorScoringProps } from '../../../../scoring-contracts'
 import { useStoredCalendar } from '../../../../../useStoredCalendar'
 import { useBackgroundCalculation } from '../../../../shared/runtime/useBackgroundCalculation'
-import { eurMagnitudeStores } from '../policy/eur-magnitude-settings'
-import { eurPolicy } from '../policy/eur-policies'
-import { calculateEurAnalysis } from './eur-analysis'
-const worker = () => new Worker(new URL('./eur-analysis.worker.ts', import.meta.url), { type: 'module' })
+import { eurMagnitudeStores } from '../../../../../../scoring-system/PAIR/EURUSD/EUR/policy/eur-magnitude-settings'
+import { eurPolicy } from '../../../../../../scoring-system/PAIR/EURUSD/EUR/policy/eur-policies'
+import { calculateEurAnalysis } from '../../../../../../scoring-system/PAIR/EURUSD/EUR/runtime/eur-analysis'
+const worker = () => new Worker(new URL('../../../../../../scoring-system/PAIR/EURUSD/EUR/runtime/eur-analysis.worker.ts', import.meta.url), { type: 'module' })
 const empty: EconomicCalendarEvent[] = []
 export function useEurAnalysis({ release, brokerId, events = empty, now = Infinity }: InspectorScoringProps) {
   const policy = release && eurPolicy(release.familyId)

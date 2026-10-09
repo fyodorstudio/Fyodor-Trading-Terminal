@@ -1,7 +1,7 @@
-import { relationshipVersion, type ComboSnapshot } from '../core/contracts'
-import { contextVersion } from '../../core/policy'
-import { roofSupport, type RelationshipSupport } from '../core/relationship-support'
-import { supportDisplayVersion } from '../../core/support-reading'
+import { relationshipVersion, type ComboSnapshot } from '../../../scoring-system/relationships/contracts'
+import { contextVersion } from '../../../scoring-system/context/usd/policy'
+import { roofSupport, type RelationshipSupport } from '../../../scoring-system/relationships/relationship-support'
+import { supportDisplayVersion } from '../../../scoring-system/context/usd/support-reading'
 
 export const auditWindows = [
   { id: 'h1', label: 'Activation H1 candle' },

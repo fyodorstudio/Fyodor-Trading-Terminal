@@ -17,6 +17,7 @@ type ChartWorkspaceHeaderProps = {
   raycasterVisible?: boolean
   raycasterSupported?: boolean
   onToggleRaycaster?: () => void
+  fundamentalSettingsActive?: boolean
   brokerId?: string | null
   brokerOffsetSeconds?: number
   clockOffsetMs?: number
@@ -53,6 +54,7 @@ export function ChartWorkspaceHeader({
   raycasterVisible = false,
   raycasterSupported = false,
   onToggleRaycaster,
+  fundamentalSettingsActive = false,
   brokerId, brokerOffsetSeconds, clockOffsetMs, timeDisplay,
 }: ChartWorkspaceHeaderProps) {
   return (
@@ -115,6 +117,7 @@ export function ChartWorkspaceHeader({
 
       <div className="chart-toolbar-right">
         <ContextViewControls symbol={symbol} supported={raycasterSupported} raycasterVisible={raycasterVisible} onToggleRaycaster={onToggleRaycaster}
+          settingsActive={fundamentalSettingsActive}
           brokerId={brokerId} timeframe={timeframe} brokerOffsetSeconds={brokerOffsetSeconds} clockOffsetMs={clockOffsetMs} timeDisplay={timeDisplay} />
       <div className="quote-summary">
         <span><small>Bid</small>{quote ? quote.bid.toFixed(quote.precision) : '—'}</span>

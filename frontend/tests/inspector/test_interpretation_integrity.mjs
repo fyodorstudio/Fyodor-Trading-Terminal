@@ -8,11 +8,11 @@ const server = await createServer({ root: path.resolve(path.dirname(fileURLToPat
 try {
   const load = p => server.ssrLoadModule('./src/' + p + '.ts')
   const { groupInspectorReleases: group } = await load('inspector/inspector-data')
-  const { calibrateHistoricalSignal: calibrate, usableSignal } = await load('inspector/scoring/shared/core/historical-release-signals')
-  const { nfpV2Features } = await load('inspector/scoring/PAIR/EURUSD/USD/NFP/assessment/nfp-score-v2')
-  const { monthlyComparison } = await load('inspector/scoring/PAIR/EURUSD/USD/NFP/assessment/monthly-comparison')
-  const { cpiV3Features } = await load('inspector/scoring/PAIR/EURUSD/USD/CPI/assessment/cpi-score-v3')
-  const { assessEurScore } = await load('inspector/scoring/PAIR/EURUSD/EUR/assessment/eur-score')
+  const { calibrateHistoricalSignal: calibrate, usableSignal } = await load('scoring-system/shared/core/historical-release-signals')
+  const { nfpV2Features } = await load('scoring-system/PAIR/EURUSD/USD/NFP/assessment/nfp-score-v2')
+  const { monthlyComparison } = await load('scoring-system/PAIR/EURUSD/USD/NFP/assessment/monthly-comparison')
+  const { cpiV3Features } = await load('scoring-system/PAIR/EURUSD/USD/CPI/assessment/cpi-score-v3')
+  const { assessEurScore } = await load('scoring-system/PAIR/EURUSD/EUR/assessment/eur-score')
 
   const release = group(nfp(2018, 4, [20, 4.3, 62.3, .1, 34.2]))[0]
   const unemployment = release.events.find(e => e.event_id === '840030015')

@@ -19,13 +19,13 @@ let report, input, expected
 try {
   const load = file => server.ssrLoadModule('./src/' + file + '.ts')
   const { groupInspectorReleases } = await load('inspector/inspector-data')
-  const { observedReading } = await load('inspector/scoring/shared/core/historical-release-signals')
-  const { buildContextTimeline } = await load('usd-context/core/build-context-timeline')
-  const { contextAt } = await load('usd-context/core/context-lookup')
-  const { contextPriority, contextSourceFamilies } = await load('usd-context/core/policy')
-  const { assessClaimsScore } = await load('inspector/scoring/PAIR/EURUSD/USD/CLAIMS/assessment/claims-score')
-  const { assessFedScore } = await load('inspector/scoring/PAIR/EURUSD/USD/FED/assessment/fed-score')
-  const { scorePublication, publicationFamily, contextSeriesIds } = await load('usd-context/core/score-publication')
+  const { observedReading } = await load('scoring-system/shared/core/historical-release-signals')
+  const { buildContextTimeline } = await load('scoring-system/context/usd/build-context-timeline')
+  const { contextAt } = await load('scoring-system/context/usd/context-lookup')
+  const { contextPriority, contextSourceFamilies } = await load('scoring-system/context/usd/policy')
+  const { assessClaimsScore } = await load('scoring-system/PAIR/EURUSD/USD/CLAIMS/assessment/claims-score')
+  const { assessFedScore } = await load('scoring-system/PAIR/EURUSD/USD/FED/assessment/fed-score')
+  const { scorePublication, publicationFamily, contextSeriesIds } = await load('scoring-system/context/usd/score-publication')
   const asOf = Date.parse('2026-10-06T00:00:00Z')
   input = { events: snapshot.events, families: contextSourceFamilies(contextPriority), asOf,
     settings: { cpi: {}, nfp: {}, services: {}, manufacturing: {}, claims: {}, retail: {}, pce: {}, ppi: {}, gdp: {} } }

@@ -3,15 +3,15 @@ import type { InspectorRelease } from '../../../../../../inspector-data'
 import type { EconomicCalendarEvent } from '../../../../../../calendar-event'
 import { useStoredCalendar } from '../../../../../../useStoredCalendar'
 import { useCalendarNow } from '../../../../../../useCalendarNow'
-import { signalHistoryStart } from '../../../../../shared/core/historical-release-signals'
-import { ismServicesSignalSettings, ismManufacturingSignalSettings } from '../../../../../shared/core/signal-magnitude-settings'
+import { signalHistoryStart } from '../../../../../../../scoring-system/shared/core/historical-release-signals'
+import { ismServicesSignalSettings, ismManufacturingSignalSettings } from '../../../../../../../scoring-system/shared/core/signal-magnitude-settings'
 import { useBackgroundCalculation } from '../../../../../shared/runtime/useBackgroundCalculation'
-import { ismSeriesIds } from '../assessment/ism-monthly-context'
-import { calculateIsmAnalysis } from './ism-analysis'
+import { ismSeriesIds } from '../../../../../../../scoring-system/PAIR/EURUSD/USD/ISM/assessment/ism-monthly-context'
+import { calculateIsmAnalysis } from '../../../../../../../scoring-system/PAIR/EURUSD/USD/ISM/runtime/ism-analysis'
 
 const scope = { currency: 'USD' as const, eventIds: ismSeriesIds }
 const emptyEvents: EconomicCalendarEvent[] = []
-const createWorker = () => new Worker(new URL('./ism-analysis.worker.ts', import.meta.url), { type: 'module' })
+const createWorker = () => new Worker(new URL('../../../../../../../scoring-system/PAIR/EURUSD/USD/ISM/runtime/ism-analysis.worker.ts', import.meta.url), { type: 'module' })
 export type IsmAnalysisProps = { release: InspectorRelease | null; brokerId?: string | null; events?: EconomicCalendarEvent[]; now?: number }
 
 export function useIsmAnalysis({ release, brokerId, events = emptyEvents, now: suppliedNow }: IsmAnalysisProps) {

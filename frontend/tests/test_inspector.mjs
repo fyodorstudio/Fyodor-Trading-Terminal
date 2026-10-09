@@ -224,7 +224,7 @@ try {
   assert.ok(app.container.querySelector('.inspector-header .inspector-detail-heading'), 'Selected release metadata shares the toolbar with calendar status')
   assert.equal(app.container.querySelector('.inspector-detail .inspector-detail-heading'), null, 'Metadata leaves no separate summary heading row')
   assert.deepEqual([...app.container.querySelectorAll('[aria-label="Standalone Scoring"] table')].map((table) => table.getAttribute('aria-label')),
-    ['CPI v4 standalone component scores', 'CPI signal calibration'], 'Latest CPI contribution and calibration tables replace the retired matrices')
+    ['CPI v4 standalone component scores'], 'Inspector keeps the result table; calibration belongs to Fundamental Settings')
   await showView('Table only')
   assert.equal(app.container.querySelectorAll('.inspector-shared-period').length, 1)
   assert.doesNotMatch(app.container.querySelector('.inspector-table-scroll tbody').textContent, /Period:/, 'Shared period is shown once above the table')

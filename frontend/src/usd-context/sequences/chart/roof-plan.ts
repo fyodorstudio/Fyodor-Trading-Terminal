@@ -1,7 +1,7 @@
 import type { OhlcBar } from '../../../market-data/contracts/OhlcBar'
 import type { ChartTimeframe } from '../../../market-data/contracts/ChartTimeframe'
 import type { InspectorMarker } from '../../../inspector/inspector-data'
-import type { ComboSnapshot } from '../core/contracts'
+import type { ComboSnapshot } from '../../../scoring-system/relationships/contracts'
 import { roofBarIndex } from './roof-geometry'
 import { layoutRoofs, type RoofCandidate, type PositionedRoof } from './roof-layout'
 import { clusterRoofEndpoints, type RoofPublication, type RoofEndpoint } from './roof-symbols'

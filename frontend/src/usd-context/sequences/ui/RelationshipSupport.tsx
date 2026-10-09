@@ -1,4 +1,4 @@
-import type { RelationshipSupport as Support } from '../core/relationship-support'
+import type { RelationshipSupport as Support } from '../../../scoring-system/relationships/relationship-support'
 import { SupportSplit } from '../../ui/SupportSplit'
 
 export function RelationshipSupport({ support, calculations = true }: { support: Support; calculations?: boolean }) {

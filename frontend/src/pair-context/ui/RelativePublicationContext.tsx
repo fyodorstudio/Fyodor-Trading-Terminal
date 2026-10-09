@@ -4,7 +4,7 @@ type RelativeProps = { release: InspectorRelease | null; brokerId?: string | nul
 import { useRelativePreferences } from '../storage/relative-preferences'
 import { useEurContextTimeline } from '../runtime/useEurContextTimeline'
 import { usePublicationContext } from '../../usd-context/runtime/usePublicationContext'
-import { relativeContext, eurContextAt } from '../core/relative-context'
+import { relativeContext, eurContextAt } from '../../scoring-system/context/relative/relative-context'
 import { RelativeContextDetails } from './RelativeContextDetails'
 export function RelativePublicationContext(props:RelativeProps){
   const preferences=useRelativePreferences()

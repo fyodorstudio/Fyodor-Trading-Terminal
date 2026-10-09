@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import type { SupportBalance } from '../../usd-context/core/support-reading'
+import type { SupportBalance } from '../../scoring-system/context/usd/support-reading'
 import { WeightedSupportBar } from '../../usd-context/ui/WeightedSupportBar'
 import './reading-summary.css'
 import './usd-support.css'

@@ -26,7 +26,7 @@ try {
   const familySettings = await load('raycaster/storage/raycaster-family-settings.ts')
   const { readRelativePreferences } = await load('pair-context/storage/relative-preferences.ts')
   const prefs = await load('usd-context/sequences/storage/sequence-preferences.ts')
-  const { combineContext } = await load('usd-context/core/combine-context.ts')
+  const { combineContext } = await load('scoring-system/context/usd/combine-context.ts')
   const { exportWorkspace, restoreWorkspace, parseWorkspaceSnapshot } = await load('workspace-portability/workspace-snapshot.ts')
   const at = Date.UTC(2020, 0, 1, 12), hour = 3600000
   const source = (family, total, time, id) => ({ family, total, chartAt: time, releaseAt: time - 3 * hour, sourceId: id, sourceLabel: id,
@@ -356,7 +356,7 @@ try {
   assert.equal(JSON.stringify(episode), capturedCombo, 'Presentation never edits the captured snapshot')
 
   const { ComboSupportSummary } = await load('usd-context/sequences/ui/ComboSupportSummary.tsx')
-  const { roofSupport } = await load('usd-context/sequences/core/relationship-support.ts')
+  const { roofSupport } = await load('scoring-system/relationships/relationship-support.ts')
   const summarySupport = roofSupport(episode)
   // All chart label kinds share dimensions and plain shares, with no A/C text.
   const rateSource = { ...source('fed', null, episode.chartAt, 'rate'), usdDirection: 'stronger', policyAction: { action: 'Rate increase', delta: 25, actual: 4.5 } }

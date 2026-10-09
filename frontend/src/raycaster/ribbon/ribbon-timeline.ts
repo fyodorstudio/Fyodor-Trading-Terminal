@@ -1,8 +1,8 @@
-import type { ContextPoint, ContextTimeline, Evidence } from '../../usd-context/core/contracts'
-import type { EurContextPoint, EurContextTimeline } from '../../pair-context/core/contracts'
-import { relativeContext } from '../../pair-context/core/relative-context'
+import type { ContextPoint, ContextTimeline, Evidence } from '../../scoring-system/context/usd/contracts'
+import type { EurContextPoint, EurContextTimeline } from '../../scoring-system/context/relative/contracts'
+import { relativeContext } from '../../scoring-system/context/relative/relative-context'
 import { usdContextPresentation, usdPresentationUpdate, type UsdContextPresentation } from '../core/usd-context-presentation'
-import type { RelationshipPoint } from '../../usd-context/sequences/core/relationship-timeline'
+import type { RelationshipPoint } from '../../scoring-system/relationships/relationship-timeline'
 
 export type RibbonPoint = { at: number; label: string; direction: 'long' | 'short' | 'mixed' | 'conflicted' | 'balanced' | 'unchanged' | 'insufficient' | 'uncomputed'; evidence: Evidence | null;
   explanation: string; update: string; kind: 'publication' | 'memory' | 'expiry'; usd: ContextPoint | null; eur: EurContextPoint | null; presentation?: UsdContextPresentation;

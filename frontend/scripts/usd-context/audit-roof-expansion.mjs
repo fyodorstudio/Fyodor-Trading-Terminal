@@ -11,12 +11,12 @@ if (!outputFile || fs.existsSync(outputFile)) throw Error('Supply frozen input a
 const input = JSON.parse(fs.readFileSync(inputFile, 'utf8'))
 const server = await createServer({ root: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..'), server: { middlewareMode: true, hmr: false } })
 try {
-  const load = p => server.ssrLoadModule('./src/usd-context/' + p + '.ts')
-  const { buildContextTimeline } = await load('core/build-context-timeline')
-  const { relationshipVersion } = await load('sequences/core/contracts')
-  const { relationshipPairs } = await load('sequences/core/relationship-registry')
-  const { roofSupport, roofResultLabel } = await load('sequences/core/relationship-support')
-  const { prepareRoofAnchors, createRoofPlan, projectRoofPlan } = await load('sequences/chart/roof-plan')
+  const load = p => server.ssrLoadModule('./src/' + p + '.ts')
+  const { buildContextTimeline } = await load('scoring-system/context/usd/build-context-timeline')
+  const { relationshipVersion } = await load('scoring-system/relationships/contracts')
+  const { relationshipPairs } = await load('scoring-system/relationships/relationship-registry')
+  const { roofSupport, roofResultLabel } = await load('scoring-system/relationships/relationship-support')
+  const { prepareRoofAnchors, createRoofPlan, projectRoofPlan } = await load('usd-context/sequences/chart/roof-plan')
   const start = performance.now(), timeline = buildContextTimeline(input.inputUSD)
   const builtMs = performance.now() - start
   const roofs = timeline.relationships.episodes, pairCounts = {}, states = {}

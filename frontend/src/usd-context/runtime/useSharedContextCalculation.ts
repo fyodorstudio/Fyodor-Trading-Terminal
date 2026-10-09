@@ -1,8 +1,8 @@
 import { useMemo, useSyncExternalStore } from 'react'
-import type { ContextInput, ContextTimeline } from '../core/contracts'
-import { contextVersion } from '../core/policy'
-import { relationshipVersion } from '../sequences/core/contracts'
-import { buildContextTimeline } from '../core/build-context-timeline'
+import type { ContextInput, ContextTimeline } from '../../scoring-system/context/usd/contracts'
+import { contextVersion } from '../../scoring-system/context/usd/policy'
+import { relationshipVersion } from '../../scoring-system/relationships/contracts'
+import { buildContextTimeline } from '../../scoring-system/context/usd/build-context-timeline'
 import { contextInventoryIdentity } from './context-inventory-identity'
 import { sharedContextJobs, type JobState } from './shared-context-jobs'
 

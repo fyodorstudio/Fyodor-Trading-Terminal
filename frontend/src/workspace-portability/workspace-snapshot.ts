@@ -6,7 +6,8 @@ import { sequencePreferencesKey, validSequencePreferences } from '../usd-context
 import { roofAuditsKey } from '../usd-context/sequences/audit/audit-storage'
 import { validRoofAudits } from '../usd-context/sequences/audit/audit-model'
 import { magnitudeFamilies } from '../inspector/magnitude/magnitude-families'
-import { signalMagnitudeStores } from '../inspector/scoring/shared/core/signal-magnitude-settings'
+import { signalMagnitudeStores } from '../scoring-system/shared/core/signal-magnitude-settings'
+import { claimsStandalonePreferenceKey, validClaimsPreferences } from '../scoring-system/PAIR/EURUSD/USD/CLAIMS/policy/claims-standalone-settings'
 import { validMagnitudeLimits } from '../inspector/magnitude/magnitude-distribution'
 import { inspectorFamilies, inspectorStorageKey } from '../inspector/inspector-data'
 import { isEventSymbol } from '../inspector/event-symbols'
@@ -32,6 +33,7 @@ const symbolKey = (key: string, prefix: string) => key.startsWith(prefix) && key
   key.length <= prefix.length + 128 && [...key.slice(prefix.length)].every((char) => char.charCodeAt(0) >= 32)
 
 const validators: Record<string, (v: unknown) => boolean> = {
+  [claimsStandalonePreferenceKey]: validClaimsPreferences,
   [externalEventsKey]: validExternalEvents,
   [bottomDockHeightKey]: validBottomDockHeight,
   'fyodor.color-theme': (v) => v === 'dark' || v === 'light',

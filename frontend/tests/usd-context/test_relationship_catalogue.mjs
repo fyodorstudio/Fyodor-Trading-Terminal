@@ -5,14 +5,14 @@ import { createServer } from 'vite'
 
 const server = await createServer({ root: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..'), server: { middlewareMode: true, hmr: false } })
 try {
-  const load = p => server.ssrLoadModule('./src/usd-context/' + p + '.ts')
-  const { relationshipPairs, macroRelationshipFamilies: families } = await load('sequences/core/relationship-registry')
-  const { relationshipSupport: resolve, roofSupport, supportLabel, relationshipResultLabel, relationshipAvailability } = await load('sequences/core/relationship-support')
-  const { createIsmFreshMemory, updateIsmFresh } = await load('sequences/core/ism-fresh')
-  const { freshNewsAt, freshWindowMs } = await load('sequences/core/fresh-news')
-  const { buildContextRelationships } = await load('sequences/core/build-relationships')
-  const { withFedRelationshipStages, fedRelationshipSources, coherentFedSources } = await load('sequences/core/fed-relationships')
-  const { contextWeights } = await load('core/policy')
+  const load = p => server.ssrLoadModule('./src/' + p + '.ts')
+  const { relationshipPairs, macroRelationshipFamilies: families } = await load('scoring-system/relationships/relationship-registry')
+  const { relationshipSupport: resolve, roofSupport, supportLabel, relationshipResultLabel, relationshipAvailability } = await load('scoring-system/relationships/relationship-support')
+  const { createIsmFreshMemory, updateIsmFresh } = await load('scoring-system/relationships/ism-fresh')
+  const { freshNewsAt, freshWindowMs } = await load('scoring-system/relationships/fresh-news')
+  const { buildContextRelationships } = await load('scoring-system/relationships/build-relationships')
+  const { withFedRelationshipStages, fedRelationshipSources, coherentFedSources } = await load('scoring-system/relationships/fed-relationships')
+  const { contextWeights } = await load('scoring-system/context/usd/policy')
   const day = 86400000, at = Date.UTC(2026, 8, 3, 12, 30)
   const source = (family, total, time = at, patch = {}) => ({ family, total, chartAt: time, releaseAt: time - 3 * 3600000,
     sourceId: `${family}/${time}`, sourceLabel: family, usdDirection: total == null ? 'uncomputed' : total > 0 ? 'stronger' : total < 0 ? 'weaker' : 'uncomputed',

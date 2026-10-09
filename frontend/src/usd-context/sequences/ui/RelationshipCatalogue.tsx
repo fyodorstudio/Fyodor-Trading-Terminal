@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import type { ComboSnapshot, RelationshipFamily } from '../core/contracts'
-import { relationshipFamilies, relationshipName, relationshipPairs } from '../core/relationship-registry'
-import { relationshipAvailability, relationshipResultLabel, relationshipSupport, type RelationshipMode } from '../core/relationship-support'
+import type { ComboSnapshot, RelationshipFamily } from '../../../scoring-system/relationships/contracts'
+import { relationshipFamilies, relationshipName, relationshipPairs } from '../../../scoring-system/relationships/relationship-registry'
+import { relationshipAvailability, relationshipResultLabel, relationshipSupport, type RelationshipMode } from '../../../scoring-system/relationships/relationship-support'
 import { RelationshipSupport } from './RelationshipSupport'
 
 export function RelationshipCatalogue({ combo }: { combo: ComboSnapshot }) {

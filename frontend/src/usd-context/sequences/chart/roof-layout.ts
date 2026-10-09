@@ -1,4 +1,4 @@
-import type { ComboSnapshot } from '../core/contracts'
+import type { ComboSnapshot } from '../../../scoring-system/relationships/contracts'
 import type { RoofEndpoint } from './roof-symbols'
 
 export type RoofCandidate = { combo: ComboSnapshot; left: number; right: number; endpoints: RoofEndpoint[]; hidden: number; labelX: number }

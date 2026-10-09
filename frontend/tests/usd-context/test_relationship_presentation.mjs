@@ -18,8 +18,8 @@ const frames = new Map(); let frameId = 0
 dom.requestAnimationFrame = fn => { frames.set(++frameId, fn); return frameId }; dom.cancelAnimationFrame = id => frames.delete(id)
 try {
   const load = p => server.ssrLoadModule('./src/' + p)
-  const { combineContext } = await load('usd-context/core/combine-context.ts')
-  const { roofSupport } = await load('usd-context/sequences/core/relationship-support.ts')
+  const { combineContext } = await load('scoring-system/context/usd/combine-context.ts')
+  const { roofSupport } = await load('scoring-system/relationships/relationship-support.ts')
   const { selectedRoofProjection } = await load('raycaster/ribbon/roof-ribbon-timeline.ts')
   const { RaycasterBox } = await load('raycaster/ui/RaycasterBox.tsx')
   const { ContextRibbon } = await load('raycaster/ribbon/ContextRibbon.tsx')
