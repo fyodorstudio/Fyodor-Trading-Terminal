@@ -47,14 +47,12 @@ try {
   const app = mount(ClaimsScore, { release, events, history: {} }); await app.render()
   await React.act(async () => legacyClaimsSignalSettings.save('initial-trend', [.001, .002, .003]))
   assert.deepEqual(claimsSignalSettings.read(), {}, 'V1 custom cutoffs cannot silently grade new V2 features')
-  assert.match(app.container.textContent, /Claims v3/)
   assert.equal(app.container.querySelector('[aria-label="Jobless Claims level context"]'),null)
   assert.match(app.container.querySelector('[aria-label="Jobless Claims USD direction"]').textContent,/USD weakness/)
   assert.equal(app.container.querySelector('[aria-label="Jobless Claims pair direction"]').textContent, 'EURUSD Long')
   assert.equal(app.container.querySelector('[aria-label="How this scorer works"]'),null)
   assert.equal(app.container.querySelector('[aria-label="Jobless Claims component scores"]').closest('details'), null)
   assert.equal(app.container.querySelectorAll('[aria-label="Jobless Claims component scores"] tbody tr').length, 2)
-  assert.equal(app.container.querySelectorAll('[aria-label="Claims assessment"] button').length,2)
   const prefs = { ...defaultInspectorPreferences(), detailView: 'scoring' }
   let saved, opened
   const view = { supported: true, selectedRelease: release, preferences: prefs, brokerId: null, now, brokerTime: false,
@@ -68,6 +66,15 @@ try {
   const dropdown = panel.container.querySelector('[aria-label="Inspector view"]')
   assert.equal(dropdown.value, 'scoring'); assert.equal(dropdown.querySelector('[value="scoring"]').disabled, false)
   assert.equal(panel.container.querySelector('[aria-label="Jobless Claims pair direction"]').textContent, 'EURUSD Long')
+  assert.match(dropdown.selectedOptions[0].textContent, /Claims v3/)
+  assert.ok(panel.container.querySelector('.inspector-header [aria-label="Claims assessment"]'))
+  assert.ok(panel.container.querySelector('.inspector-header [aria-label="Scoring explanation & settings"]'))
+  const standalone = panel.container.querySelector('[aria-label="Standalone Scoring"]')
+  assert.equal(standalone.querySelectorAll('table').length, 1, 'The scoring view is one plain table')
+  assert.equal(standalone.querySelector('h2, nav, .inspector-majority, .scoring-engine-version, .scoring-result-explanation'), null)
+  assert.equal(standalone.querySelector('button, select'), null, 'Navigation belongs in the Inspector header')
+  const weekly = calculateClaimsStandalone({ release, events, horizon: 'release', settings: {}, initialWeight: 60 })
+  assert.equal(standalone.querySelectorAll('.inspector-claims-input').length, weekly.readings.reduce((sum, row) => sum + row.observations.length, 0), 'All comparison inputs remain visible in the scored value cells')
   assert.equal(panel.container.querySelectorAll('.inspector-scoring-view').length, 1)
   await choose(dropdown, 'scatter'); assert.equal(opened.id, release.id); assert.equal(saved, undefined)
   await choose(dropdown, 'table'); assert.equal(saved.detailView, 'table')
@@ -92,7 +99,7 @@ try {
   const target = { brokerId: 'claims-broker', familyId: 'claims', releaseId: release.id, at: release.releaseAt }
   const dock = mount(ScatterPlotDock, { brokerId: 'claims-broker', clockOffsetMs: now - Date.now(), target }); await dock.render()
   const requestsBeforeEdits = paths.length
-  await choose(dock.container.querySelector('[aria-label="Scatter Plot Measure"]'), 'signal')
+  await choose(dock.container.querySelector('[aria-label="Scatter Plot Calculation"]'), 'signal')
   assert.equal(dock.container.querySelector('[aria-label="Scatter Plot Signal"]').options.length, 2)
   const beforePreview = app.container.textContent
   await choose(dock.container.querySelector('[aria-label="Signal magnitude mode"]'), 'custom')
@@ -118,7 +125,11 @@ try {
 
   await choose(dock.container.querySelector('[aria-label="Claims Scatter assessment"]'),'trend')
   assert.equal(readClaimsPreferences().horizon,'trend')
-  assert.equal(app.container.querySelector('[aria-label="Claims assessment"] button[aria-pressed="true"]').textContent,'Four-week trend')
+  await panel.render(props)
+  assert.equal(panel.container.querySelector('[aria-label="Claims assessment"]').value,'trend')
+  const trendRows = app.container.querySelectorAll('tbody tr')
+  assert.equal(trendRows[1].cells[1].querySelectorAll('.inspector-claims-input').length,4)
+  assert.equal(trendRows[1].cells[2].querySelectorAll('.inspector-claims-input').length,4, 'Both non-overlapping continuing-claims windows are visible')
   assert.equal(dock.container.querySelector('[aria-label="Scatter Plot Signal"]').value,'initial-trend')
   assert.deepEqual(trendStore.read(),{})
   await choose(dock.container.querySelector('[aria-label="Claims Scatter assessment"]'),'release')

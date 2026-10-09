@@ -1,5 +1,6 @@
 import type { InspectorScoringProps } from '../../../../../scoring-contracts'
-import type { ReactNode } from 'react'
+import { useContext, type ReactNode } from 'react'
+import { ScoringSurface } from '../../../../../shared/ui/scoring-surface'
 import type { InspectorRelease } from '../../../../../../inspector-data'
 import { formatAppTimestamp } from '../../../../../../../appearance/time-display/time-display-preference'
 import { usePublicationContext } from '../../../../../../../usd-context/runtime/usePublicationContext'
@@ -22,6 +23,8 @@ export function FedDecisionContext({ release, action, brokerId = null, events, n
 }) {
   const { families, context, eligible, at, result, ready } = usePublicationContext(release, brokerId, events, now)
   const { previous, storage, path } = usePreviousFedMeeting(release, brokerId, events)
+  const plain = useContext(ScoringSurface) === 'standalone'
+  if (plain) return <FedRateAction action={action} eligible={eligible} path={path} pathLoading={storage.loading} pathError={storage.error} />
   const earlier = previous && context.result ? contextAt(context.result, previous.chartTime! * 1000) : null
   const direction = ready ? contextResultTone(result) : 'uncomputed'
   const label = ready ? contextResultLabel('EURUSD', result) : 'Uncomputed'

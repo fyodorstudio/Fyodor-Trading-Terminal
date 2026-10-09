@@ -1,3 +1,8 @@
+# Repository navigation
+
+- Start with [the repository map](docs/REPOSITORY-MAP.md) for terminology, ownership and active versus historical documentation.
+- Standalone scoring development does not migrate Roofs/Raycaster/Candy automatically. Claims v3 standalone and their Claims v2 context are separate models/settings.
+
 # Responsiveness guardrails
 
 - Read `fyodor trading terminal main objective.md` before changing interpretation behavior.

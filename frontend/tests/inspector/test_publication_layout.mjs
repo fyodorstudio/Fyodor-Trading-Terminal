@@ -46,7 +46,7 @@ try {
   }
   const resultFirst = (column, name) => {
     const body = column.querySelector('.inspector-scoring-column-body')
-    const direction = body.querySelector('.inspector-majority')
+    const direction = body.querySelector('.inspector-majority, [aria-label="Jobless Claims USD direction"]')
     if (body.querySelector('[aria-label="Fed rate-action interpretation"]') && !direction) {
       assert.match(body.querySelector('[aria-label="Decision & rate action"] p').textContent, /^Rate held at .*A hold alone does not establish currency strength or weakness\.$/)
       return
@@ -78,9 +78,23 @@ try {
     assert.equal(right.querySelectorAll('[aria-label="Context weight coverage"] dt').length, 5)
     assert.match(right.querySelector('[aria-label="Context weight coverage"]').textContent, /Usable configured budget.*Net \/ gross agreement/)
     const preserved = right.querySelector('.inspector-scoring-column-body').textContent
+    const driverRows = [...left.querySelectorAll('table[aria-label$="component scores"] tbody tr, table[aria-label="ISM v3 components"] tbody tr')]
+      .filter(row => row.cells.length >= 4)
+      .map(row => [row.cells[0].textContent, row.cells[row.cells.length - 1].textContent])
+    const standaloneDirection = left.querySelector('.inspector-majority')?.textContent
     await render(InspectorScoringView, { ...props, release, binding })
     assert.equal(host.querySelectorAll('[aria-label="Standalone Scoring"]').length, 1)
     assert.equal(host.querySelectorAll('[aria-label="Context-Aware at Publication Scoring"]').length, 0, `${binding.familyId}: Inspector no longer mounts publication context`)
+    if (binding.currency === 'USD') {
+      const standalone = host.querySelector('[aria-label="Standalone Scoring"]')
+      assert.equal(standalone.querySelectorAll('table').length, 1, `${binding.familyId}: one plain table holds the result and inputs`)
+      assert.equal(standalone.querySelector('details, .scoring-section, .inspector-majority'), null)
+      if (driverRows.length) assert.deepEqual([...standalone.querySelectorAll('tbody tr')]
+        .filter(row => row.cells.length === 6)
+        .map(row => [row.cells[0].textContent, row.cells[5].textContent]), driverRows,
+        `${binding.familyId}: every driver and weighted contribution survives the layout change`)
+      if (standaloneDirection) assert.equal(standalone.querySelector('caption strong').textContent, standaloneDirection)
+    }
     await render(ContextDetailed, { point: null, symbol: 'EURUSD', cutoff: null, loading: false, message: null,
       label: 'Uncomputed', presentation: null, relative: false, timeDisplay, publication: { ...props, release } })
     const migrated = host.querySelector('.raycaster-publication .inspector-scoring-column-body')
@@ -152,9 +166,10 @@ try {
       assert.ok(left.querySelector('[aria-label="CPI v4 standalone component scores"]'))
     }
     {
-      assert.ok(left.querySelector('[aria-label="What drove the result"]'), `${family} ${view}: result drivers have their own section`)
+      assert.equal(left.querySelectorAll('table').length, 1)
+      assert.equal(left.querySelector('.scoring-section, .inspector-majority'), null, `${family} ${view}: drivers are plain table rows`)
       assert.equal(left.querySelector('[aria-label="How this scorer works"]'), null)
-      assert.ok(host.querySelector('.scoring-method-link'), 'Methodology is reached through the canonical settings page')
+      assert.ok(host.querySelector('.inspector-header .scoring-method-link'), 'Methodology is reached through the header settings control')
     }
   }
 

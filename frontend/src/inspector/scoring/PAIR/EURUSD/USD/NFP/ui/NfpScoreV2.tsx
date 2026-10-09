@@ -1,5 +1,7 @@
+import { StandaloneScoreTable } from '../../../../../shared/ui/StandaloneScoreTable'
+import { ScoringSurface } from '../../../../../shared/ui/scoring-surface'
 import { ScoringSection } from '../../../../../shared/ui/ScoringSection'
-import { useMemo } from 'react'
+import { useContext, useMemo } from 'react'
 import type { InspectorScoringProps } from '../../../../../scoring-contracts'
 import { useStoredCalendar } from '../../../../../../useStoredCalendar'
 import { signalHistoryStart } from '../../../../../../../scoring-system/shared/core/historical-release-signals'
@@ -16,10 +18,15 @@ export function NfpScoreV2({ release, brokerId, events = [] }: InspectorScoringP
   const history = brokerId ? storage.events : events
   const settings = nfpSignalSettings.useSettings()
   const assessment = useMemo(() => assessNfpScoreV2(release, history, settings), [release, history, settings])
+  const plain = useContext(ScoringSurface) === 'standalone'
   if (!assessment) return null
   const loading = storage.loading
   const direction = loading ? 'uncomputed' : assessment.direction
   const coverageMissing = Object.values(storage.coverage).some((c) => c.missing.length > 0)
+  if (plain) return <StandaloneScoreTable assessment={assessment} rows={assessment.readings} supporting={assessment.supporting}
+    loading={loading} historyError={storage.error} partial={coverageMissing} label="NFP v2 component scores"
+    directionLabel="NFP v2 pair direction" evidenceLabel="NFP v2 evidence strength" changeSizeLabel="NFP v2 change size"
+    tones={['USD supportive', 'USD adverse']} />
   return <div className="inspector-detail-overview inspector-scoring-view inspector-nfp-v2" aria-label="NFP scoring system v2">
     <div className="inspector-nfp-v2-summary">
       <strong className={`inspector-majority inspector-direction-${direction}`} aria-label="NFP v2 pair direction">

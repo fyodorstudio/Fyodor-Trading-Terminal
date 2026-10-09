@@ -2,7 +2,7 @@
 
 This feature records user-selected audit windows outside the numerical dataset.
 Its strip is mounted above Candy, so Candy's visibility controls the highlights.
-The header gear's Manage outside events editor works independently of Candy.
+The header gear's **Fundamental Settings → Outside Events** tab works independently of Candy.
 No module here is
 used by a scorer, context engine, fresh-news detector or calculation worker.
 

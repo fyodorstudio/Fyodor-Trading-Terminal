@@ -29,6 +29,7 @@ try {
   const { RetailScore } = await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/RETAIL/ui/RetailScore.tsx')
   const { calculateRetailAnalysis } = await server.ssrLoadModule('./src/scoring-system/PAIR/EURUSD/USD/RETAIL/runtime/retail-analysis.ts')
   const { InspectorPanel } = await server.ssrLoadModule('./src/inspector/InspectorPanel.tsx')
+  const { InspectorScoringView } = await server.ssrLoadModule('./src/inspector/scoring/InspectorScoringView.tsx')
   const { groupInspectorReleases, defaultInspectorPreferences } = await server.ssrLoadModule('./src/inspector/inspector-data.ts')
   const { inspectorScoringBinding } = await server.ssrLoadModule('./src/inspector/scoring/scoring-registry.ts')
   const { ScatterPlotDock } = await server.ssrLoadModule('./src/scatter-plot/index.ts')
@@ -82,7 +83,7 @@ try {
   const target = { brokerId: 'retail-broker', familyId: 'retail', releaseId: release.id, at: release.releaseAt }
   const dock = mount(ScatterPlotDock, { brokerId: 'retail-broker', clockOffsetMs: now - Date.now(), target }); await dock.render()
   const requestsBeforeEdits = paths.length
-  await choose(dock.container.querySelector('[aria-label="Scatter Plot Measure"]'), 'signal')
+  await choose(dock.container.querySelector('[aria-label="Scatter Plot Calculation"]'), 'signal')
   assert.equal(dock.container.querySelector('[aria-label="Scatter Plot Signal"]').options.length, 3)
   const beforePreview = app.container.textContent
   await choose(dock.container.querySelector('[aria-label="Signal magnitude mode"]'), 'custom')
@@ -113,22 +114,26 @@ try {
     postMessage(job) { this.jobs.push(job) }
     terminate() { this.terminated = true }
   }
-  const workerProps = { release, events, history: {} }, workerView = mount(RetailScore, workerProps)
+  const workerProps = { release, events, history: {}, binding: inspectorScoringBinding('EURUSD', release) }, workerView = mount(InspectorScoringView, workerProps)
   await workerView.render(); assert.equal(workers.length, 1); assert.equal(workers[0].jobs.length, 1)
-  assert.match(workerView.container.textContent, /Calculating/)
+  assert.match(workerView.container.textContent, /Loading/)
   const job = workers[0].jobs[0]
   await React.act(async () => workers[0].onmessage({ data: { id: job.id, result: calculateRetailAnalysis(job.input) } }))
   assert.match(workerView.container.textContent, /EURUSD Long/)
+  const driverContributions = () => [...workerView.container.querySelectorAll('[data-score-signal]')].map(row => row.cells[5].textContent)
+  assert.equal(driverContributions().length, 3)
   await workerView.render({ ...workerProps })
   assert.equal(workers[0].jobs.length, 1, 'Unchanged release/history must not rescore on parent rerenders')
   await React.act(async () => retailSignalSettings.save('control-pace', [.001, .002, .003]))
   assert.equal(workers[0].jobs.length, 2)
   assert.equal(workerView.container.querySelector('[aria-label="Retail Sales pair direction"]').textContent, 'Uncomputed', 'Stale results are hidden during recalculation')
+  assert.ok(driverContributions().every(value => value === '—'), 'Recalculation hides stale table contributions as well as the direction')
   await React.act(async () => workers[0].onmessage({ data: { id: job.id, result: calculateRetailAnalysis(job.input) } }))
-  assert.match(workerView.container.textContent, /Calculating/, 'Superseded replies must be ignored')
+  assert.match(workerView.container.textContent, /Loading/, 'Superseded replies must be ignored')
   await React.act(async () => workers[0].onerror({}))
   assert.match(workerView.container.textContent, /Background calculation failed/)
   assert.equal(workerView.container.querySelector('[aria-label="Retail Sales pair direction"]').textContent, 'Uncomputed')
+  assert.ok(driverContributions().every(value => value === '—'), 'A failed worker cannot leave stale votes in the plain table')
   await React.act(async () => { for (const root of roots.splice(0)) root.unmount() })
   assert.equal(workers[0].terminated, true)
   console.log('✓ Retail worker reuse, live settings invalidation, stale reply rejection, failure disclosure and cleanup')

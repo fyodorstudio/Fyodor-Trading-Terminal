@@ -1,5 +1,7 @@
+import { StandaloneScoreTable } from '../../../../../shared/ui/StandaloneScoreTable'
+import { ScoringSurface } from '../../../../../shared/ui/scoring-surface'
 import { ScoringSection } from '../../../../../shared/ui/ScoringSection'
-import { useMemo } from 'react'
+import { useContext, useMemo } from 'react'
 import type { InspectorScoringProps } from '../../../../../scoring-contracts'
 import { useStoredCalendar } from '../../../../../../useStoredCalendar'
 import { signalHistoryStart } from '../../../../../../../scoring-system/shared/core/historical-release-signals'
@@ -16,10 +18,15 @@ export function PceScore({ release, brokerId, events = [] }: InspectorScoringPro
   const history = brokerId ? storage.events : events
   const settings = pceSignalSettings.useSettings()
   const assessment = useMemo(() => assessPceScore(release, history, settings), [release, history, settings])
+  const plain = useContext(ScoringSurface) === 'standalone'
   if (!assessment) return null
   const loading = storage.loading
   const direction = loading ? 'uncomputed' : assessment.direction
   const coverageMissing = Object.values(storage.coverage).some((coverage) => coverage.missing.length > 0)
+  if (plain) return <StandaloneScoreTable assessment={assessment} rows={assessment.readings}
+    supporting={[{ id: 'level', label: 'Inflation level', text: assessment.targetContext }]} loading={loading}
+    historyError={storage.error} partial={coverageMissing} label="PCE component scores" directionLabel="PCE pair direction"
+    evidenceLabel="PCE evidence strength" changeSizeLabel="PCE change size" tones={['Heating', 'Cooling']} />
   return <div className="inspector-detail-overview inspector-scoring-view inspector-pce-v1" aria-label="PCE scoring system">
     <div className="inspector-pce-v1-summary">
       <strong className={`inspector-majority inspector-direction-${direction}`} aria-label="PCE pair direction">{loading ? 'Uncomputed' : assessment.label}</strong>

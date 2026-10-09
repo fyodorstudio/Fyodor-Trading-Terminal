@@ -112,7 +112,7 @@ try {
   const early = model.points.find((point) => point.signal.points === null)
   assert.ok(early); assert.equal(early.signal.size, null, 'Early derived values can be plotted without pretending to be scored')
   const details = await mount(MagnitudeCalculationDetails, { model, seriesLabel: 'Latest core pace' })
-  assert.match(details.textContent, /Actual core m\/m.*Prior three-month average.*Scoring signal.*Automatic/)
+  assert.match(details.textContent, /Actual core m\/m.*Prior three-month average.*Scorer comparison.*Automatic/)
   const svg = await mount(MagnitudeScatterPlot, { model, zoom: true, onInspect: () => {} })
   assert.ok(svg.querySelector('[aria-label="Release date versus scoring signal scatter plot"]'))
   assert.match(svg.querySelector('[data-point-id] title').textContent, /earlier-history thresholds; N =/)
@@ -139,7 +139,7 @@ try {
   const nfpInspector = await mount(NfpScoreV2, { release: fixtures.jobs.history.at(-1).release, events: fixtures.jobs.events })
   const before = requests.length
   const inspectorBefore = inspector.textContent
-  await select(dock.querySelector('[aria-label="Scatter Plot Measure"]'), 'signal')
+  await select(dock.querySelector('[aria-label="Scatter Plot Calculation"]'), 'signal')
   assert.equal(dock.querySelector('.scatter-plot-inspection time').textContent, new Date(selected.releaseAt).toISOString().slice(0, 10))
   assert.equal(dock.querySelector('[aria-label="Scatter Plot Signal"]').options.length, 4)
   await select(dock.querySelector('[aria-label="Signal magnitude mode"]'), 'custom')
@@ -177,7 +177,7 @@ try {
   assert.deepEqual(cpiSignalSettings.read(), {}); assert.equal(inspector.textContent, inspectorBefore)
   await React.act(async () => nfpSignalSettings.save('hiring', null))
   assert.equal(nfpInspector.textContent, nfpBefore)
-  await select(dock.querySelector('[aria-label="Scatter Plot Measure"]'), 'ap')
+  await select(dock.querySelector('[aria-label="Scatter Plot Calculation"]'), 'ap')
   assert.ok(dock.querySelector('[aria-label="Scatter Plot Series"]')); assert.equal(dock.querySelector('[aria-label="Scatter Plot Signal"]'), null)
   console.log('✓ Measure/component controls, isolated saved overrides, preview/apply/reset, live Inspector and workspace restoration')
 } finally {

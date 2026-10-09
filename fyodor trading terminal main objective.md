@@ -11,7 +11,7 @@ centralise existing calculations and fundamental settings, implement and validat
 Claims standalone, then review other labor models, relationships and finally
 Raycaster. Reuse the existing Inspector scoring views for supported USD releases.
 
-Claims standalone will have **This release** (weekly change against revised prior)
+Claims standalone has **This release** (weekly change against revised prior)
 and **Four-week trend** (separate four-week periods). Each has its own calibrated
 USD strength/weakness bias, evidence strength and EURUSD translation. Do not merge
 them into another vote. Forecasts remain excluded; revisions and calibration must
@@ -197,7 +197,7 @@ its strength. Distinguish the new release from retained context and fresh-change
 relationships. Report concrete defects or justified refinements without requiring
 the user to interpret tables or select parameters.
 
-8 October Claims evidence: standalone EURUSD Short, Strong agreement, total
+Historical Claims v2 evidence for 8 October: standalone EURUSD Short, Strong agreement, total
 +2.25—unchanged from 1 October. The accumulated USD-only result remains
 Conflicted · Short leads, Moderate, with its stronger retained lead caused by
 Claims renewal. The replay reproduces nine combinations: two Long leads and

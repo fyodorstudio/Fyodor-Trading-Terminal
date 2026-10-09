@@ -1,0 +1,11 @@
+.inspector-table-score { display: flex; flex: 1; min-height: 0; min-width: 0; }
+.inspector-scoring-view.inspector-standalone-table { display: block; padding: 0; min-height: 0; overflow: auto; }
+.inspector-standalone-table table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.inspector-table-result { text-align: left; padding: 6px 12px; border-bottom: 1px solid var(--border); }
+.inspector-table-result > * + * { margin-left: 12px; }
+.inspector-detail .inspector-standalone-table :is(th, td) { white-space: normal; overflow-wrap: anywhere; vertical-align: top; }
+.inspector-detail .inspector-standalone-table :is(th, td):first-child { width: auto; }
+.inspector-detail .inspector-table-section th { position: static; text-align: left; background: var(--surface-inset); }
+.inspector-table-section small { display: block; font-weight: normal; margin-top: 2px; }
+.inspector-header .scoring-method-link { margin: 0; flex-shrink: 0; }
+.inspector-header:has(.scoring-method-link) { flex-wrap: wrap; }

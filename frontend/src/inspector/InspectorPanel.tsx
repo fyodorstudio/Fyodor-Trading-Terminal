@@ -13,6 +13,8 @@ import { matchesReadingFamily } from './grading/reading-grading'
 import { magnitudeFamilies } from './magnitude/magnitude-families'
 import { InspectorScoringView } from './scoring/InspectorScoringView'
 import { inspectorScoringBinding } from './scoring/scoring-registry'
+import { ClaimsScoreControls } from './scoring/PAIR/EURUSD/USD/CLAIMS/ui/ClaimsScore'
+import { ScoringMethodLink } from './scoring/shared/ui/ScoringMethodLink'
 import type { InspectorView } from './useInspector'
 import { InspectorReleaseList } from './releases/InspectorReleaseList'
 import { releaseStatus } from './releases/release-status'
@@ -117,6 +119,8 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
       </div>}
       {view.supported && release && <InspectorReleaseHeading release={release} view={view} timeDisplay={timeDisplay}
         status={status(release)} sharedPeriod={sharedPeriod} hasMagnitude={hasMagnitude} calendarDetail={calendarDetail} coverageDetail={coverageDetail} />}
+      {view.supported && showScoring && scoringBinding?.familyId === 'claims' && <ClaimsScoreControls />}
+      {view.supported && showScoring && scoringBinding?.currency === 'USD' && <ScoringMethodLink family={scoringBinding.familyId === 'fed-chair' ? 'fomc' : scoringBinding.familyId} />}
       {view.supported && release && <select className="inspector-view-select" aria-label="Inspector view"
         value={visibleView} onChange={(event) => {
           const next = event.target.value

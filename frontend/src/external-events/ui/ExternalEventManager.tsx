@@ -4,7 +4,7 @@ import { deleteExternalEvent, saveExternalEvent } from '../storage/external-even
 import { useDisplayClock } from '../../appearance/time-display/useDisplayClock'
 
 export function ExternalEventManager({ events, initialId, defaults, symbol, brokerId, onClose, embedded = false }: {
-  events: readonly ExternalEvent[]; initialId: string | null; defaults: { from: number; to: number }; symbol: string; brokerId: string; onClose: () => void; embedded?: boolean
+  events: readonly ExternalEvent[]; initialId: string | null; defaults: { from: number; to: number }; symbol: string; brokerId: string; onClose?: () => void; embedded?: boolean
 }) {
   const panel = useRef<HTMLDivElement>(null)
   const clock = useDisplayClock(), clockInput = clock.input, parseClockInput = clock.parse, displayClock = clock.chart
@@ -25,13 +25,13 @@ export function ExternalEventManager({ events, initialId, defaults, symbol, brok
   useEffect(() => {
     panel.current?.focus({ preventScroll: true })
     if (embedded) return
-    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); onClose() } }
+    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); onClose?.() } }
     document.addEventListener('keydown', key)
     return () => document.removeEventListener('keydown', key)
   }, [onClose, embedded])
   const selected = events.find(e => e.id === draft.id)
   return <div ref={panel} tabIndex={-1} role={embedded ? 'group' : 'dialog'} aria-label="Manual outside events" className={`external-event-manager${embedded ? ' embedded' : ''}`}>
-    <header><strong>Outside events · Manual notes</strong><button type="button" aria-label={embedded ? 'Back to tool settings' : 'Close outside events'} onClick={onClose}>{embedded ? 'Back' : '×'}</button></header>
+    <header><strong>Outside events · Manual notes</strong>{onClose && <button type="button" aria-label={embedded ? 'Back to tool settings' : 'Close outside events'} onClick={onClose}>{embedded ? 'Back' : '×'}</button>}</header>
     <p>Gray highlights mark your notes and chosen window; they do not affect scores.</p>
     <small>{symbol} · {brokerId} · Enter dates in {clock.zone}. Notes may be added retrospectively.</small>
     <form onSubmit={e => {

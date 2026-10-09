@@ -21,7 +21,7 @@ export function MagnitudeCalculationDetails({ model, seriesLabel, children, prev
     <dl>
       <div><dt>{signal?.inputs?.actualLabel ?? 'Actual'}</dt><dd>{formatReading(inspection.actual)}</dd></div>
       <div><dt>{signal?.inputs?.baselineLabel ?? 'Previous'}</dt><dd>{formatReading(inspection.previous)}</dd></div>
-      <div><dt>{signal ? 'Scoring signal' : 'A−P'}</dt><dd>{formatDelta(inspection.delta)}</dd></div>
+      <div><dt>{signal ? 'Scorer comparison' : 'A−P'}</dt><dd>{formatDelta(inspection.delta)}</dd></div>
       <div><dt>Size</dt><dd>{signal ? signal.size ?? 'Unavailable' : inspection.delta === null ? 'Unavailable' : inspection.magnitudeMode === 'undefined' ? 'Undefined' : d?.currentSize ?? 'No usable dataset'}</dd></div>
       {signal && <><div><dt>Magnitude source</dt><dd>{preview ? 'Manual preview' : signal.magnitudeMode === 'automatic' ? 'Automatic · earlier history' : 'Saved manual override'}</dd></div>
         <div><dt>Calibration N</dt><dd>{signal.sampleCount}</dd></div></>}

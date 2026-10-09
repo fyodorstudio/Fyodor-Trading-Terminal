@@ -184,7 +184,7 @@ try {
   const target = { brokerId: 'test-broker', familyId: 'pce', releaseId: cool.id, at: cool.releaseAt }
   const dock = mount(ScatterPlotDock, { brokerId: 'test-broker', clockOffsetMs: now - Date.now(), target }); await dock.render()
   const requestsBeforeEdits = paths.length
-  await choose(dock.container.querySelector('[aria-label="Scatter Plot Measure"]'), 'signal')
+  await choose(dock.container.querySelector('[aria-label="Scatter Plot Calculation"]'), 'signal')
   assert.equal(dock.container.querySelector('[aria-label="Scatter Plot Signal"]').options.length, 4)
   assert.equal(dock.container.querySelector('.scatter-plot-inspection time').textContent, new Date(cool.releaseAt).toISOString().slice(0, 10))
   await choose(dock.container.querySelector('[aria-label="Scatter Plot Signal"]'),'core-annual')

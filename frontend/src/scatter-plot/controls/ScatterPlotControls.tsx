@@ -18,8 +18,8 @@ export function ScatterPlotControls({ scope, seriesId, onSeriesChange, zoom, onZ
         onChange={(event) => { if (label === 'Family') onFamilyChange?.(event.target.value); else if (label === 'Base/Quote') onSideChange?.(event.target.value) }}>
         {(label === 'Family' && familyOptions ? familyOptions : label === 'Base/Quote' && sideOptions ? sideOptions : [option]).map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
       </select></label>)}
-    {onMeasureChange && <label>Measure<select aria-label="Scatter Plot Measure" value={measure} onChange={(event) => onMeasureChange(event.target.value as 'ap' | 'signal')}>
-      <option value="ap">Actual − Previous</option><option value="signal">Scoring signal</option>
+    {onMeasureChange && <label>Calculation<select aria-label="Scatter Plot Calculation" value={measure} onChange={(event) => onMeasureChange(event.target.value as 'ap' | 'signal')}>
+      <option value="ap">Raw change · Actual − Previous</option><option value="signal">Scorer comparison</option>
     </select></label>}
     <label>{measure === 'signal' ? 'Signal' : 'Series'}<select aria-label={measure === 'signal' ? 'Scatter Plot Signal' : 'Scatter Plot Series'} value={seriesId} onChange={(event) => onSeriesChange(event.target.value)}>
       {scope.series.map((series) => <option key={series.id} value={series.id}>{series.label}</option>)}

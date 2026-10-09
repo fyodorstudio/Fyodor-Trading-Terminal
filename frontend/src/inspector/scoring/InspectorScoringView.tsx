@@ -5,17 +5,15 @@ import type { InspectorScoringBinding, InspectorScoringProps } from './scoring-c
 import { ismSourceRelease } from '../episodes/ism-episodes'
 import { memo } from 'react'
 import { PmiEpisodeScore } from './PAIR/EURUSD/EUR/ui/PmiEpisodeScore'
-import { ScoringMethodLink } from './shared/ui/ScoringMethodLink'
 
 function InspectorScoringViewComponent({ surface = 'standalone', ...props }: InspectorScoringProps & {
   binding: InspectorScoringBinding; surface?: 'standalone' | 'context' | 'both'
 }) {
-  return <ScoringSurface value={surface}><ScoringContent {...props} />
-    {surface === 'standalone' && props.release?.currency === 'USD' && <ScoringMethodLink family={props.release.familyId === 'fed-chair' ? 'fomc' : props.release.familyId} />}
-  </ScoringSurface>
+  return <ScoringSurface value={surface}><ScoringContent {...props} surface={surface} /></ScoringSurface>
 }
-function ScoringContent({ binding, ...props }: InspectorScoringProps & { binding: InspectorScoringBinding }) {
+function ScoringContent({ binding, surface, ...props }: InspectorScoringProps & { binding: InspectorScoringBinding; surface: 'standalone' | 'context' | 'both' }) {
   const Component = binding.Component
+  if (binding.currency === 'USD' && surface === 'standalone') return <section className="inspector-table-score" aria-label="Standalone Scoring"><Component {...props} /></section>
   if (props.release?.pmiPublications) return <PmiEpisodeScore {...props} />
   if (binding.includesContext) return <Component {...props} />
   const contextRelease = ismSourceRelease(props.release, null, props.now ?? 0)

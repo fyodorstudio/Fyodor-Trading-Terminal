@@ -230,6 +230,14 @@ try {
   assert.equal(workerInputs.length, settingsJobs, 'Opening methodology without a Claims selection does no scoring work')
   assert.equal(requests.length, settingsRequests, 'Opening methodology does not refetch calendar history')
   assert.equal(counters.chartCreated, settingsCharts, 'Opening the settings dock preserves the chart instance')
+  await click(container.querySelector('[aria-label="Fundamental tools settings"]'))
+  assert.equal(container.querySelector('[aria-label="Fundamental Settings"]'), null, 'A second gear click closes the production dock')
+  assert.equal(container.querySelector('[aria-label="Fundamental tools settings"]').getAttribute('aria-expanded'), 'false')
+  for (let repeat = 0; repeat < 2; repeat++) {
+    await React.act(async () => window.dispatchEvent(new dom.CustomEvent('fyodor:fundamental-settings', { detail: { family: 'pce' } })))
+    assert.ok(container.querySelector('[aria-label="Fundamental Settings"]'), 'Methodology requests keep the dock open')
+    assert.equal(container.querySelector('[aria-label="Scoring family"]').value, 'pce')
+  }
   await click(button('Fundamental Settings'))
   // Exercise drawing selection, body drag and blank-space deselection through
   // the assembled terminal, including chart navigation and the shared storage.
@@ -305,7 +313,7 @@ try {
   assert.equal(container.querySelectorAll('.inspector-panel [aria-label="Context-Aware at Publication Scoring"]').length, 0)
   assert.equal(button('Open publication context in Raycaster'), undefined, 'Inspector has no redundant publication shortcut')
   const methodJobs = workerInputs.length
-  await click(button('Scoring explanation & settings'))
+  await click(container.querySelector('.inspector-header [aria-label="Scoring explanation & settings"]'))
   assert.equal(container.querySelector('[aria-label="Scoring family"]').value, 'us-cpi', 'Inspector opens the selected model explanation')
   assert.equal(container.querySelectorAll('[aria-label="Scoring rules"] tbody tr').length, 4)
   assert.equal(workerInputs.length, methodJobs, 'Opening the scoring explanation launches no new calculation')

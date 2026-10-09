@@ -562,8 +562,9 @@ try {
   await click(app.container.querySelector('.inspector-release'))
   assert.deepEqual(grading.tallyNfpRelease(view.selectedRelease).counts, { higher: 2, lower: 7, unchanged: 1, missing: 0, unrated: 0 })
   await showView('Scoring system')
-  assert.equal(app.container.querySelectorAll('[aria-label="NFP v2 component scores"] tbody tr').length, 5)
-  assert.ok(app.container.querySelector('[aria-label="NFP v2 supporting context"]'))
+  assert.equal(app.container.querySelectorAll('[aria-label="NFP v2 component scores"] [data-score-signal]').length, 5)
+  assert.equal(app.container.querySelectorAll('[aria-label="Standalone Scoring"] table').length, 1)
+  assert.equal(app.container.querySelectorAll('[aria-label="Supporting readings"] td:first-child').length, 6, 'Nonvoting NFP readings remain in the same table')
   assert.equal(app.container.querySelector('.inspector-signed-magnitude-matrix'), null, 'Retired original magnitude matrices are absent')
   assert.equal(app.container.querySelector('.magnitude-histogram'), null, 'Undefined never invents a histogram')
   const directionLabel = () => app.container.querySelector('[aria-label="NFP v2 pair direction"]').textContent

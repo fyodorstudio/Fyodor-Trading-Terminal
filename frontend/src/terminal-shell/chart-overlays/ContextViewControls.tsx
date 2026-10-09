@@ -1,5 +1,5 @@
 import { saveSequencePreferences, useSequencePreferences } from '../../usd-context/sequences/storage/sequence-preferences'
-import { openFundamentalSettings } from '../../fundamental-tools/runtime/settings-navigation'
+import { toggleFundamentalSettings } from '../../fundamental-tools/runtime/settings-navigation'
 import { CandyIcon, RaycasterIcon, RoofsIcon, ToolsGearIcon } from '../../fundamental-tools/ui/ToolIcons'
 import type { ChartTimeframe } from '../../market-data/contracts/ChartTimeframe'
 import type { TimeDisplayPreference } from '../../appearance/time-display/time-display-preference'
@@ -24,6 +24,6 @@ export function ContextViewControls({ symbol, supported, raycasterVisible = fals
       onClick={() => saveSequencePreferences({ ...preferences, ribbon: !preferences.ribbon })}><CandyIcon /></button>
     <button type="button" className={`chart-drawing-toggle fundamental-tools-gear${settingsActive ? ' active' : ''}`}
       aria-label="Fundamental tools settings" title="Fundamental Settings" aria-expanded={settingsActive} aria-controls="fundamental-settings"
-      onClick={() => openFundamentalSettings()}><ToolsGearIcon /></button>
+      onClick={toggleFundamentalSettings}><ToolsGearIcon /></button>
   </div>
 }

@@ -4,10 +4,14 @@ Inspector owns the existing standalone presentation. Shared formulas, policies,
 calibration and worker entry points now live in
 [`../../scoring-system/`](../../scoring-system/README.md). USD methodology and
 calibration controls are in the gear's **Fundamental Settings → Scoring System**
-dock; Inspector shows results and release-specific comparisons.
+dock; USD Inspector scorers use one plain table for results, comparisons and
+supporting readings. Settings live in the Inspector header; ISM retains sector
+groups and Fed shows its rate action without nested result panels.
 
 Claims standalone is **v3**, with independent **This release** and **Four-week
-trend** views. Scatter follows the selected view. Roofs, Raycaster and Candy retain
+trend** views. Its assessment selector lives in the header, and supporting
+observations sit in the value cells.
+Scatter follows the selected view. Roofs, Raycaster and Candy retain
 Claims v2 and its saved settings. Other numerical models are unchanged. The
 registry owns Inspector version labels; context labels remain in the shared
 current-version module.
@@ -17,7 +21,7 @@ record active scope and validation. The dated sections below are implementation
 history, including earlier UI/calibration locations; they do not override this
 layout.
 
-# Current interpretation integrity pass — 7 October 2026
+# Historical interpretation integrity pass — 7 October 2026
 
 Current CPI Inspector v4.1 uses standalone engine v3.2; NFP v2.2 guards supplied
 raw revisions and consecutive references; EUR numerical v1.1 selects a calibrated
@@ -30,7 +34,7 @@ Sections below document implementation history. Version-specific older formulas
 are archived records; the current registry and the objective document take priority.
 See the root main objective and the shared scoring-system README.
 
-# Inspector scoring — current interface
+# Inspector scoring — interface history before standalone refinement
 
 Every family has one current scoring view. The menu contains **Table only**,
 **Scoring system · [family/version]**, and **Scatter Plot**. The result and drivers stay visible; method, calibration and supporting context are expandable:

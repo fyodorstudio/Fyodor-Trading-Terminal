@@ -1,5 +1,9 @@
 # Current Claims scoring signals — 9 October 2026
 
+The **Calculation** selector offers **Raw change · Actual − Previous** and
+**Scorer comparison**. These choose the plotted comparison; Automatic / Manual
+override chooses its boundaries separately. Existing data and settings keys are unchanged.
+
 Claims scoring-signal mode follows Inspector's selected v3 assessment: two weekly
 change signals or two separate four-week trend signals. Each view uses its own
 magnitude settings and the shared feature extractor in `../scoring-system/`.

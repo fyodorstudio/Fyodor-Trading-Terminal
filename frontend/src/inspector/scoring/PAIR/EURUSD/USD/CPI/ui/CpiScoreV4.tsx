@@ -1,5 +1,7 @@
+import { StandaloneScoreTable } from '../../../../../shared/ui/StandaloneScoreTable'
+import { ScoringSurface } from '../../../../../shared/ui/scoring-surface'
 import { PublicationScoringLayout } from '../../../../../shared/ui/PublicationScoringLayout'
-import type { ReactNode } from 'react'
+import { useContext, type ReactNode } from 'react'
 import { PublicationScoringContext } from '../../../../../shared/ui/PublicationScoringContext'
 import type { InspectorEvent, InspectorRelease } from '../../../../../../inspector-data'
 import type { TimeDisplayPreference } from '../../../../../../../appearance/time-display/time-display-preference'
@@ -22,12 +24,16 @@ function CpiPublicationScore({ release, brokerId = null, events, now, timeDispla
   release: InspectorRelease; brokerId?: string | null; events: readonly InspectorEvent[]; now: number; timeDisplay: TimeDisplayPreference
 }) {
   const { standalone, context, families, comparison } = useCpiV4Analysis(release, brokerId, events, now)
+  const plain = useContext(ScoringSurface) === 'standalone'
   const assessment = standalone.result
   const loading = context.storage.loading || standalone.loading
   const ready = !loading && !standalone.error && !!assessment
   const contextUnavailable = !!context.error || !!comparison.explanation && comparison.before === null && comparison.after === null
   const result = comparison.after?.result ?? null
   const coverageMissing = Object.values(context.storage.coverage).some(c => c.missing.length > 0)
+  if (plain) return <StandaloneScoreTable assessment={assessment} rows={assessment?.readings} loading={loading}
+    error={standalone.error} historyError={context.storage.error} partial={coverageMissing}
+    label="CPI v4 standalone component scores" directionLabel="CPI v4 standalone direction" tones={['Heating', 'Cooling']} />
   const standaloneView = <section className="inspector-scoring-view inspector-structured-score" aria-label="CPI v4 this release">
     <div className="inspector-cpi-v4-summary">
       <strong className={`inspector-majority inspector-direction-${ready ? assessment.direction : 'uncomputed'}`} aria-label="CPI v4 standalone direction">{ready ? assessment.label : 'Uncomputed'}</strong>

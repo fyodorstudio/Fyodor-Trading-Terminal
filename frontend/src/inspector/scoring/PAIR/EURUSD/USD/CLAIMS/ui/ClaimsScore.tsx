@@ -4,24 +4,32 @@ import { claimsHorizons } from '../../../../../../../scoring-system/PAIR/EURUSD/
 import { saveClaimsPreferences, useClaimsPreferences } from '../../../../../../../scoring-system/PAIR/EURUSD/USD/CLAIMS/policy/claims-standalone-settings'
 import { useClaimsAnalysis } from '../runtime/useClaimsAnalysis'
 import { ClaimsScoreDetails } from './ClaimsScoreDetails'
+import { formatScore } from '../../../../../shared/ui/format-score'
 import './claims-score.css'
 
+export function ClaimsScoreControls() {
+  const preferences = useClaimsPreferences()
+  return <div className="inspector-claims-controls">
+    <select aria-label="Claims assessment" value={preferences.horizon} onChange={e => saveClaimsPreferences({ ...preferences, horizon: e.target.value as typeof preferences.horizon })}>
+      {claimsHorizons.map(h => <option key={h.id} value={h.id}>{h.label}</option>)}
+    </select>
+  </div>
+}
+
 export function ClaimsScore(props: InspectorScoringProps) {
-  const preferences = useClaimsPreferences(), { assessment, loading, error, storage } = useClaimsAnalysis(props)
+  const { assessment, loading, error, storage } = useClaimsAnalysis(props)
   if (!supportsClaimsScore(props.release)) return null
   const direction = loading || error ? 'uncomputed' : assessment?.direction ?? 'uncomputed'
-  return <div className="inspector-detail-overview inspector-scoring-view inspector-claims" aria-label="Jobless Claims scoring system">
-    <div className="inspector-claims-summary">
-      <strong className={`inspector-majority inspector-direction-${direction}`} aria-label="Jobless Claims USD direction">{loading || error ? 'Uncomputed' : assessment?.usdLabel ?? 'Uncomputed'}</strong>
+  return <div className="inspector-scoring-view inspector-claims" aria-label="Jobless Claims scoring system">
+    <ClaimsScoreDetails assessment={!loading && !error ? assessment : null} result={<>
+      <strong className={`inspector-direction-${direction}`} aria-label="Jobless Claims USD direction" title={assessment?.explanation}>{loading || error ? 'Uncomputed' : assessment?.usdLabel ?? 'Uncomputed'}</strong>
       <span aria-label="Jobless Claims pair direction">{loading || error ? 'Uncomputed' : assessment?.label}</span>
       {!loading && !error && assessment?.strength && <span aria-label="Jobless Claims evidence strength">{assessment.strength} evidence</span>}
-    </div>
-    <nav aria-label="Claims assessment">{claimsHorizons.map(h => <button key={h.id} type="button" aria-pressed={preferences.horizon === h.id}
-      onClick={() => saveClaimsPreferences({ ...preferences, horizon: h.id })}>{h.label}</button>)}</nav>
-    <small className="scoring-engine-version">Claims v3</small>
-    <p className="scoring-result-explanation" role={error ? 'alert' : undefined}>{loading ? 'Calculating Claims…' : error ?? assessment?.explanation}</p>
-    {storage.error && <p role="alert">Claims history: {storage.error}</p>}
-    {!loading && !error && assessment && <ClaimsScoreDetails assessment={assessment} />}
-    {Object.values(storage.coverage).some(coverage => coverage.missing.length > 0) && <p>Partial history</p>}
+      {!loading && !error && assessment && <span>USD score {formatScore(assessment.total)}</span>}
+      {loading && <span role="status">Calculating Claims…</span>}
+      {error && <span role="alert">{error}</span>}
+      {storage.error && <span role="alert">Claims history: {storage.error}</span>}
+      {Object.values(storage.coverage).some(coverage => coverage.missing.length > 0) && <span>Partial history</span>}
+    </>} />
   </div>
 }

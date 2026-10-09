@@ -28,6 +28,9 @@ currently verified through 2031; other brokers require verified timing rules.
 | `frontend/package.json`, `frontend/pnpm-lock.yaml` | Frontend commands and the single Node lockfile |
 | `frontend/src/terminal-shell/` | Compose feature modules and navigation |
 | `frontend/src/inspector/` | Catalog, filters, episodes, grading, stored data and shared magnitude logic |
+| `frontend/src/scoring-system/` | Shared family calculations, model policies, context and relationships |
+| `frontend/src/fundamental-tools/` | Fundamental Settings dock, calibration controls and tool navigation |
+| `frontend/src/usd-context/`, `pair-context/`, `raycaster/` | Quarantined context storage, workers and presentation |
 | `frontend/src/scatter-plot/` | Shared plot/settings with scoped pair/family adapters |
 | `frontend/src/alert/` | Upcoming filtered episodes and local countdowns |
 | `frontend/src/workspace-portability/` | Versioned browser workspace validation/export/import |
@@ -48,8 +51,10 @@ time preferences and the storage API. Renderers do not own collection.
 ## Interpretation and data
 
 The [main objective](fyodor%20trading%20terminal%20main%20objective.md) defines the
-product contract and outstanding work. The [scoring library](docs/scoring%20system%20library.MD)
-contains formulas, weights, timing gates and interpretation limits.
+product contract and outstanding work. The [repository map](docs/REPOSITORY-MAP.md)
+defines terminology and code ownership; the [shared scoring system](frontend/src/scoring-system/README.md)
+describes current models and settings. Standalone USD scoring is the active scope;
+Roofs, Raycaster and Candy retain their existing experimental calculations.
 
 - **Inspector** shows stored releases, readings and standalone scoring. Each
   family has one current scoring view, with result drivers visible and method,
@@ -63,7 +68,7 @@ contains formulas, weights, timing gates and interpretation limits.
   to the overview. Focused and All roofs retain labels and overflow menus.
 - **Scatter Plot** separates original Actual−Previous magnitudes from derived
   scoring signals. Frozen manual boundaries classify original readings;
-  **Scoring signal → Apply to scorer** saves component overrides.
+  **Scorer comparison → Apply to scorer** saves component overrides.
 - **Fed and ECB** numerical actions remain separate from macro votes. A rate
   hold alone does not establish currency strength or weakness. Policy episodes
   retain each publication's own time; speeches remain nonnumeric.
@@ -83,8 +88,8 @@ Feature contracts and workflows:
 [Scatter Plot](frontend/src/scatter-plot/README.md),
 [policy episodes](frontend/src/inspector/episodes/README.md),
 [Alert](frontend/src/alert/README.md),
-[trading workflow](docs/trading%20workflow.md),
-[manual audit backlog](docs/manual%20edit.md).
+[Fundamental Settings](frontend/src/fundamental-tools/README.md),
+[outside events](frontend/src/external-events/README.md).
 
 ## Verification
 

@@ -52,7 +52,7 @@ import type { ComboSnapshot, ComboSource, RoofComboGroup } from '../scoring-syst
 import { RoofsDock } from '../usd-context/sequences/ui/RoofsDock'
 import type { RaycasterView } from '../raycaster/ui/RaycasterBox'
 import { FundamentalSettingsPanel } from '../fundamental-tools/ui/FundamentalSettingsPanel'
-import { fundamentalSettingsEvent } from '../fundamental-tools/runtime/settings-navigation'
+import { fundamentalSettingsEvent, type FundamentalSettingsRequest } from '../fundamental-tools/runtime/settings-navigation'
 import { usdScoringFamilies } from '../scoring-system/scoring-catalog'
 
 const defaultTradePlan: PlannedTradeState = {
@@ -88,9 +88,10 @@ function FyodorTerminalWorkspace() {
   const [scoringFamily, setScoringFamily] = useState('claims')
   useEffect(() => {
     const open = (event: Event) => {
-      const requested = (event as CustomEvent<{ family?: string }>).detail?.family
+      const request = (event as CustomEvent<FundamentalSettingsRequest>).detail
+      const requested = request?.family
       if (requested && usdScoringFamilies.some(f => f.id === requested)) setScoringFamily(requested)
-      setBottomDockWindow('fundamental-settings')
+      setBottomDockWindow(current => request?.toggle && current === 'fundamental-settings' ? null : 'fundamental-settings')
     }
     window.addEventListener(fundamentalSettingsEvent, open)
     return () => window.removeEventListener(fundamentalSettingsEvent, open)

@@ -12,7 +12,7 @@ export function scatterPointLabels(model: ScatterModel, formatDate = (at: number
     const signal = point.signal
     if (signal) {
       const reading = (value: number) => `${scatterNumber(value)} ${signal.inputs!.unit ?? model.deltaUnit}`
-      return `${date}. ${signal.description} ${signal.inputs!.actualLabel} ${reading(point.actual)}; ${signal.inputs!.baselineLabel} ${reading(point.previous)}; Scoring signal ${formatDelta(point.delta)}. ` +
+      return `${date}. ${signal.description} ${signal.inputs!.actualLabel} ${reading(point.actual)}; ${signal.inputs!.baselineLabel} ${reading(point.previous)}; Scorer comparison ${formatDelta(point.delta)}. ` +
         `${signal.size ?? 'Unrated'}; ${signal.magnitudeMode === 'automatic' ? 'automatic earlier-history thresholds' : 'manual override'}; N = ${signal.sampleCount}. ${signal.reason} ` +
         `${selected ? 'Inspected release.' : later ? 'Later release; context only.' : 'Earlier release.'}`
     }
