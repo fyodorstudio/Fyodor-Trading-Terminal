@@ -1,25 +1,15 @@
 import { balance, multiplyLeaves, precise } from './arithmetic'
-import type { R1Aggregate, R1Assessment, R1Category, R1CategoryResult, R1Family, R1Leaf, R1Schedule, R1Settings, R1Slot } from './contracts'
+import type { R1Aggregate, R1Assessment, R1Category, R1CategoryResult, R1Family, R1Leaf, R1Settings, R1Slot } from './contracts'
+export {r1Freshness} from './freshness'
 
 export const r1CategoryWeights:Record<R1Category,number>={inflation:.35,labor:.30,activity:.15,policy:.20}
 const labels:Record<R1Category,string>={inflation:'Inflation',labor:'Labor',activity:'Activity',policy:'Fed action'}
 type Shares={ppi:number;jobs:number;gdp:number;overall:Record<R1Category,number>}
 export const preferredShares:Shares={ppi:.1,jobs:.8,gdp:.5,overall:r1CategoryWeights}
 const absent=(family:R1Family,reason:string):R1Leaf[]=>[{id:`unavailable/${family}`,family,label:reason,value:null,budget:100,role:reason}]
-const usable=(slot:R1Slot|undefined,family:R1Family)=>slot?.status==='current'&&slot.assessment?slot.assessment.leaves:absent(family,slot?.status==='stale'?'Update overdue':slot?.status==='unknown-schedule'?'Next release schedule unverified':'Evidence unavailable')
+const usable=(slot:R1Slot|undefined,family:R1Family)=>slot?.status==='current'&&slot.assessment?slot.assessment.leaves:absent(family,slot?.status==='stale'?'Update overdue':'Evidence unavailable')
 function category(category:R1Category,leaves:R1Leaf[],anchor?:R1Family,reference?:number|null):R1CategoryResult {
   return {...balance(leaves),category,label:labels[category],leaves,...(anchor?{anchor,reference}:{} )}
-}
-export function r1Freshness(family:R1Family,assessment:R1Assessment|null,at:number,schedules:readonly R1Schedule[],graceHours=24):R1Slot {
-  if(!assessment||assessment.publishedAt===null||assessment.publishedAt>at)return{family,assessment:null,status:'unavailable',nextDue:null}
-  const announced=schedules.filter(s=>s.family===family&&Number.isFinite(s.dueAt)&&Number.isFinite(s.knownAt)&&s.knownAt<=at&&!!s.source)
-  const superseded=new Set(announced.flatMap(s=>s.supersedesDueAt==null?[]:[s.supersedesDueAt]))
-  const upcoming=announced.filter(s=>s.dueAt>assessment.publishedAt!&&!superseded.has(s.dueAt))
-  // Last announced schedule for the next comparable publication. A later
-  // announcement supersedes an earlier date, including postponements.
-  const next=upcoming.sort((a,b)=>a.dueAt-b.dueAt||b.knownAt-a.knownAt)[0]
-  if(!next)return{family,assessment,status:'unknown-schedule',nextDue:null}
-  return{family,assessment,status:at>next.dueAt+graceHours*3600000?'stale':'current',nextDue:next.dueAt}
 }
 export function combineR1(slots:readonly R1Slot[],selected:readonly R1Family[],at:number,shares:Shares=preferredShares):R1Aggregate {
   const chosen=[...new Set(selected)],map=new Map(slots.map(s=>[s.family,s])),categories:R1CategoryResult[]=[]

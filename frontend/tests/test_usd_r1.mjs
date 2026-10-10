@@ -7,6 +7,8 @@ try {
   const {assessFeatures,r1Limits}=await server.ssrLoadModule('./src/scoring-system/r1/assessment.ts')
   const {balance,magnitude}=await server.ssrLoadModule('./src/scoring-system/r1/arithmetic.ts')
   const {combineR1,r1Freshness}=await server.ssrLoadModule('./src/scoring-system/r1/relationships.ts')
+  const {r1DefaultFreshness,validR1Freshness}=await server.ssrLoadModule('./src/scoring-system/r1/freshness.ts')
+  const {validR1Settings}=await server.ssrLoadModule('./src/scoring-system/r1/settings.ts')
   const {groupInspectorReleases}=await server.ssrLoadModule('./src/inspector/inspector-data.ts')
   const at=Date.UTC(2026,2,11,12,30),month=Date.UTC(2026,1,1)/1000
   const settings={version:1,calibration:{mode:'undefined',limits:{}},selected:['us-cpi']}
@@ -49,6 +51,7 @@ try {
   assert.equal(beforeCorrection.overall.slots[0].assessment.readings[0].actual,.2)
   assert.equal(afterCorrection.overall.slots[0].assessment.readings[0].actual,.4,'correction replaces one current slot at captured timestamp')
   assert.equal(afterCorrection.overall.slots[0].assessment.readings[0].vintage,'corrected')
+  assert.equal(afterCorrection.overall.slots[0].expiresAt,beforeCorrection.overall.slots[0].expiresAt,'storage corrections never renew publication age')
   assert.deepEqual(afterCorrection.assessment,originalSnapshot,'later aggregate clock never rewrites the original release output')
   assert.equal(run(vintageRows.map((r,i)=>i===0?{...r,r1_vintages:'bad'}:r)).assessment.unavailable,50,'malformed provenance does not silently substitute latest values')
   const later=rows.map(r=>({...r,value_id:r.value_id+'new-month',release_at:at+31*86400000,period_seconds:Date.UTC(2026,2,1)/1000,actual:null}))
@@ -88,13 +91,39 @@ try {
     assert.ok(Math.abs(result.net-net)<1e-8);assert.equal(result.direction,net>0?'strengthening':net<0?'weakening':'balanced')
   }
   const current=slot('us-cpi',10).assessment
-  assert.equal(r1Freshness('us-cpi',current,at,[]).status,'unknown-schedule')
+  const fallback=r1Freshness('us-cpi',current,at,[])
+  assert.equal(fallback.status,'current');assert.equal(fallback.method,'age-based')
+  assert.equal(fallback.nextDue,null,'an age limit is not a fabricated scheduled date')
+  assert.equal(fallback.expiresAt,at+45*86400000)
+  assert.equal(r1Freshness('us-cpi',current,fallback.expiresAt,[]).status,'current')
+  assert.equal(r1Freshness('us-cpi',current,fallback.expiresAt+1,[]).status,'stale')
+  assert.equal(r1Freshness('claims',current,at,[]).expiresAt,at+10*86400000)
+  assert.equal(r1Freshness('fomc',current,at,[]).expiresAt,at+70*86400000)
+  assert.equal(r1Freshness('gdp',current,at,[]).expiresAt,at+45*86400000,'GDP estimate updates use their monthly publication cadence')
+  assert.equal(r1Freshness('us-cpi',null,at,[]).method,null)
+  assert.equal(r1Freshness('us-cpi',{...current,publishedAt:at+1},at,[]).status,'unavailable','future reports cannot become age-based evidence')
+  assert.ok(validR1Settings(settings),'existing version-1 settings inherit the new freshness defaults')
+  assert.ok(validR1Freshness(r1DefaultFreshness))
+  for(const invalid of [{...r1DefaultFreshness,graceHours:-1},{...r1DefaultFreshness,graceHours:Infinity},{...r1DefaultFreshness,fallbackDays:{}},{...r1DefaultFreshness,fallbackDays:{...r1DefaultFreshness.fallbackDays,claims:0}},{...r1DefaultFreshness,fallbackDays:{...r1DefaultFreshness.fallbackDays,claims:1.5}}])assert.equal(validR1Settings({...settings,freshness:invalid}),false)
   const schedule={family:'us-cpi',dueAt:at+1000,knownAt:at-1000,source:'stored planned observation'}
   assert.equal(r1Freshness('us-cpi',current,at,[schedule]).status,'current')
+  assert.equal(r1Freshness('us-cpi',current,at,[schedule]).method,'scheduled')
+  assert.equal(r1Freshness('us-cpi',current,at,[schedule]).expiresAt,schedule.dueAt+24*3600000)
   assert.equal(r1Freshness('us-cpi',current,at+86401001,[schedule]).status,'stale')
-  assert.equal(r1Freshness('us-cpi',current,at,[{...schedule,knownAt:at+1}]).status,'unknown-schedule')
+  assert.deepEqual(r1Freshness('us-cpi',current,at,[{...schedule,knownAt:at+1}]),fallback,'future schedule announcements cannot change historical expiry')
   const amendment={...schedule,dueAt:at+5*86400000,knownAt:at,supersedesDueAt:schedule.dueAt}
   assert.equal(r1Freshness('us-cpi',current,at+86401001,[schedule,amendment]).status,'current','known postponement replaces date')
+  const custom={...r1DefaultFreshness,graceHours:0,fallbackDays:{...r1DefaultFreshness.fallbackDays,'us-cpi':2}}
+  assert.equal(r1Freshness('us-cpi',current,at,[schedule],custom).expiresAt,schedule.dueAt)
+  assert.equal(r1Freshness('us-cpi',current,at,[],custom).expiresAt,at+2*86400000)
+  const aged=run(rows,['us-cpi'],{asOf:at+3*86400000,settings:{...settings,selected:['us-cpi'],freshness:custom}})
+  assert.equal(aged.overall.slots[0].status,'stale');assert.equal(aged.overall.coverage,0)
+  assert.deepEqual(aged.assessment,a,'expiry only affects combined evidence, not the original standalone release')
+  const renewedRows=rows.map(r=>({...r,value_id:r.value_id+'next',release_at:at+31*86400000,period_seconds:Date.UTC(2026,2,1)/1000}))
+  const renewed=run([...rows,...renewedRows],['us-cpi'],{asOf:at+32*86400000})
+  assert.equal(renewed.overall.slots.length,1)
+  assert.equal(renewed.overall.slots[0].assessment.publishedAt,at+31*86400000,'the next report replaces the old slot')
+  assert.equal(renewed.overall.slots[0].expiresAt,at+76*86400000)
   for(const [delta,expected]of [[.25,25],[-.25,-25],[0,0],[-.5,-50],[2,100]]){
     const result=run([row('840050014',4+delta,4)],['fomc']).assessment
     assert.equal(result.net,expected)

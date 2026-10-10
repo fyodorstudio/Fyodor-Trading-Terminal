@@ -31,8 +31,10 @@ suites and 29 storage tests, lint and build pass. The
 [read-only replay](reports/USD-R1-stored-history-audit.md) covers 1,828 publications
 and three aggregate clocks, including built-worker and Scatter parity. Versioned
 stored observations preserve release snapshots and apply later corrections only
-at capture time. Unrecoverable original vintages, missing manufacturing Production
-and unverified schedules retain their explicit treatment. Visual/browser
+at capture time. Unrecoverable original vintages and missing manufacturing Production
+retain their explicit treatment. Missing schedules now use bounded publication
+age; configured rules and expiry dates are visible in the audit. See the
+[freshness refinement replay](reports/USD-R1-freshness-audit.md). Visual/browser
 performance review remains with the user; older context views remain separate.
 
 The former standalone-development handoff below is historical context. Its

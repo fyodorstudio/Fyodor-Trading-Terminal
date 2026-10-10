@@ -4,6 +4,7 @@ import { createR1History, reference } from './features'
 import { assessR1, prepareR1Features, readingVariants } from './assessment'
 import { aggregateSensitivity, combineR1, r1Freshness } from './relationships'
 import { r1Observation } from './vintages'
+import {r1DefaultFreshness} from './freshness'
 
 export function calculateR1(input:R1Input):R1Analysis {
   const family=r1Family(input.release.familyId)
@@ -23,9 +24,11 @@ export function calculateR1(input:R1Input):R1Analysis {
     assessments.set(f,entry.release.id===input.release.id&&!momentum&&at===input.release.releaseAt?assessment:assessR1(entry.release,r1Profiles[f],history,input.settings.calibration,input.savedBands,momentum,momentum?undefined:prepared.get(f),at))
   }
   const schedules:R1Schedule[]=[...(input.schedules??[])]
-  const slots=input.settings.selected.map(f=>r1Freshness(f,assessments.get(f)??null,at,schedules))
+  const policy=input.settings.freshness??r1DefaultFreshness
+  const slots=input.settings.selected.map(f=>r1Freshness(f,assessments.get(f)??null,at,schedules,policy))
   const alternatives=Object.fromEntries([...assessments].map(([f,a])=>[f,readingVariants(a,r1Profiles[f])]))
   const overall=aggregateSensitivity(combineR1(slots,input.settings.selected,at),input.settings,alternatives)
-  overall.timingSensitive=[0,72].some(grace=>combineR1(input.settings.selected.map(f=>r1Freshness(f,assessments.get(f)??null,at,schedules,grace)),input.settings.selected,at).direction!==overall.direction)
+  const timingPolicies=[...[0,72].map(graceHours=>({...policy,graceHours})),...[.8,1.2].map(factor=>({...policy,fallbackDays:Object.fromEntries(r1Families.map(f=>[f,Math.max(1,Math.round(policy.fallbackDays[f]*factor))])) as typeof policy.fallbackDays}))]
+  overall.timingSensitive=timingPolicies.some(p=>combineR1(input.settings.selected.map(f=>r1Freshness(f,assessments.get(f)??null,at,schedules,p)),input.settings.selected,at).direction!==overall.direction)
   return{assessment,overall}
 }

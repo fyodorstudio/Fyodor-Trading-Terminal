@@ -1,16 +1,17 @@
 import { useSyncExternalStore } from 'react'
-import { validMagnitudeLimits } from '../../inspector/magnitude/magnitude-distribution'
+import { validMagnitudeLimits, type MagnitudeLimits } from '../../inspector/magnitude/magnitude-distribution'
 import { magnitudeFamilies } from '../../inspector/magnitude/magnitude-families'
 import { r1Families, r1Family, r1Profiles } from './profiles'
 import type { R1MagnitudeSnapshot, R1Settings } from './contracts'
+import {r1DefaultFreshness,validR1Freshness} from './freshness'
 
 export const r1SettingsKey='fyodor.scoring.usd-r1.v1'
-export const r1DefaultSettings:R1Settings={version:1,calibration:{mode:'automatic',limits:{}},selected:r1Families}
+export const r1DefaultSettings:R1Settings={version:1,calibration:{mode:'automatic',limits:{}},selected:r1Families,freshness:r1DefaultFreshness}
 export const r1CalibrationKeys=r1Families.flatMap(f=>r1Profiles[f].components.flatMap(c=>[`${f}/${c.id}`,...(f==='gdp'?[`${f}/${c.id}/revision`]:[])]))
 export function validR1Settings(value:unknown):value is R1Settings {
   if(!value||typeof value!=='object')return false
   const v=value as R1Settings
-  return v.version===1&&Array.isArray(v.selected)&&v.selected.every(f=>r1Family(f))&&new Set(v.selected).size===v.selected.length&&!!v.calibration&&['automatic','undefined'].includes(v.calibration.mode)&&!!v.calibration.limits&&typeof v.calibration.limits==='object'&&!Array.isArray(v.calibration.limits)&&Object.entries(v.calibration.limits).every(([key,limits])=>r1CalibrationKeys.includes(key)&&validMagnitudeLimits(limits))
+  return v.version===1&&Array.isArray(v.selected)&&v.selected.every(f=>r1Family(f))&&new Set(v.selected).size===v.selected.length&&!!v.calibration&&['automatic','undefined'].includes(v.calibration.mode)&&!!v.calibration.limits&&typeof v.calibration.limits==='object'&&!Array.isArray(v.calibration.limits)&&Object.entries(v.calibration.limits).every(([key,limits])=>r1CalibrationKeys.includes(key)&&validMagnitudeLimits(limits))&&(v.freshness===undefined||validR1Freshness(v.freshness))
 }
 let cachedRaw:string|null|undefined,cached=r1DefaultSettings
 export function readR1Settings():R1Settings {
@@ -23,6 +24,11 @@ export function saveR1Settings(settings:R1Settings) {
   const raw=JSON.stringify(settings);if(raw===JSON.stringify(readR1Settings()))return
   try{window.localStorage.setItem(r1SettingsKey,raw);cachedRaw=raw}catch{/* Session settings still update. */}
   cached=settings;window.dispatchEvent(new window.Event(`${r1SettingsKey}:changed`))
+}
+export function saveR1Limits(key:string,limits:MagnitudeLimits|null) {
+  const settings=readR1Settings(),next={...settings.calibration.limits}
+  if(limits)next[key]=limits;else delete next[key]
+  saveR1Settings({...settings,calibration:{...settings.calibration,limits:next}})
 }
 function subscribe(listener:()=>void){
   const storage=(e:StorageEvent)=>{if(e.key===null||e.key===r1SettingsKey)listener()}

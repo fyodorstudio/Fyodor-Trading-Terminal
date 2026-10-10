@@ -27,9 +27,17 @@ calibration and worker entry points. Legacy scorers retain their own settings.
   earlier-history 50/80/95% quantiles with 60 usable earlier observations; ties
   coalesce. This automatic fallback is a versioned design policy, not fitted USD
   price-impact coefficients. GDP revisions do not inherit momentum bands.
+  R1 Scatter provides chart-only previews, Apply and Reset to inherited calibration;
+  Apply shares the same overrides with Fundamental Settings and Inspector. Preview
+  edits reclassify the displayed component without launching a history worker.
 - `useR1Analysis.ts`: scoped storage, stable inputs and the existing latest-job
   worker client. Storage supplies scheduled dates observed before the chosen
   clock; unknown schedules never become guessed dates.
+- `freshness.ts`: known next release plus the saved allowance, otherwise bounded
+  publication age (Claims 10 days, monthly families/GDP estimates 45, Fed 70).
+  Corrections do not restart age; new publications replace the slot. Settings
+  expose all limits; the audit shows the rule and expiry in the display timezone.
+  See the [freshness replay](../../../../reports/USD-R1-freshness-audit.md).
 
 Positive means USD-supportive economic evidence; negative means USD-negative
 evidence. No forecast, speech, raw price index or inherited duplicate vote enters

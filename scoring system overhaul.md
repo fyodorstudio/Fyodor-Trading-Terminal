@@ -360,7 +360,7 @@ For 50/75/100+ bp, replace 5 with 10/15/20. These thresholds arise from the sele
 
 As-of views include only publications with timestamp <= as-of time. Each release family has one current slot: newest comparable reference period, latest available vintage of that period. GDP revisions follow their special rule; initial and continuing claims preserve their separate weeks. Never add a release simply because it was published more often.
 
-Proposed expiry: a family remains current until the next publisher-scheduled comparable release plus 24 hours. Use the latest schedule amendment available at the as-of time; an announced postponement changes the expected date. For GDP, a scheduled second/third estimate is a comparable update. An unscheduled Fed decision immediately replaces the scheduled-cycle action. During a genuine missed update, the old slot becomes stale after the grace period and contributes uncertainty. If no verified schedule is available, current-view freshness is unknown and the slot is unavailable; a selected historical release can still be scored standalone. Scheduled dates are administrative timing metadata, not forecast values. The 24-hour grace is an operational choice; compare zero/72-hour alternatives in timing tests.
+Original expiry proposal (superseded by the [accepted freshness refinement](#accepted-freshness-refinement-10-october-2026)): a family remains current until the next publisher-scheduled comparable release plus 24 hours. Use the latest schedule amendment available at the as-of time; an announced postponement changes the expected date. For GDP, a scheduled second/third estimate is a comparable update. An unscheduled Fed decision immediately replaces the scheduled-cycle action. During a genuine missed update, the old slot becomes stale after the grace period and contributes uncertainty. If no verified schedule is available, current-view freshness is unknown and the slot is unavailable; a selected historical release can still be scored standalone. Scheduled dates are administrative timing metadata, not forecast values. The 24-hour grace is an operational choice; compare zero/72-hour alternatives in timing tests.
 
 A publisher correction updates the current vintage after its correction timestamp. Preserve the original release snapshot separately. If an archive itself has been overwritten and the original vintage cannot be recovered, mark the historical case corrected-vintage and do not claim original-time validation. Configuration changes similarly create new result versions.
 
@@ -728,3 +728,57 @@ reason share the next row. Input weights are visible in the release table.
 Release evidence, input audit, relationships and relationship audit use one
 scrolling panel. The static "This release" heading is removed; Scoring settings
 sits immediately left of the Inspector view selector. Scoring rules are unchanged.
+
+Scatter magnitude editing, 10 October 2026: USD R1 comparison now provides
+chart-only boundary previews, Apply and Reset to inherited calibration. Apply
+updates the shared R1 override used by Inspector and Fundamental Settings;
+Reset removes only that override, preserving compatible saved raw A−P bands.
+GDP revision and quarter-momentum calibration remain separate. Fed actions keep
+their fixed 25 bp rule. Preview edits do not launch history workers. Freshness
+rules are unchanged; browser layout/interaction review remains with the user.
+Verification: all 69 frontend suites, lint and production build pass, including
+mounted preview/Apply/Reset propagation, preservation of inherited raw settings,
+revision-stage isolation and zero worker launches during boundary previews.
+
+## Accepted freshness refinement, 10 October 2026
+
+Policy `r1-scheduled-or-age-v1` supersedes the original strict-schedule gate.
+If the next comparable release schedule was captured by the selected clock,
+expiry is that date plus the configured allowance (default 24 hours). Known
+postponements supersede earlier dates. Otherwise use publication time plus a
+bounded family age: Claims 10 days; CPI, PCE, PPI, Jobs, GDP, Retail and both ISMs
+45 days; Fed action 70 days. The fallback is an expiry limit, never a guessed
+publisher release date. Known schedules take priority even when that means
+earlier expiry. At expiry the report remains current; after it, the assigned
+uncertainty returns. A new report replaces the old slot, including an incomplete
+new report. Storage corrections do not restart publication age. Standalone
+publication scoring and the inflation reference-month/overlap rules are unchanged.
+
+The read-only archive has Claims P99 gaps of 8 days, monthly/GDP-estimate P95
+gaps up to 39, and Fed P95/P99 gaps of 56. The selected defaults allow bounded
+delay rather than stretching to the largest missing-history gaps. They are
+fixed operational policies, not uniquely optimal limits or runtime predictions;
+GDP has repeated estimates within a quarter. See the
+[freshness replay](reports/USD-R1-freshness-audit.md) for counts, September CPI
+capture evidence, sensitivity and production-worker parity. The original strict
+schedule replay remains historical evidence.
+
+Fundamental Settings exposes all family age limits and the shared scheduled
+allowance, with draft/Apply/Reset. Old version-1 settings inherit these defaults
+without losing magnitude overrides or selected families; new fields are workspace
+portable. Relationship audit plainly shows Current/Expired/Unavailable, the
+applied rule, publication date, next due date when known and expiry, formatted in
+the selected display timezone. Separate columns show age in completed 24-hour
+days at the selected publication clock and each family's configured fallback
+limit, including when a known schedule takes priority; Status follows the dates.
+Timing sensitivity tests scheduled grace at 0/72
+hours and fallback ages at 80%/120% of the configured windows; results never
+silently replace the preferred settings. Pan, hover and display clocks do not
+recalculate evidence.
+
+Verification: all 69 frontend suites, lint and build pass. The read-only replay
+checks four aggregate clocks, all 1,828 publication expiry boundaries, removal
+of future inputs and production-worker parity. Mounted checks cover rule/expiry
+display, timezone changes without jobs, old settings compatibility, validated
+Apply/Reset, workspace portability and then-known schedule updates. Browser
+layout and interaction review remain with the user.
