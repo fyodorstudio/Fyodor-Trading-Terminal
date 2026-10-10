@@ -5,7 +5,7 @@ try {
   const {r1Profiles}=await server.ssrLoadModule('./src/scoring-system/r1/profiles.ts')
   const {calculateR1}=await server.ssrLoadModule('./src/scoring-system/r1/analysis.ts')
   const {assessFeatures,r1Limits}=await server.ssrLoadModule('./src/scoring-system/r1/assessment.ts')
-  const {balance,magnitude}=await server.ssrLoadModule('./src/scoring-system/r1/arithmetic.ts')
+  const {balance,magnitude,magnitudePoints}=await server.ssrLoadModule('./src/scoring-system/r1/arithmetic.ts')
   const {combineR1,r1Freshness}=await server.ssrLoadModule('./src/scoring-system/r1/relationships.ts')
   const {r1DefaultFreshness,validR1Freshness}=await server.ssrLoadModule('./src/scoring-system/r1/freshness.ts')
   const {validR1Settings}=await server.ssrLoadModule('./src/scoring-system/r1/settings.ts')
@@ -70,7 +70,36 @@ try {
   const claims=run(claimRows,['claims'],{savedBands:{claims:{'840140001':[10,20,30],'840140002':[.025,.05,.075]}}}).assessment
   assert.equal(claims.readings[1].delta,50);assert.equal(claims.readings[1].magnitude,2)
   assert.equal(claims.net*4,-130,'continuing millions convert to thousands for scoring')
+  for(const [change,expected]of [[0,0],[2,.2],[10,1],[15,1.5],[20,2],[25,3],[30,4],[31,4],[1e10,4]]){
+    assert.equal(magnitudePoints('claims',change,[10,20,30]),expected)
+    assert.equal(magnitudePoints('claims',-change,[10,20,30]),expected,'magnitude size is symmetric')
+  }
+  for(const edge of [10,20,30])assert.ok(Math.abs(magnitudePoints('claims',edge-1e-6,[10,20,30])-magnitudePoints('claims',edge+1e-6,[10,20,30]))<1e-6,'strict boundary crossings are continuous')
+  for(const limits of [[10,20,30],[10,10,30],[10,30,30],[10,10,10]]){
+    let prior=0
+    for(let change=0;change<=100;change+=.5){const points=magnitudePoints('claims',change,limits);assert.ok(points>=prior&&points<=4);prior=points}
+    assert.equal(magnitudePoints('claims',10,limits),1,'tied equality retains the lower band endpoint')
+  }
+  for(const family of Object.keys(r1Profiles).filter(f=>f!=='claims'))for(const change of [0,2,10,11,20,21,30,31,1e10])assert.equal(magnitudePoints(family,change,[10,20,30]),magnitude(change,[10,20,30]),'other families keep integer magnitude')
+  const exampleRows=claimRows.map((r,i)=>({...r,actual:i?1.716:197,previous:i?1.699:199}))
+  const example=run(exampleRows,['claims'],{savedBands:{claims:{'840140001':[10,20,67],'840140002':[.026,.058,.366]}}}).assessment
+  assert.equal(example.version,'USD-CLAIMS-R1.1')
+  assert.deepEqual(example.readings.map(r=>r.magnitude),[1,1],'band labels stay Small while point sizes differ')
+  assert.equal(example.readings[0].points,.2);assert.equal(example.readings[1].points,-17/26)
+  assert.ok(Math.abs(example.net*4-(-5.61538462))<1e-8)
+  assert.equal(example.direction,'weakening');assert.equal(example.strength,'slight')
+  const cancellingRows=exampleRows.map((r,i)=>({...r,actual:i?1.725:196}))
+  const cancelling=run(cancellingRows,['claims'],{savedBands:{claims:{'840140001':[7,14,67],'840140002':[.026,.058,.366]}}}).assessment
+  assert.equal(cancelling.net,0,'3/7 ×70 cancels 26/26 ×30 without a rounded-point false lead')
+  assert.equal(cancelling.direction,'balanced')
+  const signReverse=run(exampleRows.map(r=>({...r,actual:r.previous,previous:r.actual})),['claims'],{savedBands:{claims:{'840140001':[10,20,67],'840140002':[.026,.058,.366]}}}).assessment
+  assert.equal(signReverse.net,-example.net,'reversing claims changes reverses the fractional evidence')
+  const missingClaims=run(exampleRows.slice(0,1),['claims'],{savedBands:{claims:{'840140001':[10,20,67]}}}).assessment
+  assert.equal(missingClaims.unavailable,30);assert.equal(missingClaims.direction,'insufficient','fractional known evidence never fills missing continuing claims')
+  assert.equal(run(exampleRows.map(r=>({...r,actual:r.previous})),['claims']).assessment.net,0,'unchanged claims need no boundaries and give zero')
   const slot=(family,value,ref=24313)=>({family,status:'current',nextDue:at+1,assessment:{family,publishedAt:at,reference:ref,leaves:[{id:family,family,label:family,value,budget:100}],...balance([{value,budget:100}])}})
+  const fractionalLabor=combineR1([slot('jobs',20),{family:'claims',status:'current',nextDue:at+1,assessment:example}],['jobs','claims'],at)
+  assert.ok(Math.abs(fractionalLabor.net-(.8*20+.2*example.net))<1e-8,'labor combines fractional Claims once at the existing 20% share')
   for(const macro of [-10,0,10])for(const action of [-25,0,25]){
     const overall=combineR1([slot('us-cpi',macro),slot('fomc',action)],['us-cpi','fomc'],at)
     const net=(.35*macro+.2*action)/.55

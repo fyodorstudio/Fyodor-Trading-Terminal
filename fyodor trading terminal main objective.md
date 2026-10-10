@@ -1,6 +1,6 @@
 # Fyodor Trading Terminal — main objective
 
-Last clarified with the user: **9 October 2026**. This is the active project
+Last clarified with the user: **10 October 2026**. This is the active project
 contract and handoff for a new Codex session. Completed plans and their historical
 findings are in [the archived objective](reports/Main-objective-history-through-2026-10-08.md).
 
@@ -36,6 +36,14 @@ retain their explicit treatment. Missing schedules now use bounded publication
 age; configured rules and expiry dates are visible in the audit. See the
 [freshness refinement replay](reports/USD-R1-freshness-audit.md). Visual/browser
 performance review remains with the user; older context views remain separate.
+
+Accepted Claims refinement: `USD-CLAIMS-R1.1` retains 70/30 weights and existing
+boundaries, but uses fractional magnitude through (0,0), (Small,1), (Medium,2),
+(Large,4), capped at four. Band names remain visible alongside fractional points.
+Other R1 families and legacy Claims v3 retain their policies. R1 relationships
+consume the refined Claims evidence once. Source rationale, changed historical
+cases and the 60/40 challenger are in the
+[Claims fractional review](reports/Claims-R1-fractional-audit.md).
 
 The former standalone-development handoff below is historical context. Its
 preservation-only scope and earlier interpretation rules do not override R1.

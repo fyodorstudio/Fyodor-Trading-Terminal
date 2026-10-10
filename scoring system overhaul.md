@@ -782,3 +782,19 @@ of future inputs and production-worker parity. Mounted checks cover rule/expiry
 display, timezone changes without jobs, old settings compatibility, validated
 Apply/Reset, workspace portability and then-known schedule updates. Browser
 layout and interaction review remain with the user.
+
+
+## Accepted Claims fractional refinement — R1.1
+
+The user accepted fractional magnitude after reviewing the October 8 Claims conflict. This supersedes Claims' integer-only multiplier policy above; CPI V5 and other families remain unchanged.
+
+- Retain initial/continuing weights **70/30** provisionally; keep **60/40** as a separately evaluated challenger.
+- Retain each series' existing boundary precedence, automatic calibration, revised-prior comparison and native-unit conversion.
+- Let x = absolute A−P. Interpolate points linearly through **(0,0), (Small boundary,1), (Medium boundary,2), (Large boundary,4)**; larger values stay at **4**. This removes the one-point floor and preserves differences within bands.
+- Keep Small/Medium/Large/Extreme labels based on the existing intervals. Show fractional points with the size in Inspector and Scatter. Tied automatic limits skip zero-width spans with lower-band equality; continuity applies to strictly increasing boundaries.
+- Contribution remains weight × polarity × sign(A−P) × points. Keep points unrounded until weighting, then use existing contribution/balance precision so mathematical cancellation cannot become a false lead. Relationships divide by four and consume one Claims slot; four-week trends never add another vote. Missing inputs retain their full uncertainty budget.
+- October 8 with automatic limits: initial −2k / Small 10k gives +0.20 points ×70 = **+14**; continuing +17k / Small 26k gives −0.653846… ×30 = **−19.62**; net **−5.62**, USD Weakening with slight evidence. Both remain labelled Small.
+
+The [DOL technical notes](https://www.dol.gov/sites/dolgov/files/OPA/newsreleases/ui-claims/20222224b.pdf) support the separate economic roles and initial claims as an emerging-conditions indicator. They do not prescribe the exact weights or interpolation. These are explicit design policies. The refinement is justified by preserving relative size rather than fitting the October price move.
+
+The reproducible [Claims fractional review](reports/Claims-R1-fractional-audit.md) records the full replay, every changed complete direction, 60/40 sensitivity and worker/Scatter parity. Earlier integer-band and V3 reports remain historical evidence.

@@ -22,6 +22,10 @@ calibration and worker entry points. Legacy scorers retain their own settings.
 - `assessment.ts`: raw contribution is weight × signed magnitude. Leaves and
   balances use raw / 4, bounded at ±100; the release UI displays raw totals.
   Category and overall balances preserve signed leaves and uncertainty budgets.
+  Claims R1.1 interpolate points through zero, Small=1, Medium=2 and Large=4,
+  capped at four. Size labels remain independent of fractional points; other
+  families retain integer bands. Assessor, sensitivity and Scatter preview share
+  `arithmetic.ts`. See the [Claims review](../../../../reports/Claims-R1-fractional-audit.md).
 - `settings.ts`: separate portable R1 overrides and relationship scope. Saved
   compatible raw A−P bands are inherited without mutation. Otherwise R1 uses
   earlier-history 50/80/95% quantiles with 60 usable earlier observations; ties

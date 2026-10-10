@@ -1,4 +1,4 @@
-import type { R1Balance, R1Leaf } from './contracts'
+import type { R1Balance, R1Family, R1Leaf } from './contracts'
 
 // Source decimal values are preserved to six places, including exact MT5 scaled
 // integers. Threshold equality never depends on a subtraction's binary residue.
@@ -13,6 +13,20 @@ export function magnitude(delta: number, limits: readonly number[], factor=1) {
   const x=Math.abs(delta),scaled=decimal(x)
   if (!x) return 0
   return limits.findIndex(limit=>{const boundary=decimal(limit);return scaled!==null&&boundary!==null?scaled<=Math.round(boundary*factor):x<=limit*factor})+1 || 4
+}
+export function magnitudePoints(family:R1Family,delta:number,limits:readonly number[],factor=1) {
+  if(family!=='claims')return magnitude(delta,limits,factor)
+  const raw=Math.abs(delta),scaled=decimal(raw),x=scaled===null?raw:scaled/1e6
+  if(!x)return 0
+  let lower=0,points=0
+  for(let i=0;i<limits.length;i++){
+    const boundary=decimal(limits[i]),upper=boundary===null?limits[i]*factor:Math.round(boundary*factor)/1e6,target=i===2?4:i+1
+    // Equality stays in the lower band; tied automatic limits skip zero-width spans.
+    // Round contributions after weighting, not these fractional points.
+    if(x<=upper)return upper===lower?points:points+(target-points)*(x-lower)/(upper-lower)
+    lower=upper;points=target
+  }
+  return 4
 }
 export function balance(leaves: readonly R1Leaf[]): R1Balance {
   const supportive=precise(leaves.reduce((s,l)=>s+Math.max(l.value??0,0),0)), negative=precise(leaves.reduce((s,l)=>s+Math.min(l.value??0,0),0))

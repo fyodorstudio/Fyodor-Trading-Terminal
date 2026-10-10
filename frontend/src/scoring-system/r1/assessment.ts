@@ -1,7 +1,7 @@
 import type { InspectorRelease } from '../../inspector/inspector-data'
 import type { MagnitudeLimits } from '../../inspector/magnitude/magnitude-distribution'
 import type { R1Assessment, R1Calibration, R1Feature, R1Leaf, R1MagnitudeSnapshot, R1Profile, R1Reading } from './contracts'
-import { balance, magnitude, precise } from './arithmetic'
+import { balance, magnitude, magnitudePoints, precise } from './arithmetic'
 import { r1CalibrationPolicy } from './profiles'
 import { reference, r1Features, type R1History } from './features'
 
@@ -20,8 +20,8 @@ export function assessFeatures(release:InspectorRelease,profile:R1Profile,featur
     const compatibleRaw=f.stage==='revision'||!raw?undefined:raw.map(x=>precise(x*(c.scale??1))) as unknown as MagnitudeLimits
     const limits=manual??compatibleRaw??automatic
     const source=manual?'r1-manual':compatibleRaw?'saved-ap':automatic?'r1-automatic':'undefined'
-    const points=f.delta===null?null:c.period==='action'?Math.sign(f.delta)*Math.min(Math.abs(f.delta)/25,4):f.delta===0?0:limits?c.polarity*Math.sign(f.delta)*magnitude(f.delta,limits):null
-    return {...c,...f,points,magnitude:points===null?null:Math.abs(points),contribution:points===null?null:precise(c.weight*points),limits:limits??null,calibration:c.period==='action'?'action':f.delta===0?'unchanged':source,samples:samples.length,reason:f.reason||(points===null?'Magnitude boundaries are unavailable.':'')}
+    const points=f.delta===null?null:c.period==='action'?Math.sign(f.delta)*Math.min(Math.abs(f.delta)/25,4):f.delta===0?0:limits?c.polarity*Math.sign(f.delta)*magnitudePoints(profile.family,f.delta,limits):null
+    return {...c,...f,points,magnitude:points===null?null:profile.family==='claims'&&f.delta!==0?magnitude(f.delta!,limits!):Math.abs(points),contribution:points===null?null:precise(c.weight*points),limits:limits??null,calibration:c.period==='action'?'action':f.delta===0?'unchanged':source,samples:samples.length,reason:f.reason||(points===null?'Magnitude boundaries are unavailable.':'')}
   })
   const leaves:R1Leaf[]=readings.map(r=>({id:`${release.id}/${r.id}`,family:profile.family,label:r.label,value:r.contribution===null?null:r.contribution/4,budget:r.weight,sourceId:release.id}))
   const result=balance(leaves)
@@ -41,7 +41,7 @@ export function readingVariants(a:R1Assessment,profile:R1Profile):R1Assessment[]
     let choices=k
     const leaves=a.readings.map((r,i):R1Leaf=>{
       const factor=[.9,1,1.1][choices%3];choices=Math.floor(choices/3)
-      const points=r.points===null?null:r.period==='action'?r.points:r.delta===0?0:r.limits?Math.sign(r.delta!)*r.polarity*magnitude(r.delta!,r.limits,factor):r.points
+      const points=r.points===null?null:r.period==='action'?r.points:r.delta===0?0:r.limits?Math.sign(r.delta!)*r.polarity*magnitudePoints(a.family,r.delta!,r.limits,factor):r.points
       return {id:r.id,family:a.family,label:r.label,value:points===null?null:points*weights[i]/4,budget:weights[i]}
     })
     variants.push({...a,...balance(leaves),leaves})
