@@ -2,7 +2,7 @@ import type { ScatterOption } from '../contracts/scatter-plot-types'
 import type { Ref } from 'react'
 
 export function ScatterPlotControls({ scope, seriesId, onSeriesChange, zoom, onZoomChange, onLatest, appearanceOpen, onAppearance, appearanceButtonRef,
-  familyOptions, onFamilyChange, sideOptions, onSideChange, magnitudeUndefined = false, allHistory = false, onHistoryChange, measure, onMeasureChange }: {
+  familyOptions, onFamilyChange, sideOptions, onSideChange, magnitudeUndefined = false, allHistory = false, onHistoryChange, measure, onMeasureChange,r1Available=false }: {
   scope: { pair: ScatterOption; side: ScatterOption; family: ScatterOption; series: readonly ScatterOption[] }
   seriesId: string; onSeriesChange: (id: string) => void
   zoom: boolean; onZoomChange: (zoom: boolean) => void; onLatest: () => void
@@ -10,7 +10,7 @@ export function ScatterPlotControls({ scope, seriesId, onSeriesChange, zoom, onZ
   sideOptions?: ScatterOption[]; onSideChange?: (side: string) => void
   familyOptions?: ScatterOption[]; onFamilyChange?: (family: string) => void; magnitudeUndefined?: boolean
   allHistory?: boolean; onHistoryChange?: () => void
-  measure?: 'ap' | 'signal'; onMeasureChange?: (measure: 'ap' | 'signal') => void
+  measure?: 'ap' | 'signal'; onMeasureChange?: (measure: 'ap' | 'signal'|'r1') => void;r1Available?:boolean
 }) {
   return <div className="scatter-plot-controls">
     {([['Pair', scope.pair], ['Base/Quote', scope.side], ['Family', scope.family]] as const).map(([label, option]) =>
@@ -18,8 +18,9 @@ export function ScatterPlotControls({ scope, seriesId, onSeriesChange, zoom, onZ
         onChange={(event) => { if (label === 'Family') onFamilyChange?.(event.target.value); else if (label === 'Base/Quote') onSideChange?.(event.target.value) }}>
         {(label === 'Family' && familyOptions ? familyOptions : label === 'Base/Quote' && sideOptions ? sideOptions : [option]).map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
       </select></label>)}
-    {onMeasureChange && <label>Calculation<select aria-label="Scatter Plot Calculation" value={measure} onChange={(event) => onMeasureChange(event.target.value as 'ap' | 'signal')}>
+    {onMeasureChange && <label>Calculation<select aria-label="Scatter Plot Calculation" value={measure} onChange={(event) => onMeasureChange(event.target.value as 'ap' | 'signal'|'r1')}>
       <option value="ap">Raw change · Actual − Previous</option><option value="signal">Scorer comparison</option>
+      {r1Available&&<option value="r1">USD R1 comparison</option>}
     </select></label>}
     <label>{measure === 'signal' ? 'Signal' : 'Series'}<select aria-label={measure === 'signal' ? 'Scatter Plot Signal' : 'Scatter Plot Series'} value={seriesId} onChange={(event) => onSeriesChange(event.target.value)}>
       {scope.series.map((series) => <option key={series.id} value={series.id}>{series.label}</option>)}

@@ -159,7 +159,7 @@ try {
     assert.equal(host.querySelectorAll('[aria-label="Context-Aware at Publication Scoring"]').length, 0)
     const menu = host.querySelector('[aria-label="Inspector view"]')
     assert.equal(menu.value, 'scoring', 'Old saved version choices migrate to the latest scorer')
-    assert.deepEqual([...menu.options].map(o => o.value), ['table', 'scoring', 'scatter'])
+    assert.deepEqual([...menu.options].map(o => o.value), ['table', 'scoring', 'scatter', 'r1'])
     assert.ok(menu.selectedOptions[0].textContent.includes(inspectorScoringBinding('EURUSD', release).versionLabel))
     assert.equal(left.querySelector('.usd-context-inputs'), null)
     if (view === 'scoring-v4') {

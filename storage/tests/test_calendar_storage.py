@@ -389,6 +389,11 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(len(self.request(path + "&event_ids=840030005")[1]["events"]), 1)
         self.assertEqual(self.request(path + "&event_ids=840030016")[1]["events"], [])
         self.assertEqual(self.request(path + "&event_ids=840030016,840030005")[1]["event_ids"], ["840030016", "840030005"])
+        status,r1=self.request(path + f"&r1_history=true&r1_as_of={NOW*1000}&time_basis=chart")
+        self.assertEqual(status,200)
+        self.assertEqual(r1['r1_source_version'],1)
+        self.assertEqual(r1['r1_schedules'],[])
+        self.assertNotIn('r1_vintages',r1['events'][0],'R1 observation snapshots remain scoped to USD')
         for invalid in ("oops", "1,,2", "1%27", ",".join(["1"] * 65)):
             self.assertEqual(self.request(path + "&event_ids=" + invalid)[0], 422)
         self.assertEqual(self.request("/calendar?source_id=Broker-Demo&from_server_seconds=2&to_server_seconds=1")[0], 422)

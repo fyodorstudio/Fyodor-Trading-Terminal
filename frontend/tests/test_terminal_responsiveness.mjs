@@ -72,12 +72,12 @@ const chart = { addSeries: () => series, timeScale: () => scale, priceScale: () 
   subscribeClick: fn => clickListeners.add(fn), unsubscribeClick: fn => clickListeners.delete(fn),
   remove: () => count('chartRemoved'), chartElement: () => document.querySelector('.market-chart-canvas') }
 globalThis.__terminalProbe = { count, clocks, createChart: () => { count('chartCreated'); return chart } }
-let calculate, calculateCpi
+let calculate, calculateCpi,calculateR1
 globalThis.Worker = class {
   constructor() { count('workerCreated'); this.terminated = false }
   postMessage(message) {
     count('workerPosts'); workerInputs.push(message.input)
-    void Promise.resolve().then(() => { if (!this.terminated) this.onmessage?.({ data: { id: message.id, result: (message.input.release ? calculateCpi : calculate)(message.input) } }) })
+    void Promise.resolve().then(() => { if (!this.terminated) this.onmessage?.({ data: { id: message.id, result: (message.input.savedBands ? calculateR1 : message.input.release ? calculateCpi : calculate)(message.input) } }) })
   }
   terminate() { this.terminated = true; count('workerTerminated') }
 }
@@ -126,7 +126,7 @@ globalThis.fetch = (url, options = {}) => {
   if (u.startsWith('/storage-api/calendar')) {
     const params = new URL(u, 'http://localhost').searchParams, ids = params.get('event_ids')?.split(',') ?? null
     return Promise.resolve({ ok: true, json: async () => ({ source_id: broker, revision: 1, timestamp_convention: 'trade_server_time', time_basis: 'chart',
-      event_ids: ids, events: events.filter(event => (!ids || ids.includes(event.event_id)) && event.chart_time_seconds >= Number(params.get('from_server_seconds')) &&
+      r1_source_version:1,r1_schedules:[],event_ids: ids, events: events.filter(event => (!ids || ids.includes(event.event_id)) && event.chart_time_seconds >= Number(params.get('from_server_seconds')) &&
         event.chart_time_seconds <= Number(params.get('to_server_seconds'))), coverage: {}, next_cursor: null }) })
   }
   if (u.includes('/activity')) return Promise.resolve({ ok: true, json: async () => ({ events: [], latest_sequence: 0 }) })
@@ -173,6 +173,7 @@ try {
   const { useActivityActions } = await server.ssrLoadModule('./src/system-observability/activity-log/use-activity-log.ts')
   calculate = (await server.ssrLoadModule('./src/scoring-system/context/usd/build-context-timeline.ts')).buildContextTimeline
   calculateCpi = (await server.ssrLoadModule('./src/scoring-system/PAIR/EURUSD/USD/CPI/runtime/cpi-release-analysis.ts')).calculateCpiRelease
+  calculateR1 = (await server.ssrLoadModule('./src/scoring-system/r1/analysis.ts')).calculateR1
   function CommandOnly() {
     count('commandSubscriber')
     const actions = useActivityActions()
@@ -334,6 +335,20 @@ try {
   assert.equal(publication.textContent, publicationText, 'Candle hover never changes the selected publication cutoff or comparison')
   assert.equal(workerInputs.length, jobsBeforeHover, 'Hover with publication details open launches no workers')
   assert.equal(counters.scoringRender, rendersBeforeHover, 'Hover performs zero publication scorer renders')
+  if(!container.querySelector('.inspector-panel'))await click(button('Inspector'))
+  await React.act(async()=>{const view=container.querySelector('[aria-label="Inspector view"]');view.value='r1';view.dispatchEvent(new dom.Event('change',{bubbles:true}))})
+  assert.ok(container.querySelector('[aria-label="USD R1 scoring"]'),'The assembled terminal mounts the shared R1 result')
+  const r1Jobs=workerInputs.length,r1Text=container.querySelector('[aria-label="USD R1 scoring"]').textContent
+  await React.act(async()=>{
+    for(let i=0;i<200;i++)for(const notify of rangeListeners)notify()
+    for(const handler of hoverListeners)handler({time:now/1000-3600,point:{x:400,y:200},seriesData:new Map([[series,{}]])})
+    for(const[id,fn]of frames){frames.delete(id);fn()}
+    for(const timer of intervals.values())if(timer.ms===10000)timer.fn()
+  })
+  assert.equal(workerInputs.length,r1Jobs,'R1 at a selected publication does not recalculate during terminal pan, hover or display clocks')
+  assert.equal(container.querySelector('[aria-label="USD R1 scoring"]').textContent,r1Text)
+  await React.act(async()=>{const view=container.querySelector('[aria-label="Inspector view"]');view.value='scoring';view.dispatchEvent(new dom.Event('change',{bubbles:true}))})
+  assert.equal(container.querySelector('[aria-label="USD R1 scoring"]'),null,'Changing the assembled terminal view unmounts R1 presentation')
   await React.act(async () => { const view = container.querySelector('[aria-label="Raycaster view"]'); view.value = 'context'; view.dispatchEvent(new dom.Event('change', { bubbles: true })) })
   await pointer(canvasForDrawing, 'pointerdown', 100, 300)
   await pointer(window, 'pointerup', 100, 300)

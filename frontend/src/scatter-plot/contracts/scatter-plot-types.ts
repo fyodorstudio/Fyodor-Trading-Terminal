@@ -5,7 +5,7 @@ import type { calibrateHistoricalSignal } from '../../scoring-system/shared/core
 export type ScatterSignal = ReturnType<typeof calibrateHistoricalSignal> & { description: string }
 
 export type ScatterOption = { id: string; label: string }
-export type ScatterReleaseTarget = { brokerId: string; familyId: string; releaseId: string; at: number }
+export type ScatterReleaseTarget = { brokerId: string; familyId: string; releaseId: string; at: number;calculation?:'ap'|'signal'|'r1' }
 export type ScatterPlotDockProps = { brokerId: string | null; clockOffsetMs?: number; target?: ScatterReleaseTarget | null }
 export type ScatterPoint = {
   id: string; releaseId: string; at: number; delta: number; actual: number; previous: number

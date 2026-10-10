@@ -218,10 +218,10 @@ try {
   }
   const groupedApp=mount(GroupedInspector,{input:events});await groupedApp.render()
   await React.act(async()=>groupedView.selectCustomRange('2026-08-01','2026-08-31'))
-  assert.equal(groupedView.releases.length,1);assert.equal(groupedView.markers.length,1)
+  assert.equal(groupedView.releases.length,2);assert.equal(groupedView.markers.length,2,'ISM source publications display separately')
   assert.equal(groupedView.allReleases.filter(r=>['ism-manufacturing','ism-services'].includes(r.familyId)&&r.releaseAt>=manufacturing.releaseAt).length,2,
     'Source publication inventory remains separate for scoring and Scatter')
-  await React.act(async()=>groupedView.selectRelease(grouped[0].id))
+  await React.act(async()=>groupedView.selectRelease(selected.id))
   assert.equal(groupedApp.container.querySelector('[aria-label="ISM scoring publication"]'),null)
   assert.equal(groupedApp.container.querySelectorAll('[aria-label="ISM v3 final pair direction"]').length,1)
   assert.equal(groupedApp.container.querySelector('[aria-label="ISM v3 final pair direction"]').textContent,combined.label)
@@ -231,16 +231,17 @@ try {
   assert.ok(Math.abs(contributions.reduce((sum,n)=>sum+n,0)-combined.total)<1e-9,'Plain table retains the effective sector contributions')
   await groupedApp.render({input:events})
   await choose(groupedApp.container.querySelector('[aria-label="Inspector view"]'),'table')
-  assert.equal(groupedApp.container.querySelectorAll('tbody tr:not(.inspector-ism-section-heading)').length,9)
-  assert.equal(groupedApp.container.querySelectorAll('.inspector-ism-section-heading').length,2)
-  assert.equal(groupedApp.container.querySelectorAll('[data-reading-clock="display"]').length,9)
-  assert.equal(groupedApp.container.querySelectorAll('.inspector-row-grade').length,9,'Both sectors retain row grading')
+  assert.equal(groupedApp.container.querySelectorAll('tbody tr:not(.inspector-ism-section-heading)').length,5)
+  assert.equal(groupedApp.container.querySelectorAll('.inspector-ism-section-heading').length,0)
+  assert.equal(groupedApp.container.querySelectorAll('[data-reading-clock="display"]').length,0,'One sector uses the shared publication heading')
+  assert.equal(groupedApp.container.querySelectorAll('.inspector-row-grade').length,5,'The selected sector retains its own row grading')
   assert.ok(![...groupedApp.container.querySelectorAll('th')].some(th=>th.textContent==='Forecast'))
   await choose(groupedApp.container.querySelector('[aria-label="Inspector view"]'),'scatter');assert.equal(opened.id,selected.id)
+  await React.act(async()=>groupedView.selectRelease(manufacturing.id))
   await groupedApp.render({input:events.filter(e=>e.release_at<=manufacturing.releaseAt)})
-  assert.equal(groupedView.releases.length,1);assert.equal(groupedView.selectedRelease.id,grouped[0].id)
-  await groupedApp.render({input:events});assert.equal(groupedView.selectedRelease.id,grouped[0].id)
-  console.log('✓ One monthly ISM chart marker/list entry, stable updates, distinct timed series, source navigation and sector as-of readings and one final output without future leakage')
+  assert.equal(groupedView.releases.length,1);assert.equal(groupedView.selectedRelease.id,manufacturing.id)
+  await groupedApp.render({input:events});assert.equal(groupedView.selectedRelease.id,manufacturing.id)
+  console.log('✓ Separate monthly ISM markers/list entries, stable publication selection, sector tables/navigation and preserved legacy as-of scoring')
   let requests=0
   globalThis.fetch=async(url)=>{
     if(url==='/storage-api/health')return{ok:true,json:async()=>({revision:1,collector_error:null,sources:[{id:'test-broker',publisher_status:'live',server_now:Date.UTC(2026,9,6)/1000}]})}

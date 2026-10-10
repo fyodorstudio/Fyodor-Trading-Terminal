@@ -22,6 +22,8 @@ import { InspectorReadingsTable } from './readings/InspectorReadingsTable'
 import { PmiReadingsTable } from './readings/PmiReadingsTable'
 import './inspector.css'
 import { normalizeInspectorDetailView } from './inspector-detail-view'
+import { R1Score } from './scoring/R1Score'
+import { r1Family } from '../scoring-system/r1/profiles'
 
 function HistogramIcon() {
   return (
@@ -67,7 +69,9 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
   const hasMagnitude = !!magnitudeFamily && !!release?.events.some((event) => Object.hasOwn(magnitudeFamily.readingRules, event.event_id))
   const scoringBinding = inspectorScoringBinding(symbol, scoreRelease)
   const showScoring = normalizeInspectorDetailView(view.preferences.detailView) === 'scoring' && !!scoringBinding
-  const visibleView = showScoring ? 'scoring' : 'table'
+  const hasR1=scoreRelease?.currency==='USD'&&scoreRelease.country==='US'&&!!r1Family(scoreRelease.familyId)
+  const showR1=normalizeInspectorDetailView(view.preferences.detailView)==='r1'&&hasR1
+  const visibleView = showR1?'r1':showScoring ? 'scoring' : 'table'
   const status = (item: InspectorRelease) => releaseStatus(item, view.now)
   const storageStatus = view.storage.loading ? 'Loading stored calendar' : view.storage.error ??
     (view.storage.source ? 'Stored calendar available' : 'Waiting for the broker calendar')
@@ -120,22 +124,25 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
       {view.supported && release && <InspectorReleaseHeading release={release} view={view} timeDisplay={timeDisplay}
         status={status(release)} sharedPeriod={sharedPeriod} hasMagnitude={hasMagnitude} calendarDetail={calendarDetail} coverageDetail={coverageDetail} />}
       {view.supported && showScoring && scoringBinding?.familyId === 'claims' && <ClaimsScoreControls />}
-      {view.supported && showScoring && scoringBinding?.currency === 'USD' && <ScoringMethodLink family={scoringBinding.familyId === 'fed-chair' ? 'fomc' : scoringBinding.familyId} />}
-      {view.supported && release && <select className="inspector-view-select" aria-label="Inspector view"
+      {view.supported && release && <div className="inspector-view-controls">
+      {showR1 && scoreRelease && <ScoringMethodLink family={scoreRelease.familyId} model="r1" />}
+      {showScoring && scoringBinding?.currency === 'USD' && <ScoringMethodLink family={scoringBinding.familyId === 'fed-chair' ? 'fomc' : scoringBinding.familyId} />}
+      <select className="inspector-view-select" aria-label="Inspector view"
         value={visibleView} onChange={(event) => {
           const next = event.target.value
           if (next === 'scatter') {
             // Scatter is navigation; keep the selected Inspector view when returning.
             event.target.value = visibleView
             if (hasMagnitude && scatterAvailable && onOpenScatter) onOpenScatter(scoreRelease ?? release)
-          } else if (next === 'table' || (next === 'scoring' && scoringBinding)) {
+          } else if (next === 'table' || (next === 'scoring' && scoringBinding) || (next==='r1'&&hasR1)) {
             view.applyPreferences({ ...view.preferences, detailView: next }, 'view')
           }
         }}>
         <option value="table">Table only</option>
         <option value="scoring" disabled={!scoringBinding}>Scoring system{scoringBinding ? ` · ${release.pmiPublications ? 'PMI interpreters v1' : scoringBinding.versionLabel}` : ''}</option>
         <option value="scatter" disabled={!hasMagnitude || !scatterAvailable || !onOpenScatter}>Scatter Plot</option>
-      </select>}
+        <option value="r1" disabled={!hasR1}>Scoring system · USD R1</option>
+      </select></div>}
 
     </header>
     {!view.supported ? <p className="inspector-empty">Inspector currently supports EURUSD. Select EURUSD to inspect monetary policy, inflation, labor/wages and growth/activity releases.</p> : <>
@@ -147,7 +154,7 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
           {!release ? <p className="inspector-empty" role={view.inspectingPublication ? 'status' : undefined}>{view.inspectingPublication ?
             view.publicationLoading ? 'Loading selected publication…' : view.publicationError ?? 'Selected publication is unavailable in stored history.' :
             'Click a chart symbol or select a release to inspect Actual, Previous and A−P.'}</p> : <>
-            {showScoring && scoringBinding ? <InspectorScoringView binding={scoringBinding} release={release}
+            {showR1?<R1Score release={scoreRelease} brokerId={view.brokerId} events={scoringEvents} selectedFamilies={view.preferences.families}/>:showScoring && scoringBinding ? <InspectorScoringView binding={scoringBinding} release={release}
               brokerId={view.brokerId} events={scoringEvents} now={view.now} timeDisplay={timeDisplay}
               onOpenScatter={scatterAvailable ? onOpenScatter : undefined} /> :
             release.pmiPublications ? <PmiReadingsTable release={release} view={view} timeDisplay={timeDisplay} /> :

@@ -20,6 +20,9 @@ import { SignalBoundaryEditor } from '../settings/SignalBoundaryEditor'
 import type { SignalHistory } from '../inspection/scoring-signal-model'
 import { claimsHorizons, type ClaimsHorizon } from '../../scoring-system/PAIR/EURUSD/USD/CLAIMS/policy/claims-standalone-policy'
 import { useClaimsPreferences, saveClaimsPreferences } from '../../scoring-system/PAIR/EURUSD/USD/CLAIMS/policy/claims-standalone-settings'
+import { R1ScatterPanel } from './R1ScatterPanel'
+import { r1Family } from '../../scoring-system/r1/profiles'
+import { useRetainedScatterState } from '../plot/useRetainedScatterState'
 
 const emptySignalHistory: SignalHistory = []
 
@@ -29,28 +32,33 @@ export type ScatterFamilyBinding = {
   model: (events: StoredCalendarEvent[], now: number, seriesId: string, releaseId: string | null, settings: MagnitudeSettings) => ScatterModel
 }
 
-export function FamilyScatterPanel({ brokerId, clockOffsetMs = 0, target, binding, familyOptions, onFamilyChange, sideOptions, onSideChange }:
-  ScatterPlotDockProps & { binding: ScatterFamilyBinding; familyOptions: ScatterOption[]; onFamilyChange: (id: string) => void; sideOptions: ScatterOption[]; onSideChange: (id: string) => void }) {
+type FamilyProps=ScatterPlotDockProps & { binding: ScatterFamilyBinding; familyOptions: ScatterOption[]; onFamilyChange: (id: string) => void; sideOptions: ScatterOption[]; onSideChange: (id: string) => void }
+export function FamilyScatterPanel(props:FamilyProps){
+  const [measure,setMeasure]=useState<'ap'|'signal'|'r1'>(props.target?.calculation??'ap')
+  const [viewState]=useState(()=>new Map<string,unknown>())
+  return measure==='r1'&&r1Family(props.binding.family.familyId)?<R1ScatterPanel {...props} viewState={viewState} onMeasureChange={setMeasure}/>:<LegacyFamilyScatterPanel {...props} viewState={viewState} measure={measure==='signal'?'signal':'ap'} setMeasure={setMeasure}/>
+}
+function LegacyFamilyScatterPanel({ brokerId, clockOffsetMs = 0, target, binding, familyOptions, onFamilyChange, sideOptions, onSideChange,measure,setMeasure,viewState }:
+  FamilyProps & {measure:'ap'|'signal';setMeasure:(m:'ap'|'signal'|'r1')=>void;viewState:Map<string,unknown>}) {
   const { scope, family } = binding
   const now = useCalendarNow(clockOffsetMs)
-  const [seriesId, setSeriesId] = useState(scope.series[0].id)
+  const [seriesId, setSeriesId] = useRetainedScatterState(viewState,'legacy-series',scope.series[0].id)
   const claimsPreferences = useClaimsPreferences(), horizon = family.familyId === 'claims' ? claimsPreferences.horizon : undefined
   const signalBinding = useMemo(() => scoringSignalBinding(family.familyId, horizon), [family.familyId, horizon])
-  const [measure, setMeasure] = useState<'ap' | 'signal'>('ap')
-  const [requestedSignalId, setSignalId] = useState(signalBinding?.signals[0].id ?? '')
+  const [requestedSignalId, setSignalId] = useRetainedScatterState(viewState,'legacy-signal',signalBinding?.signals[0].id ?? '')
   const signalId = signalBinding?.signals.some(s => s.id === requestedSignalId) ? requestedSignalId : signalBinding?.signals[0].id ?? ''
   if (signalId !== requestedSignalId) setSignalId(signalId)
   const scoring = measure === 'signal' && !!signalBinding
   const activeId = scoring ? signalId : seriesId
   const activeScope = scoring ? { ...scope, series: signalBinding.signals } : scope
-  const [selection, setSelection] = useState<{ broker: string | null; releaseId: string | null }>({ broker: brokerId, releaseId: target?.releaseId ?? null })
-  const inspectRelease = useCallback((releaseId: string) => setSelection({ broker: brokerId, releaseId }), [brokerId])
+  const [selection, setSelection] = useRetainedScatterState<{ broker: string | null; releaseId: string | null }>(viewState,'legacy-selection',{ broker: brokerId, releaseId: target?.releaseId ?? null })
+  const inspectRelease = useCallback((releaseId: string) => setSelection({ broker: brokerId, releaseId }), [brokerId,setSelection])
   // Reset with the source change, including a return to a previously inspected broker.
   if (selection.broker !== brokerId) setSelection({ broker: brokerId, releaseId: null })
-  const [zoom, setZoom] = useState(true)
-  const [dateView, setDateView] = useState<{ broker: string | null; all: boolean; anchor: number | null; reset: number }>({ broker: brokerId, all: false, anchor: target?.at ?? null, reset: 0 })
+  const [zoom, setZoom] = useRetainedScatterState(viewState,'legacy-zoom',true)
+  const [dateView, setDateView] = useRetainedScatterState<{ broker: string | null; all: boolean; anchor: number | null; reset: number }>(viewState,'legacy-dates',{ broker: brokerId, all: false, anchor: target?.at ?? null, reset: 0 })
   if (dateView.broker !== brokerId) setDateView({ broker: brokerId, all: false, anchor: null, reset: dateView.reset + 1 })
-  const [preview, setPreview] = useState<{ scope: string; limits: MagnitudeLimits | null }>({ scope: '', limits: null })
+  const [preview, setPreview] = useRetainedScatterState<{ scope: string; limits: MagnitudeLimits | null }>(viewState,'legacy-preview',{ scope: '', limits: null })
   const appearance = useScatterAppearance()
   const [appearanceOpen, setAppearanceOpen] = useState(false)
   const appearanceButton = useRef<HTMLButtonElement>(null)
@@ -94,7 +102,7 @@ export function FamilyScatterPanel({ brokerId, clockOffsetMs = 0, target, bindin
       onChange={e => saveClaimsPreferences({ ...claimsPreferences, horizon: e.target.value as ClaimsHorizon })}>
       {claimsHorizons.map(h => <option key={h.id} value={h.id}>{h.label}</option>)}</select></label>}
     <ScatterPlotControls scope={activeScope} seriesId={activeId} onSeriesChange={(id) => { if (scoring) setSignalId(id); else setSeriesId(id); setZoom(true) }} zoom={zoom && !magnitudeUndefined}
-      measure={measure} onMeasureChange={signalBinding ? (next) => { setMeasure(next); setZoom(true) } : undefined}
+      measure={measure} r1Available={!!r1Family(family.familyId)&&family.currency==='USD'} onMeasureChange={signalBinding||r1Family(family.familyId) ? (next) => { setMeasure(next); setZoom(true) } : undefined}
       onZoomChange={setZoom} onLatest={latest}
       allHistory={dateView.all} onHistoryChange={() => setDateView({ broker: brokerId, all: !dateView.all, anchor: model.inspection?.at ?? null, reset: dateView.reset + 1 })}
       familyOptions={familyOptions} onFamilyChange={onFamilyChange} sideOptions={sideOptions} onSideChange={onSideChange} magnitudeUndefined={magnitudeUndefined}
@@ -104,6 +112,7 @@ export function FamilyScatterPanel({ brokerId, clockOffsetMs = 0, target, bindin
       {storage.partial && <span className="scatter-plot-coverage" role="status">Partial history</span>}
       <div className="scatter-plot-body">
         <MagnitudeScatterPlot model={model} zoom={zoom && !magnitudeUndefined} appearance={appearance} dateWindow={dateWindow}
+          viewState={viewState} viewStateKey="legacy-viewport"
           dateResetKey={`${dateView.all}/${dateView.reset}`}
           viewKey={JSON.stringify([scope.pair.id, scope.side.id, scope.family.id, brokerId, measure, activeId, magnitudeUndefined])}
           onInspect={inspectRelease} />

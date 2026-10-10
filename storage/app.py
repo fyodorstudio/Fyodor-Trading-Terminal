@@ -65,12 +65,14 @@ def create_app(directory=None, run_collector=True):
                  limit: int = Query(default=1000, ge=1, le=5000),
                  after_time: int | None = Query(default=None, ge=0), after_id: str | None = Query(default=None, max_length=32),
                  time_basis: str = Query(default="raw", pattern="^(raw|chart)$"),
+                 r1_as_of: int | None = Query(default=None, ge=0),
+                 r1_history: bool = False,
                  event_ids: str | None = Query(default=None, max_length=1343,
                                               pattern=r"^[0-9]{1,20}(,[0-9]{1,20}){0,63}$")):
         if from_server_seconds >= to_server_seconds or (after_time is None) != (after_id is None):
             raise HTTPException(status_code=422, detail="Invalid date interval or incomplete cursor")
         return app.state.store.query(source_id, from_server_seconds, to_server_seconds, currency, limit,
-                                     after_time, after_id, time_basis, event_ids.split(",") if event_ids else None)
+                                     after_time, after_id, time_basis, event_ids.split(",") if event_ids else None, r1_as_of, r1_history)
 
     return app
 

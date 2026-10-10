@@ -1,10 +1,10 @@
 # Scoring system overhaul
 
-Discussion record, updated 2026-10-09. No application implementation authorized yet.
+Discussion and design record, updated 2026-10-10. USD R1 is implemented and terminal-verified on `codex/usd-scoring-r1`; baseline `93a6ecd`. Earlier deferred-implementation statements describe their historical phase. Visual review remains manual.
 
 Current recommendation: [USD evidence design R1](#usd-evidence-design-r1). Earlier sections preserve the discussion and agreed CPI baseline. Numerical choices introduced in R1 are assistant recommendations, not additional user agreements or source-estimated USD coefficients.
 
-Design and targeted evaluation are complete; implementation remains deferred. Start with [R1 formulas and relationships](#usd-evidence-design-r1), then [worked examples and sensitivity findings](#r1-evaluation-and-worked-examples). CPI V5 and the user's existing magnitude bands, including the Extreme x4 cap, are preserved.
+Design and targeted evaluation are complete. Start with [R1 formulas and relationships](#usd-evidence-design-r1), then [worked examples and sensitivity findings](#r1-evaluation-and-worked-examples). CPI V5 and the user's existing magnitude bands, including the Extreme x4 cap, are preserved. Current implementation status is recorded at the end of this document.
 
 The recommended product reads each selected release, shows which side has greater weighted evidence, and combines current releases through inflation/labor/activity/Fed budgets. The primary view needs only a direction and strength, supportive/negative totals, and one reason. Sources justify economic definitions and the interpretation structure; the evaluated numerical policies remain choices rather than proven optimal weights.
 
@@ -282,7 +282,7 @@ Inflation input order throughout this specification is **core m/m, core y/y, hea
 | Retail R1 | Total retail and food services SA m/m growth 100 | Higher nominal sales growth positive | One broad spending-momentum signal. Ex-auto and control-group results are overlapping context. Do not call nominal spending growth real consumption growth or divide it by headline CPI to invent an exact retail volume measure. |
 | ISM manufacturing demand R1 | New Orders index 60; Production index 40 | Higher index positive | Prefer direct demand/activity components to prevent slower deliveries mechanically becoming stronger activity evidence. Employment is already in labor; inventories/deliveries are context. This is a custom evidence score, not the official PMI. |
 | ISM services demand R1 | New Orders index 60; Business Activity index 40 | Higher index positive | Same demand/activity question as manufacturing. Keeps delivery delays and the employment component from becoming additional activity votes. Required components must be available; do not infer them from headline PMI. |
-| Fed action R1 | One target-range midpoint change | Hike positive; cut negative; hold zero | Raw S_F = 100 * sign(delta_bp) * min(abs(delta_bp)/25, 4); normalized F = S_F/4. Thus 25/50/75/100+ bp gives 25/50/75/100 normalized points. Unusual increments use the continuous formula, not invented categories. |
+| Fed action R1 | One published target-rate change; range midpoint only when both bounds are verified | Hike positive; cut negative; hold zero | Raw S_F = 100 * sign(delta_bp) * min(abs(delta_bp)/25, 4); normalized F = S_F/4. Thus 25/50/75/100+ bp gives 25/50/75/100 normalized points. Unusual increments use the continuous formula, not invented categories. |
 
 PCE/PPI weighting differences are explicit design choices for examination, not claimed estimates of their USD importance. PCE's target status is handled principally through consumer-anchor selection, not by making the annual inflation change stand in for target distance.
 
@@ -638,3 +638,93 @@ The older active objective/temporary implementation plan describe the preceding 
 - The assistant has no outstanding clarification questions before starting staged implementation. Feed-fit checks and stored-history verification are implementation responsibilities, not a request for the user to design the formulas.
 - Current instruction: commit the existing repository state and this design note as a baseline, then stop. Do not ungroup ISM, change calculations or start the overhaul in this turn. The user will provide the implementation goal separately.
 - The proposed implementation branch remains **codex/usd-scoring-r1**; create it when implementation starts. This baseline is committed on the current branch before overhaul work.
+
+## USD R1 implementation record — 10 October 2026
+
+The user resumed autonomous implementation. Baseline `93a6ecd` is preserved;
+work is on `codex/usd-scoring-r1`. Implementation and terminal verification are
+complete; visual/browser performance review remains with the user.
+
+- `frontend/src/scoring-system/r1/` now owns all ten standalone profiles,
+  category/overall relationships, signed evidence leaves, uncertainty intervals,
+  weight/boundary sensitivity, separate 0/24/72-hour timing sensitivity, settings
+  and background history/publication workers. Inspector and Scatter consume the
+  same extractor and assessor.
+- Inspector has a separate USD R1 choice, raw release evidence totals and an
+  fully visible normalized relationship result. Settings have an R1 model choice;
+  calibration overrides and selected relationship families are workspace-portable.
+  Inspector filters further restrict relationship scope. Scatter's Calculation
+  selector adds USD R1 comparison. Manufacturing/services display separately.
+- Compatible saved raw A−P bands are inherited without mutation. Separately
+  versioned R1 automatic fallback uses earlier absolute nonzero delta quantiles
+  50/80/95%, requiring 60 earlier usable comparisons; ties coalesce. Manual R1
+  overrides take priority. GDP revisions have separate bands. Existing legacy
+  automatic policies and the user's Extreme x4 cap remain unchanged.
+- The Fed feed supplies one target-rate quote, not verified lower/upper bounds.
+  Score that quote's change; do not fabricate a range midpoint. The same bounded
+  25 bp step formula applies. Range-bound adapters require explicit provenance.
+- Storage exposes only planned dates actually captured before the chosen clock.
+  Known postponements supersede prior dates; actual publications never fabricate
+  earlier schedule announcements. New planned observations invalidate storage
+  revision caches even if a higher-priority current payload is retained. A stale
+  service explicitly requests a restart instead of silently dropping provenance.
+- The [stored-history audit](reports/USD-R1-stored-history-audit.md) replays 1,828
+  publications under the versioned automatic fallback. Component outputs match
+  Inspector arithmetic and the production-built history worker. This is a
+  stored-inventory arithmetic/sensitivity audit, not original-vintage or FX-price
+  accuracy validation. The current feed lacks manufacturing Production; its 40%
+  uncertainty remains visible rather than being filled with another index.
+- Golden tests reconcile March/June/July CPI, the full signed-leaf relationship
+  example (+14.05625 / -19.65625 / -5.6), Fed opposition and cancellation
+  thresholds, quarterly revisions, inverse claims direction, million/thousand
+  conversion, exact decimal boundaries, missing coverage and the magnitude cap.
+  Mounted tests cover corrected readings, stable polling, hidden-worker cleanup,
+  settings portability and Scatter parity. The assembled terminal verifies R1
+  does no new scoring work on pan/hover/clock updates.
+- Storage's 29 tests and all 69 sequential frontend suites pass; lint and
+  production build pass. Existing menu/grouping assertions reflect the authorized
+  R1 option and separate ISM publications. A final large-finite-delta regression
+  confirms that decimal conversion cannot turn an Extreme change into zero.
+  The existing bundle-size warning remains. No automated visual audit was used.
+- A read-only local provenance check found 42,738 USD observations, including
+  3,773 planned observations. It found no value IDs with differing nonnull Actual,
+  Previous or Revised Previous values in the present archive. This does not prove
+  original publication availability. Synthetic/versioned source tests cover
+  correction timing and preservation. The local storage HTTP service was not
+  running during this check; integration verification used isolated test services.
+- An existing activity work-count test intermittently counted Vite's own
+  asynchronous timestamp logger. Its instrumentation now isolates the application's
+  UTC formatter, with an explicit unrelated-logger regression; production Activity
+  code is unchanged.
+
+The source adapter now exposes captured observation versions only on R1 queries,
+with an explicit adapter version and stable serialized metadata across polls.
+R1 preserves the earliest recoverable release snapshot. Later corrected values
+replace current family slots only at their capture clock; capture time is not
+claimed to be the publisher's correction timestamp. Late first captures remain
+retrospective/unverified, rather than manufactured original-time proof. Automatic
+historical calibration uses the preserved release comparisons so later corrections
+do not rewrite old release scores.
+
+The read-only SQLite replay includes 59 mapped planned observations. Three real
+aggregate snapshots match future-removal and the production R1 worker. On October
+8 at 12:30 UTC, the default automatic profile gives +16.7 supportive / -11.45
+negative / +5.25 normalized net: slight USD-strengthening evidence, with 99.4%
+coverage. October 1 remains insufficient because no then-known schedule was
+captured. These are stored-information results, not original-vintage validation.
+Scatter calculation switches preserve selection, history mode and axis viewport
+while inactive calculation panels unmount and stop expensive work.
+
+Remaining manual review: Inspector result/relationship layout, R1 settings,
+Scatter controls/appearance and browser interaction performance. Start/restart
+calendar storage to load the versioned R1 adapter. Roofs/Raycaster/Candy remain
+separate legacy models for this migration. Missing manufacturing Production and
+original vintages absent from the archive remain data limitations, with the
+specified uncertainty/audit treatment implemented.
+
+User UI refinement, 10 October 2026: R1 no longer uses expandable sections.
+Direction leads, followed by an EVIDENCE / strength box; totals and the short
+reason share the next row. Input weights are visible in the release table.
+Release evidence, input audit, relationships and relationship audit use one
+scrolling panel. The static "This release" heading is removed; Scoring settings
+sits immediately left of the Inspector view selector. Scoring rules are unchanged.

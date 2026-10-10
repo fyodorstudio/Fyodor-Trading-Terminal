@@ -86,11 +86,13 @@ function FyodorTerminalWorkspace() {
   const rememberOverviewScroll = useCallback((position: number) => { roofsOverviewScroll.current = position }, [])
   const [bottomDockWindow, setBottomDockWindow] = useState<BottomDockWindow | null>(null)
   const [scoringFamily, setScoringFamily] = useState('claims')
+  const [scoringModel,setScoringModel]=useState<'legacy'|'r1'>('legacy')
   useEffect(() => {
     const open = (event: Event) => {
       const request = (event as CustomEvent<FundamentalSettingsRequest>).detail
       const requested = request?.family
       if (requested && usdScoringFamilies.some(f => f.id === requested)) setScoringFamily(requested)
+      if(request?.model)setScoringModel(request.model)
       setBottomDockWindow(current => request?.toggle && current === 'fundamental-settings' ? null : 'fundamental-settings')
     }
     window.addEventListener(fundamentalSettingsEvent, open)
@@ -301,8 +303,8 @@ function FyodorTerminalWorkspace() {
   }, [setReleaseSelection])
   const openScatter = useCallback((release: Parameters<typeof scatterReleaseTarget>[0]) => {
     const target = scatterReleaseTarget(release, inspector.brokerId, inspector.now)
-    if (target) { setScatterTarget(target); setBottomDockWindow('scatter-plot') }
-  }, [inspector.brokerId, inspector.now])
+    if (target) { setScatterTarget(inspector.preferences.detailView==='r1'?{...target,calculation:'r1'}:target); setBottomDockWindow('scatter-plot') }
+  }, [inspector.brokerId, inspector.now,inspector.preferences.detailView])
   const contextViews = useSequencePreferences()
   const roofsSupported = /^EURUSD(?:[._-].*|[a-z]*)$/i.test(activeSymbol)
   const contextVisible = raycasterVisible || !!selectedCombo || !!selectedRoofGroup || !!contextViews.ribbon || (roofsSupported && contextViews.roofs)
@@ -424,7 +426,7 @@ function FyodorTerminalWorkspace() {
         <BottomDockPanel
           resizeHandle={dockSize.resizeHandle}
         >
-          {bottomDockWindow === 'fundamental-settings' && <FundamentalSettingsPanel family={scoringFamily} onFamilyChange={setScoringFamily}
+          {bottomDockWindow === 'fundamental-settings' && <FundamentalSettingsPanel family={scoringFamily} onFamilyChange={setScoringFamily} model={scoringModel} onModelChange={setScoringModel}
             symbol={activeSymbol} brokerId={brokerId} timeframe={timeframe} brokerOffsetSeconds={bridge.brokerOffsetSeconds}
             release={inspector.selectedRelease} events={publicationEvents} />}
           {bottomDockWindow === 'notebook' && (

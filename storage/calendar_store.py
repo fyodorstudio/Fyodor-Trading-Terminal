@@ -125,6 +125,16 @@ class CalendarStore:
             for operation in ("INSERT", "UPDATE", "DELETE"):
                 self.db.execute(f"""CREATE TRIGGER IF NOT EXISTS revision_{table}_{operation}
                     AFTER {operation} ON {table} BEGIN UPDATE data_revision SET value=value+1 WHERE id=1; END""")
+        # An earlier planned observation can change an R1 as-of schedule even
+        # when source priority leaves the current event payload untouched.
+        self.db.execute("""CREATE TRIGGER IF NOT EXISTS revision_planned_observation
+            AFTER INSERT ON observations WHEN json_extract(new.payload,'$.actual') IS NULL
+            AND json_extract(new.payload,'$.currency')='USD'
+            BEGIN UPDATE data_revision SET value=value+1 WHERE id=1; END""")
+        self.db.execute("""CREATE TRIGGER IF NOT EXISTS revision_usd_observation
+            AFTER INSERT ON observations WHEN json_extract(new.payload,'$.currency')='USD'
+            AND json_extract(new.payload,'$.actual') IS NOT NULL
+            BEGIN UPDATE data_revision SET value=value+1 WHERE id=1; END""")
         self._restore_timing()
         self.db.execute("PRAGMA user_version=2")
         self.db.commit()
@@ -431,7 +441,55 @@ class CalendarStore:
                     "sources": sources, "pending_jobs": jobs,
                     "revision": self.db.execute("SELECT value FROM data_revision WHERE id=1").fetchone()[0]}
 
-    def query(self, source_id, start, end, currency=None, limit=1000, after_time=None, after_id=None, time_basis="raw", event_ids=None):
+    def planned_schedules(self, source_id, as_of):
+        """Dates actually captured before the chosen clock, never inferred from actuals."""
+        with self.lock:
+            rows = self.db.execute("""SELECT value_id,payload,observed_at,provenance FROM observations
+                WHERE source_id=? AND observed_at<=? AND json_extract(payload,'$.currency')='USD'
+                AND json_extract(payload,'$.actual') IS NULL
+                ORDER BY observed_at,value_id,digest""", (source_id, as_of / 1000)).fetchall()
+            schedules, previous = [], {}
+            for row in rows:
+                event = json.loads(row["payload"])
+                if event.get("time_mode") != 0 or event.get("actual_raw_scaled_1e6") is not None:
+                    continue
+                offset, basis = self._capture_offset(source_id, row["observed_at"], json.loads(row["provenance"]))
+                due, _ = project(source_id, event["server_time_seconds"], offset)
+                known = row["observed_at"] * 1000
+                if due is None or due <= known:
+                    continue
+                item = {"seriesId": event["event_id"], "dueAt": due, "knownAt": known,
+                        "source": f"stored-planned-observation/{row['value_id']}/{basis}"}
+                earlier = previous.get(row["value_id"])
+                if earlier is not None and earlier != due:
+                    item["supersedesDueAt"] = earlier
+                if earlier != due:
+                    schedules.append(item)
+                previous[row["value_id"]] = due
+            return schedules
+
+    def r1_vintages(self, source_id, value_ids):
+        """Captured actual snapshots; capture time is not a publisher correction time."""
+        if not value_ids:
+            return {}
+        rows = self.db.execute(f"""SELECT value_id,payload,observed_at,provenance FROM observations
+            WHERE source_id=? AND value_id IN ({','.join('?' for _ in value_ids)})
+            AND json_extract(payload,'$.currency')='USD'
+            AND (json_extract(payload,'$.actual') IS NOT NULL OR json_extract(payload,'$.actual_raw_scaled_1e6') IS NOT NULL)
+            ORDER BY observed_at,digest""", (source_id, *value_ids)).fetchall()
+        vintages = {}
+        for row in rows:
+            event = json.loads(row['payload'])
+            offset, basis = self._capture_offset(source_id, row['observed_at'], json.loads(row['provenance']))
+            release_at, _ = project(source_id, event['server_time_seconds'], offset) if event['time_mode'] == 0 else (None, None)
+            vintages.setdefault(row['value_id'], []).append({
+                'knownAt': row['observed_at'] * 1000,
+                'event': {**event, 'release_at': release_at},
+                'source': f"stored-observation/{row['value_id']}/{basis}"})
+        # A scalar JSON field preserves calendar row identity across unchanged polls.
+        return {value_id: canonical(items) for value_id, items in vintages.items()}
+
+    def query(self, source_id, start, end, currency=None, limit=1000, after_time=None, after_id=None, time_basis="raw", event_ids=None, r1_as_of=None, r1_history=False):
         with self.lock:
             chart = time_basis == "chart"
             axis = "coalesce(t.chart_time_seconds,e.server_time)" if chart else "e.server_time"
@@ -463,6 +521,11 @@ class CalendarStore:
                        "chart_time_seconds": row["chart_time_seconds"] if chart else None,
                        "timing_basis": row["basis"], "chart_clock_profile": row["profile"],
                        "capture_offset_seconds": row["capture_offset_seconds"]} for row in rows]
+            if r1_as_of is not None or r1_history:
+                vintages = self.r1_vintages(source_id, [row['value_id'] for row in rows])
+                for event in events:
+                    if event['currency'] == 'USD':
+                        event['r1_vintages'] = vintages.get(event['value_id'], '[]')
             source = self.db.execute("SELECT server_now FROM sources WHERE id=?", (source_id,)).fetchone()
             scoped = (currency,) if currency else CURRENCIES
             coverage = {}
@@ -471,5 +534,7 @@ class CalendarStore:
                 coverage[item] = {"missing": missing_intervals(start, end, intervals)}
             last = rows[-1] if rows and has_more else None
             return {"source_id": source_id, "timestamp_convention": "trade_server_time", "events": events,
+                    **({'r1_source_version': 1} if r1_as_of is not None or r1_history else {}),
+                    **({"r1_schedules": self.planned_schedules(source_id, r1_as_of)} if r1_as_of is not None and after_time is None else {}),
                     "time_basis": time_basis, "event_ids": event_ids, "coverage": coverage, "revision": self.db.execute("SELECT value FROM data_revision WHERE id=1").fetchone()[0],
                     "next_cursor": {"after_time": last["axis_time"], "after_id": last["value_id"]} if last else None}

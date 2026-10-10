@@ -3,6 +3,7 @@ import type { ScatterModel } from '../contracts/scatter-plot-types'
 import { scatterPlotGeometry, type ScatterViewport, type ScatterAxisRange } from './scatter-plot-geometry'
 import { limitScatterDates, scaleScatterAxis, scatterPointerZone, translateScatterAxis, type ScatterGeometry, type ScatterPointerZone } from './scatter-plot-viewport'
 import { useScatterPointerFrame } from './useScatterPointerFrame'
+import { useRetainedScatterState } from './useRetainedScatterState'
 
 type Position = { x: number; y: number }
 type Drag = { start: Position; startClient: Position; clientScale: Position; geometry: ScatterGeometry; zone: ScatterPointerZone; pointerId: number; moved: boolean }
@@ -18,9 +19,9 @@ function scaled(geometry: ScatterGeometry, axis: 'x' | 'y', factor: number, anch
 }
 
 export function useScatterPlotInteraction(model: ScatterModel, zoom: boolean, width: number, height: number, viewKey: string,
-  dateWindow?: ScatterAxisRange, dateResetKey = '') {
+  dateWindow?: ScatterAxisRange, dateResetKey = '',viewState?:Map<string,unknown>,viewStateKey='viewport') {
   const resetKey = `${viewKey}/${zoom}`
-  const [state, setState] = useState<{ key: string; dateKey: string; viewport: ScatterViewport }>({ key: resetKey, dateKey: dateResetKey, viewport: {} })
+  const [state, setState] = useRetainedScatterState<{ key: string; dateKey: string; viewport: ScatterViewport }>(viewState,viewStateKey,{ key: resetKey, dateKey: dateResetKey, viewport: {} })
   const drag = useRef<Drag | null>(null)
   const suppressClick = useRef(false)
   const pointerFrame = useScatterPointerFrame()
@@ -44,7 +45,7 @@ export function useScatterPlotInteraction(model: ScatterModel, zoom: boolean, wi
     const rect = element.getBoundingClientRect()
     return { x: (event.clientX - rect.left) * width / (rect.width || width), y: (event.clientY - rect.top) * height / (rect.height || height) }
   }, [width, height])
-  const change = useCallback((next: ScatterViewport) => setState({ key: resetKey, dateKey: dateResetKey, viewport: next }), [resetKey, dateResetKey])
+  const change = useCallback((next: ScatterViewport) => setState({ key: resetKey, dateKey: dateResetKey, viewport: next }), [resetKey, dateResetKey,setState])
   useEffect(() => {
     if (!svg) return
     // A native non-passive listener lets the chart consume wheel zoom without scrolling the dock.

@@ -1,0 +1,43 @@
+.r1-score {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  padding: 14px 16px;
+  overflow-wrap: anywhere;
+}
+.r1-result, .r1-evidence {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+}
+.r1-result > strong { font-size: 1.15rem; }
+.r1-strengthening > strong { color: var(--positive-color, #07966c); }
+.r1-weakening > strong { color: var(--negative-color, #dc3545); }
+.r1-strength {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  color: var(--text-strong);
+  background: var(--surface-panel);
+  line-height: 18px;
+}
+.r1-strength > * { padding: 3px 9px; }
+.r1-strength > span { border-right: 1px solid var(--border-strong); color: var(--text-muted); }
+.r1-evidence { margin-top: 10px; font-variant-numeric: tabular-nums; }
+.r1-evidence > span { white-space: nowrap; }
+.r1-evidence .r1-explanation { margin: 0; flex: 1 1 300px; }
+.r1-notes { color: var(--text-muted); }
+.r1-score table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+.inspector-detail .r1-score :is(th, td) { padding: 7px 10px; white-space: normal; }
+.inspector-detail .r1-score th { position: static; }
+.inspector-detail .r1-score :is(th, td):first-child { width: auto; }
+.r1-score h3 { margin: 0 0 12px; font-size: 12px; }
+.r1-score h4 { margin: 0 0 8px; }
+.r1-score .r1-relationships { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); }
+.r1-audit { margin-top: 16px; color: var(--text-muted); }
+.r1-audit p { margin: 6px 0; }
+.r1-audit ul { padding-left: 18px; }
+.r1-audit li { margin: 5px 0; }

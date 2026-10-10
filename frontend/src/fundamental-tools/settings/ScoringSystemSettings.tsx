@@ -5,14 +5,15 @@ import { useMagnitudeSettings } from '../../inspector/magnitude/settings/magnitu
 import { CalibrationEditor } from './CalibrationEditor'
 import { ClaimsScoringSettings } from './ClaimsScoringSettings'
 import type { InspectorScoringProps } from '../../inspector/scoring/scoring-contracts'
+import { R1ScoringSettings } from './R1ScoringSettings'
 
-export function ScoringSystemSettings({ family, onFamilyChange, ...preview }: InspectorScoringProps & { family: string; onFamilyChange: (family: string) => void }) {
+export function ScoringSystemSettings({ family, onFamilyChange, model='legacy',onModelChange, ...preview }: InspectorScoringProps & { family: string; onFamilyChange: (family: string) => void;model?:'legacy'|'r1';onModelChange?:(model:'legacy'|'r1')=>void }) {
   const method = useMemo(() => scoringMethod(family), [family]), settings = useMagnitudeSettings(method.binding?.settings ?? null)
   const example = method.signals.reduce((sum, signal, index) => sum + (index === 0 ? 2 : index === 1 ? -1 : 0) * (signal.weight ?? 0) / 100, 0)
   return <section className="scoring-system-settings" aria-label="Scoring System">
-    <div className="scoring-settings-toolbar"><label>Scoring family<select aria-label="Scoring family" value={family} onChange={e => onFamilyChange(e.target.value)}>
+    <div className="scoring-settings-toolbar">{onModelChange&&<label>Model<select aria-label="Scoring model" value={model} onChange={e=>onModelChange(e.target.value as 'legacy'|'r1')}><option value="legacy">Existing scorers</option><option value="r1">USD R1</option></select></label>}<label>Scoring family<select aria-label="Scoring family" value={family} onChange={e => onFamilyChange(e.target.value)}>
       {usdScoringFamilies.map(f => <option key={f.id} value={f.id}>{f.label}</option>)}</select></label></div>
-    {family === 'claims' ? <ClaimsScoringSettings {...preview} /> : <><header className="scoring-model-header"><h3>{method.binding?.label ?? 'Fed rate action'}</h3></header>
+    {model==='r1'?<R1ScoringSettings family={family}/>:family === 'claims' ? <ClaimsScoringSettings {...preview} /> : <><header className="scoring-model-header"><h3>{method.binding?.label ?? 'Fed rate action'}</h3></header>
     {method.binding ? <div className="scoring-settings-grid">
       <section className="scoring-settings-method" aria-label="Scoring method"><h4>Method</h4>
       {method.sectorWeight !== null && <p>This sector has {method.sectorWeight}% of the combined ISM budget.</p>}

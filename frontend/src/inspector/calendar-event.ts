@@ -25,5 +25,9 @@ export type EconomicCalendarEvent = {
   previous_raw_scaled_1e6?: string | null
   forecast_raw_scaled_1e6?: string | null
   revised_previous_raw_scaled_1e6?: string | null
+  previous_period_seconds?: number
+  available_at?: number
+  // R1-only captured observation snapshots; scalar JSON keeps polling identities stable.
+  r1_vintages?: string
 }
 

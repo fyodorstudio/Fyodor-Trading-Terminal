@@ -19,10 +19,10 @@ not instructions to restore earlier formulas or UI.
 | Outside events / external events | Manual notes and highlights; no scoring vote. `external-events/`. The settings tab is Outside Events. |
 | Fundamental Settings | Gear-controlled bottom dock for model settings and tool sections. `fundamental-tools/`. Global Settings remains application configuration. |
 
-Roofs and Raycaster remain quarantined: preserve their behavior while standalone
-USD scoring is refined. Candy follows the same preserved context. Claims v3
-standalone uses separate settings from their Claims v2 source. Sharing a folder
-does not authorize sharing new formulas or migrating existing consumers.
+The active USD R1 overhaul is in `frontend/src/scoring-system/r1/`. Inspector and
+Scatter expose R1 separately; its relationships share that engine. Roofs,
+Raycaster and Candy currently retain older calculations and settings. The user
+permits redesign, but an R1 model must never silently mix with legacy votes.
 
 ## Where to change things
 
@@ -32,6 +32,7 @@ Paths below are relative to `frontend/src/`.
 | --- | --- |
 | Inspector model/menu/version | `inspector/scoring/scoring-registry.ts` |
 | Family formula, weights, calibration | `scoring-system/PAIR/EURUSD/USD/<FAMILY>/{assessment,policy}/` |
+| USD R1 families, relationships, calibration and history | `scoring-system/r1/`; see its README and the root scoring overhaul design |
 | Claims standalone versus legacy context | `CLAIMS/assessment/claims-standalone-score.ts` versus `claims-score.ts` under the family path above |
 | Canonical settings metadata / Scatter definitions | `scoring-system/scoring-catalog.ts`, `scoring-signal-bindings.ts` |
 | Settings layout / Claims draft, Apply, Reset | `fundamental-tools/settings/`, `fundamental-tools/ui/fundamental-settings.css` |

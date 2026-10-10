@@ -64,7 +64,7 @@ try {
   await render(InspectorPanel, panelProps)
   const dropdown = container.querySelector('[aria-label="Inspector view"]')
   assert.equal(dropdown.value, 'scoring')
-  assert.equal(dropdown.options.length, 3)
+  assert.deepEqual([...dropdown.options].map(option=>option.value),['table','scoring','scatter','r1'])
   assert.match(dropdown.selectedOptions[0].textContent, /CPI v4/)
   assert.equal(dropdown.querySelector('[value="scoring-v3"]'), null)
   await React.act(async () => { dropdown.value = 'scatter'; dropdown.dispatchEvent(new dom.Event('change', { bubbles: true })) })

@@ -26,12 +26,16 @@ globalThis.fetch = url => String(url).includes('/health') ? new Promise(resolve 
 const originalFormatter = Intl.DateTimeFormat; let formatterCount = 0, formatCount = 0
 Intl.DateTimeFormat = new Proxy(originalFormatter, {
   construct(target, args) {
+    // Vite's asynchronous logger also formats timestamps. Count only the
+    // application's UTC 24-hour formatter so dependency-scan timing cannot
+    // add a spurious formatting operation to this deterministic work count.
+    if(args[1]?.timeZone!=='UTC'||args[1]?.hourCycle!=='h23')return Reflect.construct(target,args)
     formatterCount++
     const formatter = Reflect.construct(target, args), format = formatter.format
     Object.defineProperty(formatter, 'format', { value: (...values) => { formatCount++; return format(...values) } })
     return formatter
   },
-  apply(target, thisArg, args) { formatterCount++; return Reflect.apply(target, thisArg, args) },
+  apply(target, thisArg, args) { if(args[1]?.timeZone==='UTC'&&args[1]?.hourCycle==='h23')formatterCount++; return Reflect.apply(target, thisArg, args) },
 })
 const utc = { mode: 'utc', utcOffsetMinutes: 0 }
 const at = Date.UTC(2026, 9, 7, 12)
@@ -41,6 +45,8 @@ const nativeProps = element => element[Object.getOwnPropertyNames(element).find(
 const commits = []
 
 try {
+  new Intl.DateTimeFormat('en-US',{hour:'numeric',hour12:true}).format(Date.now())
+  assert.equal(formatCount,0,'Unrelated logger formatting must not enter the application work count')
   const { ActivityLogProvider } = await server.ssrLoadModule('./src/system-observability/activity-log/activity-log-store.tsx')
   const { useBridgeStatus } = await server.ssrLoadModule('./src/system-connectivity/bridge-status/use-bridge-status.ts')
   const { ActivityLogPanel } = await server.ssrLoadModule('./src/system-observability/activity-log/ActivityLogPanel.tsx')

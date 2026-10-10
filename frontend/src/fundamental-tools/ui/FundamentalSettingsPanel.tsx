@@ -14,8 +14,9 @@ import './fundamental-settings.css'
 import '../../external-events/ui/external-events.css'
 
 const tabs = ['Scoring System', 'Raycaster', 'Roofs', 'Candy', 'Outside Events'] as const
-export function FundamentalSettingsPanel({ family, onFamilyChange, symbol, brokerId, timeframe, clockOffsetMs = 0, brokerOffsetSeconds = 0, release = null, events }: {
+export function FundamentalSettingsPanel({ family, onFamilyChange,model,onModelChange, symbol, brokerId, timeframe, clockOffsetMs = 0, brokerOffsetSeconds = 0, release = null, events }: {
   family: string; onFamilyChange: (family: string) => void; symbol: string; brokerId: string | null;
+  model?:'legacy'|'r1';onModelChange?:(model:'legacy'|'r1')=>void;
   timeframe: ChartTimeframe; clockOffsetMs?: number; brokerOffsetSeconds?: number
   release?: InspectorScoringProps['release']; events?: InspectorScoringProps['events']
 }) {
@@ -34,7 +35,7 @@ export function FundamentalSettingsPanel({ family, onFamilyChange, symbol, broke
         if (next !== null) { e.preventDefault(); setTab(tabs[next]); (e.currentTarget.parentElement?.children[next] as HTMLElement)?.focus() }
       }}>{name}</button>)}</nav>
     <div id="fundamental-settings-content" role="tabpanel" aria-labelledby={`fundamental-tab-${tabs.indexOf(tab)}`} className="fundamental-settings-content">
-      {tab === 'Scoring System' ? <ScoringSystemSettings family={family} onFamilyChange={onFamilyChange} release={release} events={events} brokerId={brokerId} /> : tab === 'Outside Events' ?
+      {tab === 'Scoring System' ? <ScoringSystemSettings family={family} onFamilyChange={onFamilyChange} model={model} onModelChange={onModelChange} release={release} events={events} brokerId={brokerId} /> : tab === 'Outside Events' ?
         brokerId && symbol ? <OutsideEventSettings key={scope} scope={scope} symbol={symbol} brokerId={brokerId} clockOffsetMs={clockOffsetMs}
           brokerOffsetSeconds={brokerOffsetSeconds} /> : <p role="status">Connect to a broker to manage outside events.</p> : <>
         <ContextViewSelector supported={relativeSupported} label="Shared Raycaster and Candy context view" />

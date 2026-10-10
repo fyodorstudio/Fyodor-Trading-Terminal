@@ -7,9 +7,10 @@ import type { ScatterAxisRange } from './scatter-plot-geometry'
 import { displayClockInput } from '../../appearance/time-display/display-clock-input'
 import { useDisplayClock } from '../../appearance/time-display/useDisplayClock'
 
-export const MagnitudeScatterPlot = memo(function MagnitudeScatterPlot({ model, zoom, onInspect, viewKey = '', appearance: a = defaultScatterAppearance, dateWindow, dateResetKey }: {
+export const MagnitudeScatterPlot = memo(function MagnitudeScatterPlot({ model, zoom, onInspect, viewKey = '', appearance: a = defaultScatterAppearance, dateWindow, dateResetKey,viewState,viewStateKey }: {
   model: ScatterModel; zoom: boolean; onInspect: (releaseId: string) => void; viewKey?: string; appearance?: ScatterAppearance
   dateWindow?: ScatterAxisRange; dateResetKey?: string
+  viewState?:Map<string,unknown>;viewStateKey?:string
 }) {
   const [element, setElement] = useState<HTMLDivElement | null>(null)
   const clock = useDisplayClock()
@@ -27,7 +28,7 @@ export const MagnitudeScatterPlot = memo(function MagnitudeScatterPlot({ model, 
     return () => { observer?.disconnect(); window.removeEventListener('resize', measure) }
   }, [element])
   const { points, inspection, formatDelta } = model
-  const { g, cursor, dragging, setSvg, svgEvents, onAxisKeyDown } = useScatterPlotInteraction(model, zoom, size.width, size.height, viewKey, dateWindow, dateResetKey)
+  const { g, cursor, dragging, setSvg, svgEvents, onAxisKeyDown } = useScatterPlotInteraction(model, zoom, size.width, size.height, viewKey, dateWindow, dateResetKey,viewState,viewStateKey)
   const clipId = `scatter-clip-${useId().replace(/:/g, '')}`
   const currentIndex = points.findIndex((point) => point.releaseId === inspection?.releaseId)
   return <div className="scatter-plot-canvas" ref={setElement}>

@@ -4,7 +4,41 @@ Last clarified with the user: **9 October 2026**. This is the active project
 contract and handoff for a new Codex session. Completed plans and their historical
 findings are in [the archived objective](reports/Main-objective-history-through-2026-10-08.md).
 
-## Active implementation: standalone scoring first
+## Active implementation: USD scoring overhaul R1
+
+The user now authorizes autonomous implementation of the complete USD design in
+[scoring system overhaul](scoring%20system%20overhaul.md), including separate ISM
+families and a new Scatter **Calculation** choice. Baseline: `93a6ecd`; branch:
+`codex/usd-scoring-r1`. Computer use and automated visual audits remain excluded.
+
+Implement versioned R1 family assessments, shared Inspector/Scatter arithmetic,
+category relationships and overall USD evidence. Preserve CPI V5 and the existing
+Extreme x4 cap. Keep available saved magnitude settings; supply separately
+versioned historical calibration where R1 needs configured boundaries. Forecasts
+and speeches do not vote. Missing data retains its nominal uncertainty; exact
+cancellation does not invent a direction. Period selection, revisions and
+freshness must respect the chosen as-of clock.
+
+Use the existing shared scoring module and background calculation infrastructure.
+The user permits reuse, redesign or removal of older application components;
+initially keep older assessments available for comparison with explicit versions.
+R1 relationships belong to one engine; Roofs/Raycaster/Candy must never silently
+mix old and R1 scores. The implementation audit will record test/replay results
+and remaining manual UI checks. Numerical weights remain explicit policies.
+
+R1 is implemented and terminal-verified as of 10 October 2026. All 69 frontend
+suites and 29 storage tests, lint and build pass. The
+[read-only replay](reports/USD-R1-stored-history-audit.md) covers 1,828 publications
+and three aggregate clocks, including built-worker and Scatter parity. Versioned
+stored observations preserve release snapshots and apply later corrections only
+at capture time. Unrecoverable original vintages, missing manufacturing Production
+and unverified schedules retain their explicit treatment. Visual/browser
+performance review remains with the user; older context views remain separate.
+
+The former standalone-development handoff below is historical context. Its
+preservation-only scope and earlier interpretation rules do not override R1.
+
+## Previous implementation: standalone scoring first
 
 The agreed implementation order is in [temporary plan](temporary%20plan.md):
 centralise existing calculations and fundamental settings, implement and validate

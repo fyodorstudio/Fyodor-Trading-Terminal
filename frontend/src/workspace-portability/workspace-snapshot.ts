@@ -17,6 +17,7 @@ import { activitySources } from '../system-observability/activity-log/activity-l
 import { contextFamiliesKey, validContextFamilyPreference } from '../usd-context/storage/context-family-settings'
 import { isStoredInspectorDetailView, normalizeInspectorDetailView } from '../inspector/inspector-detail-view'
 import { bottomDockHeightKey, validBottomDockHeight } from '../workspace-docking/bottom-dock/bottom-dock-height'
+import { r1SettingsKey, validR1Settings } from '../scoring-system/r1/settings'
 
 export const workspaceFormat = 'fyodor-workspace'
 export const workspaceMaxBytes = 10 * 1024 * 1024
@@ -33,6 +34,7 @@ const symbolKey = (key: string, prefix: string) => key.startsWith(prefix) && key
   key.length <= prefix.length + 128 && [...key.slice(prefix.length)].every((char) => char.charCodeAt(0) >= 32)
 
 const validators: Record<string, (v: unknown) => boolean> = {
+  [r1SettingsKey]: validR1Settings,
   [claimsStandalonePreferenceKey]: validClaimsPreferences,
   [externalEventsKey]: validExternalEvents,
   [bottomDockHeightKey]: validBottomDockHeight,

@@ -14,7 +14,7 @@ export function ScatterPlotDock(props: ScatterPlotDockProps) {
   else if (state.broker !== props.brokerId) setState({ ...state, broker: props.brokerId, target: null })
   const binding = bindings.find((candidate) => candidate.scope.family.id === state.familyId) ?? bindings[0]
   const target = state.broker === props.brokerId ? state.target : null
-  return <FamilyScatterPanel key={JSON.stringify([binding.scope.family.id, target?.releaseId])} {...props} target={target}
+  return <FamilyScatterPanel key={JSON.stringify([binding.scope.family.id, target?.releaseId,target?.calculation])} {...props} target={target}
     binding={binding} sideOptions={sides} onSideChange={(side) => {
       const next = bindings.find((candidate) => candidate.scope.side.id === side)
       if (next) setState({ ...state, familyId: next.scope.family.id, target: null })

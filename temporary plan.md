@@ -1,5 +1,29 @@
 # Scoring system implementation plan
 
+## Active USD R1 overhaul — 10 October 2026
+
+Baseline: `93a6ecd`; implementation branch: `codex/usd-scoring-r1`.
+The user resumed autonomous implementation. The canonical design is
+[scoring system overhaul](scoring%20system%20overhaul.md#usd-evidence-design-r1).
+
+- Shared R1 family, relationship and historical calculation engines are implemented.
+  Inspector and Scatter have separate R1 choices; ISM publications display separately.
+- R1 settings preserve compatible raw A−P bands and the existing Extreme x4 cap.
+  New manual overrides and earlier-history calibration are separately versioned.
+- Stored-history replay now covers 1,828 publications, with production-worker
+  and Scatter parity. Golden and mounted R1 tests and the assembled-terminal
+  pan/hover/clock regression pass. Versioned stored observations preserve release
+  snapshots and apply corrections to current slots only at capture time. Three
+  real aggregate snapshots match future-removal and the built R1 worker.
+- All 69 frontend suites and 29 storage tests pass; lint/build pass. The final
+  audit is in [USD R1 stored-history replay](reports/USD-R1-stored-history-audit.md).
+  Historical vintages captured late remain explicitly unverified. Missing
+  manufacturing Production and unverified schedules retain their uncertainty.
+- Visual review belongs to the user. Older Roofs/Raycaster/Candy calculations
+  remain separate while R1 relationships are available inside the new view.
+
+The earlier Claims implementation record below is historical context.
+
 ## Scope and order
 
 Implementation started in the subsequent goal-mode request. Phases 0–2 are

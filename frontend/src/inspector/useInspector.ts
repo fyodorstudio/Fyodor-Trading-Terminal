@@ -10,7 +10,7 @@ import { buildInspectorMarkers, filterInspectorReleases, groupInspectorReleases,
 import { useStoredCalendar } from './useStoredCalendar'
 import { useFamilyMagnitudeHistory } from './magnitude/useFamilyMagnitudeHistory'
 import { policyEpisodeWindowMs } from './episodes/policy-episodes'
-import { groupIsmEpisodes, ismEpisodeWindowMs } from './episodes/ism-episodes'
+import { ismEpisodeWindowMs } from './episodes/ism-episodes'
 import { groupPmiEpisodes } from './episodes/pmi-episodes'
 import { episodePublications } from './episodes/display-episodes'
 import { useMarkerBars } from './chart/useMarkerBars'
@@ -49,7 +49,7 @@ export function useInspector({ events = noEvents, symbol, bars, timeframe, timeD
   // together even when the visible range contains only one publication.
   const storageRange = useMemo(() => {
     if (!range) return null
-    const margin = Math.max(policyEpisodeWindowMs, ismEpisodeWindowMs), scope = { brokerId: brokerId ?? null, brokerOffsetSeconds }
+    const margin = Math.max(policyEpisodeWindowMs,ismEpisodeWindowMs), scope = { brokerId: brokerId ?? null, brokerOffsetSeconds }
     const from = utcToChartClock(range.from - margin, scope), to = utcToChartClock(range.to + margin, scope)
     return from === null || to === null ? null : { from, to }
   }, [range, brokerId, brokerOffsetSeconds])
@@ -57,7 +57,7 @@ export function useInspector({ events = noEvents, symbol, bars, timeframe, timeD
   const readings = useMemo(() => brokerTime ? storage.events.filter((event) => event.availability === 'observed') : events,
     [brokerTime, storage.events, events])
   const allReleases = useMemo(() => groupInspectorReleases(readings), [readings])
-  const displayReleases = useMemo(() => groupPmiEpisodes(groupIsmEpisodes(allReleases)), [allReleases])
+  const displayReleases = useMemo(() => groupPmiEpisodes(allReleases), [allReleases])
   const releases = useMemo(() => supported ? filterInspectorReleases(displayReleases, preferences, range, false) : [],
     [supported, displayReleases, preferences, range])
   const markerBars = useMarkerBars(bars)
