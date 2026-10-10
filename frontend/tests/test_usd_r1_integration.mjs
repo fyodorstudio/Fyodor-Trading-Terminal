@@ -13,8 +13,9 @@ const mount=Component=>{const div=document.createElement('div');document.body.ap
 let posts=0,created=0,terminated=0,revision=1
 try{
   const {calculateR1}=await server.ssrLoadModule('./src/scoring-system/r1/analysis.ts')
+  const {calculateR1Pair}=await server.ssrLoadModule('./src/scoring-system/r1/pair.ts')
   const {calculateR1History}=await server.ssrLoadModule('./src/scoring-system/r1/history.ts')
-  globalThis.Worker=class{constructor(){created++}postMessage({id,input}){posts++;Promise.resolve().then(()=>{if(!this.closed)this.onmessage?.({data:{id,result:input.release?calculateR1(input):calculateR1History(input)}})})}terminate(){this.closed=true;terminated++}}
+  globalThis.Worker=class{constructor(){created++}postMessage({id,input}){posts++;Promise.resolve().then(()=>{if(!this.closed)this.onmessage?.({data:{id,result:input.release?calculateR1Pair(input):calculateR1History(input)}})})}terminate(){this.closed=true;terminated++}}
   const {R1Score}=await server.ssrLoadModule('./src/inspector/scoring/R1Score.tsx')
   const {InspectorPanel}=await server.ssrLoadModule('./src/inspector/InspectorPanel.tsx')
   const {groupInspectorReleases,defaultInspectorPreferences,inspectorStorageKey}=await server.ssrLoadModule('./src/inspector/inspector-data.ts')
@@ -40,9 +41,15 @@ try{
   assert.match(app.div.textContent,/USD Weakening/);assert.match(app.div.textContent,/USD-negative\s*-50/)
   assert.equal(app.div.querySelectorAll('details, summary').length,0,'release and relationship evidence are visible without nested disclosures')
   assert.deepEqual([...app.div.querySelectorAll('[aria-label="Release evidence"] tbody tr')].map(tr=>tr.cells[1].textContent),['50%','20%','15%','15%'])
+  const chooseDetails=async(value,owner=app)=>React.act(async()=>{const select=owner.div.querySelector('[aria-label="Scoring details"]');select.value=value;select.dispatchEvent(new dom.Event('change',{bubbles:true}))})
+  assert.equal(app.div.querySelector('[aria-label="Relationship freshness"]'),null,'Release inputs is the default; unused detail tables are absent')
+  const detailJobs=posts
+  await chooseDetails('freshness')
+  assert.equal(posts,detailJobs,'Changing detail tables launches no calculation work')
+  assert.ok(app.div.querySelector('[aria-label="Publication summary"]'),'Summary remains present above every detail choice')
   const freshnessRow=()=>app.div.querySelector('[aria-label="Relationship freshness"] [data-family="us-cpi"]')
   const freshnessCell=(row,label)=>row.cells[[...row.closest('table').querySelectorAll('thead th')].findIndex(th=>th.textContent===label)]
-  assert.ok(freshnessRow(),'freshness sources and dates are rendered without an expand action')
+  assert.ok(freshnessRow(),'freshness sources and dates are rendered by the Details selector')
   assert.match(freshnessRow().textContent,/Scheduled: next release \+ 24 hours/)
   assert.equal(freshnessCell(freshnessRow(),'Expires').querySelector('time').dateTime,new Date(at+31*86400000).toISOString())
   assert.equal(freshnessCell(freshnessRow(),'Age at selected time').textContent,'0 days')
@@ -124,6 +131,7 @@ try{
     Object.getOwnPropertyDescriptor(dom.HTMLInputElement.prototype,'value').set.call(field,String(value))
     field.dispatchEvent(new dom.Event('input',{bubbles:true}))
   })
+  await chooseDetails('release')
   const beforePreview=posts
   for(const[label,value]of [['Large',.09],['Medium',.075],['Small',.05]])await editBoundary(label,value)
   assert.match(dock.div.textContent,/Preview evidence: 200/)
@@ -161,9 +169,11 @@ try{
   rows=rows.map((r,i)=>i===0?{...r,r1_vintages:JSON.stringify([{knownAt:at+1000,event:latestOriginal,source:'fixture'},{knownAt:at+3600000,event:laterCorrection,source:'fixture'}])}:r)
   revision++;await poll()
   assert.match(app.div.textContent,/USD Weakening/,'original Inspector snapshot is recovered despite latest corrected table value')
+  await chooseDetails('audit')
   assert.match(app.div.textContent,/retrospective/,'audit identifies unverified late capture')
   const withVintages=posts;revision++;await poll()
   assert.equal(posts,withVintages,'identical version metadata at a new revision does not rescore')
+  await chooseDetails('freshness')
   planned=[];revision++;await poll()
   assert.equal(freshnessCell(freshnessRow(),'Status').textContent,'Current')
   assert.match(freshnessCell(freshnessRow(),'Applied rule').textContent,/Age-based: 45 days from publication/)
@@ -199,6 +209,7 @@ try{
   const claimSettings={version:1,selected:['claims'],calibration:{mode:'undefined',limits:{'claims/initial':[10,20,67],'claims/continuing':[26,58,366]}}}
   await React.act(async()=>saveR1Settings(claimSettings))
   const claimRelease=groupInspectorReleases(claimRows)[0]
+  localStorage.setItem('fyodor.scoring.r1.details','release')
   const claimApp=mount(R1Score);await claimApp.render({release:claimRelease,brokerId:null,events:claimRows})
   assert.match(claimApp.div.textContent,/USD Weakening/)
   assert.match(claimApp.div.textContent,/Net\s*-5\.62/)
@@ -263,9 +274,12 @@ try{
   assert.equal(manufacturingDock.div.querySelector('[aria-label="R1 Scatter input"]').options.length,4)
   assert.match(manufacturingDock.div.textContent,/R1 evidence: 36/)
   assert.match(manufacturingDock.div.textContent,/Magnitude points: 0\.8/)
+  await chooseDetails('freshness',manufacturingApp)
   const manufacturingFreshness=manufacturingApp.div.querySelector('[aria-label="Relationship freshness"] [data-family="ism-manufacturing"]')
   assert.match(manufacturingFreshness.textContent,/Scheduled: next release \+ 24 hours/,'all four readings share one manufacturing publication and freshness slot')
+  await chooseDetails('relationships',manufacturingApp)
   assert.deepEqual([...manufacturingApp.div.querySelectorAll('[aria-label="USD evidence as of this publication"] tbody tr')].map(r=>r.cells[1].textContent),['10%','15%','75%'],'routed weights are visible and do not add new budgets')
+  await chooseDetails('release',manufacturingApp)
   const manufacturingJobs=posts
   await editInput(manufacturingDock.div.querySelector('[aria-label="Small R1 upper boundary"]'),3)
   assert.match(manufacturingDock.div.textContent,/Preview evidence: 24/)

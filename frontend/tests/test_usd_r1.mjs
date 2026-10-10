@@ -52,6 +52,8 @@ try {
   assert.equal(afterCorrection.overall.slots[0].assessment.readings[0].actual,.4,'correction replaces one current slot at captured timestamp')
   assert.equal(afterCorrection.overall.slots[0].assessment.readings[0].vintage,'corrected')
   assert.equal(afterCorrection.overall.slots[0].expiresAt,beforeCorrection.overall.slots[0].expiresAt,'storage corrections never renew publication age')
+  assert.equal(afterCorrection.transition.before.net,beforeCorrection.overall.net)
+  assert.deepEqual(afterCorrection.transition.corrections,['CPI'],'The transition identifies a correction captured at this clock')
   assert.deepEqual(afterCorrection.assessment,originalSnapshot,'later aggregate clock never rewrites the original release output')
   assert.equal(run(vintageRows.map((r,i)=>i===0?{...r,r1_vintages:'bad'}:r)).assessment.unavailable,50,'malformed provenance does not silently substitute latest values')
   const later=rows.map(r=>({...r,value_id:r.value_id+'new-month',release_at:at+31*86400000,period_seconds:Date.UTC(2026,2,1)/1000,actual:null}))
@@ -80,7 +82,7 @@ try {
     for(let change=0;change<=100;change+=.5){const points=magnitudePoints('claims',change,limits);assert.ok(points>=prior&&points<=4);prior=points}
     assert.equal(magnitudePoints('claims',10,limits),1,'tied equality retains the lower band endpoint')
   }
-  for(const family of Object.keys(r1Profiles).filter(f=>!['claims','ism-manufacturing'].includes(f)))for(const change of [0,2,10,11,20,21,30,31,1e10])assert.equal(magnitudePoints(family,change,[10,20,30]),magnitude(change,[10,20,30]),'other families keep integer magnitude')
+  for(const family of Object.keys(r1Profiles).filter(f=>r1Profiles[f].currency!=='EUR'&&!['claims','ism-manufacturing'].includes(f)))for(const change of [0,2,10,11,20,21,30,31,1e10])assert.equal(magnitudePoints(family,change,[10,20,30]),magnitude(change,[10,20,30]),'other families keep integer magnitude')
   for(const [change,expected]of [[0,0],[.1,.05],[1.6,.8],[2,1],[3,1.5],[4,2],[5,3],[6,4],[7,4],[1e10,4]]){
     assert.equal(magnitudePoints('ism-manufacturing',change,[2,4,6]),expected)
     assert.equal(magnitudePoints('ism-manufacturing',-change,[2,4,6]),expected)
@@ -229,6 +231,8 @@ try {
   const aged=run(rows,['us-cpi'],{asOf:at+3*86400000,settings:{...settings,selected:['us-cpi'],freshness:custom}})
   assert.equal(aged.overall.slots[0].status,'stale');assert.equal(aged.overall.coverage,0)
   assert.deepEqual(aged.assessment,a,'expiry only affects combined evidence, not the original standalone release')
+  const justExpired=run(rows,['us-cpi'],{asOf:at+2*86400000+1,settings:{...settings,selected:['us-cpi'],freshness:custom}})
+  assert.deepEqual(justExpired.transition.expiries,['CPI'],'Before/after expiry is audited at its exact boundary')
   const renewedRows=rows.map(r=>({...r,value_id:r.value_id+'next',release_at:at+31*86400000,period_seconds:Date.UTC(2026,2,1)/1000}))
   const renewed=run([...rows,...renewedRows],['us-cpi'],{asOf:at+32*86400000})
   assert.equal(renewed.overall.slots.length,1)

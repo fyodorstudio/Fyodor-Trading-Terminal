@@ -9,13 +9,15 @@ def main():
     parser=argparse.ArgumentParser()
     parser.add_argument('--database', type=Path, required=True)
     parser.add_argument('--as-of', type=int, required=True)
+    parser.add_argument('--currency', choices=['USD','EUR','all'], default='USD')
     args=parser.parse_args()
     store=CalendarStore(args.database,readonly=True)
     try:
-        source=store.db.execute("SELECT source_id,count(*) n FROM events WHERE currency='USD' GROUP BY source_id ORDER BY n DESC").fetchone()[0]
+        currency=None if args.currency=='all' else args.currency
+        source=store.db.execute("SELECT source_id,count(*) n FROM events WHERE (? IS NULL OR currency=?) GROUP BY source_id ORDER BY n DESC",(currency,currency)).fetchone()[0]
         events, cursor=[], {}
         while True:
-            page=store.query(source,HISTORY_START,args.as_of//1000+2*86400,currency='USD',time_basis='chart',r1_as_of=args.as_of,**cursor)
+            page=store.query(source,HISTORY_START,args.as_of//1000+2*86400,currency=currency,time_basis='chart',r1_as_of=args.as_of,**cursor)
             events.extend(page['events'])
             if not page['next_cursor']:
                 break

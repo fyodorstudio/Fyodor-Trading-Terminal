@@ -6,6 +6,7 @@ import type { R1Component, R1Feature, R1Profile } from './contracts'
 import { r1Observation } from './vintages'
 
 type Row = EconomicCalendarEvent & { release_at: number }
+const observedR1=(e:EconomicCalendarEvent):e is Row=>observedReading(e)||(e.currency==='EUR'&&['EU','DE','FR'].includes(e.country_code)&&e.time_mode===0&&e.release_at!==null&&Number.isFinite(e.release_at)&&e.release_at>=Date.UTC(2015,0,1)&&(!('availability' in e)||e.availability==='observed'))
 export function reference(row: EconomicCalendarEvent, period: R1Component['period']): number | null {
   if (period==='action') return row.release_at
   if (!Number.isSafeInteger(row.period_seconds) || row.period_seconds<=0) return null
@@ -20,7 +21,7 @@ const present=(row:EconomicCalendarEvent,name:'previous'|'revised_previous')=>ro
 const unavailable=(reason:string):R1Feature=>({actual:null,previous:null,delta:null,reference:null,previousReference:null,publishedAt:null,valueId:null,revision:null,basis:'Unavailable',reason})
 export function createR1History(events:readonly EconomicCalendarEvent[]) {
   const seen=new Set<string>(),rows=events.filter((e):e is Row=>{
-    if (!observedReading(e)||seen.has(e.value_id)) return false
+    if (!observedR1(e)||seen.has(e.value_id)) return false
     seen.add(e.value_id);return true
   }).map(row=>{const original=r1Observation(row,row.release_at).row;return {...row,...original,release_at:original?.release_at??row.release_at}}).sort((a,b)=>a.release_at-b.release_at||a.value_id.localeCompare(b.value_id))
   const indexes=new Map<string,Row[]>()
@@ -43,13 +44,15 @@ export function createR1History(events:readonly EconomicCalendarEvent[]) {
 }
 export type R1History=ReturnType<typeof createR1History>
 
-function valid(row:Row,c:R1Component,at:number) {
-  if(!observedReading(row)||row.release_at>at||(row.available_at??row.release_at)>at||!c.units.includes(row.unit)||row.multiplier!==c.multiplier||field(row,'actual')===null)return false
+function valid(row:Row,c:R1Component,at:number,profile:R1Profile) {
+  if(!observedR1(row)||row.currency!==(profile.currency??'USD')||row.country_code!==(profile.country??'US')||row.release_at>at||(row.available_at??row.release_at)>at||!c.units.includes(row.unit)||row.multiplier!==c.multiplier||field(row,'actual')===null)return false
   const ref=reference(row,c.period)
   if(ref===null)return false
   if(c.period!=='action'){
     const date=new Date(row.release_at),published=c.period==='week'?row.release_at/1000:date.getUTCFullYear()*(c.period==='quarter'?4:12)+(c.period==='quarter'?Math.floor(date.getUTCMonth()/3):date.getUTCMonth())
-    if(ref>=published)return false
+    if(ref>published||(ref===published&&row.currency!=='EUR'))return false
+    if(row.currency==='EUR'&&c.period==='month'&&published-ref>3)return false
+    if(row.currency==='EUR'&&c.period==='quarter'&&published-ref>3)return false
     if(c.period==='week'&&(published-ref>35*86400||field(row,'actual')!<0))return false
   }
   if(c.unit==='pts'&&(field(row,'actual')!<0||field(row,'actual')!>100e6))return false
@@ -68,19 +71,23 @@ export function r1Features(release:InspectorRelease,profile:R1Profile,history:R1
     const matching=release.events.filter(e=>e.event_id===c.seriesId)
     if(matching.length!==1)return unavailable(matching.length?'Duplicate series reading.':`Missing ${c.label}.`)
     const observation=r1Observation(matching[0],availabilityAt),row=observation.row as Row|null
-    if(!row||row.release_at!==at||!valid(row,c,availabilityAt))return unavailable(`Invalid ${c.label} or reference period.`)
+    if(!row||row.release_at!==at||!valid(row,c,availabilityAt,profile))return unavailable(`Invalid ${c.label} or reference period.`)
     const actual=field(row,'actual')!,ref=reference(row,c.period)!,previousRef=prior(ref,c.period)
     const same=c.period==='quarter'?history.latest(c.seriesId,ref,c.period,at,true,availabilityAt):null
     let previous:number|null=null,basis='',stage:R1Feature['stage']='momentum',comparisonRef=previousRef
     if(c.period==='quarter'){
-      if(same&&!gdpMomentum){previous=valid(same,c,availabilityAt)?field(same,'actual'):null;basis='Earlier estimate of this quarter';stage='revision';comparisonRef=ref}
-      else {const preceding=history.latest(c.seriesId,previousRef,c.period,availabilityAt);previous=preceding&&valid(preceding,c,availabilityAt)?field(preceding,'actual'):null;basis='Previous quarter, latest available estimate'
+      if(same&&!gdpMomentum){previous=valid(same,c,availabilityAt,profile)?field(same,'actual'):null;basis='Earlier estimate of this quarter';stage='revision';comparisonRef=ref}
+      else {const preceding=history.latest(c.seriesId,previousRef,c.period,availabilityAt);previous=preceding&&valid(preceding,c,availabilityAt,profile)?field(preceding,'actual'):null;basis='Previous quarter, latest available estimate'
         // Only a new-quarter supplied prior can revise the preceding quarter.
         if(!same&&present(row,'revised_previous')){previous=field(row,'revised_previous');basis='Revised Previous quarter'}
       }
+    }else if(profile.currency==='EUR'&&c.period==='month'){
+      const preceding=history.latest(c.seriesId,previousRef,c.period,at,true,availabilityAt)
+      previous=preceding&&valid(preceding,c,availabilityAt,profile)?field(preceding,'actual'):null;basis='Previous distinct month, latest available estimate'
+      if(present(row,'revised_previous')&&row.previous_period_seconds!=null&&reference({...row,period_seconds:row.previous_period_seconds},c.period)===previousRef){previous=field(row,'revised_previous');basis='Revised Previous month'}
     }else if(present(row,'revised_previous')){previous=field(row,'revised_previous');basis='Revised Previous'}
     else if(present(row,'previous')){previous=field(row,'previous');basis='Supplied Previous'}
-    else {const preceding=history.latest(c.seriesId,previousRef,c.period,availabilityAt);previous=preceding&&valid(preceding,c,availabilityAt)?field(preceding,'actual'):null;basis='Previous period, latest available observation'}
+    else {const preceding=history.latest(c.seriesId,previousRef,c.period,availabilityAt);previous=preceding&&valid(preceding,c,availabilityAt,profile)?field(preceding,'actual'):null;basis='Previous period, latest available observation'}
     if(row.previous_period_seconds!=null&&c.period!=='action'){
       const stated=reference({...row,period_seconds:row.previous_period_seconds},c.period)
       if(stated!==comparisonRef)previous=null

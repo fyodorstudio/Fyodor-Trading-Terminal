@@ -20,7 +20,7 @@ export function ScatterPlotControls({ scope, seriesId, onSeriesChange, zoom, onZ
       </select></label>)}
     {onMeasureChange && <label>Calculation<select aria-label="Scatter Plot Calculation" value={measure} onChange={(event) => onMeasureChange(event.target.value as 'ap' | 'signal'|'r1')}>
       <option value="ap">Raw change · Actual − Previous</option><option value="signal">Scorer comparison</option>
-      {r1Available&&<option value="r1">USD R1 comparison</option>}
+      {r1Available&&<option value="r1">Currency R1 comparison</option>}
     </select></label>}
     <label>{measure === 'signal' ? 'Signal' : 'Series'}<select aria-label={measure === 'signal' ? 'Scatter Plot Signal' : 'Scatter Plot Series'} value={seriesId} onChange={(event) => onSeriesChange(event.target.value)}>
       {scope.series.map((series) => <option key={series.id} value={series.id}>{series.label}</option>)}

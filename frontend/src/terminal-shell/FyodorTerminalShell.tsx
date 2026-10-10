@@ -53,6 +53,7 @@ import { RoofsDock } from '../usd-context/sequences/ui/RoofsDock'
 import type { RaycasterView } from '../raycaster/ui/RaycasterBox'
 import { FundamentalSettingsPanel } from '../fundamental-tools/ui/FundamentalSettingsPanel'
 import { fundamentalSettingsEvent, type FundamentalSettingsRequest } from '../fundamental-tools/runtime/settings-navigation'
+import {r1Family} from '../scoring-system/r1/profiles'
 import { usdScoringFamilies } from '../scoring-system/scoring-catalog'
 
 const defaultTradePlan: PlannedTradeState = {
@@ -91,7 +92,7 @@ function FyodorTerminalWorkspace() {
     const open = (event: Event) => {
       const request = (event as CustomEvent<FundamentalSettingsRequest>).detail
       const requested = request?.family
-      if (requested && usdScoringFamilies.some(f => f.id === requested)) setScoringFamily(requested)
+      if (requested && (r1Family(requested)||usdScoringFamilies.some(f => f.id === requested))) setScoringFamily(requested)
       if(request?.model)setScoringModel(request.model)
       setBottomDockWindow(current => request?.toggle && current === 'fundamental-settings' ? null : 'fundamental-settings')
     }

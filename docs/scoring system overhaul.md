@@ -828,3 +828,136 @@ This supersedes Orders-only R1.1 and the earlier incomplete Orders/Production de
 The R1 balance resolves the unrounded signed sum before reconciling displayed sides, and relationship allocation avoids intermediate leaf rounding. Exact cancellation must stay balanced both standalone and after routing; a three-input fractional cancellation has a regression test.
 
 See the [four-input replay](reports/Manufacturing-R1-four-input-audit.md) for October 1 contributions, direction sensitivity, aggregate consequences, future-inventory removal and production-worker/Scatter parity. Browser appearance/performance and price comparison remain user review.
+# Currency evidence summary and EUR R1
+
+Accepted 10 October 2026. This section extends the USD R1 policies below; legacy
+Roofs/Raycaster/Candy remain separate. The implementation order and acceptance
+checks are in [temporary plan](../temporary%20plan.md).
+
+## Publication summary and details
+
+The primary row shows overall currency direction, evidence strength, evidence
+points before → after and Change. The next row shows supportive/negative/net
+evidence and a short explanation. The standalone release conclusion remains
+distinct. Text is selectable and rows wrap on narrow panels. No vertical-bar
+separators or disclosure controls in the R1 reading flow.
+
+Details selects one view: Release inputs (default), Overall relationships,
+Freshness or Input audit. Its choice survives publication changes and workspace
+export/import. Unselected tables do not render or trigger calculations.
+
+Before means publication time minus one millisecond; after means publication
+time, under identical settings and selected families. All simultaneous numeric
+publications are included together. Captured corrections and expiry events are
+listed in the audit. Changes use unrounded values, then round for display: the
+March Claims example is −17.82 → −17.61, Change +0.22. Historical coverage and
+uncertainty remain explicit; unavailable evidence is never a neutral vote.
+
+Fed/ECB holds retain zero action points and show the actual held rate as the
+release conclusion. Overall macro evidence remains active. Rate increases/cuts
+use signed 25 bp steps capped at four; an unknown change must not be called a
+cut. Forecasts, speeches and written-guidance classification remain excluded.
+
+## EUR standalone policy
+
+| Profile | Inputs and weights | Positive evidence |
+| --- | --- | --- |
+| Euro-area HICP | Core y/y 50%, headline y/y 50% | Higher annual inflation rates |
+| German HICP | HICP y/y 100% | Higher annual inflation rate; national context |
+| PMI | Composite, services and manufacturing are separate 100% assessments for EU/DE/FR | Higher index versus the preceding distinct month |
+| Unemployment | Euro-area rate 100% | Lower unemployment rate |
+| Employment | Euro-area q/q 80%, y/y 20% | Faster employment growth |
+| Wage costs | Euro-area wages/salaries y/y 100% | Faster wage-cost growth; inflation pressure |
+| GDP | Euro-area q/q 80%, y/y 20% | Faster real growth |
+| ECB action | Deposit rate 100% | Increase in the deposit rate |
+
+Provider IDs, expected country, native unit/multiplier, comparison cadence and
+version live in `frontend/src/scoring-system/r1/eur-profiles.ts`. German CPI and
+raw price levels are not added to HICP votes. Total labor costs are not added on
+top of their wage component. PMI above/below 50 supplies state context; it is not
+a second vote or a reversal of the change sign.
+
+EUR uses fractional magnitude through (0,0), (Small,1), (Medium,2), (Large,4),
+capped at four. Manual per-input EUR overrides take priority, then earlier-history 50/80/95%
+quantiles. EUR does not inherit feed A−P bands: feed Previous can be a same-period
+estimate, while this scorer compares distinct periods. Existing raw bands remain
+unchanged for the raw Scatter calculation. The automatic minimum is 60
+usable prior monthly periods and 24 prior quarterly comparisons. Monthly/quarterly
+momentum calibration takes one latest eligible estimate per preceding distinct
+reference period; current-period estimates cannot train their own boundaries.
+Same-quarter revisions have separate calibration and no inherited momentum bands.
+Zero change is zero evidence even without bands; an uncalibrated nonzero change
+retains its uncertainty. All EUR inputs support Scatter preview/Apply/Reset and
+separate portable EUR settings.
+
+HICP and PMI flash/final estimates compare with the preceding distinct month,
+not the preceding estimate of the same month. A new estimate replaces the period
+slot. Feed Previous is not assumed to identify the preceding month when multiple
+estimates exist. Quarterly releases distinguish standalone estimate revisions
+from retained quarter-over-quarter momentum, reusing the USD GDP mechanism.
+Newer partial publications replace older complete ones; completeness or sign
+does not choose the vintage. Both current and historical assessments use the
+existing source-capture and correction rules.
+
+## EUR relationships and pair evidence
+
+Initial full-scope category shares: Inflation 40%, Labor 20%, Activity 20%, ECB
+action 20%. Within categories: HICP 85% / wage costs 15%; unemployment 60% /
+employment 40%; GDP 40% / PMI 60%. Explicit exclusions renormalize selected
+allowances; unknown or expired selected evidence retains its nominal budget.
+
+Composite PMI owns the PMI activity allowance for the latest selected reference
+month. Its sectors remain visible through the Release inputs Assessment selector,
+without duplicate votes or recalculation. Without a selected composite for that month, selected services/manufacturing
+use a 70/30 fallback, with missing selected sectors retaining uncertainty.
+This fallback is a policy proxy, not S&P's official composite calculation.
+German/French PMI and German HICP provide standalone national context, without
+additional euro-area relationship votes or replacing unavailable area evidence.
+
+Freshness uses a next release schedule known by the selected clock plus 24 hours;
+otherwise monthly EUR profiles use 45 days, quarterly GDP/employment/wages 120,
+ECB action 70. A correction does not restart publication age. Rules, fallback
+limits, ages, publication dates, next releases and expiry are visible and editable
+through the existing settings flow.
+
+EURUSD evaluates both currencies at the same clock. Each currency is bounded at
+±100; pair evidence is `(EUR − USD) / 2`. The uncertainty interval is
+`[(EUR lower − USD upper)/2, (EUR upper − USD lower)/2]`. An empty currency side
+retains a full unknown half-budget, rather than becoming zero. Both currency
+conclusions/nets and pair before/after/change are shown. This is an evidence
+comparison, not a position instruction or probability. Nearby weight/boundary
+and freshness alternatives expose direction sensitivity.
+
+## Source rationale and verification
+
+The [ECB strategy](https://www.ecb.europa.eu/mopo/strategy/strategy-review/ecb.strategyreview202506_strategy_statement.en.html)
+supports HICP as the target measure and integrated macro assessment. Equal
+headline/core HICP weights preserve both the target measure and underlying trend;
+the 40% inflation allowance is our policy, not an ECB coefficient. The
+[ECB deposit-rate explanation](https://www.ecb.europa.eu/ecb-and-you/explainers/tell-me/html/what-is-the-deposit-facility-rate.en.html)
+supports using the deposit rate as the action input rather than counting three
+correlated ECB rates. These sources establish roles, not uniquely optimal shares.
+
+[Eurostat HICP metadata](https://webgate.ec.europa.eu/eurostat/cache/metadata/en/prc_hicp_esms.htm)
+supports distinguishing flash and final estimates.
+[Eurostat GDP/employment releases](https://ec.europa.eu/eurostat/web/products-euro-indicators/w/2-14082026-ap)
+support quarterly cadence and successive estimates.
+[Eurostat labor-cost metadata](https://webgate.ec.europa.eu/eurostat/cache/metadata/en/lci_esms.htm)
+supports wages as one component of total labor costs. The employment/GDP 80/20
+split emphasizes recent quarterly pace; 70/30 and quarterly-only challengers
+test that policy. Longer quarterly expiry is a cadence-based design choice.
+
+[S&P's output-index methodology](https://www.spglobal.com/market-intelligence/en/news-insights/research/how-to-interpret-and-use-the-pmi-survey-output-index)
+supports the composite as a GDP-weighted combination of manufacturing output
+and services activity. Manufacturing headline PMI is broader than manufacturing
+output, so the sector fallback deliberately remains labelled a proxy. National
+reports overlap area coverage, supporting exclusion from additional area votes.
+
+The exact weights, calibration minimums, fallback limits, strength thresholds
+and pair formula are explicit initial policies. Source support does not prove
+optimal numerical accuracy. Replay tests chronology, coverage and sensitivity;
+user price comparison and visual review remain separate.
+See [the expansion audit](../reports/Currency-evidence-R1-expansion-audit.md) for
+stored coverage, all-publication Inspector/Scatter parity and production-worker
+checks. Historical snapshots cannot recover publication-time vintages that were
+never captured.

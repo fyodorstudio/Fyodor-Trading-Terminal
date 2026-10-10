@@ -4,10 +4,30 @@ Last clarified with the user: **10 October 2026**. This is the active project
 contract and handoff for a new Codex session. Completed plans and their historical
 findings are in [the archived objective](reports/Main-objective-history-through-2026-10-08.md).
 
-## Active implementation: USD scoring overhaul R1
+## Active implementation: publication summary and EUR evidence R1
+
+The accepted [plan](temporary%20plan.md) extends USD R1 with a horizontal overall
+before/after summary, one selected detail table, hold-action presentation, EUR
+standalone/relationships and a same-clock EURUSD evidence comparison. Forecasts,
+speeches and written-guidance classification remain excluded. USD formulas and
+legacy Roofs/Raycaster/Candy retain their separate contracts.
+
+Canonical current policy and primary-source rationale:
+[scoring design](docs/scoring%20system%20overhaul.md#currency-evidence-summary-and-eur-r1).
+The [expansion audit](reports/Currency-evidence-R1-expansion-audit.md) records
+coverage, Inspector/Scatter chronology and built-worker parity. Numerical shares,
+boundaries and fallback lifetimes remain explicit design policies. Publication
+before/after uses unrounded arithmetic and preserves missing-evidence intervals.
+Verified: all 71 frontend suites, 29 storage tests, clean lint and production
+build. Read-only replay checks 3,595 EUR assessments, three pair clocks and six
+built-worker jobs; March Claims reproduces -17.82 to -17.61, Change +0.22.
+The existing bundle-size warning remains. Visual/browser performance review
+remains with the user.
+
+## Previous implementation: USD scoring overhaul R1
 
 The user now authorizes autonomous implementation of the complete USD design in
-[scoring system overhaul](scoring%20system%20overhaul.md), including separate ISM
+[scoring system overhaul](docs/scoring%20system%20overhaul.md), including separate ISM
 families and a new Scatter **Calculation** choice. Baseline: `93a6ecd`; branch:
 `codex/usd-scoring-r1`. Computer use and automated visual audits remain excluded.
 

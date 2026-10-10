@@ -116,6 +116,7 @@ const recentHistory = Array.from({ length: 36 }, (_, index) => [
 let events = [...history, ...recentHistory, ...nfp(2026, 8, [200, 4, 62.3, .4, 34.4]).map(event => ({ ...event,
   release_at: recentNfpAt, chart_time_seconds: recentNfpAt / 1000, server_time_seconds: recentNfpAt / 1000 })),
   ...cpi(2026, 8, [.3, .3, 3.1])]
+events.unshift({...events[0],value_id:'ecb-hold',event_id:'999010006',currency:'EUR',country_code:'EU',country_name:'Euro area',name:'ECB Deposit Facility Rate',release_at:now-3600000,chart_time_seconds:now/1000-3600,server_time_seconds:now/1000-3600,period_seconds:0,actual:2,previous:2,revised_previous:null,actual_raw_scaled_1e6:null,previous_raw_scaled_1e6:null,revised_previous_raw_scaled_1e6:null,unit:1,multiplier:0,time_mode:0})
 const health = () => ({ api_version: '1', bridge: { status: 'running', started_at: 1, now: now + clockOffset },
   mt5: { connected, process_running: true, generation, account_server: broker },
   calendar: { status: 'live', instance_id: 'fixture', server_utc_offset_seconds: 0 }, operations: {} })
@@ -173,7 +174,7 @@ try {
   const { useActivityActions } = await server.ssrLoadModule('./src/system-observability/activity-log/use-activity-log.ts')
   calculate = (await server.ssrLoadModule('./src/scoring-system/context/usd/build-context-timeline.ts')).buildContextTimeline
   calculateCpi = (await server.ssrLoadModule('./src/scoring-system/PAIR/EURUSD/USD/CPI/runtime/cpi-release-analysis.ts')).calculateCpiRelease
-  calculateR1 = (await server.ssrLoadModule('./src/scoring-system/r1/analysis.ts')).calculateR1
+  calculateR1 = (await server.ssrLoadModule('./src/scoring-system/r1/pair.ts')).calculateR1Pair
   function CommandOnly() {
     count('commandSubscriber')
     const actions = useActivityActions()
@@ -347,6 +348,20 @@ try {
   })
   assert.equal(workerInputs.length,r1Jobs,'R1 at a selected publication does not recalculate during terminal pan, hover or display clocks')
   assert.equal(container.querySelector('[aria-label="USD R1 scoring"]').textContent,r1Text)
+  await click([...container.querySelectorAll('.inspector-release')].find(element=>element.textContent.includes('ECB')))
+  assert.ok(container.querySelector('[aria-label="EUR R1 scoring"]'),'The assembled terminal routes EUR releases into R1')
+  assert.match(container.querySelector('[aria-label="Publication summary"]').textContent,/Rate held at 2%/)
+  assert.ok(container.querySelector('[aria-label="EURUSD evidence"]'),'Both-currency evidence is available in the assembled terminal')
+  await click(container.querySelector('.inspector-header [aria-label="Scoring explanation & settings"]'))
+  assert.equal(container.querySelector('[aria-label="Scoring family"]').value,'ecb')
+  assert.ok(container.querySelector('[aria-label="EUR R1 settings"]'),'EUR settings navigation reaches the correct currency')
+  await click(button('Inspector'))
+  const euroDetailJobs=workerInputs.length
+  await React.act(async()=>{const select=container.querySelector('[aria-label="Scoring details"]');select.value='freshness';select.dispatchEvent(new dom.Event('change',{bubbles:true}))})
+  assert.equal(workerInputs.length,euroDetailJobs,'Assembled EUR table selection launches no calculation')
+  assert.match(container.querySelector('[data-family="ecb"]').textContent,/70 days/)
+  await click([...container.querySelectorAll('.inspector-release')].find(element=>element.textContent.includes('CPI')))
+  assert.equal(container.querySelector('[aria-label="Scoring details"]').value,'freshness','Table choice survives currency changes')
   await React.act(async()=>{const view=container.querySelector('[aria-label="Inspector view"]');view.value='scoring';view.dispatchEvent(new dom.Event('change',{bubbles:true}))})
   assert.equal(container.querySelector('[aria-label="USD R1 scoring"]'),null,'Changing the assembled terminal view unmounts R1 presentation')
   await React.act(async () => { const view = container.querySelector('[aria-label="Raycaster view"]'); view.value = 'context'; view.dispatchEvent(new dom.Event('change', { bubbles: true })) })

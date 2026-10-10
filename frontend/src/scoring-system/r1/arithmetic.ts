@@ -14,7 +14,7 @@ export function magnitude(delta: number, limits: readonly number[], factor=1) {
   if (!x) return 0
   return limits.findIndex(limit=>{const boundary=decimal(limit);return scaled!==null&&boundary!==null?scaled<=Math.round(boundary*factor):x<=limit*factor})+1 || 4
 }
-export const usesFractionalMagnitude = (family:R1Family) => family==='claims'||family==='ism-manufacturing'
+export const usesFractionalMagnitude = (family:R1Family) => family==='claims'||family==='ism-manufacturing'||!['us-cpi','pce','ppi','jobs','gdp','retail','ism-services','fomc'].includes(family)
 export function magnitudePoints(family:R1Family,delta:number,limits:readonly number[],factor=1) {
   if(!usesFractionalMagnitude(family))return magnitude(delta,limits,factor)
   const raw=Math.abs(delta),scaled=decimal(raw),x=scaled===null?raw:scaled/1e6

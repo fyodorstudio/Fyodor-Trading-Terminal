@@ -1,4 +1,6 @@
 import type { R1Component, R1Family, R1Profile } from './contracts'
+import {eurR1Profiles} from './eur-profiles'
+import type {InspectorRelease} from '../../inspector/inspector-data'
 
 export const r1Version = 'usd-evidence-r1.0'
 export const r1CalibrationPolicy = { version: 'r1-earlier-ap-q50-80-95-v1', minimum: 60, quantiles: [.5, .8, .95] } as const
@@ -7,6 +9,7 @@ const inflation = (prefix: string, ids: string[], weights: number[]) => [rate('c
 const component = (id: string, seriesId: string, label: string, weight: number, polarity: 1 | -1, unit: string, units: number[], multiplier: number, period: R1Component['period']): R1Component => ({ id, seriesId, label, weight, polarity, unit, units, multiplier, period, changeLabel: `${label} changed` })
 
 export const r1Profiles: Record<R1Family, R1Profile> = {
+  ...eurR1Profiles,
   'us-cpi': { family: 'us-cpi', label: 'CPI', version: 'USD-CPI-SCORING-SYSTEM-V5', category: 'inflation', components: inflation('CPI', ['840030006', '840030008', '840030005', '840030007'], [50, 20, 15, 15]), alternatives: [[50,20,15,15], [45,20,20,15], [60,15,15,10], [50,30,10,10], [40,25,10,25]] },
   pce: { family: 'pce', label: 'PCE', version: 'USD-PCE-R1', category: 'inflation', components: inflation('PCE', ['840010001', '840010002', '840010003', '840010004'], [50,15,20,15]), alternatives: [[50,15,20,15], [50,20,15,15], [45,20,20,15], [50,25,15,10]] },
   ppi: { family: 'ppi', label: 'PPI', version: 'USD-PPI-R1', category: 'inflation', components: inflation('PPI', ['840030002', '840030004', '840030001', '840030003'], [40,15,30,15]), alternatives: [[40,15,30,15], [50,20,15,15], [35,15,35,15], [40,20,25,15]] },
@@ -23,6 +26,14 @@ export const r1Profiles: Record<R1Family, R1Profile> = {
   ],alternatives:[[45,30,15,10],[40,35,15,10],[50,25,15,10],[40,30,20,10],[40,30,15,15]]},
   fomc: {family:'fomc',label:'Fed action',version:'USD-FED-ACTION-R1',category:'policy',components:[{...rate('action','840050014','Fed target rate',100),period:'action',unit:'bp'}],alternatives:[[100]]},
 }
-export const r1Families = Object.keys(r1Profiles) as R1Family[]
+export const allR1Families = Object.keys(r1Profiles) as R1Family[]
+export const r1Families = allR1Families.filter(f=>r1Profiles[f].currency!=='EUR')
+export const eurR1Families = allR1Families.filter(f=>r1Profiles[f].currency==='EUR')
 export const r1SeriesIds = [...new Set(r1Families.flatMap(f=>r1Profiles[f].components.map(c=>c.seriesId)))].filter(id=>/^\d+$/.test(id))
+export const allR1SeriesIds = [...new Set(allR1Families.flatMap(f=>r1Profiles[f].components.map(c=>c.seriesId)))]
 export const r1Family = (id: string): R1Family | null => Object.hasOwn(r1Profiles,id) ? id as R1Family : null
+export const r1Currency = (family:R1Family) => r1Profiles[family].currency??'USD'
+export const r1ReleaseFamily = (release:InspectorRelease):R1Family|null => allR1Families.find(f=>{
+  const p=r1Profiles[f]
+  return (p.releaseFamily??f)===release.familyId&&r1Currency(f)===release.currency&&(p.country??'US')===release.country&&release.events.some(e=>p.components.some(c=>c.seriesId===e.event_id))
+})??null

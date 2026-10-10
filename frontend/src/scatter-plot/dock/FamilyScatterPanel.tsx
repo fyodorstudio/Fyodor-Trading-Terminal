@@ -102,7 +102,7 @@ function LegacyFamilyScatterPanel({ brokerId, clockOffsetMs = 0, target, binding
       onChange={e => saveClaimsPreferences({ ...claimsPreferences, horizon: e.target.value as ClaimsHorizon })}>
       {claimsHorizons.map(h => <option key={h.id} value={h.id}>{h.label}</option>)}</select></label>}
     <ScatterPlotControls scope={activeScope} seriesId={activeId} onSeriesChange={(id) => { if (scoring) setSignalId(id); else setSeriesId(id); setZoom(true) }} zoom={zoom && !magnitudeUndefined}
-      measure={measure} r1Available={!!r1Family(family.familyId)&&family.currency==='USD'} onMeasureChange={signalBinding||r1Family(family.familyId) ? (next) => { setMeasure(next); setZoom(true) } : undefined}
+      measure={measure} r1Available={!!r1Family(family.familyId)} onMeasureChange={signalBinding||r1Family(family.familyId) ? (next) => { setMeasure(next); setZoom(true) } : undefined}
       onZoomChange={setZoom} onLatest={latest}
       allHistory={dateView.all} onHistoryChange={() => setDateView({ broker: brokerId, all: !dateView.all, anchor: model.inspection?.at ?? null, reset: dateView.reset + 1 })}
       familyOptions={familyOptions} onFamilyChange={onFamilyChange} sideOptions={sideOptions} onSideChange={onSideChange} magnitudeUndefined={magnitudeUndefined}

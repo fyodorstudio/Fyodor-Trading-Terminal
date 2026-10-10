@@ -5,8 +5,8 @@ import { balance, magnitude, magnitudePoints, precise, usesFractionalMagnitude }
 import { r1CalibrationPolicy } from './profiles'
 import { reference, r1Features, type R1History } from './features'
 
-export function r1Limits(samples:readonly number[]):MagnitudeLimits|null {
-  if(samples.length<r1CalibrationPolicy.minimum)return null
+export function r1Limits(samples:readonly number[],minimum:number=r1CalibrationPolicy.minimum):MagnitudeLimits|null {
+  if(samples.length<minimum)return null
   const nonzero=samples.map(Math.abs).filter(x=>x>0).sort((a,b)=>a-b)
   if(!nonzero.length)return null
   return r1CalibrationPolicy.quantiles.map(q=>nonzero[Math.ceil(q*nonzero.length)-1]) as unknown as MagnitudeLimits
@@ -14,14 +14,15 @@ export function r1Limits(samples:readonly number[]):MagnitudeLimits|null {
 export function assessFeatures(release:InspectorRelease,profile:R1Profile,features:readonly R1Feature[],sampleValues:readonly (readonly number[])[],calibration:R1Calibration,saved:R1MagnitudeSnapshot):R1Assessment {
   const readings:R1Reading[]=profile.components.map((c,i)=>{
     const f=features[i],key=`${profile.family}/${c.id}${f.stage==='revision'?'/revision':''}`
-    const manual=calibration.limits[key],raw=saved[profile.family]?.[c.seriesId]
-    const samples=sampleValues[i]??[],automatic=calibration.mode==='automatic'?r1Limits(samples):null
-    // Quarter-momentum bands must not calibrate same-quarter revisions.
-    const compatibleRaw=f.stage==='revision'||!raw?undefined:raw.map(x=>precise(x*(c.scale??1))) as unknown as MagnitudeLimits
+    const manual=calibration.limits[key],raw=saved[profile.releaseFamily??profile.family]?.[c.seriesId]
+    const samples=sampleValues[i]??[],automatic=calibration.mode==='automatic'?r1Limits(samples,profile.calibrationMinimum):null
+    // EUR compares distinct periods; feed Previous may instead be an earlier
+    // estimate of the same period. Its raw bands cannot calibrate this comparison.
+    const compatibleRaw=profile.currency==='EUR'||f.stage==='revision'||!raw?undefined:raw.map(x=>precise(x*(c.scale??1))) as unknown as MagnitudeLimits
     const limits=manual??compatibleRaw??automatic
     const source=manual?'r1-manual':compatibleRaw?'saved-ap':automatic?'r1-automatic':'undefined'
     const points=f.delta===null?null:c.period==='action'?Math.sign(f.delta)*Math.min(Math.abs(f.delta)/25,4):f.delta===0?0:limits?c.polarity*Math.sign(f.delta)*magnitudePoints(profile.family,f.delta,limits):null
-    return {...c,...f,points,magnitude:points===null?null:usesFractionalMagnitude(profile.family)&&f.delta!==0?magnitude(f.delta!,limits!):Math.abs(points),contribution:points===null?null:precise(c.weight*points),limits:limits??null,calibration:c.period==='action'?'action':f.delta===0?'unchanged':source,samples:samples.length,reason:f.reason||(points===null?'Magnitude boundaries are unavailable.':'')}
+    return {...c,...f,points,magnitude:points===null?null:c.period!=='action'&&usesFractionalMagnitude(profile.family)&&f.delta!==0?magnitude(f.delta!,limits!):Math.abs(points),contribution:points===null?null:precise(c.weight*points),limits:limits??null,calibration:c.period==='action'?'action':f.delta===0?'unchanged':source,samples:samples.length,reason:f.reason||(points===null?'Magnitude boundaries are unavailable.':'')}
   })
   const leaves:R1Leaf[]=readings.map(r=>({id:`${release.id}/${r.id}`,family:profile.family,label:r.label,value:r.contribution===null?null:r.contribution/4,budget:r.weight,sourceId:release.id,...(r.relationshipCategory?{category:r.relationshipCategory}:{})}))
   const result=balance(leaves)
@@ -49,18 +50,26 @@ export function readingVariants(a:R1Assessment,profile:R1Profile):R1Assessment[]
   return variants
 }
 export function prepareR1Features(history:R1History,profile:R1Profile,gdpMomentum=false) {
-  return history.releases.filter(r=>r.familyId===profile.family).map(release=>({release,features:r1Features(release,profile,history,gdpMomentum)}))
+  return history.releases.filter(r=>r.familyId===(profile.releaseFamily??profile.family)&&r.currency===(profile.currency??'USD')&&r.country===(profile.country??'US')&&r.events.some(e=>profile.components.some(c=>c.seriesId===e.event_id))).map(release=>({release,features:r1Features(release,profile,history,gdpMomentum)}))
 }
 export function assessR1(release:InspectorRelease,profile:R1Profile,history:R1History,calibration:R1Calibration,saved:R1MagnitudeSnapshot,gdpMomentum=false,prepared=prepareR1Features(history,profile,gdpMomentum),availabilityAt=release.releaseAt??0) {
-  const current=r1Features(release,profile,history,gdpMomentum,availabilityAt),samples=profile.components.map((_,i)=>prepared.flatMap(entry=>{
-    const feature=entry.features[i]
-    return entry.release.releaseAt!<release.releaseAt!&&feature.stage===current[i].stage&&feature.delta!==null?[feature.delta]:[]
-  }))
+  const current=r1Features(release,profile,history,gdpMomentum,availabilityAt),samples=profile.components.map((_,i)=>{
+    const entries=prepared.filter(entry=>entry.release.releaseAt!<release.releaseAt!&&entry.features[i].stage===current[i].stage&&entry.features[i].delta!==null)
+    if(profile.currency!=='EUR')return entries.map(e=>e.features[i].delta!)
+    // One estimate per distinct period for momentum calibration. Final/flash
+    // publications update that period, rather than doubling its influence.
+    if(current[i].stage==='revision')return entries.map(e=>e.features[i].delta!)
+    const periods=new Map<number,number>()
+    for(const e of entries){const f=e.features[i];if(f.reference!==null&&f.reference!==current[i].reference)periods.set(f.reference,f.delta!)}
+    return [...periods.values()]
+  })
   return assessFeatures(release,profile,current,samples,calibration,saved)
 }
 function reason(r:R1Reading) {
   const up=r.delta!>0
   if(r.period==='action')return up?'the rate hike':'the rate cut'
+  if(r.id.startsWith('employment-'))return up?'faster employment growth':'slower employment growth'
+  if(r.id==='wages'&&r.period==='quarter')return up?'faster wage-cost growth':'slower wage-cost growth'
   if(r.period==='quarter')return r.stage==='revision'?up?'the higher growth estimate':'the lower growth estimate':r.actual!<0?up?'a smaller GDP contraction':'a deeper GDP contraction':up?'faster GDP growth':'slower GDP growth'
   if(r.id==='payrolls')return r.actual!<0?up?'fewer payroll losses':'more payroll losses':up?'faster payroll growth':'slower payroll growth'
   if(r.id==='unemployment')return up?'higher unemployment':'lower unemployment'
@@ -79,11 +88,11 @@ export function explainR1(a:R1Assessment) {
     const context=state?crossed?` into ${state==='expanding'?'expansion':'contraction'}`:` ${improving===(state==='expanding')?'and':'but'} remain ${state}`:' to 50'
     return `Manufacturing new orders ${improving?'improved':'softened'}${context}, supporting USD ${improving?'strength':'weakness'}.`
   }
-  if(a.direction==='balanced')return a.readings.some(r=>r.points)?'The weighted contributions cancel.':a.family==='fomc'?`Rate held at ${a.readings[0].actual}%. A hold alone does not establish currency strength or weakness.`:'The usable comparisons are unchanged.'
+  if(a.direction==='balanced')return a.readings.some(r=>r.points)?'The weighted contributions cancel.':['fomc','ecb'].includes(a.family)?`Rate held at ${a.readings[0].actual}%. A hold alone does not establish currency strength or weakness.`:'The usable comparisons are unchanged.'
   const sign=a.direction==='strengthening'?1:-1
   const winner=a.readings.filter(r=>r.contribution!==null&&Math.sign(r.contribution)===sign).sort((a,b)=>Math.abs(b.contribution!)-Math.abs(a.contribution!))[0]
   const opponent=a.readings.filter(r=>r.contribution!==null&&Math.sign(r.contribution)===-sign).sort((a,b)=>Math.abs(b.contribution!)-Math.abs(a.contribution!))[0]
   if(!winner)return 'No usable directional evidence.'
-  const text=opponent?`${reason(winner)} outweighs ${reason(opponent)}.`:`${reason(winner)} supports USD ${sign>0?'strength':'weakness'}.`
+  const text=opponent?`${reason(winner)} outweighs ${reason(opponent)}.`:`${reason(winner)} supports ${a.version.startsWith('EUR-')?'EUR':'USD'} ${sign>0?'strength':'weakness'}.`
   return text[0].toUpperCase()+text.slice(1)
 }

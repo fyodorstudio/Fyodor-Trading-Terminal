@@ -23,7 +23,7 @@ import { PmiReadingsTable } from './readings/PmiReadingsTable'
 import './inspector.css'
 import { normalizeInspectorDetailView } from './inspector-detail-view'
 import { R1Score } from './scoring/R1Score'
-import { r1Family } from '../scoring-system/r1/profiles'
+import { r1ReleaseFamily } from '../scoring-system/r1/profiles'
 
 function HistogramIcon() {
   return (
@@ -69,7 +69,7 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
   const hasMagnitude = !!magnitudeFamily && !!release?.events.some((event) => Object.hasOwn(magnitudeFamily.readingRules, event.event_id))
   const scoringBinding = inspectorScoringBinding(symbol, scoreRelease)
   const showScoring = normalizeInspectorDetailView(view.preferences.detailView) === 'scoring' && !!scoringBinding
-  const hasR1=scoreRelease?.currency==='USD'&&scoreRelease.country==='US'&&!!r1Family(scoreRelease.familyId)
+  const hasR1=!!scoreRelease&&!!r1ReleaseFamily(scoreRelease)
   const showR1=normalizeInspectorDetailView(view.preferences.detailView)==='r1'&&hasR1
   const visibleView = showR1?'r1':showScoring ? 'scoring' : 'table'
   const status = (item: InspectorRelease) => releaseStatus(item, view.now)
@@ -141,7 +141,7 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
         <option value="table">Table only</option>
         <option value="scoring" disabled={!scoringBinding}>Scoring system{scoringBinding ? ` · ${release.pmiPublications ? 'PMI interpreters v1' : scoringBinding.versionLabel}` : ''}</option>
         <option value="scatter" disabled={!hasMagnitude || !scatterAvailable || !onOpenScatter}>Scatter Plot</option>
-        <option value="r1" disabled={!hasR1}>Scoring system · USD R1</option>
+        <option value="r1" disabled={!hasR1}>Scoring system · {scoreRelease?.currency??'USD'} R1</option>
       </select></div>}
 
     </header>

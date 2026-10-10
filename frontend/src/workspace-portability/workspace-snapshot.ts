@@ -17,7 +17,7 @@ import { activitySources } from '../system-observability/activity-log/activity-l
 import { contextFamiliesKey, validContextFamilyPreference } from '../usd-context/storage/context-family-settings'
 import { isStoredInspectorDetailView, normalizeInspectorDetailView } from '../inspector/inspector-detail-view'
 import { bottomDockHeightKey, validBottomDockHeight } from '../workspace-docking/bottom-dock/bottom-dock-height'
-import { r1SettingsKey, validR1Settings } from '../scoring-system/r1/settings'
+import { r1SettingsKey, validR1Settings, eurR1SettingsKey,validEurR1Settings } from '../scoring-system/r1/settings'
 
 export const workspaceFormat = 'fyodor-workspace'
 export const workspaceMaxBytes = 10 * 1024 * 1024
@@ -35,6 +35,8 @@ const symbolKey = (key: string, prefix: string) => key.startsWith(prefix) && key
 
 const validators: Record<string, (v: unknown) => boolean> = {
   [r1SettingsKey]: validR1Settings,
+  [eurR1SettingsKey]: validEurR1Settings,
+  'fyodor.scoring.r1.details': v=>['release','relationships','freshness','audit'].includes(v as string),
   [claimsStandalonePreferenceKey]: validClaimsPreferences,
   [externalEventsKey]: validExternalEvents,
   [bottomDockHeightKey]: validBottomDockHeight,
@@ -65,7 +67,7 @@ function validator(key: string) {
   if (symbolKey(key, 'trader_plan_')) return (v: unknown) => record(v) && direction(v.direction) && nullableNumber(v.entryPrice) && nullableNumber(v.tpPrice) && nullableNumber(v.slPrice) && typeof v.showOnChart === 'boolean' && (v.workflow === undefined || validTradeWorkflow(v.workflow))
   return null
 }
-const rawStringKeys = (key: string) => key === 'fyodor.color-theme' || key.startsWith('trader_notebook_note_')
+const rawStringKeys = (key: string) => key === 'fyodor.color-theme' || key === 'fyodor.scoring.r1.details' || key.startsWith('trader_notebook_note_')
 function validatedEntry(key: string, raw: unknown): string {
   const check = validator(key)
   if (!check || !text(raw)) throw new Error(`Unsupported workspace setting: ${key}`)
