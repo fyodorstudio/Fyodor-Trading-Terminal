@@ -988,3 +988,15 @@ As-of vintages, calibration, schedules and freshness still use the selected
 publication clock. See the [refinement audit](../reports/R1-scope-GDP-loading-audit.md).
 Earlier reports retain their dated outputs; making GDP momentum available can
 change historical overall evidence.
+
+
+## R1 Raycaster presentation — accepted 10 October 2026
+
+Add R1 Scoring System; keep Context, Context-detailed and Selected combo marked
+(Retired). EUR/USD cards show the shared combined scores at candle cutoff, with
+before/after evidence points and a green increase/red decrease. Dated publication
+rows use configured icons without timezone suffixes. Simultaneous releases share
+one delta; quiet candles retain the latest dated update. Corrections, freshness
+changes and expiry remain distinct from publications. Independent currency model
+settings still own scoring scope. This is a presentation/timeline change, with no
+new economic weights or source claims. See the [verification](../reports/R1-Raycaster-audit.md).

@@ -70,5 +70,6 @@ export const suites = [
   "tests/test_usd_r1.mjs",
   "tests/test_usd_r1_integration.mjs",
   "tests/test_evidence_r1.mjs",
-  "tests/test_eur_r1_integration.mjs"
+  "tests/test_eur_r1_integration.mjs",
+  "tests/test_r1_raycaster.mjs"
 ]

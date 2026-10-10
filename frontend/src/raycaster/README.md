@@ -1,3 +1,25 @@
+# R1 Raycaster — 10 October 2026
+
+**R1 Scoring System** shows EUR and USD combined currency evidence at the inspected
+candle's end. Cards show direction, strength, evidence points and the last signed
+change. Release rows use configured event icons and the selected display clock,
+without a timezone suffix. Simultaneous publications share one combined change;
+a candle lists all its updates. Quiet candles retain the latest dated update.
+Expiry, corrections and schedule changes are separate from new publications.
+
+`scoring-system/r1/timeline.ts` precomputes change-clock snapshots in a worker
+using the same nominal snapshot reader as Inspector. Hover only looks up this
+history. Currency model settings, magnitude overrides and freshness rules are
+shared with Inspector/Scatter and independent of Inspector visibility filters.
+Sensitivity sweeps remain in Inspector's audit. Hidden R1 views stop their
+workers and storage polling; existing chart overlays retain their own lifecycles.
+
+Context, Context-detailed and Selected combo remain selectable as **(Retired)**.
+Their algorithms, settings and Roofs/Candy integrations are unchanged. The
+terminal initially opens R1; opening a captured roof still selects the retired
+combo view. Verification: [R1 Raycaster audit](../../../reports/R1-Raycaster-audit.md).
+Visual review remains with the user. The records below describe earlier behavior.
+
 # Experimental development quarantine — 9 October 2026
 
 Raycaster and Candy retain their current calculations, including Claims v2.

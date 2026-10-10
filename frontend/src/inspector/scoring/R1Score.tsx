@@ -20,6 +20,9 @@ function reportAge(published:number|null|undefined,at:number) {
 function Totals({value,multiplier=1,currency='USD'}:{value:R1Balance;multiplier?:number;currency?:string}) {
   return <><span>{currency}-supportive <b>{number(value.supportive*multiplier)}</b></span><span>{currency}-negative <b>{number(value.negative*multiplier)}</b></span><span>Net <b>{number(value.net*multiplier)}</b></span></>
 }
+function Change({value}:{value:number}) {
+  return <span className={`r1-change ${value>0?'r1-change-positive':value<0?'r1-change-negative':''}`}>Change <b>{number(value)}</b></span>
+}
 export function R1Score(props:InspectorScoringProps) {
   const {result,loading,error,storage}=useR1Analysis(props)
   const clock=useDisplayClock(),[detail,setDetail]=useState(initialDetail),[assessmentFamily,setAssessmentFamily]=useState('')
@@ -46,7 +49,7 @@ export function R1Score(props:InspectorScoringProps) {
       <section className="r1-summary-block" aria-label="Combined relationship summary">
       <h3>Combined relationships</h3>
       <div className={`r1-result r1-${o.direction}`}><strong>Overall {r1DirectionLabel(o,currency)}</strong>{o.strength&&<b className="r1-strength">Evidence: {o.strength[0].toUpperCase()+o.strength.slice(1)}</b>}
-        <span className="r1-points">Evidence points: <b>{number(t.before.net)} → {number(o.net)}</b></span><span>Change <b>{number(t.change)}</b></span>
+        <span className="r1-points">Evidence points: <b>{number(t.before.net)} → {number(o.net)}</b></span><Change value={t.change}/>
       </div>
       <div className="r1-evidence"><Totals value={o} currency={currency}/><p className="r1-explanation">{explanation}</p></div>
       {t.publications.length>1&&<p className="r1-notes">Combined update: {t.publications.join(', ')}.</p>}
@@ -56,7 +59,7 @@ export function R1Score(props:InspectorScoringProps) {
       {otherCurrency&&<section className="r1-summary-block" aria-label={`${currency==='USD'?'EUR':'USD'} combined relationship summary`}>
         <h3>{currency==='USD'?'EUR':'USD'} combined relationships</h3>
         <div className={`r1-result r1-${otherCurrency.overall.direction}`}><strong>Overall {r1DirectionLabel(otherCurrency.overall,currency==='USD'?'EUR':'USD')}</strong>{otherCurrency.overall.strength&&<b className="r1-strength">Evidence: {otherCurrency.overall.strength[0].toUpperCase()+otherCurrency.overall.strength.slice(1)}</b>}
-          <span className="r1-points">Evidence points: <b>{number(otherCurrency.transition.before.net)} → {number(otherCurrency.overall.net)}</b></span><span>Change <b>{number(otherCurrency.transition.change)}</b></span>
+          <span className="r1-points">Evidence points: <b>{number(otherCurrency.transition.before.net)} → {number(otherCurrency.overall.net)}</b></span><Change value={otherCurrency.transition.change}/>
         </div>
         <div className="r1-evidence"><Totals value={otherCurrency.overall} currency={currency==='USD'?'EUR':'USD'}/><p className="r1-explanation">{otherCurrency.overall.explanation}</p></div>
         {otherCurrency.overall.coverage<1&&<p className="r1-notes">Known evidence: {Math.round(otherCurrency.overall.coverage*100)}%.</p>}

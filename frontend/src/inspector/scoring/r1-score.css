@@ -24,6 +24,8 @@
 .r1-result > strong { font-size: 1.15rem; }
 .r1-strengthening > strong { color: var(--positive-color, #07966c); }
 .r1-weakening > strong { color: var(--negative-color, #dc3545); }
+.r1-change-positive { color: var(--positive-color, #07966c); }
+.r1-change-negative { color: var(--negative-color, #dc3545); }
 .r1-strength {
   display: inline-flex;
   align-items: stretch;

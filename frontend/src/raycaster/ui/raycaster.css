@@ -99,3 +99,13 @@
 @container raycaster-panel (max-height: 460px) {
   .raycaster-reading:not(.selected-roof-reading), .selected-roof-reading > .reading-summary { position: static; }
 }
+
+.r1-ray-currencies { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.r1-ray-currencies > section { border: 1px solid var(--border); border-radius: 5px; padding: 8px; background: var(--surface-raised); }
+.r1-ray-currencies b { font-variant-numeric: tabular-nums; }
+.r1-ray-positive { color: var(--positive); }
+.r1-ray-negative { color: var(--negative); }
+.r1-ray-totals { font-size: 10px; color: var(--text-muted); }
+.r1-ray-update { border-top: 1px solid var(--border); margin-top: 8px; padding-top: 7px; font-size: 11px; }
+
+.r1-ray-release + .r1-ray-release { display: block; }

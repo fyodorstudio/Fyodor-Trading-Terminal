@@ -11,7 +11,7 @@ summary first, combined relationships and their before/after summary below,
 one selected detail table, hold-action presentation, EUR
 standalone/relationships and a same-clock EURUSD evidence comparison. Forecasts,
 speeches and written-guidance classification remain excluded. USD formulas and
-legacy Roofs/Raycaster/Candy retain their separate contracts.
+legacy Roofs/Candy and retired Raycaster views retain their separate contracts.
 
 Canonical current policy and primary-source rationale:
 [scoring design](docs/scoring%20system%20overhaul.md#currency-evidence-summary-and-eur-r1).
@@ -33,6 +33,13 @@ checked snapshot reuse and prepared-worker caches reduce repeated loading while
 preserving selected-clock chronology. See the
 [scope/GDP/loading audit](reports/R1-scope-GDP-loading-audit.md). Prior reports
 retain their dated results; correcting GDP availability can change overall scores.
+
+Latest Raycaster refinement: add **R1 Scoring System**, retaining the three older
+choices as **(Retired)**. Show EUR/USD combined evidence, signed before/after
+changes and dated release updates at the cursor candle cutoff. Group simultaneous
+publications, retain the latest update on quiet candles and identify expiry/data
+updates separately. Reuse the shared R1 snapshot reader in a background timeline;
+hover/pan never rescore. See the [Raycaster audit](reports/R1-Raycaster-audit.md).
 
 ## Previous implementation: USD scoring overhaul R1
 

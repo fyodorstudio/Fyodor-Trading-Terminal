@@ -11,7 +11,7 @@ export function r1Limits(samples:readonly number[],minimum:number=r1CalibrationP
   if(!nonzero.length)return null
   return r1CalibrationPolicy.quantiles.map(q=>nonzero[Math.ceil(q*nonzero.length)-1]) as unknown as MagnitudeLimits
 }
-export function assessFeatures(release:InspectorRelease,profile:R1Profile,features:readonly R1Feature[],sampleValues:readonly (readonly number[])[],calibration:R1Calibration,saved:R1MagnitudeSnapshot):R1Assessment {
+export function assessFeatures(release:InspectorRelease,profile:R1Profile,features:readonly R1Feature[],sampleValues:readonly (readonly number[])[],calibration:R1Calibration,saved:R1MagnitudeSnapshot,sensitivity=true):R1Assessment {
   const readings:R1Reading[]=profile.components.map((c,i)=>{
     const f=features[i],key=`${profile.family}/${c.id}${f.stage==='revision'?'/revision':''}`
     const manual=calibration.limits[key],raw=saved[profile.releaseFamily??profile.family]?.[c.seriesId]
@@ -29,7 +29,7 @@ export function assessFeatures(release:InspectorRelease,profile:R1Profile,featur
   const refs=new Set(profile.components.flatMap((c,i)=>features[i].reference!==null?[features[i].reference]:release.events.filter(e=>e.event_id===c.seriesId).flatMap(e=>{const ref=reference(e,c.period);return ref===null?[]:[ref]})))
   const declaredReference=refs.size===1?[...refs][0]:null
   const assessment:R1Assessment={...result,family:profile.family,label:profile.label,version:profile.version,releaseId:release.id,publishedAt:release.releaseAt,reference:profile.family==='claims'?readings[0].reference:declaredReference,stage:features.some(f=>f.stage==='revision')?'revision':'momentum',readings,leaves,explanation:''}
-  const variants=readingVariants(assessment,profile)
+  const variants=sensitivity?readingVariants(assessment,profile):[]
   assessment.sensitive=variants.some(v=>v.direction!==result.direction)
   assessment.sensitivityRange=[Math.min(result.interval[0],...variants.map(v=>v.interval[0])),Math.max(result.interval[1],...variants.map(v=>v.interval[1]))]
   assessment.explanation=explainR1(assessment)
@@ -62,7 +62,7 @@ export function prepareR1Features(history:R1History,profile:R1Profile,gdpMomentu
   modes.set(gdpMomentum,prepared)
   return prepared
 }
-export function assessR1(release:InspectorRelease,profile:R1Profile,history:R1History,calibration:R1Calibration,saved:R1MagnitudeSnapshot,gdpMomentum=false,prepared=prepareR1Features(history,profile,gdpMomentum),availabilityAt=release.releaseAt??0) {
+export function assessR1(release:InspectorRelease,profile:R1Profile,history:R1History,calibration:R1Calibration,saved:R1MagnitudeSnapshot,gdpMomentum=false,prepared=prepareR1Features(history,profile,gdpMomentum),availabilityAt=release.releaseAt??0,sensitivity=true) {
   const current=r1Features(release,profile,history,gdpMomentum,availabilityAt),samples=profile.components.map((_,i)=>{
     const entries=prepared.filter(entry=>entry.release.releaseAt!<release.releaseAt!&&entry.features[i].stage===current[i].stage&&entry.features[i].delta!==null)
     if(profile.currency!=='EUR')return entries.map(e=>e.features[i].delta!)
@@ -73,7 +73,7 @@ export function assessR1(release:InspectorRelease,profile:R1Profile,history:R1Hi
     for(const e of entries){const f=e.features[i];if(f.reference!==null&&f.reference!==current[i].reference)periods.set(f.reference,f.delta!)}
     return [...periods.values()]
   })
-  return assessFeatures(release,profile,current,samples,calibration,saved)
+  return assessFeatures(release,profile,current,samples,calibration,saved,sensitivity)
 }
 function reason(r:R1Reading) {
   const up=r.delta!>0

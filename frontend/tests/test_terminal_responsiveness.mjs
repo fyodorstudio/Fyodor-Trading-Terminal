@@ -72,12 +72,12 @@ const chart = { addSeries: () => series, timeScale: () => scale, priceScale: () 
   subscribeClick: fn => clickListeners.add(fn), unsubscribeClick: fn => clickListeners.delete(fn),
   remove: () => count('chartRemoved'), chartElement: () => document.querySelector('.market-chart-canvas') }
 globalThis.__terminalProbe = { count, clocks, createChart: () => { count('chartCreated'); return chart } }
-let calculate, calculateCpi,calculateR1
+let calculate, calculateCpi,calculateR1,calculateTimeline
 globalThis.Worker = class {
   constructor() { count('workerCreated'); this.terminated = false }
   postMessage(message) {
     count('workerPosts'); workerInputs.push(message.input)
-    void Promise.resolve().then(() => { if (!this.terminated) this.onmessage?.({ data: { id: message.id, result: (message.input.savedBands ? calculateR1 : message.input.release ? calculateCpi : calculate)(message.input) } }) })
+    void Promise.resolve().then(() => { if (!this.terminated) this.onmessage?.({ data: { id: message.id, result: (message.input.usdSettings ? calculateTimeline : message.input.savedBands ? calculateR1 : message.input.release ? calculateCpi : calculate)(message.input) } }) })
   }
   terminate() { this.terminated = true; count('workerTerminated') }
 }
@@ -175,6 +175,7 @@ try {
   calculate = (await server.ssrLoadModule('./src/scoring-system/context/usd/build-context-timeline.ts')).buildContextTimeline
   calculateCpi = (await server.ssrLoadModule('./src/scoring-system/PAIR/EURUSD/USD/CPI/runtime/cpi-release-analysis.ts')).calculateCpiRelease
   calculateR1 = (await server.ssrLoadModule('./src/scoring-system/r1/pair.ts')).calculateR1Pair
+  calculateTimeline = (await server.ssrLoadModule('./src/scoring-system/r1/timeline.ts')).calculateR1Timeline
   function CommandOnly() {
     count('commandSubscriber')
     const actions = useActivityActions()
@@ -187,11 +188,13 @@ try {
   while (pending.get('ohlc')?.length) await reply('ohlc')
   assert.equal(plotted.length, 800)
   assert.ok(workerInputs.length > 0, 'Production context calculation has actually run')
-  assert.ok(workerInputs.every(input => input.asOf < events.at(-1).release_at), 'Future publication has not been admitted')
+  assert.ok(workerInputs.filter(input=>!input.usdSettings).every(input => input.asOf < events.at(-1).release_at), 'Future publication has not been admitted')
   // Exercise the real chart -> shell -> Roofs dock path with scored CPI/NFP inputs.
   await React.act(async () => { for (const [id, fn] of frames) { frames.delete(id); fn() } })
   const comboTrigger = container.querySelector('.combo-roof-overflow > button')
   assert.ok(comboTrigger, 'Genuine eligible release relationships produce a Concise chart group')
+  assert.equal(container.querySelector('[aria-label="Raycaster view"]').value,'r1','The assembled terminal opens the new R1 view')
+  assert.ok(workerInputs.some(input=>input.usdSettings),'Assembled R1 timeline actually calculated')
   const comboCount = Number(comboTrigger.textContent.match(/\d+/)[0]), jobsBeforeRoofs = workerInputs.length
   await click(comboTrigger)
   assert.equal(container.querySelector('[aria-label="More combo roofs"]'), null)

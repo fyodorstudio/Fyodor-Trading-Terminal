@@ -20,8 +20,8 @@ not instructions to restore earlier formulas or UI.
 | Fundamental Settings | Gear-controlled bottom dock for model settings and tool sections. `fundamental-tools/`. Global Settings remains application configuration. |
 
 The active USD/EUR R1 implementation is in `frontend/src/scoring-system/r1/`. Inspector and
-Scatter expose R1 separately; its relationships share that engine. Roofs,
-Raycaster and Candy currently retain older calculations and settings. The user
+Scatter and Raycaster expose R1 separately; its relationships share that engine.
+Retired Raycaster views, Roofs and Candy retain older calculations and settings. The user
 permits redesign, but an R1 model must never silently mix with legacy votes.
 
 ## Where to change things

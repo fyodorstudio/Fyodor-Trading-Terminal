@@ -1,3 +1,4 @@
+import type { EventSymbol } from '../inspector/event-symbols'
 import { relativeContextVersion } from '../scoring-system/context/relative/eur-policy'
 import { ContextRibbon } from './ribbon/ContextRibbon'
 import { buildRibbonTimeline } from './ribbon/ribbon-timeline'
@@ -5,7 +6,7 @@ import { useRelativePreferences } from '../pair-context/storage/relative-prefere
 import { useEurContextTimeline } from '../pair-context/runtime/useEurContextTimeline'
 import { relativeContext, eurContextAt } from '../scoring-system/context/relative/relative-context'
 import type { IChartApi, ISeriesApi, Time } from 'lightweight-charts'
-import { memo, useEffect, useMemo } from 'react'
+import { memo, useEffect, useMemo, useState } from 'react'
 import type { ChartTimeframe } from '../market-data/contracts/ChartTimeframe'
 import type { TimeDisplayPreference } from '../appearance/time-display/time-display-preference'
 import { useUsdContextTimeline } from '../usd-context/runtime/useUsdContextTimeline'
@@ -36,21 +37,24 @@ export type RaycasterProps = { boxVisible?: boolean; symbol: string; timeframe: 
   selectedCombo?: ComboSnapshot | null; onClearCombo?: () => void;
   onOpenRoofGroup?: (group: RoofComboGroup) => void; activeRoofGroupCandleAt?: number;
   publication?: Omit<InspectorScoringProps, 'now'>;
-  view?: RaycasterView; onViewChange?: (view: RaycasterView) => void }
+  symbols?:Record<string,EventSymbol>; view?: RaycasterView; onViewChange?: (view: RaycasterView) => void }
 function RaycasterComponent({ chartApi, seriesApi, ...props }: RaycasterProps & { chartApi: IChartApi; seriesApi: ISeriesApi<'Candlestick', Time> }) {
   const now = useCalendarNow(props.clockOffsetMs)
   const publication = useMemo(() => props.publication ? { ...props.publication, now } : undefined, [props.publication, now])
-  const families = useRaycasterFamilies()
-  const sourceFamilies = useMemo(() => contextSourceFamilies(families), [families])
-  const history = useUsdContextTimeline(props.brokerId, sourceFamilies, now)
-  const relativePreferences = useRelativePreferences()
-  const relativeSupported = /^EURUSD(?:[._-].*|[a-z]*)$/i.test(props.symbol)
-  const relativeEnabled = relativeSupported && relativePreferences.mode === 'relative'
-  const sequencePreferences = useSequencePreferences()
-  const eurHistory = useEurContextTimeline(props.brokerId, relativePreferences.families, now, relativeEnabled)
+  const [localView,setLocalView]=useState<RaycasterView>('context')
+  const activeView=props.view??localView
   const scope = toolScope(props.brokerId, props.symbol, props.timeframe)
   const detailsOpen = useToolsOpen(scope)
   const boxVisible = props.boxVisible !== false
+  const sequencePreferences = useSequencePreferences()
+  const legacyNeeded=!!(activeView!=='r1'||detailsOpen||sequencePreferences.roofs||sequencePreferences.ribbon)
+  const families = useRaycasterFamilies()
+  const sourceFamilies = useMemo(() => legacyNeeded?contextSourceFamilies(families):[], [families,legacyNeeded])
+  const history = useUsdContextTimeline(props.brokerId, sourceFamilies, now)
+  const relativePreferences = useRelativePreferences()
+  const relativeSupported = /^EURUSD(?:[._-].*|[a-z]*)$/i.test(props.symbol)
+  const relativeEnabled = legacyNeeded && relativeSupported && relativePreferences.mode === 'relative'
+  const eurHistory = useEurContextTimeline(props.brokerId, relativePreferences.families, now, relativeEnabled)
   const hover = useRaycasterHover(chartApi, seriesApi, `${props.brokerId}:${props.symbol}:${props.timeframe}`, boxVisible || detailsOpen)
   const open = hover.open ?? ((boxVisible || detailsOpen) ? hover.lastOpen : null)
   const cutoff = open === null ? null : candleContextCutoff(open, props.timeframe, now, props.brokerOffsetSeconds)
@@ -81,9 +85,9 @@ function RaycasterComponent({ chartApi, seriesApi, ...props }: RaycasterProps & 
     families, relativePreferences.mode, relativePreferences.families, chartApi, now, props.brokerOffsetSeconds, props.timeframe])
   useEffect(() => () => publishInspection(scope, null), [scope])
   return <>{boxVisible && <RaycasterBox symbol={props.symbol} point={point} cutoff={cutoff} loading={history.loading || eurHistory.loading} message={message}
-    brokerId={props.brokerId}
+    brokerId={props.brokerId} now={now} open={open} brokerOffsetSeconds={props.brokerOffsetSeconds} symbols={props.symbols}
     selectedCombo={props.selectedCombo} selectionNotice={selectionNotice} onClearCombo={props.onClearCombo}
-    view={props.view} onViewChange={props.onViewChange}
+    view={activeView} onViewChange={view=>{setLocalView(view);props.onViewChange?.(view)}}
     relative={combined} relativeUpdate={eurPoint?.update ?? null} relativeUpdateAt={eurPoint?.chartAt ?? null}
     eurPoint={eurPoint} fresh={fresh}
     publication={publication}

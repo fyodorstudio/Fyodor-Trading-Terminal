@@ -99,3 +99,12 @@ clean lint and production build. Read-only replay covers 1,828 publications, bot
 workers, Scatter parity and three aggregate clocks. See
 [the audit](../../../../reports/USD-R1-stored-history-audit.md).
 Browser appearance/performance review remains manual.
+
+Raycaster's **R1 Scoring System** uses `timeline.ts`, `timeline.worker.ts` and
+`useR1Timeline.ts`. The shared snapshot reader caches family selection and
+assessments within their source-publication/observation epochs; older-period
+revisions invalidate current comparisons. Snapshots are built at publication,
+observation, schedule and expiry clocks. Hover performs a binary lookup and
+projects only the inspected candle's updates. This nominal timeline omits
+sensitivity sweeps while preserving Inspector's base direction, strength and
+missing-evidence intervals. See the [Raycaster audit](../../../../reports/R1-Raycaster-audit.md).

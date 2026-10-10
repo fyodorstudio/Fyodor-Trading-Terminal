@@ -1,4 +1,6 @@
 import { useId, useState } from 'react'
+import { R1Reading } from './R1Reading'
+import type { EventSymbol } from '../../inspector/event-symbols'
 import type { relativeContext } from '../../scoring-system/context/relative/relative-context'
 import type { ContextPoint } from '../../scoring-system/context/usd/contracts'
 import type { EurContextPoint } from '../../scoring-system/context/relative/contracts'
@@ -18,15 +20,16 @@ import { roofLabel } from '../../usd-context/sequences/chart/roof-label'
 import { ContextDetailed } from './ContextDetailed'
 import type { InspectorScoringProps } from '../../inspector/scoring/scoring-contracts'
 
-export type RaycasterView = 'context' | 'context-detailed' | 'combo'
+export type RaycasterView = 'context' | 'context-detailed' | 'combo' | 'r1'
 
-export function RaycasterBox({ symbol, point, eurPoint, fresh, publication, cutoff, loading, message, notice, timeDisplay, onClose, relative, relativeUpdateAt, selectedCombo, selectionNotice, onClearCombo, brokerId = null, view, onViewChange }: {
+export function RaycasterBox({ symbol, point, eurPoint, fresh, publication, cutoff, loading, message, notice, timeDisplay, onClose, relative, relativeUpdateAt, selectedCombo, selectionNotice, onClearCombo, brokerId = null, now=0, open=null, brokerOffsetSeconds=0, symbols, view, onViewChange }: {
   relative?: ReturnType<typeof relativeContext> | null; relativeUpdate?: string | null; relativeUpdateAt?: number | null;
   symbol: string; point: ContextPoint | null; cutoff: number | null; loading: boolean; message: string | null;
   eurPoint?: EurContextPoint | null; fresh?: FreshPoint | null;
   publication?: InspectorScoringProps;
   timeDisplay: TimeDisplayPreference; onClose: () => void; notice?: string | null;
   selectedCombo?: ComboSnapshot | null; selectionNotice?: string | null; onClearCombo?: () => void;
+  now?:number; open?:number|null; brokerOffsetSeconds?:number; symbols?:Record<string,EventSymbol>;
   brokerId?: string | null; view?: RaycasterView; onViewChange?: (view: RaycasterView) => void;
 }) {
   const clock = useDisplayClock(), viewId = useId()
@@ -46,18 +49,18 @@ export function RaycasterBox({ symbol, point, eurPoint, fresh, publication, cuto
   const direction = ready ? relative ? relative.direction === 'long' || relative.direction === 'short' ? relative.direction : null : presentation?.direction ?? null : null
   const votes = result?.members.filter(m => m.status === 'active').map(m => ({ label: m.sourceLabel, towardLong: orient * m.contribution })) ?? []
   const fed = selectedCombo?.sources.find(s => s.family === 'fed')
-  return <aside ref={ref} className={`raycaster-box${activeView === 'context-detailed' ? ' raycaster-box-detailed' : ''}`} aria-label="Raycaster USD context"
+  return <aside ref={ref} className={`raycaster-box${activeView === 'context-detailed' ? ' raycaster-box-detailed' : ''}`} aria-label={activeView==='r1'?'Raycaster R1 currency evidence':'Raycaster USD context'}
     style={{ transform: `translate(${position.x}px, ${position.y}px)` }}>
     <header className="raycaster-header"><button type="button" onPointerDown={drag} className="raycaster-handle" aria-label="Move Raycaster" title="Drag to move Raycaster">⠿ Raycaster</button>
       <label className="raycaster-view-label" htmlFor={viewId}>View</label>
       <select id={viewId} aria-label="Raycaster view" value={activeView} onChange={event => {
         const next = event.target.value as RaycasterView
         setLocalView(next); onViewChange?.(next)
-      }}><option value="context">Context</option><option value="context-detailed">Context-detailed</option><option value="combo" disabled={!selectedCombo}>Selected combo</option></select>
+      }}><option value="r1">R1 Scoring System</option><option value="context">Context (Retired)</option><option value="context-detailed">Context-detailed (Retired)</option><option value="combo" disabled={!selectedCombo}>Selected combo (Retired)</option></select>
       <button type="button" onClick={onClose} aria-label="Hide Raycaster" title="Hide Raycaster">×</button>
     </header>
     <div className="raycaster-body">
-    {activeView !== 'combo' ? <>
+    {activeView === 'r1' ? <R1Reading brokerId={brokerId} now={now} open={open} cutoff={cutoff} brokerOffsetSeconds={brokerOffsetSeconds} symbols={symbols}/> : activeView !== 'combo' ? <>
       <section className="raycaster-reading" aria-label="Accumulated context">
         <ReadingSummary symbol={symbol} label={label} direction={direction} evidence={ready ? strength : null}
           support={ready ? presentation : null} scope={`Accumulated context · ${relative ? 'EUR vs USD' : 'USD inputs'}`}

@@ -78,7 +78,7 @@ function FyodorTerminalWorkspace() {
   const [selectedDrawingId, setSelectedDrawingId] = useState<string | null>(null)
   const [drawingToolbarVisible, setDrawingToolbarVisible] = useState<boolean>(readDrawingToolbarVisible)
   const [raycasterVisible, setRaycasterVisible] = useState(readRaycasterVisible)
-  const [raycasterView, setRaycasterView] = useState<RaycasterView>('context')
+  const [raycasterView, setRaycasterView] = useState<RaycasterView>('r1')
   const [comboSelection, setComboSelection] = useState<{ combo: ComboSnapshot; symbol: string; broker: string | null } | null>(null)
   const [roofGroupSelection, setRoofGroupSelection] = useState<{ group: RoofComboGroup; symbol: string; broker: string | null; timeframe: ChartTimeframe } | null>(null)
   const [roofsPage, setRoofsPage] = useState<'overview' | 'details'>('overview')
@@ -317,10 +317,10 @@ function FyodorTerminalWorkspace() {
     { boxVisible: raycasterVisible, symbol: activeSymbol, timeframe, brokerId, brokerOffsetSeconds, clockOffsetMs: 0,
       timeDisplay, onClose: closeRaycaster, bars: inspector.markerBars, markers: inspector.markers, onSelectCombo: selectCombo,
       onOpenRoofGroup: openRoofGroup, activeRoofGroupCandleAt: selectedRoofGroup?.candleAt,
-      selectedCombo, onClearCombo: closeCombo, view: raycasterView, onViewChange: setRaycasterView, publication,
+      symbols: inspectorPreferences.symbols, selectedCombo, onClearCombo: closeCombo, view: raycasterView, onViewChange: setRaycasterView, publication,
       onOpenComboSource: openComboRelease, currencyColors: inspectorPreferences.currencyColors } : null,
     [contextVisible, raycasterVisible, raycasterSupported, activeSymbol, timeframe, brokerId, brokerOffsetSeconds,
-      timeDisplay, closeRaycaster, inspector.markerBars, inspector.markers, selectCombo, openRoofGroup, selectedRoofGroup, selectedCombo, closeCombo, openComboRelease, inspectorPreferences.currencyColors, raycasterView, publication])
+      timeDisplay, closeRaycaster, inspector.markerBars, inspector.markers, selectCombo, openRoofGroup, selectedRoofGroup, selectedCombo, closeCombo, openComboRelease, inspectorPreferences.currencyColors, inspectorPreferences.symbols, raycasterView, publication])
   const renderChartOverlay = useTerminalChartOverlay({ arrows: registeredArrows.symbolArrows,
     selectedArrowId: registeredArrows.selectedArrowId, draftPlan: plannedTrade, onSelectArrow: selectChartArrow,
     supported: inspector.supported, markers: inspector.markers, currencyColors: inspector.preferences.currencyColors,
