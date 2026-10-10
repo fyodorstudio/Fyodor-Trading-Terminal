@@ -23,7 +23,7 @@ export function assessFeatures(release:InspectorRelease,profile:R1Profile,featur
     const points=f.delta===null?null:c.period==='action'?Math.sign(f.delta)*Math.min(Math.abs(f.delta)/25,4):f.delta===0?0:limits?c.polarity*Math.sign(f.delta)*magnitudePoints(profile.family,f.delta,limits):null
     return {...c,...f,points,magnitude:points===null?null:usesFractionalMagnitude(profile.family)&&f.delta!==0?magnitude(f.delta!,limits!):Math.abs(points),contribution:points===null?null:precise(c.weight*points),limits:limits??null,calibration:c.period==='action'?'action':f.delta===0?'unchanged':source,samples:samples.length,reason:f.reason||(points===null?'Magnitude boundaries are unavailable.':'')}
   })
-  const leaves:R1Leaf[]=readings.map(r=>({id:`${release.id}/${r.id}`,family:profile.family,label:r.label,value:r.contribution===null?null:r.contribution/4,budget:r.weight,sourceId:release.id}))
+  const leaves:R1Leaf[]=readings.map(r=>({id:`${release.id}/${r.id}`,family:profile.family,label:r.label,value:r.contribution===null?null:r.contribution/4,budget:r.weight,sourceId:release.id,...(r.relationshipCategory?{category:r.relationshipCategory}:{})}))
   const result=balance(leaves)
   const refs=new Set(profile.components.flatMap((c,i)=>features[i].reference!==null?[features[i].reference]:release.events.filter(e=>e.event_id===c.seriesId).flatMap(e=>{const ref=reference(e,c.period);return ref===null?[]:[ref]})))
   const declaredReference=refs.size===1?[...refs][0]:null
@@ -42,7 +42,7 @@ export function readingVariants(a:R1Assessment,profile:R1Profile):R1Assessment[]
     const leaves=a.readings.map((r,i):R1Leaf=>{
       const factor=[.9,1,1.1][choices%3];choices=Math.floor(choices/3)
       const points=r.points===null?null:r.period==='action'?r.points:r.delta===0?0:r.limits?Math.sign(r.delta!)*r.polarity*magnitudePoints(a.family,r.delta!,r.limits,factor):r.points
-      return {id:r.id,family:a.family,label:r.label,value:points===null?null:points*weights[i]/4,budget:weights[i]}
+      return {id:r.id,family:a.family,label:r.label,value:points===null?null:precise(points*weights[i])/4,budget:weights[i],...(r.relationshipCategory?{category:r.relationshipCategory}:{})}
     })
     variants.push({...a,...balance(leaves),leaves})
   }
@@ -67,12 +67,12 @@ function reason(r:R1Reading) {
   if(r.id==='wages')return up?'faster average earnings growth':'slower average earnings growth'
   if(r.period==='week')return `${up?'more':'fewer'} ${r.id==='initial'?'initial':'continuing'} claims`
   if(r.id==='sales')return r.actual!<0?up?'a smaller nominal sales decline':'a larger nominal sales decline':up?'faster nominal sales growth':'slower nominal sales growth'
-  if(r.unit==='pts')return `${up?'improving':'softer'} ${r.id==='orders'?'orders':r.id==='production'?'production':'business activity'}`
+  if(r.unit==='pts')return r.id==='prices'?`${up?'rising':'easing'} input-price pressure`:`${up?'improving':'softer'} ${r.id==='orders'?'orders':r.id==='headline'?'manufacturing conditions':r.id==='employment'?'manufacturing hiring':r.id==='production'?'production':'business activity'}`
   return `${up?'faster':'slower'} ${r.id.startsWith('core')?'core':'headline'} ${r.id.endsWith('annual')?'annual':'monthly'} inflation`
 }
 export function explainR1(a:R1Assessment) {
   if(a.direction==='insufficient')return 'Missing evidence could change the direction.'
-  if(a.family==='ism-manufacturing'){
+  if(a.family==='ism-manufacturing'&&a.readings.every(r=>r.id==='orders'||r.points===0)){
     const r=a.readings[0],state=r.actual!>50?'expanding':r.actual!<50?'contracting':null
     if(a.direction==='balanced')return `Manufacturing new orders are unchanged${state?` and remain ${state}`:' at 50'}.`
     const improving=r.delta!>0,crossed=state&&(r.actual!-50)*(r.previous!-50)<=0

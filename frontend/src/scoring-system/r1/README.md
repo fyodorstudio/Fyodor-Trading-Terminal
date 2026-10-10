@@ -13,11 +13,10 @@ calibration and worker entry points. Legacy scorers retain their own settings.
   invoke this calculation.
 - `features.ts`: explicit provider IDs, native units, reference periods and
   revised-prior comparisons. Continuing claims convert millions to thousands.
-  Manufacturing R1.1 explicitly scores New Orders only (100%); the current feed
-  has no ISM Production series. This is a narrower model, not a missing-input
-  fallback. The proposed 60/40 demand model needs connected Production history.
-  PMI identifies publication/reference/schedule metadata only, so a newer report
-  with missing Orders cannot silently reuse the preceding month's score.
+  Manufacturing R1.2 scores MT5 New Orders/PMI/Employment/Prices Paid at
+  45/30/15/10, with deliberate headline/component overlap and no separate
+  Production requirement. A newer partial report replaces the preceding slot;
+  missing readings retain their assigned uncertainty.
 - `vintages.ts`: preserve the earliest recoverable release snapshot; later
   corrections replace current evidence only from their capture time. Late first
   captures are retrospective, never proof of original-time availability.
@@ -26,13 +25,23 @@ calibration and worker entry points. Legacy scorers retain their own settings.
 - `assessment.ts`: raw contribution is weight × signed magnitude. Leaves and
   balances use raw / 4, bounded at ±100; the release UI displays raw totals.
   Category and overall balances preserve signed leaves and uncertainty budgets.
-  Claims and Manufacturing New Orders R1.1 interpolate through zero, Small=1, Medium=2 and Large=4,
+  Resolve the signed sum before rounding and reconcile displayed sides to its
+  net. Intermediate relationship allocations do not round individual leaf values;
+  routing cannot manufacture a lead from exact cancellation.
+  Claims and all Manufacturing R1.2 inputs interpolate through zero, Small=1, Medium=2 and Large=4,
   capped at four. Size labels remain independent of fractional points; other
   families retain integer bands. Assessor, sensitivity and Scatter preview share
   `arithmetic.ts`. See the [Claims review](../../../../reports/Claims-R1-fractional-audit.md)
-  and [manufacturing review](../../../../reports/Manufacturing-orders-R1-audit.md).
+  and [manufacturing review](../../../../reports/Manufacturing-R1-four-input-audit.md).
   Manufacturing explanations separate expansion/contraction at 50 from A−P
   evidence direction. Level and threshold crossings supply no additional vote.
+- `relationships.ts`: allocate the existing manufacturing allowance before routing
+  its activity, hiring and input-price leaves to their economic roles. No second
+  full-family vote or role-specific renormalization. Full-scope manufacturing
+  remains 1.5% overall; effective category shares are Inflation 35.15%, Labor
+  30.225%, Activity 14.625%, Fed 20%. Categories normalize within their actual
+  allowances, exposed in Inspector. Missing/stale inputs keep those budgets;
+  sensitivity variants retain routing. Consumer/PPI rules remain unchanged.
 - `settings.ts`: separate portable R1 overrides and relationship scope. Saved
   compatible raw A−P bands are inherited without mutation. Otherwise R1 uses
   earlier-history 50/80/95% quantiles with 60 usable earlier observations; ties

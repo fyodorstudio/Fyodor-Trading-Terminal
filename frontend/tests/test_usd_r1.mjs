@@ -85,30 +85,43 @@ try {
     assert.equal(magnitudePoints('ism-manufacturing',change,[2,4,6]),expected)
     assert.equal(magnitudePoints('ism-manufacturing',-change,[2,4,6]),expected)
   }
-  const manufacturingBands={'ism-manufacturing':{'840040006':[2,4,6]}},manufacturingRow=row('840040006',55.3,53.7,{unit:0})
-  const manufacturing=run([manufacturingRow],['ism-manufacturing'],{savedBands:manufacturingBands}).assessment
-  assert.equal(manufacturing.version,'USD-ISM-MANUFACTURING-ORDERS-R1.1')
-  assert.equal(manufacturing.label,'Manufacturing new orders')
-  assert.equal(manufacturing.coverage,1,'coverage refers to the explicitly narrower Orders model')
-  assert.equal(manufacturing.readings.length,1);assert.equal(manufacturing.readings[0].weight,100)
-  assert.equal(manufacturing.readings[0].magnitude,1);assert.equal(manufacturing.readings[0].points,.8)
-  assert.equal(manufacturing.net,20);assert.match(manufacturing.explanation,/improved and remain expanding/)
-  const contextRows=['840040001','840040002','840040004','840050024'].map(id=>row(id,0,100,{unit:0}))
-  assert.deepEqual(run([manufacturingRow,...contextRows],['ism-manufacturing'],{savedBands:manufacturingBands}).assessment,manufacturing,'headline, prices, employment and Fed Production do not supply extra votes')
-  assert.deepEqual(run([{...manufacturingRow,forecast:-999}],['ism-manufacturing'],{savedBands:manufacturingBands}).assessment,manufacturing)
+  const manufacturingBands={'ism-manufacturing':{'840040006':[2.6,4.7,7.8],'840040001':[1.3,2.1,3.9],'840040004':[2.1,3.6,5.2],'840040002':[3.9,6.4,11]}}
+  const manufacturingRows=[['840040006',55.3,53.7],['840040001',54.5,54.6],['840040004',52.7,51.2],['840040002',77.9,71.1]].map(([id,actual,previous])=>row(id,actual,previous,{unit:0}))
+  const mrun=(events=manufacturingRows,extra={})=>run(events,['ism-manufacturing'],{savedBands:manufacturingBands,...extra})
+  const manufacturing=mrun().assessment,manufacturingRow=manufacturingRows[0]
+  assert.equal(manufacturing.version,'USD-ISM-MANUFACTURING-R1.2');assert.equal(manufacturing.label,'ISM manufacturing')
+  assert.equal(manufacturing.coverage,1);assert.deepEqual(manufacturing.readings.map(r=>r.weight),[45,30,15,10])
+  assert.deepEqual(manufacturing.leaves.map(l=>l.category),['activity','activity','labor','inflation'])
+  assert.equal(manufacturing.direction,'strengthening');assert.equal(manufacturing.strength,'moderate')
+  assert.ok(Math.abs(manufacturing.supportive*4-60.14572384)<1e-8)
+  assert.ok(Math.abs(manufacturing.negative*4+2.307692308)<1e-8)
+  assert.ok(Math.abs(manufacturing.net*4-57.838031532)<1e-8)
+  assert.match(manufacturing.explanation,/orders.*outweighs.*manufacturing conditions/)
+  assert.deepEqual(mrun(manufacturingRows.concat(row('840050024',0,100,{unit:0}))).assessment,manufacturing,'Fed Production cannot substitute or supply an extra vote')
+  assert.deepEqual(mrun(manufacturingRows.map(r=>({...r,forecast:-999}))).assessment,manufacturing)
+  const neutralOthers=manufacturingRows.slice(1).map(r=>({...r,actual:r.previous}))
   for(const [previous,actual,text,direction]of [[52,55,'improved and remain expanding','strengthening'],[55,52,'softened but remain expanding','weakening'],[47,49,'improved but remain contracting','strengthening'],[49,47,'softened and remain contracting','weakening'],[49,51,'improved into expansion','strengthening'],[51,49,'softened into contraction','weakening'],[49,50,'improved to 50','strengthening'],[51,50,'softened to 50','weakening'],[51,51,'unchanged and remain expanding','balanced'],[49,49,'unchanged and remain contracting','balanced'],[50,50,'unchanged at 50','balanced']]){
-    const scored=run([{...manufacturingRow,actual,previous}],['ism-manufacturing'],{savedBands:manufacturingBands}).assessment
+    const scored=mrun([{...manufacturingRow,actual,previous},...neutralOthers]).assessment
     assert.equal(scored.direction,direction);assert.ok(scored.explanation.includes(text),scored.explanation)
   }
-  assert.equal(run([{...manufacturingRow,revised_previous:55.4}],['ism-manufacturing'],{savedBands:manufacturingBands}).assessment.direction,'weakening','revised prior takes precedence')
-  assert.equal(run([{...manufacturingRow,actual:null}],['ism-manufacturing'],{savedBands:manufacturingBands}).assessment.unavailable,100,'missing orders retain their full new-model budget')
-  assert.equal(run([manufacturingRow],['ism-manufacturing'],{savedBands:{}}).assessment.direction,'insufficient','no nonzero magnitude is guessed without configured or earlier-history bands')
-  const noChange=run([{...manufacturingRow,actual:53.7}],['ism-manufacturing'],{savedBands:{}}).assessment
+  assert.equal(mrun([{...manufacturingRow,revised_previous:55.4},...neutralOthers]).assessment.direction,'weakening','revised prior takes precedence')
+  assert.equal(mrun(manufacturingRows.map((r,i)=>i===0?{...r,actual:null}:r)).assessment.unavailable,45,'missing orders retain 45%')
+  for(let i=0;i<4;i++)assert.equal(mrun(manufacturingRows.filter((_,j)=>i!==j)).assessment.unavailable,[45,30,15,10][i],'each missing input retains its own budget')
+  assert.equal(mrun([manufacturingRow]).assessment.unavailable,55,'an orders-only release never silently becomes a full four-input score')
+  assert.equal(mrun(manufacturingRows,{savedBands:{}}).assessment.unavailable,100,'no nonzero magnitude is guessed without configured or earlier-history bands')
+  const noChange=mrun(manufacturingRows.map(r=>({...r,actual:r.previous})),{savedBands:{}}).assessment
   assert.equal(noChange.direction,'balanced');assert.equal(noChange.readings[0].points,0)
+  const pricesOnly=mrun([{...manufacturingRow,actual:manufacturingRow.previous},...neutralOthers.map((r,i)=>i===2?{...r,actual:r.previous+1}:r)]).assessment
+  assert.match(pricesOnly.explanation,/input-price pressure supports USD strength/,'rising prices are not described as improving activity')
+  const reversed=mrun(manufacturingRows.map(r=>({...r,actual:r.previous,previous:r.actual}))).assessment
+  assert.equal(reversed.net,-manufacturing.net);assert.equal(reversed.direction,'weakening')
+  const mismatched=mrun(manufacturingRows.map((r,i)=>i===1?{...r,period_seconds:month-31*86400}:r)).assessment
+  assert.equal(mismatched.unavailable,100,'different survey months are never combined')
+  assert.equal(mrun([...manufacturingRows,{...manufacturingRow,value_id:'duplicate-orders'}]).assessment.unavailable,45,'duplicate component is unavailable, not another vote')
   const newerPmi=row('840040001',54.5,54.6,{unit:0,value_id:'new-pmi-without-orders',release_at:at+31*86400000,period_seconds:Date.UTC(2026,2,1)/1000})
   const noNewOrders=calculateR1({release:groupInspectorReleases([newerPmi])[0],events:[manufacturingRow,newerPmi],settings:{...settings,selected:['ism-manufacturing']},savedBands:manufacturingBands})
   assert.equal(noNewOrders.overall.slots[0].assessment.releaseId,noNewOrders.assessment.releaseId,'new PMI publication replaces the old Orders slot even when its Orders input is missing')
-  assert.equal(noNewOrders.overall.unavailable,100);assert.equal(noNewOrders.overall.direction,'insufficient')
+  assert.equal(noNewOrders.overall.unavailable,70);assert.equal(noNewOrders.overall.direction,'insufficient')
   assert.equal(noNewOrders.overall.slots[0].assessment.publishedAt,newerPmi.release_at)
   assert.ok(validR1Settings({...settings,calibration:{...settings.calibration,limits:{'ism-manufacturing/production':[1,2,3],'us-cpi/core-monthly':[.1,.2,.3]}}}),'retired Production limits do not invalidate other workspace settings')
   const exampleRows=claimRows.map((r,i)=>({...r,actual:i?1.716:197,previous:i?1.699:199}))
@@ -130,9 +143,44 @@ try {
   const slot=(family,value,ref=24313)=>({family,status:'current',nextDue:at+1,assessment:{family,publishedAt:at,reference:ref,leaves:[{id:family,family,label:family,value,budget:100}],...balance([{value,budget:100}])}})
   const fractionalLabor=combineR1([slot('jobs',20),{family:'claims',status:'current',nextDue:at+1,assessment:example}],['jobs','claims'],at)
   assert.ok(Math.abs(fractionalLabor.net-(.8*20+.2*example.net))<1e-8,'labor combines fractional Claims once at the existing 20% share')
-  const manufacturingActivity=combineR1([slot('gdp',0),slot('retail',0),slot('ism-services',0),{family:'ism-manufacturing',status:'current',assessment:manufacturing}],['gdp','retail','ism-services','ism-manufacturing'],at)
-  assert.equal(manufacturingActivity.net,2,'orders supply one normalized vote at the unchanged 10% manufacturing activity allocation')
-  assert.equal(manufacturingActivity.leaves.filter(l=>l.family==='ism-manufacturing').length,1)
+  const manufacturingSlot={family:'ism-manufacturing',status:'current',assessment:manufacturing}
+  const manufacturingActivity=combineR1([slot('gdp',0),slot('retail',0),slot('ism-services',0),manufacturingSlot],['gdp','retail','ism-services','ism-manufacturing'],at)
+  assert.ok(Math.abs(manufacturingActivity.net-manufacturing.net*.1)<1e-8,'routing preserves the original manufacturing allowance')
+  assert.equal(manufacturingActivity.leaves.filter(l=>l.family==='ism-manufacturing').length,4)
+  assert.deepEqual(manufacturingActivity.categories.map(c=>c.category),['inflation','labor','activity'])
+  const manufacturingOnly=combineR1([manufacturingSlot],['ism-manufacturing'],at)
+  assert.equal(manufacturingOnly.net,manufacturing.net)
+  assert.deepEqual(manufacturingOnly.categories.map(c=>c.share),[.1,.15,.75],'routing cannot normalize each role to a second full vote')
+  const allFamilies=['us-cpi','ppi','jobs','claims','gdp','retail','ism-services','ism-manufacturing','fomc']
+  const allZero=allFamilies.filter(f=>f!=='ism-manufacturing').map(f=>slot(f,0))
+  const full=combineR1([...allZero,manufacturingSlot],allFamilies,at)
+  assert.ok(Math.abs(full.net-manufacturing.net*.015)<1e-8,'full-scope manufacturing remains 1.5% overall')
+  assert.ok(Math.abs(full.leaves.reduce((s,l)=>s+l.budget,0)-100)<1e-8)
+  assert.deepEqual(full.categories.map(c=>Math.round(c.share*1e5)/1e5),[.3515,.30225,.14625,.2])
+  const cancellingManufacturing=assessFeatures({...release,familyId:'ism-manufacturing'},r1Profiles['ism-manufacturing'],[.1,-.1,-.4,0].map(feature),[],{mode:'undefined',limits:{'ism-manufacturing/orders':[1.3,3,6],'ism-manufacturing/headline':[2.6,3,6],'ism-manufacturing/employment':[2.6,3,6]}},{})
+  assert.equal(cancellingManufacturing.direction,'balanced')
+  for(const selected of [['ism-manufacturing'],allFamilies]){
+    const aggregate=combineR1([...allZero,{...manufacturingSlot,assessment:cancellingManufacturing}],selected,at)
+    assert.equal(aggregate.net,0,'routing and category weighting cannot turn exact three-input cancellation into a false lead')
+    assert.equal(aggregate.direction,'balanced')
+  }
+  for(const status of ['stale','unavailable']){
+    const unknown=combineR1([...allZero,{...manufacturingSlot,status}],allFamilies,at)
+    assert.equal(unknown.unavailable,1.5)
+    assert.deepEqual(unknown.categories.map(c=>Math.round(c.share*1e5)/1e5),[.3515,.30225,.14625,.2],'expiry does not move the routed nominal budgets')
+  }
+  for(let i=0;i<4;i++){
+    const partial=mrun(manufacturingRows.filter((_,j)=>i!==j)).assessment
+    const aggregate=combineR1([...allZero,{...manufacturingSlot,assessment:partial}],allFamilies,at)
+    assert.ok(Math.abs(aggregate.unavailable-[45,30,15,10][i]*.015)<1e-8)
+  }
+  const {readingVariants}=await server.ssrLoadModule('./src/scoring-system/r1/assessment.ts')
+  assert.equal(manufacturing.sensitive,false)
+  for(const variant of readingVariants(manufacturing,r1Profiles['ism-manufacturing'])){
+    assert.deepEqual(variant.leaves.map(l=>l.category),manufacturing.leaves.map(l=>l.category),'sensitivity retains economic routing')
+    const aggregate=combineR1([...allZero,{...manufacturingSlot,assessment:variant}],allFamilies,at)
+    assert.ok(Math.abs(aggregate.net-variant.net*.015)<1e-8)
+  }
   for(const macro of [-10,0,10])for(const action of [-25,0,25]){
     const overall=combineR1([slot('us-cpi',macro),slot('fomc',action)],['us-cpi','fomc'],at)
     const net=(.35*macro+.2*action)/.55

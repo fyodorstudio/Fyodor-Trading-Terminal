@@ -15,7 +15,7 @@ function r1DirectionLabel(b:R1Balance){return b.direction==='strengthening'?'USD
 function Result({value,multiplier=1,explanation}:{value:R1Balance;multiplier?:number;explanation:string}) {
   return <><div className={`r1-result r1-${value.direction}`}><strong>{r1DirectionLabel(value)}</strong>{value.strength&&<span className="r1-strength"><span>EVIDENCE</span><b>{value.strength.toUpperCase()}</b></span>}</div>
     <div className="r1-evidence"><span>USD-supportive <b>{number(value.supportive*multiplier)}</b></span><span>USD-negative <b>{number(value.negative*multiplier)}</b></span><span>Net <b>{number(value.net*multiplier)}</b></span><p className="r1-explanation">{explanation}</p></div>
-    {value.strength&&(value.sensitive||value.coverage<1)&&<p className="r1-notes">{[value.sensitive?'Direction sensitive to weighting':null,value.coverage<1?'Partial coverage':null].filter(Boolean).join(' · ')}</p>}</>
+    {value.strength&&(value.sensitive||value.coverage<1)&&<p className="r1-notes">{[value.sensitive?'Direction sensitive to weights or boundaries':null,value.coverage<1?'Partial coverage':null].filter(Boolean).join(' · ')}</p>}</>
 }
 export function R1Score(props:InspectorScoringProps&{selectedFamilies?:readonly string[]}) {
   const {result,loading,error,storage}=useR1Analysis(props)
@@ -32,7 +32,7 @@ export function R1Score(props:InspectorScoringProps&{selectedFamilies?:readonly 
     </section>
     <section className="r1-audit" aria-label="Input audit"><h4>Input audit</h4>{a.readings.map(r=><p key={r.id}>{r.label}: {r.reason||r.basis} · {r.vintage?.replaceAll('-',' ')??'unavailable'}{r.knownAt?` (captured ${new Date(r.knownAt).toISOString()})`:''} · {r.calibration}{r.limits?` · boundaries ${r.limits.join(' / ')} ${r.unit}`:''}</p>)}</section>
     <section className="r1-relationships" aria-label="USD evidence as of this publication"><h3>USD evidence as of this publication</h3><Result value={o} explanation={o.explanation}/>
-      <table><thead><tr><th>Evidence</th><th>Direction</th><th>Supportive</th><th>Negative</th></tr></thead><tbody>{o.categories.map(c=><tr key={c.category}><td>{c.label}</td><td>{r1DirectionLabel(c)}</td><td>{number(c.supportive)}</td><td>{number(c.negative)}</td></tr>)}</tbody></table>
+      <table><thead><tr><th>Evidence</th><th>Overall weight</th><th>Direction</th><th>Supportive</th><th>Negative</th></tr></thead><tbody>{o.categories.map(c=><tr key={c.category}><td>{c.label}</td><td>{c.share==null?'—':`${(c.share*100).toLocaleString(undefined,{maximumFractionDigits:3})}%`}</td><td>{r1DirectionLabel(c)}</td><td>{number(c.supportive)}</td><td>{number(c.negative)}</td></tr>)}</tbody></table>
     </section>
     <section className="r1-audit" aria-label="Relationship audit"><h4>Relationship audit</h4><p>Known input coverage: {Math.round(o.coverage*100)}%. Possible net: {number(o.interval[0])} to {number(o.interval[1])}.</p>
         {o.timingSensitive&&<p>Direction changes under the tested expiry windows.</p>}

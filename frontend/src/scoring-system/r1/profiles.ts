@@ -15,13 +15,14 @@ export const r1Profiles: Record<R1Family, R1Profile> = {
   gdp: { family: 'gdp', label: 'GDP', version: 'USD-GDP-R1', category: 'activity', components: [{...rate('growth','840010007','Real GDP growth',100),period:'quarter'}], alternatives:[[100]] },
   retail: { family: 'retail', label: 'Retail sales', version: 'USD-RETAIL-R1', category: 'activity', components: [rate('sales','840020010','Retail and food services m/m',100)], alternatives:[[100]] },
   'ism-services': { family:'ism-services',label:'ISM services',version:'USD-ISM-SERVICES-DEMAND-R1',category:'activity',components:[component('orders','840040007','New orders',60,1,'pts',[0],0,'month'),component('activity','840040009','Business activity',40,1,'pts',[0],0,'month')],alternatives:[[60,40],[50,50],[70,30],[40,60]] },
-  // Explicit orders-only model for the current feed, not a missing-input
-  // renormalization of the proposed 60/40 orders/production model.
-  'ism-manufacturing': {family:'ism-manufacturing',label:'Manufacturing new orders',version:'USD-ISM-MANUFACTURING-ORDERS-R1.1',category:'activity',components:[component('orders','840040006','New orders',100,1,'pts',[0],0,'month')],alternatives:[[100]]},
+  'ism-manufacturing': {family:'ism-manufacturing',label:'ISM manufacturing',version:'USD-ISM-MANUFACTURING-R1.2',category:'activity',components:[
+    {...component('orders','840040006','New orders',45,1,'pts',[0],0,'month'),relationshipCategory:'activity'},
+    {...component('headline','840040001','Manufacturing PMI',30,1,'pts',[0],0,'month'),relationshipCategory:'activity'},
+    {...component('employment','840040004','Employment',15,1,'pts',[0],0,'month'),relationshipCategory:'labor'},
+    {...component('prices','840040002','Prices paid',10,1,'pts',[0],0,'month'),relationshipCategory:'inflation'},
+  ],alternatives:[[45,30,15,10],[40,35,15,10],[50,25,15,10],[40,30,20,10],[40,30,15,15]]},
   fomc: {family:'fomc',label:'Fed action',version:'USD-FED-ACTION-R1',category:'policy',components:[{...rate('action','840050014','Fed target rate',100),period:'action',unit:'bp'}],alternatives:[[100]]},
 }
 export const r1Families = Object.keys(r1Profiles) as R1Family[]
-// PMI locates a newer manufacturing publication even when Orders is missing;
-// it supplies reference/schedule metadata, never a score component.
-export const r1SeriesIds = [...new Set([...r1Families.flatMap(f=>r1Profiles[f].components.map(c=>c.seriesId)),'840040001'])].filter(id=>/^\d+$/.test(id))
+export const r1SeriesIds = [...new Set(r1Families.flatMap(f=>r1Profiles[f].components.map(c=>c.seriesId)))].filter(id=>/^\d+$/.test(id))
 export const r1Family = (id: string): R1Family | null => Object.hasOwn(r1Profiles,id) ? id as R1Family : null

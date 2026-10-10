@@ -32,7 +32,7 @@ suites and 29 storage tests, lint and build pass. The
 and three aggregate clocks, including built-worker and Scatter parity. Versioned
 stored observations preserve release snapshots and apply later corrections only
 at capture time. Unrecoverable original vintages retain their explicit treatment.
-The later Manufacturing New Orders refinement below supersedes the
+The later four-input Manufacturing refinement below supersedes the
 missing-Production model. Missing schedules now use bounded publication
 age; configured rules and expiry dates are visible in the audit. See the
 [freshness refinement replay](reports/USD-R1-freshness-audit.md). Visual/browser
@@ -46,27 +46,34 @@ consume the refined Claims evidence once. Source rationale, changed historical
 cases and the 60/40 challenger are in the
 [Claims fractional review](reports/Claims-R1-fractional-audit.md).
 
-Accepted manufacturing refinement: `USD-ISM-MANUFACTURING-ORDERS-R1.1` explicitly
-scores **New Orders only, 100%**, using the same fractional magnitude rule as
-Claims. The current provider inventory has no ISM Production series; the user
-accepted this narrower model if reliable Production history could not be sourced.
-It is not automatic renormalization of a missing 40% input. The proposed 60/40
-Orders/Production model and weight challengers remain pending real Production
-history. Headline PMI, Employment, Prices Paid and Fed Manufacturing Production
-do not vote in this profile. Above/below 50 and crossings appear as brief state
-context without reversing A−P direction. R1 retains one manufacturing slot at
-10% of full activity; other family/category budgets, freshness and legacy models
-are unchanged. Saved Orders/unrelated settings survive; retired Production
-overrides remain portable and inert. See the
-[manufacturing review](reports/Manufacturing-orders-R1-audit.md) for the read-only
-replay, scope change and worker/Scatter verification.
+Accepted manufacturing refinement: `USD-ISM-MANUFACTURING-R1.2` uses MT5's four
+readings: **New Orders 45%, PMI 30%, Employment 15%, Prices Paid 10%**, all with
+Claims-style fractional magnitude and separate per-series boundaries. Production
+is not required or inferred. The user accepts deliberate headline/component
+overlap. Higher Prices Paid supplies input-price pressure, not stronger output
+or a percent consumer-inflation reading. A−P determines direction; the level at
+50 supplies state context only. Missing readings retain their nominal weights.
 
-Manufacturing refinement checks: all **69 frontend suites**, lint and production
-build pass, including assembled-terminal regressions. Read-only replay covers
-142 publications, 83 usable with automatic earlier-history calibration and 59
-unavailable; every release reproduces after removing later inventory. Both built
-workers and Scatter match the shared engine. Browser appearance/performance and
-comparison with price remain user review. The existing bundle-size warning remains.
+Allocate the existing manufacturing allowance first, then route its components
+once: Orders/PMI to Activity (75%), Employment to Labor (15%), Prices Paid to
+Inflation pressure (10%). Manufacturing still owns 1.5% of the full overall
+budget. Effective full-scope category shares are 35.15% / 30.225% / 14.625% / 20%
+for Inflation / Labor / Activity / Fed. Other families keep their global budgets;
+selected-subset normalization precedes routing. Unknown/stale manufacturing
+retains the same role budgets. All four inputs expose Scatter preview/Apply/Reset.
+Saved Orders/unrelated settings survive; retired Production overrides remain
+portable and inert. Legacy models and freshness are unchanged. See the
+[four-input review](reports/Manufacturing-R1-four-input-audit.md); the
+[Orders-only review](reports/Manufacturing-orders-R1-audit.md) is historical.
+
+R1.2 verification: all **69 frontend suites**, lint and production build pass,
+including assembled-terminal and mounted four-input/Scatter regressions. Read-only
+replay covers 142 publications (82 fully scorable with automatic prior-history
+bands), all-release future-removal parity, both built workers and all four Scatter
+inputs. Five complete directions change under nearby weight alternatives; eight
+under joint boundary/weight variations. October 1 remains strengthening, moderate,
+raw net +57.84. Browser appearance/performance and price comparison remain user
+review. The existing bundle-size warning remains.
 
 The former standalone-development handoff below is historical context. Its
 preservation-only scope and earlier interpretation rules do not override R1.

@@ -30,11 +30,16 @@ export function magnitudePoints(family:R1Family,delta:number,limits:readonly num
   return 4
 }
 export function balance(leaves: readonly R1Leaf[]): R1Balance {
-  const supportive=precise(leaves.reduce((s,l)=>s+Math.max(l.value??0,0),0)), negative=precise(leaves.reduce((s,l)=>s+Math.min(l.value??0,0),0))
-  const net=precise(supportive+negative), unavailable=precise(leaves.reduce((s,l)=>s+(l.value===null?l.budget:0),0))
+  const supportive=precise(leaves.reduce((s,l)=>s+Math.max(l.value??0,0),0))
+  // Resolve the unrounded signed sum first; reconcile displayed sides to that
+  // net instead of letting separate side rounding create a directional vote.
+  const net=precise(leaves.reduce((s,l)=>s+(l.value??0),0)),negative=precise(net-supportive)
+  const unavailable=precise(leaves.reduce((s,l)=>s+(l.value===null?l.budget:0),0))
   const lower=precise(net-unavailable),upper=precise(net+unavailable),budget=leaves.reduce((s,l)=>s+l.budget,0)
   const direction=!leaves.length?'empty':lower>0?'strengthening':upper<0?'weakening':unavailable?'insufficient':'balanced'
   const guaranteed=Math.max(0,Math.abs(net)-unavailable)
   return {supportive,negative,net,unavailable,interval:[lower,upper],direction,strength:direction==='strengthening'||direction==='weakening'?guaranteed<=10?'slight':guaranteed<=30?'moderate':'strong':null,coverage:budget?precise((budget-unavailable)/budget):0,sensitive:false,sensitivityRange:null}
 }
-export const multiplyLeaves=(leaves:readonly R1Leaf[],coefficient:number,role?:string):R1Leaf[]=>leaves.map(l=>({...l,value:l.value===null?null:precise(l.value*coefficient),budget:precise(l.budget*coefficient),...(role?{role}:{})}))
+// Round balances after allocation, not each intermediate leaf: individually
+// rounding three cancelling contributions can manufacture a nonzero lead.
+export const multiplyLeaves=(leaves:readonly R1Leaf[],coefficient:number,role?:string):R1Leaf[]=>leaves.map(l=>({...l,value:l.value===null?null:l.value*coefficient,budget:precise(l.budget*coefficient),...(role?{role}:{})}))
