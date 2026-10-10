@@ -31,8 +31,9 @@ suites and 29 storage tests, lint and build pass. The
 [read-only replay](reports/USD-R1-stored-history-audit.md) covers 1,828 publications
 and three aggregate clocks, including built-worker and Scatter parity. Versioned
 stored observations preserve release snapshots and apply later corrections only
-at capture time. Unrecoverable original vintages and missing manufacturing Production
-retain their explicit treatment. Missing schedules now use bounded publication
+at capture time. Unrecoverable original vintages retain their explicit treatment.
+The later Manufacturing New Orders refinement below supersedes the
+missing-Production model. Missing schedules now use bounded publication
 age; configured rules and expiry dates are visible in the audit. See the
 [freshness refinement replay](reports/USD-R1-freshness-audit.md). Visual/browser
 performance review remains with the user; older context views remain separate.
@@ -44,6 +45,28 @@ Other R1 families and legacy Claims v3 retain their policies. R1 relationships
 consume the refined Claims evidence once. Source rationale, changed historical
 cases and the 60/40 challenger are in the
 [Claims fractional review](reports/Claims-R1-fractional-audit.md).
+
+Accepted manufacturing refinement: `USD-ISM-MANUFACTURING-ORDERS-R1.1` explicitly
+scores **New Orders only, 100%**, using the same fractional magnitude rule as
+Claims. The current provider inventory has no ISM Production series; the user
+accepted this narrower model if reliable Production history could not be sourced.
+It is not automatic renormalization of a missing 40% input. The proposed 60/40
+Orders/Production model and weight challengers remain pending real Production
+history. Headline PMI, Employment, Prices Paid and Fed Manufacturing Production
+do not vote in this profile. Above/below 50 and crossings appear as brief state
+context without reversing A−P direction. R1 retains one manufacturing slot at
+10% of full activity; other family/category budgets, freshness and legacy models
+are unchanged. Saved Orders/unrelated settings survive; retired Production
+overrides remain portable and inert. See the
+[manufacturing review](reports/Manufacturing-orders-R1-audit.md) for the read-only
+replay, scope change and worker/Scatter verification.
+
+Manufacturing refinement checks: all **69 frontend suites**, lint and production
+build pass, including assembled-terminal regressions. Read-only replay covers
+142 publications, 83 usable with automatic earlier-history calibration and 59
+unavailable; every release reproduces after removing later inventory. Both built
+workers and Scatter match the shared engine. Browser appearance/performance and
+comparison with price remain user review. The existing bundle-size warning remains.
 
 The former standalone-development handoff below is historical context. Its
 preservation-only scope and earlier interpretation rules do not override R1.

@@ -7,7 +7,9 @@ import {r1DefaultFreshness,validR1Freshness} from './freshness'
 
 export const r1SettingsKey='fyodor.scoring.usd-r1.v1'
 export const r1DefaultSettings:R1Settings={version:1,calibration:{mode:'automatic',limits:{}},selected:r1Families,freshness:r1DefaultFreshness}
-export const r1CalibrationKeys=r1Families.flatMap(f=>r1Profiles[f].components.flatMap(c=>[`${f}/${c.id}`,...(f==='gdp'?[`${f}/${c.id}/revision`]:[])]))
+// Preserve dormant Production overrides so the new profile does not discard
+// unrelated saved settings or break older workspace exports. They never score.
+export const r1CalibrationKeys=[...r1Families.flatMap(f=>r1Profiles[f].components.flatMap(c=>[`${f}/${c.id}`,...(f==='gdp'?[`${f}/${c.id}/revision`]:[])])),'ism-manufacturing/production']
 export function validR1Settings(value:unknown):value is R1Settings {
   if(!value||typeof value!=='object')return false
   const v=value as R1Settings

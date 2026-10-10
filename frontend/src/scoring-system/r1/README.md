@@ -13,7 +13,11 @@ calibration and worker entry points. Legacy scorers retain their own settings.
   invoke this calculation.
 - `features.ts`: explicit provider IDs, native units, reference periods and
   revised-prior comparisons. Continuing claims convert millions to thousands.
-  Unmapped ISM manufacturing Production stays unavailable with its 40% budget.
+  Manufacturing R1.1 explicitly scores New Orders only (100%); the current feed
+  has no ISM Production series. This is a narrower model, not a missing-input
+  fallback. The proposed 60/40 demand model needs connected Production history.
+  PMI identifies publication/reference/schedule metadata only, so a newer report
+  with missing Orders cannot silently reuse the preceding month's score.
 - `vintages.ts`: preserve the earliest recoverable release snapshot; later
   corrections replace current evidence only from their capture time. Late first
   captures are retrospective, never proof of original-time availability.
@@ -22,10 +26,13 @@ calibration and worker entry points. Legacy scorers retain their own settings.
 - `assessment.ts`: raw contribution is weight × signed magnitude. Leaves and
   balances use raw / 4, bounded at ±100; the release UI displays raw totals.
   Category and overall balances preserve signed leaves and uncertainty budgets.
-  Claims R1.1 interpolate points through zero, Small=1, Medium=2 and Large=4,
+  Claims and Manufacturing New Orders R1.1 interpolate through zero, Small=1, Medium=2 and Large=4,
   capped at four. Size labels remain independent of fractional points; other
   families retain integer bands. Assessor, sensitivity and Scatter preview share
-  `arithmetic.ts`. See the [Claims review](../../../../reports/Claims-R1-fractional-audit.md).
+  `arithmetic.ts`. See the [Claims review](../../../../reports/Claims-R1-fractional-audit.md)
+  and [manufacturing review](../../../../reports/Manufacturing-orders-R1-audit.md).
+  Manufacturing explanations separate expansion/contraction at 50 from A−P
+  evidence direction. Level and threshold crossings supply no additional vote.
 - `settings.ts`: separate portable R1 overrides and relationship scope. Saved
   compatible raw A−P bands are inherited without mutation. Otherwise R1 uses
   earlier-history 50/80/95% quantiles with 60 usable earlier observations; ties
@@ -34,6 +41,8 @@ calibration and worker entry points. Legacy scorers retain their own settings.
   R1 Scatter provides chart-only previews, Apply and Reset to inherited calibration;
   Apply shares the same overrides with Fundamental Settings and Inspector. Preview
   edits reclassify the displayed component without launching a history worker.
+  Retired manufacturing Production overrides remain portable but inert; old
+  Scatter Production selections resolve to Orders.
 - `useR1Analysis.ts`: scoped storage, stable inputs and the existing latest-job
   worker client. Storage supplies scheduled dates observed before the chosen
   clock; unknown schedules never become guessed dates.

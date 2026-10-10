@@ -17,7 +17,12 @@ export function calculateR1(input:R1Input):R1Analysis {
   for(const f of input.settings.selected){
     const candidates=prepared.get(f)!.filter(e=>e.release.releaseAt!<=at)
     // Choose the newest declared period before inspecting completeness or sign.
-    const period=(e:typeof candidates[number])=>Math.max(-Infinity,...r1Profiles[f].components.flatMap(c=>e.release.events.filter(row=>row.event_id===c.seriesId).map(row=>reference(r1Observation(row,at).row??row,c.period)??-Infinity)))
+    const period=(e:typeof candidates[number])=>{
+      const declared=Math.max(-Infinity,...r1Profiles[f].components.flatMap(c=>e.release.events.filter(row=>row.event_id===c.seriesId).map(row=>reference(r1Observation(row,at).row??row,c.period)??-Infinity)))
+      // A published PMI can identify the new reference month without supplying
+      // the missing Orders vote. Never reuse old Orders for that newer report.
+      return f==='ism-manufacturing'&&!Number.isFinite(declared)?Math.max(-Infinity,...e.release.events.filter(row=>row.event_id==='840040001').map(row=>reference(r1Observation(row,at).row??row,'month')??-Infinity)):declared
+    }
     const entry=candidates.sort((a,b)=>period(b)-period(a)||b.release.releaseAt!-a.release.releaseAt!)[0]
     if(!entry)continue
     const momentum=f==='gdp'

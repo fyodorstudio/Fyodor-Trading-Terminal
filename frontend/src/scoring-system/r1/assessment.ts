@@ -1,7 +1,7 @@
 import type { InspectorRelease } from '../../inspector/inspector-data'
 import type { MagnitudeLimits } from '../../inspector/magnitude/magnitude-distribution'
 import type { R1Assessment, R1Calibration, R1Feature, R1Leaf, R1MagnitudeSnapshot, R1Profile, R1Reading } from './contracts'
-import { balance, magnitude, magnitudePoints, precise } from './arithmetic'
+import { balance, magnitude, magnitudePoints, precise, usesFractionalMagnitude } from './arithmetic'
 import { r1CalibrationPolicy } from './profiles'
 import { reference, r1Features, type R1History } from './features'
 
@@ -21,7 +21,7 @@ export function assessFeatures(release:InspectorRelease,profile:R1Profile,featur
     const limits=manual??compatibleRaw??automatic
     const source=manual?'r1-manual':compatibleRaw?'saved-ap':automatic?'r1-automatic':'undefined'
     const points=f.delta===null?null:c.period==='action'?Math.sign(f.delta)*Math.min(Math.abs(f.delta)/25,4):f.delta===0?0:limits?c.polarity*Math.sign(f.delta)*magnitudePoints(profile.family,f.delta,limits):null
-    return {...c,...f,points,magnitude:points===null?null:profile.family==='claims'&&f.delta!==0?magnitude(f.delta!,limits!):Math.abs(points),contribution:points===null?null:precise(c.weight*points),limits:limits??null,calibration:c.period==='action'?'action':f.delta===0?'unchanged':source,samples:samples.length,reason:f.reason||(points===null?'Magnitude boundaries are unavailable.':'')}
+    return {...c,...f,points,magnitude:points===null?null:usesFractionalMagnitude(profile.family)&&f.delta!==0?magnitude(f.delta!,limits!):Math.abs(points),contribution:points===null?null:precise(c.weight*points),limits:limits??null,calibration:c.period==='action'?'action':f.delta===0?'unchanged':source,samples:samples.length,reason:f.reason||(points===null?'Magnitude boundaries are unavailable.':'')}
   })
   const leaves:R1Leaf[]=readings.map(r=>({id:`${release.id}/${r.id}`,family:profile.family,label:r.label,value:r.contribution===null?null:r.contribution/4,budget:r.weight,sourceId:release.id}))
   const result=balance(leaves)
@@ -72,6 +72,13 @@ function reason(r:R1Reading) {
 }
 export function explainR1(a:R1Assessment) {
   if(a.direction==='insufficient')return 'Missing evidence could change the direction.'
+  if(a.family==='ism-manufacturing'){
+    const r=a.readings[0],state=r.actual!>50?'expanding':r.actual!<50?'contracting':null
+    if(a.direction==='balanced')return `Manufacturing new orders are unchanged${state?` and remain ${state}`:' at 50'}.`
+    const improving=r.delta!>0,crossed=state&&(r.actual!-50)*(r.previous!-50)<=0
+    const context=state?crossed?` into ${state==='expanding'?'expansion':'contraction'}`:` ${improving===(state==='expanding')?'and':'but'} remain ${state}`:' to 50'
+    return `Manufacturing new orders ${improving?'improved':'softened'}${context}, supporting USD ${improving?'strength':'weakness'}.`
+  }
   if(a.direction==='balanced')return a.readings.some(r=>r.points)?'The weighted contributions cancel.':a.family==='fomc'?`Rate held at ${a.readings[0].actual}%. A hold alone does not establish currency strength or weakness.`:'The usable comparisons are unchanged.'
   const sign=a.direction==='strengthening'?1:-1
   const winner=a.readings.filter(r=>r.contribution!==null&&Math.sign(r.contribution)===sign).sort((a,b)=>Math.abs(b.contribution!)-Math.abs(a.contribution!))[0]

@@ -3,6 +3,7 @@ import type { R1Balance } from '../../scoring-system/r1/contracts'
 import { useR1Analysis } from '../../scoring-system/r1/useR1Analysis'
 import {useDisplayClock} from '../../appearance/time-display/useDisplayClock'
 import {r1Profiles} from '../../scoring-system/r1/profiles'
+import {usesFractionalMagnitude} from '../../scoring-system/r1/arithmetic'
 import './r1-score.css'
 const number=(n:number)=>n.toLocaleString(undefined,{maximumFractionDigits:2,signDisplay:'exceptZero'})
 function reportAge(published:number|null|undefined,at:number) {
@@ -25,7 +26,7 @@ export function R1Score(props:InspectorScoringProps&{selectedFamilies?:readonly 
   const {assessment:a,overall:o}=result
   return <section className="r1-score" aria-label="USD R1 scoring">
     <Result value={a} multiplier={4} explanation={a.explanation}/>
-    <section aria-label="Release evidence"><table><thead><tr><th>Input</th><th>Weight</th><th>Actual</th><th>Previous</th><th>A−P</th><th>Magnitude</th><th>Evidence</th></tr></thead><tbody>{a.readings.map(r=><tr key={r.id}><td>{r.label}</td><td>{r.weight}%</td><td>{r.actual===null?'Unavailable':number(r.actual)}</td><td>{r.previous===null?'Unavailable':number(r.previous)}</td><td>{r.delta===null?'Unavailable':`${number(r.delta)} ${r.unit}`}</td><td>{r.magnitude===null?'Unavailable':['Unchanged','Small','Medium','Large','Extreme'][r.magnitude]??`${r.magnitude} points`}{a.family==='claims'&&r.points!==null&&<> · {number(Math.abs(r.points)).replace(/^\+/,'')} pts</>}</td><td>{r.contribution===null?'Unavailable':number(r.contribution)}</td></tr>)}</tbody></table>
+    <section aria-label="Release evidence"><table><thead><tr><th>Input</th><th>Weight</th><th>Actual</th><th>Previous</th><th>A−P</th><th>Magnitude</th><th>Evidence</th></tr></thead><tbody>{a.readings.map(r=><tr key={r.id}><td>{r.label}</td><td>{r.weight}%</td><td>{r.actual===null?'Unavailable':number(r.actual)}</td><td>{r.previous===null?'Unavailable':number(r.previous)}</td><td>{r.delta===null?'Unavailable':`${number(r.delta)} ${r.unit}`}</td><td>{r.magnitude===null?'Unavailable':['Unchanged','Small','Medium','Large','Extreme'][r.magnitude]??`${r.magnitude} points`}{usesFractionalMagnitude(a.family)&&r.points!==null&&<> · {number(Math.abs(r.points)).replace(/^\+/,'')} pts</>}</td><td>{r.contribution===null?'Unavailable':number(r.contribution)}</td></tr>)}</tbody></table>
       <p>{a.version}{a.stage==='revision'?' · same-quarter revision':''}</p>
       {a.unavailable>0&&<p>Possible net: {number(a.interval[0]*4)} to {number(a.interval[1]*4)}.</p>}
     </section>

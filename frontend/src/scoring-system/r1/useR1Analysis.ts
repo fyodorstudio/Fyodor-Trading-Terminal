@@ -24,7 +24,7 @@ export function useR1Analysis({release,brokerId,events=noEvents,selectedFamilies
   const canonicalRelease=useMemo(()=>release?groupInspectorReleases(combined).find(r=>r.id===release.id)??release:null,[combined,release])
   const selected=useMemo(()=>settings.selected.filter(f=>!selectedFamilies||selectedFamilies.includes(f)),[settings.selected,selectedFamilies])
   const schedules=useMemo(()=>storage.schedules.flatMap((s):R1Schedule[]=>{
-    const family=r1Families.find(f=>r1Profiles[f].components.some(c=>c.seriesId===s.seriesId))
+    const family=s.seriesId==='840040001'?'ism-manufacturing':r1Families.find(f=>r1Profiles[f].components.some(c=>c.seriesId===s.seriesId))
     return family?[{...s,family}]:[]
   }),[storage.schedules])
   const input=useMemo(()=>canonicalRelease&&!storage.loading?{release:canonicalRelease,events:combined,settings:{...settings,selected:selected as R1Family[]},savedBands,schedules}:null,[canonicalRelease,storage.loading,combined,settings,selected,savedBands,schedules])

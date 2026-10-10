@@ -17,12 +17,14 @@ import { useScatterAppearance } from '../settings/scatter-plot-appearance'
 import { openFundamentalSettings } from '../../fundamental-tools/runtime/settings-navigation'
 import { scatterRecentWindow } from '../plot/scatter-recent-window'
 import { useRetainedScatterState } from '../plot/useRetainedScatterState'
+import {usesFractionalMagnitude} from '../../scoring-system/r1/arithmetic'
 const createWorker=()=>new Worker(new URL('../../scoring-system/r1/history.worker.ts',import.meta.url),{type:'module'})
 const emptyHistory:ReturnType<typeof calculateR1History>=[]
 export function R1ScatterPanel({brokerId,clockOffsetMs=0,target,binding,onMeasureChange,familyOptions,onFamilyChange,viewState}:ScatterPlotDockProps&{binding:ScatterFamilyBinding;onMeasureChange:(m:'ap'|'signal'|'r1')=>void;familyOptions:{id:string;label:string}[];onFamilyChange:(id:string)=>void;viewState:Map<string,unknown>}) {
   const family=r1Family(binding.family.familyId)!,profile=r1Profiles[family],now=useCalendarNow(clockOffsetMs)
   const storage=useFamilyScatterData(brokerId,now,binding.family,true),settings=useR1Settings(),savedBands=useR1Bands(),appearance=useScatterAppearance()
-  const [component,setComponent]=useRetainedScatterState(viewState,'r1-component',profile.components[0].id),[selected,setSelected]=useRetainedScatterState<string|null>(viewState,'r1-selection',target?.releaseId??null),[all,setAll]=useRetainedScatterState(viewState,'r1-history',false),[zoom,setZoom]=useRetainedScatterState(viewState,'r1-zoom',false)
+  const [requestedComponent,setComponent]=useRetainedScatterState(viewState,'r1-component',profile.components[0].id),[selected,setSelected]=useRetainedScatterState<string|null>(viewState,'r1-selection',target?.releaseId??null),[all,setAll]=useRetainedScatterState(viewState,'r1-history',false),[zoom,setZoom]=useRetainedScatterState(viewState,'r1-zoom',false)
+  const component=profile.components.some(c=>c.id===requestedComponent)?requestedComponent:profile.components[0].id
   const at=calendarAdmissionTime(storage.events,now)
   const input=useMemo(()=>!storage.loading?{family,events:storage.events,at,calibration:settings.calibration,savedBands}:null,[family,storage.loading,storage.events,at,settings.calibration,savedBands])
   const result=useBackgroundCalculation(input,calculateR1History,createWorker),history=result.result??emptyHistory
@@ -44,7 +46,7 @@ export function R1ScatterPanel({brokerId,clockOffsetMs=0,target,binding,onMeasur
     <button type="button" onClick={()=>setSelected(null)}>Latest release</button><button type="button" onClick={()=>setAll(!all)}>{all?'Recent releases':'All history'}</button><button type="button" onClick={()=>setZoom(!zoom)} disabled={!model.inspection?.distribution}>{zoom?'Full range':'Boundary zoom'}</button><button type="button" onClick={()=>openFundamentalSettings(family,'r1')}>Scoring settings</button>
   </div>{storage.message||result.loading||result.error?<p role="status">{storage.message??result.error??'Calculating R1 history…'}</p>:!model.inspection?<p role="status">Requested publication unavailable.</p>:<div className="scatter-plot-body"><MagnitudeScatterPlot model={model} zoom={zoom} appearance={appearance} dateWindow={dateWindow} dateResetKey={String(all)} viewState={viewState} viewStateKey="r1-viewport" viewKey={`r1/${brokerId}/${family}/${component}`} onInspect={setSelected}/><MagnitudeCalculationDetails r1 preview={!!preview} model={model} seriesLabel={r?.label??component}>
     <p>{preview?'Preview evidence':'R1 evidence'}: {evidence==null?'Unavailable':evidence.toLocaleString(undefined,{maximumFractionDigits:2})}.</p>
-    {family==='claims'&&<p>Magnitude points: {previewPoints==null?'Unavailable':Math.abs(previewPoints).toLocaleString(undefined,{maximumFractionDigits:2})}.</p>}
+    {usesFractionalMagnitude(family)&&<p>Magnitude points: {previewPoints==null?'Unavailable':Math.abs(previewPoints).toLocaleString(undefined,{maximumFractionDigits:2})}.</p>}
     {r?.reason&&!(preview&&r.delta!==null)&&<p role="status">{r.reason}</p>}
     {r?.period==='action'?<p>25 bp per point, capped at four.</p>:r&&<R1BoundaryEditor key={scope} limits={r.limits} preview={preview} manual={!!manual} unit={r.unit} onPreview={limits=>setDraft({scope,limits})} onApply={apply} onReset={()=>apply(null)}/>}
     <details><summary>Input audit</summary><p>{chosen?.version} · {r?.calibration} · {r?.vintage?.replaceAll('-',' ')??'unavailable'}</p></details>
