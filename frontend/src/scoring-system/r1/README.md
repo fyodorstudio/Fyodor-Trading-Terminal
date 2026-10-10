@@ -5,6 +5,17 @@ The canonical design and source rationale are in
 This module owns R1 profiles, arithmetic, interpretation, relationships,
 calibration and worker entry points. Legacy scorers retain their own settings.
 
+Inspector visibility filters do not select scoring inputs. Each currency uses its
+own model settings. Standalone appears first, followed by the selected currency's
+relationships and the other currency's evidence directly; the pair balance is
+retained in the engine for existing consumers, not shown in this Inspector view.
+Versioned history is loaded for a stable quarter horizon and reused only after
+source revision/coverage validation. All evidence still respects the selected
+publication clock. History/features are reused by immutable source identity.
+USD GDP q/q R1.1 uses a 24-comparison quarterly calibration minimum, separately
+for momentum and revisions; manual bands retain priority. See the
+[scope/GDP/loading audit](../../../../reports/R1-scope-GDP-loading-audit.md).
+
 - `analysis.ts`: selected USD/EUR publication plus overall before/after snapshots
   at its publication clock. `pair.ts` evaluates both currencies at that same clock
   and propagates uncertainty through `(EUR − USD) / 2`. Quarterly standalone

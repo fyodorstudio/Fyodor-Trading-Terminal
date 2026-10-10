@@ -10,7 +10,7 @@ const {createRoot}=await import('react-dom/client'),roots=[]
 const timers=new Map();let timerId=0
 dom.setTimeout=(fn,ms)=>{timers.set(++timerId,{fn,ms});return timerId};dom.clearTimeout=id=>timers.delete(id)
 const mount=Component=>{const div=document.createElement('div');document.body.append(div);const root=createRoot(div);roots.push(root);return{div,render:props=>React.act(async()=>{root.render(React.createElement(Component,props));await new Promise(resolve=>setImmediate(resolve))})}}
-let posts=0,created=0,terminated=0,revision=1
+let posts=0,created=0,terminated=0,revision=1,calendarRequests=0
 try{
   const {calculateR1}=await server.ssrLoadModule('./src/scoring-system/r1/analysis.ts')
   const {calculateR1Pair}=await server.ssrLoadModule('./src/scoring-system/r1/pair.ts')
@@ -36,9 +36,12 @@ try{
   const release=groupInspectorReleases(rows)[0]
   const originalSchedule={seriesId:'840030006',dueAt:at+30*86400000,knownAt:at-86400000,source:'test-publisher'}
   let planned=[originalSchedule]
-  globalThis.fetch=async url=>{const params=new URL('http://localhost'+url).searchParams;return{ok:true,json:async()=>url.endsWith('/health')?{revision,sources:[{id:'test',server_now:1}],collector_error:null}:{source_id:'test',revision,timestamp_convention:'trade_server_time',time_basis:'chart',event_ids:params.get('event_ids')?.split(','),events:rows,coverage:{USD:{missing:[]}},next_cursor:null,r1_source_version:1,r1_schedules:planned}}}
+  globalThis.fetch=async url=>{if(!url.endsWith('/health'))calendarRequests++;const params=new URL('http://localhost'+url).searchParams;return{ok:true,json:async()=>url.endsWith('/health')?{revision,sources:[{id:'test',server_now:1}],collector_error:null}:{source_id:'test',revision,timestamp_convention:'trade_server_time',time_basis:'chart',event_ids:params.get('event_ids')?.split(','),events:rows,coverage:{USD:{missing:[]}},next_cursor:null,r1_source_version:1,r1_schedules:planned}}}
   const app=mount(R1Score);await app.render({release,brokerId:'test',events:[]})
   assert.match(app.div.textContent,/USD Weakening/);assert.match(app.div.textContent,/USD-negative\s*-50/)
+  assert.match(app.div.querySelector('[aria-label="Standalone summary"]').textContent,/USD Weakening.*Evidence:.*Release points: -35.*USD-supportive\s*\+15.*USD-negative\s*-50/s)
+  assert.match(app.div.querySelector('[aria-label="Combined relationship summary"]').textContent,/Overall USD Weakening.*Evidence points:/s)
+  assert.equal(app.div.querySelector('[aria-label="Publication summary"]').firstElementChild.getAttribute('aria-label'),'Standalone summary','Standalone direction leads the summary before combined relationships')
   assert.equal(app.div.querySelectorAll('details, summary').length,0,'release and relationship evidence are visible without nested disclosures')
   assert.deepEqual([...app.div.querySelectorAll('[aria-label="Release evidence"] tbody tr')].map(tr=>tr.cells[1].textContent),['50%','20%','15%','15%'])
   const chooseDetails=async(value,owner=app)=>React.act(async()=>{const select=owner.div.querySelector('[aria-label="Scoring details"]');select.value=value;select.dispatchEvent(new dom.Event('change',{bubbles:true}))})
@@ -93,6 +96,10 @@ try{
   window.removeEventListener('fyodor:fundamental-settings',onSettings)
   assert.deepEqual(navigation,{family:'us-cpi',model:'r1'},'the moved button opens the R1 settings model')
   assert.equal(posts,beforeSettings,'opening settings does not relaunch scoring')
+  const filteredSummary=panel.div.querySelector('[aria-label="Publication summary"]').textContent,filterJobs=posts
+  await panel.render({view:{...view,preferences:{...view.preferences,families:[]}},symbol:'EURUSD',source:null,error:null,timeDisplay:{mode:'utc',utcOffsetMinutes:0}})
+  assert.equal(panel.div.querySelector('[aria-label="Publication summary"]').textContent,filteredSummary,'Inspector visibility filters cannot remove scoring evidence')
+  assert.equal(posts,filterJobs,'Visibility filters launch no R1 jobs')
   const jobs=posts
   await panel.render({view:{...view,preferences:{...view.preferences,detailView:'table'}},symbol:'EURUSD',source:null,error:null,timeDisplay:{mode:'utc',utcOffsetMinutes:0}})
   assert.equal(panel.div.querySelector('[aria-label="USD R1 scoring"]'),null);assert.equal(posts,jobs,'hidden R1 does not launch work')
@@ -323,6 +330,16 @@ try{
   await React.act(async()=>[...manufacturingDock.div.querySelectorAll('button')].find(b=>b.textContent==='Reset to inherited').click())
   assert.match(manufacturingApp.div.textContent,/Net\s*\+38\.5/)
   assert.equal(readR1Settings().calibration.limits['ism-manufacturing/prices'],undefined)
+  const nextAt=at+86400000
+  rows=[...rows,...rows.map(r=>({...r,value_id:r.value_id+'next',release_at:nextAt,chart_time_seconds:nextAt/1000,server_time_seconds:nextAt/1000}))];revision++;await poll()
+  const nextRelease=groupInspectorReleases(rows).find(r=>r.releaseAt===nextAt),historyRequests=calendarRequests
+  await manufacturingApp.render({release:nextRelease,brokerId:'test',events:rows})
+  await manufacturingApp.render({release:manufacturingRelease,brokerId:'test',events:rows})
+  assert.equal(calendarRequests,historyRequests,'Moving between publications reuses loaded history instead of paging it again')
+  const reopened=mount(R1Score);await reopened.render({release:manufacturingRelease,brokerId:'test',events:rows})
+  assert.equal(calendarRequests,historyRequests,'Reopening reuses the revision-checked history snapshot')
+  assert.ok(reopened.div.querySelector('[aria-label="EUR combined relationship summary"]'))
+  assert.equal(reopened.div.querySelector('[aria-label="EURUSD evidence"]'),null)
   console.log('✓ Mounted R1 Inspector, publication corrections, stable polling/clocks, hidden-view cleanup, fractional Claims/manufacturing Scatter parity and workspace portability')
 }finally{
   await React.act(async()=>roots.forEach(root=>root.unmount()))

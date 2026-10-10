@@ -30,4 +30,4 @@ export type R1Transition = { before: R1Aggregate; change: number; publications: 
 export type R1Analysis = { assessment: R1Assessment; assessments?:R1Assessment[]; overall: R1Aggregate; transition: R1Transition }
 export type R1Pair = R1Balance & { at:number; eur:R1Aggregate; usd:R1Aggregate; before:R1Balance; change:number }
 export type R1PairInput = R1Input & { eurSettings?:R1Settings; pair?:boolean }
-export type R1PairAnalysis = R1Analysis & { currency?:R1Currency; pair?:R1Pair }
+export type R1PairAnalysis = R1Analysis & { currency?:R1Currency; pair?:R1Pair; otherCurrency?:R1Analysis }

@@ -5,8 +5,17 @@
   overflow: auto;
   padding: 14px 16px;
   overflow-wrap: anywhere;
+  container: r1-scoring / inline-size;
 }
-.r1-result, .r1-evidence {
+.r1-result {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) 160px minmax(280px, 1fr) 110px;
+  align-items: center;
+  gap: 8px 20px;
+}
+.r1-result > .r1-points { grid-column: 3; }
+.r1-result > .r1-strength { justify-self: start; }
+.r1-evidence {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -25,6 +34,11 @@
 .r1-strength { padding: 3px 9px; text-transform: capitalize; }
 .r1-points { font-size: 1.1rem; font-variant-numeric: tabular-nums; }
 .r1-summary { padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+.r1-summary-block + .r1-summary-block { border-top: 1px solid var(--border); margin-top: 12px; padding-top: 12px; }
+.r1-summary-block h3 { color: var(--text-muted); margin-bottom: 8px; }
+@container r1-scoring (max-width: 1000px) {
+  .r1-result { display: flex; flex-wrap: wrap; }
+}
 .r1-details-choice { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
 .r1-evidence { margin-top: 10px; font-variant-numeric: tabular-nums; }
 .r1-evidence > span { white-space: nowrap; }

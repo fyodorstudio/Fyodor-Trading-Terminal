@@ -6,8 +6,9 @@ findings are in [the archived objective](reports/Main-objective-history-through-
 
 ## Active implementation: publication summary and EUR evidence R1
 
-The accepted [plan](temporary%20plan.md) extends USD R1 with a horizontal overall
-before/after summary, one selected detail table, hold-action presentation, EUR
+The accepted [plan](temporary%20plan.md) extends USD R1 with a prominent standalone
+summary first, combined relationships and their before/after summary below,
+one selected detail table, hold-action presentation, EUR
 standalone/relationships and a same-clock EURUSD evidence comparison. Forecasts,
 speeches and written-guidance classification remain excluded. USD formulas and
 legacy Roofs/Raycaster/Candy retain their separate contracts.
@@ -23,6 +24,15 @@ build. Read-only replay checks 3,595 EUR assessments, three pair clocks and six
 built-worker jobs; March Claims reproduces -17.82 to -17.61, Change +0.22.
 The existing bundle-size warning remains. Visual/browser performance review
 remains with the user.
+
+Latest user refinement: Inspector family filters control visibility only; scoring
+uses independent currency settings. Show EUR/USD evidence directly instead of the
+pair summary. USD GDP q/q R1.1 uses 24 earlier same-stage quarterly comparisons;
+manual bands remain authoritative. Stable versioned history queries, revision-
+checked snapshot reuse and prepared-worker caches reduce repeated loading while
+preserving selected-clock chronology. See the
+[scope/GDP/loading audit](reports/R1-scope-GDP-loading-audit.md). Prior reports
+retain their dated results; correcting GDP availability can change overall scores.
 
 ## Previous implementation: USD scoring overhaul R1
 

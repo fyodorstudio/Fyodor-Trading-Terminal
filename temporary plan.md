@@ -3,10 +3,11 @@
 Accepted 10 October 2026. Implement in this order; no migration of legacy Roofs,
 Raycaster or Candy scores. Canonical USD policy: [scoring design](docs/scoring%20system%20overhaul.md).
 
-1. **Publication summary.** Lead with overall currency direction and evidence
-   strength, arranged horizontally with `Evidence points: before → after` and
-   `Change`. Use unrounded scores to calculate the change. Show the standalone
-   release and a concise explanation underneath. Keep all summary text selectable,
+1. **Publication summary.** Updated after user review: lead with the standalone
+   direction and evidence strength, then show combined relationships beneath it.
+   Align direction, strength and points in both summaries; retain overall
+   `Evidence points: before → after` and `Change` using unrounded arithmetic.
+   Keep each result's totals and concise explanation together, all text selectable,
    allow narrow-panel wrapping, and remove vertical-bar separators.
 2. **Details selector.** Default to Release inputs; alternatives are Overall
    relationships, Freshness and Input audit. Render only the selected details,
@@ -59,3 +60,9 @@ Raycaster or Candy scores. Canonical USD policy: [scoring design](docs/scoring%2
 Manual review reserved for the user: summary alignment/select-and-copy at real
 panel sizes, Details choices, PMI Assessment selection, EUR Scatter previews and
 price comparison. No automated visual/browser-performance audit was performed.
+
+Latest review supersedes the pair-summary presentation: show each currency
+directly, and make Inspector visibility filters independent of scoring settings.
+GDP quarterly calibration and repeated-load refinements are recorded in the
+[scope/GDP/loading audit](reports/R1-scope-GDP-loading-audit.md). Saved manual
+bands remain authoritative; no blanket conversion to fractional magnitude.

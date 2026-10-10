@@ -4,7 +4,8 @@ const server=await createServer({server:{middlewareMode:true,hmr:false}})
 try {
   const {r1Profiles}=await server.ssrLoadModule('./src/scoring-system/r1/profiles.ts')
   const {calculateR1}=await server.ssrLoadModule('./src/scoring-system/r1/analysis.ts')
-  const {assessFeatures,r1Limits}=await server.ssrLoadModule('./src/scoring-system/r1/assessment.ts')
+  const {assessFeatures,r1Limits,prepareR1Features}=await server.ssrLoadModule('./src/scoring-system/r1/assessment.ts')
+  const {createR1History}=await server.ssrLoadModule('./src/scoring-system/r1/features.ts')
   const {balance,magnitude,magnitudePoints}=await server.ssrLoadModule('./src/scoring-system/r1/arithmetic.ts')
   const {combineR1,r1Freshness}=await server.ssrLoadModule('./src/scoring-system/r1/relationships.ts')
   const {r1DefaultFreshness,validR1Freshness}=await server.ssrLoadModule('./src/scoring-system/r1/freshness.ts')
@@ -247,5 +248,26 @@ try {
   const gdp=calculateR1({release:groupInspectorReleases(gdpRows).at(-1),events:gdpRows,settings:{...settings,selected:['gdp']},savedBands:{gdp:{'840010007':[.5,1,2]}},schedules:[{...schedule,family:'gdp'}]})
   assert.equal(gdp.assessment.readings[0].delta,.3);assert.equal(gdp.assessment.stage,'revision')
   assert.equal(gdp.overall.slots[0].assessment.readings[0].delta,-1.4,'revision updates quarter momentum without another vote')
+  const quarters=Array.from({length:28},(_,i)=>{
+    const reference=Date.UTC(2015,3*i,1),published=Date.UTC(2015,3*i+3,30)
+    return row('840010007',1+(i%5)/10,null,{value_id:`quarter-${i}`,release_at:published,chart_time_seconds:published/1000,period_seconds:reference/1000})
+  })
+  const quarterRelease=groupInspectorReleases(quarters).at(-1),quarterSettings={...settings,selected:['gdp'],calibration:{mode:'automatic',limits:{}}}
+  const quarterly=calculateR1({release:quarterRelease,events:quarters,settings:quarterSettings,savedBands:{}})
+  assert.equal(quarterly.assessment.readings[0].samples,26)
+  assert.equal(quarterly.assessment.readings[0].calibration,'r1-automatic','Quarterly GDP can calibrate with fewer than 60 release comparisons')
+  assert.equal(quarterly.assessment.coverage,1)
+  const overridden=calculateR1({release:quarterRelease,events:quarters,settings:{...quarterSettings,calibration:{mode:'automatic',limits:{'gdp/growth':[1,2,3]}}},savedBands:{}})
+  assert.deepEqual(overridden.assessment.readings[0].limits,[1,2,3],'Manual GDP bands retain priority over automatic calibration')
+  let reads=0
+  const counted=rows.map(r=>new Proxy(r,{get(target,key){reads++;return Reflect.get(target,key)}}))
+  const indexed=createR1History(counted),prepared=prepareR1Features(indexed,r1Profiles['us-cpi'])
+  assert.ok(reads>0);reads=0
+  assert.equal(createR1History(counted),indexed)
+  assert.equal(prepareR1Features(indexed,r1Profiles['us-cpi']),prepared)
+  assert.equal(reads,0,'Repeated calculations reuse history/features with zero source reads')
+  const changed=rows.map((r,i)=>i===0?{...r,actual:.4}:r)
+  assert.notEqual(createR1History(changed),indexed,'A genuine correction invalidates prepared history')
+  assert.equal(prepareR1Features(createR1History(changed),r1Profiles['us-cpi'])[0].features[0].delta,.1)
   console.log('✓ R1 golden evidence totals, decimal bands, cap, partial inputs, forecast/index/future exclusion, unit conversion, inflation anchor, nine Fed cases, schedules and GDP revisions')
 }finally{await server.close()}

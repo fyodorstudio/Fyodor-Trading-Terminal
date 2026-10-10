@@ -49,8 +49,18 @@ export function readingVariants(a:R1Assessment,profile:R1Profile):R1Assessment[]
   }
   return variants
 }
-export function prepareR1Features(history:R1History,profile:R1Profile,gdpMomentum=false) {
-  return history.releases.filter(r=>r.familyId===(profile.releaseFamily??profile.family)&&r.currency===(profile.currency??'USD')&&r.country===(profile.country??'US')&&r.events.some(e=>profile.components.some(c=>c.seriesId===e.event_id))).map(release=>({release,features:r1Features(release,profile,history,gdpMomentum)}))
+type Prepared=Array<{release:InspectorRelease;features:R1Feature[]}>
+const preparedHistories=new WeakMap<R1History,Map<R1Profile,Map<boolean,Prepared>>>()
+export function prepareR1Features(history:R1History,profile:R1Profile,gdpMomentum=false):Prepared {
+  let profiles=preparedHistories.get(history)
+  if(!profiles){profiles=new Map();preparedHistories.set(history,profiles)}
+  let modes=profiles.get(profile)
+  if(!modes){modes=new Map();profiles.set(profile,modes)}
+  const cached=modes.get(gdpMomentum)
+  if(cached)return cached
+  const prepared=history.releases.filter(r=>r.familyId===(profile.releaseFamily??profile.family)&&r.currency===(profile.currency??'USD')&&r.country===(profile.country??'US')&&r.events.some(e=>profile.components.some(c=>c.seriesId===e.event_id))).map(release=>({release,features:r1Features(release,profile,history,gdpMomentum)}))
+  modes.set(gdpMomentum,prepared)
+  return prepared
 }
 export function assessR1(release:InspectorRelease,profile:R1Profile,history:R1History,calibration:R1Calibration,saved:R1MagnitudeSnapshot,gdpMomentum=false,prepared=prepareR1Features(history,profile,gdpMomentum),availabilityAt=release.releaseAt??0) {
   const current=r1Features(release,profile,history,gdpMomentum,availabilityAt),samples=profile.components.map((_,i)=>{

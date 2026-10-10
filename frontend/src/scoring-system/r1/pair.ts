@@ -27,5 +27,5 @@ export function calculateR1Pair(input:R1PairInput):R1PairAnalysis {
   const range:[number,number]=[precise((er[0]-ur[1])/2),precise((er[1]-ur[0])/2)]
   result.sensitive=result.direction==='strengthening'?range[0]<=0:result.direction==='weakening'?range[1]>=0:range[0]>0||range[1]<0
   result.sensitivityRange=range
-  return {...primary,currency,pair:{...result,at,eur:eur.overall,usd:usd.overall,before,change:precise(result.net-before.net)}}
+  return {...primary,currency,otherCurrency:secondary,pair:{...result,at,eur:eur.overall,usd:usd.overall,before,change:precise(result.net-before.net)}}
 }

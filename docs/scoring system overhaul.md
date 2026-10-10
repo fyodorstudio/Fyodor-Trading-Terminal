@@ -961,3 +961,30 @@ See [the expansion audit](../reports/Currency-evidence-R1-expansion-audit.md) fo
 stored coverage, all-publication Inspector/Scatter parity and production-worker
 checks. Historical snapshots cannot recover publication-time vintages that were
 never captured.
+
+## Inspector scope and GDP calibration refinement
+
+Inspector family filters control browsing and chart-symbol visibility only.
+They do not select relationship votes; each currency's R1 settings own that
+scope. Show each currency's combined evidence directly, instead of the pair
+summary and its missing-evidence interval. Standalone remains first.
+
+USD-GDP-R1.1 keeps GDP q/q as its only voting input and requires 24 earlier
+same-stage comparisons for automatic bands, instead of the monthly 60-sample
+minimum. New-quarter momentum and same-quarter estimate revisions remain
+separate. The minimum is an explicit policy, consistent with EUR quarterly
+calibration; it does not introduce votes for the other five GDP-release readings.
+Manual overrides and compatible saved raw bands retain priority.
+
+For fractional models, manual Small/Medium/Large boundaries still define the
+points at 1/2/4, with zero at zero and interpolation between boundaries, capped
+at four. Scatter preview and Apply use the shared arithmetic. Other USD models
+retain integer magnitude bands; this refinement does not convert them all.
+
+Stable versioned history queries and revision-checked snapshot reuse avoid
+reloading history on each publication selection. Immutable history and feature
+preparation are reused inside the worker; source changes invalidate that reuse.
+As-of vintages, calibration, schedules and freshness still use the selected
+publication clock. See the [refinement audit](../reports/R1-scope-GDP-loading-audit.md).
+Earlier reports retain their dated outputs; making GDP momentum available can
+change historical overall evidence.

@@ -23,6 +23,9 @@ const noStoredEvents: StoredCalendarEvent[] = []
 export type StoredSchedule = {seriesId:string;dueAt:number;knownAt:number;source:string;supersedesDueAt?:number}
 const noSchedules:StoredSchedule[]=[]
 const noCoverage: Coverage = {}
+// R1's versioned history can survive a view remount. Reuse only after a fresh
+// health response confirms the exact source revision and coverage. Bound memory.
+const r1Snapshots=new Map<string,{revision:number;coverageSignature:string|undefined;snapshot:Snapshot}>()
 
 export function useStoredCalendar(brokerId: string | null | undefined, range: CalendarDisplayRange | null, enabled: boolean,
   scope?: { currency?: 'EUR' | 'USD'; eventIds?: readonly string[]; r1AsOf?:number; r1History?:boolean }) {
@@ -54,6 +57,12 @@ export function useStoredCalendar(brokerId: string | null | undefined, range: Ca
         const source = health.sources.find((item) => item.id === brokerId) ?? null
         if (!source) throw new Error(`No stored calendar for ${brokerId}. Start Publisher V2 or import its inventory.`)
         const currentCoverage = JSON.stringify(source.coverage)
+        const cached=r1AsOf!==undefined?r1Snapshots.get(key):undefined
+        if(revision===null&&cached?.revision===health.revision&&cached.coverageSignature===currentCoverage){
+          revision=health.revision;coverageSignature=currentCoverage
+          setSnapshot({...cached.snapshot,source,collectorError:health.collector_error})
+          return
+        }
         if (health.revision === revision && currentCoverage === coverageSignature) {
           if (current()) setSnapshot((old) => old?.key === key ? { ...old, source, collectorError: health.collector_error, error: null } : old)
           return
@@ -102,9 +111,17 @@ export function useStoredCalendar(brokerId: string | null | undefined, range: Ca
           if (changed) continue
           revision = pageRevision
           coverageSignature = currentCoverage
-          if (current()) setSnapshot((old) => ({ key, events: old?.key === key && sameCalendarRows(old.events, events) ? old.events : events,
-            schedules:old?.key===key&&JSON.stringify(old.schedules)===JSON.stringify(schedules)?old.schedules:schedules,
-            coverage, loading: false, error: null, source, collectorError: health.collector_error }))
+          if (current()) setSnapshot((old) => {
+            const next={ key, events: old?.key === key && sameCalendarRows(old.events, events) ? old.events : events,
+              schedules:old?.key===key&&JSON.stringify(old.schedules)===JSON.stringify(schedules)?old.schedules:schedules,
+              coverage, loading: false, error: null, source, collectorError: health.collector_error }
+            if(r1AsOf!==undefined){
+              r1Snapshots.delete(key)
+              if(r1Snapshots.size>=4)r1Snapshots.delete(r1Snapshots.keys().next().value!)
+              r1Snapshots.set(key,{revision:pageRevision!,coverageSignature:currentCoverage,snapshot:next})
+            }
+            return next
+          })
           return
         }
         throw new Error('Calendar changed during paging; retrying shortly')

@@ -20,13 +20,13 @@ function reportAge(published:number|null|undefined,at:number) {
 function Totals({value,multiplier=1,currency='USD'}:{value:R1Balance;multiplier?:number;currency?:string}) {
   return <><span>{currency}-supportive <b>{number(value.supportive*multiplier)}</b></span><span>{currency}-negative <b>{number(value.negative*multiplier)}</b></span><span>Net <b>{number(value.net*multiplier)}</b></span></>
 }
-export function R1Score(props:InspectorScoringProps&{selectedFamilies?:readonly string[]}) {
+export function R1Score(props:InspectorScoringProps) {
   const {result,loading,error,storage}=useR1Analysis(props)
   const clock=useDisplayClock(),[detail,setDetail]=useState(initialDetail),[assessmentFamily,setAssessmentFamily]=useState('')
   if(loading||storage.loading)return <p role="status">Calculating currency evidence…</p>
   if(error)return <p role="alert">{error}</p>
   if(!result)return null
-  const {overall:o,transition:t,pair}=result
+  const {overall:o,transition:t,otherCurrency}=result
   const a=result.assessments?.find(a=>a.family===assessmentFamily)??result.assessment
   const currency=props.release?.currency??'USD'
   const rate=a.readings.find(r=>r.period==='action'),held=rate?.delta===0
@@ -35,15 +35,32 @@ export function R1Score(props:InspectorScoringProps&{selectedFamilies?:readonly 
   const explanation=stable?t.change===0?`${o.direction==='weakening'?'Negative':'Positive'} ${currency} evidence is unchanged.`:`${currency} evidence remains ${o.direction==='weakening'?'negative':'positive'}, but ${Math.abs(o.net)<Math.abs(t.before.net)?'less':'more'} ${o.direction==='weakening'?'negative':'positive'}.`:o.explanation
   return <section className="r1-score" aria-label={`${currency} R1 scoring`}>
     <header className="r1-summary" aria-label="Publication summary">
+      <section className="r1-summary-block" aria-label="Standalone summary">
+        <h3>Standalone · {a.label}</h3>
+        <div className={`r1-result r1-${a.direction}`}><strong>{action??r1DirectionLabel(a,currency)}</strong>{a.strength&&<b className="r1-strength">Evidence: {a.strength[0].toUpperCase()+a.strength.slice(1)}</b>}
+          <span className="r1-points">Release points: <b>{number(a.net*4)}</b></span>
+        </div>
+        <div className="r1-evidence"><Totals value={a} multiplier={4} currency={currency}/><p className="r1-explanation">{held?'A hold alone does not establish currency strength or weakness.':a.explanation}</p></div>
+        {a.unavailable>0&&<p className="r1-notes">Possible release net: {number(a.interval[0]*4)} to {number(a.interval[1]*4)}.</p>}
+      </section>
+      <section className="r1-summary-block" aria-label="Combined relationship summary">
+      <h3>Combined relationships</h3>
       <div className={`r1-result r1-${o.direction}`}><strong>Overall {r1DirectionLabel(o,currency)}</strong>{o.strength&&<b className="r1-strength">Evidence: {o.strength[0].toUpperCase()+o.strength.slice(1)}</b>}
         <span className="r1-points">Evidence points: <b>{number(t.before.net)} → {number(o.net)}</b></span><span>Change <b>{number(t.change)}</b></span>
       </div>
       <div className="r1-evidence"><Totals value={o} currency={currency}/><p className="r1-explanation">{explanation}</p></div>
-      <div className="r1-evidence"><strong>{action??`${a.label}: ${a.direction==='strengthening'?`${currency}-supportive`:a.direction==='weakening'?`${currency}-negative`:r1DirectionLabel(a,currency)} ${number(a.net*4)}`}</strong>{t.publications.length>1&&<span>Combined update: {t.publications.join(', ')}.</span>}</div>
+      {t.publications.length>1&&<p className="r1-notes">Combined update: {t.publications.join(', ')}.</p>}
       {(o.coverage<1||t.before.coverage<1)&&<p className="r1-notes">Partial coverage · possible net {number(o.interval[0])} to {number(o.interval[1])}.</p>}
       {o.sensitive&&<p className="r1-notes">Direction sensitive to weights or boundaries.</p>}
-      {pair&&<div className="r1-evidence r1-pair" aria-label="EURUSD evidence"><strong>{pair.direction==='strengthening'?'EURUSD: evidence favors EUR':pair.direction==='weakening'?'EURUSD: evidence favors USD':pair.direction==='balanced'?'EURUSD: balanced evidence':'EURUSD: insufficient evidence'}</strong><span>{r1DirectionLabel(pair.eur,'EUR')} <b>{number(pair.eur.net)}</b></span><span>{r1DirectionLabel(pair.usd,'USD')} <b>{number(pair.usd.net)}</b></span><span>Pair points <b>{number(pair.before.net)} → {number(pair.net)}</b></span><span>Change <b>{number(pair.change)}</b></span>{pair.strength&&<b>{pair.strength} evidence</b>}</div>}
-      {pair&&pair.unavailable>0&&<p className="r1-notes">Pair possible net: {number(pair.interval[0])} to {number(pair.interval[1])}.</p>}
+      </section>
+      {otherCurrency&&<section className="r1-summary-block" aria-label={`${currency==='USD'?'EUR':'USD'} combined relationship summary`}>
+        <h3>{currency==='USD'?'EUR':'USD'} combined relationships</h3>
+        <div className={`r1-result r1-${otherCurrency.overall.direction}`}><strong>Overall {r1DirectionLabel(otherCurrency.overall,currency==='USD'?'EUR':'USD')}</strong>{otherCurrency.overall.strength&&<b className="r1-strength">Evidence: {otherCurrency.overall.strength[0].toUpperCase()+otherCurrency.overall.strength.slice(1)}</b>}
+          <span className="r1-points">Evidence points: <b>{number(otherCurrency.transition.before.net)} → {number(otherCurrency.overall.net)}</b></span><span>Change <b>{number(otherCurrency.transition.change)}</b></span>
+        </div>
+        <div className="r1-evidence"><Totals value={otherCurrency.overall} currency={currency==='USD'?'EUR':'USD'}/><p className="r1-explanation">{otherCurrency.overall.explanation}</p></div>
+        {otherCurrency.overall.coverage<1&&<p className="r1-notes">Known evidence: {Math.round(otherCurrency.overall.coverage*100)}%.</p>}
+      </section>}
     </header>
     <label className="r1-details-choice">Details <select aria-label="Scoring details" value={detail} onChange={e=>{const next=e.target.value as Detail;setDetail(next);try{window.localStorage.setItem(r1DetailsKey,next)}catch{/* Keep session choice. */}}}>{Object.entries(detailChoices).map(([key,label])=><option key={key} value={key}>{label}</option>)}</select></label>
     {detail==='release'&&<section aria-label="Release evidence">{result.assessments&&<label className="r1-details-choice">Assessment <select aria-label="Release assessment" value={a.family} onChange={e=>setAssessmentFamily(e.target.value)}>{result.assessments.map(a=><option key={a.family} value={a.family}>{a.label}</option>)}</select></label>}<table><thead><tr><th>Input</th><th>Weight</th><th>Actual</th><th>Previous</th><th>A−P</th><th>Magnitude</th><th>Evidence</th></tr></thead><tbody>{a.readings.map(r=><tr key={r.id}><td>{r.label}</td><td>{r.weight}%</td><td>{r.actual===null?'Unavailable':number(r.actual)}</td><td>{r.previous===null?'Unavailable':number(r.previous)}</td><td>{r.delta===null?'Unavailable':`${number(r.delta)} ${r.unit}`}</td><td>{r.magnitude===null?'Unavailable':['Unchanged','Small','Medium','Large','Extreme'][r.magnitude]??`${r.magnitude} points`}{usesFractionalMagnitude(a.family)&&r.points!==null&&<> · {number(Math.abs(r.points)).replace(/^\+/,'')} pts</>}</td><td>{r.contribution===null?'Unavailable':number(r.contribution)}</td></tr>)}</tbody></table>

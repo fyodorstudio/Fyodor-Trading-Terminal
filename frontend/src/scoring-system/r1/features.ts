@@ -19,7 +19,10 @@ const prior=(ref:number,period:R1Component['period'])=>ref-(period==='week'?6048
 const field=(row:EconomicCalendarEvent,name:'actual'|'previous'|'revised_previous')=>decimal(row[name],row[`${name}_raw_scaled_1e6`])
 const present=(row:EconomicCalendarEvent,name:'previous'|'revised_previous')=>row[name]!=null||row[`${name}_raw_scaled_1e6`]!=null
 const unavailable=(reason:string):R1Feature=>({actual:null,previous:null,delta:null,reference:null,previousReference:null,publishedAt:null,valueId:null,revision:null,basis:'Unavailable',reason})
-export function createR1History(events:readonly EconomicCalendarEvent[]) {
+const histories=new WeakMap<readonly EconomicCalendarEvent[],R1History>()
+export function createR1History(events:readonly EconomicCalendarEvent[]):{rows:Row[];latest:(id:string,ref:number,period:R1Component['period'],at:number,before?:boolean,availabilityAt?:number)=>Row|null;releases:InspectorRelease[]} {
+  const cached=histories.get(events)
+  if(cached)return cached
   const seen=new Set<string>(),rows=events.filter((e):e is Row=>{
     if (!observedR1(e)||seen.has(e.value_id)) return false
     seen.add(e.value_id);return true
@@ -40,7 +43,9 @@ export function createR1History(events:readonly EconomicCalendarEvent[]) {
     if(i>0&&matches[i-1].release_at===row.release_at&&(matches[i-1].available_at??row.release_at)<=at)return null
     return row
   }
-  return { rows, latest, releases:groupInspectorReleases(rows) }
+  const history={ rows, latest, releases:groupInspectorReleases(rows) }
+  histories.set(events,history)
+  return history
 }
 export type R1History=ReturnType<typeof createR1History>
 

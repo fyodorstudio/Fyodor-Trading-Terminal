@@ -154,7 +154,7 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
           {!release ? <p className="inspector-empty" role={view.inspectingPublication ? 'status' : undefined}>{view.inspectingPublication ?
             view.publicationLoading ? 'Loading selected publication…' : view.publicationError ?? 'Selected publication is unavailable in stored history.' :
             'Click a chart symbol or select a release to inspect Actual, Previous and A−P.'}</p> : <>
-            {showR1?<R1Score release={scoreRelease} brokerId={view.brokerId} events={scoringEvents} selectedFamilies={view.preferences.families}/>:showScoring && scoringBinding ? <InspectorScoringView binding={scoringBinding} release={release}
+            {showR1?<R1Score release={scoreRelease} brokerId={view.brokerId} events={scoringEvents}/>:showScoring && scoringBinding ? <InspectorScoringView binding={scoringBinding} release={release}
               brokerId={view.brokerId} events={scoringEvents} now={view.now} timeDisplay={timeDisplay}
               onOpenScatter={scatterAvailable ? onOpenScatter : undefined} /> :
             release.pmiPublications ? <PmiReadingsTable release={release} view={view} timeDisplay={timeDisplay} /> :
