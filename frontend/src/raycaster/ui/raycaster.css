@@ -100,21 +100,21 @@
   .raycaster-reading:not(.selected-roof-reading), .selected-roof-reading > .reading-summary { position: static; }
 }
 
+.raycaster-box-r1 { height: 780px; }
 .raycaster-box-r1 .raycaster-body { overflow-x: clip; }
 .r1-ray-reading, .r1-ray-reading :is(section, div, table) { min-width: 0; }
 .r1-ray-currencies { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-.r1-ray-currencies > section { display: grid; grid-template-rows: 48px 30px 96px 37px 20px 28px; border: 1px solid var(--border); border-radius: 8px; padding: 7px; background: var(--surface-raised); }
-.r1-ray-direction { line-height: 16px; font-size: 12px; }
+.r1-ray-currencies > section { display: grid; grid-template-rows: 160px 36px 28px 24px 22px 28px; padding: 4px; }
+.r1-ray-direction { line-height: 16px; font-size: 12px; padding-top: 4px; }
 .r1-ray-strength { line-height: 13px; font-size: 10px; }
-.r1-ray-points { display: grid; grid-template-rows: 17px 20px; }
-.r1-ray-points > span { font-size: 10px; }
+.r1-ray-points { display: flex; align-items: center; }
 .r1-ray-points b { white-space: nowrap; overflow-wrap: normal; font-size: clamp(9px, 3cqi, 12px); }
 .r1-ray-currencies b, .r1-ray-release-table, .r1-ray-comparison { font-variant-numeric: tabular-nums; }
 .r1-ray-positive { color: var(--positive); }
 .r1-ray-negative { color: var(--negative); }
 .raycaster-box .r1-ray-change { display: flex; justify-content: space-between; gap: 3px; margin: 2px 0 0; font-size: 11px; }
 .raycaster-box .r1-ray-totals { margin: 3px 0 0; font-size: 10px; line-height: 13px; color: var(--text-muted); }
-.r1-ray-comparison { display: grid; align-content: start; min-height: 36px; margin-top: 6px; padding: 5px 0; border-block: 1px solid var(--border); }
+.r1-ray-comparison { display: grid; align-content: start; min-height: 36px; margin-top: 8px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-raised); }
 .r1-ray-comparison small { font-size: 10px; }
 .r1-ray-update-group { min-block-size: 58px; }
 .r1-ray-update { padding-top: 6px; font-size: 11px; }
@@ -125,17 +125,17 @@
 .r1-ray-release-table thead { color: var(--text-muted); font-size: 10px; }
 .r1-ray-release-table td small { display: block; color: var(--text-muted); font-size: 10px; }
 .r1-ray-release-table tfoot { border-top: 1px solid var(--border); }
-.r1-evidence-tank { position: relative; border: 1px solid var(--border-strong); border-radius: 8px; overflow: hidden; background: var(--surface-panel); }
-.r1-tank-fill, .r1-tank-unknown { position: absolute; left: 0; right: 0; }
-.r1-tank-positive { background: var(--positive); opacity: .35; }
-.r1-tank-negative { background: var(--negative); opacity: .35; }
-.r1-tank-unknown { background: repeating-linear-gradient(135deg, transparent 0 5px, var(--text-muted) 5px 6px); opacity: .18; }
-.r1-tank-zero { position: absolute; top: 50%; left: 0; right: 0; border-top: 1px solid var(--border-strong); font-size: 9px; color: var(--text-muted); padding-left: 3px; }
-.r1-tank-previous { position: absolute; left: 0; right: 0; border-top: 1px dashed var(--text); }
-.r1-tank-scale { position: absolute; right: 3px; z-index: 1; font-size: 9px; color: var(--text-muted); }
-.r1-tank-upper { top: 0; }.r1-tank-lower { bottom: 0; }
+.r1-evidence-tank { position: relative; border: 2px solid var(--border-strong); border-radius: 20px; overflow: hidden; background: linear-gradient(135deg, var(--surface-raised), var(--surface-panel)); box-shadow: inset 3px 0 12px color-mix(in srgb, var(--text-muted) 6%, transparent); }
+.r1-tank-currency { position: absolute; z-index: 2; top: 12px; left: 50%; transform: translateX(-50%); border: 1px solid var(--border-strong); border-radius: 8px; padding: 2px 12px; background: var(--surface-panel); color: var(--text-strong); font-size: 11px; font-weight: 700; letter-spacing: 1px; }
+.r1-tank-score { position: absolute; z-index: 2; top: 50%; left: 0; right: 0; transform: translateY(-50%); text-align: center; font-variant-numeric: tabular-nums; }
+.r1-tank-score b { font-size: clamp(20px, 7cqi, 28px); line-height: 1.2; letter-spacing: -.5px; }
+.raycaster-box .r1-tank-score small { font-size: 10px; margin-top: 4px; }
+.r1-tank-positive { --tank-color: var(--positive); }
+.r1-tank-negative { --tank-color: var(--negative); }
+.r1-tank-fill { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(180deg, color-mix(in srgb, var(--tank-color) 24%, var(--surface-panel)), color-mix(in srgb, var(--tank-color) 52%, var(--surface-panel))); border-top-left-radius: 50% 6px; border-top-right-radius: 50% 6px; box-shadow: inset 0 1px 0 color-mix(in srgb, var(--tank-color) 50%, transparent); }
+.r1-tank-previous { position: absolute; left: 7px; right: 7px; border-top: 1px dashed color-mix(in srgb, var(--tank-color) 50%, transparent); }
 @container raycaster-panel (max-width: 320px) {
   .r1-ray-currencies { gap: 4px; }
-  .r1-ray-currencies > section { padding: 5px; grid-template-rows: 64px 42px 96px 37px 20px 28px; }
+  .r1-ray-currencies > section { padding: 2px; grid-template-rows: 160px 52px 42px 24px 22px 28px; }
   .r1-ray-release-table :is(th,td):nth-child(2), .r1-ray-release-table :is(th,td):nth-child(3) { width: 56px; }
 }

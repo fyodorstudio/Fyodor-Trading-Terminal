@@ -37,16 +37,16 @@ export function R1Reading({brokerId,now,cutoff,open,brokerOffsetSeconds,symbols}
     <div className="r1-ray-currencies">{(['EUR','USD'] as const).map(currency=>{
       const state=point[currency],update=state.update,label=r1DirectionLabel(state,currency)
       return <section key={currency} aria-label={`${currency} R1 evidence`}>
+        <R1EvidenceTank state={state} currency={currency}/>
         <strong className={`r1-ray-direction ${color(state.net)}`}>{label.startsWith(currency)?label:`${currency} · ${label}`}</strong>
         <small className="r1-ray-strength" title={state.missing.join(', ')}>{state.unavailable>0?`Incomplete — ${state.missing.length===1?state.missing[0]:`${state.missing.length} inputs`} unavailable`:state.strength?`${state.strength[0].toUpperCase()+state.strength.slice(1)} evidence`:' '}</small>
-        <R1EvidenceTank state={state} currency={currency}/>
-        <div className="r1-ray-points"><span>Overall evidence points</span><b>{points(update?.before??state.net)} → {points(state.net)}</b></div>
+        <div className="r1-ray-points"><b>{points(update?.before??state.net)} → {points(state.net)}</b></div>
         <p className={`r1-ray-change ${color(update?.change??0)}`}>Change <b>{update?points(update.change):'—'}</b></p>
         <p className="r1-ray-totals">Supportive {points(state.supportive)}<br/>Negative {points(state.negative)}</p>
       </section>
     })}</div>
     <div className="r1-ray-comparison" aria-label="EUR and USD comparison">
-      <strong>{comparison.unavailable?'Currency comparison unavailable':comparison.leader?`${comparison.leader} leads ${comparison.leader==='USD'?'EUR':'USD'} by: ${points(Math.abs(comparison.gap)).replace('+','')} points`:'EUR and USD tied · 0.00 points'}</strong>
+      <strong>{comparison.unavailable?'Currency comparison unavailable':comparison.leader?`${comparison.leader} leads ${comparison.leader==='USD'?'EUR':'USD'} by ${points(Math.abs(comparison.gap)).replace('+','')} evidence points`:'EUR and USD tied · 0.00 points'}</strong>
       <small>{comparison.unavailable?'Select evidence for both currencies.':comparison.uncertain?comparison.leader?'Missing evidence could change this lead.':'Missing evidence could break this tie.':' '}</small>
     </div>
     <div className="r1-ray-updates" aria-label="R1 evidence updates">{(['EUR','USD'] as const).map(currency=>{

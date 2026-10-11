@@ -5,13 +5,11 @@ import {r1EvidencePoints as points,r1TankGeometry} from '../core/r1-evidence-pre
 
 export function R1EvidenceTank({state,currency}:{state:R1TimelineState;currency:R1Currency}) {
   const geometry=r1TankGeometry(state),previous=state.update?.before??state.net
-  return <div className="r1-evidence-tank" role="meter" aria-label={`${currency} overall evidence tank`} aria-valuemin={-100} aria-valuemax={100} aria-valuenow={state.net}
+  return <div className="r1-evidence-tank" role="meter" aria-label={`${currency} overall evidence tank`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={geometry.fillHeight}
     aria-valuetext={`${r1DirectionLabel(state,currency)}; ${points(state.net)} points${state.unavailable?`; incomplete, ${state.missing.join(', ')} unavailable`:''}`}>
-    <span className="r1-tank-scale r1-tank-upper" aria-hidden="true">+100</span>
-    <span className="r1-tank-scale r1-tank-lower" aria-hidden="true">−100</span>
-    {state.unavailable>0&&<span className="r1-tank-unknown" style={{top:`${geometry.rangeTop}%`,height:`${geometry.rangeHeight}%`}} title={`Missing evidence: ${points(state.interval[0])} to ${points(state.interval[1])}`}/>}
-    <span className={`r1-tank-fill ${state.net<0?'r1-tank-negative':'r1-tank-positive'}`} style={{top:`${geometry.fillTop}%`,height:`${geometry.fillHeight}%`}}/>
-    <span className="r1-tank-zero" aria-hidden="true">0</span>
-    <span className="r1-tank-previous" style={{top:`${geometry.previousTop}%`}} title={`Previous score ${points(previous)}`} aria-hidden="true"/>
+    <span className="r1-tank-currency" aria-hidden="true">{currency}</span>
+    <span className="r1-tank-score"><b className={state.net>0?'r1-ray-positive':state.net<0?'r1-ray-negative':''}>{state.coverage?points(state.net):'—'}</b><small>Evidence points</small></span>
+    <span className={`r1-tank-fill ${state.net<0?'r1-tank-negative':'r1-tank-positive'}`} style={{height:`${geometry.fillHeight}%`}} aria-hidden="true"/>
+    <span className={`r1-tank-previous ${previous<0?'r1-tank-negative':'r1-tank-positive'}`} style={{bottom:`${geometry.previousBottom}%`}} title={`Previous score ${points(previous)}`} aria-hidden="true"/>
   </div>
 }

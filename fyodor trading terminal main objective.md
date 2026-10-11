@@ -34,13 +34,17 @@ includes the latest [Fed policy model](docs/scoring%20system%20overhaul.md#fed-p
 - **Inspector:** standalone summary first, combined relationships below, other
   currency evidence at the same clock. One selected detail table. Inspector
   filters control visibility only; currency settings independently select the
-  relationship inputs. Assessment/detail choices do not rescore history.
-- **Raycaster R1:** EUR/USD combined evidence at the cursor candle's end; same
-  fixed ±100 tank scales, a zero line, previous-score marker and signed change.
+  relationship inputs. The combined summary exposes each family's change and
+  any relationship adjustment, adding up to the batch total. Assessment/detail
+  choices do not rescore history.
+- **Raycaster R1:** EUR/USD combined evidence at the cursor candle's end; bottom
+  fill on the same fixed 0–100 magnitude scale. Green means strength, red means
+  weakness; the prominent signed score and previous-level marker distinguish
+  current magnitude from change.
   Keep summary positions stable, points together and horizontal content within
   the panel. Compact dated rows distinguish standalone release points from
   overall changes, group simultaneous publications and retain the last update on
-  quiet candles. Missing allowances are hatched and named. Hover only looks up
+  quiet candles. Missing inputs are named without primary tank hatching. Hover only looks up
   the prepared timeline.
 - **Scatter Plot:** raw A−P and scorer comparisons remain distinct. R1 native
   signal previews, Apply and Reset share calibration with Inspector/settings.

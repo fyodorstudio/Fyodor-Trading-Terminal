@@ -1,13 +1,14 @@
-import type { R1Aggregate, R1Assessment, R1Balance, R1Currency, R1Family, R1Settings } from './contracts'
+import type { R1Aggregate, R1Assessment, R1Balance, R1ChangePart, R1Currency, R1Family, R1Settings } from './contracts'
 import { assessFedPublication,createR1SnapshotReader, r1ObservationClocks, type R1SnapshotInput } from './analysis'
 import { createR1History } from './features'
 import { r1Profiles,r1Families } from './profiles'
 import { precise } from './arithmetic'
 import { assessR1 } from './assessment'
 import {r1MissingEvidence} from './presentation'
+import {r1ChangeParts,r1FamilyTotals} from './changes'
 
 export type R1TimelineInput=Omit<R1SnapshotInput,'currency'|'settings'>&{usdSettings:R1Settings;eurSettings:R1Settings;end:number}
-export type R1UpdatePart={label:string;change:number;family?:R1Family}
+export type R1UpdatePart=R1ChangePart
 export type R1ReleaseScore=Pick<R1Assessment,'family'|'label'|'releaseId'|'net'|'direction'|'strength'|'unavailable'|'explanation'>
 export type R1Update={at:number;before:number;after:number;change:number;kind:'publication'|'expiry'|'correction'|'schedule';releases:{id:string;family:string;label:string;country:string}[];parts:R1UpdatePart[];standalone:R1ReleaseScore[]}
 export type R1TimelineState=Pick<R1Balance,'supportive'|'negative'|'net'|'unavailable'|'interval'|'direction'|'strength'|'coverage'>&{update:R1Update|null;missing:string[]}
@@ -42,22 +43,11 @@ export function calculateR1Timeline(input:R1TimelineInput):R1Timeline {
       const releases=(publications.get(at)??[]).filter(r=>r.currency===currency).map(r=>({id:r.id,family:r.familyId,label:r.label,country:r.country}))
       const changed=previous&&(aggregate.net!==previous.net||aggregate.unavailable!==previous.unavailable)
       const kind=releases.length?'publication':observations.has(at)?'correction':announcements.has(at)?'schedule':'expiry'
-      const totals=new Map<R1Family,number>()
-      for(const leaf of aggregate.leaves)totals.set(leaf.family,(totals.get(leaf.family)??0)+(leaf.value??0))
+      const totals=r1FamilyTotals(aggregate.leaves)
       let update=previous?.update??null
       if(releases.length||changed){
         const published=settings[currency].selected.filter(f=>(publications.get(at)??[]).some(r=>relevant(f,r)))
-        const parts:R1UpdatePart[]=[],families=new Set([...previousTotals[currency].keys(),...totals.keys(),...published])
-        let adjustment=0
-        for(const family of families){
-          const change=precise((totals.get(family)??0)-(previousTotals[currency].get(family)??0))
-          if(releases.length&&!published.includes(family))adjustment+=change
-          else if(change||published.includes(family))parts.push({family,label:r1Profiles[family].label,change})
-        }
-        // Replacing an inflation anchor can remove CPI or realign PPI without
-        // publishing them again. Keep that change visible instead of assigning
-        // it arbitrarily to a simultaneous release.
-        if(precise(adjustment))parts.push({label:'Relationship adjustment',change:precise(adjustment)})
+        const parts=r1ChangeParts(previousTotals[currency],totals,published)
         const standalone:R1ReleaseScore[]=[]
         for(const release of publications.get(at)??[])for(const family of settings[currency].selected.filter(f=>relevant(f,release))){
           const profile=r1Profiles[family],slot=aggregate.slots.find(s=>s.family===family)?.assessment

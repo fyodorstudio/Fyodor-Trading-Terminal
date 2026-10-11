@@ -34,6 +34,7 @@ Paths below are relative to `frontend/src/`.
 | Active family formula, weights, calibration | `scoring-system/r1/{profiles,eur-profiles,features,assessment,arithmetic}.ts` |
 | Older standalone family models | `scoring-system/PAIR/EURUSD/USD/<FAMILY>/{assessment,policy}/` |
 | USD/EUR R1 families, relationships, pair comparison, calibration and history | `scoring-system/r1/`; see its README and `docs/scoring system overhaul.md` |
+| Inspector/Raycaster change contributions | `scoring-system/r1/changes.ts`; Inspector summary in `inspector/scoring/R1Score.tsx` |
 | Claims standalone versus legacy context | `CLAIMS/assessment/claims-standalone-score.ts` versus `claims-score.ts` under the family path above |
 | Canonical settings metadata / Scatter definitions | `scoring-system/scoring-catalog.ts`, `scoring-signal-bindings.ts` |
 | Settings layout / Claims draft, Apply, Reset | `fundamental-tools/settings/`, `fundamental-tools/ui/fundamental-settings.css` |
@@ -43,6 +44,7 @@ Paths below are relative to `frontend/src/`.
 | Saved settings portability | `workspace-portability/workspace-snapshot.ts` |
 | Test entry points | `frontend/tests/suites.mjs` (from root); run suites sequentially |
 | R1 Raycaster tanks and release rows | `raycaster/ui/{R1Reading,R1EvidenceTank}.tsx`, `raycaster/core/r1-evidence-presentation.ts` |
+| Chart drawing geometry, interaction and hover labels | `market-data/chart-drawings/`; position labels in `ChartDrawingShape.tsx`, hover styling in `chart-drawing-overlay.css` |
 
 Runtime APIs and settings keys are contracts. Prefer these entry points and `rg`
 over renaming product terms across code or rewriting historical reports.
@@ -50,7 +52,7 @@ over renaming product terms across code or rewriting historical reports.
 ## Hygiene review — 9 October 2026
 
 The [11 October PMI/tanks audit](../reports/R1-PMI-tanks-audit.md) removes two
-unreachable worker entries. All 463 current frontend source files are reachable
+unreachable worker entries. All 463 then-current frontend source files were reachable
 from bootstrap; relative imports resolve. Active objective/navigation text is
 updated and its full previous handoff is preserved as historical evidence.
 

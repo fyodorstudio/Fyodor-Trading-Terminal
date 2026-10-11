@@ -1,6 +1,7 @@
 import {useState} from 'react'
 import type { InspectorScoringProps } from './scoring-contracts'
-import type { R1Balance } from '../../scoring-system/r1/contracts'
+import type { R1Balance,R1Transition } from '../../scoring-system/r1/contracts'
+import {r1DisplayChangeParts} from '../../scoring-system/r1/changes'
 import { useR1Analysis } from '../../scoring-system/r1/useR1Analysis'
 import {useDisplayClock} from '../../appearance/time-display/useDisplayClock'
 import {r1Profiles} from '../../scoring-system/r1/profiles'
@@ -22,6 +23,13 @@ function Totals({value,currency='USD'}:{value:R1Balance;currency?:string}) {
 }
 function Change({value}:{value:number}) {
   return <span className={`r1-change ${value>0?'r1-change-positive':value<0?'r1-change-negative':''}`}>Overall score change <b>{number(value)}</b></span>
+}
+function Contributions({transition,currency}:{transition:R1Transition;currency:string}) {
+  if(!transition.parts.length)return null
+  return <dl className="r1-contributions" aria-label={`${currency} overall change contributions`}>
+    {r1DisplayChangeParts(transition).map(p=><div key={p.family??p.label}><dt>{p.label}</dt><dd className={p.change>0?'r1-change-positive':p.change<0?'r1-change-negative':''}>{number(p.change)}</dd></div>)}
+    <div className="r1-contributions-total"><dt>Total</dt><dd className={transition.change>0?'r1-change-positive':transition.change<0?'r1-change-negative':''}><b>{number(transition.change)}</b></dd></div>
+  </dl>
 }
 export function R1Score(props:InspectorScoringProps) {
   const {result,loading,error,storage}=useR1Analysis(props)
@@ -51,8 +59,8 @@ export function R1Score(props:InspectorScoringProps) {
       <div className={`r1-result r1-${o.direction}`}><strong>Overall {r1DirectionLabel(o,currency)}</strong>{o.strength&&<b className="r1-strength">Evidence: {o.strength[0].toUpperCase()+o.strength.slice(1)}</b>}
         <span className="r1-points">Evidence points: <b>{number(t.before.net)} → {number(o.net)}</b></span><Change value={t.change}/>
       </div>
+      <Contributions transition={t} currency={currency}/>
       <div className="r1-evidence"><Totals value={o} currency={currency}/><p className="r1-explanation">{explanation}</p></div>
-      {t.publications.length>1&&<p className="r1-notes">Combined update: {t.publications.join(', ')}.</p>}
       {o.unavailable>0&&<p className="r1-notes">Incomplete — {r1MissingEvidence(o).join(', ')} unavailable.</p>}
       {o.sensitive&&<p className="r1-notes">Direction sensitive to weights or boundaries.</p>}
       </section>
@@ -61,6 +69,7 @@ export function R1Score(props:InspectorScoringProps) {
         <div className={`r1-result r1-${otherCurrency.overall.direction}`}><strong>Overall {r1DirectionLabel(otherCurrency.overall,currency==='USD'?'EUR':'USD')}</strong>{otherCurrency.overall.strength&&<b className="r1-strength">Evidence: {otherCurrency.overall.strength[0].toUpperCase()+otherCurrency.overall.strength.slice(1)}</b>}
           <span className="r1-points">Evidence points: <b>{number(otherCurrency.transition.before.net)} → {number(otherCurrency.overall.net)}</b></span><Change value={otherCurrency.transition.change}/>
         </div>
+        <Contributions transition={otherCurrency.transition} currency={currency==='USD'?'EUR':'USD'}/>
         <div className="r1-evidence"><Totals value={otherCurrency.overall} currency={currency==='USD'?'EUR':'USD'}/><p className="r1-explanation">{otherCurrency.overall.explanation}</p></div>
         {otherCurrency.overall.unavailable>0&&<p className="r1-notes">Incomplete — {r1MissingEvidence(otherCurrency.overall).join(', ')} unavailable.</p>}
       </section>}

@@ -174,7 +174,7 @@ export function ChartDrawingOverlay({
     if (xs.some(x => x === null)) return []
     // Skip price projection for shapes entirely outside the horizontal pane.
     // Horizontal lines span the pane independently of their saved timestamp.
-    const padding = drawing.tool.includes('position') ? 320 : drawing.tool === 'text' ? 220 : drawing.tool === 'price-note' ? 100 : 24
+    const padding = drawing.tool.includes('position') ? 2 : drawing.tool === 'text' ? 220 : drawing.tool === 'price-note' ? 100 : 24
     if (drawing.tool !== 'horizontal-line' && viewport.width > 0
       && (Math.max(...xs as number[]) < -padding || Math.min(...xs as number[]) > viewport.width + padding)) return []
     const points = dataPoints.map((point, index) => {

@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef, useState } from 'react'
 import type { ChartDrawingRecord } from './chart-drawing-record'
 import type { ChartDrawingScreenPoint } from './chart-drawing-screen-point'
 import { parallelChannelCorners } from './parallel-channel-geometry'
@@ -8,6 +9,36 @@ type ChartDrawingShapeProps = {
   width: number
   height: number
   precision?: number
+}
+
+function PositionLabel({ firstLine, secondLine, target, centerX, y, width }: {
+  firstLine: string
+  secondLine?: string
+  target: boolean
+  centerX: number
+  y: number
+  width: number
+}) {
+  const textRef = useRef<SVGGElement>(null)
+  const [measuredWidth, setMeasuredWidth] = useState(0)
+  useLayoutEffect(() => {
+    const lengths = [...(textRef.current?.querySelectorAll('text') ?? [])]
+      .map(text => text.getComputedTextLength?.() ?? 0)
+    setMeasuredWidth(Math.max(0, ...lengths))
+  }, [firstLine, secondLine])
+  const textWidth = measuredWidth || Math.max(firstLine.length, secondLine?.length ?? 0) * 6
+  const cardWidth = Math.min(textWidth + 16, Math.max(2, width - 4))
+  const x = Math.max(2, Math.min(centerX - cardWidth / 2, width - cardWidth - 2))
+  const scale = Math.min(1, Math.max(1, cardWidth - 16) / textWidth)
+  return (
+    <g className="position-label" transform={`translate(${x} ${y})`}>
+      <rect className={`position-label-background ${target ? 'target' : 'stop'}`} width={cardWidth} height={secondLine ? 38 : 20} rx="4" />
+      <g ref={textRef}>
+        <text className="position-label-text" textAnchor="middle" transform={`translate(${cardWidth / 2} ${secondLine ? 15 : 14}) scale(${scale})`}>{firstLine}</text>
+        {secondLine && <text className="position-label-text" textAnchor="middle" transform={`translate(${cardWidth / 2} 29) scale(${scale})`}>{secondLine}</text>}
+      </g>
+    </g>
+  )
 }
 
 function PositionDrawing({ points, width, height, precision = 5 }: Pick<ChartDrawingShapeProps, 'points' | 'width' | 'height' | 'precision'>) {
@@ -41,15 +72,13 @@ function PositionDrawing({ points, width, height, precision = 5 }: Pick<ChartDra
   const boxTop = Math.min(target.y, stop.y, entry.y)
   const boxBottom = Math.max(target.y, stop.y, entry.y)
   const boxHeight = Math.max(2, boxBottom - boxTop)
+  if (right < 0 || left > width || boxBottom < 0 || boxTop > height) return null
   const isTargetAbove = target.y <= entry.y
-  const boxCenterX = left + positionWidth / 2
-  const topCardWidth = 295
-  const bottomCardWidth = isTargetAbove ? 260 : 275
-
-  const topCardX = Math.min(Math.max(2, boxCenterX - topCardWidth / 2), Math.max(2, width - topCardWidth - 2))
-  const bottomCardX = Math.min(Math.max(2, boxCenterX - bottomCardWidth / 2), Math.max(2, width - bottomCardWidth - 2))
-  const topCardY = Math.max(2, (isTargetAbove ? target.y : stop.y) - 40)
-  const bottomCardY = Math.min(Math.max(2, (isTargetAbove ? stop.y : target.y) + 2), height - 21)
+  const boxCenterX = (Math.max(0, left) + Math.min(width, right)) / 2
+  const topCardY = Math.max(2, Math.min(boxTop - 40, height - 40))
+  const bottomCardY = Math.max(2, Math.min(boxBottom + 2, height - 22))
+  const targetText = `Target: ${reward.toFixed(precision)} (${rewardPercent.toFixed(3)}%) ${rewardPips.toFixed(1)} pips`
+  const stopText = `Stop: ${risk.toFixed(precision)} (${riskPercent.toFixed(3)}%) ${riskPips.toFixed(1)} pips`
 
   return (
     <g>
@@ -58,36 +87,11 @@ function PositionDrawing({ points, width, height, precision = 5 }: Pick<ChartDra
       <rect className="position-outline" x={left} y={boxTop} width={positionWidth} height={boxHeight} />
       <line className="position-entry-line" x1={left} y1={entry.y} x2={right} y2={entry.y} />
 
-      <g transform={`translate(${topCardX} ${topCardY})`}>
-        <rect
-          className={`position-label-background ${isTargetAbove ? 'target' : 'stop'}`}
-          width={topCardWidth}
-          height="38"
-          rx="4"
-        />
-        <text className="position-label-text" x="8" y="15">
-          {isTargetAbove
-            ? `Target: ${reward.toFixed(precision)} (${rewardPercent.toFixed(3)}%) ${rewardPips.toFixed(1)} pips`
-            : `Stop: ${risk.toFixed(precision)} (${riskPercent.toFixed(3)}%) ${riskPips.toFixed(1)} pips`}
-        </text>
-        <text className="position-label-text" x="8" y="29">
-          Open P&amp;L: 0.00000, Qty: 1,000 · Risk/Reward: {riskReward.toFixed(2)}
-        </text>
-      </g>
-
-      <g transform={`translate(${bottomCardX} ${bottomCardY})`}>
-        <rect
-          className={`position-label-background ${isTargetAbove ? 'stop' : 'target'}`}
-          width={bottomCardWidth}
-          height="19"
-          rx="3"
-        />
-        <text className="position-label-text" x="5" y="13">
-          {isTargetAbove
-            ? `Stop: ${risk.toFixed(precision)} (${riskPercent.toFixed(3)}%) ${riskPips.toFixed(1)} pips`
-            : `Target: ${reward.toFixed(precision)} (${rewardPercent.toFixed(3)}%) ${rewardPips.toFixed(1)} pips`}
-        </text>
-      </g>
+      <PositionLabel firstLine={isTargetAbove ? targetText : stopText}
+        secondLine={`Open P&L: 0.00000, Qty: 1,000 · Risk/Reward: ${riskReward.toFixed(2)}`}
+        target={isTargetAbove} centerX={boxCenterX} y={topCardY} width={width} />
+      <PositionLabel firstLine={isTargetAbove ? stopText : targetText}
+        target={!isTargetAbove} centerX={boxCenterX} y={bottomCardY} width={width} />
     </g>
   )
 }

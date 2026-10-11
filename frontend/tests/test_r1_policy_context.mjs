@@ -107,7 +107,7 @@ try {
  assert.deepEqual(narrow.assessment,wide.assessment,'Fed standalone uses the same full USD basket independently of relationship subset settings')
  assert.notEqual(narrow.overall.net,wide.overall.net,'Relationship selections still control their own combined budget')
  const {R1Score}=await server.ssrLoadModule('./src/inspector/scoring/R1Score.tsx')
- globalThis.__policyFixture={result:{assessment:strengthening,overall:combined,transition:{before:combined,change:0,publications:[],corrections:[],expiries:[]}},loading:false,error:null,storage:{loading:false,error:null}}
+ globalThis.__policyFixture={result:{assessment:strengthening,overall:combined,transition:{before:combined,change:0,parts:[],publications:[],corrections:[],expiries:[]}},loading:false,error:null,storage:{loading:false,error:null}}
  const markup=renderToStaticMarkup(React.createElement(R1Score,{release:heldRelease,brokerId:null,events:heldRows}))
  assert.match(markup,/Fed release · policy interpretation/);assert.match(markup,/USD Strengthening/);assert.match(markup,/Policy points: <b>\+10<\/b>/);assert.match(markup,/Rate held at 3.75%/)
  assert.match(markup,/Baseline/);assert.match(markup,/Comparison change/);assert.doesNotMatch(markup,/A hold alone/)

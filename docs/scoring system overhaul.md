@@ -1163,10 +1163,15 @@ the engine's strict direction, nominal missing budgets and possible interval.
 No usable evidence remains unavailable; a partial zero does not invent a lead.
 Inspector, Raycaster and settings descriptions must agree with these rules.
 
-Raycaster uses two compact tanks on a fixed ±100 scale, green above zero and red
-below, with the previous score marked and missing allowance hatched. Keep score
+Raycaster's accepted visual refinement uses two bottom-filled tanks on a fixed
+0–100 magnitude scale: green for strength, red for weakness. Large signed scores
+and faint previous-level markers distinguish remaining evidence from change;
+there are no primary axes or hatching. Missing inputs remain named. Keep score
 pairs and signed changes in fixed slots; no animation trails during rapid hover.
 Joined dated rows show standalone points, each family's overall change and the
-combined total. Text wraps within the panel without clipping information to mask
+combined total. Inspector exposes the same contribution rows beneath its combined
+summary, including separate relationship adjustments and a reconciled total.
+The R1 frame is 780px high, capped by the available chart height.
+Text wraps within the panel without clipping information to mask
 horizontal overflow. Retired views remain available. Browser/visual review stays
 with the user; terminal tests verify arithmetic, propagation and zero hover work.

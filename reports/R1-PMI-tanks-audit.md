@@ -32,14 +32,26 @@ The user confirmed blank Actuals in MT5. Stored backfill payloads from 11 Octobe
 
 ## Presentation and hygiene
 
-Inspector and Raycaster show qualified available-evidence leads without changing the strict engine classification/interval. No usable inputs remain unavailable; partial zero does not invent a lead. Raycaster tanks use fixed ±100 scales, zero lines, previous-score markers and hatched missing ranges. Compact dated tables separate standalone points and overall changes and conserve displayed totals. Quiet candles retain the last update; hover does no scoring, fetching or worker dispatch.
+Inspector and Raycaster show qualified available-evidence leads without changing the strict engine classification/interval. No usable inputs remain unavailable; partial zero does not invent a lead. The later accepted visual refinement uses bottom-filled tanks on a shared 0–100 magnitude scale, green/red liquid, prominent signed scores and previous-level markers. Missing inputs remain named without primary axes or hatching. Compact dated tables separate standalone points and overall changes and conserve displayed totals. Quiet candles retain the last update; hover does no scoring, fetching or worker dispatch.
 
 Removed two unreachable workers (old R1 and Claims analysis); retained actual pair/history/timeline and Claims standalone workers and all retired views. The active objective is compacted with its full previous content archived, and navigation/settings descriptions name the current owners/rules.
 
+## Simultaneous Claims/PPI contribution review
+
+13 August 2026 at 12:30 UTC, default settings: 6.899643395 → 6.140786315; combined change -0.75885708. Selecting either publication exposes identical parts; the production pair worker and Raycaster timeline agree. Browser overrides were not read.
+
+| Contributor | Displayed overall change |
+| --- | ---: |
+| PPI | -0.64 |
+| Jobless claims | -0.12 |
+| Total | -0.76 |
+
+Inspector displays these shared contribution rows directly beneath the combined summary. R1's frame is 780px high, still capped by the available chart height; changing between R1 and retired views reclamps its saved position. Small charts retain scrolling rather than hide details.
+
 ## Verification
 
-Built production timeline worker matches the pure timeline exactly, including missing-input metadata. Focused unit/mounted tests cover fallback availability, zero composite, stale/new-month/excluded sectors, missing-budget conservation, real corrections, signed tank positions/crossings, compact-row totals and deterministic zero hover work.
+Built production timeline worker matches the pure timeline exactly, including missing-input metadata. The production pair worker matches the August Claims/PPI Inspector result and contribution breakdown. Focused unit/mounted tests cover fallback availability, zero composite, stale/new-month/excluded sectors, missing-budget conservation, real corrections, bottom tank levels/crossings, compact-row totals and deterministic zero hover work.
 
-Repository verification on 11 October: all 73 sequential frontend suites passed, including the assembled terminal responsiveness suite; lint and TypeScript/Vite production build passed. The import/export/dynamic import/worker/CSS graph reaches all 463 source files from bootstrap, with no unresolved relative references or unreachable files. Active navigation links and git diff whitespace checks passed. These checks do not prove absence of every possible dead branch. Browser layout/performance and rapid-hover appearance remain user review.
+Repository verification on 11 October: all 73 sequential frontend suites passed, including the assembled terminal responsiveness suite; lint and TypeScript/Vite production build passed. The import/export/dynamic import/worker/CSS graph reaches all 464 source files from bootstrap, with no unresolved relative references or unreachable files. Active navigation links and git diff whitespace checks passed. These checks do not prove absence of every possible dead branch. Browser layout/performance and rapid-hover appearance remain user review.
 
 Reproduce: pnpm --dir frontend exec node scripts/audit-r1-pmi-tanks.mjs.

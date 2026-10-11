@@ -22,6 +22,9 @@ for momentum and revisions; manual bands retain priority. See the
   at its publication clock. `pair.ts` evaluates both currencies at that same clock
   and propagates uncertainty through `(EUR − USD) / 2`. Quarterly standalone
   revisions and retained momentum are separate comparisons, never extra votes.
+- `changes.ts`: shared family contribution differences and display-cent totals
+  for Inspector and Raycaster. Simultaneous reports share one atomic update;
+  retained-family realignment remains a separate relationship adjustment.
 - `history.ts`: historical standalone assessments for Scatter, using the same
   feature extractor and assessor as Inspector. Pan, hover and selection do not
   invoke this calculation.
@@ -130,9 +133,11 @@ sensitivity sweeps while preserving Inspector's base direction, strength and
 missing-evidence intervals. See the [Raycaster audit](../../../../reports/R1-Raycaster-audit.md).
 
 The compact signed tanks and joined release/overall-change rows are owned by
-`raycaster/ui/{R1Reading,R1EvidenceTank}.tsx`. Both tanks use the fixed ±100 scale;
-zero, previous-score markers and missing-budget hatching preserve the distinction
-between score and change. Timeline states carry compact missing-input labels
+`raycaster/ui/{R1Reading,R1EvidenceTank}.tsx`. Both tanks fill from the bottom on
+the same fixed 0–100 magnitude scale. Green/red liquid, prominent signed scores
+and previous-level markers preserve the distinction between strength, weakness
+and change. Missing inputs are named; primary tanks have no axes or hatching.
+Timeline states carry compact missing-input labels
 prepared in the worker; hover only projects a selected point and its updates.
 See the [PMI/tanks replay](../../../../reports/R1-PMI-tanks-audit.md).
 

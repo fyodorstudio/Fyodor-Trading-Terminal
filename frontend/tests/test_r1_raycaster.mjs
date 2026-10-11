@@ -54,7 +54,10 @@ try {
  for(const clock of [at-1,at,at+20*60000,at+day,at+2*day,at+8*day,at+8*day+1,at+45*day+1]) {
    const expected=calculateR1Pair({release,events,settings:usdSettings,eurSettings,savedBands:{},schedules,asOf:clock})
    const point=r1TimelineAt(timeline,clock)
-   for(const[currency,a]of [['USD',expected.overall],['EUR',expected.otherCurrency.overall]])for(const key of ['net','supportive','negative','unavailable','direction','strength','interval'])assert.deepEqual(point[currency][key],a[key],`${currency} Inspector parity at ${clock}: ${key}`)
+   for(const[currency,analysis]of [['USD',expected],['EUR',expected.otherCurrency]]){
+     for(const key of ['net','supportive','negative','unavailable','direction','strength','interval'])assert.deepEqual(point[currency][key],analysis.overall[key],`${currency} Inspector parity at ${clock}: ${key}`)
+     if(point[currency].update?.at===clock)assert.deepEqual(point[currency].update.parts,analysis.transition.parts,`${currency} contribution parity at ${clock}`)
+   }
  }
  assert.equal(r1TimelineAt(timeline,at).USD.update.releases.length,2,'Simultaneous releases share one combined delta')
  for(const point of timeline.points)for(const currency of ['EUR','USD']){
@@ -82,6 +85,9 @@ try {
  const replaced=r1TimelineAt(inflation,at+day).USD.update
  assert.ok(replaced.parts.some(p=>p.label==='Relationship adjustment'&&p.change<0))
  assert.equal(replaced.parts.find(p=>p.family==='pce').change,0,'PCE is unchanged; removing CPI explains the aggregate change')
+ const pceRelease=groupInspectorReleases(inflationEvents).find(r=>r.familyId==='pce'&&r.releaseAt===at+day)
+ const pceAnalysis=calculateR1Pair({release:pceRelease,events:inflationEvents,settings:inflationSettings,eurSettings,savedBands:{},schedules:[]})
+ assert.deepEqual(replaced.parts,pceAnalysis.transition.parts,'Inspector and Raycaster expose the same retained-anchor adjustment')
  const comparisonState=(net,interval=[net,net],direction=net>0?'strengthening':net<0?'weakening':'balanced')=>({net,interval,direction})
  assert.equal(r1EvidenceComparison(comparisonState(8.76),comparisonState(23.81)).gap,15.05)
  assert.equal(r1EvidenceComparison(comparisonState(-20),comparisonState(-10)).leader,'USD')
@@ -90,12 +96,23 @@ try {
  assert.equal(r1EvidenceComparison(comparisonState(8.76,[-1,18],'insufficient'),comparisonState(23.81,[20,30])).uncertain,false)
  assert.equal(r1EvidenceComparison(comparisonState(8.76,[-30,50],'insufficient'),comparisonState(23.81)).uncertain,true)
  assert.equal(r1EvidenceComparison(comparisonState(0,[-100,100],'empty'),comparisonState(23.81)).unavailable,true)
- for(const [net,before,top,height,previousTop] of [[20,40,40,10,30],[-20,-40,50,10,70],[20,-20,40,10,60],[-20,20,50,10,40],[0,0,50,0,50],[100,100,0,50,0],[-100,-100,50,50,100]]){
+ for(const [net,before,height,previousBottom] of [[20,40,20,40],[-20,-40,20,40],[20,-20,20,20],[-20,20,20,20],[0,0,0,0],[100,100,100,100],[-100,-100,100,100],[12.64,17.6,12.64,17.6],[6.04,6.04,6.04,6.04]]){
    const shape=r1TankGeometry({net,interval:[net-12,net+12],update:{before}})
-   assert.equal(shape.fillTop,top);assert.equal(shape.fillHeight,height);assert.equal(shape.previousTop,previousTop)
-   assert.ok(shape.rangeTop>=0&&shape.rangeTop+shape.rangeHeight<=100,'Uncertainty hatching remains inside the fixed ±100 scale')
+   assert.equal(shape.fillHeight,height);assert.equal(shape.previousBottom,previousBottom)
  }
- assert.equal(r1TankGeometry({net:4.68,interval:[-7.32,16.68],update:null}).rangeHeight,12,'Missing PMI keeps its uncertainty rather than becoming water/zero evidence')
+ assert.equal(r1TankGeometry({net:4.68,interval:[-7.32,16.68],update:null}).fillHeight,4.68,'Water represents the known magnitude without filling missing allowances')
+ assert.equal(r1EvidenceComparison(comparisonState(12.64),comparisonState(6.04)).gap,-6.6,'A falling EUR score can still exceed the USD score')
+ const {R1EvidenceTank}=await server.ssrLoadModule('./src/raycaster/ui/R1EvidenceTank.tsx')
+ const {renderToStaticMarkup}=await import('react-dom/server')
+ for(const [net,before] of [[12.64,17.6],[-12.64,17.6],[12.64,-17.6],[0,0]]){
+   const holder=document.createElement('div'),state={...comparisonState(net),coverage:1,unavailable:0,missing:[],update:{before}}
+   holder.innerHTML=renderToStaticMarkup(React.createElement(R1EvidenceTank,{state,currency:'EUR'}))
+   assert.equal(holder.querySelector('.r1-tank-fill').style.height,`${Math.abs(net)}%`)
+   assert.equal(holder.querySelector('.r1-tank-score b').textContent,r1EvidencePoints(net))
+   assert.equal(holder.querySelector('.r1-tank-previous').title,`Previous score ${r1EvidencePoints(before)}`)
+   assert.ok(holder.querySelector(`.r1-tank-previous.r1-tank-${before<0?'negative':'positive'}`),'Previous sign survives crossings')
+   assert.match(holder.querySelector('[role="meter"]').getAttribute('aria-valuetext'),new RegExp(net<0?'Weakening':net>0?'Strengthening':'Balanced'))
+ }
  for(const update of [simultaneous,replaced,revisionUpdate])assert.equal(r1UpdateRows(update).reduce((s,r)=>s+Math.round((r.change??0)*100),0),Math.round(update.change*100),'Compact rows conserve the combined change, including relationship adjustments')
  for(const changes of [[.014,.014,-.011],[-.014,-.014,.011],[.001,-.001],[2.675]]){
    const update={parts:changes.map((change,i)=>({label:String(i),change})),change:changes.reduce((a,b)=>a+b,0)}
@@ -149,8 +166,10 @@ try {
    for(const a of update.standalone)assert.ok(table.textContent.includes(a.label)&&table.textContent.includes(r1EvidencePoints(a.net)))
    assert.ok(table.tFoot.textContent.includes(r1EvidencePoints(update.change)))
    const meter=div.querySelector(`[aria-label="${currency} overall evidence tank"]`)
-   assert.equal(Number(meter.getAttribute('aria-valuenow')),r1TimelineAt(timeline,at+30*60000)[currency].net)
-   assert.equal(meter.getAttribute('aria-valuemin'),'-100');assert.equal(meter.getAttribute('aria-valuemax'),'100')
+   const net=r1TimelineAt(timeline,at+30*60000)[currency].net
+   assert.equal(Number(meter.getAttribute('aria-valuenow')),Math.abs(net))
+   assert.equal(meter.getAttribute('aria-valuemin'),'0');assert.equal(meter.getAttribute('aria-valuemax'),'100')
+   assert.equal(meter.querySelector('.r1-tank-score b').textContent,r1EvidencePoints(net))
  }
  assert.ok(div.querySelector('[aria-label="EUR and USD comparison"] strong').textContent.includes('leads'))
  for(const b of div.querySelectorAll('.r1-ray-points b'))assert.match(b.textContent,/^[+-]?\d+\.\d{2} → [+-]?\d+\.\d{2}$/)
@@ -188,7 +207,8 @@ try {
  assert.notEqual(missingJob.id,changedJob.id)
  await React.act(async()=>workers[0].onmessage({data:{id:missingJob.id,result:calculateR1Timeline(missingJob.input)}}))
  assert.match(div.querySelector('[aria-label="EUR R1 evidence"]').textContent,/Available evidence favors strength.*Incomplete — PMI unavailable/s)
- assert.ok(div.querySelector('[aria-label="EUR overall evidence tank"] .r1-tank-unknown'),'Missing evidence is hatched rather than rendered as a measured zero')
+ assert.match(div.querySelector('[aria-label="EUR overall evidence tank"]').getAttribute('aria-valuetext'),/incomplete, PMI unavailable/)
+ assert.equal(div.querySelectorAll('.r1-tank-unknown, .r1-tank-zero, .r1-tank-scale').length,0,'Primary tanks stay uncluttered; missing inputs remain named in the summary')
  const missingHoverWork={...work},missingJobs=workers[0].jobs.length,missingRequests=requests
  await React.act(async()=>{for(let i=0;i<100;i++)handler({point:{x:i,y:1},time:(at+2*day)/1000,seriesData:new Map([[series,{}]])});for(const[id,fn]of frames){frames.delete(id);fn()}})
  assert.deepEqual(work,missingHoverWork);assert.equal(workers[0].jobs.length,missingJobs);assert.equal(requests,missingRequests,'Tank/partial summaries still do zero calculation or network work on hover')

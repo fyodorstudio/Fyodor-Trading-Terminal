@@ -41,6 +41,10 @@
 .position-stop-area { fill: color-mix(in srgb, var(--negative) 20%, transparent); }
 .position-outline { fill: none; stroke: color-mix(in srgb, var(--text-muted) 62%, transparent); stroke-width: 1; }
 .position-entry-line { stroke: var(--text-strong); stroke-dasharray: 2 2; stroke-width: 1; }
+.position-label { visibility: hidden; pointer-events: none; }
+.drawing-object:hover .position-label,
+.drawing-draft .position-label { visibility: visible; }
+.chart-drawing-overlay.drawing-active .drawing-object .position-label { visibility: hidden; }
 .position-label-background.target,
 .position-label-background.entry { fill: #079b7f; }
 .position-label-background.stop { fill: #ef3f49; }

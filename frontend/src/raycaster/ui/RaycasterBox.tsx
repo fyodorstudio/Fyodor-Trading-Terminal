@@ -37,7 +37,7 @@ export function RaycasterBox({ symbol, point, eurPoint, fresh, publication, cuto
   if (!selectedCombo && localView === 'combo') setLocalView('context')
   const requestedView = view ?? localView
   const activeView = !selectedCombo && requestedView === 'combo' ? 'context' : requestedView
-  const { ref, position, drag } = useRaycasterPosition(activeView === 'context-detailed' ? 'detailed' : 'compact')
+  const { ref, position, drag } = useRaycasterPosition(activeView === 'context-detailed' ? 'detailed' : activeView==='r1'?'r1':'compact')
   const result = point?.result
   const presentation = relative ? null : usdContextPresentation(symbol, result, cutoff ?? undefined)
   const strength = relative ? relative.strength : presentation?.evidence

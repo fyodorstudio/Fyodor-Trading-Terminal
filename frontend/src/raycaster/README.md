@@ -1,14 +1,16 @@
 # R1 Raycaster — 10 October 2026
 
 **R1 Scoring System** shows EUR and USD combined currency evidence at the inspected
-candle's end. Compact signed tanks share a fixed ±100 scale, a zero line and a
-previous-score marker. Fixed summary slots show direction, strength, score pairs
+candle's end. Bottom-filled tanks share a fixed 0–100 magnitude scale; liquid is
+green for strength and red for weakness. A large signed score and previous-level
+marker keep current evidence distinct from change. Fixed summary slots show direction, strength, score pairs
 and signed change. Incomplete evidence names the available lead and missing
-inputs; hatching preserves the missing-budget range. Release rows use configured event icons and the selected display clock,
+inputs without primary axes or hatching. Release rows use configured event icons and the selected display clock,
 without a timezone suffix. Simultaneous publications share one combined change;
 a candle lists all its updates. Joined rows keep standalone points beside each
 family's overall change and the combined total. Quiet candles retain the latest dated update.
 Expiry, corrections and schedule changes are separate from new publications.
+R1 uses a 400 × 780 px frame, capped by the available chart dimensions.
 
 `scoring-system/r1/timeline.ts` precomputes change-clock snapshots in a worker
 using the same nominal snapshot reader as Inspector. Hover only looks up this

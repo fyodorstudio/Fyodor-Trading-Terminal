@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { readFile } from 'node:fs/promises'
 import React from 'react'
 import { createServer } from 'vite'
 import { Window } from 'happy-dom'
@@ -16,6 +17,9 @@ const host = document.createElement('div'); document.body.appendChild(host)
 const root = createRoot(host)
 const primitives = new Set(), rangeListeners = new Set(), frames = new Map(), captures = new Set()
 let frameId = 0, projectionReads = 0, seriesWrites = 0
+let textMeasurements = 0
+const textLength = text => [...text].reduce((sum, character) => sum + (/[A-Z]/.test(character) ? 7 : /[a-z]/.test(character) ? 5 : 4), 0)
+dom.SVGTextElement.prototype.getComputedTextLength = function () { textMeasurements++; return textLength(this.textContent) }
 dom.requestAnimationFrame = fn => { frames.set(++frameId, fn); return frameId }
 dom.cancelAnimationFrame = id => frames.delete(id)
 dom.SVGElement.prototype.setPointerCapture = id => captures.add(id)
@@ -93,6 +97,57 @@ try {
     return points
   }
   const recordFor = tool => ({ id: 'drawing', symbol: 'TEST', timeframe: 'M1', tool, points: pointsFor(tool), createdAt: 1, text: 'Example' })
+
+  // Position labels are hover-only decoration; selecting/hovering must not pin
+  // an offscreen label to the pane or repeatedly measure/project its geometry.
+  const drawingCss = await readFile(new URL('../src/market-data/chart-drawings/chart-drawing-overlay.css', import.meta.url), 'utf8')
+  assert.match(drawingCss, /\.position-label\s*\{\s*visibility: hidden; pointer-events: none;/)
+  assert.match(drawingCss, /\.drawing-object:hover \.position-label,[\s\S]*?visibility: visible;/)
+  assert.doesNotMatch(drawingCss, /\.selected \.position-label/)
+  for (const tool of ['long-position', 'short-position']) {
+    seed(recordFor(tool)); await render({ initiallySelected: 'drawing' }, `labels-${tool}`)
+    const labels = () => [...host.querySelectorAll('.position-label')]
+    assert.equal(labels().length, 2)
+    for (const label of labels()) {
+      const cardWidth = Number(label.querySelector('rect').getAttribute('width'))
+      assert.equal(cardWidth, Math.max(...[...label.querySelectorAll('text')].map(text => textLength(text.textContent))) + 16,
+        'Each label sizes to its longest measured text line plus padding')
+      const [x] = label.getAttribute('transform').match(/[-\d.]+/g).map(Number)
+      close(x, Math.max(2, 140 - cardWidth / 2), 'Labels center on the position, clamped at the pane edge')
+      for (const text of label.querySelectorAll('text')) {
+        assert.equal(text.getAttribute('text-anchor'), 'middle')
+        assert.ok(text.getAttribute('transform').startsWith(`translate(${cardWidth / 2} `), 'Each line centers inside its box')
+      }
+    }
+    const reads = projectionReads, measurements = textMeasurements
+    for (let i = 0; i < 20; i++) {
+      await pointer(body(), 'pointerover', 140, 100)
+      await pointer(body(), 'pointerout', 140, 100)
+    }
+    assert.equal(projectionReads, reads, 'Hover visibility does not reproject drawings')
+    assert.equal(textMeasurements, measurements, 'Hover visibility does not remeasure text')
+    const previousWidth = Number(labels()[0].querySelector('rect').getAttribute('width'))
+    await React.act(async () => api.updateDrawingPoint('drawing', 2, { time: 1120, price: tool === 'long-position' ? 9.99 : 10.01 }, true))
+    assert.ok(Number(labels()[0].querySelector('rect').getAttribute('width')) > previousWidth, 'Changing the risk/reward text resizes its box')
+    const measuresBeforePan = textMeasurements
+    shiftX = 20
+    await React.act(async () => chartFrame())
+    assert.equal(textMeasurements, measuresBeforePan, 'Panning moves existing labels without measuring their unchanged text again')
+    shiftX = -250 // Position is just outside the pane, within the old label padding.
+    await React.act(async () => chartFrame())
+    assert.equal(labels().length, 0, 'Panning past the position removes its labels even while selected')
+    shiftX = 0; shiftY = 250
+    await React.act(async () => chartFrame())
+    assert.equal(labels().length, 0, 'Vertically offscreen positions cannot pin labels to the bottom edge')
+    shiftY = 0; width = 120
+    await React.act(async () => chartFrame())
+    assert.equal(labels().length, 2, 'A partially visible position keeps its hover labels available')
+    for (const label of labels()) {
+      assert.ok(Number(label.querySelector('rect').getAttribute('width')) <= width - 4, 'Labels fit a narrow pane')
+      assert.ok(Number(label.querySelector('text').getAttribute('transform').match(/scale\(([^)]+)\)/)[1]) < 1, 'Oversized text fits without being cut off')
+    }
+    width = 600
+  }
 
   for (const { id: tool } of drawingTools) {
     const original = recordFor(tool)
@@ -280,7 +335,7 @@ try {
   projectionReads = 0; stale.paneViews()[0].renderer().draw()
   assert.equal(projectionReads, 0, 'A detached primitive ignores stale draws')
   assert.equal(seriesWrites, 0, 'No fake candle data is added to support drawing coordinates')
-  console.log('✓ All 14 drawing tools: selected body drag, fractional empty-space creation/editing, constraints, cancellation, storage, same-frame pan/zoom, history and bounded projection work')
+  console.log('✓ All 14 drawing tools: drag/edit/storage, hover-only measured position labels, offscreen culling, same-frame pan/zoom, history and bounded projection work')
 } finally {
   await React.act(async () => root.unmount())
   assert.equal(frames.size, 0)

@@ -14,6 +14,7 @@ let posts=0,created=0,terminated=0,revision=1,calendarRequests=0
 try{
   const {calculateR1}=await server.ssrLoadModule('./src/scoring-system/r1/analysis.ts')
   const {calculateR1Pair}=await server.ssrLoadModule('./src/scoring-system/r1/pair.ts')
+  const {r1DisplayChangeParts}=await server.ssrLoadModule('./src/scoring-system/r1/changes.ts')
   const {calculateR1History}=await server.ssrLoadModule('./src/scoring-system/r1/history.ts')
   globalThis.Worker=class{constructor(){created++}postMessage({id,input}){posts++;Promise.resolve().then(()=>{if(!this.closed)this.onmessage?.({data:{id,result:input.release?calculateR1Pair(input):calculateR1History(input)}})})}terminate(){this.closed=true;terminated++}}
   const {R1Score}=await server.ssrLoadModule('./src/inspector/scoring/R1Score.tsx')
@@ -379,6 +380,27 @@ try{
   await React.act(async()=>saveR1Settings({...readR1Settings(),selected:['ism-manufacturing']}))
   assert.deepEqual(allocationRows().map(r=>r.cells[4].textContent),['10%','15%','75%','0%'])
   assert.ok(Math.abs(policyInputRows().reduce((sum,r)=>sum+Number(r.cells[1].textContent.replace('%','')),0)-100)<1e-9,'Relationship selection never narrows standalone Fed policy weights')
+  const batchAt=at+7*86400000,batchTemplate=rows[0]
+  const batchRows=['claims','ppi'].flatMap(f=>r1Profiles[f].components.flatMap((c,i)=>[0,1].map(round=>{
+    const time=batchAt-(1-round)*7*86400000,claim=c.id==='initial',actual=f==='ppi'?(round?1:1.1):claim?(round?200:220):(round?2:2.02),prior=f==='ppi'?(round?1.1:1):claim?210:2.01
+    return {...batchTemplate,value_id:`batch/${f}/${i}/${round}`,event_id:c.seriesId,name:c.label,release_at:time,chart_time_seconds:time/1000,server_time_seconds:time/1000,period_seconds:f==='claims'?(time-7*86400000)/1000:Date.UTC(2026,round,1)/1000,unit:c.units[0],multiplier:c.multiplier,actual,previous:prior,revised_previous:null,revision:0}
+  })))
+  const batchSettings={version:1,selected:['claims','ppi'],calibration:{mode:'undefined',limits:Object.fromEntries(['claims','ppi'].flatMap(f=>r1Profiles[f].components.map(c=>[`${f}/${c.id}`,f==='claims'?[10,20,40]:[.1,.2,.4]])))}}
+  await React.act(async()=>saveR1Settings(batchSettings))
+  const batchReleases=groupInspectorReleases(batchRows).filter(r=>r.releaseAt===batchAt),batchApp=mount(R1Score)
+  const expectedBatch=calculateR1Pair({release:batchReleases[0],events:batchRows,settings:batchSettings,savedBands:{}})
+  for(const selected of batchReleases){
+    await batchApp.render({release:selected,brokerId:null,events:batchRows})
+    const contributions=batchApp.div.querySelector('[aria-label="USD overall change contributions"]')
+    assert.deepEqual([...contributions.querySelectorAll('dt')].map(n=>n.textContent),[...r1DisplayChangeParts(expectedBatch.transition).map(p=>p.label),'Total'])
+    const displayed=[...contributions.querySelectorAll('dd')].map(n=>Number(n.textContent.replaceAll(',','')))
+    assert.deepEqual(displayed.slice(0,-1),r1DisplayChangeParts(expectedBatch.transition).map(p=>p.change))
+    assert.equal(Math.round(displayed.slice(0,-1).reduce((s,v)=>s+v,0)*100),Math.round(displayed.at(-1)*100),'Inspector contributions sum to the displayed batch total')
+    assert.ok(contributions.closest('[aria-label="Combined relationship summary"]'),'Breakdown is immediately in the combined summary')
+  }
+  const batchJobs=posts;await chooseDetails('audit',batchApp)
+  assert.equal(posts,batchJobs,'Viewing the audit does not recompute contribution rows')
+  assert.ok(batchApp.div.querySelector('[aria-label="USD overall change contributions"]'),'Contributions stay visible across detail choices')
   console.log('✓ Mounted R1 Inspector, publication corrections, stable polling/clocks, hidden-view cleanup, fractional Claims/manufacturing Scatter parity and workspace portability')
 }finally{
   await React.act(async()=>roots.forEach(root=>root.unmount()))
