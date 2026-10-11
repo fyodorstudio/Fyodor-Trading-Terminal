@@ -17,11 +17,11 @@ function reportAge(published:number|null|undefined,at:number) {
   const days=Math.floor((at-published)/86400000)
   return `${days} ${days===1?'day':'days'}`
 }
-function Totals({value,multiplier=1,currency='USD'}:{value:R1Balance;multiplier?:number;currency?:string}) {
-  return <><span>{currency}-supportive <b>{number(value.supportive*multiplier)}</b></span><span>{currency}-negative <b>{number(value.negative*multiplier)}</b></span><span>Net <b>{number(value.net*multiplier)}</b></span></>
+function Totals({value,currency='USD'}:{value:R1Balance;currency?:string}) {
+  return <><span>{currency}-supportive <b>{number(value.supportive)}</b></span><span>{currency}-negative <b>{number(value.negative)}</b></span><span>Net <b>{number(value.net)}</b></span></>
 }
 function Change({value}:{value:number}) {
-  return <span className={`r1-change ${value>0?'r1-change-positive':value<0?'r1-change-negative':''}`}>Change <b>{number(value)}</b></span>
+  return <span className={`r1-change ${value>0?'r1-change-positive':value<0?'r1-change-negative':''}`}>Overall score change <b>{number(value)}</b></span>
 }
 export function R1Score(props:InspectorScoringProps) {
   const {result,loading,error,storage}=useR1Analysis(props)
@@ -41,10 +41,10 @@ export function R1Score(props:InspectorScoringProps) {
       <section className="r1-summary-block" aria-label="Standalone summary">
         <h3>Standalone · {a.label}</h3>
         <div className={`r1-result r1-${a.direction}`}><strong>{action??r1DirectionLabel(a,currency)}</strong>{a.strength&&<b className="r1-strength">Evidence: {a.strength[0].toUpperCase()+a.strength.slice(1)}</b>}
-          <span className="r1-points">Release points: <b>{number(a.net*4)}</b></span>
+          <span className="r1-points">Release points: <b>{a.direction==='insufficient'?'Unavailable':number(a.net)}</b></span>
         </div>
-        <div className="r1-evidence"><Totals value={a} multiplier={4} currency={currency}/><p className="r1-explanation">{held?'A hold alone does not establish currency strength or weakness.':a.explanation}</p></div>
-        {a.unavailable>0&&<p className="r1-notes">Possible release net: {number(a.interval[0]*4)} to {number(a.interval[1]*4)}.</p>}
+        <div className="r1-evidence"><Totals value={a} currency={currency}/><p className="r1-explanation">{held?'A hold alone does not establish currency strength or weakness.':a.explanation}</p></div>
+        {a.unavailable>0&&<p className="r1-notes">Possible release net: {number(a.interval[0])} to {number(a.interval[1])}.</p>}
       </section>
       <section className="r1-summary-block" aria-label="Combined relationship summary">
       <h3>Combined relationships</h3>
@@ -66,9 +66,9 @@ export function R1Score(props:InspectorScoringProps) {
       </section>}
     </header>
     <label className="r1-details-choice">Details <select aria-label="Scoring details" value={detail} onChange={e=>{const next=e.target.value as Detail;setDetail(next);try{window.localStorage.setItem(r1DetailsKey,next)}catch{/* Keep session choice. */}}}>{Object.entries(detailChoices).map(([key,label])=><option key={key} value={key}>{label}</option>)}</select></label>
-    {detail==='release'&&<section aria-label="Release evidence">{result.assessments&&<label className="r1-details-choice">Assessment <select aria-label="Release assessment" value={a.family} onChange={e=>setAssessmentFamily(e.target.value)}>{result.assessments.map(a=><option key={a.family} value={a.family}>{a.label}</option>)}</select></label>}<table><thead><tr><th>Input</th><th>Weight</th><th>Actual</th><th>Previous</th><th>A−P</th><th>Magnitude</th><th>Evidence</th></tr></thead><tbody>{a.readings.map(r=><tr key={r.id}><td>{r.label}</td><td>{r.weight}%</td><td>{r.actual===null?'Unavailable':number(r.actual)}</td><td>{r.previous===null?'Unavailable':number(r.previous)}</td><td>{r.delta===null?'Unavailable':`${number(r.delta)} ${r.unit}`}</td><td>{r.magnitude===null?'Unavailable':['Unchanged','Small','Medium','Large','Extreme'][r.magnitude]??`${r.magnitude} points`}{usesFractionalMagnitude(a.family)&&r.points!==null&&<> · {number(Math.abs(r.points)).replace(/^\+/,'')} pts</>}</td><td>{r.contribution===null?'Unavailable':number(r.contribution)}</td></tr>)}</tbody></table>
-      <div className="r1-evidence"><Totals value={a} multiplier={4} currency={currency}/><p className="r1-explanation">{held?'A hold alone does not establish currency strength or weakness.':a.explanation}</p></div><p>{a.version}{a.stage==='revision'?' · same-quarter revision':''}</p>
-      {a.unavailable>0&&<p>Possible release net: {number(a.interval[0]*4)} to {number(a.interval[1]*4)}.</p>}
+    {detail==='release'&&<section aria-label="Release evidence">{result.assessments&&<label className="r1-details-choice">Assessment <select aria-label="Release assessment" value={a.family} onChange={e=>setAssessmentFamily(e.target.value)}>{result.assessments.map(a=><option key={a.family} value={a.family}>{a.label}</option>)}</select></label>}<table><thead><tr><th>Input</th><th>Weight</th><th>Actual</th><th>Previous</th><th>A−P</th><th>Magnitude</th><th>Evidence</th></tr></thead><tbody>{a.readings.map(r=><tr key={r.id}><td>{r.label}</td><td>{r.weight}%</td><td>{r.actual===null?'Unavailable':number(r.actual)}</td><td>{r.previous===null?'Unavailable':number(r.previous)}</td><td>{r.delta===null?'Unavailable':`${number(r.delta)} ${r.unit}`}</td><td>{r.magnitude===null?'Unavailable':['Unchanged','Small','Medium','Large','Extreme'][r.magnitude]??`${r.magnitude} points`}{usesFractionalMagnitude(a.family)&&r.points!==null&&<> · {number(Math.abs(r.points)).replace(/^\+/,'')} pts</>}</td><td>{r.contribution===null?'Unavailable':number(r.contribution/4)}</td></tr>)}</tbody></table>
+      <div className="r1-evidence"><Totals value={a} currency={currency}/><p className="r1-explanation">{held?'A hold alone does not establish currency strength or weakness.':a.explanation}</p></div><p>{a.version}{a.stage==='revision'?' · same-quarter revision':''}</p>
+      {a.unavailable>0&&<p>Possible release net: {number(a.interval[0])} to {number(a.interval[1])}.</p>}
     </section>}
     {detail==='relationships'&&<section className="r1-relationships" aria-label={`${currency} evidence as of this publication`}>
       <table><thead><tr><th>Evidence</th><th>Overall weight</th><th>Direction</th><th>Supportive</th><th>Negative</th></tr></thead><tbody>{o.categories.map(c=><tr key={c.category}><td>{c.label}</td><td>{c.share==null?'—':`${(c.share*100).toLocaleString(undefined,{maximumFractionDigits:3})}%`}</td><td>{r1DirectionLabel(c,currency)}</td><td>{number(c.supportive)}</td><td>{number(c.negative)}</td></tr>)}</tbody></table>

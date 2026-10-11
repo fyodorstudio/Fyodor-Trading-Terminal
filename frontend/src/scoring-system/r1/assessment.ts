@@ -90,7 +90,14 @@ function reason(r:R1Reading) {
   return `${up?'faster':'slower'} ${r.id.startsWith('core')?'core':'headline'} ${r.id.endsWith('annual')?'annual':'monthly'} inflation`
 }
 export function explainR1(a:R1Assessment) {
-  if(a.direction==='insufficient')return 'Missing evidence could change the direction.'
+  if(a.direction==='insufficient')return a.readings.every(r=>r.reason==='MT5 Actual is unavailable.')?'MT5 Actual is unavailable.':'Missing evidence could change the direction.'
+  if(a.family.endsWith('pmi')){
+    const r=a.readings[0],state=r.actual!>50?'above 50':r.actual!<50?'below 50':'at 50'
+    if(r.delta===0)return `PMI is unchanged ${state}.`
+    const crossed=(r.actual!-50)*(r.previous!-50)<=0&&r.actual!==50
+    const connection=crossed||r.actual===50?'to':(r.delta!>0)===(r.actual!>50)?'and remains':'but remains'
+    return `PMI ${r.delta!>0?'improved':'softened'} ${connection} ${state}, supporting EUR ${r.delta!>0?'strength':'weakness'}.`
+  }
   if(a.family==='ism-manufacturing'&&a.readings.every(r=>r.id==='orders'||r.points===0)){
     const r=a.readings[0],state=r.actual!>50?'expanding':r.actual!<50?'contracting':null
     if(a.direction==='balanced')return `Manufacturing new orders are unchanged${state?` and remain ${state}`:' at 50'}.`

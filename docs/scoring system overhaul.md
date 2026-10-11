@@ -1000,3 +1000,50 @@ one delta; quiet candles retain the latest dated update. Corrections, freshness
 changes and expiry remain distinct from publications. Independent currency model
 settings still own scoring scope. This is a presentation/timeline change, with no
 new economic weights or source claims. See the [verification](../reports/R1-Raycaster-audit.md).
+
+### Raycaster presentation refinement — 10 October 2026
+
+Keep EUR/USD summary slots and currency update order fixed during hover; before
+and after points share one line. Split each combined update into changes by
+family and a total. Changes to nonpublishing families (such as replacing CPI
+with PCE) remain an explicit relationship adjustment. Display cents reconcile
+to the total without changing raw arithmetic. Show the direct currency point
+gap and retain uncertainty if unavailable inputs could reverse the lead. These
+are presentation changes; weights, magnitude and scoring policies are unchanged.
+
+
+## Standalone point standardization and PMI — 11 October 2026
+
+All R1 standalone displays use −100 to +100: sum(weight × signed magnitude) / 4.
+Component contributions, supportive/negative totals and missing-evidence intervals
+use that same scale in Inspector and Scatter. Weights, magnitude boundaries,
+fractional interpolation and the Extreme cap of four are unchanged.
+
+Raycaster exposes each published family's standalone score separately from the
+combined family's contribution change. The latter is labelled **Overall score
+change**; a positive new release can replace a stronger prior contribution and
+reduce that combined score. Quarterly revision scores stay distinct from retained
+quarterly momentum. These summaries are prepared in the timeline worker; hover
+only reads the result.
+
+PMI keeps each supplied composite/services/manufacturing reading as a separate
+standalone assessment. Higher A−P supports EUR; lower A−P supplies negative EUR
+evidence. The level relative to 50 provides state context without another vote.
+The composite owns the area-wide relationship allowance when available for the
+newest reference month; sector fallback and national-overlap rules are unchanged.
+
+[S&P Global's FAQ](https://www.spglobal.com/market-intelligence/en/solutions/products/resources/pmi-faq)
+defines the 50 threshold, flash estimates, manufacturing and services publication
+sequence, and GDP-based composite weighting.
+[Its output-index explanation](https://www.spglobal.com/market-intelligence/en/news-insights/research/how-to-interpret-and-use-the-pmi-survey-output-index)
+distinguishes output from the broader manufacturing headline. These sources
+support interpretation and overlap handling; they do not establish our numerical
+score coefficients or guarantee an exchange-rate reaction.
+
+A final PMI still compares with the previous distinct month. Same-month flash
+metadata in feed Previous cannot invalidate the independently dated comparison.
+Missing MT5 Actual is explicit and remains unscored; available prior-month values
+and calibration survive in the details. No forecasts, official-value substitution
+or manual correction workflow is introduced. The stored September 23, October 1
+and October 5 rows currently lack Actual, including its exact raw field; changing
+weights cannot supply it. See the [dated audit](../reports/R1-standardized-points-PMI-audit.md).

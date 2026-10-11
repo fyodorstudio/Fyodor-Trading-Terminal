@@ -49,8 +49,8 @@ export function createR1History(events:readonly EconomicCalendarEvent[]):{rows:R
 }
 export type R1History=ReturnType<typeof createR1History>
 
-function valid(row:Row,c:R1Component,at:number,profile:R1Profile) {
-  if(!observedR1(row)||row.currency!==(profile.currency??'USD')||row.country_code!==(profile.country??'US')||row.release_at>at||(row.available_at??row.release_at)>at||!c.units.includes(row.unit)||row.multiplier!==c.multiplier||field(row,'actual')===null)return false
+function valid(row:Row,c:R1Component,at:number,profile:R1Profile,requireActual=true) {
+  if(!observedR1(row)||row.currency!==(profile.currency??'USD')||row.country_code!==(profile.country??'US')||row.release_at>at||(row.available_at??row.release_at)>at||!c.units.includes(row.unit)||row.multiplier!==c.multiplier||(requireActual&&field(row,'actual')===null))return false
   const ref=reference(row,c.period)
   if(ref===null)return false
   if(c.period!=='action'){
@@ -76,8 +76,8 @@ export function r1Features(release:InspectorRelease,profile:R1Profile,history:R1
     const matching=release.events.filter(e=>e.event_id===c.seriesId)
     if(matching.length!==1)return unavailable(matching.length?'Duplicate series reading.':`Missing ${c.label}.`)
     const observation=r1Observation(matching[0],availabilityAt),row=observation.row as Row|null
-    if(!row||row.release_at!==at||!valid(row,c,availabilityAt,profile))return unavailable(`Invalid ${c.label} or reference period.`)
-    const actual=field(row,'actual')!,ref=reference(row,c.period)!,previousRef=prior(ref,c.period)
+    if(!row||row.release_at!==at||!valid(row,c,availabilityAt,profile,false))return unavailable(`Invalid ${c.label} or reference period.`)
+    const actual=field(row,'actual'),ref=reference(row,c.period)!,previousRef=prior(ref,c.period)
     const same=c.period==='quarter'?history.latest(c.seriesId,ref,c.period,at,true,availabilityAt):null
     let previous:number|null=null,basis='',stage:R1Feature['stage']='momentum',comparisonRef=previousRef
     if(c.period==='quarter'){
@@ -93,14 +93,16 @@ export function r1Features(release:InspectorRelease,profile:R1Profile,history:R1
     }else if(present(row,'revised_previous')){previous=field(row,'revised_previous');basis='Revised Previous'}
     else if(present(row,'previous')){previous=field(row,'previous');basis='Supplied Previous'}
     else {const preceding=history.latest(c.seriesId,previousRef,c.period,availabilityAt);previous=preceding&&valid(preceding,c,availabilityAt,profile)?field(preceding,'actual'):null;basis='Previous period, latest available observation'}
-    if(row.previous_period_seconds!=null&&c.period!=='action'){
+    // EUR monthly comparisons come from independently dated history. A final
+    // release's feed Previous can describe this month's flash estimate instead.
+    if(row.previous_period_seconds!=null&&c.period!=='action'&&!(profile.currency==='EUR'&&c.period==='month')){
       const stated=reference({...row,period_seconds:row.previous_period_seconds},c.period)
       if(stated!==comparisonRef)previous=null
     }
     if(c.period==='week'&&previous!==null&&previous<0)previous=null
     if(c.unit==='pts'&&previous!==null&&(previous<0||previous>100e6))previous=null
     const scale=c.scale??1
-    const result:R1Feature={actual:actual/1e6*scale,previous:previous===null?null:previous/1e6*scale,delta:previous===null?null:(actual-previous)/1e6*scale*(c.period==='action'?100:1),reference:ref,previousReference:c.period==='action'?null:comparisonRef,publishedAt:at,valueId:row.value_id,revision:row.revision,basis,reason:previous===null?'Comparable Previous is unavailable.':'',stage,vintage:observation.vintage,knownAt:observation.knownAt}
+    const result:R1Feature={actual:actual===null?null:actual/1e6*scale,previous:previous===null?null:previous/1e6*scale,delta:actual===null||previous===null?null:(actual-previous)/1e6*scale*(c.period==='action'?100:1),reference:ref,previousReference:c.period==='action'?null:comparisonRef,publishedAt:at,valueId:row.value_id,revision:row.revision,basis,reason:actual===null?'MT5 Actual is unavailable.':previous===null?'Comparable Previous is unavailable.':'',stage,vintage:observation.vintage,knownAt:observation.knownAt}
     return result
   })
 }

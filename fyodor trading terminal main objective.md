@@ -1,6 +1,6 @@
 # Fyodor Trading Terminal — main objective
 
-Last clarified with the user: **10 October 2026**. This is the active project
+Last clarified with the user: **11 October 2026**. This is the active project
 contract and handoff for a new Codex session. Completed plans and their historical
 findings are in [the archived objective](reports/Main-objective-history-through-2026-10-08.md).
 
@@ -39,7 +39,18 @@ choices as **(Retired)**. Show EUR/USD combined evidence, signed before/after
 changes and dated release updates at the cursor candle cutoff. Group simultaneous
 publications, retain the latest update on quiet candles and identify expiry/data
 updates separately. Reuse the shared R1 snapshot reader in a background timeline;
-hover/pan never rescore. See the [Raycaster audit](reports/R1-Raycaster-audit.md).
+hover/pan never rescore. Fixed summary slots keep score pairs together. Show each
+family's change and the combined total, plus the direct EUR/USD evidence gap
+with uncertainty retained. See the [Raycaster audit](reports/R1-Raycaster-audit.md).
+
+Accepted refinement: standardize all R1 standalone displays to −100/+100 and
+show published standalone points separately from **Overall score change** in
+Raycaster. Keep combined weights/calculation unchanged. PMI explains improvement
+versus its level at 50; missing MT5 Actual is explicit, with no replacement feed.
+Independently dated prior-month comparisons survive same-month flash metadata.
+Verified: all 72 frontend suites, lint/build and 353 stored standalone comparisons
+with Inspector, plus production-worker parity. See the
+[dated audit](reports/R1-standardized-points-PMI-audit.md).
 
 ## Previous implementation: USD scoring overhaul R1
 

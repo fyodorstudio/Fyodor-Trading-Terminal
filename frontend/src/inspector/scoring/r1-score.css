@@ -9,7 +9,7 @@
 }
 .r1-result {
   display: grid;
-  grid-template-columns: minmax(260px, 1fr) 160px minmax(280px, 1fr) 110px;
+  grid-template-columns: minmax(260px, 1fr) 160px minmax(280px, 1fr) 180px;
   align-items: center;
   gap: 8px 20px;
 }
@@ -26,6 +26,7 @@
 .r1-weakening > strong { color: var(--negative-color, #dc3545); }
 .r1-change-positive { color: var(--positive-color, #07966c); }
 .r1-change-negative { color: var(--negative-color, #dc3545); }
+.r1-change { white-space: nowrap; font-variant-numeric: tabular-nums; }
 .r1-strength {
   display: inline-flex;
   align-items: stretch;

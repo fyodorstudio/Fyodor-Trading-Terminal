@@ -42,7 +42,7 @@ export function R1ScatterPanel({brokerId,clockOffsetMs=0,target,binding,onMeasur
   const apply=(limits:MagnitudeLimits|null)=>{saveR1Limits(calibrationKey,limits);setDraft({scope:'',limits:null})}
   const dateWindow=useMemo(()=>all||!model.inspection?undefined:scatterRecentWindow(model.points,model.inspection.at),[all,model])
   const previewPoints=model.inspection?.signal?.points
-  const evidence=preview?(previewPoints==null||!r?null:previewPoints*r.weight):r?.contribution
+  const evidence=preview?(previewPoints==null||!r?null:previewPoints*r.weight/4):r?.contribution==null?null:r.contribution/4
   return <section className="scatter-plot-dock" aria-label="Scatter Plot"><div className="scatter-plot-controls">
     <label>Family<select aria-label="Scatter Plot Family" value={binding.scope.family.id} onChange={e=>onFamilyChange(e.target.value)}>{familyOptions.map(f=><option key={f.id} value={f.id}>{f.label}</option>)}</select></label>
     <label>Calculation<select aria-label="Scatter Plot Calculation" value="r1" onChange={e=>onMeasureChange(e.target.value as 'ap'|'signal'|'r1')}><option value="ap">Raw change · Actual − Previous</option><option value="signal">Scorer comparison</option><option value="r1">{currency} R1 comparison</option></select></label>

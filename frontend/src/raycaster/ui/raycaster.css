@@ -101,11 +101,27 @@
 }
 
 .r1-ray-currencies { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-.r1-ray-currencies > section { border: 1px solid var(--border); border-radius: 5px; padding: 8px; background: var(--surface-raised); }
-.r1-ray-currencies b { font-variant-numeric: tabular-nums; }
+.r1-ray-currencies > section { display: grid; grid-template-rows: 35px 15px 37px 22px 29px; border: 1px solid var(--border); border-radius: 5px; padding: 8px; background: var(--surface-raised); }
+.r1-ray-direction { line-height: 17px; }
+.r1-ray-strength { line-height: 15px; }
+.r1-ray-points { display: grid; grid-template-rows: 17px 20px; }
+.r1-ray-points b { white-space: nowrap; overflow-wrap: normal; font-size: 13px; }
+.r1-ray-currencies b, .r1-ray-parts dd, .r1-ray-comparison { font-variant-numeric: tabular-nums; }
 .r1-ray-positive { color: var(--positive); }
 .r1-ray-negative { color: var(--negative); }
-.r1-ray-totals { font-size: 10px; color: var(--text-muted); }
-.r1-ray-update { border-top: 1px solid var(--border); margin-top: 8px; padding-top: 7px; font-size: 11px; }
-
-.r1-ray-release + .r1-ray-release { display: block; }
+.raycaster-box .r1-ray-change { margin: 3px 0 0; font-size: 10px; white-space: nowrap; }
+.raycaster-box .r1-ray-totals { margin: 3px 0 0; font-size: 10px; line-height: 13px; color: var(--text-muted); }
+.r1-ray-comparison { display: grid; grid-template-rows: 20px 15px; margin-top: 8px; padding: 7px 0; border-block: 1px solid var(--border); }
+.r1-ray-comparison strong { white-space: nowrap; }
+.r1-ray-update-group { min-block-size: 124px; }
+.r1-ray-update { padding-top: 7px; font-size: 11px; }
+.r1-ray-update + .r1-ray-update { border-top: 1px solid var(--border); margin-top: 8px; }
+.r1-ray-releases { min-block-size: 32px; }
+.r1-ray-release { display: block; }
+.r1-ray-standalone { min-block-size: 36px; margin: 4px 0; }
+.r1-ray-standalone > div { display: grid; grid-template-columns: minmax(0, 1fr) 65px; min-height: 18px; }
+.r1-ray-standalone dd { margin: 0; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.r1-ray-parts { min-block-size: 54px; margin: 4px 0 0; }
+.r1-ray-parts > div { display: grid; grid-template-columns: minmax(0, 1fr) 65px; min-height: 18px; }
+.r1-ray-parts dd { margin: 0; text-align: right; white-space: nowrap; }
+.r1-ray-change-total { border-top: 1px solid var(--border); padding-top: 3px; margin-top: 2px; }

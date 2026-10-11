@@ -40,6 +40,26 @@ try {
  assert.equal(pmi.overall.leaves.length,1)
  assert.equal(pmi.overall.slots.find(s=>s.family==='euro-services-pmi').assessment.net,-100,'Each co-published sector has its own assessment')
  assert.equal(pmi.assessments.length,3,'All sector standalone assessments are available without extra relationship votes')
+ const pmiFinal={...pmiNew[0],value_id:String(++id),release_at:at+86400000,chart_time_seconds:at/1000+86400,actual:51.1,previous:51,previous_period_seconds:feb}
+ const finalPmi=run([...pmiOld,...pmiNew,pmiFinal],pmiFinal,pmiSettings,at+86400000)
+ assert.equal(finalPmi.assessment.readings[0].previous,50,'Same-month flash metadata cannot invalidate an independently dated prior-month comparison')
+ assert.equal(finalPmi.assessment.readings[0].delta,1.1)
+ for(const [actual,prior,text] of [[49,48,/improved but remains below 50/],[51,52,/softened but remains above 50/],[51,49,/improved to above 50/],[49,51,/softened to below 50/],[50,50,/unchanged at 50/]]){
+   const old=row('999500003',prior,0,at-30*86400000,jan,{unit:0}),next=row('999500003',actual,0,at,feb,{unit:0})
+   assert.match(run([old,next],next,pmiSettings).assessment.explanation,text)
+ }
+ // Reproduce the missing Actual rows stored for September 23 / October 1 / 5.
+ const august=Date.UTC(2026,7,1)/1000,september=Date.UTC(2026,8,1)/1000
+ for(const [date,series] of [[Date.UTC(2026,8,23,8),'999500003'],[Date.UTC(2026,9,1,8),'999500001'],[Date.UTC(2026,9,5,8),'999500003']]){
+   const old=row(series,52,51,Date.UTC(2026,8,3,8),august,{unit:0})
+   const missing=row(series,null,52,date,september,{unit:0,actual_raw_scaled_1e6:null})
+   const a=run([old,missing],missing,pmiSettings,date).assessment
+   assert.equal(a.direction,'insufficient');assert.equal(a.coverage,0)
+   assert.equal(a.readings[0].previous,52);assert.equal(a.readings[0].delta,null)
+   assert.equal(a.explanation,'MT5 Actual is unavailable.')
+   const filled={...missing,actual:53,actual_raw_scaled_1e6:'53000000'}
+   assert.equal(run([old,filled],filled,pmiSettings,date).assessment.direction,'strengthening','A genuine completed MT5 row restores the score')
+ }
  const national=row('276010023',9,0,at,feb,{country_code:'DE'})
  const nationalOld=row('276010023',1,0,at-30*86400000,jan,{country_code:'DE'})
  const withNational=run([...previous,...current,nationalOld,national],current[0],{...settings,selected:['euro-inflation','german-inflation']})

@@ -286,3 +286,16 @@ even with Candy hidden; clicking a highlight can still open its note. These anno
 are stored per broker/pair and exported with the workspace. Their chart clocks and
 actual UTC recording dates are separate. They add no votes, history fetches or
 worker rebuilds. See [outside-event ownership](../external-events/README.md).
+
+
+## R1 presentation refinement — 10 October 2026
+
+Keep EUR/USD summary slots and currency update order fixed during hover. Display
+before/after points on one line, family changes with a reconciled total and the
+direct currency evidence gap. Nonpublishing vote changes remain a relationship
+adjustment. These summaries read the prepared timeline; hover never rescores.
+
+R1 publication updates also show each family's independent release points on the
+−100 to +100 scale, ahead of its **Overall change by family** breakdown. These
+are separate quantities; positive release points can accompany a negative
+replacement change. Both are prepared in the worker, never during cursor lookup.

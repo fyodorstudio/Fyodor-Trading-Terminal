@@ -35,7 +35,7 @@ for momentum and revisions; manual bands retain priority. See the
   Automatic historical calibration uses those release snapshots, keeping old
   outputs stable when a later correction arrives.
 - `assessment.ts`: raw contribution is weight × signed magnitude. Leaves and
-  balances use raw / 4, bounded at ±100; the release UI displays raw totals.
+  balances and all R1 standalone displays use raw / 4, bounded at ±100.
   Category and overall balances preserve signed leaves and uncertainty budgets.
   Resolve the signed sum before rounding and reconcile displayed sides to its
   net. Intermediate relationship allocations do not round individual leaf values;
@@ -57,6 +57,9 @@ for momentum and revisions; manual bands retain priority. See the
 - `eur-profiles.ts` / `eur-relationships.ts`: EUR roles, native IDs, distinct-month
   comparisons, quarterly cadence and one composite/sector PMI activity allowance.
   National reports remain standalone context; flash/final estimates replace slots.
+  PMI explanations distinguish level at 50 from improvement/softening. Missing
+  MT5 Actual retains its unavailable vote and an explicit reason. Same-month flash
+  metadata does not invalidate the independently dated prior-month comparison.
 - `presentation.ts`: shared currency direction labels. Inspector keeps its summary
   visible above one selected detail table; table/PMI assessment selection never
   rescores history.
@@ -108,3 +111,8 @@ observation, schedule and expiry clocks. Hover performs a binary lookup and
 projects only the inspected candle's updates. This nominal timeline omits
 sensitivity sweeps while preserving Inspector's base direction, strength and
 missing-evidence intervals. See the [Raycaster audit](../../../../reports/R1-Raycaster-audit.md).
+
+Standalone scores and combined changes use distinct labels in Inspector and
+Raycaster. Timeline publication updates include normalized standalone summaries;
+quarterly revisions do not reuse relationship momentum as their release score.
+See the [11 October audit](../../../../reports/R1-standardized-points-PMI-audit.md).

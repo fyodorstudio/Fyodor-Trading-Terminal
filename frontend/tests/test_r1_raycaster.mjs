@@ -17,6 +17,7 @@ globalThis.__r1Work=work
 let root
 try {
  const {calculateR1Timeline,r1TimelineAt,r1CandleUpdates}=await server.ssrLoadModule('./src/scoring-system/r1/timeline.ts')
+ const {r1DisplayParts,r1EvidenceComparison,r1EvidencePoints}=await server.ssrLoadModule('./src/raycaster/core/r1-evidence-presentation.ts')
  const {createR1SnapshotReader}=await server.ssrLoadModule('./src/scoring-system/r1/analysis.ts')
  const {calculateR1Pair}=await server.ssrLoadModule('./src/scoring-system/r1/pair.ts')
  const {groupInspectorReleases}=await server.ssrLoadModule('./src/inspector/inspector-data.ts')
@@ -56,6 +57,46 @@ try {
    for(const[currency,a]of [['USD',expected.overall],['EUR',expected.otherCurrency.overall]])for(const key of ['net','supportive','negative','unavailable','direction','strength','interval'])assert.deepEqual(point[currency][key],a[key],`${currency} Inspector parity at ${clock}: ${key}`)
  }
  assert.equal(r1TimelineAt(timeline,at).USD.update.releases.length,2,'Simultaneous releases share one combined delta')
+ for(const point of timeline.points)for(const currency of ['EUR','USD']){
+   const update=point[currency].update
+   if(update?.at!==point.at)continue
+   assert.ok(Math.abs(update.parts.reduce((sum,p)=>sum+p.change,0)-update.change)<1e-8,'Family contributions conserve raw combined change')
+   assert.equal(r1DisplayParts(update).reduce((sum,p)=>sum+Math.round(p.change*100),0),Math.round(update.change*100),'Displayed family contributions add up to displayed total')
+ }
+ const simultaneous=r1TimelineAt(timeline,at).USD.update
+ for(const standalone of simultaneous.standalone){
+   const publication=groupInspectorReleases(events).find(r=>r.id===standalone.releaseId)
+   const a=calculateR1Pair({release:publication,events,settings:usdSettings,eurSettings,savedBands:{},schedules}).assessment
+   assert.equal(standalone.net,a.net);assert.equal(standalone.direction,a.direction)
+ }
+ const revisionUpdate=r1TimelineAt(timeline,at+2*day).USD.update
+ const revisionRelease=groupInspectorReleases(events).find(r=>r.releaseAt===at+2*day)
+ assert.equal(revisionUpdate.standalone[0].net,calculateR1Pair({release:revisionRelease,events,settings:usdSettings,eurSettings,savedBands:{},schedules}).assessment.net,'Quarterly standalone revision is distinct from relationship momentum')
+ assert.deepEqual(new Set(simultaneous.parts.filter(p=>p.family).map(p=>p.family)),new Set(['claims','ppi']))
+ assert.equal(simultaneous.parts.find(p=>p.family==='claims').label,'Jobless claims')
+ // New PCE evidence replaces the CPI anchor; the removed CPI vote is an
+ // explicit relationship adjustment, not assigned to PCE as an extra vote.
+ const inflationEvents=['us-cpi','pce'].flatMap((family,i)=>r1Profiles[family].components.flatMap(c=>[row(c.seriesId,2,2,at-28*day+i*day,jan),row(c.seriesId,i?2:2.2,2,at+i*day,feb)]))
+ const inflationSettings={version:1,selected:['us-cpi','pce'],calibration:{mode:'undefined',limits:Object.fromEntries(['us-cpi','pce'].flatMap(f=>r1Profiles[f].components.map(c=>[`${f}/${c.id}`,[.1,.2,.4]])))}}
+ const inflation=calculateR1Timeline({...input,events:inflationEvents,usdSettings:inflationSettings,schedules:[],end:at+day})
+ const replaced=r1TimelineAt(inflation,at+day).USD.update
+ assert.ok(replaced.parts.some(p=>p.label==='Relationship adjustment'&&p.change<0))
+ assert.equal(replaced.parts.find(p=>p.family==='pce').change,0,'PCE is unchanged; removing CPI explains the aggregate change')
+ const comparisonState=(net,interval=[net,net],direction=net>0?'strengthening':net<0?'weakening':'balanced')=>({net,interval,direction})
+ assert.equal(r1EvidenceComparison(comparisonState(8.76),comparisonState(23.81)).gap,15.05)
+ assert.equal(r1EvidenceComparison(comparisonState(-20),comparisonState(-10)).leader,'USD')
+ assert.equal(r1EvidenceComparison(comparisonState(20),comparisonState(10)).leader,'EUR')
+ assert.equal(r1EvidenceComparison(comparisonState(10),comparisonState(10)).leader,null)
+ assert.equal(r1EvidenceComparison(comparisonState(8.76,[-1,18],'insufficient'),comparisonState(23.81,[20,30])).uncertain,false)
+ assert.equal(r1EvidenceComparison(comparisonState(8.76,[-30,50],'insufficient'),comparisonState(23.81)).uncertain,true)
+ assert.equal(r1EvidenceComparison(comparisonState(0,[-100,100],'empty'),comparisonState(23.81)).unavailable,true)
+ for(const changes of [[.014,.014,-.011],[-.014,-.014,.011],[.001,-.001],[2.675]]){
+   const update={parts:changes.map((change,i)=>({label:String(i),change})),change:changes.reduce((a,b)=>a+b,0)}
+   assert.equal(r1DisplayParts(update).reduce((sum,p)=>sum+Math.round(p.change*100),0),Math.round(update.change*100))
+ }
+ assert.equal(r1EvidencePoints(-.001),'0.00')
+ assert.equal(r1EvidencePoints(2.675),'+2.68')
+
  assert.equal(r1CandleUpdates(timeline,at-30*60000,at+30*60000,'EUR').length,1)
  assert.equal(r1CandleUpdates(timeline,at-30*60000,at+30*60000,'USD').length,1)
  assert.equal(r1TimelineAt(timeline,at+day).USD.update.kind,'correction')
@@ -90,8 +131,21 @@ try {
  const baselineRequests=requests,hoverWork={...work}
  await React.act(async()=>{for(let i=0;i<100;i++)handler({point:{x:i,y:1},time:Math.floor(at/3600000)*3600,seriesData:new Map([[series,{}]])});assert.equal(frames.size,1);for(const[id,fn]of frames){frames.delete(id);fn()}})
  assert.match(div.querySelector('[aria-label="EUR R1 evidence"]').textContent,/EUR Strengthening/)
- assert.match(div.querySelector('[aria-label="R1 evidence updates"]').textContent,/Euro-area inflation.*EUR evidence increased by.*Jobless Claims.*PPI.*USD evidence/s)
+ assert.match(div.querySelector('[aria-label="R1 evidence updates"]').textContent,/Euro-area inflation.*EUR-supportive.*EUR overall score change.*Jobless Claims.*PPI.*USD overall score change/s)
  assert.equal(div.querySelectorAll('[aria-label="R1 evidence updates"] .r1-ray-update').length,2)
+ const anchors=[...div.querySelectorAll('.r1-ray-points, .r1-ray-strength, .r1-ray-change, .r1-ray-comparison, .r1-ray-update-group')]
+ assert.deepEqual([...div.querySelectorAll('.r1-ray-update-group')].map(e=>e.getAttribute('aria-label')),['EUR evidence updates','USD evidence updates'])
+ for(const currency of ['EUR','USD']){
+   const update=r1TimelineAt(timeline,at+30*60000)[currency].update
+   const parts=div.querySelector(`[aria-label="${currency} change by family"]`)
+   for(const part of r1DisplayParts(update))assert.ok(parts.textContent.includes(part.label+ r1EvidencePoints(part.change)))
+   assert.ok(parts.textContent.includes(r1EvidencePoints(update.change)))
+   const standalone=div.querySelector(`[aria-label="${currency} standalone release points"]`)
+   for(const a of update.standalone)assert.ok(standalone.textContent.includes(a.label)&&standalone.textContent.includes(r1EvidencePoints(a.net)))
+ }
+ assert.ok(div.querySelector('[aria-label="EUR and USD comparison"] strong').textContent.includes('leads'))
+ for(const b of div.querySelectorAll('.r1-ray-points b'))assert.match(b.textContent,/^[+-]?\d+\.\d{2} → [+-]?\d+\.\d{2}$/)
+
  assert.match(div.querySelector('[aria-label="Raycaster view"]').textContent,/Context \(Retired\).*Selected combo \(Retired\)/)
  assert.doesNotMatch(div.querySelector('[aria-label="R1 evidence updates"]').textContent,/Asia\/Jakarta|Long|Short/)
  await render({...props,symbols:{claims:'star'},clockOffsetMs:props.clockOffsetMs+1000})
@@ -99,6 +153,9 @@ try {
  assert.equal(workers[0].jobs.length,1);assert.equal(requests,baselineRequests,'Clock/display updates do not reload or rescore history')
  await React.act(async()=>{handler({point:{x:1,y:1},time:(at+3*day)/1000,seriesData:new Map([[series,{}]])});for(const[id,fn]of frames){frames.delete(id);fn()}})
  assert.equal(workers[0].jobs.length,1,'No-release candles only look up history')
+ assert.deepEqual([...div.querySelectorAll('.r1-ray-points, .r1-ray-strength, .r1-ray-change, .r1-ray-comparison, .r1-ray-update-group')],anchors,'Hover updates reuse the same fixed summary slots and currency groups')
+ assert.deepEqual([...div.querySelectorAll('.r1-ray-update-group')].map(e=>e.getAttribute('aria-label')),['EUR evidence updates','USD evidence updates'],'Latest update timestamps never reorder currency groups')
+
  assert.match(div.querySelector('[aria-label="R1 evidence updates"]').textContent,/GDP/)
  await React.act(async()=>saveR1Settings({...usdSettings,selected:['claims']}))
  await render(props)
