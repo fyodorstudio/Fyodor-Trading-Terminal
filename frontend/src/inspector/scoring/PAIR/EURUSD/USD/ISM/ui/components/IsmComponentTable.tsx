@@ -1,5 +1,5 @@
 import type { IsmAnalysis } from '../../../../../../../../scoring-system/PAIR/EURUSD/USD/ISM/runtime/ism-analysis'
-import type { InspectorRelease } from '../../../../../../../inspector-data'
+import type { InspectorRelease } from '../../../../../../../../economic-calendar/releases/release'
 import { sectorLabel, format } from '../presentation'
 import { ismCalendarSource } from '../../../../../../../../scoring-system/PAIR/EURUSD/USD/ISM/assessment/ism-publication-check'
 export function IsmComponentTable({ snapshots, loading, timestamp, onOpenScatter }: { snapshots: IsmAnalysis['snapshots']; loading: boolean; timestamp: (at: number | null) => string; onOpenScatter?: (release: InspectorRelease) => void }) {

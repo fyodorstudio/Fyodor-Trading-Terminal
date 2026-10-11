@@ -1,4 +1,4 @@
-import type { InspectorRelease } from '../../../../../../inspector/inspector-data'
+import type { InspectorRelease } from '../../../../../../economic-calendar/releases/release'
 import { nativeNumber, observedReading } from '../../../../../shared/core/historical-release-signals'
 export const fedSeriesIds = ['840050014', '840050002', '840050003', '840050018', '840050005', '840050006', '840050021', '840050022'] as const
 export const supportsFedScore = (r: InspectorRelease | null) => !!r && ['fomc','fed-chair'].includes(r.familyId) && r.country === 'US' && r.currency === 'USD'

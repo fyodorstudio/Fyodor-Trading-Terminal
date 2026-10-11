@@ -10,7 +10,7 @@ findings are in [the archived objective](reports/Main-objective-history-through-
 
 ## Active implementation: publication summary and EUR evidence R1
 
-The accepted [plan](temporary%20plan.md) extends USD R1 with a prominent standalone
+The accepted [plan](plans/2026-10-10-currency-evidence-plan.md) extends USD R1 with a prominent standalone
 summary first, combined relationships and their before/after summary below,
 one selected detail table, hold-action presentation, EUR
 standalone/relationships and a same-clock EURUSD evidence comparison. Forecasts,
@@ -150,7 +150,7 @@ preservation-only scope and earlier interpretation rules do not override R1.
 
 ## Previous implementation: standalone scoring first
 
-The agreed implementation order is in [temporary plan](temporary%20plan.md):
+The agreed implementation order is in [temporary plan](plans/2026-10-10-currency-evidence-plan.md):
 centralise existing calculations and fundamental settings, implement and validate
 Claims standalone, then review other labor models, relationships and finally
 Raycaster. Reuse the existing Inspector scoring views for supported USD releases.
@@ -356,7 +356,7 @@ preferences were not read. See the detailed release report below.
 - [USD Roof expansion](reports/Roof-v4-expansion-audit.md).
 - [USD Raycaster/Candy presentation v1](reports/USD-raycaster-candy-v1-audit.md).
 - [Unified display clock](reports/Unified-display-clock-audit.md).
-- [Active scoring implementation plan](temporary%20plan.md).
+- [Active scoring implementation plan](plans/2026-10-10-currency-evidence-plan.md).
 - [Completed plans and historical objective](reports/Main-objective-history-through-2026-10-08.md).
 
 Prior test counts belong to their dated passes, not a claim that the active

@@ -1,12 +1,11 @@
 import assert from 'node:assert/strict'
-import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { createServer } from 'vite'
 import { Window } from 'happy-dom'
-import ts from 'typescript'
+import { reachableFiles, sourceGraph } from '../scripts/lib/source-graph.mjs'
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const sourceDir = path.join(rootDir, 'src')
@@ -24,39 +23,22 @@ const utc = { mode: 'utc', utcOffsetMinutes: 0 }
 const noop = () => {}
 
 try {
-  // Follow production imports, including types and re-exports. A future experiment
-  // must be able to use Inspector without copying either retired UI subsystem.
-  const visited = new Set()
+  const graph = sourceGraph(sourceDir)
+  assert.deepEqual(graph.unresolved, [], 'Every source import and worker URL resolves')
   function inspectGraph(filename, inspectorOnly = false) {
-    filename = path.resolve(filename)
-    if (visited.has(filename)) return
-    visited.add(filename)
-    assert.ok(!/[\\/](redundant|criterion)[\\/]/.test(filename), filename)
-    const source = ts.createSourceFile(filename, fs.readFileSync(filename, 'utf8'), ts.ScriptTarget.Latest, true)
-    function walk(node) {
-      const specifier = (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) ? node.moduleSpecifier
-        : ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword ? node.arguments[0] : null
-      if (specifier && ts.isStringLiteral(specifier) && specifier.text.startsWith('.')) {
-        const base = path.resolve(path.dirname(filename), specifier.text)
-        const resolved = [base, `${base}.ts`, `${base}.tsx`, path.join(base, 'index.ts')]
-          .find((candidate) => fs.existsSync(candidate) && fs.statSync(candidate).isFile())
-        assert.ok(resolved, `Unresolved production dependency: ${filename} -> ${specifier.text}`)
-        if (inspectorOnly && !resolved.includes(`${path.sep}inspector${path.sep}`)) {
-          const relative = path.relative(sourceDir, resolved).replaceAll('\\', '/')
-          assert.ok(relative.startsWith('economic-calendar/') || relative.startsWith('appearance/time-display/') || relative.startsWith('market-data/contracts/')
-            // Inspector consumes shared currency engines, never Raycaster's UI/runtime.
-            || relative.startsWith('usd-context/') || relative.startsWith('pair-context/')
-            || relative.startsWith('scoring-system/') || relative === 'fundamental-tools/runtime/settings-navigation.ts'
-            || relative === 'system-connectivity/bridge-status/bridge-contract.ts', `Unexpected Inspector coupling: ${relative}`)
-        }
-        if (/\.tsx?$/.test(resolved)) inspectGraph(resolved, inspectorOnly)
+    for (const dependency of reachableFiles(graph, [filename])) {
+      assert.ok(!/[\\/](redundant|criterion)[\\/]/.test(dependency), dependency)
+      if (inspectorOnly && !dependency.includes(`${path.sep}inspector${path.sep}`)) {
+        const relative = path.relative(sourceDir, dependency).replaceAll('\\', '/')
+        assert.ok(relative.startsWith('economic-calendar/') || relative.startsWith('appearance/time-display/') || relative.startsWith('market-data/contracts/')
+          // Inspector consumes shared currency engines, never Raycaster's UI/runtime.
+          || relative.startsWith('usd-context/') || relative.startsWith('pair-context/')
+          || relative.startsWith('scoring-system/') || relative === 'fundamental-tools/runtime/settings-navigation.ts'
+          || relative === 'system-connectivity/bridge-status/bridge-contract.ts', `Unexpected Inspector coupling: ${relative}`)
       }
-      ts.forEachChild(node, walk)
     }
-    walk(source)
   }
   inspectGraph(path.join(sourceDir, 'inspector/index.ts'), true)
-  visited.clear()
   inspectGraph(path.join(sourceDir, 'terminal-shell/FyodorTerminalShell.tsx'))
   console.log('✓ Inspector dependency boundary and active Terminal import graph')
 
@@ -67,6 +49,8 @@ try {
   const shellButtons = [...shell.querySelectorAll('button')].map((button) => button.textContent.trim())
   assert.ok(shellButtons.includes('Inspector'))
   assert.ok(shellButtons.includes('Roofs'), 'Roofs has its own production dock navigation')
+  assert.deepEqual([...shell.querySelectorAll('.status-experimental button')].map(button => button.textContent.trim()), ['Fundamental Settings', 'Roofs'])
+  assert.deepEqual([...shell.querySelectorAll('.status-primary button')].map(button => button.textContent.trim()), ['Inspector', 'Alert', 'Scatter Plot', 'Notebook', 'Activity 1', '⚙ Settings'])
   assert.ok(!shellButtons.some((label) => /Criterion|Calendar|Arrow Result|Return to live/.test(label)))
   assert.ok(shell.querySelector('.chart-workspace'))
   assert.ok(shell.querySelector('.floating-drawing-toolbar, .drawing-toolbar'))

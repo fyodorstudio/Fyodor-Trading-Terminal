@@ -191,6 +191,18 @@
 .status-clock { color: var(--text-strong); font-variant-numeric: tabular-nums; font-weight: 650; white-space: nowrap; }
 .status-selection { font-variant-numeric: tabular-nums; }
 .status-actions { margin-left: auto; gap: 5px; }
+.status-actions.status-experimental { margin-left: 0; flex-shrink: 0; padding-right: 12px; border-right: 1px solid var(--border); }
+.status-primary { flex-shrink: 0; }
+.status-wip { color: var(--text-faint); font-size: 8px; font-weight: 650; }
+
+@media (max-width: 1250px) {
+  .status-bar { gap: 10px; }
+  .status-selection { display: none; }
+}
+@media (max-width: 1050px) {
+  .status-clock { display: none; }
+  .status-message { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+}
 
 .status-action {
   min-height: 24px;

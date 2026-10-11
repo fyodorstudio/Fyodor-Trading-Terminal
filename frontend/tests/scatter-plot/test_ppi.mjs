@@ -90,6 +90,8 @@ try {
   function InspectorApp({ rows = current, configured = false }) {
     const view = useInspector({ events: rows, symbol: 'EURUSD', bars: [], timeframe: 'H1',
       timeDisplay: { mode: 'utc', utcOffsetMinutes: 0 }, clockOffsetMs })
+    const { setRangePreset } = view
+    React.useEffect(() => { setRangePreset('year-to-date') }, [setRangePreset])
     const history = { rows: familyMagnitudeHistory(events, view.selectedRelease, family, configured ? settings : {}, now),
       partial: false, message: null, error: null }
     return React.createElement(InspectorPanel, { view: { ...view, magnitudeHistory: history }, symbol: 'EURUSD',

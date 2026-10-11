@@ -26,7 +26,7 @@ bridge always start with the same isolated Python dependencies.
 
 ## MQL5 Scripts and EA (`bridge/mql5/`)
 
-The current persistent-storage workflow uses Publisher V2.0.2 and Exporter V4
+The current persistent-storage workflow uses Publisher V2.0.4 and Exporter V4
 under `mql5/Active`, described in the setup guide. The following describes the
 older bridge-only programs, not the fresh-clone storage procedure.
 

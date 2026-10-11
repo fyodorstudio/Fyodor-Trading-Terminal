@@ -1,5 +1,5 @@
 import type { EconomicCalendarEvent } from '../../../../../../economic-calendar/contracts/calendar-event'
-import type { InspectorRelease } from '../../../../../../inspector/inspector-data'
+import type { InspectorRelease } from '../../../../../../economic-calendar/releases/release'
 import { assessIsmMonthlyContext, type IsmSectorSettings } from './ism-monthly-context'
 
 export const ismScoreV3Version = 'ism-eurusd-monthly-resolution-v3'

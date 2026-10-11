@@ -1,7 +1,7 @@
 import { majorCurrencies } from '../economic-calendar/forex/currencies'
 import { currencyColorStyle, type CurrencyColors } from './currency-colors'
 import { memo, useEffect, useMemo, useState } from 'react'
-import type { IChartApi } from 'lightweight-charts'
+import type { IChartApi, MouseEventParams, Time } from 'lightweight-charts'
 import type { TimeDisplayPreference } from '../appearance/time-display/time-display-preference'
 import { symbolGlyph } from '../economic-calendar/presentation/event-symbols'
 import type { InspectorMarker } from './inspector-data'
@@ -16,6 +16,14 @@ function InspectorChartMarkersComponent({ chartApi, markers, timeDisplay, onSele
 }) {
   const [positions, setPositions] = useState<MarkerCluster[]>([])
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  useEffect(() => {
+    if (expandedId === null) return
+    const dismiss = (event: MouseEventParams<Time>) => {
+      if (event.point) setExpandedId(null)
+    }
+    chartApi.subscribeClick(dismiss)
+    return () => chartApi.unsubscribeClick(dismiss)
+  }, [chartApi, expandedId])
   const emphasized = useMarkerEmphasis(chartApi)
   const index = useMemo(() => indexMarkers(markers), [markers])
   useEffect(() => {
@@ -48,8 +56,10 @@ function InspectorChartMarkersComponent({ chartApi, markers, timeDisplay, onSele
       return <div key={first.release.id} className="inspector-marker-cluster" style={{ left: cluster.x }}>
         <button type="button" className={`inspector-chart-symbol${source ? ' roof-source' : ''}`} title={cluster.markers.map(description).join('\n')}
           aria-label={multiple ? `${cluster.markers.length} nearby Inspector releases` : `Inspect ${description(first)}`}
-          aria-expanded={multiple ? expanded : undefined} onClick={() => multiple ?
-            setExpandedId(expanded ? null : first.release.id) : onSelectRelease(first.release.id)}>
+          aria-expanded={multiple ? expanded : undefined} onClick={() => {
+            if (multiple) setExpandedId(expanded ? null : first.release.id)
+            else { setExpandedId(null); onSelectRelease(first.release.id) }
+          }}>
           {majorCurrencies.map((currency) => {
             const items = cluster.markers.filter((marker) => marker.release.currency === currency)
             return items.length ? <span key={currency} className={`inspector-currency-${currency}`}>

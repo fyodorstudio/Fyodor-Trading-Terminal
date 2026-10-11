@@ -1,6 +1,7 @@
 # Repository navigation
 
 - Start with [the repository map](docs/REPOSITORY-MAP.md) for terminology, ownership and active versus historical documentation.
+- Run `pnpm check:repo` after moving files or changing imports/document links. Use focused ownership paths; compatibility exports are retained entry points, not a second implementation.
 - Standalone scoring development does not migrate Roofs/Raycaster/Candy automatically. Claims v3 standalone and their Claims v2 context are separate models/settings.
 
 # Responsiveness guardrails

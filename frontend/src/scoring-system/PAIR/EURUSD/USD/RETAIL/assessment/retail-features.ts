@@ -1,4 +1,4 @@
-import type { InspectorRelease } from '../../../../../../inspector/inspector-data'
+import type { InspectorRelease } from '../../../../../../economic-calendar/releases/release'
 import { nativeNumber, releaseSignalContext, usableSignal, unavailableSignal,
   type TimedReading, type HistoricalFeature } from '../../../../../shared/core/historical-release-signals'
 import { retailSeriesIds, retailVotingIds, retailSignals, type RetailSignalId } from '../policy/retail-policy'

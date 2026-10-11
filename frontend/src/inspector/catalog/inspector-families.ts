@@ -1,7 +1,7 @@
 import { eventFamilyOptions } from '../../economic-calendar/catalog'
 
 export const originalInspectorFamilies = ['ecb', 'ecb-president', 'fomc', 'fed-chair', 'euro-inflation', 'german-inflation', 'us-cpi', 'pce', 'ppi']
-const existingOrder = [...originalInspectorFamilies, 'euro-labor', 'euro-wages', 'jobs', 'claims',
+const existingOrder = [...originalInspectorFamilies, 'fed-minutes', 'euro-labor', 'euro-wages', 'jobs', 'claims',
   'euro-gdp', 'euro-pmi', 'german-pmi', 'french-pmi', 'gdp', 'retail', 'ism-manufacturing', 'ism-services',
   'boe', 'boe-governor', 'uk-cpi', 'uk-labor', 'uk-wages', 'uk-gdp', 'uk-pmi', 'uk-retail']
 export const inspectorFamilies = eventFamilyOptions.filter(f => !('inspector' in f) || f.inspector !== false)

@@ -21,7 +21,7 @@ import type { MagnitudeSettingsStore } from '../inspector/magnitude/settings/mag
 import { eurPolicy } from './PAIR/EURUSD/EUR/policy/eur-policies'
 import { eurMagnitudeStores } from './PAIR/EURUSD/EUR/policy/eur-magnitude-settings'
 import { eurFeatures } from './PAIR/EURUSD/EUR/assessment/eur-features'
-import type { InspectorRelease } from '../inspector/inspector-data'
+import type { InspectorRelease } from '../economic-calendar/releases/release'
 import type { HistoricalFeature, TimedReading } from './shared/core/historical-release-signals'
 
 export type ScoringSignalBinding = {

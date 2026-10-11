@@ -1,5 +1,5 @@
 import type { EconomicCalendarEvent } from '../../economic-calendar/contracts/calendar-event'
-import type { InspectorRelease } from '../inspector-data'
+import type { InspectorRelease } from '../../economic-calendar/releases/release'
 import { gradeFamilyReading, tallyFamilyReadings } from './reading-grading'
 export { gradeLabels, type ReadingGrade } from './reading-grading'
 

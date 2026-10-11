@@ -47,7 +47,7 @@ try {
   assert.equal(families.length, 19)
   assert.equal(new Set(families.map((family) => family.settings.key)).size, families.length)
   for (const option of inspectorFamilies) {
-    assert.equal(families.some((family) => family.familyId === option.id), ['EUR', 'USD'].includes(option.currency) && !['fed-chair', 'ecb-president'].includes(option.id), option.id)
+    assert.equal(families.some((family) => family.familyId === option.id), ['EUR', 'USD'].includes(option.currency) && !['fed-chair', 'ecb-president', 'fed-minutes'].includes(option.id), option.id)
   }
   const row = (family, id = family.seriesIds[0], time = at, overrides = {}) => ({
     value_id: `${time}-${id}`, event_id: id, name: family.readingRules[id].name,
@@ -119,6 +119,8 @@ try {
   const renderedRows = (container) => [...container.querySelectorAll('.inspector-table-scroll tbody tr')]
   function InspectorApp({ rows = mixed, family = claims, settings = claimsSettings }) {
     const view = useInspector({ events: rows, symbol: 'EURUSD', bars: [], timeframe: 'H1', timeDisplay: { mode: 'utc', utcOffsetMinutes: 0 }, clockOffsetMs })
+    const { setRangePreset } = view
+    React.useEffect(() => { setRangePreset('year-to-date') }, [setRangePreset])
     return React.createElement(InspectorPanel, { view: { ...view, magnitudeHistory: {
       rows: familyMagnitudeHistory(rows, view.selectedRelease, family, settings, now), partial: false, message: null, error: null } },
       symbol: 'EURUSD', source: null, error: null, timeDisplay: { mode: 'utc', utcOffsetMinutes: 0 }, onOpenScatter: () => {} })

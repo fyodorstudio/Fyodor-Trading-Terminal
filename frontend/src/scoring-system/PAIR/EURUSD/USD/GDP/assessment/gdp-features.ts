@@ -1,5 +1,5 @@
 import type { EconomicCalendarEvent } from '../../../../../../economic-calendar/contracts/calendar-event'
-import type { InspectorRelease } from '../../../../../../inspector/inspector-data'
+import type { InspectorRelease } from '../../../../../../economic-calendar/releases/release'
 import { nativeNumber, observedReading, usableSignal, unavailableSignal, type TimedReading } from '../../../../../shared/core/historical-release-signals'
 import { gdpSignals } from '../policy/gdp-policy'
 export const supportsGdpScore = (r: InspectorRelease | null) => !!r && r.familyId === 'gdp' && r.country === 'US' && r.currency === 'USD'

@@ -1,4 +1,4 @@
-import type { InspectorRelease } from '../../../../../../inspector/inspector-data'
+import type { InspectorRelease } from '../../../../../../economic-calendar/releases/release'
 import { observedReading, usableSignal, unavailableSignal, type HistoricalFeature, type TimedReading } from '../../../../../shared/core/historical-release-signals'
 import { claimsStandaloneSignals, type ClaimsHorizon } from '../policy/claims-standalone-policy'
 import { claimsCount, claimsReference, claimsWeekSeconds, validClaimsReference } from './claims-weekly-history'

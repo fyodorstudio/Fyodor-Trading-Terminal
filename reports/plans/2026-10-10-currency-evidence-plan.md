@@ -1,7 +1,10 @@
+Archived from `temporary plan.md` on 11 October 2026. Historical record;
+[current navigation](../../docs/REPOSITORY-MAP.md) takes priority.
+
 # Evidence summary, Fed refinement and EUR expansion
 
 Accepted 10 October 2026. Implement in this order; no migration of legacy Roofs,
-Raycaster or Candy scores. Canonical USD policy: [scoring design](docs/scoring%20system%20overhaul.md).
+Raycaster or Candy scores. Canonical USD policy: [scoring design](../../docs/scoring%20system%20overhaul.md).
 
 1. **Publication summary.** Updated after user review: lead with the standalone
    direction and evidence strength, then show combined relationships beneath it.
@@ -44,7 +47,7 @@ Raycaster or Candy scores. Canonical USD policy: [scoring design](docs/scoring%2
 - All eight accepted items are implemented and terminal-verified. The full 71
   frontend suites, 29 storage tests, lint and production build pass. Read-only
   replay verifies 3,595 EUR assessments, three same-clock pair snapshots and six
-  production-worker jobs. [Evidence report](reports/Currency-evidence-R1-expansion-audit.md).
+  production-worker jobs. [Evidence report](../Currency-evidence-R1-expansion-audit.md).
 
 | Accepted item | Implementation and verification evidence |
 | --- | --- |
@@ -64,5 +67,5 @@ price comparison. No automated visual/browser-performance audit was performed.
 Latest review supersedes the pair-summary presentation: show each currency
 directly, and make Inspector visibility filters independent of scoring settings.
 GDP quarterly calibration and repeated-load refinements are recorded in the
-[scope/GDP/loading audit](reports/R1-scope-GDP-loading-audit.md). Saved manual
+[scope/GDP/loading audit](../R1-scope-GDP-loading-audit.md). Saved manual
 bands remain authoritative; no blanket conversion to fractional magnitude.

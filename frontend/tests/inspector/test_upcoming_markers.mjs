@@ -85,6 +85,8 @@ try {
     const inspector = useInspector({ events: rows, symbol: 'EURUSD', bars: chartBars, timeframe: 'H1',
       timeDisplay: { mode: 'utc', utcOffsetMinutes: 0 }, clockOffsetMs })
     React.useEffect(() => { view = inspector }, [inspector])
+    const { setRangePreset } = inspector
+    React.useEffect(() => { setRangePreset('year-to-date') }, [setRangePreset])
     return React.createElement(React.Fragment, null,
       React.createElement(InspectorChartMarkers, { chartApi: { timeScale: () => scale }, markers: inspector.markers,
         timeDisplay: { mode: 'fixed-offset', utcOffsetMinutes: 420 }, onSelectRelease: inspector.selectRelease }),

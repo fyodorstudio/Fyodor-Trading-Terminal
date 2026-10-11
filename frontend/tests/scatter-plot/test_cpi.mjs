@@ -123,6 +123,8 @@ try {
   // The actual Inspector table applies the CPI grade/color adapter, including unconfigured magnitudes.
   function InspectorApp({ history } = {}) {
     const view = useInspector({ events: current, symbol: 'EURUSD', bars: [], timeframe: 'H1', timeDisplay: { mode: 'utc', utcOffsetMinutes: 0 }, clockOffsetMs })
+    const { setRangePreset } = view
+    React.useEffect(() => { setRangePreset('year-to-date') }, [setRangePreset])
     return React.createElement(InspectorPanel, { view: history ? { ...view, magnitudeHistory: history } : view, symbol: 'EURUSD', source: null, error: null, timeDisplay: { mode: 'utc', utcOffsetMinutes: 0 } })
   }
   const inspector = mount(InspectorApp, {})

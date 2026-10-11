@@ -2,7 +2,7 @@
 
 Discussion and design record, updated 2026-10-10. USD R1 is implemented and terminal-verified on `codex/usd-scoring-r1`; baseline `93a6ecd`. Earlier deferred-implementation statements describe their historical phase. Visual review remains manual.
 
-Current recommendation: [USD evidence design R1](#usd-evidence-design-r1), with the accepted [Claims fractional refinement](#accepted-claims-fractional-refinement--r11) and [Manufacturing New Orders refinement](#accepted-manufacturing-new-orders-refinement--r11). Earlier sections preserve the discussion and agreed CPI baseline. Numerical choices are design policies, not source-estimated USD coefficients.
+Implemented design (scoring development is paused; the [main objective](../fyodor%20trading%20terminal%20main%20objective.md) defines current scope): [USD evidence design R1](#usd-evidence-design-r1), with the accepted [Claims fractional refinement](#accepted-claims-fractional-refinement--r11) and [Manufacturing New Orders refinement](#accepted-manufacturing-new-orders-refinement--r11). Earlier sections preserve the discussion and agreed CPI baseline. Numerical choices are design policies, not source-estimated USD coefficients.
 
 Design and targeted evaluation are complete. Start with [R1 formulas and relationships](#usd-evidence-design-r1), then [worked examples and sensitivity findings](#r1-evaluation-and-worked-examples). CPI V5 and the user's existing magnitude bands, including the Extreme x4 cap, are preserved. Current implementation status is recorded at the end of this document.
 
@@ -668,7 +668,7 @@ complete; visual/browser performance review remains with the user.
   earlier schedule announcements. New planned observations invalidate storage
   revision caches even if a higher-priority current payload is retained. A stale
   service explicitly requests a restart instead of silently dropping provenance.
-- The [stored-history audit](reports/USD-R1-stored-history-audit.md) replays 1,828
+- The [stored-history audit](../reports/USD-R1-stored-history-audit.md) replays 1,828
   publications under the versioned automatic fallback. Component outputs match
   Inspector arithmetic and the production-built history worker. This is a
   stored-inventory arithmetic/sensitivity audit, not original-vintage or FX-price
@@ -759,7 +759,7 @@ gaps up to 39, and Fed P95/P99 gaps of 56. The selected defaults allow bounded
 delay rather than stretching to the largest missing-history gaps. They are
 fixed operational policies, not uniquely optimal limits or runtime predictions;
 GDP has repeated estimates within a quarter. See the
-[freshness replay](reports/USD-R1-freshness-audit.md) for counts, September CPI
+[freshness replay](../reports/USD-R1-freshness-audit.md) for counts, September CPI
 capture evidence, sensitivity and production-worker parity. The original strict
 schedule replay remains historical evidence.
 
@@ -797,7 +797,7 @@ The user accepted fractional magnitude after reviewing the October 8 Claims conf
 
 The [DOL technical notes](https://www.dol.gov/sites/dolgov/files/OPA/newsreleases/ui-claims/20222224b.pdf) support the separate economic roles and initial claims as an emerging-conditions indicator. They do not prescribe the exact weights or interpolation. These are explicit design policies. The refinement is justified by preserving relative size rather than fitting the October price move.
 
-The reproducible [Claims fractional review](reports/Claims-R1-fractional-audit.md) records the full replay, every changed complete direction, 60/40 sensitivity and worker/Scatter parity. Earlier integer-band and V3 reports remain historical evidence.
+The reproducible [Claims fractional review](../reports/Claims-R1-fractional-audit.md) records the full replay, every changed complete direction, 60/40 sensitivity and worker/Scatter parity. Earlier integer-band and V3 reports remain historical evidence.
 
 ## Historical Manufacturing New Orders refinement — R1.1
 
@@ -812,7 +812,7 @@ The user authorized resolving Production, evaluating fractional magnitude and re
 
 [ISM's calculation methodology](https://www.ismworld.org/supply-management-news-and-reports/reports/seasonal-adjustment-factors/) supports the survey interpretation and explains headline overlap. [ISM's March 2020 discussion](https://www.ismworld.org/supply-management-news-and-reports/news-publications/inside-supply-management-magazine/blog/2020-04/rob-roundup-march-pmi/) documents supply delays cushioning the headline despite worsening activity. The [September 2026 report](https://www.ismworld.org/supply-management-news-and-reports/reports/ism-pmi-reports/pmi/september/) verifies Orders 55.3 versus 53.7 and opposing Production 56.7 versus 58.3 for the user's October 1 example. These sources justify the economic definitions and scope distinction; they do not establish optimal currency weights or interpolation.
 
-The [manufacturing review](reports/Manufacturing-orders-R1-audit.md) records the source decision, full stored replay, isolated integer/fractional comparison, aggregate consequences, future-inventory removal and production-worker/Scatter parity. Price comparison remains user review, not a calibration objective.
+The [manufacturing review](../reports/Manufacturing-orders-R1-audit.md) records the source decision, full stored replay, isolated integer/fractional comparison, aggregate consequences, future-inventory removal and production-worker/Scatter parity. Price comparison remains user review, not a calibration objective.
 
 ## Accepted four-input ISM Manufacturing refinement — R1.2
 
@@ -827,12 +827,12 @@ This supersedes Orders-only R1.1 and the earlier incomplete Orders/Production de
 
 The R1 balance resolves the unrounded signed sum before reconciling displayed sides, and relationship allocation avoids intermediate leaf rounding. Exact cancellation must stay balanced both standalone and after routing; a three-input fractional cancellation has a regression test.
 
-See the [four-input replay](reports/Manufacturing-R1-four-input-audit.md) for October 1 contributions, direction sensitivity, aggregate consequences, future-inventory removal and production-worker/Scatter parity. Browser appearance/performance and price comparison remain user review.
+See the [four-input replay](../reports/Manufacturing-R1-four-input-audit.md) for October 1 contributions, direction sensitivity, aggregate consequences, future-inventory removal and production-worker/Scatter parity. Browser appearance/performance and price comparison remain user review.
 # Currency evidence summary and EUR R1
 
 Accepted 10 October 2026. This section extends the USD R1 policies below; legacy
 Roofs/Raycaster/Candy remain separate. The implementation order and acceptance
-checks are in [temporary plan](../temporary%20plan.md).
+checks are in [temporary plan](../reports/plans/2026-10-10-currency-evidence-plan.md).
 
 ## Publication summary and details
 

@@ -1,5 +1,5 @@
 import type { EconomicCalendarEvent } from '../../economic-calendar/contracts/calendar-event'
-import type { InspectorRelease } from '../inspector-data'
+import type { InspectorRelease } from '../../economic-calendar/releases/release'
 import { gradeFamilyReading, tallyFamilyReadings, type ReadingRule } from './reading-grading'
 
 export const cpiGradingVersion = 'usd-cpi-change-vs-previous-v2'

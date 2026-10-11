@@ -1,5 +1,5 @@
 import type { EconomicCalendarEvent } from '../../economic-calendar/contracts/calendar-event'
-import type { InspectorRelease } from '../../inspector/inspector-data'
+import type { InspectorRelease } from '../../economic-calendar/releases/release'
 import type { MagnitudeLimits } from '../../inspector/magnitude/magnitude-distribution'
 import type { R1Vintage } from './vintages'
 

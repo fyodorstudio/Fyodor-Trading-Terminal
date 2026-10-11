@@ -1,4 +1,4 @@
-import type { InspectorRelease } from '../../../../../../inspector/inspector-data'
+import type { InspectorRelease } from '../../../../../../economic-calendar/releases/release'
 import { nativeNumber, releaseSignalContext, usableSignal, unavailableSignal, type TimedReading } from '../../../../../shared/core/historical-release-signals'
 import { ppiSeriesIds, ppiSignals } from '../policy/ppi-policy'
 export const supportsPpiScore = (r: InspectorRelease | null) => !!r && r.familyId === 'ppi' && r.country === 'US' && r.currency === 'USD'

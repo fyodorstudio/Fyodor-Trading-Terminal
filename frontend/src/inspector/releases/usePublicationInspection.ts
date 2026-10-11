@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
-import type { InspectorRelease } from '../inspector-data'
+import type { InspectorRelease } from '../../economic-calendar/releases/release'
 import { groupInspectorReleases } from './group-releases'
 import { groupIsmEpisodes, ismEpisodeWindowMs } from '../episodes/ism-episodes'
 import { groupPmiEpisodes } from '../episodes/pmi-episodes'

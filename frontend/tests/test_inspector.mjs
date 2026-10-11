@@ -87,15 +87,17 @@ try {
   const { bottomDockHeightKey, legacyBottomDockHeightKeys, readBottomDockHeight } = await server.ssrLoadModule('./src/workspace-docking/bottom-dock/bottom-dock-height.ts')
   const { BottomDockPanel } = await server.ssrLoadModule('./src/workspace-docking/bottom-dock/BottomDockPanel.tsx')
   const preferences = data.defaultInspectorPreferences()
-  assert.equal(data.inspectorFamilies.length, 77)
+  assert.equal(data.inspectorFamilies.length, 78)
   assert.equal(data.inspectorCategories.length, 4)
   const categoryIds = data.inspectorCategories.flatMap((category) => category.families)
-  assert.equal(new Set(categoryIds).size, 77, 'Every family belongs to exactly one category')
+  assert.equal(new Set(categoryIds).size, 78, 'Every family belongs to exactly one category')
+  assert.ok(data.inspectorCategories.find(category => category.id === 'policy').families.includes('fed-minutes'))
+  assert.deepEqual(data.groupInspectorReleases([event({ event_id: '840050004', name: 'FOMC Minutes', actual: null, previous: null })]).map(release => release.familyId), ['fed-minutes'])
   assert.deepEqual([...categoryIds].sort(), data.inspectorFamilies.map((family) => family.id).sort())
   const originalFamilies = ['ecb', 'ecb-president', 'fomc', 'fed-chair', 'euro-inflation', 'german-inflation', 'us-cpi', 'pce', 'ppi']
   localStorage.setItem(data.inspectorStorageKey, JSON.stringify({ families: originalFamilies, showSymbols: false, symbols: { 'us-cpi': 'moon' } }))
   const upgraded = data.readInspectorPreferences()
-  assert.equal(upgraded.families.length, 21, 'The old all-enabled default expands once')
+  assert.equal(upgraded.families.length, 22, 'The old all-enabled default expands once')
   assert.equal(upgraded.showSymbols, false)
   assert.equal(upgraded.showHistograms, true, 'Legacy settings retain visible histograms')
   assert.equal(upgraded.detailView, 'table', 'Legacy settings default to the readings table')
@@ -177,7 +179,7 @@ try {
   })))
   const expandedGroups = data.groupInspectorReleases(allExpandedRows)
   assert.equal(expandedGroups.reduce((count, group) => count + group.events.length, 0), allExpandedRows.length)
-  assert.equal(new Set(expandedGroups.map((group) => group.familyId)).size, 12)
+  assert.equal(new Set(expandedGroups.map((group) => group.familyId)).size, 13)
   const euroLabor = expandedGroups.filter((group) => group.familyId === 'euro-labor')
   assert.equal(euroLabor.length, 2, 'Euro-area unemployment stays separate from employment at the same time')
   assert.equal(euroLabor.find((group) => group.label === 'Euro-area unemployment').events.length, 1)
@@ -208,6 +210,14 @@ try {
   const app = mount(App, {})
   const showView = async (label) => change(app.container.querySelector('[aria-label="Inspector view"]'), { value: label === 'Table only' ? 'table' : 'scoring' })
   await app.render()
+  assert.equal(view.rangePreset, 'same-month-last-year')
+  assert.deepEqual(view.rangeDates, { from: '2025-10-01', to: '2025-10-31' })
+  await click(app.container.querySelector('[aria-label="Inspector date range"]'))
+  assert.equal(document.querySelector('[aria-label="Anchor date (YYYY-MM-DD)"]').value, view.today)
+  assert.equal(document.querySelector('[aria-label="Days after anchor date"]').value, '90')
+  await click(document.querySelector('[aria-label="Close date range picker"]'))
+  assert.equal(view.rangePreset, 'same-month-last-year', 'Opening the anchor controls does not apply their default offsets')
+  await act(async () => view.setRangePreset('year-to-date'))
   assert.equal(app.container.querySelector('.inspector-releases').hidden, true, 'Release list starts collapsed')
   await click(app.container.querySelector('.inspector-pair-toggle'))
   await click([...app.container.querySelectorAll('.inspector-release')].find((button) => button.textContent.includes('US CPI')))
@@ -298,6 +308,15 @@ try {
   const openDates = async () => click(app.container.querySelector('[aria-label="Inspector date range"]'))
   const presetButton = (name) => [...document.querySelectorAll('[aria-label="Date range presets"] button')].find((button) => button.textContent === name)
   await openDates()
+  assert.equal(document.querySelector('[aria-label="Days after anchor date"]').value, '90')
+  await change(document.querySelector('[aria-label="Days before anchor date"]'), { value: '5' })
+  assert.equal(view.customTo, dates.shiftInspectorDate(view.today, 90), 'Editing anchor offsets applies the actual 90-day endpoint')
+  await click(presetButton('Same month last year'))
+  assert.equal(view.rangePreset, 'same-month-last-year', 'A named preset replaces the active custom range')
+  assert.deepEqual(view.rangeDates, { from: '2025-10-01', to: '2025-10-31' })
+  await openDates()
+  await click(presetButton('This month'))
+  await openDates()
   assert.equal(document.querySelectorAll('[aria-label="Inspector date range picker"] table').length, 2)
   assert.equal([...document.querySelectorAll('[aria-label="Inspector date range picker"] button')].some((button) => ['Apply', 'Cancel'].includes(button.textContent)), false)
   await click(presetButton('Next week'))
@@ -387,6 +406,8 @@ try {
   assert.equal(dates.validInspectorDate('2024-02-29'), true)
   assert.deepEqual(dates.inspectorRangeDates('this-month', '2024-02-15', '', ''), { from: '2024-02-01', to: '2024-02-29' })
   assert.deepEqual(dates.inspectorRangeDates('year-to-date', '2026-10-04', '', ''), { from: '2026-01-01', to: '2026-10-04' })
+  assert.deepEqual(dates.inspectorRangeDates('same-month-last-year', '2025-02-15', '', ''), { from: '2024-02-01', to: '2024-02-29' })
+  assert.deepEqual(dates.inspectorRangeDates('same-month-last-year', '2024-02-29', '', ''), { from: '2023-02-01', to: '2023-02-28' })
   await act(async () => { view.setRangePreset('custom'); view.setCustomFrom('2026-10-01'); view.setCustomTo('2026-10-01') })
   await openDates()
   await act(async () => document.querySelector('[aria-label="Choose 2026-10-01"]').dispatchEvent(new dom.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })))
@@ -479,7 +500,7 @@ try {
   assert.ok(document.querySelector('[aria-label="US Jobs report / NFP"]'))
   await change(document.querySelector('[aria-label="US Jobs report / NFP"]'), { checked: false })
   await click(document.querySelector('[aria-label="Clear family search"]'))
-  assert.equal(document.querySelectorAll('.inspector-family').length, 18, 'ISM and the three PMI sources have combined filter controls')
+  assert.equal(document.querySelectorAll('.inspector-family').length, 19, 'ISM and the three PMI sources have combined filter controls')
   const groupedIsm = document.querySelector('[aria-label="US ISM Manufacturing / Services"]')
   assert.ok(groupedIsm)
   assert.equal(document.querySelector('[aria-label="US ISM Manufacturing"]'), null)
@@ -617,13 +638,23 @@ try {
     unsubscribeVisibleLogicalRangeChange: (fn) => subscriptions.delete(fn), unsubscribeSizeChange: (fn) => subscriptions.delete(fn) }
   let picked = null
   const clusterMarkers = data.buildInspectorMarkers(data.groupInspectorReleases([event(), decision]), preferences, bars, 'H1')
-  const chart = mount(InspectorChartMarkers, { chartApi: { timeScale: () => scale }, markers: clusterMarkers,
+  const markerClicks = new Set()
+  const chart = mount(InspectorChartMarkers, { chartApi: { timeScale: () => scale,
+    subscribeClick: fn => markerClicks.add(fn), unsubscribeClick: fn => markerClicks.delete(fn) }, markers: clusterMarkers,
     timeDisplay: utc, onSelectRelease: (id) => { picked = id; view.selectRelease(id) } })
   await chart.render()
   await click(chart.container.querySelector('.inspector-chart-symbol'))
   const choices = chart.container.querySelectorAll('.inspector-marker-popup button')
   assert.equal(choices.length, 3)
-  await click(choices[1])
+  assert.equal(markerClicks.size, 1, 'An open chooser subscribes even without a selected release')
+  await act(async () => { for (const click of markerClicks) click({ point: { x: 50, y: 50 } }) })
+  assert.equal(chart.container.querySelector('.inspector-marker-popup'), null, 'A blank chart click dismisses the chooser')
+  assert.equal(markerClicks.size, 0, 'Dismissal detaches the chooser listener')
+  await click(chart.container.querySelector('.inspector-chart-symbol'))
+  await act(async () => { for (const click of markerClicks) click({ point: { x: 50, y: 50 }, hoveredObjectId: 'chart-drawing' }) })
+  assert.equal(chart.container.querySelector('.inspector-marker-popup'), null, 'Clicking a chart object also dismisses the chooser')
+  await click(chart.container.querySelector('.inspector-chart-symbol'))
+  await click(chart.container.querySelectorAll('.inspector-marker-popup button')[1])
   assert.equal(picked, clusterMarkers[0].release.id, 'Cluster choice selects the exact release')
   const selectedId = view.selectedRelease.id
   assert.match(app.container.querySelector('table').getAttribute('aria-label'), /Fed rate decision/)
@@ -747,11 +778,16 @@ try {
     const inspector = useInspector({ events: liveEvents, symbol, bars: chartBars, timeframe: 'H1',
       timeDisplay, clockOffsetMs: fixtureClockOffset,
       brokerId, brokerOffsetSeconds: 10800 })
+    const { setRangePreset } = inspector
+    React.useEffect(() => { setRangePreset('year-to-date') }, [setRangePreset])
     React.useEffect(() => { storedView = inspector }, [inspector])
     return React.createElement(InspectorPanel, { view: inspector, symbol, source: source(), error: null, timeDisplay })
   }
   const storageApp = mount(StoredApp, {})
   await storageApp.render()
+  // The fixture chooses this year's data after the historical startup request.
+  assert.ok(storageRequests[0].signal.aborted)
+  storageRequests.shift()
   await respond(storageRequests[0], storedHealth())
   const rawRow = stored(event({ actual: .008, previous: .001, digits: 2,
     actual_raw_scaled_1e6: '8000', previous_raw_scaled_1e6: '1000' }))
@@ -934,12 +970,16 @@ try {
   function RangeStorageApp() {
     const state = useInspector({ events: [], symbol: 'EURUSD', bars, timeframe: 'H1', timeDisplay: utc,
       clockOffsetMs: fixtureClockOffset, brokerId: 'Broker-A', brokerOffsetSeconds: 10800 })
+    const { setRangePreset } = state
+    React.useEffect(() => { setRangePreset('year-to-date') }, [setRangePreset])
     React.useEffect(() => { rangeView = state }, [state])
     return React.createElement(InspectorPanel, { view: state, symbol: 'EURUSD', source: source(), error: null, timeDisplay: utc })
   }
   const rangeApp = mount(RangeStorageApp, {})
   let start = storageRequests.length
   await rangeApp.render()
+  assert.ok(storageRequests[start].signal.aborted)
+  storageRequests.splice(start, 1)
   await respond(storageRequests[start], storedHealth())
   await respond(storageRequests[start + 1], page([]))
   start = storageRequests.length

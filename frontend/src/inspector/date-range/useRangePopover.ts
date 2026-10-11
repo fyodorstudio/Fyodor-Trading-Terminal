@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { shiftInspectorDate, shiftInspectorMonth, validInspectorDate } from '../inspector-date-range'
+import { inspectorDefaultAfterDays, shiftInspectorDate, shiftInspectorMonth, validInspectorDate } from '../inspector-date-range'
 import { inspectorCalendarPosition } from '../inspector-popover-layout'
 import type { InspectorView } from '../useInspector'
 
@@ -83,6 +83,7 @@ export function useRangePopover({ view, trigger, onClose, filtersOpen }: { view:
   })
 
   const [afterDays, setAfterDays] = useState(() => {
+    if (view.rangePreset !== 'custom') return inspectorDefaultAfterDays
     if (validInspectorDate(initialTo) && validInspectorDate(defaultAnchor) && initialTo >= defaultAnchor) {
       return daysBetween(defaultAnchor, initialTo)
     }
@@ -109,13 +110,9 @@ export function useRangePopover({ view, trigger, onClose, filtersOpen }: { view:
     const nextFrom = shiftInspectorDate(anchor, -safeDays)
     setFrom(nextFrom)
     setFromMonth(nextFrom.slice(0, 7))
-    let nextTo = to
-    if (nextFrom > to) {
-      nextTo = nextFrom
-      setTo(nextTo)
-      setToMonth(nextTo.slice(0, 7))
-      setAfterDays(Math.max(0, daysBetween(anchor, nextTo)))
-    }
+    const nextTo = shiftInspectorDate(anchor, afterDays)
+    setTo(nextTo)
+    setToMonth(nextTo.slice(0, 7))
     view.selectCustomRange(nextFrom, nextTo)
   }
 
@@ -126,13 +123,9 @@ export function useRangePopover({ view, trigger, onClose, filtersOpen }: { view:
     const nextTo = shiftInspectorDate(anchor, safeDays)
     setTo(nextTo)
     setToMonth(nextTo.slice(0, 7))
-    let nextFrom = from
-    if (nextTo < from) {
-      nextFrom = nextTo
-      setFrom(nextFrom)
-      setFromMonth(nextFrom.slice(0, 7))
-      setBeforeDays(Math.max(0, daysBetween(nextFrom, anchor)))
-    }
+    const nextFrom = shiftInspectorDate(anchor, -beforeDays)
+    setFrom(nextFrom)
+    setFromMonth(nextFrom.slice(0, 7))
     view.selectCustomRange(nextFrom, nextTo)
   }
 

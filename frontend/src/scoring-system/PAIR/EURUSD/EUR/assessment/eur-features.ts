@@ -1,4 +1,4 @@
-import type { InspectorRelease } from '../../../../../inspector/inspector-data'
+import type { InspectorRelease } from '../../../../../economic-calendar/releases/release'
 import { usableSignal, unavailableSignal, type HistoricalFeature, referenceMonth } from '../../../../shared/core/historical-release-signals'
 import { eurPolicy } from '../policy/eur-policies'
 import { eurEarlierValue, eurNative, eurReleaseMonth, eurReleaseUsable, type EurReading } from './eur-history'

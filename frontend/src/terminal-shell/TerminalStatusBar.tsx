@@ -45,17 +45,20 @@ export function TerminalStatusBar({
 
   return (
     <footer className="status-bar">
+      <div className="status-actions status-experimental" role="group" aria-label="Experimental features">
+        <span className="status-wip">WIP</span>
+        <button className={`status-action${bottomDockWindow === 'fundamental-settings' ? ' active' : ''}`} type="button"
+          onClick={() => onToggleBottomDock('fundamental-settings')} aria-expanded={bottomDockWindow === 'fundamental-settings'}>Fundamental Settings</button>
+        <button className={`status-action${bottomDockWindow === 'roofs' ? ' active' : ''}`} type="button"
+          onClick={() => onToggleBottomDock('roofs')} aria-expanded={bottomDockWindow === 'roofs'}>Roofs</button>
+      </div>
       <span className="status-message"><i className={`status-dot ${sourceState}`} /> {sourceLabel} · {sourceSymbolCount} symbols</span>
       <span className="status-clock">{formatAppTimestamp(now, timeDisplay, 'time')} · {timeDisplayLabel(timeDisplay)}</span>
       <span className="status-selection">{selectedSymbol} · {timeframe} · {barCount} bars</span>
-      <div className="status-actions">
-        <button className={`status-action${bottomDockWindow === 'fundamental-settings' ? ' active' : ''}`} type="button"
-          onClick={() => onToggleBottomDock('fundamental-settings')} aria-expanded={bottomDockWindow === 'fundamental-settings'}>Fundamental Settings</button>
+      <div className="status-actions status-primary" role="group" aria-label="App features">
         <button className={`status-action${bottomDockWindow === 'inspector' ? ' active' : ''}`} type="button" onClick={() => onToggleBottomDock('inspector')} aria-expanded={bottomDockWindow === 'inspector'}>
           Inspector
         </button>
-        <button className={`status-action${bottomDockWindow === 'roofs' ? ' active' : ''}`} type="button"
-          onClick={() => onToggleBottomDock('roofs')} aria-expanded={bottomDockWindow === 'roofs'}>Roofs</button>
         <button className={`status-action${bottomDockWindow === 'alert' ? ' active' : ''}`} type="button"
           onClick={() => onToggleBottomDock('alert')} aria-expanded={bottomDockWindow === 'alert'}>Alert</button>
         <button className={`status-action${bottomDockWindow === 'scatter-plot' ? ' active' : ''}`} type="button"

@@ -1,4 +1,4 @@
-import type { InspectorRelease } from '../inspector-data'
+import type { InspectorRelease } from '../../economic-calendar/releases/release'
 import { ismSourceRelease } from './ism-episodes'
 import { pmiSourceRelease } from './pmi-episodes'
 

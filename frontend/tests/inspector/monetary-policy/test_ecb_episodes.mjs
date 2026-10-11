@@ -102,6 +102,8 @@ try {
   globalThis.fetch = () => { throw new Error('ECB grouping must not request magnitude history') }
   function App({ rows = [decisions[0]], timeDisplay = utc }) {
     const inspector = useInspector({ events: rows, symbol: 'EURUSD', bars, timeframe: 'H1', timeDisplay, clockOffsetMs })
+    const { setRangePreset } = inspector
+    React.useEffect(() => { setRangePreset('year-to-date') }, [setRangePreset])
     React.useEffect(() => { view = inspector }, [inspector])
     return React.createElement(InspectorPanel, { view: { ...inspector, brokerTime: true }, symbol: 'EURUSD', source: null, error: null, timeDisplay })
   }

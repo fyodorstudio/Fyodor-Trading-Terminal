@@ -1,4 +1,4 @@
-import type { InspectorRelease } from '../../../inspector/inspector-data'
+import type { InspectorRelease } from '../../../economic-calendar/releases/release'
 import type { ContextTimeline } from './contracts'
 import { contextAt } from './context-lookup'
 import { contextWeights } from './policy'

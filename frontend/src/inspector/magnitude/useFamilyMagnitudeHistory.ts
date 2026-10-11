@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import type { InspectorRelease } from '../inspector-data'
+import type { InspectorRelease } from '../../economic-calendar/releases/release'
 import { matchesReadingFamily } from '../grading/reading-grading'
 import { useStoredCalendar } from '../../economic-calendar/storage/useStoredCalendar'
 import { familyMagnitudeHistory } from './family-magnitude-history'

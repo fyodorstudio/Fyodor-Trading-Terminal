@@ -10,6 +10,7 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "test": "node scripts/run-tests.mjs",
+    "check:repo": "node scripts/check-repository.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

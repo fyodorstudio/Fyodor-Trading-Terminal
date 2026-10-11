@@ -1,5 +1,5 @@
 import { EcbScore } from './PAIR/EURUSD/EUR/ui/EcbScore'
-import type { InspectorRelease } from '../inspector-data'
+import type { InspectorRelease } from '../../economic-calendar/releases/release'
 import { NfpScoreV2 } from './PAIR/EURUSD/USD/NFP/ui/NfpScoreV2'
 import { CpiScoreV4 } from './PAIR/EURUSD/USD/CPI/ui/CpiScoreV4'
 import { IsmScoreV3 } from './PAIR/EURUSD/USD/ISM/ui/IsmScoreV3'

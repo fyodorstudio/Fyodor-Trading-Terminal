@@ -1,3 +1,6 @@
+Archived from `docs/study.md` on 11 October 2026. Historical record;
+[current navigation](../../docs/REPOSITORY-MAP.md) takes priority.
+
 # BRIEFING
 
 

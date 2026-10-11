@@ -1,4 +1,4 @@
-import type { InspectorRelease } from '../../../../../inspector/inspector-data'
+import type { InspectorRelease } from '../../../../../economic-calendar/releases/release'
 import { nativeNumber } from '../../../../shared/core/historical-release-signals'
 import { observedEur } from './eur-history'
 export const ecbRateSeries = ['999010006','999010007','999010015']

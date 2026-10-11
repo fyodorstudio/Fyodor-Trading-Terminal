@@ -24,5 +24,5 @@ export const usdCalendarFamilies = [
   { id: 'fed-chair', label: 'Fed Chair speeches / testimony', country: 'US', currency: 'USD', category: 'policy', symbol: 'moon',
     events: ['840050005', '840050006', '840050021', '840050022'] },
   { id: 'fed-minutes', label: 'FOMC minutes', country: 'US', currency: 'USD', category: 'policy', symbol: 'moon',
-    inspector: false, events: ['840050004'] },
+    events: ['840050004'] },
 ] as const satisfies readonly CalendarFamily[]

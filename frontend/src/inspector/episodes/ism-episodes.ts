@@ -1,4 +1,4 @@
-import type { InspectorRelease } from '../inspector-data'
+import type { InspectorRelease } from '../../economic-calendar/releases/release'
 
 export const ismEpisodeWindowMs = 10 * 86400000
 

@@ -22,7 +22,7 @@ export function RangePopover(props: { view: InspectorView; trigger: React.RefObj
               type="button"
               key={preset}
               aria-pressed={view.rangePreset === preset}
-              onClick={() => { view.setRangePreset(preset); closeAndFocus() }}
+              onClick={() => { view.setRangePreset(preset); props.onClose(); props.trigger.current?.focus() }}
             >
               {label}
             </button>
@@ -116,7 +116,7 @@ export function RangePopover(props: { view: InspectorView; trigger: React.RefObj
             <CalendarMonth shown={toMonth} roleLabel="To" selectedDay={to} onChoose={chooseToDay} onShiftMonth={delta => setToMonth(m => shiftInspectorMonth(m, delta))} which="to" state={state} today={view.today} />
           </div>
           <p className="inspector-date-help" role={error ? 'alert' : 'status'}>
-            {error ?? `Anchor: ${anchor} · From: ${from} (-${beforeDays}d) · To: ${to} (+${afterDays}d) · ${totalDays} ${totalDays === 1 ? 'day' : 'days'} total`}
+            {error ?? `From: ${from} · To: ${to} · ${totalDays} ${totalDays === 1 ? 'day' : 'days'} total`}
           </p>
         </div>
       </div>

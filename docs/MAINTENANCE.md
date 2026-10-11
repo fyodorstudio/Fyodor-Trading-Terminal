@@ -15,10 +15,15 @@ availability forever; retain wheels/installers outside Git if long-term offline
 reinstallation matters.
 
 `.github/workflows/checks.yml` installs a clean Windows x64 Python 3.12.10,
-Node 22.12.0/pnpm 9.12.3 environment and runs `pnpm test`, `pnpm lint`,
+Node 22.12.0/pnpm 9.12.3 environment and runs `pnpm check:repo`, `pnpm test`, `pnpm lint`,
 `pnpm build` on pushes, pull requests and manual dispatch. GitHub checks only run
 when hosted there with Actions enabled. No account/broker is needed for these
 fixture tests. Live MT5 and visual acceptance remain manual.
+
+`pnpm check:repo` validates current Markdown file links and every relative frontend
+import, re-export and worker URL. It checks source reachability from bootstrap and
+the explicit retained compatibility entries. Historical reports are preserved and
+excluded from link enforcement. See [repository navigation](REPOSITORY-MAP.md).
 
 When updating dependencies, use a separate environment, update exact Python pins
 or regenerate the frontend lockfile, run dependency checks and the full suite,

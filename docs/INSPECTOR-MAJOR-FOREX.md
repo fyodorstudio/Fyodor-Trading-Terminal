@@ -7,7 +7,7 @@ canonical pair's preferences. Unsupported instruments have no Inspector families
 | Currency | Visible families | Currency-specific coverage |
 | --- | ---: | --- |
 | EUR | 10 | Existing ECB, area/national inflation, labor/wages, GDP and PMI |
-| USD | 11 | Existing Fed, CPI/PCE/PPI, jobs/claims, GDP, retail and ISM |
+| USD | 12 | Fed decisions/minutes, CPI/PCE/PPI, jobs/claims, GDP, retail and ISM |
 | GBP | 8 | BoE, speeches, CPI, employment, earnings, GDP, PMI and retail |
 | AUD | 9 | RBA, speeches, headline/underlying CPI, jobs, wages, GDP, PMI, retail, trade |
 | NZD | 11 | RBNZ, speeches, CPI/expectations, jobs/wages, GDP, BusinessNZ, retail, trade, dairy |
@@ -19,6 +19,11 @@ Every pair reuses its two currency catalogs, with separate saved selections,
 symbols and colors. EURUSD's existing scoring views remain available. The other
 27 pairs offer Table only and disabled Scatter Plot (WIP), including their USD/EUR
 readings. No new currency scorers, bands or formula changes are included.
+
+FOMC minutes are a separate Monetary policy family. The startup date preset is
+Same month last year (the complete calendar month). The date picker's anchor starts
+at Today with After set to 90 days; editing the anchor or offsets applies a custom
+range. Opening the picker leaves the selected preset unchanged.
 
 Catalog admission uses exact MT5 IDs plus country/currency, verified against the
 28 September 2026 export. Source names, missing values, native units, capture clocks,

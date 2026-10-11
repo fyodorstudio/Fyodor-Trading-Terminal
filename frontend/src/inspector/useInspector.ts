@@ -38,7 +38,7 @@ export function useInspector({ events = noEvents, symbol, bars, timeframe, timeD
   const [savedPairKey, setSavedPairKey] = useState(preferenceKey)
   const [preferences, setPreferences] = useState(() => readInspectorPreferences(symbol))
   const [storageFailed, setStorageFailed] = useState(false)
-  const [rangePreset, setRangePreset] = useState<InspectorRangePreset>('year-to-date')
+  const [rangePreset, setRangePreset] = useState<InspectorRangePreset>('same-month-last-year')
   const now = useCalendarNow(clockOffsetMs)
   const initialWeek = displayWeekDateKeys(displayDateKey(now, rangeDisplay))
   const [customFrom, setCustomFrom] = useState(initialWeek.start)

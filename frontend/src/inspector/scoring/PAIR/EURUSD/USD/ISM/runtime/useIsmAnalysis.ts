@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import type { InspectorRelease } from '../../../../../../inspector-data'
+import type { InspectorRelease } from '../../../../../../../economic-calendar/releases/release'
 import type { EconomicCalendarEvent } from '../../../../../../../economic-calendar/contracts/calendar-event'
 import { useStoredCalendar } from '../../../../../../../economic-calendar/storage/useStoredCalendar'
 import { useCalendarNow } from '../../../../../../useCalendarNow'

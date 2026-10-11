@@ -1,5 +1,5 @@
 import type { EconomicCalendarEvent } from '../../../../../../economic-calendar/contracts/calendar-event'
-import type { InspectorRelease } from '../../../../../../inspector/inspector-data'
+import type { InspectorRelease } from '../../../../../../economic-calendar/releases/release'
 import { ismServicesSeriesIds } from '../sectors/services/ism-services-score'
 
 export const ismCalendarSource = 'https://www.ismworld.org/supply-management-news-and-reports/reports/rob-report-calendar/'

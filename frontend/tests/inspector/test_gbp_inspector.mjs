@@ -31,7 +31,7 @@ const scale = { getVisibleLogicalRange: () => ({ from: 0, to: 2 }), timeToCoordi
   logicalToCoordinate: i => i * 100, timeToIndex: () => 1, width: () => 800,
   getVisibleRange: () => ({ from: bars[0].time, to: bars[2].time }),
   subscribeVisibleLogicalRangeChange() {}, unsubscribeVisibleLogicalRangeChange() {}, subscribeSizeChange() {}, unsubscribeSizeChange() {} }
-const chartApi = { timeScale: () => scale }
+const chartApi = { timeScale: () => scale, subscribeClick() {}, unsubscribeClick() {} }
 const click = async selector => { const node = document.querySelector(selector); assert.ok(node, selector); await React.act(async () => node.click()) }
 const change = async (selector, value) => {
   const node = document.querySelector(selector); assert.ok(node, selector)
@@ -49,8 +49,8 @@ try {
   const { exportWorkspace, parseWorkspaceSnapshot } = await server.ssrLoadModule('./src/workspace-portability/workspace-snapshot.ts')
   const families = data.inspectorFamilies.filter(family => family.currency === 'GBP')
   assert.equal(families.length, 8)
-  assert.equal(data.inspectorPairFamilies('EURUSD').length, 21)
-  assert.equal(data.inspectorPairFamilies('GBPUSD.a').length, 19)
+  assert.equal(data.inspectorPairFamilies('EURUSD').length, 22)
+  assert.equal(data.inspectorPairFamilies('GBPUSD.a').length, 20)
   assert.equal(data.supportsInspector('GBPUSDmicro'), true)
   assert.equal(data.supportsInspector('EURGBP'), true)
   const gbpRows = families.flatMap(family => family.events.map(id => event(id)))
@@ -69,6 +69,8 @@ try {
   let view
   function Harness({ symbol = 'GBPUSD', events = rows }) {
     const next = useInspector({ symbol, events, bars, timeframe: 'H1', timeDisplay: utc, clockOffsetMs })
+    const { setRangePreset } = next
+    React.useEffect(() => { setRangePreset('year-to-date') }, [setRangePreset])
     React.useLayoutEffect(() => { view = next }, [next])
     return React.createElement(React.Fragment, null,
       React.createElement(InspectorChartMarkers, { chartApi, markers: next.markers, timeDisplay: utc, onSelectRelease: next.selectRelease }),

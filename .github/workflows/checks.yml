@@ -23,6 +23,7 @@ jobs:
       - name: Install pinned dependencies
         shell: pwsh
         run: ./scripts/setup.ps1
+      - run: pnpm check:repo
       - run: pnpm test
       - run: pnpm lint
       - run: pnpm build

@@ -1,9 +1,27 @@
 # Repository navigation and terminology
 
 Read the root [AGENTS.md](../AGENTS.md) and [main objective](../fyodor%20trading%20terminal%20main%20objective.md) first.
-The objective defines active scope; module READMEs describe ownership. Dated reports
-and older sections beneath current README introductions are historical evidence,
-not instructions to restore earlier formulas or UI.
+The objective defines active scope; module READMEs describe ownership. Scoring
+development is paused. Dated [reports and archived module narratives](../reports/README.md)
+are historical evidence, not instructions to restore earlier formulas or UI.
+
+## Project entry points
+
+| Path | Start here for |
+| --- | --- |
+| [Frontend](../frontend/README.md) | Commands, suite ordering and bootstrap |
+| [Storage](../storage/README.md) | HTTP/CLI entry points, persistence and recovery |
+| [Bridge](../bridge/README.md) | Read-only MT5 adapter and MQL5 programs |
+| [Setup](SETUP.md), [recovery](BACKUP-RESTORE.md), [maintenance](MAINTENANCE.md) | Running and maintaining the terminal |
+| [Scripts](../scripts/README.md) | Routine checks versus dataset-specific audits |
+| [Evidence archive](../reports/README.md) | Reviewed findings, historical plans and research |
+| [Icon catalogue](tools/icon-catalogue.html) | Standalone manual icon reference |
+
+The browser enters through `frontend/index.html` →
+`frontend/src/bootstrap/mount-fyodor-terminal.tsx` → terminal shell. Broker quotes
+and candles come from the Python bridge. Calendar observations flow from publisher/
+bridge into storage, then through the shared calendar domain to feature consumers.
+Settings export and calendar backup are separate data contracts.
 
 ## Terms
 
@@ -30,6 +48,9 @@ Paths below are relative to `frontend/src/`.
 
 | Task | Start here |
 | --- | --- |
+| App composition, dock navigation and shared selection | `terminal-shell/`; see its README |
+| Quotes, candle paging and chart lifecycle | `market-data/{contracts,mt5-feed,candlestick-chart,market-watch}/`; see its README |
+| Chart appearance and drawing interaction | `market-data/{chart-settings,chart-drawings}/` |
 | Currency catalogs, pair recognition, source contracts and polling | `economic-calendar/{catalog,forex,contracts,storage}/`; see its README |
 | Inspector filters, saved preferences, raw tables and date picker | `inspector/{catalog,preferences,filters,readings,date-range}/`; see its README |
 | Inspector model/menu/version | `inspector/scoring/scoring-registry.ts` |
@@ -44,6 +65,13 @@ Paths below are relative to `frontend/src/`.
 | Inspector result tables | `inspector/scoring/PAIR/EURUSD/USD/<FAMILY>/ui/` |
 | Calculation jobs / history queries | Family runtime plus `inspector/scoring/shared/runtime/`; context runtime in `usd-context/` and `pair-context/` |
 | Saved settings portability | `workspace-portability/workspace-snapshot.ts` |
+| Notebook plans, journal, registered arrows and captures | `trader-notebook/`; see its README |
+| Alerts and upcoming publication countdowns | `alert/`; see its README |
+| Connection state, broker clocks and transport | `system-connectivity/` |
+| Activity logging and display | `system-observability/` |
+| Dock sizing, Market Watch collapse and saved layout | `workspace-docking/` |
+| Theme, selected display clock and common styles | `appearance/`, `styles/` |
+| Manual Outside Events annotations | `external-events/`; see its README |
 | Test entry points | `frontend/tests/suites.mjs` (from root); run suites sequentially |
 | R1 Raycaster tanks and release rows | `raycaster/ui/{R1Reading,R1EvidenceTank}.tsx`, `raycaster/core/r1-evidence-presentation.ts` |
 | Chart drawing geometry, interaction and hover labels | `market-data/chart-drawings/`; position labels in `ChartDrawingShape.tsx`, hover styling in `chart-drawing-overlay.css` |
@@ -55,6 +83,23 @@ the other pairs offer Table only and disabled Scatter Plot (WIP).
 
 Runtime APIs and settings keys are contracts. Prefer these entry points and `rg`
 over renaming product terms across code or rewriting historical reports.
+
+## Finding and checking a change
+
+Search the owner first (`rg --files frontend/src/inspector`, then `rg -n <name>`).
+Expand to its shared contract/runtime and the matching fixture suite. Look in reports
+only when the current contract needs historical rationale. The deep `PAIR/EURUSD/`
+paths retain legacy ownership; folder presence does not enable another currency.
+
+`pnpm check:repo` checks current document file links, relative source dependencies,
+worker URLs and reachability. It shares the source-graph helper with the terminal
+navigation suite. Five old calendar entry files remain intentional compatibility
+exports for tests/consumers; their implementation lives in `economic-calendar/`.
+New production code should import shared observation/release contracts directly.
+
+Run affected fixture suites sequentially, then lint/build for implementation changes.
+`pnpm test` includes storage fixtures. Dataset audits and live MT5/visual acceptance
+are separate; [maintenance](MAINTENANCE.md) describes the standard gates.
 
 ## Active module boundaries — 11 October 2026
 
@@ -74,20 +119,9 @@ Storage's public `calendar_store.py` shares one connection/lock across the focus
 `bridge/mql5/Active/research-export/`; copy that folder when compiling source.
 Existing scoring models/settings and historical reports retain their ownership.
 
-## Historical hygiene review — 9 October 2026
+## Historical evidence
 
-The [11 October PMI/tanks audit](../reports/R1-PMI-tanks-audit.md) removes two
-unreachable worker entries. All 463 then-current frontend source files were reachable
-from bootstrap; relative imports resolve. Active objective/navigation text is
-updated and its full previous handoff is preserved as historical evidence.
-
-The review found 644 tracked files and no tracked dependency folders, build output,
-Python caches or local inventory. Three broken root README links to deleted user
-documents were removed. Two historical links in
-`reports/Context-v7-refinement-audit.md` still refer to deleted notes; retain that
-report as evidence rather than recreating the notes.
-
-At that review, navigation debt included: long historical module READMEs and deep pair/family
-paths. Some shared input/history/settings helpers still live under Inspector;
-the shared calculations folder is not a completely independent package. These
-are documented boundaries, not reasons for an unscoped refactor.
+Earlier module narratives and the completed currency-evidence plan are in the
+[evidence archive](../reports/README.md). The [PMI/tanks audit](../reports/R1-PMI-tanks-audit.md)
+records the earlier unused-worker cleanup. Historical reports can reference retired
+files; those references do not authorize recreating removed features.

@@ -1,7 +1,7 @@
 import { formatAppTimestamp, timeDisplayZoneLabel, type TimeDisplayPreference } from '../appearance/time-display/time-display-preference'
 import { symbolGlyph } from '../economic-calendar/presentation/event-symbols'
 import { InspectorInfoTooltip } from './InspectorInfoTooltip'
-import type { InspectorRelease } from './inspector-data'
+import type { InspectorRelease } from '../economic-calendar/releases/release'
 import type { InspectorView } from './useInspector'
 
 export function InspectorReleaseHeading({ release, view, timeDisplay, status, sharedPeriod, hasMagnitude, calendarDetail, coverageDetail }: {

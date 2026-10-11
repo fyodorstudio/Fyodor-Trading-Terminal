@@ -1,5 +1,5 @@
 import { formatAppTimestamp, type TimeDisplayPreference } from '../../../../../../../appearance/time-display/time-display-preference'
-import type { InspectorRelease } from '../../../../../../inspector-data'
+import type { InspectorRelease } from '../../../../../../../economic-calendar/releases/release'
 import { supportsIsmScore } from '../../../../../../../scoring-system/PAIR/EURUSD/USD/ISM/assessment/ism-monthly-context'
 import { useIsmAnalysis, type IsmAnalysisProps } from '../runtime/useIsmAnalysis'
 import { IsmContextSummary } from './components/IsmContextSummary'

@@ -1,4 +1,4 @@
-import type { InspectorRelease } from '../../inspector/inspector-data'
+import type { InspectorRelease } from '../../economic-calendar/releases/release'
 import type { MagnitudeLimits } from '../../inspector/magnitude/magnitude-distribution'
 import type { R1Assessment, R1Calibration, R1Feature, R1Leaf, R1MagnitudeSnapshot, R1Profile, R1Reading } from './contracts'
 import { balance, magnitude, magnitudePoints, precise, usesFractionalMagnitude } from './arithmetic'

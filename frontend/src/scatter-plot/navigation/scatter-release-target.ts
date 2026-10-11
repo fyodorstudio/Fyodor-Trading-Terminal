@@ -1,4 +1,4 @@
-import type { InspectorRelease } from '../../inspector/inspector-data'
+import type { InspectorRelease } from '../../economic-calendar/releases/release'
 import type { ScatterReleaseTarget } from '../contracts/scatter-plot-types'
 import { scatterFamilyBindings } from '../dock/scatter-family-bindings'
 

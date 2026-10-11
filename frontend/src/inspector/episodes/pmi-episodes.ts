@@ -1,4 +1,4 @@
-import type { InspectorRelease } from '../inspector-data'
+import type { InspectorRelease } from '../../economic-calendar/releases/release'
 
 export const pmiEpisodeWindowMs = 3 * 3600000
 const countries: Record<string, string> = { 'euro-pmi': 'EU', 'german-pmi': 'DE', 'french-pmi': 'FR' }

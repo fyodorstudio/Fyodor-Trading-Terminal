@@ -1,7 +1,7 @@
 import type { InspectorScoringProps } from '../../../../../scoring-contracts'
 import { useContext, type ReactNode } from 'react'
 import { ScoringSurface } from '../../../../../shared/ui/scoring-surface'
-import type { InspectorRelease } from '../../../../../../inspector-data'
+import type { InspectorRelease } from '../../../../../../../economic-calendar/releases/release'
 import { formatAppTimestamp } from '../../../../../../../appearance/time-display/time-display-preference'
 import { usePublicationContext } from '../../../../../../../usd-context/runtime/usePublicationContext'
 import { contextAt } from '../../../../../../../scoring-system/context/usd/context-lookup'

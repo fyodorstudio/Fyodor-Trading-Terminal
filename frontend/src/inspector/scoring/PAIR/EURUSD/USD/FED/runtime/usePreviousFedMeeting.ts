@@ -1,7 +1,7 @@
 import { fedRatePath } from '../../../../../../../scoring-system/PAIR/EURUSD/USD/FED/assessment/fed-rate-path'
 import { useMemo } from 'react'
 import type { EconomicCalendarEvent } from '../../../../../../../economic-calendar/contracts/calendar-event'
-import type { InspectorRelease } from '../../../../../../inspector-data'
+import type { InspectorRelease } from '../../../../../../../economic-calendar/releases/release'
 import { useStoredCalendar } from '../../../../../../../economic-calendar/storage/useStoredCalendar'
 import { previousFedMeeting } from '../../../../../../../scoring-system/PAIR/EURUSD/USD/FED/assessment/fed-context'
 

@@ -1,5 +1,5 @@
 import type { EconomicCalendarEvent } from '../../economic-calendar/contracts/calendar-event'
-import type { InspectorRelease } from '../inspector-data'
+import type { InspectorRelease } from '../../economic-calendar/releases/release'
 
 export const policyEpisodeWindowMs = 60 * 60 * 1000
 // Explicit country/currency/series identities. Ordinary speeches and minutes

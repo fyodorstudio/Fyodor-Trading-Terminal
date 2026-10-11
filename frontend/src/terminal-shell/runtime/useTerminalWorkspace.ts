@@ -268,6 +268,7 @@ export function useTerminalWorkspace() {
   }, [inspectPublication, selectBottomDock])
   const clearChartInspection = useCallback(() => {
     setReleaseSelection(null)
+    setBottomDockWindow(current => current === 'inspector' ? null : current)
   }, [setReleaseSelection])
   const openScatter = useCallback((release: Parameters<typeof scatterReleaseTarget>[0]) => {
     const target = scatterReleaseTarget(release, inspector.brokerId, inspector.now)

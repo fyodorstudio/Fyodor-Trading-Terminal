@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react'
-import type { InspectorRelease } from '../inspector-data'
+import type { InspectorRelease } from '../../economic-calendar/releases/release'
 import type { TimeDisplayPreference } from '../../appearance/time-display/time-display-preference'
 import type { EconomicCalendarEvent } from '../../economic-calendar/contracts/calendar-event'
 

@@ -1,4 +1,4 @@
-import type { InspectorRelease } from '../../../../../../inspector/inspector-data'
+import type { InspectorRelease } from '../../../../../../economic-calendar/releases/release'
 import type { EconomicCalendarEvent } from '../../../../../../economic-calendar/contracts/calendar-event'
 import type { MagnitudeSettings } from '../../../../../../inspector/magnitude/settings/magnitude-settings-store'
 import { assessCpiScoreV3 } from '../assessment/cpi-score-v3'
