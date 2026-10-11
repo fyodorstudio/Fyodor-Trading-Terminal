@@ -97,7 +97,8 @@ Open **http://localhost:5173**. The launcher clears stale processes on ports
 launcher, not a packaged desktop installer. Keep the same browser origin for
 saved settings; `localhost` and `127.0.0.1` have separate browser storage.
 
-- Inspector: apply family filters; Alert uses those same applied filters and broker.
+- Inspector: apply pair-specific family filters. Alert has separate global filters
+  for all eight currencies and uses the active broker.
 - Scatter Plot: choose NFP/CPI and a series. Magnitude starts **Undefined**.
   Select **Manual boundaries**, enter three increasing positive native-unit
   cutoffs and press **Freeze**. Valid edits preview the bands/size immediately in

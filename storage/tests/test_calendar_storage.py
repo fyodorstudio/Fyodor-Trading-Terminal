@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import json
 import socket
+import subprocess
 import tempfile
 import threading
 import unittest
@@ -13,7 +14,7 @@ from unittest.mock import patch
 
 import uvicorn
 
-from storage.app import create_app
+from storage.app import MAX_CALENDAR_SERIES, create_app
 from storage.archive_import import import_export
 from storage.bridge_collector import BridgeCollector
 from storage.calendar_store import CalendarStore, DAY, HISTORY_START, missing_intervals
@@ -428,6 +429,37 @@ class ApiTests(unittest.TestCase):
         for suffix in ('&currencies=AUD,BTC', '&currencies=AUD,AUD', '&currencies=AUD,JPY,CHF', '&currency=USD&currencies=AUD,JPY'):
             self.assertEqual(self.request(path + suffix)[0], 422)
 
+    def test_full_alert_catalog_over_real_http(self):
+        # Load the production TS catalog: mocked UI responses cannot catch an
+        # API validation limit that rejects the actual eight-currency request.
+        script = """
+import { createServer } from 'vite';
+const server = await createServer({ logLevel: 'silent', server: { middlewareMode: true, hmr: false } });
+try {
+  const { defaultAlertPreferences } = await server.ssrLoadModule('./src/alert/model/alert-preferences.ts');
+  const { alertSeriesIds } = await server.ssrLoadModule('./src/alert/model/alert-episodes.ts');
+  console.log(JSON.stringify(alertSeriesIds(defaultAlertPreferences())));
+} finally { await server.close(); }
+"""
+        result = subprocess.run(['node', '--input-type=module', '-e', script],
+                                cwd=Path(__file__).resolve().parents[2] / 'frontend',
+                                check=True, capture_output=True, text=True, timeout=30)
+        ids = json.loads(result.stdout)
+        self.assertGreater(len(ids), 64, 'Reproduce the former pair-only cap')
+        self.assertGreater(len(','.join(ids)), 1343, 'Reproduce the former length cap')
+        self.assertLessEqual(len(ids), MAX_CALENDAR_SERIES)
+        self.assertEqual(self.request('/publisher', context(publisher_version='2.0.4').model_dump())[0], 200)
+        path = f"/calendar?source_id=Broker-Demo&from_server_seconds={HISTORY_START}&to_server_seconds={NOW}&time_basis=chart"
+        status, page = self.request(path + '&event_ids=' + ','.join(ids))
+        self.assertEqual(status, 200, page)
+        self.assertEqual(page['event_ids'], ids)
+        self.assertEqual(set(page['coverage']), {'USD', 'EUR', 'GBP', 'JPY', 'CHF', 'CAD', 'AUD', 'NZD'})
+        self.assertTrue(all(row['event_id'] in ids for row in page['events']))
+        for count, expected in ((MAX_CALENDAR_SERIES, 200), (MAX_CALENDAR_SERIES + 1, 422)):
+            with self.subTest(count=count):
+                series = ','.join(str(10**19 + index) for index in range(count))
+                self.assertEqual(self.request(path + '&event_ids=' + series)[0], expected)
+
     def test_real_http_job_validation_commit_and_stored_query(self):
         status, job = self.request("/jobs/next", context().model_dump())
         self.assertEqual(status, 200)
@@ -448,7 +480,7 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(r1['r1_source_version'],1)
         self.assertEqual(r1['r1_schedules'],[])
         self.assertNotIn('r1_vintages',r1['events'][0],'R1 observation snapshots remain scoped to USD')
-        for invalid in ("oops", "1,,2", "1%27", ",".join(["1"] * 65)):
+        for invalid in ("oops", "1,,2", "1%27", ",".join(["1"] * (MAX_CALENDAR_SERIES + 1))):
             self.assertEqual(self.request(path + "&event_ids=" + invalid)[0], 422)
         self.assertEqual(self.request("/calendar?source_id=Broker-Demo&from_server_seconds=2&to_server_seconds=1")[0], 422)
         self.assertEqual(self.request("/jobs/next", {**context().model_dump(), "publisher_version": "1.0.0"})[0], 422)

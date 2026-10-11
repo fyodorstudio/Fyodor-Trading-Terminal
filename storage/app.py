@@ -13,6 +13,10 @@ from .currencies import CURRENCIES
 from .contracts import BackfillChunk, BackfillFailure, PublisherContext
 from .data_lock import data_lock
 
+# The eight-currency Alert catalog exceeds the original pair-only 64-series cap.
+# Keep a bound below SQLite's conservative 999-parameter limit, including dates.
+MAX_CALENDAR_SERIES = 512
+
 
 def data_directory():
     return Path(os.environ.get("FYODOR_STORAGE_DATA_DIR", Path(__file__).resolve().parent / "data")).resolve()
@@ -69,8 +73,8 @@ def create_app(directory=None, run_collector=True):
                  time_basis: str = Query(default="raw", pattern="^(raw|chart)$"),
                  r1_as_of: int | None = Query(default=None, ge=0),
                  r1_history: bool = False,
-                 event_ids: str | None = Query(default=None, max_length=1343,
-                                              pattern=r"^[0-9]{1,20}(,[0-9]{1,20}){0,63}$")):
+                 event_ids: str | None = Query(default=None, max_length=21 * MAX_CALENDAR_SERIES - 1,
+                                              pattern=rf"^[0-9]{{1,20}}(,[0-9]{{1,20}}){{0,{MAX_CALENDAR_SERIES - 1}}}$")):
         if from_server_seconds >= to_server_seconds or (after_time is None) != (after_id is None):
             raise HTTPException(status_code=422, detail="Invalid date interval or incomplete cursor")
         selected = currencies.split(",") if currencies else None
