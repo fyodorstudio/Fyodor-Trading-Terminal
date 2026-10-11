@@ -7,6 +7,7 @@ export { forexPair as inspectorPair, forexPairCurrencies as inspectorPairCurrenc
 
 export type InspectorPreferences = {
   version: 2
+  catalogVersion?: 1
   families: string[]
   showSymbols: boolean
   showHistograms: boolean
@@ -27,7 +28,7 @@ export function inspectorPairFamilies(symbol: string) {
 }
 export function defaultInspectorPreferences(symbol = 'EURUSD'): InspectorPreferences {
   const families = inspectorPairFamilies(symbol)
-  return { version: 2, families: families.map((family) => family.id), showSymbols: true, showHistograms: true, detailView: 'table', currencyColors: {},
+  return { version: 2, catalogVersion: 1, families: families.map((family) => family.id), showSymbols: true, showHistograms: true, detailView: 'table', currencyColors: {},
     symbols: Object.fromEntries(families.map((family) => [family.id, family.symbol])) }
 }
 export function readInspectorPreferences(symbol = 'EURUSD'): InspectorPreferences {
@@ -36,11 +37,12 @@ export function readInspectorPreferences(symbol = 'EURUSD'): InspectorPreference
     const saved = JSON.parse(localStorage.getItem(inspectorPreferenceKey(symbol)) ?? '{}')
     const selected = Array.isArray(saved.families) ? [...new Set(saved.families.filter((id: unknown) =>
       families.some((family) => family.id === id)))] as string[] : defaults.families
-    // Upgrade the original all-enabled default once. Custom selections remain
-    // exact, including intentionally choosing only the original nine families.
+    // Expand legacy defaults and add new coverage once. Existing exclusions
+    // survive; catalogVersion preserves subsequent custom selections exactly.
     const oldDefault = inspectorPair(symbol) === 'EURUSD' && saved.version !== 2 && selected.length === originalInspectorFamilies.length &&
       originalInspectorFamilies.every((id) => selected.includes(id))
-    return { version: 2, families: oldDefault ? defaults.families : selected,
+    const added = saved.catalogVersion === 1 || !selected.length ? [] : families.filter(f => f.sourceLabels || f.id === 'ecb-accounts').map(f => f.id)
+    return { version: 2, catalogVersion: 1, families: oldDefault ? defaults.families : [...new Set([...selected, ...added])],
     showHistograms: typeof saved.showHistograms === 'boolean' ? saved.showHistograms : defaults.showHistograms,
     detailView: hasInspectorScoring(symbol) ? normalizeInspectorDetailView(saved.detailView) : 'table',
     showSymbols: typeof saved.showSymbols === 'boolean' ? saved.showSymbols : defaults.showSymbols,

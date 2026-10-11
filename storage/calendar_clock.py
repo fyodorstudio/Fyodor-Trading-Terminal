@@ -11,6 +11,13 @@ PROFILE_VERSION = "elev8-eet-eest-v1"
 PROFILES = {"Elev8-Demo2": PROFILE_VERSION}
 
 
+def publication_time_known(event):
+    # Tentative is permanent series metadata. Actual plus the supplied clock
+    # identifies its published numerical observation, unlike a pending schedule.
+    return event['time_mode'] == 0 or (event['time_mode'] == 3
+        and event['actual'] is not None and event['server_time_seconds'] % 86400 != 0)
+
+
 @lru_cache(maxsize=128)
 def transitions(year):
     # Directive 2000/84/EC: last Sundays of March/October, 01:00 UTC.

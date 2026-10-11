@@ -19,11 +19,15 @@ All raw calendar timestamps retain their original **broker-server clock**. The d
 
 Storage supplies a persistent data `revision`; Inspector checks page revisions before displaying a completed range, cancels obsolete requests and polls for updates every ten seconds. Chart-date coverage uses each import or completed batch's retrieval clock, including empty queried dates; intervals without recoverable clock evidence remain conservative around their boundaries. Rows absent from a later successful query remain in storage as evidence but are excluded from the current Inspector release list.
 
-For future consumers, `GET /api/v1/calendar` on port 8002 accepts `source_id`, `from_server_seconds`, `to_server_seconds`, optional `currency` or a two-currency `currencies=AUD,JPY` scope, and a bounded `limit` (maximum 5000). Responses include origin, raw scaled values when available, missing intervals and an `after_time`/`after_id` continuation cursor. API schemas are available at port 8002 `/docs`.
+For future consumers, `GET /api/v1/calendar` on port 8002 accepts `source_id`, `from_server_seconds`, `to_server_seconds`, optional `currency` or a scope of up to eight distinct supported `currencies=AUD,JPY`, and a bounded `limit` (maximum 5000). Responses include origin, raw scaled values when available, missing intervals and an `after_time`/`after_id` continuation cursor. API schemas are available at port 8002 `/docs`.
 
 Optional `event_ids` scopes a query to at most 512 comma-separated numeric series
-IDs (1–20 digits each). This admits Alert's complete eight-currency catalog while
-keeping SQL parameter counts bounded. Currency buttons in Alert filter that
-inventory locally; Inspector's smaller pair scopes use the same endpoint.
+IDs (1–20 digits each). Larger catalogs and new-event controls use currency scopes instead of long series
+URLs, keeping SQL parameter counts bounded. Alert's currency buttons filter the
+loaded inventory locally; Inspector's pair scopes use the same endpoint.
 
 Manual MT5 acceptance: confirm V2's live bridge snapshot/heartbeat still works; observe a completed backfill in Experts and storage health; interrupt/restart during a batch and check recovery; stop storage and confirm the live bridge continues; check a known release's units, Previous/revised Previous and raw server time. Automated storage tests cover restart/lease recovery, interrupted chunks, lost commit acknowledgements, validation, long absences, exact raw values, stale-source ordering, imports and real HTTP endpoints.
+
+Tentative numerical releases with Actual and a supplied non-midnight time derive
+their publication clock from the recorded capture offset. The original timing
+mode/payload is preserved; pending and date-only schedules retain null exact clocks.

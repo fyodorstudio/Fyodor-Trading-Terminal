@@ -46,7 +46,7 @@ export function InspectorReadingsTable({ release, view, timeDisplay, sharedPerio
                     </th>
                   </tr>}
                   <tr>
-                  <td><strong>{event.name}</strong>{release.ismPublications && <small>{sourceRelease.familyId === 'ism-manufacturing' ? 'Manufacturing' : 'Services'}</small>}{event.revision > 0 && <span className="inspector-revision"> · Revision {event.revision}</span>}
+                  <td><strong>{event.name || `MT5 event ${event.event_id}`}</strong>{release.ismPublications && <small>{sourceRelease.familyId === 'ism-manufacturing' ? 'Manufacturing' : 'Services'}</small>}{event.revision > 0 && <span className="inspector-revision"> · Revision {event.revision}</span>}
                     {sharedPeriod === null && release.events.some((reading) => reading.period_seconds > 0) &&
                       <small>Period: {event.period_seconds > 0 ? formatAppTimestamp(event.period_seconds * 1000,
                         { mode: 'utc', utcOffsetMinutes: 0 }, 'date') : '—'}</small>}</td>

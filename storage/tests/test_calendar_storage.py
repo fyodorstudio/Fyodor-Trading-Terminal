@@ -426,7 +426,8 @@ class ApiTests(unittest.TestCase):
         status, page = self.request(path + '&currencies=AUD,JPY')
         self.assertEqual(status, 200)
         self.assertEqual(set(page['coverage']), {'AUD', 'JPY'})
-        for suffix in ('&currencies=AUD,BTC', '&currencies=AUD,AUD', '&currencies=AUD,JPY,CHF', '&currency=USD&currencies=AUD,JPY'):
+        self.assertEqual(self.request(path + '&currencies=AUD,JPY,CHF')[0], 200)
+        for suffix in ('&currencies=AUD,BTC', '&currencies=AUD,AUD', '&currencies=AUD,JPY,CHF,CAD,EUR,GBP,NZD,USD,AUD', '&currency=USD&currencies=AUD,JPY'):
             self.assertEqual(self.request(path + suffix)[0], 422)
 
     def test_full_alert_catalog_over_real_http(self):
@@ -437,22 +438,23 @@ import { createServer } from 'vite';
 const server = await createServer({ logLevel: 'silent', server: { middlewareMode: true, hmr: false } });
 try {
   const { defaultAlertPreferences } = await server.ssrLoadModule('./src/alert/model/alert-preferences.ts');
-  const { alertSeriesIds } = await server.ssrLoadModule('./src/alert/model/alert-episodes.ts');
-  console.log(JSON.stringify(alertSeriesIds(defaultAlertPreferences())));
+  const { alertSeriesIds, alertCalendarScope } = await server.ssrLoadModule('./src/alert/model/alert-episodes.ts');
+  console.log(JSON.stringify({ids:alertSeriesIds(defaultAlertPreferences()),scope:alertCalendarScope(defaultAlertPreferences())}));
 } finally { await server.close(); }
 """
         result = subprocess.run(['node', '--input-type=module', '-e', script],
                                 cwd=Path(__file__).resolve().parents[2] / 'frontend',
                                 check=True, capture_output=True, text=True, timeout=30)
-        ids = json.loads(result.stdout)
+        model = json.loads(result.stdout)
+        ids = model['ids']
         self.assertGreater(len(ids), 64, 'Reproduce the former pair-only cap')
         self.assertGreater(len(','.join(ids)), 1343, 'Reproduce the former length cap')
-        self.assertLessEqual(len(ids), MAX_CALENDAR_SERIES)
+        self.assertEqual(len(ids), 1051)
         self.assertEqual(self.request('/publisher', context(publisher_version='2.0.4').model_dump())[0], 200)
         path = f"/calendar?source_id=Broker-Demo&from_server_seconds={HISTORY_START}&to_server_seconds={NOW}&time_basis=chart"
-        status, page = self.request(path + '&event_ids=' + ','.join(ids))
+        status, page = self.request(path + '&currencies=' + ','.join(model['scope']['currencies']))
         self.assertEqual(status, 200, page)
-        self.assertEqual(page['event_ids'], ids)
+        self.assertIsNone(page['event_ids'])
         self.assertEqual(set(page['coverage']), {'USD', 'EUR', 'GBP', 'JPY', 'CHF', 'CAD', 'AUD', 'NZD'})
         self.assertTrue(all(row['event_id'] in ids for row in page['events']))
         for count, expected in ((MAX_CALENDAR_SERIES, 200), (MAX_CALENDAR_SERIES + 1, 422)):

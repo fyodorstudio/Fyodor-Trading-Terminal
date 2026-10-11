@@ -1,6 +1,6 @@
 # Alert bottom dock
 
-Alert shows curated publications for all eight major currencies, independently of
+Alert shows MT5 publications for all eight major currencies, independently of
 chart pair and Inspector preferences. All currencies and families are initially
 enabled; the default horizon is seven days, with 30/60/90-day alternatives.
 Currency buttons filter locally without another storage request. Day groups and
@@ -17,15 +17,15 @@ One row represents one grouped publication. Known policy companions retain their
 decision anchor; generic speeches remain independent. Exact source IDs determine
 family membership. Alert family edits never change chart symbols or pair filters.
 
-Queries use selected series from the active broker, with a day-stable recent-30-day
-window and the selected future horizon plus grouping margins. UTC boundaries are
-converted to broker chart coordinates; coverage concerns the visible window.
-Verified deadlines enforce the rolling horizon. Unconfirmed timing gets no countdown;
-withdrawn observations are omitted. Empty family selections make no requests.
+Queries use selected series or up to eight currencies from the active broker,
+with a day-stable current-day window and the selected future horizon plus grouping
+margins. Large/full catalogs use currency scopes to include new MT5 IDs. Admission
+then enforces the upcoming window; incomplete historical releases and elapsed
+speeches never remain in the queue. Date-only schedules remain on their source
+calendar day without a countdown. Withdrawn observations are omitted. Empty
+family selections make no requests.
 
-At its deadline, a numeric publication awaits Actual, then shows partial data until
-all numerical observations arrive. Completed releases and elapsed speeches leave
-the queue. Countdown ticks do not refetch or regroup inventory. The shared storage
+Countdown ticks do not refetch or regroup inventory. The shared storage
 hook owns polling, revision-consistent paging, cancellation and outage retention.
 Closing Alert stops its clock and query; calendar collection continues in storage.
 Dock sizing belongs to workspace-docking's shared height preference.

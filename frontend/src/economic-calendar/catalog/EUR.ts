@@ -22,5 +22,5 @@ export const eurCalendarFamilies = [
   { id: 'euro-wages', label: 'Euro-area wage / labor costs', country: 'EU', currency: 'EUR', category: 'labor', symbol: 'star',
     events: ['999030009', '999030023'] },
   { id: 'ecb-accounts', label: 'ECB meeting accounts', country: 'EU', currency: 'EUR', category: 'policy', symbol: 'moon',
-    inspector: false, events: ['999010002'] },
+    events: ['999010002'] },
 ] as const satisfies readonly CalendarFamily[]

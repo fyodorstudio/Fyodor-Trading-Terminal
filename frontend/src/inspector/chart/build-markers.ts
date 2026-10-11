@@ -11,7 +11,7 @@ export type InspectorMarker = { release: InspectorRelease; symbol: EventSymbol; 
 export function buildInspectorMarkers(groups: InspectorRelease[], preferences: InspectorPreferences, bars: readonly Pick<OhlcBar, 'time'>[], timeframe: ChartTimeframe): InspectorMarker[] {
   if (!preferences.showSymbols || !bars.length) return []
   return groups.flatMap((release) => {
-    if (release.timingUncertain || release.chartTime === null || !Number.isFinite(release.chartTime)) return []
+    if (release.chartTime === null || !Number.isFinite(release.chartTime)) return []
     const timestamp = release.chartTime
     const duration = timeframeSeconds[timeframe]
     const lastTime = Number(bars[bars.length - 1].time)
@@ -29,6 +29,13 @@ export function buildInspectorMarkers(groups: InspectorRelease[], preferences: I
       const mid = (lo + hi) >>> 1
       if (Number(bars[mid].time) <= timestamp) lo = mid + 1
       else hi = mid - 1
+    }
+    if (release.timingUncertain) {
+      const firstOnDay = hi >= 0 && Number(bars[hi].time) === timestamp ? hi : lo
+      const time = firstOnDay < bars.length ? Number(bars[firstOnDay].time) : null
+      // A date-only symbol represents the day, including sessions opening
+      // after midnight. It never implies this candle's precise release hour.
+      return time !== null && time >= timestamp && time < timestamp + 86400 ? [{ release, time, symbol }] : []
     }
     const time = hi >= 0 ? Number(bars[hi].time) : null
     // Historical gaps still require a containing candle, never a nearby bar.

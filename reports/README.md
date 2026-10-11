@@ -8,6 +8,7 @@ are evidence, not current task instructions. Start with the
 | Location | Contents |
 | --- | --- |
 | Root dated audit files | Reviewed formula, chronology, data and regression evidence |
+| [Full MT5 Inspector coverage](Inspector-full-MT5-coverage-audit.md) | 12 October: full V4 catalog, BoJ timing and upcoming-only Alert |
 | [Module history](module-history/README.md) | Earlier README narratives, with links rebased |
 | [Completed currency-evidence plan](plans/2026-10-10-currency-evidence-plan.md) | Accepted 10 October plan and completion record |
 | [Macro-event briefing](research/macro-event-briefing.md) | Preserved user research notes |

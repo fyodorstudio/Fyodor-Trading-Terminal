@@ -6,7 +6,7 @@ import { useCalendarNow } from '../../inspector/useCalendarNow'
 import { policyEpisodeWindowMs } from '../../inspector/episodes/policy-episodes'
 import { groupInspectorReleases } from '../../inspector/releases/group-releases'
 import { inspectorFamilies } from '../../inspector/catalog/inspector-families'
-import { alertCountdown, alertEpisodesFromReleases, alertRecentDays, alertSeriesIds } from '../model/alert-episodes'
+import { alertCountdown, alertEpisodesFromReleases, alertCalendarScope } from '../model/alert-episodes'
 import { alertCurrencies, alertHorizons, readAlertPreferences, saveAlertPreferences, type AlertPreferences } from '../model/alert-preferences'
 import { AlertFiltersModal } from './AlertFiltersModal'
 import './alert-dock.css'
@@ -22,29 +22,29 @@ export function AlertDock({ brokerId, timeDisplay, clockOffsetMs = 0, brokerOffs
   const now = useCalendarNow(clockOffsetMs, 1000)
   const today = Math.floor(now / day) * day
   const clock = useMemo(() => ({ brokerId, brokerOffsetSeconds }), [brokerId, brokerOffsetSeconds])
-  const range = useMemo(() => ({ from: utcToChartClock(today - alertRecentDays * day - policyEpisodeWindowMs, clock) ?? today,
+  const range = useMemo(() => ({ from: utcToChartClock(today - policyEpisodeWindowMs, clock) ?? today,
     to: utcToChartClock(today + (preferences.days + 2) * day + policyEpisodeWindowMs, clock) ?? today }), [today, preferences.days, clock])
   const families = preferences.families
-  const eventIds = useMemo(() => alertSeriesIds({ families }), [families])
-  const scope = useMemo(() => ({ eventIds }), [eventIds])
-  const storage = useStoredCalendar(brokerId, range, eventIds.length > 0, scope)
+  const scope = useMemo(() => alertCalendarScope({ families }), [families])
+  const storage = useStoredCalendar(brokerId, range, families.length > 0, scope)
   // Currency buttons filter the loaded inventory locally. Countdown ticks never regroup it.
   const grouped = useMemo(() => groupInspectorReleases(storage.events.filter(event => event.availability === 'observed')), [storage.events])
-  const episodes = useMemo(() => alertEpisodesFromReleases(grouped, preferences, now, preferences.days)
-    .filter(({ release }) => preferences.currency === 'all' || release.currency === preferences.currency), [grouped, preferences, now])
+  const episodes = useMemo(() => alertEpisodesFromReleases(grouped, preferences, now, preferences.days,
+    utcToChartClock(now, clock) ?? now)
+    .filter(({ release }) => preferences.currency === 'all' || release.currency === preferences.currency), [grouped, preferences, now, clock])
   const days = new Map<string, typeof episodes>()
   for (const episode of episodes) {
     const at = episode.release.releaseAt ?? chartClockToUtc(episode.release.serverTime * 1000, clock)
-    if (at !== null && (at > now + preferences.days * day || at < now - alertRecentDays * day)) continue
-    const date = at === null || !Number.isFinite(at) ? 'Date unconfirmed' : formatAppTimestamp(at, timeDisplay, 'date')
+    const date = episode.release.timingUncertain ? formatAppTimestamp(episode.release.serverTime * 1000, { mode: 'utc', utcOffsetMinutes: 0 }, 'date') :
+      at === null || !Number.isFinite(at) ? 'Date unconfirmed' : formatAppTimestamp(at, timeDisplay, 'date')
     const group = days.get(date) ?? []; group.push(episode); days.set(date, group)
   }
   const currencies = inspectorFamilies.filter(f => preferences.families.includes(f.id) && (preferences.currency === 'all' || preferences.currency === f.currency)).map(f => f.currency)
   const brokerNow = utcToChartClock(now, clock) ?? now
   const partial = !!storage.source && currencies.some(currency => !storage.coverage[currency] ||
-    storage.coverage[currency].missing.some(([from, to]) => from * 1000 < brokerNow + preferences.days * day && to * 1000 > brokerNow - alertRecentDays * day))
+    storage.coverage[currency].missing.some(([from, to]) => from * 1000 < brokerNow + preferences.days * day && to * 1000 > brokerNow))
   const offline = !!storage.source && storage.source.publisher_status !== 'live'
-  const message = !brokerId ? 'Alert needs calendar storage' : !eventIds.length ? 'No families selected in Alert filters' : storage.loading ? 'Loading upcoming releases…' : null
+  const message = !brokerId ? 'Alert needs calendar storage' : !families.length ? 'No families selected in Alert filters' : storage.loading ? 'Loading upcoming releases…' : null
   return <section className="alert-dock" aria-label="Alert">
     <header className="alert-toolbar"><strong>Alert</strong>
       <nav className="alert-currencies" aria-label="Alert currency">{(['all', ...alertCurrencies] as const).map(currency => <button type="button" key={currency}
@@ -58,7 +58,7 @@ export function AlertDock({ brokerId, timeDisplay, clockOffsetMs = 0, brokerOffs
       {(storage.error || storage.collectorError || offline || partial) && <p className="alert-source-status" role="status">
         {storage.error ?? storage.collectorError ?? (offline ? 'Publisher offline · stored schedule may be stale' : 'Partial schedule coverage')}
       </p>}
-      {!days.size && <p role="status">{storage.error ? 'Upcoming schedule unavailable' : `No upcoming or awaiting releases in the available ${preferences.days}-day schedule`}</p>}
+      {!days.size && <p role="status">{storage.error ? 'Upcoming schedule unavailable' : `No upcoming releases in the available ${preferences.days}-day schedule`}</p>}
       <div className="alert-days">{[...days].map(([date, episodes]) => <section className="alert-day" key={date} aria-label={date}>
         <h3>{date}</h3>{episodes.map(({ release, state }) => <article className={`alert-row alert-${state}`} key={release.id} data-alert-id={release.id}>
           <span className="alert-currency">{release.currency}</span><strong>{release.label}</strong>

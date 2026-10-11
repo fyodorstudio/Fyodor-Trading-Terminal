@@ -1,4 +1,5 @@
-import { formatAppTimestamp, type TimeDisplayPreference } from '../../appearance/time-display/time-display-preference'
+import { type TimeDisplayPreference } from '../../appearance/time-display/time-display-preference'
+import { releaseTimeLabel } from '../releases/release-time-label'
 import type { InspectorMarker } from '../inspector-data'
 
 type MarkerLabel = { time: string; description: string }
@@ -10,7 +11,7 @@ export function markerLabel(marker: InspectorMarker, timeDisplay: TimeDisplayPre
   if (!cache) { cache = new WeakMap(); labels.set(timeDisplay, cache) }
   const known = cache.get(marker)
   if (known) return known
-  const time = marker.release.releaseAt === null ? 'Time unavailable' : formatAppTimestamp(marker.release.releaseAt, timeDisplay)
+  const time = releaseTimeLabel(marker.release, timeDisplay)
   const value = { time, description: `${marker.release.currency} · ${marker.release.label} · ${time}` }
   cache.set(marker, value)
   return value

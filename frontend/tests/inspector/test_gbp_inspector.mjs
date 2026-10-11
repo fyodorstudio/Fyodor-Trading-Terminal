@@ -48,15 +48,15 @@ try {
   const { InspectorChartMarkers } = await server.ssrLoadModule('./src/inspector/InspectorChartMarkers.tsx')
   const { exportWorkspace, parseWorkspaceSnapshot } = await server.ssrLoadModule('./src/workspace-portability/workspace-snapshot.ts')
   const families = data.inspectorFamilies.filter(family => family.currency === 'GBP')
-  assert.equal(families.length, 8)
-  assert.equal(data.inspectorPairFamilies('EURUSD').length, 22)
-  assert.equal(data.inspectorPairFamilies('GBPUSD.a').length, 20)
+  assert.equal(new Set(families.flatMap(f => f.events)).size, 115)
+  assert.equal(data.inspectorPairFamilies('EURUSD').length, data.defaultInspectorPreferences().families.length)
+  assert.equal(data.inspectorPairFamilies('GBPUSD.a').length, data.defaultInspectorPreferences('GBPUSD').families.length)
   assert.equal(data.supportsInspector('GBPUSDmicro'), true)
   assert.equal(data.supportsInspector('EURGBP'), true)
   const gbpRows = families.flatMap(family => family.events.map(id => event(id)))
   assert.equal(data.groupInspectorReleases(gbpRows).flatMap(release => release.events).length, gbpRows.length)
   assert.equal(data.groupInspectorReleases([event('826010011', 'GBP', 'US')]).length, 0)
-  assert.equal(data.groupInspectorReleases([event('826500003'), event('826500004')]).length, 0, 'Construction/all-sector PMI are outside this pass')
+  assert.equal(data.groupInspectorReleases([event('826500003'), event('826500004')]).length, 2, 'Construction/all-sector PMI are included in full coverage')
   assert.equal(data.formatInspectorValue(data.inspectorDelta(event('826020009')), event('826020009'), true), '+20 bp')
   const decision = event('826020009'), minutes = event('826020008', 'GBP', 'GB', {
     release_at: at + 600000, server_time_seconds: at / 1000 + 600, actual: null, previous: null, forecast: null })
@@ -128,7 +128,7 @@ try {
   await React.act(async () => view.selectRelease(view.releases.find(release => release.currency === 'USD').id))
   assert.deepEqual([...host.querySelector('[aria-label="Inspector view"]').options].map(option => option.textContent),
     ['Table only', 'Scatter Plot (WIP)'], 'GBPUSD keeps the same view choices when selecting the USD side')
-  for (const family of families) {
+  for (const family of families.filter(f => f.events.length)) {
     await render({ events: family.events.map(id => event(id)) })
     await React.act(async () => view.selectRelease(view.releases[0].id))
     assert.equal(host.querySelectorAll('[aria-label="Inspector view"] option').length, 2)
@@ -136,7 +136,7 @@ try {
     assert.equal(host.querySelector('.inspector-r1'), null)
   }
   await render({ events: [event('826010011', 'GBP', 'GB', { time_mode: 1 })] })
-  assert.equal(view.markers.length, 0); assert.equal(view.releases.length, 1)
+  assert.equal(view.markers.length, 1); assert.equal(view.releases.length, 1)
   console.log('✓ GBP families, meeting companions, chart selection, tables, corrections, WIP selector, pair isolation, icon preview/save/cancel and workspace export')
 } finally {
   delete globalThis.__gbpGroupingWork

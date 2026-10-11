@@ -54,7 +54,9 @@ try {
   }
   assert.equal(data.buildInspectorMarkers(releases, { ...preferences, showSymbols: false }, bars, 'H1').length, 0)
   assert.equal(data.buildInspectorMarkers(releases, preferences, [], 'H1').length, 0)
-  for (const overrides of [{ time_mode: 1 }, { chart_time_seconds: null }, { chart_time_seconds: NaN }]) {
+  assert.equal(data.buildInspectorMarkers(data.groupInspectorReleases([event({ time_mode: 1 })]), preferences, bars, 'H1').length, 1,
+    'Date-only symbols mark the source day without an exact hour')
+  for (const overrides of [{ chart_time_seconds: null }, { chart_time_seconds: NaN }]) {
     assert.equal(data.buildInspectorMarkers(data.groupInspectorReleases([event(overrides)]), preferences, bars, 'H1').length, 0)
   }
   const candle = { ...bars[1], time: lastTime + 3600 }

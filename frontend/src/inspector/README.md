@@ -6,7 +6,7 @@ scoring/magnitude views; other pairs show Table only and disabled Scatter Plot (
 
 | Folder | Ownership |
 | --- | --- |
-| `catalog/` | Visible families and four menu categories |
+| `catalog/` | Full catalog admission and visible menu categories |
 | `preferences/` | Canonical pair keys, compatible defaults and workspace validation |
 | `filters/` | Combined menu rows and release visibility |
 | `releases/`, `episodes/` | Publication identity, bounded companions and selection |

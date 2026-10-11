@@ -27,7 +27,7 @@ globalThis.fetch = (url, options = {}) => new Promise((resolve) => requests.push
 const respond = (request, body, ok = true) => React.act(async () => request.resolve({ ok, status: ok ? 200 : 503, json: async () => body }))
 try {
   const { AlertDock } = await server.ssrLoadModule('./src/alert/index.ts')
-  const { alertEpisodes, alertCountdown, alertSeriesIds } = await server.ssrLoadModule('./src/alert/model/alert-episodes.ts')
+  const { alertEpisodes, alertCountdown, alertSeriesIds, alertCalendarScope } = await server.ssrLoadModule('./src/alert/model/alert-episodes.ts')
   const { defaultInspectorPreferences, inspectorFamilies } = await server.ssrLoadModule('./src/inspector/inspector-data.ts')
   const { alertPreferencesKey, defaultAlertPreferences, readAlertPreferences, validAlertPreferences } = await server.ssrLoadModule('./src/alert/model/alert-preferences.ts')
   const preferences = { ...defaultInspectorPreferences(), families: ['us-cpi'] }
@@ -43,6 +43,10 @@ try {
     row(cpi.events[0], nextAt + day, null, { availability: 'not-returned-by-latest-query' })]
   assert.equal(alertEpisodes(initial, preferences, now).length, 1, 'One card per episode, exact applied family filters, no completed/withdrawn/out-of-window releases')
   assert.equal(alertEpisodes([row(cpi.events[0], now + 8 * day)], preferences, now).length, 0, 'Default horizon is seven days')
+  for (const time_mode of [0, 1, 2, 3]) {
+    for (const ago of [1, 7, 24, 30]) assert.equal(alertEpisodes([row(cpi.events[0], now - ago * day, null, { time_mode })], preferences, now).length, 0,
+      `No outdated release with timing mode ${time_mode}, ${ago} days ago`)
+  }
   assert.equal(alertEpisodes([row(cpi.events[0], now + 61 * day)], preferences, now, 90).length, 1, 'Longer horizons admit later schedules')
   assert.equal(alertEpisodes(schedule, preferences, nextAt)[0].state, 'awaiting')
   assert.equal(alertEpisodes(schedule.map((event, index) => index ? event : { ...event, actual: .3 }), preferences, nextAt)[0].state, 'partial')
@@ -164,8 +168,10 @@ try {
   await render()
   const allStart = requests.length - 1
   await respond(requests[allStart], health())
-  const allIds = new URL('http://localhost' + requests[allStart + 1].url).searchParams.get('event_ids').split(',')
-  assert.deepEqual(allIds.sort(), alertSeriesIds(defaultAlertPreferences()).sort())
+  const allParams = new URL('http://localhost' + requests[allStart + 1].url).searchParams
+  assert.equal(allParams.get('event_ids'), null, 'Complete catalog uses a bounded currency query, including future unknown IDs')
+  assert.deepEqual(allParams.get('currencies').split(',').sort(), alertCalendarScope(defaultAlertPreferences()).currencies.slice().sort())
+  const allIds = null
   const currencies = ['USD', 'EUR', 'GBP', 'JPY', 'CHF', 'CAD', 'AUD', 'NZD']
   const allRows = currencies.map((currency, index) => {
     const family = inspectorFamilies.find(f => f.currency === currency && f.category === 'inflation')

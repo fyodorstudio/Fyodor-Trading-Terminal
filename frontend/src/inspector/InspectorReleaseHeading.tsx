@@ -3,6 +3,7 @@ import { symbolGlyph } from '../economic-calendar/presentation/event-symbols'
 import { InspectorInfoTooltip } from './InspectorInfoTooltip'
 import type { InspectorRelease } from '../economic-calendar/releases/release'
 import type { InspectorView } from './useInspector'
+import { releaseTimeLabel } from './releases/release-time-label'
 
 export function InspectorReleaseHeading({ release, view, timeDisplay, status, sharedPeriod, hasMagnitude, calendarDetail, coverageDetail }: {
   release: InspectorRelease; view: InspectorView; timeDisplay: TimeDisplayPreference; status: string
@@ -12,8 +13,8 @@ export function InspectorReleaseHeading({ release, view, timeDisplay, status, sh
   return <div className="inspector-detail-heading" aria-label="Selected release details">
     <strong className={`inspector-currency-${release.currency}`}>
       {symbolGlyph(view.preferences.symbols[release.familyId] ?? 'star')} {release.label} · {release.country} · {release.currency}</strong>
-    <span className="inspector-release-date" data-clock="display">{release.releaseAt === null ? 'Display time unavailable' :
-      formatAppTimestamp(release.releaseAt, timeDisplay)} ({timeDisplayZoneLabel(timeDisplay)})</span>
+    <span className="inspector-release-date" data-clock="display">{release.releaseAt === null && !release.timingUncertain ? 'Display time unavailable' : releaseTimeLabel(release, timeDisplay)}
+      {!release.timingUncertain && ` (${timeDisplayZoneLabel(timeDisplay)})`}</span>
     <InspectorInfoTooltip label="Release information">
       <span className="inspector-info-line">{status}{sharedPeriod !== null && <> <span className="inspector-shared-period"
         title="Reference period covered by these readings. The source represents the period by its starting date.">Period: {formatAppTimestamp(sharedPeriod * 1000,

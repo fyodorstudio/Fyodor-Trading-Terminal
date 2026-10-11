@@ -4,18 +4,31 @@ import { type InspectorRelease } from '../../economic-calendar/releases/release'
 import type { StoredCalendarEvent } from '../../economic-calendar/storage/useStoredCalendar'
 
 export const alertLookaheadDays = 7
-export const alertRecentDays = 30
 const day = 86400000
 export type AlertEpisode = { release: InspectorRelease; state: 'upcoming' | 'awaiting' | 'partial' | 'unconfirmed' }
 export function alertSeriesIds(preferences: { families: readonly string[] }) {
   return [...new Set(inspectorFamilies.filter((family) => preferences.families.includes(family.id)).flatMap((family) => family.events))]
 }
+export function alertCalendarScope(preferences: { families: readonly string[] }) {
+  const families = inspectorFamilies.filter(f => preferences.families.includes(f.id))
+  const eventIds = alertSeriesIds(preferences)
+  return eventIds.length > 512 || families.some(f => f.catchAll) ?
+    { currencies: [...new Set(families.map(f => f.currency))] } : { eventIds }
+}
 export function alertEpisodes(events: StoredCalendarEvent[], preferences: { families: readonly string[] }, now: number, lookaheadDays = alertLookaheadDays): AlertEpisode[] {
   return alertEpisodesFromReleases(groupInspectorReleases(events.filter((event) => event.availability === 'observed')), preferences, now, lookaheadDays)
 }
-export function alertEpisodesFromReleases(releases: InspectorRelease[], preferences: { families: readonly string[] }, now: number, lookaheadDays = alertLookaheadDays): AlertEpisode[] {
+export function alertEpisodesFromReleases(releases: InspectorRelease[], preferences: { families: readonly string[] }, now: number, lookaheadDays = alertLookaheadDays,
+  dateNow = now): AlertEpisode[] {
   return releases.flatMap((release): AlertEpisode[] => {
     if (!preferences.families.includes(release.familyId)) return []
+    const uncertain = release.timingUncertain || release.releaseAt === null || !Number.isFinite(release.releaseAt)
+    const at = uncertain ? release.serverTime * 1000 : release.releaseAt
+    if (at === null || !Number.isFinite(at) || at <= 0) return []
+    if (uncertain) {
+      // Date-only schedules can occur later today; yesterday is never upcoming.
+      if (Math.floor(at / day) < Math.floor(dateNow / day) || Math.floor(at / day) > Math.floor((dateNow + lookaheadDays * day) / day)) return []
+    } else if (at < now || at > now + lookaheadDays * day) return []
     const numeric = release.events.filter((event) => !isInspectorCommentary(event))
     const arrived = numeric.filter((event) => event.actual !== null && Number.isFinite(event.actual)).length
     if (release.timingUncertain || release.releaseAt === null || !Number.isFinite(release.releaseAt)) {
@@ -23,7 +36,6 @@ export function alertEpisodesFromReleases(releases: InspectorRelease[], preferen
       // Retain dated schedules without inventing an exact UTC countdown.
       return [{ release, state: 'unconfirmed' }]
     }
-    if (release.releaseAt > now + lookaheadDays * day || release.releaseAt < now - alertRecentDays * day) return []
     if (release.releaseAt > now) return [{ release, state: 'upcoming' }]
     // Speeches have no numerical publication to await. Completed numeric
     // episodes leave the queue; their readings remain in persistent storage.

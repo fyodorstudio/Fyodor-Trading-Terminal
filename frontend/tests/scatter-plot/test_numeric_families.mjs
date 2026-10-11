@@ -46,8 +46,10 @@ try {
   const { exportWorkspace, parseWorkspaceSnapshot, restoreWorkspace } = await server.ssrLoadModule('./src/workspace-portability/workspace-snapshot.ts')
   assert.equal(families.length, 19)
   assert.equal(new Set(families.map((family) => family.settings.key)).size, families.length)
+  const retained = new Set(['jobs', 'us-cpi', 'ppi', 'fomc', 'ecb', 'euro-labor', 'euro-wages', 'euro-gdp',
+    'euro-inflation', 'german-inflation', 'euro-pmi', 'german-pmi', 'french-pmi', 'claims', 'pce', 'gdp', 'retail', 'ism-manufacturing', 'ism-services'])
   for (const option of inspectorFamilies) {
-    assert.equal(families.some((family) => family.familyId === option.id), ['EUR', 'USD'].includes(option.currency) && !['fed-chair', 'ecb-president', 'fed-minutes'].includes(option.id), option.id)
+    assert.equal(families.some((family) => family.familyId === option.id), retained.has(option.id), option.id)
   }
   const row = (family, id = family.seriesIds[0], time = at, overrides = {}) => ({
     value_id: `${time}-${id}`, event_id: id, name: family.readingRules[id].name,

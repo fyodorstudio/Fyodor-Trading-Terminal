@@ -23,7 +23,7 @@ export function AlertFiltersModal({ preferences, onSave, onClose }: {
   const ids = inspectorFamilies.filter(f => f.currency === currency).map(f => f.id)
   const terms = search.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean)
   const matches = inspectorFilterRows.filter(f => f.currency === currency && terms.every(term =>
-    `${f.label} ${inspectorCategories.find(c => c.id === f.category)?.label} ${f.currency} ${f.ids.join(' ')}`.toLocaleLowerCase().includes(term)))
+    `${f.label} ${f.search ?? ''} ${inspectorCategories.find(c => c.id === f.category)?.label} ${f.currency} ${f.ids.join(' ')}`.toLocaleLowerCase().includes(term)))
   function toggle(ids: string[], checked: boolean) {
     setDraft(current => ({ ...current, families: checked ? [...new Set([...current.families, ...ids])] : current.families.filter(id => !ids.includes(id)) }))
   }

@@ -26,7 +26,7 @@ export function InspectorFiltersModal({ preferences, onApply, onClose, symbol = 
   const matches = inspectorFilterRows.filter((family) => {
     if (!(currencies as readonly string[]).includes(family.currency)) return false
     const category = inspectorCategories.find((item) => (item.families as readonly string[]).includes(family.id))!
-    return terms.every((term) => `${family.label} ${category.label} ${family.currency} ${family.currency === currencies[0] ? 'base' : 'quote'} ${family.ids.join(' ')}`.toLocaleLowerCase().includes(term))
+    return terms.every((term) => `${family.label} ${family.search ?? ''} ${category.label} ${family.currency} ${family.currency === currencies[0] ? 'base' : 'quote'} ${family.ids.join(' ')}`.toLocaleLowerCase().includes(term))
   })
   const dialog = useRef<HTMLDialogElement>(null)
   useEffect(() => {
@@ -50,7 +50,7 @@ export function InspectorFiltersModal({ preferences, onApply, onClose, symbol = 
   return createPortal(<dialog ref={dialog} className="inspector-modal" style={currencyColorStyle(draft.currencyColors)} aria-labelledby="inspector-filter-title" aria-modal="false"
     onCancel={(event) => { event.preventDefault(); onClose() }}>
     <div className="inspector-modal-content">
-      <header><div><h2 id="inspector-filter-title">Filters · {inspectorPair(symbol) ?? symbol}</h2><p>Monetary policy · Inflation · Labor / wages · Growth / activity</p></div>
+      <header><div><h2 id="inspector-filter-title">Filters · {inspectorPair(symbol) ?? symbol}</h2><p>All MT5 event families</p></div>
         <button type="button" onClick={onClose} aria-label="Close Inspector filters">×</button></header>
       <div className="inspector-filter-tools"><label className="inspector-symbol-toggle"><input type="checkbox" checked={draft.showSymbols}
         onChange={(event) => updateDraft({ ...draft, showSymbols: event.target.checked })} /> Show symbols on chart</label>
@@ -80,7 +80,7 @@ export function InspectorFiltersModal({ preferences, onApply, onClose, symbol = 
       </div>
       {!matches.length && <p className="inspector-search-note" role="status">No families match “{search}”.</p>}
       {terms.length > 0 && <p className="inspector-search-note" role="status">Search changes visibility only. Category checkboxes still control the whole category; hidden selections are preserved.</p>}
-      <p className="inspector-modal-note">Symbols follow the applied date range and families. Releases with uncertain times stay in the list without a timed chart symbol.</p>
+      <p className="inspector-modal-note">Symbols follow the applied date range and families. Date-only symbols mark the release day.</p>
       <footer><span className="inspector-filter-save-note">Changes update the chart immediately. Save keeps them after refresh.</span>
         <button type="button" onClick={() => { onApply(filterPreferences(original.current), 'preview'); onClose() }}>Cancel</button><button type="button" className="inspector-primary"
         onClick={() => { onApply(filterPreferences(draft), 'save'); onClose() }}>Save</button></footer>

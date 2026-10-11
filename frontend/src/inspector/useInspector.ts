@@ -23,7 +23,7 @@ import { useMarkerBars } from './chart/useMarkerBars'
 import { normalizeInspectorDetailView } from './inspector-detail-view'
 import { useCalendarNow } from './useCalendarNow'
 import { usePublicationInspection } from './releases/usePublicationInspection'
-import { utcToChartClock } from '../appearance/time-display/chart-clock'
+import { chartClockToUtc, utcToChartClock } from '../appearance/time-display/chart-clock'
 
 const noEvents: EconomicCalendarEvent[] = []
 
@@ -71,8 +71,9 @@ export function useInspector({ events = noEvents, symbol, bars, timeframe, timeD
   const pairReadings = useMemo(() => selectPairReadings(readings), [readings, selectPairReadings])
   const allReleases = useMemo(() => groupInspectorReleases(pairReadings), [pairReadings])
   const displayReleases = useMemo(() => groupPmiEpisodes(allReleases), [allReleases])
-  const releases = useMemo(() => supported ? filterInspectorReleases(displayReleases, preferences, range, false) : [],
-    [supported, displayReleases, preferences, range])
+  const releases = useMemo(() => supported ? filterInspectorReleases(displayReleases, preferences, range, false,
+    release => chartClockToUtc(release.serverTime * 1000, { brokerId: brokerId ?? null, brokerOffsetSeconds })) : [],
+    [supported, displayReleases, preferences, range, brokerId, brokerOffsetSeconds])
   const markerBars = useMarkerBars(bars)
   const markers = useMemo(() => buildInspectorMarkers(releases, preferences, markerBars, timeframe), [releases, preferences, markerBars, timeframe])
   const inspection = usePublicationInspection(symbol, brokerId, displayReleases, supported)

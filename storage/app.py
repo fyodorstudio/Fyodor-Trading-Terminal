@@ -67,7 +67,7 @@ def create_app(directory=None, run_collector=True):
     def calendar(source_id: str = Query(min_length=1, max_length=160),
                  from_server_seconds: int = Query(ge=0), to_server_seconds: int = Query(ge=0),
                  currency: str | None = Query(default=None, pattern="^(" + "|".join(CURRENCIES) + ")$"),
-                 currencies: str | None = Query(default=None, pattern=r"^[A-Z]{3}(,[A-Z]{3})?$"),
+                 currencies: str | None = Query(default=None, pattern=r"^[A-Z]{3}(,[A-Z]{3}){0,7}$"),
                  limit: int = Query(default=1000, ge=1, le=5000),
                  after_time: int | None = Query(default=None, ge=0), after_id: str | None = Query(default=None, max_length=32),
                  time_basis: str = Query(default="raw", pattern="^(raw|chart)$"),

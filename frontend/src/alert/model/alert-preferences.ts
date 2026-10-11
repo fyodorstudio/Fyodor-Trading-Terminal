@@ -4,9 +4,9 @@ import { isMajorCurrency, type MajorCurrency } from '../../economic-calendar/for
 export const alertPreferencesKey = 'fyodor.alert.preferences.v1'
 export const alertCurrencies: readonly MajorCurrency[] = ['USD', 'EUR', 'GBP', 'JPY', 'CHF', 'CAD', 'AUD', 'NZD']
 export const alertHorizons = [7, 30, 60, 90] as const
-export type AlertPreferences = { version: 1; families: string[]; currency: 'all' | MajorCurrency; days: typeof alertHorizons[number] }
+export type AlertPreferences = { version: 1; catalogVersion?: 1; families: string[]; currency: 'all' | MajorCurrency; days: typeof alertHorizons[number] }
 export function defaultAlertPreferences(): AlertPreferences {
-  return { version: 1, families: inspectorFamilies.map(f => f.id), currency: 'all', days: 7 }
+  return { version: 1, catalogVersion: 1, families: inspectorFamilies.map(f => f.id), currency: 'all', days: 7 }
 }
 export function validAlertPreferences(value: unknown): value is AlertPreferences {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false
@@ -18,7 +18,9 @@ export function validAlertPreferences(value: unknown): value is AlertPreferences
 export function readAlertPreferences(): AlertPreferences {
   try {
     const saved: unknown = JSON.parse(localStorage.getItem(alertPreferencesKey) ?? 'null')
-    return validAlertPreferences(saved) ? saved : defaultAlertPreferences()
+    if (!validAlertPreferences(saved)) return defaultAlertPreferences()
+    return { ...saved, catalogVersion: 1, families: saved.catalogVersion === 1 || !saved.families.length ? saved.families :
+      [...new Set([...saved.families, ...inspectorFamilies.filter(f => f.sourceLabels || f.id === 'ecb-accounts').map(f => f.id)])] }
   } catch { return defaultAlertPreferences() }
 }
 export function saveAlertPreferences(preferences: AlertPreferences) {

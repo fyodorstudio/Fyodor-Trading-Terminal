@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from ..calendar_clock import PROFILES, broker_offset, project
+from ..calendar_clock import PROFILES, broker_offset, project, publication_time_known
 from ..contracts import PublisherContext
 from .support import canonical
 
@@ -33,7 +33,7 @@ class StoreObservations:
 
     def _save_timing(self, source_id, event, observed_at, provenance):
         offset, basis = self._capture_offset(source_id, observed_at, provenance)
-        utc, chart = project(source_id, event["server_time_seconds"], offset) if event["time_mode"] == 0 else (None, None)
+        utc, chart = project(source_id, event["server_time_seconds"], offset) if publication_time_known(event) else (None, None)
         self.db.execute("""INSERT INTO event_timing VALUES (?,?,?,?,?,?,?)
             ON CONFLICT(source_id,value_id) DO UPDATE SET capture_offset_seconds=excluded.capture_offset_seconds,
             release_at=excluded.release_at,chart_time_seconds=excluded.chart_time_seconds,
@@ -42,13 +42,15 @@ class StoreObservations:
 
     def _restore_timing(self):
         # Upgrade existing local databases without rewriting raw observations.
-        rows = self.db.execute("""SELECT e.source_id,e.payload,o.observed_at,o.provenance,t.profile,t.value_id
+        rows = self.db.execute("""SELECT e.source_id,e.payload,o.observed_at,o.provenance,t.profile,t.value_id,t.release_at,t.capture_offset_seconds
             FROM events e JOIN observations o ON o.source_id=e.source_id AND o.value_id=e.value_id AND o.payload=e.payload
             LEFT JOIN event_timing t ON t.source_id=e.source_id AND t.value_id=e.value_id
             """).fetchall()
         for row in rows:
-            if row[5] is None or row[4] != PROFILES.get(row[0]):
-                self._save_timing(row[0], json.loads(row[1]), row[2], json.loads(row[3]))
+            event = json.loads(row[1])
+            if (row[5] is None or row[4] != PROFILES.get(row[0]) or
+                    (row[6] is None and row[7] is not None and publication_time_known(event))):
+                self._save_timing(row[0], event, row[2], json.loads(row[3]))
 
     def _source(self, source_id, server_now):
         self.db.execute("""INSERT INTO sources(id, server_now) VALUES (?,?)

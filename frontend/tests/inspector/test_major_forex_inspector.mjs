@@ -65,8 +65,10 @@ try {
   const { useInspector } = await server.ssrLoadModule('./src/inspector/useInspector.ts')
   const { InspectorPanel } = await server.ssrLoadModule('./src/inspector/InspectorPanel.tsx')
   const { InspectorChartMarkers } = await server.ssrLoadModule('./src/inspector/InspectorChartMarkers.tsx')
+  const { markerLabel } = await server.ssrLoadModule('./src/inspector/chart/marker-label.ts')
   const { exportWorkspace, parseWorkspaceSnapshot } = await server.ssrLoadModule('./src/workspace-portability/workspace-snapshot.ts')
   const fixture = JSON.parse(fs.readFileSync(new URL('./fixtures/major-calendar-catalog.json', import.meta.url), 'utf8'))
+  assert.equal(fixture.length, 1051, 'Complete exported MT5 catalog, including low importance and holidays')
   for (const source of fixture) {
     const family = eventFamilyOptions.find(f => f.events.includes(source.event_id))
     assert.equal(family.currency, source.country_currency)
@@ -86,6 +88,24 @@ try {
   assert.equal(majorForexPairs.length, 28)
   assert.equal(majorForexPairs.filter(p => p.includes('USD')).length, 7)
   assert.equal(majorForexPairs.filter(p => !p.includes('USD')).length, 21)
+  const completeRows = fixture.map(source => event(source.event_id, source.country_currency, source.country_code, { name: source.event_name }))
+  const completeReleases = data.groupInspectorReleases(completeRows)
+  const completeRange = { from: at - 86400000, to: at + 86400000 }
+  for (const pair of majorForexPairs) {
+    const preferences = data.defaultInspectorPreferences(pair)
+    const filtered = data.filterInspectorReleases(completeReleases, preferences, completeRange)
+    const expected = fixture.filter(source => forexPairCurrencies(pair).includes(source.country_currency)).map(source => source.event_id)
+    assert.deepEqual(new Set(filtered.flatMap(release => release.events.map(row => row.event_id))), new Set(expected), `${pair}: every source ID survives the filters`)
+    const markers = data.buildInspectorMarkers(filtered, preferences, bars, 'H1')
+    assert.deepEqual(new Set(markers.flatMap(marker => marker.release.events.map(row => row.event_id))), new Set(expected), `${pair}: every timed source ID has a marker`)
+    for (const currency of forexPairCurrencies(pair)) {
+      const country = data.inspectorFamilies.find(f => f.currency === currency).country
+      const fresh = event('9876543210123456789', currency, country, { name: 'A newly added MT5 release' })
+      const releases = data.filterInspectorReleases(data.groupInspectorReleases([fresh]), preferences, completeRange)
+      assert.equal(releases[0].familyId, `${currency.toLowerCase()}-other`)
+      assert.equal(data.buildInspectorMarkers(releases, preferences, bars, 'H1').length, 1)
+    }
+  }
   assert.equal(data.supportsInspector('BTCUSD'), false)
   assert.equal(data.supportsInspector('EURUSDJPY'), false)
   const rows = majorCurrencies.map(currency => {
@@ -93,8 +113,8 @@ try {
     return event(family.events[0], currency, family.country)
   })
   let view
-  function Harness({ symbol, events = rows }) {
-    const next = useInspector({ symbol, events, bars, timeframe: 'H1', timeDisplay: utc, clockOffsetMs })
+  function Harness({ symbol, events = rows, chartBars = bars }) {
+    const next = useInspector({ symbol, events, bars: chartBars, timeframe: 'H1', timeDisplay: utc, clockOffsetMs })
     const { setRangePreset } = next
     React.useEffect(() => { setRangePreset('year-to-date') }, [setRangePreset])
     React.useLayoutEffect(() => { view = next }, [next])
@@ -150,7 +170,7 @@ try {
   const snapshot = { ...workspace, entries: { ...workspace.entries, 'fyodor.inspector.btcuSd.v1': '{}' } }
   assert.throws(() => parseWorkspaceSnapshot(JSON.stringify(snapshot)), /Unsupported workspace setting/)
   // All registered families open source tables, including policy and independent speeches.
-  for (const family of data.inspectorFamilies.filter(f => !['EUR', 'USD'].includes(f.currency))) {
+  for (const family of data.inspectorFamilies.filter(f => f.events.length && !['EUR', 'USD'].includes(f.currency))) {
     const rule = policyEpisodeRules.find(r => r.familyId === family.id)
     const id = rule?.decisionIds[0] ?? family.events[0]
     const pair = majorForexPairs.find(p => forexPairCurrencies(p).includes(family.currency))
@@ -160,8 +180,31 @@ try {
     assert.ok(host.querySelector('tbody').textContent.includes(id), family.id)
     if (rule) assert.match(host.querySelector('tbody').textContent, /\+20 bp/)
     await render({ symbol: pair, events: [event(id, family.currency, family.country, { time_mode: 1 })] })
-    assert.equal(view.markers.length, 0); assert.equal(view.releases.length, 1)
+    assert.equal(view.markers.length, 1); assert.equal(view.releases.length, 1)
   }
+  const bojTime = 1789710840 // Supplied publication clock for stored MT5 value 264440, 18 September 2026.
+  const boj = event('392060022', 'JPY', 'JP', { value_id: '264440', name: 'BoJ Interest Rate Decision',
+    actual: 1.3, previous: 1.0, time_mode: 3, server_time_seconds: bojTime,
+    chart_time_seconds: bojTime, release_at: (bojTime - 10800) * 1000 })
+  const bojBars = [bojTime - 3600, bojTime, bojTime + 3600].map(time => ({ ...bars[0], time }))
+  await render({ symbol: 'USDJPY', events: [boj], chartBars: bojBars })
+  assert.equal(view.markers.length, 1, 'Published BoJ rates with persistent tentative series metadata appear on the chart')
+  assert.equal(view.markers[0].release.timingUncertain, false)
+  await click('[data-inspector-filter-trigger]')
+  await change('[aria-label="Search Inspector families"]', 'BoJ Interest Rate Decision')
+  assert.ok(document.querySelector('[aria-label="BoJ policy"]'), 'Searching the source release name finds its family')
+  await React.act(async () => [...document.querySelectorAll('dialog button')].find(n => n.textContent === 'Cancel').click())
+  await React.act(async () => view.selectRelease(view.releases[0].id))
+  assert.match(host.querySelector('tbody').textContent, /BoJ Interest Rate Decision.*1.3%/)
+  assert.doesNotMatch(host.querySelector('tbody').textContent, /Time uncertain/)
+  const dayTime = Math.floor(bojTime / 86400) * 86400
+  await render({ symbol: 'USDJPY', events: [{ ...boj, actual: null, release_at: null, chart_time_seconds: null }],
+    chartBars: [{ ...bars[0], time: dayTime }] })
+  assert.equal(view.markers.length, 1, 'BoJ schedules remain selectable as explicitly date-only markers')
+  assert.equal(view.markers[0].time, dayTime)
+  assert.match(markerLabel(view.markers[0], utc).description, /2026-09-18 · Date only/)
+  assert.equal(data.buildInspectorMarkers(view.releases, view.preferences, [{ time: dayTime + 3600 }], 'H1')[0].time, dayTime + 3600,
+    'Date-only symbols use the first candle on the release day when midnight has no candle')
   console.log('✓ All 28 pairs: source-ID admission, base/quote icons, selection, raw tables, corrections, work counts, separate Save/Cancel and workspace portability')
 } finally {
   delete globalThis.__majorGroupingWork

@@ -41,7 +41,7 @@ class CalendarClockTests(unittest.TestCase):
     def import_history(self, rows):
         manifest = {"calendar_from_timestamp": HISTORY_START, "calendar_to_timestamp": NOW,
             "snapshot_trade_server_timestamp": NOW, "snapshot_gmt_timestamp": NOW - 10800,
-            "calendar_currencies": "EUR,USD"}
+            "calendar_currencies": "EUR,USD,JPY"}
         self.store.import_rows("seed", "Elev8-Demo2", manifest, {}, rows)
 
     def test_chart_query_midnight_paging_raw_payload_and_reopen(self):
@@ -101,7 +101,7 @@ class CalendarClockTests(unittest.TestCase):
         self.assertEqual(row["release_at"], at("2026-01-09T13:30:00") * 1000)
         self.assertEqual(row["chart_time_seconds"], at("2026-01-09T15:30:00"))
 
-    def test_date_only_events_remain_list_only_and_unknown_broker_is_not_guessed(self):
+    def test_date_only_events_keep_null_exact_clocks_and_unknown_broker_is_not_guessed(self):
         self.import_history([event(time_mode=1, server_time_seconds=at("2026-01-09T16:30:00"))])
         row = self.store.query("Elev8-Demo2", at("2026-01-09T00:00:00"), at("2026-01-10T00:00:00"), time_basis="chart")["events"][0]
         self.assertIsNone(row["chart_time_seconds"])
@@ -111,6 +111,34 @@ class CalendarClockTests(unittest.TestCase):
         row = self.store.query("Broker-Demo", HISTORY_START, NOW, time_basis="chart")["events"][0]
         self.assertIsNone(row["chart_time_seconds"])
         self.assertIsNotNone(row["release_at"], "Recorded offset can establish UTC without guessing native candle DST")
+
+    def test_boj_tentative_series_has_a_clock_after_numeric_publication(self):
+        stamp = 1789710840  # Supplied publication clock for stored MT5 value 264440.
+        self.import_history([event(value_id='264440', event_id='392060022', currency='JPY', country_code='JP',
+            name='BoJ Interest Rate Decision', time_mode=3, actual=1.3, previous=1.0, server_time_seconds=stamp),
+            event(value_id='future', time_mode=3, actual=None, server_time_seconds=stamp),
+            event(value_id='date-only', time_mode=3, actual=1.3, server_time_seconds=at('2026-09-18T00:00:00'))])
+        evidence = [tuple(row) for row in self.store.db.execute('SELECT * FROM observations ORDER BY value_id')]
+        rows = {row['value_id']: row for row in self.store.query('Elev8-Demo2', stamp-86400, stamp+86400, time_basis='chart')['events']}
+        self.assertEqual(rows['264440']['chart_time_seconds'], stamp)
+        self.assertEqual(rows['264440']['release_at'], (stamp-10800)*1000)
+        self.assertEqual(rows['264440']['time_mode'], 3)
+        # Older inventories discarded this derived clock. Recover it once,
+        # preserving raw observations and native midnight paging semantics.
+        self.store.db.execute("UPDATE event_timing SET release_at=NULL,chart_time_seconds=NULL WHERE value_id='264440'")
+        self.store.db.commit()
+        self.store.close()
+        self.store = CalendarStore(self.path)
+        recovered = self.store.query('Elev8-Demo2', stamp-86400, stamp+86400, time_basis='chart')['events']
+        self.assertEqual(next(row for row in recovered if row['value_id']=='264440')['chart_time_seconds'], stamp)
+        revision = self.store.status()['revision']
+        self.store.close()
+        self.store = CalendarStore(self.path)
+        self.assertEqual(self.store.status()['revision'], revision)
+        for id in ['future', 'date-only']:
+            self.assertIsNone(rows[id]['release_at'])
+            self.assertIsNone(rows[id]['chart_time_seconds'])
+        self.assertEqual(evidence, [tuple(row) for row in self.store.db.execute('SELECT * FROM observations ORDER BY value_id')])
 
 
 if __name__ == "__main__":
