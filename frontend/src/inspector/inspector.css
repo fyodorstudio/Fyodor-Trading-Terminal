@@ -72,8 +72,20 @@
 .inspector-empty { padding: 16px; margin: 0; color: var(--text-muted); line-height: 1.6; }
 .inspector-currency-EUR { color: var(--inspector-eur-color, #2563eb); }
 .inspector-currency-USD { color: var(--inspector-usd-color, #9333ea); }
+.inspector-currency-GBP { color: var(--inspector-gbp-color, #2563eb); }
 :root[data-theme='dark'] .inspector-currency-EUR { color: var(--inspector-eur-color, #60a5fa); }
 :root[data-theme='dark'] .inspector-currency-USD { color: var(--inspector-usd-color, #c084fc); }
+:root[data-theme='dark'] .inspector-currency-GBP { color: var(--inspector-gbp-color, #60a5fa); }
+.inspector-currency-AUD { color: var(--inspector-aud-color, #0f766e); }
+:root[data-theme='dark'] .inspector-currency-AUD { color: var(--inspector-aud-color, #5eead4); }
+.inspector-currency-NZD { color: var(--inspector-nzd-color, #b45309); }
+:root[data-theme='dark'] .inspector-currency-NZD { color: var(--inspector-nzd-color, #fcd34d); }
+.inspector-currency-CAD { color: var(--inspector-cad-color, #be123c); }
+:root[data-theme='dark'] .inspector-currency-CAD { color: var(--inspector-cad-color, #fda4af); }
+.inspector-currency-CHF { color: var(--inspector-chf-color, #0369a1); }
+:root[data-theme='dark'] .inspector-currency-CHF { color: var(--inspector-chf-color, #7dd3fc); }
+.inspector-currency-JPY { color: var(--inspector-jpy-color, #7c3aed); }
+:root[data-theme='dark'] .inspector-currency-JPY { color: var(--inspector-jpy-color, #c4b5fd); }
 .inspector-modal { position: fixed; inset: 0 0 0 auto; margin: 0; padding: 0; width: min(720px, 100vw); height: 100dvh; max-width: none; max-height: none; box-sizing: border-box; border: 1px solid var(--border-strong); border-radius: 0; color: var(--text); background: var(--surface-panel); box-shadow: 0 8px 28px #0003; font-size: 12px; z-index: 40; }
 .inspector-modal-content { padding: 20px; display: flex; flex-direction: column; height: 100%; box-sizing: border-box; }
 .inspector-modal header, .inspector-symbol-toggle, .inspector-modal-note, .inspector-modal footer { flex-shrink: 0; }

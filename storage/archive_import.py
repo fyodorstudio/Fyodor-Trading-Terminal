@@ -9,7 +9,8 @@ from collections import Counter
 from decimal import Decimal
 from pathlib import Path
 
-from .calendar_store import CalendarStore, CURRENCIES, canonical
+from .calendar_store import CalendarStore, canonical
+from .currencies import CURRENCIES
 from .contracts import CalendarEvent
 
 REQUIRED_FILES = ("manifest.csv", "calendar_events.csv", "calendar_releases.csv", "calendar_currencies.csv")

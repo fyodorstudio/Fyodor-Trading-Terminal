@@ -1,5 +1,5 @@
 // Storage transport is separate from the frozen bridge protocol. One history
-// query OR one chunk runs per timer tick, after live work. Companion to v2.0.2.
+// query OR one chunk runs per timer tick, after live work. Companion to v2.0.4.
 MqlCalendarEvent g_event_cache[];
 MqlCalendarCountry g_country_cache[];
 MqlCalendarValue g_backfill_values[];
@@ -53,7 +53,7 @@ string RawValuesJson(const MqlCalendarValue &value)
 
 string PublisherContextJson()
   {
-   return "{\"protocol_version\":1,\"publisher_version\":\"2.0.2\",\"source_id\":"+
+   return "{\"protocol_version\":1,\"publisher_version\":\"2.0.4\",\"source_id\":"+
           JsonString(AccountInfoString(ACCOUNT_SERVER))+",\"instance_id\":"+JsonString(g_instance_id)+
           ",\"server_time_seconds\":"+IntegerToString((long)TimeTradeServer())+
           ",\"server_utc_offset_seconds\":"+IntegerToString(ServerUtcOffsetSeconds())+"}";
@@ -76,7 +76,7 @@ bool StorageRequest(const string path,const string payload,string &body)
   }
 
 // Narrow parser for the service's flat response contract. Values used here
-// are booleans, integer timestamps, EUR/USD and hexadecimal UUIDs.
+// are booleans, integer timestamps, eight major currencies and hexadecimal UUIDs.
 int JsonValueStart(const string json,const string key)
   {
    int start=StringFind(json,JsonString(key));
@@ -167,7 +167,8 @@ void BackfillStep()
       if(!JsonText(body,"job_id",job) || !JsonText(body,"lease_token",token) ||
          !JsonText(body,"currency",currency) || !JsonInteger(body,"from_server_seconds",from_seconds) ||
          !JsonInteger(body,"to_server_seconds",to_seconds) || !IsHexId(job) || !IsHexId(token) ||
-         (currency!="EUR" && currency!="USD") || from_seconds<1420070400 || to_seconds<=from_seconds)
+         (currency!="EUR" && currency!="USD" && currency!="GBP" && currency!="AUD" &&
+          currency!="NZD" && currency!="CAD" && currency!="CHF" && currency!="JPY") || from_seconds<1420070400 || to_seconds<=from_seconds)
         { Print("Fyodor storage: malformed backfill job rejected."); return; }
       g_backfill_job=job; g_backfill_token=token; g_backfill_currency=currency;
       g_backfill_from=(datetime)from_seconds; g_backfill_to=(datetime)to_seconds;

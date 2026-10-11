@@ -1,5 +1,6 @@
-import type { EconomicCalendarEvent } from '../../../inspector/calendar-event'
-import { groupInspectorReleases, type InspectorRelease } from '../../../inspector/inspector-data'
+import type { EconomicCalendarEvent } from '../../../economic-calendar/contracts/calendar-event'
+import { groupInspectorReleases } from '../../../inspector/releases/group-releases'
+import { type InspectorRelease } from '../../../economic-calendar/releases/release'
 import { observedReading, referenceMonth } from './historical-release-signals'
 
 // A context is a timestamped view over publications, not a merged calendar event.

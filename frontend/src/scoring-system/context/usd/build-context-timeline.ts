@@ -1,4 +1,4 @@
-import { groupInspectorReleases, inspectorEventChartTime } from '../../../inspector/inspector-data'
+import { groupInspectorReleases, inspectorEventChartTime } from '../../../inspector/releases/group-releases'
 import { observedReading } from '../../shared/core/historical-release-signals'
 import { combineContext } from './combine-context'
 import type { ContextInput, ContextFamily, ContextResult, ContextTimeline, FamilyAssessment } from './contracts'

@@ -1,5 +1,5 @@
-import type { EconomicCalendarEvent } from '../../inspector/calendar-event'
-import { inspectorValueUnit } from '../../inspector/inspector-data'
+import type { EconomicCalendarEvent } from '../../economic-calendar/contracts/calendar-event'
+import { inspectorValueUnit } from '../../inspector/readings/reading-values'
 import { isPolicyRateDecision } from '../../inspector/episodes/policy-episodes'
 
 const formats = new Map<string, Intl.NumberFormat>()

@@ -1,4 +1,4 @@
-import type { EconomicCalendarEvent } from '../../inspector/calendar-event'
+import type { EconomicCalendarEvent } from '../../economic-calendar/contracts/calendar-event'
 import { prepareScoringSignalHistory, scoringSignalBinding } from '../inspection/scoring-signal-model'
 import type { ClaimsHorizon } from '../../scoring-system/PAIR/EURUSD/USD/CLAIMS/policy/claims-standalone-policy'
 

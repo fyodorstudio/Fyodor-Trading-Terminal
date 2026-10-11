@@ -1,4 +1,4 @@
-import { type InspectorRelease } from '../../../../../../../inspector/inspector-data'
+import { type InspectorRelease } from '../../../../../../../economic-calendar/releases/release'
 import { nativeNumber, releaseSignalContext,
   usableSignal, unavailableSignal, type TimedReading, type HistoricalFeature } from '../../../../../../shared/core/historical-release-signals'
 
@@ -44,4 +44,3 @@ export function ismServicesFeatures(release: InspectorRelease, history: readonly
   })
   return Object.fromEntries(features) as Features
 }
-

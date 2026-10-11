@@ -31,7 +31,7 @@ try {
     filename = path.resolve(filename)
     if (visited.has(filename)) return
     visited.add(filename)
-    assert.ok(!/[\\/](redundant|criterion|economic-calendar)[\\/]/.test(filename), filename)
+    assert.ok(!/[\\/](redundant|criterion)[\\/]/.test(filename), filename)
     const source = ts.createSourceFile(filename, fs.readFileSync(filename, 'utf8'), ts.ScriptTarget.Latest, true)
     function walk(node) {
       const specifier = (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) ? node.moduleSpecifier
@@ -43,7 +43,7 @@ try {
         assert.ok(resolved, `Unresolved production dependency: ${filename} -> ${specifier.text}`)
         if (inspectorOnly && !resolved.includes(`${path.sep}inspector${path.sep}`)) {
           const relative = path.relative(sourceDir, resolved).replaceAll('\\', '/')
-          assert.ok(relative.startsWith('appearance/time-display/') || relative.startsWith('market-data/contracts/')
+          assert.ok(relative.startsWith('economic-calendar/') || relative.startsWith('appearance/time-display/') || relative.startsWith('market-data/contracts/')
             // Inspector consumes shared currency engines, never Raycaster's UI/runtime.
             || relative.startsWith('usd-context/') || relative.startsWith('pair-context/')
             || relative.startsWith('scoring-system/') || relative === 'fundamental-tools/runtime/settings-navigation.ts'
@@ -137,7 +137,7 @@ try {
   assert.equal(container.querySelector('[aria-label="Close bottom dock"]'), null)
   const gbp = [...container.querySelectorAll('button')].find((button) => button.textContent.includes('GBPUSD'))
   await click(gbp)
-  assert.match(container.querySelector('.inspector-panel').textContent, /currently supports EURUSD/)
+  assert.equal(container.querySelector('.inspector-panel [data-inspector-filter-trigger]').disabled, false, 'GBPUSD Inspector is available in terminal navigation')
   await click(findButton('.status-actions button', 'Inspector'))
   assert.equal(container.querySelector('.bottom-dock'), null)
   await click(findButton('.status-actions button', 'Inspector'))
@@ -155,7 +155,7 @@ try {
   assert.ok(container.querySelector('[aria-label="Scatter Plot"]'))
   await click(findButton('.status-actions button', 'Scatter Plot'))
   assert.equal(container.querySelector('.bottom-dock'), null)
-  console.log('✓ Mounted navigation opens/closes Inspector and retains EURUSD-only support')
+  console.log('✓ Mounted navigation opens/closes Inspector and enables major-pair support')
   await click(findButton('.status-actions button', 'Roofs'))
   assert.equal(findButton('.status-actions button', 'Roofs').getAttribute('aria-expanded'), 'true')
   assert.equal(container.querySelector('.inspector-panel'), null, 'Roofs is an independent dock selection')

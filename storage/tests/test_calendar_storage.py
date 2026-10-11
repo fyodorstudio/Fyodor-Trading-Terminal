@@ -9,6 +9,7 @@ import unittest
 from pathlib import Path
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
+from unittest.mock import patch
 
 import uvicorn
 
@@ -41,6 +42,48 @@ def chunk(job, rows=(), index=0, count=1, total=None):
 
 
 class StorageTests(unittest.TestCase):
+    def test_gbp_archive_extension_is_additive_idempotent_and_preserves_live_corrections(self):
+        manifest = {"calendar_from_timestamp": str(HISTORY_START), "calendar_to_timestamp": str(NOW),
+                    "snapshot_trade_server_timestamp": str(NOW), "snapshot_gmt_timestamp": str(NOW - 10800),
+                    "calendar_currencies": "EUR,USD,GBP"}
+        rows = [event(value_id=currency, currency=currency) for currency in ("EUR", "USD", "GBP")]
+        with patch('storage.persistence.coverage.CURRENCIES', ('EUR', 'USD')):
+            self.store.import_rows('seed', 'Broker-Demo', manifest, {'file': 'hash'}, rows)
+        self.store.register(context())
+        self.store.collect('Broker-Demo', [event(value_id='GBP', currency='GBP', actual=.5)], 'publisher-1')
+        eur_before = self.query(currency='EUR')['events']
+        extended = self.store.import_rows('seed', 'Broker-Demo', manifest, {'file': 'hash'}, rows)
+        self.assertFalse(extended['already_imported'])
+        self.assertEqual(extended['rows'], 3)
+        self.assertEqual(self.query(currency='EUR')['events'], eur_before)
+        self.assertEqual(self.query(currency='GBP')['events'][0]['actual'], .5)
+        self.assertEqual(self.store.query('Broker-Demo', HISTORY_START, NOW - 35 * DAY, 'GBP')['coverage']['GBP']['missing'], [])
+        observations = self.store.db.execute('SELECT count(*) FROM observations').fetchone()[0]
+        self.assertTrue(self.store.import_rows('seed', 'Broker-Demo', manifest, {'file': 'hash'}, rows)['already_imported'])
+        self.assertEqual(self.store.db.execute('SELECT count(*) FROM observations').fetchone()[0], observations)
+        with self.assertRaisesRegex(ValueError, 'different file hashes'):
+            self.store.import_rows('seed', 'Broker-Demo', manifest, {'file': 'changed'}, rows)
+
+    def test_gbp_backfill_requires_capable_publisher_and_pages_exact_readings(self):
+        with self.store.lock, self.store.db:
+            self.store._source('Broker-Demo', NOW)
+            for currency in ('EUR', 'USD'):
+                self.store._coverage('Broker-Demo', currency, HISTORY_START, NOW + 61 * DAY, NOW, 'seed')
+        self.assertFalse(self.store.next_job(context())['available'], 'Older publishers must not receive unsupported GBP jobs')
+        job = self.store.next_job(context(publisher_version='2.0.3'))
+        self.assertEqual(job['currency'], 'GBP')
+        self.assertFalse(self.store.next_job(context())['available'], 'Older publishers cannot lease an existing GBP job')
+        rows = [event(value_id=str(i), event_id='826010011', currency='GBP', country_code='GB',
+                      server_time_seconds=job['from_server_seconds'], actual_raw_scaled_1e6='300001',
+                      previous_raw_scaled_1e6='100000') for i in range(3)]
+        self.store.receive(chunk(job, rows))
+        first = self.store.query('Broker-Demo', job['from_server_seconds'], job['to_server_seconds'], 'GBP', limit=2, time_basis='chart')
+        second = self.store.query('Broker-Demo', job['from_server_seconds'], job['to_server_seconds'], 'GBP', limit=2,
+                                  time_basis='chart', **first['next_cursor'])
+        self.assertEqual(len(first['events']) + len(second['events']), 3)
+        self.assertEqual(first['events'][0]['actual_raw_scaled_1e6'], '300001')
+        self.assertEqual(first['coverage']['GBP']['missing'], [])
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.path = Path(self.temp.name) / "calendar.sqlite3"
@@ -373,6 +416,17 @@ class ApiTests(unittest.TestCase):
                 return response.status, json.load(response)
         except HTTPError as error:
             return error.code, json.load(error)
+
+    def test_major_currency_scope_http_validation(self):
+        self.assertEqual(self.request('/publisher', context(publisher_version='2.0.4').model_dump())[0], 200)
+        path = f"/calendar?source_id=Broker-Demo&from_server_seconds={HISTORY_START}&to_server_seconds={NOW}"
+        for currency in ('EUR', 'USD', 'GBP', 'AUD', 'NZD', 'CAD', 'CHF', 'JPY'):
+            self.assertEqual(self.request(path + '&currency=' + currency)[0], 200)
+        status, page = self.request(path + '&currencies=AUD,JPY')
+        self.assertEqual(status, 200)
+        self.assertEqual(set(page['coverage']), {'AUD', 'JPY'})
+        for suffix in ('&currencies=AUD,BTC', '&currencies=AUD,AUD', '&currencies=AUD,JPY,CHF', '&currency=USD&currencies=AUD,JPY'):
+            self.assertEqual(self.request(path + suffix)[0], 422)
 
     def test_real_http_job_validation_commit_and_stored_query(self):
         status, job = self.request("/jobs/next", context().model_dump())

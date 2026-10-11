@@ -1,4 +1,4 @@
-import type { EconomicCalendarEvent } from '../../../../../../inspector/calendar-event'
+import type { EconomicCalendarEvent } from '../../../../../../economic-calendar/contracts/calendar-event'
 import { nativeNumber, observedReading, referenceMonth, unavailableSignal, usableSignal,
   type TimedReading } from '../../../../../shared/core/historical-release-signals'
 import { priorReferenceRows } from '../../../../../shared/core/reference-history-index'

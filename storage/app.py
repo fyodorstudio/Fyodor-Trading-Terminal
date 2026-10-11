@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse
 
 from .bridge_collector import BridgeCollector
 from .calendar_store import CalendarStore
+from .currencies import CURRENCIES
 from .contracts import BackfillChunk, BackfillFailure, PublisherContext
 from .data_lock import data_lock
 
@@ -61,7 +62,8 @@ def create_app(directory=None, run_collector=True):
     @app.get("/api/v1/calendar")
     def calendar(source_id: str = Query(min_length=1, max_length=160),
                  from_server_seconds: int = Query(ge=0), to_server_seconds: int = Query(ge=0),
-                 currency: str | None = Query(default=None, pattern="^(EUR|USD)$"),
+                 currency: str | None = Query(default=None, pattern="^(" + "|".join(CURRENCIES) + ")$"),
+                 currencies: str | None = Query(default=None, pattern=r"^[A-Z]{3}(,[A-Z]{3})?$"),
                  limit: int = Query(default=1000, ge=1, le=5000),
                  after_time: int | None = Query(default=None, ge=0), after_id: str | None = Query(default=None, max_length=32),
                  time_basis: str = Query(default="raw", pattern="^(raw|chart)$"),
@@ -71,8 +73,11 @@ def create_app(directory=None, run_collector=True):
                                               pattern=r"^[0-9]{1,20}(,[0-9]{1,20}){0,63}$")):
         if from_server_seconds >= to_server_seconds or (after_time is None) != (after_id is None):
             raise HTTPException(status_code=422, detail="Invalid date interval or incomplete cursor")
+        selected = currencies.split(",") if currencies else None
+        if selected and (currency or len(set(selected)) != len(selected) or any(item not in CURRENCIES for item in selected)):
+            raise HTTPException(status_code=422, detail="Invalid currency scope")
         return app.state.store.query(source_id, from_server_seconds, to_server_seconds, currency, limit,
-                                     after_time, after_id, time_basis, event_ids.split(",") if event_ids else None, r1_as_of, r1_history)
+                                     after_time, after_id, time_basis, event_ids.split(",") if event_ids else None, r1_as_of, r1_history, selected)
 
     return app
 

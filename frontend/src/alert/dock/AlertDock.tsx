@@ -1,9 +1,11 @@
 import { useMemo } from 'react'
 import { formatAppTimestamp, timeDisplayLabel, type TimeDisplayPreference } from '../../appearance/time-display/time-display-preference'
-import { useStoredCalendar } from '../../inspector/useStoredCalendar'
+import { useStoredCalendar } from '../../economic-calendar/storage/useStoredCalendar'
 import { useCalendarNow } from '../../inspector/useCalendarNow'
 import { policyEpisodeWindowMs } from '../../inspector/episodes/policy-episodes'
-import { groupInspectorReleases, inspectorFamilies, type InspectorPreferences } from '../../inspector/inspector-data'
+import { groupInspectorReleases } from '../../inspector/releases/group-releases'
+import { inspectorFamilies } from '../../inspector/catalog/inspector-families'
+import { type InspectorPreferences } from '../../inspector/preferences/inspector-preferences'
 import { alertCountdown, alertEpisodesFromReleases, alertLookaheadDays, alertRecentDays, alertSeriesIds } from '../model/alert-episodes'
 import './alert-dock.css'
 
@@ -29,7 +31,7 @@ export function AlertDock({ brokerId, preferences, timeDisplay, clockOffsetMs = 
     storage.coverage[currency].missing.some(([from, to]) => from * 1000 < brokerNow + alertLookaheadDays * 86400000 &&
       to * 1000 > brokerNow - alertRecentDays * 86400000))
   const offline = !!storage.source && storage.source.publisher_status !== 'live'
-  const message = !supported ? 'Alert currently supports EURUSD' : !brokerId ? 'Alert needs calendar storage' :
+  const message = !supported ? 'Select a major forex pair to view alerts' : !brokerId ? 'Alert needs calendar storage' :
     !eventIds.length ? 'No families selected in Inspector filters' : storage.loading ? 'Loading upcoming releases…' : null
   return <section className="alert-dock" aria-label="Alert">
     <header className="alert-toolbar"><strong>Alert</strong><span>Inspector filters · {brokerId ?? 'No broker'}</span>

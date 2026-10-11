@@ -1,4 +1,4 @@
-import type { EconomicCalendarEvent } from '../../../inspector/calendar-event'
+import type { EconomicCalendarEvent } from '../../../economic-calendar/contracts/calendar-event'
 import type { MagnitudeSettings } from '../../../inspector/magnitude/settings/magnitude-settings-store'
 import type { EurFamily } from '../../PAIR/EURUSD/EUR/policy/eur-policies'
 export type EurContextInput = { events: readonly EconomicCalendarEvent[]; families: readonly EurFamily[]; settings: Partial<Record<EurFamily, MagnitudeSettings>>; asOf: number }

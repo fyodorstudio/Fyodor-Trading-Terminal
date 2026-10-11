@@ -1,7 +1,7 @@
 import { memo, useMemo } from 'react'
 import { formatAppTimestamp, type TimeDisplayPreference } from '../../appearance/time-display/time-display-preference'
 import type { InspectorRelease, InspectorPreferences } from '../inspector-data'
-import { symbolGlyph } from '../event-symbols'
+import { symbolGlyph } from '../../economic-calendar/presentation/event-symbols'
 import { releaseStatus } from './release-status'
 
 function InspectorReleaseListComponent({ id, hidden, releases, selectedId, symbols, timeDisplay, now, onSelect }: {

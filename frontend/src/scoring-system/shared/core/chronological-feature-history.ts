@@ -1,5 +1,6 @@
-import type { EconomicCalendarEvent } from '../../../inspector/calendar-event'
-import { groupInspectorReleases, type InspectorRelease } from '../../../inspector/inspector-data'
+import type { EconomicCalendarEvent } from '../../../economic-calendar/contracts/calendar-event'
+import { groupInspectorReleases } from '../../../inspector/releases/group-releases'
+import { type InspectorRelease } from '../../../economic-calendar/releases/release'
 import { earlierSignalReadings, observedReading, type TimedReading } from './historical-release-signals'
 
 // Feature extractors must bound every reference lookup by the feature's own

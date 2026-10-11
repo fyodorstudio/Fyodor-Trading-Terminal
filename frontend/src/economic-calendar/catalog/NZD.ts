@@ -1,0 +1,26 @@
+import type { CalendarFamily } from './family'
+
+export const nzdCalendarFamilies = [
+  { id: 'rbnz', label: 'RBNZ policy', country: 'NZ', currency: 'NZD', category: 'policy', symbol: 'moon',
+    events: ['554020009', '554020005', '554020007', '554020008'] },
+  { id: 'rbnz-speakers', label: 'RBNZ speeches', country: 'NZ', currency: 'NZD', category: 'policy', symbol: 'snowflake',
+    events: ['554020001', '554020002', '554020019'] },
+  { id: 'nz-cpi', label: 'New Zealand CPI', country: 'NZ', currency: 'NZD', category: 'inflation', symbol: 'star',
+    events: ['554010005', '554010006'] },
+  { id: 'nz-inflation-expectations', label: 'New Zealand Inflation Expectations', country: 'NZ', currency: 'NZD', category: 'inflation', symbol: 'star',
+    events: ['554020010'] },
+  { id: 'nz-labor', label: 'New Zealand employment / unemployment', country: 'NZ', currency: 'NZD', category: 'labor', symbol: 'cloud',
+    events: ['554010016', '554010014', '554010015'] },
+  { id: 'nz-wages', label: 'New Zealand Labor Cost Index', country: 'NZ', currency: 'NZD', category: 'labor', symbol: 'cloud',
+    events: ['554010017', '554010018'] },
+  { id: 'nz-gdp', label: 'New Zealand GDP', country: 'NZ', currency: 'NZD', category: 'growth', symbol: 'umbrella',
+    events: ['554010024', '554010025', '554010035'] },
+  { id: 'nz-pmi', label: 'New Zealand BusinessNZ Manufacturing / Services', country: 'NZ', currency: 'NZD', category: 'growth', symbol: 'umbrella',
+    events: ['554060001', '554060002'] },
+  { id: 'nz-retail', label: 'New Zealand Retail Sales', country: 'NZ', currency: 'NZD', category: 'growth', symbol: 'umbrella',
+    events: ['554010019', '554010020', '554010021'] },
+  { id: 'nz-trade', label: 'New Zealand Trade Balance', country: 'NZ', currency: 'NZD', category: 'growth', symbol: 'umbrella',
+    events: ['554010009', '554010010', '554010007', '554010008'] },
+  { id: 'nz-dairy', label: 'Global Dairy Trade prices', country: 'NZ', currency: 'NZD', category: 'growth', symbol: 'umbrella',
+    events: ['554050001'] },
+] as const satisfies readonly CalendarFamily[]

@@ -1,4 +1,4 @@
-import type { EconomicCalendarEvent } from '../../../inspector/calendar-event'
+import type { EconomicCalendarEvent } from '../../../economic-calendar/contracts/calendar-event'
 import type { InspectorRelease } from '../../../inspector/inspector-data'
 import { validMagnitudeLimits, type MagnitudeLimits } from '../../../inspector/magnitude/magnitude-distribution'
 import { priorReferenceRows } from './reference-history-index'

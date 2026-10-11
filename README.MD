@@ -27,7 +27,8 @@ currently verified through 2031; other brokers require verified timing rules.
 | `scripts/setup.ps1`, `bridge/requirements.lock.txt` | Pinned Python setup and local bridge installation |
 | `frontend/package.json`, `frontend/pnpm-lock.yaml` | Frontend commands and the single Node lockfile |
 | `frontend/src/terminal-shell/` | Compose feature modules and navigation |
-| `frontend/src/inspector/` | Catalog, filters, episodes, grading, stored data and shared magnitude logic |
+| `frontend/src/economic-calendar/` | Shared observations, currency catalogs, pair identity, timing and stored queries |
+| `frontend/src/inspector/` | Pair filters, release grouping, chart symbols, tables and retained analysis UI |
 | `frontend/src/scoring-system/` | Shared family calculations, model policies, context and relationships |
 | `frontend/src/fundamental-tools/` | Fundamental Settings dock, calibration controls and tool navigation |
 | `frontend/src/usd-context/`, `pair-context/`, `raycaster/` | Quarantined context storage, workers and presentation |
@@ -53,11 +54,11 @@ time preferences and the storage API. Renderers do not own collection.
 The [main objective](fyodor%20trading%20terminal%20main%20objective.md) defines the
 product contract and outstanding work. The [repository map](docs/REPOSITORY-MAP.md)
 defines terminology and code ownership; the [shared scoring system](frontend/src/scoring-system/README.md)
-describes current models and settings. Standalone USD scoring is the active scope;
+describes current models and settings. Inspector supports [all 28 major pairs](docs/INSPECTOR-MAJOR-FOREX.md); retained scoring covers USD/EUR, with scoring development paused.
 Roofs, Raycaster and Candy retain their existing experimental calculations.
 
 - **Inspector** shows stored releases, readings and standalone scoring. Each
-  family has one current scoring view, with result drivers visible and method,
+  EURUSD family retains its current scoring view, with result drivers visible and method,
   calibration and supporting context available on demand.
 - **Raycaster** reads economic context through the selected candle's end.
   **Context-detailed → At publication** shows context for the selected Inspector

@@ -1,11 +1,11 @@
-import { inspectorDelta, inspectorValueUnit } from '../../inspector/inspector-data'
+import { inspectorDelta, inspectorValueUnit } from '../../inspector/readings/reading-values'
 import { scatterReading } from './scatter-number-format'
 import { gradeFamilyReading } from '../../inspector/grading/reading-grading'
 import { familyHistoryReleases, familyMagnitudeSamples, scaledMagnitudeDelta } from '../../inspector/magnitude/family-magnitude-history'
 import type { MagnitudeFamily } from '../../inspector/magnitude/magnitude-families'
 import { magnitudeDistribution } from '../../inspector/magnitude/magnitude-distribution'
 import { magnitudeConfiguration, type MagnitudeSettings } from '../../inspector/magnitude/settings/magnitude-settings-store'
-import type { StoredCalendarEvent } from '../../inspector/useStoredCalendar'
+import type { StoredCalendarEvent } from '../../economic-calendar/storage/useStoredCalendar'
 import type { ScatterModel, ScatterPoint } from '../contracts/scatter-plot-types'
 
 export function familyScatterModel(events: StoredCalendarEvent[], now: number, seriesId: string,

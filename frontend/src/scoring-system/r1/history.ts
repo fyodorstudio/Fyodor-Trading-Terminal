@@ -1,4 +1,4 @@
-import type { EconomicCalendarEvent } from '../../inspector/calendar-event'
+import type { EconomicCalendarEvent } from '../../economic-calendar/contracts/calendar-event'
 import { createR1History } from './features'
 import { assessFeatures,assessR1,prepareR1Features } from './assessment'
 import { r1Profiles,r1Families } from './profiles'

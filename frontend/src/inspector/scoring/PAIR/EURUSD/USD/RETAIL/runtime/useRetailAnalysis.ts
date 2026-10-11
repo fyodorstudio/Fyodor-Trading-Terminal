@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import type { InspectorScoringProps } from '../../../../../scoring-contracts'
-import { useStoredCalendar } from '../../../../../../useStoredCalendar'
+import { useStoredCalendar } from '../../../../../../../economic-calendar/storage/useStoredCalendar'
 import { signalHistoryStart } from '../../../../../../../scoring-system/shared/core/historical-release-signals'
 import { retailSignalSettings } from '../../../../../../../scoring-system/shared/core/signal-magnitude-settings'
 import { useBackgroundCalculation } from '../../../../../shared/runtime/useBackgroundCalculation'

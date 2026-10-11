@@ -1,7 +1,7 @@
 import type { ComponentType } from 'react'
 import type { InspectorRelease } from '../inspector-data'
 import type { TimeDisplayPreference } from '../../appearance/time-display/time-display-preference'
-import type { EconomicCalendarEvent } from '../calendar-event'
+import type { EconomicCalendarEvent } from '../../economic-calendar/contracts/calendar-event'
 
 export type InspectorScoringProps = { release: InspectorRelease | null;
   brokerId?: string | null; events?: EconomicCalendarEvent[]; now?: number; timeDisplay?: TimeDisplayPreference;

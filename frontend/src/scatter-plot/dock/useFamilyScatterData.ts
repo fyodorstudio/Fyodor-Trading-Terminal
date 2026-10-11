@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { useStoredCalendar } from '../../inspector/useStoredCalendar'
+import { useStoredCalendar } from '../../economic-calendar/storage/useStoredCalendar'
 import type { MagnitudeFamily } from '../../inspector/magnitude/magnitude-families'
 import {r1SeriesIds} from '../../scoring-system/r1/profiles'
 

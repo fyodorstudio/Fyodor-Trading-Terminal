@@ -5,6 +5,7 @@ import threading
 from urllib.request import urlopen
 
 from .contracts import CalendarEvent
+from .currencies import CURRENCIES
 
 
 class BridgeCollector:
@@ -41,7 +42,7 @@ class BridgeCollector:
                 if snapshot["source"]["instance_id"] != health["instance_id"] or snapshot["source"].get("last_snapshot_at") is None:
                     continue
                 events = [CalendarEvent.model_validate({key: value for key, value in row.items() if key in CalendarEvent.model_fields}).model_dump()
-                          for row in snapshot["events"] if row["currency"] in ("EUR", "USD")]
+                          for row in snapshot["events"] if row["currency"] in CURRENCIES]
                 if self.store.collect(source["id"], events, health["instance_id"], snapshot["source"]["last_update_at"] / 1000,
                                       snapshot["source"].get("server_utc_offset_seconds")):
                     self.revisions[source["id"]] = (snapshot["source"]["instance_id"], snapshot["source"]["last_update_at"], snapshot["source"]["event_count"])

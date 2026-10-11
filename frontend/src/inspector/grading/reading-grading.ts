@@ -1,5 +1,6 @@
-import type { EconomicCalendarEvent } from '../calendar-event'
-import { inspectorDelta, inspectorRevisedDelta, hasRevisedPreviousChange, type InspectorRelease } from '../inspector-data'
+import type { EconomicCalendarEvent } from '../../economic-calendar/contracts/calendar-event'
+import { inspectorDelta, inspectorRevisedDelta, hasRevisedPreviousChange } from '../readings/reading-values'
+import { type InspectorRelease } from '../../economic-calendar/releases/release'
 
 export type ReadingGrade = 'higher' | 'lower' | 'unchanged' | 'missing' | 'unrated'
 export type ReadingRule = { name: string; definition: string }

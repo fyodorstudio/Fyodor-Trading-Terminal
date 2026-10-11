@@ -3,8 +3,8 @@
 //| Read-only MT5 economic-calendar publisher for the local bridge.  |
 //+------------------------------------------------------------------+
 #property strict
-#property version   "2.02"
-#property description "Publisher v2.0.2: frozen bridge protocol plus resumable local calendar backfill."
+#property version   "2.04"
+#property description "Publisher v2.0.4: frozen bridge protocol plus resumable local calendar backfill."
 #property description "This EA contains no order or position functions."
 
 input string BridgeUrl = "http://127.0.0.1:8001/api/v1/calendar/ingest";
@@ -299,7 +299,7 @@ int OnInit()
       PrintFormat("Fyodor calendar: EventSetTimer failed: %d",GetLastError());
       return INIT_FAILED;
      }
-   Print("Fyodor calendar publisher v2.0.2 initialized. Live bridge protocol v1 is unchanged; storage runs separately.");
+   Print("Fyodor calendar publisher v2.0.4 initialized. Live bridge protocol v1 is unchanged; storage runs separately.");
    return INIT_SUCCEEDED;
   }
 

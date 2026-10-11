@@ -1,6 +1,6 @@
 import {useMemo} from 'react'
 import { useCalendarNow } from '../../inspector/useCalendarNow'
-import { calendarAdmissionTime } from '../../inspector/storage/calendar-admission-time'
+import { calendarAdmissionTime } from '../../economic-calendar/storage/calendar-admission-time'
 import { useBackgroundCalculation } from '../../inspector/scoring/shared/runtime/useBackgroundCalculation'
 import { calculateR1History } from '../../scoring-system/r1/history'
 import { allR1Families,r1Family,r1Profiles,r1Currency } from '../../scoring-system/r1/profiles'

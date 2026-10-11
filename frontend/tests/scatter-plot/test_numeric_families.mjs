@@ -47,7 +47,7 @@ try {
   assert.equal(families.length, 19)
   assert.equal(new Set(families.map((family) => family.settings.key)).size, families.length)
   for (const option of inspectorFamilies) {
-    assert.equal(families.some((family) => family.familyId === option.id), !['fed-chair', 'ecb-president'].includes(option.id), option.id)
+    assert.equal(families.some((family) => family.familyId === option.id), ['EUR', 'USD'].includes(option.currency) && !['fed-chair', 'ecb-president'].includes(option.id), option.id)
   }
   const row = (family, id = family.seriesIds[0], time = at, overrides = {}) => ({
     value_id: `${time}-${id}`, event_id: id, name: family.readingRules[id].name,
@@ -204,7 +204,7 @@ try {
   localStorage.setItem(inspectorStorageKey, JSON.stringify(applied))
   assert.deepEqual(readInspectorPreferences().currencyColors, applied.currencyColors)
   assert.deepEqual(currencyColorStyle(applied.currencyColors), { '--inspector-eur-color': '#123456', '--inspector-usd-color': '#654321' })
-  assert.deepEqual(normalizeCurrencyColors({ EUR: 'red', USD: '#abcdef', JPY: '#123456' }), { USD: '#abcdef' })
+  assert.deepEqual(normalizeCurrencyColors({ EUR: 'red', USD: '#abcdef', JPY: '#123456', BTC: '#eeeeee' }), { USD: '#abcdef', JPY: '#123456' })
   localStorage.setItem(inspectorStorageKey, JSON.stringify({ ...prefs, currencyColors: undefined }))
   assert.deepEqual(readInspectorPreferences().currencyColors, {})
   localStorage.setItem(inspectorStorageKey, JSON.stringify(applied))

@@ -1,5 +1,5 @@
 import { calculateR1Timeline, type R1TimelineInput } from './timeline'
-import { sameCalendarRows } from '../../inspector/storage/calendar-snapshot-identity'
+import { sameCalendarRows } from '../../economic-calendar/storage/calendar-snapshot-identity'
 let events:R1TimelineInput['events']=[]
 self.onmessage=(event:MessageEvent<{id:number;input:R1TimelineInput}>)=>{
   const {id,input}=event.data

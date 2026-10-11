@@ -2,7 +2,8 @@ import { currencyColorStyle } from './currency-colors'
 import { useCallback, useEffect, useId, useMemo, useState } from 'react'
 import { type TimeDisplayPreference } from '../appearance/time-display/time-display-preference'
 import type { CalendarSourceHealth } from '../system-connectivity/bridge-status/bridge-contract'
-import { type InspectorRelease } from './inspector-data'
+import { hasInspectorScoring, forexPairCurrencies as inspectorPairCurrencies } from '../economic-calendar/forex/pairs'
+import { type InspectorRelease } from '../economic-calendar/releases/release'
 import { InspectorFiltersModal } from './InspectorFiltersModal'
 import { InspectorDateRangePicker } from './InspectorDateRangePicker'
 import { inspectorPopoversFit } from './inspector-popover-layout'
@@ -63,13 +64,14 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
   const [listOpen, setListOpen] = useState(false)
   const panelId = useId()
   const release = view.selectedRelease
-  const scoringEvents = useMemo(() => view.allReleases.flatMap((item) => item.events), [view.allReleases])
+  const tableOnly = !hasInspectorScoring(symbol)
+  const scoringEvents = useMemo(() => tableOnly ? [] : view.allReleases.flatMap((item) => item.events), [view.allReleases, tableOnly])
   const scoreRelease = displaySourceRelease(release, null, view.now)
   const magnitudeFamily = magnitudeFamilies.find((family) => matchesReadingFamily(scoreRelease, family)) ?? null
-  const hasMagnitude = !!magnitudeFamily && !!release?.events.some((event) => Object.hasOwn(magnitudeFamily.readingRules, event.event_id))
-  const scoringBinding = inspectorScoringBinding(symbol, scoreRelease)
-  const showScoring = normalizeInspectorDetailView(view.preferences.detailView) === 'scoring' && !!scoringBinding
-  const hasR1=!!scoreRelease&&!!r1ReleaseFamily(scoreRelease)
+  const hasMagnitude = !tableOnly && !!magnitudeFamily && !!release?.events.some((event) => Object.hasOwn(magnitudeFamily.readingRules, event.event_id))
+  const scoringBinding = tableOnly ? null : inspectorScoringBinding(symbol, scoreRelease)
+  const showScoring = !tableOnly && normalizeInspectorDetailView(view.preferences.detailView) === 'scoring' && !!scoringBinding
+  const hasR1=!tableOnly&&!!scoreRelease&&!!r1ReleaseFamily(scoreRelease)
   const showR1=normalizeInspectorDetailView(view.preferences.detailView)==='r1'&&hasR1
   const visibleView = showR1?'r1':showScoring ? 'scoring' : 'table'
   const status = (item: InspectorRelease) => releaseStatus(item, view.now)
@@ -77,7 +79,8 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
     (view.storage.source ? 'Stored calendar available' : 'Waiting for the broker calendar')
   const calendarDetail = view.brokerTime ? storageStatus : sourceLabel(source, error)
   const calendarLoading = view.brokerTime ? view.storage.loading : source?.status === 'awaiting-snapshot'
-  const missingCoverage = Object.entries(view.storage.coverage).filter(([, coverage]) => coverage.missing.length).map(([currency]) => currency)
+  const pairCurrencies: readonly string[] = inspectorPairCurrencies(symbol)
+  const missingCoverage = Object.entries(view.storage.coverage).filter(([currency, coverage]) => pairCurrencies.includes(currency) && coverage.missing.length).map(([currency]) => currency)
   const coverageDetail = view.brokerTime && missingCoverage.length > 0 ?
     `Coverage pending for ${missingCoverage.join(' and ')} in this range; stored readings remain available.` : null
   const unplaced = view.releases.filter((item) => item.chartTime === null).length
@@ -100,7 +103,7 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
           setFiltersOpen(true)
         }}>Filters</button>
         <InspectorDateRangePicker view={view} open={calendarOpen} onOpenChange={changeCalendarOpen} filtersOpen={filtersOpen} />
-        {view.supported && <button type="button" className="inspector-histogram-btn" aria-pressed={view.preferences.showHistograms}
+        {view.supported && !tableOnly && <button type="button" className="inspector-histogram-btn" aria-pressed={view.preferences.showHistograms}
           title={view.preferences.showHistograms ? 'Hide histogram' : 'Show histogram'}
           aria-label={view.preferences.showHistograms ? 'Hide histogram' : 'Show histogram'}
           onClick={() => view.applyPreferences({ ...view.preferences, showHistograms: !view.preferences.showHistograms }, 'view')}>
@@ -133,19 +136,19 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
           if (next === 'scatter') {
             // Scatter is navigation; keep the selected Inspector view when returning.
             event.target.value = visibleView
-            if (hasMagnitude && scatterAvailable && onOpenScatter) onOpenScatter(scoreRelease ?? release)
+            if (!tableOnly && hasMagnitude && scatterAvailable && onOpenScatter) onOpenScatter(scoreRelease ?? release)
           } else if (next === 'table' || (next === 'scoring' && scoringBinding) || (next==='r1'&&hasR1)) {
             view.applyPreferences({ ...view.preferences, detailView: next }, 'view')
           }
         }}>
         <option value="table">Table only</option>
-        <option value="scoring" disabled={!scoringBinding}>Scoring system{scoringBinding ? ` · ${release.pmiPublications ? 'PMI interpreters v1' : scoringBinding.versionLabel}` : ''}</option>
-        <option value="scatter" disabled={!hasMagnitude || !scatterAvailable || !onOpenScatter}>Scatter Plot</option>
-        <option value="r1" disabled={!hasR1}>Scoring system · {scoreRelease?.currency??'USD'} R1</option>
+        {!tableOnly && <option value="scoring" disabled={!scoringBinding}>Scoring system{scoringBinding ? ` · ${release.pmiPublications ? 'PMI interpreters v1' : scoringBinding.versionLabel}` : ''}</option>}
+        <option value="scatter" disabled={tableOnly || !hasMagnitude || !scatterAvailable || !onOpenScatter}>Scatter Plot{tableOnly ? ' (WIP)' : ''}</option>
+        {!tableOnly && <option value="r1" disabled={!hasR1}>Scoring system · {scoreRelease?.currency??'USD'} R1</option>}
       </select></div>}
 
     </header>
-    {!view.supported ? <p className="inspector-empty">Inspector currently supports EURUSD. Select EURUSD to inspect monetary policy, inflation, labor/wages and growth/activity releases.</p> : <>
+    {!view.supported ? <p className="inspector-empty">Select a major forex pair to inspect releases.</p> : <>
       <div className={`inspector-body${listOpen ? '' : ' releases-collapsed'}`}>
         <InspectorReleaseList id={`${panelId}-releases`} hidden={!listOpen} releases={view.releases}
           selectedId={release?.id ?? null} symbols={view.preferences.symbols} timeDisplay={timeDisplay}
@@ -157,12 +160,12 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
             {showR1?<R1Score release={scoreRelease} brokerId={view.brokerId} events={scoringEvents}/>:showScoring && scoringBinding ? <InspectorScoringView binding={scoringBinding} release={release}
               brokerId={view.brokerId} events={scoringEvents} now={view.now} timeDisplay={timeDisplay}
               onOpenScatter={scatterAvailable ? onOpenScatter : undefined} /> :
-            release.pmiPublications ? <PmiReadingsTable release={release} view={view} timeDisplay={timeDisplay} /> :
-            <InspectorReadingsTable release={release} view={view} timeDisplay={timeDisplay} sharedPeriod={sharedPeriod} />}
+            release.pmiPublications ? <PmiReadingsTable tableOnly={tableOnly} release={release} view={view} timeDisplay={timeDisplay} /> :
+            <InspectorReadingsTable tableOnly={tableOnly} release={release} view={view} timeDisplay={timeDisplay} sharedPeriod={sharedPeriod} />}
           </>}
         </div>
       </div>
     </>}
-    {filtersOpen && <InspectorFiltersModal preferences={view.preferences} onApply={view.applyPreferences} onClose={() => setFiltersOpen(false)} />}
+    {filtersOpen && <InspectorFiltersModal key={symbol} symbol={symbol} preferences={view.preferences} onApply={view.applyPreferences} onClose={() => setFiltersOpen(false)} />}
   </section>
 }

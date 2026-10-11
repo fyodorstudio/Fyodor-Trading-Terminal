@@ -1,12 +1,12 @@
 import { useMemo } from 'react'
 import type { InspectorRelease } from '../inspector-data'
 import { matchesReadingFamily } from '../grading/reading-grading'
-import { useStoredCalendar } from '../useStoredCalendar'
+import { useStoredCalendar } from '../../economic-calendar/storage/useStoredCalendar'
 import { familyMagnitudeHistory } from './family-magnitude-history'
 import { magnitudeFamilies, type MagnitudeFamily } from './magnitude-families'
 import { magnitudeConfiguration, useMagnitudeSettings } from './settings/magnitude-settings-store'
 import { useCalendarNow } from '../useCalendarNow'
-import { calendarAdmissionTime } from '../storage/calendar-admission-time'
+import { calendarAdmissionTime } from '../../economic-calendar/storage/calendar-admission-time'
 
 const emptyRows: ReturnType<typeof familyMagnitudeHistory> = {}
 

@@ -1,4 +1,4 @@
-import type { EconomicCalendarEvent } from '../../../../../../inspector/calendar-event'
+import type { EconomicCalendarEvent } from '../../../../../../economic-calendar/contracts/calendar-event'
 import type { InspectorRelease } from '../../../../../../inspector/inspector-data'
 import { assessIsmMonthlyContext, type IsmSectorSettings } from './ism-monthly-context'
 

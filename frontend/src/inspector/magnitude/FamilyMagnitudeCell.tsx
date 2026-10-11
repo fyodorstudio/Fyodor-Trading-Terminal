@@ -1,6 +1,6 @@
-import type { EconomicCalendarEvent } from '../calendar-event'
+import type { EconomicCalendarEvent } from '../../economic-calendar/contracts/calendar-event'
 import { useDisplayClock } from '../../appearance/time-display/useDisplayClock'
-import { formatInspectorValue } from '../inspector-data'
+import { formatInspectorValue } from '../readings/reading-values'
 import type { ReadingGrade } from '../grading/reading-grading'
 import { MagnitudeHistogram } from './MagnitudeHistogram'
 import type { FamilyMagnitudeHistory } from './useFamilyMagnitudeHistory'

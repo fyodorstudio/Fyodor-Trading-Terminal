@@ -47,11 +47,12 @@ PC timezone does not establish broker history. Review the current profile before
 
 ## Seed calendar history
 
-1. Copy `bridge/mql5/Active/FyodorResearchExporterV4.mq5` or the supplied `.ex5`
-   into MT5's `MQL5/Scripts`. Compile source in MetaEditor if needed.
-2. Run it on a chart and load `FyodorCalendarSeedEURUSD.set` in Inputs.
+1. Copy the supplied `bridge/mql5/Active/FyodorResearchExporterV4.ex5`
+   into MT5's `MQL5/Scripts`. To compile source, also copy the `.mq5` and
+   its `research-export/` subfolder, then compile in MetaEditor.
+2. Run it on a chart and load `FyodorCalendarSeedMajors.set` in Inputs.
 3. Keep `ExportCalendar=true`, `ExportRequestedBars=false`,
-   `CalendarCurrencies=USD,EUR`, `RequireExact28PairSet=false`,
+   `CalendarCurrencies=EUR,GBP,AUD,NZD,USD,CAD,CHF,JPY`, `RequireExact28PairSet=false`,
    `CalendarFromDate=2015.01.01 00:00:00`, `CalendarToDate=0`, and
    `SaveToCommonFolder=true`.
 4. Wait for successful completion. The completion dialog identifies the export
@@ -66,7 +67,7 @@ pnpm storage:import 'C:\path\to\FyodorCalendarSeed_v4_..._server'
 Keep `manifest.csv`, `calendar_events.csv`, `calendar_releases.csv` and
 `calendar_currencies.csv` unchanged. Import validates completed v4 exports,
 counts/identities and query failures, copies inventory with SHA-256 verification,
-and commits EUR/USD rows transactionally. Reimporting the same export is safe.
+and commits all eight major currencies transactionally. Reimporting an existing export adds newly supported currencies without replacing live corrections.
 Use restore instead if transferring an existing database.
 
 ## Enable ongoing collection
@@ -80,7 +81,7 @@ Use restore instead if transferring an existing database.
 4. Initially keep `SnapshotDaysBack=30`, `SnapshotDaysAhead=60`,
    `StorageUrl=http://127.0.0.1:8002/api/v1`, `EnableAutomaticBackfill=true`.
 
-Publisher V2.0.2 prioritizes recent/future inventory and fills missing available
+Publisher V2.0.4 supports all eight major currencies, prioritizes recent/future inventory and fills missing available
 history from 2015. Its status is visible in storage health and MT5 Experts.
 Only MT5-available records can be recovered; missing Actual values stay missing.
 The programs do not send orders. Bridge/MQL protocols remain unchanged.

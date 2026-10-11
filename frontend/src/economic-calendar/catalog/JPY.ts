@@ -1,0 +1,28 @@
+import type { CalendarFamily } from './family'
+
+export const jpyCalendarFamilies = [
+  { id: 'boj', label: 'BoJ policy', country: 'JP', currency: 'JPY', category: 'policy', symbol: 'moon',
+    events: ['392060022', '392060018', '392060017', '392060020', '392060019', '392060021'] },
+  { id: 'boj-speakers', label: 'BoJ speeches', country: 'JP', currency: 'JPY', category: 'policy', symbol: 'snowflake',
+    events: ['392060001', '392060002', '392060023', '392060035', '392060036'] },
+  { id: 'jp-cpi', label: 'Japan CPI / core CPI', country: 'JP', currency: 'JPY', category: 'inflation', symbol: 'star',
+    events: ['392030001', '392030002', '392030003', '392030010'] },
+  { id: 'jp-tokyo-cpi', label: 'Tokyo CPI / core CPI', country: 'JP', currency: 'JPY', category: 'inflation', symbol: 'star',
+    events: ['392030004', '392030005', '392030006', '392030011'] },
+  { id: 'jp-wages', label: 'Japan cash earnings / real wages', country: 'JP', currency: 'JPY', category: 'labor', symbol: 'cloud',
+    events: ['392050001', '392050003', '392050004'] },
+  { id: 'jp-labor', label: 'Japan unemployment / jobs-to-applicants', country: 'JP', currency: 'JPY', category: 'labor', symbol: 'cloud',
+    events: ['392030007', '392050002'] },
+  { id: 'jp-gdp', label: 'Japan GDP', country: 'JP', currency: 'JPY', category: 'growth', symbol: 'umbrella',
+    events: ['392010001', '392010003'] },
+  { id: 'jp-tankan', label: 'BoJ Tankan business survey', country: 'JP', currency: 'JPY', category: 'growth', symbol: 'umbrella',
+    events: ['392060008', '392060007', '392060010', '392060009', '392060006'] },
+  { id: 'jp-pmi', label: 'Japan PMI · Services / Manufacturing / Composite', country: 'JP', currency: 'JPY', category: 'growth', symbol: 'umbrella',
+    events: ['392500001', '392500002', '392500003'] },
+  { id: 'jp-retail', label: 'Japan Retail Sales / Household Spending', country: 'JP', currency: 'JPY', category: 'growth', symbol: 'umbrella',
+    events: ['392020002', '392020003', '392030008', '392030009'] },
+  { id: 'jp-production', label: 'Japan Industrial Production', country: 'JP', currency: 'JPY', category: 'growth', symbol: 'umbrella',
+    events: ['392020006', '392020007'] },
+  { id: 'jp-trade', label: 'Japan Trade Balance', country: 'JP', currency: 'JPY', category: 'growth', symbol: 'umbrella',
+    events: ['392040001', '392040002', '392040003', '392040004'] },
+] as const satisfies readonly CalendarFamily[]

@@ -1,4 +1,4 @@
-import { inspectorFamilies } from '../inspector-data'
+import { inspectorFamilies } from '../catalog/inspector-families'
 
 // Only the control is combined. Source IDs, release clocks and scorer histories
 // remain distinct; old one-sector selections display as partially checked.

@@ -1,5 +1,6 @@
-import type { EconomicCalendarEvent } from '../../../../../../inspector/calendar-event'
-import { groupInspectorReleases, type InspectorRelease } from '../../../../../../inspector/inspector-data'
+import type { EconomicCalendarEvent } from '../../../../../../economic-calendar/contracts/calendar-event'
+import { groupInspectorReleases } from '../../../../../../inspector/releases/group-releases'
+import { type InspectorRelease } from '../../../../../../economic-calendar/releases/release'
 import type { MagnitudeSettings } from '../../../../../../inspector/magnitude/settings/magnitude-settings-store'
 import { calibrateHistoricalSignal, earlierSignalReadings, nativeNumber, releaseSignalContext,
   usableSignal, unavailableSignal, type TimedReading, type HistoricalFeature } from '../../../../../shared/core/historical-release-signals'

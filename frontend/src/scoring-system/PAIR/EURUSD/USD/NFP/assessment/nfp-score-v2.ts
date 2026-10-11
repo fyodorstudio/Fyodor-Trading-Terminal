@@ -1,4 +1,4 @@
-import type { EconomicCalendarEvent } from '../../../../../../inspector/calendar-event'
+import type { EconomicCalendarEvent } from '../../../../../../economic-calendar/contracts/calendar-event'
 import type { InspectorRelease } from '../../../../../../inspector/inspector-data'
 import { calibrateHistoricalSignal, nativeNumber, releaseSignalContext, hasSuppliedRevision,
   usableSignal, unavailableSignal, type TimedReading, type HistoricalFeature } from '../../../../../shared/core/historical-release-signals'

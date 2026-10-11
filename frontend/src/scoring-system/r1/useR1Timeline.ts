@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { useStoredCalendar } from '../../inspector/useStoredCalendar'
+import { useStoredCalendar } from '../../economic-calendar/storage/useStoredCalendar'
 import { useBackgroundCalculation } from '../../inspector/scoring/shared/runtime/useBackgroundCalculation'
 import { allR1Families, allR1SeriesIds, r1Profiles } from './profiles'
 import { useR1Bands, useR1Settings } from './settings'

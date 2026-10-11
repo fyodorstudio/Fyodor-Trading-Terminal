@@ -1,8 +1,9 @@
+import { majorCurrencies } from '../economic-calendar/forex/currencies'
 import { currencyColorStyle, type CurrencyColors } from './currency-colors'
 import { memo, useEffect, useMemo, useState } from 'react'
 import type { IChartApi } from 'lightweight-charts'
 import type { TimeDisplayPreference } from '../appearance/time-display/time-display-preference'
-import { symbolGlyph } from './event-symbols'
+import { symbolGlyph } from '../economic-calendar/presentation/event-symbols'
 import type { InspectorMarker } from './inspector-data'
 import { indexMarkers, projectMarkers, sameMarkerClusters, type MarkerCluster } from './chart/marker-projection'
 import { markerLabel } from './chart/marker-label'
@@ -49,7 +50,7 @@ function InspectorChartMarkersComponent({ chartApi, markers, timeDisplay, onSele
           aria-label={multiple ? `${cluster.markers.length} nearby Inspector releases` : `Inspect ${description(first)}`}
           aria-expanded={multiple ? expanded : undefined} onClick={() => multiple ?
             setExpandedId(expanded ? null : first.release.id) : onSelectRelease(first.release.id)}>
-          {(['EUR', 'USD'] as const).map((currency) => {
+          {majorCurrencies.map((currency) => {
             const items = cluster.markers.filter((marker) => marker.release.currency === currency)
             return items.length ? <span key={currency} className={`inspector-currency-${currency}`}>
               {symbolGlyph(items[0].symbol)}{multiple && <sup>{items.length}</sup>}</span> : null

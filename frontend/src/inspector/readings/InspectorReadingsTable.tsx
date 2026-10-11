@@ -1,6 +1,8 @@
 import { Fragment } from 'react'
 import { formatAppTimestamp, type TimeDisplayPreference } from '../../appearance/time-display/time-display-preference'
-import { formatInspectorValue, hasRevisedPreviousChange, inspectorDelta, inspectorSurprise, isInspectorCommentary, type InspectorRelease } from '../inspector-data'
+import { formatInspectorValue, hasRevisedPreviousChange, inspectorDelta, inspectorSurprise } from './reading-values'
+import { isInspectorCommentary } from '../releases/group-releases'
+import { type InspectorRelease } from '../../economic-calendar/releases/release'
 import { InspectorReadingTime } from '../InspectorReadingTime'
 import { policyEpisodeRule } from '../episodes/policy-episodes'
 import { gradePolicyRateDecision } from '../grading/policy-rate-grading'
@@ -10,14 +12,14 @@ import { FamilyMagnitudeCell } from '../magnitude/FamilyMagnitudeCell'
 import { useFamilyMagnitudeHistory } from '../magnitude/useFamilyMagnitudeHistory'
 import type { InspectorView } from '../useInspector'
 
-export function InspectorReadingsTable({ release, view, timeDisplay, sharedPeriod }: {
-  release: InspectorRelease; view: InspectorView; timeDisplay: TimeDisplayPreference; sharedPeriod: number | null
+export function InspectorReadingsTable({ release, view, timeDisplay, sharedPeriod, tableOnly = false }: {
+  release: InspectorRelease; view: InspectorView; timeDisplay: TimeDisplayPreference; sharedPeriod: number | null; tableOnly?: boolean
 }) {
   const policyTimes = !!policyEpisodeRule(release.familyId), showReadingTimes = policyTimes || !!release.ismPublications
   const magnitudeFamily = magnitudeFamilies.find((family) => matchesReadingFamily(release, family)) ?? null
-  const hasMagnitude = !!magnitudeFamily && release.events.some((event) => Object.hasOwn(magnitudeFamily.readingRules, event.event_id))
+  const hasMagnitude = !tableOnly && !!magnitudeFamily && release.events.some((event) => Object.hasOwn(magnitudeFamily.readingRules, event.event_id))
   const showHistograms = hasMagnitude && view.preferences.showHistograms
-  const extraIsmSource = release.ismPublications?.[1] ?? null
+  const extraIsmSource = tableOnly ? null : release.ismPublications?.[1] ?? null
   const extraIsmHistory = useFamilyMagnitudeHistory(view.brokerId, extraIsmSource)
   const releaseTime = (item: InspectorRelease) => item.releaseAt === null ? 'Time unavailable' : formatAppTimestamp(item.releaseAt, timeDisplay)
   return (

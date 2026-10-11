@@ -1,11 +1,11 @@
 import { useCallback, useMemo, useState } from 'react'
 import type { InspectorRelease } from '../inspector-data'
-import { groupInspectorReleases } from '../inspector-data'
+import { groupInspectorReleases } from './group-releases'
 import { groupIsmEpisodes, ismEpisodeWindowMs } from '../episodes/ism-episodes'
 import { groupPmiEpisodes } from '../episodes/pmi-episodes'
 import { policyEpisodeWindowMs } from '../episodes/policy-episodes'
 import { episodePublications } from '../episodes/display-episodes'
-import { useStoredCalendar } from '../useStoredCalendar'
+import { useStoredCalendar } from '../../economic-calendar/storage/useStoredCalendar'
 
 const findPublication = (releases: readonly InspectorRelease[], id: string) =>
   releases.find(r => r.id === id || episodePublications(r)?.some(p => p.id === id)) ?? null

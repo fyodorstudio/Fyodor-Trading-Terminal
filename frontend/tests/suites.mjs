@@ -15,6 +15,8 @@ export const suites = [
   "tests/usd-context/test_fresh_calibration.mjs",
   "tests/inspector/test_interpretation_integrity.mjs",
   "tests/test_inspector.mjs",
+  "tests/inspector/test_gbp_inspector.mjs",
+  "tests/inspector/test_major_forex_inspector.mjs",
   "tests/inspector/test_upcoming_markers.mjs",
   "tests/test_terminal_navigation.mjs",
   "tests/test_publisher_activity.mjs",

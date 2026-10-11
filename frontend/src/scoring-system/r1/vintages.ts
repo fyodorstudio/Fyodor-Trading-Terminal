@@ -1,4 +1,4 @@
-import type { EconomicCalendarEvent } from '../../inspector/calendar-event'
+import type { EconomicCalendarEvent } from '../../economic-calendar/contracts/calendar-event'
 
 export type R1Vintage = 'stored-unverified' | 'retrospective' | 'observed-as-of' | 'corrected' | 'unavailable'
 type Snapshot={knownAt:number;event:EconomicCalendarEvent;source:string}

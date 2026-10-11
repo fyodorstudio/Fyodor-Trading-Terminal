@@ -4,6 +4,8 @@ from typing import Literal
 from decimal import Decimal
 import re
 
+from .currencies import CalendarCurrency
+
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
@@ -17,10 +19,10 @@ class CalendarEvent(Payload):
     server_time_seconds: int = Field(ge=0)
     period_seconds: int = Field(ge=0)
     revision: int = Field(ge=0)
-    currency: Literal["EUR", "USD"]
+    currency: CalendarCurrency
     country_code: str = Field(min_length=1, max_length=12)
     country_name: str = Field(max_length=160)
-    name: str = Field(min_length=1, max_length=500)
+    name: str = Field(max_length=500)
     event_code: str = Field(max_length=160)
     importance: Literal["none", "low", "medium", "high"]
     unit: int
@@ -50,7 +52,7 @@ class CalendarEvent(Payload):
 
 class PublisherContext(Payload):
     protocol_version: Literal[1]
-    publisher_version: Literal["2.0.0", "2.0.1", "2.0.2"]
+    publisher_version: Literal["2.0.0", "2.0.1", "2.0.2", "2.0.3", "2.0.4"]
     source_id: str = Field(min_length=1, max_length=160)
     instance_id: str = Field(min_length=1, max_length=120)
     server_time_seconds: int = Field(ge=1420070400)

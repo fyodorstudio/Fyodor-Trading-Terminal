@@ -1,5 +1,5 @@
 import { nfpMagnitudeFamily } from '../../../../../inspector/magnitude/magnitude-families'
-import type { StoredCalendarEvent } from '../../../../../inspector/useStoredCalendar'
+import type { StoredCalendarEvent } from '../../../../../economic-calendar/storage/useStoredCalendar'
 import { familyScatterModel } from '../../../../inspection/family-scatter-model'
 import type { NfpMagnitudeSettings } from './magnitude/nfp-magnitude-settings'
 

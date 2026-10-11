@@ -1,7 +1,7 @@
 import { cleanSignal, nativeNumber, observedReading, referenceMonth, unavailableSignal, usableSignal, hasSuppliedRevision,
   type TimedReading } from '../../../../../shared/core/historical-release-signals'
 import { priorReferenceRows } from '../../../../../shared/core/reference-history-index'
-import type { EconomicCalendarEvent } from '../../../../../../inspector/calendar-event'
+import type { EconomicCalendarEvent } from '../../../../../../economic-calendar/contracts/calendar-event'
 
 /** Never treat a skipped reference month or a newly supplied intervening month as a revision. */
 export function monthlyComparison(row: EconomicCalendarEvent | undefined, history: readonly TimedReading[], inverse = false) {

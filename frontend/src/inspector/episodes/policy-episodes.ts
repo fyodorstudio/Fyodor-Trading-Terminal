@@ -1,10 +1,22 @@
-import type { EconomicCalendarEvent } from '../calendar-event'
+import type { EconomicCalendarEvent } from '../../economic-calendar/contracts/calendar-event'
 import type { InspectorRelease } from '../inspector-data'
 
 export const policyEpisodeWindowMs = 60 * 60 * 1000
 // Explicit country/currency/series identities. Ordinary speeches and minutes
 // are not meeting companions, even when their timestamps happen to be close.
 export const policyEpisodeRules = [
+  { familyId: 'rba', country: 'AU', currency: 'AUD', label: 'RBA rate decision',
+    decisionIds: ['36030008'], companionIds: ['36030005', '36030003', '36030004'] },
+  { familyId: 'rbnz', country: 'NZ', currency: 'NZD', label: 'RBNZ rate decision',
+    decisionIds: ['554020009'], companionIds: ['554020005', '554020007', '554020008'] },
+  { familyId: 'boc', country: 'CA', currency: 'CAD', label: 'BoC rate decision',
+    decisionIds: ['124040006'], companionIds: ['124040007', '124040004', '124040009'] },
+  { familyId: 'snb', country: 'CH', currency: 'CHF', label: 'SNB rate decision',
+    decisionIds: ['756010001'], companionIds: ['756010002', '756010009'] },
+  { familyId: 'boj', country: 'JP', currency: 'JPY', label: 'BoJ rate decision',
+    decisionIds: ['392060022'], companionIds: ['392060018', '392060017', '392060020', '392060019', '392060021'] },
+  { familyId: 'boe', country: 'GB', currency: 'GBP', label: 'BoE rate decision',
+    decisionIds: ['826020009'], companionIds: ['826020010', '826020011', '826020012', '826020008', '826020031', '826020005', '826020013', '826020021'] },
   { familyId: 'fomc', country: 'US', currency: 'USD', label: 'Fed rate decision',
     decisionIds: ['840050014'], companionIds: ['840050002', '840050003', '840050018'] },
   { familyId: 'ecb', country: 'EU', currency: 'EUR', label: 'ECB rate decision',

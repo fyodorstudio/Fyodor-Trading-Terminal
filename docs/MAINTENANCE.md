@@ -44,14 +44,16 @@ shows saved tuples frozen; unsaved previews never enter workspace exports.
 
 ## Expansion and operational review
 
-- Register new families with canonical IDs, units, favorable directions and
+- Inspector pair/family support is documented in [major forex coverage](INSPECTOR-MAJOR-FOREX.md).
+  Its shared calendar catalog is independent of scorer admission.
+- Register new scoring families with canonical IDs, units, favorable directions and
   completeness rules. Do not copy another family's economic convention blindly.
 - Add scoped adapters under `scatter-plot/PAIR/` and reuse the shared renderer,
   magnitude store/classifier, sample admission and Inspector episode grouping.
 - Pair and side controls expose EURUSD / EUR Base and USD Quote, with 19 numeric
   families and explicit country/currency/ID admission. Shared family bindings
   reuse the numeric catalog; more folders alone do not enable another pair.
-- Optional raw scaled fields have one type in `inspector/calendar-event.ts`.
+- Optional raw scaled fields have one type in `economic-calendar/contracts/calendar-event.ts`.
   `hasRevisedPreviousChange` gates the Rev label, A−RevP and revised magnitude;
   repeated Previous values add no extra line or history sample. Retain tests for
   zero, missing, equivalent raw integers and genuinely different raw values.

@@ -1,5 +1,5 @@
 import { formatAppTimestamp, timeDisplayZoneLabel, type TimeDisplayPreference } from '../appearance/time-display/time-display-preference'
-import { symbolGlyph } from './event-symbols'
+import { symbolGlyph } from '../economic-calendar/presentation/event-symbols'
 import { InspectorInfoTooltip } from './InspectorInfoTooltip'
 import type { InspectorRelease } from './inspector-data'
 import type { InspectorView } from './useInspector'

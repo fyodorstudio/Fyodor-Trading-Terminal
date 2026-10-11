@@ -1,5 +1,6 @@
-import type { EconomicCalendarEvent } from '../../../../../inspector/calendar-event'
-import { inspectorEventChartTime, type InspectorRelease } from '../../../../../inspector/inspector-data'
+import type { EconomicCalendarEvent } from '../../../../../economic-calendar/contracts/calendar-event'
+import { inspectorEventChartTime } from '../../../../../inspector/releases/group-releases'
+import { type InspectorRelease } from '../../../../../economic-calendar/releases/release'
 import { nativeNumber, referenceMonth, signalHistoryStart } from '../../../../shared/core/historical-release-signals'
 import { priorReferenceRows } from '../../../../shared/core/reference-history-index'
 import type { EurSignal, EurPolicy } from '../policy/eur-policies'

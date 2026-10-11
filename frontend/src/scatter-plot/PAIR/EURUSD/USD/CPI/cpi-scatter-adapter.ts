@@ -1,6 +1,6 @@
 import { cpiMagnitudeFamily } from '../../../../../inspector/magnitude/magnitude-families'
 import type { MagnitudeSettings } from '../../../../../inspector/magnitude/settings/magnitude-settings-store'
-import type { StoredCalendarEvent } from '../../../../../inspector/useStoredCalendar'
+import type { StoredCalendarEvent } from '../../../../../economic-calendar/storage/useStoredCalendar'
 import { familyScatterModel } from '../../../../inspection/family-scatter-model'
 
 export function cpiScatterModel(events: StoredCalendarEvent[], now: number, seriesId: string,

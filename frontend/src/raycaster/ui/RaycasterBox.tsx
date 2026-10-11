@@ -1,6 +1,6 @@
 import { useId, useState } from 'react'
 import { R1Reading } from './R1Reading'
-import type { EventSymbol } from '../../inspector/event-symbols'
+import type { EventSymbol } from '../../economic-calendar/presentation/event-symbols'
 import type { relativeContext } from '../../scoring-system/context/relative/relative-context'
 import type { ContextPoint } from '../../scoring-system/context/usd/contracts'
 import type { EurContextPoint } from '../../scoring-system/context/relative/contracts'

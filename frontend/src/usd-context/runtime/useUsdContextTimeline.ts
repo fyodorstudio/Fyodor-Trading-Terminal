@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
-import { useStoredCalendar } from '../../inspector/useStoredCalendar'
-import { calendarAdmissionTime } from '../../inspector/storage/calendar-admission-time'
+import { useStoredCalendar } from '../../economic-calendar/storage/useStoredCalendar'
+import { calendarAdmissionTime } from '../../economic-calendar/storage/calendar-admission-time'
 import { cpiSignalSettings, nfpSignalSettings, ismServicesSignalSettings, ismManufacturingSignalSettings, retailSignalSettings, claimsSignalSettings, pceSignalSettings, ppiSignalSettings, gdpSignalSettings } from '../../scoring-system/shared/core/signal-magnitude-settings'
 import { useSharedContextCalculation } from './useSharedContextCalculation'
 import { contextSeriesIds } from '../../scoring-system/context/usd/score-publication'

@@ -1,4 +1,4 @@
-import type { EconomicCalendarEvent } from '../calendar-event'
+import type { EconomicCalendarEvent } from '../../economic-calendar/contracts/calendar-event'
 import type { InspectorRelease } from '../inspector-data'
 import { gradeFamilyReading, tallyFamilyReadings } from './reading-grading'
 export { gradeLabels, type ReadingGrade } from './reading-grading'

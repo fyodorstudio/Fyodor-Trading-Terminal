@@ -1,6 +1,6 @@
 import type { OhlcBar } from '../../../market-data/contracts/OhlcBar'
 import type { ChartTimeframe } from '../../../market-data/contracts/ChartTimeframe'
-import { timeframeSeconds } from '../../../inspector/inspector-data'
+import { timeframeSeconds } from '../../../inspector/chart/build-markers'
 
 export function roofBarIndex(bars: readonly Pick<OhlcBar, 'time'>[], at: number, timeframe: ChartTimeframe): number | null {
   const seconds = at / 1000

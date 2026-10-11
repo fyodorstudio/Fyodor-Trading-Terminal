@@ -8,6 +8,7 @@ const catalog = { ...eurNumericEventCatalog, ...usdNumericEventCatalog }
 // or an event that happens to arrive with numbers. Existing scored families keep
 // their detailed reading definitions and historical settings keys.
 export const expandedReadingFamilies: (ReadingFamily & { label: string })[] = eventFamilyOptions.flatMap((family) => {
+  if (family.currency !== 'EUR' && family.currency !== 'USD') return []
   const readingRules = Object.fromEntries(family.events.filter((id) => Object.hasOwn(catalog, id)).map((id) =>
     [id, { name: catalog[id], definition: `${catalog[id]}. ${['fomc', 'ecb'].includes(family.id) ? 'Rate deltas and magnitude boundaries use basis points.' : "Changes use the source series' native units."}` }]))
   return Object.keys(readingRules).length ? [{ familyId: family.id, country: family.country, currency: family.currency,

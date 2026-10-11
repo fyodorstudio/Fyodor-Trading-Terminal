@@ -1,0 +1,26 @@
+import type { CalendarFamily } from './family'
+
+export const eurCalendarFamilies = [
+  { id: 'ecb', label: 'ECB policy', country: 'EU', currency: 'EUR', category: 'policy', symbol: 'moon',
+    events: ['999010003', '999010006', '999010007', '999010015', '999010024'] },
+  { id: 'euro-inflation', label: 'Euro-area inflation', country: 'EU', currency: 'EUR', category: 'inflation', symbol: 'snowflake',
+    events: ['999030010', '999030011', '999030012', '999030013', '999030021', '999030022', '999030024', '999030025', '999030026', '999030027'] },
+  { id: 'euro-gdp', label: 'Euro-area GDP', country: 'EU', currency: 'EUR', category: 'growth', symbol: 'star',
+    events: ['999030016', '999030017'] },
+  { id: 'ecb-president', label: 'ECB President speeches', country: 'EU', currency: 'EUR', category: 'policy', symbol: 'moon',
+    events: ['999010004', '999010029'] },
+  { id: 'german-inflation', label: 'German CPI / HICP', country: 'DE', currency: 'EUR', category: 'inflation', symbol: 'sun',
+    events: ['276010020', '276010021', '276010022', '276010023'] },
+  { id: 'euro-pmi', label: 'Euro-area PMIs', country: 'EU', currency: 'EUR', category: 'growth', symbol: 'umbrella',
+    events: ['999500001', '999500002', '999500003'] },
+  { id: 'german-pmi', label: 'German PMIs', country: 'DE', currency: 'EUR', category: 'growth', symbol: 'umbrella',
+    events: ['276500001', '276500002', '276500003'] },
+  { id: 'french-pmi', label: 'French PMIs', country: 'FR', currency: 'EUR', category: 'growth', symbol: 'umbrella',
+    events: ['250500001', '250500002', '250500003'] },
+  { id: 'euro-labor', label: 'Euro-area employment / unemployment', country: 'EU', currency: 'EUR', category: 'labor', symbol: 'star',
+    events: ['999030001', '999030002', '999030020', '999030028'] },
+  { id: 'euro-wages', label: 'Euro-area wage / labor costs', country: 'EU', currency: 'EUR', category: 'labor', symbol: 'star',
+    events: ['999030009', '999030023'] },
+  { id: 'ecb-accounts', label: 'ECB meeting accounts', country: 'EU', currency: 'EUR', category: 'policy', symbol: 'moon',
+    inspector: false, events: ['999010002'] },
+] as const satisfies readonly CalendarFamily[]

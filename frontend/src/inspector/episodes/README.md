@@ -5,15 +5,18 @@ Inspector and Alert both use it through `groupInspectorReleases`. Adding a bank
 requires verified country/currency/event IDs, numeric decision IDs, known meeting
 companion IDs, a label, family/filter registration and regression tests. Rate
 formatting, descriptive sign colors and per-row clocks use the same registry.
-Fed/ECB tables show Forecast and A−F (Surprise) independently of A−P; both
+Registered central-bank tables show Forecast and A−F (Surprise) independently of A−P; both
 rate differences display in basis points, without adding forecast-based scoring.
 
 Exact publication groups form first. ECB's three simultaneous numeric rates
 share one anchor; any available rate row can establish it. Missing rate rows
 are never synthesized. Companions attach only to exactly one verified anchor
 at 0–60 minutes after its decision. No date-based merging or companion chaining.
-Absent/ambiguous/uncertain anchors and companions stay independent. Generic
-speeches, testimony, minutes and meeting accounts remain outside the registry.
+Absent/ambiguous/uncertain anchors and companions stay independent. Only listed
+meeting companions attach; speeches and testimony remain independent. BoE uses
+its decision, vote split, minutes and report IDs. RBA, RBNZ, BoC, SNB and BoJ
+have their own explicit decision/companion IDs. All pairs beyond EURUSD remain
+table-only.
 
 Grouping preserves source rows and decision identity/times/markers. Inspector
 and Alert queries include a one-hour margin while visible date filters retain

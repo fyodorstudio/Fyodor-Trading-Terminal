@@ -27,7 +27,7 @@ export function calculateR1Timeline(input:R1TimelineInput):R1Timeline {
   const settings={USD:input.usdSettings,EUR:input.eurSettings}
   const fedReader=createR1SnapshotReader({...input,currency:'USD',settings:{...input.usdSettings,selected:r1Families}},true)
   const publications=new Map<number,typeof history.releases>()
-  for(const release of history.releases)if(release.releaseAt!==null&&release.releaseAt>=start&&release.releaseAt<=input.end&&settings[release.currency].selected.some(f=>relevant(f,release))){
+  for(const release of history.releases)if((release.currency==='USD'||release.currency==='EUR')&&release.releaseAt!==null&&release.releaseAt>=start&&release.releaseAt<=input.end&&settings[release.currency].selected.some(f=>relevant(f,release))){
     const at=release.releaseAt;publications.set(at,[...(publications.get(at)??[]),release])
   }
   const observations=new Set(r1ObservationClocks(input.events)),announcements=new Set((input.schedules??[]).map(s=>s.knownAt))

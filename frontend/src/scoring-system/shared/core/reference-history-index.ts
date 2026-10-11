@@ -1,4 +1,4 @@
-import type { EconomicCalendarEvent } from '../../../inspector/calendar-event'
+import type { EconomicCalendarEvent } from '../../../economic-calendar/contracts/calendar-event'
 
 type Row = EconomicCalendarEvent & { release_at: number }
 type Publication = { at: number; rows: Row[] }

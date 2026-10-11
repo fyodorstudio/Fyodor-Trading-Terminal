@@ -1,4 +1,4 @@
-import { groupInspectorReleases, inspectorEventChartTime } from '../../../../inspector/inspector-data'
+import { groupInspectorReleases, inspectorEventChartTime } from '../../../../inspector/releases/group-releases'
 import { assessEurScore } from '../../../PAIR/EURUSD/EUR/assessment/eur-score'
 import { observedEur } from '../../../PAIR/EURUSD/EUR/assessment/eur-history'
 import { eurNumericSeriesIds, eurPolicy } from '../../../PAIR/EURUSD/EUR/policy/eur-policies'

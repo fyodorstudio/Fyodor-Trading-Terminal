@@ -9,7 +9,7 @@ not instructions to restore earlier formulas or UI.
 
 | Product term | Meaning and code location |
 | --- | --- |
-| Release / publication | A calendar publication and its grouped numerical observations; `frontend/src/inspector/episodes/` and `inspector-data.ts`. Reference week/month is distinct from publication time. |
+| Release / publication | A calendar publication and its grouped numerical observations; `economic-calendar/releases/`, `inspector/releases/group-releases.ts` and `inspector/episodes/`. Reference week/month is distinct from publication time. |
 | Standalone score | One family's eligible inputs resolved into currency evidence. Active USD/EUR R1: `scoring-system/r1/`, UI `inspector/scoring/R1Score.tsx`. Older USD models: `scoring-system/PAIR/EURUSD/USD/`. |
 | Assessment | A model's comparison horizon. Claims v3 has independent This release and Four-week trend assessments, not two extra context votes. |
 | Signal / component | A derived comparison used by a scorer. Its magnitude boundaries differ from the raw Actual−Previous bands in Scatter Plot. |
@@ -30,6 +30,8 @@ Paths below are relative to `frontend/src/`.
 
 | Task | Start here |
 | --- | --- |
+| Currency catalogs, pair recognition, source contracts and polling | `economic-calendar/{catalog,forex,contracts,storage}/`; see its README |
+| Inspector filters, saved preferences, raw tables and date picker | `inspector/{catalog,preferences,filters,readings,date-range}/`; see its README |
 | Inspector model/menu/version | `inspector/scoring/scoring-registry.ts` |
 | Active family formula, weights, calibration | `scoring-system/r1/{profiles,eur-profiles,features,assessment,arithmetic}.ts` |
 | Older standalone family models | `scoring-system/PAIR/EURUSD/USD/<FAMILY>/{assessment,policy}/` |
@@ -46,10 +48,33 @@ Paths below are relative to `frontend/src/`.
 | R1 Raycaster tanks and release rows | `raycaster/ui/{R1Reading,R1EvidenceTank}.tsx`, `raycaster/core/r1-evidence-presentation.ts` |
 | Chart drawing geometry, interaction and hover labels | `market-data/chart-drawings/`; position labels in `ChartDrawingShape.tsx`, hover styling in `chart-drawing-overlay.css` |
 
+Inspector supports **all 28 conventional major-currency pairs**, with currency catalogs
+shared across pairs and separately saved filters. EURUSD retains existing scoring;
+the other pairs offer Table only and disabled Scatter Plot (WIP).
+[Family coverage and source boundaries](INSPECTOR-MAJOR-FOREX.md).
+
 Runtime APIs and settings keys are contracts. Prefer these entry points and `rg`
 over renaming product terms across code or rewriting historical reports.
 
-## Hygiene review — 9 October 2026
+## Active module boundaries — 11 October 2026
+
+Shared calendar contracts, source-ID catalogs, clocks, paging and polling live under
+`economic-calendar/` without importing Inspector UI or scorers. Thin historical entry
+files provide compatibility exports; production imports use the ownership paths.
+
+Terminal composition is in `terminal-shell/TerminalWorkspace.tsx`; its controller is
+`terminal-shell/runtime/useTerminalWorkspace.ts`. Notebook plan state/math and its
+three columns are separate files under `trader-notebook/notebook-dock/`. Drawing
+pointer lifecycle, drag math and inline text editing are under
+`market-data/chart-drawings/interaction/`. Date-picker state, grid and portal are
+under `inspector/date-range/`.
+
+Storage's public `calendar_store.py` shares one connection/lock across the focused
+`storage/persistence/` modules. MT5 research export functions are under
+`bridge/mql5/Active/research-export/`; copy that folder when compiling source.
+Existing scoring models/settings and historical reports retain their ownership.
+
+## Historical hygiene review — 9 October 2026
 
 The [11 October PMI/tanks audit](../reports/R1-PMI-tanks-audit.md) removes two
 unreachable worker entries. All 463 then-current frontend source files were reachable
@@ -62,7 +87,7 @@ documents were removed. Two historical links in
 `reports/Context-v7-refinement-audit.md` still refer to deleted notes; retain that
 report as evidence rather than recreating the notes.
 
-Remaining navigation debt: long historical module READMEs and deep pair/family
+At that review, navigation debt included: long historical module READMEs and deep pair/family
 paths. Some shared input/history/settings helpers still live under Inspector;
 the shared calculations folder is not a completely independent package. These
 are documented boundaries, not reasons for an unscoped refactor.

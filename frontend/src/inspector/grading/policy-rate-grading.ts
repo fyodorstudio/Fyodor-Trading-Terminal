@@ -1,5 +1,5 @@
-import type { EconomicCalendarEvent } from '../calendar-event'
-import { inspectorDelta, inspectorSurprise } from '../inspector-data'
+import type { EconomicCalendarEvent } from '../../economic-calendar/contracts/calendar-event'
+import { inspectorDelta, inspectorSurprise } from '../readings/reading-values'
 import { isPolicyRateDecision } from '../episodes/policy-episodes'
 
 export function gradePolicyRateDecision(event: EconomicCalendarEvent, familyId: string, comparator: 'previous' | 'forecast' = 'previous') {

@@ -1,4 +1,5 @@
-import { isInspectorCommentary, type InspectorRelease } from '../inspector-data'
+import { isInspectorCommentary } from './group-releases'
+import { type InspectorRelease } from '../../economic-calendar/releases/release'
 
 export function releaseStatus(release: InspectorRelease, now: number, brokerTime = false): string {
   if (release.events.some(event => event.actual !== null)) return 'Released'

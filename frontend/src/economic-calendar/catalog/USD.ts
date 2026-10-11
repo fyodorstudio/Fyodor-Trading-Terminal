@@ -1,0 +1,28 @@
+import type { CalendarFamily } from './family'
+
+export const usdCalendarFamilies = [
+  { id: 'jobs', label: 'US Jobs report / NFP', country: 'US', currency: 'USD', category: 'labor', symbol: 'star',
+    events: ['840030015', '840030016', '840030017', '840030018', '840030019', '840030020', '840030022', '840030023', '840030024', '840030032'] },
+  { id: 'fomc', label: 'US FOMC', country: 'US', currency: 'USD', category: 'policy', symbol: 'moon',
+    events: ['840050002', '840050003', '840050014', '840050018'] },
+  { id: 'ppi', label: 'US PPI', country: 'US', currency: 'USD', category: 'inflation', symbol: 'sun',
+    events: ['840030001', '840030002', '840030003', '840030004'] },
+  { id: 'retail', label: 'US Retail Sales', country: 'US', currency: 'USD', category: 'growth', symbol: 'cloud',
+    events: ['840020010', '840020011', '840020012', '840020021', '840020025'] },
+  { id: 'gdp', label: 'US GDP', country: 'US', currency: 'USD', category: 'growth', symbol: 'snowflake',
+    events: ['840010007', '840010008', '840010009', '840010010', '840010011', '840010012', '840010016', '840010018'] },
+  { id: 'ism-manufacturing', label: 'US ISM Manufacturing', country: 'US', currency: 'USD', category: 'growth', symbol: 'umbrella',
+    events: ['840040001', '840040002', '840040004', '840040006'] },
+  { id: 'pce', label: 'US PCE inflation', country: 'US', currency: 'USD', category: 'inflation', symbol: 'sun',
+    events: ['840010001', '840010002', '840010003', '840010004'] },
+  { id: 'ism-services', label: 'US ISM Services', country: 'US', currency: 'USD', category: 'growth', symbol: 'umbrella',
+    events: ['840040003', '840040005', '840040007', '840040008', '840040009'] },
+  { id: 'claims', label: 'US Jobless Claims', country: 'US', currency: 'USD', category: 'labor', symbol: 'cloud',
+    events: ['840140001', '840140002', '840140003'] },
+  { id: 'us-cpi', label: 'US CPI / core CPI', country: 'US', currency: 'USD', category: 'inflation', symbol: 'sun',
+    events: ['840030005', '840030006', '840030007', '840030008', '840030009', '840030010', '840030033', '840030034', '840030035', '840030036'] },
+  { id: 'fed-chair', label: 'Fed Chair speeches / testimony', country: 'US', currency: 'USD', category: 'policy', symbol: 'moon',
+    events: ['840050005', '840050006', '840050021', '840050022'] },
+  { id: 'fed-minutes', label: 'FOMC minutes', country: 'US', currency: 'USD', category: 'policy', symbol: 'moon',
+    inspector: false, events: ['840050004'] },
+] as const satisfies readonly CalendarFamily[]

@@ -1,5 +1,8 @@
-import { groupInspectorReleases, inspectorFamilies, isInspectorCommentary, type InspectorPreferences, type InspectorRelease } from '../../inspector/inspector-data'
-import type { StoredCalendarEvent } from '../../inspector/useStoredCalendar'
+import { groupInspectorReleases, isInspectorCommentary } from '../../inspector/releases/group-releases'
+import { inspectorFamilies } from '../../inspector/catalog/inspector-families'
+import { type InspectorPreferences } from '../../inspector/preferences/inspector-preferences'
+import { type InspectorRelease } from '../../economic-calendar/releases/release'
+import type { StoredCalendarEvent } from '../../economic-calendar/storage/useStoredCalendar'
 
 export const alertLookaheadDays = 60
 export const alertRecentDays = 30

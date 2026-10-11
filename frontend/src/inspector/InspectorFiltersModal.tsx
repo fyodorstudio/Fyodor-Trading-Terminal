@@ -1,13 +1,17 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { currencyColorStyle, defaultCurrencyColors } from './currency-colors'
-import { eventSymbols, type EventSymbol } from './event-symbols'
-import { inspectorCategories, inspectorFamilies, type InspectorPreferences, type InspectorPreferenceUpdate } from './inspector-data'
+import { eventSymbols, type EventSymbol } from '../economic-calendar/presentation/event-symbols'
+import { inspectorCategories, inspectorFamilies } from './catalog/inspector-families'
+import { forexPair as inspectorPair, forexPairCurrencies as inspectorPairCurrencies } from '../economic-calendar/forex/pairs'
+import { type InspectorPreferences, type InspectorPreferenceUpdate } from './preferences/inspector-preferences'
 import { inspectorFilterRows } from './filters/inspector-filter-rows'
 
-export function InspectorFiltersModal({ preferences, onApply, onClose }: {
+export function InspectorFiltersModal({ preferences, onApply, onClose, symbol = 'EURUSD' }: {
   preferences: InspectorPreferences; onApply: (next: InspectorPreferences, mode?: InspectorPreferenceUpdate) => void; onClose: () => void
+  symbol?: string
 }) {
+  const currencies = inspectorPairCurrencies(symbol)
   const [draft, setDraft] = useState(() => ({ ...preferences, families: [...preferences.families], currencyColors: { ...preferences.currencyColors }, symbols: { ...preferences.symbols } }))
   const original = useRef(draft)
   const filterPreferences = (value: InspectorPreferences) => ({ ...preferences, families: value.families,
@@ -19,8 +23,9 @@ export function InspectorFiltersModal({ preferences, onApply, onClose }: {
   const [search, setSearch] = useState('')
   const terms = search.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean)
   const matches = inspectorFilterRows.filter((family) => {
+    if (!(currencies as readonly string[]).includes(family.currency)) return false
     const category = inspectorCategories.find((item) => (item.families as readonly string[]).includes(family.id))!
-    return terms.every((term) => `${family.label} ${category.label} ${family.currency} ${family.currency === 'EUR' ? 'base' : 'quote'} ${family.ids.join(' ')}`.toLocaleLowerCase().includes(term))
+    return terms.every((term) => `${family.label} ${category.label} ${family.currency} ${family.currency === currencies[0] ? 'base' : 'quote'} ${family.ids.join(' ')}`.toLocaleLowerCase().includes(term))
   })
   const dialog = useRef<HTMLDialogElement>(null)
   useEffect(() => {
@@ -44,7 +49,7 @@ export function InspectorFiltersModal({ preferences, onApply, onClose }: {
   return createPortal(<dialog ref={dialog} className="inspector-modal" style={currencyColorStyle(draft.currencyColors)} aria-labelledby="inspector-filter-title" aria-modal="false"
     onCancel={(event) => { event.preventDefault(); onClose() }}>
     <div className="inspector-modal-content">
-      <header><div><h2 id="inspector-filter-title">Filters · EURUSD</h2><p>Monetary policy · Inflation · Labor / wages · Growth / activity</p></div>
+      <header><div><h2 id="inspector-filter-title">Filters · {inspectorPair(symbol) ?? symbol}</h2><p>Monetary policy · Inflation · Labor / wages · Growth / activity</p></div>
         <button type="button" onClick={onClose} aria-label="Close Inspector filters">×</button></header>
       <div className="inspector-filter-tools"><label className="inspector-symbol-toggle"><input type="checkbox" checked={draft.showSymbols}
         onChange={(event) => updateDraft({ ...draft, showSymbols: event.target.checked })} /> Show symbols on chart</label>
@@ -53,13 +58,13 @@ export function InspectorFiltersModal({ preferences, onApply, onClose }: {
           {search && <button type="button" aria-label="Clear family search" onClick={() => setSearch('')}>×</button>}</div>
       </div>
       <div className="inspector-filter-columns">
-        {(['EUR', 'USD'] as const).map((currency, column) => <Fragment key={currency}>
+        {currencies.map((currency, column) => <Fragment key={currency}>
           <h3 className={`inspector-currency-${currency}`} style={{ gridColumn: column + 1, gridRow: 1 }}>
-            {currency} · {currency === 'EUR' ? 'Base' : 'Quote'}
-            <input type="color" aria-label={`${currency} ${currency === 'EUR' ? 'Base' : 'Quote'} color`}
+            {currency} · {column === 0 ? 'Base' : 'Quote'}
+            <input type="color" aria-label={`${currency} ${column === 0 ? 'Base' : 'Quote'} color`}
               value={draft.currencyColors[currency] ?? defaultCurrencyColors[currency]}
               onChange={(event) => updateDraft({ ...draft, currencyColors: { ...draft.currencyColors, [currency]: event.target.value } })} />
-            <label className="inspector-select-all"><input type="checkbox" aria-label={`Select all ${currency} ${currency === 'EUR' ? 'Base' : 'Quote'}`}
+            <label className="inspector-select-all"><input type="checkbox" aria-label={`Select all ${currency} ${column === 0 ? 'Base' : 'Quote'}`}
               checked={inspectorFamilies.filter(f => f.currency === currency).every(f => draft.families.includes(f.id))}
               ref={input => { if (input) { const families = inspectorFamilies.filter(f => f.currency === currency)
                 input.indeterminate = families.some(f => draft.families.includes(f.id)) && !families.every(f => draft.families.includes(f.id)) } }}

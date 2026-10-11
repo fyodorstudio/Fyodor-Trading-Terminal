@@ -10,7 +10,9 @@ supersede the current design below.
 
 Interpret numerical economic news from the connected MT5 dataset into currency
 strength/weakness evidence, so the user does not need to read and weigh the
-numbers. Current scope is **USD and EUR**. Price prediction and fitting individual
+numbers. Retained scoring scope is **USD and EUR**, with scoring development paused.
+Inspector filters, chart symbols and raw tables now cover all eight major currencies
+and their 28 conventional pairs; see [coverage](docs/INSPECTOR-MAJOR-FOREX.md). Price prediction and fitting individual
 exchange-rate moves are outside this objective.
 
 Lead with the direction and strength supported by the evidence. Conflict does

@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import type { EconomicCalendarEvent } from '../../inspector/calendar-event'
+import type { EconomicCalendarEvent } from '../../economic-calendar/contracts/calendar-event'
 import { useBackgroundCalculation } from '../../inspector/scoring/shared/runtime/useBackgroundCalculation'
 import { calculateSignalHistory } from './signal-history-calculation'
 import type { ClaimsHorizon } from '../../scoring-system/PAIR/EURUSD/USD/CLAIMS/policy/claims-standalone-policy'

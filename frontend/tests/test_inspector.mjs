@@ -87,10 +87,10 @@ try {
   const { bottomDockHeightKey, legacyBottomDockHeightKeys, readBottomDockHeight } = await server.ssrLoadModule('./src/workspace-docking/bottom-dock/bottom-dock-height.ts')
   const { BottomDockPanel } = await server.ssrLoadModule('./src/workspace-docking/bottom-dock/BottomDockPanel.tsx')
   const preferences = data.defaultInspectorPreferences()
-  assert.equal(data.inspectorFamilies.length, 21)
+  assert.equal(data.inspectorFamilies.length, 77)
   assert.equal(data.inspectorCategories.length, 4)
   const categoryIds = data.inspectorCategories.flatMap((category) => category.families)
-  assert.equal(new Set(categoryIds).size, 21, 'Every family belongs to exactly one category')
+  assert.equal(new Set(categoryIds).size, 77, 'Every family belongs to exactly one category')
   assert.deepEqual([...categoryIds].sort(), data.inspectorFamilies.map((family) => family.id).sort())
   const originalFamilies = ['ecb', 'ecb-president', 'fomc', 'fed-chair', 'euro-inflation', 'german-inflation', 'us-cpi', 'pce', 'ppi']
   localStorage.setItem(data.inspectorStorageKey, JSON.stringify({ families: originalFamilies, showSymbols: false, symbols: { 'us-cpi': 'moon' } }))
@@ -109,7 +109,7 @@ try {
   assert.equal(data.readInspectorPreferences().symbols.jobs, 'moon')
   localStorage.removeItem(data.inspectorStorageKey)
   assert.equal(data.supportsInspector('EURUSD.a'), true)
-  assert.equal(data.supportsInspector('GBPUSD'), false)
+  assert.equal(data.supportsInspector('GBPUSD'), true)
   assert.equal(data.inspectorDelta(event()), .2, 'Decimal delta is exact and uses Previous, not revised Previous or Forecast')
   assert.equal(data.inspectorSurprise(event()), -.1, 'A−F uses Forecast independently of supplied Previous')
   assert.equal(data.inspectorSurprise(event({ previous: null })), -.1)
@@ -171,7 +171,7 @@ try {
   console.log('✓ Inspector family identity, delta arithmetic, grouping, range and containing-candle checks')
 
   const newFamilyIds = categoryIds.filter((id) => !originalFamilies.includes(id))
-  const newFamilies = data.inspectorFamilies.filter((family) => newFamilyIds.includes(family.id))
+  const newFamilies = data.inspectorPairFamilies('EURUSD').filter((family) => newFamilyIds.includes(family.id))
   const allExpandedRows = newFamilies.flatMap((family) => family.events.map((event_id) => event({
     value_id: `new-${event_id}`, event_id, country_code: family.country, currency: family.currency, name: event_id,
   })))
@@ -339,10 +339,10 @@ try {
   assert.ok(view.markers.length, 'Closing the panel keeps marker state active')
   await app.render({ events: [event({ actual: .5 }), core] })
   assert.equal(view.selectedRelease.events[0].actual, .5, 'Feed updates refresh the selected release by identity')
-  await app.render({ symbol: 'GBPUSD' })
+  await app.render({ symbol: 'BTCUSD' })
   assert.equal(view.releases.length, 0)
   assert.equal(view.markers.length, 0)
-  assert.match(app.container.textContent, /currently supports EURUSD/)
+  assert.match(app.container.textContent, /Select a major forex pair/)
   console.log('✓ Mounted Inspector selection, live filter preview/Save/Cancel, isolated persistence, ranges and pair isolation')
 
   await app.render()

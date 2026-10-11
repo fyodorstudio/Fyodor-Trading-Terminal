@@ -1,4 +1,5 @@
-import { inspectorEventChartTime, type InspectorRelease } from '../../inspector/inspector-data'
+import { inspectorEventChartTime } from '../../inspector/releases/group-releases'
+import { type InspectorRelease } from '../../economic-calendar/releases/release'
 import { assessFedScore } from '../PAIR/EURUSD/USD/FED/assessment/fed-score'
 import type { ContextPoint } from '../context/usd/contracts'
 import type { ComboSource } from './contracts'

@@ -141,7 +141,7 @@ try {
   const emptyStart = requests.length
   await render({ preferences: { ...preferences, families: [] } })
   assert.equal(requests.length, emptyStart); assert.match(container.textContent, /No families selected/)
-  await render({ supported: false }); assert.match(container.textContent, /currently supports EURUSD/)
+  await render({ supported: false }); assert.match(container.textContent, /Select a major forex pair/)
   await render({ brokerId: null }); assert.match(container.textContent, /needs calendar storage/)
   await React.act(async () => root.render(null))
   assert.equal(intervals.size, 0); assert.equal(polls.size, 0, 'Closing Alert stops countdown and polling')
