@@ -470,6 +470,21 @@ try {
   assert.ok(workerInputs.length > postsBefore, 'A genuinely newly available publication launches a new calculation')
   assert.ok(workerInputs.some(input => input.asOf === futureAt), 'Publication is admitted at the corrected exact clock')
   assert.equal(counters.chartCreated, undefined, 'Polling never recreates the chart')
+  // Assembled shell keeps Alert independent even on a non-forex chart, and
+  // carries the horizontal window through the real Market Watch selection.
+  await click(button('Alert'))
+  assert.equal(container.querySelectorAll('[aria-label="Alert currency"] button').length, 9)
+  const windowBeforeSwitch = { ...logicalRange }
+  await click([...container.querySelectorAll('.market-watch-row')].find(row => row.textContent.includes('TEST1')))
+  while (pending.get('ohlc')?.length) await reply('ohlc')
+  assert.deepEqual(logicalRange, windowBeforeSwitch, 'Assembled symbol switch retains the chart window')
+  assert.equal(container.querySelectorAll('[aria-label="Alert currency"] button').length, 9, 'Alert remains usable outside supported Inspector pairs')
+  assert.equal(container.querySelector('[aria-label="Alert horizon"]').value, '7')
+  const workersBeforeAlertTick = workerInputs.length
+  reset()
+  await React.act(async () => { for (const timer of intervals.values()) if (timer.ms === 1000) timer.fn() })
+  assertQuiet('Alert countdown with another chart symbol', true)
+  assert.equal(workerInputs.length, workersBeforeAlertTick)
   const canvas = container.querySelector('.market-chart-canvas')
   canvas.getBoundingClientRect = () => ({ right: 900 })
   await React.act(async () => props(canvas).onPointerDown({ button: 0, clientX: 100, clientY: 100 }))

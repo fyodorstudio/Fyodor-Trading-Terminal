@@ -17,6 +17,8 @@ import type { ChartTimeframe } from '../contracts/ChartTimeframe'
 import type { OhlcBar } from '../contracts/OhlcBar'
 import { changedRecentBarStart } from '../mt5-feed/market-snapshots'
 import { lightweightChartOptions } from './lightweight-chart-options'
+import { captureDateWindow, projectDateWindow, type ChartDateWindow } from './chart-viewport'
+import { timeframeToSeconds } from '../chart-drawings/position-drawing-geometry'
 import './market-candlestick-chart.css'
 
 type MarketCandlestickChartProps = {
@@ -89,6 +91,13 @@ function MarketCandlestickChartComponent({
   const historyPagingArmedRef = useRef(false)
   const historyStateRef = useRef({ hasOlderData, isLoadingOlderData })
   const requestOlderDataRef = useRef(onRequestOlderData)
+  const dateWindowRef = useRef<ChartDateWindow | null>(null)
+  const previousStepRef = useRef(timeframeToSeconds(timeframe))
+  const viewportBrokerRef = useRef(clock.brokerId)
+  const applyingDataRef = useRef(false)
+  const pendingWindowRef = useRef(false)
+  const lastHistoryAttemptRef = useRef<string | null>(null)
+  const [missingViewportHistory, setMissingViewportHistory] = useState(false)
   const prevBarSpacingRef = useRef(appearance.barSpacing)
 
   useEffect(() => {
@@ -122,9 +131,15 @@ function MarketCandlestickChartComponent({
     setSeriesApi(series)
 
     const handleLogicalRangeChange = (range: { from: number; to: number } | null) => {
+      if (range && !applyingDataRef.current && historyPagingArmedRef.current) {
+        dateWindowRef.current = captureDateWindow(range, prevBarsRef.current, previousStepRef.current)
+        pendingWindowRef.current = false
+        setMissingViewportHistory(false)
+      }
       const history = historyStateRef.current
       if (
         range
+        && !applyingDataRef.current
         && range.from < 100
         && historyPagingArmedRef.current
         && history.hasOlderData
@@ -189,73 +204,66 @@ function MarketCandlestickChartComponent({
       },
     })
 
-    if (bars.length === 0) {
-      series.setData([])
-      prevBarsRef.current = []
+    const brokerChanged = viewportBrokerRef.current !== clock.brokerId
+    if (brokerChanged) {
+      viewportBrokerRef.current = clock.brokerId
+      dateWindowRef.current = null
+      pendingWindowRef.current = false
+      lastHistoryAttemptRef.current = null
       fittedKeyRef.current = null
-      return
+      setMissingViewportHistory(false)
+    } else if (!pendingWindowRef.current && prevBarsRef.current.length) {
+      dateWindowRef.current = captureDateWindow(chart.timeScale().getVisibleLogicalRange(), prevBarsRef.current, previousStepRef.current) ?? dateWindowRef.current
     }
-
+    const step = timeframeToSeconds(timeframe)
     const prevBars = prevBarsRef.current
     const isNewKey = fittedKeyRef.current !== fitContentKey
-
-    if (isNewKey) {
-      series.setData(bars)
-      chart.priceScale('right').applyOptions({ autoScale: true })
-      chart.timeScale().fitContent()
-
-      fittedKeyRef.current = fitContentKey
-      prevBarsRef.current = bars
-      onDataApplied(bars.length)
-      return
-    }
-
-    // Check if older history was prepended (history demand-paging)
-    if (prevBars.length > 0 && bars.length > prevBars.length) {
-      const prependedCount = bars.length - prevBars.length
-      if (bars[prependedCount]?.time === prevBars[0]?.time) {
-        const prevLogical = chart.timeScale().getVisibleLogicalRange()
-        series.setData(bars)
-        if (prevLogical) {
-          try {
-            chart.timeScale().setVisibleLogicalRange({
-              from: prevLogical.from + prependedCount,
-              to: prevLogical.to + prependedCount,
-            })
-          } catch {
-            // Best effort logical range restoration
-          }
-        }
-        prevBarsRef.current = bars
+    // Ignore programmatic range notifications during replacement/restoration.
+    applyingDataRef.current = true
+    try {
+      if (!bars.length) {
+        series.setData([])
+        prevBarsRef.current = []
+        fittedKeyRef.current = null
         return
       }
-    }
-
-    // Check if single bar was appended or latest live bar was updated
-    if (
-      prevBars.length > 0 &&
-      bars[0]?.time === prevBars[0]?.time &&
-      (bars.length === prevBars.length || bars.length === prevBars.length + 1) &&
-      (changedRecentBarStart(bars, prevBars) ?? -1) >= bars.length - 1
-    ) {
-      const latestBar = bars[bars.length - 1]
-      series.update(latestBar)
-      prevBarsRef.current = bars
-      return
-    }
-
-    // Otherwise, full dataset update with safe range preservation
-    const preserveRange = chart.timeScale().getVisibleRange()
-    series.setData(bars)
-    if (preserveRange && preserveRange.from !== null && preserveRange.to !== null) {
-      try {
-        chart.timeScale().setVisibleRange(preserveRange)
-      } catch {
-        // Safe fallback
+      let replaced = false
+      if (isNewKey) {
+        replaced = true
+        lastHistoryAttemptRef.current = null
+        series.setData(bars)
+        chart.priceScale('right').applyOptions({ autoScale: true })
+        if (!dateWindowRef.current) chart.timeScale().fitContent()
+        onDataApplied(bars.length)
+      } else if (prevBars.length && bars[0]?.time === prevBars[0]?.time &&
+        (bars.length === prevBars.length || bars.length === prevBars.length + 1) &&
+        (changedRecentBarStart(bars, prevBars) ?? -1) >= bars.length - 1) {
+        series.update(bars[bars.length - 1])
+      } else {
+        replaced = true
+        series.setData(bars)
       }
-    }
-    prevBarsRef.current = bars
-  }, [bars, fitContentKey, onDataApplied, precision])
+      fittedKeyRef.current = fitContentKey
+      prevBarsRef.current = bars
+      previousStepRef.current = step
+      const window = dateWindowRef.current
+      if (window && (replaced || pendingWindowRef.current)) {
+        const range = projectDateWindow(window, bars, step)
+        if (range) chart.timeScale().setVisibleLogicalRange(range)
+        pendingWindowRef.current = window.from < bars[0].time
+        setMissingViewportHistory(pendingWindowRef.current)
+      }
+    } finally { applyingDataRef.current = false }
+  }, [bars, fitContentKey, onDataApplied, precision, timeframe, clock.brokerId])
+
+  useEffect(() => {
+    if (!pendingWindowRef.current || !bars.length || !hasOlderData || isLoadingOlderData) return
+    const attempt = `${fitContentKey}:${bars[0].time}`
+    // No-progress/failed replies must not create an automatic retry loop.
+    if (lastHistoryAttemptRef.current === attempt) return
+    lastHistoryAttemptRef.current = attempt
+    onRequestOlderData()
+  }, [bars, fitContentKey, hasOlderData, isLoadingOlderData, onRequestOlderData])
 
   const isPanningRef = useRef(false)
   const lastClientYRef = useRef<number | null>(null)
@@ -318,6 +326,9 @@ function MarketCandlestickChartComponent({
   }
 
   const handleDoubleClick = () => {
+    pendingWindowRef.current = false
+    dateWindowRef.current = null
+    setMissingViewportHistory(false)
     chartRef.current?.priceScale('right').applyOptions({ autoScale: true })
     chartRef.current?.timeScale().fitContent()
   }
@@ -337,6 +348,10 @@ function MarketCandlestickChartComponent({
         onDoubleClick={handleDoubleClick}
         onWheel={() => { historyPagingArmedRef.current = true }}
       />
+      {missingViewportHistory && bars.length > 0 && !isLoadingOlderData && <div className="chart-viewport-notice" role="status">
+        <span>{hasOlderData ? 'Older history could not reach the selected dates.' : 'MT5 history does not cover the selected dates.'}</span>
+        {hasOlderData && <button type="button" onClick={onRequestOlderData}>Retry history</button>}
+      </div>}
       {chartApi && seriesApi && renderChartOverlay?.(chartApi, seriesApi)}
       {chartApi && seriesApi && (activeDrawingTool || drawings.length > 0) && (
         <ChartDrawingOverlay

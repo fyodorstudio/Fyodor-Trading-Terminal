@@ -1,10 +1,16 @@
 .alert-dock { height: 100%; overflow: auto; padding: 10px 14px; color: var(--text); background: var(--surface-panel); font-size: 12px; }
-.alert-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 14px; margin-bottom: 12px; color: var(--text-muted); }
-.alert-toolbar strong { color: var(--text-strong); }
-.alert-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr)); gap: 10px; }
-.alert-card { padding: 12px; border: 1px solid var(--border-strong); border-radius: 5px; }
-.alert-card header { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; color: var(--text-strong); }
-.alert-card header span { color: var(--text-muted); }
-.alert-card > span { display: block; margin-top: 8px; color: var(--text-muted); }
-.alert-countdown { margin: 12px 0 0; font-variant-numeric: tabular-nums; }
-.alert-source-status { color: var(--text-muted); }
+.alert-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; color: var(--text-muted); }
+.alert-toolbar strong, .alert-day h3 { color: var(--text-strong); }
+.alert-currencies { display: flex; flex-wrap: wrap; gap: 4px; }
+.alert-dock button, .alert-dock select, .alert-currencies button { font: inherit; color: var(--text); background: var(--surface-panel); border: 1px solid var(--border-strong); border-radius: 4px; padding: 4px 8px; cursor: pointer; }
+.alert-currencies button[aria-pressed='true'] { color: #fff; background: var(--accent); border-color: var(--accent); }
+.alert-dock :focus-visible, .alert-currencies :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.alert-day h3 { font-size: 12px; margin: 14px 0 4px; padding-bottom: 6px; border-bottom: 1px solid var(--border-strong); }
+.alert-row { display: grid; grid-template-columns: 44px minmax(180px, 1fr) 100px minmax(220px, auto); align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.alert-row strong { font-weight: 500; }
+.alert-row time, .alert-countdown { font-variant-numeric: tabular-nums; }
+.alert-currency { font-weight: 600; color: var(--text-strong); }
+.alert-release-status, .alert-source-status { color: var(--text-muted); }
+.alert-filter-modal .alert-currencies { margin: 18px 0 8px; }
+.alert-filter-groups { grid-template-columns: 1fr; }
+@media (max-width: 700px) { .alert-row { grid-template-columns: 44px 1fr 100px; gap: 8px; } .alert-row > span:last-child { grid-column: 2 / 4; } }

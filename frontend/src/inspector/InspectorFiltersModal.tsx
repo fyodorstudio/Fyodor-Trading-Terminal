@@ -5,6 +5,7 @@ import { eventSymbols, type EventSymbol } from '../economic-calendar/presentatio
 import { inspectorCategories, inspectorFamilies } from './catalog/inspector-families'
 import { forexPair as inspectorPair, forexPairCurrencies as inspectorPairCurrencies } from '../economic-calendar/forex/pairs'
 import { type InspectorPreferences, type InspectorPreferenceUpdate } from './preferences/inspector-preferences'
+import { FamilyFilterGroups } from './filters/FamilyFilterGroups'
 import { inspectorFilterRows } from './filters/inspector-filter-rows'
 
 export function InspectorFiltersModal({ preferences, onApply, onClose, symbol = 'EURUSD' }: {
@@ -70,27 +71,11 @@ export function InspectorFiltersModal({ preferences, onApply, onClose, symbol = 
                 input.indeterminate = families.some(f => draft.families.includes(f.id)) && !families.every(f => draft.families.includes(f.id)) } }}
               onChange={event => toggle(inspectorFamilies.filter(f => f.currency === currency).map(f => f.id), event.target.checked)} />Select all</label>
           </h3>
-          {inspectorCategories.map((category, row) => {
-            const families = inspectorFamilies.filter((family) => family.currency === currency && (category.families as readonly string[]).includes(family.id))
-            const visible = matches.filter(family => families.some(source => source.id === family.id))
-            if (!visible.length) return null
-            const ids = families.map((family) => family.id)
-            const checked = ids.every((id) => draft.families.includes(id))
-            const partial = !checked && ids.some((id) => draft.families.includes(id))
-            return <fieldset key={category.id} style={{ gridColumn: column + 1, gridRow: row + 2 }}><legend><label><input type="checkbox" checked={checked}
-              ref={(input) => { if (input) input.indeterminate = partial }} aria-label={`${currency} ${category.label}`}
-              onChange={(event) => toggle(ids, event.target.checked)} />{category.label}</label></legend>
-              {visible.map((family) => <div className="inspector-family" key={family.id}>
-                <label><input type="checkbox" checked={family.ids.every(id => draft.families.includes(id))} aria-label={family.label}
-                  ref={input => { if (input) input.indeterminate = family.ids.some(id => draft.families.includes(id)) && !family.ids.every(id => draft.families.includes(id)) }}
-                  onChange={(event) => toggle(family.ids, event.target.checked)} />{family.label}</label>
-                <select aria-label={`Symbol for ${family.label}`} value={draft.symbols[family.id]} onChange={(event) =>
-                  updateDraft({ ...draft, symbols: { ...draft.symbols, ...Object.fromEntries(family.ids.map(id => [id, event.target.value as EventSymbol])) } })}>
-                  {eventSymbols.map(([id, glyph, name]) => <option key={id} value={id}>{glyph} {name}</option>)}
-                </select>
-              </div>)}
-            </fieldset>
-          })}
+          <FamilyFilterGroups currency={currency} column={column} selected={draft.families} matches={matches} toggle={toggle}
+            renderControl={family => <select aria-label={`Symbol for ${family.label}`} value={draft.symbols[family.id]} onChange={event =>
+              updateDraft({ ...draft, symbols: { ...draft.symbols, ...Object.fromEntries(family.ids.map(id => [id, event.target.value as EventSymbol])) } })}>
+              {eventSymbols.map(([id, glyph, name]) => <option key={id} value={id}>{glyph} {name}</option>)}
+            </select>} />
         </Fragment>)}
       </div>
       {!matches.length && <p className="inspector-search-note" role="status">No families match “{search}”.</p>}

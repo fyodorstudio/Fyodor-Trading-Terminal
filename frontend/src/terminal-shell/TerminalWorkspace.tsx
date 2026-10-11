@@ -149,9 +149,7 @@ export function TerminalWorkspace() {
             onOpenRaycaster={openComboRaycaster}
             onOpenRelease={openComboRelease} />}
           {bottomDockWindow === 'scatter-plot' && <ScatterPlotDock brokerId={brokerId} target={scatterTarget} />}
-          {bottomDockWindow === 'alert' && <AlertDock brokerId={inspector.brokerId ?? null} preferences={inspector.preferences}
-            brokerOffsetSeconds={inspector.brokerOffsetSeconds}
-            timeDisplay={timeDisplay} supported={inspector.supported} />}
+          {bottomDockWindow === 'alert' && <AlertDock brokerId={brokerId} brokerOffsetSeconds={brokerOffsetSeconds} timeDisplay={timeDisplay} />}
         </BottomDockPanel>
       )}
 

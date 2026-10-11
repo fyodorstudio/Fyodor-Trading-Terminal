@@ -29,6 +29,7 @@ try {
   const { AlertDock } = await server.ssrLoadModule('./src/alert/index.ts')
   const { alertEpisodes, alertCountdown, alertSeriesIds } = await server.ssrLoadModule('./src/alert/model/alert-episodes.ts')
   const { defaultInspectorPreferences, inspectorFamilies } = await server.ssrLoadModule('./src/inspector/inspector-data.ts')
+  const { alertPreferencesKey, defaultAlertPreferences, readAlertPreferences, validAlertPreferences } = await server.ssrLoadModule('./src/alert/model/alert-preferences.ts')
   const preferences = { ...defaultInspectorPreferences(), families: ['us-cpi'] }
   const day = 86400000, nextAt = now + 60_000
   const row = (id, at, value = null, extra = {}) => ({ value_id: `${id}-${at}`, event_id: id, name: id, currency: 'USD', country_code: 'US', country_name: 'United States',
@@ -41,6 +42,8 @@ try {
     row(cpi.events[0], now - day, .2), row(cpi.events[0], now - day * 40),
     row(cpi.events[0], nextAt + day, null, { availability: 'not-returned-by-latest-query' })]
   assert.equal(alertEpisodes(initial, preferences, now).length, 1, 'One card per episode, exact applied family filters, no completed/withdrawn/out-of-window releases')
+  assert.equal(alertEpisodes([row(cpi.events[0], now + 8 * day)], preferences, now).length, 0, 'Default horizon is seven days')
+  assert.equal(alertEpisodes([row(cpi.events[0], now + 61 * day)], preferences, now, 90).length, 1, 'Longer horizons admit later schedules')
   assert.equal(alertEpisodes(schedule, preferences, nextAt)[0].state, 'awaiting')
   assert.equal(alertEpisodes(schedule.map((event, index) => index ? event : { ...event, actual: .3 }), preferences, nextAt)[0].state, 'partial')
   assert.equal(alertEpisodes(schedule.map((event) => ({ ...event, actual: .3 })), preferences, nextAt).length, 0)
@@ -64,7 +67,8 @@ try {
   const page = (events, revision = 1, id = 'Broker-A', eventIds = alertSeriesIds(preferences)) => ({ source_id: id, revision,
     timestamp_convention: 'trade_server_time', time_basis: 'chart', event_ids: eventIds,
     events, coverage: { USD: { missing: [] } }, next_cursor: null })
-  const props = { brokerId: 'Broker-A', preferences, timeDisplay: { mode: 'utc', utcOffsetMinutes: 0 } }
+  localStorage.setItem(alertPreferencesKey, JSON.stringify({ ...defaultAlertPreferences(), families: preferences.families, days: 60 }))
+  const props = { brokerId: 'Broker-A', timeDisplay: { mode: 'utc', utcOffsetMinutes: 0 } }
   const render = (overrides = {}) => React.act(async () => root.render(React.createElement(AlertDock, { ...props, ...overrides })))
   await render()
   assert.match(container.textContent, /Loading upcoming/)
@@ -74,8 +78,8 @@ try {
   assert.deepEqual(params.get('event_ids').split(',').sort(), cpi.events.slice().sort())
   assert.ok(Number(params.get('to_server_seconds')) * 1000 >= now + 60 * day)
   await respond(requests[1], page(initial))
-  assert.equal(container.querySelectorAll('.alert-card').length, 1)
-  assert.match(container.textContent, /US CPI \/ core CPIUpcoming.*0 days · 0 hours · 1 minute remaining/)
+  assert.equal(container.querySelectorAll('.alert-row').length, 1)
+  assert.match(container.textContent, /US CPI \/ core CPI.*0 days · 0 hours · 1 minute remaining/)
   const deadline = container.querySelector('[data-alert-id]').dataset.alertId
   const count = requests.length
   await render({ timeDisplay: { mode: 'fixed-offset', utcOffsetMinutes: 420 } })
@@ -99,7 +103,7 @@ try {
   const rescheduled = schedule.map((event) => ({ ...event, release_at: nextAt + day, server_time_seconds: (nextAt + day) / 1000 + 10800,
     chart_time_seconds: (nextAt + day) / 1000 + 10800 }))
   await respond(requests[completedStart + 1], page(rescheduled, 3))
-  assert.match(container.textContent, /Upcoming.*1 day · 0 hours · 0 minutes remaining/)
+  assert.match(container.textContent, /1 day · 0 hours · 0 minutes remaining/)
   assert.notEqual(container.querySelector('[data-alert-id]').dataset.alertId, deadline)
 
   // Release arrival removes the completed card; a subsequent outage retains
@@ -109,7 +113,7 @@ try {
   await React.act(async () => { void completionPoll[1]() })
   await respond(requests[completionStart], health(4))
   await respond(requests[completionStart + 1], page(schedule.map((event) => ({ ...event, actual: .3 })), 4))
-  assert.equal(container.querySelectorAll('.alert-card').length, 0)
+  assert.equal(container.querySelectorAll('.alert-row').length, 0)
   const unknownPoll = [...polls.entries()].at(-1); polls.delete(unknownPoll[0])
   const unknownStart = requests.length
   await React.act(async () => { void unknownPoll[1]() })
@@ -128,24 +132,72 @@ try {
 
   const switchStart = requests.length
   await render({ brokerId: 'Broker-B' })
-  assert.equal(container.querySelectorAll('.alert-card').length, 0, 'Old broker schedule is hidden immediately')
+  assert.equal(container.querySelectorAll('.alert-row').length, 0, 'Old broker schedule is hidden immediately')
   await respond(requests[switchStart], health(1, 'Broker-B'))
   const obsolete = requests[switchStart + 1]
+  const setFamilies = async (families) => {
+    await React.act(async () => [...container.querySelectorAll('button')].find(b => b.textContent === 'Filters').click())
+    const modal = document.querySelector('[aria-labelledby="alert-filter-title"]')
+    const selectAll = modal.querySelector('[aria-label="Select all USD"]')
+    if (!selectAll.checked) await React.act(async () => selectAll.click())
+    await React.act(async () => selectAll.click())
+    if (families.length) await React.act(async () => modal.querySelector('[aria-label="US Jobs report / NFP"]').click())
+    await React.act(async () => [...modal.querySelectorAll('button')].find(b => b.textContent === 'Save').click())
+  }
   const jobsPreferences = { ...preferences, families: ['jobs'] }
-  await render({ brokerId: 'Broker-B', preferences: jobsPreferences })
+  await setFamilies(['jobs'])
   assert.equal(obsolete.signal.aborted, true)
   await respond(requests[switchStart + 2], health(1, 'Broker-B'))
   await respond(requests[switchStart + 3], page([row('840030016', now + day)], 1, 'Broker-B', alertSeriesIds(jobsPreferences)))
   await respond(obsolete, page(initial, 1, 'Broker-B'))
   assert.match(container.textContent, /US Jobs report \/ NFP/); assert.doesNotMatch(container.textContent, /US CPI \/ core CPI/)
   const emptyStart = requests.length
-  await render({ preferences: { ...preferences, families: [] } })
+  await setFamilies([])
   assert.equal(requests.length, emptyStart); assert.match(container.textContent, /No families selected/)
-  await render({ supported: false }); assert.match(container.textContent, /Select a major forex pair/)
   await render({ brokerId: null }); assert.match(container.textContent, /needs calendar storage/)
   await React.act(async () => root.render(null))
   assert.equal(intervals.size, 0); assert.equal(polls.size, 0, 'Closing Alert stops countdown and polling')
-  console.log('✓ Alert episodes, Inspector family filters, selected broker, bounded schedules, local countdown, due/partial/rescheduled/offline states, timezone invariance and cleanup')
+  // All eight currencies load independently of chart-pair preferences. The
+  // currency buttons only filter existing inventory and retain global choices.
+  localStorage.removeItem(alertPreferencesKey)
+  assert.equal(readAlertPreferences().days, 7)
+  await render()
+  const allStart = requests.length - 1
+  await respond(requests[allStart], health())
+  const allIds = new URL('http://localhost' + requests[allStart + 1].url).searchParams.get('event_ids').split(',')
+  assert.deepEqual(allIds.sort(), alertSeriesIds(defaultAlertPreferences()).sort())
+  const currencies = ['USD', 'EUR', 'GBP', 'JPY', 'CHF', 'CAD', 'AUD', 'NZD']
+  const allRows = currencies.map((currency, index) => {
+    const family = inspectorFamilies.find(f => f.currency === currency && f.category === 'inflation')
+    return row(family.events[0], now + (index + 1) * 3600000, null, { currency, country_code: family.country })
+  })
+  await respond(requests[allStart + 1], { ...page(allRows, 1, 'Broker-A', allIds), coverage: Object.fromEntries(currencies.map(c => [c, { missing: [] }])) })
+  assert.equal(container.querySelectorAll('.alert-row').length, 8)
+  const buttonRequests = requests.length
+  await React.act(async () => container.querySelector('[aria-label="Alert currency"] button:nth-child(4)').click())
+  assert.equal(container.querySelectorAll('.alert-row').length, 1)
+  assert.equal(container.querySelector('.alert-currency').textContent, 'GBP')
+  assert.equal(requests.length, buttonRequests, 'Currency selection is local, not another calendar fetch')
+  assert.equal(readAlertPreferences().currency, 'GBP')
+  const inspectorSaved = localStorage.getItem('fyodor.inspector.eurusd.v1')
+  await React.act(async () => [...container.querySelectorAll('button')].find(b => b.textContent === 'Filters').click())
+  let modal = document.querySelector('[aria-labelledby="alert-filter-title"]')
+  await React.act(async () => modal.querySelector('[aria-label="Select all GBP"]').click())
+  await React.act(async () => [...modal.querySelectorAll('button')].find(b => b.textContent === 'USD').click())
+  assert.equal(modal.querySelector('[aria-label="US CPI / core CPI"]').checked, true)
+  await React.act(async () => [...modal.querySelectorAll('button')].find(b => b.textContent === 'GBP').click())
+  assert.equal(modal.querySelector('[aria-label="Select all GBP"]').checked, false, 'Switching filter panes retains drafts')
+  await React.act(async () => [...modal.querySelectorAll('button')].find(b => b.textContent === 'Cancel').click())
+  assert.equal(readAlertPreferences().families.length, inspectorFamilies.length, 'Cancel discards filter edits')
+  assert.equal(localStorage.getItem('fyodor.inspector.eurusd.v1'), inspectorSaved, 'Alert never writes Inspector preferences')
+  assert.equal(validAlertPreferences({ ...defaultAlertPreferences(), currency: 'XYZ' }), false)
+  assert.equal(validAlertPreferences({ ...defaultAlertPreferences(), families: ['not-a-family'] }), false)
+  await React.act(async () => root.render(null))
+  await render({ brokerId: null })
+  assert.equal(container.querySelector('[aria-label="Alert currency"] button:nth-child(4)').getAttribute('aria-pressed'), 'true', 'Currency choice survives remount')
+  await React.act(async () => root.render(null))
+  assert.equal(intervals.size, 0); assert.equal(polls.size, 0)
+  console.log('✓ Alert episodes, independent eight-currency family filters, selected broker, bounded schedules, local countdown, due/partial/rescheduled/offline states, timezone invariance and cleanup')
 } finally {
   await React.act(async () => root.unmount()); Date.now = originalNow
   await server.close(); await dom.happyDOM.close()

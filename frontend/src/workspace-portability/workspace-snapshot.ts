@@ -1,3 +1,4 @@
+import { alertPreferencesKey, validAlertPreferences } from '../alert/model/alert-preferences'
 import { inspectorPreferencePair, validInspectorPreferences } from '../inspector/preferences/validate-inspector-preferences'
 import { hasInspectorScoring } from '../economic-calendar/forex/pairs'
 import { validTradeWorkflow } from '../trader-notebook/workflow/workflow-model'
@@ -34,6 +35,7 @@ const symbolKey = (key: string, prefix: string) => key.startsWith(prefix) && key
   key.length <= prefix.length + 128 && [...key.slice(prefix.length)].every((char) => char.charCodeAt(0) >= 32)
 
 const validators: Record<string, (v: unknown) => boolean> = {
+  [alertPreferencesKey]: validAlertPreferences,
   [r1SettingsKey]: validR1Settings,
   [eurR1SettingsKey]: validEurR1Settings,
   'fyodor.scoring.r1.details': v=>['release','relationships','freshness','audit'].includes(v as string),

@@ -1,53 +1,73 @@
-import { useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { formatAppTimestamp, timeDisplayLabel, type TimeDisplayPreference } from '../../appearance/time-display/time-display-preference'
+import { chartClockToUtc, utcToChartClock } from '../../appearance/time-display/chart-clock'
 import { useStoredCalendar } from '../../economic-calendar/storage/useStoredCalendar'
 import { useCalendarNow } from '../../inspector/useCalendarNow'
 import { policyEpisodeWindowMs } from '../../inspector/episodes/policy-episodes'
 import { groupInspectorReleases } from '../../inspector/releases/group-releases'
 import { inspectorFamilies } from '../../inspector/catalog/inspector-families'
-import { type InspectorPreferences } from '../../inspector/preferences/inspector-preferences'
-import { alertCountdown, alertEpisodesFromReleases, alertLookaheadDays, alertRecentDays, alertSeriesIds } from '../model/alert-episodes'
+import { alertCountdown, alertEpisodesFromReleases, alertRecentDays, alertSeriesIds } from '../model/alert-episodes'
+import { alertCurrencies, alertHorizons, readAlertPreferences, saveAlertPreferences, type AlertPreferences } from '../model/alert-preferences'
+import { AlertFiltersModal } from './AlertFiltersModal'
 import './alert-dock.css'
 
-export function AlertDock({ brokerId, preferences, timeDisplay, clockOffsetMs = 0, brokerOffsetSeconds = 0, supported = true }: {
-  brokerId: string | null; preferences: InspectorPreferences; timeDisplay: TimeDisplayPreference
-  clockOffsetMs?: number; brokerOffsetSeconds?: number; supported?: boolean
+const day = 86400000
+export function AlertDock({ brokerId, timeDisplay, clockOffsetMs = 0, brokerOffsetSeconds = 0 }: {
+  brokerId: string | null; timeDisplay: TimeDisplayPreference; clockOffsetMs?: number; brokerOffsetSeconds?: number
 }) {
+  const [preferences, setPreferences] = useState(readAlertPreferences)
+  const [filtersOpen, setFiltersOpen] = useState(false)
+  const closeFilters = useCallback(() => setFiltersOpen(false), [])
+  const updatePreferences = useCallback((next: AlertPreferences) => { setPreferences(next); saveAlertPreferences(next) }, [])
   const now = useCalendarNow(clockOffsetMs, 1000)
-  const today = Math.floor(now / 86400000) * 86400000
-  const range = useMemo(() => ({ from: today - alertRecentDays * 86400000 - policyEpisodeWindowMs,
-    to: today + (alertLookaheadDays + 2) * 86400000 + policyEpisodeWindowMs }), [today])
-  const eventIds = useMemo(() => alertSeriesIds(preferences), [preferences])
+  const today = Math.floor(now / day) * day
+  const clock = useMemo(() => ({ brokerId, brokerOffsetSeconds }), [brokerId, brokerOffsetSeconds])
+  const range = useMemo(() => ({ from: utcToChartClock(today - alertRecentDays * day - policyEpisodeWindowMs, clock) ?? today,
+    to: utcToChartClock(today + (preferences.days + 2) * day + policyEpisodeWindowMs, clock) ?? today }), [today, preferences.days, clock])
+  const families = preferences.families
+  const eventIds = useMemo(() => alertSeriesIds({ families }), [families])
   const scope = useMemo(() => ({ eventIds }), [eventIds])
-  const storage = useStoredCalendar(brokerId, range, supported && eventIds.length > 0, scope)
-  // Group only when inventory/filters change, not on every countdown tick.
-  const grouped = useMemo(() => groupInspectorReleases(storage.events.filter((event) => event.availability === 'observed')), [storage.events])
-  const episodes = useMemo(() => alertEpisodesFromReleases(grouped, preferences, now), [grouped, preferences, now])
-  const currencies = [...new Set(inspectorFamilies.filter((family) => preferences.families.includes(family.id)).map((family) => family.currency))]
-  const brokerNow = now + brokerOffsetSeconds * 1000
-  // Fetch margins protect grouping/clock boundaries but should not report an
-  // uncovered margin beyond the visible 60-day schedule as missing coverage.
-  const partial = !!storage.source && currencies.some((currency) => !storage.coverage[currency] ||
-    storage.coverage[currency].missing.some(([from, to]) => from * 1000 < brokerNow + alertLookaheadDays * 86400000 &&
-      to * 1000 > brokerNow - alertRecentDays * 86400000))
+  const storage = useStoredCalendar(brokerId, range, eventIds.length > 0, scope)
+  // Currency buttons filter the loaded inventory locally. Countdown ticks never regroup it.
+  const grouped = useMemo(() => groupInspectorReleases(storage.events.filter(event => event.availability === 'observed')), [storage.events])
+  const episodes = useMemo(() => alertEpisodesFromReleases(grouped, preferences, now, preferences.days)
+    .filter(({ release }) => preferences.currency === 'all' || release.currency === preferences.currency), [grouped, preferences, now])
+  const days = new Map<string, typeof episodes>()
+  for (const episode of episodes) {
+    const at = episode.release.releaseAt ?? chartClockToUtc(episode.release.serverTime * 1000, clock)
+    if (at !== null && (at > now + preferences.days * day || at < now - alertRecentDays * day)) continue
+    const date = at === null || !Number.isFinite(at) ? 'Date unconfirmed' : formatAppTimestamp(at, timeDisplay, 'date')
+    const group = days.get(date) ?? []; group.push(episode); days.set(date, group)
+  }
+  const currencies = inspectorFamilies.filter(f => preferences.families.includes(f.id) && (preferences.currency === 'all' || preferences.currency === f.currency)).map(f => f.currency)
+  const brokerNow = utcToChartClock(now, clock) ?? now
+  const partial = !!storage.source && currencies.some(currency => !storage.coverage[currency] ||
+    storage.coverage[currency].missing.some(([from, to]) => from * 1000 < brokerNow + preferences.days * day && to * 1000 > brokerNow - alertRecentDays * day))
   const offline = !!storage.source && storage.source.publisher_status !== 'live'
-  const message = !supported ? 'Select a major forex pair to view alerts' : !brokerId ? 'Alert needs calendar storage' :
-    !eventIds.length ? 'No families selected in Inspector filters' : storage.loading ? 'Loading upcoming releases…' : null
+  const message = !brokerId ? 'Alert needs calendar storage' : !eventIds.length ? 'No families selected in Alert filters' : storage.loading ? 'Loading upcoming releases…' : null
   return <section className="alert-dock" aria-label="Alert">
-    <header className="alert-toolbar"><strong>Alert</strong><span>Inspector filters · {brokerId ?? 'No broker'}</span>
-      <span>{timeDisplayLabel(timeDisplay)}</span></header>
+    <header className="alert-toolbar"><strong>Alert</strong>
+      <nav className="alert-currencies" aria-label="Alert currency">{(['all', ...alertCurrencies] as const).map(currency => <button type="button" key={currency}
+        aria-pressed={preferences.currency === currency} onClick={() => updatePreferences({ ...preferences, currency })}>{currency === 'all' ? 'All' : currency}</button>)}</nav>
+      <label><select aria-label="Alert horizon" value={preferences.days} onChange={event => updatePreferences({ ...preferences, days: Number(event.target.value) as AlertPreferences['days'] })}>
+        {alertHorizons.map(days => <option key={days} value={days}>Next {days} days</option>)}
+      </select></label>
+      <button type="button" onClick={() => setFiltersOpen(true)}>Filters</button><span>{timeDisplayLabel(timeDisplay)}</span>
+    </header>
     {message ? <p role="status">{message}</p> : <>
       {(storage.error || storage.collectorError || offline || partial) && <p className="alert-source-status" role="status">
         {storage.error ?? storage.collectorError ?? (offline ? 'Publisher offline · stored schedule may be stale' : 'Partial schedule coverage')}
       </p>}
-      {!episodes.length && <p role="status">{storage.error ? 'Upcoming schedule unavailable' : 'No upcoming or awaiting releases in the available 60-day schedule'}</p>}
-      <div className="alert-cards">{episodes.map(({ release, state }) => <article className={`alert-card alert-${state}`} key={release.id} data-alert-id={release.id}>
-        <header><strong>{release.label}</strong><span>{state === 'upcoming' ? 'Upcoming' : state === 'awaiting' ? 'Awaiting release data' :
-          state === 'partial' ? 'Partial release data' : 'Time unconfirmed'}</span></header>
-        {state === 'upcoming' && <p className="alert-countdown">{alertCountdown(release.releaseAt!, now)}</p>}
-        <span>{release.country} · {release.currency} · {state !== 'unconfirmed' ?
-          formatAppTimestamp(release.releaseAt!, timeDisplay) : 'Exact release time unavailable'}</span>
-      </article>)}</div>
+      {!days.size && <p role="status">{storage.error ? 'Upcoming schedule unavailable' : `No upcoming or awaiting releases in the available ${preferences.days}-day schedule`}</p>}
+      <div className="alert-days">{[...days].map(([date, episodes]) => <section className="alert-day" key={date} aria-label={date}>
+        <h3>{date}</h3>{episodes.map(({ release, state }) => <article className={`alert-row alert-${state}`} key={release.id} data-alert-id={release.id}>
+          <span className="alert-currency">{release.currency}</span><strong>{release.label}</strong>
+          <time>{state === 'unconfirmed' ? '—' : formatAppTimestamp(release.releaseAt!, timeDisplay, 'time-short')}</time>
+          <span className={state === 'upcoming' ? 'alert-countdown' : 'alert-release-status'}>{state === 'upcoming' ? alertCountdown(release.releaseAt!, now) :
+            state === 'awaiting' ? 'Awaiting release data' : state === 'partial' ? 'Partial release data' : 'Time unconfirmed'}</span>
+        </article>)}
+      </section>)}</div>
     </>}
+    {filtersOpen && <AlertFiltersModal preferences={preferences} onSave={next => updatePreferences({ ...preferences, families: next.families })} onClose={closeFilters} />}
   </section>
 }
