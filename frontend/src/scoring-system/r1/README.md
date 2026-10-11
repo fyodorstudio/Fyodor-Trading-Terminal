@@ -4,6 +4,8 @@ The canonical design and source rationale are in
 [scoring system overhaul](../../../../docs/scoring%20system%20overhaul.md#currency-evidence-summary-and-eur-r1).
 This module owns R1 profiles, arithmetic, interpretation, relationships,
 calibration and worker entry points. Legacy scorers retain their own settings.
+`policy-arithmetic-audit.ts` projects the same routing/input metadata into
+Fundamental Settings; it does not fetch history or calculate live evidence.
 
 Inspector visibility filters do not select scoring inputs. Each currency uses its
 own model settings. Standalone appears first, followed by the selected currency's
@@ -40,7 +42,7 @@ for momentum and revisions; manual bands retain priority. See the
   Resolve the signed sum before rounding and reconcile displayed sides to its
   net. Intermediate relationship allocations do not round individual leaf values;
   routing cannot manufacture a lead from exact cancellation.
-  Claims and all Manufacturing R1.2 inputs interpolate through zero, Small=1, Medium=2 and Large=4,
+  Jobs R1.1, Claims and all Manufacturing R1.2 inputs interpolate through zero, Small=1, Medium=2 and Large=4,
   capped at four. Size labels remain independent of fractional points; other
   USD families retain integer bands. EUR profiles use fractional magnitude. Assessor, sensitivity and Scatter preview share
   `arithmetic.ts`. See the [Claims review](../../../../reports/Claims-R1-fractional-audit.md)
@@ -50,10 +52,20 @@ for momentum and revisions; manual bands retain priority. See the
 - `relationships.ts`: allocate the existing manufacturing allowance before routing
   its activity, hiring and input-price leaves to their economic roles. No second
   full-family vote or role-specific renormalization. Full-scope manufacturing
-  remains 1.5% overall; effective category shares are Inflation 35.15%, Labor
-  30.225%, Activity 14.625%, Fed 20%. Categories normalize within their actual
+  originates at 2% overall. Origin category shares are 30/30/20/20; with Fed
+  selected, 25% of each macro budget moves into inferred context. Final category
+  shares are Inflation 22.65%, Labor 22.725%, Activity 14.625%, Policy 40%.
+  Categories normalize within their actual
   allowances, exposed in Inspector. Missing/stale inputs keep those budgets;
   sensitivity variants retain routing. Consumer/PPI rules remain unchanged.
+- `policy-context.ts`: actual-data policy levels/trends, bounded pressure and
+  hold interpretation `(current pressure − previous decision pressure) / 2`.
+  Retained overall uses current pressure; an unchanged rate creates no automatic
+  extra jump. Missing previous context is unknown, not zero. Fixed level scales
+  are labelled separately from native calibration; Inspector's Input audit shows
+  both decision baskets. Fed standalone always uses full USD scope. See the
+  [canonical policy](../../../../docs/scoring%20system%20overhaul.md#fed-policy-context-and-jobs--11-october-2026)
+  and [stored replay](../../../../reports/R1-policy-context-audit.md).
 - `eur-profiles.ts` / `eur-relationships.ts`: EUR roles, native IDs, distinct-month
   comparisons, quarterly cadence and one composite/sector PMI activity allowance.
   National reports remain standalone context; flash/final estimates replace slots.

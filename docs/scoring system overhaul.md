@@ -1047,3 +1047,102 @@ and calibration survive in the details. No forecasts, official-value substitutio
 or manual correction workflow is introduced. The stored September 23, October 1
 and October 5 rows currently lack Actual, including its exact raw field; changing
 weights cannot supply it. See the [dated audit](../reports/R1-standardized-points-PMI-audit.md).
+
+## Fed policy context and Jobs — 11 October 2026
+
+`USD-FED-POLICY-R1.3` estimates rate pressure from the existing numeric USD
+dataset. Forecasts, speeches, projections and written guidance remain excluded.
+Actual rate changes retain 25 bp per point, capped at four. For a hold, the
+factual rate-change row remains 0 bp with zero weight; the standalone interpretation
+is **(current inferred pressure − pressure at the previous Fed decision) / 2**.
+Both pressures use ±100, so the comparison also uses ±100. No previous decision
+or unavailable economic inputs retain uncertainty, rather than becoming zeros.
+Equal pressure can still produce balanced evidence. This does not reconstruct
+the Fed's undisclosed forecasts or estimate the neutral interest rate.
+
+The retained overall model uses **current pressure**; the standalone hold uses
+its **change since the previous decision**. Economic publications update the
+retained pressure when published. An unchanged rate does not automatically
+create an additional overall jump. Inspector labels the result as policy
+interpretation, preserves Actual/Previous/0 bp, and shows both decision-input
+baskets in Input audit. Scatter adds Fed hold policy interpretation alongside
+the actual-rate series. The inferred comparison is calculated in the workers;
+hover/pan only read prepared outputs.
+
+### Economic comparisons
+
+| Role | Comparison and local policy |
+|---|---|
+| Consumer inflation | 25% latest available headline PCE minus 2%; 75% annual inflation trend from the existing newest-reference CPI/PCE anchor. Trend basket: core 60%, headline 40%; each 70% latest change plus 30% average change per month over three months. |
+| PPI | Existing matched-reference 10% producer modifier; its ordinary momentum inputs. No additional PPI family allowance. |
+| Jobs | Payroll growth averaged across three distinct months versus zero, 60%; unemployment change over three months divided by three, inverse polarity, 30%; earnings momentum, 10%. Positive payroll growth can retain supportive context despite slowing. |
+| Claims | Latest four distinct weeks' mean versus the preceding four weeks' mean, inverse polarity; existing 70/30 component shares. |
+| Activity | Latest GDP growth versus zero; three-month average nominal retail growth versus zero; ISM activity/hiring levels versus 50. These are growth/level proxies, not output-gap or real-retail estimates. |
+| Manufacturing prices | Momentum interpreted as input-price pressure, routed to Inflation; manufacturing Employment to Labor, Orders/PMI to Activity. |
+
+Derived policy comparisons use fractional interpolation through (0,0), (Small,1),
+(Medium,2), (Large,4), capped at four. PPI retains its standalone integer-band
+points; Jobs earnings and Manufacturing prices retain their fractional native
+points. Trend comparisons reuse existing native
+manual/automatic boundaries. Fixed level scales are explicit design policies:
+PCE target gap **0.5/1/2 pp**; payroll average **100/200/300k**;
+GDP growth **1/2/4 pp**; retail average **0.2/0.5/1 pp**;
+ISM distance from 50 **2/5/10 points**. These fixed scales are labelled
+`policy-fixed`; comparison normalization is `policy-comparison`. Neither is
+misrepresented as a user's AP calibration. Missing reference months/weeks are
+not substituted with arbitrary older observations. Captured corrections enter
+only from their availability clock; they do not renew publication age.
+
+Jobs standalone becomes `USD-JOBS-R1.1`: its existing 60/30/10 weights and
+user-selected native boundaries now use fractional magnitude, including zero
+and the cap of four. Scatter preview, Apply, Inspector and relationships use
+the same arithmetic. CPI V5, other unchanged USD standalone formulas, EUR and
+legacy models retain their separate policies.
+
+### Budget and source support
+
+Origin overall shares become **Inflation 30 / Labor 30 / Activity 20 / Fed
+action 20**. With Fed selected, route 25% of each macro origin's allowance into
+inferred policy context, retaining 75% for the original momentum comparisons.
+The full model therefore assigns 20% to inferred context and 20% to actual Fed
+action, not another 20% on top of the existing budget. Each macro origin's total
+allowance stays fixed; CPI/PCE observations share one consumer allowance.
+Manufacturing's origin allowance becomes 2% overall;
+its components continue to route once by role. Final category allowances are
+**Inflation 22.65 / Labor 22.725 / Activity 14.625 / Policy 40**. The same nominal
+budget is retained for missing/stale inputs; subsets normalize before routing.
+Standalone Fed interpretation always evaluates the full USD model, independently
+of Inspector visibility or relationship subset settings.
+
+Fundamental Settings exposes origin/retained/routed/final allocations for the
+selected relationship inputs. Its Fed arithmetic tables show the full pressure
+basket's category and input weights, comparison rules, fixed level scales,
+native manual/inherited calibration and magnitude method. Allocation metadata
+passes through `combineR1`; input metadata comes from `derivePolicyEvidence`.
+These are budget projections, not live evidence at an unspecified date. Automatic
+native boundaries remain date-dependent and are audited in Inspector/Scatter.
+
+[Fed policy-rule documentation](https://www.federalreserve.gov/monetarypolicy/policy-rules-and-how-policymakers-use-them.htm)
+supports using inflation relative to target and economic conditions, and explains
+why benchmarks need not rely on uncertain neutral-rate/output-gap estimates.
+[Monetary-policy principles](https://www.federalreserve.gov/monetarypolicy/principles-for-the-conduct-of-monetary-policy.htm)
+support systematic responses to inflation and resource utilization. These sources
+support the economic comparisons, **not the exact weights, scales or optimality**.
+
+[June minutes](https://www.federalreserve.gov/monetarypolicy/fomcminutes20260617.htm)
+describe rising inflation, stable labor and solid growth; some participants saw
+a case for a hike while accepting the hold. Their May PCE estimates were not
+yet published actuals and are not model inputs.
+[July minutes](https://www.federalreserve.gov/monetarypolicy/fomcminutes20260729.htm)
+record three hike dissents: a negative inferred comparison does not mean the
+Fed explicitly became dovish. Minutes published later serve as research evidence,
+never as information available at the original decision clock.
+
+Review June 18 and July 30 in Inspector, both decision baskets in Input audit,
+Fed hold Scatter history, fractional Jobs previews, and quiet-candle Raycaster
+behavior. Stored replay, policy sensitivity, production-worker parity and a
+fixed-window price comparison are recorded in the
+[dated policy audit](../reports/R1-policy-context-audit.md). Retrospective storage
+does not prove original publication vintages; neither these two examples nor
+the price review establish an optimal scoring model. Visual/performance review
+remains with the user.

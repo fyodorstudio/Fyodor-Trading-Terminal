@@ -83,7 +83,7 @@ try {
     for(let change=0;change<=100;change+=.5){const points=magnitudePoints('claims',change,limits);assert.ok(points>=prior&&points<=4);prior=points}
     assert.equal(magnitudePoints('claims',10,limits),1,'tied equality retains the lower band endpoint')
   }
-  for(const family of Object.keys(r1Profiles).filter(f=>r1Profiles[f].currency!=='EUR'&&!['claims','ism-manufacturing'].includes(f)))for(const change of [0,2,10,11,20,21,30,31,1e10])assert.equal(magnitudePoints(family,change,[10,20,30]),magnitude(change,[10,20,30]),'other families keep integer magnitude')
+  for(const family of Object.keys(r1Profiles).filter(f=>r1Profiles[f].currency!=='EUR'&&!['jobs','claims','ism-manufacturing'].includes(f)))for(const change of [0,2,10,11,20,21,30,31,1e10])assert.equal(magnitudePoints(family,change,[10,20,30]),magnitude(change,[10,20,30]),'other families keep integer magnitude')
   for(const [change,expected]of [[0,0],[.1,.05],[1.6,.8],[2,1],[3,1.5],[4,2],[5,3],[6,4],[7,4],[1e10,4]]){
     assert.equal(magnitudePoints('ism-manufacturing',change,[2,4,6]),expected)
     assert.equal(magnitudePoints('ism-manufacturing',-change,[2,4,6]),expected)
@@ -146,7 +146,7 @@ try {
   const slot=(family,value,ref=24313)=>({family,status:'current',nextDue:at+1,assessment:{family,publishedAt:at,reference:ref,leaves:[{id:family,family,label:family,value,budget:100}],...balance([{value,budget:100}])}})
   const fractionalLabor=combineR1([slot('jobs',20),{family:'claims',status:'current',nextDue:at+1,assessment:example}],['jobs','claims'],at)
   assert.ok(Math.abs(fractionalLabor.net-(.8*20+.2*example.net))<1e-8,'labor combines fractional Claims once at the existing 20% share')
-  const manufacturingSlot={family:'ism-manufacturing',status:'current',assessment:manufacturing}
+  const manufacturingSlot={family:'ism-manufacturing',status:'current',assessment:{...manufacturing,policy:undefined}} // Isolate original component-routing arithmetic.
   const manufacturingActivity=combineR1([slot('gdp',0),slot('retail',0),slot('ism-services',0),manufacturingSlot],['gdp','retail','ism-services','ism-manufacturing'],at)
   assert.ok(Math.abs(manufacturingActivity.net-manufacturing.net*.1)<1e-8,'routing preserves the original manufacturing allowance')
   assert.equal(manufacturingActivity.leaves.filter(l=>l.family==='ism-manufacturing').length,4)
@@ -157,9 +157,9 @@ try {
   const allFamilies=['us-cpi','ppi','jobs','claims','gdp','retail','ism-services','ism-manufacturing','fomc']
   const allZero=allFamilies.filter(f=>f!=='ism-manufacturing').map(f=>slot(f,0))
   const full=combineR1([...allZero,manufacturingSlot],allFamilies,at)
-  assert.ok(Math.abs(full.net-manufacturing.net*.015)<1e-8,'full-scope manufacturing remains 1.5% overall')
+  assert.ok(Math.abs(full.net-manufacturing.net*.02)<1e-8,'full-scope manufacturing remains 2% overall')
   assert.ok(Math.abs(full.leaves.reduce((s,l)=>s+l.budget,0)-100)<1e-8)
-  assert.deepEqual(full.categories.map(c=>Math.round(c.share*1e5)/1e5),[.3515,.30225,.14625,.2])
+  assert.deepEqual(full.categories.map(c=>Math.round(c.share*1e5)/1e5),[.302,.303,.195,.2])
   const cancellingManufacturing=assessFeatures({...release,familyId:'ism-manufacturing'},r1Profiles['ism-manufacturing'],[.1,-.1,-.4,0].map(feature),[],{mode:'undefined',limits:{'ism-manufacturing/orders':[1.3,3,6],'ism-manufacturing/headline':[2.6,3,6],'ism-manufacturing/employment':[2.6,3,6]}},{})
   assert.equal(cancellingManufacturing.direction,'balanced')
   for(const selected of [['ism-manufacturing'],allFamilies]){
@@ -169,24 +169,24 @@ try {
   }
   for(const status of ['stale','unavailable']){
     const unknown=combineR1([...allZero,{...manufacturingSlot,status}],allFamilies,at)
-    assert.equal(unknown.unavailable,1.5)
-    assert.deepEqual(unknown.categories.map(c=>Math.round(c.share*1e5)/1e5),[.3515,.30225,.14625,.2],'expiry does not move the routed nominal budgets')
+    assert.equal(unknown.unavailable,2)
+    assert.deepEqual(unknown.categories.map(c=>Math.round(c.share*1e5)/1e5),[.302,.303,.195,.2],'expiry does not move the routed nominal budgets')
   }
   for(let i=0;i<4;i++){
     const partial=mrun(manufacturingRows.filter((_,j)=>i!==j)).assessment
-    const aggregate=combineR1([...allZero,{...manufacturingSlot,assessment:partial}],allFamilies,at)
-    assert.ok(Math.abs(aggregate.unavailable-[45,30,15,10][i]*.015)<1e-8)
+    const aggregate=combineR1([...allZero,{...manufacturingSlot,assessment:{...partial,policy:undefined}}],allFamilies,at)
+    assert.ok(Math.abs(aggregate.unavailable-[45,30,15,10][i]*.02)<1e-8)
   }
   const {readingVariants}=await server.ssrLoadModule('./src/scoring-system/r1/assessment.ts')
   assert.equal(manufacturing.sensitive,false)
   for(const variant of readingVariants(manufacturing,r1Profiles['ism-manufacturing'])){
     assert.deepEqual(variant.leaves.map(l=>l.category),manufacturing.leaves.map(l=>l.category),'sensitivity retains economic routing')
-    const aggregate=combineR1([...allZero,{...manufacturingSlot,assessment:variant}],allFamilies,at)
-    assert.ok(Math.abs(aggregate.net-variant.net*.015)<1e-8)
+    const aggregate=combineR1([...allZero,{...manufacturingSlot,assessment:{...variant,policy:undefined}}],allFamilies,at)
+    assert.ok(Math.abs(aggregate.net-variant.net*.02)<1e-8)
   }
   for(const macro of [-10,0,10])for(const action of [-25,0,25]){
     const overall=combineR1([slot('us-cpi',macro),slot('fomc',action)],['us-cpi','fomc'],at)
-    const net=(.35*macro+.2*action)/.55
+    const net=(.30*macro+.2*action)/.50
     assert.ok(Math.abs(overall.net-net)<1e-8)
     assert.equal(overall.direction,net>0?'strengthening':net<0?'weakening':'balanced')
     assert.ok(Math.abs(overall.supportive+overall.negative-overall.net)<1e-8)
@@ -197,7 +197,7 @@ try {
   assert.equal(newer.categories[0].anchor,'us-cpi');assert.equal(newer.unavailable,10)
   const splitSlot=(family,positive,negative)=>{const s=slot(family,positive+negative);s.assessment.leaves=[{id:`${family}/positive`,family,label:family,value:positive,budget:50},{id:`${family}/negative`,family,label:family,value:negative,budget:50}];return s}
   const assembled=combineR1([splitSlot('us-cpi',16.25,-28.75),splitSlot('ppi',22.5,-20),splitSlot('jobs',2.5,-30),splitSlot('claims',17.5,-7.5),slot('gdp',-25),slot('retail',25),slot('ism-services',25),slot('ism-manufacturing',-25),slot('fomc',25)],['us-cpi','ppi','jobs','claims','gdp','retail','ism-services','ism-manufacturing','fomc'],at)
-  assert.deepEqual([assembled.supportive,assembled.negative,assembled.net],[14.05625,-19.65625,-5.6],'full design example preserves signed leaves through all categories')
+  assert.deepEqual([assembled.supportive,assembled.negative,assembled.net],[13.7125,-19.0125,-5.3],'30/30/20/20 origin weights preserve signed leaves through all categories')
   for(const h of [-6,-5,-4,0,4,5,6])for(const fed of [-25,0,25]){
     const slots=[slot('us-cpi',h/.8),slot('jobs',h/.8),slot('gdp',h/.8),slot('fomc',fed)]
     const result=combineR1(slots,['us-cpi','jobs','gdp','fomc'],at),net=h+.2*fed

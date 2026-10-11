@@ -3,12 +3,14 @@ import { magnitudeDistribution } from '../../inspector/magnitude/magnitude-distr
 import type { ScatterModel,ScatterPoint,ScatterSignal } from '../contracts/scatter-plot-types'
 import {scatterNumber} from './scatter-number-format'
 import {magnitude,magnitudePoints} from '../../scoring-system/r1/arithmetic'
+import {policySummaryReading} from '../../scoring-system/r1/policy-context'
 import type {MagnitudeLimits} from '../../inspector/magnitude/magnitude-distribution'
 export function r1ScatterModel(history:readonly R1Assessment[],componentId:string,releaseId:string|null,preview?:MagnitudeLimits|null):ScatterModel {
-  const selected=releaseId?history.find(a=>a.releaseId===releaseId):history.at(-1),reading=selected?.readings.find(r=>r.id===componentId)
+  const getReading=(a:R1Assessment)=>componentId==='policy-total'?policySummaryReading(a):a.readings.find(r=>r.id===componentId)
+  const selected=releaseId?history.find(a=>a.releaseId===releaseId):history.at(-1),reading=selected&&getReading(selected)
   let previous=-1
   const points=history.flatMap((a,i):ScatterPoint[]=>{
-    const r=a.readings.find(r=>r.id===componentId)
+    const r=getReading(a)
     if(!r||r.delta===null)return []
     const limits=preview&&a.stage===selected?.stage&&r.period!=='action'?preview:r.limits
     const points=limits!==r.limits?(r.delta===0?0:r.polarity*Math.sign(r.delta)*magnitudePoints(a.family,r.delta,limits!)):r.points

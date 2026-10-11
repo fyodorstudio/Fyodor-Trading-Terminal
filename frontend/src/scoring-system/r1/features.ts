@@ -49,7 +49,7 @@ export function createR1History(events:readonly EconomicCalendarEvent[]):{rows:R
 }
 export type R1History=ReturnType<typeof createR1History>
 
-function valid(row:Row,c:R1Component,at:number,profile:R1Profile,requireActual=true) {
+export function validR1Reading(row:Row,c:R1Component,at:number,profile:R1Profile,requireActual=true) {
   if(!observedR1(row)||row.currency!==(profile.currency??'USD')||row.country_code!==(profile.country??'US')||row.release_at>at||(row.available_at??row.release_at)>at||!c.units.includes(row.unit)||row.multiplier!==c.multiplier||(requireActual&&field(row,'actual')===null))return false
   const ref=reference(row,c.period)
   if(ref===null)return false
@@ -76,23 +76,23 @@ export function r1Features(release:InspectorRelease,profile:R1Profile,history:R1
     const matching=release.events.filter(e=>e.event_id===c.seriesId)
     if(matching.length!==1)return unavailable(matching.length?'Duplicate series reading.':`Missing ${c.label}.`)
     const observation=r1Observation(matching[0],availabilityAt),row=observation.row as Row|null
-    if(!row||row.release_at!==at||!valid(row,c,availabilityAt,profile,false))return unavailable(`Invalid ${c.label} or reference period.`)
+    if(!row||row.release_at!==at||!validR1Reading(row,c,availabilityAt,profile,false))return unavailable(`Invalid ${c.label} or reference period.`)
     const actual=field(row,'actual'),ref=reference(row,c.period)!,previousRef=prior(ref,c.period)
     const same=c.period==='quarter'?history.latest(c.seriesId,ref,c.period,at,true,availabilityAt):null
     let previous:number|null=null,basis='',stage:R1Feature['stage']='momentum',comparisonRef=previousRef
     if(c.period==='quarter'){
-      if(same&&!gdpMomentum){previous=valid(same,c,availabilityAt,profile)?field(same,'actual'):null;basis='Earlier estimate of this quarter';stage='revision';comparisonRef=ref}
-      else {const preceding=history.latest(c.seriesId,previousRef,c.period,availabilityAt);previous=preceding&&valid(preceding,c,availabilityAt,profile)?field(preceding,'actual'):null;basis='Previous quarter, latest available estimate'
+      if(same&&!gdpMomentum){previous=validR1Reading(same,c,availabilityAt,profile)?field(same,'actual'):null;basis='Earlier estimate of this quarter';stage='revision';comparisonRef=ref}
+      else {const preceding=history.latest(c.seriesId,previousRef,c.period,availabilityAt);previous=preceding&&validR1Reading(preceding,c,availabilityAt,profile)?field(preceding,'actual'):null;basis='Previous quarter, latest available estimate'
         // Only a new-quarter supplied prior can revise the preceding quarter.
         if(!same&&present(row,'revised_previous')){previous=field(row,'revised_previous');basis='Revised Previous quarter'}
       }
     }else if(profile.currency==='EUR'&&c.period==='month'){
       const preceding=history.latest(c.seriesId,previousRef,c.period,at,true,availabilityAt)
-      previous=preceding&&valid(preceding,c,availabilityAt,profile)?field(preceding,'actual'):null;basis='Previous distinct month, latest available estimate'
+      previous=preceding&&validR1Reading(preceding,c,availabilityAt,profile)?field(preceding,'actual'):null;basis='Previous distinct month, latest available estimate'
       if(present(row,'revised_previous')&&row.previous_period_seconds!=null&&reference({...row,period_seconds:row.previous_period_seconds},c.period)===previousRef){previous=field(row,'revised_previous');basis='Revised Previous month'}
     }else if(present(row,'revised_previous')){previous=field(row,'revised_previous');basis='Revised Previous'}
     else if(present(row,'previous')){previous=field(row,'previous');basis='Supplied Previous'}
-    else {const preceding=history.latest(c.seriesId,previousRef,c.period,availabilityAt);previous=preceding&&valid(preceding,c,availabilityAt,profile)?field(preceding,'actual'):null;basis='Previous period, latest available observation'}
+    else {const preceding=history.latest(c.seriesId,previousRef,c.period,availabilityAt);previous=preceding&&validR1Reading(preceding,c,availabilityAt,profile)?field(preceding,'actual'):null;basis='Previous period, latest available observation'}
     // EUR monthly comparisons come from independently dated history. A final
     // release's feed Previous can describe this month's flash estimate instead.
     if(row.previous_period_seconds!=null&&c.period!=='action'&&!(profile.currency==='EUR'&&c.period==='month')){

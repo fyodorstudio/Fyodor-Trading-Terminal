@@ -19,7 +19,7 @@ try{
   const {R1Score}=await server.ssrLoadModule('./src/inspector/scoring/R1Score.tsx')
   const {InspectorPanel}=await server.ssrLoadModule('./src/inspector/InspectorPanel.tsx')
   const {groupInspectorReleases,defaultInspectorPreferences,inspectorStorageKey}=await server.ssrLoadModule('./src/inspector/inspector-data.ts')
-  const {r1Profiles}=await server.ssrLoadModule('./src/scoring-system/r1/profiles.ts')
+  const {r1Profiles,r1Families}=await server.ssrLoadModule('./src/scoring-system/r1/profiles.ts')
   const {saveR1Settings,readR1Settings,r1SettingsKey}=await server.ssrLoadModule('./src/scoring-system/r1/settings.ts')
   const {exportWorkspace,restoreWorkspace}=await server.ssrLoadModule('./src/workspace-portability/workspace-snapshot.ts')
   const {r1ScatterModel}=await server.ssrLoadModule('./src/scatter-plot/inspection/r1-scatter-model.ts')
@@ -117,7 +117,7 @@ try{
   })
   assert.equal(fundamental.div.querySelector('[aria-label="CPI freshness days"]').value,'45')
   assert.equal(fundamental.div.querySelector('[aria-label="Jobless claims freshness days"]').value,'10')
-  assert.equal(fundamental.div.querySelector('[aria-label="Fed action freshness days"]').value,'70')
+  assert.equal(fundamental.div.querySelector('[aria-label="Fed policy interpretation freshness days"]').value,'70')
   await editInput(fundamental.div.querySelector('[aria-label="R1 scheduled release allowance"]'),48)
   assert.equal(posts,freshnessJobs,'editing freshness drafts launches no jobs')
   await React.act(async()=>fundamental.div.querySelector('[aria-label="R1 freshness settings"]').dispatchEvent(new dom.Event('submit',{bubbles:true,cancelable:true})))
@@ -340,6 +340,45 @@ try{
   assert.equal(calendarRequests,historyRequests,'Reopening reuses the revision-checked history snapshot')
   assert.ok(reopened.div.querySelector('[aria-label="EUR combined relationship summary"]'))
   assert.equal(reopened.div.querySelector('[aria-label="EURUSD evidence"]'),null)
+  const jobsProfile=r1Profiles.jobs,jobValues=[180,4.2,.3],jobPrior=[200,4.2,.3],jobTemplate=rows[0]
+  rows=jobsProfile.components.map((c,i)=>({...jobTemplate,value_id:`jobs-${i}`,event_id:c.seriesId,name:c.label,release_at:at,chart_time_seconds:at/1000,server_time_seconds:at/1000,period_seconds:Date.UTC(2026,1,1)/1000,unit:c.units[0],multiplier:c.multiplier,actual:jobValues[i],previous:jobPrior[i]}));revision++
+  const jobsSettings={...settings,selected:['jobs'],calibration:{mode:'undefined',limits:{'jobs/payrolls':[100,200,300]}}}
+  await React.act(async()=>saveR1Settings(jobsSettings));await poll()
+  const jobsRelease=groupInspectorReleases(rows)[0],jobsApp=mount(R1Score),jobsDock=mount(ScatterPlotDock)
+  await jobsApp.render({release:jobsRelease,brokerId:'test',events:rows})
+  await jobsDock.render({brokerId:'test',clockOffsetMs:at+86400000-Date.now(),target:{brokerId:'test',familyId:'jobs',releaseId:jobsRelease.id,at}})
+  await React.act(async()=>{const calculation=jobsDock.div.querySelector('[aria-label="Scatter Plot Calculation"]');calculation.value='r1';calculation.dispatchEvent(new dom.Event('change',{bubbles:true}));await new Promise(resolve=>setImmediate(resolve))})
+  assert.match(jobsApp.div.textContent,/Net\s*-3/);assert.match(jobsDock.div.textContent,/R1 evidence: -3/);assert.match(jobsDock.div.textContent,/Magnitude points: 0.2/)
+  const jobsPreviewPosts=posts
+  await editInput(jobsDock.div.querySelector('[aria-label="Small R1 upper boundary"]'),50)
+  assert.equal(posts,jobsPreviewPosts,'Fractional Jobs previews stay local to Scatter')
+  assert.match(jobsDock.div.textContent,/Preview evidence: -6/);assert.match(jobsApp.div.textContent,/Net\s*-3/)
+  await React.act(async()=>jobsDock.div.querySelector('[aria-label="R1 magnitude boundaries"]').dispatchEvent(new dom.Event('submit',{bubbles:true,cancelable:true})))
+  assert.match(jobsApp.div.textContent,/Net\s*-6/);assert.deepEqual(readR1Settings().calibration.limits['jobs/payrolls'],[50,200,300])
+  const fedSettingsView=mount(R1ScoringSettings);await fedSettingsView.render({family:'fomc'})
+  const policyInputRows=()=>[...fedSettingsView.div.querySelectorAll('[aria-label="Fed policy input weights"] tbody tr')]
+  const policyWeight=policyInputRows().reduce((sum,r)=>sum+Number(r.cells[1].textContent.replace('%','')),0)
+  assert.ok(Math.abs(policyWeight-100)<1e-9,'Fed dock exposes its complete, independently normalized pressure basket')
+  assert.match(fedSettingsView.div.textContent,/current pressure − previous decision’s pressure/)
+  assert.match(policyInputRows().find(r=>r.cells[0].textContent.includes('Three-month average payroll')).cells[3].textContent,/100 \/ 200 \/ 300 k · fixed policy scale/)
+  assert.match(policyInputRows().find(r=>r.cells[0].textContent.includes('Core PPI')).cells[4].textContent,/Bands 1 \/ 2 \/ 3 \/ 4/)
+  await React.act(async()=>saveR1Settings({...readR1Settings(),selected:r1Families}))
+  const allocationRows=()=>[...fedSettingsView.div.querySelectorAll('[aria-label="USD R1 allocation audit"] tbody tr')]
+  assert.deepEqual(allocationRows().map(r=>r.cells[4].textContent),['22.65%','22.725%','14.625%','40%'])
+  const coreAnnual=()=>policyInputRows().find(r=>r.cells[0].textContent.includes('Core CPI / PCE y/y: latest change'))
+  await React.act(async()=>saveR1Settings({...readR1Settings(),calibration:{...readR1Settings().calibration,limits:{...readR1Settings().calibration.limits,'us-cpi/core-annual':[.1,.2,.4]}}}))
+  assert.match(coreAnnual().cells[3].textContent,/CPI: R1 manual: 0.1 \/ 0.2 \/ 0.4/,'Dock reacts to manual native-band changes')
+  const pceRaw=magnitudeFamilies.find(f=>f.familyId==='pce'&&f.currency==='USD').settings
+  await React.act(async()=>pceRaw.save(r1Profiles.pce.components[1].seriesId,[.2,.4,.6]))
+  assert.match(coreAnnual().cells[3].textContent,/PCE: Saved A−P: 0.2 \/ 0.4 \/ 0.6/,'Dock reacts to inherited Scatter band changes')
+  const claimsPolicyRaw=magnitudeFamilies.find(f=>f.familyId==='claims'&&f.currency==='USD').settings
+  await React.act(async()=>claimsPolicyRaw.save(r1Profiles.claims.components[1].seriesId,[.02,.04,.08]))
+  assert.match(policyInputRows().find(r=>r.cells[0].textContent.includes('Continuing claims')).cells[3].textContent,/Saved A−P: 20 \/ 40 \/ 80 k/,'Inherited continuing-claims bands convert millions to policy thousands')
+  const fixedPayroll=policyInputRows().find(r=>r.cells[0].textContent.includes('Three-month average payroll'))
+  assert.match(fixedPayroll.cells[3].textContent,/100 \/ 200 \/ 300/,'Changing Jobs AP bands does not relabel the fixed payroll-level policy scale')
+  await React.act(async()=>saveR1Settings({...readR1Settings(),selected:['ism-manufacturing']}))
+  assert.deepEqual(allocationRows().map(r=>r.cells[4].textContent),['10%','15%','75%','0%'])
+  assert.ok(Math.abs(policyInputRows().reduce((sum,r)=>sum+Number(r.cells[1].textContent.replace('%','')),0)-100)<1e-9,'Relationship selection never narrows standalone Fed policy weights')
   console.log('✓ Mounted R1 Inspector, publication corrections, stable polling/clocks, hidden-view cleanup, fractional Claims/manufacturing Scatter parity and workspace portability')
 }finally{
   await React.act(async()=>roots.forEach(root=>root.unmount()))

@@ -4,6 +4,7 @@ import type { R1Assessment, R1Calibration, R1Feature, R1Leaf, R1MagnitudeSnapsho
 import { balance, magnitude, magnitudePoints, precise, usesFractionalMagnitude } from './arithmetic'
 import { r1CalibrationPolicy } from './profiles'
 import { reference, r1Features, type R1History } from './features'
+import {derivePolicyEvidence} from './policy-context'
 
 export function r1Limits(samples:readonly number[],minimum:number=r1CalibrationPolicy.minimum):MagnitudeLimits|null {
   if(samples.length<minimum)return null
@@ -73,7 +74,9 @@ export function assessR1(release:InspectorRelease,profile:R1Profile,history:R1Hi
     for(const e of entries){const f=e.features[i];if(f.reference!==null&&f.reference!==current[i].reference)periods.set(f.reference,f.delta!)}
     return [...periods.values()]
   })
-  return assessFeatures(release,profile,current,samples,calibration,saved,sensitivity)
+  const assessment=assessFeatures(release,profile,current,samples,calibration,saved,sensitivity)
+  const policy=derivePolicyEvidence(assessment,profile,history,availabilityAt)
+  return policy?{...assessment,policy}:assessment
 }
 function reason(r:R1Reading) {
   const up=r.delta!>0

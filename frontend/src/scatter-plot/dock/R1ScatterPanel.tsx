@@ -17,23 +17,25 @@ import { useScatterAppearance } from '../settings/scatter-plot-appearance'
 import { openFundamentalSettings } from '../../fundamental-tools/runtime/settings-navigation'
 import { scatterRecentWindow } from '../plot/scatter-recent-window'
 import { useRetainedScatterState } from '../plot/useRetainedScatterState'
+import {policySummaryReading} from '../../scoring-system/r1/policy-context'
 import {usesFractionalMagnitude} from '../../scoring-system/r1/arithmetic'
 const createWorker=()=>new Worker(new URL('../../scoring-system/r1/history.worker.ts',import.meta.url),{type:'module'})
 const emptyHistory:ReturnType<typeof calculateR1History>=[]
 export function R1ScatterPanel({brokerId,clockOffsetMs=0,target,binding,onMeasureChange,familyOptions,onFamilyChange,viewState}:ScatterPlotDockProps&{binding:ScatterFamilyBinding;onMeasureChange:(m:'ap'|'signal'|'r1')=>void;familyOptions:{id:string;label:string}[];onFamilyChange:(id:string)=>void;viewState:Map<string,unknown>}) {
   const baseFamily=r1Family(binding.family.familyId)!,currency=r1Currency(baseFamily),now=useCalendarNow(clockOffsetMs)
   const releaseFamily=binding.family.familyId
-  const choices=useMemo(()=>allR1Families.filter(f=>(r1Profiles[f].releaseFamily??f)===releaseFamily).flatMap(f=>r1Profiles[f].components.map(c=>({family:f,component:c.id,seriesId:c.seriesId,value:currency==='USD'?c.id:`${f}/${c.id}`,label:c.label}))),[releaseFamily,currency])
+  const choices=useMemo(()=>[...(baseFamily==='fomc'?[{family:baseFamily,component:'policy-total',seriesId:'840050014',value:'policy-total',label:'Fed hold policy interpretation'}]:[]),...allR1Families.filter(f=>(r1Profiles[f].releaseFamily??f)===releaseFamily).flatMap(f=>r1Profiles[f].components.map(c=>({family:f,component:c.id,seriesId:c.seriesId,value:currency==='USD'?c.id:`${f}/${c.id}`,label:c.label})))],[baseFamily,releaseFamily,currency])
   const storage=useFamilyScatterData(brokerId,now,binding.family,true),settings=useR1Settings(currency),savedBands=useR1Bands(),appearance=useScatterAppearance()
   const [requestedComponent,setComponent]=useRetainedScatterState(viewState,'r1-component',''),[selected,setSelected]=useRetainedScatterState<string|null>(viewState,'r1-selection',target?.releaseId??null),[all,setAll]=useRetainedScatterState(viewState,'r1-history',false),[zoom,setZoom]=useRetainedScatterState(viewState,'r1-zoom',false)
   const targetAt=target?.at
   const targetChoice=useMemo(()=>choices.find(c=>storage.events.some(e=>e.release_at===targetAt&&c.seriesId===e.event_id)),[choices,storage.events,targetAt])
   const choice=choices.find(c=>c.value===requestedComponent)??targetChoice??choices[0],family=choice.family,component=choice.component
   const at=calendarAdmissionTime(storage.events,now)
-  const input=useMemo(()=>!storage.loading?{family,events:storage.events,at,calibration:settings.calibration,savedBands}:null,[family,storage.loading,storage.events,at,settings.calibration,savedBands])
+  const schedules=useMemo(()=>storage.schedules.flatMap(s=>{const family=allR1Families.find(f=>r1Profiles[f].components.some(c=>c.seriesId===s.seriesId));return family?[{...s,family}]:[]}),[storage.schedules])
+  const input=useMemo(()=>!storage.loading?{family,events:storage.events,at,calibration:settings.calibration,savedBands,schedules,freshness:settings.freshness}:null,[family,storage.loading,storage.events,at,settings.calibration,savedBands,schedules,settings.freshness])
   const result=useBackgroundCalculation(input,calculateR1History,createWorker),history=result.result??emptyHistory
   const savedModel=useMemo(()=>r1ScatterModel(history,component,selected),[history,component,selected])
-  const chosen=history.find(a=>a.releaseId===savedModel.inspection?.releaseId),r=chosen?.readings.find(r=>r.id===component)
+  const chosen=history.find(a=>a.releaseId===savedModel.inspection?.releaseId),r=chosen&&(component==='policy-total'?policySummaryReading(chosen):chosen.readings.find(r=>r.id===component))
   const calibrationKey=`${family}/${component}${chosen?.stage==='revision'?'/revision':''}`,manual=settings.calibration.limits[calibrationKey]
   const scope=`${calibrationKey}/${JSON.stringify(settings.calibration)}/${JSON.stringify(savedBands[family])}`
   const [draft,setDraft]=useRetainedScatterState<{scope:string;limits:MagnitudeLimits|null}>(viewState,'r1-preview',{scope:'',limits:null})
@@ -52,7 +54,7 @@ export function R1ScatterPanel({brokerId,clockOffsetMs=0,target,binding,onMeasur
     <p>{preview?'Preview evidence':'R1 evidence'}: {evidence==null?'Unavailable':evidence.toLocaleString(undefined,{maximumFractionDigits:2})}.</p>
     {usesFractionalMagnitude(family)&&<p>Magnitude points: {previewPoints==null?'Unavailable':Math.abs(previewPoints).toLocaleString(undefined,{maximumFractionDigits:2})}.</p>}
     {r?.reason&&!(preview&&r.delta!==null)&&<p role="status">{r.reason}</p>}
-    {r?.period==='action'?<p>25 bp per point, capped at four.</p>:r&&<R1BoundaryEditor key={scope} limits={r.limits} preview={preview} manual={!!manual} unit={r.unit} onPreview={limits=>setDraft({scope,limits})} onApply={apply} onReset={()=>apply(null)}/>}
+    {component==='policy-total'?<p>Inferred pressure change since the previous Fed decision.</p>:r?.period==='action'?<p>25 bp per point, capped at four.</p>:r&&<R1BoundaryEditor key={scope} limits={r.limits} preview={preview} manual={!!manual} unit={r.unit} onPreview={limits=>setDraft({scope,limits})} onApply={apply} onReset={()=>apply(null)}/>}
     <details><summary>Input audit</summary><p>{chosen?.version} · {r?.calibration} · {r?.vintage?.replaceAll('-',' ')??'unavailable'}</p></details>
   </MagnitudeCalculationDetails></div>}</section>
 }

@@ -1,7 +1,7 @@
 import type { R1Aggregate, R1Assessment, R1Balance, R1Currency, R1Family, R1Settings } from './contracts'
-import { createR1SnapshotReader, r1ObservationClocks, type R1SnapshotInput } from './analysis'
+import { assessFedPublication,createR1SnapshotReader, r1ObservationClocks, type R1SnapshotInput } from './analysis'
 import { createR1History } from './features'
-import { r1Profiles } from './profiles'
+import { r1Profiles,r1Families } from './profiles'
 import { precise } from './arithmetic'
 import { assessR1 } from './assessment'
 
@@ -23,6 +23,7 @@ export function calculateR1Timeline(input:R1TimelineInput):R1Timeline {
   const history=createR1History(input.events),start=Date.UTC(2015,0,1)
   const readers={USD:createR1SnapshotReader({...input,currency:'USD',settings:input.usdSettings},true),EUR:createR1SnapshotReader({...input,currency:'EUR',settings:input.eurSettings},true)}
   const settings={USD:input.usdSettings,EUR:input.eurSettings}
+  const fedReader=createR1SnapshotReader({...input,currency:'USD',settings:{...input.usdSettings,selected:r1Families}},true)
   const publications=new Map<number,typeof history.releases>()
   for(const release of history.releases)if(release.releaseAt!==null&&release.releaseAt>=start&&release.releaseAt<=input.end&&settings[release.currency].selected.some(f=>relevant(f,release))){
     const at=release.releaseAt;publications.set(at,[...(publications.get(at)??[]),release])
@@ -61,7 +62,8 @@ export function calculateR1Timeline(input:R1TimelineInput):R1Timeline {
           const profile=r1Profiles[family],slot=aggregate.slots.find(s=>s.family===family)?.assessment
           // Quarterly relationship momentum differs from the release's revision
           // score. Reuse other publication assessments; never calculate on hover.
-          const a=slot?.releaseId===release.id&&!profile.components.some(c=>c.period==='quarter')?slot:assessR1(release,profile,history,settings[currency].calibration,input.savedBands,false,undefined,at,false)
+          const raw=slot?.releaseId===release.id&&!profile.components.some(c=>c.period==='quarter')?slot:assessR1(release,profile,history,settings[currency].calibration,input.savedBands,false,undefined,at,false)
+          const a=family==='fomc'?assessFedPublication(release,history,fedReader,raw):raw
           standalone.push({family:a.family,label:a.label,releaseId:a.releaseId,net:a.net,direction:a.direction,strength:a.strength,unavailable:a.unavailable,explanation:a.explanation})
         }
         update={at,before:previous?.net??0,after:aggregate.net,change:precise(aggregate.net-(previous?.net??0)),kind,releases,parts,standalone}

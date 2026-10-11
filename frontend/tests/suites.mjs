@@ -68,6 +68,7 @@ export const suites = [
   "tests/usd-context/test_fundamental_tools.mjs",
   "tests/inspector/test_publication_layout.mjs",
   "tests/test_usd_r1.mjs",
+  "tests/test_r1_policy_context.mjs",
   "tests/test_usd_r1_integration.mjs",
   "tests/test_evidence_r1.mjs",
   "tests/test_eur_r1_integration.mjs",

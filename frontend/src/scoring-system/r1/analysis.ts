@@ -1,12 +1,14 @@
 import type { R1Analysis, R1Assessment, R1Family, R1Input, R1Schedule, R1Slot, R1Aggregate } from './contracts'
 import { r1Family, r1Families, eurR1Families, r1Profiles, r1ReleaseFamily,r1Currency } from './profiles'
-import { createR1History, reference } from './features'
+import { createR1History, reference, type R1History } from './features'
 import { assessR1, prepareR1Features, readingVariants } from './assessment'
 import { aggregateSensitivity, combineR1, r1Freshness } from './relationships'
 import { r1Observation } from './vintages'
 import {r1DefaultFreshness,eurR1DefaultFreshness} from './freshness'
 import {precise} from './arithmetic'
 import {combineEurR1,eurCategoryWeights} from './eur-relationships'
+import {interpretFedPolicy,compareFedPolicy} from './policy-context'
+import type {InspectorRelease} from '../../inspector/inspector-data'
 
 export function calculateR1(input:R1Input):R1Analysis {
   const family=r1ReleaseFamily(input.release)??r1Family(input.release.familyId)
@@ -16,9 +18,13 @@ export function calculateR1(input:R1Input):R1Analysis {
   const history=createR1History(input.events),at=input.asOf??input.release.releaseAt??0
   const prepared=new Map(families.map(f=>[f,prepareR1Features(history,r1Profiles[f])]))
   const originalRelease=history.releases.find(r=>r.id===input.release.id)??input.release
-  const assessment=assessR1(originalRelease,r1Profiles[family],history,input.settings.calibration,input.savedBands,false,prepared.get(family))
+  let assessment=assessR1(originalRelease,r1Profiles[family],history,input.settings.calibration,input.savedBands,false,prepared.get(family))
   const snapshot=createR1SnapshotReader({...input,currency})
   const overall=snapshot(at,true),before=snapshot(at-1,false)
+  if(family==='fomc'&&assessment.readings[0]?.delta===0){
+    const reader=input.settings.selected.length===r1Families.length?snapshot:createR1SnapshotReader({...input,currency:'USD',settings:{...input.settings,selected:r1Families}},true)
+    assessment=assessFedPublication(originalRelease,history,reader,assessment)
+  }
   const publications=history.releases.filter(r=>r.releaseAt===at&&r.currency===currency).flatMap(r=>{
     const mapped=r1ReleaseFamily(r)
     return mapped&&input.settings.selected.some(f=>(r1Profiles[f].releaseFamily??f)===r.familyId&&r1Profiles[f].components.some(c=>r.events.some(e=>e.event_id===c.seriesId)))?[r1Profiles[mapped].label]:[]
@@ -27,6 +33,13 @@ export function calculateR1(input:R1Input):R1Analysis {
   const expiries=overall.slots.filter(s=>s.status==='stale'&&before.slots.find(b=>b.family===s.family)?.status==='current').map(s=>r1Profiles[s.family].label)
   const assessments=currency==='EUR'?families.filter(f=>(r1Profiles[f].releaseFamily??f)===originalRelease.familyId&&r1Profiles[f].country===originalRelease.country&&r1Profiles[f].components.some(c=>originalRelease.events.some(e=>e.event_id===c.seriesId))).map(f=>f===family?assessment:assessR1(originalRelease,r1Profiles[f],history,input.settings.calibration,input.savedBands,false,prepared.get(f))):[]
   return{assessment,...(assessments.length>1?{assessments}:{}),overall,transition:{before,change:precise(overall.net-before.net),publications:[...new Set(publications)],corrections,expiries}}
+}
+
+export function assessFedPublication(release:InspectorRelease,history:R1History,reader:(at:number)=>R1Aggregate,action:R1Assessment):R1Assessment {
+  if(action.readings[0]?.delta!==0)return action
+  const current=reader(release.releaseAt??0).policyInterpretation??interpretFedPolicy(action,{leaves:[],readings:[]})
+  const previous=history.releases.filter(r=>r.familyId==='fomc'&&r.currency==='USD'&&r.releaseAt!==null&&r.releaseAt<(release.releaseAt??0)&&r.events.some(e=>e.event_id==='840050014')).at(-1)
+  return compareFedPolicy(current,previous?.releaseAt?reader(previous.releaseAt).policyInterpretation:undefined)
 }
 
 export type R1SnapshotInput=Omit<R1Input,'release'|'asOf'>&{currency:'USD'|'EUR'}

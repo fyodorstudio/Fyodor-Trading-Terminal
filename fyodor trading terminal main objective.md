@@ -15,6 +15,24 @@ legacy Roofs/Candy and retired Raycaster views retain their separate contracts.
 
 Canonical current policy and primary-source rationale:
 [scoring design](docs/scoring%20system%20overhaul.md#currency-evidence-summary-and-eur-r1).
+
+Latest accepted USD refinement: Jobs uses fractional magnitude with existing
+60/30/10 weights and native bands. Origin category shares are 30/30/20/20;
+25% of the macro allowances moves into inferred policy context, preserving the
+total budget. Fed holds compare inferred economic pressure with the previous
+decision; the factual rate action remains 0 bp. Overall retains current pressure
+and does not invent a new jump at a hold. Forecasts, speeches, projections and
+written guidance remain excluded. The
+[policy design](docs/scoring%20system%20overhaul.md#fed-policy-context-and-jobs--11-october-2026)
+and [dated replay](reports/R1-policy-context-audit.md) supersede the older
+35/30/15/20 relationship policy below. Inspector/Scatter/Raycaster share the
+interpretation, chronology, freshness and missing-data budgets. No price outcome
+or specific meeting date enters the scoring formula; visual review stays manual.
+Verified: 73 frontend suites, lint/build, 63 stored hold comparisons and all three
+production R1 workers. June is supportive and July negative under both automatic
+and the documented CPI bands; missing history remains insufficient. The price
+audit is retrospective and does not validate optimal coefficients.
+
 The [expansion audit](reports/Currency-evidence-R1-expansion-audit.md) records
 coverage, Inspector/Scatter chronology and built-worker parity. Numerical shares,
 boundaries and fallback lifetimes remain explicit design policies. Publication
