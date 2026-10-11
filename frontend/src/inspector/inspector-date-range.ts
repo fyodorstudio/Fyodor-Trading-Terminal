@@ -1,12 +1,12 @@
 import { calendarDisplayRange, displayWeekDateKeys, type CalendarRangePreset } from '../economic-calendar/time/calendar-display-range'
 import type { TimeDisplayPreference } from '../appearance/time-display/time-display-preference'
 
-export type InspectorRangePreset = CalendarRangePreset | 'today' | 'this-month' | 'same-month-last-year' | 'year-to-date'
+export type InspectorRangePreset = CalendarRangePreset | 'today' | 'this-month' | 'year-window' | 'year-to-date'
 export const inspectorDefaultAfterDays = 90
 export const inspectorRangePresets = [
   ['today', 'Today'], ['previous-week', 'Previous week'], ['this-week', 'This week'],
   ['next-week', 'Next week'], ['this-month', 'This month'], ['year-to-date', 'Year to date'],
-  ['same-month-last-year', 'Same month last year'],
+  ['year-window', '12 months before · 90 days after'],
 ] as const
 export function validInspectorDate(key: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(key) || Number(key.slice(0, 4)) < 1000) return false
@@ -25,9 +25,11 @@ export function inspectorRangeDates(preset: InspectorRangePreset, today: string,
   switch (preset) {
     case 'today': return { from: today, to: today }
     case 'this-month': return { from: `${today.slice(0, 7)}-01`, to: shiftInspectorDate(`${shiftInspectorMonth(today.slice(0, 7), 1)}-01`, -1) }
-    case 'same-month-last-year': {
-      const month = shiftInspectorMonth(today.slice(0, 7), -12)
-      return { from: `${month}-01`, to: shiftInspectorDate(`${shiftInspectorMonth(month, 1)}-01`, -1) }
+    case 'year-window': {
+      const [year, month, day] = today.split('-').map(Number)
+      const lastDay = new Date(Date.UTC(year - 1, month, 0)).getUTCDate()
+      const from = new Date(Date.UTC(year - 1, month - 1, Math.min(day, lastDay))).toISOString().slice(0, 10)
+      return { from, to: shiftInspectorDate(today, inspectorDefaultAfterDays) }
     }
     case 'year-to-date': return { from: `${today.slice(0, 4)}-01-01`, to: today }
     case 'previous-week': return { from: shiftInspectorDate(week.start, -7), to: shiftInspectorDate(week.end, -7) }

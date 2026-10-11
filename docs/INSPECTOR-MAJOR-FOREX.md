@@ -21,9 +21,9 @@ symbols and colors. EURUSD's existing scoring views remain available. The other
 readings. No new currency scorers, bands or formula changes are included.
 
 FOMC minutes are a separate Monetary policy family. The startup date preset is
-Same month last year (the complete calendar month). The date picker's anchor starts
-at Today with After set to 90 days; editing the anchor or offsets applies a custom
-range. Opening the picker leaves the selected preset unchanged.
+12 months before today through 90 days after today. The date picker starts with
+Today as its anchor; Before reflects the full calendar year (365 or 366 days),
+and After is 90. February 29 clamps to February 28 in the preceding year.
 
 Catalog admission uses exact MT5 IDs plus country/currency, verified against the
 28 September 2026 export. Source names, missing values, native units, capture clocks,
