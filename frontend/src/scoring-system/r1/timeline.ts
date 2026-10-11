@@ -4,16 +4,17 @@ import { createR1History } from './features'
 import { r1Profiles,r1Families } from './profiles'
 import { precise } from './arithmetic'
 import { assessR1 } from './assessment'
+import {r1MissingEvidence} from './presentation'
 
 export type R1TimelineInput=Omit<R1SnapshotInput,'currency'|'settings'>&{usdSettings:R1Settings;eurSettings:R1Settings;end:number}
 export type R1UpdatePart={label:string;change:number;family?:R1Family}
 export type R1ReleaseScore=Pick<R1Assessment,'family'|'label'|'releaseId'|'net'|'direction'|'strength'|'unavailable'|'explanation'>
 export type R1Update={at:number;before:number;after:number;change:number;kind:'publication'|'expiry'|'correction'|'schedule';releases:{id:string;family:string;label:string;country:string}[];parts:R1UpdatePart[];standalone:R1ReleaseScore[]}
-export type R1TimelineState=Pick<R1Balance,'supportive'|'negative'|'net'|'unavailable'|'interval'|'direction'|'strength'|'coverage'>&{update:R1Update|null}
+export type R1TimelineState=Pick<R1Balance,'supportive'|'negative'|'net'|'unavailable'|'interval'|'direction'|'strength'|'coverage'>&{update:R1Update|null;missing:string[]}
 export type R1TimelinePoint={at:number;USD:R1TimelineState;EUR:R1TimelineState}
 export type R1Timeline={points:R1TimelinePoint[]}
 const currencies=['USD','EUR'] as const
-const state=(aggregate:R1Aggregate,update:R1Update|null):R1TimelineState=>({supportive:aggregate.supportive,negative:aggregate.negative,net:aggregate.net,unavailable:aggregate.unavailable,interval:aggregate.interval,direction:aggregate.direction,strength:aggregate.strength,coverage:aggregate.coverage,update})
+const state=(aggregate:R1Aggregate,update:R1Update|null):R1TimelineState=>({supportive:aggregate.supportive,negative:aggregate.negative,net:aggregate.net,unavailable:aggregate.unavailable,interval:aggregate.interval,direction:aggregate.direction,strength:aggregate.strength,coverage:aggregate.coverage,update,missing:r1MissingEvidence(aggregate)})
 function relevant(family:R1Family,release:ReturnType<typeof createR1History>['releases'][number]) {
   const p=r1Profiles[family]
   return (p.releaseFamily??family)===release.familyId&&(p.country??'US')===release.country&&(p.currency??'USD')===release.currency&&release.events.some(row=>p.components.some(c=>c.seriesId===row.event_id))

@@ -10,7 +10,7 @@ not instructions to restore earlier formulas or UI.
 | Product term | Meaning and code location |
 | --- | --- |
 | Release / publication | A calendar publication and its grouped numerical observations; `frontend/src/inspector/episodes/` and `inspector-data.ts`. Reference week/month is distinct from publication time. |
-| Standalone score | One family's eligible inputs resolved into USD bias and evidence. Calculations in `scoring-system/PAIR/EURUSD/USD/`; presentation in `inspector/scoring/PAIR/EURUSD/USD/`. |
+| Standalone score | One family's eligible inputs resolved into currency evidence. Active USD/EUR R1: `scoring-system/r1/`, UI `inspector/scoring/R1Score.tsx`. Older USD models: `scoring-system/PAIR/EURUSD/USD/`. |
 | Assessment | A model's comparison horizon. Claims v3 has independent This release and Four-week trend assessments, not two extra context votes. |
 | Signal / component | A derived comparison used by a scorer. Its magnitude boundaries differ from the raw Actual−Previous bands in Scatter Plot. |
 | Roofs / combo / relationship | A group of releases evaluated at its activation time. Includes retained support and fresh-news changes; it is not automatically a combination of the newest standalone model versions. Math in `scoring-system/relationships/`, UI/storage in `usd-context/sequences/`. |
@@ -31,7 +31,8 @@ Paths below are relative to `frontend/src/`.
 | Task | Start here |
 | --- | --- |
 | Inspector model/menu/version | `inspector/scoring/scoring-registry.ts` |
-| Family formula, weights, calibration | `scoring-system/PAIR/EURUSD/USD/<FAMILY>/{assessment,policy}/` |
+| Active family formula, weights, calibration | `scoring-system/r1/{profiles,eur-profiles,features,assessment,arithmetic}.ts` |
+| Older standalone family models | `scoring-system/PAIR/EURUSD/USD/<FAMILY>/{assessment,policy}/` |
 | USD/EUR R1 families, relationships, pair comparison, calibration and history | `scoring-system/r1/`; see its README and `docs/scoring system overhaul.md` |
 | Claims standalone versus legacy context | `CLAIMS/assessment/claims-standalone-score.ts` versus `claims-score.ts` under the family path above |
 | Canonical settings metadata / Scatter definitions | `scoring-system/scoring-catalog.ts`, `scoring-signal-bindings.ts` |
@@ -41,11 +42,17 @@ Paths below are relative to `frontend/src/`.
 | Calculation jobs / history queries | Family runtime plus `inspector/scoring/shared/runtime/`; context runtime in `usd-context/` and `pair-context/` |
 | Saved settings portability | `workspace-portability/workspace-snapshot.ts` |
 | Test entry points | `frontend/tests/suites.mjs` (from root); run suites sequentially |
+| R1 Raycaster tanks and release rows | `raycaster/ui/{R1Reading,R1EvidenceTank}.tsx`, `raycaster/core/r1-evidence-presentation.ts` |
 
 Runtime APIs and settings keys are contracts. Prefer these entry points and `rg`
 over renaming product terms across code or rewriting historical reports.
 
 ## Hygiene review — 9 October 2026
+
+The [11 October PMI/tanks audit](../reports/R1-PMI-tanks-audit.md) removes two
+unreachable worker entries. All 463 current frontend source files are reachable
+from bootstrap; relative imports resolve. Active objective/navigation text is
+updated and its full previous handoff is preserved as historical evidence.
 
 The review found 644 tracked files and no tracked dependency folders, build output,
 Python caches or local inventory. Three broken root README links to deleted user

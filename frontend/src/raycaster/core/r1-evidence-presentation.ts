@@ -1,6 +1,22 @@
 import type { R1TimelineState, R1Update } from '../../scoring-system/r1/timeline'
 import { precise } from '../../scoring-system/r1/arithmetic'
 
+const tankPosition=(value:number)=>50-Math.max(-100,Math.min(100,value))/2
+export function r1TankGeometry(state:R1TimelineState) {
+  const previous=state.update?.before??state.net
+  return {fillTop:Math.min(50,tankPosition(state.net)),fillHeight:Math.abs(Math.max(-100,Math.min(100,state.net)))/2,
+    previousTop:tankPosition(previous),rangeTop:tankPosition(state.interval[1]),rangeHeight:tankPosition(state.interval[0])-tankPosition(state.interval[1])}
+}
+
+export function r1UpdateRows(update:R1Update) {
+  const parts=r1DisplayParts(update),assigned=new Set<string>()
+  return [...update.standalone.map(score=>{
+    const part=assigned.has(score.family)?undefined:parts.find(p=>p.family===score.family)
+    assigned.add(score.family)
+    return {key:`${score.releaseId}/${score.family}`,label:score.label,score,change:part?.change}
+  }),...parts.filter(p=>!p.family||!assigned.has(p.family)).map(p=>({key:p.family??p.label,label:p.label,score:undefined,change:p.change}))]
+}
+
 export function r1EvidencePoints(value:number) {
   const rounded=Math.round(value*100)/100
   return `${rounded>0?'+':''}${rounded.toFixed(2)}`

@@ -49,7 +49,7 @@ export function RaycasterBox({ symbol, point, eurPoint, fresh, publication, cuto
   const direction = ready ? relative ? relative.direction === 'long' || relative.direction === 'short' ? relative.direction : null : presentation?.direction ?? null : null
   const votes = result?.members.filter(m => m.status === 'active').map(m => ({ label: m.sourceLabel, towardLong: orient * m.contribution })) ?? []
   const fed = selectedCombo?.sources.find(s => s.family === 'fed')
-  return <aside ref={ref} className={`raycaster-box${activeView === 'context-detailed' ? ' raycaster-box-detailed' : ''}`} aria-label={activeView==='r1'?'Raycaster R1 currency evidence':'Raycaster USD context'}
+  return <aside ref={ref} className={`raycaster-box${activeView === 'context-detailed' ? ' raycaster-box-detailed' : activeView==='r1'?' raycaster-box-r1':''}`} aria-label={activeView==='r1'?'Raycaster R1 currency evidence':'Raycaster USD context'}
     style={{ transform: `translate(${position.x}px, ${position.y}px)` }}>
     <header className="raycaster-header"><button type="button" onPointerDown={drag} className="raycaster-handle" aria-label="Move Raycaster" title="Drag to move Raycaster">⠿ Raycaster</button>
       <label className="raycaster-view-label" htmlFor={viewId}>View</label>

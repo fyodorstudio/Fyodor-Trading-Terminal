@@ -5,7 +5,7 @@ import { useR1Analysis } from '../../scoring-system/r1/useR1Analysis'
 import {useDisplayClock} from '../../appearance/time-display/useDisplayClock'
 import {r1Profiles} from '../../scoring-system/r1/profiles'
 import {usesFractionalMagnitude} from '../../scoring-system/r1/arithmetic'
-import {r1DirectionLabel} from '../../scoring-system/r1/presentation'
+import {r1DirectionLabel,r1MissingEvidence} from '../../scoring-system/r1/presentation'
 import './r1-score.css'
 const number=(n:number)=>n.toLocaleString(undefined,{maximumFractionDigits:2,signDisplay:'exceptZero'})
 const detailChoices={release:'Release inputs',relationships:'Overall relationships',freshness:'Freshness',audit:'Input audit'}
@@ -41,7 +41,7 @@ export function R1Score(props:InspectorScoringProps) {
       <section className="r1-summary-block" aria-label="Standalone summary">
         <h3>{a.contextual?'Fed release · policy interpretation':`Standalone · ${a.label}`}</h3>
         <div className={`r1-result r1-${a.direction}`}><strong>{a.contextual?r1DirectionLabel(a,currency):action??r1DirectionLabel(a,currency)}</strong>{a.strength&&<b className="r1-strength">Evidence: {a.strength[0].toUpperCase()+a.strength.slice(1)}</b>}
-          <span className="r1-points">{a.contextual?'Policy points':'Release points'}: <b>{a.direction==='insufficient'?'Unavailable':number(a.net)}</b></span>
+          <span className="r1-points">{a.contextual?'Policy points':'Release points'}: <b>{a.coverage===0?'Unavailable':number(a.net)}</b></span>
         </div>
         <div className="r1-evidence"><Totals value={a} currency={currency}/><p className="r1-explanation">{a.contextual?`${action??''} ${a.explanation}`:held?'A hold alone does not establish currency strength or weakness.':a.explanation}</p></div>
         {a.unavailable>0&&<p className="r1-notes">Possible release net: {number(a.interval[0])} to {number(a.interval[1])}.</p>}
@@ -53,7 +53,7 @@ export function R1Score(props:InspectorScoringProps) {
       </div>
       <div className="r1-evidence"><Totals value={o} currency={currency}/><p className="r1-explanation">{explanation}</p></div>
       {t.publications.length>1&&<p className="r1-notes">Combined update: {t.publications.join(', ')}.</p>}
-      {(o.coverage<1||t.before.coverage<1)&&<p className="r1-notes">Partial coverage · possible net {number(o.interval[0])} to {number(o.interval[1])}.</p>}
+      {o.unavailable>0&&<p className="r1-notes">Incomplete — {r1MissingEvidence(o).join(', ')} unavailable.</p>}
       {o.sensitive&&<p className="r1-notes">Direction sensitive to weights or boundaries.</p>}
       </section>
       {otherCurrency&&<section className="r1-summary-block" aria-label={`${currency==='USD'?'EUR':'USD'} combined relationship summary`}>
@@ -62,7 +62,7 @@ export function R1Score(props:InspectorScoringProps) {
           <span className="r1-points">Evidence points: <b>{number(otherCurrency.transition.before.net)} → {number(otherCurrency.overall.net)}</b></span><Change value={otherCurrency.transition.change}/>
         </div>
         <div className="r1-evidence"><Totals value={otherCurrency.overall} currency={currency==='USD'?'EUR':'USD'}/><p className="r1-explanation">{otherCurrency.overall.explanation}</p></div>
-        {otherCurrency.overall.coverage<1&&<p className="r1-notes">Known evidence: {Math.round(otherCurrency.overall.coverage*100)}%.</p>}
+        {otherCurrency.overall.unavailable>0&&<p className="r1-notes">Incomplete — {r1MissingEvidence(otherCurrency.overall).join(', ')} unavailable.</p>}
       </section>}
     </header>
     <label className="r1-details-choice">Details <select aria-label="Scoring details" value={detail} onChange={e=>{const next=e.target.value as Detail;setDetail(next);try{window.localStorage.setItem(r1DetailsKey,next)}catch{/* Keep session choice. */}}}>{Object.entries(detailChoices).map(([key,label])=><option key={key} value={key}>{label}</option>)}</select></label>
@@ -74,7 +74,7 @@ export function R1Score(props:InspectorScoringProps) {
       <table><thead><tr><th>Evidence</th><th>Overall weight</th><th>Direction</th><th>Supportive</th><th>Negative</th></tr></thead><tbody>{o.categories.map(c=><tr key={c.category}><td>{c.label}</td><td>{c.share==null?'—':`${(c.share*100).toLocaleString(undefined,{maximumFractionDigits:3})}%`}</td><td>{r1DirectionLabel(c,currency)}</td><td>{number(c.supportive)}</td><td>{number(c.negative)}</td></tr>)}</tbody></table>
     </section>}
     {detail==='audit'&&<section className="r1-audit" aria-label="Input audit"><h4>Input audit</h4>{a.policyComparison&&<><p>Policy pressure compared with {a.policyComparison.previousAt===null?'an unavailable previous decision':clock.utc(a.policyComparison.previousAt)}.</p>{(['current','previous'] as const).map(side=><section key={side} aria-label={`${side} policy context`}><h4>{side==='current'?'Current decision inputs':'Previous decision inputs'}</h4><table><thead><tr><th>Input</th><th>Weight</th><th>Actual</th><th>Baseline</th><th>Comparison</th><th>Policy points</th></tr></thead><tbody>{a.policyComparison![side].map(r=><tr key={r.id}><td>{r.label}</td><td>{r.weight.toLocaleString(undefined,{maximumFractionDigits:2})}%</td><td>{r.actual===null?'Unavailable':`${number(r.actual)} ${r.unit==='pp'?'%':r.unit}`}</td><td>{r.previous===null?'Unavailable':`${number(r.previous)} ${r.unit==='pp'?'%':r.unit}`}</td><td>{r.reason||r.basis}</td><td>{r.contribution===null?'Unavailable':number(r.contribution/4)}</td></tr>)}</tbody></table>{a.policyComparison![side].length===0&&<p>Policy context unavailable.</p>}</section>)}</>}{a.readings.map(r=><p key={r.id}>{r.label}: {r.reason||r.basis} · {r.calibration==='policy-comparison'?'derived':r.vintage?.replaceAll('-',' ')??'unavailable'}{r.knownAt?` (captured ${new Date(r.knownAt).toISOString()})`:''} · {r.calibration}{r.limits?` · boundaries ${r.limits.join(' / ')} ${r.unit}`:''}</p>)}
-      <p>Before: {clock.utc(t.before.at)}. After: {clock.utc(o.at)} ({clock.zone}).</p><p>Known input coverage: {Math.round(t.before.coverage*100)}% → {Math.round(o.coverage*100)}%. Before possible net: {number(t.before.interval[0])} to {number(t.before.interval[1])}.</p>
+      <p>Before: {clock.utc(t.before.at)}. After: {clock.utc(o.at)} ({clock.zone}).</p><p>Known input coverage: {Math.round(t.before.coverage*100)}% → {Math.round(o.coverage*100)}%. Before possible net: {number(t.before.interval[0])} to {number(t.before.interval[1])}. After possible net: {number(o.interval[0])} to {number(o.interval[1])}.</p>
       {t.publications.length>0&&<p>Publications: {t.publications.join(', ')}.</p>}{t.corrections.length>0&&<p>Corrections: {t.corrections.join(', ')}.</p>}{t.expiries.length>0&&<p>Expired inputs: {t.expiries.join(', ')}.</p>}
       {o.timingSensitive&&<p>Direction changes under the tested expiry windows.</p>}
     </section>}

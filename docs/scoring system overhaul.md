@@ -906,9 +906,9 @@ action 20%. Within categories: HICP 85% / wage costs 15%; unemployment 60% /
 employment 40%; GDP 40% / PMI 60%. Explicit exclusions renormalize selected
 allowances; unknown or expired selected evidence retains its nominal budget.
 
-Composite PMI owns the PMI activity allowance for the latest selected reference
+Current usable composite PMI owns the PMI activity allowance for the latest selected reference
 month. Its sectors remain visible through the Release inputs Assessment selector,
-without duplicate votes or recalculation. Without a selected composite for that month, selected services/manufacturing
+without duplicate votes or recalculation. Without a usable selected composite for that month, selected services/manufacturing
 use a 70/30 fallback, with missing selected sectors retaining uncertainty.
 This fallback is a policy proxy, not S&P's official composite calculation.
 German/French PMI and German HICP provide standalone national context, without
@@ -1146,3 +1146,27 @@ fixed-window price comparison are recorded in the
 does not prove original publication vintages; neither these two examples nor
 the price review establish an optimal scoring model. Visual/performance review
 remains with the user.
+
+## PMI fallback and signed Raycaster tanks — 11 October 2026
+
+The user confirmed blank MT5 Actuals for October PMI. Keep MT5 as the numerical
+source; do not fill these reports with official/web values, prior-month readings
+or forecasts. A current usable composite, including a measured zero change,
+replaces sectors for the newest month. Otherwise use selected same-month sectors
+at the existing 70/30 services/manufacturing proxy. Missing selected sectors keep
+their allowances; stale composites cannot block current sectors. This corrects
+availability handling, not the underlying weights or standalone PMI formula.
+
+Incomplete nonzero subtotals are presented as **Available evidence favors
+strength/weakness**, qualified **Incomplete** with missing inputs named. Keep
+the engine's strict direction, nominal missing budgets and possible interval.
+No usable evidence remains unavailable; a partial zero does not invent a lead.
+Inspector, Raycaster and settings descriptions must agree with these rules.
+
+Raycaster uses two compact tanks on a fixed ±100 scale, green above zero and red
+below, with the previous score marked and missing allowance hatched. Keep score
+pairs and signed changes in fixed slots; no animation trails during rapid hover.
+Joined dated rows show standalone points, each family's overall change and the
+combined total. Text wraps within the panel without clipping information to mask
+horizontal overflow. Retired views remain available. Browser/visual review stays
+with the user; terminal tests verify arithmetic, propagation and zero hover work.

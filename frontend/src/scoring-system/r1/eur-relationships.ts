@@ -17,7 +17,7 @@ export function combineEurR1(slots:readonly R1Slot[],selected:readonly R1Family[
   const pmiFamilies: R1Family[]=['euro-pmi','euro-services-pmi','euro-manufacturing-pmi']
   const chosen=pmiFamilies.filter(f=>selected.includes(f))
   const ref=Math.max(-Infinity,...chosen.map(f=>map.get(f)?.assessment?.reference??-Infinity))
-  const composite=map.get('euro-pmi'),useComposite=chosen.includes('euro-pmi')&&composite?.assessment?.reference===ref
+  const composite=map.get('euro-pmi'),useComposite=chosen.includes('euro-pmi')&&composite?.status==='current'&&composite.assessment?.reference===ref&&composite.assessment.leaves.some(l=>l.value!==null)
   let pmiLeaves:R1Leaf[]=unknown('euro-pmi')
   if(useComposite)pmiLeaves=usable('euro-pmi')
   else {

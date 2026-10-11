@@ -68,13 +68,18 @@ for momentum and revisions; manual bands retain priority. See the
   and [stored replay](../../../../reports/R1-policy-context-audit.md).
 - `eur-profiles.ts` / `eur-relationships.ts`: EUR roles, native IDs, distinct-month
   comparisons, quarterly cadence and one composite/sector PMI activity allowance.
+  A current usable composite replaces sectors for the newest reference month;
+  otherwise selected same-month sectors use the existing 70/30 proxy. Missing
+  selected sectors keep their allowances; older months are not substitutes.
   National reports remain standalone context; flash/final estimates replace slots.
   PMI explanations distinguish level at 50 from improvement/softening. Missing
   MT5 Actual retains its unavailable vote and an explicit reason. Same-month flash
   metadata does not invalidate the independently dated prior-month comparison.
 - `presentation.ts`: shared currency direction labels. Inspector keeps its summary
   visible above one selected detail table; table/PMI assessment selection never
-  rescores history.
+  rescores history. A nonzero incomplete subtotal is labelled **Available evidence
+  favors strength/weakness**, with missing inputs named. Engine directions and
+  intervals are preserved; no usable inputs remain **Evidence unavailable**.
 - `settings.ts`: separate portable USD/EUR overrides and relationship scope. Saved
   compatible USD raw A−P bands are inherited without mutation. EUR retains separate
   overrides/calibration because its distinct-period baseline can differ from feed
@@ -123,6 +128,13 @@ observation, schedule and expiry clocks. Hover performs a binary lookup and
 projects only the inspected candle's updates. This nominal timeline omits
 sensitivity sweeps while preserving Inspector's base direction, strength and
 missing-evidence intervals. See the [Raycaster audit](../../../../reports/R1-Raycaster-audit.md).
+
+The compact signed tanks and joined release/overall-change rows are owned by
+`raycaster/ui/{R1Reading,R1EvidenceTank}.tsx`. Both tanks use the fixed ±100 scale;
+zero, previous-score markers and missing-budget hatching preserve the distinction
+between score and change. Timeline states carry compact missing-input labels
+prepared in the worker; hover only projects a selected point and its updates.
+See the [PMI/tanks replay](../../../../reports/R1-PMI-tanks-audit.md).
 
 Standalone scores and combined changes use distinct labels in Inspector and
 Raycaster. Timeline publication updates include normalized standalone summaries;
