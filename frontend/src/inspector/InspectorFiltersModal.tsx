@@ -85,7 +85,7 @@ export function InspectorFiltersModal({ preferences, onApply, onClose, symbol = 
       {!matches.length && <p className="inspector-search-note" role="status">No families match “{search}”.</p>}
       {terms.length > 0 && <p className="inspector-search-note" role="status">Search changes visibility only. Category checkboxes still control the whole category; hidden selections are preserved.</p>}
       <p className="inspector-modal-note">Symbols follow the applied date range and families. Date-only symbols mark the release day.</p>
-      <footer><span className="inspector-filter-save-note">Changes update the chart immediately. Save keeps them after refresh.</span>
+      <footer><span className="inspector-filter-save-note">Changes preview here. Save shares family selections across pairs.</span>
         <button type="button" onClick={() => { onApply(filterPreferences(original.current), 'preview'); onClose() }}>Cancel</button><button type="button" className="inspector-primary"
         onClick={() => { onApply(filterPreferences(draft), 'save'); onClose() }}>Save</button></footer>
     </div>

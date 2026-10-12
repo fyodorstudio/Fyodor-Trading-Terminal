@@ -9,8 +9,8 @@ import { buildInspectorMarkers } from './chart/build-markers'
 import { filterInspectorReleases } from './filters/filter-releases'
 import { groupInspectorReleases } from './releases/group-releases'
 import { groupInspectorDays, selectedInspectorRelease } from './releases/group-days'
-import { inspectorPreferenceKey, readInspectorPreferences, supportsInspector, type InspectorPreferences, type InspectorPreferenceUpdate } from './preferences/inspector-preferences'
-import { forexPairCurrencies as inspectorPairCurrencies } from '../economic-calendar/forex/pairs'
+import { inspectorPreferenceKey, readInspectorPreferences, saveInspectorPreferences, supportsInspector, type InspectorPreferences, type InspectorPreferenceUpdate } from './preferences/inspector-preferences'
+import { forexPair as inspectorPair, forexPairCurrencies as inspectorPairCurrencies } from '../economic-calendar/forex/pairs'
 import { createInspectorReadingSelector } from '../economic-calendar/forex/select-pair-readings'
 import { useStoredCalendar } from '../economic-calendar/storage/useStoredCalendar'
 import { policyEpisodeWindowMs } from './episodes/policy-episodes'
@@ -30,6 +30,7 @@ export function useInspector({ events = noEvents, symbol, bars, timeframe, timeD
 }) {
   const brokerTime = brokerId !== undefined
   const rangeDisplay = timeDisplay
+  const preferenceSymbol = inspectorPair(symbol) ?? symbol
   const preferenceKey = inspectorPreferenceKey(symbol)
   const [savedPairKey, setSavedPairKey] = useState(preferenceKey)
   const [preferences, setPreferences] = useState(() => readInspectorPreferences(symbol))
@@ -84,9 +85,9 @@ export function useInspector({ events = noEvents, symbol, bars, timeframe, timeD
     }
     setPreferences(normalized)
     if (mode === 'preview') return
-    try { localStorage.setItem(preferenceKey, JSON.stringify(normalized)); setStorageFailed(false) }
+    try { saveInspectorPreferences(preferenceSymbol, normalized); setStorageFailed(false) }
     catch { setStorageFailed(true) }
-  }, [preferenceKey])
+  }, [preferenceSymbol])
   return useMemo(() => ({ supported, preferences, applyPreferences, storageFailed, rangePreset, setRangePreset, customFrom, setCustomFrom,
     customTo, setCustomTo, range, rangeDates, today, selectCustomRange, allReleases, releases, markers, selectedRelease, selectRelease, now,
     markerBars, brokerTime, brokerOffsetSeconds, brokerId, storage }),

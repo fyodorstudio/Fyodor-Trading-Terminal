@@ -33,6 +33,9 @@ This is a practical starting order: promote a lower row when the bank or backdro
 makes it the main concern. Priority does not predict the size of a move.
 
 In **Inspector → Filters**, tick the individual family names below, then **Save**.
+Saved family selections apply to every pair containing that currency: selecting
+BoJ policy on AUDJPY also selects it on USDJPY and the other JPY pairs. For an
+older pair-specific setup, save your preferred selection once to share it.
 Search the name to find it; ticking a whole category selects its other families too.
 In **Alert → Filters**, choose your currencies, tick the same ★ families and **Save**.
 Alert has its own selection; Inspector changes do not update it.

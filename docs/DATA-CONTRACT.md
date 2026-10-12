@@ -69,7 +69,12 @@ Historical symbols need a containing candle; future symbols project timeframe
 slots until actual sessions arrive. Unused projected slots are removed on a gap.
 
 Inspector fetches the pair's currencies, including new IDs, and applies family/
-date filters before grouping. New numeric IDs with valid metadata use each
+date filters before grouping. Saved family selections are shared by currency;
+grouping, symbol visibility, icons and colors remain per canonical pair. A single
+browser-storage write saves both currencies and the pair's appearance settings.
+Preview/Cancel never changes the saved shared selections. Legacy pair settings
+remain readable until Save establishes a currency's shared selection.
+New numeric IDs with valid metadata use each
 currency's selectable Other / new events control; known IDs with wrong metadata
 are rejected. Chart grouping retains every visible series and source value ID.
 Alert keeps independent filters and excludes elapsed events. Paging rejects

@@ -53,7 +53,10 @@ drawings. Visual/live MT5 acceptance remains with the user.
 
 ## Preserved workflow
 
-Choose per-pair Inspector filters/icons/colors → click chart icons → raw tables.
+Choose Inspector families by currency → click chart icons → raw tables.
+Save shares those family selections across every pair containing the currency;
+grouping, symbol visibility, icons and colors remain per pair. Existing pair
+choices are read until a currency is saved once with the shared selection.
 By day keeps one icon per currency/day and sections matching filter categories.
 All 1,051 exported types remain available; new numeric IDs enter Other / new events
 when enabled. A−P describes a numerical change, not a currency verdict. Forecasts,
@@ -63,8 +66,9 @@ Startup range: one calendar year before today through 90 days ahead. The native
 axis includes the whole 90th day after the latest candle's date, with no future
 price candles. Pair/timeframe switching preserves the horizontal date window;
 each symbol fits its own prices. Blank chart clicks dismiss nearby-release lists
-and deselect/collapse Inspector, unless placing a drawing. Saved drawings, filter
-Save/Cancel, dock sizing and clock/theme/chart preferences keep their original keys.
+and deselect/collapse Inspector, unless placing a drawing. Saved drawings, dock
+sizing and clock/theme/chart preferences keep their original keys. Inspector keeps
+Save/Cancel and reads older pair settings; new saves use shared currency selections.
 
 Use the same UI origin (normally localhost:5173) to reuse browser preferences from
 the original app. A different port has separate browser storage. Old scoring view

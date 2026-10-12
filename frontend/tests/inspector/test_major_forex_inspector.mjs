@@ -173,7 +173,7 @@ try {
     await change(`[aria-label="Symbol for ${family.label}"]`, 'sun')
     await change(`[aria-label="${baseCurrency} Base color"]`, '#123456')
     await React.act(async () => [...document.querySelectorAll('dialog button')].find(n => n.textContent === 'Save').click())
-    const saved = JSON.parse(localStorage.getItem(data.inspectorPreferenceKey(pair)))
+    const saved = JSON.parse(localStorage.getItem(data.inspectorSharedStorageKey)).pairs[pair]
     assert.equal(saved.symbols[family.id], 'sun'); assert.equal(saved.currencyColors[baseCurrency], '#123456')
     await render({ symbol: `${pair}.pro` })
     assert.equal(view.preferences.symbols[family.id], 'sun', 'Broker suffix reuses canonical settings')
@@ -218,6 +218,69 @@ try {
   assert.match(markerLabel(view.markers[0], utc).description, /2026-09-18 · Date only/)
   assert.equal(data.buildInspectorMarkers(view.releases, view.preferences, [{ time: dayTime + 3600 }], 'H1')[0].time, dayTime + 3600,
     'Date-only symbols use the first candle on the release day when midnight has no candle')
+  // A saved currency shortlist follows it through every pair, including suffixes.
+  localStorage.removeItem(data.inspectorSharedStorageKey)
+  const currencySelections = (preferences, currency) => preferences.families.filter(id =>
+    data.inspectorFamilies.some(family => family.id === id && family.currency === currency))
+  const audDefaults = data.defaultInspectorPreferences('AUDJPY')
+  const inherited = { ...audDefaults, families: [...currencySelections(audDefaults, 'AUD'), 'boj'] }
+  const legacyJson = JSON.stringify(inherited)
+  localStorage.setItem(data.inspectorPreferenceKey('AUDJPY'), legacyJson)
+  await render({ symbol: 'AUDJPY' })
+  assert.deepEqual(currencySelections(view.preferences, 'JPY'), ['boj'], 'Existing pair choices remain available for migration')
+  await React.act(async () => view.applyPreferences(view.preferences))
+  assert.equal(localStorage.getItem(data.inspectorPreferenceKey('AUDJPY')), legacyJson, 'Legacy settings remain intact')
+  const audSelection = currencySelections(view.preferences, 'AUD')
+  for (const pair of majorForexPairs.filter(pair => pair.includes('JPY'))) {
+    await render({ symbol: pair })
+    assert.deepEqual(currencySelections(view.preferences, 'JPY'), ['boj'], `${pair}: inherits the saved JPY shortlist`)
+  }
+  await render({ symbol: 'USDJPY.pro' })
+  assert.deepEqual(currencySelections(view.preferences, 'JPY'), ['boj'], 'Broker suffixes share the same currency selection')
+  const jpyJson = localStorage.getItem(data.inspectorSharedStorageKey)
+  await click('[data-inspector-filter-trigger]')
+  await click('[aria-label="BoJ policy"]')
+  assert.deepEqual(currencySelections(view.preferences, 'JPY'), [], 'Unchecked family previews locally')
+  assert.equal(localStorage.getItem(data.inspectorSharedStorageKey), jpyJson, 'Preview never changes another pair')
+  assert.deepEqual(currencySelections(data.readInspectorPreferences('AUDJPY'), 'JPY'), ['boj'])
+  await React.act(async () => [...document.querySelectorAll('dialog button')].find(n => n.textContent === 'Cancel').click())
+  assert.deepEqual(currencySelections(view.preferences, 'JPY'), ['boj'], 'Cancel restores the shared shortlist')
+  await React.act(async () => view.applyPreferences({ ...view.preferences, families: ['fomc', 'boj'] }))
+  await render({ symbol: 'EURUSD' })
+  assert.deepEqual(currencySelections(view.preferences, 'USD'), ['fomc'], 'USD selection also follows the currency')
+  await render({ symbol: 'AUDJPY' })
+  assert.deepEqual(currencySelections(view.preferences, 'AUD'), audSelection, 'Saving USD/JPY preserves AUD choices')
+  await React.act(async () => view.applyPreferences({ ...view.preferences, families: audSelection }))
+  await render({ symbol: 'GBPJPY' })
+  assert.deepEqual(currencySelections(view.preferences, 'JPY'), [], 'An intentionally empty selection stays empty across pairs')
+  await React.act(async () => root.render(null))
+  await render({ symbol: 'AUDJPY' })
+  assert.deepEqual(currencySelections(view.preferences, 'JPY'), [], 'Shared empty selections survive remount/refresh')
+  const storageBeforeFailure = localStorage.getItem(data.inspectorSharedStorageKey), browserStorage = localStorage
+  try {
+    Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: {
+      getItem: key => browserStorage.getItem(key), setItem() { throw new Error('Storage full') },
+    } })
+    await React.act(async () => view.applyPreferences({ ...view.preferences, families: ['boj'] }))
+    assert.equal(view.storageFailed, true)
+  } finally { Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: browserStorage }) }
+  assert.equal(localStorage.getItem(data.inspectorSharedStorageKey), storageBeforeFailure, 'A failed save cannot partially change either currency')
+  assert.deepEqual(currencySelections(data.readInspectorPreferences('USDJPY'), 'USD'), ['fomc'])
+  assert.deepEqual(currencySelections(data.readInspectorPreferences('USDJPY'), 'JPY'), [])
+  const shortlisted = new Map()
+  for (const currency of majorCurrencies) {
+    const pair = majorForexPairs.find(pair => forexPairCurrencies(pair).includes(currency))
+    await render({ symbol: pair })
+    const family = data.inspectorFamilies.find(family => family.currency === currency && family.category === 'policy')
+    const next = { ...view.preferences, families: [...view.preferences.families.filter(id => !currencySelections(view.preferences, currency).includes(id)), family.id] }
+    await React.act(async () => view.applyPreferences(next))
+    shortlisted.set(currency, family.id)
+  }
+  for (const pair of majorForexPairs) {
+    await render({ symbol: pair })
+    for (const currency of forexPairCurrencies(pair)) assert.deepEqual(currencySelections(view.preferences, currency), [shortlisted.get(currency)],
+      `${pair}: both saved currency shortlists combine correctly`)
+  }
   await React.act(async () => root.render(React.createElement(AlertFiltersModal, { preferences: defaultAlertPreferences(), onSave() {}, onClose() {} })))
   for (const currency of majorCurrencies) {
     await React.act(async () => [...document.querySelectorAll('dialog nav button')].find(button => button.textContent === currency).click())
@@ -226,7 +289,7 @@ try {
     assert.equal(inputs.length, expected.length, `${currency}: Alert renders every filter control`)
     for (const control of expected) assert.ok(inputs.some(input => input.getAttribute('aria-label') === control.label && input.checked), control.label)
   }
-  console.log('✓ All 28 pairs: source-ID admission, base/quote icons, selection, raw tables, corrections, work counts, separate Save/Cancel and retained local preferences')
+  console.log('✓ All 28 pairs: source-ID admission, raw tables, corrections, work counts, shared eight-currency selections, legacy migration, Save/Cancel, empty selections and atomic save failures')
 } finally {
   delete globalThis.__majorGroupingWork
   delete globalThis.__majorAdmissionWork

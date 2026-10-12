@@ -1,7 +1,7 @@
 // Stable compatibility exports; implementation belongs to focused domain modules.
 export { inspectorFamilies, inspectorCategories, type InspectorFamilyId } from './catalog/inspector-families'
-export { inspectorStorageKey, gbpInspectorStorageKey, inspectorPreferenceKey, inspectorPair, inspectorPairCurrencies,
-  inspectorPairFamilies, defaultInspectorPreferences, readInspectorPreferences, supportsInspector,
+export { inspectorStorageKey, gbpInspectorStorageKey, inspectorSharedStorageKey, inspectorPreferenceKey, inspectorPair, inspectorPairCurrencies,
+  inspectorPairFamilies, defaultInspectorPreferences, readInspectorPreferences, saveInspectorPreferences, supportsInspector,
   type InspectorPreferences, type InspectorPreferenceUpdate } from './preferences/inspector-preferences'
 export { createInspectorReadingSelector } from '../economic-calendar/forex/select-pair-readings'
 export type { InspectorRelease } from '../economic-calendar/releases/release'

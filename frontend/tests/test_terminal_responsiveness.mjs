@@ -218,6 +218,7 @@ try {
   assert.ok(container.querySelector('.inspector-panel').textContent.includes('Forecast'))
   // Save/Cancel retains the selection and shows the preview immediately.
   const savedBefore = localStorage.getItem('fyodor.inspector.eurusd.v1')
+  const sharedBefore = localStorage.getItem('fyodor.inspector.shared.v1')
   await click(container.querySelector('[data-inspector-filter-trigger]'))
   const change = async (element, value) => React.act(async () => {
     assert.ok(element)
@@ -229,11 +230,12 @@ try {
   assert.ok(container.querySelector('.inspector-day-symbol'))
   await click([...document.querySelectorAll('dialog button')].find(node => node.textContent === 'Cancel'))
   assert.equal(localStorage.getItem('fyodor.inspector.eurusd.v1'), savedBefore)
+  assert.equal(localStorage.getItem('fyodor.inspector.shared.v1'), sharedBefore)
   await click(container.querySelector('[data-inspector-filter-trigger]'))
   await change(document.querySelector('[aria-label="Group Inspector symbols"]'), 'day')
   await click([...document.querySelectorAll('dialog button')].find(node => node.textContent === 'Save'))
   await flush()
-  const saved = JSON.parse(localStorage.getItem('fyodor.inspector.eurusd.v1'))
+  const saved = JSON.parse(localStorage.getItem('fyodor.inspector.shared.v1')).pairs.EURUSD
   assert.equal(saved.symbolGrouping, 'day'); assert.equal(saved.detailView, undefined); assert.equal(saved.showHistograms, undefined)
   const dailyIcon = container.querySelector('.inspector-day-symbol.inspector-currency-USD')
   await click(dailyIcon)
