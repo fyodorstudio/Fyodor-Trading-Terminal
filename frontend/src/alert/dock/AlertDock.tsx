@@ -11,6 +11,9 @@ import { alertCurrencies, alertHorizons, readAlertPreferences, saveAlertPreferen
 import { AlertFiltersModal } from './AlertFiltersModal'
 import './alert-dock.css'
 import type { InspectorRelease } from '../../economic-calendar/releases/release'
+import { HighlightList } from '../highlights/HighlightList'
+import { useHighlights } from '../highlights/useHighlights'
+import { highlightForRelease } from '../highlights/highlight-model'
 
 const day = 86400000
 export function AlertDock({ brokerId, timeDisplay, clockOffsetMs = 0, brokerOffsetSeconds = 0, onPrepareResearch }: {
@@ -18,6 +21,9 @@ export function AlertDock({ brokerId, timeDisplay, clockOffsetMs = 0, brokerOffs
   onPrepareResearch?: (release: InspectorRelease) => void
 }) {
   const [preferences, setPreferences] = useState(readAlertPreferences)
+  const [highlight, setHighlight] = useState(() => { try { return localStorage.getItem('fyodor.alert.highlight-view.v1') === 'true' } catch { return false } })
+  const changeHighlight = (value: boolean) => { setHighlight(value); try { localStorage.setItem('fyodor.alert.highlight-view.v1', String(value)) } catch { /* Keep the active tab for this session. */ } }
+  const pins = useHighlights(highlight ? null : brokerId)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const closeFilters = useCallback(() => setFiltersOpen(false), [])
   const updatePreferences = useCallback((next: AlertPreferences) => { setPreferences(next); saveAlertPreferences(next) }, [])
@@ -28,7 +34,7 @@ export function AlertDock({ brokerId, timeDisplay, clockOffsetMs = 0, brokerOffs
     to: utcToChartClock(today + (preferences.days + 2) * day + policyEpisodeWindowMs, clock) ?? today }), [today, preferences.days, clock])
   const families = preferences.families
   const scope = useMemo(() => alertCalendarScope({ families }), [families])
-  const storage = useStoredCalendar(brokerId, range, families.length > 0, scope)
+  const storage = useStoredCalendar(brokerId, range, !highlight && families.length > 0, scope)
   // Currency buttons filter the loaded inventory locally. Countdown ticks never regroup it.
   const grouped = useMemo(() => groupInspectorReleases(storage.events.filter(event => event.availability === 'observed')), [storage.events])
   const episodes = useMemo(() => alertEpisodesFromReleases(grouped, preferences, now, preferences.days,
@@ -49,14 +55,16 @@ export function AlertDock({ brokerId, timeDisplay, clockOffsetMs = 0, brokerOffs
   const message = !brokerId ? 'Alert needs calendar storage' : !families.length ? 'No families selected in Alert filters' : storage.loading ? 'Loading upcoming releases…' : null
   return <section className="alert-dock" aria-label="Alert">
     <header className="alert-toolbar"><strong>Alert</strong>
-      <nav className="alert-currencies" aria-label="Alert currency">{(['all', ...alertCurrencies] as const).map(currency => <button type="button" key={currency}
-        aria-pressed={preferences.currency === currency} onClick={() => updatePreferences({ ...preferences, currency })}>{currency === 'all' ? 'All' : currency}</button>)}</nav>
-      <label><select aria-label="Alert horizon" value={preferences.days} onChange={event => updatePreferences({ ...preferences, days: Number(event.target.value) as AlertPreferences['days'] })}>
+      <nav className="alert-currencies" aria-label="Alert currency"><button type="button" aria-pressed={highlight} onClick={() => changeHighlight(true)}>Highlight</button>
+        {(['all', ...alertCurrencies] as const).map(currency => <button type="button" key={currency}
+        aria-pressed={!highlight && preferences.currency === currency} onClick={() => { changeHighlight(false); updatePreferences({ ...preferences, currency }) }}>{currency === 'all' ? 'All' : currency}</button>)}</nav>
+      {!highlight && <><label><select aria-label="Alert horizon" value={preferences.days} onChange={event => updatePreferences({ ...preferences, days: Number(event.target.value) as AlertPreferences['days'] })}>
         {alertHorizons.map(days => <option key={days} value={days}>Next {days} days</option>)}
       </select></label>
-      <button type="button" onClick={() => setFiltersOpen(true)}>Filters</button><span>{timeDisplayLabel(timeDisplay)}</span>
+      <button type="button" onClick={() => setFiltersOpen(true)}>Filters</button></>}<span>{timeDisplayLabel(timeDisplay)}</span>
     </header>
-    {message ? <p role="status">{message}</p> : <>
+    {highlight ? <HighlightList brokerId={brokerId} now={now} timeDisplay={timeDisplay} onPrepareResearch={onPrepareResearch} /> : message ? <p role="status">{message}</p> : <>
+      {pins.error && <p role="status">{pins.error}</p>}
       {(storage.error || storage.collectorError || offline || partial) && <p className="alert-source-status" role="status">
         {storage.error ?? storage.collectorError ?? (offline ? 'Publisher offline · stored schedule may be stale' : 'Partial schedule coverage')}
       </p>}
@@ -69,6 +77,10 @@ export function AlertDock({ brokerId, timeDisplay, clockOffsetMs = 0, brokerOffs
             state === 'awaiting' ? 'Awaiting release data' : state === 'partial' ? 'Partial release data' : 'Time unconfirmed'}</span>
           {onPrepareResearch && <button type="button" className="alert-research" aria-label={`Prepare research for ${release.currency} ${release.label}`}
             onClick={() => onPrepareResearch(release)}>Research</button>}
+          <button type="button" className="alert-pin" disabled={!brokerId || pins.busy} aria-pressed={!!highlightForRelease(pins.items, release)}
+            aria-label={`${highlightForRelease(pins.items, release) ? 'Unpin' : 'Pin'} ${release.currency} ${release.label}`}
+            onClick={() => { const pinned = highlightForRelease(pins.items, release); void (pinned ? pins.remove(pinned.id) : pins.pin(release)) }}>
+            {highlightForRelease(pins.items, release) ? 'Unpin' : 'Pin'}</button>
         </article>)}
       </section>)}</div>
     </>}

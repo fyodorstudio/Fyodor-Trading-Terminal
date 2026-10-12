@@ -15,6 +15,7 @@ import { releaseStatus } from './releases/release-status'
 import { InspectorReadingsTable } from './readings/InspectorReadingsTable'
 import { InspectorDayTable } from './readings/InspectorDayTable'
 import './inspector.css'
+import { InspectorPin } from '../alert/highlights/InspectorPin'
 
 function sourceLabel(source: CalendarSourceHealth | null, error: string | null): string {
   if (error) return error
@@ -87,7 +88,7 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay }: {
       </div>}
       {view.supported && release && <InspectorReleaseHeading release={release} view={view} timeDisplay={timeDisplay}
         status={status(release)} sharedPeriod={sharedPeriod} calendarDetail={calendarDetail} coverageDetail={coverageDetail} />}
-
+      {view.supported && release && <InspectorPin release={release} brokerId={view.brokerId ?? null} />}
     </header>
     {!view.supported ? <p className="inspector-empty">Select a major forex pair to inspect releases.</p> : <>
       <div className={`inspector-body${listOpen ? '' : ' releases-collapsed'}`}>

@@ -128,6 +128,7 @@ const reportRequests = []
 let reportFailure = false
 globalThis.fetch = (url, options = {}) => {
   const u = String(url); requests.push(u)
+  if (u.startsWith('/storage-api/highlights')) return Promise.resolve({ ok: true, json: async () => ({ source_id: broker, revision: 'fixture-pins', items: [] }) })
   if (u === '/storage-api/reports') {
     reportRequests.push(JSON.parse(options.body))
     return Promise.resolve({ ok: !reportFailure, status: reportFailure ? 503 : 200, json: async () => reportFailure
@@ -273,12 +274,12 @@ try {
   assert.equal(counters.dailyGrouping ?? 0, 0); assert.equal(counters.futureSetData ?? 0, 0)
   const stableWindow = { ...logicalRange }
   await click(button('Alert'))
-  assert.equal(container.querySelectorAll('[aria-label="Alert currency"] button').length, 9)
+  assert.equal(container.querySelectorAll('[aria-label="Alert currency"] button').length, 10)
   assert.equal(container.querySelectorAll('.alert-row').length, 8)
   await click([...container.querySelectorAll('.market-watch-row')].find(row => row.textContent.includes('TEST1')))
   while (pending.get('ohlc')?.length) await reply('ohlc')
   assert.deepEqual(logicalRange, stableWindow, 'Pair selection preserves date zoom/pan')
-  assert.equal(container.querySelectorAll('[aria-label="Alert currency"] button').length, 9)
+  assert.equal(container.querySelectorAll('[aria-label="Alert currency"] button').length, 10)
   reset()
   await React.act(async () => { for (const timer of intervals.values()) if (timer.ms === 1000) timer.fn() })
   assertQuiet('Alert countdown', true)

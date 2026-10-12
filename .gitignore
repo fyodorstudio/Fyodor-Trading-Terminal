@@ -18,6 +18,7 @@ bridge/mql5/compile-*.log
 
 # Personal analyst handoffs, generated locally.
 /Market Analyst Workflow/report/*
+/Market Analyst Workflow/highlights.json
 !/Market Analyst Workflow/report/.gitkeep
 # Older checkouts may still have reports at the previous location.
 /report/

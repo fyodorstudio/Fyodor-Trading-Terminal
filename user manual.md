@@ -210,3 +210,23 @@ For historical work, use **Research date range**, name the report and add notes.
 the agent to explain the changing backdrop. It can fetch calendar and OHLC using
 [AGENTS.md](AGENTS.md#dataset-commands). Broker forecasts and web surveys stay
 separately attributed; different providers/methods can produce different numbers.
+
+## Highlight: your pinned release shortlist
+
+In Alert, **Highlight** sits left of **All**. Use **Pin** beside Research, or the
+pin control at the far right of Inspector's header. In By day, choose the release
+from the Pin release menu. Each pin is one occurrence, such as this month's CPI,
+not a subscription to every future CPI release.
+
+Pins are ordered by release time and ignore Alert filters/horizon. Expand a card
+for every stored series, release times, Actual, Forecast, Previous and revised
+Previous. Countdown updates each second; Highlight checks stored values every two
+seconds while open. Released pins stay until you choose **Remove pin** or **Unpin**.
+The source still needs to publish the actuals; pending/offline states remain visible.
+
+Ask a fresh agent: **“Read AGENTS.md and check my Highlight for AUDUSD. Prepare the
+next pinned release; after publication, compare actuals with expectations and the
+initial versus sustained price reaction.”** The agent uses `pnpm analyst highlights`
+and focused `--summary` queries directly. Prepare the backdrop before the event,
+then request an update after publication. The agent answers in chat; keep your
+existing report notes and evidence for subsequent comparisons.

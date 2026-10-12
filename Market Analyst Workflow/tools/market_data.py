@@ -17,7 +17,8 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from storage.calendar_store import CalendarStore
 from storage.research_reports import REPORT_DIRECTORY, ResearchRequest, collect_evidence, evidence_row, save_report
-from ohlc import fetch_window, read_saved, summarize, write_evidence
+from ohlc import fetch_window, read_saved, summarize, write_evidence, capture_lock, cached_window
+from storage.highlights import HIGHLIGHTS_PATH, highlight_snapshot
 
 
 def get_json(base, route):
@@ -91,10 +92,11 @@ def select_rows(rows, args):
     terms = [word.casefold() for word in (args.match or '').split('|') if word]
     result = [row for row in rows if (args.section == 'all' or row['section'] == args.section)
         and (not args.currency or row['currency'] == args.currency)
+        and (not args.event_id or row['event_id'] in args.event_id)
         and (args.command != 'report' or not args.from_date or row['time'][:10] >= args.from_date)
         and (args.command != 'report' or not args.to_date or row['time'][:10] <= args.to_date)
         and (not terms or any(word in (row['name'] + ' ' + row['event_id']).casefold() for word in terms))]
-    if not args.rows and not args.match:
+    if not args.rows and not args.match and not args.summary and not args.event_id:
         groups = {}
         for row in result:
             key = (row['section'], row['time'], row['currency'], row['country'])
@@ -104,7 +106,12 @@ def select_rows(rows, args):
             if row['name'] not in group['preview_names'] and len(group['preview_names']) < 4:
                 group['preview_names'].append(row['name'])
         result = list(groups.values())
-    return {'mode': 'rows' if args.rows or args.match else 'release-index (names are previews)',
+    row_mode = bool(args.rows or args.match or args.summary or args.event_id)
+    if args.summary and row_mode:
+        fields = ('highlight_id', 'source_id', 'section', 'time', 'currency', 'country', 'name', 'period', 'actual', 'forecast',
+            'previous', 'revised_previous', 'revision', 'event_id', 'value_id', 'captured_utc', 'timing_basis', 'availability')
+        result = [{key: row[key] for key in fields if key in row} for row in result]
+    return {'mode': 'summary rows' if args.summary else 'rows' if row_mode else 'release-index (names are previews)',
         'total_readings': len(rows), 'matches': len(result), 'offset': args.offset,
         'next_offset': args.offset + args.limit if args.offset + args.limit < len(result) else None,
         'items': result[args.offset:args.offset + args.limit]}
@@ -142,6 +149,8 @@ def query_options(parser):
     parser.add_argument('--currency', choices=['USD','EUR','GBP','JPY','CHF','CAD','AUD','NZD'])
     parser.add_argument('--section', choices=['all','selected','context'], default='selected')
     parser.add_argument('--rows', action='store_true', help='Show readings rather than a release index')
+    parser.add_argument('--summary', action='store_true', help='Compact readings; complete evidence remains available without this flag')
+    parser.add_argument('--event-id', action='append', help='Exact series ID; repeat to select several IDs regardless of source names')
     parser.add_argument('--limit', type=int, choices=range(1, 501), metavar='1..500', default=20)
     parser.add_argument('--offset', type=int, default=0)
 
@@ -171,6 +180,11 @@ def parser():
     calendar.add_argument('--name')
     calendar.add_argument('--question', default='')
     query_options(calendar)
+    highlights = commands.add_parser('highlights', help='Read pinned releases and current stored values offline, without chart filters')
+    highlights.add_argument('--broker', help='Optional stored broker ID; otherwise read all pinned brokers')
+    highlights.add_argument('--highlight-id', action='append', help='Exact pinned occurrence ID; repeat to select several pins')
+    highlights.add_argument('--database', default='storage/data/calendar.sqlite3')
+    query_options(highlights)
     candles = commands.add_parser('ohlc', help='Fetch a bounded UTC window or reuse saved candles; print a small summary')
     candles.add_argument('--pair', default='EURUSD')
     candles.add_argument('--symbol', help='Exact MT5 symbol when the broker uses a suffix')
@@ -180,6 +194,7 @@ def parser():
     candles.add_argument('--event', help='Verified UTC release instant; enables reaction measurements')
     candles.add_argument('--input', help='Reuse saved .ohlc.json or the earlier M1 evidence JSON offline')
     candles.add_argument('--report', help='Attach a new capture to this report path/folder, or latest')
+    candles.add_argument('--refresh', action='store_true', help='Fetch fresh candles instead of reusing a complete saved report window')
     candles.add_argument('--bridge', default='http://127.0.0.1:8001')
     candles.add_argument('--broker-offset-seconds', type=int, help='Explicit historical offset for a broker without a profile')
     candles.add_argument('--max-requests', type=int, choices=range(2, 65), metavar='2..64', default=32)
@@ -208,7 +223,7 @@ def run(args):
     if args.command == 'report':
         path = report_path(args.path)
         brief, rows = load_report(path)
-        return {'path': str(path), 'brief': brief, **select_rows(rows, args)}
+        return {'path': str(path), **({} if args.summary else {'brief': brief}), **select_rows(rows, args)}
     if args.command == 'calendar':
         request = calendar_request(args)
         with closing(CalendarStore(local_path(args.database), readonly=True)) as store:
@@ -230,15 +245,60 @@ def run(args):
         if not args.from_utc or not args.to_utc:
             raise ValueError('OHLC needs --from and --to UTC instants, or --input')
         folder = None
+        expected_broker = None
         if args.report:
             path = report_path(args.report).resolve()
             folder = path.parent
             if not path.is_file() or folder == REPORT_DIRECTORY.resolve() or not folder.is_relative_to(REPORT_DIRECTORY.resolve()):
                 raise ValueError('Attach candles to a brief inside its own report folder')
-        data = fetch_window(lambda route: get_json(args.bridge, route), args.pair, args.symbol or args.pair,
-            args.timeframe, args.from_utc, args.to_utc, args.broker_offset_seconds, args.max_requests)
+            header = re.search(r'^- Broker: (.+?) ·', path.read_text(encoding='utf-8-sig'), re.MULTILINE)
+            expected_broker = header[1] if header else None
+        if folder and expected_broker and not args.refresh and args.broker_offset_seconds is None:
+            saved = cached_window(folder, args.pair, args.symbol or args.pair, args.timeframe, args.from_utc, args.to_utc, expected_broker)
+            if saved:
+                return {'evidence_path': str(saved[0]), 'reused_saved_capture': True, **summarize(saved[1], args.event)}
+        def get(route):
+            response = get_json(args.bridge, route)
+            if route == 'health' and expected_broker and response['mt5'].get('account_server') != expected_broker:
+                raise ValueError('Connected broker differs from the report; use its matching bridge or saved capture')
+            return response
+        with capture_lock(args.bridge):
+            data = fetch_window(get, args.pair, args.symbol or args.pair,
+                args.timeframe, args.from_utc, args.to_utc, args.broker_offset_seconds, args.max_requests)
         path = write_evidence(data, REPORT_DIRECTORY, folder)
         return {'evidence_path': str(path), **summarize(data, args.event)}
+    if args.command == 'highlights':
+        with closing(CalendarStore(local_path(args.database), readonly=True)) as store:
+            snapshot = highlight_snapshot(store, args.broker)
+        if args.highlight_id:
+            snapshot['items'] = [pin for pin in snapshot['items'] if pin['id'] in args.highlight_id]
+        if args.rows or args.summary or args.event_id:
+            rows = [{**evidence_row(event, 'selected'), 'highlight_id': pin['id'], 'source_id': pin['source_id']}
+                for pin in snapshot['items'] for event in pin['events']]
+            return {'pins_path': str(HIGHLIGHTS_PATH), 'as_of_utc': snapshot['as_of_utc'],
+                'calendar_revision': snapshot['calendar_revision'], **select_rows(rows, args)}
+        terms = [word.casefold() for word in (args.match or '').split('|') if word]
+        pins = [pin for pin in snapshot['items'] if (not args.currency or pin['currency'] == args.currency)
+            and (not terms or any(word in (pin['label'] + ' ' + ' '.join(event['name'] for event in pin['events'])).casefold() for word in terms))]
+        now = datetime.now(timezone.utc).timestamp() * 1000
+        def timeline(pin):
+            groups = {}
+            for event in pin['events']:
+                at = evidence_row(event, 'selected')['time']
+                group = groups.setdefault(at, {'time': at, 'readings': 0, 'preview_names': []})
+                group['readings'] += 1
+                if event['name'] not in group['preview_names'] and len(group['preview_names']) < 4:
+                    group['preview_names'].append(event['name'])
+            return list(groups.values())
+        return {'pins_path': str(HIGHLIGHTS_PATH), 'as_of_utc': snapshot['as_of_utc'], 'calendar_revision': snapshot['calendar_revision'],
+            'matches': len(pins), 'next_offset': args.offset + args.limit if args.offset + args.limit < len(pins) else None,
+            'items': [{'id': pin['id'], 'source_id': pin['source_id'], 'label': pin['label'], 'currency': pin['currency'], 'publisher_status': pin['publisher_status'],
+                'release_utc': datetime.fromtimestamp(pin['release_at']/1000, timezone.utc).isoformat() if pin['release_at'] is not None else None,
+                'seconds_until': round((pin['release_at']-now)/1000) if pin['release_at'] is not None else None,
+                'readings': len(pin['events']), 'with_actuals': sum(event['actual'] is not None for event in pin['events']),
+                'latest_capture_utc': datetime.fromtimestamp(max(event['observed_at'] for event in pin['events']),timezone.utc).isoformat() if pin['events'] else None,
+                'missing_value_ids': pin['missing_value_ids'],
+                'timeline': timeline(pin)} for pin in pins[args.offset:args.offset + args.limit]]}
 
 
 if __name__ == '__main__':

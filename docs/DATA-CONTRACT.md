@@ -32,6 +32,17 @@ by the analyst helper. Report generation never changes calendar observations.
 Broker forecasts and web survey estimates retain separate provider/as-of attribution;
 differences alone do not establish a source error.
 
+Highlight pin metadata lives in Git-ignored `Market Analyst Workflow/highlights.json`.
+Storage exposes GET/POST/DELETE `/api/v1/highlights`; writes replace the complete
+file atomically. Pins bind broker and source value IDs, retain elapsed occurrences,
+and query current stored rows without calendar display filters or horizons. Related
+series at the same publication time (within one hour for explicit policy packages)
+join the pin; live reads bind their IDs so later rescheduling stays visible. Agent
+reads are read-only and can work offline. Missing/withdrawn observations retain the
+pin and their availability labels. Browser caches retain the last snapshot during
+an outage. Polling reuses unchanged revisions and row identities; countdown ticks
+never query storage, regroup releases, or rebuild expanded series tables.
+
 `pnpm analyst` reads the existing calendar schema in a read-only transaction, with
 complete pagination before returning compact focused results. OHLC uses the unchanged
 bridge, bounded positional seeking and overlapped paging, validates source generation,

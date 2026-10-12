@@ -23,7 +23,7 @@ dom.clearInterval = (id) => intervals.delete(id)
 dom.setTimeout = (callback) => { polls.set(++timerId, callback); return timerId }
 dom.clearTimeout = (id) => polls.delete(id)
 const requests = []
-globalThis.fetch = (url, options = {}) => new Promise((resolve) => requests.push({ url: String(url), signal: options.signal, resolve }))
+globalThis.fetch = (url, options = {}) => String(url).startsWith('/storage-api/highlights') ? Promise.resolve({ ok: true, json: async () => ({ source_id: new URL(String(url), 'http://localhost').searchParams.get('source_id'), revision: 'empty', items: [] }) }) : new Promise((resolve) => requests.push({ url: String(url), signal: options.signal, resolve }))
 const respond = (request, body, ok = true) => React.act(async () => request.resolve({ ok, status: ok ? 200 : 503, json: async () => body }))
 try {
   const { AlertDock } = await server.ssrLoadModule('./src/alert/index.ts')
@@ -180,7 +180,7 @@ try {
   await respond(requests[allStart + 1], { ...page(allRows, 1, 'Broker-A', allIds), coverage: Object.fromEntries(currencies.map(c => [c, { missing: [] }])) })
   assert.equal(container.querySelectorAll('.alert-row').length, 8)
   const buttonRequests = requests.length
-  await React.act(async () => container.querySelector('[aria-label="Alert currency"] button:nth-child(4)').click())
+  await React.act(async () => container.querySelector('[aria-label="Alert currency"] button:nth-child(5)').click())
   assert.equal(container.querySelectorAll('.alert-row').length, 1)
   assert.equal(container.querySelector('.alert-currency').textContent, 'GBP')
   assert.equal(requests.length, buttonRequests, 'Currency selection is local, not another calendar fetch')
@@ -200,7 +200,7 @@ try {
   assert.equal(validAlertPreferences({ ...defaultAlertPreferences(), families: ['not-a-family'] }), false)
   await React.act(async () => root.render(null))
   await render({ brokerId: null })
-  assert.equal(container.querySelector('[aria-label="Alert currency"] button:nth-child(4)').getAttribute('aria-pressed'), 'true', 'Currency choice survives remount')
+  assert.equal(container.querySelector('[aria-label="Alert currency"] button:nth-child(5)').getAttribute('aria-pressed'), 'true', 'Currency choice survives remount')
   await React.act(async () => root.render(null))
   assert.equal(intervals.size, 0); assert.equal(polls.size, 0)
   console.log('✓ Alert episodes, independent eight-currency family filters, selected broker, bounded schedules, local countdown, due/partial/rescheduled/offline states, timezone invariance and cleanup')

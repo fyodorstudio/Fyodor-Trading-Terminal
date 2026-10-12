@@ -92,6 +92,15 @@ brief and complete `.tsv` evidence in a named folder under `Market Analyst Workf
 Alert's **Research** button prepares the same handoff for an upcoming release;
 choose its currency alone or a pair containing it.
 
+**Highlight**, left of **All** in Alert, keeps release occurrences pinned from
+Inspector's right header or Alert's **Pin** button. Expand a card for all series
+and publication times. Pins remain after release, update with stored actuals and
+revisions, and disappear only with **Remove pin**. They ignore Alert filters and
+horizon, remain scoped to their broker, and survive refresh. Highlight checks for
+updated values every two seconds while open; feed capture may still be delayed.
+The agent can read the same list with `pnpm analyst highlights` and focused values
+with `pnpm analyst highlights --summary --match CPI`, without browser access.
+
 Exports include every stored series for the chosen currencies, independent of
 Inspector/Alert filters and chart history. Files retain forecasts, revised priors,
 periods, IDs, capture times, uncertainty and coverage gaps. They contain evidence,

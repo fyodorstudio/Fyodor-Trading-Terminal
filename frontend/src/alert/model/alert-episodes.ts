@@ -44,7 +44,12 @@ export function alertEpisodesFromReleases(releases: InspectorRelease[], preferen
   }).sort((a, b) => (a.release.releaseAt ?? a.release.serverTime * 1000) -
     (b.release.releaseAt ?? b.release.serverTime * 1000) || a.release.id.localeCompare(b.release.id))
 }
-export function alertCountdown(at: number, now: number) {
+export function alertCountdown(at: number, now: number, precise = false) {
+  if (precise) {
+    const seconds = Math.max(0, Math.ceil((at - now) / 1000))
+    const days = Math.floor(seconds / 86400), hours = Math.floor(seconds % 86400 / 3600), minutes = Math.floor(seconds % 3600 / 60)
+    return `${days ? `${days}d · ` : ''}${hours || days ? `${hours}h · ` : ''}${minutes || hours || days ? `${minutes}m · ` : ''}${seconds % 60}s remaining`
+  }
   const minutes = Math.max(0, Math.ceil((at - now) / 60_000))
   const days = Math.floor(minutes / 1440), hours = Math.floor(minutes % 1440 / 60)
   const remaining = minutes % 60

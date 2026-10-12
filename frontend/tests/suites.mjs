@@ -13,5 +13,6 @@ export const suites = [
   "tests/inspector/test_major_forex_inspector.mjs",
   "tests/inspector/test_daily_inspector.mjs",
   "tests/inspector/test_upcoming_markers.mjs",
-  "tests/alert/test_alert.mjs"
+  "tests/alert/test_alert.mjs",
+  "tests/alert/test_highlights.mjs"
 ]

@@ -36,6 +36,13 @@ folders live together under `Market Analyst Workflow/`.
 - Read the brief first, query focused evidence, then check the broader release
   index for overlooked developments. Use H1 for broad price history and short M1
   windows for releases. Reuse saved candles. Do not dump the inventory or catalog.
+- When the user refers to Highlight, start with `pnpm analyst highlights`; use
+  its pinned ID, broker and timeline to identify the occurrence, then query its
+  current readings with `--summary`. Recheck values after publication. Pins are
+  preserved after release; only the user decides when to remove them.
+- For policy events distinguish the decision, statement, projections and press
+  conference times before measuring a move. Verify missing stages against the
+  official schedule; do not anchor a press-conference move to the earlier decision.
 - Browse for financial conclusions. Prefer official releases, decisions,
   projections and press conferences for facts. Use dated market reporting and
   identified futures/OIS pricing for contemporaneous expectations and reactions.
@@ -79,8 +86,12 @@ subcommand for options. Use `status` only when source/availability is unknown.
 ```powershell
 pnpm analyst status
 pnpm analyst reports
+pnpm analyst highlights
+pnpm analyst highlights --broker Elev8-Demo2 --summary --match CPI
+pnpm analyst highlights --highlight-id "<pinned-id>" --summary
 pnpm analyst report latest
 pnpm analyst report latest --match "CPI|Interest Rate" --currency USD --limit 30
+pnpm analyst report latest --summary --event-id 840030006
 pnpm analyst report latest --section context --match CPI --offset 30
 pnpm analyst calendar --broker Elev8-Demo2 --scope EURUSD --from 2026-09-11 --to 2026-09-11 --zone UTC --match CPI --currency USD
 pnpm analyst calendar --broker Elev8-Demo2 --scope EURUSD --from 2026-09-09 --to 2026-09-17 --context-days 90 --export --name "September backdrop"
@@ -96,6 +107,12 @@ selected/context/all; report-only `--from/--to` narrow dates. Output defaults to
 20 items, maximum 500; follow `next_offset` with `--offset`. Pagination and focus
 only narrow returned text: exports preserve every series for the selected pair
 and dates plus preceding context, regardless of chart/Alert filters.
+`--summary` returns compact readings without raw transport metadata or repeating
+the brief. Use full `--rows` for provenance. Repeat `--event-id` for exact series
+IDs when source names differ. Highlight reads `Market Analyst Workflow/highlights.json`
+and the current SQLite values directly, including after release, without a running
+storage service. `--highlight-id` focuses one pinned occurrence. Countdown output
+is a query-time snapshot; requery when needed.
 
 Calendar dates are inclusive display days; default UTC. `Asia/Jakarta` and fixed
 `UTC+07:00` offsets need no timezone packages; other IANA zones need runtime zone
@@ -105,6 +122,11 @@ Coverage, capture/revision, availability and raw gap clocks remain explicit.
 
 OHLC needs the running bridge or saved `--input` evidence, with explicit UTC
 instants. Verify the release time from official sources first. The helper uses
+an interprocess bridge lock: request M1/H1 sequentially, never in parallel.
+With `--report`, complete saved windows for that report's broker are reused
+automatically, retaining their capture time; `--refresh` forces a new capture.
+An incomplete/live window is fetched again. Superseded requests get one bounded
+retry; do not restart the bridge to work around conflicts. The helper uses
 bounded positional seeking and overlapped paging, validates broker/generation,
 and converts historical server clocks. Elev8-Demo2 has the verified EET/EEST
 profile for 2014–2031; other brokers need a verified historical

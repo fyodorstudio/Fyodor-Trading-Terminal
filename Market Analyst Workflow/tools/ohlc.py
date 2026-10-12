@@ -5,11 +5,64 @@ import math
 from pathlib import Path
 from urllib.error import HTTPError
 from urllib.parse import urlencode
+from contextlib import contextmanager
+import hashlib
+import os
+import tempfile
+import time
 
 from storage.calendar_clock import broker_offset, PROFILES
 from storage.currencies import CURRENCIES
 
 STEPS = {'M1':60, 'M5':300, 'M15':900, 'M30':1800, 'H1':3600, 'H4':14400, 'D1':86400}
+
+
+@contextmanager
+def capture_lock(bridge, timeout=15):
+    """Serialize agent captures sharing a bridge; its MT5 worker supersedes peers."""
+    key = hashlib.sha256(bridge.rstrip('/').encode()).hexdigest()[:20]
+    with (Path(tempfile.gettempdir()) / f'fyodor-ohlc-{key}.lock').open('a+b') as handle:
+        if handle.tell() == 0:
+            handle.write(b'0'); handle.flush()
+        deadline = time.monotonic() + timeout
+        while True:
+            try:
+                handle.seek(0)
+                if os.name == 'nt':
+                    import msvcrt
+                    msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+                else:
+                    import fcntl
+                    fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break
+            except OSError:
+                if time.monotonic() >= deadline:
+                    raise ValueError('Another OHLC capture is busy; request timeframes sequentially')
+                time.sleep(.05)
+        try:
+            yield
+        finally:
+            handle.seek(0)
+            if os.name == 'nt':
+                msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+            else:
+                fcntl.flock(handle, fcntl.LOCK_UN)
+
+
+def cached_window(folder, pair, symbol, timeframe, start, end, broker):
+    start, end = instant(start), instant(end)
+    for path in sorted(Path(folder).glob('*.ohlc.json'), key=lambda path: path.stat().st_mtime, reverse=True):
+        data = read_saved(path)
+        if (data['pair'], data.get('symbol'), data['timeframe'], data.get('broker')) != (pair, symbol, timeframe, broker):
+            continue
+        if instant(data['captured_utc']) < end or instant(data['from_utc']) > start or instant(data['to_utc']) < end:
+            continue
+        window = {**data, 'from_utc': utc_stamp(start), 'to_utc': utc_stamp(end),
+            'bars': [row for row in data['bars'] if start <= row['utc_time'] < end]}
+        if not window['bars'] or not all(summarize(window).get('requested_edges_present', {}).values()):
+            continue
+        return path, window
+    return None
 
 
 def instant(value):
@@ -56,13 +109,16 @@ def fetch_window(get, pair, symbol, timeframe, from_utc, to_utc, offset=None, ma
         nonlocal calls
         if calls >= max_requests or position > 10_000_000:
             raise ValueError('History request bound reached; narrow the range or raise --max-requests (max 64)')
-        calls += 1
-        try:
-            result = get('ohlc?' + urlencode({'symbol':symbol,'timeframe':timeframe,'start_pos':position,'count':count}))
-        except HTTPError as error:
-            if error.code == 404 and position:
-                return [], False
-            raise
+        for attempt in range(2):
+            calls += 1
+            try:
+                result = get('ohlc?' + urlencode({'symbol':symbol,'timeframe':timeframe,'start_pos':position,'count':count}))
+                break
+            except HTTPError as error:
+                if error.code == 404 and position:
+                    return [], False
+                if error.code != 409 or attempt or calls >= max_requests:
+                    raise
         if (result['symbol'],result['timeframe'],result['start_pos'],result['source_generation']) != (symbol,timeframe,position,generation):
             raise ValueError('MT5 source changed or returned a different page; retry against a consistent source')
         bars = []

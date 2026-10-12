@@ -12,7 +12,7 @@ sys.path.insert(0, str(TOOLS))
 spec = importlib.util.spec_from_file_location('analyst_data', TOOLS / 'market_data.py')
 analyst = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(analyst)
-from ohlc import candle_utc, fetch_window, instant, read_saved, summarize, write_evidence
+from ohlc import candle_utc, fetch_window, instant, read_saved, summarize, write_evidence, capture_lock, cached_window
 import test_research_reports as reports
 from test_research_reports import event, START, DAY
 
@@ -85,6 +85,36 @@ class AnalystCalendarTests(unittest.TestCase):
 
 
 class AnalystOhlcTests(unittest.TestCase):
+    def test_saved_window_reuse_and_capture_serialization(self):
+        with tempfile.TemporaryDirectory() as directory:
+            data={'pair':'EURUSD','symbol':'EURUSD','broker':'Elev8-Demo2','timeframe':'M1',
+                'from_utc':'2026-09-11T12:30:00Z','to_utc':'2026-09-11T12:33:00Z','captured_utc':'2026-09-11T16:00:00Z',
+                'bars':[{'utc_time':instant('2026-09-11T12:30:00Z')+i*60,'open':1,'high':1,'low':1,'close':1} for i in range(3)]}
+            path=write_evidence(data,directory)
+            saved=cached_window(path.parent,'EURUSD','EURUSD','M1','2026-09-11T12:31:00Z','2026-09-11T12:33:00Z','Elev8-Demo2')
+            self.assertEqual(len(saved[1]['bars']),2)
+            self.assertEqual(saved[0],path)
+            self.assertIsNone(cached_window(path.parent,'EURUSD','EURUSD','M1','2026-09-11T12:31:00Z','2026-09-11T12:33:00Z','OtherBroker'))
+            self.assertIsNone(cached_window(path.parent,'EURUSD','EURUSD','M1','2026-09-11T12:30:00Z','2026-09-11T12:34:00Z','Elev8-Demo2'))
+            with capture_lock('fixture-lock-'+directory):
+                with self.assertRaisesRegex(ValueError,'busy'):
+                    with capture_lock('fixture-lock-'+directory,timeout=0):
+                        self.fail('Concurrent capture must wait')
+            with capture_lock('fixture-lock-'+directory,timeout=0):
+                pass
+
+    def test_superseded_page_retries_once_inside_request_bound(self):
+        from urllib.error import HTTPError
+        failed=False
+        def get(route):
+            nonlocal failed
+            if route!='health' and not failed:
+                failed=True
+                raise HTTPError('fixture',409,'superseded',{},None)
+            return self.get(route)
+        data=fetch_window(get,'EURUSD','EURUSD','M1','2026-09-11T11:30:00Z','2026-09-11T15:00:00Z')
+        self.assertEqual(data['bridge_ohlc_requests'],len(self.calls)+1)
+
     def setUp(self):
         self.event = instant('2026-09-11T12:30:00Z')
         start = instant('2026-08-01T00:00:00Z')

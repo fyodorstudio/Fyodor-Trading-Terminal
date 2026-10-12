@@ -175,7 +175,8 @@ export function useTerminalWorkspace() {
     const date = release.timingUncertain || release.releaseAt === null
       ? new Date(release.serverTime * 1000).toISOString().slice(0, 10) : displayDateKey(release.releaseAt, timeDisplay)
     const scope = (forexPairCurrencies(activeSymbol) as readonly string[]).includes(release.currency) ? forexPair(activeSymbol)! : release.currency
-    setResearchSeed({ scope, kind: 'upcoming', from: date, to: date, currency: release.currency,
+    const published = release.events.some(event => event.actual !== null) || (release.releaseAt !== null && release.releaseAt <= Date.now())
+    setResearchSeed({ scope, kind: published ? 'historical' : 'upcoming', from: date, to: date, currency: release.currency,
       focus: release.label, focusIds: release.events.map(event => event.event_id) })
   }, [activeSymbol, timeDisplay])
   const setReleaseSelection = inspector.selectRelease

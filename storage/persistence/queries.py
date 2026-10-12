@@ -8,6 +8,29 @@ from .support import canonical, DAY, HISTORY_START, missing_intervals
 
 class StoreQueries:
 
+    @staticmethod
+    def event_rows(rows, chart=True):
+        return [{**json.loads(row["payload"]), "origin": row["origin"], "observed_at": row["observed_at"],
+            "availability": "not-returned-by-latest-query" if row["absence_job"] else "observed",
+            "absence_job_id": row["absence_job"], "release_at": row["release_at"] if chart else None,
+            "chart_time_seconds": row["chart_time_seconds"] if chart else None,
+            "timing_basis": row["basis"], "chart_clock_profile": row["profile"],
+            "capture_offset_seconds": row["capture_offset_seconds"]} for row in rows]
+
+    def values(self, source_id, value_ids):
+        with self.lock:
+            result = []
+            ids = list(dict.fromkeys(value_ids))
+            for start in range(0, len(ids), 500):
+                chunk = ids[start:start + 500]
+                rows = self.db.execute(f"""SELECT e.*,a.job_id absence_job,t.release_at,t.chart_time_seconds,
+                    t.capture_offset_seconds,t.basis,t.profile FROM events e
+                    LEFT JOIN event_timing t ON t.source_id=e.source_id AND t.value_id=e.value_id
+                    LEFT JOIN query_absences a ON a.source_id=e.source_id AND a.value_id=e.value_id
+                    WHERE e.source_id=? AND e.value_id IN ({','.join('?' for _ in chunk)})""", (source_id, *chunk)).fetchall()
+                result.extend(self.event_rows(rows))
+            return sorted(result, key=lambda event: (event['server_time_seconds'], event['value_id']))
+
     def publisher_sources(self):
         with self.lock:
             return [dict(row) for row in self.db.execute("SELECT * FROM sources WHERE instance_id IS NOT NULL")]
@@ -107,12 +130,7 @@ class StoreQueries:
                 ORDER BY {axis},e.value_id LIMIT ?""", (*params, limit + 1)).fetchall()
             has_more = len(rows) > limit
             rows = rows[:limit]
-            events = [{**json.loads(row["payload"]), "origin": row["origin"], "observed_at": row["observed_at"],
-                       "availability": "not-returned-by-latest-query" if row["absence_job"] else "observed",
-                       "absence_job_id": row["absence_job"], "release_at": row["release_at"] if chart else None,
-                       "chart_time_seconds": row["chart_time_seconds"] if chart else None,
-                       "timing_basis": row["basis"], "chart_clock_profile": row["profile"],
-                       "capture_offset_seconds": row["capture_offset_seconds"]} for row in rows]
+            events = self.event_rows(rows, chart)
             if r1_as_of is not None or r1_history:
                 vintages = self.r1_vintages(source_id, [row['value_id'] for row in rows])
                 for event in events:
