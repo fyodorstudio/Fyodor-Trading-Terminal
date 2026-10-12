@@ -12,7 +12,7 @@ import { ChartWorkspaceHeader } from './ChartWorkspaceHeader'
 import { ActivityDock, InspectorDock, LiveTerminalStatusBar } from './LiveTerminalPanels'
 import { useTerminalWorkspace } from './runtime/useTerminalWorkspace'
 import './terminal-shell.layout.css'
-import { ResearchReportDialog } from '../research/ResearchReportDialog'
+import { ResearchReportPanel } from '../research/ResearchReportPanel'
 
 export function TerminalWorkspace() {
   const { timeframe, theme, chartAppearance, timeDisplay, activeDrawingTool, selectedDrawingId, setSelectedDrawingId,
@@ -48,58 +48,61 @@ export function TerminalWorkspace() {
             drawingToolbarVisible={drawingToolbarVisible}
             onToggleDrawingToolbar={toggleDrawingToolbar}
           />
-          <div className="chart-frame">
-            <MarketChartErrorBoundary
-              symbol={activeSymbol}
-              timeframe={timeframe}
-              onError={(error) => appendActivity('Chart', 'Chart error caught', error.message, { severity: 'error' })}
-            >
-              <MarketCandlestickChart
-                bars={bars}
-                fitContentKey={`${activeSymbol}:${timeframe}`}
-                precision={quote?.precision ?? 5}
-                theme={theme}
-                appearance={chartAppearance}
-                timeDisplay={timeDisplay}
+          <div className="chart-research-workspace">
+            <div className="chart-frame">
+              <MarketChartErrorBoundary
+                symbol={activeSymbol}
                 timeframe={timeframe}
-                activeDrawingTool={activeDrawingTool}
-                drawings={drawings}
-                selectedDrawingId={selectedDrawingId}
-                onSelectDrawing={setSelectedDrawingId}
-                onCreateDrawing={createDrawing}
-                onUpdateDrawingPoint={updateDrawingPoint}
-                onUpdateDrawingPoints={updateDrawingPoints}
-                onUpdatePositionWidth={updatePositionWidth}
-                onUpdateDrawingText={updateDrawingText}
-                onDeleteDrawing={handleDeleteDrawing}
-                onExitDrawingMode={exitDrawingMode}
-                onDataApplied={recordChartData}
-                hasOlderData={!marketData.chartHistoryComplete}
-                isLoadingOlderData={marketData.chartHistoryLoading}
-                onRequestOlderData={marketData.requestOlderBars}
-                renderChartOverlay={renderChartOverlay}
+                onError={(error) => appendActivity('Chart', 'Chart error caught', error.message, { severity: 'error' })}
+              >
+                <MarketCandlestickChart
+                  bars={bars}
+                  fitContentKey={`${activeSymbol}:${timeframe}`}
+                  precision={quote?.precision ?? 5}
+                  theme={theme}
+                  appearance={chartAppearance}
+                  timeDisplay={timeDisplay}
+                  timeframe={timeframe}
+                  activeDrawingTool={activeDrawingTool}
+                  drawings={drawings}
+                  selectedDrawingId={selectedDrawingId}
+                  onSelectDrawing={setSelectedDrawingId}
+                  onCreateDrawing={createDrawing}
+                  onUpdateDrawingPoint={updateDrawingPoint}
+                  onUpdateDrawingPoints={updateDrawingPoints}
+                  onUpdatePositionWidth={updatePositionWidth}
+                  onUpdateDrawingText={updateDrawingText}
+                  onDeleteDrawing={handleDeleteDrawing}
+                  onExitDrawingMode={exitDrawingMode}
+                  onDataApplied={recordChartData}
+                  hasOlderData={!marketData.chartHistoryComplete}
+                  isLoadingOlderData={marketData.chartHistoryLoading}
+                  onRequestOlderData={marketData.requestOlderBars}
+                  renderChartOverlay={renderChartOverlay}
+                />
+              </MarketChartErrorBoundary>
+              <MarketDataNotice status={marketData.chartStatus} symbol={activeSymbol} timeframe={timeframe} error={marketData.chartError} />
+              {marketData.chartStatus === 'live' && marketData.chartHistoryLoading && (
+                <CandleHistoryLoadingNotice symbol={activeSymbol} timeframe={timeframe} />
+              )}
+              {drawingToolbarVisible && (
+                <FloatingDrawingToolbar
+                activeTool={activeDrawingTool}
+                drawingCount={totalDrawingCount}
+                onSelectCrosshair={selectCrosshair}
+                onToolChange={chooseDrawingTool}
+                onClearAll={deleteAllDrawings}
+                researchActive={researchActive}
+                researchDisabled={!inspector.supported || !brokerId || !bars.length}
+                onSelectResearch={selectResearchTool}
               />
-            </MarketChartErrorBoundary>
-            <MarketDataNotice status={marketData.chartStatus} symbol={activeSymbol} timeframe={timeframe} error={marketData.chartError} />
-            {marketData.chartStatus === 'live' && marketData.chartHistoryLoading && (
-              <CandleHistoryLoadingNotice symbol={activeSymbol} timeframe={timeframe} />
-            )}
-            {drawingToolbarVisible && (
-              <FloatingDrawingToolbar
-              activeTool={activeDrawingTool}
-              drawingCount={totalDrawingCount}
-              onSelectCrosshair={selectCrosshair}
-              onToolChange={chooseDrawingTool}
-              onClearAll={deleteAllDrawings}
-              researchActive={researchActive}
-              researchDisabled={!inspector.supported || !brokerId || !bars.length}
-              onSelectResearch={selectResearchTool}
-            />
-            )}
-            <div className="chart-watermark" aria-hidden="true">
-              <strong>{activeSymbol}</strong>
-              <span>{`${timeframe} · ${marketData.chartStatus === 'live' ? 'MT5 broker data' : 'Awaiting MT5 data'}`}</span>
+              )}
+              <div className="chart-watermark" aria-hidden="true">
+                <strong>{activeSymbol}</strong>
+                <span>{`${timeframe} · ${marketData.chartStatus === 'live' ? 'MT5 broker data' : 'Awaiting MT5 data'}`}</span>
+              </div>
             </div>
+            {researchSeed && <ResearchReportPanel key={JSON.stringify(researchSeed)} seed={researchSeed} brokerId={brokerId} timeDisplay={timeDisplay} onClose={closeResearch} />}
           </div>
         </section>
       </main>
@@ -144,7 +147,6 @@ export function TerminalWorkspace() {
         />
       )}
       {researchError && <div className="research-range-hint" role="alert">{researchError}<button type="button" onClick={closeResearch}>Close</button></div>}
-      {researchSeed && <ResearchReportDialog seed={researchSeed} brokerId={brokerId} timeDisplay={timeDisplay} onClose={closeResearch} />}
     </div>
     </DisplayClockProvider>
   )

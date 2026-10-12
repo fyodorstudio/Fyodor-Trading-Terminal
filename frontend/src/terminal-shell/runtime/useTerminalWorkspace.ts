@@ -84,7 +84,7 @@ export function useTerminalWorkspace() {
   const selectSymbol = useCallback((symbol: string) => {
     if (symbol === selectedSymbol) return
     setSelectedSymbol(symbol)
-    setResearchActive(false); setResearchSeed(null); setResearchError(null)
+    setResearchActive(false); setResearchError(null)
     setSelectedDrawingId(null)
     appendActivity('Market Watch', 'Symbol selected', symbol)
   }, [selectedSymbol, appendActivity])
@@ -92,7 +92,7 @@ export function useTerminalWorkspace() {
   const selectTimeframe = useCallback((nextTimeframe: ChartTimeframe) => {
     if (nextTimeframe === timeframe) return
     setTimeframe(nextTimeframe)
-    setResearchActive(false); setResearchSeed(null); setResearchError(null)
+    setResearchActive(false); setResearchError(null)
     setSelectedDrawingId(null)
     appendActivity('Chart', 'Timeframe selected', `${activeSymbol} ${nextTimeframe}`)
   }, [timeframe, activeSymbol, appendActivity])
@@ -188,7 +188,7 @@ export function useTerminalWorkspace() {
   }, [setReleaseSelection])
   const renderChartOverlay = useTerminalChartOverlay({ supported: inspector.supported, markers: inspector.markers,
     currencyColors: inspector.preferences.currencyColors, timeDisplay, onSelectRelease: selectChartRelease,
-    onClearInspection: !activeDrawingTool && !researchActive && inspector.selectedRelease ? clearChartInspection : undefined,
+    onClearInspection: !activeDrawingTool && !researchActive && !researchSeed && inspector.selectedRelease ? clearChartInspection : undefined,
     researchActive, bars, timeframe, onResearchRange: selectResearchRange, onCancelResearch: cancelResearch })
   const sourceState: 'error' | 'live' | 'waiting' = !bridge.reachable || marketData.marketWatchStatus === 'unavailable'
     ? 'error'

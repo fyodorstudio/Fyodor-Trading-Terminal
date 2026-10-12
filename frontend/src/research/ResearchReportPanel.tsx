@@ -1,11 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
 import type { TimeDisplayPreference } from '../appearance/time-display/time-display-preference'
 import { majorForexPairs, forexPairCurrencies } from '../economic-calendar/forex/pairs'
 import { researchRequest, type ResearchSeed, type SavedReport } from './research-request'
 import './research.css'
 
-export function ResearchReportDialog({ seed, brokerId, timeDisplay, onClose }: {
+export function ResearchReportPanel({ seed, brokerId, timeDisplay, onClose }: {
   seed: ResearchSeed; brokerId: string | null; timeDisplay: TimeDisplayPreference; onClose: () => void
 }) {
   const [scope, setScope] = useState(seed.scope)
@@ -14,12 +13,16 @@ export function ResearchReportDialog({ seed, brokerId, timeDisplay, onClose }: {
   const [question, setQuestion] = useState(''), [contextDays, setContextDays] = useState(90)
   const [saving, setSaving] = useState(false), [saved, setSaved] = useState<SavedReport | null>(null)
   const [error, setError] = useState<string | null>(null), [copied, setCopied] = useState(false)
-  const dialog = useRef<HTMLDialogElement>(null), controller = useRef<AbortController | null>(null)
+  const panel = useRef<HTMLElement>(null), controller = useRef<AbortController | null>(null)
   const pathInput = useRef<HTMLInputElement>(null)
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null
-    dialog.current?.showModal()
-    return () => { controller.current?.abort(); previous?.focus() }
+    const element = panel.current
+    element?.querySelector<HTMLInputElement>('input')?.focus()
+    return () => {
+      controller.current?.abort()
+      if (element?.contains(document.activeElement)) previous?.focus()
+    }
   }, [])
   async function save() {
     if (!brokerId) { setError('Connect calendar storage before preparing a report.'); return }
@@ -44,8 +47,8 @@ export function ResearchReportDialog({ seed, brokerId, timeDisplay, onClose }: {
     try { await navigator.clipboard.writeText(saved.path); setCopied(true) }
     catch { pathInput.current?.focus(); pathInput.current?.select(); setError('Copy the selected path with Ctrl+C.') }
   }
-  return createPortal(<dialog ref={dialog} className="research-dialog" aria-labelledby="research-title"
-    onCancel={event => { event.preventDefault(); onClose() }}>
+  return <aside ref={panel} className="research-panel" aria-labelledby="research-title"
+    onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); onClose() } }}>
     <header><h2 id="research-title">{saved ? 'Research saved' : 'Prepare research'}</h2>
       <button type="button" aria-label="Close research" onClick={onClose}>×</button></header>
     {saved ? <>
@@ -66,12 +69,12 @@ export function ResearchReportDialog({ seed, brokerId, timeDisplay, onClose }: {
         <label>Earlier context<select aria-label="Research context" value={contextDays} onChange={event => setContextDays(Number(event.target.value))}>
           {[0, 30, 90, 180, 365].map(days => <option key={days} value={days}>{days ? `${days} days` : 'Selected dates only'}</option>)}
         </select></label>
-        <label>Question (optional)<textarea aria-label="Research question" rows={3} maxLength={4000} value={question} onChange={event => setQuestion(event.target.value)}
+        <label>Question / notes (optional)<textarea aria-label="Research question" rows={5} maxLength={4000} value={question} onChange={event => setQuestion(event.target.value)}
           placeholder={seed.kind === 'upcoming' ? 'Explain expectations and the hike, hold and cut scenarios.' : 'What drove this move? Was it base strength or quote weakness?'} /></label>
       </fieldset>
       <p>Includes all stored releases for {scope}, regardless of chart or Alert filters. Saves Markdown in report.</p>
       <footer><button type="button" onClick={onClose}>Cancel</button><button type="submit" disabled={saving || !brokerId}>{saving ? 'Saving…' : 'Prepare research'}</button></footer>
     </form>}
     {error && <p role="alert">{error}</p>}
-  </dialog>, document.body)
+  </aside>
 }

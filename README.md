@@ -78,7 +78,9 @@ historical; Lite's operating instructions are here.
 ## Research handoff
 
 Choose **Research date range** in the drawing toolbar and drag across chart dates.
-Name the report, adjust the inclusive dates, optionally add a question, and choose
+The research panel sits beside the chart, leaving panning and the bottom dock
+available. Notes stay open when switching chart symbols or timeframes.
+Name the report, adjust the inclusive dates, optionally add a question or notes, and choose
 earlier context (90 days by default). **Prepare research** writes a unique `.md`
 file in the root `report/` folder and offers **Copy path** for the analyst session.
 Alert's **Research** button prepares the same handoff for an upcoming release;
