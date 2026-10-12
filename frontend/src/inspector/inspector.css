@@ -31,7 +31,7 @@
 .inspector-release time, .inspector-release small { color: var(--text-muted); font-size: 10px; }
 .inspector-detail { min-width: 0; min-height: 0; display: flex; flex-direction: column; }
 .inspector-detail-overview { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 4px 12px; padding: 4px 12px; flex-shrink: 0; border-bottom: 1px solid var(--border); }
-.inspector-detail .inspector-ism-section-heading th { position: static; width: auto; text-align: left; background: var(--surface-inset); }
+.inspector-detail .inspector-publication-heading th { position: static; width: auto; text-align: left; background: var(--surface-inset); }
 .inspector-detail .inspector-ism-section-info td { width: auto; text-align: left; white-space: normal; }
 .inspector-detail-heading { flex: 1 1 480px; min-width: 0; min-height: 24px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
 .inspector-detail-heading span { color: var(--text-muted); font-size: 10px; }
@@ -129,7 +129,6 @@
 .inspector-day-section strong { color: var(--text-strong); overflow-wrap: anywhere; }
 .inspector-day-section span { font-size: 10px; font-weight: 400; }
 .inspector-day-time { vertical-align: top; font-variant-numeric: tabular-nums; }
-.inspector-chart-symbol.roof-source { border-color: var(--accent); outline: 2px solid var(--accent); outline-offset: 2px; }
 .inspector-marker-popup { position: absolute; bottom: 34px; width: 290px; max-height: 190px; overflow: auto; pointer-events: auto; border: 1px solid var(--border-strong); border-radius: 5px; background: var(--surface-panel); box-shadow: 0 4px 18px #0003; }
 .inspector-marker-popup button { display: block; width: 100%; padding: 8px; background: transparent; color: var(--text); border: 0; text-align: left; cursor: pointer; font-size: 11px; }
 .inspector-marker-popup button:hover { background: var(--surface-hover); }

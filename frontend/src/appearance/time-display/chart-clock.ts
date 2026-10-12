@@ -1,5 +1,5 @@
 // Chart coordinates are wall-clock values, not UTC instants. Keep storage and
-// scoring coordinates intact; convert only at display/input/query boundaries.
+// chart coordinates intact; convert only at display/input/query boundaries.
 export type ChartClockScope = { brokerId: string | null; brokerOffsetSeconds: number }
 export const defaultChartClock: ChartClockScope = { brokerId: null, brokerOffsetSeconds: 0 }
 const hour = 3600000

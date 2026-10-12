@@ -195,6 +195,14 @@ try {
     React.createElement(FyodorTerminalShell), React.createElement(CommandOnly))))
   await reply('health'); await reply('watch')
   while (pending.get('ohlc')?.length) await reply('ohlc')
+  const inspectorQuery = requests.find(url => url.startsWith('/storage-api/calendar') && new URL(url, 'http://localhost').searchParams.has('currencies'))
+  assert.ok(inspectorQuery)
+  const queryRange = new URL(inspectorQuery, 'http://localhost').searchParams
+  const selectedStart = Date.UTC(2025, 9, 8) / 1000, selectedEnd = (Math.floor(now / 86400000) + 91) * 86400
+  const queriedStart = Number(queryRange.get('from_server_seconds')), queriedEnd = Number(queryRange.get('to_server_seconds'))
+  assert.ok(queriedStart <= selectedStart && queriedEnd >= selectedEnd, 'Inspector retains the full selected date window')
+  assert.ok(selectedStart - queriedStart + queriedEnd - selectedEnd <= 6 * 3600,
+    'Inspector padding is bounded to active policy/PMI companions; retired monthly ISM grouping must not fetch 20 extra days')
   const flush = async () => React.act(async () => { for (const [id, fn] of frames) { frames.delete(id); fn() } })
   await flush()
   assert.equal(plotted.length, 800)

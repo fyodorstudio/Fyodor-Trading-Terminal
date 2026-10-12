@@ -10,7 +10,7 @@ export type Highlight = {
   events: StoredCalendarEvent[]; release_at: number | null; server_time: number | null; missing_value_ids: string[]
 }
 export function highlightRequest(release: InspectorRelease, sourceId: string) {
-  const families = new Set([release.familyId, ...(release.ismPublications ?? release.pmiPublications ?? []).map(item => item.familyId)])
+  const families = new Set([release.familyId, ...(release.pmiPublications ?? []).map(item => item.familyId)])
   return { source_id: sourceId, label: release.label, family_id: release.familyId, currency: release.currency,
     value_ids: [...new Set(release.events.map(event => event.value_id))],
     event_ids: [...new Set([...release.events.map(event => event.event_id),
@@ -22,7 +22,7 @@ export function highlightForRelease(items: Highlight[], release: InspectorReleas
   return items.find(item => item.value_ids.some(id => ids.has(id)) || item.events.some(event => ids.has(event.value_id)))
 }
 export function highlightState(item: Highlight, now: number) {
-  if (!item.events.length || item.missing_value_ids.length) return 'Readings unavailable'
+  if (!item.events.length || item.missing_value_ids.length || item.events.some(event => event.availability !== 'observed')) return 'Readings unavailable'
   const numeric = item.events.filter(event => !isInspectorCommentary(event))
   const arrived = numeric.filter(event => event.actual !== null && Number.isFinite(event.actual)).length
   if (numeric.length && arrived === numeric.length) return 'Released'

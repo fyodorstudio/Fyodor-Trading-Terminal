@@ -15,12 +15,13 @@
 .alert-filter-groups { grid-template-columns: 1fr; }
 .alert-row:has(.alert-research) { grid-template-columns: 44px minmax(180px, 1fr) 100px minmax(150px, auto) auto; }
 .alert-row:has(.alert-pin) { grid-template-columns: 44px minmax(180px, 1fr) 100px minmax(150px, auto) auto auto; }
-.highlight-card { border-bottom: 1px solid var(--border); padding: 8px 0; }
-.highlight-card summary { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; cursor: pointer; }
+.highlight-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 12px; border-bottom: 1px solid var(--border); padding: 8px 0; }
+.highlight-card > details { min-width: 0; }
+.highlight-card summary { display: flex; min-height: 26px; align-items: center; flex-wrap: wrap; gap: 12px; cursor: pointer; }
 .highlight-card summary::before { content: '▸'; }
 .highlight-card details[open] summary::before { content: '▾'; }
 .highlight-card summary strong { min-width: 180px; flex: 1; }
-.highlight-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px; }
+.highlight-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
 .highlight-series { overflow: auto; margin-top: 10px; }
 .highlight-series table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
 .highlight-series th, .highlight-series td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--border); white-space: nowrap; }

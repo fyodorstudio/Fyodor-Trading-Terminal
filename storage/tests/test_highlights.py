@@ -59,6 +59,17 @@ class HighlightTests(TestCase):
         absent = highlight_snapshot(self.store, 'Elev8-Demo2', path)
         self.assertEqual(absent['items'][0]['events'][0]['availability'], 'not-returned-by-latest-query')
 
+    def test_rescheduled_member_does_not_join_intervening_months_or_another_period(self):
+        self.add([event('one',currency='USD'), event('two',currency='USD',event_id='987654322')])
+        path=self.directory/'highlights.json'
+        pin_release(self.store,self.seed_pin(value_ids=['one','two'],event_ids=['987654321','987654322']),path)
+        self.add([event('two',currency='USD',event_id='987654322',at=START+60*DAY,revision=1),
+            event('between',currency='USD',at=START+30*DAY),
+            event('different-period',currency='USD',event_id='987654322',at=START+60*DAY,period_seconds=START+30*DAY)])
+        result=highlight_snapshot(self.store,'Elev8-Demo2',path,persist_related=True)
+        self.assertEqual({row['value_id'] for row in result['items'][0]['events']},{'one','two'})
+        self.assertEqual(set(read_pins(path)[0]['value_ids']),{'one','two'})
+
     def test_invalid_pin_and_atomic_write_failure_preserve_existing(self):
         self.add([event('one', currency='USD')])
         path = self.directory/'highlights.json'

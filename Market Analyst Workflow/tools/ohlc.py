@@ -52,14 +52,18 @@ def capture_lock(bridge, timeout=15):
 def cached_window(folder, pair, symbol, timeframe, start, end, broker):
     start, end = instant(start), instant(end)
     for path in sorted(Path(folder).glob('*.ohlc.json'), key=lambda path: path.stat().st_mtime, reverse=True):
-        data = read_saved(path)
-        if (data['pair'], data.get('symbol'), data['timeframe'], data.get('broker')) != (pair, symbol, timeframe, broker):
-            continue
-        if instant(data['captured_utc']) < end or instant(data['from_utc']) > start or instant(data['to_utc']) < end:
-            continue
-        window = {**data, 'from_utc': utc_stamp(start), 'to_utc': utc_stamp(end),
-            'bars': [row for row in data['bars'] if start <= row['utc_time'] < end]}
-        if not window['bars'] or not all(summarize(window).get('requested_edges_present', {}).values()):
+        try:
+            data = read_saved(path)
+            if (data['pair'], data.get('symbol'), data['timeframe'], data.get('broker')) != (pair, symbol, timeframe, broker):
+                continue
+            if instant(data['captured_utc']) < end or instant(data['from_utc']) > start or instant(data['to_utc']) < end:
+                continue
+            window = {**data, 'from_utc': utc_stamp(start), 'to_utc': utc_stamp(end),
+                'bars': [row for row in data['bars'] if start <= row['utc_time'] < end]}
+            if not window['bars'] or not all(summarize(window).get('requested_edges_present', {}).values()):
+                continue
+        except (OSError, ValueError, KeyError, TypeError):
+            # Automatic reuse can skip an invalid cache; explicit --input still fails.
             continue
         return path, window
     return None
@@ -88,7 +92,7 @@ def candle_utc(raw, broker, explicit_offset=None):
 
 
 def validate_pair(pair):
-    if len(pair) != 6 or pair[:3] == pair[3:] or any(currency not in CURRENCIES for currency in (pair[:3],pair[3:])):
+    if not isinstance(pair, str) or len(pair) != 6 or pair[:3] == pair[3:] or any(currency not in CURRENCIES for currency in (pair[:3],pair[3:])):
         raise ValueError('Choose a pair of distinct supported currencies')
 
 
@@ -187,8 +191,16 @@ def fetch_window(get, pair, symbol, timeframe, from_utc, to_utc, offset=None, ma
 
 def read_saved(path):
     data = json.loads(Path(path).read_text(encoding='utf-8-sig'))
-    if not data.get('bars') or any('utc_time' not in row for row in data['bars']):
+    if not isinstance(data, dict) or not isinstance(data.get('bars'), list) or not data['bars'] or any(not isinstance(row, dict) or 'utc_time' not in row for row in data['bars']):
         raise ValueError('Saved candles need verified utc_time; raw server clocks are insufficient')
+    if not isinstance(data.get('timeframe'), str) or data['timeframe'] not in STEPS:
+        raise ValueError('Saved candles need a supported timeframe')
+    for row in data['bars']:
+        if any(not isinstance(row.get(key), (int, float)) or isinstance(row[key], bool) or not math.isfinite(row[key])
+            for key in ('utc_time', 'open', 'high', 'low', 'close')):
+            raise ValueError('Saved candles contain missing or non-finite prices/clocks')
+        if row['utc_time'] < 0 or row['utc_time'] % 1 or row['high'] < max(row['open'], row['low'], row['close']) or row['low'] > min(row['open'], row['close']):
+            raise ValueError('Saved candles contain invalid prices/clocks')
     data.setdefault('pair', data.get('symbol',''))
     validate_pair(data['pair'])
     data.setdefault('captured_utc', utc_stamp(data['observed_at']/1000) if data.get('observed_at') else 'unavailable')

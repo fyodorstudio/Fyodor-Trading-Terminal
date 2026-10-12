@@ -7,7 +7,6 @@ import { symbolGlyph } from '../economic-calendar/presentation/event-symbols'
 import type { InspectorMarker } from './inspector-data'
 import { indexMarkers, projectMarkers, sameMarkerClusters, type MarkerCluster } from './chart/marker-projection'
 import { markerLabel } from './chart/marker-label'
-import { useMarkerEmphasis } from './chart/marker-emphasis'
 import { InspectorCalendarIcon } from './chart/InspectorCalendarIcon'
 import './inspector.css'
 
@@ -25,7 +24,6 @@ function InspectorChartMarkersComponent({ chartApi, markers, timeDisplay, onSele
     chartApi.subscribeClick(dismiss)
     return () => chartApi.unsubscribeClick(dismiss)
   }, [chartApi, expandedId])
-  const emphasized = useMarkerEmphasis(chartApi)
   const index = useMemo(() => indexMarkers(markers), [markers])
   useEffect(() => {
     const scale = chartApi.timeScale()
@@ -53,16 +51,14 @@ function InspectorChartMarkersComponent({ chartApi, markers, timeDisplay, onSele
       const first = cluster.markers[0], multiple = cluster.markers.length > 1
       if (first.release.daily) return <div key={first.release.id} className="inspector-marker-cluster inspector-day-cluster" style={{ left: cluster.x }}>
         {cluster.markers.map(marker => <button type="button" key={marker.release.id}
-          className={`inspector-chart-symbol inspector-day-symbol inspector-currency-${marker.release.currency}${marker.release.daily?.publications.some(publication => emphasized.has(publication.id)) ? ' roof-source' : ''}`}
+          className={`inspector-chart-symbol inspector-day-symbol inspector-currency-${marker.release.currency}`}
           title={description(marker)} aria-label={`Inspect ${description(marker)}`} onClick={() => { setExpandedId(null); onSelectRelease(marker.release.id) }}>
           <InspectorCalendarIcon /><span className="inspector-series-count">{marker.release.events.length}</span>
         </button>)}
       </div>
       const expanded = expandedId === first.release.id
-      const source = cluster.markers.some(marker => emphasized.has(marker.release.id) ||
-        marker.release.ismPublications?.some(publication => emphasized.has(publication.id)))
       return <div key={first.release.id} className="inspector-marker-cluster" style={{ left: cluster.x }}>
-        <button type="button" className={`inspector-chart-symbol${source ? ' roof-source' : ''}`} title={cluster.markers.map(description).join('\n')}
+        <button type="button" className="inspector-chart-symbol" title={cluster.markers.map(description).join('\n')}
           aria-label={multiple ? `${cluster.markers.length} nearby Inspector releases` : `Inspect ${description(first)}`}
           aria-expanded={multiple ? expanded : undefined} onClick={() => {
             if (multiple) setExpandedId(expanded ? null : first.release.id)

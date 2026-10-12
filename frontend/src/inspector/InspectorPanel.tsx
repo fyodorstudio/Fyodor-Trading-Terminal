@@ -94,11 +94,11 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay }: {
       <div className={`inspector-body${listOpen ? '' : ' releases-collapsed'}`}>
         <InspectorReleaseList id={`${panelId}-releases`} hidden={!listOpen} releases={view.releases}
           selectedId={release?.id ?? null} symbols={view.preferences.symbols} timeDisplay={timeDisplay}
-          brokerTime={view.brokerTime} now={view.now} onSelect={view.selectRelease} />
+          now={view.now} onSelect={view.selectRelease} />
         <div className="inspector-detail" aria-live="polite">
           {!release ? <p className="inspector-empty">Click a chart symbol or select a release to inspect Actual, Previous and A−P.</p> :
             release.daily ? <InspectorDayTable release={release} timeDisplay={timeDisplay} /> :
-            <InspectorReadingsTable release={release} view={view} timeDisplay={timeDisplay} sharedPeriod={sharedPeriod} />}
+            <InspectorReadingsTable release={release} timeDisplay={timeDisplay} sharedPeriod={sharedPeriod} />}
 
         </div>
       </div>

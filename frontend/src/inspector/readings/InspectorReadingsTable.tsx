@@ -6,12 +6,11 @@ import { InspectorReadingTime } from '../InspectorReadingTime'
 import { policyEpisodeRule } from '../episodes/policy-episodes'
 import { episodePublications } from '../episodes/display-episodes'
 import { pmiSectionLabel } from '../episodes/pmi-episodes'
-import type { InspectorView } from '../useInspector'
 
 const direction = (delta: number) => delta > 0 ? 'higher' : delta < 0 ? 'lower' : 'unchanged'
 const directionLabel = (delta: number) => delta > 0 ? 'Higher' : delta < 0 ? 'Lower' : 'Unchanged'
-export function InspectorReadingsTable({ release, view, timeDisplay, sharedPeriod }: {
-  release: InspectorRelease; view: InspectorView; timeDisplay: TimeDisplayPreference; sharedPeriod: number | null
+export function InspectorReadingsTable({ release, timeDisplay, sharedPeriod }: {
+  release: InspectorRelease; timeDisplay: TimeDisplayPreference; sharedPeriod: number | null
 }) {
   const publications = episodePublications(release)
   const policyTimes = !!policyEpisodeRule(release.familyId), showTimes = policyTimes || !!publications
@@ -22,8 +21,8 @@ export function InspectorReadingsTable({ release, view, timeDisplay, sharedPerio
       <th scope="col">Actual</th><th scope="col">Previous</th>{showForecast && <th scope="col">Forecast</th>}<th scope="col">A−P</th>
       {policyTimes && <th scope="col" title="Actual minus the supplied Forecast, in basis points.">A−F (Surprise)</th>}</tr></thead>
     {(publications ?? [release]).map(publication => <tbody key={publication.id}>
-      {publications && <tr className="inspector-ism-section-heading"><th scope="rowgroup" colSpan={columns}>
-        {release.pmiPublications ? pmiSectionLabel(publication) : publication.familyId === 'ism-manufacturing' ? 'Manufacturing' : 'Services'} · {
+      {publications && <tr className="inspector-publication-heading"><th scope="rowgroup" colSpan={columns}>
+        {pmiSectionLabel(publication)} · {
           publication.releaseAt === null ? 'Time unavailable' : formatAppTimestamp(publication.releaseAt, timeDisplay)}
       </th></tr>}
       {publication.events.map(event => {
@@ -35,7 +34,7 @@ export function InspectorReadingsTable({ release, view, timeDisplay, sharedPerio
             {sharedPeriod === null && event.period_seconds > 0 && <small>Period: {
               formatAppTimestamp(event.period_seconds * 1000, { mode: 'utc', utcOffsetMinutes: 0 }, 'date')}</small>}</th>
           {showCountry && <td title={event.country_name}>{event.country_code}</td>}
-          {showTimes && <InspectorReadingTime event={event} brokerTime={view.brokerTime} timeDisplay={timeDisplay} />}
+          {showTimes && <InspectorReadingTime event={event} timeDisplay={timeDisplay} />}
           <td>{formatInspectorValue(event.actual, event)}</td>
           <td>{formatInspectorValue(event.previous, event)}{revised && <small title={prior.description}>
             {prior.value}: {formatInspectorValue(event.revised_previous, event)}</small>}</td>

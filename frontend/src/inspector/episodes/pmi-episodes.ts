@@ -36,8 +36,3 @@ export function groupPmiEpisodes(releases: InspectorRelease[]): InspectorRelease
   }
   return releases.filter(release => !absorbed.has(release)).map(release => replacements.get(release) ?? release)
 }
-
-export function pmiSourceRelease(release: InspectorRelease | null, sourceId?: string | null, now = Infinity): InspectorRelease | null {
-  const members = release?.pmiPublications
-  return members ? members.find(member => member.id === sourceId) ?? [...members].reverse().find(member => member.releaseAt! <= now) ?? members[0] : release
-}

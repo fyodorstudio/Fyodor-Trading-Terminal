@@ -28,6 +28,8 @@ class AnalystReportsTests(unittest.TestCase):
             brief.write_text('# CPI\n\n## Selected interval\n', encoding='utf-8')
             legacy = report_root / 'legacy.md'
             legacy.write_text('# Legacy\n\n## Selected interval\n', encoding='utf-8')
+            (nested / 'analysis.md').write_text('# My analysis\nKeep my notes.', encoding='utf-8')
+            (report_root / 'notes.md').write_text('# Newer notes\nNot a calendar export.', encoding='utf-8')
             with patch.object(analyst, 'ROOT', root), patch.object(analyst, 'REPORT_DIRECTORY', report_root):
                 self.assertEqual(analyst.report_path('CPI-20260911'), brief)
                 self.assertEqual(analyst.report_path('CPI-20260911/brief.md'), brief)
@@ -39,6 +41,18 @@ class AnalystReportsTests(unittest.TestCase):
                 (report_root / 'other/brief.md').write_text('# Other')
                 with self.assertRaisesRegex(ValueError, 'Several reports'):
                     analyst.report_path('brief.md')
+
+    def test_legacy_folder_keeps_notes_separate_from_evidence_brief(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            brief = root / 'legacy.md'
+            brief.write_text('# Original export\n\n## Selected interval\n', encoding='utf-8')
+            notes = root / 'analysis.md'
+            notes.write_text('# Later interpretation\n', encoding='utf-8')
+            with patch.object(analyst, 'ROOT', root), patch.object(analyst, 'REPORT_DIRECTORY', root):
+                self.assertEqual(analyst.report_path(str(root)), brief)
+                self.assertEqual(analyst.report_path('latest'), brief)
+            self.assertEqual(notes.read_text(encoding='utf-8'), '# Later interpretation\n')
 
     def test_legacy_escaped_names_filtering_and_visible_pagination(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -96,12 +110,24 @@ class AnalystOhlcTests(unittest.TestCase):
             self.assertEqual(saved[0],path)
             self.assertIsNone(cached_window(path.parent,'EURUSD','EURUSD','M1','2026-09-11T12:31:00Z','2026-09-11T12:33:00Z','OtherBroker'))
             self.assertIsNone(cached_window(path.parent,'EURUSD','EURUSD','M1','2026-09-11T12:30:00Z','2026-09-11T12:34:00Z','Elev8-Demo2'))
+            (path.parent/'broken.ohlc.json').write_text('{partial',encoding='utf-8')
+            self.assertEqual(cached_window(path.parent,'EURUSD','EURUSD','M1','2026-09-11T12:31:00Z','2026-09-11T12:33:00Z','Elev8-Demo2')[0],path)
             with capture_lock('fixture-lock-'+directory):
                 with self.assertRaisesRegex(ValueError,'busy'):
                     with capture_lock('fixture-lock-'+directory,timeout=0):
                         self.fail('Concurrent capture must wait')
             with capture_lock('fixture-lock-'+directory,timeout=0):
                 pass
+
+    def test_saved_candles_reject_invalid_prices_before_measuring_reactions(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory)/'invalid.json'
+            data = {'pair':'EURUSD','timeframe':'M1','bars':[{'utc_time':self.event,'open':1,'high':1.1,'low':.9,'close':1}]}
+            for key, value in [('close',float('nan')), ('open',None), ('utc_time',float('inf')), ('high',.8)]:
+                invalid = {**data,'bars':[{**data['bars'][0],key:value}]}
+                path.write_text(json.dumps(invalid),encoding='utf-8')
+                with self.assertRaisesRegex(ValueError,'Saved candles contain'):
+                    read_saved(path)
 
     def test_superseded_page_retries_once_inside_request_bound(self):
         from urllib.error import HTTPError

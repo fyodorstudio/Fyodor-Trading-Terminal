@@ -6,8 +6,7 @@ remains intact. Market interpretation happens in a separate analyst session.
 
 ## Run
 
-Windows x64 Python 3.12 and pnpm 9.12.3. Dependencies and the existing calendar
-inventory are already prepared in this checkout. On another machine:
+Windows x64 Python 3.12 and pnpm 9.12.3. Prepare dependencies on a new checkout:
 
 ```powershell
 pnpm setup
@@ -29,15 +28,15 @@ Optional `FYODOR_BRIDGE_API_URL` / `FYODOR_STORAGE_API_URL` override Vite's prox
 
 ## Ownership and checks
 
-| Path under frontend/src | Responsibility |
+| Owner | Responsibility |
 | --- | --- |
 | terminal-shell | Composition, chart controls, Inspector/Alert/Activity navigation and Settings |
 | market-data | Market Watch, MT5 candles/paging, shared date viewport, chart/drawings and future axis |
 | economic-calendar | Eight-currency catalog, source contracts, clocks and storage polling |
 | inspector | Filters, date ranges, release/day grouping, icons and raw tables |
-| alert | Independent upcoming currency/family filters and countdowns |
+| alert | Upcoming filters/countdowns and persistent Highlight pins |
 | research | Chart date selection and named Markdown handoff shared with Alert |
-| Market Analyst Workflow | Data helper and local report folders |
+| Market Analyst Workflow/tools (repo root) | Read-only calendar, Highlight/report queries and bounded OHLC capture |
 | appearance, system-connectivity, system-observability, workspace-docking | Theme/time, bridge status, Activity and dock geometry |
 
 ```powershell
@@ -76,9 +75,12 @@ choices fall back to raw tables; filters/icons/colors stay intact. No Workspace
 backup UI, scoring engines, Notebook, Scatter Plot or experimental context tools
 are included.
 
-See [data, clocks and recovery](docs/DATA-CONTRACT.md) and the retained
-[icon catalogue](docs/tools/icon-catalogue.html). The bridge's inherited README is
-historical; Lite's operating instructions are here.
+Start agents with [AGENTS.md](AGENTS.md#market-analysis); it owns the analysis
+workflow and dataset commands. The [user manual](<user manual.md>) owns the practical
+release shortlist for all eight currencies. [Data, clocks and recovery](docs/DATA-CONTRACT.md)
+owns storage contracts; the [icon catalogue](docs/tools/icon-catalogue.html) is a
+visual reference. Frontend owners above are under `frontend/src/` unless marked.
+The bridge's inherited README is historical; Lite's operating instructions are here.
 
 ## Research handoff
 
@@ -106,9 +108,8 @@ Inspector/Alert filters and chart history. Files retain forecasts, revised prior
 periods, IDs, capture times, uncertainty and coverage gaps. They contain evidence,
 not currency scores or speech transcripts; the analyst supplies web research.
 Reports are local and ignored by Git. Existing reports are never overwritten.
-Restart calendar storage after updating to use the new export path and format.
+Restart calendar storage after backend changes to load the updated report/Highlight APIs.
 
-For analysis use [AGENTS.md](AGENTS.md#market-analysis); the root
-[user manual](<user manual.md>) covers all eight currencies. `pnpm analyst reports`
-finds report paths; `pnpm analyst report latest` reads the newest brief. Each report
+`pnpm analyst reports` finds brief and OHLC paths; `pnpm analyst report latest`
+reads the newest evidence brief, ignoring adjacent analyst notes. Each report
 folder keeps its brief, calendar evidence, and any attached OHLC together.

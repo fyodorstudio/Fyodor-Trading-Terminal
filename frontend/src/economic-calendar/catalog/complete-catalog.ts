@@ -10,7 +10,7 @@ const countries: Record<string, string> = { EU: 'Euro-area', DE: 'Germany', FR: 
   US: 'US', GB: 'UK', JP: 'Japan', CH: 'Switzerland', CA: 'Canada', AU: 'Australia', NZ: 'New Zealand' }
 export const currencyCountries: Record<MajorCurrency, string> = { USD: 'US', EUR: 'EU', GBP: 'GB', JPY: 'JP', CHF: 'CH', CAD: 'CA', AUD: 'AU', NZD: 'NZ' }
 
-// Extend the existing controls without changing their IDs or scoring membership.
+// Extend the existing controls without changing their IDs or family membership.
 // Source sector and publication-name stems organize the full exported inventory.
 export function completeCalendarCatalog(existing: readonly CalendarFamily[]): CalendarFamily[] {
   const registered = new Set(existing.flatMap(f => f.events.map(id => `${f.country}\0${f.currency}\0${id}`)))

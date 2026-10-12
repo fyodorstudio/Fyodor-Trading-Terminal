@@ -4,11 +4,24 @@ import { highlightRequest, type Highlight } from './highlight-model'
 
 const empty: Highlight[] = []
 const changedEvent = 'fyodor-highlight-changed'
+function validItems(value: unknown, sourceId: string): value is Highlight[] {
+  return Array.isArray(value) && value.every(entry => {
+    if (!entry || typeof entry !== 'object') return false
+    const item = entry as Partial<Highlight>
+    return item.source_id === sourceId && typeof item.id === 'string' && typeof item.label === 'string' && typeof item.currency === 'string'
+      && (item.release_at === null || Number.isFinite(item.release_at)) && (item.server_time === null || Number.isFinite(item.server_time))
+      && [item.value_ids, item.event_ids, item.missing_value_ids].every(ids => Array.isArray(ids) && ids.every(id => typeof id === 'string'))
+      && Array.isArray(item.events) && item.events.every(event => event && typeof event.value_id === 'string' && typeof event.event_id === 'string'
+        && typeof event.name === 'string' && event.currency === item.currency && typeof event.country_code === 'string'
+        && Number.isFinite(event.server_time_seconds) && Number.isFinite(event.period_seconds)
+        && (event.release_at === null || Number.isFinite(event.release_at)))
+  })
+}
 function cached(sourceId: string | null): Highlight[] {
   if (!sourceId) return empty
   try {
     const value = JSON.parse(localStorage.getItem(`fyodor.highlights.${sourceId}`) ?? '[]')
-    return Array.isArray(value) && value.every(item => item.source_id === sourceId && Array.isArray(item.events) && Array.isArray(item.value_ids)) ? value : empty
+    return validItems(value, sourceId) ? value : empty
   } catch { return empty }
 }
 export function useHighlights(sourceId: string | null, pollMs = 0) {
@@ -32,7 +45,7 @@ export function useHighlights(sourceId: string | null, pollMs = 0) {
       if (!response.ok) throw new Error(response.status === 404 ? 'Restart calendar storage to enable Highlight.' : `Highlight unavailable (HTTP ${response.status})`)
       const data = await response.json() as { source_id: string; source_status?: string; revision: string; unchanged?: boolean; items?: Highlight[] }
       if (signal.aborted || token !== sequence.current) return
-      if (data.source_id !== sourceId || !data.revision || (!data.unchanged && !Array.isArray(data.items))) throw new Error('Invalid Highlight response')
+      if (data.source_id !== sourceId || !data.revision || (!data.unchanged && !validItems(data.items, sourceId))) throw new Error('Invalid Highlight response')
       revision.current = data.revision
       setOffline(data.source_status === 'offline' || data.source_status === 'unavailable')
       if (!data.unchanged) setSnapshot(old => {
@@ -57,7 +70,7 @@ export function useHighlights(sourceId: string | null, pollMs = 0) {
     }
     const changed = (event: Event) => {
       const detail = (event as CustomEvent<{ sourceId: string; origin: symbol }>).detail
-      if (detail.sourceId === sourceId && detail.origin !== origin.current) void refresh(true)
+      if (detail?.sourceId === sourceId && detail.origin !== origin.current) void refresh(true)
     }
     window.addEventListener(changedEvent, changed)
     void pollHighlights()

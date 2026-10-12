@@ -36,9 +36,25 @@ def local_path(name):
     return path
 
 
+def report_briefs(directory):
+    """Discover evidence briefs without confusing adjacent analyst notes for reports."""
+    files = []
+    for path in Path(directory).rglob('*.md'):
+        if not path.resolve().is_relative_to(ROOT):
+            continue
+        if path.name == 'brief.md':
+            files.append(path)
+        else:
+            with path.open(encoding='utf-8-sig') as source:
+                header = source.read(16384)
+            if re.search(r'^## Selected interval(?: index)?\s*$', header, re.MULTILINE):
+                files.append(path)
+    return files
+
+
 def report_path(name):
     if name == 'latest':
-        files = sorted(REPORT_DIRECTORY.rglob('*.md'), key=lambda p: p.stat().st_mtime, reverse=True)
+        files = sorted(report_briefs(REPORT_DIRECTORY), key=lambda p: p.stat().st_mtime, reverse=True)
         if not files:
             raise ValueError('No reports in Market Analyst Workflow/report')
         return local_path(str(files[0]))
@@ -50,7 +66,9 @@ def report_path(name):
         if matches:
             path = local_path(str(matches[0]))
     if path.is_dir():
-        briefs = list(path.glob('*.md'))
+        if (path / 'brief.md').is_file():
+            return local_path(str(path / 'brief.md'))
+        briefs = [brief for brief in report_briefs(path) if brief.parent == path]
         if len(briefs) != 1:
             raise ValueError('Choose the brief path inside this report folder')
         path = local_path(str(briefs[0]))
@@ -217,7 +235,7 @@ def run(args):
             result['sources'] = [dict(row) for row in store.db.execute('SELECT id,offset_seconds,server_now FROM sources ORDER BY id')]
         return result
     if args.command == 'reports':
-        files = [p for p in REPORT_DIRECTORY.rglob('*') if p.suffix in ('.md','.json') and p.is_file()]
+        files = [*report_briefs(REPORT_DIRECTORY), *[p for p in REPORT_DIRECTORY.rglob('*.json') if p.is_file() and p.resolve().is_relative_to(ROOT)]]
         return {'directory': str(REPORT_DIRECTORY), 'total': len(files), 'items': [
             {'path': str(p), 'bytes': p.stat().st_size} for p in sorted(files, key=lambda p: p.stat().st_mtime, reverse=True)[:args.limit]]}
     if args.command == 'report':

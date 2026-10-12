@@ -3,7 +3,7 @@ import type { InspectorEvent } from './inspector-data'
 import { isPublishedTentative } from './releases/group-releases'
 
 export function InspectorReadingTime({ event, timeDisplay }: {
-  event: InspectorEvent; brokerTime: boolean; timeDisplay: TimeDisplayPreference
+  event: InspectorEvent; timeDisplay: TimeDisplayPreference
 }) {
   const dateOnly = event.time_mode !== 0 && !isPublishedTentative(event)
   return <td className="inspector-reading-time">

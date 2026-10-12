@@ -119,12 +119,23 @@ def highlight_snapshot(store, source_id=None, path=HIGHLIGHTS_PATH, after_revisi
             # value IDs retain rescheduled pins; never match the next monthly event.
             if events and pin['event_ids']:
                 window = pin.get('join_window_seconds', 0)
-                start = max(0, min(event['server_time_seconds'] for event in events) - window)
-                end = max(event['server_time_seconds'] for event in events) + window + 1
-                related = store.query(pin['source_id'], start, end, currency=pin['currency'],
-                    event_ids=pin['event_ids'], limit=5000)['events']
-                if len(related) == 5000:
-                    raise ValueError('Highlight publication window exceeded its bound')
+                intervals = []
+                for at in sorted({event['server_time_seconds'] for event in events}):
+                    start, end = max(0, at - window), at + window + 1
+                    if intervals and start <= intervals[-1][1]:
+                        intervals[-1][1] = max(end, intervals[-1][1])
+                    else:
+                        intervals.append([start, end])
+                related = []
+                for start, end in intervals:
+                    query = store.query(pin['source_id'], start, end, currency=pin['currency'], event_ids=pin['event_ids'], limit=5000)
+                    if query['next_cursor'] is not None:
+                        raise ValueError('Highlight publication window exceeded its bound')
+                    related.extend(query['events'])
+                periods = {}
+                for event in events:
+                    periods.setdefault(event['event_id'], set()).add(event['period_seconds'])
+                related = [event for event in related if event['event_id'] not in periods or event['period_seconds'] in periods[event['event_id']]]
                 by_id = {event['value_id']: event for event in events}
                 by_id.update((event['value_id'], event) for event in store.values(pin['source_id'], [event['value_id'] for event in related]))
                 events = sorted(by_id.values(), key=lambda event: (event['server_time_seconds'], event['value_id']))

@@ -13,9 +13,8 @@ export type InspectorRelease = {
   serverTime: number
   timingUncertain: boolean
   events: EconomicCalendarEvent[]
-  ismPublications?: InspectorRelease[]
   pmiPublications?: InspectorRelease[]
-  // Display-only day/currency selection; never a combined scoring publication.
+  // Display-only day/currency selection; preserve individual publications.
   daily?: { date: string; endChartTime: number | null; publications: InspectorRelease[]; sections: InspectorDaySection[] }
 }
 

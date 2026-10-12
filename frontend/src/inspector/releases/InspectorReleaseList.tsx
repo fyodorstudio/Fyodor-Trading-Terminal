@@ -9,7 +9,7 @@ import { InspectorCalendarIcon } from '../chart/InspectorCalendarIcon'
 function InspectorReleaseListComponent({ id, hidden, releases, selectedId, symbols, timeDisplay, now, onSelect }: {
   id: string; hidden: boolean; releases: readonly InspectorRelease[]; selectedId: string | null;
   symbols: InspectorPreferences['symbols']; timeDisplay: TimeDisplayPreference;
-  brokerTime: boolean; now: number; onSelect: (id: string) => void
+  now: number; onSelect: (id: string) => void
 }) {
   const rows = useMemo(() => releases.map(release => ({ release, time: releaseTimeLabel(release, timeDisplay) })), [releases, timeDisplay])
   return <nav id={id} hidden={hidden} className="inspector-releases" aria-label="Inspector releases">

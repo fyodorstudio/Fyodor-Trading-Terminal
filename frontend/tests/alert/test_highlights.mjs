@@ -17,7 +17,7 @@ const globals = { window: dom, document: dom.document, HTMLElement: dom.HTMLElem
 const previous = new Map([...Object.keys(globals), 'fetch'].map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]))
 for (const [key, value] of Object.entries(globals)) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value })
 const originalNow = Date.now
-let now = Date.UTC(2026, 9, 12, 12), serial = 0, revision = 1, offline = false
+let now = Date.UTC(2026, 9, 12, 12), serial = 0, revision = 1, offline = false, malformed = false
 Date.now = () => now
 const intervals = new Map(), timers = new Map(), calls = [], pins = []
 dom.setInterval = (fn, ms) => { intervals.set(++serial, { fn, ms }); return serial }
@@ -59,6 +59,7 @@ globalThis.fetch = async (url, options = {}) => {
       return { ok: true, json: async () => ({}) }
     }
     const source_id = route.searchParams.get('source_id'), signature = String(revision)
+    if (malformed) return { ok: true, json: async () => ({ source_id, revision: signature, items: [{ id: 'invalid' }] }) }
     return { ok: true, json: async () => route.searchParams.get('after_revision') === signature ?
       { source_id, revision: signature, unchanged: true } : { source_id, revision: signature, items: snapshot(source_id) } }
   }
@@ -110,6 +111,10 @@ try {
   await click(first.querySelector('[aria-label^="Prepare research"]'))
   assert.equal(prepared.events.length, 2, 'Research retains the whole highlighted release package after publication')
   assert.ok(prepared.events.every(event => event.actual === .3))
+  rows = rows.map(row => row.value_id === pins[0].value_ids[0] ? { ...row, availability: 'not-returned-by-latest-query' } : row); revision++
+  await poll()
+  assert.match(first.textContent, /Readings unavailable/, 'Withdrawn observations never imply a complete verified release')
+  rows = rows.map(row => ({ ...row, availability: 'observed' })); revision++
   rows = rows.map(row => row.event_id === '840050014' ? { ...row, release_at: at - day, server_time_seconds: (at-day)/1000 } : row); revision++
   await poll()
   assert.equal(container.querySelector('.highlight-card').dataset.highlightId, pins[2].id, 'A corrected schedule re-sorts the same pinned occurrence')
@@ -117,11 +122,16 @@ try {
   const beforeZone = calls.length
   await renderAlert({ timeDisplay: { mode: 'fixed-offset', utcOffsetMinutes: 420 } })
   assert.equal(calls.length, beforeZone, 'Display timezone never refetches highlights')
+  malformed = true; await poll()
+  assert.match(container.textContent, /Invalid Highlight response/)
+  assert.equal(container.querySelectorAll('.highlight-card').length, 3, 'Malformed responses retain the last valid snapshot')
+  malformed = false; await poll()
   offline = true; await poll()
   assert.equal(container.querySelectorAll('.highlight-card').length, 3, 'Outages retain readings and pins')
   await React.act(async () => root.render(null)); await renderAlert()
   assert.equal(container.querySelectorAll('.highlight-card').length, 3, 'Cached pins survive a remount while storage is offline')
   offline = false
+  localStorage.setItem('fyodor.highlights.Broker-B', JSON.stringify([{ source_id: 'Broker-B', events: [], value_ids: [] }]))
   await renderAlert({ brokerId: 'Broker-B' })
   assert.equal(container.querySelectorAll('.highlight-card').length, 0, 'A different broker never sees the previous broker pins')
   await renderAlert(); await poll()

@@ -27,9 +27,17 @@ for (const file of ['README.md', 'AGENTS.md', 'docs/DATA-CONTRACT.md', 'user man
   for (const match of markdown.matchAll(/\[[^\]\n]*\]\((<[^>]+>|[^)]+)\)/g)) {
     let target = match[1].replace(/^<|>$/g, '').trim()
     if (/^(?:[a-z][a-z\d+.-]*:|#|\/)/i.test(target)) continue
-    target = decodeURIComponent(target.split('#')[0]); if (!target) continue
+    const [local, anchor] = target.split('#')
+    try { target = decodeURIComponent(local) } catch { problems.push(`${file}: malformed link ${target}`); continue }
+    if (!target) continue
     links++
-    if (!fs.existsSync(path.resolve(path.dirname(filename), target))) problems.push(`${file}: missing link ${target}`)
+    const destination = path.resolve(path.dirname(filename), target)
+    if (!fs.existsSync(destination)) problems.push(`${file}: missing link ${target}`)
+    else if (anchor && destination.endsWith('.md')) {
+      const headings = [...fs.readFileSync(destination, 'utf8').matchAll(/^#{1,6}\s+(.+)$/gm)]
+        .map(match => match[1].toLowerCase().replace(/[^\p{L}\p{N}_ -]/gu, '').replaceAll(' ', '-'))
+      if (!headings.includes(anchor)) problems.push(`${file}: missing heading ${target}#${anchor}`)
+    }
   }
 }
 if (!fs.existsSync(path.join(root, 'docs/tools/icon-catalogue.html'))) problems.push('Missing retained icon catalogue')

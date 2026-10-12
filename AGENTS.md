@@ -101,7 +101,8 @@ pnpm analyst ohlc --input "<saved OHLC path>" --event 2026-09-11T12:30:00Z
 
 `report` accepts `latest`, a report folder, or a brief path inside Lite. Old
 full-table Markdown and flat reports remain readable; ambiguous filenames need
-an explicit path. Index names are previews. `--match` (case-insensitive name/ID;
+an explicit path. A folder resolves to `brief.md`; `latest` ignores analyst notes.
+Index names are previews. `--match` (case-insensitive name/ID;
 `|` means alternatives) or `--rows` returns full readings. `--section` is
 selected/context/all; report-only `--from/--to` narrow dates. Output defaults to
 20 items, maximum 500; follow `next_offset` with `--offset`. Pagination and focus

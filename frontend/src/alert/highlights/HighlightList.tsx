@@ -36,7 +36,7 @@ const HighlightSeries = memo(function HighlightSeries({ item, timeDisplay }: { i
       <tbody>{item.events.map(event => <tr key={event.value_id} data-series-id={event.event_id}>
         <th scope="row">{event.name}<small>{event.period_seconds > 0 && `Period: ${formatAppTimestamp(event.period_seconds * 1000, { mode: 'utc', utcOffsetMinutes: 0 }, 'date')}`}
           {event.revision > 0 && ` · Revision ${event.revision}`}{event.availability !== 'observed' && ' · Latest observation unavailable'}</small></th>
-        <InspectorReadingTime event={event} brokerTime timeDisplay={timeDisplay} />
+        <InspectorReadingTime event={event} timeDisplay={timeDisplay} />
         {[event.actual, event.forecast, event.previous, event.revised_previous].map((value, index) => <td key={index}>{formatInspectorValue(value, event)}</td>)}
       </tr>)}</tbody>
     </table>{!item.events.length && <p>Stored readings unavailable. The pin is retained.</p>}</div>

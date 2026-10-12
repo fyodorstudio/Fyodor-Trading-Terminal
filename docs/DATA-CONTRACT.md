@@ -37,7 +37,9 @@ Storage exposes GET/POST/DELETE `/api/v1/highlights`; writes replace the complet
 file atomically. Pins bind broker and source value IDs, retain elapsed occurrences,
 and query current stored rows without calendar display filters or horizons. Related
 series at the same publication time (within one hour for explicit policy packages)
-join the pin; live reads bind their IDs so later rescheduling stays visible. Agent
+join the pin; live reads bind their IDs so later rescheduling stays visible. Separate
+publication windows never span intervening months; existing series retain their
+reference periods when discovering related values. Agent
 reads are read-only and can work offline. Missing/withdrawn observations retain the
 pin and their availability labels. Browser caches retain the last snapshot during
 an outage. Polling reuses unchanged revisions and row identities; countdown ticks
@@ -88,7 +90,8 @@ remain readable until Save establishes a currency's shared selection.
 New numeric IDs with valid metadata use each
 currency's selectable Other / new events control; known IDs with wrong metadata
 are rejected. Chart grouping retains every visible series and source value ID.
-Alert keeps independent filters and excludes elapsed events. Paging rejects
+Alert's upcoming tabs keep independent filters and exclude completed events;
+Highlight retains them until explicit removal. Paging rejects
 mixed revisions, repeating cursors and stale replies; outages retain the last
 valid snapshot. Appearance/display-clock changes never rewrite stored dates.
 
@@ -107,3 +110,5 @@ schema, integrity and file hashes. Browser filters, drawings and preferences liv
 on the UI origin; keep the same origin to reuse them. Calendar backup does not
 contain browser settings. The original repository/data remains the extraction
 reference and was not removed.
+Highlight metadata is separate from calendar backups; keep its file under
+`Market Analyst Workflow/` with your report folders.

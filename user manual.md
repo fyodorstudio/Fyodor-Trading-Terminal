@@ -1,17 +1,18 @@
 # What to tell market analyst agents
-For a fresh session, start the chat with C:\dev\Fyodor Trading Terminal Lite as its primary project folder. Codex uses that folder to discover project instructions automatically. Official OpenAI documentation
-Then simply say:
-Follow AGENTS.md’s market-analysis workflow. Explain AUDUSD around the RBA event on September 29, 2026 at 12:30 Asia/Jakarta. Use the local calendar, OHLC and web sources. Give me the main explanation, initial versus sustained reaction, relevant backdrop and confidence in plain language.
+
+Open `C:\dev\Fyodor Trading Terminal Lite` for a fresh session, then say:
+
+> Follow AGENTS.md’s market-analysis workflow. Explain AUDUSD around the RBA event on September 29, 2026 at 12:30 Asia/Jakarta. Use the local calendar, OHLC and web sources. Give me the main explanation, initial versus sustained reaction, relevant backdrop and confidence in plain language.
 
 Or, when you’ve exported a report:
-Check my latest AUDUSD report using the market-analysis workflow in AGENTS.md.
+
+> Check my latest AUDUSD report using the market-analysis workflow in AGENTS.md.
 
 Pair + event + date, with time/timezone when you’re pointing to a particular move, is enough. The agent should handle the research and data navigation.
 
-a simple prompt would be :
->Follow AGENTS.md. Check my Highlight for AUDUSD using calendar data, OHLC and web sources. Explain the backdrop and currency direction plainly.
+For pinned releases:
 
-
+> Follow AGENTS.md. Check my Highlight for AUDUSD using calendar data, OHLC and web sources. Explain the backdrop and currency direction plainly.
 # What to tick in Inspector and Alert
 
 ## Trade candidates
