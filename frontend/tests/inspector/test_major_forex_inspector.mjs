@@ -61,6 +61,9 @@ try {
   const { majorForexPairs, forexPairCurrencies } = await server.ssrLoadModule('./src/economic-calendar/forex/pairs.ts')
   const { majorCurrencies } = await server.ssrLoadModule('./src/economic-calendar/forex/currencies.ts')
   const { eventFamilyOptions } = await server.ssrLoadModule('./src/economic-calendar/catalog/index.ts')
+  const { inspectorFilterRows } = await server.ssrLoadModule('./src/inspector/filters/inspector-filter-rows.ts')
+  const { AlertFiltersModal } = await server.ssrLoadModule('./src/alert/dock/AlertFiltersModal.tsx')
+  const { defaultAlertPreferences } = await server.ssrLoadModule('./src/alert/model/alert-preferences.ts')
   const { policyEpisodeRules } = await server.ssrLoadModule('./src/inspector/episodes/policy-episodes.ts')
   const { useInspector } = await server.ssrLoadModule('./src/inspector/useInspector.ts')
   const { InspectorPanel } = await server.ssrLoadModule('./src/inspector/InspectorPanel.tsx')
@@ -73,6 +76,12 @@ try {
     const family = eventFamilyOptions.find(f => f.events.includes(source.event_id))
     assert.equal(family.currency, source.country_currency)
     assert.equal(family.country, source.country_code)
+    const controls = inspectorFilterRows.filter(control => control.ids.includes(family.id))
+    assert.equal(controls.length, 1, `${source.event_id}: exactly one visible filter control`)
+    assert.ok(controls[0].search.includes(source.event_id), `${source.event_id}: searchable by source ID`)
+    for (const term of source.event_name.toLowerCase().split(/\s+/).filter(Boolean)) {
+      assert.ok(controls[0].search.toLowerCase().includes(term), `${source.event_id}: searchable by source name ${source.event_name}`)
+    }
     const row = event(source.event_id, source.country_currency, source.country_code, {
       name: source.event_name, unit: +source.unit_code, multiplier: +source.multiplier_code, digits: +source.digits,
     })
@@ -152,6 +161,19 @@ try {
     assert.match(document.querySelector('dialog h2').textContent, new RegExp(pair))
     assert.ok(document.querySelector(`[aria-label="${baseCurrency} Base color"]`))
     assert.ok(document.querySelector(`[aria-label="${quoteCurrency} Quote color"]`))
+    const expectedControls = inspectorFilterRows.filter(f => [baseCurrency, quoteCurrency].includes(f.currency))
+    const renderedControls = [...document.querySelectorAll('dialog .inspector-family input[type="checkbox"]')]
+    assert.equal(renderedControls.length, expectedControls.length, `${pair}: every filter control is rendered`)
+    for (const control of expectedControls) assert.ok(renderedControls.some(input => input.getAttribute('aria-label') === control.label && input.checked),
+      `${pair}: ${control.label} is visible and selected by default`)
+    if (pair === 'EURUSD') {
+      for (const [query, label] of [['ISM Non-Manufacturing PMI', 'US ISM Manufacturing / Services'], ['840040003', 'US ISM Manufacturing / Services'],
+        ['276500003', 'Euro-area PMI · France / Germany / Euro area'], ['250500002', 'Euro-area PMI · France / Germany / Euro area']]) {
+        await change('[aria-label="Search Inspector families"]', query)
+        assert.equal(document.querySelector('dialog .inspector-family input')?.getAttribute('aria-label'), label, `Combined control search: ${query}`)
+      }
+      await change('[aria-label="Search Inspector families"]', '')
+    }
     const family = data.inspectorPairFamilies(pair).find(f => f.currency === baseCurrency && f.category === 'inflation')
     await change(`[aria-label="Symbol for ${family.label}"]`, 'sun')
     await change(`[aria-label="${baseCurrency} Base color"]`, '#123456')
@@ -205,6 +227,14 @@ try {
   assert.match(markerLabel(view.markers[0], utc).description, /2026-09-18 · Date only/)
   assert.equal(data.buildInspectorMarkers(view.releases, view.preferences, [{ time: dayTime + 3600 }], 'H1')[0].time, dayTime + 3600,
     'Date-only symbols use the first candle on the release day when midnight has no candle')
+  await React.act(async () => root.render(React.createElement(AlertFiltersModal, { preferences: defaultAlertPreferences(), onSave() {}, onClose() {} })))
+  for (const currency of majorCurrencies) {
+    await React.act(async () => [...document.querySelectorAll('dialog nav button')].find(button => button.textContent === currency).click())
+    const expected = inspectorFilterRows.filter(f => f.currency === currency)
+    const inputs = [...document.querySelectorAll('dialog .inspector-family input[type="checkbox"]')]
+    assert.equal(inputs.length, expected.length, `${currency}: Alert renders every filter control`)
+    for (const control of expected) assert.ok(inputs.some(input => input.getAttribute('aria-label') === control.label && input.checked), control.label)
+  }
   console.log('✓ All 28 pairs: source-ID admission, base/quote icons, selection, raw tables, corrections, work counts, separate Save/Cancel and workspace portability')
 } finally {
   delete globalThis.__majorGroupingWork

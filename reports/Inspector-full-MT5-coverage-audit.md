@@ -81,3 +81,24 @@ Visual layout and live chart review remain with the user.
 
 Final gates: all 76 sequential frontend suites and all 39 storage tests passed;
 frontend lint/build, repository navigation checks and diff whitespace checks passed.
+
+## Independent filter recheck — 12 October 2026
+
+Read the original exporter CSV files again and inspected the current database in a
+read-only snapshot. All **1,051** metadata types have exactly one registered family
+and one visible filter control, with no duplicate memberships or missing category.
+The **123,256** exported releases, **125,751** current stored releases and **127,075**
+raw observation versions contain **1,037** types each, with **zero unmapped types**.
+All 28 pairs include every applicable event in their default preferences.
+
+The recheck caught a search gap in combined controls: five ISM Services names and
+eleven ISM/German/French PMI IDs were absent from the combined row's search text.
+The controls and event admission existed; the combined row now searches every
+member's source names and IDs. An exhaustive regression reproduced the failure
+before the fix. All 1,051 source names/IDs now pass search coverage, and React DOM
+tests verify every default control is rendered and checked for all 28 Inspector
+pairs and all eight Alert currency tabs. This is terminal-based verification;
+visual layout review remains with the user.
+
+Recheck gates passed: major-pair catalog/menu suite, Inspector suite, Alert suite,
+assembled terminal navigation suite, frontend lint/build and repository checks.
