@@ -4,6 +4,7 @@ import { InspectorInfoTooltip } from './InspectorInfoTooltip'
 import type { InspectorRelease } from '../economic-calendar/releases/release'
 import type { InspectorView } from './useInspector'
 import { releaseTimeLabel } from './releases/release-time-label'
+import { InspectorCalendarIcon } from './chart/InspectorCalendarIcon'
 
 export function InspectorReleaseHeading({ release, view, timeDisplay, status, sharedPeriod, hasMagnitude, calendarDetail, coverageDetail }: {
   release: InspectorRelease; view: InspectorView; timeDisplay: TimeDisplayPreference; status: string
@@ -12,13 +13,14 @@ export function InspectorReleaseHeading({ release, view, timeDisplay, status, sh
 }) {
   return <div className="inspector-detail-heading" aria-label="Selected release details">
     <strong className={`inspector-currency-${release.currency}`}>
-      {symbolGlyph(view.preferences.symbols[release.familyId] ?? 'star')} {release.label} · {release.country} · {release.currency}</strong>
+      {release.daily ? <><InspectorCalendarIcon /> {release.currency} · {release.label}</> : <>
+        {symbolGlyph(view.preferences.symbols[release.familyId] ?? 'star')} {release.label} · {release.country} · {release.currency}</>}</strong>
     <span className="inspector-release-date" data-clock="display">{release.releaseAt === null && !release.timingUncertain ? 'Display time unavailable' : releaseTimeLabel(release, timeDisplay)}
       {!release.timingUncertain && ` (${timeDisplayZoneLabel(timeDisplay)})`}</span>
-    <InspectorInfoTooltip label="Release information">
-      <span className="inspector-info-line">{status}{sharedPeriod !== null && <> <span className="inspector-shared-period"
+    <InspectorInfoTooltip label={release.daily ? 'Day information' : 'Release information'}>
+      {!release.daily && <span className="inspector-info-line">{status}{sharedPeriod !== null && <> <span className="inspector-shared-period"
         title="Reference period covered by these readings. The source represents the period by its starting date.">Period: {formatAppTimestamp(sharedPeriod * 1000,
-          { mode: 'utc', utcOffsetMinutes: 0 }, 'date')}</span></>}</span>
+          { mode: 'utc', utcOffsetMinutes: 0 }, 'date')}</span></>}</span>}
       <span className="inspector-info-line">{calendarDetail}</span>
       {coverageDetail && <span className="inspector-info-line">{coverageDetail}</span>}
       <span className="inspector-info-line">A−P uses Previous; revised Previous is shown separately.

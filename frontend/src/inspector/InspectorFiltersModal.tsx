@@ -16,7 +16,7 @@ export function InspectorFiltersModal({ preferences, onApply, onClose, symbol = 
   const [draft, setDraft] = useState(() => ({ ...preferences, families: [...preferences.families], currencyColors: { ...preferences.currencyColors }, symbols: { ...preferences.symbols } }))
   const original = useRef(draft)
   const filterPreferences = (value: InspectorPreferences) => ({ ...preferences, families: value.families,
-    showSymbols: value.showSymbols, currencyColors: value.currencyColors, symbols: value.symbols })
+    showSymbols: value.showSymbols, symbolGrouping: value.symbolGrouping, currencyColors: value.currencyColors, symbols: value.symbols })
   function updateDraft(next: InspectorPreferences) {
     setDraft(next)
     onApply(filterPreferences(next), 'preview')
@@ -52,8 +52,12 @@ export function InspectorFiltersModal({ preferences, onApply, onClose, symbol = 
     <div className="inspector-modal-content">
       <header><div><h2 id="inspector-filter-title">Filters · {inspectorPair(symbol) ?? symbol}</h2><p>All MT5 event families</p></div>
         <button type="button" onClick={onClose} aria-label="Close Inspector filters">×</button></header>
-      <div className="inspector-filter-tools"><label className="inspector-symbol-toggle"><input type="checkbox" checked={draft.showSymbols}
+      <div className="inspector-filter-tools"><div className="inspector-symbol-controls"><label className="inspector-symbol-toggle"><input type="checkbox" checked={draft.showSymbols}
         onChange={(event) => updateDraft({ ...draft, showSymbols: event.target.checked })} /> Show symbols on chart</label>
+        <select className="inspector-symbol-grouping" aria-label="Group Inspector symbols" value={draft.symbolGrouping}
+          onChange={event => updateDraft({ ...draft, symbolGrouping: event.target.value === 'day' ? 'day' : 'release' })}>
+          <option value="release">By release</option><option value="day">By day</option>
+        </select></div>
         <div className="inspector-filter-search"><input type="search" aria-label="Search Inspector families" placeholder="Search families…"
           value={search} onChange={(event) => setSearch(event.target.value)} />
           {search && <button type="button" aria-label="Clear family search" onClick={() => setSearch('')}>×</button>}</div>

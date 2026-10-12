@@ -4,6 +4,15 @@ Filters → configurable chart symbols → selected publication → raw release 
 All 28 conventional major-currency pairs are supported. EURUSD retains its existing
 scoring/magnitude views; other pairs show Table only and disabled Scatter Plot (WIP).
 
+Filters save **By release** (compatible default) or **By day** per pair. Daily
+icons select one display day and currency; badges count visible series rows.
+`releases/group-days.ts` uses original publications before policy/PMI grouping,
+preserves all readings and keeps source dates for unknown-hour schedules.
+`readings/InspectorDayTable.tsx` owns the single table with publication sections.
+Daily selections expose raw tables and do not create a combined scoring release.
+Day icons remain selectable on intraday viewports; only their visual position
+changes. Relationship overlays retain `publicationMarkers` at original clocks.
+
 | Folder | Ownership |
 | --- | --- |
 | `catalog/` | Full catalog admission and visible menu categories |

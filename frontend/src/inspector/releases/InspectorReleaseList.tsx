@@ -4,6 +4,7 @@ import { releaseTimeLabel } from './release-time-label'
 import type { InspectorRelease, InspectorPreferences } from '../inspector-data'
 import { symbolGlyph } from '../../economic-calendar/presentation/event-symbols'
 import { releaseStatus } from './release-status'
+import { InspectorCalendarIcon } from '../chart/InspectorCalendarIcon'
 
 function InspectorReleaseListComponent({ id, hidden, releases, selectedId, symbols, timeDisplay, now, onSelect }: {
   id: string; hidden: boolean; releases: readonly InspectorRelease[]; selectedId: string | null;
@@ -15,9 +16,9 @@ function InspectorReleaseListComponent({ id, hidden, releases, selectedId, symbo
     {!rows.length && <p className="inspector-empty">No releases match this date range and filter selection.</p>}
     {rows.map(({ release, time }) => <button type="button" key={release.id} aria-pressed={selectedId === release.id}
       className={`inspector-release${selectedId === release.id ? ' selected' : ''}`} onClick={() => onSelect(release.id)}>
-      <span className={`inspector-currency-${release.currency}`}><b>{symbolGlyph(symbols[release.familyId] ?? 'star')} {release.currency}</b> · {release.country}</span>
+      <span className={`inspector-currency-${release.currency}`}><b>{release.daily ? <InspectorCalendarIcon /> : symbolGlyph(symbols[release.familyId] ?? 'star')} {release.currency}</b>{!release.daily && <> · {release.country}</>}</span>
       <strong>{release.label}</strong><time>{time}</time>
-      <small>{releaseStatus(release, now)} · {release.events.length} readings</small>
+      {!release.daily && <small>{releaseStatus(release, now)} · {release.events.length} readings</small>}
     </button>)}
   </nav>
 }

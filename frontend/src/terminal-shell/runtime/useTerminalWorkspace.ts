@@ -283,12 +283,12 @@ export function useTerminalWorkspace() {
     timeDisplay }), [inspector.selectedRelease, brokerId, publicationEvents, timeDisplay])
   const raycaster = useMemo(() => contextVisible && raycasterSupported ?
     { boxVisible: raycasterVisible, symbol: activeSymbol, timeframe, brokerId, brokerOffsetSeconds, clockOffsetMs: 0,
-      timeDisplay, onClose: closeRaycaster, bars: inspector.markerBars, markers: inspector.markers, onSelectCombo: selectCombo,
+      timeDisplay, onClose: closeRaycaster, bars: inspector.markerBars, markers: inspector.publicationMarkers, onSelectCombo: selectCombo,
       onOpenRoofGroup: openRoofGroup, activeRoofGroupCandleAt: selectedRoofGroup?.candleAt,
       symbols: inspectorPreferences.symbols, selectedCombo, onClearCombo: closeCombo, view: raycasterView, onViewChange: setRaycasterView, publication,
       onOpenComboSource: openComboRelease, currencyColors: inspectorPreferences.currencyColors } : null,
     [contextVisible, raycasterVisible, raycasterSupported, activeSymbol, timeframe, brokerId, brokerOffsetSeconds,
-      timeDisplay, closeRaycaster, inspector.markerBars, inspector.markers, selectCombo, openRoofGroup, selectedRoofGroup, selectedCombo, closeCombo, openComboRelease, inspectorPreferences.currencyColors, inspectorPreferences.symbols, raycasterView, publication])
+      timeDisplay, closeRaycaster, inspector.markerBars, inspector.publicationMarkers, selectCombo, openRoofGroup, selectedRoofGroup, selectedCombo, closeCombo, openComboRelease, inspectorPreferences.currencyColors, inspectorPreferences.symbols, raycasterView, publication])
   const renderChartOverlay = useTerminalChartOverlay({ arrows: registeredArrows.symbolArrows,
     selectedArrowId: registeredArrows.selectedArrowId, draftPlan: plannedTrade, onSelectArrow: selectChartArrow,
     supported: inspector.supported, markers: inspector.markers, currencyColors: inspector.preferences.currencyColors,

@@ -9,6 +9,7 @@ import { inspectorDisplayRange, inspectorRangeDates, type InspectorRangePreset }
 import { buildInspectorMarkers } from './chart/build-markers'
 import { filterInspectorReleases } from './filters/filter-releases'
 import { groupInspectorReleases } from './releases/group-releases'
+import { groupInspectorDays, selectedInspectorRelease } from './releases/group-days'
 import { inspectorPreferenceKey, readInspectorPreferences, supportsInspector, type InspectorPreferences, type InspectorPreferenceUpdate } from './preferences/inspector-preferences'
 import { forexPairCurrencies as inspectorPairCurrencies } from '../economic-calendar/forex/pairs'
 import { createInspectorReadingSelector } from '../economic-calendar/forex/select-pair-readings'
@@ -17,7 +18,6 @@ import { useFamilyMagnitudeHistory } from './magnitude/useFamilyMagnitudeHistory
 import { policyEpisodeWindowMs } from './episodes/policy-episodes'
 import { ismEpisodeWindowMs } from './episodes/ism-episodes'
 import { groupPmiEpisodes } from './episodes/pmi-episodes'
-import { episodePublications } from './episodes/display-episodes'
 import { useMarkerBars } from './chart/useMarkerBars'
 
 import { normalizeInspectorDetailView } from './inspector-detail-view'
@@ -71,24 +71,32 @@ export function useInspector({ events = noEvents, symbol, bars, timeframe, timeD
   const pairReadings = useMemo(() => selectPairReadings(readings), [readings, selectPairReadings])
   const allReleases = useMemo(() => groupInspectorReleases(pairReadings), [pairReadings])
   const displayReleases = useMemo(() => groupPmiEpisodes(allReleases), [allReleases])
-  const releases = useMemo(() => supported ? filterInspectorReleases(displayReleases, preferences, range, false,
+  const releaseGroups = useMemo(() => supported ? filterInspectorReleases(displayReleases, preferences, range, false,
     release => chartClockToUtc(release.serverTime * 1000, { brokerId: brokerId ?? null, brokerOffsetSeconds })) : [],
     [supported, displayReleases, preferences, range, brokerId, brokerOffsetSeconds])
+  const dailyPublications = useMemo(() => preferences.symbolGrouping === 'day' ? groupInspectorReleases(pairReadings, false) : [],
+    [pairReadings, preferences.symbolGrouping])
+  const days = useMemo(() => supported ? groupInspectorDays(dailyPublications, preferences.families, range, timeDisplay,
+    { brokerId: brokerId ?? null, brokerOffsetSeconds }) : [], [supported, dailyPublications, preferences.families, range, timeDisplay, brokerId, brokerOffsetSeconds])
+  const releases = preferences.symbolGrouping === 'day' ? days : releaseGroups
   const markerBars = useMarkerBars(bars)
-  const markers = useMemo(() => buildInspectorMarkers(releases, preferences, markerBars, timeframe), [releases, preferences, markerBars, timeframe])
+  // Relationship overlays retain their original publication coordinates.
+  const publicationMarkers = useMemo(() => buildInspectorMarkers(releaseGroups, preferences, markerBars, timeframe), [releaseGroups, preferences, markerBars, timeframe])
+  const markers = useMemo(() => preferences.symbolGrouping === 'day' ? buildInspectorMarkers(days, preferences, markerBars, timeframe) : publicationMarkers,
+    [preferences, days, publicationMarkers, markerBars, timeframe])
   const inspection = usePublicationInspection(symbol, brokerId, displayReleases, supported)
   const { inspectPublication, clearPublicationInspection, inspectingPublication, inspectedRelease, publicationLoading, publicationError } = inspection
   const selectRelease = useCallback((id: string | null) => {
     clearPublicationInspection(); setSelectedId(id)
   }, [clearPublicationInspection])
-  const selectedRelease = inspectingPublication ? inspectedRelease :
-    releases.find((release) => release.id === selectedId || episodePublications(release)?.some(r => r.id === selectedId)) ?? null
+  const selectedRelease = inspectingPublication ? inspectedRelease : selectedInspectorRelease(releases, displayReleases, selectedId, timeDisplay)
   const needsMagnitude = hasInspectorScoring(symbol) && detailOpen && preferences.detailView === 'table'
   // PMI table sections own their original per-country magnitude histories.
-  const magnitudeRelease = needsMagnitude && (selectedRelease?.currency === 'EUR' || selectedRelease?.currency === 'USD') && !selectedRelease?.pmiPublications ? selectedRelease?.ismPublications?.[0] ?? selectedRelease : null
+  const magnitudeRelease = needsMagnitude && (selectedRelease?.currency === 'EUR' || selectedRelease?.currency === 'USD') && !selectedRelease?.pmiPublications && !selectedRelease?.daily ? selectedRelease?.ismPublications?.[0] ?? selectedRelease : null
   const magnitudeHistory = useFamilyMagnitudeHistory(brokerId, magnitudeRelease, undefined, clockOffsetMs)
   const applyPreferences = useCallback((next: InspectorPreferences, mode: InspectorPreferenceUpdate = 'save') => {
-    const normalized = { ...next, detailView: hasInspectorScoring(symbol) ? normalizeInspectorDetailView(next.detailView) : 'table' as const }
+    const normalized = { ...next, symbolGrouping: next.symbolGrouping === 'day' ? 'day' as const : 'release' as const,
+      detailView: hasInspectorScoring(symbol) ? normalizeInspectorDetailView(next.detailView) : 'table' as const }
     setPreferences(normalized)
     if (mode === 'preview') return
     // View controls must not accidentally persist live, unsaved filter edits.
@@ -98,10 +106,10 @@ export function useInspector({ events = noEvents, symbol, bars, timeframe, timeD
   }, [preferenceKey, symbol])
   return useMemo(() => ({ supported, preferences, applyPreferences, storageFailed, rangePreset, setRangePreset, customFrom, setCustomFrom,
     customTo, setCustomTo, range, rangeDates, today, selectCustomRange, allReleases, releases, markers, selectedRelease, selectRelease, now,
-    markerBars, brokerTime, brokerOffsetSeconds, brokerId, storage, magnitudeHistory,
+    markerBars, publicationMarkers, brokerTime, brokerOffsetSeconds, brokerId, storage, magnitudeHistory,
     inspectPublication, inspectingPublication, publicationLoading, publicationError }),
     [supported, preferences, applyPreferences, storageFailed, rangePreset, customFrom, customTo, range, rangeDates, today,
-      selectCustomRange, allReleases, releases, markers, selectedRelease, selectRelease, now, markerBars, brokerTime, brokerOffsetSeconds, brokerId, storage, magnitudeHistory,
+      selectCustomRange, allReleases, releases, markers, selectedRelease, selectRelease, now, markerBars, publicationMarkers, brokerTime, brokerOffsetSeconds, brokerId, storage, magnitudeHistory,
       inspectPublication, inspectingPublication, publicationLoading, publicationError])
 }
 export type InspectorView = ReturnType<typeof useInspector>

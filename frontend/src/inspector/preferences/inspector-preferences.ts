@@ -10,6 +10,7 @@ export type InspectorPreferences = {
   catalogVersion?: 1
   families: string[]
   showSymbols: boolean
+  symbolGrouping: 'release' | 'day'
   showHistograms: boolean
   detailView: InspectorDetailView
   currencyColors: CurrencyColors
@@ -28,7 +29,7 @@ export function inspectorPairFamilies(symbol: string) {
 }
 export function defaultInspectorPreferences(symbol = 'EURUSD'): InspectorPreferences {
   const families = inspectorPairFamilies(symbol)
-  return { version: 2, catalogVersion: 1, families: families.map((family) => family.id), showSymbols: true, showHistograms: true, detailView: 'table', currencyColors: {},
+  return { version: 2, catalogVersion: 1, families: families.map((family) => family.id), showSymbols: true, symbolGrouping: 'release', showHistograms: true, detailView: 'table', currencyColors: {},
     symbols: Object.fromEntries(families.map((family) => [family.id, family.symbol])) }
 }
 export function readInspectorPreferences(symbol = 'EURUSD'): InspectorPreferences {
@@ -46,6 +47,7 @@ export function readInspectorPreferences(symbol = 'EURUSD'): InspectorPreference
     showHistograms: typeof saved.showHistograms === 'boolean' ? saved.showHistograms : defaults.showHistograms,
     detailView: hasInspectorScoring(symbol) ? normalizeInspectorDetailView(saved.detailView) : 'table',
     showSymbols: typeof saved.showSymbols === 'boolean' ? saved.showSymbols : defaults.showSymbols,
+    symbolGrouping: saved.symbolGrouping === 'day' ? 'day' : 'release',
     currencyColors: normalizeCurrencyColors(saved.currencyColors),
     symbols: { ...defaults.symbols, ...Object.fromEntries(Object.entries(saved.symbols ?? {}).filter(([id, symbol]) =>
       families.some((family) => family.id === id) && isEventSymbol(symbol))) as Record<string, EventSymbol> } }

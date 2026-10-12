@@ -40,6 +40,17 @@ is `frontend/src/economic-calendar/catalog/source-events.json`; independent expo
 metadata in the Inspector fixture verifies every source ID across all 28 pairs.
 Scoring admission remains separate.
 
+**Group symbols: By release / By day** is saved independently for each pair.
+By release retains individual publications. By day provides a separate calendar
+icon per currency, with a badge counting series rows. Clicking opens one table
+with chronological publication sections and all original Series/Actual/Previous/
+A−P readings; Forecast appears when supplied. Revised priors, periods and revisions
+remain visible. A ten-series CPI release retains ten rows in its own section.
+Daily sections use the selected display timezone; unknown-hour schedules keep
+their source calendar date and are labeled Date only. Family/date filters apply
+before daily aggregation, including separately timed policy/PMI publications.
+Daily tables do not create aggregate scoring or magnitude histories.
+
 All-day, no-time and tentative schedules have explicitly **Date only** symbols on
 the source calendar day; no exact hour is invented. A tentative numerical release
 with Actual and a supplied non-midnight publication time can use its recorded

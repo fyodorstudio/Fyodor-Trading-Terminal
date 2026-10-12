@@ -45,7 +45,7 @@ const releaseReadingOrder: Record<string, readonly string[]> = {
 // Exact publication identity forms the initial releases; verified policy
 // companions then attach to a decision within its bounded episode window.
 // Reference periods and revision/value identities remain on individual rows.
-export function groupInspectorReleases(events: InspectorEvent[]): InspectorRelease[] {
+export function groupInspectorReleases(events: InspectorEvent[], combinePolicy = true): InspectorRelease[] {
   const groups = new Map<string, InspectorRelease>()
   const seen = new Set<string>()
   for (const event of events) {
@@ -69,7 +69,7 @@ export function groupInspectorReleases(events: InspectorEvent[]): InspectorRelea
     group.chartTime ??= chartTime
     group.timingUncertain ||= event.time_mode !== 0 && !isPublishedTentative(event)
   }
-  const episodes = groupPolicyEpisodes([...groups.values()])
+  const episodes = combinePolicy ? groupPolicyEpisodes([...groups.values()]) : [...groups.values()]
   for (const group of episodes) {
     const catalogOrder = inspectorFamilyById.get(group.familyId)!.events as readonly string[]
     const principal = releaseReadingOrder[group.familyId] ?? []

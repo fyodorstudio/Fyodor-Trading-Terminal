@@ -21,6 +21,7 @@ import { InspectorReleaseList } from './releases/InspectorReleaseList'
 import { releaseStatus } from './releases/release-status'
 import { InspectorReadingsTable } from './readings/InspectorReadingsTable'
 import { PmiReadingsTable } from './readings/PmiReadingsTable'
+import { InspectorDayTable } from './readings/InspectorDayTable'
 import './inspector.css'
 import { normalizeInspectorDetailView } from './inspector-detail-view'
 import { R1Score } from './scoring/R1Score'
@@ -64,7 +65,7 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
   const [listOpen, setListOpen] = useState(false)
   const panelId = useId()
   const release = view.selectedRelease
-  const tableOnly = !hasInspectorScoring(symbol)
+  const tableOnly = !hasInspectorScoring(symbol) || !!release?.daily
   const scoringEvents = useMemo(() => tableOnly ? [] : view.allReleases.flatMap((item) => item.events), [view.allReleases, tableOnly])
   const scoreRelease = displaySourceRelease(release, null, view.now)
   const magnitudeFamily = magnitudeFamilies.find((family) => matchesReadingFamily(scoreRelease, family)) ?? null
@@ -95,7 +96,7 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
     <header className="inspector-header">
       <div className="inspector-header-sidebar">
         <button type="button" className="inspector-pair-toggle" aria-expanded={listOpen} aria-controls={`${panelId}-releases`}
-          title={`${view.releases.length} releases`} onClick={() => setListOpen((open) => !open)}>
+          title={`${view.releases.length} ${view.preferences.symbolGrouping === 'day' ? 'daily entries' : 'releases'}`} onClick={() => setListOpen((open) => !open)}>
           <strong>{symbol}</strong>
         </button>
         <button type="button" data-inspector-filter-trigger disabled={!view.supported} aria-haspopup="dialog" aria-expanded={filtersOpen} onClick={() => {
@@ -157,7 +158,8 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
           {!release ? <p className="inspector-empty" role={view.inspectingPublication ? 'status' : undefined}>{view.inspectingPublication ?
             view.publicationLoading ? 'Loading selected publication…' : view.publicationError ?? 'Selected publication is unavailable in stored history.' :
             'Click a chart symbol or select a release to inspect Actual, Previous and A−P.'}</p> : <>
-            {showR1?<R1Score release={scoreRelease} brokerId={view.brokerId} events={scoringEvents}/>:showScoring && scoringBinding ? <InspectorScoringView binding={scoringBinding} release={release}
+            {release.daily ? <InspectorDayTable release={release} symbols={view.preferences.symbols} timeDisplay={timeDisplay} /> :
+            showR1?<R1Score release={scoreRelease} brokerId={view.brokerId} events={scoringEvents}/>:showScoring && scoringBinding ? <InspectorScoringView binding={scoringBinding} release={release}
               brokerId={view.brokerId} events={scoringEvents} now={view.now} timeDisplay={timeDisplay}
               onOpenScatter={scatterAvailable ? onOpenScatter : undefined} /> :
             release.pmiPublications ? <PmiReadingsTable tableOnly={tableOnly} release={release} view={view} timeDisplay={timeDisplay} /> :

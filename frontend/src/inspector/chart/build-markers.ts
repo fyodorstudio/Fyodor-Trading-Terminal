@@ -15,6 +15,21 @@ export function buildInspectorMarkers(groups: InspectorRelease[], preferences: I
     const timestamp = release.chartTime
     const duration = timeframeSeconds[timeframe]
     const lastTime = Number(bars[bars.length - 1].time)
+    if (release.daily) {
+      const end = release.daily.endChartTime
+      if (end === null) return []
+      let lo = 0, hi = bars.length
+      while (lo < hi) { const mid = (lo + hi) >>> 1; if (Number(bars[mid].time) < timestamp) lo = mid + 1; else hi = mid }
+      const time = lo < bars.length ? Number(bars[lo].time) : null
+      if (time !== null && time < end) return [{ release, time, symbol: 'star' }]
+      // Daily placement uses the first candle slot in the selected display day.
+      // A missing historical session does not borrow another day's candle.
+      if (timestamp > lastTime) {
+        const barsAhead = Math.max(1, Math.ceil((timestamp - lastTime) / duration)), projected = lastTime + barsAhead * duration
+        if (projected < end) return [{ release, symbol: 'star', time: projected, projection: { anchorTime: lastTime, barsAhead } }]
+      }
+      return []
+    }
     const selectedFamily = episodePublications(release)?.find(member => preferences.families.includes(member.familyId))?.familyId ?? release.familyId
     const symbol = preferences.symbols[selectedFamily] ?? 'star'
     // There is no future candle to anchor to. Project timeframe slots into the

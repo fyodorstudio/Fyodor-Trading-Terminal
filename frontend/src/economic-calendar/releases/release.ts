@@ -15,4 +15,6 @@ export type InspectorRelease = {
   events: EconomicCalendarEvent[]
   ismPublications?: InspectorRelease[]
   pmiPublications?: InspectorRelease[]
+  // Display-only day/currency selection; never a combined scoring publication.
+  daily?: { date: string; endChartTime: number | null; publications: InspectorRelease[] }
 }

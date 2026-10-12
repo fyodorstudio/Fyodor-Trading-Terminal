@@ -16,6 +16,7 @@ export function validInspectorPreferences(value: unknown, pair: string): boolean
   const admitted = (id: unknown) => families.some(f => f.id === id)
   return value.version === 2 && Array.isArray(value.families) && value.families.every(admitted) &&
     typeof value.showSymbols === 'boolean' && (value.showHistograms === undefined || typeof value.showHistograms === 'boolean') &&
+    (value.symbolGrouping === undefined || value.symbolGrouping === 'release' || value.symbolGrouping === 'day') &&
     (value.detailView === undefined || isStoredInspectorDetailView(value.detailView)) &&
     (value.currencyColors === undefined || (record(value.currencyColors) && Object.entries(value.currencyColors).every(([id, color]) =>
       isMajorCurrency(id) && typeof color === 'string' && /^#[\da-f]{6}$/i.test(color)))) &&

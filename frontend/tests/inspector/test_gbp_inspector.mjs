@@ -8,7 +8,7 @@ import { Window } from 'happy-dom'
 globalThis.__gbpGroupingWork = 0
 const server = await createServer({ root: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..'), server: { middlewareMode: true, hmr: false },
   plugins: [{ name: 'gbp-grouping-work', enforce: 'pre', transform(code) {
-    const signature = 'export function groupInspectorReleases(events: InspectorEvent[]): InspectorRelease[] {'
+    const signature = 'export function groupInspectorReleases(events: InspectorEvent[], combinePolicy = true): InspectorRelease[] {'
     if (code.includes(signature)) return code.replace(signature, `${signature}globalThis.__gbpGroupingWork += 1;`)
   } }] })
 const dom = new Window({ url: 'http://localhost:5173' })
@@ -116,6 +116,7 @@ try {
   assert.ok(view.allReleases.every(release => release.currency !== 'GBP'))
   const eurReleases = view.allReleases, eurMarkers = view.markers
   const groupingWork = globalThis.__gbpGroupingWork
+  assert.ok(groupingWork > 0, 'Grouping work counter observed real preparation')
   await render({ symbol: 'EURUSD', events: rows.map(row => row.currency === 'GBP' ? { ...row, actual: .9 } : row) })
   assert.equal(globalThis.__gbpGroupingWork, groupingWork, 'GBP-only corrections perform zero EURUSD regrouping work')
   assert.equal(view.allReleases, eurReleases, 'GBP-only corrections do not rebuild EURUSD release models')

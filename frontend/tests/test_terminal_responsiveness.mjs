@@ -100,6 +100,7 @@ const server = await createServer({ root: path.resolve(path.dirname(fileURLToPat
         "}: MarketCandlestickChartProps) { globalThis.__terminalProbe.count('chartRender');")
       if (id.endsWith('/useCalendarNow.ts')) return code.replace('return now', 'globalThis.__terminalProbe.clocks.push(now); return now')
       if (id.endsWith('/InspectorScoringView.tsx')) return code.replace('const Component = binding.Component', "globalThis.__terminalProbe.count('scoringRender'); const Component = binding.Component")
+      if (id.endsWith('/releases/group-days.ts')) return code.replace('  if (!range) return []', "  globalThis.__terminalProbe.count('dailyGrouping'); if (!range) return []")
     },
   }] })
 
@@ -470,6 +471,30 @@ try {
   assert.ok(workerInputs.length > postsBefore, 'A genuinely newly available publication launches a new calculation')
   assert.ok(workerInputs.some(input => input.asOf === futureAt), 'Publication is admitted at the corrected exact clock')
   assert.equal(counters.chartCreated, undefined, 'Polling never recreates the chart')
+  if (!container.querySelector('.inspector-panel')) await click(button('Inspector'))
+  await click(container.querySelector('[data-inspector-filter-trigger]'))
+  await React.act(async () => { const mode = document.querySelector('[aria-label="Group Inspector symbols"]')
+    mode.value = 'day'; mode.dispatchEvent(new dom.Event('change', { bubbles: true })) })
+  await click([...document.querySelectorAll('dialog button')].find(node => node.textContent === 'Save'))
+  await React.act(async () => { for (const [id, fn] of frames) { frames.delete(id); fn() } })
+  await click(button('Inspector'))
+  const dailyIcon = container.querySelector('.inspector-day-symbol.inspector-currency-USD')
+  assert.ok(dailyIcon, 'Production chart exposes the saved daily grouping')
+  const seriesCount = Number(dailyIcon.textContent), dailyJobs = workerInputs.length
+  await click(dailyIcon)
+  assert.ok(container.querySelector('.inspector-panel'), 'A daily icon opens the real Inspector dock')
+  assert.equal(container.querySelector('.inspector-marker-popup'), null, 'Daily currency icons bypass the nearby-release chooser')
+  assert.equal(container.querySelectorAll('.inspector-day-table').length, 1)
+  assert.equal(container.querySelectorAll('.inspector-day-table tr[data-series-id]').length, seriesCount,
+    'Production daily table contains every series counted on its icon')
+  assert.equal(workerInputs.length, dailyJobs, 'A daily selection creates no combined scoring job')
+  reset()
+  await React.act(async () => { for (let i = 0; i < 200; i++) for (const notify of rangeListeners) notify() })
+  await React.act(async () => { for (const [id, fn] of frames) { frames.delete(id); fn() } })
+  assert.equal(counters.dailyGrouping ?? 0, 0, 'Production pan batches do zero daily regrouping')
+  assert.equal(counters.workerPosts ?? 0, 0, 'Production daily pan batches do not rescore history')
+  await React.act(async () => { for (const handler of [...clickListeners]) handler({ point: { x: 100, y: 100 } }) })
+  assert.equal(container.querySelector('.inspector-panel'), null, 'Blank chart dismissal also closes daily inspection')
   // Assembled shell keeps Alert independent even on a non-forex chart, and
   // carries the horizontal window through the real Market Watch selection.
   await click(button('Alert'))
