@@ -22,8 +22,11 @@ apply to every family. Housing, trade, government, markets and holidays have
 separate categories. Unnamed events remain inspectable by source ID.
 
 Each currency's Other / new MT5 events control admits future numeric IDs with
-valid currency/country metadata, preserving source names. Known IDs with wrong
-metadata remain rejected. Inspector queries every event for the pair's currencies.
+valid currency/country metadata, preserving source names. This control is enabled
+by default; disabling it intentionally hides unclassified events. Applied dates
+and Show symbols still govern visibility. New IDs stay here until explicitly
+classified in the catalog. Known IDs with wrong metadata remain rejected.
+Inspector queries every event for the pair's currencies.
 
 Every pair reuses its two currency catalogs, with separate saved selections,
 symbols and colors. EURUSD's existing scoring views remain available. The other
@@ -46,8 +49,8 @@ icon per currency, with a badge counting series rows. Clicking opens one table
 with the same category sections as Filters and all original Series/Actual/Previous/
 A−P readings; Forecast appears when supplied. Revised priors, periods and revisions
 remain visible. A ten-series CPI release retains ten rows under Inflation.
-Series within each category follow publication time; a shared Time cell avoids
-repeating a clock on simultaneous rows. EUR includes a Country column to distinguish
+Series within each category follow publication time, repeated on every row.
+EUR includes a Country column to distinguish
 national series with identical names. Speeches retain every speaker and appearance
 under their configured filter category. Daily sections use the selected display timezone; unknown-hour schedules keep
 their source calendar date and are labeled Date only. Family/date filters apply
@@ -60,6 +63,8 @@ with Actual and a supplied non-midnight publication time can use its recorded
 capture offset and verified broker profile after publication. This includes the
 BoJ rate decision (392060022). Raw timing mode and timestamps remain unchanged.
 Historical dates without a containing chart candle cannot place a symbol.
+The Elev8-Demo2 broker-clock profile is verified for 2014–2031; dates outside
+that profile cannot receive precise chart placement until the profile is extended.
 [MT5 timing semantics](https://www.mql5.com/en/docs/constants/structures/mqlcalendar).
 
 Saved pre-expansion selections gain newly added families once; existing disabled

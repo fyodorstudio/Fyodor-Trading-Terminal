@@ -131,6 +131,48 @@ try {
   }
   const fresh = event('9876543210123456789', 12, { name: 'A newly added source series' })
   assert.equal(groupInspectorDays(data.groupInspectorReleases([fresh], false), defaults.families, range, utc, clock)[0].events[0], fresh)
+  // Future source additions must survive both modes without catalog edits, with
+  // the same intentional family/date exclusions as registered events.
+  const futureAt = Date.UTC(2027, 0, 12, 12), futureRange = { from: futureAt - 12 * 3600000, to: futureAt + 12 * 3600000 }
+  const futureRows = [...new Set(all.map(row => row.currency))].map((currency, index) => event(`9876543210123456789${index}`, 12, {
+    value_id: `future/${currency}`, currency, country_code: all.find(row => row.currency === currency).country_code,
+    name: index === 0 ? '' : `New ${currency} source announcement`, actual: null, previous: null,
+    release_at: futureAt, server_time_seconds: futureAt / 1000, chart_time_seconds: futureAt / 1000,
+  }))
+  const futurePublications = data.groupInspectorReleases(futureRows, false)
+  assert.equal(futurePublications.length, 8)
+  for (const row of futureRows) {
+    for (const event_id of ['not-an-id', '123456789012345678901', '']) {
+      assert.equal(data.groupInspectorReleases([{ ...row, event_id }], false).length, 0, 'Malformed IDs do not enter the fallback')
+    }
+    assert.equal(data.groupInspectorReleases([{ ...row, country_code: 'WRONG' }], false).length, 0, 'New IDs still require valid country metadata')
+  }
+  const nationalAddition = { ...futureRows[0], event_id: '9876543210123456788', value_id: 'future/EUR/ES', currency: 'EUR', country_code: 'ES' }
+  assert.equal(data.groupInspectorReleases([nationalAddition], false)[0].familyId, 'eur-other', 'New national EUR types are admitted')
+  assert.equal(futurePublications.find(publication => publication.currency === futureRows[0].currency).label,
+    `MT5 event ${futureRows[0].event_id}`, 'Unnamed new types retain their source ID')
+  for (const pair of majorForexPairs) {
+    const preferences = data.defaultInspectorPreferences(pair), expected = futureRows.filter(row => forexPairCurrencies(pair).includes(row.currency))
+    for (const mode of ['release', 'day']) {
+      const select = (families, appliedRange = futureRange) => mode === 'day' ?
+        groupInspectorDays(futurePublications, families, appliedRange, utc, clock) :
+        data.filterInspectorReleases(futurePublications, { ...preferences, families }, appliedRange)
+      const selected = select(preferences.families)
+      assert.deepEqual(new Set(selected.flatMap(publication => publication.events)), new Set(expected), `${pair}/${mode}: all new future rows retained`)
+      assert.ok(selected.every(publication => publication.daily ? publication.daily.sections[0].id === 'other' :
+        publication.familyId === `${publication.currency.toLowerCase()}-other`))
+      assert.equal(data.buildInspectorMarkers(selected, { ...preferences, symbolGrouping: mode }, bars, 'H1').length, 2)
+      assert.equal(data.buildInspectorMarkers(selected, { ...preferences, showSymbols: false }, bars, 'H1').length, 0)
+      assert.equal(select(preferences.families.filter(id => !id.endsWith('-other'))).length, 0, 'Disabled catch-all is respected')
+      assert.equal(select(preferences.families, range).length, 0, 'Future additions outside applied dates stay excluded')
+      assert.equal(select(preferences.families, { from: futureAt, to: futureAt + 1 }).length, 2, 'Inclusive lower boundary')
+      assert.equal(select(preferences.families, { from: futureAt - 1, to: futureAt }).length, 0, 'Exclusive upper boundary')
+    }
+    const dateOnly = expected.map(row => ({ ...row, release_at: null, chart_time_seconds: null, time_mode: 1 }))
+    const dated = groupInspectorDays(data.groupInspectorReleases(dateOnly, false), preferences.families, futureRange, jakarta, clock)
+    assert.equal(dated.length, 2, 'Future unknown-hour additions keep their source day for both currencies')
+    assert.ok(dated.every(publication => publication.daily.date === '2027-01-12' && publication.daily.publications.every(source => source.timingUncertain)))
+  }
   const future = data.buildInspectorMarkers([usd], defaults, [{ time: at / 1000 - 86400 }], 'D1')
   assert.equal(future.length, 1); assert.equal(future[0].projection.barsAhead, 1)
   const absentDay = data.buildInspectorMarkers([usd], defaults, [{ time: at / 1000 - 86400 }, { time: at / 1000 + 86400 }], 'H1')
@@ -175,12 +217,11 @@ try {
   assert.ok(view.publicationMarkers.every(marker => !marker.release.daily), 'Relationship overlays retain original publication markers')
   assert.deepEqual([...host.querySelectorAll('thead th')].map(node => node.textContent), ['Series', 'Time', 'Actual', 'Previous', 'Forecast', 'A−P'])
   for (const body of host.querySelectorAll('tbody')) {
-    let span = 0
     for (const row of body.querySelectorAll('tr[data-series-id]')) {
       const time = row.querySelector('.inspector-day-time')
-      assert.equal(row.children.length + Number(!time && span > 0), 6, 'Shared time spans keep every numeric column aligned')
-      if (time) span = time.rowSpan
-      span--
+      assert.ok(time?.textContent, 'Every series row shows its publication time')
+      assert.equal(time.rowSpan, 1)
+      assert.equal(row.children.length, 6, 'Repeated times keep every numeric column aligned')
     }
   }
   const prepared = view.releases, markers = view.markers, work = globalThis.__dailyWork, select = view.selectRelease
@@ -244,8 +285,7 @@ try {
   assert.deepEqual([...host.querySelectorAll('thead th')].map(node => node.textContent), ['Series', 'Time', 'Actual', 'Previous', 'A−P'])
   const fedBody = [...host.querySelectorAll('tbody')].find(body => body.querySelector('strong').textContent === 'Monetary policy')
   assert.equal(fedBody.querySelectorAll('tr[data-series-id]').length, 5)
-  assert.deepEqual([...fedBody.querySelectorAll('.inspector-day-time')].map(node => node.textContent), ['12:00', '14:00', '18:00'])
-  assert.equal(fedBody.querySelector('.inspector-day-time').rowSpan, 2, 'Simultaneous series share an aligned time cell')
+  assert.deepEqual([...fedBody.querySelectorAll('.inspector-day-time')].map(node => node.textContent), ['12:00', '12:00', '14:00', '14:00', '18:00'])
   assert.ok(host.querySelector('.inspector-day-time').textContent)
   assert.ok(host.querySelector('table').textContent.includes('Date only'))
   await React.act(async () => view.applyPreferences({ ...defaults, families: defaults.families.filter(id => id !== data.inspectorFamilies.find(f => f.events.includes('840260001')).id) }))
@@ -258,7 +298,7 @@ try {
   assert.equal([...italyBody.querySelectorAll('tr[data-series-id] td[title]')].filter(node => node.textContent === 'IT').length, 5)
   assert.equal([...italyBody.querySelectorAll('tr[data-series-id] td[title]')].filter(node => node.textContent === 'FR').length, 2)
   assert.ok(italyBody.textContent.includes('Revision 2'))
-  assert.deepEqual([...italyBody.querySelectorAll('.inspector-day-time')].map(node => node.textContent), ['16:00', '18:00'])
+  assert.deepEqual([...italyBody.querySelectorAll('.inspector-day-time')].map(node => node.textContent), [...Array(6).fill('16:00'), '18:00'])
   const marketRows = [...['840100001', '840100002'].map(id => event(id, 0)),
     ...fixture.filter(row => row.country_currency === 'USD' && row.event_name.startsWith('CFTC ')).slice(0, 11).map(row => event(row.event_id, 2.5))]
   await render({ rows: marketRows })
@@ -268,9 +308,8 @@ try {
   assert.equal(host.querySelectorAll('tr[data-series-id]').length, 13)
   const markets = host.querySelector('tbody[data-category-section="markets"]')
   assert.equal(markets.querySelectorAll('tr[data-series-id]').length, 11, 'All eleven financial-market rows share one category heading')
-  assert.equal(markets.querySelectorAll('.inspector-day-time').length, 1)
-  assert.equal(markets.querySelector('.inspector-day-time').rowSpan, 11)
-  assert.equal(markets.querySelector('.inspector-day-time').textContent, '02:30')
+  assert.equal(markets.querySelectorAll('.inspector-day-time').length, 11)
+  assert.ok([...markets.querySelectorAll('.inspector-day-time')].every(node => node.rowSpan === 1 && node.textContent === '02:30'))
   assert.equal(host.querySelectorAll('.inspector-day-section').length, 2, 'Individual release names are not repeated as headings')
   await React.act(async () => view.selectRelease(null)); assert.equal(view.selectedRelease, null)
   console.log('✓ Daily Inspector: all 1,051 catalog types/28 pairs, filter-category sections, separate currency icons, source-country/time labels, all series rows, preview/Save/Cancel, corrections, counts, portability and zero regrouping on pan')

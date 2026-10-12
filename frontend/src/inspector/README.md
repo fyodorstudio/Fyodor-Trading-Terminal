@@ -10,7 +10,7 @@ icons select one display day and currency; badges count visible series rows.
 preserves all readings and keeps source dates for unknown-hour schedules.
 `releases/day-sections.ts` reuses the filter categories and their order.
 `readings/InspectorDayTable.tsx` owns one category section per day/currency,
-chronological series rows, shared time cells and EUR source-country labels.
+chronological series rows, time on every row and EUR source-country labels.
 Daily selections expose raw tables and do not create a combined scoring release.
 Day icons remain selectable on intraday viewports; only their visual position
 changes. Relationship overlays retain `publicationMarkers` at original clocks.

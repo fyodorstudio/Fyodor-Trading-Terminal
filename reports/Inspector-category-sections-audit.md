@@ -50,3 +50,27 @@ propagation and zero regrouping/scoring work on pan. Visual review remains with 
 All 77 frontend suites passed, followed by the focused exact Financial markets
 example after the final markup check. Frontend lint/build and repository checks
 also passed.
+
+## Follow-up: repeated times and future source additions
+
+The subsequent refinement repeats Time on every series row instead of spanning
+simultaneous rows. Column alignment is checked with and without Forecast and with
+EUR's Country column, including the eleven simultaneous Financial markets rows.
+
+Synthetic January 2027 additions exercise all eight currencies across all 28 pairs
+in By release and By day. Checks retain every source row, including unnamed types
+and 20-digit IDs, place them under Other / new events, project future symbols, and
+respect disabled catch-all controls, Show symbols and inclusive/exclusive date
+boundaries. Date-only additions preserve their source day; new national EUR types
+are admitted. Malformed IDs and invalid country metadata are rejected.
+
+Inspector's storage query is currency-scoped, so a source ID absent from the catalog
+is still fetched. Catch-all controls default on; no automatic semantic category is
+guessed. Data still depends on the publisher supplying an observation/schedule and
+the applied range including it. Elev8-Demo2's verified clock profile covers
+2014–2031; extension beyond that range remains separate work.
+
+The five affected suites passed sequentially: daily Inspector, all-major-pair
+Inspector, mounted Inspector/storage, Alert and assembled-terminal responsiveness.
+Frontend lint/build, repository checks and whitespace checks also passed. Visual
+acceptance remains with the user.

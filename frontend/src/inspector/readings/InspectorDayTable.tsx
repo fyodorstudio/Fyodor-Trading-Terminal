@@ -3,14 +3,8 @@ import type { InspectorDaySection, InspectorRelease } from '../../economic-calen
 import { formatInspectorValue, hasRevisedPreviousChange, inspectorDelta } from './reading-values'
 import { suppliedPriorLabels } from '../grading/reading-grading'
 
-const clockKey = (publication: InspectorRelease) => publication.timingUncertain ? 'date-only' : publication.releaseAt
 function sectionRows(section: InspectorDaySection, display: TimeDisplayPreference) {
-  const rows = section.publications.flatMap(publication => publication.events.map(event => ({ event, publication, timeSpan: 0 })))
-  let first = 0
-  for (let i = 0; i < rows.length; i++) {
-    if (i === 0 || clockKey(rows[i].publication) !== clockKey(rows[i - 1].publication)) first = i
-    rows[first].timeSpan += 1
-  }
+  const rows = section.publications.flatMap(publication => publication.events.map(event => ({ event, publication })))
   const timeLabel = (publication: InspectorRelease) => publication.timingUncertain ? 'Date only' : publication.releaseAt === null ?
     'Time unavailable' : formatAppTimestamp(publication.releaseAt, display, publication.releaseAt % 60000 === 0 ? 'time-short' : 'time')
   return { rows, timeLabel }
@@ -36,14 +30,14 @@ export function InspectorDayTable({ release, timeDisplay }: {
             <span>{rows.length} series{section.releaseCount > 1 && ` · ${section.releaseCount} releases`}</span>
             {sharedPeriod && <span>Period: {periodLabel(period)}</span>}</div>
         </th></tr>
-        {rows.map(({ event, publication, timeSpan }) => {
+        {rows.map(({ event, publication }) => {
           const delta = inspectorDelta(event)
           return <tr key={event.value_id} data-series-id={event.event_id}>
             <th scope="row"><strong>{event.name || `MT5 event ${event.event_id}`}</strong>
               {event.revision > 0 && <span className="inspector-revision"> · Revision {event.revision}</span>}
               {!sharedPeriod && event.period_seconds > 0 && <small>Period: {periodLabel(event.period_seconds)}</small>}</th>
             {showCountry && <td title={event.country_name}>{event.country_code}</td>}
-            {timeSpan > 0 && <td className="inspector-day-time" rowSpan={timeSpan}>{timeLabel(publication)}</td>}
+            <td className="inspector-day-time">{timeLabel(publication)}</td>
             <td>{formatInspectorValue(event.actual, event)}</td>
             <td>{formatInspectorValue(event.previous, event)}{hasRevisedPreviousChange(event) &&
               <small title={suppliedPriorLabels(event).description}>{suppliedPriorLabels(event).value}: {formatInspectorValue(event.revised_previous, event)}</small>}</td>
