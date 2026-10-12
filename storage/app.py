@@ -14,6 +14,7 @@ from .contracts import BackfillChunk, BackfillFailure, PublisherContext
 from .data_lock import data_lock
 from .research_reports import ResearchRequest, save_report
 from .highlights import HIGHLIGHTS_PATH, HighlightRequest, pin_release, delete_pin, archive_pin, highlight_snapshot
+from .highlight_metadata import limitations_snapshot
 
 # The eight-currency Alert catalog exceeds the original pair-only 64-series cap.
 # Keep a bound below SQLite's conservative 999-parameter limit, including dates.
@@ -127,6 +128,14 @@ def create_app(directory=None, run_collector=True, highlights_path=HIGHLIGHTS_PA
             return archive_pin(identity, source_id, highlights_path, app.state.store, restore=True)
         except OSError as error:
             raise HTTPException(503, 'Could not restore Highlight') from error
+
+    @app.get('/api/v1/highlight-limitations')
+    def highlight_limitations(source_id: str = Query(min_length=1, max_length=160),
+                              after_revision: str | None = Query(default=None, max_length=100)):
+        try:
+            return limitations_snapshot(source_id, highlights_path, after_revision)
+        except OSError as error:
+            raise HTTPException(503, 'Discovered limitations unavailable') from error
 
     return app
 

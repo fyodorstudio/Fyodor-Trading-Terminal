@@ -1,11 +1,14 @@
 # Highlight research journal
 
-Alert's existing bottom dock contains **Highlight → Active / Archive**. Expand a
+Alert's existing bottom dock contains **Highlight → Active / Archive / Discovered Limitations**. Expand a
 card for Before release, After release, sources, captured readings and research
 history. Text is read-only. Scope is explicit and does not follow chart changes.
 Copy Prompt copies the latest tailored release request for that scope, prefixed
 with the occurrence ID, broker and verified UTC time. Without research it uses a
 generic verification request. Clipboard failures expose a read-only preview.
+Choose **Prepare before release** for same-day/hour-before research, or **Interpret
+after release** once actuals arrive. Prompt templates are separate from journal
+research; saving a prompt never fills Before release with a pretend investigation.
 
 Archive replaces Unpin/Remove pin in Alert and Inspector. It preserves occurrence
 identity, journal files and an archive-time reading snapshot. Restore resumes live
@@ -25,6 +28,8 @@ pnpm analyst highlights --visibility archived
 pnpm analyst highlights --visibility all --match CPI
 pnpm analyst highlights --highlight-id "<id>" --summary
 pnpm analyst journal read "<id>" --broker Elev8-Demo2 --scope EURUSD
+pnpm analyst prompt read "<id>" --broker Elev8-Demo2 --scope EURUSD
+pnpm analyst limitations --broker Elev8-Demo2
 pnpm analyst upcoming --broker Elev8-Demo2 --scope all --days 90 --category policy --category inflation --category labor
 pnpm analyst upcoming --broker Elev8-Demo2 --scope AUDUSD --days 14 --family au-labor
 ```
@@ -35,6 +40,34 @@ same-family investigations. It does not score or recommend automatically. Policy
 stages remain separate; verify their official schedule. Follow next_offset with
 --offset. Unknown IDs remain Other. Missing publisher series still require web
 research. --as-of narrows schedule timing, not historical data vintages.
+
+## Prompt-only preparation and limitations
+
+When the user wants to defer investigation, save a PromptRequest JSON containing
+scope, prepare_prompt and release_prompt. These contain tasks and component/stage
+hints, not a macro verdict. Both prompts receive the exact Highlight ID, broker
+and current timing context when copied. A later researched journal prompt can
+supersede an older template. Templates survive archive/restore.
+
+```powershell
+pnpm analyst prompt save "<id>" --broker Elev8-Demo2 --input "<prompt.json>"
+pnpm analyst limitations append --broker Elev8-Demo2 --input "<limitation.json>"
+```
+
+LimitationRequest contains key (stable slug), currency, kind (missing-release,
+schedule-mismatch, unverified-time or data-conflict), title, description, action,
+checked_utc and sources. Optional official_schedule/stored_schedule retain the
+disagreement; status defaults to open. Append the same key with status resolved
+when evidence resolves it. The UI shows the latest version per broker/key and
+retains the source links and verification time. It is read-only and caches the last
+valid records during outages. GET `/api/v1/highlight-limitations` serves this view.
+There are no browser-writing prompt or limitation endpoints.
+
+Prompt and limitation versions live separately under `Market Analyst Workflow/`
+in prompts/ and limitations/. They use the same atomic append and metadata lock
+as research. Back up these directories alongside pins, journals and reports.
+Missing feed occurrences cannot be pinned without broker value IDs; record them
+as limitations rather than adding invented calendar observations.
 
 ## Append research
 

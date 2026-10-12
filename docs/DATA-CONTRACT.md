@@ -54,6 +54,10 @@ Agent journal appends create immutable JSON files under
 pin file. Snapshots preserve raw readings/provenance at save time, not a reconstructed
 release-day vintage. Journal contents participate in the Highlight revision.
 The UI has no journal writer; use the CLI and [journal contract](HIGHLIGHT-JOURNAL.md).
+Prompt-only templates live in prompts/ and never create research entries. Their
+contents participate in Highlight revisions. Broker-scoped limitations live in
+limitations/ as immutable versions, with a revision-aware GET-only endpoint and
+a separate read-only UI tab. These metadata writes never change calendar readings.
 
 `pnpm analyst` reads the existing calendar schema in a read-only transaction, with
 complete pagination before returning compact focused results. OHLC uses the unchanged
@@ -121,4 +125,5 @@ on the UI origin; keep the same origin to reuse them. Calendar backup does not
 contain browser settings. The original repository/data remains the extraction
 reference and was not removed.
 Highlight metadata and journal files are separate from calendar backups; keep
-highlights.json, journal/ and report folders under `Market Analyst Workflow/` together.
+highlights.json, journal/, prompts/, limitations/ and report folders under
+`Market Analyst Workflow/` together.

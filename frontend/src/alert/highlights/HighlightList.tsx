@@ -9,16 +9,18 @@ import { highlightState, highlightPrompt, type Highlight } from './highlight-mod
 import { useHighlights } from './useHighlights'
 import { majorForexPairs } from '../../economic-calendar/forex/pairs'
 import { HighlightJournal } from './HighlightJournal'
+import { DiscoveredLimitations } from './DiscoveredLimitations'
 
 const HighlightCard = memo(function HighlightCard({ item, now, timeDisplay, archive, restore, busy, onPrepareResearch }: {
   item: Highlight; now: number; timeDisplay: TimeDisplayPreference; archive: (id: string) => Promise<void>; restore: (id: string) => Promise<void>; busy: boolean
   onPrepareResearch?: (release: InspectorRelease) => void
 }) {
   const [expanded, setExpanded] = useState(false)
-  const scopes = useMemo(() => [...new Set([item.currency, ...majorForexPairs.filter(pair => pair.includes(item.currency)), ...(item.journal ?? []).map(entry => entry.scope)])], [item.currency, item.journal])
-  const [scope, setScope] = useState(() => item.journal?.at(-1)?.scope ?? item.currency)
+  const scopes = useMemo(() => [...new Set([item.currency, ...majorForexPairs.filter(pair => pair.includes(item.currency)), ...(item.journal ?? []).map(entry => entry.scope), ...(item.prompts ?? []).map(entry => entry.scope)])], [item.currency, item.journal, item.prompts])
+  const [scope, setScope] = useState(() => item.prompts?.at(-1)?.scope ?? item.journal?.at(-1)?.scope ?? item.currency)
+  const [promptPhase, setPromptPhase] = useState<'prepare' | 'after'>(() => item.prompts?.length && item.release_at !== null && item.release_at > now ? 'prepare' : 'after')
   const [copyStatus, setCopyStatus] = useState('')
-  const prompt = useMemo(() => highlightPrompt(item, scope), [item, scope])
+  const prompt = useMemo(() => highlightPrompt(item, scope, promptPhase), [item, scope, promptPhase])
   async function copyPrompt() {
     try { await navigator.clipboard.writeText(prompt); setCopyStatus('Prompt copied') }
     catch { setCopyStatus('Clipboard unavailable. Open Prompt preview and copy the text.'); setExpanded(true) }
@@ -34,13 +36,15 @@ const HighlightCard = memo(function HighlightCard({ item, now, timeDisplay, arch
       <span className="alert-countdown">{item.archived_utc ? 'Archived' : next !== null ? `${state === 'Upcoming' ? '' : 'Next series · '}${alertCountdown(next, now, true)}` : state}</span>
     </summary>{expanded && <><HighlightJournal item={item} scope={scope} />
       {item.archived_utc && <p className="highlight-research-meta">Archived {item.archived_utc} · Readings preserved at archive time.</p>}
-      <details><summary>Prompt preview · {scope}</summary><textarea readOnly value={prompt} aria-label={`Prompt for ${item.label} ${scope}`} /></details>
+      <details><summary>Prompt preview · {scope} · {promptPhase === 'prepare' ? 'Before release' : 'After release'}</summary><textarea readOnly value={prompt} aria-label={`Prompt for ${item.label} ${scope}`} /></details>
       <HighlightSeries item={item} timeDisplay={timeDisplay} /></>}</details>
     <div className="highlight-actions">{onPrepareResearch && releases[0] && <button type="button" onClick={() => onPrepareResearch({ ...releases[0],
       label: item.label, events: item.events, releaseAt: item.release_at, serverTime: item.server_time ?? releases[0].serverTime, timingUncertain: item.release_at === null })}
       aria-label={`Prepare research for highlighted ${item.currency} ${item.label}`}>Research</button>}
       <label>Scope <select aria-label={`Research scope for ${item.label}`} value={scope} onChange={event => { setScope(event.target.value); setCopyStatus('') }}>
         {scopes.map(value => <option key={value}>{value}</option>)}</select></label>
+      <select aria-label={`Prompt stage for ${item.label}`} value={promptPhase} onChange={event => { setPromptPhase(event.target.value as 'prepare' | 'after'); setCopyStatus('') }}>
+        <option value="prepare">Prepare before release</option><option value="after">Interpret after release</option></select>
       <button type="button" onClick={() => void copyPrompt()}>Copy Prompt</button>
       <button type="button" disabled={busy} onClick={() => void (item.archived_utc ? restore(item.id) : archive(item.id))}
         aria-label={`${item.archived_utc ? 'Restore' : 'Archive'} highlight ${item.currency} ${item.label}`}>{item.archived_utc ? 'Restore' : 'Archive'}</button>
@@ -62,15 +66,17 @@ const HighlightSeries = memo(function HighlightSeries({ item, timeDisplay }: { i
 export function HighlightList({ brokerId, now, timeDisplay, onPrepareResearch }: {
   brokerId: string | null; now: number; timeDisplay: TimeDisplayPreference; onPrepareResearch?: (release: InspectorRelease) => void
 }) {
-  const [visibility, setVisibility] = useState<'active' | 'archived'>('active')
-  const highlights = useHighlights(brokerId, 2000, visibility)
+  const [visibility, setVisibility] = useState<'active' | 'archived' | 'limitations'>('active')
+  const highlights = useHighlights(visibility === 'limitations' ? null : brokerId, 2000, visibility === 'archived' ? 'archived' : 'active')
   return <div className="highlight-list" aria-label="Highlighted releases">
     <nav className="highlight-views" aria-label="Highlight view"><button type="button" aria-pressed={visibility === 'active'} onClick={() => setVisibility('active')}>Active</button>
-      <button type="button" aria-pressed={visibility === 'archived'} onClick={() => setVisibility('archived')}>Archive</button></nav>
+      <button type="button" aria-pressed={visibility === 'archived'} onClick={() => setVisibility('archived')}>Archive</button>
+      <button type="button" aria-pressed={visibility === 'limitations'} onClick={() => setVisibility('limitations')}>Discovered Limitations</button></nav>
+    {visibility === 'limitations' ? <DiscoveredLimitations brokerId={brokerId} /> : <>
     {highlights.error && <p role="status">{highlights.error}</p>}
     {!highlights.error && highlights.offline && <p role="status">Publisher offline · stored values may be stale</p>}
     {!highlights.items.length && <p>{brokerId ? visibility === 'archived' ? 'No archived releases.' : 'Pin releases from Inspector or Alert to keep them here.' : 'Connect calendar storage to load Highlight.'}</p>}
     {highlights.items.map(item => <HighlightCard key={item.id} item={item} now={now} timeDisplay={timeDisplay}
-      archive={highlights.archive} restore={highlights.restore} busy={highlights.busy} onPrepareResearch={onPrepareResearch} />)}
+      archive={highlights.archive} restore={highlights.restore} busy={highlights.busy} onPrepareResearch={onPrepareResearch} />)}</>}
   </div>
 }

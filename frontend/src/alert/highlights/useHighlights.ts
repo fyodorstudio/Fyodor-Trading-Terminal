@@ -16,6 +16,8 @@ function validItems(value: unknown, sourceId: string): value is Highlight[] {
     const item = entry as Partial<Highlight>
     return item.source_id === sourceId && typeof item.id === 'string' && typeof item.label === 'string' && typeof item.currency === 'string'
       && (item.archived_utc === undefined || item.archived_utc === null || typeof item.archived_utc === 'string')
+      && (item.prompts === undefined || Array.isArray(item.prompts) && item.prompts.every(prompt => prompt && prompt.highlight_id === item.id
+        && prompt.source_id === sourceId && ['id','scope','saved_utc','prepare_prompt','release_prompt'].every(key => typeof prompt[key as keyof typeof prompt] === 'string')))
       && (item.journal === undefined || Array.isArray(item.journal) && item.journal.every(entry => entry && entry.highlight_id === item.id
         && entry.source_id === sourceId && ['before', 'after'].includes(entry.phase) && typeof entry.scope === 'string'
         && ['id', 'as_of_utc', 'saved_utc', 'body', 'direction', 'confidence', 'counterevidence', 'release_prompt', 'price_reaction', 'reading_vintage'].every(key => typeof entry[key as keyof typeof entry] === 'string')

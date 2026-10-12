@@ -83,3 +83,10 @@ When authorized, use the documented CLI with exact source/value IDs, verify the
 result and preserve prior journals. Save Before release research only when
 requested, including an occurrence-specific Copy Prompt. A request to review
 alerts does not authorize trading, service restarts or recurring monitoring.
+
+For an explicitly deferred/prompt-only request, use the already accepted shortlist
+and focused calendar IDs without doing new macro research. Save prepare_prompt
+and release_prompt via `pnpm analyst prompt save`; keep journal research pending.
+Record known schedule/data gaps using `limitations append`. The user can request
+the full investigation on release day or about an hour beforehand, then request
+post-release interpretation after actuals arrive. Do not infer recurring monitoring.

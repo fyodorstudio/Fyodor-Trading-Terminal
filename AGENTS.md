@@ -107,6 +107,12 @@ folders live together under `Market Analyst Workflow/`.
   and separates fundamental direction from price reaction. An elapsed release
   time is not proof actuals have arrived. Recommend upcoming candidates by policy
   relevance and new information; pin/archive only with user authorization.
+- For prompt-only requests, defer new macro/web/OHLC investigation. Store separate
+  preparation and after-release templates with `prompt save`; do not manufacture
+  Before release research. Same-day/hour-before investigation refreshes expectations
+  and saves conditional scenarios; direction after actuals needs a post-release check.
+  Persist verified schedule/data issues through `limitations append` for the
+  Discovered Limitations view. Preserve raw data and report missing occurrences.
 
 ### Dataset commands
 

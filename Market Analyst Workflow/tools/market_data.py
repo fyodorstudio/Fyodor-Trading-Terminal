@@ -20,6 +20,7 @@ from storage.research_reports import REPORT_DIRECTORY, ResearchRequest, collect_
 from ohlc import fetch_window, read_saved, summarize, write_evidence, capture_lock, cached_window
 from storage.highlights import HIGHLIGHTS_PATH, HighlightRequest, highlight_snapshot, archive_pin, pin_release
 from storage.highlight_journal import JournalRequest, append_journal, read_journal
+from storage.highlight_metadata import PromptRequest, append_prompt, read_prompts, LimitationRequest, append_limitation, limitations_snapshot
 from upcoming import upcoming_snapshot
 
 
@@ -216,6 +217,20 @@ def parser():
     journal.add_argument('--limit', type=int, choices=range(1,101), default=10)
     journal.add_argument('--offset', type=int, default=0)
     journal.add_argument('--database', default='storage/data/calendar.sqlite3')
+    prompt = commands.add_parser('prompt', help='Prepare/read occurrence-specific prompts without doing or saving macro analysis')
+    prompt.add_argument('action', choices=['read','save'])
+    prompt.add_argument('highlight_id')
+    prompt.add_argument('--broker', required=True)
+    prompt.add_argument('--input', help='PromptRequest JSON file for save')
+    prompt.add_argument('--scope')
+    prompt.add_argument('--limit', type=int, choices=range(1,101), default=10)
+    prompt.add_argument('--offset', type=int, default=0)
+    limitations = commands.add_parser('limitations', help='Read/append discovered schedule or data limitations without changing the calendar')
+    limitations.add_argument('action', choices=['read','append'], nargs='?', default='read')
+    limitations.add_argument('--broker', required=True)
+    limitations.add_argument('--input', help='LimitationRequest JSON file for append')
+    limitations.add_argument('--limit', type=int, choices=range(1,101), default=20)
+    limitations.add_argument('--offset', type=int, default=0)
     action = commands.add_parser('highlight', help='Explicit pin/archive/restore actions; never delete research')
     action.add_argument('action', choices=['pin','archive','restore'])
     action.add_argument('--highlight-id')
@@ -254,6 +269,22 @@ def parser():
 def run(args):
     if getattr(args, 'offset', 0) < 0:
         raise ValueError('Offset must be non-negative')
+    if args.command in ('prompt', 'limitations'):
+        if args.action in ('save', 'append'):
+            if not args.input:
+                raise ValueError('A metadata write needs --input with its JSON request')
+            text = local_path(args.input).read_text(encoding='utf-8-sig')
+            return append_prompt(args.highlight_id, args.broker, PromptRequest.model_validate_json(text)) if args.command == 'prompt' else append_limitation(args.broker, LimitationRequest.model_validate_json(text))
+        if args.command == 'prompt':
+            from storage.highlights import read_pins
+            if not any(pin['id'] == args.highlight_id and pin['source_id'] == args.broker for pin in read_pins()):
+                raise ValueError('Highlight not found for this broker')
+            entries = [entry for entry in reversed(read_prompts(args.highlight_id)) if entry['source_id'] == args.broker and (not args.scope or entry['scope'] == args.scope)]
+        else:
+            entries = limitations_snapshot(args.broker)['items']
+        return {'broker': args.broker, 'matches': len(entries), 'offset': args.offset,
+            'next_offset': args.offset+args.limit if args.offset+args.limit < len(entries) else None,
+            'items': entries[args.offset:args.offset+args.limit]}
     if args.command in ('highlight', 'journal', 'upcoming'):
         with closing(CalendarStore(local_path(args.database), readonly=True)) as store:
             if args.command == 'upcoming':
@@ -378,6 +409,7 @@ def run(args):
                 'missing_value_ids': pin['missing_value_ids'], 'archived_utc': pin['archived_utc'],
                 'research': [{'id': entry['id'], 'phase': entry['phase'], 'scope': entry['scope'], 'as_of_utc': entry['as_of_utc'],
                               'direction': entry['direction']} for entry in pin['journal']],
+                'prompt_scopes': sorted({entry['scope'] for entry in pin['prompts']}),
                 'timeline': timeline(pin)} for pin in pins[args.offset:args.offset + args.limit]]}
 
 

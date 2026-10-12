@@ -129,6 +129,7 @@ def highlight_snapshot(store, source_id=None, path=HIGHLIGHTS_PATH, after_revisi
 
 def _highlight_snapshot(store, source_id, path, after_revision, persist_related, visibility):
     from .highlight_journal import read_journal
+    from .highlight_metadata import read_prompts
     if visibility not in ('active', 'archived', 'all'):
         raise ValueError('Choose active, archived or all Highlights')
     with LOCK, store.lock:
@@ -136,14 +137,18 @@ def _highlight_snapshot(store, source_id, path, after_revision, persist_related,
         pins = [pin for pin in all_pins if (source_id is None or pin['source_id'] == source_id)
             and (visibility == 'all' or bool(pin['archived_utc']) == (visibility == 'archived'))]
         journals = {pin['id']: read_journal(pin['id'], path) for pin in pins}
+        prompts = {pin['id']: read_prompts(pin['id'], path) for pin in pins}
         if any(entry['source_id'] != pin['source_id'] or pin['currency'] not in (entry['scope'][:3], entry['scope'][3:])
                for pin in pins for entry in journals[pin['id']]):
             raise ValueError('Journal broker or currency mismatch; preserve the research files')
+        if any(entry['source_id'] != pin['source_id'] or pin['currency'] not in (entry['scope'][:3], entry['scope'][3:])
+               for pin in pins for entry in prompts[pin['id']]):
+            raise ValueError('Prompt broker or currency mismatch; preserve the prompt files')
         expanded = False
         calendar_revision = store.db.execute('SELECT value FROM data_revision WHERE id=1').fetchone()[0]
         source = store.db.execute('SELECT publisher_seen_at FROM sources WHERE id=?', (source_id,)).fetchone() if source_id else None
         source_status = 'live' if source and source[0] and store.clock() - source[0] < 30 else 'offline' if source else 'unavailable'
-        signature = lambda: hashlib.sha256(json.dumps([pins, journals], sort_keys=True).encode()).hexdigest() + f':{calendar_revision}'
+        signature = lambda: hashlib.sha256(json.dumps([pins, journals, prompts], sort_keys=True).encode()).hexdigest() + f':{calendar_revision}'
         revision = signature()
         result = {'highlight_schema': 2, 'source_id': source_id, 'source_status': source_status, 'revision': revision, 'calendar_revision': calendar_revision,
             'as_of_utc': datetime.now(timezone.utc).isoformat(timespec='seconds')}
@@ -153,7 +158,7 @@ def _highlight_snapshot(store, source_id, path, after_revision, persist_related,
         for pin in pins:
             if pin['archived_utc'] and pin['archived_snapshot'] is not None:
                 items.append({**{key: value for key, value in pin.items() if key != 'archived_snapshot'},
-                    **pin['archived_snapshot'], 'journal': journals[pin['id']], 'publisher_status': 'archived'})
+                    **pin['archived_snapshot'], 'journal': journals[pin['id']], 'prompts': prompts[pin['id']], 'publisher_status': 'archived'})
                 continue
             events = store.values(pin['source_id'], pin['value_ids'])
             # Discover additional series in the same publication window. Exact
@@ -189,7 +194,7 @@ def _highlight_snapshot(store, source_id, path, after_revision, persist_related,
             known = [event['release_at'] for event in events if publication_time_known(event) and event['release_at'] is not None]
             publisher = store.db.execute('SELECT publisher_seen_at FROM sources WHERE id=?', (pin['source_id'],)).fetchone()
             publisher_status = 'live' if publisher and publisher[0] and store.clock() - publisher[0] < 30 else 'offline' if publisher else 'unavailable'
-            items.append({**{key: value for key, value in pin.items() if key != 'archived_snapshot'}, 'journal': journals[pin['id']], 'events': events, 'publisher_status': publisher_status, 'release_at': min(known) if known else None,
+            items.append({**{key: value for key, value in pin.items() if key != 'archived_snapshot'}, 'journal': journals[pin['id']], 'prompts': prompts[pin['id']], 'events': events, 'publisher_status': publisher_status, 'release_at': min(known) if known else None,
                 'server_time': min((event['server_time_seconds'] for event in events), default=None),
                 'missing_value_ids': sorted(set(pin['value_ids']) - {event['value_id'] for event in events})})
         items.sort(key=lambda pin: (pin['release_at'] if pin['release_at'] is not None else (pin['server_time'] or 0) * 1000, pin['id']))

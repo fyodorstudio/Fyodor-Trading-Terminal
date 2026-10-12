@@ -17,6 +17,7 @@ const globals = { window: dom, document: dom.document, HTMLElement: dom.HTMLElem
 const previous = new Map([...Object.keys(globals), 'fetch'].map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]))
 for (const [key, value] of Object.entries(globals)) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value })
 let copiedPrompt = '', clipboardFailure = false, oldService = false
+let limitationOffline = false, limitationMalformed = false
 Object.defineProperty(dom.navigator, 'clipboard', { configurable: true, value: { writeText: async text => {
   if (clipboardFailure) throw new Error('Clipboard unavailable')
   copiedPrompt = text
@@ -53,6 +54,16 @@ function snapshot(sourceId, visibility = 'active') {
 }
 globalThis.fetch = async (url, options = {}) => {
   const route = new URL(String(url), 'http://localhost'); calls.push({ path: route.pathname, options })
+  if (route.pathname === '/storage-api/highlight-limitations') {
+    if (limitationOffline) return { ok: false, status: 503, json: async () => ({}) }
+    const source_id = route.searchParams.get('source_id')
+    return { ok: true, json: async () => limitationMalformed ? { source_id, revision: 'bad', items: [{}] } :
+      route.searchParams.get('after_revision') === 'limit-1' ? { source_id, revision: 'limit-1', unchanged: true } :
+      { source_id, revision: 'limit-1', items: source_id === 'Broker-A' ? [{ id: 'limit-1', source_id, key: 'rba-time', currency: 'AUD',
+        kind: 'schedule-mismatch', title: 'RBA decision hour differs', description: 'Stored time differs from the official schedule.',
+        action: 'Use the official decision time.', checked_utc: '2026-10-12T11:00:00Z', status: 'open',
+        official_schedule: '10:30 Jakarta', stored_schedule: '11:30 Jakarta', sources: [{ kind: 'web', label: 'RBA calendar', locator: 'https://www.rba.gov.au/schedules-events/calendar/', note: '' }] }] : [] } }
+  }
   if (route.pathname.startsWith('/storage-api/highlights')) {
     if (offline) return { ok: false, status: 503, json: async () => ({}) }
     if (options.method === 'POST') {
@@ -112,6 +123,8 @@ try {
       { kind: 'web', label: 'Official release', locator: 'https://www.bls.gov/cpi/', note: 'Release vintage' }],
     release_prompt: 'Check October CPI against expectations; keep price separate.', prior_highlight_ids: [], correction_of: null,
     price_reaction: '', readings: captured, calendar_revision: 1, reading_vintage: 'Captured when saved', missing_value_ids: [] }]
+  pins[0].prompts = [{ id: 'prompt-1', highlight_id: pins[0].id, source_id: 'Broker-A', scope: 'EURUSD', saved_utc: '2026-10-12T10:00:00Z',
+    prepare_prompt: 'Saved preparation prompt: conditional outcomes. Do not treat forecasts as actuals.', release_prompt: 'Older saved release prompt.' }]
   revision++; await poll()
   const first = container.querySelector('.highlight-card'), detail = first.querySelector('details')
   const scopeSelect = first.querySelector('select')
@@ -125,6 +138,11 @@ try {
   assert.match(first.textContent, /After release.*No saved interpretation/s)
   assert.equal(first.querySelector('textarea').readOnly, true, 'Research and prompt preview have no editable text controls')
   assert.equal(first.querySelector('a').getAttribute('rel'), 'noopener noreferrer')
+  const promptStage = first.querySelector('[aria-label^="Prompt stage"]')
+  await React.act(async () => { promptStage.value = 'prepare'; promptStage.dispatchEvent(new dom.Event('change', { bubbles: true })) })
+  await click([...first.querySelectorAll('button')].find(button => button.textContent === 'Copy Prompt'))
+  assert.match(copiedPrompt, /Saved preparation prompt/); assert.match(copiedPrompt, /conditional outcomes/); assert.match(copiedPrompt, /Do not treat forecasts as actuals/)
+  await React.act(async () => { promptStage.value = 'after'; promptStage.dispatchEvent(new dom.Event('change', { bubbles: true })) })
   assert.equal(first.querySelectorAll('tr[data-series-id]').length, 2)
   assert.match(first.textContent, /Forecast.*Previous.*Revised previous/)
   const work = globalThis.__highlightSeriesWork, network = calls.length
@@ -194,6 +212,26 @@ try {
   assert.ok(researchCard.querySelector('details').open)
   assert.equal(researchCard.querySelector('textarea').readOnly, true)
   clipboardFailure = false
+  await click(button('Discovered Limitations'))
+  assert.equal(container.querySelectorAll('.highlight-card').length, 0)
+  assert.match(container.textContent, /RBA decision hour differs/)
+  assert.match(container.textContent, /10:30 Jakarta/)
+  assert.equal(container.querySelector('.highlight-limitation a').getAttribute('rel'), 'noopener noreferrer')
+  const limitationNetwork = calls.length
+  for (let tick = 0; tick < 10; tick++) await React.act(async () => { now += 1000; for (const timer of intervals.values()) timer.fn() })
+  assert.equal(calls.length, limitationNetwork, 'Countdowns do not fetch limitation metadata')
+  limitationMalformed = true; await poll()
+  assert.match(container.textContent, /Invalid limitations response/)
+  assert.equal(container.querySelectorAll('.highlight-limitation').length, 1, 'Invalid metadata retains the last good records')
+  limitationMalformed = false; limitationOffline = true; await poll()
+  assert.equal(container.querySelectorAll('.highlight-limitation').length, 1)
+  await React.act(async () => root.render(null)); await renderAlert()
+  await click(button('Discovered Limitations'))
+  assert.equal(container.querySelectorAll('.highlight-limitation').length, 1, 'Limitation cache survives offline remount')
+  limitationOffline = false
+  await renderAlert({ brokerId: 'Broker-B' })
+  assert.equal(container.querySelectorAll('.highlight-limitation').length, 0, 'Limitation metadata stays broker-scoped')
+  await renderAlert(); await click(button('Active'))
   await React.act(async () => root.render(null))
   assert.equal(intervals.size, 0); assert.equal(timers.size, 0)
 
