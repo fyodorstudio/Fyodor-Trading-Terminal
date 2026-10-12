@@ -117,7 +117,7 @@ const event = (id, at, actual = .3, previous = .1) => {
 const cpiMeta = catalog.filter(row => row.country_currency === 'USD' && /^(?:Core )?CPI(?: |$)/.test(row.event_name))
 let events = [...cpiMeta.map(row => event(row.event_id, now - 2 * 3600000)), event('999010006', now - 2 * 3600000, 2, 2)]
 for (const currency of ['USD','EUR','GBP','JPY','CHF','CAD','AUD','NZD']) {
-  const meta = catalog.find(row => row.country_currency === currency)
+  const meta = catalog.find(row => currency === 'EUR' ? row.event_id === '999010006' : row.country_currency === currency)
   events.push(event(meta.event_id, now + 86400000, null))
 }
 let calendarRevision = 1
@@ -359,9 +359,34 @@ try {
   assert.deepEqual(researchRangeDates(Date.UTC(2026, 9, 5, 3) / 1000, Date.UTC(2026, 8, 9, 3) / 1000,
     { brokerId: 'Elev8-Demo2', brokerOffsetSeconds: 0 }, { mode: 'utc', utcOffsetMinutes: 0 }), { from: '2026-09-09', to: '2026-10-05' })
   const savedDrawings = localStorage.getItem('fyodor.chart-drawings.v1')
+  // Zoom out enough to include tomorrow's projected releases alongside history.
+  const originalLogicalCoordinate = scale.logicalToCoordinate
+  scale.logicalToCoordinate = index => (index - logicalRange.from) * 20
+  await React.act(async () => { for (const notify of rangeListeners) notify() })
+  await flush()
+  const calendarSymbols = [...container.querySelectorAll('.inspector-chart-symbol')]
+  assert.ok(calendarSymbols.length >= 3, 'Historical USD/EUR and upcoming EUR icons are visible before research')
+  const assertCalendarReferences = message => {
+    const current = [...container.querySelectorAll('.inspector-chart-symbol')]
+    assert.ok(current.length === calendarSymbols.length && current.every((node, i) => node === calendarSymbols[i]), message)
+  }
+  await click(container.querySelector('[aria-label="Research date range"]'))
+  assertCalendarReferences('Entering research keeps the same historical and upcoming calendar icons mounted')
+  await click(calendarSymbols.at(-1))
+  assert.ok(container.querySelector('.inspector-panel'), 'Calendar icons still open Inspector during range selection')
+  await click(container.querySelector('.research-range-hint button'))
+  assert.equal(container.querySelector('[aria-label="Select research date range"]'), null)
+  assertCalendarReferences('Cancelling research preserves calendar references')
   await click(container.querySelector('[aria-label="Research date range"]'))
   let researchOverlay = container.querySelector('[aria-label="Select research date range"]')
   assert.ok(researchOverlay)
+  const overlayStyles = document.createElement('style')
+  overlayStyles.textContent = fs.readFileSync(new URL('../src/research/research.css', import.meta.url), 'utf8') +
+    fs.readFileSync(new URL('../src/inspector/inspector.css', import.meta.url), 'utf8')
+  document.head.appendChild(overlayStyles)
+  assert.ok(Number(getComputedStyle(container.querySelector('.inspector-chart-markers')).zIndex) >
+    Number(getComputedStyle(researchOverlay).zIndex), 'Calendar buttons stay above the research drag surface')
+  overlayStyles.remove()
   researchOverlay.getBoundingClientRect = () => ({ left: 0, top: 0 })
   await pointer(researchOverlay, 'pointerdown', 700, 20)
   reset()
@@ -372,10 +397,15 @@ try {
   assertQuiet('Research drag')
   assert.equal(counters.dailyGrouping ?? 0, 0, 'Research dragging does not regroup calendar history')
   assert.equal(requests.length, requestCount, 'Research dragging does not fetch or export data')
+  assertCalendarReferences('Research dragging preserves calendar references')
   await pointer(researchOverlay, 'pointerup', 100, 380)
   assert.equal(captures.size, 0)
   const researchPanel = container.querySelector('.chart-research-workspace > .research-panel')
   assert.ok(researchPanel, 'Research shares the chart row instead of blocking the terminal in a modal')
+  assertCalendarReferences('Opening the notes panel preserves the calendar icons')
+  scale.logicalToCoordinate = originalLogicalCoordinate
+  await React.act(async () => { for (const notify of rangeListeners) notify() })
+  await flush()
   assert.equal(document.querySelector('dialog[open]'), null)
   assert.equal(localStorage.getItem('fyodor.chart-drawings.v1'), savedDrawings, 'Research selection preserves saved drawings')
   await change(document.querySelector('[aria-label="Report name"]'), 'September bearish move')

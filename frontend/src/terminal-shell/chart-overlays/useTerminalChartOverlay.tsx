@@ -12,7 +12,7 @@ export function useTerminalChartOverlay({ markers, currencyColors, timeDisplay, 
   MarkerProps & { supported: boolean; onClearInspection?: () => void; researchActive: boolean; bars: OhlcBar[];
     timeframe: ChartTimeframe; onResearchRange: (from: number, to: number) => void; onCancelResearch: () => void }) {
   return useCallback((chartApi: IChartApi, seriesApi: ISeriesApi<'Candlestick', Time>) => <>
-    {supported && !researchActive && <InspectorChartMarkers chartApi={chartApi} markers={markers} currencyColors={currencyColors}
+    {supported && <InspectorChartMarkers chartApi={chartApi} markers={markers} currencyColors={currencyColors}
       timeDisplay={timeDisplay} onSelectRelease={onSelectRelease} />}
     <ChartInspectionDismiss chartApi={chartApi} onClear={onClearInspection} />
     {researchActive && <ResearchRangeOverlay chartApi={chartApi} seriesApi={seriesApi} bars={bars} timeframe={timeframe}
