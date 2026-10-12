@@ -16,5 +16,7 @@ export type InspectorRelease = {
   ismPublications?: InspectorRelease[]
   pmiPublications?: InspectorRelease[]
   // Display-only day/currency selection; never a combined scoring publication.
-  daily?: { date: string; endChartTime: number | null; publications: InspectorRelease[] }
+  daily?: { date: string; endChartTime: number | null; publications: InspectorRelease[]; sections: InspectorDaySection[] }
 }
+
+export type InspectorDaySection = { id: string; label: string; publications: InspectorRelease[]; releaseCount: number }

@@ -1,32 +1,49 @@
 import { formatAppTimestamp, type TimeDisplayPreference } from '../../appearance/time-display/time-display-preference'
-import type { InspectorRelease } from '../../economic-calendar/releases/release'
-import { symbolGlyph } from '../../economic-calendar/presentation/event-symbols'
+import type { InspectorDaySection, InspectorRelease } from '../../economic-calendar/releases/release'
 import { formatInspectorValue, hasRevisedPreviousChange, inspectorDelta } from './reading-values'
 import { suppliedPriorLabels } from '../grading/reading-grading'
-import type { InspectorPreferences } from '../preferences/inspector-preferences'
 
-export function InspectorDayTable({ release, symbols, timeDisplay }: {
-  release: InspectorRelease; symbols: InspectorPreferences['symbols']; timeDisplay: TimeDisplayPreference
+const clockKey = (publication: InspectorRelease) => publication.timingUncertain ? 'date-only' : publication.releaseAt
+function sectionRows(section: InspectorDaySection, display: TimeDisplayPreference) {
+  const rows = section.publications.flatMap(publication => publication.events.map(event => ({ event, publication, timeSpan: 0 })))
+  let first = 0
+  for (let i = 0; i < rows.length; i++) {
+    if (i === 0 || clockKey(rows[i].publication) !== clockKey(rows[i - 1].publication)) first = i
+    rows[first].timeSpan += 1
+  }
+  const timeLabel = (publication: InspectorRelease) => publication.timingUncertain ? 'Date only' : publication.releaseAt === null ?
+    'Time unavailable' : formatAppTimestamp(publication.releaseAt, display, publication.releaseAt % 60000 === 0 ? 'time-short' : 'time')
+  return { rows, timeLabel }
+}
+
+export function InspectorDayTable({ release, timeDisplay }: {
+  release: InspectorRelease; timeDisplay: TimeDisplayPreference
 }) {
-  const showForecast = release.events.some(event => event.forecast !== null), columns = showForecast ? 5 : 4
+  const sections = release.daily?.sections ?? []
+  const prepared = sections.map(section => ({ section, ...sectionRows(section, timeDisplay) }))
+  const showCountry = release.currency === 'EUR'
+  const showForecast = release.events.some(event => event.forecast !== null), columns = 5 + Number(showForecast) + Number(showCountry)
   const periodLabel = (period: number) => formatAppTimestamp(period * 1000, { mode: 'utc', utcOffsetMinutes: 0 }, 'date')
   return <div className="inspector-table-scroll"><table className="inspector-day-table" aria-label={`${release.currency} ${release.daily?.date} series`}>
-    <thead><tr><th scope="col">Series</th><th scope="col">Actual</th><th scope="col">Previous</th>
+    <thead><tr><th scope="col">Series</th>{showCountry && <th scope="col">Country</th>}<th scope="col">Time</th><th scope="col">Actual</th><th scope="col">Previous</th>
       {showForecast && <th scope="col">Forecast</th>}<th scope="col">A−P</th></tr></thead>
-    {release.daily?.publications.map(publication => {
-      const sharedPeriod = publication.events[0]?.period_seconds > 0 && publication.events.every(event => event.period_seconds === publication.events[0].period_seconds)
-      const time = publication.timingUncertain ? 'Date only' : publication.releaseAt === null ? 'Time unavailable' : formatAppTimestamp(publication.releaseAt, timeDisplay, 'time-short')
-      return <tbody key={publication.id}>
+    {prepared.map(({ section, rows, timeLabel }) => {
+      const first = rows[0], period = first.event.period_seconds
+      const sharedPeriod = period > 0 && rows.every(row => row.event.period_seconds === period)
+      return <tbody key={section.id} data-category-section={section.id}>
         <tr className="inspector-day-section"><th scope="rowgroup" colSpan={columns}>
-          <div><time>{time}</time><strong>{symbolGlyph(symbols[publication.familyId] ?? 'star')} {publication.label}</strong>
-            <span>{publication.events.length} series</span>{sharedPeriod && <span>Period: {periodLabel(publication.events[0].period_seconds)}</span>}</div>
+          <div><strong>{section.label}</strong>
+            <span>{rows.length} series{section.releaseCount > 1 && ` · ${section.releaseCount} releases`}</span>
+            {sharedPeriod && <span>Period: {periodLabel(period)}</span>}</div>
         </th></tr>
-        {publication.events.map(event => {
+        {rows.map(({ event, publication, timeSpan }) => {
           const delta = inspectorDelta(event)
           return <tr key={event.value_id} data-series-id={event.event_id}>
             <th scope="row"><strong>{event.name || `MT5 event ${event.event_id}`}</strong>
               {event.revision > 0 && <span className="inspector-revision"> · Revision {event.revision}</span>}
               {!sharedPeriod && event.period_seconds > 0 && <small>Period: {periodLabel(event.period_seconds)}</small>}</th>
+            {showCountry && <td title={event.country_name}>{event.country_code}</td>}
+            {timeSpan > 0 && <td className="inspector-day-time" rowSpan={timeSpan}>{timeLabel(publication)}</td>}
             <td>{formatInspectorValue(event.actual, event)}</td>
             <td>{formatInspectorValue(event.previous, event)}{hasRevisedPreviousChange(event) &&
               <small title={suppliedPriorLabels(event).description}>{suppliedPriorLabels(event).value}: {formatInspectorValue(event.revised_previous, event)}</small>}</td>

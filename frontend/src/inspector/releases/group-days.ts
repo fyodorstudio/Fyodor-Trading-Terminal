@@ -3,6 +3,7 @@ import { calendarDisplayRange, displayDateKey, type CalendarDisplayRange } from 
 import { utcToChartClock, type ChartClockScope } from '../../appearance/time-display/chart-clock'
 import type { TimeDisplayPreference } from '../../appearance/time-display/time-display-preference'
 import { episodePublications } from '../episodes/display-episodes'
+import { groupDaySections } from './day-sections'
 
 export function publicationDate(release: InspectorRelease, display: TimeDisplayPreference): string | null {
   // An unknown hour cannot shift a source calendar date into another day.
@@ -30,10 +31,11 @@ export function groupInspectorDays(publications: InspectorRelease[], families: r
     const ordered = [...members].sort((a, b) => Number(a.timingUncertain) - Number(b.timingUncertain) ||
       (a.releaseAt ?? Infinity) - (b.releaseAt ?? Infinity) || a.label.localeCompare(b.label) || a.id.localeCompare(b.id))
     const events = ordered.flatMap(publication => publication.events)
-    return { id, familyId: 'daily', label: `${ordered.length} release${ordered.length === 1 ? '' : 's'} · ${events.length} series`,
+    const sections = groupDaySections(ordered), releaseCount = sections.reduce((sum, section) => sum + section.releaseCount, 0)
+    return { id, familyId: 'daily', label: `${releaseCount} release${releaseCount === 1 ? '' : 's'} · ${events.length} series`,
       currency: ordered[0].currency, country: '', releaseAt: day.from, chartTime: chartTime === null ? null : chartTime / 1000,
       serverTime: (chartTime ?? day.from) / 1000, timingUncertain: false, events,
-      daily: { date, endChartTime: endChartTime === null ? null : endChartTime / 1000, publications: ordered } }
+      daily: { date, endChartTime: endChartTime === null ? null : endChartTime / 1000, publications: ordered, sections } }
   }).sort((a, b) => a.releaseAt! - b.releaseAt! || a.currency.localeCompare(b.currency))
 }
 

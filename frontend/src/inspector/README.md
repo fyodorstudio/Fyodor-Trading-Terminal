@@ -8,7 +8,9 @@ Filters save **By release** (compatible default) or **By day** per pair. Daily
 icons select one display day and currency; badges count visible series rows.
 `releases/group-days.ts` uses original publications before policy/PMI grouping,
 preserves all readings and keeps source dates for unknown-hour schedules.
-`readings/InspectorDayTable.tsx` owns the single table with publication sections.
+`releases/day-sections.ts` reuses the filter categories and their order.
+`readings/InspectorDayTable.tsx` owns one category section per day/currency,
+chronological series rows, shared time cells and EUR source-country labels.
 Daily selections expose raw tables and do not create a combined scoring release.
 Day icons remain selectable on intraday viewports; only their visual position
 changes. Relationship overlays retain `publicationMarkers` at original clocks.

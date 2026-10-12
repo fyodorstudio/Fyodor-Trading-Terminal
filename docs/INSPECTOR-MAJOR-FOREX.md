@@ -43,10 +43,13 @@ Scoring admission remains separate.
 **Group symbols: By release / By day** is saved independently for each pair.
 By release retains individual publications. By day provides a separate calendar
 icon per currency, with a badge counting series rows. Clicking opens one table
-with chronological publication sections and all original Series/Actual/Previous/
+with the same category sections as Filters and all original Series/Actual/Previous/
 A−P readings; Forecast appears when supplied. Revised priors, periods and revisions
-remain visible. A ten-series CPI release retains ten rows in its own section.
-Daily sections use the selected display timezone; unknown-hour schedules keep
+remain visible. A ten-series CPI release retains ten rows under Inflation.
+Series within each category follow publication time; a shared Time cell avoids
+repeating a clock on simultaneous rows. EUR includes a Country column to distinguish
+national series with identical names. Speeches retain every speaker and appearance
+under their configured filter category. Daily sections use the selected display timezone; unknown-hour schedules keep
 their source calendar date and are labeled Date only. Family/date filters apply
 before daily aggregation, including separately timed policy/PMI publications.
 Daily tables do not create aggregate scoring or magnitude histories.

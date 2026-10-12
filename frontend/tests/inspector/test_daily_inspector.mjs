@@ -67,6 +67,27 @@ try {
     const expected = all.filter(row => forexPairCurrencies(pair).includes(row.currency))
     assert.deepEqual(new Set(days.flatMap(release => release.events.map(row => row.value_id))), new Set(expected.map(row => row.value_id)),
       `${pair}: all 1,051 applicable catalog types survive daily grouping`)
+    for (const grouped of days) {
+      const sections = grouped.daily.sections
+      assert.equal(new Set(sections.map(section => section.id)).size, sections.length, 'One section for each filter category')
+      assert.deepEqual(new Set(sections.flatMap(section => section.publications.flatMap(publication => publication.events.map(row => row.value_id)))),
+        new Set(grouped.events.map(row => row.value_id)), `${pair}: every source row survives family sectioning`)
+      for (const section of sections) {
+        assert.equal(section.label, data.inspectorCategories.find(category => category.id === section.id).label)
+        assert.ok(section.publications.every(publication => data.inspectorFamilies.find(f => f.id === publication.familyId).category === section.id))
+      }
+      const speechSources = expected.filter(row => row.currency === grouped.currency && /speech(?:es)?|testimony|hearings?/i.test(row.name))
+      for (const source of speechSources) {
+        const section = sections.find(section => section.publications.some(publication => publication.events.some(row => row.value_id === source.value_id)))
+        const family = data.inspectorFamilies.find(family => family.events.includes(source.event_id))
+        assert.equal(section.id, family.category, `${source.name}: its filter category includes this source type`)
+      }
+      for (const family of data.inspectorPairFamilies(pair).filter(family => family.currency === grouped.currency && family.events.length)) {
+        const familySources = expected.filter(row => family.events.includes(row.event_id) && !/speech(?:es)?|testimony|hearings?/i.test(row.name))
+        if (familySources.length) assert.equal(sections.filter(section => section.publications.some(publication => publication.events.some(row =>
+          familySources.some(source => source.value_id === row.value_id)))).length, 1, `${pair}: all ${family.label} variants share a section`)
+      }
+    }
     const markers = data.buildInspectorMarkers(days, preferences, bars, 'H1')
     assert.equal(markers.length, 2)
     assert.equal(markers.reduce((n, marker) => n + marker.release.events.length, 0), expected.length)
@@ -76,6 +97,13 @@ try {
   const sample = [...jobs, ...cpi, event('840050028', 14, { actual: null, previous: null }), event('840120001', 15),
     event('840220005', 16), event('840220006', 16), event('999030010', 13), event('840030005', 36, { actual: null }), event('840030006', 36, { actual: null })]
   const defaults = { ...data.defaultInspectorPreferences(), symbolGrouping: 'day' }
+  const italianRows = ['380010001', '380010002', '380010025', '380010026'].map(id => event(id, 16))
+  const italian = groupInspectorDays(data.groupInspectorReleases(italianRows, false), defaults.families, range, utc, clock)[0]
+  assert.equal(italian.daily.sections.length, 1, 'All CPI and FOI monthly/annual series share the Inflation section')
+  assert.equal(italian.daily.sections[0].label, 'Inflation')
+  assert.equal(italian.daily.sections[0].publications.flatMap(publication => publication.events).length, 4)
+  assert.equal(italian.daily.sections[0].releaseCount, 2)
+  assert.equal(italian.label, '2 releases · 4 series')
   const raw = data.groupInspectorReleases(sample, false)
   const daily = groupInspectorDays(raw, defaults.families, range, utc, clock)
   const usd = daily.find(release => release.id === 'day/USD/2026-10-13')
@@ -135,17 +163,26 @@ try {
   assert.equal(view.selectedRelease.id, usd.id)
   assert.equal(host.querySelector('.inspector-pair-toggle').title, '3 daily entries')
   assert.equal(host.querySelectorAll('table').length, 1)
-  assert.equal(host.querySelectorAll('tbody').length, 6)
+  assert.equal(host.querySelectorAll('tbody').length, usd.daily.sections.length)
   assert.equal(host.querySelectorAll('tr[data-series-id]').length, 24)
   assert.equal(host.querySelector('thead th').textContent, 'Series')
   const actualNames = [...host.querySelectorAll('th[scope="row"] strong')].map(node => node.textContent)
-  assert.deepEqual(actualNames, usd.events.map(event => event.name))
+  assert.deepEqual(actualNames, usd.daily.sections.flatMap(section => section.publications.flatMap(publication => publication.events.map(event => event.name))))
   assert.ok(host.querySelector('table').textContent.includes('Revision 1'))
   assert.equal(host.querySelector('[aria-label="Inspector view"]').value, 'table')
   assert.ok(host.querySelector('[aria-label="Inspector view"] option[value="scatter"]').disabled)
   assert.equal(host.querySelector('.inspector-histogram-btn'), null)
   assert.ok(view.publicationMarkers.every(marker => !marker.release.daily), 'Relationship overlays retain original publication markers')
-  for (const row of host.querySelectorAll('tr[data-series-id]')) assert.equal(row.children.length, 5, 'All rows align with the five shared columns')
+  assert.deepEqual([...host.querySelectorAll('thead th')].map(node => node.textContent), ['Series', 'Time', 'Actual', 'Previous', 'Forecast', 'A−P'])
+  for (const body of host.querySelectorAll('tbody')) {
+    let span = 0
+    for (const row of body.querySelectorAll('tr[data-series-id]')) {
+      const time = row.querySelector('.inspector-day-time')
+      assert.equal(row.children.length + Number(!time && span > 0), 6, 'Shared time spans keep every numeric column aligned')
+      if (time) span = time.rowSpan
+      span--
+    }
+  }
   const prepared = view.releases, markers = view.markers, work = globalThis.__dailyWork, select = view.selectRelease
   for (let i = 0; i < 20; i++) listeners.forEach(fn => fn())
   assert.equal(frames.size, 1)
@@ -185,8 +222,58 @@ try {
   assert.throws(() => parseWorkspaceSnapshot(JSON.stringify(invalid)), /Invalid workspace setting/)
   localStorage.setItem(data.gbpInspectorStorageKey, JSON.stringify({ ...data.defaultInspectorPreferences('GBPUSD'), symbolGrouping: undefined }))
   assert.equal(data.readInspectorPreferences('GBPUSD').symbolGrouping, 'release', 'Legacy settings retain current behavior')
+  const spoken = [event('840050028', 12, { actual: null, previous: null }), event('840260001', 14, { actual: null, previous: null }),
+    event('840050028', 18, { actual: null, previous: null }), event('840220020', 14, { actual: null, previous: null }),
+    event('840050021', 12, { actual: null, previous: null }), ...italianRows, event('250010001', 16), event('250010002', 16),
+    event('380010001', 18, { value_id: 'italian-later', revision: 2, period_seconds: at / 1000 - 60 * 86400 }),
+    event('840030005', 15), event('840030006', 15), event('840030007', 15, { time_mode: 1, release_at: null, chart_time_seconds: null }),
+    event('9876543210123456789', 14, { name: 'Fed Imaginary Speech' }), event('9876543210123456788', 14, { name: 'Unclassified source' })]
+  await render({ rows: spoken })
+  await React.act(async () => view.applyPreferences(defaults))
+  const speeches = view.releases.find(release => release.currency === 'USD')
+  const fed = speeches.daily.sections.find(section => section.label === 'Monetary policy')
+  assert.equal(fed.publications.length, 5, 'All speeches/testimony, including repeated appearances, share their existing category')
+  assert.equal(fed.releaseCount, 5, 'Concurrent different speakers remain separate releases')
+  assert.ok(fed.publications.some(publication => publication.events.some(row => row.event_id === '840220020')))
+  assert.equal(speeches.daily.sections.find(section => section.id === 'other').releaseCount, 2, 'Unknown source identities are never guessed or merged')
+  assert.ok(!fed.publications.some(publication => publication.events.some(row => row.event_id === '9876543210123456789')))
+  await React.act(async () => view.selectRelease(speeches.id))
+  assert.equal(host.querySelectorAll('table').length, 1)
+  assert.equal(host.querySelectorAll('tbody').length, speeches.daily.sections.length)
+  assert.equal(host.querySelectorAll('tr[data-series-id]').length, spoken.filter(row => row.currency === 'USD').length)
+  assert.deepEqual([...host.querySelectorAll('thead th')].map(node => node.textContent), ['Series', 'Time', 'Actual', 'Previous', 'A−P'])
+  const fedBody = [...host.querySelectorAll('tbody')].find(body => body.querySelector('strong').textContent === 'Monetary policy')
+  assert.equal(fedBody.querySelectorAll('tr[data-series-id]').length, 5)
+  assert.deepEqual([...fedBody.querySelectorAll('.inspector-day-time')].map(node => node.textContent), ['12:00', '14:00', '18:00'])
+  assert.equal(fedBody.querySelector('.inspector-day-time').rowSpan, 2, 'Simultaneous series share an aligned time cell')
+  assert.ok(host.querySelector('.inspector-day-time').textContent)
+  assert.ok(host.querySelector('table').textContent.includes('Date only'))
+  await React.act(async () => view.applyPreferences({ ...defaults, families: defaults.families.filter(id => id !== data.inspectorFamilies.find(f => f.events.includes('840260001')).id) }))
+  assert.equal(host.querySelectorAll('tr[data-series-id]').length, spoken.filter(row => row.currency === 'USD').length - 1, 'Original family filters still control speech rows')
+  await React.act(async () => view.selectRelease(view.releases.find(release => release.currency === 'EUR').id))
+  assert.equal(host.querySelectorAll('tbody').length, 1, 'All national inflation readings share the Inflation section')
+  const italyBody = host.querySelector('tbody')
+  assert.equal(italyBody.querySelectorAll('tr[data-series-id]').length, 7, 'Every national CPI/FOI row remains present')
+  assert.deepEqual([...host.querySelectorAll('thead th')].map(node => node.textContent), ['Series', 'Country', 'Time', 'Actual', 'Previous', 'A−P'])
+  assert.equal([...italyBody.querySelectorAll('tr[data-series-id] td[title]')].filter(node => node.textContent === 'IT').length, 5)
+  assert.equal([...italyBody.querySelectorAll('tr[data-series-id] td[title]')].filter(node => node.textContent === 'FR').length, 2)
+  assert.ok(italyBody.textContent.includes('Revision 2'))
+  assert.deepEqual([...italyBody.querySelectorAll('.inspector-day-time')].map(node => node.textContent), ['16:00', '18:00'])
+  const marketRows = [...['840100001', '840100002'].map(id => event(id, 0)),
+    ...fixture.filter(row => row.country_currency === 'USD' && row.event_name.startsWith('CFTC ')).slice(0, 11).map(row => event(row.event_id, 2.5))]
+  await render({ rows: marketRows })
+  await React.act(async () => view.applyPreferences(defaults))
+  await React.act(async () => view.selectRelease(view.releases.find(release => release.currency === 'USD').id))
+  assert.deepEqual([...host.querySelectorAll('.inspector-day-section strong')].map(node => node.textContent), ['Growth / activity', 'Financial markets'])
+  assert.equal(host.querySelectorAll('tr[data-series-id]').length, 13)
+  const markets = host.querySelector('tbody[data-category-section="markets"]')
+  assert.equal(markets.querySelectorAll('tr[data-series-id]').length, 11, 'All eleven financial-market rows share one category heading')
+  assert.equal(markets.querySelectorAll('.inspector-day-time').length, 1)
+  assert.equal(markets.querySelector('.inspector-day-time').rowSpan, 11)
+  assert.equal(markets.querySelector('.inspector-day-time').textContent, '02:30')
+  assert.equal(host.querySelectorAll('.inspector-day-section').length, 2, 'Individual release names are not repeated as headings')
   await React.act(async () => view.selectRelease(null)); assert.equal(view.selectedRelease, null)
-  console.log('✓ Daily Inspector: all 1,051 catalog types/28 pairs, separate currency icons, source-day/timezone boundaries, original policy publications, all series rows, preview/Save/Cancel, corrections, counts, portability and zero regrouping on pan')
+  console.log('✓ Daily Inspector: all 1,051 catalog types/28 pairs, filter-category sections, separate currency icons, source-country/time labels, all series rows, preview/Save/Cancel, corrections, counts, portability and zero regrouping on pan')
 } finally {
   await React.act(async () => root.unmount()); await server.close(); await dom.happyDOM.close()
   assert.equal(listeners.size, 0); assert.equal(sizeListeners.size, 0); assert.equal(frames.size, 0); assert.equal(clicks.size, 0)
