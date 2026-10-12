@@ -7,6 +7,8 @@ or Workspace backup UI belong here. Keep the copied bridge unchanged.
 
 Read only task-relevant owners. README.md covers commands/ownership;
 docs/DATA-CONTRACT.md covers calendar, clocks and recovery. Keep docs short.
+For market research start with [market-analyst-agent.md](market-analyst-agent.md);
+interpretation remains outside the terminal UI and scoring code.
 Preserve per-pair filter Save/Cancel and persistence, all eight currencies/28 pairs,
 all series, date-only timing, unknown-ID admission, blank-chart dismissal, the
 shared date viewport, future axis and saved drawing interactions.

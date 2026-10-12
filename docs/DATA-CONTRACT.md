@@ -23,8 +23,23 @@ not constrain exports. Verified instants use the selected display-day boundaries
 date-only/unverified rows retain their source date. Optional preceding context is
 separate. Coverage gaps, latest-query absences and capture/revision information
 remain explicit. Latest stored values are not a reconstructed release-day vintage.
-Named Markdown files are created exclusively in the root `report/` folder, outside
-the inventory; report generation never changes calendar observations.
+Named Markdown briefs and complete TSV companions are created exclusively in
+`Market Analyst Workflow/report/`, outside the inventory. Brief indexes summarize
+counts; every selected/context reading remains in the companion. CSV quoting
+preserves tabs, pipes and newlines in names. Both files are cleaned up if generation
+fails; existing files are never overwritten. Old full-table reports remain readable
+by the analyst helper. Report generation never changes calendar observations.
+Broker forecasts and web survey estimates retain separate provider/as-of attribution;
+differences alone do not establish a source error.
+
+`pnpm analyst` reads the existing calendar schema in a read-only transaction, with
+complete pagination before returning compact focused results. OHLC uses the unchanged
+bridge, bounded positional seeking and overlapped paging, validates source generation,
+and converts historical candle server time via the explicit broker profile. Unknown
+clocks require a verified historical offset; ambiguous clocks are rejected. Saved OHLC
+retains capture provenance. Missing M1 minutes invalidate the corresponding event
+measurement; session/history gaps and incomplete edges remain visible. See
+[dataset navigation](<../Market Analyst Workflow/docs/dataset-navigation.md>).
 
 ```powershell
 pnpm storage:status

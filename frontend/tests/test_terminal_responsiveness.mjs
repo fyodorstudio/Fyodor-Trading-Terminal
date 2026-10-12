@@ -132,7 +132,7 @@ globalThis.fetch = (url, options = {}) => {
     reportRequests.push(JSON.parse(options.body))
     return Promise.resolve({ ok: !reportFailure, status: reportFailure ? 503 : 200, json: async () => reportFailure
       ? { detail: 'Report folder unavailable' }
-      : { filename: 'named.md', path: 'C:\\dev\\Fyodor Trading Terminal Lite\\report\\named.md', readings: 70, context_readings: 190, coverage_incomplete: true } })
+      : { filename: 'named.md', path: 'C:\\dev\\Fyodor Trading Terminal Lite\\Market Analyst Workflow\\report\\named.md', readings: 70, context_readings: 190, coverage_incomplete: true } })
   }
   if (u.startsWith('/storage-api/health')) return Promise.resolve({ ok: true, json: async () => ({ revision: calendarRevision,
     sources: [{ id: broker, publisher_status: 'live', server_now: now / 1000, instance_id: 'fixture' }], collector_error: null }) })
@@ -420,7 +420,7 @@ try {
   assert.equal(reportRequests[0].context_days, 90)
   assert.equal(reportRequests[0].question, 'Was this USD strength or EUR weakness?')
   assert.ok(!('families' in reportRequests[0]) && !('event_ids' in reportRequests[0]), 'Visible filters never enter the export request')
-  assert.match(document.querySelector('[aria-label="Saved report path"]').value, /Lite\\report\\named\.md$/)
+  assert.match(document.querySelector('[aria-label="Saved report path"]').value, /Lite\\Market Analyst Workflow\\report\\named\.md$/)
   assert.match(document.querySelector('.research-panel').textContent, /coverage is missing/)
   await click([...document.querySelectorAll('.research-panel button')].find(node => node.textContent === 'Done'))
   await click(container.querySelector('[aria-label="Research date range"]'))

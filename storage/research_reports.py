@@ -2,6 +2,8 @@
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from pathlib import Path
+import csv
+import io
 import re
 
 from fastapi import HTTPException
@@ -12,7 +14,7 @@ from .currencies import CURRENCIES
 from .calendar_clock import project, publication_time_known
 
 DAY = 86400
-REPORT_DIRECTORY = Path(__file__).resolve().parents[1] / "report"
+REPORT_DIRECTORY = Path(__file__).resolve().parents[1] / "Market Analyst Workflow" / "report"
 
 
 class ResearchRequest(Payload):
@@ -128,19 +130,46 @@ def collect_evidence(store, request):
     return sorted(selected, key=sort_key), sorted(context, key=sort_key), coverage, revision
 
 
-def evidence_table(events):
-    lines = ["| Time UTC / source date | Currency | Country | Release / series | Period | Importance | Actual | Forecast | Previous | Revised previous | A−F | A−P | Revision | Event ID | Value ID | Captured UTC | Timing basis | Availability |",
-             "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
+def evidence_row(event, section):
+    known = publication_time_known(event) and event["release_at"] is not None
+    return {"section": section,
+        "time": stamp(event["release_at"] / 1000) if known else stamp(event["server_time_seconds"])[:10] + " (source date; hour unverified)",
+        "currency": event["currency"], "country": event["country_code"], "name": event["name"] or event["event_code"],
+        "period": stamp(event["period_seconds"])[:10] if event["period_seconds"] else "—", "importance": event["importance"],
+        **{field: value(event, field) for field in ("actual", "forecast", "previous", "revised_previous")},
+        "actual_minus_forecast": delta(event, "forecast"), "actual_minus_previous": delta(event, "previous"),
+        "revision": event["revision"], "event_id": event["event_id"], "value_id": event["value_id"],
+        "captured_utc": stamp(event["observed_at"]), "timing_basis": event["timing_basis"] or "unverified",
+        "availability": event["availability"], "server_time_seconds": event["server_time_seconds"],
+        "capture_offset_seconds": event["capture_offset_seconds"], "time_mode": event["time_mode"]}
+
+
+EVIDENCE_FIELDS = ("section", "time", "currency", "country", "name", "period", "importance", "actual", "forecast",
+    "previous", "revised_previous", "actual_minus_forecast", "actual_minus_previous", "revision", "event_id", "value_id",
+    "captured_utc", "timing_basis", "availability", "server_time_seconds", "capture_offset_seconds", "time_mode")
+
+
+def evidence_tsv(selected, context):
+    output = io.StringIO(newline="")
+    writer = csv.DictWriter(output, fieldnames=EVIDENCE_FIELDS, delimiter="\t", lineterminator="\n")
+    writer.writeheader()
+    for section, events in (("selected", selected), ("context", context)):
+        writer.writerows(evidence_row(event, section) for event in events)
+    return output.getvalue()
+
+
+def release_index(events):
+    if not events:
+        return "No stored releases in this interval."
+    days = {}
     for event in events:
-        known = publication_time_known(event) and event["release_at"] is not None
-        when = stamp(event["release_at"] / 1000) if known else stamp(event["server_time_seconds"])[:10] + " (source date; hour unverified)"
-        row = [when, event["currency"], event["country_code"], event["name"] or event["event_code"],
-               stamp(event["period_seconds"])[:10] if event["period_seconds"] else "—", event["importance"],
-               *[value(event, field) for field in ("actual", "forecast", "previous", "revised_previous")],
-               delta(event, "forecast"), delta(event, "previous"), event["revision"], event["event_id"], event["value_id"],
-               stamp(event["observed_at"]), event["timing_basis"] or "unverified", event["availability"]]
-        lines.append("| " + " | ".join(cell(item) for item in row) + " |")
-    return "\n".join(lines) if events else "No stored releases in this interval."
+        row = evidence_row(event, "selected")
+        key = (row["time"][:10], row["currency"])
+        counts = days.setdefault(key, [0, 0])
+        counts[0] += 1
+        counts[1] += number(event, "actual") is not None
+    return "\n".join(["| UTC / source date | Currency | Readings | With actuals |", "|---|---|---|---|",
+        *[f"| {day} | {currency} | {counts[0]} | {counts[1]} |" for (day, currency), counts in sorted(days.items())]])
 
 
 def save_report(store, request, directory=REPORT_DIRECTORY):
@@ -162,11 +191,11 @@ def save_report(store, request, directory=REPORT_DIRECTORY):
     text += "## Research question\n\n" + (request.question.strip() or (
         "Research current expectations and the macroeconomic backdrop. Explain conditional outcomes relative to expectations; do not invent unreleased actuals."
         if request.kind == "upcoming" else "Explain the currency move and assess each currency separately. Identify the dominant drivers, changes through the interval, and meaningful counterevidence.")) + "\n\n"
-    text += "## Evidence limits\n\nLatest stored observations; capture time is not proof these figures were known on the release date. Preserve revisions and verify contemporaneous figures against web sources. Blank values remain unavailable. Speeches and statements here identify scheduled events, not their contents. Off-calendar news, market expectations, yields and price reactions require external research. Date-only schedules retain their source date. A−F and A−P are numerical differences, not strength scores; percentage differences use pp.\n\n"
+    text += "## Evidence limits\n\nLatest stored observations; capture time is not proof these figures were known on the release date. Preserve revisions and verify contemporaneous figures against web sources. Blank values remain unavailable. Broker forecasts and web surveys can differ in provider, sample, methodology and capture time; keep them separately attributed. A difference alone does not establish an error. Speeches and statements identify scheduled events, not their contents. Off-calendar news, policy expectations, yields and price reactions require external research or OHLC evidence. Date-only schedules retain their source date. A−F and A−P are numerical differences, not strength scores; percentage differences use pp.\n\n"
     text += "Coverage includes the context interval. Missing ranges use the broker's raw clock:\n\n" + ("\n".join(gaps) if gaps else "No recorded coverage gaps in the requested interval.") + "\n\n"
-    text += "## Selected interval\n\n" + evidence_table(selected) + "\n\n"
+    text += "## Selected interval index\n\n" + release_index(selected) + "\n\n"
     if request.context_days:
-        text += "## Preceding context\n\n" + evidence_table(context) + "\n\n"
+        text += "## Preceding context index\n\n" + release_index(context) + "\n\n"
     directory = Path(directory)
     if directory.is_symlink():
         raise HTTPException(409, "Report directory must be a local folder")
@@ -176,14 +205,19 @@ def save_report(store, request, directory=REPORT_DIRECTORY):
     # Exclusive create prevents an existing named report being overwritten.
     filename = f"{slug}-{generated.strftime('%Y%m%d-%H%M%S-%f')}.md"
     path = directory / filename
-    created = False
+    evidence_path = path.with_suffix(".tsv")
+    text += f"## Complete evidence\n\nEvidence file: {evidence_path.name}\n\nAll {len(selected) + len(context)} readings are in [{evidence_path.name}](<{evidence_path.name}>), including every series and the separate context section. The index is navigation, not a selection of important events. Read the brief first; query the TSV with `pnpm analyst report \"{filename}\" --match \"CPI|Interest Rate\"`. Existing full-table Markdown reports remain readable.\n"
+    created = []
     try:
+        with evidence_path.open("x", encoding="utf-8", newline="") as output:
+            created.append(evidence_path)
+            output.write(evidence_tsv(selected, context))
         with path.open("x", encoding="utf-8", newline="\n") as output:
-            created = True
+            created.append(path)
             output.write(text)
     except OSError:
-        if created:
-            path.unlink(missing_ok=True)
+        for item in created:
+            item.unlink(missing_ok=True)
         raise
     return {"filename": filename, "path": str(path), "readings": len(selected), "context_readings": len(context),
-            "coverage_incomplete": bool(gaps)}
+            "coverage_incomplete": bool(gaps), "evidence_path": str(evidence_path)}

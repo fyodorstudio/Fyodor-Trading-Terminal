@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 import asyncio
 import json
+import csv
 from pathlib import Path
 import tempfile
 import unittest
@@ -11,7 +12,7 @@ from pydantic import ValidationError
 
 from storage.calendar_store import CalendarStore
 from storage.contracts import CalendarEvent
-from storage.research_reports import ResearchRequest, collect_evidence, save_report
+from storage.research_reports import ResearchRequest, REPORT_DIRECTORY, collect_evidence, save_report
 from storage.app import create_app
 
 START = int(datetime(2026, 9, 9, tzinfo=timezone.utc).timestamp())
@@ -62,12 +63,16 @@ class ResearchReportsTests(unittest.TestCase):
         self.assertEqual(result["readings"], 5003)
         self.assertFalse(result["coverage_incomplete"])
         text = Path(result["path"]).read_text(encoding="utf-8")
-        self.assertIn("0.300001%", text)
-        self.assertIn("+0.200001 pp", text)
-        self.assertIn("-0.099999 pp", text)
-        self.assertIn("New \\| series reading", text)
-        for excluded in ("other", "outside", "before"):
-            self.assertNotIn(f"| {excluded} |", text)
+        with Path(result["evidence_path"]).open(encoding="utf-8", newline="") as source:
+            rows = list(csv.DictReader(source, delimiter="\t"))
+        self.assertEqual(len(rows), 5003)
+        self.assertEqual(rows[0]["actual"], "0.300001%")
+        self.assertEqual(rows[0]["actual_minus_previous"], "+0.200001 pp")
+        self.assertEqual(rows[0]["actual_minus_forecast"], "-0.099999 pp")
+        self.assertEqual(rows[0]["name"], "New | series\nreading")
+        self.assertFalse({"other", "outside", "before"} & {row["value_id"] for row in rows})
+        self.assertIn("Evidence file:", text)
+        self.assertLess(len(text), 5000, "The complete dataset must not be dumped into the brief")
         self.assertEqual(self.store.db.execute("SELECT count(*) FROM observations").fetchone()[0], before)
 
     def test_context_date_only_missing_values_revisions_absence_and_gaps(self):
@@ -82,12 +87,16 @@ class ResearchReportsTests(unittest.TestCase):
         self.assertEqual(result["context_readings"], 1)
         self.assertTrue(result["coverage_incomplete"])
         text = Path(result["path"]).read_text(encoding="utf-8")
-        self.assertIn("2026-09-10 (source date; hour unverified)", text)
-        self.assertIn("not-returned-by-latest-query", text)
+        evidence = Path(result["evidence_path"]).read_text(encoding="utf-8")
+        self.assertIn("2026-09-10 (source date; hour unverified)", evidence)
+        self.assertIn("not-returned-by-latest-query", evidence)
         self.assertIn("## Preceding context", text)
         self.assertIn("Event IDs: 840050014", text)
         self.assertIn("Blank values remain unavailable", text)
         self.assertIn("- USD:", text)
+        with Path(result["evidence_path"]).open(encoding="utf-8", newline="") as source:
+            rows = list(csv.DictReader(source, delimiter="\t"))
+        self.assertEqual(sum(row["section"] == "context" for row in rows), 1)
 
     def test_display_day_edges_and_date_only_do_not_use_guessed_hours(self):
         self.add([event("before", at=START - 7 * 3600 - 1), event("start", at=START - 7 * 3600),
@@ -103,6 +112,7 @@ class ResearchReportsTests(unittest.TestCase):
         second = save_report(self.store, seed, self.directory / "report")
         self.assertNotEqual(first["path"], second["path"])
         self.assertEqual(Path(first["path"]).parent, (self.directory / "report").resolve())
+        self.assertEqual(REPORT_DIRECTORY.parts[-2:], ("Market Analyst Workflow", "report"))
         self.assertIn("No stored releases", Path(first["path"]).read_text(encoding="utf-8"))
         with self.assertRaises(HTTPException) as error:
             save_report(self.store, request(source_id="unknown"), self.directory / "report")
@@ -111,6 +121,21 @@ class ResearchReportsTests(unittest.TestCase):
                         {"to_utc_ms": START * 1000}, {"from_utc_ms": (START - 4 * DAY) * 1000}):
             with self.assertRaises(ValidationError):
                 request(**invalid)
+
+    def test_failed_brief_write_removes_only_new_companion(self):
+        target = self.directory / "report"
+        target.mkdir()
+        existing = target / "existing.tsv"
+        existing.write_text("keep")
+        original = Path.open
+        def fail_brief(path, *args, **kwargs):
+            if path.suffix == ".md" and args and args[0] == "x":
+                raise OSError("disk full")
+            return original(path, *args, **kwargs)
+        with patch.object(Path, "open", fail_brief), self.assertRaises(OSError):
+            save_report(self.store, request(), target)
+        self.assertEqual(list(target.iterdir()), [existing])
+        self.assertEqual(existing.read_text(), "keep")
 
     def test_http_endpoint_validates_scope_and_returns_saved_path(self):
         self.add([event("selected")])

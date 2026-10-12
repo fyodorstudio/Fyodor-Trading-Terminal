@@ -54,7 +54,7 @@ export function ResearchReportPanel({ seed, brokerId, timeDisplay, onClose }: {
     {saved ? <>
       <p>{saved.readings} readings · {saved.context_readings} context readings</p>
       {saved.coverage_incomplete && <p>Some calendar coverage is missing; the report lists the gaps.</p>}
-      <label>Saved in report<input ref={pathInput} aria-label="Saved report path" readOnly value={saved.path} onFocus={event => event.currentTarget.select()} /></label>
+      <label>Saved report<input ref={pathInput} aria-label="Saved report path" readOnly value={saved.path} onFocus={event => event.currentTarget.select()} /></label>
       <footer><button type="button" onClick={copyPath}>{copied ? 'Path copied' : 'Copy path'}</button><button type="button" onClick={onClose}>Done</button></footer>
     </> : <form onSubmit={event => { event.preventDefault(); if (!saving) void save() }}>
       <fieldset disabled={saving}>
@@ -72,7 +72,7 @@ export function ResearchReportPanel({ seed, brokerId, timeDisplay, onClose }: {
         <label>Question / notes (optional)<textarea aria-label="Research question" rows={5} maxLength={4000} value={question} onChange={event => setQuestion(event.target.value)}
           placeholder={seed.kind === 'upcoming' ? 'Explain expectations and the hike, hold and cut scenarios.' : 'What drove this move? Was it base strength or quote weakness?'} /></label>
       </fieldset>
-      <p>Includes all stored releases for {scope}, regardless of chart or Alert filters. Saves Markdown in report.</p>
+      <p>Includes all stored releases for {scope}, regardless of chart or Alert filters. Saves a brief and complete evidence in Market Analyst Workflow/report.</p>
       <footer><button type="button" onClick={onClose}>Cancel</button><button type="submit" disabled={saving || !brokerId}>{saving ? 'Saving…' : 'Prepare research'}</button></footer>
     </form>}
     {error && <p role="alert">{error}</p>}

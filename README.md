@@ -37,6 +37,7 @@ Optional `FYODOR_BRIDGE_API_URL` / `FYODOR_STORAGE_API_URL` override Vite's prox
 | inspector | Filters, date ranges, release/day grouping, icons and raw tables |
 | alert | Independent upcoming currency/family filters and countdowns |
 | research | Chart date selection and named Markdown handoff shared with Alert |
+| Market Analyst Workflow | Analyst instructions, eight-currency learning manual, data helper and local reports |
 | appearance, system-connectivity, system-observability, workspace-docking | Theme/time, bridge status, Activity and dock geometry |
 
 ```powershell
@@ -82,7 +83,8 @@ The research panel sits beside the chart, leaving panning and the bottom dock
 available. Notes stay open when switching chart symbols or timeframes.
 Name the report, adjust the inclusive dates, optionally add a question or notes, and choose
 earlier context (90 days by default). **Prepare research** writes a unique `.md`
-file in the root `report/` folder and offers **Copy path** for the analyst session.
+brief and complete `.tsv` evidence in `Market Analyst Workflow/report/`, and offers
+**Copy path** for the analyst session. Share the brief; it links to its evidence.
 Alert's **Research** button prepares the same handoff for an upcoming release;
 choose its currency alone or a pair containing it.
 
@@ -91,4 +93,11 @@ Inspector/Alert filters and chart history. Files retain forecasts, revised prior
 periods, IDs, capture times, uncertainty and coverage gaps. They contain evidence,
 not currency scores or speech transcripts; the analyst supplies web research.
 Reports are local and ignored by Git. Existing reports are never overwritten.
-Restart calendar storage after updating to enable the report endpoint.
+Restart calendar storage after updating to use the new export path and format.
+
+For analysis start with [market-analyst-agent.md](market-analyst-agent.md).
+The [learning manual](<Market Analyst Workflow/docs/user manual.md>) covers all
+eight currencies; [dataset navigation](<Market Analyst Workflow/docs/dataset-navigation.md>)
+documents compact report/calendar/OHLC queries. `pnpm analyst status` and
+`pnpm analyst reports` find available sources and artifacts. No scoring or trading
+execution is added. Repo skills live under `.agents/skills/`.

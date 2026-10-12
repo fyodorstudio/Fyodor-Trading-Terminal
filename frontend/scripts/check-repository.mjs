@@ -18,9 +18,12 @@ for (const file of graph.files) {
   if (/new\s+Worker\s*\(/.test(fs.readFileSync(file, 'utf8'))) problems.push(`${relative(file)}: calculation worker in Lite`)
 }
 // The inherited bridge is byte-for-byte unchanged, including its old README.
-// Validate Lite's three canonical documents rather than maintaining another map.
+// Validate maintained Lite documents and discoverable analyst skill links.
 let links = 0
-for (const file of ['README.md', 'AGENTS.md', 'docs/DATA-CONTRACT.md']) {
+for (const file of ['README.md', 'AGENTS.md', 'docs/DATA-CONTRACT.md', 'market-analyst-agent.md',
+  'Market Analyst Workflow/docs/user manual.md', 'Market Analyst Workflow/docs/market-analyst-agents.md',
+  'Market Analyst Workflow/docs/dataset-navigation.md', '.agents/skills/market-analyst/SKILL.md',
+  '.agents/skills/market-data-reader/SKILL.md']) {
   const filename = path.join(root, file)
   if (!fs.existsSync(filename)) { problems.push(`${file}: missing canonical document`); continue }
   const markdown = fs.readFileSync(filename, 'utf8').replace(/\x60\x60\x60[\s\S]*?\x60\x60\x60/g, '')
