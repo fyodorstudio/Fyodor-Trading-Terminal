@@ -13,11 +13,14 @@ inventory are already prepared in this checkout. On another machine:
 pnpm setup
 ```
 
-Stop the original app's dev services before using the same ports, then:
+Start or restart the stack:
 
 ```powershell
 pnpm dev:all
 ```
+
+This clears existing listeners on ports 5173, 8001 and 8002 before starting,
+including the original terminal if it is running on those ports.
 
 UI: http://localhost:5173, bridge: 8001, calendar storage: 8002. Reuse the existing
 MT5 publisher/exporter configuration; bridge source and binaries are unchanged.
