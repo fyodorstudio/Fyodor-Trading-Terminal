@@ -22,6 +22,11 @@ export function inspectorDelta(event: EconomicCalendarEvent): number | null {
 export function inspectorSurprise(event: EconomicCalendarEvent): number | null {
   return inspectorDifference(event, 'forecast')
 }
+export function suppliedPriorLabels(event: EconomicCalendarEvent) {
+  return event.event_id === '840030016' && event.currency === 'USD' && event.country_code === 'US'
+    ? { value: 'Provider prior', delta: 'A−PriorP', description: 'Broker-supplied prior payroll reading. After a skipped report this may be a newly published intervening month, not a revision of supplied Previous. These comparisons can span different reference months.' }
+    : { value: 'Rev', delta: 'A−RevP', description: 'Provider-supplied revised previous reading.' }
+}
 // A populated revised field can simply repeat Previous. Share this gate across
 // the reference label, revised delta and revised magnitude so they stay aligned.
 export function hasRevisedPreviousChange(event: EconomicCalendarEvent): boolean {

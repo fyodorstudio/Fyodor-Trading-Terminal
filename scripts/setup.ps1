@@ -18,5 +18,5 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Python dependency verification failed.' }
     pnpm run install:frontend
     if ($LASTEXITCODE -ne 0) { throw 'Frontend installation failed.' }
-    Write-Output 'Dependencies installed. Follow docs/SETUP.md for MT5, calendar inventory and configuration.'
+    Write-Output 'Dependencies installed. Follow README.md and docs/DATA-CONTRACT.md for MT5, calendar inventory and configuration.'
 } finally { Pop-Location }

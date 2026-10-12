@@ -43,4 +43,3 @@
 @media (max-width: 1180px) {
   .data-heartbeat { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
-

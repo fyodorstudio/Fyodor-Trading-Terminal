@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from 'react'
+import { useEffect } from 'react'
 import { useDisplayClock } from '../../appearance/time-display/useDisplayClock'
 
 import { ColorThemeButton } from '../../appearance/color-theme/ColorThemeButton'
@@ -24,7 +24,6 @@ type ChartSettingsPopoverProps = {
   onTimeDisplayChange: (preference: TimeDisplayPreference) => void
   onThemeChanged: (theme: ColorTheme) => void
   onClose: () => void
-  children?: ReactNode
 }
 
 const offsetOptions = Array.from({ length: 53 }, (_, index) => -720 + index * 30)
@@ -41,7 +40,6 @@ export function ChartSettingsPopover({
   onTimeDisplayChange,
   onThemeChanged,
   onClose,
-  children,
 }: ChartSettingsPopoverProps) {
   useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent) => {
@@ -112,7 +110,7 @@ export function ChartSettingsPopover({
 
         <div className="chart-settings-section time-display-section">
           <h2>Universal time presentation</h2>
-          <p>One display clock applies to the chart, releases, overlays, Notebook, Activity and alerts.</p>
+          <p>One display clock applies to the chart, releases, Activity and alerts.</p>
           <BrokerClockInformation />
           <div className="time-setting-row">
             <label>
@@ -137,7 +135,6 @@ export function ChartSettingsPopover({
             <output>{timeDisplayLabel(timeDisplay)}</output>
           </div>
         </div>
-        {children}
       </div>
 
       <footer>

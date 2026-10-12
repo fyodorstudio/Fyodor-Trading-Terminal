@@ -60,4 +60,3 @@ export function CandleHistoryLoadingNotice({ symbol, timeframe }: CandleHistoryL
     </div>
   )
 }
-

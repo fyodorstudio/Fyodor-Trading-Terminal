@@ -69,7 +69,6 @@ try {
   const { InspectorPanel } = await server.ssrLoadModule('./src/inspector/InspectorPanel.tsx')
   const { InspectorChartMarkers } = await server.ssrLoadModule('./src/inspector/InspectorChartMarkers.tsx')
   const { markerLabel } = await server.ssrLoadModule('./src/inspector/chart/marker-label.ts')
-  const { exportWorkspace, parseWorkspaceSnapshot } = await server.ssrLoadModule('./src/workspace-portability/workspace-snapshot.ts')
   const fixture = JSON.parse(fs.readFileSync(new URL('./fixtures/major-calendar-catalog.json', import.meta.url), 'utf8'))
   assert.equal(fixture.length, 1051, 'Complete exported MT5 catalog, including low importance and holidays')
   for (const source of fixture) {
@@ -142,13 +141,9 @@ try {
     await React.act(async () => host.querySelector(`.inspector-marker-popup .inspector-currency-${baseCurrency}`).parentElement.click())
     assert.equal(view.selectedRelease.currency, baseCurrency)
     assert.ok(host.querySelector('table'))
-    if (pair !== 'EURUSD') {
-      const select = host.querySelector('[aria-label="Inspector view"]')
-      assert.deepEqual([...select.options].map(o => o.textContent), ['Table only', 'Scatter Plot (WIP)'], pair)
-      assert.equal(select.options[1].disabled, true)
-      assert.equal(host.querySelector('.inspector-histogram-btn'), null)
-      assert.equal(host.querySelector('th[title*="Magnitude"]'), null)
-    }
+    assert.equal(host.querySelector('[aria-label="Inspector view"]'), null, 'Raw tables have no retired view selector')
+    assert.equal(host.querySelector('.inspector-histogram-btn'), null)
+    assert.equal(host.querySelector('th[title*="Magnitude"]'), null)
     const prepared = view.allReleases, markers = view.markers, work = globalThis.__majorGroupingWork
     await render({ symbol: pair, events: rows.map(r => [baseCurrency, quoteCurrency].includes(r.currency) ? r : { ...r, actual: .9 }) })
     assert.equal(globalThis.__majorGroupingWork, work, `${pair}: unrelated corrections perform zero regrouping work`)
@@ -187,10 +182,6 @@ try {
     await React.act(async () => [...document.querySelectorAll('dialog button')].find(n => n.textContent === 'Cancel').click())
     assert.equal(view.preferences.symbols[family.id], 'sun')
   }
-  const workspace = parseWorkspaceSnapshot(JSON.stringify(exportWorkspace()))
-  assert.equal(Object.keys(workspace.entries).filter(k => k.startsWith('fyodor.inspector.')).length, 28)
-  const snapshot = { ...workspace, entries: { ...workspace.entries, 'fyodor.inspector.btcuSd.v1': '{}' } }
-  assert.throws(() => parseWorkspaceSnapshot(JSON.stringify(snapshot)), /Unsupported workspace setting/)
   // All registered families open source tables, including policy and independent speeches.
   for (const family of data.inspectorFamilies.filter(f => f.events.length && !['EUR', 'USD'].includes(f.currency))) {
     const rule = policyEpisodeRules.find(r => r.familyId === family.id)
@@ -198,7 +189,7 @@ try {
     const pair = majorForexPairs.find(p => forexPairCurrencies(p).includes(family.currency))
     await render({ symbol: pair, events: [event(id, family.currency, family.country)] })
     await React.act(async () => view.selectRelease(view.releases[0].id))
-    assert.equal(host.querySelectorAll('[aria-label="Inspector view"] option').length, 2)
+    assert.equal(host.querySelectorAll('[aria-label="Inspector view"]').length, 0)
     assert.ok(host.querySelector('tbody').textContent.includes(id), family.id)
     if (rule) assert.match(host.querySelector('tbody').textContent, /\+20 bp/)
     await render({ symbol: pair, events: [event(id, family.currency, family.country, { time_mode: 1 })] })
@@ -235,7 +226,7 @@ try {
     assert.equal(inputs.length, expected.length, `${currency}: Alert renders every filter control`)
     for (const control of expected) assert.ok(inputs.some(input => input.getAttribute('aria-label') === control.label && input.checked), control.label)
   }
-  console.log('✓ All 28 pairs: source-ID admission, base/quote icons, selection, raw tables, corrections, work counts, separate Save/Cancel and workspace portability')
+  console.log('✓ All 28 pairs: source-ID admission, base/quote icons, selection, raw tables, corrections, work counts, separate Save/Cancel and retained local preferences')
 } finally {
   delete globalThis.__majorGroupingWork
   delete globalThis.__majorAdmissionWork

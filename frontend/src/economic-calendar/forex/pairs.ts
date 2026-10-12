@@ -13,4 +13,3 @@ const noCurrencies: readonly MajorCurrency[] = []
 export function forexPairCurrencies(symbol: string): readonly MajorCurrency[] {
   return currenciesByPair.get(forexPair(symbol) ?? '') ?? noCurrencies
 }
-export function hasInspectorScoring(symbol: string) { return forexPair(symbol) === 'EURUSD' }

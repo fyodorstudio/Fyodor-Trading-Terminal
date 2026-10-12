@@ -1,7 +1,7 @@
 {
-  "name": "fyodor-trading-terminal",
+  "name": "fyodor-trading-terminal-lite",
   "version": "1.0.0",
-  "description": "Fyodor Terminal - Canvas & Notebook",
+  "description": "MT5 charts, raw economic calendar Inspector, upcoming Alert and Activity",
   "private": true,
   "scripts": {
     "dev:ui": "pnpm --dir frontend dev",

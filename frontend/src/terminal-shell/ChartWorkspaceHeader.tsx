@@ -1,7 +1,5 @@
-import { ContextViewControls } from './chart-overlays/ContextViewControls'
 import type { ChartTimeframe } from '../market-data/contracts/ChartTimeframe'
 import type { SymbolQuote } from '../market-data/contracts/SymbolQuote'
-import type { TimeDisplayPreference } from '../appearance/time-display/time-display-preference'
 import type { MarketWatchDock } from '../workspace-docking/left-dock/useMarketWatchDock'
 
 const timeframes: ChartTimeframe[] = ['M1', 'M5', 'M15', 'M30', 'H1', 'H4', 'D1']
@@ -14,14 +12,6 @@ type ChartWorkspaceHeaderProps = {
   onSelectTimeframe: (timeframe: ChartTimeframe) => void
   drawingToolbarVisible?: boolean
   onToggleDrawingToolbar?: () => void
-  raycasterVisible?: boolean
-  raycasterSupported?: boolean
-  onToggleRaycaster?: () => void
-  fundamentalSettingsActive?: boolean
-  brokerId?: string | null
-  brokerOffsetSeconds?: number
-  clockOffsetMs?: number
-  timeDisplay?: TimeDisplayPreference
 }
 
 function PaintbrushIcon() {
@@ -51,11 +41,6 @@ export function ChartWorkspaceHeader({
   onSelectTimeframe,
   drawingToolbarVisible = true,
   onToggleDrawingToolbar,
-  raycasterVisible = false,
-  raycasterSupported = false,
-  onToggleRaycaster,
-  fundamentalSettingsActive = false,
-  brokerId, brokerOffsetSeconds, clockOffsetMs, timeDisplay,
 }: ChartWorkspaceHeaderProps) {
   return (
     <div className="chart-toolbar">
@@ -116,9 +101,6 @@ export function ChartWorkspaceHeader({
       </div>
 
       <div className="chart-toolbar-right">
-        <ContextViewControls symbol={symbol} supported={raycasterSupported} raycasterVisible={raycasterVisible} onToggleRaycaster={onToggleRaycaster}
-          settingsActive={fundamentalSettingsActive}
-          brokerId={brokerId} timeframe={timeframe} brokerOffsetSeconds={brokerOffsetSeconds} clockOffsetMs={clockOffsetMs} timeDisplay={timeDisplay} />
       <div className="quote-summary">
         <span><small>Bid</small>{quote ? quote.bid.toFixed(quote.precision) : '—'}</span>
         <span><small>Ask</small>{quote ? quote.ask.toFixed(quote.precision) : '—'}</span>

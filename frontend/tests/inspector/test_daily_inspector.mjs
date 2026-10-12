@@ -48,7 +48,6 @@ try {
   const { useInspector } = await server.ssrLoadModule('./src/inspector/useInspector.ts')
   const { InspectorPanel } = await server.ssrLoadModule('./src/inspector/InspectorPanel.tsx')
   const { InspectorChartMarkers } = await server.ssrLoadModule('./src/inspector/InspectorChartMarkers.tsx')
-  const { exportWorkspace, parseWorkspaceSnapshot } = await server.ssrLoadModule('./src/workspace-portability/workspace-snapshot.ts')
   const fixture = JSON.parse(fs.readFileSync(new URL('./fixtures/major-calendar-catalog.json', import.meta.url), 'utf8'))
   const event = (id, hour, extra = {}) => {
     const meta = fixture.find(row => row.event_id === id), release_at = at + hour * 3600000
@@ -211,10 +210,8 @@ try {
   const actualNames = [...host.querySelectorAll('th[scope="row"] strong')].map(node => node.textContent)
   assert.deepEqual(actualNames, usd.daily.sections.flatMap(section => section.publications.flatMap(publication => publication.events.map(event => event.name))))
   assert.ok(host.querySelector('table').textContent.includes('Revision 1'))
-  assert.equal(host.querySelector('[aria-label="Inspector view"]').value, 'table')
-  assert.ok(host.querySelector('[aria-label="Inspector view"] option[value="scatter"]').disabled)
+  assert.equal(host.querySelector('[aria-label="Inspector view"]'), null)
   assert.equal(host.querySelector('.inspector-histogram-btn'), null)
-  assert.ok(view.publicationMarkers.every(marker => !marker.release.daily), 'Relationship overlays retain original publication markers')
   assert.deepEqual([...host.querySelectorAll('thead th')].map(node => node.textContent), ['Series', 'Time', 'Actual', 'Previous', 'Forecast', 'A−P'])
   for (const body of host.querySelectorAll('tbody')) {
     for (const row of body.querySelectorAll('tr[data-series-id]')) {
@@ -257,10 +254,6 @@ try {
   assert.equal(view.selectedRelease, null, 'Removing the currency clears stale day details')
   await render({ symbol: 'GBPUSD' }); assert.equal(view.preferences.symbolGrouping, 'release', 'Each pair has independent grouping')
   await render({}); assert.equal(view.preferences.symbolGrouping, 'day')
-  const workspace = exportWorkspace(), parsed = parseWorkspaceSnapshot(JSON.stringify(workspace))
-  assert.equal(JSON.parse(parsed.entries[data.inspectorStorageKey]).symbolGrouping, 'day')
-  const invalid = { ...workspace, entries: { ...workspace.entries, [data.inspectorStorageKey]: JSON.stringify({ ...view.preferences, symbolGrouping: 'week' }) } }
-  assert.throws(() => parseWorkspaceSnapshot(JSON.stringify(invalid)), /Invalid workspace setting/)
   localStorage.setItem(data.gbpInspectorStorageKey, JSON.stringify({ ...data.defaultInspectorPreferences('GBPUSD'), symbolGrouping: undefined }))
   assert.equal(data.readInspectorPreferences('GBPUSD').symbolGrouping, 'release', 'Legacy settings retain current behavior')
   const spoken = [event('840050028', 12, { actual: null, previous: null }), event('840260001', 14, { actual: null, previous: null }),
@@ -312,7 +305,7 @@ try {
   assert.ok([...markets.querySelectorAll('.inspector-day-time')].every(node => node.rowSpan === 1 && node.textContent === '02:30'))
   assert.equal(host.querySelectorAll('.inspector-day-section').length, 2, 'Individual release names are not repeated as headings')
   await React.act(async () => view.selectRelease(null)); assert.equal(view.selectedRelease, null)
-  console.log('✓ Daily Inspector: all 1,051 catalog types/28 pairs, filter-category sections, separate currency icons, source-country/time labels, all series rows, preview/Save/Cancel, corrections, counts, portability and zero regrouping on pan')
+  console.log('✓ Daily Inspector: all 1,051 catalog types/28 pairs, filter-category sections, separate currency icons, source-country/time labels, all series rows, preview/Save/Cancel, corrections, counts, preference persistence and zero regrouping on pan')
 } finally {
   await React.act(async () => root.unmount()); await server.close(); await dom.happyDOM.close()
   assert.equal(listeners.size, 0); assert.equal(sizeListeners.size, 0); assert.equal(frames.size, 0); assert.equal(clicks.size, 0)

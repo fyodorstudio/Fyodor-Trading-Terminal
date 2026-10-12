@@ -45,13 +45,6 @@ export function TerminalStatusBar({
 
   return (
     <footer className="status-bar">
-      <div className="status-actions status-experimental" role="group" aria-label="Experimental features">
-        <span className="status-wip">WIP</span>
-        <button className={`status-action${bottomDockWindow === 'fundamental-settings' ? ' active' : ''}`} type="button"
-          onClick={() => onToggleBottomDock('fundamental-settings')} aria-expanded={bottomDockWindow === 'fundamental-settings'}>Fundamental Settings</button>
-        <button className={`status-action${bottomDockWindow === 'roofs' ? ' active' : ''}`} type="button"
-          onClick={() => onToggleBottomDock('roofs')} aria-expanded={bottomDockWindow === 'roofs'}>Roofs</button>
-      </div>
       <span className="status-message"><i className={`status-dot ${sourceState}`} /> {sourceLabel} · {sourceSymbolCount} symbols</span>
       <span className="status-clock">{formatAppTimestamp(now, timeDisplay, 'time')} · {timeDisplayLabel(timeDisplay)}</span>
       <span className="status-selection">{selectedSymbol} · {timeframe} · {barCount} bars</span>
@@ -61,11 +54,6 @@ export function TerminalStatusBar({
         </button>
         <button className={`status-action${bottomDockWindow === 'alert' ? ' active' : ''}`} type="button"
           onClick={() => onToggleBottomDock('alert')} aria-expanded={bottomDockWindow === 'alert'}>Alert</button>
-        <button className={`status-action${bottomDockWindow === 'scatter-plot' ? ' active' : ''}`} type="button"
-          onClick={() => onToggleBottomDock('scatter-plot')} aria-expanded={bottomDockWindow === 'scatter-plot'}>Scatter Plot</button>
-        <button className={`status-action${bottomDockWindow === 'notebook' ? ' active' : ''}`} type="button" onClick={() => onToggleBottomDock('notebook')} aria-expanded={bottomDockWindow === 'notebook'}>
-          Notebook
-        </button>
         <button className={`status-action${bottomDockWindow === 'activity' ? ' active' : ''}`} type="button" onClick={() => onToggleBottomDock('activity')} aria-expanded={bottomDockWindow === 'activity'}>
           Activity <span className="activity-count">{activityCount}</span>
         </button>

@@ -104,7 +104,7 @@
 
 .timeframe-selector button:hover { color: var(--text-strong); background: var(--surface-hover); }
 .timeframe-selector button.active { color: #ffffff; background: var(--accent); box-shadow: 0 3px 12px color-mix(in srgb, var(--accent) 26%, transparent); }
- 
+
 .chart-drawing-toggle {
   width: 36px;
   height: 36px;
@@ -191,9 +191,7 @@
 .status-clock { color: var(--text-strong); font-variant-numeric: tabular-nums; font-weight: 650; white-space: nowrap; }
 .status-selection { font-variant-numeric: tabular-nums; }
 .status-actions { margin-left: auto; gap: 5px; }
-.status-actions.status-experimental { margin-left: 0; flex-shrink: 0; padding-right: 12px; border-right: 1px solid var(--border); }
 .status-primary { flex-shrink: 0; }
-.status-wip { color: var(--text-faint); font-size: 8px; font-weight: 650; }
 
 @media (max-width: 1250px) {
   .status-bar { gap: 10px; }

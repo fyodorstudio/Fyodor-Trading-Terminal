@@ -1,7 +1,7 @@
 import { formatAppTimestamp, type TimeDisplayPreference } from '../../appearance/time-display/time-display-preference'
 import type { InspectorDaySection, InspectorRelease } from '../../economic-calendar/releases/release'
 import { formatInspectorValue, hasRevisedPreviousChange, inspectorDelta } from './reading-values'
-import { suppliedPriorLabels } from '../grading/reading-grading'
+import { suppliedPriorLabels } from './reading-values'
 
 function sectionRows(section: InspectorDaySection, display: TimeDisplayPreference) {
   const rows = section.publications.flatMap(publication => publication.events.map(event => ({ event, publication })))

@@ -6,9 +6,9 @@ import type { InspectorView } from './useInspector'
 import { releaseTimeLabel } from './releases/release-time-label'
 import { InspectorCalendarIcon } from './chart/InspectorCalendarIcon'
 
-export function InspectorReleaseHeading({ release, view, timeDisplay, status, sharedPeriod, hasMagnitude, calendarDetail, coverageDetail }: {
+export function InspectorReleaseHeading({ release, view, timeDisplay, status, sharedPeriod, calendarDetail, coverageDetail }: {
   release: InspectorRelease; view: InspectorView; timeDisplay: TimeDisplayPreference; status: string
-  sharedPeriod: number | null; hasMagnitude: boolean; calendarDetail: string
+  sharedPeriod: number | null; calendarDetail: string
   coverageDetail?: string | null
 }) {
   return <div className="inspector-detail-heading" aria-label="Selected release details">
@@ -25,7 +25,7 @@ export function InspectorReleaseHeading({ release, view, timeDisplay, status, sh
       {coverageDetail && <span className="inspector-info-line">{coverageDetail}</span>}
       <span className="inspector-info-line">A−P uses Previous; revised Previous is shown separately.
         pp = percentage points · bp = basis points.
-        {hasMagnitude && <> Reading colors: Higher = green, Lower = red, Unchanged = gray. Signed USD scores use their own direction rules. Sizes appear only when a magnitude mode is configured in Scatter Plot.</>}</span>
+</span>
     </InspectorInfoTooltip>
   </div>
 }

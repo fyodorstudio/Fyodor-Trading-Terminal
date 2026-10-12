@@ -1,8 +1,7 @@
 import { normalizeCurrencyColors, type CurrencyColors } from '../currency-colors'
 import { isEventSymbol, type EventSymbol } from '../../economic-calendar/presentation/event-symbols'
-import { normalizeInspectorDetailView, type InspectorDetailView } from '../inspector-detail-view'
 import { inspectorFamilies, originalInspectorFamilies } from '../catalog/inspector-families'
-import { forexPair as inspectorPair, forexPairCurrencies as inspectorPairCurrencies, hasInspectorScoring } from '../../economic-calendar/forex/pairs'
+import { forexPair as inspectorPair, forexPairCurrencies as inspectorPairCurrencies } from '../../economic-calendar/forex/pairs'
 export { forexPair as inspectorPair, forexPairCurrencies as inspectorPairCurrencies } from '../../economic-calendar/forex/pairs'
 
 export type InspectorPreferences = {
@@ -11,12 +10,10 @@ export type InspectorPreferences = {
   families: string[]
   showSymbols: boolean
   symbolGrouping: 'release' | 'day'
-  showHistograms: boolean
-  detailView: InspectorDetailView
   currencyColors: CurrencyColors
   symbols: Record<string, EventSymbol>
 }
-export type InspectorPreferenceUpdate = 'save' | 'preview' | 'view'
+export type InspectorPreferenceUpdate = 'save' | 'preview'
 // Existing keys remain compatible; each canonical pair owns its saved filters.
 export const inspectorStorageKey = 'fyodor.inspector.eurusd.v1'
 export const gbpInspectorStorageKey = 'fyodor.inspector.gbpusd.v1'
@@ -29,7 +26,7 @@ export function inspectorPairFamilies(symbol: string) {
 }
 export function defaultInspectorPreferences(symbol = 'EURUSD'): InspectorPreferences {
   const families = inspectorPairFamilies(symbol)
-  return { version: 2, catalogVersion: 1, families: families.map((family) => family.id), showSymbols: true, symbolGrouping: 'release', showHistograms: true, detailView: 'table', currencyColors: {},
+  return { version: 2, catalogVersion: 1, families: families.map((family) => family.id), showSymbols: true, symbolGrouping: 'release', currencyColors: {},
     symbols: Object.fromEntries(families.map((family) => [family.id, family.symbol])) }
 }
 export function readInspectorPreferences(symbol = 'EURUSD'): InspectorPreferences {
@@ -44,8 +41,6 @@ export function readInspectorPreferences(symbol = 'EURUSD'): InspectorPreference
       originalInspectorFamilies.every((id) => selected.includes(id))
     const added = saved.catalogVersion === 1 || !selected.length ? [] : families.filter(f => f.sourceLabels || f.id === 'ecb-accounts').map(f => f.id)
     return { version: 2, catalogVersion: 1, families: oldDefault ? defaults.families : [...new Set([...selected, ...added])],
-    showHistograms: typeof saved.showHistograms === 'boolean' ? saved.showHistograms : defaults.showHistograms,
-    detailView: hasInspectorScoring(symbol) ? normalizeInspectorDetailView(saved.detailView) : 'table',
     showSymbols: typeof saved.showSymbols === 'boolean' ? saved.showSymbols : defaults.showSymbols,
     symbolGrouping: saved.symbolGrouping === 'day' ? 'day' : 'release',
     currencyColors: normalizeCurrencyColors(saved.currencyColors),

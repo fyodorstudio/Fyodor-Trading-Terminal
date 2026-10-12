@@ -2,8 +2,8 @@ import type { BottomDockWindow } from './bottom-dock-window'
 
 export const bottomDockHeightKey = 'fyodor.bottom-dock.height.v2'
 export const legacyBottomDockHeightKeys: Partial<Record<BottomDockWindow, string>> = {
-  inspector: 'fyodor.inspector.dock-height.v1', notebook: 'fyodor.notebook.dock-height.v1',
-  activity: 'fyodor.activity.dock-height.v1', 'scatter-plot': 'fyodor.scatter-plot.dock-height.v1', alert: 'fyodor.alert.dock-height.v1',
+  inspector: 'fyodor.inspector.dock-height.v1',
+  activity: 'fyodor.activity.dock-height.v1', alert: 'fyodor.alert.dock-height.v1',
 }
 export const defaultBottomDockHeight = 258
 export const validBottomDockHeight = (height: unknown): height is number =>

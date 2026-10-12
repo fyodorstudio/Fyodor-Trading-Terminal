@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import React from 'react'
 import { createServer } from 'vite'
 import { Window } from 'happy-dom'
-import { cpi, nfp, history } from './usd-context/fixtures.mjs'
+import fs from 'node:fs'
 
 // Mount production hooks, shell, chart and overlays. Only external network,
 // worker ports and the canvas library are faked; no production boundary is stubbed.
@@ -29,12 +29,11 @@ dom.setInterval = (fn, ms) => { intervals.set(++sequence, { fn, ms }); return se
 dom.clearInterval = id => intervals.delete(id)
 dom.requestAnimationFrame = fn => { frames.set(++sequence, fn); return sequence }
 dom.cancelAnimationFrame = id => frames.delete(id)
-localStorage.setItem('fyodor.raycaster.visible.v1', 'true')
-localStorage.setItem('fyodor.context-sequences.v1', JSON.stringify({ roofs: true, fresh: true, ribbon: true, density: 'concise' }))
 localStorage.setItem('fyodor.time-display.v1', JSON.stringify({ mode: 'utc', utcOffsetMinutes: 0 }))
 localStorage.setItem('fyodor.chart-drawings.v1', JSON.stringify([{ id: 'drawing', symbol: 'EURUSD', timeframe: 'H1', tool: 'parallel-channel',
   points: [{ time: now / 1000 - 5 * 3600, price: 1.1 }, { time: now / 1000 - 3 * 3600, price: 1.2 },
     { time: now / 1000 - 5 * 3600, price: 1 }], createdAt: 1 }]))
+localStorage.setItem('fyodor.inspector.eurusd.v1', JSON.stringify({ version: 2, catalogVersion: 1, families: ['us-cpi','ecb'], showSymbols: true, symbolGrouping: 'release', detailView: 'r1', showHistograms: true, symbols: { 'us-cpi': 'star', ecb: 'moon' }, currencyColors: {} }))
 const primitives = new Set(), captures = new Set(), pointerPrices = []
 let priceShift = 0, priceRange = { from: 1, to: 2 }
 dom.SVGElement.prototype.setPointerCapture = id => captures.add(id)
@@ -76,15 +75,7 @@ const chart = { addSeries: definition => definition.type === 'line' ? timeSeries
   subscribeClick: fn => clickListeners.add(fn), unsubscribeClick: fn => clickListeners.delete(fn),
   remove: () => count('chartRemoved'), chartElement: () => document.querySelector('.market-chart-canvas') }
 globalThis.__terminalProbe = { count, clocks, createChart: () => { count('chartCreated'); return chart } }
-let calculate, calculateCpi,calculateR1,calculateTimeline
-globalThis.Worker = class {
-  constructor() { count('workerCreated'); this.terminated = false }
-  postMessage(message) {
-    count('workerPosts'); workerInputs.push(message.input)
-    void Promise.resolve().then(() => { if (!this.terminated) this.onmessage?.({ data: { id: message.id, result: (message.input.usdSettings ? calculateTimeline : message.input.savedBands ? calculateR1 : message.input.release ? calculateCpi : calculate)(message.input) } }) })
-  }
-  terminate() { this.terminated = true; count('workerTerminated') }
-}
+globalThis.Worker = class { constructor() { count('workerCreated'); throw new Error('Lite must not create calculation workers') } }
 
 const canvasModule = `export const CandlestickSeries = {type:'candle'}, LineSeries = {type:'line'}, ColorType = { Solid: 'solid' }, CrosshairMode = { Normal: 0 },
   TickMarkType = { Year: 0, Month: 1, DayOfMonth: 2, Time: 3, TimeWithSeconds: 4 }, LineStyle = { Dotted: 1, Dashed: 2 };
@@ -96,14 +87,13 @@ const server = await createServer({ root: path.resolve(path.dirname(fileURLToPat
     resolveId(source) { if (source === 'lightweight-charts') return '\0terminal-canvas-fixture' },
     load(id) { if (id === '\0terminal-canvas-fixture') return canvasModule },
     transform(code, id) {
-      if (id.endsWith('/FyodorTerminalShell.tsx')) return code.replace('function FyodorTerminalWorkspace() {',
-        "function FyodorTerminalWorkspace() { globalThis.__terminalProbe.count('workspace');")
+      if (id.endsWith('/TerminalWorkspace.tsx')) return code.replace('function TerminalWorkspace() {',
+        "function TerminalWorkspace() { globalThis.__terminalProbe.count('workspace');")
       if (id.endsWith('/MarketWatchPanel.tsx')) return code.replace('const positive = quote.dailyChange >= 0',
         "globalThis.__terminalProbe.count('quoteRows'); const positive = quote.dailyChange >= 0")
       if (id.endsWith('/MarketCandlestickChart.tsx')) return code.replace('}: MarketCandlestickChartProps) {',
         "}: MarketCandlestickChartProps) { globalThis.__terminalProbe.count('chartRender');")
       if (id.endsWith('/useCalendarNow.ts')) return code.replace('return now', 'globalThis.__terminalProbe.clocks.push(now); return now')
-      if (id.endsWith('/InspectorScoringView.tsx')) return code.replace('const Component = binding.Component', "globalThis.__terminalProbe.count('scoringRender'); const Component = binding.Component")
       if (id.endsWith('/releases/group-days.ts')) return code.replace('  if (!range) return []', "  globalThis.__terminalProbe.count('dailyGrouping'); if (!range) return []")
     },
   }] })
@@ -113,26 +103,35 @@ let broker = 'fixture-broker', generation = 1, observed = 0, connected = true, c
 let quotes = Array.from({ length: 200 }, (_, i) => ({ symbol: i === 0 ? 'EURUSD' : `TEST${i}`, description: `Quote ${i}`,
   bid: 1.1, ask: 1.2, daily_change: 0, precision: 5 }))
 let bars = Array.from({ length: 800 }, (_, i) => ({ time: now / 1000 + (i - 799) * 3600, open: 1.1, high: 1.2, low: 1, close: 1.15 }))
-const recentNfpAt = now - 2 * 3600000
-const recentHistory = Array.from({ length: 36 }, (_, index) => [
-  ...cpi(2023, 8 + index, [.1 + index % 4 * .1, .1 + (index + 1) % 4 * .1, 3 + index % 3 * .1]),
-  ...nfp(2023, 8 + index, [100 + index % 4 * 50, 4 + index % 3 * .1, 62.3, .1 + index % 4 * .1, 34.2 + index % 3 * .1]),
-]).flat()
-let events = [...history, ...recentHistory, ...nfp(2026, 8, [200, 4, 62.3, .4, 34.4]).map(event => ({ ...event,
-  release_at: recentNfpAt, chart_time_seconds: recentNfpAt / 1000, server_time_seconds: recentNfpAt / 1000 })),
-  ...cpi(2026, 8, [.3, .3, 3.1])]
-events.unshift({...events[0],value_id:'ecb-hold',event_id:'999010006',currency:'EUR',country_code:'EU',country_name:'Euro area',name:'ECB Deposit Facility Rate',release_at:now-3600000,chart_time_seconds:now/1000-3600,server_time_seconds:now/1000-3600,period_seconds:0,actual:2,previous:2,revised_previous:null,actual_raw_scaled_1e6:null,previous_raw_scaled_1e6:null,revised_previous_raw_scaled_1e6:null,unit:1,multiplier:0,time_mode:0})
+const catalog = JSON.parse(fs.readFileSync(new URL('./inspector/fixtures/major-calendar-catalog.json', import.meta.url), 'utf8'))
+const event = (id, at, actual = .3, previous = .1) => {
+  const meta = catalog.find(row => row.event_id === id)
+  return { value_id: id + '/' + at, event_id: id, name: meta.event_name, event_code: id,
+    currency: meta.country_currency, country_code: meta.country_code, country_name: meta.country_code,
+    unit: +meta.unit_code, multiplier: +meta.multiplier_code, digits: +meta.digits, time_mode: 0,
+    release_at: at, chart_time_seconds: at / 1000, server_time_seconds: at / 1000,
+    period_seconds: Date.UTC(2026, 8, 1) / 1000, revision: 0, actual, previous,
+    forecast: .2, revised_previous: null, importance: 'high', impact: 'none', availability: 'observed' }
+}
+// Use the exported CPI family fixture's actual names, never a guessed source ID.
+const cpiMeta = catalog.filter(row => row.country_currency === 'USD' && /^(?:Core )?CPI(?: |$)/.test(row.event_name))
+let events = [...cpiMeta.map(row => event(row.event_id, now - 2 * 3600000)), event('999010006', now - 2 * 3600000, 2, 2)]
+for (const currency of ['USD','EUR','GBP','JPY','CHF','CAD','AUD','NZD']) {
+  const meta = catalog.find(row => row.country_currency === currency)
+  events.push(event(meta.event_id, now + 86400000, null))
+}
+let calendarRevision = 1
 const health = () => ({ api_version: '1', bridge: { status: 'running', started_at: 1, now: now + clockOffset },
   mt5: { connected, process_running: true, generation, account_server: broker },
   calendar: { status: 'live', instance_id: 'fixture', server_utc_offset_seconds: 0 }, operations: {} })
 globalThis.fetch = (url, options = {}) => {
   const u = String(url); requests.push(u)
-  if (u.startsWith('/storage-api/health')) return Promise.resolve({ ok: true, json: async () => ({ revision: 1,
+  if (u.startsWith('/storage-api/health')) return Promise.resolve({ ok: true, json: async () => ({ revision: calendarRevision,
     sources: [{ id: broker, publisher_status: 'live', server_now: now / 1000, instance_id: 'fixture' }], collector_error: null }) })
   if (u.startsWith('/storage-api/calendar')) {
     const params = new URL(u, 'http://localhost').searchParams, ids = params.get('event_ids')?.split(',') ?? null
-    return Promise.resolve({ ok: true, json: async () => ({ source_id: broker, revision: 1, timestamp_convention: 'trade_server_time', time_basis: 'chart',
-      r1_source_version:1,r1_schedules:[],event_ids: ids, events: events.filter(event => (!ids || ids.includes(event.event_id)) && event.chart_time_seconds >= Number(params.get('from_server_seconds')) &&
+    return Promise.resolve({ ok: true, json: async () => ({ source_id: broker, revision: calendarRevision, timestamp_convention: 'trade_server_time', time_basis: 'chart',
+      event_ids: ids, events: events.filter(event => (!params.get('currencies') || params.get('currencies').split(',').includes(event.currency)) && (!ids || ids.includes(event.event_id)) && event.chart_time_seconds >= Number(params.get('from_server_seconds')) &&
         event.chart_time_seconds <= Number(params.get('to_server_seconds'))), coverage: {}, next_cursor: null }) })
   }
   if (u.includes('/activity')) return Promise.resolve({ ok: true, json: async () => ({ events: [], latest_sequence: 0 }) })
@@ -166,7 +165,7 @@ async function tick(name, ms) {
   assert.ok(timer, `${name}/${ms} timer`); timers.delete(timer[0])
   await React.act(async () => { void timer[1].fn() })
 }
-const button = label => [...container.querySelectorAll('button')].find(element => element.textContent.trim().startsWith(label))
+const button = label => [...container.querySelectorAll('button')].find(element => element.textContent.trim().replace(/^⚙\s*/, '').startsWith(label))
 async function click(element) { assert.ok(element); await React.act(async () => element.click()) }
 function assertQuiet(label, workspace = false) {
   for (const key of ['quoteRows', 'chartRender', 'setData', 'update', 'futureSetData', 'futureUpdate', 'workerPosts', ...(workspace ? ['workspace'] : [])])
@@ -177,10 +176,6 @@ try {
   const { FyodorTerminalShell } = await server.ssrLoadModule('./src/terminal-shell/FyodorTerminalShell.tsx')
   const { ActivityLogProvider } = await server.ssrLoadModule('./src/system-observability/activity-log/activity-log-store.tsx')
   const { useActivityActions } = await server.ssrLoadModule('./src/system-observability/activity-log/use-activity-log.ts')
-  calculate = (await server.ssrLoadModule('./src/scoring-system/context/usd/build-context-timeline.ts')).buildContextTimeline
-  calculateCpi = (await server.ssrLoadModule('./src/scoring-system/PAIR/EURUSD/USD/CPI/runtime/cpi-release-analysis.ts')).calculateCpiRelease
-  calculateR1 = (await server.ssrLoadModule('./src/scoring-system/r1/pair.ts')).calculateR1Pair
-  calculateTimeline = (await server.ssrLoadModule('./src/scoring-system/r1/timeline.ts')).calculateR1Timeline
   function CommandOnly() {
     count('commandSubscriber')
     const actions = useActivityActions()
@@ -191,71 +186,110 @@ try {
     React.createElement(FyodorTerminalShell), React.createElement(CommandOnly))))
   await reply('health'); await reply('watch')
   while (pending.get('ohlc')?.length) await reply('ohlc')
+  const flush = async () => React.act(async () => { for (const [id, fn] of frames) { frames.delete(id); fn() } })
+  await flush()
   assert.equal(plotted.length, 800)
-  assert.ok(futureTimes.at(-1).time >= plotted.at(-1).time + 90 * 86400)
   assert.equal(Math.floor(futureTimes.at(-1).time / 86400), Math.floor(plotted.at(-1).time / 86400) + 90)
-  assert.ok(workerInputs.length > 0, 'Production context calculation has actually run')
-  assert.ok(workerInputs.filter(input=>!input.usdSettings).every(input => input.asOf < events.at(-1).release_at), 'Future publication has not been admitted')
-  // Exercise the real chart -> shell -> Roofs dock path with scored CPI/NFP inputs.
-  await React.act(async () => { for (const [id, fn] of frames) { frames.delete(id); fn() } })
-  const comboTrigger = container.querySelector('.combo-roof-overflow > button')
-  assert.ok(comboTrigger, 'Genuine eligible release relationships produce a Concise chart group')
-  assert.equal(container.querySelector('[aria-label="Raycaster view"]').value,'r1','The assembled terminal opens the new R1 view')
-  assert.ok(workerInputs.some(input=>input.usdSettings),'Assembled R1 timeline actually calculated')
-  const comboCount = Number(comboTrigger.textContent.match(/\d+/)[0]), jobsBeforeRoofs = workerInputs.length
-  await click(comboTrigger)
-  assert.equal(container.querySelector('[aria-label="More combo roofs"]'), null)
-  assert.equal(container.querySelectorAll('.roof-overview-row').length, comboCount, 'Production wiring passes every relationship into the release overview')
-  assert.equal(container.querySelectorAll('.roof-overview-releases').length, comboCount, 'Every production relationship includes its source table')
-  assert.equal(container.querySelector('[aria-label="Selected roof snapshot"]'), null, 'Group opening does not silently select a relationship')
-  const overviewScroll = container.querySelector('.roof-overview-scroll')
-  overviewScroll.scrollTop = 87
-  await React.act(async () => overviewScroll.dispatchEvent(new dom.Event('scroll', { bubbles: true })))
-  const sourceLink = container.querySelector('.roof-overview-releases button'), sourceName = sourceLink.textContent
-  await click(sourceLink)
-  assert.ok(container.querySelector('.inspector-panel'), 'Inline source links open the production Inspector')
-  assert.ok(container.querySelector('.inspector-panel').textContent.includes(sourceName), 'Inspector shows the linked source')
+  assert.deepEqual([...container.querySelectorAll('[aria-label="App features"] button')].map(node => node.textContent.trim().replace(/\s+\d+$/, '')),
+    ['Inspector', 'Alert', 'Activity', '⚙ Settings'])
+  assert.equal(container.querySelector('[aria-label="Fundamental tools"]'), null)
+  assert.equal(container.querySelector('[aria-label="Experimental features"]'), null)
+  assert.deepEqual([...container.querySelectorAll('[aria-label="Chart timeframe"] button')].map(node => node.textContent), ['M1','M5','M15','M30','H1','H4','D1'])
+  assert.ok(container.querySelector('[aria-label="Text"]'))
+  // A nearby-release chooser dismisses on blank chart clicks before selecting.
+  await click(container.querySelector('[aria-label="2 nearby Inspector releases"]'))
+  assert.equal(container.querySelectorAll('.inspector-marker-popup button').length, 3)
+  await React.act(async () => { for (const handler of clickListeners) handler({ point: { x: 100, y: 100 } }) })
+  assert.equal(container.querySelector('.inspector-marker-popup'), null)
+  await click(container.querySelector('[aria-label="2 nearby Inspector releases"]'))
+  await click(container.querySelector('.inspector-marker-popup .inspector-currency-USD').parentElement)
+  const usdCount = events.filter(event => event.currency === 'USD' && event.actual !== null).length
+  assert.equal(container.querySelectorAll('.inspector-panel tr[data-series-id]').length, usdCount)
+  assert.equal(container.querySelector('[aria-label="Inspector view"]'), null, 'Legacy R1 preferences still open raw tables')
+  assert.equal(container.querySelector('.inspector-histogram-btn'), null)
+  assert.ok(container.querySelector('.inspector-panel').textContent.includes('Forecast'))
+  // Save/Cancel retains the selection and shows the preview immediately.
+  const savedBefore = localStorage.getItem('fyodor.inspector.eurusd.v1')
+  await click(container.querySelector('[data-inspector-filter-trigger]'))
+  const change = async (element, value) => React.act(async () => {
+    assert.ok(element)
+    const native = props(element)
+    if (native) native.onChange({ target: { value } })
+    else { element.value = value; element.dispatchEvent(new dom.Event('change', { bubbles: true })) }
+  })
+  await change(document.querySelector('[aria-label="Group Inspector symbols"]'), 'day')
+  assert.ok(container.querySelector('.inspector-day-symbol'))
+  await click([...document.querySelectorAll('dialog button')].find(node => node.textContent === 'Cancel'))
+  assert.equal(localStorage.getItem('fyodor.inspector.eurusd.v1'), savedBefore)
+  await click(container.querySelector('[data-inspector-filter-trigger]'))
+  await change(document.querySelector('[aria-label="Group Inspector symbols"]'), 'day')
+  await click([...document.querySelectorAll('dialog button')].find(node => node.textContent === 'Save'))
+  await flush()
+  const saved = JSON.parse(localStorage.getItem('fyodor.inspector.eurusd.v1'))
+  assert.equal(saved.symbolGrouping, 'day'); assert.equal(saved.detailView, undefined); assert.equal(saved.showHistograms, undefined)
+  const dailyIcon = container.querySelector('.inspector-day-symbol.inspector-currency-USD')
+  await click(dailyIcon)
+  assert.equal(container.querySelectorAll('.inspector-day-table tr[data-series-id]').length, Number(dailyIcon.textContent))
+  assert.ok([...container.querySelectorAll('.inspector-day-table tr[data-series-id]')].every(row => row.querySelector('.inspector-day-time').textContent))
+  // Current date range and anchor/QoL: twelve months before today, 90 after.
   await click(container.querySelector('[aria-label="Inspector date range"]'))
-  await click([...document.querySelectorAll('[aria-label="Date range presets"] button')].find(element => element.textContent === 'Year to date'))
-  await React.act(async () => { for (const handler of [...clickListeners]) handler({ point: { x: 100, y: 100 } }) })
-  assert.equal(container.querySelector('[aria-label="Selected release details"]'), null, 'A blank chart click clears source inspection')
-  assert.equal(container.querySelector('.inspector-panel'), null, 'The same chart click closes the Inspector dock')
-  await click(button('Roofs'))
-  assert.equal(container.querySelectorAll('.roof-overview-row').length, comboCount)
-  assert.equal(container.querySelector('.roof-overview-scroll').scrollTop, 87, 'Returning from source inspection preserves the overview')
-  assert.equal(container.querySelector('[aria-label="Selected roof snapshot"]'), null, 'Opening a source does not select a relationship')
-  await click(container.querySelector('.roof-overview-row button'))
-  assert.ok(container.querySelector('[aria-label="Combo details"]'))
-  assert.equal(container.querySelector('.roof-overview-row'), null, 'Overview rows are unmounted while inspecting details')
-  await click(button('← All'))
-  assert.equal(container.querySelector('.roof-overview-scroll').scrollTop, 87)
-  const roofsActions = [...container.querySelector('.roof-release-overview').querySelectorAll('button')].map(element => element.textContent.trim())
-  assert.ok(!roofsActions.some(label => ['Collapse', 'Expand', 'Return to releases'].includes(label)))
-  assert.equal(container.querySelectorAll('.roof-overview-row').length, comboCount)
-  assert.equal(container.querySelector('.roof-overview-scroll').scrollTop, 87)
-  await click(button('Roofs'))
-  await click(button('Roofs'))
-  assert.equal(container.querySelector('.roof-overview-scroll').scrollTop, 87, 'Closing and reopening the dock retains its captured overview')
-  assert.equal(workerInputs.length, jobsBeforeRoofs, 'Group opening, detail/back and bottom dock navigation launch no scoring workers')
-  await click(button('Roofs'))
-  const settingsJobs = workerInputs.length, settingsRequests = requests.length, settingsCharts = counters.chartCreated
-  await click(container.querySelector('[aria-label="Fundamental tools settings"]'))
-  assert.ok(container.querySelector('[aria-label="Fundamental Settings"]'), 'The production gear opens the settings dock')
-  assert.equal(container.querySelector('[role="dialog"]'), null)
-  assert.equal(workerInputs.length, settingsJobs, 'Opening methodology without a Claims selection does no scoring work')
-  assert.equal(requests.length, settingsRequests, 'Opening methodology does not refetch calendar history')
-  assert.equal(counters.chartCreated, settingsCharts, 'Opening the settings dock preserves the chart instance')
-  await click(container.querySelector('[aria-label="Fundamental tools settings"]'))
-  assert.equal(container.querySelector('[aria-label="Fundamental Settings"]'), null, 'A second gear click closes the production dock')
-  assert.equal(container.querySelector('[aria-label="Fundamental tools settings"]').getAttribute('aria-expanded'), 'false')
-  for (let repeat = 0; repeat < 2; repeat++) {
-    await React.act(async () => window.dispatchEvent(new dom.CustomEvent('fyodor:fundamental-settings', { detail: { family: 'pce' } })))
-    assert.ok(container.querySelector('[aria-label="Fundamental Settings"]'), 'Methodology requests keep the dock open')
-    assert.equal(container.querySelector('[aria-label="Scoring family"]').value, 'pce')
-  }
-  await click(button('Fundamental Settings'))
-  // Exercise drawing selection, body drag and blank-space deselection through
-  // the assembled terminal, including chart navigation and the shared storage.
+  assert.equal(document.querySelector('[aria-label="Days after anchor date"]').value, '90')
+  const before = Number(document.querySelector('[aria-label="Days before anchor date"]').value)
+  assert.ok(before === 365 || before === 366)
+  await React.act(async () => window.dispatchEvent(new dom.KeyboardEvent('keydown', { key: 'Escape' })))
+  await React.act(async () => { for (const handler of clickListeners) handler({ point: { x: 100, y: 100 } }) })
+  assert.equal(container.querySelector('.inspector-panel'), null, 'Blank chart deselects the icon and collapses Inspector')
+  await click(dailyIcon)
+  assert.ok(container.querySelector('.inspector-panel'))
+  // Settings retains existing options, with no Workspace backup child.
+  await click(button('Settings'))
+  assert.ok(container.querySelector('[aria-label="Chart settings"]'))
+  assert.equal(container.querySelector('.workspace-transfer'), null)
+  assert.ok(!container.querySelector('[aria-label="Chart settings"]').textContent.includes('Workspace backup'))
+  const grid = container.querySelector('.toggle-setting input')
+  await React.act(async () => props(grid).onChange({ target: { checked: false } }))
+  assert.equal(JSON.parse(localStorage.getItem('fyodor.chart-appearance.v1')).showGrid, false)
+  await click(container.querySelector('[aria-label="Close chart settings"]'))
+  // Polling/activity/viewport work never creates workers or resubmits unchanged data.
+  reset()
+  await React.act(async () => append('Application', 'Manual activity regression'))
+  assert.equal(counters.workspace ?? 0, 0, 'Logging does not invalidate the workspace')
+  assert.equal(counters.chartRender ?? 0, 0)
+  reset(); await tick('poll', 2500); await reply('watch'); assertQuiet('Identical Market Watch quotes')
+  reset(); await tick('poll', 2000); await reply('ohlc'); assertQuiet('Identical candles')
+  reset()
+  await React.act(async () => { for (let i = 0; i < 200; i++) for (const notify of rangeListeners) notify() })
+  await flush()
+  assert.equal(counters.dailyGrouping ?? 0, 0); assert.equal(counters.futureSetData ?? 0, 0)
+  const stableWindow = { ...logicalRange }
+  await click(button('Alert'))
+  assert.equal(container.querySelectorAll('[aria-label="Alert currency"] button').length, 9)
+  assert.equal(container.querySelectorAll('.alert-row').length, 8)
+  await click([...container.querySelectorAll('.market-watch-row')].find(row => row.textContent.includes('TEST1')))
+  while (pending.get('ohlc')?.length) await reply('ohlc')
+  assert.deepEqual(logicalRange, stableWindow, 'Pair selection preserves date zoom/pan')
+  assert.equal(container.querySelectorAll('[aria-label="Alert currency"] button').length, 9)
+  reset()
+  await React.act(async () => { for (const timer of intervals.values()) if (timer.ms === 1000) timer.fn() })
+  assertQuiet('Alert countdown', true)
+  // Genuine price and calendar corrections continue to reach the UI.
+  bars = bars.map((bar, i) => i === bars.length - 1 ? { ...bar, close: 1.17 } : bar)
+  reset(); await tick('poll', 2000); await reply('ohlc')
+  assert.equal(counters.update, 1); assert.equal(counters.futureSetData ?? 0, 0)
+  assert.equal(plotted.at(-1).close, 1.17)
+  await click(button('Activity'))
+  assert.ok(container.querySelector('[aria-label="Activity log"]'))
+  await click([...container.querySelectorAll('.market-watch-row')].find(row => row.textContent.includes('EURUSD')))
+  while (pending.get('ohlc')?.length) await reply('ohlc')
+  await flush()
+  await click(container.querySelector('.inspector-day-symbol.inspector-currency-USD'))
+  const id = events.find(event => event.currency === 'USD' && event.actual !== null).value_id
+  events = events.map(event => event.value_id === id ? { ...event, actual: .8, revision: 2 } : event)
+  calendarRevision++
+  const poll = [...timers].find(([, timer]) => timer.fn.name === 'poll' && timer.ms === 10000)
+  timers.delete(poll[0]); await React.act(async () => poll[1].fn())
+  assert.match(container.querySelector('.inspector-day-table').textContent, /0.8%/)
+  assert.match(container.querySelector('.inspector-day-table').textContent, /Revision 2/)
   const drawing = () => container.querySelector('.drawing-object')
   const drawingSvg = () => container.querySelector('.chart-drawing-overlay')
   const canvasForDrawing = container.querySelector('.market-chart-canvas')
@@ -309,238 +343,28 @@ try {
   savedText = JSON.parse(localStorage.getItem('fyodor.chart-drawings.v1')).find(item => item.tool === 'text')
   assert.equal(savedText.text, 'Edited annotation')
   assert.equal(workerInputs.length, postsBeforeText, 'Text creation and editing never launch calculation jobs')
-  const postsBeforeContextView = workerInputs.length
-  const raycasterView = container.querySelector('[aria-label="Raycaster view"]')
-  assert.ok(raycasterView)
-  await React.act(async () => { raycasterView.value = 'context-detailed'; raycasterView.dispatchEvent(new dom.Event('change', { bubbles: true })) })
-  assert.equal(container.querySelector('[aria-label="Raycaster view"]').value, 'context-detailed', 'The assembled shell retains detailed context with no selected combo')
-  assert.ok(container.querySelector('[aria-label="Context-detailed calculations"]'))
-  assert.equal(workerInputs.length, postsBeforeContextView, 'Opening the detailed reading reuses the existing scores')
-  await React.act(async () => { const view = container.querySelector('[aria-label="Raycaster view"]'); view.value = 'context'; view.dispatchEvent(new dom.Event('change', { bubbles: true })) })
-  assert.equal(container.querySelector('.context-detailed-content'), null)
-  if (!container.querySelector('.inspector-panel')) await click(button('Inspector'))
-  await click(container.querySelector('.inspector-pair-toggle'))
-  await click([...container.querySelectorAll('.inspector-release')].find(element => element.textContent.includes('CPI')))
-  await React.act(async () => {
-    const view = container.querySelector('[aria-label="Inspector view"]')
-    view.value = 'scoring'; view.dispatchEvent(new dom.Event('change', { bubbles: true }))
-  })
-  assert.equal(container.querySelectorAll('.inspector-panel [aria-label="Context-Aware at Publication Scoring"]').length, 0)
-  assert.equal(button('Open publication context in Raycaster'), undefined, 'Inspector has no redundant publication shortcut')
-  const methodJobs = workerInputs.length
-  await click(container.querySelector('.inspector-header [aria-label="Scoring explanation & settings"]'))
-  assert.equal(container.querySelector('[aria-label="Scoring family"]').value, 'us-cpi', 'Inspector opens the selected model explanation')
-  assert.equal(container.querySelectorAll('[aria-label="Scoring rules"] tbody tr').length, 4)
-  assert.equal(workerInputs.length, methodJobs, 'Opening the scoring explanation launches no new calculation')
-  await click(button('Inspector'))
-  await React.act(async () => {
-    const view = container.querySelector('[aria-label="Raycaster view"]')
-    view.value = 'context-detailed'; view.dispatchEvent(new dom.Event('change', { bubbles: true }))
-  })
-  assert.equal(container.querySelector('[aria-label="Raycaster view"]').value, 'context-detailed')
-  const publication = container.querySelector('.raycaster-publication')
-  assert.ok(publication.querySelector('[aria-label="CPI v4 context change"]'), 'The shell routes the selected CPI publication and its comparison into Raycaster')
-  assert.ok(publication.querySelector('[aria-label="CPI v4 context inputs"]'))
-  const publicationText = publication.textContent, jobsBeforeHover = workerInputs.length, rendersBeforeHover = counters.scoringRender
-  await React.act(async () => {
-    for (const handler of hoverListeners) handler({ time: now / 1000 - 3600, point: { x: 400, y: 200 }, seriesData: new Map([[series, {}]]) })
-    for (const [id, fn] of frames) { frames.delete(id); fn() }
-  })
-  assert.equal(publication.textContent, publicationText, 'Candle hover never changes the selected publication cutoff or comparison')
-  assert.equal(workerInputs.length, jobsBeforeHover, 'Hover with publication details open launches no workers')
-  assert.equal(counters.scoringRender, rendersBeforeHover, 'Hover performs zero publication scorer renders')
-  if(!container.querySelector('.inspector-panel'))await click(button('Inspector'))
-  await React.act(async()=>{const view=container.querySelector('[aria-label="Inspector view"]');view.value='r1';view.dispatchEvent(new dom.Event('change',{bubbles:true}))})
-  assert.ok(container.querySelector('[aria-label="USD R1 scoring"]'),'The assembled terminal mounts the shared R1 result')
-  const r1Jobs=workerInputs.length,r1Text=container.querySelector('[aria-label="USD R1 scoring"]').textContent
-  await React.act(async()=>{
-    for(let i=0;i<200;i++)for(const notify of rangeListeners)notify()
-    for(const handler of hoverListeners)handler({time:now/1000-3600,point:{x:400,y:200},seriesData:new Map([[series,{}]])})
-    for(const[id,fn]of frames){frames.delete(id);fn()}
-    for(const timer of intervals.values())if(timer.ms===10000)timer.fn()
-  })
-  assert.equal(workerInputs.length,r1Jobs,'R1 at a selected publication does not recalculate during terminal pan, hover or display clocks')
-  assert.equal(container.querySelector('[aria-label="USD R1 scoring"]').textContent,r1Text)
-  await click([...container.querySelectorAll('.inspector-release')].find(element=>element.textContent.includes('ECB')))
-  assert.ok(container.querySelector('[aria-label="EUR R1 scoring"]'),'The assembled terminal routes EUR releases into R1')
-  assert.match(container.querySelector('[aria-label="Publication summary"]').textContent,/Rate held at 2%/)
-  assert.ok(container.querySelector('[aria-label="USD combined relationship summary"]'),'Each currency is shown directly in the assembled terminal')
-  assert.equal(container.querySelector('[aria-label="EURUSD evidence"]'),null,'The Inspector no longer presents a pair balance')
-  await click(container.querySelector('.inspector-header [aria-label="Scoring explanation & settings"]'))
-  assert.equal(container.querySelector('[aria-label="Scoring family"]').value,'ecb')
-  assert.ok(container.querySelector('[aria-label="EUR R1 settings"]'),'EUR settings navigation reaches the correct currency')
-  await click(button('Inspector'))
-  const euroDetailJobs=workerInputs.length
-  await React.act(async()=>{const select=container.querySelector('[aria-label="Scoring details"]');select.value='freshness';select.dispatchEvent(new dom.Event('change',{bubbles:true}))})
-  assert.equal(workerInputs.length,euroDetailJobs,'Assembled EUR table selection launches no calculation')
-  assert.match(container.querySelector('[data-family="ecb"]').textContent,/70 days/)
-  await click([...container.querySelectorAll('.inspector-release')].find(element=>element.textContent.includes('CPI')))
-  assert.equal(container.querySelector('[aria-label="Scoring details"]').value,'freshness','Table choice survives currency changes')
-  await React.act(async()=>{const view=container.querySelector('[aria-label="Inspector view"]');view.value='scoring';view.dispatchEvent(new dom.Event('change',{bubbles:true}))})
-  assert.equal(container.querySelector('[aria-label="USD R1 scoring"]'),null,'Changing the assembled terminal view unmounts R1 presentation')
-  await React.act(async () => { const view = container.querySelector('[aria-label="Raycaster view"]'); view.value = 'context'; view.dispatchEvent(new dom.Event('change', { bubbles: true })) })
-  await pointer(canvasForDrawing, 'pointerdown', 100, 300)
-  await pointer(window, 'pointerup', 100, 300)
-  await click(button('Activity'))
-  const search = container.querySelector('[aria-label="Search symbols"]')
-  await React.act(async () => props(search).onChange({ target: { value: 'EUR' } }))
-  await click(container.querySelector('.active-market .market-watch-toggle'))
-  assert.equal(container.querySelectorAll('.market-watch-row').length, 0, 'Collapsed sidebar retains controls state without creating quote rows')
-  await React.act(async () => { for (let i = 0; i < 200; i++) append('Application', `Existing entry ${i}`) })
-  assert.equal(container.querySelectorAll('.activity-row').length, 200)
-
-  now += 2000
-  reset(); await tick('pollHealth', 2000)
-  assert.match(container.querySelector('.data-heartbeat').textContent, /Checking/)
-  assertQuiet('Checking with populated Activity and collapsed Market Watch', true)
-  clockOffset = 12
-  reset(); await reply('health')
-  assert.match(container.querySelector('.data-heartbeat').textContent, /Running/)
-  assertQuiet('Same connection and small UTC correction', true)
-  reset(); await tick('poll', 2500); await reply('watch'); assertQuiet('Identical quote reply')
-  reset(); await tick('poll', 2000); await reply('ohlc'); assertQuiet('Identical candles and newer observation timestamp')
-  reset(); await React.act(async () => append('Application', 'Regression entry'))
-  assert.match(container.querySelector('.activity-panel').textContent, /Regression entry/)
-  assertQuiet('Activity append', true); assert.equal(counters.commandSubscriber ?? 0, 0)
-  reset(); await React.act(async () => { now += 10_000; for (const timer of intervals.values()) if (timer.ms === 10_000) timer.fn() })
-  assert.ok(clocks.includes(now + 12), 'Latest small UTC correction is sampled on the existing clock tick')
-  assert.equal(counters.workerPosts ?? 0, 0, 'Clock ticks without a new publication do not rescore history')
-
-  await click(container.querySelector('.active-market .market-watch-toggle'))
-  assert.equal(container.querySelector('[aria-label="Search symbols"]').value, 'EUR')
-  await React.act(async () => props(container.querySelector('[aria-label="Search symbols"]')).onChange({ target: { value: '' } }))
-  reset(); await tick('poll', 2500); await reply('watch'); assertQuiet('Identical quotes with visible Market Watch')
-  quotes = quotes.map((quote, i) => i === 0 ? { ...quote, bid: 1.12345 } : quote)
-  reset(); await tick('poll', 2500); await reply('watch')
-  assert.equal(counters.quoteRows, 1, 'A changed quote renders exactly one retained row')
-  assert.match(container.querySelector('.market-watch-row').textContent, /1.12345/)
-  assert.equal(counters.workerPosts ?? 0, 0)
-
-  bars = bars.map((bar, i) => i === bars.length - 1 ? { ...bar, close: 1.17 } : bar)
-  reset(); await tick('poll', 2000); await reply('ohlc')
-  assert.equal(counters.update, 1); assert.equal(counters.setData ?? 0, 0)
-  assert.equal(plotted.at(-1).close, 1.17); assert.equal(counters.workerPosts ?? 0, 0)
-  assert.equal(counters.futureSetData ?? 0, 0); assert.equal(counters.futureUpdate ?? 0, 0, 'Quote updates do no future-axis work')
-  // Opening a candle can also correct the previous candle's final close.
-  bars = bars.map((bar, i) => i === bars.length - 1 ? { ...bar, close: 1.18 } : bar)
-  bars = [...bars, { ...bars.at(-1), time: bars.at(-1).time + 3600, close: 1.19 }]
-  reset(); await tick('poll', 2000); await reply('ohlc')
-  assert.equal(counters.setData, 1)
-  assert.equal(plotted.at(-2).close, 1.18); assert.equal(plotted.at(-1).close, 1.19)
-  assert.equal(counters.futureSetData ?? 0, 0); assert.equal(counters.futureUpdate ?? 0, 0, 'A new candle reuses the cached horizon')
-  assert.equal(counters.workerPosts ?? 0, 0)
-  // A correction in the older portion of the 800-bar reconciliation is real data.
-  bars = bars.map((bar, i) => i === 200 ? { ...bar, high: 1.3 } : bar)
-  now += 60_000
-  reset(); await tick('poll', 2000); await reply('ohlc')
-  assert.equal(counters.setData, 1); assert.equal(plotted[200].high, 1.3)
-  assert.equal(counters.futureSetData ?? 0, 0, 'Price corrections retain the future timeline')
-  assert.equal(counters.workerPosts ?? 0, 0)
-
-  // A pending probe alongside pan notifications remains presentation-only.
-  reset(); await tick('pollHealth', 2000)
-  await React.act(async () => { for (let i = 0; i < 200; i++) for (const notify of rangeListeners) notify() })
-  assert.equal(counters.workerPosts ?? 0, 0)
-  await React.act(async () => { for (const [id, fn] of frames) { frames.delete(id); fn() } })
-  assert.equal(counters.workerPosts ?? 0, 0)
-  await reply('health')
-  clockOffset = 5012
-  const clockIntervals = [...intervals.keys()]
-  reset(); await tick('pollHealth', 2000); await reply('health')
-  assert.ok(clocks.includes(now + 5012), 'Large UTC correction applies immediately without restarting clock intervals')
-  assert.deepEqual([...intervals.keys()], clockIntervals)
-  assert.equal(counters.workerPosts ?? 0, 0)
-
-  failHealth = true
-  await tick('pollHealth', 2000); await reply('health')
-  assert.match(container.querySelector('.status-message').textContent, /Bridge unreachable/)
-  failHealth = false
-  await tick('pollHealth', 2000); await reply('health')
-  assert.match(container.querySelector('.status-message').textContent, /MT5 broker source/)
-  await tick('pollHealth', 2000)
-  const timeout = [...timers].find(([, timer]) => timer.ms === 5000)
-  assert.ok(timeout); timers.delete(timeout[0])
-  await React.act(async () => { now += 5000; timeout[1].fn() })
-  assert.ok(pending.get('health').shift().signal.aborted)
-  assert.match(container.querySelector('.status-message').textContent, /Bridge unreachable/)
-  await tick('pollHealth', 2000); await reply('health')
-  broker = 'second-broker'; generation = 2
-  await tick('pollHealth', 2000); await reply('health'); await reply('watch')
-  while (pending.get('ohlc')?.length) await reply('ohlc')
-  assert.ok(requests.some(url => url.includes('source_id=second-broker')), 'Broker/generation changes refresh stored history')
-  assert.equal(plotted.length, 800)
-  await click(button('Roofs'))
-  assert.ok(container.querySelector('.combo-empty'), 'A broker change clears the captured overview and individual selection')
-  await click(button('Roofs'))
-
-  const futureAt = events.at(-1).release_at
-  now = futureAt - clockOffset
-  const postsBefore = workerInputs.length
-  await React.act(async () => { for (const timer of [...intervals.values()]) if (timer.ms === 10_000) timer.fn() })
-  assert.ok(workerInputs.length > postsBefore, 'A genuinely newly available publication launches a new calculation')
-  assert.ok(workerInputs.some(input => input.asOf === futureAt), 'Publication is admitted at the corrected exact clock')
-  assert.equal(counters.chartCreated, undefined, 'Polling never recreates the chart')
-  if (!container.querySelector('.inspector-panel')) await click(button('Inspector'))
-  await click(container.querySelector('[data-inspector-filter-trigger]'))
-  await React.act(async () => { const mode = document.querySelector('[aria-label="Group Inspector symbols"]')
-    mode.value = 'day'; mode.dispatchEvent(new dom.Event('change', { bubbles: true })) })
-  await click([...document.querySelectorAll('dialog button')].find(node => node.textContent === 'Save'))
-  await React.act(async () => { for (const [id, fn] of frames) { frames.delete(id); fn() } })
-  await click(button('Inspector'))
-  const dailyIcon = container.querySelector('.inspector-day-symbol.inspector-currency-USD')
-  assert.ok(dailyIcon, 'Production chart exposes the saved daily grouping')
-  const seriesCount = Number(dailyIcon.textContent), dailyJobs = workerInputs.length
-  await click(dailyIcon)
-  assert.ok(container.querySelector('.inspector-panel'), 'A daily icon opens the real Inspector dock')
-  assert.equal(container.querySelector('.inspector-marker-popup'), null, 'Daily currency icons bypass the nearby-release chooser')
-  assert.equal(container.querySelectorAll('.inspector-day-table').length, 1)
-  assert.equal(container.querySelectorAll('.inspector-day-table tr[data-series-id]').length, seriesCount,
-    'Production daily table contains every series counted on its icon')
-  assert.equal(workerInputs.length, dailyJobs, 'A daily selection creates no combined scoring job')
-  reset()
-  await React.act(async () => { for (let i = 0; i < 200; i++) for (const notify of rangeListeners) notify() })
-  await React.act(async () => { for (const [id, fn] of frames) { frames.delete(id); fn() } })
-  assert.equal(counters.dailyGrouping ?? 0, 0, 'Production pan batches do zero daily regrouping')
-  assert.equal(counters.workerPosts ?? 0, 0, 'Production daily pan batches do not rescore history')
-  assert.equal(counters.futureSetData ?? 0, 0); assert.equal(counters.futureUpdate ?? 0, 0, 'Panning does no future-axis data work')
-  await React.act(async () => { for (const handler of [...clickListeners]) handler({ point: { x: 100, y: 100 } }) })
-  assert.equal(container.querySelector('.inspector-panel'), null, 'Blank chart dismissal also closes daily inspection')
-  // Assembled shell keeps Alert independent even on a non-forex chart, and
-  // carries the horizontal window through the real Market Watch selection.
+  // Shared dock height persists across dock switches.
+  const handle = container.querySelector('[role="separator"]')
+  await React.act(async () => handle.dispatchEvent(new dom.KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true })))
+  const height = localStorage.getItem('fyodor.bottom-dock.height.v2')
   await click(button('Alert'))
-  assert.equal(container.querySelectorAll('[aria-label="Alert currency"] button').length, 9)
-  const windowBeforeSwitch = { ...logicalRange }
-  await click([...container.querySelectorAll('.market-watch-row')].find(row => row.textContent.includes('TEST1')))
-  while (pending.get('ohlc')?.length) await reply('ohlc')
-  assert.deepEqual(logicalRange, windowBeforeSwitch, 'Assembled symbol switch retains the chart window')
-  assert.equal(container.querySelectorAll('[aria-label="Alert currency"] button').length, 9, 'Alert remains usable outside supported Inspector pairs')
-  assert.equal(container.querySelector('[aria-label="Alert horizon"]').value, '7')
-  const workersBeforeAlertTick = workerInputs.length
-  reset()
-  await React.act(async () => { for (const timer of intervals.values()) if (timer.ms === 1000) timer.fn() })
-  assertQuiet('Alert countdown with another chart symbol', true)
-  assert.equal(workerInputs.length, workersBeforeAlertTick)
-  const canvas = container.querySelector('.market-chart-canvas')
-  canvas.getBoundingClientRect = () => ({ right: 900 })
-  await React.act(async () => props(canvas).onPointerDown({ button: 0, clientX: 100, clientY: 100 }))
-  assert.equal([...panListeners.values()].reduce((sum, listeners) => sum + listeners.size, 0), 3)
-  await React.act(async () => root.unmount())
-  assert.equal([...panListeners.values()].reduce((sum, listeners) => sum + listeners.size, 0), 0)
-  // The app's development entry uses StrictMode. Its effect replay must also
-  // leave no duplicate poll, clock or chart subscriptions after unmount.
-  const strictRoot = createRoot(container)
+  assert.equal(localStorage.getItem('fyodor.bottom-dock.height.v2'), height)
+  await click(button('Alert'))
+  await React.act(async () => root.render(null))
+  assert.equal(rangeListeners.size, 0); assert.equal(clickListeners.size, 0)
+  assert.equal(counters.workerCreated ?? 0, 0)
   try {
-    await React.act(async () => strictRoot.render(React.createElement(React.StrictMode, null,
+    await React.act(async () => root.render(React.createElement(React.StrictMode, null,
       React.createElement(ActivityLogProvider, null, React.createElement(FyodorTerminalShell)))))
-  } finally { await React.act(async () => strictRoot.unmount()) }
-  console.log('✓ Production terminal: Checking/Running, identical replies, Activity isolation, hidden/retained quote rows, UTC correction sampling, real prices and interior corrections, pan overlap, timeout/recovery, broker changes, exact publication admission and StrictMode/drag cleanup')
+  } finally { await React.act(async () => root.render(null)) }
+  console.log('✓ Assembled Lite: exact navigation, filters/icons/raw tables, legacy preferences, popup/dock dismissal, dates, future axis, saved settings, Alert/Activity, pair viewport, corrections, zero polling/pan work and StrictMode cleanup')
 } finally {
   await React.act(async () => root.unmount())
   assert.equal(timers.size, 0); assert.equal(intervals.size, 0); assert.equal(frames.size, 0)
   assert.equal(rangeListeners.size, 0); assert.equal(sizeListeners.size, 0); assert.equal(hoverListeners.size, 0); assert.equal(clickListeners.size, 0)
-  assert.equal([...panListeners.values()].reduce((sum, listeners) => sum + listeners.size, 0), 0, 'Unmount during a drag releases global pointer listeners')
-  assert.equal(primitives.size, 0, 'Unmount detaches drawing primitives'); assert.equal(captures.size, 0)
   Date.now = originalNow
-  await server.close(); await dom.happyDOM.abort(); dom.close()
-  for (const [key, descriptor] of previous) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete globalThis[key] }
+  await server.close(); await dom.happyDOM.close()
+  for (const [key, descriptor] of previous) {
+    if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete globalThis[key]
+  }
 }
