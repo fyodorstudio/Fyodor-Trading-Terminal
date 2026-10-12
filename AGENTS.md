@@ -87,6 +87,8 @@ folders live together under `Market Analyst Workflow/`.
   developments and both currencies before issuing a new pair view. Start with
   `highlights`, then focused `journal read`; use `--visibility all` for history.
   [Journal workflow](docs/HIGHLIGHT-JOURNAL.md) documents schemas and commands.
+  For upcoming-event shortlist requests, use the repository's
+  [review-upcoming-alerts skill](.agents/skills/review-upcoming-alerts/SKILL.md).
 - Keep before-release research separate from after-release interpretation. Show
   the research-as-of time, currency/pair scope, direction and confidence, backdrop,
   attributed expectations, strongest counterevidence and relevant prior release.
