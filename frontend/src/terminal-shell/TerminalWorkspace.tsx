@@ -12,6 +12,7 @@ import { ChartWorkspaceHeader } from './ChartWorkspaceHeader'
 import { ActivityDock, InspectorDock, LiveTerminalStatusBar } from './LiveTerminalPanels'
 import { useTerminalWorkspace } from './runtime/useTerminalWorkspace'
 import './terminal-shell.layout.css'
+import { ResearchReportDialog } from '../research/ResearchReportDialog'
 
 export function TerminalWorkspace() {
   const { timeframe, theme, chartAppearance, timeDisplay, activeDrawingTool, selectedDrawingId, setSelectedDrawingId,
@@ -20,7 +21,8 @@ export function TerminalWorkspace() {
     updateDrawingPoint, updateDrawingPoints, updateDrawingText, updatePositionWidth, handleDeleteDrawing,
     selectSymbol, selectTimeframe, recordChartData, changeTheme, changeChartAppearance, changeTimeDisplay,
     createDrawing, chooseDrawingTool, selectCrosshair, deleteAllDrawings, toggleBottomDock, exitDrawingMode,
-    toggleDrawingToolbar, renderChartOverlay, sourceState, sourceLabel } = useTerminalWorkspace()
+    toggleDrawingToolbar, renderChartOverlay, sourceState, sourceLabel, researchActive, researchSeed, researchError,
+    selectResearchTool, closeResearch, prepareAlertResearch } = useTerminalWorkspace()
   const brokerOffsetSeconds = bridge.brokerOffsetSeconds
   return (
     <DisplayClockProvider brokerId={brokerId} brokerOffsetSeconds={brokerOffsetSeconds} preference={timeDisplay}>
@@ -89,6 +91,9 @@ export function TerminalWorkspace() {
               onSelectCrosshair={selectCrosshair}
               onToolChange={chooseDrawingTool}
               onClearAll={deleteAllDrawings}
+              researchActive={researchActive}
+              researchDisabled={!inspector.supported || !brokerId || !bars.length}
+              onSelectResearch={selectResearchTool}
             />
             )}
             <div className="chart-watermark" aria-hidden="true">
@@ -109,7 +114,8 @@ export function TerminalWorkspace() {
           {bottomDockWindow === 'inspector' && <InspectorDock view={inspector} symbol={activeSymbol}
             timeDisplay={timeDisplay}
             />}
-          {bottomDockWindow === 'alert' && <AlertDock brokerId={brokerId} brokerOffsetSeconds={brokerOffsetSeconds} timeDisplay={timeDisplay} />}
+          {bottomDockWindow === 'alert' && <AlertDock brokerId={brokerId} brokerOffsetSeconds={brokerOffsetSeconds} timeDisplay={timeDisplay}
+            onPrepareResearch={prepareAlertResearch} />}
         </BottomDockPanel>
       )}
 
@@ -137,6 +143,8 @@ export function TerminalWorkspace() {
           onClose={() => setSettingsOpen(false)}
         />
       )}
+      {researchError && <div className="research-range-hint" role="alert">{researchError}<button type="button" onClick={closeResearch}>Close</button></div>}
+      {researchSeed && <ResearchReportDialog seed={researchSeed} brokerId={brokerId} timeDisplay={timeDisplay} onClose={closeResearch} />}
     </div>
     </DisplayClockProvider>
   )

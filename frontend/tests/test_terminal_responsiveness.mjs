@@ -124,8 +124,16 @@ let calendarRevision = 1
 const health = () => ({ api_version: '1', bridge: { status: 'running', started_at: 1, now: now + clockOffset },
   mt5: { connected, process_running: true, generation, account_server: broker },
   calendar: { status: 'live', instance_id: 'fixture', server_utc_offset_seconds: 0 }, operations: {} })
+const reportRequests = []
+let reportFailure = false
 globalThis.fetch = (url, options = {}) => {
   const u = String(url); requests.push(u)
+  if (u === '/storage-api/reports') {
+    reportRequests.push(JSON.parse(options.body))
+    return Promise.resolve({ ok: !reportFailure, status: reportFailure ? 503 : 200, json: async () => reportFailure
+      ? { detail: 'Report folder unavailable' }
+      : { filename: 'named.md', path: 'C:\\dev\\Fyodor Trading Terminal Lite\\report\\named.md', readings: 70, context_readings: 190, coverage_incomplete: true } })
+  }
   if (u.startsWith('/storage-api/health')) return Promise.resolve({ ok: true, json: async () => ({ revision: calendarRevision,
     sources: [{ id: broker, publisher_status: 'live', server_now: now / 1000, instance_id: 'fixture' }], collector_error: null }) })
   if (u.startsWith('/storage-api/calendar')) {
@@ -343,6 +351,68 @@ try {
   savedText = JSON.parse(localStorage.getItem('fyodor.chart-drawings.v1')).find(item => item.tool === 'text')
   assert.equal(savedText.text, 'Edited annotation')
   assert.equal(workerInputs.length, postsBeforeText, 'Text creation and editing never launch calculation jobs')
+  // Research is a time selection, independent of prices and calendar filters.
+  const { researchRangeDates } = await server.ssrLoadModule('./src/research/research-request.ts')
+  assert.equal(researchRangeDates(Date.UTC(2026, 9, 25, 3, 30) / 1000, Date.UTC(2026, 9, 25, 4) / 1000,
+    { brokerId: 'Elev8-Demo2', brokerOffsetSeconds: 0 }, { mode: 'utc', utcOffsetMinutes: 0 }), null,
+    'Ambiguous broker wall clocks must not create a guessed research date')
+  assert.deepEqual(researchRangeDates(Date.UTC(2026, 9, 5, 3) / 1000, Date.UTC(2026, 8, 9, 3) / 1000,
+    { brokerId: 'Elev8-Demo2', brokerOffsetSeconds: 0 }, { mode: 'utc', utcOffsetMinutes: 0 }), { from: '2026-09-09', to: '2026-10-05' })
+  const savedDrawings = localStorage.getItem('fyodor.chart-drawings.v1')
+  await click(container.querySelector('[aria-label="Research date range"]'))
+  let researchOverlay = container.querySelector('[aria-label="Select research date range"]')
+  assert.ok(researchOverlay)
+  researchOverlay.getBoundingClientRect = () => ({ left: 0, top: 0 })
+  await pointer(researchOverlay, 'pointerdown', 700, 20)
+  reset()
+  const requestCount = requests.length, pendingFrames = frames.size
+  for (let index = 0; index < 20; index++) await pointer(researchOverlay, 'pointermove', 650 - index * 20, 380)
+  assert.equal(frames.size, pendingFrames + 1, 'Research pointer movement batches presentation into one frame')
+  await flush()
+  assertQuiet('Research drag')
+  assert.equal(counters.dailyGrouping ?? 0, 0, 'Research dragging does not regroup calendar history')
+  assert.equal(requests.length, requestCount, 'Research dragging does not fetch or export data')
+  await pointer(researchOverlay, 'pointerup', 100, 380)
+  assert.equal(captures.size, 0)
+  assert.ok(document.querySelector('.research-dialog[open]'))
+  assert.equal(localStorage.getItem('fyodor.chart-drawings.v1'), savedDrawings, 'Research selection preserves saved drawings')
+  await change(document.querySelector('[aria-label="Report name"]'), 'September bearish move')
+  await change(document.querySelector('[aria-label="Research from date"]'), '2026-09-09')
+  await change(document.querySelector('[aria-label="Research through date"]'), '2026-10-05')
+  await change(document.querySelector('[aria-label="Research question"]'), 'Was this USD strength or EUR weakness?')
+  await React.act(async () => document.querySelector('.research-dialog form').dispatchEvent(new dom.Event('submit', { bubbles: true, cancelable: true })))
+  assert.equal(reportRequests.length, 1)
+  assert.equal(reportRequests[0].scope, 'EURUSD')
+  assert.equal(reportRequests[0].title, 'September bearish move')
+  assert.equal(reportRequests[0].context_days, 90)
+  assert.equal(reportRequests[0].question, 'Was this USD strength or EUR weakness?')
+  assert.ok(!('families' in reportRequests[0]) && !('event_ids' in reportRequests[0]), 'Visible filters never enter the export request')
+  assert.match(document.querySelector('[aria-label="Saved report path"]').value, /Lite\\report\\named\.md$/)
+  assert.match(document.querySelector('.research-dialog').textContent, /coverage is missing/)
+  await click([...document.querySelectorAll('.research-dialog button')].find(node => node.textContent === 'Done'))
+  await click(container.querySelector('[aria-label="Research date range"]'))
+  researchOverlay = container.querySelector('[aria-label="Select research date range"]')
+  researchOverlay.getBoundingClientRect = () => ({ left: 0, top: 0 })
+  await pointer(researchOverlay, 'pointerdown', 300, 100)
+  await pointer(researchOverlay, 'pointermove', 500, 100)
+  await React.act(async () => window.dispatchEvent(new dom.KeyboardEvent('keydown', { key: 'Escape' })))
+  assert.equal(container.querySelector('[aria-label="Select research date range"]'), null)
+  assert.equal(captures.size, 0, 'Cancelling research releases pointer capture and frames')
+  assert.equal(reportRequests.length, 1)
+  await click(button('Alert'))
+  await click(container.querySelector('[aria-label^="Prepare research for USD"]'))
+  assert.ok(document.querySelector('[aria-label="Research scope"]'))
+  await change(document.querySelector('[aria-label="Research scope"]'), 'USD')
+  reportFailure = true
+  await React.act(async () => document.querySelector('.research-dialog form').dispatchEvent(new dom.Event('submit', { bubbles: true, cancelable: true })))
+  assert.match(document.querySelector('.research-dialog [role="alert"]').textContent, /Report folder unavailable/)
+  assert.equal(reportRequests[1].kind, 'upcoming')
+  assert.equal(reportRequests[1].scope, 'USD')
+  assert.ok(reportRequests[1].focus_ids.length > 0)
+  reportFailure = false
+  await React.act(async () => document.querySelector('.research-dialog form').dispatchEvent(new dom.Event('submit', { bubbles: true, cancelable: true })))
+  assert.ok(document.querySelector('[aria-label="Saved report path"]'), 'A failed save can be retried')
+  await click([...document.querySelectorAll('.research-dialog button')].find(node => node.textContent === 'Done'))
   // Shared dock height persists across dock switches.
   const handle = container.querySelector('[role="separator"]')
   await React.act(async () => handle.dispatchEvent(new dom.KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true })))
@@ -357,7 +427,7 @@ try {
     await React.act(async () => root.render(React.createElement(React.StrictMode, null,
       React.createElement(ActivityLogProvider, null, React.createElement(FyodorTerminalShell)))))
   } finally { await React.act(async () => root.render(null)) }
-  console.log('✓ Assembled Lite: exact navigation, filters/icons/raw tables, legacy preferences, popup/dock dismissal, dates, future axis, saved settings, Alert/Activity, pair viewport, corrections, zero polling/pan work and StrictMode cleanup')
+  console.log('✓ Assembled Lite: navigation, filters/raw tables, dates, future axis, drawings, Alert/Activity, viewport/corrections, research drag/export/retry, zero polling/pan work and StrictMode cleanup')
 } finally {
   await React.act(async () => root.unmount())
   assert.equal(timers.size, 0); assert.equal(intervals.size, 0); assert.equal(frames.size, 0)

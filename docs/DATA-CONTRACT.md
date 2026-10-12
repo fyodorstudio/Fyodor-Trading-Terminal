@@ -17,6 +17,15 @@ may be in its WAL. Do not delete SQLite journals, inventory, observations or
 publisher/job metadata as cleanup. The copied database retains capture/revision
 provenance; its optional historical API fields are data, not a scoring engine.
 
+`POST /api/v1/reports` reads one locked calendar snapshot, including all pages and
+all series for the requested currencies; display filters and catalog admission do
+not constrain exports. Verified instants use the selected display-day boundaries;
+date-only/unverified rows retain their source date. Optional preceding context is
+separate. Coverage gaps, latest-query absences and capture/revision information
+remain explicit. Latest stored values are not a reconstructed release-day vintage.
+Named Markdown files are created exclusively in the root `report/` folder, outside
+the inventory; report generation never changes calendar observations.
+
 ```powershell
 pnpm storage:status
 pnpm storage:import -- "C:\path\to\MT5-export" --dry-run

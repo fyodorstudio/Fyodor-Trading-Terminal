@@ -13,4 +13,6 @@
 .alert-release-status, .alert-source-status { color: var(--text-muted); }
 .alert-filter-modal .alert-currencies { margin: 18px 0 8px; }
 .alert-filter-groups { grid-template-columns: 1fr; }
+.alert-row:has(.alert-research) { grid-template-columns: 44px minmax(180px, 1fr) 100px minmax(150px, auto) auto; }
 @media (max-width: 700px) { .alert-row { grid-template-columns: 44px 1fr 100px; gap: 8px; } .alert-row > span:last-child { grid-column: 2 / 4; } }
+@media (max-width: 700px) { .alert-row:has(.alert-research) { grid-template-columns: 44px 1fr 100px; } .alert-row .alert-countdown, .alert-row .alert-release-status { grid-column: 2; } .alert-research { grid-column: 3; } }

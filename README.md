@@ -36,6 +36,7 @@ Optional `FYODOR_BRIDGE_API_URL` / `FYODOR_STORAGE_API_URL` override Vite's prox
 | economic-calendar | Eight-currency catalog, source contracts, clocks and storage polling |
 | inspector | Filters, date ranges, release/day grouping, icons and raw tables |
 | alert | Independent upcoming currency/family filters and countdowns |
+| research | Chart date selection and named Markdown handoff shared with Alert |
 | appearance, system-connectivity, system-observability, workspace-docking | Theme/time, bridge status, Activity and dock geometry |
 
 ```powershell
@@ -73,3 +74,19 @@ are included.
 See [data, clocks and recovery](docs/DATA-CONTRACT.md) and the retained
 [icon catalogue](docs/tools/icon-catalogue.html). The bridge's inherited README is
 historical; Lite's operating instructions are here.
+
+## Research handoff
+
+Choose **Research date range** in the drawing toolbar and drag across chart dates.
+Name the report, adjust the inclusive dates, optionally add a question, and choose
+earlier context (90 days by default). **Prepare research** writes a unique `.md`
+file in the root `report/` folder and offers **Copy path** for the analyst session.
+Alert's **Research** button prepares the same handoff for an upcoming release;
+choose its currency alone or a pair containing it.
+
+Exports include every stored series for the chosen currencies, independent of
+Inspector/Alert filters and chart history. Files retain forecasts, revised priors,
+periods, IDs, capture times, uncertainty and coverage gaps. They contain evidence,
+not currency scores or speech transcripts; the analyst supplies web research.
+Reports are local and ignored by Git. Existing reports are never overwritten.
+Restart calendar storage after updating to enable the report endpoint.

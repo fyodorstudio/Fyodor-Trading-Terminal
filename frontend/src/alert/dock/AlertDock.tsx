@@ -10,10 +10,12 @@ import { alertCountdown, alertEpisodesFromReleases, alertCalendarScope } from '.
 import { alertCurrencies, alertHorizons, readAlertPreferences, saveAlertPreferences, type AlertPreferences } from '../model/alert-preferences'
 import { AlertFiltersModal } from './AlertFiltersModal'
 import './alert-dock.css'
+import type { InspectorRelease } from '../../economic-calendar/releases/release'
 
 const day = 86400000
-export function AlertDock({ brokerId, timeDisplay, clockOffsetMs = 0, brokerOffsetSeconds = 0 }: {
+export function AlertDock({ brokerId, timeDisplay, clockOffsetMs = 0, brokerOffsetSeconds = 0, onPrepareResearch }: {
   brokerId: string | null; timeDisplay: TimeDisplayPreference; clockOffsetMs?: number; brokerOffsetSeconds?: number
+  onPrepareResearch?: (release: InspectorRelease) => void
 }) {
   const [preferences, setPreferences] = useState(readAlertPreferences)
   const [filtersOpen, setFiltersOpen] = useState(false)
@@ -65,6 +67,8 @@ export function AlertDock({ brokerId, timeDisplay, clockOffsetMs = 0, brokerOffs
           <time>{state === 'unconfirmed' ? '—' : formatAppTimestamp(release.releaseAt!, timeDisplay, 'time-short')}</time>
           <span className={state === 'upcoming' ? 'alert-countdown' : 'alert-release-status'}>{state === 'upcoming' ? alertCountdown(release.releaseAt!, now) :
             state === 'awaiting' ? 'Awaiting release data' : state === 'partial' ? 'Partial release data' : 'Time unconfirmed'}</span>
+          {onPrepareResearch && <button type="button" className="alert-research" aria-label={`Prepare research for ${release.currency} ${release.label}`}
+            onClick={() => onPrepareResearch(release)}>Research</button>}
         </article>)}
       </section>)}</div>
     </>}

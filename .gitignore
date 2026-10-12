@@ -15,3 +15,7 @@ bridge/mql5/compile-*.log
 # Service code and setup instructions under storage/ remain tracked.
 /storage/data/
 /storage/tests/.runtime/
+
+# Personal analyst handoffs, generated locally.
+/report/*
+!/report/.gitkeep

@@ -15,6 +15,10 @@ import { useTerminalChartOverlay } from '../chart-overlays/useTerminalChartOverl
 import type { BottomDockWindow } from '../../workspace-docking/bottom-dock/bottom-dock-window'
 import { useBottomDockSize } from '../../workspace-docking/bottom-dock/useBottomDockSize'
 import { useMarketWatchDock } from '../../workspace-docking/left-dock/useMarketWatchDock'
+import { researchRangeDates, type ResearchSeed } from '../../research/research-request'
+import { displayDateKey } from '../../economic-calendar/time/calendar-display-range'
+import { forexPair, forexPairCurrencies } from '../../economic-calendar/forex/pairs'
+import type { InspectorRelease } from '../../economic-calendar/releases/release'
 
 
 export function useTerminalWorkspace() {
@@ -24,6 +28,9 @@ export function useTerminalWorkspace() {
   const [chartAppearance, setChartAppearance] = useState<ChartAppearance>(readChartAppearance)
   const [timeDisplay, setTimeDisplay] = useState<TimeDisplayPreference>(readTimeDisplayPreference)
   const [activeDrawingTool, setActiveDrawingTool] = useState<DrawingToolId | null>(null)
+  const [researchActive, setResearchActive] = useState(false)
+  const [researchSeed, setResearchSeed] = useState<ResearchSeed | null>(null)
+  const [researchError, setResearchError] = useState<string | null>(null)
   const [selectedDrawingId, setSelectedDrawingId] = useState<string | null>(null)
   const [drawingToolbarVisible, setDrawingToolbarVisible] = useState<boolean>(readDrawingToolbarVisible)
   const [bottomDockWindow, setBottomDockWindow] = useState<BottomDockWindow | null>(null)
@@ -46,6 +53,12 @@ export function useTerminalWorkspace() {
   const activeSymbol = marketData.activeSymbol
   const bars = marketData.bars
   const brokerId = bridge.brokerId
+  const researchContextKey = `${brokerId}:${timeDisplay.mode}:${timeDisplay.utcOffsetMinutes}`
+  const [savedResearchContext, setSavedResearchContext] = useState(researchContextKey)
+  if (savedResearchContext !== researchContextKey) {
+    setSavedResearchContext(researchContextKey)
+    setResearchActive(false); setResearchSeed(null); setResearchError(null)
+  }
   const inspector = useInspector({ symbol: activeSymbol, bars, timeframe, timeDisplay,
     clockOffsetMs: 0, brokerId,
     brokerOffsetSeconds: bridge.brokerOffsetSeconds })
@@ -71,6 +84,7 @@ export function useTerminalWorkspace() {
   const selectSymbol = useCallback((symbol: string) => {
     if (symbol === selectedSymbol) return
     setSelectedSymbol(symbol)
+    setResearchActive(false); setResearchSeed(null); setResearchError(null)
     setSelectedDrawingId(null)
     appendActivity('Market Watch', 'Symbol selected', symbol)
   }, [selectedSymbol, appendActivity])
@@ -78,6 +92,7 @@ export function useTerminalWorkspace() {
   const selectTimeframe = useCallback((nextTimeframe: ChartTimeframe) => {
     if (nextTimeframe === timeframe) return
     setTimeframe(nextTimeframe)
+    setResearchActive(false); setResearchSeed(null); setResearchError(null)
     setSelectedDrawingId(null)
     appendActivity('Chart', 'Timeframe selected', `${activeSymbol} ${nextTimeframe}`)
   }, [timeframe, activeSymbol, appendActivity])
@@ -113,11 +128,13 @@ export function useTerminalWorkspace() {
   )
 
   const chooseDrawingTool = (tool: DrawingToolId | null) => {
+    setResearchActive(false)
     setActiveDrawingTool(tool)
     setSelectedDrawingId(null)
   }
 
   const selectCrosshair = () => {
+    setResearchActive(false)
     setActiveDrawingTool(null)
     setSelectedDrawingId(null)
   }
@@ -139,7 +156,28 @@ export function useTerminalWorkspace() {
       return next
     })
     setActiveDrawingTool(null)
+    setResearchActive(false)
   }, [appendActivity])
+  const cancelResearch = useCallback(() => setResearchActive(false), [])
+  const closeResearch = useCallback(() => { setResearchSeed(null); setResearchError(null) }, [])
+  const selectResearchTool = () => {
+    setActiveDrawingTool(null); setSelectedDrawingId(null); setResearchError(null)
+    setResearchActive(current => !current)
+  }
+  const selectResearchRange = useCallback((from: number, to: number) => {
+    const dates = researchRangeDates(from, to, { brokerId, brokerOffsetSeconds: bridge.brokerOffsetSeconds }, timeDisplay)
+    setResearchActive(false)
+    if (!dates) { setResearchError('These chart dates have no verified time. Select another range.'); return }
+    const pair = forexPair(activeSymbol)
+    if (pair) setResearchSeed({ scope: pair, kind: 'historical', ...dates })
+  }, [activeSymbol, brokerId, bridge.brokerOffsetSeconds, timeDisplay])
+  const prepareAlertResearch = useCallback((release: InspectorRelease) => {
+    const date = release.timingUncertain || release.releaseAt === null
+      ? new Date(release.serverTime * 1000).toISOString().slice(0, 10) : displayDateKey(release.releaseAt, timeDisplay)
+    const scope = (forexPairCurrencies(activeSymbol) as readonly string[]).includes(release.currency) ? forexPair(activeSymbol)! : release.currency
+    setResearchSeed({ scope, kind: 'upcoming', from: date, to: date, currency: release.currency,
+      focus: release.label, focusIds: release.events.map(event => event.event_id) })
+  }, [activeSymbol, timeDisplay])
   const setReleaseSelection = inspector.selectRelease
   const selectChartRelease = useCallback((id: string) => {
     setReleaseSelection(id); selectBottomDock('inspector')
@@ -150,7 +188,8 @@ export function useTerminalWorkspace() {
   }, [setReleaseSelection])
   const renderChartOverlay = useTerminalChartOverlay({ supported: inspector.supported, markers: inspector.markers,
     currencyColors: inspector.preferences.currencyColors, timeDisplay, onSelectRelease: selectChartRelease,
-    onClearInspection: !activeDrawingTool && inspector.selectedRelease ? clearChartInspection : undefined })
+    onClearInspection: !activeDrawingTool && !researchActive && inspector.selectedRelease ? clearChartInspection : undefined,
+    researchActive, bars, timeframe, onResearchRange: selectResearchRange, onCancelResearch: cancelResearch })
   const sourceState: 'error' | 'live' | 'waiting' = !bridge.reachable || marketData.marketWatchStatus === 'unavailable'
     ? 'error'
     : mt5Connected && marketData.marketWatchStatus === 'live'
@@ -169,5 +208,6 @@ export function useTerminalWorkspace() {
     updateDrawingPoints, updateDrawingText, updatePositionWidth, handleDeleteDrawing, selectSymbol, selectTimeframe,
     recordChartData, changeTheme, changeChartAppearance, changeTimeDisplay, createDrawing, chooseDrawingTool,
     selectCrosshair, deleteAllDrawings, toggleBottomDock, exitDrawingMode, toggleDrawingToolbar,
-    renderChartOverlay, sourceState, sourceLabel }
+    renderChartOverlay, sourceState, sourceLabel, researchActive, researchSeed, researchError,
+    selectResearchTool, closeResearch, prepareAlertResearch }
 }

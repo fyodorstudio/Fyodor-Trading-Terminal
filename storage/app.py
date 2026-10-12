@@ -12,6 +12,7 @@ from .calendar_store import CalendarStore
 from .currencies import CURRENCIES
 from .contracts import BackfillChunk, BackfillFailure, PublisherContext
 from .data_lock import data_lock
+from .research_reports import ResearchRequest, save_report
 
 # The eight-currency Alert catalog exceeds the original pair-only 64-series cap.
 # Keep a bound below SQLite's conservative 999-parameter limit, including dates.
@@ -82,6 +83,13 @@ def create_app(directory=None, run_collector=True):
             raise HTTPException(status_code=422, detail="Invalid currency scope")
         return app.state.store.query(source_id, from_server_seconds, to_server_seconds, currency, limit,
                                      after_time, after_id, time_basis, event_ids.split(",") if event_ids else None, r1_as_of, r1_history, selected)
+
+    @app.post("/api/v1/reports")
+    def research_report(request: ResearchRequest):
+        try:
+            return save_report(app.state.store, request)
+        except OSError as error:
+            raise HTTPException(503, "Could not save the report; check the report folder's permissions") from error
 
     return app
 
