@@ -2,6 +2,7 @@ import { memo, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useDisplayClock } from '../../appearance/time-display/useDisplayClock'
 import {
   CandlestickSeries,
+  LineSeries,
   createChart,
   type IChartApi,
   type ISeriesApi,
@@ -18,6 +19,7 @@ import type { OhlcBar } from '../contracts/OhlcBar'
 import { changedRecentBarStart } from '../mt5-feed/market-snapshots'
 import { lightweightChartOptions } from './lightweight-chart-options'
 import { captureDateWindow, projectDateWindow, type ChartDateWindow } from './chart-viewport'
+import { createFutureTimeline } from './future-timeline'
 import { timeframeToSeconds } from '../chart-drawings/position-drawing-geometry'
 import './market-candlestick-chart.css'
 
@@ -84,6 +86,7 @@ function MarketCandlestickChartComponent({
   const initialTimeDisplayRef = useRef(timeDisplay)
   const chartRef = useRef<IChartApi | null>(null)
   const seriesRef = useRef<ISeriesApi<'Candlestick', Time> | null>(null)
+  const futureTimelineRef = useRef<ReturnType<typeof createFutureTimeline> | null>(null)
   const [chartApi, setChartApi] = useState<IChartApi | null>(null)
   const [seriesApi, setSeriesApi] = useState<ISeriesApi<'Candlestick', Time> | null>(null)
   const fittedKeyRef = useRef<string | null>(null)
@@ -115,6 +118,8 @@ function MarketCandlestickChartComponent({
 
     const initialAppearance = initialAppearanceRef.current
     const chart = createChart(container, lightweightChartOptions(initialAppearance, initialTimeDisplayRef.current, true, initialClock.current))
+    fittedKeyRef.current = null
+    prevBarsRef.current = []
     const series = chart.addSeries(CandlestickSeries, {
       upColor: initialAppearance.upCandleColor,
       downColor: initialAppearance.downCandleColor,
@@ -124,6 +129,11 @@ function MarketCandlestickChartComponent({
       wickDownColor: initialAppearance.downCandleColor,
       priceLineColor: initialAppearance.priceLineColor,
     })
+    const timeSeries = chart.addSeries(LineSeries, {
+      priceScaleId: '', visible: false, lineVisible: false, priceLineVisible: false,
+      lastValueVisible: false, crosshairMarkerVisible: false,
+    })
+    futureTimelineRef.current = createFutureTimeline(timeSeries)
 
     chartRef.current = chart
     seriesRef.current = series
@@ -153,6 +163,7 @@ function MarketCandlestickChartComponent({
     return () => {
       chart.timeScale().unsubscribeVisibleLogicalRangeChange(handleLogicalRangeChange)
       seriesRef.current = null
+      futureTimelineRef.current = null
       chartRef.current = null
       setChartApi(null)
       setSeriesApi(null)
@@ -204,6 +215,7 @@ function MarketCandlestickChartComponent({
       },
     })
 
+    const previousRange = chart.timeScale().getVisibleLogicalRange()
     const brokerChanged = viewportBrokerRef.current !== clock.brokerId
     if (brokerChanged) {
       viewportBrokerRef.current = clock.brokerId
@@ -213,7 +225,7 @@ function MarketCandlestickChartComponent({
       fittedKeyRef.current = null
       setMissingViewportHistory(false)
     } else if (!pendingWindowRef.current && prevBarsRef.current.length) {
-      dateWindowRef.current = captureDateWindow(chart.timeScale().getVisibleLogicalRange(), prevBarsRef.current, previousStepRef.current) ?? dateWindowRef.current
+      dateWindowRef.current = captureDateWindow(previousRange, prevBarsRef.current, previousStepRef.current) ?? dateWindowRef.current
     }
     const step = timeframeToSeconds(timeframe)
     const prevBars = prevBarsRef.current
@@ -223,6 +235,7 @@ function MarketCandlestickChartComponent({
     try {
       if (!bars.length) {
         series.setData([])
+        futureTimelineRef.current?.clear()
         prevBarsRef.current = []
         fittedKeyRef.current = null
         return
@@ -233,7 +246,6 @@ function MarketCandlestickChartComponent({
         lastHistoryAttemptRef.current = null
         series.setData(bars)
         chart.priceScale('right').applyOptions({ autoScale: true })
-        if (!dateWindowRef.current) chart.timeScale().fitContent()
         onDataApplied(bars.length)
       } else if (prevBars.length && bars[0]?.time === prevBars[0]?.time &&
         (bars.length === prevBars.length || bars.length === prevBars.length + 1) &&
@@ -243,15 +255,24 @@ function MarketCandlestickChartComponent({
         replaced = true
         series.setData(bars)
       }
+      const futureReplaced = futureTimelineRef.current?.sync(bars, step, isNewKey, replaced)
+      // Native fitContent includes whitespace. Fit actual candles explicitly.
+      if (isNewKey && !dateWindowRef.current) chart.timeScale().setVisibleLogicalRange({ from: 0, to: bars.length - 1 + 8 })
       fittedKeyRef.current = fitContentKey
       prevBarsRef.current = bars
       previousStepRef.current = step
       const window = dateWindowRef.current
-      if (window && (replaced || pendingWindowRef.current)) {
+      if (window && (replaced || futureReplaced || pendingWindowRef.current)) {
         const range = projectDateWindow(window, bars, step)
         if (range) chart.timeScale().setVisibleLogicalRange(range)
         pendingWindowRef.current = window.from < bars[0].time
         setMissingViewportHistory(pendingWindowRef.current)
+      }
+      // The hidden horizon is now the library's last point. Retain normal live
+      // following when an incrementally appended price candle was in view.
+      if (!isNewKey && !replaced && bars.length === prevBars.length + 1 && previousRange &&
+        previousRange.from <= prevBars.length - 1 && previousRange.to >= prevBars.length - 1) {
+        chart.timeScale().setVisibleLogicalRange({ from: previousRange.from + 1, to: previousRange.to + 1 })
       }
     } finally { applyingDataRef.current = false }
   }, [bars, fitContentKey, onDataApplied, precision, timeframe, clock.brokerId])
@@ -330,7 +351,7 @@ function MarketCandlestickChartComponent({
     dateWindowRef.current = null
     setMissingViewportHistory(false)
     chartRef.current?.priceScale('right').applyOptions({ autoScale: true })
-    chartRef.current?.timeScale().fitContent()
+    if (bars.length) chartRef.current?.timeScale().setVisibleLogicalRange({ from: 0, to: bars.length - 1 + 8 })
   }
 
   return (

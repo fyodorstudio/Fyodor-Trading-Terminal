@@ -12,21 +12,27 @@ const globals = { window: dom, document: dom.document, HTMLElement: dom.HTMLElem
 const keys = [...Object.keys(globals), 'fetch', '__viewportChart']
 const previous = new Map(keys.map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]))
 for (const [key, value] of Object.entries(globals)) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value })
-let id = 0, fitted = 0, autoscaled = 0, range = null, plotted = []
+let id = 0, fitted = 0, autoscaled = 0, range = null, plotted = [], future = []
+let futureSets = 0, futureUpdates = 0
 const timers = new Map(), listeners = new Set(), requests = []
 dom.setTimeout = fn => { timers.set(++id, fn); return id }; dom.clearTimeout = id => timers.delete(id)
 const emit = next => { range = next; for (const fn of listeners) fn(next) }
 const scale = {
-  getVisibleLogicalRange: () => range, setVisibleLogicalRange: emit,
+  getVisibleLogicalRange: () => range, setVisibleLogicalRange: next => {
+    if (next.from === 0 && next.to === plotted.length + 7) fitted++
+    emit(next)
+  },
   getVisibleRange: () => null, fitContent: () => { fitted++; emit({ from: 0, to: plotted.length + 2 }) },
   subscribeVisibleLogicalRangeChange: fn => listeners.add(fn), unsubscribeVisibleLogicalRangeChange: fn => listeners.delete(fn),
 }
 const series = { applyOptions() {}, setData(bars) { plotted = bars; emit(bars.length ? { from: 0, to: bars.length } : null) }, update(bar) { plotted = [...plotted.slice(0, -1), bar] } }
-globalThis.__viewportChart = { addSeries: () => series, timeScale: () => scale, priceScale: () => ({ applyOptions: () => autoscaled++ }), applyOptions() {}, remove() {} }
+const futureSeries = { setData(rows) { futureSets++; future = rows }, update(row) { futureUpdates++; future = [...future, row] } }
+globalThis.__viewportChart = { addSeries: definition => definition.type === 'line' ? futureSeries : series,
+  timeScale: () => scale, priceScale: () => ({ applyOptions: () => autoscaled++ }), applyOptions() {}, remove() {} }
 const server = await createServer({ root: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'), server: { middlewareMode: true, hmr: false },
   ssr: { noExternal: ['lightweight-charts'] }, plugins: [{ name: 'viewport-canvas', enforce: 'pre',
     resolveId(source) { if (source === 'lightweight-charts') return '\0viewport-canvas' },
-    load(id) { if (id === '\0viewport-canvas') return `export const CandlestickSeries={}, ColorType={Solid:'solid'}, CrosshairMode={Normal:0}, TickMarkType={}; export const createChart=()=>globalThis.__viewportChart;` },
+    load(id) { if (id === '\0viewport-canvas') return `export const CandlestickSeries={type:'candle'}, LineSeries={type:'line'}, ColorType={Solid:'solid'}, CrosshairMode={Normal:0}, TickMarkType={}; export const createChart=()=>globalThis.__viewportChart;` },
   }] })
 globalThis.fetch = (url, options = {}) => {
   if (String(url).includes('/market-watch')) return Promise.resolve({ ok: true, json: async () => ({ symbols: [] }) })
@@ -68,9 +74,19 @@ try {
     React.createElement(DisplayClockProvider, { brokerId: broker, brokerOffsetSeconds: 0, preference: display }, React.createElement(Harness, { symbol, timeframe })))))
   await render('EURUSD'); await reply(pending()[0], make(0, 1, 2, 3, 4, 5))
   assert.equal(fitted, 1)
+  const futureEnd = Math.floor(plotted.at(-1).time / 86400) * 86400 + 91 * 86400
+  assert.equal(future.length, Math.ceil((futureEnd - plotted.at(-1).time) / 3600) - 1)
+  assert.equal(future[0].time, plotted.at(-1).time + 3600)
+  assert.ok(future.at(-1).time >= plotted.at(-1).time + 90 * 86400 && future.at(-1).time < futureEnd)
+  assert.ok(future.slice(0, -1).every(row => Object.keys(row).length === 1), 'Future slots contain only timestamps before the hidden horizon anchor')
+  assert.equal(plotted.length, 6, 'The horizon anchor never enters price candles')
+  assert.equal(range.to, plotted.length + 7, 'Initial fit includes real candles and the existing margin, not 90 days')
+  const setsBeforePan = futureSets, updatesBeforePan = futureUpdates
   emit({ from: 1.25, to: 7.5 })
+  assert.equal(futureSets, setsBeforePan); assert.equal(futureUpdates, updatesBeforePan)
   await render('USDJPY')
   assert.equal(plotted.length, 0, 'Old candles disappear while the symbol loads')
+  assert.equal(future.length, 0, 'Old future axis disappears with the old symbol')
   await reply(pending()[0], make(0, 1, 2, 3, 4, 5).map(b => ({ ...b, open: 150, close: 151 })))
   assert.deepEqual(range, { from: 1.25, to: 7.5 }, 'Date window including future blank space survives symbol replacement')
   assert.equal(fitted, 1, 'Changing currency never fits the full dataset')
@@ -121,6 +137,42 @@ try {
   assert.equal(fitted, 3, 'Explicit double-click still resets the chart')
   await React.act(async () => root.render(null))
   assert.equal(listeners.size, 0); assert.equal(timers.size, 0)
+  // Production data application: retain native live following, but keep future
+  // date windows fixed, including when unused projected session slots disappear.
+  const { replaceRecentBars } = await server.ssrLoadModule('./src/market-data/mt5-feed/market-snapshots.ts')
+  const candlesElement = chartBars => React.createElement(DisplayClockProvider,
+    { brokerId: 'B', brokerOffsetSeconds: 0, preference: display }, React.createElement(MarketCandlestickChart,
+      { bars: chartBars, fitContentKey: 'EURUSD:H1', precision: 5, theme: 'light', appearance, timeDisplay: display, timeframe: 'H1',
+        activeDrawingTool: null, drawings: [], selectedDrawingId: null, onSelectDrawing: noop, onCreateDrawing: noop,
+        onUpdateDrawingPoint: noop, onUpdatePositionWidth: noop, onExitDrawingMode: noop, onDataApplied: noop,
+        hasOlderData: false, isLoadingOlderData: false, onRequestOlderData: noop }))
+  const renderCandles = (chartBars, strict = false) => React.act(async () => root.render(strict ?
+    React.createElement(React.StrictMode, null, candlesElement(chartBars)) : candlesElement(chartBars)))
+  let liveBars = make(0, 1, 2, 3, 4, 5)
+  await renderCandles(liveBars)
+  emit({ from: 1.25, to: 7.5 })
+  const setsBeforeAdvance = futureSets, updatesBeforeAdvance = futureUpdates
+  liveBars = replaceRecentBars(liveBars, [...liveBars.slice(-2), ...make(6)])
+  await renderCandles(liveBars)
+  assert.deepEqual(range, { from: 2.25, to: 8.5 }, 'A live chart still follows one genuinely new candle')
+  assert.equal(futureSets, setsBeforeAdvance); assert.equal(futureUpdates, updatesBeforeAdvance, 'New candles reuse the cached day horizon')
+  emit({ from: 100.25, to: 110.75 })
+  const futureWindow = captureDateWindow(range, liveBars, 3600)
+  liveBars = replaceRecentBars(liveBars, [...liveBars.slice(-2), ...make(7)])
+  await renderCandles(liveBars)
+  assert.deepEqual(range, { from: 100.25, to: 110.75 }, 'A future-space pan does not follow new price candles')
+  liveBars = replaceRecentBars(liveBars, [...liveBars.slice(-2), ...make(79)])
+  await renderCandles(liveBars)
+  assert.deepEqual(captureDateWindow(range, liveBars, 3600), futureWindow, 'Session-gap rebasing preserves the selected future dates')
+  assert.equal(futureSets, setsBeforeAdvance + 1, 'A session gap rebases once')
+  assert.equal(future[0].time, liveBars.at(-1).time + 3600)
+  await React.act(async () => root.render(null))
+  assert.equal(listeners.size, 0)
+  await renderCandles(liveBars, true)
+  assert.deepEqual(range, { from: 0, to: liveBars.length + 7 }, 'StrictMode replay with preloaded candles still fits prices, not the future endpoint')
+  assert.equal(listeners.size, 1, 'StrictMode retains one chart subscription')
+  await React.act(async () => root.render(null))
+  assert.equal(listeners.size, 0)
   console.log('✓ Shared dates, zoom and future space; serial MT5 backfill, stop/retry, missing history, stale replies, timeframe/broker scope and cleanup')
 } finally {
   await React.act(async () => root.unmount()); await server.close(); await dom.happyDOM.close()

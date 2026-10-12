@@ -46,6 +46,7 @@ const counters = {}, clocks = [], workerInputs = [], rangeListeners = new Set(),
 const count = name => { counters[name] = (counters[name] ?? 0) + 1 }
 const reset = () => { for (const key of Object.keys(counters)) delete counters[key]; clocks.length = 0 }
 let range = { from: now / 1000 - 10 * 3600, to: now / 1000 }, logicalRange = { from: 790, to: 800 }, plotted = []
+let futureTimes = []
 const scale = {
   width: () => 900, options: () => ({ barSpacing: 80 }), getVisibleRange: () => range,
   getVisibleLogicalRange: () => logicalRange,
@@ -55,7 +56,8 @@ const scale = {
   coordinateToLogical: x => Math.ceil(x / 80 + logicalRange.from),
   subscribeVisibleLogicalRangeChange: fn => rangeListeners.add(fn), unsubscribeVisibleLogicalRangeChange: fn => rangeListeners.delete(fn),
   subscribeSizeChange: fn => sizeListeners.add(fn), unsubscribeSizeChange: fn => sizeListeners.delete(fn),
-  setVisibleLogicalRange: next => { logicalRange = next }, setVisibleRange: next => { range = next }, fitContent: () => {},
+  // Initial candle fit retains this fixture's fixed ten-bar canvas geometry.
+  setVisibleLogicalRange: next => { if (next.from !== 0 || next.to !== plotted.length + 7) logicalRange = next }, setVisibleRange: next => { range = next }, fitContent: () => {},
 }
 const series = { applyOptions: () => {},
   setData: bars => { count('setData'); plotted = [...bars] },
@@ -66,7 +68,9 @@ const series = { applyOptions: () => {},
 }
 const priceScale = { applyOptions: () => {}, getVisibleRange: () => priceRange,
   setVisibleRange: next => { priceRange = next; priceShift = (1 - next.from) * 100 } }
-const chart = { addSeries: () => series, timeScale: () => scale, priceScale: () => priceScale,
+const timeSeries = { setData: rows => { count('futureSetData'); futureTimes = rows },
+  update: row => { count('futureUpdate'); futureTimes = [...futureTimes, row] } }
+const chart = { addSeries: definition => definition.type === 'line' ? timeSeries : series, timeScale: () => scale, priceScale: () => priceScale,
   applyOptions: () => count('chartOptions'), paneSize: () => ({ width: 900, height: 420 }),
   subscribeCrosshairMove: fn => hoverListeners.add(fn), unsubscribeCrosshairMove: fn => hoverListeners.delete(fn),
   subscribeClick: fn => clickListeners.add(fn), unsubscribeClick: fn => clickListeners.delete(fn),
@@ -82,7 +86,7 @@ globalThis.Worker = class {
   terminate() { this.terminated = true; count('workerTerminated') }
 }
 
-const canvasModule = `export const CandlestickSeries = {}, ColorType = { Solid: 'solid' }, CrosshairMode = { Normal: 0 },
+const canvasModule = `export const CandlestickSeries = {type:'candle'}, LineSeries = {type:'line'}, ColorType = { Solid: 'solid' }, CrosshairMode = { Normal: 0 },
   TickMarkType = { Year: 0, Month: 1, DayOfMonth: 2, Time: 3, TimeWithSeconds: 4 }, LineStyle = { Dotted: 1, Dashed: 2 };
   export const createChart = (...args) => globalThis.__terminalProbe.createChart(...args);
   export const createSeriesMarkers = () => ({detach(){}});`
@@ -165,7 +169,7 @@ async function tick(name, ms) {
 const button = label => [...container.querySelectorAll('button')].find(element => element.textContent.trim().startsWith(label))
 async function click(element) { assert.ok(element); await React.act(async () => element.click()) }
 function assertQuiet(label, workspace = false) {
-  for (const key of ['quoteRows', 'chartRender', 'setData', 'update', 'workerPosts', ...(workspace ? ['workspace'] : [])])
+  for (const key of ['quoteRows', 'chartRender', 'setData', 'update', 'futureSetData', 'futureUpdate', 'workerPosts', ...(workspace ? ['workspace'] : [])])
     assert.equal(counters[key] ?? 0, 0, `${label}: ${key} must remain unchanged`)
 }
 let append
@@ -188,6 +192,8 @@ try {
   await reply('health'); await reply('watch')
   while (pending.get('ohlc')?.length) await reply('ohlc')
   assert.equal(plotted.length, 800)
+  assert.ok(futureTimes.at(-1).time >= plotted.at(-1).time + 90 * 86400)
+  assert.equal(Math.floor(futureTimes.at(-1).time / 86400), Math.floor(plotted.at(-1).time / 86400) + 90)
   assert.ok(workerInputs.length > 0, 'Production context calculation has actually run')
   assert.ok(workerInputs.filter(input=>!input.usdSettings).every(input => input.asOf < events.at(-1).release_at), 'Future publication has not been admitted')
   // Exercise the real chart -> shell -> Roofs dock path with scored CPI/NFP inputs.
@@ -414,18 +420,21 @@ try {
   reset(); await tick('poll', 2000); await reply('ohlc')
   assert.equal(counters.update, 1); assert.equal(counters.setData ?? 0, 0)
   assert.equal(plotted.at(-1).close, 1.17); assert.equal(counters.workerPosts ?? 0, 0)
+  assert.equal(counters.futureSetData ?? 0, 0); assert.equal(counters.futureUpdate ?? 0, 0, 'Quote updates do no future-axis work')
   // Opening a candle can also correct the previous candle's final close.
   bars = bars.map((bar, i) => i === bars.length - 1 ? { ...bar, close: 1.18 } : bar)
   bars = [...bars, { ...bars.at(-1), time: bars.at(-1).time + 3600, close: 1.19 }]
   reset(); await tick('poll', 2000); await reply('ohlc')
   assert.equal(counters.setData, 1)
   assert.equal(plotted.at(-2).close, 1.18); assert.equal(plotted.at(-1).close, 1.19)
+  assert.equal(counters.futureSetData ?? 0, 0); assert.equal(counters.futureUpdate ?? 0, 0, 'A new candle reuses the cached horizon')
   assert.equal(counters.workerPosts ?? 0, 0)
   // A correction in the older portion of the 800-bar reconciliation is real data.
   bars = bars.map((bar, i) => i === 200 ? { ...bar, high: 1.3 } : bar)
   now += 60_000
   reset(); await tick('poll', 2000); await reply('ohlc')
   assert.equal(counters.setData, 1); assert.equal(plotted[200].high, 1.3)
+  assert.equal(counters.futureSetData ?? 0, 0, 'Price corrections retain the future timeline')
   assert.equal(counters.workerPosts ?? 0, 0)
 
   // A pending probe alongside pan notifications remains presentation-only.
@@ -493,6 +502,7 @@ try {
   await React.act(async () => { for (const [id, fn] of frames) { frames.delete(id); fn() } })
   assert.equal(counters.dailyGrouping ?? 0, 0, 'Production pan batches do zero daily regrouping')
   assert.equal(counters.workerPosts ?? 0, 0, 'Production daily pan batches do not rescore history')
+  assert.equal(counters.futureSetData ?? 0, 0); assert.equal(counters.futureUpdate ?? 0, 0, 'Panning does no future-axis data work')
   await React.act(async () => { for (const handler of [...clickListeners]) handler({ point: { x: 100, y: 100 } }) })
   assert.equal(container.querySelector('.inspector-panel'), null, 'Blank chart dismissal also closes daily inspection')
   // Assembled shell keeps Alert independent even on a non-forex chart, and

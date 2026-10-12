@@ -53,6 +53,7 @@ export function lightweightChartOptions(
       borderColor: cssColor('--chart-axis'),
       timeVisible: true,
       secondsVisible: false,
+      ignoreWhitespaceIndices: false,
       ...(isInitial ? { rightOffset: 8, barSpacing: appearance.barSpacing } : {}),
       tickMarkFormatter: (time: Time, tickType: TickMarkType) => formatChartTick(time, tickType, timeDisplay, clock),
     },

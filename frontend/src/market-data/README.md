@@ -25,6 +25,18 @@ space; each symbol refits its price scale. `candlestick-chart/chart-viewport.ts`
 uses the existing timeline interpolation helpers. Initial loading fits once;
 double-click explicitly resets. Broker changes start a fresh viewport.
 
+`candlestick-chart/future-timeline.ts` extends the native time axis 90 calendar
+days from the latest candle's date through the end of day 90 at the active timeframe, including empty weekend
+slots. A separate invisible series supplies timestamps and an inert endpoint on
+its own scale so the library allows panning through the entire horizon. It never
+enters price candles, feed history or calculation inputs. Initial/reset fitting
+uses actual candles; live following and shared date windows remain intact.
+Quote updates, pan/hover and ordinary same-day new candles do no future-series writes.
+A daily rebase, session gap, timeframe/symbol change or relevant
+timestamp correction rebuilds the tail. Unused projected slots never become
+historical session bars. Native axis/crosshair contracts and deterministic work
+counts are exercised in `tests/test_future_timeline.mjs` and the assembled terminal.
+
 When the new symbol's initial page misses the chosen dates, the chart requests
 older MT5 pages serially until covered. Failed/no-progress pages stop automatic
 retries; unavailable history stays on the selected dates with a notice and retry
