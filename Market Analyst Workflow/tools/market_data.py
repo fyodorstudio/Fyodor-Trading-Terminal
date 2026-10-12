@@ -18,7 +18,9 @@ sys.path.insert(0, str(ROOT))
 from storage.calendar_store import CalendarStore
 from storage.research_reports import REPORT_DIRECTORY, ResearchRequest, collect_evidence, evidence_row, save_report
 from ohlc import fetch_window, read_saved, summarize, write_evidence, capture_lock, cached_window
-from storage.highlights import HIGHLIGHTS_PATH, highlight_snapshot
+from storage.highlights import HIGHLIGHTS_PATH, HighlightRequest, highlight_snapshot, archive_pin, pin_release
+from storage.highlight_journal import JournalRequest, append_journal, read_journal
+from upcoming import upcoming_snapshot
 
 
 def get_json(base, route):
@@ -202,7 +204,37 @@ def parser():
     highlights.add_argument('--broker', help='Optional stored broker ID; otherwise read all pinned brokers')
     highlights.add_argument('--highlight-id', action='append', help='Exact pinned occurrence ID; repeat to select several pins')
     highlights.add_argument('--database', default='storage/data/calendar.sqlite3')
+    highlights.add_argument('--visibility', choices=['active','archived','all'], default='active')
     query_options(highlights)
+    journal = commands.add_parser('journal', help='Read research versions or append an agent-authored JSON entry (calendar stays read-only)')
+    journal.add_argument('action', choices=['read','append'])
+    journal.add_argument('highlight_id')
+    journal.add_argument('--broker', required=True)
+    journal.add_argument('--input', help='JSON JournalRequest file inside Lite; required for append')
+    journal.add_argument('--scope')
+    journal.add_argument('--phase', choices=['before','after'])
+    journal.add_argument('--limit', type=int, choices=range(1,101), default=10)
+    journal.add_argument('--offset', type=int, default=0)
+    journal.add_argument('--database', default='storage/data/calendar.sqlite3')
+    action = commands.add_parser('highlight', help='Explicit pin/archive/restore actions; never delete research')
+    action.add_argument('action', choices=['pin','archive','restore'])
+    action.add_argument('--highlight-id')
+    action.add_argument('--broker', required=True)
+    action.add_argument('--input', help='HighlightRequest JSON file for pin')
+    action.add_argument('--database', default='storage/data/calendar.sqlite3')
+    upcoming = commands.add_parser('upcoming', help='Grouped upcoming occurrences and related research across all eight currencies')
+    upcoming.add_argument('--broker', required=True)
+    upcoming.add_argument('--scope', default='all')
+    upcoming.add_argument('--days', type=int, choices=range(1,91), default=14)
+    upcoming.add_argument('--zone', default='Asia/Jakarta')
+    upcoming.add_argument('--as-of', help='Timezone-aware schedule cutoff; does not reconstruct historical readings')
+    upcoming.add_argument('--family', action='append')
+    upcoming.add_argument('--category', action='append')
+    upcoming.add_argument('--database', default='storage/data/calendar.sqlite3')
+    upcoming.add_argument('--match')
+    upcoming.add_argument('--currency', choices=['USD','EUR','GBP','JPY','CHF','CAD','AUD','NZD'])
+    upcoming.add_argument('--limit', type=int, choices=range(1,501), default=20)
+    upcoming.add_argument('--offset', type=int, default=0)
     candles = commands.add_parser('ohlc', help='Fetch a bounded UTC window or reuse saved candles; print a small summary')
     candles.add_argument('--pair', default='EURUSD')
     candles.add_argument('--symbol', help='Exact MT5 symbol when the broker uses a suffix')
@@ -222,6 +254,34 @@ def parser():
 def run(args):
     if getattr(args, 'offset', 0) < 0:
         raise ValueError('Offset must be non-negative')
+    if args.command in ('highlight', 'journal', 'upcoming'):
+        with closing(CalendarStore(local_path(args.database), readonly=True)) as store:
+            if args.command == 'upcoming':
+                return upcoming_snapshot(store, args, ROOT, display_zone(args.zone))
+            if args.command == 'highlight':
+                if args.action == 'pin':
+                    if not args.input:
+                        raise ValueError('Pin needs --input with a HighlightRequest JSON file')
+                    request = HighlightRequest.model_validate_json(local_path(args.input).read_text(encoding='utf-8-sig'))
+                    if request.source_id != args.broker:
+                        raise ValueError('Pin broker differs from --broker')
+                    return pin_release(store, request)
+                if not args.highlight_id:
+                    raise ValueError('Archive/restore needs --highlight-id')
+                return archive_pin(args.highlight_id, args.broker, store=store, restore=args.action == 'restore')
+            pins = highlight_snapshot(store, args.broker, visibility='all')['items']
+            if not any(pin['id'] == args.highlight_id for pin in pins):
+                raise ValueError('Highlight not found for this broker')
+            if args.action == 'append':
+                if not args.input:
+                    raise ValueError('Append needs --input with a JournalRequest JSON file')
+                request = JournalRequest.model_validate_json(local_path(args.input).read_text(encoding='utf-8-sig'))
+                return append_journal(store, args.highlight_id, args.broker, request)
+            entries = [entry for entry in read_journal(args.highlight_id) if (not args.scope or entry['scope'] == args.scope)
+                       and (not args.phase or entry['phase'] == args.phase)]
+            entries.reverse()
+            return {'highlight_id': args.highlight_id, 'broker': args.broker, 'matches': len(entries), 'offset': args.offset,
+                'next_offset': args.offset+args.limit if args.offset+args.limit < len(entries) else None, 'items': entries[args.offset:args.offset+args.limit]}
     if args.command == 'status':
         result = {'report_directory': str(REPORT_DIRECTORY)}
         try:
@@ -287,7 +347,7 @@ def run(args):
         return {'evidence_path': str(path), **summarize(data, args.event)}
     if args.command == 'highlights':
         with closing(CalendarStore(local_path(args.database), readonly=True)) as store:
-            snapshot = highlight_snapshot(store, args.broker)
+            snapshot = highlight_snapshot(store, args.broker) if args.visibility == 'active' else highlight_snapshot(store, args.broker, visibility=args.visibility)
         if args.highlight_id:
             snapshot['items'] = [pin for pin in snapshot['items'] if pin['id'] in args.highlight_id]
         if args.rows or args.summary or args.event_id:
@@ -315,7 +375,9 @@ def run(args):
                 'seconds_until': round((pin['release_at']-now)/1000) if pin['release_at'] is not None else None,
                 'readings': len(pin['events']), 'with_actuals': sum(event['actual'] is not None for event in pin['events']),
                 'latest_capture_utc': datetime.fromtimestamp(max(event['observed_at'] for event in pin['events']),timezone.utc).isoformat() if pin['events'] else None,
-                'missing_value_ids': pin['missing_value_ids'],
+                'missing_value_ids': pin['missing_value_ids'], 'archived_utc': pin['archived_utc'],
+                'research': [{'id': entry['id'], 'phase': entry['phase'], 'scope': entry['scope'], 'as_of_utc': entry['as_of_utc'],
+                              'direction': entry['direction']} for entry in pin['journal']],
                 'timeline': timeline(pin)} for pin in pins[args.offset:args.offset + args.limit]]}
 
 

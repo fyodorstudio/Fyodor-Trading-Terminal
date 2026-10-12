@@ -8,6 +8,22 @@ export type Highlight = {
   id: string; source_id: string; label: string; family_id: string; currency: string
   value_ids: string[]; event_ids: string[]; pinned_utc: string
   events: StoredCalendarEvent[]; release_at: number | null; server_time: number | null; missing_value_ids: string[]
+  archived_utc?: string | null; journal?: JournalEntry[]
+}
+export type JournalEntry = {
+  id: string; highlight_id: string; source_id: string; phase: 'before' | 'after'; scope: string
+  as_of_utc: string; saved_utc: string; body: string; direction: string; confidence: string; counterevidence: string
+  expectations: { provider: string; as_of_utc: string; values: string }[]
+  sources: { kind: 'web' | 'local'; label: string; locator: string; note: string }[]
+  release_prompt: string; prior_highlight_ids: string[]; correction_of: string | null; price_reaction: string
+  readings: StoredCalendarEvent[]; calendar_revision: number; reading_vintage: string; missing_value_ids: string[]
+  trade_outcome?: string
+}
+export function highlightPrompt(item: Highlight, scope: string) {
+  const tailored = [...(item.journal ?? [])].reverse().find(entry => entry.scope === scope)?.release_prompt
+  const time = item.release_at === null ? 'Publication time unconfirmed; verify the official schedule.' : `Publication: ${new Date(item.release_at).toISOString()} (UTC).`
+  return `Follow AGENTS.md. Check Highlight ${item.id}, broker ${item.source_id}, ${item.label}, scope ${scope}. ${time}\n\n` +
+    (tailored ?? `Check this Highlight after publication. Verify actuals and revisions against the official publisher, compare the complete package with separately attributed expectations and the previous comparable release, and refresh the central-bank and macro backdrop${scope.length === 6 ? ' for both currencies' : ''}. Give the fundamental direction, confidence and strongest counterevidence. Keep measured price reaction separate. If actuals are incomplete, identify what is missing.`)
 }
 export function highlightRequest(release: InspectorRelease, sourceId: string) {
   const families = new Set([release.familyId, ...(release.pmiPublications ?? []).map(item => item.familyId)])

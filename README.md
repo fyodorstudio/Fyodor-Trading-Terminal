@@ -1,8 +1,9 @@
 # Fyodor Trading Terminal Lite
 
 MT5 Market Watch, chart/drawings, raw calendar Inspector, upcoming Alert, Activity
-and Settings. Extracted from the original terminal at `639d382`; that repository
-remains intact. Market interpretation happens in a separate analyst session.
+and Settings, with saved agent-authored research journals under Highlight.
+Extracted from the original terminal at `639d382`; that repository remains intact.
+Market research happens in an analyst session; the terminal displays its journal.
 
 ## Run
 
@@ -34,9 +35,9 @@ Optional `FYODOR_BRIDGE_API_URL` / `FYODOR_STORAGE_API_URL` override Vite's prox
 | market-data | Market Watch, MT5 candles/paging, shared date viewport, chart/drawings and future axis |
 | economic-calendar | Eight-currency catalog, source contracts, clocks and storage polling |
 | inspector | Filters, date ranges, release/day grouping, icons and raw tables |
-| alert | Upcoming filters/countdowns and persistent Highlight pins |
+| alert | Upcoming filters/countdowns, Highlight journals, Copy Prompt and archive |
 | research | Chart date selection and named Markdown handoff shared with Alert |
-| Market Analyst Workflow/tools (repo root) | Read-only calendar, Highlight/report queries and bounded OHLC capture |
+| Market Analyst Workflow/tools (repo root) | Read-only calendar, upcoming/Highlight/report queries, journal/lifecycle writes and bounded OHLC capture |
 | appearance, system-connectivity, system-observability, workspace-docking | Theme/time, bridge status, Activity and dock geometry |
 
 ```powershell
@@ -97,11 +98,18 @@ choose its currency alone or a pair containing it.
 **Highlight**, left of **All** in Alert, keeps release occurrences pinned from
 Inspector's right header or Alert's **Pin** button. Expand a card for all series
 and publication times. Pins remain after release, update with stored actuals and
-revisions, and disappear only with **Remove pin**. They ignore Alert filters and
+revisions, and move to **Archive** on your instruction. **Restore** returns them to
+the active list. They ignore Alert filters and
 horizon, remain scoped to their broker, and survive refresh. Highlight checks for
 updated values every two seconds while open; feed capture may still be delayed.
 The agent can read the same list with `pnpm analyst highlights` and focused values
 with `pnpm analyst highlights --summary --match CPI`, without browser access.
+
+Cards display read-only Before/After release research with source links, preserved
+reading snapshots and version history. **Copy Prompt** uses an explicit scope and
+the latest tailored request. Agents append research through the local CLI; pinning
+alone does not generate analysis. [Journal workflow](docs/HIGHLIGHT-JOURNAL.md)
+documents research input, archive/restore and upcoming candidate commands.
 
 Exports include every stored series for the chosen currencies, independent of
 Inspector/Alert filters and chart history. Files retain forecasts, revised priors,

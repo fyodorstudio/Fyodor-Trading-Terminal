@@ -1,7 +1,9 @@
 # Fyodor Trading Terminal Lite
 
 Market Watch, chart/drawings, raw calendar Inspector, upcoming Alert, Activity and
-Settings only. Interpretation happens in a separate market-analyst session.
+Settings, including agent-authored fundamental research journals and an archive
+under Highlight. Research is produced in the market-analyst session; the terminal
+may display saved research and provide occurrence-specific Copy Prompt actions.
 No scoring, Notebook, Scatter Plot, Fundamental Settings, Roofs, Raycaster, Candy
 or Workspace backup UI belong here. Keep the copied bridge unchanged.
 
@@ -21,8 +23,10 @@ inspection without an explicit request.
 
 ## Market analysis
 
-Work only in this Lite repo. Keep interpretation in the analyst conversation;
-do not add currency scoring or change calendar observations. The user can ask
+Work only in this Lite repo. Explain interpretation in the analyst conversation;
+saved, agent-authored Highlight journals are also in scope. Keep journal records
+separate from raw calendar observations; do not add currency scoring or change
+calendar observations. The user can ask
 “Explain EURUSD around September 11 US CPI” or “Use my latest report to prepare
 the next Fed decision.” The [user manual](<user manual.md>) covers learning and
 all eight currencies; read it only when relevant. Helper code and personal report
@@ -39,7 +43,7 @@ folders live together under `Market Analyst Workflow/`.
 - When the user refers to Highlight, start with `pnpm analyst highlights`; use
   its pinned ID, broker and timeline to identify the occurrence, then query its
   current readings with `--summary`. Recheck values after publication. Pins are
-  preserved after release; only the user decides when to remove them.
+  preserved after release; only the user decides when to archive them.
 - For policy events distinguish the decision, statement, projections and press
   conference times before measuring a move. Verify missing stages against the
   official schedule; do not anchor a press-conference move to the earlier decision.
@@ -76,6 +80,32 @@ folders live together under `Market Analyst Workflow/`.
   a research-as-of time. Preserve user notes/evidence. No trades, account changes,
   service restarts or messages to others are implied by a research request.
 
+### Highlight journal and archive scope
+
+- Read relevant saved journal entries and archived investigations when available.
+  Treat earlier conclusions as dated context; refresh expectations, material
+  developments and both currencies before issuing a new pair view. Start with
+  `highlights`, then focused `journal read`; use `--visibility all` for history.
+  [Journal workflow](docs/HIGHLIGHT-JOURNAL.md) documents schemas and commands.
+- Keep before-release research separate from after-release interpretation. Show
+  the research-as-of time, currency/pair scope, direction and confidence, backdrop,
+  attributed expectations, strongest counterevidence and relevant prior release.
+  After release, assess actuals, revisions and components against the preserved
+  expectations, then report initial and sustained price reactions separately.
+- Preserve append-only research versions, captured readings, release vintages
+  and direct web/local evidence references. Corrections append a labelled update.
+  Journal text is read-only in the UI and written through the agent interface;
+  preserve user notes separately. Saving research still requires a user request.
+- Archive removes an occurrence from the active shortlist while preserving its
+  identity, broker, timing, research versions and evidence; support restoration.
+  Keep fundamental interpretation, price reaction and any user-provided trade
+  outcome separate. Do not infer account access or trading authorization.
+- Copy Prompt identifies the exact Highlight occurrence, broker, time/timezone,
+  chosen currency/pair and relevant prior investigation. It requests fresh evidence
+  and separates fundamental direction from price reaction. An elapsed release
+  time is not proof actuals have arrived. Recommend upcoming candidates by policy
+  relevance and new information; pin/archive only with user authorization.
+
 ### Dataset commands
 
 Run from the Lite root; `pnpm analyst` uses the existing bridge Python with no
@@ -89,6 +119,8 @@ pnpm analyst reports
 pnpm analyst highlights
 pnpm analyst highlights --broker Elev8-Demo2 --summary --match CPI
 pnpm analyst highlights --highlight-id "<pinned-id>" --summary
+pnpm analyst journal read "<pinned-id>" --broker Elev8-Demo2 --scope EURUSD
+pnpm analyst upcoming --broker Elev8-Demo2 --scope all --days 90 --category policy --category inflation --category labor
 pnpm analyst report latest
 pnpm analyst report latest --match "CPI|Interest Rate" --currency USD --limit 30
 pnpm analyst report latest --summary --event-id 840030006

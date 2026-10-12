@@ -13,6 +13,7 @@ from pydantic import Field
 from .calendar_clock import publication_time_known
 from .contracts import Payload
 from .currencies import CalendarCurrency
+from .data_lock import data_lock
 
 HIGHLIGHTS_PATH = Path(__file__).resolve().parents[1] / 'Market Analyst Workflow' / 'highlights.json'
 LOCK = RLock()
@@ -31,6 +32,8 @@ class HighlightRequest(Payload):
 class HighlightPin(HighlightRequest):
     id: str = Field(pattern=r'^[0-9a-f]{32}$')
     pinned_utc: str = Field(min_length=1, max_length=50)
+    archived_utc: str | None = None
+    archived_snapshot: dict | None = None
 
 
 def read_pins(path=HIGHLIGHTS_PATH):
@@ -38,7 +41,7 @@ def read_pins(path=HIGHLIGHTS_PATH):
     if not path.exists():
         return []
     data = json.loads(path.read_text(encoding='utf-8'))
-    if not isinstance(data, dict) or data.get('version') != 1 or not isinstance(data.get('pins'), list) or len(data['pins']) > 200:
+    if not isinstance(data, dict) or data.get('version') not in (1, 2) or not isinstance(data.get('pins'), list) or len(data['pins']) > 10000:
         raise ValueError('Unsupported Highlight file; preserve it and restore a valid copy')
     return [HighlightPin.model_validate(pin).model_dump() for pin in data['pins']]
 
@@ -51,7 +54,7 @@ def write_pins(path, pins):
     try:
         with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', dir=path.parent, delete=False) as output:
             name = output.name
-            json.dump({'version': 1, 'pins': pins}, output, ensure_ascii=False, separators=(',', ':'))
+            json.dump({'version': 2, 'pins': pins}, output, ensure_ascii=False, separators=(',', ':'))
             output.flush()
             os.fsync(output.fileno())
         os.replace(name, path)
@@ -64,7 +67,7 @@ def pin_release(store, request, path=HIGHLIGHTS_PATH):
     ids = list(dict.fromkeys(request.value_ids))
     if any(not value or len(value) > 32 for value in ids):
         raise HTTPException(422, 'Invalid release value IDs')
-    with LOCK, store.lock:
+    with LOCK, data_lock(Path(path).parent), store.lock:
         events = store.values(request.source_id, ids)
         if len(events) != len(ids) or any(event['currency'] != request.currency for event in events):
             raise HTTPException(404, 'Release readings are unavailable for this broker and currency')
@@ -79,9 +82,11 @@ def pin_release(store, request, path=HIGHLIGHTS_PATH):
             existing['value_ids'] = list(dict.fromkeys([*existing['value_ids'], *ids]))
             existing['event_ids'] = list(dict.fromkeys([*existing['event_ids'], *event_ids]))
             identity = existing['id']
+            existing['archived_utc'] = None
+            existing['archived_snapshot'] = None
         else:
-            if len(pins) >= 200:
-                raise HTTPException(409, 'Remove an existing Highlight before adding another')
+            if sum(not pin['archived_utc'] for pin in pins) >= 200 or len(pins) >= 10000:
+                raise HTTPException(409, 'Highlight capacity reached; archive an active occurrence before adding another')
             identity = uuid4().hex
             pins.append({**request.model_dump(), 'id': identity, 'value_ids': ids, 'event_ids': event_ids,
                 'pinned_utc': datetime.now(timezone.utc).isoformat(timespec='seconds')})
@@ -89,31 +94,67 @@ def pin_release(store, request, path=HIGHLIGHTS_PATH):
         return {'id': identity}
 
 
-def delete_pin(identity, source_id, path=HIGHLIGHTS_PATH):
-    with LOCK:
+def archive_pin(identity, source_id, path=HIGHLIGHTS_PATH, store=None, restore=False):
+    with LOCK, data_lock(Path(path).parent):
         pins = read_pins(path)
-        remaining = [pin for pin in pins if not (pin['id'] == identity and pin['source_id'] == source_id)]
-        if len(remaining) == len(pins):
+        pin = next((pin for pin in pins if pin['id'] == identity and pin['source_id'] == source_id), None)
+        if pin is None:
             raise HTTPException(404, 'Highlight not found for this broker')
-        write_pins(path, remaining)
-        return {'removed': identity}
+        if restore:
+            if pin['archived_utc'] and sum(not item['archived_utc'] for item in pins) >= 200:
+                raise HTTPException(409, 'Archive an active Highlight before restoring another')
+            pin['archived_utc'] = None
+            pin['archived_snapshot'] = None
+        elif not pin['archived_utc']:
+            if store is not None:
+                item = next(item for item in highlight_snapshot(store, source_id, path, visibility='all')['items'] if item['id'] == identity)
+                pin['value_ids'] = list(dict.fromkeys([*pin['value_ids'], *[event['value_id'] for event in item['events']]]))
+                pin['archived_snapshot'] = {key: item[key] for key in ('events', 'release_at', 'server_time', 'missing_value_ids')}
+            pin['archived_utc'] = datetime.now(timezone.utc).isoformat(timespec='seconds')
+        write_pins(path, pins)
+        return {'id': identity, 'archived': not restore}
 
 
-def highlight_snapshot(store, source_id=None, path=HIGHLIGHTS_PATH, after_revision=None, persist_related=False):
+def delete_pin(identity, source_id, path=HIGHLIGHTS_PATH, store=None):
+    """Compatibility for old clients: unpin now archives instead of deleting."""
+    return archive_pin(identity, source_id, path, store)
+
+
+def highlight_snapshot(store, source_id=None, path=HIGHLIGHTS_PATH, after_revision=None, persist_related=False, visibility='active'):
+    if persist_related:
+        with LOCK, data_lock(Path(path).parent):
+            return _highlight_snapshot(store, source_id, path, after_revision, True, visibility)
+    return _highlight_snapshot(store, source_id, path, after_revision, False, visibility)
+
+
+def _highlight_snapshot(store, source_id, path, after_revision, persist_related, visibility):
+    from .highlight_journal import read_journal
+    if visibility not in ('active', 'archived', 'all'):
+        raise ValueError('Choose active, archived or all Highlights')
     with LOCK, store.lock:
         all_pins = read_pins(path)
-        pins = [pin for pin in all_pins if source_id is None or pin['source_id'] == source_id]
+        pins = [pin for pin in all_pins if (source_id is None or pin['source_id'] == source_id)
+            and (visibility == 'all' or bool(pin['archived_utc']) == (visibility == 'archived'))]
+        journals = {pin['id']: read_journal(pin['id'], path) for pin in pins}
+        if any(entry['source_id'] != pin['source_id'] or pin['currency'] not in (entry['scope'][:3], entry['scope'][3:])
+               for pin in pins for entry in journals[pin['id']]):
+            raise ValueError('Journal broker or currency mismatch; preserve the research files')
         expanded = False
         calendar_revision = store.db.execute('SELECT value FROM data_revision WHERE id=1').fetchone()[0]
         source = store.db.execute('SELECT publisher_seen_at FROM sources WHERE id=?', (source_id,)).fetchone() if source_id else None
         source_status = 'live' if source and source[0] and store.clock() - source[0] < 30 else 'offline' if source else 'unavailable'
-        revision = hashlib.sha256(json.dumps(pins, sort_keys=True).encode()).hexdigest() + f':{calendar_revision}'
-        result = {'source_id': source_id, 'source_status': source_status, 'revision': revision, 'calendar_revision': calendar_revision,
+        signature = lambda: hashlib.sha256(json.dumps([pins, journals], sort_keys=True).encode()).hexdigest() + f':{calendar_revision}'
+        revision = signature()
+        result = {'highlight_schema': 2, 'source_id': source_id, 'source_status': source_status, 'revision': revision, 'calendar_revision': calendar_revision,
             'as_of_utc': datetime.now(timezone.utc).isoformat(timespec='seconds')}
         if revision == after_revision:
             return {**result, 'unchanged': True}
         items = []
         for pin in pins:
+            if pin['archived_utc'] and pin['archived_snapshot'] is not None:
+                items.append({**{key: value for key, value in pin.items() if key != 'archived_snapshot'},
+                    **pin['archived_snapshot'], 'journal': journals[pin['id']], 'publisher_status': 'archived'})
+                continue
             events = store.values(pin['source_id'], pin['value_ids'])
             # Discover additional series in the same publication window. Exact
             # value IDs retain rescheduled pins; never match the next monthly event.
@@ -148,11 +189,11 @@ def highlight_snapshot(store, source_id=None, path=HIGHLIGHTS_PATH, after_revisi
             known = [event['release_at'] for event in events if publication_time_known(event) and event['release_at'] is not None]
             publisher = store.db.execute('SELECT publisher_seen_at FROM sources WHERE id=?', (pin['source_id'],)).fetchone()
             publisher_status = 'live' if publisher and publisher[0] and store.clock() - publisher[0] < 30 else 'offline' if publisher else 'unavailable'
-            items.append({**pin, 'events': events, 'publisher_status': publisher_status, 'release_at': min(known) if known else None,
+            items.append({**{key: value for key, value in pin.items() if key != 'archived_snapshot'}, 'journal': journals[pin['id']], 'events': events, 'publisher_status': publisher_status, 'release_at': min(known) if known else None,
                 'server_time': min((event['server_time_seconds'] for event in events), default=None),
                 'missing_value_ids': sorted(set(pin['value_ids']) - {event['value_id'] for event in events})})
         items.sort(key=lambda pin: (pin['release_at'] if pin['release_at'] is not None else (pin['server_time'] or 0) * 1000, pin['id']))
         if expanded:
             write_pins(path, all_pins)
-            result['revision'] = hashlib.sha256(json.dumps(pins, sort_keys=True).encode()).hexdigest() + f':{calendar_revision}'
+            result['revision'] = signature()
         return {**result, 'items': items}

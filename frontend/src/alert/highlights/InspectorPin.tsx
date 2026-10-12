@@ -10,8 +10,8 @@ export function InspectorPin({ release, brokerId }: { release: InspectorRelease;
   const action = (item: InspectorRelease) => {
     const pinned = highlightForRelease(highlights.items, item)
     return <button type="button" disabled={!brokerId || highlights.busy} aria-pressed={!!pinned}
-      aria-label={`${pinned ? 'Unpin' : 'Pin'} ${item.currency} ${item.label}`} onClick={() => void (pinned ? highlights.remove(pinned.id) : highlights.pin(item))}>
-      {pinned ? 'Unpin' : 'Pin'}{release.daily && ` · ${item.label}`}</button>
+      aria-label={`${pinned ? 'Archive' : 'Pin'} ${item.currency} ${item.label}`} onClick={() => void (pinned ? highlights.archive(pinned.id) : highlights.pin(item))}>
+      {pinned ? 'Archive' : 'Pin'}{release.daily && ` · ${item.label}`}</button>
   }
   return <div className="inspector-pin">
     {release.daily ? <details><summary>Pin release</summary><div className="inspector-pin-menu">{choices.map(item => <div key={item.id}>{action(item)}</div>)}</div></details> : action(release)}

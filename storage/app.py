@@ -13,7 +13,7 @@ from .currencies import CURRENCIES
 from .contracts import BackfillChunk, BackfillFailure, PublisherContext
 from .data_lock import data_lock
 from .research_reports import ResearchRequest, save_report
-from .highlights import HIGHLIGHTS_PATH, HighlightRequest, pin_release, delete_pin, highlight_snapshot
+from .highlights import HIGHLIGHTS_PATH, HighlightRequest, pin_release, delete_pin, archive_pin, highlight_snapshot
 
 # The eight-currency Alert catalog exceeds the original pair-only 64-series cap.
 # Keep a bound below SQLite's conservative 999-parameter limit, including dates.
@@ -93,9 +93,10 @@ def create_app(directory=None, run_collector=True, highlights_path=HIGHLIGHTS_PA
             raise HTTPException(503, "Could not save the report; check the report folder's permissions") from error
 
     @app.get('/api/v1/highlights')
-    def highlights(source_id: str = Query(min_length=1, max_length=160), after_revision: str | None = Query(default=None, max_length=100)):
+    def highlights(source_id: str = Query(min_length=1, max_length=160), after_revision: str | None = Query(default=None, max_length=100),
+                   visibility: str = Query(default='active', pattern='^(active|archived|all)$')):
         try:
-            return highlight_snapshot(app.state.store, source_id, highlights_path, after_revision, persist_related=True)
+            return highlight_snapshot(app.state.store, source_id, highlights_path, after_revision, persist_related=True, visibility=visibility)
         except OSError as error:
             raise HTTPException(503, 'Highlight storage unavailable') from error
 
@@ -109,9 +110,23 @@ def create_app(directory=None, run_collector=True, highlights_path=HIGHLIGHTS_PA
     @app.delete('/api/v1/highlights/{identity}')
     def remove_highlight(identity: str, source_id: str = Query(min_length=1, max_length=160)):
         try:
-            return delete_pin(identity, source_id, highlights_path)
+            return delete_pin(identity, source_id, highlights_path, app.state.store)
         except OSError as error:
-            raise HTTPException(503, 'Could not remove Highlight') from error
+            raise HTTPException(503, 'Could not archive Highlight') from error
+
+    @app.post('/api/v1/highlights/{identity}/archive')
+    def archive_highlight(identity: str, source_id: str = Query(min_length=1, max_length=160)):
+        try:
+            return archive_pin(identity, source_id, highlights_path, app.state.store)
+        except OSError as error:
+            raise HTTPException(503, 'Could not archive Highlight') from error
+
+    @app.post('/api/v1/highlights/{identity}/restore')
+    def restore_highlight(identity: str, source_id: str = Query(min_length=1, max_length=160)):
+        try:
+            return archive_pin(identity, source_id, highlights_path, app.state.store, restore=True)
+        except OSError as error:
+            raise HTTPException(503, 'Could not restore Highlight') from error
 
     return app
 

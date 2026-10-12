@@ -78,9 +78,9 @@ export function AlertDock({ brokerId, timeDisplay, clockOffsetMs = 0, brokerOffs
           {onPrepareResearch && <button type="button" className="alert-research" aria-label={`Prepare research for ${release.currency} ${release.label}`}
             onClick={() => onPrepareResearch(release)}>Research</button>}
           <button type="button" className="alert-pin" disabled={!brokerId || pins.busy} aria-pressed={!!highlightForRelease(pins.items, release)}
-            aria-label={`${highlightForRelease(pins.items, release) ? 'Unpin' : 'Pin'} ${release.currency} ${release.label}`}
-            onClick={() => { const pinned = highlightForRelease(pins.items, release); void (pinned ? pins.remove(pinned.id) : pins.pin(release)) }}>
-            {highlightForRelease(pins.items, release) ? 'Unpin' : 'Pin'}</button>
+            aria-label={`${highlightForRelease(pins.items, release) ? 'Archive' : 'Pin'} ${release.currency} ${release.label}`}
+            onClick={() => { const pinned = highlightForRelease(pins.items, release); void (pinned ? pins.archive(pinned.id) : pins.pin(release)) }}>
+            {highlightForRelease(pins.items, release) ? 'Archive' : 'Pin'}</button>
         </article>)}
       </section>)}</div>
     </>}

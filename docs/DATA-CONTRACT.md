@@ -40,10 +40,20 @@ series at the same publication time (within one hour for explicit policy package
 join the pin; live reads bind their IDs so later rescheduling stays visible. Separate
 publication windows never span intervening months; existing series retain their
 reference periods when discovering related values. Agent
-reads are read-only and can work offline. Missing/withdrawn observations retain the
+calendar reads are read-only and can work offline. Missing/withdrawn observations retain the
 pin and their availability labels. Browser caches retain the last snapshot during
 an outage. Polling reuses unchanged revisions and row identities; countdown ticks
 never query storage, regroup releases, or rebuild expanded series tables.
+
+Version-1 pin files remain readable; lifecycle writes save version 2 with optional
+archive metadata and preserved readings. POST `/{id}/archive` and `/{id}/restore`
+under the Highlight API preserve identities; legacy DELETE archives too. GET
+visibility selects active/archived/all. Writes share an interprocess metadata lock.
+Agent journal appends create immutable JSON files under
+`Market Analyst Workflow/journal/<highlight-id>/`, separate from the calendar and
+pin file. Snapshots preserve raw readings/provenance at save time, not a reconstructed
+release-day vintage. Journal contents participate in the Highlight revision.
+The UI has no journal writer; use the CLI and [journal contract](HIGHLIGHT-JOURNAL.md).
 
 `pnpm analyst` reads the existing calendar schema in a read-only transaction, with
 complete pagination before returning compact focused results. OHLC uses the unchanged
@@ -91,7 +101,7 @@ New numeric IDs with valid metadata use each
 currency's selectable Other / new events control; known IDs with wrong metadata
 are rejected. Chart grouping retains every visible series and source value ID.
 Alert's upcoming tabs keep independent filters and exclude completed events;
-Highlight retains them until explicit removal. Paging rejects
+Highlight retains them until explicit archive. Paging rejects
 mixed revisions, repeating cursors and stale replies; outages retain the last
 valid snapshot. Appearance/display-clock changes never rewrite stored dates.
 
@@ -110,5 +120,5 @@ schema, integrity and file hashes. Browser filters, drawings and preferences liv
 on the UI origin; keep the same origin to reuse them. Calendar backup does not
 contain browser settings. The original repository/data remains the extraction
 reference and was not removed.
-Highlight metadata is separate from calendar backups; keep its file under
-`Market Analyst Workflow/` with your report folders.
+Highlight metadata and journal files are separate from calendar backups; keep
+highlights.json, journal/ and report folders under `Market Analyst Workflow/` together.
