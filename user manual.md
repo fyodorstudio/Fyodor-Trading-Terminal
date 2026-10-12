@@ -1,5 +1,32 @@
 # What to tick in Inspector and Alert
 
+## Trade candidates
+
+> I only consider trades around selected major **policy, inflation or labour/wage
+> releases**. Before entering, I need a meaningful surprise, a clear explanation
+> for the pair's direction, and defined invalidation and risk.
+
+Choose major releases within those families; every speech or minor employment
+statistic need not become a candidate. Passing on other opportunities is fine.
+The shortlist narrows your attention; your entry and exit rules still need testing.
+
+| Check before considering an entry | What to establish |
+|---|---|
+| Expectations | What was already expected or priced in? Keep broker forecasts and identified web surveys separately attributed. |
+| Interpretation | Does the complete release—including guidance, components and revisions—change the expected future rate path? |
+| Pair and entry | Does the other currency's backdrop support the view? Is price sustaining the reaction? Where is the trade invalidated, and what loss is acceptable? |
+
+Mixed components, an already-priced outcome or a quick reversal can leave no
+clear edge. A forecast beat or large news candle alone is insufficient.
+
+Leave the remaining research to the agent. Growth, energy, financial conditions
+and exchange-rate developments still belong in the backdrop and can outweigh
+the release being watched. Other checked families in the tables provide context.
+[Fed policy considerations](https://www.federalreserve.gov/monetarypolicy/principles-for-the-conduct-of-monetary-policy.htm),
+[SNB policy and exchange rates](https://www.snb.ch/en/the-snb/mandates-goals/monetary-policy/strategy)
+
+## Filter setup
+
 Start with your pair's two currencies. Each table runs from highest to lowest
 **observation priority**; ★ means tick these first. Add other rows as you learn.
 This is a practical starting order: promote a lower row when the bank or backdrop
@@ -11,9 +38,8 @@ In **Alert → Filters**, choose your currencies, tick the same ★ families and
 Alert has its own selection; Inspector changes do not update it.
 
 Open a listed upcoming release's **Research** entry to prepare a possible setup.
-Ask the agent for backdrop, expectations, stronger/weaker scenarios and what would
-invalidate them. A forecast beat alone is not an entry signal. Ask: **Does this
-change the future rate path enough to favour one currency over the other?**
+Ask the agent for backdrop, expectations and stronger/weaker scenarios using the
+trade-candidate checks above.
 
 ## USD
 
@@ -174,12 +200,6 @@ For a highlighted Alert entry, ask:
 > backdrop, which outcomes would support each currency, and what would invalidate
 > the view? After release, check the actual package and whether price sustained or
 > reversed its first move.
-
-A useful candidate has a meaningful change versus identified expectations,
-a coherent explanation for the pair, and price behaviour that supports it.
-Mixed components, an already-priced outcome or a quick reversal can leave no
-clear edge. Decide invalidation and acceptable loss before considering an entry;
-a large news candle alone is insufficient.
 
 For historical work, use **Research date range**, name the report and add notes.
 **Prepare research** groups the brief and complete evidence under
