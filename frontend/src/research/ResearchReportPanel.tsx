@@ -72,7 +72,7 @@ export function ResearchReportPanel({ seed, brokerId, timeDisplay, onClose }: {
         <label>Question / notes (optional)<textarea aria-label="Research question" rows={5} maxLength={4000} value={question} onChange={event => setQuestion(event.target.value)}
           placeholder={seed.kind === 'upcoming' ? 'Explain expectations and the hike, hold and cut scenarios.' : 'What drove this move? Was it base strength or quote weakness?'} /></label>
       </fieldset>
-      <p>Includes all stored releases for {scope}, regardless of chart or Alert filters. Saves a brief and complete evidence in Market Analyst Workflow/report.</p>
+      <p>Includes all stored releases for {scope}, regardless of chart or Alert filters. Saves the brief and complete evidence together in a named report folder.</p>
       <footer><button type="button" onClick={onClose}>Cancel</button><button type="submit" disabled={saving || !brokerId}>{saving ? 'Saving…' : 'Prepare research'}</button></footer>
     </form>}
     {error && <p role="alert">{error}</p>}

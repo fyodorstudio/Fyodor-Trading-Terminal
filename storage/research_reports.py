@@ -172,6 +172,19 @@ def release_index(events):
         *[f"| {day} | {currency} | {counts[0]} | {counts[1]} |" for (day, currency), counts in sorted(days.items())]])
 
 
+def create_report_folder(directory, title, generated=None):
+    directory = Path(directory)
+    if directory.is_symlink():
+        raise HTTPException(409, "Report directory must be a local folder")
+    directory = directory.resolve()
+    directory.mkdir(parents=True, exist_ok=True)
+    generated = generated or datetime.now(timezone.utc)
+    slug = re.sub(r"[^\w-]+", "-", title.strip(), flags=re.UNICODE).strip("-_")[:80] or "research"
+    folder = directory / f"{slug}-{generated.strftime('%Y%m%d-%H%M%S-%f')}"
+    folder.mkdir()  # Exclusive creation; never reuse or overwrite another report.
+    return folder
+
+
 def save_report(store, request, directory=REPORT_DIRECTORY):
     selected, context, coverage, revision = collect_evidence(store, request)
     generated = datetime.now(timezone.utc)
@@ -196,17 +209,11 @@ def save_report(store, request, directory=REPORT_DIRECTORY):
     text += "## Selected interval index\n\n" + release_index(selected) + "\n\n"
     if request.context_days:
         text += "## Preceding context index\n\n" + release_index(context) + "\n\n"
-    directory = Path(directory)
-    if directory.is_symlink():
-        raise HTTPException(409, "Report directory must be a local folder")
-    directory = directory.resolve()
-    directory.mkdir(parents=True, exist_ok=True)
-    slug = re.sub(r"[^\w-]+", "-", request.title.strip(), flags=re.UNICODE).strip("-_")[:80] or "research"
-    # Exclusive create prevents an existing named report being overwritten.
-    filename = f"{slug}-{generated.strftime('%Y%m%d-%H%M%S-%f')}.md"
-    path = directory / filename
-    evidence_path = path.with_suffix(".tsv")
-    text += f"## Complete evidence\n\nEvidence file: {evidence_path.name}\n\nAll {len(selected) + len(context)} readings are in [{evidence_path.name}](<{evidence_path.name}>), including every series and the separate context section. The index is navigation, not a selection of important events. Read the brief first; query the TSV with `pnpm analyst report \"{filename}\" --match \"CPI|Interest Rate\"`. Existing full-table Markdown reports remain readable.\n"
+    folder = create_report_folder(directory, request.title, generated)
+    filename = "brief.md"
+    path = folder / filename
+    evidence_path = folder / "evidence.tsv"
+    text += f"## Complete evidence\n\nEvidence file: {evidence_path.name}\n\nAll {len(selected) + len(context)} readings are in [{evidence_path.name}](<{evidence_path.name}>), including every series and the separate context section. The index is navigation, not a selection of important events. Read the brief first; query the TSV with `pnpm analyst report \"{folder.name}/{filename}\" --match \"CPI|Interest Rate\"`. Existing full-table Markdown reports remain readable.\n"
     created = []
     try:
         with evidence_path.open("x", encoding="utf-8", newline="") as output:
@@ -218,6 +225,7 @@ def save_report(store, request, directory=REPORT_DIRECTORY):
     except OSError:
         for item in created:
             item.unlink(missing_ok=True)
+        folder.rmdir()
         raise
     return {"filename": filename, "path": str(path), "readings": len(selected), "context_readings": len(context),
             "coverage_incomplete": bool(gaps), "evidence_path": str(evidence_path)}

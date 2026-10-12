@@ -12,12 +12,34 @@ sys.path.insert(0, str(TOOLS))
 spec = importlib.util.spec_from_file_location('analyst_data', TOOLS / 'market_data.py')
 analyst = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(analyst)
-from ohlc import candle_utc, fetch_window, instant, read_saved, summarize
+from ohlc import candle_utc, fetch_window, instant, read_saved, summarize, write_evidence
 import test_research_reports as reports
 from test_research_reports import event, START, DAY
 
 
 class AnalystReportsTests(unittest.TestCase):
+    def test_nested_reports_discovery_and_legacy_paths(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            report_root = root / 'report'
+            nested = report_root / 'CPI-20260911'
+            nested.mkdir(parents=True)
+            brief = nested / 'brief.md'
+            brief.write_text('# CPI\n\n## Selected interval\n', encoding='utf-8')
+            legacy = report_root / 'legacy.md'
+            legacy.write_text('# Legacy\n\n## Selected interval\n', encoding='utf-8')
+            with patch.object(analyst, 'ROOT', root), patch.object(analyst, 'REPORT_DIRECTORY', report_root):
+                self.assertEqual(analyst.report_path('CPI-20260911'), brief)
+                self.assertEqual(analyst.report_path('CPI-20260911/brief.md'), brief)
+                self.assertEqual(analyst.report_path('legacy.md'), legacy)
+                self.assertEqual(analyst.report_path('latest'), legacy)
+                result = analyst.run(analyst.parser().parse_args(['reports']))
+                self.assertEqual({row['path'] for row in result['items']}, {str(brief), str(legacy)})
+                (report_root / 'other').mkdir()
+                (report_root / 'other/brief.md').write_text('# Other')
+                with self.assertRaisesRegex(ValueError, 'Several reports'):
+                    analyst.report_path('brief.md')
+
     def test_legacy_escaped_names_filtering_and_visible_pagination(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / 'legacy.md'
@@ -138,6 +160,51 @@ class AnalystOhlcTests(unittest.TestCase):
             data=read_saved(path)
             self.assertEqual(data['pair'],'EURUSD')
             self.assertIn('1970',data['captured_utc'])
+
+    def test_captures_get_folders_or_attach_to_an_explicit_report(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            report_root = root / 'report'
+            data = {'pair': 'EURUSD', 'timeframe': 'M1', 'from_utc': '2026-09-11T12:30:00Z',
+                'captured_utc': '2026-09-11T16:00:00Z', 'bars': [{'utc_time': self.event,
+                    'open': 1, 'high': 1, 'low': 1, 'close': 1}]}
+            standalone = write_evidence(data, report_root)
+            self.assertEqual(standalone.parent.parent, report_root)
+            folder = report_root / 'CPI'
+            folder.mkdir()
+            brief = folder / 'brief.md'
+            brief.write_text('# CPI')
+            evidence = folder / 'evidence.tsv'
+            evidence.write_text('preserve')
+            args = analyst.parser().parse_args(['ohlc', '--from', '2026-09-11T12:30:00Z',
+                '--to', '2026-09-11T12:31:00Z', '--report', 'CPI'])
+            with patch.object(analyst, 'ROOT', root), patch.object(analyst, 'REPORT_DIRECTORY', report_root), \
+                 patch.object(analyst, 'fetch_window', return_value=data):
+                result = analyst.run(args)
+                self.assertEqual(Path(result['evidence_path']).parent, folder)
+                args.report = str(root / 'outside.md')
+                (root / 'outside.md').write_text('# Outside')
+                with self.assertRaisesRegex(ValueError, 'own report folder'):
+                    analyst.run(args)
+            self.assertEqual(brief.read_text(), '# CPI')
+            self.assertEqual(evidence.read_text(), 'preserve')
+            self.assertTrue(all(item.is_dir() for item in report_root.iterdir()))
+
+    def test_capture_write_failure_removes_new_folder_and_preserves_report(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            data = {'pair': 'EURUSD', 'timeframe': 'M1', 'from_utc': '2026-09-11T12:30:00Z'}
+            with patch('ohlc.json.dump', side_effect=OSError('disk full')), self.assertRaises(OSError):
+                write_evidence(data, root)
+            self.assertEqual(list(root.iterdir()), [])
+            folder = root / 'CPI'
+            folder.mkdir()
+            brief = folder / 'brief.md'
+            brief.write_text('notes')
+            with patch('ohlc.json.dump', side_effect=OSError('disk full')), self.assertRaises(OSError):
+                write_evidence(data, root, folder)
+            self.assertEqual(list(folder.iterdir()), [brief])
+            self.assertEqual(brief.read_text(), 'notes')
 
 
 if __name__=='__main__':

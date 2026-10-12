@@ -178,10 +178,21 @@ def summarize(data, event=None):
     return result
 
 
-def write_evidence(data, directory):
-    directory = Path(directory)
-    directory.mkdir(parents=True, exist_ok=True)
+def write_evidence(data, directory, folder=None):
+    from storage.research_reports import create_report_folder
+    own_folder = folder is None
+    directory = Path(folder) if folder else create_report_folder(directory,
+        f"{data['pair']}-{data['timeframe']}-{data['from_utc'][:10]}-candles")
     path = directory / f"{data['pair']}-{data['timeframe']}-{instant(data['from_utc'])}-{datetime.now(timezone.utc):%Y%m%d-%H%M%S-%f}.ohlc.json"
-    with path.open('x', encoding='utf-8') as output:
-        json.dump(data,output,ensure_ascii=False,separators=(',',':'))
+    created = False
+    try:
+        with path.open('x', encoding='utf-8') as output:
+            created = True
+            json.dump(data,output,ensure_ascii=False,separators=(',',':'))
+    except (OSError, TypeError, ValueError):
+        if created:
+            path.unlink(missing_ok=True)
+        if own_folder:
+            directory.rmdir()
+        raise
     return path.resolve()

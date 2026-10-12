@@ -37,11 +37,23 @@ def local_path(name):
 
 def report_path(name):
     if name == 'latest':
-        files = sorted(REPORT_DIRECTORY.glob('*.md'), key=lambda p: p.stat().st_mtime, reverse=True)
+        files = sorted(REPORT_DIRECTORY.rglob('*.md'), key=lambda p: p.stat().st_mtime, reverse=True)
         if not files:
             raise ValueError('No reports in Market Analyst Workflow/report')
-        return files[0]
-    return local_path(name)
+        return local_path(str(files[0]))
+    path = local_path(name)
+    if not path.exists() and Path(name).name == name:
+        matches = list(REPORT_DIRECTORY.rglob(name))
+        if len(matches) > 1:
+            raise ValueError('Several reports match; use the path from pnpm analyst reports')
+        if matches:
+            path = local_path(str(matches[0]))
+    if path.is_dir():
+        briefs = list(path.glob('*.md'))
+        if len(briefs) != 1:
+            raise ValueError('Choose the brief path inside this report folder')
+        path = local_path(str(briefs[0]))
+    return path
 
 
 def load_report(path):
@@ -167,6 +179,7 @@ def parser():
     candles.add_argument('--to', dest='to_utc')
     candles.add_argument('--event', help='Verified UTC release instant; enables reaction measurements')
     candles.add_argument('--input', help='Reuse saved .ohlc.json or the earlier M1 evidence JSON offline')
+    candles.add_argument('--report', help='Attach a new capture to this report path/folder, or latest')
     candles.add_argument('--bridge', default='http://127.0.0.1:8001')
     candles.add_argument('--broker-offset-seconds', type=int, help='Explicit historical offset for a broker without a profile')
     candles.add_argument('--max-requests', type=int, choices=range(2, 65), metavar='2..64', default=32)
@@ -189,7 +202,7 @@ def run(args):
             result['sources'] = [dict(row) for row in store.db.execute('SELECT id,offset_seconds,server_now FROM sources ORDER BY id')]
         return result
     if args.command == 'reports':
-        files = [p for p in REPORT_DIRECTORY.iterdir() if p.suffix in ('.md','.json') and p.is_file()]
+        files = [p for p in REPORT_DIRECTORY.rglob('*') if p.suffix in ('.md','.json') and p.is_file()]
         return {'directory': str(REPORT_DIRECTORY), 'total': len(files), 'items': [
             {'path': str(p), 'bytes': p.stat().st_size} for p in sorted(files, key=lambda p: p.stat().st_mtime, reverse=True)[:args.limit]]}
     if args.command == 'report':
@@ -210,13 +223,21 @@ def run(args):
                 'forecast_source': 'broker feed; provider/methodology may differ from web surveys', **select_rows(rows, args)}
     if args.command == 'ohlc':
         if args.input:
+            if args.report:
+                raise ValueError('--report attaches new captures; --input reuses a file without moving it')
             data = read_saved(local_path(args.input))
             return {'evidence_path': str(local_path(args.input)), 'reused_saved_capture': True, **summarize(data, args.event)}
         if not args.from_utc or not args.to_utc:
             raise ValueError('OHLC needs --from and --to UTC instants, or --input')
+        folder = None
+        if args.report:
+            path = report_path(args.report).resolve()
+            folder = path.parent
+            if not path.is_file() or folder == REPORT_DIRECTORY.resolve() or not folder.is_relative_to(REPORT_DIRECTORY.resolve()):
+                raise ValueError('Attach candles to a brief inside its own report folder')
         data = fetch_window(lambda route: get_json(args.bridge, route), args.pair, args.symbol or args.pair,
             args.timeframe, args.from_utc, args.to_utc, args.broker_offset_seconds, args.max_requests)
-        path = write_evidence(data, REPORT_DIRECTORY)
+        path = write_evidence(data, REPORT_DIRECTORY, folder)
         return {'evidence_path': str(path), **summarize(data, args.event)}
 
 

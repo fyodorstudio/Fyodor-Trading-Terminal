@@ -111,7 +111,10 @@ class ResearchReportsTests(unittest.TestCase):
         first = save_report(self.store, seed, self.directory / "report")
         second = save_report(self.store, seed, self.directory / "report")
         self.assertNotEqual(first["path"], second["path"])
-        self.assertEqual(Path(first["path"]).parent, (self.directory / "report").resolve())
+        self.assertEqual(Path(first["path"]).parent.parent, (self.directory / "report").resolve())
+        self.assertEqual(Path(first["path"]).name, "brief.md")
+        self.assertEqual(Path(first["evidence_path"]).name, "evidence.tsv")
+        self.assertEqual(Path(first["evidence_path"]).parent, Path(first["path"]).parent)
         self.assertEqual(REPORT_DIRECTORY.parts[-2:], ("Market Analyst Workflow", "report"))
         self.assertIn("No stored releases", Path(first["path"]).read_text(encoding="utf-8"))
         with self.assertRaises(HTTPException) as error:
