@@ -228,15 +228,19 @@ separately attributed; different providers/methods can produce different numbers
 
 ## Highlight: your pinned release shortlist
 
-In Alert, **Highlight** sits left of **All**. Use **Pin** beside Research, or the
+In Alert, choose **Upcoming / Highlight**, then **All** or a currency. Highlight's
+**Active / Archive / Discovered Limitations** share that currency filter; changing
+currency keeps your selected view. All shows all currencies within that view.
+The filter uses the release currency, not the card's research Scope. Your view and
+currency choices survive reopening. Use **Pin** beside Research, or the
 pin control at the far right of Inspector's header. In By day, choose the release
 from the Pin release menu. Each pin is one occurrence, such as this month's CPI,
 not a subscription to every future CPI release.
 
-Pins are ordered by release time and ignore Alert filters/horizon. Expand a card
+Pins are ordered by release time and ignore upcoming family filters/horizon. Expand a card
 for every stored series, release times, Actual, Forecast, Previous and revised
 Previous. Countdown updates each second; Highlight checks stored values every two
-seconds while open. Released pins stay until you choose **Remove pin** or **Unpin**.
+seconds while open. Released pins stay until you choose **Archive**; Restore returns them to Active.
 The source still needs to publish the actuals; pending/offline states remain visible.
 
 Ask a fresh agent: **“Read AGENTS.md and check my Highlight for AUDUSD. Prepare the

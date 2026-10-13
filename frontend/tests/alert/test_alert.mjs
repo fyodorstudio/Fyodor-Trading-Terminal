@@ -180,7 +180,7 @@ try {
   await respond(requests[allStart + 1], { ...page(allRows, 1, 'Broker-A', allIds), coverage: Object.fromEntries(currencies.map(c => [c, { missing: [] }])) })
   assert.equal(container.querySelectorAll('.alert-row').length, 8)
   const buttonRequests = requests.length
-  await React.act(async () => container.querySelector('[aria-label="Alert currency"] button:nth-child(5)').click())
+  await React.act(async () => [...container.querySelectorAll('[aria-label="Alert currency"] button')].find(button => button.textContent === 'GBP').click())
   assert.equal(container.querySelectorAll('.alert-row').length, 1)
   assert.equal(container.querySelector('.alert-currency').textContent, 'GBP')
   assert.equal(requests.length, buttonRequests, 'Currency selection is local, not another calendar fetch')
@@ -200,7 +200,7 @@ try {
   assert.equal(validAlertPreferences({ ...defaultAlertPreferences(), families: ['not-a-family'] }), false)
   await React.act(async () => root.render(null))
   await render({ brokerId: null })
-  assert.equal(container.querySelector('[aria-label="Alert currency"] button:nth-child(5)').getAttribute('aria-pressed'), 'true', 'Currency choice survives remount')
+  assert.equal([...container.querySelectorAll('[aria-label="Alert currency"] button')].find(button => button.textContent === 'GBP').getAttribute('aria-pressed'), 'true', 'Currency choice survives remount')
   await React.act(async () => root.render(null))
   assert.equal(intervals.size, 0); assert.equal(polls.size, 0)
   console.log('✓ Alert episodes, independent eight-currency family filters, selected broker, bounded schedules, local countdown, due/partial/rescheduled/offline states, timezone invariance and cleanup')

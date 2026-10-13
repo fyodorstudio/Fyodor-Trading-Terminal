@@ -10,6 +10,7 @@ import { useHighlights } from './useHighlights'
 import { majorForexPairs } from '../../economic-calendar/forex/pairs'
 import { HighlightJournal, type JournalView } from './HighlightJournal'
 import { DiscoveredLimitations } from './DiscoveredLimitations'
+import type { AlertPreferences, HighlightVisibility } from '../model/alert-preferences'
 
 const HighlightCard = memo(function HighlightCard({ item, now, timeDisplay, archive, restore, busy, onPrepareResearch }: {
   item: Highlight; now: number; timeDisplay: TimeDisplayPreference; archive: (id: string) => Promise<void>; restore: (id: string) => Promise<void>; busy: boolean
@@ -84,20 +85,20 @@ const HighlightSeries = memo(function HighlightSeries({ item, timeDisplay }: { i
       </tr>)}</tbody>
     </table>{!item.events.length && <p>Stored readings unavailable. The pin is retained.</p>}</div>
 })
-export function HighlightList({ brokerId, now, timeDisplay, onPrepareResearch }: {
+export function HighlightList({ brokerId, now, timeDisplay, visibility, currency, onPrepareResearch }: {
   brokerId: string | null; now: number; timeDisplay: TimeDisplayPreference; onPrepareResearch?: (release: InspectorRelease) => void
+  visibility: HighlightVisibility; currency: AlertPreferences['currency']
 }) {
-  const [visibility, setVisibility] = useState<'active' | 'archived' | 'limitations'>('active')
   const highlights = useHighlights(visibility === 'limitations' ? null : brokerId, 2000, visibility === 'archived' ? 'archived' : 'active')
+  const items = useMemo(() => currency === 'all' ? highlights.items : highlights.items.filter(item => item.currency === currency), [highlights.items, currency])
+  const emptyMessage = currency === 'all' ? visibility === 'archived' ? 'No archived releases.' : 'Pin releases from Inspector or Alert to keep them here.' :
+    `No ${visibility === 'archived' ? 'archived' : 'active'} ${currency} events.`
   return <div className="highlight-list" aria-label="Highlighted releases">
-    <nav className="highlight-views" aria-label="Highlight view"><button type="button" aria-pressed={visibility === 'active'} onClick={() => setVisibility('active')}>Active</button>
-      <button type="button" aria-pressed={visibility === 'archived'} onClick={() => setVisibility('archived')}>Archive</button>
-      <button type="button" aria-pressed={visibility === 'limitations'} onClick={() => setVisibility('limitations')}>Discovered Limitations</button></nav>
-    {visibility === 'limitations' ? <DiscoveredLimitations brokerId={brokerId} /> : <>
+    {visibility === 'limitations' ? <DiscoveredLimitations brokerId={brokerId} currency={currency} /> : <>
     {highlights.error && <p role="status">{highlights.error}</p>}
     {!highlights.error && highlights.offline && <p role="status">Publisher offline · stored values may be stale</p>}
-    {!highlights.items.length && <p>{brokerId ? visibility === 'archived' ? 'No archived releases.' : 'Pin releases from Inspector or Alert to keep them here.' : 'Connect calendar storage to load Highlight.'}</p>}
-    {highlights.items.map(item => <HighlightCard key={item.id} item={item} now={now} timeDisplay={timeDisplay}
+    {!items.length && <p>{brokerId ? emptyMessage : 'Connect calendar storage to load Highlight.'}</p>}
+    {items.map(item => <HighlightCard key={item.id} item={item} now={now} timeDisplay={timeDisplay}
       archive={highlights.archive} restore={highlights.restore} busy={highlights.busy} onPrepareResearch={onPrepareResearch} />)}</>}
   </div>
 }

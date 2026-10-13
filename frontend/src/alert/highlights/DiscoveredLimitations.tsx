@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import type { AlertPreferences } from '../model/alert-preferences'
 
 type Limitation = {
   id: string; source_id: string; key: string; currency: string; kind: string; title: string; description: string; action: string
@@ -16,7 +17,7 @@ function cached(brokerId: string | null): Limitation[] {
   try { const value = JSON.parse(localStorage.getItem(`fyodor.highlight-limitations.${brokerId}`) ?? '[]'); return valid(value, brokerId) ? value : [] } catch { return [] }
 }
 
-export function DiscoveredLimitations({ brokerId }: { brokerId: string | null }) {
+export function DiscoveredLimitations({ brokerId, currency }: { brokerId: string | null; currency: AlertPreferences['currency'] }) {
   const [snapshot, setSnapshot] = useState(() => ({ brokerId, items: cached(brokerId) }))
   const [error, setError] = useState<string | null>(null)
   const [source, setSource] = useState(brokerId)
@@ -52,11 +53,12 @@ export function DiscoveredLimitations({ brokerId }: { brokerId: string | null })
     void poll()
     return () => { abort.abort(); window.clearTimeout(timer) }
   }, [brokerId])
-  const items = snapshot.brokerId === brokerId ? snapshot.items : []
+  const items = useMemo(() => snapshot.brokerId !== brokerId ? [] : currency === 'all' ? snapshot.items :
+    snapshot.items.filter(item => item.currency === currency), [snapshot, brokerId, currency])
   return <section className="highlight-limitations" aria-label="Discovered limitations">
     <p className="highlight-research-meta">Documented calendar and data issues. Each record keeps its source, verification time and follow-up action.</p>
     {error && <p role="status">{error}</p>}
-    {!items.length && <p>{brokerId ? 'No recorded limitations for this broker.' : 'Choose a calendar broker to load limitations.'}</p>}
+    {!items.length && <p>{brokerId ? currency === 'all' ? 'No recorded limitations for this broker.' : `No recorded ${currency} limitations for this broker.` : 'Choose a calendar broker to load limitations.'}</p>}
     {items.map(item => <article key={item.id} className="highlight-limitation" data-limitation-key={item.key}>
       <h4>{item.currency} · {item.title}</h4><p className="highlight-research-meta">{item.status === 'open' ? 'Open' : 'Resolved'} · Checked {item.checked_utc}</p>
       <p>{item.description}</p>

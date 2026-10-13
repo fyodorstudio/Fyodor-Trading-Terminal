@@ -95,11 +95,15 @@ brief and complete `.tsv` evidence in a named folder under `Market Analyst Workf
 Alert's **Research** button prepares the same handoff for an upcoming release;
 choose its currency alone or a pair containing it.
 
-**Highlight**, left of **All** in Alert, keeps release occurrences pinned from
+Alert separates **Upcoming / Highlight** from its shared **All / currency** filter.
+The currency filter applies to the current collection, including Highlight's
+**Active / Archive / Discovered Limitations**, and remembers your choice and view.
+**All** means all currencies in that view; events are filtered by their own currency,
+independently of the card's research Scope. **Highlight** keeps occurrences pinned from
 Inspector's right header or Alert's **Pin** button. Expand a card for all series
 and publication times. Pins remain after release, update with stored actuals and
 revisions, and move to **Archive** on your instruction. **Restore** returns them to
-the active list. They ignore Alert filters and
+the active list. They ignore upcoming family filters and
 horizon, remain scoped to their broker, and survive refresh. Highlight checks for
 updated values every two seconds while open; feed capture may still be delayed.
 The agent can read the same list with `pnpm analyst highlights` and focused values

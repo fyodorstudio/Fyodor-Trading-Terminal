@@ -7,7 +7,7 @@ import { policyEpisodeWindowMs } from '../../inspector/episodes/policy-episodes'
 import { groupInspectorReleases } from '../../inspector/releases/group-releases'
 import { inspectorFamilies } from '../../inspector/catalog/inspector-families'
 import { alertCountdown, alertEpisodesFromReleases, alertCalendarScope } from '../model/alert-episodes'
-import { alertCurrencies, alertHorizons, readAlertPreferences, saveAlertPreferences, type AlertPreferences } from '../model/alert-preferences'
+import { alertCurrencies, alertHorizons, readAlertPreferences, saveAlertPreferences, readHighlightVisibility, saveHighlightVisibility, type AlertPreferences, type HighlightVisibility } from '../model/alert-preferences'
 import { AlertFiltersModal } from './AlertFiltersModal'
 import './alert-dock.css'
 import type { InspectorRelease } from '../../economic-calendar/releases/release'
@@ -23,6 +23,8 @@ export function AlertDock({ brokerId, timeDisplay, clockOffsetMs = 0, brokerOffs
   const [preferences, setPreferences] = useState(readAlertPreferences)
   const [highlight, setHighlight] = useState(() => { try { return localStorage.getItem('fyodor.alert.highlight-view.v1') === 'true' } catch { return false } })
   const changeHighlight = (value: boolean) => { setHighlight(value); try { localStorage.setItem('fyodor.alert.highlight-view.v1', String(value)) } catch { /* Keep the active tab for this session. */ } }
+  const [visibility, setVisibility] = useState(readHighlightVisibility)
+  const changeVisibility = (value: HighlightVisibility) => { setVisibility(value); saveHighlightVisibility(value) }
   const pins = useHighlights(highlight ? null : brokerId)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const closeFilters = useCallback(() => setFiltersOpen(false), [])
@@ -54,16 +56,30 @@ export function AlertDock({ brokerId, timeDisplay, clockOffsetMs = 0, brokerOffs
   const offline = !!storage.source && storage.source.publisher_status !== 'live'
   const message = !brokerId ? 'Alert needs calendar storage' : !families.length ? 'No families selected in Alert filters' : storage.loading ? 'Loading upcoming releases…' : null
   return <section className="alert-dock" aria-label="Alert">
-    <header className="alert-toolbar"><strong>Alert</strong>
-      <nav className="alert-currencies" aria-label="Alert currency"><button type="button" aria-pressed={highlight} onClick={() => changeHighlight(true)}>Highlight</button>
+    <header className="alert-header">
+      <div className="alert-toolbar">
+        <nav className="alert-collections" aria-label="Alert collection">
+          <button type="button" aria-pressed={!highlight} onClick={() => changeHighlight(false)}>Upcoming</button>
+          <button type="button" aria-pressed={highlight} onClick={() => changeHighlight(true)}>Highlight</button>
+        </nav>
+        {highlight && <nav className="highlight-views" aria-label="Highlight view">
+          <button type="button" aria-pressed={visibility === 'active'} onClick={() => changeVisibility('active')}>Active</button>
+          <button type="button" aria-pressed={visibility === 'archived'} onClick={() => changeVisibility('archived')}>Archive</button>
+          <button type="button" aria-pressed={visibility === 'limitations'} onClick={() => changeVisibility('limitations')}>Discovered Limitations</button>
+        </nav>}
+        <span className="alert-timezone">{timeDisplayLabel(timeDisplay)}</span>
+      </div>
+      <div className="alert-toolbar alert-filter-toolbar">
+      <nav className="alert-currencies" aria-label="Alert currency">
         {(['all', ...alertCurrencies] as const).map(currency => <button type="button" key={currency}
-        aria-pressed={!highlight && preferences.currency === currency} onClick={() => { changeHighlight(false); updatePreferences({ ...preferences, currency }) }}>{currency === 'all' ? 'All' : currency}</button>)}</nav>
-      {!highlight && <><label><select aria-label="Alert horizon" value={preferences.days} onChange={event => updatePreferences({ ...preferences, days: Number(event.target.value) as AlertPreferences['days'] })}>
+        aria-pressed={preferences.currency === currency} onClick={() => updatePreferences({ ...preferences, currency })}>{currency === 'all' ? 'All' : currency}</button>)}</nav>
+      {!highlight && <div className="alert-schedule-controls"><label><select aria-label="Alert horizon" value={preferences.days} onChange={event => updatePreferences({ ...preferences, days: Number(event.target.value) as AlertPreferences['days'] })}>
         {alertHorizons.map(days => <option key={days} value={days}>Next {days} days</option>)}
       </select></label>
-      <button type="button" onClick={() => setFiltersOpen(true)}>Filters</button></>}<span>{timeDisplayLabel(timeDisplay)}</span>
+      <button type="button" onClick={() => setFiltersOpen(true)}>Filters</button></div>}
+      </div>
     </header>
-    {highlight ? <HighlightList brokerId={brokerId} now={now} timeDisplay={timeDisplay} onPrepareResearch={onPrepareResearch} /> : message ? <p role="status">{message}</p> : <>
+    {highlight ? <HighlightList brokerId={brokerId} now={now} timeDisplay={timeDisplay} visibility={visibility} currency={preferences.currency} onPrepareResearch={onPrepareResearch} /> : message ? <p role="status">{message}</p> : <>
       {pins.error && <p role="status">{pins.error}</p>}
       {(storage.error || storage.collectorError || offline || partial) && <p className="alert-source-status" role="status">
         {storage.error ?? storage.collectorError ?? (offline ? 'Publisher offline · stored schedule may be stale' : 'Partial schedule coverage')}
