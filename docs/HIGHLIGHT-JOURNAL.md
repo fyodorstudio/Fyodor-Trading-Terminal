@@ -3,9 +3,11 @@
 Alert's existing bottom dock contains **Highlight → Active / Archive / Discovered Limitations**. Expand a
 card for a full-width reading panel. Its View selector contains Before release,
 After release, Sources and captured evidence, Research history (version count),
-Prompt preview (scope/stage) and Latest broker readings. The header keeps Research,
-scope, prompt stage, Copy Prompt and Archive/Restore together, wrapping on narrow
-screens. Text is read-only. Scope is explicit and does not follow chart changes.
+Prompt preview (scope/stage) and Latest broker readings. Header dates, countdowns,
+Research and Archive/Restore use aligned columns, with Scope at the far right.
+Scope selects the currency/pair's journal and prompt; it does not change the chart.
+In Prompt preview, prompt stage and Copy Prompt sit beside the View selector.
+The layout adapts to the dock's width. Text is read-only.
 Copy Prompt copies the latest tailored release request for that scope, prefixed
 with the occurrence ID, broker and verified UTC time. Without research it uses a
 generic verification request. Clipboard failures open the read-only Prompt preview.

@@ -39,19 +39,16 @@ const HighlightCard = memo(function HighlightCard({ item, now, timeDisplay, arch
         formatAppTimestamp(item.release_at, timeDisplay)}</time>
       <span className="alert-countdown">{item.archived_utc ? 'Archived' : next !== null ? `${state === 'Upcoming' ? '' : 'Next series · '}${alertCountdown(next, now, true)}` : state}</span>
     </button>
-    <div className="highlight-actions">{onPrepareResearch && releases[0] && <button type="button" onClick={() => onPrepareResearch({ ...releases[0],
+    <div className="highlight-actions"><div className="highlight-research-action">{onPrepareResearch && releases[0] && <button type="button" onClick={() => onPrepareResearch({ ...releases[0],
       label: item.label, events: item.events, releaseAt: item.release_at, serverTime: item.server_time ?? releases[0].serverTime, timingUncertain: item.release_at === null })}
-      aria-label={`Prepare research for highlighted ${item.currency} ${item.label}`}>Research</button>}
-      <label>Scope <select aria-label={`Research scope for ${item.label}`} value={scope} onChange={event => { setScope(event.target.value); setCopyStatus('') }}>
-        {scopes.map(value => <option key={value}>{value}</option>)}</select></label>
-      <select aria-label={`Prompt stage for ${item.label}`} value={promptPhase} onChange={event => { setPromptPhase(event.target.value as 'prepare' | 'after'); setCopyStatus('') }}>
-        <option value="prepare">Prepare before release</option><option value="after">Interpret after release</option></select>
-      <button type="button" onClick={() => void copyPrompt()}>Copy Prompt</button>
+      aria-label={`Prepare research for highlighted ${item.currency} ${item.label}`}>Research</button>}</div>
       <button type="button" disabled={busy} onClick={() => void (item.archived_utc ? restore(item.id) : archive(item.id))}
         aria-label={`${item.archived_utc ? 'Restore' : 'Archive'} highlight ${item.currency} ${item.label}`}>{item.archived_utc ? 'Restore' : 'Archive'}</button>
+      <label title="Choose which currency or pair's saved research and prompt to view. This does not change the chart.">Scope
+        <select aria-label={`Research scope for ${item.label}`} value={scope} onChange={event => { setScope(event.target.value); setCopyStatus('') }}>
+          {scopes.map(value => <option key={value}>{value}</option>)}</select></label>
     </div>
     </div>
-    {copyStatus && <p className="highlight-copy-status" role="status">{copyStatus}</p>}
     <div id={contentId} className="highlight-content" hidden={!expanded}>{expanded && <>
       <div className="highlight-view-toolbar"><label>View <select aria-label={`Journal view for ${item.label}`} value={view}
         onChange={event => setView(event.target.value as typeof view)}>
@@ -60,7 +57,13 @@ const HighlightCard = memo(function HighlightCard({ item, now, timeDisplay, arch
         <option value="prompt">Prompt preview · {scope} · {promptPhase === 'prepare' ? 'Before release' : 'After release'}</option>
         <option value="readings">Latest broker readings</option>
       </select></label>
-      {item.archived_utc && <span className="highlight-research-meta">Archived {item.archived_utc} · Readings preserved at archive time.</span>}</div>
+      {view === 'prompt' && <div className="highlight-prompt-actions">
+        <select aria-label={`Prompt stage for ${item.label}`} value={promptPhase} onChange={event => { setPromptPhase(event.target.value as 'prepare' | 'after'); setCopyStatus('') }}>
+          <option value="prepare">Prepare before release</option><option value="after">Interpret after release</option></select>
+        <button type="button" onClick={() => void copyPrompt()}>Copy Prompt</button>
+      </div>}</div>
+      {view === 'prompt' && copyStatus && <p className="highlight-copy-status" role="status">{copyStatus}</p>}
+      {item.archived_utc && <p className="highlight-research-meta">Archived {item.archived_utc} · Readings preserved at archive time.</p>}
       {view === 'prompt' ? <textarea readOnly value={prompt} aria-label={`Prompt for ${item.label} ${scope}`} /> :
         view === 'readings' ? <HighlightSeries item={item} timeDisplay={timeDisplay} /> : <HighlightJournal item={item} scope={scope} view={view} />}
     </>}</div>
