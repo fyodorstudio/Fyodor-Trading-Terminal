@@ -5,7 +5,7 @@ import { groupInspectorReleases } from '../../inspector/releases/group-releases'
 import { formatInspectorValue } from '../../inspector/readings/reading-values'
 import { InspectorReadingTime } from '../../inspector/InspectorReadingTime'
 import { alertCountdown } from '../model/alert-episodes'
-import { highlightState, highlightPrompt, type Highlight } from './highlight-model'
+import { highlightState, highlightPrompt, highlightAssessmentPrompt, type Highlight } from './highlight-model'
 import { useHighlights } from './useHighlights'
 import { majorForexPairs } from '../../economic-calendar/forex/pairs'
 import { HighlightJournal, type JournalView } from './HighlightJournal'
@@ -18,15 +18,16 @@ const HighlightCard = memo(function HighlightCard({ item, now, timeDisplay, arch
 }) {
   const [expanded, setExpanded] = useState(false)
   const contentId = useId()
-  const [view, setView] = useState<JournalView | 'prompt' | 'readings'>('before')
+  const [view, setView] = useState<JournalView | 'prompt' | 'readings' | 'assessment'>('before')
   const scopes = useMemo(() => [...new Set([item.currency, ...majorForexPairs.filter(pair => pair.includes(item.currency)), ...(item.journal ?? []).map(entry => entry.scope), ...(item.prompts ?? []).map(entry => entry.scope)])], [item.currency, item.journal, item.prompts])
   const [scope, setScope] = useState(() => item.prompts?.at(-1)?.scope ?? item.journal?.at(-1)?.scope ?? item.currency)
   const [promptPhase, setPromptPhase] = useState<'prepare' | 'after'>(() => item.prompts?.length && item.release_at !== null && item.release_at > now ? 'prepare' : 'after')
   const [copyStatus, setCopyStatus] = useState('')
   const prompt = useMemo(() => highlightPrompt(item, scope, promptPhase), [item, scope, promptPhase])
+  const assessmentPrompt = useMemo(() => highlightAssessmentPrompt(item, scope), [item, scope])
   async function copyPrompt() {
-    try { await navigator.clipboard.writeText(prompt); setCopyStatus('Prompt copied') }
-    catch { setCopyStatus('Clipboard unavailable. Copy the text from Prompt preview.'); setView('prompt'); setExpanded(true) }
+    try { await navigator.clipboard.writeText(selectedView === 'assessment' ? assessmentPrompt : prompt); setCopyStatus('Prompt copied') }
+    catch { setCopyStatus('Clipboard unavailable. Copy the text from the prompt preview.'); setView(selectedView === 'assessment' ? 'assessment' : 'prompt'); setExpanded(true) }
   }
   const releases = useMemo(() => groupInspectorReleases(item.events), [item.events])
   const state = highlightState(item, now)
@@ -34,7 +35,8 @@ const HighlightCard = memo(function HighlightCard({ item, now, timeDisplay, arch
   const next = future.length ? Math.min(...future.map(event => event.release_at!)) : null
   const historical = next === null && (state === 'Released' || Boolean(item.journal?.some(entry => entry.phase === 'after')
     && (item.release_at === null || item.release_at <= now)))
-  const selectedView = historical ? 'documentation' : view
+  const canAssess = !item.archived_utc && majorForexPairs.some(pair => pair === scope)
+  const selectedView = view === 'assessment' && canAssess ? 'assessment' : historical ? 'documentation' : view === 'assessment' ? 'before' : view
   const versions = (item.journal ?? []).filter(entry => entry.scope === scope).length
   return <article className="highlight-card" data-highlight-id={item.id}>
     <div className="highlight-header"><button type="button" className="highlight-toggle" aria-expanded={expanded} aria-controls={contentId}
@@ -57,19 +59,21 @@ const HighlightCard = memo(function HighlightCard({ item, now, timeDisplay, arch
       <div className="highlight-view-toolbar"><label>View <select aria-label={`Journal view for ${item.label}`} value={selectedView}
         onChange={event => setView(event.target.value as typeof view)}>
         <option value="documentation" disabled={!historical}>Research Documentation</option>
+        <option value="assessment" disabled={!canAssess}>Assess trade now · {scope}</option>
         <option value="before" disabled={historical}>Before release</option><option value="after" disabled={historical}>After release</option>
         <option value="sources" disabled={historical}>Sources and captured evidence</option><option value="history" disabled={historical}>Research history ({versions} versions)</option>
         <option value="prompt" disabled={historical}>Prompt preview · {scope} · {promptPhase === 'prepare' ? 'Before release' : 'After release'}</option>
         <option value="readings" disabled={historical}>Latest broker readings</option>
       </select></label>
-      {selectedView === 'prompt' && <div className="highlight-prompt-actions">
-        <select aria-label={`Prompt stage for ${item.label}`} value={promptPhase} onChange={event => { setPromptPhase(event.target.value as 'prepare' | 'after'); setCopyStatus('') }}>
+      {(selectedView === 'prompt' || selectedView === 'assessment') && <div className="highlight-prompt-actions">
+        {selectedView === 'prompt' && <select aria-label={`Prompt stage for ${item.label}`} value={promptPhase} onChange={event => { setPromptPhase(event.target.value as 'prepare' | 'after'); setCopyStatus('') }}>
           <option value="prepare">Prepare before release</option><option value="after">Interpret after release</option></select>
+        }
         <button type="button" onClick={() => void copyPrompt()}>Copy Prompt</button>
       </div>}</div>
-      {selectedView === 'prompt' && copyStatus && <p className="highlight-copy-status" role="status">{copyStatus}</p>}
+      {(selectedView === 'prompt' || selectedView === 'assessment') && copyStatus && <p className="highlight-copy-status" role="status">{copyStatus}</p>}
       {item.archived_utc && <p className="highlight-research-meta">Archived {item.archived_utc} · Readings preserved at archive time.</p>}
-      {selectedView === 'prompt' ? <textarea readOnly value={prompt} aria-label={`Prompt for ${item.label} ${scope}`} /> :
+      {selectedView === 'prompt' || selectedView === 'assessment' ? <textarea readOnly value={selectedView === 'assessment' ? assessmentPrompt : prompt} aria-label={`Prompt for ${item.label} ${scope}`} /> :
         selectedView === 'readings' ? <HighlightSeries item={item} timeDisplay={timeDisplay} /> : <HighlightJournal item={item} scope={scope} view={selectedView} />}
     </>}</div>
   </article>

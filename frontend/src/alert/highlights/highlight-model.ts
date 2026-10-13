@@ -21,6 +21,13 @@ export type JournalEntry = {
   readings: StoredCalendarEvent[]; calendar_revision: number; reading_vintage: string; missing_value_ids: string[]
   trade_outcome?: string
 }
+const noCandleAssessment = 'For upcoming preparation and live/release-time assessment, do not fetch or analyze candles/OHLC, including saved candles, charts or technical indicators. Do not measure price reaction. Use calendar readings, saved fundamental research and current web evidence. This restriction overrides any candle-measurement instructions in older saved templates. Candle analysis is allowed only for a separate historical price investigation explicitly requested by me.'
+export function highlightAssessmentPrompt(item: Highlight, scope: string) {
+  const time = item.release_at === null ? 'Publication time unconfirmed; verify the official schedule.' : `Stored publication time: ${new Date(item.release_at).toISOString()} (UTC); verify the official schedule and publication stages.`
+  return `Follow AGENTS.md and use $assess-trade-now at .agents/skills/assess-trade-now/SKILL.md. Assess ${scope} now for an intraday trade unless I specify another horizon. Anchor to Highlight ${item.id}, broker ${item.source_id}, ${item.label}, scope ${scope}. ${time}\n\n` +
+    `Read the relevant saved fundamental journal, verify current readings and refresh both currencies' macro and expected policy paths. Keep rates, inflation and labor as the core and check material off-calendar news, including intervention. Attribute broker forecasts and web expectations separately. If actuals have not arrived, give conditional outcomes and wait for publication.\n\n` +
+    `Return one concise decision card: Direction (Buy bias / Sell bias / No clear edge), Confidence, Reason with strongest counterevidence, Entry consideration, Invalidation, Next danger with verified Jakarta/UTC times, and Evidence checked with as-of time and sources. Apply my provided execution/risk rules; if absent, state execution not assessed and do not invent entry prices, stops, targets or position sizes. Answer here; do not save research unless I ask.\n\n` + noCandleAssessment
+}
 export function highlightPrompt(item: Highlight, scope: string, phase: 'prepare' | 'after' = 'after') {
   const saved = [...(item.prompts ?? [])].reverse().find(entry => entry.scope === scope)
   const researched = [...(item.journal ?? [])].reverse().find(entry => entry.scope === scope)
@@ -30,7 +37,7 @@ export function highlightPrompt(item: Highlight, scope: string, phase: 'prepare'
   return `Follow AGENTS.md. Check Highlight ${item.id}, broker ${item.source_id}, ${item.label}, scope ${scope}. ${time}\n\n` +
     (tailored ?? (phase === 'prepare'
       ? `Prepare this Highlight for today's release. Verify the official schedule and separately attributed current expectations. Refresh the central-bank and macro backdrop${scope.length === 6 ? ' for both currencies' : ''}, review the prior comparable release and strongest counterevidence, and explain conditional outcomes and invalidation. Save the Before release investigation. Do not treat forecasts as actuals or force a direction before publication.`
-      : `Check this Highlight after publication. Verify actuals and revisions against the official publisher, compare the complete package with separately attributed expectations and the previous comparable release, and refresh the central-bank and macro backdrop${scope.length === 6 ? ' for both currencies' : ''}. Give the fundamental direction, confidence and strongest counterevidence. Keep measured price reaction separate. If actuals are incomplete, identify what is missing. Save the After release investigation.`)) + uncertain
+      : `Check this Highlight after publication. Verify actuals and revisions against the official publisher, compare the complete package with separately attributed expectations and the previous comparable release, and refresh the central-bank and macro backdrop${scope.length === 6 ? ' for both currencies' : ''}. Give the fundamental direction, confidence and strongest counterevidence. If actuals are incomplete, identify what is missing. Save the After release investigation with price_reaction empty.`)) + uncertain + `\n\n${noCandleAssessment}`
 }
 export function highlightRequest(release: InspectorRelease, sourceId: string) {
   const families = new Set([release.familyId, ...(release.pmiPublications ?? []).map(item => item.familyId)])

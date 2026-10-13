@@ -114,6 +114,10 @@ reading snapshots and version history. **Copy Prompt** uses an explicit scope an
 the latest tailored request. Agents append research through the local CLI; pinning
 alone does not generate analysis. [Journal workflow](docs/HIGHLIGHT-JOURNAL.md)
 documents research input, archive/restore and upcoming candidate commands.
+Choose a pair in an active Highlight's Scope, then **Assess trade now → Copy Prompt**
+for a concise fundamental decision card. Live/pre-release assessment uses calendar,
+saved fundamental research and web evidence; candles are reserved for explicitly
+requested historical price investigations. The action copies instructions only.
 Copy Prompt offers preparation and after-release stages. Prompt-only records can
 be saved while research is deferred. **Discovered Limitations**, after Active and
 Archive, retains verified feed gaps and schedule/data disagreements with sources.

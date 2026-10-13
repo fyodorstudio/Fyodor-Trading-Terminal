@@ -12,6 +12,11 @@ Prompt preview (scope/stage) and Latest broker readings. Header dates, countdown
 Research and Archive/Restore use aligned columns, with Scope at the far right.
 Scope selects the currency/pair's journal and prompt; it does not change the chart.
 In Prompt preview, prompt stage and Copy Prompt sit beside the View selector.
+For an active Highlight, choose a pair in Scope, then **Assess trade now** in View
+and **Copy Prompt**. This remains available after publication and requests the
+assess-trade-now skill's concise fundamental decision card. It does not run an
+agent or place a trade. Currency-only scopes and archived cards disable this view.
+The preview is read-only; clipboard failures keep the text available to copy.
 The layout adapts to the dock's width. Text is read-only.
 Historical studies follow the initial 15 minutes, two-hour checkpoint, remaining
 trading day and next 3–5 trading sessions. Intraday extrema, reversals and giveback
@@ -21,6 +26,10 @@ off-calendar developments; later releases/stages get separate price baselines.
 Near-release and after-release prompts also request an after-entry news watchlist:
 verified Jakarta/UTC times, material events and outcomes that add volatility,
 challenge or invalidate the thesis. Fresh expectations wait until preparation.
+Upcoming preparation and live/release-time interpretation prohibit candle/OHLC
+fetching and analysis, including saved candles. Existing tailored Copy Prompts
+receive this restriction without rewriting their saved versions. Price research
+is reserved for explicitly requested historical price investigations.
 Published historical cards use **Research Documentation**, combining the saved
 investigation, sources, frozen readings and version history. Preparation views
 are greyed out there. An elapsed clock alone does not select this mode: verified
@@ -32,6 +41,13 @@ generic verification request. Clipboard failures open the read-only Prompt previ
 Choose **Prepare before release** for same-day/hour-before research, or **Interpret
 after release** once actuals arrive. Prompt templates are separate from journal
 research; saving a prompt never fills Before release with a pretend investigation.
+
+For a quick assessment outside a Highlight, ask: "Use $assess-trade-now to assess
+USDJPY now for an intraday trade, without candle analysis." The decision card
+reports direction, qualitative confidence, both currencies and counterevidence,
+entry consideration, invalidation, next danger and evidence timestamps/sources.
+Missing actuals mean conditional outcomes and waiting. Execution/risk rules must
+come from the user; the workflow does not invent price entries, stops or sizes.
 
 Archive replaces Unpin/Remove pin in Alert and Inspector. It preserves occurrence
 identity, journal files and an archive-time reading snapshot. Restore resumes live

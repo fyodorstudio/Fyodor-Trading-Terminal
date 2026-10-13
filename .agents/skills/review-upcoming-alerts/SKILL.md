@@ -61,9 +61,9 @@ events. Identify nearby releases that can overturn the setup and separate policy
 decisions, statements, projections and press conferences. A broad USD event may
 matter to several pairs; that does not make every cross a suitable trade.
 
-Prior OHLC may help assess initial versus sustained reaction or reversals, using
-saved evidence first. It is optional for a shortlist; do not fetch candles for
-every event or present past volatility as a promise of future volatility.
+Do not fetch or analyze candles/OHLC for upcoming shortlists or preparation,
+including saved price evidence. Reuse prior fundamental findings only. Candle
+analysis belongs to a separately requested historical price investigation.
 
 ## Deliver an actionable shortlist
 

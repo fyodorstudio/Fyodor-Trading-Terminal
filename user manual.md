@@ -243,9 +243,17 @@ Previous. Countdown updates each second; Highlight checks stored values every tw
 seconds while open. Released pins stay until you choose **Archive**; Restore returns them to Active.
 The source still needs to publish the actuals; pending/offline states remain visible.
 
+For a quick decision card, choose a pair in Scope and **Assess trade now → Copy
+Prompt** in an active Highlight's View selector. You can also ask: **“Use
+$assess-trade-now to assess AUDUSD now for an intraday trade, without candles.”**
+The agent verifies both currencies, actuals/expectations, intervening news and
+invalidation. Your own entry and risk rules remain necessary for execution.
+
 Ask a fresh agent: **“Read AGENTS.md and check my Highlight for AUDUSD. Prepare the
-next pinned release; after publication, compare actuals with expectations and the
-initial versus sustained price reaction.”** The agent uses `pnpm analyst highlights`
+next pinned release; after publication, compare actuals with expectations and
+update the fundamental direction. Do not fetch or analyze candles.”** The agent uses `pnpm analyst highlights`
 and focused `--summary` queries directly. Prepare the backdrop before the event,
 then request an update after publication. The agent answers in chat; keep your
 existing report notes and evidence for subsequent comparisons.
+Candle analysis, including saved OHLC, is reserved for historical price moves
+you explicitly ask to investigate.

@@ -38,8 +38,15 @@ folders live together under `Market Analyst Workflow/`.
   release reaction, following session, multiweek backdrop and upcoming scenarios.
   One currency alone does not establish measured strength against every other.
 - Read the brief first, query focused evidence, then check the broader release
-  index for overlooked developments. Use H1 for broad price history and short M1
-  windows for releases. Reuse saved candles. Do not dump the inventory or catalog.
+  index for overlooked developments. Only for explicitly requested historical
+  price investigations, use H1 for broad history and short M1 windows for releases;
+  reuse saved candles. Do not dump the inventory or catalog.
+- Upcoming preparation and live/release-time assessment must not fetch or analyze
+  candles/OHLC, including saved candles, charts or technical indicators. Use calendar
+  readings, saved fundamental research and current web evidence; skip prior price
+  reaction sections. Candle analysis is reserved for historical price investigations
+  explicitly requested by the user. For a quick pair/Highlight assessment use the
+  [assess-trade-now skill](.agents/skills/assess-trade-now/SKILL.md).
 - When the user refers to Highlight, start with `pnpm analyst highlights`; use
   its pinned ID, broker and timeline to identify the occurrence, then query its
   current readings with `--summary`. Recheck values after publication. Pins are
@@ -63,11 +70,12 @@ folders live together under `Market Analyst Workflow/`.
 - Verify release-day vintages: stored data can contain later revisions. Do not
   treat later minutes/data as information available at the event. Label
   retrospective evidence. Upcoming simulations use only their chosen as-of time.
-- Measure price from the complete pre-release candle; separate initial and
+- In requested historical price investigations, measure from the complete
+  pre-release candle; separate initial and
   sustained windows and call out reversals. OHLC cannot establish intrabar order,
   executable fills or a single headline's causal effect. Separate measured moves
   from plausible explanations and unresolved attribution.
-- Historical release studies use the first 15 minutes, through two hours, the
+- Requested historical price studies use the first 15 minutes, through two hours, the
   rest of the trading day and the next 3–5 trading sessions. Two hours is a
   checkpoint, not a conclusion. Use M1 initially, M15/M30 for the intraday path
   and H1 for follow-through; report extrema, giveback, baseline crossings and
@@ -110,7 +118,8 @@ folders live together under `Market Analyst Workflow/`.
   the research-as-of time, currency/pair scope, direction and confidence, backdrop,
   attributed expectations, strongest counterevidence and relevant prior release.
   After release, assess actuals, revisions and components against the preserved
-  expectations, then report initial and sustained price reactions separately.
+  expectations. Preparation and live interpretation omit price reaction; measure
+  it separately only for an explicitly requested historical price investigation.
 - Preserve append-only research versions, captured readings, release vintages
   and direct web/local evidence references. Corrections append a labelled update.
   Journal text is read-only in the UI and written through the agent interface;
