@@ -48,8 +48,8 @@ let rows = [row(cpi.events[0], 'USD', 'US', at), row(cpi.events[1], 'USD', 'US',
 function snapshot(sourceId, visibility = 'active') {
   return pins.filter(pin => pin.source_id === sourceId && (!!pin.archived_utc === (visibility === 'archived'))).map(pin => {
     const events = rows.filter(row => pin.value_ids.includes(row.value_id))
-    return { ...pin, events, release_at: Math.min(...events.map(row => row.release_at)),
-      server_time: Math.min(...events.map(row => row.server_time_seconds)), missing_value_ids: [] }
+    return JSON.parse(JSON.stringify({ ...pin, events, release_at: Math.min(...events.map(row => row.release_at)),
+      server_time: Math.min(...events.map(row => row.server_time_seconds)), missing_value_ids: [] }))
   }).sort((a, b) => a.release_at - b.release_at)
 }
 globalThis.fetch = async (url, options = {}) => {
@@ -136,6 +136,7 @@ try {
   assert.equal(first.querySelector('[aria-label^="Prompt stage"]'), null, 'Collapsed release rows keep prompt controls in the preview')
   await click(toggle)
   assert.ok(document.getElementById(toggle.getAttribute('aria-controls')), 'Disclosure identifies the expanded reading panel')
+  assert.equal(first.querySelector('option[value="documentation"]').disabled, true, 'Upcoming releases retain their preparation views')
   assert.match(first.querySelector('.highlight-content').textContent, /Before release.*USD supportive/s)
   assert.match(first.textContent, /Strongest counterevidence:.*Weak payrolls/s)
   assert.equal(first.querySelector('textarea'), null, 'Before release only renders the selected research section')
@@ -182,14 +183,24 @@ try {
   await poll()
   assert.equal(container.querySelectorAll('.highlight-card').length, 3, 'Publication never removes a pin')
   assert.equal(toggle.getAttribute('aria-expanded'), 'true', 'Arrival retains expansion state')
-  assert.equal(first.querySelector('[aria-label^="Journal view"]').value, 'readings', 'Arrival retains the selected view')
-  assert.match(first.textContent, /Released/); assert.match(first.textContent, /0.3%/); assert.match(first.textContent, /Revision 1/)
+  assert.equal(first.querySelector('[aria-label^="Journal view"]').value, 'documentation', 'Published historical releases use documentation')
+  assert.equal(first.querySelector('[aria-label^="Journal view"]').querySelectorAll('option:disabled').length, 6, 'Historical preparation views are greyed out')
+  assert.match(first.textContent, /Released/)
+  assert.match(first.querySelector('.highlight-journal').textContent, /Only pre-release research is saved/, 'Before research is not presented as verified post-release interpretation')
+  assert.equal(first.querySelector('.highlight-prompt-actions'), null)
+  pins[0].journal.push({ ...pins[0].journal.at(-1), id: 'research-after', phase: 'after', as_of_utc: new Date(now).toISOString(), saved_utc: new Date(now).toISOString(),
+    body: 'Verified release documentation.', readings: rows.filter(row => pins[0].value_ids.includes(row.value_id)).map(row => ({ ...row })) })
+  revision++; await poll()
+  assert.match(first.querySelector('.highlight-journal').textContent, /Verified release documentation/)
+  assert.match(first.querySelector('.highlight-journal').textContent, /Documentation history \(3 versions\)/)
+  assert.match(first.textContent, /0.3%/)
   await click(first.querySelector('[aria-label^="Prepare research"]'))
   assert.equal(prepared.events.length, 2, 'Research retains the whole highlighted release package after publication')
   assert.ok(prepared.events.every(event => event.actual === .3))
   rows = rows.map(row => row.value_id === pins[0].value_ids[0] ? { ...row, availability: 'not-returned-by-latest-query' } : row); revision++
   await poll()
   assert.match(first.textContent, /Readings unavailable/, 'Withdrawn observations never imply a complete verified release')
+  assert.equal(first.querySelector('[aria-label^="Journal view"]').value, 'documentation', 'Saved post-release documentation survives a feed withdrawal')
   rows = rows.map(row => ({ ...row, availability: 'observed' })); revision++
   rows = rows.map(row => row.event_id === '840050014' ? { ...row, release_at: at - day, server_time_seconds: (at-day)/1000 } : row); revision++
   await poll()
@@ -232,7 +243,7 @@ try {
   assert.equal(container.querySelectorAll('.highlight-card').length, 0)
   await click(button('Active'))
   assert.equal(container.querySelectorAll('.highlight-card').length, 3)
-  const researchCard = [...container.querySelectorAll('.highlight-card')].find(card => card.dataset.highlightId === pins[0].id)
+  const researchCard = [...container.querySelectorAll('.highlight-card')].find(card => card.dataset.highlightId === pins[1].id)
   clipboardFailure = true
   await click(researchCard.querySelector('.highlight-toggle'))
   await React.act(async () => { const select = researchCard.querySelector('[aria-label^="Journal view"]'); select.value = 'prompt'; select.dispatchEvent(new dom.Event('change', { bubbles: true })) })

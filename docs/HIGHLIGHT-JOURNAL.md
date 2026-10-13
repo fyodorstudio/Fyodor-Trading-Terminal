@@ -8,6 +8,11 @@ Research and Archive/Restore use aligned columns, with Scope at the far right.
 Scope selects the currency/pair's journal and prompt; it does not change the chart.
 In Prompt preview, prompt stage and Copy Prompt sit beside the View selector.
 The layout adapts to the dock's width. Text is read-only.
+Published historical cards use **Research Documentation**, combining the saved
+investigation, sources, frozen readings and version history. Preparation views
+are greyed out there. An elapsed clock alone does not select this mode: verified
+numeric publication or a past saved post-release study is required. Future
+cards retain the preparation workflow, including when archived early.
 Copy Prompt copies the latest tailored release request for that scope, prefixed
 with the occurrence ID, broker and verified UTC time. Without research it uses a
 generic verification request. Clipboard failures open the read-only Prompt preview.

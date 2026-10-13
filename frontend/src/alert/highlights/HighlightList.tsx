@@ -31,6 +31,9 @@ const HighlightCard = memo(function HighlightCard({ item, now, timeDisplay, arch
   const state = highlightState(item, now)
   const future = item.events.filter(event => event.release_at !== null && event.time_mode === 0 && event.release_at > now)
   const next = future.length ? Math.min(...future.map(event => event.release_at!)) : null
+  const historical = next === null && (state === 'Released' || Boolean(item.journal?.some(entry => entry.phase === 'after')
+    && (item.release_at === null || item.release_at <= now)))
+  const selectedView = historical ? 'documentation' : view
   const versions = (item.journal ?? []).filter(entry => entry.scope === scope).length
   return <article className="highlight-card" data-highlight-id={item.id}>
     <div className="highlight-header"><button type="button" className="highlight-toggle" aria-expanded={expanded} aria-controls={contentId}
@@ -50,22 +53,23 @@ const HighlightCard = memo(function HighlightCard({ item, now, timeDisplay, arch
     </div>
     </div>
     <div id={contentId} className="highlight-content" hidden={!expanded}>{expanded && <>
-      <div className="highlight-view-toolbar"><label>View <select aria-label={`Journal view for ${item.label}`} value={view}
+      <div className="highlight-view-toolbar"><label>View <select aria-label={`Journal view for ${item.label}`} value={selectedView}
         onChange={event => setView(event.target.value as typeof view)}>
-        <option value="before">Before release</option><option value="after">After release</option>
-        <option value="sources">Sources and captured evidence</option><option value="history">Research history ({versions} versions)</option>
-        <option value="prompt">Prompt preview · {scope} · {promptPhase === 'prepare' ? 'Before release' : 'After release'}</option>
-        <option value="readings">Latest broker readings</option>
+        <option value="documentation" disabled={!historical}>Research Documentation</option>
+        <option value="before" disabled={historical}>Before release</option><option value="after" disabled={historical}>After release</option>
+        <option value="sources" disabled={historical}>Sources and captured evidence</option><option value="history" disabled={historical}>Research history ({versions} versions)</option>
+        <option value="prompt" disabled={historical}>Prompt preview · {scope} · {promptPhase === 'prepare' ? 'Before release' : 'After release'}</option>
+        <option value="readings" disabled={historical}>Latest broker readings</option>
       </select></label>
-      {view === 'prompt' && <div className="highlight-prompt-actions">
+      {selectedView === 'prompt' && <div className="highlight-prompt-actions">
         <select aria-label={`Prompt stage for ${item.label}`} value={promptPhase} onChange={event => { setPromptPhase(event.target.value as 'prepare' | 'after'); setCopyStatus('') }}>
           <option value="prepare">Prepare before release</option><option value="after">Interpret after release</option></select>
         <button type="button" onClick={() => void copyPrompt()}>Copy Prompt</button>
       </div>}</div>
-      {view === 'prompt' && copyStatus && <p className="highlight-copy-status" role="status">{copyStatus}</p>}
+      {selectedView === 'prompt' && copyStatus && <p className="highlight-copy-status" role="status">{copyStatus}</p>}
       {item.archived_utc && <p className="highlight-research-meta">Archived {item.archived_utc} · Readings preserved at archive time.</p>}
-      {view === 'prompt' ? <textarea readOnly value={prompt} aria-label={`Prompt for ${item.label} ${scope}`} /> :
-        view === 'readings' ? <HighlightSeries item={item} timeDisplay={timeDisplay} /> : <HighlightJournal item={item} scope={scope} view={view} />}
+      {selectedView === 'prompt' ? <textarea readOnly value={prompt} aria-label={`Prompt for ${item.label} ${scope}`} /> :
+        selectedView === 'readings' ? <HighlightSeries item={item} timeDisplay={timeDisplay} /> : <HighlightJournal item={item} scope={scope} view={selectedView} />}
     </>}</div>
   </article>
 })

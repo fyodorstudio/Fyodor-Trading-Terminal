@@ -33,6 +33,7 @@
 .highlight-view-toolbar { margin-bottom: 10px; }
 .highlight-view-toolbar label { min-width: 0; flex-wrap: nowrap; }
 .highlight-view-toolbar select { width: 340px; min-width: 0; max-width: 100%; }
+.highlight-view-toolbar option:disabled { color: var(--text-muted); }
 .highlight-prompt-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .highlight-prompt-actions select { width: 160px; }
 .highlight-journal { line-height: 1.6; overflow-wrap: anywhere; }
