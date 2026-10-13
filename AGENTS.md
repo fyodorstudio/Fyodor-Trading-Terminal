@@ -47,6 +47,12 @@ folders live together under `Market Analyst Workflow/`.
   reaction sections. Candle analysis is reserved for historical price investigations
   explicitly requested by the user. For a quick pair/Highlight assessment use the
   [assess-trade-now skill](.agents/skills/assess-trade-now/SKILL.md).
+- Quick assessments follow that skill's focused evidence pass: reuse already
+  loaded instructions and dated fundamentals, query only the selected pair or
+  exact Highlight, batch independent checks and bound failed-source retries.
+  Include the mandatory Extreme-move risk row. A pending release does not by
+  itself force a general pair assessment to wait; explain the setup-specific
+  reason. Verify material gaps or disclose them without guessing.
 - When the user refers to Highlight, start with `pnpm analyst highlights`; use
   its pinned ID, broker and timeline to identify the occurrence, then query its
   current readings with `--summary`. Recheck values after publication. Pins are

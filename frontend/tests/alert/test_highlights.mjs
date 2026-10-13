@@ -167,6 +167,10 @@ try {
   assert.match(copiedPrompt, /Assess EURUSD now/)
   assert.match(copiedPrompt, /do not fetch or analyze candles\/OHLC, including saved candles/)
   assert.match(copiedPrompt, /execution not assessed/)
+  assert.match(copiedPrompt, /Extreme-move risk \(mandatory:/)
+  assert.match(copiedPrompt, /No clear edge does not imply no extreme-move risk/)
+  assert.match(copiedPrompt, /pending release alone does not force waiting/)
+  assert.match(copiedPrompt, /Verify material facts or disclose gaps/)
   assert.equal(first.querySelector('textarea').readOnly, true)
   clipboardFailure = true
   await click([...first.querySelectorAll('button')].find(button => button.textContent === 'Copy Prompt'))

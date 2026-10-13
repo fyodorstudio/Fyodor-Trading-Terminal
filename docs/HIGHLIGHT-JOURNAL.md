@@ -45,8 +45,15 @@ research; saving a prompt never fills Before release with a pretend investigatio
 For a quick assessment outside a Highlight, ask: "Use $assess-trade-now to assess
 USDJPY now for an intraday trade, without candle analysis." The decision card
 reports direction, qualitative confidence, both currencies and counterevidence,
-entry consideration, invalidation, next danger and evidence timestamps/sources.
-Missing actuals mean conditional outcomes and waiting. Execution/risk rules must
+mandatory **Extreme-move risk**, entry consideration, invalidation, next danger
+and evidence timestamps/sources. Shock risk identifies the catalyst, evidence
+status, affected direction and reassessment trigger, including incomplete checks;
+No clear edge does not mean no sudden-reversal risk. The fast workflow reuses
+loaded guidance and dated context, focuses pair/Highlight queries, batches checks
+and bounds failed-source retries while retaining verification. Its roughly
+one-minute target is not a latency promise. Missing release actuals require a
+conditional release interpretation; a pending event alone does not force a
+general pair assessment to wait. Execution/risk rules must
 come from the user; the workflow does not invent price entries, stops or sizes.
 
 Archive replaces Unpin/Remove pin in Alert and Inspector. It preserves occurrence
