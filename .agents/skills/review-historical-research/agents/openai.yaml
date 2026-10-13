@@ -1,0 +1,4 @@
+interface:
+  display_name: "Review Historical Research"
+  short_description: "Explain past forex moves, news and what was knowable"
+  default_prompt: "Use $review-historical-research to investigate my named historical Research Date Range report, inspect H1 or suitable H4 candles, and explain the move, intervening news and what was knowable before, at and after publication."

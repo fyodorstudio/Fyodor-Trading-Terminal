@@ -41,6 +41,11 @@ folders live together under `Market Analyst Workflow/`.
   index for overlooked developments. Only for explicitly requested historical
   price investigations, use H1 for broad history and short M1 windows for releases;
   reuse saved candles. Do not dump the inventory or catalog.
+- For a Research Date Range report or named historical price move, use the
+  [review-historical-research skill](.agents/skills/review-historical-research/SKILL.md).
+  A broad OHLC check is mandatory: H1 by default, or H4 when cheaper and adequate
+  for the question. Narrow windows only when timing needs them; H4 cannot establish
+  exact release reactions. Keep before/at/after information sets separate.
 - Upcoming preparation and live/release-time assessment must not fetch or analyze
   candles/OHLC, including saved candles, charts or technical indicators. Use calendar
   readings, saved fundamental research and current web evidence; skip prior price

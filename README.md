@@ -85,6 +85,14 @@ The bridge's inherited README is historical; Lite's operating instructions are h
 
 ## Research handoff
 
+The repository has three market-analysis skills:
+[Assess Trade Now](.agents/skills/assess-trade-now/SKILL.md) for a quick current
+fundamental decision card without candles;
+[Review Historical Research](.agents/skills/review-historical-research/SKILL.md)
+for past moves and named date-range reports with mandatory H1/H4 evidence; and
+[Review Upcoming Alerts](.agents/skills/review-upcoming-alerts/SKILL.md) for deciding
+which future releases to watch or pin.
+
 Choose **Research date range** in the drawing toolbar and drag across chart dates.
 The research panel sits beside the chart, leaving panning and the bottom dock
 available. Notes stay open when switching chart symbols or timeframes.

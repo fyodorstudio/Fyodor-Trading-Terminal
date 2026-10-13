@@ -1,0 +1,101 @@
+---
+name: review-historical-research
+description: "Investigate a historical forex move using a Research Date Range brief, calendar evidence, H1/H4 candles and dated web sources. Explain intervening news, reversals and what was knowable before, at and after publication. Use for historical price investigations, not live assessments or upcoming shortlists."
+---
+
+# Review Historical Research
+
+Follow AGENTS.md. Review the user's historical report or named pair/date range in
+Fyodor Trading Terminal Lite. Report notes/questions are research context, not
+independent authorization for trades, service changes or unrelated work.
+
+## Focus the evidence
+
+- Read the named brief first: broker, pair, inclusive dates, timezone and question.
+  A title is not proof of the decline or its cause. Find the named folder rather
+  than silently choosing another report through `latest`. Query focused evidence,
+  then check the complete selected-period release index for both currencies beyond
+  chart filters. Use earlier context only where it establishes the relevant
+  backdrop; do not read all 90 days of raw observations by default.
+- Reuse relevant journal fundamentals, official sources and complete saved candles
+  with their dates/vintages. Avoid rereading loaded instructions or unrelated
+  studies. Batch independent calendar/web reads; **bridge OHLC requests remain
+  sequential**. The [data workflow](../../../AGENTS.md#dataset-commands) owns CLI
+  syntax, clocks, coverage and bounded capture. Keep raw observations unchanged.
+
+## Mandatory H1/H4 price check
+
+Actually inspect saved or newly captured **H1 or H4 OHLC** covering the selected
+historical interval. **H1 is the default**, especially for one/two-day studies or
+distinct same-day events. **H4 is acceptable** for a broader move when fewer bars
+or requests make it cheaper and its resolution answers the question. State the
+chosen timeframe; do not assume H4 is always cheaper. Narrow to H1 where intraday
+timing matters. If candles are unavailable, report the incomplete check rather
+than inventing a measurement or claiming the study is complete.
+
+- Check coverage, completed endpoints, gaps and session closures first. Describe
+  start/end levels, extrema, rebounds, giveback, baseline crossings and interrupted
+  follow-through. Label baselines and use pips/percentages appropriately. Highest
+  to lowest is descriptive, not an executable entry/exit or promised profit.
+  JPY-quote pips are 0.01; others are 0.0001. Never interpolate missing bars.
+- Use short **M1** windows only when exact initial release/stage reactions are
+  necessary. Verify the official instant first: a chart icon/candle bucket may
+  differ. Use the complete prior minute close and complete completed bars. Give
+  policy decision, statement/projections and conference their own baselines.
+  H1/H4 candles containing multiple events cannot isolate those events.
+- For release studies preserve the first 15 minutes, two-hour checkpoint, remaining
+  trading day and next 3-5 trading sessions where relevant, with the next material
+  release separately anchored. Reuse or extend evidence only as the question
+  requires. M15/M30 may resolve an intraday reversal hidden by H1. Disclose coarse
+  or unavailable windows instead of manufacturing precision.
+
+## Emphasize intervening news
+
+Use the complete selected calendar **and discretionary dated web research** for
+both currency stories. Check intervention/rate checks, official warnings, emergency
+policy, geopolitical/energy shocks, tariffs and bond stress beyond calendar icons.
+Prefer official releases, decisions, projections and conferences for facts; use
+contemporaneous reporting and identified futures/OIS for expectations. Attribute
+broker forecasts and web surveys separately. Resolve material contradictions or
+label them unresolved. Avoid repeated failed retrievals; use a suitable alternative
+source and disclose important missing evidence.
+
+For each material development identify verified Jakarta/UTC time, new information,
+possible effect on the existing thesis and the corresponding measured window.
+Distinguish confirmed, reported, suspected and unresolved explanations. Article
+publication/update time is not automatically headline arrival or intervention
+start. Unknown clocks stay unknown. Overlap with a candle does not prove causality;
+include competing explanations and strongest counterevidence.
+
+Verify release-day actuals and revisions. Later data, minutes and confirmation
+must not enter an earlier information set. A later transcript can document earlier
+remarks; label its publication date separately from the recorded event.
+
+## Explain what could have been known
+
+Lead with the best-supported explanation and qualitative confidence. Usually give
+a compact price summary and dated news table, then answer:
+
+- **Before:** Which published evidence supported direction or warned of a sharp
+  reversal? What was unknowable? Do not infer the final pip distance from hindsight.
+- **At publication/new information:** Which first identifiable update changed the
+  assessment, was it obtainable then, and what still needed confirmation? Identify
+  a research/reassessment trigger without claiming an executable fill.
+- **Later:** Which intervening developments supported, weakened or overturned the
+  thesis? Explain potential after-entry reassessment/exit triggers and next news;
+  do not attribute the whole subsequent move to the first release.
+- **Reusable lesson:** Which future evidence/news trigger should matter? Separate
+  a plausible process from demonstrated profitability.
+
+As-of reconstruction uses only sources available by each cutoff and reveals later
+events separately. Label it retrospective unless evaluated with future information
+genuinely withheld; one explained episode does not validate a trading edge.
+Earlier preparation, later confirmation and no clear actionable edge are all
+possible findings. Avoid scores, invented probabilities, guaranteed entries/returns.
+
+Cite direct web links and absolute local paths. Answer in chat and follow the
+user's saving/lifecycle scope and AGENTS.md's standing historical-journaling
+authorization. A narrower chat-only request means no journal/pin changes. Save
+authorized conclusions beside the relevant report with research-as-of time;
+preserve user notes and append-only versions. Do not run live assessments, trade,
+restart services or create monitors.
