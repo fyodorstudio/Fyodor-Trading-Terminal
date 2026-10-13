@@ -67,6 +67,17 @@ folders live together under `Market Analyst Workflow/`.
   sustained windows and call out reversals. OHLC cannot establish intrabar order,
   executable fills or a single headline's causal effect. Separate measured moves
   from plausible explanations and unresolved attribution.
+- Historical release studies use the first 15 minutes, through two hours, the
+  rest of the trading day and the next 3–5 trading sessions. Two hours is a
+  checkpoint, not a conclusion. Use M1 initially, M15/M30 for the intraday path
+  and H1 for follow-through; report extrema, giveback, baseline crossings and
+  reversals at the available candle resolution. Keep gaps explicit.
+- Emphasize intervening news: use the Research Date Range brief and complete
+  calendar evidence, check both currencies beyond visible chart filters, and
+  browse dated reporting for material off-calendar developments. Name the time,
+  source, information and possible effect on the original thesis. Separate later
+  releases and policy stages using their own pre-release baseline; an overlapping
+  window or a news article's publication time does not establish causal timing.
 - Lead with strength/direction and confidence in words, or “mixed/no clear edge.”
   Explain the main mechanism simply: “Rates stay unchanged today, but the future
   looks higher than previously thought.” Avoid scores, invented probabilities or
@@ -75,6 +86,12 @@ folders live together under `Market Analyst Workflow/`.
   stronger/in-line/weaker or hike/hold/cut outcomes including guidance. Explain
   what supports/invalidates the view; refresh expectations near release and the
   other currency's backdrop before translating it into a pair view.
+- Near release and after publication, include an after-entry news watchlist:
+  verified times/stages in Jakarta and UTC, both currencies' material releases,
+  policy communications and off-calendar risks. Explain which outcomes merely
+  add volatility, challenge or invalidate the thesis, and what warrants
+  reassessment before/after that news. Defer fresh upcoming forecasts until the
+  requested preparation time; historical research is reusable dated context.
 - Cite direct web links beside claims and absolute local evidence paths. Answer
   in chat; save conclusions only when requested, beside the relevant report with
   a research-as-of time. Preserve user notes/evidence. No trades, account changes,
