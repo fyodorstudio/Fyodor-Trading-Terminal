@@ -1,3 +1,34 @@
+# Four market-analysis skills
+
+Open `C:\dev\Fyodor Trading Terminal Lite` and choose the skill for your question:
+
+| Skill | Use it for | Example prompt |
+|---|---|---|
+| [Assess Trade Now](.agents/skills/assess-trade-now/SKILL.md) | A current fundamental assessment: direction, confidence, counterevidence, extreme-move risk and next intervening news. One pair by default; all eight currencies only when requested. No candles. | `Use $assess-trade-now for USDJPY.` |
+| [One Minute Before Release](.agents/skills/one-minute-before-release/SKILL.md) | An active-chat countdown that reuses preparation, verifies the publication time, waits for fresh actuals and returns a release assessment. No candles. | `Use $one-minute-before-release for my US CPI Highlight, EURUSD only. Reuse our preparation.` |
+| [Review Historical Research](.agents/skills/review-historical-research/SKILL.md) | A past move or named Research Date Range report: H1 candles, or suitable H4, plus calendar and dated web evidence. Explain reversals, intervening news and what was knowable at the time. | `Use $review-historical-research for "USDJPY massive decline sep 24 2026".` |
+| [Review Upcoming Alerts](.agents/skills/review-upcoming-alerts/SKILL.md) | Choosing which future releases deserve attention or a Highlight pin. Recommendation does not automatically pin events or start monitoring. | `Use $review-upcoming-alerts across all eight currencies for the next 90 days. Recommend a focused shortlist.` |
+
+For broader preparation, say:
+
+> Use $assess-trade-now for 8 currencies ahead of US CPI. Explain the current evidence and meaning for each currency, strongest counterevidence and next material news.
+
+Near publication, continue in the **same chat**:
+
+> Use $one-minute-before-release for my US CPI Highlight. Reuse that preparation and compare USD against all seven counterparts. Identify the best-supported pair after fresh actuals arrive.
+
+The countdown name describes when to invoke it; it does not promise a response
+within one minute. If decisive actuals remain missing or conflicting, its default
+deadline is five minutes after publication. Another chat needs the preparation
+handoff or saved research. Preparation alone does not start a timer, and a passed
+release time does not prove numbers have arrived.
+
+**Highlight → Scope → View → Copy Prompt** supplies the exact occurrence, broker,
+time and selected pair. Paste it into the analyst chat; it does not run the agent
+or place a trade. Skills define the workflow; Copy Prompt supplies the event
+context. Ask explicitly to save new conclusions to the journal. Historical price
+investigations remain separate from live fundamental assessment.
+
 # What to tell market analyst agents
 
 Open `C:\dev\Fyodor Trading Terminal Lite` for a fresh session, then say:
@@ -12,7 +43,8 @@ Pair + event + date, with time/timezone when you’re pointing to a particular m
 
 For pinned releases:
 
-> Follow AGENTS.md. Check my Highlight for AUDUSD using calendar data, OHLC and web sources. Explain the backdrop and currency direction plainly.
+> Use $assess-trade-now for my AUDUSD Highlight. Follow AGENTS.md, verify current calendar readings and web evidence, and explain the fundamental direction, confidence, strongest counterevidence and next intervening news. No candles.
+
 # What to tick in Inspector and Alert
 
 ## Trade candidates

@@ -1,6 +1,6 @@
 ---
 name: review-upcoming-alerts
-description: "Review Fyodor Trading Terminal Lite's upcoming economic releases and recommend a focused Highlight shortlist using current macro evidence, central-bank concerns and market expectations. Use for deciding which releases to watch or pin across currencies or pairs, rather than interpreting one already-published release."
+description: "Review upcoming economic releases for a Highlight shortlist or a pair trade's fundamental exit/reassessment watchlist, using current macro evidence, central-bank concerns and expectations. Excludes candle analysis and release-time interpretation."
 ---
 
 # Review Upcoming Alerts
@@ -22,7 +22,9 @@ research scopes. Inspect focused `journal read` entries and `highlights --visibi
 all` when earlier/archived investigations matter. IDs identify exact broker
 occurrences; names alone do not distinguish monthly repeats.
 
-Use the requested horizon/pairs. If unspecified, scan the next 90 days across all
+For a pair trade's holding/exit question, use the focused mode below. For a
+standalone shortlist, use the requested horizon/pairs. If unspecified, scan the
+next 90 days across all
 eight currencies, concentrate near-term recommendations on the next few weeks,
 and maintain later major releases as a provisional watchlist. For example:
 
@@ -90,3 +92,24 @@ and release_prompt via `pnpm analyst prompt save`; keep journal research pending
 Record known schedule/data gaps using `limitations append`. The user can request
 the full investigation on release day or about an hour beforehand, then request
 post-release interpretation after actuals arrive. Do not infer recurring monitoring.
+
+## Pair trade: fundamental holding/exit watchlist
+
+When asked which upcoming news could disrupt an intended or existing trade,
+focus on its pair, buy/sell thesis and stated horizon. Reuse the assessment's
+fundamental context and research-as-of time, refreshing developments as needed.
+Scan at least the next seven calendar days for both currencies, extending through
+a longer requested holding horizon. Apply the
+[fundamental exit and reassessment guidance](../assess-trade-now/SKILL.md#fundamental-exit-and-reassessment-watchlist)
+only for this mode; do not default to 90 days/all currencies or produce a pin
+shortlist unless requested. Historical cutoffs exclude later information.
+
+Lead with the earliest material reassessment or closing consideration. For each
+material event, give verified Jakarta/UTC stages, the relevant macro mechanism,
+and which outcomes support, challenge or invalidate the trade's thesis. Separate
+volatility from a reason to consider reducing/closing before the event or after
+verified contrary information. Include unscheduled exceptional risks. Where
+complete checked coverage identifies no material scheduled threat, state that
+plainly with the checked window and remaining specific risks; incomplete coverage
+cannot support an all-clear. Keep technical entries, support/resistance, stops,
+targets and position sizing with the user. No trades or automatic monitoring.

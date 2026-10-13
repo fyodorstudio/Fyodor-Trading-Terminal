@@ -85,13 +85,23 @@ The bridge's inherited README is historical; Lite's operating instructions are h
 
 ## Research handoff
 
-The repository has three market-analysis skills:
+The repository has four market-analysis skills:
 [Assess Trade Now](.agents/skills/assess-trade-now/SKILL.md) for a quick current
-fundamental decision card without candles;
+fundamental decision card without candles, with eight-currency coverage only
+when requested;
+[One Minute Before Release](.agents/skills/one-minute-before-release/SKILL.md)
+for a bounded active-chat countdown using that prepared context and fresh actuals;
 [Review Historical Research](.agents/skills/review-historical-research/SKILL.md)
 for past moves and named date-range reports with mandatory H1/H4 evidence; and
 [Review Upcoming Alerts](.agents/skills/review-upcoming-alerts/SKILL.md) for deciding
 which future releases to watch or pin.
+
+For example, ask `Use $assess-trade-now for 8 currencies ahead of US CPI` to
+prepare, then in the same chat `Use $one-minute-before-release for the October 14
+US CPI Highlight; compare its currency with all seven counterparts using that
+preparation`. The countdown verifies the schedule and waits for actuals, stopping
+by default five minutes after publication if decisive data is missing. Neither
+skill promises exact response timing or starts background monitoring.
 
 Choose **Research date range** in the drawing toolbar and drag across chart dates.
 The research panel sits beside the chart, leaving panning and the bottom dock

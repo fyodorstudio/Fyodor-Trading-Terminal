@@ -53,8 +53,12 @@ folders live together under `Market Analyst Workflow/`.
   explicitly requested by the user. For a quick pair/Highlight assessment use the
   [assess-trade-now skill](.agents/skills/assess-trade-now/SKILL.md).
 - Quick assessments follow that skill's focused evidence pass: reuse already
-  loaded instructions and dated fundamentals, query only the selected pair or
-  exact Highlight, batch independent checks and bound failed-source retries.
+  loaded instructions and dated fundamentals, query only the requested pair or
+  exact Highlight (all eight currencies only on request), batch independent
+  checks and bound failed-source retries. For an explicit imminent-release wait,
+  use [one-minute-before-release](.agents/skills/one-minute-before-release/SKILL.md)
+  to reuse prepared context, verify the clock/schedule and await fresh actuals
+  within a stated deadline. No automatic timer is implied by preparation.
   Include the mandatory Extreme-move risk row. A pending release does not by
   itself force a general pair assessment to wait; explain the setup-specific
   reason. Verify material gaps or disclose them without guessing.
@@ -105,12 +109,19 @@ folders live together under `Market Analyst Workflow/`.
   stronger/in-line/weaker or hike/hold/cut outcomes including guidance. Explain
   what supports/invalidates the view; refresh expectations near release and the
   other currency's backdrop before translating it into a pair view.
-- Near release and after publication, include an after-entry news watchlist:
-  verified times/stages in Jakarta and UTC, both currencies' material releases,
-  policy communications and off-calendar risks. Explain which outcomes merely
-  add volatility, challenge or invalidate the thesis, and what warrants
-  reassessment before/after that news. Defer fresh upcoming forecasts until the
-  requested preparation time; historical research is reusable dated context.
+- Every pair assessment includes a fundamental holding/exit watchlist covering
+  at least the next seven calendar days from its as-of instant, or a longer
+  requested holding horizon. Verify both currencies' material news and policy
+  stages in Jakarta/UTC and check off-calendar risks. Explain what merely adds
+  volatility, challenges or invalidates the thesis, and when to consider reducing/
+  closing before news or reassessing/closing after verified contrary information.
+  Do not turn the scan horizon into a forecast or recommend closing before every
+  major release. If complete checked coverage finds no material scheduled threat,
+  say so with the window/source limits and remaining specific unscheduled risks;
+  disclose gaps instead of declaring an all-clear. Agents assess fundamentals
+  and macro only; technical entries/exits and risk management remain with the user.
+  Near release, reuse the prepared watchlist and refresh changes. Defer detailed
+  upcoming forecasts until preparation; historical research is dated context.
 - Cite direct web links beside claims and absolute local evidence paths. Answer
   in chat; save conclusions only when requested, beside the relevant report with
   a research-as-of time. Preserve user notes/evidence. No trades, account changes,

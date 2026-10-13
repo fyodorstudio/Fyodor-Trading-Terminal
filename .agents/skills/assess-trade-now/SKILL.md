@@ -1,6 +1,6 @@
 ---
 name: assess-trade-now
-description: "Quickly assess a selected forex pair or Highlight using current calendar readings, saved fundamental research and web evidence. Return a concise fundamental trade decision card before or after a release, or after unexpected news. Excludes candle analysis and historical price investigations."
+description: "Quickly assess a forex pair or Highlight using calendar, saved fundamentals and current web evidence; cover all eight currencies only when requested. Return a fundamental decision card or prepare context for a release countdown. Excludes candle analysis and historical price investigations."
 ---
 
 # Assess Trade Now
@@ -8,6 +8,10 @@ description: "Quickly assess a selected forex pair or Highlight using current ca
 Follow AGENTS.md and work in Fyodor Trading Terminal Lite. Assess the selected pair
 and requested horizon; use intraday only as a stated default if none is given.
 This is a current fundamental assessment, not an order or execution approval.
+Default to the requested pair/Highlight. Eight-currency coverage requires the
+user to request it; use the optional mode below. For an explicit request to wait
+for imminent publication, hand off to
+[One Minute Before Release](../one-minute-before-release/SKILL.md).
 
 ## Fast evidence pass
 
@@ -27,11 +31,12 @@ skip verification. Do not run a broad research project before answering.
   with its focused calendar and known relevant journal. Highlight index keys are
   `release_utc` and `research`; do not infer absent release times from nonexistent
   `release_at` fields. Read archived history only when it changes the assessment.
-- Query only the selected pair, relevant new releases and requested horizon.
-  For intraday, inspect today's/next trading session's release index and focused
-  readings for material updates; retain important next-day releases in Next
-  danger. Extend dates or pagination when necessary to cover a material event,
-  not to dump every series. Reuse known policy/data facts and verify their latest
+- Query only the requested scope and relevant releases. For intraday, inspect
+  today's/next trading session's readings for material updates, and scan both
+  currencies' upcoming release index for at least the next seven calendar days
+  for the exit/reassessment watchlist below. Extend through a longer requested
+  holding horizon. Extend dates or pagination to cover material events, not to
+  dump every series. Reuse known policy/data facts and verify their latest
   vintage or a subsequent update. Use existing CLI commands; custom scripts are
   optional only when they actually reduce output or repeat work.
 - Batch independent local reads and focused web searches. The first web pass
@@ -45,11 +50,16 @@ skip verification. Do not run a broad research project before answering.
   full evidence is unavailable. Contradictory evidence needs focused resolution;
   an unresolved fact that could change direction means lower confidence or no
   clear edge. Explain which checks remain incomplete.
+- Reuse the prior comparable release's fundamental findings when relevant to
+  the bank's concern or a changed policy path. Prepare this comparison ahead of
+  publication; past price behaviour is neither evidence of today's actuals nor
+  a fallback for inaccessible sources. Do not launch historical research here.
 - Stop when the card is supported: both currency stories, strongest
   counterevidence, exceptional-catalyst check, entry conditions/invalidation and
-  next danger with provenance. Extra searches are justified only by a material
-  gap, contradiction or newer information. Keep the final answer to the card and
-  at most one short clarification; no tools chronology or long source recap.
+  the seven-day exit/reassessment watchlist with provenance. Extra searches are
+  justified only by a material gap, contradiction or newer information. Keep the
+  final answer to the card, short material watchlist and at most one clarification;
+  no tools chronology or long source recap.
 
 ## Accuracy boundaries
 
@@ -62,7 +72,14 @@ skip verification. Do not run a broad research project before answering.
   and price-reaction addenda. The [journal workflow](../../../docs/HIGHLIGHT-JOURNAL.md)
   documents CLI commands; read it only when needed to resolve an unknown command.
 - Verify new actuals, revisions, components and policy guidance against official
-  releases. An elapsed clock does not establish publication. Keep missing actuals
+  releases where accessible. If official retrieval fails, use fresh broker
+  readings or accessible reliable reporting of this exact release, identifying
+  the source and any missing official confirmation. Check occurrence, reference
+  period, units, seasonal adjustment and headline/core definitions; capture time
+  alone does not prove freshness. Material conflicts remain unresolved until
+  checked. Do not insist on every minor component if the available package
+  supports the interpretation, but missing decisive components prevent a firm
+  verdict. An elapsed clock does not establish publication. Keep missing actuals
   explicit. For an unpublished-release interpretation, give conditional outcomes
   and wait for that release's actuals. For a general pair assessment, evaluate the
   evidence already available: an upcoming CPI or other event does not automatically
@@ -80,9 +97,105 @@ skip verification. Do not run a broad research project before answering.
 - Speed does not justify skipping verification. If a key fact is unavailable,
   respond with the limitation and wait/no clear edge rather than filling it in.
 
+## Eight currencies, only when requested
+
+Cover USD, EUR, GBP, JPY, CHF, CAD, AUD and NZD when the user explicitly says
+"for 8 currencies" or equivalent. This does not automatically start a timer,
+pin events, save research or expand to every pair.
+
+- Reuse dated fundamentals, refresh material policy/inflation/labor developments
+  and check exceptional news for every currency. Batch focused independent
+  checks; disclose missing coverage individually rather than implying all eight
+  are current. Thorough preparation may take longer than the pair-mode target.
+- Show a compact table: Currency / Current evidence and meaning / Confidence /
+  Strongest counterevidence or extreme-move risk / Next material news. Cite facts
+  beside the relevant row, with per-currency as-of times when freshness differs.
+  Use strengthening/weakening/mixed as fundamental descriptions, not measured
+  performance against every other currency; no numeric currency scores.
+- If an event is specified, interpret its currency once, then compare it with
+  the other seven using the prepared context. Consider the seven crosses that
+  contain that currency; do not produce 28 decision cards. Identify the
+  best-supported pair, an alternative if supported, and important conflicts.
+  Use the standard decision card for the leading candidate, or explain no clear
+  edge. Distinguish currency direction from buy/sell direction for the quoted pair.
+- Without a specified event, give the eight-currency overview and only the
+  clearest supported pair comparisons. Do not invent an event or force a trade.
+- Fundamental alignment does not predict pip distance or profit. Compare policy
+  surprises and expected paths, not just the absolute rate level. Include
+  commodity/risk-sentiment and intervention counterweights where material.
+
+## Context for the countdown skill
+
+For event preparation, retain a concise handoff in the conversation: exact
+Highlight/event identity, broker and reference period; verified publication
+instant and separate policy stages in UTC/Jakarta; preserved broker forecasts
+and separately attributed web expectations; both currencies' fundamentals (or
+all eight when requested), as-of times, counterevidence and exceptional risks;
+conditional outcomes, invalidation, next news and direct evidence references.
+Identify any gaps and the critical fields needed for a verdict. This may be
+the assessment itself; do not duplicate it in a second long report.
+
+The countdown reuses this evidence and checks only intervening developments and
+the new release package. It must not assume that a prepared bias is the verdict
+after publication. Context carries forward in the same conversation; another
+session needs this handoff or explicitly saved research. Save only on request.
+
+## Fundamental exit and reassessment watchlist
+
+Every pair assessment, including No clear edge, checks at least the next seven
+calendar days from its research-as-of instant for both currencies; use a longer
+requested holding horizon when given. Keep the directional horizon explicit:
+a seven-day news scan does not turn an intraday bias into a week-long forecast.
+Use only information public by a requested historical cutoff. Scan the complete
+pair release index, focus readings/research on material candidates, and verify
+major official schedules and stages beyond the broker feed. Complete pagination
+as needed; no need to investigate every minor reading or all eight currencies.
+Use this focused pass directly; the broader Review Upcoming Alerts shortlist is
+optional and must not automatically expand a pair assessment to 90 days.
+
+Return a short watchlist: verified Jakarta/UTC time or explicitly unverified
+hour, event/stage, why it matters to this particular buy/sell thesis, and the
+outcome that would support, challenge or invalidate it. Include material
+unscheduled risks separately with immediate reassessment triggers; do not assign
+them invented dates. Keep imminent policy stages visible. Reuse this watchlist
+near publication and refresh intervening changes rather than repeating the scan.
+
+Give a plain fundamental holding/exit consideration, with a reason:
+
+- Thesis remains supported: no fundamental closing trigger identified now.
+- Reassess before a named release; reassess after actuals/guidance if a specified
+  outcome would challenge or invalidate the thesis.
+- Consider reducing or closing before a named event when its unresolved outcome
+  could reset the core premise or a documented exceptional catalyst makes the
+  current conviction insufficient; explain why waiting for publication matters.
+- Consider closing/reassessing promptly when verified new information has already
+  invalidated the thesis; identify that information.
+
+Do not recommend closing before every high-impact release just because it may
+cause volatility. Distinguish volatility from a change in fundamental direction.
+Do not manufacture a closing deadline, holding period, future surprise or risk
+preference. Where holding through news depends on the user's risk tolerance,
+state the fundamental tradeoff without inventing their execution rules. Technical
+entries/exits, support/resistance, stops, targets and position sizing belong to
+the user; no candles or technical confirmation enter this workflow.
+
+If the current thesis remains supported and the checked seven-day window
+contains no material scheduled threat, say
+"No material scheduled threat to this thesis identified in the next seven days
+within the checked sources; no fundamental reason to close identified now."
+Add any specific unscheduled risk. Do not imply nothing can go wrong. If schedule
+or source coverage is incomplete, name the gap instead of issuing that all-clear.
+Give attributed forecasts only when available; farther-out events can be flagged
+with a refresh-near-release instruction, without a full advance forecast study.
+
 ## Decision card
 
-Return one compact table, normally with these rows:
+Lead with one sentence stating pair direction, confidence and the dominant
+reversal risk. Say whether that risk qualifies the bias, reduces conviction to
+No clear edge, or warrants waiting for specific evidence. Distinguish documented
+reversal risk from evidence that a reversal is becoming the base case, and name
+the new information that would change the verdict. Return one compact table,
+normally with these rows, followed by the short watchlist when needed:
 
 | Field | Required answer |
 | --- | --- |
@@ -92,7 +205,8 @@ Return one compact table, normally with these rows:
 | Extreme-move risk | Mandatory: documented exceptional catalyst, confirmed/reported/possible/unresolved status, affected direction and what evidence triggers immediate reassessment; disclose an incomplete check |
 | Entry consideration | Fundamental conditions supported, wait for specified evidence, or insufficient evidence; execution not assessed when the user's entry/risk rules are absent |
 | Invalidation | The evidence that would overturn the reasoning |
-| Next danger | Material upcoming news/stages for either currency, with verified Jakarta and UTC times, plus relevant unscheduled risks |
+| Holding / exit consideration | Whether the thesis still supports holding, what warrants considering closing/reducing before news, or what verified information would warrant closing/reassessment after news; fundamentals only |
+| Next danger | Earliest material threat from the at-least-seven-day watchlist for both currencies, with verified Jakarta and UTC stages; include unscheduled risks and disclose incomplete coverage |
 | Evidence checked | Research-as-of timestamp, data freshness/missing values and direct web/local sources |
 
 Always include Extreme-move risk, even with No clear edge. Distinguish routine
@@ -106,8 +220,9 @@ Do not predict an 800-pip move, assign an invented probability, or imply the ful
 historical high-to-low move was an achievable return.
 
 Do not invent a price entry, stop, target, position size, expected profit or win
-probability. Apply the user's existing execution/risk rules if provided and
-compatible with the no-candle restriction; otherwise state that they are absent.
+probability. Leave technical execution and risk management to the user; do not
+require technical rules to deliver the fundamental assessment. Use stated
+holding-through-news preferences when explaining the fundamental tradeoff.
 No clear edge and waiting are valid outcomes. Fundamental support alone does not
 establish an executable or profitable trade. Keep unsupported attribution explicit.
 
