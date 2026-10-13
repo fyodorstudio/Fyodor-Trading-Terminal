@@ -2,7 +2,9 @@ import { memo } from 'react'
 import { formatInspectorValue } from '../../inspector/readings/reading-values'
 import type { Highlight, JournalEntry } from './highlight-model'
 
-function Entry({ entry }: { entry: JournalEntry }) {
+export type JournalView = 'before' | 'after' | 'sources' | 'history'
+
+function Entry({ entry, includeEvidence = false }: { entry: JournalEntry; includeEvidence?: boolean }) {
   return <section className="highlight-journal-entry" data-journal-id={entry.id}>
     <p className="highlight-research-meta">{entry.scope} · Researched as of {entry.as_of_utc}
       {entry.correction_of && ` · Correction of ${entry.correction_of}`}</p>
@@ -11,7 +13,13 @@ function Entry({ entry }: { entry: JournalEntry }) {
     <p><strong>Strongest counterevidence:</strong> {entry.counterevidence}</p>
     {entry.price_reaction && <p><strong>Measured price reaction:</strong> {entry.price_reaction}</p>}
     {entry.trade_outcome && <p><strong>User-provided trade outcome:</strong> {entry.trade_outcome}</p>}
-    <details><summary>Sources and captured evidence</summary>
+    {includeEvidence && <details><summary>Sources and captured evidence</summary><Evidence entry={entry} /></details>}
+  </section>
+}
+
+function Evidence({ entry }: { entry: JournalEntry }) {
+  return <div className="highlight-journal-evidence">
+      <p className="highlight-research-meta">{entry.scope} · Researched as of {entry.as_of_utc}</p>
       {entry.expectations.length > 0 && <ul>{entry.expectations.map((expectation, index) => <li key={index}>
         <strong>{expectation.provider}</strong> · {expectation.as_of_utc}: {expectation.values}</li>)}</ul>}
       <ul>{entry.sources.map((source, index) => <li key={index}>
@@ -28,22 +36,24 @@ function Entry({ entry }: { entry: JournalEntry }) {
           {[event.actual, event.forecast, event.previous, event.revised_previous].map((value, index) => <td key={index}>{formatInspectorValue(value, event)}</td>)}
         </tr>)}</tbody></table></div>
       {entry.missing_value_ids.length > 0 && <p>Missing readings: {entry.missing_value_ids.join(', ')}</p>}
-    </details>
-  </section>
+  </div>
 }
 
-export const HighlightJournal = memo(function HighlightJournal({ item, scope }: { item: Highlight; scope: string }) {
+export const HighlightJournal = memo(function HighlightJournal({ item, scope, view }: { item: Highlight; scope: string; view: JournalView }) {
   const entries = (item.journal ?? []).filter(entry => entry.scope === scope)
   const latest = (phase: 'before' | 'after') => [...entries].reverse().find(entry => entry.phase === phase)
   return <div className="highlight-journal" aria-label={`${scope} fundamental research journal`}>
-    {(['before', 'after'] as const).map(phase => <section key={phase}>
+    {view === 'before' || view === 'after' ? <section>
+      <h4>{view === 'before' ? 'Before release' : 'After release'}</h4>
+      {latest(view) ? <Entry entry={latest(view)!} /> : <p className="highlight-research-meta">
+        {view === 'before' ? 'No saved research for this scope.' : 'No saved interpretation. Release readings and research must be verified.'}</p>}
+    </section> : view === 'sources' ? (['before', 'after'] as const).map(phase => <section key={phase}>
       <h4>{phase === 'before' ? 'Before release' : 'After release'}</h4>
-      {latest(phase) ? <Entry entry={latest(phase)!} /> : <p className="highlight-research-meta">
-        {phase === 'before' ? 'No saved research for this scope.' : 'No saved interpretation. Release readings and research must be verified.'}</p>}
-    </section>)}
-    {entries.length > 0 && <details><summary>Research history ({entries.length} versions)</summary>
+      {latest(phase) ? <Evidence entry={latest(phase)!} /> : <p className="highlight-research-meta">No saved evidence for this phase and scope.</p>}
+    </section>) : <section><h4>Research history ({entries.length} versions)</h4>
+      {!entries.length && <p className="highlight-research-meta">No saved research versions for this scope.</p>}
       {[...entries].reverse().map(entry => <details key={entry.id}><summary>{entry.phase === 'before' ? 'Before' : 'After'} release · {entry.as_of_utc}</summary>
-        <Entry entry={entry} /></details>)}
-    </details>}
+        <Entry entry={entry} includeEvidence /></details>)}
+    </section>}
   </div>
 })

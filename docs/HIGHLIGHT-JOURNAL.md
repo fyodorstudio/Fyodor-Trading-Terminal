@@ -1,11 +1,14 @@
 # Highlight research journal
 
 Alert's existing bottom dock contains **Highlight → Active / Archive / Discovered Limitations**. Expand a
-card for Before release, After release, sources, captured readings and research
-history. Text is read-only. Scope is explicit and does not follow chart changes.
+card for a full-width reading panel. Its View selector contains Before release,
+After release, Sources and captured evidence, Research history (version count),
+Prompt preview (scope/stage) and Latest broker readings. The header keeps Research,
+scope, prompt stage, Copy Prompt and Archive/Restore together, wrapping on narrow
+screens. Text is read-only. Scope is explicit and does not follow chart changes.
 Copy Prompt copies the latest tailored release request for that scope, prefixed
 with the occurrence ID, broker and verified UTC time. Without research it uses a
-generic verification request. Clipboard failures expose a read-only preview.
+generic verification request. Clipboard failures open the read-only Prompt preview.
 Choose **Prepare before release** for same-day/hour-before research, or **Interpret
 after release** once actuals arrive. Prompt templates are separate from journal
 research; saving a prompt never fills Before release with a pretend investigation.
