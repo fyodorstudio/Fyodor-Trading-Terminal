@@ -102,6 +102,11 @@ folders live together under `Market Analyst Workflow/`.
   identity, broker, timing, research versions and evidence; support restoration.
   Keep fundamental interpretation, price reaction and any user-provided trade
   outcome separate. Do not infer account access or trading authorization.
+- Standing user authorization for requested historical-release studies: pin
+  relevant available past occurrences, save their sourced investigation and
+  archive them. Keep the upcoming shortlist active. Read archived findings and
+  reuse complete saved candles before repeating research; refresh dated
+  expectations, revisions or unresolved evidence when the new question needs it.
 - Copy Prompt identifies the exact Highlight occurrence, broker, time/timezone,
   chosen currency/pair and relevant prior investigation. It requests fresh evidence
   and separates fundamental direction from price reaction. An elapsed release
