@@ -13,6 +13,28 @@ user to request it; use the optional mode below. For an explicit request to wait
 for imminent publication, hand off to
 [One Minute Before Release](../one-minute-before-release/SKILL.md).
 
+## User defaults and short invocations
+
+- Show all user-facing dates, alarms, countdown targets and as-of times in
+  **Asia/Jakarta, AM/PM only**. State Jakarta once; omit UTC, broker clocks and
+  other timezones from the answer unless requested. Retain exact UTC instants
+  internally for queries, conversions, deadlines and stored evidence. Date-only
+  events stay date-only, and unverified hours stay unverified.
+- An invocation plus event/date is sufficient. Resolve the occurrence, pair,
+  candidate list and previously requested comparison scope from the conversation;
+  state an assumption briefly rather than requiring a long prompt. An event-only
+  request with no prepared pair/scope gives currency preparation; it does not
+  silently expand to all eight. Ask only when ambiguity materially changes the work.
+- "Choose the best-supported pair after [event]" requests comparison among the
+  major pairs containing that event's currency. A user-specified candidate list
+  narrows that comparison. Carry this scope into the countdown; do not make the
+  user repeat it. Before publication give conditional candidates; choose the
+  release-supported pair only after verified actuals and intervening news.
+- Keep the assessment entirely fundamental. Treat the user's resistance,
+  support, trend or chart comments as their execution context, not independent
+  confirmation or a reason to raise confidence. Do not inspect attached candles
+  or force the macro verdict to agree with the user's technical view.
+
 ## Fast evidence pass
 
 Aim to deliver the first complete decision card in about a minute when evidence
@@ -106,8 +128,9 @@ skip verification. Do not run a broad research project before answering.
 ## Eight currencies, only when requested
 
 Cover USD, EUR, GBP, JPY, CHF, CAD, AUD and NZD when the user explicitly says
-"for 8 currencies" or equivalent. This does not automatically start a timer,
-pin events, save research or expand to every pair.
+"for 8 currencies" or requests unrestricted best-event-pair selection. An
+explicit candidate list uses only those currencies and pairs. Neither mode
+automatically starts a timer, pins events, saves research or expands to every pair.
 
 - Reuse dated fundamentals, refresh material policy/inflation/labor developments
   and check exceptional news for every currency. Batch focused independent
@@ -124,6 +147,23 @@ pin events, save research or expand to every pair.
   best-supported pair, an alternative if supported, and important conflicts.
   Use the standard decision card for the leading candidate, or explain no clear
   edge. Distinguish currency direction from buy/sell direction for the quoted pair.
+- Lead event preparation with a short conditional shortlist: stronger-than-
+  expected package → [pair/direction]; weaker → [pair/direction]; in line →
+  [remaining backdrop lean or unresolved edge]. Different outcomes can favour
+  different counterparts. Do not hard-code today's pairs or numeric thresholds
+  into future assessments. After publication give one leading pair, confidence,
+  why it outranks the alternative and its main reversal risk; do not repeat the
+  full overview unless material changes warrant it or the user requests it.
+- Prefer opposing fundamental pressures when supported, but judge changes
+  relative to priced expectations. Two strengthening currencies need not cancel:
+  their expected policy paths and relevant shocks can change by different amounts.
+  Avoid choosing from absolute rates, past performance or "momentum" alone.
+- Distinguish **best-supported direction** from **potential volatility**. When
+  asked for the biggest move, name plausible catalyst-sensitive candidates and
+  explain rates, risk sentiment, commodities or intervention channels. Label
+  qualitative rankings as inference and disclose missing current implied-volatility
+  evidence. Do not claim the highest volatility, pip distance or profitability
+  from macro alignment; never add candle analysis to make that ranking.
 - Without a specified event, give the eight-currency overview and only the
   clearest supported pair comparisons. Do not invent an event or force a trade.
 - Fundamental alignment does not predict pip distance or profit. Compare policy
@@ -134,7 +174,7 @@ pin events, save research or expand to every pair.
 
 For event preparation, retain a concise handoff in the conversation: exact
 Highlight/event identity, broker and reference period; verified publication
-instant and separate policy stages in UTC/Jakarta; preserved broker forecasts
+instant and separate policy stages (UTC internally, Jakarta AM/PM in chat); preserved broker forecasts
 and separately attributed web expectations; both currencies' fundamentals (or
 all eight when requested), as-of times, counterevidence and exceptional risks;
 conditional outcomes, invalidation, next news and direct evidence references.
@@ -159,7 +199,7 @@ as needed; no need to investigate every minor reading or all eight currencies.
 Use this focused pass directly; the broader Review Upcoming Alerts shortlist is
 optional and must not automatically expand a pair assessment to 90 days.
 
-Return a short watchlist: verified Jakarta/UTC time or explicitly unverified
+Return a short watchlist: verified Jakarta AM/PM time or explicitly unverified
 hour, event/stage, why it matters to this particular buy/sell thesis, and the
 outcome that would support, challenge or invalidate it. Include material
 unscheduled risks separately with immediate reassessment triggers; do not assign
@@ -207,7 +247,7 @@ a confirmed release verdict because the user prefers a direction.
 
 When the bias is weak, entry evidence is insufficient, or waiting is appropriate,
 name the next best-supported reassessment opportunity from the seven-day scan.
-Give the event, pair, verified release date/time in Jakarta and UTC, and a
+Give the event, pair, verified release date/time in Jakarta AM/PM, and a
 suggested preparation time (normally ten minutes before, earlier for missing
 context). Explain which outcomes could strengthen, reverse or establish the
 direction. Say "Return at [time] before [event] for a fresh assessment," rather
@@ -236,8 +276,8 @@ normally with these rows, followed by the short watchlist when needed:
 | Entry consideration | Fundamental conditions supported, wait for specified evidence, or insufficient evidence; execution not assessed when the user's entry/risk rules are absent |
 | Invalidation | The evidence that would overturn the reasoning |
 | Holding / exit consideration | Whether the thesis still supports holding, what warrants considering closing/reducing before news, or what verified information would warrant closing/reassessment after news; fundamentals only |
-| Next danger | Earliest material threat from the at-least-seven-day watchlist for both currencies, with verified Jakarta and UTC stages; include unscheduled risks and disclose incomplete coverage |
-| Next opportunity | When the present evidence is weak or waiting is appropriate: next material event, suggested return/preparation time, verified Jakarta/UTC release time and what could produce a clearer fundamental direction |
+| Next danger | Earliest material threat from the at-least-seven-day watchlist for both currencies, with verified Jakarta AM/PM stages; include unscheduled risks and disclose incomplete coverage |
+| Next opportunity | When the present evidence is weak or waiting is appropriate: next material event, suggested return/preparation time, verified Jakarta AM/PM release time and what could produce a clearer fundamental direction |
 | Evidence checked | Research-as-of timestamp, data freshness/missing values and direct web/local sources |
 
 Always include Extreme-move risk, even with No clear edge. Distinguish routine

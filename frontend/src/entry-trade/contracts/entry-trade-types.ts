@@ -6,18 +6,25 @@ export type RegisteredTradeArrow = {
   symbol: string
   time: number // candle bar time in seconds
   direction: TradeDirection
+  eventAt?: string | null // UTC event anchor, independent of the chart arrow
+  eventTitle?: string
+  archived?: boolean
+  targetRr?: number | null
   precision?: number
-  entryPrice: number
-  tpPrice: number
-  slPrice: number
-  tpPips: number
-  slPips: number
-  rrRatio: number
+  entryPrice: number | null
+  tpPrice: number | null
+  slPrice: number | null
+  tpPips: number | null
+  slPips: number | null
+  rrRatio: number | null
   note: string
   createdAt: number
 }
 
 export type PlannedTradeState = {
+  eventAt?: string | null
+  eventTitle?: string
+  arrowTime?: number // independent chart-clock seconds; 0 is unset
   targetRr?: number | null
   direction: TradeDirection
   entryPrice: number | null

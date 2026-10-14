@@ -2,6 +2,9 @@ import type { SymbolQuote } from '../../market-data/contracts/SymbolQuote'
 import { type PlannedTradeState, type RegisteredTradeArrow } from '../contracts/entry-trade-types'
 
 export type EntryTradePanelProps = {
+  saveStatus?: string
+  onArchiveArrow?: (id: string, archived: boolean) => void
+  importError?: string | null
   selectedSymbol: string
   quote: SymbolQuote | null
   quotes: SymbolQuote[]
@@ -14,5 +17,5 @@ export type EntryTradePanelProps = {
   onRegisterArrow: (arrow: Omit<RegisteredTradeArrow, 'id' | 'createdAt'>) => void
   onDeleteArrow: (id: string) => void
   onUpdateArrow: (id: string, changes: Partial<Pick<RegisteredTradeArrow,
-    'note' | 'time' | 'direction' | 'entryPrice' | 'tpPrice' | 'slPrice' | 'tpPips' | 'slPips' | 'rrRatio'>>) => void
+    'note' | 'time' | 'direction' | 'entryPrice' | 'tpPrice' | 'slPrice' | 'tpPips' | 'slPips' | 'rrRatio' | 'archived' | 'targetRr' | 'eventAt' | 'eventTitle'>>) => void
 }

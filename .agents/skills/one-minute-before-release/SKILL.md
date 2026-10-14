@@ -15,13 +15,19 @@ Do not start a wait merely because a general assessment mentions upcoming news.
 ## Reuse preparation
 
 Resolve the requested occurrence, broker, reference period and pair from the
-prompt and prior assessment. Carry forward its sources, policy concerns,
+prompt and prior assessment; an invocation plus event/date is sufficient when
+that context resolves the scope. Inherit the Jakarta AM/PM-only presentation
+default; use UTC internally, without displaying additional timezones.
+Carry forward its sources, policy concerns,
 separately attributed forecasts, conditional scenarios, counterevidence,
 extreme-move risks and the prepared at-least-seven-day fundamental exit/
 reassessment watchlist. Keep their as-of times and refresh schedule changes.
 Retain eight-currency context if available, but compare all seven counterparts
-only when the user has requested that scope for this event; otherwise assess
-the requested pair. Do not repeat comprehensive research near publication.
+only when the user has requested that scope or best-event-pair selection;
+otherwise assess the requested pair or candidate list. A subsequently narrowed
+candidate list takes precedence. Remember the conditional shortlist and why
+each counterpart was selected; fresh actuals can change the winner. Do not repeat
+comprehensive research near publication.
 
 If preparation is missing or stale, refresh only decisive gaps. Say when the
 coverage cannot be completed before publication; do not claim a full eight-
@@ -32,7 +38,8 @@ cannot be selected merely because another currency's release is clear.
 
 - Verify the exact publication instant against the official schedule, reusing
   already verified evidence when still applicable. Separate decision, statement,
-  projections and press conference stages. Show the target in UTC and Jakarta.
+  projections and press conference stages. Show the target in Jakarta AM/PM;
+  retain the verified UTC instant internally.
   A date-only or unresolved conflicting schedule cannot support a precise timer.
 - Read the available clock tool's current UTC time and calculate remaining time
   from that verified instant, rather than reusing an old countdown. Resolve any
@@ -90,14 +97,21 @@ Assess Trade Now's direction and next-opportunity guidance. An in-line package
 can retain a weak backdrop lean without creating a new release signal. Return the Assess Trade Now
 decision card, including Extreme-move risk, strongest counterevidence, missing
 confirmation, invalidation, fundamental holding/exit consideration and the next
-verified Jakarta/UTC news that could challenge the thesis. Reuse the prepared
+verified Jakarta AM/PM news that could challenge the thesis. Reuse the prepared
 seven-day watchlist; disclose missing coverage rather than delaying the release
 verdict for a new broad review. If the verdict is weak, entry evidence is insufficient,
 or actuals remain missing, reuse the prepared next opportunity: name the event,
-verified Jakarta/UTC release time, suggested return time and conditional outcomes.
+verified Jakarta AM/PM release time, suggested return time and conditional outcomes.
 Do not finish with a bare Wait/No clear edge or promise a bigger move. In requested eight-currency mode, use the prepared overview
 to choose the best-supported counterpart, disclose stale/incomplete coverage,
 and give only one leading card plus a brief alternative/conflict comparison.
+For best-pair selection, lead with "[Pair]: [buy/sell] bias, [confidence], because
+[relative fundamental reason]; main reversal risk: [risk]." Compare against the
+prepared expectations, not simply whether inflation increased. Separate any
+potential-volatility inference from this direction verdict. User-provided
+technical alignment does not strengthen the fundamental evidence or preselect
+the winning pair. Do not promise a verdict at the exact publication second;
+state whether actuals are verified, provisional or still missing.
 
 If decisive evidence remains unavailable at the deadline, report wait/no clear
 edge, exactly what is missing/conflicting, last check time and what would allow

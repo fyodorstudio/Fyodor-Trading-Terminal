@@ -119,7 +119,7 @@ export function TerminalWorkspace() {
           )}
           {bottomDockWindow === 'external-sources' && <ExternalSourcesDock key={externalSelection} timeDisplay={timeDisplay} symbol={activeSymbol} focusKey={selectedExternalKey} />}
           {bottomDockWindow === 'entry-trade' && <EntryTradePanel selectedSymbol={activeSymbol} quote={quote} quotes={marketData.symbols}
-            latestBarTime={latestBarTime} plan={plannedTrade} registeredArrows={registeredArrows.allArrows}
+            saveStatus={registeredArrows.saveStatus} onArchiveArrow={registeredArrows.archiveArrow} importError={registeredArrows.importError} latestBarTime={latestBarTime} plan={plannedTrade} registeredArrows={registeredArrows.allArrows}
             selectedArrowId={registeredArrows.selectedArrowId} onPlanChange={handlePlanChange}
             onSelectArrowId={selectPinnedArrow} onRegisterArrow={registeredArrows.addArrow}
             onDeleteArrow={registeredArrows.deleteArrow} onUpdateArrow={registeredArrows.updateArrow} />}

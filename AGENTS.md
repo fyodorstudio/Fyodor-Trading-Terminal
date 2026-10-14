@@ -4,8 +4,13 @@ Market Watch, chart/drawings, raw calendar Inspector, upcoming Alert, Activity a
 Settings, including agent-authored fundamental research journals and an archive
 under Highlight. Research is produced in the market-analyst session; the terminal
 may display saved research and provide occurrence-specific Copy Prompt actions.
-Entry Trade provides a manual execution planner, pinned arrows and one freeform
-journal box. No scoring, full Notebook workflow, Scatter Plot, Fundamental
+Entry Trade is a manual trade journal with editable incomplete entries,
+pinned arrows, sortable dates, archive/restore and one freeform journal box.
+Its entries and edit history persist in the Git-tracked
+`Market Analyst Workflow/entry-trade/journal.json`; preserve user technicals and
+notes. The UTC event anchor (`eventAt`/`eventTitle`) controls table dating; the
+chart-clock arrow time is independent and may be in future empty space. No
+completeness gate, trade execution or automatic Git commit is implied. No scoring, full Notebook workflow, Scatter Plot, Fundamental
 Settings, Roofs, Raycaster, Candy or Workspace backup UI belong here. Keep the copied bridge unchanged.
 
 Read only task-relevant owners. README.md covers commands/ownership;
@@ -127,7 +132,9 @@ folders live together under `Market Analyst Workflow/`.
 - Every pair assessment includes a fundamental holding/exit watchlist covering
   at least the next seven calendar days from its as-of instant, or a longer
   requested holding horizon. Verify both currencies' material news and policy
-  stages in Jakarta/UTC and check off-calendar risks. Explain what merely adds
+  stages and check off-calendar risks. Show user-facing times only in Asia/Jakarta
+  AM/PM unless requested otherwise; retain UTC internally for evidence and clocks.
+  Explain what merely adds
   volatility, challenges or invalidates the thesis, and when to consider reducing/
   closing before news or reassessing/closing after verified contrary information.
   Do not turn the scan horizon into a forecast or recommend closing before every
@@ -139,7 +146,7 @@ folders live together under `Market Analyst Workflow/`.
   upcoming forecasts until preparation; historical research is dated context.
 - When a bias is weak, entry evidence insufficient, or waiting warranted, include
   a Next opportunity: the next material event that could establish, strengthen
-  or reverse the direction, its verified Jakarta/UTC release time, and a suggested
+  or reverse the direction, its verified Jakarta AM/PM release time, and a suggested
   return/preparation time, normally ten minutes before publication. Explain why
   its new information matters; do not promise a bigger move. Use the pair's
   seven-day scan, distinguish opportunity from exit risk, and state missing

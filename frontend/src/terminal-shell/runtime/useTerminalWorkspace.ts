@@ -23,7 +23,7 @@ import { getPipMultiplier, type PlannedTradeState, type RegisteredTradeArrow, ty
 import { tradeMetrics } from '../../entry-trade/dock/plan-math'
 import { useRegisteredArrows } from '../../entry-trade/storage/use-registered-arrows'
 
-const emptyTradePlan: PlannedTradeState = { direction: 'long', entryPrice: null, tpPrice: null, slPrice: null, showOnChart: false }
+const emptyTradePlan: PlannedTradeState = { direction: 'waiting', entryPrice: null, tpPrice: null, slPrice: null, showOnChart: false }
 
 export function useTerminalWorkspace() {
   const [selectedSymbol, setSelectedSymbol] = useState('EURUSD')
@@ -70,7 +70,7 @@ export function useTerminalWorkspace() {
     brokerOffsetSeconds: bridge.brokerOffsetSeconds })
   const quote = marketData.symbols.find((item) => item.symbol === activeSymbol) ?? null
   const latestBarTime = bars.at(-1)?.time ?? 0
-  const registeredArrows = useRegisteredArrows(activeSymbol)
+  const registeredArrows = useRegisteredArrows(activeSymbol, bottomDockWindow === 'entry-trade')
   const [tradePlans, setTradePlans] = useState<Record<string, PlannedTradeState>>({})
   const plannedTrade = tradePlans[activeSymbol] ?? emptyTradePlan
   const handlePlanChange = useCallback((plan: PlannedTradeState) => {
@@ -206,8 +206,6 @@ export function useTerminalWorkspace() {
     if (arrow) {
       const changed = { ...arrow, [field]: price }
       const metrics = tradeMetrics(changed, getPipMultiplier(arrow.symbol, arrow.precision ?? quote?.precision ?? 5))
-      if (metrics.tpPips == null || metrics.slPips == null || metrics.rrRatio == null
-        || ![metrics.tpPips, metrics.slPips, metrics.rrRatio].every(value => Number.isFinite(value) && value > 0)) return
       updateArrow(arrow.id, { [field]: price, tpPips: metrics.tpPips, slPips: metrics.slPips, rrRatio: metrics.rrRatio })
     } else handlePlanChange({ ...plannedTrade, [field]: price, targetRr: null })
   }, [registeredArrows.selectedArrow, updateArrow, quote?.precision, handlePlanChange, plannedTrade])

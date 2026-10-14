@@ -1,13 +1,14 @@
 import type { EntryTradePlanView } from './useEntryTradePlan'
+import { JournalTimeField } from './JournalTimeField'
 import { RR_PRESETS } from './plan-math'
 
 export function ExecutionPlanColumn({ view }: { view: EntryTradePlanView }) {
-  const { calculatedMetrics, canRegister, customRrInput, direction, entryPrice, handleCustomRrBlur, handleCustomRrChange, handleDirectionChange, handleEntryChange, handleRegisterClick, handleSlPipsChange, handleSlPriceChange, handleTargetRrChange, handleTpPipsChange, handleTpPriceChange, handleUseMarketPrice, levelSide, onDeleteArrow, onPlanChange, plan, precision, quote, regSuccessMsg, resetDraftPlanState, rrDropdownOpen, rrDropdownRef, selectedArrow, selectedSymbol, setRrDropdownOpen, slPrice, targetRr, tpPrice } = view
+  const { eventAt, eventTitle, arrowDate, dateError, handleEventTitleChange, handleEventDateChange, handleArrowDateChange, onArchiveArrow, calculatedMetrics, canRegister, customRrInput, direction, entryPrice, handleCustomRrBlur, handleCustomRrChange, handleDirectionChange, handleEntryChange, handleRegisterClick, handleSlPipsChange, handleSlPriceChange, handleTargetRrChange, handleTpPipsChange, handleTpPriceChange, handleUseMarketPrice, levelSide, onDeleteArrow, onPlanChange, plan, quote, regSuccessMsg, resetDraftPlanState, rrDropdownOpen, rrDropdownRef, selectedArrow, selectedSymbol, setRrDropdownOpen, slPrice, targetRr, tpPrice } = view
   return (
       <div className="entry-trade-col entry-trade-levels-col">
         <div className="entry-trade-col-header">
           <span className="entry-trade-eyebrow">
-            {selectedArrow ? 'Pinned Execution Plan' : 'Draft Execution Plan'}
+            {selectedArrow ? 'Trade Journal Entry' : 'New Journal Entry'}
           </span>
           {selectedArrow ? (
             <div className="selected-arrow-header-actions">
@@ -15,15 +16,19 @@ export function ExecutionPlanColumn({ view }: { view: EntryTradePlanView }) {
                 type="button"
                 className="new-draft-btn-compact"
                 onClick={resetDraftPlanState}
-                title="Return to drafting a new setup plan"
+                title="Create a new journal entry"
               >
-                + New Plan
+                + New Entry
               </button>
+              {onArchiveArrow && <button type="button" className="new-draft-btn-compact"
+                onClick={() => onArchiveArrow(selectedArrow.id, !selectedArrow.archived)}>
+                {selectedArrow.archived ? 'Restore' : 'Archive'}
+              </button>}
               <button
                 type="button"
                 className="delete-arrow-btn-compact"
                 onClick={() => onDeleteArrow(selectedArrow.id)}
-                title="Delete this registered setup arrow"
+                title="Delete this journal entry"
               >
                 Delete
               </button>
@@ -38,9 +43,9 @@ export function ExecutionPlanColumn({ view }: { view: EntryTradePlanView }) {
                     resetDraftPlanState()
                     onPlanChange({ ...plan, entryPrice: null, slPrice: null, tpPrice: null, targetRr: null })
                   }}
-                  title="Clear draft inputs and start a new plan"
+                  title="Clear inputs and start a new journal entry"
                 >
-                  + New Plan
+                  + New Entry
                 </button>
               </div>
             )
@@ -50,12 +55,12 @@ export function ExecutionPlanColumn({ view }: { view: EntryTradePlanView }) {
         {/* Symbol & Direction Segmented Switch */}
         <div className="entry-trade-symbol-strip">
           <strong className="entry-trade-symbol-title">{selectedSymbol}</strong>
-          <div className="direction-segmented" role="group" aria-label="Order direction">
+          <div className="direction-segmented" role="group" aria-label="Trade direction">
             <button
               type="button"
               className={`dir-seg-btn buy ${direction === 'long' ? 'active' : ''}`}
               onClick={() => handleDirectionChange('long')}
-              disabled={Boolean(selectedArrow) && levelSide !== 'long'}
+
             >
               LONG (BUY)
             </button>
@@ -63,13 +68,24 @@ export function ExecutionPlanColumn({ view }: { view: EntryTradePlanView }) {
               type="button"
               className={`dir-seg-btn sell ${direction === 'short' ? 'active' : ''}`}
               onClick={() => handleDirectionChange('short')}
-              disabled={Boolean(selectedArrow) && levelSide !== 'short'}
+
             >
               SHORT (SELL)
             </button>
             <button type="button" className={`dir-seg-btn waiting ${direction === 'waiting' ? 'active' : ''}`}
               onClick={() => handleDirectionChange('waiting')}>WAITING</button>
           </div>
+        </div>
+
+        <div className="journal-anchor-controls">
+          <label htmlFor="journal-event-title">Event anchor</label>
+          <input id="journal-event-title" type="text" maxLength={512} placeholder="Event name (optional)" value={eventTitle}
+            onChange={event => handleEventTitleChange(event.target.value)} />
+          <JournalTimeField id="journal-event" label="Event anchor" value={eventAt ? Date.parse(eventAt) : null} onChange={handleEventDateChange} />
+          <JournalTimeField id="journal-arrow" label="Arrow date" value={arrowDate} onChange={handleArrowDateChange} />
+          <button type="button" className="new-draft-btn-compact" disabled={!eventAt}
+            onClick={() => { if (eventAt) handleArrowDateChange(Date.parse(eventAt)) }}>Use event time for arrow</button>
+          {dateError && <span role="alert">{dateError}</span>}
         </div>
 
         {/* Aligned Execution Parameters Grid */}
@@ -85,20 +101,12 @@ export function ExecutionPlanColumn({ view }: { view: EntryTradePlanView }) {
                 placeholder="Entry Price"
                 value={entryPrice ?? ''}
                 onChange={(e) => handleEntryChange(e.target.value)}
-                readOnly={Boolean(selectedArrow)}
+
               />
-              {quote && !selectedArrow ? (
-                <button
-                  type="button"
-                  className="market-snap-btn"
-                  onClick={handleUseMarketPrice}
-                  title={direction === 'waiting' ? 'Use broker midpoint' : `Snap to broker ${direction === 'long' ? 'Ask' : 'Bid'} (${direction === 'long' ? quote.ask.toFixed(precision) : quote.bid.toFixed(precision)})`}
-                >
-                  Use Market
-                </button>
-              ) : (
-                <div className="param-aux-placeholder" />
-              )}
+              <button type="button" className="market-snap-btn" onClick={handleUseMarketPrice} disabled={!quote}
+                title={!quote ? 'Waiting for a broker quote' : direction === 'waiting' ? 'Use broker midpoint' : `Use broker ${direction === 'long' ? 'Ask' : 'Bid'}`}>
+                Use Market
+              </button>
             </div>
           </div>
 
@@ -133,13 +141,13 @@ export function ExecutionPlanColumn({ view }: { view: EntryTradePlanView }) {
                       e.currentTarget.blur()
                     }
                   }}
-                  readOnly={Boolean(selectedArrow)}
+
                   title="Target Reward-to-Risk multiplier"
                 />
                 <span className="rr-field-suffix" aria-hidden="true">R</span>
               </div>
 
-              {!selectedArrow ? (
+              {(
                 <div className="rr-selector-container" ref={rrDropdownRef}>
                   <button
                     type="button"
@@ -177,10 +185,6 @@ export function ExecutionPlanColumn({ view }: { view: EntryTradePlanView }) {
                     </div>
                   )}
                 </div>
-              ) : (
-                <div className="rr-locked-pill" title="Target R:R is locked while viewing a pinned setup">
-                  Locked
-                </div>
               )}
             </div>
           </div>
@@ -196,7 +200,7 @@ export function ExecutionPlanColumn({ view }: { view: EntryTradePlanView }) {
                 placeholder="TP Price"
                 value={tpPrice ?? ''}
                 onChange={(e) => handleTpPriceChange(e.target.value)}
-                readOnly={Boolean(selectedArrow)}
+
               />
               <div className="pips-field-wrapper">
                 <input
@@ -206,7 +210,7 @@ export function ExecutionPlanColumn({ view }: { view: EntryTradePlanView }) {
                   disabled={!levelSide}
                   value={calculatedMetrics.tpPips != null ? calculatedMetrics.tpPips.toFixed(1) : ''}
                   onChange={(e) => handleTpPipsChange(e.target.value)}
-                  readOnly={Boolean(selectedArrow)}
+
                 />
                 <span className="pips-tag">pips</span>
               </div>
@@ -224,7 +228,7 @@ export function ExecutionPlanColumn({ view }: { view: EntryTradePlanView }) {
                 placeholder="SL Price"
                 value={slPrice ?? ''}
                 onChange={(e) => handleSlPriceChange(e.target.value)}
-                readOnly={Boolean(selectedArrow)}
+
               />
               <div className="pips-field-wrapper">
                 <input
@@ -234,7 +238,7 @@ export function ExecutionPlanColumn({ view }: { view: EntryTradePlanView }) {
                   disabled={!levelSide}
                   value={calculatedMetrics.slPips != null ? calculatedMetrics.slPips.toFixed(1) : ''}
                   onChange={(e) => handleSlPipsChange(e.target.value)}
-                  readOnly={Boolean(selectedArrow)}
+
                 />
                 <span className="pips-tag">pips</span>
               </div>
@@ -249,8 +253,8 @@ export function ExecutionPlanColumn({ view }: { view: EntryTradePlanView }) {
           </label>
           <button type="button" className={`register-arrow-btn-compact ${regSuccessMsg ? 'success' : canRegister ? 'ready' : 'disabled'}`}
             onClick={handleRegisterClick} disabled={!canRegister}
-            title={canRegister ? 'Pin this setup arrow to chart' : 'Set Entry, SL, and TP to pin arrow'}>
-            {regSuccessMsg ? '✓ Pinned!' : '↗ Pin Arrow'}
+            title="Save this journal entry; prices may be filled later">
+            {regSuccessMsg ? '✓ Pinned!' : 'Save Entry'}
           </button>
         </div>}
       </div>

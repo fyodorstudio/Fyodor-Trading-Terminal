@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState, type PointerEvent, type RefObject } from 'react'
 import type { IChartApi, IPriceLine, ISeriesApi, Time } from 'lightweight-charts'
 import { useDrawingViewport } from '../../market-data/chart-drawings/useDrawingViewport'
+import { useDrawingCrosshair } from '../../market-data/chart-drawings/useDrawingCrosshair'
+import { arrowTimeAt, hasArrowCandle } from './arrow-time'
 import { drawingCoordinates } from '../../market-data/chart-drawings/drawing-coordinates'
 import type { OhlcBar } from '../../market-data/contracts/OhlcBar'
 import type { ChartTimeframe } from '../../market-data/contracts/ChartTimeframe'
@@ -11,6 +13,8 @@ const fields = [['entryPrice', 'Entry'], ['tpPrice', 'Take Profit'], ['slPrice',
 type Props = {
   chartApi: IChartApi
   seriesApi: ISeriesApi<'Candlestick', Time>
+  dragEnabled: boolean
+  selectedArrowId: string | null
   plan: Pick<PlannedTradeState, 'entryPrice' | 'tpPrice' | 'slPrice'> | null
   arrows: RegisteredTradeArrow[]
   bars: OhlcBar[]
@@ -22,12 +26,13 @@ type Props = {
   previewTime: (id: string, time: number | null) => void
 }
 
-export function TradeLevelHandles({ chartApi, seriesApi, plan, arrows, bars, timeframe, precision, lines, onPriceChange, onTimeChange, previewTime }: Props) {
+export function TradeLevelHandles({ chartApi, seriesApi, plan, arrows, bars, timeframe, dragEnabled, selectedArrowId, precision, lines, onPriceChange, onTimeChange, previewTime }: Props) {
   const overlayRef = useRef<SVGSVGElement>(null)
   const viewport = useDrawingViewport(chartApi, seriesApi, overlayRef)
   const drag = useRef<{ field: TradePriceField | 'time'; arrowId?: string; element: SVGSVGElement; pointerId: number; startClientY: number; startY: number; original: number; clientY: number } | null>(null)
   const frame = useRef<number | null>(null)
   const [preview, setPreview] = useState<{ field: TradePriceField | 'time'; arrowId?: string; price: number } | null>(null)
+  const crosshair = useDrawingCrosshair(chartApi)
   const coordinates = drawingCoordinates(chartApi, seriesApi, bars, timeframe)
   const firstBarTime = bars[0]?.time
 
@@ -36,8 +41,7 @@ export function TradeLevelHandles({ chartApi, seriesApi, plan, arrows, bars, tim
     if (!current) return null
     if (current.field === 'time') {
       const logical = coordinates.xToLogical(current.startY + current.clientY - current.startClientY)
-      if (logical == null || !Number.isFinite(logical) || !bars.length) return null
-      return bars[Math.max(0, Math.min(bars.length - 1, Math.round(logical)))].time
+      return arrowTimeAt(logical, bars, timeframe)
     }
     const y = Math.max(0, Math.min(viewport.height, current.startY + current.clientY - current.startClientY))
     const price = seriesApi.coordinateToPrice(y)
@@ -69,9 +73,10 @@ export function TradeLevelHandles({ chartApi, seriesApi, plan, arrows, bars, tim
     const blur = () => cancel()
     window.addEventListener('keydown', key); window.addEventListener('blur', blur)
     return () => { cancel(false); window.removeEventListener('keydown', key); window.removeEventListener('blur', blur) }
-  }, [cancel, seriesApi, plan?.entryPrice, plan?.tpPrice, plan?.slPrice, precision, arrows, bars.length, firstBarTime])
+  }, [cancel, seriesApi, plan?.entryPrice, plan?.tpPrice, plan?.slPrice, precision, arrows, bars.length, firstBarTime, dragEnabled])
 
   const move = (event: PointerEvent<SVGSVGElement>) => {
+    crosshair.move(event)
     if (!drag.current || drag.current.pointerId !== event.pointerId) return
     event.preventDefault(); event.stopPropagation()
     drag.current.clientY = drag.current.field === 'time' ? event.clientX : event.clientY
@@ -90,8 +95,8 @@ export function TradeLevelHandles({ chartApi, seriesApi, plan, arrows, bars, tim
     } else if (current.field === 'time') onTimeChange(current.arrowId!, current.original)
   }
   return <svg ref={overlayRef} className="trade-level-handles" width={viewport.width} height={viewport.height}
-    onPointerMove={move} onPointerUp={finish} onPointerCancel={() => cancel()} onLostPointerCapture={() => cancel()}>
-    {fields.map(([field, label]) => {
+    onPointerMove={move} onPointerLeave={crosshair.leave} onPointerUp={finish} onPointerCancel={() => cancel()} onLostPointerCapture={() => cancel()}>
+    {dragEnabled && fields.map(([field, label]) => {
       const price = preview?.field === field ? preview.price : plan?.[field]
       const y = price != null ? seriesApi.priceToCoordinate(price) : null
       if (price == null || price <= 0 || y == null || y < 0 || y > viewport.height) return null
@@ -111,15 +116,25 @@ export function TradeLevelHandles({ chartApi, seriesApi, plan, arrows, bars, tim
         }} />
     })}
     {arrows.map(arrow => {
+      if (arrow.entryPrice == null || arrow.entryPrice <= 0 || arrow.time <= 0) return null
       const time = preview?.field === 'time' && preview.arrowId === arrow.id ? preview.price : arrow.time
       const x = coordinates.timeToX(time as OhlcBar['time'])
       if (x == null || x < 0 || x > viewport.width) return null
       const y = seriesApi.priceToCoordinate(arrow.entryPrice)
       if (y == null || y < 0 || y > viewport.height) return null
       const offset = arrow.direction === 'long' ? 7 : arrow.direction === 'short' ? -7 : 0
-      return <rect key={arrow.id} className="trade-arrow-handle" x={x - 9} y={y + offset - 9} width={18} height={18}
+      const projected = !hasArrowCandle(time, bars)
+      const color = arrow.id === selectedArrowId ? '#38bdf8' : arrow.direction === 'waiting' ? '#f59e0b' : arrow.direction === 'long' ? '#10b981' : '#f43f5e'
+      return <g key={arrow.id}>
+        {projected && <g className="trade-projected-arrow" data-arrow-id={arrow.id} data-arrow-time={time}
+          transform={`translate(${x},${y + offset})`} fill={color} pointerEvents="none">
+          {arrow.direction === 'waiting' ? <rect x={-5} y={-5} width={10} height={10} />
+            : <path d="M0 -7 L-6 0 L-2 0 L-2 7 L2 7 L2 0 L6 0 Z" transform={arrow.direction === 'short' ? 'rotate(180)' : undefined} />}
+          <text x={12} y={3} fontSize={10}>{arrow.direction === 'waiting' ? 'WAITING' : arrow.direction === 'long' ? 'LONG' : 'SHORT'}</text>
+        </g>}
+        {dragEnabled && <rect className="trade-arrow-handle" x={x - 9} y={y + offset - 9} width={18} height={18}
         data-arrow-id={arrow.id} role="slider" tabIndex={0} aria-label={`Drag ${arrow.symbol} arrow date`}
-        aria-valuenow={time} aria-valuemin={bars[0]?.time} aria-valuemax={bars.at(-1)?.time}
+        aria-valuenow={time}
         onPointerDown={event => {
           if (event.button !== 0 || !overlayRef.current) return
           event.preventDefault(); event.stopPropagation(); cancel()
@@ -132,9 +147,10 @@ export function TradeLevelHandles({ chartApi, seriesApi, plan, arrows, bars, tim
           event.preventDefault(); event.stopPropagation()
           const logical = coordinates.timeToLogical(arrow.time)
           if (logical == null || !bars.length) return
-          const index = Math.max(0, Math.min(bars.length - 1, Math.round(logical) + (event.key === 'ArrowRight' ? 1 : -1)))
-          onTimeChange(arrow.id, bars[index].time)
-        }} />
+          const next = arrowTimeAt(logical + (event.key === 'ArrowRight' ? 1 : -1), bars, timeframe)
+          if (next != null) onTimeChange(arrow.id, next)
+        }} />}
+      </g>
     })}
   </svg>
 }

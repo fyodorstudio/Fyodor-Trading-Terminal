@@ -1,9 +1,10 @@
+import { entryTradeJournalPlugin } from './scripts/entry-trade-journal-plugin.mjs'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), entryTradeJournalPlugin()],
   build: {
     rolldownOptions: {
       output: {

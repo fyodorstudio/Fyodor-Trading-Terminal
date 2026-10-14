@@ -134,8 +134,20 @@ const health = () => ({ api_version: '1', bridge: { status: 'running', started_a
   calendar: { status: 'live', instance_id: 'fixture', server_utc_offset_seconds: 0 }, operations: {} })
 const reportRequests = []
 let reportFailure = false
+const journalFixture = { version: 1, revision: 0, arrows: [], deletedIds: [] }
 globalThis.fetch = (url, options = {}) => {
   const u = String(url); requests.push(u)
+  if (u === '/entry-trade-api/journal') {
+    if (options.method === 'POST') {
+      for (const op of JSON.parse(options.body).operations) {
+        if (op.action === 'delete') journalFixture.arrows = journalFixture.arrows.filter(item => item.id !== op.id)
+        else if (op.action === 'update') journalFixture.arrows = journalFixture.arrows.map(item => item.id === op.id ? { ...item, ...op.changes } : item)
+        else if (!journalFixture.arrows.some(item => item.id === op.id)) journalFixture.arrows.unshift(op.arrow)
+      }
+      journalFixture.revision++
+    }
+    return Promise.resolve({ ok: true, status: 200, json: async () => JSON.parse(JSON.stringify(journalFixture)) })
+  }
   if (u.startsWith('/storage-api/highlights')) return Promise.resolve({ ok: true, json: async () => ({ source_id: broker, revision: 'fixture-pins', items: [] }) })
   if (u.startsWith('/storage-api/external-sources')) {
     const params = new URL(u, 'http://localhost').searchParams
@@ -535,9 +547,9 @@ try {
   assert.equal(journal().firstElementChild.tagName, 'TEXTAREA')
   assert.equal(entryPanel().querySelectorAll('textarea').length, 1, 'No workflow or context fields return')
   const pinButton = () => entryPanel().querySelector('.register-arrow-btn-compact')
-  assert.ok(pinButton().disabled)
+  assert.ok(!pinButton().disabled, 'An empty journal entry can be saved')
   await click([...entryPanel().querySelectorAll('button')].find(node => node.textContent.trim() === 'Use Market'))
-  assert.equal(entryPanel().querySelector('#plan-entry').value, String(quotes[0].ask))
+  assert.equal(entryPanel().querySelector('#plan-entry').value, String(Number(((quotes[0].ask + quotes[0].bid) / 2).toFixed(quotes[0].precision))))
   await change(entryPanel().querySelector('#plan-entry'), '1.1')
   await change(entryPanel().querySelector('#plan-sl'), '1.09')
   await change(entryPanel().querySelector('#plan-rr'), '2')
@@ -549,7 +561,7 @@ try {
   assert.equal(entryPanel().querySelector('#plan-tp').value, '1.14', 'Closing the dock preserves the chosen target R:R')
   await change(entryPanel().querySelector('#plan-sl'), '1.09')
   await change(entryPanel().querySelector('#plan-sl'), '1.11')
-  assert.ok(pinButton().disabled, 'A long plan with a stop above entry cannot be pinned')
+  assert.ok(!pinButton().disabled, 'Journal records do not enforce execution completeness or stop orientation')
   await change(entryPanel().querySelector('#plan-sl'), '1.09')
   await click(entryPanel().querySelector('.header-chart-toggle input'))
   assert.deepEqual([...tradeLines].map(line => line.options.price), [1.1, 1.12, 1.09])
@@ -593,7 +605,7 @@ try {
   assert.ok(Math.abs(storedArrow.rrRatio - 2) < 1e-9)
   assert.equal(storedArrow.workflow, undefined)
   assert.equal(entryPanel().querySelectorAll('.pinned-arrow-row').length, 1)
-  assert.ok(entryPanel().querySelector('#plan-entry').readOnly)
+  assert.ok(!entryPanel().querySelector('#plan-entry').readOnly, 'Pinned journal levels remain editable')
   const pinnedMarker = [...tradeMarkers].flat().find(marker => marker.id === storedArrow.id)
   assert.ok(pinnedMarker, 'Pinning draws an arrow on the actual chart boundary')
   const dragDate = async (id, dx, finish = 'pointerup') => {
@@ -617,7 +629,7 @@ try {
   await dragDate(storedArrow.id, -160)
   const redatedArrow = JSON.parse(localStorage.getItem('fyodor.registered_arrows.v1'))[0]
   assert.deepEqual(redatedArrow, { ...storedArrow, time: bars.at(-3).time }, 'Dragging changes only the date and snaps to the target candle')
-  assert.notEqual(entryPanel().querySelector('.pinned-date').textContent, originalDate, 'The table shows the edited date')
+  assert.equal(entryPanel().querySelector('.pinned-date').textContent, originalDate, 'Dragging an arrow never changes the event date in the table')
   assert.equal([...tradeMarkers].flat().find(marker => marker.id === storedArrow.id).time, redatedArrow.time)
   await dragDate(storedArrow.id, 80, 'pointercancel')
   assert.equal(JSON.parse(localStorage.getItem('fyodor.registered_arrows.v1'))[0].time, redatedArrow.time, 'Cancelling a date drag keeps the saved date')
@@ -626,7 +638,8 @@ try {
   assert.equal(draggedArrow.slPrice, 1.085, 'Pinned price-line changes persist on release')
   assert.ok(Math.abs(draggedArrow.rrRatio - 4 / 3) < 1e-9)
   await dragTrade('Stop Loss', .03)
-  assert.equal(JSON.parse(localStorage.getItem('fyodor.registered_arrows.v1'))[0].slPrice, 1.085, 'Invalid pinned stop placement is rejected')
+  assert.equal(JSON.parse(localStorage.getItem('fyodor.registered_arrows.v1'))[0].slPrice, 1.115, 'Journal records accept manually chosen levels without execution validation')
+  await change(entryPanel().querySelector('#plan-sl'), '1.085')
   reset()
   await tick('poll', 2500); await reply('watch')
   assertQuiet('Unchanged quote poll with a pinned trade')
@@ -639,7 +652,7 @@ try {
   await click(entryPanel().querySelector('.new-draft-btn-compact'))
   assert.ok(!entryPanel().querySelector('#plan-entry').readOnly)
   await click(entryPanel().querySelector('.pinned-arrow-row'))
-  assert.ok(entryPanel().querySelector('#plan-entry').readOnly, 'Pinned row selects its stored levels')
+  assert.equal(entryPanel().querySelector('#plan-entry').value, '1.1', 'Pinned row selects its editable stored levels')
   await click(entryPanel().querySelector('.pinned-delete-btn'))
   assert.deepEqual(JSON.parse(localStorage.getItem('fyodor.registered_arrows.v1')), [])
   assert.equal([...tradeMarkers].flat().length, 0)

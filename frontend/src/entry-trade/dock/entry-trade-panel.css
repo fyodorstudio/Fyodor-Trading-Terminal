@@ -664,3 +664,15 @@
 .entry-trade-journal-col { min-width: 0; }
 .journal-save-row { display: flex; justify-content: flex-end; align-items: center; gap: 8px; padding-top: 6px; font-size: 10px; }
 .dir-seg-btn.waiting.active, .dir-badge.waiting { background: color-mix(in srgb, var(--warning) 20%, var(--surface-inset)); color: var(--warning); }
+
+.journal-table-toolbar, .journal-row-actions { display: flex; align-items: center; gap: 4px; }
+.journal-table-toolbar button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+.journal-sort-button { background: transparent; border: 0; padding: 0; color: inherit; font: inherit; cursor: pointer; white-space: nowrap; }
+.journal-sort-button:hover, .journal-sort-button:focus-visible { color: var(--accent); }
+.journal-sync-status { color: var(--text-muted); font-size: 10px; padding: 3px 0 6px; }
+
+.journal-anchor-controls { display: grid; gap: 5px; margin: 8px 0; font-size: 10px; }
+.journal-anchor-controls > input, .journal-time-controls input, .journal-time-controls select { min-width: 0; padding: 4px 6px; border: 1px solid var(--border); border-radius: 4px; background: var(--surface-inset); color: var(--text-strong); }
+.journal-time-field { display: grid; gap: 3px; }
+.journal-time-controls { display: grid; grid-template-columns: minmax(110px, 1fr) 65px 54px; gap: 5px; }
+.journal-anchor-controls > button { justify-self: start; }

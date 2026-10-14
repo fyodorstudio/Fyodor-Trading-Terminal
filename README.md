@@ -78,15 +78,38 @@ choices fall back to raw tables; filters/icons/colors stay intact. No Workspace
 backup UI, scoring engines, full Notebook workflow, Scatter Plot or experimental context tools
 are included.
 
-**Entry Trade** opens a three-column bottom dock: execution plan, pinned arrows,
-and a journal text box with Save (Ctrl+Enter). Each pinned arrow has its own editable
-note; drafts keep separate notes per symbol. The table shows all pairs; selecting a
-row opens that pair's chart. Plans support Long, Short and neutral Waiting.
-Project on Chart previews drafts. Drag Entry/TP/SL lines to change a level and
-recalculate R:R on release; Escape cancels. Pinned levels persist automatically.
-Drag a pinned arrow horizontally to change its date, snapping to a loaded candle.
-Use New Plan to return to drafting.
-Saved arrows and notes retain the original browser-storage keys.
+**Entry Trade** is a manual trade journal. Save an entry at any stage, choose
+Waiting/Long/Short freely, use the broker quote for Entry, and enter SL/TP in any
+order. Prices, pips and optional target R:R remain editable after saving; incomplete
+levels do not block journaling. Use Market uses Ask for Long, Bid for Short and
+midpoint for Waiting. New Entry starts with blank technicals and Waiting.
+The sortable all-pair table uses the event anchor date, independently of the
+arrow date; entries without an anchor show Date unset. Edit the event name/time
+and arrow time separately in the journal, or explicitly copy the event time to
+the arrow. All journal date controls use Jakarta AM/PM. Arrows can be placed or
+dragged into future empty chart space without adding candles; dragging retains
+the native crosshair and axis-time label. Click table headers to reverse or
+change sorting. Archive sits beside Delete in the selected journal entry,
+preserves the entire entry, and hides its chart arrow; restore from Archived.
+Journal text saves with Save/Ctrl+Enter, and archiving includes unsaved text.
+
+Saved arrows and notes keep their original browser keys as an offline cache.
+The local Vite dev/preview server atomically persists entries and append-only
+edit history in the Git-tracked `Market Analyst Workflow/entry-trade/journal.json`.
+Existing browser entries migrate without replacing edited repository entries;
+queued local changes retry after outages, stale revisions cannot overwrite the
+journal, and deletions cannot be resurrected by another browser. The dock reports
+whether edits are saved to the repo or waiting to sync. Saving changes the file;
+it does not automatically commit or push Git. Static hosting alone cannot write
+this local journal API.
+
+The original agent-authored theses also live in the tracked
+`frontend/public/entry-trade-research.json`. For new agent journal writes, GET
+`/entry-trade-api/journal`, then POST JSON with `expectedRevision` and `operations`
+containing unique `operationId`, `action` (insert/update/delete), `id`, and `arrow`
+or `changes`. Preserve user notes, levels, history and identities; initialise
+research-only entries with Waiting and null execution levels. UTC event instants
+are storage data; write alarm times and thesis prose in Jakarta AM/PM.
 
 Start agents with [AGENTS.md](AGENTS.md#market-analysis); it owns the analysis
 workflow and dataset commands. The [user manual](<user manual.md>) owns the practical
