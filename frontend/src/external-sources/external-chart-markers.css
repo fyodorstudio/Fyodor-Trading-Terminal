@@ -1,0 +1,10 @@
+.external-chart-markers { position: absolute; left: 0; right: 70px; height: 30px; pointer-events: none; z-index: 8; }
+.external-chart-markers:has(.external-chart-popup) { z-index: 14; }
+.external-chart-cluster { position: absolute; bottom: 0; transform: translateX(-50%); }
+.external-chart-star { display: flex; gap: 3px; align-items: center; pointer-events: auto; padding: 3px 6px; border: 1px solid #b7791f; color: #a16207; background: var(--surface-panel); border-radius: 5px; cursor: pointer; font-size: 19px; line-height: 1; box-shadow: 0 2px 4px #0001; }
+:root[data-theme='dark'] .external-chart-star { color: #fcd34d; }
+.external-chart-star sup { font-size: 9px; }
+.external-chart-star:focus-visible, .external-chart-popup button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.external-chart-popup { position: absolute; bottom: 34px; width: 290px; max-height: 190px; overflow: auto; pointer-events: auto; border: 1px solid var(--border-strong); border-radius: 5px; background: var(--surface-panel); box-shadow: 0 4px 18px #0003; }
+.external-chart-popup button { display: block; width: 100%; padding: 8px; background: transparent; color: var(--text); border: 0; text-align: left; cursor: pointer; font-size: 11px; }
+.external-chart-error { position: absolute; right: 0; pointer-events: auto; padding: 3px 6px; border: 1px solid var(--border); background: var(--surface-panel); color: var(--text-muted); font: inherit; font-size: 10px; cursor: pointer; }

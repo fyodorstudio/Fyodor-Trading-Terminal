@@ -6,6 +6,12 @@ calculates currency scores or modifies source observations.
 
 ## Local inventory
 
+Outside-feed events are stored separately as immutable versions under
+`Market Analyst Workflow/external-sources/`; they never enter calendar observations,
+Highlight IDs or Inspector filters. The independent External Sources dock and CLI
+share this broker-independent collection. [External Sources](EXTERNAL-SOURCES.md)
+owns its clocks, validation, optimistic writes, revision paging and recovery.
+
 `storage/data/` is ignored by Git. It contains `calendar.sqlite3` and the original
 V4 `inventory/` exports. Extraction used SQLite's online backup API to include
 committed WAL data consistently, then copied/hash-checked all six inventory files.

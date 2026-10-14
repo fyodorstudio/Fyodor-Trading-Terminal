@@ -1,6 +1,6 @@
 import { majorCurrencies } from '../economic-calendar/forex/currencies'
 import { currencyColorStyle, type CurrencyColors } from './currency-colors'
-import { memo, useEffect, useMemo, useState } from 'react'
+import { memo, useEffect, useLayoutEffect, useMemo, useState } from 'react'
 import type { IChartApi, MouseEventParams, Time } from 'lightweight-charts'
 import type { TimeDisplayPreference } from '../appearance/time-display/time-display-preference'
 import { symbolGlyph } from '../economic-calendar/presentation/event-symbols'
@@ -10,12 +10,15 @@ import { markerLabel } from './chart/marker-label'
 import { InspectorCalendarIcon } from './chart/InspectorCalendarIcon'
 import './inspector.css'
 
-function InspectorChartMarkersComponent({ chartApi, markers, timeDisplay, onSelectRelease, currencyColors = {} }: {
+function InspectorChartMarkersComponent({ chartApi, markers, timeDisplay, onSelectRelease, currencyColors = {}, onStackRows }: {
+  onStackRows?: (rows: number) => void
   currencyColors?: CurrencyColors
   chartApi: IChartApi; markers: InspectorMarker[]; timeDisplay: TimeDisplayPreference; onSelectRelease: (id: string) => void
 }) {
   const [positions, setPositions] = useState<MarkerCluster[]>([])
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const rows = Math.max(1, ...positions.map(cluster => cluster.markers[0].release.daily ? cluster.markers.length : 1))
+  useLayoutEffect(() => { onStackRows?.(rows) }, [rows, onStackRows])
   useEffect(() => {
     if (expandedId === null) return
     const dismiss = (event: MouseEventParams<Time>) => {

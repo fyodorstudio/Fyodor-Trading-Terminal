@@ -36,6 +36,7 @@ Optional `FYODOR_BRIDGE_API_URL` / `FYODOR_STORAGE_API_URL` override Vite's prox
 | economic-calendar | Eight-currency catalog, source contracts, clocks and storage polling |
 | inspector | Filters, date ranges, release/day grouping, icons and raw tables |
 | alert | Upcoming filters/countdowns, Highlight journals, Copy Prompt and archive |
+| external-sources | Separate outside-feed events/headlines/watch items, sourced facts, history and agent prompts |
 | research | Chart date selection and named Markdown handoff shared with Alert |
 | Market Analyst Workflow/tools (repo root) | Read-only calendar, upcoming/Highlight/report queries, journal/lifecycle writes and bounded OHLC capture |
 | appearance, system-connectivity, system-observability, workspace-docking | Theme/time, bridge status, Activity and dock geometry |
@@ -84,6 +85,17 @@ visual reference. Frontend owners above are under `frontend/src/` unless marked.
 The bridge's inherited README is historical; Lite's operating instructions are here.
 
 ## Research handoff
+
+**External Sources**, immediately left of Inspector in the bottom dock, keeps
+outside-feed news separate from the broker calendar and Alert. Its independent
+currency filters, search, source links, timing uncertainty and expandable history
+use the same records as `pnpm analyst external --scope EURUSD --visibility all`.
+Agents can append verified additions without inventing calendar IDs. This is a
+saved research collection; it does not ingest or monitor breaking news. See the
+[External Sources workflow](docs/EXTERNAL-SOURCES.md) for commands and timing rules.
+Dated records have a saved **Show icon on chart** checkbox for gold stars in a
+separate row above broker icons; click one to open its record. Stars appear only
+on pairs containing an affected currency. Untimed watch items have no chart timestamp.
 
 The repository has four market-analysis skills:
 [Assess Trade Now](.agents/skills/assess-trade-now/SKILL.md) for a quick current

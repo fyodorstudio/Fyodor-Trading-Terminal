@@ -39,8 +39,14 @@ skip verification. Do not run a broad research project before answering.
   dump every series. Reuse known policy/data facts and verify their latest
   vintage or a subsequent update. Use existing CLI commands; custom scripts are
   optional only when they actually reduce output or repeat work.
-- Batch independent local reads and focused web searches. The first web pass
-  should cover both currencies' latest policy/data and exceptional news in one
+- Batch independent local reads and focused web searches. Include a focused
+  `pnpm analyst external --scope <pair>` query for
+  material outside-feed news and watch items. See the
+  [separate collection](../../../docs/EXTERNAL-SOURCES.md); saved interpretation
+  needs refresh, and its recorded/provider/publication clocks are distinct.
+  Empty records or calendar icons do not establish an all-clear. Do not turn an
+  unscheduled risk into a precisely timed next opportunity.
+  The first web pass should cover both currencies' latest policy/data and exceptional news in one
   batch. Open the decisive official releases and dated reporting in parallel
   where possible. Check the latest available reporting, not just an early market
   wrap; an older wrap cannot establish the current intraday backdrop.
@@ -188,6 +194,30 @@ or source coverage is incomplete, name the gap instead of issuing that all-clear
 Give attributed forecasts only when available; farther-out events can be flagged
 with a refresh-near-release instruction, without a full advance forecast study.
 
+## Direction and next opportunity
+
+The user's default preference is the best-supported buy/sell lean, even when
+slight. State its strength and confidence separately from whether this release
+adds a new signal or supports entry. An in-line release can preserve a weak
+backdrop bias; do not automatically replace that bias with No clear edge.
+Use No defensible direction only when verified evidence is genuinely balanced
+or a decisive gap prevents choosing a side. Never invent a lean to fill the row.
+Before actuals, keep the backdrop lean conditional; missing actuals do not become
+a confirmed release verdict because the user prefers a direction.
+
+When the bias is weak, entry evidence is insufficient, or waiting is appropriate,
+name the next best-supported reassessment opportunity from the seven-day scan.
+Give the event, pair, verified release date/time in Jakarta and UTC, and a
+suggested preparation time (normally ten minutes before, earlier for missing
+context). Explain which outcomes could strengthen, reverse or establish the
+direction. Say "Return at [time] before [event] for a fresh assessment," rather
+than stopping at Wait/No clear edge. Distinguish Next opportunity from Next danger:
+one event can be both. Prioritize new policy-relevant information, not guaranteed
+larger moves, fixed event rankings or the eventual historical price outcome.
+If no suitable scheduled candidate is verified, say so and give the evidence
+trigger for reassessment; unknown hours remain unknown. Suggesting a return time
+does not schedule a notification or extend the active countdown.
+
 ## Decision card
 
 Lead with one sentence stating pair direction, confidence and the dominant
@@ -199,7 +229,7 @@ normally with these rows, followed by the short watchlist when needed:
 
 | Field | Required answer |
 | --- | --- |
-| Direction | Buy bias / Sell bias / No clear edge for the selected pair; conditional before actuals |
+| Direction | Best-supported buy/sell lean, including slight, with its strength; conditional before actuals; disclose when no direction is defensible |
 | Confidence | Low / Moderate / High in the fundamental interpretation |
 | Reason | Two sentences covering both currencies and the strongest counterevidence |
 | Extreme-move risk | Mandatory: documented exceptional catalyst, confirmed/reported/possible/unresolved status, affected direction and what evidence triggers immediate reassessment; disclose an incomplete check |
@@ -207,6 +237,7 @@ normally with these rows, followed by the short watchlist when needed:
 | Invalidation | The evidence that would overturn the reasoning |
 | Holding / exit consideration | Whether the thesis still supports holding, what warrants considering closing/reducing before news, or what verified information would warrant closing/reassessment after news; fundamentals only |
 | Next danger | Earliest material threat from the at-least-seven-day watchlist for both currencies, with verified Jakarta and UTC stages; include unscheduled risks and disclose incomplete coverage |
+| Next opportunity | When the present evidence is weak or waiting is appropriate: next material event, suggested return/preparation time, verified Jakarta/UTC release time and what could produce a clearer fundamental direction |
 | Evidence checked | Research-as-of timestamp, data freshness/missing values and direct web/local sources |
 
 Always include Extreme-move risk, even with No clear edge. Distinguish routine

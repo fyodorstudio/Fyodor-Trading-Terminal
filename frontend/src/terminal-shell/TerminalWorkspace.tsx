@@ -13,6 +13,7 @@ import { ActivityDock, InspectorDock, LiveTerminalStatusBar } from './LiveTermin
 import { useTerminalWorkspace } from './runtime/useTerminalWorkspace'
 import './terminal-shell.layout.css'
 import { ResearchReportPanel } from '../research/ResearchReportPanel'
+import { ExternalSourcesDock } from '../external-sources/ExternalSourcesDock'
 
 export function TerminalWorkspace() {
   const { timeframe, theme, chartAppearance, timeDisplay, activeDrawingTool, selectedDrawingId, setSelectedDrawingId,
@@ -22,7 +23,7 @@ export function TerminalWorkspace() {
     selectSymbol, selectTimeframe, recordChartData, changeTheme, changeChartAppearance, changeTimeDisplay,
     createDrawing, chooseDrawingTool, selectCrosshair, deleteAllDrawings, toggleBottomDock, exitDrawingMode,
     toggleDrawingToolbar, renderChartOverlay, sourceState, sourceLabel, researchActive, researchSeed, researchError,
-    selectResearchTool, closeResearch, prepareAlertResearch } = useTerminalWorkspace()
+    selectResearchTool, closeResearch, prepareAlertResearch, selectedExternalKey, externalSelection } = useTerminalWorkspace()
   const brokerOffsetSeconds = bridge.brokerOffsetSeconds
   return (
     <DisplayClockProvider brokerId={brokerId} brokerOffsetSeconds={brokerOffsetSeconds} preference={timeDisplay}>
@@ -114,6 +115,7 @@ export function TerminalWorkspace() {
           {bottomDockWindow === 'activity' && (
             <ActivityDock timeDisplay={timeDisplay} />
           )}
+          {bottomDockWindow === 'external-sources' && <ExternalSourcesDock key={externalSelection} timeDisplay={timeDisplay} symbol={activeSymbol} focusKey={selectedExternalKey} />}
           {bottomDockWindow === 'inspector' && <InspectorDock view={inspector} symbol={activeSymbol}
             timeDisplay={timeDisplay}
             />}

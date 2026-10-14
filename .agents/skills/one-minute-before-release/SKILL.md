@@ -85,12 +85,17 @@ No candles, saved OHLC, chart inspection or historical reaction calculations.
 ## Respond and stop
 
 As soon as the evidence supports an interpretation, lead with currency direction,
-pair buy/sell bias or no clear edge, and confidence. Return the Assess Trade Now
+best-supported pair buy/sell lean (including slight), and confidence, applying
+Assess Trade Now's direction and next-opportunity guidance. An in-line package
+can retain a weak backdrop lean without creating a new release signal. Return the Assess Trade Now
 decision card, including Extreme-move risk, strongest counterevidence, missing
 confirmation, invalidation, fundamental holding/exit consideration and the next
 verified Jakarta/UTC news that could challenge the thesis. Reuse the prepared
 seven-day watchlist; disclose missing coverage rather than delaying the release
-verdict for a new broad review. In requested eight-currency mode, use the prepared overview
+verdict for a new broad review. If the verdict is weak, entry evidence is insufficient,
+or actuals remain missing, reuse the prepared next opportunity: name the event,
+verified Jakarta/UTC release time, suggested return time and conditional outcomes.
+Do not finish with a bare Wait/No clear edge or promise a bigger move. In requested eight-currency mode, use the prepared overview
 to choose the best-supported counterpart, disclose stale/incomplete coverage,
 and give only one leading card plus a brief alternative/conflict comparison.
 

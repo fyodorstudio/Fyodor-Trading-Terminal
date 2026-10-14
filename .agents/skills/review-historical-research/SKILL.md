@@ -51,6 +51,13 @@ than inventing a measurement or claiming the study is complete.
 
 ## Emphasize intervening news
 
+Query `pnpm analyst external --scope <pair> --visibility all` with focused dates
+for separately sourced outside-feed events and archived versions; follow
+[External Sources](../../../docs/EXTERNAL-SOURCES.md). Distinguish source
+publication/reference clocks from when the record was saved. A retrospectively
+inserted record is not evidence that the calendar or agent knew it beforehand.
+Reuse its sources, verify vintage and preserve unresolved attribution.
+
 Use the complete selected calendar **and discretionary dated web research** for
 both currency stories. Check intervention/rate checks, official warnings, emergency
 policy, geopolitical/energy shocks, tariffs and bond stress beyond calendar icons.
@@ -92,6 +99,17 @@ events separately. Label it retrospective unless evaluated with future informati
 genuinely withheld; one explained episode does not validate a trading edge.
 Earlier preparation, later confirmation and no clear actionable edge are all
 possible findings. Avoid scores, invented probabilities, guaranteed entries/returns.
+
+Honor the user's preference for the best-supported direction even when slight:
+separate weak buy/sell backdrop bias from a new release surprise and from entry
+quality. Do not manufacture direction when facts are genuinely balanced or
+decisive evidence is missing. When the simulated verdict is weak or would wait,
+identify the next scheduled reassessment opportunity and a preparation/return
+time in Jakarta/UTC, using only the schedule and macro concern knowable at that
+cutoff. Explain what could strengthen or reverse the lean. Do not select the
+event because its eventual price move was large, or schedule an unforeseeable
+off-calendar catalyst in hindsight. Reuse Assess Trade Now's
+[direction and next-opportunity guidance](../assess-trade-now/SKILL.md#direction-and-next-opportunity).
 
 Cite direct web links and absolute local paths. Answer in chat and follow the
 user's saving/lifecycle scope and AGENTS.md's standing historical-journaling

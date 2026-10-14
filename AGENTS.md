@@ -23,6 +23,16 @@ inspection without an explicit request.
 
 ## Market analysis
 
+Outside-feed events/headlines/watch items belong in the separate **External Sources**
+bottom dock, not invented calendar readings or mixed Highlight pins. For the
+requested pair/currencies, query `pnpm analyst external --scope EURUSD` (use
+`--visibility all` for historical work), with focused dates/match and complete
+pagination. Treat saved interpretation as dated context, verify fresh news and
+both currency stories, and distinguish event/provider/publication/recorded clocks.
+The collection is not a complete live news feed. When saving outside events is
+authorized, use the [External Sources workflow](docs/EXTERNAL-SOURCES.md); preserve
+versions, timing uncertainty and raw data. No ingestion/monitoring is implied.
+
 Work only in this Lite repo. Explain interpretation in the analyst conversation;
 saved, agent-authored Highlight journals are also in scope. Keep journal records
 separate from raw calendar observations; do not add currency scoring or change
@@ -101,7 +111,11 @@ folders live together under `Market Analyst Workflow/`.
   source, information and possible effect on the original thesis. Separate later
   releases and policy stages using their own pre-release baseline; an overlapping
   window or a news article's publication time does not establish causal timing.
-- Lead with strength/direction and confidence in words, or “mixed/no clear edge.”
+- Lead with the best-supported buy/sell direction and confidence in words, even
+  when the lean is slight. The user prefers a weak bias to an undifferentiated
+  “no clear edge”: distinguish backdrop direction, a fresh release signal and
+  entry quality. An in-line release can preserve a weak bias. Do not invent a
+  direction when verified evidence is balanced or a decisive gap prevents it.
   Explain the main mechanism simply: “Rates stay unchanged today, but the future
   looks higher than previously thought.” Avoid scores, invented probabilities or
   guaranteed entries. Usually a few paragraphs or one small scenario table suffice.
@@ -122,6 +136,14 @@ folders live together under `Market Analyst Workflow/`.
   and macro only; technical entries/exits and risk management remain with the user.
   Near release, reuse the prepared watchlist and refresh changes. Defer detailed
   upcoming forecasts until preparation; historical research is dated context.
+- When a bias is weak, entry evidence insufficient, or waiting warranted, include
+  a Next opportunity: the next material event that could establish, strengthen
+  or reverse the direction, its verified Jakarta/UTC release time, and a suggested
+  return/preparation time, normally ten minutes before publication. Explain why
+  its new information matters; do not promise a bigger move. Use the pair's
+  seven-day scan, distinguish opportunity from exit risk, and state missing
+  candidates/timing honestly. Historical suggestions use only what was knowable
+  at the cutoff. A return-time recommendation does not schedule a notification.
 - Cite direct web links beside claims and absolute local evidence paths. Answer
   in chat; save conclusions only when requested, beside the relevant report with
   a research-as-of time. Preserve user notes/evidence. No trades, account changes,

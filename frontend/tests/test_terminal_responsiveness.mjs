@@ -95,6 +95,7 @@ const server = await createServer({ root: path.resolve(path.dirname(fileURLToPat
         "}: MarketCandlestickChartProps) { globalThis.__terminalProbe.count('chartRender');")
       if (id.endsWith('/useCalendarNow.ts')) return code.replace('return now', 'globalThis.__terminalProbe.clocks.push(now); return now')
       if (id.endsWith('/releases/group-days.ts')) return code.replace('  if (!range) return []', "  globalThis.__terminalProbe.count('dailyGrouping'); if (!range) return []")
+      if (id.endsWith('/external-markers.ts')) return code.replace('  if (!bars.length) return []', "  globalThis.__terminalProbe.count('externalBuild'); if (!bars.length) return []")
     },
   }] })
 
@@ -129,6 +130,16 @@ let reportFailure = false
 globalThis.fetch = (url, options = {}) => {
   const u = String(url); requests.push(u)
   if (u.startsWith('/storage-api/highlights')) return Promise.resolve({ ok: true, json: async () => ({ source_id: broker, revision: 'fixture-pins', items: [] }) })
+  if (u.startsWith('/storage-api/external-sources')) {
+    const params = new URL(u, 'http://localhost').searchParams
+    const external = { id: 'a'.repeat(32), key: 'treasury-fixture', title: 'Treasury fixture', currencies: ['USD'], kind: 'scheduled', status: 'confirmed',
+      facts: 'Official schedule fixture', interpretation: '', event_at: new Date(now + 3600000).toISOString(), event_date: null, published_utc: null,
+      time_note: 'Exact fixture schedule', saved_utc: '2026-10-07T12:00:00Z', archived: false, expected_version: null, version_count: 1,
+      sources: [{ kind: 'web', label: 'Treasury', locator: 'https://home.treasury.gov/', note: '' }] }
+    const externalItems = params.get('visibility') !== 'archived' && ['all', 'EURUSD', 'USD'].includes(params.get('scope')) ? [external] : []
+    return Promise.resolve({ ok: true, json: async () => ({ revision: 'external-fixture', scope: params.get('scope'), visibility: params.get('visibility'),
+      matches: externalItems.length, offset: 0, next_offset: null, ...(params.has('after_revision') ? { unchanged: true } : { items: externalItems }) }) })
+  }
   if (u === '/storage-api/reports') {
     reportRequests.push(JSON.parse(options.body))
     return Promise.resolve({ ok: !reportFailure, status: reportFailure ? 503 : 200, json: async () => reportFailure
@@ -208,7 +219,26 @@ try {
   assert.equal(plotted.length, 800)
   assert.equal(Math.floor(futureTimes.at(-1).time / 86400), Math.floor(plotted.at(-1).time / 86400) + 90)
   assert.deepEqual([...container.querySelectorAll('[aria-label="App features"] button')].map(node => node.textContent.trim().replace(/\s+\d+$/, '')),
-    ['Inspector', 'Alert', 'Activity', '⚙ Settings'])
+    ['External Sources', 'Inspector', 'Alert', 'Activity', '⚙ Settings'])
+  assert.ok(container.querySelector('.external-chart-star'), 'Upcoming external record appears on the assembled chart')
+  assert.equal(container.querySelector('.external-chart-markers').style.bottom, '68px')
+  await click(button('External Sources'))
+  assert.ok(container.querySelector('[aria-label="External Sources"]'))
+  reset()
+  await tick('poll', 5000)
+  assertQuiet('External Sources unchanged poll', true)
+  assert.equal(counters.externalBuild ?? 0, 0, 'Unchanged external polling does not rebuild marker data')
+  await click(button('External Sources'))
+  assert.equal(container.querySelector('[aria-label="External Sources"]'), null)
+  await click(container.querySelector('.external-chart-star'))
+  assert.ok(container.querySelector('.external-expanded-record'), 'Star opens its sourced record in the separate dock')
+  const iconInput = container.querySelector('.external-icon-toggle input')
+  await click(iconInput); await flush()
+  assert.equal(container.querySelector('.external-chart-star'), null, 'Dock checkbox immediately hides the star without removing the record')
+  assert.ok(container.querySelector('.external-record'))
+  await click(iconInput); await flush()
+  assert.ok(container.querySelector('.external-chart-star'), 'Dock checkbox restores the star')
+  await click(button('External Sources'))
   assert.equal(container.querySelector('[aria-label="Fundamental tools"]'), null)
   assert.equal(container.querySelector('[aria-label="Experimental features"]'), null)
   assert.deepEqual([...container.querySelectorAll('[aria-label="Chart timeframe"] button')].map(node => node.textContent), ['M1','M5','M15','M30','H1','H4','D1'])
@@ -245,6 +275,7 @@ try {
   await click([...document.querySelectorAll('dialog button')].find(node => node.textContent === 'Save'))
   await flush()
   const saved = JSON.parse(localStorage.getItem('fyodor.inspector.shared.v1')).pairs.EURUSD
+  assert.equal(container.querySelector('.external-chart-markers').style.bottom, '102px', 'Custom star row stays above the two-currency daily icon stack')
   assert.equal(saved.symbolGrouping, 'day'); assert.equal(saved.detailView, undefined); assert.equal(saved.showHistograms, undefined)
   const dailyIcon = container.querySelector('.inspector-day-symbol.inspector-currency-USD')
   await click(dailyIcon)

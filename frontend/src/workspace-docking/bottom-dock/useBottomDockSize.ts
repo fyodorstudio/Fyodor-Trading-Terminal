@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } fr
 import type { BottomDockWindow } from './bottom-dock-window'
 import { bottomDockHeightKey, readBottomDockHeight, saveBottomDockHeight } from './bottom-dock-height'
 
-const dockLabels: Record<BottomDockWindow, string> = { inspector: 'Inspector', activity: 'Activity', alert: 'Alert' }
+const dockLabels: Record<BottomDockWindow, string> = { 'external-sources': 'External Sources', inspector: 'Inspector', activity: 'Activity', alert: 'Alert' }
 
 export function useBottomDockSize(activeWindow: BottomDockWindow | null) {
   const [preferredHeight, setPreferredHeight] = useState(() => readBottomDockHeight(activeWindow))

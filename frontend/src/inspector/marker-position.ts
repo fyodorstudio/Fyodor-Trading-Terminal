@@ -1,7 +1,7 @@
 import type { ITimeScaleApi, Logical, Time } from 'lightweight-charts'
 import type { InspectorMarker } from './inspector-data'
 
-export function inspectorMarkerCoordinate(scale: ITimeScaleApi<Time>, marker: InspectorMarker): number | null {
+export function inspectorMarkerCoordinate(scale: ITimeScaleApi<Time>, marker: Pick<InspectorMarker, 'time' | 'projection'>): number | null {
   if (!marker.projection) return scale.timeToCoordinate(marker.time as Time)
   const anchorIndex = scale.timeToIndex(marker.projection.anchorTime as Time)
   if (anchorIndex === null) return null

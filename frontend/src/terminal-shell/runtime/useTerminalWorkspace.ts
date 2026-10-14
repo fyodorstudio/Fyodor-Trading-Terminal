@@ -34,6 +34,8 @@ export function useTerminalWorkspace() {
   const [selectedDrawingId, setSelectedDrawingId] = useState<string | null>(null)
   const [drawingToolbarVisible, setDrawingToolbarVisible] = useState<boolean>(readDrawingToolbarVisible)
   const [bottomDockWindow, setBottomDockWindow] = useState<BottomDockWindow | null>(null)
+  const [selectedExternalKey, setSelectedExternalKey] = useState<string | null>(null)
+  const [externalSelection, setExternalSelection] = useState(0)
   const dockSize = useBottomDockSize(bottomDockWindow)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const marketWatch = useMarketWatchDock()
@@ -180,6 +182,9 @@ export function useTerminalWorkspace() {
       focus: release.label, focusIds: release.events.map(event => event.event_id) })
   }, [activeSymbol, timeDisplay])
   const setReleaseSelection = inspector.selectRelease
+  const selectExternal = useCallback((key: string | null) => {
+    setSelectedExternalKey(key); setExternalSelection(value => value + 1); selectBottomDock('external-sources')
+  }, [selectBottomDock])
   const selectChartRelease = useCallback((id: string) => {
     setReleaseSelection(id); selectBottomDock('inspector')
   }, [setReleaseSelection, selectBottomDock])
@@ -190,7 +195,8 @@ export function useTerminalWorkspace() {
   const renderChartOverlay = useTerminalChartOverlay({ supported: inspector.supported, markers: inspector.markers,
     currencyColors: inspector.preferences.currencyColors, timeDisplay, onSelectRelease: selectChartRelease,
     onClearInspection: !activeDrawingTool && !researchActive && !researchSeed && inspector.selectedRelease ? clearChartInspection : undefined,
-    researchActive, bars, timeframe, onResearchRange: selectResearchRange, onCancelResearch: cancelResearch })
+    researchActive, bars, timeframe, onResearchRange: selectResearchRange, onCancelResearch: cancelResearch,
+    symbol: activeSymbol, onSelectExternal: selectExternal })
   const sourceState: 'error' | 'live' | 'waiting' = !bridge.reachable || marketData.marketWatchStatus === 'unavailable'
     ? 'error'
     : mt5Connected && marketData.marketWatchStatus === 'live'
@@ -210,5 +216,5 @@ export function useTerminalWorkspace() {
     recordChartData, changeTheme, changeChartAppearance, changeTimeDisplay, createDrawing, chooseDrawingTool,
     selectCrosshair, deleteAllDrawings, toggleBottomDock, exitDrawingMode, toggleDrawingToolbar,
     renderChartOverlay, sourceState, sourceLabel, researchActive, researchSeed, researchError,
-    selectResearchTool, closeResearch, prepareAlertResearch }
+    selectResearchTool, closeResearch, prepareAlertResearch, selectedExternalKey, externalSelection }
 }

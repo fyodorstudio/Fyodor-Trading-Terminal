@@ -22,6 +22,7 @@ from storage.highlights import HIGHLIGHTS_PATH, HighlightRequest, highlight_snap
 from storage.highlight_journal import JournalRequest, append_journal, read_journal
 from storage.highlight_metadata import PromptRequest, append_prompt, read_prompts, LimitationRequest, append_limitation, limitations_snapshot
 from upcoming import upcoming_snapshot
+from storage.external_sources import DIRECTORY as EXTERNAL_DIRECTORY, ExternalRequest, append_external, external_history, external_snapshot, archive_external
 
 
 def get_json(base, route):
@@ -263,12 +264,42 @@ def parser():
     candles.add_argument('--bridge', default='http://127.0.0.1:8001')
     candles.add_argument('--broker-offset-seconds', type=int, help='Explicit historical offset for a broker without a profile')
     candles.add_argument('--max-requests', type=int, choices=range(2, 65), metavar='2..64', default=32)
+    external = commands.add_parser('external', help='Read/write separate sourced events and headlines outside the broker calendar')
+    external.add_argument('action', choices=['list', 'read', 'append', 'archive', 'restore'], nargs='?', default='list')
+    external.add_argument('--key')
+    external.add_argument('--input', help='ExternalRequest JSON inside Lite; append requires this')
+    external.add_argument('--expected-version', help='Latest version ID; required for archive/restore')
+    external.add_argument('--scope', default='all', help='all, a currency or a pair')
+    external.add_argument('--visibility', choices=['active', 'archived', 'all'], default='active')
+    external.add_argument('--from', dest='from_date', help='Inclusive UTC day (date-only records retain source date)')
+    external.add_argument('--to', dest='to_date')
+    external.add_argument('--match')
+    external.add_argument('--limit', type=int, choices=range(1, 501), default=20)
+    external.add_argument('--offset', type=int, default=0)
     return root
 
 
 def run(args):
     if getattr(args, 'offset', 0) < 0:
         raise ValueError('Offset must be non-negative')
+    if args.command == 'external':
+        if args.action == 'append':
+            if not args.input:
+                raise ValueError('Append needs --input with an ExternalRequest JSON file')
+            return append_external(ExternalRequest.model_validate_json(local_path(args.input).read_text(encoding='utf-8-sig')))
+        if args.action in ('archive', 'restore'):
+            if not args.key or not args.expected_version:
+                raise ValueError('Archive/restore needs --key and --expected-version')
+            return archive_external(args.key, args.expected_version, restore=args.action == 'restore')
+        if args.action == 'read':
+            if not args.key:
+                raise ValueError('Read needs --key')
+            entries = list(reversed(external_history(args.key)))
+            return {'directory': str(EXTERNAL_DIRECTORY), 'key': args.key, 'matches': len(entries),
+                    'next_offset': args.offset + args.limit if args.offset + args.limit < len(entries) else None,
+                    'items': entries[args.offset:args.offset + args.limit]}
+        return {'directory': str(EXTERNAL_DIRECTORY), **external_snapshot(visibility=args.visibility, scope=args.scope,
+                from_date=args.from_date, to_date=args.to_date, match=args.match, limit=args.limit, offset=args.offset)}
     if args.command in ('prompt', 'limitations'):
         if args.action in ('save', 'append'):
             if not args.input:

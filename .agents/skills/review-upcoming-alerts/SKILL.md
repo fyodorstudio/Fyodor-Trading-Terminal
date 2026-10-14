@@ -22,7 +22,17 @@ research scopes. Inspect focused `journal read` entries and `highlights --visibi
 all` when earlier/archived investigations matter. IDs identify exact broker
 occurrences; names alone do not distinguish monthly repeats.
 
-For a pair trade's holding/exit question, use the focused mode below. For a
+Also query the separate `pnpm analyst external --scope <pair-or-currency>`
+collection for sourced missing events and unscheduled watch items. Follow its
+[workflow](../../../docs/EXTERNAL-SOURCES.md) and pagination; refresh dated
+interpretations and source schedules. Cross-check relevant official schedules
+and fresh headlines beyond the broker feed. An empty collection/calendar is not
+proof that no material news exists. Keep verified upcoming times, published
+headlines and untimed risks distinct. Save verified outside-feed records only
+when requested, without mixing them into Highlight or calendar observations.
+Neither a saved icon/record nor this review provides live headline monitoring.
+
+For a pair trade's holding/exit or next-opportunity question, use the focused mode below. For a
 standalone shortlist, use the requested horizon/pairs. If unspecified, scan the
 next 90 days across all
 eight currencies, concentrate near-term recommendations on the next few weeks,
@@ -93,9 +103,10 @@ Record known schedule/data gaps using `limitations append`. The user can request
 the full investigation on release day or about an hour beforehand, then request
 post-release interpretation after actuals arrive. Do not infer recurring monitoring.
 
-## Pair trade: fundamental holding/exit watchlist
+## Pair trade: holding/exit and next opportunity
 
 When asked which upcoming news could disrupt an intended or existing trade,
+or which event to revisit after a weak assessment,
 focus on its pair, buy/sell thesis and stated horizon. Reuse the assessment's
 fundamental context and research-as-of time, refreshing developments as needed.
 Scan at least the next seven calendar days for both currencies, extending through
@@ -113,3 +124,11 @@ complete checked coverage identifies no material scheduled threat, state that
 plainly with the checked window and remaining specific risks; incomplete coverage
 cannot support an all-clear. Keep technical entries, support/resistance, stops,
 targets and position sizing with the user. No trades or automatic monitoring.
+
+For a weak-bias or waiting handoff, apply Assess Trade Now's
+[direction and next-opportunity guidance](../assess-trade-now/SKILL.md#direction-and-next-opportunity).
+Select the next material event that could change the pair's policy outlook,
+give a verified release time and suggested preparation/return time in Jakarta
+and UTC, and explain the conditional directional change. A promising research
+candidate is not a forecast of a bigger price move. Suggesting when to return
+does not start a reminder or monitor.

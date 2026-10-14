@@ -111,6 +111,14 @@ class ResearchReportsTests(unittest.TestCase):
         first = save_report(self.store, seed, self.directory / "report")
         second = save_report(self.store, seed, self.directory / "report")
         self.assertNotEqual(first["path"], second["path"])
+        from storage.research_reports import create_report_folder
+        generated = datetime.now(timezone.utc)
+        same_clock_first = create_report_folder(self.directory / 'report', 'same-clock', generated)
+        sentinel = same_clock_first / 'preserve.txt'
+        sentinel.write_text('Preserve existing content')
+        same_clock_second = create_report_folder(self.directory / 'report', 'same-clock', generated)
+        self.assertNotEqual(same_clock_first, same_clock_second)
+        self.assertEqual(sentinel.read_text(), 'Preserve existing content')
         self.assertEqual(Path(first["path"]).parent.parent, (self.directory / "report").resolve())
         self.assertEqual(Path(first["path"]).name, "brief.md")
         self.assertEqual(Path(first["evidence_path"]).name, "evidence.tsv")

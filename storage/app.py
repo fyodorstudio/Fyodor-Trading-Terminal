@@ -15,6 +15,7 @@ from .data_lock import data_lock
 from .research_reports import ResearchRequest, save_report
 from .highlights import HIGHLIGHTS_PATH, HighlightRequest, pin_release, delete_pin, archive_pin, highlight_snapshot
 from .highlight_metadata import limitations_snapshot
+from .external_sources import DIRECTORY, ExternalRequest, LifecycleRequest, external_snapshot, external_history, append_external, archive_external
 
 # The eight-currency Alert catalog exceeds the original pair-only 64-series cap.
 # Keep a bound below SQLite's conservative 999-parameter limit, including dates.
@@ -25,7 +26,7 @@ def data_directory():
     return Path(os.environ.get("FYODOR_STORAGE_DATA_DIR", Path(__file__).resolve().parent / "data")).resolve()
 
 
-def create_app(directory=None, run_collector=True, highlights_path=HIGHLIGHTS_PATH):
+def create_app(directory=None, run_collector=True, highlights_path=HIGHLIGHTS_PATH, external_directory=DIRECTORY):
     @asynccontextmanager
     async def lifespan(app):
         with data_lock(directory or data_directory()):
@@ -136,6 +137,39 @@ def create_app(directory=None, run_collector=True, highlights_path=HIGHLIGHTS_PA
             return limitations_snapshot(source_id, highlights_path, after_revision)
         except OSError as error:
             raise HTTPException(503, 'Discovered limitations unavailable') from error
+
+    @app.get('/api/v1/external-sources')
+    def external_sources(after_revision: str | None = Query(default=None, max_length=100),
+                         visibility: str = Query(default='active', pattern='^(active|archived|all)$'),
+                         scope: str = Query(default='all', max_length=6),
+                         limit: int = Query(default=100, ge=1, le=500), offset: int = Query(default=0, ge=0)):
+        try:
+            return external_snapshot(external_directory, after_revision, visibility, scope, limit=limit, offset=offset)
+        except OSError as error:
+            raise HTTPException(503, 'External Sources unavailable') from error
+
+    @app.get('/api/v1/external-sources/{key}')
+    def external_versions(key: str):
+        try:
+            return {'key': key, 'items': external_history(key, external_directory)}
+        except OSError as error:
+            raise HTTPException(503, 'External Sources unavailable') from error
+
+    @app.post('/api/v1/external-sources')
+    def save_external(request: ExternalRequest):
+        try:
+            return append_external(request, external_directory)
+        except OSError as error:
+            raise HTTPException(503, 'Could not save External Source') from error
+
+    @app.post('/api/v1/external-sources/{key}/{action}')
+    def external_lifecycle(key: str, action: str, request: LifecycleRequest):
+        if action not in ('archive', 'restore'):
+            raise HTTPException(404, 'Unknown External Source action')
+        try:
+            return archive_external(key, request.expected_version, external_directory, restore=action == 'restore')
+        except OSError as error:
+            raise HTTPException(503, 'Could not update External Source') from error
 
     return app
 

@@ -49,6 +49,8 @@ export function TerminalStatusBar({
       <span className="status-clock">{formatAppTimestamp(now, timeDisplay, 'time')} · {timeDisplayLabel(timeDisplay)}</span>
       <span className="status-selection">{selectedSymbol} · {timeframe} · {barCount} bars</span>
       <div className="status-actions status-primary" role="group" aria-label="App features">
+        <button className={`status-action${bottomDockWindow === 'external-sources' ? ' active' : ''}`} type="button"
+          onClick={() => onToggleBottomDock('external-sources')} aria-expanded={bottomDockWindow === 'external-sources'}>External Sources</button>
         <button className={`status-action${bottomDockWindow === 'inspector' ? ' active' : ''}`} type="button" onClick={() => onToggleBottomDock('inspector')} aria-expanded={bottomDockWindow === 'inspector'}>
           Inspector
         </button>

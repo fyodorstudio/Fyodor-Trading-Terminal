@@ -180,9 +180,15 @@ def create_report_folder(directory, title, generated=None):
     directory.mkdir(parents=True, exist_ok=True)
     generated = generated or datetime.now(timezone.utc)
     slug = re.sub(r"[^\w-]+", "-", title.strip(), flags=re.UNICODE).strip("-_")[:80] or "research"
-    folder = directory / f"{slug}-{generated.strftime('%Y%m%d-%H%M%S-%f')}"
-    folder.mkdir()  # Exclusive creation; never reuse or overwrite another report.
-    return folder
+    stem = f"{slug}-{generated.strftime('%Y%m%d-%H%M%S-%f')}"
+    for suffix in range(100):
+        folder = directory / (stem if suffix == 0 else f"{stem}-{suffix}")
+        try:
+            folder.mkdir()  # Exclusive creation; never reuse another report.
+            return folder
+        except FileExistsError:
+            continue  # Coarse wall clocks or concurrent exports can tie.
+    raise ValueError('Report name capacity reached; preserve existing folders')
 
 
 def save_report(store, request, directory=REPORT_DIRECTORY):
