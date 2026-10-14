@@ -56,6 +56,8 @@ export function TerminalStatusBar({
         </button>
         <button className={`status-action${bottomDockWindow === 'alert' ? ' active' : ''}`} type="button"
           onClick={() => onToggleBottomDock('alert')} aria-expanded={bottomDockWindow === 'alert'}>Alert</button>
+        <button className={`status-action${bottomDockWindow === 'entry-trade' ? ' active' : ''}`} type="button"
+          onClick={() => onToggleBottomDock('entry-trade')} aria-expanded={bottomDockWindow === 'entry-trade'}>Entry Trade</button>
         <button className={`status-action${bottomDockWindow === 'activity' ? ' active' : ''}`} type="button" onClick={() => onToggleBottomDock('activity')} aria-expanded={bottomDockWindow === 'activity'}>
           Activity <span className="activity-count">{activityCount}</span>
         </button>

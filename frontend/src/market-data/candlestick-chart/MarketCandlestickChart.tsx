@@ -357,7 +357,7 @@ function MarketCandlestickChartComponent({
   return (
     <div className="market-chart-host" onPointerDownCapture={(event) => {
       const target = event.target as Element
-      if (event.button === 0 && selectedDrawingId && !target.closest('.drawing-object, .drawing-text-foreign-object')) {
+      if (event.button === 0 && selectedDrawingId && !target.closest('.drawing-object, .drawing-text-foreign-object, .trade-level-handle, .trade-arrow-handle')) {
         onSelectDrawing(null)
       }
     }}>

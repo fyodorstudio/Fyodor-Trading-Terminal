@@ -34,7 +34,7 @@ localStorage.setItem('fyodor.chart-drawings.v1', JSON.stringify([{ id: 'drawing'
   points: [{ time: now / 1000 - 5 * 3600, price: 1.1 }, { time: now / 1000 - 3 * 3600, price: 1.2 },
     { time: now / 1000 - 5 * 3600, price: 1 }], createdAt: 1 }]))
 localStorage.setItem('fyodor.inspector.eurusd.v1', JSON.stringify({ version: 2, catalogVersion: 1, families: ['us-cpi','ecb'], showSymbols: true, symbolGrouping: 'release', detailView: 'r1', showHistograms: true, symbols: { 'us-cpi': 'star', ecb: 'moon' }, currencyColors: {} }))
-const primitives = new Set(), captures = new Set(), pointerPrices = []
+const primitives = new Set(), captures = new Set(), pointerPrices = [], tradeMarkers = new Set(), tradeLines = new Set()
 let priceShift = 0, priceRange = { from: 1, to: 2 }
 dom.SVGElement.prototype.setPointerCapture = id => captures.add(id)
 dom.SVGElement.prototype.hasPointerCapture = id => captures.has(id)
@@ -63,7 +63,8 @@ const series = { applyOptions: () => {},
   update: bar => { count('update'); if (plotted.at(-1)?.time === bar.time) plotted[plotted.length - 1] = bar; else plotted.push(bar) },
   priceToCoordinate: price => price * 100 + priceShift, coordinateToPrice: coordinate => { pointerPrices.push(coordinate); return (coordinate - priceShift) / 100 },
   attachPrimitive: primitive => primitives.add(primitive), detachPrimitive: primitive => primitives.delete(primitive),
-  createPriceLine: () => ({}), removePriceLine: () => {},
+  createPriceLine: options => { count('tradeLineCreates'); const line = { options, applyOptions: next => { count('tradeLineUpdates'); Object.assign(options, next) } }; tradeLines.add(line); return line },
+  removePriceLine: line => tradeLines.delete(line),
 }
 const priceScale = { applyOptions: () => {}, getVisibleRange: () => priceRange,
   setVisibleRange: next => { priceRange = next; priceShift = (1 - next.from) * 100 } }
@@ -74,13 +75,19 @@ const chart = { addSeries: definition => definition.type === 'line' ? timeSeries
   subscribeCrosshairMove: fn => hoverListeners.add(fn), unsubscribeCrosshairMove: fn => hoverListeners.delete(fn),
   subscribeClick: fn => clickListeners.add(fn), unsubscribeClick: fn => clickListeners.delete(fn),
   remove: () => count('chartRemoved'), chartElement: () => document.querySelector('.market-chart-canvas') }
-globalThis.__terminalProbe = { count, clocks, createChart: () => { count('chartCreated'); return chart } }
+globalThis.__terminalProbe = { count, clocks, createChart: () => { count('chartCreated'); return chart },
+  createMarkers: markers => {
+    count('tradeMarkerCreates'); tradeMarkers.add(markers)
+    let current = markers
+    return { setMarkers: next => { count('tradeMarkerUpdates'); tradeMarkers.delete(current); tradeMarkers.add(next); current = next },
+      detach: () => tradeMarkers.delete(current) }
+  } }
 globalThis.Worker = class { constructor() { count('workerCreated'); throw new Error('Lite must not create calculation workers') } }
 
 const canvasModule = `export const CandlestickSeries = {type:'candle'}, LineSeries = {type:'line'}, ColorType = { Solid: 'solid' }, CrosshairMode = { Normal: 0 },
   TickMarkType = { Year: 0, Month: 1, DayOfMonth: 2, Time: 3, TimeWithSeconds: 4 }, LineStyle = { Dotted: 1, Dashed: 2 };
   export const createChart = (...args) => globalThis.__terminalProbe.createChart(...args);
-  export const createSeriesMarkers = () => ({detach(){}});`
+  export const createSeriesMarkers = (_series, markers) => globalThis.__terminalProbe.createMarkers(markers);`
 const server = await createServer({ root: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'),
   ssr: { noExternal: ['lightweight-charts'] },
   server: { middlewareMode: true, hmr: false }, plugins: [{ name: 'terminal-work-counts', enforce: 'pre',
@@ -102,7 +109,7 @@ const server = await createServer({ root: path.resolve(path.dirname(fileURLToPat
 const pending = new Map(), requests = []
 let broker = 'fixture-broker', generation = 1, observed = 0, connected = true, clockOffset = 0, failHealth = false
 let quotes = Array.from({ length: 200 }, (_, i) => ({ symbol: i === 0 ? 'EURUSD' : `TEST${i}`, description: `Quote ${i}`,
-  bid: 1.1, ask: 1.2, daily_change: 0, precision: 5 }))
+  bid: 1.1, ask: 1.2, daily_change: 0, precision: i === 1 ? 3 : 5 }))
 let bars = Array.from({ length: 800 }, (_, i) => ({ time: now / 1000 + (i - 799) * 3600, open: 1.1, high: 1.2, low: 1, close: 1.15 }))
 const catalog = JSON.parse(fs.readFileSync(new URL('./inspector/fixtures/major-calendar-catalog.json', import.meta.url), 'utf8'))
 const event = (id, at, actual = .3, previous = .1) => {
@@ -188,7 +195,7 @@ async function tick(name, ms) {
 const button = label => [...container.querySelectorAll('button')].find(element => element.textContent.trim().replace(/^⚙\s*/, '').startsWith(label))
 async function click(element) { assert.ok(element); await React.act(async () => element.click()) }
 function assertQuiet(label, workspace = false) {
-  for (const key of ['quoteRows', 'chartRender', 'setData', 'update', 'futureSetData', 'futureUpdate', 'workerPosts', ...(workspace ? ['workspace'] : [])])
+  for (const key of ['quoteRows', 'chartRender', 'setData', 'update', 'futureSetData', 'futureUpdate', 'workerPosts', 'tradeLineCreates', 'tradeMarkerCreates', ...(workspace ? ['workspace'] : [])])
     assert.equal(counters[key] ?? 0, 0, `${label}: ${key} must remain unchanged`)
 }
 let append
@@ -219,7 +226,7 @@ try {
   assert.equal(plotted.length, 800)
   assert.equal(Math.floor(futureTimes.at(-1).time / 86400), Math.floor(plotted.at(-1).time / 86400) + 90)
   assert.deepEqual([...container.querySelectorAll('[aria-label="App features"] button')].map(node => node.textContent.trim().replace(/\s+\d+$/, '')),
-    ['External Sources', 'Inspector', 'Alert', 'Activity', '⚙ Settings'])
+    ['External Sources', 'Inspector', 'Alert', 'Entry Trade', 'Activity', '⚙ Settings'])
   assert.ok(container.querySelector('.external-chart-star'), 'Upcoming external record appears on the assembled chart')
   assert.equal(container.querySelector('.external-chart-markers').style.bottom, '68px')
   await click(button('External Sources'))
@@ -518,6 +525,203 @@ try {
   await React.act(async () => document.querySelector('.research-panel form').dispatchEvent(new dom.Event('submit', { bubbles: true, cancelable: true })))
   assert.ok(document.querySelector('[aria-label="Saved report path"]'), 'A failed save can be retried')
   await click([...document.querySelectorAll('.research-panel button')].find(node => node.textContent === 'Done'))
+  // Entry Trade uses the real shell, storage and chart callbacks.
+  await click(button('Entry Trade'))
+  const entryPanel = () => container.querySelector('[aria-label="Entry Trade"]')
+  assert.ok(entryPanel())
+  assert.equal(entryPanel().children.length, 3)
+  const journal = () => entryPanel().querySelector('.entry-trade-journal-col')
+  assert.equal(journal().children.length, 2, 'Journal has only its text box and Save action')
+  assert.equal(journal().firstElementChild.tagName, 'TEXTAREA')
+  assert.equal(entryPanel().querySelectorAll('textarea').length, 1, 'No workflow or context fields return')
+  const pinButton = () => entryPanel().querySelector('.register-arrow-btn-compact')
+  assert.ok(pinButton().disabled)
+  await click([...entryPanel().querySelectorAll('button')].find(node => node.textContent.trim() === 'Use Market'))
+  assert.equal(entryPanel().querySelector('#plan-entry').value, String(quotes[0].ask))
+  await change(entryPanel().querySelector('#plan-entry'), '1.1')
+  await change(entryPanel().querySelector('#plan-sl'), '1.09')
+  await change(entryPanel().querySelector('#plan-rr'), '2')
+  assert.equal(entryPanel().querySelector('#plan-tp').value, '1.12', 'Target R:R calculates take profit')
+  assert.ok(!pinButton().disabled)
+  await click(button('Entry Trade'))
+  await click(button('Entry Trade'))
+  await change(entryPanel().querySelector('#plan-sl'), '1.08')
+  assert.equal(entryPanel().querySelector('#plan-tp').value, '1.14', 'Closing the dock preserves the chosen target R:R')
+  await change(entryPanel().querySelector('#plan-sl'), '1.09')
+  await change(entryPanel().querySelector('#plan-sl'), '1.11')
+  assert.ok(pinButton().disabled, 'A long plan with a stop above entry cannot be pinned')
+  await change(entryPanel().querySelector('#plan-sl'), '1.09')
+  await click(entryPanel().querySelector('.header-chart-toggle input'))
+  assert.deepEqual([...tradeLines].map(line => line.options.price), [1.1, 1.12, 1.09])
+  const dragTrade = async (label, delta, finish = 'pointerup') => {
+    const line = container.querySelector(`[aria-label="Drag ${label} price"]`)
+    assert.ok(line, `${label} has a draggable chart line`)
+    const svg = line.parentElement, clientY = Number(line.getAttribute('y1')) + 200
+    await pointer(line, 'pointerdown', 400, clientY)
+    const pendingFrames = frames.size
+    reset()
+    for (let i = 1; i <= 20; i++) await pointer(svg, 'pointermove', 400, clientY + delta * 100 * i / 20)
+    assert.equal(frames.size, pendingFrames + 1, 'Line dragging batches pointer work into one animation frame')
+    assert.equal(counters.tradeLineUpdates ?? 0, 0)
+    const savedBefore = localStorage.getItem('fyodor.registered_arrows.v1')
+    await flush()
+    assert.equal(counters.tradeLineUpdates, 1, 'One frame previews one line')
+    assertQuiet('Price-line drag preview', true)
+    assert.equal(localStorage.getItem('fyodor.registered_arrows.v1'), savedBefore, 'Preview does not persist partial changes')
+    await pointer(svg, finish, 400, clientY + delta * 100)
+    assert.equal(captures.size, 0)
+  }
+  await dragTrade('Entry', .001)
+  assert.equal(entryPanel().querySelector('#plan-entry').value, '1.101')
+  await dragTrade('Take Profit', .002)
+  assert.equal(entryPanel().querySelector('#plan-tp').value, '1.122')
+  await dragTrade('Stop Loss', -.001, 'pointercancel')
+  assert.equal(entryPanel().querySelector('#plan-sl').value, '1.09', 'Cancelling a drag restores its original price')
+  await change(entryPanel().querySelector('#plan-entry'), '1.1')
+  await change(entryPanel().querySelector('#plan-tp'), '1.12')
+  reset()
+  await change(journal().querySelector('textarea'), 'EURUSD trade thesis')
+  assertQuiet('Writing Entry Trade journal', true)
+  assert.notEqual(localStorage.getItem('trader_notebook_note_EURUSD'), 'EURUSD trade thesis', 'Typing does not save automatically')
+  await click(journal().querySelector('button'))
+  assert.equal(localStorage.getItem('trader_notebook_note_EURUSD'), 'EURUSD trade thesis')
+  await click(pinButton())
+  const storedArrow = JSON.parse(localStorage.getItem('fyodor.registered_arrows.v1'))[0]
+  assert.equal(storedArrow.note, 'EURUSD trade thesis')
+  assert.equal(storedArrow.symbol, 'EURUSD')
+  assert.equal(storedArrow.time, bars.at(-1).time)
+  assert.ok(Math.abs(storedArrow.rrRatio - 2) < 1e-9)
+  assert.equal(storedArrow.workflow, undefined)
+  assert.equal(entryPanel().querySelectorAll('.pinned-arrow-row').length, 1)
+  assert.ok(entryPanel().querySelector('#plan-entry').readOnly)
+  const pinnedMarker = [...tradeMarkers].flat().find(marker => marker.id === storedArrow.id)
+  assert.ok(pinnedMarker, 'Pinning draws an arrow on the actual chart boundary')
+  const dragDate = async (id, dx, finish = 'pointerup') => {
+    const handle = container.querySelector(`.trade-arrow-handle[data-arrow-id="${id}"]`)
+    assert.ok(handle, 'Pinned arrow has a draggable date target')
+    const svg = handle.parentElement, x = Number(handle.getAttribute('x')) + 9 + 200
+    await pointer(handle, 'pointerdown', x, 100)
+    const pendingFrames = frames.size, before = localStorage.getItem('fyodor.registered_arrows.v1')
+    reset()
+    for (let i = 1; i <= 20; i++) await pointer(svg, 'pointermove', x + dx * i / 20, 350)
+    assert.equal(frames.size, pendingFrames + 1, 'Arrow date previews coalesce into one frame')
+    assert.equal(counters.tradeMarkerUpdates ?? 0, 0)
+    await flush()
+    assert.equal(counters.tradeMarkerUpdates, 1)
+    assertQuiet('Dragging an arrow date', true)
+    assert.equal(localStorage.getItem('fyodor.registered_arrows.v1'), before, 'Date previews do not rewrite saved records')
+    await pointer(svg, finish, x + dx, 350)
+    assert.equal(captures.size, 0)
+  }
+  const originalDate = entryPanel().querySelector('.pinned-date').textContent
+  await dragDate(storedArrow.id, -160)
+  const redatedArrow = JSON.parse(localStorage.getItem('fyodor.registered_arrows.v1'))[0]
+  assert.deepEqual(redatedArrow, { ...storedArrow, time: bars.at(-3).time }, 'Dragging changes only the date and snaps to the target candle')
+  assert.notEqual(entryPanel().querySelector('.pinned-date').textContent, originalDate, 'The table shows the edited date')
+  assert.equal([...tradeMarkers].flat().find(marker => marker.id === storedArrow.id).time, redatedArrow.time)
+  await dragDate(storedArrow.id, 80, 'pointercancel')
+  assert.equal(JSON.parse(localStorage.getItem('fyodor.registered_arrows.v1'))[0].time, redatedArrow.time, 'Cancelling a date drag keeps the saved date')
+  await dragTrade('Stop Loss', -.005)
+  const draggedArrow = JSON.parse(localStorage.getItem('fyodor.registered_arrows.v1'))[0]
+  assert.equal(draggedArrow.slPrice, 1.085, 'Pinned price-line changes persist on release')
+  assert.ok(Math.abs(draggedArrow.rrRatio - 4 / 3) < 1e-9)
+  await dragTrade('Stop Loss', .03)
+  assert.equal(JSON.parse(localStorage.getItem('fyodor.registered_arrows.v1'))[0].slPrice, 1.085, 'Invalid pinned stop placement is rejected')
+  reset()
+  await tick('poll', 2500); await reply('watch')
+  assertQuiet('Unchanged quote poll with a pinned trade')
+  await click(button('Alert'))
+  assert.equal(entryPanel(), null)
+  assert.ok([...tradeMarkers].flat().some(marker => marker.id === storedArrow.id), 'Chart pins remain while the dock is hidden')
+  await React.act(async () => { for (const handler of [...clickListeners]) handler({ hoveredInfo: { objectId: storedArrow.id }, point: { x: 100, y: 100 } }) })
+  assert.ok(entryPanel(), 'Clicking a chart arrow opens Entry Trade')
+  assert.equal(journal().querySelector('textarea').value, 'EURUSD trade thesis', 'Journal survives closing and reopening')
+  await click(entryPanel().querySelector('.new-draft-btn-compact'))
+  assert.ok(!entryPanel().querySelector('#plan-entry').readOnly)
+  await click(entryPanel().querySelector('.pinned-arrow-row'))
+  assert.ok(entryPanel().querySelector('#plan-entry').readOnly, 'Pinned row selects its stored levels')
+  await click(entryPanel().querySelector('.pinned-delete-btn'))
+  assert.deepEqual(JSON.parse(localStorage.getItem('fyodor.registered_arrows.v1')), [])
+  assert.equal([...tradeMarkers].flat().length, 0)
+  await click(entryPanel().querySelector('.new-draft-btn-compact'))
+  await click([...entryPanel().querySelectorAll('button')].find(node => node.textContent.trim() === 'SHORT (SELL)'))
+  await change(entryPanel().querySelector('#plan-entry'), '1.1')
+  await change(entryPanel().querySelector('#plan-sl'), '1.11')
+  await change(entryPanel().querySelector('#plan-rr'), '3')
+  assert.equal(entryPanel().querySelector('#plan-tp').value, '1.07', 'Short plans calculate take profit below entry')
+  await click(pinButton())
+  assert.equal(JSON.parse(localStorage.getItem('fyodor.registered_arrows.v1'))[0].direction, 'short')
+  const switchSymbol = async symbol => {
+    await click([...container.querySelectorAll('.market-watch-row')].find(node => node.textContent.includes(symbol)))
+    while (pending.get('ohlc')?.length) await reply('ohlc')
+    await flush()
+  }
+  await switchSymbol('TEST1')
+  assert.equal(entryPanel().querySelector('#plan-entry').value, '')
+  assert.equal(entryPanel().querySelectorAll('.pinned-arrow-row').length, 1, 'The table includes every pair')
+  assert.equal(entryPanel().querySelector('.pinned-pair').textContent, 'EURUSD')
+  assert.equal(journal().querySelector('textarea').value, '')
+  await change(journal().querySelector('textarea'), 'Other symbol note')
+  await click(journal().querySelector('button'))
+  await click([...entryPanel().querySelectorAll('button')].find(node => node.textContent.trim() === 'WAITING'))
+  assert.ok(entryPanel().querySelector('[placeholder="SL Pips"]').disabled, 'Waiting has no implied price side until levels are set')
+  await change(entryPanel().querySelector('#plan-entry'), '1.1')
+  await change(entryPanel().querySelector('#plan-sl'), '1.09')
+  await change(entryPanel().querySelector('#plan-rr'), '2')
+  assert.equal(entryPanel().querySelector('#plan-tp').value, '1.12')
+  await click(pinButton())
+  const waitingArrow = JSON.parse(localStorage.getItem('fyodor.registered_arrows.v1'))[0]
+  assert.equal(waitingArrow.direction, 'waiting')
+  assert.equal([...tradeMarkers].flat().find(marker => marker.id === waitingArrow.id).shape, 'square')
+  assert.equal(entryPanel().querySelectorAll('.pinned-arrow-row').length, 2)
+  await change(journal().querySelector('textarea'), 'Waiting setup note')
+  await click(journal().querySelector('button'))
+  await click([...entryPanel().querySelectorAll('button')].find(node => node.textContent.trim() === 'LONG (BUY)'))
+  assert.equal(JSON.parse(localStorage.getItem('fyodor.registered_arrows.v1')).find(arrow => arrow.id === waitingArrow.id).direction, 'long', 'A waiting pin can become a directional setup')
+  await click([...entryPanel().querySelectorAll('button')].find(node => node.textContent.trim() === 'WAITING'))
+  const pendingLine = container.querySelector('[aria-label="Drag Entry price"]'), pendingSvg = pendingLine.parentElement
+  await pointer(pendingLine, 'pointerdown', 400, 200)
+  await pointer(pendingSvg, 'pointermove', 400, 201)
+  await React.act(async () => window.dispatchEvent(new dom.KeyboardEvent('keydown', { key: 'Escape' })))
+  assert.equal(captures.size, 0, 'Escape releases drag capture')
+  assert.equal(JSON.parse(localStorage.getItem('fyodor.registered_arrows.v1')).find(arrow => arrow.id === waitingArrow.id).entryPrice, 1.1)
+  await pointer(pendingLine, 'pointerdown', 400, 200)
+  await pointer(pendingSvg, 'pointermove', 400, 201)
+  await click([...entryPanel().querySelectorAll('.pinned-arrow-row')].find(node => node.querySelector('.pinned-pair').textContent === 'EURUSD'))
+  while (pending.get('ohlc')?.length) await reply('ohlc')
+  await flush()
+  assert.equal(captures.size, 0, 'Changing pair during a drag cancels and releases capture')
+  assert.equal(JSON.parse(localStorage.getItem('fyodor.registered_arrows.v1')).find(arrow => arrow.id === waitingArrow.id).entryPrice, 1.1, 'A stale drag cannot change the previous pair')
+  assert.equal(entryPanel().querySelector('.entry-trade-symbol-title').textContent, 'EURUSD', 'Selecting another pair switches its chart')
+  assert.equal([...entryPanel().querySelectorAll('.pinned-arrow-row')].find(row => row.querySelector('.pinned-pair').textContent === 'TEST1').children[3].textContent, '1.100', 'Each pair keeps its own price precision')
+  assert.equal(journal().querySelector('textarea').value, 'EURUSD trade thesis')
+  await change(journal().querySelector('textarea'), 'Pinned EURUSD note')
+  assert.equal(JSON.parse(localStorage.getItem('fyodor.registered_arrows.v1')).find(arrow => arrow.symbol === 'EURUSD').note, 'EURUSD trade thesis')
+  await click(journal().querySelector('button'))
+  assert.equal(JSON.parse(localStorage.getItem('fyodor.registered_arrows.v1')).find(arrow => arrow.symbol === 'EURUSD').note, 'Pinned EURUSD note')
+  assert.equal(JSON.parse(localStorage.getItem('fyodor.registered_arrows.v1')).find(arrow => arrow.symbol === 'TEST1').note, 'Waiting setup note', 'Saving one arrow never edits another')
+  const firstEurArrow = JSON.parse(localStorage.getItem('fyodor.registered_arrows.v1')).find(arrow => arrow.symbol === 'EURUSD')
+  await click(entryPanel().querySelector('.new-draft-btn-compact'))
+  assert.equal(journal().querySelector('textarea').value, 'EURUSD trade thesis', 'Pinned note edits do not overwrite the draft')
+  await click(pinButton())
+  const secondEurArrow = JSON.parse(localStorage.getItem('fyodor.registered_arrows.v1'))[0]
+  assert.notEqual(secondEurArrow.id, firstEurArrow.id)
+  await change(journal().querySelector('textarea'), 'Second EURUSD note')
+  await click(journal().querySelector('button'))
+  await click(entryPanel().querySelector(`[data-arrow-id="${firstEurArrow.id}"]`))
+  assert.equal(journal().querySelector('textarea').value, 'Pinned EURUSD note', 'Two arrows on the same pair have independent notes')
+  await change(journal().querySelector('textarea'), 'Unsaved EURUSD edit')
+  await switchSymbol('TEST1')
+  assert.equal(journal().querySelector('textarea').value, 'Other symbol note', 'The unselected draft has its own journal')
+  await click([...entryPanel().querySelectorAll('.pinned-arrow-row')].find(node => node.querySelector('.pinned-pair').textContent === 'TEST1'))
+  assert.equal(journal().querySelector('textarea').value, 'Waiting setup note')
+  await click(entryPanel().querySelector(`[data-arrow-id="${firstEurArrow.id}"]`))
+  while (pending.get('ohlc')?.length) await reply('ohlc')
+  await flush()
+  assert.equal(journal().querySelector('textarea').value, 'Unsaved EURUSD edit', 'Unsaved edits survive changing arrows')
+  await click(journal().querySelector('button'))
+  for (const row of [...entryPanel().querySelectorAll('.pinned-arrow-row')]) await click(row.querySelector('.pinned-delete-btn'))
+  await click(button('Alert'))
   // Shared dock height persists across dock switches.
   const handle = container.querySelector('[role="separator"]')
   await React.act(async () => handle.dispatchEvent(new dom.KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true })))
@@ -532,11 +736,12 @@ try {
     await React.act(async () => root.render(React.createElement(React.StrictMode, null,
       React.createElement(ActivityLogProvider, null, React.createElement(FyodorTerminalShell)))))
   } finally { await React.act(async () => root.render(null)) }
-  console.log('✓ Assembled Lite: navigation, filters/raw tables, dates, future axis, drawings, Alert/Activity, viewport/corrections, research drag/export/retry, zero polling/pan work and StrictMode cleanup')
+  console.log('✓ Assembled Lite: navigation, filters/raw tables, dates, future axis, drawings, Entry Trade plans/pins/journal, Alert/Activity, viewport/corrections, research drag/export/retry, zero polling/pan work and StrictMode cleanup')
 } finally {
   await React.act(async () => root.unmount())
   assert.equal(timers.size, 0); assert.equal(intervals.size, 0); assert.equal(frames.size, 0)
   assert.equal(rangeListeners.size, 0); assert.equal(sizeListeners.size, 0); assert.equal(hoverListeners.size, 0); assert.equal(clickListeners.size, 0)
+  assert.equal(tradeMarkers.size, 0); assert.equal(tradeLines.size, 0)
   Date.now = originalNow
   await server.close(); await dom.happyDOM.close()
   for (const [key, descriptor] of previous) {

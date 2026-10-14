@@ -37,6 +37,7 @@ Optional `FYODOR_BRIDGE_API_URL` / `FYODOR_STORAGE_API_URL` override Vite's prox
 | inspector | Filters, date ranges, release/day grouping, icons and raw tables |
 | alert | Upcoming filters/countdowns, Highlight journals, Copy Prompt and archive |
 | external-sources | Separate outside-feed events/headlines/watch items, sourced facts, history and agent prompts |
+| entry-trade | Manual execution plans, all-pair pins, draggable chart levels and independent saved journals |
 | research | Chart date selection and named Markdown handoff shared with Alert |
 | Market Analyst Workflow/tools (repo root) | Read-only calendar, upcoming/Highlight/report queries, journal/lifecycle writes and bounded OHLC capture |
 | appearance, system-connectivity, system-observability, workspace-docking | Theme/time, bridge status, Activity and dock geometry |
@@ -74,8 +75,18 @@ Save/Cancel and reads older pair settings; new saves use shared currency selecti
 Use the same UI origin (normally localhost:5173) to reuse browser preferences from
 the original app. A different port has separate browser storage. Old scoring view
 choices fall back to raw tables; filters/icons/colors stay intact. No Workspace
-backup UI, scoring engines, Notebook, Scatter Plot or experimental context tools
+backup UI, scoring engines, full Notebook workflow, Scatter Plot or experimental context tools
 are included.
+
+**Entry Trade** opens a three-column bottom dock: execution plan, pinned arrows,
+and a journal text box with Save (Ctrl+Enter). Each pinned arrow has its own editable
+note; drafts keep separate notes per symbol. The table shows all pairs; selecting a
+row opens that pair's chart. Plans support Long, Short and neutral Waiting.
+Project on Chart previews drafts. Drag Entry/TP/SL lines to change a level and
+recalculate R:R on release; Escape cancels. Pinned levels persist automatically.
+Drag a pinned arrow horizontally to change its date, snapping to a loaded candle.
+Use New Plan to return to drafting.
+Saved arrows and notes retain the original browser-storage keys.
 
 Start agents with [AGENTS.md](AGENTS.md#market-analysis); it owns the analysis
 workflow and dataset commands. The [user manual](<user manual.md>) owns the practical

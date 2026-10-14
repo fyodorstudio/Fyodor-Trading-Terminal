@@ -19,7 +19,11 @@ import { researchRangeDates, type ResearchSeed } from '../../research/research-r
 import { displayDateKey } from '../../economic-calendar/time/calendar-display-range'
 import { forexPair, forexPairCurrencies } from '../../economic-calendar/forex/pairs'
 import type { InspectorRelease } from '../../economic-calendar/releases/release'
+import { getPipMultiplier, type PlannedTradeState, type RegisteredTradeArrow, type TradePriceField } from '../../entry-trade/contracts/entry-trade-types'
+import { tradeMetrics } from '../../entry-trade/dock/plan-math'
+import { useRegisteredArrows } from '../../entry-trade/storage/use-registered-arrows'
 
+const emptyTradePlan: PlannedTradeState = { direction: 'long', entryPrice: null, tpPrice: null, slPrice: null, showOnChart: false }
 
 export function useTerminalWorkspace() {
   const [selectedSymbol, setSelectedSymbol] = useState('EURUSD')
@@ -65,6 +69,13 @@ export function useTerminalWorkspace() {
     clockOffsetMs: 0, brokerId,
     brokerOffsetSeconds: bridge.brokerOffsetSeconds })
   const quote = marketData.symbols.find((item) => item.symbol === activeSymbol) ?? null
+  const latestBarTime = bars.at(-1)?.time ?? 0
+  const registeredArrows = useRegisteredArrows(activeSymbol)
+  const [tradePlans, setTradePlans] = useState<Record<string, PlannedTradeState>>({})
+  const plannedTrade = tradePlans[activeSymbol] ?? emptyTradePlan
+  const handlePlanChange = useCallback((plan: PlannedTradeState) => {
+    setTradePlans(current => ({ ...current, [activeSymbol]: plan }))
+  }, [activeSymbol])
   const {
     drawings,
     totalDrawingCount,
@@ -182,6 +193,33 @@ export function useTerminalWorkspace() {
       focus: release.label, focusIds: release.events.map(event => event.event_id) })
   }, [activeSymbol, timeDisplay])
   const setReleaseSelection = inspector.selectRelease
+  const setArrowSelection = registeredArrows.setSelectedArrowId
+  const selectPinnedArrow = useCallback((id: string | null) => {
+    const arrow = registeredArrows.allArrows.find(item => item.id === id)
+    if (arrow && arrow.symbol !== activeSymbol) selectSymbol(arrow.symbol)
+    setArrowSelection(id)
+  }, [registeredArrows.allArrows, activeSymbol, selectSymbol, setArrowSelection])
+  const updateArrow = registeredArrows.updateArrow
+  const changeTradePrice = useCallback((field: TradePriceField, price: number) => {
+    if (!Number.isFinite(price) || price <= 0) return
+    const arrow = registeredArrows.selectedArrow
+    if (arrow) {
+      const changed = { ...arrow, [field]: price }
+      const metrics = tradeMetrics(changed, getPipMultiplier(arrow.symbol, arrow.precision ?? quote?.precision ?? 5))
+      if (metrics.tpPips == null || metrics.slPips == null || metrics.rrRatio == null
+        || ![metrics.tpPips, metrics.slPips, metrics.rrRatio].every(value => Number.isFinite(value) && value > 0)) return
+      updateArrow(arrow.id, { [field]: price, tpPips: metrics.tpPips, slPips: metrics.slPips, rrRatio: metrics.rrRatio })
+    } else handlePlanChange({ ...plannedTrade, [field]: price, targetRr: null })
+  }, [registeredArrows.selectedArrow, updateArrow, quote?.precision, handlePlanChange, plannedTrade])
+  const selectChartArrow = useCallback((arrow: RegisteredTradeArrow) => {
+    setArrowSelection(arrow.id); selectBottomDock('entry-trade')
+  }, [setArrowSelection, selectBottomDock])
+  const changeTradeTime = useCallback((id: string, time: number) => {
+    const arrow = registeredArrows.symbolArrows.find(item => item.id === id)
+    if (!arrow || !Number.isFinite(time) || time <= 0) return
+    if (time !== arrow.time) updateArrow(id, { time })
+    setArrowSelection(id); selectBottomDock('entry-trade')
+  }, [registeredArrows.symbolArrows, updateArrow, setArrowSelection, selectBottomDock])
   const selectExternal = useCallback((key: string | null) => {
     setSelectedExternalKey(key); setExternalSelection(value => value + 1); selectBottomDock('external-sources')
   }, [selectBottomDock])
@@ -193,6 +231,11 @@ export function useTerminalWorkspace() {
     setBottomDockWindow(current => current === 'inspector' ? null : current)
   }, [setReleaseSelection])
   const renderChartOverlay = useTerminalChartOverlay({ supported: inspector.supported, markers: inspector.markers,
+    arrows: registeredArrows.symbolArrows, selectedArrowId: registeredArrows.selectedArrowId,
+    draftPlan: plannedTrade, onSelectArrow: selectChartArrow,
+    onPriceChange: changeTradePrice, precision: quote?.precision ?? 5, dragEnabled: !activeDrawingTool && !researchActive,
+    onTimeChange: changeTradeTime,
+    scopeKey: `${activeSymbol}:${timeframe}:${brokerId}`,
     currencyColors: inspector.preferences.currencyColors, timeDisplay, onSelectRelease: selectChartRelease,
     onClearInspection: !activeDrawingTool && !researchActive && !researchSeed && inspector.selectedRelease ? clearChartInspection : undefined,
     researchActive, bars, timeframe, onResearchRange: selectResearchRange, onCancelResearch: cancelResearch,
@@ -216,5 +259,6 @@ export function useTerminalWorkspace() {
     recordChartData, changeTheme, changeChartAppearance, changeTimeDisplay, createDrawing, chooseDrawingTool,
     selectCrosshair, deleteAllDrawings, toggleBottomDock, exitDrawingMode, toggleDrawingToolbar,
     renderChartOverlay, sourceState, sourceLabel, researchActive, researchSeed, researchError,
-    selectResearchTool, closeResearch, prepareAlertResearch, selectedExternalKey, externalSelection }
+    selectResearchTool, closeResearch, prepareAlertResearch, selectedExternalKey, externalSelection,
+    plannedTrade, handlePlanChange, latestBarTime, registeredArrows, selectPinnedArrow }
 }

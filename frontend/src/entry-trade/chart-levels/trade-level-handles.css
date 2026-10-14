@@ -1,0 +1,5 @@
+.trade-level-handles { position: absolute; inset: 0; z-index: 6; pointer-events: none; touch-action: none; overflow: hidden; }
+.trade-level-handle { stroke: transparent; stroke-width: 10px; pointer-events: stroke; cursor: ns-resize; }
+.trade-level-handle:hover, .trade-level-handle:focus { stroke: color-mix(in srgb, var(--accent) 16%, transparent); outline: none; }
+.trade-arrow-handle { fill: transparent; pointer-events: all; cursor: ew-resize; }
+.trade-arrow-handle:hover, .trade-arrow-handle:focus { fill: color-mix(in srgb, var(--accent) 20%, transparent); outline: none; }

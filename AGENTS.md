@@ -4,8 +4,9 @@ Market Watch, chart/drawings, raw calendar Inspector, upcoming Alert, Activity a
 Settings, including agent-authored fundamental research journals and an archive
 under Highlight. Research is produced in the market-analyst session; the terminal
 may display saved research and provide occurrence-specific Copy Prompt actions.
-No scoring, Notebook, Scatter Plot, Fundamental Settings, Roofs, Raycaster, Candy
-or Workspace backup UI belong here. Keep the copied bridge unchanged.
+Entry Trade provides a manual execution planner, pinned arrows and one freeform
+journal box. No scoring, full Notebook workflow, Scatter Plot, Fundamental
+Settings, Roofs, Raycaster, Candy or Workspace backup UI belong here. Keep the copied bridge unchanged.
 
 Read only task-relevant owners. README.md covers commands/ownership;
 docs/DATA-CONTRACT.md covers calendar, clocks and recovery. Keep docs short.

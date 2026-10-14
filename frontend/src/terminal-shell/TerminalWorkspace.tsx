@@ -14,6 +14,7 @@ import { useTerminalWorkspace } from './runtime/useTerminalWorkspace'
 import './terminal-shell.layout.css'
 import { ResearchReportPanel } from '../research/ResearchReportPanel'
 import { ExternalSourcesDock } from '../external-sources/ExternalSourcesDock'
+import { EntryTradePanel } from '../entry-trade/dock/EntryTradePanel'
 
 export function TerminalWorkspace() {
   const { timeframe, theme, chartAppearance, timeDisplay, activeDrawingTool, selectedDrawingId, setSelectedDrawingId,
@@ -23,7 +24,8 @@ export function TerminalWorkspace() {
     selectSymbol, selectTimeframe, recordChartData, changeTheme, changeChartAppearance, changeTimeDisplay,
     createDrawing, chooseDrawingTool, selectCrosshair, deleteAllDrawings, toggleBottomDock, exitDrawingMode,
     toggleDrawingToolbar, renderChartOverlay, sourceState, sourceLabel, researchActive, researchSeed, researchError,
-    selectResearchTool, closeResearch, prepareAlertResearch, selectedExternalKey, externalSelection } = useTerminalWorkspace()
+    selectResearchTool, closeResearch, prepareAlertResearch, selectedExternalKey, externalSelection,
+    plannedTrade, handlePlanChange, latestBarTime, registeredArrows, selectPinnedArrow } = useTerminalWorkspace()
   const brokerOffsetSeconds = bridge.brokerOffsetSeconds
   return (
     <DisplayClockProvider brokerId={brokerId} brokerOffsetSeconds={brokerOffsetSeconds} preference={timeDisplay}>
@@ -116,6 +118,11 @@ export function TerminalWorkspace() {
             <ActivityDock timeDisplay={timeDisplay} />
           )}
           {bottomDockWindow === 'external-sources' && <ExternalSourcesDock key={externalSelection} timeDisplay={timeDisplay} symbol={activeSymbol} focusKey={selectedExternalKey} />}
+          {bottomDockWindow === 'entry-trade' && <EntryTradePanel selectedSymbol={activeSymbol} quote={quote} quotes={marketData.symbols}
+            latestBarTime={latestBarTime} plan={plannedTrade} registeredArrows={registeredArrows.allArrows}
+            selectedArrowId={registeredArrows.selectedArrowId} onPlanChange={handlePlanChange}
+            onSelectArrowId={selectPinnedArrow} onRegisterArrow={registeredArrows.addArrow}
+            onDeleteArrow={registeredArrows.deleteArrow} onUpdateArrow={registeredArrows.updateArrow} />}
           {bottomDockWindow === 'inspector' && <InspectorDock view={inspector} symbol={activeSymbol}
             timeDisplay={timeDisplay}
             />}
