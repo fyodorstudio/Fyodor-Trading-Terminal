@@ -1,10 +1,11 @@
-import { useId, useState, type ReactNode } from 'react'
+import { memo, useId, useState, type ReactNode } from 'react'
+import { ExternalCountdown } from '../external-sources/ExternalCountdown'
 import type { ExternalSource } from '../external-sources/external-source-model'
 import { RecordDetails, VersionHistory } from '../external-sources/ExternalRecordDetails'
 import { externalCountdown } from '../external-sources/external-schedule'
 import { alarmTime, jakartaDisplay } from './alarm-time'
 
-export function ExternalHighlightCard({ item, now, alarm, busy, changePin }: {
+export const ExternalHighlightCard = memo(function ExternalHighlightCard({ item, now, alarm, busy, changePin }: {
   item: ExternalSource; now: number; alarm: ReactNode; busy: boolean; changePin: (item: ExternalSource) => Promise<void>
 }) {
   const [expanded, setExpanded] = useState(false), contentId = useId()
@@ -14,7 +15,7 @@ export function ExternalHighlightCard({ item, now, alarm, busy, changePin }: {
         <span aria-hidden="true">{expanded ? '▾' : '▸'}</span><span className="alert-currency">{item.currencies.join(' / ')}</span><strong>{item.title}</strong>
         <span className="highlight-source">External Source</span>
         <time>{item.event_at ? alarmTime(Date.parse(item.event_at)) : item.event_date ? `${externalCountdown(item, now, jakartaDisplay) === 'Today' ? 'Today' : item.event_date} · hour unconfirmed` : 'Unscheduled'}</time>
-        <span className="alert-countdown">{item.archived ? 'Archived' : externalCountdown(item, now, jakartaDisplay)}</span>
+        <span className="alert-countdown">{item.archived ? 'Archived' : <ExternalCountdown item={item} now={now} timeDisplay={jakartaDisplay} />}</span>
       </button>
       <div className="highlight-actions">
         <button type="button" onClick={() => setExpanded(true)} aria-label={`Research ${item.title}`}>Research</button>
@@ -27,4 +28,4 @@ export function ExternalHighlightCard({ item, now, alarm, busy, changePin }: {
       <RecordDetails item={item} timeDisplay={jakartaDisplay} /><VersionHistory key={item.id} item={item} timeDisplay={jakartaDisplay} />
     </>}</div>
   </article>
-}
+})

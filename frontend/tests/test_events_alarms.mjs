@@ -5,7 +5,21 @@ import React from 'react'
 import { createServer } from 'vite'
 import { Window } from 'happy-dom'
 
-const server = await createServer({ root: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'), server: { middlewareMode: true, hmr: false } })
+const work = {}
+globalThis.__eventsWork = work
+const resetWork = () => { for (const key of Object.keys(work)) delete work[key] }
+const quietWork = label => assert.deepEqual(work, {}, label)
+const server = await createServer({ root: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'), server: { middlewareMode: true, hmr: false },
+  plugins: [{ name: 'event-work-counts', enforce: 'pre', transform(code, id) {
+    const count = key => `globalThis.__eventsWork.${key} = (globalThis.__eventsWork.${key} ?? 0) + 1; `
+    if (id.endsWith('/HighlightDock.tsx')) return code.replace('const rows = useMemo(() => {', 'const rows = useMemo(() => { ' + count('sorts'))
+    if (id.endsWith('/HighlightList.tsx')) return code.replace('const [expanded, setExpanded]', count('cards') + 'const [expanded, setExpanded]')
+    if (id.endsWith('/ExternalHighlightCard.tsx')) return code.replace('const [expanded, setExpanded]', count('externalCards') + 'const [expanded, setExpanded]')
+    if (id.endsWith('/EventAlarmButton.tsx')) return code.replace('const events = useMemo', count('bells') + 'const events = useMemo')
+    if (id.endsWith('/alert-episodes.ts')) return code.replace('return releases.flatMap', count('episodes') + 'return releases.flatMap')
+    if (id.endsWith('/external-schedule.ts')) return code.replace('const today = displayDateKey', count('externalSorts') + 'const today = displayDateKey')
+    if (id.endsWith('/ExternalRecordCard.tsx')) return code.replace('const [open, setOpen]', count('externalRows') + 'const [open, setOpen]')
+  } }] })
 const dom = new Window({ url: 'http://localhost:5173' })
 const globals = { window: dom, document: dom.document, HTMLElement: dom.HTMLElement, Node: dom.Node, navigator: dom.navigator,
   localStorage: dom.localStorage, IS_REACT_ACT_ENVIRONMENT: true }
@@ -21,6 +35,7 @@ const reading = { value_id: 'cpi-value', event_id: '840030005', name: 'CPI m/m',
   unit: 1, multiplier: 0, digits: 1, time_mode: 0, impact: 'none', importance: 'high', availability: 'observed' }
 const pin = { id: 'pin-cpi', source_id: 'demo', label: 'US CPI', family_id: 'us-cpi', currency: 'USD', value_ids: [reading.value_id], event_ids: [reading.event_id],
   pinned_utc: '2026-10-14T00:00:00Z', events: [reading], release_at: reading.release_at, server_time: reading.server_time_seconds, missing_value_ids: [] }
+let pinItems = [pin]
 const external = (key, changes = {}) => ({ id: 'a'.repeat(32), key, title: key, currencies: ['USD'], kind: 'scheduled', status: 'confirmed', facts: 'Official schedule', interpretation: '',
   event_at: new Date(now + 1800000).toISOString(), event_date: null, published_utc: null, time_note: 'Verified schedule', saved_utc: '2026-10-14T00:00:00Z',
   archived: false, expected_version: null, version_count: 1, sources: [{ kind: 'web', label: 'Official', locator: 'https://home.treasury.gov/', note: '' }], ...changes })
@@ -58,7 +73,7 @@ globalThis.fetch = async (url, options = {}) => {
   }
   if (route.pathname === '/storage-api/external-sources') return { ok: true, json: async () => structuredClone({ revision: 'external', scope: params.get('scope'), visibility: params.get('visibility'),
     offset: 0, matches: externalItems.length, next_offset: null, items: externalItems }) }
-  if (route.pathname === '/storage-api/highlights') return { ok: true, json: async () => ({ source_id: 'demo', revision: 'pins', source_status: 'live', items: [pin] }) }
+  if (route.pathname === '/storage-api/highlights') return { ok: true, json: async () => ({ source_id: 'demo', revision: 'pins', source_status: 'live', items: pinItems }) }
   if (route.pathname === '/storage-api/highlight-limitations') return { ok: true, json: async () => ({ source_id: params.get('source_id'), revision: 'limits', items: [
     { id: 'limit', source_id: 'demo', key: 'missing-release', currency: 'USD', kind: 'missing-release', title: 'Missing policy event',
       description: 'Outside-feed reference', action: 'Check the official schedule', checked_utc: '2026-10-14T00:00:00Z', status: 'open',
@@ -181,9 +196,56 @@ try {
   await render()
   assert.equal(button('Highlight').getAttribute('aria-pressed'), 'true', 'Legacy All view migrates to shared Highlight')
   assert.equal(node.querySelector('[aria-label="Alarm for US CPI"]').getAttribute('aria-pressed'), 'false')
+  // Exercise a populated collection with advancing time, rather than a frozen
+  // timer callback that React can discard as an unchanged state value.
+  await React.act(async () => root.render(null))
+  pinItems = Array.from({ length: 48 }, (_, index) => {
+    const at = now + (index ? 3600000 + index * 1000 : 5000)
+    const events = [{ ...reading, value_id: `value-${index}`, release_at: at },
+      ...(index ? [] : [{ ...reading, value_id: 'second-stage', event_id: '840030006', name: 'Core CPI m/m', release_at: at + 5000 }])]
+    return { ...pin, id: `scale-${index}`, label: `Release ${index}`, events, release_at: at, value_ids: events.map(event => event.value_id) }
+  })
+  data = { ...data, revision: data.revision + 1, events: pinItems.flatMap(item => item.events.map((reading, index) =>
+    event(`${item.id}-${index}`, { reference: item.id, at: reading.release_at, title: item.label }))) }
+  await render()
+  assert.equal(node.querySelectorAll('.highlight-card').length, 50)
+  const countdown = node.querySelector('[data-highlight-id="scale-1"] .alert-countdown')
+  const before = countdown.textContent, requestCount = requests.length
+  resetWork(); now += 1000
+  await React.act(async () => { for (const timer of intervals.values()) timer.fn() })
+  assert.notEqual(countdown.textContent, before, 'The clock really advanced and the countdown visibly changed')
+  quietWork('Real ticks do not rebuild/sort lists, render cards, scan alarms or regroup episodes')
+  assert.equal(requests.length, requestCount)
+  resetWork(); await render()
+  quietWork('Identical parent props preserve the entire dock boundary')
+  resetWork(); await poll()
+  quietWork('Unchanged alarm polling preserves collection and card identities')
+  now += 4000
+  await React.act(async () => { for (const timer of intervals.values()) timer.fn() })
+  assert.match(node.querySelector('[data-highlight-id="scale-0"] .alert-countdown').textContent, /Next series/)
+  assert.ok(work.sorts > 0, 'A genuine publication boundary updates the next policy stage')
+  const stageAlarm = node.querySelector('[data-highlight-id="scale-0"] [aria-label="Alarm for Release 0"]')
+  assert.equal(stageAlarm.disabled, false, 'The later stage remains armed after the first stage')
+  now += 6000
+  await React.act(async () => { for (const timer of intervals.values()) timer.fn() })
+  assert.equal(stageAlarm.disabled, true, 'The bell expires when the final stage elapses')
+  assert.match(node.querySelector('[data-highlight-id="scale-0"] .alert-countdown').textContent, /Awaiting release data/)
+  now = Date.parse('2026-10-15T17:00:01Z')
+  await React.act(async () => { for (const timer of intervals.values()) timer.fn() })
+  assert.ok(!node.querySelector('[data-external-key="unknown-hour"] time').textContent.includes('Today'), 'Date-only labels update at Jakarta midnight')
+  await view('calendar'); resetWork(); now += 1000
+  await React.act(async () => { for (const timer of intervals.values()) timer.fn() })
+  quietWork('MT5 Calendar does no episode-selection work on an ordinary countdown tick')
+  await view('external')
+  const sourceView = node.querySelector('[aria-label="External Source view"]')
+  await React.act(async () => { sourceView.value = 'events'; sourceView.dispatchEvent(new dom.Event('change', { bubbles: true })) })
+  resetWork(); now += 1000
+  await React.act(async () => { for (const timer of intervals.values()) timer.fn() })
+  quietWork('External Source countdowns do not sort or render their record cards')
   console.log('✓ Shared Highlight: ordered sources, source labels, date/currency filters, persistent external pins/archive/restore, bell states, reminder times, broker isolation and unchanged countdown work')
 } finally {
   Date.now = originalNow
   await React.act(async () => root.unmount()); await server.close(); await dom.happyDOM.close()
   for (const [key, descriptor] of saved) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete globalThis[key] }
+  delete globalThis.__eventsWork
 }

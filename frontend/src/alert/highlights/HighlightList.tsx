@@ -4,12 +4,13 @@ import type { InspectorRelease } from '../../economic-calendar/releases/release'
 import { groupInspectorReleases } from '../../inspector/releases/group-releases'
 import { formatInspectorValue } from '../../inspector/readings/reading-values'
 import { InspectorReadingTime } from '../../inspector/InspectorReadingTime'
-import { alertCountdown } from '../model/alert-episodes'
+import { ReleaseCountdown } from './ReleaseCountdown'
 import { highlightState, highlightPrompt, highlightAssessmentPrompt, type Highlight } from './highlight-model'
 import { useHighlights } from './useHighlights'
 import { majorForexPairs } from '../../economic-calendar/forex/pairs'
 import { HighlightJournal, type JournalView } from './HighlightJournal'
 import type { AlertPreferences, HighlightVisibility } from '../model/alert-preferences'
+import { CalendarBoundary } from '../../inspector/CalendarClock'
 
 export const HighlightCard = memo(function HighlightCard({ item, now, timeDisplay, archive, restore, busy, onPrepareResearch, alarm, sourceLabel }: {
   item: Highlight; now: number; timeDisplay: TimeDisplayPreference; archive: (id: string) => Promise<void>; restore: (id: string) => Promise<void>; busy: boolean
@@ -45,7 +46,7 @@ export const HighlightCard = memo(function HighlightCard({ item, now, timeDispla
       {sourceLabel && <span className="highlight-source">{sourceLabel}</span>}
       <time>{item.release_at === null ? item.server_time === null ? 'Date unavailable' : `${formatAppTimestamp(item.server_time * 1000, { mode: 'utc', utcOffsetMinutes: 0 }, 'date')} · time unconfirmed` :
         formatAppTimestamp(item.release_at, timeDisplay)}</time>
-      <span className="alert-countdown">{item.archived_utc ? 'Archived' : next !== null ? `${state === 'Upcoming' ? '' : 'Next series · '}${alertCountdown(next, now, true)}` : state}</span>
+      <span className="alert-countdown">{item.archived_utc ? 'Archived' : next !== null ? <ReleaseCountdown at={next} now={now} precise prefix={state === 'Upcoming' ? '' : 'Next series · '} /> : state}</span>
     </button>
     <div className="highlight-actions"><div className="highlight-research-action">{onPrepareResearch && releases[0] && <button type="button" onClick={() => onPrepareResearch({ ...releases[0],
       label: item.label, events: item.events, releaseAt: item.release_at, serverTime: item.server_time ?? releases[0].serverTime, timingUncertain: item.release_at === null })}
@@ -98,15 +99,20 @@ export function HighlightList({ brokerId, now, timeDisplay, visibility, currency
   renderAlarm?: (item: Highlight, now: number) => ReactNode
 }) {
   const highlights = useHighlights(brokerId, 2000, visibility === 'archived' ? 'archived' : 'active')
+  const [boundaryNow, setBoundaryNow] = useState(now)
+  const currentNow = Math.max(now, boundaryNow)
+  const times = useMemo(() => highlights.items.flatMap(item => item.events.flatMap(event =>
+    event.time_mode === 0 && event.release_at !== null ? [event.release_at] : [])), [highlights.items])
   const items = useMemo(() => currency === 'all' ? highlights.items : highlights.items.filter(item => item.currency === currency), [highlights.items, currency])
   const emptyMessage = currency === 'all' ? visibility === 'archived' ? 'No archived releases.' : 'Pin releases from Inspector or Alert to keep them here.' :
     `No ${visibility === 'archived' ? 'archived' : 'active'} ${currency} events.`
   return <div className="highlight-list" aria-label="Highlighted releases">
+    <CalendarBoundary times={times} onBoundary={setBoundaryNow} timeDisplay={timeDisplay} />
     <>
     {highlights.error && <p role="status">{highlights.error}</p>}
     {!highlights.error && highlights.offline && <p role="status">Publisher offline · stored values may be stale</p>}
     {!items.length && <p>{brokerId ? emptyMessage : 'Connect calendar storage to load Highlight.'}</p>}
-    {items.map(item => <HighlightCard key={item.id} item={item} now={now} timeDisplay={timeDisplay}
-      archive={highlights.archive} restore={highlights.restore} busy={highlights.busy} onPrepareResearch={onPrepareResearch} alarm={renderAlarm?.(item, now)} />)}</>
+    {items.map(item => <HighlightCard key={item.id} item={item} now={currentNow} timeDisplay={timeDisplay}
+      archive={highlights.archive} restore={highlights.restore} busy={highlights.busy} onPrepareResearch={onPrepareResearch} alarm={renderAlarm?.(item, currentNow)} />)}</>
   </div>
 }

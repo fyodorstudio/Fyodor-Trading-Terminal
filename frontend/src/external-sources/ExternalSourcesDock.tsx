@@ -6,7 +6,7 @@ import { useExternalSources } from './useExternalSources'
 import { ExternalRecordCard } from './ExternalRecordCard'
 import { useExternalPin } from './useExternalPin'
 import { externalIconEnabled, setExternalIconVisibility, useExternalIconVisibility } from './external-icon-visibility'
-import { useCalendarNow } from '../inspector/useCalendarNow'
+import { CalendarBoundary, CalendarClock } from '../inspector/CalendarClock'
 import { sortExternalDates, type ExternalDateSort } from './external-schedule'
 import type { ExternalSource } from './external-source-model'
 import './external-sources.css'
@@ -55,7 +55,8 @@ function ExternalEventsDock({ timeDisplay, focusKey = null, renderHeader, render
   }
   const records = useExternalSources(currency, 'all')
   const pins = useExternalPin(records.refresh)
-  const now = useCalendarNow(0, 1000, records.items.some(item => !!(item.event_at || item.event_date)))
+  const [now, setNow] = useState(Date.now)
+  const times = useMemo(() => records.items.flatMap(item => item.event_at ? [Date.parse(item.event_at) + 1] : []), [records.items])
   const visibility = useExternalIconVisibility()
   const terms = useMemo(() => search.toLocaleLowerCase().trim().split(/\s+/).filter(Boolean), [search])
   const filtered = useMemo(() => !terms.length ? records.items : records.items.filter(item => {
@@ -76,7 +77,8 @@ function ExternalEventsDock({ timeDisplay, focusKey = null, renderHeader, render
       try { localStorage.setItem('fyodor.external-sources.date-sort.v1', next) } catch { /* Retain session sort. */ }
     }}><option value="upcoming">Upcoming first</option><option value="earliest">Earliest first</option><option value="latest">Latest first</option></select></label>
   </>
-  return <section ref={panel} className={`external-sources-dock${renderAlarm ? ' with-alarms' : ''}${showPinControls ? ' with-pins' : ''}`} aria-label="External Sources">
+  return <CalendarClock><CalendarBoundary times={times} onBoundary={setNow} timeDisplay={timeDisplay} />
+  <section ref={panel} className={`external-sources-dock${renderAlarm ? ' with-alarms' : ''}${showPinControls ? ' with-pins' : ''}`} aria-label="External Sources">
     {renderHeader(<>{searchAndSort}<button type="button" onClick={records.refresh}>Refresh</button></>)}
     {records.error && <p role="status">{records.error} {records.items.length ? 'Showing the last loaded records.' : ''}</p>}
     {iconError && <p role="status">{iconError}</p>}
@@ -94,5 +96,5 @@ function ExternalEventsDock({ timeDisplay, focusKey = null, renderHeader, render
           setIconError(setExternalIconVisibility(item.key, visible) ? '' : 'Could not save chart visibility. Check browser storage and try again.')
         }} />)}
     </div>
-  </section>
+  </section></CalendarClock>
 }

@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { memo, useCallback, useState, type ReactNode } from 'react'
 import { AlertDock } from '../alert'
 import type { InspectorRelease } from '../economic-calendar/releases/release'
 import { ExternalSourcesDock } from '../external-sources/ExternalSourcesDock'
@@ -8,7 +8,7 @@ import { jakartaDisplay } from './alarm-time'
 import { useAlarms } from './useAlarms'
 import './events-alarms.css'
 
-export function EventsDock({ brokerId, brokerOffsetSeconds, focusKey, onPrepareResearch }: {
+export const EventsDock = memo(function EventsDock({ brokerId, brokerOffsetSeconds, focusKey, onPrepareResearch }: {
   brokerId: string | null; brokerOffsetSeconds: number; focusKey: string | null; onPrepareResearch?: (release: InspectorRelease) => void
 }) {
   const alarms = useAlarms()
@@ -27,8 +27,8 @@ export function EventsDock({ brokerId, brokerOffsetSeconds, focusKey, onPrepareR
   })
   const [savedFocus, setSavedFocus] = useState(focusKey)
   if (savedFocus !== focusKey) { setSavedFocus(focusKey); if (focusKey) setTab('external') }
-  const changeTab = (next: typeof tab) => { setTab(next); try { localStorage.setItem('fyodor.events.tab.v1', next) } catch { /* Keep session tab. */ } }
-  function header(controls: ReactNode, currencies?: ReactNode) {
+  const changeTab = useCallback((next: typeof tab) => { setTab(next); try { localStorage.setItem('fyodor.events.tab.v1', next) } catch { /* Keep session tab. */ } }, [])
+  const header = useCallback((controls: ReactNode, currencies?: ReactNode) => {
     return <header className="events-dock-header">
       <h2>Alert</h2>
       <div className="events-header-filters">
@@ -42,10 +42,10 @@ export function EventsDock({ brokerId, brokerOffsetSeconds, focusKey, onPrepareR
       {currencies}
       <AlarmControls alarms={alarms} />
     </header>
-  }
+  }, [tab, changeTab, alarms])
   return <section className="events-alarm-dock" aria-label="Alert">
     {tab === 'highlight' && <HighlightDock brokerId={brokerId} alarms={alarms} renderHeader={header} onPrepareResearch={onPrepareResearch} />}
     {tab === 'external' && <ExternalSourcesDock brokerId={brokerId} timeDisplay={jakartaDisplay} focusKey={focusKey} renderHeader={header} showPinControls />}
     {tab === 'calendar' && <AlertDock brokerId={brokerId} brokerOffsetSeconds={brokerOffsetSeconds} timeDisplay={jakartaDisplay} onPrepareResearch={onPrepareResearch} renderHeader={header} calendarOnly />}
   </section>
-}
+})

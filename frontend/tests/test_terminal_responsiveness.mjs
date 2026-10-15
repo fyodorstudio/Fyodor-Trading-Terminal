@@ -94,6 +94,18 @@ const server = await createServer({ root: path.resolve(path.dirname(fileURLToPat
     resolveId(source) { if (source === 'lightweight-charts') return '\0terminal-canvas-fixture' },
     load(id) { if (id === '\0terminal-canvas-fixture') return canvasModule },
     transform(code, id) {
+      if (id.endsWith('/EventsDock.tsx')) return code.replace('  const alarms = useAlarms()',
+        "  globalThis.__terminalProbe.count('eventsDock'); const alarms = useAlarms()")
+      if (id.endsWith('/HighlightDock.tsx')) return code.replace('const rows = useMemo(() => {',
+        "const rows = useMemo(() => { globalThis.__terminalProbe.count('highlightSort');")
+      if (id.endsWith('/HighlightList.tsx')) return code.replace('const [expanded, setExpanded]',
+        "globalThis.__terminalProbe.count('highlightCard'); const [expanded, setExpanded]")
+      if (id.endsWith('/ExternalHighlightCard.tsx')) return code.replace('const [expanded, setExpanded]',
+        "globalThis.__terminalProbe.count('externalCard'); const [expanded, setExpanded]")
+      if (id.endsWith('/EventAlarmButton.tsx')) return code.replace('const events = useMemo',
+        "globalThis.__terminalProbe.count('alarmButton'); const events = useMemo")
+      if (id.endsWith('/alert-episodes.ts')) return code.replace('return releases.flatMap',
+        "globalThis.__terminalProbe.count('alertEpisodes'); return releases.flatMap")
       if (id.endsWith('/TerminalWorkspace.tsx')) return code.replace('function TerminalWorkspace() {',
         "function TerminalWorkspace() { globalThis.__terminalProbe.count('workspace');")
       if (id.endsWith('/MarketWatchPanel.tsx')) return code.replace('const positive = quote.dailyChange >= 0',
@@ -255,8 +267,18 @@ try {
   assert.equal(container.querySelector('.event-timeline-row'), null)
   assert.ok(container.querySelector('.external-highlight-card'), 'Pinned external event appears in the shared Highlight')
   reset()
+  now += 1000
   await React.act(async () => { for (const timer of intervals.values()) if (timer.ms === 1000) timer.fn() })
   assertQuiet('Events countdown', true)
+  for (const key of ['highlightSort', 'highlightCard', 'externalCard', 'alarmButton', 'eventsDock'])
+    assert.equal(counters[key] ?? 0, 0, `A real countdown tick leaves ${key} unchanged`)
+  reset()
+  await React.act(async () => { for (let i = 0; i < 200; i++) for (const notify of rangeListeners) notify(logicalRange) })
+  await flush()
+  assertQuiet('Panning with Highlight open', true)
+  for (const key of ['highlightSort', 'highlightCard', 'externalCard', 'alarmButton', 'eventsDock'])
+    assert.equal(counters[key] ?? 0, 0, `Panning leaves ${key} unchanged`)
+  now -= 1000 // Keep the later drawing-coordinate fixtures anchored to their original clock.
   await eventView('calendar')
   assert.ok(container.querySelector('.alert-row'), 'MT5 Calendar retains the existing Upcoming browser')
   await eventView('external')
@@ -358,8 +380,11 @@ try {
   assert.deepEqual(logicalRange, stableWindow, 'Pair selection preserves date zoom/pan')
   assert.equal(container.querySelectorAll('[aria-label="Alert currency"] button').length, 9)
   reset()
+  now += 1000
   await React.act(async () => { for (const timer of intervals.values()) if (timer.ms === 1000) timer.fn() })
   assertQuiet('Alert countdown', true)
+  assert.equal(counters.alertEpisodes ?? 0, 0, 'A real MT5 Calendar countdown tick does not select/sort episodes')
+  now -= 1000
   // Genuine price and calendar corrections continue to reach the UI.
   bars = bars.map((bar, i) => i === bars.length - 1 ? { ...bar, close: 1.17 } : bar)
   reset(); await tick('poll', 2000); await reply('ohlc')

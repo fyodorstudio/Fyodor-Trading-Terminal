@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 export type AlarmEvent = { key: string; reference: string; source: 'highlight' | 'external'; broker: string | null; title: string;
   currencies: string[]; at: number | null; date: string | null; eligible: boolean; armed: boolean; note: string; prompt: string }
@@ -23,9 +23,11 @@ function valid(value: unknown): value is AlarmSnapshot {
 export function useAlarms(pollMs = 2000) {
   const [data, setData] = useState<AlarmSnapshot | null>(null), [error, setError] = useState(''), [busy, setBusy] = useState(false)
   const controller = useRef<AbortController | null>(null), current = useRef(data), sequence = useRef(0), mutating = useRef(false)
+  const signature = useRef('')
   const accept = useCallback((next: unknown) => {
     if (!valid(next)) throw new Error('Invalid alarm worker response')
-    setData(old => old && JSON.stringify({ ...old, now: 0, refreshed_at: 0 }) === JSON.stringify({ ...next, now: 0, refreshed_at: 0 }) ? old : next)
+    const nextSignature = JSON.stringify({ ...next, now: 0, refreshed_at: 0 })
+    if (signature.current !== nextSignature) { signature.current = nextSignature; setData(next) }
     current.current = next
   }, [])
   const refresh = useCallback(async () => {
@@ -64,7 +66,7 @@ export function useAlarms(pollMs = 2000) {
       return false
     } finally { mutating.current = false; ++sequence.current; if (!signal.aborted) setBusy(false) }
   }, [accept])
-  return { data, error, busy, mutate }
+  return useMemo(() => ({ data, error, busy, mutate }), [data, error, busy, mutate])
 }
 
 export function alarmWorkerLabel(data: AlarmSnapshot | null, error: string) {

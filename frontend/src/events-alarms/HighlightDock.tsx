@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react'
+import { memo, useMemo, useState, type ReactNode } from 'react'
 import { HighlightCard } from '../alert/highlights/HighlightList'
 import { useHighlights } from '../alert/highlights/useHighlights'
 import { readAlertPreferences, saveAlertPreferences, readHighlightVisibility, saveHighlightVisibility, type HighlightVisibility } from '../alert/model/alert-preferences'
@@ -8,13 +8,13 @@ import type { InspectorRelease } from '../economic-calendar/releases/release'
 import { useExternalSources } from '../external-sources/useExternalSources'
 import { useExternalPin } from '../external-sources/useExternalPin'
 import type { ExternalDateSort } from '../external-sources/external-schedule'
-import { useCalendarNow } from '../inspector/useCalendarNow'
+import { CalendarBoundary, CalendarClock } from '../inspector/CalendarClock'
 import { ExternalHighlightCard } from './ExternalHighlightCard'
 import { EventAlarmButton } from './EventAlarmButton'
 import { jakartaDisplay } from './alarm-time'
 import type { useAlarms } from './useAlarms'
 
-export function HighlightDock({ brokerId, alarms, renderHeader, onPrepareResearch }: {
+export const HighlightDock = memo(function HighlightDock({ brokerId, alarms, renderHeader, onPrepareResearch }: {
   brokerId: string | null; alarms: ReturnType<typeof useAlarms>; onPrepareResearch?: (release: InspectorRelease) => void
   renderHeader: (controls: ReactNode, currencies: ReactNode) => ReactNode
 }) {
@@ -26,7 +26,10 @@ export function HighlightDock({ brokerId, alarms, renderHeader, onPrepareResearc
   const highlights = useHighlights(brokerId, 2000, visibility === 'archived' ? 'archived' : 'active')
   const external = useExternalSources('all', 'all')
   const pins = useExternalPin(external.refresh)
-  const now = useCalendarNow(0, 1000)
+  const [now, setNow] = useState(Date.now)
+  const times = useMemo(() => [...highlights.items.flatMap(item => item.events.flatMap(event =>
+    event.time_mode === 0 && event.release_at !== null ? [event.release_at, event.release_at + 1] : [])),
+    ...external.items.flatMap(item => item.event_at ? [Date.parse(item.event_at), Date.parse(item.event_at) + 1] : [])], [highlights.items, external.items])
   const rows = useMemo(() => {
     const currency = preferences.currency
     const calendar = highlights.items.filter(item => currency === 'all' || item.currency === currency).map(item => {
@@ -48,7 +51,8 @@ export function HighlightDock({ brokerId, alarms, renderHeader, onPrepareResearc
       return ((order === 'latest' || order === 'upcoming' && !futureA) ? -comparison : comparison) || a.key.localeCompare(b.key)
     })
   }, [highlights.items, external.items, preferences.currency, visibility, order, now])
-  return <section className="alert-dock highlight-dock" aria-label="Highlight">
+  return <CalendarClock><CalendarBoundary times={times} onBoundary={setNow} timeDisplay={jakartaDisplay} />
+  <section className="alert-dock highlight-dock" aria-label="Highlight">
     {renderHeader(<>
       <label>Show: <select aria-label="Highlight view" value={visibility} onChange={event => {
         const next = event.target.value as HighlightVisibility; setVisibility(next); saveHighlightVisibility(next)
@@ -76,5 +80,5 @@ export function HighlightDock({ brokerId, alarms, renderHeader, onPrepareResearc
         <ExternalHighlightCard key={row.key} item={row.item} now={now} busy={pins.busy} changePin={pins.changePin}
           alarm={<EventAlarmButton alarms={alarms} source="external" reference={row.item.key} title={row.item.title} now={now} archived={row.item.archived} />} />)}</div>
     </>
-  </section>
-}
+  </section></CalendarClock>
+})

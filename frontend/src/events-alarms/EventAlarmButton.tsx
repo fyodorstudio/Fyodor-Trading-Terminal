@@ -1,11 +1,12 @@
+import { memo, useMemo } from 'react'
 import type { useAlarms } from './useAlarms'
 import { alarmTime } from './alarm-time'
 
-export function EventAlarmButton({ alarms, source, reference, broker, title, now, archived = false }: {
+export const EventAlarmButton = memo(function EventAlarmButton({ alarms, source, reference, broker, title, now, archived = false }: {
   alarms: ReturnType<typeof useAlarms>; source: 'highlight' | 'external'; reference: string; broker?: string; title: string; now: number; archived?: boolean
 }) {
-  const events = alarms.data?.events.filter(event => event.source === source && event.reference === reference &&
-    (!broker || event.broker === broker) && event.eligible && event.at !== null && event.at > now) ?? []
+  const events = useMemo(() => alarms.data?.events.filter(event => event.source === source && event.reference === reference &&
+    (!broker || event.broker === broker) && event.eligible && event.at !== null && event.at > now) ?? [], [alarms.data, source, reference, broker, now])
   const on = !archived && events.length > 0 && events.every(event => event.armed)
   const unavailable = !alarms.data || !!alarms.error || !!alarms.data.schedule_error
   const disabled = archived || unavailable || alarms.busy || !events.length || !alarms.data?.settings.enabled
@@ -25,4 +26,4 @@ export function EventAlarmButton({ alarms, source, reference, broker, title, now
       <path fill="none" d="M10 21h4M12 2V1" />
     </svg>
   </button>
-}
+})
