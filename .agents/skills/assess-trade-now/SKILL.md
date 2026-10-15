@@ -135,6 +135,38 @@ skip verification. Do not run a broad research project before answering.
 - Speed does not justify skipping verification. If a key fact is unavailable,
   respond with the limitation and wait/no clear edge rather than filling it in.
 
+## Continuation, retracement or a changed thesis
+
+For every assessment, test whether the latest information supports the broader
+macro direction, a temporary move against it, or a more durable change. Compare
+the latest policy-relevant update with the prior assessment's information set;
+do not carry forward a hot CPI or other earlier verdict as a permanent bias.
+
+- Separate the underlying inflation/growth story from the **next expected policy
+  response**. Inflation can remain high while guidance reduces the urgency of
+  the next hike. Slower timing, fewer moves or a shorter restrictive period can
+  support a retracement without reversing the medium-term inflation story.
+- Look for affirmative evidence: changed guidance, a conflicting release package,
+  or identified contemporaneous futures/OIS repricing. Distinguish a policymaker's
+  conditional remarks from a committee commitment. Without pricing evidence,
+  call the transmission a plausible interpretation; do not assert that markets
+  have repriced or that a view was already priced in.
+- State the best-supported near-term pair bias, horizon and confidence even when
+  it opposes the broader backdrop. Explain both currencies and what would restore
+  the continuation case. If only a contrary catalyst is possible, label it a
+  retracement risk rather than making it the directional base case. Do not force
+  a countertrend call because the user missed an earlier entry.
+- This is a fundamental scenario, not a measured price retracement. Without a
+  separately requested historical study, do not confirm its start, size, completion,
+  exhaustion or entry quality from candles, technicals or supposed positioning.
+
+Illustrative wording, conditional on verified evidence rather than a standing
+EURUSD view: "EURUSD: slight buy bias for a USD retracement, low confidence
+initially. Fed guidance is reducing immediate hike urgency despite hot CPI.
+Renewed hawkish guidance or upward rate repricing would challenge the buy thesis."
+If current evidence does not support a retracement, say so briefly; retain the
+supported continuation bias or disclose the unresolved direction.
+
 ## Eight currencies, only when requested
 
 Cover USD, EUR, GBP, JPY, CHF, CAD, AUD and NZD when the user explicitly says
@@ -230,6 +262,13 @@ unscheduled risks separately with immediate reassessment triggers; do not assign
 them invented dates. Keep imminent policy stages visible. Reuse this watchlist
 near publication and refresh intervening changes rather than repeating the scan.
 
+Within that scan, prioritize the next few hours and overnight session before
+recommending a return tomorrow. Check relevant central-bank speaking programmes,
+interviews and Q&A stages beyond the broker feed: they can change expected policy
+timing between major data releases. Do not treat absent calendar icons or an
+unpublished speech text as evidence of no news. Disclose inaccessible live-only
+remarks; a later article's timestamp does not establish the first headline time.
+
 Give a plain fundamental holding/exit consideration, with a reason:
 
 - Thesis remains supported: no fundamental closing trigger identified now.
@@ -296,6 +335,7 @@ normally with these rows, followed by the short watchlist when needed:
 | Direction | Best-supported buy/sell lean, including slight, with its strength; conditional before actuals; disclose when no direction is defensible |
 | Confidence | Low / Moderate / High in the fundamental interpretation |
 | Reason | Two sentences covering both currencies and the strongest counterevidence |
+| Continuation / retracement | Which near-term interpretation is supported versus the broader backdrop, the fresh catalyst and what would change it; distinguish potential from confirmed repricing and disclose missing evidence |
 | Extreme-move risk | Mandatory: documented exceptional catalyst, confirmed/reported/possible/unresolved status, affected direction and what evidence triggers immediate reassessment; disclose an incomplete check |
 | Entry consideration | Fundamental conditions supported, wait for specified evidence, or insufficient evidence; execution not assessed when the user's entry/risk rules are absent |
 | Invalidation | The evidence that would overturn the reasoning |

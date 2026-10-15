@@ -89,6 +89,13 @@ events. Identify nearby releases that can overturn the setup and separate policy
 decisions, statements, projections and press conferences. A broad USD event may
 matter to several pairs; that does not make every cross a suitable trade.
 
+Prioritize the nearest few hours/overnight reassessment points as well as major
+data days. Conditional guidance in a speech, interview or Q&A can soften the
+urgency of the next policy move while the broader inflation story stays intact.
+Explain whether such news could support continuation, a temporary retracement or
+invalidate the thesis; do not predict the remarks. Record live-only/no-text access
+limits so the release-time agent does not mistake missing text for no policy news.
+
 Do not fetch or analyze candles/OHLC for upcoming shortlists or preparation,
 including saved price evidence. Reuse prior fundamental findings only. Candle
 analysis belongs to a separately requested historical price investigation.

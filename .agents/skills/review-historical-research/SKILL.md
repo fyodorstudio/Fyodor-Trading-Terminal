@@ -94,6 +94,15 @@ a compact price summary and dated news table, then answer:
 - **Reusable lesson:** Which future evidence/news trigger should matter? Separate
   a plausible process from demonstrated profitability.
 
+When reviewing a missed reversal, reconstruct the earlier verdict and the first
+obtainable contrary evidence separately. Test whether subsequent guidance changed
+the timing/extent of expected policy moves despite an unchanged inflation story.
+Distinguish a temporary retracement from evidence for a durable change; identify
+the next knowable reassessment trigger and any gap in active coverage. Do not
+claim the earlier agent should have predicted later remarks or assign the whole
+move to one headline. Keep measured price findings separate from hypothetical
+fundamental verdicts and unresolved causal attribution.
+
 As-of reconstruction uses only sources available by each cutoff and reveals later
 events separately. Label it retrospective unless evaluated with future information
 genuinely withheld; one explained episode does not validate a trading edge.

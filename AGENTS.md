@@ -111,6 +111,12 @@ folders live together under `Market Analyst Workflow/`.
   Headline/core/components form one release package, not independent votes.
   Do not sum signals across weeks: later information can change the backdrop.
   Include both currency stories and the strongest counterevidence.
+- Assess continuation, a possible retracement and a changed thesis against fresh
+  information, following Assess Trade Now's retracement guidance. A still-hot
+  inflation backdrop can coexist with reduced near-term hike urgency. Do not
+  preserve an earlier direction automatically or manufacture a contrary call.
+  Check nearer policy remarks/Q&A, including overnight stages, before deferring
+  reassessment to the next major data release; disclose when active coverage ends.
 - Verify release-day vintages: stored data can contain later revisions. Do not
   treat later minutes/data as information available at the event. Label
   retrospective evidence. Upcoming simulations use only their chosen as-of time.

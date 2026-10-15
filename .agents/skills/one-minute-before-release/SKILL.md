@@ -113,6 +113,20 @@ surprise changes the expected policy path; an in-line release need not provide
 a new edge. Before-release hypotheses may be confirmed, weakened or overturned.
 No candles, saved OHLC, chart inspection or historical reaction calculations.
 
+Apply Assess Trade Now's
+[continuation/retracement check](../assess-trade-now/SKILL.md#continuation-retracement-or-a-changed-thesis)
+to the evidence available now. The release's first verdict is not a forecast of
+the entire session: later guidance or a separate release can warrant an opposite
+short-term bias without erasing the initial facts. Separate an active retracement
+thesis supported by new information from a hypothetical reversal risk. Do not
+delay a supported first verdict to await speculative later developments.
+
+For speeches, panels and Q&A, verify the actual delivery/publication format.
+"No prepared text" or an empty transcript page does not mean no policy remarks
+were made. If the live remarks cannot be verified, preserve any supported
+backdrop lean but explicitly withhold a fresh event-specific verdict. An event's
+scheduled start is not proof the decisive remarks have been delivered.
+
 ## Respond and stop
 
 Use two deliveries in the same active turn. As soon as the minimum decisive
@@ -163,6 +177,13 @@ the final card. Include available timing checkpoints/intervals compactly and
 label them as our observations, not proof of when data first became public.
 The first-verdict latency is separate from completion of the full card. Neither
 is a promise of a response within a fixed number of seconds after publication.
+
+Before stopping, name any nearer verified policy stage or speaker that could
+challenge the call, including overnight events, rather than defaulting to the
+next major data release. State that this verdict is as of the last check and
+that monitoring ends here; a later reassessment requires another invocation
+unless the user has explicitly requested a longer bounded wait. A suggested
+return time is not an alarm or continuing coverage.
 
 If decisive evidence remains unavailable at the deadline, report wait/no clear
 edge, exactly what is missing/conflicting, last check time and what would allow
