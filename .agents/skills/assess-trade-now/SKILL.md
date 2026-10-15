@@ -1,6 +1,6 @@
 ---
 name: assess-trade-now
-description: "Quickly assess a forex pair or Highlight using calendar, saved fundamentals and current web evidence; cover all eight currencies only when requested. Return a fundamental decision card or prepare context for a release countdown. Excludes candle analysis and historical price investigations."
+description: "Quickly assess a forex pair, currency news update or Highlight using calendar, saved fundamentals and current web evidence; cover all eight currencies only when requested. Return a fundamental assessment or prepare context for a release countdown. Excludes candle analysis and historical price investigations."
 ---
 
 # Assess Trade Now
@@ -34,6 +34,45 @@ for imminent publication, hand off to
   support, trend or chart comments as their execution context, not independent
   confirmation or a reason to raise confidence. Do not inspect attached candles
   or force the macro verdict to agree with the user's technical view.
+
+## Manual news refresh and fresh sessions
+
+`$assess-trade-now any new news on USD?` is a complete request for a current USD
+fundamental update. The same applies to another named currency. No event, pair,
+long prompt, paid feed or automation setup is required. The user's preferred
+workflow is to invoke this skill manually, for example every 30 minutes during
+an important session; each invocation performs a fresh check and then stops.
+Do not start a loop, countdown, reminder or monitoring implementation from this
+request, or propose those as prerequisites unless the user asks.
+
+- In the same session, compare new information with the last assessment's as-of
+  time and thesis, while checking for newly discovered older material news.
+  In a fresh session, load relevant dated saved fundamentals using focused
+  Highlight/journal/external reads. Do not claim memory of an unsaved conversation.
+  If no prior assessment time is available, state a default lookback of the past
+  24 hours so overnight news is included, establish the current backdrop and
+  disclose that comparison with the earlier unsaved verdict is unavailable.
+- Browse current policy/data reporting and material off-calendar developments,
+  including regional central-bank officials, interviews and Q&A, not just calendar
+  icons or official prepared speeches. Apply the evidence and bounded-retry rules
+  below. Check publication/update times and accessible content; newly indexed or
+  updated articles do not establish when their information first became public.
+- Lead with the currency's supported near-term strengthening/weakening lean and
+  confidence, including slight, or explain why direction is unresolved. Briefly
+  give what changed, whether the prior thesis is intact/weaker/overturned, the
+  continuation/retracement interpretation, strongest counterevidence, an explicit
+  **Extreme-move risk** row and the nearest verified reassessment point. Include
+  sources, Jakarta AM/PM as-of time and material retrieval gaps. If no material
+  update is verified, say so within the checked window; do not invent news or
+  repeat stale facts as a fresh signal.
+- Currency-only updates stay currency-only unless a pair/comparison was requested
+  or remains in scope. Do not infer measured strength against all counterparts.
+  A pair verdict still needs both currencies and the full pair decision card/
+  seven-day watchlist below. Reuse that watchlist when current; refresh changes.
+- Explain coverage limits when relevant: manual checks can miss developments
+  between invocations and public reporting can lag. Do not promise the same
+  future verdict, immediate headline discovery or detection of every move.
+  Saved workflow instructions persist; dated market conclusions must be refreshed.
 
 ## Fast evidence pass
 
