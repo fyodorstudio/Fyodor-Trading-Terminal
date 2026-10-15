@@ -2,6 +2,7 @@ import type { EconomicCalendarEvent } from '../../economic-calendar/contracts/ca
 import type { InspectorRelease } from '../../economic-calendar/releases/release'
 import { inspectorFamilyById, inspectorFamilyForEvent, inspectorCategories } from '../catalog/inspector-families'
 import { groupPolicyEpisodes, isPolicyRateDecision, policyEpisodeRule, policyEpisodeRules } from '../episodes/policy-episodes'
+import { groupFrenchCpiReleases } from './french-cpi-release'
 
 function releaseLabel(event: EconomicCalendarEvent, familyId: string): string | null {
   if (inspectorFamilyById.get(familyId)?.sourceLabels) return event.name || `MT5 event ${event.event_id}`
@@ -69,8 +70,10 @@ export function groupInspectorReleases(events: InspectorEvent[], combinePolicy =
     group.chartTime ??= chartTime
     group.timingUncertain ||= event.time_mode !== 0 && !isPublishedTentative(event)
   }
-  const episodes = combinePolicy ? groupPolicyEpisodes([...groups.values()]) : [...groups.values()]
+  const publications = groupFrenchCpiReleases([...groups.values()])
+  const episodes = combinePolicy ? groupPolicyEpisodes(publications) : publications
   for (const group of episodes) {
+    if (group.familyIds) continue // Publication packages already have their complete cross-family series order.
     const catalogOrder = inspectorFamilyById.get(group.familyId)!.events as readonly string[]
     const principal = releaseReadingOrder[group.familyId] ?? []
     const order = [...principal, ...catalogOrder.filter((id) => !principal.includes(id))]

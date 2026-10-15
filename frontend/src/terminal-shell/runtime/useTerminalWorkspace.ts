@@ -37,7 +37,7 @@ export function useTerminalWorkspace() {
   const [researchError, setResearchError] = useState<string | null>(null)
   const [selectedDrawingId, setSelectedDrawingId] = useState<string | null>(null)
   const [drawingToolbarVisible, setDrawingToolbarVisible] = useState<boolean>(readDrawingToolbarVisible)
-  const [bottomDockWindow, setBottomDockWindow] = useState<BottomDockWindow | null>(null)
+  const [bottomDockWindow, setBottomDockWindow] = useState<BottomDockWindow | null>(() => new URLSearchParams(window.location.search).get('events') === 'alarms' ? 'alert' : null)
   const [selectedExternalKey, setSelectedExternalKey] = useState<string | null>(null)
   const [externalSelection, setExternalSelection] = useState(0)
   const dockSize = useBottomDockSize(bottomDockWindow)

@@ -19,6 +19,11 @@ export default defineConfig({
   },
   server: {
     proxy: {
+      '/alarm-api': {
+        target: 'http://127.0.0.1:8003',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/alarm-api/, ''),
+      },
       '/storage-api': {
         target: process.env.FYODOR_STORAGE_API_URL ?? 'http://127.0.0.1:8002',
         changeOrigin: true,

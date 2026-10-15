@@ -8,9 +8,13 @@ calculates currency scores or modifies source observations.
 
 Outside-feed events are stored separately as immutable versions under
 `Market Analyst Workflow/external-sources/`; they never enter calendar observations,
-Highlight IDs or Inspector filters. The independent External Sources dock and CLI
+MT5 Highlight IDs or Inspector filters. Highlight displays both pinned sources,
+retaining their separate identities. The External Source view in Alert and CLI
 share this broker-independent collection. [External Sources](EXTERNAL-SOURCES.md)
 owns its clocks, validation, optimistic writes, revision paging and recovery.
+The separate alarm worker reads both collections and stores reminder state under
+`storage/data/alarms/`; see [Alert](EVENTS-ALARMS.md). Alarms never write
+calendar observations or research. Exact instants alone are eligible for delivery.
 
 `storage/data/` is ignored by Git. It contains `calendar.sqlite3` and the original
 V4 `inventory/` exports. Extraction used SQLite's online backup API to include

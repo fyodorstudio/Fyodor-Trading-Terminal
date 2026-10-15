@@ -22,6 +22,13 @@ research scopes. Inspect focused `journal read` entries and `highlights --visibi
 all` when earlier/archived investigations matter. IDs identify exact broker
 occurrences; names alone do not distinguish monthly repeats.
 
+Before comparing calendars, read `pnpm analyst limitations --broker <broker>`
+(the **External Source > Discovered Limitations** reference view), following
+pagination and focusing on the requested currencies/horizon. Use open records to
+target known missing releases, clock/stage mismatches, vintage/definition conflicts
+and original publisher sources. Recheck whether each relevant issue still applies;
+old limitations are leads, not current facts. Resolved records remain history.
+
 Also query the separate `pnpm analyst external --scope <pair-or-currency>`
 collection for sourced missing events and unscheduled watch items. Follow its
 [workflow](../../../docs/EXTERNAL-SOURCES.md) and pagination; refresh dated
@@ -31,6 +38,15 @@ proof that no material news exists. Keep verified upcoming times, published
 headlines and untimed risks distinct. Save verified outside-feed records only
 when requested, without mixing them into Highlight or calendar observations.
 Neither a saved icon/record nor this review provides live headline monitoring.
+
+Check central-bank speaking/media programmes, official statistical calendars,
+Treasury/debt-management stages and relevant conference agendas, not only names
+already visible in the feed. Prefer direct pages agents can retrieve later;
+record whether evidence is text, an expected publication or a live-only event.
+An interview time is not necessarily its broadcast time. A speaker's attendance
+does not establish new policy guidance; events explicitly excluding the policy
+outlook belong at lower priority. Preserve approximate windows and date-only
+schedules instead of inventing precise countdowns.
 
 For a pair trade's holding/exit or next-opportunity question, use the focused mode below. For a
 standalone shortlist, use the requested horizon/pairs. If unspecified, scan the
@@ -96,6 +112,16 @@ result and preserve prior journals. Save Before release research only when
 requested, including an occurrence-specific Copy Prompt. A request to review
 alerts does not authorize trading, service restarts or recurring monitoring.
 
+When the user authorizes saving both collections, check the complete relevant
+broker index and aliases before routing: existing occurrences go to Alert's
+Highlight; verified events absent from that index go to External Sources with
+direct evidence and timing/access notes. Check existing active and archived
+records before writing; preserve identities/history and update the same outside
+record for corrections. Do not duplicate a broker occurrence in External Sources
+merely because it was not pinned. Record verified feed/schedule gaps through
+`limitations append` when relevant. Report which items were already present,
+newly pinned, added outside the feed or left uncertain, with the checked horizon.
+
 For an explicitly deferred/prompt-only request, use the already accepted shortlist
 and focused calendar IDs without doing new macro research. Save prepare_prompt
 and release_prompt via `pnpm analyst prompt save`; keep journal research pending.
@@ -116,7 +142,7 @@ only for this mode; do not default to 90 days/all currencies or produce a pin
 shortlist unless requested. Historical cutoffs exclude later information.
 
 Lead with the earliest material reassessment or closing consideration. For each
-material event, give verified Jakarta/UTC stages, the relevant macro mechanism,
+material event, give verified Asia/Jakarta AM/PM stages, the relevant macro mechanism,
 and which outcomes support, challenge or invalidate the trade's thesis. Separate
 volatility from a reason to consider reducing/closing before the event or after
 verified contrary information. Include unscheduled exceptional risks. Where
@@ -129,6 +155,6 @@ For a weak-bias or waiting handoff, apply Assess Trade Now's
 [direction and next-opportunity guidance](../assess-trade-now/SKILL.md#direction-and-next-opportunity).
 Select the next material event that could change the pair's policy outlook,
 give a verified release time and suggested preparation/return time in Jakarta
-and UTC, and explain the conditional directional change. A promising research
+AM/PM (UTC only internally unless requested), and explain the conditional directional change. A promising research
 candidate is not a forecast of a bigger price move. Suggesting when to return
 does not start a reminder or monitor.

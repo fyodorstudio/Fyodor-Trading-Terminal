@@ -6,6 +6,7 @@ export type TimeDisplayMode = 'local' | 'utc' | 'fixed-offset'
 export type TimeDisplayPreference = {
   mode: TimeDisplayMode
   utcOffsetMinutes: number
+  hour12?: boolean
 }
 
 export const defaultTimeDisplayPreference: TimeDisplayPreference = {
@@ -85,7 +86,7 @@ export function formatAppTimestamp(
 ) {
   const { date, timeZone } = displayDate(epochMilliseconds, preference)
   const dateOptions: Intl.DateTimeFormatOptions = { day: '2-digit', month: 'short', year: 'numeric' }
-  const timeOptions: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit', second: format === 'time' ? '2-digit' : undefined, hourCycle: 'h23' }
+  const timeOptions: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit', second: format === 'time' ? '2-digit' : undefined, hourCycle: preference.hour12 ? 'h12' : 'h23' }
   return dateFormatter({
     ...(format === 'time' || format === 'time-short' ? timeOptions : format === 'date' ? dateOptions : { ...dateOptions, ...timeOptions }),
     timeZone,

@@ -1,4 +1,4 @@
-import { memo, useId, useMemo, useState } from 'react'
+import { memo, useId, useMemo, useState, type ReactNode } from 'react'
 import { formatAppTimestamp, type TimeDisplayPreference } from '../../appearance/time-display/time-display-preference'
 import type { InspectorRelease } from '../../economic-calendar/releases/release'
 import { groupInspectorReleases } from '../../inspector/releases/group-releases'
@@ -9,12 +9,13 @@ import { highlightState, highlightPrompt, highlightAssessmentPrompt, type Highli
 import { useHighlights } from './useHighlights'
 import { majorForexPairs } from '../../economic-calendar/forex/pairs'
 import { HighlightJournal, type JournalView } from './HighlightJournal'
-import { DiscoveredLimitations } from './DiscoveredLimitations'
 import type { AlertPreferences, HighlightVisibility } from '../model/alert-preferences'
 
-const HighlightCard = memo(function HighlightCard({ item, now, timeDisplay, archive, restore, busy, onPrepareResearch }: {
+export const HighlightCard = memo(function HighlightCard({ item, now, timeDisplay, archive, restore, busy, onPrepareResearch, alarm, sourceLabel }: {
   item: Highlight; now: number; timeDisplay: TimeDisplayPreference; archive: (id: string) => Promise<void>; restore: (id: string) => Promise<void>; busy: boolean
   onPrepareResearch?: (release: InspectorRelease) => void
+  alarm?: ReactNode
+  sourceLabel?: string
 }) {
   const [expanded, setExpanded] = useState(false)
   const contentId = useId()
@@ -41,6 +42,7 @@ const HighlightCard = memo(function HighlightCard({ item, now, timeDisplay, arch
   return <article className="highlight-card" data-highlight-id={item.id}>
     <div className="highlight-header"><button type="button" className="highlight-toggle" aria-expanded={expanded} aria-controls={contentId}
       onClick={() => setExpanded(value => !value)}><span aria-hidden="true">{expanded ? '▾' : '▸'}</span><span className="alert-currency">{item.currency}</span><strong>{item.label}</strong>
+      {sourceLabel && <span className="highlight-source">{sourceLabel}</span>}
       <time>{item.release_at === null ? item.server_time === null ? 'Date unavailable' : `${formatAppTimestamp(item.server_time * 1000, { mode: 'utc', utcOffsetMinutes: 0 }, 'date')} · time unconfirmed` :
         formatAppTimestamp(item.release_at, timeDisplay)}</time>
       <span className="alert-countdown">{item.archived_utc ? 'Archived' : next !== null ? `${state === 'Upcoming' ? '' : 'Next series · '}${alertCountdown(next, now, true)}` : state}</span>
@@ -48,6 +50,7 @@ const HighlightCard = memo(function HighlightCard({ item, now, timeDisplay, arch
     <div className="highlight-actions"><div className="highlight-research-action">{onPrepareResearch && releases[0] && <button type="button" onClick={() => onPrepareResearch({ ...releases[0],
       label: item.label, events: item.events, releaseAt: item.release_at, serverTime: item.server_time ?? releases[0].serverTime, timingUncertain: item.release_at === null })}
       aria-label={`Prepare research for highlighted ${item.currency} ${item.label}`}>Research</button>}</div>
+      {alarm}
       <button type="button" disabled={busy} onClick={() => void (item.archived_utc ? restore(item.id) : archive(item.id))}
         aria-label={`${item.archived_utc ? 'Restore' : 'Archive'} highlight ${item.currency} ${item.label}`}>{item.archived_utc ? 'Restore' : 'Archive'}</button>
       <label title="Choose which currency or pair's saved research and prompt to view. This does not change the chart.">Scope
@@ -89,20 +92,21 @@ const HighlightSeries = memo(function HighlightSeries({ item, timeDisplay }: { i
       </tr>)}</tbody>
     </table>{!item.events.length && <p>Stored readings unavailable. The pin is retained.</p>}</div>
 })
-export function HighlightList({ brokerId, now, timeDisplay, visibility, currency, onPrepareResearch }: {
+export function HighlightList({ brokerId, now, timeDisplay, visibility, currency, onPrepareResearch, renderAlarm }: {
   brokerId: string | null; now: number; timeDisplay: TimeDisplayPreference; onPrepareResearch?: (release: InspectorRelease) => void
   visibility: HighlightVisibility; currency: AlertPreferences['currency']
+  renderAlarm?: (item: Highlight, now: number) => ReactNode
 }) {
-  const highlights = useHighlights(visibility === 'limitations' ? null : brokerId, 2000, visibility === 'archived' ? 'archived' : 'active')
+  const highlights = useHighlights(brokerId, 2000, visibility === 'archived' ? 'archived' : 'active')
   const items = useMemo(() => currency === 'all' ? highlights.items : highlights.items.filter(item => item.currency === currency), [highlights.items, currency])
   const emptyMessage = currency === 'all' ? visibility === 'archived' ? 'No archived releases.' : 'Pin releases from Inspector or Alert to keep them here.' :
     `No ${visibility === 'archived' ? 'archived' : 'active'} ${currency} events.`
   return <div className="highlight-list" aria-label="Highlighted releases">
-    {visibility === 'limitations' ? <DiscoveredLimitations brokerId={brokerId} currency={currency} /> : <>
+    <>
     {highlights.error && <p role="status">{highlights.error}</p>}
     {!highlights.error && highlights.offline && <p role="status">Publisher offline · stored values may be stale</p>}
     {!items.length && <p>{brokerId ? emptyMessage : 'Connect calendar storage to load Highlight.'}</p>}
     {items.map(item => <HighlightCard key={item.id} item={item} now={now} timeDisplay={timeDisplay}
-      archive={highlights.archive} restore={highlights.restore} busy={highlights.busy} onPrepareResearch={onPrepareResearch} />)}</>}
+      archive={highlights.archive} restore={highlights.restore} busy={highlights.busy} onPrepareResearch={onPrepareResearch} alarm={renderAlarm?.(item, now)} />)}</>
   </div>
 }

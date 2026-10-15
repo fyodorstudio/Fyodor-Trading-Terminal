@@ -1,4 +1,5 @@
 import { groupInspectorReleases, isInspectorCommentary } from '../../inspector/releases/group-releases'
+import { releaseFamilyIds, selectedPackageSeries } from '../../inspector/episodes/display-episodes'
 import { inspectorFamilies } from '../../inspector/catalog/inspector-families'
 import { type InspectorRelease } from '../../economic-calendar/releases/release'
 import type { StoredCalendarEvent } from '../../economic-calendar/storage/useStoredCalendar'
@@ -20,8 +21,10 @@ export function alertEpisodes(events: StoredCalendarEvent[], preferences: { fami
 }
 export function alertEpisodesFromReleases(releases: InspectorRelease[], preferences: { families: readonly string[] }, now: number, lookaheadDays = alertLookaheadDays,
   dateNow = now): AlertEpisode[] {
-  return releases.flatMap((release): AlertEpisode[] => {
-    if (!preferences.families.includes(release.familyId)) return []
+  return releases.flatMap((source): AlertEpisode[] => {
+    const release = selectedPackageSeries(source, preferences.families)
+    if (!release) return []
+    if (!releaseFamilyIds(release).some(id => preferences.families.includes(id))) return []
     const uncertain = release.timingUncertain || release.releaseAt === null || !Number.isFinite(release.releaseAt)
     const at = uncertain ? release.serverTime * 1000 : release.releaseAt
     if (at === null || !Number.isFinite(at) || at <= 0) return []

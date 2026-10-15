@@ -1,6 +1,5 @@
 import { DisplayClockProvider } from '../appearance/time-display/DisplayClock'
 import { type CSSProperties } from 'react'
-import { AlertDock } from '../alert'
 import { MarketCandlestickChart } from '../market-data/candlestick-chart/MarketCandlestickChart'
 import { MarketChartErrorBoundary } from '../market-data/candlestick-chart/MarketChartErrorBoundary'
 import { FloatingDrawingToolbar } from '../market-data/chart-drawings/FloatingDrawingToolbar'
@@ -13,7 +12,7 @@ import { ActivityDock, InspectorDock, LiveTerminalStatusBar } from './LiveTermin
 import { useTerminalWorkspace } from './runtime/useTerminalWorkspace'
 import './terminal-shell.layout.css'
 import { ResearchReportPanel } from '../research/ResearchReportPanel'
-import { ExternalSourcesDock } from '../external-sources/ExternalSourcesDock'
+import { EventsDock } from '../events-alarms/EventsDock'
 import { EntryTradePanel } from '../entry-trade/dock/EntryTradePanel'
 
 export function TerminalWorkspace() {
@@ -117,7 +116,8 @@ export function TerminalWorkspace() {
           {bottomDockWindow === 'activity' && (
             <ActivityDock timeDisplay={timeDisplay} />
           )}
-          {bottomDockWindow === 'external-sources' && <ExternalSourcesDock key={externalSelection} timeDisplay={timeDisplay} symbol={activeSymbol} focusKey={selectedExternalKey} />}
+          {(bottomDockWindow === 'external-sources' || bottomDockWindow === 'alert') && <EventsDock key={externalSelection} brokerId={brokerId}
+            brokerOffsetSeconds={brokerOffsetSeconds} focusKey={bottomDockWindow === 'external-sources' ? selectedExternalKey : null} onPrepareResearch={prepareAlertResearch} />}
           {bottomDockWindow === 'entry-trade' && <EntryTradePanel selectedSymbol={activeSymbol} quote={quote} quotes={marketData.symbols}
             saveStatus={registeredArrows.saveStatus} onArchiveArrow={registeredArrows.archiveArrow} importError={registeredArrows.importError} latestBarTime={latestBarTime} plan={plannedTrade} registeredArrows={registeredArrows.allArrows}
             selectedArrowId={registeredArrows.selectedArrowId} onPlanChange={handlePlanChange}
@@ -126,8 +126,6 @@ export function TerminalWorkspace() {
           {bottomDockWindow === 'inspector' && <InspectorDock view={inspector} symbol={activeSymbol}
             timeDisplay={timeDisplay}
             />}
-          {bottomDockWindow === 'alert' && <AlertDock brokerId={brokerId} brokerOffsetSeconds={brokerOffsetSeconds} timeDisplay={timeDisplay}
-            onPrepareResearch={prepareAlertResearch} />}
         </BottomDockPanel>
       )}
 

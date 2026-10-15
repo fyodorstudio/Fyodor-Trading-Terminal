@@ -1,6 +1,6 @@
 ---
 name: one-minute-before-release
-description: "Wait for an imminent economic release in the active chat, reuse prepared Assess Trade Now context, check fresh actuals and promptly return a fundamental decision card. Use when asked to count down or await publication; excludes background scheduling and candle analysis."
+description: "Wait for an imminent economic release in the active chat, reuse prepared context, check fresh actuals and send a short fundamental verdict followed by the full decision card. Use when asked to count down or await publication; excludes background scheduling and candle analysis."
 ---
 
 # One Minute Before Release
@@ -28,6 +28,11 @@ otherwise assess the requested pair or candidate list. A subsequently narrowed
 candidate list takes precedence. Remember the conditional shortlist and why
 each counterpart was selected; fresh actuals can change the winner. Do not repeat
 comprehensive research near publication.
+
+Carry forward the prepared exact local query, official endpoint and fallback,
+minimum decisive fields and simultaneous-release checks. Before publication,
+resolve decisive retrieval/expectation gaps and refresh exceptional news. Do not
+turn a conditional shortlist into a fixed numeric score or preselect its winner.
 
 If preparation is missing or stale, refresh only decisive gaps. Say when the
 coverage cannot be completed before publication; do not claim a full eight-
@@ -63,6 +68,16 @@ cannot be selected merely because another currency's release is clear.
   5–10 seconds apart, allowing for command duration and backing off on failures.
   Do not busy-loop, query the full inventory or repeatedly reload instructions.
 
+Record available timing checkpoints in the active conversation: scheduled release,
+first fresh decisive-field observation, sufficient package for interpretation,
+and first-verdict send attempt. Use clock/tool timestamps already available;
+do not delay the verdict just to collect timing. Distinguish source/provider
+timestamps from our observation time and attempted send from the user's receipt.
+Missing checkpoints stay unknown. A first successful retrieval does not establish
+when data first became public or how long reasoning alone took. Summarize measured
+intervals briefly with the final evidence, not on every poll; do not persist
+telemetry or research without authorization.
+
 ## Fresh actuals, then interpret
 
 Check the exact period, series definitions, units, actuals, revisions and decisive
@@ -71,9 +86,18 @@ release time, unchanged value or empty field is not proof of publication; equall
 a genuinely unchanged actual can be valid if current-release evidence confirms
 it. Never substitute forecast, previous value or the prior release for today's
 actual. Check the release package as a whole, not as a count of bullish fields.
+For policy releases, apply Assess Trade Now's expectation-relative rate-path
+check: the headline hike/cut is insufficient when guidance, projections or a
+pending decisive stage could overturn it. Retrieve the prepared decisive path/
+guidance fields before a pair verdict; do not default to "hike = buy" or "cut =
+sell". If only the rate is confirmed, distinguish that fact and the conditional
+backdrop lean from a verified full-package interpretation.
 
 Retrieve the prepared official release endpoint and focused local readings in
-parallel where possible. If the official page fails, try one suitable alternative:
+parallel where possible. Consume completed checks as they become available; a
+slow nondecisive request must not hold up a supported first verdict. Avoid general
+web discovery when a prepared direct route works. If the official page fails,
+try one suitable alternative:
 fresh broker readings or accessible reliable reporting of the exact release.
 Attribute any provisional broker-only assessment and missing official confirmation.
 Search snippets alone do not confirm a decisive fact. Material disagreement or
@@ -91,11 +115,29 @@ No candles, saved OHLC, chart inspection or historical reaction calculations.
 
 ## Respond and stop
 
-As soon as the evidence supports an interpretation, lead with currency direction,
-best-supported pair buy/sell lean (including slight), and confidence, applying
-Assess Trade Now's direction and next-opportunity guidance. An in-line package
-can retain a weak backdrop lean without creating a new release signal. Return the Assess Trade Now
-decision card, including Extreme-move risk, strongest counterevidence, missing
+Use two deliveries in the same active turn. As soon as the minimum decisive
+package supports an interpretation, send a short first verdict in commentary;
+do not wait to compose the full table, retrieve nondecisive detail or repeat the
+prepared watchlist. Normally use three or four compact lines:
+
+- Best-supported pair buy/sell lean (including slight) and confidence, or the
+  supported currency interpretation if a decisive counterpart check is missing.
+- Decisive actuals versus separately attributed expectations, identifying the
+  reference period and linking the release evidence.
+- Main counterweight/extreme-move risk and any pending decisive confirmation;
+  state official-confirmed or explicitly provisional broker/reporting evidence.
+
+This first verdict is a fundamental interpretation, not an assessed fill or an
+instruction to enter immediately. Do not promote an unsupported pair merely to
+provide a fast direction. If decisive fields conflict or remain missing, send a
+brief status identifying the gap instead of a confirmed release verdict. A weak
+backdrop lean remains distinct from a fresh release signal. Do not repeat an
+unchanged flash on each poll. A supported provisional verdict need not wait for
+an official website; freshness, definitions and material contradictions still
+need checking. Do not reduce confidence requirements just to meet a time target.
+
+Then promptly finish the Assess Trade Now decision card in the final response,
+including Extreme-move risk, strongest counterevidence, missing
 confirmation, invalidation, fundamental holding/exit consideration and the next
 verified Jakarta AM/PM news that could challenge the thesis. Reuse the prepared
 seven-day watchlist; disclose missing coverage rather than delaying the release
@@ -112,6 +154,15 @@ potential-volatility inference from this direction verdict. User-provided
 technical alignment does not strengthen the fundamental evidence or preselect
 the winning pair. Do not promise a verdict at the exact publication second;
 state whether actuals are verified, provisional or still missing.
+
+The final response must stand alone. Reuse prepared evidence and complete only
+material unresolved checks within the original deadline; do not start another
+full research pass or an unrequested later monitoring stage. If fresh evidence
+changes the first verdict, issue a clearly labelled correction promptly before
+the final card. Include available timing checkpoints/intervals compactly and
+label them as our observations, not proof of when data first became public.
+The first-verdict latency is separate from completion of the full card. Neither
+is a promise of a response within a fixed number of seconds after publication.
 
 If decisive evidence remains unavailable at the deadline, report wait/no clear
 edge, exactly what is missing/conflicting, last check time and what would allow

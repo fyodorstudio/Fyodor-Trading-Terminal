@@ -1,11 +1,11 @@
 # Highlight research journal
 
-Alert's header separates **Upcoming / Highlight** from a shared **All / currency**
-filter. Highlight contains **Active / Archive / Discovered Limitations**; currency
-selection filters each view locally without leaving it. All shows every currency
-in the selected view. Filtering uses the event or limitation currency, independently
-of research Scope. Collection, Highlight view and currency survive reopening.
-The upcoming horizon and family Filters apply only to Upcoming. Expand a
+Alert has **Highlight / MT5 Calendar / External Source** views and a currency
+filter. Highlight contains **Active / Archived**, combining pinned MT5 occurrences
+and external records. **External Source > Discovered Limitations** holds the
+broker-specific reference records; it uses that view's currency filter. Saved
+collection, visibility and currency choices survive reopening. The upcoming
+horizon and family Filters apply only to MT5 Calendar. Expand a
 card for a full-width reading panel. Its View selector contains Before release,
 After release, Sources and captured evidence, Research history (version count),
 Prompt preview (scope/stage) and Latest broker readings. Header dates, countdowns,

@@ -11,9 +11,14 @@ const globals = { window: dom, document: dom.document, HTMLElement: dom.HTMLElem
   navigator: dom.navigator, localStorage: dom.localStorage, IS_REACT_ACT_ENVIRONMENT: true }
 const previous = new Map([...Object.keys(globals), 'fetch'].map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]))
 for (const [key, value] of Object.entries(globals)) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value })
-const timers = new Map(); let timerId = 0, offline = false, malformed = false, hold = false, held = []
+const timers = new Map(), intervals = new Map(); let timerId = 0, offline = false, malformed = false, hold = false, held = []
+const realNow = Date.now
+let now = Date.parse('2026-10-15T04:00:00Z')
+Date.now = () => now
 dom.setTimeout = (fn, ms) => { timers.set(++timerId, { fn, ms }); return timerId }
 dom.clearTimeout = id => timers.delete(id)
+dom.setInterval = (fn, ms) => { intervals.set(++timerId, { fn, ms }); return timerId }
+dom.clearInterval = id => intervals.delete(id)
 const sample = (key, currencies, overrides = {}) => ({ id: 'a'.repeat(32), key, title: 'Treasury buybacks', currencies,
   kind: 'headline', status: 'confirmed', facts: 'Larger long-end buybacks.', interpretation: 'Dated USD-negative interpretation.',
   event_at: '2026-08-19T12:33:00Z', event_date: null, published_utc: '2026-08-19T12:53:00Z', time_note: 'Provider and public clocks differ.',
@@ -47,6 +52,23 @@ const poll = async () => {
 try {
   const { ExternalSourcesDock } = await server.ssrLoadModule('./src/external-sources/ExternalSourcesDock.tsx')
   const { validExternalItems } = await server.ssrLoadModule('./src/external-sources/external-source-model.ts')
+  const { sortExternalDates, externalCountdown } = await server.ssrLoadModule('./src/external-sources/external-schedule.ts')
+  const display = { mode: 'fixed-offset', utcOffsetMinutes: 420 }
+  const today = sample('today', ['USD'], { event_at: null, event_date: '2026-10-15' })
+  const soon = sample('soon', ['USD'], { event_at: '2026-10-15T04:01:00Z' })
+  const tomorrow = sample('tomorrow', ['USD'], { event_at: null, event_date: '2026-10-16' })
+  const undated = sample('undated', ['USD'], { kind: 'watch', event_at: null })
+  const dates = [undated, items[0], tomorrow, soon, today], originalOrder = [...dates]
+  assert.deepEqual(sortExternalDates(dates, 'upcoming', now, display).map(item => item.key), ['today', 'soon', 'tomorrow', 'treasury-buybacks', 'undated'])
+  assert.deepEqual(sortExternalDates(dates, 'earliest', now, display).map(item => item.key), ['treasury-buybacks', 'today', 'soon', 'tomorrow', 'undated'])
+  assert.deepEqual(sortExternalDates(dates, 'latest', now, display).map(item => item.key), ['tomorrow', 'soon', 'today', 'treasury-buybacks', 'undated'])
+  assert.deepEqual(dates, originalOrder, 'Date sorting never mutates API records')
+  assert.equal(externalCountdown(today, now, display), 'Today')
+  assert.equal(externalCountdown(tomorrow, now, display), 'In 1 day')
+  assert.equal(externalCountdown(soon, now, display), '1m 0s')
+  assert.equal(externalCountdown(soon, now + 61_000, display), 'Elapsed')
+  assert.equal(externalCountdown(tomorrow, Date.parse('2026-10-15T17:00:00Z'), display), 'Today', 'Date-only clocks follow Jakarta midnight')
+  assert.equal(externalCountdown(today, Date.parse('2026-10-15T17:00:00Z'), display), '1 day ago')
   const render = () => React.act(async () => root.render(React.createElement(ExternalSourcesDock, { symbol: 'EURUSD', timeDisplay: { mode: 'fixed-offset', utcOffsetMinutes: 420 } })))
   assert.equal(validExternalItems(items), true)
   assert.equal(validExternalItems([sample('unsafe', ['USD'], { sources: [{ kind: 'web', label: 'Unsafe', locator: 'javascript:alert(1)', note: '' }] })]), false)
@@ -61,7 +83,8 @@ try {
   assert.equal(button('Archive'), undefined)
   assert.ok(!rootNode.textContent.includes('Prompt'))
   assert.equal(rootNode.querySelectorAll('.external-record-row').length, 3)
-  assert.equal(rootNode.querySelectorAll('.external-column-headings span').length, 5)
+  assert.equal(rootNode.querySelectorAll('.external-column-headings span').length, 6)
+  assert.equal(rootNode.querySelector('.external-record').dataset.externalKey, 'japan-date', 'Upcoming dates precede historical records by default')
   assert.equal(rootNode.querySelector('[data-external-key="europe-policy"] input').disabled, true)
   const originalRecords = JSON.stringify(items)
   const icon = rootNode.querySelector('[data-external-key="treasury-buybacks"] input')
@@ -103,6 +126,24 @@ try {
   assert.ok(rootNode.textContent.includes('Invalid External Sources page'))
   assert.equal(rootNode.querySelectorAll('.external-record').length, 1)
   malformed = false; await poll()
+  items = [soon, tomorrow, today, undated]; revision++; await poll()
+  const sort = rootNode.querySelector('[aria-label="Sort External Sources by date"]')
+  assert.equal(sort.value, 'upcoming')
+  const requestCount = requests.length
+  assert.equal(rootNode.querySelector('[data-external-key="soon"] .external-record-countdown').textContent, '1m 0s')
+  now += 2000
+  await React.act(async () => { for (const timer of intervals.values()) timer.fn() })
+  assert.equal(rootNode.querySelector('[data-external-key="soon"] .external-record-countdown').textContent, '0m 58s')
+  assert.equal(requests.length, requestCount, 'Countdown ticks do not refetch research')
+  assert.equal(rootNode.querySelector('[data-external-key="today"] .external-record-countdown').textContent, 'Today')
+  assert.ok(rootNode.querySelector('[data-external-key="today"]').textContent.includes('Hour unconfirmed'))
+  await React.act(async () => {
+    const currentSort = rootNode.querySelector('[aria-label="Sort External Sources by date"]')
+    currentSort.value = 'latest'; currentSort.dispatchEvent(new dom.Event('change', { bubbles: true }))
+  })
+  assert.equal(rootNode.querySelector('.external-record').dataset.externalKey, 'tomorrow')
+  await React.act(async () => root.render(null)); await render()
+  assert.equal(rootNode.querySelector('[aria-label="Sort External Sources by date"]').value, 'latest', 'Date sort survives remount')
   // Complete pagination; no silent truncation at the first 100 records.
   items = Array.from({ length: 101 }, (_, index) => sample(`event-${index}`, ['USD'])); revision++
   await poll()
@@ -117,8 +158,10 @@ try {
   assert.equal(rootNode.querySelectorAll('.external-record').length, 0)
   await React.act(async () => root.render(null))
   assert.equal(timers.size, 0, 'Unmount cancels polling')
-  console.log('✓ External Sources separation, clocks, date-only/watch records, aligned rows, search, saved icon controls, history, pagination, stale replies, offline retention and cleanup')
+  assert.equal(intervals.size, 0, 'Unmount cancels countdown clock')
+  console.log('✓ External Sources date sorting, local countdown, date-only clocks, separation, search, saved icon controls, history, pagination, stale replies, offline retention and cleanup')
 } finally {
+  Date.now = realNow
   await React.act(async () => root.unmount()); await server.close(); await dom.happyDOM.close()
   for (const [key, descriptor] of previous) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete globalThis[key] }
 }

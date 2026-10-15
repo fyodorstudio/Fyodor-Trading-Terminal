@@ -148,6 +148,10 @@ globalThis.fetch = (url, options = {}) => {
     }
     return Promise.resolve({ ok: true, status: 200, json: async () => JSON.parse(JSON.stringify(journalFixture)) })
   }
+  if (u.startsWith('/alarm-api/alarms')) return Promise.resolve({ ok: true, json: async () => ({ application: 'fyodor-alarms', revision: 1, now,
+    settings: { enabled: true, prepare_minutes: 10, release_minutes: 1 }, native_available: true, schedule_error: null, refreshed_at: now / 1000, jobs: [],
+    events: [{ key: 'external:treasury-fixture', reference: 'treasury-fixture', source: 'external', broker: null, title: 'Treasury fixture', currencies: ['USD'],
+      at: now + 3600000, date: null, eligible: true, armed: true, note: 'Exact fixture schedule', prompt: '$one-minute-before-release Treasury fixture' }] }) })
   if (u.startsWith('/storage-api/highlights')) return Promise.resolve({ ok: true, json: async () => ({ source_id: broker, revision: 'fixture-pins', items: [] }) })
   if (u.startsWith('/storage-api/external-sources')) {
     const params = new URL(u, 'http://localhost').searchParams
@@ -206,6 +210,10 @@ async function tick(name, ms) {
 }
 const button = label => [...container.querySelectorAll('button')].find(element => element.textContent.trim().replace(/^⚙\s*/, '').startsWith(label))
 async function click(element) { assert.ok(element); await React.act(async () => element.click()) }
+async function eventView(value) {
+  const labels = { highlight: 'Highlight', calendar: 'MT5 Calendar', external: 'External Source' }
+  await click([...container.querySelectorAll('[aria-label="Event view"] button')].find(button => button.textContent === labels[value]))
+}
 function assertQuiet(label, workspace = false) {
   for (const key of ['quoteRows', 'chartRender', 'setData', 'update', 'futureSetData', 'futureUpdate', 'workerPosts', 'tradeLineCreates', 'tradeMarkerCreates', ...(workspace ? ['workspace'] : [])])
     assert.equal(counters[key] ?? 0, 0, `${label}: ${key} must remain unchanged`)
@@ -238,16 +246,26 @@ try {
   assert.equal(plotted.length, 800)
   assert.equal(Math.floor(futureTimes.at(-1).time / 86400), Math.floor(plotted.at(-1).time / 86400) + 90)
   assert.deepEqual([...container.querySelectorAll('[aria-label="App features"] button')].map(node => node.textContent.trim().replace(/\s+\d+$/, '')),
-    ['External Sources', 'Inspector', 'Alert', 'Entry Trade', 'Activity', '⚙ Settings'])
+    ['Alert', 'Inspector', 'Entry Trade', 'Activity', '⚙ Settings'])
   assert.ok(container.querySelector('.external-chart-star'), 'Upcoming external record appears on the assembled chart')
   assert.equal(container.querySelector('.external-chart-markers').style.bottom, '68px')
-  await click(button('External Sources'))
+  await click(button('Alert'))
+  assert.ok(container.querySelector('[aria-label="Alert"]'))
+  assert.equal([...container.querySelectorAll('[aria-label="Event view"] button')].find(button => button.getAttribute('aria-pressed') === 'true').textContent, 'Highlight')
+  assert.equal(container.querySelector('.event-timeline-row'), null)
+  assert.ok(container.querySelector('.external-highlight-card'), 'Pinned external event appears in the shared Highlight')
+  reset()
+  await React.act(async () => { for (const timer of intervals.values()) if (timer.ms === 1000) timer.fn() })
+  assertQuiet('Events countdown', true)
+  await eventView('calendar')
+  assert.ok(container.querySelector('.alert-row'), 'MT5 Calendar retains the existing Upcoming browser')
+  await eventView('external')
   assert.ok(container.querySelector('[aria-label="External Sources"]'))
   reset()
   await tick('poll', 5000)
   assertQuiet('External Sources unchanged poll', true)
   assert.equal(counters.externalBuild ?? 0, 0, 'Unchanged external polling does not rebuild marker data')
-  await click(button('External Sources'))
+  await click(button('Alert'))
   assert.equal(container.querySelector('[aria-label="External Sources"]'), null)
   await click(container.querySelector('.external-chart-star'))
   assert.ok(container.querySelector('.external-expanded-record'), 'Star opens its sourced record in the separate dock')
@@ -257,7 +275,7 @@ try {
   assert.ok(container.querySelector('.external-record'))
   await click(iconInput); await flush()
   assert.ok(container.querySelector('.external-chart-star'), 'Dock checkbox restores the star')
-  await click(button('External Sources'))
+  await click(button('Alert'))
   assert.equal(container.querySelector('[aria-label="Fundamental tools"]'), null)
   assert.equal(container.querySelector('[aria-label="Experimental features"]'), null)
   assert.deepEqual([...container.querySelectorAll('[aria-label="Chart timeframe"] button')].map(node => node.textContent), ['M1','M5','M15','M30','H1','H4','D1'])
@@ -332,6 +350,7 @@ try {
   assert.equal(counters.dailyGrouping ?? 0, 0); assert.equal(counters.futureSetData ?? 0, 0)
   const stableWindow = { ...logicalRange }
   await click(button('Alert'))
+  await eventView('calendar')
   assert.equal(container.querySelectorAll('[aria-label="Alert currency"] button').length, 9)
   assert.equal(container.querySelectorAll('.alert-row').length, 8)
   await click([...container.querySelectorAll('.market-watch-row')].find(row => row.textContent.includes('TEST1')))

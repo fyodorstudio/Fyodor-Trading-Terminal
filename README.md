@@ -1,9 +1,9 @@
 # Fyodor Trading Terminal Lite
 
-MT5 Market Watch, chart/drawings, raw calendar Inspector, upcoming Alert, Activity
-and Settings, with saved agent-authored research journals under Highlight.
-Extracted from the original terminal at `639d382`; that repository remains intact.
-Market research happens in an analyst session; the terminal displays its journal.
+MT5 Market Watch, chart/drawings, raw calendar Inspector, upcoming Alert and Activity,
+with saved agent-authored research journals under Highlight. Extracted from the
+original terminal at `639d382`; that repository remains intact. Market research
+happens in an analyst session; the terminal displays its journal.
 
 ## Run
 
@@ -36,7 +36,8 @@ Optional `FYODOR_BRIDGE_API_URL` / `FYODOR_STORAGE_API_URL` override Vite's prox
 | economic-calendar | Eight-currency catalog, source contracts, clocks and storage polling |
 | inspector | Filters, date ranges, release/day grouping, icons and raw tables |
 | alert | Upcoming filters/countdowns, Highlight journals, Copy Prompt and archive |
-| external-sources | Separate outside-feed events/headlines/watch items, sourced facts, history and agent prompts |
+| external-sources | Separate outside-feed events/headlines/watch items, sourced facts, history, limitations reference and agent prompts |
+| events-alarms / storage/alarms | Shared dock, per-pin preparation/invocation alarms and independent Windows alarm delivery |
 | entry-trade | Manual execution plans, all-pair pins, draggable chart levels and independent saved journals |
 | research | Chart date selection and named Markdown handoff shared with Alert |
 | Market Analyst Workflow/tools (repo root) | Read-only calendar, upcoming/Highlight/report queries, journal/lifecycle writes and bounded OHLC capture |
@@ -49,6 +50,16 @@ pnpm build
 pnpm check:repo
 ```
 
+**Alert** has **Highlight / MT5 Calendar / External Source** views. Highlight
+combines both pinned sources, with date sorting, source labels and filled/outline
+alarm bells. Currency buttons stay on the right of view controls. Data and research
+remain in their existing stores. Pinned events and confirmed timed external events
+automatically receive reminders 10 minutes and 1 minute before release. Use Test
+alarm once to check the Windows window and built-in sound. `pnpm dev:all` starts
+the independent alarm worker; use `pnpm alarms:start` to start it without restarting
+the stack. The browser may close, but Windows must remain awake and the worker
+running. See [alarm workflow and persistence](docs/EVENTS-ALARMS.md).
+
 Frontend suites run sequentially and mount production components with fixture
 transport/canvas. Native chart API tests verify coordinates, future times and
 drawings. Visual/live MT5 acceptance remains with the user.
@@ -60,6 +71,9 @@ Save shares those family selections across every pair containing the currency;
 grouping, symbol visibility, icons and colors remain per pair. Existing pair
 choices are read until a currency is saved once with the shared selection.
 By day keeps one icon per currency/day and sections matching filter categories.
+French CPI/HICP variants sharing a verified publication time and reference period
+appear as one release with individual series. France, Germany, other dates and
+uncertain hours stay separate; existing CPI/HICP family selections remain effective.
 All 1,051 exported types remain available; new numeric IDs enter Other / new events
 when enabled. A−P describes a numerical change, not a currency verdict. Forecasts,
 revised priors, periods and missing values remain source data.
@@ -75,8 +89,8 @@ Save/Cancel and reads older pair settings; new saves use shared currency selecti
 Use the same UI origin (normally localhost:5173) to reuse browser preferences from
 the original app. A different port has separate browser storage. Old scoring view
 choices fall back to raw tables; filters/icons/colors stay intact. No Workspace
-backup UI, scoring engines, full Notebook workflow, Scatter Plot or experimental context tools
-are included.
+backup UI, scoring engines, full Notebook workflow, Scatter Plot or experimental
+context tools are included.
 
 **Entry Trade** is a manual trade journal. Save an entry at any stage, choose
 Waiting/Long/Short freely, use the broker quote for Entry, and enter SL/TP in any
@@ -120,16 +134,16 @@ The bridge's inherited README is historical; Lite's operating instructions are h
 
 ## Research handoff
 
-**External Sources**, immediately left of Inspector in the bottom dock, keeps
-outside-feed news separate from the broker calendar and Alert. Its independent
-currency filters, search, source links, timing uncertainty and expandable history
-use the same records as `pnpm analyst external --scope EURUSD --visibility all`.
-Agents can append verified additions without inventing calendar IDs. This is a
-saved research collection; it does not ingest or monitor breaking news. See the
-[External Sources workflow](docs/EXTERNAL-SOURCES.md) for commands and timing rules.
-Dated records have a saved **Show icon on chart** checkbox for gold stars in a
-separate row above broker icons; click one to open its record. Stars appear only
-on pairs containing an affected currency. Untimed watch items have no chart timestamp.
+**External Source**, inside Alert, keeps outside-feed research separate from MT5
+observations. Its independent currency filters, search, source links, timing
+uncertainty and expandable history use the same records as
+`pnpm analyst external --scope EURUSD --visibility all`. Agents can append verified
+additions without inventing calendar IDs. This is a saved research collection;
+it does not ingest or monitor breaking news. See the [External Sources workflow](docs/EXTERNAL-SOURCES.md)
+for commands and timing rules. Dated records have a saved **Show icon on chart**
+checkbox for gold stars in a separate row above broker icons; click one to open
+its record. Stars appear only on pairs containing an affected currency. Untimed
+watch items have no chart timestamp.
 
 The repository has four market-analysis skills:
 [Assess Trade Now](.agents/skills/assess-trade-now/SKILL.md) for a quick current
@@ -146,32 +160,39 @@ For example, ask `Use $assess-trade-now for 8 currencies ahead of US CPI` to
 prepare, then in the same chat `Use $one-minute-before-release for the October 14
 US CPI Highlight; compare its currency with all seven counterparts using that
 preparation`. The countdown verifies the schedule and waits for actuals, stopping
-by default five minutes after publication if decisive data is missing. Neither
-skill promises exact response timing or starts background monitoring.
+by default five minutes after publication if decisive data is missing. Preparation
+includes direct release sources, decisive fields and simultaneous-release checks.
+The countdown sends a short sourced verdict as soon as sufficient evidence arrives,
+then the full decision card in the same turn, with available timing checkpoints.
+Neither skill promises exact response timing or starts background monitoring.
 
 Choose **Research date range** in the drawing toolbar and drag across chart dates.
 The research panel sits beside the chart, leaving panning and the bottom dock
 available. Notes stay open when switching chart symbols or timeframes.
-Name the report, adjust the inclusive dates, optionally add a question or notes, and choose
-earlier context (90 days by default). **Prepare research** writes a unique `.md`
-brief and complete `.tsv` evidence in a named folder under `Market Analyst Workflow/report/`, and offers
-**Copy path** for the analyst session. Share the brief; it links to its evidence.
+Name the report, adjust the inclusive dates, optionally add a question or notes,
+and choose earlier context (90 days by default). **Prepare research** writes a
+unique `.md` brief and complete `.tsv` evidence in a named folder under
+`Market Analyst Workflow/report/`, and offers **Copy path** for the analyst session.
+Share the brief; it links to its evidence.
 Alert's **Research** button prepares the same handoff for an upcoming release;
 choose its currency alone or a pair containing it.
 
-Alert separates **Upcoming / Highlight** from its shared **All / currency** filter.
+**Highlight / MT5 Calendar / External Source** are separate top-level views.
 The currency filter applies to the current collection, including Highlight's
-**Active / Archive / Discovered Limitations**, and remembers your choice and view.
-**All** means all currencies in that view; events are filtered by their own currency,
-independently of the card's research Scope. **Highlight** keeps occurrences pinned from
-Inspector's right header or Alert's **Pin** button. Expand a card for all series
-and publication times. Pins remain after release, update with stored actuals and
-revisions, and move to **Archive** on your instruction. **Restore** returns them to
-the active list. They ignore upcoming family filters and
-horizon, remain scoped to their broker, and survive refresh. Highlight checks for
-updated values every two seconds while open; feed capture may still be delayed.
-The agent can read the same list with `pnpm analyst highlights` and focused values
-with `pnpm analyst highlights --summary --match CPI`, without browser access.
+**Show: Active / Archived** and External Source's **Events / Discovered Limitations**,
+and remembers your choice and view. **All** means all currencies in that view;
+events are filtered by their own currency, independently of the card's research
+Scope. **Highlight** keeps occurrences pinned from Inspector's right header or
+MT5 Calendar's **Pin** button, plus active external records (Pin/Pinned in External
+Source). Archive/Restore preserves external version history and existing alarm
+choices. Expand a calendar card for all series and publication times. Pins remain
+after release, update with stored actuals and revisions, and move to **Archive**
+on your instruction. **Restore** returns them to the active list. They ignore
+upcoming family filters and horizon, remain scoped to their broker, and survive
+refresh. Highlight checks for updated values every two seconds while open; feed
+capture may still be delayed. The agent can read the same list with
+`pnpm analyst highlights` and focused values with
+`pnpm analyst highlights --summary --match CPI`, without browser access.
 
 Cards display read-only Before/After release research with source links, preserved
 reading snapshots and version history. **Copy Prompt** uses an explicit scope and
@@ -183,8 +204,10 @@ for a concise fundamental decision card. Live/pre-release assessment uses calend
 saved fundamental research and web evidence; candles are reserved for explicitly
 requested historical price investigations. The action copies instructions only.
 Copy Prompt offers preparation and after-release stages. Prompt-only records can
-be saved while research is deferred. **Discovered Limitations**, after Active and
-Archive, retains verified feed gaps and schedule/data disagreements with sources.
+be saved while research is deferred. **External Source → Discovered Limitations**
+retains verified feed gaps and schedule/data disagreements with sources, separately
+from saved events. Agents read these through `pnpm analyst limitations --broker <broker>`
+before reviewing MT5 and outside-feed schedules.
 
 Exports include every stored series for the chosen currencies, independent of
 Inspector/Alert filters and chart history. Files retain forecasts, revised priors,

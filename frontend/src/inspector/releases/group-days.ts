@@ -2,7 +2,7 @@ import type { InspectorRelease } from '../../economic-calendar/releases/release'
 import { calendarDisplayRange, displayDateKey, type CalendarDisplayRange } from '../../economic-calendar/time/calendar-display-range'
 import { utcToChartClock, type ChartClockScope } from '../../appearance/time-display/chart-clock'
 import type { TimeDisplayPreference } from '../../appearance/time-display/time-display-preference'
-import { episodePublications } from '../episodes/display-episodes'
+import { episodePublications, releaseFamilyIds, selectedPackageSeries } from '../episodes/display-episodes'
 import { groupDaySections } from './day-sections'
 
 export function publicationDate(release: InspectorRelease, display: TimeDisplayPreference): string | null {
@@ -17,8 +17,10 @@ export function groupInspectorDays(publications: InspectorRelease[], families: r
   if (!range) return []
   const selected = new Set(families), groups = new Map<string, InspectorRelease[]>()
   const fromDate = displayDateKey(range.from, display), toDate = displayDateKey(range.to - 1, display)
-  for (const publication of publications) {
-    if (!selected.has(publication.familyId)) continue
+  for (const source of publications) {
+    const publication = selectedPackageSeries(source, families)
+    if (!publication) continue
+    if (!releaseFamilyIds(publication).some(id => selected.has(id))) continue
     const date = publicationDate(publication, display)
     if (date === null || date < fromDate || date > toDate || (!publication.timingUncertain &&
       (publication.releaseAt! < range.from || publication.releaseAt! >= range.to))) continue
@@ -42,13 +44,14 @@ export function groupInspectorDays(publications: InspectorRelease[], families: r
 export function selectedInspectorRelease(releases: InspectorRelease[], sources: InspectorRelease[], id: string | null,
   display: TimeDisplayPreference): InspectorRelease | null {
   if (id === null) return null
-  const direct = releases.find(release => release.id === id ||
-    (release.daily?.publications ?? episodePublications(release))?.some(member => member.id === id))
+  const matches = (release: InspectorRelease) => release.id === id || release.sourceReleaseIds?.includes(id)
+  const direct = releases.find(release => matches(release) ||
+    (release.daily?.publications ?? episodePublications(release))?.some(matches))
   if (direct) return direct
   const day = /^day\/([A-Z]{3})\/(\d{4}-\d{2}-\d{2})$/.exec(id)
   if (day) return releases.find(release => release.currency === day[1] &&
     (episodePublications(release) ?? [release]).some(member => publicationDate(member, display) === day[2])) ?? null
-  const source = sources.find(release => release.id === id || episodePublications(release)?.some(member => member.id === id))
+  const source = sources.find(release => matches(release) || episodePublications(release)?.some(matches))
   // A legacy policy/PMI selection resolves to the day containing its first row.
   const first = source?.events[0]?.value_id
   return first ? releases.find(release => release.daily && release.events.some(event => event.value_id === first)) ?? null : null

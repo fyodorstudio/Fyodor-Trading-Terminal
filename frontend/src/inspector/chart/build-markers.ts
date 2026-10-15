@@ -3,7 +3,7 @@ import type { InspectorPreferences } from '../preferences/inspector-preferences'
 import type { EventSymbol } from '../../economic-calendar/presentation/event-symbols'
 import type { ChartTimeframe } from '../../market-data/contracts/ChartTimeframe'
 import type { OhlcBar } from '../../market-data/contracts/OhlcBar'
-import { episodePublications } from '../episodes/display-episodes'
+import { episodePublications, releaseFamilyIds } from '../episodes/display-episodes'
 
 export const timeframeSeconds: Record<ChartTimeframe, number> = { M1: 60, M5: 300, M15: 900, M30: 1800, H1: 3600, H4: 14400, D1: 86400 }
 export type InspectorMarker = { release: InspectorRelease; symbol: EventSymbol; time: number;
@@ -30,7 +30,8 @@ export function buildInspectorMarkers(groups: InspectorRelease[], preferences: I
       }
       return []
     }
-    const selectedFamily = episodePublications(release)?.find(member => preferences.families.includes(member.familyId))?.familyId ?? release.familyId
+    const selectedFamily = episodePublications(release)?.find(member => preferences.families.includes(member.familyId))?.familyId ??
+      releaseFamilyIds(release).find(id => preferences.families.includes(id)) ?? release.familyId
     const symbol = preferences.symbols[selectedFamily] ?? 'star'
     // There is no future candle to anchor to. Project timeframe slots into the
     // blank chart area without inserting price data or snapping to the last bar.

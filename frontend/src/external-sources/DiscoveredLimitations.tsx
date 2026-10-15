@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { AlertPreferences } from '../model/alert-preferences'
+import type { MajorCurrency } from '../economic-calendar/forex/currencies'
 
 type Limitation = {
   id: string; source_id: string; key: string; currency: string; kind: string; title: string; description: string; action: string
@@ -17,7 +17,7 @@ function cached(brokerId: string | null): Limitation[] {
   try { const value = JSON.parse(localStorage.getItem(`fyodor.highlight-limitations.${brokerId}`) ?? '[]'); return valid(value, brokerId) ? value : [] } catch { return [] }
 }
 
-export function DiscoveredLimitations({ brokerId, currency }: { brokerId: string | null; currency: AlertPreferences['currency'] }) {
+export function DiscoveredLimitations({ brokerId, currency }: { brokerId: string | null; currency: 'all' | MajorCurrency }) {
   const [snapshot, setSnapshot] = useState(() => ({ brokerId, items: cached(brokerId) }))
   const [error, setError] = useState<string | null>(null)
   const [source, setSource] = useState(brokerId)

@@ -3,6 +3,7 @@ import type { StoredCalendarEvent } from '../../economic-calendar/storage/useSto
 import { inspectorFamilies } from '../../inspector/catalog/inspector-families'
 import { policyEpisodeRule } from '../../inspector/episodes/policy-episodes'
 import { isInspectorCommentary } from '../../inspector/releases/group-releases'
+import { releaseFamilyIds } from '../../inspector/episodes/display-episodes'
 
 export type Highlight = {
   id: string; source_id: string; label: string; family_id: string; currency: string
@@ -40,7 +41,7 @@ export function highlightPrompt(item: Highlight, scope: string, phase: 'prepare'
       : `Check this Highlight after publication. Verify actuals and revisions against the official publisher, compare the complete package with separately attributed expectations and the previous comparable release, and refresh the central-bank and macro backdrop${scope.length === 6 ? ' for both currencies' : ''}. Give the fundamental direction, confidence and strongest counterevidence. If actuals are incomplete, identify what is missing. Save the After release investigation with price_reaction empty.`)) + uncertain + `\n\n${noCandleAssessment}`
 }
 export function highlightRequest(release: InspectorRelease, sourceId: string) {
-  const families = new Set([release.familyId, ...(release.pmiPublications ?? []).map(item => item.familyId)])
+  const families = new Set([...releaseFamilyIds(release), ...(release.pmiPublications ?? []).map(item => item.familyId)])
   return { source_id: sourceId, label: release.label, family_id: release.familyId, currency: release.currency,
     value_ids: [...new Set(release.events.map(event => event.value_id))],
     event_ids: [...new Set([...release.events.map(event => event.event_id),

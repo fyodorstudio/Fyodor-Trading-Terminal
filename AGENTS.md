@@ -29,8 +29,11 @@ inspection without an explicit request.
 
 ## Market analysis
 
-Outside-feed events/headlines/watch items belong in the separate **External Sources**
-bottom dock, not invented calendar readings or mixed Highlight pins. For the
+Outside-feed events/headlines/watch items belong in **External Source** records,
+not invented MT5 calendar readings. The Alert dock's **Highlight** view
+combines active pins from MT5 Calendar and External Source without merging their
+storage or occurrence identities. Active external records are pinned; archive/restore
+preserves their immutable history and alarm choices. For the
 requested pair/currencies, query `pnpm analyst external --scope EURUSD` (use
 `--visibility all` for historical work), with focused dates/match and complete
 pagination. Treat saved interpretation as dated context, verify fresh news and
@@ -74,7 +77,11 @@ folders live together under `Market Analyst Workflow/`.
   checks and bound failed-source retries. For an explicit imminent-release wait,
   use [one-minute-before-release](.agents/skills/one-minute-before-release/SKILL.md)
   to reuse prepared context, verify the clock/schedule and await fresh actuals
-  within a stated deadline. No automatic timer is implied by preparation.
+  within a stated deadline. Prepare direct retrieval routes and decisive fields
+  beforehand; send a short sourced first verdict in commentary once supported,
+  then the full decision card in the same active turn. Separate observed data/
+  interpretation/send timestamps without promising second-level latency.
+  No automatic timer is implied by preparation.
   Include the mandatory Extreme-move risk row. A pending release does not by
   itself force a general pair assessment to wait; explain the setup-specific
   reason. Verify material gaps or disclose them without guessing.
@@ -95,6 +102,12 @@ folders live together under `Market Analyst Workflow/`.
   policy path priced into markets are different evidence; unknown providers stay
   unknown. Official statistics alone do not establish consensus.
 - Explain changes in the expected rate path and the bank's current concern.
+  A higher rate or a hike alone does not establish currency strength. Compare
+  the decision and projected pace/peak/duration with prior guidance and separately
+  attributed expectations/pricing: an expected hike with a slower future path
+  can weaken a currency, and a less dovish cut can strengthen it. Explain the
+  dominant surprise and counterpart; do not assume either reaction mechanically
+  or claim something was priced in without evidence.
   Headline/core/components form one release package, not independent votes.
   Do not sum signals across weeks: later information can change the backdrop.
   Include both currency stories and the strongest counterevidence.
@@ -158,6 +171,14 @@ folders live together under `Market Analyst Workflow/`.
   service restarts or messages to others are implied by a research request.
 
 ### Highlight journal and archive scope
+
+- Alert automatically prepares 10-minute and 1-minute reminders for
+  active timed Highlights and confirmed scheduled External Sources. Research and
+  pin/save in the appropriate collection; do not duplicate Windows Clock alarms.
+  Date-only/unverified hours never imply an alarm time. Check `/alarm-api/alarms`
+  (or loopback `http://127.0.0.1:8003/alarms`) before claiming reminders are running;
+  the worker must be healthy and enabled. This does not schedule an AI invocation.
+  [Alarm contract](docs/EVENTS-ALARMS.md) covers runtime and delivery limitations.
 
 - Read relevant saved journal entries and archived investigations when available.
   Treat earlier conclusions as dated context; refresh expectations, material

@@ -114,7 +114,17 @@ skip verification. Do not run a broad research project before answering.
   force waiting, invalidate a supported bias, or make all currency facts unknown.
   Explain whether the pending event warrants waiting for this particular setup.
 - Check both currencies' expected rate paths, using rates, inflation and labor as
-  the core. Always check material off-calendar news, especially intervention,
+  the core. Never infer currency strength from a higher rate, a hike or a cut
+  alone. For policy events, separate the current decision versus expectations
+  from changes in the projected pace, peak/terminal rate, duration and guidance
+  versus the prior outlook and market pricing. An expected hike with a slower
+  future path can weaken a currency; a smaller-than-expected cut or firmer future
+  path can strengthen it. These are conditional mechanisms, not automatic
+  reversals. Explain which new information dominates, the other currency's path
+  and the strongest counterevidence. Keep economist surveys, market-implied
+  pricing and conditional central-bank projections distinct; missing pricing
+  means the degree of surprise is unresolved, not proof it was priced in.
+  Always check material off-calendar news, especially intervention,
   official warnings/rate checks, geopolitical shocks, tariffs and bond-market
   stress. Use focused, dated web searches; do not re-investigate every historical
   release or scan all 28 pairs unless requested.
@@ -181,9 +191,23 @@ conditional outcomes, invalidation, next news and direct evidence references.
 Identify any gaps and the critical fields needed for a verdict. This may be
 the assessment itself; do not duplicate it in a second long report.
 
+Prepare the release retrieval path before the countdown: exact local occurrence/
+series query, direct official endpoint and one usable fallback, with reference
+period, units and seasonal adjustment. Identify the minimum decisive package
+(including material revisions/components), simultaneous releases that could
+change the counterpart choice, and what can wait until after a first verdict.
+Preserve attributed expectations and why each conditional pair outranks its
+alternatives. These are contextual scenarios, not a field-count score or an
+automatic rule that fixes the winner before actuals. Resolve known source access
+problems during preparation where possible; do not discover the retrieval route
+or rebuild the seven-day watchlist after publication.
+
 The countdown reuses this evidence and checks only intervening developments and
 the new release package. It must not assume that a prepared bias is the verdict
-after publication. Context carries forward in the same conversation; another
+after publication. It sends a short, sourced first verdict in commentary as soon
+as sufficient evidence arrives, then the complete decision card in the same
+active turn; preparation should make that possible without another broad scan.
+Context carries forward in the same conversation; another
 session needs this handoff or explicitly saved research. Save only on request.
 
 ## Fundamental exit and reassessment watchlist

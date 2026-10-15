@@ -1,10 +1,24 @@
 # External Sources
 
-The bottom dock tab immediately left of Inspector holds sourced events, headlines
+The External Source view inside Alert holds sourced events, headlines
 and unscheduled watch items outside the broker calendar. It has independent
-All/eight-currency filters, search and aligned expandable rows. Records are shared across
-brokers; one USD record can inform all seven USD pairs. Inspector, Alert,
-Highlights and raw observations remain separate. Active dated records appear as
+All/eight-currency filters, search and aligned expandable rows.
+The saved Date sort defaults to Upcoming first (soonest future event, then recent
+past events, then undated items); Earliest first and Latest first are also available.
+Exact event times have a live countdown; Elapsed means the time passed, not that
+publication was verified. Date-only schedules show Today on their source day or
+a whole-day distance, retaining Hour unconfirmed rather than inventing a time.
+Records are shared across brokers; one USD record can inform all seven USD pairs.
+**Show: Events / Discovered Limitations** separates the outside-feed event list
+from broker-specific reference issues. Limitations retain their existing records,
+source links, follow-up actions and offline cache; they are not event pins or
+alarms. Currency selection applies locally to both views. Agents read them with
+`pnpm analyst limitations --broker <broker>` and refresh the cited evidence before
+using them to check MT5 and outside-feed coverage.
+Raw MT5 observations remain separate from external research. Highlight displays both
+sources together without converting external records into MT5 occurrences. Active
+external records are its pins; Pin/Pinned and Highlight Archive/Restore use the
+existing immutable archive lifecycle. Active dated records appear as
 gold stars on matching currency pairs when **Show icon on chart** is checked, one row above the highest broker-calendar
 icon stack, including daily grouping. Clicking a star opens its sourced record;
 nearby custom records have their own chooser. Exact UTC times use the broker's
@@ -12,10 +26,14 @@ chart clock/DST profile; source dates remain date-only and untimed watch items
 have no marker. Pan, zoom and future-space projection do not insert price candles.
 No live news
 ingestion or background headline monitoring is supplied by this collection.
+Confirmed scheduled records with a verified exact event time automatically receive
+preparation/invocation alarms through the independent [alarm worker](EVENTS-ALARMS.md).
+Date-only and unverified schedules remain visible without a timed alarm.
 
 Agents write records; the UI displays facts, dated interpretation, source links,
 event/publication/recorded clocks, uncertainty and immutable version history.
-The dock has no prompt or archive controls. Search covers titles, facts, currencies,
+The External Source view has Pin/Pinned controls; archive and restore are available
+from Highlight. Search covers titles, facts, currencies,
 status and sources. Research details/history expand beneath a row; the dock remains
 resizable and scrollable as records grow. Cards, details, data loading and chart
 preferences have separate owners so future record categories can reuse the layout.

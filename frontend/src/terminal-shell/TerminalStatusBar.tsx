@@ -49,13 +49,11 @@ export function TerminalStatusBar({
       <span className="status-clock">{formatAppTimestamp(now, timeDisplay, 'time')} · {timeDisplayLabel(timeDisplay)}</span>
       <span className="status-selection">{selectedSymbol} · {timeframe} · {barCount} bars</span>
       <div className="status-actions status-primary" role="group" aria-label="App features">
-        <button className={`status-action${bottomDockWindow === 'external-sources' ? ' active' : ''}`} type="button"
-          onClick={() => onToggleBottomDock('external-sources')} aria-expanded={bottomDockWindow === 'external-sources'}>External Sources</button>
+        <button className={`status-action${bottomDockWindow === 'alert' || bottomDockWindow === 'external-sources' ? ' active' : ''}`} type="button"
+          onClick={() => onToggleBottomDock(bottomDockWindow === 'external-sources' ? 'external-sources' : 'alert')} aria-expanded={bottomDockWindow === 'alert' || bottomDockWindow === 'external-sources'}>Alert</button>
         <button className={`status-action${bottomDockWindow === 'inspector' ? ' active' : ''}`} type="button" onClick={() => onToggleBottomDock('inspector')} aria-expanded={bottomDockWindow === 'inspector'}>
           Inspector
         </button>
-        <button className={`status-action${bottomDockWindow === 'alert' ? ' active' : ''}`} type="button"
-          onClick={() => onToggleBottomDock('alert')} aria-expanded={bottomDockWindow === 'alert'}>Alert</button>
         <button className={`status-action${bottomDockWindow === 'entry-trade' ? ' active' : ''}`} type="button"
           onClick={() => onToggleBottomDock('entry-trade')} aria-expanded={bottomDockWindow === 'entry-trade'}>Entry Trade</button>
         <button className={`status-action${bottomDockWindow === 'activity' ? ' active' : ''}`} type="button" onClick={() => onToggleBottomDock('activity')} aria-expanded={bottomDockWindow === 'activity'}>

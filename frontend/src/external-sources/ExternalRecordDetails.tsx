@@ -3,7 +3,7 @@ import { formatAppTimestamp, type TimeDisplayPreference } from '../appearance/ti
 import { validExternalItems, type ExternalSource } from './external-source-model'
 
 export function RecordDetails({ item, timeDisplay }: { item: ExternalSource; timeDisplay: TimeDisplayPreference }) {
-  const time = (at: string) => `${formatAppTimestamp(Date.parse(at), timeDisplay)} (${at})`
+  const time = (at: string) => `${formatAppTimestamp(Date.parse(at), timeDisplay)}${timeDisplay.hour12 ? '' : ` (${at})`}`
   return <div className="external-record-details">
     <p>{item.kind === 'scheduled' ? 'Scheduled event' : item.kind === 'headline' ? 'Published headline' : 'Unscheduled watch'} · {item.status}</p>
     <p>{item.event_at ? `Event / headline reference: ${time(item.event_at)}` : item.event_date ? `Source date: ${item.event_date} · hour unconfirmed` : 'Event time unconfirmed / unscheduled'}</p>

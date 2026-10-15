@@ -29,6 +29,8 @@
 .highlight-actions button { width: 100%; }
 .highlight-actions label { display: flex; align-items: center; justify-content: flex-end; gap: 5px; white-space: nowrap; }
 .highlight-actions select { width: 88px; }
+.highlight-header:has(.event-alarm-toggle) { grid-template-columns: minmax(0, 1fr) 388px; }
+.highlight-actions:has(.event-alarm-toggle) { grid-template-columns: 72px 76px 72px 144px; }
 .highlight-copy-status { margin: 6px 0; color: var(--text-muted); }
 .highlight-content { min-width: 0; margin-top: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 4px; }
 .highlight-view-toolbar, .highlight-view-toolbar label { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
@@ -44,11 +46,6 @@
 .highlight-research-meta { color: var(--text-muted); }
 .highlight-journal code { display: block; white-space: pre-wrap; overflow-wrap: anywhere; }
 .highlight-journal a { color: var(--accent); }
-.highlight-limitations { max-width: 1100px; line-height: 1.6; overflow-wrap: anywhere; }
-.highlight-limitation { border-bottom: 1px solid var(--border); padding: 10px 0; }
-.highlight-limitation h4 { margin: 0 0 6px; font-size: 13px; }
-.highlight-limitation p { margin: 6px 0; white-space: pre-wrap; }
-.highlight-limitation a { color: var(--accent); }
 .highlight-card textarea { box-sizing: border-box; width: 100%; min-height: 140px; resize: vertical; color: var(--text); background: var(--surface-panel); border: 1px solid var(--border); padding: 8px; }
 .highlight-card details details { margin: 8px 0; }
 .highlight-series { overflow: auto; margin-top: 10px; }
@@ -61,4 +58,5 @@
 @media (max-width: 700px) { .alert-row:has(.alert-pin) { grid-template-columns: 44px 1fr 100px; } .alert-pin { grid-column: 3; } }
 @container (max-width: 1100px) { .alert-dock .highlight-toggle { grid-template-columns: 12px 32px minmax(0, 1fr); row-gap: 4px; } .highlight-toggle time, .highlight-toggle .alert-countdown { grid-column: 2 / -1; } }
 @container (max-width: 700px) { .highlight-header { grid-template-columns: minmax(0, 1fr); } .highlight-actions { justify-self: end; } }
+@container (max-width: 700px) { .highlight-header:has(.event-alarm-toggle) { grid-template-columns: minmax(0, 1fr); } .highlight-actions:has(.event-alarm-toggle) { display: flex; flex-wrap: wrap; justify-content: flex-end; } .highlight-actions .event-alarm-toggle { width: auto; } }
 @container (max-width: 340px) { .highlight-actions { grid-template-columns: 60px 64px minmax(0, 1fr); width: 100%; } .highlight-actions label { flex-wrap: wrap; } }

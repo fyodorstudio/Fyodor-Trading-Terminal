@@ -2,12 +2,12 @@ import { inspectorFamilies } from '../../inspector/catalog/inspector-families'
 import { isMajorCurrency, type MajorCurrency } from '../../economic-calendar/forex/currencies'
 
 export const alertPreferencesKey = 'fyodor.alert.preferences.v1'
-export type HighlightVisibility = 'active' | 'archived' | 'limitations'
+export type HighlightVisibility = 'active' | 'archived'
 const highlightVisibilityKey = 'fyodor.alert.highlight-visibility.v1'
 export function readHighlightVisibility(): HighlightVisibility {
   try {
     const value = localStorage.getItem(highlightVisibilityKey)
-    return value === 'archived' || value === 'limitations' ? value : 'active'
+    return value === 'archived' ? value : 'active'
   } catch { return 'active' }
 }
 export function saveHighlightVisibility(value: HighlightVisibility) {
