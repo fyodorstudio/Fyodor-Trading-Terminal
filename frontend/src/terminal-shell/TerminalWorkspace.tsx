@@ -18,10 +18,10 @@ import { EntryTradePanel } from '../entry-trade/dock/EntryTradePanel'
 export function TerminalWorkspace() {
   const { timeframe, theme, chartAppearance, timeDisplay, activeDrawingTool, selectedDrawingId, setSelectedDrawingId,
     drawingToolbarVisible, bottomDockWindow, dockSize, settingsOpen, setSettingsOpen, marketWatch, appendActivity,
-    bridge, marketData, activeSymbol, bars, brokerId, inspector, quote, drawings, totalDrawingCount,
+    bridge, marketData, activeSymbol, bars, brokerId, inspector, quote, drawings, pairDrawingCount,
     updateDrawingPoint, updateDrawingPoints, updateDrawingText, updatePositionWidth, handleDeleteDrawing,
     selectSymbol, selectTimeframe, recordChartData, changeTheme, changeChartAppearance, changeTimeDisplay,
-    createDrawing, chooseDrawingTool, selectCrosshair, deleteAllDrawings, toggleBottomDock, exitDrawingMode,
+    createDrawing, chooseDrawingTool, selectCrosshair, deletePairDrawings, toggleBottomDock, exitDrawingMode,
     toggleDrawingToolbar, renderChartOverlay, sourceState, sourceLabel, researchActive, researchSeed, researchError,
     selectResearchTool, closeResearch, prepareAlertResearch, selectedExternalKey, externalSelection,
     plannedTrade, handlePlanChange, latestBarTime, registeredArrows, selectPinnedArrow } = useTerminalWorkspace()
@@ -89,11 +89,13 @@ export function TerminalWorkspace() {
               )}
               {drawingToolbarVisible && (
                 <FloatingDrawingToolbar
+                key={activeSymbol}
+                symbol={activeSymbol}
                 activeTool={activeDrawingTool}
-                drawingCount={totalDrawingCount}
+                drawingCount={pairDrawingCount}
                 onSelectCrosshair={selectCrosshair}
                 onToolChange={chooseDrawingTool}
-                onClearAll={deleteAllDrawings}
+                onClearPair={deletePairDrawings}
                 researchActive={researchActive}
                 researchDisabled={!inspector.supported || !brokerId || !bars.length}
                 onSelectResearch={selectResearchTool}

@@ -8,22 +8,24 @@ import {
 import './floating-drawing-toolbar.css'
 
 type FloatingDrawingToolbarProps = {
+  symbol: string
   activeTool: DrawingToolId | null
   drawingCount: number
   onSelectCrosshair: () => void
   onToolChange: (tool: DrawingToolId | null) => void
-  onClearAll: () => void
+  onClearPair: () => void
   researchActive?: boolean
   researchDisabled?: boolean
   onSelectResearch?: () => void
 }
 
 export function FloatingDrawingToolbar({
+  symbol,
   activeTool,
   drawingCount,
   onSelectCrosshair,
   onToolChange,
-  onClearAll,
+  onClearPair,
   researchActive = false,
   researchDisabled = false,
   onSelectResearch,
@@ -109,7 +111,7 @@ export function FloatingDrawingToolbar({
   }
 
   const clearDrawings = () => {
-    onClearAll()
+    onClearPair()
     setDeleteConfirmationOpen(false)
   }
 
@@ -167,15 +169,15 @@ export function FloatingDrawingToolbar({
         onClick={() => setDeleteConfirmationOpen((open) => !open)}
         disabled={drawingCount === 0}
         aria-expanded={deleteConfirmationOpen}
-        aria-label="Delete all drawings"
-        title={drawingCount === 0 ? 'No saved drawings' : `Delete all ${drawingCount} saved drawings`}
+        aria-label={`Delete ${symbol} drawings`}
+        title={drawingCount === 0 ? `No saved drawings for ${symbol}` : `Delete all ${drawingCount} saved ${symbol} drawings`}
       >
         <span aria-hidden="true">⌫</span>
       </button>
       {deleteConfirmationOpen && (
-        <div className="drawing-delete-popover" role="dialog" aria-label="Delete all drawings confirmation">
-          <strong>Delete all drawings?</strong>
-          <span>{drawingCount} saved drawing{drawingCount === 1 ? '' : 's'} will be removed.</span>
+        <div className="drawing-delete-popover" role="dialog" aria-label={`Delete ${symbol} drawings confirmation`}>
+          <strong>Delete all {symbol} drawings?</strong>
+          <span>{drawingCount} saved {symbol} drawing{drawingCount === 1 ? '' : 's'} across all timeframes will be removed.</span>
           <div>
             <button type="button" onClick={() => setDeleteConfirmationOpen(false)}>Cancel</button>
             <button className="confirm-delete" type="button" onClick={clearDrawings}>Delete all</button>

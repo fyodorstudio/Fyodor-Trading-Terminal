@@ -32,7 +32,11 @@ dom.cancelAnimationFrame = id => frames.delete(id)
 localStorage.setItem('fyodor.time-display.v1', JSON.stringify({ mode: 'utc', utcOffsetMinutes: 0 }))
 localStorage.setItem('fyodor.chart-drawings.v1', JSON.stringify([{ id: 'drawing', symbol: 'EURUSD', timeframe: 'H1', tool: 'parallel-channel',
   points: [{ time: now / 1000 - 5 * 3600, price: 1.1 }, { time: now / 1000 - 3 * 3600, price: 1.2 },
-    { time: now / 1000 - 5 * 3600, price: 1 }], createdAt: 1 }]))
+    { time: now / 1000 - 5 * 3600, price: 1 }], createdAt: 1 },
+  ...['H1', 'D1'].map(timeframe => ({ id: `other-${timeframe}`, symbol: 'TEST1', timeframe, tool: 'horizontal-line',
+    points: [{ time: now / 1000, price: 1.1 }], createdAt: 1 })),
+  { id: 'third-pair', symbol: 'TEST2', timeframe: 'H4', tool: 'horizontal-line',
+    points: [{ time: now / 1000, price: 1.2 }], createdAt: 1 }]))
 localStorage.setItem('fyodor.inspector.eurusd.v1', JSON.stringify({ version: 2, catalogVersion: 1, families: ['us-cpi','ecb'], showSymbols: true, symbolGrouping: 'release', detailView: 'r1', showHistograms: true, symbols: { 'us-cpi': 'star', ecb: 'moon' }, currencyColors: {} }))
 const primitives = new Set(), captures = new Set(), pointerPrices = [], tradeMarkers = new Set(), tradeLines = new Set()
 let priceShift = 0, priceRange = { from: 1, to: 2 }
@@ -786,6 +790,35 @@ try {
   await click(button('Alert'))
   assert.equal(localStorage.getItem('fyodor.bottom-dock.height.v2'), height)
   await click(button('Alert'))
+  // The real toolbar counts/deletes only its current pair. A confirmation
+  // opened on another pair must close when the selected pair changes.
+  const drawingsBeforeClear = JSON.parse(localStorage.getItem('fyodor.chart-drawings.v1'))
+  const eurDrawings = drawingsBeforeClear.filter(drawing => drawing.symbol === 'EURUSD')
+  const trash = () => container.querySelector('.drawing-toolbar-trash')
+  await click(trash())
+  assert.equal(trash().getAttribute('aria-label'), 'Delete EURUSD drawings')
+  assert.ok(container.querySelector('.drawing-delete-popover').textContent.includes(`${eurDrawings.length} saved EURUSD`))
+  await click([...container.querySelectorAll('.market-watch-row')].find(row => row.textContent.includes('TEST1')))
+  while (pending.get('ohlc')?.length) await reply('ohlc')
+  await flush()
+  assert.equal(container.querySelector('.drawing-delete-popover'), null, 'Changing pairs cancels the previous confirmation')
+  assert.equal(trash().getAttribute('aria-label'), 'Delete TEST1 drawings')
+  await click(trash())
+  assert.ok(container.querySelector('.drawing-delete-popover').textContent.includes('2 saved TEST1 drawings across all timeframes'))
+  await click([...container.querySelectorAll('.drawing-delete-popover button')].find(node => node.textContent === 'Cancel'))
+  assert.deepEqual(JSON.parse(localStorage.getItem('fyodor.chart-drawings.v1')), drawingsBeforeClear, 'Cancel leaves every pair intact')
+  await click(trash())
+  await click(container.querySelector('.confirm-delete'))
+  const retainedDrawings = drawingsBeforeClear.filter(drawing => drawing.symbol !== 'TEST1')
+  assert.deepEqual(JSON.parse(localStorage.getItem('fyodor.chart-drawings.v1')), retainedDrawings,
+    'Deleting TEST1 across H1/D1 preserves EURUSD and TEST2 records exactly')
+  assert.equal(container.querySelectorAll('.drawing-object').length, 0)
+  assert.equal(trash().disabled, true, 'The empty pair cannot delete drawings from other pairs')
+  await click([...container.querySelectorAll('.market-watch-row')].find(row => row.textContent.includes('EURUSD')))
+  while (pending.get('ohlc')?.length) await reply('ohlc')
+  await flush()
+  assert.equal(container.querySelectorAll('.drawing-object').length, eurDrawings.length, 'Returning to EURUSD retains its drawings')
+  assert.equal(trash().disabled, false)
   await React.act(async () => root.render(null))
   assert.equal(rangeListeners.size, 0); assert.equal(clickListeners.size, 0)
   assert.equal(counters.workerCreated ?? 0, 0)

@@ -91,6 +91,7 @@ sizing and clock/theme/chart preferences keep their original keys. Inspector kee
 Save/Cancel and reads older pair settings; new saves use shared currency selections.
 Drawings are shared across all timeframes for the same pair, including existing
 saved drawings. Editing or deleting one updates that same drawing on every timeframe.
+The drawing toolbar's delete button clears only the current pair, across all timeframes.
 
 Use the same UI origin (normally localhost:5173) to reuse browser preferences from
 the original app. A different port has separate browser storage. Old scoring view

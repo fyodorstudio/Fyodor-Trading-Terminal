@@ -98,20 +98,23 @@ export function useChartDrawings(symbol: string, timeframe: ChartTimeframe) {
     })
   }, [])
 
-  const clearAllDrawings = useCallback(() => {
-    setAllDrawings([])
-    saveChartDrawings([])
-  }, [])
+  const clearPairDrawings = useCallback(() => {
+    setAllDrawings((current) => {
+      const next = current.filter((drawing) => drawing.symbol !== symbol)
+      saveChartDrawings(next)
+      return next
+    })
+  }, [symbol])
 
   return {
     drawings,
-    totalDrawingCount: allDrawings.length,
+    pairDrawingCount: drawings.length,
     addDrawing,
     updateDrawingPoint,
     updateDrawingPoints,
     updateDrawingText,
     updatePositionWidth,
     deleteDrawing,
-    clearAllDrawings,
+    clearPairDrawings,
   }
 }

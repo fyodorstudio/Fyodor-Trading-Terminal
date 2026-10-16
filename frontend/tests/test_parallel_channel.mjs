@@ -87,7 +87,7 @@ try {
   await drag(3, 10, 12)
   assert.deepEqual(coordinates(), [[100, 30], [10, 20], [100, 22], [10, 12]], 'Reversed endpoints and crossing the baseline preserve parallel edges')
 
-  await React.act(async () => api.clearAllDrawings())
+  await React.act(async () => api.clearPairDrawings())
   await render({ tool: 'parallel-channel' }, 'creation')
   const svg = host.querySelector('svg')
   await pointer(svg, 'pointerdown', 30, 30)

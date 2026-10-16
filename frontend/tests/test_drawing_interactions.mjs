@@ -132,6 +132,16 @@ try {
   assert.deepEqual(api.drawings, saved, 'Deleting on H4 removes the same drawing from its creation timeframe')
   assert.deepEqual(readChartDrawings(), [...saved, otherPair], 'Shared edits and deletion preserve all other saved records')
 
+  await React.act(async () => api.clearPairDrawings())
+  assert.deepEqual(readChartDrawings(), [otherPair], 'Clearing one pair preserves every other pair in storage')
+  assert.deepEqual(api.drawings, [], 'The current pair is cleared across all creation timeframes')
+  assert.equal(api.pairDrawingCount, 0, 'An empty pair has no deletable drawings even when other pairs have drawings')
+  await React.act(async () => api.clearPairDrawings())
+  assert.deepEqual(readChartDrawings(), [otherPair], 'Repeated clearing of an empty pair preserves other pairs')
+  await render({ symbol: 'OTHER', timeframe: 'D1' }, 'pair-cleared-reload')
+  assert.deepEqual(api.drawings, [otherPair], 'Other pair drawings survive a reload and timeframe change')
+  assert.equal(api.pairDrawingCount, 1, 'The count follows the selected pair')
+
   // Position labels are hover-only decoration; selecting/hovering must not pin
   // an offscreen label to the pane or repeatedly measure/project its geometry.
   const drawingCss = await readFile(new URL('../src/market-data/chart-drawings/chart-drawing-overlay.css', import.meta.url), 'utf8')

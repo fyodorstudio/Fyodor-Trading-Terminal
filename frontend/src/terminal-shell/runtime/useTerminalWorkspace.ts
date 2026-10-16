@@ -78,14 +78,14 @@ export function useTerminalWorkspace() {
   }, [activeSymbol])
   const {
     drawings,
-    totalDrawingCount,
+    pairDrawingCount,
     addDrawing,
     updateDrawingPoint,
     updateDrawingPoints,
     updateDrawingText,
     updatePositionWidth,
     deleteDrawing,
-    clearAllDrawings,
+    clearPairDrawings,
   } = useChartDrawings(activeSymbol, timeframe)
 
   const handleDeleteDrawing = useCallback((drawingId: string) => {
@@ -152,10 +152,10 @@ export function useTerminalWorkspace() {
     setSelectedDrawingId(null)
   }
 
-  const deleteAllDrawings = () => {
-    clearAllDrawings()
+  const deletePairDrawings = () => {
+    clearPairDrawings()
     setSelectedDrawingId(null)
-    appendActivity('Drawing', 'All drawings deleted', `${totalDrawingCount} removed`)
+    appendActivity('Drawing', 'Pair drawings deleted', `${activeSymbol} · ${pairDrawingCount} removed across all timeframes`)
   }
 
   const selectBottomDock = useCallback((dock: BottomDockWindow | null) => setBottomDockWindow(dock), [])
@@ -252,10 +252,10 @@ export function useTerminalWorkspace() {
         : 'Waiting for MT5'
   return { timeframe, theme, chartAppearance, timeDisplay, activeDrawingTool, selectedDrawingId, setSelectedDrawingId,
     drawingToolbarVisible, bottomDockWindow, dockSize, settingsOpen, setSettingsOpen, marketWatch, appendActivity,
-    bridge, marketData, activeSymbol, bars, brokerId, inspector, quote, drawings, totalDrawingCount, updateDrawingPoint,
+    bridge, marketData, activeSymbol, bars, brokerId, inspector, quote, drawings, pairDrawingCount, updateDrawingPoint,
     updateDrawingPoints, updateDrawingText, updatePositionWidth, handleDeleteDrawing, selectSymbol, selectTimeframe,
     recordChartData, changeTheme, changeChartAppearance, changeTimeDisplay, createDrawing, chooseDrawingTool,
-    selectCrosshair, deleteAllDrawings, toggleBottomDock, exitDrawingMode, toggleDrawingToolbar,
+    selectCrosshair, deletePairDrawings, toggleBottomDock, exitDrawingMode, toggleDrawingToolbar,
     renderChartOverlay, sourceState, sourceLabel, researchActive, researchSeed, researchError,
     selectResearchTool, closeResearch, prepareAlertResearch, selectedExternalKey, externalSelection,
     plannedTrade, handlePlanChange, latestBarTime, registeredArrows, selectPinnedArrow }
