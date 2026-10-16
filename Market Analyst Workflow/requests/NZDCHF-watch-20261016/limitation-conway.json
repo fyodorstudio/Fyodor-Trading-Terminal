@@ -1,0 +1,24 @@
+{
+  "key": "rbnz-conway-20261016-reported-headline-outside-feed",
+  "currency": "NZD",
+  "kind": "missing-release",
+  "title": "Conway October 16 reported headline outside the checked broker index",
+  "description": "The complete Elev8-Demo2 NZDCHF calendar index for October 15–16 at revision 187894 contains four release groups and no Conway speech/interview/headline. Newsquawk separately publishes an October 16 attributed inflation/rate-hike headline. Original remarks' delivery time and a full official transcript are unverified; provider headline/publication clocks are distinct.",
+  "action": "Use External Source rbnz-conway-20261016-inflation-headline for attributed evidence and timing caveats. Refresh the official policy statement, the complete remarks if available and next CPI/decision expectations. Do not create a raw MT5 observation or treat this headline's chart anchor as the speech time.",
+  "checked_utc": "2026-10-16T16:01:30Z",
+  "sources": [
+    {
+      "kind": "web",
+      "label": "Newsquawk reported headline",
+      "locator": "https://www.newsquawk.com/headlines/rbnz-chief-economist-conway-says-there-is-reasonable-confidence-that-inflation-has-not-become-broad-based-and-that-rate-hikes-help-contain-spillovers-from-an-energy-shock"
+    },
+    {
+      "kind": "web",
+      "label": "RBNZ speaking programme and media broadcast caveat",
+      "locator": "https://www.rbnz.govt.nz/news-and-events/events/2026/october/upcoming-engagements-for-october-2026"
+    }
+  ],
+  "official_schedule": "No official exact delivery hour independently verified. Provider headline October 16, 3:53 PM Jakarta; public page 4:13 PM Jakarta.",
+  "stored_schedule": "No Conway occurrence in the complete October 15–16 scoped broker index.",
+  "status": "open"
+}

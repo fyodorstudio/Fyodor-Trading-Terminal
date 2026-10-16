@@ -1,0 +1,18 @@
+{
+  "source_id": "Elev8-Demo2",
+  "label": "New Zealand trade balance / exports / imports",
+  "family_id": "nz-trade",
+  "currency": "NZD",
+  "value_ids": [
+    "317176",
+    "317177",
+    "317178",
+    "317179"
+  ],
+  "event_ids": [
+    "554010007",
+    "554010008",
+    "554010009",
+    "554010010"
+  ]
+}

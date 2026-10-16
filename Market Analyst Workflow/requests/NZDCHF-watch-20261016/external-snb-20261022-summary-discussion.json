@@ -1,0 +1,24 @@
+{
+  "key": "snb-20261022-summary-discussion",
+  "title": "SNB: September policy discussion summary",
+  "currencies": [
+    "CHF"
+  ],
+  "kind": "scheduled",
+  "status": "confirmed",
+  "facts": "SNB schedules its policy discussion summary for October 22 at 9:30 AM Swiss local time.",
+  "event_at": "2026-10-22T07:30:00Z",
+  "event_date": null,
+  "published_utc": null,
+  "time_note": "Swiss summer time conversion gives 2:30 PM Jakarta.",
+  "sources": [
+    {
+      "kind": "web",
+      "label": "Publisher/event evidence",
+      "locator": "https://www.snb.ch/en/services-events/digital-services/event-schedule",
+      "note": ""
+    }
+  ],
+  "interpretation": "NZDCHF short reassessment: this is a retrospective summary of the September decision, not a new rate decision. Unexpectedly strong concern about CHF appreciation, FX intervention or a lower future policy path could weaken CHF and challenge the short. Firmer inflation/policy reasoning can support CHF. Judge genuinely new information against the September release and current conditions.",
+  "expected_version": "2a645346e9304b359e97e05fb24edfdc"
+}

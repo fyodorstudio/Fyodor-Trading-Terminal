@@ -1,0 +1,24 @@
+{
+  "key": "rbnz-20261028-media-conference",
+  "title": "RBNZ October OCR: separate media conference",
+  "currencies": [
+    "NZD"
+  ],
+  "kind": "scheduled",
+  "status": "confirmed",
+  "facts": "RBNZ confirms an online media conference at 3:00 PM New Zealand time, one hour after its October 28 OCR publication.",
+  "event_at": "2026-10-28T02:00:00Z",
+  "event_date": null,
+  "published_utc": null,
+  "time_note": "October 28, 9:00 AM Jakarta; the existing broker decision is a distinct stage at 8:00 AM.",
+  "sources": [
+    {
+      "kind": "web",
+      "label": "Publisher/event evidence",
+      "locator": "https://www.rbnz.govt.nz/news-and-events/events/2026/october/monetary-policy-review-and-ocr-october-2026",
+      "note": ""
+    }
+  ],
+  "interpretation": "NZDCHF short reassessment: this Q&A is a separate stage one hour after the decision. Guidance implying faster or more persistent tightening than contemporaneous expectations could strengthen NZD and challenge/invalidate the short's policy premise; a more patient path could support it. A hike alone is not enough to establish the surprise. Recheck CHF haven demand and current expectations.",
+  "expected_version": "978a77f564b444c6af565c77641f5150"
+}

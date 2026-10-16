@@ -1,0 +1,12 @@
+{
+  "source_id": "Elev8-Demo2",
+  "label": "Global Dairy Trade prices — October 20; result hour unverified",
+  "family_id": "nz-dairy",
+  "currency": "NZD",
+  "value_ids": [
+    "256352"
+  ],
+  "event_ids": [
+    "554050001"
+  ]
+}

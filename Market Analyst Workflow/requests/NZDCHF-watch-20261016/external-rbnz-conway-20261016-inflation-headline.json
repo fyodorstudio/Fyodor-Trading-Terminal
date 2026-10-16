@@ -1,0 +1,40 @@
+{
+  "key": "rbnz-conway-20261016-inflation-headline",
+  "title": "RBNZ Conway: inflation breadth and rate-hike rationale — reported headline",
+  "currencies": [
+    "NZD"
+  ],
+  "kind": "headline",
+  "status": "reported",
+  "facts": "Newsquawk's October 16 headline attributes to RBNZ Chief Economist Paul Conway reasonable confidence that inflation has not become broad-based, alongside the view that rate increases help contain energy-shock spillovers. The provider identifies its feed headline at 08:53 UTC and public-page publication at 09:13 UTC. The original delivery/interview time and a complete official transcript have not been independently verified.",
+  "interpretation": "For an NZDCHF short this is two-sided: limited inflation breadth supports patience, but the stated case for hikes prevents assuming the RBNZ has turned dovish. Separately corroborated October 15 reporting kept October hold versus 25 bp hike open while retaining an upward rate bias. CPI on October 22 and decision/guidance on October 28 are more decisive than treating these remarks as a committee commitment. Newly located evidence; not claimed to be a new announcement at research time.",
+  "event_at": "2026-10-16T08:53:00Z",
+  "published_utc": "2026-10-16T09:13:00Z",
+  "time_note": "Chart anchor: provider's reported headline clock, October 16 at 3:53 PM Jakarta; public page 4:13 PM Jakarta. Neither is a verified original speech/interview instant or proof of first dissemination. No future countdown/alarm or automatic monitoring. Saved after publication; original transcript/access gap retained.",
+  "sources": [
+    {
+      "kind": "web",
+      "label": "Newsquawk October 16 headline and distinct provider/publication clocks",
+      "locator": "https://www.newsquawk.com/headlines/rbnz-chief-economist-conway-says-there-is-reasonable-confidence-that-inflation-has-not-become-broad-based-and-that-rate-hikes-help-contain-spillovers-from-an-energy-shock",
+      "note": "Full page retrieved via its link on the October 15 headline page; use attributed headline only, not the publisher's speculative Context commentary."
+    },
+    {
+      "kind": "web",
+      "label": "Newsquawk October 15: upward OCR bias, next decision open",
+      "locator": "https://www.newsquawk.com/headlines/rbnz-chief-economist-conway-says-new-zealand-is-feeling-the-effects-of-oil-price-shock-while-he-affirms-direction-of-the-ocr-is-most-likely-up-and-the-next-ocr-decision-is-wide-open",
+      "note": "Distinct earlier remarks; headline feed 01:42 UTC, public page 02:02 UTC. Do not label these October 16 remarks."
+    },
+    {
+      "kind": "web",
+      "label": "FXStreet via Bitget: Bloomberg interview attribution, October 15",
+      "locator": "https://www.bitgetapp.com/amp/news/detail/12560605962677",
+      "note": "Corroborates hold-versus-hike optionality and upward OCR direction; this mirror's displayed hour has no independently verified timezone."
+    },
+    {
+      "kind": "web",
+      "label": "RBNZ official October speaking programme",
+      "locator": "https://www.rbnz.govt.nz/news-and-events/events/2026/october/upcoming-engagements-for-october-2026",
+      "note": "Confirms October 15 interview bookings and media-controlled broadcast timing, not the original delivery time of the October 16 headline."
+    }
+  ]
+}

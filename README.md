@@ -73,7 +73,11 @@ choices are read until a currency is saved once with the shared selection.
 By day keeps one icon per currency/day and sections matching filter categories.
 French CPI/HICP variants sharing a verified publication time and reference period
 appear as one release with individual series. France, Germany, other dates and
-uncertain hours stay separate; existing CPI/HICP family selections remain effective.
+uncertain hours retain their publication identities; existing CPI/HICP family
+selections remain effective.
+In By release mode, simultaneous timed EUR data publications share one chart
+item and flat table, with countries and reference periods retained on each row.
+Policy/PMI stages and date-only schedules retain their existing grouping.
 All 1,051 exported types remain available; new numeric IDs enter Other / new events
 when enabled. A−P describes a numerical change, not a currency verdict. Forecasts,
 revised priors, periods and missing values remain source data.

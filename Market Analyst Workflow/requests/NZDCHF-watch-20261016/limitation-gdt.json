@@ -1,0 +1,24 @@
+{
+  "key": "nz-gdt-20261020-auction-versus-results-clock",
+  "currency": "NZD",
+  "kind": "unverified-time",
+  "title": "GDT October 20: auction start verified; result publication hour unverified",
+  "description": "The broker's October 20 GDT Price Index occurrence is date-only (value 256352, event 554050001). The current official GDT calendar lists the October 20 trading event starting at 12:00 UTC. Official operating guidance says auctions typically last about 1.5–2.5 hours and results follow completion. Auction start must not be substituted for the result timestamp.",
+  "action": "Keep the local pinned GDT result date-only and preserve raw observations. Use October 20 at 7:00 PM Jakarta only as the auction start, not an exact results alarm. Check the official results after the auction completes; retain uncertainty if no publication clock is verified.",
+  "checked_utc": "2026-10-16T16:02:20Z",
+  "official_schedule": "Auction starts October 20 at 7:00 PM Jakarta. Typical duration around 1.5–2.5 hours is approximate, not a guaranteed release window.",
+  "stored_schedule": "October 20, 2026 source date; result hour unverified.",
+  "status": "open",
+  "sources": [
+    {
+      "kind": "web",
+      "label": "Official GDT events calendar",
+      "locator": "https://www.globaldairytrade.info/en/gdt-events/calendar"
+    },
+    {
+      "kind": "web",
+      "label": "Official operating process and duration",
+      "locator": "https://www.globaldairytrade.info/en/gdt-events/how-gdt-events-work/learn-how-trading-events-operate"
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "source_id": "Elev8-Demo2",
+  "label": "New Zealand credit card spending — September",
+  "family_id": "mt5-554020011",
+  "currency": "NZD",
+  "value_ids": [
+    "320438"
+  ],
+  "event_ids": [
+    "554020011"
+  ]
+}

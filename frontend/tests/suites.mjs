@@ -18,6 +18,7 @@ export const suites = [
   "tests/test_publisher_activity.mjs",
   "tests/inspector/test_major_forex_inspector.mjs",
   "tests/inspector/test_french_cpi.mjs",
+  "tests/inspector/test_simultaneous_eur.mjs",
   "tests/inspector/test_daily_inspector.mjs",
   "tests/inspector/test_upcoming_markers.mjs",
   "tests/alert/test_alert.mjs",

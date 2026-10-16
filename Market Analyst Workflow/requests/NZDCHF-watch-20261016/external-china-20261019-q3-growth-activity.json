@@ -1,0 +1,26 @@
+{
+  "key": "china-20261019-q3-growth-activity",
+  "title": "China Q3 GDP and September activity package",
+  "currencies": [
+    "AUD",
+    "NZD",
+    "JPY"
+  ],
+  "kind": "scheduled",
+  "status": "confirmed",
+  "facts": "The NBS 2026 release calendar schedules quarterly National Economic Performance and September industrial production, retail sales, investment and related activity data for October 19, 2026, at 9:00 AM Jakarta. The separate detailed quarterly accounting release is scheduled the following day and is not this event.",
+  "event_at": "2026-10-19T02:00:00Z",
+  "event_date": null,
+  "published_utc": null,
+  "time_note": "Exact scheduled start verified against the official NBS calendar on October 15, 2026; October 19, 9:00 AM Jakarta. The official calendar is preliminary and subject to adjustment. Source-page date is December 26, 2025; recorded time is not event or first-publication time. No corresponding CNY record is invented in the eight-currency MT5 collection.",
+  "sources": [
+    {
+      "kind": "web",
+      "label": "NBS official 2026 release calendar",
+      "locator": "https://www.stats.gov.cn/english/PressRelease/ReleaseCalendar/202512/t20251226_1962154.html",
+      "note": "National Economic Performance, October 19 at 10:00 China time; accompanying monthly activity releases share that start."
+    }
+  ],
+  "interpretation": "NZDCHF short reassessment: a stronger-than-expected demand/activity package could support New Zealand export prospects and risk appetite while reducing CHF haven demand, challenging the short. Weaker activity could support the short through the opposite channels. This is conditional, not a forecast or an established market surprise. Refresh expectations near publication.",
+  "expected_version": "23accc142498441eaeb0c65f76724024"
+}
