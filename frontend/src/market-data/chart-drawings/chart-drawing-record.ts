@@ -10,6 +10,7 @@ export type ChartDrawingPoint = {
 export type ChartDrawingRecord = {
   id: string
   symbol: string
+  // Creation timeframe; visibility is shared across the symbol's timeframes.
   timeframe: ChartTimeframe
   tool: DrawingToolId
   points: ChartDrawingPoint[]

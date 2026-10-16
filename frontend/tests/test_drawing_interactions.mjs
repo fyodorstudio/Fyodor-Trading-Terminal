@@ -62,11 +62,11 @@ try {
   close(drawingTimeToLogical(50000.5 * 60, large, 60), 50000.5, 'Fractional historical placement')
   assert.ok(timelineReads < 45, 'Point conversion searches history logarithmically instead of scanning all candles')
 
-  function Harness({ tool = null, initiallySelected = null }) {
-    const drawings = useChartDrawings('TEST', 'M1')
+  function Harness({ tool = null, initiallySelected = null, symbol = 'TEST', timeframe = 'M1' }) {
+    const drawings = useChartDrawings(symbol, timeframe)
     const [selection, setSelection] = React.useState(initiallySelected)
     React.useEffect(() => { api = drawings; selected = selection }, [drawings, selection])
-    return React.createElement(ChartDrawingOverlay, { chartApi, seriesApi, bars: timeline, timeframe: 'M1',
+    return React.createElement(ChartDrawingOverlay, { chartApi, seriesApi, bars: timeline, timeframe,
       activeTool: tool, drawings: drawings.drawings, selectedDrawingId: selection, onSelectDrawing: setSelection,
       onCreateDrawing: drawings.addDrawing, onUpdateDrawingPoint: drawings.updateDrawingPoint,
       onUpdatePositionWidth: drawings.updatePositionWidth, onUpdateDrawingText: drawings.updateDrawingText,
@@ -97,6 +97,40 @@ try {
     return points
   }
   const recordFor = tool => ({ id: 'drawing', symbol: 'TEST', timeframe: 'M1', tool, points: pointsFor(tool), createdAt: 1, text: 'Example' })
+
+  // Legacy records remain single shared objects, scoped to their symbol.
+  const saved = drawingTools.map(({ id: tool }) => ({ ...recordFor(tool), id: tool, timeframe: 'H1' }))
+  const otherPair = { ...recordFor('text'), id: 'other-pair', symbol: 'OTHER', timeframe: 'H4' }
+  dom.localStorage.setItem('fyodor.chart-drawings.v1', JSON.stringify([...saved, otherPair]))
+  const originalStorage = dom.localStorage.getItem('fyodor.chart-drawings.v1')
+  for (const timeframe of ['H1', 'M1', 'M5', 'M15', 'M30', 'H4', 'D1']) {
+    await render({ timeframe }, 'shared')
+    assert.deepEqual(api.drawings, saved, `${timeframe}: every saved H1 tool is visible without changing its record`)
+    assert.equal(host.querySelectorAll('.drawing-object').length, drawingTools.length, `${timeframe}: every tool renders`)
+    assert.equal(dom.localStorage.getItem('fyodor.chart-drawings.v1'), originalStorage, 'Switching timeframes never rewrites storage')
+  }
+  await render({ symbol: 'OTHER', timeframe: 'M1' }, 'shared')
+  assert.deepEqual(api.drawings, [otherPair], 'Drawings remain isolated by symbol')
+  await render({ timeframe: 'M5' }, 'shared')
+  let sharedId
+  await React.act(async () => { sharedId = api.addDrawing('text', [{ time: 1060, price: 10 }]) })
+  await render({ timeframe: 'D1' }, 'shared')
+  assert.equal(api.drawings.find(drawing => drawing.id === sharedId)?.timeframe, 'M5', 'New drawings retain their creation timeframe')
+  const editedPoints = [{ time: 1090, price: 11 }]
+  await React.act(async () => {
+    api.updateDrawingPoints(sharedId, editedPoints, true)
+    api.updateDrawingText(sharedId, 'Shared note')
+  })
+  await render({ timeframe: 'H1' }, 'shared-reload')
+  const edited = api.drawings.find(drawing => drawing.id === sharedId)
+  assert.deepEqual(edited.points, editedPoints, 'Edits on D1 survive remount on H1')
+  assert.equal(edited.text, 'Shared note')
+  assert.equal(readChartDrawings().filter(drawing => drawing.id === sharedId).length, 1, 'Timeframe switching never duplicates a drawing')
+  await render({ timeframe: 'H4' }, 'shared-reload')
+  await React.act(async () => api.deleteDrawing(sharedId))
+  await render({ timeframe: 'M5' }, 'shared-deleted')
+  assert.deepEqual(api.drawings, saved, 'Deleting on H4 removes the same drawing from its creation timeframe')
+  assert.deepEqual(readChartDrawings(), [...saved, otherPair], 'Shared edits and deletion preserve all other saved records')
 
   // Position labels are hover-only decoration; selecting/hovering must not pin
   // an offscreen label to the pane or repeatedly measure/project its geometry.

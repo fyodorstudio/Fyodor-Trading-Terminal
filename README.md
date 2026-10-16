@@ -89,6 +89,8 @@ each symbol fits its own prices. Blank chart clicks dismiss nearby-release lists
 and deselect/collapse Inspector, unless placing a drawing. Saved drawings, dock
 sizing and clock/theme/chart preferences keep their original keys. Inspector keeps
 Save/Cancel and reads older pair settings; new saves use shared currency selections.
+Drawings are shared across all timeframes for the same pair, including existing
+saved drawings. Editing or deleting one updates that same drawing on every timeframe.
 
 Use the same UI origin (normally localhost:5173) to reuse browser preferences from
 the original app. A different port has separate browser storage. Old scoring view

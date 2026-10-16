@@ -7,8 +7,8 @@ import type { DrawingToolId } from './drawing-tool'
 export function useChartDrawings(symbol: string, timeframe: ChartTimeframe) {
   const [allDrawings, setAllDrawings] = useState<ChartDrawingRecord[]>(readChartDrawings)
   const drawings = useMemo(
-    () => allDrawings.filter((drawing) => drawing.symbol === symbol && drawing.timeframe === timeframe),
-    [allDrawings, symbol, timeframe],
+    () => allDrawings.filter((drawing) => drawing.symbol === symbol),
+    [allDrawings, symbol],
   )
 
   const addDrawing = useCallback(

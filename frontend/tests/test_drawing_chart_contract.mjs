@@ -134,6 +134,31 @@ try {
   // Preserve the viewport explicitly, as the production chart does on paging.
   chart.timeScale().setVisibleLogicalRange({ from: -2, to: 15 }); await paint()
   close(coordinates().timeToX(first.time), beforeAppend, 'Live candle updates preserve timestamp projection')
+
+  // The same H1 anchors project between larger candles and into future space.
+  const base = 1700000000
+  const sharedDrawing = { id: 'shared-h1', symbol: 'TEST', timeframe: 'H1', tool: 'long-position', createdAt: 1,
+    points: [{ time: base + 3600, price: 10 }, { time: base + 4 * 86400 + 3600, price: 11 }, { time: base + 4 * 86400 + 3600, price: 9 }] }
+  const sharedSnapshot = JSON.stringify(sharedDrawing)
+  for (const [timeframe, step] of [['H1', 3600], ['H4', 14400], ['D1', 86400], ['H1', 3600]]) {
+    bars = Array.from({ length: 4 }, (_, i) => ({ time: base + i * step, open: 10, high: 12, low: 8, close: 11 }))
+    series.setData(bars)
+    chart.timeScale().setVisibleLogicalRange({ from: -1, to: (sharedDrawing.points[1].time - base) / step + 2 })
+    await React.act(async () => root.render(React.createElement(ChartDrawingOverlay, {
+      ...props, bars, timeframe, selectedDrawingId: sharedDrawing.id, drawings: [sharedDrawing],
+    })))
+    await paint()
+    const projected = drawingCoordinates(chart, series, bars, timeframe)
+    for (const point of sharedDrawing.points) {
+      const logical = (point.time - base) / step
+      close(projected.timeToX(point.time), xAt(logical), `${timeframe}: H1 timestamps keep their fractional or future location`)
+      close(projected.pointAt(projected.timeToX(point.time), series.priceToCoordinate(point.price)).time, point.time,
+        `${timeframe}: editing coordinates retain the original timestamp`)
+    }
+    assert.ok(handles().length, `${timeframe}: the shared position renders editing handles`)
+    close(Number(handles()[0].getAttribute('cx')), projected.timeToX(sharedDrawing.points[0].time), `${timeframe}: position entry remains anchored`)
+    assert.equal(JSON.stringify(sharedDrawing), sharedSnapshot, 'Timeframe projection never rescales saved time or price anchors')
+  }
   console.log('✓ Installed chart API: fractional projection, future/past round-trips, all 14 tools, real primitive price-scale synchronization and live updates')
 } finally {
   await React.act(async () => root.unmount())
