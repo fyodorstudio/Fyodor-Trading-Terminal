@@ -33,6 +33,10 @@ Carry forward the prepared exact local query, official endpoint and fallback,
 minimum decisive fields and simultaneous-release checks. Before publication,
 resolve decisive retrieval/expectation gaps and refresh exceptional news. Do not
 turn a conditional shortlist into a fixed numeric score or preselect its winner.
+Identify which simultaneous releases for the selected currencies could materially
+change the pair view, and retain their focused queries alongside the named event.
+They form part of the minimum decisive package when material, even if they are
+outside the named Highlight's stored series IDs.
 
 If preparation is missing or stale, refresh only decisive gaps. Say when the
 coverage cannot be completed before publication; do not claim a full eight-
@@ -86,6 +90,13 @@ release time, unchanged value or empty field is not proof of publication; equall
 a genuinely unchanged actual can be valid if current-release evidence confirms
 it. Never substitute forecast, previous value or the prior release for today's
 actual. Check the release package as a whole, not as a count of bullish fields.
+Before the first combined pair verdict, read the prepared material simultaneous
+releases and revisions as well as the named release. An in-line inflation reading,
+for example, does not establish that a simultaneous trade/activity release was
+neutral. If a decisive companion is still missing, immediately report the verified
+named-release interpretation and the pending check; withhold a completed combined
+pair verdict until sufficient evidence arrives or the deadline is reached. Do not
+delay for nondecisive details or begin another broad calendar scan.
 For policy releases, apply Assess Trade Now's expectation-relative rate-path
 check: the headline hike/cut is insufficient when guidance, projections or a
 pending decisive stage could overturn it. Retrieve the prepared decisive path/
@@ -173,8 +184,11 @@ The final response must stand alone. Reuse prepared evidence and complete only
 material unresolved checks within the original deadline; do not start another
 full research pass or an unrequested later monitoring stage. If fresh evidence
 changes the first verdict, issue a clearly labelled correction promptly before
-the final card. Include available timing checkpoints/intervals compactly and
-label them as our observations, not proof of when data first became public.
+the final card. Identify the additional/corrected information, its source and
+whether it changes the direction or only confidence; distinguish a later release
+from an already-published simultaneous result discovered late. Include available
+timing checkpoints/intervals compactly and label them as our observations, not
+proof of when data first became public.
 The first-verdict latency is separate from completion of the full card. Neither
 is a promise of a response within a fixed number of seconds after publication.
 

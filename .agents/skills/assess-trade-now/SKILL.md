@@ -1,15 +1,16 @@
 ---
 name: assess-trade-now
-description: "Quickly assess a forex pair, currency news update or Highlight using calendar, saved fundamentals and current web evidence; cover all eight currencies only when requested. Return a fundamental assessment or prepare context for a release countdown. Excludes candle analysis and historical price investigations."
+description: "Refresh currency fundamentals for requests such as 'anything new for USD?', or assess a forex pair or Highlight using calendar, saved research and current web evidence. Cover all eight currencies only when requested. Also prepare release context; excludes candle analysis, historical price investigations and automatic monitoring."
 ---
 
 # Assess Trade Now
 
-Follow AGENTS.md and work in Fyodor Trading Terminal Lite. Assess the selected pair
-and requested horizon; use intraday only as a stated default if none is given.
+Follow AGENTS.md and work in Fyodor Trading Terminal Lite. Assess the requested
+currency, pair or Highlight and horizon; use intraday as a stated default if none
+is given.
 This is a current fundamental assessment, not an order or execution approval.
-Default to the requested pair/Highlight. Eight-currency coverage requires the
-user to request it; use the optional mode below. For an explicit request to wait
+Default to the requested currency/pair/Highlight. Eight-currency coverage requires
+the user to request it; use the optional mode below. For an explicit request to wait
 for imminent publication, hand off to
 [One Minute Before Release](../one-minute-before-release/SKILL.md).
 
@@ -37,9 +38,10 @@ for imminent publication, hand off to
 
 ## Manual news refresh and fresh sessions
 
-`$assess-trade-now any new news on USD?` is a complete request for a current USD
-fundamental update. The same applies to another named currency. No event, pair,
-long prompt, paid feed or automation setup is required. The user's preferred
+`Anything new for USD?` and `$assess-trade-now anything new for USD?` are complete
+requests for a current USD fundamental update, including in a fresh session
+where this skill is available. The same applies to another named currency. No
+event, pair, long prompt, paid feed or automation setup is required. The user's preferred
 workflow is to invoke this skill manually, for example every 30 minutes during
 an important session; each invocation performs a fresh check and then stops.
 Do not start a loop, countdown, reminder or monitoring implementation from this
@@ -52,19 +54,16 @@ request, or propose those as prerequisites unless the user asks.
   If no prior assessment time is available, state a default lookback of the past
   24 hours so overnight news is included, establish the current backdrop and
   disclose that comparison with the earlier unsaved verdict is unavailable.
+  Reuse the report format below, not an unsaved prior direction or confidence.
 - Browse current policy/data reporting and material off-calendar developments,
   including regional central-bank officials, interviews and Q&A, not just calendar
   icons or official prepared speeches. Apply the evidence and bounded-retry rules
   below. Check publication/update times and accessible content; newly indexed or
   updated articles do not establish when their information first became public.
-- Lead with the currency's supported near-term strengthening/weakening lean and
-  confidence, including slight, or explain why direction is unresolved. Briefly
-  give what changed, whether the prior thesis is intact/weaker/overturned, the
-  continuation/retracement interpretation, strongest counterevidence, an explicit
-  **Extreme-move risk** row and the nearest verified reassessment point. Include
-  sources, Jakarta AM/PM as-of time and material retrieval gaps. If no material
-  update is verified, say so within the checked window; do not invent news or
-  repeat stale facts as a fresh signal.
+  Distinguish a new development since the prior cutoff from newly located evidence
+  published earlier. State when a finding improves the explanation without adding
+  a new catalyst. If no material update is verified, say so within the checked
+  window; do not invent news or repeat stale facts as a fresh signal.
 - Currency-only updates stay currency-only unless a pair/comparison was requested
   or remains in scope. Do not infer measured strength against all counterparts.
   A pair verdict still needs both currencies and the full pair decision card/
@@ -74,11 +73,45 @@ request, or propose those as prerequisites unless the user asks.
   future verdict, immediate headline discovery or detection of every move.
   Saved workflow instructions persist; dated market conclusions must be refreshed.
 
+### Default currency-update report
+
+Use this evidence-first format for short currency requests without requiring
+extra prompt wording. Keep it concise and adapt the detail to the findings;
+do not force a full pair decision card or expand to other currencies.
+
+- Lead with the supported strengthening/weakening lean, horizon and confidence,
+  including slight, or explain the decisive gap/balanced evidence. Briefly say
+  whether an earlier thesis is intact, weaker or overturned when that comparison
+  exists.
+- Normally use one small **Evidence / Why it matters** table for the decisive
+  developments. Include sourced numbers when available: actuals/revisions,
+  policy guidance, changes in market-implied rates, or yield changes. Explain
+  the mechanism from new information to the expected policy path and/or growth,
+  risk appetite or currency demand; avoid merely listing hot/cold indicators.
+- Separate confirmed facts, reported market pricing and analyst scenarios.
+  Name the provider, observation/publication date and relevant contract/meeting,
+  yield tenor and comparison baseline when available. Identify missing instrument
+  or timestamp details; a dated report is not an independently verified live quote.
+  An analyst's view that future hikes are excessive is not an observed repricing
+  or a central-bank commitment. A large surprise alone need not overturn the bias.
+- Give the strongest counterargument and the evidence that would reverse the
+  lean. Explain whether this is continuation, a supported near-term retracement
+  or a changed thesis; do not predict a technical support/resistance break.
+- Name the nearest material checkpoint(s), with verified Jakarta AM/PM times,
+  outcomes that would strengthen/challenge the view, and a preparation time when
+  useful (normally ten minutes before). Check nearer policy remarks/Q&A before
+  deferring to major data. A checkpoint is an opportunity to reassess, not a
+  forecast of when the currency must turn or an automatic notification.
+- Finish with **Extreme-move risk**, research-as-of time and material coverage
+  gaps. Keep routine counterevidence distinct from exceptional shock exposure.
+  Do not manufacture figures, a catalyst or a directional change to fill the format.
+
 ## Fast evidence pass
 
-Aim to deliver the first complete decision card in about a minute when evidence
-is accessible. This is a workflow target, not a latency promise or permission to
-skip verification. Do not run a broad research project before answering.
+Aim to deliver the first complete currency report or pair decision card in about
+a minute when evidence is accessible. This is a workflow target, not a latency
+promise or permission to skip verification. Do not run a broad research project
+before answering.
 
 - Reuse instructions and relevant fundamental context already loaded in this
   session. Do not reread AGENTS.md, this skill, manuals or old reports on each
@@ -107,8 +140,9 @@ skip verification. Do not run a broad research project before answering.
   needs refresh, and its recorded/provider/publication clocks are distinct.
   Empty records or calendar icons do not establish an all-clear. Do not turn an
   unscheduled risk into a precisely timed next opportunity.
-  The first web pass should cover both currencies' latest policy/data and exceptional news in one
-  batch. Open the decisive official releases and dated reporting in parallel
+  The first web pass should cover the requested currency, or both currencies for
+  a pair, including latest policy/data and exceptional news, in one batch. Open
+  the decisive official releases and dated reporting in parallel
   where possible. Check the latest available reporting, not just an early market
   wrap; an older wrap cannot establish the current intraday backdrop.
 - If a page fails, try one suitable alternative source or retrieval route, then
@@ -121,8 +155,9 @@ skip verification. Do not run a broad research project before answering.
   the bank's concern or a changed policy path. Prepare this comparison ahead of
   publication; past price behaviour is neither evidence of today's actuals nor
   a fallback for inaccessible sources. Do not launch historical research here.
-- Stop when the card is supported: both currency stories, strongest
-  counterevidence, exceptional-catalyst check, entry conditions/invalidation and
+- For currency-only requests, stop when the currency-update report above is
+  supported. For pair requests, stop when the card is supported: both currency
+  stories, strongest counterevidence, exceptional-catalyst check, entry conditions/invalidation and
   the seven-day exit/reassessment watchlist with provenance. Extra searches are
   justified only by a material gap, contradiction or newer information. Keep the
   final answer to the card, short material watchlist and at most one clarification;
@@ -171,6 +206,11 @@ skip verification. Do not run a broad research project before answering.
   Identify release-day vintages and distinguish confirmed facts, reports and
   speculation. Use only evidence available by a requested as-of cutoff; later
   updates must not leak into historical simulations.
+- For a release assessment, check the prepared material simultaneous releases
+  for the selected currencies before issuing a combined pair verdict. An in-line
+  named release does not establish that the whole publication window was neutral.
+  If a decisive companion is missing, give the verified release-specific result
+  and pending gap without presenting it as a completed pair assessment.
 - Speed does not justify skipping verification. If a key fact is unavailable,
   respond with the limitation and wait/no clear edge rather than filling it in.
 
@@ -361,6 +401,9 @@ trigger for reassessment; unknown hours remain unknown. Suggesting a return time
 does not schedule a notification or extend the active countdown.
 
 ## Decision card
+
+Use this card for pair assessments; currency-only updates use the concise report
+format above. Eight-currency requests use their dedicated overview mode.
 
 Lead with one sentence stating pair direction, confidence and the dominant
 reversal risk. Say whether that risk qualifies the bias, reduces conviction to

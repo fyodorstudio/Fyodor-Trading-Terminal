@@ -1,4 +1,4 @@
 interface:
   display_name: "Assess Trade Now"
-  short_description: "Assess a pair, or eight currencies when requested"
-  default_prompt: "Use $assess-trade-now to assess my selected pair now and return the concise fundamental decision card using calendar, saved research and current web evidence, without candle analysis."
+  short_description: "Currency news and pair fundamentals with sourced evidence"
+  default_prompt: "Use $assess-trade-now to refresh fundamentals for my requested currency, pair or Highlight using calendar, saved research and current web evidence; give an evidence-first currency update or pair decision card, without candle analysis."
