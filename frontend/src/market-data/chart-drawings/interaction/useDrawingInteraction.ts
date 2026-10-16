@@ -12,6 +12,11 @@ import { useDrawingCrosshair } from '../useDrawingCrosshair'
 import type { ChartDrawingOverlayProps, EditingHandle } from './drawing-overlay-contract'
 import { shiftEditedDrawingPoints } from './drawing-edit-math'
 
+function constrainDrag(tool: DrawingToolId | null, points: ChartDrawingPoint[], shift: boolean) {
+  if (!shift || (tool !== 'trend-line' && tool !== 'price-note') || points.length !== 2) return points
+  return [points[0], { ...points[1], price: points[0].price }]
+}
+
 export function useDrawingInteraction({
   chartApi,
   seriesApi,
@@ -20,6 +25,7 @@ export function useDrawingInteraction({
   selectedDrawingId,
   bars = emptyDrawingTimeline,
   timeframe,
+  symbol = '',
   precision = 5,
   onSelectDrawing,
   onCreateDrawing,
@@ -155,7 +161,7 @@ export function useDrawingInteraction({
     onSelectDrawing(null)
     event.currentTarget.setPointerCapture(event.pointerId)
     dragDraftRef.current = [point, point]
-    setDraft(dragDraftRef.current)
+    setDraft(constrainDrag(activeTool, dragDraftRef.current, event.shiftKey))
   }
 
   const updateEdit = (editing: EditingHandle, point: ChartDrawingPoint, event: ReactPointerEvent<SVGSVGElement>, persist: boolean) => {
@@ -208,7 +214,7 @@ export function useDrawingInteraction({
 
     if (!activeTool || dragDraftRef.current.length === 0) return
     dragDraftRef.current = [dragDraftRef.current[0], point]
-    setDraft(dragDraftRef.current)
+    setDraft(constrainDrag(activeTool, dragDraftRef.current, event.shiftKey))
   }
 
   const finishInteraction = (event: ReactPointerEvent<SVGSVGElement>) => {
@@ -224,7 +230,7 @@ export function useDrawingInteraction({
 
     if (!activeTool || activeTool === 'path' || dragDraftRef.current.length === 0) return
     const completed = point ? [dragDraftRef.current[0], point] : dragDraftRef.current
-    createAndSelectDrawing(activeTool, completed)
+    createAndSelectDrawing(activeTool, constrainDrag(activeTool, completed, event.shiftKey))
   }
 
   const cancelInteraction = () => {
@@ -316,6 +322,21 @@ export function useDrawingInteraction({
   }, [activeTool])
 
   useEffect(() => {
+    if (activeTool !== 'trend-line' && activeTool !== 'price-note') return
+    const updateShift = (event: KeyboardEvent) => {
+      if (event.key === 'Shift' && dragDraftRef.current.length) {
+        setDraft(constrainDrag(activeTool, dragDraftRef.current, event.type === 'keydown'))
+      }
+    }
+    window.addEventListener('keydown', updateShift)
+    window.addEventListener('keyup', updateShift)
+    return () => {
+      window.removeEventListener('keydown', updateShift)
+      window.removeEventListener('keyup', updateShift)
+    }
+  }, [activeTool])
+
+  useEffect(() => {
     const cancel = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && editingHandleRef.current) cancelRef.current()
     }
@@ -325,7 +346,7 @@ export function useDrawingInteraction({
 
   const normalizedDraft = activeTool ? normalizeDrawingPoints(activeTool, draft, timeframe) : draft
   const draftDrawing: ChartDrawingRecord | null = activeTool && normalizedDraft.length > 0
-    ? { id: 'draft', symbol: '', timeframe: 'H4', tool: activeTool, points: normalizedDraft, createdAt: 0 }
+    ? { id: 'draft', symbol, timeframe: timeframe ?? 'H4', tool: activeTool, points: normalizedDraft, createdAt: 0 }
     : null
 
   return { activeTool, cancelInteraction, clipId, continueInteraction, crosshair, draft, draftDrawing, drawings, editingTextId, finishInteraction, handleContextMenu, onDeleteDrawing, onDeleteSelectedDrawing, onSelectDrawing, onUpdateDrawingText, overlayRef, precision, selectedDrawingId, setEditingTextId, startHandleEdit, startInteraction, toScreenPoints, viewport }

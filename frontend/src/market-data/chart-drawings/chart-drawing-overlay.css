@@ -36,7 +36,8 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
 }
 .drawing-note-dot { fill: var(--accent); }
-.drawing-note { fill: var(--text-strong); font-size: 10px; paint-order: stroke; stroke: var(--chart-background); stroke-width: 3px; }
+.drawing-note-background { fill: #079b7f; stroke: #163e36; stroke-width: 1; }
+.drawing-note { fill: #ffffff; font-size: 12px; font-weight: 650; user-select: none; }
 .position-target-area { fill: color-mix(in srgb, var(--positive) 21%, transparent); }
 .position-stop-area { fill: color-mix(in srgb, var(--negative) 20%, transparent); }
 .position-outline { fill: none; stroke: color-mix(in srgb, var(--text-muted) 62%, transparent); stroke-width: 1; }
@@ -52,7 +53,8 @@
 .drawing-fib-line { stroke: var(--accent); stroke-width: 1; opacity: 0.8; }
 .drawing-fib-label { fill: var(--text-muted); font-size: 8px; }
 .drawing-range { fill: color-mix(in srgb, var(--accent) 7%, transparent); stroke: var(--accent); stroke-dasharray: 5 3; stroke-width: 1; }
-.drawing-range-label { fill: var(--text-strong); font-size: 9px; font-weight: 700; }
+.drawing-range-background { fill: var(--surface-panel); stroke: var(--accent); stroke-width: 1; }
+.drawing-range-label { fill: var(--text-strong); font-size: 11px; font-weight: 650; user-select: none; }
 .drawing-draft { opacity: 0.58; }
 
 .drawing-resize-handle {

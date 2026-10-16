@@ -12,6 +12,7 @@ export type ChartDrawingOverlayProps = {
   selectedDrawingId: string | null
   bars?: DrawingTimeline
   timeframe?: ChartTimeframe
+  symbol?: string
   precision?: number
   onSelectDrawing: (drawingId: string | null) => void
   onCreateDrawing: (tool: DrawingToolId, points: ChartDrawingPoint[]) => string

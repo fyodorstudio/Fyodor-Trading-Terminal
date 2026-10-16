@@ -412,8 +412,8 @@ try {
   const canvasForDrawing = container.querySelector('.market-chart-canvas')
   canvasForDrawing.getBoundingClientRect = () => ({ top: 200, left: 0, right: 900 })
   drawingSvg().getBoundingClientRect = () => ({ top: 200, left: 0 })
-  async function pointer(element, type, x, y) {
-    await React.act(async () => element.dispatchEvent(new dom.PointerEvent(type, { bubbles: true, button: 0, pointerId: 1, clientX: x, clientY: y })))
+  async function pointer(element, type, x, y, shiftKey = false) {
+    await React.act(async () => element.dispatchEvent(new dom.PointerEvent(type, { bubbles: true, button: 0, pointerId: 1, clientX: x, clientY: y, shiftKey })))
   }
   await pointer(drawing(), 'pointerdown', 400, 310)
   assert.ok(drawing().classList.contains('selected'), 'The terminal selects a saved channel')
@@ -460,6 +460,21 @@ try {
   savedText = JSON.parse(localStorage.getItem('fyodor.chart-drawings.v1')).find(item => item.tool === 'text')
   assert.equal(savedText.text, 'Edited annotation')
   assert.equal(workerInputs.length, postsBeforeText, 'Text creation and editing never launch calculation jobs')
+  for (const [label, tool] of [['Trend line', 'trend-line'], ['Price note', 'price-note']]) {
+    await click(container.querySelector(`[aria-label="${label}"]`))
+    await pointer(drawingSvg(), 'pointerdown', 320, 310, true)
+    await pointer(drawingSvg(), 'pointermove', 480, 350, true)
+    await pointer(drawingSvg(), 'pointerup', 480, 350, true)
+    const saved = JSON.parse(localStorage.getItem('fyodor.chart-drawings.v1')).find(item => item.tool === tool)
+    assert.equal(saved.points[0].price, saved.points[1].price, `${label}: the assembled terminal saves Shift-constrained prices`)
+  }
+  assert.ok(container.querySelector('.drawing-note-background'), 'Price notes display a filled price tag in the assembled chart')
+  await click(container.querySelector('[aria-label="Date and price range"]'))
+  await pointer(drawingSvg(), 'pointerdown', 320, 310)
+  await pointer(drawingSvg(), 'pointermove', 480, 320)
+  assert.equal(container.querySelector('.drawing-draft .drawing-range-duration .drawing-range-label').textContent, '0d 2h 0m')
+  await pointer(drawingSvg(), 'pointerup', 480, 320)
+  assert.equal(container.querySelector('.drawing-range-pips .drawing-range-label').textContent, '1000.0 pips', 'The assembled range displays pips, not the raw decimal change')
   // Research is a time selection, independent of prices and calendar filters.
   const { researchRangeDates } = await server.ssrLoadModule('./src/research/research-request.ts')
   assert.equal(researchRangeDates(Date.UTC(2026, 9, 25, 3, 30) / 1000, Date.UTC(2026, 9, 25, 4) / 1000,

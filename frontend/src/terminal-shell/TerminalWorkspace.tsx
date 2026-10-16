@@ -58,6 +58,7 @@ export function TerminalWorkspace() {
                 onError={(error) => appendActivity('Chart', 'Chart error caught', error.message, { severity: 'error' })}
               >
                 <MarketCandlestickChart
+                  symbol={activeSymbol}
                   bars={bars}
                   fitContentKey={`${activeSymbol}:${timeframe}`}
                   precision={quote?.precision ?? 5}

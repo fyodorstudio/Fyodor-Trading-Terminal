@@ -24,6 +24,7 @@ import { timeframeToSeconds } from '../chart-drawings/position-drawing-geometry'
 import './market-candlestick-chart.css'
 
 type MarketCandlestickChartProps = {
+  symbol?: string
   bars: OhlcBar[]
   fitContentKey: string
   precision: number
@@ -54,6 +55,7 @@ type MarketCandlestickChartProps = {
 }
 
 function MarketCandlestickChartComponent({
+  symbol,
   bars,
   fitContentKey,
   precision,
@@ -384,6 +386,7 @@ function MarketCandlestickChartComponent({
           bars={bars}
           selectedDrawingId={selectedDrawingId}
           timeframe={timeframe}
+          symbol={symbol}
           precision={precision}
           onSelectDrawing={onSelectDrawing}
           onCreateDrawing={onCreateDrawing}

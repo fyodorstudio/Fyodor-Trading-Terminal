@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef, useState } from 'react'
 import type { ChartDrawingRecord } from './chart-drawing-record'
 import type { ChartDrawingScreenPoint } from './chart-drawing-screen-point'
 import { parallelChannelCorners } from './parallel-channel-geometry'
+import { DatePriceRangeDrawing, PriceNoteDrawing } from './DrawingMeasurementLabels'
 
 type ChartDrawingShapeProps = {
   drawing: ChartDrawingRecord
@@ -186,15 +187,7 @@ export function ChartDrawingShape({ drawing, points, width, height, precision = 
         </g>
       )
     case 'price-note':
-      return (
-        <g>
-          <line className="drawing-hit-area" x1={first.x} y1={first.y} x2={last.x} y2={last.y} />
-          <line className="drawing-stroke" x1={first.x} y1={first.y} x2={last.x} y2={last.y} />
-          <rect className="drawing-body-hit-area" x={last.x - 12} y={last.y - 12} width={Math.max(60, last.price.toFixed(precision).length * 7 + 20)} height={24} />
-          <circle className="drawing-note-dot" cx={last.x} cy={last.y} r={3} />
-          <text className="drawing-note" x={last.x + 7} y={last.y + 4}>{last.price.toFixed(precision)}</text>
-        </g>
-      )
+      return <PriceNoteDrawing points={points} precision={precision} />
     case 'long-position':
     case 'short-position':
       return <PositionDrawing points={points} width={width} height={height} precision={precision} />
@@ -216,11 +209,6 @@ export function ChartDrawingShape({ drawing, points, width, height, precision = 
       )
     }
     case 'date-price-range':
-      return (
-        <g>
-          <rect className="drawing-range" x={left} y={top} width={shapeWidth} height={shapeHeight} />
-          <text className="drawing-range-label" x={left + 5} y={top + 14}>Δ {Math.abs(last.price - first.price).toFixed(5)}</text>
-        </g>
-      )
+      return <DatePriceRangeDrawing drawing={drawing} points={points} precision={precision} width={width} height={height} />
   }
 }

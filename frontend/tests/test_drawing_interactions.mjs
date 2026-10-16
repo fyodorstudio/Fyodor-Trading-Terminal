@@ -62,11 +62,11 @@ try {
   close(drawingTimeToLogical(50000.5 * 60, large, 60), 50000.5, 'Fractional historical placement')
   assert.ok(timelineReads < 45, 'Point conversion searches history logarithmically instead of scanning all candles')
 
-  function Harness({ tool = null, initiallySelected = null, symbol = 'TEST', timeframe = 'M1' }) {
+  function Harness({ tool = null, initiallySelected = null, symbol = 'TEST', timeframe = 'M1', precision = 5 }) {
     const drawings = useChartDrawings(symbol, timeframe)
     const [selection, setSelection] = React.useState(initiallySelected)
     React.useEffect(() => { api = drawings; selected = selection }, [drawings, selection])
-    return React.createElement(ChartDrawingOverlay, { chartApi, seriesApi, bars: timeline, timeframe,
+    return React.createElement(ChartDrawingOverlay, { chartApi, seriesApi, bars: timeline, timeframe, symbol, precision,
       activeTool: tool, drawings: drawings.drawings, selectedDrawingId: selection, onSelectDrawing: setSelection,
       onCreateDrawing: drawings.addDrawing, onUpdateDrawingPoint: drawings.updateDrawingPoint,
       onUpdatePositionWidth: drawings.updatePositionWidth, onUpdateDrawingText: drawings.updateDrawingText,
@@ -78,9 +78,9 @@ try {
   const body = () => host.querySelector('.drawing-object')
   const handles = () => [...host.querySelectorAll('.drawing-resize-handle')]
   const seed = record => dom.localStorage.setItem('fyodor.chart-drawings.v1', JSON.stringify(record ? [record] : []))
-  async function pointer(node, type, x, y) {
+  async function pointer(node, type, x, y, shiftKey = false) {
     assert.ok(node, type)
-    await React.act(async () => node.dispatchEvent(new dom.PointerEvent(type, { bubbles: true, button: 0, pointerId: 1, clientX: x, clientY: y })))
+    await React.act(async () => node.dispatchEvent(new dom.PointerEvent(type, { bubbles: true, button: 0, pointerId: 1, clientX: x, clientY: y, shiftKey })))
   }
   async function drag(node, fromX, fromY, toX, toY, end = 'pointerup') {
     await pointer(node, 'pointerdown', fromX, fromY)
@@ -253,6 +253,36 @@ try {
   assert.deepEqual(arrowTip()[0], [60, 130], 'Reversing an arrow keeps its tip attached to the end anchor')
   assert.ok(arrowTip()[1][0] > 60 && arrowTip()[2][0] > 60, 'The arrowhead turns with the reversed line')
 
+  // Shift temporarily locks only the two requested tools, including preview
+  // changes while the pointer is stationary and final pointer-up coordinates.
+  for (const tool of ['trend-line', 'price-note']) {
+    seed(null); await render({ tool }, `shift-${tool}`)
+    await pointer(svg(), 'pointerdown', 140, 100, true)
+    await pointer(svg(), 'pointermove', 420, 60, true)
+    const line = () => host.querySelector('.drawing-draft .drawing-stroke')
+    assert.equal(line().getAttribute('y1'), line().getAttribute('y2'), `${tool}: Shift locks the preview horizontally in future space`)
+    await React.act(async () => window.dispatchEvent(new dom.KeyboardEvent('keyup', { key: 'Shift' })))
+    assert.equal(line().getAttribute('y2'), '60', 'Releasing Shift restores the unconstrained cursor price without moving the pointer')
+    await React.act(async () => window.dispatchEvent(new dom.KeyboardEvent('keydown', { key: 'Shift', shiftKey: true })))
+    assert.equal(line().getAttribute('y2'), '100', 'Pressing Shift snaps an in-progress draft without moving the pointer')
+    await pointer(svg(), 'pointerup', 440, 50, true)
+    const locked = readChartDrawings()[0]
+    assert.deepEqual(locked.points.map(point => point.price), [10, 10], `${tool}: the horizontal price anchors persist`)
+    close(locked.points[1].time, 1510, 'Shift preserves the final future-space time coordinate')
+    await render({ initiallySelected: locked.id }, `shift-reload-${tool}`)
+    assert.deepEqual(api.drawings[0], locked, 'The locked result survives reload without a permanent lock flag')
+    seed(null); await render({ tool }, `unlocked-${tool}`)
+    await pointer(svg(), 'pointerdown', 140, 100)
+    await pointer(svg(), 'pointermove', 420, 60, true)
+    await pointer(svg(), 'pointerup', 440, 50)
+    assert.deepEqual(readChartDrawings()[0].points.map(point => point.price), [10, 15], 'Unshifted pointer-up saves the freely drawn line')
+  }
+  seed(null); await render({ tool: 'arrow' }, 'shift-other-tool')
+  await pointer(svg(), 'pointerdown', 140, 100, true)
+  await pointer(svg(), 'pointerup', 180, 60, true)
+  assert.deepEqual(readChartDrawings()[0].points.map(point => point.price), [10, 14], 'Shift does not constrain other drawing tools')
+  captures.clear() // The DOM fixture does not implement implicit pointer-up release.
+
   // Price notes are trend-line gestures with two anchors and a live end price.
   seed(recordFor('price-note')); await render({ initiallySelected: 'drawing' }, 'price-note-line')
   assert.equal(handles().length, 2)
@@ -269,6 +299,58 @@ try {
   await drag(handles()[1], 140, 100, 160, 90)
   assert.equal(readChartDrawings()[0].points.length, 2, 'The first legacy note edit stores both actual line anchors')
   assert.equal(body().querySelector('.drawing-note').textContent, '11.00000')
+
+  const referenceNote = { ...recordFor('price-note'), points: [{ time: 1000, price: 1063.7 }, { time: 1120, price: 1063.7 }] }
+  seed(referenceNote); await render({ precision: 1 }, 'price-note-tag')
+  assert.equal(body().querySelector('.drawing-note').textContent, '1,063.7', 'Price labels group thousands and retain broker precision')
+  const noteTag = () => body().querySelector('.drawing-note-label')
+  assert.equal(noteTag().getAttribute('transform'), `translate(180 ${200 - 1063.7 * priceSpacing - 12})`, 'The label box attaches to the line endpoint')
+  assert.equal(Number(noteTag().querySelector('rect').getAttribute('width')), textLength('1,063.7') + 16, 'The filled label fits its measured text plus padding')
+  const noteMeasurements = textMeasurements
+  shiftX = 20
+  await React.act(async () => chartFrame())
+  assert.equal(textMeasurements, noteMeasurements, 'Panning price labels does not remeasure unchanged text')
+  assert.deepEqual(readChartDrawings(), [referenceNote], 'Rendering the new label preserves legacy saved geometry')
+  shiftX = 0
+
+  // Range labels use elapsed timestamps (including session gaps), never a
+  // candle count, and currency pip units rather than raw price differences.
+  const originalTimeline = timeline
+  priceSpacing = 1
+  const span = (2 * 1440 + 3 * 60 + 4) * 60
+  for (const [symbol, precision, startPrice, endPrice, expected] of [
+    ['EURUSD', 5, 1.1, 1.11234, '123.4 pips'],
+    ['GBPUSD', 4, 1.3, 1.3012, '12.0 pips'],
+    ['USDJPY', 3, 150, 150.123, '12.3 pips'],
+    ['EURJPY.a', 5, 150, 150.01, '1.0 pips'],
+  ]) {
+    timeline = [{ time: 1000 }, { time: 1000 + span }]
+    const range = { ...recordFor('date-price-range'), symbol, points: [{ time: 1000, price: startPrice }, { time: 1000 + span, price: endPrice }] }
+    seed(range); await render({ symbol, precision, initiallySelected: range.id }, `range-${symbol}`)
+    const duration = () => host.querySelector('.drawing-range-duration .drawing-range-label').textContent
+    const pips = () => host.querySelector('.drawing-range-pips .drawing-range-label').textContent
+    assert.equal(duration(), '2d 3h 4m', 'Elapsed time includes days, hours and minutes across a two-bar session gap')
+    assert.equal(pips(), expected, `${symbol}: the vertical distance uses correct pips`)
+    assert.deepEqual(readChartDrawings(), [range], 'Displaying range measurements does not rewrite saved drawings')
+    for (const timeframe of ['H1', 'H4', 'D1']) {
+      await render({ symbol, precision, timeframe }, `range-${symbol}`)
+      assert.equal(duration(), '2d 3h 4m', 'A timeframe change keeps the timestamp duration')
+      assert.equal(pips(), expected, 'A timeframe change keeps the pip distance')
+    }
+    await React.act(async () => api.updateDrawingPoints(range.id, [...range.points].reverse(), true))
+    assert.equal(duration(), '2d 3h 4m', 'Reversed ranges measure the same elapsed time')
+    assert.equal(pips(), expected, 'Reversed ranges measure the same pip magnitude')
+    await React.act(async () => api.updateDrawingPoint(range.id, 0, { ...range.points[1], time: 1000 + span + 60 }, true))
+    assert.equal(duration(), '2d 3h 5m', 'Editing an endpoint updates the duration label live')
+  }
+  for (const [seconds, expected] of [[0, '0d 0h 0m'], [29, '<1m'], [3600 + 7 * 60, '0d 1h 7m']]) {
+    timeline = [{ time: 1000 }, { time: 1000 + Math.max(60, seconds) }]
+    seed({ ...recordFor('date-price-range'), points: [{ time: 1000, price: 10 }, { time: 1000 + seconds, price: 10 }] })
+    await render({}, `duration-${seconds}`)
+    assert.equal(host.querySelector('.drawing-range-duration .drawing-range-label').textContent, expected)
+    assert.equal(host.querySelector('.drawing-range-pips .drawing-range-label').textContent, '0.0 pips')
+  }
+  timeline = originalTimeline; priceSpacing = 10
 
   // Text can be reopened by double-click (including captured SVG events) or
   // keyboard; commit and cancellation are safe even if blur follows them.
