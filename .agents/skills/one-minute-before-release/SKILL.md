@@ -192,6 +192,21 @@ reassessment. Finish the active wait; do not silently continue monitoring. Do no
 wait for a later policy stage unless it is the requested target or necessary for
 the verdict within the agreed bound; name pending stages in the separate Upcoming section.
 
+The approved Thesis workflow authorizes saving a supported release verdict for a
+resolved pair and matching pinned stage, including invocations from Alert
+notifications. After the first verdict, read `pnpm analyst thesis read` for the
+pair and event's Jakarta month; match the exact target. If a matching pending
+stage or existing assessed row exists, follow the
+[Thesis workflow](../../../docs/THESIS.md) to append. A copied Thesis prompt also
+explicitly requests this save. No matching row means no automatic standalone write.
+Preserve its exact occurrence, broker, pair and publication stage; append the
+compact sourced assessment with its real as-of time and latest predecessor.
+Keep different policy stages separate. Missing decisive actuals leave the row's
+verdict/thesis empty. Confirm the save or disclose failure; no silent overwrite,
+backdating, raw-data edit or automatic pin/archive. This authorized write does
+not extend the wait deadline or start monitoring.
+
 No entry price, stop, sizing, profit forecast, candle confirmation, order, service
-restart, pin/archive or journal write is implied. Save only when requested.
+restart, pin/archive or full research journal write is implied. Other saves need
+a user request; the matching Thesis save above is part of the approved workflow.
 Creating this skill does not start a timer or create an automation.

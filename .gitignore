@@ -29,5 +29,7 @@ bridge/mql5/compile-*.log
 /report/
 
 # Entry Trade plans and journal are intentionally Git tracked.
+# Thesis assessments are tracked; the writer's temporary lock is local.
+/Market Analyst Workflow/thesis/.fyodor-storage.lock
 
 /frontend/tests/.runtime/

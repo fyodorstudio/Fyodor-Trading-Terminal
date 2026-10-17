@@ -6,6 +6,11 @@ calculates currency scores or modifies source observations.
 
 ## Local inventory
 
+The separate [Thesis dock](THESIS.md) reads compact, agent-authored pair assessments
+from Git-tracked `Market Analyst Workflow/thesis/journal.json`, retaining prior
+versions and distinct research/release/saved clocks. Its pending rows project
+active pins without changing their lifecycle, raw values or full research journals.
+
 Outside-feed events are stored separately as immutable versions under
 `Market Analyst Workflow/external-sources/`; they never enter calendar observations,
 MT5 Highlight IDs or Inspector filters. Highlight displays both pinned sources,

@@ -234,6 +234,16 @@ and a brief alternative only if useful. Before actuals, candidates stay conditio
 choose the release-supported pair after verifying the decisive package. Macro
 alignment alone does not rank pip distance, profitability or implied volatility.
 
+When a Thesis dock prompt explicitly requests saving, follow the
+[Thesis workflow](../../../docs/THESIS.md). Read the pair/month first, then append
+the compact sourced verdict/thesis using the exact target or standalone row and
+latest predecessor. Preserve real research/saved clocks; the JUL-only display
+never authorizes backdating. A historical reconstruction is labelled as such.
+Link full Highlight research when available rather than duplicating its body.
+No supported release assessment means its pending row remains blank. Answer in
+chat as usual and confirm the save or disclose a write failure without claiming
+the dock updated. Do not pin/archive or alter raw data to make a row appear.
+
 Answer in chat. Save research only when requested, preserving Before/After phases,
 append-only versions, user notes and raw observations; leave price_reaction empty.
 No trades, account changes, service restarts, messages or recurring monitoring

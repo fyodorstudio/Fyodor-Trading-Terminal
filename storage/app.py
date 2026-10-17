@@ -16,6 +16,7 @@ from .research_reports import ResearchRequest, save_report
 from .highlights import HIGHLIGHTS_PATH, HighlightRequest, pin_release, delete_pin, archive_pin, highlight_snapshot
 from .highlight_metadata import limitations_snapshot
 from .external_sources import DIRECTORY, ExternalRequest, LifecycleRequest, external_snapshot, external_history, append_external, archive_external
+from .thesis import PATH as THESIS_PATH, thesis_snapshot
 
 # The eight-currency Alert catalog exceeds the original pair-only 64-series cap.
 # Keep a bound below SQLite's conservative 999-parameter limit, including dates.
@@ -26,7 +27,7 @@ def data_directory():
     return Path(os.environ.get("FYODOR_STORAGE_DATA_DIR", Path(__file__).resolve().parent / "data")).resolve()
 
 
-def create_app(directory=None, run_collector=True, highlights_path=HIGHLIGHTS_PATH, external_directory=DIRECTORY):
+def create_app(directory=None, run_collector=True, highlights_path=HIGHLIGHTS_PATH, external_directory=DIRECTORY, thesis_path=THESIS_PATH):
     @asynccontextmanager
     async def lifespan(app):
         with data_lock(directory or data_directory()):
@@ -129,6 +130,15 @@ def create_app(directory=None, run_collector=True, highlights_path=HIGHLIGHTS_PA
             return archive_pin(identity, source_id, highlights_path, app.state.store, restore=True)
         except OSError as error:
             raise HTTPException(503, 'Could not restore Highlight') from error
+
+    @app.get('/api/v1/theses')
+    def theses(scope: str = Query(pattern=r'^[A-Z]{6}$'), month: str = Query(pattern=r'^\d{4}-\d{2}$'),
+               source_id: str | None = Query(default=None, min_length=1, max_length=160),
+               after_revision: str | None = Query(default=None, max_length=100)):
+        try:
+            return thesis_snapshot(app.state.store, scope, month, source_id, thesis_path, highlights_path, external_directory, after_revision)
+        except OSError as error:
+            raise HTTPException(503, 'Thesis storage unavailable') from error
 
     @app.get('/api/v1/highlight-limitations')
     def highlight_limitations(source_id: str = Query(min_length=1, max_length=160),

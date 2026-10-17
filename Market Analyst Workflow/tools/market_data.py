@@ -20,6 +20,7 @@ from storage.research_reports import REPORT_DIRECTORY, ResearchRequest, collect_
 from ohlc import fetch_window, read_saved, summarize, write_evidence, capture_lock, cached_window
 from storage.highlights import HIGHLIGHTS_PATH, HighlightRequest, highlight_snapshot, archive_pin, pin_release
 from storage.highlight_journal import JournalRequest, append_journal, read_journal
+from storage.thesis import ThesisRequest, append_thesis, thesis_snapshot
 from storage.highlight_metadata import PromptRequest, append_prompt, read_prompts, LimitationRequest, append_limitation, limitations_snapshot
 from upcoming import upcoming_snapshot
 from storage.external_sources import DIRECTORY as EXTERNAL_DIRECTORY, ExternalRequest, append_external, external_history, external_snapshot, archive_external
@@ -208,6 +209,13 @@ def parser():
     highlights.add_argument('--database', default='storage/data/calendar.sqlite3')
     highlights.add_argument('--visibility', choices=['active','archived','all'], default='active')
     query_options(highlights)
+    thesis = commands.add_parser('thesis', help='Read the monthly Thesis dock or append a sourced assessment; never changes calendar or pins')
+    thesis.add_argument('action', choices=['read', 'append'])
+    thesis.add_argument('--scope', required=True, help='Pair, e.g. NZDCHF')
+    thesis.add_argument('--month', default='2026-07', help='Jakarta calendar month YYYY-MM')
+    thesis.add_argument('--broker', help='Broker for MT5 pending rows; external pins and saved theses also work offline')
+    thesis.add_argument('--database', default='storage/data/calendar.sqlite3')
+    thesis.add_argument('--input', help='ThesisRequest JSON file inside Lite for append; see docs/THESIS.md')
     journal = commands.add_parser('journal', help='Read research versions or append an agent-authored JSON entry (calendar stays read-only)')
     journal.add_argument('action', choices=['read','append'])
     journal.add_argument('highlight_id')
@@ -282,6 +290,16 @@ def parser():
 def run(args):
     if getattr(args, 'offset', 0) < 0:
         raise ValueError('Offset must be non-negative')
+    if args.command == 'thesis':
+        with closing(CalendarStore(local_path(args.database), readonly=True)) as store:
+            if args.action == 'append':
+                if not args.input:
+                    raise ValueError('Append needs --input with a ThesisRequest JSON file')
+                request = ThesisRequest.model_validate_json(local_path(args.input).read_text(encoding='utf-8-sig'))
+                if request.scope != args.scope or request.target and request.target.kind == 'highlight' and request.target.source_id != args.broker:
+                    raise ValueError('Thesis request pair/broker differs from the command')
+                return append_thesis(store, request)
+            return thesis_snapshot(store, args.scope, args.month, args.broker)
     if args.command == 'external':
         if args.action == 'append':
             if not args.input:

@@ -169,6 +169,11 @@ globalThis.fetch = (url, options = {}) => {
     events: [{ key: 'external:treasury-fixture', reference: 'treasury-fixture', source: 'external', broker: null, title: 'Treasury fixture', currencies: ['USD'],
       at: now + 3600000, date: null, eligible: true, armed: true, note: 'Exact fixture schedule', prompt: '$one-minute-before-release Treasury fixture' }] }) })
   if (u.startsWith('/storage-api/highlights')) return Promise.resolve({ ok: true, json: async () => ({ source_id: broker, revision: 'fixture-pins', items: [] }) })
+  if (u.startsWith('/storage-api/theses')) {
+    const params = new URL(u, 'http://localhost').searchParams
+    return Promise.resolve({ ok: true, json: async () => ({ schema: 1, scope: params.get('scope'), month: params.get('month'),
+      source_id: params.get('source_id'), revision: 'thesis-fixture', past: [], pending: [] }) })
+  }
   if (u.startsWith('/storage-api/external-sources')) {
     const params = new URL(u, 'http://localhost').searchParams
     const external = { id: 'a'.repeat(32), key: 'treasury-fixture', title: 'Treasury fixture', currencies: ['USD'], kind: 'scheduled', status: 'confirmed',
@@ -262,7 +267,22 @@ try {
   assert.equal(plotted.length, 800)
   assert.equal(Math.floor(futureTimes.at(-1).time / 86400), Math.floor(plotted.at(-1).time / 86400) + 90)
   assert.deepEqual([...container.querySelectorAll('[aria-label="App features"] button')].map(node => node.textContent.trim().replace(/\s+\d+$/, '')),
-    ['Alert', 'Inspector', 'Entry Trade', 'Activity', '⚙ Settings'])
+    ['Alert', 'Thesis', 'Inspector', 'Entry Trade', 'Activity', '⚙ Settings'])
+  reset()
+  await click(button('Thesis'))
+  assert.ok(container.querySelector('[aria-label="Thesis"]'))
+  assert.equal(container.querySelector('[aria-label="Thesis pair"]').value, 'NZDCHF')
+  assert.equal(container.querySelector('[aria-label="Thesis month"] option').textContent, 'JUL 2026')
+  assert.ok(container.querySelector('[aria-label="Resize Thesis dock"]'))
+  assert.ok(container.querySelector('.status-selection').textContent.startsWith('EURUSD'), 'Independent NZDCHF Thesis choice preserves the EURUSD chart')
+  assertQuiet('Opening Thesis')
+  const thesisRequestCount = requests.filter(url => url.startsWith('/storage-api/theses')).length
+  reset()
+  await tick('pollTheses', 5000)
+  assertQuiet('Unchanged Thesis poll', true)
+  assert.equal(requests.filter(url => url.startsWith('/storage-api/theses')).length, thesisRequestCount + 1)
+  await click(button('Thesis'))
+  assert.equal(container.querySelector('[aria-label="Thesis"]'), null)
   assert.ok(container.querySelector('.external-chart-star'), 'Upcoming external record appears on the assembled chart')
   assert.equal(container.querySelector('.external-chart-markers').style.bottom, '68px')
   await click(button('Alert'))

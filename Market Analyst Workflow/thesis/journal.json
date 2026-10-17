@@ -1,0 +1,485 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "scope": "NZDCHF",
+      "as_of_utc": "2026-07-01T06:00:00Z",
+      "title": "Daily assessment",
+      "verdict": "BUY",
+      "thesis": "Expected RBNZ tightening and easing Gulf tensions favour NZD over CHF. The July hike remains contested, so this is a policy-divergence thesis rather than a confirmed tightening surprise.",
+      "horizon": "Intraday",
+      "sources": [
+        {
+          "kind": "web",
+          "label": "Rate expectations",
+          "locator": "https://www.brecorder.com/news/40428022",
+          "note": ""
+        },
+        {
+          "kind": "web",
+          "label": "Swiss policy background",
+          "locator": "https://www.snb.ch/en/publications/communication/press-releases-restricted/pre_20260618",
+          "note": "Background; not a fresh signal on each daily cutoff."
+        }
+      ],
+      "note": "Imported from the previously researched July 1-15 chat table. Retrospective daily reconstruction using a 1:00 PM Jakarta cutoff; these were not calls saved live in July. Sources were retained from that research, not freshly re-verified during UI implementation. Weekend rows describe the backdrop for reopening. CHF haven advantage in sell rows is a macro inference; CHF-specific flows were not independently established. No subsequent price performance was used to validate these calls. Swiss policy background: SNB June 18 hold at 0%, low conditional inflation forecasts and willingness to counter rapid excessive CHF appreciation.",
+      "provenance": "reconstruction",
+      "target": null,
+      "journal_id": null,
+      "row_id": "51c2849483534da7b1ce464a5ceb66d3",
+      "expected_version": null,
+      "id": "47a43635aeaf4b0d910dbf806666a64b",
+      "saved_utc": "2026-10-17T09:53:08.722284Z"
+    },
+    {
+      "scope": "NZDCHF",
+      "as_of_utc": "2026-07-02T06:00:00Z",
+      "title": "Daily assessment",
+      "verdict": "BUY",
+      "thesis": "The expected NZ tightening cycle still favours NZD. Yesterday's softer Swiss manufacturing reading adds support, although Swiss activity remains expansionary. Today's Swiss CPI is still upcoming at this cutoff.",
+      "horizon": "Intraday",
+      "sources": [
+        {
+          "kind": "web",
+          "label": "Swiss manufacturing",
+          "locator": "https://www.cmegroup.com/education/events/econoday/675166",
+          "note": ""
+        },
+        {
+          "kind": "web",
+          "label": "Swiss policy background",
+          "locator": "https://www.snb.ch/en/publications/communication/press-releases-restricted/pre_20260618",
+          "note": "Background; not a fresh signal on each daily cutoff."
+        }
+      ],
+      "note": "Imported from the previously researched July 1-15 chat table. Retrospective daily reconstruction using a 1:00 PM Jakarta cutoff; these were not calls saved live in July. Sources were retained from that research, not freshly re-verified during UI implementation. Weekend rows describe the backdrop for reopening. CHF haven advantage in sell rows is a macro inference; CHF-specific flows were not independently established. No subsequent price performance was used to validate these calls. Swiss policy background: SNB June 18 hold at 0%, low conditional inflation forecasts and willingness to counter rapid excessive CHF appreciation.",
+      "provenance": "reconstruction",
+      "target": null,
+      "journal_id": null,
+      "row_id": "63b1510a7d46444fb55cc391b283e098",
+      "expected_version": null,
+      "id": "e81f941b717b4958a18cdd210bc97f66",
+      "saved_utc": "2026-10-17T09:53:08.725250Z"
+    },
+    {
+      "scope": "NZDCHF",
+      "as_of_utc": "2026-07-03T06:00:00Z",
+      "title": "Daily assessment",
+      "verdict": "BUY",
+      "thesis": "Swiss inflation has eased to 0.5%, while NZ still faces a likely hike. Overnight weak US payrolls reduce the immediate threat from tighter global financial conditions, supporting the NZD side of the thesis.",
+      "horizon": "Intraday",
+      "sources": [
+        {
+          "kind": "web",
+          "label": "Swiss inflation",
+          "locator": "https://www.konsum.admin.ch/en/newnsb/HWgaFhlyNIgnsE0EgzVma",
+          "note": ""
+        },
+        {
+          "kind": "web",
+          "label": "Overnight developments",
+          "locator": "https://www.brecorder.com/news/amp/40428268",
+          "note": ""
+        },
+        {
+          "kind": "web",
+          "label": "Swiss policy background",
+          "locator": "https://www.snb.ch/en/publications/communication/press-releases-restricted/pre_20260618",
+          "note": "Background; not a fresh signal on each daily cutoff."
+        }
+      ],
+      "note": "Imported from the previously researched July 1-15 chat table. Retrospective daily reconstruction using a 1:00 PM Jakarta cutoff; these were not calls saved live in July. Sources were retained from that research, not freshly re-verified during UI implementation. Weekend rows describe the backdrop for reopening. CHF haven advantage in sell rows is a macro inference; CHF-specific flows were not independently established. No subsequent price performance was used to validate these calls. Swiss policy background: SNB June 18 hold at 0%, low conditional inflation forecasts and willingness to counter rapid excessive CHF appreciation.",
+      "provenance": "reconstruction",
+      "target": null,
+      "journal_id": null,
+      "row_id": "41790241f62741579f5826fed2324bd9",
+      "expected_version": null,
+      "id": "2a081ea0f07443d59e26ebde308d18f3",
+      "saved_utc": "2026-10-17T09:53:08.729242Z"
+    },
+    {
+      "scope": "NZDCHF",
+      "as_of_utc": "2026-07-04T06:00:00Z",
+      "title": "Weekend backdrop",
+      "verdict": "BUY",
+      "thesis": "Retain the policy-divergence buy thesis: likely NZ tightening against low Swiss inflation. The next decisive test is whether the RBNZ actually hikes and preserves further-tightening guidance.",
+      "horizon": "Backdrop for reopening",
+      "sources": [
+        {
+          "kind": "web",
+          "label": "RBNZ preview",
+          "locator": "https://www.anz.co.nz/content/dam/anzconz/documents/economics-and-market-research/2026/ANZ-RBNZ-MPR-Preview-20260701.pdf",
+          "note": ""
+        },
+        {
+          "kind": "web",
+          "label": "Swiss policy background",
+          "locator": "https://www.snb.ch/en/publications/communication/press-releases-restricted/pre_20260618",
+          "note": "Background; not a fresh signal on each daily cutoff."
+        }
+      ],
+      "note": "Imported from the previously researched July 1-15 chat table. Retrospective daily reconstruction using a 1:00 PM Jakarta cutoff; these were not calls saved live in July. Sources were retained from that research, not freshly re-verified during UI implementation. Weekend rows describe the backdrop for reopening. CHF haven advantage in sell rows is a macro inference; CHF-specific flows were not independently established. No subsequent price performance was used to validate these calls. Swiss policy background: SNB June 18 hold at 0%, low conditional inflation forecasts and willingness to counter rapid excessive CHF appreciation.",
+      "provenance": "reconstruction",
+      "target": null,
+      "journal_id": null,
+      "row_id": "2806dae328a745f5972dff259e9dd62b",
+      "expected_version": null,
+      "id": "b7046573579b409896b8b4f722423593",
+      "saved_utc": "2026-10-17T09:53:08.732232Z"
+    },
+    {
+      "scope": "NZDCHF",
+      "as_of_utc": "2026-07-05T06:00:00Z",
+      "title": "Weekend backdrop",
+      "verdict": "BUY",
+      "thesis": "The same fundamental buy case remains supported by the verified information set. A renewed Gulf escalation or a materially more patient RBNZ outlook would challenge it.",
+      "horizon": "Backdrop for reopening",
+      "sources": [
+        {
+          "kind": "web",
+          "label": "RBNZ preview",
+          "locator": "https://www.anz.co.nz/content/dam/anzconz/documents/economics-and-market-research/2026/ANZ-RBNZ-MPR-Preview-20260701.pdf",
+          "note": ""
+        },
+        {
+          "kind": "web",
+          "label": "Swiss policy background",
+          "locator": "https://www.snb.ch/en/publications/communication/press-releases-restricted/pre_20260618",
+          "note": "Background; not a fresh signal on each daily cutoff."
+        }
+      ],
+      "note": "Imported from the previously researched July 1-15 chat table. Retrospective daily reconstruction using a 1:00 PM Jakarta cutoff; these were not calls saved live in July. Sources were retained from that research, not freshly re-verified during UI implementation. Weekend rows describe the backdrop for reopening. CHF haven advantage in sell rows is a macro inference; CHF-specific flows were not independently established. No subsequent price performance was used to validate these calls. Swiss policy background: SNB June 18 hold at 0%, low conditional inflation forecasts and willingness to counter rapid excessive CHF appreciation.",
+      "provenance": "reconstruction",
+      "target": null,
+      "journal_id": null,
+      "row_id": "b9f110de6f7744d1a9bb6f103ef484c1",
+      "expected_version": null,
+      "id": "488bbb4717d34ccc99002183b4e339f8",
+      "saved_utc": "2026-10-17T09:53:08.735224Z"
+    },
+    {
+      "scope": "NZDCHF",
+      "as_of_utc": "2026-07-06T06:00:00Z",
+      "title": "Daily assessment",
+      "verdict": "MIXED",
+      "thesis": "Expected tightening supports NZD, but falling export commodity prices and divided domestic policy recommendations weaken the immediate case. The conflict is specifically NZ rate support versus softer export income and uncertain hike timing.",
+      "horizon": "Intraday",
+      "sources": [
+        {
+          "kind": "web",
+          "label": "NZ policy and export backdrop",
+          "locator": "https://www.fxstreet.com/news/new-zealand-dollar-declines-as-nzier-splits-on-july-decision-202607060156",
+          "note": ""
+        },
+        {
+          "kind": "web",
+          "label": "Swiss policy background",
+          "locator": "https://www.snb.ch/en/publications/communication/press-releases-restricted/pre_20260618",
+          "note": "Background; not a fresh signal on each daily cutoff."
+        }
+      ],
+      "note": "Imported from the previously researched July 1-15 chat table. Retrospective daily reconstruction using a 1:00 PM Jakarta cutoff; these were not calls saved live in July. Sources were retained from that research, not freshly re-verified during UI implementation. Weekend rows describe the backdrop for reopening. CHF haven advantage in sell rows is a macro inference; CHF-specific flows were not independently established. No subsequent price performance was used to validate these calls. Swiss policy background: SNB June 18 hold at 0%, low conditional inflation forecasts and willingness to counter rapid excessive CHF appreciation.",
+      "provenance": "reconstruction",
+      "target": null,
+      "journal_id": null,
+      "row_id": "ac83aa04844541f4ba69c476accc02b8",
+      "expected_version": null,
+      "id": "cda7e4f778064e6da6a331b328ed0c96",
+      "saved_utc": "2026-10-17T09:53:08.737913Z"
+    },
+    {
+      "scope": "NZDCHF",
+      "as_of_utc": "2026-07-07T06:00:00Z",
+      "title": "Daily assessment",
+      "verdict": "SELL",
+      "thesis": "Fresh reports of attacks on commercial shipping threaten the earlier de-escalation story. That favours CHF's defensive role over risk-sensitive NZD, while tomorrow's RBNZ decision creates a clear reversal risk.",
+      "horizon": "Intraday",
+      "sources": [
+        {
+          "kind": "web",
+          "label": "Shipping attacks",
+          "locator": "https://www.investing.com/news/stock-market-news/iran-fires-missiles-at-commercial-ships-in-strait-of-hormuz-axios-reports-4778198",
+          "note": ""
+        },
+        {
+          "kind": "web",
+          "label": "Swiss policy background",
+          "locator": "https://www.snb.ch/en/publications/communication/press-releases-restricted/pre_20260618",
+          "note": "Background; not a fresh signal on each daily cutoff."
+        }
+      ],
+      "note": "Imported from the previously researched July 1-15 chat table. Retrospective daily reconstruction using a 1:00 PM Jakarta cutoff; these were not calls saved live in July. Sources were retained from that research, not freshly re-verified during UI implementation. Weekend rows describe the backdrop for reopening. CHF haven advantage in sell rows is a macro inference; CHF-specific flows were not independently established. No subsequent price performance was used to validate these calls. Swiss policy background: SNB June 18 hold at 0%, low conditional inflation forecasts and willingness to counter rapid excessive CHF appreciation.",
+      "provenance": "reconstruction",
+      "target": null,
+      "journal_id": null,
+      "row_id": "6e0289696477434b89cceec3857ab94f",
+      "expected_version": null,
+      "id": "69920c0fa3d046619c4d7127b4afa1bb",
+      "saved_utc": "2026-10-17T09:53:08.741904Z"
+    },
+    {
+      "scope": "NZDCHF",
+      "as_of_utc": "2026-07-08T06:00:00Z",
+      "title": "Daily assessment",
+      "verdict": "BUY",
+      "thesis": "The RBNZ has now unanimously raised rates to 2.50% and says further increases are likely. That restores NZD's policy advantage against CHF, although the bank explicitly leaves the timing uncertain and Gulf tensions remain a counterweight.",
+      "horizon": "Intraday",
+      "sources": [
+        {
+          "kind": "web",
+          "label": "RBNZ decision",
+          "locator": "https://www.rbnz.govt.nz/news-and-events/news/2026/07/ocr-increased-to-2-50-to-return-inflation-to-2-percent",
+          "note": ""
+        },
+        {
+          "kind": "web",
+          "label": "Swiss policy background",
+          "locator": "https://www.snb.ch/en/publications/communication/press-releases-restricted/pre_20260618",
+          "note": "Background; not a fresh signal on each daily cutoff."
+        }
+      ],
+      "note": "Imported from the previously researched July 1-15 chat table. Retrospective daily reconstruction using a 1:00 PM Jakarta cutoff; these were not calls saved live in July. Sources were retained from that research, not freshly re-verified during UI implementation. Weekend rows describe the backdrop for reopening. CHF haven advantage in sell rows is a macro inference; CHF-specific flows were not independently established. No subsequent price performance was used to validate these calls. Swiss policy background: SNB June 18 hold at 0%, low conditional inflation forecasts and willingness to counter rapid excessive CHF appreciation.",
+      "provenance": "reconstruction",
+      "target": null,
+      "journal_id": null,
+      "row_id": "6e0ecb8f376f4d1cb2526d8547446bb2",
+      "expected_version": null,
+      "id": "7363f55d7ebb45d58a1cd2f516d92860",
+      "saved_utc": "2026-10-17T09:53:08.745212Z"
+    },
+    {
+      "scope": "NZDCHF",
+      "as_of_utc": "2026-07-09T06:00:00Z",
+      "title": "Daily assessment",
+      "verdict": "STRONG BUY",
+      "thesis": "NZ manufacturing jumps to 59.7, with strong orders and employment, strengthening the economic case for further tightening immediately after the hike. The dominant relative mechanism is improving NZ activity plus a rising expected rate path against a low-inflation Swiss backdrop.",
+      "horizon": "Intraday",
+      "sources": [
+        {
+          "kind": "web",
+          "label": "Manufacturing release",
+          "locator": "https://businessnz.org.nz/pmi/what-war",
+          "note": ""
+        },
+        {
+          "kind": "web",
+          "label": "Rate expectations",
+          "locator": "https://www.brecorder.com/news/40429226",
+          "note": ""
+        },
+        {
+          "kind": "web",
+          "label": "Swiss policy background",
+          "locator": "https://www.snb.ch/en/publications/communication/press-releases-restricted/pre_20260618",
+          "note": "Background; not a fresh signal on each daily cutoff."
+        }
+      ],
+      "note": "Imported from the previously researched July 1-15 chat table. Retrospective daily reconstruction using a 1:00 PM Jakarta cutoff; these were not calls saved live in July. Sources were retained from that research, not freshly re-verified during UI implementation. Weekend rows describe the backdrop for reopening. CHF haven advantage in sell rows is a macro inference; CHF-specific flows were not independently established. No subsequent price performance was used to validate these calls. Swiss policy background: SNB June 18 hold at 0%, low conditional inflation forecasts and willingness to counter rapid excessive CHF appreciation.",
+      "provenance": "reconstruction",
+      "target": null,
+      "journal_id": null,
+      "row_id": "a0d415d610244a57a39c0fe30242553d",
+      "expected_version": null,
+      "id": "e36cce53fe6a44659a6abbfa4ed8b90d",
+      "saved_utc": "2026-10-17T09:53:08.749144Z"
+    },
+    {
+      "scope": "NZDCHF",
+      "as_of_utc": "2026-07-10T06:00:00Z",
+      "title": "Daily assessment",
+      "verdict": "BUY",
+      "thesis": "The NZ growth-and-tightening thesis remains intact, but the latest reciprocal US-Iran attacks materially strengthen the opposing haven-risk channel. Retain the buy direction with less conviction than yesterday.",
+      "horizon": "Intraday",
+      "sources": [
+        {
+          "kind": "web",
+          "label": "Overnight developments",
+          "locator": "https://www.brecorder.com/news/40429341",
+          "note": ""
+        },
+        {
+          "kind": "web",
+          "label": "Swiss policy background",
+          "locator": "https://www.snb.ch/en/publications/communication/press-releases-restricted/pre_20260618",
+          "note": "Background; not a fresh signal on each daily cutoff."
+        }
+      ],
+      "note": "Imported from the previously researched July 1-15 chat table. Retrospective daily reconstruction using a 1:00 PM Jakarta cutoff; these were not calls saved live in July. Sources were retained from that research, not freshly re-verified during UI implementation. Weekend rows describe the backdrop for reopening. CHF haven advantage in sell rows is a macro inference; CHF-specific flows were not independently established. No subsequent price performance was used to validate these calls. Swiss policy background: SNB June 18 hold at 0%, low conditional inflation forecasts and willingness to counter rapid excessive CHF appreciation.",
+      "provenance": "reconstruction",
+      "target": null,
+      "journal_id": null,
+      "row_id": "06c99785931045449bdfd9e61e7c922a",
+      "expected_version": null,
+      "id": "bf2b1807e1904a3086fec3aec29f259a",
+      "saved_utc": "2026-10-17T09:53:08.752391Z"
+    },
+    {
+      "scope": "NZDCHF",
+      "as_of_utc": "2026-07-11T06:00:00Z",
+      "title": "Weekend reassessment",
+      "verdict": "SELL",
+      "thesis": "Trump's declaration that the ceasefire is over challenges the buy thesis. The immediate concern shifts toward renewed energy disruption and defensive demand, outweighing the earlier manufacturing-led optimism over the near-term horizon.",
+      "horizon": "Backdrop for reopening",
+      "sources": [
+        {
+          "kind": "web",
+          "label": "Ceasefire development",
+          "locator": "https://www.investing.com/news/commodities-news/tanker-traffic-slows-in-strait-of-hormuz-after-us-and-iran-clashes-4786079",
+          "note": ""
+        },
+        {
+          "kind": "web",
+          "label": "Swiss policy background",
+          "locator": "https://www.snb.ch/en/publications/communication/press-releases-restricted/pre_20260618",
+          "note": "Background; not a fresh signal on each daily cutoff."
+        }
+      ],
+      "note": "Imported from the previously researched July 1-15 chat table. Retrospective daily reconstruction using a 1:00 PM Jakarta cutoff; these were not calls saved live in July. Sources were retained from that research, not freshly re-verified during UI implementation. Weekend rows describe the backdrop for reopening. CHF haven advantage in sell rows is a macro inference; CHF-specific flows were not independently established. No subsequent price performance was used to validate these calls. Swiss policy background: SNB June 18 hold at 0%, low conditional inflation forecasts and willingness to counter rapid excessive CHF appreciation.",
+      "provenance": "reconstruction",
+      "target": null,
+      "journal_id": null,
+      "row_id": "1324b581cd48403d812abcfe1b3e0357",
+      "expected_version": null,
+      "id": "c57c948b78504c518d4221f0260069b4",
+      "saved_utc": "2026-10-17T09:53:08.755385Z"
+    },
+    {
+      "scope": "NZDCHF",
+      "as_of_utc": "2026-07-12T06:00:00Z",
+      "title": "Weekend reassessment",
+      "verdict": "SELL",
+      "thesis": "Iran's reported closure of Hormuz adds a concrete escalation to the risk story. That supports a defensive CHF-over-NZD thesis into reopening; NZ's tightening cycle remains the strongest opposing argument.",
+      "horizon": "Backdrop for reopening",
+      "sources": [
+        {
+          "kind": "web",
+          "label": "Closure report available before cutoff",
+          "locator": "https://www.marketscreener.com/news/iran-s-irgc-navy-says-strait-of-hormuz-closed-until-further-notice-state-media-reports-ce7f5edfdd80f025",
+          "note": ""
+        },
+        {
+          "kind": "web",
+          "label": "Swiss policy background",
+          "locator": "https://www.snb.ch/en/publications/communication/press-releases-restricted/pre_20260618",
+          "note": "Background; not a fresh signal on each daily cutoff."
+        }
+      ],
+      "note": "Imported from the previously researched July 1-15 chat table. Retrospective daily reconstruction using a 1:00 PM Jakarta cutoff; these were not calls saved live in July. Sources were retained from that research, not freshly re-verified during UI implementation. Weekend rows describe the backdrop for reopening. CHF haven advantage in sell rows is a macro inference; CHF-specific flows were not independently established. No subsequent price performance was used to validate these calls. Swiss policy background: SNB June 18 hold at 0%, low conditional inflation forecasts and willingness to counter rapid excessive CHF appreciation.",
+      "provenance": "reconstruction",
+      "target": null,
+      "journal_id": null,
+      "row_id": "df65765126f546e5a2e9f49dfe568600",
+      "expected_version": null,
+      "id": "a567da72c489419fa6592535cabd34c6",
+      "saved_utc": "2026-10-17T09:53:08.759372Z"
+    },
+    {
+      "scope": "NZDCHF",
+      "as_of_utc": "2026-07-13T06:00:00Z",
+      "title": "Daily assessment",
+      "verdict": "SELL",
+      "thesis": "Renewed Gulf disruption remains the immediate concern. NZ services returning to expansion at 50.6 challenges the sell, but its weak employment and spending-sensitive sectors make the recovery insufficient to dismiss the external shock.",
+      "horizon": "Intraday",
+      "sources": [
+        {
+          "kind": "web",
+          "label": "Services release",
+          "locator": "https://businessnz.org.nz/psi/service-with-a-smile",
+          "note": ""
+        },
+        {
+          "kind": "web",
+          "label": "Gulf developments",
+          "locator": "https://ca.investing.com/news/forex-news/dollar-jumps-on-renewed-middle-east-attacks-hormuz-closure-4730147",
+          "note": ""
+        },
+        {
+          "kind": "web",
+          "label": "Swiss policy background",
+          "locator": "https://www.snb.ch/en/publications/communication/press-releases-restricted/pre_20260618",
+          "note": "Background; not a fresh signal on each daily cutoff."
+        }
+      ],
+      "note": "Imported from the previously researched July 1-15 chat table. Retrospective daily reconstruction using a 1:00 PM Jakarta cutoff; these were not calls saved live in July. Sources were retained from that research, not freshly re-verified during UI implementation. Weekend rows describe the backdrop for reopening. CHF haven advantage in sell rows is a macro inference; CHF-specific flows were not independently established. No subsequent price performance was used to validate these calls. Swiss policy background: SNB June 18 hold at 0%, low conditional inflation forecasts and willingness to counter rapid excessive CHF appreciation.",
+      "provenance": "reconstruction",
+      "target": null,
+      "journal_id": null,
+      "row_id": "1effaeaee69e4d5981e81a36ff31eb10",
+      "expected_version": null,
+      "id": "da74d8d28e3340e3882c0c62656d623c",
+      "saved_utc": "2026-10-17T09:53:08.763124Z"
+    },
+    {
+      "scope": "NZDCHF",
+      "as_of_utc": "2026-07-14T06:00:00Z",
+      "title": "Daily assessment",
+      "verdict": "STRONG BUY",
+      "thesis": "Conway's inflation warning and renewed upward repricing of NZ rates change the dominant mechanism. Persistent cost pressures could require more tightening, restoring a strong NZD policy case against CHF despite weak domestic demand and ongoing geopolitical risk.",
+      "horizon": "Intraday",
+      "sources": [
+        {
+          "kind": "web",
+          "label": "Conway speech",
+          "locator": "https://www.rbnz.govt.nz/-/media/project/sites/rbnz/files/events/2026/price-setting-speech.pdf",
+          "note": ""
+        },
+        {
+          "kind": "web",
+          "label": "Rate expectations",
+          "locator": "https://www.brecorder.com/news/40429951/new-zealand-dollar-climbs-as-short-term-rates-spike",
+          "note": ""
+        },
+        {
+          "kind": "web",
+          "label": "Swiss policy background",
+          "locator": "https://www.snb.ch/en/publications/communication/press-releases-restricted/pre_20260618",
+          "note": "Background; not a fresh signal on each daily cutoff."
+        }
+      ],
+      "note": "Imported from the previously researched July 1-15 chat table. Retrospective daily reconstruction using a 1:00 PM Jakarta cutoff; these were not calls saved live in July. Sources were retained from that research, not freshly re-verified during UI implementation. Weekend rows describe the backdrop for reopening. CHF haven advantage in sell rows is a macro inference; CHF-specific flows were not independently established. No subsequent price performance was used to validate these calls. Swiss policy background: SNB June 18 hold at 0%, low conditional inflation forecasts and willingness to counter rapid excessive CHF appreciation.",
+      "provenance": "reconstruction",
+      "target": null,
+      "journal_id": null,
+      "row_id": "c537b166fa4a47f7bcb015d786bc3b46",
+      "expected_version": null,
+      "id": "2d87ef7d16f34fa7bbae4b1f556e6747",
+      "saved_utc": "2026-10-17T09:53:08.766627Z"
+    },
+    {
+      "scope": "NZDCHF",
+      "as_of_utc": "2026-07-15T06:00:00Z",
+      "title": "Daily assessment",
+      "verdict": "BUY",
+      "thesis": "Further NZ tightening remains supportive, while softer US inflation eases global rate pressure. However, NZ retail card spending falling 1.4% and weaker Chinese growth provide fresh counterevidence, reducing yesterday's conviction.",
+      "horizon": "Intraday",
+      "sources": [
+        {
+          "kind": "web",
+          "label": "Global inflation backdrop",
+          "locator": "https://ca.marketscreener.com/news/dollar-struggles-as-softer-inflation-dims-fed-hike-bets-ce7f5edddc80f423",
+          "note": ""
+        },
+        {
+          "kind": "web",
+          "label": "Card spending",
+          "locator": "https://www.interest.co.nz/business/139391/electronic-card-spending-took-dive-june-westpac-expecting-retail-spending-levels",
+          "note": ""
+        },
+        {
+          "kind": "web",
+          "label": "Swiss policy background",
+          "locator": "https://www.snb.ch/en/publications/communication/press-releases-restricted/pre_20260618",
+          "note": "Background; not a fresh signal on each daily cutoff."
+        }
+      ],
+      "note": "Imported from the previously researched July 1-15 chat table. Retrospective daily reconstruction using a 1:00 PM Jakarta cutoff; these were not calls saved live in July. Sources were retained from that research, not freshly re-verified during UI implementation. Weekend rows describe the backdrop for reopening. CHF haven advantage in sell rows is a macro inference; CHF-specific flows were not independently established. No subsequent price performance was used to validate these calls. Swiss policy background: SNB June 18 hold at 0%, low conditional inflation forecasts and willingness to counter rapid excessive CHF appreciation.",
+      "provenance": "reconstruction",
+      "target": null,
+      "journal_id": null,
+      "row_id": "1326d6e077c74c41b7cec128c74df030",
+      "expected_version": null,
+      "id": "a5c5e198cc994f8d8e71148b9517e3c6",
+      "saved_utc": "2026-10-17T09:53:08.770616Z"
+    }
+  ]
+}
