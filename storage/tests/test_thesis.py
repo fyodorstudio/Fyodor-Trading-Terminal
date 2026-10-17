@@ -152,3 +152,41 @@ class ThesisTests(TestCase):
         self.assertEqual([entry['as_of_utc'][8:10] for entry in july], [f'{day:02d}' for day in range(1, 16)])
         self.assertTrue(all(entry['provenance'] == 'reconstruction' and entry['as_of_utc'][11:16] == '06:00' and entry['note'] for entry in july))
         self.assertTrue(all(entry['saved_utc'].startswith('2026-10') for entry in july))
+
+    def test_change_comparison_is_immutable_pair_specific_and_earlier(self):
+        self.paths()
+        first = self.save(change='Baseline', change_reason='Starting case.')
+        prior_raw = json.loads(self.path.read_text(encoding='utf-8'))['entries'][0]
+        self.save(as_of_utc='2026-07-16T01:00:00Z', change='Weakened', change_reason='Fresh contrary evidence; no opposite case.', compared_with=first['id'])
+        row = self.snapshot()['past'][0]
+        self.assertEqual(row['verdict'], 'BUY')
+        self.assertEqual(row['change'], 'Weakened')
+        self.assertEqual(row['comparison']['id'], first['id'])
+        self.assertEqual(json.loads(self.path.read_text(encoding='utf-8'))['entries'][0], prior_raw)
+        mixed = self.save(as_of_utc='2026-07-16T12:00:00Z', verdict='MIXED', change='Weakened',
+                          change_reason='The buy case loses its edge.', compared_with=first['id'])
+        with self.assertRaises(ValueError):
+            self.save(as_of_utc='2026-07-17T00:00:00Z', change='Strengthened',
+                      change_reason='Must compare with a directional case.', compared_with=mixed['id'])
+        for changes in [dict(change='Strengthened'), dict(change='Baseline', compared_with=first['id']),
+                        dict(change='Weakened', compared_with='f'*32),
+                        dict(change='Weakened', compared_with=first['id'], as_of_utc='2026-07-14T00:00:00Z'),
+                        dict(change='Weakened', compared_with=first['id'], scope='EURUSD'),
+                        dict(change='Weakened', compared_with=first['id'], verdict='SELL'),
+                        dict(change='Reversed', compared_with=first['id'])]:
+            with self.assertRaises(ValueError):
+                self.save(**{**dict(as_of_utc='2026-07-17T00:00:00Z', change_reason='Evidence.'), **changes})
+        reversal = self.save(as_of_utc='2026-07-17T00:00:00Z', verdict='SELL', change='Reversed', compared_with=first['id'], change_reason='Opposite mechanism established.')
+        self.assertEqual(self.snapshot()['past'][0]['id'], reversal['id'])
+
+    def test_october_nzdchf_records_have_evidence_and_varied_cutoffs_only(self):
+        entries = read_theses(PATH)
+        october = [row for row in entries if row['as_of_utc'].startswith('2026-10')]
+        latest = {row['row_id']: row for row in october}
+        self.assertEqual(len(latest), 11)
+        self.assertTrue(all(row['scope'] == 'NZDCHF' and row['change'] and row['change_reason'] for row in latest.values()))
+        self.assertEqual(min(row['as_of_utc'][8:10] for row in latest.values()), '01')
+        self.assertEqual(max(row['as_of_utc'][8:10] for row in latest.values()), '17')
+        self.assertGreater(len({row['as_of_utc'][11:16] for row in latest.values()}), 5)
+        self.assertTrue(any(row['as_of_precision'] == 'date' for row in latest.values()))
+        self.assertTrue(all(row['change'] is None for row in entries if row['as_of_utc'].startswith('2026-07')))

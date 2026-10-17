@@ -1,7 +1,8 @@
 # Thesis dock
 
 Thesis only documents sourced assessments the user asks an agent to save.
-V1 offers only **JUL 2026** and defaults to NZDCHF, independently of the chart.
+The month selector offers **JUL / OCT 2026**, defaulting to October for a new
+preference. Pair choice defaults to NZDCHF, independently of the chart.
 Saved assessments are newest first. Alert owns upcoming releases, scheduling and
 notifications; Thesis has no upcoming rows, countdowns or automatic placeholders.
 
@@ -13,7 +14,7 @@ implicitly save a Thesis record. No automatic AI invocation or analysis occurs.
 ## Agent interface
 
 ```powershell
-pnpm analyst thesis read --scope NZDCHF --month 2026-07
+pnpm analyst thesis read --scope NZDCHF --month 2026-10
 pnpm analyst thesis append --scope NZDCHF --broker Elev8-Demo2 --input "Market Analyst Workflow/report/thesis-request.json"
 ```
 
@@ -23,7 +24,7 @@ assessment (replace placeholder text with sourced research):
 ```json
 {
   "scope": "NZDCHF",
-  "as_of_utc": "2026-07-15T06:00:00Z",
+  "as_of_utc": "2026-10-01T06:30:00Z",
   "title": "Daily assessment",
   "verdict": "BUY",
   "thesis": "Replace with the supported relative mechanism and material counterevidence.",
@@ -31,18 +32,45 @@ assessment (replace placeholder text with sourced research):
   "sources": [{"kind":"web", "label":"Official release", "locator":"https://www.rbnz.govt.nz/", "note":"Replace with the direct release URL."}],
   "note": "",
   "provenance": "assessment",
-  "target": null
+  "target": null,
+  "change": "Baseline",
+  "change_reason": "First documented assessment for this review interval.",
+  "compared_with": null,
+  "as_of_precision": "minute"
 }
 ```
 
 Verdicts are STRONG BUY / BUY / MIXED / SELL / STRONG SELL. Use the actual
 timezone-aware research cutoff, no later than now. `saved_utc` is assigned by the
 writer. The selected month never authorizes backdating. A current assessment
-outside July is saved under its real month and is outside the JUL-only selector.
+outside the available months is saved under its real month and is not yet selectable.
 Historical simulations use only evidence known at their cutoff and
 `provenance: "reconstruction"`, with a note explaining limitations. The July
 1–15 seed preserves the researched chat reconstruction at 1:00 PM Jakarta;
 these were not contemporaneously saved July calls.
+
+## Direction versus thesis change
+
+The four columns are Date / Time, Pair bias, Thesis change and Explanation.
+`change` describes evidence for the previous directional case: Baseline,
+Materially strengthened, Strengthened, Unchanged, Weakened or Reversed.
+`change_reason` explains the magnitude/mechanism. Non-baseline changes require
+`compared_with`, the exact earlier assessment **version ID**, for the same pair
+and an earlier cutoff. The read projection resolves its date and verdict, even
+across months. After MIXED, compare a newly dominant buy/sell case with the last
+supported directional assessment; Unchanged MIXED can compare with MIXED.
+This is an ordinal evidence judgment, not a cumulative score,
+percentage, expected move or probability. Weaker BUY need not become SELL;
+Reversed requires an established opposite direction. MIXED can acknowledge a
+lost edge without inventing the opposite trade.
+
+Use actual invocation times for current assessments. Historical reconstruction
+rows follow verified publications and material updates, with no fixed daily hour
+or forced one-row-per-day quota. A date-only source uses `as_of_precision: "date"`
+and an explicit conservative internal cutoff note; the UI does not present that
+cutoff as a verified publication hour. No row on a day does not establish absence
+of news. October 1–17 contains NZDCHF assessments only; the original July records
+remain unchanged and unscored. Legacy absent change fields display a dash.
 
 An explicitly requested release assessment may retain an optional `target`:
 `kind` (highlight/external), `reference` (pin ID/external key), `source_id`

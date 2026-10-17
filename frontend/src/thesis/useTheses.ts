@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { thesisMonth, validThesisSnapshot, type ThesisSnapshot } from './thesis-model'
+import { validThesisSnapshot, type ThesisSnapshot } from './thesis-model'
 
-export function useTheses(scope: string) {
-  const key = `${scope}:${thesisMonth}`
+export function useTheses(scope: string, month: string) {
+  const key = `${scope}:${month}`
   const [snapshot, setSnapshot] = useState<{ key: string; data: ThesisSnapshot } | null>(null)
   const [failure, setFailure] = useState<{ key: string; message: string } | null>(null)
   const trigger = useRef<(() => Promise<void>) | null>(null)
@@ -12,15 +12,15 @@ export function useTheses(scope: string) {
     let timer: number | undefined, revision: string | null = null, sequence = 0
     async function fetchSnapshot() {
       const token = ++sequence
-      const params = new URLSearchParams({ scope, month: thesisMonth })
+      const params = new URLSearchParams({ scope, month })
       if (revision) params.set('after_revision', revision)
       try {
         const response = await fetch(`/storage-api/theses?${params}`, { signal: controller.signal })
         if (!response.ok) throw new Error(response.status === 404 ? 'Restart calendar storage to enable Thesis.' : `Thesis unavailable (HTTP ${response.status})`)
         const data = await response.json()
         if (controller.signal.aborted || token !== sequence) return
-        if (data.schema !== 1 || data.scope !== scope || data.month !== thesisMonth || data.source_id !== null || typeof data.revision !== 'string'
-          || (data.unchanged ? data.revision !== revision : !validThesisSnapshot(data, scope, thesisMonth, null))) throw new Error('Invalid Thesis response')
+        if (data.schema !== 1 || data.scope !== scope || data.month !== month || data.source_id !== null || typeof data.revision !== 'string'
+          || (data.unchanged ? data.revision !== revision : !validThesisSnapshot(data, scope, month, null))) throw new Error('Invalid Thesis response')
         revision = data.revision
         if (!data.unchanged) setSnapshot(previous => {
           if (previous?.key === key && previous.data.revision === data.revision) return previous
@@ -44,6 +44,6 @@ export function useTheses(scope: string) {
       controller.abort(); window.clearTimeout(timer)
       if (trigger.current === fetchSnapshot) trigger.current = null
     }
-  }, [key, scope])
+  }, [key, scope, month])
   return { data: snapshot?.key === key ? snapshot.data : null, error: failure?.key === key ? failure.message : null, refresh }
 }

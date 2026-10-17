@@ -108,8 +108,10 @@ backup UI, scoring engines, full Notebook workflow, Scatter Plot or experimental
 context tools are included.
 
 **Thesis** documents agent assessments explicitly requested by the user, newest
-first, independently of the chart. V1 offers only **JUL 2026**, with the July 1–15
-NZDCHF reconstruction. Sources, as-of/saved times and prior versions are
+first, independently of the chart. The month selector offers **JUL / OCT 2026**.
+July retains its original NZDCHF
+reconstruction; October 1–17 adds event-driven NZDCHF assessments with separate
+pair bias and thesis-change evidence. Sources, as-of/saved times and prior versions are
 expandable. Upcoming releases remain in Alert. See [Thesis workflow](docs/THESIS.md)
 for the copied assessment prompt and agent save interface.
 

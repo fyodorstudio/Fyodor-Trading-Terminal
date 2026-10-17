@@ -26,6 +26,7 @@ PATH = Path(__file__).resolve().parents[1] / 'Market Analyst Workflow' / 'thesis
 JAKARTA = timezone(timedelta(hours=7))
 LOCK = RLock()
 ID = r'^[0-9a-f]{32}$'
+ThesisChange = Literal['Baseline', 'Materially strengthened', 'Strengthened', 'Unchanged', 'Weakened', 'Reversed']
 
 
 def pair_scope(scope):
@@ -67,6 +68,10 @@ class ThesisRequest(Payload):
     sources: list[JournalSource] = Field(min_length=1, max_length=30)
     note: str = Field(default='', max_length=4000)
     provenance: Literal['assessment', 'reconstruction'] = 'assessment'
+    change: ThesisChange | None = None
+    change_reason: str = Field(default='', max_length=2000)
+    compared_with: str | None = Field(default=None, pattern=ID)
+    as_of_precision: Literal['minute', 'date'] = 'minute'
     target: ThesisTarget | None = None
     # Link a full MT5 research report without copying its body into this record.
     journal_id: str | None = Field(default=None, pattern=ID)
@@ -85,6 +90,14 @@ class ThesisRequest(Payload):
             raise ValueError('Theses require direct web evidence')
         if self.provenance == 'reconstruction' and not self.note.strip():
             raise ValueError('A reconstruction must explain its retrospective provenance')
+        if self.change is not None and not self.change_reason.strip():
+            raise ValueError('Explain the evidence behind the thesis change')
+        if self.change == 'Baseline' and self.compared_with is not None:
+            raise ValueError('A baseline has no earlier comparison')
+        if self.change not in (None, 'Baseline') and not self.compared_with:
+            raise ValueError('A thesis change needs the exact earlier assessment version')
+        if self.change is None and (self.change_reason or self.compared_with):
+            raise ValueError('Comparison evidence needs a thesis-change label')
         if self.journal_id and (not self.target or self.target.kind != 'highlight'):
             raise ValueError('A detailed journal link needs its Highlight target')
         if self.target and self.target.event_at and self.as_of_utc < self.target.event_at:
@@ -162,6 +175,16 @@ def highlighted_stages(store, scope, source_id, pins_path=HIGHLIGHTS_PATH, exter
 def append_thesis(store, request, path=PATH, pins_path=HIGHLIGHTS_PATH, external_directory=EXTERNAL_DIRECTORY):
     with LOCK, data_lock(Path(path).parent):
         entries = read_theses(path)
+        if request.compared_with:
+            prior = next((item for item in entries if item['id'] == request.compared_with), None)
+            if not prior or prior['scope'] != request.scope or datetime.fromisoformat(prior['as_of_utc']) >= request.as_of_utc:
+                raise ValueError('Compare with an earlier assessment version of the same pair')
+            if prior['verdict'] == 'MIXED' and (request.change != 'Unchanged' or request.verdict != 'MIXED'):
+                raise ValueError('For a directional change after MIXED, compare with the last supported directional case')
+            side = lambda verdict: 1 if 'BUY' in verdict else -1 if 'SELL' in verdict else 0
+            opposite = side(prior['verdict']) * side(request.verdict) == -1
+            if (request.change == 'Reversed') != opposite:
+                raise ValueError('Reversed means an established opposite buy/sell direction, not merely a weakened case')
         latest = {item['row_id']: item for item in entries}
         target = request.target.model_dump(mode='json') if request.target else None
         if target:
@@ -191,7 +214,11 @@ def append_thesis(store, request, path=PATH, pins_path=HIGHLIGHTS_PATH, external
         try:
             with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', dir=target_path.parent, suffix='.tmp', delete=False) as output:
                 temporary = output.name
-                output.write(book.model_dump_json(indent=2)); output.flush(); os.fsync(output.fileno())
+                # Preserve legacy records exactly as stored; schema defaults are
+                # read-time compatibility, not a rewrite of prior research.
+                prior_records = json.loads(target_path.read_text(encoding='utf-8'))['entries'] if target_path.exists() else []
+                output.write(json.dumps({'version': book.version, 'entries': [*prior_records, entry.model_dump(mode='json')]}, indent=2, ensure_ascii=False))
+                output.flush(); os.fsync(output.fileno())
             os.replace(temporary, target_path)
         finally:
             if temporary:
@@ -211,6 +238,10 @@ def thesis_snapshot(store, scope, month, source_id=None, path=PATH, pins_path=HI
         groups.setdefault(entry['row_id'], []).append(entry)
     past = [{**history[-1], 'versions': history} for history in groups.values()
         if datetime.fromisoformat(history[-1]['as_of_utc']).astimezone(JAKARTA).strftime('%Y-%m') == month]
+    by_id = {entry['id']: entry for entry in entries}
+    for row in past:
+        prior = by_id.get(row['compared_with'])
+        row['comparison'] = {key: prior[key] for key in ('id', 'as_of_utc', 'verdict')} if prior else None
     past.sort(key=lambda item: (item['as_of_utc'], item['saved_utc'], item['row_id']), reverse=True)
     content = {'schema': 1, 'scope': scope, 'month': month, 'source_id': source_id, 'past': past}
     revision = hashlib.sha256(json.dumps(content, sort_keys=True).encode()).hexdigest()

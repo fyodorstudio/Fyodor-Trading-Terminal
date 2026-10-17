@@ -1,6 +1,6 @@
 import { memo, useCallback, useState } from 'react'
 import { majorForexPairs } from '../economic-calendar/forex/pairs'
-import { readThesisPair, safeThesisLink, thesisMonth, thesisPrompt, type ThesisEntry, type ThesisRow } from './thesis-model'
+import { readThesisMonth, readThesisPair, safeThesisLink, thesisMonths, thesisPrompt, type ThesisEntry, type ThesisRow } from './thesis-model'
 import { useTheses } from './useTheses'
 import './thesis.css'
 
@@ -20,17 +20,22 @@ function Sources({ entry }: { entry: ThesisEntry }) {
 const PastRow = memo(function PastRow({ row, onCopy }: { row: ThesisRow; onCopy: (row: ThesisRow) => void }) {
   const tone = row.verdict.includes('BUY') ? 'buy' : row.verdict.includes('SELL') ? 'sell' : 'mixed'
   return <tr data-thesis-row={row.row_id}>
-    <td><strong>{dayLabel(row.as_of_utc)}</strong><small>{timeFormatter.format(new Date(row.as_of_utc))} · assessment</small><span className="thesis-event-title">{row.title}</span>
+    <td><strong>{dayLabel(row.as_of_utc)}</strong><small>{row.as_of_precision === 'date' ? 'Publication hour unverified' : `${timeFormatter.format(new Date(row.as_of_utc))} · ${row.provenance === 'reconstruction' ? 'information cutoff' : 'assessment'}`}</small><span className="thesis-event-title">{row.title}</span>
       {row.target && <small>{row.target.event_at ? `Release: ${fullFormatter.format(new Date(row.target.event_at))}` : `Release date: ${row.target.event_date} · hour unconfirmed`}</small>}</td>
     <td className={`thesis-verdict ${tone}`}>{row.verdict}</td>
+    <td className="thesis-change"><strong>{row.change ?? '—'}</strong>
+      {row.comparison && <small>vs {row.comparison.verdict} · {dayLabel(row.comparison.as_of_utc)}</small>}
+      {row.change_reason && <p>{row.change_reason}</p>}
+    </td>
     <td><p className="thesis-prose">{row.thesis} <Sources entry={row} /></p>
       <details className="thesis-details"><summary>Details · {row.versions.length} {row.versions.length === 1 ? 'version' : 'versions'}</summary>
-        <p>As of {fullFormatter.format(new Date(row.as_of_utc))} Jakarta · {row.horizon}. Saved {fullFormatter.format(new Date(row.saved_utc))} Jakarta.</p>
+        <p>As of {row.as_of_precision === 'date' ? `${dayLabel(row.as_of_utc)} · date-only evidence; see cutoff note` : `${fullFormatter.format(new Date(row.as_of_utc))} Jakarta`} · {row.horizon}. Saved {fullFormatter.format(new Date(row.saved_utc))} Jakarta.</p>
         <p>{row.provenance === 'reconstruction' ? 'Retrospective reconstruction. ' : ''}{row.note}</p>
         {row.target && <p>{row.target.kind === 'highlight' ? `Highlight ${row.target.reference} · ${row.target.source_id}` : `External Source ${row.target.reference}`}</p>}
         {row.journal_id && <p>Detailed Highlight research: {row.journal_id}</p>}
         {row.versions.length > 1 && <ol aria-label="Previous thesis versions">{row.versions.slice(0, -1).reverse().map(version => <li key={version.id}>
           <strong>{version.verdict}</strong> · as of {fullFormatter.format(new Date(version.as_of_utc))} · saved {fullFormatter.format(new Date(version.saved_utc))}
+          {version.change && <p>{version.change}: {version.change_reason}</p>}
           <p className="thesis-prose">{version.thesis} <Sources entry={version} /></p>{version.note && <p>{version.note}</p>}
         </li>)}</ol>}
         <button type="button" onClick={() => onCopy(row)}>Copy reassessment prompt</button>
@@ -39,38 +44,43 @@ const PastRow = memo(function PastRow({ row, onCopy }: { row: ThesisRow; onCopy:
   </tr>
 })
 function Head({ scope }: { scope: string }) {
-  return <><colgroup><col className="thesis-date-column" /><col className="thesis-verdict-column" /><col /></colgroup>
-    <thead><tr><th scope="col">Date / Event</th><th scope="col">{scope}</th><th scope="col">Thesis I would give</th></tr></thead></>
+  return <><colgroup><col className="thesis-date-column" /><col className="thesis-verdict-column" /><col className="thesis-change-column" /><col /></colgroup>
+    <thead><tr><th scope="col">Date / Time</th><th scope="col">Pair bias · {scope}</th><th scope="col">Thesis change</th><th scope="col">Explanation</th></tr></thead></>
 }
 
 export const ThesisDock = memo(function ThesisDock() {
   const [scope, setScope] = useState(readThesisPair)
+  const [month, setMonth] = useState(readThesisMonth)
   const [copyStatus, setCopyStatus] = useState('')
-  const { data, error, refresh } = useTheses(scope)
+  const { data, error, refresh } = useTheses(scope, month)
   // Clipboard completion must not show a status for a pair that has since changed.
-  const [copyContext, setCopyContext] = useState(scope)
+  const context = `${scope}:${month}`
+  const [copyContext, setCopyContext] = useState(context)
   const copy = useCallback(async (row?: ThesisRow) => {
-    try { await navigator.clipboard.writeText(thesisPrompt(scope, thesisMonth, row)); setCopyContext(scope); setCopyStatus('Prompt copied') }
-    catch { setCopyContext(scope); setCopyStatus('Could not copy prompt. Allow clipboard access and retry.') }
-  }, [scope])
+    try { await navigator.clipboard.writeText(thesisPrompt(scope, month, row)); setCopyContext(context); setCopyStatus('Prompt copied') }
+    catch { setCopyContext(context); setCopyStatus('Could not copy prompt. Allow clipboard access and retry.') }
+  }, [scope, month, context])
   return <section className="thesis-dock" aria-label="Thesis">
     <header className="thesis-header"><h2>Thesis</h2>
       <label>Pair <select aria-label="Thesis pair" value={scope} onChange={event => {
         setScope(event.target.value); setCopyStatus(''); try { localStorage.setItem('fyodor.thesis.pair.v1', event.target.value) } catch { /* Retain session choice. */ }
       }}>{majorForexPairs.map(pair => <option key={pair}>{pair}</option>)}</select></label>
-      <label>Month <select aria-label="Thesis month" value={thesisMonth} onChange={() => {}}><option value={thesisMonth}>JUL 2026</option></select></label>
+      <label>Month <select aria-label="Thesis month" value={month} onChange={event => {
+        setMonth(event.target.value); setCopyStatus(''); try { localStorage.setItem('fyodor.thesis.month.v1', event.target.value) } catch { /* Retain session choice. */ }
+      }}>{thesisMonths.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
       <span className="thesis-timezone">Jakarta · AM/PM</span>
       <button type="button" onClick={() => { void copy() }}>Copy assessment prompt</button><button type="button" onClick={refresh}>Refresh</button>
-      <span className="thesis-copy-status" role="status">{copyContext === scope ? copyStatus : ''}</span>
+      <span className="thesis-copy-status" role="status">{copyContext === context ? copyStatus : ''}</span>
     </header>
     <div className="thesis-scroll" tabIndex={0} aria-label="Monthly thesis assessments">
       {error && <p className="thesis-notice" role="alert">{error}{data ? ' Showing last loaded assessments.' : ''}</p>}
-      {!data && !error && <p className="thesis-notice" role="status">Loading July assessments…</p>}
+      {!data && !error && <p className="thesis-notice" role="status">Loading assessments…</p>}
       {data && <>
-        {data.past.some(row => row.provenance === 'reconstruction') && <p className="thesis-notice">Historical rows marked as reconstructions were researched retrospectively. The seeded July 1–15 table uses a 1:00 PM Jakarta cutoff, not contemporaneously saved calls. Sources and limitations are in each row’s details.</p>}
+        {data.past.some(row => row.provenance === 'reconstruction') && <p className="thesis-notice">Historical reconstructions use only evidence available by their stated cutoff. Unknown publication hours remain unverified; details retain the cutoff limits. The original July table keeps its earlier 1:00 PM convention.</p>}
+        {data.past.some(row => row.change) && <p className="thesis-notice">Thesis change describes the evidence for the earlier directional case, not currency strength, a price move or a probability. Weakened does not establish the opposite direction.</p>}
         <table className="thesis-table" aria-label="Past assessments"><caption>Past assessments <span>Newest first</span></caption><Head scope={scope} /><tbody>
           {data.past.map(row => <PastRow key={row.row_id} row={row} onCopy={copy} />)}
-          {!data.past.length && <tr><td colSpan={3} className="thesis-empty">No saved assessments for {scope} in July.</td></tr>}
+          {!data.past.length && <tr><td colSpan={4} className="thesis-empty">No saved assessments for {scope} in {thesisMonths.find(item => item.value === month)?.label}.</td></tr>}
         </tbody></table>
       </>}
     </div>

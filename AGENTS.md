@@ -197,13 +197,18 @@ folders live together under `Market Analyst Workflow/`.
 ### Highlight journal and archive scope
 
 - The Thesis dock only documents sourced assessments the user asks an agent to
-  save. It has a JUL 2026 month selector in v1; scheduling and upcoming releases
+  save. Its monthly selector offers JUL/OCT 2026; scheduling and upcoming releases
   remain in Alert. Follow [Thesis workflow](docs/THESIS.md) for an explicit save
   request or its copied assessment prompt: use `pnpm analyst thesis read/append`,
   preserve version history and real as-of/saved clocks, including outside the
   visible month. Invoking a release skill or receiving an Alert alone does not
   authorize a Thesis write. Existing release links and detailed journals remain
   separate from the compact assessment records and raw observations.
+  Pair bias and thesis change are separate: a weaker buy/sell case does not
+  establish the opposite direction. Save the earlier version ID, qualitative
+  change and its evidence; use actual invocation cutoffs or explicitly labelled
+  historical publication precision, never a fixed daily hour. Preserve July's
+  existing reconstruction without assigning retrospective change labels.
 
 - Alert automatically prepares one Invoke reminder two minutes before each timed stage for
   active timed Highlights and confirmed scheduled External Sources. Research and

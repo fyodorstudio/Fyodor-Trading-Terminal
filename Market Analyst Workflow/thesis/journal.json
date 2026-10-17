@@ -480,6 +480,472 @@
       "expected_version": null,
       "id": "a5c5e198cc994f8d8e71148b9517e3c6",
       "saved_utc": "2026-10-17T09:53:08.770616Z"
+    },
+    {
+      "scope": "NZDCHF",
+      "as_of_utc": "2026-10-01T06:30:00Z",
+      "title": "Swiss CPI / opening October backdrop",
+      "verdict": "SELL",
+      "thesis": "NZDCHF: SELL. NZ faces an energy-cost shock and an uneven domestic recovery, while CHF offers a defensive counterpart with a stronger Swiss growth backdrop. Swiss CPI is 1.0% year on year and flat on the month; that is not a fresh SNB tightening surprise. NZ's 2.75% OCR and gradual tightening bias versus the SNB's 0% remain the strongest argument against selling NZD.",
+      "horizon": "Intraday / following-session fundamental view",
+      "sources": [
+        {
+          "kind": "web",
+          "label": "FSO September CPI, published Oct 1",
+          "locator": "https://www.bwl.admin.ch/en/newnsb/wNfni1DvzKuQ",
+          "note": ""
+        },
+        {
+          "kind": "web",
+          "label": "SNB Sep 24 background",
+          "locator": "https://www.snb.ch/en/publications/communication/press-releases-restricted/pre_20260924",
+          "note": ""
+        },
+        {
+          "kind": "web",
+          "label": "RBNZ September background",
+          "locator": "https://www.rbnz.govt.nz/monetary-policy/monetary-policy-statement/monetary-policy-statements/2026/sep-0209/monetary-policy-statement-september-2026/web-version",
+          "note": ""
+        },
+        {
+          "kind": "web",
+          "label": "SECO Sep 17 background",
+          "locator": "https://www.seco.admin.ch/en/newnsb/JUhtHgdQzukb",
+          "note": ""
+        },
+        {
+          "kind": "web",
+          "label": "Bloomberg release clock / survey",
+          "locator": "https://ca.finance.yahoo.com/news/swiss-inflation-quickens-2-high-063000257.html",
+          "note": "Oct 1, 2:30 AM EDT = 1:30 PM Jakarta; 1.0% matched its attributed survey."
+        }
+      ],
+      "note": "Retrospective reconstruction researched on October 17, 2026, not a contemporaneously issued trade call. Only the identified sources available by this information cutoff inform this row. No candles/OHLC, subsequent NZDCHF returns or chart performance were used to choose the bias. Thesis change is qualitative evidence about the earlier directional case, not measured currency strength, cumulative scoring, pip distance or a probability. Selected developments are not a complete live news feed; an omitted day does not mean nothing happened. Horizon is intraday/following-session fundamentals. CPI release clock from dated Bloomberg reporting, corroborated by the local calendar index. The counterpart/haven channel is a macro inference at this cutoff, not a verified NZDCHF flow or measured reaction.",
+      "provenance": "reconstruction",
+      "change": "Baseline",
+      "change_reason": "Establishes the October SELL case; the July reconstruction is not used as its comparator.",
+      "compared_with": null,
+      "as_of_precision": "minute",
+      "target": null,
+      "journal_id": null,
+      "row_id": "5dcdab847a8a4d0f88859bf8f69b1efb",
+      "expected_version": null,
+      "id": "36b795280bdd4c2eb254aa6cee169b20",
+      "saved_utc": "2026-10-17T10:39:20.585971Z"
+    },
+    {
+      "scope": "NZDCHF",
+      "as_of_utc": "2026-10-05T16:59:59Z",
+      "title": "ANZ export-price update",
+      "verdict": "SELL",
+      "thesis": "The SELL case weakens as ANZ's world export commodity index rises 0.6% in September and the NZD-denominated index rises 2.8%. Export income is a cushion for NZ, so an unqualified domestic-collapse narrative is too bearish. The uplift does not itself establish a new RBNZ path or eliminate the energy/import shock relative to CHF.",
+      "horizon": "Intraday / following-session fundamental view",
+      "sources": [
+        {
+          "kind": "web",
+          "label": "ANZ October commodity report",
+          "locator": "https://www.anz.co.nz/content/dam/anzconz/documents/economics-and-market-research/2026/ANZ-CPI-20261005.pdf",
+          "note": ""
+        },
+        {
+          "kind": "web",
+          "label": "ANZ commodity release text",
+          "locator": "https://www.anz.co.nz/about-us/economic-markets-research/commodity-price-index/",
+          "note": ""
+        }
+      ],
+      "note": "Retrospective reconstruction researched on October 17, 2026, not a contemporaneously issued trade call. Only the identified sources available by this information cutoff inform this row. No candles/OHLC, subsequent NZDCHF returns or chart performance were used to choose the bias. Thesis change is qualitative evidence about the earlier directional case, not measured currency strength, cumulative scoring, pip distance or a probability. Selected developments are not a complete live news feed; an omitted day does not mean nothing happened. Horizon is intraday/following-session fundamentals. Source PDF is dated Oct 5; an independently verified publication hour was not established. Internal cutoff is the end of Oct 5 Jakarta, after the New Zealand source day. This is a date-only review, not an invented release or invocation time.",
+      "provenance": "reconstruction",
+      "change": "Weakened",
+      "change_reason": "Better export receipts reduce one source of NZD weakness; they do not remove imported-energy costs.",
+      "compared_with": "36b795280bdd4c2eb254aa6cee169b20",
+      "as_of_precision": "date",
+      "target": null,
+      "journal_id": null,
+      "row_id": "fa27bc9588f84cc89870acd77b3e2dc7",
+      "expected_version": null,
+      "id": "a039e803e06d45cca3d455d2c7b79e8e",
+      "saved_utc": "2026-10-17T10:39:20.590958Z"
+    },
+    {
+      "scope": "NZDCHF",
+      "as_of_utc": "2026-10-05T21:00:00Z",
+      "title": "NZIER Q3 business survey",
+      "verdict": "SELL",
+      "thesis": "NZIER confidence improves to a seasonally adjusted net 40%, but firms' own trading activity remains slightly negative and staffing was still being cut. Better intentions challenge a pessimistic NZ outlook; weak realised demand prevents calling that optimism a completed recovery. Keep SELL with this counterevidence visible rather than treating every positive survey field as a separate buy vote.",
+      "horizon": "Intraday / following-session fundamental view",
+      "sources": [
+        {
+          "kind": "web",
+          "label": "NZIER Oct 6 release",
+          "locator": "https://www.nzier.org.nz/publications/nziers-qsbo-shows-a-further-lift-in-business-confidence-despite-soft-activity",
+          "note": "Official embargo: Oct 6 at 10 AM New Zealand daylight time = 4 AM Jakarta."
+        }
+      ],
+      "note": "Retrospective reconstruction researched on October 17, 2026, not a contemporaneously issued trade call. Only the identified sources available by this information cutoff inform this row. No candles/OHLC, subsequent NZDCHF returns or chart performance were used to choose the bias. Thesis change is qualitative evidence about the earlier directional case, not measured currency strength, cumulative scoring, pip distance or a probability. Selected developments are not a complete live news feed; an omitted day does not mean nothing happened. Horizon is intraday/following-session fundamentals. Information cutoff is the official survey publication, not an observed agent-response time. This row uses the NZIER package alone; it does not import ANZ commentary published later that day.",
+      "provenance": "reconstruction",
+      "change": "Unchanged",
+      "change_reason": "Improved confidence and investment intentions compete with still-soft trading and employment; no decisive replacement of the risk/demand mechanism.",
+      "compared_with": "a039e803e06d45cca3d455d2c7b79e8e",
+      "as_of_precision": "minute",
+      "target": null,
+      "journal_id": null,
+      "row_id": "51d8c81e81ef4fbcb340941b5befd29f",
+      "expected_version": null,
+      "id": "3b8830dbe45545708b51e7e821055a69",
+      "saved_utc": "2026-10-17T10:39:20.594947Z"
+    },
+    {
+      "scope": "NZDCHF",
+      "as_of_utc": "2026-10-07T03:06:00Z",
+      "title": "GDT dairy auction follow-up",
+      "verdict": "SELL",
+      "thesis": "GDT's 1.2% rise, with stronger milk powders, weakens the NZDCHF sell thesis by improving NZ export receipts. The rebound almost reverses the prior auction's decline rather than proving a broad new boom; milk fats and cheese were weaker. It adds credible NZD support without confirming that CHF's defensive role or NZ's energy burden has disappeared.",
+      "horizon": "Intraday / following-session fundamental view",
+      "sources": [
+        {
+          "kind": "web",
+          "label": "Dated GDT follow-up",
+          "locator": "https://dairynews7x7.com/news/gdt-413-milk-powders-rise-while-milk-fats-stay-weak",
+          "note": "Oct 7 update 8:36 AM IST = 10:06 AM Jakarta; auction occurred Oct 6, not at this article time."
+        }
+      ],
+      "note": "Retrospective reconstruction researched on October 17, 2026, not a contemporaneously issued trade call. Only the identified sources available by this information cutoff inform this row. No candles/OHLC, subsequent NZDCHF returns or chart performance were used to choose the bias. Thesis change is qualitative evidence about the earlier directional case, not measured currency strength, cumulative scoring, pip distance or a probability. Selected developments are not a complete live news feed; an omitted day does not mean nothing happened. Horizon is intraday/following-session fundamentals. Uses the updated article clock, conservatively later than the auction. The broker's Oct 6 result time is not treated as a guaranteed official first-publication instant.",
+      "provenance": "reconstruction",
+      "change": "Weakened",
+      "change_reason": "The dairy-price recovery adds another export-income offset to the earlier SELL case.",
+      "compared_with": "3b8830dbe45545708b51e7e821055a69",
+      "as_of_precision": "minute",
+      "target": null,
+      "journal_id": null,
+      "row_id": "b816d86bfa5a46f8a65a5e641a1b9602",
+      "expected_version": null,
+      "id": "eab531c727154cccbe9c46e92b27f3eb",
+      "saved_utc": "2026-10-17T10:39:20.599934Z"
+    },
+    {
+      "scope": "NZDCHF",
+      "as_of_utc": "2026-10-09T16:59:59Z",
+      "title": "Review of Oct 8 Iran talks headline",
+      "verdict": "SELL",
+      "thesis": "The reported US pledge not to attack Iran before the midterms weakens the defensive CHF-over-NZD case. Productive talks could ease NZ's energy burden and reduce demand for safety. However, the blockade explicitly remains in place: a political statement is not confirmation of normal physical supply, so retain SELL rather than claiming a confirmed reversal to BUY.",
+      "horizon": "Intraday / following-session fundamental view",
+      "sources": [
+        {
+          "kind": "web",
+          "label": "Reuters / Anadolu reporting, Oct 8",
+          "locator": "https://tribune.com.pk/story/2633651/trump-says-iran-deal-isnt-really-something-that-i-want-to-do?amp=1",
+          "note": ""
+        }
+      ],
+      "note": "Retrospective reconstruction researched on October 17, 2026, not a contemporaneously issued trade call. Only the identified sources available by this information cutoff inform this row. No candles/OHLC, subsequent NZDCHF returns or chart performance were used to choose the bias. Thesis change is qualitative evidence about the earlier directional case, not measured currency strength, cumulative scoring, pip distance or a probability. Selected developments are not a complete live news feed; an omitted day does not mean nothing happened. Horizon is intraday/following-session fundamentals. The source gives Oct 8 without an independently verified hour. This conservative review uses the following Jakarta day-end; it is not an asserted Oct 8 intraday call or a precise event clock. No Oct 14-16 information is used here.",
+      "provenance": "reconstruction",
+      "change": "Weakened",
+      "change_reason": "A stated pause in US attacks reduces escalation risk, while an ongoing blockade limits the degree of relief.",
+      "compared_with": "eab531c727154cccbe9c46e92b27f3eb",
+      "as_of_precision": "date",
+      "target": null,
+      "journal_id": null,
+      "row_id": "6f930069cebc447bb0ddac3ea165eebe",
+      "expected_version": null,
+      "id": "5dc6f8d6b4994b87823381570e1987f1",
+      "saved_utc": "2026-10-17T10:39:20.604921Z"
+    },
+    {
+      "scope": "NZDCHF",
+      "as_of_utc": "2026-10-15T02:02:00Z",
+      "title": "Conway: upward OCR bias, next decision open",
+      "verdict": "SELL",
+      "thesis": "Conway's reported view that the OCR is most likely headed higher weakens the NZDCHF sell case. It keeps NZ's policy advantage over CHF relevant even while oil costs damage demand. The next decision remains open, so this is support for NZD rather than a confirmed October hike; the supply and growth risks still argue against declaring the opposite trade established.",
+      "horizon": "Intraday / following-session fundamental view",
+      "sources": [
+        {
+          "kind": "web",
+          "label": "Newsquawk Oct 15 public headline",
+          "locator": "https://www.newsquawk.com/headlines/rbnz-chief-economist-conway-says-new-zealand-is-feeling-the-effects-of-oil-price-shock-while-he-affirms-direction-of-the-ocr-is-most-likely-up-and-the-next-ocr-decision-is-wide-open",
+          "note": "Feed headline 01:42 UTC; public page 02:02 UTC = 9:02 AM Jakarta. Original interview delivery time is not independently verified."
+        },
+        {
+          "kind": "web",
+          "label": "Ebury Oct 15 NZ demand context",
+          "locator": "https://ebury.com/en-nz/resources/market-insights/kiwi-remains-range-bound",
+          "note": "Date-only context; not used for the precise 9:02 AM information set."
+        }
+      ],
+      "note": "Retrospective reconstruction researched on October 17, 2026, not a contemporaneously issued trade call. Only the identified sources available by this information cutoff inform this row. No candles/OHLC, subsequent NZDCHF returns or chart performance were used to choose the bias. Thesis change is qualitative evidence about the earlier directional case, not measured currency strength, cumulative scoring, pip distance or a probability. Selected developments are not a complete live news feed; an omitted day does not mean nothing happened. Horizon is intraday/following-session fundamentals. Only the Conway headline and previously established backdrop support the timed verdict. Ebury is retained as separately dated contextual evidence, not assumed public by 9:02 AM. Full interview/transcript was not independently available.",
+      "provenance": "reconstruction",
+      "change": "Weakened",
+      "change_reason": "Explicit tightening optionality supports NZD; uncertainty about the next meeting does not mean a dovish policy reversal.",
+      "compared_with": "5dc6f8d6b4994b87823381570e1987f1",
+      "as_of_precision": "minute",
+      "target": null,
+      "journal_id": null,
+      "row_id": "880f8f04d1e74578ad4548ee6084064e",
+      "expected_version": null,
+      "id": "bae11bacb4a54d55b007e577bb489327",
+      "saved_utc": "2026-10-17T10:39:20.609907Z"
+    },
+    {
+      "scope": "NZDCHF",
+      "as_of_utc": "2026-10-15T11:45:00Z",
+      "title": "Timed confirmation of IEA supply warning",
+      "verdict": "SELL",
+      "thesis": "The SELL case strengthens as the IEA describes a fragile Gulf supply recovery, renewed infrastructure/tanker attacks and strained diesel availability. That re-establishes a concrete imported-cost and demand problem for NZ against CHF's defensive role. The RBNZ may still tighten to contain spillovers, so the inflation shock is not mechanically bearish NZD through rates alone.",
+      "horizon": "Intraday / following-session fundamental view",
+      "sources": [
+        {
+          "kind": "web",
+          "label": "IEA Oct 14 report",
+          "locator": "https://www.iea.org/reports/oil-market-report-october-2026",
+          "note": ""
+        },
+        {
+          "kind": "web",
+          "label": "RTTNews Oct 15 timed coverage",
+          "locator": "https://www.rttnews.com/3699344/escalation-of-attacks-threatens-to-derail-recovery-in-middle-east-oil-exports-iea.aspx",
+          "note": "Published Oct 15, 7:45 AM ET = 6:45 PM Jakarta; conservative timed confirmation, not the report's original release hour."
+        }
+      ],
+      "note": "Retrospective reconstruction researched on October 17, 2026, not a contemporaneously issued trade call. Only the identified sources available by this information cutoff inform this row. No candles/OHLC, subsequent NZDCHF returns or chart performance were used to choose the bias. Thesis change is qualitative evidence about the earlier directional case, not measured currency strength, cumulative scoring, pip distance or a probability. Selected developments are not a complete live news feed; an omitted day does not mean nothing happened. Horizon is intraday/following-session fundamentals. The original IEA report is dated Oct 14 with no verified hour in the accessed page. The row is anchored to verified Oct 15 reporting; it does not pretend to identify the first moment the risk became public.",
+      "provenance": "reconstruction",
+      "change": "Strengthened",
+      "change_reason": "Documented physical supply/refining stress limits the earlier talks-based relief argument.",
+      "compared_with": "bae11bacb4a54d55b007e577bb489327",
+      "as_of_precision": "minute",
+      "target": null,
+      "journal_id": null,
+      "row_id": "33327280f0f94658814e51af75be3ea5",
+      "expected_version": null,
+      "id": "0d89c54fc0494e5dbef444153edcf2bf",
+      "saved_utc": "2026-10-17T10:39:20.615891Z"
+    },
+    {
+      "scope": "NZDCHF",
+      "as_of_utc": "2026-10-15T21:42:00Z",
+      "title": "NZ manufacturing release",
+      "verdict": "MIXED",
+      "thesis": "The previous SELL case weakens materially: NZ manufacturing rises to 56.5 from a release-day revised 53.3, with production, orders and employment all expanding. That is substantive evidence of resilience and keeps further RBNZ tightening credible. At this cutoff the household data package has not yet been released; retain MIXED against the energy/haven case rather than using later CHF reporting or forcing BUY.",
+      "horizon": "Intraday / following-session fundamental view",
+      "sources": [
+        {
+          "kind": "web",
+          "label": "BusinessNZ September PMI release",
+          "locator": "https://businessnz.org.nz/pmi/manufacturing-in-poll-position",
+          "note": ""
+        },
+        {
+          "kind": "web",
+          "label": "RTTNews publication clock / vintage",
+          "locator": "https://www.rttnews.com/3699560/new-zealand-manufacturing-sector-accelerates-in-september-businessnz.aspx",
+          "note": "Oct 15, 5:42 PM ET = Oct 16, 4:42 AM Jakarta. August revised from 53.1 to 53.3."
+        }
+      ],
+      "note": "Retrospective reconstruction researched on October 17, 2026, not a contemporaneously issued trade call. Only the identified sources available by this information cutoff inform this row. No candles/OHLC, subsequent NZDCHF returns or chart performance were used to choose the bias. Thesis change is qualitative evidence about the earlier directional case, not measured currency strength, cumulative scoring, pip distance or a probability. Selected developments are not a complete live news feed; an omitted day does not mean nothing happened. Horizon is intraday/following-session fundamentals. Uses a conservative verified news-publication cutoff after the scheduled 4:30 AM Jakarta release. The 4:45 AM card/SPI package and later October 16 CHF/Conway reporting are excluded from this row.",
+      "provenance": "reconstruction",
+      "change": "Weakened",
+      "change_reason": "Broad factory improvement materially challenges SELL; that still does not establish an opposite BUY mechanism.",
+      "compared_with": "0d89c54fc0494e5dbef444153edcf2bf",
+      "as_of_precision": "minute",
+      "target": null,
+      "journal_id": null,
+      "row_id": "40ff2b780d9f463d930d075f3c599526",
+      "expected_version": null,
+      "id": "d761e1fd8ff948cb82894262ccc27d6a",
+      "saved_utc": "2026-10-17T10:39:20.621875Z"
+    },
+    {
+      "scope": "NZDCHF",
+      "as_of_utc": "2026-10-16T09:13:00Z",
+      "title": "Household prices/spending and Conway follow-up",
+      "verdict": "MIXED",
+      "thesis": "Keep MIXED. The stronger manufacturing package is offset by retail card spending falling 0.4% and by fuel-price pressure on households. Conway is reported to have confidence that inflation is not broad-based, while also defending hikes as protection against spillovers. That reduces the case for treating every fuel increase as an urgent hike signal, but does not erase NZ's upward rate bias or establish a fresh opposite trade.",
+      "horizon": "Intraday / following-session fundamental view",
+      "sources": [
+        {
+          "kind": "web",
+          "label": "Newsquawk Oct 16 public headline",
+          "locator": "https://www.newsquawk.com/headlines/rbnz-chief-economist-conway-says-there-is-reasonable-confidence-that-inflation-has-not-become-broad-based-and-that-rate-hikes-help-contain-spillovers-from-an-energy-shock",
+          "note": "Provider headline 08:53 UTC; public page 09:13 UTC = 4:13 PM Jakarta. Original delivery time remains unverified."
+        },
+        {
+          "kind": "web",
+          "label": "Stats NZ selected price package",
+          "locator": "https://www.stats.govt.nz/information-releases/selected-price-indexes-september-2026/",
+          "note": "Published Oct 16 at 10:45 AM NZDT = 4:45 AM Jakarta. Petrol +6.4% m/m; food flat."
+        },
+        {
+          "kind": "web",
+          "label": "Card-spending release reporting",
+          "locator": "https://press.nz/stats-nz-card-spending-september-falls",
+          "note": "Dated October 16; quotes Stats NZ retail -0.4% and core -0.7%; exact article hour unverified. Release date/schedule corroborated with the official release listing and local calendar."
+        }
+      ],
+      "note": "Retrospective reconstruction researched on October 17, 2026, not a contemporaneously issued trade call. Only the identified sources available by this information cutoff inform this row. No candles/OHLC, subsequent NZDCHF returns or chart performance were used to choose the bias. Thesis change is qualitative evidence about the earlier directional case, not measured currency strength, cumulative scoring, pip distance or a probability. Selected developments are not a complete live news feed; an omitted day does not mean nothing happened. Horizon is intraday/following-session fundamentals. The paired interpretation reflects independently corroborated morning data and this public headline, not a full official Conway transcript. No numerical policy-market repricing is claimed. Evidence-date limitations remain explicit.",
+      "provenance": "reconstruction",
+      "change": "Unchanged",
+      "change_reason": "Weak consumption and contained inflation breadth offset the factory improvement; two opposing mechanisms remain.",
+      "compared_with": "d761e1fd8ff948cb82894262ccc27d6a",
+      "as_of_precision": "minute",
+      "target": null,
+      "journal_id": null,
+      "row_id": "872e0cdc036f4621b4dfc199b9f5f89e",
+      "expected_version": null,
+      "id": "0f5a7bce429545c080f56491f8301097",
+      "saved_utc": "2026-10-17T10:39:20.627859Z"
+    },
+    {
+      "scope": "NZDCHF",
+      "as_of_utc": "2026-10-16T11:38:00Z",
+      "title": "CHF-specific haven demand corroborated",
+      "verdict": "STRONG SELL",
+      "thesis": "NZDCHF: STRONG SELL. Reuters now specifically identifies CHF as a beneficiary of the AI/credit-risk shock and reports defensive demand alongside the zero-rate backdrop. Combined with NZ's imported-energy burden, that restores a dominant CHF-over-NZD mechanism over the near term. NZ's strong factory survey and live hike option remain real counterevidence; they do not remove the newly corroborated haven channel.",
+      "horizon": "Intraday / following-session fundamental view",
+      "sources": [
+        {
+          "kind": "web",
+          "label": "Reuters Oct 16 updated currency report",
+          "locator": "https://uk.marketscreener.com/news/euro-gets-much-needed-reprieve-as-ai-wobbles-rock-the-dollar-ce785dd3d08ffe23",
+          "note": "Page updated 12:38 PM BST = 6:38 PM Jakarta; this row uses that updated version, not the earlier 2:15 AM BST publication."
+        },
+        {
+          "kind": "web",
+          "label": "NZ factory counterevidence",
+          "locator": "https://businessnz.org.nz/pmi/manufacturing-in-poll-position",
+          "note": ""
+        },
+        {
+          "kind": "web",
+          "label": "Energy supply background",
+          "locator": "https://www.iea.org/reports/oil-market-report-october-2026",
+          "note": ""
+        }
+      ],
+      "note": "Retrospective reconstruction researched on October 17, 2026, not a contemporaneously issued trade call. Only the identified sources available by this information cutoff inform this row. No candles/OHLC, subsequent NZDCHF returns or chart performance were used to choose the bias. Thesis change is qualitative evidence about the earlier directional case, not measured currency strength, cumulative scoring, pip distance or a probability. Selected developments are not a complete live news feed; an omitted day does not mean nothing happened. Horizon is intraday/following-session fundamentals. The direction/strength is an analyst inference, not a measured NZDCHF move, a claim of direct bilateral flows or a probability. Reuters reported CHF behaviour against USD; the cross view combines that counterpart evidence with NZ fundamentals.",
+      "provenance": "reconstruction",
+      "change": "Materially strengthened",
+      "change_reason": "Fresh counterpart evidence makes the defensive CHF mechanism dominant again, beyond generic risk-off assumptions.",
+      "compared_with": "0f5a7bce429545c080f56491f8301097",
+      "as_of_precision": "minute",
+      "target": null,
+      "journal_id": null,
+      "row_id": "121125f6c5614a70915f9f2dca2ccb83",
+      "expected_version": null,
+      "id": "97788af4f4564b1289f383f63acfa9be",
+      "saved_utc": "2026-10-17T10:39:20.633843Z"
+    },
+    {
+      "scope": "NZDCHF",
+      "as_of_utc": "2026-10-17T10:39:20Z",
+      "title": "October 17 current review / reopening backdrop",
+      "verdict": "STRONG SELL",
+      "thesis": "Retain the CHF-over-NZD thesis into reopening: defensive demand for CHF and NZ's exposure to the fuel shock remain the dominant relative mechanism in the checked evidence. Strong NZ manufacturing and a possible RBNZ hike still challenge the short; a credible easing of supply/credit stress would weaken it. This is a current weekend backdrop, not a fresh Saturday release or an automatic continuation call based on July or subsequent price performance.",
+      "horizon": "Backdrop for the next market reopening; reassess on fresh information",
+      "sources": [
+        {
+          "kind": "web",
+          "label": "Latest corroborated CHF-specific report",
+          "locator": "https://uk.marketscreener.com/news/euro-gets-much-needed-reprieve-as-ai-wobbles-rock-the-dollar-ce785dd3d08ffe23",
+          "note": ""
+        },
+        {
+          "kind": "web",
+          "label": "NZ manufacturing counterevidence",
+          "locator": "https://businessnz.org.nz/pmi/manufacturing-in-poll-position",
+          "note": ""
+        },
+        {
+          "kind": "web",
+          "label": "Conway policy optionality",
+          "locator": "https://www.newsquawk.com/headlines/rbnz-chief-economist-conway-says-new-zealand-is-feeling-the-effects-of-oil-price-shock-while-he-affirms-direction-of-the-ocr-is-most-likely-up-and-the-next-ocr-decision-is-wide-open",
+          "note": ""
+        },
+        {
+          "kind": "web",
+          "label": "IEA supply backdrop",
+          "locator": "https://www.iea.org/reports/oil-market-report-october-2026",
+          "note": ""
+        }
+      ],
+      "note": "Actual research-as-of time on October 17; monitoring stops here. The preceding October rows are retrospective reconstructions. Checked evidence does not establish complete live headline or policy-interview coverage, and no later October 19-28 actuals are assumed. Detailed original Conway transcript and contemporaneous OIS repricing were unavailable. No new release or price-performance validation is claimed.",
+      "provenance": "assessment",
+      "change": "Unchanged",
+      "change_reason": "The last corroborated CHF-haven / NZ energy-demand case remains the supported backdrop in the checked sources; no new reversal is established.",
+      "compared_with": "97788af4f4564b1289f383f63acfa9be",
+      "as_of_precision": "minute",
+      "target": null,
+      "journal_id": null,
+      "row_id": "7e514d4195fb46aaae575af1c276e703",
+      "expected_version": null,
+      "id": "ec9c3240d94c46fd9aee230fea18f0cd",
+      "saved_utc": "2026-10-17T10:39:20.638830Z"
+    },
+    {
+      "scope": "NZDCHF",
+      "as_of_utc": "2026-10-15T02:02:00Z",
+      "title": "Conway: upward OCR bias, next decision open",
+      "verdict": "SELL",
+      "thesis": "Conway's reported view that the OCR is most likely headed higher weakens the NZDCHF sell case. It keeps NZ's policy advantage over CHF relevant even while oil costs damage demand. The next decision remains open, so this is support for NZD rather than a confirmed October hike; the supply and growth risks still argue against declaring the opposite trade established.",
+      "horizon": "Intraday / following-session fundamental view",
+      "sources": [
+        {
+          "kind": "web",
+          "label": "Newsquawk Oct 15 public headline",
+          "locator": "https://www.newsquawk.com/headlines/rbnz-chief-economist-conway-says-new-zealand-is-feeling-the-effects-of-oil-price-shock-while-he-affirms-direction-of-the-ocr-is-most-likely-up-and-the-next-ocr-decision-is-wide-open",
+          "note": "Feed headline 01:42 UTC; public page 02:02 UTC = 9:02 AM Jakarta. Original interview delivery time is not independently verified."
+        }
+      ],
+      "note": "Retrospective reconstruction using only previously known fundamentals and the Oct 15 Newsquawk public headline at 02:02 UTC. Original interview delivery time/full transcript unverified. Correction: removed a date-only Ebury context link whose availability by this timed cutoff was not established; verdict and interpretation unchanged. No subsequent NZDCHF returns or candles were used.",
+      "provenance": "reconstruction",
+      "change": "Weakened",
+      "change_reason": "Explicit tightening optionality supports NZD; uncertainty about the next meeting does not mean a dovish policy reversal.",
+      "compared_with": "5dc6f8d6b4994b87823381570e1987f1",
+      "as_of_precision": "minute",
+      "target": null,
+      "journal_id": null,
+      "row_id": "880f8f04d1e74578ad4548ee6084064e",
+      "expected_version": "bae11bacb4a54d55b007e577bb489327",
+      "id": "e6a670699b4746eb88c45b2e9f3fb7f0",
+      "saved_utc": "2026-10-17T10:41:00.133362Z"
+    },
+    {
+      "scope": "NZDCHF",
+      "as_of_utc": "2026-10-16T11:38:00Z",
+      "title": "CHF-specific haven demand corroborated",
+      "verdict": "STRONG SELL",
+      "thesis": "NZDCHF: STRONG SELL. Reuters now specifically identifies CHF as a beneficiary of the AI/credit-risk shock and reports defensive demand alongside the zero-rate backdrop. Combined with NZ's imported-energy burden, that restores a dominant CHF-over-NZD mechanism over the near term. NZ's strong factory survey and live hike option remain real counterevidence; they do not remove the newly corroborated haven channel.",
+      "horizon": "Intraday / following-session fundamental view",
+      "sources": [
+        {
+          "kind": "web",
+          "label": "Reuters Oct 16 updated currency report",
+          "locator": "https://uk.marketscreener.com/news/euro-gets-much-needed-reprieve-as-ai-wobbles-rock-the-dollar-ce785dd3d08ffe23",
+          "note": "Page updated 12:38 PM BST = 6:38 PM Jakarta; this row uses that updated version, not the earlier 2:15 AM BST publication."
+        },
+        {
+          "kind": "web",
+          "label": "NZ factory counterevidence",
+          "locator": "https://businessnz.org.nz/pmi/manufacturing-in-poll-position",
+          "note": ""
+        },
+        {
+          "kind": "web",
+          "label": "Energy supply background",
+          "locator": "https://www.iea.org/reports/oil-market-report-october-2026",
+          "note": ""
+        }
+      ],
+      "note": "Retrospective reconstruction researched on October 17, 2026, not a contemporaneously issued trade call. Only the identified sources available by this information cutoff inform this row. No candles/OHLC, subsequent NZDCHF returns or chart performance were used to choose the bias. Thesis change is qualitative evidence about the earlier directional case, not measured currency strength, cumulative scoring, pip distance or a probability. Selected developments are not a complete live news feed; an omitted day does not mean nothing happened. Horizon is intraday/following-session fundamentals. The direction/strength is an analyst inference, not a measured NZDCHF move, a claim of direct bilateral flows or a probability. Reuters reported CHF behaviour against USD; the cross view combines that counterpart evidence with NZ fundamentals. Correction: the comparison now references the last directional SELL version, not the intervening MIXED balance review. The verdict and source-supported explanation are unchanged.",
+      "provenance": "reconstruction",
+      "change": "Materially strengthened",
+      "change_reason": "Relative to the last directional SELL assessment on Oct 15, verified CHF-specific haven demand makes that case materially stronger. The intervening MIXED reviews acknowledged lost dominance, not an opposite BUY thesis.",
+      "compared_with": "0d89c54fc0494e5dbef444153edcf2bf",
+      "as_of_precision": "minute",
+      "target": null,
+      "journal_id": null,
+      "row_id": "121125f6c5614a70915f9f2dca2ccb83",
+      "expected_version": "97788af4f4564b1289f383f63acfa9be",
+      "id": "b988b0c7cf2148e1b28c3be74d908fed",
+      "saved_utc": "2026-10-17T10:42:41.671957Z"
     }
   ]
 }

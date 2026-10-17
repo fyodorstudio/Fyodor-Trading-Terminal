@@ -82,6 +82,21 @@ This illustrates catalyst dominance, not a standing EURCHF call or a verdict
 assigned from a later chart. An older policy decision alone should not dilute an
 active stress thesis; a fresh change in the expected policy path may challenge it.
 
+## Thesis change relative to an earlier assessment
+
+When a prior pair assessment is available, distinguish pair bias from the change
+in evidence for that earlier directional case. Use Materially strengthened,
+Strengthened, Unchanged, Weakened or Reversed, with one concise causal reason.
+Baseline starts a newly researched interval; legacy unassessed changes stay unknown.
+This is qualitative evidence magnitude, not a currency score, probability or
+forecast return. A weakened BUY can remain BUY or become MIXED; it is not by
+itself a SELL. Reversed requires a newly supported opposite buy/sell mechanism.
+Do not preserve a stance mechanically or rewrite history to match a later rally.
+Use actual invocation cutoffs; historical rows follow material information and
+verified publication timing rather than a fixed 1:00 PM daily snapshot. Unknown
+publication hours remain explicit. For a requested Thesis save, record the exact
+earlier version ID and change reason following docs/THESIS.md.
+
 ## Continuation, retracement or a changed thesis
 
 Reassess the dominant mechanism on every invocation. Fresh guidance can reduce
@@ -236,12 +251,14 @@ alignment alone does not rank pip distance, profitability or implied volatility.
 
 When the user or a Thesis dock prompt explicitly requests saving, follow the
 [Thesis workflow](../../../docs/THESIS.md). Read the pair/month first, then append
-the compact sourced verdict/thesis using the exact target or standalone row and
-latest predecessor. Preserve real research/saved clocks; the JUL-only display
+the compact sourced verdict/thesis, change and its comparison evidence using the
+exact target or standalone row and latest predecessor. Preserve real
+research/saved clocks; the selected month
 never authorizes backdating. A historical reconstruction is labelled as such.
 Link full Highlight research when available rather than duplicating its body.
-Do not create placeholders or upcoming rows. Answer in chat as usual and confirm the save or disclose a write failure without claiming
-the dock updated. Do not pin/archive or alter raw data to make a row appear.
+Do not create placeholders or upcoming rows. Answer in chat as usual and confirm
+the save or disclose a write failure without claiming the dock updated.
+Do not pin/archive or alter raw data to make a row appear.
 
 Answer in chat. Save research only when requested, preserving Before/After phases,
 append-only versions, user notes and raw observations; leave price_reaction empty.
