@@ -76,9 +76,7 @@ export const ThesisDock = memo(function ThesisDock() {
       {error && <p className="thesis-notice" role="alert">{error}{data ? ' Showing last loaded assessments.' : ''}</p>}
       {!data && !error && <p className="thesis-notice" role="status">Loading assessments…</p>}
       {data && <>
-        {data.past.some(row => row.provenance === 'reconstruction') && <p className="thesis-notice">Historical reconstructions use only evidence available by their stated cutoff. Unknown publication hours remain unverified; details retain the cutoff limits. The original July table keeps its earlier 1:00 PM convention.</p>}
-        {data.past.some(row => row.change) && <p className="thesis-notice">Thesis change describes the evidence for the earlier directional case, not currency strength, a price move or a probability. Weakened does not establish the opposite direction.</p>}
-        <table className="thesis-table" aria-label="Past assessments"><caption>Past assessments <span>Newest first</span></caption><Head scope={scope} /><tbody>
+        <table className="thesis-table" aria-label="Past assessments"><Head scope={scope} /><tbody>
           {data.past.map(row => <PastRow key={row.row_id} row={row} onCopy={copy} />)}
           {!data.past.length && <tr><td colSpan={4} className="thesis-empty">No saved assessments for {scope} in {thesisMonths.find(item => item.value === month)?.label}.</td></tr>}
         </tbody></table>

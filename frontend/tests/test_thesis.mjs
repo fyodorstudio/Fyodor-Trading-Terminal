@@ -68,7 +68,6 @@ try {
   assert.ok(rows()[0].textContent.includes('Jul 15, Wed'))
   assert.ok(rows().at(-1).textContent.includes('Jul 1, Wed'))
   assert.ok(rows()[0].textContent.includes('1:00 PM'))
-  assert.ok(container.textContent.includes('Historical reconstructions'))
   assert.ok(container.querySelectorAll('a[href^="https://"]').length > 15)
   assert.ok([...container.querySelectorAll('a')].every(node => node.rel.includes('noopener')))
   assert.equal(container.querySelectorAll('table').length, 1)

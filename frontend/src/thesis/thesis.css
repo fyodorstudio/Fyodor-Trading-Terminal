@@ -13,8 +13,6 @@
 .thesis-verdict-column { width: 12%; }
 .thesis-change-column { width: 18%; }
 .thesis-change p { margin: 6px 0 0; font-size: 12px; line-height: 1.6; }
-.thesis-table caption { text-align: left; font-size: 13px; font-weight: 600; color: var(--text-strong); padding: 15px 0 10px; }
-.thesis-table caption span { margin-left: 12px; font-weight: 400; font-size: 11px; color: var(--text-muted); }
 .thesis-table th { position: sticky; top: 0; z-index: 1; text-align: left; padding: 10px 16px 10px 0; color: var(--text-muted); background: var(--surface-panel); font-size: 11px; font-weight: 500; border-bottom: 1px solid var(--border); }
 .thesis-table td { vertical-align: top; padding: 18px 20px 18px 0; line-height: 1.8; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }
 .thesis-table td:last-child, .thesis-table th:last-child { padding-right: 0; }
