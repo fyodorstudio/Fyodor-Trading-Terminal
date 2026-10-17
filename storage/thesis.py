@@ -88,7 +88,7 @@ class ThesisRequest(Payload):
         if self.journal_id and (not self.target or self.target.kind != 'highlight'):
             raise ValueError('A detailed journal link needs its Highlight target')
         if self.target and self.target.event_at and self.as_of_utc < self.target.event_at:
-            raise ValueError('Release assessment cutoff cannot precede its event; leave upcoming theses empty')
+            raise ValueError('Release assessment cutoff cannot precede its event; do not save a release result before publication')
         if self.target and self.target.event_date and self.as_of_utc.astimezone(JAKARTA).date() < self.target.event_date:
             raise ValueError('Release assessment cannot precede its source date')
         return self
@@ -167,7 +167,7 @@ def append_thesis(store, request, path=PATH, pins_path=HIGHLIGHTS_PATH, external
         if target:
             stages = highlighted_stages(store, request.scope, request.target.source_id, pins_path, external_directory, visibility='all')
             if not any(target_key(row['target']) == target_key(target) for row in stages):
-                raise ValueError('Occurrence, pair or stage changed; refresh the pending Thesis row before saving')
+                raise ValueError('Occurrence, pair or stage changed; verify the linked release before saving')
         row_id = request.row_id
         if not row_id and target:
             row_id = next((key for key, item in latest.items() if item['scope'] == request.scope and item['target'] == target), None)
@@ -212,13 +212,7 @@ def thesis_snapshot(store, scope, month, source_id=None, path=PATH, pins_path=HI
     past = [{**history[-1], 'versions': history} for history in groups.values()
         if datetime.fromisoformat(history[-1]['as_of_utc']).astimezone(JAKARTA).strftime('%Y-%m') == month]
     past.sort(key=lambda item: (item['as_of_utc'], item['saved_utc'], item['row_id']), reverse=True)
-    assessed = {target_key(history[-1]['target']) for history in groups.values() if history[-1]['target']}
-    pending = [row for row in highlighted_stages(store, scope, source_id, pins_path, external_directory)
-        if row['date'].startswith(month) and target_key(row['target']) not in assessed]
-    pending.sort(key=lambda row: (row['date'], row['target']['event_at'] or '', target_key(row['target'])))
-    for row in pending:
-        row['key'] = hashlib.sha256(target_key(row['target']).encode()).hexdigest()
-    content = {'schema': 1, 'scope': scope, 'month': month, 'source_id': source_id, 'past': past, 'pending': pending}
+    content = {'schema': 1, 'scope': scope, 'month': month, 'source_id': source_id, 'past': past}
     revision = hashlib.sha256(json.dumps(content, sort_keys=True).encode()).hexdigest()
     return {'schema': 1, 'scope': scope, 'month': month, 'source_id': source_id, 'revision': revision,
-            **({'unchanged': True} if revision == after_revision else {'past': past, 'pending': pending})}
+            **({'unchanged': True} if revision == after_revision else {'past': past})}

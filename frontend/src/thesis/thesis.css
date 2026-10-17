@@ -31,7 +31,6 @@
 .thesis-details p { margin: 8px 0; }
 .thesis-details ol { padding-left: 20px; }
 .thesis-details li { margin-bottom: 14px; }
-.thesis-copy-release { margin-top: 10px; }
 .thesis-table .thesis-empty { font-size: 12px; color: var(--text-muted); padding: 20px 0; }
 @media (max-width: 800px) {
   .thesis-header { padding: 8px 12px; gap: 8px; }

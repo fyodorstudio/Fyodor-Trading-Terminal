@@ -17,23 +17,17 @@ for (const [key, value] of Object.entries(globals)) Object.defineProperty(global
 let id = 0, revision = 'one', offline = false, malformed = false, hold = false
 const timers = new Map(), requests = [], held = []
 const realNow = Date.now
-let now = Date.parse('2026-07-16T05:59:59Z')
-Date.now = () => now
+Date.now = () => Date.parse('2026-07-16T05:59:59Z')
 dom.setTimeout = (fn, ms) => { timers.set(++id, { fn, ms }); return id }
 dom.clearTimeout = key => timers.delete(key)
 const seed = JSON.parse(fs.readFileSync(path.join(frontend, '../Market Analyst Workflow/thesis/journal.json'), 'utf8')).entries
 let past = [...seed].reverse().map(entry => ({ ...entry, versions: [entry] }))
-let pending = [
-  { key: 'decision', title: 'Policy stages', stage: 'Decision', date: '2026-07-16', target: { kind: 'highlight', reference: 'a'.repeat(32), source_id: 'Broker', event_at: '2026-07-16T06:00:00Z', event_date: null } },
-  { key: 'conference', title: 'Policy stages', stage: 'Press conference', date: '2026-07-16', target: { kind: 'highlight', reference: 'a'.repeat(32), source_id: 'Broker', event_at: '2026-07-16T07:00:00Z', event_date: null } },
-  { key: 'external', title: 'Swiss date-only release', stage: 'External Source', date: '2026-07-17', target: { kind: 'external', reference: 'swiss-stage', source_id: null, event_at: null, event_date: '2026-07-17' } },
-]
 const response = route => {
   if (offline) return { ok: false, status: 503, json: async () => ({}) }
   const scope = route.searchParams.get('scope'), sourceId = route.searchParams.get('source_id')
   const base = { schema: 1, scope, month: '2026-07', source_id: sourceId, revision }
   return { ok: true, json: async () => route.searchParams.get('after_revision') === revision ? { ...base, unchanged: true }
-    : { ...base, past: malformed ? [{}] : scope === 'NZDCHF' ? past : [], pending: scope === 'NZDCHF' ? pending : [] } }
+    : { ...base, past: malformed ? [{}] : scope === 'NZDCHF' ? past : [] } }
 }
 globalThis.fetch = async (url, options = {}) => {
   const route = new URL(String(url), 'http://localhost'); requests.push({ route, options })
@@ -54,7 +48,7 @@ const poll = async () => {
 try {
   const { ThesisDock } = await server.ssrLoadModule('./src/thesis/ThesisDock.tsx')
   const { thesisPrompt, validThesisSnapshot } = await server.ssrLoadModule('./src/thesis/thesis-model.ts')
-  await React.act(async () => root.render(React.createElement(ThesisDock, { brokerId: 'Broker' })))
+  await React.act(async () => root.render(React.createElement(ThesisDock)))
   assert.equal(container.querySelector('[aria-label="Thesis pair"]').value, 'NZDCHF')
   assert.equal(container.querySelectorAll('[aria-label="Thesis pair"] option').length, 28)
   assert.deepEqual([...container.querySelector('[aria-label="Thesis month"]').options].map(option => option.textContent), ['JUL 2026'])
@@ -66,18 +60,11 @@ try {
   assert.ok(container.textContent.includes('researched retrospectively'))
   assert.ok(container.querySelectorAll('a[href^="https://"]').length > 15)
   assert.ok([...container.querySelectorAll('a')].every(node => node.rel.includes('noopener')))
-  const pendingRows = () => [...container.querySelectorAll('[data-thesis-pending]')]
-  assert.equal(pendingRows().length, 3)
-  for (const row of pendingRows()) {
-    assert.equal(row.querySelector('[aria-label="Verdict pending"]').textContent, '')
-    assert.equal(row.querySelector('[aria-label="Thesis pending"]').textContent, '')
-  }
-  assert.ok(pendingRows()[0].textContent.includes('Upcoming'))
-  await click(pendingRows()[0].querySelector('button'))
-  assert.ok(copied.includes('$one-minute-before-release'))
-  assert.ok(copied.includes('"event_at":"2026-07-16T06:00:00Z"'))
-  assert.ok(copied.includes('This prompt authorizes that save'))
-  assert.ok(copied.includes('never backdate'))
+  assert.equal(container.querySelectorAll('table').length, 1)
+  assert.equal(container.querySelector('[aria-label="Upcoming highlighted events"]'), null)
+  assert.ok(!container.textContent.includes('Upcoming rows follow active pins'))
+  assert.ok(!container.textContent.includes('MT5 Highlight rows need'))
+  assert.equal(button('Copy release prompt'), undefined)
   await click(button('Copy assessment prompt'))
   assert.ok(copied.includes('$assess-trade-now'))
   assert.ok(copied.includes('target null'))
@@ -86,19 +73,13 @@ try {
   await poll()
   assert.equal(rows()[0], originalRow)
   assert.equal(rows()[0].querySelector('details').open, true, 'Unchanged polls retain expanded details')
-  now += 2000
-  const [boundaryKey, boundary] = [...timers].find(([, value]) => value.ms === 1001)
-  timers.delete(boundaryKey); await React.act(async () => boundary.fn())
-  assert.ok(pendingRows()[0].textContent.includes('Awaiting assessment'))
-  assert.equal(pendingRows()[0].querySelector('[aria-label="Thesis pending"]').textContent, '', 'Elapsed time cannot create a verdict/thesis')
-  const target = pending[0].target
+  const target = { kind: 'highlight', reference: 'a'.repeat(32), source_id: 'Broker', event_at: '2026-07-16T06:00:00Z', event_date: null }
   const entry = { ...seed[0], id: 'b'.repeat(32), row_id: 'c'.repeat(32), as_of_utc: '2026-07-16T06:00:01Z', saved_utc: '2026-07-16T06:00:02Z',
     title: 'Decision assessment', target, provenance: 'assessment', note: '', verdict: 'SELL', thesis: 'Fresh supported release thesis.' }
   const corrected = { ...entry, id: 'd'.repeat(32), expected_version: entry.id, verdict: 'BUY', thesis: 'Verified correction.' }
-  past = [{ ...corrected, versions: [entry, corrected] }, ...past]; pending = pending.slice(1); revision = 'two'
+  past = [{ ...corrected, versions: [entry, corrected] }, ...past]; revision = 'two'
   await poll()
   assert.equal(rows().length, 16)
-  assert.equal(pendingRows().length, 2)
   assert.equal(rows()[1], originalRow, 'Unchanged past rows survive a different release update')
   assert.ok(rows()[0].textContent.includes('Verified correction.'))
   assert.ok(rows()[0].querySelector('[aria-label="Previous thesis versions"]').textContent.includes('Fresh supported release thesis.'))
@@ -113,10 +94,10 @@ try {
   assert.equal(rows().length, 16)
   malformed = false; await poll()
   // Untrusted source markup is rejected, not placed in an anchor.
-  const unsafe = { schema: 1, scope: 'NZDCHF', month: '2026-07', source_id: 'Broker', revision: 'unsafe', pending: [],
+  const unsafe = { schema: 1, scope: 'NZDCHF', month: '2026-07', source_id: null, revision: 'unsafe',
     past: [{ ...entry, sources: [{ kind: 'web', label: 'Unsafe', locator: 'javascript:alert(1)', note: '' }], versions: [entry] }] }
-  assert.equal(validThesisSnapshot(unsafe, 'NZDCHF', '2026-07', 'Broker'), false)
-  assert.ok(!thesisPrompt('NZDCHF', '2026-07', null, { ...pending[1] }).includes('--broker'))
+  assert.equal(validThesisSnapshot(unsafe, 'NZDCHF', '2026-07', null), false)
+  assert.ok(!thesisPrompt('NZDCHF', '2026-07').includes('--broker'))
   const pair = container.querySelector('[aria-label="Thesis pair"]')
   hold = true
   await click(button('Refresh'))
@@ -129,11 +110,10 @@ try {
   assert.ok(container.textContent.includes('No saved assessments for EURUSD'))
   await React.act(async () => root.render(null))
   assert.equal(timers.size, 0)
-  await React.act(async () => root.render(React.createElement(ThesisDock, { brokerId: null })))
+  await React.act(async () => root.render(React.createElement(ThesisDock)))
   assert.equal(container.querySelector('[aria-label="Thesis pair"]').value, 'EURUSD', 'Independent pair choice persists')
-  assert.ok(container.textContent.includes('Saved theses and External Source pins remain available'))
-  assert.ok(requests.every(({ route, options }) => route.pathname === '/storage-api/theses' && !options.method), 'Dock only reads compact research; no candle/raw/pin writes')
-  console.log('✓ Thesis: July seed, pair/month, safe sources, empty stages, exact prompts, updates/history, stable polls, errors and stale-reply cleanup')
+  assert.ok(requests.every(({ route, options }) => route.pathname === '/storage-api/theses' && !route.searchParams.has('source_id') && !options.method), 'Dock only reads compact research; no candle/raw/pin writes')
+  console.log('✓ Thesis: July seed, pair/month, safe sources, saved-only table, assessment prompts, updates/history, stable polls, errors and stale-reply cleanup')
 } finally {
   await React.act(async () => root.unmount())
   assert.equal(timers.size, 0)

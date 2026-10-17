@@ -291,15 +291,17 @@ def run(args):
     if getattr(args, 'offset', 0) < 0:
         raise ValueError('Offset must be non-negative')
     if args.command == 'thesis':
+        if args.action == 'read':
+            return thesis_snapshot(None, args.scope, args.month, args.broker)
+        if not args.input:
+            raise ValueError('Append needs --input with a ThesisRequest JSON file')
+        request = ThesisRequest.model_validate_json(local_path(args.input).read_text(encoding='utf-8-sig'))
+        if request.scope != args.scope or request.target and request.target.kind == 'highlight' and request.target.source_id != args.broker:
+            raise ValueError('Thesis request pair/broker differs from the command')
+        if request.target is None:
+            return append_thesis(None, request)
         with closing(CalendarStore(local_path(args.database), readonly=True)) as store:
-            if args.action == 'append':
-                if not args.input:
-                    raise ValueError('Append needs --input with a ThesisRequest JSON file')
-                request = ThesisRequest.model_validate_json(local_path(args.input).read_text(encoding='utf-8-sig'))
-                if request.scope != args.scope or request.target and request.target.kind == 'highlight' and request.target.source_id != args.broker:
-                    raise ValueError('Thesis request pair/broker differs from the command')
-                return append_thesis(store, request)
-            return thesis_snapshot(store, args.scope, args.month, args.broker)
+            return append_thesis(store, request)
     if args.command == 'external':
         if args.action == 'append':
             if not args.input:

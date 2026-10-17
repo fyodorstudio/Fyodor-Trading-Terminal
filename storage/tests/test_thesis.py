@@ -8,7 +8,7 @@ from test_research_reports import event
 from storage.app import create_app
 from storage.external_sources import ExternalRequest, append_external, archive_external
 from storage.highlights import HighlightRequest, pin_release, archive_pin
-from storage.thesis import ThesisRequest, append_thesis, read_theses, thesis_snapshot, PATH
+from storage.thesis import ThesisRequest, append_thesis, read_theses, thesis_snapshot, highlighted_stages, PATH
 
 
 class ThesisTests(TestCase):
@@ -32,6 +32,9 @@ class ThesisTests(TestCase):
     def snapshot(self, **overrides):
         return thesis_snapshot(self.store, **{**dict(scope='NZDCHF', month='2026-07', source_id='Elev8-Demo2',
             path=self.path, pins_path=self.pins, external_directory=self.external), **overrides})
+
+    def stages(self, scope='NZDCHF', source_id='Elev8-Demo2'):
+        return highlighted_stages(self.store, scope, source_id, self.pins, self.external)
 
     def seed_pin(self):
         at = int(datetime(2026, 7, 8, 2, tzinfo=timezone.utc).timestamp())
@@ -65,22 +68,21 @@ class ThesisTests(TestCase):
         with self.assertRaises(ValueError):
             read_theses(self.path)
 
-    def test_exact_stages_save_moves_only_matching_row_and_preserves_raw_data(self):
+    def test_explicit_stage_save_preserves_raw_data_and_history(self):
         self.paths(); identity = self.seed_pin()
-        snap = self.snapshot()
-        self.assertEqual(len(snap['pending']), 2)
-        self.assertEqual([row['stage'] for row in snap['pending']], ['Decision', 'Press conference'])
-        self.assertEqual(self.snapshot(source_id='OtherBroker')['pending'], [])
-        self.assertEqual(self.snapshot(scope='EURUSD')['pending'], [])
+        stages = self.stages()
+        self.assertEqual(len(stages), 2)
+        self.assertEqual([row['stage'] for row in stages], ['Decision', 'Press conference'])
+        self.assertEqual(self.stages(source_id='OtherBroker'), [])
+        self.assertEqual(self.stages(scope='EURUSD'), [])
         before = self.pins.read_bytes()
         revision = self.store.status()['revision']
-        target = snap['pending'][0]['target']
+        target = self.stages()[0]['target']
         with self.assertRaises(ValueError):
             self.request(target=target, as_of_utc='2026-07-08T01:59:00Z')
         saved = self.save(target=target, as_of_utc='2026-07-08T02:05:00Z', title='RBNZ decision')
         updated = self.snapshot()
-        self.assertEqual(len(updated['pending']), 1)
-        self.assertEqual(updated['pending'][0]['stage'], 'Press conference')
+        self.assertNotIn('pending', updated)
         self.assertEqual(updated['past'][0]['row_id'], saved['row_id'])
         with self.assertRaises(ValueError):
             self.save(target=target)
@@ -89,50 +91,42 @@ class ThesisTests(TestCase):
         self.assertEqual(self.pins.read_bytes(), before)
         self.assertEqual(self.store.status()['revision'], revision)
         archive_pin(identity, 'Elev8-Demo2', self.pins, self.store)
-        self.assertEqual(self.snapshot()['pending'], [])
         self.assertEqual(len(self.snapshot()['past']), 1)
 
     def test_rescheduled_target_rejected_and_unknown_hour_preserved(self):
         self.paths(); self.seed_pin()
-        target = self.snapshot()['pending'][0]['target']
+        target = self.stages()[0]['target']
         at = int(datetime(2026, 7, 9, 2, tzinfo=timezone.utc).timestamp())
         self.add([event('one', at=at, currency='NZD', country_code='NZ', name='Rescheduled decision', revision=1)])
         with self.assertRaises(ValueError):
             self.save(target=target)
         self.add([event('one', at=at, currency='NZD', country_code='NZ', time_mode=1, revision=2)])
-        row = next(row for row in self.snapshot()['pending'] if row['target']['event_date'])
+        row = next(row for row in self.stages() if row['target']['event_date'])
         self.assertIsNone(row['target']['event_at'])
         self.assertEqual(row['date'], '2026-07-09')
         # Tentative series metadata can retain time_mode=3 after a numerical
         # publication. Reuse the storage clock contract for its verified clock.
         self.add([event('one', at=at, currency='NZD', country_code='NZ', time_mode=3, revision=3)])
-        row = next(row for row in self.snapshot()['pending'] if row['stage'] != 'Press conference')
+        row = next(row for row in self.stages() if row['stage'] != 'Press conference')
         self.assertIsNotNone(row['target']['event_at'])
         self.assertIsNone(row['target']['event_date'])
 
-    def test_external_pagination_source_date_and_month_boundary(self):
+    def test_optional_external_link_preserved_without_pending_reads(self):
         self.paths()
         source = dict(kind='web', label='Official', locator='https://www.snb.ch/')
         record = ExternalRequest(key='swiss-stage', title='Swiss date-only release', currencies=['CHF'], kind='scheduled',
             status='confirmed', event_date='2026-07-20', facts='Scheduled release', time_note='Hour unknown', sources=[source])
         saved = append_external(record, self.external)
-        snap = self.snapshot(source_id=None)
-        target = snap['pending'][0]['target']
+        target = self.stages(source_id=None)[0]['target']
         self.assertEqual(target['event_date'], '2026-07-20')
         self.assertIsNone(target['event_at'])
         self.save(target=target, as_of_utc='2026-07-20T06:00:00Z')
-        self.assertEqual(self.snapshot()['pending'], [])
         archive_external(record.key, saved['id'], self.external)
         self.assertEqual(len(self.snapshot()['past']), 1)
-        # The first external page must not truncate the pending list. Also test
-        # exact instants near UTC/Jakarta month boundaries and unassigned watches.
-        pages = [dict(items=[dict(key='edge', title='July Jakarta', status='confirmed', event_at='2026-06-30T18:00:00Z', event_date=None)], next_offset=500),
-                 dict(items=[dict(key='tail', title='Page two', status='reported', event_at=None, event_date='2026-07-21'),
-                             dict(key='watch', title='Unscheduled', status='reported', event_at=None, event_date=None)], next_offset=None)]
-        with patch('storage.thesis.external_snapshot', side_effect=pages) as query:
-            rows = self.snapshot(source_id=None)['pending']
-        self.assertEqual([row['title'] for row in rows], ['July Jakarta', 'Page two'])
-        self.assertEqual(query.call_args_list[1].kwargs['offset'], 500)
+        with patch('storage.thesis.highlighted_stages', side_effect=AssertionError('Thesis reads must not query pins')):
+            snapshot = self.snapshot(source_id=None)
+        self.assertNotIn('pending', snapshot)
+        self.assertEqual(len(snapshot['past']), 1)
 
     def test_validation_and_read_only_api(self):
         self.paths(); self.save()

@@ -39,7 +39,7 @@ Optional `FYODOR_BRIDGE_API_URL` / `FYODOR_STORAGE_API_URL` override Vite's prox
 | external-sources | Separate outside-feed events/headlines/watch items, sourced facts, history, limitations reference and agent prompts |
 | events-alarms / storage/alarms | Shared dock, per-pin invocation alarms and independent Windows alarm delivery |
 | entry-trade | Manual execution plans, all-pair pins, draggable chart levels and independent saved journals |
-| thesis / storage/thesis.py | Monthly pair theses, pending Highlight stages, copied prompts and append-only assessment versions |
+| thesis / storage/thesis.py | Monthly saved pair theses, copied assessment prompts and append-only versions |
 | research | Chart date selection and named Markdown handoff shared with Alert |
 | Market Analyst Workflow/tools (repo root) | Read-only calendar, upcoming/Highlight/report queries, journal/lifecycle writes and bounded OHLC capture |
 | appearance, system-connectivity, system-observability, workspace-docking | Theme/time, bridge status, Activity and dock geometry |
@@ -107,12 +107,11 @@ choices fall back to raw tables; filters/icons/colors stay intact. No Workspace
 backup UI, scoring engines, full Notebook workflow, Scatter Plot or experimental
 context tools are included.
 
-**Thesis** is a separate bottom dock for readable pair assessments and pending
-Highlight stages. V1 offers only **JUL 2026**, with the reconstructed July 1–15
-NZDCHF table. Pair choice is independent of the chart. Copy a pending row's release
-prompt to assess and save its thesis; elapsed time alone leaves it blank. Sources,
-as-of/saved times and prior versions are expandable. See [Thesis workflow](docs/THESIS.md)
-for the agent interface and tracked compact records.
+**Thesis** documents agent assessments explicitly requested by the user, newest
+first, independently of the chart. V1 offers only **JUL 2026**, with the July 1–15
+NZDCHF reconstruction. Sources, as-of/saved times and prior versions are
+expandable. Upcoming releases remain in Alert. See [Thesis workflow](docs/THESIS.md)
+for the copied assessment prompt and agent save interface.
 
 **Entry Trade** is a manual trade journal. Save an entry at any stage, choose
 Waiting/Long/Short freely, use the broker quote for Entry, and enter SL/TP in any

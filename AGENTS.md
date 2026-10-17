@@ -196,15 +196,14 @@ folders live together under `Market Analyst Workflow/`.
 
 ### Highlight journal and archive scope
 
-- The Thesis dock is a compact, read-only pair/month view with a JUL 2026 selector
-  in v1. The user-authorized workflow saves a supported `one-minute-before-release`
-  verdict for a resolved pair into its matching pinned Thesis stage. A copied
-  Thesis prompt also authorizes its requested save. Follow [Thesis workflow](docs/THESIS.md):
-  use `pnpm analyst thesis read/append`, preserve the exact target and version
-  predecessor, and save only a supported sourced assessment. Pending rows stay
-  blank until assessed; elapsed time is not actuals. Preserve real as-of/saved
-  clocks, including outside the visible month. Compact records are separate from
-  raw data and full journals; link a detailed journal ID when available.
+- The Thesis dock only documents sourced assessments the user asks an agent to
+  save. It has a JUL 2026 month selector in v1; scheduling and upcoming releases
+  remain in Alert. Follow [Thesis workflow](docs/THESIS.md) for an explicit save
+  request or its copied assessment prompt: use `pnpm analyst thesis read/append`,
+  preserve version history and real as-of/saved clocks, including outside the
+  visible month. Invoking a release skill or receiving an Alert alone does not
+  authorize a Thesis write. Existing release links and detailed journals remain
+  separate from the compact assessment records and raw observations.
 
 - Alert automatically prepares one Invoke reminder two minutes before each timed stage for
   active timed Highlights and confirmed scheduled External Sources. Research and

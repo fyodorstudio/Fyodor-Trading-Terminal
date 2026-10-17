@@ -8,8 +8,9 @@ calculates currency scores or modifies source observations.
 
 The separate [Thesis dock](THESIS.md) reads compact, agent-authored pair assessments
 from Git-tracked `Market Analyst Workflow/thesis/journal.json`, retaining prior
-versions and distinct research/release/saved clocks. Its pending rows project
-active pins without changing their lifecycle, raw values or full research journals.
+versions and distinct research/release/saved clocks. It displays only saved
+assessments; Alert owns upcoming events. Thesis reads do not query active pins,
+raw values or full research journals.
 
 Outside-feed events are stored separately as immutable versions under
 `Market Analyst Workflow/external-sources/`; they never enter calendar observations,

@@ -10,8 +10,7 @@ export type ThesisEntry = {
   note: string; provenance: 'assessment' | 'reconstruction'; target: ThesisTarget | null; journal_id: string | null
 }
 export type ThesisRow = ThesisEntry & { versions: ThesisEntry[] }
-export type PendingThesis = { key: string; title: string; stage: string; date: string; target: ThesisTarget }
-export type ThesisSnapshot = { schema: 1; scope: string; month: string; source_id: string | null; revision: string; past: ThesisRow[]; pending: PendingThesis[] }
+export type ThesisSnapshot = { schema: 1; scope: string; month: string; source_id: string | null; revision: string; past: ThesisRow[] }
 
 const timestamp = (value: unknown): value is string => typeof value === 'string' && Number.isFinite(Date.parse(value)) && /(?:Z|[+-]\d\d:\d\d)$/.test(value)
 const text = (value: unknown): value is string => typeof value === 'string'
@@ -41,23 +40,21 @@ export function validThesisSnapshot(value: unknown, scope: string, month: string
   return data.schema === 1 && data.scope === scope && data.month === month && data.source_id === sourceId && !!data.revision
     && Array.isArray(data.past) && data.past.every(item => validEntry(item, scope) && Array.isArray(item.versions)
       && item.versions.length > 0 && item.versions.every(entry => validEntry(entry, scope) && entry.row_id === item.row_id))
-    && Array.isArray(data.pending) && data.pending.every(row => row && ['key', 'title', 'stage', 'date'].every(key => text(row[key as keyof PendingThesis])) && validTarget(row.target))
 }
 export function readThesisPair() {
   try { const pair = localStorage.getItem('fyodor.thesis.pair.v1'); if (pair && majorForexPairs.includes(pair)) return pair } catch { /* Session default. */ }
   return 'NZDCHF'
 }
 
-export function thesisPrompt(scope: string, month: string, brokerId: string | null, row?: PendingThesis | ThesisRow) {
-  const pending = row && 'key' in row ? row : null
-  const assessment = row && 'row_id' in row ? row : null
+export function thesisPrompt(scope: string, month: string, row?: ThesisRow) {
+  const assessment = row
   const target = row?.target ?? null
-  const skill = pending ? '$one-minute-before-release at .agents/skills/one-minute-before-release/SKILL.md' : '$assess-trade-now at .agents/skills/assess-trade-now/SKILL.md'
-  const broker = target?.source_id ?? brokerId
-  return `Follow AGENTS.md and use ${skill}. Assess ${scope} ${pending ? 'for this exact release' : 'as of now'}; intraday horizon unless I specify otherwise. The Thesis dock is displaying ${month}; that display month is not an instruction to pretend today is in the past.\n\n` +
+  const skill = '$assess-trade-now at .agents/skills/assess-trade-now/SKILL.md'
+  const broker = target?.source_id
+  return `Follow AGENTS.md and use ${skill}. Assess ${scope} as of now; intraday horizon unless I specify otherwise. The Thesis dock is displaying ${month}; that display month is not an instruction to pretend today is in the past.\n\n` +
     (target ? `Occurrence: ${target.kind} ${target.reference}${target.source_id ? `, broker ${target.source_id}` : ''}. Title: ${row!.title}. Target stage (UTC internally): ${JSON.stringify(target)}. Verify the official timing, publication stages and fresh actuals.\n\n` : '') +
     `Research both currencies on the web; local calendar readings and saved research are optional except for identifying a named Highlight. No candles/OHLC. Reuse prepared context and verify decisive facts. A passed release time is not proof actuals arrived. Answer in chat using the skill's current format.\n\n` +
     `Also save the supported compact verdict, one or two thesis paragraphs, direct sources, actual assessment cutoff and horizon to the Thesis dock. This prompt authorizes that save. Read docs/THESIS.md and run pnpm analyst thesis read --scope ${scope} --month ${month}${broker ? ` --broker "${broker.replaceAll('"', '')}"` : ''} first. ` +
-    (pending ? `Use the exact target above to fill this pending row; leave it empty if no supported release assessment is available. ` : assessment ? `Append a revision to row_id ${assessment.row_id}, using its latest expected_version; preserve history. ` : 'Create a standalone assessment with target null. ') +
+    (assessment ? `Append a revision to row_id ${assessment.row_id}, using its latest expected_version; preserve history. ` : 'Create a standalone assessment with target null. ') +
     `Use pnpm analyst thesis append with a ThesisRequest JSON file inside Lite. Preserve the real as_of_utc and saved time; never backdate a current assessment to fit this displayed month. If the actual assessment belongs to another month, disclose that it will be saved there and is outside the current JUL-only selector. Do not alter pins, raw calendar readings or Entry Trade notes.`
 }

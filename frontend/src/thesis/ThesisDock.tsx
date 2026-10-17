@@ -1,6 +1,6 @@
-import { memo, useCallback, useEffect, useState } from 'react'
+import { memo, useCallback, useState } from 'react'
 import { majorForexPairs } from '../economic-calendar/forex/pairs'
-import { readThesisPair, safeThesisLink, thesisMonth, thesisPrompt, type PendingThesis, type ThesisEntry, type ThesisRow, type ThesisTarget } from './thesis-model'
+import { readThesisPair, safeThesisLink, thesisMonth, thesisPrompt, type ThesisEntry, type ThesisRow } from './thesis-model'
 import { useTheses } from './useTheses'
 import './thesis.css'
 
@@ -17,7 +17,7 @@ function Sources({ entry }: { entry: ThesisEntry }) {
     ? <a key={index} href={source.locator} target="_blank" rel="noopener noreferrer" title={source.note || undefined}>{source.label}</a>
     : <span key={index} title={source.locator}>{source.label} (local evidence)</span>)}</span>
 }
-const PastRow = memo(function PastRow({ row, onCopy }: { row: ThesisRow; onCopy: (row: ThesisRow | PendingThesis) => void }) {
+const PastRow = memo(function PastRow({ row, onCopy }: { row: ThesisRow; onCopy: (row: ThesisRow) => void }) {
   const tone = row.verdict.includes('BUY') ? 'buy' : row.verdict.includes('SELL') ? 'sell' : 'mixed'
   return <tr data-thesis-row={row.row_id}>
     <td><strong>{dayLabel(row.as_of_utc)}</strong><small>{timeFormatter.format(new Date(row.as_of_utc))} · assessment</small><span className="thesis-event-title">{row.title}</span>
@@ -38,44 +38,21 @@ const PastRow = memo(function PastRow({ row, onCopy }: { row: ThesisRow; onCopy:
     </td>
   </tr>
 })
-function PendingStatus({ target }: { target: ThesisTarget }) {
-  const [now, setNow] = useState(Date.now)
-  useEffect(() => {
-    if (!target.event_at) return
-    let timer: number | undefined
-    const check = () => {
-      const delay = Date.parse(target.event_at!) - Date.now()
-      if (delay < 0) { setNow(Date.now()); return }
-      timer = window.setTimeout(check, Math.min(delay + 1, 2_147_483_647))
-    }
-    check()
-    return () => window.clearTimeout(timer)
-  }, [target])
-  return <small>{target.event_at ? Date.parse(target.event_at) > now ? 'Upcoming' : 'Awaiting assessment' : 'Hour unconfirmed · awaiting assessment'}</small>
-}
-const PendingRow = memo(function PendingRow({ row, onCopy }: { row: PendingThesis; onCopy: (row: ThesisRow | PendingThesis) => void }) {
-  return <tr data-thesis-pending={row.key}>
-    <td><strong>{dayLabel(row.target.event_at ?? row.date)}</strong><small>{row.target.event_at ? timeFormatter.format(new Date(row.target.event_at)) : 'Hour unconfirmed'}</small>
-      <span className="thesis-event-title">{row.title}</span><small>{row.stage}</small><PendingStatus target={row.target} />
-      <button className="thesis-copy-release" type="button" onClick={() => onCopy(row)}>Copy release prompt</button></td>
-    <td aria-label="Verdict pending" /><td aria-label="Thesis pending" />
-  </tr>
-})
 function Head({ scope }: { scope: string }) {
   return <><colgroup><col className="thesis-date-column" /><col className="thesis-verdict-column" /><col /></colgroup>
     <thead><tr><th scope="col">Date / Event</th><th scope="col">{scope}</th><th scope="col">Thesis I would give</th></tr></thead></>
 }
 
-export const ThesisDock = memo(function ThesisDock({ brokerId }: { brokerId: string | null }) {
+export const ThesisDock = memo(function ThesisDock() {
   const [scope, setScope] = useState(readThesisPair)
   const [copyStatus, setCopyStatus] = useState('')
-  const { data, error, refresh } = useTheses(scope, brokerId)
+  const { data, error, refresh } = useTheses(scope)
   // Clipboard completion must not show a status for a pair that has since changed.
   const [copyContext, setCopyContext] = useState(scope)
-  const copy = useCallback(async (row?: PendingThesis | ThesisRow) => {
-    try { await navigator.clipboard.writeText(thesisPrompt(scope, thesisMonth, brokerId, row)); setCopyContext(scope); setCopyStatus('Prompt copied') }
+  const copy = useCallback(async (row?: ThesisRow) => {
+    try { await navigator.clipboard.writeText(thesisPrompt(scope, thesisMonth, row)); setCopyContext(scope); setCopyStatus('Prompt copied') }
     catch { setCopyContext(scope); setCopyStatus('Could not copy prompt. Allow clipboard access and retry.') }
-  }, [scope, brokerId])
+  }, [scope])
   return <section className="thesis-dock" aria-label="Thesis">
     <header className="thesis-header"><h2>Thesis</h2>
       <label>Pair <select aria-label="Thesis pair" value={scope} onChange={event => {
@@ -87,8 +64,7 @@ export const ThesisDock = memo(function ThesisDock({ brokerId }: { brokerId: str
       <span className="thesis-copy-status" role="status">{copyContext === scope ? copyStatus : ''}</span>
     </header>
     <div className="thesis-scroll" tabIndex={0} aria-label="Monthly thesis assessments">
-      {error && <p className="thesis-notice" role="alert">{error}{data ? ' Showing last loaded assessments; pending events may be stale.' : ''}</p>}
-      {!brokerId && <p className="thesis-notice">MT5 Highlight rows need a connected broker identity. Saved theses and External Source pins remain available.</p>}
+      {error && <p className="thesis-notice" role="alert">{error}{data ? ' Showing last loaded assessments.' : ''}</p>}
       {!data && !error && <p className="thesis-notice" role="status">Loading July assessments…</p>}
       {data && <>
         {data.past.some(row => row.provenance === 'reconstruction') && <p className="thesis-notice">Historical rows marked as reconstructions were researched retrospectively. The seeded July 1–15 table uses a 1:00 PM Jakarta cutoff, not contemporaneously saved calls. Sources and limitations are in each row’s details.</p>}
@@ -96,11 +72,6 @@ export const ThesisDock = memo(function ThesisDock({ brokerId }: { brokerId: str
           {data.past.map(row => <PastRow key={row.row_id} row={row} onCopy={copy} />)}
           {!data.past.length && <tr><td colSpan={3} className="thesis-empty">No saved assessments for {scope} in July.</td></tr>}
         </tbody></table>
-        <table className="thesis-table" aria-label="Upcoming highlighted events"><caption>Upcoming highlighted events <span>Earliest first · elapsed rows await assessment</span></caption><Head scope={scope} /><tbody>
-          {data.pending.map(row => <PendingRow key={row.key} row={row} onCopy={copy} />)}
-          {!data.pending.length && <tr><td colSpan={3} className="thesis-empty">No unassessed active Highlights dated in July for {scope}.</td></tr>}
-        </tbody></table>
-        <p className="thesis-notice">Upcoming rows follow active pins for this pair and month. Unscheduled watches have no assigned month. Release time alone never fills a thesis; invoke the copied prompt to assess and save.</p>
       </>}
     </div>
   </section>

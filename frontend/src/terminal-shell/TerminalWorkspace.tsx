@@ -117,7 +117,7 @@ export function TerminalWorkspace() {
         <BottomDockPanel
           resizeHandle={dockSize.resizeHandle}
         >
-          {bottomDockWindow === 'thesis' && <ThesisDock brokerId={brokerId} />}
+          {bottomDockWindow === 'thesis' && <ThesisDock />}
           {bottomDockWindow === 'activity' && (
             <ActivityDock timeDisplay={timeDisplay} />
           )}
