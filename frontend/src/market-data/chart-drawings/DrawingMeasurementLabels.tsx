@@ -1,6 +1,10 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import type { ChartDrawingRecord } from './chart-drawing-record'
 import type { ChartDrawingScreenPoint } from './chart-drawing-screen-point'
+import { useDisplayClock } from '../../appearance/time-display/useDisplayClock'
+import { chartClockToUtc } from '../../appearance/time-display/chart-clock'
+
+const rangeDateFormatter = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
 
 function DrawingTag({ text, x, y, note = false, centered = false, width, height }: {
   text: string; x: number; y: number; note?: boolean; centered?: boolean; width?: number; height?: number
@@ -36,6 +40,7 @@ export function PriceNoteDrawing({ points, precision }: { points: ChartDrawingSc
 export function DatePriceRangeDrawing({ drawing, points, precision, width, height }: {
   drawing: ChartDrawingRecord; points: ChartDrawingScreenPoint[]; precision: number; width: number; height: number
 }) {
+  const clock = useDisplayClock()
   const first = points[0], last = points.at(-1)
   const start = drawing.points[0], end = drawing.points.at(-1)
   if (!first || !last || !start || !end) return null
@@ -50,8 +55,16 @@ export function DatePriceRangeDrawing({ drawing, points, precision, width, heigh
   const pipSize = symbol.includes('XAU') ? 0.1 : symbol.includes('BTC') ? 1
     : symbol.includes('JPY') || precision === 3 || precision === 2 ? 0.01 : 0.0001
   const pips = `${(Math.abs(end.price - start.price) / pipSize).toFixed(1)} pips`
+  const from = chartClockToUtc(Math.min(start.time, end.time) * 1000, clock.scope)
+  const to = chartClockToUtc(Math.max(start.time, end.time) * 1000, clock.scope)
+  const date = (utc: number) => rangeDateFormatter.format(new Date(`${clock.date(utc)}T00:00:00Z`))
+  const dates = from === null || to === null ? 'Dates unavailable' : `${date(from)} - ${date(to)}`
   return <g>
     <rect className="drawing-range" x={left} y={top} width={right - left} height={bottom - top} />
+    <g className="drawing-range-dates">
+      <title>Date horizon</title>
+      <DrawingTag text={dates} x={(Math.max(0, left) + Math.min(width, right)) / 2} y={top - 30} centered width={width} height={height} />
+    </g>
     <g className="drawing-range-duration">
       <title>Elapsed time</title>
       <DrawingTag text={duration} x={(Math.max(0, left) + Math.min(width, right)) / 2} y={bottom + 6} centered width={width} height={height} />

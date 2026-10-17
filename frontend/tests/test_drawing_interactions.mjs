@@ -48,6 +48,7 @@ let api, selected, liveUpdates = 0, persistedUpdates = 0
 
 try {
   const { ChartDrawingOverlay } = await server.ssrLoadModule('./src/market-data/chart-drawings/ChartDrawingOverlay.tsx')
+  const { DisplayClockProvider } = await server.ssrLoadModule('./src/appearance/time-display/DisplayClock.tsx')
   const { useChartDrawings } = await server.ssrLoadModule('./src/market-data/chart-drawings/use-chart-drawings.ts')
   const { readChartDrawings } = await server.ssrLoadModule('./src/market-data/chart-drawings/chart-drawing-storage.ts')
   const { drawingTools } = await server.ssrLoadModule('./src/market-data/chart-drawings/drawing-tool.ts')
@@ -62,16 +63,17 @@ try {
   close(drawingTimeToLogical(50000.5 * 60, large, 60), 50000.5, 'Fractional historical placement')
   assert.ok(timelineReads < 45, 'Point conversion searches history logarithmically instead of scanning all candles')
 
-  function Harness({ tool = null, initiallySelected = null, symbol = 'TEST', timeframe = 'M1', precision = 5 }) {
+  function Harness({ tool = null, initiallySelected = null, symbol = 'TEST', timeframe = 'M1', precision = 5, clock }) {
     const drawings = useChartDrawings(symbol, timeframe)
     const [selection, setSelection] = React.useState(initiallySelected)
     React.useEffect(() => { api = drawings; selected = selection }, [drawings, selection])
-    return React.createElement(ChartDrawingOverlay, { chartApi, seriesApi, bars: timeline, timeframe, symbol, precision,
+    const overlay = React.createElement(ChartDrawingOverlay, { chartApi, seriesApi, bars: timeline, timeframe, symbol, precision,
       activeTool: tool, drawings: drawings.drawings, selectedDrawingId: selection, onSelectDrawing: setSelection,
       onCreateDrawing: drawings.addDrawing, onUpdateDrawingPoint: drawings.updateDrawingPoint,
       onUpdatePositionWidth: drawings.updatePositionWidth, onUpdateDrawingText: drawings.updateDrawingText,
       onUpdateDrawingPoints: (...args) => { if (args[2]) persistedUpdates++; else liveUpdates++; drawings.updateDrawingPoints(...args) },
       onExitDrawingMode() {} })
+    return clock ? React.createElement(DisplayClockProvider, clock, overlay) : overlay
   }
   const render = (props = {}, key = 'initial') => React.act(async () => root.render(React.createElement(Harness, { ...props, key })))
   const svg = () => host.querySelector('svg')
@@ -329,6 +331,8 @@ try {
     seed(range); await render({ symbol, precision, initiallySelected: range.id }, `range-${symbol}`)
     const duration = () => host.querySelector('.drawing-range-duration .drawing-range-label').textContent
     const pips = () => host.querySelector('.drawing-range-pips .drawing-range-label').textContent
+    const dates = () => host.querySelector('.drawing-range-dates .drawing-range-label').textContent
+    assert.equal(dates(), '1 Jan 1970 - 3 Jan 1970', 'The top label shows both endpoint dates')
     assert.equal(duration(), '2d 3h 4m', 'Elapsed time includes days, hours and minutes across a two-bar session gap')
     assert.equal(pips(), expected, `${symbol}: the vertical distance uses correct pips`)
     assert.deepEqual(readChartDrawings(), [range], 'Displaying range measurements does not rewrite saved drawings')
@@ -336,10 +340,12 @@ try {
       await render({ symbol, precision, timeframe }, `range-${symbol}`)
       assert.equal(duration(), '2d 3h 4m', 'A timeframe change keeps the timestamp duration')
       assert.equal(pips(), expected, 'A timeframe change keeps the pip distance')
+      assert.equal(dates(), '1 Jan 1970 - 3 Jan 1970', 'The date horizon survives timeframe changes')
     }
     await React.act(async () => api.updateDrawingPoints(range.id, [...range.points].reverse(), true))
     assert.equal(duration(), '2d 3h 4m', 'Reversed ranges measure the same elapsed time')
     assert.equal(pips(), expected, 'Reversed ranges measure the same pip magnitude')
+    assert.equal(dates(), '1 Jan 1970 - 3 Jan 1970', 'Reversed ranges keep dates in chronological order')
     await React.act(async () => api.updateDrawingPoint(range.id, 0, { ...range.points[1], time: 1000 + span + 60 }, true))
     assert.equal(duration(), '2d 3h 5m', 'Editing an endpoint updates the duration label live')
   }
@@ -350,6 +356,20 @@ try {
     assert.equal(host.querySelector('.drawing-range-duration .drawing-range-label').textContent, expected)
     assert.equal(host.querySelector('.drawing-range-pips .drawing-range-label').textContent, '0.0 pips')
   }
+  const octoberStart = Date.UTC(2026, 9, 1, 22, 30) / 1000, octoberEnd = Date.UTC(2026, 9, 3, 22, 30) / 1000
+  timeline = [{ time: octoberStart }, { time: octoberEnd }]
+  const octoberRange = { ...recordFor('date-price-range'), points: [{ time: octoberStart, price: 10 }, { time: octoberEnd, price: 12 }] }
+  seed(octoberRange); await render({}, 'october-horizon')
+  const horizon = () => host.querySelector('.drawing-range-dates .drawing-range-label').textContent
+  assert.equal(horizon(), '1 Oct 2026 - 3 Oct 2026', 'Dates use the requested day/month/year format')
+  const clock = { brokerId: 'Elev8-Demo2', brokerOffsetSeconds: 10800, preference: { mode: 'fixed-offset', utcOffsetMinutes: 420 } }
+  await render({ clock }, 'october-horizon')
+  assert.equal(horizon(), '2 Oct 2026 - 4 Oct 2026', 'The horizon uses the chart display timezone after broker-clock conversion')
+  assert.equal(host.querySelector('.drawing-range-duration .drawing-range-label').textContent, '2d 0h 0m')
+  assert.equal(host.querySelector('.drawing-range-pips .drawing-range-label').textContent, '20000.0 pips')
+  assert.deepEqual(readChartDrawings(), [octoberRange], 'Date labels never modify the saved range')
+  await React.act(async () => api.updateDrawingPoint(octoberRange.id, 1, { time: octoberEnd + 86400, price: 12 }, true))
+  assert.equal(horizon(), '2 Oct 2026 - 5 Oct 2026', 'Editing an endpoint updates its displayed date')
   timeline = originalTimeline; priceSpacing = 10
 
   // Text can be reopened by double-click (including captured SVG events) or
