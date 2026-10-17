@@ -144,7 +144,7 @@ focus on its pair, buy/sell thesis and stated horizon. Reuse the assessment's
 fundamental context and research-as-of time, refreshing developments as needed.
 Scan at least the next seven calendar days for both currencies, extending through
 a longer requested holding horizon. Apply the
-[fundamental exit and reassessment guidance](../assess-trade-now/SKILL.md#fundamental-exit-and-reassessment-watchlist)
+[upcoming thesis-changing events](../assess-trade-now/SKILL.md#upcoming-events-that-could-change-the-thesis)
 only for this mode; do not default to 90 days/all currencies or produce a pin
 shortlist unless requested. Historical cutoffs exclude later information.
 
@@ -159,7 +159,7 @@ cannot support an all-clear. Keep technical entries, support/resistance, stops,
 targets and position sizing with the user. No trades or automatic monitoring.
 
 For a weak-bias or waiting handoff, apply Assess Trade Now's
-[direction and next-opportunity guidance](../assess-trade-now/SKILL.md#direction-and-next-opportunity).
+[direction and conviction guidance](../assess-trade-now/SKILL.md#direction-and-conviction).
 Select the next material event that could change the pair's policy outlook,
 give a verified release time and suggested preparation/return time in Jakarta
 AM/PM (UTC only internally unless requested), and explain the conditional directional change. A promising research

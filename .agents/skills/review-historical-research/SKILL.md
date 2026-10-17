@@ -80,18 +80,20 @@ remarks; label its publication date separately from the recorded event.
 
 ## Explain what could have been known
 
-Use **Date | Event | Direction** for the fundamental evidence, following
-[Assess Trade Now's dated format](../assess-trade-now/SKILL.md#dated-assessment-format).
-State the historical cutoff and research time separately; show each event's age
-relative to that cutoff. Date and label older Background explicitly, and justify
-its continuing relevance instead of treating old decisions as fresh catalysts.
-Put occurred evidence newest first and all known Upcoming events in the final
-rows, earliest first, with conditional Direction. In a reconstruction, exclude
-later actuals/news from that table; discuss them separately as Later evidence,
-not as forecasts that were available before publication. Direction is the
-fundamental interpretation; keep measured candle reactions in a separate compact
-price summary. Give the explanation and qualitative confidence in a short
-conclusion, with material counterevidence, reversal risk and gaps, then answer:
+Use [Assess Trade Now's compact format](../assess-trade-now/SKILL.md#output-format)
+for the reconstructed fundamental assessment: lead with the pair verdict and
+causal thesis, separate known Upcoming events from Prior stale events, and order
+recent/older evidence newest first and upcoming events earliest first. Show the
+historical cutoff separately from today's research time; ages use that cutoff.
+Apply the [direction and conviction rule](../assess-trade-now/SKILL.md#direction-and-conviction)
+to evidence available then. No mandatory entry-date declaration or separate
+confidence checklist. Leave execution timing to the user.
+
+Exclude later actuals/news from the reconstructed thesis. Discuss them separately
+as Later evidence, not as forecasts available before publication. Keep measured
+candles in a separate compact price summary, with material counterevidence,
+reversal triggers and attribution gaps. Then answer the requested historical
+questions briefly:
 
 - **Before:** Which published evidence supported direction or warned of a sharp
   reversal? What was unknowable? Do not infer the final pip distance from hindsight.
@@ -119,16 +121,12 @@ genuinely withheld; one explained episode does not validate a trading edge.
 Earlier preparation, later confirmation and no clear actionable edge are all
 possible findings. Avoid scores, invented probabilities, guaranteed entries/returns.
 
-Honor the user's preference for the best-supported direction even when slight:
-separate weak buy/sell backdrop bias from a new release surprise and from entry
-quality. Do not manufacture direction when facts are genuinely balanced or
-decisive evidence is missing. When the simulated verdict is weak or would wait,
-identify the next scheduled reassessment opportunity and a preparation/return
-time in Jakarta/UTC, using only the schedule and macro concern knowable at that
-cutoff. Explain what could strengthen or reverse the lean. Do not select the
-event because its eventual price move was large, or schedule an unforeseeable
-off-calendar catalyst in hindsight. Reuse Assess Trade Now's
-[direction and next-opportunity guidance](../assess-trade-now/SKILL.md#direction-and-next-opportunity).
+Give the best-supported direction without defaulting to a weak label merely
+because counterevidence exists. A strong verdict must use the information public
+at its cutoff, not the eventual price move. If a decisive fact is unavailable,
+identify it briefly and name the next knowable reassessment event in Upcoming.
+Do not schedule an unforeseeable off-calendar catalyst in hindsight. Use Jakarta
+AM/PM for user-facing dates/times and keep UTC internally.
 
 Cite direct web links and absolute local paths. Answer in chat and follow the
 user's saving/lifecycle scope and AGENTS.md's standing historical-journaling

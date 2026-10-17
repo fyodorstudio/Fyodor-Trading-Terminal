@@ -1,4 +1,4 @@
 interface:
   display_name: "One Minute Before Release"
   short_description: "Reuse preparation, await actuals and assess the release"
-  default_prompt: "Use $one-minute-before-release for my specified imminent release, reuse the prepared $assess-trade-now context, await fresh actuals and return a sourced verdict plus a Date | Event | Direction table with evidence age and upcoming events in the final rows, without candles."
+  default_prompt: "Use $one-minute-before-release for my specified imminent release, reuse the prepared $assess-trade-now context, await fresh actuals and return a short sourced thesis followed by separate Upcoming events that could change the thesis and Prior stale events with dates and ages, without candles."

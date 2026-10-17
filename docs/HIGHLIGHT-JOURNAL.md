@@ -43,20 +43,17 @@ after release** once actuals arrive. Prompt templates are separate from journal
 research; saving a prompt never fills Before release with a pretend investigation.
 
 For a quick assessment outside a Highlight, ask: "Use $assess-trade-now to assess
-USDJPY now for an intraday trade, without candle analysis." The assessment uses
-**Date | Event | Direction**, dates/ages every event and labels older Background.
-Occurred events come newest first; Upcoming events occupy the final rows,
-earliest first, with conditional implications. The short conclusion gives the
-overall bias/confidence, material counterevidence/invalidation and mandatory
-**Extreme-move risk**. Shock risk identifies the catalyst, evidence
-status, affected direction and reassessment trigger, including incomplete checks;
-No clear edge does not mean no sudden-reversal risk. The fast workflow reuses
-loaded guidance and dated context, focuses pair/Highlight queries, batches checks
-and bounds failed-source retries while retaining verification. Its roughly
-one-minute target is not a latency promise. Missing release actuals require a
-conditional release interpretation; a pending event alone does not force a
-general pair assessment to wait. Execution/risk rules must
-come from the user; the workflow does not invent price entries, stops or sizes.
+USDJPY now for an intraday trade, without candle analysis." It researches both
+currencies on the web, with local data optional, and leads with a direct buy/sell
+thesis and its dominant driver. Material recent developments go newest first.
+**Upcoming events that could change the thesis** are separate, earliest first,
+with Jakarta AM/PM times and conditional implications; **Prior stale events**
+follow, newest first with original dates and ages. No tables unless requested,
+mandatory entry-date declarations or confidence/entry/risk checklists. A dominant
+active catalyst can outweigh older opposing indicators. Sources, material gaps
+and reversal triggers stay concise. The research still checks both currencies'
+next seven days; a pending release alone does not force the general thesis to
+wait. Execution timing and risk rules remain with the user.
 
 Archive replaces Unpin/Remove pin in Alert and Inspector. It preserves occurrence
 identity, journal files and an archive-time reading snapshot. Restore resumes live

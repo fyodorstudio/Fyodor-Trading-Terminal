@@ -1,4 +1,4 @@
 interface:
   display_name: "Assess Trade Now"
   short_description: "Currency news and pair fundamentals with sourced evidence"
-  default_prompt: "Use $assess-trade-now to refresh fundamentals for my requested currency, pair or Highlight; give a Date | Event | Direction table with explicit dates and evidence age, upcoming events in the final rows, and a short fundamental conclusion, without candle analysis."
+  default_prompt: "Use $assess-trade-now for a web-first assessment of my requested currency, pair or Highlight: lead with a direct buy/sell thesis, then separate Upcoming events that could change the thesis and Prior stale events with dates and ages; keep it short, without tables or candle analysis."

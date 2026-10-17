@@ -34,9 +34,10 @@ not invented MT5 calendar readings. The Alert dock's **Highlight** view
 combines active pins from MT5 Calendar and External Source without merging their
 storage or occurrence identities. Active external records are pinned; archive/restore
 preserves their immutable history and alarm choices. For the
-requested pair/currencies, query `pnpm analyst external --scope EURUSD` (use
-`--visibility all` for historical work), with focused dates/match and complete
-pagination. Treat saved interpretation as dated context, verify fresh news and
+requested pair/currencies, saved outside-feed context can be queried with
+`pnpm analyst external --scope EURUSD` (`--visibility all` for history), using
+focused dates/match and complete pagination when consulted. Quick assessments
+are web-first; local datasets and journals are optional unless explicitly requested. Treat saved interpretation as dated context, verify fresh news and
 both currency stories, and distinguish event/provider/publication/recorded clocks.
 The collection is not a complete live news feed. When saving outside events is
 authorized, use the [External Sources workflow](docs/EXTERNAL-SOURCES.md); preserve
@@ -56,8 +57,8 @@ folders live together under `Market Analyst Workflow/`.
 - Infer the pair, dates and horizon from the request/report. Separate the initial
   release reaction, following session, multiweek backdrop and upcoming scenarios.
   One currency alone does not establish measured strength against every other.
-- Read the brief first, query focused evidence, then check the broader release
-  index for overlooked developments. Only for explicitly requested historical
+- For requested historical price investigations, read the brief first, query
+  focused evidence, then check the broader release index for overlooked developments. Only for explicitly requested historical
   price investigations, use H1 for broad history and short M1 windows for releases;
   reuse saved candles. Do not dump the inventory or catalog.
 - For a Research Date Range report or named historical price move, use the
@@ -66,25 +67,21 @@ folders live together under `Market Analyst Workflow/`.
   for the question. Narrow windows only when timing needs them; H4 cannot establish
   exact release reactions. Keep before/at/after information sets separate.
 - Upcoming preparation and live/release-time assessment must not fetch or analyze
-  candles/OHLC, including saved candles, charts or technical indicators. Use calendar
-  readings, saved fundamental research and current web evidence; skip prior price
-  reaction sections. Candle analysis is reserved for historical price investigations
+  candles/OHLC, including saved candles, charts or technical indicators. Use current
+  web evidence as the primary source, with optional calendar readings and saved
+  fundamental research; skip prior price reaction sections. Candle analysis is reserved for historical price investigations
   explicitly requested by the user. For a quick pair/Highlight assessment use the
   [assess-trade-now skill](.agents/skills/assess-trade-now/SKILL.md).
-- Quick assessments follow that skill's focused evidence pass: reuse already
-  loaded instructions and dated fundamentals, query only the requested pair or
-  exact Highlight (all eight currencies only on request), batch independent
+- Quick assessments use the [assess-trade-now skill](.agents/skills/assess-trade-now/SKILL.md):
+  research the requested currencies thoroughly on the web, including off-calendar
+  catalysts; local datasets are optional. Reuse loaded guidance, batch independent
   checks and bound failed-source retries. For an explicit imminent-release wait,
   use [one-minute-before-release](.agents/skills/one-minute-before-release/SKILL.md)
-  to reuse prepared context, verify the clock/schedule and await fresh actuals
-  within a stated deadline. Prepare direct retrieval routes and decisive fields
-  beforehand; send a short sourced first verdict in commentary once supported,
-  then the dated assessment table in the same active turn. Separate observed data/
-  interpretation/send timestamps without promising second-level latency.
-  No automatic timer is implied by preparation.
-  Include a brief Extreme-move risk statement below the table. A pending release
-  does not by itself force a general pair assessment to wait; explain the setup-specific
-  reason. Verify material gaps or disclose them without guessing.
+  with prepared retrieval routes, verified timing and a stopping deadline. Send a
+  short sourced first verdict when supported, then the compact assessment in the
+  same turn. Distinguish data/observation/send clocks; no automatic timer or
+  second-level response promise is implied. A pending event alone does not force
+  a general pair thesis to wait. Disclose decisive gaps without guessing.
 - When the user refers to Highlight, start with `pnpm analyst highlights`; use
   its pinned ID, broker and timeline to identify the occurrence, then query its
   current readings with `--summary`. Recheck values after publication. Pins are
@@ -111,29 +108,22 @@ folders live together under `Market Analyst Workflow/`.
   Headline/core/components form one release package, not independent votes.
   Do not sum signals across weeks: later information can change the backdrop.
   Include both currency stories and the strongest counterevidence.
-- Present fundamental assessments as **Date | Event | Direction**, with the
-  assessment-as-of time and horizon above. Each row is one event, with its source
-  linked in Event. Date shows the original event/publication date, verified
-  Jakarta AM/PM time when available, and age relative to the assessment cutoff.
-  Distinguish event, publication and observation clocks when they differ; a
-  reference month or retrieval time is not the news date. Unknown times stay
-  unknown. For historical simulations, age is relative to the simulated cutoff.
-  Put occurred events first, newest first. Put all **Upcoming** events in the
-  final rows of the same table, earliest first; explicitly label them Upcoming
-  and keep their Direction conditional. Untimed future risks follow timed ones,
-  labelled Unscheduled/time unknown, without invented dates.
-  Label older retained evidence **Background** in Event and explain why it still
-  matters. An old policy decision or rate level alone is no fresh intraday
-  directional signal. Check subsequent news and changes in expectations before
-  giving it current weight; do not use a fixed age expiry or assume priced-in/
-  ignored status from age alone. Apply this equally to supporting and contrary
-  evidence. Direction names the currency or pair and states supportive, negative,
-  mixed, conditional or no fresh signal; it is an interpretation, not a measured
-  price reaction. Keep actuals/expectations and the mechanism concise in the row.
-  After the table give only a short overall bias/confidence conclusion, material
-  invalidation/holding consideration, Extreme-move risk and any evidence gap.
-  Preserve the research checks and seven-day scan; show only material upcoming
-  rows at the bottom, not a second watchlist or a Field/Required answer card.
+- Present assessments in the skill's compact [output format](.agents/skills/assess-trade-now/SKILL.md#output-format):
+  assessment date/as-of time and horizon, pair verdict with a one- or two-sentence
+  dominant-driver thesis, **UPCOMING EVENTS THAT COULD CHANGE THE THESIS**, then
+  **PRIOR STALE EVENTS**. Link decisive evidence beside the thesis. Any material
+  recent-event bullets go newest first; upcoming events belong in their own section,
+  earliest first, with verified Jakarta AM/PM times and the outcome that changes
+  the thesis. Unscheduled risks follow timed events without invented dates.
+  Stale context goes newest first with its original event date and age at the
+  cutoff. A reference month, capture or retrieval time is not the news date.
+  Unknown times stay unknown; historical ages use the simulated cutoff.
+  No tables unless requested, mandatory entry-date declaration, eligibility gate,
+  confidence boilerplate, separate risk checklist or repetitive conclusion.
+  Research depth should not inflate the answer. Keep execution timing with the user.
+  Old policy decisions alone are not fresh directional evidence. If fresh news
+  reactivates an older story, explain the update alongside the thesis; age alone
+  does not establish irrelevance or that an event was priced in.
 - Assess continuation, a possible retracement and a changed thesis against fresh
   information, following Assess Trade Now's retracement guidance. A still-hot
   inflation backdrop can coexist with reduced near-term hike urgency. Do not
@@ -159,42 +149,29 @@ folders live together under `Market Analyst Workflow/`.
   source, information and possible effect on the original thesis. Separate later
   releases and policy stages using their own pre-release baseline; an overlapping
   window or a news article's publication time does not establish causal timing.
-- Give the best-supported buy/sell direction and confidence in the short
-  conclusion below the dated table, even when the lean is slight. The user
-  prefers a weak bias to an undifferentiated
-  “no clear edge”: distinguish backdrop direction, a fresh release signal and
-  entry quality. An in-line release can preserve a weak bias. Do not invent a
-  direction when verified evidence is balanced or a decisive gap prevents it.
-  Explain the main mechanism simply: “Rates stay unchanged today, but the future
-  looks higher than previously thought.” Avoid scores, invented probabilities or
-  guaranteed entries. Usually a few paragraphs or one small scenario table suffice.
+- Lead with STRONG BUY / BUY / MIXED / SELL / STRONG SELL and explain the dominant
+  relative mechanism. A verified active catalyst can outweigh weaker opposing
+  indicators; do not require unanimity, count releases as votes or default to
+  slight/low-confidence wording. Domestic data need not improve for a currency
+  to attract haven demand against a stressed counterpart. Fresh material opposing
+  evidence or a decisive gap can reduce conviction; balanced evidence remains MIXED.
+  Distinguish a strong directional thesis from precision about timing or move size.
+  Never invent evidence, probabilities, pip forecasts or guaranteed returns.
 - For upcoming events give backdrop, attributed expectations and conditional
   stronger/in-line/weaker or hike/hold/cut outcomes including guidance. Explain
   what supports/invalidates the view; refresh expectations near release and the
   other currency's backdrop before translating it into a pair view.
-- Every pair assessment includes a fundamental holding/exit watchlist covering
-  at least the next seven calendar days from its as-of instant, or a longer
-  requested holding horizon. Verify both currencies' material news and policy
-  stages and check off-calendar risks. Show user-facing times only in Asia/Jakarta
-  AM/PM unless requested otherwise; retain UTC internally for evidence and clocks.
-  Explain what merely adds
-  volatility, challenges or invalidates the thesis, and when to consider reducing/
-  closing before news or reassessing/closing after verified contrary information.
-  Do not turn the scan horizon into a forecast or recommend closing before every
-  major release. If complete checked coverage finds no material scheduled threat,
-  say so with the window/source limits and remaining specific unscheduled risks;
-  disclose gaps instead of declaring an all-clear. Agents assess fundamentals
-  and macro only; technical entries/exits and risk management remain with the user.
-  Near release, reuse the prepared watchlist and refresh changes. Defer detailed
-  upcoming forecasts until preparation; historical research is dated context.
-- When a bias is weak, entry evidence insufficient, or waiting warranted, include
-  a Next opportunity: the next material event that could establish, strengthen
-  or reverse the direction, its verified Jakarta AM/PM release time, and a suggested
-  return/preparation time, normally ten minutes before publication. Explain why
-  its new information matters; do not promise a bigger move. Use the pair's
-  seven-day scan, distinguish opportunity from exit risk, and state missing
-  candidates/timing honestly. Historical suggestions use only what was knowable
-  at the cutoff. A return-time recommendation does not schedule a notification.
+- Research material events and policy stages for both currencies over at least
+  the next seven calendar days, or the longer requested holding horizon, using
+  official schedules and credible calendars. Show only thesis-changing candidates
+  in the separate Upcoming section with concise conditional implications; this
+  scan horizon is not a directional forecast or mandatory holding period. Check
+  nearer remarks/Q&A, overnight stages and specific unscheduled shocks. Integrate
+  material invalidation/holding considerations there, without recommending closing
+  before every release. Disclose material schedule/source gaps. User-facing times
+  are Asia/Jakarta AM/PM; keep UTC internally. Technical execution and risk
+  management remain with the user. A suggested return time, when useful, belongs
+  with the next decisive event and does not create a notification.
 - Cite direct web links beside claims and absolute local evidence paths. Answer
   in chat; save conclusions only when requested, beside the relevant report with
   a research-as-of time. Preserve user notes/evidence. No trades, account changes,
@@ -210,16 +187,18 @@ folders live together under `Market Analyst Workflow/`.
   the worker must be healthy and enabled. This does not schedule an AI invocation.
   [Alarm contract](docs/EVENTS-ALARMS.md) covers runtime and delivery limitations.
 
-- Read relevant saved journal entries and archived investigations when available.
-  Treat earlier conclusions as dated context; refresh expectations, material
-  developments and both currencies before issuing a new pair view. Start with
-  `highlights`, then focused `journal read`; use `--visibility all` for history.
+- Read relevant saved journals and archived investigations when the task needs
+  saved research; quick web-first assessments need not load them. Treat earlier
+  conclusions as dated context and refresh both currencies. For requested Highlight
+  research, start with `highlights`, then focused `journal read`; use
+  `--visibility all` for history.
   [Journal workflow](docs/HIGHLIGHT-JOURNAL.md) documents schemas and commands.
   For upcoming-event shortlist requests, use the repository's
   [review-upcoming-alerts skill](.agents/skills/review-upcoming-alerts/SKILL.md).
 - Keep before-release research separate from after-release interpretation. Show
-  the research-as-of time, currency/pair scope, direction and confidence, backdrop,
-  attributed expectations, strongest counterevidence and relevant prior release.
+  the research-as-of time, currency/pair scope and direct thesis, with attributed
+  expectations and material counterevidence integrated concisely. Use the compact
+  assessment format for chat; existing journal fields remain compatible.
   After release, assess actuals, revisions and components against the preserved
   expectations. Preparation and live interpretation omit price reaction; measure
   it separately only for an explicitly requested historical price investigation.

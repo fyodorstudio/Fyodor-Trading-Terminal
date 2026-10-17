@@ -160,8 +160,8 @@ its record. Stars appear only on pairs containing an affected currency. Untimed
 watch items have no chart timestamp.
 
 The repository has four market-analysis skills:
-[Assess Trade Now](.agents/skills/assess-trade-now/SKILL.md) for a quick current
-fundamental decision card without candles, with eight-currency coverage only
+[Assess Trade Now](.agents/skills/assess-trade-now/SKILL.md) for a concise web-first
+fundamental thesis without candles, with eight-currency coverage only
 when requested;
 [One Minute Before Release](.agents/skills/one-minute-before-release/SKILL.md)
 for a bounded active-chat countdown using that prepared context and fresh actuals;
@@ -177,7 +177,8 @@ preparation`. The countdown verifies the schedule and waits for actuals, stoppin
 by default five minutes after publication if decisive data is missing. Preparation
 includes direct release sources, decisive fields and simultaneous-release checks.
 The countdown sends a short sourced verdict as soon as sufficient evidence arrives,
-then the full decision card in the same turn, with available timing checkpoints.
+then the compact thesis with separate upcoming and stale events in the same turn,
+with available timing checkpoints.
 Neither skill promises exact response timing or starts background monitoring.
 
 Choose **Research date range** in the drawing toolbar and drag across chart dates.
@@ -214,9 +215,9 @@ the latest tailored request. Agents append research through the local CLI; pinni
 alone does not generate analysis. [Journal workflow](docs/HIGHLIGHT-JOURNAL.md)
 documents research input, archive/restore and upcoming candidate commands.
 Choose a pair in an active Highlight's Scope, then **Assess trade now → Copy Prompt**
-for a concise fundamental decision card. Live/pre-release assessment uses calendar,
-saved fundamental research and web evidence; candles are reserved for explicitly
-requested historical price investigations. The action copies instructions only.
+for a concise fundamental thesis. Live/pre-release assessment uses current web
+evidence, with calendar and saved fundamental research optional; candles are reserved
+for explicitly requested historical price investigations. The action copies instructions only.
 Copy Prompt offers preparation and after-release stages. Prompt-only records can
 be saved while research is deferred. **External Source → Discovered Limitations**
 retains verified feed gaps and schedule/data disagreements with sources, separately
