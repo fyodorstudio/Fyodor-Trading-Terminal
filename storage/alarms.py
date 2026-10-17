@@ -14,7 +14,7 @@ from .highlights import HIGHLIGHTS_PATH, highlight_snapshot
 from .external_sources import DIRECTORY, external_snapshot
 
 JAKARTA = timezone(timedelta(hours=7))
-DEFAULT_SETTINGS = {'enabled': True, 'prepare_minutes': 10, 'release_minutes': 1}
+DEFAULT_SETTINGS = {'enabled': True, 'release_minutes': 2}
 
 
 def read_events(database, highlights=HIGHLIGHTS_PATH, external=DIRECTORY):
@@ -67,9 +67,14 @@ class AlarmEngine:
             if data.get('version') != 1 or not isinstance(data.get('jobs'), dict) or not isinstance(data.get('overrides'), dict):
                 raise ValueError('Invalid alarm state; preserve the file and restore a valid copy')
             self.state = data
+            # Retire the old two-reminder schedule without losing pin choices or history.
+            if 'prepare_minutes' in self.state['settings']:
+                self.state['settings'] = {'enabled': self.state['settings']['enabled'], 'release_minutes': 2}
             self.validate_settings(self.state['settings'])
             for job in self.state['jobs'].values():
-                if job['status'] == 'ringing':
+                if job['stage'] == 'prepare' and job['status'] in ('pending', 'snoozed', 'ringing'):
+                    job.update(status='cancelled', error=None)
+                elif job['status'] == 'ringing':
                     job.update(status='interrupted', error='Alarm worker restarted while this reminder was ringing')
             self.save()
 
@@ -77,10 +82,8 @@ class AlarmEngine:
     def validate_settings(settings):
         if set(settings) != set(DEFAULT_SETTINGS) or type(settings['enabled']) is not bool:
             raise ValueError('Invalid alarm settings')
-        if any(type(settings[k]) is not int or not 1 <= settings[k] <= 120 for k in ('prepare_minutes', 'release_minutes')):
+        if type(settings['release_minutes']) is not int or not 1 <= settings['release_minutes'] <= 120:
             raise ValueError('Reminder offsets must be 1–120 minutes')
-        if settings['prepare_minutes'] <= settings['release_minutes']:
-            raise ValueError('Preparation must be earlier than the release reminder')
 
     def save(self):
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -107,7 +110,7 @@ class AlarmEngine:
             for event in events:
                 if not self.enabled(event):
                     continue
-                for stage, minutes in [('prepare', self.state['settings']['prepare_minutes']), ('release', self.state['settings']['release_minutes'])]:
+                for stage, minutes in [('release', self.state['settings']['release_minutes'])]:
                     due = event['at'] / 1000 - minutes * 60
                     if due < now - 30 * 86400:
                         continue

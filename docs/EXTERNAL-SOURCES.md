@@ -27,7 +27,7 @@ have no marker. Pan, zoom and future-space projection do not insert price candle
 No live news
 ingestion or background headline monitoring is supplied by this collection.
 Confirmed scheduled records with a verified exact event time automatically receive
-preparation/invocation alarms through the independent [alarm worker](EVENTS-ALARMS.md).
+one Invoke alarm two minutes before each stage through the independent [alarm worker](EVENTS-ALARMS.md).
 Date-only and unverified schedules remain visible without a timed alarm.
 
 Agents write records; the UI displays facts, dated interpretation, source links,

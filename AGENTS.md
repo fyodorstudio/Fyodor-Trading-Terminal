@@ -196,7 +196,7 @@ folders live together under `Market Analyst Workflow/`.
 
 ### Highlight journal and archive scope
 
-- Alert automatically prepares 10-minute and 1-minute reminders for
+- Alert automatically prepares one Invoke reminder two minutes before each timed stage for
   active timed Highlights and confirmed scheduled External Sources. Research and
   pin/save in the appropriate collection; do not duplicate Windows Clock alarms.
   Date-only/unverified hours never imply an alarm time. Check `/alarm-api/alarms`

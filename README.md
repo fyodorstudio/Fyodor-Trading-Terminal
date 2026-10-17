@@ -37,7 +37,7 @@ Optional `FYODOR_BRIDGE_API_URL` / `FYODOR_STORAGE_API_URL` override Vite's prox
 | inspector | Filters, date ranges, release/day grouping, icons and raw tables |
 | alert | Upcoming filters/countdowns, Highlight journals, Copy Prompt and archive |
 | external-sources | Separate outside-feed events/headlines/watch items, sourced facts, history, limitations reference and agent prompts |
-| events-alarms / storage/alarms | Shared dock, per-pin preparation/invocation alarms and independent Windows alarm delivery |
+| events-alarms / storage/alarms | Shared dock, per-pin invocation alarms and independent Windows alarm delivery |
 | entry-trade | Manual execution plans, all-pair pins, draggable chart levels and independent saved journals |
 | research | Chart date selection and named Markdown handoff shared with Alert |
 | Market Analyst Workflow/tools (repo root) | Read-only calendar, upcoming/Highlight/report queries, journal/lifecycle writes and bounded OHLC capture |
@@ -54,7 +54,7 @@ pnpm check:repo
 combines both pinned sources, with date sorting, source labels and filled/outline
 alarm bells. Currency buttons stay on the right of view controls. Data and research
 remain in their existing stores. Pinned events and confirmed timed external events
-automatically receive reminders 10 minutes and 1 minute before release. Use Test
+automatically receive one Invoke reminder two minutes before each release stage. Use Test
 alarm once to check the Windows window and built-in sound. `pnpm dev:all` starts
 the independent alarm worker; use `pnpm alarms:start` to start it without restarting
 the stack. The browser may close, but Windows must remain awake and the worker

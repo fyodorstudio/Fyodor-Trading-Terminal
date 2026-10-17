@@ -16,8 +16,10 @@ day; they never receive an invented publication hour.
 
 Research and pin an important calendar occurrence, or save a confirmed scheduled
 external event with a verified `event_at`. The local alarm worker discovers it
-within five seconds and prepares reminders 10 minutes and 1 minute beforehand.
-Change these offsets in Reminder settings. Each Highlight row has a filled coloured
+within five seconds and prepares one Invoke reminder two minutes beforehand.
+Change this offset in Reminder settings. Existing two-reminder settings migrate
+to Invoke at two minutes; pending Prepare jobs are cancelled while history and
+per-event choices remain. Each Highlight row has a filled coloured
 bell when armed and an outline bell when off. Hover shows Jakarta reminder times;
 a multi-stage pin controls all its future stages. Unconfirmed hours disable the bell.
 External Source shows Pin/Pinned controls. Existing active external records remain
@@ -31,8 +33,8 @@ distinct, while simultaneous reminders ring in one grouped window.
 Windows displays an alarm window and repeats its built-in Exclamation sound
 every ten seconds until acknowledged. Copy prompt, Open terminal, Dismiss and
 Snooze 5 min are available. Snoozing cannot reach or pass the event time. Prompts
-invoke `$assess-trade-now` for preparation or `$one-minute-before-release` near
-release. Nothing invokes an AI agent, monitors actuals or places a trade itself.
+invoke `$one-minute-before-release` near release. Nothing invokes an AI agent,
+monitors actuals or places a trade itself.
 
 Use **Test alarm** to verify the desktop window and sound on the actual PC.
 Terminal tests mock delivery; they do not establish audibility or inspect UI.

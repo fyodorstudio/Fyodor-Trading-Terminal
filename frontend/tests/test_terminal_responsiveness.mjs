@@ -165,7 +165,7 @@ globalThis.fetch = (url, options = {}) => {
     return Promise.resolve({ ok: true, status: 200, json: async () => JSON.parse(JSON.stringify(journalFixture)) })
   }
   if (u.startsWith('/alarm-api/alarms')) return Promise.resolve({ ok: true, json: async () => ({ application: 'fyodor-alarms', revision: 1, now,
-    settings: { enabled: true, prepare_minutes: 10, release_minutes: 1 }, native_available: true, schedule_error: null, refreshed_at: now / 1000, jobs: [],
+    settings: { enabled: true, release_minutes: 2 }, native_available: true, schedule_error: null, refreshed_at: now / 1000, jobs: [],
     events: [{ key: 'external:treasury-fixture', reference: 'treasury-fixture', source: 'external', broker: null, title: 'Treasury fixture', currencies: ['USD'],
       at: now + 3600000, date: null, eligible: true, armed: true, note: 'Exact fixture schedule', prompt: '$one-minute-before-release Treasury fixture' }] }) })
   if (u.startsWith('/storage-api/highlights')) return Promise.resolve({ ok: true, json: async () => ({ source_id: broker, revision: 'fixture-pins', items: [] }) })

@@ -8,9 +8,8 @@ type Alarms = ReturnType<typeof useAlarms>
 function Settings({ value, busy, onSave }: { value: AlarmSettings; busy: boolean; onSave: (settings: AlarmSettings) => void }) {
   const [draft, setDraft] = useState(value)
   return <form className="alarm-settings" onSubmit={event => { event.preventDefault(); onSave(draft) }}>
-    <label>Prepare <input type="number" min="2" max="120" required value={draft.prepare_minutes} onChange={event => setDraft({ ...draft, prepare_minutes: Number(event.target.value) })} /> min before</label>
-    <label>Invoke <input type="number" min="1" max="119" required value={draft.release_minutes} onChange={event => setDraft({ ...draft, release_minutes: Number(event.target.value) })} /> min before</label>
-    <button disabled={busy || draft.prepare_minutes <= draft.release_minutes}>Save reminder times</button>
+    <label>Invoke <input type="number" min="1" max="120" required value={draft.release_minutes} onChange={event => setDraft({ ...draft, release_minutes: Number(event.target.value) })} /> min before</label>
+    <button disabled={busy || !Number.isInteger(draft.release_minutes) || draft.release_minutes < 1 || draft.release_minutes > 120}>Save reminder time</button>
   </form>
 }
 export function AlarmControls({ alarms }: { alarms: Alarms }) {
@@ -38,7 +37,7 @@ export function AlarmControls({ alarms }: { alarms: Alarms }) {
         <button disabled={busy} onClick={() => void mutate({ action: 'test' }).then(ok => { if (ok) setMessage('Test launched. Confirm the Windows alarm window and sound; dismiss it when finished.') })}>Test alarm</button>
         <button aria-expanded={settingsOpen} onClick={() => setSettingsOpen(value => !value)}>Reminder settings</button></>}
     </div>
-    <p>Reminders: {data?.settings.prepare_minutes ?? 10} and {data?.settings.release_minutes ?? 1} minutes before · Jakarta. Keep Windows awake.</p>
+    <p>Invoke reminder: {data?.settings.release_minutes ?? 2} minutes before · Jakarta. Keep Windows awake.</p>
     {(error || data?.schedule_error) && <p role="alert">{error || data?.schedule_error}</p>}
     {message && <p role="status">{message}</p>}
     {settingsOpen && data && <Settings key={JSON.stringify(data.settings)} value={data.settings} busy={busy} onSave={settings => void mutate({ action: 'settings', settings })} />}

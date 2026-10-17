@@ -34,12 +34,14 @@ class AlarmTests(TestCase):
 
     def test_automatic_offsets_grouping_durable_dismiss_and_no_duplicate(self):
         self.engine.reconcile([event(), event('ppi')])
-        self.assertEqual(len(self.engine.state['jobs']), 4)
-        self.assertEqual(sorted({j['due'] for j in self.engine.state['jobs'].values()}), [400, 940])
+        self.assertEqual(len(self.engine.state['jobs']), 2)
+        self.assertEqual(sorted({j['due'] for j in self.engine.state['jobs'].values()}), [880])
         self.advance(400)
+        self.assertFalse(self.deliveries, 'No preparation notification')
+        self.advance(880)
         self.assertEqual(len(self.deliveries), 1)
         self.assertEqual(len(self.deliveries[0]), 2, 'Simultaneous package rings once')
-        self.assertIn('$assess-trade-now', self.deliveries[0][0]['prompt'])
+        self.assertIn('$one-minute-before-release', self.deliveries[0][0]['prompt'])
         self.assertIn('Asia/Jakarta', self.deliveries[0][0]['prompt'])
         ids = [j['id'] for j in self.deliveries[0]]
         self.action(action='dismiss', ids=ids)
@@ -48,7 +50,7 @@ class AlarmTests(TestCase):
         self.assertEqual(len(self.deliveries), 1)
         self.assertTrue(all(restored.state['jobs'][i]['status'] == 'dismissed' for i in ids))
         self.advance(940)
-        self.assertEqual(len(self.deliveries), 2)
+        self.assertEqual(len(self.deliveries), 1)
         self.assertIn('$one-minute-before-release', self.deliveries[-1][0]['prompt'])
 
     def test_rescheduling_archive_toggle_and_settings_survive_restart(self):
@@ -58,23 +60,45 @@ class AlarmTests(TestCase):
         self.engine.reconcile([event(at=1100000)])
         self.assertFalse(self.engine.snapshot()['events'][0]['armed'])
         self.action(action='toggle', key='cpi', enabled=True)
-        self.assertEqual(sum(j['status'] == 'pending' for j in self.engine.state['jobs'].values()), 2)
+        self.assertEqual(sum(j['status'] == 'pending' for j in self.engine.state['jobs'].values()), 1)
         self.advance(400)
         self.assertFalse(self.deliveries)
-        self.advance(500)
+        self.advance(980)
         self.assertEqual(len(self.deliveries), 1)
         self.engine.reconcile([])
         self.assertFalse(any(j['status'] in ('pending', 'ringing') for j in self.engine.state['jobs'].values()))
-        self.action(action='settings', settings={'enabled': False, 'prepare_minutes': 15, 'release_minutes': 2})
+        self.action(action='settings', settings={'enabled': False, 'release_minutes': 3})
         restarted = AlarmEngine(self.path, self.deliveries.append, lambda: self.now)
-        self.assertEqual(restarted.state['settings']['prepare_minutes'], 15)
+        self.assertEqual(restarted.state['settings']['release_minutes'], 3)
         self.assertFalse(restarted.state['settings']['enabled'])
+
+    def test_legacy_state_retires_prepare_and_preserves_history_and_pin_choices(self):
+        self.engine.reconcile([event()])
+        data = json.loads(self.path.read_text())
+        data['settings'] = {'enabled': True, 'prepare_minutes': 10, 'release_minutes': 1}
+        data['overrides'] = {'other-pin': False}
+        for identity, status in [('pending', 'pending'), ('snoozed', 'snoozed'), ('ringing', 'ringing'), ('past', 'dismissed')]:
+            data['jobs'][identity] = {'id': identity, 'stage': 'prepare', 'status': status, 'due': 400, 'at': 1000000, 'error': None}
+        self.path.write_text(json.dumps(data))
+        restarted = AlarmEngine(self.path, self.deliveries.append, lambda: self.now)
+        self.assertEqual(restarted.state['settings'], {'enabled': True, 'release_minutes': 2})
+        self.assertEqual(restarted.state['overrides'], {'other-pin': False})
+        self.assertEqual(restarted.state['jobs']['past']['status'], 'dismissed')
+        for identity in ('pending', 'snoozed', 'ringing'):
+            self.assertEqual(restarted.state['jobs'][identity]['status'], 'cancelled')
+        restarted.reconcile([event()])
+        self.now = 880; restarted.reconcile([event()]); restarted.tick()
+        self.assertEqual(len(self.deliveries), 1)
+        self.assertEqual([j['stage'] for j in self.deliveries[0]], ['release'])
+        reloaded = AlarmEngine(self.path, self.deliveries.append, lambda: self.now)
+        reloaded.reconcile([event()]); reloaded.tick()
+        self.assertEqual(len(self.deliveries), 1, 'Migration and restarts never replay the invoke alarm')
 
     def test_late_pin_date_only_sleep_and_schedule_failure_do_not_ring_old_news(self):
         self.engine.reconcile([event(at=200000), event('unknown', at=None, date='2026-10-15', eligible=False)])
         self.engine.tick()
         self.assertFalse(self.deliveries)
-        self.assertEqual(len(self.engine.state['jobs']), 2)
+        self.assertEqual(len(self.engine.state['jobs']), 1)
         self.engine.reconcile([event()])
         self.now = 950
         self.engine.tick()
@@ -88,6 +112,7 @@ class AlarmTests(TestCase):
         self.assertEqual(len(self.deliveries), 1, 'Never ring an entry reminder after its event')
 
     def test_snooze_conflicts_and_native_failure_are_visible(self):
+        self.action(action='settings', settings={'enabled': True, 'release_minutes': 10})
         self.engine.reconcile([event()]); self.advance(400)
         identity = self.deliveries[0][0]['id']
         self.action(action='snooze', ids=[identity])
@@ -96,12 +121,13 @@ class AlarmTests(TestCase):
         with self.assertRaises(ValueError):
             self.engine.mutate({'expected_revision': -1, 'action': 'dismiss', 'ids': [identity]})
         self.action(action='dismiss', ids=[identity])
+        self.action(action='settings', settings={'enabled': True, 'release_minutes': 2})
         self.engine.notify = lambda _: (_ for _ in ()).throw(OSError('Windows unavailable'))
-        self.advance(940)
-        job = next(j for j in self.engine.state['jobs'].values() if j['stage'] == 'release')
+        self.advance(880)
+        job = next(j for j in self.engine.state['jobs'].values() if j['due'] == 880)
         self.assertEqual(job['status'], 'failed')
         self.assertIn('Windows unavailable', job['error'])
-        for settings in ({'enabled': True, 'prepare_minutes': 1, 'release_minutes': 10}, {'enabled': True, 'prepare_minutes': True, 'release_minutes': 1}):
+        for settings in ({'enabled': True, 'prepare_minutes': 1, 'release_minutes': 10}, {'enabled': True, 'release_minutes': True}, {'enabled': True, 'release_minutes': 0}):
             with self.assertRaises(ValueError):
                 self.action(action='settings', settings=settings)
 
@@ -131,10 +157,10 @@ class AlarmTests(TestCase):
         before = self.path.read_bytes()
         with patch.object(self.engine, 'save', side_effect=OSError('Disk full')):
             with self.assertRaises(OSError):
-                self.action(action='settings', settings={'enabled': False, 'prepare_minutes': 20, 'release_minutes': 1})
+                self.action(action='settings', settings={'enabled': False, 'release_minutes': 1})
             self.assertTrue(self.engine.state['settings']['enabled'])
-            self.assertEqual(self.engine.state['settings']['prepare_minutes'], 10)
-            self.now = 400
+            self.assertEqual(self.engine.state['settings']['release_minutes'], 2)
+            self.now = 880
             self.engine.reconcile(self.engine.events)
             with self.assertRaises(OSError):
                 self.engine.tick()

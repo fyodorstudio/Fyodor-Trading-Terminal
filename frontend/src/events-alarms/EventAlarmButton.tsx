@@ -17,7 +17,7 @@ export const EventAlarmButton = memo(function EventAlarmButton({ alarms, source,
       if (!await alarms.mutate({ action: 'toggle', key: event.key, enabled: !on })) break
     }
   }
-  const reminders = events.map(event => `Preparation: ${alarmTime(event.at! - alarms.data!.settings.prepare_minutes * 60000)}\nInvoke agent: ${alarmTime(event.at! - alarms.data!.settings.release_minutes * 60000)}`).join('\n')
+  const reminders = events.map(event => `Invoke agent: ${alarmTime(event.at! - alarms.data!.settings.release_minutes * 60000)}`).join('\n')
   return <button type="button" className="event-alarm-toggle" aria-label={`Alarm for ${title}`} aria-pressed={on} disabled={disabled}
     title={unavailable ? 'Alarm worker unavailable' : archived ? 'Archived event' : !events.length ? 'No confirmed future alarm time' :
       !alarms.data?.settings.enabled ? 'Alarms are paused' : `Alarm ${on ? 'on' : 'off'} · Jakarta\n${reminders}`} onClick={() => void toggle()}>

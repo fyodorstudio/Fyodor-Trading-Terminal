@@ -4,7 +4,7 @@ export type AlarmEvent = { key: string; reference: string; source: 'highlight' |
   currencies: string[]; at: number | null; date: string | null; eligible: boolean; armed: boolean; note: string; prompt: string }
 export type AlarmJob = { id: string; event_key: string; title: string; at: number; due: number; stage: string; prompt: string;
   status: string; error: string | null; snooze_until?: number }
-export type AlarmSettings = { enabled: boolean; prepare_minutes: number; release_minutes: number }
+export type AlarmSettings = { enabled: boolean; release_minutes: number }
 export type AlarmSnapshot = { application: 'fyodor-alarms'; revision: number; now: number; native_available: boolean;
   settings: AlarmSettings; events: AlarmEvent[]; jobs: AlarmJob[]; schedule_error: string | null; refreshed_at: number | null }
 function valid(value: unknown): value is AlarmSnapshot {
@@ -12,7 +12,7 @@ function valid(value: unknown): value is AlarmSnapshot {
   const data = value as AlarmSnapshot
   return data.application === 'fyodor-alarms' && Number.isSafeInteger(data.revision) && Number.isFinite(data.now)
     && typeof data.native_available === 'boolean' && typeof data.settings?.enabled === 'boolean'
-    && [data.settings.prepare_minutes, data.settings.release_minutes].every(Number.isFinite)
+    && Number.isInteger(data.settings.release_minutes) && data.settings.release_minutes >= 1 && data.settings.release_minutes <= 120
     && (data.schedule_error === null || typeof data.schedule_error === 'string')
     && Array.isArray(data.events) && data.events.every(event => event && ['key', 'reference', 'title', 'note', 'prompt'].every(key => typeof event[key as keyof AlarmEvent] === 'string')
       && ['highlight', 'external'].includes(event.source) && Array.isArray(event.currencies) && event.currencies.every(currency => typeof currency === 'string')

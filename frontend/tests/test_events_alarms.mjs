@@ -43,7 +43,7 @@ const externalItems = [external('treasury', { title: 'Treasury' }), external('un
 const event = (key, changes = {}) => ({ key, reference: pin.id, source: 'highlight', broker: 'demo', title: pin.label, currencies: ['USD'], at: now + 3600000,
   date: null, eligible: true, armed: true, note: 'Official schedule', prompt: '$one-minute-before-release US CPI', ...changes })
 let data = { application: 'fyodor-alarms', revision: 1, now, native_available: true, schedule_error: null, refreshed_at: now / 1000,
-  settings: { enabled: true, prepare_minutes: 10, release_minutes: 1 }, jobs: [], events: [event('stage-0'), event('stage-1', { at: now + 7200000 }),
+  settings: { enabled: true, release_minutes: 2 }, jobs: [], events: [event('stage-0'), event('stage-1', { at: now + 7200000 }),
     event('another-broker', { broker: 'other' }), event('treasury', { reference: 'treasury', source: 'external', broker: null }),
     event('unknown', { reference: 'unknown-hour', source: 'external', broker: null, at: null, date: '2026-10-15', eligible: false, armed: false })] }
 const requests = []
@@ -123,7 +123,7 @@ try {
   assert.ok(alarm, 'Alarm button lives directly on the existing Highlight pin')
   assert.equal(alarm.getAttribute('aria-pressed'), 'true')
   assert.equal(alarm.querySelector('path').getAttribute('fill'), 'currentColor')
-  assert.ok(alarm.title.includes('Preparation:') && alarm.title.includes('Invoke agent:'), 'Hover shows both reminder times')
+  assert.ok(!alarm.title.includes('Preparation:') && alarm.title.includes('Invoke agent:'), 'Hover shows only invoke reminder times')
   await click(alarm)
   assert.ok(data.events.filter(event => event.broker === 'demo').every(event => !event.armed), 'One pin button toggles all its future stages')
   assert.equal(data.events.find(event => event.broker === 'other').armed, true, 'Other broker remains independent')
@@ -170,10 +170,15 @@ try {
   await view('highlight'); await view('external')
   assert.equal(node.querySelector('[aria-label="External Source view"]').value, 'limitations', 'Reference selection survives reopening')
   assert.ok(node.textContent.includes('Missing policy event'))
-  await click(node.querySelector('[aria-label="Alarm controls"]')); await click(button('Test alarm'))
+  await click(node.querySelector('[aria-label="Alarm controls"]')); await click(button('Reminder settings'))
+  assert.equal(document.querySelectorAll('.alarm-settings input').length, 1, 'Only Invoke is configurable')
+  assert.equal(document.querySelector('.alarm-settings input').value, '2')
+  await React.act(async () => document.querySelector('.alarm-settings').dispatchEvent(new dom.Event('submit', { bubbles: true, cancelable: true })))
+  assert.deepEqual(JSON.parse(requests.filter(request => request.options.method === 'POST').at(-1).options.body).settings, { enabled: true, release_minutes: 2 })
+  await click(button('Test alarm'))
   assert.ok(document.body.textContent.includes('Test launched'))
   data = { ...data, revision: data.revision + 1, jobs: [{ id: 'j', event_key: 'stage-0', title: 'US CPI', at: now + 600000, due: now / 1000,
-    stage: 'prepare', prompt: 'prepare', status: 'ringing', error: null }] }
+    stage: 'release', prompt: 'invoke', status: 'ringing', error: null }] }
   await poll(); assert.ok(document.body.textContent.includes('Reminder ringing'))
   await click(button('Dismiss')); assert.equal(document.querySelector('.alarm-ringing'), null)
   await view('highlight')
