@@ -1,4 +1,4 @@
 interface:
   display_name: "Assess Trade Now"
   short_description: "Currency news and pair fundamentals with sourced evidence"
-  default_prompt: "Use $assess-trade-now for a web-first assessment of my requested currency, pair or Highlight: lead with a direct buy/sell thesis, then separate Upcoming events that could change the thesis and Prior stale events with dates and ages; keep it short, without tables or candle analysis."
+  default_prompt: "Use $assess-trade-now for a web-first assessment of my requested currency, pair or Highlight: lead with a direct buy/sell thesis, then Upcoming events that could change the thesis and a compact category-by-currency backdrop table covering policy/rate projections, inflation, labor/wages, growth and other drivers with dates, ages and implications; local MT5 data is optional and candle analysis is excluded."

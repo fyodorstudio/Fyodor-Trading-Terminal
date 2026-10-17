@@ -111,15 +111,20 @@ folders live together under `Market Analyst Workflow/`.
 - Present assessments in the skill's compact [output format](.agents/skills/assess-trade-now/SKILL.md#output-format):
   assessment date/as-of time and horizon, pair verdict with a one- or two-sentence
   dominant-driver thesis, **UPCOMING EVENTS THAT COULD CHANGE THE THESIS**, then
-  **PRIOR STALE EVENTS**. Link decisive evidence beside the thesis. Any material
-  recent-event bullets go newest first; upcoming events belong in their own section,
+  **FUNDAMENTAL BACKDROP — RECENT & PRIOR**. Link decisive evidence beside the
+  thesis. Any material recent-event bullets go newest first; upcoming events belong in their own section,
   earliest first, with verified Jakarta AM/PM times and the outcome that changes
   the thesis. Unscheduled risks follow timed events without invented dates.
-  Stale context goes newest first with its original event date and age at the
-  cutoff. A reference month, capture or retrieval time is not the news date.
+  The backdrop is a compact category-by-currency table covering monetary policy
+  (including guidance, projections and expected rate paths), inflation, labor/wages,
+  growth/activity and other material drivers. Research each category for both
+  currencies on the web, with MT5 optional. Cells show dated latest/prior evidence,
+  age and a brief implication; multiple items go newest first. Older relevant
+  evidence is Background, not automatically stale. Future releases remain in
+  Upcoming. A reference month, capture or retrieval time is not the news date.
   Unknown times stay unknown; historical ages use the simulated cutoff.
-  No tables unless requested, mandatory entry-date declaration, eligibility gate,
-  confidence boilerplate, separate risk checklist or repetitive conclusion.
+  Use the backdrop table by default; keep thesis/Upcoming short. No mandatory
+  entry-date declaration, eligibility gate, confidence boilerplate, separate risk checklist or repetitive conclusion.
   Research depth should not inflate the answer. Keep execution timing with the user.
   Old policy decisions alone are not fresh directional evidence. If fresh news
   reactivates an older story, explain the update alongside the thesis; age alone
@@ -163,7 +168,10 @@ folders live together under `Market Analyst Workflow/`.
   other currency's backdrop before translating it into a pair view.
 - Research material events and policy stages for both currencies over at least
   the next seven calendar days, or the longer requested holding horizon, using
-  official schedules and credible calendars. Show only thesis-changing candidates
+  official schedules and credible calendars across all five backdrop categories.
+  Include a later next policy/projection event when central to the thesis, marked
+  outside the scan window. Attribute available expectations and explain how a
+  surprise could change the mechanism, without inventing consensus. Show only thesis-changing candidates
   in the separate Upcoming section with concise conditional implications; this
   scan horizon is not a directional forecast or mandatory holding period. Check
   nearer remarks/Q&A, overnight stages and specific unscheduled shocks. Integrate

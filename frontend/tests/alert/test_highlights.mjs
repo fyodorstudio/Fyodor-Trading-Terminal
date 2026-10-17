@@ -167,7 +167,7 @@ try {
   assert.match(copiedPrompt, /Assess EURUSD now/)
   assert.match(copiedPrompt, /do not fetch or analyze candles\/OHLC, including saved candles/)
   assert.match(copiedPrompt, /STRONG BUY \/ BUY \/ MIXED \/ SELL \/ STRONG SELL/)
-  assert.match(copiedPrompt, /UPCOMING EVENTS THAT COULD CHANGE THE THESIS.*PRIOR STALE EVENTS/s)
+  assert.match(copiedPrompt, /UPCOMING EVENTS THAT COULD CHANGE THE THESIS.*FUNDAMENTAL BACKDROP.*MONETARY POLICY.*INFLATION.*LABOR \/ WAGES.*GROWTH \/ ACTIVITY.*OTHERS/s)
   assert.match(copiedPrompt, /Local datasets and saved research are optional/)
   assert.match(copiedPrompt, /pending release alone does not force waiting/)
   assert.match(copiedPrompt, /Verify material facts or disclose gaps/)

@@ -177,7 +177,7 @@ preparation`. The countdown verifies the schedule and waits for actuals, stoppin
 by default five minutes after publication if decisive data is missing. Preparation
 includes direct release sources, decisive fields and simultaneous-release checks.
 The countdown sends a short sourced verdict as soon as sufficient evidence arrives,
-then the compact thesis with separate upcoming and stale events in the same turn,
+then the compact thesis with separate upcoming events and a compact fundamental backdrop table in the same turn,
 with available timing checkpoints.
 Neither skill promises exact response timing or starts background monitoring.
 

@@ -1,6 +1,6 @@
 ---
 name: one-minute-before-release
-description: "Wait for an imminent economic release in the active chat, reuse prepared context, check fresh actuals and send a short fundamental verdict followed by a concise thesis with separate upcoming and stale events. Use when asked to count down or await publication; excludes background scheduling and candle analysis."
+description: "Wait for an imminent economic release in the active chat, reuse prepared context, check fresh actuals and send a short fundamental verdict followed by a concise thesis with separate upcoming events and a compact fundamental backdrop comparison. Use when asked to count down or await publication; excludes background scheduling and candle analysis."
 ---
 
 # One Minute Before Release
@@ -153,11 +153,14 @@ confirmed release result; a supported existing thesis can still be stated.
 
 Then use Assess Trade Now's [compact output](../assess-trade-now/SKILL.md#output-format):
 assessment date/as-of time and horizon, a direct thesis, a separate **UPCOMING
-EVENTS THAT COULD CHANGE THE THESIS** section, then **PRIOR STALE EVENTS** with
-original dates and ages. Recent bullets go newest first; upcoming events go
-earliest first using the prepared seven-day scan. Integrate material reversal
-triggers and confirmation gaps briefly. No tables unless requested, mandatory
-entry-date declarations or confidence/entry/risk checklists.
+EVENTS THAT COULD CHANGE THE THESIS** section, then **FUNDAMENTAL BACKDROP —
+RECENT & PRIOR**: a compact category-by-currency comparison of monetary policy
+and rate projections, inflation, labor/wages, growth/activity and other drivers,
+with dated evidence, ages and implications. Reuse the prepared table and refresh
+the released package and intervening news; do not rebuild everything near release.
+Recent bullets go newest first; upcoming events go earliest first using the prepared seven-day scan. Integrate material reversal
+triggers and confirmation gaps briefly. Use only the compact backdrop table by
+default; no mandatory entry-date declarations or confidence/entry/risk checklists.
 
 In requested best-pair mode, give one leading pair and at most a brief useful
 alternative, using the prepared counterpart evidence. User technicals do not

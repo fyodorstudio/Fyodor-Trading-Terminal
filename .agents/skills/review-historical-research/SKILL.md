@@ -82,8 +82,10 @@ remarks; label its publication date separately from the recorded event.
 
 Use [Assess Trade Now's compact format](../assess-trade-now/SKILL.md#output-format)
 for the reconstructed fundamental assessment: lead with the pair verdict and
-causal thesis, separate known Upcoming events from Prior stale events, and order
-recent/older evidence newest first and upcoming events earliest first. Show the
+causal thesis, separate known Upcoming events from the compact category-by-currency
+Fundamental backdrop table (policy/projections, inflation, labor/wages, growth and
+other drivers), and order evidence within cells newest first and upcoming events
+earliest first. Use only data and expectations public by the simulated cutoff. Show the
 historical cutoff separately from today's research time; ages use that cutoff.
 Apply the [direction and conviction rule](../assess-trade-now/SKILL.md#direction-and-conviction)
 to evidence available then. No mandatory entry-date declaration or separate

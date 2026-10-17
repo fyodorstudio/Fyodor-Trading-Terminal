@@ -47,10 +47,14 @@ USDJPY now for an intraday trade, without candle analysis." It researches both
 currencies on the web, with local data optional, and leads with a direct buy/sell
 thesis and its dominant driver. Material recent developments go newest first.
 **Upcoming events that could change the thesis** are separate, earliest first,
-with Jakarta AM/PM times and conditional implications; **Prior stale events**
-follow, newest first with original dates and ages. No tables unless requested,
-mandatory entry-date declarations or confidence/entry/risk checklists. A dominant
-active catalyst can outweigh older opposing indicators. Sources, material gaps
+with Jakarta AM/PM times, attributable expectations when available and conditional
+implications. **Fundamental backdrop — recent & prior** replaces the stale-event
+list with a compact category-by-currency table: monetary policy/rate projections,
+inflation, labor/wages, growth/activity and other material drivers. Each cell has
+dated evidence, its age/change and currency implication, linked to web sources;
+MT5 data is optional. Older relevant evidence is Background, not automatically
+stale. No mandatory entry-date declarations or confidence/entry/risk checklists.
+A dominant active catalyst can outweigh older opposing indicators. Sources, material gaps
 and reversal triggers stay concise. The research still checks both currencies'
 next seven days; a pending release alone does not force the general thesis to
 wait. Execution timing and risk rules remain with the user.

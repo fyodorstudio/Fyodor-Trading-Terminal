@@ -1,6 +1,6 @@
 ---
 name: assess-trade-now
-description: "Give a concise, web-first fundamental trade thesis for a currency, pair or Highlight, with upcoming thesis-changing events and dated stale context. Also prepare releases; excludes candle analysis and automatic monitoring."
+description: "Give a concise, web-first fundamental trade thesis for a currency, pair or Highlight, with upcoming thesis-changing events and a dated comparison of policy, inflation, labor/wages, growth and other drivers. Also prepare releases; excludes candle analysis and automatic monitoring."
 ---
 
 # Assess Trade Now
@@ -88,17 +88,64 @@ invalidates it. Do not carry an earlier verdict forward automatically or invent 
 retracement merely because the user missed a move. Directional conviction and
 precision about timing or eventual pip distance are separate judgments.
 
+## Fundamental backdrop: recent and prior evidence
+
+Research all five categories below for each requested currency on the web, even
+when the dominant thesis is an off-calendar shock. Local MT5 data is optional.
+Use a compact comparison table with categories as rows and the requested currencies
+as columns (EUR and CHF for EURCHF). For a currency-only request use one currency
+column; do not expand the scope merely to fill a table.
+
+- **MONETARY POLICY:** current stance and latest decision; fresh guidance,
+  official projections and the expected future rate path, including next-meeting
+  expectations when available. Distinguish central-bank forecasts/conditional
+  paths, economist surveys and identified market pricing, with their own dates.
+  Explain what changed; an old hike or today's rate alone is not a fresh signal.
+- **INFLATION:** latest headline/core package and material services or other
+  components; compare the prior reading and attributed expectations where useful.
+  Explain implications for the bank's concern and future policy response.
+- **LABOR / WAGES:** employment, unemployment, wage growth and labor tightness
+  where available. Wage/earnings or negotiated-pay data belong here, even when
+  released less frequently than employment. Explain the growth/inflation channel.
+- **GROWTH / ACTIVITY:** latest material GDP, PMIs, consumption/retail sales,
+  production or other activity evidence and its change from the relevant prior.
+- **OTHERS:** material fiscal/bond stress, energy, trade, geopolitics,
+  intervention, funding or haven demand; select what matters to this pair.
+
+Each cell contains the latest relevant evidence's publication date/age, key result
+or change versus the comparable prior/expectation, a short currency implication
+and direct source link. Use one or two short statements per cell; do not dump
+release histories. Order multiple items within a cell newest first. Mark older
+retained facts as Background when relevant, and distinguish an older policy
+level from newly published guidance or rate-path expectations. The latest
+quarterly wage/GDP release may still matter: age alone does not make it stale.
+State unavailable or conflicting material evidence briefly instead of inventing
+numbers or padding a cell. Do not turn the table into a vote or numeric score;
+the dominant-driver thesis still determines the overall verdict.
+
+Keep future scheduled releases in Upcoming, not mixed with occurred observations
+in the table. A forecast published before the cutoff belongs in the backdrop as
+a dated expectation; the future meeting/release and its conditional implications
+belong in Upcoming. Do not repeat the same evidence in both sections.
+
 ## Upcoming events that could change the thesis
 
 Research both currencies' material scheduled events and policy stages for at least
 the next seven calendar days, or the longer requested holding horizon. Use official
 schedules and credible current calendars; a local calendar is optional. Check nearer
-speeches/Q&A and overnight stages before suggesting a later major release. Separate
+speeches/Q&A and overnight stages before suggesting a later major release. Scan
+all five backdrop categories, including labor/wages and growth as well as rates
+and inflation. Include the next material policy meeting or projection release
+beyond the seven-day window when it is central to the thesis, clearly dated as
+outside that window; do not expand every minor-data search indefinitely. Separate
 decisions, statements, projections and press conferences.
 
 Show only material candidates, earliest first, with verified Jakarta date/time and
-one short outcome that would strengthen, weaken or reverse the thesis. Distinguish
-ordinary volatility from a change in the dominant driver. Include specific
+the latest attributable expectation when available and one short outcome that
+would strengthen, weaken or reverse the thesis. Explain the policy/growth/risk
+mechanism rather than treating every higher/lower reading mechanically. Unknown
+consensus stays unknown; do not recycle stale forecasts as current expectations.
+Distinguish ordinary volatility from a change in the dominant driver. Include specific
 unscheduled risks after timed events, with an evidence trigger and no invented date.
 Put a material coverage gap here if it affects the reassessment plan; do not issue
 an all-clear from absent icons. A credible fiscal resolution, verified intervention
@@ -111,7 +158,8 @@ before every release, a holding deadline, entry hour, price, stop, target or siz
 ## Output format
 
 Use this compact structure for pair assessments and adapt it to currency-only
-updates. No tables unless requested. No mandatory entry-date declaration, entry
+updates. Use only the compact backdrop comparison table by default; keep the
+thesis and Upcoming in prose/bullets. No mandatory entry-date declaration, entry
 eligibility gate, confidence boilerplate, separate risk checklist or long conclusion.
 
 1. **[Jakarta date] TRADE ASSESSMENT** — as of [time], [horizon].
@@ -123,13 +171,24 @@ eligibility gate, confidence boilerplate, separate risk checklist or long conclu
 2. **UPCOMING EVENTS THAT COULD CHANGE THE THESIS**
    Dated bullets, earliest first: event, Jakarta time, source and what outcome
    changes the thesis. Include a concrete shock/reversal trigger here when material.
-3. **PRIOR STALE EVENTS**
-   Relevant older context, newest first: original event/date, age at the cutoff
-   and a terse description. For example, a September 10 decision is 21 calendar
-   days old on October 1. Keep this separate from fresh catalysts. Age alone does
-   not establish irrelevance or that something was priced in: if fresh evidence
-   reactivates an older story, explain that new development alongside the thesis.
-   Use "None material" for an empty section rather than padding it.
+3. **FUNDAMENTAL BACKDROP — RECENT & PRIOR**
+   Use the five-category table described above, with one column per currency.
+   It replaces the rates-only stale-event list. Include policy/rate projections,
+   inflation, labor/wages, growth/activity and relevant other drivers. Keep dates,
+   ages, changes and implications concise; distinguish recent evidence from older
+   Background rather than calling every prior event stale.
+
+   | Category | EUR | CHF |
+   | --- | --- | --- |
+   | MONETARY POLICY | Dated stance/guidance and expected rate path; implication | Dated stance/guidance and expected rate path; implication |
+   | INFLATION | Latest package versus prior/expectation; implication | Latest package versus prior/expectation; implication |
+   | LABOR / WAGES | Latest jobs/pay evidence; implication | Latest jobs/pay evidence; implication |
+   | GROWTH / ACTIVITY | Latest material activity evidence; implication | Latest material activity evidence; implication |
+   | OTHERS | Relevant fiscal/energy/risk news; implication | Relevant fiscal/energy/risk news; implication |
+
+   The currency headings above illustrate EURCHF; substitute the requested scope.
+   Every populated cell needs its evidence date/age and source, not just the
+   generic descriptions in this template. Do not add another stale-events list.
 
 Dates refer to the actual event/publication, not the reference month or retrieval.
 Use approximate calendar-day age for untimed old news; do not invent precise ages.
