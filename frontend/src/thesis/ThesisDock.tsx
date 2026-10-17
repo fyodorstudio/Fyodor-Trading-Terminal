@@ -1,6 +1,6 @@
 import { memo, useCallback, useState } from 'react'
 import { majorForexPairs } from '../economic-calendar/forex/pairs'
-import { readThesisMonth, readThesisPair, safeThesisLink, thesisMonths, thesisPrompt, type ThesisEntry, type ThesisRow } from './thesis-model'
+import { readThesisMonth, readThesisPair, safeThesisLink, thesisMonths, thesisPrompt, type ThesisEntry, type ThesisPlannedDay, type ThesisRow } from './thesis-model'
 import { useTheses } from './useTheses'
 import './thesis.css'
 
@@ -12,7 +12,7 @@ function dayLabel(value: string) {
   const part = (type: string) => parts.find(item => item.type === type)?.value
   return `${part('month')} ${part('day')}, ${part('weekday')}`
 }
-function Sources({ entry }: { entry: ThesisEntry }) {
+function Sources({ entry }: { entry: Pick<ThesisEntry, 'sources'> }) {
   return <span className="thesis-sources">{entry.sources.map((source, index) => source.kind === 'web' && safeThesisLink(source.locator)
     ? <a key={index} href={source.locator} target="_blank" rel="noopener noreferrer" title={source.note || undefined}>{source.label}</a>
     : <span key={index} title={source.locator}>{source.label} (local evidence)</span>)}</span>
@@ -41,6 +41,15 @@ const PastRow = memo(function PastRow({ row, onCopy }: { row: ThesisRow; onCopy:
         <button type="button" onClick={() => onCopy(row)}>Copy reassessment prompt</button>
       </details>
     </td>
+  </tr>
+})
+const PlannedRow = memo(function PlannedRow({ day }: { day: ThesisPlannedDay }) {
+  return <tr data-thesis-plan={day.date}>
+    <td><strong>{dayLabel(day.date)}</strong></td><td /><td />
+    <td>{day.events.map((event, index) => <p className="thesis-scheduled" key={index}>
+      {event.title} is scheduled for {event.at ? `${fullFormatter.format(new Date(event.at))} Jakarta` : `${dayLabel(day.date)}, 2026 · time unverified`}.
+      {event.note && <> {event.note}</>} <Sources entry={event} />
+    </p>)}</td>
   </tr>
 })
 function Head({ scope }: { scope: string }) {
@@ -80,6 +89,9 @@ export const ThesisDock = memo(function ThesisDock() {
           {data.past.map(row => <PastRow key={row.row_id} row={row} onCopy={copy} />)}
           {!data.past.length && <tr><td colSpan={4} className="thesis-empty">No saved assessments for {scope} in {thesisMonths.find(item => item.value === month)?.label}.</td></tr>}
         </tbody></table>
+        {!!data.planned?.length && <table className="thesis-table" aria-label="Unassessed dates"><Head scope={scope} /><tbody>
+          {data.planned.map(day => <PlannedRow key={day.date} day={day} />)}
+        </tbody></table>}
       </>}
     </div>
   </section>

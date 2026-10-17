@@ -112,7 +112,8 @@ first, independently of the chart. The month selector offers **JUL / OCT 2026**.
 July retains its original NZDCHF
 reconstruction; October 1–17 adds event-driven NZDCHF assessments with separate
 pair bias and thesis-change evidence. Sources, as-of/saved times and prior versions are
-expandable. Upcoming releases remain in Alert. See [Thesis workflow](docs/THESIS.md)
+expandable. NZDCHF October 18–31 has requested blank planning rows with sourced
+schedule notes. Alert retains scheduling and notifications. See [Thesis workflow](docs/THESIS.md)
 for the copied assessment prompt and agent save interface.
 
 **Entry Trade** is a manual trade journal. Save an entry at any stage, choose

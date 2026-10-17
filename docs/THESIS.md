@@ -3,8 +3,9 @@
 Thesis only documents sourced assessments the user asks an agent to save.
 The month selector offers **JUL / OCT 2026**, defaulting to October for a new
 preference. Pair choice defaults to NZDCHF, independently of the chart.
-Saved assessments are newest first. Alert owns upcoming releases, scheduling and
-notifications; Thesis has no upcoming rows, countdowns or automatic placeholders.
+Saved assessments are newest first. Alert owns scheduling and notifications.
+An explicitly requested planning table follows the assessments, earliest first;
+it contains blank days and sourced schedule notes, with no bias or thesis.
 
 Copy assessment prompt invokes `assess-trade-now` and explicitly requests a
 save. A direct user request to document an assessment also authorizes saving.
@@ -89,6 +90,22 @@ release and saved clocks. Optional `journal_id` links the full report for the
 same Highlight/pair without copying its body.
 
 ## Storage and runtime
+
+The requested NZDCHF October 18–31 planning rows live in `thesis/plan.json`
+beside the journal. Each day has `scope`, Jakarta `date` and an `events` list;
+events have `title`, optional timezone-aware `at`, `note` and `sources`. The book
+has `version: 1` and the real schedule-check time `checked_utc`. Date-only events
+keep `at: null`; blank days have no events. Plans contain no research verdict,
+future assessment cutoff or automatic invocation. Broker-only times and timing
+uncertainty stay attributed in notes. Schedules are a saved snapshot, not a live
+feed; recheck before assessment. Do not add pins or alarms merely for these rows.
+
+GET and `thesis read` return planning days separately as `planned`. A saved
+assessment on the same pair/Jakarta date replaces that blank day's display;
+all assessment versions and the original plan remain stored. Fill a day by
+appending a real assessment through the existing agent interface, using its
+actual cutoff after invocation. Passing midnight or a release time fills nothing.
+Other pair/month views do not inherit this requested plan.
 
 The canonical compact records live in Git-tracked
 `Market Analyst Workflow/thesis/journal.json`, separately from raw observations,

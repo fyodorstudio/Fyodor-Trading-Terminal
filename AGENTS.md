@@ -209,6 +209,9 @@ folders live together under `Market Analyst Workflow/`.
   change and its evidence; use actual invocation cutoffs or explicitly labelled
   historical publication precision, never a fixed daily hour. Preserve July's
   existing reconstruction without assigning retrospective change labels.
+  Explicitly requested blank planning days may show sourced schedules separately
+  from assessments; keep bias/thesis empty until a real assessment is saved.
+  The NZDCHF October 18–31 plan is a saved snapshot, not a live feed or alarm.
 
 - Alert automatically prepares one Invoke reminder two minutes before each timed stage for
   active timed Highlights and confirmed scheduled External Sources. Research and

@@ -30,7 +30,8 @@ export function useTheses(scope: string, month: string) {
             const previousItem = previousItems.find(value => identity(value) === identity(item))
             return previousItem && JSON.stringify(previousItem) === JSON.stringify(item) ? previousItem : item
           })
-          return { key, data: { ...data, past: stable(data.past, old?.past ?? [], row => row.row_id) } }
+          return { key, data: { ...data, past: stable(data.past, old?.past ?? [], row => row.row_id),
+            planned: stable(data.planned ?? [], old?.planned ?? [], row => row.date) } }
         })
         setFailure(null)
       } catch (error) {

@@ -13,7 +13,8 @@ export type ThesisEntry = {
   change?: typeof thesisChanges[number] | null; change_reason?: string; compared_with?: string | null; as_of_precision?: 'minute' | 'date'
 }
 export type ThesisRow = ThesisEntry & { versions: ThesisEntry[]; comparison?: { id: string; as_of_utc: string; verdict: typeof verdicts[number] } | null }
-export type ThesisSnapshot = { schema: 1; scope: string; month: string; source_id: string | null; revision: string; past: ThesisRow[] }
+export type ThesisPlannedDay = { scope: string; date: string; checked_utc: string; events: { title: string; at: string | null; note: string; sources: ThesisSource[] }[] }
+export type ThesisSnapshot = { schema: 1; scope: string; month: string; source_id: string | null; revision: string; past: ThesisRow[]; planned?: ThesisPlannedDay[] }
 
 const timestamp = (value: unknown): value is string => typeof value === 'string' && Number.isFinite(Date.parse(value)) && /(?:Z|[+-]\d\d:\d\d)$/.test(value)
 const text = (value: unknown): value is string => typeof value === 'string'
@@ -45,6 +46,12 @@ export function validThesisSnapshot(value: unknown, scope: string, month: string
   if (!value || typeof value !== 'object') return false
   const data = value as ThesisSnapshot
   return data.schema === 1 && data.scope === scope && data.month === month && data.source_id === sourceId && !!data.revision
+    && (data.planned === undefined || Array.isArray(data.planned) && data.planned.every(day => day && day.scope === scope
+      && typeof day.date === 'string' && day.date.startsWith(month + '-') && /^\d{4}-\d\d-\d\d$/.test(day.date) && Number.isFinite(Date.parse(day.date))
+      && timestamp(day.checked_utc) && Array.isArray(day.events) && day.events.every(event => event && text(event.title) && text(event.note)
+        && (event.at === null || timestamp(event.at)) && Array.isArray(event.sources) && event.sources.length > 0
+        && event.sources.every(source => source && text(source.label) && text(source.locator) && text(source.note)
+          && (source.kind === 'local' || source.kind === 'web' && safeThesisLink(source.locator))))))
     && Array.isArray(data.past) && data.past.every(item => validEntry(item, scope) && Array.isArray(item.versions)
       && item.versions.length > 0 && item.versions.every(entry => validEntry(entry, scope) && entry.row_id === item.row_id)
       && (item.comparison === undefined || item.comparison === null || text(item.comparison.id) && timestamp(item.comparison.as_of_utc) && verdicts.includes(item.comparison.verdict)))

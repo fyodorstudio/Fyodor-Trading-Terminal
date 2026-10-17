@@ -29,6 +29,9 @@ for (const entry of allEntries.filter(entry => entry.as_of_utc.startsWith('2026-
   octoberByRow.set(entry.row_id, { ...entry, versions: [...(previous?.versions ?? []), entry], comparison: prior ? { id: prior.id, as_of_utc: prior.as_of_utc, verdict: prior.verdict } : null })
 }
 const october = [...octoberByRow.values()].sort((a, b) => b.as_of_utc.localeCompare(a.as_of_utc))
+const plan = JSON.parse(fs.readFileSync(path.join(frontend, '../Market Analyst Workflow/thesis/plan.json'), 'utf8'))
+const planned = plan.days.map(day => ({ ...day, checked_utc: plan.checked_utc, events: day.events.map(event => ({
+  note: '', ...event, sources: event.sources.map(source => ({ note: '', ...source })) })) }))
 let past = [...seed].reverse().map(entry => ({ ...entry, versions: [entry] }))
 const response = route => {
   if (offline) return { ok: false, status: 503, json: async () => ({}) }
@@ -36,7 +39,9 @@ const response = route => {
   const month = route.searchParams.get('month')
   const base = { schema: 1, scope, month, source_id: sourceId, revision }
   return { ok: true, json: async () => route.searchParams.get('after_revision') === revision ? { ...base, unchanged: true }
-    : { ...base, past: malformed ? [{}] : scope === 'NZDCHF' ? month === '2026-10' ? october : past : [] } }
+    : { ...base, planned: scope === 'NZDCHF' && month === '2026-10' ? planned.filter(day => !october.some(row =>
+      new Date(Date.parse(row.as_of_utc) + 7 * 3600000).toISOString().slice(0, 10) === day.date)) : [],
+      past: malformed ? [{}] : scope === 'NZDCHF' ? month === '2026-10' ? october : past : [] } }
 }
 globalThis.fetch = async (url, options = {}) => {
   const route = new URL(String(url), 'http://localhost'); requests.push({ route, options })
@@ -120,7 +125,18 @@ try {
   assert.equal(rows().length, 11)
   assert.ok(rows()[0].textContent.includes('Oct 17'))
   assert.ok(rows().at(-1).textContent.includes('Oct 1'))
-  assert.equal(container.querySelectorAll('thead th').length, 4)
+  assert.equal(container.querySelectorAll('thead th').length, 8)
+  const planRows = () => [...container.querySelectorAll('[data-thesis-plan]')]
+  assert.equal(planRows().length, 14)
+  assert.equal(planRows()[0].dataset.thesisPlan, '2026-10-18')
+  assert.equal(planRows().at(-1).dataset.thesisPlan, '2026-10-31')
+  assert.ok(planRows().every(row => !row.cells[1].textContent && !row.cells[2].textContent))
+  assert.equal(planRows()[0].cells[3].textContent, '')
+  assert.ok(planRows().find(row => row.dataset.thesisPlan === '2026-10-28').textContent.includes('8:00 AM'))
+  assert.ok(planRows().find(row => row.dataset.thesisPlan === '2026-10-30').textContent.includes('12:30 AM'))
+  const firstPlan = planRows()[0]
+  await poll()
+  assert.equal(planRows()[0], firstPlan, 'Quiet polls preserve planning row identity')
   assert.ok(rows().some(row => row.querySelector('.thesis-change').textContent.includes('Weakened')))
   assert.ok(rows().some(row => row.textContent.includes('Publication hour unverified')))
   assert.ok(!rows().some(row => row.textContent.includes('11:59 PM')), 'Unknown publication hours do not display the conservative internal cutoff as a real time')
@@ -128,11 +144,20 @@ try {
   await click(button('Copy assessment prompt'))
   assert.ok(copied.includes('--month 2026-10'))
   assert.ok(copied.includes('change/compared_with/change_reason'))
+  const filled = { ...october[0], id: 'e'.repeat(32), row_id: 'f'.repeat(32), as_of_utc: '2026-10-18T01:00:00Z',
+    thesis: 'New assessment fixture.', versions: [] }
+  filled.versions = [{ ...filled }]
+  october.unshift(filled)
+  revision = 'filled-day'; await poll()
+  assert.equal(planRows().length, 13)
+  assert.ok(!planRows().some(row => row.dataset.thesisPlan === '2026-10-18'))
+  assert.ok(rows()[0].textContent.includes('New assessment fixture.'))
   const pair = container.querySelector('[aria-label="Thesis pair"]')
   hold = true
   await click(button('Refresh'))
   await React.act(async () => { pair.value = 'EURUSD'; pair.dispatchEvent(new dom.Event('change', { bubbles: true })) })
   assert.equal(rows().length, 0, 'Pair changes never display another pair\'s thesis')
+  assert.equal(planRows().length, 0, 'Planning rows stay scoped to the requested pair')
   assert.ok(held[0].options.signal.aborted)
   hold = false
   await React.act(async () => { for (const item of held.splice(0).reverse()) item.resolve(response(item.route)) })

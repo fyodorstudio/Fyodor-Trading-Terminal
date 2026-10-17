@@ -118,6 +118,52 @@ class ThesisBook(Payload):
     entries: list[ThesisEntry] = Field(default_factory=list, max_length=10000)
 
 
+class PlannedEvent(Payload):
+    title: str = Field(min_length=1, max_length=500)
+    at: datetime | None = None
+    note: str = Field(default='', max_length=2000)
+    sources: list[JournalSource] = Field(min_length=1, max_length=30)
+
+
+class PlannedDay(Payload):
+    scope: str
+    date: date
+    events: list[PlannedEvent] = Field(default_factory=list, max_length=30)
+
+    @model_validator(mode='after')
+    def valid_day(self):
+        pair_scope(self.scope)
+        for event in self.events:
+            if event.at and (event.at.tzinfo is None or event.at.astimezone(JAKARTA).date() != self.date):
+                raise ValueError('Planned event time needs an explicit offset and its Jakarta date')
+        return self
+
+
+class ThesisPlan(Payload):
+    version: Literal[1] = 1
+    checked_utc: datetime
+    days: list[PlannedDay] = Field(default_factory=list, max_length=1000)
+
+    @model_validator(mode='after')
+    def valid_plan(self):
+        if self.checked_utc.tzinfo is None or self.checked_utc > datetime.now(timezone.utc):
+            raise ValueError('Schedule check needs an explicit offset and cannot be in the future')
+        if len({(day.scope, day.date) for day in self.days}) != len(self.days):
+            raise ValueError('Keep one planning row per pair and Jakarta date')
+        return self
+
+
+def planned_days(path, scope, month, assessments):
+    plan_path = Path(path).with_name('plan.json')
+    if not plan_path.exists():
+        return []
+    plan = ThesisPlan.model_validate_json(plan_path.read_text(encoding='utf-8'))
+    assessed = {datetime.fromisoformat(row['as_of_utc']).astimezone(JAKARTA).date() for row in assessments}
+    return [{**day.model_dump(mode='json'), 'checked_utc': plan.checked_utc.isoformat()}
+        for day in sorted(plan.days, key=lambda day: day.date)
+        if day.scope == scope and day.date.isoformat().startswith(month + '-') and day.date not in assessed]
+
+
 def read_theses(path=PATH):
     path = Path(path)
     if not path.exists():
@@ -243,7 +289,8 @@ def thesis_snapshot(store, scope, month, source_id=None, path=PATH, pins_path=HI
         prior = by_id.get(row['compared_with'])
         row['comparison'] = {key: prior[key] for key in ('id', 'as_of_utc', 'verdict')} if prior else None
     past.sort(key=lambda item: (item['as_of_utc'], item['saved_utc'], item['row_id']), reverse=True)
-    content = {'schema': 1, 'scope': scope, 'month': month, 'source_id': source_id, 'past': past}
+    planned = planned_days(path, scope, month, past)
+    content = {'schema': 1, 'scope': scope, 'month': month, 'source_id': source_id, 'past': past, 'planned': planned}
     revision = hashlib.sha256(json.dumps(content, sort_keys=True).encode()).hexdigest()
     return {'schema': 1, 'scope': scope, 'month': month, 'source_id': source_id, 'revision': revision,
-            **({'unchanged': True} if revision == after_revision else {'past': past})}
+            **({'unchanged': True} if revision == after_revision else {'past': past, 'planned': planned})}

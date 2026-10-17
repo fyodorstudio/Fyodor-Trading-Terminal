@@ -20,6 +20,8 @@
 .thesis-table small { display: block; font-size: 11px; line-height: 1.6; color: var(--text-muted); margin-top: 3px; }
 .thesis-event-title { display: block; font-size: 12px; margin-top: 6px; line-height: 1.5; }
 .thesis-prose { margin: 0; white-space: pre-wrap; max-width: 100ch; }
+.thesis-scheduled { margin: 0 0 8px; font-size: 12px; }
+.thesis-scheduled:last-child { margin-bottom: 0; }
 .thesis-verdict { font-weight: 600; }
 .thesis-verdict.buy { color: var(--positive); }
 .thesis-verdict.sell { color: var(--negative); }

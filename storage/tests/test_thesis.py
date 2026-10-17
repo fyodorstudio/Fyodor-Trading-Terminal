@@ -8,7 +8,7 @@ from test_research_reports import event
 from storage.app import create_app
 from storage.external_sources import ExternalRequest, append_external, archive_external
 from storage.highlights import HighlightRequest, pin_release, archive_pin
-from storage.thesis import ThesisRequest, append_thesis, read_theses, thesis_snapshot, highlighted_stages, PATH
+from storage.thesis import ThesisRequest, ThesisPlan, append_thesis, read_theses, thesis_snapshot, highlighted_stages, PATH
 
 
 class ThesisTests(TestCase):
@@ -190,3 +190,44 @@ class ThesisTests(TestCase):
         self.assertGreater(len({row['as_of_utc'][11:16] for row in latest.values()}), 5)
         self.assertTrue(any(row['as_of_precision'] == 'date' for row in latest.values()))
         self.assertTrue(all(row['change'] is None for row in entries if row['as_of_utc'].startswith('2026-07')))
+
+    def test_planning_days_are_separate_and_replaced_only_by_saved_assessments(self):
+        self.paths(); self.save()
+        journal_before = self.path.read_bytes()
+        plan = {'version': 1, 'checked_utc': '2026-10-17T00:00:00Z', 'days': [
+            {'scope': 'NZDCHF', 'date': '2026-07-15', 'events': []},
+            {'scope': 'NZDCHF', 'date': '2026-07-16', 'events': []},
+            {'scope': 'EURCHF', 'date': '2026-07-17', 'events': []}]}
+        plan_path = self.path.with_name('plan.json')
+        plan_path.write_text(json.dumps(plan), encoding='utf-8')
+        view = self.snapshot()
+        self.assertEqual([row['date'] for row in view['planned']], ['2026-07-16'])
+        self.assertNotIn('verdict', view['planned'][0])
+        self.assertEqual(journal_before, self.path.read_bytes())
+        plan['days'][1]['events'] = [{'title': 'Release', 'at': None,
+            'sources': [{'kind': 'web', 'label': 'Official', 'locator': 'https://www.rbnz.govt.nz/'}]}]
+        plan_path.write_text(json.dumps(plan), encoding='utf-8')
+        self.assertNotEqual(view['revision'], self.snapshot()['revision'])
+        self.save(as_of_utc='2026-07-15T18:00:00Z')  # July 16 Jakarta
+        self.assertEqual(self.snapshot()['planned'], [])
+        self.assertEqual(len(self.snapshot()['past']), 2)
+        self.assertEqual(json.loads(plan_path.read_text(encoding='utf-8')), plan)
+        bad = json.loads(json.dumps(plan))
+        bad['days'][1]['events'][0]['at'] = '2026-07-17T00:00:00Z'
+        with self.assertRaises(ValueError):
+            ThesisPlan(**bad)
+        bad['days'][1]['events'][0]['at'] = '2026-07-16T00:00:00'
+        with self.assertRaises(ValueError):
+            ThesisPlan(**bad)
+        bad['days'][1]['events'][0]['at'] = None
+        bad['days'][1]['verdict'] = 'SELL'
+        with self.assertRaises(ValueError):
+            ThesisPlan(**bad)
+
+    def test_requested_plan_is_october_nzdchf_only_and_preserves_jakarta_stage_dates(self):
+        view = thesis_snapshot(None, 'NZDCHF', '2026-10')
+        self.assertEqual([row['date'] for row in view['planned']], [f'2026-10-{day:02d}' for day in range(18, 32)])
+        speech = next(row for row in view['planned'] if row['date'] == '2026-10-30')['events'][0]
+        self.assertEqual(speech['at'], '2026-10-29T17:30:00Z')
+        self.assertEqual(thesis_snapshot(None, 'EURCHF', '2026-10')['planned'], [])
+        self.assertEqual(thesis_snapshot(None, 'NZDCHF', '2026-07')['planned'], [])

@@ -256,7 +256,9 @@ exact target or standalone row and latest predecessor. Preserve real
 research/saved clocks; the selected month
 never authorizes backdating. A historical reconstruction is labelled as such.
 Link full Highlight research when available rather than duplicating its body.
-Do not create placeholders or upcoming rows. Answer in chat as usual and confirm
+Create blank planning rows only when explicitly requested; preserve their empty
+bias/thesis until a real assessment is saved, following the Thesis workflow.
+Answer in chat as usual and confirm
 the save or disclose a write failure without claiming the dock updated.
 Do not pin/archive or alter raw data to make a row appear.
 
