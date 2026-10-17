@@ -1,6 +1,6 @@
 ---
 name: one-minute-before-release
-description: "Wait for an imminent economic release in the active chat, reuse prepared context, check fresh actuals and send a short fundamental verdict followed by the full decision card. Use when asked to count down or await publication; excludes background scheduling and candle analysis."
+description: "Wait for an imminent economic release in the active chat, reuse prepared context, check fresh actuals and send a short fundamental verdict followed by a dated event table. Use when asked to count down or await publication; excludes background scheduling and candle analysis."
 ---
 
 # One Minute Before Release
@@ -161,20 +161,25 @@ unchanged flash on each poll. A supported provisional verdict need not wait for
 an official website; freshness, definitions and material contradictions still
 need checking. Do not reduce confidence requirements just to meet a time target.
 
-Then promptly finish the Assess Trade Now decision card in the final response,
-including Extreme-move risk, strongest counterevidence, missing
-confirmation, invalidation, fundamental holding/exit consideration and the next
-verified Jakarta AM/PM news that could challenge the thesis. Reuse the prepared
-seven-day watchlist; disclose missing coverage rather than delaying the release
-verdict for a new broad review. If the verdict is weak, entry evidence is insufficient,
-or actuals remain missing, reuse the prepared next opportunity: name the event,
-verified Jakarta AM/PM release time, suggested return time and conditional outcomes.
+Then promptly give the Assess Trade Now
+[dated assessment table](../assess-trade-now/SKILL.md#dated-assessment-format):
+**Date | Event | Direction**, with the assessment-as-of time/horizon above.
+Date every supporting and contrary event and show its age; retain old facts only
+as labelled Background with verified continuing relevance, not as fresh signals.
+Place all Upcoming rows at the bottom, earliest first, using the prepared
+seven-day watchlist and conditional outcomes. Include the next opportunity and
+suggested return time there when the verdict is weak or evidence remains missing.
+Put the short overall bias/confidence, strongest counterweight, material
+invalidation/holding consideration, Extreme-move risk and confirmation gaps
+below the table. Disclose coverage gaps rather than delaying the release verdict
+for a new broad review; do not recreate the old decision-card checklist.
 Do not finish with a bare Wait/No clear edge or promise a bigger move. In requested eight-currency mode, use the prepared overview
 to choose the best-supported counterpart, disclose stale/incomplete coverage,
-and give only one leading card plus a brief alternative/conflict comparison.
-For best-pair selection, lead with "[Pair]: [buy/sell] bias, [confidence], because
+and give only one leading assessment plus a brief alternative/conflict comparison.
+For best-pair selection, start the commentary flash with "[Pair]: [buy/sell] bias, [confidence], because
 [relative fundamental reason]; main reversal risk: [risk]." Compare against the
-prepared expectations, not simply whether inflation increased. Separate any
+prepared expectations, not simply whether inflation increased. In the final
+response put that overall verdict below the dated table. Separate any
 potential-volatility inference from this direction verdict. User-provided
 technical alignment does not strengthen the fundamental evidence or preselect
 the winning pair. Do not promise a verdict at the exact publication second;
@@ -184,12 +189,12 @@ The final response must stand alone. Reuse prepared evidence and complete only
 material unresolved checks within the original deadline; do not start another
 full research pass or an unrequested later monitoring stage. If fresh evidence
 changes the first verdict, issue a clearly labelled correction promptly before
-the final card. Identify the additional/corrected information, its source and
+the final assessment. Identify the additional/corrected information, its source and
 whether it changes the direction or only confidence; distinguish a later release
 from an already-published simultaneous result discovered late. Include available
 timing checkpoints/intervals compactly and label them as our observations, not
 proof of when data first became public.
-The first-verdict latency is separate from completion of the full card. Neither
+The first-verdict latency is separate from completion of the dated assessment. Neither
 is a promise of a response within a fixed number of seconds after publication.
 
 Before stopping, name any nearer verified policy stage or speaker that could
@@ -203,7 +208,7 @@ If decisive evidence remains unavailable at the deadline, report wait/no clear
 edge, exactly what is missing/conflicting, last check time and what would allow
 reassessment. Finish the active wait; do not silently continue monitoring. Do not
 wait for a later policy stage unless it is the requested target or necessary for
-the verdict within the agreed bound; name pending stages in Next danger.
+the verdict within the agreed bound; name pending stages in the final Upcoming rows.
 
 No entry price, stop, sizing, profit forecast, candle confirmation, order, service
 restart, pin/archive or journal write is implied. Save only when requested.

@@ -79,11 +79,11 @@ folders live together under `Market Analyst Workflow/`.
   to reuse prepared context, verify the clock/schedule and await fresh actuals
   within a stated deadline. Prepare direct retrieval routes and decisive fields
   beforehand; send a short sourced first verdict in commentary once supported,
-  then the full decision card in the same active turn. Separate observed data/
+  then the dated assessment table in the same active turn. Separate observed data/
   interpretation/send timestamps without promising second-level latency.
   No automatic timer is implied by preparation.
-  Include the mandatory Extreme-move risk row. A pending release does not by
-  itself force a general pair assessment to wait; explain the setup-specific
+  Include a brief Extreme-move risk statement below the table. A pending release
+  does not by itself force a general pair assessment to wait; explain the setup-specific
   reason. Verify material gaps or disclose them without guessing.
 - When the user refers to Highlight, start with `pnpm analyst highlights`; use
   its pinned ID, broker and timeline to identify the occurrence, then query its
@@ -111,6 +111,29 @@ folders live together under `Market Analyst Workflow/`.
   Headline/core/components form one release package, not independent votes.
   Do not sum signals across weeks: later information can change the backdrop.
   Include both currency stories and the strongest counterevidence.
+- Present fundamental assessments as **Date | Event | Direction**, with the
+  assessment-as-of time and horizon above. Each row is one event, with its source
+  linked in Event. Date shows the original event/publication date, verified
+  Jakarta AM/PM time when available, and age relative to the assessment cutoff.
+  Distinguish event, publication and observation clocks when they differ; a
+  reference month or retrieval time is not the news date. Unknown times stay
+  unknown. For historical simulations, age is relative to the simulated cutoff.
+  Put occurred events first, newest first. Put all **Upcoming** events in the
+  final rows of the same table, earliest first; explicitly label them Upcoming
+  and keep their Direction conditional. Untimed future risks follow timed ones,
+  labelled Unscheduled/time unknown, without invented dates.
+  Label older retained evidence **Background** in Event and explain why it still
+  matters. An old policy decision or rate level alone is no fresh intraday
+  directional signal. Check subsequent news and changes in expectations before
+  giving it current weight; do not use a fixed age expiry or assume priced-in/
+  ignored status from age alone. Apply this equally to supporting and contrary
+  evidence. Direction names the currency or pair and states supportive, negative,
+  mixed, conditional or no fresh signal; it is an interpretation, not a measured
+  price reaction. Keep actuals/expectations and the mechanism concise in the row.
+  After the table give only a short overall bias/confidence conclusion, material
+  invalidation/holding consideration, Extreme-move risk and any evidence gap.
+  Preserve the research checks and seven-day scan; show only material upcoming
+  rows at the bottom, not a second watchlist or a Field/Required answer card.
 - Assess continuation, a possible retracement and a changed thesis against fresh
   information, following Assess Trade Now's retracement guidance. A still-hot
   inflation backdrop can coexist with reduced near-term hike urgency. Do not
@@ -136,8 +159,9 @@ folders live together under `Market Analyst Workflow/`.
   source, information and possible effect on the original thesis. Separate later
   releases and policy stages using their own pre-release baseline; an overlapping
   window or a news article's publication time does not establish causal timing.
-- Lead with the best-supported buy/sell direction and confidence in words, even
-  when the lean is slight. The user prefers a weak bias to an undifferentiated
+- Give the best-supported buy/sell direction and confidence in the short
+  conclusion below the dated table, even when the lean is slight. The user
+  prefers a weak bias to an undifferentiated
   “no clear edge”: distinguish backdrop direction, a fresh release signal and
   entry quality. An in-line release can preserve a weak bias. Do not invent a
   direction when verified evidence is balanced or a decisive gap prevents it.

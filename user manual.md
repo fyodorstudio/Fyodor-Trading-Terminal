@@ -275,7 +275,7 @@ Previous. Countdown updates each second; Highlight checks stored values every tw
 seconds while open. Released pins stay until you choose **Archive**; Restore returns them to Active.
 The source still needs to publish the actuals; pending/offline states remain visible.
 
-For a quick decision card, choose a pair in Scope and **Assess trade now → Copy
+For a dated fundamental assessment, choose a pair in Scope and **Assess trade now → Copy
 Prompt** in an active Highlight's View selector. You can also ask: **“Use
 $assess-trade-now to assess AUDUSD now for an intraday trade, without candles.”**
 The agent verifies both currencies, actuals/expectations, intervening news and

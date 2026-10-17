@@ -66,8 +66,8 @@ request, or propose those as prerequisites unless the user asks.
   window; do not invent news or repeat stale facts as a fresh signal.
 - Currency-only updates stay currency-only unless a pair/comparison was requested
   or remains in scope. Do not infer measured strength against all counterparts.
-  A pair verdict still needs both currencies and the full pair decision card/
-  seven-day watchlist below. Reuse that watchlist when current; refresh changes.
+  A pair verdict still needs both currencies and the seven-day scan below.
+  Use the dated table; reuse the scan when current and refresh changes.
 - Explain coverage limits when relevant: manual checks can miss developments
   between invocations and public reporting can lag. Do not promise the same
   future verdict, immediate headline discovery or detection of every move.
@@ -77,14 +77,14 @@ request, or propose those as prerequisites unless the user asks.
 
 Use this evidence-first format for short currency requests without requiring
 extra prompt wording. Keep it concise and adapt the detail to the findings;
-do not force a full pair decision card or expand to other currencies.
+do not expand to other currencies.
 
-- Lead with the supported strengthening/weakening lean, horizon and confidence,
-  including slight, or explain the decisive gap/balanced evidence. Briefly say
-  whether an earlier thesis is intact, weaker or overturned when that comparison
-  exists.
-- Normally use one small **Evidence / Why it matters** table for the decisive
-  developments. Include sourced numbers when available: actuals/revisions,
+- State the assessment-as-of time and horizon, then use the
+  [dated assessment format](#dated-assessment-format). Put the overall lean and
+  confidence in the short conclusion below it, including whether an earlier
+  thesis is intact, weaker or overturned when that comparison exists.
+- Use **Date | Event | Direction** for decisive developments, with upcoming
+  events in the final rows. Include sourced numbers when available: actuals/revisions,
   policy guidance, changes in market-implied rates, or yield changes. Explain
   the mechanism from new information to the expected policy path and/or growth,
   risk appetite or currency demand; avoid merely listing hot/cold indicators.
@@ -102,13 +102,13 @@ do not force a full pair decision card or expand to other currencies.
   useful (normally ten minutes before). Check nearer policy remarks/Q&A before
   deferring to major data. A checkpoint is an opportunity to reassess, not a
   forecast of when the currency must turn or an automatic notification.
-- Finish with **Extreme-move risk**, research-as-of time and material coverage
+- Finish with a brief **Extreme-move risk** statement and material coverage
   gaps. Keep routine counterevidence distinct from exceptional shock exposure.
   Do not manufacture figures, a catalyst or a directional change to fill the format.
 
 ## Fast evidence pass
 
-Aim to deliver the first complete currency report or pair decision card in about
+Aim to deliver the first complete dated currency or pair assessment in about
 a minute when evidence is accessible. This is a workflow target, not a latency
 promise or permission to skip verification. Do not run a broad research project
 before answering.
@@ -156,11 +156,11 @@ before answering.
   publication; past price behaviour is neither evidence of today's actuals nor
   a fallback for inaccessible sources. Do not launch historical research here.
 - For currency-only requests, stop when the currency-update report above is
-  supported. For pair requests, stop when the card is supported: both currency
+  supported. For pair requests, stop when the assessment is supported: both currency
   stories, strongest counterevidence, exceptional-catalyst check, entry conditions/invalidation and
   the seven-day exit/reassessment watchlist with provenance. Extra searches are
   justified only by a material gap, contradiction or newer information. Keep the
-  final answer to the card, short material watchlist and at most one clarification;
+  final answer to the dated table (upcoming rows last), short conclusion and material gaps;
   no tools chronology or long source recap.
 
 ## Accuracy boundaries
@@ -257,18 +257,19 @@ automatically starts a timer, pins events, saves research or expands to every pa
   and check exceptional news for every currency. Batch focused independent
   checks; disclose missing coverage individually rather than implying all eight
   are current. Thorough preparation may take longer than the pair-mode target.
-- Show a compact table: Currency / Current evidence and meaning / Confidence /
-  Strongest counterevidence or extreme-move risk / Next material news. Cite facts
-  beside the relevant row, with per-currency as-of times when freshness differs.
+- Use the same **Date | Event | Direction** table for the requested currencies;
+  name each affected currency in Event/Direction and put upcoming rows last.
+  Summarize the currency leans/confidence briefly below; cite each event's source
+  and disclose differing evidence freshness.
   Use strengthening/weakening/mixed as fundamental descriptions, not measured
   performance against every other currency; no numeric currency scores.
 - If an event is specified, interpret its currency once, then compare it with
   the other seven using the prepared context. Consider the seven crosses that
-  contain that currency; do not produce 28 decision cards. Identify the
+  contain that currency; do not produce 28 assessments. Identify the
   best-supported pair, an alternative if supported, and important conflicts.
-  Use the standard decision card for the leading candidate, or explain no clear
+  Use the dated assessment format for the leading candidate, or explain no clear
   edge. Distinguish currency direction from buy/sell direction for the quoted pair.
-- Lead event preparation with a short conditional shortlist: stronger-than-
+- Put the conditional shortlist in the final Upcoming rows: stronger-than-
   expected package → [pair/direction]; weaker → [pair/direction]; in line →
   [remaining backdrop lean or unresolved edge]. Different outcomes can favour
   different counterparts. Do not hard-code today's pairs or numeric thresholds
@@ -316,7 +317,7 @@ or rebuild the seven-day watchlist after publication.
 The countdown reuses this evidence and checks only intervening developments and
 the new release package. It must not assume that a prepared bias is the verdict
 after publication. It sends a short, sourced first verdict in commentary as soon
-as sufficient evidence arrives, then the complete decision card in the same
+as sufficient evidence arrives, then the dated assessment table in the same
 active turn; preparation should make that possible without another broad scan.
 Context carries forward in the same conversation; another
 session needs this handoff or explicitly saved research. Save only on request.
@@ -334,8 +335,9 @@ as needed; no need to investigate every minor reading or all eight currencies.
 Use this focused pass directly; the broader Review Upcoming Alerts shortlist is
 optional and must not automatically expand a pair assessment to 90 days.
 
-Return a short watchlist: verified Jakarta AM/PM time or explicitly unverified
-hour, event/stage, why it matters to this particular buy/sell thesis, and the
+Put the material watchlist in the final Upcoming rows of the same table, earliest
+first; do not append a separate watchlist. Give verified Jakarta AM/PM time or
+explicitly unverified hour, event/stage, why it matters to this buy/sell thesis, and the
 outcome that would support, challenge or invalidate it. Include material
 unscheduled risks separately with immediate reassessment triggers; do not assign
 them invented dates. Keep imminent policy stages visible. Reuse this watchlist
@@ -400,33 +402,51 @@ If no suitable scheduled candidate is verified, say so and give the evidence
 trigger for reassessment; unknown hours remain unknown. Suggesting a return time
 does not schedule a notification or extend the active countdown.
 
-## Decision card
+## Dated assessment format
 
-Use this card for pair assessments; currency-only updates use the concise report
-format above. Eight-currency requests use their dedicated overview mode.
+Use **Date | Event | Direction** for currency and pair assessments, including
+preparation and historical simulations. Follow AGENTS.md's dating/freshness rules.
+Above the table state the assessment-as-of time, timezone and horizon; for a
+simulation identify its cutoff separately from today's research time.
 
-Lead with one sentence stating pair direction, confidence and the dominant
-reversal risk. Say whether that risk qualifies the bias, reduces conviction to
-No clear edge, or warrants waiting for specific evidence. Distinguish documented
-reversal risk from evidence that a reversal is becoming the base case, and name
-the new information that would change the verdict. Return one compact table,
-normally with these rows, followed by the short watchlist when needed:
+- Date: original event/publication date, verified Jakarta AM/PM time when known,
+  and age at the assessment cutoff (minutes/hours for recent news, days for older
+  evidence). If clocks differ, label both without substituting a retrieval,
+  record-save or reference-period date. Date-only news has approximate/calendar-day
+  age explicitly labelled; do not invent precision for unknown hours.
+- Event: one event per row, a direct source link, decisive actuals versus
+  attributed expectations, and a short explanation of its current relevance.
+  Label retained older evidence **Background**. Recheck intervening updates;
+  unchanged old policy decisions alone do not supply fresh intraday conviction.
+  State what changed in the expected path, or say no fresh signal is established.
+  Age alone proves neither irrelevance nor that something was priced in.
+- Direction: explicitly name the affected currency or quoted pair. Distinguish
+  supportive/negative/mixed evidence from the overall buy/sell conclusion.
+  A confirmed old fact can have no fresh directional signal. Do not infer direction
+  mechanically from a headline, absolute rate, calendar color or past price move.
+- Order occurred events newest first. Put **all upcoming events in the final
+  rows**, marked Upcoming and ordered earliest first, with conditional outcomes
+  in Direction. Material untimed future risks follow, labelled Unscheduled/time
+  unknown. Never mix future rows into the occurred evidence or duplicate them in
+  a second watchlist. Include the next opportunity/return time there when needed.
 
-| Field | Required answer |
-| --- | --- |
-| Direction | Best-supported buy/sell lean, including slight, with its strength; conditional before actuals; disclose when no direction is defensible |
-| Confidence | Low / Moderate / High in the fundamental interpretation |
-| Reason | Two sentences covering both currencies and the strongest counterevidence |
-| Continuation / retracement | Which near-term interpretation is supported versus the broader backdrop, the fresh catalyst and what would change it; distinguish potential from confirmed repricing and disclose missing evidence |
-| Extreme-move risk | Mandatory: documented exceptional catalyst, confirmed/reported/possible/unresolved status, affected direction and what evidence triggers immediate reassessment; disclose an incomplete check |
-| Entry consideration | Fundamental conditions supported, wait for specified evidence, or insufficient evidence; execution not assessed when the user's entry/risk rules are absent |
-| Invalidation | The evidence that would overturn the reasoning |
-| Holding / exit consideration | Whether the thesis still supports holding, what warrants considering closing/reducing before news, or what verified information would warrant closing/reassessment after news; fundamentals only |
-| Next danger | Earliest material threat from the at-least-seven-day watchlist for both currencies, with verified Jakarta AM/PM stages; include unscheduled risks and disclose incomplete coverage |
-| Next opportunity | When the present evidence is weak or waiting is appropriate: next material event, suggested return/preparation time, verified Jakarta AM/PM release time and what could produce a clearer fundamental direction |
-| Evidence checked | Research-as-of timestamp, data freshness/missing values and direct web/local sources |
+Illustrative layout only; do not reuse these events or directions as standing calls:
 
-Always include Extreme-move risk, even with No clear edge. Distinguish routine
+| Date | Event | Direction |
+| --- | --- | --- |
+| [Original date/time; age at cutoff] | [Release and source; actual vs expectation, why it matters now] | [Currency/pair: supported implication] |
+| [Older date/time; age at cutoff] | Background: [old decision; verified continuing relevance] | [Current implication or no fresh intraday signal] |
+| Upcoming — [next verified date/time] | [Material release; source; preparation time if useful] | Conditional: [outcomes that support or challenge the view] |
+
+Below the table, give a short overall buy/sell lean and confidence (or explain a
+decisive gap), the dominant reason/counterweight, and whether fresh information
+supports continuation, a retracement or a changed thesis. Add only material
+invalidation/holding considerations and evidence gaps; do not recreate the old
+Field/Required answer checklist in prose. The table covers both currencies and
+the material results of the seven-day scan, not every raw calendar reading.
+
+Always include a brief **Extreme-move risk** statement below the table, even with
+No clear edge; it is not a separate table row. Distinguish routine
 directional conviction from exposure to a sudden shock: mixed direction can
 coexist with serious reversal risk. Check relevant intervention/warnings/rate
 checks, emergency policy changes, geopolitical/energy shocks, tariffs and bond

@@ -14,7 +14,7 @@ Scope selects the currency/pair's journal and prompt; it does not change the cha
 In Prompt preview, prompt stage and Copy Prompt sit beside the View selector.
 For an active Highlight, choose a pair in Scope, then **Assess trade now** in View
 and **Copy Prompt**. This remains available after publication and requests the
-assess-trade-now skill's concise fundamental decision card. It does not run an
+assess-trade-now skill's dated fundamental assessment. It does not run an
 agent or place a trade. Currency-only scopes and archived cards disable this view.
 The preview is read-only; clipboard failures keep the text available to copy.
 The layout adapts to the dock's width. Text is read-only.
@@ -43,10 +43,12 @@ after release** once actuals arrive. Prompt templates are separate from journal
 research; saving a prompt never fills Before release with a pretend investigation.
 
 For a quick assessment outside a Highlight, ask: "Use $assess-trade-now to assess
-USDJPY now for an intraday trade, without candle analysis." The decision card
-reports direction, qualitative confidence, both currencies and counterevidence,
-mandatory **Extreme-move risk**, entry consideration, invalidation, next danger
-and evidence timestamps/sources. Shock risk identifies the catalyst, evidence
+USDJPY now for an intraday trade, without candle analysis." The assessment uses
+**Date | Event | Direction**, dates/ages every event and labels older Background.
+Occurred events come newest first; Upcoming events occupy the final rows,
+earliest first, with conditional implications. The short conclusion gives the
+overall bias/confidence, material counterevidence/invalidation and mandatory
+**Extreme-move risk**. Shock risk identifies the catalyst, evidence
 status, affected direction and reassessment trigger, including incomplete checks;
 No clear edge does not mean no sudden-reversal risk. The fast workflow reuses
 loaded guidance and dated context, focuses pair/Highlight queries, batches checks

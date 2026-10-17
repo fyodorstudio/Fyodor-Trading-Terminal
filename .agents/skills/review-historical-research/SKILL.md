@@ -80,8 +80,18 @@ remarks; label its publication date separately from the recorded event.
 
 ## Explain what could have been known
 
-Lead with the best-supported explanation and qualitative confidence. Usually give
-a compact price summary and dated news table, then answer:
+Use **Date | Event | Direction** for the fundamental evidence, following
+[Assess Trade Now's dated format](../assess-trade-now/SKILL.md#dated-assessment-format).
+State the historical cutoff and research time separately; show each event's age
+relative to that cutoff. Date and label older Background explicitly, and justify
+its continuing relevance instead of treating old decisions as fresh catalysts.
+Put occurred evidence newest first and all known Upcoming events in the final
+rows, earliest first, with conditional Direction. In a reconstruction, exclude
+later actuals/news from that table; discuss them separately as Later evidence,
+not as forecasts that were available before publication. Direction is the
+fundamental interpretation; keep measured candle reactions in a separate compact
+price summary. Give the explanation and qualitative confidence in a short
+conclusion, with material counterevidence, reversal risk and gaps, then answer:
 
 - **Before:** Which published evidence supported direction or warned of a sharp
   reversal? What was unknowable? Do not infer the final pip distance from hindsight.
