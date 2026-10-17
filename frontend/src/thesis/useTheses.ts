@@ -1,12 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { validThesisSnapshot, type ThesisSnapshot } from './thesis-model'
 
 export function useTheses(scope: string, month: string) {
   const key = `${scope}:${month}`
   const [snapshot, setSnapshot] = useState<{ key: string; data: ThesisSnapshot } | null>(null)
   const [failure, setFailure] = useState<{ key: string; message: string } | null>(null)
-  const trigger = useRef<(() => Promise<void>) | null>(null)
-  const refresh = useCallback(() => { void trigger.current?.() }, [])
   useEffect(() => {
     const controller = new AbortController()
     let timer: number | undefined, revision: string | null = null, sequence = 0
@@ -39,12 +37,10 @@ export function useTheses(scope: string, month: string) {
       }
     }
     async function pollTheses() { await fetchSnapshot(); if (!controller.signal.aborted) timer = window.setTimeout(pollTheses, 5000) }
-    trigger.current = fetchSnapshot
     void pollTheses()
     return () => {
       controller.abort(); window.clearTimeout(timer)
-      if (trigger.current === fetchSnapshot) trigger.current = null
     }
   }, [key, scope, month])
-  return { data: snapshot?.key === key ? snapshot.data : null, error: failure?.key === key ? failure.message : null, refresh }
+  return { data: snapshot?.key === key ? snapshot.data : null, error: failure?.key === key ? failure.message : null }
 }

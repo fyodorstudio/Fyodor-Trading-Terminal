@@ -2,6 +2,7 @@ import { memo, useCallback, useState } from 'react'
 import { majorForexPairs } from '../economic-calendar/forex/pairs'
 import { readThesisMonth, readThesisPair, safeThesisLink, thesisMonths, thesisPrompt, type ThesisEntry, type ThesisPlannedDay, type ThesisRow } from './thesis-model'
 import { useTheses } from './useTheses'
+import { downloadThesisMarkdown } from './thesis-export'
 import './thesis.css'
 
 const dayFormatter = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', month: 'short', day: 'numeric', weekday: 'short' })
@@ -61,7 +62,7 @@ export const ThesisDock = memo(function ThesisDock() {
   const [scope, setScope] = useState(readThesisPair)
   const [month, setMonth] = useState(readThesisMonth)
   const [copyStatus, setCopyStatus] = useState('')
-  const { data, error, refresh } = useTheses(scope, month)
+  const { data, error } = useTheses(scope, month)
   // Clipboard completion must not show a status for a pair that has since changed.
   const context = `${scope}:${month}`
   const [copyContext, setCopyContext] = useState(context)
@@ -78,7 +79,13 @@ export const ThesisDock = memo(function ThesisDock() {
         setMonth(event.target.value); setCopyStatus(''); try { localStorage.setItem('fyodor.thesis.month.v1', event.target.value) } catch { /* Retain session choice. */ }
       }}>{thesisMonths.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
       <span className="thesis-timezone">Jakarta · AM/PM</span>
-      <button type="button" onClick={() => { void copy() }}>Copy assessment prompt</button><button type="button" onClick={refresh}>Refresh</button>
+      <button type="button" onClick={() => { void copy() }}>Copy assessment prompt</button>
+      <button type="button" disabled={!data} onClick={() => {
+        if (!data) return
+        setCopyContext(context)
+        try { downloadThesisMarkdown(data, error); setCopyStatus('Markdown download requested') }
+        catch { setCopyStatus('Could not export Markdown. Try again.') }
+      }}>Export Markdown</button>
       <span className="thesis-copy-status" role="status">{copyContext === context ? copyStatus : ''}</span>
     </header>
     <div className="thesis-scroll" tabIndex={0} aria-label="Monthly thesis assessments">

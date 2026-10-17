@@ -16,6 +16,16 @@ const previous = new Map([...Object.keys(globals), 'fetch'].map(key => [key, Obj
 for (const [key, value] of Object.entries(globals)) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value })
 let id = 0, revision = 'one', offline = false, malformed = false, hold = false
 const timers = new Map(), requests = [], held = []
+const downloads = [], blobs = [], revoked = []
+const originalCreateUrl = URL.createObjectURL, originalRevokeUrl = URL.revokeObjectURL
+const originalAnchorClick = dom.HTMLAnchorElement.prototype.click
+let failDownload = false
+URL.createObjectURL = blob => { blobs.push(blob); return `blob:thesis-test-${blobs.length}` }
+URL.revokeObjectURL = url => revoked.push(url)
+dom.HTMLAnchorElement.prototype.click = function () {
+  downloads.push({ filename: this.download, href: this.href })
+  if (failDownload) throw new Error('Download blocked fixture')
+}
 const realNow = Date.now
 Date.now = () => Date.parse('2026-07-16T05:59:59Z')
 dom.setTimeout = (fn, ms) => { timers.set(++id, { fn, ms }); return id }
@@ -59,9 +69,14 @@ const poll = async () => {
   const [key, timer] = [...timers].find(([, value]) => value.ms === 5000)
   timers.delete(key); await React.act(async () => timer.fn())
 }
+const startPoll = () => React.act(async () => {
+  const [key, timer] = [...timers].find(([, value]) => value.ms === 5000)
+  timers.delete(key); void timer.fn()
+})
 try {
   const { ThesisDock } = await server.ssrLoadModule('./src/thesis/ThesisDock.tsx')
   const { thesisPrompt, validThesisSnapshot, readThesisMonth } = await server.ssrLoadModule('./src/thesis/thesis-model.ts')
+  const { thesisMarkdown } = await server.ssrLoadModule('./src/thesis/thesis-export.ts')
   assert.equal(readThesisMonth(), '2026-10', 'New preferences default to the requested October dataset')
   localStorage.setItem('fyodor.thesis.month.v1', '2026-07')
   await React.act(async () => root.render(React.createElement(ThesisDock)))
@@ -80,6 +95,23 @@ try {
   assert.ok(!container.textContent.includes('Upcoming rows follow active pins'))
   assert.ok(!container.textContent.includes('MT5 Highlight rows need'))
   assert.equal(button('Copy release prompt'), undefined)
+  assert.equal(button('Refresh'), undefined)
+  const requestsBeforeExport = requests.length
+  await click(button('Export Markdown'))
+  assert.equal(requests.length, requestsBeforeExport, 'Export uses loaded text without new research/network calls')
+  assert.equal(downloads.at(-1).filename, 'thesis-NZDCHF-2026-07.md')
+  assert.ok(blobs.at(-1).type.startsWith('text/markdown'))
+  let markdown = await blobs.at(-1).text()
+  assert.ok(markdown.includes('## Continue with another AI'))
+  assert.ok(markdown.includes('No mandatory entry-date gate'))
+  assert.ok(markdown.includes('price-blind'))
+  assert.ok(markdown.includes(seed[0].id))
+  assert.ok(markdown.includes(seed[0].sources[0].locator))
+  assert.equal(revoked.at(-1), downloads.at(-1).href)
+  assert.equal(document.querySelector('a[download]'), null, 'Download anchors are removed')
+  failDownload = true; await click(button('Export Markdown')); failDownload = false
+  assert.ok(container.textContent.includes('Could not export Markdown'))
+  assert.equal(revoked.length, blobs.length, 'Object URLs are released on download failure too')
   await click(button('Copy assessment prompt'))
   assert.ok(copied.includes('$assess-trade-now'))
   assert.ok(copied.includes('target null'))
@@ -95,6 +127,11 @@ try {
   past = [{ ...corrected, versions: [entry, corrected] }, ...past]; revision = 'two'
   await poll()
   assert.equal(rows().length, 16)
+  await click(button('Export Markdown'))
+  markdown = await blobs.at(-1).text()
+  assert.ok(markdown.includes('Earlier version (superseded)'))
+  assert.ok(markdown.includes('Fresh supported release thesis.'))
+  assert.ok(markdown.includes('Verified correction.'))
   assert.equal(rows()[1], originalRow, 'Unchanged past rows survive a different release update')
   assert.ok(rows()[0].textContent.includes('Verified correction.'))
   assert.ok(rows()[0].querySelector('[aria-label="Previous thesis versions"]').textContent.includes('Fresh supported release thesis.'))
@@ -104,6 +141,9 @@ try {
   offline = true; await poll()
   assert.ok(container.textContent.includes('Showing last loaded assessments'))
   assert.equal(rows().length, 16)
+  await click(button('Export Markdown'))
+  markdown = await blobs.at(-1).text()
+  assert.ok(markdown.includes('last successfully loaded data'))
   offline = false; malformed = true; revision = 'three'; await poll()
   assert.ok(container.textContent.includes('Invalid Thesis response'))
   assert.equal(rows().length, 16)
@@ -116,9 +156,10 @@ try {
   const monthSelect = container.querySelector('[aria-label="Thesis month"]')
   // An older month's late response must not overwrite newly selected October.
   hold = true
-  await click(button('Refresh'))
+  await startPoll()
   await React.act(async () => { monthSelect.value = '2026-10'; monthSelect.dispatchEvent(new dom.Event('change', { bubbles: true })) })
   assert.equal(rows().length, 0)
+  assert.equal(button('Export Markdown').disabled, true, 'A month switch cannot export the previous month')
   assert.ok(held[0].options.signal.aborted)
   hold = false
   await React.act(async () => { for (const item of held.splice(0).reverse()) item.resolve(response(item.route)) })
@@ -144,6 +185,27 @@ try {
   await click(button('Copy assessment prompt'))
   assert.ok(copied.includes('--month 2026-10'))
   assert.ok(copied.includes('change/compared_with/change_reason'))
+  await click(button('Export Markdown'))
+  markdown = await blobs.at(-1).text()
+  assert.equal(downloads.at(-1).filename, 'thesis-NZDCHF-2026-10.md')
+  assert.ok(markdown.includes('14 unassessed planning days'))
+  assert.ok(markdown.includes('8:00 AM Jakarta'))
+  assert.ok(markdown.includes('12:30 AM Jakarta'))
+  assert.ok(markdown.includes('publication hour unverified'))
+  assert.ok(!markdown.includes('11:59 PM'), 'Conservative date-only cutoffs are not exported as publication hours')
+  assert.ok(markdown.includes('Scheduled from this time'))
+  assert.ok(markdown.includes('Exported:'))
+  assert.ok(markdown.includes(october[0].sources[0].locator))
+  const exportedSnapshot = { schema: 1, scope: 'NZDCHF', month: '2026-10', source_id: null, revision: 'escaping',
+    past: [{ ...october[0], title: 'A | B', thesis: '<script>bad</script>\n[Injected](javascript:bad)',
+      sources: [{ kind: 'web', label: 'A | B', locator: 'https://example.com/?filter=a|b', note: '' }] }], planned: [] }
+  const beforeExport = JSON.stringify(exportedSnapshot)
+  const escaped = thesisMarkdown(exportedSnapshot, '2026-10-17T15:00:00Z')
+  assert.ok(escaped.includes('A \\| B'))
+  assert.ok(escaped.includes('&lt;script&gt;'))
+  assert.ok(!escaped.includes('<script>'))
+  assert.ok(escaped.includes('filter=a%7Cb'), 'Source URLs cannot break Markdown table columns')
+  assert.equal(JSON.stringify(exportedSnapshot), beforeExport, 'Export cannot mutate saved rows or their ordering')
   const filled = { ...october[0], id: 'e'.repeat(32), row_id: 'f'.repeat(32), as_of_utc: '2026-10-18T01:00:00Z',
     thesis: 'New assessment fixture.', versions: [] }
   filled.versions = [{ ...filled }]
@@ -154,7 +216,7 @@ try {
   assert.ok(rows()[0].textContent.includes('New assessment fixture.'))
   const pair = container.querySelector('[aria-label="Thesis pair"]')
   hold = true
-  await click(button('Refresh'))
+  await startPoll()
   await React.act(async () => { pair.value = 'EURUSD'; pair.dispatchEvent(new dom.Event('change', { bubbles: true })) })
   assert.equal(rows().length, 0, 'Pair changes never display another pair\'s thesis')
   assert.equal(planRows().length, 0, 'Planning rows stay scoped to the requested pair')
@@ -163,6 +225,10 @@ try {
   await React.act(async () => { for (const item of held.splice(0).reverse()) item.resolve(response(item.route)) })
   assert.equal(rows().length, 0, 'Stale responses cannot restore the old pair')
   assert.ok(container.textContent.includes('No saved assessments for EURUSD'))
+  await click(button('Export Markdown'))
+  markdown = await blobs.at(-1).text()
+  assert.ok(markdown.includes('# EURUSD thesis journal'))
+  assert.ok(!markdown.includes('NZDCHF thesis journal'))
   await React.act(async () => root.render(null))
   assert.equal(timers.size, 0)
   await React.act(async () => root.render(React.createElement(ThesisDock)))
@@ -174,6 +240,8 @@ try {
   await React.act(async () => root.unmount())
   assert.equal(timers.size, 0)
   Date.now = realNow
+  URL.createObjectURL = originalCreateUrl; URL.revokeObjectURL = originalRevokeUrl
+  dom.HTMLAnchorElement.prototype.click = originalAnchorClick
   await server.close(); dom.happyDOM.abort()
   for (const [key, descriptor] of previous) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete globalThis[key] }
 }

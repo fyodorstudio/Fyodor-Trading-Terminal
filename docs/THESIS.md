@@ -12,6 +12,14 @@ save. A direct user request to document an assessment also authorizes saving.
 Invoking `one-minute-before-release` or receiving an Alert alone does not
 implicitly save a Thesis record. No automatic AI invocation or analysis occurs.
 
+**Export Markdown** downloads the selected pair/month as a portable `.md` file:
+tables, schedule notes, sources, research/saved clocks, limitations, correction
+history and a self-contained research handoff for another AI. It exports the
+last loaded snapshot without requesting new research or changing records; an
+offline export includes the load error. Export time is separate from research
+time. The dock checks saved files automatically while open; no Refresh button
+is needed. Exporting does not invoke an agent or authorize writes.
+
 ## Agent interface
 
 ```powershell
