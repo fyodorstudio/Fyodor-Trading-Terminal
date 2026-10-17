@@ -66,6 +66,10 @@ drawings. Visual/live MT5 acceptance remains with the user.
 
 ## Preserved workflow
 
+Market Watch stars save favourites locally across refreshes; NZDCHF, EURUSD and
+EURAUD form the initial shortlist. The Favourites tab retains live Bid/Ask and
+supports search. Starring preserves the selected chart and existing row order.
+
 Choose Inspector families by currency → click chart icons → raw tables.
 Save shares those family selections across every pair containing the currency;
 grouping, symbol visibility, icons and colors remain per pair. Existing pair
