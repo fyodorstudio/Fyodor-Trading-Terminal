@@ -135,6 +135,12 @@ folders live together under `Market Analyst Workflow/`.
   preserve an earlier direction automatically or manufacture a contrary call.
   Check nearer policy remarks/Q&A, including overnight stages, before deferring
   reassessment to the next major data release; disclose when active coverage ends.
+  Distinguish a one-off surprise from continuing pressure: later trading-partner
+  news, global conditions or haven demand can support a recovery without the
+  original bank changing course. Name verified contrary developments; do not
+  assume profit-taking/short covering or use a reported chart trend as macro proof.
+  For a date range extending into the future, separate dated developments, the
+  current verdict and a conditional outlook; never present future news as known.
 - Verify release-day vintages: stored data can contain later revisions. Do not
   treat later minutes/data as information available at the event. Label
   retrospective evidence. Upcoming simulations use only their chosen as-of time.
@@ -154,6 +160,9 @@ folders live together under `Market Analyst Workflow/`.
   source, information and possible effect on the original thesis. Separate later
   releases and policy stages using their own pre-release baseline; an overlapping
   window or a news article's publication time does not establish causal timing.
+  Verify that a proposed catalyst preceded the move. When helpful in an explicitly
+  requested historical cross study, compare the two USD legs to distinguish base
+  recovery from quote weakness; do not infer trader motives from that arithmetic.
 - Lead with STRONG BUY / BUY / MIXED / SELL / STRONG SELL and explain the dominant
   relative mechanism. A verified active catalyst can outweigh weaker opposing
   indicators; do not require unanimity, count releases as votes or default to

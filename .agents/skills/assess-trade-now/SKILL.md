@@ -47,6 +47,9 @@ assessment cutoff and horizon. Unknown publication hours stay unknown.
   later confirmation separate. A date without an hour does not license importing
   end-of-day reporting into a pre-release verdict; identify the information cutoff.
   Use the historical-research skill only for an explicitly requested price study.
+  For a range ending now with a future extension, distinguish developments since
+  the range began, today's assessment and the conditional future outlook. Future
+  dates are scenarios using today's information, not assessments already observed.
 - Never fetch, open or analyze candles/OHLC, saved price reactions, chart attachments
   or technical indicators in this workflow. User technicals are execution context,
   not confirmation of the fundamental thesis.
@@ -87,6 +90,16 @@ information reinforces the thesis, supports an opposite near-term direction or
 invalidates it. Do not carry an earlier verdict forward automatically or invent a
 retracement merely because the user missed a move. Directional conviction and
 precision about timing or eventual pip distance are separate judgments.
+
+Distinguish a one-off surprise from a continuing pressure. An earlier policy
+disappointment does not by itself establish fresh selling pressure days later.
+Check whether subsequent guidance, trading-partner news, global financial
+conditions or haven demand has changed the relative story. A recovery can have
+fundamental support without the original central bank reversing its message.
+Name the first verified contrary development and its implication when available;
+do not relabel every counter-move as profit-taking or short covering without
+evidence. A reported chart trend or the user's preferred verdict does not establish
+the macro conclusion. Keep the strongest opposing mechanism visible briefly.
 
 ## Fundamental backdrop: recent and prior evidence
 

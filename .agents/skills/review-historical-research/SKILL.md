@@ -43,6 +43,11 @@ than inventing a measurement or claiming the study is complete.
   differ. Use the complete prior minute close and complete completed bars. Give
   policy decision, statement/projections and conference their own baselines.
   H1/H4 candles containing multiple events cannot isolate those events.
+- Check whether the move began before the proposed catalyst. Give later releases
+  their own pre-release baselines; do not explain an earlier move with later news.
+  For a cross, compare its two USD legs when that resolves whether recovery came
+  from the base currency, the quote currency or both. These are historical price
+  diagnostics, not evidence of trader motives or permission for live candle work.
 - For release studies preserve the first 15 minutes, two-hour checkpoint, remaining
   trading day and next 3-5 trading sessions where relevant, with the next material
   release separately anchored. Reuse or extend evidence only as the question
