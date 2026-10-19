@@ -67,6 +67,11 @@ requests archive too; the new UI uses a dedicated POST endpoint so an older stor
 service cannot accidentally delete a pin. Restart storage manually after upgrading
 the backend; agent research does not restart services.
 
+Active pins have no separate count limit. The pin file retains its 10,000-record
+safeguard across active and archived occurrences; archiving preserves records and
+does not free that file capacity. Pinning or restoring beyond 200 active items is
+supported without discarding earlier events or research.
+
 ## Agent navigation
 
 Run from Lite. Reads use the existing read-only calendar transaction, including WAL.

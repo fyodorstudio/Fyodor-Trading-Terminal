@@ -16,6 +16,7 @@ from .currencies import CalendarCurrency
 from .data_lock import data_lock
 
 HIGHLIGHTS_PATH = Path(__file__).resolve().parents[1] / 'Market Analyst Workflow' / 'highlights.json'
+MAX_HIGHLIGHT_RECORDS = 10000
 LOCK = RLock()
 
 
@@ -41,7 +42,7 @@ def read_pins(path=HIGHLIGHTS_PATH):
     if not path.exists():
         return []
     data = json.loads(path.read_text(encoding='utf-8'))
-    if not isinstance(data, dict) or data.get('version') not in (1, 2) or not isinstance(data.get('pins'), list) or len(data['pins']) > 10000:
+    if not isinstance(data, dict) or data.get('version') not in (1, 2) or not isinstance(data.get('pins'), list) or len(data['pins']) > MAX_HIGHLIGHT_RECORDS:
         raise ValueError('Unsupported Highlight file; preserve it and restore a valid copy')
     return [HighlightPin.model_validate(pin).model_dump() for pin in data['pins']]
 
@@ -85,8 +86,8 @@ def pin_release(store, request, path=HIGHLIGHTS_PATH):
             existing['archived_utc'] = None
             existing['archived_snapshot'] = None
         else:
-            if sum(not pin['archived_utc'] for pin in pins) >= 200 or len(pins) >= 10000:
-                raise HTTPException(409, 'Highlight capacity reached; archive an active occurrence before adding another')
+            if len(pins) >= MAX_HIGHLIGHT_RECORDS:
+                raise HTTPException(409, f'Highlight file capacity reached ({MAX_HIGHLIGHT_RECORDS} active and archived records); existing records are preserved')
             identity = uuid4().hex
             pins.append({**request.model_dump(), 'id': identity, 'value_ids': ids, 'event_ids': event_ids,
                 'pinned_utc': datetime.now(timezone.utc).isoformat(timespec='seconds')})
@@ -101,8 +102,6 @@ def archive_pin(identity, source_id, path=HIGHLIGHTS_PATH, store=None, restore=F
         if pin is None:
             raise HTTPException(404, 'Highlight not found for this broker')
         if restore:
-            if pin['archived_utc'] and sum(not item['archived_utc'] for item in pins) >= 200:
-                raise HTTPException(409, 'Archive an active Highlight before restoring another')
             pin['archived_utc'] = None
             pin['archived_snapshot'] = None
         elif not pin['archived_utc']:

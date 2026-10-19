@@ -5,7 +5,7 @@ from unittest.mock import patch
 from unittest import TestCase
 import test_research_reports as fixtures
 from test_research_reports import event, START, DAY
-from storage.highlights import HighlightRequest, pin_release, delete_pin, highlight_snapshot, read_pins
+from storage.highlights import HighlightRequest, pin_release, delete_pin, archive_pin, highlight_snapshot, read_pins
 from storage.app import create_app
 
 
@@ -89,6 +89,39 @@ class HighlightTests(TestCase):
         with self.assertRaises(ValueError):
             pin_release(self.store, self.seed_pin(), path)
         self.assertEqual(path.read_text(encoding='utf-8'), '[]', 'An invalid file is never overwritten')
+
+    def test_more_than_200_active_pins_survive_restart_archive_and_restore(self):
+        self.add([event(str(i), currency='USD', at=START+i*DAY) for i in range(202)])
+        path = self.directory/'highlights.json'
+        identities = [pin_release(self.store, self.seed_pin(value_ids=[str(i)]), path)['id'] for i in range(202)]
+        self.assertEqual({pin['id'] for pin in read_pins(path)}, set(identities))
+        archive_pin(identities[0], 'Elev8-Demo2', path)
+        archived = read_pins(path)[0]
+        self.assertIsNotNone(archived['archived_utc'])
+        archive_pin(identities[0], 'Elev8-Demo2', path, restore=True)
+        self.assertEqual(sum(not pin['archived_utc'] for pin in read_pins(path)), 202)
+        archive_pin(identities[0], 'Elev8-Demo2', path)
+        self.assertEqual(pin_release(self.store, self.seed_pin(value_ids=['0']), path)['id'], identities[0])
+        snapshot = highlight_snapshot(self.store, 'Elev8-Demo2', path)
+        self.assertEqual(len(snapshot['items']), 202)
+        self.assertTrue(all(len(pin['events']) == 1 for pin in snapshot['items']))
+
+    def test_file_capacity_preserves_records_and_allows_existing_pin_restore(self):
+        from fastapi import HTTPException
+        self.add([event('one', currency='USD'), event('two', currency='USD')])
+        path = self.directory/'highlights.json'
+        identity = pin_release(self.store, self.seed_pin(), path)['id']
+        archive_pin(identity, 'Elev8-Demo2', path)
+        before = path.read_bytes()
+        with patch('storage.highlights.MAX_HIGHLIGHT_RECORDS', 1):
+            with self.assertRaises(HTTPException) as error:
+                pin_release(self.store, self.seed_pin(value_ids=['two']), path)
+            self.assertEqual(error.exception.status_code, 409)
+            self.assertIn('active and archived records', error.exception.detail)
+            self.assertEqual(path.read_bytes(), before)
+            archive_pin(identity, 'Elev8-Demo2', path, restore=True)
+            self.assertEqual(pin_release(self.store, self.seed_pin(), path)['id'], identity)
+        self.assertEqual(len(read_pins(path)), 1)
 
     def test_real_asgi_api_and_offline_analyst_read_same_pins(self):
         self.add([event('one', currency='USD')])
