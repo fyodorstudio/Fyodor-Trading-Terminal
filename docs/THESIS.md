@@ -4,6 +4,10 @@ Thesis only documents sourced assessments the user asks an agent to save.
 The month selector offers **JUL / OCT 2026**, defaulting to October for a new
 preference. Pair choice defaults to NZDCHF, independently of the chart.
 Saved assessments are newest first. Alert owns scheduling and notifications.
+**Across All Currency** toggles a separate date-first journal of opportunities
+from an eight-currency review. The same table groups pair verdicts under each
+Jakarta assessment date, newest first. Turning it off restores the selected pair.
+Copy Prompt and Markdown export follow the selected view; neither creates research.
 An explicitly requested planning table follows the assessments, earliest first;
 it contains blank days and sourced schedule notes, with no bias or thesis.
 
@@ -24,6 +28,7 @@ is needed. Exporting does not invoke an agent or authorize writes.
 
 ```powershell
 pnpm analyst thesis read --scope NZDCHF --month 2026-10
+pnpm analyst thesis read --scope ALL --month 2026-10
 pnpm analyst thesis append --scope NZDCHF --broker Elev8-Demo2 --input "Market Analyst Workflow/report/thesis-request.json"
 ```
 
@@ -48,6 +53,16 @@ assessment (replace placeholder text with sourced research):
   "as_of_precision": "minute"
 }
 ```
+
+For an Across All Currency save, keep `scope` as the actual pair and add
+`collection: "across"`; append once per opportunity using `--scope <PAIR>`.
+Omitted collection means `pair` for backward compatibility. Across reads use
+`--scope ALL`, contain only explicitly saved across records and no planning rows.
+Do not copy all historical pair journals into this view. Each opportunity keeps
+its own cutoff, conditional verdict, sources and immutable versions. Corrections
+retain pair, collection and occurrence; comparisons may reference an earlier
+pair-journal version for the same pair. MIXED candidates are conditional, not
+executable entries. Upcoming schedules and reminders remain in Alert.
 
 Verdicts are STRONG BUY / BUY / MIXED / SELL / STRONG SELL. Use the actual
 timezone-aware research cutoff, no later than now. `saved_utc` is assigned by the

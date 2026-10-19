@@ -33,12 +33,17 @@ dom.clearTimeout = key => timers.delete(key)
 const allEntries = JSON.parse(fs.readFileSync(path.join(frontend, '../Market Analyst Workflow/thesis/journal.json'), 'utf8')).entries
 const seed = allEntries.filter(entry => entry.as_of_utc.startsWith('2026-07'))
 const octoberByRow = new Map()
-for (const entry of allEntries.filter(entry => entry.as_of_utc.startsWith('2026-10'))) {
+for (const entry of allEntries.filter(entry => entry.as_of_utc.startsWith('2026-10') && entry.collection !== 'across')) {
   const previous = octoberByRow.get(entry.row_id)
   const prior = allEntries.find(value => value.id === entry.compared_with)
   octoberByRow.set(entry.row_id, { ...entry, versions: [...(previous?.versions ?? []), entry], comparison: prior ? { id: prior.id, as_of_utc: prior.as_of_utc, verdict: prior.verdict } : null })
 }
 const october = [...octoberByRow.values()].sort((a, b) => b.as_of_utc.localeCompare(a.as_of_utc))
+const acrossRows = [['EURCHF', 'STRONG SELL', '2026-10-19T08:00:00Z'], ['AUDJPY', 'SELL', '2026-10-19T08:00:00Z'], ['USDCAD', 'MIXED', '2026-10-17T18:00:00Z']].map(([scope, verdict, as_of_utc], index) => {
+  const entry = { ...seed[0], id: String(index + 1).repeat(32), row_id: String(index + 4).repeat(32), scope, verdict, as_of_utc,
+    collection: 'across', title: 'Weekly opportunity', thesis: `Supported ${scope} mechanism.`, provenance: 'assessment' }
+  return { ...entry, versions: [entry] }
+})
 const plan = JSON.parse(fs.readFileSync(path.join(frontend, '../Market Analyst Workflow/thesis/plan.json'), 'utf8'))
 const planned = plan.days.map(day => ({ ...day, checked_utc: plan.checked_utc, events: day.events.map(event => ({
   note: '', ...event, sources: event.sources.map(source => ({ note: '', ...source })) })) }))
@@ -51,7 +56,7 @@ const response = route => {
   return { ok: true, json: async () => route.searchParams.get('after_revision') === revision ? { ...base, unchanged: true }
     : { ...base, planned: scope === 'NZDCHF' && month === '2026-10' ? planned.filter(day => !october.some(row =>
       new Date(Date.parse(row.as_of_utc) + 7 * 3600000).toISOString().slice(0, 10) === day.date)) : [],
-      past: malformed ? [{}] : scope === 'NZDCHF' ? month === '2026-10' ? october : past : [] } }
+      past: malformed ? [{}] : scope === 'ALL' && month === '2026-10' ? acrossRows : scope === 'NZDCHF' ? month === '2026-10' ? october : past : [] } }
 }
 globalThis.fetch = async (url, options = {}) => {
   const route = new URL(String(url), 'http://localhost'); requests.push({ route, options })
@@ -229,6 +234,46 @@ try {
   markdown = await blobs.at(-1).text()
   assert.ok(markdown.includes('# EURUSD thesis journal'))
   assert.ok(!markdown.includes('NZDCHF thesis journal'))
+  hold = true; await startPoll()
+  await click(button('Across All Currency'))
+  assert.equal(rows().length, 0)
+  assert.equal(button('Export Markdown').disabled, true)
+  assert.ok(held[0].options.signal.aborted, 'Across toggle cancels the prior pair request')
+  hold = false
+  await React.act(async () => { for (const item of held.splice(0).reverse()) item.resolve(response(item.route)) })
+  assert.equal(button('Across All Currency').getAttribute('aria-pressed'), 'true')
+  assert.equal(container.querySelector('[aria-label="Thesis pair"]'), null)
+  assert.equal(rows().length, 3)
+  assert.equal(rows()[0].cells[0].rowSpan, 2)
+  assert.ok(rows()[0].cells[0].textContent.includes('Oct 19'))
+  assert.equal(rows()[1].cells.length, 3, 'Same-day opportunity shares the date cell')
+  assert.ok(rows()[2].cells[0].textContent.includes('Oct 18'), 'Grouping uses Jakarta date across UTC midnight')
+  assert.equal(planRows().length, 0)
+  assert.ok(container.textContent.includes('EURCHFSTRONG SELL'))
+  await click(button('Copy assessment prompt'))
+  assert.ok(copied.includes('USD, EUR, GBP, JPY, CHF, CAD, AUD and NZD'))
+  assert.ok(copied.includes('collection: "across"'))
+  assert.ok(copied.includes('--scope ALL'))
+  await click(rows()[0].querySelector('button'))
+  assert.ok(copied.includes('Reassess the EURCHF opportunity'))
+  assert.ok(copied.includes(acrossRows[0].row_id))
+  const allSnapshot = { schema: 1, scope: 'ALL', month: '2026-10', source_id: null, revision: 'all', past: acrossRows, planned: [] }
+  assert.equal(validThesisSnapshot(allSnapshot, 'ALL', '2026-10', null), true)
+  assert.equal(validThesisSnapshot({ ...allSnapshot, past: october }, 'ALL', '2026-10', null), false, 'Pair-only records cannot leak into Across')
+  await click(button('Export Markdown'))
+  markdown = await blobs.at(-1).text()
+  assert.equal(downloads.at(-1).filename, 'thesis-ALL-2026-10.md')
+  assert.ok(markdown.includes('# Across All Currency thesis journal'))
+  assert.ok(markdown.includes('EURCHF · STRONG SELL'))
+  assert.ok(markdown.includes('collection: "across"'))
+  assert.ok(!markdown.includes('Selected pair: **ALL**'))
+  assert.ok(!markdown.includes('Unassessed planning days'))
+  await React.act(async () => root.render(null))
+  await React.act(async () => root.render(React.createElement(ThesisDock)))
+  assert.equal(button('Across All Currency').getAttribute('aria-pressed'), 'true', 'Across choice survives remount')
+  await click(button('Across All Currency'))
+  assert.equal(container.querySelector('[aria-label="Thesis pair"]').value, 'EURUSD', 'Toggle preserves the independent pair choice')
+  assert.equal(rows().length, 0, 'Across opportunities do not leak into pair journals')
   await React.act(async () => root.render(null))
   assert.equal(timers.size, 0)
   await React.act(async () => root.render(React.createElement(ThesisDock)))

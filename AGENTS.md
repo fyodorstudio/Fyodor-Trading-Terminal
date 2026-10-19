@@ -198,6 +198,10 @@ folders live together under `Market Analyst Workflow/`.
 
 - The Thesis dock only documents sourced assessments the user asks an agent to
   save. Its monthly selector offers JUL/OCT 2026; scheduling and upcoming releases
+  remain in Alert. Across All Currency groups explicitly requested eight-currency
+  review opportunities by Jakarta assessment date; read with `thesis read --scope ALL`
+  and append each actual pair with `collection: "across"`. Preserve conditional
+  MIXED candidates, sources and history separately from pair-only journals. Schedules
   remain in Alert. Follow [Thesis workflow](docs/THESIS.md) for an explicit save
   request or its copied assessment prompt: use `pnpm analyst thesis read/append`,
   preserve version history and real as-of/saved clocks, including outside the

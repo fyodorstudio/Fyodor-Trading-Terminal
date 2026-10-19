@@ -132,7 +132,7 @@ def create_app(directory=None, run_collector=True, highlights_path=HIGHLIGHTS_PA
             raise HTTPException(503, 'Could not restore Highlight') from error
 
     @app.get('/api/v1/theses')
-    def theses(scope: str = Query(pattern=r'^[A-Z]{6}$'), month: str = Query(pattern=r'^\d{4}-\d{2}$'),
+    def theses(scope: str = Query(pattern=r'^(?:ALL|[A-Z]{6})$'), month: str = Query(pattern=r'^\d{4}-\d{2}$'),
                source_id: str | None = Query(default=None, min_length=1, max_length=160),
                after_revision: str | None = Query(default=None, max_length=100)):
         try:

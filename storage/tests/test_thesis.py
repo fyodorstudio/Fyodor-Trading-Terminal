@@ -181,7 +181,7 @@ class ThesisTests(TestCase):
 
     def test_october_nzdchf_records_have_evidence_and_varied_cutoffs_only(self):
         entries = read_theses(PATH)
-        october = [row for row in entries if row['as_of_utc'].startswith('2026-10')]
+        october = [row for row in entries if row['as_of_utc'].startswith('2026-10') and row['collection'] == 'pair']
         latest = {row['row_id']: row for row in october}
         self.assertEqual(len(latest), 11)
         self.assertTrue(all(row['scope'] == 'NZDCHF' and row['change'] and row['change_reason'] for row in latest.values()))
@@ -231,3 +231,27 @@ class ThesisTests(TestCase):
         self.assertEqual(speech['at'], '2026-10-29T17:30:00Z')
         self.assertEqual(thesis_snapshot(None, 'EURCHF', '2026-10')['planned'], [])
         self.assertEqual(thesis_snapshot(None, 'NZDCHF', '2026-07')['planned'], [])
+
+    def test_across_view_is_separate_preserves_versions_and_resolves_pair_comparisons(self):
+        self.paths()
+        old = self.save(change='Baseline', change_reason='Original pair case.')
+        raw = self.path.read_bytes()
+        across = self.save(collection='across', as_of_utc='2026-07-16T01:00:00Z',
+            change='Weakened', change_reason='New contrary evidence.', compared_with=old['id'])
+        second = self.save(collection='across', scope='EURCHF', as_of_utc='2026-07-16T01:00:00Z', verdict='STRONG SELL')
+        view = self.snapshot(scope='ALL')
+        self.assertEqual([row['scope'] for row in view['past']], ['EURCHF', 'NZDCHF'])
+        self.assertEqual(view['past'][1]['comparison']['id'], old['id'])
+        self.assertEqual(view['planned'], [])
+        self.assertEqual([row['id'] for row in self.snapshot()['past']], [old['id']])
+        self.assertEqual(json.loads(raw)['entries'], json.loads(self.path.read_bytes())['entries'][:1])
+        self.save(collection='across', scope='EURCHF', row_id=second['row_id'], expected_version=second['id'], verdict='SELL')
+        self.assertEqual(len(self.snapshot(scope='ALL')['past'][1]['versions']), 2)
+        with self.assertRaises(ValueError):
+            self.save(row_id=across['row_id'], expected_version=across['id'])
+        self.assertTrue(self.snapshot(scope='ALL', after_revision=self.snapshot(scope='ALL')['revision'])['unchanged'])
+        # Date grouping is based on Jakarta; this belongs in August, not July.
+        self.save(collection='across', as_of_utc='2026-07-31T18:00:00Z')
+        self.assertEqual(len(self.snapshot(scope='ALL', month='2026-08')['past']), 1)
+        with self.assertRaises(ValueError):
+            self.request(scope='ALL', collection='across')

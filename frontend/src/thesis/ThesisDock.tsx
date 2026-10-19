@@ -1,6 +1,6 @@
 import { memo, useCallback, useState } from 'react'
 import { majorForexPairs } from '../economic-calendar/forex/pairs'
-import { readThesisMonth, readThesisPair, safeThesisLink, thesisMonths, thesisPrompt, type ThesisEntry, type ThesisPlannedDay, type ThesisRow } from './thesis-model'
+import { readThesisAcross, readThesisMonth, readThesisPair, safeThesisLink, thesisDateGroups, thesisMonths, thesisPrompt, type ThesisEntry, type ThesisPlannedDay, type ThesisRow } from './thesis-model'
 import { useTheses } from './useTheses'
 import { downloadThesisMarkdown } from './thesis-export'
 import './thesis.css'
@@ -18,12 +18,12 @@ function Sources({ entry }: { entry: Pick<ThesisEntry, 'sources'> }) {
     ? <a key={index} href={source.locator} target="_blank" rel="noopener noreferrer" title={source.note || undefined}>{source.label}</a>
     : <span key={index} title={source.locator}>{source.label} (local evidence)</span>)}</span>
 }
-const PastRow = memo(function PastRow({ row, onCopy }: { row: ThesisRow; onCopy: (row: ThesisRow) => void }) {
+const PastRow = memo(function PastRow({ row, onCopy, dateSpan = 1, across = false }: { row: ThesisRow; onCopy: (row: ThesisRow) => void; dateSpan?: number; across?: boolean }) {
   const tone = row.verdict.includes('BUY') ? 'buy' : row.verdict.includes('SELL') ? 'sell' : 'mixed'
   return <tr data-thesis-row={row.row_id}>
-    <td><strong>{dayLabel(row.as_of_utc)}</strong><small>{row.as_of_precision === 'date' ? 'Publication hour unverified' : `${timeFormatter.format(new Date(row.as_of_utc))} · ${row.provenance === 'reconstruction' ? 'information cutoff' : 'assessment'}`}</small><span className="thesis-event-title">{row.title}</span>
-      {row.target && <small>{row.target.event_at ? `Release: ${fullFormatter.format(new Date(row.target.event_at))}` : `Release date: ${row.target.event_date} · hour unconfirmed`}</small>}</td>
-    <td className={`thesis-verdict ${tone}`}>{row.verdict}</td>
+    {dateSpan > 0 && <td rowSpan={dateSpan}><strong>{dayLabel(row.as_of_utc)}</strong>{across ? <small>{dateSpan} {dateSpan === 1 ? 'opportunity' : 'opportunities'}</small> : <><small>{row.as_of_precision === 'date' ? 'Publication hour unverified' : `${timeFormatter.format(new Date(row.as_of_utc))} · ${row.provenance === 'reconstruction' ? 'information cutoff' : 'assessment'}`}</small><span className="thesis-event-title">{row.title}</span></>}
+      {!across && row.target && <small>{row.target.event_at ? `Release: ${fullFormatter.format(new Date(row.target.event_at))}` : `Release date: ${row.target.event_date} · hour unconfirmed`}</small>}</td>}
+    <td className={`thesis-verdict ${tone}`}>{across && <strong className="thesis-opportunity-pair">{row.scope}</strong>}{row.verdict}{across && <><small>{row.as_of_precision === 'date' ? 'Publication hour unverified' : timeFormatter.format(new Date(row.as_of_utc))}</small><small>{row.title}</small></>}</td>
     <td className="thesis-change"><strong>{row.change ?? '—'}</strong>
       {row.comparison && <small>vs {row.comparison.verdict} · {dayLabel(row.comparison.as_of_utc)}</small>}
       {row.change_reason && <p>{row.change_reason}</p>}
@@ -55,11 +55,13 @@ const PlannedRow = memo(function PlannedRow({ day }: { day: ThesisPlannedDay }) 
 })
 function Head({ scope }: { scope: string }) {
   return <><colgroup><col className="thesis-date-column" /><col className="thesis-verdict-column" /><col className="thesis-change-column" /><col /></colgroup>
-    <thead><tr><th scope="col">Date / Time</th><th scope="col">Pair bias · {scope}</th><th scope="col">Thesis change</th><th scope="col">Explanation</th></tr></thead></>
+    <thead><tr><th scope="col">Date / Time</th><th scope="col">{scope === 'ALL' ? 'Opportunity / Bias' : `Pair bias · ${scope}`}</th><th scope="col">Thesis change</th><th scope="col">Explanation</th></tr></thead></>
 }
 
 export const ThesisDock = memo(function ThesisDock() {
-  const [scope, setScope] = useState(readThesisPair)
+  const [pair, setPair] = useState(readThesisPair)
+  const [across, setAcross] = useState(readThesisAcross)
+  const scope = across ? 'ALL' : pair
   const [month, setMonth] = useState(readThesisMonth)
   const [copyStatus, setCopyStatus] = useState('')
   const { data, error } = useTheses(scope, month)
@@ -72,9 +74,12 @@ export const ThesisDock = memo(function ThesisDock() {
   }, [scope, month, context])
   return <section className="thesis-dock" aria-label="Thesis">
     <header className="thesis-header"><h2>Thesis</h2>
-      <label>Pair <select aria-label="Thesis pair" value={scope} onChange={event => {
-        setScope(event.target.value); setCopyStatus(''); try { localStorage.setItem('fyodor.thesis.pair.v1', event.target.value) } catch { /* Retain session choice. */ }
-      }}>{majorForexPairs.map(pair => <option key={pair}>{pair}</option>)}</select></label>
+      <button type="button" aria-pressed={across} onClick={() => {
+        setAcross(!across); setCopyStatus(''); try { localStorage.setItem('fyodor.thesis.across.v1', String(!across)) } catch { /* Retain session choice. */ }
+      }}>Across All Currency</button>
+      {!across && <label>Pair <select aria-label="Thesis pair" value={pair} onChange={event => {
+        setPair(event.target.value); setCopyStatus(''); try { localStorage.setItem('fyodor.thesis.pair.v1', event.target.value) } catch { /* Retain session choice. */ }
+      }}>{majorForexPairs.map(pair => <option key={pair}>{pair}</option>)}</select></label>}
       <label>Month <select aria-label="Thesis month" value={month} onChange={event => {
         setMonth(event.target.value); setCopyStatus(''); try { localStorage.setItem('fyodor.thesis.month.v1', event.target.value) } catch { /* Retain session choice. */ }
       }}>{thesisMonths.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
@@ -93,8 +98,9 @@ export const ThesisDock = memo(function ThesisDock() {
       {!data && !error && <p className="thesis-notice" role="status">Loading assessments…</p>}
       {data && <>
         <table className="thesis-table" aria-label="Past assessments"><Head scope={scope} /><tbody>
-          {data.past.map(row => <PastRow key={row.row_id} row={row} onCopy={copy} />)}
-          {!data.past.length && <tr><td colSpan={4} className="thesis-empty">No saved assessments for {scope} in {thesisMonths.find(item => item.value === month)?.label}.</td></tr>}
+          {across ? thesisDateGroups(data.past).flatMap(([, rows]) => rows.map((row, index) => <PastRow key={row.row_id} row={row} onCopy={copy} across dateSpan={index === 0 ? rows.length : 0} />))
+            : data.past.map(row => <PastRow key={row.row_id} row={row} onCopy={copy} />)}
+          {!data.past.length && <tr><td colSpan={4} className="thesis-empty">No saved assessments for {across ? 'Across All Currency' : scope} in {thesisMonths.find(item => item.value === month)?.label}.</td></tr>}
         </tbody></table>
         {!!data.planned?.length && <table className="thesis-table" aria-label="Unassessed dates"><Head scope={scope} /><tbody>
           {data.planned.map(day => <PlannedRow key={day.date} day={day} />)}

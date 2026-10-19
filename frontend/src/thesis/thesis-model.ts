@@ -11,6 +11,7 @@ export type ThesisEntry = {
   title: string; verdict: typeof verdicts[number]; thesis: string; horizon: string; sources: ThesisSource[]
   note: string; provenance: 'assessment' | 'reconstruction'; target: ThesisTarget | null; journal_id: string | null
   change?: typeof thesisChanges[number] | null; change_reason?: string; compared_with?: string | null; as_of_precision?: 'minute' | 'date'
+  collection?: 'pair' | 'across'
 }
 export type ThesisRow = ThesisEntry & { versions: ThesisEntry[]; comparison?: { id: string; as_of_utc: string; verdict: typeof verdicts[number] } | null }
 export type ThesisPlannedDay = { scope: string; date: string; checked_utc: string; events: { title: string; at: string | null; note: string; sources: ThesisSource[] }[] }
@@ -31,7 +32,9 @@ export function safeThesisLink(locator: string) {
 function validEntry(value: unknown, scope: string): value is ThesisEntry {
   if (!value || typeof value !== 'object') return false
   const item = value as ThesisEntry
-  return item.scope === scope && ['id', 'row_id', 'title', 'thesis', 'horizon', 'note'].every(key => text(item[key as keyof ThesisEntry]))
+  return (scope === 'ALL' ? majorForexPairs.includes(item.scope) && item.collection === 'across' : item.scope === scope && item.collection !== 'across')
+    && (item.collection === undefined || ['pair', 'across'].includes(item.collection))
+    && ['id', 'row_id', 'title', 'thesis', 'horizon', 'note'].every(key => text(item[key as keyof ThesisEntry]))
     && verdicts.includes(item.verdict) && ['assessment', 'reconstruction'].includes(item.provenance)
     && timestamp(item.as_of_utc) && timestamp(item.saved_utc) && (item.target === null || validTarget(item.target))
     && (item.change === undefined || item.change === null || thesisChanges.includes(item.change))
@@ -53,7 +56,7 @@ export function validThesisSnapshot(value: unknown, scope: string, month: string
         && event.sources.every(source => source && text(source.label) && text(source.locator) && text(source.note)
           && (source.kind === 'local' || source.kind === 'web' && safeThesisLink(source.locator))))))
     && Array.isArray(data.past) && data.past.every(item => validEntry(item, scope) && Array.isArray(item.versions)
-      && item.versions.length > 0 && item.versions.every(entry => validEntry(entry, scope) && entry.row_id === item.row_id)
+      && item.versions.length > 0 && item.versions.every(entry => validEntry(entry, scope) && entry.scope === item.scope && entry.row_id === item.row_id)
       && (item.comparison === undefined || item.comparison === null || text(item.comparison.id) && timestamp(item.comparison.as_of_utc) && verdicts.includes(item.comparison.verdict)))
 }
 export function readThesisPair() {
@@ -65,7 +68,26 @@ export function readThesisMonth() {
   return thesisMonth
 }
 
+export function readThesisAcross() {
+  try { return localStorage.getItem('fyodor.thesis.across.v1') === 'true' } catch { return false }
+}
+
+export function thesisDay(value: string) {
+  return new Date(Date.parse(value) + 7 * 3600000).toISOString().slice(0, 10)
+}
+
+export function thesisDateGroups(rows: ThesisRow[]) {
+  const groups = new Map<string, ThesisRow[]>()
+  for (const row of rows) {
+    const date = thesisDay(row.as_of_utc)
+    const group = groups.get(date) ?? []
+    group.push(row); groups.set(date, group)
+  }
+  return [...groups].sort(([a], [b]) => b.localeCompare(a))
+}
+
 export function thesisPrompt(scope: string, month: string, row?: ThesisRow) {
+  if (scope === 'ALL') return `Follow AGENTS.md and use $assess-trade-now at .agents/skills/assess-trade-now/SKILL.md. ${row ? `Reassess the ${row.scope} opportunity` : 'Compare USD, EUR, GBP, JPY, CHF, CAD, AUD and NZD and identify the strongest pair trade opportunities'} as of now for this trading week. Research all five fundamental categories and material off-calendar developments on the web; local data is optional. No candles/OHLC. Explain the dominant relative mechanism, counterevidence and conditional event opportunities without forcing a direction. Keep pair bias separate from thesis change.\n\nAlso save the findings to Across All Currency in the Thesis dock. Read docs/THESIS.md and run pnpm analyst thesis read --scope ALL --month ${month} first. Append each supported pair opportunity through pnpm analyst thesis append --scope <PAIR> with collection: "across", actual as_of_utc, sources and horizon in a ThesisRequest JSON file inside Lite. ${row ? `Revise row_id ${row.row_id} using its latest expected_version; preserve history.` : 'Create standalone rows; keep MIXED/event-dependent candidates explicitly conditional.'} Use change/compared_with/change_reason against the exact earlier version when supported; weakening is not reversal. The UI groups opportunities by their actual Jakarta assessment date. This prompt authorizes those Thesis saves only. The displayed month is not permission to backdate. Upcoming events belong in Alert; do not add pins/alarms without a separate request. Preserve pair journals, raw observations and user trade notes.`
   const assessment = row
   const target = row?.target ?? null
   const skill = '$assess-trade-now at .agents/skills/assess-trade-now/SKILL.md'

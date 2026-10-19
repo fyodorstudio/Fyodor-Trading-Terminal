@@ -109,6 +109,9 @@ context tools are included.
 
 **Thesis** documents agent assessments explicitly requested by the user, newest
 first, independently of the chart. The month selector offers **JUL / OCT 2026**.
+**Across All Currency** shows saved eight-currency review opportunities grouped
+by Jakarta assessment date, with pair verdicts in the same table. It has its own
+copied prompt and Markdown handoff; existing pair journals remain separate.
 July retains its original NZDCHF
 reconstruction; October 1–17 adds event-driven NZDCHF assessments with separate
 pair bias and thesis-change evidence. Sources, as-of/saved times and prior versions are

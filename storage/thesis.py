@@ -60,6 +60,7 @@ class ThesisTarget(Payload):
 
 class ThesisRequest(Payload):
     scope: str = Field(pattern=r'^[A-Z]{6}$')
+    collection: Literal['pair', 'across'] = 'pair'
     as_of_utc: datetime
     title: str = Field(min_length=1, max_length=500)
     verdict: Literal['STRONG BUY', 'BUY', 'MIXED', 'SELL', 'STRONG SELL']
@@ -174,8 +175,8 @@ def read_theses(path=PATH):
         prior = latest.get(item['row_id'])
         if item['id'] in ids or item['expected_version'] != (prior['id'] if prior else None):
             raise ValueError('Thesis version history is incomplete or conflicting; preserve the file')
-        if prior and (item['scope'], item['target']) != (prior['scope'], prior['target']):
-            raise ValueError('Thesis corrections must retain their pair and occurrence')
+        if prior and (item['scope'], item['target'], item['collection']) != (prior['scope'], prior['target'], prior['collection']):
+            raise ValueError('Thesis corrections must retain their pair, collection and occurrence')
         ids.add(item['id']); latest[item['row_id']] = item
     return entries
 
@@ -245,8 +246,8 @@ def append_thesis(store, request, path=PATH, pins_path=HIGHLIGHTS_PATH, external
             raise ValueError('Unknown Thesis row; omit row_id for a new assessment')
         if request.expected_version != (previous['id'] if previous else None):
             raise ValueError('Thesis changed; read the latest version before appending')
-        if previous and (request.scope, target) != (previous['scope'], previous['target']):
-            raise ValueError('Thesis corrections must retain their pair and occurrence')
+        if previous and (request.scope, target, request.collection) != (previous['scope'], previous['target'], previous['collection']):
+            raise ValueError('Thesis corrections must retain their pair, collection and occurrence')
         if request.journal_id:
             journal = read_journal(request.target.reference, pins_path)
             if not any(item['id'] == request.journal_id and item['scope'] == request.scope and item['source_id'] == request.target.source_id for item in journal):
@@ -274,22 +275,28 @@ def append_thesis(store, request, path=PATH, pins_path=HIGHLIGHTS_PATH, external
 
 def thesis_snapshot(store, scope, month, source_id=None, path=PATH, pins_path=HIGHLIGHTS_PATH,
                     external_directory=EXTERNAL_DIRECTORY, after_revision=None):
-    pair_scope(scope)
+    if scope != 'ALL':
+        pair_scope(scope)
     if not re.fullmatch(r'\d{4}-\d{2}', month):
         raise ValueError('Use a calendar month YYYY-MM')
     date.fromisoformat(month + '-01')
-    entries = [entry for entry in read_theses(path) if entry['scope'] == scope]
+    all_entries = read_theses(path)
+    entries = [entry for entry in all_entries if entry['collection'] == 'across'] if scope == 'ALL' else [
+        entry for entry in all_entries if entry['scope'] == scope and entry['collection'] == 'pair']
     groups = {}
     for entry in entries:
         groups.setdefault(entry['row_id'], []).append(entry)
     past = [{**history[-1], 'versions': history} for history in groups.values()
         if datetime.fromisoformat(history[-1]['as_of_utc']).astimezone(JAKARTA).strftime('%Y-%m') == month]
-    by_id = {entry['id']: entry for entry in entries}
+    by_id = {entry['id']: entry for entry in all_entries}
     for row in past:
         prior = by_id.get(row['compared_with'])
         row['comparison'] = {key: prior[key] for key in ('id', 'as_of_utc', 'verdict')} if prior else None
     past.sort(key=lambda item: (item['as_of_utc'], item['saved_utc'], item['row_id']), reverse=True)
-    planned = planned_days(path, scope, month, past)
+    if scope == 'ALL':
+        past.sort(key=lambda item: (-datetime.fromisoformat(item['as_of_utc']).timestamp(),
+            -{'STRONG BUY': 2, 'STRONG SELL': 2, 'BUY': 1, 'SELL': 1, 'MIXED': 0}[item['verdict']], item['scope'], item['row_id']))
+    planned = [] if scope == 'ALL' else planned_days(path, scope, month, past)
     content = {'schema': 1, 'scope': scope, 'month': month, 'source_id': source_id, 'past': past, 'planned': planned}
     revision = hashlib.sha256(json.dumps(content, sort_keys=True).encode()).hexdigest()
     return {'schema': 1, 'scope': scope, 'month': month, 'source_id': source_id, 'revision': revision,

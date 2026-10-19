@@ -211,7 +211,7 @@ def parser():
     query_options(highlights)
     thesis = commands.add_parser('thesis', help='Read the monthly Thesis dock or append a sourced assessment; never changes calendar or pins')
     thesis.add_argument('action', choices=['read', 'append'])
-    thesis.add_argument('--scope', required=True, help='Pair, e.g. NZDCHF')
+    thesis.add_argument('--scope', required=True, help='Pair for append/pair reads, or ALL to read Across All Currency')
     thesis.add_argument('--month', default='2026-10', help='Jakarta calendar month YYYY-MM')
     thesis.add_argument('--broker', help='Broker for optional linked MT5 release saves; daily records and reads need no broker')
     thesis.add_argument('--database', default='storage/data/calendar.sqlite3')
