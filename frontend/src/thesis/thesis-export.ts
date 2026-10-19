@@ -1,4 +1,4 @@
-import { safeThesisLink, type ThesisEntry, type ThesisSnapshot, type ThesisSource } from './thesis-model'
+import { backdropCategories, reviewCurrencies, safeThesisLink, thesisDay, type ThesisEntry, type ThesisReviewEntry, type ThesisSnapshot, type ThesisSource } from './thesis-model'
 
 const clock = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })
 const date = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', year: 'numeric', month: 'short', day: 'numeric', weekday: 'short' })
@@ -33,10 +33,32 @@ function record(entry: ThesisEntry) {
   return lines.join('\n')
 }
 
+function reviewRecord(review: ThesisReviewEntry) {
+  const currencies = reviewCurrencies.filter(currency => review.backdrop.some(cell => cell.currency === currency))
+  const lines = [`### ${timed(review.as_of_utc)}`, '', text(review.takeaway), '',
+    `Review version: ${review.id}; review ID: ${review.review_id}. Saved ${timed(review.saved_utc)}. Horizon: ${text(review.horizon)}. Provenance: ${review.provenance}.`,
+    `Exact opportunity version IDs: ${review.opportunity_ids.join(', ') || 'none selected'}.`, '',
+    `| Category | ${currencies.join(' | ')} |`, `| --- | ${currencies.map(() => '---').join(' | ')} |`]
+  for (const category of backdropCategories) {
+    const cells = currencies.map(currency => {
+      const cell = review.backdrop.find(cell => cell.currency === currency && cell.category === category.key)
+      return [...(cell?.evidence.map(item => {
+        const age = item.published_on ? Math.round((Date.parse(thesisDay(review.as_of_utc)) - Date.parse(item.published_on)) / 86400000) : null
+        return `${item.published_on ? `${item.published_on} (${age} days earlier)` : text(item.publication_note)}: ${text(item.summary)} ${sources(item.sources)}; source checked ${timed(item.verified_utc)}.`
+      }) ?? []), ...(cell?.gap ? [text(cell.gap)] : [])].join('<br><br>')
+    })
+    lines.push(`| ${category.label} | ${cells.join(' | ')} |`)
+  }
+  if (review.limitations) lines.push('', `Evidence gaps: ${text(review.limitations)}`)
+  if (review.note) lines.push('', `Notes: ${text(review.note)}`)
+  return lines.join('\n')
+}
+
 export function thesisMarkdown(data: ThesisSnapshot, exportedAt = new Date().toISOString(), loadError: string | null = null) {
   const across = data.scope === 'ALL'
   const scopeLabel = across ? 'Across All Currency' : data.scope
-  const past = [...data.past].sort((a, b) => b.as_of_utc.localeCompare(a.as_of_utc))
+  const reviews = [...(data.reviews ?? [])].sort((a, b) => b.as_of_utc.localeCompare(a.as_of_utc))
+  const past = [...new Map([...data.past, ...reviews.flatMap(review => review.opportunities)].map(row => [row.id, row])).values()].sort((a, b) => b.as_of_utc.localeCompare(a.as_of_utc))
   const planned = [...(data.planned ?? [])].sort((a, b) => a.date.localeCompare(b.date))
   const lines = [
     `# ${scopeLabel} thesis journal — ${data.month}`,
@@ -59,6 +81,8 @@ export function thesisMarkdown(data: ThesisSnapshot, exportedAt = new Date().toI
     '- Answer briefly: dated pair verdict and causal thesis with sources; material upcoming thesis-changing events earliest first with conditional implications; then a compact Category | base currency | quote currency comparison covering the five research categories. Research both currencies for at least the next seven calendar days, or the requested longer horizon.',
     '- For the journal, return Date / Time | Pair bias | Thesis change | Explanation, with occurred assessments newest first. Keep planning days separate, earliest first, and their bias/thesis empty until an actual assessment is requested and supported. Refresh saved schedules; passing a release time never fills a thesis automatically.',
     '- Describe the implication of fresh contrary news without inventing a BUY/SELL reversal. No mandatory entry-date gate or “No entry date supported yet” boilerplate. Technical entries/exits, trade execution and position sizing stay with the user. No background monitoring or automatic AI invocation is implied.',
+    '- Start with the latest relevant dated review and last supported pair assessment. In this workspace, pnpm analyst thesis context --scope ALL (or a pair) gives a bounded starting point across months. This is dated evidence, not accumulated truth; refresh decisive web sources and actively seek contrary developments. Do not load the whole archive by default.',
+    '- When I request a save, create a new dated review: concise opportunity takeaway, complete five-category backdrop for all reviewed currencies, exact linked opportunity version IDs and explicit gaps. Use pnpm analyst thesis review-append after saving the opportunity rows. Preserve original publication dates and each source verification clock when carrying evidence forward; never imply it was freshly checked. A changed cutoff creates a new review; corrections append versions at the original cutoff. No daily maintenance is required without an invocation.',
     '',
     'If you have no repository access, provide the new sourced assessment and journal row in chat; do not claim the terminal was updated. Exporting this file alone does not request a new assessment or authorize writes. If I request a save and you do have this workspace, follow AGENTS.md and docs/THESIS.md, read the latest pair/month first, then append through pnpm analyst thesis read/append. Use real cutoffs, current row/version IDs and append-only corrections. Preserve raw calendar data, pins and user trade notes.',
     '',
@@ -80,6 +104,13 @@ export function thesisMarkdown(data: ThesisSnapshot, exportedAt = new Date().toI
     for (const plan of planned) {
       lines.push(`- ${day(plan.date)} — schedule checked ${timed(plan.checked_utc)}.`)
       for (const event of plan.events) for (const source of event.sources) lines.push(`  - ${text(event.title)}: ${sourceLink(source)}${source.note ? ` — ${text(source.note)}` : ''}`)
+    }
+  }
+  if (reviews.length) {
+    lines.push('', '## Dated reviews and shared fundamental backdrop — newest first', '')
+    for (const review of reviews) {
+      lines.push(reviewRecord(review), '')
+      for (const prior of review.versions.slice(0, -1).reverse()) lines.push('#### Earlier review version (superseded)', '', reviewRecord(prior), '')
     }
   }
   lines.push('', '## Research details and correction history', '')

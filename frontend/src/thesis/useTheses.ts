@@ -29,6 +29,7 @@ export function useTheses(scope: string, month: string) {
             return previousItem && JSON.stringify(previousItem) === JSON.stringify(item) ? previousItem : item
           })
           return { key, data: { ...data, past: stable(data.past, old?.past ?? [], row => row.row_id),
+            reviews: stable(data.reviews ?? [], old?.reviews ?? [], review => review.review_id),
             planned: stable(data.planned ?? [], old?.planned ?? [], row => row.date) } }
         })
         setFailure(null)

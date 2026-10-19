@@ -201,8 +201,16 @@ folders live together under `Market Analyst Workflow/`.
   remain in Alert. Across All Currency groups explicitly requested eight-currency
   review opportunities by Jakarta assessment date; read with `thesis read --scope ALL`
   and append each actual pair with `collection: "across"`. Preserve conditional
-  MIXED candidates, sources and history separately from pair-only journals. Schedules
-  remain in Alert. Follow [Thesis workflow](docs/THESIS.md) for an explicit save
+  MIXED candidates, sources and history separately from pair-only journals.
+  For a requested save, use `thesis context --scope <PAIR|ALL>`
+  for the latest shared review and relevant earlier direction across months.
+  Refresh decisive sources; saved interpretation is dated context, not truth.
+  Save standalone opportunities at the actual cutoff and `thesis review-append`
+  a complete shared backdrop with a concise entry-focused takeaway and exact
+  opportunity version IDs. Carry original publication/verification dates forward
+  honestly; a new cutoff creates a new review. No routine daily upkeep is implied.
+  Directional opportunities lead the dock; research and conditional cases expand.
+  Follow [Thesis workflow](docs/THESIS.md) for an explicit save
   request or its copied assessment prompt: use `pnpm analyst thesis read/append`,
   preserve version history and real as-of/saved clocks, including outside the
   visible month. Invoking a release skill or receiving an Alert alone does not

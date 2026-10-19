@@ -21,6 +21,7 @@ from ohlc import fetch_window, read_saved, summarize, write_evidence, capture_lo
 from storage.highlights import HIGHLIGHTS_PATH, HighlightRequest, highlight_snapshot, archive_pin, pin_release
 from storage.highlight_journal import JournalRequest, append_journal, read_journal
 from storage.thesis import ThesisRequest, append_thesis, thesis_snapshot
+from storage.thesis_reviews import ReviewRequest, append_review, review_context
 from storage.highlight_metadata import PromptRequest, append_prompt, read_prompts, LimitationRequest, append_limitation, limitations_snapshot
 from upcoming import upcoming_snapshot
 from storage.external_sources import DIRECTORY as EXTERNAL_DIRECTORY, ExternalRequest, append_external, external_history, external_snapshot, archive_external
@@ -210,12 +211,13 @@ def parser():
     highlights.add_argument('--visibility', choices=['active','archived','all'], default='active')
     query_options(highlights)
     thesis = commands.add_parser('thesis', help='Read the monthly Thesis dock or append a sourced assessment; never changes calendar or pins')
-    thesis.add_argument('action', choices=['read', 'append'])
+    thesis.add_argument('action', choices=['read', 'append', 'review-append', 'context'])
     thesis.add_argument('--scope', required=True, help='Pair for append/pair reads, or ALL to read Across All Currency')
     thesis.add_argument('--month', default='2026-10', help='Jakarta calendar month YYYY-MM')
     thesis.add_argument('--broker', help='Broker for optional linked MT5 release saves; daily records and reads need no broker')
     thesis.add_argument('--database', default='storage/data/calendar.sqlite3')
     thesis.add_argument('--input', help='ThesisRequest JSON file inside Lite for append; see docs/THESIS.md')
+    thesis.add_argument('--as-of', help='Optional timezone-aware context cutoff; defaults to now, never changes evidence vintages')
     journal = commands.add_parser('journal', help='Read research versions or append an agent-authored JSON entry (calendar stays read-only)')
     journal.add_argument('action', choices=['read','append'])
     journal.add_argument('highlight_id')
@@ -291,6 +293,17 @@ def run(args):
     if getattr(args, 'offset', 0) < 0:
         raise ValueError('Offset must be non-negative')
     if args.command == 'thesis':
+        if args.action == 'context':
+            from storage.thesis import PATH as THESIS_PATH
+            return review_context(THESIS_PATH, args.scope, args.as_of)
+        if args.action == 'review-append':
+            if not args.input:
+                raise ValueError('Review append needs --input; see docs/THESIS.md')
+            request = ReviewRequest.model_validate_json(local_path(args.input).read_text(encoding='utf-8-sig'))
+            if request.scope != args.scope:
+                raise ValueError('Review scope differs from the command')
+            from storage.thesis import PATH as THESIS_PATH
+            return append_review(request, THESIS_PATH)
         if args.action == 'read':
             return thesis_snapshot(None, args.scope, args.month, args.broker)
         if not args.input:

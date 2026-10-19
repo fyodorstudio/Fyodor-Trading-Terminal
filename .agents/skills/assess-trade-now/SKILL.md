@@ -262,6 +262,18 @@ Answer in chat as usual and confirm
 the save or disclose a write failure without claiming the dock updated.
 Do not pin/archive or alter raw data to make a row appear.
 
+For a requested saved review, first use `pnpm analyst thesis context --scope <PAIR|ALL>`
+to retrieve bounded prior context across months. Refresh decisive web evidence and
+actively seek contrary developments; archive size does not increase a thesis's
+validity. Save new standalone opportunities at the invocation cutoff, then one
+complete shared review through `thesis review-append`: entry-focused takeaway,
+exact opportunity version IDs, five-category backdrop for every reviewed currency
+and explicit material gaps. Carry relevant facts with their original publication
+and verification dates; advance verification only when actually rechecked. New
+cutoffs create new reviews; corrections preserve cutoff/history. Keep conditional
+or weakened cases explicit without manufacturing an opposite entry. The dock keeps
+supporting research expandable; no daily maintenance or monitoring is required.
+
 Answer in chat. Save research only when requested, preserving Before/After phases,
 append-only versions, user notes and raw observations; leave price_reaction empty.
 No trades, account changes, service restarts, messages or recurring monitoring

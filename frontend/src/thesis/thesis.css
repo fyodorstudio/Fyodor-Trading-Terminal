@@ -6,6 +6,22 @@
 .thesis-dock button:hover { background: var(--surface-hover); border-color: var(--border-strong); }
 .thesis-dock button[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }
 .thesis-opportunity-pair { display: block; color: var(--text-strong); }
+.thesis-review { padding-bottom: 22px; border-bottom: 1px solid var(--border); }
+.thesis-review-takeaway { padding: 18px 0 4px; font-size: 14px; line-height: 1.7; }
+.thesis-review-takeaway > strong { color: var(--text-strong); font-size: 13px; }
+.thesis-review-takeaway p { margin: 6px 0; max-width: 110ch; white-space: pre-wrap; }
+.thesis-backdrop, .thesis-conditional { margin-top: 12px; font-size: 12px; line-height: 1.65; }
+.thesis-backdrop > summary, .thesis-conditional > summary { cursor: pointer; color: var(--text-muted); width: fit-content; }
+.thesis-backdrop label { display: flex; gap: 8px; align-items: center; margin: 12px 0; color: var(--text-muted); }
+.thesis-backdrop select { padding: 4px 8px; font: inherit; color: var(--text); background: var(--surface-panel); border: 1px solid var(--border); border-radius: 4px; }
+.thesis-backdrop-scroll { overflow-x: auto; }
+.thesis-backdrop-table { border-collapse: collapse; width: 100%; }
+.thesis-backdrop-table th, .thesis-backdrop-table td { min-width: 190px; vertical-align: top; text-align: left; padding: 10px 16px 10px 0; border-bottom: 1px solid var(--border); }
+.thesis-backdrop-table th { color: var(--text-muted); font-weight: 500; }
+.thesis-backdrop-table th:first-child { min-width: 120px; }
+.thesis-backdrop-evidence { margin-bottom: 10px; }
+.thesis-backdrop-evidence p { margin: 3px 0; white-space: pre-wrap; }
+.thesis-backdrop-evidence small, .thesis-backdrop-gap { display: block; color: var(--text-muted); font-size: 11px; }
 .thesis-dock button:disabled { opacity: 0.5; cursor: default; background: var(--surface-panel); border-color: var(--border); }
 .thesis-timezone, .thesis-copy-status { color: var(--text-muted); font-size: 11px; }
 .thesis-timezone { margin-right: auto; }

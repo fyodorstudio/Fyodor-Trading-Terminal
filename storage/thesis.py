@@ -280,6 +280,10 @@ def thesis_snapshot(store, scope, month, source_id=None, path=PATH, pins_path=HI
     if not re.fullmatch(r'\d{4}-\d{2}', month):
         raise ValueError('Use a calendar month YYYY-MM')
     date.fromisoformat(month + '-01')
+    from .thesis_reviews import read_reviews, review_snapshots
+    # Reviews only reference already-written assessments. Read reviews first so a
+    # concurrent append cannot expose a review newer than this entry snapshot.
+    review_history = read_reviews(path)
     all_entries = read_theses(path)
     entries = [entry for entry in all_entries if entry['collection'] == 'across'] if scope == 'ALL' else [
         entry for entry in all_entries if entry['scope'] == scope and entry['collection'] == 'pair']
@@ -297,7 +301,8 @@ def thesis_snapshot(store, scope, month, source_id=None, path=PATH, pins_path=HI
         past.sort(key=lambda item: (-datetime.fromisoformat(item['as_of_utc']).timestamp(),
             -{'STRONG BUY': 2, 'STRONG SELL': 2, 'BUY': 1, 'SELL': 1, 'MIXED': 0}[item['verdict']], item['scope'], item['row_id']))
     planned = [] if scope == 'ALL' else planned_days(path, scope, month, past)
-    content = {'schema': 1, 'scope': scope, 'month': month, 'source_id': source_id, 'past': past, 'planned': planned}
+    reviews = review_snapshots(path, scope, month, all_entries, review_history)
+    content = {'schema': 1, 'scope': scope, 'month': month, 'source_id': source_id, 'past': past, 'planned': planned, 'reviews': reviews}
     revision = hashlib.sha256(json.dumps(content, sort_keys=True).encode()).hexdigest()
     return {'schema': 1, 'scope': scope, 'month': month, 'source_id': source_id, 'revision': revision,
-            **({'unchanged': True} if revision == after_revision else {'past': past, 'planned': planned})}
+            **({'unchanged': True} if revision == after_revision else {'past': past, 'planned': planned, 'reviews': reviews})}

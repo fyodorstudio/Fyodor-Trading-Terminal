@@ -48,6 +48,15 @@ const plan = JSON.parse(fs.readFileSync(path.join(frontend, '../Market Analyst W
 const planned = plan.days.map(day => ({ ...day, checked_utc: plan.checked_utc, events: day.events.map(event => ({
   note: '', ...event, sources: event.sources.map(source => ({ note: '', ...source })) })) }))
 let past = [...seed].reverse().map(entry => ({ ...entry, versions: [entry] }))
+let showReviews = false
+const conditional = { ...acrossRows[0], id: '8'.repeat(32), row_id: '9'.repeat(32), scope: 'NZDCHF', verdict: 'MIXED', thesis: 'Earlier NZD selling case weakened.' }
+conditional.versions = [{ ...conditional }]
+const reviewEntry = { id: 'a'.repeat(32), review_id: 'b'.repeat(32), expected_version: null, scope: 'ALL',
+  as_of_utc: '2026-10-19T08:00:00Z', saved_utc: '2026-10-19T09:00:00Z', horizon: 'This week', provenance: 'assessment',
+  takeaway: 'EURCHF leads. Blanket NZD selling is no longer a leading opportunity.', limitations: 'One source gap remains.', note: 'Dated review fixture.',
+  opportunity_ids: [acrossRows[0].id, acrossRows[1].id, conditional.id],
+  backdrop: ['USD','EUR','GBP','JPY','CHF','CAD','AUD','NZD'].flatMap(currency => ['policy','inflation','labor','growth','other'].map(category => ({ currency, category, gap: '', evidence: [{ published_on: '2026-07-01', summary: `${currency} ${category} dated evidence.`, verified_utc: '2026-10-19T07:00:00Z', publication_note: '', sources: [{ kind: 'web', label: 'Official release', locator: 'https://example.com/source', note: '' }] }] }))) }
+const review = { ...reviewEntry, versions: [reviewEntry], opportunities: [acrossRows[0], acrossRows[1], conditional] }
 const response = route => {
   if (offline) return { ok: false, status: 503, json: async () => ({}) }
   const scope = route.searchParams.get('scope'), sourceId = route.searchParams.get('source_id')
@@ -56,6 +65,7 @@ const response = route => {
   return { ok: true, json: async () => route.searchParams.get('after_revision') === revision ? { ...base, unchanged: true }
     : { ...base, planned: scope === 'NZDCHF' && month === '2026-10' ? planned.filter(day => !october.some(row =>
       new Date(Date.parse(row.as_of_utc) + 7 * 3600000).toISOString().slice(0, 10) === day.date)) : [],
+      reviews: showReviews && scope === 'ALL' && month === '2026-10' ? [review] : [],
       past: malformed ? [{}] : scope === 'ALL' && month === '2026-10' ? acrossRows : scope === 'NZDCHF' ? month === '2026-10' ? october : past : [] } }
 }
 globalThis.fetch = async (url, options = {}) => {
@@ -268,6 +278,48 @@ try {
   assert.ok(markdown.includes('collection: "across"'))
   assert.ok(!markdown.includes('Selected pair: **ALL**'))
   assert.ok(!markdown.includes('Unassessed planning days'))
+  showReviews = true; revision = 'with-review'; await poll()
+  const reviewNode = container.querySelector('[data-thesis-review]')
+  assert.ok(reviewNode.textContent.includes('Blanket NZD selling is no longer a leading opportunity'))
+  assert.equal(reviewNode.querySelectorAll('[aria-label="Entry opportunities"] [data-thesis-row]').length, 2)
+  assert.equal(reviewNode.querySelectorAll('[aria-label="Conditional opportunities"] [data-thesis-row]').length, 1)
+  assert.equal(reviewNode.querySelector('.thesis-conditional').open, false)
+  const backdrop = reviewNode.querySelector('[data-review-backdrop]')
+  assert.equal(backdrop.open, false, 'Supporting research starts collapsed')
+  await React.act(async () => { backdrop.open = true })
+  assert.equal(backdrop.querySelector('select').value, 'EURCHF')
+  assert.equal(backdrop.querySelectorAll('thead th').length, 3)
+  assert.ok(backdrop.textContent.includes('110 days earlier'), 'Evidence age uses the saved review cutoff, not today or export time')
+  assert.ok(backdrop.textContent.includes('Source checked'))
+  await React.act(async () => { const select = backdrop.querySelector('select'); select.value = 'ALL'; select.dispatchEvent(new dom.Event('change', { bubbles: true })) })
+  assert.equal(backdrop.querySelectorAll('thead th').length, 9)
+  assert.equal(backdrop.querySelectorAll('tbody td').length, 40)
+  await poll()
+  assert.equal(container.querySelector('[data-thesis-review]'), reviewNode)
+  assert.equal(container.querySelector('[data-review-backdrop]').open, true, 'Quiet polling preserves open research and currency selection')
+  assert.equal(backdrop.querySelector('select').value, 'ALL')
+  await click(button('Copy assessment prompt'))
+  assert.ok(copied.includes('thesis context --scope ALL'))
+  assert.ok(copied.includes('thesis review-append'))
+  assert.ok(copied.includes('original publication dates'))
+  await click(button('Export Markdown'))
+  markdown = await blobs.at(-1).text()
+  assert.ok(markdown.includes('Dated reviews and shared fundamental backdrop'))
+  assert.ok(markdown.includes(review.takeaway))
+  assert.ok(markdown.includes('USD policy dated evidence.'))
+  assert.ok(markdown.includes('2026-07-01 (110 days earlier)'))
+  assert.ok(markdown.includes('Exact opportunity version IDs'))
+  const badReview = { ...review, backdrop: review.backdrop.slice(1) }
+  assert.equal(validThesisSnapshot({ ...allSnapshot, reviews: [badReview] }, 'ALL', '2026-10', null), false)
+  const oldOpportunity = acrossRows[0]
+  acrossRows[0] = { ...oldOpportunity, id: 'e'.repeat(32), as_of_utc: '2026-10-20T08:00:00Z', verdict: 'BUY', thesis: 'Later fresh reassessment.', versions: [...oldOpportunity.versions, { ...oldOpportunity, id: 'e'.repeat(32) }] }
+  revision = 'later-opportunity'; await poll()
+  assert.ok(rows()[0].textContent.includes('Later fresh reassessment.'), 'Newer unreviewed assessments stay above earlier reviews')
+  assert.ok(container.querySelector('[data-thesis-review] [aria-label="Entry opportunities"]').textContent.includes('STRONG SELL'), 'A later correction cannot silently change the frozen dated review')
+  await click(button('Export Markdown'))
+  markdown = await blobs.at(-1).text()
+  assert.ok(markdown.includes(oldOpportunity.id))
+  assert.ok(markdown.includes('Later fresh reassessment.'))
   await React.act(async () => root.render(null))
   await React.act(async () => root.render(React.createElement(ThesisDock)))
   assert.equal(button('Across All Currency').getAttribute('aria-pressed'), 'true', 'Across choice survives remount')

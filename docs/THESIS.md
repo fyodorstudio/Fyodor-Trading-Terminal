@@ -8,6 +8,11 @@ Saved assessments are newest first. Alert owns scheduling and notifications.
 from an eight-currency review. The same table groups pair verdicts under each
 Jakarta assessment date, newest first. Turning it off restores the selected pair.
 Copy Prompt and Markdown export follow the selected view; neither creates research.
+Each saved review leads with a short opportunity takeaway. Directional entries
+remain visible; MIXED/conditional or weakened cases are expandable. The shared
+**Fundamental backdrop · Sources** starts collapsed, showing the selected pair's
+currencies or all reviewed currencies. Source dates and ages use that review's
+cutoff, never today's date. July/older standalone records remain unchanged.
 An explicitly requested planning table follows the assessments, earliest first;
 it contains blank days and sourced schedule notes, with no bias or thesis.
 
@@ -29,6 +34,9 @@ is needed. Exporting does not invoke an agent or authorize writes.
 ```powershell
 pnpm analyst thesis read --scope NZDCHF --month 2026-10
 pnpm analyst thesis read --scope ALL --month 2026-10
+pnpm analyst thesis context --scope ALL
+pnpm analyst thesis context --scope NZDCHF
+pnpm analyst thesis review-append --scope ALL --input "Market Analyst Workflow/report/review.json"
 pnpm analyst thesis append --scope NZDCHF --broker Elev8-Demo2 --input "Market Analyst Workflow/report/thesis-request.json"
 ```
 
@@ -63,6 +71,53 @@ its own cutoff, conditional verdict, sources and immutable versions. Corrections
 retain pair, collection and occurrence; comparisons may reference an earlier
 pair-journal version for the same pair. MIXED candidates are conditional, not
 executable entries. Upcoming schedules and reminders remain in Alert.
+
+## Shared dated review
+
+For a requested new assessment/save, start with `thesis context --scope <PAIR|ALL>`.
+It returns the latest relevant review across months, up to three earlier takeaways,
+up to four recent assessments and a pair's last directional assessment. Pair reads
+filter the shared backdrop to two currencies, including when an eight-currency
+review selected no opportunity for that pair. Optional `--as-of <UTC>` excludes
+later research cutoffs; it does not reconstruct historical data vintages or prove
+a later-saved reconstruction was available then. Monthly reads retain full history.
+Use this bounded context instead of loading the whole archive; refresh decisive web
+facts and seek opposing developments. Saved interpretation is not accumulated truth.
+
+Save new standalone opportunities at one real cutoff, then `review-append` a complete
+snapshot linking their exact returned version IDs. ReviewRequest fields:
+
+- `scope`: `ALL` (eight currencies) or an actual pair; `as_of_utc`, `horizon`,
+  concise entry-focused `takeaway`, `opportunity_ids`, `backdrop`, optional
+  `limitations`, `note`, and `provenance` (assessment/reconstruction).
+- `backdrop`: one cell for each reviewed currency and each category `policy`,
+  `inflation`, `labor`, `growth`, `other`. Each cell has `currency`, `category`,
+  `evidence` and optional `gap`. Empty evidence requires an explicit gap.
+- Evidence: `published_on` (source publication date, not reference month),
+  `summary` (result/prior and implication), `verified_utc` and direct `sources`
+  in the usual kind/label/locator/note format. Unknown publication dates use null
+  plus `publication_note`. Dates/verification cannot follow the review cutoff.
+
+Example cell (illustrative only):
+```json
+{"currency":"NZD","category":"growth","gap":"","evidence":[{"published_on":"2026-10-19","summary":"Replace with verified result, prior and implication.","verified_utc":"2026-10-19T08:00:00Z","sources":[{"kind":"web","label":"Official release","locator":"https://businessnz.org.nz/","note":"Use the exact release URL."}]}]}
+```
+
+Research all categories; carry still-relevant evidence into the complete new snapshot
+with its original publication date and verification clock. Advance the verification
+clock only after actually checking that source. Record material gaps explicitly.
+Do not copy a backdrop into every pair or require routine daily edits: maintenance
+happens when the user invokes an assessment. An empty opportunity list is allowed
+when the review finds no directional entry; never manufacture a trade to fill it.
+
+Each review freezes exact opportunity versions; a later pair reassessment cannot
+silently rewrite that dated review. A fresh cutoff creates new rows and a new review.
+Corrections use `review_id` and latest `expected_version`, retaining the original
+scope/cutoff and all versions. Corrected reviews may relink corrected assessment
+versions at that cutoff. Review corrections do not change unrelated pair entries.
+The tracked `thesis/reviews.json` stores shared reviews separately from the compact
+assessment journal; preserve both files. Markdown exports include all dated review
+evidence, limitations, frozen linked assessments and prior review versions.
 
 Verdicts are STRONG BUY / BUY / MIXED / SELL / STRONG SELL. Use the actual
 timezone-aware research cutoff, no later than now. `saved_utc` is assigned by the

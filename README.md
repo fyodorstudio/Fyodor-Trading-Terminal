@@ -39,7 +39,7 @@ Optional `FYODOR_BRIDGE_API_URL` / `FYODOR_STORAGE_API_URL` override Vite's prox
 | external-sources | Separate outside-feed events/headlines/watch items, sourced facts, history, limitations reference and agent prompts |
 | events-alarms / storage/alarms | Shared dock, per-pin invocation alarms and independent Windows alarm delivery |
 | entry-trade | Manual execution plans, all-pair pins, draggable chart levels and independent saved journals |
-| thesis / storage/thesis.py | Monthly saved pair theses, copied assessment prompts and append-only versions |
+| thesis / storage/thesis.py / storage/thesis_reviews.py | Dated opportunities, shared backdrop reviews, agent context and append-only versions |
 | research | Chart date selection and named Markdown handoff shared with Alert |
 | Market Analyst Workflow/tools (repo root) | Read-only calendar, upcoming/Highlight/report queries, journal/lifecycle writes and bounded OHLC capture |
 | appearance, system-connectivity, system-observability, workspace-docking | Theme/time, bridge status, Activity and dock geometry |
@@ -112,6 +112,10 @@ first, independently of the chart. The month selector offers **JUL / OCT 2026**.
 **Across All Currency** shows saved eight-currency review opportunities grouped
 by Jakarta assessment date, with pair verdicts in the same table. It has its own
 copied prompt and Markdown handoff; existing pair journals remain separate.
+Saved reviews lead with entry opportunities and a short takeaway. Supporting
+backdrops and conditional cases expand on demand. Agents use `thesis context`
+for bounded prior context, then refresh evidence and save a new dated review;
+earlier reviews retain their exact opportunity versions and original source dates.
 July retains its original NZDCHF
 reconstruction; October 1–17 adds event-driven NZDCHF assessments with separate
 pair bias and thesis-change evidence. Sources, as-of/saved times and prior versions are

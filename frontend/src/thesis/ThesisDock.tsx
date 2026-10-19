@@ -1,8 +1,9 @@
 import { memo, useCallback, useState } from 'react'
 import { majorForexPairs } from '../economic-calendar/forex/pairs'
-import { readThesisAcross, readThesisMonth, readThesisPair, safeThesisLink, thesisDateGroups, thesisMonths, thesisPrompt, type ThesisEntry, type ThesisPlannedDay, type ThesisRow } from './thesis-model'
+import { readThesisAcross, readThesisMonth, readThesisPair, safeThesisLink, thesisDateGroups, thesisMonths, thesisPrompt, type ThesisEntry, type ThesisPlannedDay, type ThesisReview, type ThesisRow } from './thesis-model'
 import { useTheses } from './useTheses'
 import { downloadThesisMarkdown } from './thesis-export'
+import { ThesisBackdrop } from './ThesisBackdrop'
 import './thesis.css'
 
 const dayFormatter = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', month: 'short', day: 'numeric', weekday: 'short' })
@@ -28,10 +29,11 @@ const PastRow = memo(function PastRow({ row, onCopy, dateSpan = 1, across = fals
       {row.comparison && <small>vs {row.comparison.verdict} · {dayLabel(row.comparison.as_of_utc)}</small>}
       {row.change_reason && <p>{row.change_reason}</p>}
     </td>
-    <td><p className="thesis-prose">{row.thesis} <Sources entry={row} /></p>
+    <td><p className="thesis-prose">{row.thesis} <Sources entry={across ? { sources: row.sources.slice(0, 2) } : row} /></p>
       <details className="thesis-details"><summary>Details · {row.versions.length} {row.versions.length === 1 ? 'version' : 'versions'}</summary>
         <p>As of {row.as_of_precision === 'date' ? `${dayLabel(row.as_of_utc)} · date-only evidence; see cutoff note` : `${fullFormatter.format(new Date(row.as_of_utc))} Jakarta`} · {row.horizon}. Saved {fullFormatter.format(new Date(row.saved_utc))} Jakarta.</p>
         <p>{row.provenance === 'reconstruction' ? 'Retrospective reconstruction. ' : ''}{row.note}</p>
+        {across && <p><Sources entry={row} /></p>}
         {row.target && <p>{row.target.kind === 'highlight' ? `Highlight ${row.target.reference} · ${row.target.source_id}` : `External Source ${row.target.reference}`}</p>}
         {row.journal_id && <p>Detailed Highlight research: {row.journal_id}</p>}
         {row.versions.length > 1 && <ol aria-label="Previous thesis versions">{row.versions.slice(0, -1).reverse().map(version => <li key={version.id}>
@@ -58,6 +60,36 @@ function Head({ scope }: { scope: string }) {
     <thead><tr><th scope="col">Date / Time</th><th scope="col">{scope === 'ALL' ? 'Opportunity / Bias' : `Pair bias · ${scope}`}</th><th scope="col">Thesis change</th><th scope="col">Explanation</th></tr></thead></>
 }
 
+const AssessmentTable = memo(function AssessmentTable({ rows, scope, onCopy }: { rows: ThesisRow[]; scope: string; onCopy: (row: ThesisRow) => void }) {
+  return <table className="thesis-table" aria-label="Past assessments"><Head scope={scope} /><tbody>
+    {scope === 'ALL' ? thesisDateGroups(rows).flatMap(([, group]) => group.map((row, index) => <PastRow key={row.row_id} row={row} onCopy={onCopy} across dateSpan={index === 0 ? group.length : 0} />))
+      : rows.map(row => <PastRow key={row.row_id} row={row} onCopy={onCopy} />)}
+  </tbody></table>
+})
+
+const ReviewBlock = memo(function ReviewBlock({ review, onCopy }: { review: ThesisReview; onCopy: (row: ThesisRow) => void }) {
+  const across = review.scope === 'ALL'
+  const entries = review.opportunities.filter(row => row.verdict !== 'MIXED')
+  const conditional = review.opportunities.filter(row => row.verdict === 'MIXED')
+  const pairs = [...new Set(review.opportunities.map(row => row.scope))]
+  function table(rows: ThesisRow[], label: string) {
+    return <table className="thesis-table" aria-label={label}><Head scope={review.scope} /><tbody>
+      {rows.map((row, index) => <PastRow key={row.id} row={row} onCopy={onCopy} across={across} dateSpan={across ? index === 0 ? rows.length : 0 : 1} />)}
+    </tbody></table>
+  }
+  return <section className="thesis-review" data-thesis-review={review.id} aria-label={`Review ${fullFormatter.format(new Date(review.as_of_utc))}`}>
+    <div className="thesis-review-takeaway"><strong>{fullFormatter.format(new Date(review.as_of_utc))} Jakarta</strong><p>{review.takeaway}</p></div>
+    {entries.length ? table(entries, 'Entry opportunities') : <p className="thesis-notice">No directional entry opportunity selected in this review.</p>}
+    {!!conditional.length && <details className="thesis-conditional"><summary>Conditional / weakened cases · {conditional.length}</summary>{table(conditional, 'Conditional opportunities')}</details>}
+    <ThesisBackdrop review={review} pairs={pairs} />
+    <details className="thesis-details"><summary>Review details · {review.versions.length} {review.versions.length === 1 ? 'version' : 'versions'}</summary>
+      <p>Research as of {fullFormatter.format(new Date(review.as_of_utc))} Jakarta · {review.horizon}. Saved {fullFormatter.format(new Date(review.saved_utc))} Jakarta.</p>
+      <p>{review.provenance === 'reconstruction' ? 'Retrospective reconstruction. ' : ''}{review.note}</p>
+      {review.versions.slice(0, -1).reverse().map(version => <div key={version.id}><p>Earlier version: {version.takeaway} · saved {fullFormatter.format(new Date(version.saved_utc))} Jakarta.</p><ThesisBackdrop review={version} pairs={pairs} /></div>)}
+    </details>
+  </section>
+})
+
 export const ThesisDock = memo(function ThesisDock() {
   const [pair, setPair] = useState(readThesisPair)
   const [across, setAcross] = useState(readThesisAcross)
@@ -65,6 +97,8 @@ export const ThesisDock = memo(function ThesisDock() {
   const [month, setMonth] = useState(readThesisMonth)
   const [copyStatus, setCopyStatus] = useState('')
   const { data, error } = useTheses(scope, month)
+  const documented = new Set(data?.reviews?.flatMap(review => review.opportunity_ids) ?? [])
+  const remaining = data?.past.filter(row => !documented.has(row.id)) ?? []
   // Clipboard completion must not show a status for a pair that has since changed.
   const context = `${scope}:${month}`
   const [copyContext, setCopyContext] = useState(context)
@@ -97,11 +131,12 @@ export const ThesisDock = memo(function ThesisDock() {
       {error && <p className="thesis-notice" role="alert">{error}{data ? ' Showing last loaded assessments.' : ''}</p>}
       {!data && !error && <p className="thesis-notice" role="status">Loading assessments…</p>}
       {data && <>
-        <table className="thesis-table" aria-label="Past assessments"><Head scope={scope} /><tbody>
-          {across ? thesisDateGroups(data.past).flatMap(([, rows]) => rows.map((row, index) => <PastRow key={row.row_id} row={row} onCopy={copy} across dateSpan={index === 0 ? rows.length : 0} />))
-            : data.past.map(row => <PastRow key={row.row_id} row={row} onCopy={copy} />)}
-          {!data.past.length && <tr><td colSpan={4} className="thesis-empty">No saved assessments for {across ? 'Across All Currency' : scope} in {thesisMonths.find(item => item.value === month)?.label}.</td></tr>}
-        </tbody></table>
+        {data.reviews?.length ? [
+          ...data.reviews.map(review => ({ at: review.as_of_utc, key: review.review_id, node: <ReviewBlock review={review} onCopy={copy} /> })),
+          ...thesisDateGroups(remaining).map(([date, rows]) => ({ at: rows[0].as_of_utc, key: date, node: <AssessmentTable rows={rows} scope={scope} onCopy={copy} /> })),
+        ].sort((a, b) => b.at.localeCompare(a.at)).map(block => <div key={block.key}>{block.node}</div>)
+          : data.past.length ? <AssessmentTable rows={remaining} scope={scope} onCopy={copy} />
+            : <table className="thesis-table" aria-label="Past assessments"><Head scope={scope} /><tbody><tr><td colSpan={4} className="thesis-empty">No saved assessments for {across ? 'Across All Currency' : scope} in {thesisMonths.find(item => item.value === month)?.label}.</td></tr></tbody></table>}
         {!!data.planned?.length && <table className="thesis-table" aria-label="Unassessed dates"><Head scope={scope} /><tbody>
           {data.planned.map(day => <PlannedRow key={day.date} day={day} />)}
         </tbody></table>}
