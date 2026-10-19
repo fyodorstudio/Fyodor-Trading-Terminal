@@ -4,16 +4,18 @@ Thesis only documents sourced assessments the user asks an agent to save.
 The month selector offers **JUL / OCT 2026**, defaulting to October for a new
 preference. Pair choice defaults to NZDCHF, independently of the chart.
 Saved assessments are newest first. Alert owns scheduling and notifications.
-**Across All Currency** toggles a separate date-first journal of opportunities
-from an eight-currency review. The same table groups pair verdicts under each
-Jakarta assessment date, newest first. Turning it off restores the selected pair.
-Copy Prompt and Markdown export follow the selected view; neither creates research.
-Each saved review leads with a short opportunity takeaway. Directional entries
-remain visible; MIXED/conditional or weakened cases are expandable. The shared
-**Fundamental backdrop · Sources** starts collapsed, showing the selected pair's
-currencies or all reviewed currencies. Source dates and ages use that review's
-cutoff, never today's date. July/older standalone records remain unchanged.
-An explicitly requested planning table follows the assessments, earliest first;
+**Across All Currency** shows one table for the selected Jakarta month/day:
+**Currency | Current fundamental backdrop | Confidence / main counterweight |
+Next material checkpoint**. All eight standalone currencies appear, without pair
+tables, takeaways, conditional sections or disclosure stacks. The latest research
+cutoff on that date wins; other dates never spill into the selection. Days without
+research show eight unassessed rows. The day selector uses the month's actual length.
+New preferences default to this view; turning it off restores the independent pair
+history. Pair history, July reconstructions and raw records remain unchanged.
+Copy Prompt and Markdown export follow the selected date. Export includes the
+underlying dated evidence for agent handoff, without adding pair tables.
+Body, headings and disclosure text use the same 14px type size.
+In pair history, an explicitly requested planning table follows the assessments, earliest first;
 it contains blank days and sourced schedule notes, with no bias or thesis.
 
 Copy assessment prompt invokes `assess-trade-now` and explicitly requests a
@@ -21,7 +23,7 @@ save. A direct user request to document an assessment also authorizes saving.
 Invoking `one-minute-before-release` or receiving an Alert alone does not
 implicitly save a Thesis record. No automatic AI invocation or analysis occurs.
 
-**Export Markdown** downloads the selected pair/month as a portable `.md` file:
+**Export Markdown** downloads the selected currency date or pair/month as a portable `.md` file:
 tables, schedule notes, sources, research/saved clocks, limitations, correction
 history and a self-contained research handoff for another AI. It exports the
 last loaded snapshot without requesting new research or changing records; an
@@ -62,7 +64,7 @@ assessment (replace placeholder text with sourced research):
 }
 ```
 
-For an Across All Currency save, keep `scope` as the actual pair and add
+For legacy pair opportunities in the across collection, keep `scope` as the actual pair and add
 `collection: "across"`; append once per opportunity using `--scope <PAIR>`.
 Omitted collection means `pair` for backward compatibility. Across reads use
 `--scope ALL`, contain only explicitly saved across records and no planning rows.
@@ -84,12 +86,30 @@ a later-saved reconstruction was available then. Monthly reads retain full histo
 Use this bounded context instead of loading the whole archive; refresh decisive web
 facts and seek opposing developments. Saved interpretation is not accumulated truth.
 
-Save new standalone opportunities at one real cutoff, then `review-append` a complete
-snapshot linking their exact returned version IDs. ReviewRequest fields:
+For the all-currency table, `review-append` a complete snapshot with `currency_views`
+and all five research categories per currency. Pair opportunity rows are unnecessary;
+`opportunity_ids` may be empty. Existing linked pair records remain preserved but
+are not displayed in Across All Currency. ReviewRequest fields:
 
 - `scope`: `ALL` (eight currencies) or an actual pair; `as_of_utc`, `horizon`,
   concise entry-focused `takeaway`, `opportunity_ids`, `backdrop`, optional
   `limitations`, `note`, and `provenance` (assessment/reconstruction).
+- `currency_views`: one entry for every reviewed currency. Each has `currency`,
+  a short descriptive `bias`, concise `summary`, strongest `counterweight`, direct
+  `sources` and `checkpoints`. This is standalone fundamental interpretation, not
+  a measured currency index or a universal verdict against every counterpart.
+  Confidence language is optional and must be supported; no numeric score or
+  habitual low-confidence boilerplate. Dates in the user's example are not evidence.
+- Each checkpoint has `title`, `event_at` (UTC instant) or `event_date` (hour unknown),
+  `verified_utc`, direct `sources` and a short `note` with material supporting/opposing
+  outcomes. Supply neither clock only for an explicitly unscheduled risk with a note.
+  No invented hours, forecast figures or actuals. Keep timed stages earliest first.
+- `planning_as_of_utc`: the real checkpoint-preparation cutoff. It may follow the
+  original research cutoff when adding schedules to an earlier saved assessment;
+  the UI shows both clocks. Source verification must not exceed preparation.
+  Keep original verification/capture clocks when reusing saved schedules, explain
+  provenance in source/review notes, and never claim a fresh web check. Historical
+  context queries omit checkpoints prepared after their chosen cutoff.
 - `backdrop`: one cell for each reviewed currency and each category `policy`,
   `inflation`, `labor`, `growth`, `other`. Each cell has `currency`, `category`,
   `evidence` and optional `gap`. Empty evidence requires an explicit gap.
@@ -110,14 +130,15 @@ Do not copy a backdrop into every pair or require routine daily edits: maintenan
 happens when the user invokes an assessment. An empty opportunity list is allowed
 when the review finds no directional entry; never manufacture a trade to fill it.
 
-Each review freezes exact opportunity versions; a later pair reassessment cannot
+When linked, each review freezes exact opportunity versions; a later pair reassessment cannot
 silently rewrite that dated review. A fresh cutoff creates new rows and a new review.
 Corrections use `review_id` and latest `expected_version`, retaining the original
 scope/cutoff and all versions. Corrected reviews may relink corrected assessment
 versions at that cutoff. Review corrections do not change unrelated pair entries.
 The tracked `thesis/reviews.json` stores shared reviews separately from the compact
 assessment journal; preserve both files. Markdown exports include all dated review
-evidence, limitations, frozen linked assessments and prior review versions.
+evidence and limitations. Pair exports retain frozen linked assessments/history;
+the all-currency export follows the selected date and includes agent context.
 
 Verdicts are STRONG BUY / BUY / MIXED / SELL / STRONG SELL. Use the actual
 timezone-aware research cutoff, no later than now. `saved_utc` is assigned by the

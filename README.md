@@ -109,18 +109,18 @@ context tools are included.
 
 **Thesis** documents agent assessments explicitly requested by the user, newest
 first, independently of the chart. The month selector offers **JUL / OCT 2026**.
-**Across All Currency** shows saved eight-currency review opportunities grouped
-by Jakarta assessment date, with pair verdicts in the same table. It has its own
-copied prompt and Markdown handoff; existing pair journals remain separate.
-Saved reviews lead with entry opportunities and a short takeaway. Supporting
-backdrops and conditional cases expand on demand. Agents use `thesis context`
+**Across All Currency** shows one eight-currency table for the selected month/day:
+standalone backdrop, main counterweight and next material checkpoint. Pair tables
+and disclosure sections are removed from this view. It has its own dated copied
+prompt and Markdown handoff; existing pair journals remain separate.
+Agents use `thesis context`
 for bounded prior context, then refresh evidence and save a new dated review;
 earlier reviews retain their exact opportunity versions and original source dates.
 July retains its original NZDCHF
 reconstruction; October 1–17 adds event-driven NZDCHF assessments with separate
 pair bias and thesis-change evidence. Sources, as-of/saved times and prior versions are
 expandable. NZDCHF October 18–31 has requested blank planning rows with sourced
-schedule notes. Export Markdown includes the selected pair/month, sources,
+schedule notes. Export Markdown includes the selected currency date or pair/month, sources,
 versions and context for continuing with another AI. Alert retains scheduling
 and notifications. See [Thesis workflow](docs/THESIS.md)
 for the copied assessment prompt and agent save interface.

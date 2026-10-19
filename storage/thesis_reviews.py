@@ -41,6 +41,24 @@ class BackdropCell(Payload):
     gap: str = Field(default='', max_length=1500)
 
 
+class CurrencyCheckpoint(Payload):
+    title: str = Field(min_length=1, max_length=300)
+    event_at: datetime | None = None
+    event_date: date | None = None
+    verified_utc: datetime
+    sources: list[JournalSource] = Field(min_length=1, max_length=8)
+    note: str = Field(default='', max_length=1500)
+
+
+class CurrencyView(Payload):
+    currency: CalendarCurrency
+    bias: str = Field(min_length=1, max_length=160)
+    summary: str = Field(min_length=1, max_length=1500)
+    counterweight: str = Field(min_length=1, max_length=1000)
+    sources: list[JournalSource] = Field(min_length=1, max_length=8)
+    checkpoints: list[CurrencyCheckpoint] = Field(default_factory=list, max_length=8)
+
+
 class ReviewRequest(Payload):
     scope: str
     as_of_utc: datetime
@@ -48,6 +66,8 @@ class ReviewRequest(Payload):
     horizon: str = Field(min_length=1, max_length=300)
     backdrop: list[BackdropCell] = Field(min_length=10, max_length=40)
     opportunity_ids: list[str] = Field(default_factory=list, max_length=28)
+    currency_views: list[CurrencyView] = Field(default_factory=list, max_length=8)
+    planning_as_of_utc: datetime | None = None
     limitations: str = Field(default='', max_length=4000)
     note: str = Field(default='', max_length=4000)
     provenance: Literal['assessment', 'reconstruction'] = 'assessment'
@@ -68,6 +88,36 @@ class ReviewRequest(Payload):
         if len(set(self.opportunity_ids)) != len(self.opportunity_ids) or any(
                 len(identity) != 32 or any(c not in '0123456789abcdef' for c in identity) for identity in self.opportunity_ids):
             raise ValueError('Link unique exact assessment version IDs')
+        selected = set(currencies(self.scope))
+        if self.currency_views and (len(self.currency_views) != len(selected)
+                or {item.currency for item in self.currency_views} != selected
+                or any(not all(value.strip() for value in (item.bias, item.summary, item.counterweight))
+                       or not any(source.kind == 'web' for source in item.sources) for item in self.currency_views)):
+            raise ValueError('Save one standalone view for every reviewed currency')
+        planning = self.planning_as_of_utc
+        if planning is not None:
+            if planning.tzinfo is None or not self.as_of_utc <= planning <= datetime.now(timezone.utc):
+                raise ValueError('Planning cutoff needs an offset, at or after research and no later than now')
+            self.planning_as_of_utc = planning.astimezone(timezone.utc)
+        checkpoints = [checkpoint for view in self.currency_views for checkpoint in view.checkpoints]
+        if checkpoints and planning is None:
+            raise ValueError('Release preparation needs its own real planning cutoff')
+        for item in checkpoints:
+            if not item.title.strip() or not any(source.kind == 'web' for source in item.sources):
+                raise ValueError('Release schedules need direct web evidence')
+            if item.verified_utc.tzinfo is None or item.verified_utc > planning:
+                raise ValueError('Schedule verification cannot follow the planning cutoff')
+            item.verified_utc = item.verified_utc.astimezone(timezone.utc)
+            if item.event_at is not None:
+                if item.event_date is not None or item.event_at.tzinfo is None or item.event_at <= planning:
+                    raise ValueError('Timed upcoming stages need an offset, one clock and a future planning instant')
+                item.event_at = item.event_at.astimezone(timezone.utc)
+            elif item.event_date is not None:
+                from .thesis import JAKARTA
+                if item.event_date < planning.astimezone(JAKARTA).date():
+                    raise ValueError('Upcoming source dates cannot precede preparation')
+            elif not item.note.strip():
+                raise ValueError('Unscheduled catalysts need an explicit timing note')
         for cell in self.backdrop:
             if not cell.evidence and not cell.gap.strip():
                 raise ValueError('An unresearched cell needs an explicit evidence gap')
@@ -136,6 +186,10 @@ def append_review(request, journal_path):
         for cell in request.backdrop:
             if any(source.kind == 'local' and not Path(source.locator).is_file() for item in cell.evidence for source in item.sources):
                 raise ValueError('Local evidence must exist when saved')
+        view_sources = [source for view in request.currency_views for source in view.sources]
+        checkpoint_sources = [source for view in request.currency_views for checkpoint in view.checkpoints for source in checkpoint.sources]
+        if any(source.kind == 'local' and not Path(source.locator).is_file() for source in view_sources + checkpoint_sources):
+            raise ValueError('Local currency evidence must exist when saved')
         entry = ReviewEntry(**{**request.model_dump(), 'review_id': request.review_id or uuid4().hex},
             id=uuid4().hex, saved_utc=datetime.now(timezone.utc))
         # Preserve every earlier review exactly, including absent legacy defaults.
@@ -194,9 +248,14 @@ def review_context(journal_path, scope, as_of=None):
     review = project_review(ordered[0], [ordered[0]], entries) if ordered else None
     if review:
         review.pop('versions')  # Context is bounded; monthly reads retain full correction history.
+        if review.get('planning_as_of_utc') and datetime.fromisoformat(review['planning_as_of_utc']) > cutoff:
+            review['planning_as_of_utc'] = None
+            for view in review['currency_views']:
+                view['checkpoints'] = []  # Later preparation is not historical knowledge.
     if review and scope != 'ALL':
         review['backdrop'] = [cell for cell in review['backdrop'] if cell['currency'] in selected]
         review['opportunities'] = [item for item in review['opportunities'] if item['scope'] == scope]
+        review['currency_views'] = [item for item in review['currency_views'] if item['currency'] in selected]
     corrected = {(item['row_id'], item['as_of_utc']): item for item in entries}
     pair_entries = sorted([item for item in corrected.values() if scope == 'ALL' and item['collection'] == 'across' or item['scope'] == scope],
         key=lambda item: (item['as_of_utc'], item['saved_utc']), reverse=True)

@@ -903,6 +903,2638 @@
       "expected_version": null,
       "id": "d5b4587d941f4957b084fcf13a85a62e",
       "saved_utc": "2026-10-19T08:46:01.537446Z"
+    },
+    {
+      "scope": "ALL",
+      "as_of_utc": "2026-10-19T08:00:00Z",
+      "takeaway": "EURCHF is the leading sell opportunity, followed by AUDJPY. USDCAD depends on tonight’s Canadian data. I would no longer make blanket NZD selling a leading opportunity; NZDCHF is MIXED.",
+      "horizon": "This trading week: October 19–23, 2026",
+      "backdrop": [
+        {
+          "currency": "USD",
+          "category": "policy",
+          "evidence": [
+            {
+              "published_on": "2026-10-19",
+              "summary": "October Fed hold remains favored in current Reuters reporting; September tightening is background, not automatic USD support.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Reuters: French unrest, oil and Fed expectations",
+                  "locator": "https://wealthinsights.metrobank.com.ph/news/forex-dollar-firmer-euro-weakens-as-french-protests-turn-violent",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            },
+            {
+              "published_on": "2026-09-16",
+              "summary": "Fed raised the target to 3.75–4.00% in September. Subsequent expectations and guidance determine the current path.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Fed September decision",
+                  "locator": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260916a.htm",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "USD",
+          "category": "inflation",
+          "evidence": [
+            {
+              "published_on": "2026-10-14",
+              "summary": "September CPI 3.7% versus 3.4%; core 2.6% versus 2.4%. Inflation persistence opposes aggressive USD selling.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "US CPI",
+                  "locator": "https://www.bls.gov/news.release/archives/cpi_10142026.htm",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "USD",
+          "category": "labor",
+          "evidence": [
+            {
+              "published_on": "2026-10-02",
+              "summary": "September payrolls +29k; unemployment 4.2%. Subdued hiring offsets the hotter inflation backdrop.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "US jobs",
+                  "locator": "https://www.bls.gov/news.release/archives/empsit_10022026.htm",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "USD",
+          "category": "growth",
+          "evidence": [
+            {
+              "published_on": "2026-10-15",
+              "summary": "September nominal retail sales +0.8% monthly. Spending is resilient, but this is not inflation-adjusted consumption growth.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "US retail sales",
+                  "locator": "https://www.census.gov/retail/marts/www/marts_current.pdf",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "USD",
+          "category": "other",
+          "evidence": [
+            {
+              "published_on": "2026-10-19",
+              "summary": "Oil eased after Russia-related sanctions/tariff relief. Energy relief can reduce inflation pressure; renewed stress would change the defensive-dollar channel.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Reuters: French unrest, oil and Fed expectations",
+                  "locator": "https://wealthinsights.metrobank.com.ph/news/forex-dollar-firmer-euro-weakens-as-french-protests-turn-violent",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "EUR",
+          "category": "policy",
+          "evidence": [
+            {
+              "published_on": "2026-09-10",
+              "summary": "Background: September ECB hike and higher inflation projections support the tightening case. Fiscal stress can still dominate the relative currency thesis.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "ECB September decision",
+                  "locator": "https://www.ecb.europa.eu/press/press_conference/monetary-policy-statement/2026/html/ecb.is260910~6a45359cfc.en.html?outputType=chromeless",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "EUR",
+          "category": "inflation",
+          "evidence": [
+            {
+              "published_on": "2026-10-16",
+              "summary": "September final CPI 3.8% versus 3.2%; core 2.5% versus 2.4%. Energy dominates headline acceleration; this is counterevidence to EUR selling.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Eurostat: September inflation",
+                  "locator": "https://ec.europa.eu/eurostat/en/web/products-euro-indicators/w/2-16102026-ap",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "EUR",
+          "category": "labor",
+          "evidence": [
+            {
+              "published_on": "2026-10-01",
+              "summary": "August unemployment 6.4%, unchanged. This release does not establish a fresh labor collapse.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Euro-area labor",
+                  "locator": "https://ec.europa.eu/eurostat/web/products-euro-indicators/w/3-01102026-ap",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "EUR",
+          "category": "growth",
+          "evidence": [
+            {
+              "published_on": "2026-09-10",
+              "summary": "Background: ECB projected 0.9% growth for 2026. This is a forecast, not a fresh actual or proof of recession.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "ECB September decision",
+                  "locator": "https://www.ecb.europa.eu/press/press_conference/monetary-policy-statement/2026/html/ecb.is260910~6a45359cfc.en.html?outputType=chromeless",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": "Latest activity evidence was not resolved in this saved review; refresh material activity releases before the next assessment."
+        },
+        {
+          "currency": "EUR",
+          "category": "other",
+          "evidence": [
+            {
+              "published_on": "2026-10-19",
+              "summary": "Weekend French unrest renews fiscal credibility and sovereign-bond concerns. The EURCHF sell mechanism is French financing stress versus CHF safety demand, not a verified fresh spread measurement.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Reuters: French unrest, oil and Fed expectations",
+                  "locator": "https://wealthinsights.metrobank.com.ph/news/forex-dollar-firmer-euro-weakens-as-french-protests-turn-violent",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "GBP",
+          "category": "policy",
+          "evidence": [
+            {
+              "published_on": "2026-10-16",
+              "summary": "Bailey sees subdued second-round inflation effects so far, while leaving tightening conditional. This is a more patient stance than treating energy inflation as an automatic hike.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Bailey October 16",
+                  "locator": "https://live.euronext.com/en/financial-news/bank-englands-bailey-sees-quite-subdued-second-round-price-pressures-so-far",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "GBP",
+          "category": "inflation",
+          "evidence": [
+            {
+              "published_on": "2026-09-16",
+              "summary": "August CPI 3.1% versus 2.9%. This older release is background pending a new inflation assessment.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "UK CPI",
+                  "locator": "https://www.ons.gov.uk/economy/inflationandpriceindices/bulletins/consumerpriceinflation/august2026",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "GBP",
+          "category": "labor",
+          "evidence": [
+            {
+              "published_on": "2026-09-15",
+              "summary": "Regular wage growth 3.5%; total pay slowed to 3.9% from 4.2%. Wage cooling challenges a straightforward GBP tightening case.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "UK wages",
+                  "locator": "https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/employmentandemployeetypes/bulletins/averageweeklyearningsingreatbritain/september2026",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "GBP",
+          "category": "growth",
+          "evidence": [
+            {
+              "published_on": "2026-10-15",
+              "summary": "Three-month GDP growth 0.7% versus 0.5%. Relative activity resilience supports GBP, subject to fresh labor/inflation evidence.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "UK GDP",
+                  "locator": "https://www.ons.gov.uk/economy/grossdomesticproductgdp/bulletins/gdpmonthlyestimateuk/august2026",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "GBP",
+          "category": "other",
+          "evidence": [
+            {
+              "published_on": "2026-10-16",
+              "summary": "Energy-cost pressure versus limited wider price effects remains the policy tension. No standalone GBP entry was selected by this review.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Bailey October 16",
+                  "locator": "https://live.euronext.com/en/financial-news/bank-englands-bailey-sees-quite-subdued-second-round-price-pressures-so-far",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "JPY",
+          "category": "policy",
+          "evidence": [
+            {
+              "published_on": "2026-10-19",
+              "summary": "Ueda reinforces appropriate policy adjustment as underlying inflation nears target. This contrasts with reduced Australian hike urgency.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Reuters: Ueda October 19",
+                  "locator": "https://www.marketscreener.com/news/boj-chief-says-underlying-inflation-quite-close-to-price-goal-ce785cdad18ff224",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "JPY",
+          "category": "inflation",
+          "evidence": [
+            {
+              "published_on": "2026-10-19",
+              "summary": "Ueda describes underlying inflation as quite close to 2%; fresh statistical CPI is needed to test persistence.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Reuters: Ueda October 19",
+                  "locator": "https://www.marketscreener.com/news/boj-chief-says-underlying-inflation-quite-close-to-price-goal-ce785cdad18ff224",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": "The latest numerical CPI vintage was not independently resolved; no uncertain actual is supplied."
+        },
+        {
+          "currency": "JPY",
+          "category": "labor",
+          "evidence": [
+            {
+              "published_on": "2026-10-19",
+              "summary": "Ueda identifies tight labor conditions as part of domestic inflation pressure.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Reuters: Ueda October 19",
+                  "locator": "https://www.marketscreener.com/news/boj-chief-says-underlying-inflation-quite-close-to-price-goal-ce785cdad18ff224",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": "The latest numerical unemployment/wage vintages were not independently resolved in this review."
+        },
+        {
+          "currency": "JPY",
+          "category": "growth",
+          "evidence": [
+            {
+              "published_on": "2026-10-19",
+              "summary": "Moderate recovery and AI-related investment/export demand support Ueda’s normalization outlook.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Reuters: Ueda October 19",
+                  "locator": "https://www.marketscreener.com/news/boj-chief-says-underlying-inflation-quite-close-to-price-goal-ce785cdad18ff224",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "JPY",
+          "category": "other",
+          "evidence": [
+            {
+              "published_on": "2026-10-19",
+              "summary": "Lower oil helps Japan’s import burden. Renewed energy disruption would challenge that support and the AUDJPY sell comparison.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Reuters: French unrest, oil and Fed expectations",
+                  "locator": "https://wealthinsights.metrobank.com.ph/news/forex-dollar-firmer-euro-weakens-as-french-protests-turn-violent",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "CHF",
+          "category": "policy",
+          "evidence": [
+            {
+              "published_on": "2026-09-24",
+              "summary": "SNB held 0% and retained willingness to intervene in FX. Stronger resistance to franc appreciation would challenge CHF buying.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "SNB policy",
+                  "locator": "https://www.snb.ch/en/publications/communication/press-releases-restricted/pre_20260924",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "CHF",
+          "category": "inflation",
+          "evidence": [
+            {
+              "published_on": "2026-10-01",
+              "summary": "September CPI 1.0%, flat monthly. Improving Swiss inflation is not required for the haven-demand trade.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Swiss CPI",
+                  "locator": "https://www.bwl.admin.ch/en/newnsb/wNfni1DvzKuQ",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "CHF",
+          "category": "labor",
+          "evidence": [
+            {
+              "published_on": "2026-10-06",
+              "summary": "Registered unemployment unchanged at 3.0%; a limited fresh directional impulse. This is registered unemployment, not an ILO measure.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Swiss labor",
+                  "locator": "https://www.arbeit.swiss/en/information-centre/media-service",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "CHF",
+          "category": "growth",
+          "evidence": [
+            {
+              "published_on": "2026-10-15",
+              "summary": "SNB describes manufacturing recovery alongside energy/input-cost pressure. Domestic recovery is supporting context, not the principal EURCHF mechanism.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "SNB October speech",
+                  "locator": "https://www.snb.ch/en/publications/communication/speeches/2026/ref_20261015_gpe",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "CHF",
+          "category": "other",
+          "evidence": [
+            {
+              "published_on": "2026-10-19",
+              "summary": "French political/fiscal stress supports demand for CHF safety without requiring better Swiss data. Credible fiscal resolution could weaken that demand.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Reuters: French unrest, oil and Fed expectations",
+                  "locator": "https://wealthinsights.metrobank.com.ph/news/forex-dollar-firmer-euro-weakens-as-french-protests-turn-violent",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "CAD",
+          "category": "policy",
+          "evidence": [
+            {
+              "published_on": "2026-10-17",
+              "summary": "Macklem warns the inflation outlook is worsening and a policy response may be necessary. Weak employment remains an important counterweight.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Reuters: Macklem October 17",
+                  "locator": "https://uk.marketscreener.com/news/bank-of-canada-sees-sharply-higher-inflation-outlook-as-oil-surges-macklem-says-ce785cdade81f224",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "CAD",
+          "category": "inflation",
+          "evidence": [
+            {
+              "published_on": "2026-09-14",
+              "summary": "August CPI 3.0%, unchanged. This is the latest known actual at this cutoff; no forthcoming CPI result is assumed.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Canada CPI",
+                  "locator": "https://www150.statcan.gc.ca/n1/daily-quotidien/260914/dq260914a-eng.htm",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "CAD",
+          "category": "labor",
+          "evidence": [
+            {
+              "published_on": "2026-10-09",
+              "summary": "September employment −68k; unemployment 6.5% versus 6.4%, wages 2.3% versus 2.0%. Weak hiring restrains the tightening case.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Canada jobs",
+                  "locator": "https://www150.statcan.gc.ca/n1/daily-quotidien/261009/dq261009a-eng.htm",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "CAD",
+          "category": "growth",
+          "evidence": [
+            {
+              "published_on": "2026-09-29",
+              "summary": "July GDP flat; preliminary August estimate +0.2%. Modest recovery rather than broad demand strength. The August figure is preliminary.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Canada GDP",
+                  "locator": "https://www150.statcan.gc.ca/n1/daily-quotidien/260929/dq260929a-eng.htm",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "CAD",
+          "category": "other",
+          "evidence": [
+            {
+              "published_on": "2026-10-19",
+              "summary": "Oil supports national income but raises inflation pressure; Monday’s easing complicates a simple CAD-buy view. USDCAD remains conditional on broader inflation and demand evidence.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Reuters: French unrest, oil and Fed expectations",
+                  "locator": "https://wealthinsights.metrobank.com.ph/news/forex-dollar-firmer-euro-weakens-as-french-protests-turn-violent",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "AUD",
+          "category": "policy",
+          "evidence": [
+            {
+              "published_on": "2026-10-19",
+              "summary": "Kent acknowledges faster-than-expected labor easing and accepts reduced hike expectations, while retaining inflation concerns.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Reuters: Kent October 19",
+                  "locator": "https://www.investing.com/news/economy-news/australia-central-banker-sees-signs-of-labour-market-easing-4956192",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            },
+            {
+              "published_on": "2026-09-29",
+              "summary": "Background: RBA raised the rate to 4.60%. The level alone does not establish current AUD strength.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "RBA September decision",
+                  "locator": "https://www.rba.gov.au/media-releases/2026/mr-26-27.html",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "AUD",
+          "category": "inflation",
+          "evidence": [
+            {
+              "published_on": "2026-09-30",
+              "summary": "August CPI 4.0% versus 3.5%; trimmed mean 3.6%, unchanged. Persistent underlying inflation is strong counterevidence to AUD selling.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "ABS inflation",
+                  "locator": "https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/consumer-price-index-australia/aug-2026",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "AUD",
+          "category": "labor",
+          "evidence": [
+            {
+              "published_on": "2026-10-15",
+              "summary": "September employment −39k; unemployment 4.7% versus 4.6%. ABS cautions about monthly noise and favors trend for underlying conditions.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "ABS employment",
+                  "locator": "https://www.abs.gov.au/statistics/labour/employment-and-unemployment/labour-force-australia/sep-2026",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "AUD",
+          "category": "growth",
+          "evidence": [
+            {
+              "published_on": null,
+              "summary": "Background: June-quarter GDP +0.4%. Current labor weakness challenges resilience; the GDP reference quarter is not a publication timestamp.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "ABS GDP",
+                  "locator": "https://www.abs.gov.au/statistics/economy/national-accounts/australian-national-accounts-national-income-expenditure-and-product/jun-2026",
+                  "note": ""
+                }
+              ],
+              "publication_note": "Publication date not established in the saved assessment; reference period is not a publication date."
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "AUD",
+          "category": "other",
+          "evidence": [
+            {
+              "published_on": "2026-10-19",
+              "summary": "Better Chinese growth supports demand expectations, opposing the labor-driven AUD sell case. This is a support channel, not measured AUD strength.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Reuters: China GDP",
+                  "locator": "https://www.streetinsider.com/Reuters/Chinas%2BQ3%2BGDP%2Bgrowth%2Baccelerates%2Bto%2B4.5%25%2C%2Bbeating%2Bforecast/27199466.html",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "NZD",
+          "category": "policy",
+          "evidence": [
+            {
+              "published_on": "2026-09-02",
+              "summary": "Background: OCR 2.75% and gradual removal of stimulus remain the official policy direction. Old tightening guidance alone does not establish today’s pair verdict.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "RBNZ September policy",
+                  "locator": "https://www.rbnz.govt.nz/monetary-policy/monetary-policy-statement/monetary-policy-statements/2026/sep-0209/monetary-policy-statement-september-2026/web-version",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "NZD",
+          "category": "inflation",
+          "evidence": [
+            {
+              "published_on": "2026-07-21",
+              "summary": "Background: June-quarter CPI 4.1%, prior 3.1%. The release is 90 days old at this cutoff; the next quarter’s actual is not yet known.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "NZ CPI",
+                  "locator": "https://www.stats.govt.nz/indicators/consumers-price-index-cpi/",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "NZD",
+          "category": "labor",
+          "evidence": [
+            {
+              "published_on": "2026-08-05",
+              "summary": "Background: June-quarter unemployment 5.6%, prior 5.4%. Labor slack offsets inflation pressure.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "NZ labor",
+                  "locator": "https://www.stats.govt.nz/information-releases/labour-market-statistics-june-2026-quarter/",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "NZD",
+          "category": "growth",
+          "evidence": [
+            {
+              "published_on": "2026-10-19",
+              "summary": "Services PSI 50.9 versus revised 51.0: still expanding, but fragile. This does not establish a domestic boom or collapse.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "NZ services October 19",
+                  "locator": "https://businessnz.org.nz/psi/fragile-four",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            },
+            {
+              "published_on": "2026-10-16",
+              "summary": "Manufacturing PMI 56.5 versus revised 53.3. Strong factories are opposing evidence to a blanket NZD sell case.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "NZ manufacturing",
+                  "locator": "https://businessnz.org.nz/pmi/manufacturing-in-poll-position",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "NZD",
+          "category": "other",
+          "evidence": [
+            {
+              "published_on": "2026-10-19",
+              "summary": "China’s Q3 growth improvement provides trading-partner support. Combined with domestic activity, it weakens the earlier NZDCHF sell edge while CHF haven demand remains.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Reuters: China GDP",
+                  "locator": "https://www.streetinsider.com/Reuters/Chinas%2BQ3%2BGDP%2Bgrowth%2Baccelerates%2Bto%2B4.5%25%2C%2Bbeating%2Bforecast/27199466.html",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        }
+      ],
+      "opportunity_ids": [
+        "b9023180e3c44aa8aa2e20111cdb2213",
+        "f8b60e3ab1e64ef991b669bb6063621c",
+        "2a1ce527c7304f3fa8e72a552c2c90d7",
+        "c781ec2fa31e491ea746b5e64b393a0b"
+      ],
+      "currency_views": [
+        {
+          "currency": "USD",
+          "bias": "Inflation support; mixed near-term direction.",
+          "summary": "October 14 CPI remained firm and October 15 nominal retail sales were resilient. Weak hiring and current expectations of an October Fed hold prevent a straightforward tightening-led strengthening case.",
+          "counterweight": "September payrolls were only +29k. A prior rate hike is background; a higher future rate path needs fresh support.",
+          "sources": [
+            {
+              "kind": "web",
+              "label": "US CPI",
+              "locator": "https://www.bls.gov/news.release/archives/cpi_10142026.htm",
+              "note": ""
+            },
+            {
+              "kind": "web",
+              "label": "US jobs",
+              "locator": "https://www.bls.gov/news.release/archives/empsit_10022026.htm",
+              "note": ""
+            }
+          ],
+          "checkpoints": [
+            {
+              "title": "US October flash PMI: manufacturing, services and composite",
+              "event_at": "2026-10-23T13:45:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-19T08:17:53.127146Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "S&P Global 2026 release schedule",
+                  "locator": "https://www.pmi.spglobal.com/Public/Home/PDF/UK_Rel_Dates",
+                  "note": "Publisher-indexed full schedule retrieved October 19, 2026. All times explicitly UTC; last updated April 16, dates provisional and subject to change. Direct fetch returned HTTP 403; indexed publisher content was available. Cross-check near release."
+                }
+              ],
+              "note": "Resilient demand and persistent selling-price pressure would support the restrictive-policy case; weaker activity and cooling prices would challenge it. Publisher dates remain provisional. Saved schedule reused; recheck near publication. Schedule capture clock is the original saved record, not a fresh web check."
+            }
+          ]
+        },
+        {
+          "currency": "EUR",
+          "bias": "Pressured by renewed French fiscal stress.",
+          "summary": "October 19 reporting describes renewed French unrest and financing concerns. That is the active negative mechanism; September ECB tightening and October 16 inflation remain opposing support.",
+          "counterweight": "Final CPI was 3.8%, with core 2.5%. Credible fiscal resolution or easing financing stress could weaken the bearish case without an ECB policy change.",
+          "sources": [
+            {
+              "kind": "web",
+              "label": "Reuters: French unrest, oil and Fed expectations",
+              "locator": "https://wealthinsights.metrobank.com.ph/news/forex-dollar-firmer-euro-weakens-as-french-protests-turn-violent",
+              "note": ""
+            },
+            {
+              "kind": "web",
+              "label": "Eurostat: September inflation",
+              "locator": "https://ec.europa.eu/eurostat/en/web/products-euro-indicators/w/2-16102026-ap",
+              "note": ""
+            }
+          ],
+          "checkpoints": [
+            {
+              "title": "Euro area October flash PMI: manufacturing, services and composite",
+              "event_at": "2026-10-23T08:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-19T08:17:53.063315Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "S&P Global 2026 release schedule",
+                  "locator": "https://www.pmi.spglobal.com/Public/Home/PDF/UK_Rel_Dates",
+                  "note": "Publisher-indexed full schedule retrieved October 19, 2026. All times explicitly UTC; last updated April 16, dates provisional and subject to change. Direct fetch returned HTTP 403; indexed publisher content was available. Cross-check near release."
+                }
+              ],
+              "note": "Resilient activity and persistent prices would challenge the growth-related bearish case; weak orders would reinforce it. French fiscal headlines can change the bias sooner, without a scheduled hour. Publisher dates remain provisional. Saved schedule reused; recheck near publication. Schedule capture clock is the original saved record, not a fresh web check."
+            }
+          ]
+        },
+        {
+          "currency": "GBP",
+          "bias": "Mixed; policy patience versus activity resilience.",
+          "summary": "Bailey’s October 16 comments describe subdued second-round inflation effects so far. Three-month GDP growth improved to 0.7%, while the prior wage release showed cooling total pay.",
+          "counterweight": "Older inflation remains above target, but energy pressure alone does not establish a long tightening sequence. Fresh wages and CPI can change the expected path.",
+          "sources": [
+            {
+              "kind": "web",
+              "label": "Bailey October 16",
+              "locator": "https://live.euronext.com/en/financial-news/bank-englands-bailey-sees-quite-subdued-second-round-price-pressures-so-far",
+              "note": ""
+            },
+            {
+              "kind": "web",
+              "label": "UK GDP",
+              "locator": "https://www.ons.gov.uk/economy/grossdomesticproductgdp/bulletins/gdpmonthlyestimateuk/august2026",
+              "note": ""
+            },
+            {
+              "kind": "web",
+              "label": "UK wages",
+              "locator": "https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/employmentandemployeetypes/bulletins/averageweeklyearningsingreatbritain/september2026",
+              "note": ""
+            }
+          ],
+          "checkpoints": [
+            {
+              "title": "ONS UK labor market and wages: official release schedule",
+              "event_at": "2026-10-20T06:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-19T08:19:53.870404Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "ONS official labor release calendar",
+                  "locator": "https://www.ons.gov.uk/releasecalendar?highlight=true&keywords=labour+market&limit=10&page=1&release-type=type-upcoming&sort=date-newest",
+                  "note": "October 20 at 7:00 AM UK summer time; verified in the research preceding this save."
+                }
+              ],
+              "note": "Persistent wage pressure with resilient employment supports GBP; cooling pay and weak hiring challenge the tightening case. Saved schedule reused; recheck near publication. Schedule capture clock is the original saved record, not a fresh web check."
+            },
+            {
+              "title": "UK CPI / core CPI",
+              "event_at": "2026-10-21T06:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-19T08:12:32Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "UK CPI",
+                  "locator": "https://www.ons.gov.uk/economy/inflationandpriceindices/bulletins/consumerpriceinflation/august2026",
+                  "note": ""
+                },
+                {
+                  "kind": "local",
+                  "label": "Saved broker schedule",
+                  "locator": "C:\\dev\\Fyodor Trading Terminal Lite\\Market Analyst Workflow\\report\\across-evidence.json",
+                  "note": "Schedule snapshot; the publication routes do not independently verify the broker hour."
+                }
+              ],
+              "note": "Broad underlying persistence supports a firmer path; underlying cooling challenges it. Broker schedule; official hour not independently reverified in this layout update."
+            }
+          ]
+        },
+        {
+          "currency": "JPY",
+          "bias": "Supported by policy normalization.",
+          "summary": "Ueda’s October 19 comments put underlying inflation close to target, with tight labor conditions and moderate recovery. These support further appropriate policy adjustment.",
+          "counterweight": "This is guidance, not a new committee decision. Fresh numerical CPI and labor vintages remain unresolved in the saved review; renewed energy disruption would hurt Japan’s import burden.",
+          "sources": [
+            {
+              "kind": "web",
+              "label": "Reuters: Ueda October 19",
+              "locator": "https://www.marketscreener.com/news/boj-chief-says-underlying-inflation-quite-close-to-price-goal-ce785cdad18ff224",
+              "note": ""
+            },
+            {
+              "kind": "web",
+              "label": "Reuters: French unrest, oil and Fed expectations",
+              "locator": "https://wealthinsights.metrobank.com.ph/news/forex-dollar-firmer-euro-weakens-as-french-protests-turn-violent",
+              "note": ""
+            }
+          ],
+          "checkpoints": [
+            {
+              "title": "Japan CPI / core CPI",
+              "event_at": "2026-10-22T23:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-19T08:12:32Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Reuters: Ueda October 19",
+                  "locator": "https://www.marketscreener.com/news/boj-chief-says-underlying-inflation-quite-close-to-price-goal-ce785cdad18ff224",
+                  "note": ""
+                },
+                {
+                  "kind": "local",
+                  "label": "Saved broker schedule",
+                  "locator": "C:\\dev\\Fyodor Trading Terminal Lite\\Market Analyst Workflow\\report\\across-evidence.json",
+                  "note": "Schedule snapshot; the publication routes do not independently verify the broker hour."
+                }
+              ],
+              "note": "Persistent underlying inflation supports normalization; convincing cooling challenges it. The linked reporting supplies the policy context, not the schedule. Broker schedule; official hour not independently reverified in this layout update."
+            },
+            {
+              "title": "Japan October flash PMI: manufacturing, services and composite",
+              "event_at": "2026-10-23T00:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-19T08:17:52.971547Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "S&P Global 2026 release schedule",
+                  "locator": "https://www.pmi.spglobal.com/Public/Home/PDF/UK_Rel_Dates",
+                  "note": "Publisher-indexed full schedule retrieved October 19, 2026. All times explicitly UTC; last updated April 16, dates provisional and subject to change. Direct fetch returned HTTP 403; indexed publisher content was available. Cross-check near release."
+                }
+              ],
+              "note": "Stronger orders/activity support the recovery case; weaker demand challenges it. Publisher dates remain provisional. Saved schedule reused; recheck near publication. Schedule capture clock is the original saved record, not a fresh web check."
+            }
+          ]
+        },
+        {
+          "currency": "CHF",
+          "bias": "Supported by safety demand during fiscal stress.",
+          "summary": "French political and financing stress supports demand for CHF safety. Improving Swiss data is not necessary for that channel; the SNB’s September hold and low inflation remain domestic background.",
+          "counterweight": "Credible French fiscal resolution could reduce haven demand. SNB concern about appreciation or FX intervention could oppose CHF buying.",
+          "sources": [
+            {
+              "kind": "web",
+              "label": "Reuters: French unrest, oil and Fed expectations",
+              "locator": "https://wealthinsights.metrobank.com.ph/news/forex-dollar-firmer-euro-weakens-as-french-protests-turn-violent",
+              "note": ""
+            },
+            {
+              "kind": "web",
+              "label": "SNB policy",
+              "locator": "https://www.snb.ch/en/publications/communication/press-releases-restricted/pre_20260924",
+              "note": ""
+            }
+          ],
+          "checkpoints": [
+            {
+              "title": "SNB: September policy discussion summary",
+              "event_at": "2026-10-22T07:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-16T16:01:10.722185Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Publisher/event evidence",
+                  "locator": "https://www.snb.ch/en/services-events/digital-services/event-schedule",
+                  "note": ""
+                }
+              ],
+              "note": "Unexpected resistance to franc appreciation or a softer policy path could weaken support; genuinely firmer policy reasoning could support it. This is a retrospective summary, not a new rate decision. Saved schedule reused; recheck near publication. Schedule capture clock is the original saved record, not a fresh web check."
+            }
+          ]
+        },
+        {
+          "currency": "CAD",
+          "bias": "Mixed ahead of inflation and business surveys.",
+          "summary": "Macklem’s October 17 inflation warning raises the importance of the next CPI package. Weak employment and modest activity argue against assuming an immediate tightening cycle.",
+          "counterweight": "September employment fell 68k. Oil can support income while raising inflation; a gasoline-led headline surprise alone is a weaker CAD-buy case than broad underlying persistence.",
+          "sources": [
+            {
+              "kind": "web",
+              "label": "Reuters: Macklem October 17",
+              "locator": "https://uk.marketscreener.com/news/bank-of-canada-sees-sharply-higher-inflation-outlook-as-oil-surges-macklem-says-ce785cdade81f224",
+              "note": ""
+            },
+            {
+              "kind": "web",
+              "label": "Canada jobs",
+              "locator": "https://www150.statcan.gc.ca/n1/daily-quotidien/261009/dq261009a-eng.htm",
+              "note": ""
+            }
+          ],
+          "checkpoints": [
+            {
+              "title": "Canada CPI / core measures",
+              "event_at": "2026-10-19T12:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-19T08:12:32Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Canada CPI",
+                  "locator": "https://www150.statcan.gc.ca/n1/daily-quotidien/260914/dq260914a-eng.htm",
+                  "note": ""
+                },
+                {
+                  "kind": "local",
+                  "label": "Saved broker schedule",
+                  "locator": "C:\\dev\\Fyodor Trading Terminal Lite\\Market Analyst Workflow\\report\\across-evidence.json",
+                  "note": "Schedule snapshot; the publication routes do not independently verify the broker hour."
+                }
+              ],
+              "note": "Broad underlying persistence supports CAD tightening expectations; softer core pressure alongside weak demand challenges them. Fresh numerical consensus was not established. Broker schedule; official hour not independently reverified in this layout update."
+            },
+            {
+              "title": "BoC Canadian Survey of Consumer Expectations",
+              "event_at": "2026-10-19T15:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-19T08:17:53.158037Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Bank of Canada upcoming events",
+                  "locator": "https://www.bankofcanada.ca/press/upcoming-events/",
+                  "note": ""
+                }
+              ],
+              "note": "Released alongside the Business Outlook Survey: persistent expectations and business pricing intentions support the inflation case; easing pressure and weak demand challenge it. Saved schedule reused; recheck near publication. Schedule capture clock is the original saved record, not a fresh web check."
+            }
+          ]
+        },
+        {
+          "currency": "AUD",
+          "bias": "Pressured by reduced near-term hike urgency.",
+          "summary": "Kent’s October 19 comments acknowledge faster-than-expected labor easing and accept reduced hike expectations after September employment fell about 39k.",
+          "counterweight": "Headline CPI was 4.0% and trimmed mean 3.6%; better Chinese growth also supports demand expectations. One noisy jobs report does not establish a lasting contraction.",
+          "sources": [
+            {
+              "kind": "web",
+              "label": "Reuters: Kent October 19",
+              "locator": "https://www.investing.com/news/economy-news/australia-central-banker-sees-signs-of-labour-market-easing-4956192",
+              "note": ""
+            },
+            {
+              "kind": "web",
+              "label": "ABS employment",
+              "locator": "https://www.abs.gov.au/statistics/labour/employment-and-unemployment/labour-force-australia/sep-2026",
+              "note": ""
+            },
+            {
+              "kind": "web",
+              "label": "ABS inflation",
+              "locator": "https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/consumer-price-index-australia/aug-2026",
+              "note": ""
+            }
+          ],
+          "checkpoints": [
+            {
+              "title": "Australia October flash PMI: manufacturing, services and composite",
+              "event_at": "2026-10-22T22:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-19T08:17:52.942210Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "S&P Global 2026 release schedule",
+                  "locator": "https://www.pmi.spglobal.com/Public/Home/PDF/UK_Rel_Dates",
+                  "note": "Publisher-indexed full schedule retrieved October 19, 2026. All times explicitly UTC; last updated April 16, dates provisional and subject to change. Direct fetch returned HTTP 403; indexed publisher content was available. Cross-check near release."
+                }
+              ],
+              "note": "Weak demand and employment would reinforce the reduced-hike-urgency case; resilient orders with persistent prices would challenge it. Publisher dates remain provisional. Saved schedule reused; recheck near publication. Schedule capture clock is the original saved record, not a fresh web check."
+            }
+          ]
+        },
+        {
+          "currency": "NZD",
+          "bias": "Mixed, with improving activity support.",
+          "summary": "October 16 manufacturing was strong, October 19 services remained in expansion, and better Chinese growth adds trading-partner support. The earlier broad NZD-selling case has weakened.",
+          "counterweight": "Services expansion remains fragile and labor slack constrains the tightening pace. Safety demand can still favor defensive currencies; a weaker sell case does not establish an outright buy.",
+          "sources": [
+            {
+              "kind": "web",
+              "label": "NZ manufacturing",
+              "locator": "https://businessnz.org.nz/pmi/manufacturing-in-poll-position",
+              "note": ""
+            },
+            {
+              "kind": "web",
+              "label": "NZ services October 19",
+              "locator": "https://businessnz.org.nz/psi/fragile-four",
+              "note": ""
+            },
+            {
+              "kind": "web",
+              "label": "Reuters: China GDP",
+              "locator": "https://www.streetinsider.com/Reuters/Chinas%2BQ3%2BGDP%2Bgrowth%2Baccelerates%2Bto%2B4.5%25%2C%2Bbeating%2Bforecast/27199466.html",
+              "note": ""
+            }
+          ],
+          "checkpoints": [
+            {
+              "title": "Global Dairy Trade Event 414 — auction start; results later",
+              "event_at": "2026-10-20T12:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-17T08:33:59.577848Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Official GDT calendar",
+                  "locator": "https://www.globaldairytrade.info/en/gdt-events/calendar",
+                  "note": ""
+                },
+                {
+                  "kind": "web",
+                  "label": "GDT auction process",
+                  "locator": "https://www.globaldairytrade.info/en/gdt-events/how-gdt-events-work",
+                  "note": ""
+                },
+                {
+                  "kind": "local",
+                  "label": "Broker date-only result occurrence",
+                  "locator": "C:/dev/Fyodor Trading Terminal Lite/Market Analyst Workflow/report/NZDCHF-alerts-20261017-0835/upcoming-evidence.json",
+                  "note": ""
+                }
+              ],
+              "note": "Auction opening only; results arrive later at an unverified hour. Stronger verified dairy outcomes support NZD, weaker outcomes challenge it. Do not interpret the opening as a result. Saved schedule reused; recheck near publication. Schedule capture clock is the original saved record, not a fresh web check."
+            },
+            {
+              "title": "New Zealand CPI",
+              "event_at": "2026-10-21T21:45:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-19T08:12:32Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "NZ CPI",
+                  "locator": "https://www.stats.govt.nz/indicators/consumers-price-index-cpi/",
+                  "note": ""
+                },
+                {
+                  "kind": "local",
+                  "label": "Saved broker schedule",
+                  "locator": "C:\\dev\\Fyodor Trading Terminal Lite\\Market Analyst Workflow\\report\\across-evidence.json",
+                  "note": "Schedule snapshot; the publication routes do not independently verify the broker hour."
+                }
+              ],
+              "note": "Persistent broad domestic inflation supports gradual tightening; convincing underlying cooling challenges it. Broker schedule; official hour not independently reverified in this layout update."
+            }
+          ]
+        }
+      ],
+      "planning_as_of_utc": "2026-10-19T09:08:55.813458Z",
+      "limitations": "Fresh numerical consensus for every forthcoming release and a complete current OIS comparison were not verified. Japanese numerical inflation/labor vintages and the latest euro-area activity evidence remain explicit gaps. Unknown publication dates remain unknown. Saved interpretation must be refreshed before a new trade assessment.",
+      "note": "Structured from the already-saved October 19, 3:00 PM Jakarta assessment and its cited sources, at the user’s request. This organizes the original findings; it is not a fresh macro assessment. Publication dates and original verification cutoff are preserved. No price/OHLC evidence was used. Upcoming releases and reminders remain in Alert. Currency overview is a presentation correction of the same 3:00 PM research, not a fresh macro assessment. Checkpoints are prepared later from existing saved Alert research; their original verification/capture clocks are retained, with broker/provisional timing attributed. The example table supplied by the user is a layout reference, not October 19 evidence.",
+      "provenance": "assessment",
+      "review_id": "bd4011f8cc4e437b8a2342997457b0b3",
+      "expected_version": "d5b4587d941f4957b084fcf13a85a62e",
+      "id": "4b2bcacf1ac044318396192132058787",
+      "saved_utc": "2026-10-19T09:08:56.059773Z"
+    },
+    {
+      "scope": "ALL",
+      "as_of_utc": "2026-10-19T08:00:00Z",
+      "takeaway": "EURCHF is the leading sell opportunity, followed by AUDJPY. USDCAD depends on tonight’s Canadian data. I would no longer make blanket NZD selling a leading opportunity; NZDCHF is MIXED.",
+      "horizon": "This trading week: October 19–23, 2026",
+      "backdrop": [
+        {
+          "currency": "USD",
+          "category": "policy",
+          "evidence": [
+            {
+              "published_on": "2026-10-19",
+              "summary": "October Fed hold remains favored in current Reuters reporting; September tightening is background, not automatic USD support.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Reuters: French unrest, oil and Fed expectations",
+                  "locator": "https://wealthinsights.metrobank.com.ph/news/forex-dollar-firmer-euro-weakens-as-french-protests-turn-violent",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            },
+            {
+              "published_on": "2026-09-16",
+              "summary": "Fed raised the target to 3.75–4.00% in September. Subsequent expectations and guidance determine the current path.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Fed September decision",
+                  "locator": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260916a.htm",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "USD",
+          "category": "inflation",
+          "evidence": [
+            {
+              "published_on": "2026-10-14",
+              "summary": "September CPI 3.7% versus 3.4%; core 2.6% versus 2.4%. Inflation persistence opposes aggressive USD selling.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "US CPI",
+                  "locator": "https://www.bls.gov/news.release/archives/cpi_10142026.htm",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "USD",
+          "category": "labor",
+          "evidence": [
+            {
+              "published_on": "2026-10-02",
+              "summary": "September payrolls +29k; unemployment 4.2%. Subdued hiring offsets the hotter inflation backdrop.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "US jobs",
+                  "locator": "https://www.bls.gov/news.release/archives/empsit_10022026.htm",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "USD",
+          "category": "growth",
+          "evidence": [
+            {
+              "published_on": "2026-10-15",
+              "summary": "September nominal retail sales +0.8% monthly. Spending is resilient, but this is not inflation-adjusted consumption growth.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "US retail sales",
+                  "locator": "https://www.census.gov/retail/marts/www/marts_current.pdf",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "USD",
+          "category": "other",
+          "evidence": [
+            {
+              "published_on": "2026-10-19",
+              "summary": "Oil eased after Russia-related sanctions/tariff relief. Energy relief can reduce inflation pressure; renewed stress would change the defensive-dollar channel.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Reuters: French unrest, oil and Fed expectations",
+                  "locator": "https://wealthinsights.metrobank.com.ph/news/forex-dollar-firmer-euro-weakens-as-french-protests-turn-violent",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "EUR",
+          "category": "policy",
+          "evidence": [
+            {
+              "published_on": "2026-09-10",
+              "summary": "Background: September ECB hike and higher inflation projections support the tightening case. Fiscal stress can still dominate the relative currency thesis.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "ECB September decision",
+                  "locator": "https://www.ecb.europa.eu/press/press_conference/monetary-policy-statement/2026/html/ecb.is260910~6a45359cfc.en.html?outputType=chromeless",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "EUR",
+          "category": "inflation",
+          "evidence": [
+            {
+              "published_on": "2026-10-16",
+              "summary": "September final CPI 3.8% versus 3.2%; core 2.5% versus 2.4%. Energy dominates headline acceleration; this is counterevidence to EUR selling.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Eurostat: September inflation",
+                  "locator": "https://ec.europa.eu/eurostat/en/web/products-euro-indicators/w/2-16102026-ap",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "EUR",
+          "category": "labor",
+          "evidence": [
+            {
+              "published_on": "2026-10-01",
+              "summary": "August unemployment 6.4%, unchanged. This release does not establish a fresh labor collapse.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Euro-area labor",
+                  "locator": "https://ec.europa.eu/eurostat/web/products-euro-indicators/w/3-01102026-ap",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "EUR",
+          "category": "growth",
+          "evidence": [
+            {
+              "published_on": "2026-09-10",
+              "summary": "Background: ECB projected 0.9% growth for 2026. This is a forecast, not a fresh actual or proof of recession.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "ECB September decision",
+                  "locator": "https://www.ecb.europa.eu/press/press_conference/monetary-policy-statement/2026/html/ecb.is260910~6a45359cfc.en.html?outputType=chromeless",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": "Latest activity evidence was not resolved in this saved review; refresh material activity releases before the next assessment."
+        },
+        {
+          "currency": "EUR",
+          "category": "other",
+          "evidence": [
+            {
+              "published_on": "2026-10-19",
+              "summary": "Weekend French unrest renews fiscal credibility and sovereign-bond concerns. The EURCHF sell mechanism is French financing stress versus CHF safety demand, not a verified fresh spread measurement.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Reuters: French unrest, oil and Fed expectations",
+                  "locator": "https://wealthinsights.metrobank.com.ph/news/forex-dollar-firmer-euro-weakens-as-french-protests-turn-violent",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "GBP",
+          "category": "policy",
+          "evidence": [
+            {
+              "published_on": "2026-10-16",
+              "summary": "Bailey sees subdued second-round inflation effects so far, while leaving tightening conditional. This is a more patient stance than treating energy inflation as an automatic hike.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Bailey October 16",
+                  "locator": "https://live.euronext.com/en/financial-news/bank-englands-bailey-sees-quite-subdued-second-round-price-pressures-so-far",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "GBP",
+          "category": "inflation",
+          "evidence": [
+            {
+              "published_on": "2026-09-16",
+              "summary": "August CPI 3.1% versus 2.9%. This older release is background pending a new inflation assessment.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "UK CPI",
+                  "locator": "https://www.ons.gov.uk/economy/inflationandpriceindices/bulletins/consumerpriceinflation/august2026",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "GBP",
+          "category": "labor",
+          "evidence": [
+            {
+              "published_on": "2026-09-15",
+              "summary": "Regular wage growth 3.5%; total pay slowed to 3.9% from 4.2%. Wage cooling challenges a straightforward GBP tightening case.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "UK wages",
+                  "locator": "https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/employmentandemployeetypes/bulletins/averageweeklyearningsingreatbritain/september2026",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "GBP",
+          "category": "growth",
+          "evidence": [
+            {
+              "published_on": "2026-10-15",
+              "summary": "Three-month GDP growth 0.7% versus 0.5%. Relative activity resilience supports GBP, subject to fresh labor/inflation evidence.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "UK GDP",
+                  "locator": "https://www.ons.gov.uk/economy/grossdomesticproductgdp/bulletins/gdpmonthlyestimateuk/august2026",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "GBP",
+          "category": "other",
+          "evidence": [
+            {
+              "published_on": "2026-10-16",
+              "summary": "Energy-cost pressure versus limited wider price effects remains the policy tension. No standalone GBP entry was selected by this review.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Bailey October 16",
+                  "locator": "https://live.euronext.com/en/financial-news/bank-englands-bailey-sees-quite-subdued-second-round-price-pressures-so-far",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "JPY",
+          "category": "policy",
+          "evidence": [
+            {
+              "published_on": "2026-10-19",
+              "summary": "Ueda reinforces appropriate policy adjustment as underlying inflation nears target. This contrasts with reduced Australian hike urgency.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Reuters: Ueda October 19",
+                  "locator": "https://www.marketscreener.com/news/boj-chief-says-underlying-inflation-quite-close-to-price-goal-ce785cdad18ff224",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "JPY",
+          "category": "inflation",
+          "evidence": [
+            {
+              "published_on": "2026-10-19",
+              "summary": "Ueda describes underlying inflation as quite close to 2%; fresh statistical CPI is needed to test persistence.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Reuters: Ueda October 19",
+                  "locator": "https://www.marketscreener.com/news/boj-chief-says-underlying-inflation-quite-close-to-price-goal-ce785cdad18ff224",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": "The latest numerical CPI vintage was not independently resolved; no uncertain actual is supplied."
+        },
+        {
+          "currency": "JPY",
+          "category": "labor",
+          "evidence": [
+            {
+              "published_on": "2026-10-19",
+              "summary": "Ueda identifies tight labor conditions as part of domestic inflation pressure.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Reuters: Ueda October 19",
+                  "locator": "https://www.marketscreener.com/news/boj-chief-says-underlying-inflation-quite-close-to-price-goal-ce785cdad18ff224",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": "The latest numerical unemployment/wage vintages were not independently resolved in this review."
+        },
+        {
+          "currency": "JPY",
+          "category": "growth",
+          "evidence": [
+            {
+              "published_on": "2026-10-19",
+              "summary": "Moderate recovery and AI-related investment/export demand support Ueda’s normalization outlook.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Reuters: Ueda October 19",
+                  "locator": "https://www.marketscreener.com/news/boj-chief-says-underlying-inflation-quite-close-to-price-goal-ce785cdad18ff224",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "JPY",
+          "category": "other",
+          "evidence": [
+            {
+              "published_on": "2026-10-19",
+              "summary": "Lower oil helps Japan’s import burden. Renewed energy disruption would challenge that support and the AUDJPY sell comparison.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Reuters: French unrest, oil and Fed expectations",
+                  "locator": "https://wealthinsights.metrobank.com.ph/news/forex-dollar-firmer-euro-weakens-as-french-protests-turn-violent",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "CHF",
+          "category": "policy",
+          "evidence": [
+            {
+              "published_on": "2026-09-24",
+              "summary": "SNB held 0% and retained willingness to intervene in FX. Stronger resistance to franc appreciation would challenge CHF buying.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "SNB policy",
+                  "locator": "https://www.snb.ch/en/publications/communication/press-releases-restricted/pre_20260924",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "CHF",
+          "category": "inflation",
+          "evidence": [
+            {
+              "published_on": "2026-10-01",
+              "summary": "September CPI 1.0%, flat monthly. Improving Swiss inflation is not required for the haven-demand trade.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Swiss CPI",
+                  "locator": "https://www.bwl.admin.ch/en/newnsb/wNfni1DvzKuQ",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "CHF",
+          "category": "labor",
+          "evidence": [
+            {
+              "published_on": "2026-10-06",
+              "summary": "Registered unemployment unchanged at 3.0%; a limited fresh directional impulse. This is registered unemployment, not an ILO measure.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Swiss labor",
+                  "locator": "https://www.arbeit.swiss/en/information-centre/media-service",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "CHF",
+          "category": "growth",
+          "evidence": [
+            {
+              "published_on": "2026-10-15",
+              "summary": "SNB describes manufacturing recovery alongside energy/input-cost pressure. Domestic recovery is supporting context, not the principal EURCHF mechanism.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "SNB October speech",
+                  "locator": "https://www.snb.ch/en/publications/communication/speeches/2026/ref_20261015_gpe",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "CHF",
+          "category": "other",
+          "evidence": [
+            {
+              "published_on": "2026-10-19",
+              "summary": "French political/fiscal stress supports demand for CHF safety without requiring better Swiss data. Credible fiscal resolution could weaken that demand.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Reuters: French unrest, oil and Fed expectations",
+                  "locator": "https://wealthinsights.metrobank.com.ph/news/forex-dollar-firmer-euro-weakens-as-french-protests-turn-violent",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "CAD",
+          "category": "policy",
+          "evidence": [
+            {
+              "published_on": "2026-10-17",
+              "summary": "Macklem warns the inflation outlook is worsening and a policy response may be necessary. Weak employment remains an important counterweight.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Reuters: Macklem October 17",
+                  "locator": "https://uk.marketscreener.com/news/bank-of-canada-sees-sharply-higher-inflation-outlook-as-oil-surges-macklem-says-ce785cdade81f224",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "CAD",
+          "category": "inflation",
+          "evidence": [
+            {
+              "published_on": "2026-09-14",
+              "summary": "August CPI 3.0%, unchanged. This is the latest known actual at this cutoff; no forthcoming CPI result is assumed.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Canada CPI",
+                  "locator": "https://www150.statcan.gc.ca/n1/daily-quotidien/260914/dq260914a-eng.htm",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "CAD",
+          "category": "labor",
+          "evidence": [
+            {
+              "published_on": "2026-10-09",
+              "summary": "September employment −68k; unemployment 6.5% versus 6.4%, wages 2.3% versus 2.0%. Weak hiring restrains the tightening case.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Canada jobs",
+                  "locator": "https://www150.statcan.gc.ca/n1/daily-quotidien/261009/dq261009a-eng.htm",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "CAD",
+          "category": "growth",
+          "evidence": [
+            {
+              "published_on": "2026-09-29",
+              "summary": "July GDP flat; preliminary August estimate +0.2%. Modest recovery rather than broad demand strength. The August figure is preliminary.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Canada GDP",
+                  "locator": "https://www150.statcan.gc.ca/n1/daily-quotidien/260929/dq260929a-eng.htm",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "CAD",
+          "category": "other",
+          "evidence": [
+            {
+              "published_on": "2026-10-19",
+              "summary": "Oil supports national income but raises inflation pressure; Monday’s easing complicates a simple CAD-buy view. USDCAD remains conditional on broader inflation and demand evidence.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Reuters: French unrest, oil and Fed expectations",
+                  "locator": "https://wealthinsights.metrobank.com.ph/news/forex-dollar-firmer-euro-weakens-as-french-protests-turn-violent",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "AUD",
+          "category": "policy",
+          "evidence": [
+            {
+              "published_on": "2026-10-19",
+              "summary": "Kent acknowledges faster-than-expected labor easing and accepts reduced hike expectations, while retaining inflation concerns.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Reuters: Kent October 19",
+                  "locator": "https://www.investing.com/news/economy-news/australia-central-banker-sees-signs-of-labour-market-easing-4956192",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            },
+            {
+              "published_on": "2026-09-29",
+              "summary": "Background: RBA raised the rate to 4.60%. The level alone does not establish current AUD strength.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "RBA September decision",
+                  "locator": "https://www.rba.gov.au/media-releases/2026/mr-26-27.html",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "AUD",
+          "category": "inflation",
+          "evidence": [
+            {
+              "published_on": "2026-09-30",
+              "summary": "August CPI 4.0% versus 3.5%; trimmed mean 3.6%, unchanged. Persistent underlying inflation is strong counterevidence to AUD selling.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "ABS inflation",
+                  "locator": "https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/consumer-price-index-australia/aug-2026",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "AUD",
+          "category": "labor",
+          "evidence": [
+            {
+              "published_on": "2026-10-15",
+              "summary": "September employment −39k; unemployment 4.7% versus 4.6%. ABS cautions about monthly noise and favors trend for underlying conditions.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "ABS employment",
+                  "locator": "https://www.abs.gov.au/statistics/labour/employment-and-unemployment/labour-force-australia/sep-2026",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "AUD",
+          "category": "growth",
+          "evidence": [
+            {
+              "published_on": null,
+              "summary": "Background: June-quarter GDP +0.4%. Current labor weakness challenges resilience; the GDP reference quarter is not a publication timestamp.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "ABS GDP",
+                  "locator": "https://www.abs.gov.au/statistics/economy/national-accounts/australian-national-accounts-national-income-expenditure-and-product/jun-2026",
+                  "note": ""
+                }
+              ],
+              "publication_note": "Publication date not established in the saved assessment; reference period is not a publication date."
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "AUD",
+          "category": "other",
+          "evidence": [
+            {
+              "published_on": "2026-10-19",
+              "summary": "Better Chinese growth supports demand expectations, opposing the labor-driven AUD sell case. This is a support channel, not measured AUD strength.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Reuters: China GDP",
+                  "locator": "https://www.streetinsider.com/Reuters/Chinas%2BQ3%2BGDP%2Bgrowth%2Baccelerates%2Bto%2B4.5%25%2C%2Bbeating%2Bforecast/27199466.html",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "NZD",
+          "category": "policy",
+          "evidence": [
+            {
+              "published_on": "2026-09-02",
+              "summary": "Background: OCR 2.75% and gradual removal of stimulus remain the official policy direction. Old tightening guidance alone does not establish today’s pair verdict.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "RBNZ September policy",
+                  "locator": "https://www.rbnz.govt.nz/monetary-policy/monetary-policy-statement/monetary-policy-statements/2026/sep-0209/monetary-policy-statement-september-2026/web-version",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "NZD",
+          "category": "inflation",
+          "evidence": [
+            {
+              "published_on": "2026-07-21",
+              "summary": "Background: June-quarter CPI 4.1%, prior 3.1%. The release is 90 days old at this cutoff; the next quarter’s actual is not yet known.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "NZ CPI",
+                  "locator": "https://www.stats.govt.nz/indicators/consumers-price-index-cpi/",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "NZD",
+          "category": "labor",
+          "evidence": [
+            {
+              "published_on": "2026-08-05",
+              "summary": "Background: June-quarter unemployment 5.6%, prior 5.4%. Labor slack offsets inflation pressure.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "NZ labor",
+                  "locator": "https://www.stats.govt.nz/information-releases/labour-market-statistics-june-2026-quarter/",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "NZD",
+          "category": "growth",
+          "evidence": [
+            {
+              "published_on": "2026-10-19",
+              "summary": "Services PSI 50.9 versus revised 51.0: still expanding, but fragile. This does not establish a domestic boom or collapse.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "NZ services October 19",
+                  "locator": "https://businessnz.org.nz/psi/fragile-four",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            },
+            {
+              "published_on": "2026-10-16",
+              "summary": "Manufacturing PMI 56.5 versus revised 53.3. Strong factories are opposing evidence to a blanket NZD sell case.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "NZ manufacturing",
+                  "locator": "https://businessnz.org.nz/pmi/manufacturing-in-poll-position",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        },
+        {
+          "currency": "NZD",
+          "category": "other",
+          "evidence": [
+            {
+              "published_on": "2026-10-19",
+              "summary": "China’s Q3 growth improvement provides trading-partner support. Combined with domestic activity, it weakens the earlier NZDCHF sell edge while CHF haven demand remains.",
+              "verified_utc": "2026-10-19T08:00:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Reuters: China GDP",
+                  "locator": "https://www.streetinsider.com/Reuters/Chinas%2BQ3%2BGDP%2Bgrowth%2Baccelerates%2Bto%2B4.5%25%2C%2Bbeating%2Bforecast/27199466.html",
+                  "note": ""
+                }
+              ],
+              "publication_note": ""
+            }
+          ],
+          "gap": ""
+        }
+      ],
+      "opportunity_ids": [
+        "b9023180e3c44aa8aa2e20111cdb2213",
+        "f8b60e3ab1e64ef991b669bb6063621c",
+        "2a1ce527c7304f3fa8e72a552c2c90d7",
+        "c781ec2fa31e491ea746b5e64b393a0b"
+      ],
+      "currency_views": [
+        {
+          "currency": "USD",
+          "bias": "Inflation support; mixed near-term direction.",
+          "summary": "October 14 CPI remained firm and October 15 nominal retail sales were resilient. Weak hiring and current expectations of an October Fed hold prevent a straightforward tightening-led strengthening case.",
+          "counterweight": "September payrolls were only +29k. A prior rate hike is background; a higher future rate path needs fresh support.",
+          "sources": [
+            {
+              "kind": "web",
+              "label": "US CPI",
+              "locator": "https://www.bls.gov/news.release/archives/cpi_10142026.htm",
+              "note": ""
+            },
+            {
+              "kind": "web",
+              "label": "US jobs",
+              "locator": "https://www.bls.gov/news.release/archives/empsit_10022026.htm",
+              "note": ""
+            }
+          ],
+          "checkpoints": [
+            {
+              "title": "US October flash PMI: manufacturing, services and composite",
+              "event_at": "2026-10-23T13:45:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-19T08:17:53.127146Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "S&P Global 2026 release schedule",
+                  "locator": "https://www.pmi.spglobal.com/Public/Home/PDF/UK_Rel_Dates",
+                  "note": "Publisher-indexed full schedule retrieved October 19, 2026. All times explicitly UTC; last updated April 16, dates provisional and subject to change. Direct fetch returned HTTP 403; indexed publisher content was available. Cross-check near release. Saved schedule reused; recheck near publication. Schedule capture is the original saved record, not a fresh web check."
+                }
+              ],
+              "note": "Resilient demand and persistent selling-price pressure would support the restrictive-policy case; weaker activity and cooling prices would challenge it. Publisher dates remain provisional."
+            }
+          ]
+        },
+        {
+          "currency": "EUR",
+          "bias": "Pressured by renewed French fiscal stress.",
+          "summary": "October 19 reporting describes renewed French unrest and financing concerns. That is the active negative mechanism; September ECB tightening and October 16 inflation remain opposing support.",
+          "counterweight": "Final CPI was 3.8%, with core 2.5%. Credible fiscal resolution or easing financing stress could weaken the bearish case without an ECB policy change.",
+          "sources": [
+            {
+              "kind": "web",
+              "label": "Reuters: French unrest, oil and Fed expectations",
+              "locator": "https://wealthinsights.metrobank.com.ph/news/forex-dollar-firmer-euro-weakens-as-french-protests-turn-violent",
+              "note": ""
+            },
+            {
+              "kind": "web",
+              "label": "Eurostat: September inflation",
+              "locator": "https://ec.europa.eu/eurostat/en/web/products-euro-indicators/w/2-16102026-ap",
+              "note": ""
+            }
+          ],
+          "checkpoints": [
+            {
+              "title": "Euro area October flash PMI: manufacturing, services and composite",
+              "event_at": "2026-10-23T08:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-19T08:17:53.063315Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "S&P Global 2026 release schedule",
+                  "locator": "https://www.pmi.spglobal.com/Public/Home/PDF/UK_Rel_Dates",
+                  "note": "Publisher-indexed full schedule retrieved October 19, 2026. All times explicitly UTC; last updated April 16, dates provisional and subject to change. Direct fetch returned HTTP 403; indexed publisher content was available. Cross-check near release. Saved schedule reused; recheck near publication. Schedule capture is the original saved record, not a fresh web check."
+                }
+              ],
+              "note": "Resilient activity and persistent prices would challenge the growth-related bearish case; weak orders would reinforce it. French fiscal headlines can change the bias sooner, without a scheduled hour. Publisher dates remain provisional."
+            }
+          ]
+        },
+        {
+          "currency": "GBP",
+          "bias": "Mixed; policy patience versus activity resilience.",
+          "summary": "Bailey’s October 16 comments describe subdued second-round inflation effects so far. Three-month GDP growth improved to 0.7%, while the prior wage release showed cooling total pay.",
+          "counterweight": "Older inflation remains above target, but energy pressure alone does not establish a long tightening sequence. Fresh wages and CPI can change the expected path.",
+          "sources": [
+            {
+              "kind": "web",
+              "label": "Bailey October 16",
+              "locator": "https://live.euronext.com/en/financial-news/bank-englands-bailey-sees-quite-subdued-second-round-price-pressures-so-far",
+              "note": ""
+            },
+            {
+              "kind": "web",
+              "label": "UK GDP",
+              "locator": "https://www.ons.gov.uk/economy/grossdomesticproductgdp/bulletins/gdpmonthlyestimateuk/august2026",
+              "note": ""
+            },
+            {
+              "kind": "web",
+              "label": "UK wages",
+              "locator": "https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/employmentandemployeetypes/bulletins/averageweeklyearningsingreatbritain/september2026",
+              "note": ""
+            }
+          ],
+          "checkpoints": [
+            {
+              "title": "ONS UK labor market and wages: official release schedule",
+              "event_at": "2026-10-20T06:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-19T08:19:53.870404Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "ONS official labor release calendar",
+                  "locator": "https://www.ons.gov.uk/releasecalendar?highlight=true&keywords=labour+market&limit=10&page=1&release-type=type-upcoming&sort=date-newest",
+                  "note": "October 20 at 7:00 AM UK summer time; verified in the research preceding this save. Saved schedule reused; recheck near publication. Schedule capture is the original saved record, not a fresh web check."
+                }
+              ],
+              "note": "Persistent wage pressure with resilient employment supports GBP; cooling pay and weak hiring challenge the tightening case."
+            },
+            {
+              "title": "UK CPI / core CPI",
+              "event_at": "2026-10-21T06:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-19T08:12:32Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "UK CPI",
+                  "locator": "https://www.ons.gov.uk/economy/inflationandpriceindices/bulletins/consumerpriceinflation/august2026",
+                  "note": " Saved schedule reused; recheck near publication. Schedule capture is the original saved record, not a fresh web check."
+                },
+                {
+                  "kind": "local",
+                  "label": "Saved broker schedule",
+                  "locator": "C:\\dev\\Fyodor Trading Terminal Lite\\Market Analyst Workflow\\report\\across-evidence.json",
+                  "note": "Schedule snapshot; the publication routes do not independently verify the broker hour."
+                }
+              ],
+              "note": "Broad underlying persistence supports a firmer path; underlying cooling challenges it. Broker time; official hour not reverified."
+            }
+          ]
+        },
+        {
+          "currency": "JPY",
+          "bias": "Supported by policy normalization.",
+          "summary": "Ueda’s October 19 comments put underlying inflation close to target, with tight labor conditions and moderate recovery. These support further appropriate policy adjustment.",
+          "counterweight": "This is guidance, not a new committee decision. Fresh numerical CPI and labor vintages remain unresolved in the saved review; renewed energy disruption would hurt Japan’s import burden.",
+          "sources": [
+            {
+              "kind": "web",
+              "label": "Reuters: Ueda October 19",
+              "locator": "https://www.marketscreener.com/news/boj-chief-says-underlying-inflation-quite-close-to-price-goal-ce785cdad18ff224",
+              "note": ""
+            },
+            {
+              "kind": "web",
+              "label": "Reuters: French unrest, oil and Fed expectations",
+              "locator": "https://wealthinsights.metrobank.com.ph/news/forex-dollar-firmer-euro-weakens-as-french-protests-turn-violent",
+              "note": ""
+            }
+          ],
+          "checkpoints": [
+            {
+              "title": "Japan CPI / core CPI",
+              "event_at": "2026-10-22T23:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-19T08:12:32Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Reuters: Ueda October 19",
+                  "locator": "https://www.marketscreener.com/news/boj-chief-says-underlying-inflation-quite-close-to-price-goal-ce785cdad18ff224",
+                  "note": " Saved schedule reused; recheck near publication. Schedule capture is the original saved record, not a fresh web check."
+                },
+                {
+                  "kind": "local",
+                  "label": "Saved broker schedule",
+                  "locator": "C:\\dev\\Fyodor Trading Terminal Lite\\Market Analyst Workflow\\report\\across-evidence.json",
+                  "note": "Schedule snapshot; the publication routes do not independently verify the broker hour."
+                }
+              ],
+              "note": "Persistent underlying inflation supports normalization; convincing cooling challenges it. The linked reporting supplies the policy context, not the schedule. Broker time; official hour not reverified."
+            },
+            {
+              "title": "Japan October flash PMI: manufacturing, services and composite",
+              "event_at": "2026-10-23T00:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-19T08:17:52.971547Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "S&P Global 2026 release schedule",
+                  "locator": "https://www.pmi.spglobal.com/Public/Home/PDF/UK_Rel_Dates",
+                  "note": "Publisher-indexed full schedule retrieved October 19, 2026. All times explicitly UTC; last updated April 16, dates provisional and subject to change. Direct fetch returned HTTP 403; indexed publisher content was available. Cross-check near release. Saved schedule reused; recheck near publication. Schedule capture is the original saved record, not a fresh web check."
+                }
+              ],
+              "note": "Stronger orders/activity support the recovery case; weaker demand challenges it. Publisher dates remain provisional."
+            }
+          ]
+        },
+        {
+          "currency": "CHF",
+          "bias": "Supported by safety demand during fiscal stress.",
+          "summary": "French political and financing stress supports demand for CHF safety. Improving Swiss data is not necessary for that channel; the SNB’s September hold and low inflation remain domestic background.",
+          "counterweight": "Credible French fiscal resolution could reduce haven demand. SNB concern about appreciation or FX intervention could oppose CHF buying.",
+          "sources": [
+            {
+              "kind": "web",
+              "label": "Reuters: French unrest, oil and Fed expectations",
+              "locator": "https://wealthinsights.metrobank.com.ph/news/forex-dollar-firmer-euro-weakens-as-french-protests-turn-violent",
+              "note": ""
+            },
+            {
+              "kind": "web",
+              "label": "SNB policy",
+              "locator": "https://www.snb.ch/en/publications/communication/press-releases-restricted/pre_20260924",
+              "note": ""
+            }
+          ],
+          "checkpoints": [
+            {
+              "title": "SNB: September policy discussion summary",
+              "event_at": "2026-10-22T07:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-16T16:01:10.722185Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Publisher/event evidence",
+                  "locator": "https://www.snb.ch/en/services-events/digital-services/event-schedule",
+                  "note": " Saved schedule reused; recheck near publication. Schedule capture is the original saved record, not a fresh web check."
+                }
+              ],
+              "note": "Unexpected resistance to franc appreciation or a softer policy path could weaken support; genuinely firmer policy reasoning could support it. This is a retrospective summary, not a new rate decision."
+            }
+          ]
+        },
+        {
+          "currency": "CAD",
+          "bias": "Mixed ahead of inflation and business surveys.",
+          "summary": "Macklem’s October 17 inflation warning raises the importance of the next CPI package. Weak employment and modest activity argue against assuming an immediate tightening cycle.",
+          "counterweight": "September employment fell 68k. Oil can support income while raising inflation; a gasoline-led headline surprise alone is a weaker CAD-buy case than broad underlying persistence.",
+          "sources": [
+            {
+              "kind": "web",
+              "label": "Reuters: Macklem October 17",
+              "locator": "https://uk.marketscreener.com/news/bank-of-canada-sees-sharply-higher-inflation-outlook-as-oil-surges-macklem-says-ce785cdade81f224",
+              "note": ""
+            },
+            {
+              "kind": "web",
+              "label": "Canada jobs",
+              "locator": "https://www150.statcan.gc.ca/n1/daily-quotidien/261009/dq261009a-eng.htm",
+              "note": ""
+            }
+          ],
+          "checkpoints": [
+            {
+              "title": "Canada CPI / core measures",
+              "event_at": "2026-10-19T12:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-19T08:12:32Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Canada CPI",
+                  "locator": "https://www150.statcan.gc.ca/n1/daily-quotidien/260914/dq260914a-eng.htm",
+                  "note": " Saved schedule reused; recheck near publication. Schedule capture is the original saved record, not a fresh web check."
+                },
+                {
+                  "kind": "local",
+                  "label": "Saved broker schedule",
+                  "locator": "C:\\dev\\Fyodor Trading Terminal Lite\\Market Analyst Workflow\\report\\across-evidence.json",
+                  "note": "Schedule snapshot; the publication routes do not independently verify the broker hour."
+                }
+              ],
+              "note": "Broad underlying persistence supports CAD tightening expectations; softer core pressure alongside weak demand challenges them. Fresh numerical consensus was not established. Broker time; official hour not reverified."
+            },
+            {
+              "title": "BoC Canadian Survey of Consumer Expectations",
+              "event_at": "2026-10-19T15:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-19T08:17:53.158037Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Bank of Canada upcoming events",
+                  "locator": "https://www.bankofcanada.ca/press/upcoming-events/",
+                  "note": " Saved schedule reused; recheck near publication. Schedule capture is the original saved record, not a fresh web check."
+                }
+              ],
+              "note": "Released alongside the Business Outlook Survey: persistent expectations and business pricing intentions support the inflation case; easing pressure and weak demand challenge it."
+            }
+          ]
+        },
+        {
+          "currency": "AUD",
+          "bias": "Pressured by reduced near-term hike urgency.",
+          "summary": "Kent’s October 19 comments acknowledge faster-than-expected labor easing and accept reduced hike expectations after September employment fell about 39k.",
+          "counterweight": "Headline CPI was 4.0% and trimmed mean 3.6%; better Chinese growth also supports demand expectations. One noisy jobs report does not establish a lasting contraction.",
+          "sources": [
+            {
+              "kind": "web",
+              "label": "Reuters: Kent October 19",
+              "locator": "https://www.investing.com/news/economy-news/australia-central-banker-sees-signs-of-labour-market-easing-4956192",
+              "note": ""
+            },
+            {
+              "kind": "web",
+              "label": "ABS employment",
+              "locator": "https://www.abs.gov.au/statistics/labour/employment-and-unemployment/labour-force-australia/sep-2026",
+              "note": ""
+            },
+            {
+              "kind": "web",
+              "label": "ABS inflation",
+              "locator": "https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/consumer-price-index-australia/aug-2026",
+              "note": ""
+            }
+          ],
+          "checkpoints": [
+            {
+              "title": "Australia October flash PMI: manufacturing, services and composite",
+              "event_at": "2026-10-22T22:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-19T08:17:52.942210Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "S&P Global 2026 release schedule",
+                  "locator": "https://www.pmi.spglobal.com/Public/Home/PDF/UK_Rel_Dates",
+                  "note": "Publisher-indexed full schedule retrieved October 19, 2026. All times explicitly UTC; last updated April 16, dates provisional and subject to change. Direct fetch returned HTTP 403; indexed publisher content was available. Cross-check near release. Saved schedule reused; recheck near publication. Schedule capture is the original saved record, not a fresh web check."
+                }
+              ],
+              "note": "Weak demand and employment would reinforce the reduced-hike-urgency case; resilient orders with persistent prices would challenge it. Publisher dates remain provisional."
+            }
+          ]
+        },
+        {
+          "currency": "NZD",
+          "bias": "Mixed, with improving activity support.",
+          "summary": "October 16 manufacturing was strong, October 19 services remained in expansion, and better Chinese growth adds trading-partner support. The earlier broad NZD-selling case has weakened.",
+          "counterweight": "Services expansion remains fragile and labor slack constrains the tightening pace. Safety demand can still favor defensive currencies; a weaker sell case does not establish an outright buy.",
+          "sources": [
+            {
+              "kind": "web",
+              "label": "NZ manufacturing",
+              "locator": "https://businessnz.org.nz/pmi/manufacturing-in-poll-position",
+              "note": ""
+            },
+            {
+              "kind": "web",
+              "label": "NZ services October 19",
+              "locator": "https://businessnz.org.nz/psi/fragile-four",
+              "note": ""
+            },
+            {
+              "kind": "web",
+              "label": "Reuters: China GDP",
+              "locator": "https://www.streetinsider.com/Reuters/Chinas%2BQ3%2BGDP%2Bgrowth%2Baccelerates%2Bto%2B4.5%25%2C%2Bbeating%2Bforecast/27199466.html",
+              "note": ""
+            }
+          ],
+          "checkpoints": [
+            {
+              "title": "Global Dairy Trade Event 414 — auction start; results later",
+              "event_at": "2026-10-20T12:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-17T08:33:59.577848Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Official GDT calendar",
+                  "locator": "https://www.globaldairytrade.info/en/gdt-events/calendar",
+                  "note": " Saved schedule reused; recheck near publication. Schedule capture is the original saved record, not a fresh web check."
+                },
+                {
+                  "kind": "web",
+                  "label": "GDT auction process",
+                  "locator": "https://www.globaldairytrade.info/en/gdt-events/how-gdt-events-work",
+                  "note": ""
+                },
+                {
+                  "kind": "local",
+                  "label": "Broker date-only result occurrence",
+                  "locator": "C:/dev/Fyodor Trading Terminal Lite/Market Analyst Workflow/report/NZDCHF-alerts-20261017-0835/upcoming-evidence.json",
+                  "note": ""
+                }
+              ],
+              "note": "Auction opening only; results arrive later at an unverified hour. Stronger verified dairy outcomes support NZD, weaker outcomes challenge it. Do not interpret the opening as a result."
+            },
+            {
+              "title": "New Zealand CPI",
+              "event_at": "2026-10-21T21:45:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-19T08:12:32Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "NZ CPI",
+                  "locator": "https://www.stats.govt.nz/indicators/consumers-price-index-cpi/",
+                  "note": " Saved schedule reused; recheck near publication. Schedule capture is the original saved record, not a fresh web check."
+                },
+                {
+                  "kind": "local",
+                  "label": "Saved broker schedule",
+                  "locator": "C:\\dev\\Fyodor Trading Terminal Lite\\Market Analyst Workflow\\report\\across-evidence.json",
+                  "note": "Schedule snapshot; the publication routes do not independently verify the broker hour."
+                }
+              ],
+              "note": "Persistent broad domestic inflation supports gradual tightening; convincing underlying cooling challenges it. Broker time; official hour not reverified."
+            }
+          ]
+        }
+      ],
+      "planning_as_of_utc": "2026-10-19T09:08:55.813458Z",
+      "limitations": "Fresh numerical consensus for every forthcoming release and a complete current OIS comparison were not verified. Japanese numerical inflation/labor vintages and the latest euro-area activity evidence remain explicit gaps. Unknown publication dates remain unknown. Saved interpretation must be refreshed before a new trade assessment.",
+      "note": "Structured from the already-saved October 19, 3:00 PM Jakarta assessment and its cited sources, at the user’s request. This organizes the original findings; it is not a fresh macro assessment. Publication dates and original verification cutoff are preserved. No price/OHLC evidence was used. Upcoming releases and reminders remain in Alert. Currency overview is a presentation correction of the same 3:00 PM research, not a fresh macro assessment. Checkpoints are prepared later from existing saved Alert research; their original verification/capture clocks are retained, with broker/provisional timing attributed. The example table supplied by the user is a layout reference, not October 19 evidence. Checkpoint text shortened; source notes retain the original schedule-capture attribution. No research or schedule clocks advanced.",
+      "provenance": "assessment",
+      "review_id": "bd4011f8cc4e437b8a2342997457b0b3",
+      "expected_version": "4b2bcacf1ac044318396192132058787",
+      "id": "dec10223db6c4c228ad6f2abcf8a92ba",
+      "saved_utc": "2026-10-19T09:11:50.181425Z"
     }
   ]
 }

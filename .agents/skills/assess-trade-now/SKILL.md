@@ -242,6 +242,11 @@ verdict, then uses the compact output above. Preparation alone starts no timer.
 ## Eight currencies, only when requested
 
 Cover USD, EUR, GBP, JPY, CHF, CAD, AUD and NZD only when explicitly requested.
+For the requested Across All Currency overview, answer and save one standalone
+currency table: Currency | Current fundamental backdrop | Confidence / main
+counterweight | Next material checkpoint. Use descriptive bias and the strongest
+counterevidence; do not turn every row into a pair call or require confidence
+boilerplate. The usual pair-format sections are unnecessary for this overview.
 For best-pair selection after a named currency's event, compare its seven crosses
 or the user's narrower candidates; do not expand to all 28 pairs. Refresh every
 candidate's material fundamentals and exceptional news, then give one leading pair
@@ -265,14 +270,19 @@ Do not pin/archive or alter raw data to make a row appear.
 For a requested saved review, first use `pnpm analyst thesis context --scope <PAIR|ALL>`
 to retrieve bounded prior context across months. Refresh decisive web evidence and
 actively seek contrary developments; archive size does not increase a thesis's
-validity. Save new standalone opportunities at the invocation cutoff, then one
-complete shared review through `thesis review-append`: entry-focused takeaway,
-exact opportunity version IDs, five-category backdrop for every reviewed currency
-and explicit material gaps. Carry relevant facts with their original publication
+validity. For Across All Currency save one complete review with `currency_views`
+for all eight: concise standalone bias/summary, strongest counterweight, decisive
+sources and next material checkpoints. The UI is one date-selected eight-row table,
+not pair opportunities or expandable sections. Pair rows/IDs are optional; retain
+five-category backdrop evidence and explicit gaps for agent context. A directional
+backdrop is not immediate entry confirmation. Checkpoint notes explain which
+fresh outcomes support or challenge it; verify actuals after publication, never
+confirm an entry from elapsed time. Save the real `planning_as_of_utc` separately
+when preparation follows the research cutoff. Carry facts with their original publication
 and verification dates; advance verification only when actually rechecked. New
 cutoffs create new reviews; corrections preserve cutoff/history. Keep conditional
 or weakened cases explicit without manufacturing an opposite entry. The dock keeps
-supporting research expandable; no daily maintenance or monitoring is required.
+supporting research in the saved record/export; no daily maintenance or monitoring is required.
 
 Answer in chat. Save research only when requested, preserving Before/After phases,
 append-only versions, user notes and raw observations; leave price_reaction empty.

@@ -111,3 +111,54 @@ class ReviewTests(TestCase):
         self.assertEqual(review_context(self.path, 'EURGBP')['latest_review']['opportunities'], [])
         self.assertEqual(self.snapshot()['reviews'], [], 'Across context does not replace the pair journal')
         self.assertEqual(self.snapshot(scope='ALL', month='2026-08')['reviews'][0]['opportunity_ids'], [later['id']])
+
+    def currency_views(self):
+        return [dict(currency=currency, bias='Mixed policy and demand.', summary='Supported dated interpretation.',
+            counterweight='Main opposing evidence.', sources=[dict(kind='web', label='Official', locator='https://www.snb.ch/')],
+            checkpoints=[dict(title='Next release', event_at='2026-07-16T06:00:00Z', verified_utc='2026-07-15T07:00:00Z',
+                sources=[dict(kind='web', label='Schedule', locator='https://www.snb.ch/')], note='Persistence supports; cooling challenges.')])
+            for currency in ('NZD', 'CHF')]
+
+    def test_currency_overview_keeps_later_planning_separate_from_original_research(self):
+        self.paths(); self.save()
+        first = append_review(self.review(), self.path)
+        append_review(self.review(review_id=first['review_id'], expected_version=first['id'],
+            currency_views=self.currency_views(), planning_as_of_utc='2026-07-15T08:00:00Z'), self.path)
+        result = self.snapshot()['reviews'][0]
+        self.assertEqual(result['as_of_utc'], '2026-07-15T06:00:00Z')
+        self.assertEqual(result['planning_as_of_utc'], '2026-07-15T08:00:00Z')
+        self.assertEqual(len(result['currency_views']), 2)
+        self.assertEqual(result['versions'][0]['currency_views'], [])
+        before_preparation = review_context(self.path, 'NZDCHF', '2026-07-15T06:30:00Z')['latest_review']
+        self.assertIsNone(before_preparation['planning_as_of_utc'])
+        self.assertTrue(all(not view['checkpoints'] for view in before_preparation['currency_views']))
+        self.assertEqual(len(review_context(self.path, 'NZDCHF', '2026-07-15T09:00:00Z')['latest_review']['currency_views'][0]['checkpoints']), 1)
+
+    def test_currency_view_coverage_safe_sources_and_checkpoint_clocks(self):
+        good = self.review(currency_views=self.currency_views(), planning_as_of_utc='2026-07-15T08:00:00Z').model_dump(mode='json')
+        for mutate in [lambda data: data['currency_views'].pop(),
+                       lambda data: data['currency_views'][1].update(currency='NZD'),
+                       lambda data: data['currency_views'][0].update(counterweight=' '),
+                       lambda data: data['currency_views'][0]['sources'][0].update(locator='javascript:alert(1)'),
+                       lambda data: data.update(planning_as_of_utc=None),
+                       lambda data: data['currency_views'][0]['checkpoints'][0].update(verified_utc='2026-07-15T09:00:00Z'),
+                       lambda data: data['currency_views'][0]['checkpoints'][0].update(event_at='2026-07-15T07:00:00Z'),
+                       lambda data: data['currency_views'][0]['checkpoints'][0].update(event_date='2026-07-16'),
+                       lambda data: data['currency_views'][0]['checkpoints'][0].update(event_at=None, event_date='2026-07-14'),
+                       lambda data: data['currency_views'][0]['checkpoints'][0].update(event_at=None, note='')]:
+            data = json.loads(json.dumps(good)); mutate(data)
+            with self.assertRaises(ValueError): ReviewRequest(**data)
+        good['currency_views'][0]['checkpoints'][0].update(event_at=None, event_date='2026-07-16')
+        result = ReviewRequest(**good)
+        self.assertIsNone(result.currency_views[0].checkpoints[0].event_at)
+        good['currency_views'][0]['checkpoints'][0].update(event_date=None, note='Unscheduled fiscal developments.')
+        self.assertIsNone(ReviewRequest(**good).currency_views[0].checkpoints[0].event_date)
+
+    def test_pair_context_filters_eight_currency_overview_without_changing_saved_versions(self):
+        self.paths(); self.save()
+        views = self.currency_views()
+        views += [{**views[0], 'currency': currency} for currency in ('USD','EUR','GBP','JPY','CAD','AUD')]
+        append_review(self.review(scope='ALL', currency_views=views, planning_as_of_utc='2026-07-15T08:00:00Z'), self.path)
+        selected = review_context(self.path, 'EURJPY')['latest_review']
+        self.assertEqual({view['currency'] for view in selected['currency_views']}, {'EUR','JPY'})
+        self.assertEqual(len(read_reviews(self.path)[0]['currency_views']), 8)
