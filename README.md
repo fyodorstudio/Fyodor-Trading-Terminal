@@ -54,7 +54,11 @@ pnpm check:repo
 **Alert** has **Highlight / MT5 Calendar / External Source** views. Highlight
 combines both pinned sources, with date sorting, source labels and filled/outline
 alarm bells. Currency buttons stay on the right of view controls. Data and research
-remain in their existing stores. Pinned events and confirmed timed external events
+remain in their existing stores. Highlight headers show a separate agent-authored
+impact badge when assessed; unassessed
+events show `AI —`. This uses no broker importance or automatic classification.
+The [Highlight workflow](docs/HIGHLIGHT-JOURNAL.md#ai-impact-in-alert) covers agent saves.
+Pinned events and confirmed timed external events
 automatically receive one Invoke reminder two minutes before each release stage. Use Test
 alarm once to check the Windows window and built-in sound. `pnpm dev:all` starts
 the independent alarm worker; use `pnpm alarms:start` to start it without restarting

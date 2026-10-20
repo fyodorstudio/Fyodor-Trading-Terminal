@@ -23,6 +23,7 @@ from storage.highlight_journal import JournalRequest, append_journal, read_journ
 from storage.thesis import ThesisRequest, append_thesis, thesis_snapshot
 from storage.thesis_reviews import ReviewRequest, append_review, review_context
 from storage.highlight_metadata import PromptRequest, append_prompt, read_prompts, LimitationRequest, append_limitation, limitations_snapshot
+from storage.alert_impact import ImpactRequest, append_impact, impact_snapshot
 from upcoming import upcoming_snapshot
 from storage.external_sources import DIRECTORY as EXTERNAL_DIRECTORY, ExternalRequest, append_external, external_history, external_snapshot, archive_external
 
@@ -236,6 +237,12 @@ def parser():
     prompt.add_argument('--scope')
     prompt.add_argument('--limit', type=int, choices=range(1,101), default=10)
     prompt.add_argument('--offset', type=int, default=0)
+    impact = commands.add_parser('impact', help='Read/save agent-assessed Alert impact, separate from broker importance')
+    impact.add_argument('action', choices=['read', 'save'])
+    impact.add_argument('--broker', default='')
+    impact.add_argument('--source', choices=['highlight', 'external'])
+    impact.add_argument('--reference', help='Exact Highlight ID or stable External Source key')
+    impact.add_argument('--input', help='ImpactRequest JSON file for save; see docs/HIGHLIGHT-JOURNAL.md')
     limitations = commands.add_parser('limitations', help='Read/append discovered schedule or data limitations without changing the calendar')
     limitations.add_argument('action', choices=['read','append'], nargs='?', default='read')
     limitations.add_argument('--broker', required=True)
@@ -333,6 +340,12 @@ def run(args):
                     'items': entries[args.offset:args.offset + args.limit]}
         return {'directory': str(EXTERNAL_DIRECTORY), **external_snapshot(visibility=args.visibility, scope=args.scope,
                 from_date=args.from_date, to_date=args.to_date, match=args.match, limit=args.limit, offset=args.offset)}
+    if args.command == 'impact':
+        if args.action == 'save':
+            if not args.input:
+                raise ValueError('Impact save needs --input with its JSON request')
+            return append_impact(ImpactRequest.model_validate_json(local_path(args.input).read_text(encoding='utf-8-sig')))
+        return impact_snapshot(args.broker, reference=args.reference, source=args.source)
     if args.command in ('prompt', 'limitations'):
         if args.action in ('save', 'append'):
             if not args.input:

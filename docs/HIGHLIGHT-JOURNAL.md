@@ -97,6 +97,36 @@ research. --as-of narrows schedule timing, not historical data vintages.
 
 ## Prompt-only preparation and limitations
 
+### AI impact in Alert
+
+Only Alert's Highlight headers show `Currency | AI High / Medium / Low`, with a
+colored square. Expanding the card shows the agent's reason, sources and Jakarta
+assessment cutoff. Missing assessments show `AI —`; MT5 importance is never a fallback.
+Ratings describe expected market relevance, not direction, guaranteed volatility or
+entry quality. Judge the specific occurrence against current policy concerns,
+new information, expectations and publication stages; do not use fixed indicator tiers.
+High means the event could materially change the dominant policy or macro outlook;
+Medium means useful but more conditional or confirming information; Low means
+limited incremental information for the current outlook. A fresh Q&A can outrank a
+routine scheduled release. Reassess when the backdrop changes; preserve the cutoff.
+
+Agents save ratings only when requested. Both saved-source identities are supported:
+
+```powershell
+pnpm analyst impact read --broker Elev8-Demo2
+pnpm analyst impact save --input "Market Analyst Workflow/report/<report>/impact.json"
+```
+
+Input: `source` (`highlight` or `external`), `reference` (exact Highlight ID or stable
+external key), `broker` (required for Highlight, empty for external), `level`
+(`high`, `medium`, `low`), `reason`, timezone-aware `as_of_utc`, and `sources`
+(JournalSource format; at least one direct web URL). Read first; updates require
+`expected_version` equal to the latest assessment ID. Versions live separately in
+`Market Analyst Workflow/alert-impact/`, survive archive/restore and leave raw data,
+journals and reminders untouched. GET `/api/v1/alert-impact` is read-only and revision
+aware. Ratings do not refresh themselves or invoke an agent. Back up this folder
+with the research data. Restart calendar storage after installing this endpoint.
+
 When the user wants to defer investigation, save a PromptRequest JSON containing
 scope, prepare_prompt and release_prompt. These contain tasks and component/stage
 hints, not a macro verdict. Both prompts receive the exact Highlight ID, broker

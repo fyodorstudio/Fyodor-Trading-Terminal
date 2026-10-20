@@ -13,6 +13,8 @@ import { ExternalHighlightCard } from './ExternalHighlightCard'
 import { EventAlarmButton } from './EventAlarmButton'
 import { jakartaDisplay } from './alarm-time'
 import type { useAlarms } from './useAlarms'
+import { useAlertImpact } from '../alert/impact/useAlertImpact'
+import { ImpactBadge, ImpactDetails } from '../alert/impact/ImpactBadge'
 
 export const HighlightDock = memo(function HighlightDock({ brokerId, alarms, renderHeader, onPrepareResearch }: {
   brokerId: string | null; alarms: ReturnType<typeof useAlarms>; onPrepareResearch?: (release: InspectorRelease) => void
@@ -28,6 +30,7 @@ export const HighlightDock = memo(function HighlightDock({ brokerId, alarms, ren
   })
   const highlights = useHighlights(brokerId, 2000, visibility === 'archived' ? 'archived' : 'active')
   const external = useExternalSources('all', 'all')
+  const impact = useAlertImpact(brokerId)
   const pins = useExternalPin(external.refresh)
   const [now, setNow] = useState(Date.now)
   const times = useMemo(() => [...highlights.items.flatMap(item => item.events.flatMap(event =>
@@ -82,14 +85,19 @@ export const HighlightDock = memo(function HighlightDock({ brokerId, alarms, ren
       {!brokerId && <p role="status">Connect calendar storage to load MT5 pins.</p>}
       {external.error && <p role="status">External Source: {external.error}</p>}
       {pins.error && <p role="status">{pins.error}</p>}
+      {impact.error && <p role="status">{impact.error}</p>}
       {external.loading && <p role="status">Loading External Source pins…</p>}
       {hiddenCount > 0 && <p role="status">{hiddenCount} {hiddenCount === 1 ? 'Highlight hidden' : 'Highlights hidden'} · time unconfirmed. Turn off Hide unconfirmed times to show {hiddenCount === 1 ? 'it' : 'them'}.</p>}
       {!rows.length && !external.loading && <p>{visibility === 'archived' ? 'No archived Highlights for this currency.' : 'Pin events from MT5 Calendar or External Source to keep them here.'}</p>}
       <div className="highlight-list unified-highlight-list" aria-label="Highlighted releases">{visibleRows.map(row => row.source === 'mt5' ?
         <HighlightCard key={row.key} item={row.item} now={now} timeDisplay={jakartaDisplay} sourceLabel="MT5 Calendar"
+          impact={<ImpactBadge item={impact.byKey.get(`highlight:${row.item.source_id}:${row.item.id}`)} />}
+          impactDetails={<ImpactDetails item={impact.byKey.get(`highlight:${row.item.source_id}:${row.item.id}`)} />}
           archive={highlights.archive} restore={highlights.restore} busy={highlights.busy} onPrepareResearch={onPrepareResearch}
           alarm={<EventAlarmButton alarms={alarms} source="highlight" reference={row.item.id} broker={row.item.source_id} title={row.item.label} now={now} archived={!!row.item.archived_utc} />} /> :
         <ExternalHighlightCard key={row.key} item={row.item} now={now} busy={pins.busy} changePin={pins.changePin}
+          impact={<ImpactBadge item={impact.byKey.get(`external:${row.item.key}`)} />}
+          impactDetails={<ImpactDetails item={impact.byKey.get(`external:${row.item.key}`)} />}
           alarm={<EventAlarmButton alarms={alarms} source="external" reference={row.item.key} title={row.item.title} now={now} archived={row.item.archived} />} />)}</div>
     </>
   </section></CalendarClock>

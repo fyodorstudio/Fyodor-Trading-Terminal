@@ -22,6 +22,7 @@ bridge/mql5/compile-*.log
 /Market Analyst Workflow/journal/
 /Market Analyst Workflow/prompts/
 /Market Analyst Workflow/limitations/
+/Market Analyst Workflow/alert-impact/
 /Market Analyst Workflow/external-sources/
 /Market Analyst Workflow/.fyodor-storage.lock
 !/Market Analyst Workflow/report/.gitkeep

@@ -114,6 +114,12 @@ probabilities or guaranteed entries. Later-month recommendations need a fresh
 backdrop and expectations check near publication.
 
 Recommend first. Pin/archive/restore only when the user authorizes those actions.
+When the user requests AI impact labels, use the [Alert impact workflow](../../../docs/HIGHLIGHT-JOURNAL.md#ai-impact-in-alert):
+assess the specific occurrence against current policy concerns and incremental
+information, read its prior assessment, then save High/Medium/Low with a reason,
+sources and real research cutoff. These labels belong only to Alert Highlight,
+never use MT5 importance as a fallback, and are separate from direction or entry
+quality. Do not infer ratings from fixed indicator tiers or a subsequent price move.
 When authorized, use the documented CLI with exact source/value IDs, verify the
 result and preserve prior journals. Save Before release research only when
 requested, including an occurrence-specific Copy Prompt. A request to review

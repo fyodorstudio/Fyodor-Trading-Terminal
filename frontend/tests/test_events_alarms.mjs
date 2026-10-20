@@ -47,6 +47,10 @@ let data = { application: 'fyodor-alarms', revision: 1, now, native_available: t
     event('another-broker', { broker: 'other' }), event('treasury', { reference: 'treasury', source: 'external', broker: null }),
     event('unknown', { reference: 'unknown-hour', source: 'external', broker: null, at: null, date: '2026-10-15', eligible: false, armed: false })] }
 const requests = []
+const impactItem = (source, reference, level) => ({ id: `${source}-${reference}`, key: source === 'highlight' ? `highlight:demo:${reference}` : `external:${reference}`,
+  source, reference, broker: source === 'highlight' ? 'demo' : '', level, reason: 'Policy relevance assessed from current guidance.',
+  as_of_utc: '2026-10-14T08:00:00Z', saved_utc: '2026-10-14T08:01:00Z', sources: [{ kind: 'web', label: 'Policy source', locator: 'https://www.bankofcanada.ca/' }] })
+const impactItems = [impactItem('highlight', pin.id, 'low'), impactItem('external', 'treasury', 'high')]
 globalThis.fetch = async (url, options = {}) => {
   requests.push({ url: String(url), options })
   if (String(url).startsWith('/alarm-api')) {
@@ -63,6 +67,8 @@ globalThis.fetch = async (url, options = {}) => {
     return { ok: true, json: async () => invalid ? {} : structuredClone(data) }
   }
   const route = new URL(String(url), 'http://localhost'), params = route.searchParams
+  if (route.pathname === '/storage-api/alert-impact') return { ok: true, json: async () => params.get('after_revision') === 'impact' ?
+    { broker: params.get('source_id'), revision: 'impact', unchanged: true } : { broker: params.get('source_id'), revision: 'impact', items: impactItems } }
   if (route.pathname.startsWith('/storage-api/external-sources/') && options.method === 'POST') {
     const [, , , key, action] = route.pathname.split('/')
     const item = externalItems.find(item => item.key === key)
@@ -102,6 +108,13 @@ try {
   assert.equal(button('Highlight').getAttribute('aria-pressed'), 'true')
   assert.equal(node.querySelectorAll('.unified-highlight-list .highlight-card').length, 3, 'One shortlist contains both saved sources')
   assert.equal(node.querySelectorAll('.highlight-source').length, 3)
+  assert.equal(node.querySelector('[data-highlight-id="pin-cpi"] [aria-label="AI impact: Low"]').textContent.trim(), 'AI Low', 'Agent impact overrides no provider data: high-importance MT5 fixture displays saved AI Low')
+  assert.ok(node.querySelector('[data-external-key="treasury"] [aria-label="AI impact: High"]'))
+  assert.ok(node.querySelector('[data-external-key="unknown-hour"] [aria-label="AI impact: Not assessed"]'), 'Unrated records never inherit a broker rating')
+  await click(node.querySelector('[data-highlight-id="pin-cpi"] .highlight-toggle'))
+  assert.match(node.querySelector('[data-highlight-id="pin-cpi"] .alert-ai-impact-details').textContent, /03:00 PM.*Jakarta/)
+  assert.equal(node.querySelector('[data-highlight-id="pin-cpi"] .alert-ai-impact-details a').href, 'https://www.bankofcanada.ca/')
+  await click(node.querySelector('[data-highlight-id="pin-cpi"] .highlight-toggle'))
   assert.ok(node.querySelector('[data-highlight-id="pin-cpi"]').textContent.includes('PM'), 'Highlight uses Jakarta AM/PM')
   assert.equal(node.querySelector('.event-timeline-row'), null)
   assert.ok(!node.textContent.includes('All events'))
@@ -249,6 +262,9 @@ try {
   quietWork('Identical parent props preserve the entire dock boundary')
   resetWork(); await poll()
   quietWork('Unchanged alarm polling preserves collection and card identities')
+  resetWork()
+  await React.act(async () => { for (const [key, timer] of [...timers]) if (timer.ms === 5000) { timers.delete(key); await timer.fn() } })
+  quietWork('Unchanged AI impact and external polling preserve card and sort identities')
   now += 4000
   await React.act(async () => { for (const timer of intervals.values()) timer.fn() })
   assert.match(node.querySelector('[data-highlight-id="scale-0"] .alert-countdown').textContent, /Next series/)

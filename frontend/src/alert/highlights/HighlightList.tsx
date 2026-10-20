@@ -12,11 +12,12 @@ import { HighlightJournal, type JournalView } from './HighlightJournal'
 import type { AlertPreferences, HighlightVisibility } from '../model/alert-preferences'
 import { CalendarBoundary } from '../../inspector/CalendarClock'
 
-export const HighlightCard = memo(function HighlightCard({ item, now, timeDisplay, archive, restore, busy, onPrepareResearch, alarm, sourceLabel }: {
+export const HighlightCard = memo(function HighlightCard({ item, now, timeDisplay, archive, restore, busy, onPrepareResearch, alarm, sourceLabel, impact, impactDetails }: {
   item: Highlight; now: number; timeDisplay: TimeDisplayPreference; archive: (id: string) => Promise<void>; restore: (id: string) => Promise<void>; busy: boolean
   onPrepareResearch?: (release: InspectorRelease) => void
   alarm?: ReactNode
   sourceLabel?: string
+  impact?: ReactNode; impactDetails?: ReactNode
 }) {
   const [expanded, setExpanded] = useState(false)
   const contentId = useId()
@@ -42,7 +43,7 @@ export const HighlightCard = memo(function HighlightCard({ item, now, timeDispla
   const versions = (item.journal ?? []).filter(entry => entry.scope === scope).length
   return <article className="highlight-card" data-highlight-id={item.id}>
     <div className="highlight-header"><button type="button" className="highlight-toggle" aria-expanded={expanded} aria-controls={contentId}
-      onClick={() => setExpanded(value => !value)}><span aria-hidden="true">{expanded ? '▾' : '▸'}</span><span className="alert-currency">{item.currency}</span><strong>{item.label}</strong>
+      onClick={() => setExpanded(value => !value)}><span aria-hidden="true">{expanded ? '▾' : '▸'}</span><span className="highlight-currency-impact"><span className="alert-currency">{item.currency}</span>{impact}</span><strong>{item.label}</strong>
       {sourceLabel && <span className="highlight-source">{sourceLabel}</span>}
       <time>{item.release_at === null ? item.server_time === null ? 'Date unavailable' : `${formatAppTimestamp(item.server_time * 1000, { mode: 'utc', utcOffsetMinutes: 0 }, 'date')} · time unconfirmed` :
         formatAppTimestamp(item.release_at, timeDisplay)}</time>
@@ -60,6 +61,7 @@ export const HighlightCard = memo(function HighlightCard({ item, now, timeDispla
     </div>
     </div>
     <div id={contentId} className="highlight-content" hidden={!expanded}>{expanded && <>
+      {impactDetails}
       <div className="highlight-view-toolbar"><label>View <select aria-label={`Journal view for ${item.label}`} value={selectedView}
         onChange={event => setView(event.target.value as typeof view)}>
         <option value="documentation" disabled={!historical}>Research Documentation</option>
