@@ -3,7 +3,7 @@ from unittest import TestCase
 from unittest.mock import patch
 
 import test_thesis as fixtures
-from storage.thesis_reviews import CATEGORIES, ReviewRequest, append_review, read_reviews, review_context
+from storage.thesis_reviews import CATEGORIES, ReviewEntry, ReviewRequest, append_review, read_reviews, review_context
 
 
 class ReviewTests(TestCase):
@@ -162,3 +162,66 @@ class ReviewTests(TestCase):
         selected = review_context(self.path, 'EURJPY')['latest_review']
         self.assertEqual({view['currency'] for view in selected['currency_views']}, {'EUR','JPY'})
         self.assertEqual(len(read_reviews(self.path)[0]['currency_views']), 8)
+
+    def daily_news(self):
+        sources = [dict(kind='web', label='Published release', locator='https://example.com/release')]
+        return dict(scope='ALL', format='daily_news', as_of_utc='2026-07-15T06:00:00Z',
+            provenance='reconstruction', note='Historical news collected later; original availability checked.',
+            planning_as_of_utc='2026-08-01T06:00:00Z',
+            currency_views=[dict(currency=currency, news=[dict(published_on='2026-07-15',
+                published_at='2026-07-14T18:00:00Z', summary=f'{currency} published news.',
+                verified_utc='2026-08-01T05:00:00Z', sources=sources)], checkpoints=[dict(
+                    title='Scheduled release', event_at='2026-07-15T07:00:00Z',
+                    verified_utc='2026-08-01T05:00:00Z', sources=sources)])
+                for currency in ('USD','EUR','GBP','JPY','CHF','CAD','AUD','NZD')])
+
+    def test_daily_news_saves_numbered_items_without_bias_or_backdrop_and_preserves_history(self):
+        self.paths(); self.save()
+        legacy = append_review(self.review(), self.path)
+        before = json.loads(self.path.with_name('reviews.json').read_text())['reviews']
+        journal = self.path.read_bytes()
+        data = self.daily_news()
+        first_news = data['currency_views'][0]['news'][0]
+        data['currency_views'][0]['news'] = [{**first_news, 'summary': f'USD news item {index + 1}.'} for index in range(4)]
+        data['currency_views'][7].update(news=[], news_gap='No verified relevant same-date news found.')
+        first = append_review(ReviewRequest(**data), self.path)
+        readback = self.snapshot(scope='ALL')['reviews'][0]
+        self.assertEqual(readback['id'], first['id'])
+        self.assertEqual(len(readback['currency_views']), 8)
+        self.assertEqual(len(readback['currency_views'][0]['news']), 4)
+        self.assertEqual(readback['backdrop'], [])
+        self.assertEqual(readback['currency_views'][0]['bias'], '')
+        self.assertEqual(readback['currency_views'][0]['news'][0]['verified_utc'], '2026-08-01T05:00:00Z')
+        append_review(ReviewRequest(**{**data, 'review_id': first['review_id'], 'expected_version': first['id']}), self.path)
+        self.assertEqual(len(self.snapshot(scope='ALL')['reviews'][0]['versions']), 2)
+        self.assertEqual(self.snapshot()['reviews'][0]['id'], legacy['id'])
+        self.assertEqual(json.loads(self.path.with_name('reviews.json').read_text())['reviews'][:len(before)], before)
+        self.assertEqual(self.path.read_bytes(), journal)
+
+    def test_daily_news_rejects_wrong_dates_unsafe_sources_elapsed_events_and_missing_rows(self):
+        good = self.daily_news()
+        for mutate in [lambda d: d['currency_views'].pop(),
+                lambda d: d['currency_views'][0].update(news=[]),
+                lambda d: d['currency_views'][0].update(bias='BUY'),
+                lambda d: d.update(provenance='assessment'),
+                lambda d: d['currency_views'][0]['news'][0].update(published_on='2026-07-14'),
+                lambda d: d['currency_views'][0]['news'][0].update(published_at='2026-07-15T07:00:00Z'),
+                lambda d: d['currency_views'][0]['news'][0].update(verified_utc='2026-07-14T05:00:00Z'),
+                lambda d: d['currency_views'][0]['news'][0]['sources'][0].update(locator='javascript:alert(1)'),
+                lambda d: d['currency_views'][0]['checkpoints'][0].update(event_at='2026-07-15T05:00:00Z'),
+                lambda d: d['currency_views'][0]['checkpoints'][0].update(event_at=None, event_date='2026-07-14'),
+                lambda d: d['currency_views'][0]['checkpoints'][0].update(event_at=None, note='Unscheduled')]:
+            data = json.loads(json.dumps(good)); mutate(data)
+            with self.assertRaises(ValueError): ReviewRequest(**data)
+        good['currency_views'][0]['news'][0].update(published_at=None)
+        good['currency_views'][0]['checkpoints'][0].update(event_at=None, event_date='2026-07-15')
+        self.assertIsNone(ReviewRequest(**good).currency_views[0].news[0].published_at)
+
+    def test_contemporaneous_daily_table_remains_readable_after_its_saved_day(self):
+        data = self.daily_news()
+        data.update(provenance='assessment', note='', planning_as_of_utc='2026-07-15T06:00:00Z')
+        for view in data['currency_views']:
+            view['news'][0]['verified_utc'] = '2026-07-15T05:00:00Z'
+            view['checkpoints'][0]['verified_utc'] = '2026-07-15T05:00:00Z'
+        record = ReviewEntry(**data, id='a'*32, review_id='b'*32, saved_utc='2026-07-15T06:01:00Z')
+        self.assertEqual(record.provenance, 'assessment')

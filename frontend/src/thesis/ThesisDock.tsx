@@ -125,7 +125,7 @@ export const ThesisDock = memo(function ThesisDock() {
         const value = Number(event.target.value); setDay(value); setCopyStatus(''); try { localStorage.setItem('fyodor.thesis.day.v1', String(value)) } catch { /* Retain session choice. */ }
       }}>{Array.from({ length: thesisDays(month) }, (_, index) => <option key={index + 1} value={index + 1}>{index + 1}</option>)}</select></label>}
       <span className="thesis-timezone">Jakarta · AM/PM</span>
-      <button type="button" onClick={() => { void copy() }}>Copy assessment prompt</button>
+      <button type="button" onClick={() => { void copy() }}>{across ? 'Copy fill-date prompt' : 'Copy assessment prompt'}</button>
       <button type="button" disabled={!data} onClick={() => {
         if (!data) return
         setCopyContext(context)
@@ -138,7 +138,7 @@ export const ThesisDock = memo(function ThesisDock() {
       {error && <p className="thesis-notice" role="alert">{error}{data ? ' Showing last loaded assessments.' : ''}</p>}
       {!data && !error && <p className="thesis-notice" role="status">Loading assessments…</p>}
       {data && <>
-        {across ? <ThesisCurrencyTable review={selectedThesisReview(data, selectedDate)} /> : data.reviews?.length ? [
+        {across ? <ThesisCurrencyTable review={selectedThesisReview(data, selectedDate)} selectedDate={selectedDate} /> : data.reviews?.length ? [
           ...data.reviews.map(review => ({ at: review.as_of_utc, key: review.review_id, node: <ReviewBlock review={review} onCopy={copy} /> })),
           ...thesisDateGroups(remaining).map(([date, rows]) => ({ at: rows[0].as_of_utc, key: date, node: <AssessmentTable rows={rows} scope={scope} onCopy={copy} /> })),
         ].sort((a, b) => b.at.localeCompare(a.at)).map(block => <div key={block.key}>{block.node}</div>)

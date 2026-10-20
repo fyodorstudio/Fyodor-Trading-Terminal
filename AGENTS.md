@@ -196,28 +196,31 @@ folders live together under `Market Analyst Workflow/`.
 
 ### Highlight journal and archive scope
 
-- The Thesis dock only documents sourced assessments the user asks an agent to
-  save. Its monthly selector offers JUL/OCT 2026; scheduling and upcoming releases
-  remain in Alert. Across All Currency shows one eight-row standalone-currency
-  table for the selected Jakarta month/day: backdrop, main counterweight and next
-  material checkpoint. No pair tables or expandable research sections in that view.
-  Read with `thesis read --scope ALL`; preserve old pair opportunities/history.
-  For a requested save, use `thesis context --scope <PAIR|ALL>`
-  for the latest shared review and relevant earlier direction across months.
-  Refresh decisive sources; saved interpretation is dated context, not truth.
-  Use `thesis review-append` with `currency_views` for all eight and a complete
-  shared five-category backdrop. Pair rows/opportunity IDs are optional. Save
-  concise bias, counterweight, sourced checkpoints and separate real planning and
-  research cutoffs. A backdrop is not immediate entry confirmation; passing a
-  checkpoint never supplies actuals or fills an assessment. Carry publication/verification dates forward
-  honestly; a new cutoff creates a new review. No routine daily upkeep is implied.
-  The latest invocation on the selected day supplies the table; unassessed days stay blank.
-  Follow [Thesis workflow](docs/THESIS.md) for an explicit save
-  request or its copied assessment prompt: use `pnpm analyst thesis read/append`,
-  preserve version history and real as-of/saved clocks, including outside the
-  visible month. Invoking a release skill or receiving an Alert alone does not
-  authorize a Thesis write. Existing release links and detailed journals remain
-  separate from the compact assessment records and raw observations.
+- The Thesis dock saves research only when requested. Its monthly selector offers
+  JUL/OCT 2026. Across All Currency is one row per currency: **Currency |
+  DD:MM:YYYY FUNDAMENTAL | SOURCE | UPCOMING CHECKPOINT**, with numbered factual
+  news summaries and matching numbered source groups. No bias, confidence or
+  counterweight fields in this view. For a requested fill-date/save or copied
+  fill-date prompt, use the assess-trade-now skill's dated news-table mode.
+  Research all eight currencies across policy, inflation, labor/wages, activity
+  and material off-calendar news; aim for at least four distinct same-date items
+  per currency, using fewer when fewer can be verified. Do not pad with old news,
+  release components, syndications or invented facts; record coverage gaps.
+  Read `thesis read --scope ALL --month <month>` and bounded `thesis context
+  --scope ALL`, then `thesis review-append` with `format: "daily_news"` and all
+  eight `currency_views` containing `news`, `news_gap` and scheduled checkpoints.
+  No forced five-category backdrop or pair opportunities for daily news.
+  Upcoming contains only scheduled news ahead of the saved cutoff; already
+  released results belong in Fundamental. Show Jakarta AM/PM or unknown hours.
+  A past-date fill request authorizes a labelled reconstruction through its
+  requested cutoff/end of day, with actual verification/saved clocks. Future
+  dates remain blank. Preserve old assessments, all versions and pair history.
+  The latest cutoff on the selected day supplies the table; date selection does
+  not invoke research. Follow [Thesis workflow](docs/THESIS.md), verify the saved
+  ID/date/rows by read-back and briefly confirm in chat after completing the save.
+  No routine upkeep, AI scheduling, pins or alarms are implied. Alert owns reminders.
+  Pair assessment saves retain their existing workflow and complete shared
+  backdrop; receiving an Alert or invoking a release skill alone authorizes no write.
   Pair bias and thesis change are separate: a weaker buy/sell case does not
   establish the opposite direction. Save the earlier version ID, qualitative
   change and its evidence; use actual invocation cutoffs or explicitly labelled

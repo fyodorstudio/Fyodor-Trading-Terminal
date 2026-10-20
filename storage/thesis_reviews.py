@@ -52,19 +52,30 @@ class CurrencyCheckpoint(Payload):
 
 class CurrencyView(Payload):
     currency: CalendarCurrency
-    bias: str = Field(min_length=1, max_length=160)
-    summary: str = Field(min_length=1, max_length=1500)
-    counterweight: str = Field(min_length=1, max_length=1000)
-    sources: list[JournalSource] = Field(min_length=1, max_length=8)
+    bias: str = Field(default='', max_length=160)
+    summary: str = Field(default='', max_length=1500)
+    counterweight: str = Field(default='', max_length=1000)
+    sources: list[JournalSource] = Field(default_factory=list, max_length=8)
+    news: list['CurrencyNews'] = Field(default_factory=list, max_length=30)
+    news_gap: str = Field(default='', max_length=1500)
     checkpoints: list[CurrencyCheckpoint] = Field(default_factory=list, max_length=8)
+
+
+class CurrencyNews(Payload):
+    published_on: date
+    published_at: datetime | None = None
+    summary: str = Field(min_length=1, max_length=1500)
+    verified_utc: datetime
+    sources: list[JournalSource] = Field(min_length=1, max_length=8)
 
 
 class ReviewRequest(Payload):
     scope: str
+    format: Literal['assessment', 'daily_news'] = 'assessment'
     as_of_utc: datetime
-    takeaway: str = Field(min_length=1, max_length=2000)
-    horizon: str = Field(min_length=1, max_length=300)
-    backdrop: list[BackdropCell] = Field(min_length=10, max_length=40)
+    takeaway: str = Field(default='', max_length=2000)
+    horizon: str = Field(default='Published news', min_length=1, max_length=300)
+    backdrop: list[BackdropCell] = Field(default_factory=list, max_length=40)
     opportunity_ids: list[str] = Field(default_factory=list, max_length=28)
     currency_views: list[CurrencyView] = Field(default_factory=list, max_length=8)
     planning_as_of_utc: datetime | None = None
@@ -76,24 +87,52 @@ class ReviewRequest(Payload):
 
     @model_validator(mode='after')
     def valid_review(self):
+        from .thesis import JAKARTA
+        daily = self.format == 'daily_news'
         wanted = {(currency, category) for currency in currencies(self.scope) for category in CATEGORIES}
         actual = [(cell.currency, cell.category) for cell in self.backdrop]
-        if len(actual) != len(set(actual)) or set(actual) != wanted:
+        if (not daily or actual) and (len(actual) != len(set(actual)) or set(actual) != wanted):
             raise ValueError('Save a complete five-category backdrop for every reviewed currency, with explicit gaps')
         if self.as_of_utc.tzinfo is None or self.as_of_utc > datetime.now(timezone.utc):
             raise ValueError('Review cutoff needs an explicit offset and cannot be in the future')
         self.as_of_utc = self.as_of_utc.astimezone(timezone.utc)
-        if not self.takeaway.strip() or not self.horizon.strip() or self.provenance == 'reconstruction' and not self.note.strip():
+        recorded_at = getattr(self, 'saved_utc', None) or datetime.now(timezone.utc)
+        if daily and self.as_of_utc.astimezone(JAKARTA).date() < recorded_at.astimezone(JAKARTA).date() and self.provenance != 'reconstruction':
+            raise ValueError('A past daily news table must be labelled reconstruction')
+        if (not daily and not self.takeaway.strip()) or not self.horizon.strip() or self.provenance == 'reconstruction' and not self.note.strip():
             raise ValueError('Keep the takeaway, horizon and reconstruction provenance explicit')
         if len(set(self.opportunity_ids)) != len(self.opportunity_ids) or any(
                 len(identity) != 32 or any(c not in '0123456789abcdef' for c in identity) for identity in self.opportunity_ids):
             raise ValueError('Link unique exact assessment version IDs')
         selected = set(currencies(self.scope))
+        if daily and (self.scope != 'ALL' or self.opportunity_ids or not self.currency_views):
+            raise ValueError('Daily news needs all eight currency rows and no pair opportunities')
         if self.currency_views and (len(self.currency_views) != len(selected)
                 or {item.currency for item in self.currency_views} != selected
-                or any(not all(value.strip() for value in (item.bias, item.summary, item.counterweight))
+                or not daily and any(not all(value.strip() for value in (item.bias, item.summary, item.counterweight))
                        or not any(source.kind == 'web' for source in item.sources) for item in self.currency_views)):
             raise ValueError('Save one standalone view for every reviewed currency')
+        for view in self.currency_views:
+            if daily and (view.bias or view.summary or view.counterweight or view.sources):
+                raise ValueError('Daily news uses sourced news items, without bias, confidence or counterweights')
+            if daily and not view.news and not view.news_gap.strip():
+                raise ValueError('A currency without news needs an explicit coverage gap')
+            for item in view.news:
+                if not item.summary.strip() or not any(source.kind == 'web' for source in item.sources):
+                    raise ValueError('News needs a summary and direct web evidence')
+                if item.published_on != self.as_of_utc.astimezone(JAKARTA).date():
+                    raise ValueError('News publication date must match the selected Jakarta day')
+                if item.verified_utc.tzinfo is None or item.verified_utc > recorded_at:
+                    raise ValueError('News verification needs its real offset-aware clock, no later than now')
+                item.verified_utc = item.verified_utc.astimezone(timezone.utc)
+                if item.published_on > item.verified_utc.astimezone(JAKARTA).date():
+                    raise ValueError('News cannot be verified before its publication date')
+                if item.published_at is not None:
+                    if (item.published_at.tzinfo is None or item.published_at > self.as_of_utc
+                            or item.published_at > item.verified_utc
+                            or item.published_at.astimezone(JAKARTA).date() != item.published_on):
+                        raise ValueError('News publication instant must match its date and precede cutoff and verification')
+                    item.published_at = item.published_at.astimezone(timezone.utc)
         planning = self.planning_as_of_utc
         if planning is not None:
             if planning.tzinfo is None or not self.as_of_utc <= planning <= datetime.now(timezone.utc):
@@ -108,14 +147,17 @@ class ReviewRequest(Payload):
             if item.verified_utc.tzinfo is None or item.verified_utc > planning:
                 raise ValueError('Schedule verification cannot follow the planning cutoff')
             item.verified_utc = item.verified_utc.astimezone(timezone.utc)
+            upcoming_cutoff = self.as_of_utc if daily else planning
             if item.event_at is not None:
-                if item.event_date is not None or item.event_at.tzinfo is None or item.event_at <= planning:
+                if item.event_date is not None or item.event_at.tzinfo is None or item.event_at <= upcoming_cutoff:
                     raise ValueError('Timed upcoming stages need an offset, one clock and a future planning instant')
                 item.event_at = item.event_at.astimezone(timezone.utc)
             elif item.event_date is not None:
                 from .thesis import JAKARTA
-                if item.event_date < planning.astimezone(JAKARTA).date():
+                if item.event_date < upcoming_cutoff.astimezone(JAKARTA).date():
                     raise ValueError('Upcoming source dates cannot precede preparation')
+            elif daily:
+                raise ValueError('Daily upcoming news needs a scheduled date or instant')
             elif not item.note.strip():
                 raise ValueError('Unscheduled catalysts need an explicit timing note')
         for cell in self.backdrop:
@@ -187,8 +229,9 @@ def append_review(request, journal_path):
             if any(source.kind == 'local' and not Path(source.locator).is_file() for item in cell.evidence for source in item.sources):
                 raise ValueError('Local evidence must exist when saved')
         view_sources = [source for view in request.currency_views for source in view.sources]
+        news_sources = [source for view in request.currency_views for item in view.news for source in item.sources]
         checkpoint_sources = [source for view in request.currency_views for checkpoint in view.checkpoints for source in checkpoint.sources]
-        if any(source.kind == 'local' and not Path(source.locator).is_file() for source in view_sources + checkpoint_sources):
+        if any(source.kind == 'local' and not Path(source.locator).is_file() for source in view_sources + news_sources + checkpoint_sources):
             raise ValueError('Local currency evidence must exist when saved')
         entry = ReviewEntry(**{**request.model_dump(), 'review_id': request.review_id or uuid4().hex},
             id=uuid4().hex, saved_utc=datetime.now(timezone.utc))

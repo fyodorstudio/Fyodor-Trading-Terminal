@@ -5,6 +5,12 @@ description: "Wait for an imminent economic release in the active chat, reuse pr
 
 # One Minute Before Release
 
+An explicit request to fill the Thesis date table uses Assess Trade Now's
+[dated news-table mode](../assess-trade-now/references/daily-news.md): save factual
+released news with numbered sources and only future scheduled checkpoints, without
+confidence, counterweights or directional verdicts in that table. A release wait
+alone does not authorize that save.
+
 Follow AGENTS.md and the relevant instructions from
 [Assess Trade Now](../assess-trade-now/SKILL.md), without rereading guidance
 already loaded. This is a bounded active-chat countdown, not a background

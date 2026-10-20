@@ -1,4 +1,4 @@
 interface:
   display_name: "Assess Trade Now"
-  short_description: "Currency news and pair fundamentals with sourced evidence"
-  default_prompt: "Use $assess-trade-now for a web-first assessment of my requested currency, pair or Highlight: lead with a direct buy/sell thesis, then Upcoming events that could change the thesis and a compact category-by-currency backdrop table covering policy/rate projections, inflation, labor/wages, growth and other drivers with dates, ages and implications; local MT5 data is optional and candle analysis is excluded."
+  short_description: "Currency fundamentals and saved daily Thesis news tables"
+  default_prompt: "Use $assess-trade-now for my requested currency assessment or dated Thesis table. For a fill-date request, research all eight currencies, aim for four distinct same-date news items each when available, save factual numbered summaries with matching numbered sources and upcoming scheduled news, verify the save, then briefly confirm in chat; omit bias, confidence and counterweights. For an assessment, use the prompt-time bias workflow. Exclude candles and automatic monitoring."

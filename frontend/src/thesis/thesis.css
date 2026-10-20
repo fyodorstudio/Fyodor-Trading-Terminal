@@ -57,13 +57,16 @@
 .thesis-currency-table { width: 100%; min-width: 1050px; border-collapse: collapse; table-layout: fixed; font: inherit; line-height: 1.75; }
 .thesis-currency-table .currency-name-column { width: 8%; }
 .thesis-currency-table .currency-backdrop-column { width: 42%; }
-.thesis-currency-table .currency-counterweight-column { width: 23%; }
+.thesis-currency-table .currency-source-column { width: 20%; }
 .thesis-currency-table th, .thesis-currency-table td { text-align: left; vertical-align: top; padding: 20px 22px 20px 0; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }
 .thesis-currency-table thead th { position: sticky; top: 0; z-index: 1; background: var(--surface-panel); color: var(--text-muted); font-weight: 600; padding-top: 12px; padding-bottom: 12px; }
 .thesis-currency-table th:last-child, .thesis-currency-table td:last-child { padding-right: 0; }
 .thesis-currency-table th[scope="row"], .thesis-currency-table strong { color: var(--text-strong); font-weight: 600; }
 .thesis-currency-table p { margin: 6px 0 12px; white-space: pre-wrap; }
 .thesis-currency-table p:last-child { margin-bottom: 0; }
+.thesis-currency-table ol { margin: 0; padding-left: 22px; }
+.thesis-currency-table li { margin-bottom: 12px; white-space: pre-wrap; }
+.thesis-currency-table li:last-child { margin-bottom: 0; }
 .thesis-unassessed { color: var(--text-muted); }
 @media (max-width: 800px) {
   .thesis-header { padding: 8px 12px; gap: 8px; }

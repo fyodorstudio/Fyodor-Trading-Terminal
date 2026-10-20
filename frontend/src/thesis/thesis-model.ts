@@ -20,8 +20,9 @@ export const reviewCurrencies = ['USD', 'EUR', 'GBP', 'JPY', 'CHF', 'CAD', 'AUD'
 export type BackdropEvidence = { published_on: string | null; summary: string; verified_utc: string; sources: ThesisSource[]; publication_note: string }
 export type BackdropCell = { currency: string; category: typeof backdropCategories[number]['key']; evidence: BackdropEvidence[]; gap: string }
 export type CurrencyCheckpoint = { title: string; event_at: string | null; event_date: string | null; verified_utc: string; sources: ThesisSource[]; note: string }
-export type CurrencyView = { currency: string; bias: string; summary: string; counterweight: string; sources: ThesisSource[]; checkpoints: CurrencyCheckpoint[] }
-export type ThesisReviewEntry = { id: string; review_id: string; expected_version: string | null; scope: string; as_of_utc: string; saved_utc: string; takeaway: string; horizon: string; backdrop: BackdropCell[]; opportunity_ids: string[]; limitations: string; note: string; provenance: 'assessment' | 'reconstruction'; currency_views?: CurrencyView[]; planning_as_of_utc?: string | null }
+export type CurrencyNews = { published_on: string; published_at?: string | null; summary: string; verified_utc: string; sources: ThesisSource[] }
+export type CurrencyView = { currency: string; bias?: string; summary?: string; counterweight?: string; sources?: ThesisSource[]; news?: CurrencyNews[]; news_gap?: string; checkpoints: CurrencyCheckpoint[] }
+export type ThesisReviewEntry = { id: string; review_id: string; expected_version: string | null; scope: string; format?: 'assessment' | 'daily_news'; as_of_utc: string; saved_utc: string; takeaway: string; horizon: string; backdrop: BackdropCell[]; opportunity_ids: string[]; limitations: string; note: string; provenance: 'assessment' | 'reconstruction'; currency_views?: CurrencyView[]; planning_as_of_utc?: string | null }
 export type ThesisReview = ThesisReviewEntry & { versions: ThesisReviewEntry[]; opportunities: ThesisRow[] }
 export type ThesisSnapshot = { schema: 1; scope: string; month: string; source_id: string | null; revision: string; past: ThesisRow[]; planned?: ThesisPlannedDay[]; reviews?: ThesisReview[] }
 
@@ -63,19 +64,33 @@ function validReviewEntry(value: unknown, scope: string): value is ThesisReviewE
   if (!value || typeof value !== 'object') return false
   const item = value as ThesisReviewEntry
   const currencies = scope === 'ALL' ? [...reviewCurrencies] : [scope.slice(0, 3), scope.slice(3)]
-  return item.scope === scope && ['id', 'review_id', 'takeaway', 'horizon', 'limitations', 'note'].every(key => text(item[key as keyof ThesisReviewEntry]))
+  const daily = item.format === 'daily_news'
+  return item.scope === scope && (item.format === undefined || ['assessment', 'daily_news'].includes(item.format))
+    && (!daily || scope === 'ALL' && Array.isArray(item.currency_views) && item.currency_views.length === 8 && item.opportunity_ids?.length === 0)
+    && ['id', 'review_id', 'takeaway', 'horizon', 'limitations', 'note'].every(key => text(item[key as keyof ThesisReviewEntry]))
     && timestamp(item.as_of_utc) && timestamp(item.saved_utc) && ['assessment', 'reconstruction'].includes(item.provenance)
+    && (!daily || thesisDay(item.as_of_utc) >= thesisDay(item.saved_utc) || item.provenance === 'reconstruction' && !!item.note.trim())
     && (item.expected_version === null || text(item.expected_version)) && Array.isArray(item.opportunity_ids) && item.opportunity_ids.every(text)
     && (item.planning_as_of_utc === undefined || item.planning_as_of_utc === null || timestamp(item.planning_as_of_utc) && Date.parse(item.planning_as_of_utc) >= Date.parse(item.as_of_utc))
     && (item.currency_views === undefined || Array.isArray(item.currency_views) && (!item.currency_views.length || item.currency_views.length === currencies.length
       && new Set(item.currency_views.map(view => view?.currency)).size === currencies.length
-      && item.currency_views.every(view => view && currencies.includes(view.currency) && [view.bias, view.summary, view.counterweight].every(value => text(value) && !!value.trim())
-        && validSources(view.sources) && Array.isArray(view.checkpoints) && view.checkpoints.every(checkpoint => checkpoint && text(checkpoint.title) && !!checkpoint.title.trim()
+      && item.currency_views.every(view => view && currencies.includes(view.currency)
+        && (daily ? [view.bias, view.summary, view.counterweight].every(value => value === undefined || value === '') && (!view.sources || view.sources.length === 0)
+          && Array.isArray(view.news) && (view.news.length > 0 || text(view.news_gap) && !!view.news_gap.trim())
+          : [view.bias, view.summary, view.counterweight].every(value => text(value) && !!value.trim()) && validSources(view.sources))
+        && (view.news_gap === undefined || text(view.news_gap))
+        && (view.news === undefined || Array.isArray(view.news) && view.news.every(news => news && text(news.summary) && !!news.summary.trim()
+          && news.published_on === thesisDay(item.as_of_utc) && timestamp(news.verified_utc) && Date.parse(news.verified_utc) <= Date.parse(item.saved_utc)
+          && thesisDay(news.verified_utc) >= news.published_on && validSources(news.sources)
+          && (news.published_at === undefined || news.published_at === null || timestamp(news.published_at) && thesisDay(news.published_at) === news.published_on
+            && Date.parse(news.published_at) <= Date.parse(item.as_of_utc) && Date.parse(news.published_at) <= Date.parse(news.verified_utc))))
+        && Array.isArray(view.checkpoints) && view.checkpoints.every(checkpoint => checkpoint && text(checkpoint.title) && !!checkpoint.title.trim()
           && text(checkpoint.note) && timestamp(checkpoint.verified_utc) && timestamp(item.planning_as_of_utc) && Date.parse(checkpoint.verified_utc) <= Date.parse(item.planning_as_of_utc)
           && validSources(checkpoint.sources) && (checkpoint.event_at === null
-            ? checkpoint.event_date === null ? !!checkpoint.note.trim() : typeof checkpoint.event_date === 'string' && /^\d{4}-\d\d-\d\d$/.test(checkpoint.event_date)
-            : timestamp(checkpoint.event_at) && checkpoint.event_date === null && Date.parse(checkpoint.event_at) > Date.parse(item.planning_as_of_utc))))))
-    && Array.isArray(item.backdrop) && item.backdrop.length === currencies.length * 5
+            ? checkpoint.event_date === null ? !daily && !!checkpoint.note.trim() : typeof checkpoint.event_date === 'string' && /^\d{4}-\d\d-\d\d$/.test(checkpoint.event_date)
+              && checkpoint.event_date >= thesisDay(daily ? item.as_of_utc : item.planning_as_of_utc)
+            : timestamp(checkpoint.event_at) && checkpoint.event_date === null && Date.parse(checkpoint.event_at) > Date.parse(daily ? item.as_of_utc : item.planning_as_of_utc))))))
+    && Array.isArray(item.backdrop) && (daily && item.backdrop.length === 0 || item.backdrop.length === currencies.length * 5)
     && item.backdrop.every(cell => cell && typeof cell === 'object')
     && new Set(item.backdrop.map(cell => `${cell.currency}:${cell.category}`)).size === item.backdrop.length
     && item.backdrop.every(cell => cell && currencies.includes(cell.currency) && backdropCategories.some(category => category.key === cell.category)
@@ -137,6 +152,22 @@ export function thesisDay(value: string) {
   return new Date(Date.parse(value) + 7 * 3600000).toISOString().slice(0, 10)
 }
 
+export function currencyNewsItems(review: ThesisReview | undefined, currency: string, selectedDate: string): CurrencyNews[] {
+  const view = review?.currency_views?.find(item => item.currency === currency)
+  return (view?.news ?? []).filter(item => item.published_on === selectedDate)
+}
+
+export function currencyUpcoming(review: ThesisReview | undefined, currency: string) {
+  if (!review) return []
+  return [...(review.currency_views?.find(item => item.currency === currency)?.checkpoints ?? [])]
+    .filter(item => item.event_at ? Date.parse(item.event_at) > Date.parse(review.as_of_utc) : !!item.event_date && item.event_date >= thesisDay(review.as_of_utc))
+    .sort((a, b) => (a.event_at ?? a.event_date!).localeCompare(b.event_at ?? b.event_date!))
+}
+
+export function currencyNewsHeading(date: string) {
+  return `${date.slice(8)}:${date.slice(5, 7)}:${date.slice(0, 4)} FUNDAMENTAL`
+}
+
 export function thesisDateGroups(rows: ThesisRow[]) {
   const groups = new Map<string, ThesisRow[]>()
   for (const row of rows) {
@@ -166,5 +197,5 @@ export function thesisPrompt(scope: string, month: string, row?: ThesisRow) {
 }
 
 export function currencyThesisPrompt(date: string) {
-  return `Follow AGENTS.md and use $assess-trade-now at .agents/skills/assess-trade-now/SKILL.md. The Thesis dock is displaying ${date} in Jakarta. Assess USD, EUR, GBP, JPY, CHF, CAD, AUD and NZD as of the actual invocation time; the selected date does not authorize backdating. If I explicitly request a historical reconstruction, use only evidence available at its stated cutoff and label it. No candles/OHLC.\n\nRead docs/THESIS.md and pnpm analyst thesis context --scope ALL first. Refresh current web evidence across policy/expected rate paths, inflation, labor/wages, growth and material off-calendar drivers. Keep saved interpretation as dated context; seek contrary developments.\n\nSave a new ALL review using pnpm analyst thesis review-append with a ReviewRequest JSON inside Lite. The visible view is ONE table: Currency | Current fundamental backdrop | Confidence / main counterweight | Next material checkpoint. Write currency_views for all eight: a clear bias, concise summary, strongest counterweight and decisive direct sources. Do not invent confidence scores or force a directional call. Research all five categories in backdrop for agent context. No pair/opportunity tables, takeaways, expandable research or conditional sections in this view; opportunity_ids may be empty.\n\nPut only material upcoming checkpoints in each currency's checkpoints, earliest first, using verified event_at UTC or event_date when the hour is unknown. Preserve sources and their verified_utc; set planning_as_of_utc to the actual preparation cutoff. Include the outcome that would support or reverse the bias in the checkpoint note when supported. Unknown/unscheduled times stay unknown. No new actuals or entry confirmation just because release time passed. A directional backdrop does not establish an immediate entry or technical timing. User chart/support observations are execution context, not fundamental proof.\n\nThis prompt authorizes the requested review save only. Preserve old review versions, pair history, raw data, pins, alarms and trade notes. A fresh research cutoff creates a new dated review; corrections append at the original cutoff. Answer in chat and confirm the save. Alert owns reminders; no automatic invocation or daily upkeep.`
+  return `Follow AGENTS.md and use the dated Thesis news-table workflow in $assess-trade-now at .agents/skills/assess-trade-now/SKILL.md. Fill and save the Thesis table for ${date} in Asia/Jakarta, covering USD, EUR, GBP, JPY, CHF, CAD, AUD and NZD. This is a factual daily news collection, without bias, confidence, counterweights or trade recommendations.\n\nRead docs/THESIS.md, pnpm analyst thesis read --scope ALL --month ${date.slice(0, 7)} and pnpm analyst thesis context --scope ALL first. Research all eight currencies on the web across policy, inflation, labor/wages, growth and material off-calendar news. Aim for at least four distinct relevant items per currency published on the requested Jakarta date; fewer are fine when fewer can be verified. Syndications and components of the same release are not extra news items. Do not pad with old news, commentary repeating old remarks or invented facts. State coverage gaps plainly. Open direct sources and verify original dates, actuals, revisions and attributed expectations. No candles/OHLC.\n\nSave format: daily_news using pnpm analyst thesis review-append --scope ALL --input <ReviewRequest.json> with a UTF-8 JSON file inside Lite. Use one currency_views entry per currency, each containing news items with summary, published_on, published_at only when verified, real verified_utc and direct sources. Include news_gap when no news was verified or material coverage is incomplete; checkpoints may be empty. Omit legacy bias/summary/counterweight/sources fields. No pair opportunities or mandatory five-category backdrop payload. The table is Currency | ${currencyNewsHeading(date)} | SOURCE | UPCOMING CHECKPOINT: one currency row, numbered summaries and matching numbered source groups; multiple links for one item share its number.\n\nFor today use the real research cutoff; for a past date use the requested historical cutoff or the end of that Jakarta day, provenance reconstruction and an explicit note. A selected past date authorizes this labelled historical news collection; it does not authorize backdating verification or saved clocks. Future dates stay unfilled. Only news available by the cutoff belongs in Fundamental. Put only scheduled upcoming news in checkpoints, earliest first, relative to that cutoff; a release later that day is upcoming until published, then its verified result belongs in news. Research at least the following seven days and the next central-bank meeting when material. Verify schedule sources were available by the historical cutoff. Use event_at UTC or event_date for an unknown hour, factual notes and real verified_utc. Set planning_as_of_utc to the real schedule-check cutoff; do not invent times or conditional trade scenarios.\n\nThis prompt authorizes the requested date's save. Preserve earlier versions, pair history, raw data, pins, alarms and trade notes. A refreshed cutoff creates a new snapshot; corrections append versions at the original cutoff. Complete the research and save before responding; then briefly confirm the date, coverage gaps and save result in chat. Do not substitute a short chat answer for the requested saved table or claim success without a successful write and focused read-back. Date selection starts no research. No automatic invocation, monitoring or daily upkeep.`
 }

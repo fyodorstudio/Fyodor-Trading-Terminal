@@ -1,27 +1,30 @@
 # Thesis dock
 
-Thesis only documents sourced assessments the user asks an agent to save.
-The month selector offers **JUL / OCT 2026**, defaulting to October for a new
-preference. Pair choice defaults to NZDCHF, independently of the chart.
-Saved assessments are newest first. Alert owns scheduling and notifications.
-**Across All Currency** shows one table for the selected Jakarta month/day:
-**Currency | Current fundamental backdrop | Confidence / main counterweight |
-Next material checkpoint**. All eight standalone currencies appear, without pair
-tables, takeaways, conditional sections or disclosure stacks. The latest research
-cutoff on that date wins; other dates never spill into the selection. Days without
-research show eight unassessed rows. The day selector uses the month's actual length.
-New preferences default to this view; turning it off restores the independent pair
-history. Pair history, July reconstructions and raw records remain unchanged.
-Copy Prompt and Markdown export follow the selected date. Export includes the
-underlying dated evidence for agent handoff, without adding pair tables.
-Body, headings and disclosure text use the same 14px type size.
-In pair history, an explicitly requested planning table follows the assessments, earliest first;
-it contains blank days and sourced schedule notes, with no bias or thesis.
+Thesis saves research only when requested. The month selector offers **JUL / OCT
+2026**; the day selector uses the month's actual length. Across All Currency shows
+one row each for USD, EUR, GBP, JPY, CHF, CAD, AUD and NZD:
+**Currency | DD:MM:YYYY FUNDAMENTAL | SOURCE | UPCOMING CHECKPOINT**.
+Fundamental and Source contain matching numbered lists: one summary and its
+source group per item. Upcoming contains numbered scheduled news still ahead at
+the saved cutoff, including later today; known released results belong in
+Fundamental. No bias, confidence, counterweight or trade scenarios in this table.
+The latest cutoff saved for the selected Jakarta day wins; unfilled dates stay
+blank. Older assessments remain preserved and are labelled as older assessments,
+without relabelling their interpretations as today's news.
 
-Copy assessment prompt invokes `assess-trade-now` and explicitly requests a
-save. A direct user request to document an assessment also authorizes saving.
-Invoking `one-minute-before-release` or receiving an Alert alone does not
-implicitly save a Thesis record. No automatic AI invocation or analysis occurs.
+**Copy fill-date prompt** asks an agent to research and save the selected date.
+Aim for four or more distinct relevant same-date news items per currency when
+available; use fewer rather than pad quiet days. One release package or syndicated
+story is one item. Check all five research areas without requiring a five-category
+payload. No research runs on date selection or automatically each day.
+For a past date the prompt explicitly requests a labelled historical collection;
+use only information then available. Future dates stay unfilled.
+
+Turning Across All Currency off restores the independent pair history and
+**Copy assessment prompt**. Pair choice defaults to NZDCHF. Pair assessments,
+July reconstructions, saved versions and raw records remain unchanged. Alert owns
+reminders. Receiving an Alert or invoking a release skill alone does not authorize
+a Thesis save. Body and headings retain the same 14px type size.
 
 **Export Markdown** downloads the selected currency date or pair/month as a portable `.md` file:
 tables, schedule notes, sources, research/saved clocks, limitations, correction
@@ -86,10 +89,54 @@ a later-saved reconstruction was available then. Monthly reads retain full histo
 Use this bounded context instead of loading the whole archive; refresh decisive web
 facts and seek opposing developments. Saved interpretation is not accumulated truth.
 
-For the all-currency table, `review-append` a complete snapshot with `currency_views`
-and all five research categories per currency. Pair opportunity rows are unnecessary;
-`opportunity_ids` may be empty. Existing linked pair records remain preserved but
-are not displayed in Across All Currency. ReviewRequest fields:
+## Daily news save contract
+
+Read the requested month and bounded context first. Save a UTF-8 JSON file inside
+Lite through `pnpm analyst thesis review-append --scope ALL --input <file>`.
+Use `format: "daily_news"`, `scope: "ALL"`, `as_of_utc`, all eight `currency_views`,
+`planning_as_of_utc` when checkpoints exist, and optional `limitations`/`note`.
+Omit `opportunity_ids`, `backdrop`, `takeaway` and legacy interpretation fields.
+Today uses the real research cutoff. Past dates require `provenance:
+"reconstruction"`, a provenance note and their historical cutoff (end of Jakarta
+day when no hour was specified). The writer assigns the real `saved_utc`.
+
+Each currency view contains `currency`, `news`, optional `news_gap`, and
+`checkpoints`. Each news item has:
+
+- `published_on`: the original publication's Jakarta date, matching the selected
+  day; `published_at`: optional verified offset-aware publication instant.
+- `summary`: a concise factual summary, attributing forecasts/opinions and keeping
+  actual/prior/revisions together. Do not place list numbers inside the text.
+- `verified_utc`: real source-check time, which can follow the historical cutoff
+  for a reconstruction; never pretend historical research was checked then.
+- `sources`: direct kind/label/locator/note source objects. Each item needs at least
+  one HTTP(S) web source; several sources for one item share its rendered number.
+
+`news` may have fewer than four items; an empty list requires a specific
+`news_gap` such as no verified relevant same-date releases found after searching.
+Gaps can also explain incomplete source access. Do not invent news to meet a quota.
+Bias/summary/counterweight/top-level sources on the currency view are omitted.
+The UI uses the news array's order for both numbered lists.
+
+Checkpoint fields remain `title`, `event_at` or `event_date`, `verified_utc`,
+`sources`, and optional factual `note`. Supply exactly one scheduled clock/date;
+no unscheduled risks or hypothetical trade outcomes. Events must be ahead of the
+research cutoff; source-date-only items may be on the same day with hour unknown.
+Use the real `planning_as_of_utc` for schedule verification, even during historical
+research. Verify historical schedules were public by that historical cutoff.
+A requested refresh moves known published results into news and removes them from
+Upcoming; the saved snapshot does not change merely because live time passes.
+
+After append, read the month back and verify returned version ID, selected date,
+all eight currency rows, matching news/source groups and future checkpoints.
+Confirm the save and material gaps briefly in chat. A short chat assessment does
+not fulfil a requested table save. Write failures must be reported honestly.
+
+## Legacy and pair review fields
+
+Legacy/pair assessment reviews retain `format: "assessment"` (the default),
+complete five-category `backdrop`, and their existing fields. These remain readable
+and versioned; new dated currency tables use `daily_news` above. Assessment fields:
 
 - `scope`: `ALL` (eight currencies) or an actual pair; `as_of_utc`, `horizon`,
   concise entry-focused `takeaway`, `opportunity_ids`, `backdrop`, optional
