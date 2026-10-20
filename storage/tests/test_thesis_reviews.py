@@ -168,7 +168,10 @@ class ReviewTests(TestCase):
         return dict(scope='ALL', format='daily_news', as_of_utc='2026-07-15T06:00:00Z',
             provenance='reconstruction', note='Historical news collected later; original availability checked.',
             planning_as_of_utc='2026-08-01T06:00:00Z',
-            currency_views=[dict(currency=currency, news=[dict(published_on='2026-07-15',
+            entry_opportunities=[dict(currency='USD', summary='Dominant policy support.', starts_at='2026-07-15T06:00:00Z',
+                ends_at='2026-07-15T16:59:59Z', timing_note='Remaining selected day.', invalidation='Contrary policy news.')],
+            currency_views=[dict(currency=currency, direction=dict(verdict='POTENTIAL STRENGTHENING', reason='Dominant active support.',
+                verified_utc='2026-08-01T05:00:00Z', sources=sources), news=[dict(published_on='2026-07-15',
                 published_at='2026-07-14T18:00:00Z', summary=f'{currency} published news.',
                 verified_utc='2026-08-01T05:00:00Z', sources=sources)], checkpoints=[dict(
                     title='Scheduled release', event_at='2026-07-15T07:00:00Z',
@@ -221,7 +224,41 @@ class ReviewTests(TestCase):
         data = self.daily_news()
         data.update(provenance='assessment', note='', planning_as_of_utc='2026-07-15T06:00:00Z')
         for view in data['currency_views']:
+            view['direction']['verified_utc'] = '2026-07-15T05:00:00Z'
             view['news'][0]['verified_utc'] = '2026-07-15T05:00:00Z'
             view['checkpoints'][0]['verified_utc'] = '2026-07-15T05:00:00Z'
         record = ReviewEntry(**data, id='a'*32, review_id='b'*32, saved_utc='2026-07-15T06:01:00Z')
         self.assertEqual(record.provenance, 'assessment')
+        data['entry_opportunities'][0]['starts_at'] = '2026-07-15T05:59:59Z'
+        with self.assertRaises(ValueError):
+            ReviewEntry(**data, id='a'*32, review_id='b'*32, saved_utc='2026-07-15T06:01:00Z')
+
+
+    def test_daily_directions_are_required_binary_and_confined_to_selected_day(self):
+        good = self.daily_news()
+        for mutate in [lambda d: d['currency_views'][0].update(direction=None),
+                lambda d: d['currency_views'][0]['direction'].update(verdict='MIXED'),
+                lambda d: d['currency_views'][0]['direction'].update(reason=' '),
+                lambda d: d['currency_views'][0]['direction'].update(sources=[]),
+                lambda d: d['currency_views'][0]['direction'].update(verified_utc='2099-01-01T00:00:00Z'),
+                lambda d: d.update(entry_opportunities=[]),
+                lambda d: d['entry_opportunities'].append(d['entry_opportunities'][0]),
+                lambda d: d['entry_opportunities'][0].update(currency='EURUSD'),
+                lambda d: d['entry_opportunities'][0].update(starts_at='2026-07-14T16:59:59Z'),
+                lambda d: d['entry_opportunities'][0].update(ends_at='2026-07-15T17:00:00Z'),
+                lambda d: d['entry_opportunities'][0].update(ends_at='2026-07-15T06:00:00Z'),
+                lambda d: d['entry_opportunities'][0].update(starts_at='2026-07-15T06:00:00'),
+                lambda d: d['entry_opportunities'][0].update(invalidation=' ')]:
+            data = json.loads(json.dumps(good)); mutate(data)
+            with self.subTest(data=data), self.assertRaises(ValueError): ReviewRequest(**data)
+        good['currency_views'][0]['direction']['verdict'] = 'POTENTIAL WEAKENING'
+        self.assertEqual(ReviewRequest(**good).currency_views[0].direction.verdict, 'POTENTIAL WEAKENING')
+
+    def test_legacy_news_only_history_reads_but_new_saves_require_directions(self):
+        data = self.daily_news()
+        data.pop('entry_opportunities')
+        for view in data['currency_views']: view.pop('direction')
+        with self.assertRaises(ValueError): ReviewRequest(**data)
+        record = ReviewEntry(**data, id='a'*32, review_id='b'*32, saved_utc='2026-08-01T06:01:00Z')
+        self.assertEqual(record.entry_opportunities, [])
+        self.assertTrue(all(view.direction is None for view in record.currency_views))

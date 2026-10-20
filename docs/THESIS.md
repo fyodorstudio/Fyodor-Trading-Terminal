@@ -4,10 +4,18 @@ Thesis saves research only when requested. The month selector offers **JUL / OCT
 2026**; the day selector uses the month's actual length. Across All Currency shows
 one row each for USD, EUR, GBP, JPY, CHF, CAD, AUD and NZD:
 **Currency | DD:MM:YYYY FUNDAMENTAL | SOURCE | UPCOMING CHECKPOINT**.
+**TRADE ENTRY OPPORTUNITY** appears first: strongest standalone currency directions,
+with a brief reason, same-day Jakarta window and what would overturn the case.
+No pair scan, cross selection or numeric ranking is involved. Each Fundamental
+cell starts with **POTENTIAL STRENGTHENING** or **POTENTIAL WEAKENING** for that day
+and its dominant reason. Choose one: a preference for caution, opposing indicators
+or a pending release must not replace a directional judgment. Verify or exclude
+unsupported claims instead of withholding a verdict.
+
 Fundamental and Source contain matching numbered lists: one summary and its
 source group per item. Upcoming contains numbered scheduled news still ahead at
 the saved cutoff, including later today; known released results belong in
-Fundamental. No bias, confidence, counterweight or trade scenarios in this table.
+Fundamental. No confidence grades or separate counterweight/scenario columns in this table.
 The latest cutoff saved for the selected Jakarta day wins; unfilled dates stay
 blank. Older assessments remain preserved and are labelled as older assessments,
 without relabelling their interpretations as today's news.
@@ -96,12 +104,27 @@ Lite through `pnpm analyst thesis review-append --scope ALL --input <file>`.
 Use `format: "daily_news"`, `scope: "ALL"`, `as_of_utc`, all eight `currency_views`,
 `planning_as_of_utc` when checkpoints exist, and optional `limitations`/`note`.
 Omit `opportunity_ids`, `backdrop`, `takeaway` and legacy interpretation fields.
+New daily saves require every currency's `direction`: `verdict` (only
+`POTENTIAL STRENGTHENING` / `POTENTIAL WEAKENING`), `reason`, real `verified_utc`
+and direct `sources`. Explain the dominant mechanism and material opposition;
+still-active older evidence retains its original date and belongs in direction
+sources rather than being counted as same-day news.
+
+Require nonempty `entry_opportunities`, strongest currency first. Each has
+`currency`, `summary`, `starts_at`, `ends_at`, `timing_note` and `invalidation`.
+Direction and sources come from its currency row. Windows need explicit offsets,
+start before end, and both instants on the selected Jakarta date. Current windows
+start at/after the cutoff and end by 11:59:59 PM that day. Give narrower timing only
+when verified catalysts support it; otherwise describe the remaining day as the
+assessment window, without inventing an execution minute. Historical windows use
+only evidence known at their start, labelled retrospective. Later-date events stay
+in Upcoming. Older news-only versions remain readable without invented verdicts.
 Today uses the real research cutoff. Past dates require `provenance:
 "reconstruction"`, a provenance note and their historical cutoff (end of Jakarta
 day when no hour was specified). The writer assigns the real `saved_utc`.
 
-Each currency view contains `currency`, `news`, optional `news_gap`, and
-`checkpoints`. Each news item has:
+Each currency view contains `currency`, `direction`, `news`, optional `news_gap`,
+and `checkpoints`. Each news item has:
 
 - `published_on`: the original publication's Jakarta date, matching the selected
   day; `published_at`: optional verified offset-aware publication instant.
@@ -128,7 +151,8 @@ A requested refresh moves known published results into news and removes them fro
 Upcoming; the saved snapshot does not change merely because live time passes.
 
 After append, read the month back and verify returned version ID, selected date,
-all eight currency rows, matching news/source groups and future checkpoints.
+all eight currency verdicts/rows, top standalone summaries and same-day windows,
+matching news/source groups and future checkpoints.
 Confirm the save and material gaps briefly in chat. A short chat assessment does
 not fulfil a requested table save. Write failures must be reported honestly.
 

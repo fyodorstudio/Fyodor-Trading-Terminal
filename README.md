@@ -110,9 +110,10 @@ context tools are included.
 **Thesis** documents agent assessments explicitly requested by the user, newest
 first, independently of the chart. The month selector offers **JUL / OCT 2026**.
 **Across All Currency** shows one eight-currency table for the selected month/day:
-standalone backdrop, main counterweight and next material checkpoint. Pair tables
-and disclosure sections are removed from this view. It has its own dated copied
-prompt and Markdown handoff; existing pair journals remain separate.
+daily strengthening/weakening verdict, sourced news and upcoming checkpoints. A top
+Trade Entry Opportunity section summarizes the strongest standalone currencies with
+windows confined to the selected Jakarta date. No pair scanning in this view.
+It has its own dated copied prompt and Markdown handoff; existing pair journals remain separate.
 Agents use `thesis context`
 for bounded prior context, then refresh evidence and save a new dated review;
 earlier reviews retain their exact opportunity versions and original source dates.

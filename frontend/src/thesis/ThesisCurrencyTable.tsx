@@ -14,6 +14,19 @@ function Links({ sources }: { sources: ThesisSource[] }) {
 
 export const ThesisCurrencyTable = memo(function ThesisCurrencyTable({ review, selectedDate }: { review?: ThesisReview; selectedDate: string }) {
   return <div className="thesis-currency-view">
+    <section className="thesis-currency-opportunities" aria-label="Trade entry opportunity">
+      <h3>TRADE ENTRY OPPORTUNITY</h3>
+      {review?.entry_opportunities?.length ? <ol>{review.entry_opportunities.map(item => {
+        const direction = review.currency_views?.find(view => view.currency === item.currency)?.direction
+        return <li key={item.currency} data-thesis-opportunity={item.currency}>
+          <strong>{item.currency} · {direction?.verdict}</strong>
+          <p>{item.summary}</p>
+          <p>{clock.format(new Date(item.starts_at))} – {clock.format(new Date(item.ends_at))} Jakarta. {item.timing_note}</p>
+          <p>Reassess if: {item.invalidation}</p>
+          {direction && <Links sources={direction.sources} />}
+        </li>
+      })}</ol> : <p className="thesis-unassessed">{review ? 'Currency direction summary not yet saved for this date.' : 'Not filled'}</p>}
+    </section>
     {review && <p className="thesis-currency-cutoff">As of {clock.format(new Date(review.as_of_utc))} Jakarta
       {review.planning_as_of_utc && review.planning_as_of_utc !== review.as_of_utc && <> · Checkpoints prepared {clock.format(new Date(review.planning_as_of_utc))} Jakarta</>}
     </p>}
@@ -27,10 +40,12 @@ export const ThesisCurrencyTable = memo(function ThesisCurrencyTable({ review, s
         const checkpoints = currencyUpcoming(review, currency)
         return <tr key={currency} data-thesis-currency={currency}>
           <th scope="row">{currency}</th>
-          <td>{news.length ? <ol>{news.map((item, index) => <li key={index}>{item.summary}</li>)}</ol>
+          <td>{view?.direction && <div className="thesis-currency-direction">
+            <strong>{view.direction.verdict}</strong><p>{view.direction.reason}</p>
+          </div>}{news.length ? <ol>{news.map((item, index) => <li key={index}>{item.summary}</li>)}</ol>
             : <span className="thesis-unassessed">{review ? view?.news_gap || 'No same-date news saved.' : 'Not filled'}</span>}
             {news.length > 0 && view?.news_gap && <p className="thesis-unassessed">{view.news_gap}</p>}</td>
-          <td>{news.length ? <ol>{news.map((item, index) => <li key={index}><Links sources={item.sources} /></li>)}</ol> : '—'}</td>
+          <td>{view?.direction && <p>Daily verdict: <Links sources={view.direction.sources} /></p>}{news.length ? <ol>{news.map((item, index) => <li key={index}><Links sources={item.sources} /></li>)}</ol> : '—'}</td>
           <td>{checkpoints.length ? <ol>{checkpoints.map((checkpoint, index) => <li key={index}>
             <strong>{checkpoint.title} · {checkpointTime(checkpoint.event_at, checkpoint.event_date)}</strong>
             {checkpoint.note && <> {checkpoint.note}</>} <Links sources={checkpoint.sources} />

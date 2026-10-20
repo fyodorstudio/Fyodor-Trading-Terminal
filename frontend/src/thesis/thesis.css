@@ -68,6 +68,12 @@
 .thesis-currency-table li { margin-bottom: 12px; white-space: pre-wrap; }
 .thesis-currency-table li:last-child { margin-bottom: 0; }
 .thesis-unassessed { color: var(--text-muted); }
+.thesis-currency-opportunities { margin: 18px 0; line-height: 1.75; }
+.thesis-currency-opportunities h3 { margin: 0 0 10px; font-size: 14px; }
+.thesis-currency-opportunities ol { margin: 0; padding-left: 22px; }
+.thesis-currency-opportunities li { margin-bottom: 16px; }
+.thesis-currency-opportunities p { margin: 4px 0; }
+.thesis-currency-direction { margin-bottom: 16px; }
 @media (max-width: 800px) {
   .thesis-header { padding: 8px 12px; gap: 8px; }
   .thesis-scroll { padding: 0 12px 16px; }

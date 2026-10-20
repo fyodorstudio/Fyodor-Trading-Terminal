@@ -199,16 +199,31 @@ folders live together under `Market Analyst Workflow/`.
 - The Thesis dock saves research only when requested. Its monthly selector offers
   JUL/OCT 2026. Across All Currency is one row per currency: **Currency |
   DD:MM:YYYY FUNDAMENTAL | SOURCE | UPCOMING CHECKPOINT**, with numbered factual
-  news summaries and matching numbered source groups. No bias, confidence or
-  counterweight fields in this view. For a requested fill-date/save or copied
-  fill-date prompt, use the assess-trade-now skill's dated news-table mode.
+  news summaries and matching numbered source groups. At the very top, TRADE ENTRY
+  OPPORTUNITY summarizes the strongest standalone currency directions, strongest
+  first; never scan pairs. Each Fundamental cell starts with POTENTIAL STRENGTHENING
+  or POTENTIAL WEAKENING for the selected day and its dominant reason. These are
+  the only verdicts; a preference for caution, conflicting indicators or a pending
+  release must not replace a directional judgment. Weigh causal importance, choose
+  the dominant direction and explain material opposition. Verify or exclude an
+  unsupported claim rather than withhold the currency verdict. No neutral/mixed,
+  unavailable or no-clear-opportunity fallback, scores or confidence grades. For a requested fill-date/save or
+  copied fill-date prompt, use the assess-trade-now skill's dated news-table mode.
   Research all eight currencies across policy, inflation, labor/wages, activity
   and material off-calendar news; aim for at least four distinct same-date items
   per currency, using fewer when fewer can be verified. Do not pad with old news,
   release components, syndications or invented facts; record coverage gaps.
   Read `thesis read --scope ALL --month <month>` and bounded `thesis context
   --scope ALL`, then `thesis review-append` with `format: "daily_news"` and all
-  eight `currency_views` containing `news`, `news_gap` and scheduled checkpoints.
+  eight `currency_views` containing `direction` (two-choice verdict, reason, real
+  verification clock and sources), `news`, `news_gap` and scheduled checkpoints.
+  Save nonempty `entry_opportunities` with currency, summary, starts_at, ends_at,
+  timing_note and invalidation. Both window instants stay within the selected
+  Jakarta date; current windows start at/after the cutoff. Narrow timing only with
+  verified catalysts; otherwise describe cutoff through the remaining day, ending
+  by 11:59:59 PM Jakarta. Historical windows use evidence available at their start
+  and are labelled retrospective. Upcoming contains future releases, never assumed
+  results. Older active context may support direction with original dates.
   No forced five-category backdrop or pair opportunities for daily news.
   Upcoming contains only scheduled news ahead of the saved cutoff; already
   released results belong in Fundamental. Show Jakarta AM/PM or unknown hours.

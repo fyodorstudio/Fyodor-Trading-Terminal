@@ -7,8 +7,10 @@ description: "Assess a currency, pair or Highlight using web-first fundamentals,
 
 For a request to fill/save the Thesis date table or its copied fill-date prompt,
 use [Dated Thesis news table](references/daily-news.md) and docs/THESIS.md. That
-mode researches and saves factual news for the requested date, without directional
-labels, confidence, counterweights or the assessment format below. Complete the
+mode saves factual news, a strengthening/weakening verdict for every currency and
+a top standalone currency opportunity summary confined to that Jakarta date.
+Choose the dominant direction; a preference for caution is not a third verdict.
+Do not scan pairs or use the general assessment format below. Complete the
 saved table and verify the write before giving a brief chat confirmation.
 
 Follow AGENTS.md. Research thoroughly; answer briefly. Infer the requested pair,

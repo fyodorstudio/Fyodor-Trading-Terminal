@@ -60,12 +60,21 @@ function currencyMarkdown(data: ThesisSnapshot, selectedDate: string, exportedAt
     ...(review ? [`Research as of ${timed(review.as_of_utc)}. Saved ${timed(review.saved_utc)}.`,
       ...(review.planning_as_of_utc ? [`Checkpoint preparation as of ${timed(review.planning_as_of_utc)}.`] : [])] : ['No saved news table for this date.']),
     ...(loadError ? [`Storage status: ${text(loadError)}. Using the last successfully loaded data.`] : []), '',
-    `| Currency | ${currencyNewsHeading(selectedDate)} | SOURCE | UPCOMING CHECKPOINT |`, '| --- | --- | --- | --- |']
+    '## TRADE ENTRY OPPORTUNITY', '']
+  for (const [index, item] of (review?.entry_opportunities ?? []).entries()) {
+    const direction = review?.currency_views?.find(view => view.currency === item.currency)?.direction
+    lines.push(`${index + 1}. **${item.currency} · ${direction?.verdict}** — ${text(item.summary)}`,
+      `   ${timed(item.starts_at)} – ${timed(item.ends_at)}. ${text(item.timing_note)}`,
+      `   Reassess if: ${text(item.invalidation)} ${sources(direction?.sources ?? [])}`, '')
+  }
+  if (!review?.entry_opportunities?.length) lines.push(review ? 'Currency direction summary not yet saved for this date.' : 'Not filled', '')
+  lines.push(`| Currency | ${currencyNewsHeading(selectedDate)} | SOURCE | UPCOMING CHECKPOINT |`, '| --- | --- | --- | --- |')
   for (const currency of reviewCurrencies) {
     const view = review?.currency_views?.find(item => item.currency === currency)
     const news = currencyNewsItems(review, currency, selectedDate)
-    const explanation = news.map((item, index) => `${index + 1}. ${text(item.summary)}`).join('<br><br>') || (review ? text(view?.news_gap || 'No same-date news saved.') : 'Not filled')
-    const references = news.map((item, index) => `${index + 1}. ${sources(item.sources)}`).join('<br><br>') || '—'
+    const verdict = view?.direction ? `**${view.direction.verdict}** — ${text(view.direction.reason)}<br><br>` : ''
+    const explanation = verdict + (news.map((item, index) => `${index + 1}. ${text(item.summary)}`).join('<br><br>') || (review ? text(view?.news_gap || 'No same-date news saved.') : 'Not filled'))
+    const references = (view?.direction ? `Daily verdict: ${sources(view.direction.sources)}<br><br>` : '') + (news.map((item, index) => `${index + 1}. ${sources(item.sources)}`).join('<br><br>') || '—')
     const checkpoints = currencyUpcoming(review, currency).map((item, index) =>
       `${index + 1}. **${text(item.title)} — ${item.event_at ? timed(item.event_at) : `${day(item.event_date!)} · hour unverified`}** ${text(item.note)} ${sources(item.sources)}`).join('<br><br>') || '—'
     lines.push(`| **${currency}** | ${explanation}${news.length && view?.news_gap ? '<br>' + text(view.news_gap) : ''} | ${references} | ${checkpoints} |`)
@@ -75,6 +84,7 @@ function currencyMarkdown(data: ThesisSnapshot, selectedDate: string, exportedAt
   if (review) {
     lines.push('## Saved news provenance', '')
     for (const view of review.currency_views ?? []) {
+      if (view.direction) lines.push(`- ${view.currency} daily verdict: ${view.direction.verdict}. ${text(view.direction.reason)} Source checked ${timed(view.direction.verified_utc)}. ${sources(view.direction.sources)}`)
       for (const [index, item] of (view.news ?? []).entries()) lines.push(`- ${view.currency} ${index + 1}: published ${item.published_at ? timed(item.published_at) : item.published_on + ' · publication hour unverified'}; source checked ${timed(item.verified_utc)}. ${text(item.summary)} ${sources(item.sources)}`)
       if (view.news_gap) lines.push(`- ${view.currency}: ${text(view.news_gap)}`)
       if (review.format !== 'daily_news') lines.push(`- Preserved legacy ${view.currency} assessment: ${text(view.bias ?? '')}. ${text(view.summary ?? '')} ${text(view.counterweight ?? '')} ${sources(view.sources ?? [])}`)

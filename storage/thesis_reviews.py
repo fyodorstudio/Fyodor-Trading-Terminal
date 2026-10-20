@@ -59,6 +59,23 @@ class CurrencyView(Payload):
     news: list['CurrencyNews'] = Field(default_factory=list, max_length=30)
     news_gap: str = Field(default='', max_length=1500)
     checkpoints: list[CurrencyCheckpoint] = Field(default_factory=list, max_length=8)
+    direction: 'DailyDirection | None' = None
+
+
+class DailyDirection(Payload):
+    verdict: Literal['POTENTIAL STRENGTHENING', 'POTENTIAL WEAKENING']
+    reason: str = Field(min_length=1, max_length=1500)
+    verified_utc: datetime
+    sources: list[JournalSource] = Field(min_length=1, max_length=8)
+
+
+class CurrencyOpportunity(Payload):
+    currency: CalendarCurrency
+    summary: str = Field(min_length=1, max_length=700)
+    starts_at: datetime
+    ends_at: datetime
+    timing_note: str = Field(min_length=1, max_length=700)
+    invalidation: str = Field(min_length=1, max_length=700)
 
 
 class CurrencyNews(Payload):
@@ -78,6 +95,7 @@ class ReviewRequest(Payload):
     backdrop: list[BackdropCell] = Field(default_factory=list, max_length=40)
     opportunity_ids: list[str] = Field(default_factory=list, max_length=28)
     currency_views: list[CurrencyView] = Field(default_factory=list, max_length=8)
+    entry_opportunities: list[CurrencyOpportunity] = Field(default_factory=list, max_length=8)
     planning_as_of_utc: datetime | None = None
     limitations: str = Field(default='', max_length=4000)
     note: str = Field(default='', max_length=4000)
@@ -114,7 +132,14 @@ class ReviewRequest(Payload):
             raise ValueError('Save one standalone view for every reviewed currency')
         for view in self.currency_views:
             if daily and (view.bias or view.summary or view.counterweight or view.sources):
-                raise ValueError('Daily news uses sourced news items, without bias, confidence or counterweights')
+                raise ValueError('Daily news uses direction and news; omit legacy bias, summary, counterweight and sources fields')
+            if view.direction:
+                direction = view.direction
+                if not daily or not direction.reason.strip() or not any(source.kind == 'web' for source in direction.sources):
+                    raise ValueError('Daily directions need a dominant reason and direct web evidence')
+                if direction.verified_utc.tzinfo is None or direction.verified_utc > recorded_at:
+                    raise ValueError('Direction verification needs its real offset-aware clock, no later than now')
+                direction.verified_utc = direction.verified_utc.astimezone(timezone.utc)
             if daily and not view.news and not view.news_gap.strip():
                 raise ValueError('A currency without news needs an explicit coverage gap')
             for item in view.news:
@@ -133,6 +158,27 @@ class ReviewRequest(Payload):
                             or item.published_at.astimezone(JAKARTA).date() != item.published_on):
                         raise ValueError('News publication instant must match its date and precede cutoff and verification')
                     item.published_at = item.published_at.astimezone(timezone.utc)
+        # Older saved news-only records remain readable; every new daily save is directional.
+        directional = any(view.direction for view in self.currency_views) or bool(self.entry_opportunities)
+        if daily and (directional or not getattr(self, 'saved_utc', None)):
+            if not all(view.direction for view in self.currency_views) or not self.entry_opportunities:
+                raise ValueError('Choose strengthening or weakening for all eight currencies and summarize the strongest directions')
+        if self.entry_opportunities and not daily:
+            raise ValueError('Standalone currency entry summaries belong to daily news')
+        if len({item.currency for item in self.entry_opportunities}) != len(self.entry_opportunities):
+            raise ValueError('Summarize each selected currency once, strongest direction first')
+        selected_day = self.as_of_utc.astimezone(JAKARTA).date()
+        for item in self.entry_opportunities:
+            if not all(value.strip() for value in (item.summary, item.timing_note, item.invalidation)):
+                raise ValueError('Currency entry summaries need a reason, timing explanation and invalidation')
+            if (item.starts_at.tzinfo is None or item.ends_at.tzinfo is None or item.starts_at >= item.ends_at
+                    or item.starts_at.astimezone(JAKARTA).date() != selected_day
+                    or item.ends_at.astimezone(JAKARTA).date() != selected_day):
+                raise ValueError('Entry windows must stay within the selected Jakarta date, start before end and include offsets')
+            if self.provenance != 'reconstruction' and item.starts_at < self.as_of_utc:
+                raise ValueError('Current entry windows start at or after the research cutoff')
+            item.starts_at = item.starts_at.astimezone(timezone.utc)
+            item.ends_at = item.ends_at.astimezone(timezone.utc)
         planning = self.planning_as_of_utc
         if planning is not None:
             if planning.tzinfo is None or not self.as_of_utc <= planning <= datetime.now(timezone.utc):
@@ -231,7 +277,8 @@ def append_review(request, journal_path):
         view_sources = [source for view in request.currency_views for source in view.sources]
         news_sources = [source for view in request.currency_views for item in view.news for source in item.sources]
         checkpoint_sources = [source for view in request.currency_views for checkpoint in view.checkpoints for source in checkpoint.sources]
-        if any(source.kind == 'local' and not Path(source.locator).is_file() for source in view_sources + news_sources + checkpoint_sources):
+        direction_sources = [source for view in request.currency_views if view.direction for source in view.direction.sources]
+        if any(source.kind == 'local' and not Path(source.locator).is_file() for source in view_sources + news_sources + checkpoint_sources + direction_sources):
             raise ValueError('Local currency evidence must exist when saved')
         entry = ReviewEntry(**{**request.model_dump(), 'review_id': request.review_id or uuid4().hex},
             id=uuid4().hex, saved_utc=datetime.now(timezone.utc))
@@ -299,6 +346,7 @@ def review_context(journal_path, scope, as_of=None):
         review['backdrop'] = [cell for cell in review['backdrop'] if cell['currency'] in selected]
         review['opportunities'] = [item for item in review['opportunities'] if item['scope'] == scope]
         review['currency_views'] = [item for item in review['currency_views'] if item['currency'] in selected]
+        review['entry_opportunities'] = [item for item in review['entry_opportunities'] if item['currency'] in selected]
     corrected = {(item['row_id'], item['as_of_utc']): item for item in entries}
     pair_entries = sorted([item for item in corrected.values() if scope == 'ALL' and item['collection'] == 'across' or item['scope'] == scope],
         key=lambda item: (item['as_of_utc'], item['saved_utc']), reverse=True)
