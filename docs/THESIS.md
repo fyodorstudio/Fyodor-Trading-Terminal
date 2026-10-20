@@ -119,6 +119,9 @@ when verified catalysts support it; otherwise describe the remaining day as the
 assessment window, without inventing an execution minute. Historical windows use
 only evidence known at their start, labelled retrospective. Later-date events stay
 in Upcoming. Older news-only versions remain readable without invented verdicts.
+The UI and export show shared timing once above the currency list; distinct windows
+stay with their currency. Keep `timing_note` to a brief currency-specific catalyst
+or reassessment trigger. Do not restate dates, window bounds or generic timing caveats.
 Today uses the real research cutoff. Past dates require `provenance:
 "reconstruction"`, a provenance note and their historical cutoff (end of Jakarta
 day when no hour was specified). The writer assigns the real `saved_utc`.

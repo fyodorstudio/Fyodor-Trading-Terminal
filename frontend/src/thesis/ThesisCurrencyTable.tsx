@@ -1,5 +1,5 @@
 import { memo } from 'react'
-import { currencyNewsHeading, currencyNewsItems, currencyUpcoming, reviewCurrencies, safeThesisLink, type ThesisReview, type ThesisSource } from './thesis-model'
+import { currencyNewsHeading, currencyNewsItems, currencyReviewTiming, currencyUpcoming, opportunityWindow, reviewCurrencies, safeThesisLink, sharedOpportunityWindow, type ThesisReview, type ThesisSource } from './thesis-model'
 
 const clock = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })
 const day = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', month: 'short', day: 'numeric', year: 'numeric' })
@@ -13,23 +13,22 @@ function Links({ sources }: { sources: ThesisSource[] }) {
 }
 
 export const ThesisCurrencyTable = memo(function ThesisCurrencyTable({ review, selectedDate }: { review?: ThesisReview; selectedDate: string }) {
+  const commonWindow = sharedOpportunityWindow(review?.entry_opportunities)
   return <div className="thesis-currency-view">
     <section className="thesis-currency-opportunities" aria-label="Trade entry opportunity">
       <h3>TRADE ENTRY OPPORTUNITY</h3>
+      {review && <p className="thesis-currency-cutoff">{currencyReviewTiming(review)}</p>}
       {review?.entry_opportunities?.length ? <ol>{review.entry_opportunities.map(item => {
         const direction = review.currency_views?.find(view => view.currency === item.currency)?.direction
         return <li key={item.currency} data-thesis-opportunity={item.currency}>
           <strong>{item.currency} · {direction?.verdict}</strong>
           <p>{item.summary}</p>
-          <p>{clock.format(new Date(item.starts_at))} – {clock.format(new Date(item.ends_at))} Jakarta. {item.timing_note}</p>
+          <p>{!commonWindow && <>{opportunityWindow(item)}. </>}{item.timing_note}</p>
           <p>Reassess if: {item.invalidation}</p>
           {direction && <Links sources={direction.sources} />}
         </li>
       })}</ol> : <p className="thesis-unassessed">{review ? 'Currency direction summary not yet saved for this date.' : 'Not filled'}</p>}
     </section>
-    {review && <p className="thesis-currency-cutoff">As of {clock.format(new Date(review.as_of_utc))} Jakarta
-      {review.planning_as_of_utc && review.planning_as_of_utc !== review.as_of_utc && <> · Checkpoints prepared {clock.format(new Date(review.planning_as_of_utc))} Jakarta</>}
-    </p>}
     {review && review.format !== 'daily_news' && <p className="thesis-currency-cutoff">Older assessment retained. Fill this date to save factual news summaries.</p>}
     <table className="thesis-currency-table" aria-label="Currency fundamental backdrop">
       <colgroup><col className="currency-name-column" /><col className="currency-backdrop-column" /><col className="currency-source-column" /><col /></colgroup>

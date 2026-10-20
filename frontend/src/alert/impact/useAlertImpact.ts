@@ -30,11 +30,11 @@ export function useAlertImpact(sourceId: string | null, pollMs = 5000) {
         const query = new URLSearchParams({ source_id: broker })
         if (revision) query.set('after_revision', revision)
         const response = await fetch(`/storage-api/alert-impact?${query}`, { signal: abort.signal })
-        if (!response.ok) throw new Error(response.status === 404 ? 'AI impact needs the updated calendar storage service.' : 'AI impact assessments unavailable.')
+        if (!response.ok) throw new Error(response.status === 404 ? 'Impact ratings need the updated calendar storage service.' : 'Impact assessments unavailable.')
         const data = await response.json()
         if (abort.signal.aborted) return
         if (data.broker !== broker || typeof data.revision !== 'string' || !data.revision
-          || (data.unchanged ? data.revision !== revision : !validItems(data.items, broker))) throw new Error('Invalid AI impact response')
+          || (data.unchanged ? data.revision !== revision : !validItems(data.items, broker))) throw new Error('Invalid impact response')
         revision = data.revision
         if (!data.unchanged) setSnapshot(old => {
           const items = data.items.map((item: AlertImpact) => old.broker === broker ? old.items.find(previous => previous.id === item.id) ?? item : item)
@@ -42,7 +42,7 @@ export function useAlertImpact(sourceId: string | null, pollMs = 5000) {
         })
         setFailure(null)
       } catch (error) {
-        if (!abort.signal.aborted) setFailure({ broker, message: error instanceof Error ? error.message : 'AI impact assessments unavailable.' })
+        if (!abort.signal.aborted) setFailure({ broker, message: error instanceof Error ? error.message : 'Impact assessments unavailable.' })
       } finally {
         if (!abort.signal.aborted && pollMs > 0) timer = window.setTimeout(poll, pollMs)
       }

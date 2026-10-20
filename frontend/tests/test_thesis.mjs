@@ -362,6 +362,7 @@ try {
   assert.equal(validThesisSnapshot({ ...allSnapshot, reviews: [legacyNews] }, 'ALL', '2026-10', null), true)
   for (const view of review.currency_views) view.direction = { verdict: view.currency === 'USD' ? 'POTENTIAL WEAKENING' : 'POTENTIAL STRENGTHENING', reason: `${view.currency} dominant daily driver.`, verified_utc: '2026-10-20T01:00:00Z', sources: [source(1)] }
   review.entry_opportunities = [{ currency: 'USD', summary: 'Strongest standalone pressure.', starts_at: '2026-10-19T08:00:00Z', ends_at: '2026-10-19T16:59:59Z', timing_note: 'Selected day only.', invalidation: 'Contrary policy news.' }]
+  review.entry_opportunities.push({ ...review.entry_opportunities[0], currency: 'EUR', summary: 'Policy support.', timing_note: 'Watch policy remarks.' })
   review.versions = [{ ...review, versions: undefined, opportunities: undefined }]
   assert.equal(validThesisSnapshot({ ...allSnapshot, reviews: [review] }, 'ALL', '2026-10', null), true)
   for (const mutate of [value => value.currency_views[0].direction.verdict = 'MIXED',
@@ -383,7 +384,10 @@ try {
   assert.ok(opportunitySection.textContent.includes('11:59 PM'))
   assert.ok(opportunitySection.textContent.includes('Reassess if: Contrary policy news.'))
   assert.ok(opportunitySection.compareDocumentPosition(dailyTable) & 4, 'Standalone summary is above the currency table')
-  assert.equal(opportunitySection.querySelectorAll('[data-thesis-opportunity]').length, 1)
+  assert.equal(opportunitySection.querySelectorAll('[data-thesis-opportunity]').length, 2)
+  assert.equal(opportunitySection.textContent.match(/11:59 PM/g)?.length, 1, 'Shared assessment timing appears once above the list')
+  assert.ok(opportunitySection.textContent.includes('Assessment through 11:59 PM'))
+  assert.ok([...opportunitySection.querySelectorAll('[data-thesis-opportunity]')].every(node => !node.textContent.includes('Jakarta')), 'Currency notes do not repeat the shared window')
   assert.equal(dailyTable.querySelectorAll('.thesis-currency-direction').length, 8)
   const usd = dailyTable.querySelector('[data-thesis-currency="USD"]')
   assert.equal(dailyTable.querySelectorAll('tbody tr').length, 8)
@@ -404,6 +408,20 @@ try {
   assert.ok(markdown.includes('source checked Oct 20, 2026'))
   assert.ok(markdown.includes('No verified same-date news found.'))
   assert.ok(!markdown.includes('USD strongest counterweight.'))
+  const exportedOpportunities = markdown.split('## TRADE ENTRY OPPORTUNITY')[1].split('| Currency |')[0]
+  assert.equal(exportedOpportunities.match(/11:59 PM/g)?.length, 1, 'Export shares the same compact timing')
+  const sharedReview = review
+  review = structuredClone(review)
+  review.entry_opportunities[1].starts_at = '2026-10-19T09:00:00Z'
+  review.entry_opportunities[1].ends_at = '2026-10-19T12:00:00Z'
+  review.versions = [{ ...review, versions: undefined, opportunities: undefined }]
+  revision = 'different-opportunity-windows'; await poll()
+  assert.ok(container.querySelector('[data-thesis-opportunity="USD"]').textContent.includes('11:59'))
+  const eurWindow = container.querySelector('[data-thesis-opportunity="EUR"]').textContent
+  assert.ok(eurWindow.includes('4:00') && eurWindow.includes('7:00') && eurWindow.includes('Jakarta'), 'Distinct currency windows retain their exact timing')
+  const distinctExport = thesisMarkdown({ ...allSnapshot, reviews: [review] }, '2026-10-20T00:00:00Z', null, '2026-10-19').split('## Agent handoff')[0]
+  assert.ok(distinctExport.includes('4:00') && distinctExport.includes('7:00'), 'Distinct timings remain in export')
+  review = sharedReview; revision = 'shared-opportunity-windows'; await poll()
   await React.act(async () => { daySelect.value = '18'; daySelect.dispatchEvent(new dom.Event('change', { bubbles: true })) })
   assert.ok(!container.textContent.includes('Strongest standalone pressure.'), 'Changing dates clears the prior day’s opportunity')
   assert.equal(container.querySelectorAll('.thesis-currency-direction').length, 0, 'An unfilled day never inherits verdicts')

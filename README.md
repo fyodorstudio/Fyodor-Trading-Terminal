@@ -56,7 +56,7 @@ combines both pinned sources, with date sorting, source labels and filled/outlin
 alarm bells. Currency buttons stay on the right of view controls. Data and research
 remain in their existing stores. Highlight headers show a separate agent-authored
 impact badge when assessed; unassessed
-events show `AI —`. This uses no broker importance or automatic classification.
+events show `—`. This uses no broker importance or automatic classification.
 The [Highlight workflow](docs/HIGHLIGHT-JOURNAL.md#ai-impact-in-alert) covers agent saves.
 Pinned events and confirmed timed external events
 automatically receive one Invoke reminder two minutes before each release stage. Use Test

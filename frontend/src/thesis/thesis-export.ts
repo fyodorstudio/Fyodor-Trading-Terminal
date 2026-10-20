@@ -1,4 +1,4 @@
-import { backdropCategories, currencyNewsHeading, currencyNewsItems, currencyThesisPrompt, currencyUpcoming, reviewCurrencies, safeThesisLink, selectedThesisReview, thesisDay, type ThesisEntry, type ThesisReviewEntry, type ThesisSnapshot, type ThesisSource } from './thesis-model'
+import { backdropCategories, currencyNewsHeading, currencyNewsItems, currencyReviewTiming, currencyThesisPrompt, currencyUpcoming, opportunityWindow, reviewCurrencies, safeThesisLink, selectedThesisReview, sharedOpportunityWindow, thesisDay, type ThesisEntry, type ThesisReviewEntry, type ThesisSnapshot, type ThesisSource } from './thesis-model'
 
 const clock = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })
 const date = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', year: 'numeric', month: 'short', day: 'numeric', weekday: 'short' })
@@ -57,14 +57,15 @@ function reviewRecord(review: ThesisReviewEntry) {
 function currencyMarkdown(data: ThesisSnapshot, selectedDate: string, exportedAt: string, loadError: string | null) {
   const review = selectedThesisReview(data, selectedDate)
   const lines = [`# Currency news — ${selectedDate}`, '', `Exported ${timed(exportedAt)}. Saved-data revision: ${text(data.revision)}.`,
-    ...(review ? [`Research as of ${timed(review.as_of_utc)}. Saved ${timed(review.saved_utc)}.`,
-      ...(review.planning_as_of_utc ? [`Checkpoint preparation as of ${timed(review.planning_as_of_utc)}.`] : [])] : ['No saved news table for this date.']),
+    ...(review ? [`Saved ${timed(review.saved_utc)}.`] : ['No saved news table for this date.']),
     ...(loadError ? [`Storage status: ${text(loadError)}. Using the last successfully loaded data.`] : []), '',
     '## TRADE ENTRY OPPORTUNITY', '']
+  const commonWindow = sharedOpportunityWindow(review?.entry_opportunities)
+  if (review) lines.push(currencyReviewTiming(review), '')
   for (const [index, item] of (review?.entry_opportunities ?? []).entries()) {
     const direction = review?.currency_views?.find(view => view.currency === item.currency)?.direction
     lines.push(`${index + 1}. **${item.currency} · ${direction?.verdict}** — ${text(item.summary)}`,
-      `   ${timed(item.starts_at)} – ${timed(item.ends_at)}. ${text(item.timing_note)}`,
+      `   ${commonWindow ? '' : opportunityWindow(item) + '. '}${text(item.timing_note)}`,
       `   Reassess if: ${text(item.invalidation)} ${sources(direction?.sources ?? [])}`, '')
   }
   if (!review?.entry_opportunities?.length) lines.push(review ? 'Currency direction summary not yet saved for this date.' : 'Not filled', '')

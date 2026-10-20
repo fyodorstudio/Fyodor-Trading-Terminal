@@ -99,9 +99,9 @@ research. --as-of narrows schedule timing, not historical data vintages.
 
 ### AI impact in Alert
 
-Only Alert's Highlight headers show `Currency | AI High / Medium / Low`, with a
+Only Alert's Highlight headers show `Currency | High / Medium / Low`, with a
 colored square. Expanding the card shows the agent's reason, sources and Jakarta
-assessment cutoff. Missing assessments show `AI —`; MT5 importance is never a fallback.
+assessment cutoff. Missing assessments show `—`; MT5 importance is never a fallback.
 Ratings describe expected market relevance, not direction, guaranteed volatility or
 entry quality. Judge the specific occurrence against current policy concerns,
 new information, expectations and publication stages; do not use fixed indicator tiers.
@@ -111,6 +111,10 @@ limited incremental information for the current outlook. A fresh Q&A can outrank
 routine scheduled release. Reassess when the backdrop changes; preserve the cutoff.
 
 Agents save ratings only when requested. Both saved-source identities are supported:
+An instruction to fill Highlight covers every active broker pin and active External
+Source record, with complete pagination, rather than only the recommended shortlist.
+Verify coverage against the live dock data route after saving. Preserve existing
+assessments unless the reviewed evidence calls for an appended update.
 
 ```powershell
 pnpm analyst impact read --broker Elev8-Demo2
