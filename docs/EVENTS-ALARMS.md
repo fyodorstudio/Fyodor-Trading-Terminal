@@ -12,6 +12,18 @@ families, journals, archives, limitations, chart stars and visibility preference
 remain separate. Times use Jakarta AM/PM. Date-only rows show Today on their source
 day; they never receive an invented publication hour.
 
+Highlight's saved **Hide unconfirmed times** toggle filters pins without a known
+hour from both sources, including unscheduled items. A visible count keeps hidden
+pins discoverable; turn the toggle off to show them again. Filtering never archives
+pins or changes alarms. Elapsed and date-only pins remain active until manually
+archived; a passed date does not establish publication.
+
+For an item marked Today with an unconfirmed hour, invoke Assess Trade Now to
+verify the official schedule and current news. Use One Minute Before Release once
+the hour is verified. Date-only items have no timed reminder; reviewing them needs
+a manual check. A confirmed time must be saved in the appropriate source before
+the alarm worker can prepare its reminder.
+
 ## Automatic workflow
 
 Research and pin an important calendar occurrence, or save a confirmed scheduled

@@ -20,6 +20,9 @@ export const HighlightDock = memo(function HighlightDock({ brokerId, alarms, ren
 }) {
   const [preferences, setPreferences] = useState(readAlertPreferences)
   const [visibility, setVisibility] = useState(readHighlightVisibility)
+  const [hideUnconfirmed, setHideUnconfirmed] = useState(() => {
+    try { return localStorage.getItem('fyodor.highlight.hide-unconfirmed.v1') === 'true' } catch { return false }
+  })
   const [order, setOrder] = useState<ExternalDateSort>(() => {
     try { const value = localStorage.getItem('fyodor.highlight.date-sort.v1'); return value === 'earliest' || value === 'latest' ? value : 'upcoming' } catch { return 'upcoming' }
   })
@@ -51,6 +54,8 @@ export const HighlightDock = memo(function HighlightDock({ brokerId, alarms, ren
       return ((order === 'latest' || order === 'upcoming' && !futureA) ? -comparison : comparison) || a.key.localeCompare(b.key)
     })
   }, [highlights.items, external.items, preferences.currency, visibility, order, now])
+  const visibleRows = useMemo(() => hideUnconfirmed ? rows.filter(row => row.at !== null) : rows, [rows, hideUnconfirmed])
+  const hiddenCount = rows.length - visibleRows.length
   return <CalendarClock><CalendarBoundary times={times} onBoundary={setNow} timeDisplay={jakartaDisplay} />
   <section className="alert-dock highlight-dock" aria-label="Highlight">
     {renderHeader(<>
@@ -61,6 +66,12 @@ export const HighlightDock = memo(function HighlightDock({ brokerId, alarms, ren
         const next = event.target.value as ExternalDateSort; setOrder(next)
         try { localStorage.setItem('fyodor.highlight.date-sort.v1', next) } catch { /* Retain session order. */ }
       }}><option value="upcoming">Upcoming first</option><option value="earliest">Earliest first</option><option value="latest">Latest first</option></select></label>
+      <button type="button" aria-pressed={hideUnconfirmed}
+        title="Hide pins without a confirmed hour. They stay pinned; alarms are unchanged."
+        onClick={() => {
+          const next = !hideUnconfirmed; setHideUnconfirmed(next)
+          try { localStorage.setItem('fyodor.highlight.hide-unconfirmed.v1', String(next)) } catch { /* Retain session filter. */ }
+        }}>Hide unconfirmed times</button>
     </>, <nav className="events-currency-buttons" aria-label="Highlight currency">{(['all', ...majorCurrencies] as const).map(currency =>
       <button type="button" key={currency} aria-pressed={preferences.currency === currency} onClick={() => {
         const next = { ...preferences, currency }; setPreferences(next); saveAlertPreferences(next)
@@ -72,8 +83,9 @@ export const HighlightDock = memo(function HighlightDock({ brokerId, alarms, ren
       {external.error && <p role="status">External Source: {external.error}</p>}
       {pins.error && <p role="status">{pins.error}</p>}
       {external.loading && <p role="status">Loading External Source pins…</p>}
+      {hiddenCount > 0 && <p role="status">{hiddenCount} {hiddenCount === 1 ? 'Highlight hidden' : 'Highlights hidden'} · time unconfirmed. Turn off Hide unconfirmed times to show {hiddenCount === 1 ? 'it' : 'them'}.</p>}
       {!rows.length && !external.loading && <p>{visibility === 'archived' ? 'No archived Highlights for this currency.' : 'Pin events from MT5 Calendar or External Source to keep them here.'}</p>}
-      <div className="highlight-list unified-highlight-list" aria-label="Highlighted releases">{rows.map(row => row.source === 'mt5' ?
+      <div className="highlight-list unified-highlight-list" aria-label="Highlighted releases">{visibleRows.map(row => row.source === 'mt5' ?
         <HighlightCard key={row.key} item={row.item} now={now} timeDisplay={jakartaDisplay} sourceLabel="MT5 Calendar"
           archive={highlights.archive} restore={highlights.restore} busy={highlights.busy} onPrepareResearch={onPrepareResearch}
           alarm={<EventAlarmButton alarms={alarms} source="highlight" reference={row.item.id} broker={row.item.source_id} title={row.item.label} now={now} archived={!!row.item.archived_utc} />} /> :

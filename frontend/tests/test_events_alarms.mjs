@@ -113,6 +113,30 @@ try {
   assert.equal(document.querySelector('.alarm-popover'), null)
   const cards = () => [...node.querySelectorAll('.unified-highlight-list .highlight-card')].map(card => card.dataset.externalKey ?? card.dataset.highlightId)
   assert.deepEqual(cards(), ['unknown-hour', 'treasury', 'pin-cpi'], 'Date-only Today stays explicitly unconfirmed; both sources share date ordering')
+  pinItems = [pin, { ...pin, id: 'pin-unknown', label: 'MT5 unknown hour', release_at: null,
+    events: [{ ...reading, time_mode: 1, release_at: null }] }]
+  await React.act(async () => root.render(null)); await render()
+  const beforeFilter = JSON.stringify({ pinItems, externalItems, data })
+  const writesBeforeFilter = requests.filter(request => request.options.method === 'POST').length
+  await click(button('Hide unconfirmed times'))
+  assert.deepEqual(cards(), ['treasury', 'pin-cpi'], 'The toggle hides unconfirmed pins from both sources')
+  assert.match(node.textContent, /2 Highlights hidden/)
+  assert.equal(JSON.stringify({ pinItems, externalItems, data }), beforeFilter, 'Hiding preserves pins, archives and alarm choices')
+  assert.equal(requests.filter(request => request.options.method === 'POST').length, writesBeforeFilter)
+  await React.act(async () => root.render(null)); await render()
+  assert.equal(button('Hide unconfirmed times').getAttribute('aria-pressed'), 'true', 'The filter survives reopening')
+  assert.deepEqual(cards(), ['treasury', 'pin-cpi'])
+  pinItems = pinItems.map(item => item.id === 'pin-unknown' ? { ...item, release_at: reading.release_at,
+    events: [{ ...reading }] } : item)
+  await React.act(async () => window.dispatchEvent(new dom.CustomEvent('fyodor-highlight-changed', { detail: { sourceId: 'demo' } })))
+  assert.ok(cards().includes('pin-unknown'), 'A newly confirmed time reappears while the filter stays enabled')
+  assert.ok(!cards().includes('unknown-hour'))
+  await click(button('Hide unconfirmed times'))
+  assert.ok(cards().includes('unknown-hour'), 'Turning off the filter restores hidden pins')
+  pinItems = [pin]
+  await React.act(async () => root.render(null)); await render()
+  assert.equal(button('Hide unconfirmed times').getAttribute('aria-pressed'), 'false')
+  assert.deepEqual(cards(), ['unknown-hour', 'treasury', 'pin-cpi'])
   const sort = node.querySelector('[aria-label="Sort Highlight by date"]')
   await React.act(async () => { sort.value = 'latest'; sort.dispatchEvent(new dom.Event('change', { bubbles: true })) })
   assert.deepEqual(cards(), ['pin-cpi', 'treasury', 'unknown-hour'])
