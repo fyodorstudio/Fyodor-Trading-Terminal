@@ -36,7 +36,8 @@ export function useBottomDockSize(activeWindow: BottomDockWindow | null) {
     window.addEventListener('storage', restore)
     return () => window.removeEventListener('storage', restore)
   }, [activeWindow])
-  const maxHeight = Math.max(140, Math.floor(Math.min(viewportHeight * .65, viewportHeight - 240)))
+  // Keep the bottom navigation accessible even when the dock fills the workspace.
+  const maxHeight = Math.max(0, viewportHeight - 32)
   const minHeight = Math.min(240, maxHeight)
   const clamp = (height: number) => Math.max(minHeight, Math.min(maxHeight, Math.round(height)))
   const height = clamp(preferredHeight)

@@ -94,6 +94,8 @@ each symbol fits its own prices. Blank chart clicks dismiss nearby-release lists
 and deselect/collapse Inspector, unless placing a drawing. Saved drawings, dock
 sizing and clock/theme/chart preferences keep their original keys. Inspector keeps
 Save/Cancel and reads older pair settings; new saves use shared currency selections.
+Drag the bottom dock's top edge up to fill the workspace above the bottom navigation;
+drag down to shrink it. With the resize handle focused, End maximizes and Home shrinks it.
 Drawings are shared across all timeframes for the same pair, including existing
 saved drawings. Editing or deleting one updates that same drawing on every timeframe.
 The drawing toolbar's delete button clears only the current pair, across all timeframes.

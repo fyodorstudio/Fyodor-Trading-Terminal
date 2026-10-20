@@ -12,6 +12,7 @@
 
 .terminal-workspace {
   min-height: 0;
+  overflow: hidden;
   display: grid;
   grid-template-columns: 320px minmax(0, 1fr);
 }
