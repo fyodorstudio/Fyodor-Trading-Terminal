@@ -6972,6 +6972,1201 @@
       "expected_version": "7841a7f0addf499c8cce33b80e56da29",
       "id": "58a2bba256854a4088e544bcf749a596",
       "saved_utc": "2026-10-20T11:59:21.809190Z"
+    },
+    {
+      "scope": "ALL",
+      "format": "daily_news",
+      "as_of_utc": "2026-10-21T16:24:19Z",
+      "takeaway": "",
+      "horizon": "Intraday: remaining 21 October 2026 Jakarta date only",
+      "backdrop": [],
+      "opportunity_ids": [],
+      "currency_views": [
+        {
+          "currency": "USD",
+          "bias": "",
+          "summary": "",
+          "counterweight": "",
+          "sources": [],
+          "news": [
+            {
+              "published_on": "2026-10-21",
+              "published_at": "2026-10-21T14:52:00Z",
+              "summary": "At 9:52 PM Jakarta, Reuters reported renewed US–Iran diplomatic pessimism and higher oil prices. It also described some easing in AI worries after company news; these are competing dollar channels, rather than a single broad FX theme.",
+              "verified_utc": "2026-10-21T16:34:25Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Reuters — New York FX update, 21 Oct 2026",
+                  "locator": "https://www.devdiscourse.com/article/international/3995860-forex-dollar-mixed-as-traders-wait-on-fed-aussie-gains",
+                  "note": "Full syndicated body retrieved directly. Published 14:52 UTC / 9:52 PM Jakarta; includes renewed oil pressure and some improvement in AI sentiment."
+                }
+              ]
+            },
+            {
+              "published_on": "2026-10-21",
+              "published_at": null,
+              "summary": "The EIA report showed commercial crude stocks down 3.06m barrels and gasoline down 2.95m, while distillates rose 1.68m. Reported net crude imports increased 837,000 barrels/day. These partial balance facts do not alone establish demand strength.",
+              "verified_utc": "2026-10-21T16:34:25Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Investing.com — EIA weekly stocks, 21 Oct 2026",
+                  "locator": "https://www.investing.com/news/commodities-news/us-crude-oil-inventories-drop-306-million-barrels-93CH-4963561",
+                  "note": "Publisher-indexed report read; direct fetch failed. Inventory changes are barrels; the 837,000 b/d net-import change is a flow. No full balance-based tightness conclusion."
+                }
+              ]
+            },
+            {
+              "published_on": "2026-10-21",
+              "published_at": "2026-10-21T14:00:00Z",
+              "summary": "BLS Q3 median weekly earnings were $1,232, up 1.5% y/y versus quarterly CPI growth of 3.5% (unadjusted). The seasonally adjusted median fell to $1,239 from $1,258. Composition-sensitive household earnings are distinct from payroll wage inflation.",
+              "verified_utc": "2026-10-21T16:34:25Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "BLS — Q3 usual weekly earnings, 21 Oct 2026",
+                  "locator": "https://www.bls.gov/news.release/wkyeng.nr0.htm",
+                  "note": "Full publisher-indexed release read. 10:00 AM EDT = 9:00 PM Jakarta. Household survey medians; not payroll average hourly earnings."
+                }
+              ]
+            }
+          ],
+          "news_gap": "Three distinct dated developments verified. No additional same-date Fed policy decision, CPI or national employment release was verified; 14 Oct CPI, 15 Oct retail sales and 20 Oct Fed-survey expectations remain dated background.",
+          "checkpoints": [
+            {
+              "title": "US initial and continuing jobless claims",
+              "event_at": "2026-10-22T12:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-21T16:34:25Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "US Labor Department — weekly claims schedule",
+                  "locator": "https://www.dol.gov/ui/data.pdf",
+                  "note": "Thursday 8:30 AM Eastern; exact 22 Oct occurrence corroborated by broker. New actuals not assumed."
+                }
+              ],
+              "note": "22 Oct, 7:30 PM Jakarta; already pinned."
+            },
+            {
+              "title": "US flash manufacturing/services/composite PMI",
+              "event_at": "2026-10-23T13:45:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-21T16:34:25Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "S&P Global — 2026 PMI publication schedule",
+                  "locator": "https://www.pmi.spglobal.com/Public/Home/PDF/UK_Rel_Dates",
+                  "note": "Publisher-indexed complete UTC schedule checked; direct PDF returned 403. Provisional; recheck nearer release."
+                }
+              ],
+              "note": "23 Oct, 8:45 PM Jakarta; existing External Source pin, provisional schedule."
+            },
+            {
+              "title": "Michigan final sentiment and inflation expectations",
+              "event_at": "2026-10-23T14:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-21T16:34:25Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "University of Michigan — survey release dates",
+                  "locator": "https://www.sca.isr.umich.edu/",
+                  "note": "23 Oct final survey, 10:00 AM EDT; corroborated by broker."
+                }
+              ],
+              "note": "23 Oct, 9:00 PM Jakarta; already pinned. Final release follows the earlier preliminary estimate."
+            },
+            {
+              "title": "FOMC policy decision",
+              "event_at": "2026-10-28T18:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-21T16:34:25Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Federal Reserve — October calendar",
+                  "locator": "https://www.federalreserve.gov/newsevents/2026-october.htm",
+                  "note": "Directly retrieved: 28 Oct decision 2:00 PM EDT; press conference 2:30 PM EDT."
+                }
+              ],
+              "note": "29 Oct, 1:00 AM Jakarta; just beyond seven calendar days from this cutoff."
+            },
+            {
+              "title": "FOMC press conference",
+              "event_at": "2026-10-28T18:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-21T16:34:25Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Federal Reserve — October calendar",
+                  "locator": "https://www.federalreserve.gov/newsevents/2026-october.htm",
+                  "note": "Directly retrieved: 28 Oct decision 2:00 PM EDT; press conference 2:30 PM EDT."
+                }
+              ],
+              "note": "29 Oct, 1:30 AM Jakarta; separate stage, already pinned."
+            }
+          ],
+          "direction": {
+            "verdict": "POTENTIAL WEAKENING",
+            "reason": "21 Oct, remaining session: AI-related fragility and softer real-income evidence leave the dollar under pressure against currencies receiving fresh tightening support. This is an inference, not observed outflows. The expected October Fed hold is continuing context, not a new dovish surprise; renewed oil inflation and improving AI sentiment in the 9:52 PM Jakarta Reuters update limit the case. The 20 Oct economist poll still anticipates a December hike.",
+            "verified_utc": "2026-10-21T16:34:25Z",
+            "sources": [
+              {
+                "kind": "web",
+                "label": "ING — FX Daily, 21 Oct 2026",
+                "locator": "https://think.ing.com/articles/fx-daily-dollar-shows-fresh-vulnerability-to-oil-price-drops/",
+                "note": "Full article retrieved directly. Attributed analyst views and pricing descriptions; no observed capital flows established. Original 20 Oct housing/French-spread developments are not new 21 Oct releases."
+              },
+              {
+                "kind": "web",
+                "label": "BLS — Q3 usual weekly earnings, 21 Oct 2026",
+                "locator": "https://www.bls.gov/news.release/wkyeng.nr0.htm",
+                "note": "Full publisher-indexed release read. 10:00 AM EDT = 9:00 PM Jakarta. Household survey medians; not payroll average hourly earnings."
+              },
+              {
+                "kind": "web",
+                "label": "Reuters — New York FX update, 21 Oct 2026",
+                "locator": "https://www.devdiscourse.com/article/international/3995860-forex-dollar-mixed-as-traders-wait-on-fed-aussie-gains",
+                "note": "Full syndicated body retrieved directly. Published 14:52 UTC / 9:52 PM Jakarta; includes renewed oil pressure and some improvement in AI sentiment."
+              },
+              {
+                "kind": "web",
+                "label": "Investing.com — Reuters economist poll, 20 Oct 2026 (Background)",
+                "locator": "https://www.streetinsider.com/Fed/Federal%2BReserve%2Bseen%2Bskipping%2BOct%2Brate%2Bhike%2Bbut%2Bhiking%2Bin%2BDec%2B-%2BReuters%2Bpoll/27208190.html",
+                "note": "20 Oct 9:38 AM EDT report: 94/100 expect an October hold; all 100 expect a December hike. Economist survey, separate from futures pricing."
+              }
+            ]
+          }
+        },
+        {
+          "currency": "EUR",
+          "bias": "",
+          "summary": "",
+          "counterweight": "",
+          "sources": [],
+          "news": [
+            {
+              "published_on": "2026-10-21",
+              "published_at": null,
+              "summary": "Reuters reported French ten-year government borrowing costs reached 5%, the highest since 2002, as the weakened government struggled to pass its budget. This is a risk-premium development, not evidence of stronger growth.",
+              "verified_utc": "2026-10-21T16:34:25Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Reuters — French borrowing costs, 21 Oct 2026",
+                  "locator": "https://uk.marketscreener.com/news/french-10-year-bond-yields-hit-5-highest-since-july-2002-ce785cd8d180f327",
+                  "note": "Publisher-indexed report read. 5% ten-year yield is a fiscal-risk development, not evidence of supportive monetary tightening."
+                }
+              ]
+            },
+            {
+              "published_on": "2026-10-21",
+              "published_at": null,
+              "summary": "Eurostat's second annual notification put France's 2025 deficit at 5.1% of GDP and debt at 115.7%. EA20 debt rose to 87.7% from 86.6% in 2024. These revised annual figures are distinct from current quarterly debt and today's market yields.",
+              "verified_utc": "2026-10-21T16:34:25Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Eurostat — 2025 deficit/debt second notification, 21 Oct 2026",
+                  "locator": "https://ec.europa.eu/eurostat/en/web/products-euro-indicators/w/2-21102026-ap",
+                  "note": "Full release retrieved. Annual 2025 figures, not Q2 2026 debt; EA20 and EA21 aggregates differ."
+                }
+              ]
+            }
+          ],
+          "news_gap": "Two distinct cutoff-eligible developments verified. Today's ECB resilience blog was read but its publication hour was unavailable, so it is excluded from the prompt-time information set. Lane/Cipollone appearances concern liquidity/payment infrastructure; no fresh rate-path signal was established.",
+          "checkpoints": [
+            {
+              "title": "France October flash PMI",
+              "event_at": "2026-10-23T07:15:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-21T16:34:25Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "S&P Global — 2026 PMI publication schedule",
+                  "locator": "https://www.pmi.spglobal.com/Public/Home/PDF/UK_Rel_Dates",
+                  "note": "Publisher-indexed complete UTC schedule checked; direct PDF returned 403. Provisional; recheck nearer release."
+                }
+              ],
+              "note": "23 Oct, 2:15 PM Jakarta; existing external stage."
+            },
+            {
+              "title": "Germany October flash PMI",
+              "event_at": "2026-10-23T07:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-21T16:34:25Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "S&P Global — 2026 PMI publication schedule",
+                  "locator": "https://www.pmi.spglobal.com/Public/Home/PDF/UK_Rel_Dates",
+                  "note": "Publisher-indexed complete UTC schedule checked; direct PDF returned 403. Provisional; recheck nearer release."
+                }
+              ],
+              "note": "23 Oct, 2:30 PM Jakarta; separate package."
+            },
+            {
+              "title": "Euro-area October flash PMI",
+              "event_at": "2026-10-23T08:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-21T16:34:25Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "S&P Global — 2026 PMI publication schedule",
+                  "locator": "https://www.pmi.spglobal.com/Public/Home/PDF/UK_Rel_Dates",
+                  "note": "Publisher-indexed complete UTC schedule checked; direct PDF returned 403. Provisional; recheck nearer release."
+                }
+              ],
+              "note": "23 Oct, 3:00 PM Jakarta; existing external stage."
+            },
+            {
+              "title": "Moody's scheduled France sovereign-rating review",
+              "event_at": null,
+              "event_date": "2026-10-23",
+              "verified_utc": "2026-10-21T16:34:25Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Reuters — France fiscal risk and ratings checkpoint",
+                  "locator": "https://www.aol.co.uk/articles/french-borrowing-costs-hit-24-131012000.html",
+                  "note": "Dated 21 Oct reporting and existing rating-review record identify Friday 23 Oct review; no exact publication hour."
+                }
+              ],
+              "note": "Hour unknown; a review does not guarantee a rating action. Existing date-only pin."
+            },
+            {
+              "title": "ECB policy decision",
+              "event_at": null,
+              "event_date": "2026-10-29",
+              "verified_utc": "2026-10-21T16:34:25Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "ECB — Governing Council schedule",
+                  "locator": "https://www.ecb.europa.eu/press/calendars/mgcgc/html/index.en.html",
+                  "note": "29 Oct meeting date; stage hours not reverified in this refresh, so date-only."
+                }
+              ],
+              "note": "Next policy meeting, outside seven-day window; decision hour not reverified here."
+            },
+            {
+              "title": "ECB policy press conference",
+              "event_at": null,
+              "event_date": "2026-10-29",
+              "verified_utc": "2026-10-21T16:34:25Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "ECB — Governing Council schedule",
+                  "locator": "https://www.ecb.europa.eu/press/calendars/mgcgc/html/index.en.html",
+                  "note": "29 Oct meeting date; stage hours not reverified in this refresh, so date-only."
+                }
+              ],
+              "note": "Separate stage; hour unverified here. No new staff projection package is assumed."
+            }
+          ],
+          "direction": {
+            "verdict": "POTENTIAL WEAKENING",
+            "reason": "21 Oct, remaining session: French fiscal credibility and unrest remain an active euro headwind; today's rise in borrowing costs reflects sovereign risk. The 10 Sep ECB tightening and resilient broader euro-area activity are material opposition, but do not resolve France's budget problem. A credible fiscal resolution or sustained easing in sovereign stress would change this interpretation.",
+            "verified_utc": "2026-10-21T16:34:25Z",
+            "sources": [
+              {
+                "kind": "web",
+                "label": "Reuters — French borrowing costs, 21 Oct 2026",
+                "locator": "https://uk.marketscreener.com/news/french-10-year-bond-yields-hit-5-highest-since-july-2002-ce785cd8d180f327",
+                "note": "Publisher-indexed report read. 5% ten-year yield is a fiscal-risk development, not evidence of supportive monetary tightening."
+              },
+              {
+                "kind": "web",
+                "label": "Reuters — New York FX update, 21 Oct 2026",
+                "locator": "https://www.devdiscourse.com/article/international/3995860-forex-dollar-mixed-as-traders-wait-on-fed-aussie-gains",
+                "note": "Full syndicated body retrieved directly. Published 14:52 UTC / 9:52 PM Jakarta; includes renewed oil pressure and some improvement in AI sentiment."
+              },
+              {
+                "kind": "web",
+                "label": "Eurostat — 2025 deficit/debt second notification, 21 Oct 2026",
+                "locator": "https://ec.europa.eu/eurostat/en/web/products-euro-indicators/w/2-21102026-ap",
+                "note": "Full release retrieved. Annual 2025 figures, not Q2 2026 debt; EA20 and EA21 aggregates differ."
+              },
+              {
+                "kind": "web",
+                "label": "ECB — 10 September 2026 policy decision (Background)",
+                "locator": "https://www.ecb.europa.eu/press/pr/date/2026/html/ecb.mp260910~314e508016.en.html",
+                "note": "September projections and tightening are background; no assumed new October decision or forward commitment."
+              }
+            ]
+          }
+        },
+        {
+          "currency": "GBP",
+          "bias": "",
+          "summary": "",
+          "counterweight": "",
+          "sources": [],
+          "news": [
+            {
+              "published_on": "2026-10-21",
+              "published_at": "2026-10-21T06:00:00Z",
+              "summary": "ONS CPI rose to 3.5% y/y from 3.1%; core CPI to 2.8% from 2.6%; CPI services to 3.7% from 3.4%. Motor fuels led the headline acceleration; restaurants/hotels partly offset it. Reuters' economist consensus was 3.4%, independently attributed from broker forecasts.",
+              "verified_utc": "2026-10-21T16:34:25Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "ONS — September consumer inflation, 21 Oct 2026",
+                  "locator": "https://www.ons.gov.uk/economy/inflationandpriceindices/bulletins/consumerpriceinflation/september2026",
+                  "note": "Full official release retrieved. CPI 3.5%, core CPI 2.8%, CPI services 3.7%; CPIH is a different measure."
+                },
+                {
+                  "kind": "web",
+                  "label": "Reuters — sterling and November hike expectations, 21 Oct 2026",
+                  "locator": "https://www.marketscreener.com/news/pound-gains-against-dollar-euro-as-inflation-data-cements-future-rate-hike-bets-ce785cd8d08bf326",
+                  "note": "Reuters survey median CPI 3.4%, separate from the broker's forecast; policy expectations are attributed."
+                }
+              ]
+            },
+            {
+              "published_on": "2026-10-21",
+              "published_at": "2026-10-21T06:00:00Z",
+              "summary": "ONS producer input inflation rose to 8.3% y/y from revised 6.7%, factory-gate output inflation to 4.6% from revised 3.8%, and services producer inflation to 4.5% from revised 4.2%. Oil/refining and transport contributed; this is one producer-price package.",
+              "verified_utc": "2026-10-21T16:34:25Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "ONS — September producer prices, 21 Oct 2026",
+                  "locator": "https://www.ons.gov.uk/economy/inflationandpriceindices/bulletins/producerpriceinflation/september2026includingservicesjulytoseptember2026",
+                  "note": "Full official release retrieved; retain revised August input/output comparators and Q2 services comparator."
+                }
+              ]
+            },
+            {
+              "published_on": "2026-10-21",
+              "published_at": "2026-10-21T06:00:00Z",
+              "summary": "ONS borrowing was £24.5bn in September, £1.8bn higher than a year earlier. Financial-year borrowing exceeded the OBR forecast and debt passed £3tn, although the debt/GDP ratio was below a year earlier. This constrains the upcoming Budget.",
+              "verified_utc": "2026-10-21T16:34:25Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "ONS — September public finances, 21 Oct 2026",
+                  "locator": "https://www.ons.gov.uk/economy/governmentpublicsectorandtaxes/publicsectorfinance",
+                  "note": "Official topic page and indexed bulletin checked; borrowing and debt publication. This is separate from the CPI/PPI packages."
+                }
+              ]
+            },
+            {
+              "published_on": "2026-10-21",
+              "published_at": "2026-10-20T17:00:00Z",
+              "summary": "Greene's LSE speech argued wage disinflation had stalled above target-consistent levels and advocated pre-emptive restraint against second-round effects. This is her individual stance. The 20 Oct 6:00 PM BST publication falls at midnight on 21 Oct Jakarta.",
+              "verified_utc": "2026-10-21T16:34:25Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "BoE — Greene LSE speech, 20 Oct UK / 21 Oct Jakarta",
+                  "locator": "https://www.bankofengland.co.uk/speech/2026/october/megan-greene-speech-at-lse-economics-society-london",
+                  "note": "Full speech retrieved. Official publication slot 20 Oct 6:00 PM BST = 21 Oct 12:00 AM Jakarta. Her individual view, not a new MPC decision."
+                }
+              ]
+            }
+          ],
+          "news_gap": "Four distinct publications verified, retaining each release package as one item. Bailey's 8:00 PM Jakarta OMFIF discussion was located, but accessible policy remarks were not verified; no assumed November commitment is taken from that appearance.",
+          "checkpoints": [
+            {
+              "title": "UK September retail sales",
+              "event_at": "2026-10-23T06:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-21T16:34:25Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "ONS — retail sales official release schedule",
+                  "locator": "https://www.ons.gov.uk/releases/retailsalesgreatbritainseptember2026",
+                  "note": "Official-time record already saved and cross-checked against broker: 23 Oct 7:00 AM BST. Existing broker occurrence is marked unavailable; external reminder is active."
+                }
+              ],
+              "note": "23 Oct, 1:00 PM Jakarta; existing official-time external reminder covers the unavailable broker occurrence."
+            },
+            {
+              "title": "UK October flash PMI",
+              "event_at": "2026-10-23T08:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-21T16:34:25Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "S&P Global — 2026 PMI publication schedule",
+                  "locator": "https://www.pmi.spglobal.com/Public/Home/PDF/UK_Rel_Dates",
+                  "note": "Publisher-indexed complete UTC schedule checked; direct PDF returned 403. Provisional; recheck nearer release."
+                }
+              ],
+              "note": "23 Oct, 3:30 PM Jakarta; already pinned externally."
+            },
+            {
+              "title": "UK Budget and OBR forecasts",
+              "event_at": null,
+              "event_date": "2026-10-28",
+              "verified_utc": "2026-10-21T16:34:25Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "HM Treasury — October 28 Budget date",
+                  "locator": "https://www.gov.uk/government/publications/chancellor-letter-to-the-treasury-select-committee-tsc-budget-2026-date",
+                  "note": "Date-only existing sourced record reused; exact speech/OBR publication hours remain unknown."
+                }
+              ],
+              "note": "Exact speech/publication hours unverified; existing date-only external record."
+            },
+            {
+              "title": "BoE decision, minutes and Monetary Policy Report",
+              "event_at": "2026-11-05T12:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-21T16:34:25Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "BoE — November policy announcement",
+                  "locator": "https://www.bankofengland.co.uk/monetary-policy-summary-and-minutes/2026/november-2026",
+                  "note": "5 Nov, noon GMT policy summary/minutes. Media-stage hour unverified."
+                }
+              ],
+              "note": "5 Nov, 7:00 PM Jakarta; next policy meeting outside seven-day scan."
+            },
+            {
+              "title": "BoE subsequent media stage",
+              "event_at": null,
+              "event_date": "2026-11-05",
+              "verified_utc": "2026-10-21T16:34:25Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "BoE — November policy announcement",
+                  "locator": "https://www.bankofengland.co.uk/monetary-policy-summary-and-minutes/2026/november-2026",
+                  "note": "5 Nov, noon GMT policy summary/minutes. Media-stage hour unverified."
+                }
+              ],
+              "note": "Separate stage; hour unverified, no invented reminder minute."
+            }
+          ],
+          "direction": {
+            "verdict": "POTENTIAL STRENGTHENING",
+            "reason": "21 Oct, remaining session: CPI above the separately attributed Reuters consensus and higher core/services inflation reinforce the near-term BoE tightening case. Greene's overnight wage-persistence argument adds support. The inference is strengthening, despite higher borrowing and the risk that airfare-sensitive services overstates persistent pressure; ING judges the later tightening path excessive. A November hike is an expectation, not a promise or a reason to assume unlimited GBP upside.",
+            "verified_utc": "2026-10-21T16:34:25Z",
+            "sources": [
+              {
+                "kind": "web",
+                "label": "ONS — September consumer inflation, 21 Oct 2026",
+                "locator": "https://www.ons.gov.uk/economy/inflationandpriceindices/bulletins/consumerpriceinflation/september2026",
+                "note": "Full official release retrieved. CPI 3.5%, core CPI 2.8%, CPI services 3.7%; CPIH is a different measure."
+              },
+              {
+                "kind": "web",
+                "label": "BoE — Greene LSE speech, 20 Oct UK / 21 Oct Jakarta",
+                "locator": "https://www.bankofengland.co.uk/speech/2026/october/megan-greene-speech-at-lse-economics-society-london",
+                "note": "Full speech retrieved. Official publication slot 20 Oct 6:00 PM BST = 21 Oct 12:00 AM Jakarta. Her individual view, not a new MPC decision."
+              },
+              {
+                "kind": "web",
+                "label": "Reuters — sterling and November hike expectations, 21 Oct 2026",
+                "locator": "https://www.marketscreener.com/news/pound-gains-against-dollar-euro-as-inflation-data-cements-future-rate-hike-bets-ce785cd8d08bf326",
+                "note": "Reuters survey median CPI 3.4%, separate from the broker's forecast; policy expectations are attributed."
+              },
+              {
+                "kind": "web",
+                "label": "ONS — September public finances, 21 Oct 2026",
+                "locator": "https://www.ons.gov.uk/economy/governmentpublicsectorandtaxes/publicsectorfinance",
+                "note": "Official topic page and indexed bulletin checked; borrowing and debt publication. This is separate from the CPI/PPI packages."
+              },
+              {
+                "kind": "web",
+                "label": "ING — FX Daily, 21 Oct 2026",
+                "locator": "https://think.ing.com/articles/fx-daily-dollar-shows-fresh-vulnerability-to-oil-price-drops/",
+                "note": "Full article retrieved directly. Attributed analyst views and pricing descriptions; no observed capital flows established. Original 20 Oct housing/French-spread developments are not new 21 Oct releases."
+              }
+            ]
+          }
+        },
+        {
+          "currency": "JPY",
+          "bias": "",
+          "summary": "",
+          "counterweight": "",
+          "sources": [],
+          "news": [
+            {
+              "published_on": "2026-10-21",
+              "published_at": null,
+              "summary": "Himino told parliament underlying inflation was close to 2%, financial conditions remained accommodative after September's hike, and postponing necessary adjustment risked embedding inflation. He also cited global AI demand supporting exports and investment.",
+              "verified_utc": "2026-10-21T16:34:25Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Reuters — Himino parliamentary remarks, 21 Oct 2026",
+                  "locator": "https://www.investing.com/news/economy-news/bojs-himino-signals-readiness-to-raise-borrowing-costs-4961548",
+                  "note": "Complete body also retrieved via https://pressnewsagency.org/bojs-himino-signals-readiness-to-raise-borrowing-costs/ . Continued tightening guidance; no commitment to an October hike."
+                }
+              ]
+            },
+            {
+              "published_on": "2026-10-21",
+              "published_at": "2026-10-21T04:30:17Z",
+              "summary": "Government preliminary trade figures, reported by AP, showed an April–September deficit of ¥2.81tn. Exports rose 18.4% y/y to ¥63.5tn; imports rose 20.4% to ¥66.3tn amid a higher oil import bill. These are fiscal-half totals.",
+              "verified_utc": "2026-10-21T16:34:25Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "AP — Japan fiscal-half trade data, 21 Oct 2026",
+                  "locator": "https://apnews.com/article/c2265fa62a4511229dd83693d94d32e2",
+                  "note": "4:30 AM UTC report on government data; April–September totals, not the September monthly balance."
+                }
+              ]
+            }
+          ],
+          "news_gap": "Two distinct current-date developments verified. No additional same-date national CPI, wage or GDP release was established. Earlier real-wage gains and weak spending retain their 7/9 Oct publication dates.",
+          "checkpoints": [
+            {
+              "title": "Japan September national CPI package",
+              "event_at": "2026-10-22T23:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-21T16:34:25Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Statistics Bureau of Japan — release schedule",
+                  "locator": "https://www.stat.go.jp/english/data/cpi/1581-z.html",
+                  "note": "23 Oct Japan CPI date/hour corroborated by broker and dated weekly calendars; refresh original publisher near release."
+                }
+              ],
+              "note": "23 Oct, 6:30 AM Jakarta; already pinned. Recheck publisher clock near release."
+            },
+            {
+              "title": "Japan October flash PMI",
+              "event_at": "2026-10-23T00:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-21T16:34:25Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "S&P Global — 2026 PMI publication schedule",
+                  "locator": "https://www.pmi.spglobal.com/Public/Home/PDF/UK_Rel_Dates",
+                  "note": "Publisher-indexed complete UTC schedule checked; direct PDF returned 403. Provisional; recheck nearer release."
+                }
+              ],
+              "note": "23 Oct, 7:30 AM Jakarta; existing external pin."
+            },
+            {
+              "title": "BoJ decision and Bank's View outlook",
+              "event_at": null,
+              "event_date": "2026-10-30",
+              "verified_utc": "2026-10-21T16:34:25Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "BoJ — monetary-policy meeting schedule",
+                  "locator": "https://www.boj.or.jp/en/mopo/mpmsche_minu/index.htm",
+                  "note": "29–30 Oct meeting; no independently confirmed exact decision instant. Retain date-only."
+                }
+              ],
+              "note": "29–30 Oct meeting; decision hour unknown; outside seven-day window."
+            },
+            {
+              "title": "BoJ Governor press conference",
+              "event_at": null,
+              "event_date": "2026-10-30",
+              "verified_utc": "2026-10-21T16:34:25Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "BoJ — monetary-policy meeting schedule",
+                  "locator": "https://www.boj.or.jp/en/mopo/mpmsche_minu/index.htm",
+                  "note": "29–30 Oct meeting; no independently confirmed exact decision instant. Retain date-only."
+                }
+              ],
+              "note": "Separate stage; event-specific hour not reverified."
+            }
+          ],
+          "direction": {
+            "verdict": "POTENTIAL STRENGTHENING",
+            "reason": "21 Oct, remaining session: Himino's warning against delaying necessary adjustment gives current support to further BoJ normalization. It outweighs the near-term currency pressure inferred from Japan's imported-energy bill in this assessment. Weak household spending is a material counterweight. This is a policy-guidance inference, not proof of repricing, inflows or an October hike commitment.",
+            "verified_utc": "2026-10-21T16:34:25Z",
+            "sources": [
+              {
+                "kind": "web",
+                "label": "Reuters — Himino parliamentary remarks, 21 Oct 2026",
+                "locator": "https://www.investing.com/news/economy-news/bojs-himino-signals-readiness-to-raise-borrowing-costs-4961548",
+                "note": "Complete body also retrieved via https://pressnewsagency.org/bojs-himino-signals-readiness-to-raise-borrowing-costs/ . Continued tightening guidance; no commitment to an October hike."
+              },
+              {
+                "kind": "web",
+                "label": "AP — Japan fiscal-half trade data, 21 Oct 2026",
+                "locator": "https://apnews.com/article/c2265fa62a4511229dd83693d94d32e2",
+                "note": "4:30 AM UTC report on government data; April–September totals, not the September monthly balance."
+              },
+              {
+                "kind": "web",
+                "label": "Reuters — Japan household spending, 9 Oct 2026 (Background)",
+                "locator": "https://www.marketscreener.com/news/japanese-annual-household-spending-drops-for-9-straight-months-ce785ddfdc8ef324",
+                "note": "August spending -3.1% y/y, +0.1% m/m; weak demand counterweight."
+              },
+              {
+                "kind": "web",
+                "label": "Reuters — Japan wages, published 7 Oct Japan (Background)",
+                "locator": "https://www.marketscreener.com/news/japan-s-real-wages-rise-for-eighth-straight-month-in-august--ce785dd9df8ef323",
+                "note": "August real wages +1.5% y/y, eighth monthly gain."
+              }
+            ]
+          }
+        },
+        {
+          "currency": "CHF",
+          "bias": "",
+          "summary": "",
+          "counterweight": "",
+          "sources": [],
+          "news": [
+            {
+              "published_on": "2026-10-21",
+              "published_at": null,
+              "summary": "ING's 21 Oct assessment identifies French risk as a continuing channel into EUR/CHF. This is attributed analysis, not verified haven inflow or new SNB tightening.",
+              "verified_utc": "2026-10-21T16:34:25Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "ING — FX Daily, 21 Oct 2026",
+                  "locator": "https://think.ing.com/articles/fx-daily-dollar-shows-fresh-vulnerability-to-oil-price-drops/",
+                  "note": "Full article retrieved directly. Attributed analyst views and pricing descriptions; no observed capital flows established. Original 20 Oct housing/French-spread developments are not new 21 Oct releases."
+                }
+              ]
+            }
+          ],
+          "news_gap": "One relevant same-date analysis verified. SNB listings show data-portal updates, but no fresh 21 Oct policy, CPI, labour or GDP actual was verified. Older Swiss domestic data and 24 Sep policy stay Background; no September intervention warning is redated to today.",
+          "checkpoints": [
+            {
+              "title": "SNB September policy-discussion summary",
+              "event_at": "2026-10-22T07:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-21T16:34:25Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "SNB — official event schedule",
+                  "locator": "https://www.snb.ch/en/services-events/digital-services/event-schedule",
+                  "note": "Indexed official schedule read: 22 Oct 09:30 Swiss summer time; 29 Oct 18:30 Swiss winter time; 10 Dec 09:30/10:00 Swiss winter time."
+                }
+              ],
+              "note": "22 Oct, 2:30 PM Jakarta; existing external pin. Discussion of the prior meeting, not a new rate decision."
+            },
+            {
+              "title": "SNB Tschudin/Moser money-market speech",
+              "event_at": "2026-10-29T17:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-21T16:34:25Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "SNB — official event schedule",
+                  "locator": "https://www.snb.ch/en/services-events/digital-services/event-schedule",
+                  "note": "Indexed official schedule read: 22 Oct 09:30 Swiss summer time; 29 Oct 18:30 Swiss winter time; 10 Dec 09:30/10:00 Swiss winter time."
+                }
+              ],
+              "note": "30 Oct, 12:30 AM Jakarta; outside seven-day window, text planned; liquidity topic, not promised policy guidance."
+            },
+            {
+              "title": "SNB monetary-policy decision",
+              "event_at": "2026-12-10T08:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-21T16:34:25Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "SNB — official event schedule",
+                  "locator": "https://www.snb.ch/en/services-events/digital-services/event-schedule",
+                  "note": "Indexed official schedule read: 22 Oct 09:30 Swiss summer time; 29 Oct 18:30 Swiss winter time; 10 Dec 09:30/10:00 Swiss winter time."
+                }
+              ],
+              "note": "10 Dec, 3:30 PM Jakarta; next policy assessment outside scan."
+            },
+            {
+              "title": "SNB introductory remarks and news conference",
+              "event_at": "2026-12-10T09:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-21T16:34:25Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "SNB — official event schedule",
+                  "locator": "https://www.snb.ch/en/services-events/digital-services/event-schedule",
+                  "note": "Indexed official schedule read: 22 Oct 09:30 Swiss summer time; 29 Oct 18:30 Swiss winter time; 10 Dec 09:30/10:00 Swiss winter time."
+                }
+              ],
+              "note": "10 Dec, 4:00 PM Jakarta; separate stage."
+            }
+          ],
+          "direction": {
+            "verdict": "POTENTIAL STRENGTHENING",
+            "reason": "21 Oct, remaining session: French fiscal stress supports an inferred safety preference for CHF, particularly relative to EUR. This outweighs the continuing zero-rate funding disadvantage for that comparison. The 24 Sep SNB FX-readiness language remains a counterweight, not proof of intervention today; no universal strengthening against every currency is implied.",
+            "verified_utc": "2026-10-21T16:34:25Z",
+            "sources": [
+              {
+                "kind": "web",
+                "label": "ING — FX Daily, 21 Oct 2026",
+                "locator": "https://think.ing.com/articles/fx-daily-dollar-shows-fresh-vulnerability-to-oil-price-drops/",
+                "note": "Full article retrieved directly. Attributed analyst views and pricing descriptions; no observed capital flows established. Original 20 Oct housing/French-spread developments are not new 21 Oct releases."
+              },
+              {
+                "kind": "web",
+                "label": "Reuters — French borrowing costs, 21 Oct 2026",
+                "locator": "https://uk.marketscreener.com/news/french-10-year-bond-yields-hit-5-highest-since-july-2002-ce785cd8d180f327",
+                "note": "Publisher-indexed report read. 5% ten-year yield is a fiscal-risk development, not evidence of supportive monetary tightening."
+              },
+              {
+                "kind": "web",
+                "label": "SNB — 24 September policy assessment (Background)",
+                "locator": "https://www.snb.ch/en/publications/communication/press-releases-restricted/pre_20260924",
+                "note": "Complete publisher-indexed release checked. Rate 0%; conditional forecast assumes 0%, rather than promises it. FX readiness is not proof of current intervention."
+              },
+              {
+                "kind": "web",
+                "label": "FSO — September prices, released 1 Oct 2026 (Background)",
+                "locator": "https://www.geo.admin.ch/en/newnsb/wNfni1DvzKuQ",
+                "note": "Swiss federal release: monthly CPI unchanged; annual inflation 1.0%."
+              }
+            ]
+          }
+        },
+        {
+          "currency": "CAD",
+          "bias": "",
+          "summary": "",
+          "counterweight": "",
+          "sources": [],
+          "news": [
+            {
+              "published_on": "2026-10-21",
+              "published_at": null,
+              "summary": "Reuters cites LSEG pricing of about an 80% chance of a BoC hike next week and around one percentage point of increases over the following 12 months. This is a dated market-pricing snapshot, separate from economist forecasts and official guidance.",
+              "verified_utc": "2026-10-21T16:34:25Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Reuters — Canadian policy pricing, 21 Oct 2026",
+                  "locator": "https://www.marketscreener.com/news/tsx-futures-edge-higher-as-oil-gains-offset-weakness-in-gold-ce785cd8d08cf620",
+                  "note": "Full indexed Reuters report read; LSEG pricing about 80% for a hike next week and 100 bp over 12 months. Not an economist survey or new official promise."
+                }
+              ]
+            },
+            {
+              "published_on": "2026-10-21",
+              "published_at": "2026-10-21T14:52:00Z",
+              "summary": "Reuters reported renewed diplomatic pessimism and higher crude prices on 21 Oct. For Canada's energy-export sector this provides a potential income channel, while broader risk aversion can work against CAD; oil alone is not a sufficient currency verdict.",
+              "verified_utc": "2026-10-21T16:34:25Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Reuters — New York FX update, 21 Oct 2026",
+                  "locator": "https://www.devdiscourse.com/article/international/3995860-forex-dollar-mixed-as-traders-wait-on-fed-aussie-gains",
+                  "note": "Full syndicated body retrieved directly. Published 14:52 UTC / 9:52 PM Jakarta; includes renewed oil pressure and some improvement in AI sentiment."
+                }
+              ]
+            }
+          ],
+          "news_gap": "Two relevant current-date developments verified. No new same-date Canadian CPI, national jobs or GDP actual was established. Trade missions and a reported PBO outlook were researched but not counted without sufficiently verified original publication clocks.",
+          "checkpoints": [
+            {
+              "title": "Canada September industrial-product/raw-material prices",
+              "event_at": "2026-10-22T12:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-21T16:34:25Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Statistics Canada — 2026 release schedule",
+                  "locator": "https://www150.statcan.gc.ca/n1/en/release-diffusion/2026-eng.pdf",
+                  "note": "October 22 IPPI/RMPI; October 23 retail. Hours corroborated by https://forex.tradingcharts.com/economic_calendar/2026-10-21.html?code=cad (8:30 AM Eastern)."
+                }
+              ],
+              "note": "22 Oct, 7:30 PM Jakarta; already pinned."
+            },
+            {
+              "title": "Canada August retail sales",
+              "event_at": "2026-10-23T12:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-21T16:34:25Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Statistics Canada — 2026 release schedule",
+                  "locator": "https://www150.statcan.gc.ca/n1/en/release-diffusion/2026-eng.pdf",
+                  "note": "October 22 IPPI/RMPI; October 23 retail. Hours corroborated by https://forex.tradingcharts.com/economic_calendar/2026-10-21.html?code=cad (8:30 AM Eastern)."
+                }
+              ],
+              "note": "23 Oct, 7:30 PM Jakarta; already pinned."
+            },
+            {
+              "title": "BoC decision, statement and Monetary Policy Report",
+              "event_at": "2026-10-28T13:45:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-21T16:34:25Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "BoC — upcoming events",
+                  "locator": "https://www.bankofcanada.ca/press/upcoming-events/",
+                  "note": "Directly retrieved: decision/MPR 28 Oct 9:45 AM Eastern. Subsequent press-conference hour remains unverified."
+                }
+              ],
+              "note": "28 Oct, 8:45 PM Jakarta; already pinned. Subsequent media-stage hour remains unverified."
+            }
+          ],
+          "direction": {
+            "verdict": "POTENTIAL STRENGTHENING",
+            "reason": "21 Oct, remaining session: the continuing expected BoC tightening path and renewed oil-supply risk support CAD through policy expectations and energy-export income. Reuters' 21 Oct LSEG snapshot still puts an October hike around 80%; this is not claimed as a fresh repricing today. Softer ex-gasoline CPI, employment losses and trade uncertainty oppose the case, but the current energy/policy mechanism dominates this intraday inference.",
+            "verified_utc": "2026-10-21T16:34:25Z",
+            "sources": [
+              {
+                "kind": "web",
+                "label": "Reuters — Canadian policy pricing, 21 Oct 2026",
+                "locator": "https://www.marketscreener.com/news/tsx-futures-edge-higher-as-oil-gains-offset-weakness-in-gold-ce785cd8d08cf620",
+                "note": "Full indexed Reuters report read; LSEG pricing about 80% for a hike next week and 100 bp over 12 months. Not an economist survey or new official promise."
+              },
+              {
+                "kind": "web",
+                "label": "Reuters — New York FX update, 21 Oct 2026",
+                "locator": "https://www.devdiscourse.com/article/international/3995860-forex-dollar-mixed-as-traders-wait-on-fed-aussie-gains",
+                "note": "Full syndicated body retrieved directly. Published 14:52 UTC / 9:52 PM Jakarta; includes renewed oil pressure and some improvement in AI sentiment."
+              },
+              {
+                "kind": "web",
+                "label": "Statistics Canada — September CPI, released 19 Oct 2026 (Background)",
+                "locator": "https://www150.statcan.gc.ca/n1/daily-quotidien/261019/dq261019a-eng.pdf",
+                "note": "Full indexed official release read: headline 3.1% versus 3.0%; excluding gasoline 2.2% versus 2.4%."
+              },
+              {
+                "kind": "web",
+                "label": "Statistics Canada — September labour survey, released 9 Oct 2026 (Background)",
+                "locator": "https://www150.statcan.gc.ca/n1/daily-quotidien/261009/dq261009a-eng.pdf",
+                "note": "Employment -68,000; unemployment 6.5%."
+              },
+              {
+                "kind": "web",
+                "label": "BoC — Q3 business/consumer surveys, released 19 Oct 2026 (Background)",
+                "locator": "https://www.bankofcanada.ca/press/",
+                "note": "Responses after renewed trade tensions were weaker; consumer long-term inflation expectations rose. Preserve survey collection timing."
+              }
+            ]
+          }
+        },
+        {
+          "currency": "AUD",
+          "bias": "",
+          "summary": "",
+          "counterweight": "",
+          "sources": [],
+          "news": [
+            {
+              "published_on": "2026-10-21",
+              "published_at": null,
+              "summary": "Hauser's Citi Q&A said inflation prospects had deteriorated from August assumptions, citing oil, AI-related demand and domestic capacity pressure. He warned against expectations settling above target, while acknowledging policy was slowing activity and labour conditions were easing. November's decision remained uncertain.",
+              "verified_utc": "2026-10-21T16:34:25Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "RBA — Hauser Citi fireside chat, 21 Oct 2026",
+                  "locator": "https://www.rba.gov.au/speeches/2026/sp-dg-2026-10-21.html",
+                  "note": "Complete publisher-indexed Q&A read; direct retrieval returned 403. Remarks occurred 21 Oct. Preserve uncertainty about November and the easing labour market."
+                }
+              ]
+            }
+          ],
+          "news_gap": "One distinct same-date policy development verified after checking inflation, labour, activity and off-calendar coverage. Parts of Hauser's Q&A are not counted as separate news. September labour, August CPI and June GDP are older context.",
+          "checkpoints": [
+            {
+              "title": "Australia October flash PMI",
+              "event_at": "2026-10-22T22:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-21T16:34:25Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "S&P Global — 2026 PMI publication schedule",
+                  "locator": "https://www.pmi.spglobal.com/Public/Home/PDF/UK_Rel_Dates",
+                  "note": "Publisher-indexed complete UTC schedule checked; direct PDF returned 403. Provisional; recheck nearer release."
+                }
+              ],
+              "note": "23 Oct, 5:00 AM Jakarta; already pinned externally."
+            },
+            {
+              "title": "RBA Sarah Hunter 60 Minutes interview broadcast",
+              "event_at": "2026-10-25T09:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-21T16:34:25Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "RBA — official calendar",
+                  "locator": "https://www.rba.gov.au/schedules-events/calendar/",
+                  "note": "Current indexed schedule read, including Hunter broadcast and Senate testimony; Bullock graduation explicitly excludes policy issues."
+                }
+              ],
+              "note": "25 Oct, 4:30 PM Jakarta; existing external pin. Recording time and policy content are not promised."
+            },
+            {
+              "title": "RBA Senate supplementary estimates appearance",
+              "event_at": "2026-10-28T00:15:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-21T16:34:25Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "RBA — official calendar",
+                  "locator": "https://www.rba.gov.au/schedules-events/calendar/",
+                  "note": "Current indexed schedule read, including Hunter broadcast and Senate testimony; Bullock graduation explicitly excludes policy issues."
+                }
+              ],
+              "note": "28 Oct, 7:15 AM Jakarta; existing external pin; hearing start is not the time of a particular answer."
+            },
+            {
+              "title": "Australia September/quarterly underlying CPI package",
+              "event_at": "2026-10-28T00:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-21T16:34:25Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "ABS — CPI release schedule",
+                  "locator": "https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/consumer-price-index-australia",
+                  "note": "28 Oct 11:30 AM AEDT."
+                }
+              ],
+              "note": "28 Oct, 7:30 AM Jakarta; already pinned; overlaps ongoing Senate testimony."
+            },
+            {
+              "title": "Australia Q3 producer prices",
+              "event_at": "2026-10-30T00:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-21T16:34:25Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "ABS — PPI publication schedule",
+                  "locator": "https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/producer-price-indexes-australia",
+                  "note": "30 Oct 11:30 AM AEDT."
+                }
+              ],
+              "note": "30 Oct, 7:30 AM Jakarta; newly pinned. Outside seven-day window; reassess relevance after CPI."
+            },
+            {
+              "title": "RBA decision and Statement on Monetary Policy",
+              "event_at": "2026-11-03T03:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-21T16:34:25Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "RBA — official calendar",
+                  "locator": "https://www.rba.gov.au/schedules-events/calendar/",
+                  "note": "Current indexed schedule read, including Hunter broadcast and Senate testimony; Bullock graduation explicitly excludes policy issues."
+                }
+              ],
+              "note": "3 Nov, 10:30 AM Jakarta; next meeting outside scan; existing official-time external record handles broker clock mismatch."
+            },
+            {
+              "title": "RBA policy media conference",
+              "event_at": "2026-11-03T04:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-21T16:34:25Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "RBA — official calendar",
+                  "locator": "https://www.rba.gov.au/schedules-events/calendar/",
+                  "note": "Current indexed schedule read, including Hunter broadcast and Senate testimony; Bullock graduation explicitly excludes policy issues."
+                }
+              ],
+              "note": "3 Nov, 11:30 AM Jakarta; separate stage."
+            }
+          ],
+          "direction": {
+            "verdict": "POTENTIAL STRENGTHENING",
+            "reason": "21 Oct, remaining session: Hauser's fresh warning of a worse inflation outlook and risks to expectations supplies active tightening support. It covers domestic capacity and services pressure as well as oil. This outweighs 15 Oct's employment decline for the present bias, but he remained unsure whether November requires another hike and acknowledged tepid consumption and an easing labour market. The case is continuing restraint, not a guaranteed November move.",
+            "verified_utc": "2026-10-21T16:34:25Z",
+            "sources": [
+              {
+                "kind": "web",
+                "label": "RBA — Hauser Citi fireside chat, 21 Oct 2026",
+                "locator": "https://www.rba.gov.au/speeches/2026/sp-dg-2026-10-21.html",
+                "note": "Complete publisher-indexed Q&A read; direct retrieval returned 403. Remarks occurred 21 Oct. Preserve uncertainty about November and the easing labour market."
+              },
+              {
+                "kind": "web",
+                "label": "ABS — September labour force, released 15 Oct 2026 (Background)",
+                "locator": "https://www.abs.gov.au/statistics/labour/employment-and-unemployment/labour-force-australia/latest-release",
+                "note": "Publisher-indexed full release read. Employment -39,300; unemployment 4.7%."
+              },
+              {
+                "kind": "web",
+                "label": "ABS — August CPI, released 30 Sep 2026 (Background)",
+                "locator": "https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/consumer-price-index-australia/aug-2026",
+                "note": "Headline 4.0% versus 3.5%; trimmed mean unchanged at 3.6%."
+              }
+            ]
+          }
+        },
+        {
+          "currency": "NZD",
+          "bias": "",
+          "summary": "",
+          "counterweight": "",
+          "sources": [],
+          "news": [
+            {
+              "published_on": "2026-10-21",
+              "published_at": null,
+              "summary": "ING forecasts Q3 inflation at 3.8% y/y, describes that as consensus versus the RBNZ's 3.9% projection, and reports 18–21 bp of tightening priced for next week. Its hike forecast is conditional on no major downside CPI surprise; actuals remain unpublished.",
+              "verified_utc": "2026-10-21T16:34:25Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "ING — FX Daily, 21 Oct 2026",
+                  "locator": "https://think.ing.com/articles/fx-daily-dollar-shows-fresh-vulnerability-to-oil-price-drops/",
+                  "note": "Full article retrieved directly. Attributed analyst views and pricing descriptions; no observed capital flows established. Original 20 Oct housing/French-spread developments are not new 21 Oct releases."
+                }
+              ]
+            }
+          ],
+          "news_gap": "One new same-date forecast/assessment verified. The 20 Oct dairy auction (+2.5% in a 21 Oct report) is older underlying news and is not counted as today's release. No new same-date national labour or GDP release was established.",
+          "checkpoints": [
+            {
+              "title": "New Zealand Q3 CPI",
+              "event_at": "2026-10-21T21:45:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-21T16:34:25Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Stats NZ — CPI release calendar",
+                  "locator": "https://www.stats.govt.nz/release-calendar/",
+                  "note": "22 Oct date verified; 10:45 AM NZDT corroborated by https://www.macrosetup.com/economic-calendar/nz-cpi and the exact saved broker occurrence."
+                }
+              ],
+              "note": "22 Oct, 4:45 AM Jakarta; already pinned. CPI actuals are not yet known."
+            },
+            {
+              "title": "RBNZ sectoral-factor core inflation publication start",
+              "event_at": "2026-10-22T02:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-17T08:35:00Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "ANZ — 16 Oct CPI preview",
+                  "locator": "https://www.anz.co.nz/content/dam/anzconz/documents/economics-and-market-research/2026/ANZ-CPI-Preview-2026Q3.pdf",
+                  "note": "Schedule reused from existing sourced external record; not claimed as a fresh fetch. RBNZ general statistical guidance corroborates 3:00 PM NZDT publication start."
+                }
+              ],
+              "note": "22 Oct, 9:00 AM Jakarta; separate existing external record. Scheduled start, not guaranteed instant of availability."
+            },
+            {
+              "title": "RBNZ OCR decision and Monetary Policy Review",
+              "event_at": "2026-10-28T01:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-21T16:34:25Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "RBNZ — official OCR schedule",
+                  "locator": "https://www.rbnz.govt.nz/monetary-policy/about-monetary-policy/the-official-cash-rate",
+                  "note": "28 Oct 2:00 PM NZDT announcement."
+                }
+              ],
+              "note": "28 Oct, 8:00 AM Jakarta; already pinned."
+            },
+            {
+              "title": "RBNZ separate media conference",
+              "event_at": "2026-10-28T02:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-19T09:28:19Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "RBNZ — events",
+                  "locator": "https://www.rbnz.govt.nz/news-and-events/events",
+                  "note": "Existing externally saved 28 Oct media stage reused; no fresh event-specific hour verification claimed."
+                }
+              ],
+              "note": "28 Oct, 9:00 AM Jakarta; existing sourced external stage; recheck advisory near publication."
+            }
+          ],
+          "direction": {
+            "verdict": "POTENTIAL STRENGTHENING",
+            "reason": "21 Oct, remaining session: near-term RBNZ tightening expectations remain supportive before CPI, despite the weak recovery. ING's 21 Oct view retains a hike next week absent a substantial downside inflation surprise; it is an attributed expectation, not an actual. September's cautious guidance and weak GDP/labour background limit the case. Tomorrow's CPI can change it; waiting for that evidence is optional execution judgment, not a neutral currency verdict.",
+            "verified_utc": "2026-10-21T16:34:25Z",
+            "sources": [
+              {
+                "kind": "web",
+                "label": "ING — FX Daily, 21 Oct 2026",
+                "locator": "https://think.ing.com/articles/fx-daily-dollar-shows-fresh-vulnerability-to-oil-price-drops/",
+                "note": "Full article retrieved directly. Attributed analyst views and pricing descriptions; no observed capital flows established. Original 20 Oct housing/French-spread developments are not new 21 Oct releases."
+              },
+              {
+                "kind": "web",
+                "label": "RBNZ — 2 September policy statement (Background)",
+                "locator": "https://www.rbnz.govt.nz/monetary-policy/monetary-policy-statement/monetary-policy-statement-filtered-listing-page/2026/sep-0209/monetary-policy-statement-september-2026/web-version",
+                "note": "Conditional further tightening alongside significant downside growth risks; September-quarter inflation projection 3.9%."
+              },
+              {
+                "kind": "web",
+                "label": "Stats NZ — June GDP, released 17 Sep 2026 (Background)",
+                "locator": "https://www.stats.govt.nz/information-releases/gross-domestic-product-june-2026-quarter/",
+                "note": "Publisher-indexed official body checked: GDP +0.2% q/q after revised +0.9%; disposable income -0.4%."
+              },
+              {
+                "kind": "web",
+                "label": "Stats NZ — June labour market, released 5 Aug 2026 (Background)",
+                "locator": "https://www.stats.govt.nz/information-releases/labour-market-statistics-june-2026-quarter/",
+                "note": "Full indexed release checked: unemployment 5.6%, wage rates +2.0% y/y."
+              }
+            ]
+          }
+        }
+      ],
+      "entry_opportunities": [
+        {
+          "currency": "AUD",
+          "summary": "POTENTIAL STRENGTHENING — fresh inflation-expectations and capacity warnings keep further RBA restraint relevant, despite weaker employment.",
+          "starts_at": "2026-10-21T16:24:19Z",
+          "ends_at": "2026-10-21T16:59:59Z",
+          "timing_note": "Reassess at flash PMI, Hunter's interview and October 28 testimony/CPI.",
+          "invalidation": "New RBA guidance clearly favouring a pause because activity risk dominates, or subsequent broad underlying-inflation cooling that overturns the current mechanism."
+        },
+        {
+          "currency": "EUR",
+          "summary": "POTENTIAL WEAKENING — unresolved French budget credibility and renewed sovereign-risk pressure remain active.",
+          "starts_at": "2026-10-21T16:24:19Z",
+          "ends_at": "2026-10-21T16:59:59Z",
+          "timing_note": "Reassess verified French fiscal developments, then flash PMI and the Moody's review.",
+          "invalidation": "A credible fiscal agreement and sustained easing of French sovereign stress, or a sufficiently stronger ECB path that changes the relative policy/risk balance."
+        },
+        {
+          "currency": "GBP",
+          "summary": "POTENTIAL STRENGTHENING — hotter CPI/core inflation reinforces the near-term BoE tightening case.",
+          "starts_at": "2026-10-21T16:24:19Z",
+          "ends_at": "2026-10-21T16:59:59Z",
+          "timing_note": "Reassess demand evidence and Budget credibility; do not assume the later priced hike path is warranted.",
+          "invalidation": "Fresh BoE evidence that persistent domestic inflation is easing enough to remove near-term tightening support, or fiscal stress becoming the dominant GBP driver."
+        }
+      ],
+      "planning_as_of_utc": "2026-10-21T16:34:25Z",
+      "limitations": "Fewer than four distinct cutoff-eligible same-date items were verified for seven currencies; individual rows explain gaps. Dates without verified publication hours remain untimed. ECB's dated resilience blog and unsourced later commentary are excluded where first availability before the prompt cutoff could not be established. Bailey's 21 Oct OMFIF policy content was not verified. Some publisher direct fetches failed; full indexed official/report bodies or one suitable alternative were used, as noted. No OHLC or technical analysis. Upcoming broker index covered 1,556 groups through 19 January 2027 with complete pagination; detailed current-backdrop prioritisation concentrates on the next seven days and the next policy meetings. Later events are provisional research checkpoints, not an all-clear or a directional holding forecast. BoC subsequent media-stage and UK Budget exact hours remain unknown. No continuous headline monitoring or automatic AI invocation.",
+      "note": "Prompt cutoff is approximate first-observed time: 21 Oct 2026, 11:24:19 PM Jakarta; the precise user-message second was unavailable. Later source verification and planning clocks are recorded separately. All three opportunity windows mean the remaining same-day fundamental assessment window, not prescribed execution minutes. Technical entry remains with the user; a supported bias does not require waiting for another release. No pair scan, scores, price forecasts, trades or raw-calendar edits. Previous Thesis versions and notes preserved. Research facts and attribution were rechecked while assembling this snapshot; same-date original publication clocks are only populated when known. New Australian PPI Highlight: aff4fbe732b94e0aa3b4a7c20b0123e6.",
+      "provenance": "assessment",
+      "review_id": "f2c88678322e411fbb3d5534c19a9854",
+      "expected_version": null,
+      "id": "f345fb7e2aa44c8fb70e8379a4da4402",
+      "saved_utc": "2026-10-21T16:36:57.118832Z"
     }
   ]
 }

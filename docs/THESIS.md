@@ -214,7 +214,12 @@ assessment journal; preserve both files. Markdown exports include all dated revi
 evidence and limitations. Pair exports retain frozen linked assessments/history;
 the all-currency export follows the selected date and includes agent context.
 
-Verdicts are STRONG BUY / BUY / MIXED / SELL / STRONG SELL. Use the actual
+The existing pair-journal storage verdicts are STRONG BUY / BUY / MIXED / SELL /
+STRONG SELL. These compatibility values do not define conversational assessment
+labels: current chat uses STRENGTHENING BIAS or WEAKENING BIAS. For an authorized
+new pair save, map an established strengthening bias to BUY and weakening bias to
+SELL; preserve old records and their enums. A decisive evidence gap is explained
+in chat, not resolved by inventing a directional saved row. Use the actual
 timezone-aware research cutoff, no later than now. `saved_utc` is assigned by the
 writer. The selected month never authorizes backdating. A current assessment
 outside the available months is saved under its real month and is not yet selectable.
