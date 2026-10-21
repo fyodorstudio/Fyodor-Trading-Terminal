@@ -1,7 +1,27 @@
 {
   "version": 1,
-  "revision": 39,
-  "arrows": [],
+  "revision": 43,
+  "arrows": [
+    {
+      "id": "arrow_AUDUSD_ced854d5-54b9-4ebb-a9be-cfae87ea9d0b",
+      "symbol": "AUDUSD",
+      "time": 1792516380,
+      "direction": "long",
+      "eventAt": "2026-10-20T14:00:00Z",
+      "eventTitle": "US Pending Home Sales + State Employment — September 2026",
+      "archived": false,
+      "targetRr": 2,
+      "precision": 5,
+      "entryPrice": 0.7004,
+      "tpPrice": 0.70154,
+      "slPrice": 0.6994,
+      "tpPips": 11.400000000000299,
+      "slPips": 10.000000000000009,
+      "rrRatio": 1.1400000000000288,
+      "note": "CONDITIONAL AUDUSD LONG PLAN — 20 October 2026, Asia/Jakarta.\nThis is a proposed setup, not a confirmed fill. Entry price 0.70040 is the maximum planned ask, not an executed price.\nTrigger: broker BID reaches 0.70020 with spread no greater than 2 pips. Buy only if ASK is at or below 0.70040; skip a run beyond this entry cap.\nStop-loss: 0.69940. Take-profit: 0.70240. At the entry cap: 10 pips planned risk, 20 pips planned reward, 2:1 before commission/slippage. No lot size or cash-risk amount was specified.\nCancel the unfilled plan if BID reaches 0.69940 before entry, or if the trigger has not occurred by 20 October 2026, 9:20 PM Jakarta. Original expiry is preserved. These are manual conditions; saving this journal does not submit, monitor or cancel a broker order.\nLevels are fixed-distance planning levels around the user's 0.70000 reference; they are not chart-verified support/resistance. No candles were analyzed.\nFundamental context: NAR's 20 October release confirmed September Pending Home Sales -7.3% m/m and -11.3% y/y, versus Elev8-Demo2's preserved -0.9% m/m forecast. This reinforced the earlier AUDUSD buying thesis through reduced near-term Fed tightening urgency. The simultaneous BLS state labor report showed mostly stable conditions and supplied no broad acceleration signal. This does not establish a Fed cut or guarantee price direction.\nSources: https://www.nar.realtor/research-and-statistics/housing-statistics/pending-home-sales ; https://www.bls.gov/news.release/laus.nr0.htm\nOccurrence: Highlight 6473e0984c634116831d6028f376dc1b; broker Elev8-Demo2. Companion External Source: us-20261020-state-labor. Event anchor: 20 October 2026, 9:00 PM Jakarta. Arrow date is the plan-save minute, independent of the event anchor.\nLatest quote previously checked: 20 October 2026, 9:09:15 PM Jakarta, BID 0.69988 / ASK 0.70007, 1.9-pip spread. No execution or trigger occurrence is inferred from saving this plan.",
+      "createdAt": 1792505605600
+    }
+  ],
   "deletedIds": [
     "arrow_AUDUSD_97a98c41-4e39-4aac-888c-cb231501d013",
     "arrow_EURUSD_52b69583-e849-48b8-93f1-98af792a7713",
@@ -740,6 +760,63 @@
       "id": "research_20261014_uk_cpi_gbpusd",
       "operationId": "fbdcd264-94cc-46f5-b390-2f46c1a58280",
       "at": "2026-10-14T15:40:07.125Z"
+    },
+    {
+      "operationId": "5bd98d41-0289-4f40-a7b3-4cd4c0524d4c",
+      "action": "insert",
+      "id": "arrow_AUDUSD_ced854d5-54b9-4ebb-a9be-cfae87ea9d0b",
+      "arrow": {
+        "id": "arrow_AUDUSD_ced854d5-54b9-4ebb-a9be-cfae87ea9d0b",
+        "symbol": "AUDUSD",
+        "time": 1792516380,
+        "direction": "long",
+        "eventAt": "2026-10-20T14:00:00Z",
+        "eventTitle": "US Pending Home Sales + State Employment — September 2026",
+        "archived": false,
+        "targetRr": 2,
+        "precision": 5,
+        "entryPrice": 0.7004,
+        "tpPrice": 0.7024,
+        "slPrice": 0.6994,
+        "tpPips": 20,
+        "slPips": 10,
+        "rrRatio": 2,
+        "note": "CONDITIONAL AUDUSD LONG PLAN — 20 October 2026, Asia/Jakarta.\nThis is a proposed setup, not a confirmed fill. Entry price 0.70040 is the maximum planned ask, not an executed price.\nTrigger: broker BID reaches 0.70020 with spread no greater than 2 pips. Buy only if ASK is at or below 0.70040; skip a run beyond this entry cap.\nStop-loss: 0.69940. Take-profit: 0.70240. At the entry cap: 10 pips planned risk, 20 pips planned reward, 2:1 before commission/slippage. No lot size or cash-risk amount was specified.\nCancel the unfilled plan if BID reaches 0.69940 before entry, or if the trigger has not occurred by 20 October 2026, 9:20 PM Jakarta. Original expiry is preserved. These are manual conditions; saving this journal does not submit, monitor or cancel a broker order.\nLevels are fixed-distance planning levels around the user's 0.70000 reference; they are not chart-verified support/resistance. No candles were analyzed.\nFundamental context: NAR's 20 October release confirmed September Pending Home Sales -7.3% m/m and -11.3% y/y, versus Elev8-Demo2's preserved -0.9% m/m forecast. This reinforced the earlier AUDUSD buying thesis through reduced near-term Fed tightening urgency. The simultaneous BLS state labor report showed mostly stable conditions and supplied no broad acceleration signal. This does not establish a Fed cut or guarantee price direction.\nSources: https://www.nar.realtor/research-and-statistics/housing-statistics/pending-home-sales ; https://www.bls.gov/news.release/laus.nr0.htm\nOccurrence: Highlight 6473e0984c634116831d6028f376dc1b; broker Elev8-Demo2. Companion External Source: us-20261020-state-labor. Event anchor: 20 October 2026, 9:00 PM Jakarta. Arrow date is the plan-save minute, independent of the event anchor.\nLatest quote previously checked: 20 October 2026, 9:09:15 PM Jakarta, BID 0.69988 / ASK 0.70007, 1.9-pip spread. No execution or trigger occurrence is inferred from saving this plan.",
+        "createdAt": 1792505605600
+      },
+      "at": "2026-10-20T14:13:25.626Z"
+    },
+    {
+      "action": "update",
+      "id": "arrow_AUDUSD_ced854d5-54b9-4ebb-a9be-cfae87ea9d0b",
+      "changes": {
+        "archived": true,
+        "note": "CONDITIONAL AUDUSD LONG PLAN — 20 October 2026, Asia/Jakarta.\nThis is a proposed setup, not a confirmed fill. Entry price 0.70040 is the maximum planned ask, not an executed price.\nTrigger: broker BID reaches 0.70020 with spread no greater than 2 pips. Buy only if ASK is at or below 0.70040; skip a run beyond this entry cap.\nStop-loss: 0.69940. Take-profit: 0.70240. At the entry cap: 10 pips planned risk, 20 pips planned reward, 2:1 before commission/slippage. No lot size or cash-risk amount was specified.\nCancel the unfilled plan if BID reaches 0.69940 before entry, or if the trigger has not occurred by 20 October 2026, 9:20 PM Jakarta. Original expiry is preserved. These are manual conditions; saving this journal does not submit, monitor or cancel a broker order.\nLevels are fixed-distance planning levels around the user's 0.70000 reference; they are not chart-verified support/resistance. No candles were analyzed.\nFundamental context: NAR's 20 October release confirmed September Pending Home Sales -7.3% m/m and -11.3% y/y, versus Elev8-Demo2's preserved -0.9% m/m forecast. This reinforced the earlier AUDUSD buying thesis through reduced near-term Fed tightening urgency. The simultaneous BLS state labor report showed mostly stable conditions and supplied no broad acceleration signal. This does not establish a Fed cut or guarantee price direction.\nSources: https://www.nar.realtor/research-and-statistics/housing-statistics/pending-home-sales ; https://www.bls.gov/news.release/laus.nr0.htm\nOccurrence: Highlight 6473e0984c634116831d6028f376dc1b; broker Elev8-Demo2. Companion External Source: us-20261020-state-labor. Event anchor: 20 October 2026, 9:00 PM Jakarta. Arrow date is the plan-save minute, independent of the event anchor.\nLatest quote previously checked: 20 October 2026, 9:09:15 PM Jakarta, BID 0.69988 / ASK 0.70007, 1.9-pip spread. No execution or trigger occurrence is inferred from saving this plan."
+      },
+      "operationId": "c1f908dd-2880-487a-8833-b1b5cdc23936",
+      "at": "2026-10-20T15:53:17.106Z"
+    },
+    {
+      "action": "update",
+      "id": "arrow_AUDUSD_ced854d5-54b9-4ebb-a9be-cfae87ea9d0b",
+      "changes": {
+        "archived": false,
+        "note": "CONDITIONAL AUDUSD LONG PLAN — 20 October 2026, Asia/Jakarta.\nThis is a proposed setup, not a confirmed fill. Entry price 0.70040 is the maximum planned ask, not an executed price.\nTrigger: broker BID reaches 0.70020 with spread no greater than 2 pips. Buy only if ASK is at or below 0.70040; skip a run beyond this entry cap.\nStop-loss: 0.69940. Take-profit: 0.70240. At the entry cap: 10 pips planned risk, 20 pips planned reward, 2:1 before commission/slippage. No lot size or cash-risk amount was specified.\nCancel the unfilled plan if BID reaches 0.69940 before entry, or if the trigger has not occurred by 20 October 2026, 9:20 PM Jakarta. Original expiry is preserved. These are manual conditions; saving this journal does not submit, monitor or cancel a broker order.\nLevels are fixed-distance planning levels around the user's 0.70000 reference; they are not chart-verified support/resistance. No candles were analyzed.\nFundamental context: NAR's 20 October release confirmed September Pending Home Sales -7.3% m/m and -11.3% y/y, versus Elev8-Demo2's preserved -0.9% m/m forecast. This reinforced the earlier AUDUSD buying thesis through reduced near-term Fed tightening urgency. The simultaneous BLS state labor report showed mostly stable conditions and supplied no broad acceleration signal. This does not establish a Fed cut or guarantee price direction.\nSources: https://www.nar.realtor/research-and-statistics/housing-statistics/pending-home-sales ; https://www.bls.gov/news.release/laus.nr0.htm\nOccurrence: Highlight 6473e0984c634116831d6028f376dc1b; broker Elev8-Demo2. Companion External Source: us-20261020-state-labor. Event anchor: 20 October 2026, 9:00 PM Jakarta. Arrow date is the plan-save minute, independent of the event anchor.\nLatest quote previously checked: 20 October 2026, 9:09:15 PM Jakarta, BID 0.69988 / ASK 0.70007, 1.9-pip spread. No execution or trigger occurrence is inferred from saving this plan."
+      },
+      "operationId": "680be1e5-8401-4734-ae4d-8eda76405e4c",
+      "at": "2026-10-20T17:08:12.995Z"
+    },
+    {
+      "action": "update",
+      "id": "arrow_AUDUSD_ced854d5-54b9-4ebb-a9be-cfae87ea9d0b",
+      "changes": {
+        "tpPrice": 0.70154,
+        "tpPips": 11.400000000000299,
+        "slPips": 10.000000000000009,
+        "rrRatio": 1.1400000000000288
+      },
+      "operationId": "b2fab3d2-0c78-4166-9cde-ae5436c7089c",
+      "at": "2026-10-20T17:08:20.753Z"
     }
   ]
 }
