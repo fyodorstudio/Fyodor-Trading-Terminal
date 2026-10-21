@@ -108,7 +108,7 @@ class AnalystExternalCommandsTests(unittest.TestCase):
                 facts='Preserve original evidence.', time_note='Official scheduled stage.',
                 sources=[dict(kind='web', label='Publisher', locator='https://www.ecb.europa.eu/')]), root)
             args = analyst.parser().parse_args(['external', 'show-on-chart', '--key', 'policy-stage', '--expected-version', saved['id']])
-            with patch.object(analyst, 'request_external_chart_icon', side_effect=lambda key, version: request_external_chart_icon(key, version, root)):
+            with patch.object(analyst, 'require_external_writable', return_value={'status': 'offline', 'can_write': True}), patch.object(analyst, 'request_external_chart_icon', side_effect=lambda key, version: request_external_chart_icon(key, version, root)):
                 shown = analyst.run(args)
                 self.assertNotEqual(shown['id'], saved['id'])
                 history = external_history('policy-stage', root)

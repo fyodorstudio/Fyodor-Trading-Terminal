@@ -7,9 +7,9 @@ description: "Wait for an imminent economic release in the active chat, reuse pr
 
 An explicit request to fill the Thesis date table uses Assess Trade Now's
 [dated news-table mode](../assess-trade-now/references/daily-news.md): save factual
-released news with numbered sources and only future scheduled checkpoints, without
-confidence, counterweights or directional verdicts in that table. A release wait
-alone does not authorize that save.
+released news with numbered sources, standalone currency directions and only
+future scheduled checkpoints, following that mode's output and storage rules.
+A release wait alone does not authorize that save.
 
 Follow AGENTS.md and the relevant instructions from
 [Assess Trade Now](../assess-trade-now/SKILL.md), without rereading guidance
@@ -50,6 +50,21 @@ If preparation is missing or stale, refresh only decisive gaps. Say when the
 coverage cannot be completed before publication; do not claim a full eight-
 currency review from a thirty-second preparation. An unsupported counterpart
 cannot be selected merely because another currency's release is clear.
+In a fresh chat, invoke Assess Trade Now's shared preparation directly; it
+supplies its scoped pin/icon authorization without a second user request. Read
+the clock first, verify the official release route and attributable expectations,
+then check counterparts. If seconds remain, prioritize fresh actuals and the
+first sourced verdict; expand the comparison within the declared deadline.
+Call an incompletely compared choice the leading verified candidate, and name
+the specific remaining coverage once. Keep the direct directional thesis.
+
+Start the discovery receipt with `--release-at` and `--deadline`. Record opened
+evidence and actual failures using `discovery record` as each batch completes.
+One opened page may support a release fact while its wider source family remains
+`partial`. At an elapsed deadline, `discovery finish --stop-reason release_deadline`
+preserves those checks and explicitly defers untouched rows. Run validation;
+`valid` verifies that record, while `coverage_complete: false` still means the
+scan is incomplete. Never fabricate attempts or extend the wait for bookkeeping.
 
 ## Verify time and wait
 

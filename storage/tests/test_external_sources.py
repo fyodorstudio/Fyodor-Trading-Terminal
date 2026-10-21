@@ -67,6 +67,8 @@ class ExternalSourcesTests(TestCase):
     def test_chart_request_is_persistent_versioned_and_preserves_research_and_lifecycle(self):
         first = append_external(self.request(show_on_chart=True), self.directory)
         original = Path(first['path']).read_bytes()
+        self.assertNotIn('chart_icon_request_id', json.loads(original), 'Legacy strict readers must retain the original file schema')
+        self.assertTrue((self.directory / 'chart-requests' / (first['id'] + '.json')).is_file())
         record = external_history(first['key'], self.directory)[-1]
         self.assertEqual(record['chart_icon_request_id'], first['id'])
         self.assertNotIn('show_on_chart', record)
@@ -89,10 +91,29 @@ class ExternalSourcesTests(TestCase):
         self.assertFalse(external_history(first['key'], self.directory)[-1]['archived'])
         self.assertNotEqual(restored['id'], shown['id'])
 
+    def test_chart_sidecar_failure_preserves_history_and_legacy_consumer_schema(self):
+        first = append_external(self.request(show_on_chart=True), self.directory)
+        original = Path(first['path']).read_bytes()
+        real_replace = __import__('os').replace
+        def fail_record(source, target):
+            if Path(target).parent == self.directory:
+                raise OSError('Record write failed after chart metadata')
+            return real_replace(source, target)
+        with patch('storage.external_sources.os.replace', side_effect=fail_record):
+            with self.assertRaises(OSError):
+                request_external_chart_icon(first['key'], first['id'], self.directory)
+        self.assertEqual(len(list((self.directory / 'chart-requests').glob('*.json'))), 1)
+        self.assertEqual(len(external_history(first['key'], self.directory)), 1)
+        self.assertEqual(Path(first['path']).read_bytes(), original)
+        sidecar = self.directory / 'chart-requests' / (first['id'] + '.json')
+        sidecar.write_text(json.dumps({'version_id': 'b'*32, 'request_id': 'a'*32}))
+        with self.assertRaisesRegex(ValueError, 'identity mismatch'):
+            external_history(first['key'], self.directory)
+
     def test_legacy_and_date_only_records_and_untimed_chart_rejection(self):
         legacy = append_external(self.request(), self.directory)
         raw = json.loads(Path(legacy['path']).read_text())
-        raw.pop('chart_icon_request_id')
+        raw.pop('chart_icon_request_id', None)
         Path(legacy['path']).write_text(json.dumps(raw))
         self.assertIsNone(external_history(legacy['key'], self.directory)[-1]['chart_icon_request_id'])
         dated = append_external(self.request(key='date-only', event_at=None, event_date='2026-10-27', show_on_chart=True), self.directory)
@@ -133,6 +154,8 @@ class ExternalSourcesTests(TestCase):
     def test_api_uses_independent_directory_without_calendar_or_broker_ids(self):
         app = create_app(run_collector=False, external_directory=self.directory)
         endpoint = lambda path: next(route.endpoint for route in app.routes if getattr(route, 'path', '') == path)
+        capabilities = endpoint('/api/v1/external-capabilities')()
+        self.assertEqual(capabilities, dict(external_source_schema=2, chart_icon_requests=True, directory=str(self.directory.resolve())))
         # GET and POST share a path; select explicitly by method.
         save = next(route.endpoint for route in app.routes if getattr(route, 'path', '') == '/api/v1/external-sources' and 'POST' in route.methods)
         saved = save(self.request(show_on_chart=True))

@@ -166,6 +166,12 @@ def create_app(directory=None, run_collector=True, highlights_path=HIGHLIGHTS_PA
         except OSError as error:
             raise HTTPException(503, 'External Sources unavailable') from error
 
+    @app.get('/api/v1/external-capabilities')
+    def external_capabilities():
+        # Independent of collection contents: an empty collection must still be probeable.
+        return {'external_source_schema': 2, 'chart_icon_requests': True,
+                'directory': str(Path(external_directory).resolve())}
+
     @app.get('/api/v1/external-sources/{key}')
     def external_versions(key: str):
         try:

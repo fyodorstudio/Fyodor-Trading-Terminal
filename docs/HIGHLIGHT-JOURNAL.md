@@ -84,6 +84,7 @@ pnpm analyst upcoming --broker Elev8-Demo2 --scope all --days 90 --category poli
 pnpm analyst upcoming --broker Elev8-Demo2 --scope AUDUSD --days 14 --family au-labor
 pnpm analyst discovery start --broker Elev8-Demo2 --scope EURUSD --output "Market Analyst Workflow/report/<name>"
 pnpm analyst discovery validate --input "Market Analyst Workflow/report/<name>/discovery.json"
+pnpm analyst external preflight
 ```
 
 Upcoming groups exact publication windows using the terminal's source-ID family

@@ -59,7 +59,7 @@ def collect_pages(run, arguments, limit):
         offset = next_offset
 
 
-def capture(root, output, scope, broker, cutoff=None, days=7, read_only=False, runner=None):
+def capture(root, output, scope, broker, cutoff=None, days=7, read_only=False, runner=None, release_at=None, deadline=None):
     root, output = Path(root).resolve(), Path(output).resolve()
     if not output.is_relative_to(root) or output == root:
         raise ValueError('Use a dedicated output directory inside Lite')
@@ -70,6 +70,10 @@ def capture(root, output, scope, broker, cutoff=None, days=7, read_only=False, r
     cutoff = instant(cutoff or now).isoformat()
     if instant(cutoff) > instant(now):
         raise ValueError('Assessment cutoff cannot be in the future')
+    release = instant(release_at) if release_at else None
+    deadline = instant(deadline) if deadline else release + timedelta(minutes=5) if release else None
+    if deadline and (not release or deadline < release):
+        raise ValueError('A release deadline needs the verified release instant and cannot precede it')
     output.mkdir(parents=True, exist_ok=True)
     if any((output / name).exists() for name in ['discovery.json', *[family + '.json' for family in LOCAL_FAMILIES]]):
         raise ValueError('Discovery evidence already exists; use a new output directory')
@@ -108,6 +112,8 @@ def capture(root, output, scope, broker, cutoff=None, days=7, read_only=False, r
     receipt = dict(scope=scope.upper(), broker=broker, as_of_utc=cutoff, started_utc=now,
         horizon_days=days, discovery_completed_utc=None, backdrop_started_utc=None,
         read_only=read_only, coverage='partial', gaps=gaps, sources=sources, events=[])
+    if release:
+        receipt.update(mode='release', release_at_utc=release.isoformat(), deadline_utc=deadline.isoformat())
     path = output / 'discovery.json'
     path.write_text(json.dumps(receipt, indent=2), encoding='utf-8')
     return {'path': str(path), 'as_of_utc': cutoff, 'pending_web_checks': sum(s['status'] == 'pending' for s in sources), 'gaps': gaps}
@@ -131,6 +137,16 @@ def validate_receipt(receipt, directory, external_lookup, highlight_lookup, now=
     if backdrop and (not completed or backdrop < completed or backdrop > now):
         errors.append('Backdrop started before immediate discovery completed or has a future clock')
     sources = receipt.get('sources', [])
+    finished = instant(receipt['finished_utc']) if receipt.get('finished_utc') else None
+    release = instant(receipt['release_at_utc']) if receipt.get('release_at_utc') else None
+    deadline = instant(receipt['deadline_utc']) if receipt.get('deadline_utc') else None
+    bounded_stop = (receipt.get('mode') == 'release' and receipt.get('stop_reason') == 'release_deadline'
+                    and release is not None and deadline is not None and finished is not None
+                    and release <= deadline <= finished <= now and started <= finished and bool(receipt.get('stop_note')))
+    if receipt.get('stop_reason') == 'release_deadline' and not bounded_stop:
+        errors.append('Release deferral needs its elapsed declared deadline, real finish clock and explanation')
+    if finished and not started <= finished <= now:
+        errors.append('Receipt needs a valid actual finish clock')
     if len({s['id'] for s in sources}) != len(sources):
         errors.append('Source IDs must be unique')
     indexed = {s['id']: s for s in sources}
@@ -141,8 +157,29 @@ def validate_receipt(receipt, directory, external_lookup, highlight_lookup, now=
     for source in sources:
         name, status = source['id'], source.get('status')
         local = source.get('family') in LOCAL_FAMILIES
+        checks = source.get('checks', [])
+        for check in checks:
+            at = instant(check['checked_utc']) if check.get('checked_utc') else None
+            if not at or not started <= at <= now:
+                errors.append(f'{name}: recorded retrieval has an invalid clock')
+            if at and finished and at > finished:
+                errors.append(f'{name}: retrieval is later than this receipt finish clock')
+            route = urlsplit(check.get('url', ''))
+            if route.scheme not in ('http', 'https') or not route.netloc or route.username or route.password or not (check.get('tool_reference') or check.get('retrieval_method')):
+                errors.append(f'{name}: recorded retrieval needs its actual route and tool reference')
+            if check.get('outcome') == 'opened':
+                body = (directory / check.get('evidence_path', '')).resolve()
+                if not body.is_relative_to(directory) or not body.is_file() or not body.stat().st_size:
+                    errors.append(f'{name}: recorded opened evidence is missing')
+            elif check.get('outcome') != 'failed' or not check.get('note'):
+                errors.append(f'{name}: failed retrieval needs its actual failure note')
+        if status in ('partial', 'deferred'):
+            if local or not bounded_stop or not source.get('note') or status == 'partial' and not checks:
+                errors.append(f'{name}: unfinished coverage needs recorded checks or an explicit elapsed release-deadline deferral')
+            gaps.append(name)
+            continue
         if status == 'unavailable':
-            attempts = set(source.get('attempts', []))
+            attempts = {c.get('url') for c in checks if c.get('outcome') == 'failed'} if checks else set(source.get('attempts', []))
             if not source.get('note') or len(attempts) < (1 if local else 2):
                 errors.append(f'{name}: unavailable source needs route attempts and a specific gap')
             gaps.append(name)
@@ -181,7 +218,8 @@ def validate_receipt(receipt, directory, external_lookup, highlight_lookup, now=
         if not affected or not affected.intersection(scope) or not affected.issubset(CURRENCIES):
             errors.append(f'{name}: candidate does not match the requested currency scope')
         links = event.get('source_ids', [])
-        if not links or any(x not in indexed or indexed[x].get('status') != 'checked' for x in links):
+        if not links or any(x not in indexed or not (indexed[x].get('status') == 'checked'
+                or any(check.get('outcome') == 'opened' for check in indexed[x].get('checks', []))) for x in links):
             errors.append(f'{name}: candidate needs checked source evidence')
         if not event.get('stage') or not event.get('decision_note'):
             errors.append(f'{name}: missing stage or inclusion/exclusion reason')
@@ -249,6 +287,7 @@ def validate_receipt(receipt, directory, external_lookup, highlight_lookup, now=
     if receipt.get('coverage') not in ('complete', 'partial'):
         errors.append('Coverage must be complete or partial')
     return {'valid': not errors, 'coverage': receipt.get('coverage'), 'errors': errors, 'gap_references': gaps,
+        'coverage_complete': not gaps and not errors and receipt.get('coverage') == 'complete',
         'note': 'Checks recorded source coverage and current pins; does not guarantee exhaustive news discovery.'}
 
 

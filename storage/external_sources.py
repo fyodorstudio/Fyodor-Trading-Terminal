@@ -73,13 +73,25 @@ class LifecycleRequest(Payload):
     expected_version: str = Field(pattern=r'^[0-9a-f]{32}$')
 
 
+class ChartRequest(Payload):
+    version_id: str = Field(pattern=r'^[0-9a-f]{32}$')
+    request_id: str = Field(pattern=r'^[0-9a-f]{32}$')
+
+
 def _versions(directory):
     files = list(Path(directory).glob('*.json'))
     if len(files) > 10000:
         raise ValueError('External source capacity exceeded; preserve the files')
     versions = []
     for path in files:
-        item = ExternalVersion.model_validate_json(path.read_text(encoding='utf-8')).model_dump(mode='json')
+        raw = json.loads(path.read_text(encoding='utf-8'))
+        metadata = Path(directory) / 'chart-requests' / path.name
+        if metadata.exists():
+            request = ChartRequest.model_validate_json(metadata.read_text(encoding='utf-8'))
+            if request.version_id != path.stem or raw.get('chart_icon_request_id') not in (None, request.request_id):
+                raise ValueError('External chart request identity mismatch; preserve the files')
+            raw['chart_icon_request_id'] = request.request_id
+        item = ExternalVersion.model_validate(raw).model_dump(mode='json')
         if path.stem != item['id']:
             raise ValueError('External source identity mismatch; preserve the files')
         versions.append(item)
@@ -114,16 +126,38 @@ def _write(directory, item):
     if target.exists():
         raise ValueError('Never overwrite an external source version')
     temporary = None
+    metadata_target = None
+    metadata_temporary = None
+    metadata_written = False
     try:
+        # Old storage/alarm processes reject unknown fields. Keep new requests in
+        # immutable sidecars ignored by their root-level *.json reader.
+        if item.chart_icon_request_id:
+            metadata_directory = directory / 'chart-requests'
+            metadata_directory.mkdir(exist_ok=True)
+            metadata_target = metadata_directory / target.name
+            if metadata_target.exists():
+                raise ValueError('Never overwrite an external chart request')
+            with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', dir=metadata_directory, suffix='.tmp', delete=False) as output:
+                metadata_temporary = output.name
+                output.write(ChartRequest(version_id=item.id, request_id=item.chart_icon_request_id).model_dump_json())
+                output.flush()
+                os.fsync(output.fileno())
+            os.replace(metadata_temporary, metadata_target)
+            metadata_written = True
         with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', dir=directory, suffix='.tmp', delete=False) as output:
             temporary = output.name
-            output.write(item.model_dump_json(indent=2))
+            output.write(item.model_dump_json(indent=2, exclude={'chart_icon_request_id'}))
             output.flush()
             os.fsync(output.fileno())
         os.replace(temporary, target)
     finally:
         if temporary:
             Path(temporary).unlink(missing_ok=True)
+        if metadata_temporary:
+            Path(metadata_temporary).unlink(missing_ok=True)
+        if metadata_written and not target.exists():
+            metadata_target.unlink(missing_ok=True)
     return {'key': item.key, 'id': item.id, 'path': str(target), 'saved_utc': item.saved_utc.isoformat()}
 
 

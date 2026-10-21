@@ -26,6 +26,7 @@ from storage.highlight_metadata import PromptRequest, append_prompt, read_prompt
 from storage.alert_impact import ImpactRequest, append_impact, impact_snapshot
 from upcoming import upcoming_snapshot
 from storage.external_sources import DIRECTORY as EXTERNAL_DIRECTORY, ExternalRequest, append_external, external_history, external_snapshot, archive_external, request_external_chart_icon
+from external_runtime import preflight as external_preflight, require_writable as require_external_writable
 
 
 def get_json(base, route):
@@ -282,7 +283,7 @@ def parser():
     candles.add_argument('--broker-offset-seconds', type=int, help='Explicit historical offset for a broker without a profile')
     candles.add_argument('--max-requests', type=int, choices=range(2, 65), metavar='2..64', default=32)
     discovery = commands.add_parser('discovery', help='Capture local coverage context and verify web-source/pin discovery receipts')
-    discovery.add_argument('action', choices=['start', 'validate'])
+    discovery.add_argument('action', choices=['start', 'record', 'finish', 'validate'])
     discovery.add_argument('--scope')
     discovery.add_argument('--broker')
     discovery.add_argument('--as-of', help='Timezone-aware prompt cutoff; defaults to the first-observed clock')
@@ -290,8 +291,21 @@ def parser():
     discovery.add_argument('--output', help='New receipt directory inside Lite')
     discovery.add_argument('--input', help='Completed discovery.json inside Lite')
     discovery.add_argument('--read-only', action='store_true', help='Explicit user override: discovery without event pin mutations')
+    discovery.add_argument('--release-at', help='Verified UTC release instant for a bounded release invocation')
+    discovery.add_argument('--deadline', help='User-selected deadline; defaults to five minutes after --release-at')
+    discovery.add_argument('--source-id', help='Exact pending web-family row to record incrementally')
+    discovery.add_argument('--status', choices=['partial', 'checked', 'unavailable'], default='partial')
+    discovery.add_argument('--outcome', choices=['opened', 'failed'], default='opened')
+    discovery.add_argument('--url', help='Direct source URL actually opened/attempted')
+    discovery.add_argument('--evidence', help='Saved source/tool body inside Lite; copied without replacing earlier evidence')
+    discovery.add_argument('--tool-reference')
+    discovery.add_argument('--retrieval-method')
+    discovery.add_argument('--checked-at', help='Actual retrieval clock, if already recorded by the source-open tool')
+    discovery.add_argument('--note', default='')
+    discovery.add_argument('--stop-reason', choices=['complete', 'source_gaps', 'release_deadline'])
     external = commands.add_parser('external', help='Read/write separate sourced events and headlines outside the broker calendar')
-    external.add_argument('action', choices=['list', 'read', 'append', 'archive', 'restore', 'show-on-chart'], nargs='?', default='list')
+    external.add_argument('action', choices=['list', 'read', 'preflight', 'append', 'archive', 'restore', 'show-on-chart'], nargs='?', default='list')
+    external.add_argument('--storage', default='http://127.0.0.1:8002', help='Loopback storage runtime to check before external writes')
     external.add_argument('--key')
     external.add_argument('--input', help='ExternalRequest JSON inside Lite; append requires this')
     external.add_argument('--expected-version', help='Latest version ID; required for archive/restore/show-on-chart')
@@ -310,6 +324,17 @@ def run(args):
         raise ValueError('Offset must be non-negative')
     if args.command == 'discovery':
         from discovery_audit import capture, validate_file
+        if args.action in ('record', 'finish'):
+            from discovery_record import record_source, finish
+            if not args.input:
+                raise ValueError('Discovery record/finish needs --input with its receipt')
+            if args.action == 'finish':
+                return finish(local_path(args.input), args.stop_reason, args.note)
+            if not args.source_id or not args.url:
+                raise ValueError('Discovery record needs --source-id and --url')
+            return record_source(local_path(args.input), args.source_id, args.status, args.url,
+                local_path(args.evidence) if args.evidence else None, args.tool_reference, args.retrieval_method,
+                args.note, args.outcome, args.checked_at, ROOT)
         if args.action == 'validate':
             if not args.input:
                 raise ValueError('Discovery validate needs --input')
@@ -317,7 +342,8 @@ def run(args):
         if not args.scope or not args.broker or not args.output:
             raise ValueError('Discovery start needs --scope, --broker and --output')
         output = (ROOT / args.output).resolve() if not Path(args.output).is_absolute() else Path(args.output).resolve()
-        return capture(ROOT, output, args.scope, args.broker, args.as_of, args.days, args.read_only)
+        return capture(ROOT, output, args.scope, args.broker, args.as_of, args.days, args.read_only,
+                       release_at=args.release_at, deadline=args.deadline)
     if args.command == 'thesis':
         if args.action == 'context':
             from storage.thesis import PATH as THESIS_PATH
@@ -342,18 +368,24 @@ def run(args):
         with closing(CalendarStore(local_path(args.database), readonly=True)) as store:
             return append_thesis(store, request)
     if args.command == 'external':
+        if args.action == 'preflight':
+            return external_preflight(EXTERNAL_DIRECTORY, args.storage)
         if args.action == 'show-on-chart':
             if not args.key or not args.expected_version:
                 raise ValueError('Show-on-chart needs --key and --expected-version')
-            return request_external_chart_icon(args.key, args.expected_version)
+            runtime = require_external_writable(EXTERNAL_DIRECTORY, args.storage)
+            return {**request_external_chart_icon(args.key, args.expected_version), 'runtime': runtime}
         if args.action == 'append':
             if not args.input:
                 raise ValueError('Append needs --input with an ExternalRequest JSON file')
-            return append_external(ExternalRequest.model_validate_json(local_path(args.input).read_text(encoding='utf-8-sig')))
+            request = ExternalRequest.model_validate_json(local_path(args.input).read_text(encoding='utf-8-sig'))
+            runtime = require_external_writable(EXTERNAL_DIRECTORY, args.storage)
+            return {**append_external(request), 'runtime': runtime}
         if args.action in ('archive', 'restore'):
             if not args.key or not args.expected_version:
                 raise ValueError('Archive/restore needs --key and --expected-version')
-            return archive_external(args.key, args.expected_version, restore=args.action == 'restore')
+            runtime = require_external_writable(EXTERNAL_DIRECTORY, args.storage)
+            return {**archive_external(args.key, args.expected_version, restore=args.action == 'restore'), 'runtime': runtime}
         if args.action == 'read':
             if not args.key:
                 raise ValueError('Read needs --key')

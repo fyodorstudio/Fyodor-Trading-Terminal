@@ -15,6 +15,10 @@ dates/times in Asia/Jakarta AM/PM, UTC internally. Preserve the prompt cutoff:
 read the clock immediately (first-observed time is approximate if no trusted
 message timestamp). New information during research gets its own post-prompt
 update. Never backdate verification or import later results into an earlier call.
+In a fresh chat, assume no prepared thesis, counterpart comparison or retrieval
+route exists. Build the missing preparation from current sources; do not claim
+to remember this conversation. The procedure and authorization below are complete
+without chat history.
 
 An explicit prompt-only/deferred request reuses accepted context without new macro
 research; see alert-review mode. All fresh assessment modes use the procedure below.
@@ -30,6 +34,11 @@ research; see alert-review mode. All fresh assessment modes use the procedure be
    reason to postpone web research or infer there are no events. Start the first
    headline/official-schedule queries alongside this capture; do not wait through
    failed local reads before beginning web discovery.
+   For a requested release wait, pass verified `--release-at <UTC>` and its
+   `--deadline <UTC>` (default release + five minutes). When publication is
+   imminent/already elapsed, resolve timing, current actuals and decisive
+   expectations first. Run remaining discovery alongside that release check;
+   neither the local capture nor a full counterpart scan may delay its first verdict.
 2. **Immediately batch rigorous web research for both currency stories.** Start
    with the preceding hour, next six hours and overnight stages; also search the
    preceding 24 hours for fresh developments. Inspect official schedules AND fresh
@@ -57,8 +66,11 @@ research; see alert-review mode. All fresh assessment modes use the procedure be
    A standalone broad shortlist uses its requested scope/horizon; only an
    unspecified broad shortlist defaults to all eight currencies/90 days. Do not
    turn an ordinary pair assessment into an all-currency inventory.
-5. **Verify coverage and persistence before finalizing.** Complete `discovery.json`
-   with actual opened-source evidence, retrieval clocks, candidate decisions and
+5. **Record evidence as it arrives, then verify before finalizing.** Use
+   `discovery record` after each source-open batch, preserving actual tool output,
+   retrieval clocks and failures. Mark a partly researched family `partial`,
+   not `checked`; do not leave successful retrievals invisible until the final answer.
+   Complete `discovery.json` with candidate decisions and
    pin read-backs; run `pnpm analyst discovery validate --input "<discovery.json>"`.
    Fix missing required checks. If a source/write remains unavailable after one
    suitable alternate route, identify that exact gap in the answer and receipt;
@@ -67,6 +79,11 @@ research; see alert-review mode. All fresh assessment modes use the procedure be
    persisted pins, not the existence of every possible headline. No workflow
    guarantees exhaustive news discovery. Recheck fresh headlines and nearer
    stages at completion and separately time material post-prompt updates.
+   At a declared release deadline use `discovery finish --stop-reason release_deadline`
+   with the unfinished-check explanation, then validate. This preserves partial
+   work and explicitly defers untouched rows; it does not complete their coverage.
+   Never invent failed routes to explain a time limit or claim a fully ranked
+   best pair without checking all seven material counterpart stories.
 
 The required local checks find identities and known omissions; they do not make
 MT5 the source of truth. Official publishers control schedules/results; dated
@@ -100,13 +117,19 @@ their separate explicit-request rules; a requested daily Thesis fill is a save.
   verified date, pin date-only; with no date, use an untimed watch and explain
   that no chart timestamp exists. Never invent a marker time.
 - New/updated dated external record: append with `"show_on_chart": true`.
+  First run `pnpm analyst external preflight` alongside discovery. External CLI
+  mutations enforce that probe automatically before touching shared files. Use
+  this guarded CLI for analyst writes; do not bypass it with direct Python calls.
+  An old/mismatched/unreachable running service blocks writes before mutation.
+  Connection refusal permits offline persistence, with live delivery unverified.
+  Report the exact runtime gap and continue research; do not restart services.
   Existing active dated record needing only visibility:
   `pnpm analyst external show-on-chart --key <key> --expected-version <latest-id>`.
   Read back the active record and its nonempty `chart_icon_request_id`. The UI
   honors this persisted request across matching pairs, superseding earlier hidden
   preferences; the user can hide it again afterward. No browser automation is
-  needed. An old runtime that omits the request cannot establish icon success;
-  report it without restarting services or claiming a visual audit.
+  needed. Read back both local persistence and the matching live route when
+  running; a persisted request is not proof that an older UI displayed it.
 - Read-back must prove active scope, occurrence/time and latest version. Log writes
   that fail. Preserve histories, existing notes, forecasts, alarm choices and raw
   calendar data. Verified timed pins use Alert's existing reminder mechanism;

@@ -51,6 +51,12 @@ both currency stories, and distinguish event/provider/publication/recorded clock
 The collection is not a complete live news feed. When saving outside events is
 authorized, use the [External Sources workflow](docs/EXTERNAL-SOURCES.md); preserve
 versions, timing uncertainty and raw data. No ingestion/monitoring is implied.
+External CLI writes enforce runtime compatibility before changing shared files;
+use `external preflight`, never bypass it with direct Python during research.
+Record opened source evidence incrementally with `discovery record`. A bounded
+release deadline may explicitly defer unfinished checks as partial coverage;
+it never establishes a complete scan or fully ranked pair comparison. A fresh
+chat must prepare missing context from current evidence without assumed memory.
 
 Work only in this Lite repo. Explain interpretation in the analyst conversation;
 saved, agent-authored Highlight journals are also in scope. Keep journal records

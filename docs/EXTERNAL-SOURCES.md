@@ -62,6 +62,17 @@ and boolean browser preferences remain readable without migration. Untimed watch
 cannot request a marker; restore an archived record before requesting visibility.
 Read back the active scope/time/request ID and, when available, the live storage
 route before claiming success. Visual placement remains a manual UI check.
+Chart requests use immutable `chart-requests/<version-id>.json` sidecars so older
+strict storage/alarm readers keep reading the original record schema. Existing
+inline requests remain readable; no history migration is required.
+
+Before analyst writes, `external preflight` probes the running storage capability
+and verifies the shared directory. Every external CLI mutation enforces that check.
+An older service, directory mismatch, timeout or malformed reply blocks the write
+before files change. A refused connection permits offline persistence, with live
+delivery unverified. Load the updated backend/UI before using chart requests;
+research does not authorize a service restart. Internal Python writers are for
+the storage service and isolated tests, not a preflight bypass in analyst work.
 
 ## Agent commands
 
@@ -70,6 +81,7 @@ Run from Lite; no service or broker connection is needed:
 ```powershell
 pnpm analyst external --scope EURUSD --visibility all --from 2026-08-19 --to 2026-08-20
 pnpm analyst external read --key us-treasury-20260819-long-end-buybacks
+pnpm analyst external preflight
 pnpm analyst external append --input "Market Analyst Workflow/report/<report>/external-event.json"
 pnpm analyst external archive --key <key> --expected-version <latest-id>
 pnpm analyst external restore --key <key> --expected-version <latest-id>

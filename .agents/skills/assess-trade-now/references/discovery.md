@@ -85,17 +85,54 @@ optional. Read only focused prior context, never OHLC in this workflow.
 `--days` retains a longer requested horizon; the broker index is capped at its
 90-day limit, while official web schedules must cover the full requested horizon.
 
+Record checks immediately after each source-open batch. Save the real returned
+tool text/JSON or publisher body; do not reconstruct source evidence from memory.
+The helper copies evidence to a unique immutable filename and atomically updates
+the receipt, retaining earlier checks and failures. For example:
+
+```powershell
+pnpm analyst discovery record --input "<receipt>/discovery.json" --source-id nzd-news --status partial --url "<opened direct URL>" --evidence "<saved tool body inside Lite>" --tool-reference "<actual source-open reference>" --note "Opened current NZ news; wider schedule checks remain"
+pnpm analyst discovery record --input "<receipt>/discovery.json" --source-id nzd-policy --status partial --outcome failed --url "<attempted URL>" --tool-reference "<failed tool reference>" --note "Actual retrieval failure; alternate route still pending"
+```
+
+Use `checked` only after the family obligation is covered, including the relevant
+schedule horizon. A single actual opened body can support a specific verified
+event even while that wider family remains `partial`. Two distinct actual failed
+retrieval routes plus their notes establish `unavailable`; a deadline is not a
+retrieval failure. Repeat `record` for each route, keeping every outcome. The tool
+assigns the actual recording clock; `--checked-at` may preserve an already-known
+real retrieval clock. Neither clock changes the source's publication time.
+
+For a release wait, `start --release-at <verified UTC> --deadline <UTC>` declares
+the bound (default five minutes after publication). At its elapsed deadline:
+
+```powershell
+pnpm analyst discovery finish --input "<receipt>/discovery.json" --stop-reason release_deadline --note "<specific checks unfinished at the declared deadline>"
+pnpm analyst discovery validate --input "<receipt>/discovery.json"
+```
+
+This retains partial checks and marks untouched web rows `deferred`. Validation
+can accept an honest bounded partial record, but returns `coverage_complete: false`.
+It never turns deferred checks into completed coverage or a fully ranked pair
+comparison. Ordinary assessments cannot use this release-only exception to skip
+required discovery. Use `finish --stop-reason complete` after all checks, or
+`source_gaps` for actual failed retrievals. Finished receipts cannot be edited
+through `record`; a new invocation gets a new receipt.
+
 `discovery.json` fields:
 
 - `scope`, `broker`, `as_of_utc`, `started_utc`, `horizon_days`;
   `discovery_completed_utc` records the initial immediate pass. If a backdrop is
   researched, its `backdrop_started_utc` must follow that pass, not precede it.
 - `sources`: each has `id`, `family`, `currency` (or `ALL` for local captures),
-  `status` (`pending`, `checked`, `unavailable`), real `checked_utc`, `url` for
+  `status` (`pending`, `partial`, `checked`, `unavailable`, `deferred`), real `checked_utc`, `url` for
   web sources, `evidence_path` relative to this receipt, and `note`. For opened
   web evidence include `tool_reference` or `retrieval_method`; record the actual
   opened route, not just a search query. Unavailable rows need two distinct
   `attempts` and a specific `note`; the final answer must expose that gap.
+  Incremental `checks` retain each opened/failed route, clock, tool reference,
+  note and copied evidence path. `partial`/`deferred` remain gaps and can finalize
+  only under the elapsed release-deadline rule above.
 - `events`: `key`, `title`, `currencies`, `stage`, `source_ids`, verified
   `event_at` OR `event_date` (neither for an untimed watch), `material`,
   `surface`, `decision_note`, `available_utc` or explicit `availability_note`,
