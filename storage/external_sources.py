@@ -35,6 +35,7 @@ class ExternalRequest(Payload):
     time_note: str = Field(min_length=1, max_length=2000)
     sources: list[JournalSource] = Field(min_length=1, max_length=30)
     expected_version: str | None = Field(default=None, pattern=r'^[0-9a-f]{32}$')
+    show_on_chart: bool = Field(default=False, exclude=True)
 
     @model_validator(mode='after')
     def valid_record(self):
@@ -65,6 +66,7 @@ class ExternalVersion(ExternalRequest):
     id: str = Field(pattern=r'^[0-9a-f]{32}$')
     saved_utc: datetime
     archived: bool = False
+    chart_icon_request_id: str | None = Field(default=None, pattern=r'^[0-9a-f]{32}$')
 
 
 class LifecycleRequest(Payload):
@@ -130,9 +132,32 @@ def append_external(request, directory=DIRECTORY):
         previous = next((item for item in reversed(_versions(directory)) if item['key'] == request.key), None)
         if (previous and request.expected_version != previous['id']) or (not previous and request.expected_version):
             raise ValueError('External source changed; read its latest version before appending a correction')
-        item = ExternalVersion(**request.model_dump(), id=uuid4().hex, saved_utc=datetime.now(timezone.utc),
-                               archived=previous['archived'] if previous else False)
+        if request.show_on_chart and (request.kind == 'watch' or not (request.event_at or request.event_date)):
+            raise ValueError('A chart icon needs a verified date or time')
+        identity = uuid4().hex
+        item = ExternalVersion(**request.model_dump(), id=identity, saved_utc=datetime.now(timezone.utc),
+                               archived=previous['archived'] if previous else False,
+                               chart_icon_request_id=identity if request.show_on_chart else (previous or {}).get('chart_icon_request_id'))
         return _write(directory, item)
+
+
+def request_external_chart_icon(key, expected_version, directory=DIRECTORY):
+    """Append a chart request without rewriting facts or changing archive state."""
+    with LOCK, data_lock(Path(directory)):
+        history = external_history(key, directory)
+        if not history:
+            raise ValueError('External source not found')
+        previous = history[-1]
+        if previous['id'] != expected_version:
+            raise ValueError('External source changed; read its latest version before requesting an icon')
+        if previous['archived']:
+            raise ValueError('Restore the record before requesting a chart icon')
+        if previous['kind'] == 'watch' or not (previous['event_at'] or previous['event_date']):
+            raise ValueError('A chart icon needs a verified date or time')
+        identity = uuid4().hex
+        return _write(directory, ExternalVersion(**{**previous, 'id': identity,
+            'expected_version': expected_version, 'saved_utc': datetime.now(timezone.utc),
+            'chart_icon_request_id': identity}))
 
 
 def external_history(key, directory=DIRECTORY):

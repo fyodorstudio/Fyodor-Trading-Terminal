@@ -92,7 +92,7 @@ Fundamental backdrop table (policy/projections, inflation, labor/wages, growth a
 other drivers), and order evidence within cells newest first and upcoming events
 earliest first. Use only data and expectations public by the simulated cutoff. Show the
 historical cutoff separately from today's research time; ages use that cutoff.
-Apply the [direction and conviction rule](../assess-trade-now/SKILL.md#direction-and-conviction)
+Apply the [direction and dominant reason rule](../assess-trade-now/references/fundamental-assessment.md#direction-and-dominant-reason)
 to evidence available then. No mandatory entry-date declaration or separate
 confidence checklist. Leave execution timing to the user.
 

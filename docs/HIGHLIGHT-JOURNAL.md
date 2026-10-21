@@ -42,22 +42,18 @@ Choose **Prepare before release** for same-day/hour-before research, or **Interp
 after release** once actuals arrive. Prompt templates are separate from journal
 research; saving a prompt never fills Before release with a pretend investigation.
 
-For a quick assessment outside a Highlight, ask: "Use $assess-trade-now to assess
-USDJPY now for an intraday trade, without candle analysis." It researches both
-currencies on the web, with local data optional, and leads with a direct buy/sell
-thesis and its dominant driver. Material recent developments go newest first.
-**Upcoming events that could change the thesis** are separate, earliest first,
-with Jakarta AM/PM times, attributable expectations when available and conditional
-implications. **Fundamental backdrop — recent & prior** replaces the stale-event
-list with a compact category-by-currency table: monetary policy/rate projections,
-inflation, labor/wages, growth/activity and other material drivers. Each cell has
-dated evidence, its age/change and currency implication, linked to web sources;
-MT5 data is optional. Older relevant evidence is Background, not automatically
-stale. No mandatory entry-date declarations or confidence/entry/risk checklists.
-A dominant active catalyst can outweigh older opposing indicators. Sources, material gaps
-and reversal triggers stay concise. The research still checks both currencies'
-next seven days; a pending release alone does not force the general thesis to
-wait. Execution timing and risk rules remain with the user.
+For a quick assessment, ask "Use $assess-trade-now to assess USDJPY now."
+It owns upcoming-alert reviews too: check the preceding hour, next six hours and
+overnight on the web first, then at least seven days for both currencies. Focused
+pins/limitations/external identities and the broker index are required cross-checks;
+official sources take priority over flawed MT5 data. The invocation authorizes
+immediate verified material-event pins/restores and dated external chart-icon
+requests unless explicitly read-only. It does not authorize full journals/Thesis
+conclusions, impact labels or automatic archiving. Preserve exact occurrences.
+Lead with an imminent warning and direct strengthening/weakening thesis, then
+chronological near-term/upcoming events. The dated five-category backdrop is
+secondary and compact. Validate the source/pin receipt and expose exact remaining
+gaps; no candle analysis, monitoring or guaranteed exhaustive news coverage.
 
 Archive replaces Unpin/Remove pin in Alert and Inspector. It preserves occurrence
 identity, journal files and an archive-time reading snapshot. Restore resumes live
@@ -86,6 +82,8 @@ pnpm analyst prompt read "<id>" --broker Elev8-Demo2 --scope EURUSD
 pnpm analyst limitations --broker Elev8-Demo2
 pnpm analyst upcoming --broker Elev8-Demo2 --scope all --days 90 --category policy --category inflation --category labor
 pnpm analyst upcoming --broker Elev8-Demo2 --scope AUDUSD --days 14 --family au-labor
+pnpm analyst discovery start --broker Elev8-Demo2 --scope EURUSD --output "Market Analyst Workflow/report/<name>"
+pnpm analyst discovery validate --input "Market Analyst Workflow/report/<name>/discovery.json"
 ```
 
 Upcoming groups exact publication windows using the terminal's source-ID family
@@ -201,8 +199,11 @@ pnpm analyst highlight pin --broker Elev8-Demo2 --input "<pin-request.json>"
 
 Pin input uses the existing HighlightRequest: source_id, label, family_id, currency,
 value_ids, event_ids and optional join_window_seconds (0–3600). Use IDs from focused
-calendar/upcoming evidence; explicit user authorization is required for lifecycle
-changes. Existing pin IDs and journals survive re-pinning.
+calendar/upcoming evidence. Assess Trade Now supplies standing permission for
+material pins/restores in scope; otherwise lifecycle changes need a user request.
+Archive remains an explicit user choice. Existing pin IDs and journals survive
+re-pinning. Missing or unreliable broker stages use sourced External Sources and
+limitations while preserving the raw observations.
 
 Each append creates a new immutable JSON version under
 `Market Analyst Workflow/journal/<highlight-id>/<entry-id>.json`. It records the

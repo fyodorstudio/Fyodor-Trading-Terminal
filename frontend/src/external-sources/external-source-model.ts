@@ -7,6 +7,7 @@ export type ExternalSource = {
   published_utc: string | null; time_note: string; saved_utc: string; archived: boolean
   sources: { kind: 'web' | 'local'; label: string; locator: string; note: string }[]
   expected_version: string | null; version_count?: number
+  chart_icon_request_id?: string | null
 }
 export function validExternalItems(value: unknown): value is ExternalSource[] {
   const at = (value: unknown) => value === null || typeof value === 'string' && /(?:Z|[+-]\d{2}:\d{2})$/.test(value) && Number.isFinite(Date.parse(value))
@@ -18,6 +19,7 @@ export function validExternalItems(value: unknown): value is ExternalSource[] {
       && Array.isArray(entry.currencies) && entry.currencies.length > 0 && entry.currencies.every(currency => majorCurrencies.some(value => value === currency))
       && ['scheduled', 'headline', 'watch'].includes(entry.kind) && ['confirmed', 'reported', 'unverified'].includes(entry.status)
       && [entry.event_at, entry.published_utc].every(at) && typeof entry.saved_utc === 'string' && at(entry.saved_utc)
+      && (entry.chart_icon_request_id == null || typeof entry.chart_icon_request_id === 'string' && /^[0-9a-f]{32}$/.test(entry.chart_icon_request_id))
       && (entry.event_date === null || typeof entry.event_date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(entry.event_date))
       && typeof entry.archived === 'boolean' && Array.isArray(entry.sources) && entry.sources.length > 0
       && entry.sources.every(source => source && ['web', 'local'].includes(source.kind) && typeof source.label === 'string'

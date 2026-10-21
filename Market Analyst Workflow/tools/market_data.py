@@ -25,7 +25,7 @@ from storage.thesis_reviews import ReviewRequest, append_review, review_context
 from storage.highlight_metadata import PromptRequest, append_prompt, read_prompts, LimitationRequest, append_limitation, limitations_snapshot
 from storage.alert_impact import ImpactRequest, append_impact, impact_snapshot
 from upcoming import upcoming_snapshot
-from storage.external_sources import DIRECTORY as EXTERNAL_DIRECTORY, ExternalRequest, append_external, external_history, external_snapshot, archive_external
+from storage.external_sources import DIRECTORY as EXTERNAL_DIRECTORY, ExternalRequest, append_external, external_history, external_snapshot, archive_external, request_external_chart_icon
 
 
 def get_json(base, route):
@@ -281,11 +281,20 @@ def parser():
     candles.add_argument('--bridge', default='http://127.0.0.1:8001')
     candles.add_argument('--broker-offset-seconds', type=int, help='Explicit historical offset for a broker without a profile')
     candles.add_argument('--max-requests', type=int, choices=range(2, 65), metavar='2..64', default=32)
+    discovery = commands.add_parser('discovery', help='Capture local coverage context and verify web-source/pin discovery receipts')
+    discovery.add_argument('action', choices=['start', 'validate'])
+    discovery.add_argument('--scope')
+    discovery.add_argument('--broker')
+    discovery.add_argument('--as-of', help='Timezone-aware prompt cutoff; defaults to the first-observed clock')
+    discovery.add_argument('--days', type=int, metavar='7+', default=7)
+    discovery.add_argument('--output', help='New receipt directory inside Lite')
+    discovery.add_argument('--input', help='Completed discovery.json inside Lite')
+    discovery.add_argument('--read-only', action='store_true', help='Explicit user override: discovery without event pin mutations')
     external = commands.add_parser('external', help='Read/write separate sourced events and headlines outside the broker calendar')
-    external.add_argument('action', choices=['list', 'read', 'append', 'archive', 'restore'], nargs='?', default='list')
+    external.add_argument('action', choices=['list', 'read', 'append', 'archive', 'restore', 'show-on-chart'], nargs='?', default='list')
     external.add_argument('--key')
     external.add_argument('--input', help='ExternalRequest JSON inside Lite; append requires this')
-    external.add_argument('--expected-version', help='Latest version ID; required for archive/restore')
+    external.add_argument('--expected-version', help='Latest version ID; required for archive/restore/show-on-chart')
     external.add_argument('--scope', default='all', help='all, a currency or a pair')
     external.add_argument('--visibility', choices=['active', 'archived', 'all'], default='active')
     external.add_argument('--from', dest='from_date', help='Inclusive UTC day (date-only records retain source date)')
@@ -299,6 +308,16 @@ def parser():
 def run(args):
     if getattr(args, 'offset', 0) < 0:
         raise ValueError('Offset must be non-negative')
+    if args.command == 'discovery':
+        from discovery_audit import capture, validate_file
+        if args.action == 'validate':
+            if not args.input:
+                raise ValueError('Discovery validate needs --input')
+            return validate_file(local_path(args.input))
+        if not args.scope or not args.broker or not args.output:
+            raise ValueError('Discovery start needs --scope, --broker and --output')
+        output = (ROOT / args.output).resolve() if not Path(args.output).is_absolute() else Path(args.output).resolve()
+        return capture(ROOT, output, args.scope, args.broker, args.as_of, args.days, args.read_only)
     if args.command == 'thesis':
         if args.action == 'context':
             from storage.thesis import PATH as THESIS_PATH
@@ -323,6 +342,10 @@ def run(args):
         with closing(CalendarStore(local_path(args.database), readonly=True)) as store:
             return append_thesis(store, request)
     if args.command == 'external':
+        if args.action == 'show-on-chart':
+            if not args.key or not args.expected_version:
+                raise ValueError('Show-on-chart needs --key and --expected-version')
+            return request_external_chart_icon(args.key, args.expected_version)
         if args.action == 'append':
             if not args.input:
                 raise ValueError('Append needs --input with an ExternalRequest JSON file')

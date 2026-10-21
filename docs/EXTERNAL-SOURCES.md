@@ -47,6 +47,22 @@ the dock; their icons default off unless explicitly enabled. Agent lifecycle
 commands below remain compatible. Browser storage failure is shown without
 pretending the preference was saved.
 
+Assess Trade Now now owns upcoming-alert review and has standing authorization to
+pin verified material discoveries and request chart visibility, unless the user
+explicitly asks for read-only/no-save work. Official publisher schedules/results
+and fresh reporting take priority over incomplete broker coverage. The required
+discovery receipt records source checks, actual retrieval clocks and pin read-back;
+it does not guarantee exhaustive news coverage or create a live monitor.
+
+An append with `show_on_chart: true`, or the command below for an existing active
+dated record, persists a new `chart_icon_request_id`. It supersedes a browser hide
+from before that request. The user can hide the icon again; ordinary research
+updates retain that later choice until another explicit show request. Old records
+and boolean browser preferences remain readable without migration. Untimed watches
+cannot request a marker; restore an archived record before requesting visibility.
+Read back the active scope/time/request ID and, when available, the live storage
+route before claiming success. Visual placement remains a manual UI check.
+
 ## Agent commands
 
 Run from Lite; no service or broker connection is needed:
@@ -57,6 +73,7 @@ pnpm analyst external read --key us-treasury-20260819-long-end-buybacks
 pnpm analyst external append --input "Market Analyst Workflow/report/<report>/external-event.json"
 pnpm analyst external archive --key <key> --expected-version <latest-id>
 pnpm analyst external restore --key <key> --expected-version <latest-id>
+pnpm analyst external show-on-chart --key <key> --expected-version <latest-id>
 ```
 
 List supports --match, --limit and --offset; follow next_offset. Dates are inclusive
@@ -82,6 +99,8 @@ Archive/restore also require that id. A stale write fails without replacing
 anything. Use read to resolve conflicts; retain prior evidence and user notes.
 Save only within the user's requested research/lifecycle scope. Do not automatically
 turn every limitation, potential risk or search result into a confirmed event.
+Assess Trade Now supplies the scoped standing event-pin/icon authorization;
+full journals, Thesis conclusions and impact ratings retain their separate rules.
 
 ## Persistence and API
 

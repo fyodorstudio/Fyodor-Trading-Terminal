@@ -1,4 +1,0 @@
-interface:
-  display_name: "Review Upcoming Alerts"
-  short_description: "Review macro releases and suggest Highlight pins"
-  default_prompt: "Use $review-upcoming-alerts to review the next 90 days across all eight currencies and recommend a focused Highlight shortlist using current macro and policy evidence."

@@ -98,6 +98,30 @@ class AnalystCalendarTests(unittest.TestCase):
         self.assertEqual(self.store.db.execute('SELECT value FROM data_revision WHERE id=1').fetchone()[0],before)
 
 
+class AnalystExternalCommandsTests(unittest.TestCase):
+    def test_chart_request_cli_preserves_facts_and_rejects_stale_version(self):
+        from storage.external_sources import ExternalRequest, append_external, external_history, request_external_chart_icon
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            saved = append_external(ExternalRequest(key='policy-stage', title='Verified policy stage',
+                currencies=['EUR'], kind='scheduled', status='confirmed', event_at='2026-10-22T12:00:00Z',
+                facts='Preserve original evidence.', time_note='Official scheduled stage.',
+                sources=[dict(kind='web', label='Publisher', locator='https://www.ecb.europa.eu/')]), root)
+            args = analyst.parser().parse_args(['external', 'show-on-chart', '--key', 'policy-stage', '--expected-version', saved['id']])
+            with patch.object(analyst, 'request_external_chart_icon', side_effect=lambda key, version: request_external_chart_icon(key, version, root)):
+                shown = analyst.run(args)
+                self.assertNotEqual(shown['id'], saved['id'])
+                history = external_history('policy-stage', root)
+                self.assertEqual(len(history), 2)
+                self.assertEqual(history[-1]['chart_icon_request_id'], shown['id'])
+                self.assertEqual(history[-1]['facts'], history[0]['facts'])
+                with self.assertRaisesRegex(ValueError, 'changed'):
+                    analyst.run(args)
+            args.expected_version = None
+            with self.assertRaisesRegex(ValueError, 'expected-version'):
+                analyst.run(args)
+
+
 class AnalystOhlcTests(unittest.TestCase):
     def test_saved_window_reuse_and_capture_serialization(self):
         with tempfile.TemporaryDirectory() as directory:

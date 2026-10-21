@@ -1,4 +1,4 @@
 interface:
   display_name: "One Minute Before Release"
   short_description: "Reuse preparation, await actuals and assess the release"
-  default_prompt: "Use $one-minute-before-release for my specified imminent release, reuse the prepared $assess-trade-now context, await fresh actuals and return a short sourced thesis followed by separate Upcoming events that could change the thesis and a compact policy, inflation, labor/wages, growth and other-drivers comparison table with dates and implications, without candles."
+  default_prompt: "Use $one-minute-before-release for my specified release, read the clock first, reuse $assess-trade-now context and verify actuals within a bounded check; give a sourced strengthening or weakening bias separate from entry timing, using the compact assessment unless I request only a currency bias, without candles or automatic monitoring."

@@ -1,4 +1,4 @@
 interface:
   display_name: "Assess Trade Now"
-  short_description: "Currency fundamentals and saved daily Thesis news tables"
-  default_prompt: "Use $assess-trade-now for my requested currency assessment or dated Thesis table. For a fill-date request, research all eight currencies, aim for four distinct same-date news items each when available, save factual numbered summaries with matching numbered sources and upcoming scheduled news, verify the save, then briefly confirm in chat; omit bias, confidence and counterweights. For an assessment, use the prompt-time bias workflow. Exclude candles and automatic monitoring."
+  short_description: "Discover near-term news, pin alerts and assess fundamentals"
+  default_prompt: "Use $assess-trade-now to discover and pin material near-term events with chart icons first, verify web coverage for my currencies, then give the current fundamental assessment or complete my requested dated Thesis table."

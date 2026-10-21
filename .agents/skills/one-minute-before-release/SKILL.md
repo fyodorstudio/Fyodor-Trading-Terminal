@@ -24,6 +24,8 @@ Resolve the requested occurrence, broker, reference period and pair from the
 prompt and prior assessment; an invocation plus event/date is sufficient when
 that context resolves the scope. Inherit the Jakarta AM/PM-only presentation
 default; use UTC internally, without displaying additional timezones.
+Apply later scope changes immediately: "just the USD bias" stops pair selection
+and uses Assess Trade Now's concise currency-only response.
 Carry forward its sources, policy concerns,
 separately attributed forecasts, conditional scenarios, counterevidence,
 extreme-move risks and the prepared at-least-seven-day fundamental exit/
@@ -60,11 +62,14 @@ cannot be selected merely because another currency's release is clear.
   from that verified instant, rather than reusing an old countdown. Resolve any
   inconsistent client/runtime clocks before claiming a live countdown. If clock
   or wait tools are unavailable, explain the limitation; do not claim to be waiting.
-- Announce the target, scope, preparation gaps and stopping deadline. Default to
+- Read the clock before announcing a countdown or coverage deadline. Announce
+  the target, scope, preparation gaps and stopping deadline. Default to
   five minutes after the targeted publication unless the user specifies another
   bound. If invoked after release, check actuals immediately; do not wait again
   for a past instant. If already beyond the deadline, make one current check and
-  report the result without pretending to have observed publication live.
+  report the result without pretending to have observed publication live. State
+  the lateness and perform one bounded retrieval pass with a suitable fallback;
+  do not announce an expired deadline as future coverage or begin another wait.
 - Use available short, interruptible waits (such as clock.sleep), at most 30
   seconds each, capped by time remaining to the next check or deadline. Re-read
   the clock after waits and tool calls; new user input may end a wait early.
@@ -75,8 +80,9 @@ cannot be selected merely because another currency's release is clear.
   Read-only CLI queries do not refresh the publisher. The storage collector waits
   two seconds between cycles,
   but broker/publisher arrival can lag; never promise numbers from that interval.
-  While decisive actuals remain missing, make focused sequential checks roughly
-  5–10 seconds apart, allowing for command duration and backing off on failures.
+  While decisive actuals remain missing within the active bound, make focused
+  sequential checks roughly 5–10 seconds apart, allowing for command duration
+  and backing off on failures.
   Do not busy-loop, query the full inventory or repeatedly reload instructions.
 
 Record available timing checkpoints in the active conversation: scheduled release,
@@ -118,8 +124,13 @@ web discovery when a prepared direct route works. If the official page fails,
 try one suitable alternative:
 fresh broker readings or accessible reliable reporting of the exact release.
 Attribute any provisional broker-only assessment and missing official confirmation.
+If web extraction fails, one direct official HTTP text/CSV retrieval may be the
+fallback; inspect its period/content rather than treating a successful status or
+search snippet as confirmation. Avoid broad discovery and repeated failed URLs
+when a focused official route or the complete verified broker package suffices.
 Search snippets alone do not confirm a decisive fact. Material disagreement or
-missing decisive fields means wait/no clear edge; identify the unresolved issue.
+missing decisive fields prevents a confirmed event-specific interpretation;
+identify the unresolved issue separately from any supported overall bias.
 Do not wait for a slow website if sufficiently verified current evidence already
 supports an explicitly attributed interpretation. Do not delay for nondecisive
 details or repeatedly search unchanged pages.
@@ -132,35 +143,44 @@ a new edge. Before-release hypotheses may be confirmed, weakened or overturned.
 No candles, saved OHLC, chart inspection or historical reaction calculations.
 
 Apply Assess Trade Now's
-[continuation/retracement check](../assess-trade-now/SKILL.md#continuation-retracement-or-a-changed-thesis)
+[continuation/retracement check](../assess-trade-now/references/fundamental-assessment.md#continuation-retracement-or-a-changed-thesis)
 to the evidence available now. The release's first verdict is not a forecast of
 the entire session: later guidance or a separate release can warrant an opposite
 short-term bias without erasing the initial facts. Separate an active retracement
 thesis supported by new information from a hypothetical reversal risk. Do not
 delay a supported first verdict to await speculative later developments.
 
-For speeches, panels and Q&A, verify the actual delivery/publication format.
+For speeches, panels and Q&A, verify the actual delivery/publication format,
+announced topic and any quiet-period or explicit policy-discussion restriction.
 "No prepared text" or an empty transcript page does not mean no policy remarks
 were made. If the live remarks cannot be verified, preserve any supported
 backdrop lean but explicitly withhold a fresh event-specific verdict. An event's
 scheduled start is not proof the decisive remarks have been delivered.
+When a verified report says the speaker will not discuss current policy, report
+that promptly and stop waiting for that promised rate signal. Attribute reported
+remarks and distinguish them from an official transcript. Newly locating a report
+does not mean its contents were newly published during this invocation.
+If asked where to watch, provide the organiser's exact event/day stream and
+Jakarta schedule. A listed livestream does not establish active playback; say
+whether broadcasting was verified. A watch-link follow-up alone starts no wait.
 
 ## Respond and stop
 
 Use two deliveries in the same active turn. As soon as the decisive package
-supports an interpretation, send a short first verdict in commentary: pair,
-STRONG BUY / BUY / MIXED / SELL / STRONG SELL, one causal sentence and the decisive
-actuals versus attributed expectations, with a direct source. Apply Assess Trade
-Now's catalyst-dominance rule; routine counterevidence does not automatically
+supports an interpretation, send a short first verdict in commentary: the requested
+pair or currency, STRENGTHENING BIAS or WEAKENING BIAS, one causal
+sentence and the decisive actuals versus attributed expectations, with a direct
+source. Follow Assess Trade Now's direction rule; no MIXED/neutral or buy/sell
+rating verdicts. Apply Assess Trade Now's catalyst-dominance rule;
+routine counterevidence does not automatically
 weaken the verdict. Briefly identify a material unresolved fact when necessary.
 Do not wait to format the final answer or repeat unchanged flashes on every poll.
 If decisive fields conflict or are missing, identify the gap without inventing a
 confirmed release result; a supported existing thesis can still be stated.
 
 Then use Assess Trade Now's [compact output](../assess-trade-now/SKILL.md#output-format):
-assessment date/as-of time and horizon, a direct thesis, a separate **UPCOMING
-EVENTS THAT COULD CHANGE THE THESIS** section, then **FUNDAMENTAL BACKDROP —
-RECENT & PRIOR**: a compact category-by-currency comparison of monetary policy
+assessment date/as-of time and horizon, a direct thesis, a separate **NEAR-TERM & UPCOMING EVENTS** section, then **DATED FUNDAMENTAL
+BACKDROP**: a compact category-by-currency comparison of monetary policy
 and rate projections, inflation, labor/wages, growth/activity and other drivers,
 with dated evidence, ages and implications. Reuse the prepared table and refresh
 the released package and intervening news; do not rebuild everything near release.
@@ -192,10 +212,13 @@ that monitoring ends here; a later reassessment requires another invocation
 unless the user has explicitly requested a longer bounded wait. A suggested
 return time is not an alarm or continuing coverage.
 
-If decisive evidence remains unavailable at the deadline, report wait/no clear
-edge, exactly what is missing/conflicting, last check time and what would allow
-reassessment. Finish the active wait; do not silently continue monitoring. Do not
-wait for a later policy stage unless it is the requested target or necessary for
+If decisive evidence remains unavailable at the deadline, report exactly what is
+missing/conflicting, last check time and what would allow reassessment. Preserve
+a supported overall directional bias while stating that the event adds no verified
+update. Only a decisive gap in the overall thesis permits "Bias cannot be
+established"; do not use that phrase or staying flat as routine substitutes for
+weighing the evidence. Finish the active wait; do not silently continue monitoring.
+Do not wait for a later policy stage unless it is the requested target or necessary for
 the verdict within the agreed bound; name pending stages in the separate Upcoming section.
 
 Save a compact Thesis record only when the user explicitly asks to document the
@@ -206,6 +229,10 @@ real as-of time and preserve prior versions. A release link is optional metadata
 not a pending row to fill. Confirm the save or disclose failure; do not backdate
 or modify pins/raw data. Saving does not extend the wait or start monitoring.
 
+An Assess Trade Now handoff retains its standing material-event pin/icon
+permission and immediate-discovery context; do not repeat the whole scan before
+a first supported release verdict. Full journal/Thesis conclusions still need a
+save request. A standalone countdown has no additional lifecycle authorization.
 No entry price, stop, sizing, profit forecast, candle confirmation, order, service
-restart, pin/archive or journal write is implied. Save only when requested.
+restart, automatic archiving or ongoing monitoring is implied.
 Creating this skill does not start a timer or create an automation.

@@ -93,7 +93,7 @@ function ExternalEventsDock({ timeDisplay, focusKey = null, renderHeader, render
         pin={showPinControls && <button type="button" aria-label={`${item.archived ? 'Pin' : 'Unpin'} ${item.title}`} aria-pressed={!item.archived}
           disabled={pins.busy} onClick={() => void pins.changePin(item)} title={item.archived ? 'Pin to Highlight' : 'Remove from Highlight; retain saved research'}>{item.archived ? 'Pin' : 'Pinned'}</button>}
         iconVisible={externalIconEnabled(item, visibility)} onIconChange={visible => {
-          setIconError(setExternalIconVisibility(item.key, visible) ? '' : 'Could not save chart visibility. Check browser storage and try again.')
+          setIconError(setExternalIconVisibility(item.key, visible, item.chart_icon_request_id ?? null) ? '' : 'Could not save chart visibility. Check browser storage and try again.')
         }} />)}
     </div>
   </section></CalendarClock>

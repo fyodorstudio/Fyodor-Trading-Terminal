@@ -36,8 +36,17 @@ storage or occurrence identities. Active external records are pinned; archive/re
 preserves their immutable history and alarm choices. For the
 requested pair/currencies, saved outside-feed context can be queried with
 `pnpm analyst external --scope EURUSD` (`--visibility all` for history), using
-focused dates/match and complete pagination when consulted. Quick assessments
-are web-first; local datasets and journals are optional unless explicitly requested. Treat saved interpretation as dated context, verify fresh news and
+focused dates/match and complete pagination. Assess Trade Now is web-first and
+includes upcoming-alert review: immediately check the preceding hour, next six
+hours and overnight stages before the backdrop, then at least seven days for the
+requested currencies. Focused pins, limitations, external identities and broker
+index reads are required; broad local datasets/journals remain optional. Official
+publishers and fresh reporting take priority over flawed/incomplete MT5 coverage.
+Invoking Assess Trade Now authorizes immediately pinning/restoring verified material
+events and requesting Show icon on chart for dated External Sources; an explicit
+read-only/no-save request overrides this default. Keep identities/history; never
+invent a time or overwrite observations. Full journals/Thesis conclusions retain
+separate save rules. Validate the discovery receipt and read back writes. Treat saved interpretation as dated context, verify fresh news and
 both currency stories, and distinguish event/provider/publication/recorded clocks.
 The collection is not a complete live news feed. When saving outside events is
 authorized, use the [External Sources workflow](docs/EXTERNAL-SOURCES.md); preserve
@@ -74,8 +83,13 @@ folders live together under `Market Analyst Workflow/`.
   [assess-trade-now skill](.agents/skills/assess-trade-now/SKILL.md).
 - Quick assessments use the [assess-trade-now skill](.agents/skills/assess-trade-now/SKILL.md):
   research the requested currencies thoroughly on the web, including off-calendar
-  catalysts; local datasets are optional. Reuse loaded guidance, batch independent
-  checks and bound failed-source retries. For an explicit imminent-release wait,
+  catalysts. Near-term discovery and verified event pins come first; the dated
+  backdrop is secondary. Follow the skill's shared source-coverage receipt:
+  required web families, focused limitations/identity reads, actual retrieval
+  clocks and independent pin/icon read-back. USD always includes Treasury auctions,
+  buyback announcements/operations/results and relevant Fed operations. Check
+  sources beyond broker filters and distinguish offered/accepted amounts. Batch
+  independent checks and bound failed-source retries. For an explicit imminent-release wait,
   use [one-minute-before-release](.agents/skills/one-minute-before-release/SKILL.md)
   with prepared retrieval routes, verified timing and a stopping deadline. Send a
   short sourced first verdict when supported, then the compact assessment in the
@@ -109,23 +123,17 @@ folders live together under `Market Analyst Workflow/`.
   Do not sum signals across weeks: later information can change the backdrop.
   Include both currency stories and the strongest counterevidence.
 - Present assessments in the skill's compact [output format](.agents/skills/assess-trade-now/SKILL.md#output-format):
-  assessment date/as-of time and horizon, pair verdict with a one- or two-sentence
-  dominant-driver thesis, **UPCOMING EVENTS THAT COULD CHANGE THE THESIS**, then
-  **FUNDAMENTAL BACKDROP — RECENT & PRIOR**. Link decisive evidence beside the
-  thesis. Any material recent-event bullets go newest first; upcoming events belong in their own section,
-  earliest first, with verified Jakarta AM/PM times and the outcome that changes
-  the thesis. Unscheduled risks follow timed events without invented dates.
-  The backdrop is a compact category-by-currency table covering monetary policy
-  (including guidance, projections and expected rate paths), inflation, labor/wages,
-  growth/activity and other material drivers. Research each category for both
-  currencies on the web, with MT5 optional. Cells show dated latest/prior evidence,
-  age and a brief implication; multiple items go newest first. Older relevant
-  evidence is Background, not automatically stale. Future releases remain in
-  Upcoming. A reference month, capture or retrieval time is not the news date.
-  Unknown times stay unknown; historical ages use the simulated cutoff.
-  Use the backdrop table by default; keep thesis/Upcoming short. No mandatory
-  entry-date declaration, eligibility gate, confidence boilerplate, separate risk checklist or repetitive conclusion.
-  Research depth should not inflate the answer. Keep execution timing with the user.
+  lead with any material imminent/just-elapsed stage and the dated prompt-time
+  bias/thesis, then **NEAR-TERM & UPCOMING EVENTS**, earliest first. Surface known
+  market-moving operations even if their directional outcome or effect on the
+  wider thesis is uncertain. Do not bury a nearby event under a long backdrop.
+  **DATED FUNDAMENTAL BACKDROP** is a compact dated category-by-currency reference
+  (policy/path, inflation, labor/wages, activity, other drivers), with latest/prior
+  evidence, approximate age and direct sources. Research both currency stories;
+  depth belongs in evidence. A short currency-bias answer still gets the required
+  discovery/pin pass and imminent warnings without a large table. Keep execution
+  with the user. Report reused/new pins, persisted chart requests and exact
+  unresolved source/write gaps. Partial coverage cannot be presented as complete.
   Old policy decisions alone are not fresh directional evidence. If fresh news
   reactivates an older story, explain the update alongside the thesis; age alone
   does not establish irrelevance or that an event was priced in.
@@ -163,14 +171,20 @@ folders live together under `Market Analyst Workflow/`.
   Verify that a proposed catalyst preceded the move. When helpful in an explicitly
   requested historical cross study, compare the two USD legs to distinguish base
   recovery from quote weakness; do not infer trader motives from that arithmetic.
-- Lead with STRONG BUY / BUY / MIXED / SELL / STRONG SELL and explain the dominant
-  relative mechanism. A verified active catalyst can outweigh weaker opposing
-  indicators; do not require unanimity, count releases as votes or default to
-  slight/low-confidence wording. Domestic data need not improve for a currency
-  to attract haven demand against a stressed counterpart. Fresh material opposing
-  evidence or a decisive gap can reduce conviction; balanced evidence remains MIXED.
-  Distinguish a strong directional thesis from precision about timing or move size.
-  Never invent evidence, probabilities, pip forecasts or guaranteed returns.
+- For conversational currency/pair assessments, lead with STRENGTHENING BIAS or
+  WEAKENING BIAS and explain the dominant mechanism at the requested cutoff and
+  horizon. Do not use MIXED, neutral, buy/sell ratings or confidence grades as
+  verdicts. Weigh causal importance rather than counting releases or requiring
+  unanimity. Domestic data need not improve for a currency to attract haven demand
+  against a stressed counterpart. Separate a release's incremental implication
+  from the overall currency/pair bias; an inconclusive release need not erase an
+  established mechanism. Only a genuinely decisive evidence gap after focused
+  research permits "Bias cannot be established", with the exact missing fact;
+  never invent direction to avoid disclosing that gap. Keep bias, new event
+  information and execution timing separate: no new catalyst does not itself mean
+  stay flat or reverse. Never invent probabilities, pip forecasts or returns.
+  Existing saved pair-journal enums/history retain the docs/THESIS.md storage
+  contract; they do not define conversational verdicts or authorize a migration.
 - For upcoming events give backdrop, attributed expectations and conditional
   stronger/in-line/weaker or hike/hold/cut outcomes including guidance. Explain
   what supports/invalidates the view; refresh expectations near release and the
@@ -180,7 +194,7 @@ folders live together under `Market Analyst Workflow/`.
   official schedules and credible calendars across all five backdrop categories.
   Include a later next policy/projection event when central to the thesis, marked
   outside the scan window. Attribute available expectations and explain how a
-  surprise could change the mechanism, without inventing consensus. Show only thesis-changing candidates
+  surprise could change the mechanism, without inventing consensus. Show material thesis-changing or near-term market-moving candidates
   in the separate Upcoming section with concise conditional implications; this
   scan horizon is not a directional forecast or mandatory holding period. Check
   nearer remarks/Q&A, overnight stages and specific unscheduled shocks. Integrate
@@ -233,7 +247,8 @@ folders live together under `Market Analyst Workflow/`.
   The latest cutoff on the selected day supplies the table; date selection does
   not invoke research. Follow [Thesis workflow](docs/THESIS.md), verify the saved
   ID/date/rows by read-back and briefly confirm in chat after completing the save.
-  No routine upkeep, AI scheduling, pins or alarms are implied. Alert owns reminders.
+  No routine upkeep or AI scheduling is implied. Assess Trade Now carries its
+  standing verified-event pin/icon authorization; date selection alone does not. Alert owns reminders.
   Pair assessment saves retain their existing workflow and complete shared
   backdrop; receiving an Alert or invoking a release skill alone authorizes no write.
   Pair bias and thesis change are separate: a weaker buy/sell case does not
@@ -259,8 +274,8 @@ folders live together under `Market Analyst Workflow/`.
   research, start with `highlights`, then focused `journal read`; use
   `--visibility all` for history.
   [Journal workflow](docs/HIGHLIGHT-JOURNAL.md) documents schemas and commands.
-  For upcoming-event shortlist requests, use the repository's
-  [review-upcoming-alerts skill](.agents/skills/review-upcoming-alerts/SKILL.md).
+  Upcoming shortlists and holding/reassessment reviews are part of
+  [Assess Trade Now](.agents/skills/assess-trade-now/SKILL.md); no second skill invocation is required.
 - Keep before-release research separate from after-release interpretation. Show
   the research-as-of time, currency/pair scope and direct thesis, with attributed
   expectations and material counterevidence integrated concisely. Use the compact

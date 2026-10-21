@@ -185,16 +185,19 @@ checkbox for gold stars in a separate row above broker icons; click one to open
 its record. Stars appear only on pairs containing an affected currency. Untimed
 watch items have no chart timestamp.
 
-The repository has four market-analysis skills:
-[Assess Trade Now](.agents/skills/assess-trade-now/SKILL.md) for a concise web-first
-fundamental thesis without candles, with eight-currency coverage only
-when requested;
+The repository has three market-analysis skills:
+[Assess Trade Now](.agents/skills/assess-trade-now/SKILL.md) combines current
+fundamentals, near-term discovery and upcoming-alert/holding reviews. It researches
+web sources before the dated backdrop, reads known feed limitations, immediately
+pins verified material discoveries and requests chart icons (unless explicitly
+read-only), then validates its coverage/persistence receipt. Scope stays with the
+requested currencies; an unspecified broad shortlist alone uses all eight/90 days.
 [One Minute Before Release](.agents/skills/one-minute-before-release/SKILL.md)
-for a bounded active-chat countdown using that prepared context and fresh actuals;
+provides a bounded active-chat countdown using prepared context and fresh actuals.
 [Review Historical Research](.agents/skills/review-historical-research/SKILL.md)
-for past moves and named date-range reports with mandatory H1/H4 evidence; and
-[Review Upcoming Alerts](.agents/skills/review-upcoming-alerts/SKILL.md) for deciding
-which future releases to watch or pin.
+handles past price moves and date-range reports with mandatory H1/H4 evidence.
+Upcoming review no longer needs a separate skill invocation. No live news monitor
+or guaranteed exhaustive coverage is implied; explicit source gaps remain visible.
 
 For example, ask `Use $assess-trade-now for 8 currencies ahead of US CPI` to
 prepare, then in the same chat `Use $one-minute-before-release for the October 14

@@ -4,7 +4,9 @@ Use this mode when asked to fill the Thesis table for a date, including the dock
 Copy fill-date prompt. Read docs/THESIS.md for the JSON contract. This request
 authorizes saving that date; date selection alone invokes nothing. Complete the
 research and persisted table before responding, then confirm the date, any gaps
-and the successful save briefly. A short chat answer cannot replace the save.
+and the successful save briefly. A short chat answer cannot replace the save. The parent skill's immediate
+discovery, coverage receipt and material-event pin/icon authorization also apply;
+date selection alone remains read-only and creates no monitoring.
 
 - Cover USD, EUR, GBP, JPY, CHF, CAD, AUD and NZD in one currency row each. The
   columns are Currency | DD:MM:YYYY FUNDAMENTAL | SOURCE | UPCOMING CHECKPOINT.

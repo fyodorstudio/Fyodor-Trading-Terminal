@@ -41,7 +41,13 @@ try {
   const { buildExternalMarkers, projectExternalMarkers } = await server.ssrLoadModule('./src/external-sources/external-markers.ts')
   const { ExternalChartMarkers } = await server.ssrLoadModule('./src/external-sources/ExternalChartMarkers.tsx')
   const { DisplayClockContext } = await server.ssrLoadModule('./src/appearance/time-display/useDisplayClock.ts')
-  const { setExternalIconVisibility } = await server.ssrLoadModule('./src/external-sources/external-icon-visibility.ts')
+  const { setExternalIconVisibility, externalIconEnabled } = await server.ssrLoadModule('./src/external-sources/external-icon-visibility.ts')
+  const requested = item('requested', '2026-10-14T15:00:00Z', { chart_icon_request_id: 'b'.repeat(32) })
+  assert.equal(externalIconEnabled(requested, { requested: false }), true, 'Agent request supersedes a legacy hidden preference')
+  assert.equal(externalIconEnabled(requested, { requested: { visible: false, requestId: 'b'.repeat(32) } }), false, 'User can hide the icon again after the request')
+  assert.equal(externalIconEnabled({ ...requested, id: 'c'.repeat(32) }, { requested: { visible: false, requestId: 'b'.repeat(32) } }), false, 'Research corrections do not undo a later user choice')
+  assert.equal(externalIconEnabled({ ...requested, chart_icon_request_id: 'c'.repeat(32) }, { requested: { visible: false, requestId: 'b'.repeat(32) } }), true, 'A subsequent assessment can explicitly show it again')
+  assert.equal(externalIconEnabled({ ...requested, archived: true }, {}), false, 'Archived records still default off')
   const durations = { M1: 60, M5: 300, M15: 900, M30: 1800, H1: 3600, H4: 14400, D1: 86400 }
   for (const [timeframe, duration] of Object.entries(durations)) {
     const future = item('scheduled', new Date((last + duration * 2.5) * 1000).toISOString())
@@ -92,6 +98,15 @@ try {
   await render(1, 'USDJPY')
   assert.ok(container.querySelector('.external-chart-star'), 'USD news and its shared visibility preference follow a different USD pair')
   await render(1, 'EURUSD')
+  // A new persisted request travels through polling, marker construction and the chart.
+  await React.act(async () => setExternalIconVisibility('future', false)); await render(1)
+  assert.equal(container.querySelector('.external-chart-star'), null)
+  items = [{ ...items[0], id: 'b'.repeat(32), chart_icon_request_id: 'b'.repeat(32) }]
+  await React.act(async () => root.render(null)); await render(1)
+  assert.ok(container.querySelector('.external-chart-star'), 'Saved agent request shows an existing hidden USD event')
+  await React.act(async () => setExternalIconVisibility('future', false, 'b'.repeat(32))); await render(1)
+  assert.equal(container.querySelector('.external-chart-star'), null, 'User hide works after the persisted request')
+  await React.act(async () => setExternalIconVisibility('future', true, 'b'.repeat(32))); await render(1)
   // Custom collisions open a separate chooser; no Inspector occurrence is manufactured.
   items = [beforeDst, item('neighbor', '2026-10-14T15:01:00Z')]
   await React.act(async () => root.render(null)); await render(1)

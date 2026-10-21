@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from types import SimpleNamespace
 
 from fastapi import HTTPException
-from storage.external_sources import ExternalRequest, append_external, archive_external, external_history, external_snapshot
+from storage.external_sources import ExternalRequest, append_external, archive_external, external_history, external_snapshot, request_external_chart_icon
 from storage.app import create_app
 
 
@@ -64,6 +64,47 @@ class ExternalSourcesTests(TestCase):
             with self.assertRaises(ValueError):
                 external_snapshot(self.directory, **query)
 
+    def test_chart_request_is_persistent_versioned_and_preserves_research_and_lifecycle(self):
+        first = append_external(self.request(show_on_chart=True), self.directory)
+        original = Path(first['path']).read_bytes()
+        record = external_history(first['key'], self.directory)[-1]
+        self.assertEqual(record['chart_icon_request_id'], first['id'])
+        self.assertNotIn('show_on_chart', record)
+        correction = append_external(self.request(expected_version=first['id'], facts='Verified update'), self.directory)
+        self.assertEqual(external_history(first['key'], self.directory)[-1]['chart_icon_request_id'], first['id'])
+        with self.assertRaises(ValueError):
+            request_external_chart_icon(first['key'], first['id'], self.directory)
+        shown = request_external_chart_icon(first['key'], correction['id'], self.directory)
+        current = external_history(first['key'], self.directory)[-1]
+        self.assertEqual(current['chart_icon_request_id'], shown['id'])
+        self.assertEqual(current['facts'], 'Verified update')
+        self.assertEqual(current['event_at'], record['event_at'])
+        self.assertEqual(current['sources'], record['sources'])
+        self.assertEqual(Path(first['path']).read_bytes(), original)
+        archived = archive_external(first['key'], shown['id'], self.directory)
+        with self.assertRaises(ValueError):
+            request_external_chart_icon(first['key'], archived['id'], self.directory)
+        restored = archive_external(first['key'], archived['id'], self.directory, restore=True)
+        self.assertEqual(external_history(first['key'], self.directory)[-1]['chart_icon_request_id'], shown['id'])
+        self.assertFalse(external_history(first['key'], self.directory)[-1]['archived'])
+        self.assertNotEqual(restored['id'], shown['id'])
+
+    def test_legacy_and_date_only_records_and_untimed_chart_rejection(self):
+        legacy = append_external(self.request(), self.directory)
+        raw = json.loads(Path(legacy['path']).read_text())
+        raw.pop('chart_icon_request_id')
+        Path(legacy['path']).write_text(json.dumps(raw))
+        self.assertIsNone(external_history(legacy['key'], self.directory)[-1]['chart_icon_request_id'])
+        dated = append_external(self.request(key='date-only', event_at=None, event_date='2026-10-27', show_on_chart=True), self.directory)
+        self.assertEqual(external_history('date-only', self.directory)[-1]['chart_icon_request_id'], dated['id'])
+        watch = self.request(key='watch', kind='watch', event_at=None, show_on_chart=True)
+        with self.assertRaises(ValueError):
+            append_external(watch, self.directory)
+        watch.show_on_chart = False
+        saved = append_external(watch, self.directory)
+        with self.assertRaises(ValueError):
+            request_external_chart_icon('watch', saved['id'], self.directory)
+
     def test_invalid_timing_sources_and_blank_facts(self):
         for changes in (
             {'event_at': '2026-08-19T12:33:00'}, {'published_utc': '2099-01-01T00:00:00Z'},
@@ -94,9 +135,10 @@ class ExternalSourcesTests(TestCase):
         endpoint = lambda path: next(route.endpoint for route in app.routes if getattr(route, 'path', '') == path)
         # GET and POST share a path; select explicitly by method.
         save = next(route.endpoint for route in app.routes if getattr(route, 'path', '') == '/api/v1/external-sources' and 'POST' in route.methods)
-        saved = save(self.request())
+        saved = save(self.request(show_on_chart=True))
         read = next(route.endpoint for route in app.routes if getattr(route, 'path', '') == '/api/v1/external-sources' and 'GET' in route.methods)
         self.assertEqual(read(None, 'active', 'all', 100, 0)['items'][0]['id'], saved['id'])
+        self.assertEqual(read(None, 'active', 'all', 100, 0)['items'][0]['chart_icon_request_id'], saved['id'])
         self.assertEqual(endpoint('/api/v1/external-sources/{key}')(saved['key'])['items'][0]['id'], saved['id'])
         with self.assertRaises(HTTPException):
             archive_external('missing', 'a' * 32, self.directory)

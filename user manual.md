@@ -1,13 +1,12 @@
-# Four market-analysis skills
+# Three market-analysis skills
 
 Open `C:\dev\Fyodor Trading Terminal Lite` and choose the skill for your question:
 
 | Skill | Use it for | Example prompt |
 |---|---|---|
-| [Assess Trade Now](.agents/skills/assess-trade-now/SKILL.md) | A current fundamental assessment: direction, confidence, counterevidence, extreme-move risk and next intervening news. One pair by default; all eight currencies only when requested. No candles. | `Use $assess-trade-now for USDJPY.` |
+| [Assess Trade Now](.agents/skills/assess-trade-now/SKILL.md) | Current fundamentals, near-term news discovery, upcoming alerts and holding risks. Web evidence first; verified material events are pinned immediately with dated external chart icons unless explicitly read-only. One pair by default; no candles or monitoring. | `Use $assess-trade-now for USDJPY.` or `Use $assess-trade-now to review upcoming alerts across all eight currencies for 90 days.` |
 | [One Minute Before Release](.agents/skills/one-minute-before-release/SKILL.md) | An active-chat countdown that reuses preparation, verifies the publication time, waits for fresh actuals and returns a release assessment. No candles. | `Use $one-minute-before-release for my US CPI Highlight, EURUSD only. Reuse our preparation.` |
 | [Review Historical Research](.agents/skills/review-historical-research/SKILL.md) | A past move or named Research Date Range report: H1 candles, or suitable H4, plus calendar and dated web evidence. Explain reversals, intervening news and what was knowable at the time. | `Use $review-historical-research for "USDJPY massive decline sep 24 2026".` |
-| [Review Upcoming Alerts](.agents/skills/review-upcoming-alerts/SKILL.md) | Choosing which future releases deserve attention or a Highlight pin. Recommendation does not automatically pin events or start monitoring. | `Use $review-upcoming-alerts across all eight currencies for the next 90 days. Recommend a focused shortlist.` |
 
 For broader preparation, say:
 

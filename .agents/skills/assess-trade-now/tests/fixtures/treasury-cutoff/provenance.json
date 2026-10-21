@@ -1,0 +1,15 @@
+{
+  "preliminary": {
+    "file": "BBPA_20261021174000.xml",
+    "url": "https://www.treasurydirect.gov/instit/annceresult/press/preanre/2026/BBPA_20261021174000.xml",
+    "available_utc": "2026-10-20T15:00:00Z"
+  },
+  "results": {
+    "file": "BBR_20261021174000.xml",
+    "url": "https://www.treasurydirect.gov/instit/annceresult/press/preanre/2026/BBR_20261021174000.xml",
+    "publication_utc": null,
+    "availability_note": "Results are post-operation; announcementDTM is the final-announcement clock, not evidence of results availability before the operation."
+  },
+  "verification_utc": "2026-10-21T19:20:47.154121Z",
+  "source": "Unmodified XML downloaded during this chat; fixture outcomes must respect their separate availability."
+}

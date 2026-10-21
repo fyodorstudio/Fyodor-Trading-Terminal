@@ -5,11 +5,11 @@ import type { OhlcBar } from '../market-data/contracts/OhlcBar'
 import { timeframeSeconds } from '../inspector/chart/build-markers'
 import { inspectorMarkerCoordinate } from '../inspector/marker-position'
 import type { ExternalSource } from './external-source-model'
-import { externalIconEnabled } from './external-icon-visibility'
+import { externalIconEnabled, type ExternalIconPreferences } from './external-icon-visibility'
 
 export type ExternalMarker = { item: ExternalSource; time: number; dayEnd?: number; projection?: { anchorTime: number; barsAhead: number } }
 export type ExternalCluster = { x: number; markers: ExternalMarker[] }
-export function buildExternalMarkers(items: readonly ExternalSource[], bars: readonly Pick<OhlcBar, 'time'>[], timeframe: ChartTimeframe, clock: ChartClockScope, visibility: Readonly<Record<string, boolean>> = {}) {
+export function buildExternalMarkers(items: readonly ExternalSource[], bars: readonly Pick<OhlcBar, 'time'>[], timeframe: ChartTimeframe, clock: ChartClockScope, visibility: ExternalIconPreferences = {}) {
   if (!bars.length) return []
   const last = Number(bars.at(-1)!.time), duration = timeframeSeconds[timeframe]
   return items.flatMap((item): ExternalMarker[] => {
