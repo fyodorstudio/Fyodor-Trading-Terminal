@@ -1,13 +1,18 @@
 # Fundamental assessment and release interpretation
 
-Read after the parent skill's near-term discovery pass. These rules govern the
-directional interpretation and secondary dated backdrop; they do not replace
-the required source coverage or event pinning.
+Use alongside the parent skill's immediate discovery. These rules govern the
+directional decision and secondary dated backdrop; they do not replace source
+coverage or event pinning. Send a supported first take after checking immediate
+hazards and both currency mechanisms, then finish discovery in the same turn.
 
 ## Prompt-time bias and evidence cutoff
 
 The primary result is the fundamental bias at the user's invocation time over the
-requested horizon, defaulting to intraday. Establish that cutoff before research:
+requested horizon, defaulting to intraday for an ordinary assessment. Reversal,
+recovery and continuation questions get immediate-session and next 1–5
+trading-session views unless the user specifies otherwise. Assess each horizon
+on its own dominant mechanism; distinguish this outlook from the event-scan
+window. Establish that cutoff before research:
 use a trusted message timestamp when available; otherwise read the clock immediately
 and label the first-observed time as approximate. Never invent the exact prompt
 second or silently substitute the answer's completion time. An explicit user-chosen
@@ -81,20 +86,23 @@ nearest material checkpoints without treating future outcomes as current support
   For a range ending now with a future extension, distinguish developments since
   the range began, today's assessment and the conditional future outlook. Future
   dates are scenarios using today's information, not assessments already observed.
-- Never fetch, open or analyze candles/OHLC, saved price reactions, chart attachments
-  or technical indicators in this workflow. User technicals are execution context,
-  not confirmation of the fundamental thesis.
+- Fundamental-only is the default. For an explicit price-aware request, apply
+  [bounded market feedback](opportunity-discovery.md#optional-price-aware-feedback).
+  A persistent price contradiction requires a thesis review, with the observed
+  move and proposed cause kept separate. Preserve no-candles requests and route
+  full historical price studies to Review Historical Research.
 
 ## Direction and dominant reason
 
-For each requested currency, lead with **STRENGTHENING BIAS** or **WEAKENING BIAS**
-and explain the dominant fundamental reason at the prompt cutoff. For a requested
-pair, use the same labels for the base currency relative to the quote currency.
-These are the only directional labels: no MIXED/neutral verdicts, buy/sell ratings,
-numeric scores, strength bands, intensity adjectives or confidence grades. Explain
-the mechanism
-instead of qualifying the label. Do not use a catch-all verdict for conflicting
-indicators or assume that every variable has equal weight.
+For a requested pair, lead with **BUY** or **SELL** at the prompt cutoff and stated
+horizon. **STRONG BUY** or **STRONG SELL** expresses qualitative conviction when
+the active mechanism clearly outweighs material opposition; explain why. Strength
+is not a numeric score, a count of agreeing releases, or a promised move size.
+For a standalone currency, use **STRENGTHENING BIAS** or **WEAKENING BIAS** and
+name its comparison; a pair decision describes the base relative to the quote.
+No MIXED/neutral fallback, numeric confidence grades or invented probabilities.
+Give the dominant reason and one concrete invalidation. Saved daily Thesis rows
+retain POTENTIAL STRENGTHENING / POTENTIAL WEAKENING under their own contract.
 
 Every directional verdict must explain why the verified mechanism supplies active
 support or pressure at the cutoff over the requested horizon. Distinguish a
@@ -138,7 +146,7 @@ An empty cell means no material counterweight was established in this assessment
 not proof that no risk exists. Do not add hypothetical filler or routine disclaimers.
 
 Example thesis wording, when supported by contemporaneous evidence:
-"EURCHF: WEAKENING BIAS — European fiscal stress drives selling of EUR and demand
+"EURCHF: SELL — European fiscal stress drives selling of EUR and demand
 for CHF safety; Swiss economic data does not need to improve for that trade to work."
 This illustrates catalyst dominance, not a standing EURCHF call or a verdict
 assigned from a later chart. An older policy decision alone should not dilute an
@@ -178,9 +186,12 @@ evidence establishes direction. Keep this check internal and the answer compact.
 
 ## Thesis change relative to an earlier assessment
 
-When a prior pair assessment is available, distinguish pair bias from the change
-in evidence for that earlier directional case. Explain the change and its causal
-reason in plain prose, without magnitude ratings. A less persuasive strengthening
+When a prior comparable assessment is available, state **RETAINED** or **REVERSED**
+for the same horizon and identify the decisive evidence. If a decisive fact prevents
+a defensible direction, explicitly withdraw that verdict with the exact gap;
+do not invent an opposite call. With no prior assessment, state the new decision
+without manufacturing a comparison. Distinguish direction from the change
+in evidence for that earlier case. A less persuasive strengthening
 case does not by itself establish weakening; a reversal requires a supported
 opposite mechanism. A newly researched interval has no implied prior verdict;
 legacy unassessed changes stay unknown.
@@ -204,6 +215,13 @@ information reinforces the thesis, supports an opposite near-term direction or
 invalidates it. Do not carry an earlier verdict forward automatically or invent a
 retracement merely because the user missed a move. Fundamental direction and
 precision about timing or eventual pip distance are separate judgments.
+When an opposite mechanism now dominates, issue the opposite BUY/SELL verdict
+immediately for that horizon. Do not keep calling an established opposite thesis
+"recovery risk", "possible retracement" or an emerging watch while waiting for
+every data category or the original central bank to change. Identify the earliest
+verified contrary development and the first supported decision separately; a
+watch cue can precede a trade verdict. Later confirmation does not move that
+earlier decision clock or establish that the eventual move was predictable in full.
 
 Distinguish a one-off surprise from a continuing pressure. An earlier policy
 disappointment does not by itself establish fresh selling pressure days later.
@@ -229,6 +247,11 @@ Explain the specific reason when recommending waiting and what information would
 resolve it. A supported continuing bias does not require a new catalyst on every
 invocation. Missing user entry/stop details alone do not invalidate that bias;
 execution remains separate and no precision about price or timing is implied.
+Market-awareness and [LOOK HERE NEXT](opportunity-discovery.md#look-here-next)
+make the candidate/decision distinction explicit. Source-count, transcript,
+unrelated coverage or pin-delivery gaps are not reasons to defer an otherwise
+supported conclusion. Name a gap only where it affects a claim, and keep checking
+the required families before declaring the overall scan complete.
 
 For petroleum packages, compare crude and product stocks with refinery runs,
 production, imports/exports and product supplied. Distinguish stock changes in
@@ -294,9 +317,14 @@ holding horizon; include a central later policy/projection meeting separately.
 
 Put an imminent material stage (next six hours/overnight), elapsed unverified
 publication or active headline first, before the slower backdrop. State Jakarta
-assessment date, prompt cutoff/horizon and STRENGTHENING BIAS or WEAKENING BIAS with
-one or two sentences naming the dominant mechanism and decisive dated links.
-Then give **NEAR-TERM & UPCOMING EVENTS**, earliest first, and a brief pin/icon/save
+assessment date, prompt cutoff/horizon and BUY/SELL (qualitative STRONG when
+supported) for the pair, or STRENGTHENING BIAS / WEAKENING BIAS for a currency.
+Give what changed, the dominant mechanism, one concrete invalidation and decisive
+dated links. With a prior comparable verdict, state RETAINED or REVERSED, or an
+explicit withdrawal for a decisive gap. For reversal questions, separate the
+immediate-session and next 1–5 trading-session decisions.
+Then surface supported **LOOK HERE NEXT** candidates near the top, followed by
+**NEAR-TERM & UPCOMING EVENTS**, earliest first, and a brief pin/icon/save
 result or specific coverage gap. Include events that can disrupt an intraday
 trade even if the wider policy thesis survives; uncertain direction is not a
 reason to omit a known operation. Events published during research get a separate
@@ -311,7 +339,8 @@ filling every cell; state a material data gap without fabricating a fact.
 
 For "just the USD bias", keep the answer to a sourced directional sentence plus
 any material imminent warning and pin/coverage result. The discovery and pin
-obligations still apply. Do not expand the currency scope or scan pairs.
+obligations still apply. Treat "just" as an explicit narrow presentation/scope
+request; do not append other currencies or scan pairs against that instruction.
 
 Every cited factual claim, including a counterweight, needs a visible date beside
 the evidence and link (for example, a dated Reuters report followed by its direct link). A link alone
@@ -323,6 +352,11 @@ evidence date stays unknown and cannot establish a fresh directional catalyst.
 Use approximate calendar-day age for untimed old news; do not invent precise ages.
 Cite direct web links and absolute paths for any local evidence actually used.
 Keep research depth out of the response unless the user asks for detail.
+State established facts and the current decision directly; reserve conditional
+wording for future scenarios or specifically unresolved facts. Put a material
+uncertainty once beside its affected claim. Omit repetitive statements about
+guarantees, predicting the bottom or perfect entry timing, and defensive closing
+paragraphs. Specific invalidation and source gaps carry the useful information.
 If material information arrived during research, give any post-prompt update its
 own cutoff; do not imply the original verdict knew that information. A later
 verification time is separate from when the evidence became public.
@@ -345,13 +379,16 @@ verdict, then uses the compact output above. Preparation alone starts no timer.
 
 ## Standalone currencies and pair selection
 
-For standalone currency requests, cover exactly the requested currencies. Cover
-USD, EUR, GBP, JPY, CHF, CAD, AUD and NZD together only when all eight are requested.
+For standalone currency requests, keep the full assessment on the requested
+currencies. The brief eight-currency opportunity sweep is the discovery exception;
+surface and verify material candidates under its own rules, unless explicitly
+scope-limited. Full eight-currency backdrops are required only when requested.
 Use one table: Currency | Strengthening / weakening bias and dated reason |
 Next material checkpoint. Add an optional Material counterweight column only
 when at least one row has qualifying evidence; leave other cells as an em dash.
 Do not invent content for a column or turn standalone rows into pair calls.
-The usual pair-format sections are unnecessary for this overview.
+The usual pair-format sections are unnecessary for this overview; LOOK HERE NEXT
+can briefly surface a separately verified opportunity outside the main table.
 Apply the same prompt-time cutoff and policy-expectation checks to each currency;
 different source coverage must not become assumed neutrality or broad strength
 against all seven counterparts. State material gaps in the affected row. Respect
@@ -373,9 +410,10 @@ For a pair assessment save (the dated news-table mode above is separate), follow
 the compact sourced verdict/thesis, change and its comparison evidence using the
 exact target or standalone row and latest predecessor. Preserve real
 research/saved clocks. The existing pair-journal storage contract uses legacy
-verdict enums: map an established strengthening bias to BUY and weakening bias
-to SELL when saving, explaining the mechanism in the thesis. Preserve old enums
-and versions; do not migrate data or invent a direction to fill a saved row.
+verdict enums: preserve BUY / SELL and supported STRONG BUY / STRONG SELL when
+saving a pair decision; map standalone strengthening/weakening wording to BUY/SELL
+when a pair comparison is actually established. Explain the mechanism, preserve
+old enums and versions, and never invent direction or migrate history.
 The selected month never authorizes backdating. A historical reconstruction is
 labelled as such.
 Link full Highlight research when available rather than duplicating its body.

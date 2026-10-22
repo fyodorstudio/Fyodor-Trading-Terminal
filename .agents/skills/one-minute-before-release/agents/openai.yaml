@@ -1,4 +1,4 @@
 interface:
   display_name: "One Minute Before Release"
   short_description: "Reuse preparation, await actuals and assess the release"
-  default_prompt: "Use $one-minute-before-release for my specified release, read the clock first, reuse $assess-trade-now context and verify actuals within a bounded check; give a sourced strengthening or weakening bias separate from entry timing, using the compact assessment unless I request only a currency bias, without candles or automatic monitoring."
+  default_prompt: "Use $one-minute-before-release for my specified release, read the clock first, reuse $assess-trade-now preparation and verify actuals within the deadline. Promptly give the sourced pair BUY/SELL decision or standalone currency bias, invalidation and any change from preparation, then complete the compact assessment. Fundamental-first; an explicitly requested price check follows the first verdict. No automatic monitoring."

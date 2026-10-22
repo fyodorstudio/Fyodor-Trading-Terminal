@@ -6,6 +6,15 @@ or read-only request retains its narrower scope. Do not repeat loaded guidance.
 
 ## Immediate work and required source families
 
+Missing material news can affect decisions involving real capital. Prioritize
+discovery of the actual active driver and nearest disruption over a polished
+backdrop. Include the [brief opportunity sweep](opportunity-discovery.md) for
+fresh conversational assessments/reviews, subject to explicit scope overrides.
+Surface a supported decision after immediate hazards and both currency mechanisms
+are checked; continue the full scan and receipt in the same turn. The first
+delivery may precede completed coverage. It must not claim all-clear, completed
+pins or a fully ranked comparison while those checks remain unfinished.
+
 Use a trusted invocation cutoff or an immediate clock read. Search the preceding
 hour, next six hours and overnight first, with the previous 24 hours as fresh-news
 context. Extend schedules at least seven days (or the requested longer holding
@@ -81,7 +90,9 @@ and an output folder inside Lite. It captures all pages of `highlights`,
 It creates required web-family rows with `pending` status. Fill them from actual
 search/open actions; source evidence can be saved tool text/JSON with its tool
 reference, or the original downloaded publisher body. Broad journal reads are
-optional. Read only focused prior context, never OHLC in this workflow.
+optional. Read only focused prior context; an explicitly requested bounded
+price-feedback check follows the opportunity reference, and never substitutes for
+source discovery or validates an unobserved causal explanation.
 `--days` retains a longer requested horizon; the broker index is capped at its
 90-day limit, while official web schedules must cover the full requested horizon.
 
@@ -151,12 +162,22 @@ through `record`; a new invocation gets a new receipt.
   `coverage` is `complete` or `partial`; `gaps` lists material unavailable
   sources, pin/runtime failures and unknown clocks. An empty `events` array
   needs `no_material_events_reason`, grounded in the opened sources.
+- Retain the brief sweep's actual search/open evidence and currencies checked in
+  an `opportunity_sweep` note with evidence paths; a search is not an opened-source
+  check. Add `opportunity_receipts` paths for promoted candidates outside this
+  receipt's currency scope. Validate each separately; the existing validator
+  neither follows those paths nor verifies sweep completeness. An emerging idea
+  is not permission to fabricate event facts, timing or a successful pin.
 
 Run `pnpm analyst discovery validate --input "<discovery.json>"` before finalizing.
 Missing source families, pending rows, missing evidence, incomplete pagination,
 hidden imminent candidates, false pin/icon claims or future evidence leakage
 fail validation. A fully documented failed source/write can pass only as partial
 coverage, with its gap exposed. Read-only suppresses writes, not discovery.
+An early directional delivery does not relax these finalization requirements.
+Coverage gaps constrain coverage claims; only a decisive evidence gap constrains
+the directional judgment. A pin/runtime failure never proves the market thesis
+false and must not keep a supported decision from reaching the user promptly.
 
 The receipt is a record of checks and discovered candidates, not proof that the
 world has no unobserved news. Do not claim the checker verifies semantic source

@@ -215,10 +215,13 @@ evidence and limitations. Pair exports retain frozen linked assessments/history;
 the all-currency export follows the selected date and includes agent context.
 
 The existing pair-journal storage verdicts are STRONG BUY / BUY / MIXED / SELL /
-STRONG SELL. These compatibility values do not define conversational assessment
-labels: current chat uses STRENGTHENING BIAS or WEAKENING BIAS. For an authorized
-new pair save, map an established strengthening bias to BUY and weakening bias to
-SELL; preserve old records and their enums. A decisive evidence gap is explained
+STRONG SELL. Conversational pair assessments use BUY / SELL, with qualitative
+STRONG BUY / STRONG SELL when supported by the dominant mechanism. Standalone
+currencies use STRENGTHENING BIAS / WEAKENING BIAS. For an authorized pair save,
+retain the supported pair label; map strengthening/weakening wording to BUY/SELL
+only when that pair comparison is established. Daily currency-table saves retain
+POTENTIAL STRENGTHENING / POTENTIAL WEAKENING. Preserve all old records, enums
+and versions without migration. A decisive evidence gap is explained
 in chat, not resolved by inventing a directional saved row. Use the actual
 timezone-aware research cutoff, no later than now. `saved_utc` is assigned by the
 writer. The selected month never authorizes backdating. A current assessment

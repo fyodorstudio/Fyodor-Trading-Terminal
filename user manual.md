@@ -4,9 +4,17 @@ Open `C:\dev\Fyodor Trading Terminal Lite` and choose the skill for your questio
 
 | Skill | Use it for | Example prompt |
 |---|---|---|
-| [Assess Trade Now](.agents/skills/assess-trade-now/SKILL.md) | Current fundamentals, near-term news discovery, upcoming alerts and holding risks. Web evidence first; verified material events are pinned immediately with dated external chart icons unless explicitly read-only. One pair by default; no candles or monitoring. | `Use $assess-trade-now for USDJPY.` or `Use $assess-trade-now to review upcoming alerts across all eight currencies for 90 days.` |
-| [One Minute Before Release](.agents/skills/one-minute-before-release/SKILL.md) | An active-chat countdown that reuses preparation, verifies the publication time, waits for fresh actuals and returns a release assessment. No candles. | `Use $one-minute-before-release for my US CPI Highlight, EURUSD only. Reuse our preparation.` |
+| [Assess Trade Now](.agents/skills/assess-trade-now/SKILL.md) | Current fundamentals, emerging opportunities, near-term news and holding risks. Prompt pair BUY/SELL decisions plus LOOK HERE NEXT candidates from a brief eight-currency sweep. Verified events are pinned with dated external chart icons unless read-only. Fundamental-only by default; bounded price feedback on explicit request, no monitoring. | `Use $assess-trade-now for USDJPY.` or `Use $assess-trade-now for a price-aware AUDUSD recovery assessment.` |
+| [One Minute Before Release](.agents/skills/one-minute-before-release/SKILL.md) | An active-chat countdown that reuses preparation, verifies publication, waits for fresh actuals and returns a release decision. Fundamental-first; a requested price check follows the first verdict. | `Use $one-minute-before-release for my US CPI Highlight, EURUSD only. Reuse our preparation.` |
 | [Review Historical Research](.agents/skills/review-historical-research/SKILL.md) | A past move or named Research Date Range report: H1 candles, or suitable H4, plus calendar and dated web evidence. Explain reversals, intervening news and what was knowable at the time. | `Use $review-historical-research for "USDJPY massive decline sep 24 2026".` |
+
+Missed material news can affect real capital. Expect the agent to identify the
+active driver, source its decision and explicitly reassess stale directions.
+LOOK HERE NEXT directs attention to supported emerging beneficiaries before a
+retrospective rally headline; it does not imply continuous news coverage.
+Pair decisions use BUY/SELL, with qualitative STRONG when justified. Reversal
+questions separate the immediate session from the next 1–5 trading sessions.
+An explicit "USDJPY only, no other currencies" request suppresses the broad sweep.
 
 For broader preparation, say:
 
@@ -286,5 +294,6 @@ update the fundamental direction. Do not fetch or analyze candles.”** The agen
 and focused `--summary` queries directly. Prepare the backdrop before the event,
 then request an update after publication. The agent answers in chat; keep your
 existing report notes and evidence for subsequent comparisons.
-Candle analysis, including saved OHLC, is reserved for historical price moves
-you explicitly ask to investigate.
+An explicit price-aware request permits a supplied chart or small price window
+to challenge a stale thesis. Say "no candles" to keep the assessment entirely
+fundamental. Full historical reaction measurements use Review Historical Research.

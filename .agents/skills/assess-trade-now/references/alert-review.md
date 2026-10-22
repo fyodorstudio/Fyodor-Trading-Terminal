@@ -6,6 +6,15 @@ needs a concise event shortlist, not an unsolicited full pair assessment.
 
 ## Scope and relevance
 
+For fresh reviews, include the parent's brief eight-currency opportunity sweep
+unless explicitly scope-limited. Surface supported LOOK HERE NEXT candidates
+without converting the review into 28-pair ranking. Prompt-only requests retain
+their research deferral. An emerging candidate can merit immediate attention;
+an active opposite mechanism requires a changed verdict rather than perpetual
+watch language. For reversal/continuation questions, separate immediate-session
+and next 1–5 trading-session views. Deliver supported findings while finishing
+the full event scan and persistence checks in the same turn.
+
 Use the requested pair/currencies and horizon. A pair's holding/exit or next
 opportunity question scans at least seven calendar days for both currencies,
 extending through a longer holding horizon. An unspecified broad shortlist scans
@@ -78,6 +87,7 @@ keep the supported current bias separate from the absence of a new catalyst.
 Suggested return times do not create alarms or coverage. State the checked window
 and specific unresolved source gaps; incomplete coverage cannot support an all-clear.
 
-Do not fetch or analyze candles/OHLC, including saved evidence. Keep chart levels,
-technical entries, stops, sizing and trade execution with the user. Full journals
+Fundamental-only is the default. An explicit price-aware request permits the
+parent's bounded market-feedback check; honor no-candles overrides. Keep chart
+levels, technical entries, stops, sizing and trade execution with the user. Full journals
 and Thesis writes still need their own request; no service restarts or monitoring.

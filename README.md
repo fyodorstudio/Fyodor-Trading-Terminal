@@ -190,8 +190,13 @@ The repository has three market-analysis skills:
 fundamentals, near-term discovery and upcoming-alert/holding reviews. It researches
 web sources before the dated backdrop, reads known feed limitations, immediately
 pins verified material discoveries and requests chart icons (unless explicitly
-read-only), then validates its coverage/persistence receipt. Scope stays with the
-requested currencies; an unspecified broad shortlist alone uses all eight/90 days.
+read-only), then validates its coverage/persistence receipt. It sends a supported
+pair BUY/SELL decision promptly, explicitly retains/reverses prior directions,
+and surfaces emerging beneficiaries in LOOK HERE NEXT after a brief eight-currency
+catalyst sweep. Deep research stays with the request and material candidates;
+an unspecified broad event shortlist alone uses all eight/90 days. Fundamental-only
+is the default; an explicit price-aware request permits bounded market feedback.
+Daily Thesis currency rows keep their existing saved labels and schema.
 [One Minute Before Release](.agents/skills/one-minute-before-release/SKILL.md)
 provides a bounded active-chat countdown using prepared context and fresh actuals.
 [Review Historical Research](.agents/skills/review-historical-research/SKILL.md)

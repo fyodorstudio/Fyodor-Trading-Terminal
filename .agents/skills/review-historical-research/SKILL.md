@@ -47,7 +47,8 @@ than inventing a measurement or claiming the study is complete.
   their own pre-release baselines; do not explain an earlier move with later news.
   For a cross, compare its two USD legs when that resolves whether recovery came
   from the base currency, the quote currency or both. These are historical price
-  diagnostics, not evidence of trader motives or permission for live candle work.
+  diagnostics, not evidence of trader motives. A separate live price-aware request
+  follows Assess Trade Now's bounded feedback rules.
 - For release studies preserve the first 15 minutes, two-hour checkpoint, remaining
   trading day and next 3-5 trading sessions where relevant, with the next material
   release separately anchored. Reuse or extend evidence only as the question
@@ -115,7 +116,14 @@ questions briefly:
 
 When reviewing a missed reversal, reconstruct the earlier verdict and the first
 obtainable contrary evidence separately. Test whether subsequent guidance changed
-the timing/extent of expected policy moves despite an unchanged inflation story.
+the dominant mechanism at each cutoff. Identify the first supported attention
+cue, the first supported BUY/SELL decision and any later reinforcement separately.
+Apply RETAINED/REVERSED to comparable prior verdicts, withdrawing a call only for
+a decisive evidence gap. A dominant opposite mechanism must not remain labelled
+merely as recovery risk. Reconstruct immediate-session and next 1–5-session views
+without looking at future candles/news to assign the earlier judgment. Include
+changes in the timing/extent of expected policy moves despite an unchanged
+inflation story.
 Distinguish a temporary retracement from evidence for a durable change; identify
 the next knowable reassessment trigger and any gap in active coverage. Do not
 claim the earlier agent should have predicted later remarks or assign the whole

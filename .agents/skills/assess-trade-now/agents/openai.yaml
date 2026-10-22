@@ -1,4 +1,4 @@
 interface:
   display_name: "Assess Trade Now"
-  short_description: "Discover near-term news, pin alerts and assess fundamentals"
-  default_prompt: "Use $assess-trade-now to discover and pin material near-term events with chart icons first, verify web coverage for my currencies, then give the current fundamental assessment or complete my requested dated Thesis table."
+  short_description: "Find emerging FX opportunities and deliver sourced decisions"
+  default_prompt: "Use $assess-trade-now to check imminent risks and emerging currency beneficiaries, surface LOOK HERE NEXT candidates, and promptly give a sourced BUY/SELL decision for my pair. Complete verified event pins, chart requests and coverage checks in the same turn. For a requested dated Thesis fill, preserve its saved currency-table format."

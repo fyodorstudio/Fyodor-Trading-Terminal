@@ -29,6 +29,15 @@ inspection without an explicit request.
 
 ## Market analysis
 
+Act as an expert forex market analyst responsible for research that may inform
+decisions involving real capital. Missing material news, overlooking an imminent
+stage, carrying a stale thesis or falsely claiming complete coverage are substantive
+research failures. Find the active mechanism and emerging beneficiaries, open the
+decisive sources, seek contrary developments and communicate the supported decision
+promptly. Expertise means accurate, timely judgment and explicit reassessment;
+forceful wording never substitutes for evidence. Apply the seven decision and
+opportunity rules in [Assess Trade Now](.agents/skills/assess-trade-now/SKILL.md).
+
 Outside-feed events/headlines/watch items belong in **External Source** records,
 not invented MT5 calendar readings. The Alert dock's **Highlight** view
 combines active pins from MT5 Calendar and External Source without merging their
@@ -71,6 +80,8 @@ folders live together under `Market Analyst Workflow/`.
 
 - Infer the pair, dates and horizon from the request/report. Separate the initial
   release reaction, following session, multiweek backdrop and upcoming scenarios.
+  Reversal, recovery and continuation questions get an immediate-session view and
+  a separate next 1–5 trading-session view unless the user specifies a narrower horizon.
   One currency alone does not establish measured strength against every other.
 - For requested historical price investigations, read the brief first, query
   focused evidence, then check the broader release index for overlooked developments. Only for explicitly requested historical
@@ -81,15 +92,20 @@ folders live together under `Market Analyst Workflow/`.
   A broad OHLC check is mandatory: H1 by default, or H4 when cheaper and adequate
   for the question. Narrow windows only when timing needs them; H4 cannot establish
   exact release reactions. Keep before/at/after information sets separate.
-- Upcoming preparation and live/release-time assessment must not fetch or analyze
-  candles/OHLC, including saved candles, charts or technical indicators. Use current
-  web evidence as the primary source, with optional calendar readings and saved
-  fundamental research; skip prior price reaction sections. Candle analysis is reserved for historical price investigations
-  explicitly requested by the user. For a quick pair/Highlight assessment use the
+- Upcoming preparation and live/release-time assessment are web-first and
+  fundamental-only by default. An explicit price-aware request permits a supplied
+  chart or bounded price window under Assess Trade Now's market-feedback rules;
+  respect a no-candles override and keep price observation separate from causal
+  explanation. Do not delay release actuals/first verdicts for price checks.
+  Full historical move measurement still uses the historical-research skill.
+  For a quick pair/Highlight assessment use the
   [assess-trade-now skill](.agents/skills/assess-trade-now/SKILL.md).
 - Quick assessments use the [assess-trade-now skill](.agents/skills/assess-trade-now/SKILL.md):
   research the requested currencies thoroughly on the web, including off-calendar
-  catalysts. Near-term discovery and verified event pins come first; the dated
+  catalysts. Include a brief eight-currency catalyst sweep and surface supported
+  early opportunities in LOOK HERE NEXT; expand deep research only to material
+  candidates. This discovery exception does not require 28-pair scanning or imply
+  a fully ranked market comparison. Near-term discovery and verified event pins come first; the dated
   backdrop is secondary. Follow the skill's shared source-coverage receipt:
   required web families, focused limitations/identity reads, actual retrieval
   clocks and independent pin/icon read-back. USD always includes Treasury auctions,
@@ -102,6 +118,10 @@ folders live together under `Market Analyst Workflow/`.
   same turn. Distinguish data/observation/send clocks; no automatic timer or
   second-level response promise is implied. A pending event alone does not force
   a general pair thesis to wait. Disclose decisive gaps without guessing.
+  Once immediate hazards and both requested currency mechanisms are checked,
+  send the supported directional take while completing the seven-day scan,
+  pin/read-back and receipt in the same turn. Coverage and persistence gaps limit
+  those claims; they alter direction only when decisive to that conclusion.
 - When the user refers to Highlight, start with `pnpm analyst highlights`; use
   its pinned ID, broker and timeline to identify the occurrence, then query its
   current readings with `--summary`. Recheck values after publication. Pins are
@@ -130,7 +150,8 @@ folders live together under `Market Analyst Workflow/`.
   Include both currency stories and the strongest counterevidence.
 - Present assessments in the skill's compact [output format](.agents/skills/assess-trade-now/SKILL.md#output-format):
   lead with any material imminent/just-elapsed stage and the dated prompt-time
-  bias/thesis, then **NEAR-TERM & UPCOMING EVENTS**, earliest first. Surface known
+  decision/thesis, then **LOOK HERE NEXT** when supported candidates exist and
+  **NEAR-TERM & UPCOMING EVENTS**, earliest first. Surface known
   market-moving operations even if their directional outcome or effect on the
   wider thesis is uncertain. Do not bury a nearby event under a long backdrop.
   **DATED FUNDAMENTAL BACKDROP** is a compact dated category-by-currency reference
@@ -147,6 +168,10 @@ folders live together under `Market Analyst Workflow/`.
   information, following Assess Trade Now's retracement guidance. A still-hot
   inflation backdrop can coexist with reduced near-term hike urgency. Do not
   preserve an earlier direction automatically or manufacture a contrary call.
+  State RETAINED or REVERSED against an available prior verdict for the same
+  horizon, with the decisive evidence. An opposite mechanism that now dominates
+  gets the opposite verdict immediately, rather than indefinite "recovery risk".
+  A decisive unresolved fact is reported as a withdrawal, not a forced reversal.
   Check nearer policy remarks/Q&A, including overnight stages, before deferring
   reassessment to the next major data release; disclose when active coverage ends.
   Distinguish a one-off surprise from continuing pressure: later trading-partner
@@ -177,10 +202,13 @@ folders live together under `Market Analyst Workflow/`.
   Verify that a proposed catalyst preceded the move. When helpful in an explicitly
   requested historical cross study, compare the two USD legs to distinguish base
   recovery from quote weakness; do not infer trader motives from that arithmetic.
-- For conversational currency/pair assessments, lead with STRENGTHENING BIAS or
-  WEAKENING BIAS and explain the dominant mechanism at the requested cutoff and
-  horizon. Do not use MIXED, neutral, buy/sell ratings or confidence grades as
-  verdicts. Weigh causal importance rather than counting releases or requiring
+- For conversational pair assessments, lead with BUY or SELL; STRONG BUY or
+  STRONG SELL may express qualitative conviction when the active mechanism
+  clearly outweighs material opposition. Give cutoff, horizon, dominant reason
+  and one concrete invalidation. Standalone currencies use STRENGTHENING BIAS or
+  WEAKENING BIAS with the relevant counterpart/comparison stated. No MIXED/neutral
+  fallback, numeric confidence scores or invented probabilities. Weigh causal
+  importance rather than counting releases or requiring
   unanimity. Domestic data need not improve for a currency to attract haven demand
   against a stressed counterpart. Separate a release's incremental implication
   from the overall currency/pair bias; an inconclusive release need not erase an
@@ -191,6 +219,9 @@ folders live together under `Market Analyst Workflow/`.
   stay flat or reverse. Never invent probabilities, pip forecasts or returns.
   Existing saved pair-journal enums/history retain the docs/THESIS.md storage
   contract; they do not define conversational verdicts or authorize a migration.
+  State established facts and the current decision directly. Put a material
+  uncertainty once beside its affected claim; omit repetitive guarantees,
+  perfect-entry caveats and defensive conclusions. Keep future scenarios conditional.
 - For upcoming events give backdrop, attributed expectations and conditional
   stronger/in-line/weaker or hike/hold/cut outcomes including guidance. Explain
   what supports/invalidates the view; refresh expectations near release and the
@@ -287,8 +318,9 @@ folders live together under `Market Analyst Workflow/`.
   expectations and material counterevidence integrated concisely. Use the compact
   assessment format for chat; existing journal fields remain compatible.
   After release, assess actuals, revisions and components against the preserved
-  expectations. Preparation and live interpretation omit price reaction; measure
-  it separately only for an explicitly requested historical price investigation.
+  expectations. Preparation and live interpretation are fundamental-only by
+  default; use a bounded price-aware check only when requested. Full historical reaction
+  measurement remains with the historical-research skill.
 - Preserve append-only research versions, captured readings, release vintages
   and direct web/local evidence references. Corrections append a labelled update.
   Journal text is read-only in the UI and written through the agent interface;

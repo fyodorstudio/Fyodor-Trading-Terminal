@@ -1,6 +1,6 @@
 ---
 name: one-minute-before-release
-description: "Wait for an imminent economic release in the active chat, reuse prepared context, check fresh actuals and send a short fundamental verdict followed by a concise thesis with separate upcoming events and a compact fundamental backdrop comparison. Use when asked to count down or await publication; excludes background scheduling and candle analysis."
+description: "Wait for an imminent economic release in the active chat, reuse preparation, verify fresh actuals and promptly deliver the fundamental decision with upcoming events and a compact backdrop. Use for countdown/publication waits; optional price feedback follows the first verdict, no background scheduling."
 ---
 
 # One Minute Before Release
@@ -36,6 +36,10 @@ otherwise assess the requested pair or candidate list. A subsequently narrowed
 candidate list takes precedence. Remember the conditional shortlist and why
 each counterpart was selected; fresh actuals can change the winner. Do not repeat
 comprehensive research near publication.
+Reuse prepared LOOK HERE NEXT candidates and refresh exceptional beneficiary or
+haven changes. The first release verdict must not wait for a new eight-currency
+sweep, unrelated candidate receipt or price check. Complete deferred preparation
+within the existing deadline and disclose remaining coverage precisely.
 
 Carry forward the prepared official endpoint, fallback and any focused local query,
 minimum decisive fields and simultaneous-release checks. Before publication,
@@ -155,7 +159,11 @@ changed guidance, intervention and other exceptional risks for the selected pair
 Use a focused check, not a second full macro investigation. Interpret how the
 surprise changes the expected policy path; an in-line release need not provide
 a new edge. Before-release hypotheses may be confirmed, weakened or overturned.
-No candles, saved OHLC, chart inspection or historical reaction calculations.
+Fundamental-only is the default. An explicit price-aware request permits Assess
+Trade Now's bounded market-feedback check after the first supported release
+verdict; no-candles overrides remain binding. Never delay actuals, decisive
+companions, publication checks or the first verdict to inspect price. Full
+historical reaction calculations still use Review Historical Research.
 
 Apply Assess Trade Now's
 [continuation/retracement check](../assess-trade-now/references/fundamental-assessment.md#continuation-retracement-or-a-changed-thesis)
@@ -183,12 +191,17 @@ whether broadcasting was verified. A watch-link follow-up alone starts no wait.
 
 Use two deliveries in the same active turn. As soon as the decisive package
 supports an interpretation, send a short first verdict in commentary: the requested
-pair or currency, STRENGTHENING BIAS or WEAKENING BIAS, one causal
+pair BUY/SELL or currency STRENGTHENING BIAS / WEAKENING BIAS, one causal
 sentence and the decisive actuals versus attributed expectations, with a direct
-source. Follow Assess Trade Now's direction rule; no MIXED/neutral or buy/sell
-rating verdicts. Apply Assess Trade Now's catalyst-dominance rule;
+source. Follow Assess Trade Now's direction rule, including qualitative STRONG
+BUY/SELL only when supported; no MIXED/neutral fallback or invented probability.
+Apply Assess Trade Now's catalyst-dominance rule;
 routine counterevidence does not automatically
 weaken the verdict. Briefly identify a material unresolved fact when necessary.
+Give one concrete invalidation. State RETAINED or REVERSED against a prepared
+comparable verdict; if an opposite mechanism dominates, state that direction
+promptly rather than leaving it as recovery risk. A decisive unknown may require
+withdrawing the earlier call, separately from the verified release facts.
 Do not wait to format the final answer or repeat unchanged flashes on every poll.
 If decisive fields conflict or are missing, identify the gap without inventing a
 confirmed release result; a supported existing thesis can still be stated.
@@ -199,8 +212,10 @@ BACKDROP**: a compact category-by-currency comparison of monetary policy
 and rate projections, inflation, labor/wages, growth/activity and other drivers,
 with dated evidence, ages and implications. Reuse the prepared table and refresh
 the released package and intervening news; do not rebuild everything near release.
-Recent bullets go newest first; upcoming events go earliest first using the prepared seven-day scan. Integrate material reversal
-triggers and confirmation gaps briefly. Use only the compact backdrop table by
+Surface supported LOOK HERE NEXT candidates from preparation near the top.
+Recent bullets go newest first; upcoming events go earliest first using the
+prepared seven-day scan. Integrate material reversal triggers and confirmation
+gaps briefly. Use only the compact backdrop table by
 default; no mandatory entry-date declarations or confidence/entry/risk checklists.
 
 In requested best-pair mode, give one leading pair and at most a brief useful

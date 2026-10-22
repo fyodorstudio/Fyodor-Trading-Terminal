@@ -26,10 +26,11 @@ off-calendar developments; later releases/stages get separate price baselines.
 Near-release and after-release prompts also request an after-entry news watchlist:
 verified Jakarta/UTC times, material events and outcomes that add volatility,
 challenge or invalidate the thesis. Fresh expectations wait until preparation.
-Upcoming preparation and live/release-time interpretation prohibit candle/OHLC
-fetching and analysis, including saved candles. Existing tailored Copy Prompts
-receive this restriction without rewriting their saved versions. Price research
-is reserved for explicitly requested historical price investigations.
+Upcoming preparation and live/release-time interpretation are fundamental-only
+by default. Copied prompts apply the current default scope and response format
+without rewriting saved versions. An explicit user price-aware override permits
+Assess Trade Now's bounded market-feedback check; actuals and the first release
+verdict take priority. Full historical price investigations use their own skill.
 Published historical cards use **Research Documentation**, combining the saved
 investigation, sources, frozen readings and version history. Preparation views
 are greyed out there. An elapsed clock alone does not select this mode: verified
