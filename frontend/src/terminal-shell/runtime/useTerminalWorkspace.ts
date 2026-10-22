@@ -109,7 +109,7 @@ export function useTerminalWorkspace() {
   }, [timeframe, activeSymbol, appendActivity])
 
   const recordChartData = useCallback(
-    (barCount: number) => appendActivity('Chart', 'Candle data applied', `${activeSymbol} ${timeframe} Â· ${barCount} bars`),
+    (barCount: number) => appendActivity('Chart', 'Candle data applied', `${activeSymbol} ${timeframe} · ${barCount} bars`),
     [activeSymbol, appendActivity, timeframe],
   )
 
@@ -132,7 +132,7 @@ export function useTerminalWorkspace() {
   const createDrawing = useCallback(
     (tool: DrawingToolId, points: ChartDrawingPoint[]) => {
       const drawingId = addDrawing(tool, points)
-      appendActivity('Drawing', 'Drawing created', `${activeSymbol} ${timeframe} Â· ${tool}`)
+      appendActivity('Drawing', 'Drawing created', `${activeSymbol} ${timeframe} · ${tool}`)
       return drawingId
     },
     [activeSymbol, addDrawing, appendActivity, timeframe],

@@ -9,16 +9,18 @@ import { ExternalEventDetails } from './ExternalHighlightCard'
 import { SavedReleaseResearch } from '../alert/highlights/HighlightList'
 import { jakartaDisplay } from './alarm-time'
 import type { useAlarms } from './useAlarms'
+import { ImpactBadge, ImpactDetails } from '../alert/impact/ImpactBadge'
+import type { useAlertImpact } from '../alert/impact/useAlertImpact'
 
-type TableProps = { groups: AlertDayGroup[]; sourceId: string; alarms: ReturnType<typeof useAlarms>; now: number; focusKey: string | null }
+type TableProps = { groups: AlertDayGroup[]; sourceId: string; alarms: ReturnType<typeof useAlarms>; now: number; focusKey: string | null; impact: ReturnType<typeof useAlertImpact> }
 export const HighlightDock = memo(function HighlightDock({ groups, ...props }: TableProps) {
   return <table className="alert-event-table" aria-label="Events on selected date">
-    <thead><tr><th>Time · Jakarta</th><th>Event</th><th>Actual</th><th>Forecast</th><th>Previous</th><th>Source</th><th>Countdown</th><th><span className="alert-sr-only">Alarm</span></th></tr></thead>
+    <thead><tr><th>Time · Jakarta</th><th>Event</th><th>Actual</th><th>Forecast</th><th>Previous</th><th>Source</th><th>Agent impact</th><th>Countdown</th><th><span className="alert-sr-only">Alarm</span></th></tr></thead>
     {groups.map(group => <EventGroup key={group.key} group={group} {...props} />)}
   </table>
 })
 
-const EventGroup = memo(function EventGroup({ group, sourceId, alarms, now, focusKey }: Omit<TableProps, 'groups'> & { group: AlertDayGroup }) {
+const EventGroup = memo(function EventGroup({ group, sourceId, alarms, now, focusKey, impact }: Omit<TableProps, 'groups'> & { group: AlertDayGroup }) {
   const [expanded, setExpanded] = useState(() => group.external.some(item => item.key === focusKey))
   const [tab, setTab] = useState<'overview' | 'sources' | 'research'>('overview')
   const panelId = useId(), tabId = useId(), series = group.release?.events ?? []
@@ -39,15 +41,15 @@ const EventGroup = memo(function EventGroup({ group, sourceId, alarms, now, focu
       {index === 0 && <td rowSpan={total} className="alert-time-cell"><time>{time}</time><small>{group.currency}</small></td>}
       <th scope="row">{toggle(event.name)}{'availability' in event && event.availability !== 'observed' && <small>Latest observation unavailable</small>}</th>
       {[event.actual, event.forecast, event.previous].map((value, i) => <td className="alert-value" key={i}>{formatInspectorValue(value, event)}</td>)}
-      <td className="alert-source-cell" title={sourceId}>Pepperstone</td>{shared(index === 0)}
+      <td className="alert-source-cell" title={sourceId}>Pepperstone</td><td><ImpactBadge item={impact.byValueId.get(event.value_id)} /></td>{shared(index === 0)}
     </tr>)}
     {group.external.map((item, index) => { const first = series.length === 0 && index === 0; return <tr key={item.key} data-external-key={item.key}>
       {first && <td rowSpan={total} className="alert-time-cell"><time>{time}</time><small>{group.currency}</small></td>}
       <th scope="row">{toggle(item.title)}</th><td className="alert-value">—</td><td className="alert-value">—</td><td className="alert-value">—</td>
       <td className="alert-source-cell">{item.sources.filter(source => source.kind === 'web').slice(0, 1).map(source =>
-        <a href={source.locator} target="_blank" rel="noreferrer" key={source.locator}>{publisherName(source)}</a>)}</td>{shared(first)}
+        <a href={source.locator} target="_blank" rel="noreferrer" key={source.locator}>{publisherName(source)}</a>)}</td><td><ImpactBadge item={impact.byKey.get(`external:${item.key}`)} /></td>{shared(first)}
     </tr> })}
-    {expanded && <tr className="alert-details-row"><td colSpan={8}><section id={panelId} className="alert-event-details" aria-label={`Details for ${group.title}`}>
+    {expanded && <tr className="alert-details-row"><td colSpan={9}><section id={panelId} className="alert-event-details" aria-label={`Details for ${group.title}`}>
       <header><div><span>{group.currency} · {time} Jakarta</span><h3>{group.title}</h3></div><button type="button" aria-label={`Close ${group.title} details`} onClick={() => setExpanded(false)}>×</button></header>
       <nav role="tablist" aria-label="Event details" onKeyDown={event => {
         if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return
@@ -63,6 +65,9 @@ const EventGroup = memo(function EventGroup({ group, sourceId, alarms, now, focu
       <div id={`${panelId}-body`} role="tabpanel" aria-labelledby={`${tabId}-${tab}`}>
         {tab === 'overview' && <>
           <p className="alert-details-status">{status ?? 'Scheduled'}{group.at === null ? ' · No exact publication hour is assumed.' : ` · ${formatAppTimestamp(group.at, jakartaDisplay)} Jakarta`}</p>
+          {[...new Map([...series.flatMap(event => impact.byValueId.get(event.value_id) ?? []),
+            ...group.external.flatMap(item => impact.byKey.get(`external:${item.key}`) ?? [])].map(item => [item.id, item])).values()]
+            .map(item => <ImpactDetails key={item.id} item={item} />)}
           {!!series.length && <dl className="alert-reading-metadata">{series.map(event => <Fragment key={event.value_id}>
             <dt>{event.name}</dt><dd>{event.period_seconds > 0 ? `Reference period: ${new Date(event.period_seconds * 1000).toISOString().slice(0, 10)} · ` : ''}
               Revision {event.revision}{event.revised_previous !== null && ` · Revised previous: ${formatInspectorValue(event.revised_previous, event)}`}</dd>
@@ -77,7 +82,7 @@ const EventGroup = memo(function EventGroup({ group, sourceId, alarms, now, focu
               {event.forecast_raw_scaled_1e6 != null && ` · Raw forecast ×10⁶: ${event.forecast_raw_scaled_1e6}`}</dd></Fragment>)}</dl></>}
           {group.external.map(item => <ExternalEventDetails key={item.key} item={item} />)}
         </>}
-        {tab === 'research' && <SavedReleaseResearch sourceId={sourceId} valueIds={group.valueIds} currency={group.currency} />}
+        {tab === 'research' && <SavedReleaseResearch sourceId={sourceId} valueIds={group.valueIds} currency={group.currency} events={series} />}
       </div>
     </section></td></tr>}
   </tbody>

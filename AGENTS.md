@@ -21,6 +21,9 @@ shared date viewport, future axis and saved drawing interactions.
 Display defaults to Jakarta (UTC+07:00, AM/PM). Shared broker-clock rules live in
 `config/broker-clock-profiles.json`; unknown broker history must not use today's
 offset. Preserve publication UTC independently of chart-placement availability.
+Use readable text in both themes; secondary labels must not fade into gray.
+Alert impact is agent-authored, matched by exact broker/value IDs or external key,
+and defaults to Unreviewed. Never substitute MT5 importance or another broker's rating.
 
 Keep polling clocks local, unchanged data/callback identities stable and viewport
 work batched by animation frame. Cancel listeners/timers and stale replies.

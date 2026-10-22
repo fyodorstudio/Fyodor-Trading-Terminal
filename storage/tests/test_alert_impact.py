@@ -36,6 +36,7 @@ class AlertImpactTests(TestCase):
         self.assertEqual(json.loads(json.dumps(first))['id'], first['id'], 'CLI writes must return JSON after a successful save')
         snapshot = impact_snapshot('Elev8-Demo2', self.path)
         self.assertEqual(snapshot['items'][0]['level'], 'low')
+        self.assertEqual(snapshot['items'][0]['value_ids'], ['one'])
         self.assertEqual(impact_snapshot('OtherBroker', self.path)['items'], [])
         self.assertTrue(impact_snapshot('Elev8-Demo2', self.path, snapshot['revision'])['unchanged'])
         with self.assertRaises(ValueError):
@@ -48,10 +49,25 @@ class AlertImpactTests(TestCase):
         self.assertEqual(self.store.db.execute('SELECT value FROM data_revision WHERE id=1').fetchone()[0], before)
         archive_pin(identity, 'Elev8-Demo2', self.path, self.store)
         self.assertEqual(impact_snapshot('Elev8-Demo2', self.path)['items'][0]['id'], second['id'])
+        self.assertEqual(impact_snapshot('Elev8-Demo2', self.path)['items'][0]['value_ids'], ['one'])
         archive_pin(identity, 'Elev8-Demo2', self.path, self.store, restore=True)
         self.assertEqual(impact_snapshot('Elev8-Demo2', self.path)['items'][0]['id'], second['id'])
         with self.assertRaises(ValueError):
             append_impact(self.request(identity).model_copy(update={'broker': 'OtherBroker'}), self.path)
+
+    def test_pin_membership_changes_revision_without_changing_assessment(self):
+        identity = self.target()
+        append_impact(self.request(identity), self.path)
+        first = impact_snapshot('Elev8-Demo2', self.path)
+        self.add([event('two', currency='USD')])
+        extended = pin_release(self.store, HighlightRequest(source_id='Elev8-Demo2', currency='USD', label='CPI',
+            family_id='us-cpi', value_ids=['one', 'two']), self.path)
+        self.assertEqual(extended['id'], identity)
+        second = impact_snapshot('Elev8-Demo2', self.path, after_revision=first['revision'])
+        self.assertNotIn('unchanged', second)
+        self.assertEqual(second['items'][0]['id'], first['items'][0]['id'])
+        self.assertEqual(second['items'][0]['value_ids'], ['one', 'two'])
+        self.assertEqual(impact_snapshot('Pepperstone-Demo', self.path)['items'], [], 'Never carry Elev8 ratings across brokers')
 
     def test_external_identity_and_atomic_failure(self):
         identity = self.target()

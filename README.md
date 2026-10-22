@@ -21,6 +21,8 @@ pnpm dev:all
 
 This clears existing listeners on ports 5173, 8001 and 8002 before starting,
 including the original terminal if it is running on those ports.
+The UI waits for bridge and storage HTTP readiness (up to two minutes), so initial
+page requests do not race storage startup. MT5 may still be disconnected.
 
 UI: http://localhost:5173, bridge: 8001, calendar storage: 8002. Reuse the existing
 MT5 publisher/exporter configuration; bridge source and binaries are unchanged.
@@ -35,7 +37,7 @@ Optional `FYODOR_BRIDGE_API_URL` / `FYODOR_STORAGE_API_URL` override Vite's prox
 | market-data | Market Watch, MT5 candles/paging, shared date viewport, chart/drawings and future axis |
 | economic-calendar | Eight-currency catalog, source contracts, clocks and storage polling |
 | inspector | Filters, date ranges, release/day grouping, icons and raw tables |
-| alert | Upcoming filters/countdowns, Highlight journals, Copy Prompt and archive |
+| alert | Date-based events, filters/countdowns, agent impact and saved research |
 | external-sources | Separate outside-feed events/headlines/watch items, sourced facts, history, limitations reference and agent prompts |
 | events-alarms / storage/alarms | Shared dock, per-pin invocation alarms and independent Windows alarm delivery |
 | entry-trade | Manual execution plans, all-pair pins, draggable chart levels and independent saved journals |
@@ -57,6 +59,9 @@ buttons plus the existing Alert filters. Every available event on that Jakarta d
 stays visible after release; no shortlist or manual archiving is needed. Actual,
 Forecast and Previous retain their source values. Click an event for Overview,
 Sources & history, and saved research. Feed notes retains discovered limitations.
+Agent impact shows a separately sourced High/Medium/Low assessment or **Unreviewed**.
+MT5 importance never supplies this label; old broker assessments stay with their
+original broker. Text, including secondary labels, uses full readable contrast.
 
 One bell controls each timed release package. New events start off; changing dates
 or filters never changes a reminder. Existing verified Elev8 choices migrate to
@@ -192,8 +197,8 @@ The bridge's inherited README is historical; Lite's operating instructions are h
 
 ## Research handoff
 
-**External Source**, inside Alert, keeps outside-feed research separate from MT5
-observations. Its independent currency filters, search, source links, timing
+Named external publishers appear alongside calendar rows in Alert and keep
+outside-feed research separate from MT5 observations. Source links, timing
 uncertainty and expandable history use the same records as
 `pnpm analyst external --scope EURUSD --visibility all`. Agents can append verified
 additions without inventing calendar IDs. This is a saved research collection;

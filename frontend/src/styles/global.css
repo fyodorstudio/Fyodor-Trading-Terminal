@@ -22,6 +22,9 @@ body,
 button,
 input { font-family: inherit; }
 
+input::placeholder,
+textarea::placeholder { color: var(--text); opacity: 1; }
+
 button:focus-visible,
 input:focus-visible {
   outline: 2px solid var(--accent);

@@ -99,9 +99,12 @@ research. --as-of narrows schedule timing, not historical data vintages.
 
 ### AI impact in Alert
 
-Only Alert's Highlight headers show `Currency | High / Medium / Low`, with a
-colored square. Expanding the card shows the agent's reason, sources and Jakarta
-assessment cutoff. Missing assessments show `—`; MT5 importance is never a fallback.
+Alert's Agent impact column shows `High / Medium / Low`, with a colored square.
+Expanding Overview shows the agent's reason, sources and Jakarta assessment cutoff.
+Missing assessments show **Unreviewed**; MT5 importance is never a fallback.
+Calendar ratings match exact broker/value IDs through the saved Highlight identity,
+including archived pins; external ratings use their stable record key. A linked
+external row retains its own rating. Elev8 ratings never become Pepperstone ratings.
 Ratings describe expected market relevance, not direction, guaranteed volatility or
 entry quality. Judge the specific occurrence against current policy concerns,
 new information, expectations and publication stages; do not use fixed indicator tiers.
@@ -117,7 +120,7 @@ Verify coverage against the live dock data route after saving. Preserve existing
 assessments unless the reviewed evidence calls for an appended update.
 
 ```powershell
-pnpm analyst impact read --broker Elev8-Demo2
+pnpm analyst impact read --broker Pepperstone-Demo
 pnpm analyst impact save --input "Market Analyst Workflow/report/<report>/impact.json"
 ```
 

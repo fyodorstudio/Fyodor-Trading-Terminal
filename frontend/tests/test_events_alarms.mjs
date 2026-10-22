@@ -37,6 +37,11 @@ const externalItems = [outside('cpi-report', { calendar_reference: { source_id: 
 const alarms = { application: 'fyodor-alarms', schedule_schema: 2, revision: 1, now, native_available: true, settings: { enabled: false, release_minutes: 2 },
   schedule_error: null, refreshed_at: now / 1000, events: [], jobs: [], migration: { matches: [], issues: [] } }
 const source = { publisher_status: 'live' }
+let impactFailure = false, impactRevision = 1
+const rating = (id, overrides = {}) => ({ id, source: 'highlight', reference: 'pin', broker, key: `highlight:${broker}:pin`,
+  level: 'low', reason: 'This occurrence adds limited information to the current outlook.', as_of_utc: '2026-10-22T17:00:00Z',
+  saved_utc: '2026-10-22T17:01:00Z', value_ids: ['1', '2'], sources: [{ kind: 'web', label: 'Assessment evidence', locator: 'https://www.bls.gov/cpi/' }], ...overrides })
+let impacts = [rating('rating-calendar'), rating('rating-external', { source: 'external', reference: 'cpi-report', broker: '', key: 'external:cpi-report', level: 'medium', value_ids: [] })]
 const reply = body => ({ ok: true, status: 200, json: async () => structuredClone(body) })
 globalThis.fetch = async (url, options = {}) => {
   const route = new URL(String(url), 'http://localhost'), params = route.searchParams
@@ -63,7 +68,11 @@ globalThis.fetch = async (url, options = {}) => {
     ...(params.has('after_revision') ? { unchanged: true } : { offset: 0, matches: externalItems.length, next_offset: null, items: externalItems }) })
   if (route.pathname.startsWith('/storage-api/external-sources/')) return reply({ items: [] })
   if (route.pathname === '/storage-api/highlights') return reply({ source_id: params.get('source_id'), revision: 'pins', items: [] })
-  if (route.pathname === '/storage-api/alert-impact') return reply({ broker: params.get('source_id'), revision: 'impact', items: [] })
+  if (route.pathname === '/storage-api/alert-impact') {
+    if (impactFailure) return { ok: false, status: 503 }
+    return reply({ broker: params.get('source_id'), revision: String(impactRevision),
+      ...(params.get('after_revision') === String(impactRevision) ? { unchanged: true } : { items: params.get('source_id') === broker ? impacts : [] }) })
+  }
   if (route.pathname === '/storage-api/highlight-limitations') return reply({ source_id: broker, revision: 'limits', items: [] })
   throw new Error(`Unexpected request ${url}`)
 }
@@ -87,6 +96,11 @@ try {
   const cpi = table.querySelector('[data-series-id="840030005"]').parentElement
   assert.equal(cpi.querySelectorAll('tr:not(.alert-details-row)').length, 5, 'Four broker components plus linked Reuters retain separate rows')
   assert.equal(cpi.querySelectorAll('.event-alarm-toggle').length, 1, 'One shared bell for the verified publication')
+  assert.ok(table.textContent.includes('Agent impact'))
+  assert.equal(cpi.querySelector('[data-series-id="840030005"] .alert-ai-impact').textContent, 'Low', 'Agent assessment and MT5 high importance remain separate')
+  assert.equal(cpi.querySelector('[data-series-id="840030007"] .alert-ai-impact').textContent, 'Unreviewed', 'No rating means Unreviewed, even for an MT5 high importance event')
+  assert.equal(cpi.querySelector('tr[data-external-key="cpi-report"] .alert-ai-impact').textContent, 'Medium', 'A linked publisher keeps its own assessment')
+  assert.equal(table.querySelector('[data-external-key="unrelated-same-time"] .alert-ai-impact').textContent, 'Unreviewed', 'Matching time does not transfer a rating')
   assert.equal(cpi.querySelector('.event-alarm-toggle').getAttribute('aria-pressed'), 'false')
   assert.ok(!cpi.querySelector('.event-alarm-toggle').disabled, 'Selections can be saved while global delivery is paused')
   assert.ok(host.textContent.includes('Earlier payrolls'), 'Released events stay on their selected date')
@@ -103,6 +117,9 @@ try {
   assert.equal(mutations.at(-1).action, 'toggle-many')
   assert.equal(cpi.querySelector('.event-alarm-toggle').getAttribute('aria-pressed'), 'false')
   await click(cpi.querySelector('.alert-event-name'))
+  assert.match(cpi.querySelector('.alert-event-details').textContent, /limited information/)
+  assert.ok(cpi.querySelector('.alert-ai-impact-details a[href="https://www.bls.gov/cpi/"]'))
+  assert.match(cpi.querySelector('.alert-ai-impact-details').textContent, /Jakarta/)
   assert.deepEqual([...cpi.querySelectorAll('[role="tab"]')].map(node => node.textContent), ['Overview','Sources & history','Saved research'])
   await click([...cpi.querySelectorAll('[role="tab"]')].find(node => node.textContent === 'Sources & history'))
   assert.ok(cpi.querySelector('a[href^="https://www.reuters.com"]'))
@@ -127,6 +144,8 @@ try {
   await click([...modal.querySelectorAll('button')].find(node => node.textContent === 'Cancel'))
   assert.ok(host.querySelector('[data-series-id="840030005"]'), 'Cancel keeps the applied filters')
   const requestCount = requests.length
+  const impactRequests = requests.filter(request => request.url.startsWith('/storage-api/alert-impact')).length
+  assert.equal(impactRequests, 3, 'One shared Alert poll plus the two saved-research broker reads')
   await React.act(async () => { now += 1000; for (const { fn } of intervals.values()) fn() })
   assert.equal(requests.length, requestCount, 'Countdown ticks do not request calendar or alarm data')
   delayDate = '2026-10-24'
@@ -143,6 +162,13 @@ try {
   readings = readings.map(event => ({ ...event, actual: .4 }))
   await tick('pollAlertDay')
   assert.ok(host.querySelector('[data-series-id="840030005"]').textContent.includes('0.4%'))
+  impactFailure = true; await tick('pollAlertImpact')
+  assert.match(host.textContent, /Impact assessments unavailable/)
+  assert.equal(host.querySelector('[data-series-id="840030005"] .alert-ai-impact').textContent, 'Low', 'A failed poll keeps saved ratings with an explicit error')
+  impactFailure = false; impactRevision++
+  impacts = impacts.map(item => item.source === 'highlight' ? { ...item, value_ids: ['1','2','3'] } : item)
+  await tick('pollAlertImpact')
+  assert.equal(host.querySelector('[data-series-id="840030007"] .alert-ai-impact').textContent, 'Low', 'Pin membership updates apply even with an unchanged assessment ID')
   const wheel = host.querySelector('[aria-label="Alert date selector"]')
   await React.act(async () => wheel.dispatchEvent(new dom.WheelEvent('wheel', { deltaY: -100, cancelable: true })))
   assert.equal(frames.size, 1, 'Wheel changes batch into one animation frame')

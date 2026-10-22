@@ -78,6 +78,11 @@ def impact_snapshot(broker='', pins_path=HIGHLIGHTS_PATH, after_revision=None, r
                    if (item['source'] == 'external' or item['broker'] == broker)
                    and (reference is None or item['reference'] == reference)
                    and (source is None or item['source'] == source)]
+        # Link assessments to exact broker occurrence IDs, including archived
+        # pins. Names, current provider importance and other brokers never match.
+        pins = {(pin['source_id'], pin['id']): pin for pin in read_pins(pins_path)} if any(item['source'] == 'highlight' for item in entries) else {}
+        entries = [{**item, 'value_ids': pins.get((item['broker'], item['reference']), {}).get('value_ids', [])}
+                   if item['source'] == 'highlight' else item for item in entries]
         revision = hashlib.sha256(json.dumps(entries, sort_keys=True).encode()).hexdigest()
         result = {'broker': broker, 'revision': revision}
         if revision == after_revision:

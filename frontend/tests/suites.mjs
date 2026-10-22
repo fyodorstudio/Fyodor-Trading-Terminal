@@ -1,5 +1,6 @@
 // Vite SSR suites share the dependency cache; run them sequentially.
 export const suites = [
+  "tests/test_startup.mjs",
   "tests/test_market_snapshots.mjs",
   "tests/test_market_watch_favourites.mjs",
   "tests/test_chart_viewport.mjs",

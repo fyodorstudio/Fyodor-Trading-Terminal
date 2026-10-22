@@ -1,12 +1,12 @@
 .highlight-dock .highlight-currency-impact { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 7px; }
 .highlight-dock .highlight-currency-impact .alert-currency { overflow-wrap: anywhere; }
-.highlight-dock .alert-ai-impact { display: inline-flex; align-items: center; gap: 4px; padding-left: 7px; border-left: 1px solid var(--border-strong); color: var(--text); font-size: 11px; }
-.highlight-dock .alert-ai-impact-box { width: 9px; height: 9px; flex: 0 0 9px; border: 1px solid currentColor; border-radius: 1px; background: #e45757; }
-.highlight-dock .alert-ai-impact.medium .alert-ai-impact-box { background: #ed963d; }
-.highlight-dock .alert-ai-impact.low .alert-ai-impact-box { background: #ddc34b; }
-.highlight-dock .alert-ai-impact.unassessed .alert-ai-impact-box { background: transparent; color: var(--text-muted); }
+.alert-ai-impact { display: inline-flex; align-items: center; gap: 4px; color: var(--text-strong); font-size: 11px; white-space: nowrap; }
+.alert-ai-impact-box { width: 9px; height: 9px; flex: 0 0 9px; border: 1px solid var(--text-strong); border-radius: 1px; background: #e45757; }
+.alert-ai-impact.medium .alert-ai-impact-box { background: #ed963d; }
+.alert-ai-impact.low .alert-ai-impact-box { background: #ddc34b; }
+.alert-ai-impact.unassessed .alert-ai-impact-box { background: transparent; }
 .highlight-dock .unified-highlight-list .highlight-toggle { grid-template-columns: 12px 140px minmax(140px, 1fr) 100px 190px 190px; }
-.highlight-dock .alert-ai-impact-details { border-bottom: 1px solid var(--border); margin-bottom: 10px; padding-bottom: 8px; overflow-wrap: anywhere; }
-.highlight-dock .alert-ai-impact-details p { margin: 4px 0; }
-.highlight-dock .alert-ai-impact-details a { color: var(--accent); margin-right: 12px; }
+.alert-ai-impact-details { border-bottom: 1px solid var(--border); margin-bottom: 10px; padding-bottom: 8px; overflow-wrap: anywhere; }
+.alert-ai-impact-details p { margin: 4px 0; }
+.alert-ai-impact-details a { color: var(--accent); margin-right: 12px; }
 @container (max-width: 1100px) { .highlight-dock .unified-highlight-list .highlight-toggle { grid-template-columns: 12px 140px minmax(0, 1fr); } }

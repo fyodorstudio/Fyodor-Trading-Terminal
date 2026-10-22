@@ -13,6 +13,7 @@ import { HighlightDock } from '../../events-alarms/HighlightDock'
 import { AlarmControls } from '../../events-alarms/AlarmControls'
 import { jakartaDisplay } from '../../events-alarms/alarm-time'
 import type { useAlarms } from '../../events-alarms/useAlarms'
+import { useAlertImpact } from '../impact/useAlertImpact'
 import './alert-dock.css'
 import './alert-table.css'
 
@@ -26,6 +27,7 @@ export const AlertDock = memo(function AlertDock({ sourceId, alarms, focusKey = 
   const closeFilters = useCallback(() => setFiltersOpen(false), [])
   const updatePreferences = useCallback((next: AlertPreferences) => { setPreferences(next); saveAlertPreferences(next) }, [])
   const storage = useAlertDay(sourceId, date), external = useExternalSources('all', 'all')
+  const impact = useAlertImpact(sourceId)
   const [focused, setFocused] = useState<string | null>(null)
   const focusItem = external.items.find(item => item.key === focusKey)
   if (focusItem && focused !== focusKey) {
@@ -54,14 +56,15 @@ export const AlertDock = memo(function AlertDock({ sourceId, alarms, focusKey = 
       <div className="alert-date-meta"><span>{date} · Jakarta · Pepperstone + named publishers</span><button type="button" aria-expanded={notesOpen} onClick={() => setNotesOpen(value => !value)}>Feed notes</button></div>
       {notesOpen && <ExternalFeedNotes brokerId={sourceId} currency={preferences.currency} />}
       {(storage.error || external.error || alarms.error) && <p className="alert-feed-message" role="status">{storage.error ?? external.error ?? alarms.error}</p>}
+      {impact.error && <p className="alert-feed-message" role="status">{impact.error} Showing saved assessments where available; other events remain Unreviewed.</p>}
       {storage.source?.publisher_status === 'offline' && <p className="alert-feed-message" role="status">Pepperstone publisher offline · showing saved readings.</p>}
       {!storage.loading && !storage.source && !storage.error && <p role="status">No stored Pepperstone calendar. Start its publisher to populate this date.</p>}
       {partial && <p className="alert-feed-message" role="status">Partial calendar coverage for this date. Missing events may not have been captured.</p>}
-      <div className="alert-table-scroll"><HighlightDock groups={groups} sourceId={sourceId} alarms={alarms} now={boundaryNow} focusKey={focusKey} /></div>
+      <div className="alert-table-scroll"><HighlightDock groups={groups} sourceId={sourceId} alarms={alarms} now={boundaryNow} focusKey={focusKey} impact={impact} /></div>
       {!groups.length && <p className="alert-empty" role="status">{storage.loading || external.loading ? 'Loading events…' : 'No matching events in the available data for this date.'}</p>}
       {!!undated.length && <details className="alert-undated" open={undated.some(group => group.external.some(item => item.key === focusKey)) || undefined}>
         <summary>Undated items ({undated.length})</summary><p>No publication date is assumed for these saved watch items.</p>
-        <div className="alert-table-scroll"><HighlightDock groups={undated} sourceId={sourceId} alarms={alarms} now={boundaryNow} focusKey={focusKey} /></div>
+        <div className="alert-table-scroll"><HighlightDock groups={undated} sourceId={sourceId} alarms={alarms} now={boundaryNow} focusKey={focusKey} impact={impact} /></div>
       </details>}
       {filtersOpen && <AlertFiltersModal preferences={preferences} onSave={next => updatePreferences({ ...preferences, families: next.families })} onClose={closeFilters} />}
     </div>

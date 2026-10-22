@@ -7,10 +7,10 @@ import './impact.css'
 const display = { mode: 'fixed-offset' as const, utcOffsetMinutes: 420, hour12: true }
 const assessedAt = (item: AlertImpact) => `${formatAppTimestamp(Date.parse(item.as_of_utc), display)} Jakarta`
 export const ImpactBadge = memo(function ImpactBadge({ item }: { item?: AlertImpact }) {
-  const label = item ? item.level[0].toUpperCase() + item.level.slice(1) : 'Not assessed'
+  const label = item ? item.level[0].toUpperCase() + item.level.slice(1) : 'Unreviewed'
   return <span className={`alert-ai-impact ${item?.level ?? 'unassessed'}`} aria-label={`Impact: ${label}`}
     title={item ? `Impact assessment · ${assessedAt(item)}\n${item.reason}\nExpected market relevance, not trade direction or guaranteed volatility.` : 'Impact has not been assessed. Broker importance is not used.'}>
-    <span className="alert-ai-impact-box" aria-hidden="true" />{item ? label : '—'}
+    <span className="alert-ai-impact-box" aria-hidden="true" />{label}
   </span>
 })
 export const ImpactDetails = memo(function ImpactDetails({ item }: { item?: AlertImpact }) {

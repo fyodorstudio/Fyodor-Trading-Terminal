@@ -24,6 +24,7 @@ Object.defineProperty(dom.navigator, 'clipboard', { configurable: true, value: {
 } } })
 const originalNow = Date.now
 let now = Date.UTC(2026, 9, 12, 12), serial = 0, revision = 1, offline = false, malformed = false
+let legacyTimeShift = 0
 Date.now = () => now
 const intervals = new Map(), timers = new Map(), calls = [], pins = []
 dom.setInterval = (fn, ms) => { intervals.set(++serial, { fn, ms }); return serial }
@@ -48,7 +49,7 @@ let rows = [row(cpi.events[0], 'USD', 'US', at), row(cpi.events[1], 'USD', 'US',
   row('840050014', 'USD', 'US', at + 3 * day), row(cadLabor.events[0], 'CAD', 'CA', at + 2 * day)]
 function snapshot(sourceId, visibility = 'active') {
   return pins.filter(pin => pin.source_id === sourceId && (visibility === 'all' || !!pin.archived_utc === (visibility === 'archived'))).map(pin => {
-    const events = rows.filter(row => pin.value_ids.includes(row.value_id))
+    const events = rows.filter(row => pin.value_ids.includes(row.value_id)).map(row => pin.source_id === 'Elev8-Demo2' ? { ...row, release_at: row.release_at + legacyTimeShift } : row)
     return JSON.parse(JSON.stringify({ ...pin, events, release_at: Math.min(...events.map(row => row.release_at)),
       server_time: Math.min(...events.map(row => row.server_time_seconds)), missing_value_ids: [] }))
   }).sort((a, b) => a.release_at - b.release_at)
@@ -152,6 +153,16 @@ try {
   assert.ok(container.textContent.includes('Saved research · Broker-A'))
   assert.ok(container.textContent.includes('Original inflation assessment.'))
   assert.equal(container.querySelector('select'), null, 'Saved research is presented without the old stacked action dropdowns')
+  const originalPin = pins[0]
+  pins.push({ ...structuredClone(originalPin), source_id: 'Elev8-Demo2', id: 'legacy-pin',
+    journal: originalPin.journal.map(entry => ({ ...structuredClone(entry), source_id: 'Elev8-Demo2', highlight_id: 'legacy-pin' })) }); revision++
+  const savedResearch = async () => React.act(async () => root.render(React.createElement(SavedReleaseResearch,
+    { sourceId: 'Broker-A', valueIds: originalPin.value_ids, currency: 'USD', events: rows })))
+  await React.act(async () => root.render(null)); await savedResearch()
+  assert.ok(container.textContent.includes('Saved research · Elev8-Demo2'), 'A verified historical occurrence keeps its original broker attribution')
+  legacyTimeShift = day
+  await React.act(async () => root.render(null)); await savedResearch()
+  assert.ok(!container.textContent.includes('Saved research · Elev8-Demo2'), 'Reused value IDs with a different publication time cannot attach another broker’s research')
   const { DiscoveredLimitations } = await server.ssrLoadModule('./src/external-sources/DiscoveredLimitations.tsx')
   const notes = async currency => React.act(async () => root.render(React.createElement(DiscoveredLimitations, { brokerId: 'Broker-A', currency })))
   await notes('all')
