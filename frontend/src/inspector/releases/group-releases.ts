@@ -46,7 +46,7 @@ const releaseReadingOrder: Record<string, readonly string[]> = {
 // Exact publication identity forms the initial releases; verified policy
 // companions then attach to a decision within its bounded episode window.
 // Reference periods and revision/value identities remain on individual rows.
-export function groupInspectorReleases(events: InspectorEvent[], combinePolicy = true): InspectorRelease[] {
+export function groupInspectorReleases(events: InspectorEvent[], combinePolicy = true, clock: 'chart' | 'publication' = 'chart'): InspectorRelease[] {
   const groups = new Map<string, InspectorRelease>()
   const seen = new Set<string>()
   for (const event of events) {
@@ -61,7 +61,8 @@ export function groupInspectorReleases(events: InspectorEvent[], combinePolicy =
     if (!group) {
       group = { id, familyId: family.id, label, currency: family.currency,
         country: event.country_code, releaseAt: event.release_at, chartTime, serverTime: chartTime ?? event.server_time_seconds,
-        timingUncertain: (event.time_mode !== 0 && !isPublishedTentative(event)) || chartTime === null,
+        timingUncertain: (event.time_mode !== 0 && !isPublishedTentative(event)) || (clock === 'chart' ? chartTime === null
+          : event.release_at === null || !Number.isFinite(event.release_at)),
         events: [] }
       groups.set(id, group)
     }
@@ -70,8 +71,8 @@ export function groupInspectorReleases(events: InspectorEvent[], combinePolicy =
     group.chartTime ??= chartTime
     group.timingUncertain ||= event.time_mode !== 0 && !isPublishedTentative(event)
   }
-  const publications = groupFrenchCpiReleases([...groups.values()])
-  const episodes = combinePolicy ? groupPolicyEpisodes(publications) : publications
+  const publications = groupFrenchCpiReleases([...groups.values()], clock === 'chart')
+  const episodes = combinePolicy ? groupPolicyEpisodes(publications, clock === 'chart') : publications
   for (const group of episodes) {
     if (group.familyIds) continue // Publication packages already have their complete cross-family series order.
     const catalogOrder = inspectorFamilyById.get(group.familyId)!.events as readonly string[]

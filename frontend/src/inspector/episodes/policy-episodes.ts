@@ -32,21 +32,21 @@ export function isPolicyRateDecision(event: EconomicCalendarEvent, familyId?: st
     (rule.decisionIds as readonly string[]).includes(event.event_id))
 }
 
-const verified = (release: InspectorRelease) => !release.timingUncertain &&
+const verified = (release: InspectorRelease, requireChartTime: boolean) => !release.timingUncertain &&
   release.releaseAt !== null && Number.isFinite(release.releaseAt) &&
-  release.chartTime !== null && Number.isFinite(release.chartTime) && release.events.length > 0 &&
+  (!requireChartTime || release.chartTime !== null && Number.isFinite(release.chartTime)) && release.events.length > 0 &&
   release.events.every((event) => event.time_mode === 0 && event.release_at === release.releaseAt &&
     event.country_code === release.country && event.currency === release.currency)
 
 // Exact publication grouping already combines ECB's simultaneous rate rows.
 // Preserve that anchor's identity; attach companions to exactly one decision,
 // never extending the window through another companion or across banks.
-export function groupPolicyEpisodes(releases: InspectorRelease[]): InspectorRelease[] {
+export function groupPolicyEpisodes(releases: InspectorRelease[], requireChartTime = true): InspectorRelease[] {
   const attached = new Map<InspectorRelease, InspectorRelease[]>()
   const absorbed = new Set<InspectorRelease>()
   for (const rule of policyEpisodeRules) {
     const sameBank = (release: InspectorRelease) => release.familyId === rule.familyId &&
-      release.country === rule.country && release.currency === rule.currency && verified(release)
+      release.country === rule.country && release.currency === rule.currency && verified(release, requireChartTime)
     const anchors = releases.filter((release) => sameBank(release) &&
       release.events.every((event) => (rule.decisionIds as readonly string[]).includes(event.event_id)))
     for (const release of releases) {

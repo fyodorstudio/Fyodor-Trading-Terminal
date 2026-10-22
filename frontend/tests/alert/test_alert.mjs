@@ -38,6 +38,10 @@ try {
     unit: 1, multiplier: 0, digits: 1, actual: value, previous: .1, forecast: null, revised_previous: null, ...extra })
   const cpi = inspectorFamilies.find((family) => family.id === 'us-cpi')
   const schedule = cpi.events.map((id) => row(id, nextAt))
+  const noChartProfile = schedule.map(event => ({ ...event, chart_time_seconds: null, forecast: .4 }))
+  assert.equal(alertEpisodes(noChartProfile, preferences, now)[0].state, 'upcoming', 'Known publication UTC supports Alert without a broker chart profile')
+  assert.equal(alertEpisodes(noChartProfile, preferences, now)[0].release.events[0].forecast, .4, 'Grouping preserves the broker forecast')
+  assert.equal(alertEpisodes(noChartProfile.map(event => ({ ...event, time_mode: 1 })), preferences, now)[0].state, 'unconfirmed', 'A missing chart profile never promotes date-only schedules to a timed release')
   const initial = [...schedule, row('840030016', nextAt), row(cpi.events[0], now + 61 * day),
     row(cpi.events[0], now - day, .2), row(cpi.events[0], now - day * 40),
     row(cpi.events[0], nextAt + day, null, { availability: 'not-returned-by-latest-query' })]
@@ -65,6 +69,8 @@ try {
   assert.equal(policyCards.length, 2, 'Known FOMC companion attaches to rate decision; generic Chair speech stays independent')
   assert.equal(policyCards[0].release.events.length, 2)
   assert.equal(policyCards[0].release.releaseAt, nextAt)
+  assert.equal(alertEpisodes(policy.map(event => ({ ...event, chart_time_seconds: null })), policyPreferences, now)[0].release.events.length, 2,
+    'Policy stages retain their package without a chart profile')
   assert.equal(alertEpisodes([policy[2]], policyPreferences, nextAt + 45 * 60000).length, 0, 'No numerical wait for completed speeches')
 
   const health = (revision = 1, id = 'Broker-A', status = 'live') => ({ revision, collector_error: null, sources: [{ id, publisher_status: status }] })
@@ -81,8 +87,9 @@ try {
   assert.equal(params.get('source_id'), 'Broker-A')
   assert.deepEqual(params.get('event_ids').split(',').sort(), cpi.events.slice().sort())
   assert.ok(Number(params.get('to_server_seconds')) * 1000 >= now + 60 * day)
-  await respond(requests[1], page(initial))
+  await respond(requests[1], page(initial.map(event => ({ ...event, chart_time_seconds: null }))))
   assert.equal(container.querySelectorAll('.alert-row').length, 1)
+  assert.ok(container.textContent.includes('Calendar source: Broker-A'), 'The active broker is visible beside the schedule')
   assert.match(container.textContent, /US CPI \/ core CPI.*0 days · 0 hours · 1 minute remaining/)
   const deadline = container.querySelector('[data-alert-id]').dataset.alertId
   const count = requests.length

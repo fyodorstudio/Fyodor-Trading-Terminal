@@ -44,7 +44,9 @@ export const AlertDock = memo(function AlertDock({ brokerId, timeDisplay, clockO
   const scope = useMemo(() => alertCalendarScope({ families }), [families])
   const storage = useStoredCalendar(brokerId, range, !highlight && families.length > 0, scope)
   // Currency buttons filter the loaded inventory locally. Countdown ticks never regroup it.
-  const grouped = useMemo(() => groupInspectorReleases(storage.events.filter(event => event.availability === 'observed')), [storage.events])
+  // A verified publication UTC clock is sufficient for Alert. Chart placement
+  // separately requires the broker's historical chart-clock profile.
+  const grouped = useMemo(() => groupInspectorReleases(storage.events.filter(event => event.availability === 'observed'), true, 'publication'), [storage.events])
   const times = useMemo(() => grouped.flatMap(release => release.releaseAt === null ? [] :
     [release.releaseAt, release.releaseAt + 1, release.releaseAt - preferences.days * day]), [grouped, preferences.days])
   const episodes = useMemo(() => alertEpisodesFromReleases(grouped, preferences, now, preferences.days,
@@ -102,6 +104,7 @@ export const AlertDock = memo(function AlertDock({ brokerId, timeDisplay, clockO
       {scheduleControls}
       </div>
     </header>}
+    {brokerId && <p className="alert-source-status">Calendar source: {brokerId}</p>}
     {highlight ? <HighlightList brokerId={brokerId} now={now} timeDisplay={timeDisplay} visibility={visibility} currency={preferences.currency} onPrepareResearch={onPrepareResearch} renderAlarm={renderHighlightAlarm} /> : message ? <p role="status">{message}</p> : <>
       {pins.error && <p role="status">{pins.error}</p>}
       {(storage.error || storage.collectorError || offline || partial) && <p className="alert-source-status" role="status">

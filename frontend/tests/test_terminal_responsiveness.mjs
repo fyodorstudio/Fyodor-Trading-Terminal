@@ -398,11 +398,15 @@ try {
   assert.equal(counters.quoteRows, 1, 'Starring a symbol renders only that row in the assembled terminal')
   assert.equal(counters.workspace ?? 0, 0); assert.equal(counters.chartRender ?? 0, 0)
   assert.equal(container.querySelector('.market-watch-row.selected strong').textContent, 'EURUSD', 'Starring does not change the active chart')
-  const marketCategory = label => [...container.querySelectorAll('[aria-label="Symbol category filter"] button')].find(node => node.querySelector('span').textContent === label)
-  await click(marketCategory('★ Favourites'))
+  const marketCategory = async value => React.act(async () => {
+    const select = container.querySelector('select[aria-label="Symbol category filter"]')
+    select.value = value
+    select.dispatchEvent(new dom.Event('change', { bubbles: true }))
+  })
+  await marketCategory('favourites')
   assert.deepEqual([...container.querySelectorAll('.market-watch-row strong')].map(node => node.textContent), ['EURUSD', 'TEST1'])
   await click(container.querySelector('[aria-label="Remove TEST1 from favourites"]'))
-  await click(marketCategory('All'))
+  await marketCategory('all')
   assert.equal(requests.length, beforeFavouriteRequests, 'Favourite controls add no chart or polling requests')
   reset(); await tick('poll', 2000); await reply('ohlc'); assertQuiet('Identical candles')
   reset()

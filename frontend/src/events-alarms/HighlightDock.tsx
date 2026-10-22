@@ -80,6 +80,7 @@ export const HighlightDock = memo(function HighlightDock({ brokerId, alarms, ren
         const next = { ...preferences, currency }; setPreferences(next); saveAlertPreferences(next)
       }}>{currency === 'all' ? 'All' : currency}</button>)}</nav>)}
     <>
+      {brokerId && <p className="alert-source-status">Calendar pins: {brokerId} · Pins and research stay with their original broker.</p>}
       {highlights.error && <p role="status">MT5 Calendar: {highlights.error}</p>}
       {highlights.offline && <p role="status">MT5 publisher offline · stored values may be stale</p>}
       {!brokerId && <p role="status">Connect calendar storage to load MT5 pins.</p>}

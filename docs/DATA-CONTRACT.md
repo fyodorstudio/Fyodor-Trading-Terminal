@@ -47,6 +47,9 @@ fails; existing files are never overwritten. Old full-table reports remain reada
 by the analyst helper. Report generation never changes calendar observations.
 Broker forecasts and web survey estimates retain separate provider/as-of attribution;
 differences alone do not establish a source error.
+Alert shows the selected broker's stored readings and identifies that source.
+Known publication UTC times support Alert countdowns even when the broker lacks
+a historical chart-clock profile; chart placement still requires that profile.
 
 Highlight pin metadata lives in Git-ignored `Market Analyst Workflow/highlights.json`.
 Storage exposes GET/POST/DELETE `/api/v1/highlights`; writes replace the complete

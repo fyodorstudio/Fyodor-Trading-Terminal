@@ -86,6 +86,7 @@ export const HighlightCard = memo(function HighlightCard({ item, now, timeDispla
 })
 const HighlightSeries = memo(function HighlightSeries({ item, timeDisplay }: { item: Highlight; timeDisplay: TimeDisplayPreference }) {
   return <div className="highlight-series"><table aria-label={`${item.label} highlighted series`}>
+      <caption>Source: {item.source_id} · Forecasts are retained as supplied by this broker.</caption>
       <thead><tr><th>Series</th><th>Release time</th><th>Actual</th><th>Forecast</th><th>Previous</th><th>Revised previous</th></tr></thead>
       <tbody>{item.events.map(event => <tr key={event.value_id} data-series-id={event.event_id}>
         <th scope="row">{event.name}<small>{event.period_seconds > 0 && `Period: ${formatAppTimestamp(event.period_seconds * 1000, { mode: 'utc', utcOffsetMinutes: 0 }, 'date')}`}

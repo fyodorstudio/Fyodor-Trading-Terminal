@@ -1,7 +1,8 @@
 import { memo, useCallback, useEffect, useMemo, useState } from 'react'
 import type { SymbolQuote } from '../contracts/SymbolQuote'
 import type { FeedStatus } from '../mt5-feed/use-mt5-market-data'
-import { marketCategories, readMarketWatchPreferences, saveMarketWatchPreferences, type MarketCategory } from './market-watch-preferences'
+import { marketCategories, readMarketWatchPreferences, saveMarketWatchPreferences, toggleMarketFavourite, updateFavouriteSections, type FavouriteSection, type FavouriteSectionAction, type MarketCategory } from './market-watch-preferences'
+import { FavouriteSections } from './FavouriteSections'
 import './market-watch-panel.css'
 
 type MarketWatchPanelProps = {
@@ -76,8 +77,10 @@ export const MarketWatchPanel = memo(function MarketWatchPanel({ visible = true,
   useEffect(() => saveMarketWatchPreferences(preferences), [preferences])
   const favourites = useMemo(() => new Set(preferences.favourites), [preferences.favourites])
   const toggleFavourite = useCallback((symbol: string) => {
-    setPreferences(current => ({ ...current, favourites: current.favourites.includes(symbol)
-      ? current.favourites.filter(favourite => favourite !== symbol) : [...current.favourites, symbol] }))
+    setPreferences(current => toggleMarketFavourite(current, symbol))
+  }, [])
+  const organizeFavourites = useCallback((action: FavouriteSectionAction) => {
+    setPreferences(current => updateFavouriteSections(current, action))
   }, [])
   const setSelectedCategory = useCallback((category: MarketCategory) => {
     setPreferences(current => current.category === category ? current : { ...current, category })
@@ -85,14 +88,15 @@ export const MarketWatchPanel = memo(function MarketWatchPanel({ visible = true,
   // Keep the controls' state mounted, but do no row/filter work while collapsed.
   return visible ? <MarketWatchContents {...props} query={query} onQueryChange={setQuery}
     selectedCategory={preferences.category} onCategoryChange={setSelectedCategory}
-    favourites={favourites} onToggleFavourite={toggleFavourite} /> : null
+    favourites={favourites} onToggleFavourite={toggleFavourite} sections={preferences.sections} onOrganizeFavourites={organizeFavourites} /> : null
 })
 
 function MarketWatchContents({ symbols, selectedSymbol, status, error, onSelect, query, onQueryChange,
-  selectedCategory, onCategoryChange, favourites, onToggleFavourite }: MarketWatchPanelProps & {
+  selectedCategory, onCategoryChange, favourites, onToggleFavourite, sections, onOrganizeFavourites }: MarketWatchPanelProps & {
   query: string; onQueryChange: (query: string) => void
   selectedCategory: MarketCategory; onCategoryChange: (category: MarketCategory) => void
   favourites: ReadonlySet<string>; onToggleFavourite: (symbol: string) => void
+  sections: FavouriteSection[]; onOrganizeFavourites: (action: FavouriteSectionAction) => void
 }) {
 
   const categoryCounts = useMemo(() => {
@@ -117,8 +121,8 @@ function MarketWatchContents({ symbols, selectedSymbol, status, error, onSelect,
   }, [symbols, favourites])
 
   const availableCategories = useMemo(() => {
-    return marketCategories.filter((cat) => cat === 'all' || cat === 'favourites' || categoryCounts[cat] > 0)
-  }, [categoryCounts])
+    return marketCategories.filter((cat) => cat === 'all' || cat === 'favourites' || cat === selectedCategory || categoryCounts[cat] > 0)
+  }, [categoryCounts, selectedCategory])
 
   const filteredSymbols = useMemo(() => {
     const normalized = query.trim().toLowerCase()
@@ -157,23 +161,18 @@ function MarketWatchContents({ symbols, selectedSymbol, status, error, onSelect,
         />
       </label>
 
-      {availableCategories.length > 1 && (
-        <div className="market-watch-categories" role="tablist" aria-label="Symbol category filter">
+      <div className="market-watch-categories">
+        <select
+          className="market-watch-category-select"
+          aria-label="Symbol category filter"
+          value={selectedCategory}
+          onChange={(event) => onCategoryChange(event.target.value as MarketCategory)}
+        >
           {availableCategories.map((cat) => (
-            <button
-              key={cat}
-              type="button"
-              role="tab"
-              aria-selected={selectedCategory === cat}
-              className={`market-watch-category-pill${selectedCategory === cat ? ' active' : ''}`}
-              onClick={() => onCategoryChange(cat)}
-            >
-              <span>{categoryLabels[cat]}</span>
-              <small>{categoryCounts[cat]}</small>
-            </button>
+            <option key={cat} value={cat}>{categoryLabels[cat]} ({categoryCounts[cat]})</option>
           ))}
-        </div>
-      )}
+        </select>
+      </div>
 
       <div className="market-watch-columns" aria-hidden="true">
         <span>Symbol</span>
@@ -188,9 +187,12 @@ function MarketWatchContents({ symbols, selectedSymbol, status, error, onSelect,
             <span>{status === 'loading' ? 'Loading MT5 Market Watch…' : error ?? 'Waiting for MT5 connection'}</span>
           </div>
         )}
-        {filteredSymbols.map(quote => <MarketWatchRow key={quote.symbol} quote={quote}
-          selected={quote.symbol === selectedSymbol} onSelect={onSelect}
-          favourite={favourites.has(quote.symbol)} onToggleFavourite={onToggleFavourite} />)}
+        {selectedCategory === 'favourites' ? <FavouriteSections sections={sections} quotes={filteredSymbols} onChange={onOrganizeFavourites}
+          renderRow={quote => <MarketWatchRow key={quote.symbol} quote={quote} selected={quote.symbol === selectedSymbol}
+            onSelect={onSelect} favourite onToggleFavourite={onToggleFavourite} />} />
+          : filteredSymbols.map(quote => <MarketWatchRow key={quote.symbol} quote={quote}
+            selected={quote.symbol === selectedSymbol} onSelect={onSelect}
+            favourite={favourites.has(quote.symbol)} onToggleFavourite={onToggleFavourite} />)}
 
         {filteredSymbols.length === 0 && (symbols.length > 0 || selectedCategory === 'favourites') && <p className="market-watch-empty">
           {selectedCategory === 'favourites' && !query.trim() && categoryCounts.favourites === 0

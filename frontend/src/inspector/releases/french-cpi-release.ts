@@ -4,11 +4,11 @@ import type { InspectorRelease } from '../../economic-calendar/releases/release'
 const seriesOrder = ['250010001', '250010003', '250010002', '250010004']
 const series = new Set(seriesOrder)
 
-export function groupFrenchCpiReleases(releases: InspectorRelease[]): InspectorRelease[] {
+export function groupFrenchCpiReleases(releases: InspectorRelease[], requireChartTime = true): InspectorRelease[] {
   const packages = new Map<string, InspectorRelease[]>()
   for (const release of releases) {
     if (release.country !== 'FR' || release.currency !== 'EUR' || release.familyIds || release.timingUncertain ||
-      release.releaseAt === null || !Number.isFinite(release.releaseAt) || release.chartTime === null || !Number.isFinite(release.chartTime) || !release.events.length) continue
+      release.releaseAt === null || !Number.isFinite(release.releaseAt) || (requireChartTime && (release.chartTime === null || !Number.isFinite(release.chartTime))) || !release.events.length) continue
     const period = release.events[0].period_seconds
     if (!Number.isFinite(period) || period <= 0 || release.events.some(event => !series.has(event.event_id) ||
       event.country_code !== 'FR' || event.currency !== 'EUR' || event.time_mode !== 0 || event.release_at !== release.releaseAt || event.period_seconds !== period)) continue

@@ -17,7 +17,7 @@ export function alertCalendarScope(preferences: { families: readonly string[] })
     { currencies: [...new Set(families.map(f => f.currency))] } : { eventIds }
 }
 export function alertEpisodes(events: StoredCalendarEvent[], preferences: { families: readonly string[] }, now: number, lookaheadDays = alertLookaheadDays): AlertEpisode[] {
-  return alertEpisodesFromReleases(groupInspectorReleases(events.filter((event) => event.availability === 'observed')), preferences, now, lookaheadDays)
+  return alertEpisodesFromReleases(groupInspectorReleases(events.filter((event) => event.availability === 'observed'), true, 'publication'), preferences, now, lookaheadDays)
 }
 export function alertEpisodesFromReleases(releases: InspectorRelease[], preferences: { families: readonly string[] }, now: number, lookaheadDays = alertLookaheadDays,
   dateNow = now): AlertEpisode[] {
