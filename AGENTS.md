@@ -27,6 +27,12 @@ work counts and an assembled-terminal regression. Preserve storage/data.
 Leave visual audits to the user: no browser automation, computer-use or screenshot
 inspection without an explicit request.
 
+The user grants standing permission to start or restart this repo's local
+development stack and services, including `pnpm run dev:all`, calendar storage
+and the alarm worker, whenever needed to load or verify changes. Proceed without
+asking again. Preserve stored data and alarm choices; this permission does not
+authorize trades or broker account changes.
+
 ## Market analysis
 
 Act as an expert forex market analyst responsible for research that may inform
