@@ -16,11 +16,11 @@ const globals = { window: dom, document: dom.document, HTMLElement: dom.HTMLElem
   navigator: dom.navigator, localStorage: dom.localStorage, IS_REACT_ACT_ENVIRONMENT: true }
 const previous = new Map([...Object.keys(globals), 'fetch'].map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]))
 for (const [key, value] of Object.entries(globals)) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value })
-let copiedPrompt = '', clipboardFailure = false, oldService = false
+let clipboardFailure = false, oldService = false
 let limitationOffline = false, limitationMalformed = false
 Object.defineProperty(dom.navigator, 'clipboard', { configurable: true, value: { writeText: async text => {
   if (clipboardFailure) throw new Error('Clipboard unavailable')
-  copiedPrompt = text
+  assert.equal(typeof text, 'string')
 } } })
 const originalNow = Date.now
 let now = Date.UTC(2026, 9, 12, 12), serial = 0, revision = 1, offline = false, malformed = false
@@ -34,9 +34,10 @@ const { createRoot } = await import('react-dom/client')
 const container = document.createElement('div'); document.body.append(container)
 const root = createRoot(container)
 const at = now + 60_000, day = 86400000, display = { mode: 'utc', utcOffsetMinutes: 0 }
-const { AlertDock } = await server.ssrLoadModule('./src/alert/index.ts')
+const { HighlightList, SavedReleaseResearch } = await server.ssrLoadModule('./src/alert/highlights/HighlightList.tsx')
+const { highlightRequest } = await server.ssrLoadModule('./src/alert/highlights/highlight-model.ts')
+const { groupInspectorReleases } = await server.ssrLoadModule('./src/inspector/releases/group-releases.ts')
 const { inspectorFamilies } = await server.ssrLoadModule('./src/inspector/inspector-data.ts')
-const { alertPreferencesKey, defaultAlertPreferences } = await server.ssrLoadModule('./src/alert/model/alert-preferences.ts')
 const cpi = inspectorFamilies.find(family => family.id === 'us-cpi')
 const cadLabor = inspectorFamilies.find(family => family.id === 'ca-labor')
 const row = (id, currency, country, time) => ({ value_id: `${id}/${time}`, event_id: id, currency, country_code: country, country_name: country,
@@ -46,7 +47,7 @@ const row = (id, currency, country, time) => ({ value_id: `${id}/${time}`, event
 let rows = [row(cpi.events[0], 'USD', 'US', at), row(cpi.events[1], 'USD', 'US', at),
   row('840050014', 'USD', 'US', at + 3 * day), row(cadLabor.events[0], 'CAD', 'CA', at + 2 * day)]
 function snapshot(sourceId, visibility = 'active') {
-  return pins.filter(pin => pin.source_id === sourceId && (!!pin.archived_utc === (visibility === 'archived'))).map(pin => {
+  return pins.filter(pin => pin.source_id === sourceId && (visibility === 'all' || !!pin.archived_utc === (visibility === 'archived'))).map(pin => {
     const events = rows.filter(row => pin.value_ids.includes(row.value_id))
     return JSON.parse(JSON.stringify({ ...pin, events, release_at: Math.min(...events.map(row => row.release_at)),
       server_time: Math.min(...events.map(row => row.server_time_seconds)), missing_value_ids: [] }))
@@ -94,301 +95,95 @@ globalThis.fetch = async (url, options = {}) => {
     coverage: { USD: { missing: [] }, CAD: { missing: [] } }, next_cursor: null }) }
 }
 const click = async element => { assert.ok(element); await React.act(async () => element.click()) }
-const button = text => [...container.querySelectorAll('button')].find(button => button.textContent === text)
-let prepared
-const renderAlert = async overrides => React.act(async () => root.render(React.createElement(AlertDock,
-  { brokerId: 'Broker-A', timeDisplay: display, onPrepareResearch: release => { prepared = release }, ...overrides })))
+const render = async (overrides = {}) => React.act(async () => root.render(React.createElement(HighlightList,
+  { brokerId: 'Broker-A', now, timeDisplay: display, visibility: 'active', currency: 'all', ...overrides })))
 async function poll() {
   const timer = [...timers].find(([, value]) => value.ms === 2000)
   assert.ok(timer); timers.delete(timer[0]); await React.act(async () => timer[1].fn())
 }
 try {
-  localStorage.setItem(alertPreferencesKey, JSON.stringify({ ...defaultAlertPreferences(), families: ['us-cpi', 'fomc', 'ca-labor'] }))
-  await renderAlert()
-  assert.deepEqual([...container.querySelectorAll('[aria-label="Alert collection"] button')].map(button => button.textContent), ['Upcoming', 'Highlight'])
-  assert.deepEqual([...container.querySelectorAll('[aria-label="Alert currency"] button')].map(button => button.textContent), ['All', 'USD', 'EUR', 'GBP', 'JPY', 'CHF', 'CAD', 'AUD', 'NZD'])
-  assert.equal(container.querySelector('.alert-header strong'), null, 'The redundant Alert title is removed')
-  assert.equal(container.querySelectorAll('.alert-row').length, 3)
-  const pinButtons = [...container.querySelectorAll('.alert-pin')]
-  for (const pin of pinButtons) await click(pin)
-  assert.equal(pins.length, 3)
-  assert.equal(pins[0].value_ids.length, 2, 'Pin keeps every series in the selected CPI package')
-  await click(button('Highlight'))
-  assert.equal(container.querySelectorAll('.highlight-card').length, 3)
-  assert.equal(container.querySelector('[aria-label="Alert horizon"]'), null, 'Pinned releases are independent of the upcoming horizon')
-  assert.equal(container.querySelector('.highlight-card').dataset.highlightId, pins[0].id, 'Soonest pin appears first')
-  assert.equal(container.querySelectorAll('.highlight-series').length, 0, 'Collapsed cards avoid rendering series tables')
-  const filterNetwork = calls.length
-  await click(button('USD'))
-  assert.equal(container.querySelectorAll('.highlight-card').length, 2)
-  assert.equal(button('Highlight').getAttribute('aria-pressed'), 'true', 'Currency selection keeps Highlight open')
-  await click(button('CAD'))
-  assert.equal(container.querySelectorAll('.highlight-card').length, 1)
-  assert.equal(container.querySelector('.highlight-card').dataset.highlightId, pins[1].id)
-  await click(button('All'))
-  assert.equal(container.querySelectorAll('.highlight-card').length, 3)
-  assert.equal(calls.length, filterNetwork, 'Highlight currencies filter the stored snapshot without refetching')
+  for (const release of groupInspectorReleases(rows)) pins.push({ ...highlightRequest(release, 'Broker-A'), id: `saved-${pins.length}`,
+    pinned_utc: new Date(now).toISOString() })
+  await render()
+  assert.equal(container.querySelectorAll('.highlight-card').length, 3, 'Legacy metadata remains readable independently of the new Alert table')
   const captured = rows.filter(row => pins[0].value_ids.includes(row.value_id)).map(row => ({ ...row }))
   pins[0].journal = [{ id: 'research-1', highlight_id: pins[0].id, source_id: 'Broker-A', phase: 'before', scope: 'EURUSD',
-    as_of_utc: '2026-10-12T11:00:00Z', saved_utc: '2026-10-12T11:01:00Z', body: 'Inflation remains elevated.\n\nRefresh both currencies.',
-    direction: 'USD supportive', confidence: 'Moderate', counterevidence: 'Weak payrolls', expectations: [], sources: [
-      { kind: 'web', label: 'Official release', locator: 'https://www.bls.gov/cpi/', note: 'Release vintage' }],
-    release_prompt: 'Check October CPI against expectations; keep price separate.', prior_highlight_ids: [], correction_of: null,
-    price_reaction: '', readings: captured, calendar_revision: 1, reading_vintage: 'Captured when saved', missing_value_ids: [] }]
-  pins[0].prompts = [{ id: 'prompt-1', highlight_id: pins[0].id, source_id: 'Broker-A', scope: 'EURUSD', saved_utc: '2026-10-12T10:00:00Z',
-    prepare_prompt: 'Saved preparation prompt: conditional outcomes. Do not treat forecasts as actuals.', release_prompt: 'Older saved release prompt.' }]
-  pins[0].journal.unshift({ ...pins[0].journal[0], id: 'research-old', as_of_utc: '2026-10-12T09:00:00Z', saved_utc: '2026-10-12T09:01:00Z', body: 'Original context preserved.' })
+    as_of_utc: '2026-10-12T11:00:00Z', saved_utc: '2026-10-12T11:01:00Z', body: 'Original inflation assessment.', direction: 'USD supportive',
+    confidence: 'Moderate', counterevidence: 'Weak payrolls', expectations: [], sources: [{ kind: 'web', label: 'Official release', locator: 'https://www.bls.gov/cpi/', note: 'Release vintage' }],
+    release_prompt: 'Check actuals against preserved expectations.', prior_highlight_ids: [], correction_of: null, price_reaction: '',
+    readings: captured, calendar_revision: 1, reading_vintage: 'Captured when saved', missing_value_ids: [] }]
   revision++; await poll()
-  await click(button('EUR'))
-  assert.equal(container.querySelectorAll('.highlight-card').length, 0, 'EURUSD research scope does not make a USD release an EUR event')
-  assert.match(container.textContent, /No active EUR events/)
-  await click(button('All'))
-  const first = container.querySelector('.highlight-card'), toggle = first.querySelector('.highlight-toggle')
-  const scopeSelect = first.querySelector('[aria-label^="Research scope"]')
-  const selectView = async value => React.act(async () => {
-    const select = first.querySelector('[aria-label^="Journal view"]'); select.value = value; select.dispatchEvent(new dom.Event('change', { bubbles: true }))
-  })
-  await React.act(async () => { scopeSelect.value = 'EURUSD'; scopeSelect.dispatchEvent(new dom.Event('change', { bubbles: true })) })
-  assert.equal(first.querySelector('[aria-label^="Prompt stage"]'), null, 'Collapsed release rows keep prompt controls in the preview')
-  await click(toggle)
-  assert.ok(document.getElementById(toggle.getAttribute('aria-controls')), 'Disclosure identifies the expanded reading panel')
-  assert.equal(first.querySelector('option[value="documentation"]').disabled, true, 'Upcoming releases retain their preparation views')
-  assert.match(first.querySelector('.highlight-content').textContent, /Before release.*USD supportive/s)
-  assert.match(first.textContent, /Strongest counterevidence:.*Weak payrolls/s)
-  assert.equal(first.querySelector('textarea'), null, 'Before release only renders the selected research section')
-  assert.equal(first.querySelector('[aria-label="Research snapshot readings"]'), null, 'Saved evidence is separate from the narrative')
-  assert.equal(first.querySelector('.highlight-prompt-actions'), null, 'Narrative views do not show prompt controls')
-  const assessmentNetwork = calls.length
-  await selectView('assessment')
-  assert.equal(first.querySelector('[aria-label^="Prompt stage"]'), null, 'Quick assessment has a single dedicated workflow')
-  await click([...first.querySelectorAll('button')].find(button => button.textContent === 'Copy Prompt'))
-  assert.match(copiedPrompt, /\$assess-trade-now/)
-  assert.match(copiedPrompt, new RegExp(`Highlight ${pins[0].id}, broker Broker-A`))
-  assert.match(copiedPrompt, /Assess EURUSD now/)
-  assert.match(copiedPrompt, /do not fetch or analyze candles\/OHLC, including saved candles/)
-  assert.match(copiedPrompt, /pair BUY \/ SELL.*STRONG BUY \/ STRONG SELL/)
-  assert.doesNotMatch(copiedPrompt, /BUY \/ MIXED \/ SELL/)
-  assert.match(copiedPrompt, /RETAINED or REVERSED/)
-  assert.match(copiedPrompt, /LOOK HERE NEXT.*NEAR-TERM & UPCOMING EVENTS.*DATED FUNDAMENTAL BACKDROP.*MONETARY POLICY.*INFLATION.*LABOR \/ WAGES.*GROWTH \/ ACTIVITY.*OTHERS/s)
-  assert.match(copiedPrompt, /explicit price-aware request permits the bounded market-feedback check/)
-  assert.match(copiedPrompt, /Local datasets and saved research are optional/)
-  assert.match(copiedPrompt, /pending release alone does not force waiting/)
-  assert.match(copiedPrompt, /Verify material facts or disclose gaps/)
-  assert.equal(first.querySelector('textarea').readOnly, true)
-  clipboardFailure = true
-  await click([...first.querySelectorAll('button')].find(button => button.textContent === 'Copy Prompt'))
-  assert.equal(first.querySelector('[aria-label^="Journal view"]').value, 'assessment', 'Clipboard failure retains the assessment preview')
-  assert.match(first.querySelector('textarea').value, /Assess EURUSD now/)
-  clipboardFailure = false
-  await React.act(async () => { scopeSelect.value = 'GBPUSD'; scopeSelect.dispatchEvent(new dom.Event('change', { bubbles: true })) })
-  await click([...first.querySelectorAll('button')].find(button => button.textContent === 'Copy Prompt'))
-  assert.match(copiedPrompt, /Assess GBPUSD now/)
-  await React.act(async () => { scopeSelect.value = 'USD'; scopeSelect.dispatchEvent(new dom.Event('change', { bubbles: true })) })
-  assert.equal(first.querySelector('option[value="assessment"]').disabled, true, 'Trade assessment requires a pair rather than a standalone currency')
-  assert.equal(first.querySelector('textarea'), null)
-  await React.act(async () => { scopeSelect.value = 'EURUSD'; scopeSelect.dispatchEvent(new dom.Event('change', { bubbles: true })) })
-  assert.equal(calls.length, assessmentNetwork, 'Copying or previewing assessments never fetches candles or changes stored data')
-  await selectView('before')
-  await selectView('after')
-  assert.match(first.querySelector('.highlight-journal').textContent, /After release.*No saved interpretation/s)
-  await selectView('sources')
-  assert.equal(first.querySelector('a').getAttribute('rel'), 'noopener noreferrer')
-  assert.equal(first.querySelector('[aria-label="Research snapshot readings"]').querySelectorAll('tbody tr').length, 2)
-  await selectView('history')
-  assert.match(first.querySelector('.highlight-journal').textContent, /Research history \(2 versions\)/)
-  assert.match(first.querySelector('.highlight-journal').textContent, /Original context preserved/)
-  await selectView('prompt')
-  await React.act(async () => { const stage = first.querySelector('[aria-label^="Prompt stage"]'); stage.value = 'after'; stage.dispatchEvent(new dom.Event('change', { bubbles: true })) })
-  assert.equal(first.querySelector('textarea').readOnly, true, 'Research and prompt preview have no editable text controls')
-  await click([...first.querySelectorAll('button')].find(button => button.textContent === 'Copy Prompt'))
-  assert.match(copiedPrompt, /Highlight pin-/); assert.match(copiedPrompt, /broker Broker-A/); assert.match(copiedPrompt, /scope EURUSD/)
-  assert.match(copiedPrompt, /Check October CPI against expectations/)
-  assert.match(copiedPrompt, /restriction overrides any candle-measurement instructions in older saved templates/)
-  assert.equal(toggle.getAttribute('aria-expanded'), 'true', 'Copy Prompt retains the open preview')
-  const scopeNetwork = calls.length
-  await React.act(async () => { scopeSelect.value = 'GBPUSD'; scopeSelect.dispatchEvent(new dom.Event('change', { bubbles: true })) })
-  await click([...first.querySelectorAll('button')].find(button => button.textContent === 'Copy Prompt'))
-  assert.match(copiedPrompt, /scope GBPUSD/, 'Scope changes the copied analysis target')
-  assert.match(first.querySelector('textarea').value, /scope GBPUSD/, 'Preview follows the chosen scope')
-  assert.equal(calls.length, scopeNetwork, 'Scope does not fetch or mutate calendar observations')
-  await React.act(async () => { scopeSelect.value = 'EURUSD'; scopeSelect.dispatchEvent(new dom.Event('change', { bubbles: true })) })
-  const promptStage = first.querySelector('[aria-label^="Prompt stage"]')
-  await React.act(async () => { promptStage.value = 'prepare'; promptStage.dispatchEvent(new dom.Event('change', { bubbles: true })) })
-  await click([...first.querySelectorAll('button')].find(button => button.textContent === 'Copy Prompt'))
-  assert.match(copiedPrompt, /Saved preparation prompt/); assert.match(copiedPrompt, /conditional outcomes/); assert.match(copiedPrompt, /Do not treat forecasts as actuals/)
-  assert.match(copiedPrompt, /do not fetch or analyze candles\/OHLC/)
-  await React.act(async () => { promptStage.value = 'after'; promptStage.dispatchEvent(new dom.Event('change', { bubbles: true })) })
-  await selectView('readings')
-  assert.equal(first.querySelector('.highlight-prompt-actions'), null)
-  assert.equal(first.querySelectorAll('tr[data-series-id]').length, 2)
-  assert.match(first.textContent, /Forecast.*Previous.*Revised previous/)
+  const card = container.querySelector('.highlight-card')
+  await React.act(async () => { const scope = card.querySelector('[aria-label^="Research scope"]'); scope.value = 'EURUSD'; scope.dispatchEvent(new dom.Event('change', { bubbles: true })) })
+  await click(card.querySelector('.highlight-toggle'))
+  assert.ok(card.textContent.includes('Original inflation assessment.'))
+  const view = card.querySelector('[aria-label^="Journal view"]')
+  await React.act(async () => { view.value = 'readings'; view.dispatchEvent(new dom.Event('change', { bubbles: true })) })
+  assert.equal(card.querySelectorAll('.highlight-series tbody tr').length, 2)
   const work = globalThis.__highlightSeriesWork, network = calls.length
-  assert.ok(work > 0)
-  now = at + 1000
-  for (let tick = 0; tick < 10; tick++) await React.act(async () => { now += 1000; for (const timer of intervals.values()) timer.fn() })
-  assert.match(first.textContent, /Awaiting release data/)
-  assert.equal(calls.length, network, 'Countdown ticks never fetch or regroup data')
-  assert.equal(globalThis.__highlightSeriesWork, work, 'Countdown ticks do not render unchanged expanded series')
-  rows = rows.map(row => row.release_at === at ? { ...row, actual: .3, revised_previous: .15, revision: 1 } : row); revision++
-  await poll()
-  assert.equal(container.querySelectorAll('.highlight-card').length, 3, 'Publication never removes a pin')
-  assert.equal(toggle.getAttribute('aria-expanded'), 'true', 'Arrival retains expansion state')
-  assert.equal(first.querySelector('[aria-label^="Journal view"]').value, 'documentation', 'Published historical releases use documentation')
-  assert.equal(first.querySelector('[aria-label^="Journal view"]').querySelectorAll('option:disabled').length, 6, 'Historical preparation views are greyed out')
-  assert.match(first.textContent, /Released/)
-  assert.match(first.querySelector('.highlight-journal').textContent, /Only pre-release research is saved/, 'Before research is not presented as verified post-release interpretation')
-  assert.equal(first.querySelector('.highlight-prompt-actions'), null)
-  await selectView('assessment')
-  assert.equal(first.querySelector('[aria-label^="Journal view"]').value, 'assessment', 'Publication retains access to quick live assessment')
-  await click([...first.querySelectorAll('button')].find(button => button.textContent === 'Copy Prompt'))
-  assert.match(copiedPrompt, /Assess EURUSD now/)
-  await selectView('documentation')
-  pins[0].journal.push({ ...pins[0].journal.at(-1), id: 'research-after', phase: 'after', as_of_utc: new Date(now).toISOString(), saved_utc: new Date(now).toISOString(),
-    body: 'Verified release documentation.', readings: rows.filter(row => pins[0].value_ids.includes(row.value_id)).map(row => ({ ...row })) })
-  revision++; await poll()
-  assert.match(first.querySelector('.highlight-journal').textContent, /Verified release documentation/)
-  assert.match(first.querySelector('.highlight-journal').textContent, /Documentation history \(3 versions\)/)
-  assert.match(first.textContent, /0.3%/)
-  await click(first.querySelector('[aria-label^="Prepare research"]'))
-  assert.equal(prepared.events.length, 2, 'Research retains the whole highlighted release package after publication')
-  assert.ok(prepared.events.every(event => event.actual === .3))
-  rows = rows.map(row => row.value_id === pins[0].value_ids[0] ? { ...row, availability: 'not-returned-by-latest-query' } : row); revision++
-  await poll()
-  assert.match(first.textContent, /Readings unavailable/, 'Withdrawn observations never imply a complete verified release')
-  assert.equal(first.querySelector('[aria-label^="Journal view"]').value, 'documentation', 'Saved post-release documentation survives a feed withdrawal')
-  rows = rows.map(row => ({ ...row, availability: 'observed' })); revision++
-  rows = rows.map(row => row.event_id === '840050014' ? { ...row, release_at: at - day, server_time_seconds: (at-day)/1000 } : row); revision++
-  await poll()
-  assert.equal(container.querySelector('.highlight-card').dataset.highlightId, pins[2].id, 'A corrected schedule re-sorts the same pinned occurrence')
-  assert.equal(toggle.getAttribute('aria-expanded'), 'true')
-  const beforeZone = calls.length
-  await renderAlert({ timeDisplay: { mode: 'fixed-offset', utcOffsetMinutes: 420 } })
-  assert.equal(calls.length, beforeZone, 'Display timezone never refetches highlights')
+  await render()
+  assert.equal(globalThis.__highlightSeriesWork, work, 'Unchanged metadata does not rebuild reading tables')
+  assert.equal(calls.length, network)
+  rows = rows.map(row => pins[0].value_ids.includes(row.value_id) ? { ...row, actual: .4 } : row); revision++; await poll()
+  assert.equal(pins[0].journal[0].readings[0].actual, null, 'Latest actuals cannot overwrite the saved pre-release vintage')
   malformed = true; await poll()
   assert.match(container.textContent, /Invalid Highlight response/)
-  assert.equal(container.querySelectorAll('.highlight-card').length, 3, 'Malformed responses retain the last valid snapshot')
-  malformed = false; await poll()
-  pins[0].journal[0].readings = [null]; revision++; await poll()
-  assert.match(container.textContent, /Invalid Highlight response/)
-  assert.equal(container.querySelectorAll('.highlight-card').length, 3, 'Malformed journal snapshots retain the last valid cards')
-  pins[0].journal[0].readings = captured; revision++; await poll()
-  offline = true; await poll()
-  assert.equal(container.querySelectorAll('.highlight-card').length, 3, 'Outages retain readings and pins')
-  await React.act(async () => root.render(null)); await renderAlert()
-  assert.equal(container.querySelectorAll('.highlight-card').length, 3, 'Cached pins survive a remount while storage is offline')
-  offline = false
-  localStorage.setItem('fyodor.highlights.Broker-B', JSON.stringify([{ source_id: 'Broker-B', events: [], value_ids: [] }]))
-  await renderAlert({ brokerId: 'Broker-B' })
-  assert.equal(container.querySelectorAll('.highlight-card').length, 0, 'A different broker never sees the previous broker pins')
-  await renderAlert(); await poll()
+  assert.equal(container.querySelectorAll('.highlight-card').length, 3)
+  malformed = false; offline = true; await poll()
+  await React.act(async () => root.render(null)); await render()
+  assert.equal(container.querySelectorAll('.highlight-card').length, 3, 'Cached original metadata survives an outage')
+  offline = false; await render({ brokerId: 'Broker-B' })
+  assert.equal(container.querySelectorAll('.highlight-card').length, 0, 'Different brokers cannot borrow a previous snapshot')
+  await render()
   oldService = true
   await click(container.querySelector('[aria-label^="Archive highlight"]'))
   assert.match(container.textContent, /Restart calendar storage/)
-  assert.equal(container.querySelectorAll('.highlight-card').length, 3, 'An old service cannot delete a pin through the new archive action')
-  assert.equal(calls.filter(call => call.options.method === 'DELETE').length, 0)
   oldService = false
-  const archivedId = container.querySelector('.highlight-card').dataset.highlightId
+  const id = container.querySelector('.highlight-card').dataset.highlightId
   await click(container.querySelector('[aria-label^="Archive highlight"]'))
-  assert.equal(container.querySelectorAll('.highlight-card').length, 2, 'Archiving removes only the active card')
-  assert.equal(pins.length, 3, 'Archived occurrences remain stored')
-  await click(button('Archive'))
-  assert.equal(container.querySelectorAll('.highlight-card').length, 1)
-  assert.equal(container.querySelector('.highlight-card').dataset.highlightId, archivedId)
-  const archiveFilterNetwork = calls.length
-  await click(button('USD'))
-  assert.equal(container.querySelectorAll('.highlight-card').length, 1)
-  await click(button('AUD'))
-  assert.equal(container.querySelectorAll('.highlight-card').length, 0)
-  assert.match(container.textContent, /No archived AUD events/)
-  assert.equal(button('Archive').getAttribute('aria-pressed'), 'true')
-  assert.equal(calls.length, archiveFilterNetwork, 'Archive filtering does not fetch or mutate records')
-  await click(button('Upcoming'))
-  assert.equal(button('AUD').getAttribute('aria-pressed'), 'true', 'Currency follows the selected collection')
-  assert.ok(container.querySelector('[aria-label="Alert horizon"]'))
-  await click(button('Highlight'))
-  assert.equal(button('Archive').getAttribute('aria-pressed'), 'true', 'Returning to Highlight retains Archive')
-  await React.act(async () => root.render(null)); await renderAlert()
-  assert.equal(button('Highlight').getAttribute('aria-pressed'), 'true', 'Collection survives reopening the dock')
-  assert.equal(button('Archive').getAttribute('aria-pressed'), 'true', 'Archive survives reopening the dock')
-  assert.equal(button('AUD').getAttribute('aria-pressed'), 'true', 'Currency survives reopening the dock')
-  assert.match(container.textContent, /No archived AUD events/)
-  await click(button('All'))
-  assert.equal(container.querySelectorAll('.highlight-card').length, 1)
+  assert.equal(pins.length, 3)
+  await render({ visibility: 'archived' })
+  assert.equal(container.querySelector('.highlight-card').dataset.highlightId, id)
   await click(container.querySelector('[aria-label^="Restore highlight"]'))
   assert.equal(container.querySelectorAll('.highlight-card').length, 0)
-  await click(button('Active'))
-  assert.equal(container.querySelectorAll('.highlight-card').length, 3)
-  const researchCard = [...container.querySelectorAll('.highlight-card')].find(card => card.dataset.highlightId === pins[1].id)
-  clipboardFailure = true
-  await click(researchCard.querySelector('.highlight-toggle'))
-  await React.act(async () => { const select = researchCard.querySelector('[aria-label^="Journal view"]'); select.value = 'prompt'; select.dispatchEvent(new dom.Event('change', { bubbles: true })) })
-  await click([...researchCard.querySelectorAll('button')].find(button => button.textContent === 'Copy Prompt'))
-  assert.match(researchCard.textContent, /Clipboard unavailable/)
-  assert.equal(researchCard.querySelector('.highlight-toggle').getAttribute('aria-expanded'), 'true')
-  assert.equal(researchCard.querySelector('[aria-label^="Journal view"]').value, 'prompt', 'Clipboard fallback opens the prompt view directly')
-  assert.equal(researchCard.querySelector('textarea').readOnly, true)
-  clipboardFailure = false
-  assert.equal(button('Discovered Limitations'), undefined, 'Limitations no longer belong to Highlight')
-  const { ExternalSourcesDock } = await server.ssrLoadModule('./src/external-sources/ExternalSourcesDock.tsx')
-  localStorage.setItem('fyodor.external-sources.view.v1', 'limitations')
-  const renderExternal = async (brokerId = 'Broker-A') => React.act(async () => root.render(React.createElement(ExternalSourcesDock, { brokerId, timeDisplay: display })))
-  await renderExternal()
-  assert.equal(container.querySelectorAll('.highlight-card').length, 0)
+  await render({ visibility: 'all' })
+  assert.equal(container.querySelectorAll('.highlight-card').length, 3, 'All-history cache is distinct from active/archive caches')
+  await React.act(async () => root.render(React.createElement(SavedReleaseResearch, { sourceId: 'Broker-A', valueIds: pins[0].value_ids, currency: 'USD' })))
+  assert.ok(container.textContent.includes('Saved research · Broker-A'))
+  assert.ok(container.textContent.includes('Original inflation assessment.'))
+  assert.equal(container.querySelector('select'), null, 'Saved research is presented without the old stacked action dropdowns')
+  const { DiscoveredLimitations } = await server.ssrLoadModule('./src/external-sources/DiscoveredLimitations.tsx')
+  const notes = async currency => React.act(async () => root.render(React.createElement(DiscoveredLimitations, { brokerId: 'Broker-A', currency })))
+  await notes('all')
   assert.match(container.textContent, /RBA decision hour differs/)
-  assert.match(container.textContent, /10:30 Jakarta/)
   assert.equal(container.querySelector('.highlight-limitation a').getAttribute('rel'), 'noopener noreferrer')
-  const limitationNetwork = calls.length
-  await click(button('USD'))
+  const beforeFilter = calls.length
+  await notes('USD')
   assert.equal(container.querySelectorAll('.highlight-limitation').length, 0)
-  assert.match(container.textContent, /No recorded USD limitations/)
-  assert.equal(container.querySelector('[aria-label="External Source view"]').value, 'limitations')
-  await click(button('AUD'))
+  await notes('AUD')
+  assert.equal(calls.length, beforeFilter, 'Feed-note currency changes remain local')
+  limitationOffline = true; await poll()
   assert.equal(container.querySelectorAll('.highlight-limitation').length, 1)
-  await click(button('All'))
-  assert.equal(calls.length, limitationNetwork, 'Limitations currency selection remains local')
-  for (let tick = 0; tick < 10; tick++) await React.act(async () => { now += 1000; for (const timer of intervals.values()) timer.fn() })
-  assert.equal(calls.length, limitationNetwork, 'Countdowns do not fetch limitation metadata')
-  limitationMalformed = true; await poll()
-  assert.match(container.textContent, /Invalid limitations response/)
-  assert.equal(container.querySelectorAll('.highlight-limitation').length, 1, 'Invalid metadata retains the last good records')
-  limitationMalformed = false; limitationOffline = true; await poll()
-  assert.equal(container.querySelectorAll('.highlight-limitation').length, 1)
-  await React.act(async () => root.render(null)); await renderExternal()
-  assert.equal(container.querySelector('[aria-label="External Source view"]').value, 'limitations', 'Limitations view survives offline remount')
-  assert.equal(container.querySelectorAll('.highlight-limitation').length, 1, 'Limitation cache survives offline remount')
   limitationOffline = false
-  await renderExternal('Broker-B')
-  assert.equal(container.querySelectorAll('.highlight-limitation').length, 0, 'Limitation metadata stays broker-scoped')
-  await renderAlert(); await click(button('Active'))
   await React.act(async () => root.render(null))
-  assert.equal(intervals.size, 0); assert.equal(timers.size, 0)
-
   const { useInspector } = await server.ssrLoadModule('./src/inspector/useInspector.ts')
-  pins.splice(0); revision++
   const { InspectorPanel } = await server.ssrLoadModule('./src/inspector/InspectorPanel.tsx')
-  let view
+  pins.splice(0); revision++
+  let inspector
   function InspectorHarness() {
-    const next = useInspector({ symbol: 'EURUSD', events: rows, bars: [{ time: at/1000, open: 1, high: 2, low: .5, close: 1 }],
-      timeframe: 'H1', timeDisplay: display, clockOffsetMs: 0 })
-    React.useLayoutEffect(() => { view = next }, [next])
+    const next = useInspector({ symbol: 'EURUSD', events: rows, bars: [{ time: at / 1000, open: 1, high: 2, low: .5, close: 1 }], timeframe: 'H1', timeDisplay: display, clockOffsetMs: 0 })
+    React.useLayoutEffect(() => { inspector = next }, [next])
     return React.createElement(React.Fragment, null,
       React.createElement(InspectorPanel, { view: { ...next, brokerId: 'Broker-A' }, symbol: 'EURUSD', source: null, error: null, timeDisplay: display }),
-      React.createElement(AlertDock, { brokerId: 'Broker-A', timeDisplay: display }))
+      React.createElement(HighlightList, { brokerId: 'Broker-A', now, timeDisplay: display, visibility: 'active', currency: 'all' }))
   }
   await React.act(async () => root.render(React.createElement(InspectorHarness)))
-  await React.act(async () => view.selectRelease(view.releases.find(release => release.familyId === 'us-cpi').id))
-  assert.ok(container.querySelector('.inspector-header > .inspector-pin'), 'Inspector pin is at the far-right end of the header')
+  await React.act(async () => inspector.selectRelease(inspector.releases.find(release => release.familyId === 'us-cpi').id))
   await click(container.querySelector('.inspector-pin button'))
-  assert.match(container.querySelector('.inspector-pin button').textContent, /Archive/)
-  assert.equal(container.querySelectorAll('.highlight-card').length, 1, 'Inspector pin immediately updates the open Highlight tab')
-  await click(container.querySelector('[aria-label^="Archive highlight"]'))
-  assert.equal(container.querySelector('.inspector-pin button').textContent, 'Pin', 'Removing a pin immediately updates Inspector without a polling tick')
-  await React.act(async () => view.applyPreferences({ ...view.preferences, symbolGrouping: 'day' }, 'preview'))
-  await React.act(async () => view.selectRelease(view.releases.find(release => release.currency === 'USD').id))
-  assert.ok(container.querySelector('.inspector-pin-menu button'), 'Daily Inspector lets the user select individual releases to pin')
+  assert.equal(container.querySelectorAll('.highlight-card').length, 1, 'Legacy metadata listeners still synchronize Inspector saves')
   await React.act(async () => root.render(null))
   assert.equal(intervals.size, 0); assert.equal(timers.size, 0)
-  console.log('✓ Highlight: pin entry points, scope-specific journal/prompt, clipboard fallback, archive/restore, safe old-service failure, publication/revisions, offline persistence, broker isolation and zero countdown table/network work')
+  console.log('✓ Saved research: original brokers/vintages, corrections, offline caches, archive history, simplified reader, feed notes and Inspector metadata synchronization')
 } finally {
   await React.act(async () => root.unmount()); Date.now = originalNow
   delete globalThis.__highlightSeriesWork

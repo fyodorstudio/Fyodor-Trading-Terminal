@@ -10,7 +10,9 @@ import uuid
 
 from fastapi import FastAPI, HTTPException, Request
 
-from .alarms import AlarmEngine, read_events
+from .alarms import AlarmEngine
+from .alert_subscriptions import calendar_subscription, load_selected_schedule
+from .calendar_store import CalendarStore
 from .data_lock import data_lock
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -52,7 +54,6 @@ class DesktopDelivery:
 def create_alarm_app(directory=ALARM_DIRECTORY, loader=None, notify=None, clock=None, port=8003):
     directory = Path(directory)
     database = Path(os.environ.get('FYODOR_STORAGE_DATA_DIR', ROOT / 'storage' / 'data')) / 'calendar.sqlite3'
-    load = loader or (lambda: read_events(database))
     delivery = notify or DesktopDelivery(directory, port)
 
     @asynccontextmanager
@@ -60,13 +61,16 @@ def create_alarm_app(directory=ALARM_DIRECTORY, loader=None, notify=None, clock=
         with data_lock(directory):
             engine = AlarmEngine(directory / 'state.json', delivery, **({'clock': clock} if clock else {}))
             app.state.engine = engine
+            load = loader or (lambda: load_selected_schedule(database, engine))
             async def worker():
                 count = 0
                 while True:
                     if count % 5 == 0:
                         try:
-                            events = await asyncio.to_thread(load)
-                            engine.reconcile(events)
+                            def refresh_schedule():
+                                with engine.lock:
+                                    engine.reconcile(load())
+                            await asyncio.to_thread(refresh_schedule)
                         except Exception as error:
                             with engine.lock:
                                 engine.error = str(error)
@@ -120,6 +124,19 @@ def create_alarm_app(directory=ALARM_DIRECTORY, loader=None, notify=None, clock=
                 app.state.engine.notify([{'id': 'test', 'title': 'Test alarm — Fyodor Events & Alarms', 'stage': 'test',
                     'at': (now + 3600) * 1000, 'prompt': 'Sound and desktop window test. No agent has been invoked.'}])
                 return {'accepted': True}
+            if data.get('action') == 'subscribe':
+                store = CalendarStore(database, readonly=True)
+                try:
+                    key, subscription = calendar_subscription(store, data.get('broker'), data.get('value_ids'), data.get('title'), data.get('enabled'))
+                    rows = store.values(subscription['broker'], subscription['value_ids'])
+                    if rows[0]['release_at'] <= app.state.engine.clock() * 1000:
+                        raise ValueError('Elapsed releases cannot receive a new reminder')
+                    data = {'action': 'subscribe', 'expected_revision': data.get('expected_revision'), 'key': key, 'subscription': subscription,
+                        'event': {'key': key, 'reference': key, 'source': 'calendar', 'broker': subscription['broker'], 'value_ids': subscription['value_ids'],
+                            'title': subscription['title'], 'currencies': [rows[0]['currency']], 'at': rows[0]['release_at'], 'date': None, 'eligible': True,
+                            'default_enabled': subscription['enabled'], 'note': 'Verified broker publication.'}}
+                finally:
+                    store.close()
             return app.state.engine.mutate(data)
         except (ValueError, TypeError, KeyError) as error:
             raise HTTPException(409, str(error)) from error

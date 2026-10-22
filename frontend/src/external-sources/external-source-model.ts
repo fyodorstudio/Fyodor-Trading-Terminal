@@ -8,6 +8,7 @@ export type ExternalSource = {
   sources: { kind: 'web' | 'local'; label: string; locator: string; note: string }[]
   expected_version: string | null; version_count?: number
   chart_icon_request_id?: string | null
+  calendar_reference?: { source_id: string; value_ids: string[] } | null
 }
 export function validExternalItems(value: unknown): value is ExternalSource[] {
   const at = (value: unknown) => value === null || typeof value === 'string' && /(?:Z|[+-]\d{2}:\d{2})$/.test(value) && Number.isFinite(Date.parse(value))
@@ -20,6 +21,9 @@ export function validExternalItems(value: unknown): value is ExternalSource[] {
       && ['scheduled', 'headline', 'watch'].includes(entry.kind) && ['confirmed', 'reported', 'unverified'].includes(entry.status)
       && [entry.event_at, entry.published_utc].every(at) && typeof entry.saved_utc === 'string' && at(entry.saved_utc)
       && (entry.chart_icon_request_id == null || typeof entry.chart_icon_request_id === 'string' && /^[0-9a-f]{32}$/.test(entry.chart_icon_request_id))
+      && (entry.calendar_reference == null || /^Pepperstone-[A-Za-z0-9._-]+$/.test(entry.calendar_reference.source_id)
+        && Array.isArray(entry.calendar_reference.value_ids) && entry.calendar_reference.value_ids.length > 0
+        && entry.calendar_reference.value_ids.every(value => typeof value === 'string' && /^\d+$/.test(value)))
       && (entry.event_date === null || typeof entry.event_date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(entry.event_date))
       && typeof entry.archived === 'boolean' && Array.isArray(entry.sources) && entry.sources.length > 0
       && entry.sources.every(source => source && ['web', 'local'].includes(source.kind) && typeof source.label === 'string'

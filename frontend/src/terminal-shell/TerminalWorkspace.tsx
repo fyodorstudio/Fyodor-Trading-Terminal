@@ -24,7 +24,7 @@ export function TerminalWorkspace() {
     selectSymbol, selectTimeframe, recordChartData, changeTheme, changeChartAppearance, changeTimeDisplay,
     createDrawing, chooseDrawingTool, selectCrosshair, deletePairDrawings, toggleBottomDock, exitDrawingMode,
     toggleDrawingToolbar, renderChartOverlay, sourceState, sourceLabel, researchActive, researchSeed, researchError,
-    selectResearchTool, closeResearch, prepareAlertResearch, selectedExternalKey, externalSelection,
+    selectResearchTool, closeResearch, selectedExternalKey, externalSelection,
     plannedTrade, handlePlanChange, latestBarTime, registeredArrows, selectPinnedArrow } = useTerminalWorkspace()
   const brokerOffsetSeconds = bridge.brokerOffsetSeconds
   return (
@@ -122,7 +122,7 @@ export function TerminalWorkspace() {
             <ActivityDock timeDisplay={timeDisplay} />
           )}
           {(bottomDockWindow === 'external-sources' || bottomDockWindow === 'alert') && <EventsDock key={externalSelection} brokerId={brokerId}
-            brokerOffsetSeconds={brokerOffsetSeconds} focusKey={bottomDockWindow === 'external-sources' ? selectedExternalKey : null} onPrepareResearch={prepareAlertResearch} />}
+            brokerOffsetSeconds={brokerOffsetSeconds} focusKey={bottomDockWindow === 'external-sources' ? selectedExternalKey : null} />}
           {bottomDockWindow === 'entry-trade' && <EntryTradePanel selectedSymbol={activeSymbol} quote={quote} quotes={marketData.symbols}
             saveStatus={registeredArrows.saveStatus} onArchiveArrow={registeredArrows.archiveArrow} importError={registeredArrows.importError} latestBarTime={latestBarTime} plan={plannedTrade} registeredArrows={registeredArrows.allArrows}
             selectedArrowId={registeredArrows.selectedArrowId} onPlanChange={handlePlanChange}

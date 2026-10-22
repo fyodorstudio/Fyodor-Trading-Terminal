@@ -33,6 +33,7 @@ def read_events(database, highlights=HIGHLIGHTS_PATH, external=DIRECTORY):
             result.append({'key': f"highlight:{pin['source_id']}:{pin['id']}:{stage_index}", 'reference': pin['id'],
                 'source': 'highlight', 'broker': pin['source_id'], 'title': pin['label'], 'currencies': [pin['currency']],
                 'at': at, 'date': source_date if at is None else None, 'eligible': at is not None and not pin['missing_value_ids'],
+                'value_ids': [e['value_id'] for e in observed if e['release_at'] == at],
                 'note': 'Pinned calendar occurrence. Stored schedule; confirm the official time during preparation.'})
     offset = 0
     while True:
@@ -52,7 +53,8 @@ def read_events(database, highlights=HIGHLIGHTS_PATH, external=DIRECTORY):
 def prompt_for(event, stage):
     at = datetime.fromtimestamp(event['at'] / 1000, JAKARTA).strftime('%b %d, %Y %I:%M %p') if event['at'] else event['date'] or 'time unconfirmed'
     skill = 'assess-trade-now' if stage == 'prepare' else 'one-minute-before-release'
-    identity = f"Highlight {event['reference']}, broker {event['broker']}" if event['source'] == 'highlight' else f"External Source {event['reference']}"
+    identity = (f"Calendar alarm {event['reference']}, broker {event['broker']}, value IDs {', '.join(event.get('value_ids', []))}" if event['source'] == 'calendar'
+        else f"Highlight {event['reference']}, broker {event['broker']}" if event['source'] == 'highlight' else f"External Source {event['reference']}")
     return f"${skill} {event['title']} — {at} (Asia/Jakarta). {identity}. Focus on {', '.join(event['currencies'])} and the best-supported pair."
 
 
@@ -100,7 +102,10 @@ class AlarmEngine:
                 Path(name).unlink(missing_ok=True)
 
     def enabled(self, event):
-        return event['eligible'] and self.state['settings']['enabled'] and self.state['overrides'].get(event['key'], True)
+        return event['eligible'] and self.state['settings']['enabled'] and self.selected(event)
+
+    def selected(self, event):
+        return self.state['overrides'].get(event['key'], event.get('default_enabled', True))
 
     def reconcile(self, events, persist=True):
         with self.lock:
@@ -177,16 +182,19 @@ class AlarmEngine:
             return {'application': 'fyodor-alarms', 'revision': self.state['revision'], 'now': self.clock() * 1000,
                 'settings': dict(self.state['settings']), 'schedule_error': self.error or ('Alarm scheduler heartbeat is stale' if self.refreshed_at is None or self.clock() - self.refreshed_at > 15 else None), 'refreshed_at': self.refreshed_at,
                 'native_available': os.name == 'nt',
-                'events': [{**e, 'armed': self.enabled(e), 'prompt': prompt_for(e, 'release')} for e in self.events],
+                'schedule_schema': 2, 'migration': self.state.get('migration'),
+                'events': [{**e, 'selected': self.selected(e), 'armed': self.enabled(e), 'prompt': prompt_for(e, 'release')} for e in self.events],
                 'jobs': [dict(job) for job in jobs]}
 
     def mutate(self, request):
         with self.lock:
             previous = deepcopy(self.state)
+            previous_events = self.events
             try:
                 return self._mutate(request)
             except Exception:
                 self.state = previous
+                self.events = previous_events
                 raise
 
     def _mutate(self, request):
@@ -197,6 +205,25 @@ class AlarmEngine:
             if action == 'settings':
                 self.validate_settings(request.get('settings', {}))
                 self.state['settings'] = dict(request['settings'])
+            elif action == 'subscribe':
+                subscription = request.get('subscription')
+                key = request.get('key')
+                if not isinstance(subscription, dict) or not isinstance(key, str) or not key.startswith('calendar:'):
+                    raise ValueError('Invalid calendar subscription')
+                self.state.setdefault('calendar_subscriptions', {})[key] = subscription
+                # The service adds the validated event before reconciliation.
+                self.events = [e for e in self.events if e['key'] != key] + [request['event']]
+                self.state['overrides'][key] = subscription['enabled']
+            elif action == 'toggle-many':
+                keys = request.get('keys')
+                if not isinstance(keys, list) or not 1 <= len(keys) <= 512 or type(request.get('enabled')) is not bool:
+                    raise ValueError('Invalid reminder selection')
+                for key in keys:
+                    event = next((e for e in self.events if e['key'] == key), None)
+                    if not event or not event['eligible']:
+                        raise ValueError('This event has no verified, alarm-eligible time')
+                for key in keys:
+                    self.state['overrides'][key] = request['enabled']
             elif action == 'toggle':
                 event = next((e for e in self.events if e['key'] == request.get('key')), None)
                 if not event or not event['eligible'] or type(request.get('enabled')) is not bool:

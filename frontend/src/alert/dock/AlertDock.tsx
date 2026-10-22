@@ -1,138 +1,69 @@
-import { memo, useCallback, useMemo, useState, type ReactNode } from 'react'
-import { formatAppTimestamp, timeDisplayLabel, type TimeDisplayPreference } from '../../appearance/time-display/time-display-preference'
-import { chartClockToUtc, utcToChartClock } from '../../appearance/time-display/chart-clock'
-import { useStoredCalendar } from '../../economic-calendar/storage/useStoredCalendar'
-import { CalendarBoundary, CalendarClock } from '../../inspector/CalendarClock'
+import { memo, useCallback, useMemo, useState } from 'react'
 import { majorCurrencies } from '../../economic-calendar/forex/currencies'
-import { policyEpisodeWindowMs } from '../../inspector/episodes/policy-episodes'
-import { groupInspectorReleases } from '../../inspector/releases/group-releases'
-import { inspectorFamilies } from '../../inspector/catalog/inspector-families'
-import { alertEpisodesFromReleases, alertCalendarScope, type AlertEpisode } from '../model/alert-episodes'
-import { alertCurrencies, alertHorizons, readAlertPreferences, saveAlertPreferences, readHighlightVisibility, saveHighlightVisibility, type AlertPreferences, type HighlightVisibility } from '../model/alert-preferences'
+import { useExternalSources } from '../../external-sources/useExternalSources'
+import { ExternalFeedNotes } from '../../external-sources/ExternalSourcesDock'
+import { CalendarBoundary, CalendarClock } from '../../inspector/CalendarClock'
+import { readAlertPreferences, saveAlertPreferences, type AlertPreferences } from '../model/alert-preferences'
+import { alertSeriesIds } from '../model/alert-episodes'
+import { dayGroups, externalDate, jakartaDate, type AlertDayGroup } from '../model/alert-day-model'
 import { AlertFiltersModal } from './AlertFiltersModal'
+import { AlertDateSelector } from './AlertDateSelector'
+import { useAlertDay } from './useAlertDay'
+import { HighlightDock } from '../../events-alarms/HighlightDock'
+import { AlarmControls } from '../../events-alarms/AlarmControls'
+import { jakartaDisplay } from '../../events-alarms/alarm-time'
+import type { useAlarms } from '../../events-alarms/useAlarms'
 import './alert-dock.css'
-import type { InspectorRelease } from '../../economic-calendar/releases/release'
-import { HighlightList } from '../highlights/HighlightList'
-import { useHighlights } from '../highlights/useHighlights'
-import { highlightForRelease, type Highlight } from '../highlights/highlight-model'
-import { ReleaseCountdown } from '../highlights/ReleaseCountdown'
+import './alert-table.css'
 
-const day = 86400000
-export const AlertDock = memo(function AlertDock({ brokerId, timeDisplay, clockOffsetMs = 0, brokerOffsetSeconds = 0, onPrepareResearch, renderHeader, renderHighlightAlarm, calendarOnly = false }: {
-  brokerId: string | null; timeDisplay: TimeDisplayPreference; clockOffsetMs?: number; brokerOffsetSeconds?: number
-  onPrepareResearch?: (release: InspectorRelease) => void
-  renderHeader?: (controls: ReactNode, currencies?: ReactNode) => ReactNode
-  renderHighlightAlarm?: (item: Highlight, now: number) => ReactNode
-  calendarOnly?: boolean
+export const AlertDock = memo(function AlertDock({ sourceId, alarms, focusKey = null }: {
+  sourceId: string; alarms: ReturnType<typeof useAlarms>; focusKey?: string | null
 }) {
+  const [date, setDate] = useState(() => jakartaDate(Date.now()))
   const [preferences, setPreferences] = useState(readAlertPreferences)
-  const [savedHighlight, setHighlight] = useState(() => { try { return localStorage.getItem('fyodor.alert.highlight-view.v1') === 'true' } catch { return false } })
-  const highlight = !calendarOnly && savedHighlight
-  const changeHighlight = (value: boolean) => { setHighlight(value); try { localStorage.setItem('fyodor.alert.highlight-view.v1', String(value)) } catch { /* Keep the active tab for this session. */ } }
-  const [visibility, setVisibility] = useState(readHighlightVisibility)
-  const changeVisibility = (value: HighlightVisibility) => { setVisibility(value); saveHighlightVisibility(value) }
-  const pins = useHighlights(highlight ? null : brokerId)
-  const [filtersOpen, setFiltersOpen] = useState(false)
+  const [filtersOpen, setFiltersOpen] = useState(false), [notesOpen, setNotesOpen] = useState(false)
+  const [boundaryNow, setBoundaryNow] = useState(Date.now)
   const closeFilters = useCallback(() => setFiltersOpen(false), [])
   const updatePreferences = useCallback((next: AlertPreferences) => { setPreferences(next); saveAlertPreferences(next) }, [])
-  const [now, setNow] = useState(() => Date.now() + clockOffsetMs)
-  const today = Math.floor(now / day) * day
-  const clock = useMemo(() => ({ brokerId, brokerOffsetSeconds }), [brokerId, brokerOffsetSeconds])
-  const range = useMemo(() => ({ from: utcToChartClock(today - policyEpisodeWindowMs, clock) ?? today,
-    to: utcToChartClock(today + (preferences.days + 2) * day + policyEpisodeWindowMs, clock) ?? today }), [today, preferences.days, clock])
-  const families = preferences.families
-  const scope = useMemo(() => alertCalendarScope({ families }), [families])
-  const storage = useStoredCalendar(brokerId, range, !highlight && families.length > 0, scope)
-  // Currency buttons filter the loaded inventory locally. Countdown ticks never regroup it.
-  // A verified publication UTC clock is sufficient for Alert. Chart placement
-  // separately requires the broker's historical chart-clock profile.
-  const grouped = useMemo(() => groupInspectorReleases(storage.events.filter(event => event.availability === 'observed'), true, 'publication'), [storage.events])
-  const times = useMemo(() => grouped.flatMap(release => release.releaseAt === null ? [] :
-    [release.releaseAt, release.releaseAt + 1, release.releaseAt - preferences.days * day]), [grouped, preferences.days])
-  const episodes = useMemo(() => alertEpisodesFromReleases(grouped, preferences, now, preferences.days,
-    utcToChartClock(now, clock) ?? now)
-    .filter(({ release }) => preferences.currency === 'all' || release.currency === preferences.currency), [grouped, preferences, now, clock])
-  const days = useMemo(() => {
-    const result = new Map<string, typeof episodes>()
-    for (const episode of episodes) {
-      const at = episode.release.releaseAt ?? chartClockToUtc(episode.release.serverTime * 1000, clock)
-      const date = episode.release.timingUncertain ? formatAppTimestamp(episode.release.serverTime * 1000, { mode: 'utc', utcOffsetMinutes: 0 }, 'date') :
-        at === null || !Number.isFinite(at) ? 'Date unconfirmed' : formatAppTimestamp(at, timeDisplay, 'date')
-      const group = result.get(date) ?? []; group.push(episode); result.set(date, group)
-    }
-    return result
-  }, [episodes, clock, timeDisplay])
-  const pinned = useMemo(() => new Map(episodes.map(({ release }) => [release.id, highlightForRelease(pins.items, release)])), [episodes, pins.items])
-  const currencies = inspectorFamilies.filter(f => preferences.families.includes(f.id) && (preferences.currency === 'all' || preferences.currency === f.currency)).map(f => f.currency)
-  const brokerNow = utcToChartClock(now, clock) ?? now
-  const partial = !!storage.source && currencies.some(currency => !storage.coverage[currency] ||
-    storage.coverage[currency].missing.some(([from, to]) => from * 1000 < brokerNow + preferences.days * day && to * 1000 > brokerNow))
-  const offline = !!storage.source && storage.source.publisher_status !== 'live'
-  const message = !brokerId ? 'Alert needs calendar storage' : !families.length ? 'No families selected in Alert filters' : storage.loading ? 'Loading upcoming releases…' : null
-  const collections = <nav className="alert-collections" aria-label="Alert collection">
-    <button type="button" aria-pressed={!highlight} onClick={() => changeHighlight(false)}>Upcoming</button>
-    <button type="button" aria-pressed={highlight} onClick={() => changeHighlight(true)}>Highlight</button>
-  </nav>
-  const scheduleControls = !highlight && <div className="alert-schedule-controls"><label><select aria-label="Alert horizon" value={preferences.days} onChange={event => updatePreferences({ ...preferences, days: Number(event.target.value) as AlertPreferences['days'] })}>
-    {alertHorizons.map(days => <option key={days} value={days}>Next {days} days</option>)}
-  </select></label><button type="button" onClick={() => setFiltersOpen(true)}>Filters</button></div>
-  return <CalendarClock clockOffsetMs={clockOffsetMs}>
-  <CalendarBoundary times={times} onBoundary={setNow} timeDisplay={timeDisplay} dayOffsetMinutes={brokerOffsetSeconds / 60} />
-  <section className="alert-dock" aria-label="Alert">
-    {renderHeader ? renderHeader(<>
-      {!calendarOnly && collections}
-      {highlight && <select aria-label="Highlight view" value={visibility} onChange={event => changeVisibility(event.target.value as HighlightVisibility)}>
-        <option value="active">Active</option><option value="archived">Archive</option>
-      </select>}
-      {scheduleControls}
-    </>, <nav className="events-currency-buttons" aria-label="Alert currency">
-      {(['all', ...majorCurrencies] as const).map(currency => <button type="button" key={currency}
-        aria-pressed={preferences.currency === currency} onClick={() => updatePreferences({ ...preferences, currency })}>{currency === 'all' ? 'All' : currency}</button>)}
-    </nav>) : <header className="alert-header">
-      <div className="alert-toolbar">
-        {collections}
-        {highlight && <nav className="highlight-views" aria-label="Highlight view">
-          <button type="button" aria-pressed={visibility === 'active'} onClick={() => changeVisibility('active')}>Active</button>
-          <button type="button" aria-pressed={visibility === 'archived'} onClick={() => changeVisibility('archived')}>Archive</button>
-        </nav>}
-        <span className="alert-timezone">{timeDisplayLabel(timeDisplay)}</span>
-      </div>
-      <div className="alert-toolbar alert-filter-toolbar">
-      <nav className="alert-currencies" aria-label="Alert currency">
-        {(['all', ...alertCurrencies] as const).map(currency => <button type="button" key={currency}
-        aria-pressed={preferences.currency === currency} onClick={() => updatePreferences({ ...preferences, currency })}>{currency === 'all' ? 'All' : currency}</button>)}</nav>
-      {scheduleControls}
-      </div>
-    </header>}
-    {brokerId && <p className="alert-source-status">Calendar source: {brokerId}</p>}
-    {highlight ? <HighlightList brokerId={brokerId} now={now} timeDisplay={timeDisplay} visibility={visibility} currency={preferences.currency} onPrepareResearch={onPrepareResearch} renderAlarm={renderHighlightAlarm} /> : message ? <p role="status">{message}</p> : <>
-      {pins.error && <p role="status">{pins.error}</p>}
-      {(storage.error || storage.collectorError || offline || partial) && <p className="alert-source-status" role="status">
-        {storage.error ?? storage.collectorError ?? (offline ? 'Publisher offline · stored schedule may be stale' : 'Partial schedule coverage')}
-      </p>}
-      {!days.size && <p role="status">{storage.error ? 'Upcoming schedule unavailable' : `No upcoming releases in the available ${preferences.days}-day schedule`}</p>}
-      <div className="alert-days">{[...days].map(([date, episodes]) => <section className="alert-day" key={date} aria-label={date}>
-        <h3>{date}</h3>{episodes.map(episode => <AlertReleaseRow key={episode.release.id} episode={episode} now={now} timeDisplay={timeDisplay}
-          brokerId={brokerId} pins={pins} pinned={pinned.get(episode.release.id)} onPrepareResearch={onPrepareResearch} />)}
-      </section>)}</div>
-    </>}
-    {filtersOpen && <AlertFiltersModal preferences={preferences} onSave={next => updatePreferences({ ...preferences, families: next.families })} onClose={closeFilters} />}
-  </section></CalendarClock>
-})
-
-const AlertReleaseRow = memo(function AlertReleaseRow({ episode: { release, state }, now, timeDisplay, brokerId, pins, pinned, onPrepareResearch }: {
-  episode: AlertEpisode; now: number; timeDisplay: TimeDisplayPreference; brokerId: string | null; pins: ReturnType<typeof useHighlights>
-  pinned?: Highlight; onPrepareResearch?: (release: InspectorRelease) => void
-}) {
-  return <article className={`alert-row alert-${state}`} data-alert-id={release.id}>
-    <span className="alert-currency">{release.currency}</span><strong>{release.label}</strong>
-    <time>{state === 'unconfirmed' ? '—' : formatAppTimestamp(release.releaseAt!, timeDisplay, 'time-short')}</time>
-    <span className={state === 'upcoming' ? 'alert-countdown' : 'alert-release-status'}>{state === 'upcoming' ? <ReleaseCountdown at={release.releaseAt!} now={now} /> :
-      state === 'awaiting' ? 'Awaiting release data' : state === 'partial' ? 'Partial release data' : 'Time unconfirmed'}</span>
-    {onPrepareResearch && <button type="button" className="alert-research" aria-label={`Prepare research for ${release.currency} ${release.label}`}
-      onClick={() => onPrepareResearch(release)}>Research</button>}
-    <button type="button" className="alert-pin" disabled={!brokerId || pins.busy} aria-pressed={!!pinned}
-      aria-label={`${pinned ? 'Archive' : 'Pin'} ${release.currency} ${release.label}`}
-      onClick={() => void (pinned ? pins.archive(pinned.id) : pins.pin(release))}>{pinned ? 'Archive' : 'Pin'}</button>
-  </article>
+  const storage = useAlertDay(sourceId, date), external = useExternalSources('all', 'all')
+  const [focused, setFocused] = useState<string | null>(null)
+  const focusItem = external.items.find(item => item.key === focusKey)
+  if (focusItem && focused !== focusKey) {
+    setFocused(focusKey)
+    const item = focusItem
+    const targetDate = externalDate(item)
+    if (targetDate) setDate(targetDate)
+    setPreferences(old => ({ ...old, currency: 'all' }))
+  }
+  const groups = useMemo(() => dayGroups(storage.events, external.items, date, sourceId, preferences), [storage.events, external.items, date, sourceId, preferences])
+  const undated = useMemo((): AlertDayGroup[] => external.items.filter(item => externalDate(item) === null
+    && (preferences.currency === 'all' || item.currencies.includes(preferences.currency))).map(item => ({ key: `external:${item.key}`,
+      title: item.title, currency: item.currencies.join(' / '), at: null, valueIds: [], external: [item] })), [external.items, preferences.currency])
+  const times = useMemo(() => groups.flatMap(group => group.at === null ? [] : [group.at, group.at + 1]), [groups])
+  const selectedIds = useMemo(() => alertSeriesIds(preferences), [preferences])
+  const partial = storage.coverage && Object.entries(storage.coverage).some(([currency, value]) =>
+    (preferences.currency === 'all' || currency === preferences.currency) && value.missing.length > 0)
+  return <CalendarClock><CalendarBoundary times={times} onBoundary={setBoundaryNow} timeDisplay={jakartaDisplay} />
+    <div className="alert-date-dock">
+      <header className="alert-date-header"><AlertDateSelector date={date} onChange={setDate} />
+        <nav className="events-currency-buttons" aria-label="Alert currency">{(['all', ...majorCurrencies] as const).map(currency =>
+          <button type="button" key={currency} aria-pressed={preferences.currency === currency} onClick={() => updatePreferences({ ...preferences, currency })}>{currency === 'all' ? 'All' : currency}</button>)}</nav>
+        <button type="button" aria-label="Alert filters" title={`${selectedIds.length} known series enabled`} onClick={() => setFiltersOpen(true)}>Filters</button>
+        <AlarmControls alarms={alarms} />
+      </header>
+      <div className="alert-date-meta"><span>{date} · Jakarta · Pepperstone + named publishers</span><button type="button" aria-expanded={notesOpen} onClick={() => setNotesOpen(value => !value)}>Feed notes</button></div>
+      {notesOpen && <ExternalFeedNotes brokerId={sourceId} currency={preferences.currency} />}
+      {(storage.error || external.error || alarms.error) && <p className="alert-feed-message" role="status">{storage.error ?? external.error ?? alarms.error}</p>}
+      {storage.source?.publisher_status === 'offline' && <p className="alert-feed-message" role="status">Pepperstone publisher offline · showing saved readings.</p>}
+      {!storage.loading && !storage.source && !storage.error && <p role="status">No stored Pepperstone calendar. Start its publisher to populate this date.</p>}
+      {partial && <p className="alert-feed-message" role="status">Partial calendar coverage for this date. Missing events may not have been captured.</p>}
+      <div className="alert-table-scroll"><HighlightDock groups={groups} sourceId={sourceId} alarms={alarms} now={boundaryNow} focusKey={focusKey} /></div>
+      {!groups.length && <p className="alert-empty" role="status">{storage.loading || external.loading ? 'Loading events…' : 'No matching events in the available data for this date.'}</p>}
+      {!!undated.length && <details className="alert-undated" open={undated.some(group => group.external.some(item => item.key === focusKey)) || undefined}>
+        <summary>Undated items ({undated.length})</summary><p>No publication date is assumed for these saved watch items.</p>
+        <div className="alert-table-scroll"><HighlightDock groups={undated} sourceId={sourceId} alarms={alarms} now={boundaryNow} focusKey={focusKey} /></div>
+      </details>}
+      {filtersOpen && <AlertFiltersModal preferences={preferences} onSave={next => updatePreferences({ ...preferences, families: next.families })} onClose={closeFilters} />}
+    </div>
+  </CalendarClock>
 })

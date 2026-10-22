@@ -11,6 +11,22 @@ import { majorForexPairs } from '../../economic-calendar/forex/pairs'
 import { HighlightJournal, type JournalView } from './HighlightJournal'
 import type { AlertPreferences, HighlightVisibility } from '../model/alert-preferences'
 import { CalendarBoundary } from '../../inspector/CalendarClock'
+import { useAlertImpact } from '../impact/useAlertImpact'
+import { ImpactDetails } from '../impact/ImpactBadge'
+
+export function SavedReleaseResearch({ sourceId, valueIds, currency }: { sourceId: string; valueIds: string[]; currency: string }) {
+  const current = useHighlights(sourceId, 0, 'all'), legacy = useHighlights('Elev8-Demo2', 0, 'all')
+  const impact = useAlertImpact(sourceId), legacyImpact = useAlertImpact('Elev8-Demo2')
+  const matches = [...current.items, ...legacy.items].filter(item => item.currency === currency && item.value_ids.some(id => valueIds.includes(id)) && item.journal?.length)
+  return <div className="alert-saved-research">
+    {(current.error || legacy.error) && <p role="status">{current.error ?? legacy.error}</p>}
+    {!matches.length && <p>No saved research for this release.</p>}
+    {matches.map(item => <section key={item.id}><h4>Saved research · {item.source_id}</h4><p>Original source and captured expectations are preserved. These are dated assessments.</p>
+      <ImpactDetails item={(item.source_id === sourceId ? impact : legacyImpact).byKey.get(`highlight:${item.source_id}:${item.id}`)} />
+      {[...new Set(item.journal?.map(entry => entry.scope))].map(scope => <HighlightJournal key={scope} item={item} scope={scope} view="documentation" />)}
+    </section>)}
+  </div>
+}
 
 export const HighlightCard = memo(function HighlightCard({ item, now, timeDisplay, archive, restore, busy, onPrepareResearch, alarm, sourceLabel, impact, impactDetails }: {
   item: Highlight; now: number; timeDisplay: TimeDisplayPreference; archive: (id: string) => Promise<void>; restore: (id: string) => Promise<void>; busy: boolean

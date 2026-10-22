@@ -1,105 +1,84 @@
-import { memo, useMemo, useState, type ReactNode } from 'react'
-import { HighlightCard } from '../alert/highlights/HighlightList'
-import { useHighlights } from '../alert/highlights/useHighlights'
-import { readAlertPreferences, saveAlertPreferences, readHighlightVisibility, saveHighlightVisibility, type HighlightVisibility } from '../alert/model/alert-preferences'
-import { majorCurrencies } from '../economic-calendar/forex/currencies'
-import { displayDateKey } from '../economic-calendar/time/calendar-display-range'
-import type { InspectorRelease } from '../economic-calendar/releases/release'
-import { useExternalSources } from '../external-sources/useExternalSources'
-import { useExternalPin } from '../external-sources/useExternalPin'
-import type { ExternalDateSort } from '../external-sources/external-schedule'
-import { CalendarBoundary, CalendarClock } from '../inspector/CalendarClock'
-import { ExternalHighlightCard } from './ExternalHighlightCard'
+import { Fragment, memo, useId, useState } from 'react'
+import { publisherName, type AlertDayGroup } from '../alert/model/alert-day-model'
+import { formatInspectorValue } from '../inspector/readings/reading-values'
+import { formatAppTimestamp } from '../appearance/time-display/time-display-preference'
+import { ReleaseCountdown } from '../alert/highlights/ReleaseCountdown'
+import { isInspectorCommentary } from '../inspector/releases/group-releases'
 import { EventAlarmButton } from './EventAlarmButton'
+import { ExternalEventDetails } from './ExternalHighlightCard'
+import { SavedReleaseResearch } from '../alert/highlights/HighlightList'
 import { jakartaDisplay } from './alarm-time'
 import type { useAlarms } from './useAlarms'
-import { useAlertImpact } from '../alert/impact/useAlertImpact'
-import { ImpactBadge, ImpactDetails } from '../alert/impact/ImpactBadge'
 
-export const HighlightDock = memo(function HighlightDock({ brokerId, alarms, renderHeader, onPrepareResearch }: {
-  brokerId: string | null; alarms: ReturnType<typeof useAlarms>; onPrepareResearch?: (release: InspectorRelease) => void
-  renderHeader: (controls: ReactNode, currencies: ReactNode) => ReactNode
-}) {
-  const [preferences, setPreferences] = useState(readAlertPreferences)
-  const [visibility, setVisibility] = useState(readHighlightVisibility)
-  const [hideUnconfirmed, setHideUnconfirmed] = useState(() => {
-    try { return localStorage.getItem('fyodor.highlight.hide-unconfirmed.v1') === 'true' } catch { return false }
-  })
-  const [order, setOrder] = useState<ExternalDateSort>(() => {
-    try { const value = localStorage.getItem('fyodor.highlight.date-sort.v1'); return value === 'earliest' || value === 'latest' ? value : 'upcoming' } catch { return 'upcoming' }
-  })
-  const highlights = useHighlights(brokerId, 2000, visibility === 'archived' ? 'archived' : 'active')
-  const external = useExternalSources('all', 'all')
-  const impact = useAlertImpact(brokerId)
-  const pins = useExternalPin(external.refresh)
-  const [now, setNow] = useState(Date.now)
-  const times = useMemo(() => [...highlights.items.flatMap(item => item.events.flatMap(event =>
-    event.time_mode === 0 && event.release_at !== null ? [event.release_at, event.release_at + 1] : [])),
-    ...external.items.flatMap(item => item.event_at ? [Date.parse(item.event_at), Date.parse(item.event_at) + 1] : [])], [highlights.items, external.items])
-  const rows = useMemo(() => {
-    const currency = preferences.currency
-    const calendar = highlights.items.filter(item => currency === 'all' || item.currency === currency).map(item => {
-      const future = item.events.filter(event => event.time_mode === 0 && event.release_at !== null && event.release_at > now).map(event => event.release_at!)
-      const at = future.length ? Math.min(...future) : item.release_at
-      return { key: `mt5:${item.id}`, source: 'mt5' as const, item, at,
-        date: at !== null ? displayDateKey(at, jakartaDisplay) : item.server_time === null ? null : new Date(item.server_time * 1000).toISOString().slice(0, 10) }
-    })
-    const outside = external.items.filter(item => item.archived === (visibility === 'archived') && (currency === 'all' || item.currencies.includes(currency))).map(item => {
-      const at = item.event_at ? Date.parse(item.event_at) : null
-      return { key: `external:${item.key}`, source: 'external' as const, item, at, date: at !== null ? displayDateKey(at, jakartaDisplay) : item.event_date }
-    })
-    const today = displayDateKey(now, jakartaDisplay)
-    return [...calendar, ...outside].sort((a, b) => {
-      if (!a.date || !b.date) return a.date ? -1 : b.date ? 1 : a.key.localeCompare(b.key)
-      const futureA = a.at !== null ? a.at >= now : a.date >= today, futureB = b.at !== null ? b.at >= now : b.date >= today
-      if (order === 'upcoming' && futureA !== futureB) return futureA ? -1 : 1
-      const comparison = a.date.localeCompare(b.date) || (a.at !== null && b.at !== null ? a.at - b.at : a.at === null ? b.at === null ? 0 : -1 : 1)
-      return ((order === 'latest' || order === 'upcoming' && !futureA) ? -comparison : comparison) || a.key.localeCompare(b.key)
-    })
-  }, [highlights.items, external.items, preferences.currency, visibility, order, now])
-  const visibleRows = useMemo(() => hideUnconfirmed ? rows.filter(row => row.at !== null) : rows, [rows, hideUnconfirmed])
-  const hiddenCount = rows.length - visibleRows.length
-  return <CalendarClock><CalendarBoundary times={times} onBoundary={setNow} timeDisplay={jakartaDisplay} />
-  <section className="alert-dock highlight-dock" aria-label="Highlight">
-    {renderHeader(<>
-      <label>Show: <select aria-label="Highlight view" value={visibility} onChange={event => {
-        const next = event.target.value as HighlightVisibility; setVisibility(next); saveHighlightVisibility(next)
-      }}><option value="active">Active</option><option value="archived">Archived</option></select></label>
-      <label>Date <select aria-label="Sort Highlight by date" value={order} onChange={event => {
-        const next = event.target.value as ExternalDateSort; setOrder(next)
-        try { localStorage.setItem('fyodor.highlight.date-sort.v1', next) } catch { /* Retain session order. */ }
-      }}><option value="upcoming">Upcoming first</option><option value="earliest">Earliest first</option><option value="latest">Latest first</option></select></label>
-      <button type="button" aria-pressed={hideUnconfirmed}
-        title="Hide pins without a confirmed hour. They stay pinned; alarms are unchanged."
-        onClick={() => {
-          const next = !hideUnconfirmed; setHideUnconfirmed(next)
-          try { localStorage.setItem('fyodor.highlight.hide-unconfirmed.v1', String(next)) } catch { /* Retain session filter. */ }
-        }}>Hide unconfirmed times</button>
-    </>, <nav className="events-currency-buttons" aria-label="Highlight currency">{(['all', ...majorCurrencies] as const).map(currency =>
-      <button type="button" key={currency} aria-pressed={preferences.currency === currency} onClick={() => {
-        const next = { ...preferences, currency }; setPreferences(next); saveAlertPreferences(next)
-      }}>{currency === 'all' ? 'All' : currency}</button>)}</nav>)}
-    <>
-      {brokerId && <p className="alert-source-status">Calendar pins: {brokerId} · Pins and research stay with their original broker.</p>}
-      {highlights.error && <p role="status">MT5 Calendar: {highlights.error}</p>}
-      {highlights.offline && <p role="status">MT5 publisher offline · stored values may be stale</p>}
-      {!brokerId && <p role="status">Connect calendar storage to load MT5 pins.</p>}
-      {external.error && <p role="status">External Source: {external.error}</p>}
-      {pins.error && <p role="status">{pins.error}</p>}
-      {impact.error && <p role="status">{impact.error}</p>}
-      {external.loading && <p role="status">Loading External Source pins…</p>}
-      {hiddenCount > 0 && <p role="status">{hiddenCount} {hiddenCount === 1 ? 'Highlight hidden' : 'Highlights hidden'} · time unconfirmed. Turn off Hide unconfirmed times to show {hiddenCount === 1 ? 'it' : 'them'}.</p>}
-      {!rows.length && !external.loading && <p>{visibility === 'archived' ? 'No archived Highlights for this currency.' : 'Pin events from MT5 Calendar or External Source to keep them here.'}</p>}
-      <div className="highlight-list unified-highlight-list" aria-label="Highlighted releases">{visibleRows.map(row => row.source === 'mt5' ?
-        <HighlightCard key={row.key} item={row.item} now={now} timeDisplay={jakartaDisplay} sourceLabel="MT5 Calendar"
-          impact={<ImpactBadge item={impact.byKey.get(`highlight:${row.item.source_id}:${row.item.id}`)} />}
-          impactDetails={<ImpactDetails item={impact.byKey.get(`highlight:${row.item.source_id}:${row.item.id}`)} />}
-          archive={highlights.archive} restore={highlights.restore} busy={highlights.busy} onPrepareResearch={onPrepareResearch}
-          alarm={<EventAlarmButton alarms={alarms} source="highlight" reference={row.item.id} broker={row.item.source_id} title={row.item.label} now={now} archived={!!row.item.archived_utc} />} /> :
-        <ExternalHighlightCard key={row.key} item={row.item} now={now} busy={pins.busy} changePin={pins.changePin}
-          impact={<ImpactBadge item={impact.byKey.get(`external:${row.item.key}`)} />}
-          impactDetails={<ImpactDetails item={impact.byKey.get(`external:${row.item.key}`)} />}
-          alarm={<EventAlarmButton alarms={alarms} source="external" reference={row.item.key} title={row.item.title} now={now} archived={row.item.archived} />} />)}</div>
-    </>
-  </section></CalendarClock>
+type TableProps = { groups: AlertDayGroup[]; sourceId: string; alarms: ReturnType<typeof useAlarms>; now: number; focusKey: string | null }
+export const HighlightDock = memo(function HighlightDock({ groups, ...props }: TableProps) {
+  return <table className="alert-event-table" aria-label="Events on selected date">
+    <thead><tr><th>Time · Jakarta</th><th>Event</th><th>Actual</th><th>Forecast</th><th>Previous</th><th>Source</th><th>Countdown</th><th><span className="alert-sr-only">Alarm</span></th></tr></thead>
+    {groups.map(group => <EventGroup key={group.key} group={group} {...props} />)}
+  </table>
+})
+
+const EventGroup = memo(function EventGroup({ group, sourceId, alarms, now, focusKey }: Omit<TableProps, 'groups'> & { group: AlertDayGroup }) {
+  const [expanded, setExpanded] = useState(() => group.external.some(item => item.key === focusKey))
+  const [tab, setTab] = useState<'overview' | 'sources' | 'research'>('overview')
+  const panelId = useId(), tabId = useId(), series = group.release?.events ?? []
+  const total = series.length + group.external.length
+  const numeric = series.filter(event => !isInspectorCommentary(event)), arrived = numeric.filter(event => event.actual !== null).length
+  const elapsed = group.at !== null && group.at <= now
+  const status = group.at === null ? 'Time unconfirmed' : !elapsed ? null : series.length
+    ? !numeric.length ? 'Elapsed' : arrived === numeric.length ? 'Released' : arrived ? 'Partial data' : 'Awaiting data' : 'Elapsed · verify outcome'
+  const shared = (first: boolean) => first ? <>
+    <td rowSpan={total} className="alert-countdown-cell">{status ?? <ReleaseCountdown at={group.at!} now={now} />}</td>
+    <td rowSpan={total}><EventAlarmButton alarms={alarms} group={group} sourceId={sourceId} now={now} /></td>
+  </> : null
+  const time = group.at === null ? '—' : formatAppTimestamp(group.at, jakartaDisplay, 'time-short')
+  const toggle = (label: string) => <button type="button" className="alert-event-name" aria-expanded={expanded} aria-controls={panelId}
+    onClick={() => setExpanded(value => !value)}><span aria-hidden="true">{expanded ? '▾' : '▸'}</span>{label}</button>
+  return <tbody className="alert-event-group" data-alert-id={group.key} data-external-key={group.external[0]?.key}>
+    {series.map((event, index) => <tr key={event.value_id} data-series-id={event.event_id}>
+      {index === 0 && <td rowSpan={total} className="alert-time-cell"><time>{time}</time><small>{group.currency}</small></td>}
+      <th scope="row">{toggle(event.name)}{'availability' in event && event.availability !== 'observed' && <small>Latest observation unavailable</small>}</th>
+      {[event.actual, event.forecast, event.previous].map((value, i) => <td className="alert-value" key={i}>{formatInspectorValue(value, event)}</td>)}
+      <td className="alert-source-cell" title={sourceId}>Pepperstone</td>{shared(index === 0)}
+    </tr>)}
+    {group.external.map((item, index) => { const first = series.length === 0 && index === 0; return <tr key={item.key} data-external-key={item.key}>
+      {first && <td rowSpan={total} className="alert-time-cell"><time>{time}</time><small>{group.currency}</small></td>}
+      <th scope="row">{toggle(item.title)}</th><td className="alert-value">—</td><td className="alert-value">—</td><td className="alert-value">—</td>
+      <td className="alert-source-cell">{item.sources.filter(source => source.kind === 'web').slice(0, 1).map(source =>
+        <a href={source.locator} target="_blank" rel="noreferrer" key={source.locator}>{publisherName(source)}</a>)}</td>{shared(first)}
+    </tr> })}
+    {expanded && <tr className="alert-details-row"><td colSpan={8}><section id={panelId} className="alert-event-details" aria-label={`Details for ${group.title}`}>
+      <header><div><span>{group.currency} · {time} Jakarta</span><h3>{group.title}</h3></div><button type="button" aria-label={`Close ${group.title} details`} onClick={() => setExpanded(false)}>×</button></header>
+      <nav role="tablist" aria-label="Event details" onKeyDown={event => {
+        if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return
+        const tabs = [...event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]')]
+        const index = tabs.indexOf(event.target as HTMLButtonElement)
+        if (index < 0) return
+        event.preventDefault()
+        const next = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length
+        tabs[next].click(); tabs[next].focus()
+      }}>{(['overview', 'sources', ...(group.release ? ['research'] : [])]).map(value => <button type="button" role="tab" key={value}
+        id={`${tabId}-${value}`} aria-controls={`${panelId}-body`} aria-selected={tab === value} tabIndex={tab === value ? 0 : -1} onClick={() => setTab(value as typeof tab)}>
+        {value === 'overview' ? 'Overview' : value === 'sources' ? 'Sources & history' : 'Saved research'}</button>)}</nav>
+      <div id={`${panelId}-body`} role="tabpanel" aria-labelledby={`${tabId}-${tab}`}>
+        {tab === 'overview' && <>
+          <p className="alert-details-status">{status ?? 'Scheduled'}{group.at === null ? ' · No exact publication hour is assumed.' : ` · ${formatAppTimestamp(group.at, jakartaDisplay)} Jakarta`}</p>
+          {!!series.length && <dl className="alert-reading-metadata">{series.map(event => <Fragment key={event.value_id}>
+            <dt>{event.name}</dt><dd>{event.period_seconds > 0 ? `Reference period: ${new Date(event.period_seconds * 1000).toISOString().slice(0, 10)} · ` : ''}
+              Revision {event.revision}{event.revised_previous !== null && ` · Revised previous: ${formatInspectorValue(event.revised_previous, event)}`}</dd>
+          </Fragment>)}</dl>}
+          {group.external.map(item => <div key={item.key} className="alert-fact-summary"><h4>{item.title}</h4><p>{item.facts}</p>
+            {item.interpretation && <details><summary>Interpretation at save time</summary><p>{item.interpretation}</p></details>}</div>)}
+        </>}
+        {tab === 'sources' && <>
+          {!!series.length && <><p>Pepperstone · {sourceId}. Forecasts retain their supplied values; other publishers may use different expectations or capture times.</p>
+            <dl className="alert-reading-metadata">{series.map(event => <Fragment key={event.value_id}><dt>{event.name}</dt><dd>Series {event.event_id} · Value {event.value_id}
+              {'observed_at' in event && typeof event.observed_at === 'number' && ` · Captured ${formatAppTimestamp(event.observed_at * 1000, jakartaDisplay)} Jakarta`}
+              {event.forecast_raw_scaled_1e6 != null && ` · Raw forecast ×10⁶: ${event.forecast_raw_scaled_1e6}`}</dd></Fragment>)}</dl></>}
+          {group.external.map(item => <ExternalEventDetails key={item.key} item={item} />)}
+        </>}
+        {tab === 'research' && <SavedReleaseResearch sourceId={sourceId} valueIds={group.valueIds} currency={group.currency} />}
+      </div>
+    </section></td></tr>}
+  </tbody>
 })

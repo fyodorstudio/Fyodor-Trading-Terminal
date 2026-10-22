@@ -1,77 +1,83 @@
 # Alert
 
-The bottom dock has **Highlight / MT5 Calendar / External Source**, in that order.
-Highlight is the shared pinned shortlist, combining broker occurrences and active
-external records in one date-sorted list with source labels. MT5 Calendar is the
-existing upcoming MT5 release browser; External Source is the manually authored
-research collection. One compact header puts views/filters on the left and visible
-All/eight-currency buttons on the right, separated by `|`, before the alarm menu.
-Show: Active / Archived applies to Highlight; Discovered Limitations lives under External Source, separately from Events.
-Alarm settings, test and delivery history open only from that dropdown. Original
-families, journals, archives, limitations, chart stars and visibility preferences
-remain separate. Times use Jakarta AM/PM. Date-only rows show Today on their source
-day; they never receive an invented publication hour.
+Alert is one table for the selected **Asia/Jakarta** date. A horizontal five-day
+wheel, previous/next, month/year and Today navigate dates. All/eight-currency
+buttons and the existing Alert filters apply without changing alarm choices.
+Every captured calendar event on the date is available, including released rows;
+no shortlist, automatic archival or manual archive control is involved.
 
-Highlight's saved **Hide unconfirmed times** toggle filters pins without a known
-hour from both sources, including unscheduled items. A visible count keeps hidden
-pins discoverable; turn the toggle off to show them again. Filtering never archives
-pins or changes alarms. Elapsed and date-only pins remain active until manually
-archived; a passed date does not establish publication.
+Columns: Time | Event | Actual | Forecast | Previous | Source | Countdown | Bell.
+Source identifies Pepperstone or the actual external publisher (for example
+Reuters), with links to evidence. External records never acquire invented calendar
+readings. Different source values stay separate. One bell covers a publication
+package; decision, statement and conference clocks remain separate stages.
 
-For an item marked Today with an unconfirmed hour, invoke Assess Trade Now to
-verify the official schedule and current news. Use One Minute Before Release once
-the hour is verified. Date-only items have no timed reminder; reviewing them needs
-a manual check. A confirmed time must be saved in the appropriate source before
-the alarm worker can prepare its reminder.
+Click an event to open Overview, Sources & history, or Saved research. Sources
+keeps exact IDs, capture clocks, revised priors, raw values and external version
+history. Saved research retains original broker/as-of provenance, including legacy
+Elev8 investigations. No Prepare research action is exposed here; chart Research
+Date Range remains available. Feed notes contains Discovered Limitations.
 
-## Automatic workflow
+## Dates and source identity
 
-Research and pin an important calendar occurrence, or save a confirmed scheduled
-external event with a verified `event_at`. The local alarm worker discovers it
-within five seconds and prepares one Invoke reminder two minutes beforehand.
-Change this offset in Reminder settings. Existing two-reminder settings migrate
-to Invoke at two minutes; pending Prepare jobs are cancelled while history and
-per-event choices remain. Each Highlight row has a filled coloured
-bell when armed and an outline bell when off. Hover shows Jakarta reminder times;
-a multi-stage pin controls all its future stages. Unconfirmed hours disable the bell.
-External Source shows Pin/Pinned controls. Existing active external records remain
-pinned, preserving alarms; unpin/archive appends an immutable archive version,
-while Pin/Restore reactivates it. Both states remain readable in External Source.
-Hiding a chart star does not disable an alarm. Pausing alarms cancels
-pending delivery; resuming re-arms future reminders. Archive removes future
-reminders without deleting research. Distinct policy publication stages remain
-distinct, while simultaneous reminders ring in one grouped window.
+`GET /api/v1/alert-calendar?source_id=Pepperstone-Demo&date=YYYY-MM-DD` reads all
+currencies in a consistent store snapshot. Timed membership uses the half-open
+Jakarta day converted to publication UTC. Date-only/unverified schedules retain
+their source date; undated items have a separate section. Published tentative
+numeric readings can use their verified publication clock. No historical chart
+profile is guessed. Missing coverage and stale/offline data stay visible.
 
-Windows displays an alarm window and repeats its built-in Exclamation sound
-every ten seconds until acknowledged. Copy prompt, Open terminal, Dismiss and
-Snooze 5 min are available. Snoozing cannot reach or pass the event time. Prompts
-invoke `$one-minute-before-release` near release. Nothing invokes an AI agent,
-monitors actuals or places a trade itself.
+External records may carry an optional `calendar_reference` with `source_id` and
+exact `value_ids`. Only confirmed scheduled records whose IDs, currency and UTC
+stage match the selected broker group may join it. All source rows remain
+separate, with one bell. Equal times or text similarity alone never merge events.
+Original external versions and calendar observations are never rewritten.
 
-Use **Test alarm** to verify the desktop window and sound on the actual PC.
-Terminal tests mock delivery; they do not establish audibility or inspect UI.
-System volume/sound settings and the interactive Windows session still apply.
+## Reminder selection
+
+New events have no alarm selected. Browsing, currency/family filters, date changes,
+saving research and showing a chart icon never select or cancel a reminder.
+Clicking a future timed group's bell registers a validated, durable subscription
+or updates the existing choice. Date-only, unknown-time and elapsed items cannot
+receive new timed reminders. An external record must be confirmed and scheduled.
+
+**Alarm Settings** opens global enable/pause, reminder offset, test and delivery
+history. A small status dot and ringing indicator preserve worker visibility.
+Selections can be edited while global delivery is paused; a selected bell and an
+actively armed reminder are distinct. One Invoke reminder runs at the chosen
+offset (two minutes by default). No AI is invoked automatically.
+
+On the first upgraded worker load, existing future Elev8/Pepperstone pin choices
+are matched against Pepperstone using value IDs plus event, currency, country,
+reference period, exact publication UTC and timing mode. Conflicting choices
+transfer off and are reported. Unmatched old stages are retired from delivery and
+listed for review in Alarm Settings. Existing external choices are seeded once;
+new external records default off. Original pins, journals, overrides and delivery
+history are preserved. The migration receipt is durable and idempotent.
 
 ## Runtime and persistence
 
-`pnpm alarms:start` starts a detached, hidden worker on loopback port 8003, or
-reuses it if already running. `pnpm dev:all` includes this step. It does not stop
-or restart other services. The browser can close; the worker and Windows must
-remain running/awake. No Windows login task, wake timer or power setting is
-installed. After reboot, starting the stack starts the worker again.
+The independent loopback worker uses port 8003. `pnpm alarms:start` starts it or
+reuses a healthy worker; `pnpm dev:all` includes it. The browser can close, but
+Windows and the worker must remain awake. No Windows login task, wake timer or
+power setting is installed. After backend updates, restart calendar storage and
+the alarm worker to load the new code; the bridge remains unchanged.
 
-`storage/data/alarms/state.json` atomically saves settings, per-occurrence alarm
-choices, acknowledgements and recent delivery history. One worker owns its
-directory lock. It reads the calendar through read-only SQLite snapshots and
-existing Highlight/external readers; it never changes source or research data.
-Schedule errors suspend new delivery and appear in the dock. Already elapsed
-reminders are not replayed on startup. Pending reminders overdue by more than
-90 seconds, or whose event has passed, become Missed. A claimed reminder is never
-automatically rung twice after a crash; interrupted delivery is reported instead.
+`storage/data/alarms/state.json` atomically stores settings, subscriptions,
+per-stage overrides, migration receipt, acknowledgements and delivery history.
+Worker refresh and mutations serialize under one lock. Calendar reads include
+committed WAL state and never change observations. Read failures suspend delivery.
+Rescheduling updates jobs without replaying acknowledged reminders. Overdue jobs
+become Missed; already elapsed reminders are not replayed on startup.
 
-The UI proxies `/alarm-api/alarms` to worker `/alarms`: GET returns schedule,
-settings, recent jobs and worker status; POST accepts `settings`, `toggle`,
-`dismiss`, `snooze` with `expected_revision`, or explicit `test`. Conflicts require
-a fresh snapshot. Only loopback terminal origins may mutate alarms. Native
-notification payloads are temporary JSON files, not executable prompt strings.
-The alarm process has no dependency on bridge modifications or an API key.
+`GET /alarm-api/alarms` returns schedule schema 2, selections, armed state, settings,
+worker status and history. POST accepts validated `subscribe`, `toggle-many`,
+legacy `toggle`, `settings`, `dismiss`, `snooze` or explicit `test`; optimistic
+revision checks protect writes. Subscription clocks and eligibility come from
+SQLite, never client-supplied values. Only loopback origins can mutate the worker.
+
+Windows displays one grouped alarm window for simultaneous selected stages and
+repeats the built-in sound until acknowledged. Copy prompt, Open terminal, Dismiss
+and Snooze 5 min remain available; snooze cannot reach the event time. Use Test
+alarm to verify the actual desktop window and sound. Terminal checks mock native
+delivery; they do not establish audibility or perform visual UI audits.

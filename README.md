@@ -51,19 +51,20 @@ pnpm build
 pnpm check:repo
 ```
 
-**Alert** has **Highlight / MT5 Calendar / External Source** views. Highlight
-combines both pinned sources, with date sorting, source labels and filled/outline
-alarm bells. Currency buttons stay on the right of view controls. Data and research
-remain in their existing stores. Highlight headers show a separate agent-authored
-impact badge when assessed; unassessed
-events show `—`. This uses no broker importance or automatic classification.
-The [Highlight workflow](docs/HIGHLIGHT-JOURNAL.md#ai-impact-in-alert) covers agent saves.
-Pinned events and confirmed timed external events
-automatically receive one Invoke reminder two minutes before each release stage. Use Test
-alarm once to check the Windows window and built-in sound. `pnpm dev:all` starts
-the independent alarm worker; use `pnpm alarms:start` to start it without restarting
-the stack. The browser may close, but Windows must remain awake and the worker
-running. See [alarm workflow and persistence](docs/EVENTS-ALARMS.md).
+**Alert** is one date-based table for Pepperstone and named external publishers.
+Scroll the five-day selector, choose month/year or Today, and use All/eight-currency
+buttons plus the existing Alert filters. Every available event on that Jakarta date
+stays visible after release; no shortlist or manual archiving is needed. Actual,
+Forecast and Previous retain their source values. Click an event for Overview,
+Sources & history, and saved research. Feed notes retains discovered limitations.
+
+One bell controls each timed release package. New events start off; changing dates
+or filters never changes a reminder. Existing verified Elev8 choices migrate to
+matching Pepperstone occurrences; unmatched stages appear in Alarm Settings for
+review. Source records and research history remain intact. Alarm Settings contains
+global enable/pause, reminder offset, test and delivery history. `pnpm dev:all`
+starts the independent worker; Windows must remain awake. See the
+[alarm workflow](docs/EVENTS-ALARMS.md) for persistence and delivery limits.
 
 Frontend suites run sequentially and mount production components with fixture
 transport/canvas. Native chart API tests verify coordinates, future times and
@@ -229,37 +230,17 @@ Share the brief; it links to its evidence.
 Alert's **Research** button prepares the same handoff for an upcoming release;
 choose its currency alone or a pair containing it.
 
-**Highlight / MT5 Calendar / External Source** are separate top-level views.
-The currency filter applies to the current collection, including Highlight's
-**Show: Active / Archived** and External Source's **Events / Discovered Limitations**,
-and remembers your choice and view. **All** means all currencies in that view;
-events are filtered by their own currency, independently of the card's research
-Scope. **Highlight** keeps occurrences pinned from Inspector's right header or
-MT5 Calendar's **Pin** button, plus active external records (Pin/Pinned in External
-Source). Archive/Restore preserves external version history and existing alarm
-choices. Expand a calendar card for all series and publication times. Pins remain
-after release, update with stored actuals and revisions, and move to **Archive**
-on your instruction. **Restore** returns them to the active list. They ignore
-upcoming family filters and horizon, remain scoped to their broker, and survive
-refresh. Highlight checks for updated values every two seconds while open; feed
-capture may still be delayed. The agent can read the same list with
-`pnpm analyst highlights` and focused values with
-`pnpm analyst highlights --summary --match CPI`, without browser access.
+The Alert date table browses calendar rows independently of saved Highlight pins.
+The publisher supplies Pepperstone readings; outside-feed records retain their
+actual publisher links and separate identities. Exact, explicitly linked external
+coverage can share a publication group and bell with calendar rows; matching times
+or similar names alone never merge releases. Date-only events keep their source
+date and unknown hour. Undated watch items have a separate section.
 
-Cards display read-only Before/After release research with source links, preserved
-reading snapshots and version history. **Copy Prompt** uses an explicit scope and
-the latest tailored request. Agents append research through the local CLI; pinning
-alone does not generate analysis. [Journal workflow](docs/HIGHLIGHT-JOURNAL.md)
-documents research input, archive/restore and upcoming candidate commands.
-Choose a pair in an active Highlight's Scope, then **Assess trade now → Copy Prompt**
-for a concise fundamental thesis. Live/pre-release assessment uses current web
-evidence, with calendar and saved fundamental research optional; candles are reserved
-for explicitly requested historical price investigations. The action copies instructions only.
-Copy Prompt offers preparation and after-release stages. Prompt-only records can
-be saved while research is deferred. **External Source → Discovered Limitations**
-retains verified feed gaps and schedule/data disagreements with sources, separately
-from saved events. Agents read these through `pnpm analyst limitations --broker <broker>`
-before reviewing MT5 and outside-feed schedules.
+Legacy Highlight pins/journals, archived investigations and CLI research remain
+readable. Saving or pinning research does not automatically select a new alarm.
+Alert no longer offers Prepare research or archive controls; chart Research date
+range still creates named reports. Dates do not invoke research or create reminders.
 
 Exports include every stored series for the chosen currencies, independent of
 Inspector/Alert filters and chart history. Files retain forecasts, revised priors,

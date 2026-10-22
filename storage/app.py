@@ -18,6 +18,7 @@ from .highlight_metadata import limitations_snapshot
 from .alert_impact import impact_snapshot
 from .external_sources import DIRECTORY, ExternalRequest, LifecycleRequest, external_snapshot, external_history, append_external, archive_external
 from .thesis import PATH as THESIS_PATH, thesis_snapshot
+from .alert_calendar import day_snapshot
 
 # The eight-currency Alert catalog exceeds the original pair-only 64-series cap.
 # Keep a bound below SQLite's conservative 999-parameter limit, including dates.
@@ -88,6 +89,14 @@ def create_app(directory=None, run_collector=True, highlights_path=HIGHLIGHTS_PA
             raise HTTPException(status_code=422, detail="Invalid currency scope")
         return app.state.store.query(source_id, from_server_seconds, to_server_seconds, currency, limit,
                                      after_time, after_id, time_basis, event_ids.split(",") if event_ids else None, r1_as_of, r1_history, selected)
+
+    @app.get('/api/v1/alert-calendar')
+    def alert_calendar(source_id: str = Query(min_length=1, max_length=160), date: str = Query(pattern=r'^\d{4}-\d{2}-\d{2}$'),
+                       after_revision: str | None = Query(default=None, max_length=100)):
+        try:
+            return day_snapshot(app.state.store, source_id, date, after_revision)
+        except ValueError as error:
+            raise HTTPException(422, 'Invalid calendar date') from error
 
     @app.post("/api/v1/reports")
     def research_report(request: ResearchRequest):
@@ -169,7 +178,7 @@ def create_app(directory=None, run_collector=True, highlights_path=HIGHLIGHTS_PA
     @app.get('/api/v1/external-capabilities')
     def external_capabilities():
         # Independent of collection contents: an empty collection must still be probeable.
-        return {'external_source_schema': 2, 'chart_icon_requests': True,
+        return {'external_source_schema': 2, 'chart_icon_requests': True, 'calendar_references': True,
                 'directory': str(Path(external_directory).resolve())}
 
     @app.get('/api/v1/external-sources/{key}')

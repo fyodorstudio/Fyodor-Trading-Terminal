@@ -40,8 +40,8 @@ function cached(sourceId: string | null): Highlight[] {
     return validItems(value, sourceId) ? value : empty
   } catch { return empty }
 }
-export function useHighlights(sourceId: string | null, pollMs = 0, visibility: 'active' | 'archived' = 'active') {
-  const cacheId = sourceId && (visibility === 'active' ? sourceId : `${sourceId}.archive`)
+export function useHighlights(sourceId: string | null, pollMs = 0, visibility: 'active' | 'archived' | 'all' = 'active') {
+  const cacheId = sourceId && (visibility === 'active' ? sourceId : `${sourceId}.${visibility === 'archived' ? 'archive' : 'all'}`)
   const readCache = () => {
     if (!sourceId || !cacheId) return empty
     if (visibility === 'active') return cached(sourceId)

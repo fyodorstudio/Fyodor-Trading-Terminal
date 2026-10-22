@@ -1,0 +1,63 @@
+.alert-date-dock { min-width: 0; padding-bottom: 16px; }
+.alert-date-header { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 5; padding: 12px 0; background: var(--surface-panel); border-bottom: 1px solid var(--border); }
+.alert-date-selector { display: flex; gap: 6px; align-items: center; }
+.alert-date-wheel { display: flex; align-items: center; border: 1px solid var(--border-strong); border-radius: 8px; overflow: hidden; overscroll-behavior: contain; }
+.events-alarm-dock .alert-date-wheel button { border: 0; border-radius: 0; min-width: 35px; min-height: 42px; padding: 4px 7px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 14px; }
+.alert-date-wheel small { font-size: 9px; opacity: .7; }
+.alert-date-selector input { width: 72px; }
+.alert-date-header .events-currency-buttons { display: flex; flex-wrap: wrap; gap: 2px; }
+.events-alarm-dock .events-currency-buttons button { border: 0; background: transparent; color: var(--text-muted); }
+.events-alarm-dock .events-currency-buttons button[aria-pressed='true'] { color: var(--accent); background: var(--accent-soft); }
+.alert-date-header .alarm-menu { margin-left: auto; }
+.alert-date-meta { display: flex; justify-content: space-between; gap: 8px; align-items: center; padding: 8px 0 12px; font-size: 10px; color: var(--text-muted); }
+.events-alarm-dock .alert-date-meta button { min-height: 24px; padding: 2px 6px; font-size: 10px; }
+.alert-table-scroll { overflow-x: auto; }
+.alert-event-table { border-collapse: collapse; width: 100%; table-layout: fixed; min-width: 980px; font-variant-numeric: tabular-nums; }
+.alert-event-table thead th { text-align: left; padding: 9px 10px; border-bottom: 2px solid var(--border-strong); color: var(--text-muted); font-size: 10px; font-weight: 600; }
+.alert-event-table thead th:nth-child(1) { width: 80px; }
+.alert-event-table thead th:nth-child(2) { width: auto; }
+.alert-event-table thead th:nth-child(3), .alert-event-table thead th:nth-child(4), .alert-event-table thead th:nth-child(5) { width: 68px; text-align: right; }
+.alert-event-table thead th:nth-child(6) { width: 108px; }
+.alert-event-table thead th:nth-child(7) { width: 170px; }
+.alert-event-table thead th:nth-child(8) { width: 34px; }
+.alert-event-group { border-bottom: 1px solid var(--border); }
+.alert-event-group > tr > td, .alert-event-group > tr > th { padding: 6px 10px; vertical-align: top; text-align: left; font-weight: normal; overflow-wrap: anywhere; }
+.alert-event-group > tr:first-child > td, .alert-event-group > tr:first-child > th { padding-top: 12px; }
+.alert-event-group > tr:last-child > td, .alert-event-group > tr:last-child > th { padding-bottom: 12px; }
+.alert-event-group > tr > td.alert-value { text-align: right; }
+.alert-event-table small { display: block; color: var(--text-faint); font-size: 10px; margin-top: 4px; }
+.alert-time-cell time { white-space: nowrap; color: var(--text-strong); font-size: 11px; }
+.events-alarm-dock .alert-event-name { display: flex; align-items: flex-start; gap: 6px; width: 100%; padding: 0; min-height: 0; border: 0; background: transparent; border-radius: 2px; color: var(--text-strong); text-align: left; line-height: 1.5; }
+.alert-event-name > span { color: var(--text-faint); flex-shrink: 0; }
+.alert-source-cell { color: var(--text-muted); font-size: 11px; }
+.alert-source-cell a, .alert-event-details a { color: var(--accent); text-decoration: none; }
+.alert-source-cell a:hover, .alert-event-details a:hover { text-decoration: underline; }
+.alert-countdown-cell { color: var(--text-muted); font-size: 11px; }
+.alert-event-group:has(.alert-event-name:hover) { background: var(--surface-hover); }
+.alert-details-row > td { padding: 8px 0 16px !important; }
+.alert-event-details { border: 1px solid var(--border-strong); border-radius: 8px; padding: 16px 20px; background: var(--surface-inset); }
+.alert-event-details > header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.alert-event-details > header span { color: var(--text-muted); font-size: 10px; }
+.alert-event-details h3 { margin: 4px 0 14px; color: var(--text-strong); font-size: 14px; }
+.alert-event-details h4 { margin: 12px 0 6px; font-size: 12px; }
+.alert-event-details [role='tablist'] { display: flex; gap: 16px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+.events-alarm-dock .alert-event-details [role='tab'] { border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; color: var(--text-muted); padding: 8px 0; }
+.events-alarm-dock .alert-event-details [role='tab'][aria-selected='true'] { color: var(--accent); border-bottom-color: var(--accent); }
+.alert-event-details p, .alert-event-details li { line-height: 1.65; max-width: 100ch; white-space: pre-wrap; }
+.alert-reading-metadata { display: grid; grid-template-columns: minmax(120px, 1fr) 2fr; gap: 8px 20px; margin: 12px 0; }
+.alert-reading-metadata dt { color: var(--text); }
+.alert-reading-metadata dd { margin: 0; color: var(--text-muted); font-size: 11px; line-height: 1.5; }
+.alert-event-details details { margin: 12px 0; }
+.alert-event-details summary { cursor: pointer; color: var(--text-muted); }
+.alert-event-details .highlight-series { overflow-x: auto; }
+.alert-event-details .highlight-series table { border-collapse: collapse; width: 100%; }
+.alert-event-details .highlight-series td, .alert-event-details .highlight-series th { padding: 6px; border-bottom: 1px solid var(--border); text-align: left; }
+.alert-chart-choice { display: flex; gap: 6px; align-items: center; }
+.alert-undated { margin-top: 16px; color: var(--text-muted); }
+.alert-undated > summary { padding: 8px 0; cursor: pointer; }
+.alert-feed-message, .alert-empty { color: var(--text-muted); padding: 8px 0; }
+.alarm-status-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-left: 5px; background: var(--text-faint); }
+.alarm-status-dot.enabled { background: var(--positive); }
+.alarm-status-dot.error { background: var(--negative); }
+.alert-sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+@container (max-width: 900px) { .alert-date-header { gap: 8px; } .alert-date-header .events-currency-buttons { order: 3; width: 100%; } }

@@ -100,8 +100,8 @@ const server = await createServer({ root: path.resolve(path.dirname(fileURLToPat
     transform(code, id) {
       if (id.endsWith('/EventsDock.tsx')) return code.replace('  const alarms = useAlarms()',
         "  globalThis.__terminalProbe.count('eventsDock'); const alarms = useAlarms()")
-      if (id.endsWith('/HighlightDock.tsx')) return code.replace('const rows = useMemo(() => {',
-        "const rows = useMemo(() => { globalThis.__terminalProbe.count('highlightSort');")
+      if (id.endsWith('/HighlightDock.tsx')) return code.replace('const [expanded, setExpanded]', "globalThis.__terminalProbe.count('highlightCard'); const [expanded, setExpanded]")
+      if (id.endsWith('/alert-day-model.ts')) return code.replace('const groups: AlertDayGroup[]', "globalThis.__terminalProbe.count('highlightSort'); const groups: AlertDayGroup[]")
       if (id.endsWith('/HighlightList.tsx')) return code.replace('const [expanded, setExpanded]',
         "globalThis.__terminalProbe.count('highlightCard'); const [expanded, setExpanded]")
       if (id.endsWith('/ExternalHighlightCard.tsx')) return code.replace('const [expanded, setExpanded]',
@@ -164,7 +164,7 @@ globalThis.fetch = (url, options = {}) => {
     }
     return Promise.resolve({ ok: true, status: 200, json: async () => JSON.parse(JSON.stringify(journalFixture)) })
   }
-  if (u.startsWith('/alarm-api/alarms')) return Promise.resolve({ ok: true, json: async () => ({ application: 'fyodor-alarms', revision: 1, now,
+  if (u.startsWith('/alarm-api/alarms')) return Promise.resolve({ ok: true, json: async () => ({ application: 'fyodor-alarms', schedule_schema: 2, revision: 1, now,
     settings: { enabled: true, release_minutes: 2 }, native_available: true, schedule_error: null, refreshed_at: now / 1000, jobs: [],
     events: [{ key: 'external:treasury-fixture', reference: 'treasury-fixture', source: 'external', broker: null, title: 'Treasury fixture', currencies: ['USD'],
       at: now + 3600000, date: null, eligible: true, armed: true, note: 'Exact fixture schedule', prompt: '$one-minute-before-release Treasury fixture' }] }) })
@@ -189,6 +189,14 @@ globalThis.fetch = (url, options = {}) => {
     return Promise.resolve({ ok: !reportFailure, status: reportFailure ? 503 : 200, json: async () => reportFailure
       ? { detail: 'Report folder unavailable' }
       : { filename: 'brief.md', path: 'C:\\dev\\Fyodor Trading Terminal Lite\\Market Analyst Workflow\\report\\named\\brief.md', readings: 70, context_readings: 190, coverage_incomplete: true } })
+  }
+  if (u.startsWith('/storage-api/alert-calendar')) {
+    const params = new URL(u, 'http://localhost').searchParams
+    const date = params.get('date')
+    return Promise.resolve({ ok: true, json: async () => ({ source_id: params.get('source_id'), date, revision: String(calendarRevision),
+      source: { publisher_status: 'live' }, coverage: {}, events: events.filter(event => event.release_at !== null
+        ? new Date(event.release_at + 7 * 3600000).toISOString().slice(0, 10) === date
+        : new Date(event.server_time_seconds * 1000).toISOString().slice(0, 10) === date) }) })
   }
   if (u.startsWith('/storage-api/health')) return Promise.resolve({ ok: true, json: async () => ({ revision: calendarRevision,
     sources: [{ id: broker, publisher_status: 'live', server_now: now / 1000, instance_id: 'fixture' }], collector_error: null }) })
@@ -231,10 +239,6 @@ async function tick(name, ms) {
 }
 const button = label => [...container.querySelectorAll('button')].find(element => element.textContent.trim().replace(/^⚙\s*/, '').startsWith(label))
 async function click(element) { assert.ok(element); await React.act(async () => element.click()) }
-async function eventView(value) {
-  const labels = { highlight: 'Highlight', calendar: 'MT5 Calendar', external: 'External Source' }
-  await click([...container.querySelectorAll('[aria-label="Event view"] button')].find(button => button.textContent === labels[value]))
-}
 function assertQuiet(label, workspace = false) {
   for (const key of ['quoteRows', 'chartRender', 'setData', 'update', 'futureSetData', 'futureUpdate', 'workerPosts', 'tradeLineCreates', 'tradeMarkerCreates', ...(workspace ? ['workspace'] : [])])
     assert.equal(counters[key] ?? 0, 0, `${label}: ${key} must remain unchanged`)
@@ -290,9 +294,9 @@ try {
   assert.equal(container.querySelector('.external-chart-markers').style.bottom, '68px')
   await click(button('Alert'))
   assert.ok(container.querySelector('[aria-label="Alert"]'))
-  assert.equal([...container.querySelectorAll('[aria-label="Event view"] button')].find(button => button.getAttribute('aria-pressed') === 'true').textContent, 'Highlight')
+  assert.equal(container.querySelector('[aria-label="Event view"]'), null)
   assert.equal(container.querySelector('.event-timeline-row'), null)
-  assert.ok(container.querySelector('.external-highlight-card'), 'Pinned external event appears in the shared Highlight')
+  assert.ok(container.querySelector('.alert-event-table [data-external-key="treasury-fixture"]'), 'External event appears beside all calendar events')
   reset()
   now += 1000
   await React.act(async () => { for (const timer of intervals.values()) if (timer.ms === 1000) timer.fn() })
@@ -306,10 +310,8 @@ try {
   for (const key of ['highlightSort', 'highlightCard', 'externalCard', 'alarmButton', 'eventsDock'])
     assert.equal(counters[key] ?? 0, 0, `Panning leaves ${key} unchanged`)
   now -= 1000 // Keep the later drawing-coordinate fixtures anchored to their original clock.
-  await eventView('calendar')
-  assert.ok(container.querySelector('.alert-row'), 'MT5 Calendar retains the existing Upcoming browser')
-  await eventView('external')
-  assert.ok(container.querySelector('[aria-label="External Sources"]'))
+  assert.ok(container.querySelector('.alert-event-group'), 'MT5 Calendar retains the existing Upcoming browser')
+  assert.ok(container.querySelector('.alert-event-table'))
   reset()
   await tick('poll', 5000)
   assertQuiet('External Sources unchanged poll', true)
@@ -317,11 +319,12 @@ try {
   await click(button('Alert'))
   assert.equal(container.querySelector('[aria-label="External Sources"]'), null)
   await click(container.querySelector('.external-chart-star'))
-  assert.ok(container.querySelector('.external-expanded-record'), 'Star opens its sourced record in the separate dock')
-  const iconInput = container.querySelector('.external-icon-toggle input')
+  assert.ok(container.querySelector('.alert-event-details'), 'Star opens its sourced record in the unified dock')
+  await click([...container.querySelectorAll('[role="tab"]')].find(node => node.textContent === 'Sources & history'))
+  const iconInput = container.querySelector('[aria-label="Show Treasury fixture icon on chart"]')
   await click(iconInput); await flush()
   assert.equal(container.querySelector('.external-chart-star'), null, 'Dock checkbox immediately hides the star without removing the record')
-  assert.ok(container.querySelector('.external-record'))
+  assert.ok(container.querySelector('.alert-external-evidence'))
   await click(iconInput); await flush()
   assert.ok(container.querySelector('.external-chart-star'), 'Dock checkbox restores the star')
   await click(button('Alert'))
@@ -415,9 +418,8 @@ try {
   assert.equal(counters.dailyGrouping ?? 0, 0); assert.equal(counters.futureSetData ?? 0, 0)
   const stableWindow = { ...logicalRange }
   await click(button('Alert'))
-  await eventView('calendar')
   assert.equal(container.querySelectorAll('[aria-label="Alert currency"] button').length, 9)
-  assert.equal(container.querySelectorAll('.alert-row').length, 8)
+  assert.ok(container.querySelectorAll('.alert-event-table .alert-event-group').length > 0, 'The selected day has calendar and external event groups')
   await click([...container.querySelectorAll('.market-watch-row')].find(row => row.textContent.includes('TEST1')))
   while (pending.get('ohlc')?.length) await reply('ohlc')
   assert.deepEqual(logicalRange, stableWindow, 'Pair selection preserves date zoom/pan')
@@ -596,7 +598,7 @@ try {
   assert.equal(container.querySelector('.chart-research-workspace > .research-panel'), researchPanel)
   assert.equal(document.querySelector('[aria-label="Research question"]').value, 'Was this USD strength or EUR weakness?')
   await click(button('Alert'))
-  assert.ok(container.querySelector('.alert-row'), 'The bottom dock remains interactive beside research')
+  assert.ok(container.querySelector('.alert-event-group'), 'The bottom dock remains interactive beside research')
   await click(button('Inspector'))
   assert.ok(container.querySelector('.inspector-panel'))
   await click([...container.querySelectorAll('[aria-label="Chart timeframe"] button')].find(node => node.textContent === 'H4'))
@@ -626,15 +628,18 @@ try {
   assert.equal(captures.size, 0, 'Cancelling research releases pointer capture and frames')
   assert.equal(reportRequests.length, 1)
   await click(button('Alert'))
-  await click(container.querySelector('[aria-label^="Prepare research for USD"]'))
-  assert.ok(document.querySelector('[aria-label="Research scope"]'))
-  await change(document.querySelector('[aria-label="Research scope"]'), 'USD')
+  assert.equal(container.querySelector('[aria-label^="Prepare research for"]'), null, 'Alert no longer starts research exports')
+  await click(container.querySelector('[aria-label="Research date range"]'))
+  researchOverlay = container.querySelector('[aria-label="Select research date range"]')
+  researchOverlay.getBoundingClientRect = () => ({ left: 0, top: 0 })
+  await pointer(researchOverlay, 'pointerdown', 300, 100)
+  await pointer(researchOverlay, 'pointerup', 500, 100)
+  assert.ok(document.querySelector('.research-panel form'))
   reportFailure = true
   await React.act(async () => document.querySelector('.research-panel form').dispatchEvent(new dom.Event('submit', { bubbles: true, cancelable: true })))
   assert.match(document.querySelector('.research-panel [role="alert"]').textContent, /Report folder unavailable/)
-  assert.equal(reportRequests[1].kind, 'upcoming')
-  assert.equal(reportRequests[1].scope, 'USD')
-  assert.ok(reportRequests[1].focus_ids.length > 0)
+  assert.equal(reportRequests[1].kind, 'historical')
+  assert.equal(reportRequests[1].scope, 'EURUSD')
   reportFailure = false
   await React.act(async () => document.querySelector('.research-panel form').dispatchEvent(new dom.Event('submit', { bubbles: true, cancelable: true })))
   assert.ok(document.querySelector('[aria-label="Saved report path"]'), 'A failed save can be retried')

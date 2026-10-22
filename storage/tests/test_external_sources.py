@@ -155,7 +155,7 @@ class ExternalSourcesTests(TestCase):
         app = create_app(run_collector=False, external_directory=self.directory)
         endpoint = lambda path: next(route.endpoint for route in app.routes if getattr(route, 'path', '') == path)
         capabilities = endpoint('/api/v1/external-capabilities')()
-        self.assertEqual(capabilities, dict(external_source_schema=2, chart_icon_requests=True, directory=str(self.directory.resolve())))
+        self.assertEqual(capabilities, dict(external_source_schema=2, chart_icon_requests=True, calendar_references=True, directory=str(self.directory.resolve())))
         # GET and POST share a path; select explicitly by method.
         save = next(route.endpoint for route in app.routes if getattr(route, 'path', '') == '/api/v1/external-sources' and 'POST' in route.methods)
         saved = save(self.request(show_on_chart=True))

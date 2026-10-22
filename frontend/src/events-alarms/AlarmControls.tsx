@@ -29,7 +29,8 @@ export function AlarmControls({ alarms }: { alarms: Alarms }) {
   return <div className="alarm-menu" ref={menu}>
     <button ref={trigger} type="button" className="alarm-menu-trigger" aria-label="Alarm controls" aria-expanded={open} aria-controls={menuId}
       title={error || data?.schedule_error || 'Alarm settings, test sound and delivery history'} onClick={() => setOpen(value => !value)}>
-      {ringing.length ? `Reminder ringing (${ringing.length})` : alarmWorkerLabel(data, error)} <span aria-hidden="true">▾</span>
+      Alarm Settings <i className={`alarm-status-dot ${error || data?.schedule_error ? 'error' : data?.settings.enabled ? 'enabled' : 'paused'}`} aria-label={alarmWorkerLabel(data, error)} />
+      {ringing.length > 0 && <span role="status">Ringing ({ringing.length})</span>}
     </button>
     {open && createPortal(<div id={menuId} ref={popover} className="alarm-popover" role="region" aria-label="Alarm settings and status">
     <div className="events-toolbar">
@@ -38,6 +39,11 @@ export function AlarmControls({ alarms }: { alarms: Alarms }) {
         <button aria-expanded={settingsOpen} onClick={() => setSettingsOpen(value => !value)}>Reminder settings</button></>}
     </div>
     <p>Invoke reminder: {data?.settings.release_minutes ?? 2} minutes before · Jakarta. Keep Windows awake.</p>
+    <p>{alarmWorkerLabel(data, error)}. New events start with no alarm selected.</p>
+    {data?.migration && <details><summary>Broker migration · {data.migration.matches.length} matched · {data.migration.issues.length} need review</summary>
+      {data.migration.issues.map(issue => <p key={issue.key}>{issue.title}: {issue.reason}</p>)}
+      {!data.migration.issues.length && <p>Existing choices transferred to matching Pepperstone occurrences. Original history is preserved.</p>}
+    </details>}
     {(error || data?.schedule_error) && <p role="alert">{error || data?.schedule_error}</p>}
     {message && <p role="status">{message}</p>}
     {settingsOpen && data && <Settings key={JSON.stringify(data.settings)} value={data.settings} busy={busy} onSave={settings => void mutate({ action: 'settings', settings })} />}

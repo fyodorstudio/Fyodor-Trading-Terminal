@@ -13,9 +13,9 @@ function releaseLabel(event: EconomicCalendarEvent, familyId: string): string | 
   return null
 }
 export type InspectorEvent = EconomicCalendarEvent & { chart_time_seconds?: number | null }
-export function isPublishedTentative(event: InspectorEvent) {
+export function isPublishedTentative(event: InspectorEvent, requireChartTime = true) {
   return event.time_mode === 3 && event.actual !== null && Number.isFinite(event.actual) &&
-    event.release_at !== null && Number.isFinite(event.release_at) && event.chart_time_seconds !== null &&
+    event.release_at !== null && Number.isFinite(event.release_at) && (!requireChartTime || event.chart_time_seconds !== null) &&
     event.server_time_seconds % 86400 !== 0
 }
 export function inspectorEventChartTime(event: InspectorEvent): number | null {
@@ -61,7 +61,7 @@ export function groupInspectorReleases(events: InspectorEvent[], combinePolicy =
     if (!group) {
       group = { id, familyId: family.id, label, currency: family.currency,
         country: event.country_code, releaseAt: event.release_at, chartTime, serverTime: chartTime ?? event.server_time_seconds,
-        timingUncertain: (event.time_mode !== 0 && !isPublishedTentative(event)) || (clock === 'chart' ? chartTime === null
+        timingUncertain: (event.time_mode !== 0 && !isPublishedTentative(event, clock === 'chart')) || (clock === 'chart' ? chartTime === null
           : event.release_at === null || !Number.isFinite(event.release_at)),
         events: [] }
       groups.set(id, group)
@@ -69,7 +69,7 @@ export function groupInspectorReleases(events: InspectorEvent[], combinePolicy =
     group.events.push(event)
     group.releaseAt ??= event.release_at
     group.chartTime ??= chartTime
-    group.timingUncertain ||= event.time_mode !== 0 && !isPublishedTentative(event)
+    group.timingUncertain ||= event.time_mode !== 0 && !isPublishedTentative(event, clock === 'chart')
   }
   const publications = groupFrenchCpiReleases([...groups.values()], clock === 'chart')
   const episodes = combinePolicy ? groupPolicyEpisodes(publications, clock === 'chart') : publications

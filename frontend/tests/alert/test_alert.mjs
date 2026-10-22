@@ -24,9 +24,7 @@ dom.setTimeout = (callback) => { polls.set(++timerId, callback); return timerId 
 dom.clearTimeout = (id) => polls.delete(id)
 const requests = []
 globalThis.fetch = (url, options = {}) => String(url).startsWith('/storage-api/highlights') ? Promise.resolve({ ok: true, json: async () => ({ source_id: new URL(String(url), 'http://localhost').searchParams.get('source_id'), revision: 'empty', items: [] }) }) : new Promise((resolve) => requests.push({ url: String(url), signal: options.signal, resolve }))
-const respond = (request, body, ok = true) => React.act(async () => request.resolve({ ok, status: ok ? 200 : 503, json: async () => body }))
 try {
-  const { AlertDock } = await server.ssrLoadModule('./src/alert/index.ts')
   const { alertEpisodes, alertCountdown, alertSeriesIds, alertCalendarScope } = await server.ssrLoadModule('./src/alert/model/alert-episodes.ts')
   const { defaultInspectorPreferences, inspectorFamilies } = await server.ssrLoadModule('./src/inspector/inspector-data.ts')
   const { alertPreferencesKey, defaultAlertPreferences, readAlertPreferences, validAlertPreferences } = await server.ssrLoadModule('./src/alert/model/alert-preferences.ts')
@@ -73,144 +71,13 @@ try {
     'Policy stages retain their package without a chart profile')
   assert.equal(alertEpisodes([policy[2]], policyPreferences, nextAt + 45 * 60000).length, 0, 'No numerical wait for completed speeches')
 
-  const health = (revision = 1, id = 'Broker-A', status = 'live') => ({ revision, collector_error: null, sources: [{ id, publisher_status: status }] })
-  const page = (events, revision = 1, id = 'Broker-A', eventIds = alertSeriesIds(preferences)) => ({ source_id: id, revision,
-    timestamp_convention: 'trade_server_time', time_basis: 'chart', event_ids: eventIds,
-    events, coverage: { USD: { missing: [] } }, next_cursor: null })
-  localStorage.setItem(alertPreferencesKey, JSON.stringify({ ...defaultAlertPreferences(), families: preferences.families, days: 60 }))
-  const props = { brokerId: 'Broker-A', timeDisplay: { mode: 'utc', utcOffsetMinutes: 0 } }
-  const render = (overrides = {}) => React.act(async () => root.render(React.createElement(AlertDock, { ...props, ...overrides })))
-  await render()
-  assert.match(container.textContent, /Loading upcoming/)
-  await respond(requests[0], health())
-  const params = new URL('http://localhost' + requests[1].url).searchParams
-  assert.equal(params.get('source_id'), 'Broker-A')
-  assert.deepEqual(params.get('event_ids').split(',').sort(), cpi.events.slice().sort())
-  assert.ok(Number(params.get('to_server_seconds')) * 1000 >= now + 60 * day)
-  await respond(requests[1], page(initial.map(event => ({ ...event, chart_time_seconds: null }))))
-  assert.equal(container.querySelectorAll('.alert-row').length, 1)
-  assert.ok(container.textContent.includes('Calendar source: Broker-A'), 'The active broker is visible beside the schedule')
-  assert.match(container.textContent, /US CPI \/ core CPI.*0 days · 0 hours · 1 minute remaining/)
-  const deadline = container.querySelector('[data-alert-id]').dataset.alertId
-  const count = requests.length
-  await render({ timeDisplay: { mode: 'fixed-offset', utcOffsetMinutes: 420 } })
-  assert.equal(container.querySelector('[data-alert-id]').dataset.alertId, deadline)
-  assert.equal(requests.length, count, 'Display timezone does not change the storage query or deadline')
-  now = nextAt
-  await React.act(async () => [...intervals.values()].forEach(({ callback }) => callback()))
-  assert.match(container.textContent, /Awaiting release data/)
-  assert.equal(container.querySelector('.alert-countdown'), null)
-  assert.equal(requests.length, count, 'Countdown ticks perform no network requests')
-  const poll = [...polls.entries()].at(-1); polls.delete(poll[0])
-  await React.act(async () => { void poll[1]() })
-  await respond(requests[count], health(2, 'Broker-A', 'offline'))
-  await respond(requests[count + 1], page(schedule.map((event, index) => index ? event : { ...event, actual: .3 }), 2))
-  assert.match(container.textContent, /Partial release data/)
-  assert.match(container.textContent, /Publisher offline/)
-  const nextPoll = [...polls.entries()].at(-1); polls.delete(nextPoll[0])
-  const completedStart = requests.length
-  await React.act(async () => { void nextPoll[1]() })
-  await respond(requests[completedStart], health(3))
-  const rescheduled = schedule.map((event) => ({ ...event, release_at: nextAt + day, server_time_seconds: (nextAt + day) / 1000 + 10800,
-    chart_time_seconds: (nextAt + day) / 1000 + 10800 }))
-  await respond(requests[completedStart + 1], page(rescheduled, 3))
-  assert.match(container.textContent, /1 day · 0 hours · 0 minutes remaining/)
-  assert.notEqual(container.querySelector('[data-alert-id]').dataset.alertId, deadline)
-
-  // Release arrival removes the completed card; a subsequent outage retains
-  // the last stored schedule with an explicit error rather than inventing data.
-  const completionPoll = [...polls.entries()].at(-1); polls.delete(completionPoll[0])
-  const completionStart = requests.length
-  await React.act(async () => { void completionPoll[1]() })
-  await respond(requests[completionStart], health(4))
-  await respond(requests[completionStart + 1], page(schedule.map((event) => ({ ...event, actual: .3 })), 4))
-  assert.equal(container.querySelectorAll('.alert-row').length, 0)
-  const unknownPoll = [...polls.entries()].at(-1); polls.delete(unknownPoll[0])
-  const unknownStart = requests.length
-  await React.act(async () => { void unknownPoll[1]() })
-  await respond(requests[unknownStart], health(5))
-  await respond(requests[unknownStart + 1], { ...page([row(cpi.events[0], nextAt + day, null, { release_at: NaN })], 5),
-    coverage: { USD: { missing: [[now / 1000, now / 1000 + 86400]] } } })
-  assert.match(container.textContent, /Time unconfirmed/)
-  assert.match(container.textContent, /Partial schedule coverage/)
-  assert.equal(container.querySelector('.alert-countdown'), null)
-  const outagePoll = [...polls.entries()].at(-1); polls.delete(outagePoll[0])
-  const outageStart = requests.length
-  await React.act(async () => { void outagePoll[1]() })
-  await respond(requests[outageStart], {}, false)
-  assert.match(container.textContent, /HTTP 503/)
-  assert.match(container.textContent, /Time unconfirmed/, 'A failed poll retains stored schedules with visible stale/error status')
-
-  const switchStart = requests.length
-  await render({ brokerId: 'Broker-B' })
-  assert.equal(container.querySelectorAll('.alert-row').length, 0, 'Old broker schedule is hidden immediately')
-  await respond(requests[switchStart], health(1, 'Broker-B'))
-  const obsolete = requests[switchStart + 1]
-  const setFamilies = async (families) => {
-    await React.act(async () => [...container.querySelectorAll('button')].find(b => b.textContent === 'Filters').click())
-    const modal = document.querySelector('[aria-labelledby="alert-filter-title"]')
-    const selectAll = modal.querySelector('[aria-label="Select all USD"]')
-    if (!selectAll.checked) await React.act(async () => selectAll.click())
-    await React.act(async () => selectAll.click())
-    if (families.length) await React.act(async () => modal.querySelector('[aria-label="US Jobs report / NFP"]').click())
-    await React.act(async () => [...modal.querySelectorAll('button')].find(b => b.textContent === 'Save').click())
-  }
-  const jobsPreferences = { ...preferences, families: ['jobs'] }
-  await setFamilies(['jobs'])
-  assert.equal(obsolete.signal.aborted, true)
-  await respond(requests[switchStart + 2], health(1, 'Broker-B'))
-  await respond(requests[switchStart + 3], page([row('840030016', now + day)], 1, 'Broker-B', alertSeriesIds(jobsPreferences)))
-  await respond(obsolete, page(initial, 1, 'Broker-B'))
-  assert.match(container.textContent, /US Jobs report \/ NFP/); assert.doesNotMatch(container.textContent, /US CPI \/ core CPI/)
-  const emptyStart = requests.length
-  await setFamilies([])
-  assert.equal(requests.length, emptyStart); assert.match(container.textContent, /No families selected/)
-  await render({ brokerId: null }); assert.match(container.textContent, /needs calendar storage/)
-  await React.act(async () => root.render(null))
-  assert.equal(intervals.size, 0); assert.equal(polls.size, 0, 'Closing Alert stops countdown and polling')
-  // All eight currencies load independently of chart-pair preferences. The
-  // currency buttons only filter existing inventory and retain global choices.
   localStorage.removeItem(alertPreferencesKey)
   assert.equal(readAlertPreferences().days, 7)
-  await render()
-  const allStart = requests.length - 1
-  await respond(requests[allStart], health())
-  const allParams = new URL('http://localhost' + requests[allStart + 1].url).searchParams
-  assert.equal(allParams.get('event_ids'), null, 'Complete catalog uses a bounded currency query, including future unknown IDs')
-  assert.deepEqual(allParams.get('currencies').split(',').sort(), alertCalendarScope(defaultAlertPreferences()).currencies.slice().sort())
-  const allIds = null
-  const currencies = ['USD', 'EUR', 'GBP', 'JPY', 'CHF', 'CAD', 'AUD', 'NZD']
-  const allRows = currencies.map((currency, index) => {
-    const family = inspectorFamilies.find(f => f.currency === currency && f.category === 'inflation')
-    return row(family.events[0], now + (index + 1) * 3600000, null, { currency, country_code: family.country })
-  })
-  await respond(requests[allStart + 1], { ...page(allRows, 1, 'Broker-A', allIds), coverage: Object.fromEntries(currencies.map(c => [c, { missing: [] }])) })
-  assert.equal(container.querySelectorAll('.alert-row').length, 8)
-  const buttonRequests = requests.length
-  await React.act(async () => [...container.querySelectorAll('[aria-label="Alert currency"] button')].find(button => button.textContent === 'GBP').click())
-  assert.equal(container.querySelectorAll('.alert-row').length, 1)
-  assert.equal(container.querySelector('.alert-currency').textContent, 'GBP')
-  assert.equal(requests.length, buttonRequests, 'Currency selection is local, not another calendar fetch')
-  assert.equal(readAlertPreferences().currency, 'GBP')
-  const inspectorSaved = localStorage.getItem('fyodor.inspector.eurusd.v1')
-  await React.act(async () => [...container.querySelectorAll('button')].find(b => b.textContent === 'Filters').click())
-  let modal = document.querySelector('[aria-labelledby="alert-filter-title"]')
-  await React.act(async () => modal.querySelector('[aria-label="Select all GBP"]').click())
-  await React.act(async () => [...modal.querySelectorAll('button')].find(b => b.textContent === 'USD').click())
-  assert.equal(modal.querySelector('[aria-label="US CPI / core CPI"]').checked, true)
-  await React.act(async () => [...modal.querySelectorAll('button')].find(b => b.textContent === 'GBP').click())
-  assert.equal(modal.querySelector('[aria-label="Select all GBP"]').checked, false, 'Switching filter panes retains drafts')
-  await React.act(async () => [...modal.querySelectorAll('button')].find(b => b.textContent === 'Cancel').click())
-  assert.equal(readAlertPreferences().families.length, inspectorFamilies.length, 'Cancel discards filter edits')
-  assert.equal(localStorage.getItem('fyodor.inspector.eurusd.v1'), inspectorSaved, 'Alert never writes Inspector preferences')
-  assert.equal(validAlertPreferences({ ...defaultAlertPreferences(), currency: 'XYZ' }), false)
-  assert.equal(validAlertPreferences({ ...defaultAlertPreferences(), families: ['not-a-family'] }), false)
-  await React.act(async () => root.render(null))
-  await render({ brokerId: null })
-  assert.equal([...container.querySelectorAll('[aria-label="Alert currency"] button')].find(button => button.textContent === 'GBP').getAttribute('aria-pressed'), 'true', 'Currency choice survives remount')
-  await React.act(async () => root.render(null))
-  assert.equal(intervals.size, 0); assert.equal(polls.size, 0)
-  console.log('✓ Alert episodes, independent eight-currency family filters, selected broker, bounded schedules, local countdown, due/partial/rescheduled/offline states, timezone invariance and cleanup')
+  assert.equal(validAlertPreferences({ ...defaultAlertPreferences(), days: 7 }), true)
+  const all = defaultAlertPreferences()
+  assert.equal(alertSeriesIds(all).length, 1051)
+  assert.deepEqual(alertCalendarScope(all).currencies.slice().sort(), ['AUD','CAD','CHF','EUR','GBP','JPY','NZD','USD'])
+  console.log('✓ Alert grouping: publication clocks, all-currency catalog, exact families, policy stages, date-only and component readings')
 } finally {
   await React.act(async () => root.unmount()); Date.now = originalNow
   await server.close(); await dom.happyDOM.close()

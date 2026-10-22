@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
-export type AlarmEvent = { key: string; reference: string; source: 'highlight' | 'external'; broker: string | null; title: string;
+export type AlarmEvent = { key: string; reference: string; source: 'highlight' | 'external' | 'calendar'; broker: string | null; title: string;
+  value_ids?: string[]; selected?: boolean;
   currencies: string[]; at: number | null; date: string | null; eligible: boolean; armed: boolean; note: string; prompt: string }
 export type AlarmJob = { id: string; event_key: string; title: string; at: number; due: number; stage: string; prompt: string;
   status: string; error: string | null; snooze_until?: number }
 export type AlarmSettings = { enabled: boolean; release_minutes: number }
 export type AlarmSnapshot = { application: 'fyodor-alarms'; revision: number; now: number; native_available: boolean;
+  schedule_schema?: number; migration?: { matches: { from: string; to: string; enabled: boolean }[]; issues: { key: string; title: string; reason: string }[] } | null;
   settings: AlarmSettings; events: AlarmEvent[]; jobs: AlarmJob[]; schedule_error: string | null; refreshed_at: number | null }
 function valid(value: unknown): value is AlarmSnapshot {
   if (!value || typeof value !== 'object') return false
@@ -15,7 +17,7 @@ function valid(value: unknown): value is AlarmSnapshot {
     && Number.isInteger(data.settings.release_minutes) && data.settings.release_minutes >= 1 && data.settings.release_minutes <= 120
     && (data.schedule_error === null || typeof data.schedule_error === 'string')
     && Array.isArray(data.events) && data.events.every(event => event && ['key', 'reference', 'title', 'note', 'prompt'].every(key => typeof event[key as keyof AlarmEvent] === 'string')
-      && ['highlight', 'external'].includes(event.source) && Array.isArray(event.currencies) && event.currencies.every(currency => typeof currency === 'string')
+      && ['highlight', 'external', 'calendar'].includes(event.source) && Array.isArray(event.currencies) && event.currencies.every(currency => typeof currency === 'string')
       && (event.at === null || Number.isFinite(event.at)) && (event.date === null || typeof event.date === 'string') && typeof event.armed === 'boolean' && typeof event.eligible === 'boolean')
     && Array.isArray(data.jobs) && data.jobs.every(job => job && ['id', 'title', 'stage', 'status', 'prompt'].every(key => typeof job[key as keyof AlarmJob] === 'string')
       && [job.at, job.due].every(Number.isFinite))

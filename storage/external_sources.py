@@ -21,6 +21,17 @@ DIRECTORY = Path(__file__).resolve().parents[1] / 'Market Analyst Workflow' / 'e
 LOCK = RLock()
 
 
+class CalendarReference(Payload):
+    source_id: str = Field(pattern=r'^Pepperstone-[A-Za-z0-9._-]+$', max_length=160)
+    value_ids: list[str] = Field(min_length=1, max_length=512)
+
+    @model_validator(mode='after')
+    def validate_ids(self):
+        if any(not value.isdigit() for value in self.value_ids) or len(set(self.value_ids)) != len(self.value_ids):
+            raise ValueError('Calendar references require unique exact value IDs')
+        return self
+
+
 class ExternalRequest(Payload):
     key: str = Field(pattern=r'^[a-z0-9]+(?:-[a-z0-9]+)*$', max_length=160)
     title: str = Field(min_length=1, max_length=500)
@@ -35,6 +46,7 @@ class ExternalRequest(Payload):
     time_note: str = Field(min_length=1, max_length=2000)
     sources: list[JournalSource] = Field(min_length=1, max_length=30)
     expected_version: str | None = Field(default=None, pattern=r'^[0-9a-f]{32}$')
+    calendar_reference: CalendarReference | None = None
     show_on_chart: bool = Field(default=False, exclude=True)
 
     @model_validator(mode='after')

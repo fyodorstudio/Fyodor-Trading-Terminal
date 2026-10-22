@@ -11,6 +11,8 @@ import { sortExternalDates, type ExternalDateSort } from './external-schedule'
 import type { ExternalSource } from './external-source-model'
 import './external-sources.css'
 
+export const ExternalFeedNotes = DiscoveredLimitations
+
 function savedCurrency(): 'all' | MajorCurrency {
   try {
     const value = JSON.parse(localStorage.getItem('fyodor.external-sources.filters.v1') ?? '{}')

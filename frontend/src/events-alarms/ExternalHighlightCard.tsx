@@ -1,33 +1,17 @@
-import { memo, useId, useState, type ReactNode } from 'react'
-import { ExternalCountdown } from '../external-sources/ExternalCountdown'
+import { useState } from 'react'
 import type { ExternalSource } from '../external-sources/external-source-model'
 import { RecordDetails, VersionHistory } from '../external-sources/ExternalRecordDetails'
-import { externalCountdown } from '../external-sources/external-schedule'
-import { alarmTime, jakartaDisplay } from './alarm-time'
+import { externalIconEnabled, setExternalIconVisibility, useExternalIconVisibility } from '../external-sources/external-icon-visibility'
+import { jakartaDisplay } from './alarm-time'
 
-export const ExternalHighlightCard = memo(function ExternalHighlightCard({ item, now, alarm, busy, changePin, impact, impactDetails }: {
-  item: ExternalSource; now: number; alarm: ReactNode; busy: boolean; changePin: (item: ExternalSource) => Promise<void>
-  impact?: ReactNode; impactDetails?: ReactNode
-}) {
-  const [expanded, setExpanded] = useState(false), contentId = useId()
-  return <article className="highlight-card external-highlight-card" data-external-key={item.key}>
-    <div className="highlight-header">
-      <button type="button" className="highlight-toggle" aria-expanded={expanded} aria-controls={contentId} onClick={() => setExpanded(value => !value)}>
-        <span aria-hidden="true">{expanded ? '▾' : '▸'}</span><span className="highlight-currency-impact"><span className="alert-currency">{item.currencies.join(' / ')}</span>{impact}</span><strong>{item.title}</strong>
-        <span className="highlight-source">External Source</span>
-        <time>{item.event_at ? alarmTime(Date.parse(item.event_at)) : item.event_date ? `${externalCountdown(item, now, jakartaDisplay) === 'Today' ? 'Today' : item.event_date} · hour unconfirmed` : 'Unscheduled'}</time>
-        <span className="alert-countdown">{item.archived ? 'Archived' : <ExternalCountdown item={item} now={now} timeDisplay={jakartaDisplay} />}</span>
-      </button>
-      <div className="highlight-actions">
-        <button type="button" onClick={() => setExpanded(true)} aria-label={`Research ${item.title}`}>Research</button>
-        {alarm}
-        <button type="button" disabled={busy} onClick={() => void changePin(item)} aria-label={`${item.archived ? 'Restore' : 'Archive'} highlight ${item.title}`}>
-          {item.archived ? 'Restore' : 'Archive'}</button>
-      </div>
-    </div>
-    <div className="highlight-content" id={contentId} hidden={!expanded}>{expanded && <>
-      {impactDetails}
-      <RecordDetails item={item} timeDisplay={jakartaDisplay} /><VersionHistory key={item.id} item={item} timeDisplay={jakartaDisplay} />
-    </>}</div>
-  </article>
-})
+export function ExternalEventDetails({ item }: { item: ExternalSource }) {
+  const visibility = useExternalIconVisibility(), [error, setError] = useState('')
+  return <div className="alert-external-evidence">
+    {(item.event_at || item.event_date) && <label className="alert-chart-choice"><input type="checkbox" aria-label={`Show ${item.title} icon on chart`}
+      checked={externalIconEnabled(item, visibility)} onChange={event => {
+        setError(setExternalIconVisibility(item.key, event.target.checked, item.chart_icon_request_id ?? null) ? '' : 'Could not save chart visibility')
+      }} />Show icon on chart</label>}
+    {error && <p role="status">{error}</p>}
+    <RecordDetails item={item} timeDisplay={jakartaDisplay} /><VersionHistory key={item.id} item={item} timeDisplay={jakartaDisplay} />
+  </div>
+}

@@ -16,9 +16,7 @@ import type { BottomDockWindow } from '../../workspace-docking/bottom-dock/botto
 import { useBottomDockSize } from '../../workspace-docking/bottom-dock/useBottomDockSize'
 import { useMarketWatchDock } from '../../workspace-docking/left-dock/useMarketWatchDock'
 import { researchRangeDates, type ResearchSeed } from '../../research/research-request'
-import { displayDateKey } from '../../economic-calendar/time/calendar-display-range'
-import { forexPair, forexPairCurrencies } from '../../economic-calendar/forex/pairs'
-import type { InspectorRelease } from '../../economic-calendar/releases/release'
+import { forexPair } from '../../economic-calendar/forex/pairs'
 import { getPipMultiplier, type PlannedTradeState, type RegisteredTradeArrow, type TradePriceField } from '../../entry-trade/contracts/entry-trade-types'
 import { tradeMetrics } from '../../entry-trade/dock/plan-math'
 import { useRegisteredArrows } from '../../entry-trade/storage/use-registered-arrows'
@@ -184,14 +182,6 @@ export function useTerminalWorkspace() {
     const pair = forexPair(activeSymbol)
     if (pair) setResearchSeed({ scope: pair, kind: 'historical', ...dates })
   }, [activeSymbol, brokerId, bridge.brokerOffsetSeconds, timeDisplay])
-  const prepareAlertResearch = useCallback((release: InspectorRelease) => {
-    const date = release.timingUncertain || release.releaseAt === null
-      ? new Date(release.serverTime * 1000).toISOString().slice(0, 10) : displayDateKey(release.releaseAt, timeDisplay)
-    const scope = (forexPairCurrencies(activeSymbol) as readonly string[]).includes(release.currency) ? forexPair(activeSymbol)! : release.currency
-    const published = release.events.some(event => event.actual !== null) || (release.releaseAt !== null && release.releaseAt <= Date.now())
-    setResearchSeed({ scope, kind: published ? 'historical' : 'upcoming', from: date, to: date, currency: release.currency,
-      focus: release.label, focusIds: release.events.map(event => event.event_id) })
-  }, [activeSymbol, timeDisplay])
   const setReleaseSelection = inspector.selectRelease
   const setArrowSelection = registeredArrows.setSelectedArrowId
   const selectPinnedArrow = useCallback((id: string | null) => {
@@ -257,6 +247,6 @@ export function useTerminalWorkspace() {
     recordChartData, changeTheme, changeChartAppearance, changeTimeDisplay, createDrawing, chooseDrawingTool,
     selectCrosshair, deletePairDrawings, toggleBottomDock, exitDrawingMode, toggleDrawingToolbar,
     renderChartOverlay, sourceState, sourceLabel, researchActive, researchSeed, researchError,
-    selectResearchTool, closeResearch, prepareAlertResearch, selectedExternalKey, externalSelection,
+    selectResearchTool, closeResearch, selectedExternalKey, externalSelection,
     plannedTrade, handlePlanChange, latestBarTime, registeredArrows, selectPinnedArrow }
 }

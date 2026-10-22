@@ -39,9 +39,10 @@ forceful wording never substitutes for evidence. Apply the seven decision and
 opportunity rules in [Assess Trade Now](.agents/skills/assess-trade-now/SKILL.md).
 
 Outside-feed events/headlines/watch items belong in **External Source** records,
-not invented MT5 calendar readings. The Alert dock's **Highlight** view
-combines active pins from MT5 Calendar and External Source without merging their
-storage or occurrence identities. Active external records are pinned; archive/restore
+not invented MT5 calendar readings. The Alert dock's date table combines Pepperstone
+calendar rows and named external publishers without merging their storage or
+occurrence identities. Legacy Highlight pins/research remain available through
+the agent interface and saved event details. Active external records are pinned; archive/restore
 preserves their immutable history and alarm choices. For the
 requested pair/currencies, saved outside-feed context can be queried with
 `pnpm analyst external --scope EURUSD` (`--visibility all` for history), using
@@ -297,9 +298,10 @@ folders live together under `Market Analyst Workflow/`.
   from assessments; keep bias/thesis empty until a real assessment is saved.
   The NZDCHF October 18–31 plan is a saved snapshot, not a live feed or alarm.
 
-- Alert automatically prepares one Invoke reminder two minutes before each timed stage for
-  active timed Highlights and confirmed scheduled External Sources. Research and
-  pin/save in the appropriate collection; do not duplicate Windows Clock alarms.
+- Alert prepares an Invoke reminder only for a selected bell (two minutes before by
+  default). New calendar/external events start off; research pins, date navigation,
+  filters and chart icons do not arm them. Preserve existing choices and the verified
+  Elev8-to-Pepperstone migration receipt. Do not duplicate Windows Clock alarms.
   Date-only/unverified hours never imply an alarm time. Check `/alarm-api/alarms`
   (or loopback `http://127.0.0.1:8003/alarms`) before claiming reminders are running;
   the worker must be healthy and enabled. This does not schedule an AI invocation.

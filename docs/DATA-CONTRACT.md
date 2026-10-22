@@ -47,7 +47,9 @@ fails; existing files are never overwritten. Old full-table reports remain reada
 by the analyst helper. Report generation never changes calendar observations.
 Broker forecasts and web survey estimates retain separate provider/as-of attribution;
 differences alone do not establish a source error.
-Alert shows the selected broker's stored readings and identifies that source.
+Alert's date table shows Pepperstone readings and named external publishers; legacy
+Highlight metadata remains separate. Alarm subscriptions are independent of research
+pins and date/filter navigation. Source values and archived history are preserved.
 Known publication UTC times support Alert countdowns even when the broker lacks
 a historical chart-clock profile; chart placement still requires that profile.
 
