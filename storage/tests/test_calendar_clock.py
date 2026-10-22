@@ -4,7 +4,7 @@ import unittest
 from datetime import datetime, timezone
 from pathlib import Path
 
-from storage.calendar_clock import broker_offset, project
+from storage.calendar_clock import broker_offset, project, chart_utc
 from storage.calendar_store import CalendarStore, HISTORY_START
 from storage.tests.test_calendar_storage import context, event, chunk, NOW
 
@@ -43,6 +43,47 @@ class CalendarClockTests(unittest.TestCase):
             "snapshot_trade_server_timestamp": NOW, "snapshot_gmt_timestamp": NOW - 10800,
             "calendar_currencies": "EUR,USD,JPY"}
         self.store.import_rows("seed", "Elev8-Demo2", manifest, {}, rows)
+
+    def test_pepperstone_uses_us_dst_and_rebuilds_only_derived_clocks(self):
+        for text, offset in [('2015-01-09T13:30:00', 7200), ('2015-07-09T12:30:00', 10800),
+                             ('2026-03-11T12:30:00', 10800), ('2026-10-28T12:30:00', 10800),
+                             ('2026-11-04T13:30:00', 7200)]:
+            self.assertEqual(broker_offset('Pepperstone-Demo', at(text)), offset)
+            self.assertEqual(chart_utc('Pepperstone-Demo', at(text)+offset), at(text))
+        for boundary in ['2026-03-08T07:00:00', '2026-11-01T06:00:00']:
+            stamp = at(boundary)
+            self.assertNotEqual(broker_offset('Pepperstone-Demo', stamp-1), broker_offset('Pepperstone-Demo', stamp))
+        self.assertIsNone(broker_offset('Pepperstone-Lookalike', at('2026-10-23T12:00:00')))
+        self.assertIsNone(chart_utc('Pepperstone-Lookalike', at('2026-10-23T12:00:00')))
+        self.assertIsNone(chart_utc('Pepperstone-Demo', at('2026-03-08T09:30:00')))
+        self.assertIsNone(chart_utc('Pepperstone-Demo', at('2026-11-01T08:30:00')))
+        self.assertIsNone(broker_offset('Pepperstone-Demo', at('2032-01-01T12:00:00')))
+        manifest = {'calendar_from_timestamp': HISTORY_START, 'calendar_to_timestamp': NOW,
+                    'snapshot_trade_server_timestamp': NOW, 'snapshot_gmt_timestamp': NOW-10800,
+                    'calendar_currencies': 'EUR,USD,JPY'}
+        utc = at('2026-01-09T21:30:00')
+        rows = [event(value_id='winter', server_time_seconds=utc+10800),
+                event(value_id='date-only', time_mode=1, server_time_seconds=utc+10800)]
+        self.store.import_rows('pepper-export', 'Pepperstone-Demo', manifest, {}, rows)
+        self.store.db.execute("UPDATE event_timing SET profile=NULL,chart_time_seconds=NULL WHERE source_id='Pepperstone-Demo'")
+        self.store.db.commit()
+        evidence = [tuple(r) for r in self.store.db.execute('SELECT * FROM observations')]
+        payloads = [tuple(r) for r in self.store.db.execute('SELECT * FROM events')]
+        self.store.close()
+        self.store = CalendarStore(self.path)
+        page = self.store.query('Pepperstone-Demo', at('2026-01-09T00:00:00'), at('2026-01-10T00:00:00'), time_basis='chart')
+        row = next(e for e in page['events'] if e['value_id']=='winter')
+        self.assertEqual((row['release_at'], row['chart_time_seconds']), (utc*1000, utc+7200))
+        self.assertEqual(row['chart_clock_profile'], 'pepperstone-ny-close-v1')
+        uncertain = self.store.values('Pepperstone-Demo', ['date-only'])[0]
+        self.assertIsNone(uncertain['release_at'])
+        self.assertIsNone(uncertain['chart_time_seconds'])
+        self.assertEqual(evidence, [tuple(r) for r in self.store.db.execute('SELECT * FROM observations')])
+        self.assertEqual(payloads, [tuple(r) for r in self.store.db.execute('SELECT * FROM events')])
+        revision = self.store.status()['revision']
+        self.store.close()
+        self.store = CalendarStore(self.path)
+        self.assertEqual(self.store.status()['revision'], revision)
 
     def test_chart_query_midnight_paging_raw_payload_and_reopen(self):
         # Summer export places a winter midnight event on the following raw

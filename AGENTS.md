@@ -18,6 +18,9 @@ docs/DATA-CONTRACT.md covers calendar, clocks and recovery. Keep docs short.
 Preserve currency-shared Inspector family selections, Save/Cancel and persistence, all eight currencies/28 pairs,
 all series, date-only timing, unknown-ID admission, blank-chart dismissal, the
 shared date viewport, future axis and saved drawing interactions.
+Display defaults to Jakarta (UTC+07:00, AM/PM). Shared broker-clock rules live in
+`config/broker-clock-profiles.json`; unknown broker history must not use today's
+offset. Preserve publication UTC independently of chart-placement availability.
 
 Keep polling clocks local, unchanged data/callback identities stable and viewport
 work batched by animation frame. Cancel listeners/timers and stale replies.
@@ -410,7 +413,8 @@ An incomplete/live window is fetched again. Superseded requests get one bounded
 retry; do not restart the bridge to work around conflicts. The helper uses
 bounded positional seeking and overlapped paging, validates broker/generation,
 and converts historical server clocks. Elev8-Demo2 has the verified EET/EEST
-profile for 2014–2031; other brokers need a verified historical
+profile and Pepperstone-Demo has the US/New York-close profile for 2014–2031;
+unregistered brokers need a verified historical
 `--broker-offset-seconds`. Today's offset is insufficient; DST ambiguity fails.
 M1 reactions need a complete prior minute and every completed minute in a window;
 missing/forming bars yield unavailable measurements. JPY-quote pips are 0.01,

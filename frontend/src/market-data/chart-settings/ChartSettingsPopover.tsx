@@ -1,5 +1,4 @@
 import { useEffect } from 'react'
-import { useDisplayClock } from '../../appearance/time-display/useDisplayClock'
 
 import { ColorThemeButton } from '../../appearance/color-theme/ColorThemeButton'
 import type { ColorTheme } from '../../appearance/color-theme/color-theme-preference'
@@ -28,11 +27,6 @@ type ChartSettingsPopoverProps = {
 
 const offsetOptions = Array.from({ length: 53 }, (_, index) => -720 + index * 30)
 
-function BrokerClockInformation() {
-  const { scope } = useDisplayClock()
-  return <small>Broker clock · {scope.brokerId ?? 'No connected broker'} · Current offset {formatUtcOffset(scope.brokerOffsetSeconds / 60)}.
-    {' '}{scope.brokerId === 'Elev8-Demo2' ? 'Historical chart conversion uses the recorded EET/EEST profile.' : 'Historical offset profile unavailable; chart display uses the supplied current offset.'}</small>
-}
 export function ChartSettingsPopover({
   appearance,
   timeDisplay,
@@ -41,6 +35,7 @@ export function ChartSettingsPopover({
   onThemeChanged,
   onClose,
 }: ChartSettingsPopoverProps) {
+  const jakarta = timeDisplay.mode === 'fixed-offset' && timeDisplay.utcOffsetMinutes === 420
   useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose()
@@ -109,22 +104,23 @@ export function ChartSettingsPopover({
         </div>
 
         <div className="chart-settings-section time-display-section">
-          <h2>Universal time presentation</h2>
-          <p>One display clock applies to the chart, releases, Activity and alerts.</p>
-          <BrokerClockInformation />
+          <h2>Display timezone</h2>
+          <p>Chart labels, releases, Activity and alerts use your chosen timezone. Default: Jakarta (UTC+07:00).</p>
           <div className="time-setting-row">
             <label>
               <span>Display clock</span>
               <select
-                value={timeDisplay.mode}
-                onChange={(event) => onTimeDisplayChange({ ...timeDisplay, mode: event.target.value as TimeDisplayMode })}
+                value={jakarta ? 'jakarta' : timeDisplay.mode}
+                onChange={(event) => onTimeDisplayChange(event.target.value === 'jakarta' ? defaultTimeDisplayPreference :
+                  { ...timeDisplay, mode: event.target.value as TimeDisplayMode, ...(event.target.value === 'fixed-offset' ? { utcOffsetMinutes: 0 } : {}) })}
               >
+                <option value="jakarta">Jakarta (UTC+07:00)</option>
                 <option value="local">Local workstation</option>
                 <option value="utc">UTC</option>
                 <option value="fixed-offset">Fixed UTC offset</option>
               </select>
             </label>
-            {timeDisplay.mode === 'fixed-offset' && (
+            {timeDisplay.mode === 'fixed-offset' && !jakarta && (
               <label>
                 <span>UTC offset</span>
                 <select value={timeDisplay.utcOffsetMinutes} onChange={(event) => onTimeDisplayChange({ ...timeDisplay, utcOffsetMinutes: Number(event.target.value) })}>
@@ -134,6 +130,8 @@ export function ChartSettingsPopover({
             )}
             <output>{timeDisplayLabel(timeDisplay)}</output>
           </div>
+          <label className="toggle-setting"><span>Use AM/PM</span><input type="checkbox" checked={timeDisplay.hour12 === true}
+            onChange={event => onTimeDisplayChange({ ...timeDisplay, hour12: event.target.checked })} /></label>
         </div>
       </div>
 

@@ -1,0 +1,15 @@
+{
+  "Elev8-Demo2": {
+    "version": "elev8-eet-eest-v1",
+    "rule": "eu-eet-eest",
+    "firstYear": 2014,
+    "lastYear": 2031
+  },
+  "Pepperstone-Demo": {
+    "version": "pepperstone-ny-close-v1",
+    "rule": "us-ny-close",
+    "firstYear": 2014,
+    "lastYear": 2031,
+    "evidence": "https://pepperstone.com/en-gb/about-us/trading-hours"
+  }
+}

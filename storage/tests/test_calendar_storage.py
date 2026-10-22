@@ -382,6 +382,22 @@ class ImportTests(unittest.TestCase):
             import_export(self.store, self.folder, self.root / "inventory")
         self.assertEqual(self.store.db.execute("SELECT count(*) FROM imports").fetchone()[0], 0)
 
+    def test_pepperstone_dry_run_and_import_preserve_other_broker_archive(self):
+        unknown = import_export(self.store, self.folder, self.root / 'inventory', dry_run=True)
+        self.assertIsNone(unknown['chart_clock_profile'])
+        self.assertIn('verified profile', unknown['clock_note'])
+        import_export(self.store, self.folder, self.root / 'inventory')
+        self.manifest['account_server'] = 'Pepperstone-Demo'
+        self.write('manifest.csv', [{'key': k, 'value': v} for k, v in self.manifest.items()])
+        plan = import_export(self.store, self.folder, self.root / 'inventory', dry_run=True)
+        self.assertEqual(plan['chart_clock_profile'], 'pepperstone-ny-close-v1')
+        self.assertEqual(self.store.db.execute('SELECT count(*) FROM imports').fetchone()[0], 1)
+        result = import_export(self.store, self.folder, self.root / 'inventory')
+        self.assertEqual(result['rows'], 1)
+        for broker in ('Broker-Demo', 'Pepperstone-Demo'):
+            self.assertEqual(self.store.values(broker, [self.release['value_id']])[0]['actual_raw_scaled_1e6'], '8000')
+        self.assertEqual(self.store.db.execute('SELECT count(*) FROM imports').fetchone()[0], 2)
+
 
 class ApiTests(unittest.TestCase):
     @classmethod

@@ -10,20 +10,24 @@ export type TimeDisplayPreference = {
 }
 
 export const defaultTimeDisplayPreference: TimeDisplayPreference = {
-  mode: 'local',
-  utcOffsetMinutes: 0,
+  mode: 'fixed-offset',
+  utcOffsetMinutes: 420,
+  hour12: true,
 }
 
 const storageKey = 'fyodor.time-display.v1'
 
 export function readTimeDisplayPreference(): TimeDisplayPreference {
   try {
-    const parsed = JSON.parse(window.localStorage.getItem(storageKey) ?? '{}') as Partial<TimeDisplayPreference>
-    const mode = parsed.mode === 'utc' || parsed.mode === 'fixed-offset' ? parsed.mode : 'local'
+    const parsed = JSON.parse(window.localStorage.getItem(storageKey) ?? '{}') as Partial<TimeDisplayPreference> & { version?: number }
+    if (!['local', 'utc', 'fixed-offset'].includes(parsed.mode ?? '') || (parsed.mode === 'local' && parsed.version !== 2))
+      return defaultTimeDisplayPreference
+    const mode = parsed.mode!
     const utcOffsetMinutes = typeof parsed.utcOffsetMinutes === 'number'
       ? Math.min(840, Math.max(-720, Math.round(parsed.utcOffsetMinutes / 30) * 30))
       : 0
-    return { mode, utcOffsetMinutes }
+    return { mode, utcOffsetMinutes, ...(typeof parsed.hour12 === 'boolean' ? { hour12: parsed.hour12 } :
+      mode === 'fixed-offset' && utcOffsetMinutes === 420 ? { hour12: true } : {}) }
   } catch {
     return defaultTimeDisplayPreference
   }
@@ -31,7 +35,7 @@ export function readTimeDisplayPreference(): TimeDisplayPreference {
 
 export function saveTimeDisplayPreference(preference: TimeDisplayPreference) {
   try {
-    window.localStorage.setItem(storageKey, JSON.stringify(preference))
+    window.localStorage.setItem(storageKey, JSON.stringify({ ...preference, version: 2 }))
   } catch {
     // The unified display remains active for this session when storage is unavailable.
   }
@@ -47,7 +51,7 @@ export function formatUtcOffset(offsetMinutes: number) {
 
 export function timeDisplayZoneLabel(preference: TimeDisplayPreference) {
   if (preference.mode === 'utc') return 'UTC'
-  if (preference.mode === 'fixed-offset') return formatUtcOffset(preference.utcOffsetMinutes)
+  if (preference.mode === 'fixed-offset') return preference.utcOffsetMinutes === 420 ? 'Jakarta · UTC+07:00' : formatUtcOffset(preference.utcOffsetMinutes)
   return Intl.DateTimeFormat().resolvedOptions().timeZone
 }
 
@@ -114,6 +118,6 @@ export function formatChartTick(time: Time, tickType: TickMarkType, preference: 
       ? { month: 'short' }
       : tickType === TickMarkType.DayOfMonth
         ? { day: '2-digit', month: 'short' }
-        : { hour: '2-digit', minute: '2-digit', second: tickType === TickMarkType.TimeWithSeconds ? '2-digit' : undefined, hourCycle: 'h23' }
+        : { hour: '2-digit', minute: '2-digit', second: tickType === TickMarkType.TimeWithSeconds ? '2-digit' : undefined, hourCycle: preference.hour12 ? 'h12' : 'h23' }
   return dateFormatter({ ...options, timeZone }).format(date)
 }

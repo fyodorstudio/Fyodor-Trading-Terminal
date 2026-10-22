@@ -99,6 +99,9 @@ pnpm storage:import -- "C:\path\to\MT5-export"
 Imports are additive. Keep source/value IDs, country/currency, reference periods,
 timing mode, revision, native units and raw scaled values. Numerical blanks stay
 missing; Actual/Forecast/Previous/revised Previous are distinct fields.
+Stop calendar storage before CLI import; its interprocess lock prevents concurrent
+writers. Run the dry run, import, then `pnpm dev:all`. Keep the complete original
+export folder. A new broker gets its own source namespace and never replaces Elev8.
 
 ## Runtime and clocks
 
@@ -108,10 +111,27 @@ supports USD, EUR, GBP, JPY, CHF, CAD, AUD and NZD. Use the same publisher stora
 URL when replacing the original service. `FYODOR_STORAGE_PORT` can change the
 service port; `FYODOR_STORAGE_DATA_DIR` selects a different inventory directory.
 
-Calendar timestamps and chart coordinates use broker trade-server clocks. UTC
-release instants and selected display time are separate. Elev8-Demo2's recorded
-EET/EEST profile covers 2014–2031; ambiguous/skipped wall clocks never get guessed
-UTC instants. Date-only schedules keep their source date, not an invented hour.
+Calendar timestamps and chart coordinates retain broker trade-server clocks.
+Display defaults to Jakarta, UTC+07:00, with AM/PM; no source timestamp is rewritten.
+Legacy workstation defaults become explicit Jakarta; saved UTC/custom offsets and
+subsequent explicit choices remain available in Display timezone.
+The shared [broker registry](../config/broker-clock-profiles.json) supplies both
+storage and frontend rules for 2014–2031: Elev8-Demo2 uses recorded European
+EET/EEST; Pepperstone-Demo follows the
+[US daylight-saving/New York close rule](https://pepperstone.com/en-gb/about-us/trading-hours).
+US transitions follow [US Eastern DST](https://aa.usno.navy.mil/faq/daylight_time):
+second Sunday in March at 07:00 UTC and first Sunday in November at 06:00 UTC.
+Ambiguous/skipped wall clocks never get guessed UTC instants. Date-only schedules
+keep their source date, not an invented hour.
+Registry matching is by exact server ID. For another broker, verify its historical
+clock, add an explicit `eu-eet-eest`, `us-ny-close` or `fixed` rule (`offsetSeconds`
+for fixed), bounded years, evidence and a new version; test and restart storage.
+Never infer a historical rule from the current offset or a similar broker name.
+Without a profile, recorded capture offsets still establish calendar release UTC
+and display times; historical chart labels/icons and chart-time inputs remain
+unavailable. Inspector keeps these releases in its list without calling them
+date-only. Profile changes rebuild only derived timing, preserving observations,
+capture offsets and broker/value identities; repeated starts are idempotent.
 Published tentative numerical events can use their recorded verified clock.
 Historical symbols need a containing candle; future symbols project timeframe
 slots until actual sessions arrive. Unused projected slots are removed on a gap.
@@ -125,8 +145,8 @@ remain readable until Save establishes a currency's shared selection.
 New numeric IDs with valid metadata use each
 currency's selectable Other / new events control; known IDs with wrong metadata
 are rejected. Chart grouping retains every visible series and source value ID.
-Alert's upcoming tabs keep independent filters and exclude completed events;
-Highlight retains them until explicit archive. Paging rejects
+Alert's separate filters select the dated table; elapsed events remain on their
+selected day. Legacy Highlight metadata remains available. Paging rejects
 mixed revisions, repeating cursors and stale replies; outages retain the last
 valid snapshot. Appearance/display-clock changes never rewrite stored dates.
 

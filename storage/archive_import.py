@@ -12,6 +12,7 @@ from pathlib import Path
 from .calendar_store import CalendarStore, canonical
 from .currencies import CURRENCIES
 from .contracts import CalendarEvent
+from .calendar_clock import PROFILES
 
 REQUIRED_FILES = ("manifest.csv", "calendar_events.csv", "calendar_releases.csv", "calendar_currencies.csv")
 
@@ -116,6 +117,9 @@ def import_export(store: CalendarStore, folder: Path, inventory: Path, dry_run=F
     plan = inspect_export(folder)
     report = {key: plan[key] for key in ("file_count", "bytes", "total_rows", "selected_rows", "source_id", "import_id")}
     report["cutoff_server_text"] = plan["manifest"]["calendar_to_server_text"]
+    report['chart_clock_profile'] = PROFILES.get(plan['source_id'])
+    if report['chart_clock_profile'] is None:
+        report['clock_note'] = 'Calendar UTC uses the recorded export offset; chart conversion requires a verified profile for this exact broker server.'
     print("Inventory import plan (before copying): " + json.dumps(report), flush=True)
     if dry_run:
         return report

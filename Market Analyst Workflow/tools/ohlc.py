@@ -11,7 +11,7 @@ import os
 import tempfile
 import time
 
-from storage.calendar_clock import broker_offset, PROFILES
+from storage.calendar_clock import chart_utc, PROFILES
 from storage.currencies import CURRENCIES
 
 STEPS = {'M1':60, 'M5':300, 'M15':900, 'M30':1800, 'H1':3600, 'H4':14400, 'D1':86400}
@@ -82,10 +82,10 @@ def utc_stamp(seconds):
 
 def candle_utc(raw, broker, explicit_offset=None):
     if broker in PROFILES:
-        candidates = [raw-offset for offset in (7200,10800) if broker_offset(broker, raw-offset) == offset]
-        if len(candidates) != 1:
+        utc = chart_utc(broker, raw)
+        if utc is None:
             raise ValueError('Candle has an ambiguous/unverified historical broker clock; no UTC instant guessed')
-        return candidates[0]
+        return utc
     if explicit_offset is None or abs(explicit_offset) > 50400:
         raise ValueError('Broker has no historical clock profile; supply a verified --broker-offset-seconds')
     return raw - explicit_offset

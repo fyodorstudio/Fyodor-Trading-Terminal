@@ -20,6 +20,7 @@ import { useMarkerBars } from './chart/useMarkerBars'
 
 import { useCalendarNow } from './useCalendarNow'
 import { chartClockToUtc, utcToChartClock } from '../appearance/time-display/chart-clock'
+import { parseDisplayClockInput } from '../appearance/time-display/display-clock-input'
 
 const noEvents: EconomicCalendarEvent[] = []
 
@@ -57,7 +58,9 @@ export function useInspector({ events = noEvents, symbol, bars, timeframe, timeD
     if (!range) return null
     const margin = Math.max(policyEpisodeWindowMs,pmiEpisodeWindowMs), scope = { brokerId: brokerId ?? null, brokerOffsetSeconds }
     const from = utcToChartClock(range.from - margin, scope), to = utcToChartClock(range.to + margin, scope)
-    return from === null || to === null ? null : { from, to }
+    // Unknown brokers still have usable publication UTC. Fetch a conservative
+    // raw window for their list; never invent chart coordinates from it.
+    return from === null || to === null ? { from: range.from - margin - 86400000, to: range.to + margin + 86400000 } : { from, to }
   }, [range, brokerId, brokerOffsetSeconds])
   const currencies = inspectorPairCurrencies(symbol)
   const storage = useStoredCalendar(brokerId, storageRange, supported && brokerTime, { currencies })
@@ -68,8 +71,10 @@ export function useInspector({ events = noEvents, symbol, bars, timeframe, timeD
   const allReleases = useMemo(() => groupInspectorReleases(pairReadings), [pairReadings])
   const displayReleases = useMemo(() => groupSimultaneousEurReleases(groupPmiEpisodes(allReleases)), [allReleases])
   const releaseGroups = useMemo(() => supported ? filterInspectorReleases(displayReleases, preferences, range,
-    release => chartClockToUtc(release.serverTime * 1000, { brokerId: brokerId ?? null, brokerOffsetSeconds })) : [],
-    [supported, displayReleases, preferences, range, brokerId, brokerOffsetSeconds])
+    release => release.timingUncertain && release.serverTime > 0 ?
+      parseDisplayClockInput(`${new Date(release.serverTime * 1000).toISOString().slice(0, 10)}T00:00`, rangeDisplay) :
+      chartClockToUtc(release.serverTime * 1000, { brokerId: brokerId ?? null, brokerOffsetSeconds })) : [],
+    [supported, displayReleases, preferences, range, brokerId, brokerOffsetSeconds, rangeDisplay])
   const dailyPublications = useMemo(() => preferences.symbolGrouping === 'day' ? groupInspectorReleases(pairReadings, false) : [],
     [pairReadings, preferences.symbolGrouping])
   const days = useMemo(() => supported ? groupInspectorDays(dailyPublications, preferences.families, range, timeDisplay,

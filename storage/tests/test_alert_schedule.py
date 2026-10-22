@@ -40,6 +40,10 @@ class AlertScheduleTests(TestCase):
         extra.append(event(value_id='20', time_mode=1, currency='USD', country_code='US',
             server_time_seconds=int(datetime(2026, 10, 23, tzinfo=timezone.utc).timestamp())))
         self.store.import_rows('edges', 'Pepperstone-Demo', self.manifest, {}, extra)
+        # An incomplete/unknown chart profile must not affect publication-day
+        # membership. Pepperstone itself now has a verified native profile.
+        self.store.db.execute("UPDATE event_timing SET chart_time_seconds=NULL,profile=NULL WHERE source_id='Pepperstone-Demo'")
+        self.store.db.commit()
         count = self.store.db.execute('SELECT count(*) FROM observations').fetchone()[0]
         statements = []
         self.store.db.set_trace_callback(statements.append)

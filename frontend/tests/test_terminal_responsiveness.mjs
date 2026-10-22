@@ -48,7 +48,7 @@ const drawChartFrame = () => { for (const primitive of primitives) for (const vi
 const counters = {}, clocks = [], workerInputs = [], rangeListeners = new Set(), sizeListeners = new Set(), hoverListeners = new Set(), clickListeners = new Set()
 const count = name => { counters[name] = (counters[name] ?? 0) + 1 }
 const reset = () => { for (const key of Object.keys(counters)) delete counters[key]; clocks.length = 0 }
-let range = { from: now / 1000 - 10 * 3600, to: now / 1000 }, logicalRange = { from: 790, to: 800 }, plotted = []
+let range = { from: now / 1000 + 10800 - 10 * 3600, to: now / 1000 + 10800 }, logicalRange = { from: 790, to: 800 }, plotted = []
 let futureTimes = []
 const scale = {
   width: () => 900, options: () => ({ barSpacing: 80 }), getVisibleRange: () => range,
@@ -123,17 +123,17 @@ const server = await createServer({ root: path.resolve(path.dirname(fileURLToPat
   }] })
 
 const pending = new Map(), requests = []
-let broker = 'fixture-broker', generation = 1, observed = 0, connected = true, clockOffset = 0, failHealth = false
+let broker = 'Pepperstone-Demo', generation = 1, observed = 0, connected = true, clockOffset = 0, failHealth = false
 let quotes = Array.from({ length: 200 }, (_, i) => ({ symbol: i === 0 ? 'EURUSD' : `TEST${i}`, description: `Quote ${i}`,
   bid: 1.1, ask: 1.2, daily_change: 0, precision: i === 1 ? 3 : 5 }))
-let bars = Array.from({ length: 800 }, (_, i) => ({ time: now / 1000 + (i - 799) * 3600, open: 1.1, high: 1.2, low: 1, close: 1.15 }))
+let bars = Array.from({ length: 800 }, (_, i) => ({ time: now / 1000 + 10800 + (i - 799) * 3600, open: 1.1, high: 1.2, low: 1, close: 1.15 }))
 const catalog = JSON.parse(fs.readFileSync(new URL('./inspector/fixtures/major-calendar-catalog.json', import.meta.url), 'utf8'))
 const event = (id, at, actual = .3, previous = .1) => {
   const meta = catalog.find(row => row.event_id === id)
   return { value_id: id + '/' + at, event_id: id, name: meta.event_name, event_code: id,
     currency: meta.country_currency, country_code: meta.country_code, country_name: meta.country_code,
     unit: +meta.unit_code, multiplier: +meta.multiplier_code, digits: +meta.digits, time_mode: 0,
-    release_at: at, chart_time_seconds: at / 1000, server_time_seconds: at / 1000,
+    release_at: at, chart_time_seconds: at / 1000 + 10800, server_time_seconds: at / 1000 + 10800,
     period_seconds: Date.UTC(2026, 8, 1) / 1000, revision: 0, actual, previous,
     forecast: .2, revised_previous: null, importance: 'high', impact: 'none', availability: 'observed' }
 }
@@ -147,7 +147,7 @@ for (const currency of ['USD','EUR','GBP','JPY','CHF','CAD','AUD','NZD']) {
 let calendarRevision = 1
 const health = () => ({ api_version: '1', bridge: { status: 'running', started_at: 1, now: now + clockOffset },
   mt5: { connected, process_running: true, generation, account_server: broker },
-  calendar: { status: 'live', instance_id: 'fixture', server_utc_offset_seconds: 0 }, operations: {} })
+  calendar: { status: 'live', instance_id: 'fixture', server_utc_offset_seconds: 10800 }, operations: {} })
 const reportRequests = []
 let reportFailure = false
 const journalFixture = { version: 1, revision: 0, arrows: [], deletedIds: [] }

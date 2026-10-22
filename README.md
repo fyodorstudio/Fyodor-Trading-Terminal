@@ -70,6 +70,20 @@ Frontend suites run sequentially and mount production components with fixture
 transport/canvas. Native chart API tests verify coordinates, future times and
 drawings. Visual/live MT5 acceptance remains with the user.
 
+Display time defaults to Jakarta (UTC+07:00), including chart labels and Inspector
+release hours. Chart settings → Display timezone retains alternate clocks and
+AM/PM. Broker-specific historical conversion is shared with storage; unfamiliar
+brokers require a verified clock profile rather than today's offset.
+
+For a fresh Pepperstone batch, run the unchanged
+`bridge/mql5/Active/FyodorResearchExporterV4.mq5` while connected to Pepperstone.
+Use `CalendarFromDate=2015.01.01`, `CalendarToDate=0` (snapshot time), all eight
+currencies, and keep the complete output folder. For H1 candles retain the default
+2014.11.01 warmup and exact 28-pair settings; use Pepperstone's exact symbol names
+if they have suffixes. Imports validate the manifest, recorded clocks, identities,
+counts and file hashes, then keep the archive alongside live/backfill observations.
+See [import and clock rules](docs/DATA-CONTRACT.md#runtime-and-clocks).
+
 ## Preserved workflow
 
 Market Watch stars save favourites locally across refreshes; NZDCHF, EURUSD and

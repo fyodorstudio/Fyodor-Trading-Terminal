@@ -11,6 +11,7 @@ export type InspectorRelease = {
   releaseAt: number | null
   chartTime: number | null
   serverTime: number
+  // Source publication uncertainty only; chartTime can be null independently.
   timingUncertain: boolean
   events: EconomicCalendarEvent[]
   // One publication can span existing filter families; keep saved family IDs
