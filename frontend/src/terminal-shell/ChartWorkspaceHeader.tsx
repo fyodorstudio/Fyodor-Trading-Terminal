@@ -12,6 +12,8 @@ type ChartWorkspaceHeaderProps = {
   onSelectTimeframe: (timeframe: ChartTimeframe) => void
   drawingToolbarVisible?: boolean
   onToggleDrawingToolbar?: () => void
+  eventIconsVisible?: boolean
+  onToggleEventIcons?: () => void
 }
 
 function PaintbrushIcon() {
@@ -41,6 +43,8 @@ export function ChartWorkspaceHeader({
   onSelectTimeframe,
   drawingToolbarVisible = true,
   onToggleDrawingToolbar,
+  eventIconsVisible = true,
+  onToggleEventIcons,
 }: ChartWorkspaceHeaderProps) {
   return (
     <div className="chart-toolbar">
@@ -86,6 +90,19 @@ export function ChartWorkspaceHeader({
             </button>
           ))}
         </div>
+        {onToggleEventIcons && (
+          <button type="button" className={`chart-event-toggle${eventIconsVisible ? ' active' : ''}`}
+            aria-pressed={eventIconsVisible}
+            aria-label={eventIconsVisible ? 'Hide event icons' : 'Show event icons'}
+            title={eventIconsVisible ? 'Hide all event icons (Inspector and External Sources)' : 'Show all event icons (Inspector and External Sources)'}
+            onClick={onToggleEventIcons}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <rect x="3" y="5" width="18" height="16" rx="2" />
+              <path d="M7 3v4M17 3v4M3 11h18M8 15h2M14 15h2" />
+              {!eventIconsVisible && <path d="m3 3 18 18" />}
+            </svg>
+          </button>
+        )}
         {onToggleDrawingToolbar && (
           <button
             type="button"

@@ -18,7 +18,7 @@ import { ThesisDock } from '../thesis/ThesisDock'
 
 export function TerminalWorkspace() {
   const { timeframe, theme, chartAppearance, timeDisplay, activeDrawingTool, selectedDrawingId, setSelectedDrawingId,
-    drawingToolbarVisible, bottomDockWindow, dockSize, settingsOpen, setSettingsOpen, marketWatch, appendActivity,
+    drawingToolbarVisible, eventIconsVisible, toggleEventIcons, bottomDockWindow, dockSize, settingsOpen, setSettingsOpen, marketWatch, appendActivity,
     bridge, marketData, activeSymbol, bars, brokerId, inspector, quote, drawings, pairDrawingCount,
     updateDrawingPoint, updateDrawingPoints, updateDrawingText, updatePositionWidth, handleDeleteDrawing,
     selectSymbol, selectTimeframe, recordChartData, changeTheme, changeChartAppearance, changeTimeDisplay,
@@ -49,6 +49,8 @@ export function TerminalWorkspace() {
             quote={quote}
             timeframe={timeframe}
             onSelectTimeframe={selectTimeframe}
+            eventIconsVisible={eventIconsVisible}
+            onToggleEventIcons={toggleEventIcons}
             drawingToolbarVisible={drawingToolbarVisible}
             onToggleDrawingToolbar={toggleDrawingToolbar}
           />

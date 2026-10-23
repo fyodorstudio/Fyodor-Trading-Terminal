@@ -53,8 +53,7 @@ export function InspectorFiltersModal({ preferences, onApply, onClose, symbol = 
     <div className="inspector-modal-content">
       <header><div><h2 id="inspector-filter-title">Filters · {inspectorPair(symbol) ?? symbol}</h2><p>All MT5 event families</p></div>
         <button type="button" onClick={onClose} aria-label="Close Inspector filters">×</button></header>
-      <div className="inspector-filter-tools"><div className="inspector-symbol-controls"><label className="inspector-symbol-toggle"><input type="checkbox" checked={draft.showSymbols}
-        onChange={(event) => updateDraft({ ...draft, showSymbols: event.target.checked })} /> Show symbols on chart</label>
+      <div className="inspector-filter-tools"><div className="inspector-symbol-controls">
         <select className="inspector-symbol-grouping" aria-label="Group Inspector symbols" value={draft.symbolGrouping}
           onChange={event => updateDraft({ ...draft, symbolGrouping: event.target.value === 'day' ? 'day' : 'release' })}>
           <option value="release">By release</option><option value="day">By day</option>
@@ -85,7 +84,7 @@ export function InspectorFiltersModal({ preferences, onApply, onClose, symbol = 
       </div>
       {!matches.length && <p className="inspector-search-note" role="status">No families match “{search}”.</p>}
       {terms.length > 0 && <p className="inspector-search-note" role="status">Search changes visibility only. Category checkboxes still control the whole category; hidden selections are preserved.</p>}
-      <p className="inspector-modal-note">Symbols follow the applied date range and families. Date-only symbols mark the release day.</p>
+      <p className="inspector-modal-note">Use the event icons button beside the chart timeframes to show or hide all event icons. Inspector icons follow these families and dates; date-only icons mark the release day.</p>
       <footer><span className="inspector-filter-save-note">Changes preview here. Save shares family selections across charts with this currency.</span>
         <button type="button" onClick={() => { onApply(filterPreferences(original.current), 'preview'); onClose() }}>Cancel</button><button type="button" className="inspector-primary"
         onClick={() => { onApply(filterPreferences(draft), 'save'); onClose() }}>Save</button></footer>

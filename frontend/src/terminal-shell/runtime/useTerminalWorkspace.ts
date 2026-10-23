@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { applyColorTheme, readColorTheme, type ColorTheme } from '../../appearance/color-theme/color-theme-preference'
 import { readTimeDisplayPreference, saveTimeDisplayPreference, timeDisplayLabel, type TimeDisplayPreference } from '../../appearance/time-display/time-display-preference'
 import { useInspector } from '../../inspector'
+import { readInspectorPreferences } from '../../inspector/preferences/inspector-preferences'
+import { readEventIconsVisible, saveEventIconsVisible } from '../../appearance/event-icons-visibility'
 import { readDrawingToolbarVisible, saveDrawingToolbarVisible } from '../../market-data/chart-drawings/drawing-toolbar-visibility'
 import type { ChartDrawingPoint } from '../../market-data/chart-drawings/chart-drawing-record'
 import type { DrawingToolId } from '../../market-data/chart-drawings/drawing-tool'
@@ -35,6 +37,9 @@ export function useTerminalWorkspace() {
   const [researchError, setResearchError] = useState<string | null>(null)
   const [selectedDrawingId, setSelectedDrawingId] = useState<string | null>(null)
   const [drawingToolbarVisible, setDrawingToolbarVisible] = useState<boolean>(readDrawingToolbarVisible)
+  const [eventIconsVisible, setEventIconsVisible] = useState(() => readEventIconsVisible(readInspectorPreferences(selectedSymbol).showSymbols))
+  useEffect(() => saveEventIconsVisible(eventIconsVisible), [eventIconsVisible])
+  const toggleEventIcons = useCallback(() => setEventIconsVisible(visible => !visible), [])
   const [bottomDockWindow, setBottomDockWindow] = useState<BottomDockWindow | null>(() => new URLSearchParams(window.location.search).get('events') === 'alarms' ? 'alert' : null)
   const [selectedExternalKey, setSelectedExternalKey] = useState<string | null>(null)
   const [externalSelection, setExternalSelection] = useState(0)
@@ -64,7 +69,7 @@ export function useTerminalWorkspace() {
     setResearchActive(false); setResearchSeed(null); setResearchError(null)
   }
   const inspector = useInspector({ symbol: activeSymbol, bars, timeframe, timeDisplay,
-    clockOffsetMs: 0, brokerId,
+    clockOffsetMs: 0, brokerId, eventIconsVisible,
     brokerOffsetSeconds: bridge.brokerOffsetSeconds })
   const quote = marketData.symbols.find((item) => item.symbol === activeSymbol) ?? null
   const latestBarTime = bars.at(-1)?.time ?? 0
@@ -227,7 +232,7 @@ export function useTerminalWorkspace() {
     currencyColors: inspector.preferences.currencyColors, timeDisplay, onSelectRelease: selectChartRelease,
     onClearInspection: !activeDrawingTool && !researchActive && !researchSeed && inspector.selectedRelease ? clearChartInspection : undefined,
     researchActive, bars, timeframe, onResearchRange: selectResearchRange, onCancelResearch: cancelResearch,
-    symbol: activeSymbol, onSelectExternal: selectExternal })
+    symbol: activeSymbol, onSelectExternal: selectExternal, eventIconsVisible })
   const sourceState: 'error' | 'live' | 'waiting' = !bridge.reachable || marketData.marketWatchStatus === 'unavailable'
     ? 'error'
     : mt5Connected && marketData.marketWatchStatus === 'live'
@@ -241,7 +246,7 @@ export function useTerminalWorkspace() {
         ? 'MT5 disconnected'
         : 'Waiting for MT5'
   return { timeframe, theme, chartAppearance, timeDisplay, activeDrawingTool, selectedDrawingId, setSelectedDrawingId,
-    drawingToolbarVisible, bottomDockWindow, dockSize, settingsOpen, setSettingsOpen, marketWatch, appendActivity,
+    drawingToolbarVisible, eventIconsVisible, toggleEventIcons, bottomDockWindow, dockSize, settingsOpen, setSettingsOpen, marketWatch, appendActivity,
     bridge, marketData, activeSymbol, bars, brokerId, inspector, quote, drawings, pairDrawingCount, updateDrawingPoint,
     updateDrawingPoints, updateDrawingText, updatePositionWidth, handleDeleteDrawing, selectSymbol, selectTimeframe,
     recordChartData, changeTheme, changeChartAppearance, changeTimeDisplay, createDrawing, chooseDrawingTool,

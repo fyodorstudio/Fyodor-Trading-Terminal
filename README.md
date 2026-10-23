@@ -105,13 +105,16 @@ and new symbols use conservative name matching. Refresh the folder snapshot with
 `bridge\.venv\Scripts\python.exe scripts/export-symbol-groups.py --terminal "C:\Program Files\MetaTrader 5\terminal64.exe" --server Pepperstone-Demo`.
 This reads metadata only and leaves the inherited bridge unchanged.
 
+The calendar button beside the chart timeframes shows/hides all event icons,
+including Inspector icons and External Source stars. This setting persists across
+symbols, timeframes and reloads without changing filters or individual source choices.
 Choose Inspector families by currency → click chart icons → raw tables.
 Inspector also supports JPYX/JPN225 (JPY), EURX (EUR), USDX/XAUUSD (USD), and the
 available JPN225-F, USDX-F and XAUUSD-F forwards. Each shows its mapped currency's
 calendar events and eligible External Source stars. These mappings describe event
 relevance, not the expected price direction or complete index-basket coverage.
 Save shares those family selections across every pair containing the currency;
-grouping, symbol visibility, icons and colors remain per pair. Existing pair
+grouping, icon choices and colors remain per chart. Existing pair
 choices are read until a currency is saved once with the shared selection.
 By day keeps one icon per currency/day and sections matching filter categories.
 French CPI/HICP variants sharing a verified publication time and reference period

@@ -332,6 +332,31 @@ try {
   assert.equal(container.querySelector('[aria-label="Experimental features"]'), null)
   assert.deepEqual([...container.querySelectorAll('[aria-label="Chart timeframe"] button')].map(node => node.textContent), ['M1','M5','M15','M30','H1','H4','D1'])
   assert.ok(container.querySelector('[aria-label="Text"]'))
+  // One header switch hides both calendar layers without editing their choices.
+  const iconKey = 'fyodor.chart-event-icons-visible.v1'
+  const sourceIconKey = 'fyodor.external-sources.chart-icons.v1'
+  const sourceChoices = localStorage.getItem(sourceIconKey)
+  const inspectorChoices = localStorage.getItem('fyodor.inspector.shared.v1')
+  assert.equal(container.querySelector('.timeframe-selector').nextElementSibling, container.querySelector('[aria-label="Hide event icons"]'))
+  const visibleWindow = { ...logicalRange }, beforeIconToggle = counters.setData ?? 0
+  await click(container.querySelector('[aria-label="Hide event icons"]')); await flush()
+  assert.equal(container.querySelector('[aria-label="Show event icons"]').getAttribute('aria-pressed'), 'false')
+  assert.equal(container.querySelector('.inspector-chart-markers'), null)
+  assert.equal(container.querySelector('.external-chart-markers'), null)
+  assert.equal(localStorage.getItem(iconKey), 'false')
+  assert.deepEqual(logicalRange, visibleWindow)
+  assert.equal(counters.setData ?? 0, beforeIconToggle, 'Visibility changes do not rewrite candle data')
+  await click([...container.querySelectorAll('[aria-label="Chart timeframe"] button')].find(node => node.textContent === 'M30'))
+  while (pending.get('ohlc')?.length) await reply('ohlc')
+  await flush()
+  assert.equal(container.querySelector('.external-chart-markers'), null, 'The hidden choice survives timeframe changes')
+  await click([...container.querySelectorAll('[aria-label="Chart timeframe"] button')].find(node => node.textContent === 'H1'))
+  while (pending.get('ohlc')?.length) await reply('ohlc')
+  await click(container.querySelector('[aria-label="Show event icons"]')); await flush()
+  assert.ok(container.querySelector('.inspector-chart-markers'))
+  assert.ok(container.querySelector('.external-chart-star'))
+  assert.equal(localStorage.getItem(sourceIconKey), sourceChoices)
+  assert.equal(localStorage.getItem('fyodor.inspector.shared.v1'), inspectorChoices)
   // A nearby-release chooser dismisses on blank chart clicks before selecting.
   await click(container.querySelector('[aria-label="2 nearby Inspector releases"]'))
   assert.equal(container.querySelectorAll('.inspector-marker-popup button').length, 3)
@@ -348,6 +373,7 @@ try {
   const savedBefore = localStorage.getItem('fyodor.inspector.eurusd.v1')
   const sharedBefore = localStorage.getItem('fyodor.inspector.shared.v1')
   await click(container.querySelector('[data-inspector-filter-trigger]'))
+  assert.equal(document.querySelector('.inspector-symbol-toggle'), null, 'Visibility lives in the universal header button')
   const change = async (element, value) => React.act(async () => {
     assert.ok(element)
     const native = props(element)
@@ -894,11 +920,17 @@ try {
   await marketCategory('all')
   localStorage.removeItem('fyodor.inspector.shared.v1')
   if (!container.querySelector('.inspector-panel')) await click(button('Inspector'))
+  await click(container.querySelector('[aria-label="Hide event icons"]'))
   for (const [symbol, currency] of Object.entries(instrumentScopes)) {
     const windowBefore = { ...logicalRange }
     await click([...container.querySelectorAll('.market-watch-row')].find(row => row.querySelector('strong').textContent === symbol))
     while (pending.get('ohlc')?.length) await reply('ohlc')
     await flush()
+    if (symbol === 'JPYX') {
+      assert.equal(container.querySelector('.inspector-chart-markers'), null, 'Global hide survives switching from a pair to an index')
+      assert.equal(container.querySelector('.external-chart-markers'), null)
+      await click(container.querySelector('[aria-label="Show event icons"]')); await flush()
+    }
     assert.deepEqual(logicalRange, windowBefore, `${symbol}: the shared date viewport survives symbol changes`)
     assert.equal(container.querySelector('[data-inspector-filter-trigger]').disabled, false)
     const latestQuery = requests.filter(url => url.startsWith('/storage-api/calendar')).at(-1)
@@ -909,12 +941,14 @@ try {
     assertQuiet(`${symbol}: unchanged Market Watch poll`, true)
     assert.equal(counters.dailyGrouping ?? 0, 0, `${symbol}: stable scope arrays avoid calendar regrouping`)
   }
+  await click(container.querySelector('[aria-label="Hide event icons"]'))
   await React.act(async () => root.render(null))
   assert.equal(rangeListeners.size, 0); assert.equal(clickListeners.size, 0)
   assert.equal(counters.workerCreated ?? 0, 0)
   try {
     await React.act(async () => root.render(React.createElement(React.StrictMode, null,
       React.createElement(ActivityLogProvider, null, React.createElement(FyodorTerminalShell)))))
+    assert.equal(container.querySelector('[aria-label="Show event icons"]').getAttribute('aria-pressed'), 'false', 'Universal visibility is restored after remount')
   } finally { await React.act(async () => root.render(null)) }
   console.log('✓ Assembled Lite: navigation, filters/raw tables, dates, future axis, drawings, Entry Trade plans/pins/journal, Alert/Activity, viewport/corrections, research drag/export/retry, zero polling/pan work and StrictMode cleanup')
 } finally {

@@ -76,8 +76,8 @@ try {
     await click('[data-inspector-filter-trigger]')
     assert.equal(document.querySelectorAll('dialog h3').length, 1)
     assert.ok(document.querySelector(`[aria-label="${currency} Events color"]`))
-    await click('dialog .inspector-symbol-toggle input')
-    assert.equal(view.markers.length, 0, 'Visibility changes preview immediately')
+    await click(`[aria-label="Select all ${currency} Events"]`)
+    assert.equal(view.markers.length, 0, 'Family changes preview immediately')
     await action('Cancel')
     assert.equal(view.markers.length, 1, 'Cancel restores icons')
   }

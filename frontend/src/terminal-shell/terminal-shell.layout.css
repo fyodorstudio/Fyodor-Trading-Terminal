@@ -106,7 +106,7 @@
 .timeframe-selector button:hover { color: var(--text-strong); background: var(--surface-hover); }
 .timeframe-selector button.active { color: #ffffff; background: var(--accent); box-shadow: 0 3px 12px color-mix(in srgb, var(--accent) 26%, transparent); }
 
-.chart-drawing-toggle {
+.chart-drawing-toggle, .chart-event-toggle {
   width: 36px;
   height: 36px;
   display: grid;
@@ -120,19 +120,22 @@
   transition: all 0.15s ease;
 }
 
-.chart-drawing-toggle:hover:not(:disabled) {
+.chart-drawing-toggle:hover:not(:disabled), .chart-event-toggle:hover {
   color: var(--text-strong);
   background: var(--surface-hover);
 }
 
 .chart-drawing-toggle:disabled { opacity: 0.45; cursor: default; }
 
-.chart-drawing-toggle.active {
+.chart-drawing-toggle.active, .chart-event-toggle.active {
   color: #ffffff;
   background: var(--accent);
   border-color: var(--accent);
   box-shadow: 0 3px 12px color-mix(in srgb, var(--accent) 26%, transparent);
 }
+.chart-event-toggle { color: var(--text-strong); }
+.chart-event-toggle.active { color: #ffffff; }
+.chart-event-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .quote-summary {
   display: flex;

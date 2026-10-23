@@ -24,10 +24,11 @@ import { parseDisplayClockInput } from '../appearance/time-display/display-clock
 
 const noEvents: EconomicCalendarEvent[] = []
 
-export function useInspector({ events = noEvents, symbol, bars, timeframe, timeDisplay, clockOffsetMs, brokerId, brokerOffsetSeconds = 0 }: {
+export function useInspector({ events = noEvents, symbol, bars, timeframe, timeDisplay, clockOffsetMs, brokerId, brokerOffsetSeconds = 0, eventIconsVisible }: {
   events?: EconomicCalendarEvent[]; symbol: string; bars: OhlcBar[]; timeframe: ChartTimeframe
   timeDisplay: TimeDisplayPreference; clockOffsetMs: number
   brokerId?: string | null; brokerOffsetSeconds?: number
+  eventIconsVisible?: boolean
 }) {
   const brokerTime = brokerId !== undefined
   const rangeDisplay = timeDisplay
@@ -81,7 +82,10 @@ export function useInspector({ events = noEvents, symbol, bars, timeframe, timeD
     { brokerId: brokerId ?? null, brokerOffsetSeconds }) : [], [supported, dailyPublications, preferences.families, range, timeDisplay, brokerId, brokerOffsetSeconds])
   const releases = preferences.symbolGrouping === 'day' ? days : releaseGroups
   const markerBars = useMarkerBars(bars)
-  const markers = useMemo(() => buildInspectorMarkers(releases, preferences, markerBars, timeframe), [releases, preferences, markerBars, timeframe])
+  // The terminal's universal switch supersedes legacy per-instrument visibility;
+  // preserve stored preferences and their family/color/grouping selections.
+  const markerPreferences = useMemo(() => eventIconsVisible === undefined ? preferences : { ...preferences, showSymbols: eventIconsVisible }, [preferences, eventIconsVisible])
+  const markers = useMemo(() => buildInspectorMarkers(releases, markerPreferences, markerBars, timeframe), [releases, markerPreferences, markerBars, timeframe])
   const selectRelease = useCallback((id: string | null) => setSelectedId(id), [])
   const selectedRelease = selectedInspectorRelease(releases, displayReleases, selectedId, timeDisplay)
   const applyPreferences = useCallback((next: InspectorPreferences, mode: InspectorPreferenceUpdate = 'save') => {
