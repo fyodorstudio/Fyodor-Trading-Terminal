@@ -94,6 +94,12 @@ try {
   assert.ok(![...host.querySelectorAll('button')].some(node => /^(Archive|Research|Pin|Restore)$/.test(node.textContent)))
   const table = host.querySelector('.alert-event-table')
   const cpi = table.querySelector('[data-series-id="840030005"]').parentElement
+  assert.equal(table.querySelectorAll('thead th').length, 8, 'Actual replaces the separate Countdown column')
+  assert.ok(!table.querySelector('thead').textContent.includes('Countdown'))
+  assert.equal(cpi.querySelectorAll('.alert-value-pending').length, 5, 'Each pending broker and external row shows its own countdown under Actual')
+  assert.equal(cpi.querySelector('.alert-value').textContent, 'Coming in 1h')
+  assert.equal(table.querySelector('[data-series-id="840030016"] .alert-value').textContent, '100%')
+  assert.equal(table.querySelector('[data-external-key="date-only"] .alert-value').textContent, 'Time unconfirmed')
   assert.equal(cpi.querySelectorAll('tr:not(.alert-details-row)').length, 5, 'Four broker components plus linked Reuters retain separate rows')
   assert.equal(cpi.querySelectorAll('.event-alarm-toggle').length, 1, 'One shared bell for the verified publication')
   assert.ok(table.textContent.includes('Agent impact'))
@@ -147,6 +153,7 @@ try {
   const impactRequests = requests.filter(request => request.url.startsWith('/storage-api/alert-impact')).length
   assert.equal(impactRequests, 3, 'One shared Alert poll plus the two saved-research broker reads')
   await React.act(async () => { now += 1000; for (const { fn } of intervals.values()) fn() })
+  assert.equal(host.querySelector('[data-series-id="840030005"] .alert-value').textContent, 'Coming in 59:59')
   assert.equal(requests.length, requestCount, 'Countdown ticks do not request calendar or alarm data')
   delayDate = '2026-10-24'
   await click(host.querySelector('[aria-label="Next date"]'))
@@ -162,6 +169,7 @@ try {
   readings = readings.map(event => ({ ...event, actual: .4 }))
   await tick('pollAlertDay')
   assert.ok(host.querySelector('[data-series-id="840030005"]').textContent.includes('0.4%'))
+  assert.equal(host.querySelector('[data-series-id="840030005"] .alert-value-pending'), null, 'A published actual replaces the countdown immediately')
   impactFailure = true; await tick('pollAlertImpact')
   assert.match(host.textContent, /Impact assessments unavailable/)
   assert.equal(host.querySelector('[data-series-id="840030005"] .alert-ai-impact').textContent, 'Low', 'A failed poll keeps saved ratings with an explicit error')

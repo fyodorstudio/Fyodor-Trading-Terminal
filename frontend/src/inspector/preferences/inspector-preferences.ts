@@ -1,8 +1,8 @@
 import { normalizeCurrencyColors, type CurrencyColors } from '../currency-colors'
 import { isEventSymbol, type EventSymbol } from '../../economic-calendar/presentation/event-symbols'
 import { inspectorFamilies, originalInspectorFamilies } from '../catalog/inspector-families'
-import { forexPair as inspectorPair, forexPairCurrencies as inspectorPairCurrencies } from '../../economic-calendar/forex/pairs'
-export { forexPair as inspectorPair, forexPairCurrencies as inspectorPairCurrencies } from '../../economic-calendar/forex/pairs'
+import { chartEventSymbol as inspectorPair, chartEventCurrencies as inspectorPairCurrencies } from '../../economic-calendar/forex/chart-event-scope'
+export { chartEventSymbol as inspectorPair, chartEventCurrencies as inspectorPairCurrencies } from '../../economic-calendar/forex/chart-event-scope'
 
 export type InspectorPreferences = {
   version: 2
@@ -15,7 +15,7 @@ export type InspectorPreferences = {
 }
 export type InspectorPreferenceUpdate = 'save' | 'preview'
 // Legacy pair keys remain readable. New saves share families by currency and
-// retain grouping/appearance per canonical pair in one atomic storage write.
+// retain grouping/appearance per canonical instrument in one atomic storage write.
 export const inspectorStorageKey = 'fyodor.inspector.eurusd.v1'
 export const gbpInspectorStorageKey = 'fyodor.inspector.gbpusd.v1'
 export const inspectorSharedStorageKey = 'fyodor.inspector.shared.v1'

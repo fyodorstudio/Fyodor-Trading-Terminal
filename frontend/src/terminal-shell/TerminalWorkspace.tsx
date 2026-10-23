@@ -36,6 +36,7 @@ export function TerminalWorkspace() {
           marketWatch={marketWatch}
           symbols={marketData.symbols}
           selectedSymbol={activeSymbol}
+          brokerId={brokerId}
           marketWatchStatus={marketData.marketWatchStatus}
           marketWatchError={marketData.marketWatchError}
           onSelectSymbol={selectSymbol}

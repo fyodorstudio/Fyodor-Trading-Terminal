@@ -878,6 +878,37 @@ try {
   await flush()
   assert.equal(container.querySelectorAll('.drawing-object').length, eurDrawings.length, 'Returning to EURUSD retains its drawings')
   assert.equal(trash().disabled, false)
+  // Exercise new instrument scopes through the assembled shell, live quote
+  // adapter, stored-calendar API and real production overlay composition.
+  const instrumentScopes = { JPYX: 'JPY', EURX: 'EUR', USDX: 'USD', JPN225: 'JPY', XAUUSD: 'USD' }
+  for (const currency of ['JPY', 'EUR']) {
+    const meta = catalog.find(row => row.country_currency === currency && /CPI/.test(row.event_name))
+    assert.ok(meta)
+    events.push(event(meta.event_id, now - 2 * 3600000))
+  }
+  calendarRevision++
+  quotes = [...quotes, ...Object.keys(instrumentScopes).map(symbol => ({ ...quotes[0], symbol, description: symbol }))]
+  await tick('poll', 2500); await reply('watch'); await flush()
+  await marketCategory('currency-indices')
+  assert.deepEqual([...container.querySelectorAll('.market-watch-row strong')].map(node => node.textContent), ['JPYX', 'EURX', 'USDX'])
+  await marketCategory('all')
+  localStorage.removeItem('fyodor.inspector.shared.v1')
+  if (!container.querySelector('.inspector-panel')) await click(button('Inspector'))
+  for (const [symbol, currency] of Object.entries(instrumentScopes)) {
+    const windowBefore = { ...logicalRange }
+    await click([...container.querySelectorAll('.market-watch-row')].find(row => row.querySelector('strong').textContent === symbol))
+    while (pending.get('ohlc')?.length) await reply('ohlc')
+    await flush()
+    assert.deepEqual(logicalRange, windowBefore, `${symbol}: the shared date viewport survives symbol changes`)
+    assert.equal(container.querySelector('[data-inspector-filter-trigger]').disabled, false)
+    const latestQuery = requests.filter(url => url.startsWith('/storage-api/calendar')).at(-1)
+    assert.equal(new URL(latestQuery, 'http://localhost').searchParams.get('currencies'), currency)
+    assert.ok(container.querySelector(`.inspector-chart-markers .inspector-currency-${currency}`), `${symbol}: mapped currency icons appear in the assembled chart`)
+    assert.equal(container.querySelector('.inspector-chart-markers .inspector-currency-GBP'), null)
+    reset(); await tick('poll', 2500); await reply('watch')
+    assertQuiet(`${symbol}: unchanged Market Watch poll`, true)
+    assert.equal(counters.dailyGrouping ?? 0, 0, `${symbol}: stable scope arrays avoid calendar regrouping`)
+  }
   await React.act(async () => root.render(null))
   assert.equal(rangeListeners.size, 0); assert.equal(clickListeners.size, 0)
   assert.equal(counters.workerCreated ?? 0, 0)

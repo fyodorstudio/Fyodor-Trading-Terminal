@@ -1,4 +1,5 @@
-export const marketCategories = ['all', 'favourites', 'majors', 'crosses', 'metals', 'indices', 'commodities', 'crypto'] as const
+export const marketCategories = ['all', 'favourites', 'majors', 'minors', 'crosses', 'exotics', 'ndfs',
+  'metals', 'commodities', 'softs', 'indices', 'currency-indices', 'crypto', 'stocks', 'etfs', 'forwards', 'perps'] as const
 export type MarketCategory = typeof marketCategories[number]
 
 export type MarketWatchPreferences = {

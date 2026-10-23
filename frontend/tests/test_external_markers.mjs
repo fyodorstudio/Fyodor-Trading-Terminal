@@ -97,6 +97,14 @@ try {
   assert.equal(container.querySelector('.external-chart-star'), null, 'USD news cannot leak onto non-USD pairs even if a response includes it')
   await render(1, 'USDJPY')
   assert.ok(container.querySelector('.external-chart-star'), 'USD news and its shared visibility preference follow a different USD pair')
+  for (const symbol of ['USDX', 'USDX-F', 'XAUUSD', 'XAUUSD-F']) {
+    await render(1, symbol)
+    assert.ok(container.querySelector('.external-chart-star'), `${symbol}: USD external context follows the mapped currency`)
+  }
+  for (const symbol of ['JPYX', 'JPN225', 'JPN225-F', 'EURX']) {
+    await render(1, symbol)
+    assert.equal(container.querySelector('.external-chart-star'), null, `${symbol}: unrelated USD context is excluded`)
+  }
   await render(1, 'EURUSD')
   // A new persisted request travels through polling, marker construction and the chart.
   await React.act(async () => setExternalIconVisibility('future', false)); await render(1)

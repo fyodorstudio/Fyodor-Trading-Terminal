@@ -56,5 +56,14 @@ export function alertCountdown(at: number, now: number, precise = false) {
   const minutes = Math.max(0, Math.ceil((at - now) / 60_000))
   const days = Math.floor(minutes / 1440), hours = Math.floor(minutes % 1440 / 60)
   const remaining = minutes % 60
-  return `${days} ${days === 1 ? 'day' : 'days'} · ${hours} ${hours === 1 ? 'hour' : 'hours'} · ${remaining} ${remaining === 1 ? 'minute' : 'minutes'} remaining`
+  return [days && `${days} ${days === 1 ? 'day' : 'days'}`, hours && `${hours} ${hours === 1 ? 'hour' : 'hours'}`,
+    (remaining || (!days && !hours)) && `${remaining} ${remaining === 1 ? 'minute' : 'minutes'}`].filter(value => typeof value === 'string').join(' · ') + ' remaining'
+}
+
+export function alertComingIn(at: number, now: number) {
+  const seconds = Math.max(0, Math.ceil((at - now) / 1000))
+  const days = Math.floor(seconds / 86400), hours = Math.floor(seconds % 86400 / 3600), minutes = Math.floor(seconds % 3600 / 60)
+  const duration = days ? `${days}d${hours ? ` ${hours}h` : ''}` : hours ? `${hours}h${minutes ? ` ${minutes}m` : ''}`
+    : `${minutes}:${String(seconds % 60).padStart(2, '0')}`
+  return `Coming in ${duration}`
 }

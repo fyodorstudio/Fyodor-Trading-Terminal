@@ -25,7 +25,7 @@ dom.clearTimeout = (id) => polls.delete(id)
 const requests = []
 globalThis.fetch = (url, options = {}) => String(url).startsWith('/storage-api/highlights') ? Promise.resolve({ ok: true, json: async () => ({ source_id: new URL(String(url), 'http://localhost').searchParams.get('source_id'), revision: 'empty', items: [] }) }) : new Promise((resolve) => requests.push({ url: String(url), signal: options.signal, resolve }))
 try {
-  const { alertEpisodes, alertCountdown, alertSeriesIds, alertCalendarScope } = await server.ssrLoadModule('./src/alert/model/alert-episodes.ts')
+  const { alertEpisodes, alertCountdown, alertComingIn, alertSeriesIds, alertCalendarScope } = await server.ssrLoadModule('./src/alert/model/alert-episodes.ts')
   const { defaultInspectorPreferences, inspectorFamilies } = await server.ssrLoadModule('./src/inspector/inspector-data.ts')
   const { alertPreferencesKey, defaultAlertPreferences, readAlertPreferences, validAlertPreferences } = await server.ssrLoadModule('./src/alert/model/alert-preferences.ts')
   const preferences = { ...defaultInspectorPreferences(), families: ['us-cpi'] }
@@ -59,7 +59,12 @@ try {
   assert.equal(alertEpisodes([row(cpi.events[0], now - day, .3, { release_at: null })], preferences, now).length, 0,
     'Actual arrival resolves a numeric alert even when UTC timing is unavailable')
   assert.equal(alertCountdown(now + 50 * day + 23 * 3600000 + 20 * 60000, now), '50 days · 23 hours · 20 minutes remaining')
-  assert.equal(alertCountdown(now - 1, now), '0 days · 0 hours · 0 minutes remaining')
+  assert.equal(alertCountdown(now - 1, now), '0 minutes remaining')
+  assert.equal(alertCountdown(now + 149 * 60000, now), '2 hours · 29 minutes remaining')
+  assert.equal(alertCountdown(now + 29 * 60000, now), '29 minutes remaining')
+  assert.equal(alertComingIn(now + 1584000, now), 'Coming in 26:24')
+  assert.equal(alertComingIn(now + 149 * 60000, now), 'Coming in 2h 29m')
+  assert.equal(alertComingIn(now + 2 * day, now), 'Coming in 2d')
   const policyPreferences = { ...preferences, families: ['fomc', 'fed-chair'] }
   const policy = [row('840050014', nextAt), row('840050018', nextAt + 30 * 60000, null, { previous: null }),
     row('840050005', nextAt + 45 * 60000, null, { previous: null })]

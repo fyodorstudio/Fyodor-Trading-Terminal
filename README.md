@@ -98,7 +98,18 @@ them; drag the handles (or press Up/Down on a handle) to reorder. Sections/order
 persist locally; deleting a section moves its symbols back to the first section.
 Starring preserves the selected chart and existing feed order outside Favourites.
 
+Market Watch categories use a captured Pepperstone-Demo symbol-folder catalog,
+including currency indices, forex minors/exotics/NDFs, stocks, ETFs, forwards and
+Perp CFDs. Quotes and availability still come from the live bridge. Other brokers
+and new symbols use conservative name matching. Refresh the folder snapshot with
+`bridge\.venv\Scripts\python.exe scripts/export-symbol-groups.py --terminal "C:\Program Files\MetaTrader 5\terminal64.exe" --server Pepperstone-Demo`.
+This reads metadata only and leaves the inherited bridge unchanged.
+
 Choose Inspector families by currency → click chart icons → raw tables.
+Inspector also supports JPYX/JPN225 (JPY), EURX (EUR), USDX/XAUUSD (USD), and the
+available JPN225-F, USDX-F and XAUUSD-F forwards. Each shows its mapped currency's
+calendar events and eligible External Source stars. These mappings describe event
+relevance, not the expected price direction or complete index-basket coverage.
 Save shares those family selections across every pair containing the currency;
 grouping, symbol visibility, icons and colors remain per pair. Existing pair
 choices are read until a currency is saved once with the shared selection.

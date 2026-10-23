@@ -3,7 +3,7 @@ import { currencyColorStyle } from './currency-colors'
 import { useCallback, useEffect, useId, useState } from 'react'
 import { type TimeDisplayPreference } from '../appearance/time-display/time-display-preference'
 import type { CalendarSourceHealth } from '../system-connectivity/bridge-status/bridge-contract'
-import { forexPairCurrencies as inspectorPairCurrencies } from '../economic-calendar/forex/pairs'
+import { chartEventCurrencies as inspectorPairCurrencies } from '../economic-calendar/forex/chart-event-scope'
 import { InspectorFiltersModal } from './InspectorFiltersModal'
 import { InspectorDateRangePicker } from './InspectorDateRangePicker'
 import { inspectorPopoversFit } from './inspector-popover-layout'
@@ -90,7 +90,7 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay }: {
         status={status(release)} sharedPeriod={sharedPeriod} calendarDetail={calendarDetail} coverageDetail={coverageDetail} />}
       {view.supported && release && <InspectorPin release={release} brokerId={view.brokerId ?? null} />}
     </header>
-    {!view.supported ? <p className="inspector-empty">Select a major forex pair to inspect releases.</p> : <>
+    {!view.supported ? <p className="inspector-empty">Select a supported forex pair, currency index, Japan 225 or USD gold chart to inspect releases.</p> : <>
       <div className={`inspector-body${listOpen ? '' : ' releases-collapsed'}`}>
         <InspectorReleaseList id={`${panelId}-releases`} hidden={!listOpen} releases={view.releases}
           selectedId={release?.id ?? null} symbols={view.preferences.symbols} timeDisplay={timeDisplay}

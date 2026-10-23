@@ -172,6 +172,27 @@ try {
     if (storageDescriptor) Object.defineProperty(dom, 'localStorage', storageDescriptor)
     else delete dom.localStorage
   }
+  const { getSymbolCategory } = await server.ssrLoadModule('./src/market-data/market-watch/symbol-classification.ts')
+  const { default: catalog } = await server.ssrLoadModule('../config/broker-symbol-groups.json')
+  for (const symbol of Object.values(catalog.groups).flat()) assert.notEqual(getSymbolCategory(symbol, catalog.server), 'all', symbol)
+  const samples = { JPYX: 'currency-indices', EURX: 'currency-indices', USDX: 'currency-indices', JPN225: 'indices', AUS200: 'indices',
+    XAUUSD: 'metals', SpotCrude: 'commodities', Coffee: 'softs', 'USDX-F': 'forwards', 'GOLD-PERP': 'perps',
+    NZDUSD: 'minors', USDIDR: 'ndfs', EURSGD: 'exotics', 'SPY.US': 'etfs', 'GAS.US': 'stocks', XAUTUSD: 'crypto' }
+  for (const [symbol, expected] of Object.entries(samples)) assert.equal(getSymbolCategory(symbol, catalog.server), expected, symbol)
+  assert.equal(getSymbolCategory('NZDUSD', 'OtherBroker'), 'majors', 'Broker folder overrides cannot leak across connections')
+  assert.equal(getSymbolCategory('JPN225.pro'), 'indices', 'New suffixed symbols retain conservative fallback recognition')
+  assert.equal(getSymbolCategory('GAS.US'), 'stocks', 'An equity ticker must not be mistaken for natural gas')
+  assert.equal(getSymbolCategory('SOL.US'), 'stocks', 'An equity ticker must not be mistaken for crypto')
+  await render({ symbols: Object.keys(samples).map(symbol => ({ ...quotes[0], symbol, description: symbol })), brokerId: catalog.server }, 'broker-folders')
+  await category('currency-indices')
+  assert.deepEqual(symbols(), ['JPYX', 'EURX', 'USDX'])
+  assert.equal(option('currency-indices').textContent, 'Currency indices (3)')
+  await category('etfs'); assert.deepEqual(symbols(), ['SPY.US'])
+  await category('ndfs'); assert.deepEqual(symbols(), ['USDIDR'])
+  await category('minors'); assert.deepEqual(symbols(), ['NZDUSD'])
+  await render({ symbols: [{ ...quotes[0], symbol: 'NZDUSD' }], brokerId: 'OtherBroker' }, 'broker-folders')
+  assert.deepEqual(symbols(), [], 'Changing brokers recomputes current category membership')
+  await category('majors'); assert.deepEqual(symbols(), ['NZDUSD'])
   console.log('✓ Market Watch favourites: requested initial stars, independent buttons, search/categories, persistence/empty lists, broker symbols, outage/quotes and bounded row work')
 } finally {
   await React.act(async () => root.unmount())

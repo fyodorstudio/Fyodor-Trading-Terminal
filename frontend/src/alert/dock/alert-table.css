@@ -17,10 +17,10 @@
 .alert-event-table thead th:nth-child(1) { width: 80px; }
 .alert-event-table thead th:nth-child(2) { width: auto; }
 .alert-event-table thead th:nth-child(3), .alert-event-table thead th:nth-child(4), .alert-event-table thead th:nth-child(5) { width: 68px; text-align: right; }
+.alert-event-table thead th:nth-child(3) { width: 150px; }
 .alert-event-table thead th:nth-child(6) { width: 108px; }
 .alert-event-table thead th:nth-child(7) { width: 110px; }
-.alert-event-table thead th:nth-child(8) { width: 170px; }
-.alert-event-table thead th:nth-child(9) { width: 34px; }
+.alert-event-table thead th:nth-child(8) { width: 34px; }
 .alert-event-group { border-bottom: 1px solid var(--border); }
 .alert-event-group > tr > td, .alert-event-group > tr > th { padding: 6px 10px; vertical-align: top; text-align: left; font-weight: normal; overflow-wrap: anywhere; }
 .alert-event-group > tr:first-child > td, .alert-event-group > tr:first-child > th { padding-top: 12px; }
@@ -33,7 +33,7 @@
 .alert-source-cell { color: var(--text-muted); font-size: 11px; }
 .alert-source-cell a, .alert-event-details a { color: var(--accent); text-decoration: none; }
 .alert-source-cell a:hover, .alert-event-details a:hover { text-decoration: underline; }
-.alert-countdown-cell { color: var(--text-muted); font-size: 11px; }
+.alert-value-pending { color: var(--negative); font-size: 11px; font-weight: 600 !important; }
 .alert-event-group:has(.alert-event-name:hover) { background: var(--surface-hover); }
 .alert-details-row > td { padding: 8px 0 16px !important; }
 .alert-event-details { border: 1px solid var(--border-strong); border-radius: 8px; padding: 16px 20px; background: var(--surface-inset); }

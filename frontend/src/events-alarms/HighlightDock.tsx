@@ -15,7 +15,7 @@ import type { useAlertImpact } from '../alert/impact/useAlertImpact'
 type TableProps = { groups: AlertDayGroup[]; sourceId: string; alarms: ReturnType<typeof useAlarms>; now: number; focusKey: string | null; impact: ReturnType<typeof useAlertImpact> }
 export const HighlightDock = memo(function HighlightDock({ groups, ...props }: TableProps) {
   return <table className="alert-event-table" aria-label="Events on selected date">
-    <thead><tr><th>Time · Jakarta</th><th>Event</th><th>Actual</th><th>Forecast</th><th>Previous</th><th>Source</th><th>Agent impact</th><th>Countdown</th><th><span className="alert-sr-only">Alarm</span></th></tr></thead>
+    <thead><tr><th>Time · Jakarta</th><th>Event</th><th>Actual</th><th>Forecast</th><th>Previous</th><th>Source</th><th>Agent impact</th><th><span className="alert-sr-only">Alarm</span></th></tr></thead>
     {groups.map(group => <EventGroup key={group.key} group={group} {...props} />)}
   </table>
 })
@@ -30,9 +30,11 @@ const EventGroup = memo(function EventGroup({ group, sourceId, alarms, now, focu
   const status = group.at === null ? 'Time unconfirmed' : !elapsed ? null : series.length
     ? !numeric.length ? 'Elapsed' : arrived === numeric.length ? 'Released' : arrived ? 'Partial data' : 'Awaiting data' : 'Elapsed · verify outcome'
   const shared = (first: boolean) => first ? <>
-    <td rowSpan={total} className="alert-countdown-cell">{status ?? <ReleaseCountdown at={group.at!} now={now} />}</td>
     <td rowSpan={total}><EventAlarmButton alarms={alarms} group={group} sourceId={sourceId} now={now} /></td>
   </> : null
+  const pending = (commentary = false, external = false) => group.at === null ? 'Time unconfirmed'
+    : !elapsed ? <ReleaseCountdown at={group.at} now={now} coming />
+    : external ? 'Elapsed · verify outcome' : commentary ? 'Elapsed' : 'Awaiting data'
   const time = group.at === null ? '—' : formatAppTimestamp(group.at, jakartaDisplay, 'time-short')
   const toggle = (label: string) => <button type="button" className="alert-event-name" aria-expanded={expanded} aria-controls={panelId}
     onClick={() => setExpanded(value => !value)}><span aria-hidden="true">{expanded ? '▾' : '▸'}</span>{label}</button>
@@ -40,16 +42,17 @@ const EventGroup = memo(function EventGroup({ group, sourceId, alarms, now, focu
     {series.map((event, index) => <tr key={event.value_id} data-series-id={event.event_id}>
       {index === 0 && <td rowSpan={total} className="alert-time-cell"><time>{time}</time><small>{group.currency}</small></td>}
       <th scope="row">{toggle(event.name)}{'availability' in event && event.availability !== 'observed' && <small>Latest observation unavailable</small>}</th>
-      {[event.actual, event.forecast, event.previous].map((value, i) => <td className="alert-value" key={i}>{formatInspectorValue(value, event)}</td>)}
+      <td className={`alert-value${event.actual === null ? ' alert-value-pending' : ''}`}>{event.actual === null ? pending(isInspectorCommentary(event)) : formatInspectorValue(event.actual, event)}</td>
+      {[event.forecast, event.previous].map((value, i) => <td className="alert-value" key={i}>{formatInspectorValue(value, event)}</td>)}
       <td className="alert-source-cell" title={sourceId}>Pepperstone</td><td><ImpactBadge item={impact.byValueId.get(event.value_id)} /></td>{shared(index === 0)}
     </tr>)}
     {group.external.map((item, index) => { const first = series.length === 0 && index === 0; return <tr key={item.key} data-external-key={item.key}>
       {first && <td rowSpan={total} className="alert-time-cell"><time>{time}</time><small>{group.currency}</small></td>}
-      <th scope="row">{toggle(item.title)}</th><td className="alert-value">—</td><td className="alert-value">—</td><td className="alert-value">—</td>
+      <th scope="row">{toggle(item.title)}</th><td className="alert-value alert-value-pending">{pending(false, true)}</td><td className="alert-value">—</td><td className="alert-value">—</td>
       <td className="alert-source-cell">{item.sources.filter(source => source.kind === 'web').slice(0, 1).map(source =>
         <a href={source.locator} target="_blank" rel="noreferrer" key={source.locator}>{publisherName(source)}</a>)}</td><td><ImpactBadge item={impact.byKey.get(`external:${item.key}`)} /></td>{shared(first)}
     </tr> })}
-    {expanded && <tr className="alert-details-row"><td colSpan={9}><section id={panelId} className="alert-event-details" aria-label={`Details for ${group.title}`}>
+    {expanded && <tr className="alert-details-row"><td colSpan={8}><section id={panelId} className="alert-event-details" aria-label={`Details for ${group.title}`}>
       <header><div><span>{group.currency} · {time} Jakarta</span><h3>{group.title}</h3></div><button type="button" aria-label={`Close ${group.title} details`} onClick={() => setExpanded(false)}>×</button></header>
       <nav role="tablist" aria-label="Event details" onKeyDown={event => {
         if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return

@@ -3,7 +3,7 @@ import type { IChartApi } from 'lightweight-charts'
 import { useDisplayClock } from '../appearance/time-display/useDisplayClock'
 import type { ChartTimeframe } from '../market-data/contracts/ChartTimeframe'
 import type { OhlcBar } from '../market-data/contracts/OhlcBar'
-import { forexPair, forexPairCurrencies } from '../economic-calendar/forex/pairs'
+import { chartEventScope, chartEventCurrencies } from '../economic-calendar/forex/chart-event-scope'
 import { useMarkerBars } from '../inspector/chart/useMarkerBars'
 import { useExternalSources } from './useExternalSources'
 import { buildExternalMarkers, projectExternalMarkers, sameExternalClusters, type ExternalCluster } from './external-markers'
@@ -14,13 +14,13 @@ export const ExternalChartMarkers = memo(function ExternalChartMarkers({ chartAp
   chartApi: IChartApi; symbol: string; bars: OhlcBar[]; timeframe: ChartTimeframe; brokerRows: number; onSelect: (key: string | null) => void
 }) {
   const { scope: clock, utc } = useDisplayClock()
-  const pair = forexPair(symbol)
-  const currencies = forexPairCurrencies(symbol)
-  const records = useExternalSources(pair ?? 'all', 'all')
+  const scope = chartEventScope(symbol)
+  const currencies = chartEventCurrencies(symbol)
+  const records = useExternalSources(scope ?? 'all', 'all')
   const visibility = useExternalIconVisibility()
   const timeline = useMarkerBars(bars)
-  const markers = useMemo(() => pair ? buildExternalMarkers(records.items.filter(item => currencies.some(currency => item.currencies.includes(currency))),
-    timeline, timeframe, clock, visibility) : [], [pair, currencies, records.items, timeline, timeframe, clock, visibility])
+  const markers = useMemo(() => scope ? buildExternalMarkers(records.items.filter(item => currencies.some(currency => item.currencies.includes(currency))),
+    timeline, timeframe, clock, visibility) : [], [scope, currencies, records.items, timeline, timeframe, clock, visibility])
   const [clusters, setClusters] = useState<ExternalCluster[]>([]), [expanded, setExpanded] = useState<string | null>(null)
   useEffect(() => {
     const scale = chartApi.timeScale(); let frame: number | null = null
