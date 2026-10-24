@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict'
+import { spawnSync } from 'node:child_process'
+import { fileURLToPath } from 'node:url'
 import { waitForServices } from '../scripts/wait-for-services.mjs'
 
 let clock = 0, attempts = 0
@@ -18,3 +20,10 @@ await assert.rejects(waitForServices(['storage'], { ...settings, fetchImpl: asyn
 assert.equal(clock, 50)
 assert.equal(logs.length, 1, 'A timeout never announces UI readiness')
 console.log('✓ Startup waits for HTTP readiness, retries refusal/503, and fails with a bounded diagnostic')
+
+if (process.platform === 'win32') {
+  const script = fileURLToPath(new URL('../../scripts/tests/test-start-alarms.ps1', import.meta.url))
+  const result = spawnSync('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', script], { encoding: 'utf8' })
+  assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`)
+  console.log(result.stdout.trim())
+}

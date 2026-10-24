@@ -21,6 +21,9 @@ pnpm dev:all
 
 This clears existing listeners on ports 5173, 8001 and 8002 before starting,
 including the original terminal if it is running on those ports.
+It also restarts the alarm worker on port 8003 after verifying it belongs to this
+checkout, loading updated backend code while retaining saved reminder choices.
+An unrelated or unverifiable port 8003 listener stops startup with a diagnostic.
 The UI waits for bridge and storage HTTP readiness (up to two minutes), so initial
 page requests do not race storage startup. MT5 may still be disconnected.
 

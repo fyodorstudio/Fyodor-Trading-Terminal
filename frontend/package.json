@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "clean-ports": "node scripts/clean-ports.mjs",
-    "dev:all": "pnpm run clean-ports && pnpm --dir .. run alarms:start && concurrently -k -n BRIDGE,STORAGE,UI -c green,yellow,cyan \"pnpm --dir .. run dev:bridge\" \"pnpm --dir .. run dev:storage\" \"pnpm run dev:ready\"",
+    "dev:all": "pnpm run clean-ports && pnpm --dir .. run alarms:restart && concurrently -k -n BRIDGE,STORAGE,UI -c green,yellow,cyan \"pnpm --dir .. run dev:bridge\" \"pnpm --dir .. run dev:storage\" \"pnpm run dev:ready\"",
     "dev:ready": "node scripts/wait-for-services.mjs && vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",

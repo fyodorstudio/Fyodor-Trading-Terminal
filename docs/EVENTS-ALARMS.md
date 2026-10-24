@@ -58,10 +58,13 @@ history are preserved. The migration receipt is durable and idempotent.
 ## Runtime and persistence
 
 The independent loopback worker uses port 8003. `pnpm alarms:start` starts it or
-reuses a healthy worker; `pnpm dev:all` includes it. The browser can close, but
+reuses a healthy worker. `pnpm dev:all` restarts this checkout's worker and waits
+for readiness, so one command loads backend changes. `pnpm alarms:restart` does
+the same worker-only restart. Process identity is checked before stopping it;
+an unrelated or unverifiable port 8003 listener is left running and startup fails.
+Saved settings, selections and delivery history are retained. The browser can close, but
 Windows and the worker must remain awake. No Windows login task, wake timer or
-power setting is installed. After backend updates, restart calendar storage and
-the alarm worker to load the new code; the bridge remains unchanged.
+power setting is installed.
 
 `storage/data/alarms/state.json` atomically stores settings, subscriptions,
 per-stage overrides, migration receipt, acknowledgements and delivery history.
