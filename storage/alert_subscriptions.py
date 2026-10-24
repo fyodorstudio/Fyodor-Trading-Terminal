@@ -91,7 +91,7 @@ def load_selected_schedule(database, engine):
             for item in page['items']:
                 at = datetime.fromisoformat(item['event_at'].replace('Z', '+00:00')).timestamp() * 1000 if item['event_at'] else None
                 result.append({'key': f"external:{item['key']}", 'reference': item['key'], 'source': 'external', 'broker': None,
-                    'title': item['title'], 'currencies': item['currencies'], 'at': at, 'date': item['event_date'],
+                    'title': item['title'], 'currencies': item['currencies'], **({'instruments': item['instruments']} if item.get('instruments') else {}), 'at': at, 'date': item['event_date'],
                     'eligible': not item['archived'] and at is not None and item['kind'] == 'scheduled' and item['status'] == 'confirmed',
                     'default_enabled': False, 'note': item['time_note']})
             if page['next_offset'] is None:

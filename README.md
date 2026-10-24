@@ -154,8 +154,10 @@ context tools are included.
 first, independently of the chart. The month selector offers **JUL / OCT 2026**.
 **Across All Currency** shows one eight-currency table for the selected month/day:
 daily strengthening/weakening verdict, sourced news and upcoming checkpoints. A top
-Trade Entry Opportunity section summarizes the strongest standalone currencies with
-windows confined to the selected Jakarta date. No pair scanning in this view.
+Trade Entry Opportunity selects supported standalone currency and optional
+Brent/WTI/gold entries with investor incentives, active/conditional status and
+same-day windows. It can explain an empty selection while keeping all eight
+directional rows; real capital may be at stake. No pair scanning in this view.
 It has its own dated copied prompt and Markdown handoff; existing pair journals remain separate.
 Agents use `thesis context`
 for bounded prior context, then refresh evidence and save a new dated review;

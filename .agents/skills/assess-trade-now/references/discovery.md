@@ -18,10 +18,14 @@ pins or a fully ranked comparison while those checks remain unfinished.
 Use a trusted invocation cutoff or an immediate clock read. Search the preceding
 hour, next six hours and overnight first, with the previous 24 hours as fresh-news
 context. Extend schedules at least seven days (or the requested longer holding
-horizon), plus a central next policy/projection event beyond that window. Broad
-unspecified alert shortlists alone use all eight currencies/90 days. Bound each
+horizon), plus a central next policy/projection event beyond that window. Explicit broad
+upcoming-alert inventories alone use all eight currencies/90 days; bare opportunity
+discovery uses a session decision and seven-day schedule scan. Bound each
 failed source to the original attempt and one suitable independent alternate
 route, then mark the exact gap. Never let one failed publisher consume the scan.
+
+For commodity scope add the source families and instrument routing in
+[commodities](commodities.md); USD macro context cannot substitute for them.
 
 For **each requested currency**, cover these web source families. These are
 coverage obligations, not permanent event-impact rankings:
@@ -90,8 +94,8 @@ and an output folder inside Lite. It captures all pages of `highlights`,
 It creates required web-family rows with `pending` status. Fill them from actual
 search/open actions; source evidence can be saved tool text/JSON with its tool
 reference, or the original downloaded publisher body. Broad journal reads are
-optional. Read only focused prior context; an explicitly requested bounded
-price-feedback check follows the opportunity reference, and never substitutes for
+optional. Read only focused prior context; a bounded entry-mode or explicitly requested
+price-feedback check follows entry-decisions.md, and never substitutes for
 source discovery or validates an unobserved causal explanation.
 `--days` retains a longer requested horizon; the broker index is capped at its
 90-day limit, while official web schedules must cover the full requested horizon.
@@ -144,7 +148,7 @@ through `record`; a new invocation gets a new receipt.
   Incremental `checks` retain each opened/failed route, clock, tool reference,
   note and copied evidence path. `partial`/`deferred` remain gaps and can finalize
   only under the elapsed release-deadline rule above.
-- `events`: `key`, `title`, `currencies`, `stage`, `source_ids`, verified
+- `events`: `key`, `title`, `currencies`, optional `instruments` (canonical commodity IDs), `stage`, `source_ids`, verified
   `event_at` OR `event_date` (neither for an untimed watch), `material`,
   `surface`, `decision_note`, `available_utc` or explicit `availability_note`,
   `used_for_prompt_verdict`. Later-available facts cannot support the prompt

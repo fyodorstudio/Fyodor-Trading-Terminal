@@ -169,7 +169,11 @@ class ReviewTests(TestCase):
             provenance='reconstruction', note='Historical news collected later; original availability checked.',
             planning_as_of_utc='2026-08-01T06:00:00Z',
             entry_opportunities=[dict(currency='USD', summary='Dominant policy support.', starts_at='2026-07-15T06:00:00Z',
-                ends_at='2026-07-15T16:59:59Z', timing_note='Remaining selected day.', invalidation='Contrary policy news.')],
+                ends_at='2026-07-15T16:59:59Z', timing_note='Remaining selected day.', invalidation='Contrary policy news.',
+                stage='active', activation='Verified pressure is operating.', evidence=dict(expected_baseline='Prior policy path.',
+                    new_information='New policy guidance.', remaining_case='Pressure persists over this session.',
+                    flow_channel='Potential USD demand from a relative path change.', flow_basis='inferred', horizon='Session',
+                    market_feedback='Pricing unavailable; no entry level established.', verified_utc='2026-08-01T05:00:00Z', sources=sources))],
             currency_views=[dict(currency=currency, direction=dict(verdict='POTENTIAL STRENGTHENING', reason='Dominant active support.',
                 verified_utc='2026-08-01T05:00:00Z', sources=sources), news=[dict(published_on='2026-07-15',
                 published_at='2026-07-14T18:00:00Z', summary=f'{currency} published news.',
@@ -223,6 +227,7 @@ class ReviewTests(TestCase):
     def test_contemporaneous_daily_table_remains_readable_after_its_saved_day(self):
         data = self.daily_news()
         data.update(provenance='assessment', note='', planning_as_of_utc='2026-07-15T06:00:00Z')
+        data['entry_opportunities'][0]['evidence']['verified_utc'] = '2026-07-15T05:00:00Z'
         for view in data['currency_views']:
             view['direction']['verified_utc'] = '2026-07-15T05:00:00Z'
             view['news'][0]['verified_utc'] = '2026-07-15T05:00:00Z'
@@ -262,3 +267,44 @@ class ReviewTests(TestCase):
         record = ReviewEntry(**data, id='a'*32, review_id='b'*32, saved_utc='2026-08-01T06:01:00Z')
         self.assertEqual(record.entry_opportunities, [])
         self.assertTrue(all(view.direction is None for view in record.currency_views))
+
+    def test_no_entry_keeps_eight_directions_and_does_not_rewrite_prior_snapshot(self):
+        self.paths()
+        data = self.daily_news()
+        first = append_review(ReviewRequest(**data), self.path)
+        path = self.path.with_name('reviews.json')
+        original = json.loads(path.read_text(encoding='utf-8'))['reviews'][0]
+        data.update(entry_opportunities=[], opportunity_gap='Markets closed; no supported entry in the remaining selected day.')
+        saved = append_review(ReviewRequest(**data), self.path)
+        history = read_reviews(self.path)
+        self.assertEqual(history[-1]['id'], saved['id'])
+        self.assertEqual(len(history[-1]['currency_views']), 8)
+        self.assertTrue(all(view['direction'] for view in history[-1]['currency_views']))
+        self.assertEqual(history[-1]['entry_opportunities'], [])
+        self.assertEqual(json.loads(path.read_text(encoding='utf-8'))['reviews'][0], original)
+        self.assertNotEqual(first['id'], saved['id'])
+        data['currency_views'][0]['direction'] = None
+        with self.assertRaises(ValueError): ReviewRequest(**data)
+
+    def test_commodity_entry_preserves_identity_sources_windows_and_context(self):
+        self.paths()
+        data = self.daily_news()
+        entry = data.pop('entry_opportunities')[0]
+        entry.pop('currency')
+        commodity = dict(**entry, instrument='BRENT', symbol='SpotBrent', provider='Fixture broker',
+            instrument_type='spot_cfd', contract_note='Broker CFD, not a futures settlement.', verdict='BUY')
+        data['commodity_opportunities'] = [commodity]
+        saved = append_review(ReviewRequest(**data), self.path)
+        result = read_reviews(self.path)[-1]
+        self.assertEqual(result['id'], saved['id'])
+        self.assertEqual(result['commodity_opportunities'][0]['symbol'], 'SpotBrent')
+        self.assertEqual(result['commodity_opportunities'][0]['evidence']['flow_basis'], 'inferred')
+        self.assertEqual(review_context(self.path, 'EURUSD')['latest_review']['commodity_opportunities'], [])
+        for mutate in [lambda d: d['commodity_opportunities'][0].update(instrument='USD'),
+                       lambda d: d['commodity_opportunities'][0].update(symbol=''),
+                       lambda d: d['commodity_opportunities'][0].update(stage=None),
+                       lambda d: d['commodity_opportunities'][0]['evidence'].update(flow_basis='certain'),
+                       lambda d: d['commodity_opportunities'][0]['evidence'].update(verified_utc='2099-01-01T00:00:00Z'),
+                       lambda d: d['commodity_opportunities'][0].update(checkpoints=[dict(title='Elapsed inventory release', event_at='2026-07-15T05:00:00Z', verified_utc='2026-08-01T05:00:00Z', sources=d['currency_views'][0]['direction']['sources'])])]:
+            bad = json.loads(json.dumps(data)); mutate(bad)
+            with self.subTest(data=bad), self.assertRaises(ValueError): ReviewRequest(**bad)

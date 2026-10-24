@@ -19,7 +19,7 @@ export const ExternalRecordCard = memo(function ExternalRecordCard({ item, timeD
       <button type="button" className="external-record-toggle" aria-expanded={open} aria-controls={`external-details-${item.key}`} onClick={() => setOpen(value => !value)}>
         <span aria-hidden="true">{open ? '▾' : '▸'}</span><strong>{item.title}</strong>
       </button>
-      <span className="external-record-currency">{item.currencies.join(' / ')}</span>
+      <span className="external-record-currency">{[...item.currencies, ...(item.instruments ?? [])].join(' / ')}</span>
       <span className="external-record-type">{kind}<small>{item.status}</small></span>
       <span className="external-record-time">{item.event_at ? formatAppTimestamp(Date.parse(item.event_at), timeDisplay) : item.event_date ?
         formatAppTimestamp(Date.parse(item.event_date + 'T00:00:00Z'), { mode: 'utc', utcOffsetMinutes: 0 }, 'date') : 'Unscheduled'}

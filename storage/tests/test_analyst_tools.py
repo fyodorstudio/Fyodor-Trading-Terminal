@@ -194,6 +194,18 @@ class AnalystOhlcTests(unittest.TestCase):
         self.assertEqual(output['reactions'][-1]['net_pips'],1.2)
         self.assertNotIn('bars',output['reactions'][0])
 
+    def test_commodity_reaction_retains_exact_symbol_and_uses_price_units(self):
+        def get(route):
+            result = self.get(route)
+            if route != 'health': result['symbol'] = 'SpotBrent'
+            return result
+        data = fetch_window(get, 'BRENT', 'SpotBrent', 'M1', '2026-09-11T11:30:00Z', '2026-09-11T15:00:00Z')
+        output = summarize(data, '2026-09-11T12:30:00Z')
+        self.assertEqual((output['pair'], output['symbol']), ('BRENT', 'SpotBrent'))
+        self.assertIn('net_price', output['reactions'][-1])
+        self.assertIn('net_percent', output['reactions'][-1])
+        self.assertNotIn('net_pips', output['reactions'][-1])
+
     def test_missing_minutes_coarse_timeframes_and_jpy_pip_size(self):
         data={'pair':'USDJPY','timeframe':'M1','captured_utc':'2026-09-11T16:00:00Z','bars':[{'utc_time':self.event+(i-1)*60,
             'open':150,'high':150.02,'low':149.99,'close':150 if i==0 else 150.02} for i in range(122)]}

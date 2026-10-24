@@ -9,7 +9,10 @@ An explicit request to fill the Thesis date table uses Assess Trade Now's
 [dated news-table mode](../assess-trade-now/references/daily-news.md): save factual
 released news with numbered sources, standalone currency directions and only
 future scheduled checkpoints, following that mode's output and storage rules.
-A release wait alone does not authorize that save.
+A release wait alone does not authorize that save. Real capital may be at stake;
+verify the decisive package before a verdict and never promise an executable fill.
+For a commodity release, use the parent commodity reference and its instrument
+receipt/source families; do not invent a currency impact or select a forex pair.
 
 Follow AGENTS.md and the relevant instructions from
 [Assess Trade Now](../assess-trade-now/SKILL.md), without rereading guidance
@@ -159,9 +162,8 @@ changed guidance, intervention and other exceptional risks for the selected pair
 Use a focused check, not a second full macro investigation. Interpret how the
 surprise changes the expected policy path; an in-line release need not provide
 a new edge. Before-release hypotheses may be confirmed, weakened or overturned.
-Fundamental-only is the default. An explicit price-aware request permits Assess
-Trade Now's bounded market-feedback check after the first supported release
-verdict; no-candles overrides remain binding. Never delay actuals, decisive
+The first release verdict is fundamental-first. A subsequent entry-focused
+assessment permits Assess Trade Now's bounded market-feedback check by default; no-candles overrides remain binding. Never delay actuals, decisive
 companions, publication checks or the first verdict to inspect price. Full
 historical reaction calculations still use Review Historical Research.
 

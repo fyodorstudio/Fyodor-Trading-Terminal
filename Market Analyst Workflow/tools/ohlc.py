@@ -13,6 +13,7 @@ import time
 
 from storage.calendar_clock import chart_utc, PROFILES
 from storage.currencies import CURRENCIES
+from storage.research_instruments import INSTRUMENTS
 
 STEPS = {'M1':60, 'M5':300, 'M15':900, 'M30':1800, 'H1':3600, 'H4':14400, 'D1':86400}
 
@@ -92,6 +93,8 @@ def candle_utc(raw, broker, explicit_offset=None):
 
 
 def validate_pair(pair):
+    if pair in INSTRUMENTS:
+        return
     if not isinstance(pair, str) or len(pair) != 6 or pair[:3] == pair[3:] or any(currency not in CURRENCIES for currency in (pair[:3],pair[3:])):
         raise ValueError('Choose a pair of distinct supported currencies')
 
@@ -240,7 +243,7 @@ def summarize(data, event=None):
                     reactions.append({'minutes':minutes, 'available':False})
                     continue
                 reactions.append({'minutes':minutes, 'close_utc':utc_stamp(at+minutes*60), 'close':window[-1]['close'],
-                    'net_pips':round((window[-1]['close']-baseline)/pip,1), 'low':min(row['low'] for row in window),
+                    **({'net_price': round(window[-1]['close']-baseline, 6), 'net_percent': round((window[-1]['close']/baseline-1)*100, 4)} if data['pair'] in INSTRUMENTS else {'net_pips':round((window[-1]['close']-baseline)/pip,1)}), 'low':min(row['low'] for row in window),
                     'high':max(row['high'] for row in window)})
             result.update({'event_utc':utc_stamp(at),'baseline_close':baseline,'reactions':reactions})
     return result

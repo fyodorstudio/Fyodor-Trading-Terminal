@@ -1,6 +1,6 @@
 ---
 name: assess-trade-now
-description: "Assess forex fundamentals, discover emerging currency opportunities and near-term news, pin verified events, review holding risks, prepare releases or fill a dated Thesis news table. Web-first with optional user-requested price feedback; no background monitoring."
+description: "Find supported forex and commodity opportunities, explain potential investor buying/selling and assess named markets or dated Thesis fills. Web-first with bounded entry feedback; no trading or background monitoring."
 ---
 
 # Assess Trade Now
@@ -9,13 +9,19 @@ Near-term news discovery is the first priority. A polished backdrop does not mak
 an assessment complete when an imminent release, Treasury operation or policy
 stage was never checked. The user need not invoke a second alert-review skill.
 This skill owns assessment, upcoming shortlist and holding/reassessment modes.
-Real capital may depend on this research. Treat a missed material catalyst,
+**Real capital may be at stake.** Unsupported entries, fabricated flows and forced opportunities can cause financial harm. Treat a missed material catalyst,
 unsupported causal claim, stale verdict or false all-clear as a substantive
 analyst failure. Research like an expert: find the dominant mechanism, look for
 new beneficiaries and opposing evidence, and communicate the supported decision
 in time to be useful. Strong language must follow the evidence.
 
-Infer scope and horizon; default an ordinary pair/currency assessment to intraday.
+A bare invocation is sufficient: discover the strongest supported current
+opportunities among the eight currencies and eligible commodities; do not ask
+for a research-method prompt. Read [entry decisions](references/entry-decisions.md)
+for this default, investor incentives and opportunity status. Infer scope and
+horizon; default to the current session or, when closed, the next verified
+tradable session. A named pair remains the primary task. Explicit scope overrides
+win. A dated Thesis fill selects its date and authorizes its save, not a pair scan.
 For reversal, recovery and continuation questions, give immediate-session and
 next 1–5 trading-session views, unless the user specifies a narrower horizon.
 Explain differences in mechanism between horizons; the seven-day event scan is
@@ -33,13 +39,17 @@ An explicit prompt-only/deferred request reuses accepted context without new mac
 research; see alert-review mode. All fresh assessment modes use the procedure below.
 For conversational assessments and opportunity/holding reviews, also read
 [early opportunity discovery and market feedback](references/opportunity-discovery.md).
-The dated news-table mode keeps its own currency rows and saved verdict contract.
+For entry requests and dated fills also read entry decisions. Read
+[commodities](references/commodities.md) only for material commodity candidates.
+The dated news-table mode keeps eight currency rows and separate optional
+commodity opportunities under its saved contract.
 
 ## Required discovery before the backdrop
 
 1. **Start immediate web discovery and the coverage record together.** Run
    `pnpm analyst discovery start --scope EURUSD --broker <actual-broker> --as-of <UTC-cutoff> --output "Market Analyst Workflow/report/<name>"`
-   using the requested scope. This captures fully paginated pins, limitations,
+   using the requested scope (ALL for bare discovery; a separate BRENT/WTI/GOLD
+   receipt for a promoted commodity). This captures fully paginated pins, limitations,
    separate external records and the broker index and creates `discovery.json`.
    If broker identity is unknown, first use `pnpm analyst highlights`; use `status`
    only for unknown availability. A failed local read is an explicit gap, not a
@@ -62,7 +72,7 @@ The dated news-table mode keeps its own currency rows and saved verdict contract
    amounts. Cover other currencies' central banks, statistics and relevant debt,
    fiscal, trade, energy and geopolitical sources. Open decisive source bodies;
    a generic search, stale wrap or empty MT5 calendar is not completed coverage.
-   Alongside this focused research, make the brief eight-currency catalyst sweep
+   Alongside this focused research, make the brief eight-currency and eligible-commodity catalyst sweep
    in the opportunity reference. A material candidate outside the requested pair
    gets focused verification, not a full all-pairs inventory.
 3. **Pin verified material discoveries as they are found, before expanding the
@@ -86,7 +96,9 @@ The dated news-table mode keeps its own currency rows and saved verdict contract
    other material drivers. Check overnight Q&A and separate policy stages. Include
    the next central policy/projection meeting beyond that window when relevant.
    A standalone broad shortlist uses its requested scope/horizon; only an
-   unspecified broad shortlist defaults to all eight currencies/90 days. Do not
+   explicitly requested broad upcoming-alert inventory defaults to all eight
+   currencies/90 days. A bare opportunity invocation uses a seven-day schedule
+   scan and a session decision, not a 90-day inventory. Do not
    turn an ordinary pair assessment into an all-currency inventory.
    The brief opportunity sweep is an explicit exception to scope confinement,
    not a claim that all eight currencies received this full schedule/backdrop pass.
@@ -112,20 +124,21 @@ The dated news-table mode keeps its own currency rows and saved verdict contract
 The required local checks find identities and known omissions; they do not make
 MT5 the source of truth. Official publishers control schedules/results; dated
 reporting and identified market pricing establish expectations and active drivers.
-Broad journal/OHLC inventory reads are unnecessary. Fundamental-only is the
-default. An explicit price-aware request permits a supplied chart or bounded
-price window under the opportunity reference; a no-candles request takes
-precedence. Price contradictions trigger research and a decision, not an invented
+Broad journal/OHLC inventory reads are unnecessary. Pure bias and release-first
+verdicts are fundamental-first. Bare opportunity, entry and dated-fill candidate
+selection permit bounded market feedback under entry decisions by default.
+Explicit fundamental-only/no-candles requests take precedence. No chart UI audit
+or broad history fetch is implied. Price contradictions trigger research and a decision, not an invented
 explanation. Historical event studies remain with Review Historical Research.
 Run frontend checks only for implementation work, not research.
 
 ## Standing authorization: Highlight and chart icons
 
 Invoking this skill authorizes immediately pinning the material events/headlines
-found for the requested currencies and checked horizon, including restoring an
+found for the requested currencies/instruments and checked horizon, including restoring an
 existing relevant archived occurrence and appending sourced External Source facts.
 This scope includes a material opportunity candidate promoted by the brief sweep:
-complete its focused identity/source checks in a separate currency receipt before
+complete its focused identity/source checks in a separate currency or commodity receipt before
 routing its verified event. An unverified idea alone does not authorize a factual pin.
 It also authorizes requesting **Show icon on chart** for dated external records.
 Do not ask again. An explicit read-only/no-save instruction overrides this default.
@@ -167,6 +180,11 @@ their separate explicit-request rules; a requested daily Thesis fill is a save.
 
 ## Choose the requested mode after immediate discovery
 
+- **Bare invocation / what is worth an entry:** use entry decisions and the
+  brief opportunity sweep, with commodity deep research only when material.
+  Give the leading verified BUY/SELL candidates, investor incentives and
+  active/conditional status; retain supported biases when no entry is established.
+
 - **Currency/pair/Highlight now; release preparation or interpretation:** read
   [fundamental assessment](references/fundamental-assessment.md). Lead with the
   imminent stage when present and a direct BUY / SELL for a pair, or
@@ -183,7 +201,9 @@ their separate explicit-request rules; a requested daily Thesis fill is a save.
 - **Dated eight-currency Thesis fill/save or copied fill-date prompt:** read
   [dated news table](references/daily-news.md) and docs/THESIS.md. Use the shared
   immediate discovery/pinning process, then complete the authorized factual table
-  and verify the save. No pair scanning, scores or invented same-date filler.
+  and verify the save. Keep all eight directions; select zero or more supported
+  currency/commodity entries with explicit evidence. No pair scanning, scores
+  or invented same-date filler.
 - **Explicit imminent-release wait:** use [One Minute Before Release](../one-minute-before-release/SKILL.md)
   after discovery/preparation, with its verified target, stopping deadline and
   first sourced verdict. Do not restart the full search or delay a first verdict
@@ -216,7 +236,9 @@ Put LOOK HERE NEXT near the top when the sweep finds supported candidates,
 then NEAR-TERM & UPCOMING EVENTS and the compact DATED FUNDAMENTAL BACKDROP.
 Do not postpone a supported opposite verdict by leaving it forever as a watch.
 For a dated Thesis fill, retain TRADE ENTRY OPPORTUNITY and that mode's existing
-saved labels/fields; do not inject pair recommendations or new enums.
+currency verdicts and separate commodity fields; do not inject pair
+recommendations or migrate earlier saved enums. A directional backdrop is not
+a forced entry. Report an evidence-based empty selection when appropriate.
 
 Before stopping, report the nearest material Jakarta stage, sourced directional
 thesis when requested, successful/reused pins and chart requests, and material

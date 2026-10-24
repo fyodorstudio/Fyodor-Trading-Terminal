@@ -13,6 +13,7 @@ from .contracts import Payload
 from .currencies import CURRENCIES, CalendarCurrency
 from .data_lock import data_lock
 from .highlight_journal import JournalSource
+from .research_instruments import Commodity
 
 ID = r'^[0-9a-f]{32}$'
 CATEGORIES = ('policy', 'inflation', 'labor', 'growth', 'other')
@@ -69,13 +70,41 @@ class DailyDirection(Payload):
     sources: list[JournalSource] = Field(min_length=1, max_length=8)
 
 
-class CurrencyOpportunity(Payload):
-    currency: CalendarCurrency
+class OpportunityEvidence(Payload):
+    expected_baseline: str = Field(min_length=1, max_length=1500)
+    new_information: str = Field(min_length=1, max_length=1500)
+    remaining_case: str = Field(min_length=1, max_length=1500)
+    flow_channel: str = Field(min_length=1, max_length=1500)
+    flow_basis: Literal['observed', 'reported', 'inferred']
+    horizon: str = Field(min_length=1, max_length=300)
+    market_feedback: str = Field(min_length=1, max_length=1500)
+    verified_utc: datetime
+    sources: list[JournalSource] = Field(min_length=1, max_length=8)
+
+
+class OpportunityWindow(Payload):
     summary: str = Field(min_length=1, max_length=700)
     starts_at: datetime
     ends_at: datetime
     timing_note: str = Field(min_length=1, max_length=700)
     invalidation: str = Field(min_length=1, max_length=700)
+    stage: Literal['active', 'conditional'] | None = None
+    activation: str = Field(default='', max_length=700)
+    evidence: OpportunityEvidence | None = None
+
+
+class CurrencyOpportunity(OpportunityWindow):
+    currency: CalendarCurrency
+
+
+class CommodityOpportunity(OpportunityWindow):
+    instrument: Commodity
+    symbol: str = Field(min_length=1, max_length=160)
+    provider: str = Field(min_length=1, max_length=300)
+    instrument_type: Literal['spot', 'spot_cfd', 'futures', 'futures_cfd']
+    contract_note: str = Field(min_length=1, max_length=700)
+    verdict: Literal['BUY', 'SELL', 'STRONG BUY', 'STRONG SELL']
+    checkpoints: list[CurrencyCheckpoint] = Field(default_factory=list, max_length=8)
 
 
 class CurrencyNews(Payload):
@@ -96,6 +125,8 @@ class ReviewRequest(Payload):
     opportunity_ids: list[str] = Field(default_factory=list, max_length=28)
     currency_views: list[CurrencyView] = Field(default_factory=list, max_length=8)
     entry_opportunities: list[CurrencyOpportunity] = Field(default_factory=list, max_length=8)
+    commodity_opportunities: list[CommodityOpportunity] = Field(default_factory=list, max_length=3)
+    opportunity_gap: str = Field(default='', max_length=1500)
     planning_as_of_utc: datetime | None = None
     limitations: str = Field(default='', max_length=4000)
     note: str = Field(default='', max_length=4000)
@@ -159,16 +190,29 @@ class ReviewRequest(Payload):
                         raise ValueError('News publication instant must match its date and precede cutoff and verification')
                     item.published_at = item.published_at.astimezone(timezone.utc)
         # Older saved news-only records remain readable; every new daily save is directional.
-        directional = any(view.direction for view in self.currency_views) or bool(self.entry_opportunities)
+        directional = any(view.direction for view in self.currency_views) or bool(self.entry_opportunities or self.commodity_opportunities)
         if daily and (directional or not getattr(self, 'saved_utc', None)):
-            if not all(view.direction for view in self.currency_views) or not self.entry_opportunities:
-                raise ValueError('Choose strengthening or weakening for all eight currencies and summarize the strongest directions')
-        if self.entry_opportunities and not daily:
-            raise ValueError('Standalone currency entry summaries belong to daily news')
+            if not all(view.direction for view in self.currency_views):
+                raise ValueError('Choose strengthening or weakening for all eight currencies')
+        if daily and not getattr(self, 'saved_utc', None) and not self.entry_opportunities and not self.commodity_opportunities and not self.opportunity_gap.strip():
+            raise ValueError('An empty opportunity selection needs its evidence-based reason; do not force an entry')
+        if (self.entry_opportunities or self.commodity_opportunities or self.opportunity_gap) and not daily:
+            raise ValueError('Dated opportunity selections belong to daily news')
         if len({item.currency for item in self.entry_opportunities}) != len(self.entry_opportunities):
             raise ValueError('Summarize each selected currency once, strongest direction first')
         selected_day = self.as_of_utc.astimezone(JAKARTA).date()
-        for item in self.entry_opportunities:
+        if len({item.instrument for item in self.commodity_opportunities}) != len(self.commodity_opportunities):
+            raise ValueError('Summarize each commodity once; related oil contracts are one shared mechanism')
+        for item in [*self.entry_opportunities, *self.commodity_opportunities]:
+            if not getattr(self, 'saved_utc', None) and (not item.stage or not item.activation.strip() or not item.evidence):
+                raise ValueError('New opportunities need active/conditional stage, activation and sourced economic evidence')
+            if item.evidence:
+                evidence = item.evidence
+                if (any(not getattr(evidence, field).strip() for field in ('expected_baseline', 'new_information', 'remaining_case', 'flow_channel', 'horizon', 'market_feedback'))
+                        or not any(source.kind == 'web' for source in evidence.sources)
+                        or evidence.verified_utc.tzinfo is None or evidence.verified_utc > recorded_at):
+                    raise ValueError('Opportunity evidence needs explicit mechanisms, direct web sources and its real verification clock')
+                evidence.verified_utc = evidence.verified_utc.astimezone(timezone.utc)
             if not all(value.strip() for value in (item.summary, item.timing_note, item.invalidation)):
                 raise ValueError('Currency entry summaries need a reason, timing explanation and invalidation')
             if (item.starts_at.tzinfo is None or item.ends_at.tzinfo is None or item.starts_at >= item.ends_at
@@ -184,7 +228,7 @@ class ReviewRequest(Payload):
             if planning.tzinfo is None or not self.as_of_utc <= planning <= datetime.now(timezone.utc):
                 raise ValueError('Planning cutoff needs an offset, at or after research and no later than now')
             self.planning_as_of_utc = planning.astimezone(timezone.utc)
-        checkpoints = [checkpoint for view in self.currency_views for checkpoint in view.checkpoints]
+        checkpoints = [checkpoint for view in [*self.currency_views, *self.commodity_opportunities] for checkpoint in view.checkpoints]
         if checkpoints and planning is None:
             raise ValueError('Release preparation needs its own real planning cutoff')
         for item in checkpoints:
@@ -276,9 +320,10 @@ def append_review(request, journal_path):
                 raise ValueError('Local evidence must exist when saved')
         view_sources = [source for view in request.currency_views for source in view.sources]
         news_sources = [source for view in request.currency_views for item in view.news for source in item.sources]
-        checkpoint_sources = [source for view in request.currency_views for checkpoint in view.checkpoints for source in checkpoint.sources]
+        checkpoint_sources = [source for view in [*request.currency_views, *request.commodity_opportunities] for checkpoint in view.checkpoints for source in checkpoint.sources]
         direction_sources = [source for view in request.currency_views if view.direction for source in view.direction.sources]
-        if any(source.kind == 'local' and not Path(source.locator).is_file() for source in view_sources + news_sources + checkpoint_sources + direction_sources):
+        opportunity_sources = [source for item in [*request.entry_opportunities, *request.commodity_opportunities] if item.evidence for source in item.evidence.sources]
+        if any(source.kind == 'local' and not Path(source.locator).is_file() for source in view_sources + news_sources + checkpoint_sources + direction_sources + opportunity_sources):
             raise ValueError('Local currency evidence must exist when saved')
         entry = ReviewEntry(**{**request.model_dump(), 'review_id': request.review_id or uuid4().hex},
             id=uuid4().hex, saved_utc=datetime.now(timezone.utc))
@@ -342,11 +387,14 @@ def review_context(journal_path, scope, as_of=None):
             review['planning_as_of_utc'] = None
             for view in review['currency_views']:
                 view['checkpoints'] = []  # Later preparation is not historical knowledge.
+            for item in review['commodity_opportunities']:
+                item['checkpoints'] = []
     if review and scope != 'ALL':
         review['backdrop'] = [cell for cell in review['backdrop'] if cell['currency'] in selected]
         review['opportunities'] = [item for item in review['opportunities'] if item['scope'] == scope]
         review['currency_views'] = [item for item in review['currency_views'] if item['currency'] in selected]
         review['entry_opportunities'] = [item for item in review['entry_opportunities'] if item['currency'] in selected]
+        review['commodity_opportunities'] = []
     corrected = {(item['row_id'], item['as_of_utc']): item for item in entries}
     pair_entries = sorted([item for item in corrected.values() if scope == 'ALL' and item['collection'] == 'across' or item['scope'] == scope],
         key=lambda item: (item['as_of_utc'], item['saved_utc']), reverse=True)

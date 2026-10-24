@@ -33,6 +33,21 @@ class AlertScheduleTests(TestCase):
         for source in ('Elev8-Demo2', 'Pepperstone-Demo'):
             self.store.import_rows(f'seed-{source}', source, self.manifest, {}, self.rows)
 
+    def test_commodity_schedule_keeps_instrument_prompt_and_starts_off(self):
+        engine = AlarmEngine(Path(self.temp.name) / 'state.json', lambda jobs: None, lambda: self.now)
+        engine.state.update(selection_version=2, calendar_subscriptions={})
+        item = dict(key='eia-oil', title='Oil inventories', currencies=[], instruments=['BRENT', 'WTI'],
+            event_at=datetime.fromtimestamp(self.at / 1000, timezone.utc).isoformat(), event_date=None,
+            archived=False, kind='scheduled', status='confirmed', time_note='Verified inventory release')
+        with patch('storage.external_sources.external_snapshot', return_value={'items': [item], 'next_offset': None}):
+            schedule = load_selected_schedule(self.database, engine)
+        engine.reconcile(schedule)
+        event = engine.snapshot()['events'][0]
+        self.assertFalse(event['selected'])
+        self.assertFalse(event['armed'])
+        self.assertIn('BRENT, WTI', event['prompt'])
+        self.assertNotIn('best-supported pair', event['prompt'])
+
     def test_jakarta_date_edges_date_only_and_no_chart_clock_or_mutation(self):
         edge = datetime(2026, 10, 22, 17, tzinfo=timezone.utc).timestamp()
         extra = [event(value_id=str(10 + i), currency='USD', country_code='US', server_time_seconds=int(at + 10800))

@@ -19,6 +19,19 @@ class ExternalSourcesTests(TestCase):
     def tearDown(self):
         self.temporary.cleanup()
 
+    def test_commodity_pin_without_invented_currency_survives_lifecycle(self):
+        saved = append_external(self.request(key='oil-supply', currencies=[], instruments=['BRENT', 'WTI'], show_on_chart=True), self.directory)
+        self.assertEqual(external_snapshot(self.directory, scope='BRENT')['items'][0]['instruments'], ['BRENT', 'WTI'])
+        self.assertEqual(external_snapshot(self.directory, scope='EURUSD')['items'], [])
+        self.assertEqual(external_snapshot(self.directory, scope='GOLD')['items'], [])
+        self.assertTrue(external_history('oil-supply', self.directory)[0]['chart_icon_request_id'])
+        archived = archive_external('oil-supply', saved['id'], self.directory)
+        self.assertEqual(external_snapshot(self.directory, scope='WTI')['items'], [])
+        archive_external('oil-supply', archived['id'], self.directory, restore=True)
+        self.assertEqual(external_snapshot(self.directory, scope='WTI')['items'][0]['currencies'], [])
+        with self.assertRaises(ValueError): self.request(currencies=[], instruments=[])
+        with self.assertRaises(ValueError): self.request(currencies=[], instruments=['EURUSD'])
+
     def request(self, **overrides):
         data = dict(key='treasury-20260819-buybacks', title='Treasury long-end buybacks', currencies=['USD'],
                     kind='headline', status='confirmed', facts='Treasury announced larger liquidity-support operations.',
@@ -155,7 +168,7 @@ class ExternalSourcesTests(TestCase):
         app = create_app(run_collector=False, external_directory=self.directory)
         endpoint = lambda path: next(route.endpoint for route in app.routes if getattr(route, 'path', '') == path)
         capabilities = endpoint('/api/v1/external-capabilities')()
-        self.assertEqual(capabilities, dict(external_source_schema=2, chart_icon_requests=True, calendar_references=True, directory=str(self.directory.resolve())))
+        self.assertEqual(capabilities, dict(external_source_schema=3, chart_icon_requests=True, calendar_references=True, commodity_scopes=True, directory=str(self.directory.resolve())))
         # GET and POST share a path; select explicitly by method.
         save = next(route.endpoint for route in app.routes if getattr(route, 'path', '') == '/api/v1/external-sources' and 'POST' in route.methods)
         saved = save(self.request(show_on_chart=True))

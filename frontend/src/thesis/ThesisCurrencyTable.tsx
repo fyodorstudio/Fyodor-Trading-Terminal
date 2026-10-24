@@ -1,5 +1,6 @@
 import { memo } from 'react'
-import { currencyNewsHeading, currencyNewsItems, currencyReviewTiming, currencyUpcoming, opportunityWindow, reviewCurrencies, safeThesisLink, sharedOpportunityWindow, type ThesisReview, type ThesisSource } from './thesis-model'
+import { currencyNewsHeading, currencyNewsItems, currencyReviewTiming, currencyUpcoming, opportunitySelectionMessage, opportunityWindow, reviewCurrencies, safeThesisLink, sharedOpportunityWindow, type OpportunityEvidence, type ThesisReview, type ThesisSource } from './thesis-model'
+import { researchInstruments } from '../external-sources/research-instruments'
 
 const clock = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })
 const day = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', month: 'short', day: 'numeric', year: 'numeric' })
@@ -12,6 +13,15 @@ function Links({ sources }: { sources: ThesisSource[] }) {
     : <span key={index} title={source.locator}>{source.label} (local evidence)</span>)}</span>
 }
 
+function Evidence({ evidence }: { evidence?: OpportunityEvidence | null }) {
+  return evidence ? <details><summary>Investor incentives &amp; evidence</summary>
+    <p>Prior expectation: {evidence.expected_baseline}</p><p>New information / continuing driver: {evidence.new_information}</p>
+    <p>Remaining case: {evidence.remaining_case}</p><p>Potential buying / selling ({evidence.flow_basis}): {evidence.flow_channel}</p>
+    <p>Horizon: {evidence.horizon}</p><p>Market feedback: {evidence.market_feedback}</p>
+    <p>Verified {clock.format(new Date(evidence.verified_utc))} Jakarta. <Links sources={evidence.sources} /></p>
+  </details> : null
+}
+
 export const ThesisCurrencyTable = memo(function ThesisCurrencyTable({ review, selectedDate }: { review?: ThesisReview; selectedDate: string }) {
   const commonWindow = sharedOpportunityWindow(review?.entry_opportunities)
   return <div className="thesis-currency-view">
@@ -22,12 +32,23 @@ export const ThesisCurrencyTable = memo(function ThesisCurrencyTable({ review, s
         const direction = review.currency_views?.find(view => view.currency === item.currency)?.direction
         return <li key={item.currency} data-thesis-opportunity={item.currency}>
           <strong>{item.currency} · {direction?.verdict}</strong>
+          {item.stage && <p>{item.stage === 'active' ? 'Active opportunity' : 'Conditional opportunity'} · {item.activation}</p>}
           <p>{item.summary}</p>
           <p>{!commonWindow && <>{opportunityWindow(item)}. </>}{item.timing_note}</p>
           <p>Reassess if: {item.invalidation}</p>
           {direction && <Links sources={direction.sources} />}
+          <Evidence evidence={item.evidence} />
         </li>
-      })}</ol> : <p className="thesis-unassessed">{review ? 'Currency direction summary not yet saved for this date.' : 'Not filled'}</p>}
+      })}</ol> : !review?.commodity_opportunities?.length && <p className="thesis-unassessed">{opportunitySelectionMessage(review)}</p>}
+      {!!review?.commodity_opportunities?.length && <><h3>COMMODITY OPPORTUNITIES</h3><ol>{review.commodity_opportunities.map(item => <li key={item.instrument} data-thesis-commodity={item.instrument}>
+        <strong>{researchInstruments[item.instrument].label} · {item.verdict}</strong>
+        <p>{item.stage === 'active' ? 'Active opportunity' : 'Conditional opportunity'} · {item.activation}</p>
+        <p>{item.summary}</p><p>{item.symbol} · {item.provider} · {item.instrument_type.replaceAll('_', ' ')}. {item.contract_note}</p>
+        <p>{opportunityWindow(item)}. {item.timing_note}</p><p>Reassess if: {item.invalidation}</p><Evidence evidence={item.evidence} />
+        {!!item.checkpoints?.length && <ul>{item.checkpoints.map((checkpoint, index) => <li key={index}>
+          Upcoming: {checkpoint.title} · {checkpointTime(checkpoint.event_at, checkpoint.event_date)}. {checkpoint.note} <Links sources={checkpoint.sources} />
+        </li>)}</ul>}
+      </li>)}</ol></>}
     </section>
     {review && review.format !== 'daily_news' && <p className="thesis-currency-cutoff">Older assessment retained. Fill this date to save factual news summaries.</p>}
     <table className="thesis-currency-table" aria-label="Currency fundamental backdrop">

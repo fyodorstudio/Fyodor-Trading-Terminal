@@ -16,8 +16,9 @@ from test_analyst_tools import analyst
 class ExternalRuntimeTests(TestCase):
     def test_compatible_empty_runtime_same_directory_and_old_unreachable_runtime(self):
         directory = Path('isolated-external').resolve()
-        payload = dict(external_source_schema=2, chart_icon_requests=True, directory=str(directory))
-        opened = lambda *args, **kwargs: BytesIO(json.dumps(payload).encode())
+        payload = dict(external_source_schema=3, chart_icon_requests=True, commodity_scopes=True, directory=str(directory))
+        worker = dict(application='fyodor-alarms', external_source_schema=3, external_source_directory=str(directory))
+        opened = lambda url, **kwargs: BytesIO(json.dumps(worker if url.endswith('/alarms') else payload).encode())
         self.assertEqual(preflight(directory, opener=opened)['status'], 'compatible')
         payload['directory'] = str(directory.parent)
         self.assertFalse(preflight(directory, opener=opened)['can_write'])
@@ -35,6 +36,15 @@ class ExternalRuntimeTests(TestCase):
         self.assertFalse(result['chart_requests'])
         with self.assertRaises(ValueError):
             preflight(directory, 'https://example.com')
+
+    def test_old_alarm_worker_blocks_even_when_storage_is_updated_or_stopped(self):
+        directory = Path('isolated-external').resolve()
+        def opened(url, **kwargs):
+            self.assertTrue(url.endswith('/alarms'), 'Reject the old reader before authorizing shared-file writes')
+            return BytesIO(json.dumps(dict(application='fyodor-alarms', schedule_schema=2)).encode())
+        result = preflight(directory, opener=opened)
+        self.assertFalse(result['can_write'])
+        self.assertIn('restart the updated alarm worker', result['note'])
 
     def test_all_external_cli_mutations_stop_before_writing_on_incompatible_runtime(self):
         with TemporaryDirectory() as directory:

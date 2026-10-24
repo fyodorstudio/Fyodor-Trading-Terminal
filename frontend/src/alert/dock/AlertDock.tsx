@@ -40,7 +40,7 @@ export const AlertDock = memo(function AlertDock({ sourceId, alarms, focusKey = 
   const groups = useMemo(() => dayGroups(storage.events, external.items, date, sourceId, preferences), [storage.events, external.items, date, sourceId, preferences])
   const undated = useMemo((): AlertDayGroup[] => external.items.filter(item => externalDate(item) === null
     && (preferences.currency === 'all' || item.currencies.includes(preferences.currency))).map(item => ({ key: `external:${item.key}`,
-      title: item.title, currency: item.currencies.join(' / '), at: null, valueIds: [], external: [item] })), [external.items, preferences.currency])
+      title: item.title, currency: [...item.currencies, ...(item.instruments ?? [])].join(' / '), at: null, valueIds: [], external: [item] })), [external.items, preferences.currency])
   const times = useMemo(() => groups.flatMap(group => group.at === null ? [] : [group.at, group.at + 1]), [groups])
   const selectedIds = useMemo(() => alertSeriesIds(preferences), [preferences])
   const partial = storage.coverage && Object.entries(storage.coverage).some(([currency, value]) =>

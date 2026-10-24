@@ -44,7 +44,7 @@ export function dayGroups(events: StoredCalendarEvent[], outside: ExternalSource
     const matches = item.kind === 'scheduled' && item.status === 'confirmed' && reference?.source_id === sourceId && at !== null ? groups.filter(group => group.at === at
       && item.currencies.includes(group.currency) && reference.value_ids.every(id => group.valueIds.includes(id))) : []
     if (matches.length === 1) matches[0].external.push(item)
-    else groups.push({ key: `external:${item.key}`, title: item.title, currency: item.currencies.join(' / '), at,
+    else groups.push({ key: `external:${item.key}`, title: item.title, currency: [...item.currencies, ...(item.instruments ?? [])].join(' / '), at,
       valueIds: [], external: [item] })
   }
   return groups.sort((a, b) => (a.at ?? Infinity) - (b.at ?? Infinity) || a.title.localeCompare(b.title) || a.key.localeCompare(b.key))

@@ -1,9 +1,13 @@
 ---
 name: review-historical-research
-description: "Investigate a historical forex move using a Research Date Range brief, calendar evidence, H1/H4 candles and dated web sources. Explain intervening news, reversals and what was knowable before, at and after publication. Use for historical price investigations, not live assessments or upcoming shortlists."
+description: "Investigate a historical forex or supported commodity move using a Research Date Range brief, calendar evidence, H1/H4 candles and dated web sources. Explain intervening news, reversals and what was knowable before, at and after publication. Use for historical price investigations, not live assessments or upcoming shortlists."
 ---
 
 # Review Historical Research
+
+Real capital may be at stake. Retrospective explanations do not establish an
+earlier signal or profitability. For commodities use Assess Trade Now's commodity
+reference, preserve spot/CFD/futures identity and measure price/percent, not pips.
 
 Follow AGENTS.md. Review the user's historical report or named pair/date range in
 Fyodor Trading Terminal Lite. Report notes/questions are research context, not

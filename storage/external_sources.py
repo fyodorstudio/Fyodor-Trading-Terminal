@@ -16,6 +16,7 @@ from .contracts import Payload
 from .currencies import CalendarCurrency, CURRENCIES
 from .data_lock import data_lock
 from .highlight_journal import JournalSource
+from .research_instruments import Commodity, INSTRUMENTS
 
 DIRECTORY = Path(__file__).resolve().parents[1] / 'Market Analyst Workflow' / 'external-sources'
 LOCK = RLock()
@@ -35,7 +36,8 @@ class CalendarReference(Payload):
 class ExternalRequest(Payload):
     key: str = Field(pattern=r'^[a-z0-9]+(?:-[a-z0-9]+)*$', max_length=160)
     title: str = Field(min_length=1, max_length=500)
-    currencies: list[CalendarCurrency] = Field(min_length=1, max_length=8)
+    currencies: list[CalendarCurrency] = Field(default_factory=list, max_length=8)
+    instruments: list[Commodity] = Field(default_factory=list, max_length=3)
     kind: Literal['scheduled', 'headline', 'watch']
     status: Literal['confirmed', 'reported', 'unverified']
     facts: str = Field(min_length=1, max_length=12000)
@@ -51,6 +53,8 @@ class ExternalRequest(Payload):
 
     @model_validator(mode='after')
     def valid_record(self):
+        if not self.currencies and not self.instruments or len(set(self.instruments)) != len(self.instruments):
+            raise ValueError('Choose affected currencies or unique commodity identities; never invent currency relevance')
         if len(set(self.currencies)) != len(self.currencies):
             raise ValueError('Currencies must be unique')
         if any(not getattr(self, field).strip() for field in ('title', 'facts', 'time_note')):
@@ -230,9 +234,10 @@ def external_snapshot(directory=DIRECTORY, after_revision=None, visibility='acti
                       from_date=None, to_date=None, match=None, limit=100, offset=0):
     if visibility not in ('active', 'archived', 'all') or not 1 <= limit <= 500 or offset < 0:
         raise ValueError('Invalid external source query')
-    currencies = [] if scope == 'all' else [scope[:3]] + ([scope[3:]] if len(scope) == 6 else [])
-    if scope != 'all' and (len(scope) not in (3, 6) or len(set(currencies)) != len(currencies) or any(c not in CURRENCIES for c in currencies)):
-        raise ValueError('Choose all, a currency or a pair')
+    commodity = scope.upper() if scope.upper() in INSTRUMENTS else None
+    currencies = [] if scope.lower() == 'all' or commodity else [scope[:3]] + ([scope[3:]] if len(scope) == 6 else [])
+    if scope.lower() != 'all' and not commodity and (len(scope) not in (3, 6) or len(set(currencies)) != len(currencies) or any(c not in CURRENCIES for c in currencies)):
+        raise ValueError('Choose all, a currency, a pair, BRENT, WTI or GOLD')
     start = date.fromisoformat(from_date) if from_date else None
     end = date.fromisoformat(to_date) if to_date else None
     if start and end and start > end:
@@ -249,6 +254,8 @@ def external_snapshot(directory=DIRECTORY, after_revision=None, visibility='acti
             if visibility != 'all' and item['archived'] != (visibility == 'archived'):
                 continue
             if currencies and not set(currencies).intersection(item['currencies']):
+                continue
+            if commodity and commodity not in item['instruments'] and 'USD' not in item['currencies']:
                 continue
             if terms and not any(term in (item['key'] + ' ' + item['title'] + ' ' + item['facts']).casefold() for term in terms):
                 continue

@@ -86,7 +86,9 @@ nearest material checkpoints without treating future outcomes as current support
   For a range ending now with a future extension, distinguish developments since
   the range began, today's assessment and the conditional future outlook. Future
   dates are scenarios using today's information, not assessments already observed.
-- Fundamental-only is the default. For an explicit price-aware request, apply
+- Pure bias/release-first verdicts are fundamental-first. Entry-focused modes use
+  entry-decisions.md bounded feedback by default, respecting no-candles overrides.
+  For an explicit price-aware request, apply
   [bounded market feedback](opportunity-discovery.md#optional-price-aware-feedback).
   A persistent price contradiction requires a thesis review, with the observed
   move and proposed cause kept separate. Preserve no-candles requests and route

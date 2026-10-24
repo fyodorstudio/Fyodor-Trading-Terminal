@@ -9,7 +9,7 @@ news subscription or continuous monitor.
 ## Discover beneficiaries before the retrospective headline
 
 Alongside the requested pair, briefly sweep USD, EUR, GBP, JPY, CHF, CAD, AUD and
-NZD for fresh policy/news catalysts and changing global conditions. Use dated
+NZD plus material Brent/WTI and gold catalysts for fresh policy/news catalysts and changing global conditions. Use dated
 market reporting and official communications, including off-calendar developments.
 Search the past 24 hours and nearer session developments; retain older active
 context with its original date. Identify who benefits and who loses through
@@ -53,6 +53,10 @@ unwinding, repatriation or foreign capital inflows without evidence. A strong
 bond auction alone is not proof of FX buying. One decisive verified development
 can establish a candidate; multiple syndications are not independent confirmation.
 
+For a bare invocation lead with active opportunities using entry decisions.
+LOOK HERE NEXT retains emerging/conditional candidates; commodity candidates
+follow [their focused workflow](commodities.md). No entry quota applies.
+
 ## LOOK HERE NEXT
 
 Surface up to three supported directional candidates near the top of the answer:
@@ -80,11 +84,12 @@ Standalone attention cues do not establish strength against all seven currencies
 For JPYX or another named index, verify provider, constituents, weights and quote
 direction before index-specific claims; USDJPY alone is not that basket.
 
-## Optional price-aware feedback
+## Bounded price-aware feedback
 
-Fundamental-only is the default. An explicit price-aware request (including an
-explicit request to assess a supplied chart) permits that chart or a bounded price
-window. A simple attachment or claim that price rose supplies user context; it
+Pure bias/release-first assessments are fundamental-first. Entry-focused modes
+permit bounded feedback by default under [entry decisions](entry-decisions.md);
+explicit fundamental-only/no-candles requests take precedence. An explicit
+price-aware request also permits its supplied chart or bounded price window. A simple attachment or claim that price rose supplies user context; it
 does not silently override an explicit no-candles request. No browser/screenshot
 UI audit is implied. Use the supplied artifact or terminal evidence when authorized.
 

@@ -87,7 +87,8 @@ keep the supported current bias separate from the absence of a new catalyst.
 Suggested return times do not create alarms or coverage. State the checked window
 and specific unresolved source gaps; incomplete coverage cannot support an all-clear.
 
-Fundamental-only is the default. An explicit price-aware request permits the
-parent's bounded market-feedback check; honor no-candles overrides. Keep chart
+Pure holding-risk/bias reviews are fundamental-first. Entry/next-opportunity
+requests permit the parent entry-decisions.md bounded feedback by default;
+explicit fundamental-only/no-candles overrides win. Keep chart
 levels, technical entries, stops, sizing and trade execution with the user. Full journals
 and Thesis writes still need their own request; no service restarts or monitoring.

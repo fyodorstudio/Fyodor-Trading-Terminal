@@ -16,6 +16,17 @@ class HighlightMetadataTests(TestCase):
     tearDown = fixtures.ResearchReportsTests.tearDown
     add = fixtures.ResearchReportsTests.add
 
+    def test_same_clock_resolution_is_not_reopened_by_uuid_order(self):
+        from types import SimpleNamespace
+        opened = self.limitation(checked_utc='2026-10-23T00:00:00Z')
+        resolved = self.limitation(checked_utc='2026-10-23T00:00:00Z', status='resolved')
+        with patch('storage.highlight_metadata.datetime') as clock, patch('storage.highlight_metadata.uuid4', side_effect=[SimpleNamespace(hex='f'*32), SimpleNamespace(hex='a'*32)]):
+            clock.now.return_value = datetime(2026, 10, 24, 19, 0, tzinfo=timezone.utc)
+            clock.fromisoformat.side_effect = datetime.fromisoformat
+            append_limitation('Elev8-Demo2', opened, self.directory/'highlights.json')
+            append_limitation('Elev8-Demo2', resolved, self.directory/'highlights.json')
+        self.assertEqual(limitations_snapshot('Elev8-Demo2', self.directory/'highlights.json')['items'][0]['status'], 'resolved')
+
     def pin(self):
         self.add([event('one',currency='USD')])
         self.path = self.directory/'highlights.json'

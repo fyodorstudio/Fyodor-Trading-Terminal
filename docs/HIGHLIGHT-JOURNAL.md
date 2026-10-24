@@ -217,6 +217,9 @@ snapshot with capture provenance. Those readings are captured at save time (or a
 archive time), not reconstructed evidence available at the research-as-of instant.
 Verify release-day vintages independently. Optional correction_of names an earlier
 entry of the same phase/scope; corrections never rewrite that entry.
+New journals, prompt templates and limitations retain a writer-assigned append
+index so equal Windows wall clocks cannot reorder versions or reopen a resolved
+limitation. Actual save clocks stay unchanged; older files are read without migration.
 
 Version-1 pins remain readable without migration writes; lifecycle mutations
 atomically save version 2. Writes use an interprocess metadata lock; a conflict

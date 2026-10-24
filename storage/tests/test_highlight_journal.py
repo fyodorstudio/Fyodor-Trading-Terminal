@@ -15,6 +15,19 @@ class JournalTests(TestCase):
     tearDown = fixtures.ResearchReportsTests.tearDown
     add = fixtures.ResearchReportsTests.add
 
+    def test_equal_wall_clocks_preserve_append_order_without_invented_times(self):
+        from types import SimpleNamespace
+        identity = self.seed()
+        actual_clock = datetime(2026, 10, 24, 19, 0, tzinfo=timezone.utc)
+        with patch('storage.highlight_journal.datetime') as clock, patch('storage.highlight_journal.uuid4', side_effect=[SimpleNamespace(hex='f'*32), SimpleNamespace(hex='a'*32)]):
+            clock.now.return_value = actual_clock
+            clock.fromisoformat.side_effect = datetime.fromisoformat
+            first = append_journal(self.store, identity, 'Elev8-Demo2', self.research(), self.path)
+            second = append_journal(self.store, identity, 'Elev8-Demo2', self.research(phase='after'), self.path)
+        entries = read_journal(identity, self.path)
+        self.assertEqual([item['id'] for item in entries], [first['id'], second['id']])
+        self.assertEqual(entries[0]['saved_utc'], entries[1]['saved_utc'])
+
     def test_upcoming_family_index_covers_full_source_inventory(self):
         from test_analyst_tools import analyst
         from upcoming import family_index

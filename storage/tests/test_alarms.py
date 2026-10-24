@@ -188,6 +188,8 @@ class AlarmTests(TestCase):
                     return messages[0]['status'], json.loads(b''.join(m.get('body', b'') for m in messages[1:]))
                 _, data = await request()
                 self.assertEqual(data['application'], 'fyodor-alarms')
+                self.assertEqual(data['external_source_schema'], 3)
+                self.assertTrue(data['external_source_directory'])
                 denied, _ = await request('POST', {'action': 'test'}, {'origin': 'https://evil.example', 'content-type': 'application/json'})
                 self.assertEqual(denied, 403)
                 self.assertEqual((await request('POST', {'action': 'test'}, {}))[0], 415)

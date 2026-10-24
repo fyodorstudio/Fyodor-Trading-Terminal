@@ -26,8 +26,9 @@ chart clock/DST profile; source dates remain date-only and untimed watch items
 have no marker. Pan, zoom and future-space projection do not insert price candles.
 No live news
 ingestion or background headline monitoring is supplied by this collection.
-Confirmed scheduled records with a verified exact event time automatically receive
-one Invoke alarm two minutes before each stage through the independent [alarm worker](EVENTS-ALARMS.md).
+A confirmed scheduled record with a verified exact time can have one opt-in Invoke
+alarm (two minutes before by default) through the [alarm worker](EVENTS-ALARMS.md).
+New events start off; research pins and chart icons never arm a reminder.
 Date-only and unverified schedules remain visible without a timed alarm.
 
 Agents write records; the UI displays facts, dated interpretation, source links,
@@ -37,7 +38,7 @@ from Highlight. Search covers titles, facts, currencies,
 status and sources. Research details/history expand beneath a row; the dock remains
 resizable and scrollable as records grow. Cards, details, data loading and chart
 preferences have separate owners so future record categories can reuse the layout.
-Refresh both currencies before treating an old interpretation as current.
+Refresh both currency stories or the commodity mechanism before treating an old interpretation as current.
 
 **Show icon on chart** is a browser display preference per stable record key, shared
 across matching pairs and surviving reloads. USD-only records show only on USD
@@ -67,12 +68,25 @@ strict storage/alarm readers keep reading the original record schema. Existing
 inline requests remain readable; no history migration is required.
 
 Before analyst writes, `external preflight` probes the running storage capability
-and verifies the shared directory. Every external CLI mutation enforces that check.
+and verifies the shared directory. It also checks the active alarm worker's
+External Source reader schema/directory (FYODOR_ALARM_PORT, default 8003); an old
+or unverifiable worker blocks writes even if storage was restarted. A stopped
+worker permits persistence without claiming alarm delivery. Every external CLI
+mutation enforces these checks.
 An older service, directory mismatch, timeout or malformed reply blocks the write
 before files change. A refused connection permits offline persistence, with live
 delivery unverified. Load the updated backend/UI before using chart requests;
 research does not authorize a service restart. Internal Python writers are for
 the storage service and isolated tests, not a preflight bypass in analyst work.
+
+Commodity records may use `instruments: ["BRENT", "WTI"]` or `["GOLD"]` with
+empty `currencies` when no independent currency impact is established. At least
+one currency or instrument is required. Query with `external --scope BRENT`,
+WTI or GOLD; commodity scope includes USD macro context without implying USD bias.
+All/search views retain instrument-only records; currency filters stay currency
+specific. Chart aliases are shared in config/research-instruments.json and route
+commodity records to their matching charts; no commodity is added to the forex
+catalog. Schema-3 runtime compatibility is required before new CLI writes.
 
 ## Agent commands
 
@@ -92,8 +106,8 @@ List supports --match, --limit and --offset; follow next_offset. Dates are inclu
 UTC days; date-only records retain their source date. Undated watch items remain
 visible in dated scans. Read returns newest versions first, with pagination.
 
-Append input: key (stable lowercase slug), title, currencies (one or more of the
-eight majors), kind (scheduled/headline/watch), status (confirmed/reported/unverified),
+Append input: key (stable lowercase slug), title, affected currencies and/or
+instruments (at least one supported identity), kind (scheduled/headline/watch), status (confirmed/reported/unverified),
 facts, optional interpretation, time_note, and sources. Sources use kind (web/local),
 label, locator and optional note; at least one direct HTTP(S) web source is required.
 Local sources must be absolute paths inside Lite. Preserve source availability

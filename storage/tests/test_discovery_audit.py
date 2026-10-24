@@ -68,6 +68,22 @@ class DiscoveryAuditTests(TestCase):
         self.event['surface'] = False
         self.assert_invalid('imminent/just-elapsed stage was omitted')
 
+    def test_commodity_receipt_requires_physical_sources_and_independent_instrument_pin(self):
+        self.receipt['scope'] = 'BRENT'
+        self.event.update(currencies=[], instruments=['BRENT'], source_ids=['brent-supply-demand'])
+        self.stored.update(currencies=[], instruments=['BRENT'])
+        for family, currency in required_sources('BRENT'):
+            identity = f'{currency.lower()}-{family}'
+            if currency == 'ALL' or any(s['id'] == identity for s in self.sources): continue
+            path = self.directory / (identity + '.txt'); path.write_text('Opened commodity evidence', encoding='utf-8')
+            self.sources.append(dict(id=identity, family=family, currency=currency, status='checked',
+                checked_utc='2026-10-21T17:18:00Z', evidence_path=path.name,
+                url='https://www.eia.gov/', retrieval_method='fixture publisher'))
+        self.assertTrue(self.validate()['valid'])
+        self.assert_invalid('active scoped external pin', stored={**self.stored, 'instruments': ['GOLD']})
+        self.sources[:] = [s for s in self.sources if s['family'] != 'market-structure']
+        self.assert_invalid('Missing required source: BRENT market-structure')
+
     def test_macro_backdrop_does_not_replace_treasury_coverage_or_opened_evidence(self):
         self.sources[:] = [s for s in self.sources if s['id'] != 'usd-treasury-buybacks']
         self.assert_invalid('Missing required source: USD treasury-buybacks')
@@ -171,6 +187,10 @@ class DiscoveryAuditTests(TestCase):
         longer = capture(self.directory, self.directory / 'longer', 'EURUSD', 'fixture-broker', days=120, runner=runner)
         self.assertEqual(json.loads(Path(longer['path']).read_text())['horizon_days'], 120)
         self.assertIn('90', calls[-1], 'Longer web horizons retain the bounded broker query')
+        oil = capture(self.directory, self.directory / 'oil', 'BRENT', 'fixture-broker', runner=runner)
+        self.assertIn('USD', calls[-1], 'Commodity macro index retains its real currency identity')
+        self.assertIn('BRENT', calls[-2], 'Commodity external query uses the instrument identity')
+        self.assertEqual(oil['pending_web_checks'], 9, 'Six USD and three commodity source families are required')
         pages = iter([dict(items=[{'id': 1}], matches=2, next_offset=1, revision='a'),
                       dict(items=[{'id': 2}], matches=2, next_offset=None, revision='a')])
         full = collect_pages(lambda args: next(pages), ['external'], 1)

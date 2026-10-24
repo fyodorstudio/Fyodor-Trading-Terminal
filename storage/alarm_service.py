@@ -104,7 +104,9 @@ def create_alarm_app(directory=ALARM_DIRECTORY, loader=None, notify=None, clock=
 
     @app.get('/alarms')
     def snapshot():
-        return app.state.engine.snapshot()
+        from .external_sources import DIRECTORY
+        return {**app.state.engine.snapshot(), 'external_source_schema': 3,
+                'external_source_directory': str(DIRECTORY.resolve())}
 
     @app.post('/alarms')
     async def update(request: Request):

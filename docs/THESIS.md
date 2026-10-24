@@ -4,8 +4,10 @@ Thesis saves research only when requested. The month selector offers **JUL / OCT
 2026**; the day selector uses the month's actual length. Across All Currency shows
 one row each for USD, EUR, GBP, JPY, CHF, CAD, AUD and NZD:
 **Currency | DD:MM:YYYY FUNDAMENTAL | SOURCE | UPCOMING CHECKPOINT**.
-**TRADE ENTRY OPPORTUNITY** appears first: strongest standalone currency directions,
-with a brief reason, same-day Jakarta window and what would overturn the case.
+**TRADE ENTRY OPPORTUNITY** appears first: supported standalone currency and optional
+commodity entries with active/conditional status, investor incentives, sources,
+same-day Jakarta windows and invalidation. Real capital may be at stake: a
+directional bias must not force an entry. An empty selection has `opportunity_gap`.
 No pair scan, cross selection or numeric ranking is involved. Each Fundamental
 cell starts with **POTENTIAL STRENGTHENING** or **POTENTIAL WEAKENING** for that day
 and its dominant reason. Choose one: a preference for caution, opposing indicators
@@ -110,7 +112,7 @@ and direct `sources`. Explain the dominant mechanism and material opposition;
 still-active older evidence retains its original date and belongs in direction
 sources rather than being counted as same-day news.
 
-Require nonempty `entry_opportunities`, strongest currency first. Each has
+Select zero or more `entry_opportunities`, strongest supported currency first. Each has
 `currency`, `summary`, `starts_at`, `ends_at`, `timing_note` and `invalidation`.
 Direction and sources come from its currency row. Windows need explicit offsets,
 start before end, and both instants on the selected Jakarta date. Current windows
@@ -125,6 +127,25 @@ or reassessment trigger. Do not restate dates, window bounds or generic timing c
 Today uses the real research cutoff. Past dates require `provenance:
 "reconstruction"`, a provenance note and their historical cutoff (end of Jakarta
 day when no hour was specified). The writer assigns the real `saved_utc`.
+
+New entries require `stage` (`active` or `conditional`), `activation`, and
+`evidence`: `expected_baseline`, `new_information` (or continuing driver),
+`remaining_case`, `flow_channel`, `flow_basis` (`observed`, `reported`, `inferred`),
+`horizon`, `market_feedback`, real `verified_utc` and direct `sources`. Keep pricing
+or feedback gaps explicit. Never fabricate private flows. A remaining-day research
+window does not instruct holding until midnight. Closed-market next-session ideas
+outside this date belong in chat/Upcoming.
+
+Optional `commodity_opportunities` use those same window/stage/evidence fields
+plus `instrument` (`BRENT`, `WTI`, `GOLD`), exact `symbol`, `provider`,
+`instrument_type` (`spot`, `spot_cfd`, `futures`, `futures_cfd`), `contract_note`
+(expiry/roll/benchmark relationship), `verdict` (BUY/SELL, optionally STRONG), and
+optional scheduled `checkpoints` under the currency checkpoint clock/source rules.
+Quote currency alone is not fundamental USD relevance; keep commodity sources
+separate. Avoid duplicate Brent/WTI versions of one mechanism. When both entry
+lists are empty require nonblank `opportunity_gap` on a new save. All eight currency
+directions stay required. Old snapshots remain readable without invented status
+or evidence and are never rewritten to populate these fields.
 
 Each currency view contains `currency`, `direction`, `news`, optional `news_gap`,
 and `checkpoints`. Each news item has:

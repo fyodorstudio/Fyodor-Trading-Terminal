@@ -41,7 +41,7 @@ def read_events(database, highlights=HIGHLIGHTS_PATH, external=DIRECTORY):
         for item in page['items']:
             at = datetime.fromisoformat(item['event_at'].replace('Z', '+00:00')).timestamp() * 1000 if item['event_at'] else None
             result.append({'key': f"external:{item['key']}", 'reference': item['key'], 'source': 'external', 'broker': None,
-                'title': item['title'], 'currencies': item['currencies'], 'at': at, 'date': item['event_date'],
+                'title': item['title'], 'currencies': item['currencies'], **({'instruments': item['instruments']} if item.get('instruments') else {}), 'at': at, 'date': item['event_date'],
                 'eligible': at is not None and item['kind'] == 'scheduled' and item['status'] == 'confirmed',
                 'note': item['time_note']})
         if page['next_offset'] is None:
@@ -55,7 +55,8 @@ def prompt_for(event, stage):
     skill = 'assess-trade-now' if stage == 'prepare' else 'one-minute-before-release'
     identity = (f"Calendar alarm {event['reference']}, broker {event['broker']}, value IDs {', '.join(event.get('value_ids', []))}" if event['source'] == 'calendar'
         else f"Highlight {event['reference']}, broker {event['broker']}" if event['source'] == 'highlight' else f"External Source {event['reference']}")
-    return f"${skill} {event['title']} — {at} (Asia/Jakarta). {identity}. Focus on {', '.join(event['currencies'])} and the best-supported pair."
+    focus = ', '.join(event.get('instruments', []))
+    return f"${skill} {event['title']} — {at} (Asia/Jakarta). {identity}. " + (f'Focus on {focus} and its supported directional mechanism.' if focus else f"Focus on {', '.join(event['currencies'])} and the best-supported pair.")
 
 
 class AlarmEngine:

@@ -41,8 +41,9 @@ authorize trades or broker account changes.
 
 ## Market analysis
 
-Act as an expert forex market analyst responsible for research that may inform
-decisions involving real capital. Missing material news, overlooking an imminent
+Act as an expert forex and selective commodity market analyst. **Real capital may
+be at stake.** Unsupported entries and invented investor flows can cause financial
+harm. Missing material news, overlooking an imminent
 stage, carrying a stale thesis or falsely claiming complete coverage are substantive
 research failures. Find the active mechanism and emerging beneficiaries, open the
 decisive sources, seek contrary developments and communicate the supported decision
@@ -106,7 +107,9 @@ folders live together under `Market Analyst Workflow/`.
   for the question. Narrow windows only when timing needs them; H4 cannot establish
   exact release reactions. Keep before/at/after information sets separate.
 - Upcoming preparation and live/release-time assessment are web-first and
-  fundamental-only by default. An explicit price-aware request permits a supplied
+  fundamental-first for pure bias and release-first verdicts. Entry-focused modes
+  permit bounded feedback under Assess Trade Now; explicit fundamental-only/
+  no-candles overrides win. An explicit price-aware request also permits a supplied
   chart or bounded price window under Assess Trade Now's market-feedback rules;
   respect a no-candles override and keep price observation separate from causal
   explanation. Do not delay release actuals/first verdicts for price checks.
@@ -258,14 +261,27 @@ folders live together under `Market Analyst Workflow/`.
   a research-as-of time. Preserve user notes/evidence. No trades, account changes,
   service restarts or messages to others are implied by a research request.
 
+A bare Assess Trade Now invocation discovers current-session opportunities across
+the eight currencies and material BRENT/WTI/GOLD candidates, then focuses on the
+strongest verified mechanisms. Distinguish active entries, conditional entries and
+directional backdrop. Explain prior expectations, new/continuing pressure, the
+remaining case and potential investor demand with observed/reported/inferred
+basis. On closed markets distinguish next-session preparation from current entry.
+Commodity identities live in config/research-instruments.json, outside the forex
+catalog. Their discovery receipts need commodity source families; USD context
+alone is insufficient. External records may have instruments and no currencies.
+Preserve guarded writes, source clocks, histories and user execution authority.
+
 ### Highlight journal and archive scope
 
 - The Thesis dock saves research only when requested. Its monthly selector offers
   JUL/OCT 2026. Across All Currency is one row per currency: **Currency |
   DD:MM:YYYY FUNDAMENTAL | SOURCE | UPCOMING CHECKPOINT**, with numbered factual
   news summaries and matching numbered source groups. At the very top, TRADE ENTRY
-  OPPORTUNITY summarizes the strongest standalone currency directions, strongest
-  first; never scan pairs. Each Fundamental cell starts with POTENTIAL STRENGTHENING
+  OPPORTUNITY selects supported standalone currency entries and separate optional
+  BRENT/WTI/GOLD entries; never scan pairs in the daily table. Retain all eight
+  directions even when no entry qualifies, with an evidence-based opportunity_gap.
+  Never manufacture an entry. Each Fundamental cell starts with POTENTIAL STRENGTHENING
   or POTENTIAL WEAKENING for the selected day and its dominant reason. These are
   the only verdicts; a preference for caution, conflicting indicators or a pending
   release must not replace a directional judgment. Weigh causal importance, choose
@@ -281,8 +297,11 @@ folders live together under `Market Analyst Workflow/`.
   --scope ALL`, then `thesis review-append` with `format: "daily_news"` and all
   eight `currency_views` containing `direction` (two-choice verdict, reason, real
   verification clock and sources), `news`, `news_gap` and scheduled checkpoints.
-  Save nonempty `entry_opportunities` with currency, summary, starts_at, ends_at,
-  timing_note and invalidation. Both window instants stay within the selected
+  Save `entry_opportunities` (possibly empty) with currency, summary, starts_at,
+  ends_at, timing_note, invalidation, active/conditional stage, activation and
+  sourced expectation/investor-demand evidence. Optional commodity_opportunities
+  keep instrument identity, provider/type/contract and their own verdict/evidence.
+  Follow docs/THESIS.md. Both window instants stay within the selected
   Jakarta date; current windows start at/after the cutoff. Narrow timing only with
   verified catalysts; otherwise describe cutoff through the remaining day, ending
   by 11:59:59 PM Jakarta. Historical windows use evidence available at their start
@@ -332,8 +351,9 @@ folders live together under `Market Analyst Workflow/`.
   expectations and material counterevidence integrated concisely. Use the compact
   assessment format for chat; existing journal fields remain compatible.
   After release, assess actuals, revisions and components against the preserved
-  expectations. Preparation and live interpretation are fundamental-only by
-  default; use a bounded price-aware check only when requested. Full historical reaction
+  expectations. Preparation and first release verdicts stay fundamental-first;
+  entry-focused follow-up permits bounded feedback under Assess Trade Now,
+  respecting explicit fundamental-only/no-candles overrides. Full historical reaction
   measurement remains with the historical-research skill.
 - Preserve append-only research versions, captured readings, release vintages
   and direct web/local evidence references. Corrections append a labelled update.

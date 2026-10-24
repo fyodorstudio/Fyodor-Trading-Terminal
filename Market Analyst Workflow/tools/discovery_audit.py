@@ -8,6 +8,7 @@ from pathlib import Path
 import subprocess
 import sys
 from urllib.parse import urlsplit
+from storage.research_instruments import INSTRUMENTS
 
 CURRENCIES = ('USD', 'EUR', 'GBP', 'JPY', 'CHF', 'CAD', 'AUD', 'NZD')
 LOCAL_FAMILIES = ('highlights', 'limitations', 'external', 'upcoming')
@@ -22,6 +23,8 @@ def instant(value):
 
 def currencies(scope):
     scope = scope.upper()
+    if scope in INSTRUMENTS:
+        return ['USD']  # Quotation/funding macro coverage, not a claim of USD directional impact.
     result = list(CURRENCIES) if scope == 'ALL' else [scope[:3]] + ([scope[3:]] if len(scope) == 6 else [])
     if scope != 'ALL' and len(scope) not in (3, 6) or any(x not in CURRENCIES for x in result) or len(set(result)) != len(result):
         raise ValueError('Choose ALL, a supported currency or a pair')
@@ -34,6 +37,8 @@ def required_sources(scope):
         required.extend((family, currency) for family in ('news', 'policy', 'statistics'))
         if currency == 'USD':
             required.extend((family, currency) for family in ('treasury-auctions', 'treasury-buybacks', 'market-operations'))
+    if scope.upper() in INSTRUMENTS:
+        required.extend((family, scope.upper()) for family in ('commodity-news', 'supply-demand', 'market-structure'))
     return required
 
 
@@ -87,7 +92,7 @@ def capture(root, output, scope, broker, cutoff=None, days=7, read_only=False, r
         'limitations': (['limitations', '--broker', broker], 100),
         'external': (['external', '--scope', scope.lower() if scope.upper() == 'ALL' else scope.upper(), '--visibility', 'all'], 500),
         # Include the boundary day so a rolling seven-day horizon does not lose overnight stages.
-        'upcoming': (['upcoming', '--broker', broker, '--scope', scope.lower() if scope.upper() == 'ALL' else scope.upper(),
+        'upcoming': (['upcoming', '--broker', broker, '--scope', 'USD' if scope.upper() in INSTRUMENTS else scope.lower() if scope.upper() == 'ALL' else scope.upper(),
                       '--as-of', cutoff, '--days', str(min(90, days + 1))], 500),
     }
     sources, gaps = [], []
@@ -215,7 +220,9 @@ def validate_receipt(receipt, directory, external_lookup, highlight_lookup, now=
     for event in events:
         name = event['key']
         affected = set(event.get('currencies', []))
-        if not affected or not affected.intersection(scope) or not affected.issubset(CURRENCIES):
+        instruments = set(event.get('instruments', []))
+        commodity_match = receipt['scope'] in instruments and receipt['scope'] in INSTRUMENTS
+        if not affected.issubset(CURRENCIES) or not instruments.issubset(INSTRUMENTS) or not (affected.intersection(scope) or commodity_match):
             errors.append(f'{name}: candidate does not match the requested currency scope')
         links = event.get('source_ids', [])
         if not links or any(x not in indexed or not (indexed[x].get('status') == 'checked'
@@ -262,7 +269,7 @@ def validate_receipt(receipt, directory, external_lookup, highlight_lookup, now=
                 errors.append(f'{name}: pin was deferred until after backdrop work')
         if pin.get('source') == 'external':
             stored = external_lookup(pin.get('reference'))
-            if not stored or stored.get('archived') or not set(stored.get('currencies', [])).intersection(affected):
+            if not stored or stored.get('archived') or not (set(stored.get('currencies', [])).intersection(affected) or set(stored.get('instruments', [])).intersection(instruments)):
                 errors.append(f'{name}: active scoped external pin was not found')
                 continue
             actual_at = instant(stored['event_at']) if stored.get('event_at') else None

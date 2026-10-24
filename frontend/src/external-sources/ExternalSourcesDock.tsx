@@ -62,7 +62,7 @@ function ExternalEventsDock({ timeDisplay, focusKey = null, renderHeader, render
   const visibility = useExternalIconVisibility()
   const terms = useMemo(() => search.toLocaleLowerCase().trim().split(/\s+/).filter(Boolean), [search])
   const filtered = useMemo(() => !terms.length ? records.items : records.items.filter(item => {
-    const text = [item.title, item.key, ...item.currencies, item.kind, item.status, item.facts, item.interpretation,
+    const text = [item.title, item.key, ...item.currencies, ...(item.instruments ?? []), item.kind, item.status, item.facts, item.interpretation,
       ...item.sources.flatMap(source => [source.label, source.locator])].join(' ').toLocaleLowerCase()
     return terms.every(term => text.includes(term))
   }), [records.items, terms])

@@ -270,7 +270,7 @@ def parser():
     upcoming.add_argument('--limit', type=int, choices=range(1,501), default=20)
     upcoming.add_argument('--offset', type=int, default=0)
     candles = commands.add_parser('ohlc', help='Fetch a bounded UTC window or reuse saved candles; print a small summary')
-    candles.add_argument('--pair', default='EURUSD')
+    candles.add_argument('--pair', default='EURUSD', help='Forex pair or canonical commodity BRENT, WTI, GOLD; commodities require --symbol')
     candles.add_argument('--symbol', help='Exact MT5 symbol when the broker uses a suffix')
     candles.add_argument('--timeframe', choices=['M1','M5','M15','M30','H1','H4','D1'], default='M1')
     candles.add_argument('--from', dest='from_utc')
@@ -309,7 +309,7 @@ def parser():
     external.add_argument('--key')
     external.add_argument('--input', help='ExternalRequest JSON inside Lite; append requires this')
     external.add_argument('--expected-version', help='Latest version ID; required for archive/restore/show-on-chart')
-    external.add_argument('--scope', default='all', help='all, a currency or a pair')
+    external.add_argument('--scope', default='all', help='all, a currency, a pair, BRENT, WTI or GOLD')
     external.add_argument('--visibility', choices=['active', 'archived', 'all'], default='active')
     external.add_argument('--from', dest='from_date', help='Inclusive UTC day (date-only records retain source date)')
     external.add_argument('--to', dest='to_date')
@@ -485,6 +485,9 @@ def run(args):
             return {'evidence_path': str(local_path(args.input)), 'reused_saved_capture': True, **summarize(data, args.event)}
         if not args.from_utc or not args.to_utc:
             raise ValueError('OHLC needs --from and --to UTC instants, or --input')
+        from storage.research_instruments import INSTRUMENTS
+        if args.pair in INSTRUMENTS and not args.symbol:
+            raise ValueError('Commodity captures need the verified exact broker --symbol; never assume a futures contract or CFD alias')
         folder = None
         expected_broker = None
         if args.report:

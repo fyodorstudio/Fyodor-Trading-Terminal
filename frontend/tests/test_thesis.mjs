@@ -129,8 +129,8 @@ try {
   let markdown = await blobs.at(-1).text()
   assert.ok(markdown.includes('## Continue with another AI'))
   assert.ok(markdown.includes('No mandatory entry-date gate'))
-  assert.ok(markdown.includes('Fundamental-only is the default'))
-  assert.ok(markdown.includes('explicit price-aware request permits bounded market feedback'))
+  assert.ok(markdown.includes('Pure bias and release-first verdicts are fundamental-first'))
+  assert.ok(markdown.includes('entry-focused modes permit bounded feedback'))
   assert.ok(markdown.includes('LOOK HERE NEXT'))
   assert.ok(markdown.includes('RETAINED or REVERSED'))
   assert.ok(!markdown.includes('Give STRONG BUY / BUY / MIXED / SELL / STRONG SELL'))
@@ -415,6 +415,38 @@ try {
   const exportedOpportunities = markdown.split('## TRADE ENTRY OPPORTUNITY')[1].split('| Currency |')[0]
   assert.equal(exportedOpportunities.match(/11:59 PM/g)?.length, 1, 'Export shares the same compact timing')
   const sharedReview = review
+  review = { ...structuredClone(sharedReview), entry_opportunities: [], opportunity_gap: 'Markets closed; no supported entry in the selected day.' }
+  revision = 'no-entry-with-directions'; await poll()
+  assert.equal(container.querySelectorAll('.thesis-currency-direction').length, 8, 'No entry selection retains eight supported directions')
+  assert.equal(container.querySelectorAll('[data-thesis-opportunity]').length, 0)
+  assert.ok(container.textContent.includes(review.opportunity_gap))
+  assert.ok(thesisMarkdown({ ...allSnapshot, reviews: [review] }, '2026-10-20T00:00:00Z', null, '2026-10-19').includes(review.opportunity_gap))
+  review = structuredClone(review) // Model a fresh JSON response, preserving the prior polling snapshot.
+  const commodityEvidence = { expected_baseline: 'Shipping normalization was anticipated.', new_information: 'Verified renewed disruption.',
+    remaining_case: 'Reduced inventory buffers prolong supply pressure.', flow_channel: 'Potential demand for oil exposure; no private orders observed.',
+    flow_basis: 'inferred', horizon: 'Selected session', market_feedback: 'Futures pricing unavailable; no execution level established.',
+    verified_utc: '2026-10-20T01:00:00Z', sources: [source(1)] }
+  review.commodity_opportunities = [{ instrument: 'BRENT', symbol: 'SpotBrent', provider: 'Fixture broker', instrument_type: 'spot_cfd',
+    contract_note: 'Broker CFD, not front-month settlement.', verdict: 'BUY', summary: 'Supported supply disruption candidate.',
+    stage: 'conditional', activation: 'Verify export disruption persists at reopening.', evidence: commodityEvidence,
+    starts_at: '2026-10-19T08:00:00Z', ends_at: '2026-10-19T16:59:59Z', timing_note: 'Research window only.', invalidation: 'Verified exports normalize.',
+    checkpoints: [{ ...reviewEntry.currency_views[0].checkpoints[0], title: 'Inventory release' }] }]
+  review.opportunity_gap = ''
+  assert.equal(validThesisSnapshot({ ...allSnapshot, reviews: [review] }, 'ALL', '2026-10', null), true)
+  revision = 'commodity-candidate'; await poll()
+  assert.equal(container.querySelectorAll('[data-thesis-commodity]').length, 1)
+  assert.ok(container.textContent.includes('Conditional opportunity'))
+  assert.ok(container.textContent.includes('Potential buying / selling (inferred)'))
+  assert.ok(container.textContent.includes('Inventory release'))
+  const commodityExport = thesisMarkdown({ ...allSnapshot, reviews: [review] }, '2026-10-20T00:00:00Z', null, '2026-10-19')
+  assert.ok(commodityExport.includes('SpotBrent') && commodityExport.includes('no private orders observed'))
+  for (const mutate of [value => value.commodity_opportunities[0].instrument = 'USD',
+    value => value.commodity_opportunities[0].evidence.verified_utc = '2099-01-01T00:00:00Z',
+    value => value.commodity_opportunities[0].checkpoints[0].event_at = '2026-10-19T07:00:00Z']) {
+    const invalid = structuredClone(review); mutate(invalid)
+    assert.equal(validThesisSnapshot({ ...allSnapshot, reviews: [invalid] }, 'ALL', '2026-10', null), false)
+  }
+  review = sharedReview
   review = structuredClone(review)
   review.entry_opportunities[1].starts_at = '2026-10-19T09:00:00Z'
   review.entry_opportunities[1].ends_at = '2026-10-19T12:00:00Z'

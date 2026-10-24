@@ -37,6 +37,7 @@ class SavedPrompt(PromptRequest):
     highlight_id: str = Field(pattern=r'^[0-9a-f]{32}$')
     source_id: str
     saved_utc: str
+    append_index: int | None = Field(default=None, ge=0)
 
 
 class LimitationRequest(Payload):
@@ -67,6 +68,7 @@ class SavedLimitation(LimitationRequest):
     id: str = Field(pattern=r'^[0-9a-f]{32}$')
     source_id: str
     saved_utc: str
+    append_index: int | None = Field(default=None, ge=0)
 
 
 def _folder(pins_path, kind, identity=None):
@@ -84,11 +86,18 @@ def _read(folder, model):
     entries = [model.model_validate_json(path.read_text(encoding='utf-8')).model_dump(mode='json') for path in files]
     if any(path.stem != entry['id'] for path, entry in zip(files, entries)):
         raise ValueError('Metadata identity mismatch; preserve the files')
-    return sorted(entries, key=lambda entry: (entry['saved_utc'], entry['id']))
+    indices = [item['append_index'] for item in entries if item.get('append_index') is not None]
+    if len(indices) != len(set(indices)):
+        raise ValueError('Metadata append order conflicts; preserve the files')
+    return sorted(entries, key=lambda entry: (entry['append_index'] if entry.get('append_index') is not None else -1,
+        datetime.fromisoformat(entry['saved_utc']), entry['id']))
 
 
 def _append(folder, entry):
     folder.mkdir(parents=True, exist_ok=True)
+    if 'append_index' in type(entry).model_fields:
+        entries = _read(folder, type(entry))
+        entry.append_index = max([item['append_index'] for item in entries if item['append_index'] is not None] + [len(entries) - 1]) + 1
     if len(list(folder.glob('*.json'))) >= 10000:
         raise ValueError('Metadata capacity reached; preserve existing records')
     target = folder / f'{entry.id}.json'

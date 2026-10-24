@@ -1,0 +1,5 @@
+{
+  "BRENT": { "label": "Brent crude", "family": "oil", "chart_aliases": ["SpotBrent"] },
+  "WTI": { "label": "WTI crude", "family": "oil", "chart_aliases": ["SpotCrude"] },
+  "GOLD": { "label": "Gold", "family": "gold", "chart_aliases": ["XAUUSD"] }
+}

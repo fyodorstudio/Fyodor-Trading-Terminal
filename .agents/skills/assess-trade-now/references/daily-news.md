@@ -21,13 +21,14 @@ date selection alone remains read-only and creates no monitoring.
   If a claim cannot be verified, try another source or exclude that claim; continue
   the assessment using verified evidence. Older still-active context can inform
   direction, retaining its original date; do not redate it as same-day news.
-- At the very top show TRADE ENTRY OPPORTUNITY: an even shorter ordered summary
-  of the strongest standalone currency directions, strongest first. Do not scan
-  pairs, form crosses or create pair recommendations. Select one or more currencies
-  based on the dominant mechanisms, without numeric scores or confidence grades.
-  Give each a sourced direction (from its row), concise reason, same-day timing
-  and what would overturn it. The opportunity is a fundamental assessment window;
-  technical entry execution stays with the user. No separate released-today column.
+- At the top show TRADE ENTRY OPPORTUNITY: zero or more supported standalone
+  currency entries, strongest first, plus separate supported commodity entries.
+  Follow entry-decisions.md: active/conditional stage, activation, expectation
+  baseline, new information/continuing pressure, remaining case, potential buying/
+  selling with observed/reported/inferred basis, horizon, bounded feedback and
+  invalidation. Eight directional currency verdicts remain required; an entry
+  is not required. If neither kind qualifies, save opportunity_gap explaining
+  why. Do not scan pairs, use scores, invent investor flows or pad commodities.
 - Aim for at least four distinct relevant news items per currency published on
   the requested Jakarta date. Research policy/remarks, inflation, labor/wages,
   activity and material fiscal, trade, energy or geopolitical developments. This
@@ -39,7 +40,9 @@ date selection alone remains read-only and creates no monitoring.
   actual/prior/revisions, announcement or remarks, with forecasts and opinions
   attributed to their provider. Report forecasts as forecasts. Do not convert a
   price move, rate gap or market narrative into an unverified causal assertion.
-  New commentary does not redate its underlying old news. Do not fetch OHLC.
+  New commentary does not redate its underlying old news. News collection does
+  not fetch eight histories. Bounded feedback is permitted only for shortlisted
+  entry candidates, subject to explicit fundamental-only/no-candles overrides.
 - For today, use the real research cutoff and include only news then available.
   A past-date request authorizes a labelled reconstruction through its requested
   cutoff, or the end of that Jakarta day if no hour is given. Future dates stay
@@ -56,13 +59,16 @@ date selection alone remains read-only and creates no monitoring.
   news as dated evidence, then research missing items and refresh direct sources.
   Append `format: "daily_news"` with all eight `currency_views`; use `news` and
   `news_gap`, plus `direction` containing `verdict`, `reason`, real `verified_utc`
-  and direct `sources`. Include a nonempty `entry_opportunities` array of the
-  strongest currencies, with `currency`, `summary`, `starts_at`, `ends_at`,
-  `timing_note` and `invalidation`. Both offset-aware window instants must stay
+  and direct `sources`. Save `entry_opportunities` (possibly empty) and optional separate
+  `commodity_opportunities` under docs/THESIS.md. New entries include stage,
+  activation and sourced evidence in addition to summary/window/invalidation.
+  With no entries of either kind, require an explicit `opportunity_gap`. Both offset-aware window instants must stay
   within the selected Jakarta date, start before end. Today starts at/after the
   research cutoff and ends by 11:59:59 PM Jakarta; narrow timing only with verified
-  catalysts. Otherwise explicitly use cutoff through the remaining day, without
-  inventing an exact execution minute. Historical windows must use evidence known
+  catalysts. Otherwise describe cutoff through the remaining day as a research window,
+  not an execution recommendation. Closed markets do not become active entries
+  merely because a date has room left. Next-session opportunities outside the
+  selected date belong in chat/Upcoming, not a fabricated same-day window. Historical windows must use evidence known
   at their start and be labelled retrospective, never later same-day hindsight.
   Later-date releases stay in Upcoming. Omit legacy interpretation fields, pair
   opportunities and the mandatory assessment backdrop. Do not overwrite old

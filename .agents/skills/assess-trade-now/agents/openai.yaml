@@ -1,4 +1,4 @@
 interface:
   display_name: "Assess Trade Now"
-  short_description: "Find emerging FX opportunities and deliver sourced decisions"
-  default_prompt: "Use $assess-trade-now to check imminent risks and emerging currency beneficiaries, surface LOOK HERE NEXT candidates, and promptly give a sourced BUY/SELL decision for my pair. Complete verified event pins, chart requests and coverage checks in the same turn. For a requested dated Thesis fill, preserve its saved currency-table format."
+  short_description: "Find supported FX and commodity entry opportunities"
+  default_prompt: "Use $assess-trade-now to find the strongest supported opportunities now, explaining potential investor buying/selling, horizon and invalidation; real capital may be at stake."

@@ -67,10 +67,13 @@ try {
   assert.equal(coordinateReads, 0, 'Offscreen historical markers perform no chart coordinate queries')
   const anchoredBars = [...bars, ...[1, 2, 3].map(hours => ({ ...bars[0], time: last + hours * 3600 }))]
   assert.equal(buildExternalMarkers([beforeDst], anchoredBars, 'H1', utcClock)[0].projection, undefined)
-  const render = async (rows, symbol = 'EURUSD') => {
+  const { CalendarLayers } = await server.ssrLoadModule('./src/terminal-shell/chart-overlays/CalendarLayers.tsx')
+  const render = async (rows, symbol = 'EURUSD', composed = false) => {
     await React.act(async () => root.render(React.createElement(DisplayClockContext.Provider,
       { value: { scope: utcClock, preference: { mode: 'fixed-offset', utcOffsetMinutes: 420 } } },
-      React.createElement(ExternalChartMarkers, { chartApi, symbol, bars, timeframe: 'H1', brokerRows: rows, onSelect: key => { selected = key } }))))
+      React.createElement(composed ? CalendarLayers : ExternalChartMarkers, { chartApi, symbol, bars, timeframe: 'H1', brokerRows: rows,
+        supported: false, markers: [], currencyColors: {}, timeDisplay: { mode: 'utc', utcOffsetMinutes: 0 }, onSelectRelease: () => {},
+        onSelectExternal: key => { selected = key }, onSelect: key => { selected = key } }))))
     await React.act(async () => { for (const [id, fn] of frames) { frames.delete(id); fn() } })
   }
   await render(1)
@@ -105,6 +108,15 @@ try {
     await render(1, symbol)
     assert.equal(container.querySelector('.external-chart-star'), null, `${symbol}: unrelated USD context is excluded`)
   }
+  const oldItems = items
+  items = [item('oil-supply', '2026-10-14T15:00:00Z', { currencies: [], instruments: ['BRENT'], chart_icon_request_id: 'b'.repeat(32) })]
+  await render(1, 'SpotBrent', true)
+  assert.ok(container.querySelector('.external-chart-star'), 'Instrument-only source appears on its Brent chart')
+  await render(1, 'EURUSD')
+  assert.equal(container.querySelector('.external-chart-star'), null, 'Commodity facts do not imply USD currency relevance')
+  await render(1, 'XAUUSD')
+  assert.equal(container.querySelector('.external-chart-star'), null, 'Brent source does not leak onto gold')
+  items = oldItems
   await render(1, 'EURUSD')
   // A new persisted request travels through polling, marker construction and the chart.
   await React.act(async () => setExternalIconVisibility('future', false)); await render(1)

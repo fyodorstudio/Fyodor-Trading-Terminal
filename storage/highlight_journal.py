@@ -80,6 +80,7 @@ class JournalEntry(JournalRequest):
     readings: list[dict]
     missing_value_ids: list[str]
     reading_vintage: str
+    append_index: int | None = Field(default=None, ge=0)
 
 
 def journal_directory(identity, pins_path=HIGHLIGHTS_PATH):
@@ -101,7 +102,13 @@ def read_journal(identity, pins_path=HIGHLIGHTS_PATH):
         if item['highlight_id'] != identity or path.stem != item['id']:
             raise ValueError('Journal identity mismatch; preserve the files')
         entries.append(item)
-    return sorted(entries, key=lambda item: (item['saved_utc'], item['id']))
+    indices = [item['append_index'] for item in entries if item['append_index'] is not None]
+    if len(indices) != len(set(indices)):
+        raise ValueError('Journal append order conflicts; preserve the files')
+    # Windows wall clocks can tie. Preserve actual clocks rather than fabricating
+    # a later save time or using random UUID order for newly appended versions.
+    return sorted(entries, key=lambda item: (item['append_index'] if item['append_index'] is not None else -1,
+        datetime.fromisoformat(item['saved_utc']), item['id']))
 
 
 def append_journal(store, identity, source_id, request, pins_path=HIGHLIGHTS_PATH):
@@ -127,6 +134,7 @@ def append_journal(store, identity, source_id, request, pins_path=HIGHLIGHTS_PAT
         snapshot = highlight_snapshot(store, source_id, pins_path, visibility='all')
         item = next(item for item in snapshot['items'] if item['id'] == identity)
         entry = JournalEntry(**request.model_dump(), id=uuid4().hex, saved_utc=datetime.now(timezone.utc).isoformat(),
+            append_index=max([item['append_index'] for item in entries if item['append_index'] is not None] + [len(entries) - 1]) + 1,
             highlight_id=identity, source_id=source_id, label=pin['label'], release_at=item['release_at'],
             calendar_revision=snapshot['calendar_revision'], readings=item['events'], missing_value_ids=item['missing_value_ids'],
             reading_vintage='Stored readings captured when saved (or at archive time); not reconstructed release-day/as-of vintages.')
