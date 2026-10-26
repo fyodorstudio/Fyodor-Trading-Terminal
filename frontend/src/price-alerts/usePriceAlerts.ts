@@ -12,6 +12,7 @@ export function usePriceAlerts(brokerId: string | null, quotes: SymbolQuote[], l
   useLayoutEffect(() => { feed.current = { brokerId, quotes, live } }, [brokerId, quotes, live])
   const [storageError, setStorageError] = useState(false)
   const [soundBlocked, setSoundBlocked] = useState(false)
+  const draggingAlertId = useRef<string | null>(null)
   const sound = useRef<ReturnType<typeof createPriceAlertSound> | null>(null)
   const mounted = useRef(true)
   useEffect(() => {
@@ -49,15 +50,22 @@ export function usePriceAlerts(brokerId: string | null, quotes: SymbolQuote[], l
     const played = sound.current?.play(current.current.duration, current.current.soundId) ?? false
     setSoundBlocked(!played)
   }, [])
-  useEffect(() => {
+  const checkAlerts = useCallback(() => {
+    const { brokerId, quotes, live } = feed.current
     if (!live || !brokerId) return
-    const evaluated = evaluatePriceAlerts(current.current.alerts, brokerId, quotes, Date.now())
+    const evaluated = evaluatePriceAlerts(current.current.alerts, brokerId, quotes, Date.now(), draggingAlertId.current)
     if (evaluated.alerts === current.current.alerts) return
     const next = { ...current.current, alerts: evaluated.alerts }
     // Persist the one-shot transition before requesting sound, even if playback fails.
     commit(next)
     if (evaluated.triggered.length && next.playSound) playAlertSound()
-  }, [brokerId, quotes, live, store, commit, playAlertSound])
+  }, [commit, playAlertSound])
+  useEffect(checkAlerts, [brokerId, quotes, live, store, checkAlerts])
+  const changeDraggingAlert = useCallback((id: string | null) => {
+    draggingAlertId.current = id
+    if (id && current.current.playSound) void enableSound()
+    if (id === null) checkAlerts()
+  }, [enableSound, checkAlerts])
   const addAlert = useCallback((symbol: string, price: number, precision: number) => {
     const { brokerId, quotes, live } = feed.current
     if (!brokerId || !Number.isFinite(price) || price <= 0) return ''
@@ -71,20 +79,25 @@ export function usePriceAlerts(brokerId: string | null, quotes: SymbolQuote[], l
     }] })
     return id
   }, [commit])
-  const updateAlert = useCallback((id: string, action: 'pause' | 'arm' | 'delete' | 'price', price?: number) => {
+  const updateAlert = useCallback((id: string, action: 'pause' | 'arm' | 'delete' | 'price' | 'move', price?: number) => {
     const { brokerId, quotes, live } = feed.current
-    if (action === 'price' && (price === undefined || !Number.isFinite(price) || price <= 0)) return
+    if ((action === 'price' || action === 'move') && (price === undefined || !Number.isFinite(price) || price <= 0)) return
     const alerts = current.current.alerts.flatMap(alert => {
       if (alert.id !== id) return [alert]
+      if (action === 'move' && (alert.brokerId !== brokerId || alert.status === 'triggered')) return [alert]
       if (action === 'delete') return []
       if (action === 'pause') return [{ ...alert, status: 'paused' as const }]
-      const target = action === 'price' ? Number(price!.toFixed(alert.precision)) : alert.price
+      const target = action === 'price' || action === 'move' ? Number(price!.toFixed(alert.precision)) : alert.price
       if (target <= 0) return [alert]
       const bid = live && alert.brokerId === brokerId ? quotes.find(quote => quote.symbol === alert.symbol)?.bid : undefined
-      return [{ ...alert, price: target, direction: alertDirection(target, bid), status: 'armed' as const,
+      return [{ ...alert, price: target, direction: alertDirection(target, bid), status: action === 'move' ? alert.status : 'armed' as const,
         triggeredAt: null, triggeredBid: null }]
     })
     commit({ ...current.current, alerts })
+  }, [commit])
+  const moveAlert = useCallback((id: string, price: number) => updateAlert(id, 'move', price), [updateAlert])
+  const renameAlert = useCallback((id: string, name: string) => {
+    commit({ ...current.current, alerts: current.current.alerts.map(alert => alert.id === id ? { ...alert, name: name.trim().slice(0, 120) } : alert) })
   }, [commit])
   const setSound = useCallback((playSound: boolean, duration: number, soundId?: PriceAlertSoundId) => {
     commit({ ...current.current, playSound, duration, soundId: soundId ?? current.current.soundId })
@@ -94,7 +107,7 @@ export function usePriceAlerts(brokerId: string | null, quotes: SymbolQuote[], l
   const brokerAlerts = useMemo(() => store.alerts.filter(alert => alert.brokerId === brokerId), [store.alerts, brokerId])
   const liveSymbols = useMemo(() => new Set(quotes.filter(quote => Number.isFinite(quote.bid) && quote.bid > 0).map(quote => quote.symbol)), [quotes])
   return { alerts: store.alerts, brokerAlerts, addAlert, updateAlert, playSound: store.playSound, duration: store.duration, soundId: store.soundId,
-    setSound, enableSound, previewSound, soundBlocked, storageError, live, liveSymbols }
+    setSound, enableSound, previewSound, soundBlocked, storageError, live, liveSymbols, renameAlert, moveAlert, setDraggingAlertId: changeDraggingAlert }
 }
 
 export type PriceAlertsController = ReturnType<typeof usePriceAlerts>

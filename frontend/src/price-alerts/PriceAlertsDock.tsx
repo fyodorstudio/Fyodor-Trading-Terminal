@@ -10,22 +10,24 @@ const triggerClock = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Jakarta'
 function AlertRow({ alert, controller, onSelectSymbol, brokerId }: {
   alert: PriceAlert; controller: PriceAlertsController; onSelectSymbol: (symbol: string) => void; brokerId: string | null
 }) {
-  const [editing, setEditing] = useState(false)
+  const [editing, setEditing] = useState<'price' | 'name' | null>(null)
   const [expanded, setExpanded] = useState(false)
   const [price, setPrice] = useState('')
+  const [name, setName] = useState('')
   const waitingForBroker = alert.brokerId !== brokerId
   const waitingForQuote = !controller.live || !controller.liveSymbols.has(alert.symbol)
   const status = alert.status === 'triggered' ? 'Stopped — Triggered' : alert.status === 'paused' ? 'Stopped — Paused'
     : waitingForBroker ? 'Waiting for broker' : waitingForQuote ? 'Waiting for quote' : 'Active'
   const statusClass = alert.status !== 'armed' ? 'stopped' : waitingForBroker || waitingForQuote ? 'waiting' : 'active'
-  const title = `${alert.symbol} Crossing ${alert.price.toFixed(alert.precision)}`
+  const crossing = `${alert.symbol} Crossing ${alert.price.toFixed(alert.precision)}`
+  const title = alert.name || crossing
   return <article className={`price-alert-row ${alert.status}`} aria-label={`${alert.symbol} price alert`}>
-    <button className="price-alert-summary" type="button" aria-expanded={expanded} aria-label={`${title} · ${status} · Alert details`}
-      onClick={() => { setExpanded(value => !value); setEditing(false) }}>
+    <button className="price-alert-summary" type="button" aria-expanded={expanded} aria-label={`${title}${alert.name ? ` · ${crossing}` : ''} · ${status} · Alert details`}
+      onClick={() => { setExpanded(value => !value); setEditing(null) }}>
       <span className="price-alert-title">{title}</span>
       <span className="price-alert-meta">
         <svg className="price-alert-symbol-icon" aria-hidden="true" width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="10" cy="11" r="6" /><path d="M10 7v4l3 2M3 5l3-3M14 2l3 3" /></svg>
-        <span>{alert.symbol}</span><span aria-hidden="true">•</span>
+        <span>{alert.name ? crossing : alert.symbol}</span><span aria-hidden="true">•</span>
         <span className={`price-alert-state ${statusClass}`}>{status}</span>
         {alert.triggeredAt !== null && <><span aria-hidden="true">•</span><time dateTime={new Date(alert.triggeredAt).toISOString()} title="Asia/Jakarta (UTC+07:00)">
           {triggerClock.format(alert.triggeredAt).replaceAll(',', '')}</time></>}
@@ -39,15 +41,19 @@ function AlertRow({ alert, controller, onSelectSymbol, brokerId }: {
       {alert.triggeredBid !== null && <p>Triggered Bid {alert.triggeredBid.toFixed(alert.precision)}</p>}
       {editing ? <form onSubmit={event => {
         event.preventDefault()
+        if (editing === 'name') { controller.renameAlert(alert.id, name); setEditing(null); return }
         if (!Number.isFinite(Number(price)) || Number(price) <= 0 || Number(Number(price).toFixed(alert.precision)) <= 0) return
-        controller.updateAlert(alert.id, 'price', Number(price)); setEditing(false)
+        controller.updateAlert(alert.id, 'price', Number(price)); setEditing(null)
       }}>
-        <input aria-label={`Alert price for ${alert.symbol}`} type="number" min={10 ** -alert.precision} step={10 ** -alert.precision}
-          value={price} onChange={event => setPrice(event.target.value)} required autoFocus />
-        <button type="submit">Save & arm</button><button type="button" onClick={() => setEditing(false)}>Cancel</button>
+        {editing === 'name' ? <input aria-label={`Alert name for ${alert.symbol}`} type="text" maxLength={120} placeholder="Alert name (optional)"
+          value={name} onChange={event => setName(event.target.value)} autoFocus />
+          : <input aria-label={`Alert price for ${alert.symbol}`} type="number" min={10 ** -alert.precision} step={10 ** -alert.precision}
+            value={price} onChange={event => setPrice(event.target.value)} required autoFocus />}
+        <button type="submit">{editing === 'name' ? 'Save name' : 'Save & arm'}</button><button type="button" onClick={() => setEditing(null)}>Cancel</button>
       </form> : <div className="price-alert-actions">
         <button type="button" disabled={waitingForBroker} onClick={() => onSelectSymbol(alert.symbol)}>Open chart</button>
-        <button type="button" onClick={() => { setPrice(alert.price.toFixed(alert.precision)); setEditing(true) }}>Edit price</button>
+        <button type="button" onClick={() => { setName(alert.name ?? ''); setEditing('name') }}>Rename</button>
+        <button type="button" onClick={() => { setPrice(alert.price.toFixed(alert.precision)); setEditing('price') }}>Edit price</button>
         <button type="button" onClick={() => { if (alert.status !== 'armed' && controller.playSound) void controller.enableSound(); controller.updateAlert(alert.id, alert.status === 'armed' ? 'pause' : 'arm') }}>
           {alert.status === 'armed' ? 'Pause' : alert.status === 'triggered' ? 'Rearm' : 'Resume'}</button>
         <button type="button" onClick={() => controller.updateAlert(alert.id, 'delete')}>Delete</button>

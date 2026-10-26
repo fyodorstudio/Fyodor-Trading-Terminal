@@ -148,7 +148,11 @@ Drawings are shared across all timeframes for the same pair, including existing
 saved drawings. Editing or deleting one updates that same drawing on every timeframe.
 Choose the alarm drawing tool and click a chart price to arm a one-shot **Price Alert**.
 The **Price Alerts** tab beside Market Watch lists all saved alerts with edit price,
-pause/resume, rearm and delete. Armed/paused lines follow the symbol across timeframes;
+rename, pause/resume, rearm and delete. Click a row to name it; the name also labels
+its chart line. Drag a line vertically and release to save its new price, or use
+the focused line's Up/Down keys (Shift for ten ticks). Escape cancels a drag. Quote
+checks for that alert pause during dragging, and moving a paused line keeps it paused.
+Armed/paused lines follow the symbol across timeframes;
 triggered lines disappear while their result stays in the dock. Alerts are separate
 from ordinary drawings and calendar alarms. They persist in browser storage and
 use their exact broker/symbol's live Bid quotes (about every 2.5 seconds); sampled

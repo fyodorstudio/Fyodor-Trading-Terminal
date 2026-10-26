@@ -30,7 +30,7 @@ globalThis.AudioContext = class {
 }
 const quote = (symbol, bid) => ({ symbol, bid, ask: bid + .0001, precision: 5, description: symbol, dailyChange: 0 })
 const lines = new Set()
-const seriesApi = { createPriceLine(options) { const line = { options }; lines.add(line); return line }, removePriceLine(line) { lines.delete(line) } }
+const seriesApi = { createPriceLine(options) { const line = { options, applyOptions(next) { Object.assign(options, next) } }; lines.add(line); return line }, removePriceLine(line) { lines.delete(line) } }
 let api, renderCount = 0
 try {
   const { usePriceAlerts } = await server.ssrLoadModule('./src/price-alerts/usePriceAlerts.ts')
@@ -43,7 +43,7 @@ try {
     const controller = usePriceAlerts(broker, quotes, live)
     React.useEffect(() => { api = controller; renderCount++ })
     return React.createElement(React.Fragment, null,
-      React.createElement(PriceAlertLines, { seriesApi, alerts: controller.brokerAlerts, symbol }),
+      React.createElement(PriceAlertLines, { seriesApi, alerts: controller.brokerAlerts, symbol, dragEnabled: false }),
       React.createElement(PriceAlertsDock, { controller, brokerId: broker, onSelectSymbol() {}, onCreate() {} }))
   }
   const render = (props = {}, key = 'session') => React.act(async () => root.render(React.createElement(Harness, { ...props, key })))
@@ -71,6 +71,15 @@ try {
   await click(rowButton(upRow, 'Edit price'))
   assert.ok(upRow.querySelector('[aria-label="Alert price for EURUSD"]'))
   await click(rowButton(upRow, 'Cancel'))
+  await click(rowButton(upRow, 'Rename'))
+  const nameInput = upRow.querySelector('[aria-label="Alert name for EURUSD"]')
+  const nameProps = nameInput[Object.keys(nameInput).find(key => key.startsWith('__reactProps'))]
+  await command(() => nameProps.onChange({ target: { value: '  London breakout  ' } }))
+  await command(() => upRow.querySelector('form').dispatchEvent(new dom.Event('submit', { bubbles: true, cancelable: true })))
+  assert.equal(saved().alerts.find(item => item.id === up).name, 'London breakout')
+  assert.equal(upRow.querySelector('.price-alert-title').textContent, 'London breakout')
+  assert.ok(upRow.querySelector('.price-alert-meta').textContent.includes('EURUSD Crossing 1.20000'), 'Named alerts keep their symbol and price visible')
+  assert.ok([...lines].some(line => line.options.title === '⏰ London breakout'), 'The chart label follows the saved name')
   await click(upRow.querySelector('.price-alert-summary'))
   assert.equal(api.alerts.find(item => item.id === up).direction, 'above')
   assert.equal(api.alerts.find(item => item.id === down).direction, 'below')
@@ -108,7 +117,16 @@ try {
   await render({ quotes: [quote('EURUSD', 1.23)] }, 'reload')
   assert.equal(soundStarts, 6, 'Persisted triggers do not replay on reload')
   assert.equal(api.alerts.find(item => item.id === up).status, 'triggered')
+  assert.equal(api.alerts.find(item => item.id === up).name, 'London breakout', 'Names survive reload and triggering')
+  const triggeredBeforeRename = api.alerts.find(item => item.id === up)
+  await command(() => api.renameAlert(up, 'New name'))
+  assert.deepEqual(api.alerts.find(item => item.id === up), { ...triggeredBeforeRename, name: 'New name' }, 'Renaming preserves trigger history and status')
+  await command(() => api.renameAlert(up, ''))
+  assert.ok(host.textContent.includes('EURUSD Crossing 1.20000'), 'An empty name restores the automatic title')
   await command(() => api.updateAlert(down, 'pause'))
+  await command(() => api.moveAlert(down, 1.01))
+  assert.equal(api.alerts.find(item => item.id === down).status, 'paused', 'Moving a paused alert never arms it')
+  await command(() => api.moveAlert(down, 1))
   await render({ quotes: [quote('EURUSD', .99)] }, 'reload')
   assert.equal(api.alerts.find(item => item.id === down).status, 'paused')
   await command(() => api.updateAlert(down, 'arm'))
@@ -117,6 +135,13 @@ try {
   assert.equal(api.alerts.find(item => item.id === down).status, 'triggered', 'Exact touch triggers')
   assert.equal(api.soundBlocked, true, 'After reload, a trigger reports locked sound immediately instead of waiting for a gesture')
   await command(() => api.setSound(false, 1))
+  let dragged
+  await command(() => { dragged = api.addAlert('EURUSD', 1.5, 5); api.setDraggingAlertId(dragged) })
+  await render({ quotes: [quote('EURUSD', 1.6)] }, 'reload')
+  assert.equal(api.alerts.find(item => item.id === dragged).status, 'armed', 'The dragged alert is suspended while quotes cross the old target')
+  await command(() => { api.moveAlert(dragged, 1.7); api.setDraggingAlertId(null) })
+  assert.equal(api.alerts.find(item => item.id === dragged).direction, 'above', 'The dropped level uses the latest Bid to choose its new side')
+  await command(() => api.updateAlert(dragged, 'delete'))
   const mutedStarts = soundStarts
   await render({ quotes: [quote('GBPUSD', 1.2)], symbol: 'EURUSD' }, 'reload')
   await render({ quotes: [quote('GBPUSD', 1.3)], symbol: 'EURUSD' }, 'reload')

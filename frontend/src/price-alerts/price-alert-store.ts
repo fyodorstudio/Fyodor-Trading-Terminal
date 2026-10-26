@@ -5,6 +5,7 @@ export type PriceAlert = {
   id: string
   brokerId: string
   symbol: string
+  name?: string
   price: number
   precision: number
   direction: 'above' | 'below' | null
@@ -22,6 +23,7 @@ function validAlert(value: unknown): value is PriceAlert {
   const item = value as PriceAlert
   return typeof item.id === 'string' && typeof item.brokerId === 'string' && !!item.brokerId
     && typeof item.symbol === 'string' && !!item.symbol && Number.isFinite(item.price) && item.price > 0
+    && (item.name === undefined || typeof item.name === 'string')
     && Number.isInteger(item.precision) && item.precision >= 0 && item.precision <= 10
     && ['armed', 'paused', 'triggered'].includes(item.status)
     && (item.direction === null || item.direction === 'above' || item.direction === 'below')
@@ -51,12 +53,12 @@ export function alertDirection(price: number, bid?: number): PriceAlert['directi
 
 // Quotes are sampled, so a jump across the line counts as reaching it too.
 // Never use candle highs/lows: those may precede the alert's creation.
-export function evaluatePriceAlerts(alerts: PriceAlert[], brokerId: string, quotes: SymbolQuote[], now: number) {
+export function evaluatePriceAlerts(alerts: PriceAlert[], brokerId: string, quotes: SymbolQuote[], now: number, draggingId: string | null = null) {
   const bySymbol = new Map(quotes.map(quote => [quote.symbol, quote]))
   let changed = false
   const triggered: PriceAlert[] = []
   const next = alerts.map(alert => {
-    if (alert.brokerId !== brokerId || alert.status !== 'armed') return alert
+    if (alert.brokerId !== brokerId || alert.status !== 'armed' || alert.id === draggingId) return alert
     const bid = bySymbol.get(alert.symbol)?.bid
     if (bid === undefined || !Number.isFinite(bid) || bid <= 0) return alert
     const direction = alert.direction ?? alertDirection(alert.price, bid)
