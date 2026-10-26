@@ -35,7 +35,7 @@ function handlePoint(
   _screenPoints: ChartDrawingScreenPoint[],
   viewport: { width: number; height: number },
 ) {
-  if (drawing.tool === 'horizontal-line') return { ...point, x: viewport.width / 2 }
+  if (drawing.tool === 'horizontal-line' || drawing.tool === 'price-alert') return { ...point, x: viewport.width / 2 }
   if (drawing.tool === 'vertical-line') return { ...point, y: viewport.height / 2 }
   return point
 }

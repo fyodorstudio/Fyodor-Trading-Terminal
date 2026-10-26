@@ -45,7 +45,8 @@ async function paint() {
 try {
   const { drawingCoordinates } = await server.ssrLoadModule('./src/market-data/chart-drawings/drawing-coordinates.ts')
   const { ChartDrawingOverlay } = await server.ssrLoadModule('./src/market-data/chart-drawings/ChartDrawingOverlay.tsx')
-  const { drawingTools } = await server.ssrLoadModule('./src/market-data/chart-drawings/drawing-tool.ts')
+  const { drawingTools: allTools } = await server.ssrLoadModule('./src/market-data/chart-drawings/drawing-tool.ts')
+  const drawingTools = allTools.filter(tool => tool.id !== 'price-alert')
   chart = createChart(chartHost, { width: 800, height: 400, autoSize: false,
     layout: { colorParsers: [color => {
       if (!/^#[\da-f]{6}$/i.test(color)) return null

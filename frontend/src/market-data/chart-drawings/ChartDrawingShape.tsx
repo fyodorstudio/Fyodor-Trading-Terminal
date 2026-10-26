@@ -136,6 +136,7 @@ export function ChartDrawingShape({ drawing, points, width, height, precision = 
     case 'circle':
       return <ellipse className="drawing-stroke drawing-fill" cx={(first.x + last.x) / 2} cy={(first.y + last.y) / 2} rx={shapeWidth / 2} ry={shapeHeight / 2} />
     case 'horizontal-line':
+    case 'price-alert':
       return (
         <g>
           <line className="drawing-hit-area" x1={0} y1={first.y} x2={width} y2={first.y} />

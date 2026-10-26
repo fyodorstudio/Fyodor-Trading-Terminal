@@ -14,7 +14,11 @@ export function useMarketWatchDock() {
     setCollapsed(next)
     try { localStorage.setItem(marketWatchCollapsedKey, String(next)) } catch { /* Retain the session preference. */ }
   }, [collapsed])
-  return useMemo(() => ({ collapsed, contentId, toggle }), [collapsed, contentId, toggle])
+  const open = useCallback(() => {
+    setCollapsed(false)
+    try { localStorage.setItem(marketWatchCollapsedKey, 'false') } catch { /* Retain the session preference. */ }
+  }, [])
+  return useMemo(() => ({ collapsed, contentId, toggle, open }), [collapsed, contentId, toggle, open])
 }
 
 export type MarketWatchDock = ReturnType<typeof useMarketWatchDock>

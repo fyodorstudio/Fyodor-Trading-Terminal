@@ -7,15 +7,18 @@ import type { OhlcBar } from '../../market-data/contracts/OhlcBar'
 import type { ChartTimeframe } from '../../market-data/contracts/ChartTimeframe'
 import { CalendarLayers } from './CalendarLayers'
 import { PlannedTradePriceLines } from '../../entry-trade/chart-levels/PlannedTradePriceLines'
+import { PriceAlertLines } from '../../price-alerts/PriceAlertLines'
+import type { PriceAlert } from '../../price-alerts/price-alert-store'
 
 type TradeProps = Omit<ComponentProps<typeof PlannedTradePriceLines>, 'chartApi' | 'seriesApi'>
 type MarkerProps = Omit<ComponentProps<typeof InspectorChartMarkers>, 'chartApi'>
 export function useTerminalChartOverlay({ arrows, selectedArrowId, draftPlan, onSelectArrow, onPriceChange, onTimeChange, precision, dragEnabled, scopeKey, markers, currencyColors, timeDisplay, onSelectRelease, supported, onClearInspection,
-  researchActive, bars, timeframe, onResearchRange, onCancelResearch, symbol, onSelectExternal, eventIconsVisible }:
+  researchActive, bars, timeframe, onResearchRange, onCancelResearch, symbol, onSelectExternal, eventIconsVisible, priceAlerts }:
   TradeProps & MarkerProps & { supported: boolean; onClearInspection?: () => void; researchActive: boolean; bars: OhlcBar[];
     timeframe: ChartTimeframe; onResearchRange: (from: number, to: number) => void; onCancelResearch: () => void;
-    symbol: string; onSelectExternal: (key: string | null) => void; eventIconsVisible: boolean }) {
+    symbol: string; onSelectExternal: (key: string | null) => void; eventIconsVisible: boolean; priceAlerts: PriceAlert[] }) {
   return useCallback((chartApi: IChartApi, seriesApi: ISeriesApi<'Candlestick', Time>) => <>
+    <PriceAlertLines seriesApi={seriesApi} alerts={priceAlerts} symbol={symbol} />
     <PlannedTradePriceLines chartApi={chartApi} seriesApi={seriesApi} arrows={arrows} selectedArrowId={selectedArrowId}
       draftPlan={draftPlan} onSelectArrow={onSelectArrow} onPriceChange={onPriceChange} onTimeChange={onTimeChange}
       precision={precision} dragEnabled={dragEnabled} scopeKey={scopeKey} bars={bars} timeframe={timeframe} />
@@ -26,5 +29,5 @@ export function useTerminalChartOverlay({ arrows, selectedArrowId, draftPlan, on
       onSelect={onResearchRange} onCancel={onCancelResearch} />}
   </>, [supported, markers, currencyColors, timeDisplay, onSelectRelease, onClearInspection,
     researchActive, bars, timeframe, onResearchRange, onCancelResearch, symbol, onSelectExternal, eventIconsVisible,
-    arrows, selectedArrowId, draftPlan, onSelectArrow, onPriceChange, onTimeChange, precision, dragEnabled, scopeKey])
+    arrows, selectedArrowId, draftPlan, onSelectArrow, onPriceChange, onTimeChange, precision, dragEnabled, scopeKey, priceAlerts])
 }

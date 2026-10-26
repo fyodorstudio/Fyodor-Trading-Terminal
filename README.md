@@ -44,6 +44,7 @@ Optional `FYODOR_BRIDGE_API_URL` / `FYODOR_STORAGE_API_URL` override Vite's prox
 | external-sources | Separate outside-feed events/headlines/watch items, sourced facts, history, limitations reference and agent prompts |
 | events-alarms / storage/alarms | Alert composition, occurrence invocation alarms and independent Windows alarm delivery |
 | entry-trade | Manual execution plans, all-pair pins, draggable chart levels and independent saved journals |
+| price-alerts | Broker/symbol price-alert lines, local persistence, live Bid monitoring and browser sound |
 | thesis / storage/thesis.py / storage/thesis_reviews.py | Dated opportunities, shared backdrop reviews, agent context and append-only versions |
 | research | Chart date selection and named Markdown handoff |
 | Market Analyst Workflow/tools (repo root) | Read-only calendar, upcoming/Highlight/report queries, journal/lifecycle writes and bounded OHLC capture |
@@ -144,6 +145,18 @@ Drag the bottom dock's top edge up to fill the workspace above the bottom naviga
 drag down to shrink it. With the resize handle focused, End maximizes and Home shrinks it.
 Drawings are shared across all timeframes for the same pair, including existing
 saved drawings. Editing or deleting one updates that same drawing on every timeframe.
+Choose the alarm drawing tool and click a chart price to arm a one-shot **Price Alert**.
+The **Price Alerts** tab beside Market Watch lists all saved alerts with edit price,
+pause/resume, rearm and delete. Armed/paused lines follow the symbol across timeframes;
+triggered lines disappear while their result stays in the dock. Alerts are separate
+from ordinary drawings and calendar alarms. They persist in browser storage and
+use their exact broker/symbol's live Bid quotes (about every 2.5 seconds); sampled
+touches or crossings trigger once. Missing/stale quotes pause monitoring. This is
+an open-terminal feature: closed/sleeping browsers cannot monitor, and touches
+between samples may be missed. On reopening, a quote beyond an armed threshold can
+trigger; no historical touch time is inferred. Enable/preview the original Thin
+chime and choose its duration (three seconds by default). Browser/system audio
+restrictions still apply; the dock reports blocked playback or storage failures.
 The drawing toolbar's delete button clears only the current pair, across all timeframes.
 Hold Shift while drawing a Trend line or Price note to keep it horizontal; release
 Shift for free movement. Price notes label their endpoint price. Date and price range

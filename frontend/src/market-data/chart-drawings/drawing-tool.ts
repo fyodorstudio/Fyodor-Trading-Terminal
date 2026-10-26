@@ -2,6 +2,7 @@ export type DrawingToolId =
   | 'trend-line'
   | 'rectangle'
   | 'horizontal-line'
+  | 'price-alert'
   | 'parallel-channel'
   | 'path'
   | 'arrow'
@@ -25,6 +26,7 @@ export const drawingTools: DrawingToolDefinition[] = [
   { id: 'trend-line', label: 'Trend line', icon: '╱', gesture: 'drag' },
   { id: 'rectangle', label: 'Rectangle', icon: '▭', gesture: 'drag' },
   { id: 'horizontal-line', label: 'Horizontal line', icon: '—', gesture: 'point' },
+  { id: 'price-alert', label: 'Price alert', icon: '⏰', gesture: 'point' },
   { id: 'parallel-channel', label: 'Parallel channel', icon: '≋', gesture: 'drag' },
   { id: 'path', label: 'Path', icon: '⌁', gesture: 'path' },
   { id: 'arrow', label: 'Arrow', icon: '↗', gesture: 'drag' },

@@ -93,7 +93,7 @@ export function useDrawingInteraction({
     // Skip price projection for shapes entirely outside the horizontal pane.
     // Horizontal lines span the pane independently of their saved timestamp.
     const padding = drawing.tool.includes('position') ? 2 : drawing.tool === 'text' ? 220 : drawing.tool === 'price-note' ? 100 : 24
-    if (drawing.tool !== 'horizontal-line' && viewport.width > 0
+    if (drawing.tool !== 'horizontal-line' && drawing.tool !== 'price-alert' && viewport.width > 0
       && (Math.max(...xs as number[]) < -padding || Math.min(...xs as number[]) > viewport.width + padding)) return []
     const points = dataPoints.map((point, index) => {
       const x = xs[index]
@@ -128,7 +128,7 @@ export function useDrawingInteraction({
   const createAndSelectDrawing = (tool: DrawingToolId, points: ChartDrawingPoint[]) => {
     const normalized = normalizeDrawingPoints(tool, points, timeframe)
     const drawingId = onCreateDrawing(tool, tool === 'parallel-channel' ? withChannelAnchor(normalized) : normalized)
-    onSelectDrawing(drawingId)
+    onSelectDrawing(tool === 'price-alert' ? null : drawingId)
     resetDraft()
     if (tool === 'text') {
       setEditingTextId(drawingId)
@@ -184,7 +184,7 @@ export function useDrawingInteraction({
       onUpdatePositionWidth(editing.drawingId, moved.time, persist)
     } else if (original && moved) {
       const tool = editing.tool
-      const priceOnly = editing.kind === 'position-price' || editing.kind === 'position-entry-price' || tool === 'horizontal-line'
+      const priceOnly = editing.kind === 'position-price' || editing.kind === 'position-entry-price' || tool === 'horizontal-line' || tool === 'price-alert'
       const edited = {
         time: priceOnly ? original.time : moved.time,
         price: tool === 'vertical-line' ? original.price : moved.price,

@@ -22,6 +22,7 @@ import { forexPair } from '../../economic-calendar/forex/pairs'
 import { getPipMultiplier, type PlannedTradeState, type RegisteredTradeArrow, type TradePriceField } from '../../entry-trade/contracts/entry-trade-types'
 import { tradeMetrics } from '../../entry-trade/dock/plan-math'
 import { useRegisteredArrows } from '../../entry-trade/storage/use-registered-arrows'
+import { usePriceAlerts } from '../../price-alerts/usePriceAlerts'
 
 const emptyTradePlan: PlannedTradeState = { direction: 'waiting', entryPrice: null, tpPrice: null, slPrice: null, showOnChart: false }
 
@@ -46,6 +47,7 @@ export function useTerminalWorkspace() {
   const dockSize = useBottomDockSize(bottomDockWindow)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const marketWatch = useMarketWatchDock()
+  const [leftDockTab, setLeftDockTab] = useState<'market-watch' | 'price-alerts'>('market-watch')
   const { appendActivity } = useActivityActions()
 
   useEffect(() => {
@@ -62,6 +64,11 @@ export function useTerminalWorkspace() {
   const activeSymbol = marketData.activeSymbol
   const bars = marketData.bars
   const brokerId = bridge.brokerId
+  const priceAlerts = usePriceAlerts(brokerId, marketData.symbols, mt5Connected && marketData.marketWatchStatus === 'live')
+  const addPriceAlert = priceAlerts.addAlert
+  const enablePriceAlertSound = priceAlerts.enableSound
+  const priceAlertSoundEnabled = priceAlerts.playSound
+  const openMarketWatch = marketWatch.open
   const researchContextKey = `${brokerId}:${timeDisplay.mode}:${timeDisplay.utcOffsetMinutes}`
   const [savedResearchContext, setSavedResearchContext] = useState(researchContextKey)
   if (savedResearchContext !== researchContextKey) {
@@ -136,14 +143,25 @@ export function useTerminalWorkspace() {
 
   const createDrawing = useCallback(
     (tool: DrawingToolId, points: ChartDrawingPoint[]) => {
+      if (tool === 'price-alert') {
+        setLeftDockTab('price-alerts'); openMarketWatch()
+        if (!brokerId || !points[0]) return ''
+        const id = addPriceAlert(activeSymbol, points[0].price, quote?.precision ?? 5)
+        if (id) appendActivity('Drawing', 'Price alert created', `${activeSymbol} · ${points[0].price.toFixed(quote?.precision ?? 5)}`)
+        return id
+      }
       const drawingId = addDrawing(tool, points)
       appendActivity('Drawing', 'Drawing created', `${activeSymbol} ${timeframe} · ${tool}`)
       return drawingId
     },
-    [activeSymbol, addDrawing, appendActivity, timeframe],
+    [activeSymbol, addDrawing, appendActivity, timeframe, addPriceAlert, brokerId, quote?.precision, openMarketWatch],
   )
 
   const chooseDrawingTool = (tool: DrawingToolId | null) => {
+    if (tool === 'price-alert') {
+      setLeftDockTab('price-alerts'); openMarketWatch()
+      if (priceAlertSoundEnabled) void enablePriceAlertSound()
+    }
     setResearchActive(false)
     setActiveDrawingTool(tool)
     setSelectedDrawingId(null)
@@ -232,7 +250,7 @@ export function useTerminalWorkspace() {
     currencyColors: inspector.preferences.currencyColors, timeDisplay, onSelectRelease: selectChartRelease,
     onClearInspection: !activeDrawingTool && !researchActive && !researchSeed && inspector.selectedRelease ? clearChartInspection : undefined,
     researchActive, bars, timeframe, onResearchRange: selectResearchRange, onCancelResearch: cancelResearch,
-    symbol: activeSymbol, onSelectExternal: selectExternal, eventIconsVisible })
+    symbol: activeSymbol, onSelectExternal: selectExternal, eventIconsVisible, priceAlerts: priceAlerts.brokerAlerts })
   const sourceState: 'error' | 'live' | 'waiting' = !bridge.reachable || marketData.marketWatchStatus === 'unavailable'
     ? 'error'
     : mt5Connected && marketData.marketWatchStatus === 'live'
@@ -253,5 +271,5 @@ export function useTerminalWorkspace() {
     selectCrosshair, deletePairDrawings, toggleBottomDock, exitDrawingMode, toggleDrawingToolbar,
     renderChartOverlay, sourceState, sourceLabel, researchActive, researchSeed, researchError,
     selectResearchTool, closeResearch, selectedExternalKey, externalSelection,
-    plannedTrade, handlePlanChange, latestBarTime, registeredArrows, selectPinnedArrow }
+    plannedTrade, handlePlanChange, latestBarTime, registeredArrows, selectPinnedArrow, priceAlerts, leftDockTab, setLeftDockTab }
 }

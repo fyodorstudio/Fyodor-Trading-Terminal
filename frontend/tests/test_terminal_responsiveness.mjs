@@ -912,6 +912,41 @@ try {
   await flush()
   assert.equal(container.querySelectorAll('.drawing-object').length, eurDrawings.length, 'Returning to EURUSD retains its drawings')
   assert.equal(trash().disabled, false)
+  // Real drawing gesture -> broker-scoped alert store -> native line -> live quote
+  // trigger, while ordinary drawing storage and the shared viewport stay intact.
+  const ordinaryDrawings = localStorage.getItem('fyodor.chart-drawings.v1')
+  const alertWindow = { ...logicalRange }
+  await click(container.querySelector('[aria-label="Price alert"]'))
+  assert.equal(button('Price Alerts').getAttribute('aria-pressed'), 'true')
+  const soundCheckbox = container.querySelector('.price-alert-controls input[type="checkbox"]')
+  await click(soundCheckbox) // Audio scheduling is verified separately with a Web Audio fixture.
+  await pointer(drawingSvg(), 'pointerdown', 320, drawingSvg().getBoundingClientRect().top + 1.3 * 100 + priceShift)
+  await flush()
+  const priceAlertKey = 'fyodor.price-alerts.v1'
+  const createdAlert = JSON.parse(localStorage.getItem(priceAlertKey)).alerts[0]
+  assert.equal(createdAlert.symbol, 'EURUSD')
+  assert.equal(createdAlert.brokerId, broker)
+  assert.equal(createdAlert.price, 1.3)
+  assert.equal(createdAlert.status, 'armed')
+  assert.ok([...tradeLines].some(line => line.options.price === 1.3 && line.options.title.includes('Price alert')))
+  assert.equal(localStorage.getItem('fyodor.chart-drawings.v1'), ordinaryDrawings)
+  assert.deepEqual(logicalRange, alertWindow)
+  reset(); await tick('poll', 2500); await reply('watch')
+  assertQuiet('Unchanged quotes with armed price alert', true)
+  await click(button('Market Watch'))
+  await switchSymbol('TEST1')
+  assert.ok(![...tradeLines].some(line => line.options.title?.includes('Price alert')), 'Other symbols hide the line')
+  quotes[0] = { ...quotes[0], bid: 1.31 }
+  await tick('poll', 2500); await reply('watch'); await flush()
+  assert.equal(JSON.parse(localStorage.getItem(priceAlertKey)).alerts[0].status, 'triggered', 'Alerts monitor while viewing another chart and dock')
+  await click(button('Price Alerts'))
+  assert.ok(container.querySelector('.price-alert-row.triggered'))
+  await click([...container.querySelectorAll('.price-alert-actions button')].find(node => node.textContent === 'Delete'))
+  assert.deepEqual(JSON.parse(localStorage.getItem(priceAlertKey)).alerts, [])
+  await click(button('Market Watch'))
+  quotes[0] = { ...quotes[0], bid: 1.1 }
+  await tick('poll', 2500); await reply('watch')
+  await switchSymbol('EURUSD')
   // Exercise new instrument scopes through the assembled shell, live quote
   // adapter, stored-calendar API and real production overlay composition.
   const instrumentScopes = { JPYX: 'JPY', EURX: 'EUR', USDX: 'USD', JPN225: 'JPY', XAUUSD: 'USD' }

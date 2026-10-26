@@ -25,7 +25,7 @@ export function TerminalWorkspace() {
     createDrawing, chooseDrawingTool, selectCrosshair, deletePairDrawings, toggleBottomDock, exitDrawingMode,
     toggleDrawingToolbar, renderChartOverlay, sourceState, sourceLabel, researchActive, researchSeed, researchError,
     selectResearchTool, closeResearch, selectedExternalKey, externalSelection,
-    plannedTrade, handlePlanChange, latestBarTime, registeredArrows, selectPinnedArrow } = useTerminalWorkspace()
+    plannedTrade, handlePlanChange, latestBarTime, registeredArrows, selectPinnedArrow, priceAlerts, leftDockTab, setLeftDockTab } = useTerminalWorkspace()
   const brokerOffsetSeconds = bridge.brokerOffsetSeconds
   return (
     <DisplayClockProvider brokerId={brokerId} brokerOffsetSeconds={brokerOffsetSeconds} preference={timeDisplay}>
@@ -40,6 +40,10 @@ export function TerminalWorkspace() {
           marketWatchStatus={marketData.marketWatchStatus}
           marketWatchError={marketData.marketWatchError}
           onSelectSymbol={selectSymbol}
+          activeTab={leftDockTab}
+          onSelectTab={setLeftDockTab}
+          priceAlerts={priceAlerts}
+          onCreatePriceAlert={() => chooseDrawingTool('price-alert')}
         />
 
         <section className="chart-workspace" aria-label={`${activeSymbol} chart workspace`}>
@@ -104,6 +108,7 @@ export function TerminalWorkspace() {
                 researchActive={researchActive}
                 researchDisabled={!inspector.supported || !brokerId || !bars.length}
                 onSelectResearch={selectResearchTool}
+                priceAlertDisabled={!brokerId || !quote || !priceAlerts.live}
               />
               )}
               <div className="chart-watermark" aria-hidden="true">

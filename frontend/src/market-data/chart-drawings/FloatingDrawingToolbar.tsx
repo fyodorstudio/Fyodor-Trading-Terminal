@@ -17,6 +17,7 @@ type FloatingDrawingToolbarProps = {
   researchActive?: boolean
   researchDisabled?: boolean
   onSelectResearch?: () => void
+  priceAlertDisabled?: boolean
 }
 
 export function FloatingDrawingToolbar({
@@ -29,6 +30,7 @@ export function FloatingDrawingToolbar({
   researchActive = false,
   researchDisabled = false,
   onSelectResearch,
+  priceAlertDisabled = false,
 }: FloatingDrawingToolbarProps) {
   const toolbarRef = useRef<HTMLDivElement>(null)
   const [position, setPosition] = useState<FloatingToolbarPosition>(readFloatingToolbarPosition)
@@ -149,9 +151,12 @@ export function FloatingDrawingToolbar({
           onClick={() => onToolChange(activeTool === tool.id ? null : tool.id)}
           aria-pressed={activeTool === tool.id}
           aria-label={tool.label}
+          disabled={tool.id === 'price-alert' && priceAlertDisabled}
           title={`${tool.label}${activeTool === tool.id ? ' · click again to return to chart navigation' : ''}`}
         >
-          {tool.id === 'rectangle'
+          {tool.id === 'price-alert'
+            ? <svg aria-hidden="true" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6"><circle cx="10" cy="11" r="6" /><path d="M10 7v4l3 2M3 5l3-3M14 2l3 3M5 16l-1 2M15 16l1 2" /></svg>
+            : tool.id === 'rectangle'
             ? <svg aria-hidden="true" width="18" height="18" viewBox="0 0 20 20"><rect x="2" y="4" width="16" height="12" rx="1" fill="none" stroke="currentColor" strokeWidth="1.8" /></svg>
             : <span aria-hidden="true">{tool.icon}</span>}
         </button>
