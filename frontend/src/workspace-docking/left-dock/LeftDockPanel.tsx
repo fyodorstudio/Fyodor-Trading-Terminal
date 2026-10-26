@@ -6,6 +6,7 @@ import type { MarketWatchDock } from './useMarketWatchDock'
 import './left-dock-panel.css'
 import { PriceAlertsDock } from '../../price-alerts/PriceAlertsDock'
 import type { PriceAlertsController } from '../../price-alerts/usePriceAlerts'
+import { CurrencySummary } from '../../thesis/CurrencySummary'
 
 type LeftDockPanelProps = {
   marketWatch: MarketWatchDock
@@ -40,6 +41,7 @@ function LeftDockPanelComponent({ marketWatch, symbols, selectedSymbol, marketWa
         status={marketWatchStatus} error={marketWatchError} onSelect={onSelectSymbol} visible={!collapsed && activeTab === 'market-watch'} /></div>
       <div hidden={activeTab !== 'price-alerts'}><PriceAlertsDock controller={priceAlerts} onSelectSymbol={onSelectSymbol} onCreate={onCreatePriceAlert} brokerId={brokerId ?? null} /></div>
     </div>
+    {!collapsed && <CurrencySummary />}
   </aside>
 }
 export const LeftDockPanel = memo(LeftDockPanelComponent)

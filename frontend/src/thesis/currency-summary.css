@@ -1,0 +1,8 @@
+.currency-summary { min-height: 0; max-height: 45vh; overflow: auto; padding: 10px; border-top: 1px solid var(--border-strong); color: var(--text-strong); background: var(--surface-panel); font-size: 11px; }
+.currency-summary h2 { margin: 0 0 6px; font-size: 12px; }
+.currency-summary p { margin: 5px 0; line-height: 1.4; }
+.currency-summary table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.currency-summary th, .currency-summary td { padding: 6px 3px; border-bottom: 1px solid var(--border); vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+.currency-summary th:first-child { width: 32px; }
+.currency-summary th:nth-child(2) { width: 84px; }
+.currency-summary .currency-review-due td:last-child { font-weight: 700; }

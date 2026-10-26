@@ -11,6 +11,12 @@ released news with numbered sources, standalone currency directions and only
 future scheduled checkpoints, following that mode's output and storage rules.
 A release wait alone does not authorize that save. Real capital may be at stake;
 verify the decisive package before a verdict and never promise an executable fill.
+An elapsed left-panel UNTIL means reassessment is due, not a reversed verdict.
+When also asked to refresh Thesis, save retained/reversed evidence and a new chosen
+checkpoint through the dated mode, then read back `thesis summary --scope ALL`.
+A wait/result alone leaves that snapshot unchanged. Inherited Assess Trade Now
+reminder permission uses its Alert procedure; it never extends this bounded wait
+or schedules another AI invocation.
 For a commodity release, use the parent commodity reference and its instrument
 receipt/source families; do not invent a currency impact or select a forex pair.
 

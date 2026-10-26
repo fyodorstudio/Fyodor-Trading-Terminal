@@ -46,6 +46,7 @@ Optional `FYODOR_BRIDGE_API_URL` / `FYODOR_STORAGE_API_URL` override Vite's prox
 | entry-trade | Manual execution plans, all-pair pins, draggable chart levels and independent saved journals |
 | price-alerts | Broker/symbol price-alert lines, local persistence, live Bid monitoring and browser sound |
 | thesis / storage/thesis.py / storage/thesis_reviews.py | Dated opportunities, shared backdrop reviews, agent context and append-only versions |
+| thesis/CurrencySummary / storage/thesis_summary.py | Left-dock saved currency verdicts and chosen reassessment deadline; read-only projection |
 | research | Chart date selection and named Markdown handoff |
 | Market Analyst Workflow/tools (repo root) | Read-only calendar, upcoming/Highlight/report queries, journal/lifecycle writes and bounded OHLC capture |
 | appearance, system-connectivity, system-observability, workspace-docking | Theme/time, bridge status, Activity and dock geometry |
@@ -176,6 +177,11 @@ Trade Entry Opportunity selects supported standalone currency and optional
 Brent/WTI/gold entries with investor incentives, active/conditional status and
 same-day windows. It can explain an empty selection while keeping all eight
 directional rows; real capital may be at stake. No pair scanning in this view.
+The left dock shows **CUR | VERDICT | UNTIL** in both tabs, following the latest
+live daily Thesis across months. UNTIL counts down to an agent-selected checkpoint,
+then says **Review due** while keeping the saved verdict until a requested refresh.
+Older rows without a deadline say **Review not set**. Details stay in Thesis; the
+box does no research. See [summary/save rules](docs/THESIS.md#left-panel-summary-and-reassessment).
 It has its own dated copied prompt and Markdown handoff; existing pair journals remain separate.
 Agents use `thesis context`
 for bounded prior context, then refresh evidence and save a new dated review;
@@ -255,8 +261,9 @@ read-only), then validates its coverage/persistence receipt. It sends a supporte
 pair BUY/SELL decision promptly, explicitly retains/reverses prior directions,
 and surfaces emerging beneficiaries in LOOK HERE NEXT after a brief eight-currency
 catalyst sweep. Deep research stays with the request and material candidates;
-an unspecified broad event shortlist alone uses all eight/90 days. Fundamental-only
-is the default; an explicit price-aware request permits bounded market feedback.
+an unspecified broad event shortlist alone uses all eight/90 days. Pure bias and
+release-first verdicts are fundamental-first; entry discovery permits bounded
+market feedback under the skill, unless explicitly disabled.
 Daily Thesis currency rows keep their existing saved labels and schema.
 [One Minute Before Release](.agents/skills/one-minute-before-release/SKILL.md)
 provides a bounded active-chat countdown using prepared context and fresh actuals.

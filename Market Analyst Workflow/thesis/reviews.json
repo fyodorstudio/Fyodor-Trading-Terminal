@@ -27979,6 +27979,1241 @@
       "expected_version": "0c3ea7c0dee3486faa249538fe1c4b95",
       "id": "462cf3fd80154ca888c98dd364b2a6b9",
       "saved_utc": "2026-10-26T14:39:04.212813Z"
+    },
+    {
+      "scope": "ALL",
+      "format": "daily_news",
+      "as_of_utc": "2026-10-26T22:54:32.999189Z",
+      "takeaway": "",
+      "horizon": "Published news",
+      "backdrop": [],
+      "opportunity_ids": [],
+      "currency_views": [
+        {
+          "currency": "USD",
+          "bias": "",
+          "summary": "",
+          "counterweight": "",
+          "sources": [],
+          "news": [
+            {
+              "published_on": "2026-10-27",
+              "published_at": null,
+              "summary": "The overnight two-year auction returned a 4.708% high yield and 2.59 bid-to-cover. Prior auction: 4.787% and 2.63. A lower yield than last month does not establish an auction surprise without a contemporaneous when-issued comparison.",
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Treasury official results",
+                  "locator": "https://www.treasurydirect.gov/TA_WS/securities/auctioned?format=json",
+                  "note": ""
+                }
+              ]
+            },
+            {
+              "published_on": "2026-10-27",
+              "published_at": "2026-10-26T20:24:58Z",
+              "summary": "Reuters close update reports resilient US activity supporting USD, while inflation and financial-market weakness remain competing influences.",
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Reuters close update, October 27 Jakarta",
+                  "locator": "https://live.euronext.com/en/financial-news/euro-firms-against-dollar-yen-ahead-central-bank-meetings",
+                  "note": "Publisher HTML update 3:24:58 AM Jakarta; article-time observations are not live quotes or proof of first wire dissemination."
+                }
+              ]
+            }
+          ],
+          "news_gap": "Two distinct October 27 Jakarta items verified at this early cutoff. Dallas and CPI retain their October 26/14 dates in assessment evidence; no four-item filler or auction-driven flow claim.",
+          "checkpoints": [
+            {
+              "title": "US durable goods / core capital-goods orders",
+              "event_at": "2026-10-27T12:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.census.gov/economic-indicators/calendar-listview.html",
+                  "note": ""
+                }
+              ],
+              "note": "Nearest US demand test, at 7:30 PM Jakarta. Compare the headline, underlying orders, shipments and revisions with separately attributed expectations. A broad miss with lower expected US rates can challenge USD support; aircraft volatility alone is insufficient."
+            },
+            {
+              "title": "US consumer confidence, new home sales and Richmond surveys",
+              "event_at": "2026-10-27T14:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.conference-board.org/topics/consumer-confidence/",
+                  "note": ""
+                }
+              ],
+              "note": "At 9:00 PM Jakarta, cross-check household demand, labour perceptions, housing and regional surveys. Census separately confirms the housing clock; broker Richmond rows are retained with their own provider identity. These are distinct releases, not one additive score."
+            },
+            {
+              "title": "Treasury final buyback terms",
+              "event_at": "2026-10-27T15:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.treasurydirect.gov/auctions/buy-backs/",
+                  "note": ""
+                }
+              ],
+              "note": "Today at 10:00 PM Jakarta. Preliminary cap is $6 billion for 35 eligible 20–30-year nominal issues. The operation is October 28, 12:40–1:00 AM Jakarta, with results afterward. Cap, offers and accepted purchases are different; this is not automatic QE or a currency signal."
+            },
+            {
+              "title": "US Treasury $70 billion five-year note auction",
+              "event_at": "2026-10-27T17:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.treasurydirect.gov/TA_WS/securities/announced?format=json",
+                  "note": ""
+                }
+              ],
+              "note": "October 28, 12:00 AM Jakarta. Compare the result with a verified immediately pre-auction when-issued yield and demand distribution; do not interpret the high yield against last month alone."
+            },
+            {
+              "title": "Fed rate decision / statement",
+              "event_at": "2026-10-28T18:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.federalreserve.gov/newsevents/2026-october.htm",
+                  "note": ""
+                }
+              ],
+              "note": "October 29, 1:00 AM Jakarta. Hold is the reported baseline, not an automatic USD rally. Guidance that preserves further tightening supports USD; a softer expected path can weaken it. No October SEP/dot plot."
+            },
+            {
+              "title": "Fed press conference",
+              "event_at": "2026-10-28T18:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.federalreserve.gov/newsevents/2026-october.htm",
+                  "note": ""
+                }
+              ],
+              "note": "October 29, 1:30 AM Jakarta. Reassess the path after the decision; answers can reverse the statement reaction. Keep this stage separate."
+            },
+            {
+              "title": "US advance GDP and September income/outlays/PCE",
+              "event_at": "2026-10-29T12:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.bea.gov/news/schedule",
+                  "note": ""
+                }
+              ],
+              "note": "October 29, 7:30 PM Jakarta. The preview attributes 3.2% annualized GDP and 0.3% monthly core PCE expectations; recheck near release. Demand composition, revisions and inflation can pull the rate path in different directions."
+            },
+            {
+              "title": "US Employment Cost Index",
+              "event_at": "2026-10-30T12:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.bls.gov/schedule/2026/10_sched.htm",
+                  "note": ""
+                }
+              ],
+              "note": "October 30, 7:30 PM Jakarta. Wage-cost persistence versus cooling affects the next expected Fed move; no consensus invented."
+            }
+          ],
+          "direction": {
+            "verdict": "POTENTIAL STRENGTHENING",
+            "reason": "RETAINED against EUR, GBP and NZD for this session. Restrictive Fed-path expectations, the October 14 inflation acceleration and still-positive US activity support potential dollar demand. The expected October hold itself adds no bullish surprise. October 26 Dallas production, orders and hiring slowed even as business sentiment and input prices rose; September payroll growth was only 29,000. Those growth risks and any sustained fall in expected US rates can defeat the case. The two-year auction does not independently confirm a fresh bullish repricing.",
+            "verified_utc": "2026-10-26T22:54:32.999189Z",
+            "sources": [
+              {
+                "kind": "web",
+                "label": "Reuters close update, October 27 Jakarta",
+                "locator": "https://live.euronext.com/en/financial-news/euro-firms-against-dollar-yen-ahead-central-bank-meetings",
+                "note": "Publisher HTML update 3:24:58 AM Jakarta; article-time observations are not live quotes or proof of first wire dissemination."
+              },
+              {
+                "kind": "web",
+                "label": "Fed October schedule",
+                "locator": "https://www.federalreserve.gov/newsevents/2026-october.htm",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "BLS September CPI, released October 14",
+                "locator": "https://www.bls.gov/news.release/cpi.htm",
+                "note": "Headline 3.7% annual / 0.6% monthly; retain original publication date."
+              },
+              {
+                "kind": "web",
+                "label": "BLS September jobs, released October 2",
+                "locator": "https://www.bls.gov/news.release/empsit.htm",
+                "note": "Payrolls +29,000, unemployment 4.2%; prior-month revisions matter."
+              },
+              {
+                "kind": "web",
+                "label": "Dallas October survey, released October 26",
+                "locator": "https://www.dallasfed.org/research/surveys/tmos/2026/2610",
+                "note": "Production 15.8, new orders 9.3, general business 13.4, employment 11.6, input prices 55.3. One survey package."
+              },
+              {
+                "kind": "web",
+                "label": "Treasury official two-year results",
+                "locator": "https://www.treasurydirect.gov/TA_WS/securities/auctioned?format=json",
+                "note": "4.708% high yield, 2.59 bid-to-cover. Pre-auction when-issued yield is unverified."
+              }
+            ],
+            "reassessment": {
+              "title": "US durable goods / core capital-goods orders",
+              "event_at": "2026-10-27T12:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.census.gov/economic-indicators/calendar-listview.html",
+                  "note": ""
+                }
+              ],
+              "note": "Nearest US demand test, at 7:30 PM Jakarta. Compare the headline, underlying orders, shipments and revisions with separately attributed expectations. A broad miss with lower expected US rates can challenge USD support; aircraft volatility alone is insufficient."
+            },
+            "reassessment_gap": ""
+          }
+        },
+        {
+          "currency": "EUR",
+          "bias": "",
+          "summary": "",
+          "counterweight": "",
+          "sources": [],
+          "news": [
+            {
+              "published_on": "2026-10-27",
+              "published_at": "2026-10-26T20:24:58Z",
+              "summary": "Reuters close update says French bond prices improved after Moody’s left the rating unchanged, while energy and growth concerns continued to constrain EUR against USD.",
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Reuters close update, October 27 Jakarta",
+                  "locator": "https://live.euronext.com/en/financial-news/euro-firms-against-dollar-yen-ahead-central-bank-meetings",
+                  "note": "Publisher HTML update 3:24:58 AM Jakarta; article-time observations are not live quotes or proof of first wire dissemination."
+                }
+              ]
+            }
+          ],
+          "news_gap": "One verified October 27 Jakarta source update; October 26 Ifo and earlier ECB credit evidence are dated context. Full Eurostat agenda and full student-talks article bodies remain unavailable. The relief bias is counterpart-specific.",
+          "checkpoints": [
+            {
+              "title": "ECB Bank Lending Survey / monetary developments",
+              "event_at": "2026-10-27T09:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.ecb.europa.eu/press/calendars/weekly/html/index.en.html",
+                  "note": ""
+                }
+              ],
+              "note": "At 4:00 PM Jakarta, test credit standards and demand against the relief thesis. Tighter financing or renewed French spread stress challenges EUR relief and can revive CHF haven demand; improving credit demand supports the case."
+            },
+            {
+              "title": "ECB rate decision",
+              "event_at": "2026-10-29T13:15:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.ecb.europa.eu/press/calendars/weekly/html/index.en.html",
+                  "note": ""
+                }
+              ],
+              "note": "October 29, 8:15 PM Jakarta. Hold at 2.50% is the attributed preview baseline; future guidance and French financing conditions matter more than an expected hold."
+            },
+            {
+              "title": "ECB press conference",
+              "event_at": "2026-10-29T13:45:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.ecb.europa.eu/press/calendars/weekly/html/index.en.html",
+                  "note": ""
+                }
+              ],
+              "note": "October 29, 8:45 PM Jakarta. Monitor inflation persistence, growth and transmission/fragmentation; do not attach a conference reversal to the earlier decision clock."
+            }
+          ],
+          "direction": {
+            "verdict": "POTENTIAL STRENGTHENING",
+            "reason": "RETAINED as a relief bias against CHF and GBP, not against USD. October 26 Ifo improved to 90.2 from 89.9, and French bonds recovered after the rating outcome. Those channels still support relative euro demand. The late US-session report continued to favour USD over EUR because of energy and growth exposure. French student leaders reportedly plan further protests; package costs and government confirmation remain unresolved, so relief is fragile. Renewed disorderly French spread widening would invalidate this relief comparison.",
+            "verified_utc": "2026-10-26T22:54:32.999189Z",
+            "sources": [
+              {
+                "kind": "web",
+                "label": "Reuters close update, October 27 Jakarta",
+                "locator": "https://live.euronext.com/en/financial-news/euro-firms-against-dollar-yen-ahead-central-bank-meetings",
+                "note": "Publisher HTML update 3:24:58 AM Jakarta; article-time observations are not live quotes or proof of first wire dissemination."
+              },
+              {
+                "kind": "web",
+                "label": "Ifo October 26 release",
+                "locator": "https://www.ifo.de/en/facts/2026-10-26/ifo-business-climate-rises-october-2026",
+                "note": "Better expectations, worse current situation; not uniformly stronger activity."
+              },
+              {
+                "kind": "web",
+                "label": "ECB weekly schedule",
+                "locator": "https://www.ecb.europa.eu/press/calendars/weekly/html/index.en.html",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "Reuters student talks — indexed text only",
+                "locator": "https://www.investing.com/news/world-news/french-student-protesters-say-government-offered-them-deal-but-they-want-more-4973382",
+                "note": "Full bodies failed through two republishers. Reported proposals and continued mobilisation; no enacted package or verified cost assumed."
+              }
+            ],
+            "reassessment": {
+              "title": "ECB Bank Lending Survey / monetary developments",
+              "event_at": "2026-10-27T09:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.ecb.europa.eu/press/calendars/weekly/html/index.en.html",
+                  "note": ""
+                }
+              ],
+              "note": "At 4:00 PM Jakarta, test credit standards and demand against the relief thesis. Tighter financing or renewed French spread stress challenges EUR relief and can revive CHF haven demand; improving credit demand supports the case."
+            },
+            "reassessment_gap": ""
+          }
+        },
+        {
+          "currency": "GBP",
+          "bias": "",
+          "summary": "",
+          "counterweight": "",
+          "sources": [],
+          "news": [],
+          "news_gap": "No distinct GBP-specific October 27 Jakarta publication verified before this early assessment. Older October 20–26 evidence retains its dates. Filtered ONS upcoming pages did not expose a usable full agenda.",
+          "checkpoints": [
+            {
+              "title": "UK DMO 2032 gilt auction — competitive close",
+              "event_at": "2026-10-27T10:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.dmo.gov.uk/media/xlmhzuis/pr201026_2.pdf",
+                  "note": ""
+                }
+              ],
+              "note": "At 5:00 PM Jakarta, £4.5 billion nominal is offered. Results follow the close, with no guaranteed dissemination second. Strong financing demand supports fiscal credibility; a risk-premium jump accompanied by GBP weakness challenges the relief view. Do not infer a tail without a contemporaneous benchmark."
+            },
+            {
+              "title": "US durable goods / core capital-goods orders",
+              "event_at": "2026-10-27T12:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.census.gov/economic-indicators/calendar-listview.html",
+                  "note": ""
+                }
+              ],
+              "note": "Nearest US demand test, at 7:30 PM Jakarta. Compare the headline, underlying orders, shipments and revisions with separately attributed expectations. A broad miss with lower expected US rates can challenge USD support; aircraft volatility alone is insufficient."
+            },
+            {
+              "title": "UK Budget — approximate start after PMQs",
+              "event_at": "2026-10-28T12:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.parliament.uk/business/news/2026/october-2026/budget-statement-wednesday-28-october/",
+                  "note": ""
+                }
+              ],
+              "note": "October 28, approximately 7:30 PM Jakarta. Existing approximate reminder retained. Judge fiscal headroom, growth, issuance and OBR documents after publication. Stable financing can support GBP; an adverse risk-premium shock can outweigh higher gilt yields."
+            },
+            {
+              "title": "Fed rate decision / statement",
+              "event_at": "2026-10-28T18:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.federalreserve.gov/newsevents/2026-october.htm",
+                  "note": ""
+                }
+              ],
+              "note": "October 29, 1:00 AM Jakarta. Hold is the reported baseline, not an automatic USD rally. Guidance that preserves further tightening supports USD; a softer expected path can weaken it. No October SEP/dot plot."
+            },
+            {
+              "title": "Fed press conference",
+              "event_at": "2026-10-28T18:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.federalreserve.gov/newsevents/2026-october.htm",
+                  "note": ""
+                }
+              ],
+              "note": "October 29, 1:30 AM Jakarta. Reassess the path after the decision; answers can reverse the statement reaction. Keep this stage separate."
+            }
+          ],
+          "direction": {
+            "verdict": "POTENTIAL WEAKENING",
+            "reason": "RETAINED against USD for this session. US activity and policy-path support still outweigh fresh demand for sterling ahead of the financing and Budget tests. This is not a UK easing call: October 21 CPI rose to 3.5% from 3.1%, the BoE holds 3.75%, and Reuters reports expectations for a cautious, bond-friendly Budget. Those are substantial counterweights. A well-supported gilt auction followed by stronger fiscal credibility or lower expected US rates can reverse this relative case; higher gilt yields alone do not prove GBP strength.",
+            "verified_utc": "2026-10-26T22:54:32.999189Z",
+            "sources": [
+              {
+                "kind": "web",
+                "label": "BoE September 17 decision",
+                "locator": "https://www.bankofengland.co.uk/monetary-policy-summary-and-minutes/2026/september-2026",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "ONS September CPI, October 21",
+                "locator": "https://www.ons.gov.uk/economy/inflationandpriceindices/bulletins/consumerpriceinflation/september2026",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "ONS October 20 labour review",
+                "locator": "https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/employmentandemployeetypes/bulletins/uklabourmarket/october2026",
+                "note": "Unemployment 4.7%; payrolls broadly flat in the provisional month, not a fresh jobs collapse."
+              },
+              {
+                "kind": "web",
+                "label": "Reuters sterling/Budget preview, October 26",
+                "locator": "https://live.euronext.com/en/financial-news/sterling-drops-against-euro-and-dollar-ahead-uk-budget",
+                "note": "Support from fiscal credibility is contrary evidence to the USD-relative sell case."
+              },
+              {
+                "kind": "web",
+                "label": "DMO original auction terms",
+                "locator": "https://www.dmo.gov.uk/media/xlmhzuis/pr201026_2.pdf",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "Reuters close update, October 27 Jakarta",
+                "locator": "https://live.euronext.com/en/financial-news/euro-firms-against-dollar-yen-ahead-central-bank-meetings",
+                "note": "Publisher HTML update 3:24:58 AM Jakarta; article-time observations are not live quotes or proof of first wire dissemination."
+              }
+            ],
+            "reassessment": {
+              "title": "UK DMO 2032 gilt auction — competitive close",
+              "event_at": "2026-10-27T10:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.dmo.gov.uk/media/xlmhzuis/pr201026_2.pdf",
+                  "note": ""
+                }
+              ],
+              "note": "At 5:00 PM Jakarta, £4.5 billion nominal is offered. Results follow the close, with no guaranteed dissemination second. Strong financing demand supports fiscal credibility; a risk-premium jump accompanied by GBP weakness challenges the relief view. Do not infer a tail without a contemporaneous benchmark."
+            },
+            "reassessment_gap": ""
+          }
+        },
+        {
+          "currency": "JPY",
+          "bias": "",
+          "summary": "",
+          "counterweight": "",
+          "sources": [],
+          "news": [
+            {
+              "published_on": "2026-10-27",
+              "published_at": "2026-10-26T20:24:58Z",
+              "summary": "Reuters close update reports JPY weaker against USD as markets await the BOJ decision; the expected hold and possible later tightening remain separate from released policy.",
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Reuters close update, October 27 Jakarta",
+                  "locator": "https://live.euronext.com/en/financial-news/euro-firms-against-dollar-yen-ahead-central-bank-meetings",
+                  "note": "Publisher HTML update 3:24:58 AM Jakarta; article-time observations are not live quotes or proof of first wire dissemination."
+                }
+              ]
+            }
+          ],
+          "news_gap": "One October 27 Jakarta update. Today’s services and underlying inflation results are still future; no inferred actual or new intervention flow.",
+          "checkpoints": [
+            {
+              "title": "BOJ services producer prices",
+              "event_at": "2026-10-26T23:50:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.boj.or.jp/en/about/calendar/index.htm",
+                  "note": ""
+                }
+              ],
+              "note": "At 6:50 AM Jakarta, reassess domestic services-price persistence and the expected BOJ path. A result that materially increases future tightening expectations can challenge JPY weakness; a hot input-price reading alone is not an automatic yen buy."
+            },
+            {
+              "title": "Japan liquidity-enhancement auction — initial results",
+              "event_at": "2026-10-27T03:35:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.mof.go.jp/english/public_relations/weekly_schedule/index.htm",
+                  "note": ""
+                }
+              ],
+              "note": "Today at 10:35 AM Jakarta. Official Japanese publication may precede English. The 11–39-year remaining-maturity auction can affect JGB yields; demand and yield surprise are not known before results."
+            },
+            {
+              "title": "BOJ underlying inflation indicators",
+              "event_at": "2026-10-27T05:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.boj.or.jp/en/about/calendar/index.htm",
+                  "note": ""
+                }
+              ],
+              "note": "Today at noon Jakarta. Test trimmed-mean and weighted-median persistence; the readings are one inflation package, not independent votes."
+            },
+            {
+              "title": "US durable goods / core capital-goods orders",
+              "event_at": "2026-10-27T12:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.census.gov/economic-indicators/calendar-listview.html",
+                  "note": ""
+                }
+              ],
+              "note": "Nearest US demand test, at 7:30 PM Jakarta. Compare the headline, underlying orders, shipments and revisions with separately attributed expectations. A broad miss with lower expected US rates can challenge USD support; aircraft volatility alone is insufficient."
+            },
+            {
+              "title": "Tokyo CPI",
+              "event_at": "2026-10-29T23:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.stat.go.jp/english/data/cpi/1582.html",
+                  "note": ""
+                }
+              ],
+              "note": "October 30, 6:30 AM Jakarta. Check core and services breadth before the BOJ decision. Attributed surveys differ; refresh them rather than invent one consensus."
+            },
+            {
+              "title": "BOJ decision and Outlook — hour unannounced",
+              "event_at": null,
+              "event_date": "2026-10-30",
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "BOJ official schedule",
+                  "locator": "https://www.boj.or.jp/en/about/calendar/index.htm",
+                  "note": ""
+                }
+              ],
+              "note": "Decision and Bank’s View released at an undecided hour. No precise decision countdown or new timed alarm is invented."
+            }
+          ],
+          "direction": {
+            "verdict": "POTENTIAL WEAKENING",
+            "reason": "RETAINED against USD for this session. Elevated energy costs and the dollar’s rate/activity support still favour the USD side while the BOJ is expected to hold after its prior hike. This is not a measured yen-index verdict against every currency. Above-target inflation, potential later BOJ hikes, intervention risk and renewed equity/funding stress can support JPY. Reassess today’s services prices and underlying indicators before carrying the view through the BOJ meeting; a genuine shift in the relative expected rate path or haven demand can reverse it.",
+            "verified_utc": "2026-10-26T22:54:32.999189Z",
+            "sources": [
+              {
+                "kind": "web",
+                "label": "Reuters close update, October 27 Jakarta",
+                "locator": "https://live.euronext.com/en/financial-news/euro-firms-against-dollar-yen-ahead-central-bank-meetings",
+                "note": "Publisher HTML update 3:24:58 AM Jakarta; article-time observations are not live quotes or proof of first wire dissemination."
+              },
+              {
+                "kind": "web",
+                "label": "BOJ current release schedule",
+                "locator": "https://www.boj.or.jp/en/about/calendar/index.htm",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "Japan official CPI schedule",
+                "locator": "https://www.stat.go.jp/english/data/cpi/1582.html",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "Attributed central-bank previews, October 26",
+                "locator": "https://investinglive.com/forex/market-outlook-for-the-week-of-26th-30th-october/",
+                "note": "BOJ hold at 1.25% expected; banks differ on December versus January tightening. These are expectations, not outcomes."
+              },
+              {
+                "kind": "web",
+                "label": "MOF current weekly schedule",
+                "locator": "https://www.mof.go.jp/english/public_relations/weekly_schedule/index.htm",
+                "note": ""
+              }
+            ],
+            "reassessment": {
+              "title": "BOJ services producer prices",
+              "event_at": "2026-10-26T23:50:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.boj.or.jp/en/about/calendar/index.htm",
+                  "note": ""
+                }
+              ],
+              "note": "At 6:50 AM Jakarta, reassess domestic services-price persistence and the expected BOJ path. A result that materially increases future tightening expectations can challenge JPY weakness; a hot input-price reading alone is not an automatic yen buy."
+            },
+            "reassessment_gap": ""
+          }
+        },
+        {
+          "currency": "CHF",
+          "bias": "",
+          "summary": "",
+          "counterweight": "",
+          "sources": [],
+          "news": [],
+          "news_gap": "No distinct verified CHF-specific October 27 Jakarta news found. Regional haven implications are interpretation, not a fabricated Swiss release. Full FSO agenda and latest labour details were not established.",
+          "checkpoints": [
+            {
+              "title": "ECB Bank Lending Survey / monetary developments",
+              "event_at": "2026-10-27T09:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.ecb.europa.eu/press/calendars/weekly/html/index.en.html",
+                  "note": ""
+                }
+              ],
+              "note": "At 4:00 PM Jakarta, test credit standards and demand against the relief thesis. Tighter financing or renewed French spread stress challenges EUR relief and can revive CHF haven demand; improving credit demand supports the case."
+            },
+            {
+              "title": "US durable goods / core capital-goods orders",
+              "event_at": "2026-10-27T12:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.census.gov/economic-indicators/calendar-listview.html",
+                  "note": ""
+                }
+              ],
+              "note": "Nearest US demand test, at 7:30 PM Jakarta. Compare the headline, underlying orders, shipments and revisions with separately attributed expectations. A broad miss with lower expected US rates can challenge USD support; aircraft volatility alone is insufficient."
+            },
+            {
+              "title": "Fed rate decision / statement",
+              "event_at": "2026-10-28T18:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.federalreserve.gov/newsevents/2026-october.htm",
+                  "note": ""
+                }
+              ],
+              "note": "October 29, 1:00 AM Jakarta. Hold is the reported baseline, not an automatic USD rally. Guidance that preserves further tightening supports USD; a softer expected path can weaken it. No October SEP/dot plot."
+            },
+            {
+              "title": "Fed press conference",
+              "event_at": "2026-10-28T18:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.federalreserve.gov/newsevents/2026-october.htm",
+                  "note": ""
+                }
+              ],
+              "note": "October 29, 1:30 AM Jakarta. Reassess the path after the decision; answers can reverse the statement reaction. Keep this stage separate."
+            },
+            {
+              "title": "SNB money-market speech: liquidity against collateral",
+              "event_at": "2026-10-29T17:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.snb.ch/en/services-events/digital-services/event-schedule",
+                  "note": ""
+                }
+              ],
+              "note": "October 30, 12:30 AM Jakarta. Technical liquidity/transmission topic; no rate guidance promised. A clearly changed policy message would require reassessment."
+            }
+          ],
+          "direction": {
+            "verdict": "POTENTIAL WEAKENING",
+            "reason": "RETAINED against USD and AUD. The SNB’s zero-rate setting and reduced immediate French funding stress support a potential funding-currency selling channel. That channel is inferred, not observed institutional orders. The October 22 SNB discussion describes September conditions, not today’s haven flows. Switzerland’s September 3 GDP release showed strong second-quarter growth, so economic weakness is not the rationale. A fresh European financing shock or a major risk-off move could restore CHF demand before the chosen checkpoint.",
+            "verified_utc": "2026-10-26T22:54:32.999189Z",
+            "sources": [
+              {
+                "kind": "web",
+                "label": "SNB discussion published October 22",
+                "locator": "https://www.snb.ch/en/publications/communication/summaries/zus_20261022",
+                "note": "September 0% decision and historical carry/haven discussion; not current observed flows."
+              },
+              {
+                "kind": "web",
+                "label": "SECO GDP released September 3",
+                "locator": "https://www.seco.admin.ch/en/gross-domestic-product",
+                "note": "Q2 sports-adjusted GDP +1.5% after +0.5%; stronger domestic economy is opposition to a simplistic bearish narrative."
+              },
+              {
+                "kind": "web",
+                "label": "Reuters close update, October 27 Jakarta",
+                "locator": "https://live.euronext.com/en/financial-news/euro-firms-against-dollar-yen-ahead-central-bank-meetings",
+                "note": "Publisher HTML update 3:24:58 AM Jakarta; article-time observations are not live quotes or proof of first wire dissemination."
+              },
+              {
+                "kind": "web",
+                "label": "SNB current schedule",
+                "locator": "https://www.snb.ch/en/services-events/digital-services/event-schedule",
+                "note": ""
+              }
+            ],
+            "reassessment": {
+              "title": "ECB Bank Lending Survey / monetary developments",
+              "event_at": "2026-10-27T09:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.ecb.europa.eu/press/calendars/weekly/html/index.en.html",
+                  "note": ""
+                }
+              ],
+              "note": "At 4:00 PM Jakarta, test credit standards and demand against the relief thesis. Tighter financing or renewed French spread stress challenges EUR relief and can revive CHF haven demand; improving credit demand supports the case."
+            },
+            "reassessment_gap": ""
+          }
+        },
+        {
+          "currency": "CAD",
+          "bias": "",
+          "summary": "",
+          "counterweight": "",
+          "sources": [],
+          "news": [],
+          "news_gap": "No distinct CAD-specific October 27 Jakarta result verified. The older Canadian releases retain their dates; the expected hike is not a new surprise. Oil news can require an earlier unscheduled review.",
+          "checkpoints": [
+            {
+              "title": "US durable goods / core capital-goods orders",
+              "event_at": "2026-10-27T12:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.census.gov/economic-indicators/calendar-listview.html",
+                  "note": ""
+                }
+              ],
+              "note": "Nearest US demand test, at 7:30 PM Jakarta. Compare the headline, underlying orders, shipments and revisions with separately attributed expectations. A broad miss with lower expected US rates can challenge USD support; aircraft volatility alone is insufficient."
+            },
+            {
+              "title": "Bank of Canada rate decision and Monetary Policy Report",
+              "event_at": "2026-10-28T13:45:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.bankofcanada.ca/press/upcoming-events/",
+                  "note": ""
+                }
+              ],
+              "note": "October 28, 8:45 PM Jakarta. Preview consensus is a hike to 2.50%; Wells Fargo argues for a hold. Guidance and inflation projections can outweigh the expected move. The separate conference is approximately 9:30 PM Jakarta, not a verified exact new alarm."
+            },
+            {
+              "title": "BoC press conference — approximate time",
+              "event_at": null,
+              "event_date": "2026-10-28",
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "BoC official conference page",
+                  "locator": "https://www.bankofcanada.ca/multimedia/press-conference-monetary-policy-report-october-2026/",
+                  "note": ""
+                }
+              ],
+              "note": "Approximately 9:30 PM Jakarta; exact start unverified. The existing date-only watch is retained without inventing a new precise alarm."
+            },
+            {
+              "title": "Canada monthly GDP",
+              "event_at": "2026-10-30T12:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www150.statcan.gc.ca/n1/dai-quo/cal2-eng.htm",
+                  "note": ""
+                }
+              ],
+              "note": "October 30, 7:30 PM Jakarta. Check August activity and the September advance estimate; weaker underlying demand can trim the expected tightening path."
+            }
+          ],
+          "direction": {
+            "verdict": "POTENTIAL STRENGTHENING",
+            "reason": "RETAINED against EUR and JPY. October 23 retail sales showed firmer August demand and high oil still supports Canada’s exporter channel; reported BoC tightening expectations remain active. Opposition is substantial: October 9 jobs fell 68,000 and unemployment rose to 6.5%; October 19 CPI was 3.1%, but excluding gasoline slowed to 2.2% from 2.4%. Lower oil and guidance softer than an already anticipated hike could defeat the case. This is a relative backdrop, not a claim of new CAD inflows or an automatic buy on a hike.",
+            "verified_utc": "2026-10-26T22:54:32.999189Z",
+            "sources": [
+              {
+                "kind": "web",
+                "label": "Statistics Canada retail sales, October 23",
+                "locator": "https://www150.statcan.gc.ca/n1/daily-quotidien/261023/dq261023a-eng.htm",
+                "note": "August retail +1.2%; core +1.1%; volume +1.2%."
+              },
+              {
+                "kind": "web",
+                "label": "Statistics Canada labour, October 9",
+                "locator": "https://www150.statcan.gc.ca/n1/daily-quotidien/261009/dq261009a-eng.htm",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "Statistics Canada CPI, October 19",
+                "locator": "https://www150.statcan.gc.ca/n1/daily-quotidien/261019/dq261019a-eng.htm",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "BoC current calendar",
+                "locator": "https://www.bankofcanada.ca/press/upcoming-events/",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "Attributed policy preview",
+                "locator": "https://investinglive.com/forex/market-outlook-for-the-week-of-26th-30th-october/",
+                "note": "Expected hike to 2.50%; Wells Fargo holds an alternative hold view. Do not blend survey and swaps."
+              },
+              {
+                "kind": "web",
+                "label": "Reuters close update, October 27 Jakarta",
+                "locator": "https://live.euronext.com/en/financial-news/euro-firms-against-dollar-yen-ahead-central-bank-meetings",
+                "note": "Publisher HTML update 3:24:58 AM Jakarta; article-time observations are not live quotes or proof of first wire dissemination."
+              }
+            ],
+            "reassessment": {
+              "title": "US durable goods / core capital-goods orders",
+              "event_at": "2026-10-27T12:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.census.gov/economic-indicators/calendar-listview.html",
+                  "note": ""
+                }
+              ],
+              "note": "Nearest US demand test, at 7:30 PM Jakarta. Compare the headline, underlying orders, shipments and revisions with separately attributed expectations. A broad miss with lower expected US rates can challenge USD support; aircraft volatility alone is insufficient."
+            },
+            "reassessment_gap": ""
+          }
+        },
+        {
+          "currency": "AUD",
+          "bias": "",
+          "summary": "",
+          "counterweight": "",
+          "sources": [],
+          "news": [],
+          "news_gap": "No new AUD-specific October 27 Jakarta publication verified. Older policy remarks are still-active context, with original dates. Wednesday CPI/hearing activation is outside Tuesday, so the earlier conditional AUD entry is not renewed into a fictitious Tuesday window.",
+          "checkpoints": [
+            {
+              "title": "US durable goods / core capital-goods orders",
+              "event_at": "2026-10-27T12:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.census.gov/economic-indicators/calendar-listview.html",
+                  "note": ""
+                }
+              ],
+              "note": "Nearest US demand test, at 7:30 PM Jakarta. Compare the headline, underlying orders, shipments and revisions with separately attributed expectations. A broad miss with lower expected US rates can challenge USD support; aircraft volatility alone is insufficient."
+            },
+            {
+              "title": "RBA Governor and senior officials — Senate hearing",
+              "event_at": "2026-10-28T00:15:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.rba.gov.au/schedules-events/calendar/",
+                  "note": ""
+                }
+              ],
+              "note": "October 28, 7:15 AM Jakarta. The hearing starts before CPI. Separate pre-data remarks from later answers; a softened inflation assessment challenges AUD support."
+            },
+            {
+              "title": "Australia CPI / underlying inflation",
+              "event_at": "2026-10-28T00:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.abs.gov.au/release-calendar/future-releases",
+                  "note": ""
+                }
+              ],
+              "note": "October 28, 7:30 AM Jakarta. InvestingLive reports a 0.7% monthly / 4.2% annual survey baseline; Westpac separately expects 0.6% / 4.1%. Compare underlying breadth and revisions without blending those providers. A softer underlying result can remove November hike urgency."
+            },
+            {
+              "title": "RBNZ OCR decision",
+              "event_at": "2026-10-28T01:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.rbnz.govt.nz/monetary-policy/about-monetary-policy/the-official-cash-rate",
+                  "note": ""
+                }
+              ],
+              "note": "October 28, 8:00 AM Jakarta. A 25 basis point hike to 3% is broadly anticipated in reporting. A more sustained tightening path can reverse NZD weakness; a hold or restrained guidance can reinforce it. An expected hike alone is not a new buy signal."
+            },
+            {
+              "title": "RBNZ media conference",
+              "event_at": "2026-10-28T02:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.rbnz.govt.nz/news-and-events/media-conferences",
+                  "note": ""
+                }
+              ],
+              "note": "October 28, 9:00 AM Jakarta. Reassess guidance and Q&A separately from the decision; stronger future-path guidance can dominate the earlier CPI undershoot."
+            },
+            {
+              "title": "RBA monetary policy decision",
+              "event_at": "2026-11-03T03:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.rba.gov.au/schedules-events/calendar/",
+                  "note": ""
+                }
+              ],
+              "note": "November 3, 10:30 AM Jakarta. Outside the current day; reassess after CPI and remarks rather than treating today’s direction as valid until the decision."
+            }
+          ],
+          "direction": {
+            "verdict": "POTENTIAL STRENGTHENING",
+            "reason": "RETAINED against CHF and NZD. The October 21 Hauser transcript says the inflation outlook has worsened despite labour-market easing; reported Sunday Hunter remarks reinforce the possibility of more tightening. This supports potential relative AUD demand. It does not guarantee November action: ABS October 15 employment fell 39,300 and unemployment reached 4.7%; housing and household demand are weak. A softer underlying CPI package or less hawkish RBA answers can reverse the case, while a more hawkish RBNZ path can defeat the NZD comparison.",
+            "verified_utc": "2026-10-26T22:54:32.999189Z",
+            "sources": [
+              {
+                "kind": "web",
+                "label": "RBA Hauser original October 21 transcript",
+                "locator": "https://www.rba.gov.au/speeches/2026/sp-dg-2026-10-21.html",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "Reported Hunter Sunday interview",
+                "locator": "https://investinglive.com/central-banks/rba-s-hunter-says-inflation-job-not-done-after-four-hikes-november-rise-in-view/",
+                "note": "Older Sunday broadcast; not re-dated as October 27 news."
+              },
+              {
+                "kind": "web",
+                "label": "ABS September labour, October 15",
+                "locator": "https://www.abs.gov.au/statistics/labour/employment-and-unemployment/labour-force-australia/sep-2026",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "ABS upcoming releases",
+                "locator": "https://www.abs.gov.au/release-calendar/future-releases",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "RBA current schedule",
+                "locator": "https://www.rba.gov.au/schedules-events/calendar/",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "Separately attributed CPI forecasts",
+                "locator": "https://investinglive.com/forex/market-outlook-for-the-week-of-26th-30th-october/",
+                "note": ""
+              }
+            ],
+            "reassessment": {
+              "title": "US durable goods / core capital-goods orders",
+              "event_at": "2026-10-27T12:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.census.gov/economic-indicators/calendar-listview.html",
+                  "note": ""
+                }
+              ],
+              "note": "Nearest US demand test, at 7:30 PM Jakarta. Compare the headline, underlying orders, shipments and revisions with separately attributed expectations. A broad miss with lower expected US rates can challenge USD support; aircraft volatility alone is insufficient."
+            },
+            "reassessment_gap": ""
+          }
+        },
+        {
+          "currency": "NZD",
+          "bias": "",
+          "summary": "",
+          "counterweight": "",
+          "sources": [],
+          "news": [],
+          "news_gap": "No new NZ-specific October 27 Jakarta result verified. Full Stats NZ agenda could not be extracted; individual CPI and the official policy stages were checked. Underlying inflation and expected future hikes remain opposition, not evidence to ignore.",
+          "checkpoints": [
+            {
+              "title": "US durable goods / core capital-goods orders",
+              "event_at": "2026-10-27T12:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.census.gov/economic-indicators/calendar-listview.html",
+                  "note": ""
+                }
+              ],
+              "note": "Nearest US demand test, at 7:30 PM Jakarta. Compare the headline, underlying orders, shipments and revisions with separately attributed expectations. A broad miss with lower expected US rates can challenge USD support; aircraft volatility alone is insufficient."
+            },
+            {
+              "title": "RBA Governor and senior officials — Senate hearing",
+              "event_at": "2026-10-28T00:15:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.rba.gov.au/schedules-events/calendar/",
+                  "note": ""
+                }
+              ],
+              "note": "October 28, 7:15 AM Jakarta. The hearing starts before CPI. Separate pre-data remarks from later answers; a softened inflation assessment challenges AUD support."
+            },
+            {
+              "title": "Australia CPI / underlying inflation",
+              "event_at": "2026-10-28T00:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.abs.gov.au/release-calendar/future-releases",
+                  "note": ""
+                }
+              ],
+              "note": "October 28, 7:30 AM Jakarta. InvestingLive reports a 0.7% monthly / 4.2% annual survey baseline; Westpac separately expects 0.6% / 4.1%. Compare underlying breadth and revisions without blending those providers. A softer underlying result can remove November hike urgency."
+            },
+            {
+              "title": "RBNZ OCR decision",
+              "event_at": "2026-10-28T01:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.rbnz.govt.nz/monetary-policy/about-monetary-policy/the-official-cash-rate",
+                  "note": ""
+                }
+              ],
+              "note": "October 28, 8:00 AM Jakarta. A 25 basis point hike to 3% is broadly anticipated in reporting. A more sustained tightening path can reverse NZD weakness; a hold or restrained guidance can reinforce it. An expected hike alone is not a new buy signal."
+            },
+            {
+              "title": "RBNZ media conference",
+              "event_at": "2026-10-28T02:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.rbnz.govt.nz/news-and-events/media-conferences",
+                  "note": ""
+                }
+              ],
+              "note": "October 28, 9:00 AM Jakarta. Reassess guidance and Q&A separately from the decision; stronger future-path guidance can dominate the earlier CPI undershoot."
+            }
+          ],
+          "direction": {
+            "verdict": "POTENTIAL WEAKENING",
+            "reason": "RETAINED against USD and AUD for this session. The October 22 CPI undershoot reduces the incremental urgency relative to Australia’s worsened inflation assessment, while the expected move to a 3% OCR is already substantially anticipated in attributed reporting. The expected hike alone is not bearish; material opposition is the reported prospect of further RBNZ tightening into 2027. A clearer, higher future rate path can reverse this comparison even if headline inflation recently eased. No private positioning or fresh short-covering motive is assumed.",
+            "verified_utc": "2026-10-26T22:54:32.999189Z",
+            "sources": [
+              {
+                "kind": "web",
+                "label": "RBNZ price series, October 22",
+                "locator": "https://www.rbnz.govt.nz/statistics/series/economic-indicators/prices",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "Full RBNZ preview, October 26 Jakarta",
+                "locator": "https://investinglive.com/central-banks/preview-rbnz-set-to-lift-ocr-to-3-ahead-of-election-as-oil-and-weak-kiwi-fuel-inflation/",
+                "note": "Reports 3.7% annual CPI versus the RBNZ’s 3.9% forecast; further hikes are significant opposition. Market pricing is attributed, not an agent probability."
+              },
+              {
+                "kind": "web",
+                "label": "RBNZ current OCR schedule",
+                "locator": "https://www.rbnz.govt.nz/monetary-policy/about-monetary-policy/the-official-cash-rate",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "RBA Hauser October 21 transcript",
+                "locator": "https://www.rba.gov.au/speeches/2026/sp-dg-2026-10-21.html",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "RBNZ media stages",
+                "locator": "https://www.rbnz.govt.nz/news-and-events/media-conferences",
+                "note": ""
+              }
+            ],
+            "reassessment": {
+              "title": "US durable goods / core capital-goods orders",
+              "event_at": "2026-10-27T12:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.census.gov/economic-indicators/calendar-listview.html",
+                  "note": ""
+                }
+              ],
+              "note": "Nearest US demand test, at 7:30 PM Jakarta. Compare the headline, underlying orders, shipments and revisions with separately attributed expectations. A broad miss with lower expected US rates can challenge USD support; aircraft volatility alone is insufficient."
+            },
+            "reassessment_gap": ""
+          }
+        }
+      ],
+      "entry_opportunities": [],
+      "commodity_opportunities": [],
+      "opportunity_gap": "No active entry selected at this cutoff. USD, AUD and CAD retain supported relative directions, but this review has not established current forward-rate repricing or a remaining execution edge beyond dated reporting and a broker quote snapshot. The earlier October 26 AUD conditional window expired and is not renewed. Wednesday CPI/RBNZ activation lies outside Tuesday; no same-day entry is manufactured. Oil diplomacy opposes simple supply-risk longs and gold has unresolved policy/yield pressure, so neither commodity is promoted.",
+      "planning_as_of_utc": "2026-10-26T22:54:32.999189Z",
+      "limitations": "Source coverage is partial: complete Eurostat, FSO, Stats NZ and filtered ONS future-statistics agendas were not extractable through two routes each. Individual official results and policy calendars remain usable. Full Reuters student-talks bodies were unavailable; indexed reported claims retain government-confirmation and funding-cost gaps. BOJ decision hour is unannounced; BoC conference and UK Budget starts are approximate. Current OIS/real-yield changes and auction when-issued benchmarks are unverified. No complete 28-pair ranking or private-flow observation is claimed.",
+      "note": "Tuesday October 27 current assessment, refreshed all eight rows from this invocation’s opened sources. All eight labels are retained against the explicitly stated prior comparisons; they are not universal strength rankings against every other currency. Original dated evidence remains dated. Research cutoff differs from the original 5:31 AM Jakarta prompt capture. Source-by-source retrieval records are in discovery.json. UNTIL is the nearest chosen reassessment deadline, not a promised life of the verdict. Details and retaining/reversing evidence stay in Thesis; manual execution remains with the user.",
+      "provenance": "assessment",
+      "review_id": "2baffab3cafd4f34ac55b4043f4c3c5d",
+      "expected_version": null,
+      "id": "6f4e6b01bca94ff6a71ef8ac50a5e549",
+      "saved_utc": "2026-10-26T22:54:35.017656Z"
     }
   ]
 }

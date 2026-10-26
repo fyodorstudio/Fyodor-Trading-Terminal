@@ -63,6 +63,7 @@ is needed. Exporting does not invoke an agent or authorize writes.
 pnpm analyst thesis read --scope NZDCHF --month 2026-10
 pnpm analyst thesis read --scope ALL --month 2026-10
 pnpm analyst thesis context --scope ALL
+pnpm analyst thesis summary --scope ALL
 pnpm analyst thesis context --scope NZDCHF
 pnpm analyst thesis review-append --scope ALL --input "Market Analyst Workflow/report/review.json"
 pnpm analyst thesis append --scope NZDCHF --broker Elev8-Demo2 --input "Market Analyst Workflow/report/thesis-request.json"
@@ -113,6 +114,49 @@ Use this bounded context instead of loading the whole archive; refresh decisive 
 facts and seek opposing developments. Saved interpretation is not accumulated truth.
 
 ## Daily news save contract
+
+### Left-panel summary and reassessment
+
+The left dock shows **CUR | VERDICT | UNTIL** in both Market Watch and Price Alerts.
+It reads the latest live `daily_news` review across months, independently of the
+chart and selected Thesis date. Pair journals and labelled reconstructions cannot
+replace it. It abbreviates the saved direction to Strengthening/Weakening; this
+does not establish a pair entry or measure an index. Details stay in bottom Thesis.
+
+For each currency in a requested save, choose `direction.reassessment` using the
+checkpoint object (`title`, `event_at` OR `event_date`, `verified_utc`, `sources`,
+`note`). Explain in note why this is the nearest material reassessment and what
+would retain/reverse the case. Consider counterpart, energy, funding and fiscal
+stages too; do not automatically skip to the next rate decision. Include this
+schedule in `planning_as_of_utc` checks. It also appears in Upcoming, deduplicated
+by title/clock. If no schedule is verified, omit it and explain
+`direction.reassessment_gap`. Both fields are optional for older records/clients.
+
+UNTIL means reassess by, not a promise that direction lasts until then. An exact
+time gets a countdown, then **Review due** while retaining the selected checkpoint
+and verdict. It never rolls forward or reverses automatically. Unknown hours show
+the source date and become due on that Jakarta date without inventing a timed
+alarm. Older records say **Review not set**; no migration supplies a guess.
+Unscheduled shocks can require earlier review. Resolve elapsed stages on the next
+invocation before selecting a new checkpoint. A focused save preserves carried
+rows' verification clocks and deadlines; copying them does not renew the evidence.
+
+GET `/storage-api/theses/summary` maps to `/api/v1/theses/summary`; `pnpm analyst
+thesis summary --scope ALL` reads the same eight-row projection with exact review
+version ID, cutoff and revision. Corrections update it; older cutoffs do not replace
+newer research. No eligible review gives eight unassessed rows. The box polls every
+five seconds while the left dock is visible, stops on collapse/unmount and keeps
+its clock local. Failed refreshes preserve the last loaded snapshot with an error.
+Read this projection back after a current save, alongside the monthly version;
+historical fills must leave it unchanged. Per-row verification clocks distinguish
+carried evidence from the review cutoff.
+
+Saving this checkpoint alone never selects a bell. Assess Trade Now's separate
+standing permission covers a few significant Invoke reminders under
+[Alert's contract](EVENTS-ALARMS.md#reminder-selection). Preserve user choices and
+verify the worker. No automatic AI invocation or analysis occurs.
+
+### Daily payload
 
 Read the requested month and bounded context first. Save a UTF-8 JSON file inside
 Lite through `pnpm analyst thesis review-append --scope ALL --input <file>`.

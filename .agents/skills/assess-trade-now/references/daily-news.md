@@ -18,7 +18,19 @@ On a requested focused refresh, research affected mechanisms and material
 counterparts; retain other rows with their original verification clocks and mark
 them as carried context, not freshly researched. A request for all currencies
 still requires refreshing all eight. A checkpoint refresh or skill invocation
-alone does not authorize a Thesis save, new alarm or continuous monitoring.
+alone does not authorize a Thesis save or continuous monitoring. Significant
+checkpoint reminders use the parent skill's separate standing permission.
+
+Maintain the left-panel summary through saved daily directions, not a second
+verdict file. Read `pnpm analyst thesis summary --scope ALL` alongside context.
+Select each currency's nearest material `direction.reassessment` under
+[the summary contract](../../../../docs/THESIS.md#left-panel-summary-and-reassessment),
+with verified schedule, sources and a note explaining what to reassess. If no
+schedule is verified, give `reassessment_gap`. Resolve elapsed checkpoints before
+selecting new ones; do not automatically skip to the next policy decision. Carried
+rows retain their original verification clocks/deadlines and may remain Review due.
+Detailed retained/reversed evidence belongs in Thesis. Read back the summary and
+saved review; historical reconstructions must not replace the live projection.
 
 - Cover USD, EUR, GBP, JPY, CHF, CAD, AUD and NZD in one currency row each. The
   columns are Currency | DD:MM:YYYY FUNDAMENTAL | SOURCE | UPCOMING CHECKPOINT.

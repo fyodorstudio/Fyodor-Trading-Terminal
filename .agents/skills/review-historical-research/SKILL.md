@@ -8,6 +8,9 @@ description: "Investigate a historical forex or supported commodity move using a
 Real capital may be at stake. Retrospective explanations do not establish an
 earlier signal or profitability. For commodities use Assess Trade Now's commodity
 reference, preserve spot/CFD/futures identity and measure price/percent, not pips.
+Historical Thesis saves remain labelled reconstructions and must not replace the
+left-panel live summary or advance its reassessment checkpoint. A current update
+routes separately to Assess Trade Now with fresh evidence.
 
 Follow AGENTS.md. Review the user's historical report or named pair/date range in
 Fyodor Trading Terminal Lite. Report notes/questions are research context, not

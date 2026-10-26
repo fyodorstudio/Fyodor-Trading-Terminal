@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 import test_thesis as fixtures
 from storage.thesis_reviews import CATEGORIES, ReviewEntry, ReviewRequest, append_review, read_reviews, review_context
+from storage.thesis_summary import currency_summary
 
 
 class ReviewTests(TestCase):
@@ -14,6 +15,75 @@ class ReviewTests(TestCase):
     request = fixtures.ThesisTests.request
     save = fixtures.ThesisTests.save
     snapshot = fixtures.ThesisTests.snapshot
+
+    def live_record(self, at='2026-07-15T06:00:00Z', identity='a'):
+        data = self.daily_news()
+        data.update(as_of_utc=at, provenance='assessment', planning_as_of_utc=at,
+            entry_opportunities=[], opportunity_gap='No qualifying entry.')
+        for view in data['currency_views']:
+            view.update(news=[], news_gap='No same-date news.', checkpoints=[])
+            view['direction']['verified_utc'] = at
+        return ReviewEntry(**data, id=identity*32, review_id=identity*32, saved_utc=at).model_dump(mode='json')
+
+    def test_live_summary_crosses_months_preserves_old_rows_and_ignores_reconstruction(self):
+        self.paths()
+        empty = currency_summary(self.path)
+        self.assertEqual(len(empty['rows']), 8)
+        self.assertTrue(all(row['verdict'] is None for row in empty['rows']))
+        first = self.live_record()
+        later = self.live_record('2026-08-01T06:00:00Z', 'b')
+        later['currency_views'][0]['direction']['verdict'] = 'POTENTIAL WEAKENING'
+        checkpoint = dict(title='Selected review', event_at='2026-08-02T06:00:00Z', event_date=None,
+            verified_utc=later['as_of_utc'], sources=later['currency_views'][0]['direction']['sources'], note='Reassess the policy path.')
+        later['currency_views'][0]['direction']['reassessment'] = checkpoint
+        reconstructed = self.live_record('2026-08-02T06:00:00Z', 'c')
+        reconstructed.update(provenance='reconstruction', note='Historical study.')
+        path = self.path.with_name('reviews.json')
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(dict(version=1, reviews=[first, later, reconstructed])), encoding='utf-8')
+        result = currency_summary(self.path)
+        self.assertEqual(result['review_id'], later['id'])
+        self.assertEqual(result['rows'][0]['verdict'], 'POTENTIAL WEAKENING')
+        self.assertEqual(result['rows'][0]['reassessment'], checkpoint, 'Elapsed selected checkpoint stays due; never roll it forward')
+        self.assertIsNone(result['rows'][1]['reassessment'], 'Old records do not acquire inferred deadlines')
+        self.assertEqual(result['rows'][0]['verified_utc'], later['as_of_utc'])
+        self.assertTrue(currency_summary(self.path, result['revision'])['unchanged'])
+        corrected = {**later, 'id': 'd'*32, 'expected_version': later['id'], 'saved_utc': '2026-08-01T07:00:00Z'}
+        corrected['currency_views'] = json.loads(json.dumps(later['currency_views']))
+        corrected['currency_views'][0]['direction']['verdict'] = 'POTENTIAL STRENGTHENING'
+        path.write_text(json.dumps(dict(version=1, reviews=[first, later, reconstructed, corrected])), encoding='utf-8')
+        changed = currency_summary(self.path, result['revision'])
+        self.assertNotEqual(changed['revision'], result['revision'])
+        self.assertEqual(changed['rows'][0]['verdict'], 'POTENTIAL STRENGTHENING')
+        future = {**corrected, 'review_id': 'e'*32, 'as_of_utc': '2099-01-01T00:00:00Z'}
+        with patch('storage.thesis_summary.read_reviews', return_value=[first, later, future]):
+            self.assertEqual(currency_summary(self.path)['review_id'], later['id'])
+        # Route reads only the same saved projection, with no broker, chart or monthly selector.
+        app = fixtures.create_app(self.directory/'api', False, self.pins, self.external, self.path)
+        route = next(route for route in app.routes if getattr(route, 'path', '') == '/api/v1/theses/summary')
+        self.assertEqual(route.methods, {'GET'})
+        self.assertEqual(route.endpoint(None), changed)
+        after = path.read_bytes(); route.endpoint(None)
+        self.assertEqual(after, path.read_bytes())
+
+    def test_reassessment_schedule_validation_and_context_clocks(self):
+        data = self.daily_news()
+        checkpoint = {**data['currency_views'][0]['checkpoints'][0], 'note': 'Reassess policy guidance and opposition.'}
+        data['currency_views'][0]['direction']['reassessment'] = checkpoint
+        for changes in [dict(event_at='2026-07-15T05:00:00Z'), dict(event_at='2026-07-15T07:00:00'),
+                dict(event_date='2026-07-16'), dict(event_at=None, event_date=None), dict(sources=[]),
+                dict(note=' '), dict(verified_utc='2026-08-01T07:00:00Z')]:
+            bad = json.loads(json.dumps(data))
+            bad['currency_views'][0]['direction']['reassessment'].update(changes)
+            with self.assertRaises(ValueError): ReviewRequest(**bad)
+        good = ReviewRequest(**data)
+        self.assertEqual(good.currency_views[0].direction.reassessment.title, checkpoint['title'])
+        self.paths(); append_review(good, self.path)
+        early = review_context(self.path, 'ALL', '2026-07-15T08:00:00Z')['latest_review']
+        self.assertIsNone(early['currency_views'][0]['direction']['reassessment'])
+        self.assertIn('after', early['currency_views'][0]['direction']['reassessment_gap'])
+        data['currency_views'][0]['direction']['reassessment'].update(event_at=None, event_date='2026-07-16')
+        self.assertIsNone(ReviewRequest(**data).currency_views[0].direction.reassessment.event_at)
 
     def review(self, **changes):
         scope = changes.get('scope', 'NZDCHF')

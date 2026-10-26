@@ -213,7 +213,7 @@ def parser():
     highlights.add_argument('--visibility', choices=['active','archived','all'], default='active')
     query_options(highlights)
     thesis = commands.add_parser('thesis', help='Read the monthly Thesis dock or append a sourced assessment; never changes calendar or pins')
-    thesis.add_argument('action', choices=['read', 'append', 'review-append', 'context'])
+    thesis.add_argument('action', choices=['read', 'append', 'review-append', 'context', 'summary'])
     thesis.add_argument('--scope', required=True, help='Pair for append/pair reads, or ALL to read Across All Currency')
     thesis.add_argument('--month', default='2026-10', help='Jakarta calendar month YYYY-MM')
     thesis.add_argument('--broker', help='Broker for optional linked MT5 release saves; daily records and reads need no broker')
@@ -345,6 +345,12 @@ def run(args):
         return capture(ROOT, output, args.scope, args.broker, args.as_of, args.days, args.read_only,
                        release_at=args.release_at, deadline=args.deadline)
     if args.command == 'thesis':
+        if args.action == 'summary':
+            if args.scope != 'ALL':
+                raise ValueError('Currency summary uses --scope ALL; pair verdicts are independent')
+            from storage.thesis import PATH as THESIS_PATH
+            from storage.thesis_summary import currency_summary
+            return currency_summary(THESIS_PATH)
         if args.action == 'context':
             from storage.thesis import PATH as THESIS_PATH
             return review_context(THESIS_PATH, args.scope, args.as_of)

@@ -18,6 +18,7 @@ from .highlight_metadata import limitations_snapshot
 from .alert_impact import impact_snapshot
 from .external_sources import DIRECTORY, ExternalRequest, LifecycleRequest, external_snapshot, external_history, append_external, archive_external
 from .thesis import PATH as THESIS_PATH, thesis_snapshot
+from .thesis_summary import currency_summary
 from .alert_calendar import day_snapshot
 
 # The eight-currency Alert catalog exceeds the original pair-only 64-series cap.
@@ -140,6 +141,13 @@ def create_app(directory=None, run_collector=True, highlights_path=HIGHLIGHTS_PA
             return archive_pin(identity, source_id, highlights_path, app.state.store, restore=True)
         except OSError as error:
             raise HTTPException(503, 'Could not restore Highlight') from error
+
+    @app.get('/api/v1/theses/summary')
+    def thesis_currency_summary(after_revision: str | None = Query(default=None, max_length=100)):
+        try:
+            return currency_summary(thesis_path, after_revision)
+        except (OSError, ValueError) as error:
+            raise HTTPException(503, 'Currency summary unavailable; saved Thesis history is preserved') from error
 
     @app.get('/api/v1/theses')
     def theses(scope: str = Query(pattern=r'^(?:ALL|[A-Z]{6})$'), month: str = Query(pattern=r'^\d{4}-\d{2}$'),

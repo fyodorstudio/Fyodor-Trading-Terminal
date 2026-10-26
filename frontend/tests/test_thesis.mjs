@@ -378,6 +378,7 @@ try {
   const legacyNews = structuredClone(review)
   assert.equal(validThesisSnapshot({ ...allSnapshot, reviews: [legacyNews] }, 'ALL', '2026-10', null), true)
   for (const view of review.currency_views) view.direction = { verdict: view.currency === 'USD' ? 'POTENTIAL WEAKENING' : 'POTENTIAL STRENGTHENING', reason: `${view.currency} dominant daily driver.`, verified_utc: '2026-10-20T01:00:00Z', sources: [source(1)] }
+  review.currency_views[0].direction.reassessment = { ...review.currency_views[0].checkpoints[0], note: 'Reassess the currency mechanism after this release.' }
   review.entry_opportunities = [{ currency: 'USD', summary: 'Strongest standalone pressure.', starts_at: '2026-10-19T08:00:00Z', ends_at: '2026-10-19T16:59:59Z', timing_note: 'Selected day only.', invalidation: 'Contrary policy news.' }]
   review.entry_opportunities.push({ ...review.entry_opportunities[0], currency: 'EUR', summary: 'Policy support.', timing_note: 'Watch policy remarks.' })
   review.versions = [{ ...review, versions: undefined, opportunities: undefined }]
@@ -385,6 +386,8 @@ try {
   for (const mutate of [value => value.currency_views[0].direction.verdict = 'MIXED',
     value => value.currency_views[0].direction = null,
     value => value.currency_views[0].direction.sources[0].locator = 'javascript:alert(1)',
+    value => value.currency_views[0].direction.reassessment.event_at = '2026-10-19T07:00:00Z',
+    value => value.currency_views[0].direction.reassessment.sources[0].locator = 'javascript:alert(1)',
     value => value.entry_opportunities = [],
     value => value.entry_opportunities[0].currency = 'EURUSD',
     value => value.entry_opportunities.push(value.entry_opportunities[0]),
@@ -407,6 +410,8 @@ try {
   assert.ok([...opportunitySection.querySelectorAll('[data-thesis-opportunity]')].every(node => !node.textContent.includes('Jakarta')), 'Currency notes do not repeat the shared window')
   assert.equal(dailyTable.querySelectorAll('.thesis-currency-direction').length, 8)
   const usd = dailyTable.querySelector('[data-thesis-currency="USD"]')
+  assert.match(usd.textContent, /Reassess by: USD release/)
+  assert.equal(usd.querySelectorAll('td')[2].querySelectorAll('li').length, 2, 'Chosen checkpoint is not duplicated in Upcoming')
   assert.equal(dailyTable.querySelectorAll('tbody tr').length, 8)
   assert.equal(usd.querySelectorAll('td')[0].querySelectorAll('li').length, 4)
   assert.equal(usd.querySelectorAll('td')[1].querySelectorAll('li').length, 4)
@@ -419,6 +424,8 @@ try {
   assert.ok(markdown.indexOf('## TRADE ENTRY OPPORTUNITY') < markdown.indexOf('| Currency |'))
   assert.ok(markdown.includes('**USD · POTENTIAL WEAKENING**'))
   assert.ok(markdown.includes('USD dominant daily driver.'))
+  assert.ok(markdown.includes('Reassess by: **USD release**'))
+  assert.ok(markdown.includes('Reassess the currency mechanism after this release.'))
   assert.ok(markdown.includes('Selected day only.'))
   assert.ok(markdown.includes('4. USD news item 4.'))
   assert.ok(markdown.includes('4. Publication hour unverified') && markdown.includes('[Publisher 4]'))

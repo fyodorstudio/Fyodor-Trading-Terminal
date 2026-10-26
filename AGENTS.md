@@ -1,5 +1,19 @@
 # Fyodor Trading Terminal Lite
 
+## Task routing
+
+Read this file, then only the relevant owner/contract in README.md. Implementation:
+left-panel summary → `frontend/src/thesis/CurrencySummary.tsx`,
+`storage/thesis_summary.py`, [Thesis contract](docs/THESIS.md#left-panel-summary-and-reassessment);
+manual price alarms → `frontend/src/price-alerts/`; economic Invoke reminders →
+[Alert contract](docs/EVENTS-ALARMS.md). These are separate data/notification paths.
+Current research uses Assess Trade Now; a requested Thesis update uses its dated
+mode and updates the summary through the same saved review, never a second verdict
+file. Read `pnpm analyst thesis summary --scope ALL` for a compact live snapshot.
+Release waits use One Minute Before Release; historical moves use Review Historical
+Research and must not replace the live summary. Details and comparisons stay in
+bottom Thesis; the left box contains only currency, saved verdict and checkpoint.
+
 Market Watch, chart/drawings, raw calendar Inspector, upcoming Alert, Activity and
 Settings, including agent-authored fundamental research journals and an archive
 under Highlight. Research is produced in the market-analyst session; the terminal
@@ -71,6 +85,11 @@ read-only/no-save request overrides this default. Keep identities/history; never
 invent a time or overwrite observations. Full journals/Thesis conclusions retain
 separate save rules. Validate the discovery receipt and read back writes. Treat saved interpretation as dated context, verify fresh news and
 both currency stories, and distinguish event/provider/publication/recorded clocks.
+Assess Trade Now also has standing permission to select a few verified significant
+future Invoke checkpoint reminders under its alert-review procedure. Preserve
+explicit off choices, global pause and offset; read back exact keys/armed state
+and worker health. Pins/Thesis checkpoints alone do not arm bells. No AI invocation
+or continuous monitoring is scheduled.
 The collection is not a complete live news feed. When saving outside events is
 authorized, use the [External Sources workflow](docs/EXTERNAL-SOURCES.md); preserve
 versions, timing uncertainty and raw data. No ingestion/monitoring is implied.
@@ -273,6 +292,17 @@ alone is insufficient. External records may have instruments and no currencies.
 Preserve guarded writes, source clocks, histories and user execution authority.
 
 ### Highlight journal and archive scope
+
+The left-panel **CUR | VERDICT | UNTIL** box is a read-only projection of the latest
+live all-currency daily review across months. A requested current Thesis save must
+choose each currency's nearest material `direction.reassessment` checkpoint (or
+explain `reassessment_gap`), retaining source clocks and carried-row deadlines.
+UNTIL becomes Review due after that checkpoint; passing time never reverses a
+verdict or advances to a later event. Resolve the elapsed stage on the next
+invocation, save retained/reversed evidence in Thesis, choose the next checkpoint,
+then read back both the monthly version and `thesis summary --scope ALL`. Legacy
+rows without a chosen deadline say Review not set; historical reconstructions and
+pair journals do not replace the live projection. Follow docs/THESIS.md.
 
 - The Thesis dock saves research only when requested. Its monthly selector offers
   JUL/OCT 2026. Across All Currency is one row per currency: **Currency |

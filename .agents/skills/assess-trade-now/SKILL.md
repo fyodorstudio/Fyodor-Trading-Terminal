@@ -153,7 +153,7 @@ or broad history fetch is implied. Price contradictions trigger research and a d
 explanation. Historical event studies remain with Review Historical Research.
 Run frontend checks only for implementation work, not research.
 
-## Standing authorization: Highlight and chart icons
+## Standing authorization: Highlight, chart icons and significant reminders
 
 Invoking this skill authorizes immediately pinning the material events/headlines
 found for the requested currencies/instruments and checked horizon, including restoring an
@@ -162,10 +162,20 @@ This scope includes a material opportunity candidate promoted by the brief sweep
 complete its focused identity/source checks in a separate currency or commodity receipt before
 routing its verified event. An unverified idea alone does not authorize a factual pin.
 It also authorizes requesting **Show icon on chart** for dated external records.
+It authorizes selecting a few verified significant future checkpoint Invoke
+reminders through the existing Alert worker. Follow
+[alert review](references/alert-review.md#significant-checkpoint-reminders).
+Preserve explicit off choices, global pause and offset; do not arm every pin.
 Do not ask again. An explicit read-only/no-save instruction overrides this default.
 It does not authorize trades, service restarts, recurring monitoring, automatic
 archiving, impact ratings, full research journals or Thesis writes. Those retain
 their separate explicit-request rules; a requested daily Thesis fill is a save.
+
+The left-panel Fundamentals box reads saved daily Thesis directions and their
+agent-selected reassessment checkpoint. A chat assessment alone does not update
+it. On a requested save follow [dated news table](references/daily-news.md) and
+read back `pnpm analyst thesis summary --scope ALL`. Review due triggers a refresh,
+never an automatic reversal, entry instruction or next-event rollover.
 
 - Check active/archived identities, relevant limitations and the complete scoped
   broker index/aliases before routing. Reuse the exact occurrence or stable key;

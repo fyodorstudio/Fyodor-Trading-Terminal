@@ -167,6 +167,9 @@ globalThis.fetch = (url, options = {}) => {
     events: [{ key: 'external:treasury-fixture', reference: 'treasury-fixture', source: 'external', broker: null, title: 'Treasury fixture', currencies: ['USD'],
       at: now + 3600000, date: null, eligible: true, armed: true, note: 'Exact fixture schedule', prompt: '$one-minute-before-release Treasury fixture' }] }) })
   if (u.startsWith('/storage-api/highlights')) return Promise.resolve({ ok: true, json: async () => ({ source_id: broker, revision: 'fixture-pins', items: [] }) })
+  if (u.startsWith('/storage-api/theses/summary')) return Promise.resolve({ ok: true, json: async () => ({ schema: 1, revision: 'summary-fixture',
+    review_id: 'a'.repeat(32), as_of_utc: '2026-10-08T11:00:00Z', rows: ['USD','EUR','GBP','JPY','CHF','CAD','AUD','NZD'].map(currency => ({ currency,
+      verdict: 'POTENTIAL STRENGTHENING', verified_utc: '2026-10-08T11:00:00Z', reassessment: null, reassessment_gap: '' })) }) })
   if (u.startsWith('/storage-api/theses')) {
     const params = new URL(u, 'http://localhost').searchParams
     return Promise.resolve({ ok: true, json: async () => ({ schema: 1, scope: params.get('scope'), month: params.get('month'),
@@ -256,6 +259,11 @@ try {
     React.createElement(FyodorTerminalShell), React.createElement(CommandOnly))))
   await reply('health'); await reply('watch')
   while (pending.get('ohlc')?.length) await reply('ohlc')
+  assert.equal(container.querySelectorAll('[data-currency-summary]').length, 8, 'Saved fundamentals appear in the assembled left dock')
+  const beforeSummaryClock = { ...counters }
+  await React.act(async () => [...intervals.values()].find(timer => timer.ms === 30000).fn())
+  for (const key of ['workspace', 'chartRender', 'setData', 'update', 'futureSetData', 'futureUpdate', 'quoteRows'])
+    assert.equal(counters[key], beforeSummaryClock[key], `Currency summary clock leaves ${key} unchanged`)
   const inspectorQuery = requests.find(url => url.startsWith('/storage-api/calendar') && new URL(url, 'http://localhost').searchParams.has('currencies'))
   assert.ok(inspectorQuery)
   const queryRange = new URL(inspectorQuery, 'http://localhost').searchParams

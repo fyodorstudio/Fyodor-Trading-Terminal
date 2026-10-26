@@ -68,6 +68,8 @@ class DailyDirection(Payload):
     reason: str = Field(min_length=1, max_length=1500)
     verified_utc: datetime
     sources: list[JournalSource] = Field(min_length=1, max_length=8)
+    reassessment: CurrencyCheckpoint | None = None
+    reassessment_gap: str = Field(default='', max_length=700)
 
 
 class OpportunityEvidence(Payload):
@@ -228,7 +230,13 @@ class ReviewRequest(Payload):
             if planning.tzinfo is None or not self.as_of_utc <= planning <= datetime.now(timezone.utc):
                 raise ValueError('Planning cutoff needs an offset, at or after research and no later than now')
             self.planning_as_of_utc = planning.astimezone(timezone.utc)
-        checkpoints = [checkpoint for view in [*self.currency_views, *self.commodity_opportunities] for checkpoint in view.checkpoints]
+        reassessments = [view.direction.reassessment for view in self.currency_views
+            if view.direction and view.direction.reassessment]
+        if any(not item.note.strip() for item in reassessments):
+            raise ValueError('Explain why the selected checkpoint requires reassessing the currency verdict')
+        if any(view.direction and view.direction.reassessment and view.direction.reassessment_gap.strip() for view in self.currency_views):
+            raise ValueError('Choose a reassessment checkpoint or explain the schedule gap, not both')
+        checkpoints = [checkpoint for view in [*self.currency_views, *self.commodity_opportunities] for checkpoint in view.checkpoints] + reassessments
         if checkpoints and planning is None:
             raise ValueError('Release preparation needs its own real planning cutoff')
         for item in checkpoints:
@@ -321,6 +329,7 @@ def append_review(request, journal_path):
         view_sources = [source for view in request.currency_views for source in view.sources]
         news_sources = [source for view in request.currency_views for item in view.news for source in item.sources]
         checkpoint_sources = [source for view in [*request.currency_views, *request.commodity_opportunities] for checkpoint in view.checkpoints for source in checkpoint.sources]
+        checkpoint_sources += [source for view in request.currency_views if view.direction and view.direction.reassessment for source in view.direction.reassessment.sources]
         direction_sources = [source for view in request.currency_views if view.direction for source in view.direction.sources]
         opportunity_sources = [source for item in [*request.entry_opportunities, *request.commodity_opportunities] if item.evidence for source in item.evidence.sources]
         if any(source.kind == 'local' and not Path(source.locator).is_file() for source in view_sources + news_sources + checkpoint_sources + direction_sources + opportunity_sources):
@@ -387,6 +396,9 @@ def review_context(journal_path, scope, as_of=None):
             review['planning_as_of_utc'] = None
             for view in review['currency_views']:
                 view['checkpoints'] = []  # Later preparation is not historical knowledge.
+                if view.get('direction'):
+                    view['direction']['reassessment'] = None
+                    view['direction']['reassessment_gap'] = 'Checkpoint prepared after this context cutoff.'
             for item in review['commodity_opportunities']:
                 item['checkpoints'] = []
     if review and scope != 'ALL':

@@ -72,6 +72,29 @@ templates with `prompt save` when requested; leave Before research pending.
 Preserve known gaps with `limitations append`. The user can request fresh same-day
 preparation and later interpretation; templates alone do not establish a verdict.
 
+## Significant checkpoint reminders
+
+Assess Trade Now carries standing permission to select a few verified significant
+future Invoke reminders for supported mechanisms, including separate conferences
+when material. Do not arm every pin, duplicate release packages, change price
+alerts, unpause delivery, alter offset or override explicit off choices. An
+explicit read-only/no-alarm instruction wins. Follow
+[the alarm contract](../../../../docs/EVENTS-ALARMS.md#reminder-selection).
+
+GET `http://127.0.0.1:8003/alarms` first. Resolve exact worker event keys by broker
+and value IDs or stable external key; calendar alarm hashes are not Highlight IDs.
+Only future eligible timed confirmed stages qualify. Reuse a selected stage;
+for a new choice POST `toggle-many` with exact keys, `enabled: true` and current
+`expected_revision`. On conflict reread and retry once, preserving other choices.
+Pin a missing verified occurrence first. Date-only/unverified hours get no invented
+timer; preserve approximate timing explicitly.
+
+Read back selected/armed state, offset, global enable and healthy worker before
+claiming a running reminder. Report exact identity/runtime/write gaps. Selected
+under global pause is not armed. No Windows Clock duplicate, recurring monitor or
+scheduled AI invocation. The summary deadline and bell are separate records;
+report each accurately. Research does not silently edit Thesis.
+
 ## Deliver the review
 
 Lead with the nearest material stage, including elapsed publications whose actuals
