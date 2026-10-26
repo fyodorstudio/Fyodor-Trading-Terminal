@@ -13766,6 +13766,1402 @@
       "expected_version": null,
       "id": "0d8fcbe6f9724c108d1338c87394d948",
       "saved_utc": "2026-10-23T06:50:54.290114Z"
+    },
+    {
+      "scope": "ALL",
+      "format": "daily_news",
+      "as_of_utc": "2026-10-26T01:17:45Z",
+      "takeaway": "",
+      "horizon": "Published news",
+      "backdrop": [],
+      "opportunity_ids": [],
+      "currency_views": [
+        {
+          "currency": "USD",
+          "bias": "",
+          "summary": "",
+          "counterweight": "",
+          "sources": [],
+          "news": [
+            {
+              "published_on": "2026-10-26",
+              "published_at": "2026-10-26T00:15:00Z",
+              "summary": "Dow Jones: LSEG indicates only10% chance of an October hike; ING expects a later tightening path.",
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Dow Jones Monday policy preview",
+                  "locator": "https://www.marketscreener.com/news/week-ahead-for-fx-bonds-decisions-from-fed-other-central-banks-in-focus-ce785cdfd181f42d",
+                  "note": "Published October 25 8:15PMEDT = October 26 7:15AM Jakarta. Expectations, not released decisions."
+                }
+              ]
+            }
+          ],
+          "news_gap": "One verified same-date expectations preview so far. Older releases and weekend developments support direction with their original dates; four distinct new Monday developments were not verified at this early cutoff.",
+          "checkpoints": [
+            {
+              "title": "US funding operations and Treasury financing stages",
+              "event_at": "2026-10-26T12:15:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "repo",
+                  "locator": "https://www.newyorkfed.org/markets/repo-agreement-ops-faq",
+                  "note": ""
+                },
+                {
+                  "kind": "web",
+                  "label": "buyback",
+                  "locator": "https://home.treasury.gov/system/files/221/Tentative-Buyback-ScheduleQ32026.pdf",
+                  "note": ""
+                },
+                {
+                  "kind": "web",
+                  "label": "auction",
+                  "locator": "https://www.treasurydirect.gov/TA_WS/securities/search?auctionDate=2026-10-26&format=json",
+                  "note": ""
+                },
+                {
+                  "kind": "web",
+                  "label": "rrp",
+                  "locator": "https://www.newyorkfed.org/markets/rrp_faq",
+                  "note": ""
+                }
+              ],
+              "note": "Monday Jakarta:7:15–7:30 PM morning repo;10 PM buyback preliminary;10:30 PM bill auctions;11:45 PM–Tuesday12:15 AM reverse repo;Tuesday12AM2-year auction;12:30–12:45 AM afternoon repo. Offered/capped amounts are not accepted demand."
+            },
+            {
+              "title": "Treasury buyback final announcement and operation",
+              "event_at": "2026-10-27T15:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "buyback",
+                  "locator": "https://home.treasury.gov/system/files/221/Tentative-Buyback-ScheduleQ32026.pdf",
+                  "note": ""
+                }
+              ],
+              "note": "Tuesday10PM Jakarta final terms;Wednesday12:40–1 AM operation; results follow. Tentative maximum at least4 bn, final notice controls."
+            },
+            {
+              "title": "Fed decision",
+              "event_at": "2026-10-28T18:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "fedcal",
+                  "locator": "https://www.federalreserve.gov/newsevents/2026-october.htm",
+                  "note": ""
+                }
+              ],
+              "note": "Thursday1AM Jakarta. Expected hold still requires guidance comparison."
+            },
+            {
+              "title": "Fed press conference",
+              "event_at": "2026-10-28T18:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "fedcal",
+                  "locator": "https://www.federalreserve.gov/newsevents/2026-october.htm",
+                  "note": ""
+                }
+              ],
+              "note": "Thursday1:30AM Jakarta; separate guidance/Q&A stage."
+            },
+            {
+              "title": "US Q3advance GDP and September income/PCE",
+              "event_at": "2026-10-29T12:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "bea",
+                  "locator": "https://www.bea.gov/news/schedule",
+                  "note": ""
+                }
+              ],
+              "note": "Thursday7:30PM Jakarta; compare revisions/components and attributed consensus."
+            },
+            {
+              "title": "NYFed bill reinvestment purchase",
+              "event_at": "2026-10-29T13:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "bills",
+                  "locator": "https://www.newyorkfed.org/medialibrary/media/markets/treasury-securities-schedule/current-schedule.csv",
+                  "note": ""
+                }
+              ],
+              "note": "Thursday8–8:20PM Jakarta; maximum1.827 bn, reinvestment rather than new reserve-management purchases."
+            },
+            {
+              "title": "Employment Cost Index",
+              "event_at": "2026-10-30T12:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "bls",
+                  "locator": "https://www.bls.gov/schedule/2026/10_sched.htm",
+                  "note": ""
+                }
+              ],
+              "note": "Friday7:30PM Jakarta."
+            },
+            {
+              "title": "ISM Manufacturing",
+              "event_at": "2026-11-02T15:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "ism",
+                  "locator": "https://www.ismworld.org/supply-management-news-and-reports/reports/ism-pmi-reports/pmi/september/",
+                  "note": ""
+                }
+              ],
+              "note": "Monday10PM Jakarta after US DST ends November 1."
+            }
+          ],
+          "direction": {
+            "verdict": "POTENTIAL STRENGTHENING",
+            "reason": "Against EUR and NZD: the September 16 hike to3.75–4.00% and continuing inflation concern support dollar assets; an October hold would not itself remove later tightening. Energy inflation and French fiscal risk reinforce this case. Lower early oil and a calmer French weekend oppose it; this is a session bias, not measured strength against every currency.",
+            "verified_utc": "2026-10-26T01:17:45Z",
+            "sources": [
+              {
+                "kind": "web",
+                "label": "fed",
+                "locator": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260916a.htm",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "fr",
+                "locator": "https://wtaq.com/2026/10/25/french-protest-groups-demand-more-rallies-as-macron-faces-tough-choices/",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "oil",
+                "locator": "https://www.channelnewsasia.com/business/oil-prices-down-almost-1-in-early-trading-6491701",
+                "note": ""
+              }
+            ]
+          }
+        },
+        {
+          "currency": "EUR",
+          "bias": "",
+          "summary": "",
+          "counterweight": "",
+          "sources": [],
+          "news": [
+            {
+              "published_on": "2026-10-26",
+              "published_at": "2026-10-26T00:15:00Z",
+              "summary": "Dow Jones: ECB hold expected; Morgan Stanley sees December as the more natural point for another hike.",
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Dow Jones Monday policy preview",
+                  "locator": "https://www.marketscreener.com/news/week-ahead-for-fx-bonds-decisions-from-fed-other-central-banks-in-focus-ce785cdfd181f42d",
+                  "note": "Published October 25 8:15PMEDT = October 26 7:15AM Jakarta. Expectations, not released decisions."
+                }
+              ]
+            }
+          ],
+          "news_gap": "One verified same-date expectations preview so far. Older releases and weekend developments support direction with their original dates; four distinct new Monday developments were not verified at this early cutoff.",
+          "checkpoints": [
+            {
+              "title": "Elderson biodiversity/supervision remarks",
+              "event_at": "2026-10-26T05:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "ecb",
+                  "locator": "https://www.ecb.europa.eu/press/calendars/weekly/html/index.en.html",
+                  "note": ""
+                }
+              ],
+              "note": "NoonJakarta. Verified current broker value324784; older06 UTC duplicate is not a second speech."
+            },
+            {
+              "title": "ECB SAFE/government finance and German Ifo",
+              "event_at": "2026-10-26T09:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "ecb",
+                  "locator": "https://www.ecb.europa.eu/press/calendars/weekly/html/index.en.html",
+                  "note": ""
+                },
+                {
+                  "kind": "web",
+                  "label": "ifo",
+                  "locator": "https://www.ifo.de/en/ifo-business-climate-index-germany-october-2026",
+                  "note": ""
+                }
+              ],
+              "note": "Monday4PM Jakarta SAFE/government finance;4:30 PM Ifo. Official Ifo10:30 CET=09:30 UTC. Distinct releases, not one package; forecast providers differ."
+            },
+            {
+              "title": "French student talks and ministers conference",
+              "event_at": null,
+              "event_date": "2026-10-26",
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "talks",
+                  "locator": "https://gulfnews.com/world/europe/people-are-in-deep-deep-anger-frances-pm-key-ministers-to-meet-student-leaders-monday-1.500723401",
+                  "note": ""
+                }
+              ],
+              "note": "Paris Monday meeting; conference Monday afternoon, exact hour unknown. Results not yet known."
+            },
+            {
+              "title": "French BTF financing auction",
+              "event_at": "2026-10-26T13:50:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "aft",
+                  "locator": "https://www.aft.gouv.fr/en/publications/communiques-presse/23-october-2026-next-issuance-btfs",
+                  "note": ""
+                }
+              ],
+              "note": "8:50PM Jakarta; announced5.0–6.6 bn range, demand/results future."
+            },
+            {
+              "title": "ECB Bank Lending Survey and monetary developments",
+              "event_at": "2026-10-27T09:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "ecb",
+                  "locator": "https://www.ecb.europa.eu/press/calendars/weekly/html/index.en.html",
+                  "note": ""
+                }
+              ],
+              "note": "Tuesday4PM Jakarta."
+            },
+            {
+              "title": "ECB decision and separate press conference",
+              "event_at": "2026-10-29T13:15:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "ecb",
+                  "locator": "https://www.ecb.europa.eu/press/calendars/weekly/html/index.en.html",
+                  "note": ""
+                }
+              ],
+              "note": "Thursday8:15PM Jakarta decision;8:45 PM conference/Q&A. Guidance can outweigh the expected hold."
+            },
+            {
+              "title": "Friday national/Euro-area data and ECB communications",
+              "event_at": null,
+              "event_date": "2026-10-30",
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Eurostat indexed release calendar",
+                  "locator": "https://ec.europa.eu/eurostat/news/euro-indicators/release-calendar?type=listMonth",
+                  "note": "Indexed dates recovered; dynamic opened body empty."
+                },
+                {
+                  "kind": "web",
+                  "label": "German HICP next date",
+                  "locator": "https://www.bundesbank.de/en/statistics/economic-activity-and-prices/harmonised-consumer-prices",
+                  "note": ""
+                },
+                {
+                  "kind": "web",
+                  "label": "ecb",
+                  "locator": "https://www.ecb.europa.eu/press/calendars/weekly/html/index.en.html",
+                  "note": ""
+                }
+              ],
+              "note": "Friday: national/Euro-area GDP, unemployment and national inflation dates checked; full Eurostat hourly schedule unavailable. ECB SPF/SMA4PM Jakarta; Lane11:10 PM. Do not infer aggregate flash CPI timing."
+            },
+            {
+              "title": "Further French demonstration calls",
+              "event_at": null,
+              "event_date": "2026-10-31",
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "fr",
+                  "locator": "https://wtaq.com/2026/10/25/french-protest-groups-demand-more-rallies-as-macron-faces-tough-choices/",
+                  "note": ""
+                }
+              ],
+              "note": "Organizers called rallies; exact hours and final participation unverified."
+            }
+          ],
+          "direction": {
+            "verdict": "POTENTIAL WEAKENING",
+            "reason": "Against JPY and USD: unresolved French fiscal/funding strain and imported energy costs still outweigh the relief from the retained Moody’s rating. Saturday protests were substantially calmer: the prior panic-based short entry is retired. A fresh sell case needs renewed funding stress or disappointing forward activity; stronger Ifo and credible government talks could defeat it. September CPI3.8% keeps ECB hawkish risk alive.",
+            "verified_utc": "2026-10-26T01:17:45Z",
+            "sources": [
+              {
+                "kind": "web",
+                "label": "fr",
+                "locator": "https://wtaq.com/2026/10/25/french-protest-groups-demand-more-rallies-as-macron-faces-tough-choices/",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "moodys",
+                "locator": "https://live.euronext.com/en/financial-news/france-spared-moodys-ratings-downgrade-it-struggles-unrest",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "cpiEUR",
+                "locator": "https://ec.europa.eu/eurostat/en/web/products-euro-indicators/w/2-16102026-ap",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "oil",
+                "locator": "https://www.channelnewsasia.com/business/oil-prices-down-almost-1-in-early-trading-6491701",
+                "note": ""
+              }
+            ]
+          }
+        },
+        {
+          "currency": "GBP",
+          "bias": "",
+          "summary": "",
+          "counterweight": "",
+          "sources": [],
+          "news": [
+            {
+              "published_on": "2026-10-26",
+              "published_at": "2026-10-26T00:15:00Z",
+              "summary": "Dow Jones: HSBC expects a quiet UK Budget, while borrowing and inflation remain risks to sterling.",
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Dow Jones Monday policy preview",
+                  "locator": "https://www.marketscreener.com/news/week-ahead-for-fx-bonds-decisions-from-fed-other-central-banks-in-focus-ce785cdfd181f42d",
+                  "note": "Published October 25 8:15PMEDT = October 26 7:15AM Jakarta. Expectations, not released decisions."
+                }
+              ]
+            }
+          ],
+          "news_gap": "One verified same-date expectations preview so far. Older releases and weekend developments support direction with their original dates; four distinct new Monday developments were not verified at this early cutoff.",
+          "checkpoints": [
+            {
+              "title": "DMO4.5bn2032 gilt auction deadline",
+              "event_at": "2026-10-27T10:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "DMO auction prospectus",
+                  "locator": "https://www.dmo.gov.uk/media/gz5f2ic4/prosp201026.pdf",
+                  "note": ""
+                }
+              ],
+              "note": "Tuesday5PM Jakarta; official DMO prospectus https://www.dmo.gov.uk/media/gz5f2ic4/prosp201026.pdf"
+            },
+            {
+              "title": "UK Budget",
+              "event_at": null,
+              "event_date": "2026-10-28",
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "budget",
+                  "locator": "https://www.gov.uk/government/topical-events/budget-2026",
+                  "note": ""
+                }
+              ],
+              "note": "Wednesday; exact parliamentary delivery hour unverified."
+            },
+            {
+              "title": "BoE money and credit",
+              "event_at": "2026-10-29T09:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "BoE publication calendar",
+                  "locator": "https://www.bankofengland.co.uk/events/upcoming-events",
+                  "note": ""
+                }
+              ],
+              "note": "Thursday4:30PM Jakarta; schedule verified through BoE events page."
+            },
+            {
+              "title": "DMO2031 gilt tender deadline",
+              "event_at": "2026-10-29T10:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "DMO tender notice",
+                  "locator": "https://www.dmo.gov.uk/media/ugpc4maj/pr231026.pdf",
+                  "note": ""
+                }
+              ],
+              "note": "Thursday5PM Jakarta; cap1 bn, official notice https://www.dmo.gov.uk/media/ugpc4maj/pr231026.pdf"
+            },
+            {
+              "title": "BoE next policy decision",
+              "event_at": "2026-11-05T12:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "MPC dates",
+                  "locator": "https://www.bankofengland.co.uk/monetary-policy/upcoming-mpc-dates",
+                  "note": "Previously verified; nextNovember5."
+                }
+              ],
+              "note": "Outside seven-day scan;7PM Jakarta. Refresh path after Budget."
+            }
+          ],
+          "direction": {
+            "verdict": "POTENTIAL STRENGTHENING",
+            "reason": "Against EUR: October 21 CPI3.5% versus3.1% and Friday’s composite PMI53.1 versus52.0 leave more scope for restrictive BoE expectations, while France faces a distinct fiscal shock. Weak retail/confidence, energy costs and Wednesday’s UK Budget are substantial opposition. Higher expected rates alone are not a fresh entry; fiscal financing could overwhelm the yield benefit.",
+            "verified_utc": "2026-10-26T01:17:45Z",
+            "sources": [
+              {
+                "kind": "web",
+                "label": "cpiUK",
+                "locator": "https://www.ons.gov.uk/economy/inflationandpriceindices/bulletins/consumerpriceinflation/september2026",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "gbp",
+                "locator": "https://www.brecorder.com/news/40445904",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "boe",
+                "locator": "https://www.bankofengland.co.uk/monetary-policy-summary-and-minutes/2026/september-2026",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "budget",
+                "locator": "https://www.gov.uk/government/topical-events/budget-2026",
+                "note": ""
+              }
+            ]
+          }
+        },
+        {
+          "currency": "JPY",
+          "bias": "",
+          "summary": "",
+          "counterweight": "",
+          "sources": [],
+          "news": [
+            {
+              "published_on": "2026-10-26",
+              "published_at": "2026-10-26T00:15:00Z",
+              "summary": "Dow Jones: BoJ hold at1.25% expected; JPMorgan sees December as likelier for the next increase.",
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Dow Jones Monday policy preview",
+                  "locator": "https://www.marketscreener.com/news/week-ahead-for-fx-bonds-decisions-from-fed-other-central-banks-in-focus-ce785cdfd181f42d",
+                  "note": "Published October 25 8:15PMEDT = October 26 7:15AM Jakarta. Expectations, not released decisions."
+                }
+              ]
+            }
+          ],
+          "news_gap": "One verified same-date expectations preview so far. Older releases and weekend developments support direction with their original dates; four distinct new Monday developments were not verified at this early cutoff.",
+          "checkpoints": [
+            {
+              "title": "BoJ corporate services prices",
+              "event_at": "2026-10-26T23:50:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "boj",
+                  "locator": "https://www.boj.or.jp/en/about/calendar/index.htm",
+                  "note": ""
+                }
+              ],
+              "note": "Tuesday6:50AM Jakarta."
+            },
+            {
+              "title": "BoJ underlying inflation indicators",
+              "event_at": "2026-10-27T05:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "boj",
+                  "locator": "https://www.boj.or.jp/en/about/calendar/index.htm",
+                  "note": ""
+                }
+              ],
+              "note": "TuesdaynoonJakarta."
+            },
+            {
+              "title": "BoJ scheduled JGB purchases",
+              "event_at": null,
+              "event_date": "2026-10-28",
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "jgbops",
+                  "locator": "https://www.boj.or.jp/en/mopo/mpmdeci/mpr_2026/mpr260930a.pdf",
+                  "note": ""
+                }
+              ],
+              "note": "Wednesday; indicative sizes, exact hour not established."
+            },
+            {
+              "title": "MoF2-year JGB auction",
+              "event_at": null,
+              "event_date": "2026-10-29",
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "jgb",
+                  "locator": "https://www.mof.go.jp/english/policy/jgbs/auction/calendar/announcement/auct20261022e.htm",
+                  "note": ""
+                }
+              ],
+              "note": "About2.8trillionJPYoffered, issueNovember2; hour unknown."
+            },
+            {
+              "title": "Tokyo CPI and unemployment",
+              "event_at": "2026-10-29T23:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "jpycal",
+                  "locator": "https://www.stat.go.jp/english/data/cpi/1582.html",
+                  "note": ""
+                },
+                {
+                  "kind": "web",
+                  "label": "MUFG weekly calendar",
+                  "locator": "https://mufgresearch.com/fx/fx-weekly-23-october-2026/",
+                  "note": "Jobs hour secondary."
+                }
+              ],
+              "note": "Friday6:30AM Jakarta. Jobs schedule corroborated by secondary calendar, original detailed labor release clock gap."
+            },
+            {
+              "title": "Retail sales and industrial production",
+              "event_at": "2026-10-29T23:50:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "MUFG October 23 weekly calendar",
+                  "locator": "https://mufgresearch.com/fx/fx-weekly-23-october-2026/",
+                  "note": "Secondary schedule; original detailed publisher clock unavailable."
+                }
+              ],
+              "note": "Friday6:50AM Jakarta per secondary/broker calendar; individual statistics publisher hours not all recovered."
+            },
+            {
+              "title": "BoJ policy decision/outlook and conference",
+              "event_at": null,
+              "event_date": "2026-10-30",
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "boj",
+                  "locator": "https://www.boj.or.jp/en/about/calendar/index.htm",
+                  "note": ""
+                }
+              ],
+              "note": "Official decision hour undecided; conference broker1:30PM Jakarta not independently confirmed. Do not time an alarm from it."
+            },
+            {
+              "title": "BoJ full Outlook Report",
+              "event_at": "2026-11-02T05:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "boj",
+                  "locator": "https://www.boj.or.jp/en/about/calendar/index.htm",
+                  "note": ""
+                }
+              ],
+              "note": "MondaynoonJakarta; separate from Friday summary."
+            }
+          ],
+          "direction": {
+            "verdict": "POTENTIAL STRENGTHENING",
+            "reason": "Against EUR and NZD: persistent French/global stress can favour yen demand while above-target inflation preserves BoJ normalization pressure. This is inferred demand, not observed institutional orders. Imported oil and a rebound in US yields oppose it. The calmer French weekend reduces urgency, so Saturday’s expired entry is replaced by a conditional session case, not automatically renewed.",
+            "verified_utc": "2026-10-26T01:17:45Z",
+            "sources": [
+              {
+                "kind": "web",
+                "label": "jpycpi",
+                "locator": "https://www.stat.go.jp/data/cpi/sokuhou/tsuki/index-z.html",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "boj",
+                "locator": "https://www.boj.or.jp/en/about/calendar/index.htm",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "fr",
+                "locator": "https://wtaq.com/2026/10/25/french-protest-groups-demand-more-rallies-as-macron-faces-tough-choices/",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "oil",
+                "locator": "https://www.channelnewsasia.com/business/oil-prices-down-almost-1-in-early-trading-6491701",
+                "note": ""
+              }
+            ]
+          }
+        },
+        {
+          "currency": "CHF",
+          "bias": "",
+          "summary": "",
+          "counterweight": "",
+          "sources": [],
+          "news": [],
+          "news_gap": "No distinct relevant Monday CHF release or policy announcement verified after news/policy/statistics searches. SNB September-meeting evidence and weekend stress retain their original dates; FSO dynamic agenda coverage is incomplete.",
+          "checkpoints": [
+            {
+              "title": "SNB money-market speech",
+              "event_at": "2026-10-29T17:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "snbcal",
+                  "locator": "https://www.snb.ch/en/services-events/digital-services/event-schedule",
+                  "note": ""
+                }
+              ],
+              "note": "Friday12:30AM Jakarta."
+            },
+            {
+              "title": "SNB interim results",
+              "event_at": "2026-10-30T06:15:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "snbcal",
+                  "locator": "https://www.snb.ch/en/services-events/digital-services/event-schedule",
+                  "note": ""
+                }
+              ],
+              "note": "Friday1:15PM Jakarta."
+            },
+            {
+              "title": "KOF Economic Barometer",
+              "event_at": null,
+              "event_date": "2026-10-30",
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "kof",
+                  "locator": "https://kof.ethz.ch/en/forecasts-and-indicators/indicators/kof-economic-barometer.html",
+                  "note": ""
+                },
+                {
+                  "kind": "web",
+                  "label": "Econoday KOF calendar",
+                  "locator": "https://www.cmegroup.com/education/events/econoday/677898",
+                  "note": "Secondary time conflicts with MUFG/broker; date only retained."
+                }
+              ],
+              "note": "Friday, hour disputed across secondary calendars; do not infer exact alarm. Prior109.1; forecast107 attributed to Econoday, not official consensus."
+            },
+            {
+              "title": "Swiss CPI",
+              "event_at": null,
+              "event_date": "2026-11-03",
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "FSO release calendar annex",
+                  "locator": "https://dam-api.bfs.admin.ch/hub/api/dam/assets/36353838/master",
+                  "note": ""
+                }
+              ],
+              "note": "Outside seven-day scan; FSO annex verifiesNovember3, https://dam-api.bfs.admin.ch/hub/api/dam/assets/36353838/master"
+            },
+            {
+              "title": "SNB next policy decision",
+              "event_at": "2026-12-10T08:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "snbcal",
+                  "locator": "https://www.snb.ch/en/services-events/digital-services/event-schedule",
+                  "note": ""
+                }
+              ],
+              "note": "Outside scan;3:30PM Jakarta, introductory conference4 PM."
+            }
+          ],
+          "direction": {
+            "verdict": "POTENTIAL STRENGTHENING",
+            "reason": "Against EUR and NZD: potential safety demand from French fiscal and energy/geopolitical stress dominates the zero-rate disadvantage for this session. That demand is inferred. SNB’s October 22 summary concerns its September meeting and reported little haven flow then; it does not measure Monday flows. Calmer protests, oil relief and possible SNB currency intervention limit the case; no current entry is selected.",
+            "verified_utc": "2026-10-26T01:17:45Z",
+            "sources": [
+              {
+                "kind": "web",
+                "label": "snb",
+                "locator": "https://www.snb.ch/en/publications/communication/summaries/zus_20261022",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "fr",
+                "locator": "https://wtaq.com/2026/10/25/french-protest-groups-demand-more-rallies-as-macron-faces-tough-choices/",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "oil",
+                "locator": "https://www.channelnewsasia.com/business/oil-prices-down-almost-1-in-early-trading-6491701",
+                "note": ""
+              }
+            ]
+          }
+        },
+        {
+          "currency": "CAD",
+          "bias": "",
+          "summary": "",
+          "counterweight": "",
+          "sources": [],
+          "news": [
+            {
+              "published_on": "2026-10-26",
+              "published_at": "2026-10-26T00:15:00Z",
+              "summary": "Dow Jones: LSEG puts BoC hike odds near81%; TD opposes the majority hike view, citing limited inflation breadth.",
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Dow Jones Monday policy preview",
+                  "locator": "https://www.marketscreener.com/news/week-ahead-for-fx-bonds-decisions-from-fed-other-central-banks-in-focus-ce785cdfd181f42d",
+                  "note": "Published October 25 8:15PMEDT = October 26 7:15AM Jakarta. Expectations, not released decisions."
+                }
+              ]
+            }
+          ],
+          "news_gap": "One verified same-date expectations preview so far. Older releases and weekend developments support direction with their original dates; four distinct new Monday developments were not verified at this early cutoff.",
+          "checkpoints": [
+            {
+              "title": "BoC decision and Monetary Policy Report",
+              "event_at": "2026-10-28T13:45:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "boccal",
+                  "locator": "https://www.bankofcanada.ca/2026/10/interest-rate-announcement-and-monetary-policy-report-october-28-2026/",
+                  "note": ""
+                }
+              ],
+              "note": "Wednesday8:45PM Jakarta; hike itself may be expected, guidance matters."
+            },
+            {
+              "title": "BoC press conference",
+              "event_at": null,
+              "event_date": "2026-10-28",
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "bocconf",
+                  "locator": "https://www.bankofcanada.ca/multimedia/press-conference-monetary-policy-report-october-2026/",
+                  "note": ""
+                }
+              ],
+              "note": "Wednesday approximately9:30PM Jakarta, official10:30ETapprox.; preserve timing uncertainty."
+            },
+            {
+              "title": "Canada monthly GDP",
+              "event_at": "2026-10-30T12:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "statcan",
+                  "locator": "https://www150.statcan.gc.ca/n1/release-diffusion/2026-eng.pdf",
+                  "note": ""
+                }
+              ],
+              "note": "Friday7:30PM Jakarta; compare revisions and forward indication."
+            }
+          ],
+          "direction": {
+            "verdict": "POTENTIAL STRENGTHENING",
+            "reason": "Against EUR: oil-export receipts and Friday’s retail improvement support CAD, with BoC tightening still a potential return channel. This remains a directional backdrop: Monday oil is lower, much of the expected hike was already priced, and TD questions inflation breadth. Saturday’s leading CAD entry expired and is not renewed without fresh oil/policy support. August retail1.2% and September preliminary0.7% are October 23 information.",
+            "verified_utc": "2026-10-26T01:17:45Z",
+            "sources": [
+              {
+                "kind": "web",
+                "label": "cad",
+                "locator": "https://www.marketscreener.com/news/canadian-dollar-hits-five-week-high-as-data-supports-rate-hike-bets-ce785cdfdc89f42d",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "boc",
+                "locator": "https://www.bankofcanada.ca/2026/09/fad-press-release-2026-09-02/",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "oil",
+                "locator": "https://www.channelnewsasia.com/business/oil-prices-down-almost-1-in-early-trading-6491701",
+                "note": ""
+              }
+            ]
+          }
+        },
+        {
+          "currency": "AUD",
+          "bias": "",
+          "summary": "",
+          "counterweight": "",
+          "sources": [],
+          "news": [
+            {
+              "published_on": "2026-10-26",
+              "published_at": "2026-10-26T00:15:00Z",
+              "summary": "Dow Jones: market pricing shows roughly50% chance of a November RBA hike; Wednesday CPI is the nearer test.",
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Dow Jones Monday policy preview",
+                  "locator": "https://www.marketscreener.com/news/week-ahead-for-fx-bonds-decisions-from-fed-other-central-banks-in-focus-ce785cdfd181f42d",
+                  "note": "Published October 25 8:15PMEDT = October 26 7:15AM Jakarta. Expectations, not released decisions."
+                }
+              ]
+            }
+          ],
+          "news_gap": "One verified same-date expectations preview so far. Older releases and weekend developments support direction with their original dates; four distinct new Monday developments were not verified at this early cutoff.",
+          "checkpoints": [
+            {
+              "title": "China industrial profits",
+              "event_at": "2026-10-27T01:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "china",
+                  "locator": "https://www.stats.gov.cn/english/PressRelease/ReleaseCalendar/202512/t20251226_1962154.html",
+                  "note": ""
+                }
+              ],
+              "note": "Tuesday8:30AM Jakarta; trading-partner demand."
+            },
+            {
+              "title": "RBA Senate supplementary estimates",
+              "event_at": "2026-10-28T00:15:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "rbacal",
+                  "locator": "https://www.rba.gov.au/schedules-events/calendar/",
+                  "note": ""
+                }
+              ],
+              "note": "Wednesday7:15AM Jakarta. Official agenda overrides secondary preview’s erroneous Friday reference."
+            },
+            {
+              "title": "Australia CPI",
+              "event_at": "2026-10-28T00:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "abs",
+                  "locator": "https://www.abs.gov.au/release-calendar/future-releases/202610/rcc_economy",
+                  "note": ""
+                }
+              ],
+              "note": "Wednesday7:30AM Jakarta; near testimony stage, separate the publication clocks."
+            },
+            {
+              "title": "Australia trade price indexes",
+              "event_at": "2026-10-29T00:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "abs",
+                  "locator": "https://www.abs.gov.au/release-calendar/future-releases/202610/rcc_economy",
+                  "note": ""
+                }
+              ],
+              "note": "Thursday7:30AM Jakarta."
+            },
+            {
+              "title": "Australia producer prices",
+              "event_at": "2026-10-30T00:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "abs",
+                  "locator": "https://www.abs.gov.au/release-calendar/future-releases/202610/rcc_economy",
+                  "note": ""
+                }
+              ],
+              "note": "Friday7:30AM Jakarta."
+            },
+            {
+              "title": "China official PMI",
+              "event_at": "2026-10-31T01:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "china",
+                  "locator": "https://www.stats.gov.cn/english/PressRelease/ReleaseCalendar/202512/t20251226_1962154.html",
+                  "note": ""
+                }
+              ],
+              "note": "Saturday8:30AM Jakarta."
+            },
+            {
+              "title": "RBA next policy decision",
+              "event_at": "2026-11-03T03:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "rbacal",
+                  "locator": "https://www.rba.gov.au/schedules-events/calendar/",
+                  "note": ""
+                }
+              ],
+              "note": "Outside seven-day scan;Tuesday10:30AM Jakarta, conference11:30 AM."
+            }
+          ],
+          "direction": {
+            "verdict": "POTENTIAL STRENGTHENING",
+            "reason": "Against EUR and NZD: RBA inflation concern supports further tightening expectations. Hunter’s October 25 broadcast says the inflation task is unfinished; Hauser’s October 21 remarks describe deterioration. These are older active context, not Monday announcements. Softer labor/household conditions, risk aversion and expensive imported oil oppose the view. This corrects the earlier weighting of already-available hawkish guidance; it is not a fabricated new rate decision.",
+            "verified_utc": "2026-10-26T01:17:45Z",
+            "sources": [
+              {
+                "kind": "web",
+                "label": "hunter",
+                "locator": "https://www.rba.gov.au/speeches/2026/sp-ag-2026-10-25.html",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "hauser",
+                "locator": "https://www.rba.gov.au/speeches/2026/sp-dg-2026-10-21.html",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "rba",
+                "locator": "https://www.rba.gov.au/media-releases/2026/mr-26-27.html",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "oil",
+                "locator": "https://www.channelnewsasia.com/business/oil-prices-down-almost-1-in-early-trading-6491701",
+                "note": ""
+              }
+            ]
+          }
+        },
+        {
+          "currency": "NZD",
+          "bias": "",
+          "summary": "",
+          "counterweight": "",
+          "sources": [],
+          "news": [
+            {
+              "published_on": "2026-10-26",
+              "published_at": "2026-10-26T00:15:00Z",
+              "summary": "Dow Jones: quarter-point RBNZ hike to3% expected Wednesday; the forward path matters beyond that anticipated move.",
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Dow Jones Monday policy preview",
+                  "locator": "https://www.marketscreener.com/news/week-ahead-for-fx-bonds-decisions-from-fed-other-central-banks-in-focus-ce785cdfd181f42d",
+                  "note": "Published October 25 8:15PMEDT = October 26 7:15AM Jakarta. Expectations, not released decisions."
+                }
+              ]
+            }
+          ],
+          "news_gap": "One verified new Monday expectations preview. StatsNZ full calendar was inaccessible through two routes; original domestic labor/activity schedule coverage is incomplete. October 22 CPI and Sunday/global context are not redated as Monday news.",
+          "checkpoints": [
+            {
+              "title": "China industrial profits",
+              "event_at": "2026-10-27T01:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "china",
+                  "locator": "https://www.stats.gov.cn/english/PressRelease/ReleaseCalendar/202512/t20251226_1962154.html",
+                  "note": ""
+                }
+              ],
+              "note": "Tuesday8:30AM Jakarta."
+            },
+            {
+              "title": "RBNZ OCR review",
+              "event_at": "2026-10-28T01:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "rbnz",
+                  "locator": "https://www.rbnz.govt.nz/monetary-policy/about-monetary-policy/the-official-cash-rate",
+                  "note": ""
+                }
+              ],
+              "note": "Wednesday8AM Jakarta."
+            },
+            {
+              "title": "RBNZ media conference",
+              "event_at": "2026-10-28T02:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "rbnzconf",
+                  "locator": "https://www.rbnz.govt.nz/news-and-events/events/2026/october/monetary-policy-review-and-ocr-october-2026",
+                  "note": ""
+                }
+              ],
+              "note": "Wednesday9AM Jakarta; separate guidance stage."
+            },
+            {
+              "title": "ANZ Business Outlook",
+              "event_at": null,
+              "event_date": "2026-10-29",
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "anz",
+                  "locator": "https://www.anz.co.nz/about-us/economic-markets-research/business-outlook/",
+                  "note": ""
+                },
+                {
+                  "kind": "web",
+                  "label": "MUFG weekly calendar",
+                  "locator": "https://mufgresearch.com/fx/fx-weekly-23-october-2026/",
+                  "note": "Publisher next-release hour not established."
+                }
+              ],
+              "note": "Thursday per broker/secondary schedule; publisher next-release hour not recovered."
+            },
+            {
+              "title": "China official PMI",
+              "event_at": "2026-10-31T01:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "china",
+                  "locator": "https://www.stats.gov.cn/english/PressRelease/ReleaseCalendar/202512/t20251226_1962154.html",
+                  "note": ""
+                }
+              ],
+              "note": "Saturday8:30AM Jakarta."
+            }
+          ],
+          "direction": {
+            "verdict": "POTENTIAL WEAKENING",
+            "reason": "Against JPY and USD: softer-than-forecast October 22 inflation reduces the incremental upside from the widely anticipated RBNZ hike, while imported energy and global risk exposure favour these counterparts. A hawkish RBNZ path or risk recovery can reverse that balance. The2.75%OCR and potential carry support remain real opposition; no fresh sell entry is selected, and Labour Day means a holiday session rather than proof of selling.",
+            "verified_utc": "2026-10-26T01:17:45Z",
+            "sources": [
+              {
+                "kind": "web",
+                "label": "nz",
+                "locator": "https://www.marketscreener.com/news/new-zealand-third-quarter-inflation-slows-to-3-7-but-expectations-remain-of-a-hike-next-week-ce785cd9dc8df626",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "rbnz",
+                "locator": "https://www.rbnz.govt.nz/monetary-policy/about-monetary-policy/the-official-cash-rate",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "oil",
+                "locator": "https://www.channelnewsasia.com/business/oil-prices-down-almost-1-in-early-trading-6491701",
+                "note": ""
+              }
+            ]
+          }
+        }
+      ],
+      "entry_opportunities": [
+        {
+          "summary": "POTENTIAL WEAKENING: conditional selling on renewed French funding/forward-growth deterioration; calmer weekend relief must first be reassessed.",
+          "starts_at": "2026-10-26T01:17:45Z",
+          "ends_at": "2026-10-26T16:59:59Z",
+          "timing_note": "French student talks, SAFE4 PM and Ifo4:30 PM are today’s nearer reassessment stages.",
+          "invalidation": "Credible fiscal progress or de-escalation accompanied by sustained French funding relief and improving forward activity removes this session’s short-entry case.",
+          "stage": "conditional",
+          "activation": "Fresh French bond/funding evidence must show renewed stress, or Ifo must show a material forward-activity disappointment, with current euro price feedback confirming selling pressure. Broker price/spread checks are still unavailable; this condition is unmet.",
+          "evidence": {
+            "expected_baseline": "Moody’s retained the rating; expected ECB hold does not itself add a bearish surprise.",
+            "new_information": "October 25 protests were much less violent; Monday government/student talks offer a nearer relief test. The old panic entry is retired.",
+            "remaining_case": "Fiscal uncertainty and energy costs can continue pressuring euro exposures if the relief fails.",
+            "flow_channel": "Investors could reduce euro/French risk or hedge foreign-currency liabilities; this is an incentive inference, not identified transactions.",
+            "flow_basis": "inferred",
+            "horizon": "Remainder of Monday session; reassess at the next material talks/Ifo/funding update.",
+            "market_feedback": "Early commentary suggests euro relief; no current broker candles, spreads or French yield-spread measurement obtained. Entry remains conditional.",
+            "verified_utc": "2026-10-26T01:17:45Z",
+            "sources": [
+              {
+                "kind": "web",
+                "label": "fr",
+                "locator": "https://wtaq.com/2026/10/25/french-protest-groups-demand-more-rallies-as-macron-faces-tough-choices/",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "moodys",
+                "locator": "https://live.euronext.com/en/financial-news/france-spared-moodys-ratings-downgrade-it-struggles-unrest",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "talks",
+                "locator": "https://gulfnews.com/world/europe/people-are-in-deep-deep-anger-frances-pm-key-ministers-to-meet-student-leaders-monday-1.500723401",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "ifo",
+                "locator": "https://www.ifo.de/en/ifo-business-climate-index-germany-october-2026",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "oil",
+                "locator": "https://www.channelnewsasia.com/business/oil-prices-down-almost-1-in-early-trading-6491701",
+                "note": ""
+              }
+            ]
+          },
+          "currency": "EUR"
+        },
+        {
+          "summary": "POTENTIAL STRENGTHENING: conditional yen demand if fresh risk stress persists while the BoJ normalization path survives.",
+          "starts_at": "2026-10-26T01:17:45Z",
+          "ends_at": "2026-10-26T16:59:59Z",
+          "timing_note": "Recheck the French relief channel today; BoJ services prices follow Tuesday6:50 AM.",
+          "invalidation": "Sustained stress relief and reduced BoJ tightening expectations, or a dominant US-yield/energy shock that overrides yen safety demand, removes the present entry case.",
+          "stage": "conditional",
+          "activation": "Verify current yen buying pressure against stressed currencies together with continuing fiscal/geopolitical stress and no material dovish BoJ update. Current broker price/spread and yield feedback are missing; do not treat Saturday’s window as activated.",
+          "evidence": {
+            "expected_baseline": "BoJ hold is widely expected; the earlier normalization path remains conditional on prices and activity.",
+            "new_information": "A calmer French weekend reduces haven urgency; risk stress remains possible rather than automatically renewed.",
+            "remaining_case": "Continuing fiscal and geopolitical uncertainty can create further demand for yen risk reduction.",
+            "flow_channel": "Foreign investors may buy yen exposures or hedge currency risk; leveraged funding positions can also adjust. No private flows or forced unwinds are observed.",
+            "flow_basis": "inferred",
+            "horizon": "Remainder of Monday; next policy-price checkpoint Tuesday6:50AM Jakarta.",
+            "market_feedback": "No live broker yen candles/spreads obtained; do not infer Monday buying from Friday appreciation.",
+            "verified_utc": "2026-10-26T01:17:45Z",
+            "sources": [
+              {
+                "kind": "web",
+                "label": "boj",
+                "locator": "https://www.boj.or.jp/en/about/calendar/index.htm",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "jpycpi",
+                "locator": "https://www.stat.go.jp/data/cpi/sokuhou/tsuki/index-z.html",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "fr",
+                "locator": "https://wtaq.com/2026/10/25/french-protest-groups-demand-more-rallies-as-macron-faces-tough-choices/",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "oil",
+                "locator": "https://www.channelnewsasia.com/business/oil-prices-down-almost-1-in-early-trading-6491701",
+                "note": ""
+              }
+            ]
+          },
+          "currency": "JPY"
+        }
+      ],
+      "commodity_opportunities": [
+        {
+          "summary": "BUY bias, conditional entry: fragile supply and depleted buffers support oil, but Monday’s falling futures oppose an immediate renewed long.",
+          "starts_at": "2026-10-26T01:17:45Z",
+          "ends_at": "2026-10-26T16:59:59Z",
+          "timing_note": "Requalify after verified supply/export news and fresh SpotBrent feedback; EIA inventories are Wednesday9:30 PM.",
+          "invalidation": "Credible de-escalation and durable restoration of disrupted crude/export flows, or demand deterioration that materially removes the expected supply shortfall, defeats this long case.",
+          "stage": "conditional",
+          "activation": "Verify continuing disruption to actual production/export flows rather than attack claims alone, and obtain fresh SpotBrent price/spread feedback showing the early decline is no longer contradicting the long case. Both checks must be refreshed before treating this as an active entry.",
+          "evidence": {
+            "expected_baseline": "A large supply-risk premium already existed before Monday; the October 6 EIA forecast and October 14 IEA balance are dated expectations.",
+            "new_information": "Reuters reports Brent futures115.16 at00:18 UTC, down1.34%; weekend interception claims and partial airport reopening do not quantify crude losses.",
+            "remaining_case": "IEA’s depleted inventories and projected shortfall leave supply vulnerable, but its documented September output/export recovery and demand destruction are material opposition.",
+            "flow_channel": "Consumers may hedge supply costs and investors may seek oil exposure; this does not establish net institutional buying or its size.",
+            "flow_basis": "inferred",
+            "horizon": "Remainder of Monday session; reassess immediately on actual export restoration/de-escalation news.",
+            "market_feedback": "Reuters futures are falling; broker bridge refused connection. No current SpotBrent candles, executable spread, curve or risk/reward established.",
+            "verified_utc": "2026-10-26T01:17:45Z",
+            "sources": [
+              {
+                "kind": "web",
+                "label": "oil",
+                "locator": "https://www.channelnewsasia.com/business/oil-prices-down-almost-1-in-early-trading-6491701",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "iea",
+                "locator": "https://www.iea.org/reports/oil-market-report-october-2026",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "eia",
+                "locator": "https://www.eia.gov/outlooks/steo/",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "hours",
+                "locator": "https://pepperstone.com/en-gb/about-us/trading-hours/",
+                "note": ""
+              }
+            ]
+          },
+          "instrument": "BRENT",
+          "symbol": "SpotBrent",
+          "provider": "Pepperstone",
+          "instrument_type": "spot_cfd",
+          "contract_note": "Broker spot CFD with no stated exchange expiry; Reuters quotes benchmark futures with contract month unspecified in the opened report. Financing/roll basis and executable account quote unverified. Normal Monday opening01:00serverGMT+3=5AM Jakarta.",
+          "verdict": "BUY",
+          "checkpoints": [
+            {
+              "title": "EIA Weekly Petroleum Status Report",
+              "event_at": "2026-10-28T14:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T01:17:45Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "eiacal",
+                  "locator": "https://www.eia.gov/petroleum/supply/weekly/schedule.php",
+                  "note": ""
+                }
+              ],
+              "note": "Wednesday9:30PM Jakarta; actual stock and refinery results unknown."
+            }
+          ]
+        }
+      ],
+      "opportunity_gap": "",
+      "planning_as_of_utc": "2026-10-26T01:17:45Z",
+      "limitations": "Partial source coverage: Eurostat and StatsNZ full dynamic calendars unavailable through two routes; several original national release hours were not recovered. Dates/secondary clocks remain attributed, never silently official.\nOriginal Saudi authority body unavailable through two routes. Reuters/AFP reports of attacks/interceptions do not establish incremental oil-output losses.\nStorage offline permitted guarded pin persistence; live chart delivery unverified. Broker bridge refused connection, so current execution prices/spreads are unavailable and every selected entry remains conditional.\nSeven-day scan extends through November 2; ECB November 2 agenda not yet published. FSO agenda and KOF conflicting hours limit Swiss schedule precision.\nAt this early Monday cutoff only one distinct new policy-expectations preview was verified for most currencies, none for CHF. Older/weekend stories retain dates; counts are not padded.\nNo institutional order book, portfolio transactions or reliable current positioning measurements obtained. Investor demand is inferred economic incentive.",
+      "note": "Research first observed00:46:24 UTC; this snapshot uses the later actual01:17:45 UTC cutoff (8:17:45AM Jakarta), including updates found during research. Session direction and conditional entry are separate. Latest prior saved review52e1114d26d4475c95f11b1d684cb8eb was October 24 with Saturday-onlyCAD/JPY/EUR windows: all expired, none copied forward. CAD remains strengthening backdrop but its leading entry is retired pending fresh oil/policy support; JPY/EUR are newly conditional, with calmer French protests explicitly weakening the old panic/haven mechanism. AUD direction reweights already-available Hauser plus SundayHunter, not an invented Monday decision. No comparable same-horizon prior Brent saved entry exists here; no formal historical reversal label manufactured. WTI duplicates the oil mechanism; GOLD not promoted because no comparably clear verified entry mechanism was established. Remaining-day windows describe a research horizon, not holding instructions or monitoring. Preserve prior versions and user notes.",
+      "provenance": "assessment",
+      "review_id": "a57d55ad5ad4487aa9cd482d91c41099",
+      "expected_version": null,
+      "id": "716235caabf64e26a9f8b5a3ef5cecc2",
+      "saved_utc": "2026-10-26T01:20:24.670827Z"
     }
   ]
 }

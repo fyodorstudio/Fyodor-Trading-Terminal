@@ -46,6 +46,25 @@ commodity opportunities under its saved contract.
 
 ## Required discovery before the backdrop
 
+### Reassess saved context; never renew an entry by copying it
+
+Treat an earlier verdict as a dated hypothesis. On each invocation identify its
+mechanism, horizon, invalidation and next checkpoint, then check what happened
+since that cutoff, including supply restoration, de-escalation, policy stages
+and counterpart developments. Refresh the decisive sources; a new retrieval
+clock alone does not renew an old fact. Resolve elapsed checkpoints before
+carrying their scenarios forward. State RETAINED, REVERSED or withdrawn only
+against an actual comparable prior assessment, with what changed and why.
+
+Requalify the entry separately from direction. When its activation failed, its
+invalidation occurred or its horizon/checkpoint elapsed, explicitly retire the
+old entry case unless fresh evidence establishes a renewed one. A supported
+opposite entry is not required to say the old entry no longer qualifies. A
+checkpoint triggers reassessment, not an automatic reversal or closing order;
+no new headline alone does not invalidate continuing pressure. Show the cutoff,
+validity horizon and next concrete reassessment trigger. Do not imply that the
+saved window or these instructions monitor changes between invocations.
+
 1. **Start immediate web discovery and the coverage record together.** Run
    `pnpm analyst discovery start --scope EURUSD --broker <actual-broker> --as-of <UTC-cutoff> --output "Market Analyst Workflow/report/<name>"`
    using the requested scope (ALL for bare discovery; a separate BRENT/WTI/GOLD

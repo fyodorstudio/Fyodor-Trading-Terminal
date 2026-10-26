@@ -47,6 +47,10 @@ Keep the answer compact; put depth and source coverage in saved evidence.
 - **Market feedback / activation / invalidation / next checkpoint.** Show the
   strongest verified competing mechanism when material. Differentiate an active
   fundamental case from an execution level, fill or measured risk/reward.
+  On a reassessment, explicitly say whether the previous entry still qualifies,
+  is conditional, or no longer qualifies, and give the decisive reason. A retained
+  directional bias does not renew an invalidated entry. Keep a retired entry out
+  of the current opportunity list; preserve its earlier saved version.
 
 An entry case requires a mechanism relevant now, a reason pressure can persist
 or expectations may adjust further, a tradable instrument with known session,

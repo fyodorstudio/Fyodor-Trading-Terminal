@@ -29,6 +29,9 @@ date selection alone remains read-only and creates no monitoring.
   invalidation. Eight directional currency verdicts remain required; an entry
   is not required. If neither kind qualifies, save opportunity_gap explaining
   why. Do not scan pairs, use scores, invent investor flows or pad commodities.
+  Requalify previous saved opportunities under the shared freshness rules; do not
+  copy their status/windows forward. Explain retired cases in the new snapshot's
+  note or opportunity_gap as applicable, preserving all earlier versions.
 - Aim for at least four distinct relevant news items per currency published on
   the requested Jakarta date. Research policy/remarks, inflation, labor/wages,
   activity and material fiscal, trade, energy or geopolitical developments. This
