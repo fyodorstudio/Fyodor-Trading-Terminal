@@ -1,4 +1,5 @@
 import type { SymbolQuote } from '../market-data/contracts/SymbolQuote'
+import { priceAlertSounds, type PriceAlertSoundId } from './price-alert-tones'
 
 export type PriceAlert = {
   id: string
@@ -13,7 +14,7 @@ export type PriceAlert = {
   triggeredBid: number | null
 }
 
-export type PriceAlertStore = { alerts: PriceAlert[]; playSound: boolean; duration: number }
+export type PriceAlertStore = { alerts: PriceAlert[]; playSound: boolean; duration: number; soundId: PriceAlertSoundId }
 export const priceAlertStorageKey = 'fyodor.price-alerts.v1'
 
 function validAlert(value: unknown): value is PriceAlert {
@@ -29,12 +30,13 @@ function validAlert(value: unknown): value is PriceAlert {
 }
 
 export function readPriceAlerts(): PriceAlertStore {
-  const empty: PriceAlertStore = { alerts: [], playSound: true, duration: 3 }
+  const empty: PriceAlertStore = { alerts: [], playSound: true, duration: 3, soundId: 'thin' }
   try {
     const value = JSON.parse(window.localStorage.getItem(priceAlertStorageKey) ?? 'null')
     if (!value || !Array.isArray(value.alerts)) return empty
     return { alerts: value.alerts.filter(validAlert), playSound: value.playSound !== false,
-      duration: [1, 3, 5, 10].includes(value.duration) ? value.duration : 3 }
+      duration: [1, 3, 5, 10].includes(value.duration) ? value.duration : 3,
+      soundId: priceAlertSounds.find(sound => sound.id === value.soundId)?.id ?? 'thin' }
   } catch { return empty }
 }
 

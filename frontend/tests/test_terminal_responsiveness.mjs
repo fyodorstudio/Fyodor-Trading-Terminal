@@ -941,6 +941,7 @@ try {
   assert.equal(JSON.parse(localStorage.getItem(priceAlertKey)).alerts[0].status, 'triggered', 'Alerts monitor while viewing another chart and dock')
   await click(button('Price Alerts'))
   assert.ok(container.querySelector('.price-alert-row.triggered'))
+  await click(container.querySelector('.price-alert-row.triggered .price-alert-summary'))
   await click([...container.querySelectorAll('.price-alert-actions button')].find(node => node.textContent === 'Delete'))
   assert.deepEqual(JSON.parse(localStorage.getItem(priceAlertKey)).alerts, [])
   await click(button('Market Watch'))

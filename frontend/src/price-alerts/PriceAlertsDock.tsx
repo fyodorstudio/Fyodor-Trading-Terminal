@@ -1,36 +1,57 @@
 import { useState } from 'react'
 import type { PriceAlert } from './price-alert-store'
 import type { PriceAlertsController } from './usePriceAlerts'
+import { priceAlertSounds, type PriceAlertSoundId } from './price-alert-tones'
 import './price-alerts.css'
+
+const triggerClock = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Jakarta', weekday: 'short',
+  day: '2-digit', month: 'short', year: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })
 
 function AlertRow({ alert, controller, onSelectSymbol, brokerId }: {
   alert: PriceAlert; controller: PriceAlertsController; onSelectSymbol: (symbol: string) => void; brokerId: string | null
 }) {
   const [editing, setEditing] = useState(false)
+  const [expanded, setExpanded] = useState(false)
   const [price, setPrice] = useState('')
+  const waitingForBroker = alert.brokerId !== brokerId
+  const waitingForQuote = !controller.live || !controller.liveSymbols.has(alert.symbol)
+  const status = alert.status === 'triggered' ? 'Stopped — Triggered' : alert.status === 'paused' ? 'Stopped — Paused'
+    : waitingForBroker ? 'Waiting for broker' : waitingForQuote ? 'Waiting for quote' : 'Active'
+  const statusClass = alert.status !== 'armed' ? 'stopped' : waitingForBroker || waitingForQuote ? 'waiting' : 'active'
+  const title = `${alert.symbol} Crossing ${alert.price.toFixed(alert.precision)}`
   return <article className={`price-alert-row ${alert.status}`} aria-label={`${alert.symbol} price alert`}>
-    <header><button type="button" disabled={alert.brokerId !== brokerId} onClick={() => onSelectSymbol(alert.symbol)}>{alert.symbol}</button>
-      <strong>{alert.price.toFixed(alert.precision)}</strong><span>{alert.status}</span></header>
-    <p>{alert.direction === 'above' ? 'Bid reaches or crosses above' : alert.direction === 'below' ? 'Bid reaches or crosses below' : 'Waiting for first live Bid'}</p>
-    {alert.brokerId !== brokerId && <p>{alert.brokerId} · Waiting for this broker</p>}
-    {alert.status === 'armed' && alert.brokerId === brokerId && controller.live && !controller.liveSymbols.has(alert.symbol)
-      && <p>Waiting for a valid Bid. Keep this symbol visible in MT5 Market Watch.</p>}
-    {alert.triggeredAt !== null && <p>Triggered {new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Jakarta',
-      day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }).format(alert.triggeredAt)} Jakarta
-      {alert.triggeredBid !== null && ` · Bid ${alert.triggeredBid.toFixed(alert.precision)}`}</p>}
-    {editing ? <form onSubmit={event => {
-      event.preventDefault()
-      if (!Number.isFinite(Number(price)) || Number(price) <= 0 || Number(Number(price).toFixed(alert.precision)) <= 0) return
-      controller.updateAlert(alert.id, 'price', Number(price)); setEditing(false)
-    }}>
-      <input aria-label={`Alert price for ${alert.symbol}`} type="number" min={10 ** -alert.precision} step={10 ** -alert.precision}
-        value={price} onChange={event => setPrice(event.target.value)} required autoFocus />
-      <button type="submit">Save & arm</button><button type="button" onClick={() => setEditing(false)}>Cancel</button>
-    </form> : <div className="price-alert-actions">
-      <button type="button" onClick={() => { setPrice(alert.price.toFixed(alert.precision)); setEditing(true) }}>Edit price</button>
-      <button type="button" onClick={() => { if (controller.playSound) void controller.enableSound(); controller.updateAlert(alert.id, alert.status === 'armed' ? 'pause' : 'arm') }}>
-        {alert.status === 'armed' ? 'Pause' : alert.status === 'triggered' ? 'Rearm' : 'Resume'}</button>
-      <button type="button" onClick={() => controller.updateAlert(alert.id, 'delete')}>Delete</button>
+    <button className="price-alert-summary" type="button" aria-expanded={expanded} aria-label={`${title} · ${status} · Alert details`}
+      onClick={() => { setExpanded(value => !value); setEditing(false) }}>
+      <span className="price-alert-title">{title}</span>
+      <span className="price-alert-meta">
+        <svg className="price-alert-symbol-icon" aria-hidden="true" width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="10" cy="11" r="6" /><path d="M10 7v4l3 2M3 5l3-3M14 2l3 3" /></svg>
+        <span>{alert.symbol}</span><span aria-hidden="true">•</span>
+        <span className={`price-alert-state ${statusClass}`}>{status}</span>
+        {alert.triggeredAt !== null && <><span aria-hidden="true">•</span><time dateTime={new Date(alert.triggeredAt).toISOString()} title="Asia/Jakarta (UTC+07:00)">
+          {triggerClock.format(alert.triggeredAt).replaceAll(',', '')}</time></>}
+      </span>
+    </button>
+    {expanded && <div className="price-alert-details">
+      <p>{alert.direction === 'above' ? 'Bid reaches or crosses above' : alert.direction === 'below' ? 'Bid reaches or crosses below' : 'Waiting for first live Bid'}</p>
+      {waitingForBroker && <p>{alert.brokerId} · Waiting for this broker</p>}
+      {alert.status === 'armed' && !waitingForBroker && controller.live && !controller.liveSymbols.has(alert.symbol)
+        && <p>Waiting for a valid Bid. Keep this symbol visible in MT5 Market Watch.</p>}
+      {alert.triggeredBid !== null && <p>Triggered Bid {alert.triggeredBid.toFixed(alert.precision)}</p>}
+      {editing ? <form onSubmit={event => {
+        event.preventDefault()
+        if (!Number.isFinite(Number(price)) || Number(price) <= 0 || Number(Number(price).toFixed(alert.precision)) <= 0) return
+        controller.updateAlert(alert.id, 'price', Number(price)); setEditing(false)
+      }}>
+        <input aria-label={`Alert price for ${alert.symbol}`} type="number" min={10 ** -alert.precision} step={10 ** -alert.precision}
+          value={price} onChange={event => setPrice(event.target.value)} required autoFocus />
+        <button type="submit">Save & arm</button><button type="button" onClick={() => setEditing(false)}>Cancel</button>
+      </form> : <div className="price-alert-actions">
+        <button type="button" disabled={waitingForBroker} onClick={() => onSelectSymbol(alert.symbol)}>Open chart</button>
+        <button type="button" onClick={() => { setPrice(alert.price.toFixed(alert.precision)); setEditing(true) }}>Edit price</button>
+        <button type="button" onClick={() => { if (alert.status !== 'armed' && controller.playSound) void controller.enableSound(); controller.updateAlert(alert.id, alert.status === 'armed' ? 'pause' : 'arm') }}>
+          {alert.status === 'armed' ? 'Pause' : alert.status === 'triggered' ? 'Rearm' : 'Resume'}</button>
+        <button type="button" onClick={() => controller.updateAlert(alert.id, 'delete')}>Delete</button>
+      </div>}
     </div>}
   </article>
 }
@@ -42,7 +63,10 @@ export function PriceAlertsDock({ controller, onSelectSymbol, onCreate, brokerId
     <div className="price-alert-controls">
       <button type="button" onClick={onCreate} disabled={!brokerId || !controller.live}>⏰ New price alert</button>
       <label><input type="checkbox" checked={controller.playSound} onChange={event => controller.setSound(event.target.checked, controller.duration)} /> Play sound</label>
-      <div className="price-alert-sound"><span>Thin chime</span>
+      <div className="price-alert-sound">
+        <select aria-label="Price alert sound" value={controller.soundId} onChange={event => controller.setSound(controller.playSound, controller.duration, event.target.value as PriceAlertSoundId)}>
+          {priceAlertSounds.map(sound => <option key={sound.id} value={sound.id}>{sound.label}</option>)}
+        </select>
         <select aria-label="Price alert sound duration" value={controller.duration} onChange={event => controller.setSound(controller.playSound, Number(event.target.value))}>
           {[1, 3, 5, 10].map(seconds => <option key={seconds} value={seconds}>{seconds} seconds</option>)}
         </select><button type="button" onClick={() => void controller.previewSound()}>Preview</button></div>

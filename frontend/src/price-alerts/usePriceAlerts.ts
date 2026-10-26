@@ -3,6 +3,7 @@ import type { SymbolQuote } from '../market-data/contracts/SymbolQuote'
 import { alertDirection, evaluatePriceAlerts, priceAlertStorageKey, readPriceAlerts, savePriceAlerts,
   type PriceAlertStore } from './price-alert-store'
 import { createPriceAlertSound } from './price-alert-sound'
+import type { PriceAlertSoundId } from './price-alert-tones'
 
 export function usePriceAlerts(brokerId: string | null, quotes: SymbolQuote[], live: boolean) {
   const [store, setStore] = useState(readPriceAlerts)
@@ -41,11 +42,11 @@ export function usePriceAlerts(brokerId: string | null, quotes: SymbolQuote[], l
     const engine = sound.current
     setSoundBlocked(true)
     const enabled = await engine.unlock()
-    const played = enabled && engine.play(current.current.duration)
+    const played = enabled && engine.play(current.current.duration, current.current.soundId)
     if (mounted.current) setSoundBlocked(!played)
   }, [])
   const playAlertSound = useCallback(() => {
-    const played = sound.current?.play(current.current.duration) ?? false
+    const played = sound.current?.play(current.current.duration, current.current.soundId) ?? false
     setSoundBlocked(!played)
   }, [])
   useEffect(() => {
@@ -85,14 +86,14 @@ export function usePriceAlerts(brokerId: string | null, quotes: SymbolQuote[], l
     })
     commit({ ...current.current, alerts })
   }, [commit])
-  const setSound = useCallback((playSound: boolean, duration: number) => {
-    commit({ ...current.current, playSound, duration })
+  const setSound = useCallback((playSound: boolean, duration: number, soundId?: PriceAlertSoundId) => {
+    commit({ ...current.current, playSound, duration, soundId: soundId ?? current.current.soundId })
     if (playSound) void enableSound()
     else sound.current?.stop()
   }, [commit, enableSound])
   const brokerAlerts = useMemo(() => store.alerts.filter(alert => alert.brokerId === brokerId), [store.alerts, brokerId])
   const liveSymbols = useMemo(() => new Set(quotes.filter(quote => Number.isFinite(quote.bid) && quote.bid > 0).map(quote => quote.symbol)), [quotes])
-  return { alerts: store.alerts, brokerAlerts, addAlert, updateAlert, playSound: store.playSound, duration: store.duration,
+  return { alerts: store.alerts, brokerAlerts, addAlert, updateAlert, playSound: store.playSound, duration: store.duration, soundId: store.soundId,
     setSound, enableSound, previewSound, soundBlocked, storageError, live, liveSymbols }
 }
 
