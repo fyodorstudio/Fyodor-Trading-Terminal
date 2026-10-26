@@ -2,19 +2,8 @@ import { inspectorFamilies } from '../../inspector/catalog/inspector-families'
 import { isMajorCurrency, type MajorCurrency } from '../../economic-calendar/forex/currencies'
 
 export const alertPreferencesKey = 'fyodor.alert.preferences.v1'
-export type HighlightVisibility = 'active' | 'archived'
-const highlightVisibilityKey = 'fyodor.alert.highlight-visibility.v1'
-export function readHighlightVisibility(): HighlightVisibility {
-  try {
-    const value = localStorage.getItem(highlightVisibilityKey)
-    return value === 'archived' ? value : 'active'
-  } catch { return 'active' }
-}
-export function saveHighlightVisibility(value: HighlightVisibility) {
-  try { localStorage.setItem(highlightVisibilityKey, value) } catch { /* Keep session choices when storage is unavailable. */ }
-}
 export const alertCurrencies: readonly MajorCurrency[] = ['USD', 'EUR', 'GBP', 'JPY', 'CHF', 'CAD', 'AUD', 'NZD']
-export const alertHorizons = [7, 30, 60, 90] as const
+const alertHorizons = [7, 30, 60, 90] as const
 export type AlertPreferences = { version: 1; catalogVersion?: 1; families: string[]; currency: 'all' | MajorCurrency; days: typeof alertHorizons[number] }
 export function defaultAlertPreferences(): AlertPreferences {
   return { version: 1, catalogVersion: 1, families: inspectorFamilies.map(f => f.id), currency: 'all', days: 7 }

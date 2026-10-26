@@ -37,6 +37,7 @@ const externalItems = [outside('cpi-report', { calendar_reference: { source_id: 
 const alarms = { application: 'fyodor-alarms', schedule_schema: 2, revision: 1, now, native_available: true, settings: { enabled: false, release_minutes: 2 },
   schedule_error: null, refreshed_at: now / 1000, events: [], jobs: [], migration: { matches: [], issues: [] } }
 const source = { publisher_status: 'live' }
+let calendarOverride = null
 let impactFailure = false, impactRevision = 1
 const rating = (id, overrides = {}) => ({ id, source: 'highlight', reference: 'pin', broker, key: `highlight:${broker}:pin`,
   level: 'low', reason: 'This occurrence adds limited information to the current outlook.', as_of_utc: '2026-10-22T17:00:00Z',
@@ -61,6 +62,8 @@ globalThis.fetch = async (url, options = {}) => {
     assert.equal(params.get('source_id'), broker, 'Elev8 is never selected for the unified table')
     if (params.get('date') === delayDate) return new Promise(resolve => { delayed = { resolve, signal: options.signal, date: delayDate } })
     if (failure) return { ok: false, status: 503, json: async () => ({}) }
+    if (calendarOverride) return reply({ source_id: broker, date: params.get('date'), revision: String(calendarRevision), source,
+      coverage: {}, events: readings, ...calendarOverride })
     return reply({ source_id: broker, date: params.get('date'), revision: String(calendarRevision), source, coverage: {},
       ...(params.get('after_revision') === String(calendarRevision) ? { unchanged: true } : { events: params.get('date') === '2026-10-23' ? readings : [] }) })
   }
@@ -170,6 +173,20 @@ try {
   await tick('pollAlertDay')
   assert.ok(host.querySelector('[data-series-id="840030005"]').textContent.includes('0.4%'))
   assert.equal(host.querySelector('[data-series-id="840030005"] .alert-value-pending'), null, 'A published actual replaces the countdown immediately')
+  // Bad snapshots never replace good readings or advance the polling revision.
+  const goodRow = host.querySelector('[data-series-id="840030005"]')
+  for (const invalid of [{ coverage: { USD: null } }, { coverage: { USD: {} } }, { coverage: [] },
+    { coverage: { USD: { missing: [[5, 1]] } } }, { events: [{ ...readings[0], name: null }] },
+    { source: {} }, { unchanged: true, revision: 'wrong-revision' }]) {
+    calendarOverride = invalid; await tick('pollAlertDay')
+    assert.match(host.textContent, /Invalid date calendar response/)
+    assert.equal(host.querySelector('[data-series-id="840030005"]'), goodRow, 'Malformed data retains the last valid row')
+  }
+  calendarOverride = { coverage: { USD: { missing: [[1, 5]] } } }; calendarRevision++
+  await tick('pollAlertDay')
+  assert.match(host.textContent, /Partial calendar coverage/)
+  assert.ok(!host.textContent.includes('Invalid date calendar response'), 'A valid full snapshot recovers after rejection')
+  calendarOverride = null; calendarRevision++; await tick('pollAlertDay')
   impactFailure = true; await tick('pollAlertImpact')
   assert.match(host.textContent, /Impact assessments unavailable/)
   assert.equal(host.querySelector('[data-series-id="840030005"] .alert-ai-impact').textContent, 'Low', 'A failed poll keeps saved ratings with an explicit error')

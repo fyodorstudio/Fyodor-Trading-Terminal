@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict'
-import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import React from 'react'
@@ -46,26 +45,15 @@ const click = element => React.act(async () => { assert.ok(element); element.cli
 const change = (id, value) => React.act(async () => props(container.querySelector(id)).onChange({ target: { value } }))
 const poll = async () => { const [id, fn] = [...timers][0]; timers.delete(id); await React.act(async () => fn()) }
 try {
-  const { parseResearchPlans, mergeResearchPlans, validArrow } = await server.ssrLoadModule('./src/entry-trade/storage/research-plans.ts')
+  const { validArrow } = await server.ssrLoadModule('./src/entry-trade/storage/registered-arrow-validation.ts')
   const { useRegisteredArrows } = await server.ssrLoadModule('./src/entry-trade/storage/use-registered-arrows.ts')
   const { EntryTradePanel } = await server.ssrLoadModule('./src/entry-trade/dock/EntryTradePanel.tsx')
-  const incoming = parseResearchPlans(payload)
+  const incoming = payload.plans.map(item => ({ id: item.id, symbol: item.symbol, eventAt: item.eventAt, note: item.note, createdAt: Date.parse(item.asOf),
+    time: 0, direction: 'waiting', precision: 5, entryPrice: null, slPrice: null, tpPrice: null, slPips: null, tpPips: null, rrRatio: null }))
   const sync = await server.ssrLoadModule('./src/entry-trade/storage/journal-sync.ts')
   applyOperations = sync.applyJournalOperations
   remote = { version: 1, revision: 0, arrows: copy(incoming), deletedIds: [] }
   assert.ok(incoming.every(plan => validArrow(plan) && plan.direction === 'waiting' && plan.entryPrice === null && plan.slPrice === null && plan.tpPrice === null && plan.time === 0))
-  assert.throws(() => parseResearchPlans({ version: 1, plans: [...payload.plans, payload.plans[0]] }))
-  assert.throws(() => parseResearchPlans({ version: 1, plans: [{ ...payload.plans[0], eventAt: 'unknown' }] }))
-  const merged = mergeResearchPlans([prior], incoming, [])
-  assert.deepEqual(merged.arrows.at(-1), prior)
-  assert.equal(mergeResearchPlans(merged.arrows, incoming, merged.imported).arrows, merged.arrows)
-  assert.equal(mergeResearchPlans([prior], incoming, merged.imported).arrows.length, 1, 'Deleted research stays deleted')
-  const personalFile = path.join(directory, 'public/entry-trade-research.json')
-  if (fs.existsSync(personalFile)) {
-    const authored = parseResearchPlans(JSON.parse(fs.readFileSync(personalFile, 'utf8')))
-    assert.equal(authored.length, 15)
-    assert.ok(authored.every(plan => plan.note.includes('STATUS: WAITING') && plan.note.includes('SOURCES:') && plan.slPrice === null && plan.tpPrice === null))
-  }
   function Harness() {
     const [symbol, setSymbol] = React.useState('EURUSD')
     const arrows = useRegisteredArrows(symbol, true)

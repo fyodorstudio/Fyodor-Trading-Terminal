@@ -4,7 +4,7 @@ import { useAlarms } from './useAlarms'
 import './events-alarms.css'
 
 export const EventsDock = memo(function EventsDock({ brokerId, focusKey }: {
-  brokerId: string | null; brokerOffsetSeconds?: number; focusKey: string | null
+  brokerId: string | null; focusKey: string | null
 }) {
   const alarms = useAlarms()
   const sourceId = brokerId?.startsWith('Pepperstone-') ? brokerId : 'Pepperstone-Demo'

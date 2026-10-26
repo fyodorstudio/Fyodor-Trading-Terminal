@@ -1,7 +1,9 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { reachableFiles, sourceGraph } from './lib/source-graph.mjs'
+import { listFiles, reachableFiles, sourceGraph } from './lib/source-graph.mjs'
+import { sourceUsage, unreferencedClasses } from './lib/source-hygiene.mjs'
+import { documentNavigation, staleFeatureDescriptions } from './lib/document-navigation.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const source = path.join(root, 'frontend/src'), graph = sourceGraph(source)
@@ -11,6 +13,12 @@ const compatibility = ['inspector/calendar-display-range.ts', 'inspector/event-s
   'inspector/storage/calendar-admission-time.ts', 'inspector/storage/calendar-snapshot-identity.ts', 'inspector/useStoredCalendar.ts']
 const entries = ['bootstrap/mount-fyodor-terminal.tsx', ...compatibility].map(file => path.join(source, file))
 const reached = reachableFiles(graph, entries)
+const usage = sourceUsage(graph.files)
+for (const { filename, name } of usage.unused) problems.push(`${relative(filename)}: unreferenced runtime export ${name}`)
+for (const filename of listFiles(source).filter(file => file.endsWith('.css'))) {
+  if (!reached.has(filename)) problems.push(`${relative(filename)}: unreachable stylesheet`)
+  for (const name of unreferencedClasses(fs.readFileSync(filename, 'utf8'), usage)) problems.push(`${relative(filename)}: unreferenced class .${name}`)
+}
 for (const file of graph.files) {
   if (!reached.has(file) && !file.endsWith('.d.ts')) problems.push(`${relative(file)}: unreachable source module`)
   if (/[/\\](scoring-system|usd-context|pair-context|raycaster|fundamental-tools|scatter-plot|trader-notebook|workspace-portability)[/\\]/.test(file))
@@ -20,27 +28,17 @@ for (const file of graph.files) {
 // The inherited bridge is byte-for-byte unchanged, including its old README.
 // Validate maintained Lite documents.
 let links = 0
-for (const file of ['README.md', 'AGENTS.md', 'docs/DATA-CONTRACT.md', 'user manual.md']) {
+const documents = ['README.md', 'AGENTS.md', 'user manual.md', ...listFiles(path.join(root, 'docs')).filter(file => file.endsWith('.md')).map(relative),
+  ...listFiles(path.join(root, '.agents')).filter(file => file.endsWith('.md')).map(relative)]
+for (const file of documents) {
   const filename = path.join(root, file)
   if (!fs.existsSync(filename)) { problems.push(`${file}: missing canonical document`); continue }
-  const markdown = fs.readFileSync(filename, 'utf8').replace(/\x60\x60\x60[\s\S]*?\x60\x60\x60/g, '')
-  for (const match of markdown.matchAll(/\[[^\]\n]*\]\((<[^>]+>|[^)]+)\)/g)) {
-    let target = match[1].replace(/^<|>$/g, '').trim()
-    if (/^(?:[a-z][a-z\d+.-]*:|#|\/)/i.test(target)) continue
-    const [local, anchor] = target.split('#')
-    try { target = decodeURIComponent(local) } catch { problems.push(`${file}: malformed link ${target}`); continue }
-    if (!target) continue
-    links++
-    const destination = path.resolve(path.dirname(filename), target)
-    if (!fs.existsSync(destination)) problems.push(`${file}: missing link ${target}`)
-    else if (anchor && destination.endsWith('.md')) {
-      const headings = [...fs.readFileSync(destination, 'utf8').matchAll(/^#{1,6}\s+(.+)$/gm)]
-        .map(match => match[1].toLowerCase().replace(/[^\p{L}\p{N}_ -]/gu, '').replaceAll(' ', '-'))
-      if (!headings.includes(anchor)) problems.push(`${file}: missing heading ${target}#${anchor}`)
-    }
-  }
+  const navigation = documentNavigation(filename)
+  links += navigation.links.length
+  problems.push(...navigation.problems.map(problem => `${file}: ${problem}`))
+  for (const pattern of staleFeatureDescriptions(fs.readFileSync(filename, 'utf8'))) problems.push(`${file}: retired Alert instructions (${pattern})`)
 }
 if (!fs.existsSync(path.join(root, 'docs/tools/icon-catalogue.html'))) problems.push('Missing retained icon catalogue')
-console.log(`Checked ${graph.files.length} Lite source modules and ${links} documentation links.`)
+console.log(`Checked ${graph.files.length} Lite source modules, styles and exports; ${links} links across ${documents.length} maintained documents.`)
 if (problems.length) { console.error(problems.join('\n')); process.exitCode = 1 }
 else console.log('Lite ownership, retirement and navigation checks passed.')

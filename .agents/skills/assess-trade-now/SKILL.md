@@ -22,6 +22,8 @@ for this default, investor incentives and opportunity status. Infer scope and
 horizon; default to the current session or, when closed, the next verified
 tradable session. A named pair remains the primary task. Explicit scope overrides
 win. A dated Thesis fill selects its date and authorizes its save, not a pair scan.
+If the user also requests cross or pair opportunities, answer that comparison in
+chat under entry mode while keeping the saved daily table in its currency-only format.
 For reversal, recovery and continuation questions, give immediate-session and
 next 1–5 trading-session views, unless the user specifies a narrower horizon.
 Explain differences in mechanism between horizons; the seven-day event scan is
@@ -234,6 +236,13 @@ their separate explicit-request rules; a requested daily Thesis fill is a save.
   covered here and does not require a full historical study.
 
 ## Output format
+
+Write saved research as readable prose, not compressed transport text. Separate
+words, numbers and units: `Dallas 9:30 PM`, `$69 billion of 2-year notes` and
+`3.75–4.00%`, with spaces after punctuation. Keep IDs, URLs and raw publisher
+values exact. Before saving and after read-back, read the actual human-facing
+summaries, reasons and checkpoint notes; schema validation cannot establish
+readability. Repair authored copy by appending a correction, preserving history.
 
 Lead with what matters now. Distinguish the user's supplied observation, verified
 facts, attributed reporting and your inference without repeatedly disputing the

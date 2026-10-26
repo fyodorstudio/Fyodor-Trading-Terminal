@@ -6,7 +6,8 @@ buttons and the existing Alert filters apply without changing alarm choices.
 Every captured calendar event on the date is available, including released rows;
 no shortlist, automatic archival or manual archive control is involved.
 
-Columns: Time | Event | Actual | Forecast | Previous | Source | Countdown | Bell.
+Columns: Time | Event | Actual | Forecast | Previous | Source | Agent impact | Bell.
+Pending rows show a countdown under Actual; impact is agent-authored or Unreviewed.
 Source identifies Pepperstone or the actual external publisher (for example
 Reuters), with links to evidence. External records never acquire invented calendar
 readings. Different source values stay separate. One bell covers a publication

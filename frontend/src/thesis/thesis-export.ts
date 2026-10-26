@@ -1,5 +1,7 @@
 import { backdropCategories, currencyNewsHeading, currencyNewsItems, currencyReviewTiming, currencyThesisPrompt, currencyUpcoming, opportunitySelectionMessage, opportunityWindow, reviewCurrencies, safeThesisLink, selectedThesisReview, sharedOpportunityWindow, thesisDay, type OpportunityEvidence, type ThesisEntry, type ThesisReviewEntry, type ThesisSnapshot, type ThesisSource } from './thesis-model'
 
+import { assessmentTime, currencyDirectionTimeline, newsSourceTime } from './currency-timeline'
+
 const clock = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })
 const date = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', year: 'numeric', month: 'short', day: 'numeric', weekday: 'short' })
 const day = (value: string) => date.format(new Date(value.length === 10 ? `${value}T05:00:00Z` : value))
@@ -83,9 +85,13 @@ function currencyMarkdown(data: ThesisSnapshot, selectedDate: string, exportedAt
   for (const currency of reviewCurrencies) {
     const view = review?.currency_views?.find(item => item.currency === currency)
     const news = currencyNewsItems(review, currency, selectedDate)
-    const verdict = view?.direction ? `**${view.direction.verdict}** — ${text(view.direction.reason)}<br><br>` : ''
+    const timeline = currencyDirectionTimeline(data.reviews ?? [], review, currency)
+    const history = timeline.map((item, index) => `${index ? 'Reassessed' : 'Earlier assessment'} ${assessmentTime(item.at)}: **${item.direction.verdict}** — ${text(item.direction.reason)}`).join('<br><br>')
+    const verdict = (view?.direction ? `**${view.direction.verdict}** — ${text(view.direction.reason)}<br><br>` : '') + (history ? history + '<br><br>' : '')
     const explanation = verdict + (news.map((item, index) => `${index + 1}. ${text(item.summary)}`).join('<br><br>') || (review ? text(view?.news_gap || 'No same-date news saved.') : 'Not filled'))
-    const references = (view?.direction ? `Daily verdict: ${sources(view.direction.sources)}<br><br>` : '') + (news.map((item, index) => `${index + 1}. ${sources(item.sources)}`).join('<br><br>') || '—')
+    const references = (view?.direction ? `Assessment ${assessmentTime(review!.as_of_utc)} · checked ${assessmentTime(view.direction.verified_utc)}: ${sources(view.direction.sources)}<br><br>` : '')
+      + (timeline.length ? timeline.map(item => `${assessmentTime(item.at)}: ${sources(item.direction.sources)}`).join('<br>') + '<br><br>' : '')
+      + (news.map((item, index) => `${index + 1}. ${newsSourceTime(item)}. ${sources(item.sources)}`).join('<br><br>') || '—')
     const checkpoints = currencyUpcoming(review, currency).map((item, index) =>
       `${index + 1}. **${text(item.title)} — ${item.event_at ? timed(item.event_at) : `${day(item.event_date!)} · hour unverified`}** ${text(item.note)} ${sources(item.sources)}`).join('<br><br>') || '—'
     lines.push(`| **${currency}** | ${explanation}${news.length && view?.news_gap ? '<br>' + text(view.news_gap) : ''} | ${references} | ${checkpoints} |`)

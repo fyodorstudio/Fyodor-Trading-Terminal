@@ -1,73 +1,33 @@
 # Highlight research journal
 
-Alert has **Highlight / MT5 Calendar / External Source** views and a currency
-filter. Highlight contains **Active / Archived**, combining pinned MT5 occurrences
-and external records. **External Source > Discovered Limitations** holds the
-broker-specific reference records; it uses that view's currency filter. Saved
-collection, visibility and currency choices survive reopening. The upcoming
-horizon and family Filters apply only to MT5 Calendar. Expand a
-card for a full-width reading panel. Its View selector contains Before release,
-After release, Sources and captured evidence, Research history (version count),
-Prompt preview (scope/stage) and Latest broker readings. Header dates, countdowns,
-Research and Archive/Restore use aligned columns, with Scope at the far right.
-Scope selects the currency/pair's journal and prompt; it does not change the chart.
-In Prompt preview, prompt stage and Copy Prompt sit beside the View selector.
-For an active Highlight, choose a pair in Scope, then **Assess trade now** in View
-and **Copy Prompt**. This remains available after publication and requests the
-assess-trade-now skill's dated fundamental assessment. It does not run an
-agent or place a trade. Currency-only scopes and archived cards disable this view.
-The preview is read-only; clipboard failures keep the text available to copy.
-The layout adapts to the dock's width. Text is read-only.
-Historical studies follow the initial 15 minutes, two-hour checkpoint, remaining
-trading day and next 3–5 trading sessions. Intraday extrema, reversals and giveback
-are described at candle resolution. The Research Date Range's complete calendar
-and dated web evidence identify intervening news for both currencies, including
-off-calendar developments; later releases/stages get separate price baselines.
-Near-release and after-release prompts also request an after-entry news watchlist:
-verified Jakarta/UTC times, material events and outcomes that add volatility,
-challenge or invalidate the thesis. Fresh expectations wait until preparation.
-Upcoming preparation and live/release-time interpretation are fundamental-only
-by default. Copied prompts apply the current default scope and response format
-without rewriting saved versions. An explicit user price-aware override permits
-Assess Trade Now's bounded market-feedback check; actuals and the first release
-verdict take priority. Full historical price investigations use their own skill.
-Published historical cards use **Research Documentation**, combining the saved
-investigation, sources, frozen readings and version history. Preparation views
-are greyed out there. An elapsed clock alone does not select this mode: verified
-numeric publication or a past saved post-release study is required. Future
-cards retain the preparation workflow, including when archived early.
-Copy Prompt copies the latest tailored release request for that scope, prefixed
-with the occurrence ID, broker and verified UTC time. Without research it uses a
-generic verification request. Clipboard failures open the read-only Prompt preview.
-Choose **Prepare before release** for same-day/hour-before research, or **Interpret
-after release** once actuals arrive. Prompt templates are separate from journal
-research; saving a prompt never fills Before release with a pretend investigation.
+Highlight pins, archived investigations, journal versions and saved prompt
+templates remain available through the agent interface. Inspector retains its
+occurrence-specific Pin/Archive control; in By day, choose a publication from
+**Pin release**. Each pin identifies one occurrence, rather than every future
+release in the same family.
 
-For a quick assessment, ask "Use $assess-trade-now to assess USDJPY now."
-It owns upcoming-alert reviews too: check the preceding hour, next six hours and
-overnight on the web first, then at least seven days for both currencies. Focused
-pins/limitations/external identities and the broker index are required cross-checks;
-official sources take priority over flawed MT5 data. The invocation authorizes
-immediate verified material-event pins/restores and dated external chart-icon
-requests unless explicitly read-only. It does not authorize full journals/Thesis
-conclusions, impact labels or automatic archiving. Preserve exact occurrences.
-Lead with an imminent warning and direct strengthening/weakening thesis, then
-chronological near-term/upcoming events. The dated five-category backdrop is
-secondary and compact. Validate the source/pin receipt and expose exact remaining
-gaps; no candle analysis, monitoring or guaranteed exhaustive news coverage.
+Alert shows all stored events for the selected Jakarta date. Open a calendar
+event's **Saved research** tab to read the dated investigation, original broker,
+scope, sources, frozen readings and documentation history. Matching legacy Elev8
+research retains its original attribution and exact occurrence identity. New
+actuals never overwrite the readings captured with an earlier assessment.
+The UI is read-only; research is authored in the analyst chat and saved only on
+request. Feed notes contains Discovered Limitations. Collection, archive,
+preparation, scope/view selectors and copied assessment prompts are agent workflows.
 
-Archive replaces Unpin/Remove pin in Alert and Inspector. It preserves occurrence
-identity, journal files and an archive-time reading snapshot. Restore resumes live
-readings with the same identity. Re-pinning an archived occurrence restores it.
-Released occurrences stay active until the user archives them. Legacy DELETE API
-requests archive too; the new UI uses a dedicated POST endpoint so an older storage
-service cannot accidentally delete a pin. Restart storage manually after upgrading
-the backend; agent research does not restart services.
+For current analysis, ask "Use $assess-trade-now to assess USDJPY now." Give the
+Highlight ID, broker and date when referring to a saved occurrence. The skill
+owns near-term discovery, upcoming events, sourced decisions and verified-event
+pins; a full journal or Thesis save requires a separate request. Upcoming/live
+assessment is fundamental-first; an explicit price-aware request permits bounded
+feedback. Historical price investigations use the historical-research skill.
 
-Active pins have no separate count limit. The pin file retains its 10,000-record
-safeguard across active and archived occurrences; archiving preserves records and
-does not free that file capacity. Pinning or restoring beyond 200 active items is
-supported without discarding earlier events or research.
+Archive preserves the occurrence, research versions and archive-time readings.
+Restore resumes live readings with the same identity. Re-pinning restores an
+archived occurrence. Released pins remain until the user requests archive.
+Legacy DELETE API calls archive too; current lifecycle writes use POST endpoints.
+Active pins have no separate count limit; the file's 10,000-record safeguard
+includes archived occurrences, which continue to retain their history.
 
 ## Agent navigation
 

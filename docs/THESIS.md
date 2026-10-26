@@ -18,6 +18,14 @@ Fundamental and Source contain matching numbered lists: one summary and its
 source group per item. Upcoming contains numbered scheduled news still ahead at
 the saved cutoff, including later today; known released results belong in
 Fundamental. No confidence grades or separate counterweight/scenario columns in this table.
+SOURCE displays verified publication times (or hour unverified) separately from
+source-check times. Directions are assessments at the saved cutoff, not a claim
+to cover the whole day. When same-day saved assessments change direction, the
+Fundamental cell includes the earlier view and each changed reassessment with its
+Jakarta time, reason and corresponding sources. Unchanged refreshes add no change
+line; corrections at one cutoff replace that interpretation without inventing a
+reversal. Assessment times do not establish the market's turning point or an
+unverified catalyst publication minute. Reconstructions do not acquire a live timeline.
 The latest cutoff saved for the selected Jakarta day wins; unfilled dates stay
 blank. Older assessments remain preserved and are labelled as older assessments,
 without relabelling their interpretations as today's news.
@@ -27,6 +35,11 @@ Aim for four or more distinct relevant same-date news items per currency when
 available; use fewer rather than pad quiet days. One release package or syndicated
 story is one item. Check all five research areas without requiring a five-category
 payload. No research runs on date selection or automatically each day.
+Use a pre-session baseline and selective checkpoint refreshes. Each saved update
+names the next useful reassessment event; no twice-daily quota or monitoring is
+implied. Focused refreshes preserve unaffected rows' verification clocks and
+identify carried context. Read the actual saved prose for ordinary spacing and
+readable times/units; a valid JSON payload does not prove readable copy.
 For a past date the prompt explicitly requests a labelled historical collection;
 use only information then available. Future dates stay unfilled.
 

@@ -1,3 +1,4 @@
+import './external-record-details.css'
 import { useEffect, useState } from 'react'
 import { formatAppTimestamp, type TimeDisplayPreference } from '../appearance/time-display/time-display-preference'
 import { validExternalItems, type ExternalSource } from './external-source-model'

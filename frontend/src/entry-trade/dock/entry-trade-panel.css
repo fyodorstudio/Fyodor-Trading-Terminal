@@ -187,9 +187,6 @@
   border-color: var(--accent);
 }
 
-.param-aux-placeholder {
-  height: 26px;
-}
 
 .pips-field-wrapper {
   position: relative;
@@ -367,20 +364,6 @@
   font-weight: 800;
 }
 
-.rr-locked-pill {
-  height: 26px;
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--surface-raised);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  color: var(--text-faint);
-  font-size: 8px;
-  font-style: italic;
-  box-sizing: border-box;
-}
 
 /* Col 2: Pinned Arrows Table & Empty State */
 .entry-trade-pinned-col {

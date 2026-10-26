@@ -42,10 +42,10 @@ Optional `FYODOR_BRIDGE_API_URL` / `FYODOR_STORAGE_API_URL` override Vite's prox
 | inspector | Filters, date ranges, release/day grouping, icons and raw tables |
 | alert | Date-based events, filters/countdowns, agent impact and saved research |
 | external-sources | Separate outside-feed events/headlines/watch items, sourced facts, history, limitations reference and agent prompts |
-| events-alarms / storage/alarms | Shared dock, per-pin invocation alarms and independent Windows alarm delivery |
+| events-alarms / storage/alarms | Alert composition, occurrence invocation alarms and independent Windows alarm delivery |
 | entry-trade | Manual execution plans, all-pair pins, draggable chart levels and independent saved journals |
 | thesis / storage/thesis.py / storage/thesis_reviews.py | Dated opportunities, shared backdrop reviews, agent context and append-only versions |
-| research | Chart date selection and named Markdown handoff shared with Alert |
+| research | Chart date selection and named Markdown handoff |
 | Market Analyst Workflow/tools (repo root) | Read-only calendar, upcoming/Highlight/report queries, journal/lifecycle writes and bounded OHLC capture |
 | appearance, system-connectivity, system-observability, workspace-docking | Theme/time, bridge status, Activity and dock geometry |
 
@@ -74,6 +74,8 @@ global enable/pause, reminder offset, test and delivery history. `pnpm dev:all`
 starts the independent worker; Windows must remain awake. See the
 [alarm workflow](docs/EVENTS-ALARMS.md) for persistence and delivery limits.
 
+Repository checks cover source reachability, unreferenced runtime exports,
+class selectors and local links across the maintained Markdown documents.
 Frontend suites run sequentially and mount production components with fixture
 transport/canvas. Native chart API tests verify coordinates, future times and
 drawings. Visual/live MT5 acceptance remains with the user.
@@ -213,6 +215,10 @@ release shortlist for all eight currencies. [Data, clocks and recovery](docs/DAT
 owns storage contracts; the [icon catalogue](docs/tools/icon-catalogue.html) is a
 visual reference. Frontend owners above are under `frontend/src/` unless marked.
 The bridge's inherited README is historical; Lite's operating instructions are here.
+Live Alert readers are `alert/highlights/SavedReleaseResearch.tsx`,
+`external-sources/ExternalRecordDetails.tsx` and
+`external-sources/DiscoveredLimitations.tsx`. Retired collection screens have no UI
+entry point; agent lifecycle commands retain their storage contracts.
 
 ## Research handoff
 
@@ -265,8 +271,7 @@ and choose earlier context (90 days by default). **Prepare research** writes a
 unique `.md` brief and complete `.tsv` evidence in a named folder under
 `Market Analyst Workflow/report/`, and offers **Copy path** for the analyst session.
 Share the brief; it links to its evidence.
-Alert's **Research** button prepares the same handoff for an upcoming release;
-choose its currency alone or a pair containing it.
+For an upcoming release, give its event name, broker and date to the analyst chat.
 
 The Alert date table browses calendar rows independently of saved Highlight pins.
 The publisher supplies Pepperstone readings; outside-feed records retain their

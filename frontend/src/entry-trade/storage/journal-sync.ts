@@ -1,5 +1,5 @@
 import type { RegisteredTradeArrow } from '../contracts/entry-trade-types'
-import { validArrow } from './research-plans'
+import { validArrow } from './registered-arrow-validation'
 export const journalUrl = '/entry-trade-api/journal'
 export const pendingKey = 'fyodor.entry-trade.pending.v1'
 export const migrationKey = 'fyodor.entry-trade.repo-migrated.v1'

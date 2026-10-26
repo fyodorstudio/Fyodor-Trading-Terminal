@@ -1,3 +1,4 @@
+import './discovered-limitations.css'
 import { useEffect, useMemo, useState } from 'react'
 import type { MajorCurrency } from '../economic-calendar/forex/currencies'
 

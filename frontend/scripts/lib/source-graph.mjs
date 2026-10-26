@@ -9,6 +9,12 @@ export function listFiles(directory) {
   })
 }
 
+export function resolveDependency(filename, specifier) {
+  const base = path.resolve(path.dirname(filename), specifier.split('?')[0])
+  return [base, `${base}.ts`, `${base}.tsx`, path.join(base, 'index.ts'), path.join(base, 'index.tsx')]
+    .find(candidate => fs.existsSync(candidate) && fs.statSync(candidate).isFile())
+}
+
 // Include type imports, compatibility exports, dynamic imports and worker URLs.
 export function sourceGraph(directory) {
   const files = listFiles(directory).filter(filename => /\.tsx?$/.test(filename))
@@ -22,9 +28,7 @@ export function sourceGraph(directory) {
         : ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword ? node.arguments[0]
           : ts.isNewExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === 'URL' ? node.arguments?.[0] : null
       if (specifier && ts.isStringLiteral(specifier) && specifier.text.startsWith('.')) {
-        const base = path.resolve(path.dirname(filename), specifier.text.split('?')[0])
-        const resolved = [base, `${base}.ts`, `${base}.tsx`, path.join(base, 'index.ts'), path.join(base, 'index.tsx')]
-          .find(candidate => fs.existsSync(candidate) && fs.statSync(candidate).isFile())
+        const resolved = resolveDependency(filename, specifier.text)
         if (resolved) edges.add(resolved)
         else unresolved.push({ filename, specifier: specifier.text })
       }

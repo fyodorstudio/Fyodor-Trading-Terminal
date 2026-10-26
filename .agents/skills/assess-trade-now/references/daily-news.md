@@ -8,6 +8,18 @@ and the successful save briefly. A short chat answer cannot replace the save. Th
 discovery, coverage receipt and material-event pin/icon authorization also apply;
 date selection alone remains read-only and creates no monitoring.
 
+Prefer one baseline fill before the user's main trading session, followed by
+selective refreshes at thesis-changing checkpoints rather than a fixed twice-daily
+quota. Each assessment should identify the nearest useful return event, its
+verified Jakarta time (or unknown hour), affected currencies and what to reassess.
+Use the earliest material stage, not only the next headline policy decision.
+An entry review is warranted when material news arrived after the saved cutoff.
+On a requested focused refresh, research affected mechanisms and material
+counterparts; retain other rows with their original verification clocks and mark
+them as carried context, not freshly researched. A request for all currencies
+still requires refreshing all eight. A checkpoint refresh or skill invocation
+alone does not authorize a Thesis save, new alarm or continuous monitoring.
+
 - Cover USD, EUR, GBP, JPY, CHF, CAD, AUD and NZD in one currency row each. The
   columns are Currency | DD:MM:YYYY FUNDAMENTAL | SOURCE | UPCOMING CHECKPOINT.
   Summaries and source groups share their list numbers; several links supporting
@@ -47,6 +59,12 @@ date selection alone remains read-only and creates no monitoring.
   not fetch eight histories. Bounded feedback is permitted only for shortlisted
   entry candidates, subject to explicit fundamental-only/no-candles overrides.
 - For today, use the real research cutoff and include only news then available.
+  Direction is the assessment at that cutoff, not a whole-day forecast. When a
+  same-day reassessment changes it, name the decisive development in the reason;
+  preserve the earlier snapshot so the table can show both timed views. Do not
+  backdate the change to a guessed market turn or publication minute. Supply
+  published_at only when independently verified; SOURCE distinguishes that
+  publication clock from verified_utc. Unchanged refreshes need no reversal line.
   A past-date request authorizes a labelled reconstruction through its requested
   cutoff, or the end of that Jakarta day if no hour is given. Future dates stay
   unfilled. Preserve original publication dates/known hours, real retrieval clocks

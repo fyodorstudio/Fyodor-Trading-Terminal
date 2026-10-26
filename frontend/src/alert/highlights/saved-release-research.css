@@ -1,0 +1,11 @@
+.highlight-journal { line-height: 1.6; overflow-wrap: anywhere; }
+.highlight-journal h4 { margin: 12px 0 4px; font-size: 13px; }
+.highlight-journal p { margin: 6px 0; white-space: pre-wrap; }
+.highlight-research-meta { color: var(--text-muted); }
+.highlight-journal code { display: block; white-space: pre-wrap; overflow-wrap: anywhere; }
+.highlight-journal a { color: var(--accent); }
+.highlight-series { overflow: auto; margin-top: 10px; }
+.highlight-series table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.highlight-series th, .highlight-series td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.highlight-series th[scope='row'] { font-weight: 500; }
+.highlight-series small { display: block; color: var(--text-muted); }

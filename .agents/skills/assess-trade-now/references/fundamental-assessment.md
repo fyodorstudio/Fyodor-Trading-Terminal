@@ -89,7 +89,7 @@ nearest material checkpoints without treating future outcomes as current support
 - Pure bias/release-first verdicts are fundamental-first. Entry-focused modes use
   entry-decisions.md bounded feedback by default, respecting no-candles overrides.
   For an explicit price-aware request, apply
-  [bounded market feedback](opportunity-discovery.md#optional-price-aware-feedback).
+  [bounded market feedback](opportunity-discovery.md#bounded-price-aware-feedback).
   A persistent price contradiction requires a thesis review, with the observed
   move and proposed cause kept separate. Preserve no-candles requests and route
   full historical price studies to Review Historical Research.

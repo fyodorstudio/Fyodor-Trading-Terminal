@@ -35,13 +35,14 @@ export function useExternalSources(scope: string, visibility: 'active' | 'archiv
             || data.offset !== offset || !Number.isInteger(data.matches) || data.matches < 0
             || (data.next_offset !== null && (!Number.isInteger(data.next_offset) || data.next_offset !== offset + 100))) throw new Error('Invalid External Sources page')
           if (nextRevision && nextRevision !== data.revision) throw new Error('External Sources changed during paging; retrying')
-          nextRevision = data.revision; items = [...items, ...data.items]; next = data.next_offset; offset += 100
+          nextRevision = data.revision; items.push(...data.items); next = data.next_offset; offset += 100
           if (offset > 10000) throw new Error('External Sources exceeds its page limit')
         }
         revision = nextRevision
         setSnapshot(old => {
+          const previousByKey = new Map(old.context === context ? old.items.map(item => [item.key, item]) : [])
           const stable = items.map(item => {
-            const previous = old.context === context ? old.items.find(value => value.key === item.key) : undefined
+            const previous = previousByKey.get(item.key)
             return previous?.id === item.id && previous.version_count === item.version_count ? previous : item
           })
           return old.context === context && old.items.length === stable.length && old.items.every((item, index) => item === stable[index]) ? old : { context, items: stable }

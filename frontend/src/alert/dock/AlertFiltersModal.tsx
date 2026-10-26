@@ -5,6 +5,7 @@ import { inspectorFilterRows } from '../../inspector/filters/inspector-filter-ro
 import { FamilyFilterGroups } from '../../inspector/filters/FamilyFilterGroups'
 import { alertCurrencies, type AlertPreferences } from '../model/alert-preferences'
 import '../../inspector/inspector.css'
+import './alert-filters.css'
 
 export function AlertFiltersModal({ preferences, onSave, onClose }: {
   preferences: AlertPreferences; onSave: (preferences: AlertPreferences) => void; onClose: () => void

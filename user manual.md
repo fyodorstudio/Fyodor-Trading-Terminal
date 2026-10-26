@@ -30,11 +30,10 @@ deadline is five minutes after publication. Another chat needs the preparation
 handoff or saved research. Preparation alone does not start a timer, and a passed
 release time does not prove numbers have arrived.
 
-**Highlight → Scope → View → Copy Prompt** supplies the exact occurrence, broker,
-time and selected pair. Paste it into the analyst chat; it does not run the agent
-or place a trade. Skills define the workflow; Copy Prompt supplies the event
-context. Ask explicitly to save new conclusions to the journal. Historical price
-investigations remain separate from live fundamental assessment.
+Give the analyst chat the occurrence name or ID, broker, date and requested
+currency/pair. The agent resolves saved Highlight context through its CLI. Ask
+explicitly to save new conclusions. Historical price investigations remain
+separate from live fundamental assessment.
 
 # What to tell market analyst agents
 
@@ -94,9 +93,9 @@ Search the name to find it; ticking a whole category selects its other families 
 In **Alert → Filters**, choose your currencies, tick the same ★ families and **Save**.
 Alert has its own selection; Inspector changes do not update it.
 
-Open a listed upcoming release's **Research** entry to prepare a possible setup.
-Ask the agent for backdrop, expectations and stronger/weaker scenarios using the
-trade-candidate checks above.
+Choose the upcoming release in Alert and give its name, broker and date to the
+analyst chat. Ask for backdrop, expectations and stronger/weaker scenarios using
+the trade-candidate checks above.
 
 ## USD
 
@@ -265,35 +264,25 @@ the agent to explain the changing backdrop. It can fetch calendar and OHLC using
 [AGENTS.md](AGENTS.md#dataset-commands). Broker forecasts and web surveys stay
 separately attributed; different providers/methods can produce different numbers.
 
-## Highlight: your pinned release shortlist
+## Alert and saved Highlight research
 
-In Alert, choose **Upcoming / Highlight**, then **All** or a currency. Highlight's
-**Active / Archive / Discovered Limitations** share that currency filter; changing
-currency keeps your selected view. All shows all currencies within that view.
-The filter uses the release currency, not the card's research Scope. Your view and
-currency choices survive reopening. Use **Pin** beside Research, or the
-pin control at the far right of Inspector's header. In By day, choose the release
-from the Pin release menu. Each pin is one occurrence, such as this month's CPI,
-not a subscription to every future CPI release.
+Alert shows the selected Jakarta date, including published events and named
+external sources. Choose All or a currency, use Filters for calendar families,
+and open an event for Overview, Sources & history or Saved research. Pending
+calendar rows retain countdowns until readings arrive. Feed notes shows documented
+source limitations. Date changes and filters never arm an alarm.
 
-Pins are ordered by release time and ignore upcoming family filters/horizon. Expand a card
-for every stored series, release times, Actual, Forecast, Previous and revised
-Previous. Countdown updates each second; Highlight checks stored values every two
-seconds while open. Released pins stay until you choose **Archive**; Restore returns them to Active.
-The source still needs to publish the actuals; pending/offline states remain visible.
+Inspector retains the occurrence-specific Pin/Archive control. In By day, choose
+one publication from Pin release. Pins and archived investigations are available
+through the analyst interface; each identifies a specific release. Ask the agent
+to list, read, archive or restore one while preserving its research history.
+Alert's Saved research tab displays original brokers, as-of times, frozen readings,
+sources and documentation history without the removed collection selectors.
 
-For a dated fundamental assessment, choose a pair in Scope and **Assess trade now → Copy
-Prompt** in an active Highlight's View selector. You can also ask: **“Use
-$assess-trade-now to assess AUDUSD now for an intraday trade, without candles.”**
-The agent verifies both currencies, actuals/expectations, intervening news and
-invalidation. Your own entry and risk rules remain necessary for execution.
-
-Ask a fresh agent: **“Read AGENTS.md and check my Highlight for AUDUSD. Prepare the
-next pinned release; after publication, compare actuals with expectations and
-update the fundamental direction. Do not fetch or analyze candles.”** The agent uses `pnpm analyst highlights`
-and focused `--summary` queries directly. Prepare the backdrop before the event,
-then request an update after publication. The agent answers in chat; keep your
-existing report notes and evidence for subsequent comparisons.
-An explicit price-aware request permits a supplied chart or small price window
-to challenge a stale thesis. Say "no candles" to keep the assessment entirely
-fundamental. Full historical reaction measurements use Review Historical Research.
+For an assessment, ask: **“Use $assess-trade-now to assess AUDUSD now for an
+intraday trade, without candles.”** For saved context, add **“Read AGENTS.md and
+check my Highlight for AUDUSD; verify its broker, date and current readings.”**
+Prepare before publication, then request an update after actuals arrive. Explicitly
+request any journal save. Execution remains yours. An explicit price-aware request
+permits a supplied chart or bounded price window; say “no candles” for an entirely
+fundamental assessment. Full historical moves use Review Historical Research.

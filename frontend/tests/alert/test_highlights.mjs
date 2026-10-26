@@ -5,23 +5,14 @@ import React from 'react'
 import { createServer } from 'vite'
 import { Window } from 'happy-dom'
 
-globalThis.__highlightSeriesWork = 0
-const server = await createServer({ root: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..'), server: { middlewareMode: true, hmr: false },
-  plugins: [{ name: 'highlight-work', enforce: 'pre', transform(code, id) {
-    if (id.endsWith('/HighlightList.tsx')) return code.replace('return <div className="highlight-series">',
-      'globalThis.__highlightSeriesWork++; return <div className="highlight-series">')
-  } }] })
+const server = await createServer({ root: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..'), server: { middlewareMode: true, hmr: false } })
 const dom = new Window({ url: 'http://localhost:5173' })
 const globals = { window: dom, document: dom.document, HTMLElement: dom.HTMLElement, Node: dom.Node,
   navigator: dom.navigator, localStorage: dom.localStorage, IS_REACT_ACT_ENVIRONMENT: true }
 const previous = new Map([...Object.keys(globals), 'fetch'].map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]))
 for (const [key, value] of Object.entries(globals)) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value })
-let clipboardFailure = false, oldService = false
+let oldService = false
 let limitationOffline = false, limitationMalformed = false
-Object.defineProperty(dom.navigator, 'clipboard', { configurable: true, value: { writeText: async text => {
-  if (clipboardFailure) throw new Error('Clipboard unavailable')
-  assert.equal(typeof text, 'string')
-} } })
 const originalNow = Date.now
 let now = Date.UTC(2026, 9, 12, 12), serial = 0, revision = 1, offline = false, malformed = false
 let legacyTimeShift = 0
@@ -35,7 +26,14 @@ const { createRoot } = await import('react-dom/client')
 const container = document.createElement('div'); document.body.append(container)
 const root = createRoot(container)
 const at = now + 60_000, day = 86400000, display = { mode: 'utc', utcOffsetMinutes: 0 }
-const { HighlightList, SavedReleaseResearch } = await server.ssrLoadModule('./src/alert/highlights/HighlightList.tsx')
+const { SavedReleaseResearch } = await server.ssrLoadModule('./src/alert/highlights/SavedReleaseResearch.tsx')
+const { useHighlights } = await server.ssrLoadModule('./src/alert/highlights/useHighlights.ts')
+let highlights
+function HighlightProbe({ brokerId = 'Broker-A', visibility = 'active' }) {
+  const current = useHighlights(brokerId, 2000, visibility)
+  React.useLayoutEffect(() => { highlights = current }, [current])
+  return null
+}
 const { highlightRequest } = await server.ssrLoadModule('./src/alert/highlights/highlight-model.ts')
 const { groupInspectorReleases } = await server.ssrLoadModule('./src/inspector/releases/group-releases.ts')
 const { inspectorFamilies } = await server.ssrLoadModule('./src/inspector/inspector-data.ts')
@@ -96,8 +94,7 @@ globalThis.fetch = async (url, options = {}) => {
     coverage: { USD: { missing: [] }, CAD: { missing: [] } }, next_cursor: null }) }
 }
 const click = async element => { assert.ok(element); await React.act(async () => element.click()) }
-const render = async (overrides = {}) => React.act(async () => root.render(React.createElement(HighlightList,
-  { brokerId: 'Broker-A', now, timeDisplay: display, visibility: 'active', currency: 'all', ...overrides })))
+const render = async (props = {}) => React.act(async () => root.render(React.createElement(HighlightProbe, props)))
 async function poll() {
   const timer = [...timers].find(([, value]) => value.ms === 2000)
   assert.ok(timer); timers.delete(timer[0]); await React.act(async () => timer[1].fn())
@@ -106,7 +103,7 @@ try {
   for (const release of groupInspectorReleases(rows)) pins.push({ ...highlightRequest(release, 'Broker-A'), id: `saved-${pins.length}`,
     pinned_utc: new Date(now).toISOString() })
   await render()
-  assert.equal(container.querySelectorAll('.highlight-card').length, 3, 'Legacy metadata remains readable independently of the new Alert table')
+  assert.equal(highlights.items.length, 3, 'Legacy metadata remains readable independently of the Alert table')
   const captured = rows.filter(row => pins[0].value_ids.includes(row.value_id)).map(row => ({ ...row }))
   pins[0].journal = [{ id: 'research-1', highlight_id: pins[0].id, source_id: 'Broker-A', phase: 'before', scope: 'EURUSD',
     as_of_utc: '2026-10-12T11:00:00Z', saved_utc: '2026-10-12T11:01:00Z', body: 'Original inflation assessment.', direction: 'USD supportive',
@@ -114,41 +111,33 @@ try {
     release_prompt: 'Check actuals against preserved expectations.', prior_highlight_ids: [], correction_of: null, price_reaction: '',
     readings: captured, calendar_revision: 1, reading_vintage: 'Captured when saved', missing_value_ids: [] }]
   revision++; await poll()
-  const card = container.querySelector('.highlight-card')
-  await React.act(async () => { const scope = card.querySelector('[aria-label^="Research scope"]'); scope.value = 'EURUSD'; scope.dispatchEvent(new dom.Event('change', { bubbles: true })) })
-  await click(card.querySelector('.highlight-toggle'))
-  assert.ok(card.textContent.includes('Original inflation assessment.'))
-  const view = card.querySelector('[aria-label^="Journal view"]')
-  await React.act(async () => { view.value = 'readings'; view.dispatchEvent(new dom.Event('change', { bubbles: true })) })
-  assert.equal(card.querySelectorAll('.highlight-series tbody tr').length, 2)
-  const work = globalThis.__highlightSeriesWork, network = calls.length
-  await render()
-  assert.equal(globalThis.__highlightSeriesWork, work, 'Unchanged metadata does not rebuild reading tables')
-  assert.equal(calls.length, network)
+  const beforeUpdate = highlights.items
+  await poll()
+  assert.equal(highlights.items, beforeUpdate, 'Unchanged polling preserves the collection identity')
   rows = rows.map(row => pins[0].value_ids.includes(row.value_id) ? { ...row, actual: .4 } : row); revision++; await poll()
   assert.equal(pins[0].journal[0].readings[0].actual, null, 'Latest actuals cannot overwrite the saved pre-release vintage')
   malformed = true; await poll()
-  assert.match(container.textContent, /Invalid Highlight response/)
-  assert.equal(container.querySelectorAll('.highlight-card').length, 3)
+  assert.match(highlights.error, /Invalid Highlight response/)
+  assert.equal(highlights.items.length, 3)
   malformed = false; offline = true; await poll()
   await React.act(async () => root.render(null)); await render()
-  assert.equal(container.querySelectorAll('.highlight-card').length, 3, 'Cached original metadata survives an outage')
+  assert.equal(highlights.items.length, 3, 'Cached original metadata survives an outage')
   offline = false; await render({ brokerId: 'Broker-B' })
-  assert.equal(container.querySelectorAll('.highlight-card').length, 0, 'Different brokers cannot borrow a previous snapshot')
+  assert.equal(highlights.items.length, 0, 'Different brokers cannot borrow a previous snapshot')
   await render()
   oldService = true
-  await click(container.querySelector('[aria-label^="Archive highlight"]'))
-  assert.match(container.textContent, /Restart calendar storage/)
+  await React.act(async () => highlights.archive(highlights.items[0].id))
+  assert.match(highlights.error, /Restart calendar storage/)
   oldService = false
-  const id = container.querySelector('.highlight-card').dataset.highlightId
-  await click(container.querySelector('[aria-label^="Archive highlight"]'))
+  const id = highlights.items[0].id
+  await React.act(async () => highlights.archive(highlights.items[0].id))
   assert.equal(pins.length, 3)
   await render({ visibility: 'archived' })
-  assert.equal(container.querySelector('.highlight-card').dataset.highlightId, id)
-  await click(container.querySelector('[aria-label^="Restore highlight"]'))
-  assert.equal(container.querySelectorAll('.highlight-card').length, 0)
+  assert.equal(highlights.items[0].id, id)
+  await React.act(async () => highlights.restore(id))
+  assert.equal(highlights.items.length, 0)
   await render({ visibility: 'all' })
-  assert.equal(container.querySelectorAll('.highlight-card').length, 3, 'All-history cache is distinct from active/archive caches')
+  assert.equal(highlights.items.length, 3, 'All-history cache is distinct from active/archive caches')
   await React.act(async () => root.render(React.createElement(SavedReleaseResearch, { sourceId: 'Broker-A', valueIds: pins[0].value_ids, currency: 'USD' })))
   assert.ok(container.textContent.includes('Saved research · Broker-A'))
   assert.ok(container.textContent.includes('Original inflation assessment.'))
@@ -186,18 +175,17 @@ try {
     React.useLayoutEffect(() => { inspector = next }, [next])
     return React.createElement(React.Fragment, null,
       React.createElement(InspectorPanel, { view: { ...next, brokerId: 'Broker-A' }, symbol: 'EURUSD', source: null, error: null, timeDisplay: display }),
-      React.createElement(HighlightList, { brokerId: 'Broker-A', now, timeDisplay: display, visibility: 'active', currency: 'all' }))
+      React.createElement(HighlightProbe, { brokerId: 'Broker-A' }))
   }
   await React.act(async () => root.render(React.createElement(InspectorHarness)))
   await React.act(async () => inspector.selectRelease(inspector.releases.find(release => release.familyId === 'us-cpi').id))
   await click(container.querySelector('.inspector-pin button'))
-  assert.equal(container.querySelectorAll('.highlight-card').length, 1, 'Legacy metadata listeners still synchronize Inspector saves')
+  assert.equal(highlights.items.length, 1, 'Metadata listeners still synchronize Inspector saves')
   await React.act(async () => root.render(null))
   assert.equal(intervals.size, 0); assert.equal(timers.size, 0)
   console.log('✓ Saved research: original brokers/vintages, corrections, offline caches, archive history, simplified reader, feed notes and Inspector metadata synchronization')
 } finally {
   await React.act(async () => root.unmount()); Date.now = originalNow
-  delete globalThis.__highlightSeriesWork
   await server.close(); await dom.happyDOM.close()
   for (const [key, descriptor] of previous) {
     if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete globalThis[key]

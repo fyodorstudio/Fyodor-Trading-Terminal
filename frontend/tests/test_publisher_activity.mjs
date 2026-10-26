@@ -29,12 +29,12 @@ globalThis.fetch = async (url) => {
 }
 try {
   const { ActivityLogProvider } = await server.ssrLoadModule('./src/system-observability/activity-log/activity-log-store.tsx')
-  const { useActivityLog } = await server.ssrLoadModule('./src/system-observability/activity-log/use-activity-log.ts')
+  const { useActivityEntries } = await server.ssrLoadModule('./src/system-observability/activity-log/use-activity-log.ts')
   const { useBridgeStatus } = await server.ssrLoadModule('./src/system-connectivity/bridge-status/use-bridge-status.ts')
   function Probe() {
     useBridgeStatus()
-    const log = useActivityLog()
-    React.useEffect(() => { entries = log.entries }, [log.entries])
+    const currentEntries = useActivityEntries()
+    React.useEffect(() => { entries = currentEntries }, [currentEntries])
     return null
   }
   const poll = async () => {

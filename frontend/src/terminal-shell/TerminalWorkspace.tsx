@@ -125,7 +125,7 @@ export function TerminalWorkspace() {
             <ActivityDock timeDisplay={timeDisplay} />
           )}
           {(bottomDockWindow === 'external-sources' || bottomDockWindow === 'alert') && <EventsDock key={externalSelection} brokerId={brokerId}
-            brokerOffsetSeconds={brokerOffsetSeconds} focusKey={bottomDockWindow === 'external-sources' ? selectedExternalKey : null} />}
+            focusKey={bottomDockWindow === 'external-sources' ? selectedExternalKey : null} />}
           {bottomDockWindow === 'entry-trade' && <EntryTradePanel selectedSymbol={activeSymbol} quote={quote} quotes={marketData.symbols}
             saveStatus={registeredArrows.saveStatus} onArchiveArrow={registeredArrows.archiveArrow} importError={registeredArrows.importError} latestBarTime={latestBarTime} plan={plannedTrade} registeredArrows={registeredArrows.allArrows}
             selectedArrowId={registeredArrows.selectedArrowId} onPlanChange={handlePlanChange}

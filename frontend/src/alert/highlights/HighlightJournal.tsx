@@ -2,8 +2,6 @@ import { memo } from 'react'
 import { formatInspectorValue } from '../../inspector/readings/reading-values'
 import type { Highlight, JournalEntry } from './highlight-model'
 
-export type JournalView = 'before' | 'after' | 'sources' | 'history' | 'documentation'
-
 function Entry({ entry, includeEvidence = false }: { entry: JournalEntry; includeEvidence?: boolean }) {
   return <section className="highlight-journal-entry" data-journal-id={entry.id}>
     <p className="highlight-research-meta">{entry.scope} · Researched as of {entry.as_of_utc}
@@ -39,12 +37,12 @@ function Evidence({ entry }: { entry: JournalEntry }) {
   </div>
 }
 
-export const HighlightJournal = memo(function HighlightJournal({ item, scope, view }: { item: Highlight; scope: string; view: JournalView }) {
+export const HighlightJournal = memo(function HighlightJournal({ item, scope }: { item: Highlight; scope: string }) {
   const entries = (item.journal ?? []).filter(entry => entry.scope === scope)
   const latest = (phase: 'before' | 'after') => [...entries].reverse().find(entry => entry.phase === phase)
   const documentation = latest('after') ?? latest('before')
   return <div className="highlight-journal" aria-label={`${scope} fundamental research journal`}>
-    {view === 'documentation' ? <section>
+    <section>
       <h4>Research Documentation</h4>
       {documentation ? <>
         {documentation.phase === 'before' && <p className="highlight-research-meta">Only pre-release research is saved. A verified post-release investigation is still needed.</p>}
@@ -55,17 +53,6 @@ export const HighlightJournal = memo(function HighlightJournal({ item, scope, vi
             <Entry entry={entry} includeEvidence /></details>)}
         </details>
       </> : <p className="highlight-research-meta">No historical research documentation saved for this scope.</p>}
-    </section> : view === 'before' || view === 'after' ? <section>
-      <h4>{view === 'before' ? 'Before release' : 'After release'}</h4>
-      {latest(view) ? <Entry entry={latest(view)!} /> : <p className="highlight-research-meta">
-        {view === 'before' ? 'No saved research for this scope.' : 'No saved interpretation. Release readings and research must be verified.'}</p>}
-    </section> : view === 'sources' ? (['before', 'after'] as const).map(phase => <section key={phase}>
-      <h4>{phase === 'before' ? 'Before release' : 'After release'}</h4>
-      {latest(phase) ? <Evidence entry={latest(phase)!} /> : <p className="highlight-research-meta">No saved evidence for this phase and scope.</p>}
-    </section>) : <section><h4>Research history ({entries.length} versions)</h4>
-      {!entries.length && <p className="highlight-research-meta">No saved research versions for this scope.</p>}
-      {[...entries].reverse().map(entry => <details key={entry.id}><summary>{entry.phase === 'before' ? 'Before' : 'After'} release · {entry.as_of_utc}</summary>
-        <Entry entry={entry} includeEvidence /></details>)}
-    </section>}
+    </section>
   </div>
 })

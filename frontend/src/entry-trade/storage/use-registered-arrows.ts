@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { RegisteredTradeArrow } from '../contracts/entry-trade-types'
-import { researchImportKey, validArrow } from './research-plans'
+import { validArrow } from './registered-arrow-validation'
 import { applyJournalOperations, journalUrl, migrationKey, parseJournal, pendingKey, stableJournalArrows, type JournalOperation } from './journal-sync'
 import { clearJournalDraft, journalKey, readJournalDraft } from './journal-drafts'
 
+// Retain deleted IDs from the previous browser-only research importer during migration.
+const researchImportKey = 'fyodor.entry-trade.research-imported.v1'
 const storageKey = 'fyodor.registered_arrows.v1'
 function loadSavedArrows(): RegisteredTradeArrow[] {
   try { const data: unknown = JSON.parse(localStorage.getItem(storageKey) ?? '[]'); return Array.isArray(data) ? data.filter(validArrow) : [] }

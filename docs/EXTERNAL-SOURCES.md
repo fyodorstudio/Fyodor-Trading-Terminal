@@ -1,52 +1,34 @@
 # External Sources
 
-The External Source view inside Alert holds sourced events, headlines
-and unscheduled watch items outside the broker calendar. It has independent
-All/eight-currency filters, search and aligned expandable rows.
-The saved Date sort defaults to Upcoming first (soonest future event, then recent
-past events, then undated items); Earliest first and Latest first are also available.
-Exact event times have a live countdown; Elapsed means the time passed, not that
-publication was verified. Date-only schedules show Today on their source day or
-a whole-day distance, retaining Hour unconfirmed rather than inventing a time.
-Records are shared across brokers; one USD record can inform all seven USD pairs.
-**Show: Events / Discovered Limitations** separates the outside-feed event list
-from broker-specific reference issues. Limitations retain their existing records,
-source links, follow-up actions and offline cache; they are not event pins or
-alarms. Currency selection applies locally to both views. Agents read them with
-`pnpm analyst limitations --broker <broker>` and refresh the cited evidence before
-using them to check MT5 and outside-feed coverage.
-Raw MT5 observations remain separate from external research. Highlight displays both
-sources together without converting external records into MT5 occurrences. Active
-external records are its pins; Pin/Pinned and Highlight Archive/Restore use the
-existing immutable archive lifecycle. Active dated records appear as
-gold stars on matching currency pairs when **Show icon on chart** is checked, one row above the highest broker-calendar
-icon stack, including daily grouping. Clicking a star opens its sourced record;
-nearby custom records have their own chooser. Exact UTC times use the broker's
-chart clock/DST profile; source dates remain date-only and untimed watch items
-have no marker. Pan, zoom and future-space projection do not insert price candles.
-No live news
-ingestion or background headline monitoring is supplied by this collection.
-A confirmed scheduled record with a verified exact time can have one opt-in Invoke
-alarm (two minutes before by default) through the [alarm worker](EVENTS-ALARMS.md).
-New events start off; research pins and chart icons never arm a reminder.
-Date-only and unverified schedules remain visible without a timed alarm.
+Alert's selected-date table combines Pepperstone readings and named external
+publishers. External events, headlines and watch items retain separate identities,
+facts, dated interpretation, source links and immutable version history.
+All/eight-currency filters apply to the date table. Undated items have their own
+section. An elapsed time does not verify publication or an outcome.
 
-Agents write records; the UI displays facts, dated interpretation, source links,
-event/publication/recorded clocks, uncertainty and immutable version history.
-The External Source view has Pin/Pinned controls; archive and restore are available
-from Highlight. Search covers titles, facts, currencies,
-status and sources. Research details/history expand beneath a row; the dock remains
-resizable and scrollable as records grow. Cards, details, data loading and chart
-preferences have separate owners so future record categories can reuse the layout.
-Refresh both currency stories or the commodity mechanism before treating an old interpretation as current.
+Open an event's **Sources & history** for publication/recorded clocks, evidence,
+version history and **Show icon on chart**. Feed notes contains broker-specific
+Discovered Limitations, with source links, follow-up actions and an offline cache.
+Agents read these with `pnpm analyst limitations --broker <broker>`.
 
-**Show icon on chart** is a browser display preference per stable record key, shared
-across matching pairs and surviving reloads. USD-only records show only on USD
-pairs. Untimed watch items have a disabled checkbox. Hiding an icon never modifies
-research, raw observations or history. Legacy archived records remain readable in
-the dock; their icons default off unless explicitly enabled. Agent lifecycle
-commands below remain compatible. Browser storage failure is shown without
-pretending the preference was saved.
+Active external records are pins in the agent interface. Archive/restore commands
+preserve their immutable lifecycle; Alert displays saved dated records without
+collection, search, date-sort or archive controls. Refresh both currency stories
+or the commodity mechanism before treating dated interpretation as current.
+The collection supplies no live news ingestion or background monitoring.
+
+Active dated records appear as gold stars on matching currency pairs when chart
+visibility is enabled. Exact UTC times use the broker's verified chart-clock/DST
+profile; source dates stay date-only and untimed watches have no marker. Clicking
+a star opens its Alert details. Projection does not insert price candles.
+
+**Show icon on chart** is a browser preference per stable record key, shared across
+matching pairs and surviving reloads. Hiding an icon preserves facts and history.
+Archived records remain readable; their icons default off unless explicitly
+shown. Failed preference writes are reported without claiming success.
+A confirmed future scheduled record can have an opt-in Invoke reminder through
+the [alarm worker](EVENTS-ALARMS.md). New events start off; pins and icons do not
+arm reminders. Date-only and unverified times never supply an alarm hour.
 
 Assess Trade Now now owns upcoming-alert review and has standing authorization to
 pin verified material discoveries and request chart visibility, unless the user

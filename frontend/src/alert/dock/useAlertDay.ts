@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react'
 import type { StoredCalendarEvent } from '../../economic-calendar/storage/useStoredCalendar'
 import { sameCalendarRows } from '../../economic-calendar/storage/calendar-snapshot-identity'
+import { validAlertDayResponse, type AlertDaySnapshot } from '../model/alert-day-snapshot'
 
-type DaySnapshot = { source_id: string; date: string; revision: string; events: StoredCalendarEvent[];
-  source: { publisher_status: string } | null; coverage: Record<string, { missing: number[][] }> }
 const empty: StoredCalendarEvent[] = []
 export function useAlertDay(sourceId: string, date: string) {
   const key = `${sourceId}:${date}`
-  const [state, setState] = useState<{ key: string; data: DaySnapshot | null; error: string | null }>({ key, data: null, error: null })
+  const [state, setState] = useState<{ key: string; data: AlertDaySnapshot | null; error: string | null }>({ key, data: null, error: null })
   useEffect(() => {
     const abort = new AbortController(); let timer: number | undefined, revision = ''
     async function pollAlertDay() {
@@ -16,14 +15,13 @@ export function useAlertDay(sourceId: string, date: string) {
         if (revision) query.set('after_revision', revision)
         const response = await fetch(`/storage-api/alert-calendar?${query}`, { signal: abort.signal })
         if (!response.ok) throw new Error(response.status === 404 ? 'Update calendar storage to load the date-based Alert.' : `Calendar unavailable (HTTP ${response.status})`)
-        const data = await response.json()
+        const data: unknown = await response.json()
         if (abort.signal.aborted) return
-        if (data.source_id !== sourceId || data.date !== date || typeof data.revision !== 'string'
-          || !data.unchanged && (!Array.isArray(data.events) || data.events.some((event: StoredCalendarEvent) => !event || typeof event.value_id !== 'string'
-            || ![event.actual, event.forecast, event.previous, event.revised_previous, event.release_at].every(value => value === null || Number.isFinite(value))))) throw new Error('Invalid date calendar response')
+        if (!validAlertDayResponse(data, sourceId, date, revision)) throw new Error('Invalid date calendar response')
         revision = data.revision
         setState(old => {
-          if (data.unchanged) return old.key === key ? old.error ? { ...old, error: null } : old : { key, data: null, error: 'Calendar snapshot missing; retrying' }
+          if ('unchanged' in data && data.unchanged) return old.key === key ? old.error ? { ...old, error: null } : old : { key, data: null, error: 'Calendar snapshot missing; retrying' }
+          if (!('events' in data)) return old
           const events = old.key === key && old.data && sameCalendarRows(old.data.events, data.events) ? old.data.events : data.events
           return { key, data: { ...data, events }, error: null }
         })

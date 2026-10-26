@@ -138,7 +138,7 @@ export const ThesisDock = memo(function ThesisDock() {
       {error && <p className="thesis-notice" role="alert">{error}{data ? ' Showing last loaded assessments.' : ''}</p>}
       {!data && !error && <p className="thesis-notice" role="status">Loading assessments…</p>}
       {data && <>
-        {across ? <ThesisCurrencyTable review={selectedThesisReview(data, selectedDate)} selectedDate={selectedDate} /> : data.reviews?.length ? [
+        {across ? <ThesisCurrencyTable review={selectedThesisReview(data, selectedDate)} reviews={data.reviews} selectedDate={selectedDate} /> : data.reviews?.length ? [
           ...data.reviews.map(review => ({ at: review.as_of_utc, key: review.review_id, node: <ReviewBlock review={review} onCopy={copy} /> })),
           ...thesisDateGroups(remaining).map(([date, rows]) => ({ at: rows[0].as_of_utc, key: date, node: <AssessmentTable rows={rows} scope={scope} onCopy={copy} /> })),
         ].sort((a, b) => b.at.localeCompare(a.at)).map(block => <div key={block.key}>{block.node}</div>)

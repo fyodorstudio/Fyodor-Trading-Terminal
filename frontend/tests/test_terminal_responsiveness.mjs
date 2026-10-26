@@ -102,14 +102,11 @@ const server = await createServer({ root: path.resolve(path.dirname(fileURLToPat
         "  globalThis.__terminalProbe.count('eventsDock'); const alarms = useAlarms()")
       if (id.endsWith('/HighlightDock.tsx')) return code.replace('const [expanded, setExpanded]', "globalThis.__terminalProbe.count('highlightCard'); const [expanded, setExpanded]")
       if (id.endsWith('/alert-day-model.ts')) return code.replace('const groups: AlertDayGroup[]', "globalThis.__terminalProbe.count('highlightSort'); const groups: AlertDayGroup[]")
-      if (id.endsWith('/HighlightList.tsx')) return code.replace('const [expanded, setExpanded]',
-        "globalThis.__terminalProbe.count('highlightCard'); const [expanded, setExpanded]")
-      if (id.endsWith('/ExternalHighlightCard.tsx')) return code.replace('const [expanded, setExpanded]',
-        "globalThis.__terminalProbe.count('externalCard'); const [expanded, setExpanded]")
       if (id.endsWith('/EventAlarmButton.tsx')) return code.replace('const events = useMemo',
         "globalThis.__terminalProbe.count('alarmButton'); const events = useMemo")
-      if (id.endsWith('/alert-episodes.ts')) return code.replace('return releases.flatMap',
-        "globalThis.__terminalProbe.count('alertEpisodes'); return releases.flatMap")
+      if (id.endsWith('/useExternalSources.ts')) return code
+        .replace('old.items.map(item => [item.key, item])', "old.items.map(item => { globalThis.__terminalProbe.count('externalIndex'); return [item.key, item] })")
+        .replace('const previous = previousByKey.get(item.key)', "globalThis.__terminalProbe.count('externalLookup'); const previous = previousByKey.get(item.key)")
       if (id.endsWith('/TerminalWorkspace.tsx')) return code.replace('function TerminalWorkspace() {',
         "function TerminalWorkspace() { globalThis.__terminalProbe.count('workspace');")
       if (id.endsWith('/MarketWatchPanel.tsx')) return code.replace('const positive = quote.dailyChange >= 0',
@@ -144,6 +141,7 @@ for (const currency of ['USD','EUR','GBP','JPY','CHF','CAD','AUD','NZD']) {
   const meta = catalog.find(row => currency === 'EUR' ? row.event_id === '999010006' : row.country_currency === currency)
   events.push(event(meta.event_id, now + 86400000, null))
 }
+let externalRevision = 'external-fixture'
 let calendarRevision = 1
 const health = () => ({ api_version: '1', bridge: { status: 'running', started_at: 1, now: now + clockOffset },
   mt5: { connected, process_running: true, generation, account_server: broker },
@@ -181,8 +179,8 @@ globalThis.fetch = (url, options = {}) => {
       time_note: 'Exact fixture schedule', saved_utc: '2026-10-07T12:00:00Z', archived: false, expected_version: null, version_count: 1,
       sources: [{ kind: 'web', label: 'Treasury', locator: 'https://home.treasury.gov/', note: '' }] }
     const externalItems = params.get('visibility') !== 'archived' && ['all', 'EURUSD', 'USD'].includes(params.get('scope')) ? [external] : []
-    return Promise.resolve({ ok: true, json: async () => ({ revision: 'external-fixture', scope: params.get('scope'), visibility: params.get('visibility'),
-      matches: externalItems.length, offset: 0, next_offset: null, ...(params.has('after_revision') ? { unchanged: true } : { items: externalItems }) }) })
+    return Promise.resolve({ ok: true, json: async () => ({ revision: externalRevision, scope: params.get('scope'), visibility: params.get('visibility'),
+      matches: externalItems.length, offset: 0, next_offset: null, ...(params.get('after_revision') === externalRevision ? { unchanged: true } : { items: externalItems }) }) })
   }
   if (u === '/storage-api/reports') {
     reportRequests.push(JSON.parse(options.body))
@@ -301,21 +299,32 @@ try {
   now += 1000
   await React.act(async () => { for (const timer of intervals.values()) if (timer.ms === 1000) timer.fn() })
   assertQuiet('Events countdown', true)
-  for (const key of ['highlightSort', 'highlightCard', 'externalCard', 'alarmButton', 'eventsDock'])
+  for (const key of ['highlightSort', 'highlightCard', 'alarmButton', 'eventsDock'])
     assert.equal(counters[key] ?? 0, 0, `A real countdown tick leaves ${key} unchanged`)
   reset()
   await React.act(async () => { for (let i = 0; i < 200; i++) for (const notify of rangeListeners) notify(logicalRange) })
   await flush()
-  assertQuiet('Panning with Highlight open', true)
-  for (const key of ['highlightSort', 'highlightCard', 'externalCard', 'alarmButton', 'eventsDock'])
+  assertQuiet('Panning with Alert open', true)
+  for (const key of ['highlightSort', 'highlightCard', 'alarmButton', 'eventsDock'])
     assert.equal(counters[key] ?? 0, 0, `Panning leaves ${key} unchanged`)
   now -= 1000 // Keep the later drawing-coordinate fixtures anchored to their original clock.
-  assert.ok(container.querySelector('.alert-event-group'), 'MT5 Calendar retains the existing Upcoming browser')
+  assert.ok(container.querySelector('.alert-event-group'), 'Alert retains the date table')
   assert.ok(container.querySelector('.alert-event-table'))
   reset()
   await tick('poll', 5000)
   assertQuiet('External Sources unchanged poll', true)
   assert.equal(counters.externalBuild ?? 0, 0, 'Unchanged external polling does not rebuild marker data')
+  assert.equal(counters.externalLookup ?? 0, 0, 'Unchanged external revisions perform no version matching')
+  const externalRow = container.querySelector('[data-external-key="treasury-fixture"]')
+  externalRevision = 'external-fixture-2'; reset()
+  const externalPolls = [...timers.values()].filter(timer => timer.fn.name === 'poll' && timer.ms === 5000).length
+  for (let i = 0; i < externalPolls; i++) await tick('poll', 5000)
+  assert.equal(counters.externalIndex, externalPolls, 'Each mounted reader indexes its one previous record once')
+  assert.equal(counters.externalLookup, externalPolls, 'Each reader performs one incoming lookup')
+  assert.equal(container.querySelector('[data-external-key="treasury-fixture"]'), externalRow)
+  assert.equal(counters.externalBuild ?? 0, 0, 'Unchanged record versions preserve assembled chart markers')
+  assertQuiet('Changed collection revision with stable versions', true)
+
   await click(button('Alert'))
   assert.equal(container.querySelector('[aria-label="External Sources"]'), null)
   await click(container.querySelector('.external-chart-star'))
@@ -454,7 +463,6 @@ try {
   now += 1000
   await React.act(async () => { for (const timer of intervals.values()) if (timer.ms === 1000) timer.fn() })
   assertQuiet('Alert countdown', true)
-  assert.equal(counters.alertEpisodes ?? 0, 0, 'A real MT5 Calendar countdown tick does not select/sort episodes')
   now -= 1000
   // Genuine price and calendar corrections continue to reach the UI.
   bars = bars.map((bar, i) => i === bars.length - 1 ? { ...bar, close: 1.17 } : bar)

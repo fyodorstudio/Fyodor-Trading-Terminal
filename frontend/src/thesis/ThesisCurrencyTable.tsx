@@ -1,6 +1,7 @@
 import { memo } from 'react'
 import { currencyNewsHeading, currencyNewsItems, currencyReviewTiming, currencyUpcoming, opportunitySelectionMessage, opportunityWindow, reviewCurrencies, safeThesisLink, sharedOpportunityWindow, type OpportunityEvidence, type ThesisReview, type ThesisSource } from './thesis-model'
 import { researchInstruments } from '../external-sources/research-instruments'
+import { assessmentTime, currencyDirectionTimeline, newsSourceTime } from './currency-timeline'
 
 const clock = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })
 const day = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', month: 'short', day: 'numeric', year: 'numeric' })
@@ -22,7 +23,7 @@ function Evidence({ evidence }: { evidence?: OpportunityEvidence | null }) {
   </details> : null
 }
 
-export const ThesisCurrencyTable = memo(function ThesisCurrencyTable({ review, selectedDate }: { review?: ThesisReview; selectedDate: string }) {
+export const ThesisCurrencyTable = memo(function ThesisCurrencyTable({ review, selectedDate, reviews = [] }: { review?: ThesisReview; selectedDate: string; reviews?: ThesisReview[] }) {
   const commonWindow = sharedOpportunityWindow(review?.entry_opportunities)
   return <div className="thesis-currency-view">
     <section className="thesis-currency-opportunities" aria-label="Trade entry opportunity">
@@ -58,14 +59,21 @@ export const ThesisCurrencyTable = memo(function ThesisCurrencyTable({ review, s
         const view = review?.currency_views?.find(item => item.currency === currency)
         const news = currencyNewsItems(review, currency, selectedDate)
         const checkpoints = currencyUpcoming(review, currency)
+        const timeline = currencyDirectionTimeline(reviews, review, currency)
         return <tr key={currency} data-thesis-currency={currency}>
           <th scope="row">{currency}</th>
           <td>{view?.direction && <div className="thesis-currency-direction">
             <strong>{view.direction.verdict}</strong><p>{view.direction.reason}</p>
+            {!!timeline.length && <ol aria-label={`${currency} intraday reassessments`}>{timeline.map((item, index) => <li key={item.at}>
+              <strong>{index ? 'Reassessed' : 'Earlier assessment'} {assessmentTime(item.at)} · {item.direction.verdict}</strong>
+              <p>{item.direction.reason}</p>
+            </li>)}</ol>}
           </div>}{news.length ? <ol>{news.map((item, index) => <li key={index}>{item.summary}</li>)}</ol>
             : <span className="thesis-unassessed">{review ? view?.news_gap || 'No same-date news saved.' : 'Not filled'}</span>}
             {news.length > 0 && view?.news_gap && <p className="thesis-unassessed">{view.news_gap}</p>}</td>
-          <td>{view?.direction && <p>Daily verdict: <Links sources={view.direction.sources} /></p>}{news.length ? <ol>{news.map((item, index) => <li key={index}><Links sources={item.sources} /></li>)}</ol> : '—'}</td>
+          <td>{view?.direction && <p>Assessment {assessmentTime(review!.as_of_utc)} · checked {assessmentTime(view.direction.verified_utc)}: <Links sources={view.direction.sources} /></p>}
+            {!!timeline.length && <ol aria-label={`${currency} reassessment sources`}>{timeline.map(item => <li key={item.at}>{assessmentTime(item.at)}: <Links sources={item.direction.sources} /></li>)}</ol>}
+            {news.length ? <ol>{news.map((item, index) => <li key={index}>{newsSourceTime(item)}. <Links sources={item.sources} /></li>)}</ol> : '—'}</td>
           <td>{checkpoints.length ? <ol>{checkpoints.map((checkpoint, index) => <li key={index}>
             <strong>{checkpoint.title} · {checkpointTime(checkpoint.event_at, checkpoint.event_date)}</strong>
             {checkpoint.note && <> {checkpoint.note}</>} <Links sources={checkpoint.sources} />

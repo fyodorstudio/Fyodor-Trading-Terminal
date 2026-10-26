@@ -5,8 +5,8 @@ import { formatAppTimestamp } from '../appearance/time-display/time-display-pref
 import { ReleaseCountdown } from '../alert/highlights/ReleaseCountdown'
 import { isInspectorCommentary } from '../inspector/releases/group-releases'
 import { EventAlarmButton } from './EventAlarmButton'
-import { ExternalEventDetails } from './ExternalHighlightCard'
-import { SavedReleaseResearch } from '../alert/highlights/HighlightList'
+import { ExternalEventDetails } from './ExternalEventDetails'
+import { SavedReleaseResearch } from '../alert/highlights/SavedReleaseResearch'
 import { jakartaDisplay } from './alarm-time'
 import type { useAlarms } from './useAlarms'
 import { ImpactBadge, ImpactDetails } from '../alert/impact/ImpactBadge'
@@ -33,7 +33,7 @@ const EventGroup = memo(function EventGroup({ group, sourceId, alarms, now, focu
     <td rowSpan={total}><EventAlarmButton alarms={alarms} group={group} sourceId={sourceId} now={now} /></td>
   </> : null
   const pending = (commentary = false, external = false) => group.at === null ? 'Time unconfirmed'
-    : !elapsed ? <ReleaseCountdown at={group.at} now={now} coming />
+    : !elapsed ? <ReleaseCountdown at={group.at} now={now} />
     : external ? 'Elapsed · verify outcome' : commentary ? 'Elapsed' : 'Awaiting data'
   const time = group.at === null ? '—' : formatAppTimestamp(group.at, jakartaDisplay, 'time-short')
   const toggle = (label: string) => <button type="button" className="alert-event-name" aria-expanded={expanded} aria-controls={panelId}

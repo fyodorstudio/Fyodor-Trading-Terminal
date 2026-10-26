@@ -22,7 +22,7 @@ const readings = [row('250010001', 'CPI m/m'), row('250010002', 'CPI y/y'), row(
 try {
   const data = await server.ssrLoadModule('./src/inspector/inspector-data.ts')
   const { groupInspectorDays, selectedInspectorRelease } = await server.ssrLoadModule('./src/inspector/releases/group-days.ts')
-  const { alertEpisodesFromReleases } = await server.ssrLoadModule('./src/alert/model/alert-episodes.ts')
+  const { dayGroups } = await server.ssrLoadModule('./src/alert/model/alert-day-model.ts')
   const { highlightRequest } = await server.ssrLoadModule('./src/alert/highlights/highlight-model.ts')
   const { InspectorChartMarkers } = await server.ssrLoadModule('./src/inspector/InspectorChartMarkers.tsx')
   const { InspectorReadingsTable } = await server.ssrLoadModule('./src/inspector/readings/InspectorReadingsTable.tsx')
@@ -40,7 +40,7 @@ try {
   assert.equal(filtered.length, 1); assert.equal(filtered[0].events.length, 2)
   assert.ok(filtered[0].events.every(event => event.name.startsWith('HICP')), 'CPI-only/HICP-only saved selections remain effective')
   assert.equal(data.filterInspectorReleases(groups, { ...preferences, families: [] }, range).length, 0)
-  assert.equal(alertEpisodesFromReleases(groups, { families: [hicpFamily] }, at - 60000)[0].release.events.length, 2)
+  assert.equal(dayGroups(readings, [], '2026-10-15', 'Pepperstone-Demo', { families: [hicpFamily], currency: 'all' })[0].release.events.length, 2)
   const daily = groupInspectorDays(groups, [hicpFamily], range, { mode: 'utc' }, { brokerId: null, brokerOffsetSeconds: 0 })
   assert.equal(daily[0].daily.sections[0].releaseCount, 1)
   assert.equal(daily[0].events.length, 2)

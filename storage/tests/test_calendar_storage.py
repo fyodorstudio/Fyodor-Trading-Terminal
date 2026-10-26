@@ -447,15 +447,16 @@ class ApiTests(unittest.TestCase):
             self.assertEqual(self.request(path + suffix)[0], 422)
 
     def test_full_alert_catalog_over_real_http(self):
-        # Load the production TS catalog: mocked UI responses cannot catch an
-        # API validation limit that rejects the actual eight-currency request.
+        # Load the production catalog and currencies: mocked UI responses cannot
+        # catch an API validation limit that rejects eight-currency coverage.
         script = """
 import { createServer } from 'vite';
 const server = await createServer({ logLevel: 'silent', server: { middlewareMode: true, hmr: false } });
 try {
   const { defaultAlertPreferences } = await server.ssrLoadModule('./src/alert/model/alert-preferences.ts');
-  const { alertSeriesIds, alertCalendarScope } = await server.ssrLoadModule('./src/alert/model/alert-episodes.ts');
-  console.log(JSON.stringify({ids:alertSeriesIds(defaultAlertPreferences()),scope:alertCalendarScope(defaultAlertPreferences())}));
+  const { alertSeriesIds } = await server.ssrLoadModule('./src/alert/model/alert-format.ts');
+  const { majorCurrencies } = await server.ssrLoadModule('./src/economic-calendar/forex/currencies.ts');
+  console.log(JSON.stringify({ids:alertSeriesIds(defaultAlertPreferences()),currencies:majorCurrencies}));
 } finally { await server.close(); }
 """
         result = subprocess.run(['node', '--input-type=module', '-e', script],
@@ -468,7 +469,7 @@ try {
         self.assertEqual(len(ids), 1051)
         self.assertEqual(self.request('/publisher', context(publisher_version='2.0.4').model_dump())[0], 200)
         path = f"/calendar?source_id=Broker-Demo&from_server_seconds={HISTORY_START}&to_server_seconds={NOW}&time_basis=chart"
-        status, page = self.request(path + '&currencies=' + ','.join(model['scope']['currencies']))
+        status, page = self.request(path + '&currencies=' + ','.join(model['currencies']))
         self.assertEqual(status, 200, page)
         self.assertIsNone(page['event_ids'])
         self.assertEqual(set(page['coverage']), {'USD', 'EUR', 'GBP', 'JPY', 'CHF', 'CAD', 'AUD', 'NZD'})

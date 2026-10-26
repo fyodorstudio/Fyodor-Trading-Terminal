@@ -14,9 +14,9 @@ raw values or full research journals.
 
 Outside-feed events are stored separately as immutable versions under
 `Market Analyst Workflow/external-sources/`; they never enter calendar observations,
-MT5 Highlight IDs or Inspector filters. Highlight displays both pinned sources,
-retaining their separate identities. The External Source view in Alert and CLI
-share this broker-independent collection. [External Sources](EXTERNAL-SOURCES.md)
+MT5 Highlight IDs or Inspector filters. Alert combines named sources in its date
+table while retaining their separate identities. Alert and the CLI read the same
+broker-independent collection. [External Sources](EXTERNAL-SOURCES.md)
 owns its clocks, validation, optimistic writes, revision paging and recovery.
 The separate alarm worker reads both collections and stores reminder state under
 `storage/data/alarms/`; see [Alert](EVENTS-ALARMS.md). Alarms never write
