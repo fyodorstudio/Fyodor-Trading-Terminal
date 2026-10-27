@@ -1,8 +1,8 @@
-import { dailyVerdicts, reviewCurrencies, safeThesisLink, thesisDay, type CurrencyCheckpoint, type DailyDirection } from './thesis-model'
+import { dailyVerdicts, reviewCurrencies, safeThesisLink, thesisDay, validDirectionAnchor, type DirectionAnchor, type CurrencyCheckpoint, type DailyDirection } from './thesis-model'
 
 export type CurrencySummarySnapshot = { schema: 1; revision: string; review_id: string | null; as_of_utc: string | null;
   rows: { currency: string; verdict: DailyDirection['verdict'] | null; verified_utc: string | null;
-    reassessment: CurrencyCheckpoint | null; reassessment_gap: string }[] }
+    evidence_anchor?: DirectionAnchor | null; reassessment: CurrencyCheckpoint | null; reassessment_gap: string }[] }
 
 const instant = (value: unknown): value is string => typeof value === 'string' && /(?:Z|[+-]\d\d:\d\d)$/.test(value) && Number.isFinite(Date.parse(value))
 export function validCurrencySummary(value: unknown): value is CurrencySummarySnapshot {
@@ -14,6 +14,7 @@ export function validCurrencySummary(value: unknown): value is CurrencySummarySn
       && (row.verdict === null ? row.verified_utc === null && row.reassessment === null
         : item.review_id !== null && dailyVerdicts.includes(row.verdict) && instant(row.verified_utc))
       && typeof row.reassessment_gap === 'string' && (row.reassessment === null || validCheckpoint(row.reassessment, item.as_of_utc)))
+    && item.rows.every(row => row.evidence_anchor == null || row.verdict !== null && validDirectionAnchor(row.evidence_anchor, item.as_of_utc!, row.verified_utc!))
 }
 
 function validCheckpoint(item: CurrencyCheckpoint, cutoff: string | null) {
@@ -31,11 +32,20 @@ export function currencyUntil(checkpoint: CurrencyCheckpoint | null, now: number
   if (!checkpoint) return { label: 'Review not set', due: false }
   if (!checkpoint.event_at) {
     const due = thesisDay(new Date(now).toISOString()) >= checkpoint.event_date!
-    return { label: `${checkpoint.title} · ${day.format(new Date(checkpoint.event_date + 'T05:00:00Z'))} · hour unknown${due ? ' · Review due' : ''}`, due }
+    return { label: due ? 'Review due' : 'Hour unknown', due }
   }
   const remaining = Date.parse(checkpoint.event_at) - now
-  if (remaining <= 0) return { label: `${checkpoint.title} · Review due`, due: true }
+  if (remaining <= 0) return { label: 'Review due', due: true }
   const minutes = Math.ceil(remaining / 60000), days = Math.floor(minutes / 1440), hours = Math.floor(minutes % 1440 / 60)
   const duration = days ? `${days}d ${hours}h` : hours ? `${hours}h ${minutes % 60}m` : `${minutes}m`
-  return { label: `${checkpoint.title} in ${duration}`, due: false }
+  return { label: duration, due: false }
+}
+
+export function currencyStaleness(anchor: DirectionAnchor | null | undefined, now: number) {
+  if (!anchor) return 'Unknown'
+  if (!anchor.event_at) return day.format(new Date(anchor.event_date + 'T05:00:00Z'))
+  const elapsed = now - Date.parse(anchor.event_at)
+  if (elapsed < 0) return 'Unknown'
+  const minutes = Math.floor(elapsed / 60000), hours = Math.floor(minutes / 60), days = Math.floor(hours / 24)
+  return days ? `${days}d ${hours % 24}h ago` : hours ? `${hours}h ${minutes % 60}m ago` : `${minutes}m ago`
 }

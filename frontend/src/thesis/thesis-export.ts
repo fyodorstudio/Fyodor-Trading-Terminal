@@ -90,7 +90,9 @@ function currencyMarkdown(data: ThesisSnapshot, selectedDate: string, exportedAt
     const reassessment = view?.direction?.reassessment
     const until = view?.direction ? (reassessment ? `Reassess by: **${text(reassessment.title)}** · ${reassessment.event_at ? timed(reassessment.event_at) : `${day(reassessment.event_date!)} · hour unverified`}. ${text(reassessment.note)} ${sources(reassessment.sources)}`
       : `Reassessment checkpoint not set. ${text(view.direction.reassessment_gap ?? '')}`) + '<br><br>' : ''
-    const verdict = (view?.direction ? `**${view.direction.verdict}** — ${text(view.direction.reason)}<br><br>${until}` : '') + (history ? history + '<br><br>' : '')
+    const anchor = view?.direction?.evidence_anchor
+    const age = anchor ? `Evidence anchor: **${text(anchor.title)}** · ${anchor.event_at ? timed(anchor.event_at) : `${day(anchor.event_date!)} · hour unknown`}. ${text(anchor.note)} ${sources(anchor.sources)}<br><br>` : ''
+    const verdict = (view?.direction ? `**${view.direction.verdict}** — ${text(view.direction.reason)}<br><br>${age}${until}` : '') + (history ? history + '<br><br>' : '')
     const explanation = verdict + (news.map((item, index) => `${index + 1}. ${text(item.summary)}`).join('<br><br>') || (review ? text(view?.news_gap || 'No same-date news saved.') : 'Not filled'))
     const references = (view?.direction ? `Assessment ${assessmentTime(review!.as_of_utc)} · checked ${assessmentTime(view.direction.verified_utc)}: ${sources(view.direction.sources)}<br><br>` : '')
       + (timeline.length ? timeline.map(item => `${assessmentTime(item.at)}: ${sources(item.direction.sources)}`).join('<br>') + '<br><br>' : '')

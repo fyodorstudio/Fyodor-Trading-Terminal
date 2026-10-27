@@ -22,6 +22,7 @@ def currency_summary(journal_path, after_revision=None):
         direction = views.get(currency, {}).get('direction')
         rows.append({'currency': currency, 'verdict': direction['verdict'] if direction else None,
             'verified_utc': direction['verified_utc'] if direction else None,
+            'evidence_anchor': direction.get('evidence_anchor') if direction else None,
             'reassessment': direction['reassessment'] if direction else None,
             'reassessment_gap': direction['reassessment_gap'] if direction else ''})
     content = {'schema': 1, 'review_id': review['id'] if review else None,

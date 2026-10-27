@@ -63,6 +63,14 @@ class CurrencyView(Payload):
     direction: 'DailyDirection | None' = None
 
 
+class DirectionAnchor(Payload):
+    title: str = Field(min_length=1, max_length=300)
+    event_at: datetime | None = None
+    event_date: date | None = None
+    sources: list[JournalSource] = Field(min_length=1, max_length=8)
+    note: str = Field(min_length=1, max_length=1500)
+
+
 class DailyDirection(Payload):
     verdict: Literal['POTENTIAL STRENGTHENING', 'POTENTIAL WEAKENING']
     reason: str = Field(min_length=1, max_length=1500)
@@ -70,6 +78,7 @@ class DailyDirection(Payload):
     sources: list[JournalSource] = Field(min_length=1, max_length=8)
     reassessment: CurrencyCheckpoint | None = None
     reassessment_gap: str = Field(default='', max_length=700)
+    evidence_anchor: DirectionAnchor | None = Field(default=None, exclude_if=lambda value: value is None)
 
 
 class OpportunityEvidence(Payload):
@@ -173,6 +182,17 @@ class ReviewRequest(Payload):
                 if direction.verified_utc.tzinfo is None or direction.verified_utc > recorded_at:
                     raise ValueError('Direction verification needs its real offset-aware clock, no later than now')
                 direction.verified_utc = direction.verified_utc.astimezone(timezone.utc)
+                anchor = direction.evidence_anchor
+                if anchor:
+                    if not anchor.title.strip() or not anchor.note.strip() or not any(source.kind == 'web' for source in anchor.sources):
+                        raise ValueError('Direction anchor needs a title, timing explanation and direct web evidence')
+                    if anchor.event_at is not None:
+                        if (anchor.event_date is not None or anchor.event_at.tzinfo is None
+                                or anchor.event_at > min(self.as_of_utc, direction.verified_utc)):
+                            raise ValueError('Direction anchor needs one verified past clock, no later than cutoff and verification')
+                        anchor.event_at = anchor.event_at.astimezone(timezone.utc)
+                    elif anchor.event_date is None or anchor.event_date > min(self.as_of_utc, direction.verified_utc).astimezone(JAKARTA).date():
+                        raise ValueError('Direction anchor needs a past source date when its hour is unknown')
             if daily and not view.news and not view.news_gap.strip():
                 raise ValueError('A currency without news needs an explicit coverage gap')
             for item in view.news:
@@ -331,6 +351,7 @@ def append_review(request, journal_path):
         checkpoint_sources = [source for view in [*request.currency_views, *request.commodity_opportunities] for checkpoint in view.checkpoints for source in checkpoint.sources]
         checkpoint_sources += [source for view in request.currency_views if view.direction and view.direction.reassessment for source in view.direction.reassessment.sources]
         direction_sources = [source for view in request.currency_views if view.direction for source in view.direction.sources]
+        direction_sources += [source for view in request.currency_views if view.direction and view.direction.evidence_anchor for source in view.direction.evidence_anchor.sources]
         opportunity_sources = [source for item in [*request.entry_opportunities, *request.commodity_opportunities] if item.evidence for source in item.evidence.sources]
         if any(source.kind == 'local' and not Path(source.locator).is_file() for source in view_sources + news_sources + checkpoint_sources + direction_sources + opportunity_sources):
             raise ValueError('Local currency evidence must exist when saved')

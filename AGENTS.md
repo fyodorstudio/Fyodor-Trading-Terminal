@@ -12,7 +12,7 @@ mode and updates the summary through the same saved review, never a second verdi
 file. Read `pnpm analyst thesis summary --scope ALL` for a compact live snapshot.
 Release waits use One Minute Before Release; historical moves use Review Historical
 Research and must not replace the live summary. Details and comparisons stay in
-bottom Thesis; the left box contains only currency, saved verdict and checkpoint.
+bottom Thesis; the left box contains only evidence age, currency, saved verdict and checkpoint countdown.
 
 Market Watch, chart/drawings, raw calendar Inspector, upcoming Alert, Activity and
 Settings, including agent-authored fundamental research journals and an archive
@@ -293,7 +293,7 @@ Preserve guarded writes, source clocks, histories and user execution authority.
 
 ### Highlight journal and archive scope
 
-The left-panel **CUR | VERDICT | UNTIL** box is a read-only projection of the latest
+The left-panel **STALENESS | CUR | VERDICT | UNTIL** box is a read-only projection of the latest
 live all-currency daily review across months. A requested current Thesis save must
 choose each currency's nearest material `direction.reassessment` checkpoint (or
 explain `reassessment_gap`), retaining source clocks and carried-row deadlines.

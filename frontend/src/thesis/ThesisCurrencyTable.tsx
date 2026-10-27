@@ -64,6 +64,7 @@ export const ThesisCurrencyTable = memo(function ThesisCurrencyTable({ review, s
           <th scope="row">{currency}</th>
           <td>{view?.direction && <div className="thesis-currency-direction">
             <strong>{view.direction.verdict}</strong><p>{view.direction.reason}</p>
+            {view.direction.evidence_anchor && <p>Evidence anchor: {view.direction.evidence_anchor.title} · {checkpointTime(view.direction.evidence_anchor.event_at, view.direction.evidence_anchor.event_date)}. {view.direction.evidence_anchor.note} <Links sources={view.direction.evidence_anchor.sources} /></p>}
             {view.direction.reassessment ? <p>Reassess by: {view.direction.reassessment.title} · {checkpointTime(view.direction.reassessment.event_at, view.direction.reassessment.event_date)}. {view.direction.reassessment.note} <Links sources={view.direction.reassessment.sources} /></p>
               : <p>Reassessment checkpoint not set.{view.direction.reassessment_gap && ` ${view.direction.reassessment_gap}`}</p>}
             {!!timeline.length && <ol aria-label={`${currency} intraday reassessments`}>{timeline.map((item, index) => <li key={item.at}>

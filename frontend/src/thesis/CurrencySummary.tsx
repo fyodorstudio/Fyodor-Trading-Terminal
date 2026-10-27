@@ -1,5 +1,5 @@
 import { memo, useEffect, useState } from 'react'
-import { currencyUntil, validCurrencySummary, type CurrencySummarySnapshot } from './currency-summary-model'
+import { currencyStaleness, currencyUntil, validCurrencySummary, type CurrencySummarySnapshot } from './currency-summary-model'
 import './currency-summary.css'
 
 const clock = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })
@@ -38,15 +38,16 @@ export const CurrencySummary = memo(function CurrencySummary() {
     <h2>Fundamentals</h2>
     <p>{snapshot?.as_of_utc ? `Saved Thesis · ${clock.format(new Date(snapshot.as_of_utc))} Jakarta` : snapshot ? 'No current Thesis saved.' : 'Loading saved Thesis…'}</p>
     {error && <p role="alert">{error}{snapshot && ' Showing the last loaded snapshot.'}</p>}
-    {snapshot && <table aria-label="Currency verdicts"><thead><tr><th scope="col">CUR</th><th scope="col">VERDICT</th><th scope="col">UNTIL</th></tr></thead>
+    {snapshot && <table aria-label="Currency verdicts"><thead><tr><th scope="col">STALENESS</th><th scope="col">CUR</th><th scope="col">VERDICT</th><th scope="col">UNTIL</th></tr></thead>
       <tbody>{snapshot.rows.map(row => {
         const until = currencyUntil(row.reassessment, now)
         return <tr key={row.currency} data-currency-summary={row.currency} className={until.due ? 'currency-review-due' : undefined}
           title={row.verified_utc ? `Direction checked ${clock.format(new Date(row.verified_utc))} Jakarta` : undefined}>
+          <td title={row.evidence_anchor ? `${row.evidence_anchor.title} · ${row.evidence_anchor.event_at ? clock.format(new Date(row.evidence_anchor.event_at)) + ' Jakarta' : row.evidence_anchor.event_date + ' · hour unknown'}. ${row.evidence_anchor.note}` : 'No evidence event clock saved; the review time is not an event time.'}>{row.verdict ? currencyStaleness(row.evidence_anchor, now) : '—'}</td>
           <th scope="row">{row.currency}</th><td>{row.verdict === 'POTENTIAL STRENGTHENING' ? 'Strengthening' : row.verdict === 'POTENTIAL WEAKENING' ? 'Weakening' : 'Not assessed'}</td>
-          <td>{row.verdict ? until.label : '—'}</td>
+          <td title={row.reassessment ? `${row.reassessment.title} · ${row.reassessment.event_at ? clock.format(new Date(row.reassessment.event_at)) + ' Jakarta' : row.reassessment.event_date + ' · hour unknown'}. ${row.reassessment.note}` : row.reassessment_gap}>{row.verdict ? until.label : '—'}</td>
         </tr>
       })}</tbody></table>}
-    <p>Until = reassess by. Details in Thesis.</p>
+    <p>Age = evidence event. Until = review deadline.</p>
   </section>
 })

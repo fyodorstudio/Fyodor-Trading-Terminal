@@ -2,7 +2,8 @@
 .currency-summary h2 { margin: 0 0 6px; font-size: 12px; }
 .currency-summary p { margin: 5px 0; line-height: 1.4; }
 .currency-summary table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-.currency-summary th, .currency-summary td { padding: 6px 3px; border-bottom: 1px solid var(--border); vertical-align: top; text-align: left; overflow-wrap: anywhere; }
-.currency-summary th:first-child { width: 32px; }
-.currency-summary th:nth-child(2) { width: 84px; }
+.currency-summary th, .currency-summary td { padding: 5px 2px; border-bottom: 1px solid var(--border); vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+.currency-summary th:first-child { width: 24%; }
+.currency-summary th:nth-child(2) { width: 11%; }
+.currency-summary th:nth-child(3) { width: 34%; }
 .currency-summary .currency-review-due td:last-child { font-weight: 700; }

@@ -36,6 +36,9 @@ class ReviewTests(TestCase):
         checkpoint = dict(title='Selected review', event_at='2026-08-02T06:00:00Z', event_date=None,
             verified_utc=later['as_of_utc'], sources=later['currency_views'][0]['direction']['sources'], note='Reassess the policy path.')
         later['currency_views'][0]['direction']['reassessment'] = checkpoint
+        anchor = dict(title='Supporting release', event_at=None, event_date='2026-07-30',
+            sources=later['currency_views'][0]['direction']['sources'], note='Only the original source date is known.')
+        later['currency_views'][0]['direction']['evidence_anchor'] = anchor
         reconstructed = self.live_record('2026-08-02T06:00:00Z', 'c')
         reconstructed.update(provenance='reconstruction', note='Historical study.')
         path = self.path.with_name('reviews.json')
@@ -47,6 +50,8 @@ class ReviewTests(TestCase):
         self.assertEqual(result['rows'][0]['reassessment'], checkpoint, 'Elapsed selected checkpoint stays due; never roll it forward')
         self.assertIsNone(result['rows'][1]['reassessment'], 'Old records do not acquire inferred deadlines')
         self.assertEqual(result['rows'][0]['verified_utc'], later['as_of_utc'])
+        self.assertEqual(result['rows'][0]['evidence_anchor'], anchor)
+        self.assertIsNone(result['rows'][1]['evidence_anchor'], 'Never infer an event clock from a legacy review cutoff')
         self.assertTrue(currency_summary(self.path, result['revision'])['unchanged'])
         corrected = {**later, 'id': 'd'*32, 'expected_version': later['id'], 'saved_utc': '2026-08-01T07:00:00Z'}
         corrected['currency_views'] = json.loads(json.dumps(later['currency_views']))
@@ -84,6 +89,28 @@ class ReviewTests(TestCase):
         self.assertIn('after', early['currency_views'][0]['direction']['reassessment_gap'])
         data['currency_views'][0]['direction']['reassessment'].update(event_at=None, event_date='2026-07-16')
         self.assertIsNone(ReviewRequest(**data).currency_views[0].direction.reassessment.event_at)
+
+    def test_evidence_anchor_keeps_event_clock_separate_from_research_and_history(self):
+        data = self.daily_news()
+        anchor = dict(title='Decisive release', event_at='2026-07-14T02:00:00Z', event_date=None,
+            note='Original publication, not retrieval time.', sources=data['currency_views'][0]['direction']['sources'])
+        data['currency_views'][0]['direction']['evidence_anchor'] = anchor
+        for changes in [dict(event_at='2026-07-16T00:00:00Z'), dict(event_at='2026-07-14T02:00:00'),
+                dict(event_date='2026-07-14'), dict(event_at=None, event_date=None), dict(sources=[]), dict(note=' ')]:
+            bad = json.loads(json.dumps(data))
+            bad['currency_views'][0]['direction']['evidence_anchor'].update(changes)
+            with self.assertRaises(ValueError): ReviewRequest(**bad)
+        self.paths()
+        first = append_review(ReviewRequest(**data), self.path)
+        self.assertEqual(read_reviews(self.path)[-1]['currency_views'][0]['direction']['evidence_anchor']['event_at'], anchor['event_at'])
+        # A later check of the same mechanism preserves the event's age.
+        data.update(as_of_utc='2026-07-15T06:30:00Z')
+        data['currency_views'][0]['direction']['verified_utc'] = '2026-07-15T06:30:00Z'
+        second = append_review(ReviewRequest(**data), self.path)
+        self.assertNotEqual(first['id'], second['id'])
+        self.assertEqual(len(read_reviews(self.path)), 2)
+        data['currency_views'][0]['direction']['evidence_anchor'].update(event_at=None, event_date='2026-07-14')
+        self.assertIsNone(ReviewRequest(**data).currency_views[0].direction.evidence_anchor.event_at)
 
     def review(self, **changes):
         scope = changes.get('scope', 'NZDCHF')

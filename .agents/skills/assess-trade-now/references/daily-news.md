@@ -29,8 +29,12 @@ with verified schedule, sources and a note explaining what to reassess. If no
 schedule is verified, give `reassessment_gap`. Resolve elapsed checkpoints before
 selecting new ones; do not automatically skip to the next policy decision. Carried
 rows retain their original verification clocks/deadlines and may remain Review due.
-Detailed retained/reversed evidence belongs in Thesis. Read back the summary and
-saved review; historical reconstructions must not replace the live projection.
+Detailed retained/reversed evidence belongs in Thesis. Save `direction.evidence_anchor`
+under the summary contract: original decisive supporting event time/date, title,
+sources and timing note. Preserve its age when retaining a mechanism; never
+substitute invocation, verification or an unrelated newer headline. Unknown hours
+stay date-only. Read back the summary and saved review; historical reconstructions
+must not replace the live projection.
 
 - Cover USD, EUR, GBP, JPY, CHF, CAD, AUD and NZD in one currency row each. The
   columns are Currency | DD:MM:YYYY FUNDAMENTAL | SOURCE | UPCOMING CHECKPOINT.
