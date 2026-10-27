@@ -36,9 +36,9 @@ export const CurrencySummary = memo(function CurrencySummary() {
 
   return <section className="currency-summary" aria-label="Currency fundamental summary">
     <h2>Fundamentals</h2>
-    <p>{snapshot?.as_of_utc ? `Saved Thesis · ${clock.format(new Date(snapshot.as_of_utc))} Jakarta` : snapshot ? 'No current Thesis saved.' : 'Loading saved Thesis…'}</p>
+    <p>{snapshot?.as_of_utc ? `${clock.format(new Date(snapshot.as_of_utc))} Jakarta · Last Assessed` : snapshot ? 'No current Thesis saved.' : 'Loading saved Thesis…'}</p>
     {error && <p role="alert">{error}{snapshot && ' Showing the last loaded snapshot.'}</p>}
-    {snapshot && <table aria-label="Currency verdicts"><thead><tr><th scope="col">STALENESS</th><th scope="col">CUR</th><th scope="col">VERDICT</th><th scope="col">UNTIL</th></tr></thead>
+    {snapshot && <table aria-label="Currency verdicts"><thead><tr><th scope="col">Age</th><th scope="col">CUR</th><th scope="col">VERDICT</th><th scope="col">Checkpoint</th></tr></thead>
       <tbody>{snapshot.rows.map(row => {
         const until = currencyUntil(row.reassessment, now)
         return <tr key={row.currency} data-currency-summary={row.currency} className={until.due ? 'currency-review-due' : undefined}
@@ -48,6 +48,5 @@ export const CurrencySummary = memo(function CurrencySummary() {
           <td title={row.reassessment ? `${row.reassessment.title} · ${row.reassessment.event_at ? clock.format(new Date(row.reassessment.event_at)) + ' Jakarta' : row.reassessment.event_date + ' · hour unknown'}. ${row.reassessment.note}` : row.reassessment_gap}>{row.verdict ? until.label : '—'}</td>
         </tr>
       })}</tbody></table>}
-    <p>Age = evidence event. Until = review deadline.</p>
   </section>
 })

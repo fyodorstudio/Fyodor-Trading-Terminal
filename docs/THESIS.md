@@ -117,13 +117,13 @@ facts and seek opposing developments. Saved interpretation is not accumulated tr
 
 ### Left-panel summary and reassessment
 
-The left dock shows **STALENESS | CUR | VERDICT | UNTIL** in both Market Watch and Price Alerts.
+The left dock shows **Age | CUR | VERDICT | Checkpoint** in both Market Watch and Price Alerts.
 It reads the latest live `daily_news` review across months, independently of the
 chart and selected Thesis date. Pair journals and labelled reconstructions cannot
 replace it. It abbreviates the saved direction to Strengthening/Weakening; this
 does not establish a pair entry or measure an index. Details stay in bottom Thesis.
 
-STALENESS measures the age of `direction.evidence_anchor`, not the save or
+Age measures the age of `direction.evidence_anchor`, not the save or
 verification clock. Choose the decisive supporting event/development, preserving
 its original `event_at` OR `event_date`, `title`, direct web `sources` and a `note`
 explaining its relevance and time precision. It must precede the research cutoff
@@ -132,9 +132,9 @@ story only when explicitly labelled; it is not a measured market-turn time.
 Rechecking or retaining an old mechanism does not reset its age. Do not substitute
 the newest unrelated headline. Unknown hours display the source date, legacy
 missing anchors say Unknown, and exact clocks show an elapsed duration with ago.
-The header retains the actual saved-review clock; row tooltips show event details
+The header shows `<Jakarta date/time> · Last Assessed` using the saved-review clock; row tooltips show event details
 and direction verification. Detailed anchor sources also appear in bottom Thesis
-and its export. UNTIL shows only a compact duration, Review due, Hour unknown or
+and its export. Checkpoint shows only a compact duration, Review due, Hour unknown or
 Review not set; its event name, full date/time and note remain in the tooltip and
 bottom Thesis. No automatic inference or history migration supplies anchor clocks.
 
@@ -147,7 +147,7 @@ schedule in `planning_as_of_utc` checks. It also appears in Upcoming, deduplicat
 by title/clock. If no schedule is verified, omit it and explain
 `direction.reassessment_gap`. Both fields are optional for older records/clients.
 
-UNTIL means reassess by, not a promise that direction lasts until then. An exact
+Checkpoint means reassess by, not a promise that direction lasts until then. An exact
 time gets a countdown, then **Review due** while retaining the selected checkpoint
 and verdict. It never rolls forward or reverses automatically. Unknown hours show
 the source date and become due on that Jakarta date without inventing a timed

@@ -63,7 +63,7 @@ try {
   assert.match(currencyUntil(unknownHour, Date.parse('2026-10-27T17:00:00Z')).label, /Review due/)
   await React.act(async () => root.render(React.createElement(CurrencySummary)))
   assert.equal(container.querySelectorAll('[data-currency-summary]').length, 8)
-  assert.deepEqual([...container.querySelectorAll('thead th')].map(node => node.textContent), ['STALENESS','CUR','VERDICT','UNTIL'])
+  assert.deepEqual([...container.querySelectorAll('thead th')].map(node => node.textContent), ['Age','CUR','VERDICT','Checkpoint'])
   const usd = () => container.querySelector('[data-currency-summary="USD"]')
   assert.match(usd().textContent, /Strengthening.*1d 23h/)
   assert.match(container.querySelector('[data-currency-summary="EUR"]').textContent, /Weakening.*Review not set/)
