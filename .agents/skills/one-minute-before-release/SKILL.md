@@ -169,7 +169,8 @@ Use a focused check, not a second full macro investigation. Interpret how the
 surprise changes the expected policy path; an in-line release need not provide
 a new edge. Before-release hypotheses may be confirmed, weakened or overturned.
 The first release verdict is fundamental-first. A subsequent entry-focused
-assessment permits Assess Trade Now's bounded market-feedback check by default; no-candles overrides remain binding. Never delay actuals, decisive
+assessment uses Assess Trade Now's manual technical workflow; a bounded price
+check needs an explicit price-aware request and no-candles overrides remain binding. Never delay actuals, decisive
 companions, publication checks or the first verdict to inspect price. Full
 historical reaction calculations still use Review Historical Research.
 
@@ -230,6 +231,12 @@ In requested best-pair mode, give one leading pair and at most a brief useful
 alternative, using the prepared counterpart evidence. User technicals do not
 preselect the pair or strengthen the fundamental evidence. State whether actuals
 are verified or provisional; a first verdict is not a promise of an immediate fill.
+Follow the parent's manual technical workflow: default to fundamental-only output,
+including on a price-alert follow-up. Give BUY/SELL, both currency mechanisms,
+horizon, invalidation and the next material checkpoint. Consider a non-USD cross
+only when prepared/refreshed evidence supports it more clearly; never delay the
+release verdict to build a new cross comparison. Call a partially compared choice
+the leading verified candidate. Price/candle checks need an explicit request.
 
 The final response must stand alone. Reuse prepared evidence and complete only
 material unresolved checks within the original deadline; do not start another

@@ -87,8 +87,8 @@ direction before index-specific claims; USDJPY alone is not that basket.
 ## Bounded price-aware feedback
 
 Pure bias/release-first assessments are fundamental-first. Entry-focused modes
-permit bounded feedback by default under [entry decisions](entry-decisions.md);
-explicit fundamental-only/no-candles requests take precedence. An explicit
+use the fundamental-only manual technical workflow under [entry decisions](entry-decisions.md);
+price feedback requires an explicit price-aware request. An explicit
 price-aware request also permits its supplied chart or bounded price window. A simple attachment or claim that price rose supplies user context; it
 does not silently override an explicit no-candles request. No browser/screenshot
 UI audit is implied. Use the supplied artifact or terminal evidence when authorized.

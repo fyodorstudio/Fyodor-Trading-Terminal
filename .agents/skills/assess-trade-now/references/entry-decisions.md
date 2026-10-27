@@ -23,6 +23,34 @@ market-wide winner. A named pair remains the main task; explicit scope-only,
 fundamental-only, no-candles, read-only and prompt-only overrides take precedence.
 Daily Thesis keeps eight standalone currency rows; do not form pairs there.
 
+## Manual technical workflow
+
+The user chooses support/resistance, price alerts and execution. Default to
+fundamentals only, including for an entry question; fetch price/candles only on
+an explicit price-aware request. Timestamped yields, policy pricing and commodity
+structure remain useful fundamental evidence. A supplied chart or price alert
+does not require a technical audit, and touching a level does not validate or
+refresh the fundamental verdict.
+
+When a meaningful relative opportunity exists, name a leading verified pair or
+cross, BUY/SELL, the mechanism on both sides, current-session horizon, concrete
+invalidation and nearest material reassessment checkpoint. Include at most one
+useful alternative in a release response. Consider non-USD crosses when their
+relative mechanism is clearer; do not infer them by mechanically combining saved
+currency labels whose comparisons or horizons differ. Check both currency stories
+and the cross's own hazards. Explain why the leading candidate is preferable
+among the candidates actually checked; an incomplete comparison is not a market-wide
+ranking. No candidate quota or full 28-pair scan is required.
+
+Separate the incremental release implication, overall fundamental direction and
+the user's technical execution. An active fundamental opportunity means the
+mechanism operates now, not that a chart entry has qualified. A price-alert
+follow-up refreshes intervening news, invalidation and elapsed checkpoints before
+retaining/reversing the call. Do not automatically wait for another catalyst,
+renew evidence age, advance UNTIL, arm an alarm or save Thesis merely because a
+price alert fired. Requested Thesis saves retain the existing append/read-back
+contract, with pair comparisons in chat rather than the daily currency rows.
+
 ## Decision card
 
 Keep the answer compact; put depth and source coverage in saved evidence.
@@ -60,7 +88,8 @@ biases. Do not force a reverse verdict or fabricate a trade opportunity.
 
 ## Bounded market feedback
 
-Entry-focused modes above permit a small market-feedback check by default.
+For this user's manual technical workflow, price feedback requires an explicit
+price-aware request. When requested, entry-focused modes permit a small check.
 Check timestamped policy pricing/relevant yields or commodity structure, and
 the smallest useful completed price window where available. Start with saved
 evidence; resolve exact symbol/provider, clock, session and forming bars. Use

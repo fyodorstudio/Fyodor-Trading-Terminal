@@ -22,6 +22,11 @@ for this default, investor incentives and opportunity status. Infer scope and
 horizon; default to the current session or, when closed, the next verified
 tradable session. A named pair remains the primary task. Explicit scope overrides
 win. A dated Thesis fill selects its date and authorizes its save, not a pair scan.
+The user's normal workflow is fundamental research alongside their own technical
+analysis and manual price alerts. Default to fundamental-only assessment; do not
+fetch candles or supply technical entry levels unless explicitly requested. Use
+[the manual technical workflow](references/entry-decisions.md#manual-technical-workflow)
+to compare supported pairs/crosses and explain when to reassess.
 If the user also requests cross or pair opportunities, answer that comparison in
 chat under entry mode while keeping the saved daily table in its currency-only format.
 For reversal, recovery and continuation questions, give immediate-session and
@@ -147,8 +152,8 @@ MT5 the source of truth. Official publishers control schedules/results; dated
 reporting and identified market pricing establish expectations and active drivers.
 Broad journal/OHLC inventory reads are unnecessary. Pure bias and release-first
 verdicts are fundamental-first. Bare opportunity, entry and dated-fill candidate
-selection permit bounded market feedback under entry decisions by default.
-Explicit fundamental-only/no-candles requests take precedence. No chart UI audit
+selection use the manual technical workflow in entry decisions; price feedback
+requires an explicit price-aware request. No chart UI audit
 or broad history fetch is implied. Price contradictions trigger research and a decision, not an invented
 explanation. Historical event studies remain with Review Historical Research.
 Run frontend checks only for implementation work, not research.
