@@ -34,7 +34,11 @@ function LeftDockPanelComponent({ marketWatch, symbols, selectedSymbol, marketWa
         Price Alerts <span>{priceAlerts.brokerAlerts.filter(alert => alert.status === 'armed').length}</span>
       </button>
       <button type="button" className="left-dock-collapse" onClick={toggle} aria-expanded={!collapsed} aria-controls={contentId}
-        aria-label="Collapse Market Watch" title="Collapse left dock"><i aria-hidden="true">‹</i></button>
+        aria-label="Hide left panel" title="Hide left panel">
+        <svg aria-hidden="true" width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <rect x="2" y="3" width="16" height="14" rx="2" /><path d="M7 3v14M10 10h5" />
+        </svg>
+      </button>
     </header>
     <div id={contentId} className="left-dock-content" hidden={collapsed}>
       <div hidden={activeTab !== 'market-watch'}><MarketWatchPanel symbols={symbols} selectedSymbol={selectedSymbol} brokerId={brokerId}

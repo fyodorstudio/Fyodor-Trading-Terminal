@@ -147,9 +147,11 @@ drag down to shrink it. With the resize handle focused, End maximizes and Home s
 Drawings are shared across all timeframes for the same pair, including existing
 saved drawings. Editing or deleting one updates that same drawing on every timeframe.
 Choose the alarm drawing tool and click a chart price to arm a one-shot **Price Alert**.
-The **Price Alerts** tab beside Market Watch lists all saved alerts with edit price,
-rename, pause/resume, rearm and delete. Click a row to name it; the name also labels
-its chart line. Drag a line vertically and release to save its new price, or use
+The **Price Alerts** tab beside Market Watch lists all saved alerts. Click a row
+to open its chart; double-click its title (or press F2) to name it. Enter or leaving
+the field saves; Escape cancels. The name also labels its chart line. Icons beside
+each title pause/resume or rearm the alert, and delete it. Drag a line vertically
+and release to save its new price, or use
 the focused line's Up/Down keys (Shift for ten ticks). Escape cancels a drag. Quote
 checks for that alert pause during dragging, and moving a paused line keeps it paused.
 Armed/paused lines follow the symbol across timeframes;

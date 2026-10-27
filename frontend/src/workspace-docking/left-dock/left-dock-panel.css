@@ -74,7 +74,5 @@
 }
 .left-dock-content[hidden] { display: none; }
 .left-dock[hidden] { display: none; }
-.left-dock-tabs i { font-style: normal; font-size: 18px; }
-.left-dock-tabs i { margin-left: auto; }
 .left-dock-tabs > button:focus-visible { outline: 2px solid var(--accent); outline-offset: -3px; }
-.left-dock-tabs > .left-dock-collapse { flex: 0 0 24px; padding: 0 5px; }
+.left-dock-tabs > .left-dock-collapse { flex: 0 0 28px; height: 26px; align-self: center; margin: 0 4px; padding: 0; border: 1px solid var(--border-strong); border-radius: 5px; color: var(--text-strong); background: var(--surface-panel); }
