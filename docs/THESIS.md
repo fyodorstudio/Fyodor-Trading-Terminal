@@ -147,6 +147,17 @@ schedule in `planning_as_of_utc` checks. It also appears in Upcoming, deduplicat
 by title/clock. If no schedule is verified, omit it and explain
 `direction.reassessment_gap`. Both fields are optional for older records/clients.
 
+Checkpoint scope follows the row's stated relative comparison and horizon. Its
+note names the counterpart(s), transmission channel and a material retain/reverse
+test. A US release can affect EUR versus USD without changing domestic EUR
+fundamentals; it does not automatically expire AUD versus NZD. Shared deadlines
+need a specific material link for every row. Broad global exposure or possible
+volatility alone is insufficient. Routine operations and lesser execution hazards
+stay visible in Upcoming/Alert without automatically becoming verdict deadlines;
+do not skip a genuinely material nearer stage or force different dates merely
+for variety. Requests to resolve Review due or correct saved checkpoints authorize
+a focused append/read-back refresh, with unchanged rows explicitly carried.
+
 Checkpoint means reassess by, not a promise that direction lasts until then. An exact
 time gets a countdown, then **Review due** while retaining the selected checkpoint
 and verdict. It never rolls forward or reverses automatically. Unknown hours show

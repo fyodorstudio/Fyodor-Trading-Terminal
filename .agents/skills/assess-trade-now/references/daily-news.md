@@ -36,6 +36,28 @@ substitute invocation, verification or an unrelated newer headline. Unknown hour
 stay date-only. Read back the summary and saved review; historical reconstructions
 must not replace the live projection.
 
+Choose checkpoints per saved comparison and horizon, not by copying the next
+global release into every row. In each note name the relevant counterpart(s),
+the transmission channel and what result would materially challenge or reinforce
+the dominant mechanism. A US release can require review of EUR versus USD without
+changing EUR's domestic outlook; it does not automatically expire AUD versus NZD
+or CAD versus EUR/JPY. Sharing a checkpoint is valid only when each comparison
+has a supported material link. General global exposure, simultaneous volatility
+or an event's headline importance alone is insufficient. Keep lesser execution
+hazards and routine operation stages visible in Upcoming/Alert without making
+each one a verdict deadline. Do not force distinct dates either: select the
+nearest genuinely material stage, including a counterpart event or relevant
+remarks before the next headline decision, and explain why nearer watch items
+do not warrant expiry. Unscheduled shocks remain immediate review triggers.
+
+When a user asks to resolve Review due or correct saved checkpoints, treat that
+as a focused Thesis-update request. Interpret the elapsed material package,
+research the affected comparisons, append retained/reversed evidence and the
+new checkpoint, then read back the monthly version and live summary. Check
+other elapsed stages before rolling forward. Preserve unaffected carried rows'
+verification clocks, evidence ages and deadlines; do not imply that every row
+was freshly researched. A release invocation alone retains its no-save boundary.
+
 - Cover USD, EUR, GBP, JPY, CHF, CAD, AUD and NZD in one currency row each. The
   columns are Currency | DD:MM:YYYY FUNDAMENTAL | SOURCE | UPCOMING CHECKPOINT.
   Summaries and source groups share their list numbers; several links supporting
