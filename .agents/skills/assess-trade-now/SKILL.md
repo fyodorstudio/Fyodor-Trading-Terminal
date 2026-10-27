@@ -173,14 +173,21 @@ reminders through the existing Alert worker. Follow
 Preserve explicit off choices, global pause and offset; do not arm every pin.
 Do not ask again. An explicit read-only/no-save instruction overrides this default.
 It does not authorize trades, service restarts, recurring monitoring, automatic
-archiving, impact ratings, full research journals or Thesis writes. Those retain
-their separate explicit-request rules; a requested daily Thesis fill is a save.
+archiving, impact ratings or full Highlight research journals. Those retain
+their separate explicit-request rules.
 
 The left-panel Fundamentals box reads saved daily Thesis directions and their
-agent-selected reassessment checkpoint. A chat assessment alone does not update
-it. On a requested save follow [dated news table](references/daily-news.md) and
-read back `pnpm analyst thesis summary --scope ALL`. Review due triggers a refresh,
-never an automatic reversal, entry instruction or next-event rollover.
+agent-selected reassessment checkpoint. The user grants standing permission to
+refresh this existing live ALL snapshot during live assessments and release
+invocations, without another save prompt. After the first supported verdict,
+resolve elapsed material stages for affected comparisons and append the retained/
+reversed evidence and next material checkpoint under [dated news table](references/daily-news.md).
+Read back the monthly version and `pnpm analyst thesis summary --scope ALL`.
+Preserve unaffected rows' clocks and evidence ages; do not imply a new all-currency
+review. Explicit read-only, chat-only and no-save requests override this default.
+Historical work, date navigation and an alarm firing without an invocation do
+not update the live snapshot. No live ALL baseline means no fabricated eight-row
+save. Review due triggers reassessment, never automatic reversal or rollover.
 
 - Check active/archived identities, relevant limitations and the complete scoped
   broker index/aliases before routing. Reuse the exact occurrence or stable key;
@@ -244,7 +251,8 @@ never an automatic reversal, entry instruction or next-event rollover.
   after discovery/preparation, with its verified target, stopping deadline and
   first sourced verdict. Do not restart the full search or delay a first verdict
   to build the backdrop. The parent invocation's event-pin authorization carries
-  through the handoff; full journals/Thesis conclusions still need a save request.
+  through the handoff, along with standing focused live-summary save permission.
+  Full Highlight journals retain their separate save-request rule.
 - **Explicit historical price investigation:** use
   [Review Historical Research](../review-historical-research/SKILL.md) for full
   historical measurement. A bounded user-requested price-feedback check is

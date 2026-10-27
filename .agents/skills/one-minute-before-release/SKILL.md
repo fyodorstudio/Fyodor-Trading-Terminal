@@ -9,12 +9,18 @@ An explicit request to fill the Thesis date table uses Assess Trade Now's
 [dated news-table mode](../assess-trade-now/references/daily-news.md): save factual
 released news with numbered sources, standalone currency directions and only
 future scheduled checkpoints, following that mode's output and storage rules.
-A release wait alone does not authorize that save. Real capital may be at stake;
-verify the decisive package before a verdict and never promise an executable fill.
-An elapsed left-panel UNTIL means reassessment is due, not a reversed verdict.
-When also asked to refresh Thesis, save retained/reversed evidence and a new chosen
-checkpoint through the dated mode, then read back `thesis summary --scope ALL`.
-A wait/result alone leaves that snapshot unchanged. Inherited Assess Trade Now
+The user's standing workflow authorizes a focused live Thesis refresh during
+each live release invocation when a live ALL summary already exists. Resolve
+elapsed material checkpoints for affected comparisons, save retained/reversed
+evidence and the next material checkpoint through the dated mode, then read back
+the monthly version and `thesis summary --scope ALL`. Do this after the first
+verdict in the same turn; no additional save prompt is needed. Explicit read-only,
+chat-only or no-save instructions override this default. Preserve unaffected
+rows' verification clocks, evidence ages and future checkpoints; never imply a
+complete eight-currency refresh. Historical/simulated work cannot replace the
+live summary. An elapsed Checkpoint means review is due, not a reversed verdict.
+Real capital may be at stake; verify decisive facts before a verdict and never
+promise an executable fill. Inherited Assess Trade Now
 reminder permission uses its Alert procedure; it never extends this bounded wait
 or schedules another AI invocation.
 For a commodity release, use the parent commodity reference and its instrument
@@ -112,6 +118,12 @@ scan is incomplete. Never fabricate attempts or extend the wait for bookkeeping.
   sequential checks roughly 5–10 seconds apart, allowing for command duration
   and backing off on failures.
   Do not busy-loop, query the full inventory or repeatedly reload instructions.
+
+For a requested operation window **and subsequent results**, distinguish start,
+close and result publication. Start is not a result release. Cover through five
+minutes after the verified close by default, announce that bound and stop there
+if results have not arrived. Keep the exact result minute unknown until verified;
+this does not authorize waiting for other operations or ongoing monitoring.
 
 Record available timing checkpoints in the active conversation: scheduled release,
 first fresh decisive-field observation, sufficient package for interpretation,
@@ -266,9 +278,8 @@ weighing the evidence. Finish the active wait; do not silently continue monitori
 Do not wait for a later policy stage unless it is the requested target or necessary for
 the verdict within the agreed bound; name pending stages in the separate Upcoming section.
 
-Save a compact Thesis record only when the user explicitly asks to document the
-assessment. A release invocation or Alert notification alone does not authorize
-that write. For an authorized save, follow the
+Apply the standing focused-save workflow above during a live invocation. An
+Alert firing without an invocation performs no research or write. Follow the
 [Thesis workflow](../../../docs/THESIS.md): append the sourced verdict with its
 real as-of time and preserve prior versions. A release link is optional metadata,
 not a pending row to fill. Confirm the save or disclose failure; do not backdate
@@ -276,8 +287,8 @@ or modify pins/raw data. Saving does not extend the wait or start monitoring.
 
 An Assess Trade Now handoff retains its standing material-event pin/icon
 permission and immediate-discovery context; do not repeat the whole scan before
-a first supported release verdict. Full journal/Thesis conclusions still need a
-save request. A standalone countdown has no additional lifecycle authorization.
+a first supported release verdict. Focused live Thesis updates use the standing
+save permission above; full Highlight journals retain their separate save rule.
 No entry price, stop, sizing, profit forecast, candle confirmation, order, service
 restart, automatic archiving or ongoing monitoring is implied.
 Creating this skill does not start a timer or create an automation.

@@ -1,7 +1,8 @@
 # Dated Thesis news table
 
-Use this mode when asked to fill the Thesis table for a date, including the dock's
-Copy fill-date prompt. Read docs/THESIS.md for the JSON contract. This request
+Use this mode for requested Thesis date fills, including the dock's Copy fill-date
+prompt, and the standing focused live-summary workflow in the parent skill.
+Read docs/THESIS.md for the JSON contract. A date-fill request
 authorizes saving that date; date selection alone invokes nothing. Complete the
 research and persisted table before responding, then confirm the date, any gaps
 and the successful save briefly. A short chat answer cannot replace the save. The parent skill's immediate
@@ -17,8 +18,9 @@ An entry review is warranted when material news arrived after the saved cutoff.
 On a requested focused refresh, research affected mechanisms and material
 counterparts; retain other rows with their original verification clocks and mark
 them as carried context, not freshly researched. A request for all currencies
-still requires refreshing all eight. A checkpoint refresh or skill invocation
-alone does not authorize a Thesis save or continuous monitoring. Significant
+still requires refreshing all eight. Live Assess Trade Now and release invocations
+have standing permission to refresh an existing live ALL snapshot, unless explicitly
+read-only, chat-only or no-save. No continuous monitoring follows. Significant
 checkpoint reminders use the parent skill's separate standing permission.
 
 Maintain the left-panel summary through saved daily directions, not a second
@@ -56,7 +58,17 @@ research the affected comparisons, append retained/reversed evidence and the
 new checkpoint, then read back the monthly version and live summary. Check
 other elapsed stages before rolling forward. Preserve unaffected carried rows'
 verification clocks, evidence ages and deadlines; do not imply that every row
-was freshly researched. A release invocation alone retains its no-save boundary.
+was freshly researched. A live release invocation uses the standing focused-save
+permission; an alarm alone performs no research or write.
+
+On a Jakarta date change, append at the actual new-day cutoff. Move prior-day
+news out of the new day's `news` arrays, preserving the original snapshots and
+carrying still-active facts through dated direction sources/reasons. Do not redate
+old news or copy expired entry windows. Retain unaffected verification clocks,
+anchors and future checkpoints with explicit carried-context notes. If the result
+is missing at the bounded deadline, save that limitation and supported retained
+direction; choose a sourced follow-up or explain `reassessment_gap`, never invent
+a release or extend the wait to clear Review due.
 
 - Cover USD, EUR, GBP, JPY, CHF, CAD, AUD and NZD in one currency row each. The
   columns are Currency | DD:MM:YYYY FUNDAMENTAL | SOURCE | UPCOMING CHECKPOINT.

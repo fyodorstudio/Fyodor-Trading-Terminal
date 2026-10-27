@@ -175,7 +175,8 @@ choices fall back to raw tables; filters/icons/colors stay intact. No Workspace
 backup UI, scoring engines, full Notebook workflow, Scatter Plot or experimental
 context tools are included.
 
-**Thesis** documents agent assessments explicitly requested by the user, newest
+**Thesis** documents requested agent assessments and standing focused updates
+during live assessment/release invocations, newest
 first, independently of the chart. The month selector offers **JUL / OCT 2026**.
 **Across All Currency** shows one eight-currency table for the selected month/day:
 daily strengthening/weakening verdict, sourced news and upcoming checkpoints. A top
@@ -183,9 +184,11 @@ Trade Entry Opportunity selects supported standalone currency and optional
 Brent/WTI/gold entries with investor incentives, active/conditional status and
 same-day windows. It can explain an empty selection while keeping all eight
 directional rows; real capital may be at stake. No pair scanning in this view.
-The left dock shows **CUR | VERDICT | UNTIL** in both tabs, following the latest
-live daily Thesis across months. UNTIL counts down to an agent-selected checkpoint,
-then says **Review due** while keeping the saved verdict until a requested refresh.
+The left dock shows **Age | CUR | VERDICT | Checkpoint** in both tabs, following the latest
+live daily Thesis across months. Checkpoint counts down to an agent-selected stage,
+then says **Review due** while keeping the saved verdict. Live invocations resolve
+affected elapsed stages and save/read back the focused update without another
+save prompt; read-only/no-save overrides win. Alarms alone perform no research.
 Older rows without a deadline say **Review not set**. Details stay in Thesis; the
 box does no research. See [summary/save rules](docs/THESIS.md#left-panel-summary-and-reassessment).
 It has its own dated copied prompt and Markdown handoff; existing pair journals remain separate.

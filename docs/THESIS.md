@@ -1,6 +1,8 @@
 # Thesis dock
 
-Thesis saves research only when requested. The month selector offers **JUL / OCT
+Thesis saves research when requested, including the user's standing permission
+for focused live-summary updates during live Assess Trade Now/release invocations.
+Explicit read-only, chat-only or no-save requests override this workflow. The month selector offers **JUL / OCT
 2026**; the day selector uses the month's actual length. Across All Currency shows
 one row each for USD, EUR, GBP, JPY, CHF, CAD, AUD and NZD:
 **Currency | DD:MM:YYYY FUNDAMENTAL | SOURCE | UPCOMING CHECKPOINT**.
@@ -46,8 +48,10 @@ use only information then available. Future dates stay unfilled.
 Turning Across All Currency off restores the independent pair history and
 **Copy assessment prompt**. Pair choice defaults to NZDCHF. Pair assessments,
 July reconstructions, saved versions and raw records remain unchanged. Alert owns
-reminders. Receiving an Alert or invoking a release skill alone does not authorize
-a Thesis save. Body and headings retain the same 14px type size.
+reminders. An Alert firing without an invocation performs no research or save.
+Live release invocations refresh an existing live ALL summary after the first
+verdict, preserving carried rows and evidence ages. Body and headings retain the
+same 14px type size.
 
 **Export Markdown** downloads the selected currency date or pair/month as a portable `.md` file:
 tables, schedule notes, sources, research/saved clocks, limitations, correction
@@ -157,6 +161,13 @@ stay visible in Upcoming/Alert without automatically becoming verdict deadlines;
 do not skip a genuinely material nearer stage or force different dates merely
 for variety. Requests to resolve Review due or correct saved checkpoints authorize
 a focused append/read-back refresh, with unchanged rows explicitly carried.
+
+The standing live-invocation workflow also performs this focused refresh without
+another save prompt. At Jakarta midnight, use the actual new-day cutoff; preserve
+prior-day news in its original snapshot and dated direction context, and retain
+unaffected verification clocks and future deadlines. An operation start is not
+its result publication: a requested operation-and-results wait covers the verified
+close plus its declared bound, then records verified actuals or the precise gap.
 
 Checkpoint means reassess by, not a promise that direction lasts until then. An exact
 time gets a countdown, then **Review due** while retaining the selected checkpoint

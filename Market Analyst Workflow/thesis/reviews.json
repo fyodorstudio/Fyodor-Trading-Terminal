@@ -34251,6 +34251,1326 @@
       "expected_version": null,
       "id": "267cf7f6632944ad8de35f458f9e2048",
       "saved_utc": "2026-10-27T14:49:16.035654Z"
+    },
+    {
+      "scope": "ALL",
+      "format": "daily_news",
+      "as_of_utc": "2026-10-27T18:03:05.054417Z",
+      "takeaway": "",
+      "horizon": "Published news",
+      "backdrop": [],
+      "opportunity_ids": [],
+      "currency_views": [
+        {
+          "currency": "USD",
+          "bias": "",
+          "summary": "",
+          "counterweight": "",
+          "sources": [],
+          "news": [
+            {
+              "published_on": "2026-10-28",
+              "published_at": null,
+              "summary": "Treasury’s 20–30-year nominal-coupon buyback accepted $6.000 billion of par from $10.746 billion offered, against the previously announced $6 billion cap. The report lists 6 accepted issues from 35 eligible issues. Accepted face value is distinct from cash paid and does not establish FX flows or a Fed decision.",
+              "verified_utc": "2026-10-27T18:02:08.490484Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Treasury official buyback results",
+                  "locator": "https://www.treasurydirect.gov/instit/annceresult/press/preanre/2026/BBR_20261027174000.xml",
+                  "note": "Offers, accepted par and cash paid are distinct. No FX flows or Fed policy change inferred."
+                }
+              ]
+            },
+            {
+              "published_on": "2026-10-28",
+              "published_at": null,
+              "summary": "The midnight five-year Treasury auction sold the $70 billion offering at a 4.845% high yield with 2.33 bid-to-cover. An immediately pre-auction when-issued yield was not verified, so no auction tail/stop-through or resulting Fed repricing is asserted. Allocation data are bond-auction facts, not proof of new FX purchases.",
+              "verified_utc": "2026-10-27T17:44:46.977228Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Treasury official five-year auction result",
+                  "locator": "https://www.treasurydirect.gov/instit/annceresult/press/preanre/2026/R_20261027_3.pdf",
+                  "note": "4.845% high yield; 2.33 bid-to-cover. No verified immediately pre-auction when-issued baseline."
+                }
+              ]
+            }
+          ],
+          "news_gap": "Focused October 28 overnight refresh of the USD funding stages and this stated comparison. Older domestic facts keep their October 27 or earlier dates in direction sources; no new local same-date publication is invented.",
+          "checkpoints": [
+            {
+              "title": "US advance goods trade and retail/wholesale inventories",
+              "event_at": "2026-10-28T12:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-27T18:03:05.054417Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Census official advance economic indicators schedule",
+                  "locator": "https://www.census.gov/econ/indicators/release_schedule.html",
+                  "note": ""
+                },
+                {
+                  "kind": "web",
+                  "label": "UK Parliament official Budget programme",
+                  "locator": "https://www.parliament.uk/business/news/2026/october-2026/budget-statement-wednesday-28-october/",
+                  "note": "Approximately 12:30 PM GMT = 7:30 PM Jakarta, after PMQs; actual start can differ."
+                }
+              ],
+              "note": "October 28, 7:30 PM Jakarta. For USD versus EUR, GBP and CHF: resolve the elapsed five-year auction and buyback stages, then reassess the US growth composition feeding GDP expectations before the Fed decision. Weaker imports need not mean stronger final demand; revisions and inventories matter. The simultaneous UK Budget can change the GBP counterpart. German consumer climate at 2:00 PM is an earlier EUR-specific review, not an automatic deadline for every USD comparison. Unscheduled policy, energy or haven news can require earlier review; this is no promise that the current overnight bias lasts until evening."
+            },
+            {
+              "title": "Fed rate decision / statement",
+              "event_at": "2026-10-28T18:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.federalreserve.gov/newsevents/2026-october.htm",
+                  "note": ""
+                }
+              ],
+              "note": "October 29, 1:00 AM Jakarta. Hold is the reported baseline, not an automatic USD rally. Guidance that preserves further tightening supports USD; a softer expected path can weaken it. No October SEP/dot plot."
+            },
+            {
+              "title": "Fed press conference",
+              "event_at": "2026-10-28T18:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.federalreserve.gov/newsevents/2026-october.htm",
+                  "note": ""
+                }
+              ],
+              "note": "October 29, 1:30 AM Jakarta. Reassess the path after the decision; answers can reverse the statement reaction. Keep this stage separate."
+            },
+            {
+              "title": "US advance GDP and September income/outlays/PCE",
+              "event_at": "2026-10-29T12:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.bea.gov/news/schedule",
+                  "note": ""
+                }
+              ],
+              "note": "October 29, 7:30 PM Jakarta. The preview attributes 3.2% annualized GDP and 0.3% monthly core PCE expectations; recheck near release. Demand composition, revisions and inflation can pull the rate path in different directions."
+            },
+            {
+              "title": "US Employment Cost Index",
+              "event_at": "2026-10-30T12:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.bls.gov/schedule/2026/10_sched.htm",
+                  "note": ""
+                }
+              ],
+              "note": "October 30, 7:30 PM Jakarta. Wage-cost persistence versus cooling affects the next expected Fed move; no consensus invented."
+            }
+          ],
+          "direction": {
+            "verdict": "POTENTIAL STRENGTHENING",
+            "reason": "RETAINED versus EUR, GBP and CHF for the current overnight session. The verified five-year auction cleared at 4.845% with 2.33 bid-to-cover, but no immediate when-issued baseline was established, so no tail, stop-through or fresh Fed repricing is inferred. The preceding US confidence rebound and continuing pre-Fed dollar mechanism remain support against European demand weakness. The buyback is interpreted separately as debt management. Lower consumer inflation expectations, softer housing and manufacturing remain opposition. A material dovish US path shift or loss of relative US-rate support sufficient to dominate the growth mechanism invalidates the view.",
+            "verified_utc": "2026-10-27T18:03:05.054417Z",
+            "sources": [
+              {
+                "kind": "web",
+                "label": "Treasury official five-year auction result",
+                "locator": "https://www.treasurydirect.gov/instit/annceresult/press/preanre/2026/R_20261027_3.pdf",
+                "note": "4.845% high yield; 2.33 bid-to-cover. No verified immediately pre-auction when-issued baseline."
+              },
+              {
+                "kind": "web",
+                "label": "Treasury official buyback results",
+                "locator": "https://www.treasurydirect.gov/instit/annceresult/press/preanre/2026/BBR_20261027174000.xml",
+                "note": "Offers, accepted par and cash paid are distinct. No FX flows or Fed policy change inferred."
+              },
+              {
+                "kind": "web",
+                "label": "Conference Board official October confidence release",
+                "locator": "https://www.conference-board.org/topics/consumer-confidence/index.cfm",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "ING current FX analysis",
+                "locator": "https://think.ing.com/articles/fx-daily-dollar-buying-returns-ahead-of-fomc/",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "Reuters: morning FX update",
+                "locator": "https://insight.kontan.co.id/news/yen-slips-ahead-of-central-bank-bonanza-dollar-firms-on-tech-rebound",
+                "note": "Kontan publisher metadata 9:21:47 AM Jakarta. Reporting clock for a continuing mechanism, not its exact market onset; article quotes are not live quotes."
+              },
+              {
+                "kind": "web",
+                "label": "Dallas Fed October survey",
+                "locator": "https://www.dallasfed.org/research/surveys/tmos/2026/2610",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "ECB Q3 lending survey",
+                "locator": "https://www.ecb.europa.eu/stats/ecb_surveys/bank_lending_survey/html/ecb.blssurvey2026q3~c6a731e213.en.html",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "INSEE October household confidence",
+                "locator": "https://www.insee.fr/fr/statistiques/9098942",
+                "note": ""
+              }
+            ],
+            "reassessment": {
+              "title": "US advance goods trade and retail/wholesale inventories",
+              "event_at": "2026-10-28T12:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-27T18:03:05.054417Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Census official advance economic indicators schedule",
+                  "locator": "https://www.census.gov/econ/indicators/release_schedule.html",
+                  "note": ""
+                },
+                {
+                  "kind": "web",
+                  "label": "UK Parliament official Budget programme",
+                  "locator": "https://www.parliament.uk/business/news/2026/october-2026/budget-statement-wednesday-28-october/",
+                  "note": "Approximately 12:30 PM GMT = 7:30 PM Jakarta, after PMQs; actual start can differ."
+                }
+              ],
+              "note": "October 28, 7:30 PM Jakarta. For USD versus EUR, GBP and CHF: resolve the elapsed five-year auction and buyback stages, then reassess the US growth composition feeding GDP expectations before the Fed decision. Weaker imports need not mean stronger final demand; revisions and inventories matter. The simultaneous UK Budget can change the GBP counterpart. German consumer climate at 2:00 PM is an earlier EUR-specific review, not an automatic deadline for every USD comparison. Unscheduled policy, energy or haven news can require earlier review; this is no promise that the current overnight bias lasts until evening."
+            },
+            "reassessment_gap": "",
+            "evidence_anchor": {
+              "title": "Reuters update: continuing dollar demand",
+              "event_at": "2026-10-27T02:21:47Z",
+              "event_date": null,
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Reuters: morning FX update",
+                  "locator": "https://insight.kontan.co.id/news/yen-slips-ahead-of-central-bank-bonanza-dollar-firms-on-tech-rebound",
+                  "note": "Kontan publisher metadata 9:21:47 AM Jakarta. Reporting clock for a continuing mechanism, not its exact market onset; article quotes are not live quotes."
+                }
+              ],
+              "note": "Verified publisher update at 9:21:47 AM Jakarta anchors the reported continuation. It is not a fresh policy event or an exact start of the move. Later risk news is assessed separately."
+            }
+          }
+        },
+        {
+          "currency": "EUR",
+          "bias": "",
+          "summary": "",
+          "counterweight": "",
+          "sources": [],
+          "news": [],
+          "news_gap": "Focused October 28 overnight refresh of the USD funding stages and this stated comparison. Older domestic facts keep their October 27 or earlier dates in direction sources; no new local same-date publication is invented.",
+          "checkpoints": [
+            {
+              "title": "German NIM/GfK consumer climate: November outlook",
+              "event_at": "2026-10-28T07:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-27T18:03:05.054417Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "NIM official consumer-climate publication schedule",
+                  "locator": "https://www.nim.org/en/consumer-climate",
+                  "note": "October 28, 8:00 AM CET = 2:00 PM Jakarta; upcoming November outlook, no actual assumed."
+                }
+              ],
+              "note": "October 28, 2:00 PM Jakarta. For EUR versus USD: reassess German household income, spending and economic expectations against the weak European demand mechanism and US resilience. Pepperstone forecasts -29 versus prior -30.6; this is a broker forecast, not an actual or a verified survey consensus. A meaningful demand recovery can weaken the EUR sell case without automatically reversing it. US trade/inventories and the later Fed/ECB stages remain separate follow-ups. The earlier Lagarde trade dinner yielded no verified policy remarks in this invocation."
+            },
+            {
+              "title": "ECB rate decision",
+              "event_at": "2026-10-29T13:15:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.ecb.europa.eu/press/calendars/weekly/html/index.en.html",
+                  "note": ""
+                }
+              ],
+              "note": "October 29, 8:15 PM Jakarta. Hold at 2.50% is the attributed preview baseline; future guidance and French financing conditions matter more than an expected hold."
+            },
+            {
+              "title": "ECB press conference",
+              "event_at": "2026-10-29T13:45:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.ecb.europa.eu/press/calendars/weekly/html/index.en.html",
+                  "note": ""
+                }
+              ],
+              "note": "October 29, 8:45 PM Jakarta. Monitor inflation persistence, growth and transmission/fragmentation; do not attach a conference reversal to the earlier decision clock."
+            }
+          ],
+          "direction": {
+            "verdict": "POTENTIAL WEAKENING",
+            "reason": "RETAINED versus USD. October 27 ECB lending and French-confidence evidence remain the European demand mechanism, opposed by survey resilience and French bond relief. The five-year auction result and buyback do not establish a decisive change in the US counterpart without a verified rate-path/relative-yield surprise. No new policy remarks from the elapsed Lagarde trade dinner were verified, so it supplies no fresh event-specific signal. German consumer climate is the next nearer domestic-demand test. A credible European funding/demand recovery or decisive dovish US shift can reverse the comparison.",
+            "verified_utc": "2026-10-27T18:03:05.054417Z",
+            "sources": [
+              {
+                "kind": "web",
+                "label": "Treasury official five-year auction result",
+                "locator": "https://www.treasurydirect.gov/instit/annceresult/press/preanre/2026/R_20261027_3.pdf",
+                "note": "4.845% high yield; 2.33 bid-to-cover. No verified immediately pre-auction when-issued baseline."
+              },
+              {
+                "kind": "web",
+                "label": "Treasury official buyback results",
+                "locator": "https://www.treasurydirect.gov/instit/annceresult/press/preanre/2026/BBR_20261027174000.xml",
+                "note": "Offers, accepted par and cash paid are distinct. No FX flows or Fed policy change inferred."
+              },
+              {
+                "kind": "web",
+                "label": "Conference Board official October confidence release",
+                "locator": "https://www.conference-board.org/topics/consumer-confidence/index.cfm",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "ING current FX analysis",
+                "locator": "https://think.ing.com/articles/fx-daily-dollar-buying-returns-ahead-of-fomc/",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "ECB Q3 lending survey",
+                "locator": "https://www.ecb.europa.eu/stats/ecb_surveys/bank_lending_survey/html/ecb.blssurvey2026q3~c6a731e213.en.html",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "INSEE October household confidence",
+                "locator": "https://www.insee.fr/fr/statistiques/9098942",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "ECB monetary developments",
+                "locator": "https://www.ecb.europa.eu/press/stats/md/html/ecb.md2609~dd1bf1b2e4.en.html",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "Reuters: morning FX update",
+                "locator": "https://insight.kontan.co.id/news/yen-slips-ahead-of-central-bank-bonanza-dollar-firms-on-tech-rebound",
+                "note": "Kontan publisher metadata 9:21:47 AM Jakarta. Reporting clock for a continuing mechanism, not its exact market onset; article quotes are not live quotes."
+              }
+            ],
+            "reassessment": {
+              "title": "German NIM/GfK consumer climate: November outlook",
+              "event_at": "2026-10-28T07:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-27T18:03:05.054417Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "NIM official consumer-climate publication schedule",
+                  "locator": "https://www.nim.org/en/consumer-climate",
+                  "note": "October 28, 8:00 AM CET = 2:00 PM Jakarta; upcoming November outlook, no actual assumed."
+                }
+              ],
+              "note": "October 28, 2:00 PM Jakarta. For EUR versus USD: reassess German household income, spending and economic expectations against the weak European demand mechanism and US resilience. Pepperstone forecasts -29 versus prior -30.6; this is a broker forecast, not an actual or a verified survey consensus. A meaningful demand recovery can weaken the EUR sell case without automatically reversing it. US trade/inventories and the later Fed/ECB stages remain separate follow-ups. The earlier Lagarde trade dinner yielded no verified policy remarks in this invocation."
+            },
+            "reassessment_gap": "",
+            "evidence_anchor": {
+              "title": "ECB bank lending survey",
+              "event_at": "2026-10-27T09:00:00Z",
+              "event_date": null,
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "ECB Q3 lending survey",
+                  "locator": "https://www.ecb.europa.eu/stats/ecb_surveys/bank_lending_survey/html/ecb.blssurvey2026q3~c6a731e213.en.html",
+                  "note": ""
+                },
+                {
+                  "kind": "web",
+                  "label": "ECB release agenda",
+                  "locator": "https://www.ecb.europa.eu/press/calendars/weekly/html/index.en.html",
+                  "note": ""
+                }
+              ],
+              "note": "Verified scheduled publication at 4:00 PM Jakarta; actual body now opened. The verdict changes at this assessment cutoff, not at a guessed price-turn minute."
+            }
+          }
+        },
+        {
+          "currency": "GBP",
+          "bias": "",
+          "summary": "",
+          "counterweight": "",
+          "sources": [],
+          "news": [],
+          "news_gap": "Focused October 28 overnight refresh of the USD funding stages and this stated comparison. Older domestic facts keep their October 27 or earlier dates in direction sources; no new local same-date publication is invented.",
+          "checkpoints": [
+            {
+              "title": "UK Budget — approximate start after PMQs",
+              "event_at": "2026-10-28T12:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.parliament.uk/business/news/2026/october-2026/budget-statement-wednesday-28-october/",
+                  "note": ""
+                }
+              ],
+              "note": "October 28, approximately 7:30 PM Jakarta. Existing approximate reminder retained. Judge fiscal headroom, growth, issuance and OBR documents after publication. Stable financing can support GBP; an adverse risk-premium shock can outweigh higher gilt yields."
+            },
+            {
+              "title": "UK Budget and fiscal forecasts",
+              "event_at": "2026-10-28T12:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-27T18:03:05.054417Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "UK Parliament official Budget programme",
+                  "locator": "https://www.parliament.uk/business/news/2026/october-2026/budget-statement-wednesday-28-october/",
+                  "note": "Approximately 12:30 PM GMT = 7:30 PM Jakarta, after PMQs; actual start can differ."
+                },
+                {
+                  "kind": "web",
+                  "label": "Census official advance economic indicators schedule",
+                  "locator": "https://www.census.gov/econ/indicators/release_schedule.html",
+                  "note": ""
+                }
+              ],
+              "note": "October 28, approximately 7:30 PM Jakarta. For GBP versus USD: reassess financing credibility, issuance, taxes and growth against pre-Budget caution. A credible bond-friendly package can improve sterling demand; fiscal stress can reinforce pressure. US trade/inventories arrive at the same scheduled time and must be interpreted together before attributing GBPUSD to either package. Earlier Nationwide house prices are secondary to this fiscal mechanism; unscheduled leaks or policy remarks can require earlier review."
+            },
+            {
+              "title": "Fed rate decision / statement",
+              "event_at": "2026-10-28T18:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.federalreserve.gov/newsevents/2026-october.htm",
+                  "note": ""
+                }
+              ],
+              "note": "October 29, 1:00 AM Jakarta. Hold is the reported baseline, not an automatic USD rally. Guidance that preserves further tightening supports USD; a softer expected path can weaken it. No October SEP/dot plot."
+            },
+            {
+              "title": "Fed press conference",
+              "event_at": "2026-10-28T18:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.federalreserve.gov/newsevents/2026-october.htm",
+                  "note": ""
+                }
+              ],
+              "note": "October 29, 1:30 AM Jakarta. Reassess the path after the decision; answers can reverse the statement reaction. Keep this stage separate."
+            }
+          ],
+          "direction": {
+            "verdict": "POTENTIAL WEAKENING",
+            "reason": "RETAINED versus USD for this overnight session, resolving the elapsed US funding checkpoint. The verified auction does not by itself remove continuing dollar support or pre-Budget financing uncertainty; the immediate when-issued comparison is missing. The October 28 Budget can improve sterling demand if financing and growth are credible. Better British activity remains opposition; no weak DMO auction is invented while its result is inaccessible. A credible bond-friendly Budget or decisive loss of US policy/yield support can invalidate the comparison. GBP versus EUR can differ.",
+            "verified_utc": "2026-10-27T18:03:05.054417Z",
+            "sources": [
+              {
+                "kind": "web",
+                "label": "Treasury official five-year auction result",
+                "locator": "https://www.treasurydirect.gov/instit/annceresult/press/preanre/2026/R_20261027_3.pdf",
+                "note": "4.845% high yield; 2.33 bid-to-cover. No verified immediately pre-auction when-issued baseline."
+              },
+              {
+                "kind": "web",
+                "label": "Treasury official buyback results",
+                "locator": "https://www.treasurydirect.gov/instit/annceresult/press/preanre/2026/BBR_20261027174000.xml",
+                "note": "Offers, accepted par and cash paid are distinct. No FX flows or Fed policy change inferred."
+              },
+              {
+                "kind": "web",
+                "label": "Conference Board official October confidence release",
+                "locator": "https://www.conference-board.org/topics/consumer-confidence/index.cfm",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "ING current FX analysis",
+                "locator": "https://think.ing.com/articles/fx-daily-dollar-buying-returns-ahead-of-fomc/",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "Reuters October 26 sterling/Budget context",
+                "locator": "https://live.euronext.com/en/financial-news/sterling-drops-against-euro-and-dollar-ahead-uk-budget",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "TorFX October 27 preview",
+                "locator": "https://news.torfx.com.au/2026-10-27_australian-dollar-supported-as-rba-policymaker-hints-at-more-hikes/",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "European-open report",
+                "locator": "https://www.swingfish.trade/blog/market-news/european-stock-market-open-stocks-retreat-as-caution-returns-uk-leads-losses-440910/",
+                "note": ""
+              }
+            ],
+            "reassessment": {
+              "title": "UK Budget and fiscal forecasts",
+              "event_at": "2026-10-28T12:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-27T18:03:05.054417Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "UK Parliament official Budget programme",
+                  "locator": "https://www.parliament.uk/business/news/2026/october-2026/budget-statement-wednesday-28-october/",
+                  "note": "Approximately 12:30 PM GMT = 7:30 PM Jakarta, after PMQs; actual start can differ."
+                },
+                {
+                  "kind": "web",
+                  "label": "Census official advance economic indicators schedule",
+                  "locator": "https://www.census.gov/econ/indicators/release_schedule.html",
+                  "note": ""
+                }
+              ],
+              "note": "October 28, approximately 7:30 PM Jakarta. For GBP versus USD: reassess financing credibility, issuance, taxes and growth against pre-Budget caution. A credible bond-friendly package can improve sterling demand; fiscal stress can reinforce pressure. US trade/inventories arrive at the same scheduled time and must be interpreted together before attributing GBPUSD to either package. Earlier Nationwide house prices are secondary to this fiscal mechanism; unscheduled leaks or policy remarks can require earlier review."
+            },
+            "reassessment_gap": "",
+            "evidence_anchor": {
+              "title": "Pre-Budget financing uncertainty",
+              "event_at": null,
+              "event_date": "2026-10-26",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Reuters October 26 sterling report",
+                  "locator": "https://live.euronext.com/en/financial-news/sterling-drops-against-euro-and-dollar-ahead-uk-budget",
+                  "note": ""
+                }
+              ],
+              "note": "The continuing Budget mechanism was reported October 26. No verified original event hour is assigned; refreshing the analysis does not reset its age."
+            }
+          }
+        },
+        {
+          "currency": "JPY",
+          "bias": "",
+          "summary": "",
+          "counterweight": "",
+          "sources": [],
+          "news": [],
+          "news_gap": "Focused October 28 overnight refresh of the USD funding stages and this stated comparison. Older domestic facts keep their October 27 or earlier dates in direction sources; no new local same-date publication is invented.",
+          "checkpoints": [
+            {
+              "title": "US advance goods trade and inventories: USD counterpart",
+              "event_at": "2026-10-28T12:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-27T18:03:05.054417Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Census official advance economic indicators schedule",
+                  "locator": "https://www.census.gov/econ/indicators/release_schedule.html",
+                  "note": ""
+                }
+              ],
+              "note": "October 28, 7:30 PM Jakarta. For JPY versus USD: reassess whether US growth details materially change the dollar rate-path support against Japan’s inflation pressure and intervention warning. An expected Fed hold alone is not a new signal. No fresh BOJ policy address before this stage was verified; confirmed intervention, new guidance or renewed haven demand can require immediate earlier review. This does not expire JPY against every other currency."
+            },
+            {
+              "title": "Tokyo CPI",
+              "event_at": "2026-10-29T23:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.stat.go.jp/english/data/cpi/1582.html",
+                  "note": ""
+                }
+              ],
+              "note": "October 30, 6:30 AM Jakarta. Check core and services breadth before the BOJ decision. Attributed surveys differ; refresh them rather than invent one consensus."
+            },
+            {
+              "title": "BOJ decision and Outlook — hour unannounced",
+              "event_at": null,
+              "event_date": "2026-10-30",
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "BOJ official schedule",
+                  "locator": "https://www.boj.or.jp/en/about/calendar/index.htm",
+                  "note": ""
+                }
+              ],
+              "note": "Decision and Bank’s View released at an undecided hour. No precise decision countdown or new timed alarm is invented."
+            }
+          ],
+          "direction": {
+            "verdict": "POTENTIAL WEAKENING",
+            "reason": "RETAINED versus USD for this overnight session using the current US-stage assessment and dated Japanese context. The auction result alone does not establish a new relative-rate reversal. October 27 inflation pressure and the intervention warning remain strong opposing evidence to the earlier reduced-haven-demand mechanism. No new intervention result was verified here; that is not proof none occurred. Confirmed intervention, renewed haven demand with falling US yields or materially firmer BOJ guidance can reverse the comparison. Domestic Japanese context was not relabelled as new October 28 news.",
+            "verified_utc": "2026-10-27T18:03:05.054417Z",
+            "sources": [
+              {
+                "kind": "web",
+                "label": "Treasury official five-year auction result",
+                "locator": "https://www.treasurydirect.gov/instit/annceresult/press/preanre/2026/R_20261027_3.pdf",
+                "note": "4.845% high yield; 2.33 bid-to-cover. No verified immediately pre-auction when-issued baseline."
+              },
+              {
+                "kind": "web",
+                "label": "Treasury official buyback results",
+                "locator": "https://www.treasurydirect.gov/instit/annceresult/press/preanre/2026/BBR_20261027174000.xml",
+                "note": "Offers, accepted par and cash paid are distinct. No FX flows or Fed policy change inferred."
+              },
+              {
+                "kind": "web",
+                "label": "Conference Board official October confidence release",
+                "locator": "https://www.conference-board.org/topics/consumer-confidence/index.cfm",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "ING current FX analysis",
+                "locator": "https://think.ing.com/articles/fx-daily-dollar-buying-returns-ahead-of-fomc/",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "Reuters: morning FX update",
+                "locator": "https://insight.kontan.co.id/news/yen-slips-ahead-of-central-bank-bonanza-dollar-firms-on-tech-rebound",
+                "note": "Kontan publisher metadata 9:21:47 AM Jakarta. Reporting clock for a continuing mechanism, not its exact market onset; article quotes are not live quotes."
+              },
+              {
+                "kind": "web",
+                "label": "BOJ services PPI original release",
+                "locator": "https://www.boj.or.jp/en/statistics/pi/cspi_release/sppi2609.pdf",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "BOJ underlying inflation publication",
+                "locator": "https://www.boj.or.jp/en/research/research_data/cpi/index.htm",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "BOJ original data workbook",
+                "locator": "https://www.boj.or.jp/en/research/research_data/cpi/cpirev.xlsx",
+                "note": ""
+              }
+            ],
+            "reassessment": {
+              "title": "US advance goods trade and inventories: USD counterpart",
+              "event_at": "2026-10-28T12:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-27T18:03:05.054417Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Census official advance economic indicators schedule",
+                  "locator": "https://www.census.gov/econ/indicators/release_schedule.html",
+                  "note": ""
+                }
+              ],
+              "note": "October 28, 7:30 PM Jakarta. For JPY versus USD: reassess whether US growth details materially change the dollar rate-path support against Japan’s inflation pressure and intervention warning. An expected Fed hold alone is not a new signal. No fresh BOJ policy address before this stage was verified; confirmed intervention, new guidance or renewed haven demand can require immediate earlier review. This does not expire JPY against every other currency."
+            },
+            "reassessment_gap": "",
+            "evidence_anchor": {
+              "title": "Reuters update: yen haven demand retreats",
+              "event_at": "2026-10-27T02:21:47Z",
+              "event_date": null,
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Reuters: morning FX update",
+                  "locator": "https://insight.kontan.co.id/news/yen-slips-ahead-of-central-bank-bonanza-dollar-firms-on-tech-rebound",
+                  "note": "Kontan publisher metadata 9:21:47 AM Jakarta. Reporting clock for a continuing mechanism, not its exact market onset; article quotes are not live quotes."
+                }
+              ],
+              "note": "This reported continuation supports the weak-versus-USD call. Later inflation and FX warnings are contrary evidence, not a reason to reset the supporting event clock."
+            }
+          }
+        },
+        {
+          "currency": "CHF",
+          "bias": "",
+          "summary": "",
+          "counterweight": "",
+          "sources": [],
+          "news": [],
+          "news_gap": "Focused October 28 overnight refresh of the USD funding stages and this stated comparison. Older domestic facts keep their October 27 or earlier dates in direction sources; no new local same-date publication is invented.",
+          "checkpoints": [
+            {
+              "title": "US advance goods trade and inventories: USD counterpart",
+              "event_at": "2026-10-28T12:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-27T18:03:05.054417Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Census official advance economic indicators schedule",
+                  "locator": "https://www.census.gov/econ/indicators/release_schedule.html",
+                  "note": ""
+                }
+              ],
+              "note": "October 28, 7:30 PM Jakarta. For CHF versus USD: reassess whether US growth and expected-rate support still outweigh the Swiss low-rate backdrop. Ordinary Swiss survey volatility is separate from this dollar-relative mechanism. Renewed haven demand or a material loss of US-rate support can require earlier review; CHF versus EUR can differ. Do not infer FX demand from bond purchases alone."
+            },
+            {
+              "title": "Fed rate decision / statement",
+              "event_at": "2026-10-28T18:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.federalreserve.gov/newsevents/2026-october.htm",
+                  "note": ""
+                }
+              ],
+              "note": "October 29, 1:00 AM Jakarta. Hold is the reported baseline, not an automatic USD rally. Guidance that preserves further tightening supports USD; a softer expected path can weaken it. No October SEP/dot plot."
+            },
+            {
+              "title": "Fed press conference",
+              "event_at": "2026-10-28T18:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.federalreserve.gov/newsevents/2026-october.htm",
+                  "note": ""
+                }
+              ],
+              "note": "October 29, 1:30 AM Jakarta. Reassess the path after the decision; answers can reverse the statement reaction. Keep this stage separate."
+            },
+            {
+              "title": "SNB money-market speech: liquidity against collateral",
+              "event_at": "2026-10-29T17:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.snb.ch/en/services-events/digital-services/event-schedule",
+                  "note": ""
+                }
+              ],
+              "note": "October 30, 12:30 AM Jakarta. Technical liquidity/transmission topic; no rate guidance promised. A clearly changed policy message would require reassessment."
+            }
+          ],
+          "direction": {
+            "verdict": "POTENTIAL WEAKENING",
+            "reason": "RETAINED versus USD after the elapsed funding-stage review. Current buyback/auction facts do not establish a new Fed decision or observed FX outflow. Continuing pre-Fed dollar support and US confidence resilience remain the selected mechanism against the Swiss low-rate backdrop. The October 22 SNB discussion summary still refers to September policy; it is dated context. Lower US inflation expectations and softer housing oppose aggressive dollar extrapolation. A material loss of US-rate support or renewed haven demand sufficient to dominate the dollar case invalidates the view; CHF versus EUR can differ.",
+            "verified_utc": "2026-10-27T18:03:05.054417Z",
+            "sources": [
+              {
+                "kind": "web",
+                "label": "Treasury official five-year auction result",
+                "locator": "https://www.treasurydirect.gov/instit/annceresult/press/preanre/2026/R_20261027_3.pdf",
+                "note": "4.845% high yield; 2.33 bid-to-cover. No verified immediately pre-auction when-issued baseline."
+              },
+              {
+                "kind": "web",
+                "label": "Treasury official buyback results",
+                "locator": "https://www.treasurydirect.gov/instit/annceresult/press/preanre/2026/BBR_20261027174000.xml",
+                "note": "Offers, accepted par and cash paid are distinct. No FX flows or Fed policy change inferred."
+              },
+              {
+                "kind": "web",
+                "label": "Conference Board official October confidence release",
+                "locator": "https://www.conference-board.org/topics/consumer-confidence/index.cfm",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "ING current FX analysis",
+                "locator": "https://think.ing.com/articles/fx-daily-dollar-buying-returns-ahead-of-fomc/",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "SNB October 22 summary",
+                "locator": "https://www.snb.ch/en/publications/communication/summaries/zus_20261022",
+                "note": "Published October 22 about September assessment, not current investor transactions."
+              },
+              {
+                "kind": "web",
+                "label": "Dallas inflation/activity context",
+                "locator": "https://www.dallasfed.org/research/surveys/tmos/2026/2610",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "ECB Q3 lending survey",
+                "locator": "https://www.ecb.europa.eu/stats/ecb_surveys/bank_lending_survey/html/ecb.blssurvey2026q3~c6a731e213.en.html",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "INSEE October household confidence",
+                "locator": "https://www.insee.fr/fr/statistiques/9098942",
+                "note": ""
+              }
+            ],
+            "reassessment": {
+              "title": "US advance goods trade and inventories: USD counterpart",
+              "event_at": "2026-10-28T12:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-27T18:03:05.054417Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Census official advance economic indicators schedule",
+                  "locator": "https://www.census.gov/econ/indicators/release_schedule.html",
+                  "note": ""
+                }
+              ],
+              "note": "October 28, 7:30 PM Jakarta. For CHF versus USD: reassess whether US growth and expected-rate support still outweigh the Swiss low-rate backdrop. Ordinary Swiss survey volatility is separate from this dollar-relative mechanism. Renewed haven demand or a material loss of US-rate support can require earlier review; CHF versus EUR can differ. Do not infer FX demand from bond purchases alone."
+            },
+            "reassessment_gap": "",
+            "evidence_anchor": {
+              "title": "SNB publishes September policy discussion",
+              "event_at": null,
+              "event_date": "2026-10-22",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "SNB discussion summary",
+                  "locator": "https://www.snb.ch/en/publications/communication/summaries/zus_20261022",
+                  "note": ""
+                }
+              ],
+              "note": "Publication date of the supporting summary; underlying decision was September 24. Original publication hour is unknown. No fresh Swiss policy decision or current carry flow is implied."
+            }
+          }
+        },
+        {
+          "currency": "CAD",
+          "bias": "",
+          "summary": "",
+          "counterweight": "",
+          "sources": [],
+          "news": [],
+          "news_gap": "Carried dated context from the prior live review. No October 28 domestic news sweep is claimed; direction verification clock, evidence anchor and existing future checkpoint are preserved.",
+          "checkpoints": [
+            {
+              "title": "BoC press conference — approximate time",
+              "event_at": null,
+              "event_date": "2026-10-28",
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "BoC official conference page",
+                  "locator": "https://www.bankofcanada.ca/multimedia/press-conference-monetary-policy-report-october-2026/",
+                  "note": ""
+                }
+              ],
+              "note": "Approximately 9:30 PM Jakarta; exact start unverified. The existing date-only watch is retained without inventing a new precise alarm."
+            },
+            {
+              "title": "Bank of Canada decision and Monetary Policy Report",
+              "event_at": "2026-10-28T13:45:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-27T14:49:14.413346Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "BoC official decision and MPR event",
+                  "locator": "https://www.bankofcanada.ca/2026/10/interest-rate-announcement-and-monetary-policy-report-october-28-2026/",
+                  "note": ""
+                }
+              ],
+              "note": "October 28, 8:45 PM Jakarta. For CAD versus EUR and JPY: compare the decision, future path and growth/inflation projections with the separately attributed expected 25 bp hike. An expected hike with less subsequent tightening can weaken CAD. Earlier US routine operations do not automatically expire this non-USD comparison. German consumer climate is a secondary EUR watch; energy de-escalation, Canadian policy news or a dominant haven shock can require earlier review. This planned checkpoint does not promise that the current-session direction lasts until then."
+            },
+            {
+              "title": "Canada monthly GDP",
+              "event_at": "2026-10-30T12:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www150.statcan.gc.ca/n1/dai-quo/cal2-eng.htm",
+                  "note": ""
+                }
+              ],
+              "note": "October 30, 7:30 PM Jakarta. Check August activity and the September advance estimate; weaker underlying demand can trim the expected tightening path."
+            }
+          ],
+          "direction": {
+            "verdict": "POTENTIAL STRENGTHENING",
+            "reason": "CARRIED from October 27, 9:49 PM Jakarta; not independently re-researched this invocation. RETAINED versus EUR and JPY; this is not a USD-relative call. October 23 retail volumes, energy-export exposure and the anticipated BoC tightening path remain the selected support. Tonight’s US confidence release is not independent confirmation of Canadian demand or investor inflows. Weak employment, trade exposure and possible energy de-escalation oppose the case. Less hawkish BoC guidance relative to expectations, sustained loss of energy support or a dominant haven shock can reverse it. The chosen Canadian policy checkpoint replaces the copied US survey deadline.",
+            "verified_utc": "2026-10-27T14:49:14.413346Z",
+            "sources": [
+              {
+                "kind": "web",
+                "label": "Bank of Canada agenda",
+                "locator": "https://www.bankofcanada.ca/press/upcoming-events/",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "Statistics Canada retail sales",
+                "locator": "https://www150.statcan.gc.ca/n1/daily-quotidien/261023/dq261023a-eng.htm",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "Dated weekly policy preview",
+                "locator": "https://investinglive.com/forex/market-outlook-for-the-week-of-26th-30th-october/",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "Reuters oil report",
+                "locator": "https://www.brecorder.com/news/amp/40446074",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "ING current FX analysis",
+                "locator": "https://think.ing.com/articles/fx-daily-dollar-buying-returns-ahead-of-fomc/",
+                "note": ""
+              }
+            ],
+            "reassessment": {
+              "title": "Bank of Canada decision and Monetary Policy Report",
+              "event_at": "2026-10-28T13:45:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-27T14:49:14.413346Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "BoC official decision and MPR event",
+                  "locator": "https://www.bankofcanada.ca/2026/10/interest-rate-announcement-and-monetary-policy-report-october-28-2026/",
+                  "note": ""
+                }
+              ],
+              "note": "October 28, 8:45 PM Jakarta. For CAD versus EUR and JPY: compare the decision, future path and growth/inflation projections with the separately attributed expected 25 bp hike. An expected hike with less subsequent tightening can weaken CAD. Earlier US routine operations do not automatically expire this non-USD comparison. German consumer climate is a secondary EUR watch; energy de-escalation, Canadian policy news or a dominant haven shock can require earlier review. This planned checkpoint does not promise that the current-session direction lasts until then."
+            },
+            "reassessment_gap": "",
+            "evidence_anchor": {
+              "title": "Canada August retail sales publication",
+              "event_at": null,
+              "event_date": "2026-10-23",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Statistics Canada October 23 release",
+                  "locator": "https://www150.statcan.gc.ca/n1/daily-quotidien/261023/dq261023a-eng.htm",
+                  "note": ""
+                }
+              ],
+              "note": "Original activity evidence published October 23; exact publication hour is not asserted here. Later analysis does not rejuvenate this fact."
+            }
+          }
+        },
+        {
+          "currency": "AUD",
+          "bias": "",
+          "summary": "",
+          "counterweight": "",
+          "sources": [],
+          "news": [],
+          "news_gap": "Carried dated context from the prior live review. No October 28 domestic news sweep is claimed; direction verification clock, evidence anchor and existing future checkpoint are preserved.",
+          "checkpoints": [
+            {
+              "title": "RBA Governor and senior officials: Senate hearing",
+              "event_at": "2026-10-28T00:15:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-27T14:49:14.413346Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "RBA official calendar: 11:15 AM AEDT hearing",
+                  "locator": "https://www.rba.gov.au/schedules-events/calendar/",
+                  "note": ""
+                },
+                {
+                  "kind": "web",
+                  "label": "ABS forthcoming CPI",
+                  "locator": "https://www.abs.gov.au/release-calendar/future-releases",
+                  "note": ""
+                },
+                {
+                  "kind": "web",
+                  "label": "RBNZ official OCR schedule",
+                  "locator": "https://www.rbnz.govt.nz/monetary-policy/about-monetary-policy/the-official-cash-rate",
+                  "note": ""
+                }
+              ],
+              "note": "October 28, 7:15 AM Jakarta. For AUD versus CHF and NZD: the hearing can change the Australian policy path before CPI at 7:30 AM. For AUD/NZD, reassess again at the 8:00 AM RBNZ decision and 9:00 AM conference. Softer Australian core inflation, more patient RBA guidance or stronger New Zealand guidance can defeat the selected relative AUD advantage. The expected NZ hike alone is insufficient; US-only surveys do not automatically expire this cross. Unscheduled global or haven shocks remain earlier review triggers."
+            },
+            {
+              "title": "Australia CPI / underlying inflation",
+              "event_at": "2026-10-28T00:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.abs.gov.au/release-calendar/future-releases",
+                  "note": ""
+                }
+              ],
+              "note": "October 28, 7:30 AM Jakarta. InvestingLive reports a 0.7% monthly / 4.2% annual survey baseline; Westpac separately expects 0.6% / 4.1%. Compare underlying breadth and revisions without blending those providers. A softer underlying result can remove November hike urgency."
+            },
+            {
+              "title": "RBNZ OCR decision",
+              "event_at": "2026-10-28T01:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.rbnz.govt.nz/monetary-policy/about-monetary-policy/the-official-cash-rate",
+                  "note": ""
+                }
+              ],
+              "note": "October 28, 8:00 AM Jakarta. A 25 basis point hike to 3% is broadly anticipated in reporting. A more sustained tightening path can reverse NZD weakness; a hold or restrained guidance can reinforce it. An expected hike alone is not a new buy signal."
+            },
+            {
+              "title": "RBNZ media conference",
+              "event_at": "2026-10-28T02:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.rbnz.govt.nz/news-and-events/media-conferences",
+                  "note": ""
+                }
+              ],
+              "note": "October 28, 9:00 AM Jakarta. Reassess guidance and Q&A separately from the decision; stronger future-path guidance can dominate the earlier CPI undershoot."
+            },
+            {
+              "title": "RBA monetary policy decision",
+              "event_at": "2026-11-03T03:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.rba.gov.au/schedules-events/calendar/",
+                  "note": ""
+                }
+              ],
+              "note": "November 3, 10:30 AM Jakarta. Outside the current day; reassess after CPI and remarks rather than treating today’s direction as valid until the decision."
+            }
+          ],
+          "direction": {
+            "verdict": "POTENTIAL STRENGTHENING",
+            "reason": "CARRIED from October 27, 9:49 PM Jakarta; not independently re-researched this invocation. RETAINED versus CHF and NZD for the selected current-session comparison. Australian inflation urgency and tomorrow’s core-CPI expectations remain the support; these are forecasts, not actuals. Reuters’ October 27 preview reports substantial RBA hike pricing but an even longer expected NZ tightening path, while Australian unemployment at 4.7% limits extrapolation of hikes. These are material opposition, not fresh decisions. Softer Australian core inflation, more patient RBA guidance or firmer NZ guidance invalidates the relative AUD case. A US-only survey is not independent confirmation.",
+            "verified_utc": "2026-10-27T14:49:14.413346Z",
+            "sources": [
+              {
+                "kind": "web",
+                "label": "Reuters October 27 Australia/NZ policy-path preview",
+                "locator": "https://www.brecorder.com/news/40446099/australia-nz-dollars-brace-for-volatility-as-rate-risk-looms",
+                "note": "Reported article-time market pricing, not an independently verified live OIS snapshot."
+              },
+              {
+                "kind": "web",
+                "label": "Hauser original October 21 transcript",
+                "locator": "https://www.rba.gov.au/speeches/2026/sp-dg-2026-10-21.html",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "Today’s attributed bank CPI preview",
+                "locator": "https://www.swingfish.trade/blog/market-news/australia-cpi-preview-banks-see-1-0-core-rise-above-the-rbas-0-8-forecast-440877/",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "China industrial profits report",
+                "locator": "https://investinglive.com/news/china-september-industrial-profits-jump-14-4-y-y-rebounding-from-4-2-in-august/",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "China equity counterevidence",
+                "locator": "https://www.swingfish.trade/blog/market-news/china-tech-stocks-plunge-as-ai-trade-cracks-deepen-is-wall-street-next-440907/",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "ING current FX analysis",
+                "locator": "https://think.ing.com/articles/fx-daily-dollar-buying-returns-ahead-of-fomc/",
+                "note": ""
+              }
+            ],
+            "reassessment": {
+              "title": "RBA Governor and senior officials: Senate hearing",
+              "event_at": "2026-10-28T00:15:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-27T14:49:14.413346Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "RBA official calendar: 11:15 AM AEDT hearing",
+                  "locator": "https://www.rba.gov.au/schedules-events/calendar/",
+                  "note": ""
+                },
+                {
+                  "kind": "web",
+                  "label": "ABS forthcoming CPI",
+                  "locator": "https://www.abs.gov.au/release-calendar/future-releases",
+                  "note": ""
+                },
+                {
+                  "kind": "web",
+                  "label": "RBNZ official OCR schedule",
+                  "locator": "https://www.rbnz.govt.nz/monetary-policy/about-monetary-policy/the-official-cash-rate",
+                  "note": ""
+                }
+              ],
+              "note": "October 28, 7:15 AM Jakarta. For AUD versus CHF and NZD: the hearing can change the Australian policy path before CPI at 7:30 AM. For AUD/NZD, reassess again at the 8:00 AM RBNZ decision and 9:00 AM conference. Softer Australian core inflation, more patient RBA guidance or stronger New Zealand guidance can defeat the selected relative AUD advantage. The expected NZ hike alone is insufficient; US-only surveys do not automatically expire this cross. Unscheduled global or haven shocks remain earlier review triggers."
+            },
+            "reassessment_gap": "",
+            "evidence_anchor": {
+              "title": "Hauser inflation-outlook warning",
+              "event_at": null,
+              "event_date": "2026-10-21",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "RBA original transcript",
+                  "locator": "https://www.rba.gov.au/speeches/2026/sp-dg-2026-10-21.html",
+                  "note": ""
+                }
+              ],
+              "note": "Underlying policy-path warning dates to October 21. Today’s preview re-examines that mechanism; it is not a new RBA commitment. No exact speech hour inferred."
+            }
+          }
+        },
+        {
+          "currency": "NZD",
+          "bias": "",
+          "summary": "",
+          "counterweight": "",
+          "sources": [],
+          "news": [],
+          "news_gap": "Carried dated context from the prior live review. No October 28 domestic news sweep is claimed; direction verification clock, evidence anchor and existing future checkpoint are preserved.",
+          "checkpoints": [
+            {
+              "title": "RBA Governor and senior officials: Senate hearing",
+              "event_at": "2026-10-28T00:15:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-27T14:49:14.413346Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "RBA official calendar: 11:15 AM AEDT hearing",
+                  "locator": "https://www.rba.gov.au/schedules-events/calendar/",
+                  "note": ""
+                },
+                {
+                  "kind": "web",
+                  "label": "ABS forthcoming CPI",
+                  "locator": "https://www.abs.gov.au/release-calendar/future-releases",
+                  "note": ""
+                },
+                {
+                  "kind": "web",
+                  "label": "RBNZ official OCR schedule",
+                  "locator": "https://www.rbnz.govt.nz/monetary-policy/about-monetary-policy/the-official-cash-rate",
+                  "note": ""
+                }
+              ],
+              "note": "October 28, 7:15 AM Jakarta. For NZD versus AUD: the hearing can change the Australian policy path before CPI at 7:30 AM. For AUD/NZD, reassess again at the 8:00 AM RBNZ decision and 9:00 AM conference. Softer Australian core inflation, more patient RBA guidance or stronger New Zealand guidance can defeat the selected relative AUD advantage. The expected NZ hike alone is insufficient; US-only surveys do not automatically expire this cross. Unscheduled global or haven shocks remain earlier review triggers."
+            },
+            {
+              "title": "Australia CPI / underlying inflation",
+              "event_at": "2026-10-28T00:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.abs.gov.au/release-calendar/future-releases",
+                  "note": ""
+                }
+              ],
+              "note": "October 28, 7:30 AM Jakarta. InvestingLive reports a 0.7% monthly / 4.2% annual survey baseline; Westpac separately expects 0.6% / 4.1%. Compare underlying breadth and revisions without blending those providers. A softer underlying result can remove November hike urgency."
+            },
+            {
+              "title": "RBNZ OCR decision",
+              "event_at": "2026-10-28T01:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.rbnz.govt.nz/monetary-policy/about-monetary-policy/the-official-cash-rate",
+                  "note": ""
+                }
+              ],
+              "note": "October 28, 8:00 AM Jakarta. A 25 basis point hike to 3% is broadly anticipated in reporting. A more sustained tightening path can reverse NZD weakness; a hold or restrained guidance can reinforce it. An expected hike alone is not a new buy signal."
+            },
+            {
+              "title": "RBNZ media conference",
+              "event_at": "2026-10-28T02:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-26T22:54:32.999189Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "Verified publisher schedule",
+                  "locator": "https://www.rbnz.govt.nz/news-and-events/media-conferences",
+                  "note": ""
+                }
+              ],
+              "note": "October 28, 9:00 AM Jakarta. Reassess guidance and Q&A separately from the decision; stronger future-path guidance can dominate the earlier CPI undershoot."
+            }
+          ],
+          "direction": {
+            "verdict": "POTENTIAL WEAKENING",
+            "reason": "CARRIED from October 27, 9:49 PM Jakarta; not independently re-researched this invocation. RETAINED specifically versus AUD, with strong opposition preserved. NZ CPI undershot the RBNZ forecast while Australian inflation urgency remains active ahead of CPI, supporting the selected near-term relative AUD case. Reuters expects a 25 bp RBNZ hike to 3.00% and reports further tightening priced; NZD strength versus USD or other currencies remains possible. The RBA hearing and Australian CPI precede RBNZ. Softer Australian core inflation or more hawkish NZ guidance can reverse AUD/NZD. A US-only survey does not automatically expire this comparison.",
+            "verified_utc": "2026-10-27T14:49:14.413346Z",
+            "sources": [
+              {
+                "kind": "web",
+                "label": "Reuters October 27 Australia/NZ policy-path preview",
+                "locator": "https://www.brecorder.com/news/40446099/australia-nz-dollars-brace-for-volatility-as-rate-risk-looms",
+                "note": "Reported article-time market pricing, not an independently verified live OIS snapshot."
+              },
+              {
+                "kind": "web",
+                "label": "RBNZ decision preview",
+                "locator": "https://investinglive.com/central-banks/preview-rbnz-set-to-lift-ocr-to-3-ahead-of-election-as-oil-and-weak-kiwi-fuel-inflation/",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "Australian comparison",
+                "locator": "https://www.swingfish.trade/blog/market-news/australia-cpi-preview-banks-see-1-0-core-rise-above-the-rbas-0-8-forecast-440877/",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "China profits",
+                "locator": "https://investinglive.com/news/china-september-industrial-profits-jump-14-4-y-y-rebounding-from-4-2-in-august/",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "China risk opposition",
+                "locator": "https://www.swingfish.trade/blog/market-news/china-tech-stocks-plunge-as-ai-trade-cracks-deepen-is-wall-street-next-440907/",
+                "note": ""
+              },
+              {
+                "kind": "web",
+                "label": "ING current FX analysis",
+                "locator": "https://think.ing.com/articles/fx-daily-dollar-buying-returns-ahead-of-fomc/",
+                "note": ""
+              }
+            ],
+            "reassessment": {
+              "title": "RBA Governor and senior officials: Senate hearing",
+              "event_at": "2026-10-28T00:15:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-27T14:49:14.413346Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "RBA official calendar: 11:15 AM AEDT hearing",
+                  "locator": "https://www.rba.gov.au/schedules-events/calendar/",
+                  "note": ""
+                },
+                {
+                  "kind": "web",
+                  "label": "ABS forthcoming CPI",
+                  "locator": "https://www.abs.gov.au/release-calendar/future-releases",
+                  "note": ""
+                },
+                {
+                  "kind": "web",
+                  "label": "RBNZ official OCR schedule",
+                  "locator": "https://www.rbnz.govt.nz/monetary-policy/about-monetary-policy/the-official-cash-rate",
+                  "note": ""
+                }
+              ],
+              "note": "October 28, 7:15 AM Jakarta. For NZD versus AUD: the hearing can change the Australian policy path before CPI at 7:30 AM. For AUD/NZD, reassess again at the 8:00 AM RBNZ decision and 9:00 AM conference. Softer Australian core inflation, more patient RBA guidance or stronger New Zealand guidance can defeat the selected relative AUD advantage. The expected NZ hike alone is insufficient; US-only surveys do not automatically expire this cross. Unscheduled global or haven shocks remain earlier review triggers."
+            },
+            "reassessment_gap": "",
+            "evidence_anchor": {
+              "title": "New Zealand Q3 CPI publication",
+              "event_at": null,
+              "event_date": "2026-10-22",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "RBNZ prices series, updated October 22",
+                  "locator": "https://www.rbnz.govt.nz/statistics/series/economic-indicators/prices",
+                  "note": ""
+                },
+                {
+                  "kind": "web",
+                  "label": "Dated CPI interpretation",
+                  "locator": "https://investinglive.com/central-banks/preview-rbnz-set-to-lift-ocr-to-3-ahead-of-election-as-oil-and-weak-kiwi-fuel-inflation/",
+                  "note": ""
+                }
+              ],
+              "note": "October 22 CPI package underpins the retained relative case. The preview and current verification do not reset the release age; exact hour is not assigned from a secondary report."
+            }
+          }
+        }
+      ],
+      "entry_opportunities": [],
+      "commodity_opportunities": [],
+      "opportunity_gap": "Focused live-summary maintenance after the requested US operation and elapsed five-year auction. No new technical entry or full pair ranking is assessed. EURUSD retains the supported fundamental comparison while the user handles price levels. No automatic entry follows from debt-management quantities.",
+      "planning_as_of_utc": "2026-10-27T18:03:05.054417Z",
+      "limitations": "The immediate five-year when-issued baseline was not verified; no tail, stop-through, market reaction or new Fed pricing is claimed. No fresh policy remarks from the elapsed Lagarde trade dinner were verified. Direct SNB agenda retrieval failed certificate verification; prior dated agenda context remains. GBP/JPY/CHF domestic facts and the earlier seven-day schedule remain dated preparation; CAD/AUD/NZD are explicitly carried. Official buyback results verified.",
+      "note": "Standing focused live-summary update, explicitly requested in this invocation. Previous snapshot 267cf7f6632944ad8de35f458f9e2048 is preserved. October 28 date boundary: October 27 news stays in the previous snapshot and dated direction context, never relabelled as today. USD/EUR/GBP/JPY/CHF funding-related comparisons are re-evaluated and retained; CAD/AUD/NZD carry original verification clocks and future checkpoints. All original evidence anchors are preserved. The new checkpoints are comparison-specific, not a blanket US-event expiry. No background invocation or monitoring follows.",
+      "provenance": "assessment",
+      "review_id": "3ad01278527741d7b410e4c27c20206d",
+      "expected_version": null,
+      "id": "ccfcf71503b6457da2e393993aa63352",
+      "saved_utc": "2026-10-27T18:03:30.987307Z"
     }
   ]
 }

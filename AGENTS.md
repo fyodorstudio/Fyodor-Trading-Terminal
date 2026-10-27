@@ -285,7 +285,8 @@ folders live together under `Market Analyst Workflow/`.
   management remain with the user. A suggested return time, when useful, belongs
   with the next decisive event and does not create a notification.
 - Cite direct web links beside claims and absolute local evidence paths. Answer
-  in chat; save conclusions only when requested, beside the relevant report with
+  in chat; save conclusions under an explicit request or the standing focused
+  live-summary workflow, beside the relevant report with
   a research-as-of time. Preserve user notes/evidence. No trades, account changes,
   service restarts or messages to others are implied by a research request.
 
@@ -302,18 +303,27 @@ Preserve guarded writes, source clocks, histories and user execution authority.
 
 ### Highlight journal and archive scope
 
-The left-panel **STALENESS | CUR | VERDICT | UNTIL** box is a read-only projection of the latest
+The left-panel **Age | CUR | VERDICT | Checkpoint** box is a read-only projection of the latest
 live all-currency daily review across months. A requested current Thesis save must
 choose each currency's nearest material `direction.reassessment` checkpoint (or
 explain `reassessment_gap`), retaining source clocks and carried-row deadlines.
-UNTIL becomes Review due after that checkpoint; passing time never reverses a
+Checkpoint becomes Review due after that checkpoint; passing time never reverses a
 verdict or advances to a later event. Resolve the elapsed stage on the next
 invocation, save retained/reversed evidence in Thesis, choose the next checkpoint,
 then read back both the monthly version and `thesis summary --scope ALL`. Legacy
 rows without a chosen deadline say Review not set; historical reconstructions and
 pair journals do not replace the live projection. Follow docs/THESIS.md.
 
-- The Thesis dock saves research only when requested. Its monthly selector offers
+- Live Assess Trade Now and release invocations have standing permission to
+  refresh an existing live ALL snapshot after the first supported verdict, without
+  another save prompt. Resolve elapsed stages for affected comparisons, append
+  retained/reversed evidence and the next material checkpoint, then read back
+  monthly and live summaries. Preserve unaffected clocks, evidence ages and
+  checkpoints, and explicitly identify carried rows. Read-only, chat-only and
+  no-save overrides win. An alarm alone performs no research/write; no continuous
+  monitoring is authorized. At a Jakarta date boundary, retain older news as dated
+  direction context rather than relabelling it as today's news or copying old entry
+  windows. Other Thesis saves retain their request boundary. Its monthly selector offers
   JUL/OCT 2026. Across All Currency is one row per currency: **Currency |
   DD:MM:YYYY FUNDAMENTAL | SOURCE | UPCOMING CHECKPOINT**, with numbered factual
   news summaries and matching numbered source groups. At the very top, TRADE ENTRY
@@ -358,7 +368,8 @@ pair journals do not replace the live projection. Follow docs/THESIS.md.
   No routine upkeep or AI scheduling is implied. Assess Trade Now carries its
   standing verified-event pin/icon authorization; date selection alone does not. Alert owns reminders.
   Pair assessment saves retain their existing workflow and complete shared
-  backdrop; receiving an Alert or invoking a release skill alone authorizes no write.
+  backdrop; full pair journals retain their save-request rule. Live release
+  invocations use the standing focused ALL-summary workflow; an Alert alone writes nothing.
   Pair bias and thesis change are separate: a weaker buy/sell case does not
   establish the opposite direction. Save the earlier version ID, qualitative
   change and its evidence; use actual invocation cutoffs or explicitly labelled

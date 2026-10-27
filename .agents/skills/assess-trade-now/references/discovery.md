@@ -134,6 +134,16 @@ required discovery. Use `finish --stop-reason complete` after all checks, or
 `source_gaps` for actual failed retrievals. Finished receipts cannot be edited
 through `record`; a new invocation gets a new receipt.
 
+Reuse preparation as dated context without copying old retrievals into the new
+receipt's current checks: the validator requires invocation-time check clocks.
+Keep the prior receipt path and original source clocks in separate preparation
+metadata. Current `sources`/`events` contain this invocation's actual checks and
+supported discoveries; mark unfinished current families deferred at the release
+deadline rather than inventing new retrieval clocks. Keep carried schedule
+candidates in clearly labelled preparation metadata unless freshly verified.
+This preserves useful reuse without claiming fresh coverage or delaying a verdict
+to repeat the full scan.
+
 `discovery.json` fields:
 
 - `scope`, `broker`, `as_of_utc`, `started_utc`, `horizon_days`;

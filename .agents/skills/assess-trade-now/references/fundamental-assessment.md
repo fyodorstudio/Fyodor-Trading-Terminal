@@ -440,7 +440,8 @@ supporting research in the saved record/export; no daily maintenance or monitori
 
 Answer in chat. The parent skill authorizes material event pins, sourced External
 Source facts and chart-icon requests on invocation. Full Before/After journals
-and Thesis conclusions still require a separate save request; preserve their
-append-only versions, user notes and raw observations; leave price_reaction empty.
+retain their separate save-request rule. Focused live Thesis updates use the
+parent's standing permission and dated mode; preserve append-only versions, user
+notes and raw observations, and leave price_reaction empty.
 No trades, account changes, service restarts, messages or recurring monitoring
 are implied by an assessment.
