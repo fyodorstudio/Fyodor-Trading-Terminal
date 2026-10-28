@@ -49,6 +49,13 @@ pause and offset. Read worker eligibility/keys and revision before POST
 `toggle-many`, then verify selection, armed state and runtime health. A suggested
 return time alone creates nothing; no AI invocation is scheduled.
 
+The user's default is high-impact-only Invoke reminders. Assess Trade Now applies
+its occurrence-specific materiality filter, keeps smaller items as silent context
+and groups simultaneous release information into one review checkpoint. An
+explicit alarm-curation request also permits deselecting low-value or duplicate
+future bells within the audited horizon. Pins remain available; price alerts,
+explicit off choices, global enable/pause and offset stay independent.
+
 **Alarm Settings** opens global enable/pause, reminder offset, test and delivery
 history. A small status dot and ringing indicator preserve worker visibility.
 Selections can be edited while global delivery is paused; a selected bell and an

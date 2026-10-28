@@ -1,0 +1,64 @@
+1. Nioh 3 | Souls / Loot | Combat 5/5 | Power 5/5 | Builds 5/5 | Fit 9.8/10 | Samurai/Ninja stances, transformations, absurd skill and equipment synergies. | Catch: Loot clutter; demanding combat.
+2. Nioh 2: Complete Edition | Souls / Loot | Combat 5/5 | Power 5/5 | Builds 5/5 | Fit 9.8/10 | Yokai abilities, aggressive weapon combos, broken late-game builds. | Catch: Steep learning curve.
+3. Stranger of Paradise: Final Fantasy Origin | Action RPG | Combat 4/5 | Power 5/5 | Builds 5/5 | Fit 9.7/10 | Job affinities and gear turn Jack into a boss-melting machine. | Catch: Clunky presentation and loot menus.
+4. Granblue Fantasy: Relink – Endless Ragnarok | Anime / Bosses | Combat 5/5 | Power 5/5 | Builds 4/5 | Fit 9.6/10 | Flashy anime kits and Monster Hunter-like boss battles. | Catch: Character builds less flexible than Nioh.
+5. Armored Core VI: Fires of Rubicon | Mech / Action | Combat 5/5 | Power 5/5 | Builds 5/5 | Fit 9.6/10 | Build insane mechs, stagger bosses and annihilate them with specialized weapons. | Catch: Entirely mech combat.
+6. The First Berserker: Khazan | Souls / Anime | Combat 5/5 | Power 5/5 | Builds 4/5 | Fit 9.5/10 | Brutal parries and spectacular berserker abilities; powerful gear combinations. | Catch: Demanding bosses.
+7. Devil May Cry 5 + Vergil | Character action | Combat 5/5 | Power 5/5 | Builds 2/5 | Fit 9.5/10 | Style on bosses with wild combos, Devil Trigger and Vergil's ridiculous attacks. | Catch: Power is mostly mechanical, not gear-based.
+8. Stellar Blade | Action / Parry | Combat 5/5 | Power 5/5 | Builds 3/5 | Fit 9.4/10 | Precise parries, stylish counters, Beta/Burst abilities and flashy finishers. | Catch: Less equipment theorycrafting.
+9. Remnant II | Souls / Shooter | Combat 5/5 | Power 5/5 | Builds 5/5 | Fit 9.4/10 | Archetype combinations, equipment rings, mods and devastating gun builds. | Catch: Gun-focused combat.
+10. Dragon's Dogma: Dark Arisen | Fantasy RPG | Combat 4/5 | Power 5/5 | Builds 5/5 | Fit 9.3/10 | Unleash devastating high-level spells and climb giant monsters. | Catch: Older, occasionally awkward controls.
+11. NINJA GAIDEN 4 | Character action | Combat 5/5 | Power 5/5 | Builds 2/5 | Fit 9.3/10 | Relentless hyperfast sword combat with brutal techniques. | Catch: Limited RPG-style optimization.
+12. Black Myth: Wukong | Action / Bosses | Combat 5/5 | Power 5/5 | Builds 4/5 | Fit 9.3/10 | Transformations, spells, clones and powerful staff combinations. | Catch: Some bosses remain punishing.
+13. DYNASTY WARRIORS: ORIGINS | Musou / Action | Combat 4/5 | Power 5/5 | Builds 4/5 | Fit 9.2/10 | Destroy literal armies with spectacular battle arts and weapons. | Catch: Normal troops are intentionally weak.
+14. Risk of Rain 2 | Roguelite / Shooter | Combat 4/5 | Power 5/5 | Builds 5/5 | Fit 9.2/10 | Stack absurd item synergies until you're deleting entire maps. | Catch: Third-person shooting, random run builds.
+15. Solo Leveling: ARISE OVERDRIVE | Anime / Action RPG | Combat 4/5 | Power 5/5 | Builds 4/5 | Fit 9/10 | Jinwoo's Shadow Monarch powers, weapon crafting, skill trees and boss fights. | Catch: Combat polish and mission design are uneven.
+16. Lies of P + Overture | Souls / Parry | Combat 5/5 | Power 4/5 | Builds 4/5 | Fit 9/10 | Sekiro-like deflections, weapon combinations, Legion Arms and brutal bosses. | Catch: Less overpowered than Nioh.
+17. SCARLET NEXUS | Anime / Action | Combat 4/5 | Power 5/5 | Builds 4/5 | Fit 9/10 | Psychokinesis and borrowed psychic abilities enable insane chain attacks. | Catch: Long dialogue interruptions.
+18. ELDEN RING NIGHTREIGN | Souls / Roguelite | Combat 5/5 | Power 4/5 | Builds 4/5 | Fit 9/10 | Rapid power acquisition, specialized Nightfarers and intense boss fights. | Catch: Power resets between expeditions.
+19. Returnal | Roguelite / Shooter | Combat 5/5 | Power 5/5 | Builds 4/5 | Fit 9/10 | Bullet-hell precision shooting with amazing weapon traits and upgrades. | Catch: Run-based; progress partially resets.
+20. Shadow of War | Fantasy / Action | Combat 4/5 | Power 5/5 | Builds 3/5 | Fit 9/10 | Dominate orc captains, command armies and become a terrifying wraith. | Catch: Simpler fighting mechanics.
+21. Wo Long: Fallen Dynasty | Souls / Parry | Combat 5/5 | Power 4/5 | Builds 4/5 | Fit 8.9/10 | Deflection chains, martial arts and devastating Wizardry builds. | Catch: Enemies and loot can feel repetitive.
+22. Kingdom Hearts II Final Mix | Action RPG | Combat 5/5 | Power 5/5 | Builds 3/5 | Fit 8.9/10 | Drive Forms, combo extensions, incredible superboss combat. | Catch: Story sequences and older presentation.
+23. Prototype 2 | Superpower / Action | Combat 3/5 | Power 5/5 | Builds 3/5 | Fit 8.9/10 | Tear through military forces with monstrous shapeshifting abilities. | Catch: Combat is relatively simple.
+24. GOD EATER 3 | Anime / Hunting | Combat 4/5 | Power 5/5 | Builds 4/5 | Fit 8.8/10 | Monster Hunter-style boss hunts with aerial attacks and powerful Burst abilities. | Catch: Less refined than Monster Hunter.
+25. WILD HEARTS | Monster hunting | Combat 4/5 | Power 5/5 | Builds 4/5 | Fit 8.8/10 | Giant monster battles and Karakuri gadgets for ridiculous attacks. | Catch: PC performance can be problematic.
+26. Hades II | Roguelite / Action | Combat 5/5 | Power 5/5 | Builds 4/5 | Fit 8.8/10 | Boon combinations and Omega abilities create absurd builds. | Catch: Isometric and run-based.
+27. BlazBlue Entropy Effect | Anime / 2D | Combat 5/5 | Power 5/5 | Builds 4/5 | Fit 8.8/10 | Extremely fluid anime combos and spectacular upgrade combinations. | Catch: 2D roguelite, not persistent equipment.
+28. Metal Gear Rising: Revengeance | Character action | Combat 5/5 | Power 5/5 | Builds 2/5 | Fit 8.8/10 | Parry, Blade Mode and slice enormous enemies into pieces. | Catch: Minimal gear customization.
+29. Darksiders II: Deathinitive Edition | Action / Loot | Combat 4/5 | Power 5/5 | Builds 4/5 | Fit 8.8/10 | Scythes, possessed weapons, powerful abilities and equipment builds. | Catch: Older combat feel.
+30. Borderlands 3 | Looter shooter | Combat 4/5 | Power 5/5 | Builds 5/5 | Fit 8.8/10 | Legendary guns and skill synergies turn encounters into destruction. | Catch: First-person, heavy loot management.
+31. The First Descendant | Looter shooter | Combat 4/5 | Power 5/5 | Builds 5/5 | Fit 8.7/10 | Warframe-like modules, reactors, abilities and boss melting. | Catch: Monetization and farming friction.
+32. Cyberpunk 2077 + Phantom Liberty | Open-world RPG | Combat 4/5 | Power 5/5 | Builds 5/5 | Fit 8.7/10 | Sandevistan, blades, cyberware, quickhacks and deadly hybrid builds. | Catch: Dialogue and missions interrupt combat.
+33. Dragon's Dogma 2 | Fantasy RPG | Combat 4/5 | Power 5/5 | Builds 4/5 | Fit 8.7/10 | Powerful vocations, giant-monster combat and massive spell effects. | Catch: Less equipment depth than Dark Arisen.
+34. Hades | Roguelite / Action | Combat 5/5 | Power 5/5 | Builds 4/5 | Fit 8.7/10 | Godly boons, fast melee and spell combinations, powerful weapon aspects. | Catch: Randomized runs.
+35. NINJA GAIDEN 2 Black | Character action | Combat 5/5 | Power 5/5 | Builds 2/5 | Fit 8.7/10 | Violent precision combat with limb-dismembering techniques. | Catch: Very punishing; minimal builds.
+36. Warhammer 40,000: Space Marine 2 | Action / Horde | Combat 4/5 | Power 5/5 | Builds 3/5 | Fit 8.6/10 | Become an armored super-soldier obliterating enemy swarms. | Catch: Less freedom in builds.
+37. Dragon Ball Xenoverse 2 | Anime / Fighting RPG | Combat 4/5 | Power 5/5 | Builds 4/5 | Fit 8.6/10 | Create an absurdly powerful fighter with iconic transformations and attacks. | Catch: Rougher fighting mechanics.
+38. Rise of the Ronin | Samurai / Action | Combat 5/5 | Power 4/5 | Builds 4/5 | Fit 8.6/10 | Blade styles, countersparks, martial arts and equipment customization. | Catch: Less spectacular power escalation.
+39. CODE VEIN II | Anime / Souls | Combat 4/5 | Power 4/5 | Builds 4/5 | Fit 8.5/10 | Anime weapons, specialized abilities and build experimentation. | Catch: Uneven combat feel and technical polish.
+40. CODE VEIN | Anime / Souls | Combat 4/5 | Power 4/5 | Builds 5/5 | Fit 8.5/10 | Blood Code switching, Gifts and enormous build flexibility. | Catch: Enemy AI and animation feel less refined.
+41. ASTLIBRA Revision | 2D Action RPG | Combat 4/5 | Power 5/5 | Builds 5/5 | Fit 8.5/10 | Unlock increasingly ridiculous skills, weapons, magic and upgrades. | Catch: Side-scrolling presentation.
+42. V Rising | Vampire / Action | Combat 4/5 | Power 5/5 | Builds 4/5 | Fit 8.5/10 | Kill bosses to steal powers and grow into a powerful vampire. | Catch: Crafting and base-building requirements.
+43. Crimson Desert | Open-world / Action | Combat 4/5 | Power 5/5 | Builds 3/5 | Fit 8.5/10 | Spectacular acrobatic fights and powerful cinematic abilities. | Catch: Less focused on character build optimization.
+44. EARTH DEFENSE FORCE 6 | Horde shooter | Combat 3/5 | Power 5/5 | Builds 4/5 | Fit 8.4/10 | Obliterate absurd numbers of enemies with increasingly ridiculous weapons. | Catch: Intentionally janky presentation.
+45. ONE PIECE: PIRATE WARRIORS 4 | Anime / Musou | Combat 4/5 | Power 5/5 | Builds 3/5 | Fit 8.4/10 | Transformations and outrageous attacks send hundreds of enemies flying. | Catch: Repetitive horde combat.
+46. WARRIORS OROCHI 4 Ultimate | Musou / Action | Combat 3/5 | Power 5/5 | Builds 4/5 | Fit 8.4/10 | Massive character roster, magical attacks and godlike battlefield destruction. | Catch: Shallow regular enemies.
+47. Terraria + Calamity Mod | 2D Boss RPG | Combat 4/5 | Power 5/5 | Builds 5/5 | Fit 8.4/10 | Grow from basic equipment into a cosmic boss-killing powerhouse. | Catch: 2D movement and mod setup.
+48. No Rest for the Wicked | Isometric / Souls | Combat 5/5 | Power 4/5 | Builds 5/5 | Fit 8.4/10 | Weighty precision combat, runes and increasingly refined loot builds. | Catch: Early Access.
+49. Gunfire Reborn | FPS / Roguelite | Combat 4/5 | Power 5/5 | Builds 5/5 | Fit 8.4/10 | Weapon inscriptions, scrolls and character talents enable absurd damage. | Catch: Randomized runs.
+50. Roboquest | FPS / Roguelite | Combat 5/5 | Power 5/5 | Builds 4/5 | Fit 8.4/10 | Insane mobility, precise shooting and outrageous weapon builds. | Catch: No permanent god-build.
+51. Dead Cells | 2D / Roguelite | Combat 5/5 | Power 5/5 | Builds 4/5 | Fit 8.3/10 | Fast weapon combat, mutations and devastating synergistic loadouts. | Catch: 2D and run resets.
+52. DOOM Eternal | FPS / Action | Combat 5/5 | Power 5/5 | Builds 3/5 | Fit 8.3/10 | Become a near-unstoppable demon-killing machine through skill mastery. | Catch: Resource cycling is mandatory.
+53. DOOM: The Dark Ages | FPS / Action | Combat 4/5 | Power 5/5 | Builds 3/5 | Fit 8.3/10 | Shield-based combat and huge weapons provide overwhelming destructive power. | Catch: Less extensive buildcraft.
+54. Sifu | Martial arts | Combat 5/5 | Power 4/5 | Builds 2/5 | Fit 8.3/10 | Master parries, positioning, combos and crowd control until you're untouchable. | Catch: Mastery matters more than stats.
+55. Nine Sols | 2D / Souls | Combat 5/5 | Power 4/5 | Builds 3/5 | Fit 8.3/10 | Brilliant Sekiro-inspired parries and explosive talisman attacks. | Catch: 2D exploration.
+56. AI LIMIT | Anime / Souls | Combat 4/5 | Power 4/5 | Builds 4/5 | Fit 8.2/10 | Stylish anime combat, weapon skills and customization. | Catch: More restrained power fantasy.
+57. WUCHANG: Fallen Feathers | Souls / Action RPG | Combat 4/5 | Power 4/5 | Builds 4/5 | Fit 8.2/10 | Weapon styles, spells and impressive boss encounters. | Catch: Mixed technical reception.
+58. Path of Exile 2 | Isometric ARPG | Combat 4/5 | Power 5/5 | Builds 5/5 | Fit 8.2/10 | Build a screen-clearing monster through deep loot and passive systems. | Catch: Isometric and still Early Access.
+59. Last Epoch | Isometric ARPG | Combat 3/5 | Power 5/5 | Builds 5/5 | Fit 8.1/10 | Customizable skills and legendary-item combinations. | Catch: Less tactile combat.
+60. Grim Dawn | Isometric ARPG | Combat 3/5 | Power 5/5 | Builds 5/5 | Fit 8.1/10 | Dual-class synergies and enormously powerful loot combinations. | Catch: Older-looking action.
+61. Diablo IV | Isometric ARPG | Combat 4/5 | Power 5/5 | Builds 4/5 | Fit 8/10 | Flashy class skills and high-powered equipment interactions. | Catch: Less mechanical combat mastery.
+62. Black Desert Online | MMO / Action | Combat 5/5 | Power 5/5 | Builds 4/5 | Fit 8/10 | Incredibly flashy combos and powerful class movesets. | Catch: Significant MMO system friction.
+63. Lost Ark | MMO / Raids | Combat 5/5 | Power 4/5 | Builds 4/5 | Fit 8/10 | Outstanding raid mechanics and visually explosive abilities. | Catch: Progression constraints and group dependence.
+64. Soulstone Survivors | Survivorslike | Combat 3/5 | Power 5/5 | Builds 5/5 | Fit 8/10 | Stack spells and passives until the entire screen explodes. | Catch: Mostly automatic attacks.

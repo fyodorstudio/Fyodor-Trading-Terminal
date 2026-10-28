@@ -74,6 +74,24 @@ preparation and later interpretation; templates alone do not establish a verdict
 
 ## Significant checkpoint reminders
 
+The user's default is high-impact-only Invoke reminders: maximize useful new
+information per invocation, not calendar coverage. Before arming a stage, explain
+how a plausible surprise could materially reprice the active policy path, fiscal
+credibility, supply outlook or the supported currency comparison. Expected rate
+decisions and genuinely informative conferences can qualify; a high broker rating
+or a remote possibility of volatility does not suffice. Routine operations,
+secondary surveys, revisions, repeated interviews and delayed positioning reports
+normally remain context without bells unless a current, sourced mechanism makes
+that occurrence decisive. Keep material discoveries visible even when silent.
+Treat simultaneous release components as one review checkpoint; retain separate
+decision/conference bells only when the later stage can add material guidance.
+An alarm-curation request authorizes disabling previously selected low-value or
+duplicate future reminders within the reviewed horizon. Preserve explicit off
+choices and unrelated settings; read back removals as well as armed reminders.
+Record the selection rationale and checked horizon so future agents can retain
+the filter without assuming all later events have already been audited. Unknown
+publication hours remain untimed watches, even when the event is important.
+
 Assess Trade Now carries standing permission to select a few verified significant
 future Invoke reminders for supported mechanisms, including separate conferences
 when material. Do not arm every pin, duplicate release packages, change price
