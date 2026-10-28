@@ -147,7 +147,9 @@ drag down to shrink it. With the resize handle focused, End maximizes and Home s
 Drawings are shared across all timeframes for the same pair, including existing
 saved drawings. Editing or deleting one updates that same drawing on every timeframe.
 Choose the alarm drawing tool and click a chart price to arm a one-shot **Price Alert**.
-The **Price Alerts** tab beside Market Watch lists all saved alerts. Click a row
+The **Price Alerts** tab beside Market Watch lists all saved alerts. Triggered
+alerts appear first, newest trigger first; armed/paused alerts follow in their
+existing order. Rearming returns an alert to that ordinary list. Click a row
 to open its chart; double-click its title (or press F2) to name it. Enter or leaving
 the field saves; Escape cancels. The name also labels its chart line. Icons beside
 each title pause/resume or rearm the alert, and delete it. Drag a line vertically
@@ -176,15 +178,19 @@ backup UI, scoring engines, full Notebook workflow, Scatter Plot or experimental
 context tools are included.
 
 **Thesis** stores verified developments once and records separate currency
-assessments, with append-only corrections and exact evidence references. Across
-All Currency shows a date or date range grouped by currency: current pressure,
-assessment time/coverage, active older background, one row per development with
-Jakarta hour, implication and effect on the existing thesis, then upcoming
-checkpoints. Multiple events per day stay separate. Assessment history is
-expandable; earlier daily snapshots and opportunity records load only when their
-archive is opened. JUL/OCT selectors and the independent pair journal remain.
+assessments, with append-only corrections and exact evidence references. Eight
+currency buttons select one standalone currency; the selection persists. Month/Day
+navigation shows its current pressure, assessment time/coverage, older active
+background, dated developments with Jakarta hours, implications and effects, then
+upcoming checkpoints. There is no All view, pair selector or Date range control.
+Only the selected currency renders; earlier currency reviews load on opening their
+archive, with individual snapshots expanded on demand. Prompts and Markdown exports
+follow the selected currency and date. The pair-journal entries, saved versions,
+planning days and shared-review links were deleted at the user's request; currency
+research and shared review evidence remain intact.
 
-The left dock shows **Evidence age | CUR | VERDICT | Checkpoint**. Evidence age
+The left dock shows **Evidence age | CUR | VERDICT | Checkpoint**. Click
+**Fundamentals** to collapse or expand it; this preference persists. Evidence age
 uses the named source development, separately from Last Assessed; new saves do not
 redate old news. Verdict is standalone Strong/Moderate/Slight pressure. A focused
 refresh preserves other currencies; missing decisive evidence remains visible.
@@ -194,9 +200,10 @@ perform no research. See the [Thesis contract](docs/THESIS.md#left-panel-summary
 Use `pnpm analyst thesis research --scope ALL --from <date> --to <date>`, then
 `thesis research-append --scope ALL --input <file>` for researched interval updates.
 No news-item quota or mandatory entry payload is required. Copy research prompt
-and Markdown export use the selected interval and preserve source/research clocks.
-Historical reconstructions cannot replace live verdicts. Existing pair/daily CLI
-interfaces and all earlier saved versions remain compatible. Alert owns reminders.
+and Markdown export use the selected currency/date and preserve source/research clocks.
+Historical reconstructions cannot replace live verdicts. Legacy pair/daily CLI
+interfaces remain compatible; the deleted pair records are no longer present.
+Alert owns reminders.
 
 **Entry Trade** is a manual trade journal. Save an entry at any stage, choose
 Waiting/Long/Short freely, use the broker quote for Entry, and enter SL/TP in any

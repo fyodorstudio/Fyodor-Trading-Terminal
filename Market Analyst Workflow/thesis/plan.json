@@ -1,54 +1,5 @@
 {
   "version": 1,
   "checked_utc": "2026-10-17T14:22:50Z",
-  "days": [
-    {"scope":"NZDCHF","date":"2026-10-18","events":[]},
-    {"scope":"NZDCHF","date":"2026-10-19","events":[
-      {"title":"BusinessNZ services index","at":"2026-10-18T21:30:00Z","note":"Broker schedule; publisher hour not independently verified.","sources":[{"kind":"local","label":"Local broker schedule","locator":"C:/dev/Fyodor Trading Terminal Lite/storage/data/calendar.sqlite3","note":"Elev8-Demo2 revision 189242; event 554060002 / value 313565."}]},
-      {"title":"NZ merchandise trade: exports, imports and balance","at":"2026-10-18T21:45:00Z","note":"Broker time; Stats NZ calendar corroborates the release date.","sources":[{"kind":"local","label":"Local broker schedule","locator":"C:/dev/Fyodor Trading Terminal Lite/storage/data/calendar.sqlite3","note":"Elev8-Demo2 revision 189242; events 554010007–554010010 / values 317176–317179."},{"kind":"web","label":"Stats NZ calendar","locator":"https://www.stats.govt.nz/release-calendar/"}]},
-      {"title":"China Q3 GDP and September activity package","at":"2026-10-19T02:00:00Z","sources":[{"kind":"web","label":"NBS calendar","locator":"https://www.stats.gov.cn/english/PressRelease/ReleaseCalendar/202512/t20251226_1962154.html"}]}
-    ]},
-    {"scope":"NZDCHF","date":"2026-10-20","events":[
-      {"title":"Swiss merchandise trade","at":"2026-10-20T06:00:00Z","note":"Broker schedule; publisher hour not independently verified.","sources":[{"kind":"local","label":"Local broker schedule","locator":"C:/dev/Fyodor Trading Terminal Lite/storage/data/calendar.sqlite3","note":"Elev8-Demo2 revision 189242; events 756030001–756030003 / values 273157, 273169, 273181."}]},
-      {"title":"GDT Event 414 auction opening","at":"2026-10-20T12:00:00Z","note":"Auction start only; final results follow completion and their exact publication time is unverified.","sources":[{"kind":"web","label":"GDT calendar","locator":"https://www.globaldairytrade.info/en/gdt-events/calendar"}]}
-    ]},
-    {"scope":"NZDCHF","date":"2026-10-21","events":[
-      {"title":"RBNZ credit-card spending","at":"2026-10-21T02:00:00Z","note":"Broker schedule; publisher hour not independently verified.","sources":[{"kind":"local","label":"Local broker schedule","locator":"C:/dev/Fyodor Trading Terminal Lite/storage/data/calendar.sqlite3","note":"Elev8-Demo2 revision 189242; event 554020011 / value 320438."}]}
-    ]},
-    {"scope":"NZDCHF","date":"2026-10-22","events":[
-      {"title":"NZ September-quarter CPI","at":"2026-10-21T21:45:00Z","note":"Broker time; Stats NZ calendar corroborates the release date.","sources":[{"kind":"local","label":"Local broker schedule","locator":"C:/dev/Fyodor Trading Terminal Lite/storage/data/calendar.sqlite3","note":"Elev8-Demo2 revision 189242; events 554010005–554010006 / values 317174–317175."},{"kind":"web","label":"Stats NZ calendar","locator":"https://www.stats.govt.nz/release-calendar/"}]},
-      {"title":"RBNZ sectoral core inflation publication window","at":"2026-10-22T02:00:00Z","note":"Scheduled from this time, per saved ANZ October 16 research. Exact document arrival is not guaranteed; recheck publisher timing. Direct PDF retrieval was unavailable during this check.","sources":[{"kind":"web","label":"ANZ dated schedule","locator":"https://www.anz.co.nz/content/dam/anzconz/documents/economics-and-market-research/2026/ANZ-CPI-Preview-2026Q3.pdf","note":"Previously verified in External Source nz-20261022-sectoral-core-inflation; scheduled 3:00 PM NZDT."}]},
-      {"title":"SNB September policy discussion summary","at":"2026-10-22T07:30:00Z","sources":[{"kind":"web","label":"SNB schedule","locator":"https://www.snb.ch/en/services-events/digital-services/event-schedule"}]},
-      {"title":"New Zealand activity index update","at":null,"note":"Publisher date listed; exact release hour unverified.","sources":[{"kind":"web","label":"Stats NZ calendar","locator":"https://www.stats.govt.nz/release-calendar/"}]}
-    ]},
-    {"scope":"NZDCHF","date":"2026-10-23","events":[]},
-    {"scope":"NZDCHF","date":"2026-10-24","events":[
-      {"title":"CFTC NZD and CHF positioning reports","at":"2026-10-23T19:30:00Z","note":"Broker schedule; publisher hour not independently verified. Prior Tuesday positions, not live flows.","sources":[{"kind":"local","label":"Local broker schedule","locator":"C:/dev/Fyodor Trading Terminal Lite/storage/data/calendar.sqlite3","note":"Elev8-Demo2 revision 189242; events 554520001, 756520001 / values 287606, 287700."}]}
-    ]},
-    {"scope":"NZDCHF","date":"2026-10-25","events":[]},
-    {"scope":"NZDCHF","date":"2026-10-26","events":[
-      {"title":"New Zealand Labour Day","at":null,"note":"Public holiday, not an economic data release; no publication hour applies.","sources":[{"kind":"local","label":"Local broker calendar","locator":"C:/dev/Fyodor Trading Terminal Lite/storage/data/calendar.sqlite3","note":"Elev8-Demo2 revision 189242; event 554021008 / value 248898; date-only."}]}
-    ]},
-    {"scope":"NZDCHF","date":"2026-10-27","events":[
-      {"title":"GDT Pulse 120 auction opening","at":"2026-10-27T12:00:00Z","note":"Separate from the main GDT auction; result publication hour unverified.","sources":[{"kind":"web","label":"GDT calendar","locator":"https://www.globaldairytrade.info/en/gdt-events/calendar"}]}
-    ]},
-    {"scope":"NZDCHF","date":"2026-10-28","events":[
-      {"title":"RBNZ OCR decision and policy review","at":"2026-10-28T01:00:00Z","sources":[{"kind":"web","label":"RBNZ event schedule","locator":"https://www.rbnz.govt.nz/news-and-events/events/2026/october/monetary-policy-review-and-ocr-october-2026"}]},
-      {"title":"RBNZ online media conference","at":"2026-10-28T02:00:00Z","note":"Separate stage, one hour after the decision.","sources":[{"kind":"web","label":"RBNZ event schedule","locator":"https://www.rbnz.govt.nz/news-and-events/events/2026/october/monetary-policy-review-and-ocr-october-2026"}]},
-      {"title":"Swiss economic expectations survey","at":"2026-10-28T09:00:00Z","note":"Broker schedule; publisher hour not independently verified. Broker uses the legacy Credit Suisse label.","sources":[{"kind":"local","label":"Local broker schedule","locator":"C:/dev/Fyodor Trading Terminal Lite/storage/data/calendar.sqlite3","note":"Elev8-Demo2 revision 189242; event 756080001 / value 313537."}]},
-      {"title":"NZ September employment indicators","at":null,"note":"Date confirmed in prior release; exact hour unverified. This is not the quarterly labour-market/wages package.","sources":[{"kind":"web","label":"Stats NZ release notice","locator":"https://www.stats.govt.nz/information-releases/employment-indicators-august-2026/"}]}
-    ]},
-    {"scope":"NZDCHF","date":"2026-10-29","events":[
-      {"title":"ANZ business confidence and activity outlook","at":"2026-10-29T00:00:00Z","note":"Broker schedule; publisher hour not independently verified.","sources":[{"kind":"local","label":"Local broker schedule","locator":"C:/dev/Fyodor Trading Terminal Lite/storage/data/calendar.sqlite3","note":"Elev8-Demo2 revision 189242; events 554040002–554040003 / values 280445, 280457."}]}
-    ]},
-    {"scope":"NZDCHF","date":"2026-10-30","events":[
-      {"title":"SNB Tschudin and Moser money-market speech","at":"2026-10-29T17:30:00Z","note":"Swiss October 29 evening is October 30 in Jakarta; text is planned.","sources":[{"kind":"web","label":"SNB schedule","locator":"https://www.snb.ch/en/services-events/digital-services/event-schedule"}]},
-      {"title":"SNB September-end interim financial results","at":"2026-10-30T06:15:00Z","note":"Financial results, not a new policy decision.","sources":[{"kind":"web","label":"SNB schedule","locator":"https://www.snb.ch/en/services-events/digital-services/event-schedule"}]},
-      {"title":"KOF economic barometer","at":"2026-10-30T08:00:00Z","note":"Broker schedule; publisher hour not independently verified.","sources":[{"kind":"local","label":"Local broker schedule","locator":"C:/dev/Fyodor Trading Terminal Lite/storage/data/calendar.sqlite3","note":"Elev8-Demo2 revision 189242; event 756050001 / value 274266."}]},
-      {"title":"NZ September-quarter household living-cost indexes","at":null,"note":"Publisher date listed; exact release hour unverified.","sources":[{"kind":"web","label":"Stats NZ calendar","locator":"https://www.stats.govt.nz/release-calendar/"}]}
-    ]},
-    {"scope":"NZDCHF","date":"2026-10-31","events":[
-      {"title":"CFTC NZD and CHF positioning reports","at":"2026-10-30T19:30:00Z","note":"Broker schedule; publisher hour not independently verified. Prior Tuesday positions, not live flows.","sources":[{"kind":"local","label":"Local broker schedule","locator":"C:/dev/Fyodor Trading Terminal Lite/storage/data/calendar.sqlite3","note":"Elev8-Demo2 revision 189242; events 554520001, 756520001 / values 287607, 287701."}]}
-    ]}
-  ]
+  "days": []
 }

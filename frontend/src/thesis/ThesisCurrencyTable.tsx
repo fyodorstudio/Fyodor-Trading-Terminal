@@ -1,5 +1,5 @@
 import { memo } from 'react'
-import { dailyDirectionLabel, reviewCurrencies, safeThesisLink, thesisDay, type ThesisSource } from './thesis-model'
+import { dailyDirectionLabel, safeThesisLink, thesisDay, type ThesisCurrency, type ThesisSource } from './thesis-model'
 import { researchAssessment, type CurrencyResearch, type ResearchDevelopment } from './research-model'
 
 const day = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', month: 'short', day: 'numeric', year: 'numeric' })
@@ -32,29 +32,28 @@ function DevelopmentRow({ item, currency }: { item: ResearchDevelopment; currenc
   </tr>
 }
 
-export const ThesisCurrencyTable = memo(function ThesisCurrencyTable({ data }: { data: CurrencyResearch }) {
+export const ThesisCurrencyTable = memo(function ThesisCurrencyTable({ data, currency }: { data: CurrencyResearch; currency: ThesisCurrency }) {
   const future = data.from > thesisDay(new Date().toISOString())
+  const assessment = future ? undefined : researchAssessment(data, currency)
+  const direction = assessment?.direction
+  const entries = future ? [] : data.developments.filter(d => d.published_on >= data.from && d.published_on <= data.to && d.impacts.some(i => i.currency === currency))
+  const background = data.developments.filter(d => assessment?.background_ids.includes(d.id) || d.published_on < data.from && assessment?.evidence_ids.includes(d.id))
+  const upcoming = [...new Map([...(direction?.reassessment ? [direction.reassessment] : []),...(assessment?.checkpoints ?? [])]
+    .map(cp => [cp.title+':'+(cp.event_at ?? cp.event_date),cp])).values()]
+  const pending = direction && entries.some(d => !assessment?.evidence_ids.includes(d.id) && Date.parse(d.verified_utc)>Date.parse(direction.verified_utc))
+  const changes = data.assessments.filter(a => a.currency === currency && a.direction && thesisDay(a.as_of_utc) >= data.from)
+    .sort((a,b) => Date.parse(a.as_of_utc)-Date.parse(b.as_of_utc))
+    .filter((a,i,all) => !i || a.direction!.verdict !== all[i-1].direction!.verdict || a.direction!.intensity !== all[i-1].direction!.intensity || a.direction!.basis !== all[i-1].direction!.basis)
   return <div className="thesis-currency-research">
     <p className="thesis-currency-cutoff">Research · {dated(data.from)}{data.to !== data.from && ` – ${dated(data.to)}`} · Jakarta</p>
-    {reviewCurrencies.map(currency => {
-      const assessment = future ? undefined : researchAssessment(data, currency)
-      const direction = assessment?.direction
-      const entries = future ? [] : data.developments.filter(d => d.published_on >= data.from && d.published_on <= data.to && d.impacts.some(i => i.currency === currency))
-      const background = data.developments.filter(d => assessment?.background_ids.includes(d.id) || d.published_on < data.from && assessment?.evidence_ids.includes(d.id))
-      const upcoming = [...new Map([...(direction?.reassessment ? [direction.reassessment] : []),...(assessment?.checkpoints ?? [])]
-        .map(cp => [cp.title+':'+(cp.event_at ?? cp.event_date),cp])).values()]
-      const pending = direction && entries.some(d => !assessment?.evidence_ids.includes(d.id) && Date.parse(d.verified_utc)>Date.parse(direction.verified_utc))
-      const changes = data.assessments.filter(a => a.currency === currency && a.direction && thesisDay(a.as_of_utc) >= data.from)
-        .sort((a,b) => Date.parse(a.as_of_utc)-Date.parse(b.as_of_utc))
-        .filter((a,i,all) => !i || a.direction!.verdict !== all[i-1].direction!.verdict || a.direction!.intensity !== all[i-1].direction!.intensity || a.direction!.basis !== all[i-1].direction!.basis)
-      return <section key={currency} className="thesis-currency-section" data-thesis-currency={currency} aria-label={`${currency} fundamental research`}>
+    <section key={currency} className="thesis-currency-section" data-thesis-currency={currency} aria-label={`${currency} fundamental research`}>
         <div className="thesis-currency-heading"><h3>{currency}{direction && ` · ${dailyDirectionLabel(direction)}`}</h3>
           {assessment && <p>Last Assessed: {full.format(new Date(direction?.verified_utc ?? assessment.as_of_utc))} Jakarta{assessment.provenance === 'reconstruction' && ' · Historical reconstruction'}</p>}
         </div>
         {direction ? <><p className="thesis-prose">{direction.reason}</p><p>Horizon: {direction.horizon || 'See the original assessment.'}</p>
           {direction.basis !== 'standalone' && <p className="thesis-notice">Older comparison; needs a standalone assessment before use as a broad currency verdict.</p>}
           <p><Links sources={direction.sources} /></p>
-        </> : <p>{assessment?.gap || (future ? 'Future dates stay unassessed.' : 'No saved assessment for this currency by the end of this range.')}</p>}
+        </> : <p>{assessment?.gap || (future ? 'Future dates stay unassessed.' : 'No saved assessment for this currency by this date.')}</p>}
         {assessment && <p className="thesis-research-coverage">Researched period: {dated(assessment.period_start)} – {dated(assessment.period_end)}.{assessment.gap && ` Coverage: ${assessment.gap}`}</p>}
         {pending && <p className="thesis-notice">Review needed: newer saved evidence has not yet been incorporated into this assessment.</p>}
         {(background.length > 0 || direction?.evidence_anchor) && <div className="thesis-active-background"><h4>Active background</h4>
@@ -74,11 +73,5 @@ export const ThesisCurrencyTable = memo(function ThesisCurrencyTable({ data }: {
           {changes.map(a => <div key={a.id}><strong>{full.format(new Date(a.as_of_utc))} Jakarta · {dailyDirectionLabel(a.direction!)}</strong><p>{a.direction!.reason}</p><Links sources={a.direction!.sources} /></div>)}
         </details>}
       </section>
-    })}
-    {!future && data.developments.some(d=>d.instruments?.length) && <section className="thesis-currency-section" aria-label="Selective commodity research">
-      <h3>Selective commodity research</h3><table className="thesis-currency-table"><thead><tr>{['Date','Time · Jakarta','Development / instrument','Fundamental implication','Effect on existing thesis','Source'].map(label=><th scope="col" key={label}>{label}</th>)}</tr></thead>
-        <tbody>{data.developments.filter(d=>d.instruments?.length && d.published_on>=data.from && d.published_on<=data.to).map(d=><DevelopmentRow key={d.id} item={d} currency="" />)}</tbody>
-      </table>
-    </section>}
   </div>
 })

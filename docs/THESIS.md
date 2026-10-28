@@ -7,10 +7,11 @@ There is no automatic research or news ingestion.
 
 ## Presentation
 
-Across All Currency keeps the JUL/OCT month and day selectors and adds a **Date
-range** option with inclusive From/To Jakarta dates, including ranges across months.
-Each of the eight currencies has a summary (direction/intensity, assessment time,
-reason, horizon and coverage), then a chronological table, newest dates first:
+Eight buttons (EUR, GBP, AUD, NZD, USD, CAD, CHF, JPY) select exactly one
+standalone currency, remembered across reloads. JUL/OCT Month and Day selectors
+choose the Jakarta date. There is no All view, pair mode or Date range control.
+Only the selected currency renders its summary (direction/intensity, assessment
+time, reason, horizon and coverage), then a chronological table, newest dates first:
 
 **Date | Time · Jakarta | Development | Fundamental implication | Effect on existing thesis | Source**.
 
@@ -23,19 +24,21 @@ background**. Upcoming checkpoints are separate from occurred facts. Assessment
 history expands only when recorded direction, intensity or basis changes; it never
 invents a verdict at every event time or a market turning point.
 
-Copy research prompt uses the selected interval and the same skill/contract for
-every invocation. Export Markdown saves the loaded interval, evidence, assessments,
+Copy research prompt uses the selected currency/date and the same skill/contract
+for every invocation. Export Markdown saves that currency’s loaded evidence, assessments,
 background, checkpoints, source clocks, correction history and handoff. It does no
-research or writes. Failed loads preserve the last snapshot with an error; range
+research or writes. Failed loads preserve the last snapshot with an error; date
 changes cancel stale replies and clear the old view. Polling keeps unchanged data
 stable and stops on unmount. Text uses the terminal's readable 14px typography.
 Visual acceptance is the user's responsibility; tests use terminal-based component
 and service contracts, not browser automation.
 
-Earlier daily snapshots, opportunity selections and their versions remain under
-an expandable archive, loaded only when opened. Turning Across All Currency off
-retains the independent 28-pair journal and its historical planning days. Neither
-the new view nor date navigation rewrites old research or raw calendar data.
+Earlier currency snapshots and their versions remain under an expandable archive,
+loaded only when opened and filtered to the selected currency. Snapshot bodies
+mount on expansion. The user requested permanent deletion of saved pair-journal
+entries (including versions and pair-based opportunity rows), pair planning days
+and shared-review opportunity links. Currency views, evidence, checkpoints and
+review versions remain intact. Date navigation performs no research or writes.
 
 ## Agent interface
 
@@ -142,6 +145,8 @@ needed and its original assessment clock, rather than manufacturing a fresh call
 ### Left-panel summary and reassessment
 
 The left dock is a read-only projection: **Evidence age | CUR | VERDICT | Checkpoint**.
+Its keyboard-accessible Fundamentals heading collapses/expands the contents and
+remembers the preference. Collapsing changes no assessment, evidence or deadline.
 It derives live assessments per currency from the research ledger, with legacy
 daily reviews as fallback. There is no separately authored summary verdict file.
 Reconstructions and future cutoffs cannot replace live directions. A focused
@@ -169,7 +174,9 @@ Unchanged replies retain revisions; the header does not certify an all-eight sca
 
 ## Compatibility and shared dated review
 
-Existing `journal.json`, `plan.json` and `reviews.json` remain unchanged. The old
+The saved pair entries in `journal.json` and planning days in `plan.json` were
+cleared at the user’s request. Matching `opportunity_ids` were removed from shared
+review versions; all other review content and `research.json` were preserved. The old
 `thesis append` pair interface, `thesis review-append` and `format: daily_news` read/
 write contract remain available for compatibility and earlier copied prompts.
 Their validation, release vintages, same-day opportunity windows, exact linked
@@ -182,6 +189,7 @@ For pair saves use `thesis context --scope <PAIR>`, read the pair/month, then ap
 through the existing schema with direct sources, real as-of time, target identity
 when relevant and change/compared_with/change_reason. Pair enums remain BUY/SELL/
 STRONG BUY/STRONG SELL/MIXED; they do not define standalone currency pressure.
-Preserve old journals, user notes and raw observations. Alert owns significant
+Do not recreate deleted pair records without an explicit request. Preserve currency
+research, user trade notes and raw observations. Alert owns significant
 Invoke reminders under [the alarm contract](EVENTS-ALARMS.md); research saves and
 checkpoints alone do not arm bells or schedule AI work.

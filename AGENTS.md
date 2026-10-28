@@ -10,8 +10,9 @@ manual price alarms → `frontend/src/price-alerts/`; economic Invoke reminders 
 Current research uses Assess Trade Now. Findings and currency assessments live in
 the Thesis research ledger; the left summary is its read-only projection with
 legacy daily reviews as fallback. Read `pnpm analyst thesis summary --scope ALL`.
-Thesis currency view is a date-range timeline, grouped by currency; pair journals
-and earlier daily snapshots remain accessible separately.
+Thesis shows one standalone currency at a time, selected with eight currency tabs
+and Month/Day navigation. Earlier currency snapshots stay in a lazy archive;
+saved pair journals and their planning days were deleted at the user’s request.
 Release waits use One Minute Before Release; historical moves use Review Historical
 Research and must not replace the live summary. Details and comparisons stay in
 bottom Thesis; the left box shows evidence age, currency, standalone pressure
@@ -133,8 +134,9 @@ clock and never reverse or renew a verdict automatically.
 Thesis contains dated developments, assessments and upcoming checkpoints. Keep
 publication/event/verification/recorded clocks separate. Historical reconstructions
 never replace the live summary. Read back the saved range and live summary.
-Earlier daily reviews, July reconstructions, pair histories and user notes remain
-intact; legacy daily saves remain a compatibility interface, not the normal workflow.
+Earlier currency reviews, July currency reconstructions and user trade notes remain
+intact. Do not recreate deleted pair journals through the Thesis UI; legacy CLI
+interfaces remain available for explicit compatibility requests.
 
 ### Alert, External Sources and saved studies
 

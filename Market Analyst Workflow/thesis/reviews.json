@@ -890,12 +890,7 @@
           "gap": ""
         }
       ],
-      "opportunity_ids": [
-        "b9023180e3c44aa8aa2e20111cdb2213",
-        "f8b60e3ab1e64ef991b669bb6063621c",
-        "2a1ce527c7304f3fa8e72a552c2c90d7",
-        "c781ec2fa31e491ea746b5e64b393a0b"
-      ],
+      "opportunity_ids": [],
       "limitations": "Fresh numerical consensus for every forthcoming release and a complete current OIS comparison were not verified. Japanese numerical inflation/labor vintages and the latest euro-area activity evidence remain explicit gaps. Unknown publication dates remain unknown. Saved interpretation must be refreshed before a new trade assessment.",
       "note": "Structured from the already-saved October 19, 3:00 PM Jakarta assessment and its cited sources, at the user’s request. This organizes the original findings; it is not a fresh macro assessment. Publication dates and original verification cutoff are preserved. No price/OHLC evidence was used. Upcoming releases and reminders remain in Alert.",
       "provenance": "assessment",
@@ -1793,12 +1788,7 @@
           "gap": ""
         }
       ],
-      "opportunity_ids": [
-        "b9023180e3c44aa8aa2e20111cdb2213",
-        "f8b60e3ab1e64ef991b669bb6063621c",
-        "2a1ce527c7304f3fa8e72a552c2c90d7",
-        "c781ec2fa31e491ea746b5e64b393a0b"
-      ],
+      "opportunity_ids": [],
       "currency_views": [
         {
           "currency": "USD",
@@ -3109,12 +3099,7 @@
           "gap": ""
         }
       ],
-      "opportunity_ids": [
-        "b9023180e3c44aa8aa2e20111cdb2213",
-        "f8b60e3ab1e64ef991b669bb6063621c",
-        "2a1ce527c7304f3fa8e72a552c2c90d7",
-        "c781ec2fa31e491ea746b5e64b393a0b"
-      ],
+      "opportunity_ids": [],
       "currency_views": [
         {
           "currency": "USD",

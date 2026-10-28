@@ -44,7 +44,9 @@ hour or precise bell. Report unresolved decisive gaps as Review needed.
 
 Keep live and historical information sets separate. A historical period uses
 labelled reconstruction and cannot replace live verdicts. Future days stay unfilled.
-The archive preserves earlier daily snapshots and pair journals; new findings use
-the research ledger rather than rebuilding those daily blobs. Entry comparisons
+The dock selects one currency/date and its archive preserves earlier currency
+snapshots. Saved pair journals were deleted at the user’s request; do not recreate
+them without an explicit request. New findings use the research ledger rather
+than rebuilding daily blobs. Entry comparisons
 are optional outputs. Saving research requires neither a pin nor a reminder for
 every row; significant reminders use the separate alert procedure.

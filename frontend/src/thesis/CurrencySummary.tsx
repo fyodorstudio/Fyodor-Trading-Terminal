@@ -1,10 +1,14 @@
-import { memo, useEffect, useState } from 'react'
+import { memo, useEffect, useId, useState } from 'react'
 import { currencyEvidenceAge, currencyUntil, validCurrencySummary, type CurrencySummarySnapshot } from './currency-summary-model'
 import './currency-summary.css'
 
 const clock = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })
 
 export const CurrencySummary = memo(function CurrencySummary() {
+  const [collapsed, setCollapsed] = useState(() => {
+    try { return localStorage.getItem('fyodor.fundamentals.collapsed.v1') === 'true' } catch { return false }
+  })
+  const contentId = useId()
   const [snapshot, setSnapshot] = useState<CurrencySummarySnapshot | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [now, setNow] = useState(Date.now)
@@ -35,7 +39,11 @@ export const CurrencySummary = memo(function CurrencySummary() {
   }, [])
 
   return <section className="currency-summary" aria-label="Currency fundamental summary">
-    <h2>Fundamentals</h2>
+    <h2><button type="button" aria-expanded={!collapsed} aria-controls={contentId} onClick={() => {
+      setCollapsed(!collapsed)
+      try { localStorage.setItem('fyodor.fundamentals.collapsed.v1', String(!collapsed)) } catch { /* Retain session choice. */ }
+    }}><span aria-hidden="true">{collapsed ? '▸' : '▾'}</span> Fundamentals</button></h2>
+    <div id={contentId} hidden={collapsed}>
     <p>{snapshot?.as_of_utc ? `${clock.format(new Date(snapshot.as_of_utc))} Jakarta · Last Assessed` : snapshot ? 'No current Thesis saved.' : 'Loading saved Thesis…'}</p>
     {error && <p role="alert">{error}{snapshot && ' Showing the last loaded snapshot.'}</p>}
     {snapshot && <table aria-label="Currency verdicts"><thead><tr><th scope="col" title="Age of the latest dated development referenced by the assessment. Full evidence and offsets are in Thesis.">Evidence age</th><th scope="col">CUR</th><th scope="col">VERDICT</th><th scope="col">Checkpoint</th></tr></thead>
@@ -48,5 +56,6 @@ export const CurrencySummary = memo(function CurrencySummary() {
           <td title={row.reassessment ? `${row.reassessment.title} · ${row.reassessment.event_at ? clock.format(new Date(row.reassessment.event_at)) + ' Jakarta' : row.reassessment.event_date + ' · hour unknown'}. ${row.reassessment.note}` : row.reassessment_gap}>{row.verdict || row.reassessment_gap ? until.label : '—'}</td>
         </tr>
       })}</tbody></table>}
+    </div>
   </section>
 })

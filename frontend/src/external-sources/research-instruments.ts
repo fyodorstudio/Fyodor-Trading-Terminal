@@ -1,6 +1,5 @@
 import catalog from '../../../config/research-instruments.json'
 
-export const researchInstruments = catalog
 export type Commodity = keyof typeof catalog
 export const commodityIds = Object.keys(catalog) as Commodity[]
 export function chartCommodity(symbol: string): Commodity | undefined {

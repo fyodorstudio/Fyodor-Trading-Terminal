@@ -146,12 +146,18 @@ class ThesisTests(TestCase):
         with self.assertRaises(ValueError):
             self.snapshot(month='2026-13')
 
-    def test_committed_july_seed_contains_each_day_and_reconstruction_provenance(self):
-        entries = read_theses(PATH)
-        july = [entry for entry in entries if entry['scope'] == 'NZDCHF' and entry['as_of_utc'].startswith('2026-07')]
-        self.assertEqual([entry['as_of_utc'][8:10] for entry in july], [f'{day:02d}' for day in range(1, 16)])
-        self.assertTrue(all(entry['provenance'] == 'reconstruction' and entry['as_of_utc'][11:16] == '06:00' and entry['note'] for entry in july))
-        self.assertTrue(all(entry['saved_utc'].startswith('2026-10') for entry in july))
+    def test_deleted_pair_records_preserve_shared_currency_research(self):
+        from storage.thesis_reviews import read_reviews
+        from storage.thesis_research import research_snapshot
+        self.assertEqual(read_theses(PATH), [])
+        reviews = read_reviews(PATH)
+        self.assertEqual(len(reviews), 40)
+        self.assertEqual(sum(bool(r['currency_views']) for r in reviews), 39)
+        self.assertTrue(all(not r['opportunity_ids'] for r in reviews))
+        self.assertTrue(any(view.get('news') for r in reviews for view in r['currency_views']))
+        data = research_snapshot(PATH, '2026-10-01', '2026-10-29')
+        self.assertEqual({a['currency'] for a in data['assessments']}, {'USD', 'EUR', 'GBP', 'JPY', 'CHF', 'CAD', 'AUD', 'NZD'})
+        self.assertTrue(data['developments'])
 
     def test_change_comparison_is_immutable_pair_specific_and_earlier(self):
         self.paths()
@@ -178,18 +184,6 @@ class ThesisTests(TestCase):
                 self.save(**{**dict(as_of_utc='2026-07-17T00:00:00Z', change_reason='Evidence.'), **changes})
         reversal = self.save(as_of_utc='2026-07-17T00:00:00Z', verdict='SELL', change='Reversed', compared_with=first['id'], change_reason='Opposite mechanism established.')
         self.assertEqual(self.snapshot()['past'][0]['id'], reversal['id'])
-
-    def test_october_nzdchf_records_have_evidence_and_varied_cutoffs_only(self):
-        entries = read_theses(PATH)
-        october = [row for row in entries if row['as_of_utc'].startswith('2026-10') and row['collection'] == 'pair']
-        latest = {row['row_id']: row for row in october}
-        self.assertEqual(len(latest), 11)
-        self.assertTrue(all(row['scope'] == 'NZDCHF' and row['change'] and row['change_reason'] for row in latest.values()))
-        self.assertEqual(min(row['as_of_utc'][8:10] for row in latest.values()), '01')
-        self.assertEqual(max(row['as_of_utc'][8:10] for row in latest.values()), '17')
-        self.assertGreater(len({row['as_of_utc'][11:16] for row in latest.values()}), 5)
-        self.assertTrue(any(row['as_of_precision'] == 'date' for row in latest.values()))
-        self.assertTrue(all(row['change'] is None for row in entries if row['as_of_utc'].startswith('2026-07')))
 
     def test_planning_days_are_separate_and_replaced_only_by_saved_assessments(self):
         self.paths(); self.save()
@@ -224,13 +218,9 @@ class ThesisTests(TestCase):
         with self.assertRaises(ValueError):
             ThesisPlan(**bad)
 
-    def test_requested_plan_is_october_nzdchf_only_and_preserves_jakarta_stage_dates(self):
-        view = thesis_snapshot(None, 'NZDCHF', '2026-10')
-        self.assertEqual([row['date'] for row in view['planned']], [f'2026-10-{day:02d}' for day in range(18, 32)])
-        speech = next(row for row in view['planned'] if row['date'] == '2026-10-30')['events'][0]
-        self.assertEqual(speech['at'], '2026-10-29T17:30:00Z')
-        self.assertEqual(thesis_snapshot(None, 'EURCHF', '2026-10')['planned'], [])
-        self.assertEqual(thesis_snapshot(None, 'NZDCHF', '2026-07')['planned'], [])
+    def test_deleted_pair_planning_days_stay_empty(self):
+        for scope, month in [('NZDCHF', '2026-10'), ('EURCHF', '2026-10'), ('NZDCHF', '2026-07')]:
+            self.assertEqual(thesis_snapshot(None, scope, month)['planned'], [])
 
     def test_across_view_is_separate_preserves_versions_and_resolves_pair_comparisons(self):
         self.paths()

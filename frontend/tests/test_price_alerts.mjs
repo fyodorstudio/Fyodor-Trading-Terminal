@@ -127,6 +127,7 @@ try {
   assert.equal(lines.size, 1, 'Triggered lines disappear')
   assert.equal(soundStarts, 6, 'Three seconds schedules six thin-chime pulses')
   const triggeredRow = host.querySelector('.price-alert-row.triggered')
+  assert.equal(host.querySelector('.price-alert-row'),triggeredRow,'An older-created alert moves ahead of newer alerts when triggered')
   assert.equal(triggeredRow.querySelector('.price-alert-state').textContent, 'Stopped — Triggered')
   assert.equal(triggeredRow.querySelector('time').getAttribute('title'), 'Asia/Jakarta (UTC+07:00)')
   assert.ok(rowButton(triggeredRow, 'Rearm')?.querySelector('svg'), 'Triggered alerts expose a rearm icon beside trash')
@@ -152,6 +153,7 @@ try {
   assert.equal(api.alerts.find(item => item.id === down).direction, 'above', 'Rearming uses the current side')
   await render({ quotes: [quote('EURUSD', 1)] }, 'reload')
   assert.equal(api.alerts.find(item => item.id === down).status, 'triggered', 'Exact touch triggers')
+  assert.ok(host.querySelector('.price-alert-row').textContent.includes('EURUSD Crossing 1.00000'),'Newest trigger appears first')
   assert.equal(api.soundBlocked, true, 'After reload, a trigger reports locked sound immediately instead of waiting for a gesture')
   await command(() => api.setSound(false, 1))
   let dragged

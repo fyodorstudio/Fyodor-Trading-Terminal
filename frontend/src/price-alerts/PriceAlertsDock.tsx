@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import type { PriceAlert } from './price-alert-store'
 import type { PriceAlertsController } from './usePriceAlerts'
 import { priceAlertSounds, type PriceAlertSoundId } from './price-alert-tones'
@@ -80,6 +80,10 @@ function AlertRow({ alert, controller, onSelectSymbol, brokerId }: {
 export function PriceAlertsDock({ controller, onSelectSymbol, onCreate, brokerId }: {
   controller: PriceAlertsController; onSelectSymbol: (symbol: string) => void; onCreate: () => void; brokerId: string | null
 }) {
+  const orderedAlerts = useMemo(() => [...controller.alerts].reverse().sort((a, b) => {
+    const aTriggered = a.status === 'triggered', bTriggered = b.status === 'triggered'
+    return Number(bTriggered) - Number(aTriggered) || (aTriggered && bTriggered ? (b.triggeredAt ?? 0) - (a.triggeredAt ?? 0) : 0)
+  }), [controller.alerts])
   return <section className="price-alerts-dock" aria-label="Price Alerts">
     <div className="price-alert-controls">
       <button type="button" onClick={onCreate} disabled={!brokerId || !controller.live}>⏰ New price alert</button>
@@ -98,7 +102,7 @@ export function PriceAlertsDock({ controller, onSelectSymbol, onCreate, brokerId
     </div>
     <div className="price-alert-list" aria-live="polite">
       {!controller.alerts.length && <p>No price alerts. Choose the alarm drawing tool, then click a price on the chart.</p>}
-      {[...controller.alerts].reverse().map(alert => <AlertRow key={alert.id} alert={alert} controller={controller} onSelectSymbol={onSelectSymbol} brokerId={brokerId} />)}
+      {orderedAlerts.map(alert => <AlertRow key={alert.id} alert={alert} controller={controller} onSelectSymbol={onSelectSymbol} brokerId={brokerId} />)}
     </div>
   </section>
 }

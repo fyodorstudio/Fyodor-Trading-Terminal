@@ -7,7 +7,7 @@ import { Window } from 'happy-dom'
 
 // Production component/hook contract; no browser or visual inspection.
 const dom = new Window({ url: 'http://localhost:5173' })
-const globals = { window: dom, document: dom.document, navigator: dom.navigator, HTMLElement: dom.HTMLElement,
+const globals = { localStorage: dom.localStorage, window: dom, document: dom.document, navigator: dom.navigator, HTMLElement: dom.HTMLElement,
   IS_REACT_ACT_ENVIRONMENT: true }
 const previous = new Map([...Object.keys(globals), 'fetch'].map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]))
 for (const [key, value] of Object.entries(globals)) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value })
@@ -82,6 +82,20 @@ try {
   assert.match(usd().querySelector('td').title, /Fundamentals assessed.*Oct 26, 2026.*11:00 PM/)
   assert.equal(usd().querySelector('td:last-child').textContent, '1d 23h')
   assert.match(usd().querySelector('td:last-child').title, /Fed rate decision/)
+  const heading=container.querySelector('h2 button')
+  const content=document.getElementById(heading.getAttribute('aria-controls'))
+  assert.equal(heading.getAttribute('aria-expanded'),'true')
+  const beforeCollapse=requests.length
+  await React.act(async()=>heading.click())
+  assert.equal(content.hidden,true)
+  assert.equal(heading.getAttribute('aria-expanded'),'false')
+  assert.equal(localStorage.getItem('fyodor.fundamentals.collapsed.v1'),'true')
+  assert.equal(requests.length,beforeCollapse,'Collapse never invokes research')
+  await React.act(async()=>root.render(null))
+  await React.act(async()=>root.render(React.createElement(CurrencySummary)))
+  assert.equal(container.querySelector('h2 button').getAttribute('aria-expanded'),'false','Collapse survives remount')
+  await React.act(async()=>container.querySelector('h2 button').click())
+  assert.equal(container.querySelector('h2 button').getAttribute('aria-expanded'),'true')
   const row = usd(); await poll()
   assert.equal(usd(), row, 'Unchanged polling retains rendered rows')
   assert.ok(requests.at(-1).url.includes('after_revision=one'))
@@ -97,7 +111,7 @@ try {
   await React.act(async () => [...intervals.values()][0].fn())
   assert.match(usd().textContent, /Moderate strengthening.*Review due/, 'An elapsed checkpoint never reverses the verdict')
   assert.equal(usd().className, 'currency-review-due')
-  assert.equal(requests.length, 3, 'Countdown does not fetch or invoke research')
+  assert.equal(requests.length, 4, 'Countdown does not fetch or invoke research')
   snapshot = { ...snapshot, revision: 'two', as_of_utc: '2026-10-28T16:00:00Z', rows: snapshot.rows.map((row, index) => index ? row
     : { ...row, verdict: 'POTENTIAL WEAKENING', reassessment: { ...checkpoint, title: 'Fed press conference', event_at: '2026-10-28T16:30:00Z' } }) }
   await poll()
