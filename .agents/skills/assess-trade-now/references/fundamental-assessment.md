@@ -33,6 +33,34 @@ funding, hedging, trade exposure, fiscal credibility, supply, risk or haven dema
 Observed flows, reported explanations and inference are distinct. A rate gap,
 inventory draw or chart movement does not establish a private investor intention.
 
+## Release and retention check
+
+Identify the underlying policy backdrop, the release's incremental effect against
+attributed expectations, and the dominant pressure over the assessment's stated
+horizon. They can differ. Explain why the chosen mechanism outweighs the strongest
+verified opposition now; an old tightening story or a smaller intensity label is
+not sufficient justification for retaining a direction after contrary guidance.
+Change direction when the opposite mechanism dominates. If the balance depends on
+an unresolved decisive fact, save a gap rather than a new unsupported direction.
+An in-line release need not invalidate an independently supported continuing thesis.
+
+When available, use time-attributed futures/OIS and policy-sensitive yields to
+check the proposed transmission. Distinguish short-rate expectations from long
+yields, which can move for other reasons. Reconcile a material contradiction or
+disclose it; neither FX movement nor one yield supplies a mechanical verdict.
+This check requires no candles and does not make live pricing a prerequisite for
+a sourced fundamental interpretation. Compare like-for-like definitions and
+capture times; different report snapshots do not establish measured repricing.
+
+Treat statement, opening remarks and Q&A as successive information sets. Deliver
+the supported first stage promptly, then check available decisive later guidance
+before finishing the review. Credible reporting can establish the material remarks
+without a final official transcript. A still-pending material stage makes the
+first verdict provisional through that stage; an elapsed unverified stage remains
+a gap, not a completed review or an automatically renewed session verdict.
+Dynamic article bodies may change: preserve the observed version/cutoff and never
+attribute later text or market observations to an earlier assessment.
+
 ## Continuation, retracement or a changed thesis
 
 For reversal/recovery/continuation questions give the immediate-session view and

@@ -16,6 +16,12 @@ An old policy decision, absolute yield gap or an already-expected hike alone is
 not an active directional thesis. Reported flow explanations need attribution;
 unobserved investor intentions remain inference.
 
+For a retained verdict, apply the [release and retention check](fundamental-assessment.md#release-and-retention-check).
+Explain why the remaining mechanism still dominates new opposition over this
+currency's horizon. A weaker bullish case does not by itself prove either slight
+strengthening or weakening. Keep a longer-term backdrop distinct from immediate
+pressure and do not present a partial release review as a completed session view.
+
 Save direction.basis = standalone, verdict = POTENTIAL STRENGTHENING or
 POTENTIAL WEAKENING, intensity = strong / moderate / slight and a concise horizon
 covering the current assessment through its next material review. Intensity is

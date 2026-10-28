@@ -267,16 +267,23 @@ watch items have no chart timestamp.
 The repository has three market-analysis skills:
 [Assess Trade Now](.agents/skills/assess-trade-now/SKILL.md) combines current
 fundamentals, near-term discovery and upcoming-alert/holding reviews. It researches
-web sources before the dated backdrop, reads known feed limitations, immediately
-pins verified material discoveries and requests chart icons (unless explicitly
-read-only), then validates its coverage/persistence receipt. It sends a supported
-pair BUY/SELL decision promptly, explicitly retains/reverses prior directions,
-and surfaces emerging beneficiaries in LOOK HERE NEXT after a brief eight-currency
-catalyst sweep. Deep research stays with the request and material candidates;
-an unspecified broad event shortlist alone uses all eight/90 days. Pure bias and
-release-first verdicts are fundamental-first; entry discovery permits bounded
-market feedback under the skill, unless explicitly disabled.
-Daily Thesis currency rows keep their existing saved labels and schema.
+all eight currencies on a broad invocation, or the requested narrower scope,
+using saved evidence and fresh web sources. It checks material elapsed/imminent
+stages first, sends a supported decision promptly and saves developments and
+standalone currency assessments in Thesis. It distinguishes the policy backdrop,
+incremental release effect and pressure over the chosen horizon. Retaining a
+direction requires explaining why it still dominates new contrary evidence;
+reducing intensity alone does not justify keeping it. See the
+[release and retention check](.agents/skills/assess-trade-now/references/fundamental-assessment.md#release-and-retention-check).
+Material guidance/Q&A must be resolved or left as an explicit gap; a first-stage
+verdict is not a completed conference review. No final transcript is required
+when credible reporting verifies the decisive remarks. Research remains
+fundamental-first; candles or technical levels require an explicit request.
+Verified useful occurrences may be pinned with chart icons. A few significant
+future reminders are selected separately against the refreshed thesis, preserving
+explicit off choices, global pause and offset; worker read-back verifies their
+actual armed state. A broad event shortlist uses all eight/90 days, emphasizing
+the next few weeks. A discovery receipt is optional and proves no exhaustive coverage.
 [One Minute Before Release](.agents/skills/one-minute-before-release/SKILL.md)
 provides a bounded active-chat countdown using prepared context and fresh actuals.
 [Review Historical Research](.agents/skills/review-historical-research/SKILL.md)

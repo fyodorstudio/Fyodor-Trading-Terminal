@@ -91,6 +91,12 @@ Record the selection rationale and checked horizon so future agents can retain
 the filter without assuming all later events have already been audited. Unknown
 publication hours remain untimed watches, even when the event is important.
 
+Re-evaluate significance against the refreshed mechanism, not the previous verdict.
+A selected conference bell must name the additional guidance it can reveal; its
+existence does not complete that review. Resolve elapsed stages before choosing
+the next checkpoint, and distinguish a timed future reminder from an unresolved
+past-stage retrieval gap. Report both when relevant.
+
 Assess Trade Now carries standing permission to select a few verified significant
 future Invoke reminders for supported mechanisms, including separate conferences
 when material. Do not arm every pin, duplicate release packages, change price

@@ -32,11 +32,18 @@ an explicit price-aware request. No trades, broker changes or automatic monitori
    the dominant surprise or continuing mechanism, material offsets and beneficiaries.
    One release package is not several independent votes. An expected hike/hold/cut
    alone is not a direction. Never invent investor flows, probabilities or returns.
+   Apply the [release and retention check](references/fundamental-assessment.md#release-and-retention-check):
+   distinguish the policy backdrop, incremental release effect and pressure over
+   the chosen horizon. Rejustify the direction against new contrary evidence;
+   lowering intensity alone does not establish that the old direction survives.
 5. Give the supported current decision promptly once the decisive facts are checked.
    Do not delay an imminent release verdict for bookkeeping or unrelated currencies.
    A focused release updates affected mechanisms; it does not require a full eight-
    currency investigation. Missing decisive evidence is an explicit gap, not a
    forced fresh verdict. Check exceptional contrary news before carrying a view.
+   A first verdict is stage-specific. Resolve material subsequent guidance/Q&A
+   available during the turn before calling the review complete; bound access
+   failures and leave an explicit gap when a decisive stage cannot be verified.
 6. Save findings once and assessments separately when authorized. Requested Thesis
    research authorizes its save; live assessments/release invocations have standing
    permission to refresh an existing live summary. Record original publication/event

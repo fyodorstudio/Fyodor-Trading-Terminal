@@ -179,6 +179,15 @@ short-term bias without erasing the initial facts. Separate an active retracemen
 thesis supported by new information from a hypothetical reversal risk. Do not
 delay a supported first verdict to await speculative later developments.
 
+Apply the parent's [release and retention check](../assess-trade-now/references/fundamental-assessment.md#release-and-retention-check)
+before retaining direction after contrary guidance. Label which stages the first
+verdict covers. Check material later remarks already available within the active
+deadline; do not finish with an opening-stage verdict presented as a completed
+conference review. A later scheduled stage outside the bound is a separate
+checkpoint, not permission to extend the wait. If decisive Q&A remains unavailable,
+state that gap and withhold the unsupported fresh full-stage conclusion; a final
+official transcript is not required when credible reporting verifies the remarks.
+
 For speeches, panels and Q&A, verify the actual delivery/publication format,
 announced topic and any quiet-period or explicit policy-discussion restriction.
 "No prepared text" or an empty transcript page does not mean no policy remarks
