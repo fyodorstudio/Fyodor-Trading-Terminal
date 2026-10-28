@@ -8,10 +8,11 @@ import './price-alert-handles.css'
 type Drag = { id: string; original: number; status: PriceAlert['status']; precision: number; price: number
   startClientY: number; clientY: number; startY: number; pointerId: number; element: SVGSVGElement }
 
-export function PriceAlertHandles({ chartApi, seriesApi, alerts, lines, onPriceChange, onDragChange }: {
+export function PriceAlertHandles({ chartApi, seriesApi, alerts, lines, onPriceChange, onDragChange, onDeleteAlert }: {
   chartApi: IChartApi; seriesApi: ISeriesApi<'Candlestick', Time>; alerts: PriceAlert[]
   lines: RefObject<Map<string, IPriceLine>>; onPriceChange: (id: string, price: number) => void
   onDragChange: (id: string | null) => void
+  onDeleteAlert: (id: string) => void
 }) {
   const overlay = useRef<SVGSVGElement>(null)
   const viewport = useDrawingViewport(chartApi, seriesApi, overlay)
@@ -87,6 +88,11 @@ export function PriceAlertHandles({ chartApi, seriesApi, alerts, lines, onPriceC
       if (y == null || y < 0 || y > viewport.height) return null
       return <line key={alert.id} className="price-alert-handle" data-price-alert-id={alert.id} x1={0} x2={viewport.width} y1={y} y2={y}
         role="slider" tabIndex={0} aria-label={`Drag ${alert.name || alert.symbol} alert price`} aria-valuenow={price} aria-valuemin={10 ** -alert.precision}
+        onContextMenu={event => {
+          event.preventDefault(); event.stopPropagation()
+          onDeleteAlert(alert.id)
+          cancel(true, false)
+        }}
         onPointerDown={event => {
           if (event.button !== 0 || !overlay.current) return
           event.preventDefault(); event.stopPropagation(); cancel()
@@ -100,7 +106,7 @@ export function PriceAlertHandles({ chartApi, seriesApi, alerts, lines, onPriceC
           event.preventDefault(); event.stopPropagation()
           const next = Number((alert.price + (event.key === 'ArrowUp' ? 1 : -1) * (event.shiftKey ? 10 : 1) * 10 ** -alert.precision).toFixed(alert.precision))
           if (next > 0) onPriceChange(alert.id, next)
-        }}><title>Drag vertically to change price. Escape cancels. Arrow keys fine-tune.</title></line>
+        }}><title>Drag vertically to change price. Escape cancels. Arrow keys fine-tune. Right-click to delete.</title></line>
     })}
   </svg>
 }

@@ -86,8 +86,10 @@ export function PriceAlertsDock({ controller, onSelectSymbol, onCreate, brokerId
   }), [controller.alerts])
   return <section className="price-alerts-dock" aria-label="Price Alerts">
     <div className="price-alert-controls">
-      <button type="button" onClick={onCreate} disabled={!brokerId || !controller.live}>⏰ New price alert</button>
-      <label><input type="checkbox" checked={controller.playSound} onChange={event => controller.setSound(event.target.checked, controller.duration)} /> Play sound</label>
+      <div className="price-alert-create">
+        <button type="button" onClick={onCreate} disabled={!brokerId || !controller.live}>⏰ New price alert</button>
+        <label><input type="checkbox" checked={controller.playSound} onChange={event => controller.setSound(event.target.checked, controller.duration)} /> Play sound</label>
+      </div>
       <div className="price-alert-sound">
         <select aria-label="Price alert sound" value={controller.soundId} onChange={event => controller.setSound(controller.playSound, controller.duration, event.target.value as PriceAlertSoundId)}>
           {priceAlertSounds.map(sound => <option key={sound.id} value={sound.id}>{sound.label}</option>)}

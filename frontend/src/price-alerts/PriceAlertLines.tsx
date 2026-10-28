@@ -3,9 +3,10 @@ import type { IChartApi, IPriceLine, ISeriesApi, Time } from 'lightweight-charts
 import type { PriceAlert } from './price-alert-store'
 import { PriceAlertHandles } from './PriceAlertHandles'
 
-export function PriceAlertLines({ chartApi, seriesApi, alerts, symbol, dragEnabled, onPriceChange, onDragChange }: {
+export function PriceAlertLines({ chartApi, seriesApi, alerts, symbol, dragEnabled, onPriceChange, onDragChange, onDeleteAlert }: {
   chartApi: IChartApi; seriesApi: ISeriesApi<'Candlestick', Time>; alerts: PriceAlert[]; symbol: string
   dragEnabled: boolean; onPriceChange: (id: string, price: number) => void; onDragChange: (id: string | null) => void
+  onDeleteAlert: (id: string) => void
 }) {
   const lines = useRef(new Map<string, IPriceLine>())
   const visible = useMemo(() => alerts.filter(alert => alert.symbol === symbol && alert.status !== 'triggered'), [alerts, symbol])
@@ -28,5 +29,5 @@ export function PriceAlertLines({ chartApi, seriesApi, alerts, symbol, dragEnabl
     }
   }, [seriesApi, visible])
   return visible.length && dragEnabled ? <PriceAlertHandles chartApi={chartApi} seriesApi={seriesApi} alerts={visible}
-    lines={lines} onPriceChange={onPriceChange} onDragChange={onDragChange} /> : null
+    lines={lines} onPriceChange={onPriceChange} onDragChange={onDragChange} onDeleteAlert={onDeleteAlert} /> : null
 }

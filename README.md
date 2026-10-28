@@ -157,14 +157,16 @@ and release to save its new price, or use
 the focused line's Up/Down keys (Shift for ten ticks). Escape cancels a drag. Quote
 checks for that alert pause during dragging, and moving a paused line keeps it paused.
 Armed/paused lines follow the symbol across timeframes;
-triggered lines disappear while their result stays in the dock. Alerts are separate
+triggered lines disappear while their result stays in the dock. Right-click an
+armed/paused line to delete its alert, as with ordinary drawings. Alerts are separate
 from ordinary drawings and calendar alarms. They persist in browser storage and
 use their exact broker/symbol's live Bid quotes (about every 2.5 seconds); sampled
 touches or crossings trigger once. Missing/stale quotes pause monitoring. This is
 an open-terminal feature: closed/sleeping browsers cannot monitor, and touches
 between samples may be missed. On reopening, a quote beyond an armed threshold can
 trigger; no historical touch time is inferred. Enable/preview the original Thin
-chime and choose its duration (three seconds by default). Browser/system audio
+chime or one of eleven other sounds and choose its duration (three seconds by
+default). Browser/system audio
 restrictions still apply; the dock reports blocked playback or storage failures.
 The drawing toolbar's delete button clears only the current pair, across all timeframes.
 Hold Shift while drawing a Trend line or Price note to keep it horizontal; release

@@ -62,7 +62,8 @@ try {
   assert.equal(saved().alerts.length, 3)
   assert.equal(saved().duration, 3)
   assert.equal(saved().soundId, 'thin')
-  assert.deepEqual([...host.querySelector('[aria-label="Price alert sound"]').options].map(option => option.textContent), ['Thin', 'Bell', 'Double beep', 'Digital', 'Soft chime'])
+  assert.deepEqual([...host.querySelector('[aria-label="Price alert sound"]').options].map(option => option.textContent),
+    ['Thin', 'Bell', 'Double beep', 'Digital', 'Pulse', 'Triple beep', 'Doorbell', 'Rising chime', 'Falling chime', 'Sonar', 'Buzzer', 'Soft chime'])
   const upRow = [...host.querySelectorAll('.price-alert-row')].find(row => row.querySelector('.price-alert-title').textContent === 'EURUSD Crossing 1.20000')
   assert.equal(upRow.querySelector('.price-alert-state').textContent, 'Active')
   assert.equal(upRow.querySelector('.price-alert-actions').querySelectorAll('button').length, 2, 'Only lifecycle and trash icons remain')

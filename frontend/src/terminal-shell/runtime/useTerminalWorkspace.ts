@@ -251,7 +251,7 @@ export function useTerminalWorkspace() {
     onClearInspection: !activeDrawingTool && !researchActive && !researchSeed && inspector.selectedRelease ? clearChartInspection : undefined,
     researchActive, bars, timeframe, onResearchRange: selectResearchRange, onCancelResearch: cancelResearch,
     symbol: activeSymbol, onSelectExternal: selectExternal, eventIconsVisible, priceAlerts: priceAlerts.brokerAlerts,
-    onAlertPriceChange: priceAlerts.moveAlert, onAlertDragChange: priceAlerts.setDraggingAlertId })
+    onAlertPriceChange: priceAlerts.moveAlert, onAlertDragChange: priceAlerts.setDraggingAlertId, onDeleteAlert: priceAlerts.deleteAlert })
   const sourceState: 'error' | 'live' | 'waiting' = !bridge.reachable || marketData.marketWatchStatus === 'unavailable'
     ? 'error'
     : mt5Connected && marketData.marketWatchStatus === 'live'

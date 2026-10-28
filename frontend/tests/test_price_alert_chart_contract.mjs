@@ -68,7 +68,7 @@ try {
     const controller = usePriceAlerts(broker, quotes, true)
     React.useEffect(() => { api = controller })
     return React.createElement(PriceAlertLines, { key: `${broker}:${symbol}:${scope}`, chartApi: chart, seriesApi: series,
-      alerts: controller.brokerAlerts, symbol, dragEnabled: enabled, onPriceChange: controller.moveAlert, onDragChange: controller.setDraggingAlertId })
+      alerts: controller.brokerAlerts, symbol, dragEnabled: enabled, onPriceChange: controller.moveAlert, onDragChange: controller.setDraggingAlertId, onDeleteAlert: controller.deleteAlert })
   }
   const render = async (props = {}) => { await React.act(async () => root.render(React.createElement(Harness, props))); await paint() }
   const saved = () => JSON.parse(storage.getItem('fyodor.price-alerts.v1')).alerts
@@ -143,10 +143,30 @@ try {
   await command(() => api.updateAlert(first, 'price', 12.8)); await paint()
   assert.equal(captures.size, 0)
   assert.equal(native('Breakout').options().price, 12.8, 'A concurrent edit cancels preview without restoring stale prices')
+  const beforeDelete = writes
+  let bubbled = 0
+  const onContextMenu = () => bubbled++
+  host.addEventListener('contextmenu', onContextMenu)
+  const pausedMenu = new dom.MouseEvent('contextmenu', { bubbles: true, cancelable: true, button: 2 })
+  await command(() => handle(paused).dispatchEvent(pausedMenu)); await paint()
+  assert.equal(pausedMenu.defaultPrevented, true, 'Right-click suppresses the browser menu')
+  assert.equal(bubbled, 0, 'Alert deletion does not reach chart or drawing context handlers')
+  assert.equal(record(paused), undefined, 'Right-click deletes a paused alert from storage')
+  assert.equal(record(first).price, 12.8, 'Deleting a paused alert preserves the other alert')
+  assert.equal(nativeLines.size, 1)
+  assert.equal(writes, beforeDelete + 1, 'Right-click persists deletion once')
   await pointer(handle(), 'pointerdown', series.priceToCoordinate(12.8))
-  await command(() => api.updateAlert(first, 'delete')); await paint()
+  const stale = svg()
+  await pointer(stale, 'pointermove', series.priceToCoordinate(13)); await paint()
+  await command(() => handle().dispatchEvent(new dom.MouseEvent('contextmenu', { bubbles: true, cancelable: true, button: 2 }))); await paint()
   assert.equal(captures.size, 0)
   assert.equal(handle(), null)
+  assert.equal(nativeLines.size, 0)
+  assert.deepEqual(saved(), [], 'Right-click also deletes an armed alert during a drag')
+  const afterDelete = writes
+  await pointer(stale, 'pointerup', series.priceToCoordinate(13)); await paint()
+  assert.equal(writes, afterDelete, 'A pending drop cannot restore the deleted alert')
+  host.removeEventListener('contextmenu', onContextMenu)
   assert.equal(JSON.stringify(series.data()), originalCandles, 'Alert dragging never changes candles')
   await React.act(async () => root.unmount()); await paint()
   assert.equal(nativeLines.size, 0); assert.equal(captures.size, 0)

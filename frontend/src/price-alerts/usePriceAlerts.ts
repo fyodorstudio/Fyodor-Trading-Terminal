@@ -96,6 +96,7 @@ export function usePriceAlerts(brokerId: string | null, quotes: SymbolQuote[], l
     commit({ ...current.current, alerts })
   }, [commit])
   const moveAlert = useCallback((id: string, price: number) => updateAlert(id, 'move', price), [updateAlert])
+  const deleteAlert = useCallback((id: string) => updateAlert(id, 'delete'), [updateAlert])
   const renameAlert = useCallback((id: string, name: string) => {
     commit({ ...current.current, alerts: current.current.alerts.map(alert => alert.id === id ? { ...alert, name: name.trim().slice(0, 120) } : alert) })
   }, [commit])
@@ -107,7 +108,7 @@ export function usePriceAlerts(brokerId: string | null, quotes: SymbolQuote[], l
   const brokerAlerts = useMemo(() => store.alerts.filter(alert => alert.brokerId === brokerId), [store.alerts, brokerId])
   const liveSymbols = useMemo(() => new Set(quotes.filter(quote => Number.isFinite(quote.bid) && quote.bid > 0).map(quote => quote.symbol)), [quotes])
   return { alerts: store.alerts, brokerAlerts, addAlert, updateAlert, playSound: store.playSound, duration: store.duration, soundId: store.soundId,
-    setSound, enableSound, previewSound, soundBlocked, storageError, live, liveSymbols, renameAlert, moveAlert, setDraggingAlertId: changeDraggingAlert }
+    setSound, enableSound, previewSound, soundBlocked, storageError, live, liveSymbols, renameAlert, moveAlert, deleteAlert, setDraggingAlertId: changeDraggingAlert }
 }
 
 export type PriceAlertsController = ReturnType<typeof usePriceAlerts>
