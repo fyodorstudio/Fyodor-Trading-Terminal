@@ -1,7 +1,6 @@
 # Upcoming alerts and holding/reassessment review
 
-This mode is owned by Assess Trade Now. Run its immediate discovery and pin pass
-first; do not ask the user to invoke a separate skill. A request for alerts alone
+This mode is owned by Assess Trade Now. Check immediate material stages first; do not ask the user to invoke a separate skill. A request for alerts alone
 needs a concise event shortlist, not an unsolicited full pair assessment.
 
 ## Scope and relevance
@@ -45,8 +44,8 @@ not be broadcast time. Preserve approximate windows/date-only schedules.
 
 ## Source identity, pins and handoff
 
-Use the parent skill's mandatory `highlights`, `limitations`, separate `external`
-and complete scoped `upcoming` reads, with pagination. Read focused prior journals
+Read relevant `highlights`, `limitations`, separate `external` and scoped
+`upcoming` identities with complete pagination when preparing pins/reminders. Read focused prior journals
 only when they add useful context. Exact broker source/value IDs distinguish
 occurrences; a label alone does not. Unknown IDs remain admissible Other events.
 Web schedules/actuals take precedence over flawed broker fields; preserve the
@@ -56,7 +55,7 @@ Under the parent skill's standing authorization, pin/restore verified material
 occurrences as found and request chart icons for dated External Source records.
 Reuse active pins/stable keys and preserve histories. A source not yet retrieved
 is a watch/retrieval gap, not a confirmed timed event. Do not manufacture a broker
-ID or a precise countdown. Read back every write and complete the coverage receipt.
+ID or a precise countdown. Read back every write; source coverage remains explicit. A manual receipt is optional.
 
 If the user explicitly requests AI impact labels, use
 [Alert impact](../../../../docs/HIGHLIGHT-JOURNAL.md#ai-impact-in-alert).
@@ -111,7 +110,7 @@ Read back selected/armed state, offset, global enable and healthy worker before
 claiming a running reminder. Report exact identity/runtime/write gaps. Selected
 under global pause is not armed. No Windows Clock duplicate, recurring monitor or
 scheduled AI invocation. The summary deadline and bell are separate records;
-report each accurately. Research does not silently edit Thesis.
+report each accurately. Live Thesis updates use the parent research workflow.
 
 ## Deliver the review
 
@@ -129,7 +128,7 @@ Suggested return times do not create alarms or coverage. State the checked windo
 and specific unresolved source gaps; incomplete coverage cannot support an all-clear.
 
 Pure holding-risk/bias reviews are fundamental-first. Entry/next-opportunity
-requests permit the parent entry-decisions.md bounded feedback by default;
-explicit fundamental-only/no-candles overrides win. Keep chart
+requests remain fundamental-only; bounded price feedback needs an explicit price-aware request.
+Explicit fundamental-only/no-candles overrides win. Keep chart
 levels, technical entries, stops, sizing and trade execution with the user. Full journals
-and Thesis writes still need their own request; no service restarts or monitoring.
+keep their request boundary; live Thesis updates retain standing focused permission. No monitoring follows.

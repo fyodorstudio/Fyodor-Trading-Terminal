@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { validThesisSnapshot, type ThesisSnapshot } from './thesis-model'
 
-export function useTheses(scope: string, month: string) {
+export function useTheses(scope: string, month: string, enabled = true) {
   const key = `${scope}:${month}`
   const [snapshot, setSnapshot] = useState<{ key: string; data: ThesisSnapshot } | null>(null)
   const [failure, setFailure] = useState<{ key: string; message: string } | null>(null)
   useEffect(() => {
+    if (!enabled) return
     const controller = new AbortController()
     let timer: number | undefined, revision: string | null = null, sequence = 0
     async function fetchSnapshot() {
@@ -42,6 +43,6 @@ export function useTheses(scope: string, month: string) {
     return () => {
       controller.abort(); window.clearTimeout(timer)
     }
-  }, [key, scope, month])
-  return { data: snapshot?.key === key ? snapshot.data : null, error: failure?.key === key ? failure.message : null }
+  }, [key, scope, month, enabled])
+  return { data: enabled && snapshot?.key === key ? snapshot.data : null, error: enabled && failure?.key === key ? failure.message : null }
 }

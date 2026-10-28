@@ -76,6 +76,9 @@ class DailyDirection(Payload):
     reason: str = Field(min_length=1, max_length=1500)
     verified_utc: datetime
     sources: list[JournalSource] = Field(min_length=1, max_length=8)
+    basis: Literal['standalone'] | None = Field(default=None, exclude_if=lambda value: value is None)
+    intensity: Literal['strong', 'moderate', 'slight'] | None = Field(default=None, exclude_if=lambda value: value is None)
+    horizon: str = Field(default='', max_length=300, exclude_if=lambda value: not value)
     reassessment: CurrencyCheckpoint | None = None
     reassessment_gap: str = Field(default='', max_length=700)
     evidence_anchor: DirectionAnchor | None = Field(default=None, exclude_if=lambda value: value is None)
@@ -182,6 +185,13 @@ class ReviewRequest(Payload):
                 if direction.verified_utc.tzinfo is None or direction.verified_utc > recorded_at:
                     raise ValueError('Direction verification needs its real offset-aware clock, no later than now')
                 direction.verified_utc = direction.verified_utc.astimezone(timezone.utc)
+                if direction.basis == 'standalone':
+                    if not direction.intensity or not direction.horizon.strip():
+                        raise ValueError('Standalone currency directions need qualitative intensity and an assessment horizon')
+                elif direction.intensity or direction.horizon:
+                    raise ValueError('Qualitative intensity and horizon require an explicit standalone currency assessment')
+                if not getattr(self, 'saved_utc', None) and not self.review_id and direction.basis != 'standalone':
+                    raise ValueError('New daily reviews need standalone currency directions; do not copy a pair-leg bias')
                 anchor = direction.evidence_anchor
                 if anchor:
                     if not anchor.title.strip() or not anchor.note.strip() or not any(source.kind == 'web' for source in anchor.sources):

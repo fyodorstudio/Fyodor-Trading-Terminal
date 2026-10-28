@@ -28,11 +28,9 @@ Futures structure can corroborate tightness but does not identify private motive
 
 ## Sources and discovery
 
-Run `discovery start --scope BRENT` (or WTI/GOLD), actual broker, same cutoff,
-distinct output directory. The receipt includes USD macro/operations coverage
-because quotation/funding can matter; this is not a USD directional claim.
-The broker upcoming index is USD context, not an oil/gold event inventory.
-Complete the three additional source families with opened bodies:
+Use opened commodity-specific sources in addition to relevant USD context. The
+broker upcoming index is not an oil/gold inventory. An optional discovery receipt
+can record BRENT/WTI/GOLD scope and these source families when an audit is useful:
 
 - `commodity-news`: fresh dated reporting plus the original authority for a
   material geopolitical, sanctions, producer or shipping development.
@@ -47,8 +45,8 @@ Verify the past hour, next six hours/overnight, fresh 24-hour developments and
 at least seven days of schedules, including inventories, producer meetings and
 material USD stages. Oil targets are not actual production; an announced stock
 release is not barrels already delivered. Keep stock levels, changes, forecasts,
-revisions and release vintages distinct. Use the same record/fallback/validate
-procedure as currency receipts. Link promoted receipts to the main invocation.
+revisions and release vintages distinct. Keep actual retrieval clocks and material failures. A receipt is optional; USD
+context alone does not establish commodity coverage.
 
 External records use `instruments: ["BRENT", "WTI"]` or `["GOLD"]`; currencies
 may be empty when no independent currency relevance is established. Existing
@@ -72,15 +70,18 @@ The canonical ID remains separate from the exact symbol. Commodity reactions
 use price/percentage changes, never forex pips. Apply shared historical broker
 clocks, lock, coverage/completed-bar and request bounds; leave the bridge unchanged.
 
-## Dated Thesis
+## Thesis findings
 
-A requested fill saves the eight currency rows plus only supported commodity
-opportunities in `commodity_opportunities`, under docs/THESIS.md. Keep commodity
-identities/evidence separate from currency verdicts. Do not add commodity news to
-a USD row solely because the instrument is dollar-quoted. Shared relevant news
-may be cited in both places with its distinct mechanism explained. No forced
-commodity rows or opportunity quota. Each saved entry has explicit contract,
-direction, active/conditional stage, same-day window, evidence and invalidation.
-Future scheduled commodity stages may be saved as instrument checkpoints; never
-store their expected results as occurred news. A daily window is not a promise
-that the mechanism persists or an instruction to hold through every release.
+Save material commodity findings once through the shared research ledger, with
+`instruments: [BRENT, WTI]` or `[GOLD]`, an explicit `instrument_note`,
+`commodity_implication` and `commodity_thesis_effect`. Currency impacts may be
+empty when no independent currency channel is established. Resolve benchmark,
+provider, spot/CFD/futures type, exact symbol and contract/roll before presenting
+an instrument-specific entry; missing identity stays a gap. No eight-currency
+payload or same-day entry window is required to save a supply/demand finding.
+The dock keeps these findings in a separate optional commodity section.
+
+Existing saved commodity opportunities and their full evidence/windows remain
+in the earlier daily archive, with their old compatibility schema preserved.
+New entry comparisons are optional output, never a forced accompaniment to research.
+Future results are not occurred findings; scheduled stages remain upcoming.

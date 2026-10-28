@@ -24,7 +24,8 @@ export function currencyDirectionTimeline(reviews: ThesisReviewEntry[], selected
   const changes: { at: string; direction: NonNullable<NonNullable<ThesisReviewEntry['currency_views']>[number]['direction']> }[] = []
   for (const review of [...cutoffs.values()].sort((a, b) => Date.parse(a.as_of_utc) - Date.parse(b.as_of_utc))) {
     const direction = review.currency_views?.find(view => view.currency === currency)?.direction
-    if (direction && direction.verdict !== changes.at(-1)?.direction.verdict) changes.push({ at: review.as_of_utc, direction })
+    const prior = changes.at(-1)?.direction
+    if (direction && (direction.verdict !== prior?.verdict || direction.intensity !== prior?.intensity || direction.basis !== prior?.basis)) changes.push({ at: review.as_of_utc, direction })
   }
   return changes.length > 1 ? changes : []
 }

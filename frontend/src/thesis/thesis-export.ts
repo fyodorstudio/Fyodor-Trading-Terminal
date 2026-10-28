@@ -1,4 +1,4 @@
-import { backdropCategories, currencyNewsHeading, currencyNewsItems, currencyReviewTiming, currencyThesisPrompt, currencyUpcoming, opportunitySelectionMessage, opportunityWindow, reviewCurrencies, safeThesisLink, selectedThesisReview, sharedOpportunityWindow, thesisDay, type OpportunityEvidence, type ThesisEntry, type ThesisReviewEntry, type ThesisSnapshot, type ThesisSource } from './thesis-model'
+import { backdropCategories, currencyNewsHeading, currencyNewsItems, currencyReviewTiming, currencyThesisPrompt, currencyUpcoming, dailyDirectionLabel, opportunitySelectionMessage, opportunityWindow, reviewCurrencies, safeThesisLink, selectedThesisReview, sharedOpportunityWindow, thesisDay, type OpportunityEvidence, type ThesisEntry, type ThesisReviewEntry, type ThesisSnapshot, type ThesisSource } from './thesis-model'
 
 import { assessmentTime, currencyDirectionTimeline, newsSourceTime } from './currency-timeline'
 
@@ -86,13 +86,13 @@ function currencyMarkdown(data: ThesisSnapshot, selectedDate: string, exportedAt
     const view = review?.currency_views?.find(item => item.currency === currency)
     const news = currencyNewsItems(review, currency, selectedDate)
     const timeline = currencyDirectionTimeline(data.reviews ?? [], review, currency)
-    const history = timeline.map((item, index) => `${index ? 'Reassessed' : 'Earlier assessment'} ${assessmentTime(item.at)}: **${item.direction.verdict}** — ${text(item.direction.reason)}`).join('<br><br>')
+    const history = timeline.map((item, index) => `${index ? 'Reassessed' : 'Earlier assessment'} ${assessmentTime(item.at)}: **${dailyDirectionLabel(item.direction)}** — ${text(item.direction.reason)}`).join('<br><br>')
     const reassessment = view?.direction?.reassessment
     const until = view?.direction ? (reassessment ? `Reassess by: **${text(reassessment.title)}** · ${reassessment.event_at ? timed(reassessment.event_at) : `${day(reassessment.event_date!)} · hour unverified`}. ${text(reassessment.note)} ${sources(reassessment.sources)}`
       : `Reassessment checkpoint not set. ${text(view.direction.reassessment_gap ?? '')}`) + '<br><br>' : ''
     const anchor = view?.direction?.evidence_anchor
     const age = anchor ? `Evidence anchor: **${text(anchor.title)}** · ${anchor.event_at ? timed(anchor.event_at) : `${day(anchor.event_date!)} · hour unknown`}. ${text(anchor.note)} ${sources(anchor.sources)}<br><br>` : ''
-    const verdict = (view?.direction ? `**${view.direction.verdict}** — ${text(view.direction.reason)}<br><br>${age}${until}` : '') + (history ? history + '<br><br>' : '')
+    const verdict = (view?.direction ? `**${dailyDirectionLabel(view.direction)}** — ${text(view.direction.reason)}<br><br>${view.direction.basis === 'standalone' ? `Standalone fundamental pressure · ${text(view.direction.horizon!)}<br><br>` : ''}${age}${until}` : '') + (history ? history + '<br><br>' : '')
     const explanation = verdict + (news.map((item, index) => `${index + 1}. ${text(item.summary)}`).join('<br><br>') || (review ? text(view?.news_gap || 'No same-date news saved.') : 'Not filled'))
     const references = (view?.direction ? `Assessment ${assessmentTime(review!.as_of_utc)} · checked ${assessmentTime(view.direction.verified_utc)}: ${sources(view.direction.sources)}<br><br>` : '')
       + (timeline.length ? timeline.map(item => `${assessmentTime(item.at)}: ${sources(item.direction.sources)}`).join('<br>') + '<br><br>' : '')
@@ -106,7 +106,7 @@ function currencyMarkdown(data: ThesisSnapshot, selectedDate: string, exportedAt
   if (review) {
     lines.push('## Saved news provenance', '')
     for (const view of review.currency_views ?? []) {
-      if (view.direction) lines.push(`- ${view.currency} daily verdict: ${view.direction.verdict}. ${text(view.direction.reason)} Source checked ${timed(view.direction.verified_utc)}. ${sources(view.direction.sources)}`)
+      if (view.direction) lines.push(`- ${view.currency} daily verdict: ${dailyDirectionLabel(view.direction)}. ${text(view.direction.reason)} Fundamentals assessed ${timed(view.direction.verified_utc)}. ${view.direction.horizon ? `Horizon: ${text(view.direction.horizon)}. ` : ''}${sources(view.direction.sources)}`)
       for (const [index, item] of (view.news ?? []).entries()) lines.push(`- ${view.currency} ${index + 1}: published ${item.published_at ? timed(item.published_at) : item.published_on + ' · publication hour unverified'}; source checked ${timed(item.verified_utc)}. ${text(item.summary)} ${sources(item.sources)}`)
       if (view.news_gap) lines.push(`- ${view.currency}: ${text(view.news_gap)}`)
       if (review.format !== 'daily_news') lines.push(`- Preserved legacy ${view.currency} assessment: ${text(view.bias ?? '')}. ${text(view.summary ?? '')} ${text(view.counterweight ?? '')} ${sources(view.sources ?? [])}`)

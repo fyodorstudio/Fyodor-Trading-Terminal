@@ -170,6 +170,11 @@ globalThis.fetch = (url, options = {}) => {
   if (u.startsWith('/storage-api/theses/summary')) return Promise.resolve({ ok: true, json: async () => ({ schema: 1, revision: 'summary-fixture',
     review_id: 'a'.repeat(32), as_of_utc: '2026-10-08T11:00:00Z', rows: ['USD','EUR','GBP','JPY','CHF','CAD','AUD','NZD'].map(currency => ({ currency,
       verdict: 'POTENTIAL STRENGTHENING', verified_utc: '2026-10-08T11:00:00Z', reassessment: null, reassessment_gap: '' })) }) })
+  if (u.startsWith('/storage-api/theses/research')) {
+    const params = new URL(u, 'http://localhost').searchParams
+    return Promise.resolve({ ok: true, json: async () => ({ schema: 1, from: params.get('from'), to: params.get('to'), revision: 'research-fixture',
+      ...(params.get('after_revision') === 'research-fixture' ? { unchanged: true } : { developments: [], assessments: [] }) }) })
+  }
   if (u.startsWith('/storage-api/theses')) {
     const params = new URL(u, 'http://localhost').searchParams
     return Promise.resolve({ ok: true, json: async () => ({ schema: 1, scope: params.get('scope'), month: params.get('month'),
@@ -291,7 +296,7 @@ try {
   assertQuiet('Opening Thesis')
   const thesisRequestCount = requests.filter(url => url.startsWith('/storage-api/theses')).length
   reset()
-  await tick('pollTheses', 5000)
+  await tick('pollResearch', 5000)
   assertQuiet('Unchanged Thesis poll', true)
   assert.equal(requests.filter(url => url.startsWith('/storage-api/theses')).length, thesisRequestCount + 1)
   await click(button('Thesis'))

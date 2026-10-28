@@ -64,6 +64,7 @@ const reviewEntry = { id: 'a'.repeat(32), review_id: 'b'.repeat(32), expected_ve
 let review = { ...reviewEntry, versions: [reviewEntry], opportunities: [acrossRows[0], acrossRows[1], conditional] }
 const response = route => {
   if (offline) return { ok: false, status: 503, json: async () => ({}) }
+  if (route.pathname === '/storage-api/theses/research') return { ok: true, json: async () => ({ schema: 1, revision, from: route.searchParams.get('from'), to: route.searchParams.get('to'), developments: [], assessments: [] }) }
   const scope = route.searchParams.get('scope'), sourceId = route.searchParams.get('source_id')
   const month = route.searchParams.get('month')
   const base = { schema: 1, scope, month, source_id: sourceId, revision }
@@ -106,6 +107,12 @@ try {
   const future = timedReview('2026-10-26T13:00:00Z', 'POTENTIAL STRENGTHENING')
   assert.deepEqual(currencyDirectionTimeline([future, later, unchanged, early], later, 'JPY').map(item => item.at), [early.as_of_utc, later.as_of_utc])
   assert.deepEqual(currencyDirectionTimeline([early, unchanged], unchanged, 'JPY'), [], 'Unchanged assessments add no reversal history')
+  const graded = (base, intensity) => ({ ...base, currency_views: base.currency_views.map(view => ({ ...view,
+    direction: { ...view.direction, basis: 'standalone', intensity, horizon: 'Current session through the next checkpoint.' } })) })
+  const slight = graded(early, 'slight'), moderate = graded(unchanged, 'moderate')
+  assert.deepEqual(currencyDirectionTimeline([slight, moderate], moderate, 'JPY').map(item => item.direction.intensity),
+    ['slight', 'moderate'], 'A pressure change is visible even when both verdicts are strengthening')
+  assert.deepEqual(currencyDirectionTimeline([early, slight], slight, 'JPY'), [], 'Same-cutoff correction replaces the older basis')
   const correctedCutoff = timedReview('2026-10-26T08:00:00+07:00', 'POTENTIAL WEAKENING', '2026-10-26T03:00:00Z')
   assert.deepEqual(currencyDirectionTimeline([early, correctedCutoff, later], later, 'JPY'), [], 'Correction at the same instant replaces the earlier interpretation')
   assert.deepEqual(currencyDirectionTimeline([early, { ...later, provenance: 'reconstruction' }], { ...later, provenance: 'reconstruction' }, 'JPY'), [])
@@ -280,234 +287,21 @@ try {
   await React.act(async () => { for (const item of held.splice(0).reverse()) item.resolve(response(item.route)) })
   assert.equal(button('Across All Currency').getAttribute('aria-pressed'), 'true')
   assert.equal(container.querySelector('[aria-label="Thesis pair"]'), null)
-  assert.equal(container.querySelector('[aria-label="Thesis day"]').value, '19')
-  assert.equal(container.querySelector('[aria-label="Thesis day"]').options.length, 31)
-  assert.equal(rows().length, 0, 'Across no longer displays pair opportunity tables')
   assert.equal(container.querySelectorAll('[data-thesis-currency]').length, 8)
-  assert.ok(container.textContent.includes('Not filled'))
-  assert.equal(planRows().length, 0)
-  assert.equal(container.querySelectorAll('details').length, 0, 'Across has no old disclosure sections')
-  await click(button('Copy fill-date prompt'))
+  await click(button('Copy research prompt'))
   assert.ok(copied.includes('2026-10-19'))
-  assert.ok(copied.includes('USD, EUR, GBP, JPY, CHF, CAD, AUD and NZD'))
-  assert.ok(copied.includes('currency_views'))
-  assert.ok(copied.includes('does not authorize backdating'))
-  assert.ok(copied.includes('at least four distinct'))
-  assert.ok(copied.includes('format: daily_news'))
-  assert.ok(copied.includes('Do not scan, select or recommend pairs'))
-  assert.ok(copied.includes('A preference for caution must never replace a directional judgment'))
-  assert.ok(copied.includes('POTENTIAL STRENGTHENING or POTENTIAL WEAKENING'))
-  assert.ok(copied.includes('both within the selected Jakarta date'))
-  assert.ok(copied.includes('successful write and focused read-back'))
-  const allSnapshot = { schema: 1, scope: 'ALL', month: '2026-10', source_id: null, revision: 'all', past: acrossRows, planned: [] }
-  assert.equal(validThesisSnapshot(allSnapshot, 'ALL', '2026-10', null), true)
-  assert.equal(validThesisSnapshot({ ...allSnapshot, past: october }, 'ALL', '2026-10', null), false)
-  showReviews = true; revision = 'with-review'; await poll()
-  const currencyTable = container.querySelector('[aria-label="Currency fundamental backdrop"]')
-  assert.deepEqual([...currencyTable.querySelectorAll('thead th')].map(node => node.textContent), ['Currency', '19:10:2026 FUNDAMENTAL', 'SOURCE', 'UPCOMING CHECKPOINT'])
-  assert.deepEqual([...currencyTable.querySelectorAll('[scope="row"]')].map(node => node.textContent), ['USD','EUR','GBP','JPY','CHF','CAD','AUD','NZD'])
-  assert.ok(currencyTable.textContent.includes('No same-date news saved.'))
-  assert.ok(!currencyTable.textContent.includes('USD strongest counterweight.'))
-  assert.ok(!currencyTable.textContent.includes('USD bias.'))
-  assert.ok(currencyTable.textContent.includes('Oct 20, 2026, 1:00 PM Jakarta'))
-  assert.ok(currencyTable.textContent.includes('hour unverified'))
-  assert.ok(!container.textContent.includes(review.takeaway), 'Old pair takeaway is removed from Across')
-  assert.ok(!container.textContent.includes('Conditional / weakened'))
-  assert.ok(!container.textContent.includes('Fundamental backdrop · Sources'))
-  assert.ok(!container.textContent.includes('Review details'))
-  assert.ok(!container.textContent.includes('EURCHF'))
-  await poll()
-  assert.equal(container.querySelector('[aria-label="Currency fundamental backdrop"]'), currencyTable, 'Quiet polls preserve the currency table')
-  const daySelect = container.querySelector('[aria-label="Thesis day"]')
-  const beforeDayRequests = requests.length
-  await React.act(async () => { daySelect.value = '18'; daySelect.dispatchEvent(new dom.Event('change', { bubbles: true })) })
-  assert.ok(!container.textContent.includes('USD concise backdrop.'), 'A selected day never inherits a different day’s assessment')
-  assert.equal(container.querySelectorAll('[data-thesis-currency]').length, 8)
-  assert.ok(container.textContent.includes('Not filled'))
-  assert.ok(container.textContent.includes('18:10:2026 FUNDAMENTAL'))
-  assert.equal(requests.length, beforeDayRequests, 'Date selection uses the loaded month without new polls')
-  await click(button('Export Markdown'))
-  markdown = await blobs.at(-1).text()
-  assert.equal(downloads.at(-1).filename, 'thesis-ALL-2026-10-18.md')
-  assert.ok(markdown.includes('No saved news table for this date'))
-  assert.ok(!markdown.includes('USD concise backdrop.'))
-  await React.act(async () => { daySelect.value = '19'; daySelect.dispatchEvent(new dom.Event('change', { bubbles: true })) })
-  await click(button('Export Markdown'))
-  markdown = await blobs.at(-1).text()
-  assert.equal(downloads.at(-1).filename, 'thesis-ALL-2026-10-19.md')
-  assert.ok(markdown.includes('# Currency news — 2026-10-19'))
-  assert.ok(markdown.includes('USD concise backdrop.'))
-  assert.ok(markdown.includes('USD policy dated evidence.'))
-  assert.ok(markdown.includes('2026-07-01'))
-  assert.ok(markdown.includes('| Currency | 19:10:2026 FUNDAMENTAL | SOURCE | UPCOMING CHECKPOINT |'))
-  assert.ok(!markdown.includes('| Confidence / main counterweight |'))
-  assert.ok(!markdown.includes('EURCHF · STRONG SELL'))
-  assert.ok(!markdown.includes('Opportunity / Bias'))
-  assert.ok(markdown.includes('thesis context --scope ALL'))
-  const badReview = { ...review, currency_views: review.currency_views.slice(1) }
-  assert.equal(validThesisSnapshot({ ...allSnapshot, reviews: [badReview] }, 'ALL', '2026-10', null), false)
-  const unsafeReview = structuredClone(review)
-  unsafeReview.currency_views[0].checkpoints[0].sources[0].locator = 'javascript:alert(1)'
-  assert.equal(validThesisSnapshot({ ...allSnapshot, reviews: [unsafeReview] }, 'ALL', '2026-10', null), false)
-  const earlierReview = { ...review, id: 'c'.repeat(32), as_of_utc: '2026-10-19T07:00:00Z', currency_views: review.currency_views.map(view => ({ ...view, summary: 'Earlier invocation.' })) }
-  const latestOnly = thesisMarkdown({ ...allSnapshot, reviews: [earlierReview, review] }, '2026-10-20T00:00:00Z', null, '2026-10-19')
-  assert.ok(latestOnly.includes('USD concise backdrop.'))
-  assert.ok(!latestOnly.includes('Earlier invocation.'), 'One date shows the latest invocation without duplicate currency tables')
-  const source = number => ({ kind: 'web', label: `Publisher ${number}`, locator: `https://example.com/news/${number}`, note: '' })
-  const dailyEntry = { ...reviewEntry, format: 'daily_news', takeaway: '', opportunity_ids: [], backdrop: [],
-    saved_utc: '2026-10-20T02:00:00Z', provenance: 'reconstruction', note: 'Historical news checked later.',
-    currency_views: ['USD','EUR','GBP','JPY','CHF','CAD','AUD','NZD'].map(currency => ({ currency, news_gap: '',
-      news: Array.from({ length: currency === 'USD' ? 4 : 1 }, (_, index) => ({ published_on: '2026-10-19',
-        published_at: index ? null : '2026-10-18T18:00:00Z', verified_utc: '2026-10-20T01:00:00Z',
-        summary: `${currency} news item ${index + 1}.`, sources: [source(index + 1), ...(index === 0 ? [source(5)] : [])] })),
-      checkpoints: reviewEntry.currency_views[0].checkpoints })) }
-  dailyEntry.currency_views[7] = { currency: 'NZD', news: [], news_gap: 'No verified same-date news found.', checkpoints: [] }
-  review = { ...dailyEntry, versions: [dailyEntry], opportunities: [] }
-  assert.equal(validThesisSnapshot({ ...allSnapshot, reviews: [review] }, 'ALL', '2026-10', null), true, 'Historical retrieval retains its real later verification date')
-  for (const mutate of [value => value.currency_views[0].news[0].published_on = '2026-10-18',
-    value => value.currency_views[0].news[0].published_at = '2026-10-19T09:00:00Z',
-    value => value.currency_views[0].news[0].verified_utc = '2026-10-20T03:00:00Z',
-    value => value.provenance = 'assessment',
-    value => value.currency_views[0].news[0].sources[0].locator = 'javascript:alert(1)',
-    value => value.currency_views[7].news_gap = '',
-    value => value.currency_views[0].bias = 'BUY',
-    value => value.currency_views[0].checkpoints = [{ ...value.currency_views[0].checkpoints[0], event_at: null, event_date: null, note: 'Unscheduled' }]]) {
-    const invalid = structuredClone(review); mutate(invalid)
-    assert.equal(validThesisSnapshot({ ...allSnapshot, reviews: [invalid] }, 'ALL', '2026-10', null), false)
-  }
-  const legacyNews = structuredClone(review)
-  assert.equal(validThesisSnapshot({ ...allSnapshot, reviews: [legacyNews] }, 'ALL', '2026-10', null), true)
-  for (const view of review.currency_views) view.direction = { verdict: view.currency === 'USD' ? 'POTENTIAL WEAKENING' : 'POTENTIAL STRENGTHENING', reason: `${view.currency} dominant daily driver.`, verified_utc: '2026-10-20T01:00:00Z', sources: [source(1)] }
-  review.currency_views[0].direction.reassessment = { ...review.currency_views[0].checkpoints[0], note: 'Reassess the currency mechanism after this release.' }
-  review.entry_opportunities = [{ currency: 'USD', summary: 'Strongest standalone pressure.', starts_at: '2026-10-19T08:00:00Z', ends_at: '2026-10-19T16:59:59Z', timing_note: 'Selected day only.', invalidation: 'Contrary policy news.' }]
-  review.entry_opportunities.push({ ...review.entry_opportunities[0], currency: 'EUR', summary: 'Policy support.', timing_note: 'Watch policy remarks.' })
-  review.versions = [{ ...review, versions: undefined, opportunities: undefined }]
-  assert.equal(validThesisSnapshot({ ...allSnapshot, reviews: [review] }, 'ALL', '2026-10', null), true)
-  for (const mutate of [value => value.currency_views[0].direction.verdict = 'MIXED',
-    value => value.currency_views[0].direction = null,
-    value => value.currency_views[0].direction.sources[0].locator = 'javascript:alert(1)',
-    value => value.currency_views[0].direction.reassessment.event_at = '2026-10-19T07:00:00Z',
-    value => value.currency_views[0].direction.reassessment.sources[0].locator = 'javascript:alert(1)',
-    value => value.entry_opportunities = [],
-    value => value.entry_opportunities[0].currency = 'EURUSD',
-    value => value.entry_opportunities.push(value.entry_opportunities[0]),
-    value => value.entry_opportunities[0].starts_at = '2026-10-18T16:59:59Z',
-    value => value.entry_opportunities[0].ends_at = '2026-10-19T17:00:00Z',
-    value => value.entry_opportunities[0].ends_at = value.entry_opportunities[0].starts_at]) {
-    const invalid = structuredClone(review); mutate(invalid)
-    assert.equal(validThesisSnapshot({ ...allSnapshot, reviews: [invalid] }, 'ALL', '2026-10', null), false)
-  }
-  revision = 'daily-news'; await poll()
-  const dailyTable = container.querySelector('[aria-label="Currency fundamental backdrop"]')
-  const opportunitySection = container.querySelector('[aria-label="Trade entry opportunity"]')
-  assert.ok(opportunitySection.textContent.includes('USD · POTENTIAL WEAKENING'))
-  assert.ok(opportunitySection.textContent.includes('11:59 PM'))
-  assert.ok(opportunitySection.textContent.includes('Reassess if: Contrary policy news.'))
-  assert.ok(opportunitySection.compareDocumentPosition(dailyTable) & 4, 'Standalone summary is above the currency table')
-  assert.equal(opportunitySection.querySelectorAll('[data-thesis-opportunity]').length, 2)
-  assert.equal(opportunitySection.textContent.match(/11:59 PM/g)?.length, 1, 'Shared assessment timing appears once above the list')
-  assert.ok(opportunitySection.textContent.includes('Assessment through 11:59 PM'))
-  assert.ok([...opportunitySection.querySelectorAll('[data-thesis-opportunity]')].every(node => !node.textContent.includes('Jakarta')), 'Currency notes do not repeat the shared window')
-  assert.equal(dailyTable.querySelectorAll('.thesis-currency-direction').length, 8)
-  const usd = dailyTable.querySelector('[data-thesis-currency="USD"]')
-  assert.match(usd.textContent, /Reassess by: USD release/)
-  assert.equal(usd.querySelectorAll('td')[2].querySelectorAll('li').length, 2, 'Chosen checkpoint is not duplicated in Upcoming')
-  assert.equal(dailyTable.querySelectorAll('tbody tr').length, 8)
-  assert.equal(usd.querySelectorAll('td')[0].querySelectorAll('li').length, 4)
-  assert.equal(usd.querySelectorAll('td')[1].querySelectorAll('li').length, 4)
-  assert.equal(usd.querySelectorAll('td')[1].querySelector('li').querySelectorAll('a').length, 2, 'Two sources for one news item share one list number')
-  assert.ok(dailyTable.textContent.includes('No verified same-date news found.'))
-  assert.ok(!dailyTable.textContent.includes('USD bias.'))
-  await click(button('Export Markdown'))
-  markdown = await blobs.at(-1).text()
-  assert.ok(markdown.includes('## TRADE ENTRY OPPORTUNITY'))
-  assert.ok(markdown.indexOf('## TRADE ENTRY OPPORTUNITY') < markdown.indexOf('| Currency |'))
-  assert.ok(markdown.includes('**USD · POTENTIAL WEAKENING**'))
-  assert.ok(markdown.includes('USD dominant daily driver.'))
-  assert.ok(markdown.includes('Reassess by: **USD release**'))
-  assert.ok(markdown.includes('Reassess the currency mechanism after this release.'))
-  assert.ok(markdown.includes('Selected day only.'))
-  assert.ok(markdown.includes('4. USD news item 4.'))
-  assert.ok(markdown.includes('4. Publication hour unverified') && markdown.includes('[Publisher 4]'))
-  assert.ok(markdown.includes('source checked Oct 20, 2026'))
-  assert.ok(markdown.includes('No verified same-date news found.'))
-  assert.ok(!markdown.includes('USD strongest counterweight.'))
-  const exportedOpportunities = markdown.split('## TRADE ENTRY OPPORTUNITY')[1].split('| Currency |')[0]
-  assert.equal(exportedOpportunities.match(/11:59 PM/g)?.length, 1, 'Export shares the same compact timing')
-  const sharedReview = review
-  review = { ...structuredClone(sharedReview), entry_opportunities: [], opportunity_gap: 'Markets closed; no supported entry in the selected day.' }
-  revision = 'no-entry-with-directions'; await poll()
-  assert.equal(container.querySelectorAll('.thesis-currency-direction').length, 8, 'No entry selection retains eight supported directions')
-  assert.equal(container.querySelectorAll('[data-thesis-opportunity]').length, 0)
-  assert.ok(container.textContent.includes(review.opportunity_gap))
-  assert.ok(thesisMarkdown({ ...allSnapshot, reviews: [review] }, '2026-10-20T00:00:00Z', null, '2026-10-19').includes(review.opportunity_gap))
-  review = structuredClone(review) // Model a fresh JSON response, preserving the prior polling snapshot.
-  const commodityEvidence = { expected_baseline: 'Shipping normalization was anticipated.', new_information: 'Verified renewed disruption.',
-    remaining_case: 'Reduced inventory buffers prolong supply pressure.', flow_channel: 'Potential demand for oil exposure; no private orders observed.',
-    flow_basis: 'inferred', horizon: 'Selected session', market_feedback: 'Futures pricing unavailable; no execution level established.',
-    verified_utc: '2026-10-20T01:00:00Z', sources: [source(1)] }
-  review.commodity_opportunities = [{ instrument: 'BRENT', symbol: 'SpotBrent', provider: 'Fixture broker', instrument_type: 'spot_cfd',
-    contract_note: 'Broker CFD, not front-month settlement.', verdict: 'BUY', summary: 'Supported supply disruption candidate.',
-    stage: 'conditional', activation: 'Verify export disruption persists at reopening.', evidence: commodityEvidence,
-    starts_at: '2026-10-19T08:00:00Z', ends_at: '2026-10-19T16:59:59Z', timing_note: 'Research window only.', invalidation: 'Verified exports normalize.',
-    checkpoints: [{ ...reviewEntry.currency_views[0].checkpoints[0], title: 'Inventory release' }] }]
-  review.opportunity_gap = ''
-  assert.equal(validThesisSnapshot({ ...allSnapshot, reviews: [review] }, 'ALL', '2026-10', null), true)
-  revision = 'commodity-candidate'; await poll()
-  assert.equal(container.querySelectorAll('[data-thesis-commodity]').length, 1)
-  assert.ok(container.textContent.includes('Conditional opportunity'))
-  assert.ok(container.textContent.includes('Potential buying / selling (inferred)'))
-  assert.ok(container.textContent.includes('Inventory release'))
-  const commodityExport = thesisMarkdown({ ...allSnapshot, reviews: [review] }, '2026-10-20T00:00:00Z', null, '2026-10-19')
-  assert.ok(commodityExport.includes('SpotBrent') && commodityExport.includes('no private orders observed'))
-  for (const mutate of [value => value.commodity_opportunities[0].instrument = 'USD',
-    value => value.commodity_opportunities[0].evidence.verified_utc = '2099-01-01T00:00:00Z',
-    value => value.commodity_opportunities[0].checkpoints[0].event_at = '2026-10-19T07:00:00Z']) {
-    const invalid = structuredClone(review); mutate(invalid)
-    assert.equal(validThesisSnapshot({ ...allSnapshot, reviews: [invalid] }, 'ALL', '2026-10', null), false)
-  }
-  review = sharedReview
-  review = structuredClone(review)
-  review.entry_opportunities[1].starts_at = '2026-10-19T09:00:00Z'
-  review.entry_opportunities[1].ends_at = '2026-10-19T12:00:00Z'
-  review.versions = [{ ...review, versions: undefined, opportunities: undefined }]
-  revision = 'different-opportunity-windows'; await poll()
-  assert.ok(container.querySelector('[data-thesis-opportunity="USD"]').textContent.includes('11:59'))
-  const eurWindow = container.querySelector('[data-thesis-opportunity="EUR"]').textContent
-  assert.ok(eurWindow.includes('4:00') && eurWindow.includes('7:00') && eurWindow.includes('Jakarta'), 'Distinct currency windows retain their exact timing')
-  const distinctExport = thesisMarkdown({ ...allSnapshot, reviews: [review] }, '2026-10-20T00:00:00Z', null, '2026-10-19').split('## Agent handoff')[0]
-  assert.ok(distinctExport.includes('4:00') && distinctExport.includes('7:00'), 'Distinct timings remain in export')
-  review = sharedReview; revision = 'shared-opportunity-windows'; await poll()
-  await React.act(async () => { daySelect.value = '18'; daySelect.dispatchEvent(new dom.Event('change', { bubbles: true })) })
-  assert.ok(!container.textContent.includes('Strongest standalone pressure.'), 'Changing dates clears the prior day’s opportunity')
-  assert.equal(container.querySelectorAll('.thesis-currency-direction').length, 0, 'An unfilled day never inherits verdicts')
-  await click(button('Export Markdown'))
-  markdown = await blobs.at(-1).text()
-  assert.ok(!markdown.includes('Strongest standalone pressure.'), 'Export uses the selected date for opportunities too')
-  await React.act(async () => { daySelect.value = '19'; daySelect.dispatchEvent(new dom.Event('change', { bubbles: true })) })
-  const staleCheckpoint = { ...review, currency_views: review.currency_views.map(view => ({ ...view, checkpoints: [{ ...reviewEntry.currency_views[0].checkpoints[0], title: 'Already released', event_at: '2026-10-19T07:00:00Z' }] })) }
-  const checkpointExport = thesisMarkdown({ ...allSnapshot, reviews: [staleCheckpoint] }, '2026-10-20T00:00:00Z', null, '2026-10-19')
-  assert.ok(!checkpointExport.split('## Agent handoff')[0].includes('Already released'), 'Display and export omit elapsed stages relative to the saved cutoff')
-  await React.act(async () => root.render(null))
-  await React.act(async () => root.render(React.createElement(ThesisDock)))
-  assert.equal(button('Across All Currency').getAttribute('aria-pressed'), 'true', 'Across choice survives remount')
+  assert.ok(copied.includes('thesis research-append'))
+  assert.ok(copied.includes('no news-item quota'))
+  assert.ok(copied.includes('offsets'))
+  assert.ok(copied.includes('technical analysis and execution remain with the user'))
   await click(button('Across All Currency'))
-  assert.equal(container.querySelector('[aria-label="Thesis pair"]').value, 'EURUSD', 'Toggle preserves the independent pair choice')
-  assert.equal(rows().length, 0, 'Across opportunities do not leak into pair journals')
+  assert.equal(container.querySelector('[aria-label="Thesis pair"]').value, 'EURUSD')
+  assert.equal(rows().length, 0, 'Currency research does not leak into pair journals')
   await React.act(async () => root.render(null))
   assert.equal(timers.size, 0)
   await React.act(async () => root.render(React.createElement(ThesisDock)))
-  assert.equal(container.querySelector('[aria-label="Thesis pair"]').value, 'EURUSD', 'Independent pair choice persists')
-  assert.equal(container.querySelector('[aria-label="Thesis month"]').value, '2026-10', 'Month choice persists')
-  assert.ok(requests.every(({ route, options }) => route.pathname === '/storage-api/theses' && !route.searchParams.has('source_id') && !options.method), 'Dock only reads compact research; no candle/raw/pin writes')
-  const { ThesisCurrencyTable } = await server.ssrLoadModule('./src/thesis/ThesisCurrencyTable.tsx')
-  const renderedLater = { ...later, versions: [later], opportunities: [] }
-  await React.act(async () => root.render(React.createElement(ThesisCurrencyTable, { review: renderedLater, reviews: [early, unchanged, renderedLater, future], selectedDate: '2026-10-26' })))
-  const timelineList = container.querySelector('[aria-label="JPY intraday reassessments"]')
-  assert.equal(timelineList.children.length, 2, 'Rendered history excludes unchanged and future assessments')
-  assert.match(timelineList.textContent, /Earlier assessment 8:00 AM Jakarta.*Reassessed 7:00 PM Jakarta/)
-  const timelineExport = thesisMarkdown({ ...allSnapshot, reviews: [early, unchanged, renderedLater] }, '2026-10-26T12:30:00Z', null, '2026-10-26')
-  assert.ok(timelineExport.includes('Earlier assessment 8:00 AM Jakarta') && timelineExport.includes('Reassessed 7:00 PM Jakarta'))
+  assert.equal(container.querySelector('[aria-label="Thesis pair"]').value, 'EURUSD')
+  assert.ok(requests.every(({ route, options }) => ['/storage-api/theses','/storage-api/theses/research'].includes(route.pathname) && !options.method), 'Read-only dock')
   console.log('✓ Thesis: July seed, pair/month, safe sources, saved-only table, assessment prompts, updates/history, stable polls, errors and stale-reply cleanup')
 } finally {
   await React.act(async () => root.unmount())

@@ -16,6 +16,23 @@ class ReviewTests(TestCase):
     save = fixtures.ThesisTests.save
     snapshot = fixtures.ThesisTests.snapshot
 
+    def test_standalone_pressure_contract_and_legacy_history(self):
+        data = self.daily_news()
+        for fields in [dict(basis=None, intensity=None, horizon=''), dict(intensity=None),
+                dict(intensity='extreme'), dict(horizon=' '), dict(basis=None), dict(basis='EURUSD')]:
+            bad = json.loads(json.dumps(data)); bad['currency_views'][0]['direction'].update(fields)
+            with self.assertRaises(ValueError): ReviewRequest(**bad)
+        self.paths()
+        saved = append_review(ReviewRequest(**data), self.path)
+        direction = read_reviews(self.path)[-1]['currency_views'][0]['direction']
+        self.assertEqual(direction['basis'], 'standalone')
+        self.assertEqual(direction['intensity'], 'moderate')
+        self.assertIn('checkpoint', direction['horizon'])
+        legacy = json.loads(json.dumps(read_reviews(self.path)[-1]))
+        for view in legacy['currency_views']:
+            for key in ['basis', 'intensity', 'horizon']: view['direction'].pop(key, None)
+        self.assertIsNone(ReviewEntry(**legacy).currency_views[0].direction.basis, 'Old history stays readable without inventing a grade')
+
     def live_record(self, at='2026-07-15T06:00:00Z', identity='a'):
         data = self.daily_news()
         data.update(as_of_utc=at, provenance='assessment', planning_as_of_utc=at,
@@ -50,6 +67,8 @@ class ReviewTests(TestCase):
         self.assertEqual(result['rows'][0]['reassessment'], checkpoint, 'Elapsed selected checkpoint stays due; never roll it forward')
         self.assertIsNone(result['rows'][1]['reassessment'], 'Old records do not acquire inferred deadlines')
         self.assertEqual(result['rows'][0]['verified_utc'], later['as_of_utc'])
+        self.assertEqual(result['rows'][0]['basis'], 'standalone')
+        self.assertEqual(result['rows'][0]['intensity'], 'moderate')
         self.assertEqual(result['rows'][0]['evidence_anchor'], anchor)
         self.assertIsNone(result['rows'][1]['evidence_anchor'], 'Never infer an event clock from a legacy review cutoff')
         self.assertTrue(currency_summary(self.path, result['revision'])['unchanged'])
@@ -272,6 +291,7 @@ class ReviewTests(TestCase):
                     flow_channel='Potential USD demand from a relative path change.', flow_basis='inferred', horizon='Session',
                     market_feedback='Pricing unavailable; no entry level established.', verified_utc='2026-08-01T05:00:00Z', sources=sources))],
             currency_views=[dict(currency=currency, direction=dict(verdict='POTENTIAL STRENGTHENING', reason='Dominant active support.',
+                basis='standalone', intensity='moderate', horizon='Session through the next material checkpoint',
                 verified_utc='2026-08-01T05:00:00Z', sources=sources), news=[dict(published_on='2026-07-15',
                 published_at='2026-07-14T18:00:00Z', summary=f'{currency} published news.',
                 verified_utc='2026-08-01T05:00:00Z', sources=sources)], checkpoints=[dict(

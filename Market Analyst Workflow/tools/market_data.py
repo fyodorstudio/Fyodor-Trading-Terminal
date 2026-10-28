@@ -22,6 +22,7 @@ from storage.highlights import HIGHLIGHTS_PATH, HighlightRequest, highlight_snap
 from storage.highlight_journal import JournalRequest, append_journal, read_journal
 from storage.thesis import ThesisRequest, append_thesis, thesis_snapshot
 from storage.thesis_reviews import ReviewRequest, append_review, review_context
+from storage.thesis_research import ResearchRequest as ThesisResearchRequest, append_research, research_snapshot
 from storage.highlight_metadata import PromptRequest, append_prompt, read_prompts, LimitationRequest, append_limitation, limitations_snapshot
 from storage.alert_impact import ImpactRequest, append_impact, impact_snapshot
 from upcoming import upcoming_snapshot
@@ -213,7 +214,9 @@ def parser():
     highlights.add_argument('--visibility', choices=['active','archived','all'], default='active')
     query_options(highlights)
     thesis = commands.add_parser('thesis', help='Read the monthly Thesis dock or append a sourced assessment; never changes calendar or pins')
-    thesis.add_argument('action', choices=['read', 'append', 'review-append', 'context', 'summary'])
+    thesis.add_argument('action', choices=['read', 'append', 'review-append', 'context', 'summary', 'research', 'research-append'])
+    thesis.add_argument('--from', dest='research_from', help='Inclusive Jakarta research date YYYY-MM-DD')
+    thesis.add_argument('--to', dest='research_to', help='Inclusive Jakarta research date YYYY-MM-DD')
     thesis.add_argument('--scope', required=True, help='Pair for append/pair reads, or ALL to read Across All Currency')
     thesis.add_argument('--month', default='2026-10', help='Jakarta calendar month YYYY-MM')
     thesis.add_argument('--broker', help='Broker for optional linked MT5 release saves; daily records and reads need no broker')
@@ -345,6 +348,17 @@ def run(args):
         return capture(ROOT, output, args.scope, args.broker, args.as_of, args.days, args.read_only,
                        release_at=args.release_at, deadline=args.deadline)
     if args.command == 'thesis':
+        if args.action in ('research', 'research-append'):
+            from storage.thesis import PATH as THESIS_PATH
+            if args.scope != 'ALL':
+                raise ValueError('Thesis research uses --scope ALL; request currencies select full or focused research')
+            if args.action == 'research':
+                if not args.research_from or not args.research_to:
+                    raise ValueError('Research reads need --from and --to Jakarta dates')
+                return research_snapshot(THESIS_PATH, args.research_from, args.research_to)
+            if not args.input:
+                raise ValueError('Research append needs --input; see docs/THESIS.md')
+            return append_research(ThesisResearchRequest.model_validate_json(local_path(args.input).read_text(encoding='utf-8-sig')), THESIS_PATH)
         if args.action == 'summary':
             if args.scope != 'ALL':
                 raise ValueError('Currency summary uses --scope ALL; pair verdicts are independent')

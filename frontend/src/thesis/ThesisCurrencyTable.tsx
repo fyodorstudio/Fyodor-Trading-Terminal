@@ -1,88 +1,84 @@
 import { memo } from 'react'
-import { currencyNewsHeading, currencyNewsItems, currencyReviewTiming, currencyUpcoming, opportunitySelectionMessage, opportunityWindow, reviewCurrencies, safeThesisLink, sharedOpportunityWindow, type OpportunityEvidence, type ThesisReview, type ThesisSource } from './thesis-model'
-import { researchInstruments } from '../external-sources/research-instruments'
-import { assessmentTime, currencyDirectionTimeline, newsSourceTime } from './currency-timeline'
+import { dailyDirectionLabel, reviewCurrencies, safeThesisLink, thesisDay, type ThesisSource } from './thesis-model'
+import { researchAssessment, type CurrencyResearch, type ResearchDevelopment } from './research-model'
 
-const clock = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })
 const day = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', month: 'short', day: 'numeric', year: 'numeric' })
-function checkpointTime(at: string | null, date: string | null) {
-  return at ? `${clock.format(new Date(at))} Jakarta` : date ? `${day.format(new Date(date + 'T05:00:00Z'))} · hour unverified` : 'Unscheduled'
-}
+const hour = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', hour: 'numeric', minute: '2-digit', hour12: true })
+const full = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })
+const dated = (value: string) => day.format(new Date(value.length === 10 ? value+'T00:00:00+07:00' : value))
 function Links({ sources }: { sources: ThesisSource[] }) {
-  return <span className="thesis-sources">{sources.map((source, index) => source.kind === 'web' && safeThesisLink(source.locator)
-    ? <a key={index} href={source.locator} title={source.note || undefined} target="_blank" rel="noopener noreferrer">{source.label}</a>
-    : <span key={index} title={source.locator}>{source.label} (local evidence)</span>)}</span>
+  return <span className="thesis-sources">{sources.map((s,i) => s.kind === 'web' && safeThesisLink(s.locator)
+    ? <a key={i} href={s.locator} target="_blank" rel="noopener noreferrer" title={s.note || undefined}>{s.label}</a>
+    : <span key={i} title={s.locator}>{s.label} (local evidence)</span>)}</span>
+}
+function DevelopmentRow({ item, currency }: { item: ResearchDevelopment; currency: string }) {
+  const impact = item.impacts.find(i => i.currency === currency) ?? { implication:item.commodity_implication,thesis_effect:item.commodity_thesis_effect }
+  return <tr data-thesis-development={item.id}>
+    <td>{dated(item.published_on)}</td>
+    <td>{item.published_at ? hour.format(new Date(item.published_at)) : 'Hour unknown'}
+      {item.event_at && <small>Event: {full.format(new Date(item.event_at))}</small>}
+      {item.timing_note && <details><summary>Timing</summary><p>{item.timing_note}</p></details>}</td>
+    <td>{!item.legacy && <strong>{item.instruments?.length ? item.instruments.join(' / ')+' · ' : ''}{item.title}</strong>}<p>{item.facts}</p>{item.instrument_note && <p>{item.instrument_note}</p>}
+      {!!item.versions?.length && item.versions.length > 1 && <details><summary>Development history · {item.versions.length} versions</summary>
+        {item.versions.map(v => <div key={v.id}><p>{full.format(new Date(v.saved_utc))} · {v.revision_note || 'Initial record'}</p><p>{v.facts}</p><Links sources={v.sources} /></div>)}
+      </details>}</td>
+    <td>{impact.implication || 'Not separately recorded in this older research.'}</td>
+    <td>{impact.thesis_effect || 'See the dated assessment; no event-by-event verdict was saved.'}</td>
+    <td><Links sources={item.sources} /><details><summary>Source details</summary>
+      <p>Verified {full.format(new Date(item.verified_utc))} Jakarta.</p>
+      <p>Recorded {full.format(new Date(item.saved_utc))} Jakarta.</p>
+      {item.references.map(r => <p key={r.kind+':'+r.key}>{r.kind === 'external' ? 'External Source' : r.broker} · {r.key}{r.value_ids.length ? ` · value IDs ${r.value_ids.join(', ')}` : ''}</p>)}
+    </details></td>
+  </tr>
 }
 
-function Evidence({ evidence }: { evidence?: OpportunityEvidence | null }) {
-  return evidence ? <details><summary>Investor incentives &amp; evidence</summary>
-    <p>Prior expectation: {evidence.expected_baseline}</p><p>New information / continuing driver: {evidence.new_information}</p>
-    <p>Remaining case: {evidence.remaining_case}</p><p>Potential buying / selling ({evidence.flow_basis}): {evidence.flow_channel}</p>
-    <p>Horizon: {evidence.horizon}</p><p>Market feedback: {evidence.market_feedback}</p>
-    <p>Verified {clock.format(new Date(evidence.verified_utc))} Jakarta. <Links sources={evidence.sources} /></p>
-  </details> : null
-}
-
-export const ThesisCurrencyTable = memo(function ThesisCurrencyTable({ review, selectedDate, reviews = [] }: { review?: ThesisReview; selectedDate: string; reviews?: ThesisReview[] }) {
-  const commonWindow = sharedOpportunityWindow(review?.entry_opportunities)
-  return <div className="thesis-currency-view">
-    <section className="thesis-currency-opportunities" aria-label="Trade entry opportunity">
-      <h3>TRADE ENTRY OPPORTUNITY</h3>
-      {review && <p className="thesis-currency-cutoff">{currencyReviewTiming(review)}</p>}
-      {review?.entry_opportunities?.length ? <ol>{review.entry_opportunities.map(item => {
-        const direction = review.currency_views?.find(view => view.currency === item.currency)?.direction
-        return <li key={item.currency} data-thesis-opportunity={item.currency}>
-          <strong>{item.currency} · {direction?.verdict}</strong>
-          {item.stage && <p>{item.stage === 'active' ? 'Active opportunity' : 'Conditional opportunity'} · {item.activation}</p>}
-          <p>{item.summary}</p>
-          <p>{!commonWindow && <>{opportunityWindow(item)}. </>}{item.timing_note}</p>
-          <p>Reassess if: {item.invalidation}</p>
-          {direction && <Links sources={direction.sources} />}
-          <Evidence evidence={item.evidence} />
-        </li>
-      })}</ol> : !review?.commodity_opportunities?.length && <p className="thesis-unassessed">{opportunitySelectionMessage(review)}</p>}
-      {!!review?.commodity_opportunities?.length && <><h3>COMMODITY OPPORTUNITIES</h3><ol>{review.commodity_opportunities.map(item => <li key={item.instrument} data-thesis-commodity={item.instrument}>
-        <strong>{researchInstruments[item.instrument].label} · {item.verdict}</strong>
-        <p>{item.stage === 'active' ? 'Active opportunity' : 'Conditional opportunity'} · {item.activation}</p>
-        <p>{item.summary}</p><p>{item.symbol} · {item.provider} · {item.instrument_type.replaceAll('_', ' ')}. {item.contract_note}</p>
-        <p>{opportunityWindow(item)}. {item.timing_note}</p><p>Reassess if: {item.invalidation}</p><Evidence evidence={item.evidence} />
-        {!!item.checkpoints?.length && <ul>{item.checkpoints.map((checkpoint, index) => <li key={index}>
-          Upcoming: {checkpoint.title} · {checkpointTime(checkpoint.event_at, checkpoint.event_date)}. {checkpoint.note} <Links sources={checkpoint.sources} />
-        </li>)}</ul>}
-      </li>)}</ol></>}
-    </section>
-    {review && review.format !== 'daily_news' && <p className="thesis-currency-cutoff">Older assessment retained. Fill this date to save factual news summaries.</p>}
-    <table className="thesis-currency-table" aria-label="Currency fundamental backdrop">
-      <colgroup><col className="currency-name-column" /><col className="currency-backdrop-column" /><col className="currency-source-column" /><col /></colgroup>
-      <thead><tr><th scope="col">Currency</th><th scope="col">{currencyNewsHeading(selectedDate)}</th><th scope="col">SOURCE</th><th scope="col">UPCOMING CHECKPOINT</th></tr></thead>
-      <tbody>{reviewCurrencies.map(currency => {
-        const view = review?.currency_views?.find(item => item.currency === currency)
-        const news = currencyNewsItems(review, currency, selectedDate)
-        const checkpoints = currencyUpcoming(review, currency)
-        const timeline = currencyDirectionTimeline(reviews, review, currency)
-        return <tr key={currency} data-thesis-currency={currency}>
-          <th scope="row">{currency}</th>
-          <td>{view?.direction && <div className="thesis-currency-direction">
-            <strong>{view.direction.verdict}</strong><p>{view.direction.reason}</p>
-            {view.direction.evidence_anchor && <p>Evidence anchor: {view.direction.evidence_anchor.title} · {checkpointTime(view.direction.evidence_anchor.event_at, view.direction.evidence_anchor.event_date)}. {view.direction.evidence_anchor.note} <Links sources={view.direction.evidence_anchor.sources} /></p>}
-            {view.direction.reassessment ? <p>Reassess by: {view.direction.reassessment.title} · {checkpointTime(view.direction.reassessment.event_at, view.direction.reassessment.event_date)}. {view.direction.reassessment.note} <Links sources={view.direction.reassessment.sources} /></p>
-              : <p>Reassessment checkpoint not set.{view.direction.reassessment_gap && ` ${view.direction.reassessment_gap}`}</p>}
-            {!!timeline.length && <ol aria-label={`${currency} intraday reassessments`}>{timeline.map((item, index) => <li key={item.at}>
-              <strong>{index ? 'Reassessed' : 'Earlier assessment'} {assessmentTime(item.at)} · {item.direction.verdict}</strong>
-              <p>{item.direction.reason}</p>
-            </li>)}</ol>}
-          </div>}{news.length ? <ol>{news.map((item, index) => <li key={index}>{item.summary}</li>)}</ol>
-            : <span className="thesis-unassessed">{review ? view?.news_gap || 'No same-date news saved.' : 'Not filled'}</span>}
-            {news.length > 0 && view?.news_gap && <p className="thesis-unassessed">{view.news_gap}</p>}</td>
-          <td>{view?.direction && <p>Assessment {assessmentTime(review!.as_of_utc)} · checked {assessmentTime(view.direction.verified_utc)}: <Links sources={view.direction.sources} /></p>}
-            {!!timeline.length && <ol aria-label={`${currency} reassessment sources`}>{timeline.map(item => <li key={item.at}>{assessmentTime(item.at)}: <Links sources={item.direction.sources} /></li>)}</ol>}
-            {news.length ? <ol>{news.map((item, index) => <li key={index}>{newsSourceTime(item)}. <Links sources={item.sources} /></li>)}</ol> : '—'}</td>
-          <td>{checkpoints.length ? <ol>{checkpoints.map((checkpoint, index) => <li key={index}>
-            <strong>{checkpoint.title} · {checkpointTime(checkpoint.event_at, checkpoint.event_date)}</strong>
-            {checkpoint.note && <> {checkpoint.note}</>} <Links sources={checkpoint.sources} />
-          </li>)}</ol> : '—'}</td>
-        </tr>
-      })}</tbody>
-    </table>
+export const ThesisCurrencyTable = memo(function ThesisCurrencyTable({ data }: { data: CurrencyResearch }) {
+  const future = data.from > thesisDay(new Date().toISOString())
+  return <div className="thesis-currency-research">
+    <p className="thesis-currency-cutoff">Research · {dated(data.from)}{data.to !== data.from && ` – ${dated(data.to)}`} · Jakarta</p>
+    {reviewCurrencies.map(currency => {
+      const assessment = future ? undefined : researchAssessment(data, currency)
+      const direction = assessment?.direction
+      const entries = future ? [] : data.developments.filter(d => d.published_on >= data.from && d.published_on <= data.to && d.impacts.some(i => i.currency === currency))
+      const background = data.developments.filter(d => assessment?.background_ids.includes(d.id) || d.published_on < data.from && assessment?.evidence_ids.includes(d.id))
+      const upcoming = [...new Map([...(direction?.reassessment ? [direction.reassessment] : []),...(assessment?.checkpoints ?? [])]
+        .map(cp => [cp.title+':'+(cp.event_at ?? cp.event_date),cp])).values()]
+      const pending = direction && entries.some(d => !assessment?.evidence_ids.includes(d.id) && Date.parse(d.verified_utc)>Date.parse(direction.verified_utc))
+      const changes = data.assessments.filter(a => a.currency === currency && a.direction && thesisDay(a.as_of_utc) >= data.from)
+        .sort((a,b) => Date.parse(a.as_of_utc)-Date.parse(b.as_of_utc))
+        .filter((a,i,all) => !i || a.direction!.verdict !== all[i-1].direction!.verdict || a.direction!.intensity !== all[i-1].direction!.intensity || a.direction!.basis !== all[i-1].direction!.basis)
+      return <section key={currency} className="thesis-currency-section" data-thesis-currency={currency} aria-label={`${currency} fundamental research`}>
+        <div className="thesis-currency-heading"><h3>{currency}{direction && ` · ${dailyDirectionLabel(direction)}`}</h3>
+          {assessment && <p>Last Assessed: {full.format(new Date(direction?.verified_utc ?? assessment.as_of_utc))} Jakarta{assessment.provenance === 'reconstruction' && ' · Historical reconstruction'}</p>}
+        </div>
+        {direction ? <><p className="thesis-prose">{direction.reason}</p><p>Horizon: {direction.horizon || 'See the original assessment.'}</p>
+          {direction.basis !== 'standalone' && <p className="thesis-notice">Older comparison; needs a standalone assessment before use as a broad currency verdict.</p>}
+          <p><Links sources={direction.sources} /></p>
+        </> : <p>{assessment?.gap || (future ? 'Future dates stay unassessed.' : 'No saved assessment for this currency by the end of this range.')}</p>}
+        {assessment && <p className="thesis-research-coverage">Researched period: {dated(assessment.period_start)} – {dated(assessment.period_end)}.{assessment.gap && ` Coverage: ${assessment.gap}`}</p>}
+        {pending && <p className="thesis-notice">Review needed: newer saved evidence has not yet been incorporated into this assessment.</p>}
+        {(background.length > 0 || direction?.evidence_anchor) && <div className="thesis-active-background"><h4>Active background</h4>
+          {background.map(d => <p key={d.id}><strong>{dated(d.published_on)} · {d.title}</strong> {d.facts} <Links sources={d.sources} /></p>)}
+          {!background.length && direction?.evidence_anchor && <p>{direction.evidence_anchor.event_at ? full.format(new Date(direction.evidence_anchor.event_at)) : dated(direction.evidence_anchor.event_date!)} · {direction.evidence_anchor.title}. {direction.evidence_anchor.note} <Links sources={direction.evidence_anchor.sources} /></p>}
+        </div>}
+        {entries.length ? <table className="thesis-currency-table" aria-label={`${currency} developments`}>
+          <colgroup><col className="research-date-column" /><col className="research-time-column" /><col className="research-development-column" /><col /><col /><col className="research-source-column" /></colgroup>
+          <thead><tr>{['Date','Time · Jakarta','Development','Fundamental implication','Effect on existing thesis','Source'].map(label => <th scope="col" key={label}>{label}</th>)}</tr></thead>
+          <tbody>{entries.map(d => <DevelopmentRow key={d.id} item={d} currency={currency} />)}</tbody>
+        </table> : <p className="thesis-notice">No verified developments saved in this interval. This is not proof that no news occurred.</p>}
+        {(direction || upcoming.length > 0) && <div className="thesis-upcoming-checkpoint"><h4>Upcoming checkpoints</h4>
+          {upcoming.map(cp => <p key={cp.title+':'+(cp.event_at ?? cp.event_date)}><strong>{cp.title}</strong> · {cp.event_at ? full.format(new Date(cp.event_at))+' Jakarta' : cp.event_date ? dated(cp.event_date)+' · hour unknown' : 'Schedule unverified'}. {cp.note} <Links sources={cp.sources} /></p>)}
+          {direction && !direction.reassessment && <p>Review needed: {direction.reassessment_gap || 'No verified checkpoint saved.'}</p>}
+        </div>}
+        {changes.length > 1 && <details className="thesis-details"><summary>Assessment history · {changes.length} recorded views</summary>
+          {changes.map(a => <div key={a.id}><strong>{full.format(new Date(a.as_of_utc))} Jakarta · {dailyDirectionLabel(a.direction!)}</strong><p>{a.direction!.reason}</p><Links sources={a.direction!.sources} /></div>)}
+        </details>}
+      </section>
+    })}
+    {!future && data.developments.some(d=>d.instruments?.length) && <section className="thesis-currency-section" aria-label="Selective commodity research">
+      <h3>Selective commodity research</h3><table className="thesis-currency-table"><thead><tr>{['Date','Time · Jakarta','Development / instrument','Fundamental implication','Effect on existing thesis','Source'].map(label=><th scope="col" key={label}>{label}</th>)}</tr></thead>
+        <tbody>{data.developments.filter(d=>d.instruments?.length && d.published_on>=data.from && d.published_on<=data.to).map(d=><DevelopmentRow key={d.id} item={d} currency="" />)}</tbody>
+      </table>
+    </section>}
   </div>
 })

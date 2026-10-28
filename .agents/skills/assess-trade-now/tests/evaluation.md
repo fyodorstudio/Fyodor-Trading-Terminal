@@ -31,19 +31,32 @@ live trades, restart services or mutate the user's research during a replay.
 | Request and supplied evidence | Observable decision to inspect |
 | --- | --- |
 | Reassess a pair after a domestic data disappointment; dated counterpart guidance now reduces tightening urgency and a verified change in risk conditions supports recovery. | Compare the new mechanism with the original one, give the supported direction for each requested horizon and explicitly retain/reverse the earlier comparable verdict. If opposite evidence dominates, it must become an opposite verdict rather than remain perpetual recovery risk. |
-| Assess AUDUSD; a separate dated JPY policy development and independently reported change in haven demand appear in the permitted sweep evidence. | Surface JPY as a directional attention candidate while keeping the main assessment on AUDUSD. Verify the candidate's own sources/identities and separate receipt before factual pin claims; do not claim a fully ranked best pair or equate USDJPY with JPYX. |
+| Assess AUDUSD; a separate dated JPY policy development and independently reported change in haven demand appear in the permitted sweep evidence. | Surface JPY as a directional attention candidate while keeping the main assessment on AUDUSD. Verify the candidate's own sources/identities before factual pin claims; do not claim a fully ranked best pair or equate USDJPY with JPYX. |
 | The same JPY precursor is supplied, but no evidence yet establishes a shift in haven demand or an active intraday policy impulse. | Give an emerging candidate with the actual activation/invalidation rather than assert observed flows or force a STRONG trade verdict. Do not hide the supported precursor until a later rally headline. |
 | Strong requested-pair evidence is available, but a nondecisive source is slow or external preflight blocks chart writes. | Deliver the sourced first decision after immediate hazard checks, continue the full scan, and report the precise coverage/write gap. Do not equate a supported decision with completed coverage or fake a persisted pin. |
 | Ask for a price-aware recovery assessment with a supplied bounded pre-cutoff chart contradicting the earlier thesis; provide dated contrary news. Repeat with an explicit no-candles override. | In the first case, use authorized price feedback to investigate and decide; in the second, preserve the no-candles limit. Neither case may inspect later candles, infer flows from price alone or request a full historical study unnecessarily. |
 | Request a release wait seconds before publication with existing preparation and an unrelated new currency watch. | Prioritize actuals, decisive companions and the first release verdict. Reuse the candidate preparation; no fresh all-eight sweep or price check delays the release delivery or extends the deadline. |
 | Ask for a historical missed-move reconstruction; an early article was later rewritten with the rally headline, and later evidence supports the final direction. | Keep source versions/publication availability distinct. Separate earliest attention cue, first supported decision and later reinforcement; do not backdate a revised headline or use the final move to assign an earlier STRONG label. |
-| Request a dated daily Thesis fill, or explicitly request USDJPY only/no-save. | Preserve daily currency verdict enums, nonempty authorized opportunity fields and append-only history; keep pair/STRONG labels out of daily rows. Honor narrow scope and no-save overrides without claiming an excluded sweep ran. |
+| Request a dated daily Thesis fill, or explicitly request USDJPY only/no-save. | Save sourced developments once, standalone qualitative currency pressure, offsets, source/assessment clocks and append-only history; entry output is optional. Honor narrow scope and no-save overrides without claiming an excluded sweep ran. |
 | Invoke a live release with an existing ALL summary and elapsed related checkpoints, without repeating a save request; repeat with an explicit chat-only override. | Deliver the release verdict first, then append/read back a focused live summary with resolved-stage evidence and meaningful future checkpoints. Preserve unaffected verification clocks and anchors. The override produces no Thesis write; an alarm firing alone never invokes or writes anything. |
 | Invoke an operation window and subsequent results at 12:40 AM; official close is 1:00 AM and no result is available at the start. | Treat the opening as a window, announce coverage through 1:05 AM, distinguish the cap from offers/acceptance and stop at the bound. Missing results remain explicit; do not invent an outcome or keep monitoring indefinitely. |
 | A focused live refresh crosses Jakarta midnight; prior rows and news are dated the previous day. | Append at the real new-day cutoff, carry unaffected direction clocks/anchors, retain old facts with original dates in context and preserve prior snapshots. Do not relabel yesterday's news as today's or copy expired entry windows. |
 
 For each replay, retain the actual cutoff, opened evidence, first delivery and
-completed receipt/read-backs when available. Inspect the facts and decisions,
+source evidence and write/read-backs (optional receipt when used). Inspect the facts and decisions,
 including one concrete invalidation, rather than rewarding forceful language.
 Run an independent replay only when delegation is authorized and available;
 otherwise record a manual scenario review without claiming agent-tested results.
+
+## Research timeline acceptance
+
+Use isolated stores for interval research. Verify multiple same-day developments
+remain separate, unknown hours remain unknown, an offset can weaken pressure
+without reversing it, and older active foundations stay visible in a narrower
+range. Repeating a finding must reuse its version; a correction preserves earlier
+facts and an assessment's exact references. A focused update must not freshen
+other currencies. A failed decisive review keeps an old verdict visibly unresolved
+without redating it. Historical reconstruction keeps actual later verification
+clocks and never replaces live verdicts. Source facts alone need no entry window,
+all-eight payload, chart pin or alarm. Run storage/tests/test_thesis_research.py
+and the frontend research/summary/assembled-terminal suites for these contracts.

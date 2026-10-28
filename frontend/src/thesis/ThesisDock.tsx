@@ -1,10 +1,14 @@
 import { memo, useCallback, useState } from 'react'
 import { majorForexPairs } from '../economic-calendar/forex/pairs'
-import { currencyThesisPrompt, readThesisAcross, readThesisDay, readThesisMonth, readThesisPair, safeThesisLink, selectedThesisReview, thesisDateGroups, thesisDays, thesisMonths, thesisPrompt, type ThesisEntry, type ThesisPlannedDay, type ThesisReview, type ThesisRow } from './thesis-model'
+import { readThesisAcross, readThesisDay, readThesisMonth, readThesisPair, safeThesisLink, thesisDateGroups, thesisDays, thesisMonths, thesisPrompt, type ThesisEntry, type ThesisPlannedDay, type ThesisReview, type ThesisRow } from './thesis-model'
 import { useTheses } from './useTheses'
 import { downloadThesisMarkdown } from './thesis-export'
 import { ThesisBackdrop } from './ThesisBackdrop'
 import { ThesisCurrencyTable } from './ThesisCurrencyTable'
+import { useCurrencyResearch } from './useCurrencyResearch'
+import { researchPrompt } from './research-prompt'
+import { downloadResearchMarkdown } from './research-export'
+import { LegacyResearchArchive } from './LegacyResearchArchive'
 import './thesis.css'
 
 const dayFormatter = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', month: 'short', day: 'numeric', weekday: 'short' })
@@ -98,17 +102,23 @@ export const ThesisDock = memo(function ThesisDock() {
   const [month, setMonth] = useState(readThesisMonth)
   const [day, setDay] = useState(() => readThesisDay(month))
   const selectedDate = `${month}-${String(day).padStart(2, '0')}`
+  const [range, setRange] = useState(false)
+  const [from, setFrom] = useState(selectedDate)
+  const [to, setTo] = useState(selectedDate)
+  const rangeFrom = range ? from : selectedDate, rangeTo = range ? to : selectedDate
   const [copyStatus, setCopyStatus] = useState('')
-  const { data, error } = useTheses(scope, month)
+  const [archiveOpen, setArchiveOpen] = useState(false)
+  const { data, error } = useTheses(scope, month, !across)
+  const research = useCurrencyResearch(rangeFrom, rangeTo, across)
   const documented = new Set(data?.reviews?.flatMap(review => review.opportunity_ids) ?? [])
   const remaining = data?.past.filter(row => !documented.has(row.id)) ?? []
   // Clipboard completion must not show a status for a pair that has since changed.
-  const context = `${scope}:${month}:${across ? day : ''}`
+  const context = `${scope}:${month}:${across ? rangeFrom+':'+rangeTo : ''}`
   const [copyContext, setCopyContext] = useState(context)
   const copy = useCallback(async (row?: ThesisRow) => {
-    try { await navigator.clipboard.writeText(across ? currencyThesisPrompt(selectedDate) : thesisPrompt(scope, month, row)); setCopyContext(context); setCopyStatus('Prompt copied') }
+    try { await navigator.clipboard.writeText(across ? researchPrompt(rangeFrom, rangeTo) : thesisPrompt(scope, month, row)); setCopyContext(context); setCopyStatus('Prompt copied') }
     catch { setCopyContext(context); setCopyStatus('Could not copy prompt. Allow clipboard access and retry.') }
-  }, [scope, month, context, across, selectedDate])
+  }, [scope, month, context, across, rangeFrom, rangeTo])
   return <section className="thesis-dock" aria-label="Thesis">
     <header className="thesis-header"><h2>Thesis</h2>
       <button type="button" aria-pressed={across} onClick={() => {
@@ -117,16 +127,23 @@ export const ThesisDock = memo(function ThesisDock() {
       {!across && <label>Pair <select aria-label="Thesis pair" value={pair} onChange={event => {
         setPair(event.target.value); setCopyStatus(''); try { localStorage.setItem('fyodor.thesis.pair.v1', event.target.value) } catch { /* Retain session choice. */ }
       }}>{majorForexPairs.map(pair => <option key={pair}>{pair}</option>)}</select></label>}
-      <label>Month <select aria-label="Thesis month" value={month} onChange={event => {
+      {(!across || !range) && <label>Month <select aria-label="Thesis month" value={month} onChange={event => {
         const value = event.target.value
         setMonth(value); setDay(previous => Math.min(previous, thesisDays(value))); setCopyStatus(''); try { localStorage.setItem('fyodor.thesis.month.v1', value) } catch { /* Retain session choice. */ }
-      }}>{thesisMonths.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
-      {across && <label>Day <select aria-label="Thesis day" value={day} onChange={event => {
+      }}>{thesisMonths.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>}
+      {across && !range && <label>Day <select aria-label="Thesis day" value={day} onChange={event => {
         const value = Number(event.target.value); setDay(value); setCopyStatus(''); try { localStorage.setItem('fyodor.thesis.day.v1', String(value)) } catch { /* Retain session choice. */ }
       }}>{Array.from({ length: thesisDays(month) }, (_, index) => <option key={index + 1} value={index + 1}>{index + 1}</option>)}</select></label>}
+      {across && <><label><input type="checkbox" checked={range} aria-label="Thesis date range" onChange={event => {
+        setRange(event.target.checked); if (event.target.checked) { setFrom(selectedDate); setTo(selectedDate) } setCopyStatus('')
+      }} />Date range</label>{range && <>
+        <label>From <input type="date" aria-label="Thesis from" value={from} onChange={event => { if (!event.target.value) return; setFrom(event.target.value); if (event.target.value > to) setTo(event.target.value); setCopyStatus('') }} /></label>
+        <label>To <input type="date" aria-label="Thesis to" value={to} onChange={event => { if (!event.target.value) return; setTo(event.target.value); if (event.target.value < from) setFrom(event.target.value); setCopyStatus('') }} /></label>
+      </>}</>}
       <span className="thesis-timezone">Jakarta · AM/PM</span>
-      <button type="button" onClick={() => { void copy() }}>{across ? 'Copy fill-date prompt' : 'Copy assessment prompt'}</button>
-      <button type="button" disabled={!data} onClick={() => {
+      <button type="button" onClick={() => { void copy() }}>{across ? 'Copy research prompt' : 'Copy assessment prompt'}</button>
+      <button type="button" disabled={across ? !research.data : !data} onClick={() => {
+        if (across) { if (!research.data) return; setCopyContext(context); try { downloadResearchMarkdown(research.data,research.error); setCopyStatus('Markdown download requested') } catch { setCopyStatus('Could not export Markdown. Try again.') } return }
         if (!data) return
         setCopyContext(context)
         try { downloadThesisMarkdown(data, error, across ? selectedDate : undefined); setCopyStatus('Markdown download requested') }
@@ -135,10 +152,12 @@ export const ThesisDock = memo(function ThesisDock() {
       <span className="thesis-copy-status" role="status">{copyContext === context ? copyStatus : ''}</span>
     </header>
     <div className="thesis-scroll" tabIndex={0} aria-label="Monthly thesis assessments">
-      {error && <p className="thesis-notice" role="alert">{error}{data ? ' Showing last loaded assessments.' : ''}</p>}
-      {!data && !error && <p className="thesis-notice" role="status">Loading assessments…</p>}
+      {(across ? research.error : error) && <p className="thesis-notice" role="alert">{across ? research.error : error}{(across ? research.data : data) ? ' Showing last loaded assessments.' : ''}</p>}
+      {across && research.data && <ThesisCurrencyTable data={research.data} />}
+      {across && <details className="thesis-details" onToggle={event => setArchiveOpen(event.currentTarget.open)}><summary>Earlier daily snapshots and opportunity records</summary>{archiveOpen && <LegacyResearchArchive />}</details>}
+      {!(across ? research.data : data) && !(across ? research.error : error) && <p className="thesis-notice" role="status">Loading assessments…</p>}
       {data && <>
-        {across ? <ThesisCurrencyTable review={selectedThesisReview(data, selectedDate)} reviews={data.reviews} selectedDate={selectedDate} /> : data.reviews?.length ? [
+        {data.reviews?.length ? [
           ...data.reviews.map(review => ({ at: review.as_of_utc, key: review.review_id, node: <ReviewBlock review={review} onCopy={copy} /> })),
           ...thesisDateGroups(remaining).map(([date, rows]) => ({ at: rows[0].as_of_utc, key: date, node: <AssessmentTable rows={rows} scope={scope} onCopy={copy} /> })),
         ].sort((a, b) => b.at.localeCompare(a.at)).map(block => <div key={block.key}>{block.node}</div>)

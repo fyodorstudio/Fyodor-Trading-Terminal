@@ -1,7 +1,8 @@
-import { dailyVerdicts, reviewCurrencies, safeThesisLink, thesisDay, validDirectionAnchor, type DirectionAnchor, type CurrencyCheckpoint, type DailyDirection } from './thesis-model'
+import { dailyVerdicts, directionIntensities, reviewCurrencies, safeThesisLink, thesisDay, validDirectionAnchor, type DirectionAnchor, type CurrencyCheckpoint, type DailyDirection } from './thesis-model'
 
 export type CurrencySummarySnapshot = { schema: 1; revision: string; review_id: string | null; as_of_utc: string | null;
   rows: { currency: string; verdict: DailyDirection['verdict'] | null; verified_utc: string | null;
+    basis?: DailyDirection['basis']; intensity?: DailyDirection['intensity']; horizon?: string;
     evidence_anchor?: DirectionAnchor | null; reassessment: CurrencyCheckpoint | null; reassessment_gap: string }[] }
 
 const instant = (value: unknown): value is string => typeof value === 'string' && /(?:Z|[+-]\d\d:\d\d)$/.test(value) && Number.isFinite(Date.parse(value))
@@ -14,6 +15,8 @@ export function validCurrencySummary(value: unknown): value is CurrencySummarySn
       && (row.verdict === null ? row.verified_utc === null && row.reassessment === null
         : item.review_id !== null && dailyVerdicts.includes(row.verdict) && instant(row.verified_utc))
       && typeof row.reassessment_gap === 'string' && (row.reassessment === null || validCheckpoint(row.reassessment, item.as_of_utc)))
+    && item.rows.every(row => row.basis == null ? row.intensity == null && !row.horizon : row.basis === 'standalone'
+      && directionIntensities.includes(row.intensity!) && typeof row.horizon === 'string' && !!row.horizon.trim())
     && item.rows.every(row => row.evidence_anchor == null || row.verdict !== null && validDirectionAnchor(row.evidence_anchor, item.as_of_utc!, row.verified_utc!))
 }
 
@@ -27,9 +30,8 @@ function validCheckpoint(item: CurrencyCheckpoint, cutoff: string | null) {
       && typeof source.locator === 'string' && (source.kind === 'local' || source.kind === 'web' && safeThesisLink(source.locator)))
 }
 
-const day = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', month: 'short', day: 'numeric' })
-export function currencyUntil(checkpoint: CurrencyCheckpoint | null, now: number) {
-  if (!checkpoint) return { label: 'Review not set', due: false }
+export function currencyUntil(checkpoint: CurrencyCheckpoint | null, now: number, reassessmentGap = '') {
+  if (!checkpoint) return reassessmentGap.trim() ? { label: 'Review needed', due: true } : { label: 'Review not set', due: false }
   if (!checkpoint.event_at) {
     const due = thesisDay(new Date(now).toISOString()) >= checkpoint.event_date!
     return { label: due ? 'Review due' : 'Hour unknown', due }
@@ -41,11 +43,19 @@ export function currencyUntil(checkpoint: CurrencyCheckpoint | null, now: number
   return { label: duration, due: false }
 }
 
-export function currencyStaleness(anchor: DirectionAnchor | null | undefined, now: number) {
-  if (!anchor) return 'Unknown'
-  if (!anchor.event_at) return day.format(new Date(anchor.event_date + 'T05:00:00Z'))
-  const elapsed = now - Date.parse(anchor.event_at)
+export function currencyStaleness(assessedUtc: string | null | undefined, now: number) {
+  if (!assessedUtc || !instant(assessedUtc)) return 'Unknown'
+  const elapsed = now - Date.parse(assessedUtc)
   if (elapsed < 0) return 'Unknown'
   const minutes = Math.floor(elapsed / 60000), hours = Math.floor(minutes / 60), days = Math.floor(hours / 24)
   return days ? `${days}d ${hours % 24}h ago` : hours ? `${hours}h ${minutes % 60}m ago` : `${minutes}m ago`
+}
+
+export function currencyEvidenceAge(anchor: DirectionAnchor | null | undefined, now: number) {
+  if (!anchor) return 'Undated'
+  if (anchor.event_at) return currencyStaleness(anchor.event_at, now)
+  if (!anchor.event_date) return 'Undated'
+  const today = thesisDay(new Date(now).toISOString())
+  const days = Math.floor((Date.parse(today+'T00:00:00Z')-Date.parse(anchor.event_date+'T00:00:00Z'))/86400000)
+  return days < 0 ? 'Unknown' : days === 0 ? 'Today · hour unknown' : `~${days}d ago`
 }

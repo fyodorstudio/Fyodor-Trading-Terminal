@@ -149,6 +149,18 @@ def create_app(directory=None, run_collector=True, highlights_path=HIGHLIGHTS_PA
         except (OSError, ValueError) as error:
             raise HTTPException(503, 'Currency summary unavailable; saved Thesis history is preserved') from error
 
+    @app.get('/api/v1/theses/research')
+    def thesis_research(from_date: str = Query(alias='from', pattern=r'^\d{4}-\d{2}-\d{2}$'),
+                        to_date: str = Query(alias='to', pattern=r'^\d{4}-\d{2}-\d{2}$'),
+                        after_revision: str | None = Query(default=None, max_length=100)):
+        from .thesis_research import research_snapshot
+        try:
+            return research_snapshot(thesis_path, from_date, to_date, after_revision)
+        except ValueError as error:
+            raise HTTPException(422, str(error)) from error
+        except OSError as error:
+            raise HTTPException(503, 'Thesis research unavailable; history is preserved') from error
+
     @app.get('/api/v1/theses')
     def theses(scope: str = Query(pattern=r'^(?:ALL|[A-Z]{6})$'), month: str = Query(pattern=r'^\d{4}-\d{2}$'),
                source_id: str | None = Query(default=None, min_length=1, max_length=160),

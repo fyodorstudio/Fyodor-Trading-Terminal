@@ -4,7 +4,7 @@ Open `C:\dev\Fyodor Trading Terminal Lite` and choose the skill for your questio
 
 | Skill | Use it for | Example prompt |
 |---|---|---|
-| [Assess Trade Now](.agents/skills/assess-trade-now/SKILL.md) | Current fundamentals, emerging opportunities, near-term news and holding risks. Prompt pair BUY/SELL decisions plus LOOK HERE NEXT candidates from a brief eight-currency sweep. Verified events are pinned with dated external chart icons unless read-only. Fundamental-only by default; bounded price feedback on explicit request, no monitoring. | `Use $assess-trade-now for USDJPY.` or `Use $assess-trade-now for a price-aware AUDUSD recovery assessment.` |
+| [Assess Trade Now](.agents/skills/assess-trade-now/SKILL.md) | Current fundamentals, emerging opportunities, near-term news and holding risks. Prompt pair BUY/SELL decisions plus LOOK HERE NEXT candidates from a brief eight-currency sweep. Relevant verified events can be pinned for Alert/chart; each research finding does not need a pin. Fundamental-only by default; bounded price feedback on explicit request, no monitoring. | `Use $assess-trade-now for USDJPY.` or `Use $assess-trade-now for a price-aware AUDUSD recovery assessment.` |
 | [One Minute Before Release](.agents/skills/one-minute-before-release/SKILL.md) | An active-chat countdown that reuses preparation, verifies publication, waits for fresh actuals and returns a release decision. Fundamental-first; a requested price check follows the first verdict. | `Use $one-minute-before-release for my US CPI Highlight, EURUSD only. Reuse our preparation.` |
 | [Review Historical Research](.agents/skills/review-historical-research/SKILL.md) | A past move or named Research Date Range report: H1 candles, or suitable H4, plus calendar and dated web evidence. Explain reversals, intervening news and what was knowable at the time. | `Use $review-historical-research for "USDJPY massive decline sep 24 2026".` |
 
@@ -15,6 +15,18 @@ retrospective rally headline; it does not imply continuous news coverage.
 Pair decisions use BUY/SELL, with qualitative STRONG when justified. Reversal
 questions separate the immediate session from the next 1–5 trading sessions.
 An explicit "USDJPY only, no other currencies" request suppresses the broad sweep.
+
+For a saved research interval, a simple prompt is enough:
+
+> Use $assess-trade-now to research all eight currencies from October 22 through now and update Thesis.
+
+Thesis groups the findings by currency, with separate rows for each development's
+date, Jakarta hour, facts, implication, effect on the existing thesis and sources.
+Use Date range to see several days. Older active foundations stay visible as
+background; assessment time never changes their dates. Strong/Moderate/Slight
+compares supported currency pressure, with offsets and a next review checkpoint.
+Entries are optional and your technical analysis stays yours. Earlier daily
+snapshots and versions remain in the expandable archive. See [Thesis](docs/THESIS.md).
 
 For broader preparation, say:
 
@@ -32,8 +44,9 @@ release time does not prove numbers have arrived.
 
 Give the analyst chat the occurrence name or ID, broker, date and requested
 currency/pair. The agent resolves saved Highlight context through its CLI. Ask
-explicitly to save new conclusions. Historical price investigations remain
-separate from live fundamental assessment.
+to save full Highlight journals. Requested Thesis research and focused live-summary
+updates already have save permission unless you say read-only or chat-only.
+Historical price investigations remain separate from live fundamental assessment.
 
 # What to tell market analyst agents
 

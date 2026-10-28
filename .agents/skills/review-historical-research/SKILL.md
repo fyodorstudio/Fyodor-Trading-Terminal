@@ -11,6 +11,10 @@ reference, preserve spot/CFD/futures identity and measure price/percent, not pip
 Historical Thesis saves remain labelled reconstructions and must not replace the
 left-panel live summary or advance its reassessment checkpoint. A current update
 routes separately to Assess Trade Now with fresh evidence.
+Historical source dates remain original; reusing this study never supplies a
+fresh live assessment or evidence clock. Requested historical Thesis findings
+use labelled reconstructions under the shared research contract;
+do not relabel historical pair conclusions as current standalone pressure.
 
 Follow AGENTS.md. Review the user's historical report or named pair/date range in
 Fyodor Trading Terminal Lite. Report notes/questions are research context, not

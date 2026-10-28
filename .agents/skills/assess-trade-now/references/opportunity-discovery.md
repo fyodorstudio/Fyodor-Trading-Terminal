@@ -24,17 +24,13 @@ state that the opportunity sweep was excluded rather than claiming market-wide
 coverage. A release countdown reuses preparation and refreshes exceptional news;
 it does not start a new eight-currency investigation at publication.
 
-For a candidate outside the main receipt scope, open its decisive source and start
-a separate `discovery start --scope <CURRENCY>` receipt with the same analysis
-cutoff and a distinct output directory. Complete focused identity/limitations,
-external-record and broker-index reads; record relevant sources and events there.
-Follow the parent pin/preflight/read-back rules for verified material discoveries.
-Link each candidate's receipt from the main receipt using an added
-`opportunity_receipts` list of paths. Do not mislabel a JPY-only event as AUD/USD
-to pass validation, or treat main-pair validation as proof of candidate coverage.
-The current validator validates each receipt separately; it does not follow this
-list or mechanically verify that every currency was searched. Retain actual sweep
-search/open evidence and a brief note on currencies checked even with no candidate.
+For a material candidate beyond the named scope, verify its decisive sources and
+both currency stories before promoting it. State which candidates received deep
+research; a brief sweep is not a fully ranked market comparison. A separate source
+coverage receipt can help an audit, but is not required to save verified findings
+in Thesis or deliver a supported current decision. Never mislabel an event's
+currency/instrument to satisfy a checklist. Relevant pins/reminders use the parent
+identity/preflight/read-back procedure; not every research finding needs a pin.
 
 ## Test the current market regime
 

@@ -45,7 +45,7 @@ Optional `FYODOR_BRIDGE_API_URL` / `FYODOR_STORAGE_API_URL` override Vite's prox
 | events-alarms / storage/alarms | Alert composition, occurrence invocation alarms and independent Windows alarm delivery |
 | entry-trade | Manual execution plans, all-pair pins, draggable chart levels and independent saved journals |
 | price-alerts | Broker/symbol price-alert lines, local persistence, live Bid monitoring and browser sound |
-| thesis / storage/thesis.py / storage/thesis_reviews.py | Dated opportunities, shared backdrop reviews, agent context and append-only versions |
+| thesis / storage/thesis_research.py | Currency development ledger, assessments, range view, earlier daily/pair archive and append-only versions |
 | thesis/CurrencySummary / storage/thesis_summary.py | Left-dock saved currency verdicts and chosen reassessment deadline; read-only projection |
 | research | Chart date selection and named Markdown handoff |
 | Market Analyst Workflow/tools (repo root) | Read-only calendar, upcoming/Highlight/report queries, journal/lifecycle writes and bounded OHLC capture |
@@ -175,34 +175,28 @@ choices fall back to raw tables; filters/icons/colors stay intact. No Workspace
 backup UI, scoring engines, full Notebook workflow, Scatter Plot or experimental
 context tools are included.
 
-**Thesis** documents requested agent assessments and standing focused updates
-during live assessment/release invocations, newest
-first, independently of the chart. The month selector offers **JUL / OCT 2026**.
-**Across All Currency** shows one eight-currency table for the selected month/day:
-daily strengthening/weakening verdict, sourced news and upcoming checkpoints. A top
-Trade Entry Opportunity selects supported standalone currency and optional
-Brent/WTI/gold entries with investor incentives, active/conditional status and
-same-day windows. It can explain an empty selection while keeping all eight
-directional rows; real capital may be at stake. No pair scanning in this view.
-The left dock shows **Age | CUR | VERDICT | Checkpoint** in both tabs, following the latest
-live daily Thesis across months. Checkpoint counts down to an agent-selected stage,
-then says **Review due** while keeping the saved verdict. Live invocations resolve
-affected elapsed stages and save/read back the focused update without another
-save prompt; read-only/no-save overrides win. Alarms alone perform no research.
-Older rows without a deadline say **Review not set**. Details stay in Thesis; the
-box does no research. See [summary/save rules](docs/THESIS.md#left-panel-summary-and-reassessment).
-It has its own dated copied prompt and Markdown handoff; existing pair journals remain separate.
-Agents use `thesis context`
-for bounded prior context, then refresh evidence and save a new dated review;
-earlier reviews retain their exact opportunity versions and original source dates.
-July retains its original NZDCHF
-reconstruction; October 1–17 adds event-driven NZDCHF assessments with separate
-pair bias and thesis-change evidence. Sources, as-of/saved times and prior versions are
-expandable. NZDCHF October 18–31 has requested blank planning rows with sourced
-schedule notes. Export Markdown includes the selected currency date or pair/month, sources,
-versions and context for continuing with another AI. Alert retains scheduling
-and notifications. See [Thesis workflow](docs/THESIS.md)
-for the copied assessment prompt and agent save interface.
+**Thesis** stores verified developments once and records separate currency
+assessments, with append-only corrections and exact evidence references. Across
+All Currency shows a date or date range grouped by currency: current pressure,
+assessment time/coverage, active older background, one row per development with
+Jakarta hour, implication and effect on the existing thesis, then upcoming
+checkpoints. Multiple events per day stay separate. Assessment history is
+expandable; earlier daily snapshots and opportunity records load only when their
+archive is opened. JUL/OCT selectors and the independent pair journal remain.
+
+The left dock shows **Evidence age | CUR | VERDICT | Checkpoint**. Evidence age
+uses the named source development, separately from Last Assessed; new saves do not
+redate old news. Verdict is standalone Strong/Moderate/Slight pressure. A focused
+refresh preserves other currencies; missing decisive evidence remains visible.
+Checkpoint is a review deadline, never automatic reversal or renewal. Alarms alone
+perform no research. See the [Thesis contract](docs/THESIS.md#left-panel-summary-and-reassessment).
+
+Use `pnpm analyst thesis research --scope ALL --from <date> --to <date>`, then
+`thesis research-append --scope ALL --input <file>` for researched interval updates.
+No news-item quota or mandatory entry payload is required. Copy research prompt
+and Markdown export use the selected interval and preserve source/research clocks.
+Historical reconstructions cannot replace live verdicts. Existing pair/daily CLI
+interfaces and all earlier saved versions remain compatible. Alert owns reminders.
 
 **Entry Trade** is a manual trade journal. Save an entry at any stage, choose
 Waiting/Long/Short freely, use the broker quote for Entry, and enter SL/TP in any

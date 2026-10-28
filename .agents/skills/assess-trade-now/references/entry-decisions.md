@@ -21,7 +21,7 @@ current relevance of their mechanism, not invented return estimates or scores.
 Say which markets received focused comparison. A brief sweep does not prove a
 market-wide winner. A named pair remains the main task; explicit scope-only,
 fundamental-only, no-candles, read-only and prompt-only overrides take precedence.
-Daily Thesis keeps eight standalone currency rows; do not form pairs there.
+Apply [standalone fundamentals](standalone-fundamentals.md), including comparable Strong / Moderate / Slight pressure and explicit evidence dates. Thesis stores currency developments and assessments; pair comparisons are optional chat output.
 
 ## Manual technical workflow
 
@@ -47,7 +47,7 @@ the user's technical execution. An active fundamental opportunity means the
 mechanism operates now, not that a chart entry has qualified. A price-alert
 follow-up refreshes intervening news, invalidation and elapsed checkpoints before
 retaining/reversing the call. Do not automatically wait for another catalyst,
-renew evidence age, advance UNTIL, arm an alarm or save Thesis merely because a
+redate underlying evidence, advance Checkpoint, arm an alarm or save Thesis merely because a
 price alert fired. Requested Thesis saves retain the existing append/read-back
 contract, with pair comparisons in chat rather than the daily currency rows.
 
@@ -99,7 +99,7 @@ cannot prove crowding, exhaustion, order flow or a mispricing. Costs, spreads
 and financing qualify entry suitability when verified; never invent them.
 
 An explicit fundamental-only/no-candles override suppresses candle retrieval.
-Daily news collection does not fetch eight price histories; feedback is limited
+Broad fundamental research does not fetch eight price histories; feedback is limited
 to shortlisted entry candidates. If feedback is unavailable, report that once
 and narrow the entry claim; do not erase a supported fundamental direction.
 Pure bias and release-first verdicts remain fundamental-first. Never delay an
@@ -114,4 +114,4 @@ updates append versions and separate new facts from the earlier information set.
 Compare prospective episodes, including losing and rejected candidates; record
 costs/drawdown only when measured. A retrospective explanation, cherry-picked
 rally or simulated fill does not establish profitability. No new monitoring,
-automatic trade, account action or journal write follows from a bare invocation.
+automatic trade, account action or full Highlight journal write follows from a bare invocation. Focused live Thesis updates keep their standing permission.

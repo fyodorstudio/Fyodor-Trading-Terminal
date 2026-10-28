@@ -5,33 +5,21 @@ description: "Wait for an imminent economic release in the active chat, reuse pr
 
 # One Minute Before Release
 
-An explicit request to fill the Thesis date table uses Assess Trade Now's
-[dated news-table mode](../assess-trade-now/references/daily-news.md): save factual
-released news with numbered sources, standalone currency directions and only
-future scheduled checkpoints, following that mode's output and storage rules.
-The user's standing workflow authorizes a focused live Thesis refresh during
-each live release invocation when a live ALL summary already exists. Resolve
-elapsed material checkpoints for affected comparisons, save retained/reversed
-evidence and the next material checkpoint through the dated mode, then read back
-the monthly version and `thesis summary --scope ALL`. Do this after the first
-verdict in the same turn; no additional save prompt is needed. Explicit read-only,
-chat-only or no-save instructions override this default. Preserve unaffected
-rows' verification clocks, evidence ages and future checkpoints; never imply a
-complete eight-currency refresh. Historical/simulated work cannot replace the
-live summary. An elapsed Checkpoint means review is due, not a reversed verdict.
-Real capital may be at stake; verify decisive facts before a verdict and never
-promise an executable fill. Inherited Assess Trade Now
-reminder permission uses its Alert procedure; it never extends this bounded wait
-or schedules another AI invocation.
-For a commodity release, use the parent commodity reference and its instrument
-receipt/source families; do not invent a currency impact or select a forex pair.
+Use Assess Trade Now's [research procedure](../assess-trade-now/SKILL.md).
+A release invocation refreshes the affected live Thesis mechanisms under standing
+save permission, unless read-only/chat-only/no-save. After the first supported
+verdict, save verified developments and a focused assessment through
+[Thesis research](../assess-trade-now/references/thesis-research.md); preserve other
+currencies. Do not start an unrelated all-eight investigation or duplicate daily
+snapshots. Record offsets and subsequent guidance, not only the first actual.
 
-Follow AGENTS.md and the relevant instructions from
-[Assess Trade Now](../assess-trade-now/SKILL.md), without rereading guidance
-already loaded. This is a bounded active-chat countdown, not a background
-scheduler, automatic trade or promise of second-level response latency.
-The name describes the intended invocation time, not a required start time.
-Do not start a wait merely because a general assessment mentions upcoming news.
+Original evidence dates, Last Assessed and the next review deadline are separate.
+An unresolved decisive stage stays an explicit gap. No alarm or passing time
+refreshes a verdict. The [Thesis contract](../../../docs/THESIS.md) owns saves and
+read-back; never delay the first sourced decision for persistence/bookkeeping.
+Significant reminders use the parent's alert procedure. This skill performs a
+bounded active-chat wait, not background monitoring, trading or automatic AI
+invocation. A commodity release needs its own material evidence and identity.
 
 ## Reuse preparation
 
@@ -77,13 +65,10 @@ first sourced verdict; expand the comparison within the declared deadline.
 Call an incompletely compared choice the leading verified candidate, and name
 the specific remaining coverage once. Keep the direct directional thesis.
 
-Start the discovery receipt with `--release-at` and `--deadline`. Record opened
-evidence and actual failures using `discovery record` as each batch completes.
-One opened page may support a release fact while its wider source family remains
-`partial`. At an elapsed deadline, `discovery finish --stop-reason release_deadline`
-preserves those checks and explicitly defers untouched rows. Run validation;
-`valid` verifies that record, while `coverage_complete: false` still means the
-scan is incomplete. Never fabricate attempts or extend the wait for bookkeeping.
+When an auditable coverage receipt is useful, the optional discovery helper can
+record opened evidence and actual failures with its release/deadline bound. A
+partial receipt is not complete coverage. Do not delay actuals, fabricate route
+attempts or extend the wait for bookkeeping.
 
 ## Verify time and wait
 
@@ -289,6 +274,6 @@ An Assess Trade Now handoff retains its standing material-event pin/icon
 permission and immediate-discovery context; do not repeat the whole scan before
 a first supported release verdict. Focused live Thesis updates use the standing
 save permission above; full Highlight journals retain their separate save rule.
-No entry price, stop, sizing, profit forecast, candle confirmation, order, service
-restart, automatic archiving or ongoing monitoring is implied.
+No entry price, stop, sizing, profit forecast, candle confirmation, order,
+automatic archiving or ongoing monitoring is implied.
 Creating this skill does not start a timer or create an automation.

@@ -1,4 +1,4 @@
-# Source coverage and verifiable discovery
+# Optional audit helper: Source coverage and verifiable discovery
 
 Read this for every fresh assessment/alert review, before the backdrop. This is
 the shared procedure; no separate alert skill is needed. An explicit prompt-only
@@ -87,6 +87,13 @@ another official endpoint or dated reporting. Preserve evidence bytes/text and
 the route used; do not label an access failure as no new news.
 
 ## Coverage receipt and completion check
+
+This helper is optional for ordinary Thesis research. Use it for an explicit
+coverage audit or when the source inventory is useful; it is not a prerequisite
+for saving findings. Once a receipt is started, keep its claims honest and use the
+completion rules below. The normal research/save procedure lives in the parent
+skill and Thesis contract.
+
 
 Start with `pnpm analyst discovery start` using the scope, actual broker, cutoff
 and an output folder inside Lite. It captures all pages of `highlights`,
