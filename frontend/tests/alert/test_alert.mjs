@@ -62,6 +62,53 @@ try {
     assert.equal(readAlertPreferences().days, days)
   }
   assert.equal(alertSeriesIds(defaultAlertPreferences()).length, 1051)
+  const { HighlightDock } = await server.ssrLoadModule('./src/events-alarms/HighlightDock.tsx')
+  const external = (key, currency, time = at) => ({ key, title: key, currencies: [currency], kind: 'scheduled', status: 'confirmed',
+    event_at: time === null ? null : new Date(time).toISOString(), event_date: '2026-10-05', sources: [], facts: 'Saved source facts.' })
+  const simultaneous = [...events, row('840030016', { name: 'Payrolls' }), row('840030001', { name: 'Producer prices' }),
+    row('840030002', { name: 'Later producer prices', value_id: 'later', release_at: at + 1000 })]
+  const outside = [external('A UK budget', 'GBP'), external('B external USD release', 'USD'),
+    external('Unknown hour one', 'USD', null), external('Unknown hour two', 'USD', null)]
+  const displayGroups = (data = simultaneous) => dayGroups(data, outside, '2026-10-05', 'Pepperstone-Demo', defaultAlertPreferences())
+  const initialGroups = displayGroups()
+  const mutations = []
+  const alarms = { data: { schedule_schema: 2, settings: { enabled: true, release_minutes: 2 },
+    events: initialGroups.filter(group => group.at !== null).map(group => ({ key: group.key, at: group.at, eligible: true, selected: false,
+      source: group.release ? 'calendar' : 'external', broker: 'Pepperstone-Demo', value_ids: group.valueIds, reference: group.external[0]?.key })) },
+    mutate: async action => { mutations.push(action) } }
+  const renderTable = (groups, clock = now) => React.act(async () => root.render(React.createElement(HighlightDock, {
+    groups, sourceId: 'Pepperstone-Demo', alarms, now: clock, focusKey: null, impact: { byValueId: new Map(), byKey: new Map() },
+  })))
+  const blocks = () => [...container.querySelectorAll('.alert-event-group')]
+  const usdBatch = () => blocks().filter(node => initialGroups.some(group => group.key === node.dataset.alertId && group.at === at && group.currency === 'USD'))
+  await renderTable(initialGroups)
+  const batch = usdBatch()
+  assert.equal(batch.length, 4, 'Unrelated calendar packages and external events retain their identities')
+  assert.equal(batch.filter(node => node.classList.contains('alert-time-start')).length, 1, 'Simultaneous USD releases share one visual start')
+  assert.equal(batch.filter(node => node.classList.contains('alert-time-end')).length, 1, 'Only the final simultaneous release has a divider')
+  assert.equal(batch.flatMap(node => [...node.querySelectorAll('.alert-time-cell time')]).length, 1, 'Time and currency appear once across release families and sources')
+  const positions = batch.map(node => blocks().indexOf(node))
+  assert.equal(positions.at(-1) - positions[0], batch.length - 1, 'Another currency cannot split the same-time USD block')
+  assert.equal(container.querySelectorAll('.alert-time-start').length, 5, 'Other currencies, different seconds and both unknown hours stay separate')
+  assert.equal(container.querySelectorAll('.alert-time-end').length, 5)
+  const payroll = batch.find(node => node.textContent.includes('Payrolls'))
+  await React.act(async () => payroll.querySelector('.alert-event-name').click())
+  assert.ok(payroll.querySelector('.alert-event-details'), 'Each release keeps independently expandable details')
+  for (const node of batch) await React.act(async () => node.querySelector('.event-alarm-toggle').click())
+  assert.deepEqual(mutations.map(action => action.keys[0]), batch.map(node => node.dataset.alertId), 'Each bell still targets only its own durable publication key')
+  assert.equal(mutations.length, 4)
+  await renderTable(displayGroups([...simultaneous].reverse().map(event => ({ ...event, actual: .3 }))), at + 60000)
+  assert.deepEqual(usdBatch().map(node => node.dataset.alertId), batch.map(node => node.dataset.alertId), 'Refresh, input order and publication do not change grouping')
+  assert.ok(payroll.querySelector('.alert-event-details'), 'Publication refresh preserves expanded details')
+  assert.equal(container.querySelectorAll('.alert-time-start').length, 5)
+  await renderTable(initialGroups.filter(group => group.currency === 'USD' && group.key !== batch[0].dataset.alertId))
+  assert.ok(usdBatch()[0].querySelector('.alert-time-cell time'), 'Filtering out the first package promotes the next visible time label')
+  await React.act(async () => root.unmount())
+  const restored = createRoot(container)
+  await React.act(async () => restored.render(React.createElement(HighlightDock, { groups: initialGroups, sourceId: 'Pepperstone-Demo',
+    alarms, now, focusKey: null, impact: { byValueId: new Map(), byKey: new Map() } })))
+  assert.equal(container.querySelectorAll('.alert-time-start').length, 5, 'Remounting restores grouping without a preference or saved migration')
+  await React.act(async () => restored.unmount())
   console.log('✓ Alert date grouping, publication/unknown clocks, released readings, countdown formatting and legacy preferences')
 } finally {
   await React.act(async () => root.unmount()); Date.now = originalNow

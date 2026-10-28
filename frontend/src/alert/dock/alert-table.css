@@ -23,10 +23,10 @@
 .alert-event-table thead th:nth-child(6) { width: 108px; }
 .alert-event-table thead th:nth-child(7) { width: 110px; }
 .alert-event-table thead th:nth-child(8) { width: 34px; }
-.alert-event-group { border-bottom: 1px solid var(--border); }
+.alert-time-end { border-bottom: 1px solid var(--border); }
 .alert-event-group > tr > td, .alert-event-group > tr > th { padding: 6px 10px; vertical-align: top; text-align: left; font-weight: normal; overflow-wrap: anywhere; }
-.alert-event-group > tr:first-child > td, .alert-event-group > tr:first-child > th { padding-top: 12px; }
-.alert-event-group > tr:last-child > td, .alert-event-group > tr:last-child > th { padding-bottom: 12px; }
+.alert-time-start > tr:first-child > td, .alert-time-start > tr:first-child > th { padding-top: 12px; }
+.alert-time-end > tr:last-child > td, .alert-time-end > tr:last-child > th { padding-bottom: 12px; }
 .alert-event-group > tr > td.alert-value { text-align: right; }
 .alert-event-table small { display: block; color: var(--text-faint); font-size: 10px; margin-top: 4px; }
 .alert-time-cell time { white-space: nowrap; color: var(--text-strong); font-size: 11px; }

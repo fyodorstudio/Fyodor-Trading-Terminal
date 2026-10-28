@@ -12,6 +12,10 @@ Source identifies Pepperstone or the actual external publisher (for example
 Reuters), with links to evidence. External records never acquire invented calendar
 readings. Different source values stay separate. One bell covers a publication
 package; decision, statement and conference clocks remain separate stages.
+Rows with the same exact publication UTC and currency always form one compact
+visual block, with the time/currency shown once, before and after release.
+This display grouping preserves each publication's details and reminder choice;
+different currencies, exact times and unconfirmed hours remain separate.
 
 Click an event to open Overview, Sources & history, or Saved research. Sources
 keeps exact IDs, capture clocks, revised priors, raw values and external version

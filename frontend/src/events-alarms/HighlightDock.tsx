@@ -1,4 +1,4 @@
-import { Fragment, memo, useId, useState } from 'react'
+import { Fragment, memo, useId, useMemo, useState } from 'react'
 import { publisherName, type AlertDayGroup } from '../alert/model/alert-day-model'
 import { formatInspectorValue } from '../inspector/readings/reading-values'
 import { formatAppTimestamp } from '../appearance/time-display/time-display-preference'
@@ -14,13 +14,18 @@ import type { useAlertImpact } from '../alert/impact/useAlertImpact'
 
 type TableProps = { groups: AlertDayGroup[]; sourceId: string; alarms: ReturnType<typeof useAlarms>; now: number; focusKey: string | null; impact: ReturnType<typeof useAlertImpact> }
 export const HighlightDock = memo(function HighlightDock({ groups, ...props }: TableProps) {
+  // Visual batches are independent of publication identities and alarm choices.
+  const ordered = useMemo(() => [...groups].sort((a, b) => (a.at ?? Infinity) - (b.at ?? Infinity)
+    || a.currency.localeCompare(b.currency) || a.title.localeCompare(b.title) || a.key.localeCompare(b.key)), [groups])
+  const sameTime = (a: AlertDayGroup, b?: AlertDayGroup) => a.at !== null && a.at === b?.at && a.currency === b.currency
   return <table className="alert-event-table" aria-label="Events on selected date">
     <thead><tr><th>Time · Jakarta</th><th>Event</th><th>Actual</th><th>Forecast</th><th>Previous</th><th>Source</th><th>Agent impact</th><th><span className="alert-sr-only">Alarm</span></th></tr></thead>
-    {groups.map(group => <EventGroup key={group.key} group={group} {...props} />)}
+    {ordered.map((group, index) => <EventGroup key={group.key} group={group}
+      startsTime={!sameTime(group, ordered[index - 1])} endsTime={!sameTime(group, ordered[index + 1])} {...props} />)}
   </table>
 })
 
-const EventGroup = memo(function EventGroup({ group, sourceId, alarms, now, focusKey, impact }: Omit<TableProps, 'groups'> & { group: AlertDayGroup }) {
+const EventGroup = memo(function EventGroup({ group, startsTime, endsTime, sourceId, alarms, now, focusKey, impact }: Omit<TableProps, 'groups'> & { group: AlertDayGroup; startsTime: boolean; endsTime: boolean }) {
   const [expanded, setExpanded] = useState(() => group.external.some(item => item.key === focusKey))
   const [tab, setTab] = useState<'overview' | 'sources' | 'research'>('overview')
   const panelId = useId(), tabId = useId(), series = group.release?.events ?? []
@@ -36,18 +41,21 @@ const EventGroup = memo(function EventGroup({ group, sourceId, alarms, now, focu
     : !elapsed ? <ReleaseCountdown at={group.at} now={now} />
     : external ? 'Elapsed · verify outcome' : commentary ? 'Elapsed' : 'Awaiting data'
   const time = group.at === null ? '—' : formatAppTimestamp(group.at, jakartaDisplay, 'time-short')
+  const timeCell = <td rowSpan={total} className="alert-time-cell">{startsTime
+    ? <><time>{time}</time><small>{group.currency}</small></>
+    : <span className="alert-sr-only">{time} · {group.currency}</span>}</td>
   const toggle = (label: string) => <button type="button" className="alert-event-name" aria-expanded={expanded} aria-controls={panelId}
     onClick={() => setExpanded(value => !value)}><span aria-hidden="true">{expanded ? '▾' : '▸'}</span>{label}</button>
-  return <tbody className="alert-event-group" data-alert-id={group.key} data-external-key={group.external[0]?.key}>
+  return <tbody className={`alert-event-group${startsTime ? ' alert-time-start' : ''}${endsTime ? ' alert-time-end' : ''}`} data-alert-id={group.key} data-external-key={group.external[0]?.key}>
     {series.map((event, index) => <tr key={event.value_id} data-series-id={event.event_id}>
-      {index === 0 && <td rowSpan={total} className="alert-time-cell"><time>{time}</time><small>{group.currency}</small></td>}
+      {index === 0 && timeCell}
       <th scope="row">{toggle(event.name)}{'availability' in event && event.availability !== 'observed' && <small>Latest observation unavailable</small>}</th>
       <td className={`alert-value${event.actual === null ? ' alert-value-pending' : ''}`}>{event.actual === null ? pending(isInspectorCommentary(event)) : formatInspectorValue(event.actual, event)}</td>
       {[event.forecast, event.previous].map((value, i) => <td className="alert-value" key={i}>{formatInspectorValue(value, event)}</td>)}
       <td className="alert-source-cell" title={sourceId}>Pepperstone</td><td><ImpactBadge item={impact.byValueId.get(event.value_id)} /></td>{shared(index === 0)}
     </tr>)}
     {group.external.map((item, index) => { const first = series.length === 0 && index === 0; return <tr key={item.key} data-external-key={item.key}>
-      {first && <td rowSpan={total} className="alert-time-cell"><time>{time}</time><small>{group.currency}</small></td>}
+      {first && timeCell}
       <th scope="row">{toggle(item.title)}</th><td className="alert-value alert-value-pending">{pending(false, true)}</td><td className="alert-value">—</td><td className="alert-value">—</td>
       <td className="alert-source-cell">{item.sources.filter(source => source.kind === 'web').slice(0, 1).map(source =>
         <a href={source.locator} target="_blank" rel="noreferrer" key={source.locator}>{publisherName(source)}</a>)}</td><td><ImpactBadge item={impact.byKey.get(`external:${item.key}`)} /></td>{shared(first)}
