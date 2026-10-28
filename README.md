@@ -166,7 +166,10 @@ an open-terminal feature: closed/sleeping browsers cannot monitor, and touches
 between samples may be missed. On reopening, a quote beyond an armed threshold can
 trigger; no historical touch time is inferred. Enable/preview the original Thin
 chime or one of eleven other sounds and choose its duration (three seconds by
-default). Browser/system audio
+default). The upload icon opens the system file picker for a custom MP3, WAV or
+OGG (up to 2 MB and 60 seconds), saved only in this browser. Uploading selects it;
+Preview and alerts repeat/trim it to the chosen duration. Upload again to replace
+it, or select a built-in sound. Browser/system audio
 restrictions still apply; the dock reports blocked playback or storage failures.
 The drawing toolbar's delete button clears only the current pair, across all timeframes.
 Hold Shift while drawing a Trend line or Price note to keep it horizontal; release

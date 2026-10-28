@@ -38,7 +38,7 @@ export function readPriceAlerts(): PriceAlertStore {
     if (!value || !Array.isArray(value.alerts)) return empty
     return { alerts: value.alerts.filter(validAlert), playSound: value.playSound !== false,
       duration: [1, 3, 5, 10].includes(value.duration) ? value.duration : 3,
-      soundId: priceAlertSounds.find(sound => sound.id === value.soundId)?.id ?? 'thin' }
+      soundId: value.soundId === 'custom' ? 'custom' : priceAlertSounds.find(sound => sound.id === value.soundId)?.id ?? 'thin' }
   } catch { return empty }
 }
 

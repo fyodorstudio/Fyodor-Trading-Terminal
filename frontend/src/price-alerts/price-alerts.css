@@ -2,7 +2,8 @@
 :root[data-theme='dark'] .price-alerts-dock { --price-alert-active: #2dd4bf; --price-alert-stopped: #ffad42; }
 .price-alert-controls { padding: 6px 10px; border-bottom: 1px solid var(--border); display: grid; gap: 4px; }
 .price-alert-create { display: flex; align-items: center; gap: 8px; }
-.price-alert-create > button { flex: 1; min-width: 0; }
+.price-alert-create > button:first-child { flex: 1; min-width: 0; }
+.price-alert-create .price-alert-upload { display: grid; place-items: center; flex: 0 0 24px; padding: 2px; }
 .price-alert-create label { white-space: nowrap; }
 .price-alert-create input { margin: 0; }
 .price-alerts-dock button, .price-alerts-dock select, .price-alerts-dock input[type="text"] { color: var(--text-strong); background: var(--surface-inset); border: 1px solid var(--border-strong); border-radius: 4px; padding: 5px 7px; font: inherit; }

@@ -80,6 +80,7 @@ function AlertRow({ alert, controller, onSelectSymbol, brokerId }: {
 export function PriceAlertsDock({ controller, onSelectSymbol, onCreate, brokerId }: {
   controller: PriceAlertsController; onSelectSymbol: (symbol: string) => void; onCreate: () => void; brokerId: string | null
 }) {
+  const soundFileInput = useRef<HTMLInputElement>(null)
   const orderedAlerts = useMemo(() => [...controller.alerts].reverse().sort((a, b) => {
     const aTriggered = a.status === 'triggered', bTriggered = b.status === 'triggered'
     return Number(bTriggered) - Number(aTriggered) || (aTriggered && bTriggered ? (b.triggeredAt ?? 0) - (a.triggeredAt ?? 0) : 0)
@@ -89,14 +90,29 @@ export function PriceAlertsDock({ controller, onSelectSymbol, onCreate, brokerId
       <div className="price-alert-create">
         <button type="button" onClick={onCreate} disabled={!brokerId || !controller.live}>⏰ New price alert</button>
         <label><input type="checkbox" checked={controller.playSound} onChange={event => controller.setSound(event.target.checked, controller.duration)} /> Play sound</label>
+        <button type="button" className="price-alert-upload" aria-label="Upload custom alert sound" disabled={controller.customSoundLoading}
+          title={controller.customSoundLoading ? 'Loading audio…' : 'Upload custom sound · MP3, WAV or OGG · up to 2 MB / 60 seconds'}
+          onClick={() => soundFileInput.current?.click()}>
+          <svg aria-hidden="true" width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <path d="M10 13V2m-4 4 4-4 4 4M3 12v5h14v-5" />
+          </svg>
+        </button>
+        <input ref={soundFileInput} type="file" hidden aria-label="Custom alert audio file" accept=".mp3,.wav,.ogg,audio/mpeg,audio/wav,audio/ogg"
+          onChange={event => {
+            const file = event.currentTarget.files?.[0]
+            event.currentTarget.value = ''
+            if (file) void controller.uploadCustomSound(file)
+          }} />
       </div>
       <div className="price-alert-sound">
         <select aria-label="Price alert sound" value={controller.soundId} onChange={event => controller.setSound(controller.playSound, controller.duration, event.target.value as PriceAlertSoundId)}>
           {priceAlertSounds.map(sound => <option key={sound.id} value={sound.id}>{sound.label}</option>)}
+          {(controller.customSoundName || controller.soundId === 'custom') && <option value="custom">Custom · {controller.customSoundName || 'Upload audio'}</option>}
         </select>
         <select aria-label="Price alert sound duration" value={controller.duration} onChange={event => controller.setSound(controller.playSound, Number(event.target.value))}>
           {[1, 3, 5, 10].map(seconds => <option key={seconds} value={seconds}>{seconds} seconds</option>)}
-        </select><button type="button" onClick={() => void controller.previewSound()}>Preview</button></div>
+        </select><button type="button" disabled={controller.customSoundLoading} onClick={() => void controller.previewSound()}>Preview</button></div>
+      {controller.customSoundError && <p role="alert">{controller.customSoundError}</p>}
       {!controller.live && <p role="status">Monitoring paused · waiting for live broker quotes.</p>}
       {controller.storageError && <p role="alert">Browser storage unavailable. Changes are kept for this session only.</p>}
       {controller.soundBlocked && <p role="alert">Sound is blocked. <button type="button" onClick={() => void controller.enableSound()}>Enable sound</button></p>}
