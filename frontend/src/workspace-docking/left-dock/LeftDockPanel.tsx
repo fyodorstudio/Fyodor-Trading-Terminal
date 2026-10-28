@@ -24,7 +24,7 @@ type LeftDockPanelProps = {
 
 function LeftDockPanelComponent({ marketWatch, symbols, selectedSymbol, marketWatchStatus,
   marketWatchError, onSelectSymbol, brokerId, activeTab, onSelectTab, priceAlerts, onCreatePriceAlert }: LeftDockPanelProps) {
-  const { collapsed, contentId, toggle } = marketWatch
+  const { collapsed, contentId } = marketWatch
   return <aside className={`left-dock${collapsed ? ' collapsed' : ''}`} hidden={collapsed} aria-label="Market Watch and Price Alerts dock">
     <header className="left-dock-tabs">
       <button type="button" className={activeTab === 'market-watch' ? 'active' : ''} onClick={() => onSelectTab('market-watch')} aria-pressed={activeTab === 'market-watch'}>
@@ -32,12 +32,6 @@ function LeftDockPanelComponent({ marketWatch, symbols, selectedSymbol, marketWa
       </button>
       <button type="button" className={activeTab === 'price-alerts' ? 'active' : ''} onClick={() => onSelectTab('price-alerts')} aria-pressed={activeTab === 'price-alerts'}>
         Price Alerts <span>{priceAlerts.brokerAlerts.filter(alert => alert.status === 'armed').length}</span>
-      </button>
-      <button type="button" className="left-dock-collapse" onClick={toggle} aria-expanded={!collapsed} aria-controls={contentId}
-        aria-label="Hide left panel" title="Hide left panel">
-        <svg aria-hidden="true" width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <rect x="2" y="3" width="16" height="14" rx="2" /><path d="M7 3v14M10 10h5" />
-        </svg>
       </button>
     </header>
     <div id={contentId} className="left-dock-content" hidden={collapsed}>

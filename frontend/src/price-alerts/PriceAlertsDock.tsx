@@ -95,13 +95,11 @@ export function PriceAlertsDock({ controller, onSelectSymbol, onCreate, brokerId
         <select aria-label="Price alert sound duration" value={controller.duration} onChange={event => controller.setSound(controller.playSound, Number(event.target.value))}>
           {[1, 3, 5, 10].map(seconds => <option key={seconds} value={seconds}>{seconds} seconds</option>)}
         </select><button type="button" onClick={() => void controller.previewSound()}>Preview</button></div>
-      <p>One alert per line. Uses live Bid quotes while this terminal is open. Sampled crossings also trigger.</p>
       {!controller.live && <p role="status">Monitoring paused · waiting for live broker quotes.</p>}
       {controller.storageError && <p role="alert">Browser storage unavailable. Changes are kept for this session only.</p>}
       {controller.soundBlocked && <p role="alert">Sound is blocked. <button type="button" onClick={() => void controller.enableSound()}>Enable sound</button></p>}
     </div>
     <div className="price-alert-list" aria-live="polite">
-      {!controller.alerts.length && <p>No price alerts. Choose the alarm drawing tool, then click a price on the chart.</p>}
       {orderedAlerts.map(alert => <AlertRow key={alert.id} alert={alert} controller={controller} onSelectSymbol={onSelectSymbol} brokerId={brokerId} />)}
     </div>
   </section>

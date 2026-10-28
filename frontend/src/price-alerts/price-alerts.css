@@ -10,7 +10,6 @@
 .price-alert-sound { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .price-alerts-dock p { margin: 0; line-height: 1.5; color: var(--text-strong); }
 .price-alert-list { flex-shrink: 0; min-height: 0; padding: 0; display: grid; align-content: start; gap: 0; }
-.price-alert-list > p { padding: 12px; }
 .price-alert-row { position: relative; border-bottom: 1px solid var(--border); }
 .price-alert-row:hover, .price-alert-row:focus-within { background: var(--surface-hover); }
 .price-alerts-dock .price-alert-summary { display: grid; gap: 4px; width: 100%; min-height: 50px; border: 0; border-radius: 0; padding: 8px 12px; background: transparent; text-align: left; }

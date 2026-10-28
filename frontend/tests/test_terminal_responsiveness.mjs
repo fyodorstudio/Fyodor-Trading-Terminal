@@ -1034,10 +1034,8 @@ try {
     assert.equal(counters.dailyGrouping ?? 0, 0, `${symbol}: stable scope arrays avoid calendar regrouping`)
   }
   await click(container.querySelector('[aria-label="Hide event icons"]'))
-  const hideLeftPanel = container.querySelector('[aria-label="Hide left panel"]')
-  assert.ok(hideLeftPanel.querySelector('svg'), 'Panel hide uses a sidebar icon')
-  assert.equal(hideLeftPanel.textContent.trim(), '', 'Panel hide has no chevron glyph')
-  await click(hideLeftPanel)
+  assert.equal(container.querySelector('[aria-label="Hide left panel"]'), null, 'The left panel has no redundant close button')
+  await click(container.querySelector('.market-watch-toggle'))
   assert.equal(container.querySelector('.left-dock').hidden, true)
   await click(container.querySelector('.market-watch-toggle'))
   assert.equal(container.querySelector('.left-dock').hidden, false)
