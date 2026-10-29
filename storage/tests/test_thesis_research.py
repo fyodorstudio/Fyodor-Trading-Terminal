@@ -86,6 +86,33 @@ class ResearchTests(TestCase):
         append_research(ResearchRequest(**r),self.path)
         self.assertEqual(currency_summary(self.path)['review_id'],first['id'])
 
+    def test_gap_with_newer_evidence_preserves_the_retained_verdict_anchor(self):
+        r=self.request();r['developments'][0]['published_at']='2026-07-22T09:00:00Z'
+        append_research(ResearchRequest(**r),self.path)
+        before=next(x for x in currency_summary(self.path)['rows'] if x['currency']=='CHF')
+        newer=self.development('later-guidance')
+        newer.update(published_at='2026-07-22T10:30:00Z',verified_utc='2026-07-22T11:00:00Z')
+        r.update(as_of_utc='2026-07-22T11:00:00Z',developments=[newer],
+            assessments=[dict(currency='CHF',gap='The net effect of later guidance is unresolved.',evidence_keys=['later-guidance'])])
+        append_research(ResearchRequest(**r),self.path)
+        r.update(as_of_utc='2026-07-22T11:30:00Z',developments=[])
+        append_research(ResearchRequest(**r),self.path)
+        row=next(x for x in currency_summary(self.path)['rows'] if x['currency']=='CHF')
+        self.assertEqual(row['verdict'],before['verdict'])
+        self.assertEqual(row['verified_utc'],before['verified_utc'])
+        self.assertEqual(row['evidence_anchor'],before['evidence_anchor'])
+        self.assertIsNone(row['reassessment']);self.assertTrue(row['reassessment_gap'])
+        self.assertIn('later-guidance',[d['key'] for d in research_snapshot(self.path,'2026-07-22','2026-07-22')['developments']])
+
+    def test_first_gap_with_evidence_has_no_verdict_anchor(self):
+        r=self.request()
+        r['assessments']=[dict(currency='CHF',gap='Decisive guidance is unresolved.',evidence_keys=['chf-policy'])]
+        append_research(ResearchRequest(**r),self.path)
+        row=next(x for x in currency_summary(self.path)['rows'] if x['currency']=='CHF')
+        self.assertIsNone(row['verdict']);self.assertIsNone(row['verified_utc'])
+        self.assertIsNone(row['evidence_anchor'])
+        self.assertEqual(row['reassessment_gap'],'Decisive guidance is unresolved.')
+
     def test_findings_only_do_not_require_an_entry_or_an_eight_currency_verdict(self):
         r=self.request();r['assessments']=[]
         append_research(ResearchRequest(**r),self.path)

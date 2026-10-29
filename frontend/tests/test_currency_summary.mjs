@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { execFileSync } from 'node:child_process'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import React from 'react'
@@ -46,6 +47,31 @@ const poll = async () => {
 try {
   const { CurrencySummary } = await server.ssrLoadModule('./src/thesis/CurrencySummary.tsx')
   const { validCurrencySummary, currencyUntil, currencyStaleness } = await server.ssrLoadModule('./src/thesis/currency-summary-model.ts')
+  const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
+  const gapSummary = JSON.parse(execFileSync(path.join(repo, 'bridge/.venv/Scripts/python.exe'), ['-c', `
+import json
+from storage.tests.test_thesis_research import ResearchTests
+from storage.thesis_research import ResearchRequest, append_research
+from storage.thesis_summary import currency_summary
+fixture=ResearchTests();fixture.setUp()
+try:
+    request=fixture.request()
+    request['developments'][0]['published_at']='2026-07-22T09:00:00Z'
+    append_research(ResearchRequest(**request),fixture.path)
+    newer=fixture.development('later-guidance')
+    newer.update(published_at='2026-07-22T10:30:00Z',verified_utc='2026-07-22T11:00:00Z')
+    newer['impacts'].append(dict(currency='NZD',implication='Unresolved guidance.',thesis_effect='Review needed.'))
+    request.update(as_of_utc='2026-07-22T11:00:00Z',currencies=['CHF','NZD'],developments=[newer],assessments=[
+        dict(currency='CHF',gap='Later guidance is unresolved.',evidence_keys=['later-guidance']),
+        dict(currency='NZD',gap='First assessment is unresolved.',evidence_keys=['later-guidance'])])
+    append_research(ResearchRequest(**request),fixture.path)
+    print(json.dumps(currency_summary(fixture.path)))
+finally:
+    fixture.doCleanups();fixture.tearDown()
+`], { cwd: repo, encoding: 'utf8' }))
+  assert.equal(validCurrencySummary(gapSummary), true, 'Production writer/projection gaps must be accepted by the left-panel validator')
+  assert.equal(gapSummary.rows.find(row => row.currency === 'CHF').evidence_anchor.event_at, '2026-07-22T09:00:00Z')
+  assert.equal(gapSummary.rows.find(row => row.currency === 'NZD').evidence_anchor, null)
   assert.equal(validCurrencySummary(snapshot), true)
   assert.equal(currencyStaleness(snapshot.rows[0].verified_utc, now), '1h 0m ago')
   assert.equal(currencyStaleness(null, now), 'Unknown')
@@ -129,6 +155,11 @@ try {
   assert.match(container.querySelector('[role="alert"]').textContent, /Invalid/)
   assert.equal(container.querySelectorAll('[data-currency-summary]').length, 8)
   malformed = false; await poll(); assert.equal(container.querySelector('[role="alert"]'), null)
+  snapshot = gapSummary; await poll()
+  assert.equal(container.querySelector('[role="alert"]'), null)
+  assert.equal(container.querySelectorAll('[data-currency-summary]').length, 8, 'A pending research gap must not blank the entire panel')
+  assert.match(container.querySelector('[data-currency-summary="CHF"]').textContent, /Slight weakening.*Review needed/)
+  assert.match(container.querySelector('[data-currency-summary="NZD"]').textContent, /Not assessed.*Review needed/)
   hold = true
   const [timerId, timer] = [...timers][0]; timers.delete(timerId)
   await React.act(async () => { void timer.fn() })

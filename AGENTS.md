@@ -17,6 +17,11 @@ Release waits use One Minute Before Release; historical moves use Review Histori
 Research and must not replace the live summary. Details and comparisons stay in
 bottom Thesis; the left box shows evidence age, currency, standalone pressure
 and checkpoint countdown. Assessment time never redates underlying evidence.
+The left Fundamentals panel is the user's primary monitoring view. Authorized
+live research must save its affected assessments and verify the summary API
+against the frontend contract; a chat answer or ledger-save receipt alone does
+not establish a usable panel update. Follow the skill's left-panel audit and
+leave visual acceptance to the user.
 
 Market Watch, chart/drawings, raw calendar Inspector, upcoming Alert, Activity and
 Settings, including agent-authored fundamental research journals and an archive

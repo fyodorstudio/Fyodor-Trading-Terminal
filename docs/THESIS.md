@@ -141,6 +141,8 @@ require both currency stories and overlapping horizons and remain optional chat
 output. A decisive unresolved fact can be saved with `direction: null` and a
 nonblank `gap`; the live summary retains an earlier supported verdict with Review
 needed and its original assessment clock, rather than manufacturing a fresh call.
+Its evidence anchor also stays with that retained assessment; pending newer
+findings remain in the ledger and must not make an old verdict look freshly supported.
 
 ### Left-panel summary and reassessment
 

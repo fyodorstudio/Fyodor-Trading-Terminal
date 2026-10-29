@@ -12,6 +12,13 @@ A named currency/pair, research period or narrower request overrides that defaul
 A supplied chart does not require candles; fetch prices/technical levels only on
 an explicit price-aware request. No trades, broker changes or automatic monitoring.
 
+The user primarily watches the left **Fundamentals** panel. Updating that saved
+view is part of an authorized live assessment: chat and bottom-Thesis detail alone
+are insufficient. It projects the Thesis ledger; never author a second verdict
+store. Read `pnpm analyst thesis summary --scope ALL` before researching and verify
+the affected rows through the [left-panel audit](references/thesis-research.md#left-panel-freshness-audit)
+after saving. Read-only/no-save instructions still win.
+
 ## Research procedure
 
 1. Read the clock and establish requested currencies, research period and decision
@@ -50,7 +57,10 @@ an explicit price-aware request. No trades, broker changes or automatic monitori
    times, verification clocks, currency implications and effects on the prior thesis.
    Reuse stable development keys; keep old active evidence as background. No item
    quota, mandatory entry payload or daily copying. Read-only/chat-only/no-save wins.
-7. Read back the saved interval and summary. Report the decision, material change,
+7. Read back the saved interval and verify the left Fundamentals panel's summary
+   contract, affected verdicts, original evidence/assessment clocks and checkpoints.
+   A successful ledger save alone does not prove that the panel can load its data.
+   Report the decision, material change,
    next checkpoint and actual coverage gaps. Preserve all histories and user notes.
    A new save/assessment timestamp must not make old evidence look new.
 

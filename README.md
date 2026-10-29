@@ -199,6 +199,9 @@ The left dock shows **Evidence age | CUR | VERDICT | Checkpoint**. Click
 uses the named source development, separately from Last Assessed; new saves do not
 redate old news. Verdict is standalone Strong/Moderate/Slight pressure. A focused
 refresh preserves other currencies; missing decisive evidence remains visible.
+This is the user's primary monitoring view. Live research includes verifying its
+saved verdicts, evidence/assessment clocks and checkpoints through the summary API
+and frontend contract; a successful save alone does not prove the panel can load.
 Checkpoint is a review deadline, never automatic reversal or renewal. Alarms alone
 perform no research. See the [Thesis contract](docs/THESIS.md#left-panel-summary-and-reassessment).
 

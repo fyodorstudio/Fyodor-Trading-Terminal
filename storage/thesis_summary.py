@@ -32,7 +32,10 @@ def currency_summary(journal_path, after_revision=None):
             if not direction and prior and prior['view'].get('direction'):
                 direction = {**prior['view']['direction'], 'reassessment': None, 'reassessment_gap': assessment['gap']}
             ids = run['evidence_versions'].get(c, [])
-            evidence = max((by_id[i] for i in ids), key=lambda d: (d['published_on'], d.get('published_at') or ''), default=prior.get('evidence') if prior and not assessment['direction'] else None)
+            # A gap can retain a prior direction, but has not assessed the new
+            # evidence. Keep that direction's original anchor and clock together.
+            evidence = (max((by_id[i] for i in ids), key=lambda d: (d['published_on'], d.get('published_at') or ''), default=None)
+                if assessment['direction'] else prior.get('evidence') if prior else None)
             selected[c] = {'as_of_utc': run['as_of_utc'], 'id': run['id'], 'view': {'direction': direction}, 'evidence': evidence, 'gap': assessment['gap']}
     rows = []
     live_developments = {i for run in runs for i in run['development_ids']}

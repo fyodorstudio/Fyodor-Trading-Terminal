@@ -17,6 +17,11 @@ Original evidence dates, Last Assessed and the next review deadline are separate
 An unresolved decisive stage stays an explicit gap. No alarm or passing time
 refreshes a verdict. The [Thesis contract](../../../docs/THESIS.md) owns saves and
 read-back; never delay the first sourced decision for persistence/bookkeeping.
+The left **Fundamentals** panel is the user's primary view. After the first
+supported verdict, update its affected ledger assessments and complete the
+parent's [left-panel audit](../assess-trade-now/references/thesis-research.md#left-panel-freshness-audit),
+preserving other currencies and old evidence clocks. A chat verdict or successful
+save alone does not establish that the panel has a valid refreshed summary.
 Significant reminders use the parent's alert procedure. This skill performs a
 bounded active-chat wait, not background monitoring, trading or automatic AI
 invocation. A commodity release needs its own material evidence and identity.

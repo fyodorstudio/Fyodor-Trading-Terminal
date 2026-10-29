@@ -29,6 +29,27 @@ do not reproduce those schemas or a giant copied prompt here.
 
 ## Left-panel freshness audit
 
+The left **Fundamentals** panel is the user's primary monitoring view. Every
+authorized live research save includes checking its projection, even when the
+user did not separately request a left-panel update. Save through the ledger;
+the read-only panel derives its rows automatically. Do not edit labels directly
+or create a duplicate verdict file.
+
+Read `pnpm analyst thesis summary --scope ALL` before research and after saving.
+Verify each affected currency's standalone verdict/intensity, assessment clock,
+original evidence anchor and next checkpoint or explicit Review needed gap.
+A focused refresh must preserve the other currencies and their clocks. When a
+gap retains an older verdict, its supporting evidence anchor must also remain
+the one assessed then; newer unassessed findings stay in Thesis as pending review.
+
+Also check the running `http://127.0.0.1:8002/api/v1/theses/summary` endpoint, or
+the UI proxy `/storage-api/theses/summary`, when available. Verify its response
+against the frontend summary validator with terminal-based tooling; CLI/HTTP
+success alone does not establish that the panel accepts the response. Resolve a
+local runtime/contract error within authorized scope or report the exact delivery
+gap. Do not claim the left panel updated while its summary is unavailable or
+invalid. Leave visual acceptance to the user; no browser automation is needed.
+
 Last Assessed is the actual currency assessment clock. Evidence age is the latest
 named dated development referenced by that assessment; it does not summarize the
 age of every supporting/contrary fact. The timeline exposes those dates. No save,
