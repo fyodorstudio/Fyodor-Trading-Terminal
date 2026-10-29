@@ -6,6 +6,8 @@ The [Thesis contract](../../../../docs/THESIS.md) owns the JSON, CLI, UI and clo
 do not reproduce those schemas or a giant copied prompt here.
 
 1. Read `thesis research --scope ALL --from <date> --to <date>` and the live summary.
+   For one currency use `--scope GBP` (or the requested currency) to avoid loading
+   unrelated bodies; the response still includes its cited older foundations.
    Research all eight for a broad invocation, or the requested affected currencies
    for a focused refresh. Carrying a row is not assessing it.
 2. Research the interval broadly, including policy communications, economic data
@@ -36,6 +38,10 @@ Start from each requested currency's last completed coverage, unresolved gaps,
 active evidence and elapsed/next checkpoint. The header's latest time is not a
 coverage cutoff for an unresearched row. Reuse loaded instructions and focused
 saved context; do not repeatedly read whole ledgers, manuals or source inventories.
+Retrieve the selected currency's active foundations and their sources, not just
+the newest anchor or visible day's rows. The UI's earlier snapshots are a viewing
+archive, not evidence that the agent has checked policy relevance or complete
+coverage. Apply the parent's causal weighting before retaining/reversing a view.
 Use focused currency/date fields from range responses rather than dumping complete
 ledgers or repeatedly serializing unchanged history. Reuse existing fetch/save/
 validator tooling; do not author bespoke audit scripts for each routine refresh.

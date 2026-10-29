@@ -152,10 +152,11 @@ def create_app(directory=None, run_collector=True, highlights_path=HIGHLIGHTS_PA
     @app.get('/api/v1/theses/research')
     def thesis_research(from_date: str = Query(alias='from', pattern=r'^\d{4}-\d{2}-\d{2}$'),
                         to_date: str = Query(alias='to', pattern=r'^\d{4}-\d{2}-\d{2}$'),
-                        after_revision: str | None = Query(default=None, max_length=100)):
+                        after_revision: str | None = Query(default=None, max_length=100),
+                        currency: str | None = Query(default=None, pattern=r'^(EUR|GBP|AUD|NZD|USD|CAD|CHF|JPY)$')):
         from .thesis_research import research_snapshot
         try:
-            return research_snapshot(thesis_path, from_date, to_date, after_revision)
+            return research_snapshot(thesis_path, from_date, to_date, after_revision, currency)
         except ValueError as error:
             raise HTTPException(422, str(error)) from error
         except OSError as error:

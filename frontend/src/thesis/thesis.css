@@ -8,7 +8,8 @@
 .thesis-dock button:disabled { opacity: 0.5; cursor: default; background: var(--surface-panel); border-color: var(--border); }
 .thesis-timezone, .thesis-copy-status { color: var(--text-muted); font-size: 14px; }
 .thesis-timezone { margin-right: auto; }
-.thesis-scroll { overflow: auto; min-height: 0; flex: 1; padding: 0 24px 20px; scrollbar-gutter: stable; }
+.thesis-scroll { overflow: auto; min-height: 0; flex: 1; padding: 0 24px 20px; scrollbar-gutter: stable; contain: layout paint; }
+.thesis-pagination { display: flex; align-items: center; gap: 12px; margin: 12px 0; color: var(--text); }
 .thesis-notice { font-size: 14px; line-height: 1.6; color: var(--text-muted); margin: 12px 0; }
 .thesis-prose { margin: 0; white-space: pre-wrap; max-width: 100ch; }
 .thesis-sources a { color: var(--accent); text-decoration: none; margin-right: 8px; }

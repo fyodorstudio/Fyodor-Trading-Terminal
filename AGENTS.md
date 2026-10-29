@@ -96,6 +96,14 @@ of one release package are not independent votes. Do not invent consensus,
 institutional flows, probabilities, pips or returns. Distinguish observed,
 reported and inferred demand. No single currency verdict establishes strength
 against all seven counterparts.
+Before weighting a release, identify the bank's current stated policy concerns and
+the active underlying inflation/services, wage/labour and activity evidence, even
+outside the selected day. Follow the skill's causal-weighting check: explain why
+the new information dominates or offsets those foundations. Do not substitute
+recency, component counts, nominal credit amounts or a universal indicator ranking
+for policy relevance. A minor release's potential impact need not reverse the
+whole currency verdict. Saved/archived research is context, not proof of coverage;
+reuse valid sources and fill decisive omissions before claiming a completed review.
 
 During broad research cover policy/path, inflation, labour/wages, activity and
 material fiscal, trade, funding, energy, haven and geopolitical developments in

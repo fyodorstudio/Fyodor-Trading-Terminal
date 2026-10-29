@@ -23,6 +23,7 @@ from storage.highlight_journal import JournalRequest, append_journal, read_journ
 from storage.thesis import ThesisRequest, append_thesis, thesis_snapshot
 from storage.thesis_reviews import ReviewRequest, append_review, review_context
 from storage.thesis_research import ResearchRequest as ThesisResearchRequest, append_research, research_snapshot
+from storage.currencies import CURRENCIES
 from storage.highlight_metadata import PromptRequest, append_prompt, read_prompts, LimitationRequest, append_limitation, limitations_snapshot
 from storage.alert_impact import ImpactRequest, append_impact, impact_snapshot
 from upcoming import upcoming_snapshot
@@ -350,12 +351,15 @@ def run(args):
     if args.command == 'thesis':
         if args.action in ('research', 'research-append'):
             from storage.thesis import PATH as THESIS_PATH
-            if args.scope != 'ALL':
-                raise ValueError('Thesis research uses --scope ALL; request currencies select full or focused research')
             if args.action == 'research':
+                if args.scope != 'ALL' and args.scope not in CURRENCIES:
+                    raise ValueError('Research reads use --scope ALL or one of the eight currencies')
                 if not args.research_from or not args.research_to:
                     raise ValueError('Research reads need --from and --to Jakarta dates')
-                return research_snapshot(THESIS_PATH, args.research_from, args.research_to)
+                return research_snapshot(THESIS_PATH, args.research_from, args.research_to,
+                                         currency=None if args.scope == 'ALL' else args.scope)
+            if args.scope != 'ALL':
+                raise ValueError('Thesis research append uses --scope ALL; request currencies select full or focused research')
             if not args.input:
                 raise ValueError('Research append needs --input; see docs/THESIS.md')
             return append_research(ThesisResearchRequest.model_validate_json(local_path(args.input).read_text(encoding='utf-8-sig')), THESIS_PATH)

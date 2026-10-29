@@ -14,7 +14,7 @@ export const ThesisDock = memo(function ThesisDock() {
   const selectedDate = `${month}-${String(day).padStart(2, '0')}`
   const [copyStatus, setCopyStatus] = useState('')
   const [archiveOpen, setArchiveOpen] = useState(false)
-  const research = useCurrencyResearch(selectedDate, selectedDate, true)
+  const research = useCurrencyResearch(selectedDate, selectedDate, true, currency)
   const context = `${currency}:${selectedDate}`
   const [copyContext, setCopyContext] = useState(context)
   const remember = (key: string, value: string) => {

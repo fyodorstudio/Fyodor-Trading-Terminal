@@ -7,9 +7,11 @@ import { Window } from 'happy-dom'
 
 // Production component/hook tests; no browser or visual audit.
 const frontend=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..')
-const server=await createServer({root:frontend,server:{middlewareMode:true,hmr:false}})
+const server=await createServer({root:frontend,server:{middlewareMode:true,hmr:false},plugins:[{name:'thesis-work-counts',enforce:'pre',
+  transform(code,id) {if(id.endsWith('/ThesisCurrencyTable.tsx'))return code.replace('  const impact = item.impacts.find', '  globalThis.__thesisWork.rows++; const impact = item.impacts.find')}
+}]})
 const dom=new Window({url:'http://localhost:5173'})
-const globals={window:dom,document:dom.document,navigator:dom.navigator,localStorage:dom.localStorage,HTMLElement:dom.HTMLElement,Node:dom.Node,IS_REACT_ACT_ENVIRONMENT:true}
+const globals={window:dom,document:dom.document,navigator:dom.navigator,localStorage:dom.localStorage,HTMLElement:dom.HTMLElement,Node:dom.Node,IS_REACT_ACT_ENVIRONMENT:true,__thesisWork:{rows:0}}
 const previous=new Map([...Object.keys(globals),'fetch'].map(k=>[k,Object.getOwnPropertyDescriptor(globalThis,k)]))
 for (const [k,v] of Object.entries(globals)) Object.defineProperty(globalThis,k,{configurable:true,writable:true,value:v})
 let sequence=0,offline=false,hold=false,malformed=false,copied=''
@@ -26,8 +28,10 @@ const direction={basis:'standalone',verdict:'POTENTIAL WEAKENING',intensity:'sli
 let fixture={schema:1,revision:'one',from:'2026-07-22',to:'2026-07-22',developments:[development('new','2026-07-22','2026-07-22T08:35:00Z'),development('unknown','2026-07-22'),development('old','2026-07-20')],
   assessments:[{id:'assessment',currency:'CHF',as_of_utc:'2026-07-22T10:00:00Z',saved_utc:'2026-07-22T10:01:00Z',provenance:'assessment',direction,gap:'',evidence_ids:['new','unknown'],background_ids:['old'],period_start:'2026-07-22',period_end:'2026-07-22',legacy:false}]}
 function reply(url) {
-  const route=new URL(url,'http://localhost');const from=route.searchParams.get('from'),to=route.searchParams.get('to')
-  return offline ? {ok:false,status:503} : {ok:true,json:async()=>malformed ? {} : route.searchParams.get('after_revision')===fixture.revision ? {schema:1,from,to,revision:fixture.revision,unchanged:true} : {...structuredClone(fixture),from,to}}
+  const route=new URL(url,'http://localhost');const from=route.searchParams.get('from'),to=route.searchParams.get('to'),currency=route.searchParams.get('currency')
+  const selected=structuredClone(fixture)
+  selected.developments=selected.developments.filter(d=>d.impacts.some(i=>i.currency===currency));selected.assessments=selected.assessments.filter(a=>a.currency===currency)
+  return offline ? {ok:false,status:503} : {ok:true,json:async()=>malformed ? {} : route.searchParams.get('after_revision')===fixture.revision ? {schema:1,from,to,currency,revision:fixture.revision,unchanged:true} : {...selected,from,to,currency}}
 }
 globalThis.fetch=async(url,options={})=>{requests.push({url,options});return hold ? new Promise(resolve=>held.push({resolve,url,options})) : reply(url)}
 const {createRoot}=await import('react-dom/client');const container=document.createElement('div');document.body.append(container);const root=createRoot(container)
@@ -61,7 +65,8 @@ try {
   await click('USD')
   assert.equal(chf(),null,'Other currencies are unmounted, not hidden')
   assert.equal(container.querySelector('[data-thesis-currency="USD"]').querySelector('table'),null,'Missing evidence stays visible without a forced verdict')
-  assert.equal(requests.length,beforeSwitch,'Currency switches reuse the date snapshot without a fetch')
+  assert.equal(requests.length,beforeSwitch+1,'Only the selected currency is requested')
+  assert.equal(new URL(requests.at(-1).url,'http://localhost').searchParams.get('currency'),'USD')
   await click('CHF')
   assert.equal(localStorage.getItem('fyodor.thesis.currency.v1'),'CHF')
   const row=chf().querySelector('[data-thesis-development="new"]');await poll();assert.equal(chf().querySelector('[data-thesis-development="new"]'),row)
@@ -74,8 +79,16 @@ try {
   assert.equal(JSON.stringify(fixture),before,'Export does not mutate the ledger or source order')
   const untrusted=structuredClone(fixture);untrusted.developments[0].facts='<script>bad</script> | [unsafe](javascript:bad)'
   const escaped=researchMarkdown(untrusted);assert.ok(!escaped.includes('<script>'));assert.ok(escaped.includes('\\|'));assert.ok(escaped.includes('\\[unsafe'))
+  const priorRowWork=globalThis.__thesisWork.rows
   fixture={...fixture,revision:'two',assessments:[{...fixture.assessments[0],id:'reassessed',as_of_utc:'2026-07-22T11:00:00Z',direction:{...direction,intensity:'moderate',verified_utc:'2026-07-22T11:00:00Z'}},...fixture.assessments]}
   await poll();assert.match(chf().textContent,/Moderate weakening/);assert.match(chf().textContent,/Assessment history · 2 recorded views/)
+  assert.equal(globalThis.__thesisWork.rows,priorRowWork,'Assessment-only changes render zero unchanged development rows')
+  assert.equal(chf().textContent.split(direction.reason).length-1,1,'Closed assessment history does not mount its bodies')
+  const disclosure=[...chf().querySelectorAll('details')].find(d=>d.querySelector('summary')?.textContent.startsWith('Assessment history'))
+  await React.act(async()=>{disclosure.open=true;disclosure.dispatchEvent(new dom.Event('toggle'))})
+  assert.ok(chf().textContent.split(direction.reason).length-1>1)
+  await React.act(async()=>{disclosure.open=false;disclosure.dispatchEvent(new dom.Event('toggle'))})
+  assert.equal(chf().textContent.split(direction.reason).length-1,1)
   offline=true;await poll();assert.match(container.querySelector('[role="alert"]').textContent,/last loaded/);assert.match(chf().textContent,/Moderate weakening/)
   offline=false;malformed=true;await poll();assert.match(container.querySelector('[role="alert"]').textContent,/Invalid Thesis research/)
   malformed=false;await poll()
@@ -89,12 +102,28 @@ try {
   const currencies=['EUR','GBP','AUD','NZD','USD','CAD','CHF','JPY']
   fixture={...fixture,revision:'large',developments:currencies.flatMap(currency=>Array.from({length:40},(_,i)=>({...development(currency+i,'2026-07-23'),impacts:[{currency,implication:currency+' only',thesis_effect:'Updated evidence.'}]})))}
   await poll()
-  assert.equal(container.querySelectorAll('[data-thesis-development]').length,40,'40 rows mount, not the 320 rows in the loaded snapshot')
+  assert.equal(container.querySelectorAll('[data-thesis-development]').length,20,'A large date mounts at most one 20-row page')
+  assert.match(container.querySelector('.thesis-pagination').textContent,/1–20 of 40/)
+  await click('Next developments');assert.match(container.querySelector('.thesis-pagination').textContent,/21–40 of 40/)
+  assert.equal(container.querySelectorAll('[data-thesis-development]').length,20)
+  const fullExport=researchMarkdown({...fixture,from:'2026-07-23',to:'2026-07-23'},null,'CHF');assert.match(fullExport,/Verified facts CHF0/);assert.match(fullExport,/Verified facts CHF39/)
   const stableRow=container.querySelector('[data-thesis-development]');await poll();assert.equal(container.querySelector('[data-thesis-development]'),stableRow)
   const requestCount=requests.length
-  await click('EUR');assert.equal(container.querySelectorAll('[data-thesis-development]').length,40)
+  await click('EUR');assert.equal(container.querySelectorAll('[data-thesis-development]').length,20)
   assert.equal(container.querySelectorAll('[data-thesis-currency]').length,1)
-  assert.equal(requests.length,requestCount)
+  assert.equal(requests.length,requestCount+1)
+  // Closed row histories can contain hundreds of versions without mounting any.
+  const versions=Array.from({length:100},(_,i)=>({...development('v'+i,'2026-07-23'),facts:'Hidden version evidence '+i}))
+  fixture={...fixture,revision:'histories',developments:fixture.developments.map((d,i)=>i===0 ? {...d,versions} : d)}
+  await poll();assert.ok(!container.textContent.includes('Hidden version evidence'))
+  const history=[...container.querySelectorAll('details')].find(d=>d.querySelector('summary')?.textContent.startsWith('Development history'))
+  await React.act(async()=>{history.open=true;history.dispatchEvent(new dom.Event('toggle'))})
+  assert.match(container.textContent,/Hidden version evidence 99/)
+  await React.act(async()=>{history.open=false;history.dispatchEvent(new dom.Event('toggle'))})
+  assert.ok(!container.textContent.includes('Hidden version evidence'))
+  const scrollWork=globalThis.__thesisWork.rows,scrollRequests=requests.length
+  await React.act(async()=>container.querySelector('.thesis-scroll').dispatchEvent(new dom.Event('scroll')))
+  assert.equal(globalThis.__thesisWork.rows,scrollWork);assert.equal(requests.length,scrollRequests,'Scrolling causes no fetch/render work')
   const scoped=researchMarkdown(fixture,null,'EUR')
   assert.match(scoped,/## EUR/);assert.ok(!scoped.includes('## CHF'));assert.ok(!scoped.includes('Verified facts CHF'))
   await React.act(async()=>root.render(null))

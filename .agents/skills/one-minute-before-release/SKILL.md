@@ -129,6 +129,12 @@ telemetry or research without authorization.
 
 ## Fresh actuals, then interpret
 
+Preparation includes the parent's [causal weighting](../assess-trade-now/references/fundamental-assessment.md#causal-weighting):
+carry the bank's current policy concerns and active major evidence into publication.
+A secondary release can have a directional impact without overturning the overall
+currency verdict. Missing preparation is a focused research task, not permission
+to mechanically replace the policy backdrop with the latest headline.
+
 Check the exact period, series definitions, units, actuals, revisions and decisive
 components against the prepared expectations. A new capture timestamp, elapsed
 release time, unchanged value or empty field is not proof of publication; equally,

@@ -111,6 +111,8 @@ const server = await createServer({ root: path.resolve(path.dirname(fileURLToPat
         "function TerminalWorkspace() { globalThis.__terminalProbe.count('workspace');")
       if (id.endsWith('/MarketWatchPanel.tsx')) return code.replace('const positive = quote.dailyChange >= 0',
         "globalThis.__terminalProbe.count('quoteRows'); const positive = quote.dailyChange >= 0")
+      if (id.endsWith('/ThesisCurrencyTable.tsx')) return code.replace('  const impact = item.impacts.find',
+        "  globalThis.__terminalProbe.count('thesisRows'); const impact = item.impacts.find")
       if (id.endsWith('/MarketCandlestickChart.tsx')) return code.replace('}: MarketCandlestickChartProps) {',
         "}: MarketCandlestickChartProps) { globalThis.__terminalProbe.count('chartRender');")
       if (id.endsWith('/useCalendarNow.ts')) return code.replace('return now', 'globalThis.__terminalProbe.clocks.push(now); return now')
@@ -172,8 +174,13 @@ globalThis.fetch = (url, options = {}) => {
       verdict: 'POTENTIAL STRENGTHENING', verified_utc: '2026-10-08T11:00:00Z', reassessment: null, reassessment_gap: '' })) }) })
   if (u.startsWith('/storage-api/theses/research')) {
     const params = new URL(u, 'http://localhost').searchParams
-    return Promise.resolve({ ok: true, json: async () => ({ schema: 1, from: params.get('from'), to: params.get('to'), revision: 'research-fixture',
-      ...(params.get('after_revision') === 'research-fixture' ? { unchanged: true } : { developments: [], assessments: [] }) }) })
+    const currency=params.get('currency'),date=params.get('from'),at=date+'T00:00:00Z'
+    const development = i => ({id:currency+i,key:currency+i,title:'Policy '+i,facts:'Current evidence '+i,published_on:date,published_at:at,event_at:null,
+      timing_note:'',verified_utc:at,saved_utc:at,sources:[{kind:'web',label:'Official',locator:'https://example.com/source',note:''}],
+      impacts:[{currency,implication:'Potential strengthening through the policy channel.',thesis_effect:'Reinforces active support.'}],references:[],revision_note:'',expected_version:null})
+    const developments=Array.from({length:60},(_,i)=>({...development(i),versions:Array.from({length:25},(_,v)=>({...development(i),id:currency+i+'v'+v,facts:'Collapsed research version '+v}))}))
+    return Promise.resolve({ ok: true, json: async () => ({ schema: 1, from: params.get('from'), to: params.get('to'), currency:params.get('currency'), revision: 'research-fixture',
+      ...(params.get('after_revision') === 'research-fixture' ? { unchanged: true } : { developments, assessments: [] }) }) })
   }
   if (u.startsWith('/storage-api/theses')) {
     const params = new URL(u, 'http://localhost').searchParams
@@ -296,18 +303,30 @@ try {
   assert.ok(container.querySelector('[aria-label="Resize Thesis dock"]'))
   assert.ok(container.querySelector('.status-selection').textContent.startsWith('EURUSD'), 'Standalone currency Thesis preserves the EURUSD chart')
   assertQuiet('Opening Thesis')
+  assert.equal(container.querySelectorAll('[data-thesis-development]').length,20,'Large Thesis dates mount one page')
+  assert.equal(counters.thesisRows,20)
+  assert.ok(!container.textContent.includes('Collapsed research version'),'1,500 historical bodies stay unmounted')
+  const scrollRequests=requests.length
+  reset()
+  await React.act(async()=>{for(let i=0;i<100;i++)container.querySelector('.thesis-scroll').dispatchEvent(new dom.Event('scroll'))})
+  await flush()
+  assert.equal(counters.thesisRows??0,0,'Scrolling performs zero development renders')
+  assert.equal(requests.length,scrollRequests,'Scrolling causes no requests')
+  assertQuiet('Scrolling Thesis',true)
   const beforeCurrencySwitch = requests.length
   reset()
   await click(container.querySelector('[aria-label="Thesis currency"]').querySelectorAll('button')[6])
   assert.equal(container.querySelector('[data-thesis-currency]').dataset.thesisCurrency, 'CHF')
   assert.equal(container.querySelectorAll('[data-thesis-currency]').length, 1)
-  assert.equal(requests.length, beforeCurrencySwitch, 'Currency switching uses the loaded snapshot')
+  assert.equal(requests.length, beforeCurrencySwitch+1, 'Currency switching requests only the selected research')
+  assert.equal(new URL(requests.at(-1),'http://localhost').searchParams.get('currency'),'CHF')
   assertQuiet('Switching Thesis currency')
   assert.ok(container.querySelector('.status-selection').textContent.startsWith('EURUSD'))
   const thesisRequestCount = requests.filter(url => url.startsWith('/storage-api/theses')).length
   reset()
   await tick('pollResearch', 5000)
   assertQuiet('Unchanged Thesis poll', true)
+  assert.equal(counters.thesisRows??0,0,'Unchanged polling leaves development rows alone')
   assert.equal(requests.filter(url => url.startsWith('/storage-api/theses')).length, thesisRequestCount + 1)
   await click(button('Thesis'))
   assert.equal(container.querySelector('[aria-label="Thesis"]'), null)

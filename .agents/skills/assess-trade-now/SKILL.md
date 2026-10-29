@@ -39,6 +39,10 @@ after saving. Read-only/no-save instructions still win.
    [efficient refreshes](references/thesis-research.md#efficient-refreshes): check
    what changed for every requested currency, then investigate material changes
    and gaps deeply instead of rebuilding unchanged foundations.
+   Load the affected currency's active policy/inflation/labour foundations, even
+   when they predate the visible day. Saved history is context, not proof that the
+   decisive sources or policy priorities were researched. Use the
+   [causal weighting](references/fundamental-assessment.md#causal-weighting) check.
 3. Check the preceding hour, next six hours and overnight policy/media stages first.
    Then research the requested period broadly across policy/path, inflation,
    labour/wages, activity and material fiscal, trade, funding, commodity, haven and
@@ -58,6 +62,8 @@ after saving. Read-only/no-save instructions still win.
    the chosen horizon. Rejustify the direction against new contrary evidence;
    lowering intensity alone does not establish that the old direction survives.
    State the event's potential impact separately when the overall backdrop differs.
+   Explain why this event changes, reinforces or merely offsets the leading
+   mechanism; a secondary release does not automatically reverse the currency view.
    Compare same-direction currencies over an overlapping horizon before completing
    a broad assessment or requested cross review; explain the stronger mechanism.
 5. Give the supported current decision promptly once the decisive facts are checked.

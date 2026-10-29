@@ -18,6 +18,17 @@ from test_research_reports import event, START, DAY
 
 
 class AnalystReportsTests(unittest.TestCase):
+    def test_research_read_scope_matches_currency_prompts_without_relaxing_writes(self):
+        for scope in ['ALL', *analyst.CURRENCIES]:
+            args=analyst.parser().parse_args(['thesis','research','--scope',scope,'--from','2026-10-29','--to','2026-10-29'])
+            with patch.object(analyst,'research_snapshot',return_value={'selected':scope}) as read:
+                self.assertEqual(analyst.run(args),{'selected':scope})
+                self.assertEqual(read.call_args.kwargs['currency'],None if scope=='ALL' else scope)
+        args=analyst.parser().parse_args(['thesis','research','--scope','EURUSD','--from','2026-10-29','--to','2026-10-29'])
+        with self.assertRaisesRegex(ValueError,'one of the eight currencies'):analyst.run(args)
+        args=analyst.parser().parse_args(['thesis','research-append','--scope','GBP','--input','missing.json'])
+        with self.assertRaisesRegex(ValueError,'append uses --scope ALL'):analyst.run(args)
+
     def test_nested_reports_discovery_and_legacy_paths(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory).resolve()

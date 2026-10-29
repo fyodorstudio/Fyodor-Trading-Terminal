@@ -23,6 +23,10 @@ External Source references. Older still-active evidence is visible in **Active
 background**. Upcoming checkpoints are separate from occurred facts. Assessment
 history expands only when recorded direction, intensity or basis changes; it never
 invents a verdict at every event time or a market turning point.
+Dates with more than 20 developments use pages; export retains every row. Closed
+development, assessment and earlier-version histories keep their bodies unmounted.
+The main view requests only its selected currency, reuses stable rows and caches
+visited currencies within the selected date. Scrolling performs no research/fetch.
 
 Copy research prompt uses the selected currency/date and the same skill/contract
 for every invocation. Export Markdown saves that currency’s loaded evidence, assessments,
@@ -44,6 +48,7 @@ review versions remain intact. Date navigation performs no research or writes.
 
 ```powershell
 pnpm analyst thesis research --scope ALL --from 2026-10-22 --to 2026-10-29
+pnpm analyst thesis research --scope GBP --from 2026-10-22 --to 2026-10-29
 pnpm analyst thesis research-append --scope ALL --input "Market Analyst Workflow/report/research.json"
 pnpm analyst thesis summary --scope ALL
 pnpm analyst thesis context --scope EURUSD
@@ -190,6 +195,12 @@ global deadlines need a specific mechanism for each affected currency.
 Reads: `/api/v1/theses/research?from=YYYY-MM-DD&to=YYYY-MM-DD` and
 `/api/v1/theses/summary` (UI proxy `/storage-api`). Range reads include older active evidence and bounded earlier assessment context. They
 preserve both unknown hours and exact cited versions, without background research.
+An optional `currency=GBP` (any of the eight currencies) limits range reads and
+their revision to that currency; shared findings retain full identities, impacts
+and versions. Unscoped CLI/API reads remain available for broad research. A slim UI
+response does not limit which dated foundations the agent must investigate.
+CLI `research --scope GBP` uses that projection; `research-append` still requires
+`--scope ALL`, with affected currencies selected in its JSON request.
 Unchanged replies retain revisions; the header does not certify an all-eight scan.
 
 ## Compatibility and shared dated review

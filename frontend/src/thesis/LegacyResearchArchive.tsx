@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { backdropCategories, dailyDirectionLabel, safeThesisLink, thesisMonths, type ThesisCurrency, type ThesisReview, type ThesisReviewEntry } from './thesis-model'
 import { useTheses } from './useTheses'
 import { downloadThesisMarkdown } from './thesis-export'
+import { LazyDetails } from './LazyDetails'
 
 const clock=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Jakarta',dateStyle:'medium',timeStyle:'short',hour12:true})
 const timed=(value:string)=>clock.format(new Date(value))+' Jakarta'
@@ -29,7 +30,7 @@ function ArchivedReview({ review, currency, onExport }: { review: ThesisReview; 
     <summary>{timed(review.as_of_utc)} · {review.versions.length} saved versions</summary>
     {open && <><SavedReview review={review} currency={currency} />
       <button type="button" onClick={onExport}>Export this earlier currency research date</button>
-      {review.versions.slice(0,-1).reverse().map(v => <details key={v.id}><summary>Earlier version · {timed(v.saved_utc)}</summary><SavedReview review={v} currency={currency} /></details>)}
+      {review.versions.slice(0,-1).reverse().map(v => <LazyDetails key={v.id} summary={`Earlier version · ${timed(v.saved_utc)}`}>{() => <SavedReview review={v} currency={currency} />}</LazyDetails>)}
     </>}
   </details>
 }

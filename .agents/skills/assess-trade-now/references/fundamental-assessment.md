@@ -41,6 +41,39 @@ funding, hedging, trade exposure, fiscal credibility, supply, risk or haven dema
 Observed flows, reported explanations and inference are distinct. A rate gap,
 inventory draw or chart movement does not establish a private investor intention.
 
+## Causal weighting
+
+Before interpreting a release, identify the affected central bank's stated current
+policy concerns and the active evidence bearing on them. Use its latest relevant
+decision/guidance and the latest material underlying inflation, services prices,
+wages/labour and activity evidence, including dated foundations outside the selected
+day. Reuse verified bodies where still valid; fill an omitted decisive category
+rather than repeatedly rereading recent minor news. For a non-policy mechanism,
+use the relevant supply, fiscal, funding or haven driver instead.
+
+Weight new information by its connection to that mechanism, surprise against an
+attributed baseline, persistence, breadth and horizon. In one concise causal
+sentence explain why it dominates the strongest opposition. Do not rank by headline
+size, nominal amounts, count of components, recency alone or broker importance.
+Core inflation, services prices, wages and headline energy can have different
+roles; verify this bank's current reaction function rather than assume a universal
+core-over-headline rule. A large credit flow may include refinancing, repayments
+or financial-sector transactions; overlapping aggregates are not independent
+evidence of new spending or currency demand. Neither household nor business credit
+automatically outranks the other.
+
+Deliver the verified event's potential impact promptly. Promote that impact into
+a change of the overall currency verdict only when its causal importance warrants
+it against the active foundations. Otherwise record its direction/intensity as an
+offset and retain the researched overall view with a reason. This is interpretation,
+not an extra requirement for certainty, live OIS or observed flows.
+
+When challenged by price, investigate the omitted or misweighted information;
+do not simply apologise, switch grades to match the chart or adopt an unverified
+explanation of the buying. A correction identifies the exact missing fact or
+reasoning error, why it changes the balance, and whether the information was
+already available at the original cutoff. Preserve prior versions and source dates.
+
 ## Release and retention check
 
 Identify the underlying policy backdrop, the release's incremental effect against

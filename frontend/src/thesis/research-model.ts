@@ -9,7 +9,7 @@ export type ResearchDevelopment = { id: string; key: string; title: string; fact
   instruments?: string[]; instrument_note?: string; commodity_implication?: string; commodity_thesis_effect?: string }
 export type ResearchAssessment = { id: string; currency: string; as_of_utc: string; saved_utc: string; provenance: 'assessment' | 'reconstruction';
   direction: DailyDirection | null; gap: string; evidence_ids: string[]; background_ids: string[]; period_start: string; period_end: string; legacy: boolean; checkpoints?: CurrencyCheckpoint[] }
-export type CurrencyResearch = { schema: 1; revision: string; from: string; to: string; developments: ResearchDevelopment[]; assessments: ResearchAssessment[] }
+export type CurrencyResearch = { schema: 1; revision: string; from: string; to: string; currency?: string; developments: ResearchDevelopment[]; assessments: ResearchAssessment[] }
 
 const stamp = (v: unknown): v is string => typeof v === 'string' && /(?:Z|[+-]\d\d:\d\d)$/.test(v) && Number.isFinite(Date.parse(v))
 const date = (v: unknown): v is string => typeof v === 'string' && /^\d{4}-\d\d-\d\d$/.test(v) && Number.isFinite(Date.parse(v+'T00:00:00Z')) && new Date(v+'T00:00:00Z').toISOString().slice(0,10)===v
@@ -24,10 +24,11 @@ function validDirection(d: DailyDirection, a: ResearchAssessment) {
     && (cp==null || typeof cp.title==='string' && !!cp.title.trim() && typeof cp.note==='string' && !!cp.note.trim() && sources(cp.sources) && stamp(cp.verified_utc)
       && (cp.event_at===null ? date(cp.event_date) : stamp(cp.event_at) && cp.event_date===null))
 }
-export function validCurrencyResearch(value: unknown, from: string, to: string): value is CurrencyResearch {
+export function validCurrencyResearch(value: unknown, from: string, to: string, currency?: string): value is CurrencyResearch {
   if (!value || typeof value !== 'object') return false
   const v = value as CurrencyResearch
   return v.schema === 1 && v.from === from && v.to === to && date(v.from) && date(v.to) && v.from <= v.to && typeof v.revision === 'string'
+    && (currency === undefined ? v.currency === undefined : v.currency === currency)
     && Array.isArray(v.developments) && new Set(v.developments.map(d => d?.id)).size === v.developments.length
     && v.developments.every(d => d && ['id','key','title','facts','timing_note','revision_note'].every(k => typeof d[k as keyof ResearchDevelopment] === 'string')
       && date(d.published_on) && (d.published_at === null || stamp(d.published_at) && thesisDay(d.published_at) === d.published_on)
@@ -37,9 +38,11 @@ export function validCurrencyResearch(value: unknown, from: string, to: string):
       && (d.instruments===undefined || Array.isArray(d.instruments) && d.instruments.every(i => commodityIds.includes(i as typeof commodityIds[number]))
         && (!d.instruments.length || [d.instrument_note,d.commodity_implication,d.commodity_thesis_effect].every(s=>typeof s==='string' && !!s.trim())))
       && d.impacts.every(i => i && reviewCurrencies.includes(i.currency as typeof reviewCurrencies[number]) && typeof i.implication === 'string' && typeof i.thesis_effect === 'string')
+      && (currency === undefined || d.impacts.some(i => i.currency === currency))
       && Array.isArray(d.references) && d.references.every(r => r && ['external','calendar'].includes(r.kind) && typeof r.key === 'string'
         && strings(r.value_ids) && (r.broker === null || typeof r.broker === 'string')))
     && Array.isArray(v.assessments) && v.assessments.every(a => a && typeof a.id === 'string' && reviewCurrencies.includes(a.currency as typeof reviewCurrencies[number])
+      && (currency === undefined || a.currency === currency)
       && stamp(a.as_of_utc) && stamp(a.saved_utc) && thesisDay(a.as_of_utc) <= to && ['assessment','reconstruction'].includes(a.provenance)
       && typeof a.gap === 'string' && strings(a.evidence_ids) && strings(a.background_ids) && date(a.period_start) && date(a.period_end)
       && (a.direction === null ? !!a.gap.trim() : validDirection(a.direction,a)))

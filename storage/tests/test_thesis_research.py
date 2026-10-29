@@ -142,8 +142,29 @@ class ResearchTests(TestCase):
         from storage.app import create_app
         app=create_app(thesis_path=self.path)
         route=next(r for r in app.routes if getattr(r,'path','')=='/api/v1/theses/research')
-        self.assertEqual(len(route.endpoint('2026-07-22','2026-07-22',None)['assessments']),0)
+        self.assertEqual(len(route.endpoint('2026-07-22','2026-07-22',None,None)['assessments']),0)
         with self.assertRaises(ValueError):research_snapshot(self.path,'2026-07-23','2026-07-22')
+
+    def test_currency_projection_preserves_shared_vintages_and_ignores_unrelated_updates(self):
+        r=self.request();r['currencies'].append('JPY')
+        r['developments'][0]['impacts'].append(dict(currency='JPY',implication='Haven support.',thesis_effect='Offsets prior pressure.'))
+        r['assessments'].append(dict(currency='JPY',direction=self.direction(),evidence_keys=['chf-policy']))
+        append_research(ResearchRequest(**r),self.path)
+        broad=research_snapshot(self.path,'2026-07-22','2026-07-22')
+        selected=research_snapshot(self.path,'2026-07-22','2026-07-22',currency='CHF')
+        self.assertEqual(selected['currency'],'CHF')
+        self.assertEqual(selected['developments'],broad['developments'])
+        self.assertEqual(selected['assessments'],[a for a in broad['assessments'] if a['currency']=='CHF'])
+        self.assertEqual(len(selected['developments'][0]['impacts']),2,'A shared development keeps original identity and implications')
+        self.assertEqual(selected['developments'][0]['versions'],broad['developments'][0]['versions'])
+        r.update(as_of_utc='2026-07-22T11:00:00Z',currencies=['JPY'],developments=[],
+                 assessments=[dict(currency='JPY',direction={**self.direction(),'verified_utc':'2026-07-22T11:00:00Z'},evidence_keys=['chf-policy'])])
+        append_research(ResearchRequest(**r),self.path)
+        unchanged=research_snapshot(self.path,'2026-07-22','2026-07-22',selected['revision'],'CHF')
+        self.assertTrue(unchanged['unchanged']);self.assertEqual(unchanged['currency'],'CHF')
+        self.assertNotEqual(research_snapshot(self.path,'2026-07-22','2026-07-22')['revision'],broad['revision'])
+        with self.assertRaisesRegex(ValueError,'supported research currency'):
+            research_snapshot(self.path,'2026-07-22','2026-07-22',currency='INVALID')
 
     def test_corrupt_references_fail_without_discarding_history(self):
         r=self.request();append_research(ResearchRequest(**r),self.path)

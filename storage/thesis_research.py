@@ -297,20 +297,25 @@ def append_research(request, journal_path):
                 'read_back_verified': True, 'path': str(path)}
 
 
-def research_snapshot(journal_path, start, end, after_revision=None):
+def research_snapshot(journal_path, start, end, after_revision=None, currency=None):
     """Range projection plus assessments known by its end; does no research/write."""
     from .thesis import JAKARTA
     start, end = date.fromisoformat(str(start)), date.fromisoformat(str(end))
     if start > end:
         raise ValueError('Choose an ordered research date range')
+    if currency is not None and currency not in CURRENCIES:
+        raise ValueError('Choose a supported research currency')
     book = read_research(journal_path)
     latest = {d['key']: d for d in book['developments']}
+    if currency is not None:
+        latest = {key:d for key,d in latest.items() if any(i['currency'] == currency for i in d['impacts'])}
     history = read_reviews(journal_path)
     # Legacy reviews remain byte-for-byte intact. Only exact repeated facts merge.
     legacy_reviews = {r['review_id']: r for r in history if r['scope'] == 'ALL'}
     assessments = []
     for r in legacy_reviews.values():
         for v in r['currency_views']:
+            if currency is not None and v['currency'] != currency: continue
             legacy_key = lambda n: 'legacy-'+sha256(json.dumps([v['currency'],n['published_on'],n['summary'],n['sources']],sort_keys=True).encode()).hexdigest()[:32]
             if v.get('direction'):
                 assessments.append(dict(id=r['id']+':'+v['currency'],currency=v['currency'],as_of_utc=r['as_of_utc'],saved_utc=r['saved_utc'],
@@ -326,6 +331,7 @@ def research_snapshot(journal_path, start, end, after_revision=None):
     by_id={d['id']:d for d in [*latest.values(),*book['developments']]}
     for run in book['runs']:
         for a in run['assessments']:
+            if currency is not None and a['currency'] != currency: continue
             ids=run['evidence_versions'].get(a['currency'],[])
             assessments.append(dict(id=run['id']+':'+a['currency'],currency=a['currency'],as_of_utc=run['as_of_utc'],saved_utc=run['saved_utc'],
                 provenance=run['provenance'],direction=a['direction'],gap=a['gap'],period_start=run['period_start'],period_end=run['period_end'],
@@ -351,7 +357,8 @@ def research_snapshot(journal_path, start, end, after_revision=None):
     included={d['id'] for d in developments}
     developments.extend({**by_id[i],'versions':versions.get(by_id[i]['key'],[])} for i in background if i not in included)
     developments.sort(key=lambda d:(d['published_on'],d.get('published_at') or '',d['key']),reverse=True)
-    content={'schema':1,'from':start.isoformat(),'to':end.isoformat(),'developments':developments,'assessments':assessments}
+    identity={'schema':1,'from':start.isoformat(),'to':end.isoformat(),**({'currency':currency} if currency else {})}
+    content={**identity,'developments':developments,'assessments':assessments}
     revision=sha256(json.dumps(content,sort_keys=True).encode()).hexdigest()
-    return {'schema':1,'from':start.isoformat(),'to':end.isoformat(),'revision':revision,
+    return {**identity,'revision':revision,
             **({'unchanged':True} if revision==after_revision else content)}
