@@ -147,10 +147,12 @@ drag down to shrink it. With the resize handle focused, End maximizes and Home s
 Drawings are shared across all timeframes for the same pair, including existing
 saved drawings. Editing or deleting one updates that same drawing on every timeframe.
 Choose the alarm drawing tool and click a chart price to arm a one-shot **Price Alert**.
-The **Price Alerts** tab beside Market Watch lists all saved alerts. Triggered
-alerts appear first, newest trigger first; armed/paused alerts follow in their
-existing order. Rearming returns an alert to that ordinary list. Click a row
-to open its chart; double-click its title (or press F2) to name it. Enter or leaving
+The **Price Alerts** tab beside Market Watch groups saved alerts by pair, with
+separate groups for each broker. Groups with triggered alerts appear first,
+newest trigger first; within each group triggered alerts precede armed/paused
+alerts in their existing order. Rearming returns an alert to that ordinary list.
+Click a row to open its chart and highlight that alert's line in cyan;
+double-click its title (or press F2) to name it. Enter or leaving
 the field saves; Escape cancels. The name also labels its chart line. Icons beside
 each title pause/resume or rearm the alert, and delete it. Drag a line vertically
 and release to save its new price, or use

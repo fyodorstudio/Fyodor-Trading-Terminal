@@ -44,7 +44,7 @@ try {
     const controller = usePriceAlerts(broker, quotes, live)
     React.useEffect(() => { api = controller; renderCount++ })
     return React.createElement(React.Fragment, null,
-      React.createElement(PriceAlertLines, { seriesApi, alerts: controller.brokerAlerts, symbol, dragEnabled: false }),
+      React.createElement(PriceAlertLines, { seriesApi, alerts: controller.brokerAlerts, symbol, dragEnabled: false, selectedAlertId: controller.selectedAlertId }),
       React.createElement(PriceAlertsDock, { controller, brokerId: broker, onSelectSymbol: symbol => selectedSymbols.push(symbol), onCreate() {} }))
   }
   const render = (props = {}, key = 'session') => React.act(async () => root.render(React.createElement(Harness, { ...props, key })))
@@ -62,6 +62,8 @@ try {
   assert.equal(saved().alerts.length, 3)
   assert.equal(saved().duration, 3)
   assert.equal(saved().soundId, 'thin')
+  assert.deepEqual([...host.querySelectorAll('.price-alert-group')].map(group => [group.querySelector('.price-alert-group-title span').textContent, group.querySelectorAll('.price-alert-row').length]),
+    [['GBPUSD', 1], ['EURUSD', 2]], 'Each pair has a single group with all of its alerts')
   assert.deepEqual([...host.querySelector('[aria-label="Price alert sound"]').options].map(option => option.textContent),
     ['Thin', 'Bell', 'Double beep', 'Digital', 'Pulse', 'Triple beep', 'Doorbell', 'Rising chime', 'Falling chime', 'Sonar', 'Buzzer', 'Soft chime'])
   const upRow = [...host.querySelectorAll('.price-alert-row')].find(row => row.querySelector('.price-alert-title').textContent === 'EURUSD Crossing 1.20000')
@@ -70,11 +72,23 @@ try {
   assert.equal(upRow.querySelector('.price-alert-details'), null, 'Rows have no expandable details')
   assert.equal(upRow.querySelector('input[type="number"]'), null, 'Price editing uses the chart line')
   assert.ok([...upRow.querySelectorAll('.price-alert-actions button')].every(node => node.querySelector('svg') && !node.textContent.trim()), 'Actions use icons with accessible labels')
+  const beforeSelection = JSON.stringify(saved())
   await click(upRow.querySelector('.price-alert-summary'))
   assert.deepEqual(selectedSymbols, ['EURUSD'], 'Clicking the alert block opens its chart')
+  assert.equal(api.selectedAlertId, up)
+  assert.equal(upRow.querySelector('.price-alert-summary').getAttribute('aria-pressed'), 'true')
+  assert.equal([...lines].find(line => line.options.price === 1.2).options.color, '#0891b2')
+  assert.equal([...lines].find(line => line.options.price === 1).options.color, '#b45309')
+  await command(() => api.selectAlert(down))
+  assert.equal([...lines].find(line => line.options.price === 1.2).options.color, '#b45309', 'The previously selected line returns to its normal color')
+  assert.equal([...lines].find(line => line.options.price === 1).options.color, '#0891b2')
+  assert.equal(host.querySelectorAll('.price-alert-row.selected').length, 1)
+  await command(() => api.selectAlert(up))
+  assert.equal(JSON.stringify(saved()), beforeSelection, 'Selection is presentation state and never rewrites saved alerts')
   assert.equal(upRow.querySelector('.price-alert-summary').hasAttribute('aria-expanded'), false)
   await click(rowButton(upRow, 'Pause'))
   assert.equal(upRow.querySelector('.price-alert-state').textContent, 'Stopped — Paused')
+  assert.equal([...lines].find(line => line.options.price === 1.2).options.color, '#0891b2', 'The selected paused line remains highlighted')
   await click(rowButton(upRow, 'Resume'))
   assert.deepEqual(selectedSymbols, ['EURUSD'], 'Icon actions never open or switch charts')
   await rename(upRow)
@@ -119,9 +133,19 @@ try {
   await render({ quotes: [quote('EURUSD', 1.21)], broker: 'Broker B' })
   assert.equal(api.alerts.find(item => item.id === up).status, 'armed', 'Other brokers cannot trigger')
   assert.equal(lines.size, 0, 'Other brokers do not display saved lines')
+  assert.equal(api.selectedAlertId, null, 'Selections never highlight a different broker')
+  let brokerBAlert
+  await command(() => { brokerBAlert = api.addAlert('EURUSD', 1.5, 5); api.selectAlert(brokerBAlert) })
+  assert.equal(host.querySelectorAll('.price-alert-group').length, 3, 'The same pair on different brokers gets separate groups')
+  assert.ok(host.querySelector('[aria-label="EURUSD price alerts · Broker A"]'))
+  assert.ok(host.querySelector('[aria-label="EURUSD price alerts · Broker B"]'))
   const beforeWrongBrokerClick = selectedSymbols.length
   await click([...host.querySelectorAll('.price-alert-summary')].find(node => node.getAttribute('aria-label').includes('London breakout')))
   assert.equal(selectedSymbols.length, beforeWrongBrokerClick, 'An alert from another broker cannot open the wrong broker chart')
+  assert.equal(api.selectedAlertId, brokerBAlert, 'Clicking a foreign-broker row cannot change the selection')
+  await command(() => api.deleteAlert(brokerBAlert))
+  assert.equal(api.selectedAlertId, null, 'Deleting the selected alert clears its highlight')
+  assert.equal(host.querySelectorAll('.price-alert-group').length, 2, 'Empty groups disappear after deletion')
   await render({ quotes: [quote('EURUSD', 1.21)] })
   assert.equal(api.alerts.find(item => item.id === up).status, 'triggered', 'A sampled jump over the target triggers')
   assert.equal(api.alerts.find(item => item.id === up).triggeredBid, 1.21)

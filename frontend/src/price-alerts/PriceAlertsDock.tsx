@@ -20,6 +20,7 @@ function AlertRow({ alert, controller, onSelectSymbol, brokerId }: {
   const statusClass = alert.status !== 'armed' ? 'stopped' : waitingForBroker || waitingForQuote ? 'waiting' : 'active'
   const crossing = `${alert.symbol} Crossing ${alert.price.toFixed(alert.precision)}`
   const title = alert.name || crossing
+  const selected = controller.selectedAlertId === alert.id
   const startRename = () => {
     renameActive.current = true
     setName(alert.name || alert.symbol)
@@ -32,7 +33,7 @@ function AlertRow({ alert, controller, onSelectSymbol, brokerId }: {
     setEditing(false)
   }
   const action = alert.status === 'armed' ? 'Pause' : alert.status === 'triggered' ? 'Rearm' : 'Resume'
-  return <article className={`price-alert-row ${alert.status}`} aria-label={`${alert.symbol} price alert`}>
+  return <article className={`price-alert-row ${alert.status}${selected ? ' selected' : ''}`} aria-label={`${alert.symbol} price alert`}>
     {editing ? <form className="price-alert-rename" onSubmit={event => { event.preventDefault(); saveName() }}>
       <input aria-label={`Alert name for ${alert.symbol}`} type="text" maxLength={120} value={name} autoFocus
         onChange={event => setName(event.target.value)} onBlur={saveName}
@@ -42,10 +43,11 @@ function AlertRow({ alert, controller, onSelectSymbol, brokerId }: {
           event.preventDefault(); event.stopPropagation(); renameActive.current = false; setEditing(false)
         }} />
     </form> : <button className="price-alert-summary" type="button" aria-disabled={waitingForBroker}
+      aria-pressed={selected}
       aria-label={`Open ${alert.symbol} chart · ${title} · ${status}`}
       title={waitingForBroker ? `Waiting for ${alert.brokerId}` : 'Click to open chart · Double-click or press F2 to rename'}
       onDoubleClick={event => { event.preventDefault(); event.stopPropagation(); startRename() }}
-      onClick={() => { if (!waitingForBroker) onSelectSymbol(alert.symbol) }} onKeyDown={event => {
+      onClick={() => { if (!waitingForBroker) { controller.selectAlert(alert.id); onSelectSymbol(alert.symbol) } }} onKeyDown={event => {
         if (event.key === 'F2') { event.preventDefault(); startRename() }
       }}>
       <span className="price-alert-title">{title}</span>
@@ -81,10 +83,20 @@ export function PriceAlertsDock({ controller, onSelectSymbol, onCreate, brokerId
   controller: PriceAlertsController; onSelectSymbol: (symbol: string) => void; onCreate: () => void; brokerId: string | null
 }) {
   const soundFileInput = useRef<HTMLInputElement>(null)
-  const orderedAlerts = useMemo(() => [...controller.alerts].reverse().sort((a, b) => {
-    const aTriggered = a.status === 'triggered', bTriggered = b.status === 'triggered'
-    return Number(bTriggered) - Number(aTriggered) || (aTriggered && bTriggered ? (b.triggeredAt ?? 0) - (a.triggeredAt ?? 0) : 0)
-  }), [controller.alerts])
+  const groups = useMemo(() => {
+    const orderedAlerts = [...controller.alerts].reverse().sort((a, b) => {
+      const aTriggered = a.status === 'triggered', bTriggered = b.status === 'triggered'
+      return Number(bTriggered) - Number(aTriggered) || (aTriggered && bTriggered ? (b.triggeredAt ?? 0) - (a.triggeredAt ?? 0) : 0)
+    })
+    const byPair = new Map<string, { key: string; symbol: string; brokerId: string; alerts: PriceAlert[] }>()
+    for (const alert of orderedAlerts) {
+      const key = JSON.stringify([alert.brokerId, alert.symbol])
+      const group = byPair.get(key)
+      if (group) group.alerts.push(alert)
+      else byPair.set(key, { key, symbol: alert.symbol, brokerId: alert.brokerId, alerts: [alert] })
+    }
+    return [...byPair.values()]
+  }, [controller.alerts])
   return <section className="price-alerts-dock" aria-label="Price Alerts">
     <div className="price-alert-controls">
       <div className="price-alert-create">
@@ -118,7 +130,12 @@ export function PriceAlertsDock({ controller, onSelectSymbol, onCreate, brokerId
       {controller.soundBlocked && <p role="alert">Sound is blocked. <button type="button" onClick={() => void controller.enableSound()}>Enable sound</button></p>}
     </div>
     <div className="price-alert-list" aria-live="polite">
-      {orderedAlerts.map(alert => <AlertRow key={alert.id} alert={alert} controller={controller} onSelectSymbol={onSelectSymbol} brokerId={brokerId} />)}
+      {groups.map(group => <section key={group.key} className="price-alert-group" aria-label={`${group.symbol} price alerts · ${group.brokerId}`}>
+        <h3 className="price-alert-group-title"><span>{group.symbol}</span><span>{group.alerts.length}</span>
+          {group.brokerId !== brokerId && <span className="price-alert-group-broker">{group.brokerId}</span>}
+        </h3>
+        {group.alerts.map(alert => <AlertRow key={alert.id} alert={alert} controller={controller} onSelectSymbol={onSelectSymbol} brokerId={brokerId} />)}
+      </section>)}
     </div>
   </section>
 }

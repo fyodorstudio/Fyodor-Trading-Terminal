@@ -9,6 +9,7 @@ import { customAlertSoundKey, customAlertSoundMaxBytes, decodeCustomAlertSound, 
 
 export function usePriceAlerts(brokerId: string | null, quotes: SymbolQuote[], live: boolean) {
   const [store, setStore] = useState(readPriceAlerts)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
   const current = useRef(store)
   const feed = useRef({ brokerId, quotes, live })
   useLayoutEffect(() => { feed.current = { brokerId, quotes, live } }, [brokerId, quotes, live])
@@ -166,6 +167,10 @@ export function usePriceAlerts(brokerId: string | null, quotes: SymbolQuote[], l
   }, [commit])
   const moveAlert = useCallback((id: string, price: number) => updateAlert(id, 'move', price), [updateAlert])
   const deleteAlert = useCallback((id: string) => updateAlert(id, 'delete'), [updateAlert])
+  const selectAlert = useCallback((id: string) => {
+    const alert = current.current.alerts.find(item => item.id === id)
+    if (alert?.brokerId === feed.current.brokerId) setSelectedId(id)
+  }, [])
   const renameAlert = useCallback((id: string, name: string) => {
     commit({ ...current.current, alerts: current.current.alerts.map(alert => alert.id === id ? { ...alert, name: name.trim().slice(0, 120) } : alert) })
   }, [commit])
@@ -180,10 +185,11 @@ export function usePriceAlerts(brokerId: string | null, quotes: SymbolQuote[], l
     else sound.current?.stop()
   }, [commit, enableSound, invalidateCustom])
   const brokerAlerts = useMemo(() => store.alerts.filter(alert => alert.brokerId === brokerId), [store.alerts, brokerId])
+  const selectedAlertId = useMemo(() => brokerAlerts.some(alert => alert.id === selectedId) ? selectedId : null, [brokerAlerts, selectedId])
   const liveSymbols = useMemo(() => new Set(quotes.filter(quote => Number.isFinite(quote.bid) && quote.bid > 0).map(quote => quote.symbol)), [quotes])
   return { alerts: store.alerts, brokerAlerts, addAlert, updateAlert, playSound: store.playSound, duration: store.duration, soundId: store.soundId,
     setSound, enableSound, previewSound, soundBlocked, storageError, live, liveSymbols, renameAlert, moveAlert, deleteAlert, setDraggingAlertId: changeDraggingAlert,
-    customSoundName, customSoundError, customSoundLoading, uploadCustomSound }
+    customSoundName, customSoundError, customSoundLoading, uploadCustomSound, selectedAlertId, selectAlert }
 }
 
 export type PriceAlertsController = ReturnType<typeof usePriceAlerts>

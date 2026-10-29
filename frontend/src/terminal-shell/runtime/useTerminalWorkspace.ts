@@ -250,7 +250,7 @@ export function useTerminalWorkspace() {
     currencyColors: inspector.preferences.currencyColors, timeDisplay, onSelectRelease: selectChartRelease,
     onClearInspection: !activeDrawingTool && !researchActive && !researchSeed && inspector.selectedRelease ? clearChartInspection : undefined,
     researchActive, bars, timeframe, onResearchRange: selectResearchRange, onCancelResearch: cancelResearch,
-    symbol: activeSymbol, onSelectExternal: selectExternal, eventIconsVisible, priceAlerts: priceAlerts.brokerAlerts,
+    symbol: activeSymbol, onSelectExternal: selectExternal, eventIconsVisible, priceAlerts: priceAlerts.brokerAlerts, selectedAlertId: priceAlerts.selectedAlertId,
     onAlertPriceChange: priceAlerts.moveAlert, onAlertDragChange: priceAlerts.setDraggingAlertId, onDeleteAlert: priceAlerts.deleteAlert })
   const sourceState: 'error' | 'live' | 'waiting' = !bridge.reachable || marketData.marketWatchStatus === 'unavailable'
     ? 'error'

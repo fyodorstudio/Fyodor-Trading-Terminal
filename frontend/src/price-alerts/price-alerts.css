@@ -17,8 +17,12 @@
 .price-alert-sound select:first-child { flex: 1; min-width: 0; }
 .price-alerts-dock p { margin: 0; line-height: 1.5; color: var(--text-strong); }
 .price-alert-list { flex-shrink: 0; min-height: 0; padding: 0; display: grid; align-content: start; gap: 0; }
+.price-alert-group { min-width: 0; }
+.price-alert-group-title { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin: 0; padding: 5px 12px; border-bottom: 1px solid var(--border); background: var(--surface-raised); color: var(--text-strong); font-size: 10px; }
+.price-alert-group-broker { margin-left: auto; overflow-wrap: anywhere; font-weight: 400; }
 .price-alert-row { position: relative; border-bottom: 1px solid var(--border); }
 .price-alert-row:hover, .price-alert-row:focus-within { background: var(--surface-hover); }
+.price-alert-row.selected { background: var(--accent-soft); box-shadow: inset 3px 0 0 #0891b2; }
 .price-alerts-dock .price-alert-summary { display: grid; gap: 4px; width: 100%; min-height: 50px; border: 0; border-radius: 0; padding: 8px 12px; background: transparent; text-align: left; }
 .price-alerts-dock .price-alert-summary:hover { background: transparent; }
 .price-alert-title { padding-right: 50px; font-size: 11px; line-height: 1.4; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }

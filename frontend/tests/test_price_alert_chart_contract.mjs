@@ -68,7 +68,7 @@ try {
     const controller = usePriceAlerts(broker, quotes, true)
     React.useEffect(() => { api = controller })
     return React.createElement(PriceAlertLines, { key: `${broker}:${symbol}:${scope}`, chartApi: chart, seriesApi: series,
-      alerts: controller.brokerAlerts, symbol, dragEnabled: enabled, onPriceChange: controller.moveAlert, onDragChange: controller.setDraggingAlertId, onDeleteAlert: controller.deleteAlert })
+      alerts: controller.brokerAlerts, symbol, dragEnabled: enabled, onPriceChange: controller.moveAlert, onDragChange: controller.setDraggingAlertId, onDeleteAlert: controller.deleteAlert, selectedAlertId: controller.selectedAlertId })
   }
   const render = async (props = {}) => { await React.act(async () => root.render(React.createElement(Harness, props))); await paint() }
   const saved = () => JSON.parse(storage.getItem('fyodor.price-alerts.v1')).alerts
@@ -83,6 +83,18 @@ try {
     api.renameAlert(first, 'Breakout'); api.renameAlert(paused, 'Paused level'); api.updateAlert(paused, 'pause')
   }); await paint()
   assert.equal(nativeLines.size, 2)
+  const beforeSelection = writes, originalLine = native('Breakout')
+  await command(() => api.selectAlert(first)); await paint()
+  assert.equal(native('Breakout'), originalLine, 'Selection updates the existing native line')
+  assert.equal(native('Breakout').options().color, '#0891b2')
+  assert.equal(native('Breakout').options().lineWidth, 3)
+  assert.equal(native('Paused level').options().color, '#4f46e5')
+  await command(() => api.selectAlert(paused)); await paint()
+  assert.equal(native('Breakout').options().color, '#b45309')
+  assert.equal(native('Breakout').options().lineWidth, 2)
+  assert.equal(native('Paused level').options().color, '#0891b2', 'Paused alerts use the same selection highlight')
+  await command(() => api.selectAlert(first)); await paint()
+  assert.equal(writes, beforeSelection, 'Highlighting lines never writes alert storage')
   assert.equal(handle().getAttribute('aria-label'), 'Drag Breakout alert price')
   await pointer(handle(), 'pointerdown', series.priceToCoordinate(11))
   const before = writes
@@ -163,6 +175,7 @@ try {
   assert.equal(handle(), null)
   assert.equal(nativeLines.size, 0)
   assert.deepEqual(saved(), [], 'Right-click also deletes an armed alert during a drag')
+  assert.equal(api.selectedAlertId, null)
   const afterDelete = writes
   await pointer(stale, 'pointerup', series.priceToCoordinate(13)); await paint()
   assert.equal(writes, afterDelete, 'A pending drop cannot restore the deleted alert')
