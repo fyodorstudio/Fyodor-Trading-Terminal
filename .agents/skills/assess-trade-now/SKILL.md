@@ -27,7 +27,10 @@ after saving. Read-only/no-save instructions still win.
 2. Read the saved Thesis interval and relevant current summary. Use
    [Thesis research](references/thesis-research.md) for saves and interval updates.
    Identify missing periods and unresolved material developments. Saved conclusions
-   are dated context; do not assume they remain true.
+   are dated context; do not assume they remain true. For repeat assessments use
+   [efficient refreshes](references/thesis-research.md#efficient-refreshes): check
+   what changed for every requested currency, then investigate material changes
+   and gaps deeply instead of rebuilding unchanged foundations.
 3. Check the preceding hour, next six hours and overnight policy/media stages first.
    Then research the requested period broadly across policy/path, inflation,
    labour/wages, activity and material fiscal, trade, funding, commodity, haven and
@@ -90,7 +93,13 @@ Use direct official releases for facts and schedules, dated credible reporting a
 identified futures/OIS pricing for contemporaneous expectations. Keep provider,
 definition and capture-time differences separate; preserve raw observations.
 Unknown publication hours remain unknown. A source failure is not proof of no news.
-Batch independent checks and bound failed-route retries; disclose material gaps.
+Batch independent checks and reuse shared source bodies across currencies, while
+weighing each currency's transmission separately. Prefer known direct release
+routes. After a failed retrieval, normally try one suitable alternative and record
+the exact gap; further work needs a distinct unresolved material question, not
+repeated searches for the same unavailable item. A prepared release wait keeps
+its own bounded publication checks. Open decisive bodies and verify their period;
+a cached prior release or a new retrieval clock cannot establish fresh actuals.
 
 Read focused calendar/external identities and limitations when relevant; follow
 pagination. The optional [discovery helper](references/discovery.md) captures local

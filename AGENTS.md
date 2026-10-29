@@ -102,6 +102,10 @@ new findings once. No item quota or forced new verdict when decisive evidence is
 missing. Preserve old active foundations with their original dates and record
 what now offsets, reinforces or supersedes them. Last Assessed and evidence age
 are different clocks; neither a fresh retrieval nor a new save makes old news new.
+For repeat assessments, use the skill's efficient refresh workflow: check changes
+for every requested currency, reuse valid dated foundations/shared sources and
+investigate material changes or gaps deeply. Do not rebuild unchanged research or
+let a failed publisher consume the review. Broad scope and contrary-news checks remain.
 
 Immediately check just-elapsed/imminent material stages and overnight remarks,
 then the relevant next seven days (or longer holding horizon). USD includes
@@ -135,6 +139,11 @@ Resolve elapsed checkpoints using actuals and subsequent guidance before choosin
 the next material stage. Shared deadlines need a specific transmission channel
 for each currency. Alarms and date navigation perform no research, advance no
 clock and never reverse or renew a verdict automatically.
+The static Jakarta Last Assessed header means the latest completed, saved live
+research pass, with row gaps and focused scope preserved. An older evidence anchor
+is acceptable when no newer significant finding exists; age alone does not require
+a new event, changed direction or Review needed. Do not refresh that header for
+a reload, initial scan or save without completed assessment work.
 
 Thesis contains dated developments, assessments and upcoming checkpoints. Keep
 publication/event/verification/recorded clocks separate. Historical reconstructions

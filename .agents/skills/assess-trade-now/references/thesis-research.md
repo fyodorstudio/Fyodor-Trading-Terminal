@@ -27,6 +27,35 @@ do not reproduce those schemas or a giant copied prompt here.
 6. Append through `thesis research-append`, then read back the range and live summary.
    Explain retained/changed pressure and any unresolved intervals/access gaps.
 
+## Efficient refreshes
+
+Start from each requested currency's last completed coverage, unresolved gaps,
+active evidence and elapsed/next checkpoint. The header's latest time is not a
+coverage cutoff for an unresearched row. Reuse loaded instructions and focused
+saved context; do not repeatedly read whole ledgers, manuals or source inventories.
+
+Check fresh dated news and source/calendar changes across the requested scope,
+including contrary and off-calendar developments. A broad refresh still assesses
+all eight and covers the parent's source families. Concentrate deeper retrieval
+on new facts, changed expectations, missing periods and challenged mechanisms.
+Unchanged official foundations can remain dated background; neither a reread nor
+an empty broker calendar establishes that nothing changed. Widen research when
+coverage is stale/incomplete, material contradictions emerge or the user requests it.
+
+Use known direct routes first, batch independent retrievals and read a shared
+release once. Apply it separately to each affected currency; syndications and
+release components are not extra votes. Keep raw snapshots when useful, but return
+focused fields/passages and coverage gaps instead of dumping complete responses.
+Reuse verified schedules within their horizon while checking changed times and
+resolving elapsed stages. A normal refresh does not require a new 90-day inventory,
+coverage receipt or pin/alarm audit unless that work is requested or materially needed.
+
+Stop a failed route after a suitable fallback unless a distinct decisive question
+justifies more research. Deliver a supported stage-specific decision promptly;
+continue remaining requested coverage, the save and left-panel verification in the
+same turn. Do not label that early decision a completed broad assessment. Once
+those checks pass, finish without repeating them absent a new failure or change.
+
 ## Left-panel freshness audit
 
 The left **Fundamentals** panel is the user's primary monitoring view. Every
@@ -50,10 +79,20 @@ local runtime/contract error within authorized scope or report the exact deliver
 gap. Do not claim the left panel updated while its summary is unavailable or
 invalid. Leave visual acceptance to the user; no browser automation is needed.
 
-Last Assessed is the actual currency assessment clock. Evidence age is the latest
-named dated development referenced by that assessment; it does not summarize the
-age of every supporting/contrary fact. The timeline exposes those dates. No save,
-poll, alarm or fresh retrieval changes a source's original publication time.
+The static Jakarta **Last Assessed** header means the latest completed, saved live
+assessment/research pass, including explicitly recorded gaps. Set its research
+cutoff when completing the pass; an initial scan, reload or save alone does not
+complete research. A read-only pass cannot update the saved panel. Row assessment
+clocks and gaps preserve the scope of focused work; the header does not imply
+every currency received a new supported direction.
+
+Evidence age is the latest significant dated development referenced by that
+assessment, not the age of the research. After checking the intervening period,
+an unchanged supported thesis may have a fresh assessment and an older anchor.
+Do not manufacture a newer anchor, rewrite publication dates, force direction or
+mark Review needed solely because no newer significant event exists. Use Review
+needed for an actual decisive gap or unresolved review. The timeline retains all
+supporting/contrary dates; polling, saves and retrievals never make old news new.
 
 A full requested refresh checks all eight. A focused release refresh resolves the
 relevant actuals/guidance and affected/decisively overdue mechanisms without

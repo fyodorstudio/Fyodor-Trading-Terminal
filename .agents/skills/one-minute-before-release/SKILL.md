@@ -38,6 +38,8 @@ Carry forward its sources, policy concerns,
 separately attributed forecasts, conditional scenarios, counterevidence,
 extreme-move risks and the prepared at-least-seven-day fundamental exit/
 reassessment watchlist. Keep their as-of times and refresh schedule changes.
+Use the parent's [efficient refreshes](../assess-trade-now/references/thesis-research.md#efficient-refreshes)
+to reuse shared evidence and known routes without repeating unchanged research.
 Retain eight-currency context if available, but compare all seven counterparts
 only when the user has requested that scope or best-event-pair selection;
 otherwise assess the requested pair or candidate list. A subsequently narrowed

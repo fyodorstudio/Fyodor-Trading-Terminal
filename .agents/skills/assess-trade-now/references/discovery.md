@@ -1,7 +1,9 @@
 # Optional audit helper: Source coverage and verifiable discovery
 
-Read this for every fresh assessment/alert review, before the backdrop. This is
-the shared procedure; no separate alert skill is needed. An explicit prompt-only
+Read this when an explicit coverage audit or the optional discovery helper is
+useful. The parent skill owns ordinary research; this reference adds source-family
+detail and receipt mechanics, not a second mandatory scan. Repeat assessments use
+[efficient refreshes](thesis-research.md#efficient-refreshes). An explicit prompt-only
 or read-only request retains its narrower scope. Do not repeat loaded guidance.
 
 ## Immediate work and required source families
@@ -11,7 +13,7 @@ discovery of the actual active driver and nearest disruption over a polished
 backdrop. Include the [brief opportunity sweep](opportunity-discovery.md) for
 fresh conversational assessments/reviews, subject to explicit scope overrides.
 Surface a supported decision after immediate hazards and both currency mechanisms
-are checked; continue the full scan and receipt in the same turn. The first
+are checked; continue requested coverage and any chosen receipt in the same turn. The first
 delivery may precede completed coverage. It must not claim all-clear, completed
 pins or a fully ranked comparison while those checks remain unfinished.
 
@@ -27,8 +29,10 @@ route, then mark the exact gap. Never let one failed publisher consume the scan.
 For commodity scope add the source families and instrument routing in
 [commodities](commodities.md); USD macro context cannot substitute for them.
 
-For **each requested currency**, cover these web source families. These are
-coverage obligations, not permanent event-impact rankings:
+For **each requested currency**, cover changes and gaps in these web source
+families over the requested interval, reusing still-valid dated foundations.
+They are coverage obligations, not a requirement to reopen every unchanged body
+on each refresh or permanent event-impact rankings:
 
 | Family | Read and search for |
 | --- | --- |

@@ -154,12 +154,20 @@ daily reviews as fallback. There is no separately authored summary verdict file.
 Reconstructions and future cutoffs cannot replace live directions. A focused
 update leaves other currencies' assessment/evidence clocks intact.
 
-Last Assessed in the header is the latest saved research cutoff; each row's actual
-currency assessment time remains in its tooltip and Thesis summary. Evidence age
-comes from the latest named dated development referenced by that assessment, not
-its retrieval or save time. A date-only source gives approximate day age without
-an invented hour. No dated anchor says Undated. This one number does not establish
-complete evidence coverage or show every offset: the timeline does that.
+The static Jakarta Last Assessed header marks the latest completed, saved live
+assessment/research pass, represented by its information cutoff. A reload, initial
+scan or save alone is not completed research; agents set that cutoff when finishing
+the pass. Each row's currency assessment time remains in its tooltip and Thesis
+summary, with explicit gaps and focused scope preserved. Read-only research does
+not change this saved timestamp.
+
+Evidence age comes from the latest significant named dated development referenced
+by the assessment, not its retrieval or save time. Fresh research can retain an
+older anchor when no newer significant finding exists; age alone neither requires
+a replacement anchor nor makes a supported verdict overdue. A date-only source
+gives approximate day age without an invented hour. No dated anchor says Undated.
+This number does not establish complete coverage or show every offset: the timeline
+does that. An unresolved decisive gap still requires Review needed.
 
 Checkpoint is reassess by, not promised direction until. It counts down, then
 shows Review due, retaining the chosen event and verdict. A precise unresolved gap

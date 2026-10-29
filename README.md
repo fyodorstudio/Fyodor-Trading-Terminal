@@ -199,6 +199,10 @@ The left dock shows **Evidence age | CUR | VERDICT | Checkpoint**. Click
 uses the named source development, separately from Last Assessed; new saves do not
 redate old news. Verdict is standalone Strong/Moderate/Slight pressure. A focused
 refresh preserves other currencies; missing decisive evidence remains visible.
+The static Jakarta **Last Assessed** timestamp marks the latest completed, saved
+live research pass. It is separate from evidence age: an unchanged supported view
+may retain an older significant source after fresh research. No new anchor or gap
+is required solely to make that age look recent; focused work preserves other rows.
 This is the user's primary monitoring view. Live research includes verifying its
 saved verdicts, evidence/assessment clocks and checkpoints through the summary API
 and frontend contract; a successful save alone does not prove the panel can load.
@@ -281,6 +285,10 @@ incremental release effect and pressure over the chosen horizon. Retaining a
 direction requires explaining why it still dominates new contrary evidence;
 reducing intensity alone does not justify keeping it. See the
 [release and retention check](.agents/skills/assess-trade-now/references/fundamental-assessment.md#release-and-retention-check).
+Repeat assessments use [efficient refreshes](.agents/skills/assess-trade-now/references/thesis-research.md#efficient-refreshes):
+check changes across the requested scope, reuse still-valid foundations/shared
+sources and focus deeper research on material changes and gaps. Source failures
+are bounded; ordinary refreshes do not rebuild a 90-day inventory or optional audit.
 Material guidance/Q&A must be resolved or left as an explicit gap; a first-stage
 verdict is not a completed conference review. No final transcript is required
 when credible reporting verifies the decisive remarks. Research remains
