@@ -82,8 +82,10 @@ Each development has `key`, `title`, `facts`, `published_on`, optional
 and `impacts`. Unknown publication hours need a timing explanation. Each impact
 contains `currency`, `implication` and `thesis_effect`; one fact may affect several
 currencies differently. Do not treat release components/syndications as separate
-independent developments. No forced direction per event or invented institutional
-flow is implied. Older material findings may be saved as active background.
+independent developments. For a material directional development, `implication`
+states potential strengthening/weakening, intensity and causal channel; this does
+not require realised FX flows or a trade entry. Unrelated facts need no invented
+currency direction. Older material findings may be saved as active background.
 
 Optional `references` link existing identities, not new observations:
 `{kind: external, key: <stable-key>}` or
@@ -136,11 +138,18 @@ stages must be resolved as developments/gaps, not carried as future events.
 A direction references recorded evidence/background, uses standalone qualitative
 pressure and an explicit horizon. Strong/Moderate/Slight is a shared causal-pressure
 scale, not probability, confidence score, pip forecast or institutional positioning.
-Equal grades alone do not establish a finer pair ranking. Cross recommendations
-require both currency stories and overlapping horizons and remain optional chat
-output. A decisive unresolved fact can be saved with `direction: null` and a
+Research completes relevant same-direction comparisons using both currency stories
+and overlapping horizons, following the skill's shared scale. Equal grades alone
+are insufficient; explain any supported relative preference in reasons/chat.
+Pair journals are not recreated. These are potential impacts, not proof of realised
+flows, certainty or execution suitability. Known conflicting mechanisms must be
+assessed; they are not missing facts. A genuinely unavailable decisive fact can
+be saved with `direction: null` and a
 nonblank `gap`; the live summary retains an earlier supported verdict with Review
 needed and its original assessment clock, rather than manufacturing a fresh call.
+Use this exception only for the claim depending on that fact. Missing live pricing,
+routine opposition or indecision over a grade do not justify it. Give supported
+event impacts and the researched currency verdict without a neutral/mixed fallback.
 Its evidence anchor also stays with that retained assessment; pending newer
 findings remain in the ledger and must not make an old verdict look freshly supported.
 
@@ -167,7 +176,8 @@ older anchor when no newer significant finding exists; age alone neither require
 a replacement anchor nor makes a supported verdict overdue. A date-only source
 gives approximate day age without an invented hour. No dated anchor says Undated.
 This number does not establish complete coverage or show every offset: the timeline
-does that. An unresolved decisive gap still requires Review needed.
+does that. Review needed is a missing-fact exception, not a completed judgment of
+known opposing evidence; see the research rules above.
 
 Checkpoint is reassess by, not promised direction until. It counts down, then
 shows Review due, retaining the chosen event and verdict. A precise unresolved gap

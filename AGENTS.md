@@ -68,6 +68,8 @@ Use [Assess Trade Now](.agents/skills/assess-trade-now/SKILL.md) for current
 fundamentals, opportunity comparisons and requested Thesis research. A bare
 invocation researches all eight currencies and selectively checks material
 BRENT/WTI/GOLD candidates. Respect a narrower requested scope and research period.
+The skill also surfaces exceptional clearly supported non-FX candidates encountered
+in permitted news discovery, without an exhaustive extra market scan.
 The user performs their own technical analysis and manual price alerts: do not
 fetch candles or technical levels unless explicitly requested. Never execute trades
 or change broker/account settings.
@@ -128,9 +130,14 @@ are optional. Do not force a same-day window or copy a prior entry forward.
 
 Currency verdicts are standalone Strong / Moderate / Slight strengthening or
 weakening pressure on one shared qualitative scale, with horizon and material
-opposition. Compare same-direction currencies over overlapping horizons and
-check both stories; equal grades provide no finer ranking. This is not a numeric
-score, index measurement or private positioning data.
+opposition. The product is potential impact: event/development → currency
+strengthening/weakening → intensity → causal reason. Do not require realised flows,
+live pricing or certainty. Compare same-direction currencies over overlapping
+horizons and explain relative dominance; equal grades trigger comparison rather
+than end it. See the skill's shared scale; do not fit grades to a chart. Known
+opposition calls for judgment, not Review needed. Reserve a missing-fact gap for
+genuinely unavailable decisive information, limiting only the unsupported claim.
+This is not a numeric score, index measurement or private positioning data.
 
 A focused release refresh saves affected currencies and explicit gaps; it does
 not trigger a new full eight-currency investigation. A broad invocation covers

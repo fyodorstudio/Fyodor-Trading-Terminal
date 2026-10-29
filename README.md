@@ -200,7 +200,10 @@ The left dock shows **Evidence age | CUR | VERDICT | Checkpoint**. Click
 **Fundamentals** to collapse or expand it; this preference persists. Evidence age
 uses the named source development, separately from Last Assessed; new saves do not
 redate old news. Verdict is standalone Strong/Moderate/Slight pressure. A focused
-refresh preserves other currencies; missing decisive evidence remains visible.
+refresh preserves other currencies; genuinely unavailable decisive facts remain
+visible. Research gives potential-impact verdicts without demanding certainty or
+realised flows, and compares same-direction currencies on the skill's shared scale.
+Known opposition is assessed, not returned to the user as Review needed.
 The static Jakarta **Last Assessed** timestamp marks the latest completed, saved
 live research pass. It is separate from evidence age: an unchanged supported view
 may retain an older significant source after fresh research. No new anchor or gap

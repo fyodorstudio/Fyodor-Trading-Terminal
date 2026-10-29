@@ -217,6 +217,9 @@ pair BUY/SELL or currency STRENGTHENING BIAS / WEAKENING BIAS, one causal
 sentence and the decisive actuals versus attributed expectations, with a direct
 source. Follow Assess Trade Now's direction rule, including qualitative STRONG
 BUY/SELL only when supported; no MIXED/neutral fallback or invented probability.
+The task is the verified release's potential currency impact and intensity, not
+proof of realised flows or an execution-ready entry. Missing live pricing or known
+opposition does not justify withholding that impact or returning Review needed.
 Apply Assess Trade Now's catalyst-dominance rule;
 routine counterevidence does not automatically
 weaken the verdict. Briefly identify a material unresolved fact when necessary.

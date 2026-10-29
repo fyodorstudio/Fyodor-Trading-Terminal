@@ -14,12 +14,20 @@ material opposition. Never populate a broad currency verdict from a single USD l
 Compare both sides and check material cross-specific hazards; a same-direction
 pair requires comparing pressure over fresh overlapping horizons.
 
+The first task is simple: verified event → potential currency impact and intensity
+→ economic reason. The user performs technical execution. A potential-impact
+verdict does not require realised buying/selling, a live curve, agreement among
+forecasters or proof of a profitable entry. Keep event impact and the combined
+currency view distinct when their directions or horizons differ.
+
 Weigh causal importance rather than counting releases. An inconclusive new
 release need not erase a supported mechanism; missing new news is not itself a
 reason to stay flat. Do not preserve a prior verdict automatically, force the
 opposite call or use neutral/mixed language to avoid judgment when evidence
-supports direction. A genuinely decisive unresolved fact is an explicit gap;
-withdraw the unsupported fresh claim rather than inventing direction.
+supports direction. Resolve known competing mechanisms into the best supported
+potential verdict; do not treat the work of weighing them as an information gap.
+Only a genuinely unverified decisive fact justifies withholding the claim that
+depends on it. State supported impacts from the verified evidence in the meantime.
 
 For a release separate incremental information from the overall currency/pair
 bias and the user's execution decision. Keep surveys, official guidance and
@@ -40,8 +48,10 @@ attributed expectations, and the dominant pressure over the assessment's stated
 horizon. They can differ. Explain why the chosen mechanism outweighs the strongest
 verified opposition now; an old tightening story or a smaller intensity label is
 not sufficient justification for retaining a direction after contrary guidance.
-Change direction when the opposite mechanism dominates. If the balance depends on
-an unresolved decisive fact, save a gap rather than a new unsupported direction.
+Change direction when the opposite mechanism dominates. Ordinary opposition
+belongs in the reason and may change intensity; it does not require unanimity or
+a "Review needed" result. If an essential actual or remark is genuinely unknown,
+identify it precisely and limit only the unsupported claim.
 An in-line release need not invalidate an independently supported continuing thesis.
 
 When available, use time-attributed futures/OIS and policy-sensitive yields to
@@ -51,6 +61,8 @@ disclose it; neither FX movement nor one yield supplies a mechanical verdict.
 This check requires no candles and does not make live pricing a prerequisite for
 a sourced fundamental interpretation. Compare like-for-like definitions and
 capture times; different report snapshots do not establish measured repricing.
+Read material contrary path/pricing reporting before announcing an upgrade, rather
+than announcing the favourable forecast first and reconciling it afterwards.
 
 Treat statement, opening remarks and Q&A as successive information sets. Deliver
 the supported first stage promptly, then check available decisive later guidance

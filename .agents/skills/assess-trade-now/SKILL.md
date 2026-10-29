@@ -12,6 +12,14 @@ A named currency/pair, research period or narrower request overrides that defaul
 A supplied chart does not require candles; fetch prices/technical levels only on
 an explicit price-aware request. No trades, broker changes or automatic monitoring.
 
+The requested product is a potential-impact verdict: **event/development → currency
+potentially strengthens or weakens → Strong/Moderate/Slight → causal reason**.
+Research and give that verdict without requiring proof of realised FX demand,
+certainty, live pricing or an execution-ready trade. State material opposition
+briefly. Ordinary uncertainty and conflicting mechanisms are part of assessment,
+not reasons to return the work to the user as "Review needed". Use the shared
+scale to distinguish same-direction currencies, not just label each in isolation.
+
 The user primarily watches the left **Fundamentals** panel. Updating that saved
 view is part of an authorized live assessment: chat and bottom-Thesis detail alone
 are insufficient. It projects the Thesis ledger; never author a second verdict
@@ -38,6 +46,9 @@ after saving. Read-only/no-save instructions still win.
    USD includes Treasury auctions, buyback announcements/windows/results and relevant
    Fed/NYFed operations. Official schedules, actuals and dated reporting outrank a
    flawed or empty broker calendar. Open decisive bodies and seek contrary evidence.
+   Fresh news challenges saved views; never filter discovery through the old verdict.
+   Include the brief [opportunity sweep](references/opportunity-discovery.md), with
+   exceptional clearly supported candidates outside FX unless explicitly excluded.
 4. Distinguish attributed expectations from actuals and subsequent guidance. Explain
    the dominant surprise or continuing mechanism, material offsets and beneficiaries.
    One release package is not several independent votes. An expected hike/hold/cut
@@ -46,14 +57,19 @@ after saving. Read-only/no-save instructions still win.
    distinguish the policy backdrop, incremental release effect and pressure over
    the chosen horizon. Rejustify the direction against new contrary evidence;
    lowering intensity alone does not establish that the old direction survives.
+   State the event's potential impact separately when the overall backdrop differs.
+   Compare same-direction currencies over an overlapping horizon before completing
+   a broad assessment or requested cross review; explain the stronger mechanism.
 5. Give the supported current decision promptly once the decisive facts are checked.
    Do not delay an imminent release verdict for bookkeeping or unrelated currencies.
    A focused release updates affected mechanisms; it does not require a full eight-
-   currency investigation. Missing decisive evidence is an explicit gap, not a
-   forced fresh verdict. Check exceptional contrary news before carrying a view.
+   currency investigation. Give supported potential impacts even when part of the
+   package remains unavailable; identify the exact unverified claim separately.
+   Conflicting known evidence, absent live OIS or lack of certainty are not missing
+   facts. Check exceptional contrary news before carrying a view.
    A first verdict is stage-specific. Resolve material subsequent guidance/Q&A
    available during the turn before calling the review complete; bound access
-   failures and leave an explicit gap when a decisive stage cannot be verified.
+   failures and leave an explicit gap only for a genuinely unverified decisive fact.
 6. Save findings once and assessments separately when authorized. Requested Thesis
    research authorizes its save; live assessments/release invocations have standing
    permission to refresh an existing live summary. Record original publication/event
@@ -123,6 +139,9 @@ No recurring monitor or automatic AI invocation follows.
 Lead with a material imminent/just-elapsed stage and the dated current decision:
 BUY/SELL for a researched pair, or standalone pressure for a currency. State horizon,
 dominant mechanism, strongest opposition, concrete invalidation and next checkpoint.
+For event questions, the core answer can be one sentence: "[Verified development]
+potentially gives [currency] [Strong/Moderate/Slight strengthening/weakening]
+pressure because [channel]." Expand only for material qualifications/comparisons.
 For a comparable prior judgment say retained, strengthened, weakened or reversed;
 a change of comparison basis is a new baseline, not a guessed market reversal.
 

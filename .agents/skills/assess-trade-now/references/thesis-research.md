@@ -21,9 +21,12 @@ do not reproduce those schemas or a giant copied prompt here.
    Keep still-active evidence before the interval in `background_keys`, not repeated
    as today's news. Do not claim a later interpretation was made at event time.
 5. Save a broad or focused assessment: standalone qualitative pressure, dominant
-   remaining reason, material offsets, horizon and next relevant checkpoint. Facts
-   may be saved even without a direction. A decisive gap may be saved without a
-   fresh verdict; it must remain visible rather than refreshing the old clock.
+   remaining reason, material offsets, horizon and next relevant checkpoint. Record
+   each material directional event's potential strengthening/weakening impact and
+   intensity in its implication. Give a researched potential verdict despite
+   ordinary uncertainty or known opposition. Findings alone and a missing-fact
+   gap remain available for genuinely unverified decisive information, not as a
+   substitute for completing the requested judgment.
 6. Append through `thesis research-append`, then read back the range and live summary.
    Explain retained/changed pressure and any unresolved intervals/access gaps.
 
@@ -33,6 +36,9 @@ Start from each requested currency's last completed coverage, unresolved gaps,
 active evidence and elapsed/next checkpoint. The header's latest time is not a
 coverage cutoff for an unresearched row. Reuse loaded instructions and focused
 saved context; do not repeatedly read whole ledgers, manuals or source inventories.
+Use focused currency/date fields from range responses rather than dumping complete
+ledgers or repeatedly serializing unchanged history. Reuse existing fetch/save/
+validator tooling; do not author bespoke audit scripts for each routine refresh.
 
 Check fresh dated news and source/calendar changes across the requested scope,
 including contrary and off-calendar developments. A broad refresh still assesses
@@ -41,6 +47,9 @@ on new facts, changed expectations, missing periods and challenged mechanisms.
 Unchanged official foundations can remain dated background; neither a reread nor
 an empty broker calendar establishes that nothing changed. Widen research when
 coverage is stale/incomplete, material contradictions emerge or the user requests it.
+If a pass runs long, make a focused final check for material news arriving since
+the initial sweep. Resolve relevant new facts before retaining a verdict, without
+restarting unchanged background research or claiming continuous monitoring.
 
 Use known direct routes first, batch independent retrievals and read a shared
 release once. Apply it separately to each affected currency; syndications and
@@ -55,6 +64,12 @@ justifies more research. Deliver a supported stage-specific decision promptly;
 continue remaining requested coverage, the save and left-panel verification in the
 same turn. Do not label that early decision a completed broad assessment. Once
 those checks pass, finish without repeating them absent a new failure or change.
+One read-back of the saved range and summary plus one frontend-validator check
+through either running summary route is sufficient in an unchanged runtime.
+Additional endpoint comparisons, full suites, builds or service restarts need a
+specific failure or implementation change. When diagnosing slow work, distinguish
+available retrieval, first-verdict and save/verification times; do not invent a
+latency breakdown or impose a speed target that skips decisive/contrary evidence.
 
 ## Left-panel freshness audit
 
@@ -91,7 +106,10 @@ assessment, not the age of the research. After checking the intervening period,
 an unchanged supported thesis may have a fresh assessment and an older anchor.
 Do not manufacture a newer anchor, rewrite publication dates, force direction or
 mark Review needed solely because no newer significant event exists. Use Review
-needed for an actual decisive gap or unresolved review. The timeline retains all
+needed only for a genuinely unavailable decisive fact, naming what is missing and
+which claim depends on it. Known conflicting mechanisms, missing live OIS, routine
+opposition or failure to choose a grade do not qualify. Resolve those during the
+invocation and save the supported potential verdict. The timeline retains all
 supporting/contrary dates; polling, saves and retrievals never make old news new.
 
 A full requested refresh checks all eight. A focused release refresh resolves the
@@ -100,7 +118,9 @@ starting unrelated investigations. Preserve unresearched rows and their clocks.
 A checkpoint is a review deadline, not a promise of direction until then; resolve
 elapsed stages before selecting a new verified stage. Shared global deadlines need
 a concrete channel for each affected currency. Date-only schedules get no invented
-hour or precise bell. Report unresolved decisive gaps as Review needed.
+hour or precise bell. A missing schedule hour limits timer precision; it does not
+prevent a potential-impact verdict. Never use Review needed as the normal result
+of a user asking the agent to review known evidence.
 
 Keep live and historical information sets separate. A historical period uses
 labelled reconstruction and cannot replace live verdicts. Future days stay unfilled.

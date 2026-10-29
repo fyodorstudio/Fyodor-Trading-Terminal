@@ -32,6 +32,23 @@ in Thesis or deliver a supported current decision. Never mislabel an event's
 currency/instrument to satisfy a checklist. Relevant pins/reminders use the parent
 identity/preflight/read-back procedure; not every research finding needs a pin.
 
+## Exceptional opportunities outside FX
+
+Do not discard a clear fresh directional mechanism merely because it concerns
+an index, stock or another instrument outside the default FX/oil/gold universe.
+When encountered during the permitted news sweep, open the decisive source and
+briefly check material contrary developments. Surface a supported potential entry
+candidate with instrument identity, BUY/SELL, why now, horizon and invalidation.
+Do not wait for a demonstrated price move or proof of investor flows. If activation
+is still conditional, name it. Respect explicit scope-only instructions.
+
+This is selective discovery, not a new exhaustive equity/asset scan. Keep the main
+assessment prompt; a secondary candidate must not hold up its supported verdict.
+Verify the exchange/provider and instrument/session before an instrument-specific
+entry claim. Current ledger instrument routing supports BRENT/WTI/GOLD only;
+other candidates can be sourced chat output. Do not invent a currency impact or
+unsupported storage identifier to force them into Thesis or extend execution rights.
+
 ## Test the current market regime
 
 During risk aversion, investigate whether USD, JPY or CHF actually benefits and
@@ -100,7 +117,9 @@ multi-session price measurement routes to Review Historical Research.
 When price persistently contradicts the thesis over the requested horizon,
 immediately investigate updated policy pricing, counterpart developments,
 trading-partner news, liquidity and risk conditions. Explicitly decide whether
-the thesis is retained, reversed or withdrawn for a decisive unresolved fact.
+the thesis is retained or reversed on the verified facts. Withhold only a claim
+whose decisive fact is genuinely unavailable, not potential impacts already
+supported by the evidence.
 Do not dismiss the contradiction as noise, profit-taking or short covering
 without evidence. Keep the observed move separate from its proposed explanation;
 price feedback challenges a stale thesis without proving an unseen cause.

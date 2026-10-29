@@ -9,6 +9,8 @@ Do not manufacture an entry to satisfy a format or the user's existing position.
 
 With no symbol or narrower task, `$assess-trade-now` means: find the strongest
 supported opportunities now among the eight currencies and eligible commodities.
+Also surface exceptional outside-universe candidates discovered incidentally
+under [opportunity discovery](opportunity-discovery.md#exceptional-opportunities-outside-fx).
 Use a brief catalyst sweep, then investigate material candidates and their real
 alternatives. Default to the current trading session; when closed, distinguish
 the next tradable session and reopening/gap risk from current execution. Verify
@@ -21,7 +23,11 @@ current relevance of their mechanism, not invented return estimates or scores.
 Say which markets received focused comparison. A brief sweep does not prove a
 market-wide winner. A named pair remains the main task; explicit scope-only,
 fundamental-only, no-candles, read-only and prompt-only overrides take precedence.
-Apply [standalone fundamentals](standalone-fundamentals.md), including comparable Strong / Moderate / Slight pressure and explicit evidence dates. Thesis stores currency developments and assessments; pair comparisons are optional chat output.
+Apply [standalone fundamentals](standalone-fundamentals.md), including comparable
+Strong / Moderate / Slight pressure and explicit evidence dates. Complete relevant
+same-direction comparisons; equal grades alone are not a completed cross review.
+Thesis stores currency developments and assessments; cross explanations stay in
+chat/reasons without recreating deleted pair journals.
 
 ## Manual technical workflow
 
