@@ -1694,6 +1694,150 @@
       "revision_note": "",
       "id": "fa34e1679a5947b19c45f0db2816f171",
       "saved_utc": "2026-10-29T08:06:23.010144Z"
+    },
+    {
+      "key": "gbp-20261029-september-money-credit",
+      "title": "UK household borrowing slows; stronger business lending offsets the downside",
+      "facts": "September net house-purchase mortgage approvals fell to 53,400 from revised August 54,800; remortgage approvals rose to 42,600 from 34,000. Net mortgage borrowing slowed to GBP3.9bn from revised GBP4.2bn, below the prior six-month GBP4.9bn average. Net consumer credit fell to GBP1.9bn from revised GBP2.7bn, slightly below the prior six-month GBP2.1bn average. Mortgage borrowing and consumer credit were below broker forecasts GBP5.363bn and GBP2.368bn; approvals exceeded the broker forecast 50.828k but were slightly below the separately attributed web survey 54.00k. Do not call approvals an unqualified surprise miss. New mortgage effective rates rose to 4.63% from 4.60%. Offsetting household softness, non-financial business bank borrowing rose to GBP9.3bn from GBP4.7bn, M4Lex net flow rose to GBP17.0bn from GBP9.9bn and PNFC bank loans to GBP10.6bn from GBP6.4bn. PNFC total net finance nevertheless slowed to GBP3.1bn from GBP8.5bn after redemptions/buybacks. M4ex money net flow slowed to GBP3.9bn from GBP16.9bn. Levels, net flows and annual growth are distinct; this is one release package, not independent votes. September observations predate the October 28 budget and do not measure its effect.",
+      "published_on": "2026-10-29",
+      "published_at": null,
+      "event_at": "2026-10-29T09:30:00Z",
+      "timing_note": "Official release title and broker schedule identify 09:30 UTC (4:30 PM Jakarta). Actual publication minute was not observed; direct official body first verified 09:31:02.825257 UTC, after the 09:30:13 placeholder. Publication date is confirmed; no first-publication instant invented.",
+      "verified_utc": "2026-10-29T09:34:01.321171Z",
+      "sources": [
+        {
+          "kind": "web",
+          "label": "BoE September 2026 Money and Credit, published October 29",
+          "locator": "https://www.bankofengland.co.uk/statistics/money-and-credit/2026/september-2026",
+          "note": "Direct official body first verified at 09:31:02.825257 UTC after the 09:30:13 direct fetch still returned the placeholder. Web extraction remained cached at the pre-release notice; the direct official body contains the September actuals and revised August comparisons. Rounded official figures retained. Snapshot: C:\\dev\\Fyodor Trading Terminal Lite\\Market Analyst Workflow\\report\\boe-20261029-0930\\boe-0931.json"
+        },
+        {
+          "kind": "web",
+          "label": "MT5 mortgage-approval forecast, separate from web survey",
+          "locator": "https://www.metatrader.com/en/economic-calendar/united-kingdom/boe-mortgage-approvals",
+          "note": "Pre-release calendar forecast 50.828k; not the web survey. Local Pepperstone and Elev8 rows agreed on that forecast; captured before this release."
+        },
+        {
+          "kind": "web",
+          "label": "Investing.com attributed mortgage-approval survey",
+          "locator": "https://www.investing.com/economic-calendar/mortgage-approvals-211",
+          "note": "Pre-release September forecast 54.00k; no actual in the observed page. Not interchangeable with the broker model forecast."
+        }
+      ],
+      "impacts": [
+        {
+          "currency": "GBP",
+          "implication": "Slight potential weakening: slower household borrowing, lower house-purchase approvals and higher new mortgage rates point to demand restraint and less incremental need for BoE tightening. Stronger business bank lending, higher M4Lex flow and annual consumer-credit growth of 9.8% are material opposition, limiting the grade. No claim of realised FX flows or an announced policy-path change.",
+          "thesis_effect": "Reverse the previously narrow slight-strengthening session assessment to slight potential weakening. The new household-demand evidence reinforces the existing downgraded growth/labour/fiscal headwinds; budget credibility and inflation support remain offsets rather than an unavailable-evidence gap."
+        }
+      ],
+      "instruments": [],
+      "instrument_note": "",
+      "commodity_implication": "",
+      "commodity_thesis_effect": "",
+      "references": [],
+      "expected_version": null,
+      "revision_note": "",
+      "id": "65cfebd2237f4fa8b3b5d649735430a2",
+      "saved_utc": "2026-10-29T09:34:03.056531Z"
+    },
+    {
+      "key": "gbp-20261021-underlying-inflation-background",
+      "title": "September core and services inflation rise: active UK policy-persistence background",
+      "facts": "ONS October 21 release reports September headline CPI 3.5% y/y versus 3.1% in August, core CPI 2.8% versus 2.6%, and CPI services 3.7% versus 3.4%. Core CPIH 3.1% and CPIH services 3.9% are different measures and are not substituted. Fuel was the largest upward headline contribution; restaurants/hotels partially offset it. The rise in underlying/core and services inflation matters alongside energy and wage/price propagation in the BoE reaction framework. These are original October 21 observations that were available before the October 29 credit call, not newly released facts, evidence of new October 29 rate repricing or a guaranteed future hike.",
+      "published_on": "2026-10-21",
+      "published_at": null,
+      "event_at": null,
+      "timing_note": "Official October 21 publication date; exact release hour not reverified. Preserve the original date rather than dating this background to its October 29 research correction.",
+      "verified_utc": "2026-10-29T10:24:29.067362Z",
+      "sources": [
+        {
+          "kind": "web",
+          "label": "ONS September CPI, originally released October 21",
+          "locator": "https://www.ons.gov.uk/economy/inflationandpriceindices/bulletins/consumerpriceinflation/september2026",
+          "note": "Original body reopened during this correction. Core CPI 2.8% versus 2.6%; CPI services 3.7% versus 3.4%. Available before the earlier weakening call; neither new October 29 news nor CPIH measures."
+        }
+      ],
+      "impacts": [
+        {
+          "currency": "GBP",
+          "implication": "Supports potential GBP strengthening through the continuing inflation-persistence and restrictive-policy channel; CPI itself is not a fresh October 29 surprise. Demand restraint, already-anticipated policy and fiscal/energy risks limit intensity.",
+          "thesis_effect": "Add omitted explicit core/services background and use it to assess whether secondary credit information actually overturns the policy mechanism. It helps restore a slight potential strengthening session view, not a retroactive forecast made at the October 21 release."
+        }
+      ],
+      "instruments": [],
+      "instrument_note": "",
+      "commodity_implication": "",
+      "commodity_thesis_effect": "",
+      "references": [],
+      "expected_version": null,
+      "revision_note": "",
+      "id": "03203e7e5e6a486c8e29f98a212d2183",
+      "saved_utc": "2026-10-29T10:24:33.305549Z"
+    },
+    {
+      "key": "gbp-20261029-september-money-credit",
+      "title": "UK household borrowing slows; stronger business lending offsets the downside",
+      "facts": "September net house-purchase mortgage approvals fell to 53,400 from revised August 54,800; remortgage approvals rose to 42,600 from 34,000. Net mortgage borrowing slowed to GBP3.9bn from revised GBP4.2bn, below the prior six-month GBP4.9bn average. Net consumer credit fell to GBP1.9bn from revised GBP2.7bn, slightly below the prior six-month GBP2.1bn average. Mortgage borrowing and consumer credit were below broker forecasts GBP5.363bn and GBP2.368bn; approvals exceeded the broker forecast 50.828k but were slightly below the separately attributed web survey 54.00k. Do not call approvals an unqualified surprise miss. New mortgage effective rates rose to 4.63% from 4.60%. Offsetting household softness, non-financial business bank borrowing rose to GBP9.3bn from GBP4.7bn, M4Lex net flow rose to GBP17.0bn from GBP9.9bn and PNFC bank loans to GBP10.6bn from GBP6.4bn. PNFC total net finance nevertheless slowed to GBP3.1bn from GBP8.5bn after redemptions/buybacks. M4ex money net flow slowed to GBP3.9bn from GBP16.9bn. Levels, net flows and annual growth are distinct; this is one release package, not independent votes. September observations predate the October 28 budget and do not measure its effect.",
+      "published_on": "2026-10-29",
+      "published_at": null,
+      "event_at": "2026-10-29T09:30:00Z",
+      "timing_note": "Official release title and broker schedule identify 09:30 UTC (4:30 PM Jakarta). Actual publication minute was not observed; direct official body first verified 09:31:02.825257 UTC, after the 09:30:13 placeholder. Publication date is confirmed; no first-publication instant invented.",
+      "verified_utc": "2026-10-29T10:24:29.067362Z",
+      "sources": [
+        {
+          "kind": "web",
+          "label": "BoE September 2026 Money and Credit, published October 29",
+          "locator": "https://www.bankofengland.co.uk/statistics/money-and-credit/2026/september-2026",
+          "note": "Direct official body first verified at 09:31:02.825257 UTC after the 09:30:13 direct fetch still returned the placeholder. Web extraction remained cached at the pre-release notice; the direct official body contains the September actuals and revised August comparisons. Rounded official figures retained. Snapshot: C:\\dev\\Fyodor Trading Terminal Lite\\Market Analyst Workflow\\report\\boe-20261029-0930\\boe-0931.json"
+        },
+        {
+          "kind": "web",
+          "label": "MT5 mortgage-approval forecast, separate from web survey",
+          "locator": "https://www.metatrader.com/en/economic-calendar/united-kingdom/boe-mortgage-approvals",
+          "note": "Pre-release calendar forecast 50.828k; not the web survey. Local Pepperstone and Elev8 rows agreed on that forecast; captured before this release."
+        },
+        {
+          "kind": "web",
+          "label": "Investing.com attributed mortgage-approval survey",
+          "locator": "https://www.investing.com/economic-calendar/mortgage-approvals-211",
+          "note": "Pre-release September forecast 54.00k; no actual in the observed page. Not interchangeable with the broker model forecast."
+        },
+        {
+          "kind": "web",
+          "label": "ONS September CPI, originally released October 21",
+          "locator": "https://www.ons.gov.uk/economy/inflationandpriceindices/bulletins/consumerpriceinflation/september2026",
+          "note": "Original body reopened during this correction. Core CPI 2.8% versus 2.6%; CPI services 3.7% versus 3.4%. Available before the earlier weakening call; neither new October 29 news nor CPIH measures."
+        },
+        {
+          "kind": "web",
+          "label": "BoE Lombardelli September 24: policy reaction framework",
+          "locator": "https://www.bankofengland.co.uk/speech/2026/september/clare-lombardelli-speech-at-the-sixth-biennial-conference-poland",
+          "note": "Official body read: medium-term persistence through domestic wages/prices, second-round effects and energy propagation. Demand is relevant but a credit-flow decline alone is not a policy-path revision."
+        },
+        {
+          "kind": "web",
+          "label": "BoE September 17 decision and full minutes",
+          "locator": "https://www.bankofengland.co.uk/monetary-policy-summary-and-minutes/2026/september-2026",
+          "note": "Official body read. 6-3 hold at 3.75%, three preferred a hike; upside inflation risks. Original September guidance and report-time pricing remain dated background, not fresh November probabilities."
+        }
+      ],
+      "impacts": [
+        {
+          "currency": "GBP",
+          "implication": "Household credit/approval softness contributes slight weakening pressure, but this secondary demand signal does not by itself establish a lower BoE path. Stronger business bank borrowing and aggregate lending oppose it. These are overlapping financing measures, not independent bullish votes; the GBP17bn M4Lex flow includes financial-sector borrowing and PNFC total net finance fell to GBP3.1bn amid redemptions/buybacks, so business-loan growth alone does not prove equivalent new final demand.",
+          "thesis_effect": "Correct the earlier reversal of the whole currency view. Preserve the limited negative household contribution within a slight potential GBP-strengthening assessment supported by underlying inflation/policy persistence and fiscal-rule continuity. No claim that business credit universally outranks household credit, or that any one component caused the observed rally."
+        }
+      ],
+      "instruments": [],
+      "instrument_note": "",
+      "commodity_implication": "",
+      "commodity_thesis_effect": "",
+      "references": [],
+      "expected_version": "65cfebd2237f4fa8b3b5d649735430a2",
+      "revision_note": "Interpretation correction after user challenged the weighting. Earlier work read household and business figures but did not establish their relative policy relevance or adequately carry explicit core/services inflation. Preserve original facts, source clocks and earlier version. This is not a new release or a market-price-derived grade.",
+      "id": "702f929a6de842f5a3a48cd68515b622",
+      "saved_utc": "2026-10-29T10:24:33.305549Z"
     }
   ],
   "runs": [
@@ -5364,6 +5508,388 @@
         "92d62d8244e243118fb3c196f3a6e611",
         "2902bdc9feaa449ba77f31d24da9199d",
         "fa34e1679a5947b19c45f0db2816f171"
+      ]
+    },
+    {
+      "as_of_utc": "2026-10-29T09:34:01.321171Z",
+      "period_start": "2026-10-28",
+      "period_end": "2026-10-29",
+      "currencies": [
+        "GBP"
+      ],
+      "assessments": [
+        {
+          "currency": "GBP",
+          "direction": {
+            "verdict": "POTENTIAL WEAKENING",
+            "reason": "REVERSED to slight potential weakening after the September money/credit release: softer household mortgage borrowing and consumer credit, falling house-purchase approvals and higher mortgage rates reinforce demand restraint alongside the existing downgraded growth and fiscal/labour headwinds. The approvals result beat the broker model forecast but slightly missed the web survey; the direction rests on the household package, not a mislabelled unanimous surprise. Stronger business borrowing/M4Lex lending, inflation and budget-credibility support oppose the downside and cap intensity. A broad improvement in domestic demand or materially more restrictive BoE guidance would invalidate the lean. These are potential impacts, not a reported new BoE policy decision or observed selling.",
+            "verified_utc": "2026-10-29T09:34:01.321171Z",
+            "sources": [
+              {
+                "kind": "web",
+                "label": "BoE September 2026 Money and Credit, published October 29",
+                "locator": "https://www.bankofengland.co.uk/statistics/money-and-credit/2026/september-2026",
+                "note": "Direct official body first verified at 09:31:02.825257 UTC after the 09:30:13 direct fetch still returned the placeholder. Web extraction remained cached at the pre-release notice; the direct official body contains the September actuals and revised August comparisons. Rounded official figures retained. Snapshot: C:\\dev\\Fyodor Trading Terminal Lite\\Market Analyst Workflow\\report\\boe-20261029-0930\\boe-0931.json"
+              },
+              {
+                "kind": "web",
+                "label": "MT5 mortgage-approval forecast, separate from web survey",
+                "locator": "https://www.metatrader.com/en/economic-calendar/united-kingdom/boe-mortgage-approvals",
+                "note": "Pre-release calendar forecast 50.828k; not the web survey. Local Pepperstone and Elev8 rows agreed on that forecast; captured before this release."
+              },
+              {
+                "kind": "web",
+                "label": "Investing.com attributed mortgage-approval survey",
+                "locator": "https://www.investing.com/economic-calendar/mortgage-approvals-211",
+                "note": "Pre-release September forecast 54.00k; no actual in the observed page. Not interchangeable with the broker model forecast."
+              },
+              {
+                "kind": "web",
+                "label": "J.P. Morgan Private Bank: delivered UK budget and fiscal confidence",
+                "locator": "https://privatebank.jpmorgan.com/eur/en/insights/markets-and-investing/uk-autumn-budget-new-hands-same-constraints",
+                "note": "October 28 institutional analysis, directly opened. Fiscal and market interpretation is attributed; publication hour unverified. Use the original OBR source for its exact forecast figures."
+              },
+              {
+                "kind": "web",
+                "label": "OBR October outlook",
+                "locator": "https://assets.publishing.service.gov.uk/media/6ae1f7b839d29f3f9b9b3f36/economic-and-fiscal-outlook-october-2026-web-accessible.pdf",
+                "note": ""
+              }
+            ],
+            "basis": "standalone",
+            "intensity": "slight",
+            "horizon": "Current session through the October 29, 7:30 PM Jakarta US GDP/PCE external rate/funding checkpoint; reassess sooner for significant UK guidance.",
+            "reassessment": {
+              "title": "US GDP/PCE: external rate and funding test for GBP",
+              "event_at": "2026-10-29T12:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-29T09:34:01.321171Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "BEA official release schedule, rechecked this invocation",
+                  "locator": "https://www.bea.gov/news/schedule",
+                  "note": ""
+                }
+              ],
+              "note": "October 29, 7:30 PM Jakarta. US growth and underlying inflation can change USD rate/funding support and GBP relative demand after this limited domestic credit impulse. This is an external transmission checkpoint, not a UK release. Material earlier UK guidance would warrant reassessment."
+            },
+            "reassessment_gap": ""
+          },
+          "evidence_keys": [
+            "gbp-20261028-obr-energy-and-fiscal-outlook",
+            "global-20261029-iran-diplomacy-versus-strike-risk",
+            "gbp-20261029-september-money-credit"
+          ],
+          "background_keys": [
+            "gbp-20261020-labour-background",
+            "gbp-20260917-boe-policy-background"
+          ],
+          "gap": "No fresh live OIS or realised FX flows were required or inferred. This focused release pass uses the previously verified active UK foundations and upcoming BoE November 5 review; it is not a new eight-currency assessment. Direct official actuals supersede the cached pre-release web-reader notice; broker observations may lag.",
+          "checkpoints": [
+            {
+              "title": "US GDP/PCE: external rate and funding test for GBP",
+              "event_at": "2026-10-29T12:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-29T09:34:01.321171Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "BEA official release schedule, rechecked this invocation",
+                  "locator": "https://www.bea.gov/news/schedule",
+                  "note": ""
+                }
+              ],
+              "note": "October 29, 7:30 PM Jakarta. US growth and underlying inflation can change USD rate/funding support and GBP relative demand after this limited domestic credit impulse. This is an external transmission checkpoint, not a UK release. Material earlier UK guidance would warrant reassessment."
+            },
+            {
+              "title": "BoE decision, votes and November Monetary Policy Report",
+              "event_at": "2026-11-05T12:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-28T23:36:43.149296Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "BoE November report: scheduled at noon UK time",
+                  "locator": "https://www.bankofengland.co.uk/monetary-policy-report/2026/november-2026",
+                  "note": "Future placeholder, not released results. November 5 is GMT: noon = 7:00 PM Jakarta."
+                }
+              ],
+              "note": "November 5, 7:00 PM Jakarta. Test policy support against energy-driven inflation, slack and fiscal restraint. Separate conference hour is unverified; intervening material news requires earlier review."
+            }
+          ]
+        }
+      ],
+      "provenance": "assessment",
+      "note": "Bounded BoE Money and Credit release review at user request. First official actuals observed 09:31:02.825257 UTC; prompt commentary verdict followed before bookkeeping. GBP potential impact and session assessment slight weakening, with full business-lending opposition and separately attributed forecasts. Other seven currency verdicts/clocks preserved. USD and EUR task here was checkpoint/alarm verification, not full currency reassessment: USD joint GDP/PCE 12:30 UTC already armed; earlier EUR EC surveys 10:00 UTC verified from the Commission annual schedule and explicitly armed on request; ECB 13:15 decision/13:45 conference retained armed. Two-minute offset/global settings and unrelated choices preserved. No candles, trades or code changes.",
+      "id": "3d21c0ed6a8e41ebbae7ec8dca0b5226",
+      "saved_utc": "2026-10-29T09:34:03.056531Z",
+      "evidence_versions": {
+        "GBP": [
+          "0041c41c654f4e4ab893d7c3c59908fe",
+          "0ca979a7624b40129ff619642e146441",
+          "65cfebd2237f4fa8b3b5d649735430a2",
+          "53495e0cc1734e938c6cb0585ee0cf8a",
+          "80370d89d5e845fdb22d42b00902cf66"
+        ]
+      },
+      "development_ids": [
+        "65cfebd2237f4fa8b3b5d649735430a2"
+      ]
+    },
+    {
+      "as_of_utc": "2026-10-29T09:35:44.336716Z",
+      "period_start": "2026-10-28",
+      "period_end": "2026-10-29",
+      "currencies": [
+        "GBP"
+      ],
+      "assessments": [
+        {
+          "currency": "GBP",
+          "direction": {
+            "verdict": "POTENTIAL WEAKENING",
+            "reason": "REVERSED to slight potential weakening after the September money/credit release: softer household mortgage borrowing and consumer credit, falling house-purchase approvals and higher mortgage rates reinforce demand restraint alongside the existing downgraded growth and fiscal/labour headwinds. The approvals result beat the broker model forecast but slightly missed the web survey; the direction rests on the household package, not a mislabelled unanimous surprise. Stronger business borrowing/M4Lex lending, inflation and budget-credibility support oppose the downside and cap intensity. A broad improvement in domestic demand or materially more restrictive BoE guidance would invalidate the lean. These are potential impacts, not a reported new BoE policy decision or observed selling.",
+            "verified_utc": "2026-10-29T09:35:44.336716Z",
+            "sources": [
+              {
+                "kind": "web",
+                "label": "BoE September 2026 Money and Credit, published October 29",
+                "locator": "https://www.bankofengland.co.uk/statistics/money-and-credit/2026/september-2026",
+                "note": "Direct official body first verified at 09:31:02.825257 UTC after the 09:30:13 direct fetch still returned the placeholder. Web extraction remained cached at the pre-release notice; the direct official body contains the September actuals and revised August comparisons. Rounded official figures retained. Snapshot: C:\\dev\\Fyodor Trading Terminal Lite\\Market Analyst Workflow\\report\\boe-20261029-0930\\boe-0931.json"
+              },
+              {
+                "kind": "web",
+                "label": "MT5 mortgage-approval forecast, separate from web survey",
+                "locator": "https://www.metatrader.com/en/economic-calendar/united-kingdom/boe-mortgage-approvals",
+                "note": "Pre-release calendar forecast 50.828k; not the web survey. Local Pepperstone and Elev8 rows agreed on that forecast; captured before this release."
+              },
+              {
+                "kind": "web",
+                "label": "Investing.com attributed mortgage-approval survey",
+                "locator": "https://www.investing.com/economic-calendar/mortgage-approvals-211",
+                "note": "Pre-release September forecast 54.00k; no actual in the observed page. Not interchangeable with the broker model forecast."
+              },
+              {
+                "kind": "web",
+                "label": "J.P. Morgan Private Bank: delivered UK budget and fiscal confidence",
+                "locator": "https://privatebank.jpmorgan.com/eur/en/insights/markets-and-investing/uk-autumn-budget-new-hands-same-constraints",
+                "note": "October 28 institutional analysis, directly opened. Fiscal and market interpretation is attributed; publication hour unverified. Use the original OBR source for its exact forecast figures."
+              },
+              {
+                "kind": "web",
+                "label": "OBR October outlook",
+                "locator": "https://assets.publishing.service.gov.uk/media/6ae1f7b839d29f3f9b9b3f36/economic-and-fiscal-outlook-october-2026-web-accessible.pdf",
+                "note": ""
+              }
+            ],
+            "basis": "standalone",
+            "intensity": "slight",
+            "horizon": "Current session through the October 29, 7:30 PM Jakarta US GDP/PCE external rate/funding checkpoint; reassess sooner for significant UK guidance.",
+            "reassessment": {
+              "title": "US GDP/PCE: external rate and funding test for GBP",
+              "event_at": "2026-10-29T12:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-29T09:34:01.321171Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "BEA official release schedule, rechecked this invocation",
+                  "locator": "https://www.bea.gov/news/schedule",
+                  "note": ""
+                }
+              ],
+              "note": "October 29, 7:30 PM Jakarta. US growth and underlying inflation can change USD rate/funding support and GBP relative demand after this limited domestic credit impulse. This is an external transmission checkpoint, not a UK release. Material earlier UK guidance would warrant reassessment."
+            },
+            "reassessment_gap": ""
+          },
+          "evidence_keys": [
+            "gbp-20261029-september-money-credit",
+            "gbp-20261028-obr-energy-and-fiscal-outlook",
+            "global-20261029-iran-diplomacy-versus-strike-risk"
+          ],
+          "background_keys": [
+            "gbp-20261020-labour-background",
+            "gbp-20260917-boe-policy-background"
+          ],
+          "gap": "No fresh live OIS or realised FX flows were required or inferred. This focused release pass uses the previously verified active UK foundations and upcoming BoE November 5 review; it is not a new eight-currency assessment. Direct official actuals supersede the cached pre-release web-reader notice; broker observations may lag.",
+          "checkpoints": [
+            {
+              "title": "US GDP/PCE: external rate and funding test for GBP",
+              "event_at": "2026-10-29T12:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-29T09:34:01.321171Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "BEA official release schedule, rechecked this invocation",
+                  "locator": "https://www.bea.gov/news/schedule",
+                  "note": ""
+                }
+              ],
+              "note": "October 29, 7:30 PM Jakarta. US growth and underlying inflation can change USD rate/funding support and GBP relative demand after this limited domestic credit impulse. This is an external transmission checkpoint, not a UK release. Material earlier UK guidance would warrant reassessment."
+            },
+            {
+              "title": "BoE decision, votes and November Monetary Policy Report",
+              "event_at": "2026-11-05T12:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-28T23:36:43.149296Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "BoE November report: scheduled at noon UK time",
+                  "locator": "https://www.bankofengland.co.uk/monetary-policy-report/2026/november-2026",
+                  "note": "Future placeholder, not released results. November 5 is GMT: noon = 7:00 PM Jakarta."
+                }
+              ],
+              "note": "November 5, 7:00 PM Jakarta. Test policy support against energy-driven inflation, slack and fiscal restraint. Separate conference hour is unverified; intervening material news requires earlier review."
+            }
+          ]
+        }
+      ],
+      "provenance": "assessment",
+      "note": "Focused completion correction to the immediately preceding GBP release assessment: prioritise the significant newly reviewed BoE release among same-date evidence keys so the left-panel date-only evidence anchor names it rather than the earlier date-only diplomacy background. Original publication hour remains unknown, release schedule remains 09:30 UTC, first actual verification remains 09:31:02 UTC. No new source fact, direction, intensity or other currency change; prior versions preserved. USD/EUR exact alarm selections and schedules verified in this invocation.",
+      "id": "0251b80f0ea44d8b96c4bff60b89c90d",
+      "saved_utc": "2026-10-29T09:35:47.308574Z",
+      "evidence_versions": {
+        "GBP": [
+          "65cfebd2237f4fa8b3b5d649735430a2",
+          "0041c41c654f4e4ab893d7c3c59908fe",
+          "0ca979a7624b40129ff619642e146441",
+          "53495e0cc1734e938c6cb0585ee0cf8a",
+          "80370d89d5e845fdb22d42b00902cf66"
+        ]
+      },
+      "development_ids": []
+    },
+    {
+      "as_of_utc": "2026-10-29T10:24:29.067362Z",
+      "period_start": "2026-10-28",
+      "period_end": "2026-10-29",
+      "currencies": [
+        "GBP"
+      ],
+      "assessments": [
+        {
+          "currency": "GBP",
+          "direction": {
+            "verdict": "POTENTIAL STRENGTHENING",
+            "reason": "CORRECTED the prior post-credit slight weakening interpretation to slight potential strengthening. Rising core CPI (2.8% from 2.6%) and services CPI (3.7% from 3.4%), together with the BoE stated focus on persistent domestic wage/price effects and upside inflation risks, preserve the active policy-support mechanism. Delivered fiscal-rule continuity provides modest additional support. Household credit softness is a secondary demand offset and did not establish that this policy mechanism was overturned; stronger business/aggregate lending also opposes a one-sided demand-collapse reading, without proving final spending or observed FX demand. Weak growth, fiscal/energy exposure and already-anticipated tightening constrain the grade. The CPI was released October 21 and was available before my earlier call; this is a research/weighting correction, not new October 29 inflation news or evidence of a new market reversal. Invalidation: convincingly easing domestic inflation persistence, materially more patient BoE guidance or renewed UK financing stress.",
+            "verified_utc": "2026-10-29T10:24:29.067362Z",
+            "sources": [
+              {
+                "kind": "web",
+                "label": "ONS September CPI, originally released October 21",
+                "locator": "https://www.ons.gov.uk/economy/inflationandpriceindices/bulletins/consumerpriceinflation/september2026",
+                "note": "Original body reopened during this correction. Core CPI 2.8% versus 2.6%; CPI services 3.7% versus 3.4%. Available before the earlier weakening call; neither new October 29 news nor CPIH measures."
+              },
+              {
+                "kind": "web",
+                "label": "BoE Lombardelli September 24: policy reaction framework",
+                "locator": "https://www.bankofengland.co.uk/speech/2026/september/clare-lombardelli-speech-at-the-sixth-biennial-conference-poland",
+                "note": "Official body read: medium-term persistence through domestic wages/prices, second-round effects and energy propagation. Demand is relevant but a credit-flow decline alone is not a policy-path revision."
+              },
+              {
+                "kind": "web",
+                "label": "BoE September 17 decision and full minutes",
+                "locator": "https://www.bankofengland.co.uk/monetary-policy-summary-and-minutes/2026/september-2026",
+                "note": "Official body read. 6-3 hold at 3.75%, three preferred a hike; upside inflation risks. Original September guidance and report-time pricing remain dated background, not fresh November probabilities."
+              },
+              {
+                "kind": "web",
+                "label": "J.P. Morgan October 28 budget assessment, reopened",
+                "locator": "https://privatebank.jpmorgan.com/eur/en/insights/markets-and-investing/uk-autumn-budget-new-hands-same-constraints",
+                "note": "Dated institutional analysis: fiscal restraint met expectations, modest sterling support, limited growth stimulus and tightening expectations. Not proof of the later intraday rally cause or a new current OIS observation."
+              },
+              {
+                "kind": "web",
+                "label": "BoE September 2026 Money and Credit, published October 29",
+                "locator": "https://www.bankofengland.co.uk/statistics/money-and-credit/2026/september-2026",
+                "note": "Direct official body first verified at 09:31:02.825257 UTC after the 09:30:13 direct fetch still returned the placeholder. Web extraction remained cached at the pre-release notice; the direct official body contains the September actuals and revised August comparisons. Rounded official figures retained. Snapshot: C:\\dev\\Fyodor Trading Terminal Lite\\Market Analyst Workflow\\report\\boe-20261029-0930\\boe-0931.json"
+              }
+            ],
+            "basis": "standalone",
+            "intensity": "slight",
+            "horizon": "Current session through the existing October 29, 7:30 PM Jakarta US GDP/PCE external funding/policy checkpoint; material earlier UK news can warrant review.",
+            "reassessment": {
+              "title": "US GDP/PCE: external rate and funding test for GBP",
+              "event_at": "2026-10-29T12:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-29T09:34:01.321171Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "BEA official release schedule, rechecked this invocation",
+                  "locator": "https://www.bea.gov/news/schedule",
+                  "note": ""
+                }
+              ],
+              "note": "October 29, 7:30 PM Jakarta. US growth and underlying inflation can change USD rate/funding support and GBP relative demand after this limited domestic credit impulse. This is an external transmission checkpoint, not a UK release. Material earlier UK guidance would warrant reassessment."
+            },
+            "reassessment_gap": ""
+          },
+          "evidence_keys": [
+            "gbp-20261029-september-money-credit",
+            "gbp-20261028-obr-energy-and-fiscal-outlook",
+            "global-20261029-iran-diplomacy-versus-strike-risk"
+          ],
+          "background_keys": [
+            "gbp-20261021-underlying-inflation-background",
+            "gbp-20261020-labour-background",
+            "gbp-20260917-boe-policy-background"
+          ],
+          "gap": "No verified intraday reporting established the cause of the user-observed broad GBP rally. Accept the chart/user report as a challenge to the prior call, not proof that a particular credit series caused buying. No fresh seven-counterpart ranking, candles, live OIS requirement or inferred private flow. Supported potential verdict is given; this is not Review needed.",
+          "checkpoints": [
+            {
+              "title": "US GDP/PCE: external rate and funding test for GBP",
+              "event_at": "2026-10-29T12:30:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-29T09:34:01.321171Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "BEA official release schedule, rechecked this invocation",
+                  "locator": "https://www.bea.gov/news/schedule",
+                  "note": ""
+                }
+              ],
+              "note": "October 29, 7:30 PM Jakarta. US growth and underlying inflation can change USD rate/funding support and GBP relative demand after this limited domestic credit impulse. This is an external transmission checkpoint, not a UK release. Material earlier UK guidance would warrant reassessment."
+            },
+            {
+              "title": "BoE decision, votes and November Monetary Policy Report",
+              "event_at": "2026-11-05T12:00:00Z",
+              "event_date": null,
+              "verified_utc": "2026-10-28T23:36:43.149296Z",
+              "sources": [
+                {
+                  "kind": "web",
+                  "label": "BoE November report: scheduled at noon UK time",
+                  "locator": "https://www.bankofengland.co.uk/monetary-policy-report/2026/november-2026",
+                  "note": "Future placeholder, not released results. November 5 is GMT: noon = 7:00 PM Jakarta."
+                }
+              ],
+              "note": "November 5, 7:00 PM Jakarta. Test policy support against energy-driven inflation, slack and fiscal restraint. Separate conference hour is unverified; intervening material news requires earlier review."
+            }
+          ]
+        }
+      ],
+      "provenance": "assessment",
+      "note": "Focused GBP research-quality and weighting correction requested by the user. Opened original BoE policy framework/minutes, ONS September CPI body and full money/credit definitions, plus dated budget analysis. Correct the unsupported promotion of household-credit softness over the continuing inflation/policy mechanism. Add original-date October 21 core/services evidence and append an interpretation correction to the existing release. No claim that corporate credit always matters more or that the verified numbers explain the user-observed rally. First supported correction delivered before saving. Other seven rows/clocks, alarms and raw calendar preserved; no code changes or trades.",
+      "id": "7fa18cbac1064145b87bbdcec33b084c",
+      "saved_utc": "2026-10-29T10:24:33.306546Z",
+      "evidence_versions": {
+        "GBP": [
+          "702f929a6de842f5a3a48cd68515b622",
+          "0041c41c654f4e4ab893d7c3c59908fe",
+          "0ca979a7624b40129ff619642e146441",
+          "03203e7e5e6a486c8e29f98a212d2183",
+          "53495e0cc1734e938c6cb0585ee0cf8a",
+          "80370d89d5e845fdb22d42b00902cf66"
+        ]
+      },
+      "development_ids": [
+        "03203e7e5e6a486c8e29f98a212d2183",
+        "702f929a6de842f5a3a48cd68515b622"
       ]
     }
   ]
