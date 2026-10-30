@@ -58,9 +58,13 @@ on new facts, changed expectations, missing periods and challenged mechanisms.
 Unchanged official foundations can remain dated background; neither a reread nor
 an empty broker calendar establishes that nothing changed. Widen research when
 coverage is stale/incomplete, material contradictions emerge or the user requests it.
-If a pass runs long, make a focused final check for material news arriving since
-the initial sweep. Resolve relevant new facts before retaining a verdict, without
-restarting unchanged background research or claiming continuous monitoring.
+Before the final save/read-back, recheck the clock against the affected currencies'
+material checkpoints. If a stage elapsed during the pass, resolve its available
+actuals and subsequent guidance within the active bound, or record the exact gap;
+do not move the deadline to a later event merely to leave a future countdown.
+If a pass runs long, also check material news arriving since the initial sweep.
+Resolve relevant new facts before retaining a verdict, without restarting
+unchanged background research or claiming continuous monitoring.
 
 Use known direct routes first, batch independent retrievals and read a shared
 release once. Apply it separately to each affected currency; syndications and
@@ -137,6 +141,11 @@ a concrete channel for each affected currency. Date-only schedules get no invent
 hour or precise bell. A missing schedule hour limits timer precision; it does not
 prevent a potential-impact verdict. Never use Review needed as the normal result
 of a user asking the agent to review known evidence.
+An armed or fired Invoke reminder does not establish that its stage was researched
+and does not renew the verdict. Keep the earliest material pending stage as the
+review deadline even if a later event already has a bell; statement review cannot
+skip material conference/Q&A guidance. Reminder delivery and assessment completion
+are separate checks under [alert review](alert-review.md#significant-checkpoint-reminders).
 
 Keep live and historical information sets separate. A historical period uses
 labelled reconstruction and cannot replace live verdicts. Future days stay unfilled.

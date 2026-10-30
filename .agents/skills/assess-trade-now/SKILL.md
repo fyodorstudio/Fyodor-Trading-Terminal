@@ -20,11 +20,13 @@ briefly. Ordinary uncertainty and conflicting mechanisms are part of assessment,
 not reasons to return the work to the user as "Review needed". Use the shared
 scale to distinguish same-direction currencies, not just label each in isolation.
 
-The user primarily watches the left **Fundamentals** panel. Updating that saved
-view is part of an authorized live assessment: chat and bottom-Thesis detail alone
-are insufficient. It projects the Thesis ledger; never author a second verdict
-store. Read `pnpm analyst thesis summary --scope ALL` before researching and verify
-the affected rows through the [left-panel audit](references/thesis-research.md#left-panel-freshness-audit)
+The user primarily watches the left **Fundamentals** panel. A bare live invocation
+authorizes research and saving to Thesis, including refreshing **Evidence age | CUR |
+VERDICT | Checkpoint**, without a separate save/panel request or screenshots.
+Chat and bottom-Thesis detail alone are insufficient. The panel projects the Thesis
+ledger; never author a second verdict store. Read
+`pnpm analyst thesis summary --scope ALL` before researching and verify the affected
+rows through the [left-panel audit](references/thesis-research.md#left-panel-freshness-audit)
 after saving. Read-only/no-save instructions still win.
 
 ## Research procedure
@@ -126,6 +128,12 @@ Use direct official releases for facts and schedules, dated credible reporting a
 identified futures/OIS pricing for contemporaneous expectations. Keep provider,
 definition and capture-time differences separate; preserve raw observations.
 Unknown publication hours remain unknown. A source failure is not proof of no news.
+
+dpa-AFX is optional; Dow Jones Newswires is supplementary, including checkpoint
+discovery. Verify material schedules independently of newswire access and alarm
+state. Access to Reuters, Trading Economics or Mace News does not establish that
+every significant development has been discovered or its decisive body opened.
+
 Batch independent checks and reuse shared source bodies across currencies, while
 weighing each currency's transmission separately. Prefer known direct release
 routes. After a failed retrieval, normally try one suitable alternative and record
