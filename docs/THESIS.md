@@ -199,18 +199,24 @@ does that. Review needed is a missing-fact exception, not a completed judgment o
 known opposing evidence; see the research rules above.
 
 Checkpoint is reassess by, not promised direction until. It counts down, then
-shows Review due, retaining the chosen event and verdict. A precise unresolved gap
-shows Review needed; absent legacy schedules show Review not set. A source date
+shows Passed, retaining the chosen event and verdict. A precise unresolved gap
+shows Source gap; absent legacy schedules show a dash. A source date
 without an exact hour stays date-only. No alarm, polling clock or calendar navigation
 renews evidence, rolls a deadline forward or reverses a verdict. Live invocations
 resolve relevant elapsed stages and choose the next material checkpoint. Shared
 global deadlines need a specific mechanism for each affected currency.
-The verdict cell prominently labels an elapsed checkpoint, decisive gap or absent
-checkpoint as **Previous assessment**. A provisional call before its deadline
-shows **Provisional**. Original pressure, evidence and assessment clocks remain;
-these labels perform no research and never reverse a verdict. The reviewed-stage
+All eight rows fit the Fundamentals section without an internal vertical scroller;
+Market Watch uses the remaining dock height. The verdict stays compact. An asterisk
+with an accessible label and tooltip qualifies a provisional call, elapsed stage or
+specific source gap without repeated status headings. Original pressure, evidence
+and assessment clocks remain; presentation performs no research. The reviewed-stage
 note also appears in bottom Thesis and Markdown exports. A newer header from a
 focused pass cannot renew another row's checkpoint or imply conference completion.
+An invoked live refresh must do the substantive research and update affected rows,
+then verify the live projection. Do not clear markers by redating old evidence or
+moving an unresolved decisive stage into the future. A routine introduction or
+general conference is not automatically a decisive checkpoint for every currency;
+select stages that can materially change that currency's active mechanism.
 
 Reads: `/api/v1/theses/research?from=YYYY-MM-DD&to=YYYY-MM-DD` and
 `/api/v1/theses/summary` (UI proxy `/storage-api`). Range reads include older active evidence and bounded earlier assessment context. They

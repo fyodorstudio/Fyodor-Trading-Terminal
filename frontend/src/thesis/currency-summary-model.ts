@@ -23,10 +23,10 @@ export function validCurrencySummary(value: unknown): value is CurrencySummarySn
 
 // This changes presentation only. Elapsed time never changes the saved verdict.
 export function currencyAssessmentStatus(row: Pick<CurrencySummarySnapshot['rows'][number], 'reassessment' | 'reassessment_gap' | 'review_status' | 'stage_note'>, now: number) {
-  if (row.reassessment_gap.trim()) return { label: 'Previous assessment', detail: row.reassessment_gap }
+  if (row.reassessment_gap.trim()) return { label: 'Source gap', detail: row.reassessment_gap }
   const until = currencyUntil(row.reassessment, now)
-  if (!row.reassessment) return { label: 'Previous assessment', detail: 'No reassessment checkpoint is set.' }
-  if (until.due) return { label: 'Previous assessment', detail: `Checkpoint unresolved: ${row.reassessment.title}.` }
+  if (!row.reassessment) return { label: 'No checkpoint', detail: 'No research checkpoint is set.' }
+  if (until.due) return { label: 'Checkpoint passed', detail: `The saved call has not incorporated this stage: ${row.reassessment.title}.` }
   if (row.review_status === 'provisional') return { label: 'Provisional', detail: row.stage_note! }
   return null
 }
@@ -42,13 +42,13 @@ function validCheckpoint(item: CurrencyCheckpoint, cutoff: string | null) {
 }
 
 export function currencyUntil(checkpoint: CurrencyCheckpoint | null, now: number, reassessmentGap = '') {
-  if (!checkpoint) return reassessmentGap.trim() ? { label: 'Review needed', due: true } : { label: 'Review not set', due: false }
+  if (!checkpoint) return reassessmentGap.trim() ? { label: 'Source gap', due: true } : { label: '—', due: false }
   if (!checkpoint.event_at) {
     const due = thesisDay(new Date(now).toISOString()) >= checkpoint.event_date!
-    return { label: due ? 'Review due' : 'Hour unknown', due }
+    return { label: due ? 'Today · untimed' : 'Hour unknown', due }
   }
   const remaining = Date.parse(checkpoint.event_at) - now
-  if (remaining <= 0) return { label: 'Review due', due: true }
+  if (remaining <= 0) return { label: 'Passed', due: true }
   const minutes = Math.ceil(remaining / 60000), days = Math.floor(minutes / 1440), hours = Math.floor(minutes % 1440 / 60)
   const duration = days ? `${days}d ${hours}h` : hours ? `${hours}h ${minutes % 60}m` : `${minutes}m`
   return { label: duration, due: false }

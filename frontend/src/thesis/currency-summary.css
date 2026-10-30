@@ -1,4 +1,4 @@
-.currency-summary { min-height: 0; max-height: 45vh; overflow: auto; padding: 10px; border-top: 1px solid var(--border-strong); color: var(--text-strong); background: var(--surface-panel); font-size: 11px; }
+.currency-summary { min-height: min-content; padding: 10px; border-top: 1px solid var(--border-strong); color: var(--text-strong); background: var(--surface-panel); font-size: 11px; }
 .currency-summary h2 { margin: 0 0 6px; font-size: 12px; }
 .currency-summary h2 button { width: 100%; padding: 0; border: 0; background: transparent; color: var(--text-strong); font: inherit; font-weight: 700; text-align: left; cursor: pointer; }
 .currency-summary h2 button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
@@ -9,4 +9,4 @@
 .currency-summary th:nth-child(2) { width: 11%; }
 .currency-summary th:nth-child(3) { width: 34%; }
 .currency-summary .currency-review-due td:last-child { font-weight: 700; }
-.currency-assessment-status { display: block; margin-bottom: 2px; color: var(--text-strong); }
+.currency-assessment-marker { color: var(--text-strong); font-weight: 700; }

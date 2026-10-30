@@ -111,21 +111,22 @@ finally:
   assert.equal(validCurrencySummary(unsafe), false)
   assert.equal(validCurrencySummary({ ...snapshot, rows: snapshot.rows.map(() => snapshot.rows[0]) }), false)
   assert.equal(currencyUntil(checkpoint, now).label, '1d 23h')
-  assert.deepEqual(currencyUntil(null, now, 'Conference Q&A is unresolved.'), { label: 'Review needed', due: true })
-  assert.deepEqual(currencyUntil(null, now, ' '), { label: 'Review not set', due: false })
+  assert.deepEqual(currencyUntil(null, now, 'Conference Q&A is unresolved.'), { label: 'Source gap', due: true })
+  assert.deepEqual(currencyUntil(null, now, ' '), { label: '—', due: false })
   assert.equal(currencyUntil(checkpoint, now, 'A gap must not hide a saved deadline.').label, '1d 23h')
   const unknownHour = { ...checkpoint, event_at: null, event_date: '2026-10-28' }
   assert.equal(currencyUntil(unknownHour, now).due, false)
-  assert.match(currencyUntil(unknownHour, Date.parse('2026-10-27T17:00:00Z')).label, /Review due/)
-  assert.equal(currencyAssessmentStatus({...staged.rows[0],reassessment:unknownHour},Date.parse('2026-10-27T17:00:00Z')).label,'Previous assessment',
+  assert.match(currencyUntil(unknownHour, Date.parse('2026-10-27T17:00:00Z')).label, /Today · untimed/)
+  assert.equal(currencyAssessmentStatus({...staged.rows[0],reassessment:unknownHour},Date.parse('2026-10-27T17:00:00Z')).label,'Checkpoint passed',
     'Unknown hours become unresolved at the Jakarta date boundary without inventing a time')
   await React.act(async () => root.render(React.createElement(CurrencySummary)))
   assert.equal(container.querySelectorAll('[data-currency-summary]').length, 8)
+  assert.doesNotMatch(container.textContent, /Previous assessment|Review needed|Review due/i)
   assert.deepEqual([...container.querySelectorAll('thead th')].map(node => node.textContent), ['Evidence age','CUR','VERDICT','Checkpoint'])
   const usd = () => container.querySelector('[data-currency-summary="USD"]')
   assert.match(usd().textContent, /Moderate strengthening.*1d 23h/)
   assert.match(usd().querySelector('td:nth-of-type(2)').title, /Standalone fundamental pressure.*Current session/)
-  assert.match(container.querySelector('[data-currency-summary="EUR"]').textContent, /Needs reassessment.*Review not set/, 'Legacy relative labels are not silently graded as standalone')
+  assert.match(container.querySelector('[data-currency-summary="EUR"]').textContent, /Legacy view.*—/, 'Legacy relative labels are not silently graded as standalone')
   assert.equal(requests[0].url, '/storage-api/theses/summary', 'Independent of chart, monthly selector and bottom dock')
   assert.match(usd().querySelector('td').textContent, /3h 0m ago/)
   assert.match(usd().querySelector('td').title, /Fundamentals assessed.*Oct 26, 2026.*11:00 PM/)
@@ -149,31 +150,31 @@ finally:
   assert.equal(usd(), row, 'Unchanged polling retains rendered rows')
   assert.ok(requests.at(-1).url.includes('after_revision=one'))
   snapshot = { ...staged, revision:'statement-stage' }; await poll()
-  assert.match(usd().textContent,/ProvisionalModerate strengthening/)
+  assert.match(usd().textContent,/Moderate strengthening \*/)
   assert.match(usd().querySelector('td:nth-of-type(2)').title,/conference Q&A pending/)
   now = Date.parse(checkpoint.event_at)
   await React.act(async()=>[...intervals.values()][0].fn())
-  assert.match(usd().textContent,/Previous assessmentModerate strengthening.*Review due/,
-    'At the exact deadline the original call becomes visibly previous, without an automatic reversal')
+  assert.match(usd().textContent,/Moderate strengthening \*.*Passed/,
+    'At the deadline the marker and checkpoint qualify the unchanged verdict without a repeated status block')
   assert.equal(snapshot.rows[0].verified_utc,originalSnapshot.rows[0].verified_utc)
   now=Date.parse('2026-10-26T17:00:00Z')
   await React.act(async()=>[...intervals.values()][0].fn())
   snapshot = { ...originalSnapshot, revision:'resolved-stage', rows:originalSnapshot.rows.map(r=>r.currency==='USD'
     ? {...r,review_status:'complete',stage_note:'Conference and contrary path reporting reviewed.'} : r) }
   await poll()
-  assert.equal(usd().querySelector('.currency-assessment-status')?.textContent,undefined,'A completed fresh review clears the provisional label')
+  assert.equal(usd().querySelector('.currency-assessment-marker')?.textContent,undefined,'A completed fresh review clears the provisional label')
   snapshot = { ...snapshot, revision: 'gap', rows: snapshot.rows.map(row => row.currency === 'CAD'
     ? { ...row, evidence_anchor: { ...anchor, event_at: null, event_date: '2026-10-26' }, reassessment_gap: 'Conference Q&A is unresolved.' } : row) }
   await poll()
   const cad = container.querySelector('[data-currency-summary="CAD"]')
-  assert.match(cad.textContent, /~1d ago.*Moderate weakening.*Review needed/)
+  assert.match(cad.textContent, /~1d ago.*Moderate weakening \*.*Source gap/)
   assert.equal(cad.className, 'currency-review-due')
   assert.match(cad.querySelector('td').title, /Fundamentals assessed.*11:00 PM/)
   assert.match(cad.querySelector('td:last-child').title, /Conference Q&A is unresolved/)
   const beforeExpiryTick=requests.length
   now = Date.parse(checkpoint.event_at)
   await React.act(async () => [...intervals.values()][0].fn())
-  assert.match(usd().textContent, /Moderate strengthening.*Review due/, 'An elapsed checkpoint never reverses the verdict')
+  assert.match(usd().textContent, /Moderate strengthening \*.*Passed/, 'An elapsed checkpoint never reverses the verdict')
   assert.equal(usd().className, 'currency-review-due')
   assert.equal(requests.length, beforeExpiryTick, 'Countdown does not fetch or invoke research')
   snapshot = { ...snapshot, revision: 'two', as_of_utc: '2026-10-28T16:00:00Z', rows: snapshot.rows.map((row, index) => index ? row
@@ -190,8 +191,8 @@ finally:
     ? { ...row, basis: 'standalone', intensity: 'slight', horizon: 'Earlier unchanged assessment.', reassessment: checkpoint } : row) }
   await poll()
   assert.match(usd().textContent, /Slight weakening.*30m/)
-  assert.match(container.querySelector('[data-currency-summary="EUR"]').textContent, /Slight weakening.*Review due/, 'A different currency refresh must not invalidate the panel or renew an elapsed checkpoint')
-  assert.match(container.querySelector('[data-currency-summary="EUR"]').textContent,/Previous assessment/)
+  assert.match(container.querySelector('[data-currency-summary="EUR"]').textContent, /Slight weakening \*.*Passed/, 'A different currency refresh must not invalidate the panel or renew an elapsed checkpoint')
+  assert.equal(container.querySelector('[data-currency-summary="EUR"] .currency-assessment-marker').getAttribute('aria-label'),'Checkpoint passed')
   assert.equal(container.querySelector('[role="alert"]'), null)
   offline = true; await poll()
   assert.match(container.querySelector('[role="alert"]').textContent, /refresh failed.*last loaded snapshot/i)
@@ -203,10 +204,10 @@ finally:
   snapshot = gapSummary; await poll()
   assert.equal(container.querySelector('[role="alert"]'), null)
   assert.equal(container.querySelectorAll('[data-currency-summary]').length, 8, 'A pending research gap must not blank the entire panel')
-  assert.match(container.querySelector('[data-currency-summary="CHF"]').textContent, /Slight weakening.*Review needed/)
-  assert.match(container.querySelector('[data-currency-summary="CHF"]').textContent,/Previous assessment/,
+  assert.match(container.querySelector('[data-currency-summary="CHF"]').textContent, /Slight weakening \*.*Source gap/)
+  assert.equal(container.querySelector('[data-currency-summary="CHF"] .currency-assessment-marker').getAttribute('aria-label'),'Source gap',
     'New unassessed guidance cannot make the retained verdict look freshly endorsed')
-  assert.match(container.querySelector('[data-currency-summary="NZD"]').textContent, /Not assessed.*Review needed/)
+  assert.match(container.querySelector('[data-currency-summary="NZD"]').textContent, /Not assessed.*Source gap/)
   hold = true
   const [timerId, timer] = [...timers][0]; timers.delete(timerId)
   await React.act(async () => { void timer.fn() })

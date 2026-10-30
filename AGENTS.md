@@ -21,7 +21,12 @@ The left Fundamentals panel is the user's primary monitoring view. Authorized
 live research must save its affected assessments and verify the summary API
 against the frontend contract; a chat answer or ledger-save receipt alone does
 not establish a usable panel update. Follow the skill's left-panel audit and
-leave visual acceptance to the user.
+leave visual acceptance to the user. Each live invocation must complete the affected
+research and refresh these rows; a save receipt or renamed status is insufficient.
+Keep all eight Fundamentals rows visible without an internal vertical scroller or
+repeated status headings. Anchor checkpoints to material currency-specific stages,
+not every routine speaker. Future alarms remain high-impact-only, with one bell
+per release package and explicit off choices preserved.
 
 Market Watch, chart/drawings, raw calendar Inspector, upcoming Alert, Activity and
 Settings, including agent-authored fundamental research journals and an archive
