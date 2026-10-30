@@ -73,6 +73,15 @@ finally:
   assert.equal(gapSummary.rows.find(row => row.currency === 'CHF').evidence_anchor.event_at, '2026-07-22T09:00:00Z')
   assert.equal(gapSummary.rows.find(row => row.currency === 'NZD').evidence_anchor, null)
   assert.equal(validCurrencySummary(snapshot), true)
+  const focused = { ...structuredClone(snapshot), as_of_utc: '2026-10-29T12:36:00Z' }
+  Object.assign(focused.rows[7], { verified_utc: focused.as_of_utc, reassessment: { ...checkpoint, event_at: '2026-10-29T13:15:00Z' } })
+  assert.equal(validCurrencySummary(focused), true, 'A focused refresh preserves another currency\'s elapsed checkpoint')
+  const expiredAtAssessment = structuredClone(focused)
+  expiredAtAssessment.rows[0].verified_utc = focused.as_of_utc
+  assert.equal(validCurrencySummary(expiredAtAssessment), false, 'A freshly assessed row still needs a future checkpoint')
+  const dateOnlyFocused = structuredClone(focused)
+  dateOnlyFocused.rows[0].reassessment = { ...checkpoint, event_at: null, event_date: '2026-10-28' }
+  assert.equal(validCurrencySummary(dateOnlyFocused), true, 'Unresearched date-only deadlines also retain their original assessment clock')
   assert.equal(currencyStaleness(snapshot.rows[0].verified_utc, now), '1h 0m ago')
   assert.equal(currencyStaleness(null, now), 'Unknown')
   assert.equal(currencyStaleness('2026-10-26T16:00:00Z', Date.parse('2026-10-28T16:00:00Z')), '2d 0h ago')
@@ -148,6 +157,12 @@ finally:
   await poll()
   assert.match(usd().textContent, /2d 2h ago.*Slight weakening.*30m/, 'A fresh assessment never redates old evidence')
   assert.deepEqual(snapshot.rows[0].evidence_anchor, anchor, 'Supporting evidence keeps its original source time')
+  snapshot = { ...snapshot, revision: 'focused-refresh', as_of_utc: '2026-10-29T12:36:00Z', rows: snapshot.rows.map(row => row.currency === 'EUR'
+    ? { ...row, basis: 'standalone', intensity: 'slight', horizon: 'Earlier unchanged assessment.', reassessment: checkpoint } : row) }
+  await poll()
+  assert.match(usd().textContent, /Slight weakening.*30m/)
+  assert.match(container.querySelector('[data-currency-summary="EUR"]').textContent, /Slight weakening.*Review due/, 'A different currency refresh must not invalidate the panel or renew an elapsed checkpoint')
+  assert.equal(container.querySelector('[role="alert"]'), null)
   offline = true; await poll()
   assert.match(container.querySelector('[role="alert"]').textContent, /refresh failed.*last loaded snapshot/i)
   assert.match(usd().textContent, /weakening/)

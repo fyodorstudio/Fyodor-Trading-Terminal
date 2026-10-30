@@ -14,7 +14,7 @@ export function validCurrencySummary(value: unknown): value is CurrencySummarySn
     && Array.isArray(item.rows) && item.rows.length === 8 && item.rows.every((row, index) => row && row.currency === reviewCurrencies[index]
       && (row.verdict === null ? row.verified_utc === null && row.reassessment === null
         : item.review_id !== null && dailyVerdicts.includes(row.verdict) && instant(row.verified_utc))
-      && typeof row.reassessment_gap === 'string' && (row.reassessment === null || validCheckpoint(row.reassessment, item.as_of_utc)))
+      && typeof row.reassessment_gap === 'string' && (row.reassessment === null || validCheckpoint(row.reassessment, row.verified_utc)))
     && item.rows.every(row => row.basis == null ? row.intensity == null && !row.horizon : row.basis === 'standalone'
       && directionIntensities.includes(row.intensity!) && typeof row.horizon === 'string' && !!row.horizon.trim())
     && item.rows.every(row => row.evidence_anchor == null || row.verdict !== null && validDirectionAnchor(row.evidence_anchor, item.as_of_utc!, row.verified_utc!))
