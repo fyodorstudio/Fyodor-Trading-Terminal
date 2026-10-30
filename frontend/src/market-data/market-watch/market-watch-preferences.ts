@@ -1,11 +1,13 @@
-export const marketCategories = ['all', 'favourites', 'majors', 'minors', 'crosses', 'exotics', 'ndfs',
+export const marketCategories = ['all', 'favourites', 'majors', 'crosses', 'exotics',
   'metals', 'commodities', 'softs', 'indices', 'currency-indices', 'crypto', 'stocks', 'etfs', 'forwards', 'perps'] as const
 export type MarketCategory = typeof marketCategories[number]
+export type MarketSort = 'saved' | 'highest' | 'lowest' | 'biggest'
 
 export type MarketWatchPreferences = {
   favourites: string[]
   category: MarketCategory
   sections: FavouriteSection[]
+  sort: MarketSort
 }
 
 export type FavouriteSection = { id: string; name: string; symbols: string[] }
@@ -72,17 +74,19 @@ const initialFavourites = ['NZDCHF', 'EURUSD', 'EURAUD']
 export function readMarketWatchPreferences(): MarketWatchPreferences {
   try {
     const parsed = JSON.parse(window.localStorage.getItem(storageKey) ?? 'null') as Partial<MarketWatchPreferences> | null
-    const category = parsed?.category
+    const oldCategory = parsed?.category as string | undefined
+    const category = oldCategory === 'minors' ? 'crosses' : oldCategory === 'ndfs' ? 'exotics' : oldCategory
     const favourites = Array.isArray(parsed?.favourites)
       ? [...new Set(parsed.favourites.filter((symbol): symbol is string => typeof symbol === 'string' && symbol.trim().length > 0))]
       : [...initialFavourites]
     return {
       favourites,
-      category: category && marketCategories.includes(category) ? category : 'all',
+      category: category && marketCategories.includes(category as MarketCategory) ? category as MarketCategory : 'all',
       sections: normalizeSections(parsed?.sections, favourites),
+      sort: ['highest', 'lowest', 'biggest'].includes(parsed?.sort ?? '') ? parsed!.sort! : 'saved',
     }
   } catch {
-    return { favourites: [...initialFavourites], category: 'all', sections: normalizeSections(null, initialFavourites) }
+    return { favourites: [...initialFavourites], category: 'all', sections: normalizeSections(null, initialFavourites), sort: 'saved' }
   }
 }
 

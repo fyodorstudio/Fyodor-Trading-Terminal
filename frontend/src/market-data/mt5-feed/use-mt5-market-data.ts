@@ -2,10 +2,11 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { UTCTimestamp } from 'lightweight-charts'
 import { BridgeRequestError, bridgeRequest } from '../../system-connectivity/bridge-status/bridge-client'
 import { useActivityActions } from '../../system-observability/activity-log/use-activity-log'
-import { replaceRecentBars, retainSymbolQuotes } from './market-snapshots'
+import { replaceRecentBars } from './market-snapshots'
 import type { ChartTimeframe } from '../contracts/ChartTimeframe'
 import type { OhlcBar } from '../contracts/OhlcBar'
 import type { SymbolQuote } from '../contracts/SymbolQuote'
+import { useDailyMarketQuotes } from './use-daily-market-quotes'
 
 type MarketWatchResponse = {
   symbols: Array<{
@@ -82,9 +83,10 @@ export function useMt5MarketData(
   sourceGeneration: number,
   selectedSymbol: string,
   timeframe: ChartTimeframe,
+  brokerId: string | null = null,
 ): Mt5MarketData {
   const { appendActivity } = useActivityActions()
-  const [symbols, setSymbols] = useState<SymbolQuote[]>([])
+  const { symbols, updateQuotes } = useDailyMarketQuotes(connected, sourceGeneration, brokerId, selectedSymbol)
   const [bars, setBars] = useState<OhlcBar[]>([])
   const [marketWatchStatus, setMarketWatchStatus] = useState<FeedStatus>('waiting')
   const [chartStatus, setChartStatus] = useState<FeedStatus>('waiting')
@@ -123,10 +125,10 @@ export function useMt5MarketData(
           description: symbol.description,
           bid: symbol.bid,
           ask: symbol.ask,
-          dailyChange: symbol.daily_change,
+          dailyChange: null,
           precision: symbol.precision,
         }))
-        setSymbols(current => retainSymbolQuotes(current, nextSymbols))
+        updateQuotes(nextSymbols)
         setMarketGeneration(sourceGeneration)
         marketGenerationRef.current = sourceGeneration
         setMarketWatchStatus('live')
@@ -155,7 +157,7 @@ export function useMt5MarketData(
       controller?.abort()
       if (timer) window.clearTimeout(timer)
     }
-  }, [appendActivity, connected, sourceGeneration])
+  }, [appendActivity, connected, sourceGeneration, updateQuotes])
 
   const symbolsAreCurrent = connected && marketGeneration === sourceGeneration
   const currentSymbols = symbolsAreCurrent ? symbols : []

@@ -12,8 +12,8 @@ const previous = new Map(Object.keys(globals).map(key => [key, Object.getOwnProp
 for (const [key, value] of Object.entries(globals)) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value })
 const server = await createServer({ root: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'),
   server: { middlewareMode: true, hmr: false }, plugins: [{ name: 'market-watch-probe', enforce: 'pre',
-    transform(code, id) { if (id.endsWith('/MarketWatchPanel.tsx')) return code.replace('const positive = quote.dailyChange >= 0',
-      'globalThis.__marketWatchProbe.rows++; const positive = quote.dailyChange >= 0') } }] })
+    transform(code, id) { if (id.endsWith('/MarketWatchPanel.tsx')) return code.replace('const positive = quote.dailyChange != null',
+      'globalThis.__marketWatchProbe.rows++; const positive = quote.dailyChange != null') } }] })
 const { createRoot } = await import('react-dom/client')
 const host = document.createElement('div'); document.body.appendChild(host)
 const root = createRoot(host), selections = []
@@ -43,7 +43,7 @@ try {
     symbols: quotes, selectedSymbol: 'EURUSD', status: 'live', error: null, onSelect, ...overrides, key,
   })))
   await render()
-  assert.deepEqual(saved(), { favourites: ['NZDCHF', 'EURUSD', 'EURAUD'], category: 'all',
+  assert.deepEqual(saved(), { favourites: ['NZDCHF', 'EURUSD', 'EURAUD'], category: 'all', sort: 'saved',
     sections: [{ id: 'default', name: 'Favourites', symbols: ['NZDCHF', 'EURUSD', 'EURAUD'] }] }, 'The requested shortlist is saved on first mount')
   assert.equal(option('favourites').textContent, '★ Favourites (3)')
   assert.equal(star('EURUSD').getAttribute('aria-pressed'), 'true')
@@ -89,9 +89,10 @@ try {
   await click(star('EURUSD.a'))
   await category('favourites')
   assert.deepEqual(symbols(), ['EURUSD.a'])
-  const updated = quotes.map(quote => quote.symbol === 'EURUSD.a' ? { ...quote, bid: 1.23456 } : quote)
+  const updated = quotes.map(quote => quote.symbol === 'EURUSD.a' ? { ...quote, bid: 1.23456, dailyChange: 1.23 } : quote)
   await render({ symbols: updated })
-  assert.ok(row('EURUSD.a').textContent.includes('1.23456'), 'Favourite rows receive live quote corrections')
+  assert.ok(row('EURUSD.a').textContent.includes('+1.23%'), 'Favourite rows receive live daily-change corrections')
+  assert.ok(!row('EURUSD.a').textContent.includes('1.23456'), 'Raw Bid/Ask are omitted')
   const storedBeforeOutage = dom.localStorage.getItem(storageKey)
   await render({ symbols: [], status: 'waiting', error: 'Disconnected' })
   assert.equal(option('favourites').textContent, '★ Favourites (0)')
@@ -160,7 +161,7 @@ try {
   dom.localStorage.setItem(storageKey, '{broken')
   assert.deepEqual(readMarketWatchPreferences().favourites, ['NZDCHF', 'EURUSD', 'EURAUD'])
   dom.localStorage.setItem(storageKey, JSON.stringify({ favourites: ['EURUSD.a', 'EURUSD.a', null, 42, ''], category: 'invalid' }))
-  assert.deepEqual(readMarketWatchPreferences(), { favourites: ['EURUSD.a'], category: 'all',
+  assert.deepEqual(readMarketWatchPreferences(), { favourites: ['EURUSD.a'], category: 'all', sort: 'saved',
     sections: [{ id: 'default', name: 'Favourites', symbols: ['EURUSD.a'] }] }, 'Malformed preferences are validated without merging exact symbols')
   const storageDescriptor = Object.getOwnPropertyDescriptor(dom, 'localStorage')
   try {
@@ -177,7 +178,7 @@ try {
   for (const symbol of Object.values(catalog.groups).flat()) assert.notEqual(getSymbolCategory(symbol, catalog.server), 'all', symbol)
   const samples = { JPYX: 'currency-indices', EURX: 'currency-indices', USDX: 'currency-indices', JPN225: 'indices', AUS200: 'indices',
     XAUUSD: 'metals', SpotCrude: 'commodities', Coffee: 'softs', 'USDX-F': 'forwards', 'GOLD-PERP': 'perps',
-    NZDUSD: 'minors', USDIDR: 'ndfs', EURSGD: 'exotics', 'SPY.US': 'etfs', 'GAS.US': 'stocks', XAUTUSD: 'crypto' }
+    NZDUSD: 'majors', USDIDR: 'exotics', EURSGD: 'exotics', 'SPY.US': 'etfs', 'GAS.US': 'stocks', XAUTUSD: 'crypto' }
   for (const [symbol, expected] of Object.entries(samples)) assert.equal(getSymbolCategory(symbol, catalog.server), expected, symbol)
   assert.equal(getSymbolCategory('NZDUSD', 'OtherBroker'), 'majors', 'Broker folder overrides cannot leak across connections')
   assert.equal(getSymbolCategory('JPN225.pro'), 'indices', 'New suffixed symbols retain conservative fallback recognition')
@@ -188,11 +189,58 @@ try {
   assert.deepEqual(symbols(), ['JPYX', 'EURX', 'USDX'])
   assert.equal(option('currency-indices').textContent, 'Currency indices (3)')
   await category('etfs'); assert.deepEqual(symbols(), ['SPY.US'])
-  await category('ndfs'); assert.deepEqual(symbols(), ['USDIDR'])
-  await category('minors'); assert.deepEqual(symbols(), ['NZDUSD'])
-  await render({ symbols: [{ ...quotes[0], symbol: 'NZDUSD' }], brokerId: 'OtherBroker' }, 'broker-folders')
-  assert.deepEqual(symbols(), [], 'Changing brokers recomputes current category membership')
+  assert.equal(option('ndfs'), undefined)
+  assert.equal(option('minors'), undefined)
+  await category('exotics'); assert.deepEqual(symbols(), ['USDIDR', 'EURSGD'])
   await category('majors'); assert.deepEqual(symbols(), ['NZDUSD'])
+  await render({ symbols: [{ ...quotes[0], symbol: 'NZDUSD' }], brokerId: 'OtherBroker' }, 'broker-folders')
+  assert.deepEqual(symbols(), ['NZDUSD'], 'NZDUSD stays in the requested majors navigation')
+  await category('majors'); assert.deepEqual(symbols(), ['NZDUSD'])
+
+  // All former Minors except NZDUSD now navigate as crosses; old choices migrate.
+  for (const name of ['AUDNZD', 'EURNZD', 'GBPNZD', 'NZDCAD', 'NZDCHF', 'NZDJPY'])
+    assert.equal(getSymbolCategory(name, catalog.server), 'crosses')
+  for (const [oldCategory, expected] of [['minors', 'crosses'], ['ndfs', 'exotics']]) {
+    dom.localStorage.setItem(storageKey, JSON.stringify({ favourites: [], category: oldCategory }))
+    assert.equal(readMarketWatchPreferences().category, expected)
+  }
+  dom.localStorage.setItem(storageKey, JSON.stringify({ favourites: ['NZDCHF', 'EURUSD', 'EURAUD'], category: 'all' }))
+  const ranked = quotes.map((quote, i) => ({ ...quote, dailyChange: [0.2, -1.5, 1.1, 0.9, null, 0, 0.9][i] }))
+  await render({ symbols: ranked }, 'sort-menu')
+  const chooseSort = async label => {
+    await click(host.querySelector('[aria-label="Sort symbols"]'))
+    assert.ok(!host.querySelector('[aria-label="Symbol sorting"]').textContent.includes('Alphabetical'))
+    await click([...host.querySelectorAll('[aria-label="Symbol sorting"] button')].find(button => button.textContent === label))
+  }
+  await chooseSort('Daily change: highest first')
+  assert.deepEqual(symbols(), ['EURAUD', 'GBPUSD', 'ETHUSD', 'NZDCHF', 'XAUUSD', 'EURUSD', 'EURUSD.a'])
+  assert.ok(host.querySelector('.market-watch-columns').textContent.includes('↓'))
+  await chooseSort('Daily change: lowest first')
+  assert.deepEqual(symbols(), ['EURUSD', 'XAUUSD', 'NZDCHF', 'GBPUSD', 'ETHUSD', 'EURAUD', 'EURUSD.a'])
+  await chooseSort('Biggest move: either direction')
+  assert.equal(symbols()[0], 'EURUSD')
+  await category('favourites')
+  const savedSections = saved().sections
+  assert.deepEqual(symbols(), ['EURUSD', 'EURAUD', 'NZDCHF'])
+  assert.ok(host.querySelector('[aria-label="Reorder EURUSD"]').disabled)
+  await chooseSort('Saved order')
+  assert.deepEqual(symbols(), ['NZDCHF', 'EURUSD', 'EURAUD'])
+  assert.deepEqual(saved().sections, savedSections, 'Sorting never overwrites manual section ordering')
+  await chooseSort('Daily change: highest first')
+  await render({ symbols: ranked }, 'sort-reload')
+  assert.equal(saved().sort, 'highest')
+  assert.deepEqual(symbols(), ['EURAUD', 'NZDCHF', 'EURUSD'])
+  const changedRank = ranked.map(quote => quote.symbol === 'EURUSD' ? { ...quote, dailyChange: 5 } : quote)
+  await render({ symbols: changedRank }, 'sort-reload')
+  assert.deepEqual(symbols(), ['EURAUD', 'NZDCHF', 'EURUSD'], 'Live changes update values without moving rows under a click')
+  assert.ok(row('EURUSD').textContent.includes('+5.00%'))
+  await chooseSort('Daily change: highest first')
+  assert.deepEqual(symbols(), ['EURUSD', 'EURAUD', 'NZDCHF'], 'Choosing the same sort again refreshes the ranking')
+  dom.localStorage.setItem(storageKey, JSON.stringify({ favourites: ['EURUSD', 'NZDCHF', 'EURAUD'], category: 'favourites', sort: 'highest',
+    sections: [{ id: 'default', name: 'First section', symbols: ['EURUSD'] }, { id: 'second', name: 'Second section', symbols: ['NZDCHF', 'EURAUD'] }] }))
+  await render({ symbols: ranked }, 'sorted-sections')
+  assert.deepEqual(symbols(), ['EURUSD', 'EURAUD', 'NZDCHF'], 'Sorting stays within custom sections, preserving section order')
+  assert.deepEqual([...host.querySelectorAll('.market-watch-section-heading strong')].map(node => node.textContent), ['First section', 'Second section'])
   console.log('✓ Market Watch favourites: requested initial stars, independent buttons, search/categories, persistence/empty lists, broker symbols, outage/quotes and bounded row work')
 } finally {
   await React.act(async () => root.unmount())

@@ -99,16 +99,31 @@ See [import and clock rules](docs/DATA-CONTRACT.md#runtime-and-clocks).
 ## Preserved workflow
 
 Market Watch stars save favourites locally across refreshes; NZDCHF, EURUSD and
-EURAUD form the initial shortlist. The Favourites tab retains live Bid/Ask and
-supports search. Use Edit sections to add/rename sections or move symbols between
+EURAUD form the initial shortlist. Market Watch shows Symbol and Daily %, measured
+against the previous completed Pepperstone D1 close (including opening gaps).
+Missing history shows a dash, never the old session-open change. Click Symbol to
+rank by gainers, losers or biggest absolute move; choose again to refresh the
+ranking while live values update in place. Favourites also offers Saved order;
+sorting stays within sections and never overwrites their manual arrangement.
+Use Edit sections to add/rename sections or move symbols between
 them; drag the handles (or press Up/Down on a handle) to reorder. Sections/order
 persist locally; deleting a section moves its symbols back to the first section.
 Starring preserves the selected chart and existing feed order outside Favourites.
 
-Market Watch categories use a captured Pepperstone-Demo symbol-folder catalog,
-including currency indices, forex minors/exotics/NDFs, stocks, ETFs, forwards and
-Perp CFDs. Quotes and availability still come from the live bridge. Other brokers
-and new symbols use conservative name matching. Refresh the folder snapshot with
+Market Watch retains the raw Pepperstone-Demo folder catalog, but navigation puts
+NZDUSD in the seven Majors, merges Minors into Crosses and NDFs into Exotics.
+Selected NDF instruments retain their NDF badge. Other asset categories remain.
+The chart header shows today's D1 high/low distances (pips for FX, price units
+otherwise), plus four thin regional session bars on a shared Jakarta time axis
+with a now marker. Session hours follow each city's local clock, including DST;
+they are indicative dealing hours, not broker holiday/trading permissions.
+Bid/Ask columns and header quotes, spread and exchange-activity displays are omitted.
+The storage service's read-only daily-candle helper attaches to the exact running
+Pepperstone terminal/account reported by bridge health, caches completed-close
+anchors by broker day and refreshes the selected instrument's range. Missing
+history warms incrementally, prioritising the selected instrument and FX pairs.
+It never logs in, selects symbols or writes broker settings; the bridge is unchanged.
+Refresh the raw folder snapshot with
 `bridge\.venv\Scripts\python.exe scripts/export-symbol-groups.py --terminal "C:\Program Files\MetaTrader 5\terminal64.exe" --server Pepperstone-Demo`.
 This reads metadata only and leaves the inherited bridge unchanged.
 

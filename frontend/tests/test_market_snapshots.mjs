@@ -38,7 +38,7 @@ try {
 
   const quotes = ['EURUSD', 'GBPUSD'].map(symbol => ({ symbol, description: symbol, bid: 1, ask: 2, dailyChange: 0, precision: 5 }))
   assert.equal(retainSymbolQuotes(quotes, quotes.map(quote => ({ ...quote }))), quotes)
-  for (const patch of [{ bid: 1.1 }, { ask: 2.1 }, { dailyChange: -.1 }, { description: 'Updated' }, { precision: 3 }]) {
+  for (const patch of [{ bid: 1.1 }, { ask: 2.1 }, { dailyChange: -.1 }, { dailyChange: null }, { dailyHigh: 1.3 }, { dailyLow: 0.9 }, { description: 'Updated' }, { precision: 3 }]) {
     const next = retainSymbolQuotes(quotes, [quotes[0], { ...quotes[1], ...patch }])
     assert.notEqual(next, quotes); assert.equal(next[0], quotes[0]); assert.deepEqual(next[1], { ...quotes[1], ...patch })
   }

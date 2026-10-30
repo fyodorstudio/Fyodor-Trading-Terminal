@@ -3,6 +3,8 @@ export type SymbolQuote = {
   description: string
   bid: number
   ask: number
-  dailyChange: number
+  dailyChange: number | null
+  dailyHigh?: number | null
+  dailyLow?: number | null
   precision: number
 }

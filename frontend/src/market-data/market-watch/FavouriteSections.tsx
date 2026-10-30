@@ -1,10 +1,13 @@
 import { useMemo, useRef, useState, type DragEvent, type ReactNode } from 'react'
 import type { SymbolQuote } from '../contracts/SymbolQuote'
-import type { FavouriteSection, FavouriteSectionAction } from './market-watch-preferences'
+import type { FavouriteSection, FavouriteSectionAction, MarketSort } from './market-watch-preferences'
+import { sortMarketQuotes } from './market-watch-sort'
 
-export function FavouriteSections({ sections, quotes, onChange, renderRow }: {
+export function FavouriteSections({ sections, quotes, onChange, renderRow, sort, sortValues }: {
   sections: FavouriteSection[]; quotes: SymbolQuote[]
   onChange: (action: FavouriteSectionAction) => void; renderRow: (quote: SymbolQuote) => ReactNode
+  sort: MarketSort
+  sortValues: ReadonlyMap<string, number | null>
 }) {
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState('')
@@ -19,7 +22,7 @@ export function FavouriteSections({ sections, quotes, onChange, renderRow }: {
   return <>
     <div className="market-watch-organize">
       <button type="button" aria-pressed={editing} onClick={() => setEditing(value => !value)}>{editing ? 'Done' : 'Edit sections'}</button>
-      <span>Drag ⋮⋮ to reorder</span>
+      <span>{sort === 'saved' ? 'Drag ⋮⋮ to reorder' : 'Choose Saved order to reorder'}</span>
     </div>
     {editing && <form className="market-watch-add-section" onSubmit={event => {
       event.preventDefault()
@@ -41,14 +44,13 @@ export function FavouriteSections({ sections, quotes, onChange, renderRow }: {
         {editing && section.id !== 'default' && <button type="button" aria-label={`Delete ${section.name} section`}
           title="Move its symbols back to the first section" onClick={() => onChange({ type: 'remove', id: section.id })}>×</button>}
       </div>
-      {section.symbols.flatMap((symbol, index) => {
-        const quote = bySymbol.get(symbol)
-        if (!quote) return []
+      {sortMarketQuotes(section.symbols.flatMap(symbol => bySymbol.has(symbol) ? [bySymbol.get(symbol)!] : []), sort, sortValues).flatMap(quote => {
+        const symbol = quote.symbol, index = section.symbols.indexOf(symbol)
         return [<div className="market-watch-draggable-row" key={symbol} onDrop={event => {
           const bounds = event.currentTarget.getBoundingClientRect()
           drop(event, section.id, event.clientY > bounds.top + bounds.height / 2 ? section.symbols[index + 1] : symbol)
         }}>
-          <button type="button" className="market-watch-drag-handle" draggable aria-label={`Reorder ${symbol}`}
+          <button type="button" className="market-watch-drag-handle" draggable={sort === 'saved'} disabled={sort !== 'saved'} aria-label={`Reorder ${symbol}`}
             title="Drag to move; use Up/Down keys to reorder"
             onDragStart={event => { dragged.current = symbol; event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', symbol) }}
             onDragEnd={clearDrag} onKeyDown={event => {

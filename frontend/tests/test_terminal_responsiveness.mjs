@@ -109,8 +109,8 @@ const server = await createServer({ root: path.resolve(path.dirname(fileURLToPat
         .replace('const previous = previousByKey.get(item.key)', "globalThis.__terminalProbe.count('externalLookup'); const previous = previousByKey.get(item.key)")
       if (id.endsWith('/TerminalWorkspace.tsx')) return code.replace('function TerminalWorkspace() {',
         "function TerminalWorkspace() { globalThis.__terminalProbe.count('workspace');")
-      if (id.endsWith('/MarketWatchPanel.tsx')) return code.replace('const positive = quote.dailyChange >= 0',
-        "globalThis.__terminalProbe.count('quoteRows'); const positive = quote.dailyChange >= 0")
+      if (id.endsWith('/MarketWatchPanel.tsx')) return code.replace('const positive = quote.dailyChange != null',
+        "globalThis.__terminalProbe.count('quoteRows'); const positive = quote.dailyChange != null")
       if (id.endsWith('/ThesisCurrencyTable.tsx')) return code.replace('  const impact = item.impacts.find',
         "  globalThis.__terminalProbe.count('thesisRows'); const impact = item.impacts.find")
       if (id.endsWith('/MarketCandlestickChart.tsx')) return code.replace('}: MarketCandlestickChartProps) {',
@@ -153,6 +153,12 @@ let reportFailure = false
 const journalFixture = { version: 1, revision: 0, arrows: [], deletedIds: [] }
 globalThis.fetch = (url, options = {}) => {
   const u = String(url); requests.push(u)
+  if (u === '/storage-api/market-watch/daily') {
+    const body = JSON.parse(options.body)
+    return Promise.resolve({ ok: true, json: async () => ({ source_id: broker, generation,
+      day: Math.floor((now / 1000 + 10800) / 86400) * 86400, observed_at: now / 1000,
+      symbols: Object.fromEntries(body.symbols.map(symbol => [symbol, { previous_close: 1.1, high: 1.2, low: 1, checked_at: now / 1000 }])) }) })
+  }
   if (u === '/entry-trade-api/journal') {
     if (options.method === 'POST') {
       for (const op of JSON.parse(options.body).operations) {
@@ -271,6 +277,13 @@ try {
     React.createElement(FyodorTerminalShell), React.createElement(CommandOnly))))
   await reply('health'); await reply('watch')
   while (pending.get('ohlc')?.length) await reply('ohlc')
+  assert.equal(container.querySelectorAll('.market-watch-columns > span').length, 1, 'The watchlist has only the Daily % numeric column')
+  assert.equal(container.querySelector('.quote-summary'), null, 'Bid/Ask is removed from the chart header')
+  assert.equal(container.querySelectorAll('.session-timeline-labels span').length, 4)
+  assert.ok(container.querySelector('.market-daily-range').textContent.includes('1000 pips below high'))
+  reset()
+  await tick('pollDaily', 5000)
+  assertQuiet('Unchanged daily candle poll', true)
   assert.equal(container.querySelectorAll('[data-currency-summary]').length, 8, 'Saved fundamentals appear in the assembled left dock')
   const beforeSummaryClock = { ...counters }
   await React.act(async () => [...intervals.values()].find(timer => timer.ms === 30000).fn())

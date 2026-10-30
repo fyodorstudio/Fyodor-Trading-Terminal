@@ -2,8 +2,8 @@ import catalog from '../../../../config/broker-symbol-groups.json'
 import type { MarketCategory } from './market-watch-preferences'
 
 export const categoryLabels: Record<MarketCategory, string> = {
-  all: 'All', favourites: '★ Favourites', majors: 'Forex · Majors', minors: 'Forex · Minors',
-  crosses: 'Forex · Crosses', exotics: 'Forex · Exotics', ndfs: 'Forex · NDFs',
+  all: 'All', favourites: '★ Favourites', majors: 'Forex · Majors',
+  crosses: 'Forex · Crosses', exotics: 'Forex · Exotics',
   metals: 'Metals', commodities: 'Energy', softs: 'Soft commodities', indices: 'Stock indices',
   'currency-indices': 'Currency indices', crypto: 'Crypto', stocks: 'Stocks', etfs: 'ETFs',
   forwards: 'Forwards', perps: 'Perp CFDs',
@@ -17,13 +17,13 @@ function folderCategory(folder: string): MarketCategory {
   if (parts[1] === 'ETFs') return 'etfs'
   if (parts[1] === 'Cryptocurrencies') return 'crypto'
   if (parts[1] === 'Indices') return parts[2] === 'Currency' ? 'currency-indices' : 'indices'
-  if (parts[1] === 'Forex') return ({ Majors: 'majors', Minors: 'minors', Crosses: 'crosses', Exotics: 'exotics', NDFs: 'ndfs' } as const)[parts[2]] ?? 'all'
+  if (parts[1] === 'Forex') return ({ Majors: 'majors', Minors: 'crosses', Crosses: 'crosses', Exotics: 'exotics', NDFs: 'exotics' } as const)[parts[2]] ?? 'all'
   if (parts[1] === 'Commodities') return parts[2] === 'Energies' ? 'commodities' : parts[2] === 'Softs' ? 'softs' : 'metals'
   return 'all'
 }
 
-// Read-only MT5 folder capture. Broker-specific choices (e.g. NZDUSD in Minors,
-// tokenised gold in Crypto) must not leak into another broker's catalog.
+// Preserve the raw folder capture; navigation merges Minors and NDFs and places
+// all seven requested USD majors together, independently of broker folders.
 const capturedCategories = new Map(Object.entries(catalog.groups).flatMap(([folder, symbols]) =>
   symbols.map(symbol => [symbol, folderCategory(folder)] as const)))
 const majorPairs = new Set(['EURUSD', 'GBPUSD', 'USDJPY', 'USDCHF', 'AUDUSD', 'USDCAD', 'NZDUSD'])
@@ -31,6 +31,8 @@ const fxCurrencies = new Set(['EUR', 'GBP', 'USD', 'JPY', 'CHF', 'AUD', 'CAD', '
 const fallbackCategories = new Map<string, MarketCategory>()
 
 export function getSymbolCategory(rawSymbol: string, brokerId?: string | null): MarketCategory {
+  const pair = rawSymbol.toUpperCase().split(/[._#-]/)[0]
+  if (majorPairs.has(pair)) return 'majors'
   const captured = brokerId === catalog.server ? capturedCategories.get(rawSymbol) : undefined
   if (captured) return captured
   const cached = fallbackCategories.get(rawSymbol)
@@ -38,6 +40,10 @@ export function getSymbolCategory(rawSymbol: string, brokerId?: string | null): 
   const category = classifyFallback(rawSymbol)
   fallbackCategories.set(rawSymbol, category)
   return category
+}
+
+export function isNdfSymbol(symbol: string) {
+  return catalog.groups['Markets\\Forex\\NDFs'].includes(symbol)
 }
 
 function classifyFallback(rawSymbol: string): MarketCategory {

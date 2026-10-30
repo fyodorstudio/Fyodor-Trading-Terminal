@@ -60,7 +60,7 @@ export function useTerminalWorkspace() {
 
   const bridge = useBridgeConnection()
   const mt5Connected = bridge.connected
-  const marketData = useMt5MarketData(mt5Connected, bridge.generation, selectedSymbol, timeframe)
+  const marketData = useMt5MarketData(mt5Connected, bridge.generation, selectedSymbol, timeframe, bridge.brokerId)
   const activeSymbol = marketData.activeSymbol
   const bars = marketData.bars
   const brokerId = bridge.brokerId

@@ -1,0 +1,8 @@
+.session-timeline { width: 250px; max-width: 100%; padding: 5px 0; color: var(--text-strong); }
+.session-timeline-heading { margin-bottom: 3px; font-size: 8px; font-weight: 750; text-align: right; text-transform: uppercase; letter-spacing: 0.04em; }
+.session-timeline-body { display: grid; grid-template-columns: 46px minmax(0, 1fr); gap: 4px; }
+.session-timeline-labels { display: grid; grid-template-rows: repeat(4, 10px); font-size: 8px; line-height: 10px; }
+.session-timeline-body svg { width: 100%; height: 40px; overflow: visible; }
+.session-timeline-grid { stroke: var(--border-strong); vector-effect: non-scaling-stroke; stroke-width: 1; }
+.session-timeline-now { stroke: var(--text-strong); vector-effect: non-scaling-stroke; stroke-width: 1.5; }
+.session-timeline-axis { display: flex; justify-content: space-between; margin-left: 50px; padding-top: 2px; font-size: 7px; font-variant-numeric: tabular-nums; }

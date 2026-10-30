@@ -1,6 +1,9 @@
 import type { ChartTimeframe } from '../market-data/contracts/ChartTimeframe'
 import type { SymbolQuote } from '../market-data/contracts/SymbolQuote'
 import type { MarketWatchDock } from '../workspace-docking/left-dock/useMarketWatchDock'
+import { SessionTimeline } from '../market-data/market-watch/SessionTimeline'
+import { dailyRangeLabel } from '../market-data/market-watch/daily-range'
+import { isNdfSymbol } from '../market-data/market-watch/symbol-classification'
 
 const timeframes: ChartTimeframe[] = ['M1', 'M5', 'M15', 'M30', 'H1', 'H4', 'D1']
 
@@ -46,6 +49,7 @@ export function ChartWorkspaceHeader({
   eventIconsVisible = true,
   onToggleEventIcons,
 }: ChartWorkspaceHeaderProps) {
+  const rangeLabel = quote ? dailyRangeLabel(quote) : null
   return (
     <div className="chart-toolbar">
       <div className="active-market">
@@ -53,7 +57,8 @@ export function ChartWorkspaceHeader({
         <div className="market-heading">
           <div className="market-title-row">
             <h1>{symbol}</h1>
-            {quote && (
+            {isNdfSymbol(symbol) && <span className="market-instrument-badge" title="Non-deliverable forward">NDF</span>}
+            {quote?.dailyChange != null && (
               <span className={quote.dailyChange >= 0 ? 'positive' : 'negative'}>
                 {quote.dailyChange >= 0 ? '+' : ''}{quote.dailyChange.toFixed(2)}%
               </span>
@@ -61,6 +66,9 @@ export function ChartWorkspaceHeader({
           </div>
           <p className="market-subtitle">
             {quote?.description ?? 'Waiting for MT5 broker data'}
+          </p>
+          <p className="market-daily-range" title="Current price relative to the current Pepperstone D1 candle’s high and low">
+            {rangeLabel ?? 'Today: daily range unavailable'}
           </p>
         </div>
         {marketWatch && (
@@ -118,10 +126,7 @@ export function ChartWorkspaceHeader({
       </div>
 
       <div className="chart-toolbar-right">
-      <div className="quote-summary">
-        <span><small>Bid</small>{quote ? quote.bid.toFixed(quote.precision) : '—'}</span>
-        <span><small>Ask</small>{quote ? quote.ask.toFixed(quote.precision) : '—'}</span>
-      </div>
+        <SessionTimeline />
       </div>
     </div>
   )

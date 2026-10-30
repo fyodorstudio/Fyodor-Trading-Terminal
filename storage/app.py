@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import os
+import subprocess
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
 
 from .bridge_collector import BridgeCollector
 from .calendar_store import CalendarStore
@@ -20,6 +22,14 @@ from .external_sources import DIRECTORY, ExternalRequest, LifecycleRequest, exte
 from .thesis import PATH as THESIS_PATH, thesis_snapshot
 from .thesis_summary import currency_summary
 from .alert_calendar import day_snapshot
+from .market_watch_daily import DailyMarketWatch
+
+
+class DailyMarketRequest(BaseModel):
+    source_id: str = Field(min_length=1, max_length=160)
+    generation: int = Field(ge=0)
+    symbols: list[str] = Field(max_length=5000)
+    selected: str = Field(default='', max_length=128)
 
 # The eight-currency Alert catalog exceeds the original pair-only 64-series cap.
 # Keep a bound below SQLite's conservative 999-parameter limit, including dates.
@@ -45,6 +55,16 @@ def create_app(directory=None, run_collector=True, highlights_path=HIGHLIGHTS_PA
                 app.state.store.close()
 
     app = FastAPI(title="Fyodor Calendar Storage", version="1.1.0", lifespan=lifespan)
+    daily_market = DailyMarketWatch()
+
+    @app.post('/api/v1/market-watch/daily')
+    def market_watch_daily(request: DailyMarketRequest):
+        if any(not symbol or len(symbol) > 128 for symbol in request.symbols):
+            raise HTTPException(422, 'Invalid symbol')
+        try:
+            return daily_market.snapshot(request.source_id, request.generation, request.symbols, request.selected)
+        except (ValueError, OSError, subprocess.TimeoutExpired) as error:
+            raise HTTPException(503, 'Pepperstone daily candles unavailable') from error
 
     @app.exception_handler(ValueError)
     async def invalid_transfer(_, error):
