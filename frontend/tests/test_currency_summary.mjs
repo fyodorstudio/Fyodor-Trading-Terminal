@@ -46,7 +46,7 @@ const poll = async () => {
 }
 try {
   const { CurrencySummary } = await server.ssrLoadModule('./src/thesis/CurrencySummary.tsx')
-  const { validCurrencySummary, currencyUntil, currencyStaleness } = await server.ssrLoadModule('./src/thesis/currency-summary-model.ts')
+  const { validCurrencySummary, currencyUntil, currencyStaleness, currencyAssessmentStatus } = await server.ssrLoadModule('./src/thesis/currency-summary-model.ts')
   const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
   const gapSummary = JSON.parse(execFileSync(path.join(repo, 'bridge/.venv/Scripts/python.exe'), ['-c', `
 import json
@@ -56,6 +56,7 @@ from storage.thesis_summary import currency_summary
 fixture=ResearchTests();fixture.setUp()
 try:
     request=fixture.request()
+    request['assessments'][0]['direction'].update(review_status='provisional',stage_note='Statement only; conference Q&A pending.')
     request['developments'][0]['published_at']='2026-07-22T09:00:00Z'
     append_research(ResearchRequest(**request),fixture.path)
     newer=fixture.development('later-guidance')
@@ -70,9 +71,20 @@ finally:
     fixture.doCleanups();fixture.tearDown()
 `], { cwd: repo, encoding: 'utf8' }))
   assert.equal(validCurrencySummary(gapSummary), true, 'Production writer/projection gaps must be accepted by the left-panel validator')
+  assert.equal(gapSummary.rows.find(row=>row.currency==='CHF').review_status,'provisional','Production stage metadata survives a later unresolved review')
   assert.equal(gapSummary.rows.find(row => row.currency === 'CHF').evidence_anchor.event_at, '2026-07-22T09:00:00Z')
   assert.equal(gapSummary.rows.find(row => row.currency === 'NZD').evidence_anchor, null)
   assert.equal(validCurrencySummary(snapshot), true)
+  const originalSnapshot = structuredClone(snapshot)
+  const staged = structuredClone(snapshot)
+  Object.assign(staged.rows[0], { review_status:'provisional', stage_note:'Statement only; conference Q&A pending.' })
+  assert.equal(validCurrencySummary(staged), true)
+  assert.equal(currencyAssessmentStatus(staged.rows[0], now).label, 'Provisional')
+  for (const fields of [{review_status:'invalid',stage_note:'Statement'}, {review_status:'complete',stage_note:' '},
+    {review_status:'provisional'}, {stage_note:'Statement only'}, {review_status:null,stage_note:null}]) {
+    const invalid=structuredClone(snapshot);Object.assign(invalid.rows[0],fields)
+    assert.equal(validCurrencySummary(invalid),false,'Malformed review stages must not be displayed as complete assessments')
+  }
   const focused = { ...structuredClone(snapshot), as_of_utc: '2026-10-29T12:36:00Z' }
   Object.assign(focused.rows[7], { verified_utc: focused.as_of_utc, reassessment: { ...checkpoint, event_at: '2026-10-29T13:15:00Z' } })
   assert.equal(validCurrencySummary(focused), true, 'A focused refresh preserves another currency\'s elapsed checkpoint')
@@ -105,6 +117,8 @@ finally:
   const unknownHour = { ...checkpoint, event_at: null, event_date: '2026-10-28' }
   assert.equal(currencyUntil(unknownHour, now).due, false)
   assert.match(currencyUntil(unknownHour, Date.parse('2026-10-27T17:00:00Z')).label, /Review due/)
+  assert.equal(currencyAssessmentStatus({...staged.rows[0],reassessment:unknownHour},Date.parse('2026-10-27T17:00:00Z')).label,'Previous assessment',
+    'Unknown hours become unresolved at the Jakarta date boundary without inventing a time')
   await React.act(async () => root.render(React.createElement(CurrencySummary)))
   assert.equal(container.querySelectorAll('[data-currency-summary]').length, 8)
   assert.deepEqual([...container.querySelectorAll('thead th')].map(node => node.textContent), ['Evidence age','CUR','VERDICT','Checkpoint'])
@@ -134,6 +148,20 @@ finally:
   const row = usd(); await poll()
   assert.equal(usd(), row, 'Unchanged polling retains rendered rows')
   assert.ok(requests.at(-1).url.includes('after_revision=one'))
+  snapshot = { ...staged, revision:'statement-stage' }; await poll()
+  assert.match(usd().textContent,/ProvisionalModerate strengthening/)
+  assert.match(usd().querySelector('td:nth-of-type(2)').title,/conference Q&A pending/)
+  now = Date.parse(checkpoint.event_at)
+  await React.act(async()=>[...intervals.values()][0].fn())
+  assert.match(usd().textContent,/Previous assessmentModerate strengthening.*Review due/,
+    'At the exact deadline the original call becomes visibly previous, without an automatic reversal')
+  assert.equal(snapshot.rows[0].verified_utc,originalSnapshot.rows[0].verified_utc)
+  now=Date.parse('2026-10-26T17:00:00Z')
+  await React.act(async()=>[...intervals.values()][0].fn())
+  snapshot = { ...originalSnapshot, revision:'resolved-stage', rows:originalSnapshot.rows.map(r=>r.currency==='USD'
+    ? {...r,review_status:'complete',stage_note:'Conference and contrary path reporting reviewed.'} : r) }
+  await poll()
+  assert.equal(usd().querySelector('.currency-assessment-status')?.textContent,undefined,'A completed fresh review clears the provisional label')
   snapshot = { ...snapshot, revision: 'gap', rows: snapshot.rows.map(row => row.currency === 'CAD'
     ? { ...row, evidence_anchor: { ...anchor, event_at: null, event_date: '2026-10-26' }, reassessment_gap: 'Conference Q&A is unresolved.' } : row) }
   await poll()
@@ -142,11 +170,12 @@ finally:
   assert.equal(cad.className, 'currency-review-due')
   assert.match(cad.querySelector('td').title, /Fundamentals assessed.*11:00 PM/)
   assert.match(cad.querySelector('td:last-child').title, /Conference Q&A is unresolved/)
+  const beforeExpiryTick=requests.length
   now = Date.parse(checkpoint.event_at)
   await React.act(async () => [...intervals.values()][0].fn())
   assert.match(usd().textContent, /Moderate strengthening.*Review due/, 'An elapsed checkpoint never reverses the verdict')
   assert.equal(usd().className, 'currency-review-due')
-  assert.equal(requests.length, 4, 'Countdown does not fetch or invoke research')
+  assert.equal(requests.length, beforeExpiryTick, 'Countdown does not fetch or invoke research')
   snapshot = { ...snapshot, revision: 'two', as_of_utc: '2026-10-28T16:00:00Z', rows: snapshot.rows.map((row, index) => index ? row
     : { ...row, verdict: 'POTENTIAL WEAKENING', reassessment: { ...checkpoint, title: 'Fed press conference', event_at: '2026-10-28T16:30:00Z' } }) }
   await poll()
@@ -162,6 +191,7 @@ finally:
   await poll()
   assert.match(usd().textContent, /Slight weakening.*30m/)
   assert.match(container.querySelector('[data-currency-summary="EUR"]').textContent, /Slight weakening.*Review due/, 'A different currency refresh must not invalidate the panel or renew an elapsed checkpoint')
+  assert.match(container.querySelector('[data-currency-summary="EUR"]').textContent,/Previous assessment/)
   assert.equal(container.querySelector('[role="alert"]'), null)
   offline = true; await poll()
   assert.match(container.querySelector('[role="alert"]').textContent, /refresh failed.*last loaded snapshot/i)
@@ -174,6 +204,8 @@ finally:
   assert.equal(container.querySelector('[role="alert"]'), null)
   assert.equal(container.querySelectorAll('[data-currency-summary]').length, 8, 'A pending research gap must not blank the entire panel')
   assert.match(container.querySelector('[data-currency-summary="CHF"]').textContent, /Slight weakening.*Review needed/)
+  assert.match(container.querySelector('[data-currency-summary="CHF"]').textContent,/Previous assessment/,
+    'New unassessed guidance cannot make the retained verdict look freshly endorsed')
   assert.match(container.querySelector('[data-currency-summary="NZD"]').textContent, /Not assessed.*Review needed/)
   hold = true
   const [timerId, timer] = [...timers][0]; timers.delete(timerId)

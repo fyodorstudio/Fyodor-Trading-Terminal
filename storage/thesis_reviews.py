@@ -82,6 +82,14 @@ class DailyDirection(Payload):
     reassessment: CurrencyCheckpoint | None = None
     reassessment_gap: str = Field(default='', max_length=700)
     evidence_anchor: DirectionAnchor | None = Field(default=None, exclude_if=lambda value: value is None)
+    review_status: Literal['complete', 'provisional'] | None = Field(default=None, exclude_if=lambda value: value is None)
+    stage_note: str = Field(default='', max_length=700, exclude_if=lambda value: not value)
+
+    @model_validator(mode='after')
+    def valid_stage(self):
+        if bool(self.review_status) != bool(self.stage_note.strip()) or not self.review_status and self.stage_note:
+            raise ValueError('Review status and a nonblank reviewed-stage note belong together')
+        return self
 
 
 class OpportunityEvidence(Payload):

@@ -1,0 +1,23 @@
+{
+  "fixture_note": "Offline controlled information set based on dated releases; availability here is stipulated for evaluation, not a reconstruction of the first public dissemination second. No later prices or headlines are supplied.",
+  "as_of_utc": "2026-10-29T12:37:00Z",
+  "requested_currency": "USD",
+  "prior_assessment": {"verdict": "POTENTIAL WEAKENING", "intensity": "slight", "reason": "Later Fed guidance reduced incremental tightening urgency; persistent inflation was opposition."},
+  "evidence": [
+    {"published_at": "2026-10-28T18:00:00Z", "source": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20261028a.htm", "body_excerpt": "Target maintained at 3.75-4.00%; vote 10-2, with two members preferring a hike. Activity expanding at a strong pace; inflation elevated. More information will help determine the appropriate stance."},
+    {"published_at": "2026-10-28T19:30:00Z", "source": "https://malaysia.news.yahoo.com/feds-warsh-says-us-economy-193022222.html", "body_excerpt": "Later Q&A reporting: Warsh argues productivity can permit stronger growth without additional inflation; most colleagues do not see the economy as too hot. Existing higher rates are having an effect. No December action is promised."},
+    {"published_at": "2026-10-29T12:30:00Z", "source": "https://www.bea.gov/sites/default/files/2026-10/gdp3q26-adv.pdf", "body_excerpt": "Q3 real GDP +3.4% annualised versus Q2 +2.2%. Private domestic final sales +4.9% versus +4.6%. Quarterly core PCE +2.5% annualised versus +3.3%."},
+    {"published_at": "2026-10-29T12:30:00Z", "source": "https://www.bea.gov/news/2026/personal-income-and-outlays-september-2026", "body_excerpt": "September core PCE +0.3% m/m, +3.1% y/y. August monthly core revised from +0.2% to +0.3%. September real spending rounded to 0.0%; real disposable income -0.3%."},
+    {"published_at": "2026-10-02T12:30:00Z", "source": "https://www.bls.gov/news.release/empsit.nr0.htm", "body_excerpt": "September payrolls +29,000; unemployment 4.2%; average hourly earnings +0.1% m/m and +3.0% y/y. July/August revisions total -60,000."}
+  ],
+  "expectations": [
+    {"source": "https://tradingeconomics.com/united-states/gdp-growth", "observation": "Pre-release attributed survey GDP +3.2%; separate broker model +1.4%."},
+    {"source": "https://tradingeconomics.com/united-states/core-pce-price-index-mom", "observation": "Pre-release attributed survey core PCE +0.3% m/m; separate broker model +0.2%."}
+  ],
+  "upcoming": [
+    {"title": "ECB decision", "event_at": "2026-10-29T13:15:00Z", "source": "https://www.ecb.europa.eu/press/calendars/weekly/html/index.en.html", "note": "Expected hold. The counterpart's path/financing guidance can change global rates and dollar demand."},
+    {"title": "ECB press conference and Q&A", "event_at": "2026-10-29T13:45:00Z", "source": "https://www.ecb.europa.eu/press/calendars/weekly/html/index.en.html", "note": "Separate material stage after the decision; no remarks have been delivered in this packet."},
+    {"title": "US Employment Cost Index", "event_at": "2026-10-30T12:30:00Z", "source": "https://www.bls.gov/schedule/2026/10_sched.htm", "note": "Wage persistence test after subdued earnings growth."}
+  ],
+  "availability": "No post-release short-rate/yield report supplied. No live curve or observed private FX flows. Other currencies were not fully researched. Stop at the packet cutoff."
+}

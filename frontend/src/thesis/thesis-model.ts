@@ -28,7 +28,14 @@ export type CurrencyNews = { published_on: string; published_at?: string | null;
 export const dailyVerdicts = ['POTENTIAL STRENGTHENING', 'POTENTIAL WEAKENING'] as const
 export const directionIntensities = ['strong', 'moderate', 'slight'] as const
 export type DirectionAnchor = { title: string; event_at: string | null; event_date: string | null; sources: ThesisSource[]; note: string }
-export type DailyDirection = { verdict: typeof dailyVerdicts[number]; reason: string; verified_utc: string; sources: ThesisSource[]; basis?: 'standalone' | null; intensity?: typeof directionIntensities[number] | null; horizon?: string; reassessment?: CurrencyCheckpoint | null; reassessment_gap?: string; evidence_anchor?: DirectionAnchor | null }
+export type DailyDirection = { verdict: typeof dailyVerdicts[number]; reason: string; verified_utc: string; sources: ThesisSource[]; basis?: 'standalone' | null; intensity?: typeof directionIntensities[number] | null; horizon?: string; reassessment?: CurrencyCheckpoint | null; reassessment_gap?: string; evidence_anchor?: DirectionAnchor | null; review_status?: 'complete' | 'provisional'; stage_note?: string }
+export function validReviewStage(value: Pick<DailyDirection, 'review_status' | 'stage_note'>) {
+  return value.review_status === undefined ? value.stage_note === undefined
+    : ['complete', 'provisional'].includes(value.review_status) && typeof value.stage_note === 'string' && !!value.stage_note.trim()
+}
+export function directionStageLabel(direction: DailyDirection) {
+  return direction.review_status ? `${direction.review_status === 'provisional' ? 'Provisional' : 'Reviewed stage'}: ${direction.stage_note}` : ''
+}
 export function dailyDirectionLabel(direction: DailyDirection) {
   return direction.basis === 'standalone' && direction.intensity ? `${direction.intensity[0].toUpperCase()}${direction.intensity.slice(1)} ${direction.verdict === 'POTENTIAL STRENGTHENING' ? 'strengthening' : 'weakening'}` : direction.verdict
 }
@@ -156,7 +163,7 @@ function validDailyDirections(item: ThesisReviewEntry) {
   if (!views.every(view => view?.direction && dailyVerdicts.includes(view.direction.verdict)
     && (view.direction.basis == null ? view.direction.intensity == null && !view.direction.horizon : view.direction.basis === 'standalone'
       && directionIntensities.includes(view.direction.intensity!) && text(view.direction.horizon) && !!view.direction.horizon.trim())
-    && text(view.direction.reason) && !!view.direction.reason.trim() && validSources(view.direction.sources)
+    && text(view.direction.reason) && !!view.direction.reason.trim() && validSources(view.direction.sources) && validReviewStage(view.direction)
     && timestamp(view.direction.verified_utc) && Date.parse(view.direction.verified_utc) <= Date.parse(item.saved_utc)
     && (view.direction.evidence_anchor == null || validDirectionAnchor(view.direction.evidence_anchor, item.as_of_utc, view.direction.verified_utc))
     && (view.direction.reassessment_gap === undefined || text(view.direction.reassessment_gap))

@@ -1,5 +1,5 @@
 import { memo, useEffect, useId, useState } from 'react'
-import { currencyEvidenceAge, currencyUntil, validCurrencySummary, type CurrencySummarySnapshot } from './currency-summary-model'
+import { currencyAssessmentStatus, currencyEvidenceAge, currencyUntil, validCurrencySummary, type CurrencySummarySnapshot } from './currency-summary-model'
 import './currency-summary.css'
 
 const clock = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })
@@ -49,10 +49,11 @@ export const CurrencySummary = memo(function CurrencySummary() {
     {snapshot && <table aria-label="Currency verdicts"><thead><tr><th scope="col" title="Age of the latest dated development referenced by the assessment. Full evidence and offsets are in Thesis.">Evidence age</th><th scope="col">CUR</th><th scope="col">VERDICT</th><th scope="col">Checkpoint</th></tr></thead>
       <tbody>{snapshot.rows.map(row => {
         const until = currencyUntil(row.reassessment, now, row.reassessment_gap)
+        const status = row.verdict && row.basis === 'standalone' ? currencyAssessmentStatus(row, now) : null
         return <tr key={row.currency} data-currency-summary={row.currency} className={until.due ? 'currency-review-due' : undefined}
           title={row.verified_utc ? `Direction checked ${clock.format(new Date(row.verified_utc))} Jakarta` : undefined}>
           <td title={row.evidence_anchor ? `${row.evidence_anchor.title}. ${row.evidence_anchor.note} Fundamentals assessed ${clock.format(new Date(row.verified_utc!))} Jakarta.` : 'No dated evidence anchor saved. The assessment time does not establish evidence freshness.'}>{row.verdict ? currencyEvidenceAge(row.evidence_anchor, now) : '—'}</td>
-          <th scope="row">{row.currency}</th><td title={row.basis === 'standalone' ? `Standalone fundamental pressure · ${row.horizon}. Intensity is qualitative, not a probability or a guaranteed move.` : row.verdict ? 'Legacy verdict has not been reassessed as standalone currency fundamentals.' : row.reassessment_gap || undefined}>{!row.verdict ? 'Not assessed' : row.basis !== 'standalone' ? 'Needs reassessment' : `${row.intensity![0].toUpperCase()}${row.intensity!.slice(1)} ${row.verdict === 'POTENTIAL STRENGTHENING' ? 'strengthening' : 'weakening'}`}</td>
+          <th scope="row">{row.currency}</th><td title={row.basis === 'standalone' ? `${status ? status.detail+' ' : ''}Standalone fundamental pressure · ${row.horizon}. ${row.stage_note || ''} Intensity is qualitative, not a probability or a guaranteed move.` : row.verdict ? 'Legacy verdict has not been reassessed as standalone currency fundamentals.' : row.reassessment_gap || undefined}>{status && <strong className="currency-assessment-status">{status.label}</strong>}{!row.verdict ? 'Not assessed' : row.basis !== 'standalone' ? 'Needs reassessment' : `${row.intensity![0].toUpperCase()}${row.intensity!.slice(1)} ${row.verdict === 'POTENTIAL STRENGTHENING' ? 'strengthening' : 'weakening'}`}</td>
           <td title={row.reassessment ? `${row.reassessment.title} · ${row.reassessment.event_at ? clock.format(new Date(row.reassessment.event_at)) + ' Jakarta' : row.reassessment.event_date + ' · hour unknown'}. ${row.reassessment.note}` : row.reassessment_gap}>{row.verdict || row.reassessment_gap ? until.label : '—'}</td>
         </tr>
       })}</tbody></table>}

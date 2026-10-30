@@ -58,6 +58,7 @@ def currency_summary(journal_path, after_revision=None):
             'basis': direction.get('basis') if direction else None,
             'intensity': direction.get('intensity') if direction else None,
             'horizon': direction.get('horizon', '') if direction else '',
+            **({key: direction[key] for key in ('review_status', 'stage_note') if key in direction} if direction else {}),
             'verified_utc': direction['verified_utc'] if direction else None,
             'evidence_anchor': anchor,
             'reassessment': direction['reassessment'] if direction else None,

@@ -1,0 +1,24 @@
+{
+  "fixture_note": "Alternative offline follow-up branch. No stage-2.json facts are available in this branch. Retrieval outcomes below are stipulated simulation inputs, not claims about the real publishers.",
+  "as_of_utc": "2026-10-29T22:15:00Z",
+  "requested_currency": "USD",
+  "saved_assessment": {
+    "verified_utc": "2026-10-29T12:37:00Z",
+    "verdict": "POTENTIAL WEAKENING",
+    "intensity": "slight",
+    "review_status": "provisional",
+    "stage_note": "GDP/PCE reviewed; the ECB decision and separate conference guidance remain pending.",
+    "evidence_keys": ["usd-gdp-pce-package"],
+    "reassessment": {"title": "ECB press conference and Q&A", "event_at": "2026-10-29T13:45:00Z"}
+  },
+  "observations": [
+    "The ECB conference checkpoint has elapsed.",
+    "The prepared official full-Q&A route failed in this simulation. One suitable reporting fallback returned only an initial expected-hold headline, with no delivered path guidance or completion confirmation.",
+    "No new decisive US data, changed policy guidance, rate-pricing report or other assessed directional evidence was retrieved. The stage-1 packet is the unchanged background.",
+    "A user asks whether the saved panel can now be described as freshly reviewed through the conference."
+  ],
+  "upcoming": [
+    {"title": "US Employment Cost Index", "event_at": "2026-10-30T12:30:00Z", "source": "https://www.bls.gov/schedule/2026/10_sched.htm"}
+  ],
+  "request": "Explain what the completed work establishes and draft the currency assessment object for a new research-append pass. Preserve the saved history and clock rules. Do not issue any live save."
+}

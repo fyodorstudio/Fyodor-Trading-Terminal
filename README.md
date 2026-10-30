@@ -213,6 +213,10 @@ saved verdicts, evidence/assessment clocks and checkpoints through the summary A
 and frontend contract; a successful save alone does not prove the panel can load.
 Checkpoint is a review deadline, never automatic reversal or renewal. Alarms alone
 perform no research. See the [Thesis contract](docs/THESIS.md#left-panel-summary-and-reassessment).
+Elapsed/unresolved calls are visibly labelled **Previous assessment** beside the
+saved pressure; pending material guidance is **Provisional**. New research writes
+declare the reviewed stage explicitly. Passing schema checks proves delivery,
+not the financial interpretation.
 
 Use `pnpm analyst thesis research --scope ALL --from <date> --to <date>`, then
 `thesis research-append --scope ALL --input <file>` for researched interval updates.

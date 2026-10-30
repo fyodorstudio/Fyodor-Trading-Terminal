@@ -200,6 +200,13 @@ conference review. A later scheduled stage outside the bound is a separate
 checkpoint, not permission to extend the wait. If decisive Q&A remains unavailable,
 state that gap and withhold the unsupported fresh full-stage conclusion; a final
 official transcript is not required when credible reporting verifies the remarks.
+Use **Provisional — statement only; conference pending** when that is the verified
+information set, and persist its explicit review status and stage note. A pending
+stage cannot be hidden only in an Upcoming list or tooltip. At a later invocation,
+resolve that stage before renewing the session call; a failed checkpoint-only
+retrieval saves a gap without freshening the old direction clock. Apply the
+parent's decision check: an expected hold, in-line core print or strong output
+alone does not establish a more restrictive forward path.
 
 For speeches, panels and Q&A, verify the actual delivery/publication format,
 announced topic and any quiet-period or explicit policy-discussion restriction.

@@ -1,4 +1,4 @@
-import { dailyVerdicts, directionIntensities, reviewCurrencies, safeThesisLink, thesisDay, type CurrencyCheckpoint, type DailyDirection, type ThesisSource } from './thesis-model'
+import { dailyVerdicts, directionIntensities, reviewCurrencies, safeThesisLink, thesisDay, validReviewStage, type CurrencyCheckpoint, type DailyDirection, type ThesisSource } from './thesis-model'
 import { commodityIds } from '../external-sources/research-instruments'
 
 export type ResearchImpact = { currency: string; implication: string; thesis_effect: string }
@@ -19,7 +19,7 @@ const sources = (v: unknown): v is ThesisSource[] => Array.isArray(v) && v.lengt
 const strings = (v: unknown): v is string[] => Array.isArray(v) && v.every(x => typeof x === 'string')
 function validDirection(d: DailyDirection, a: ResearchAssessment) {
   const cp=d.reassessment
-  return dailyVerdicts.includes(d.verdict) && typeof d.reason==='string' && !!d.reason.trim() && stamp(d.verified_utc) && sources(d.sources)
+  return dailyVerdicts.includes(d.verdict) && typeof d.reason==='string' && !!d.reason.trim() && stamp(d.verified_utc) && sources(d.sources) && validReviewStage(d)
     && (a.legacy || d.basis==='standalone' && directionIntensities.includes(d.intensity!) && !!d.horizon?.trim() && (a.provenance==='reconstruction' || Date.parse(d.verified_utc)<=Date.parse(a.as_of_utc)))
     && (cp==null || typeof cp.title==='string' && !!cp.title.trim() && typeof cp.note==='string' && !!cp.note.trim() && sources(cp.sources) && stamp(cp.verified_utc)
       && (cp.event_at===null ? date(cp.event_date) : stamp(cp.event_at) && cp.event_date===null))

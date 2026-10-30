@@ -121,6 +121,8 @@ Each assessment has `currency`, `evidence_keys` (findings inside the interval),
   "gap": "Describe any material uncovered interval or failed source.",
   "direction": {
     "basis": "standalone",
+    "review_status": "complete",
+    "stage_note": "Name the delivered package and guidance reviewed through cutoff.",
     "verdict": "POTENTIAL WEAKENING",
     "intensity": "slight",
     "reason": "Explain the dominant remaining mechanism and what offsets it.",
@@ -139,6 +141,18 @@ The note explains why this stage can challenge/reinforce the current mechanism.
 Optional assessment `checkpoints` lists other relevant upcoming stages with the
 same shape, distinct from the chosen nearest reassessment deadline. Elapsed
 stages must be resolved as developments/gaps, not carried as future events.
+
+New `research-append` directions require `review_status: complete|provisional`
+and a nonblank `stage_note` (up to 700 characters). Complete describes the named
+reviewed information set, not exhaustive news coverage or guaranteed direction.
+Use provisional when a material subsequent guidance stage remains unresolved;
+name both the verified and pending stage. A checkpoint-only audit with no new
+decisive evidence saves `direction: null` and the exact gap, preserving the old
+direction clock. Prior saved runs and legacy interfaces remain readable without
+these fields; do not migrate their historical completion claims. Validators enforce
+the declaration, not the truth of the financial reasoning. A direction has at most
+eight source links; select its decisive sources while retaining the full source
+set on the referenced developments rather than duplicating every link here.
 
 A direction references recorded evidence/background, uses standalone qualitative
 pressure and an explicit horizon. Strong/Moderate/Slight is a shared causal-pressure
@@ -191,6 +205,12 @@ without an exact hour stays date-only. No alarm, polling clock or calendar navig
 renews evidence, rolls a deadline forward or reverses a verdict. Live invocations
 resolve relevant elapsed stages and choose the next material checkpoint. Shared
 global deadlines need a specific mechanism for each affected currency.
+The verdict cell prominently labels an elapsed checkpoint, decisive gap or absent
+checkpoint as **Previous assessment**. A provisional call before its deadline
+shows **Provisional**. Original pressure, evidence and assessment clocks remain;
+these labels perform no research and never reverse a verdict. The reviewed-stage
+note also appears in bottom Thesis and Markdown exports. A newer header from a
+focused pass cannot renew another row's checkpoint or imply conference completion.
 
 Reads: `/api/v1/theses/research?from=YYYY-MM-DD&to=YYYY-MM-DD` and
 `/api/v1/theses/summary` (UI proxy `/storage-api`). Range reads include older active evidence and bounded earlier assessment context. They

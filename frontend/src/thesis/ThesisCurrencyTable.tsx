@@ -1,5 +1,5 @@
 import { memo, useState } from 'react'
-import { dailyDirectionLabel, safeThesisLink, thesisDay, type ThesisCurrency, type ThesisSource } from './thesis-model'
+import { dailyDirectionLabel, directionStageLabel, safeThesisLink, thesisDay, type ThesisCurrency, type ThesisSource } from './thesis-model'
 import { researchAssessment, type CurrencyResearch, type ResearchDevelopment } from './research-model'
 import { LazyDetails } from './LazyDetails'
 
@@ -53,7 +53,7 @@ export const ThesisCurrencyTable = memo(function ThesisCurrencyTable({ data, cur
         <div className="thesis-currency-heading"><h3>{currency}{direction && ` · ${dailyDirectionLabel(direction)}`}</h3>
           {assessment && <p>Last Assessed: {full.format(new Date(direction?.verified_utc ?? assessment.as_of_utc))} Jakarta{assessment.provenance === 'reconstruction' && ' · Historical reconstruction'}</p>}
         </div>
-        {direction ? <><p className="thesis-prose">{direction.reason}</p><p>Horizon: {direction.horizon || 'See the original assessment.'}</p>
+        {direction ? <>{direction.review_status && <p className="thesis-notice">{directionStageLabel(direction)}</p>}<p className="thesis-prose">{direction.reason}</p><p>Horizon: {direction.horizon || 'See the original assessment.'}</p>
           {direction.basis !== 'standalone' && <p className="thesis-notice">Older comparison; needs a standalone assessment before use as a broad currency verdict.</p>}
           <p><Links sources={direction.sources} /></p>
         </> : <p>{assessment?.gap || (future ? 'Future dates stay unassessed.' : 'No saved assessment for this currency by this date.')}</p>}
@@ -78,7 +78,7 @@ export const ThesisCurrencyTable = memo(function ThesisCurrencyTable({ data, cur
           {direction && !direction.reassessment && <p>Review needed: {direction.reassessment_gap || 'No verified checkpoint saved.'}</p>}
         </div>}
         {changes.length > 1 && <LazyDetails className="thesis-details" summary={`Assessment history · ${changes.length} recorded views`}>
-          {() => changes.map(a => <div key={a.id}><strong>{full.format(new Date(a.as_of_utc))} Jakarta · {dailyDirectionLabel(a.direction!)}</strong><p>{a.direction!.reason}</p><Links sources={a.direction!.sources} /></div>)}
+          {() => changes.map(a => <div key={a.id}><strong>{full.format(new Date(a.as_of_utc))} Jakarta · {dailyDirectionLabel(a.direction!)}</strong>{a.direction!.review_status && <p>{directionStageLabel(a.direction!)}</p>}<p>{a.direction!.reason}</p><Links sources={a.direction!.sources} /></div>)}
         </LazyDetails>}
       </section>
   </div>

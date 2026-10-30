@@ -1,4 +1,4 @@
-import { dailyDirectionLabel, reviewCurrencies, safeThesisLink, type ThesisCurrency, type ThesisSource } from './thesis-model'
+import { dailyDirectionLabel, directionStageLabel, reviewCurrencies, safeThesisLink, type ThesisCurrency, type ThesisSource } from './thesis-model'
 import { researchAssessment, type CurrencyResearch } from './research-model'
 import { researchPrompt } from './research-prompt'
 
@@ -12,6 +12,7 @@ export function researchMarkdown(data: CurrencyResearch, error: string | null = 
     const a=researchAssessment(data,currency), d=a?.direction
     lines.push(`## ${currency}${d ? ' · '+dailyDirectionLabel(d) : ''}`, '')
     if (a) lines.push(`Last Assessed: ${clock(d?.verified_utc ?? a.as_of_utc)} · ${a.provenance}. Researched period: ${a.period_start} – ${a.period_end}.`, '')
+    if (d?.review_status) lines.push(text(directionStageLabel(d)), '')
     if (d) lines.push(text(d.reason),'',`Horizon: ${text(d.horizon || 'See original assessment.')}. ${links(d.sources)}`,'')
     if (a?.gap) lines.push(`Coverage: ${text(a.gap)}`,'')
     const background = data.developments.filter(item => a?.background_ids.includes(item.id) || item.published_on<data.from && a?.evidence_ids.includes(item.id))
@@ -31,7 +32,7 @@ export function researchMarkdown(data: CurrencyResearch, error: string | null = 
     for (const cp of upcoming) lines.push(`Upcoming checkpoint: **${text(cp.title)}** · ${cp.event_at ? clock(cp.event_at) : cp.event_date+' · hour unknown'}. ${text(cp.note)} ${links(cp.sources)}`, '')
     if (d && !d.reassessment) lines.push(`Review needed: ${text(d.reassessment_gap || 'No verified checkpoint saved.')}`, '')
     lines.push('### Assessment history','')
-    for (const item of data.assessments.filter(a=>a.currency===currency)) lines.push(`- ${clock(item.as_of_utc)} · ${item.direction ? dailyDirectionLabel(item.direction)+': '+text(item.direction.reason) : 'Unresolved: '+text(item.gap)} · version ${item.id}`)
+    for (const item of data.assessments.filter(a=>a.currency===currency)) lines.push(`- ${clock(item.as_of_utc)} · ${item.direction ? dailyDirectionLabel(item.direction)+': '+text(item.direction.reason)+(item.direction.review_status ? ' · '+text(directionStageLabel(item.direction)) : '') : 'Unresolved: '+text(item.gap)} · version ${item.id}`)
     lines.push('')
   }
   const commodities=selectedCurrency ? [] : data.developments.filter(d=>d.instruments?.length && d.published_on>=data.from && d.published_on<=data.to)

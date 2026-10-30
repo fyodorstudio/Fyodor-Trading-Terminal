@@ -50,13 +50,19 @@ after saving. Read-only/no-save instructions still win.
    USD includes Treasury auctions, buyback announcements/windows/results and relevant
    Fed/NYFed operations. Official schedules, actuals and dated reporting outrank a
    flawed or empty broker calendar. Open decisive bodies and seek contrary evidence.
-   Fresh news challenges saved views; never filter discovery through the old verdict.
+   Check the uncovered interval with a neutral chronological news sweep, including
+   counterpart guidance and later conference updates. Follow material leads to
+   their source bodies; search results and repeated syndications are discovery,
+   not completed coverage. Fresh news challenges saved views; never filter
+   discovery through the old verdict.
    Include the brief [opportunity sweep](references/opportunity-discovery.md), with
    exceptional clearly supported candidates outside FX unless explicitly excluded.
 4. Distinguish attributed expectations from actuals and subsequent guidance. Explain
    the dominant surprise or continuing mechanism, material offsets and beneficiaries.
    One release package is not several independent votes. An expected hike/hold/cut
    alone is not a direction. Never invent investor flows, probabilities or returns.
+   Complete the [decision check](references/fundamental-assessment.md#decision-check-before-saving)
+   in the assessment reason before upgrading, retaining or reversing a verdict.
    Apply the [release and retention check](references/fundamental-assessment.md#release-and-retention-check):
    distinguish the policy backdrop, incremental release effect and pressure over
    the chosen horizon. Rejustify the direction against new contrary evidence;
@@ -73,15 +79,20 @@ after saving. Read-only/no-save instructions still win.
    package remains unavailable; identify the exact unverified claim separately.
    Conflicting known evidence, absent live OIS or lack of certainty are not missing
    facts. Check exceptional contrary news before carrying a view.
-   A first verdict is stage-specific. Resolve material subsequent guidance/Q&A
-   available during the turn before calling the review complete; bound access
-   failures and leave an explicit gap only for a genuinely unverified decisive fact.
+   Label a first-stage call **Provisional** when a material guidance stage remains
+   unresolved. Resolve available later guidance/Q&A within the active scope/bound;
+   a completed statement retrieval is not a completed conference review. An
+   overdue checkpoint-only audit preserves the earlier assessment clock and
+   records the specific unresolved stage instead of freshly endorsing the call.
 6. Save findings once and assessments separately when authorized. Requested Thesis
    research authorizes its save; live assessments/release invocations have standing
    permission to refresh an existing live summary. Record original publication/event
    times, verification clocks, currency implications and effects on the prior thesis.
    Reuse stable development keys; keep old active evidence as background. No item
    quota, mandatory entry payload or daily copying. Read-only/chat-only/no-save wins.
+   New directions explicitly declare `review_status` and `stage_note` under the
+   Thesis contract; a save validator cannot determine whether the financial
+   interpretation or source coverage is sound.
 7. Read back the saved interval and verify the left Fundamentals panel's summary
    contract, affected verdicts, original evidence/assessment clocks and checkpoints.
    A successful ledger save alone does not prove that the panel can load its data.

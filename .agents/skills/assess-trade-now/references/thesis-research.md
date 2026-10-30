@@ -29,6 +29,11 @@ do not reproduce those schemas or a giant copied prompt here.
    ordinary uncertainty or known opposition. Findings alone and a missing-fact
    gap remain available for genuinely unverified decisive information, not as a
    substitute for completing the requested judgment.
+   Declare the reviewed stage as complete or provisional under the Thesis
+   contract. If an elapsed material stage could overturn the old call but its
+   decisive contents are still unverified, save the specific gap without a fresh
+   direction/assessment clock; retain the old call as previous evidence. If new
+   stage evidence supports an assessment, state its provisional status explicitly.
 6. Append through `thesis research-append`, then read back the range and live summary.
    Explain retained/changed pressure and any unresolved intervals/access gaps.
 
@@ -99,6 +104,11 @@ success alone does not establish that the panel accepts the response. Resolve a
 local runtime/contract error within authorized scope or report the exact delivery
 gap. Do not claim the left panel updated while its summary is unavailable or
 invalid. Leave visual acceptance to the user; no browser automation is needed.
+Check that declared provisional status survives the ledger, range read and summary
+projection. Expired checkpoints and decisive gaps must visibly qualify retained
+verdicts as **Previous assessment**; a future unresolved stage says **Provisional**.
+Schema acceptance and persistence prove delivery, not financial accuracy or source
+coverage. Complete the parent's decision check separately.
 
 The static Jakarta **Last Assessed** header means the latest completed, saved live
 assessment/research pass, including explicitly recorded gaps. Set its research

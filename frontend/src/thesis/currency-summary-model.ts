@@ -1,8 +1,9 @@
-import { dailyVerdicts, directionIntensities, reviewCurrencies, safeThesisLink, thesisDay, validDirectionAnchor, type DirectionAnchor, type CurrencyCheckpoint, type DailyDirection } from './thesis-model'
+import { dailyVerdicts, directionIntensities, reviewCurrencies, safeThesisLink, thesisDay, validDirectionAnchor, validReviewStage, type DirectionAnchor, type CurrencyCheckpoint, type DailyDirection } from './thesis-model'
 
 export type CurrencySummarySnapshot = { schema: 1; revision: string; review_id: string | null; as_of_utc: string | null;
   rows: { currency: string; verdict: DailyDirection['verdict'] | null; verified_utc: string | null;
     basis?: DailyDirection['basis']; intensity?: DailyDirection['intensity']; horizon?: string;
+    review_status?: DailyDirection['review_status']; stage_note?: string;
     evidence_anchor?: DirectionAnchor | null; reassessment: CurrencyCheckpoint | null; reassessment_gap: string }[] }
 
 const instant = (value: unknown): value is string => typeof value === 'string' && /(?:Z|[+-]\d\d:\d\d)$/.test(value) && Number.isFinite(Date.parse(value))
@@ -17,7 +18,17 @@ export function validCurrencySummary(value: unknown): value is CurrencySummarySn
       && typeof row.reassessment_gap === 'string' && (row.reassessment === null || validCheckpoint(row.reassessment, row.verified_utc)))
     && item.rows.every(row => row.basis == null ? row.intensity == null && !row.horizon : row.basis === 'standalone'
       && directionIntensities.includes(row.intensity!) && typeof row.horizon === 'string' && !!row.horizon.trim())
-    && item.rows.every(row => row.evidence_anchor == null || row.verdict !== null && validDirectionAnchor(row.evidence_anchor, item.as_of_utc!, row.verified_utc!))
+    && item.rows.every(row => validReviewStage(row) && (row.evidence_anchor == null || row.verdict !== null && validDirectionAnchor(row.evidence_anchor, item.as_of_utc!, row.verified_utc!)))
+}
+
+// This changes presentation only. Elapsed time never changes the saved verdict.
+export function currencyAssessmentStatus(row: Pick<CurrencySummarySnapshot['rows'][number], 'reassessment' | 'reassessment_gap' | 'review_status' | 'stage_note'>, now: number) {
+  if (row.reassessment_gap.trim()) return { label: 'Previous assessment', detail: row.reassessment_gap }
+  const until = currencyUntil(row.reassessment, now)
+  if (!row.reassessment) return { label: 'Previous assessment', detail: 'No reassessment checkpoint is set.' }
+  if (until.due) return { label: 'Previous assessment', detail: `Checkpoint unresolved: ${row.reassessment.title}.` }
+  if (row.review_status === 'provisional') return { label: 'Provisional', detail: row.stage_note! }
+  return null
 }
 
 function validCheckpoint(item: CurrencyCheckpoint, cutoff: string | null) {

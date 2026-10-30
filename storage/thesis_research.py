@@ -168,6 +168,8 @@ class ResearchRequest(Payload):
             if len(set([*a.evidence_keys,*a.background_keys])) != len(a.evidence_keys)+len(a.background_keys):
                 raise ValueError('Evidence references must be unique')
             d = a.direction
+            if not getattr(self, 'id', None) and not d.review_status:
+                raise ValueError('New currency assessments must declare complete/provisional review_status and stage_note')
             if d.basis != 'standalone' or not d.intensity or not d.horizon.strip() or not d.reason.strip():
                 raise ValueError('Assess broad standalone pressure with qualitative intensity and a horizon')
             d.verified_utc = _clock(d.verified_utc, 'Currency assessment', None if self.provenance == 'reconstruction' else self.as_of_utc)

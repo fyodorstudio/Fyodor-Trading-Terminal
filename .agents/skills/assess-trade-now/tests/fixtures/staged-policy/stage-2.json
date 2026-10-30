@@ -1,0 +1,14 @@
+{
+  "fixture_note": "Second controlled information set. Use prior packet as dated background, add only these later facts, and do not backdate them. Article update times do not establish first delivery times of individual remarks.",
+  "as_of_utc": "2026-10-29T22:15:00Z",
+  "requested_currency": "USD",
+  "evidence": [
+    {"event_at": "2026-10-29T13:45:00Z", "publication_hour": "unknown", "published_on_jakarta": "2026-10-29", "source": "https://www.ecb.europa.eu/press/press_conference/monetary-policy-statement/2026/html/ecb.is261029~5c5ffe99e5.en.html", "body_excerpt": "Full Q&A is now verified. Lagarde says a hike was debated before the unanimous hold, and further tightening remains the conditional direction absent significant contrary developments. Higher financing costs offset part of the energy shock. Underlying inflation has broadly not changed; December information will matter."},
+    {"published_at": "2026-10-29T21:00:00Z", "source": "https://www.aol.co.uk/articles/dollar-steady-fed-hold-leaves-015532000.html", "body_excerpt": "Reuters reports traders reined in 2027 hike bets after Warsh's productivity/growth remarks. December hike pricing remains near 80% in its CME-attributed snapshot. ECB December tightening remains in play. No matched before/after probability series is supplied."},
+    {"published_at": "2026-10-29T21:35:00Z", "source": "https://www.aol.co.uk/articles/asian-shares-fall-alphabet-earnings-022247000.html", "body_excerpt": "Reuters reports US two-year Treasury yields fell 13.3 basis points to 4.602%; ten-year yields fell 10.6 basis points to 4.939% despite strong GDP. Technology earnings risk persisted. No private FX flow or current real-yield observation is supplied."}
+  ],
+  "upcoming": [
+    {"title": "US Employment Cost Index", "event_at": "2026-10-30T12:30:00Z", "source": "https://www.bls.gov/schedule/2026/10_sched.htm", "note": "US wage persistence can change the balance between continuing restraint and reduced forward urgency."}
+  ],
+  "availability": "ECB decision/conference have elapsed and their material guidance is now verified. No candles or later FX outcomes supplied. No current OIS curve beyond the attributed reports. Coverage is the requested USD mechanism, not a full all-eight investigation."
+}

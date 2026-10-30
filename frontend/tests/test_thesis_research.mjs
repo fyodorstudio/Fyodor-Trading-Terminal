@@ -44,7 +44,9 @@ try {
   assert.equal(validCurrencyResearch(fixture,fixture.from,fixture.to),true)
   for (const mutate of [x=>x.developments[0].sources[0].locator='javascript:alert(1)',x=>x.developments.push(x.developments[0]),
     x=>x.assessments[0].direction.intensity='extreme',x=>x.developments[0].published_on='2026-02-30',
-    x=>x.assessments[0].direction.reassessment.sources[0].locator='javascript:bad']) {
+    x=>x.assessments[0].direction.reassessment.sources[0].locator='javascript:bad',
+    x=>x.assessments[0].direction.review_status='provisional',
+    x=>Object.assign(x.assessments[0].direction,{review_status:'complete',stage_note:' '})]) {
     const bad=structuredClone(fixture);mutate(bad);assert.equal(validCurrencyResearch(bad,fixture.from,fixture.to),false)
   }
   localStorage.setItem('fyodor.thesis.across.v1','false');localStorage.setItem('fyodor.thesis.currency.v1','CHF');localStorage.setItem('fyodor.thesis.month.v1','2026-07');localStorage.setItem('fyodor.thesis.day.v1','22')
@@ -55,6 +57,11 @@ try {
   assert.ok(!container.textContent.includes('Across All Currency'))
   const chf=()=>container.querySelector('[data-thesis-currency="CHF"]')
   assert.match(chf().textContent,/Slight weakening.*Last Assessed/s)
+  const provisional={...direction,review_status:'provisional',stage_note:'Statement only; conference Q&A pending.'}
+  fixture={...fixture,revision:'provisional',assessments:fixture.assessments.map(a=>a.direction ? {...a,direction:provisional} : a)}
+  await poll()
+  assert.match(chf().querySelector('.thesis-notice').textContent,/Provisional: Statement only; conference Q&A pending/)
+  assert.match(researchMarkdown(fixture,null,'CHF'),/Provisional: Statement only; conference Q&amp;A pending/)
   assert.match(chf().textContent,/Active background.*Jul 20, 2026/s)
   assert.equal(chf().querySelectorAll('[data-thesis-development]').length,2,'Multiple same-day events have separate rows; background stays separate')
   assert.deepEqual([...chf().querySelectorAll('thead th')].map(t=>t.textContent),['Date','Time · Jakarta','Development','Fundamental implication','Effect on existing thesis','Source'])

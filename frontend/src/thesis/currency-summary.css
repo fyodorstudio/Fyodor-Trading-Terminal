@@ -9,3 +9,4 @@
 .currency-summary th:nth-child(2) { width: 11%; }
 .currency-summary th:nth-child(3) { width: 34%; }
 .currency-summary .currency-review-due td:last-child { font-weight: 700; }
+.currency-assessment-status { display: block; margin-bottom: 2px; color: var(--text-strong); }

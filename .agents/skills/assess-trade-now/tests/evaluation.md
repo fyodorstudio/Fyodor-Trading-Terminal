@@ -28,6 +28,37 @@ profitability. Give the evaluator only cutoff-appropriate raw evidence. Withhold
 later price/news and this acceptance rubric. Use isolated stores; never issue
 live trades, restart services or mutate the user's research during a replay.
 
+For the staged policy regression, give `fixtures/staged-policy/request.txt` and
+only `stage-1.json` first. Obtain the decision and proposed save, then supply
+`stage-2.json` in a new turn. Check actual reasoning: GDP's small survey beat and
+in-line monthly core are distinguished from persistent background; the prior
+productivity/patient-path argument is weighed; unavailable rate data are not
+invented. Do not require a predetermined grade in stage one. The later packet
+must trigger a fresh judgement that reconciles lower front-end yields, reduced
+2027 tightening expectations and completed ECB guidance. Merely repeating GDP
+or lowering intensity without justifying the surviving sign fails. No final FX
+chart is supplied or needed. Future stages are not treated as already reviewed.
+Also replay with stage two's decisive guidance inaccessible: save an exact gap
+or supported explicitly provisional assessment, not a freshly completed old call.
+Record the outputs and limitations of each replay; a manual rubric review is not
+an independent-agent test and one successful replay does not validate profitability.
+
+October 30, 2026 offline forward-test results: an independent agent received stage
+one, then stage two without this rubric or subsequent prices. It proposed Slight
+USD weakening, provisional through ECB guidance, after weighing the modest GDP
+survey beat/in-line monthly core against the productivity/patient-path argument.
+With stage two it proposed Moderate weakening, complete for the supplied set,
+explicitly reconciling reduced 2027 hike bets/lower front-end yields with elevated
+inflation, strong private demand and December hike pricing as opposition. Its first
+stage-two draft exceeded the eight-source direction limit (ten); after contract
+feedback it retained eight decisive citations and placed the others with underlying
+developments. The first draft therefore did not pass the persistence contract.
+A separate independent agent received stage one and `unavailable-followup.json`,
+without stage two or this rubric. It returned `direction: null`, an exact failed-Q&A
+gap and the unchanged prior assessment clock. Neither test opened publishers,
+tested real news discovery or wrote to the user's store. These are controlled
+reasoning/stage checks, not a historical timing reconstruction or accuracy guarantee.
+
 | Request and supplied evidence | Observable decision to inspect |
 | --- | --- |
 | A currency has active, already-published increases in underlying/services inflation and policy guidance focused on persistence; a new credit release shows softer household borrowing, higher corporate bank loans, bond redemptions and financial-sector lending. | Retrieve the active foundations even outside the visible day. Explain the bank-specific materiality and potential impact of the credit package without treating components/overlapping flows as votes or automatically reversing the currency view. Credit amounts alone do not rank corporate over household relevance or prove final spending. |

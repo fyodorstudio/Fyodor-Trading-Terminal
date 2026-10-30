@@ -30,6 +30,7 @@ class ResearchTests(TestCase):
 
     def direction(self):
         return dict(basis='standalone',verdict='POTENTIAL WEAKENING',intensity='slight',horizon='Current session through the selected review.',
+            review_status='complete',stage_note='Policy communication and relevant contrary guidance reviewed through cutoff.',
             reason='Funding pressure outweighs verified haven offsets.',verified_utc=self.clock,sources=[self.source],
             reassessment=dict(title='Policy guidance',event_at='2026-07-23T10:00:00Z',verified_utc=self.clock,sources=[self.source],note='Reassess the funding mechanism against new guidance.'))
 
@@ -215,3 +216,47 @@ class ResearchTests(TestCase):
         r['as_of_utc']='2026-07-22T11:00:00Z';append_research(ResearchRequest(**r),self.path)
         row=next(x for x in currency_summary(self.path)['rows'] if x['currency']=='CHF')
         self.assertIsNone(row['verdict']);self.assertEqual(row['reassessment_gap'],'Awaiting decisive facts.')
+
+    def test_new_directions_require_an_explicit_reviewed_stage_without_rewriting_legacy_runs(self):
+        for fields in [dict(review_status=None,stage_note=''),dict(review_status='complete',stage_note=' '),
+                       dict(review_status='provisional',stage_note=''),dict(review_status=None,stage_note='Statement only'),
+                       dict(review_status=None,stage_note=' '),dict(review_status='unknown',stage_note='Statement only')]:
+            request=self.request();request['assessments'][0]['direction'].update(fields)
+            with self.assertRaisesRegex(ValueError,'review_status|stage|Review status'):
+                ResearchRequest(**request)
+        self.assertFalse(self.path.with_name('research.json').exists())
+        append_research(ResearchRequest(**self.request()),self.path)
+        path=self.path.with_name('research.json');book=json.loads(path.read_text())
+        direction=book['runs'][0]['assessments'][0]['direction']
+        del direction['review_status'];del direction['stage_note']
+        path.write_text(json.dumps(book));before=path.read_bytes()
+        loaded=read_research(self.path)
+        self.assertNotIn('review_status',loaded['runs'][0]['assessments'][0]['direction'])
+        self.assertNotIn('review_status',next(r for r in currency_summary(self.path)['rows'] if r['currency']=='CHF'))
+        self.assertEqual(before,path.read_bytes(),'Reading old research must not manufacture completion claims or rewrite history')
+
+    def test_provisional_stage_survives_projection_gap_and_completed_reassessment(self):
+        request=self.request()
+        direction=request['assessments'][0]['direction']
+        direction.update(review_status='provisional',stage_note='Statement only; conference guidance/Q&A pending.')
+        append_research(ResearchRequest(**request),self.path)
+        original=next(r for r in currency_summary(self.path)['rows'] if r['currency']=='CHF')
+        self.assertEqual(original['review_status'],'provisional')
+        request.update(as_of_utc='2026-07-22T11:00:00Z',developments=[],
+            assessments=[dict(currency='CHF',gap='Conference guidance/Q&A could not be verified.')])
+        append_research(ResearchRequest(**request),self.path)
+        unresolved=next(r for r in currency_summary(self.path)['rows'] if r['currency']=='CHF')
+        for field in ['verdict','verified_utc','evidence_anchor','review_status','stage_note']:
+            self.assertEqual(unresolved[field],original[field])
+        self.assertIsNone(unresolved['reassessment'])
+        request['as_of_utc']='2026-07-22T11:30:00Z'
+        direction=self.direction();direction.update(verdict='POTENTIAL STRENGTHENING',verified_utc=request['as_of_utc'],
+            stage_note='Delivered conference guidance and contrary policy-path reporting reviewed.')
+        request['assessments']=[dict(currency='CHF',direction=direction,evidence_keys=['chf-policy'])]
+        append_research(ResearchRequest(**request),self.path)
+        resolved=next(r for r in currency_summary(self.path)['rows'] if r['currency']=='CHF')
+        self.assertEqual(resolved['review_status'],'complete');self.assertEqual(resolved['reassessment_gap'],'')
+        self.assertEqual(resolved['verdict'],'POTENTIAL STRENGTHENING')
+        history=research_snapshot(self.path,'2026-07-22','2026-07-22')['assessments']
+        self.assertEqual(history[-1]['direction']['review_status'],'provisional')
+        self.assertEqual(history[0]['direction']['stage_note'],direction['stage_note'])

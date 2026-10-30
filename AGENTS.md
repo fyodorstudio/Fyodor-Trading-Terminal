@@ -84,6 +84,9 @@ information sets, release vintages and intervention/news timing separate.
 The research procedure has one owner: Assess Trade Now. The persistence, UI and
 clock contract has one owner: [Thesis](docs/THESIS.md). Do not recreate a daily
 news quota, mandatory entry payload or duplicate verdict store in prompts.
+Apply the skill's decision check before changing or renewing pressure; declare
+the reviewed stage explicitly. An unresolved checkpoint does not freshly endorse
+the old verdict. A passing API/schema check establishes delivery, not sound research.
 
 ### Research quality and source coverage
 

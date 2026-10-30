@@ -87,6 +87,37 @@ a "Review needed" result. If an essential actual or remark is genuinely unknown,
 identify it precisely and limit only the unsupported claim.
 An in-line release need not invalidate an independently supported continuing thesis.
 
+### Decision check before saving
+
+Use the existing assessment `reason` to make these decisions reviewable; do not
+create a second verdict store or require an entry payload:
+
+- **Baseline → new information:** identify the attributed expectation and what
+  changed, including revisions. Strong growth or above-target inflation is not
+  automatically a new currency advantage. An in-line result can sustain an active
+  mechanism, but upgrading intensity needs a reason beyond restating that backdrop.
+- **Transmission → horizon:** explain why the new information changes or sustains
+  the expected timing/extent of policy, financing or another demand channel over
+  this horizon. Address the bank's latest delivered guidance. Higher output need
+  not imply more restraint when productivity or supply is the stated explanation.
+- **Contradiction → judgement:** open material contrary policy/path reporting
+  available by the cutoff. Reconcile it with the proposed sign, including reported
+  front-end yields/pricing when available; disclose the exact unresolved comparison
+  if it cannot be reconciled. Missing a live curve is not a missing-fact excuse,
+  and one yield/FX move does not mechanically decide direction. Do not force a
+  weak label, a reversal or a neutral result because opposition exists.
+- **Stage → completion:** name the delivered information set and the pending
+  material stage, if any. Save `review_status: provisional` with `stage_note`
+  identifying the verified stage and missing guidance. `complete` means the
+  claimed information set has been reviewed through cutoff, not guaranteed news
+  coverage or a promise through the next release. A checkpoint-only check that
+  retrieves no decisive stage evidence cannot renew the old assessment clock.
+
+Give the supported event impact promptly, even while the combined interpretation
+is provisional. If later evidence changes it, issue the correction before further
+bookkeeping. A retained direction must explain why its mechanism still dominates;
+adding a caveat or reducing its grade alone does not pass this check.
+
 When available, use time-attributed futures/OIS and policy-sensitive yields to
 check the proposed transmission. Distinguish short-rate expectations from long
 yields, which can move for other reasons. Reconcile a material contradiction or
@@ -105,6 +136,10 @@ first verdict provisional through that stage; an elapsed unverified stage remain
 a gap, not a completed review or an automatically renewed session verdict.
 Dynamic article bodies may change: preserve the observed version/cutoff and never
 attribute later text or market observations to an earlier assessment.
+After a policy decision, seek the actual later path guidance through the official
+body or credible contemporaneous reporting, rather than repeatedly finding the
+initial rate-hold headline. Distinguish a new remark from a later article update.
+Do not infer the first obtainable reversal minute from relative "hours ago" labels.
 
 ## Continuation, retracement or a changed thesis
 
