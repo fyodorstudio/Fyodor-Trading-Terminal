@@ -10,7 +10,7 @@ export function PriceAlertLines({ chartApi, seriesApi, alerts, symbol, dragEnabl
   selectedAlertId: string | null
 }) {
   const lines = useRef(new Map<string, IPriceLine>())
-  const visible = useMemo(() => alerts.filter(alert => alert.symbol === symbol && alert.status !== 'triggered'), [alerts, symbol])
+  const visible = useMemo(() => alerts.filter(alert => alert.symbol === symbol), [alerts, symbol])
   useLayoutEffect(() => {
     const current = lines.current
     return () => { for (const line of current.values()) seriesApi.removePriceLine(line); current.clear() }
@@ -22,9 +22,9 @@ export function PriceAlertLines({ chartApi, seriesApi, alerts, symbol, dragEnabl
     }
     for (const alert of visible) {
       const selected = alert.id === selectedAlertId
-      const options = { price: alert.price, color: selected ? '#0891b2' : alert.status === 'armed' ? '#b45309' : '#4f46e5',
+      const options = { price: alert.price, color: alert.status === 'triggered' ? '#9333ea' : selected ? '#0891b2' : alert.status === 'armed' ? '#b45309' : '#4f46e5',
         lineWidth: selected ? 3 as const : 2 as const, lineStyle: 2, axisLabelVisible: true,
-        title: `⏰ ${alert.status === 'paused' ? 'Paused · ' : ''}${alert.name || 'Price alert'}` }
+        title: `⏰ ${alert.status === 'triggered' ? 'Triggered · ' : alert.status === 'paused' ? 'Paused · ' : ''}${alert.name || 'Price alert'}` }
       const existing = lines.current.get(alert.id)
       if (existing) existing.applyOptions(options)
       else lines.current.set(alert.id, seriesApi.createPriceLine(options))

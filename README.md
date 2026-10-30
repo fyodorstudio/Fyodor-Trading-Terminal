@@ -158,9 +158,10 @@ each title pause/resume or rearm the alert, and delete it. Drag a line verticall
 and release to save its new price, or use
 the focused line's Up/Down keys (Shift for ten ticks). Escape cancels a drag. Quote
 checks for that alert pause during dragging, and moving a paused line keeps it paused.
-Armed/paused lines follow the symbol across timeframes;
-triggered lines disappear while their result stays in the dock. Right-click an
-armed/paused line to delete its alert, as with ordinary drawings. Alerts are separate
+All alert lines follow the symbol across timeframes. Triggered lines stay at their
+saved price in purple, including when selected, until deleted. They remain stopped;
+rearm from the dock to use the level again. Triggered levels cannot be dragged.
+Right-click any alert line to delete it, as with ordinary drawings. Alerts are separate
 from ordinary drawings and calendar alarms. They persist in browser storage and
 use their exact broker/symbol's live Bid quotes (about every 2.5 seconds); sampled
 touches or crossings trigger once. Missing/stale quotes pause monitoring. This is

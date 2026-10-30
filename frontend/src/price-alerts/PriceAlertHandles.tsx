@@ -83,18 +83,20 @@ export function PriceAlertHandles({ chartApi, seriesApi, alerts, lines, onPriceC
     onPointerMove={move} onPointerLeave={crosshair.leave} onPointerUp={finish}
     onPointerCancel={() => cancel()} onLostPointerCapture={() => cancel()}>
     {alerts.map(alert => {
+      const triggered = alert.status === 'triggered'
       const price = preview?.id === alert.id ? preview.price : alert.price
       const y = seriesApi.priceToCoordinate(price)
       if (y == null || y < 0 || y > viewport.height) return null
-      return <line key={alert.id} className="price-alert-handle" data-price-alert-id={alert.id} x1={0} x2={viewport.width} y1={y} y2={y}
-        role="slider" tabIndex={0} aria-label={`Drag ${alert.name || alert.symbol} alert price`} aria-valuenow={price} aria-valuemin={10 ** -alert.precision}
+      return <line key={alert.id} className={`price-alert-handle${triggered ? ' triggered' : ''}`} data-price-alert-id={alert.id} x1={0} x2={viewport.width} y1={y} y2={y}
+        role={triggered ? 'img' : 'slider'} tabIndex={0} aria-label={triggered ? `${alert.name || alert.symbol} triggered alert at ${price} · Right-click to delete` : `Drag ${alert.name || alert.symbol} alert price`}
+        aria-valuenow={triggered ? undefined : price} aria-valuemin={triggered ? undefined : 10 ** -alert.precision}
         onContextMenu={event => {
           event.preventDefault(); event.stopPropagation()
           onDeleteAlert(alert.id)
           cancel(true, false)
         }}
         onPointerDown={event => {
-          if (event.button !== 0 || !overlay.current) return
+          if (triggered || event.button !== 0 || !overlay.current) return
           event.preventDefault(); event.stopPropagation(); cancel()
           drag.current = { id: alert.id, original: alert.price, status: alert.status, precision: alert.precision, price: alert.price,
             startClientY: event.clientY, clientY: event.clientY, startY: y, pointerId: event.pointerId, element: overlay.current }
@@ -102,11 +104,11 @@ export function PriceAlertHandles({ chartApi, seriesApi, alerts, lines, onPriceC
           onDragChange(alert.id)
         }}
         onKeyDown={event => {
-          if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return
+          if (triggered || (event.key !== 'ArrowUp' && event.key !== 'ArrowDown')) return
           event.preventDefault(); event.stopPropagation()
           const next = Number((alert.price + (event.key === 'ArrowUp' ? 1 : -1) * (event.shiftKey ? 10 : 1) * 10 ** -alert.precision).toFixed(alert.precision))
           if (next > 0) onPriceChange(alert.id, next)
-        }}><title>Drag vertically to change price. Escape cancels. Arrow keys fine-tune. Right-click to delete.</title></line>
+        }}><title>{triggered ? 'Triggered alert. Right-click to delete.' : 'Drag vertically to change price. Escape cancels. Arrow keys fine-tune. Right-click to delete.'}</title></line>
     })}
   </svg>
 }

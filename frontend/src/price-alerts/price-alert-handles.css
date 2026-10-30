@@ -1,3 +1,4 @@
 .price-alert-handles { position: absolute; inset: 0; z-index: 6; pointer-events: none; touch-action: none; overflow: hidden; }
 .price-alert-handle { stroke: transparent; stroke-width: 12px; pointer-events: stroke; cursor: ns-resize; }
+.price-alert-handle.triggered { cursor: default; }
 .price-alert-handle:hover, .price-alert-handle:focus { stroke: color-mix(in srgb, var(--accent) 20%, transparent); outline: none; }

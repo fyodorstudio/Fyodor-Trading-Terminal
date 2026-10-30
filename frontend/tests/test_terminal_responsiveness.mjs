@@ -1015,6 +1015,7 @@ try {
   while (pending.get('ohlc')?.length) await reply('ohlc')
   await flush()
   assert.equal(container.querySelector('.market-title-row h1').textContent, 'EURUSD', 'Clicking an alert block opens its chart')
+  assert.ok([...tradeLines].some(line => line.options.title.includes('London level') && line.options.price === 1.4 && line.options.color === '#9333ea'), 'The selected triggered line remains at its saved price in purple')
   assert.equal(container.querySelector('.price-alert-details'), null, 'Clicking alert rows never expands controls')
   await click(container.querySelector('.price-alert-row.triggered [aria-label^="Delete "]'))
   assert.deepEqual(JSON.parse(localStorage.getItem(priceAlertKey)).alerts, [])
