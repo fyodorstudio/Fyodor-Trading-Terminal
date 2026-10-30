@@ -11,22 +11,39 @@ Eight buttons (EUR, GBP, AUD, NZD, USD, CAD, CHF, JPY) select exactly one
 standalone currency, remembered across reloads. JUL/OCT Month and Day selectors
 choose the Jakarta date. There is no All view, pair mode or Date range control.
 Only the selected currency renders its summary (direction/intensity, assessment
-time, reason, horizon and coverage), then a chronological table, newest dates first:
+time and a short reason with full rationale/coverage on expansion), then a
+chronological table, newest dates first:
 
-**Date | Time · Jakarta | Development | Fundamental implication | Effect on existing thesis | Source**.
+**Time · Jakarta | Event | Effect | Description | Source**.
 
 Each distinct development has one row. Several events on one day do not share a
-large daily cell. Unknown publication hours say Hour unknown. A separately known
-event clock is explicitly labelled Event, never passed off as a publication clock.
+large daily cell. Date and publication hour share Time; the event title has its own
+column. Effect shows the currency implication with the effect on the thesis on
+expansion. Description previews a bounded excerpt; Full description retains the
+complete saved text. Source names are compact links with full labels in their
+accessible names/tooltips. Details expand into a full-width row for source clocks,
+references and lazy version tables. Unknown publication hours say Hour unknown.
+A separately known event clock is explicitly labelled Event, never passed off as
+a publication clock.
 Source details retain verification and recorded clocks and existing calendar or
 External Source references. Older still-active evidence is visible in **Active
-background**. Upcoming checkpoints are separate from occurred facts. Assessment
-history expands only when recorded direction, intensity or basis changes; it never
+background**, after the recent development table, using the same five columns.
+An entry already shown in the recent table is not repeated as background.
+Upcoming checkpoints and expanded assessment history also use tables, separate
+from occurred facts. Assessment history expands only when recorded direction,
+intensity or basis changes; it never
 invents a verdict at every event time or a market turning point.
-Dates with more than 20 developments use pages; export retains every row. Closed
+Each development/background table pages after 20 entries; export retains every row. Closed
 development, assessment and earlier-version histories keep their bodies unmounted.
 The main view requests only its selected currency, reuses stable rows and caches
 visited currencies within the selected date. Scrolling performs no research/fetch.
+
+Research prose uses normal spacing and readable paragraphs. A recorded correction
+whose revision note starts `Formatting only:` may supply improved spacing for a
+frozen citation only when its facts match exactly after removing whitespace.
+Semantic corrections never replace a frozen citation. Original versions, evidence
+IDs, publication/verification clocks and assessments remain intact; this display
+rule also applies to Markdown exports, whose history retains the raw originals.
 
 Copy research prompt uses the selected currency/date and the same skill/contract
 for every invocation. Export Markdown saves that currency’s loaded evidence, assessments,

@@ -27,6 +27,9 @@ Keep all eight Fundamentals rows visible without an internal vertical scroller o
 repeated status headings. Anchor checkpoints to material currency-specific stages,
 not every routine speaker. Future alarms remain high-impact-only, with one bell
 per release package and explicit off choices preserved.
+Thesis developments and active background use a table: Time, Event, Effect,
+Description, Source. Write normal, spaced prose; never compress research into
+joined words. Keep full evidence and audit details available on expansion.
 
 Market Watch, chart/drawings, raw calendar Inspector, upcoming Alert, Activity and
 Settings, including agent-authored fundamental research journals and an archive

@@ -203,9 +203,11 @@ context tools are included.
 **Thesis** stores verified developments once and records separate currency
 assessments, with append-only corrections and exact evidence references. Eight
 currency buttons select one standalone currency; the selection persists. Month/Day
-navigation shows its current pressure, assessment time/coverage, older active
-background, dated developments with Jakarta hours, implications and effects, then
-upcoming checkpoints. There is no All view, pair selector or Date range control.
+navigation shows its current pressure and assessment details, then a ledger with
+**Time | Event | Effect | Description | Source**. Recent developments precede the
+older active background, using the same columns; checkpoints and expanded history
+also use tables. Full descriptions and provenance expand on demand. There is no
+All view, pair selector or Date range control.
 Only the selected currency renders; earlier currency reviews load on opening their
 archive, with individual snapshots expanded on demand. Prompts and Markdown exports
 follow the selected currency and date. The pair-journal entries, saved versions,

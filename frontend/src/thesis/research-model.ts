@@ -11,6 +11,16 @@ export type ResearchAssessment = { id: string; currency: string; as_of_utc: stri
   direction: DailyDirection | null; gap: string; evidence_ids: string[]; background_ids: string[]; period_start: string; period_end: string; legacy: boolean; checkpoints?: CurrencyCheckpoint[] }
 export type CurrencyResearch = { schema: 1; revision: string; from: string; to: string; currency?: string; developments: ResearchDevelopment[]; assessments: ResearchAssessment[] }
 
+// Apply only a recorded whitespace correction to a frozen citation's display.
+// Its evidence vintage, financial content, metadata and clocks stay unchanged.
+export function researchFacts(item: ResearchDevelopment) {
+  const compact = (value: string) => value.replace(/\s/g, '')
+  const original = compact(item.facts)
+  return [...(item.versions ?? [])].reverse().find(version => version.key === item.key
+    && version.revision_note.startsWith('Formatting only:') && version.saved_utc >= item.saved_utc
+    && compact(version.facts) === original)?.facts ?? item.facts
+}
+
 const stamp = (v: unknown): v is string => typeof v === 'string' && /(?:Z|[+-]\d\d:\d\d)$/.test(v) && Number.isFinite(Date.parse(v))
 const date = (v: unknown): v is string => typeof v === 'string' && /^\d{4}-\d\d-\d\d$/.test(v) && Number.isFinite(Date.parse(v+'T00:00:00Z')) && new Date(v+'T00:00:00Z').toISOString().slice(0,10)===v
 const sources = (v: unknown): v is ThesisSource[] => Array.isArray(v) && v.length > 0 && v.some(s => s?.kind === 'web')

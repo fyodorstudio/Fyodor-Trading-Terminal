@@ -4075,6 +4075,269 @@
       "revision_note": "",
       "id": "eb835a34fbae480eb9e2e36d72262082",
       "saved_utc": "2026-10-30T16:33:55.973428Z"
+    },
+    {
+      "key": "oil-20261030-ukmto-tanker-incident",
+      "title": "Tanker attack update: fire extinguished, voyage resumed, shipping threat persists",
+      "facts": "Full Reuters update identifies tanker Louise1; maritime sources describe 2 limpet mines attached from small boat. UKMTO says crew safe, no pollution, fire extinguished and vessel continuing to next port. Incident occurred October29, not necessarily October30; exact incident hour not verified here. Perpetrator unclear.\n\nThis qualifies the initial temporary disablement report and limits inference of lasting lost cargo/export volumes. Shipping security threat remains; do not sum unverified Iran claims about 3 tankers with this confirmed incident. Qatar diplomacy and Trump optimism are not a confirmed ceasefire; DOE awards and reported Russian refinery restoration retain opposition. Expiring December Brent and active January contract distinct.",
+      "published_on": "2026-10-30",
+      "published_at": null,
+      "event_at": null,
+      "timing_note": "Original source/event dates preserved. Unknown publication hours remain unknown; verification is not publication.",
+      "verified_utc": "2026-10-30T16:04:29.547337Z",
+      "sources": [
+        {
+          "kind": "web",
+          "label": "Reuters tanker incident update, full gCaptain syndication",
+          "locator": "https://gcaptain.com/tanker-in-strait-of-hormuz-hit-by-limpet-mines-security-sources-say/",
+          "note": "Full body retrieved15:52UTC. October30 report; incident occurredOctober29, hour not verified here. Source says crew safe, fire extinguished, vessel continued; no verified export-volume loss."
+        }
+      ],
+      "impacts": [
+        {
+          "currency": "CAD",
+          "implication": "Potential moderate strengthening pressure: shipping scarcity risk can support energy export prices.",
+          "thesis_effect": "Important opposition to GDP-driven weakness; resumed voyage limits physical-loss claim."
+        },
+        {
+          "currency": "EUR",
+          "implication": "Potential moderate weakening pressure: energy import-income costs and financing pressure.",
+          "thesis_effect": "Continues negative balance despite growth surprise."
+        },
+        {
+          "currency": "GBP",
+          "implication": "Potential slight weakening pressure: imported energy income damage opposes rate support.",
+          "thesis_effect": "Limits positive grade."
+        },
+        {
+          "currency": "JPY",
+          "implication": "Potential slight weakening pressure: energy import bill opposes normalisation/haven appeal.",
+          "thesis_effect": "Does not erase active positive mechanism."
+        },
+        {
+          "currency": "NZD",
+          "implication": "Potential slight weakening pressure: fuel import costs constrain household recovery.",
+          "thesis_effect": "Opposition to prospective tightening support."
+        }
+      ],
+      "instruments": [
+        "BRENT",
+        "WTI"
+      ],
+      "instrument_note": "Shipping-risk assessment for benchmark crude, not a broker execution contract.",
+      "commodity_implication": "Potential moderate strengthening from persistent shipping threat, with material vessel-recovery, supply and diplomatic opposition.",
+      "commodity_thesis_effect": "Retains oil upside watch while correcting physical-loss/incident-date limits; no forced entry.",
+      "references": [],
+      "expected_version": "6e0b8efd694c46e8810f0991236c87f3",
+      "revision_note": "Formatting only: restore word spacing and paragraph breaks; original non-whitespace text, economic content, sources, publication and verification clocks are unchanged. No new research or assessment.",
+      "id": "a4935ae1ba664388b580106ac53b9427",
+      "saved_utc": "2026-10-30T20:53:18.473784Z"
+    },
+    {
+      "key": "eur-20261030-ecb-survey-package",
+      "title": "ECB survey package: higher energy inflation, contained second rounds and a pre-meeting one-hike median",
+      "facts": "Official SPF headline forecasts 2026/27/28 = 3.0/2.6/2.0 vs 2.7/2.2/2.0; core 2.4/2.5/2.2, revisions 0/+0.2/+0.1; 2031 headline 2.0 anchored. Wage forecast 3.3/3.1/2.8, mild near up revisions but later deceleration; limited second round effects. Growth 1.0/1.3/1.3, chiefly mechanical prior strength; risks down.\n\nSMA collected Oct12-14, 69 respondents, median DFR 2.50 Oct, 2.75 Dec flat through 2027Q4, 2.50 early2028, 2.25 late2028. This is survey vintage not postmeeting market pricing or ECB commitment. 64 company contacts Sept28-Oct7 report moderate Q3/Q4 growth, AI/electrification/defence strength but weak retail/process industries/construction; declining headcounts, productivity helps services.\n\nStronger Q3 selling prices with some Q4 moderation; ~90% consumer-facing firms report only partial/limited pass-through. Expected wages 3.0 in26/2.9 in27, 40% see higher wage demand risk vs20 but majority no notable effect. No claim Europe has no AI investment; sources explicitly show it. One coherent survey-stage review, not independent vote count.",
+      "published_on": "2026-10-30",
+      "published_at": "2026-10-30T09:00:00Z",
+      "event_at": null,
+      "timing_note": "Original source/event dates preserved. Unknown publication hours remain unknown; verification is not publication.",
+      "verified_utc": "2026-10-30T16:04:29.547337Z",
+      "sources": [
+        {
+          "kind": "web",
+          "label": "ECB SPF fourth quarter 2026 full official report",
+          "locator": "https://www.ecb.europa.eu/stats/ecb_surveys/survey_of_professional_forecasters/html/ecb.spf2026q4.en.html",
+          "note": "Full body/table opened and downloaded. ReleasedOctober30 09:00UTC per official weekly agenda. Survey projections, not actual inflation or live OIS."
+        },
+        {
+          "kind": "web",
+          "label": "ECB October 2026 SMA aggregate results",
+          "locator": "https://www.ecb.europa.eu/stats/ecb_surveys/sma/shared/pdf/ecb.smar261030_october.en.pdf",
+          "note": "Full16-page official PDF text retrieved. Survey collectedOctober12-14,69 respondents; releasedOctober30 09:00UTC. Median forecast is not current market pricing."
+        },
+        {
+          "kind": "web",
+          "label": "ECB contacts with non-financial companies",
+          "locator": "https://www.ecb.europa.eu/press/economic-bulletin/focus/2026/html/ecb.ebbox202607_04~26727550fe.en.html",
+          "note": "Full official body retrieved15:51UTC.64 companies interviewedSeptember28-October7; releasedOctober30 09:00UTC. Qualitative contacts do not estimate aggregate GDP or investment flows."
+        }
+      ],
+      "impacts": [
+        {
+          "currency": "EUR",
+          "implication": "Potential slight strengthening pressure: persistent indirect inflation and resilient activity sustain conditional restraint.",
+          "thesis_effect": "Opposed by anchored long expectations, subdued employment/pass-through and an already anticipatedDecember hike; does not establish more aggressive majoritypath."
+        }
+      ],
+      "instruments": [],
+      "instrument_note": "",
+      "commodity_implication": "",
+      "commodity_thesis_effect": "",
+      "references": [],
+      "expected_version": "57ec01f06d534cb09135b00a6dbddab8",
+      "revision_note": "Formatting only: restore word spacing and paragraph breaks; original non-whitespace text, economic content, sources, publication and verification clocks are unchanged. No new research or assessment.",
+      "id": "560204da7a7846e3abe6daee6eb51822",
+      "saved_utc": "2026-10-30T20:53:18.473784Z"
+    },
+    {
+      "key": "gbp-20261030-budget-path-followthrough",
+      "title": "UK budget continuity and expected tightening sustain limited sterling support",
+      "facts": "Reuters October30 10:38UTC says budget avoided major surprises and did not materially change interest-rate outlook; headroom 15bn vs 23.6 March matched Reuters poll. Money markets nearly fully price November hike, second February, third July and 50% fourth December2027, all report-time attribution not new measured repricing. Deutsche Bank cites resilient activity, stabilising labour and energy second round risk as case for restraint. This opinion does not replace the active official CPI/services/wage/labour/credit foundations.\n\nReuters article inflation 3.1 conflicts with saved official September 3.5; official retained. Budget relief is not fresh fiscal stimulus or proven inflow; crowded EUR short report not private GBP flow proof.",
+      "published_on": "2026-10-30",
+      "published_at": "2026-10-30T10:38:00Z",
+      "event_at": null,
+      "timing_note": "Original source/event dates preserved. Unknown publication hours remain unknown; verification is not publication.",
+      "verified_utc": "2026-10-30T16:04:29.547337Z",
+      "sources": [
+        {
+          "kind": "web",
+          "label": "Reuters UK fiscal and expected policy path, full AOL syndication",
+          "locator": "https://www.aol.com/articles/pound-stands-tall-dollar-euro-103826000.html",
+          "note": "PublishedOctober30 10:38UTC, full body retrieved15:48UTC. Near-fully pricedNovember hike and subsequent path are report-time money-market attribution. Article3.1% inflation conflicts with saved official September3.5%; official release retained."
+        }
+      ],
+      "impacts": [
+        {
+          "currency": "GBP",
+          "implication": "Potential slight strengthening pressure: policy persistence and removal of immediate fiscal-disruption risk support relative demand incentives.",
+          "thesis_effect": "Retains modest positive balance; expectedhike, weak housing/credit and limitedheadroom capit."
+        }
+      ],
+      "instruments": [],
+      "instrument_note": "",
+      "commodity_implication": "",
+      "commodity_thesis_effect": "",
+      "references": [],
+      "expected_version": "9c2585eda55042b4bc7fec0ebc5b06ec",
+      "revision_note": "Formatting only: restore word spacing and paragraph breaks; original non-whitespace text, economic content, sources, publication and verification clocks are unchanged. No new research or assessment.",
+      "id": "485437dbf1f9496b8c6aceca527151ae",
+      "saved_utc": "2026-10-30T20:53:18.473784Z"
+    },
+    {
+      "key": "chf-20261030-kof-actual",
+      "title": "KOF falls but remains above its long-run average",
+      "facts": "Official October barometer 107.6, down 1.5 from 109.1. Most indicator bundles weaker, foreign demand/private consumption soften, other services/financial services dampen; manufacturing positive. Not GDP contraction, inflation actual or SNB path change.\n\nTE forecast 108.3 differs from CME 107.0 and other calendar 108.1/108.2; retain attribution without inventing consensus. Broker actual first observed 08:00UTC, official release hour not shown, earlier CME 07:00 conflict remains metadata only. Verified actual body resolves elapsed checkpoint; no ongoing missing-fact claim solely because hour unknown.",
+      "published_on": "2026-10-30",
+      "published_at": null,
+      "event_at": null,
+      "timing_note": "Original source/event dates preserved. Unknown publication hours remain unknown; verification is not publication.",
+      "verified_utc": "2026-10-30T16:04:29.547337Z",
+      "sources": [
+        {
+          "kind": "web",
+          "label": "KOF October barometer official release",
+          "locator": "https://kof.ethz.ch/en/news-and-events/media/press-releases/2026/10/kof_economic_barometer_remains_above_average_despite_decrease.html",
+          "note": "Current official body verified. October30 publication hour unknown; broker observation08:00UTC, TE article08:14 with timezone unspecified, prior CME07:00UTC schedule conflict. Actual contents resolve checkpoint despite hour conflict."
+        }
+      ],
+      "impacts": [
+        {
+          "currency": "CHF",
+          "implication": "Potential slight weakening pressure: softer forward activity reduces marginal domestic tightening incentive.",
+          "thesis_effect": "Above-averagelevelandcurrenthavenmechanismoutweighmodestactivityoffset;notautomaticdirectionreversal."
+        }
+      ],
+      "instruments": [],
+      "instrument_note": "",
+      "commodity_implication": "",
+      "commodity_thesis_effect": "",
+      "references": [],
+      "expected_version": "643f46731e5144478b0d9abb684ae410",
+      "revision_note": "Formatting only: restore word spacing and paragraph breaks; original non-whitespace text, economic content, sources, publication and verification clocks are unchanged. No new research or assessment.",
+      "id": "32337663ebc74d16938803d0ef9e3deb",
+      "saved_utc": "2026-10-30T20:53:18.473784Z"
+    },
+    {
+      "key": "chf-20261030-china-signing-confirmed",
+      "title": "Swiss-China trade upgrade signed; implementation remains conditional",
+      "facts": "Keystone-SDA/Swissinfo confirms presidents signed modernised agreement in Beijing October30. Tariff removal requires Swiss parliamentary ratification; new rules on market access, sustainable trade, labour and R&D. Prior August 99.8% export coverage announcement remains pre-existing background, not sudden all tariffs abolished today.\n\nEarlier Reuters still described signing as due; later confirmed stage supersedes preview. No immediate export growth or FX inflow measured.",
+      "published_on": "2026-10-30",
+      "published_at": null,
+      "event_at": null,
+      "timing_note": "Original source/event dates preserved. Unknown publication hours remain unknown; verification is not publication.",
+      "verified_utc": "2026-10-30T16:04:29.547337Z",
+      "sources": [
+        {
+          "kind": "web",
+          "label": "Keystone-SDA Swiss-China agreement signing, Swissinfo",
+          "locator": "https://www.swissinfo.ch/eng/global-trade/guy-parmelin-meets-xi-and-signs-a-free-trade-agreement/92301657",
+          "note": "Full body opened. October30 11:38 display has timezone unspecified. Signing verified; parliamentary ratification and entry into force remain separate."
+        }
+      ],
+      "impacts": [
+        {
+          "currency": "CHF",
+          "implication": "Potential slight strengthening pressure: prospective improvedmarketaccesssupportsexportincome.",
+          "thesis_effect": "Marginalreinforcement;announcedtermsandpendingratificationpreventlargefreshsessionimpulse."
+        }
+      ],
+      "instruments": [],
+      "instrument_note": "",
+      "commodity_implication": "",
+      "commodity_thesis_effect": "",
+      "references": [],
+      "expected_version": "9b9465ea5eb24565abdefad780d80757",
+      "revision_note": "Formatting only: restore word spacing and paragraph breaks; original non-whitespace text, economic content, sources, publication and verification clocks are unchanged. No new research or assessment.",
+      "id": "323490bed22143228f108ba86e3f4afc",
+      "saved_utc": "2026-10-30T20:53:18.473784Z"
+    },
+    {
+      "key": "usd-20261030-fiscal-operations-review",
+      "title": "US funding review: no fresh QE inference, fiscal outcomes remain conditional",
+      "facts": "Reuters fiscal analysis describes debt above 40 trillion, persistent deficit ~6% GDP and future issuance risk; investors disagree on election implications. December11 government funding deadline is distinct from late2027 potential debt ceiling Xdate. No election outcome presumed.\n\nNYFed October30 morning repo accepted0; afternoon future at snapshot. Official bill purchase schedule plans 14.6bn reinvestment and NO reserve-management purchases Oct15-Nov13; Oct29 accepted result still unverified, cannot use 1.827bn cap as result. Current official Treasury announced CUSIPs Nov2 13/26week 95/82bn and Nov3 6week 100bn, 11:30ET closes; offered not awarded.\n\nOfficial buyback schedule has no Oct30 row; Wrightson floating 2PM text does not confirm one. Nov3/4 announcements 11ET; Nov4/5 windows 13:40-14ET, cap >=4bn/4bn; tentative sizing not successful buybacks/QE. No material new financing action verified to supersede actual policy/risk mechanism.",
+      "published_on": "2026-10-30",
+      "published_at": null,
+      "event_at": null,
+      "timing_note": "Original source/event dates preserved. Unknown publication hours remain unknown; verification is not publication.",
+      "verified_utc": "2026-10-30T16:04:29.547337Z",
+      "sources": [
+        {
+          "kind": "web",
+          "label": "Reuters US fiscal/election analysis",
+          "locator": "https://d2233.cms.socastsrm.com/2026/10/30/analysis-us-fiscal-deterioration-main-headache-for-investors-as-midterms-loom/",
+          "note": "Full body retrieved15:49UTC. October30 publisher5:06AM timezone unspecified. Investor election scenarios are conditional opinions, not election results or budget actions."
+        },
+        {
+          "kind": "web",
+          "label": "NYFed repo operation actual results",
+          "locator": "https://markets.newyorkfed.org/api/rp/repo/all/results/lastTwoWeeks.json",
+          "note": "Official JSON snapshot15:51UTC: October30 morning accepted0; afternoon window remains future at assessment. Repo collateral funding is not outright QE."
+        },
+        {
+          "kind": "web",
+          "label": "NYFed Treasury purchase schedule",
+          "locator": "https://www.newyorkfed.org/medialibrary/media/markets/treasury-securities-schedule/current-schedule.csv",
+          "note": "October15-November13 schedule:14.6bn planned reinvestment, no reserve-management purchases. October29 accepted result still unverified; cap1.827bn is not accepted amount. November5 window09:00-09:20ET, cap3.652bn."
+        },
+        {
+          "kind": "web",
+          "label": "TreasuryDirect announced securities",
+          "locator": "https://www.treasurydirect.gov/TA_WS/securities/announced?format=json",
+          "note": "Current official250-record snapshot: November2 13/26-week95/82bn offerings; November3 6-week100bn,11:30AM ET close. Offerings differ from awards."
+        },
+        {
+          "kind": "web",
+          "label": "Treasury official tentative buyback schedule",
+          "locator": "https://home.treasury.gov/system/files/221/Tentative-Buyback-Schedule.xml",
+          "note": "Official XML and PDF both read. NoOctober30 operation listed; unplaced Wrightson2PM text is not enough to overrule dated official rows. November4/5 operations13:40-14:00ET; November3/4 announcements11AMET. Tentative/caps not accepted amounts."
+        }
+      ],
+      "impacts": [
+        {
+          "currency": "USD",
+          "implication": "Potential slight weakening pressure: persistent fiscal premium is an opposing medium-horizon confidence channel.",
+          "thesis_effect": "Not claimed as fresh outflow; routine implementation adds no new directional evidence."
+        }
+      ],
+      "instruments": [],
+      "instrument_note": "",
+      "commodity_implication": "",
+      "commodity_thesis_effect": "",
+      "references": [],
+      "expected_version": "d875e01b42fb46bcb5ca64bfce5199dd",
+      "revision_note": "Formatting only: restore word spacing and paragraph breaks; original non-whitespace text, economic content, sources, publication and verification clocks are unchanged. No new research or assessment.",
+      "id": "32dfa3d56190446399dcfa6133230e89",
+      "saved_utc": "2026-10-30T20:53:18.473784Z"
     }
   ],
   "runs": [
@@ -16911,6 +17174,35 @@
       },
       "development_ids": [
         "eb835a34fbae480eb9e2e36d72262082"
+      ]
+    },
+    {
+      "as_of_utc": "2026-10-30T20:53:16.196592Z",
+      "period_start": "2026-10-30",
+      "period_end": "2026-10-31",
+      "currencies": [
+        "USD",
+        "EUR",
+        "GBP",
+        "JPY",
+        "CHF",
+        "CAD",
+        "AUD",
+        "NZD"
+      ],
+      "assessments": [],
+      "provenance": "assessment",
+      "note": "Administrative whitespace-only repairs for six malformed saved descriptions. No new sources, verdicts, assessments, checkpoints or evidence dates. Earlier versions remain intact.",
+      "id": "592d902985e249f989a4451d7868b765",
+      "saved_utc": "2026-10-30T20:53:18.473784Z",
+      "evidence_versions": {},
+      "development_ids": [
+        "a4935ae1ba664388b580106ac53b9427",
+        "560204da7a7846e3abe6daee6eb51822",
+        "485437dbf1f9496b8c6aceca527151ae",
+        "32337663ebc74d16938803d0ef9e3deb",
+        "323490bed22143228f108ba86e3f4afc",
+        "32dfa3d56190446399dcfa6133230e89"
       ]
     }
   ]

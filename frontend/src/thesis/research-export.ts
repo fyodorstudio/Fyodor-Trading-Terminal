@@ -1,10 +1,18 @@
 import { dailyDirectionLabel, directionStageLabel, reviewCurrencies, safeThesisLink, type ThesisCurrency, type ThesisSource } from './thesis-model'
-import { researchAssessment, type CurrencyResearch } from './research-model'
+import { researchAssessment, researchFacts, type CurrencyResearch, type ResearchDevelopment } from './research-model'
 import { researchPrompt } from './research-prompt'
 
 const text = (s: string) => s.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('|','\\|').replaceAll('[','\\[').replaceAll(']','\\]').replace(/\r?\n/g,'<br>')
 const links = (items: ThesisSource[]) => items.map(s => s.kind === 'web' && safeThesisLink(s.locator) ? `[${text(s.label)}](${s.locator.replaceAll('|','%7C').replaceAll('(','%28').replaceAll(')','%29')})` : text(s.label)).join(' · ')
 const clock = (s: string) => new Intl.DateTimeFormat('en-US', { timeZone:'Asia/Jakarta', dateStyle:'medium', timeStyle:'short', hour12:true }).format(new Date(s))+' Jakarta'
+function ledger(items: ResearchDevelopment[], currency: string) {
+  const lines = ['| Time · Jakarta | Event | Effect | Description | Source |','| --- | --- | --- | --- | --- |']
+  for (const item of items) {
+    const impact=item.impacts.find(i=>i.currency===currency); if (!impact) continue
+    lines.push(`| ${item.published_at ? clock(item.published_at) : item.published_on+' · Hour unknown'}${item.event_at ? '<br>Event: '+clock(item.event_at) : ''} | ${text(item.title)} | ${text(impact.implication || 'Not separately recorded.')}<br>Effect on existing thesis: ${text(impact.thesis_effect || 'See dated assessment.')} | ${text(researchFacts(item))} | ${links(item.sources)} |`)
+  }
+  return lines
+}
 export function researchMarkdown(data: CurrencyResearch, error: string | null = null, selectedCurrency?: ThesisCurrency) {
   const lines = [`# Thesis research · ${data.from} – ${data.to}`, '', `Exported ${clock(new Date().toISOString())}. Original source and assessment clocks are preserved.`, '']
   if (error) lines.push(`Load error: ${text(error)}. Export uses the last loaded snapshot.`, '')
@@ -15,19 +23,16 @@ export function researchMarkdown(data: CurrencyResearch, error: string | null = 
     if (d?.review_status) lines.push(text(directionStageLabel(d)), '')
     if (d) lines.push(text(d.reason),'',`Horizon: ${text(d.horizon || 'See original assessment.')}. ${links(d.sources)}`,'')
     if (a?.gap) lines.push(`Coverage: ${text(a.gap)}`,'')
-    const background = data.developments.filter(item => a?.background_ids.includes(item.id) || item.published_on<data.from && a?.evidence_ids.includes(item.id))
-    if (background.length || d?.evidence_anchor) {
+    const entries = data.developments.filter(item => item.published_on>=data.from && item.published_on<=data.to && item.impacts.some(i=>i.currency===currency))
+    const entryIds = new Set(entries.map(item=>item.id))
+    lines.push('### Developments','',...ledger(entries,currency),'')
+    const background = data.developments.filter(item => !entryIds.has(item.id) && (a?.background_ids.includes(item.id) || item.published_on<data.from && a?.evidence_ids.includes(item.id)))
+    if (background.length || !entries.length && d?.evidence_anchor) {
       lines.push('### Active background','')
-      for (const item of background) lines.push(`- ${item.published_on} · ${text(item.title)}. ${text(item.facts)} ${links(item.sources)}`)
+      if (background.length) lines.push(...ledger(background,currency))
       if (!background.length && d?.evidence_anchor) lines.push(`- ${d.evidence_anchor.event_at ? clock(d.evidence_anchor.event_at) : d.evidence_anchor.event_date} · ${text(d.evidence_anchor.title)}. ${text(d.evidence_anchor.note)} ${links(d.evidence_anchor.sources)}`)
       lines.push('')
     }
-    lines.push('| Date | Time · Jakarta | Development | Fundamental implication | Effect on existing thesis | Source |','| --- | --- | --- | --- | --- | --- |')
-    for (const item of data.developments.filter(item => item.published_on>=data.from && item.published_on<=data.to)) {
-      const impact=item.impacts.find(i=>i.currency===currency); if (!impact) continue
-      lines.push(`| ${item.published_on} | ${item.published_at ? clock(item.published_at) : 'Hour unknown'}${item.event_at ? '<br>Event: '+clock(item.event_at) : ''} | ${text(item.title)}<br>${text(item.facts)} | ${text(impact.implication || 'Not separately recorded in older research.')} | ${text(impact.thesis_effect || 'See dated assessment.')} | ${links(item.sources)} |`)
-    }
-    lines.push('')
     const upcoming=[...new Map([...(d?.reassessment ? [d.reassessment] : []),...(a?.checkpoints ?? [])].map(cp=>[cp.title+':'+(cp.event_at ?? cp.event_date),cp])).values()]
     for (const cp of upcoming) lines.push(`Upcoming checkpoint: **${text(cp.title)}** · ${cp.event_at ? clock(cp.event_at) : cp.event_date+' · hour unknown'}. ${text(cp.note)} ${links(cp.sources)}`, '')
     if (d && !d.reassessment) lines.push(`Review needed: ${text(d.reassessment_gap || 'No verified checkpoint saved.')}`, '')

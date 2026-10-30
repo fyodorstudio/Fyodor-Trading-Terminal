@@ -39,9 +39,14 @@ const poll=async()=>{const [id,timer]=[...timers][0];timers.delete(id);await Rea
 const click=async label=>React.act(async()=>{const button=[...container.querySelectorAll('button')].find(b=>b.textContent===label);assert.ok(button,label);button.click()})
 try {
   const {ThesisDock}=await server.ssrLoadModule('./src/thesis/ThesisDock.tsx')
-  const {validCurrencyResearch}=await server.ssrLoadModule('./src/thesis/research-model.ts')
+  const {validCurrencyResearch,researchFacts}=await server.ssrLoadModule('./src/thesis/research-model.ts')
   const {researchMarkdown}=await server.ssrLoadModule('./src/thesis/research-export.ts')
   assert.equal(validCurrencyResearch(fixture,fixture.from,fixture.to),true)
+  const frozen={...development('spacing','2026-07-20'),facts:'Officialreleasecontainsjoinedwords.'}
+  const spaced={...frozen,id:'spacing-v2',facts:'Official release contains joined words.',saved_utc:'2026-07-22T11:00:00Z',revision_note:'Formatting only: restore word spacing.'}
+  assert.equal(researchFacts({...frozen,versions:[frozen,spaced]}),spaced.facts,'Recorded spacing repairs improve frozen display without replacing the evidence vintage')
+  assert.equal(researchFacts({...frozen,versions:[{...spaced,facts:'Official release contains different facts.'}]}),frozen.facts,'Semantic changes never replace frozen evidence')
+  assert.equal(researchFacts({...frozen,versions:[{...spaced,revision_note:'Changed interpretation'}]}),frozen.facts)
   for (const mutate of [x=>x.developments[0].sources[0].locator='javascript:alert(1)',x=>x.developments.push(x.developments[0]),
     x=>x.assessments[0].direction.intensity='extreme',x=>x.developments[0].published_on='2026-02-30',
     x=>x.assessments[0].direction.reassessment.sources[0].locator='javascript:bad',
@@ -63,11 +68,32 @@ try {
   assert.match(chf().querySelector('.thesis-notice').textContent,/Provisional: Statement only; conference Q&A pending/)
   assert.match(researchMarkdown(fixture,null,'CHF'),/Provisional: Statement only; conference Q&amp;A pending/)
   assert.match(chf().textContent,/Active background.*Jul 20, 2026/s)
-  assert.equal(chf().querySelectorAll('[data-thesis-development]').length,2,'Multiple same-day events have separate rows; background stays separate')
-  assert.deepEqual([...chf().querySelectorAll('thead th')].map(t=>t.textContent),['Date','Time · Jakarta','Development','Fundamental implication','Effect on existing thesis','Source'])
+  const ledger=()=>chf().querySelector('table[aria-label="CHF developments"]')
+  const background=()=>chf().querySelector('table[aria-label="CHF active background"]')
+  assert.equal(ledger().querySelectorAll('[data-thesis-development]').length,2,'Multiple same-day events have separate rows')
+  assert.equal(background().querySelectorAll('[data-thesis-development]').length,1,'Active background uses the same ledger, after recent events')
+  const columns=['Time · Jakarta','Event','Effect','Description','Source']
+  assert.deepEqual([...ledger().querySelectorAll('thead th')].map(t=>t.textContent),columns)
+  assert.deepEqual([...background().querySelectorAll('thead th')].map(t=>t.textContent),columns)
+  assert.ok(ledger().compareDocumentPosition(background()) & dom.Node.DOCUMENT_POSITION_FOLLOWING)
+  assert.deepEqual([...chf().querySelector('table[aria-label="CHF upcoming checkpoints"]').querySelectorAll('thead th')].map(t=>t.textContent),['Time · Jakarta','Event','What to reassess','Source'])
   assert.match(chf().querySelector('[data-thesis-development="new"]').textContent,/3:35 PM/)
   assert.match(chf().querySelector('[data-thesis-development="unknown"]').textContent,/Hour unknown/)
-  assert.match(chf().textContent,/Partly offsets earlier weakening pressure/)
+  const thesisEffect=[...ledger().querySelectorAll('details')].find(d=>d.querySelector('summary')?.textContent==='Effect on thesis')
+  assert.ok(!chf().textContent.includes('Partly offsets earlier weakening pressure'))
+  await React.act(async()=>{thesisEffect.open=true;thesisEffect.dispatchEvent(new dom.Event('toggle'))})
+  assert.match(thesisEffect.textContent,/Partly offsets earlier weakening pressure/)
+  const longFacts='Verified facts new. '+('Additional sourced context with original qualifications. '.repeat(12))+'Final qualification remains available.'
+  fixture={...fixture,revision:'long-description',developments:fixture.developments.map(d=>d.id==='new' ? {...d,facts:longFacts} : d)}
+  await poll()
+  const longRow=ledger().querySelector('[data-thesis-development="new"]')
+  assert.ok(longRow.querySelector('.research-description').textContent.length<=361,'Descriptions remain bounded excerpts')
+  assert.ok(!longRow.textContent.includes('Final qualification remains available.'))
+  const fullDescription=[...longRow.querySelectorAll('details')].find(d=>d.querySelector('summary')?.textContent==='Full description')
+  await React.act(async()=>{fullDescription.open=true;fullDescription.dispatchEvent(new dom.Event('toggle'))})
+  assert.ok(fullDescription.textContent.includes(longFacts),'Full original qualifications remain available, without an invented summary')
+  await React.act(async()=>{fullDescription.open=false;fullDescription.dispatchEvent(new dom.Event('toggle'))})
+  assert.ok(!longRow.textContent.includes('Final qualification remains available.'))
   const beforeSwitch=requests.length
   await click('USD')
   assert.equal(chf(),null,'Other currencies are unmounted, not hidden')
@@ -80,7 +106,7 @@ try {
   assert.ok(requests.every(r=>r.url.startsWith('/storage-api/theses/research?')),'New research does not load legacy monthly blobs on normal polls')
   await click('Copy research prompt');assert.match(copied,/2026-07-22/);assert.match(copied,/no news-item quota/)
   assert.match(copied,/Research CHF from 2026-07-22/);assert.match(copied,/--scope CHF/);assert.ok(!copied.includes('Research USD, EUR'))
-  const before=JSON.stringify(fixture),markdown=researchMarkdown({...fixture,from:'2026-07-20'},'Offline')
+  const before=JSON.stringify(fixture),markdown=researchMarkdown(fixture,'Offline')
   assert.match(markdown,/Load error: Offline/);assert.match(markdown,/Active background/);assert.match(markdown,/Hour unknown/)
   assert.match(markdown,/Effect on existing thesis/);assert.match(markdown,/Verified facts old/)
   assert.equal(JSON.stringify(fixture),before,'Export does not mutate the ledger or source order')
@@ -123,6 +149,7 @@ try {
   const versions=Array.from({length:100},(_,i)=>({...development('v'+i,'2026-07-23'),facts:'Hidden version evidence '+i}))
   fixture={...fixture,revision:'histories',developments:fixture.developments.map((d,i)=>i===0 ? {...d,versions} : d)}
   await poll();assert.ok(!container.textContent.includes('Hidden version evidence'))
+  await React.act(async()=>container.querySelector('[data-thesis-development] .research-detail-toggle').click())
   const history=[...container.querySelectorAll('details')].find(d=>d.querySelector('summary')?.textContent.startsWith('Development history'))
   await React.act(async()=>{history.open=true;history.dispatchEvent(new dom.Event('toggle'))})
   assert.match(container.textContent,/Hidden version evidence 99/)
@@ -133,6 +160,17 @@ try {
   assert.equal(globalThis.__thesisWork.rows,scrollWork);assert.equal(requests.length,scrollRequests,'Scrolling causes no fetch/render work')
   const scoped=researchMarkdown(fixture,null,'EUR')
   assert.match(scoped,/## EUR/);assert.ok(!scoped.includes('## CHF'));assert.ok(!scoped.includes('Verified facts CHF'))
+  const priorBackground=Array.from({length:45},(_,i)=>({...development('background'+i,'2026-07-20'),impacts:[{currency:'EUR',implication:'Earlier active evidence.',thesis_effect:'Retained foundation.'}]}))
+  fixture={...fixture,revision:'large-background',developments:[...fixture.developments,...priorBackground],assessments:[{...fixture.assessments[0],currency:'EUR',background_ids:priorBackground.map(d=>d.id)}]}
+  await poll()
+  const eur=container.querySelector('[data-thesis-currency="EUR"]')
+  assert.equal(eur.querySelector('[aria-label="EUR active background"]').querySelectorAll('[data-thesis-development]').length,20,'Background is independently paginated')
+  assert.equal(eur.querySelector('[aria-label="EUR developments"]').querySelectorAll('[data-thesis-development]').length,20)
+  await click('Next background entries')
+  assert.match(eur.querySelector('[aria-label="EUR background entries pages"]').textContent,/21–40 of 45/)
+  assert.equal(eur.querySelector('[aria-label="EUR developments"]').querySelector('[data-thesis-development]').getAttribute('data-thesis-development'),'EUR0','Background paging does not move the recent ledger')
+  const backgroundExport=researchMarkdown(fixture,null,'EUR')
+  assert.match(backgroundExport,/Verified facts background44/,'Export retains off-page background entries')
   await React.act(async()=>root.render(null))
   await React.act(async()=>root.render(React.createElement(ThesisDock)))
   assert.equal(container.querySelector('[data-thesis-currency]').getAttribute('data-thesis-currency'),'EUR','Selected currency survives remount')
