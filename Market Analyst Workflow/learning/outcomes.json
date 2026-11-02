@@ -286967,6 +286967,263 @@
       },
       "relative_preferences": [],
       "post_checkpoint_observation": null
+    },
+    {
+      "id": "c6ec015bf6f3a0cb758e647d54992dcbbe65a7b20a2975ebe077f40f993135f2",
+      "episode_id": "research:ac9fb362582d4c14a93c915b14cf3c28:CAD",
+      "episode_hash": "3fb7cae6325349e9280a63460775a1e954795f49b85f41a64a088a46c6636cfb",
+      "protocol_id": "ba9c464a9fa5f9b78f5379e6d7938d2c506a18bb95f5626a83ceaf8573e8f581",
+      "end_utc": "2026-11-02T15:00:00Z",
+      "window_basis": "diagnostic_proxy",
+      "data_revision": "80193a6fc5e3df56ac6af6182275aa8ebd4394fdc1efd844e0f8a498377d8b0f",
+      "window_revision": "dae27c75ffbec50dfca6f052e1163dc5490e2372f75f3ab0ac0788e2c55c0383",
+      "recorded_utc": "2026-11-02T19:11:51.666389Z",
+      "observation": {
+        "status": "unavailable",
+        "gap": "Missing exact completed terminal minute; no neighbouring candle substituted."
+      },
+      "secondary_observations": {
+        "120": {
+          "status": "unavailable",
+          "gap": "Missing exact completed terminal minute; no neighbouring candle substituted."
+        },
+        "1440": {
+          "status": "pending"
+        }
+      },
+      "relative_preferences": [],
+      "post_checkpoint_observation": {
+        "status": "unavailable",
+        "gap": "No common completed M1 baseline within 120 seconds of delivery.",
+        "interpretation": "Movement while reassessment was overdue; not scored as the original forecast window."
+      }
+    },
+    {
+      "id": "e47b7d472948ca9ee3c76937425016fe6c55f4685c10acf12fa4ff6931fe374d",
+      "episode_id": "research:ac9fb362582d4c14a93c915b14cf3c28:CHF",
+      "episode_hash": "9492f493e8787e23253e736129c0d26ea83de662d71d3eb9230e791553e004a1",
+      "protocol_id": "ba9c464a9fa5f9b78f5379e6d7938d2c506a18bb95f5626a83ceaf8573e8f581",
+      "end_utc": "2026-11-02T08:00:00Z",
+      "window_basis": "diagnostic_proxy",
+      "data_revision": "80193a6fc5e3df56ac6af6182275aa8ebd4394fdc1efd844e0f8a498377d8b0f",
+      "window_revision": "30e59fc34d3ea2a107e9487209c1ed90590a0b560d776b87f40e068f55033e03",
+      "recorded_utc": "2026-11-02T19:11:51.670378Z",
+      "observation": {
+        "status": "unavailable",
+        "gap": "Missing exact completed terminal minute; no neighbouring candle substituted."
+      },
+      "secondary_observations": {
+        "120": {
+          "status": "unavailable",
+          "gap": "Missing exact completed terminal minute; no neighbouring candle substituted."
+        },
+        "1440": {
+          "status": "pending"
+        }
+      },
+      "relative_preferences": [],
+      "post_checkpoint_observation": {
+        "status": "unavailable",
+        "gap": "No common completed M1 baseline within 120 seconds of delivery.",
+        "interpretation": "Movement while reassessment was overdue; not scored as the original forecast window."
+      }
+    },
+    {
+      "id": "3950a27d509fd60853518cec94bb46b5fc973005dddbbf41287100bca8142406",
+      "episode_id": "research:ac9fb362582d4c14a93c915b14cf3c28:GBP",
+      "episode_hash": "ebb35aa10f4432aed59277d8d8be5b77129bf1fab18bae6f65730307e91061f1",
+      "protocol_id": "ba9c464a9fa5f9b78f5379e6d7938d2c506a18bb95f5626a83ceaf8573e8f581",
+      "end_utc": "2026-11-02T19:11:02.412423Z",
+      "window_basis": "diagnostic_proxy",
+      "data_revision": "80193a6fc5e3df56ac6af6182275aa8ebd4394fdc1efd844e0f8a498377d8b0f",
+      "window_revision": "3378a1530c0c7966f123b257c56220107ae8880957e12aa125f6f8666e2a814b",
+      "recorded_utc": "2026-11-02T19:11:51.680350Z",
+      "observation": {
+        "status": "unavailable",
+        "gap": "Missing exact completed terminal minute; no neighbouring candle substituted."
+      },
+      "secondary_observations": {
+        "120": {
+          "status": "unavailable",
+          "gap": "Missing exact completed terminal minute; no neighbouring candle substituted."
+        },
+        "1440": {
+          "status": "pending"
+        }
+      },
+      "relative_preferences": [],
+      "post_checkpoint_observation": null
+    },
+    {
+      "id": "b83eaff7851c2977328f6ce31879b86fffe848bda7d00238336cebebd6be64dd",
+      "episode_id": "research:ac9fb362582d4c14a93c915b14cf3c28:JPY",
+      "episode_hash": "fcfab6ded0843a5d093bb45c6915a2b95aa90f47517afcff0cf7fa3b3e41788e",
+      "protocol_id": "ba9c464a9fa5f9b78f5379e6d7938d2c506a18bb95f5626a83ceaf8573e8f581",
+      "end_utc": "2026-11-02T08:00:00Z",
+      "window_basis": "diagnostic_proxy",
+      "data_revision": "80193a6fc5e3df56ac6af6182275aa8ebd4394fdc1efd844e0f8a498377d8b0f",
+      "window_revision": "30e59fc34d3ea2a107e9487209c1ed90590a0b560d776b87f40e068f55033e03",
+      "recorded_utc": "2026-11-02T19:11:51.683342Z",
+      "observation": {
+        "status": "unavailable",
+        "gap": "Missing exact completed terminal minute; no neighbouring candle substituted."
+      },
+      "secondary_observations": {
+        "120": {
+          "status": "unavailable",
+          "gap": "Missing exact completed terminal minute; no neighbouring candle substituted."
+        },
+        "1440": {
+          "status": "pending"
+        }
+      },
+      "relative_preferences": [],
+      "post_checkpoint_observation": {
+        "status": "unavailable",
+        "gap": "No common completed M1 baseline within 120 seconds of delivery.",
+        "interpretation": "Movement while reassessment was overdue; not scored as the original forecast window."
+      }
+    },
+    {
+      "id": "782948027964dbfc814eedf0edad19441b860b8c4561000309303d72eb86e9e3",
+      "episode_id": "research:ac9fb362582d4c14a93c915b14cf3c28:NZD",
+      "episode_hash": "8e57ebe8ce7236dab01cdd45e77160db158ca72812d84bc1a126bccc9af0404e",
+      "protocol_id": "ba9c464a9fa5f9b78f5379e6d7938d2c506a18bb95f5626a83ceaf8573e8f581",
+      "end_utc": "2026-11-02T19:11:02.412423Z",
+      "window_basis": "diagnostic_proxy",
+      "data_revision": "80193a6fc5e3df56ac6af6182275aa8ebd4394fdc1efd844e0f8a498377d8b0f",
+      "window_revision": "3378a1530c0c7966f123b257c56220107ae8880957e12aa125f6f8666e2a814b",
+      "recorded_utc": "2026-11-02T19:11:51.687333Z",
+      "observation": {
+        "status": "unavailable",
+        "gap": "Missing exact completed terminal minute; no neighbouring candle substituted."
+      },
+      "secondary_observations": {
+        "120": {
+          "status": "unavailable",
+          "gap": "Missing exact completed terminal minute; no neighbouring candle substituted."
+        },
+        "1440": {
+          "status": "pending"
+        }
+      },
+      "relative_preferences": [],
+      "post_checkpoint_observation": null
+    },
+    {
+      "id": "16b812030fd6b1377f236d2339eed4509752e7a03315973d27bde592e52a4deb",
+      "episode_id": "research:538c9f83a1984985baf54d8364c6193b:EUR",
+      "episode_hash": "1ea291e348a816ffc772be0f6b22504c8da6cb0b5715397ffe9c50d680d3fa57",
+      "protocol_id": "ba9c464a9fa5f9b78f5379e6d7938d2c506a18bb95f5626a83ceaf8573e8f581",
+      "end_utc": "2026-11-02T08:00:00Z",
+      "window_basis": "diagnostic_proxy",
+      "data_revision": "80193a6fc5e3df56ac6af6182275aa8ebd4394fdc1efd844e0f8a498377d8b0f",
+      "window_revision": "30e59fc34d3ea2a107e9487209c1ed90590a0b560d776b87f40e068f55033e03",
+      "recorded_utc": "2026-11-02T19:11:51.696308Z",
+      "observation": {
+        "status": "unavailable",
+        "gap": "Missing exact completed terminal minute; no neighbouring candle substituted."
+      },
+      "secondary_observations": {
+        "120": {
+          "status": "unavailable",
+          "gap": "Missing exact completed terminal minute; no neighbouring candle substituted."
+        },
+        "1440": {
+          "status": "pending"
+        }
+      },
+      "relative_preferences": [],
+      "post_checkpoint_observation": {
+        "status": "unavailable",
+        "gap": "No common completed M1 baseline within 120 seconds of delivery.",
+        "interpretation": "Movement while reassessment was overdue; not scored as the original forecast window."
+      }
+    },
+    {
+      "id": "72c85e1158e539c5229f8773c26f3f4ba8ea2c22d56917d153b6dc515651f9bd",
+      "episode_id": "research:5fe0a3c65713444aa7359ec99b327fa8:AUD",
+      "episode_hash": "9f73c82383dc2590b4a103ec701fc33cdf6e87a57e28a5527803de484334c03c",
+      "protocol_id": "ba9c464a9fa5f9b78f5379e6d7938d2c506a18bb95f5626a83ceaf8573e8f581",
+      "end_utc": "2026-11-02T08:00:00Z",
+      "window_basis": "diagnostic_proxy",
+      "data_revision": "80193a6fc5e3df56ac6af6182275aa8ebd4394fdc1efd844e0f8a498377d8b0f",
+      "window_revision": "30e59fc34d3ea2a107e9487209c1ed90590a0b560d776b87f40e068f55033e03",
+      "recorded_utc": "2026-11-02T19:11:51.700299Z",
+      "observation": {
+        "status": "unavailable",
+        "gap": "No common completed M1 baseline within 120 seconds of delivery."
+      },
+      "secondary_observations": {
+        "120": {
+          "status": "unavailable",
+          "gap": "No common completed M1 baseline within 120 seconds of delivery."
+        },
+        "1440": {
+          "status": "pending"
+        }
+      },
+      "relative_preferences": [],
+      "post_checkpoint_observation": {
+        "status": "unavailable",
+        "gap": "No common completed M1 baseline within 120 seconds of delivery.",
+        "interpretation": "Movement while reassessment was overdue; not scored as the original forecast window."
+      }
+    },
+    {
+      "id": "26b9543a8be261993feb1b04d9f6976afbf93006397ba86f020ac134e24eb34e",
+      "episode_id": "research:5fe0a3c65713444aa7359ec99b327fa8:USD",
+      "episode_hash": "2280245146f270c7c3e59c3e34aca87b8c59b9f502640d923b7d5085d61039c0",
+      "protocol_id": "ba9c464a9fa5f9b78f5379e6d7938d2c506a18bb95f5626a83ceaf8573e8f581",
+      "end_utc": "2026-11-02T08:00:00Z",
+      "window_basis": "diagnostic_proxy",
+      "data_revision": "80193a6fc5e3df56ac6af6182275aa8ebd4394fdc1efd844e0f8a498377d8b0f",
+      "window_revision": "30e59fc34d3ea2a107e9487209c1ed90590a0b560d776b87f40e068f55033e03",
+      "recorded_utc": "2026-11-02T19:11:51.707279Z",
+      "observation": {
+        "status": "unavailable",
+        "gap": "No common completed M1 baseline within 120 seconds of delivery."
+      },
+      "secondary_observations": {
+        "120": {
+          "status": "unavailable",
+          "gap": "No common completed M1 baseline within 120 seconds of delivery."
+        },
+        "1440": {
+          "status": "pending"
+        }
+      },
+      "relative_preferences": [],
+      "post_checkpoint_observation": {
+        "status": "unavailable",
+        "gap": "No common completed M1 baseline within 120 seconds of delivery.",
+        "interpretation": "Movement while reassessment was overdue; not scored as the original forecast window."
+      }
+    },
+    {
+      "id": "fcb0bb8fb09d8adbda597726ff621f13fb4bfbe946384f87af57c99e33870643",
+      "episode_id": "research:43c6a0d3fc6b44b6b2a37e34dcb96ffc:JPY",
+      "episode_hash": "35fb4e449bd0cc738b05ce542f947dedfcb0d98091970c21985fab44f0bb8e79",
+      "protocol_id": "ba9c464a9fa5f9b78f5379e6d7938d2c506a18bb95f5626a83ceaf8573e8f581",
+      "end_utc": "2026-11-02T19:24:31.377688Z",
+      "window_basis": "declared",
+      "data_revision": "3a704eb8daa7a3392e15315e5ccc6a8e26b3afbbe980b3aed0e86f907223ecd1",
+      "window_revision": "acce87c90d9d9bc22527484b3a640f2ccce6c3906cad6c7927eb0752fa36272b",
+      "recorded_utc": "2026-11-02T19:25:11.101215Z",
+      "observation": {
+        "status": "unavailable",
+        "gap": "No common completed M1 baseline within 120 seconds of delivery."
+      },
+      "secondary_observations": {
+        "120": {
+          "status": "pending"
+        },
+        "1440": {
+          "status": "pending"
+        }
+      },
+      "relative_preferences": [],
+      "post_checkpoint_observation": null
     }
   ]
 }

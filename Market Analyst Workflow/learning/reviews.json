@@ -220,6 +220,154 @@
       "episode_hash": "2a0e0130723dcae1a289f3bfa0a91fd0d8f500618287a43474eb84e28407e8ff",
       "outcome_hash": "a41dcc6f82ed9f0258ae109ffd1591d69dade09dc55e1ba0c77bd22fc8221b85",
       "method": "agent_review_not_independent_replay"
+    },
+    {
+      "episode_id": "research:5cfeb6a3eefe4406a4260c11f36558be:AUD",
+      "outcome_id": "ac26f0a77dff1760898eadfb7b397d07b53e44cc15c44629f67ca400cc712450",
+      "classification": "supported_reasoning_adverse_outcome",
+      "analysis": "The early Monday AUD weakening call was opposed in its actual active window: favourable sampled excursion 0.0856%, adverse -0.1715%, terminal basket return +0.0175%. Its later remaining-day opportunity aligned, reaching favourable 0.4802% after delivery, but that does not repair the earlier active-window result or retrospectively establish Moderate intensity. The China official PMI miss was real and the RBA inflation opposition was recognised. Later risk relief and the private China survey required fresh weighting, rather than extension of the early risk premise. The sampled day remains developing and its day-open path is partial; no exact wick, execution return or unique causal explanation is established. Preserve the horizon distinction in the next assessment.",
+      "known_before_cutoff": "The frozen original call already recorded the official China PMI miss, domestic inflation and the expected RBA hike; a multi-meeting RBA path and persistent risk recovery were explicit falsifiers.",
+      "subsequent_information": "The later Monday private China PMI and risk recovery challenged early risk-off persistence. Later US ISM and the afternoon oil collapse were not information available at the original cutoff. The adverse active window and aligned longer remainder are separate measurements.",
+      "source_evidence": [
+        {
+          "url": "https://www.marketscreener.com/news/dollar-declines-ahead-of-us-midterms-as-oil-falls-bitcoin-steadies-after-crypto-theft-ce785fd9d888f121",
+          "claim": "The later Monday private China PMI and risk recovery challenged early risk-off persistence. Later US ISM and the afternoon oil collapse were not information available at the original cutoff. The adverse active window and aligned longer remainder are separate measurements.",
+          "availability_note": "November 2 later reporting, after the frozen original cutoff; used only as subsequent evidence.",
+          "used_as_pre_cutoff": false
+        }
+      ],
+      "expected_version": null,
+      "revision_note": "",
+      "id": "b7e360e9f30542cb8abadc2da2ea8183",
+      "recorded_utc": "2026-11-02T19:06:03.091576Z",
+      "episode_hash": "8f3ad542c77014f9e0a1bfc7592539a756fa7c3e7b7d9cad48cce44c0b31427c",
+      "outcome_hash": "3a2a85ec93af1d4ab4fbde02ba5abc6873554810df6a78a9e4ed850d2d8aef41",
+      "method": "agent_review_not_independent_replay"
+    },
+    {
+      "episode_id": "research:ac9fb362582d4c14a93c915b14cf3c28:CAD",
+      "outcome_id": "128bc178f6243029861391428fe88d40cb22c2c0ae68497fe100a9daf038537d",
+      "classification": "supported_reasoning_aligned_outcome",
+      "analysis": "The slight CAD weakening call had a complete aligned active interval to its 15:00 UTC checkpoint, with favourable sampled excursion 0.2058% and adverse -0.0069%. Remaining-day favourable excursion was also 0.2058%, with greater subsequent adversity of -0.0178%. The day-open maximum is a separate partial developing basket measure and is not credited to the delivered call. The later oil decline is consistent with the export-income mechanism, while subsequent constructive trade comments and a narrower two-year spread are substantive opposition. This is a supporting process case for retaining the dated export-income channel and its explicit falsifiers, not proof that every price change was caused by oil or that a stronger grade was warranted.",
+      "known_before_cutoff": "The original assessment had lower oil, weak domestic activity and a conditional BoC tightening path. Possible tariff relief and stronger export demand were already named opposition and invalidation.",
+      "subsequent_information": "The US ISM beat, Canadian manufacturing contraction and later trade comments arrived after the original cutoff. They must inform the current reassessment, not the original evaluation. The oil-led call is not extended beyond its expired checkpoint by its aligned excursion.",
+      "source_evidence": [
+        {
+          "url": "https://www.marketscreener.com/news/canadian-dollar-steadies-as-investors-weigh-officials-trade-comments-ce785fd9db8af32d",
+          "claim": "The US ISM beat, Canadian manufacturing contraction and later trade comments arrived after the original cutoff. They must inform the current reassessment, not the original evaluation. The oil-led call is not extended beyond its expired checkpoint by its aligned excursion.",
+          "availability_note": "November 2 later reporting, after the frozen original cutoff; used only as subsequent evidence.",
+          "used_as_pre_cutoff": false
+        }
+      ],
+      "expected_version": null,
+      "revision_note": "",
+      "id": "333d6a698b5a49a0ba42dd88e174cddc",
+      "recorded_utc": "2026-11-02T19:06:06.214742Z",
+      "episode_hash": "3fb7cae6325349e9280a63460775a1e954795f49b85f41a64a088a46c6636cfb",
+      "outcome_hash": "8867d98081a4fb9c2e7ff34c38f996a23fe68993a4bf01ff8945513b6994fdad",
+      "method": "agent_review_not_independent_replay"
+    },
+    {
+      "episode_id": "research:5fe0a3c65713444aa7359ec99b327fa8:AUD",
+      "outcome_id": "9b62d7cee8a264cdfa70ee1f1721a59418c3f5c424110e84108043a45e912bc9",
+      "classification": "supported_reasoning_aligned_outcome",
+      "analysis": "The latest AUD Slight weakening call has a complete aligned native sampled active interval to 08:00 UTC: favourable 0.1139%, adverse -0.0201%, terminal basket return -0.0676%. The longer post-delivery path has favourable 0.4088% and adverse -0.0201% through its separate capture cutoff. The full-day maximum is partial and developing. The older diagnostic outcome reports a missing common baseline, while the native daily protocol provides synchronized completed M1 coverage; retain both protocol statuses rather than substitute the unavailable diagnostic outcome. This supports retaining the horizon and counterpart distinctions, not upgrading the grade or inferring an unseen flow mechanism from price. The 08:00 checkpoint must be freshly researched before extending the call.",
+      "known_before_cutoff": "The original dated evidence already included improving risk conditions, domestic inflation and policy opposition, and a shared European-opening checkpoint; both currencies were slightly weakening with an explicit AUDUSD comparison.",
+      "subsequent_information": "Later energy relief, US manufacturing actuals and the SLOOS were outside the frozen original cutoff. They support the current reassessment but cannot rewrite the original call or explain a precise earlier tick.",
+      "source_evidence": [
+        {
+          "url": "https://www.marketscreener.com/news/dollar-declines-ahead-of-us-midterms-as-oil-falls-bitcoin-steadies-after-crypto-theft-ce785fd9d888f121",
+          "claim": "Later November 2 reporting records lower oil, firmer equities and weaker dollar after the US manufacturing release.",
+          "availability_note": "Observed later report at 15:56 UTC, after the original 06:35 UTC information cutoff.",
+          "published_at": "2026-11-02T15:56:00Z",
+          "used_as_pre_cutoff": false
+        }
+      ],
+      "expected_version": null,
+      "revision_note": "",
+      "id": "df19aaecb97a47b7975e4fdc1d328bdb",
+      "recorded_utc": "2026-11-02T19:13:43.881405Z",
+      "episode_hash": "9f73c82383dc2590b4a103ec701fc33cdf6e87a57e28a5527803de484334c03c",
+      "outcome_hash": "72cb3aba6c8200dfae1246430a86a03cc917986a6642cd8915b25017f59a839f",
+      "method": "agent_review_not_independent_replay"
+    },
+    {
+      "episode_id": "research:5fe0a3c65713444aa7359ec99b327fa8:USD",
+      "outcome_id": "c1d2f21dc01d8a3ecaf33c67ef82561a5359dc1656daf21b92fd30dd6c48fd88",
+      "classification": "supported_reasoning_aligned_outcome",
+      "analysis": "The latest USD Slight weakening call has a complete aligned native sampled active interval to 08:00 UTC: favourable 0.1120%, adverse -0.0040%, terminal basket return -0.1099%. The longer post-delivery path has favourable 0.3760% and adverse -0.0040% through its separate capture cutoff. The full-day maximum is partial and developing. The older diagnostic outcome reports a missing common baseline, while the native daily protocol provides synchronized completed M1 coverage; retain both protocol statuses rather than substitute the unavailable diagnostic outcome. This supports retaining the horizon and counterpart distinctions, not upgrading the grade or inferring an unseen flow mechanism from price. The 08:00 checkpoint must be freshly researched before extending the call.",
+      "known_before_cutoff": "The original dated evidence already included improving risk conditions, domestic inflation and policy opposition, and a shared European-opening checkpoint; both currencies were slightly weakening with an explicit AUDUSD comparison.",
+      "subsequent_information": "Later energy relief, US manufacturing actuals and the SLOOS were outside the frozen original cutoff. They support the current reassessment but cannot rewrite the original call or explain a precise earlier tick.",
+      "source_evidence": [
+        {
+          "url": "https://www.marketscreener.com/news/dollar-declines-ahead-of-us-midterms-as-oil-falls-bitcoin-steadies-after-crypto-theft-ce785fd9d888f121",
+          "claim": "Later November 2 reporting records lower oil, firmer equities and weaker dollar after the US manufacturing release.",
+          "availability_note": "Observed later report at 15:56 UTC, after the original 06:35 UTC information cutoff.",
+          "published_at": "2026-11-02T15:56:00Z",
+          "used_as_pre_cutoff": false
+        }
+      ],
+      "expected_version": null,
+      "revision_note": "",
+      "id": "7506a27aafa04d07b6d4ec055eafc536",
+      "recorded_utc": "2026-11-02T19:13:47.544530Z",
+      "episode_hash": "2280245146f270c7c3e59c3e34aca87b8c59b9f502640d923b7d5085d61039c0",
+      "outcome_hash": "2b2e0b18881613205fdcb5d8c91c86c1064a7ab06c5bd44bf4fe5080ab228593",
+      "method": "agent_review_not_independent_replay"
+    },
+    {
+      "episode_id": "research:5cfeb6a3eefe4406a4260c11f36558be:JPY",
+      "outcome_id": "3e3a4a0d3dcd40d205af833a35c5fc53872d6243fa6c0645ba67022726936cc7",
+      "classification": "misweighting",
+      "analysis": "The original JPY Moderate strengthening rationale carried Friday non-dollar hedging into early Monday alongside the domestic normalisation foundation. The same frozen evidence already contained Sunday diplomacy and no new guaranteed December commitment. Treating risk recovery only as a future invalidation did not adequately weigh an already-obtainable contrary mechanism. Reopening the dated sources identifies a reasoning failure beyond the adverse price result. Domestic BoJ tightening and weekend China weakness remain real counterevidence to a retrospective strong-buy claim. Native daily evidence now also shows a complete opposed active interval: favourable 0.0270%, adverse -0.2893%, terminal basket return -0.2061% to the 05:00 UTC checkpoint. The developing longer remainder is also opposed, with adverse -0.5027%; this is not an exact wick or an executable return. A future constructive wage catalyst cannot retrospectively validate the failed session-premise extension.",
+      "known_before_cutoff": "The saved 05:46 AM information set already included October 30 euro-area GDP resilience, completed ECB and BoJ guidance, Friday hedging observations, weekend China weakness and November 1 diplomacy. No Monday-after-cutoff report is used to establish this criticism.",
+      "subsequent_information": "Verified Pepperstone H1 candles show 175.609 at the 06:00 AM Jakarta bar open and 176.557 at the 02:00 PM completed close, with intervening pullbacks. This is descriptive post-cutoff evidence, not a 05:46 AM fill, an exact catalyst or an independent blind replay. The full expected policy paths remain countervailing; no current trade recommendation is made.",
+      "source_evidence": [
+        {
+          "url": "https://www.aol.com/articles/euro-zone-growth-beats-projections-100626000.html",
+          "published_at": "2026-10-30T11:07:00Z",
+          "used_as_pre_cutoff": true,
+          "claim": "Euro-area Q3 growth was 0.4 percent versus a Reuters poll of 0.2 percent, with broad investment and consumption resilience; borrowing costs and energy risks remained.",
+          "availability_note": "Observed updated October 30 version; the same growth fact was already frozen in the original November 2 05:46 AM assessment evidence. Current reopened body is not an archived tick-by-tick news feed."
+        },
+        {
+          "url": "https://ktwb.com/2026/11/01/iranian-negotiators-in-doha-to-continue-talks-to-end-the-us-iran-war-official-says/",
+          "published_at": "2026-11-01T12:24:00Z",
+          "used_as_pre_cutoff": true,
+          "claim": "Third day of mediation and a conditional Hormuz-reopening proposal were already reported; no agreement was reached and escalation remained possible.",
+          "availability_note": "UTC clock follows the original frozen Reuters development, corroborated by dated syndications. KTWB displays 6:24 AM without a timezone; that display alone is not the UTC conversion source."
+        }
+      ],
+      "expected_version": "365b2d3d63534317b2a84f7691842659",
+      "revision_note": "Attach the exact native daily-excursion outcome and separate the completed active interval from the developing remaining day. Preserve the established earlier cutoff diagnosis and prior review versions.",
+      "id": "944f3b0d06c54426925c76e1330d15a5",
+      "recorded_utc": "2026-11-02T19:26:32.472659Z",
+      "episode_hash": "8ebb5b18398e011bcd4bcd311b3adb397c87722adb344a573a19d85397094013",
+      "outcome_hash": "20c53b4883762f759dff172e6b710cefd86bc34d16dca3b5f5b6b8d3502e7767",
+      "method": "agent_review_not_independent_replay"
+    },
+    {
+      "episode_id": "research:7d754e2d01ed4cabb209432b8055f83a:JPY",
+      "outcome_id": "7938278f7baa2c4c6f078143e72e5a931cc803a5c8abe53d46b8036ff9bd3e6b",
+      "classification": "supported_reasoning_aligned_outcome",
+      "analysis": "The original Slight strengthening case distinguished a softer incremental Tokyo core-inflation reading from the combined lower-foreign-yield, tight-labour and conditional-normalisation support. Its native active interval was complete and aligned: favourable 0.1474%, adverse -0.0870%, terminal basket return +0.0573%. The longer remaining-day favourable excursion was 0.4261% with adverse -0.1011%, but its sampled path is partial and includes later BoJ stages. That larger move cannot upgrade the original grade, reward pre-delivery gains or attribute a unique cause. Preserve the explicit policy-stage expiry and the distinction between domestic-policy foundations and immediate session drivers; the opposed Monday case is the counterexample to automatic carry-forward.",
+      "known_before_cutoff": "Tokyo underlying inflation deceleration, tighter unemployment, lower external yields and the expected hold were already in the frozen original information set. The call explicitly allowed a patient BoJ path to defeat it.",
+      "subsequent_information": "Later BoJ decision and conference stages were not available at the original 01:53 UTC cutoff. The larger remaining-day excursion includes those later information sets and is not an extension of the original active assessment.",
+      "source_evidence": [
+        {
+          "url": "https://www.channelnewsasia.com/business/boj-governor-uedas-comments-news-conference-6506176",
+          "claim": "The later October 30 conference retained conditional adjustment toward neutral, while warning that cumulative effects still needed observation.",
+          "availability_note": "Later October 30 decision/conference reporting, used as subsequent stage evidence rather than as pre-cutoff information.",
+          "used_as_pre_cutoff": false
+        }
+      ],
+      "expected_version": null,
+      "revision_note": "",
+      "id": "bbe3d932c8424e71af63925af4170e6b",
+      "recorded_utc": "2026-11-02T19:26:35.943614Z",
+      "episode_hash": "ed2bdcb23ab4e5e574bd80a7792c545a15ab40813d3f414eadf1865acb18d8f5",
+      "outcome_hash": "4e04bf4d50888839349bf8bde6f53b53432160a1db46544188057a64d7e393f2",
+      "method": "agent_review_not_independent_replay"
     }
   ]
 }
