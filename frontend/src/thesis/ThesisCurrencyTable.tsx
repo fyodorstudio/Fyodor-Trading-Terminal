@@ -14,14 +14,7 @@ function Links({ sources, compact = false }: { sources: ThesisSource[]; compact?
     : <span key={i} title={s.locator}>{s.label} (local evidence)</span>)}</span>
 }
 function Description({ text }: { text: string }) {
-  if (text.length <= 360) return <p className="research-description">{text}</p>
-  const first = text.slice(0,360)
-  const ends = [...first.matchAll(/[.!?](?=\s|$)/g)]
-  const sentence = ends.at(-1)?.index
-  const boundary = sentence !== undefined && sentence >= 80 ? sentence+1 : first.lastIndexOf(' ')
-  const excerpt = text.slice(0,boundary > 0 ? boundary : 360)
-  return <><p className="research-description">{excerpt}{sentence !== undefined && boundary === sentence+1 ? '' : '…'}</p>
-    <LazyDetails summary="Full description">{() => <p className="research-description">{text}</p>}</LazyDetails></>
+  return <p className="research-description">{text}</p>
 }
 function LedgerColumns() {
   return <colgroup><col className="research-time-column" /><col className="research-event-column" /><col className="research-effect-column" /><col className="research-description-column" /><col className="research-source-column" /></colgroup>
@@ -39,7 +32,7 @@ const DevelopmentRow = memo(function DevelopmentRow({ item, currency }: { item: 
       {item.event_at && <small>Event: {full.format(new Date(item.event_at))}</small>}</td>
     <th scope="row" className="research-event">{item.instruments?.length ? item.instruments.join(' / ')+' · ' : ''}{item.title}</th>
     <td><p>{impact.implication || 'Not separately recorded.'}</p>
-      {impact.thesis_effect && <LazyDetails summary="Effect on thesis">{() => <p>{impact.thesis_effect}</p>}</LazyDetails>}</td>
+      {impact.thesis_effect && <p><strong>Effect on thesis:</strong> {impact.thesis_effect}</p>}</td>
     <td><Description text={researchFacts(item)} />{item.instrument_note && <p>{item.instrument_note}</p>}</td>
     <td className="research-source"><Links sources={item.sources} compact /><button type="button" className="research-detail-toggle" aria-expanded={expanded} aria-controls={expanded ? detailsId : undefined} onClick={() => setExpanded(!expanded)}>Details & history</button></td>
   </tr>{expanded && <tr className="research-expanded-row" id={detailsId}><td colSpan={5}>
@@ -89,15 +82,19 @@ export const ThesisCurrencyTable = memo(function ThesisCurrencyTable({ data, cur
       <div className="thesis-currency-heading"><h3>{currency}{direction && ` · ${dailyDirectionLabel(direction)}`}</h3>
         {assessment && <p>Last Assessed: {full.format(new Date(direction?.verified_utc ?? assessment.as_of_utc))} Jakarta{assessment.provenance === 'reconstruction' && ' · Historical reconstruction'}</p>}
       </div>
-      {direction ? <>{direction.review_status && <p className="thesis-notice">{directionStageLabel(direction)}</p>}
-        <div className="thesis-assessment-reason"><Description text={direction.reason} /></div>
-        <LazyDetails className="thesis-details" summary="Assessment details">{() => <>
-          <p>Horizon: {direction.horizon || 'See the original assessment.'}</p>
-          {direction.basis !== 'standalone' && <p>Older comparison; needs a standalone assessment before use as a broad currency verdict.</p>}
-          <Links sources={direction.sources} />
-          {assessment && <p>Researched period: {dated(assessment.period_start)} – {dated(assessment.period_end)}.{assessment.gap && ` Coverage: ${assessment.gap}`}</p>}
-        </>}</LazyDetails>
-      </> : <p>{assessment?.gap || (future ? 'Future dates stay unassessed.' : 'No saved assessment for this currency by this date.')}</p>}
+      {direction ? <table className="thesis-assessment-table" aria-label={`${currency} assessment details`}>
+        <colgroup><col className="research-assessment-label" /><col /></colgroup>
+        <thead><tr><th scope="col">Assessment</th><th scope="col">Details</th></tr></thead>
+        <tbody>
+          {direction.review_status && <tr><th scope="row">Reviewed stage</th><td><Description text={directionStageLabel(direction)} /></td></tr>}
+          <tr><th scope="row">Rationale</th><td><Description text={direction.reason} /></td></tr>
+          <tr><th scope="row">Horizon</th><td>{direction.horizon || 'See the original assessment.'}</td></tr>
+          {direction.basis !== 'standalone' && <tr><th scope="row">Basis</th><td>Older comparison; needs a standalone assessment before use as a broad currency verdict.</td></tr>}
+          {assessment && <tr><th scope="row">Researched period</th><td>{dated(assessment.period_start)} – {dated(assessment.period_end)}</td></tr>}
+          {assessment?.gap && <tr><th scope="row">Coverage</th><td><Description text={assessment.gap} /></td></tr>}
+          <tr><th scope="row">Sources</th><td><Links sources={direction.sources} compact /></td></tr>
+        </tbody>
+      </table> : <p>{assessment?.gap || (future ? 'Future dates stay unassessed.' : 'No saved assessment for this currency by this date.')}</p>}
       {pending && <p className="thesis-notice">Newer saved evidence has not yet been incorporated into this assessment.</p>}
       <h4>Developments</h4>
       {entries.length ? <DevelopmentLedger key={`${currency}:${data.from}:${data.to}`} items={entries} currency={currency} /> : <p className="thesis-notice">No verified developments saved in this interval. This is not proof that no news occurred.</p>}

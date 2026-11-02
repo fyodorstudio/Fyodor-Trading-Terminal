@@ -7,6 +7,8 @@ Every captured calendar event on the date is available, including released rows;
 no shortlist, automatic archival or manual archive control is involved.
 
 Columns: Time | Event | Actual | Forecast | Previous | Source | Agent impact | Bell.
+The table fits the dock width and wraps text; only the date wheel moves
+horizontally. The bell column includes room for its button and cell padding.
 Pending rows show a countdown under Actual; impact is agent-authored or Unreviewed.
 Source identifies Pepperstone or the actual external publisher (for example
 Reuters), with links to evidence. External records never acquire invented calendar

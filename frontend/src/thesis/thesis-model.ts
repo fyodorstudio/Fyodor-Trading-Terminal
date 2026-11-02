@@ -2,8 +2,15 @@ import { researchPrompt } from './research-prompt'
 import { majorForexPairs } from '../economic-calendar/forex/pairs'
 import { commodityIds, type Commodity } from '../external-sources/research-instruments'
 
-export const thesisMonth = '2026-10'
-export const thesisMonths = [{ value: '2026-07', label: 'JUL 2026' }, { value: '2026-10', label: 'OCT 2026' }] as const
+export function thesisMonths(now = new Date()) {
+  const current = thesisDay(now.toISOString()).slice(0, 7)
+  const first = 2026 * 12 + 6 // Earliest saved research: July 2026.
+  const last = Math.max(first, Number(current.slice(0, 4)) * 12 + Number(current.slice(5)) - 1)
+  return Array.from({ length: last - first + 1 }, (_, index) => {
+    const date = new Date(Date.UTC(2026, 6 + index, 1))
+    return { value: date.toISOString().slice(0, 7), label: date.toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' }).toUpperCase() }
+  })
+}
 export const thesisChanges = ['Baseline', 'Materially strengthened', 'Strengthened', 'Unchanged', 'Weakened', 'Reversed'] as const
 export const verdicts = ['STRONG BUY', 'BUY', 'MIXED', 'SELL', 'STRONG SELL'] as const
 export type ThesisTarget = { kind: 'highlight' | 'external'; reference: string; source_id: string | null; event_at: string | null; event_date: string | null }
@@ -232,9 +239,12 @@ export function readThesisCurrency(): ThesisCurrency {
   try { const currency = localStorage.getItem('fyodor.thesis.currency.v1'); if (thesisCurrencies.includes(currency as ThesisCurrency)) return currency as ThesisCurrency } catch { /* Session default. */ }
   return 'EUR'
 }
-export function readThesisMonth() {
-  try { const month = localStorage.getItem('fyodor.thesis.month.v1'); if (thesisMonths.some(item => item.value === month)) return month! } catch { /* Session default. */ }
-  return thesisMonth
+export function readThesisMonth(now = new Date()) {
+  try {
+    const month = localStorage.getItem('fyodor.thesis.month.v1')
+    if (month && /^\d{4}-(0[1-9]|1[0-2])$/.test(month) && Number(month.slice(0, 4)) >= 2015 && Number(month.slice(0, 4)) <= 2100) return month
+  } catch { /* Session default. */ }
+  return thesisDay(now.toISOString()).slice(0, 7)
 }
 
 export function thesisDays(month: string) { return new Date(Date.UTC(Number(month.slice(0, 4)), Number(month.slice(5)), 0)).getUTCDate() }

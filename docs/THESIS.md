@@ -8,19 +8,24 @@ There is no automatic research or news ingestion.
 ## Presentation
 
 Eight buttons (EUR, GBP, AUD, NZD, USD, CAD, CHF, JPY) select exactly one
-standalone currency, remembered across reloads. JUL/OCT Month and Day selectors
-choose the Jakarta date. There is no All view, pair mode or Date range control.
+standalone currency, remembered across reloads. The shared Alert date revolver
+chooses the Jakarta date: five day buttons, previous/next arrows, wheel scrolling,
+separate month/year controls and Today. Dates survive reloads, including month and
+year boundaries; month changes clamp the day. New sessions default to today unless
+a valid saved choice exists. Future dates remain unassessed.
+There is no All view, pair mode or Date range control.
 Only the selected currency renders its summary (direction/intensity, assessment
-time and a short reason with full rationale/coverage on expansion), then a
+time and an Assessment/Details table with reviewed stage, rationale, horizon,
+researched period, coverage and sources), then a
 chronological table, newest dates first:
 
 **Time · Jakarta | Event | Effect | Description | Source**.
 
 Each distinct development has one row. Several events on one day do not share a
 large daily cell. Date and publication hour share Time; the event title has its own
-column. Effect shows the currency implication with the effect on the thesis on
-expansion. Description previews a bounded excerpt; Full description retains the
-complete saved text. Source names are compact links with full labels in their
+column. Effect shows the currency implication and effect on the thesis in full.
+Description shows the complete saved text directly, without truncation or a
+disclosure. Source names are compact links with full labels in their
 accessible names/tooltips. Details expand into a full-width row for source clocks,
 references and lazy version tables. Unknown publication hours say Hour unknown.
 A separately known event clock is explicitly labelled Event, never passed off as
@@ -38,7 +43,10 @@ development, assessment and earlier-version histories keep their bodies unmounte
 The main view requests only its selected currency, reuses stable rows and caches
 visited currencies within the selected date. Scrolling performs no research/fetch.
 
-Research prose uses normal spacing and readable paragraphs. A recorded correction
+Assessment rationale, stage, coverage and checkpoint text are also shown in full
+directly in their tables. No saved prose is rewritten
+or split into invented claims. Research prose uses normal spacing and readable
+paragraphs. A recorded correction
 whose revision note starts `Formatting only:` may supply improved spacing for a
 frozen citation only when its facts match exactly after removing whitespace.
 Semantic corrections never replace a frozen citation. Original versions, evidence

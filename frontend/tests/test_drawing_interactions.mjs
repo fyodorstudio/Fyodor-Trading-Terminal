@@ -322,12 +322,13 @@ try {
   const originalTimeline = timeline
   priceSpacing = 1
   const span = (2 * 1440 + 3 * 60 + 4) * 60
-  for (const [symbol, precision, startPrice, endPrice, expected] of [
-    ['EURUSD', 5, 1.1, 1.11234, '123.4 pips'],
-    ['GBPUSD', 4, 1.3, 1.3012, '12.0 pips'],
-    ['USDJPY', 3, 150, 150.123, '12.3 pips'],
-    ['EURJPY.a', 5, 150, 150.01, '1.0 pips'],
+  for (const [symbol, precision, startPrice, endPrice, distance, percentage, reversePercentage] of [
+    ['EURUSD', 5, 1.1, 1.11234, '123.4 pips', '+1.12%', '-1.11%'],
+    ['GBPUSD', 4, 1.3, 1.3012, '12.0 pips', '+0.09%', '-0.09%'],
+    ['USDJPY', 3, 150, 150.123, '12.3 pips', '+0.08%', '-0.08%'],
+    ['EURJPY.a', 5, 150, 150.01, '1.0 pips', '+0.01%', '-0.01%'],
   ]) {
+    const expected = `${distance} · ${percentage}`
     timeline = [{ time: 1000 }, { time: 1000 + span }]
     const range = { ...recordFor('date-price-range'), symbol, points: [{ time: 1000, price: startPrice }, { time: 1000 + span, price: endPrice }] }
     seed(range); await render({ symbol, precision, initiallySelected: range.id }, `range-${symbol}`)
@@ -346,7 +347,7 @@ try {
     }
     await React.act(async () => api.updateDrawingPoints(range.id, [...range.points].reverse(), true))
     assert.equal(duration(), '2d 3h 4m', 'Reversed ranges measure the same elapsed time')
-    assert.equal(pips(), expected, 'Reversed ranges measure the same pip magnitude')
+    assert.equal(pips(), `${distance} · ${reversePercentage}`, 'Reversing anchors keeps pip magnitude and measures percentage from the new first price')
     assert.equal(dates(), '1 Jan 1970 - 3 Jan 1970', 'Reversed ranges keep dates in chronological order')
     await React.act(async () => api.updateDrawingPoint(range.id, 0, { ...range.points[1], time: 1000 + span + 60 }, true))
     assert.equal(duration(), '2d 3h 5m', 'Editing an endpoint updates the duration label live')
@@ -356,7 +357,7 @@ try {
     seed({ ...recordFor('date-price-range'), points: [{ time: 1000, price: 10 }, { time: 1000 + seconds, price: 10 }] })
     await render({}, `duration-${seconds}`)
     assert.equal(host.querySelector('.drawing-range-duration .drawing-range-label').textContent, expected)
-    assert.equal(host.querySelector('.drawing-range-pips .drawing-range-label').textContent, '0.0 pips')
+    assert.equal(host.querySelector('.drawing-range-pips .drawing-range-label').textContent, '0.0 pips · 0.00%')
   }
   const octoberStart = Date.UTC(2026, 9, 1, 22, 30) / 1000, octoberEnd = Date.UTC(2026, 9, 3, 22, 30) / 1000
   timeline = [{ time: octoberStart }, { time: octoberEnd }]
@@ -368,10 +369,12 @@ try {
   await render({ clock }, 'october-horizon')
   assert.equal(horizon(), '2 Oct 2026 - 4 Oct 2026', 'The horizon uses the chart display timezone after broker-clock conversion')
   assert.equal(host.querySelector('.drawing-range-duration .drawing-range-label').textContent, '2d 0h 0m')
-  assert.equal(host.querySelector('.drawing-range-pips .drawing-range-label').textContent, '20000.0 pips')
+  assert.equal(host.querySelector('.drawing-range-pips .drawing-range-label').textContent, '20000.0 pips · +20.00%')
   assert.deepEqual(readChartDrawings(), [octoberRange], 'Date labels never modify the saved range')
   await React.act(async () => api.updateDrawingPoint(octoberRange.id, 1, { time: octoberEnd + 86400, price: 12 }, true))
   assert.equal(horizon(), '2 Oct 2026 - 5 Oct 2026', 'Editing an endpoint updates its displayed date')
+  await React.act(async () => api.updateDrawingPoint(octoberRange.id, 0, { time: octoberStart, price: 0 }, true))
+  assert.equal(host.querySelector('.drawing-range-pips .drawing-range-label').textContent, '120000.0 pips · % unavailable', 'A zero first price cannot provide a percentage baseline')
   timeline = originalTimeline; priceSpacing = 10
 
   // Text can be reopened by double-click (including captured SVG events) or

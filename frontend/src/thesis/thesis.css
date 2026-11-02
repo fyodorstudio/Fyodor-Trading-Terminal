@@ -27,7 +27,13 @@
 .thesis-currency-section p { margin: 6px 0 12px; white-space: pre-wrap; }
 .thesis-currency-heading p, .thesis-research-coverage { color: var(--text); }
 .thesis-active-background, .thesis-upcoming-checkpoint { margin: 24px 0; }
-.thesis-assessment-reason { max-width: 100ch; }
+.thesis-assessment-table { width: 100%; border-collapse: collapse; table-layout: fixed; line-height: 1.55; margin: 12px 0 20px; }
+.research-assessment-label { width: 170px; }
+.thesis-assessment-table :is(th, td) { text-align: left; vertical-align: top; padding: 12px 14px; border: 1px solid var(--border); overflow-wrap: break-word; }
+.thesis-assessment-table th { color: var(--text-strong); font-weight: 600; }
+.thesis-assessment-table thead, .thesis-assessment-table tbody tr:nth-child(even) { background: var(--surface-raised); }
+.thesis-assessment-table p:last-child { margin-bottom: 0; }
+.thesis-assessment-table summary { cursor: pointer; color: var(--text-strong); }
 .thesis-currency-table, .thesis-checkpoint-table, .thesis-history-table { width: 100%; min-width: 960px; border-collapse: collapse; table-layout: fixed; font: inherit; line-height: 1.55; border: 1px solid var(--border); }
 .research-time-column { width: 13%; }
 .research-event-column { width: 22%; }

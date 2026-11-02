@@ -36,7 +36,7 @@ const container=document.createElement('div');document.body.append(container);co
 const toggle=async(details,open=true)=>React.act(async()=>{details.open=open;details.dispatchEvent(new dom.Event('toggle'))})
 try {
   const {LegacyResearchArchive}=await server.ssrLoadModule('./src/thesis/LegacyResearchArchive.tsx')
-  const {validThesisSnapshot,readThesisCurrency,readThesisMonth,thesisDays}=await server.ssrLoadModule('./src/thesis/thesis-model.ts')
+  const {validThesisSnapshot,readThesisCurrency,readThesisMonth,thesisDays,thesisMonths}=await server.ssrLoadModule('./src/thesis/thesis-model.ts')
   const {currencyDirectionTimeline,newsSourceTime}=await server.ssrLoadModule('./src/thesis/currency-timeline.ts')
   const timedReview = (at, verdict, saved = at) => ({ ...reviewEntry, format: 'daily_news', as_of_utc: at, saved_utc: saved,
     currency_views: [{ currency: 'JPY', checkpoints: [], direction: { verdict, reason: 'Verified changed mechanism.', verified_utc: at, sources: [] } }] })
@@ -57,7 +57,18 @@ try {
   assert.deepEqual(currencyDirectionTimeline([early, { ...later, provenance: 'reconstruction' }], { ...later, provenance: 'reconstruction' }, 'JPY'), [])
   assert.match(newsSourceTime({ published_at: null, verified_utc: '2026-10-26T12:00:00Z' }), /Publication hour unverified.*7:00 PM Jakarta/)
   assert.equal(validThesisSnapshot(snapshot('2026-10'),'ALL','2026-10',null),true)
-  assert.equal(readThesisMonth(),'2026-10')
+  assert.equal(readThesisMonth(new Date('2026-11-02T00:00:00Z')),'2026-11')
+  assert.deepEqual(thesisMonths(new Date('2026-10-31T17:00:00Z')).map(item=>item.value),
+    ['2026-07','2026-08','2026-09','2026-10','2026-11'], 'November becomes available at Jakarta midnight, before the UTC month rolls over')
+  assert.equal(thesisMonths(new Date('2026-10-31T16:59:59Z')).at(-1).value,'2026-10')
+  assert.equal(thesisMonths(new Date('2026-12-31T17:00:00Z')).at(-1).label,'JAN 2027','Month navigation crosses years without a code update')
+  localStorage.setItem('fyodor.thesis.month.v1','2026-11')
+  assert.equal(readThesisMonth(new Date('2026-11-02T00:00:00Z')),'2026-11','Saved November selection survives reload')
+  localStorage.setItem('fyodor.thesis.month.v1','2026-07')
+  assert.equal(readThesisMonth(new Date('2026-11-02T00:00:00Z')),'2026-07','Earlier saved month remains available')
+  localStorage.setItem('fyodor.thesis.month.v1','2026-13')
+  assert.equal(readThesisMonth(new Date('2026-11-02T00:00:00Z')),'2026-11','Invalid saved month falls back to the current month')
+  localStorage.removeItem('fyodor.thesis.month.v1')
   assert.equal(readThesisCurrency(),'EUR')
   localStorage.setItem('fyodor.thesis.currency.v1','ALL');assert.equal(readThesisCurrency(),'EUR','Retired All preference cannot select multiple currencies')
   assert.equal(thesisDays('2028-02'),29)

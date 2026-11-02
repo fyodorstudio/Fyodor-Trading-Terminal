@@ -1,5 +1,6 @@
-import { memo, useState } from 'react'
-import { readThesisCurrency, readThesisDay, readThesisMonth, thesisCurrencies, thesisDays, thesisMonths } from './thesis-model'
+import { memo, useCallback, useState } from 'react'
+import { readThesisCurrency, readThesisDay, readThesisMonth, thesisCurrencies } from './thesis-model'
+import { AlertDateSelector } from '../alert/dock/AlertDateSelector'
 import { ThesisCurrencyTable } from './ThesisCurrencyTable'
 import { useCurrencyResearch } from './useCurrencyResearch'
 import { researchPrompt } from './research-prompt'
@@ -9,10 +10,18 @@ import './thesis.css'
 
 export const ThesisDock = memo(function ThesisDock() {
   const [currency, setCurrency] = useState(readThesisCurrency)
-  const [month, setMonth] = useState(readThesisMonth)
-  const [day, setDay] = useState(() => readThesisDay(month))
-  const selectedDate = `${month}-${String(day).padStart(2, '0')}`
+  const [selectedDate, setDate] = useState(() => {
+    const month = readThesisMonth()
+    return `${month}-${String(readThesisDay(month)).padStart(2, '0')}`
+  })
   const [copyStatus, setCopyStatus] = useState('')
+  const changeDate = useCallback((date: string) => {
+    setDate(date); setCopyStatus('')
+    try {
+      localStorage.setItem('fyodor.thesis.month.v1', date.slice(0, 7))
+      localStorage.setItem('fyodor.thesis.day.v1', String(Number(date.slice(8))))
+    } catch { /* Retain session choice. */ }
+  }, [])
   const [archiveOpen, setArchiveOpen] = useState(false)
   const research = useCurrencyResearch(selectedDate, selectedDate, true, currency)
   const context = `${currency}:${selectedDate}`
@@ -31,13 +40,7 @@ export const ThesisDock = memo(function ThesisDock() {
           setCurrency(item); setCopyStatus(''); remember('currency', item)
         }}>{item}</button>)}
       </div>
-      <label>Month <select aria-label="Thesis month" value={month} onChange={event => {
-        const value = event.target.value
-        setMonth(value); setDay(previous => Math.min(previous, thesisDays(value))); setCopyStatus(''); remember('month', value)
-      }}>{thesisMonths.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
-      <label>Day <select aria-label="Thesis day" value={day} onChange={event => {
-        const value = Number(event.target.value); setDay(value); setCopyStatus(''); remember('day', String(value))
-      }}>{Array.from({ length: thesisDays(month) }, (_, index) => <option key={index + 1} value={index + 1}>{index + 1}</option>)}</select></label>
+      <AlertDateSelector date={selectedDate} onChange={changeDate} label="Thesis" />
       <span className="thesis-timezone">Jakarta · AM/PM</span>
       <button type="button" onClick={() => { void copy() }}>Copy research prompt</button>
       <button type="button" disabled={!research.data} onClick={() => {

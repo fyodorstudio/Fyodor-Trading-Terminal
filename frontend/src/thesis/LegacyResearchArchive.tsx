@@ -35,10 +35,11 @@ function ArchivedReview({ review, currency, onExport }: { review: ThesisReview; 
   </details>
 }
 export function LegacyResearchArchive({ currency }: { currency: ThesisCurrency }) {
+  const [months] = useState(thesisMonths)
   const [month,setMonth]=useState('2026-10')
   const {data,error}=useTheses('ALL',month)
   return <div className="thesis-legacy-archive">
-    <label>Archive month <select aria-label="Thesis archive month" value={month} onChange={e=>setMonth(e.target.value)}>{thesisMonths.map(m=><option key={m.value} value={m.value}>{m.label}</option>)}</select></label>
+    <label>Archive month <select aria-label="Thesis archive month" value={month} onChange={e=>setMonth(e.target.value)}>{months.map(m=><option key={m.value} value={m.value}>{m.label}</option>)}</select></label>
     {error && <p role="alert">{error}</p>}
     {data?.reviews?.map(review=><ArchivedReview key={review.id+currency} review={review} currency={currency}
       onExport={()=>downloadThesisMarkdown(data,error,new Date(Date.parse(review.as_of_utc)+7*3600000).toISOString().slice(0,10),currency)} />)}

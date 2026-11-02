@@ -30,6 +30,9 @@ per release package and explicit off choices preserved.
 Thesis developments and active background use a table: Time, Event, Effect,
 Description, Source. Write normal, spaced prose; never compress research into
 joined words. Keep full evidence and audit details available on expansion.
+Separate currency codes, amounts and abbreviated units with spaces in research
+prose: `JPY 330 bn`, `GBP 3.9 bn`, `128 bp`, `19:40 UTC`, `October 29`.
+Keep source URLs, exact identifiers and original raw observations unchanged.
 
 Market Watch, chart/drawings, raw calendar Inspector, upcoming Alert, Activity and
 Settings, including agent-authored fundamental research journals and an archive

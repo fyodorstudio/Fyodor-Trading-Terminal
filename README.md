@@ -192,7 +192,8 @@ restrictions still apply; the dock reports blocked playback or storage failures.
 The drawing toolbar's delete button clears only the current pair, across all timeframes.
 Hold Shift while drawing a Trend line or Price note to keep it horizontal; release
 Shift for free movement. Price notes label their endpoint price. Date and price range
-shows elapsed days/hours/minutes and pip distance; Research date range is separate.
+shows elapsed days/hours/minutes, pip distance and signed percentage change from
+the first anchor (two decimals); Research date range is separate.
 
 Use the same UI origin (normally localhost:5173) to reuse browser preferences from
 the original app. A different port has separate browser storage. Old scoring view
@@ -202,11 +203,14 @@ context tools are included.
 
 **Thesis** stores verified developments once and records separate currency
 assessments, with append-only corrections and exact evidence references. Eight
-currency buttons select one standalone currency; the selection persists. Month/Day
-navigation shows its current pressure and assessment details, then a ledger with
+currency buttons select one standalone currency; the selection persists. The Alert-style
+date revolver (five days, arrows/wheel, month/year and Today) selects its Jakarta date.
+An assessment table separates rationale, reviewed stage, horizon, coverage and
+sources, then a ledger shows
 **Time | Event | Effect | Description | Source**. Recent developments precede the
 older active background, using the same columns; checkpoints and expanded history
-also use tables. Full descriptions and provenance expand on demand. There is no
+also use tables. Descriptions, effects and assessment text are shown in full;
+provenance and version history expand on demand. There is no
 All view, pair selector or Date range control.
 Only the selected currency renders; earlier currency reviews load on opening their
 archive, with individual snapshots expanded on demand. Prompts and Markdown exports

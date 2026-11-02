@@ -55,6 +55,10 @@ export function DatePriceRangeDrawing({ drawing, points, precision, width, heigh
   const pipSize = symbol.includes('XAU') ? 0.1 : symbol.includes('BTC') ? 1
     : symbol.includes('JPY') || precision === 3 || precision === 2 ? 0.01 : 0.0001
   const pips = `${(Math.abs(end.price - start.price) / pipSize).toFixed(1)} pips`
+  const change = (end.price - start.price) / Math.abs(start.price) * 100
+  const roundedChange = Number(change.toFixed(2))
+  const percentage = start.price === 0 || !Number.isFinite(change) ? '% unavailable'
+    : `${roundedChange > 0 ? '+' : ''}${roundedChange.toFixed(2)}%`
   const from = chartClockToUtc(Math.min(start.time, end.time) * 1000, clock.scope)
   const to = chartClockToUtc(Math.max(start.time, end.time) * 1000, clock.scope)
   const date = (utc: number) => rangeDateFormatter.format(new Date(`${clock.date(utc)}T00:00:00Z`))
@@ -70,8 +74,8 @@ export function DatePriceRangeDrawing({ drawing, points, precision, width, heigh
       <DrawingTag text={duration} x={(Math.max(0, left) + Math.min(width, right)) / 2} y={bottom + 6} centered width={width} height={height} />
     </g>
     <g className="drawing-range-pips">
-      <title>Price distance in pips</title>
-      <DrawingTag text={pips} x={right + 6} y={(Math.max(0, top) + Math.min(height, bottom)) / 2 - 12} width={width} height={height} />
+      <title>Price distance in pips and percentage change from the first anchor</title>
+      <DrawingTag text={`${pips} · ${percentage}`} x={right + 6} y={(Math.max(0, top) + Math.min(height, bottom)) / 2 - 12} width={width} height={height} />
     </g>
   </g>
 }
