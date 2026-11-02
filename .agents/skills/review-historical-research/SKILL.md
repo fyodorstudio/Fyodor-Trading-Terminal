@@ -31,7 +31,7 @@ independent authorization for trades, service changes or unrelated work.
 - Reuse relevant journal fundamentals, official sources and complete saved candles
   with their dates/vintages. Avoid rereading loaded instructions or unrelated
   studies. Batch independent calendar/web reads; **bridge OHLC requests remain
-  sequential**. The [data workflow](../../../AGENTS.md#dataset-commands) owns CLI
+  sequential**. The [data workflow](../../../docs/AGENT-RESEARCH.md#dataset-commands) owns CLI
   syntax, clocks, coverage and bounded capture. Keep raw observations unchanged.
 
 ## Mandatory H1/H4 price check

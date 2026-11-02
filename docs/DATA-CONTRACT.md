@@ -87,7 +87,7 @@ and converts historical candle server time via the explicit broker profile. Unkn
 clocks require a verified historical offset; ambiguous clocks are rejected. Saved OHLC
 retains capture provenance. Missing M1 minutes invalidate the corresponding event
 measurement; session/history gaps and incomplete edges remain visible. See
-[analyst instructions and commands](../AGENTS.md#dataset-commands). New OHLC gets
+[analyst instructions and commands](AGENT-RESEARCH.md#dataset-commands). New OHLC gets
 its own folder unless explicitly attached to an existing report with `--report`.
 
 ```powershell

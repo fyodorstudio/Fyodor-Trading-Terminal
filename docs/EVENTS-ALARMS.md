@@ -64,6 +64,14 @@ explicit off choices, global enable/pause and offset stay independent.
 
 **Alarm Settings** opens global enable/pause, reminder offset, test and delivery
 history. A small status dot and ringing indicator preserve worker visibility.
+Sound settings are independent of price alerts: Play sound, volume (0–100%),
+the shared preset list or uploaded MP3/WAV/OGG, duration (1/3/5/10 seconds),
+Save and Preview/Stop. Defaults are 30% volume, three seconds and no repeating.
+Preview saves the draft first and uses the actual desktop delivery path; changing
+saved audio stops an older preview. Test alarm also checks the notification window.
+The browser decodes custom clips up to 2 MB/60 seconds into bounded mono PCM;
+the worker validates and stores the WAV locally, so playback works with the browser
+closed. No new audio dependency or system-wide volume change is needed.
 Selections can be edited while global delivery is paused; a selected bell and an
 actively armed reminder are distinct. One Invoke reminder runs at the chosen
 offset (two minutes by default). No AI is invoked automatically.
@@ -100,8 +108,25 @@ legacy `toggle`, `settings`, `dismiss`, `snooze` or explicit `test`; optimistic
 revision checks protect writes. Subscription clocks and eligibility come from
 SQLite, never client-supplied values. Only loopback origins can mutate the worker.
 
-Windows displays one grouped alarm window for simultaneous selected stages and
-repeats the built-in sound until acknowledged. Copy prompt, Open terminal, Dismiss
-and Snooze 5 min remain available; snooze cannot reach the event time. Use Test
-alarm to verify the actual desktop window and sound. Terminal checks mock native
-delivery; they do not establish audibility or perform visual UI audits.
+Sound mutations are `audio-settings`, `audio-upload`, `preview`, `stop-preview`
+and `silence`. Stop sound silences an active notification without acknowledging it.
+`clear-missed` acknowledges all missed/failed/interrupted jobs; individual Clear
+uses `dismiss`. Original status/errors remain in delivery history, acknowledgements
+survive restart and no future selection changes. The UI counts the full unresolved
+backlog instead of silently showing only eight items.
+
+Windows displays one grouped notification for simultaneous selected stages.
+Audio stops at the saved duration while the window remains visible. Repeat until
+dismissed is an explicit opt-in. Copy prompt, Open terminal, Stop sound, Dismiss
+and Snooze 5 min remain available; snooze cannot reach the event time. Terminal
+checks cover generated WAVs, duration/control wiring and native-script syntax;
+audibility and visual acceptance remain the user's checks.
+
+`GET /alarms/checkpoint?currency=JPY&at=<publication-milliseconds>` is a lightweight
+read without delivery history. Thesis shows Silent, Bell armed, sound off or an
+unavailable state, with the actual reminder names in its tooltip. It reports reminders
+at that currency/time, not a guessed identity match or automatic subscription.
+Native windows poll `/alarms/active?ids=<job IDs>` for their own status/audio only,
+without repeatedly transferring the full schedule and delivery history.
+Keep API inspections focused on settings, status counts and relevant occurrences;
+do not dump the full migration receipt and delivery history for routine checks.

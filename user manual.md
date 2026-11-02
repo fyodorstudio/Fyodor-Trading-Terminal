@@ -274,7 +274,7 @@ For historical work, use **Research date range**, name the report and add notes.
 **Prepare research** groups the brief and complete evidence under
 `Market Analyst Workflow/report/<name>-<timestamp>/`. Copy the brief path and ask
 the agent to explain the changing backdrop. It can fetch calendar and OHLC using
-[AGENTS.md](AGENTS.md#dataset-commands). Broker forecasts and web surveys stay
+[the research reference](docs/AGENT-RESEARCH.md#dataset-commands). Broker forecasts and web surveys stay
 separately attributed; different providers/methods can produce different numbers.
 
 ## Alert and saved Highlight research

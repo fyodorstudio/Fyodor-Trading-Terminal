@@ -54,6 +54,11 @@ globalThis.fetch = async (url, options = {}) => {
       if (action.action === 'subscribe') alarms.events.push({ key: 'calendar-choice', reference: 'calendar-choice', source: 'calendar', broker, value_ids: action.value_ids,
         title: action.title, currencies: ['USD'], at, date: null, eligible: true, selected: action.enabled, armed: false, note: '', prompt: 'Invoke exact occurrence' })
       if (action.action === 'toggle-many') for (const event of alarms.events) if (action.keys.includes(event.key)) event.selected = action.enabled
+      if (action.action === 'audio-settings') alarms.audio=action.audio
+      if (action.action === 'preview') alarms.preview_playing=true
+      if (action.action === 'stop-preview') alarms.preview_playing=false
+      if (action.action === 'clear-missed') for(const job of alarms.jobs)if(['missed','failed','interrupted'].includes(job.status))job.status='dismissed'
+      if (action.action === 'dismiss') for(const job of alarms.jobs)if(action.ids.includes(job.id))job.status='dismissed'
       alarms.revision++
     }
     return reply(alarms)
@@ -141,6 +146,22 @@ try {
   await click(host.querySelector('[aria-label="Alarm controls"]'))
   assert.match(document.querySelector('[aria-label="Alarm settings and status"]').textContent, /Alarms paused/)
   assert.ok(host.querySelector('[aria-label="Alarm controls"]').textContent.includes('Alarm Settings'))
+  const popover=()=>document.querySelector('[aria-label="Alarm settings and status"]')
+  const findSoundButton=label=>[...popover().querySelectorAll('button')].find(node=>node.textContent===label)
+  const volume=popover().querySelector('[aria-label="Economic reminder volume"]')
+  await React.act(async()=>volume[Object.keys(volume).find(k=>k.startsWith('__reactProps'))].onChange({target:{value:'17'}}))
+  await click(findSoundButton('Save sound settings'))
+  assert.equal(alarms.audio.volume,17);assert.equal(alarms.audio.duration,3);assert.equal(alarms.audio.repeat,false)
+  assert.equal(alarms.settings.enabled,false,'Sound edits preserve global delivery pause')
+  await click(findSoundButton('Preview'));assert.equal(alarms.preview_playing,true)
+  await click(findSoundButton('Stop preview'));assert.equal(alarms.preview_playing,false)
+  alarms.jobs=Array.from({length:16},(_,i)=>({id:'missed'+i,event_key:'old',title:'Old '+i,at:now-100000,due:now/1000-120,stage:'release',status:'missed',prompt:'Original prompt',error:null}))
+  await tick('pollAlarms')
+  assert.match(popover().textContent,/Missed \/ interrupted reminders \(16\)/,'Count includes the full unresolved backlog')
+  await click(popover().querySelector('[aria-label="Clear missed reminder Old 0"]'))
+  assert.equal(alarms.jobs[0].status,'dismissed')
+  await click(findSoundButton('Clear all missed'))
+  assert.ok(alarms.jobs.every(job=>job.status==='dismissed'))
   await React.act(async () => document.dispatchEvent(new dom.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })))
   const mutationsBefore = mutations.length
   await click(host.querySelector('[aria-label="Previous date"]'))

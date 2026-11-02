@@ -43,6 +43,7 @@ Optional `FYODOR_BRIDGE_API_URL` / `FYODOR_STORAGE_API_URL` override Vite's prox
 | alert | Date-based events, filters/countdowns, agent impact and saved research |
 | external-sources | Separate outside-feed events/headlines/watch items, sourced facts, history, limitations reference and agent prompts |
 | events-alarms / storage/alarms | Alert composition, occurrence invocation alarms and independent Windows alarm delivery |
+| config/alert-sounds.json / storage/alarm_audio.py | Shared sound presets, offline desktop WAV rendering and bounded custom audio |
 | entry-trade | Manual execution plans, all-pair pins, draggable chart levels and independent saved journals |
 | price-alerts | Broker/symbol price-alert lines, local persistence, live Bid monitoring and browser sound |
 | thesis / storage/thesis_research.py | Currency development ledger, assessments, range view, earlier daily/pair archive and append-only versions |
@@ -57,6 +58,12 @@ pnpm lint
 pnpm build
 pnpm check:repo
 ```
+
+For a focused frontend change, `pnpm --dir frontend test -- price_alert` selects
+matching suite filenames; multiple fragments are accepted and suites stay sequential.
+Unknown filters fail instead of silently running nothing. The full checks above
+remain required for dependency/extraction work. Market research and dataset rules
+live in [the research reference](docs/AGENT-RESEARCH.md); engineering routing stays in AGENTS.md.
 
 **Alert** is one date-based table for Pepperstone and named external publishers.
 Scroll the five-day selector, choose month/year or Today, and use All/eight-currency
@@ -184,7 +191,8 @@ an open-terminal feature: closed/sleeping browsers cannot monitor, and touches
 between samples may be missed. On reopening, a quote beyond an armed threshold can
 trigger; no historical touch time is inferred. Enable/preview the original Thin
 chime or one of eleven other sounds and choose its duration (three seconds by
-default). The upload icon opens the system file picker for a custom MP3, WAV or
+default), with a saved independent 0–100% volume. Preview toggles to Stop during
+playback; changing sounds cancels the old preview. The upload icon opens the system file picker for a custom MP3, WAV or
 OGG (up to 2 MB and 60 seconds), saved only in this browser. Uploading selects it;
 Preview and alerts repeat/trim it to the chosen duration. Upload again to replace
 it, or select a built-in sound. Browser/system audio
@@ -281,7 +289,8 @@ or `changes`. Preserve user notes, levels, history and identities; initialise
 research-only entries with Waiting and null execution levels. UTC event instants
 are storage data; write alarm times and thesis prose in Jakarta AM/PM.
 
-Start agents with [AGENTS.md](AGENTS.md#market-analysis); it owns the analysis
+Start agents with [AGENTS.md](AGENTS.md); its
+[research reference](docs/AGENT-RESEARCH.md#market-analysis) owns the analysis
 workflow and dataset commands. The [user manual](<user manual.md>) owns the practical
 release shortlist for all eight currencies. [Data, clocks and recovery](docs/DATA-CONTRACT.md)
 owns storage contracts; the [icon catalogue](docs/tools/icon-catalogue.html) is a

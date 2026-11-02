@@ -3,6 +3,8 @@ import { priceAlertSounds, type PriceAlertSoundId } from './price-alert-tones'
 export function createPriceAlertSound() {
   let context: AudioContext | null = null
   let disposed = false
+  let output: GainNode | null = null
+  let volume = 30
   let active: (OscillatorNode | AudioBufferSourceNode)[] = []
   let customBuffer: AudioBuffer | null = null
   const stop = () => {
@@ -13,12 +15,14 @@ export function createPriceAlertSound() {
     if (disposed) return false
     try {
       context ??= new AudioContext()
+      if (!output) { output = context.createGain(); output.connect(context.destination); output.gain.setValueAtTime(volume / 100, context.currentTime) }
       if (context.state !== 'running') await context.resume()
       return !disposed && context.state === 'running'
     } catch { return false }
   }
   return {
     unlock,
+    setVolume(value: number) { volume = Math.max(0, Math.min(100, value)); if (context && output) output.gain.setValueAtTime(volume / 100, context.currentTime) },
     async decodeCustom(bytes: ArrayBuffer) {
       if (!context || disposed) throw new Error('Audio is unavailable. Try Preview to enable sound.')
       let buffer: AudioBuffer
@@ -40,7 +44,7 @@ export function createPriceAlertSound() {
         const source = context.createBufferSource()
         source.buffer = customBuffer
         source.loop = true
-        source.connect(context.destination)
+        source.connect(output!)
         source.start(start); source.stop(start + duration)
         active.push(source)
         source.onended = () => { source.disconnect(); active = active.filter(node => node !== source) }
@@ -60,7 +64,7 @@ export function createPriceAlertSound() {
           gain.gain.setValueAtTime(0, at)
           gain.gain.linearRampToValueAtTime(tone.volume, Math.min(at + 0.01, end))
           gain.gain.exponentialRampToValueAtTime(0.001, end)
-          oscillator.connect(gain); gain.connect(context.destination)
+          oscillator.connect(gain); gain.connect(output!)
           oscillator.start(at); oscillator.stop(end)
           active.push(oscillator)
           oscillator.onended = () => {
@@ -72,6 +76,6 @@ export function createPriceAlertSound() {
       return true
     },
     stop,
-    dispose() { disposed = true; stop(); customBuffer = null; void context?.close().catch(() => {}); context = null },
+    dispose() { disposed = true; stop(); customBuffer = null; void context?.close().catch(() => {}); output?.disconnect(); output = null; context = null },
   }
 }

@@ -1,5 +1,8 @@
 import asyncio
 import json
+import base64
+import io
+import wave
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import TestCase
@@ -7,6 +10,7 @@ from unittest.mock import patch
 
 from storage.alarms import AlarmEngine, read_events
 from storage.alarm_service import create_alarm_app
+from storage.alarm_audio import DEFAULT_AUDIO, PRESETS, audio_path
 
 
 def event(key='cpi', at=1000000, **changes):
@@ -26,6 +30,63 @@ class AlarmTests(TestCase):
 
     def action(self, **request):
         return self.engine.mutate({'expected_revision': self.engine.state['revision'], **request})
+
+    def test_audio_settings_migrate_without_changing_delivery_choices(self):
+        self.engine.reconcile([event(), event('off')])
+        self.action(action='toggle', key='off', enabled=False)
+        data = json.loads(self.path.read_text()); data.pop('audio', None)
+        self.path.write_text(json.dumps(data))
+        restored = AlarmEngine(self.path, self.deliveries.append, lambda:self.now)
+        self.assertEqual(restored.state['audio'], DEFAULT_AUDIO)
+        jobs = dict(restored.state['jobs']); choices = dict(restored.state['overrides'])
+        restored.mutate({'action':'audio-settings','audio':{**DEFAULT_AUDIO,'volume':17,'duration':5,'sound_id':'bell'},'expected_revision':restored.state['revision']})
+        self.assertEqual(restored.state['jobs'], jobs)
+        self.assertEqual(restored.state['overrides'], choices)
+        again = AlarmEngine(self.path, self.deliveries.append, lambda:self.now)
+        self.assertEqual(again.state['audio']['volume'],17)
+        self.assertEqual(again.state['settings'],data['settings'])
+        for change in ({'volume':101},{'volume':True},{'duration':99},{'sound_id':'unknown'},{'repeat':1}):
+            before=json.loads(self.path.read_text(encoding='utf-8'))
+            with self.assertRaises(ValueError):
+                self.action(action='audio-settings',audio={**DEFAULT_AUDIO,**change})
+            self.assertEqual(json.loads(self.path.read_text(encoding='utf-8')),before)
+
+    def test_clear_missed_and_silence_are_independent_of_future_alarms(self):
+        self.engine.reconcile([event(),event('future',at=2000000)])
+        self.advance(880)
+        ringing=next(j for j in self.engine.state['jobs'].values() if j['status']=='ringing')
+        self.action(action='silence',ids=[ringing['id']])
+        self.assertTrue(ringing['silenced']);self.assertEqual(ringing['status'],'ringing')
+        for i in range(16):
+            self.engine.state['jobs']['old'+str(i)]={**ringing,'id':'old'+str(i),'status':'missed','error':'Original failure'}
+        self.action(action='clear-missed')
+        self.assertEqual(ringing['status'],'ringing')
+        self.assertEqual(sum(j['status']=='pending' for j in self.engine.state['jobs'].values()),1)
+        restored=AlarmEngine(self.path,self.deliveries.append,lambda:self.now)
+        self.assertTrue(all(restored.state['jobs']['old'+str(i)]['status']=='dismissed' for i in range(16)))
+        self.assertEqual(restored.state['jobs']['old0']['previous_status'],'missed')
+        self.assertEqual(restored.state['jobs']['old0']['error'],'Original failure')
+        restored.reconcile([event(),event('future',at=2000000)]);restored.tick()
+        self.assertEqual(len(self.deliveries),1,'Acknowledged missed reminders never replay')
+
+    def test_shared_sound_catalogue_and_custom_audio_are_bounded_offline(self):
+        directory=Path(self.temp.name)/'audio'
+        paths=[]
+        for preset in PRESETS:
+            target=audio_path(directory,{**DEFAULT_AUDIO,'sound_id':preset['id']})
+            with wave.open(str(target)) as wav:
+                self.assertEqual(wav.getnframes()/wav.getframerate(),3)
+            self.assertEqual(audio_path(directory,{**DEFAULT_AUDIO,'sound_id':preset['id']}),target)
+            paths.append(target.read_bytes())
+        self.assertEqual(len(set(paths)),len(PRESETS))
+        output=io.BytesIO()
+        with wave.open(output,'wb') as wav:
+            wav.setparams((1,2,16000,0,'NONE','not compressed'));wav.writeframes(b'\0'*3200)
+        self.action(action='audio-upload',name='My custom sound.mp3',data=base64.b64encode(output.getvalue()).decode())
+        self.assertEqual(self.engine.state['audio']['sound_id'],'custom')
+        self.assertEqual(self.engine.snapshot()['custom_sound_name'],'My custom sound.mp3')
+        self.assertTrue(audio_path(self.path.parent/'audio',self.engine.state['audio'],self.engine.state['custom_audio']).is_file())
+        with self.assertRaises(ValueError):self.action(action='audio-upload',name='Bad.wav',data='not audio')
 
     def advance(self, at, events=None):
         self.now = at
@@ -173,7 +234,7 @@ class AlarmTests(TestCase):
             app = create_alarm_app(Path(self.temp.name) / 'api', loader=lambda: [event()], notify=self.deliveries.append, clock=lambda: self.now)
             async with app.router.lifespan_context(app):
                 await asyncio.sleep(.05)
-                async def request(method='GET', body=None, headers=None):
+                async def request(method='GET', body=None, headers=None, path='/alarms', query=b''):
                     messages, received = [], False
                     async def receive():
                         nonlocal received
@@ -182,14 +243,25 @@ class AlarmTests(TestCase):
                         received = True
                         return {'type': 'http.request', 'body': json.dumps(body).encode() if body else b'', 'more_body': False}
                     async def send(message): messages.append(message)
-                    await app({'type': 'http', 'http_version': '1.1', 'method': method, 'scheme': 'http', 'path': '/alarms', 'raw_path': b'/alarms',
-                        'query_string': b'', 'headers': [(k.encode(), v.encode()) for k, v in (headers if headers is not None else {'content-type': 'application/json'}).items()],
+                    await app({'type': 'http', 'http_version': '1.1', 'method': method, 'scheme': 'http', 'path': path, 'raw_path': path.encode(),
+                        'query_string': query, 'headers': [(k.encode(), v.encode()) for k, v in (headers if headers is not None else {'content-type': 'application/json'}).items()],
                         'client': ('127.0.0.1', 1), 'server': ('127.0.0.1', 8003), 'asgi': {'version': '3.0', 'spec_version': '2.4'}}, receive, send)
                     return messages[0]['status'], json.loads(b''.join(m.get('body', b'') for m in messages[1:]))
                 _, data = await request()
                 self.assertEqual(data['application'], 'fyodor-alarms')
                 self.assertEqual(data['external_source_schema'], 3)
                 self.assertTrue(data['external_source_directory'])
+                status, checkpoint=await request(path='/alarms/checkpoint',query=b'currency=USD&at=1000000')
+                self.assertEqual(status,200);self.assertEqual(checkpoint['events'][0]['title'],'CPI')
+                self.assertNotIn('jobs',checkpoint,'Bell status does not serialize delivery history')
+                identity=data['jobs'][0]['id']
+                with patch.object(app.state.engine,'snapshot',side_effect=AssertionError('Full history must not be built')):
+                    status, active=await request(path='/alarms/active',query=('ids='+identity).encode())
+                self.assertEqual(status,200);self.assertEqual(len(active['jobs']),1)
+                self.assertEqual(set(active['jobs'][0]),{'id','status','silenced'})
+                status, preview=await request('POST',{'action':'preview','expected_revision':data['revision']})
+                self.assertEqual(status,200);self.assertEqual(self.deliveries[-1][0]['id'],'preview')
+                self.assertEqual(preview['jobs'],data['jobs'],'Preview creates no fake schedule/history')
                 denied, _ = await request('POST', {'action': 'test'}, {'origin': 'https://evil.example', 'content-type': 'application/json'})
                 self.assertEqual(denied, 403)
                 self.assertEqual((await request('POST', {'action': 'test'}, {}))[0], 415)

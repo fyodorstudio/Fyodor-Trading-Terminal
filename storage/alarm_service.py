@@ -14,6 +14,7 @@ from .alarms import AlarmEngine
 from .alert_subscriptions import calendar_subscription, load_selected_schedule
 from .calendar_store import CalendarStore
 from .data_lock import data_lock
+from .alarm_audio import audio_path
 
 ROOT = Path(__file__).resolve().parents[1]
 ALARM_DIRECTORY = ROOT / 'storage' / 'data' / 'alarms'
@@ -22,12 +23,23 @@ ALARM_DIRECTORY = ROOT / 'storage' / 'data' / 'alarms'
 class DesktopDelivery:
     def __init__(self, directory, port):
         self.directory, self.port, self.children = Path(directory), port, []
+        self.engine = None
+
+    def stop_preview(self):
+        for child, _, ids in self.children:
+            if ids == ['preview'] and child.poll() is None:
+                child.terminate()
+
+    def previewing(self):
+        return any(ids == ['preview'] and child.poll() is None for child, _, ids in self.children)
 
     def __call__(self, jobs):
         if os.name != 'nt':
             raise RuntimeError('Native alarms require Windows')
         path = self.directory / f"notification-{uuid.uuid4().hex}.json"
-        path.write_text(json.dumps({'jobs': jobs, 'api': f'http://127.0.0.1:{self.port}',
+        audio = dict(self.engine.state['audio'])
+        sound = audio_path(self.directory / 'audio', audio, self.engine.state.get('custom_audio'))
+        path.write_text(json.dumps({'jobs': jobs, 'audio': audio, 'audio_path': str(sound), 'api': f'http://127.0.0.1:{self.port}',
             'terminal': 'http://localhost:5173/?events=alarms'}, ensure_ascii=False), encoding='utf-8')
         child = subprocess.Popen(['powershell.exe', '-NoProfile', '-STA', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass',
             '-File', str(ROOT / 'storage' / 'alarm_notification.ps1'), '-PayloadPath', str(path)],
@@ -60,6 +72,8 @@ def create_alarm_app(directory=ALARM_DIRECTORY, loader=None, notify=None, clock=
     async def lifespan(app):
         with data_lock(directory):
             engine = AlarmEngine(directory / 'state.json', delivery, **({'clock': clock} if clock else {}))
+            if isinstance(delivery, DesktopDelivery):
+                delivery.engine = engine
             app.state.engine = engine
             load = loader or (lambda: load_selected_schedule(database, engine))
             async def worker():
@@ -106,26 +120,58 @@ def create_alarm_app(directory=ALARM_DIRECTORY, loader=None, notify=None, clock=
     def snapshot():
         from .external_sources import DIRECTORY
         return {**app.state.engine.snapshot(), 'external_source_schema': 3,
+                'preview_playing': delivery.previewing() if isinstance(delivery, DesktopDelivery) else False,
                 'external_source_directory': str(DIRECTORY.resolve())}
+
+    @app.get('/alarms/checkpoint')
+    def checkpoint(currency: str, at: int):
+        engine = app.state.engine
+        with engine.lock:
+            return {'available': engine.error is None and engine.refreshed_at is not None
+                    and engine.clock()-engine.refreshed_at <= 15 and os.name=='nt',
+                    'sound_enabled': engine.state['audio']['enabled'] and engine.state['audio']['volume'] > 0,
+                    'events': [{'title': e['title'], 'armed': engine.enabled(e), 'selected': engine.selected(e)}
+                        for e in engine.events if currency in e['currencies'] and e['at'] == at]}
+
+    @app.get('/alarms/active')
+    def active(ids: str):
+        identities = ids.split(',')
+        if len(identities)>500:
+            raise HTTPException(400, 'Too many reminder IDs')
+        engine=app.state.engine
+        with engine.lock:
+            return {'revision':engine.state['revision'],'audio':dict(engine.state['audio']),
+                'jobs':[{key:job.get(key) for key in ('id','status','silenced')}
+                    for identity in identities if (job:=engine.state['jobs'].get(identity))]}
 
     @app.post('/alarms')
     async def update(request: Request):
         if request.headers.get('content-type', '').split(';')[0] != 'application/json':
             raise HTTPException(415, 'JSON required')
         raw = await request.body()
-        if len(raw) > 65536:
+        if len(raw) > 3 * 1024 * 1024:
             raise HTTPException(413, 'Alarm request too large')
         try:
             data = json.loads(raw)
             if not isinstance(data, dict):
                 raise ValueError('Invalid alarm request')
-            if data.get('action') == 'test':
+            if len(raw) > 65536 and data.get('action') != 'audio-upload':
+                raise ValueError('Alarm request too large')
+            if data.get('action') in ('test', 'preview', 'stop-preview'):
+                if data['action'] != 'test':
+                    if data.get('expected_revision') != app.state.engine.state['revision']:
+                        raise ValueError('Alarm settings changed. Refresh and try again.')
+                    if isinstance(delivery, DesktopDelivery):
+                        delivery.stop_preview()
+                    if data['action'] == 'stop-preview':
+                        return snapshot()
                 # Explicit test only; no historical or fake calendar occurrence is created.
                 import time
                 now = clock() if clock else time.time()
-                app.state.engine.notify([{'id': 'test', 'title': 'Test alarm — Fyodor Events & Alarms', 'stage': 'test',
+                identity = 'preview' if data['action'] == 'preview' else 'test'
+                app.state.engine.notify([{'id': identity, 'title': 'Sound preview' if identity=='preview' else 'Test alarm — Fyodor Events & Alarms', 'stage': 'test',
                     'at': (now + 3600) * 1000, 'prompt': 'Sound and desktop window test. No agent has been invoked.'}])
-                return {'accepted': True}
+                return snapshot() if identity=='preview' else {'accepted': True}
             if data.get('action') == 'subscribe':
                 store = CalendarStore(database, readonly=True)
                 try:
@@ -139,7 +185,10 @@ def create_alarm_app(directory=ALARM_DIRECTORY, loader=None, notify=None, clock=
                             'default_enabled': subscription['enabled'], 'note': 'Verified broker publication.'}}
                 finally:
                     store.close()
-            return app.state.engine.mutate(data)
+            result = app.state.engine.mutate(data)
+            if data.get('action') in ('audio-settings', 'audio-upload') and isinstance(delivery, DesktopDelivery):
+                delivery.stop_preview()
+            return result
         except (ValueError, TypeError, KeyError) as error:
             raise HTTPException(409, str(error)) from error
         except (OSError, RuntimeError) as error:

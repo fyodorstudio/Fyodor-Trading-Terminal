@@ -5,6 +5,13 @@ import { fileURLToPath } from 'node:url'
 import { sourceGraph } from '../scripts/lib/source-graph.mjs'
 import { sourceUsage, unreferencedClasses } from '../scripts/lib/source-hygiene.mjs'
 import { documentNavigation, staleFeatureDescriptions } from '../scripts/lib/document-navigation.mjs'
+import { selectSuites } from '../scripts/lib/select-suites.mjs'
+import { suites } from './suites.mjs'
+
+assert.equal(selectSuites(suites,[]),suites,'Default retains the full suite')
+assert.ok(selectSuites(suites,['price_alerts']).every(suite=>suite.includes('price_alerts')))
+assert.deepEqual(selectSuites(suites,['thesis','thesis']),suites.filter(suite=>suite.includes('thesis')),'Overlapping filters do not run a suite twice')
+assert.throws(()=>selectSuites(suites,['misspelled_suite']),/No frontend suite matches/)
 
 const runtime = fileURLToPath(new URL('./.runtime/', import.meta.url))
 fs.mkdirSync(runtime, { recursive: true })

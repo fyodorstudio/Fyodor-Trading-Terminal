@@ -15,7 +15,7 @@ export type PriceAlert = {
   triggeredBid: number | null
 }
 
-export type PriceAlertStore = { alerts: PriceAlert[]; playSound: boolean; duration: number; soundId: PriceAlertSoundId }
+export type PriceAlertStore = { alerts: PriceAlert[]; playSound: boolean; duration: number; soundId: PriceAlertSoundId; volume: number }
 export const priceAlertStorageKey = 'fyodor.price-alerts.v1'
 
 function validAlert(value: unknown): value is PriceAlert {
@@ -32,11 +32,11 @@ function validAlert(value: unknown): value is PriceAlert {
 }
 
 export function readPriceAlerts(): PriceAlertStore {
-  const empty: PriceAlertStore = { alerts: [], playSound: true, duration: 3, soundId: 'thin' }
+  const empty: PriceAlertStore = { alerts: [], playSound: true, duration: 3, soundId: 'thin', volume: 30 }
   try {
     const value = JSON.parse(window.localStorage.getItem(priceAlertStorageKey) ?? 'null')
     if (!value || !Array.isArray(value.alerts)) return empty
-    return { alerts: value.alerts.filter(validAlert), playSound: value.playSound !== false,
+    return { volume: Number.isFinite(value.volume) ? Math.max(0, Math.min(100, value.volume)) : 30, alerts: value.alerts.filter(validAlert), playSound: value.playSound !== false,
       duration: [1, 3, 5, 10].includes(value.duration) ? value.duration : 3,
       soundId: value.soundId === 'custom' ? 'custom' : priceAlertSounds.find(sound => sound.id === value.soundId)?.id ?? 'thin' }
   } catch { return empty }

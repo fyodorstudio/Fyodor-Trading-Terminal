@@ -123,7 +123,9 @@ export function PriceAlertsDock({ controller, onSelectSymbol, onCreate, brokerId
         </select>
         <select aria-label="Price alert sound duration" value={controller.duration} onChange={event => controller.setSound(controller.playSound, Number(event.target.value))}>
           {[1, 3, 5, 10].map(seconds => <option key={seconds} value={seconds}>{seconds} seconds</option>)}
-        </select><button type="button" disabled={controller.customSoundLoading} onClick={() => void controller.previewSound()}>Preview</button></div>
+        </select><button type="button" disabled={controller.customSoundLoading} onClick={() => controller.previewing ? controller.stopSound() : void controller.previewSound()}>{controller.previewing ? 'Stop' : 'Preview'}</button></div>
+      <label>Volume <input aria-label="Price alert volume" type="range" min="0" max="100" value={controller.volume}
+        onChange={event => controller.setVolume(Number(event.target.value))} /><output>{controller.volume}%</output></label>
       {controller.customSoundError && <p role="alert">{controller.customSoundError}</p>}
       {!controller.live && <p role="status">Monitoring paused · waiting for live broker quotes.</p>}
       {controller.storageError && <p role="alert">Browser storage unavailable. Changes are kept for this session only.</p>}

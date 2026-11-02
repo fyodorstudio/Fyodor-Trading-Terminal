@@ -12,6 +12,7 @@ import time
 from .calendar_store import CalendarStore
 from .highlights import HIGHLIGHTS_PATH, highlight_snapshot
 from .external_sources import DIRECTORY, external_snapshot
+from .alarm_audio import DEFAULT_AUDIO, validate_audio, custom_audio
 
 JAKARTA = timezone(timedelta(hours=7))
 DEFAULT_SETTINGS = {'enabled': True, 'release_minutes': 2}
@@ -65,11 +66,14 @@ class AlarmEngine:
         self.lock = RLock()
         self.events, self.error, self.refreshed_at = [], 'Schedule not loaded', None
         self.state = {'version': 1, 'revision': 0, 'settings': dict(DEFAULT_SETTINGS), 'overrides': {}, 'jobs': {}}
+        self.state['audio'] = dict(DEFAULT_AUDIO)
         if self.path.exists():
             data = json.loads(self.path.read_text(encoding='utf-8'))
             if data.get('version') != 1 or not isinstance(data.get('jobs'), dict) or not isinstance(data.get('overrides'), dict):
                 raise ValueError('Invalid alarm state; preserve the file and restore a valid copy')
             self.state = data
+            self.state.setdefault('audio', dict(DEFAULT_AUDIO))
+            validate_audio(self.state['audio'])
             # Retire the old two-reminder schedule without losing pin choices or history.
             if 'prepare_minutes' in self.state['settings']:
                 self.state['settings'] = {'enabled': self.state['settings']['enabled'], 'release_minutes': 2}
@@ -182,6 +186,7 @@ class AlarmEngine:
             jobs = sorted(self.state['jobs'].values(), key=lambda job: job.get('fired_at', job['due']), reverse=True)
             return {'application': 'fyodor-alarms', 'revision': self.state['revision'], 'now': self.clock() * 1000,
                 'settings': dict(self.state['settings']), 'schedule_error': self.error or ('Alarm scheduler heartbeat is stale' if self.refreshed_at is None or self.clock() - self.refreshed_at > 15 else None), 'refreshed_at': self.refreshed_at,
+                'audio': dict(self.state['audio']), 'custom_sound_name': self.state.get('custom_audio', {}).get('name'),
                 'native_available': os.name == 'nt',
                 'schedule_schema': 2, 'migration': self.state.get('migration'),
                 'events': [{**e, 'selected': self.selected(e), 'armed': self.enabled(e), 'prompt': prompt_for(e, 'release')} for e in self.events],
@@ -206,6 +211,19 @@ class AlarmEngine:
             if action == 'settings':
                 self.validate_settings(request.get('settings', {}))
                 self.state['settings'] = dict(request['settings'])
+            elif action == 'audio-settings':
+                audio = request.get('audio')
+                validate_audio(audio)
+                if audio['sound_id'] == 'custom' and not self.state.get('custom_audio'):
+                    raise ValueError('Upload a custom sound first')
+                self.state['audio'] = dict(audio)
+            elif action == 'audio-upload':
+                self.state['custom_audio'] = custom_audio(self.path.parent / 'audio', request.get('name'), request.get('data'))
+                self.state['audio'] = {**self.state['audio'], 'sound_id': 'custom'}
+            elif action == 'clear-missed':
+                for job in self.state['jobs'].values():
+                    if job['status'] in ('missed', 'interrupted', 'failed'):
+                        job.update(previous_status=job['status'], status='dismissed', acknowledged_at=self.clock())
             elif action == 'subscribe':
                 subscription = request.get('subscription')
                 key = request.get('key')
@@ -230,17 +248,25 @@ class AlarmEngine:
                 if not event or not event['eligible'] or type(request.get('enabled')) is not bool:
                     raise ValueError('This event has no verified, alarm-eligible time')
                 self.state['overrides'][event['key']] = request['enabled']
-            elif action in ('dismiss', 'snooze'):
+            elif action in ('dismiss', 'snooze', 'silence'):
                 ids = request.get('ids')
                 if not isinstance(ids, list) or not ids or len(ids) > 500 or any(identity not in self.state['jobs'] for identity in ids):
                     raise ValueError('Unknown reminder')
                 now = self.clock()
                 for identity in ids:
                     job = self.state['jobs'][identity]
+                    if action == 'silence' and job['status'] != 'ringing':
+                        raise ValueError('Only a ringing notification can be silenced')
                     if action == 'snooze' and (job['status'] != 'ringing' or now + 300 >= job['at'] / 1000):
                         raise ValueError('Five-minute snooze would reach the release; dismiss or prepare now')
                 for identity in ids:
-                    self.state['jobs'][identity].update(status='dismissed' if action == 'dismiss' else 'snoozed', snooze_until=now + 300)
+                    job = self.state['jobs'][identity]
+                    if action == 'silence':
+                        job['silenced'] = True
+                    elif action == 'dismiss':
+                        job.update(previous_status=job['status'], status='dismissed', acknowledged_at=now)
+                    else:
+                        job.update(status='snoozed', snooze_until=now + 300, silenced=False)
             else:
                 raise ValueError('Unknown alarm action')
             # Reconciliation and settings are one durable update, not two partial saves.

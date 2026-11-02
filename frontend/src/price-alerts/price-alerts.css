@@ -8,6 +8,7 @@
 .price-alert-create input { margin: 0; }
 .price-alerts-dock button, .price-alerts-dock select, .price-alerts-dock input[type="text"] { color: var(--text-strong); background: var(--surface-inset); border: 1px solid var(--border-strong); border-radius: 4px; padding: 5px 7px; font: inherit; }
 .price-alert-controls button, .price-alert-controls select { min-height: 24px; padding: 2px 6px; }
+.price-alert-controls input[type='range'] { flex: 1; min-width: 0; accent-color: var(--accent); }
 .price-alerts-dock button { cursor: pointer; }
 .price-alerts-dock button:hover { background: var(--surface-hover); }
 .price-alerts-dock button:disabled { cursor: default; }

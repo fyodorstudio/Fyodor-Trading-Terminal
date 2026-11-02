@@ -15,7 +15,7 @@ const { createRoot } = await import('react-dom/client')
 const host = document.createElement('div'); document.body.appendChild(host)
 const root = createRoot(host)
 let soundStarts = 0, soundStops = [], closes = 0, blocked = false
-const scheduledTones = []
+const scheduledTones = [], gains = []
 globalThis.AudioContext = class {
   _state = 'suspended'; currentTime = 10; destination = {}
   get state() { return blocked ? 'suspended' : this._state }
@@ -26,7 +26,7 @@ globalThis.AudioContext = class {
       start(at) { soundStarts++; scheduledTones.push({ waveform: node.type, pitch: node.pitch, at }) }, stop(at) { soundStops.push(at) } }
     return node
   }
-  createGain() { return { gain: { setValueAtTime() {}, linearRampToValueAtTime() {}, exponentialRampToValueAtTime() {} }, connect() {}, disconnect() {} } }
+  createGain() { const node={ gain: { value:0,setValueAtTime(value) { this.value=value }, linearRampToValueAtTime() {}, exponentialRampToValueAtTime() {} }, connect() {}, disconnect() {} };gains.push(node);return node }
 }
 const quote = (symbol, bid) => ({ symbol, bid, ask: bid + .0001, precision: 5, description: symbol, dailyChange: 0 })
 const lines = new Set()
@@ -56,6 +56,12 @@ try {
   let up, down, other
   await render()
   await command(() => api.enableSound())
+  assert.equal(api.volume,30)
+  await command(()=>api.setVolume(17))
+  assert.equal(saved().volume,17)
+  assert.equal(gains[0].gain.value,.17,'Master gain applies user volume to preset playback')
+  await command(()=>api.setVolume(0));assert.equal(gains[0].gain.value,0)
+  await command(()=>api.setVolume(17))
   const stableAdd = api.addAlert
   await command(() => { up = api.addAlert('EURUSD', 1.2, 5); down = api.addAlert('EURUSD', 1, 5); other = api.addAlert('GBPUSD', 1.3, 5) })
   assert.equal(lines.size, 2)
@@ -215,6 +221,10 @@ try {
   const previewStarts = soundStarts
   await command(() => api.previewSound())
   assert.equal(soundStarts - previewStarts, 10)
+  assert.equal(api.previewing,true)
+  const stopsBefore=soundStops.length
+  await click([...host.querySelectorAll('.price-alert-sound button')].find(node=>node.textContent==='Stop'))
+  assert.equal(api.previewing,false);assert.ok(soundStops.length>stopsBefore,'Stop cancels audible preview nodes')
   const signatures = new Set()
   for (const preset of priceAlertSounds) {
     const selector = host.querySelector('[aria-label="Price alert sound"]')
@@ -242,12 +252,12 @@ try {
   await command(() => dom.dispatchEvent(new dom.StorageEvent('storage', { key: priceAlertStorageKey })))
   assert.equal(api.alerts.length, 0, 'Other-tab edits synchronize')
   dom.localStorage.setItem(priceAlertStorageKey, '{broken')
-  assert.deepEqual(readPriceAlerts(), { alerts: [], playSound: true, duration: 3, soundId: 'thin' })
+  assert.deepEqual(readPriceAlerts(), { alerts: [], playSound: true, duration: 3, soundId: 'thin', volume: 30 })
   dom.localStorage.setItem(priceAlertStorageKey, JSON.stringify({ alerts: [{ price: 'bad' }], duration: 999 }))
-  assert.deepEqual(readPriceAlerts(), { alerts: [], playSound: true, duration: 3, soundId: 'thin' })
+  assert.deepEqual(readPriceAlerts(), { alerts: [], playSound: true, duration: 3, soundId: 'thin', volume: 30 })
   const legacyAlert = { id: 'legacy', brokerId: 'Broker A', symbol: 'EURUSD', price: 1.5, precision: 5, direction: 'above', status: 'paused', createdAt: 1, triggeredAt: null, triggeredBid: null }
   dom.localStorage.setItem(priceAlertStorageKey, JSON.stringify({ alerts: [legacyAlert], playSound: false, duration: 10 }))
-  assert.deepEqual(readPriceAlerts(), { alerts: [legacyAlert], playSound: false, duration: 10, soundId: 'thin' }, 'Existing saved alerts migrate without changing alarm choices')
+  assert.deepEqual(readPriceAlerts(), { alerts: [legacyAlert], playSound: false, duration: 10, soundId: 'thin', volume: 30 }, 'Existing saved alerts migrate without changing alarm choices')
   dom.localStorage.setItem(priceAlertStorageKey, JSON.stringify({ ...saved(), soundId: 'unknown' }))
   assert.equal(readPriceAlerts().soundId, 'thin', 'Unknown sounds fall back safely')
   await command(() => { api.addAlert('EURUSD', 1.2, 5) })

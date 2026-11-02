@@ -1,0 +1,275 @@
+[
+  {
+    "id": "thin",
+    "label": "Thin",
+    "interval": 1,
+    "tones": [
+      {
+        "offset": 0,
+        "duration": 0.4,
+        "frequency": 1760,
+        "waveform": "sine",
+        "volume": 0.12
+      },
+      {
+        "offset": 0.5,
+        "duration": 0.4,
+        "frequency": 2093,
+        "waveform": "sine",
+        "volume": 0.12
+      }
+    ]
+  },
+  {
+    "id": "bell",
+    "label": "Bell",
+    "interval": 1,
+    "tones": [
+      {
+        "offset": 0,
+        "duration": 0.9,
+        "frequency": 880,
+        "waveform": "sine",
+        "volume": 0.12
+      },
+      {
+        "offset": 0,
+        "duration": 0.7,
+        "frequency": 1760,
+        "waveform": "sine",
+        "volume": 0.035
+      }
+    ]
+  },
+  {
+    "id": "double-beep",
+    "label": "Double beep",
+    "interval": 0.9,
+    "tones": [
+      {
+        "offset": 0,
+        "duration": 0.13,
+        "frequency": 1046,
+        "waveform": "sine",
+        "volume": 0.12
+      },
+      {
+        "offset": 0.2,
+        "duration": 0.13,
+        "frequency": 1046,
+        "waveform": "sine",
+        "volume": 0.12
+      }
+    ]
+  },
+  {
+    "id": "digital",
+    "label": "Digital",
+    "interval": 0.6,
+    "tones": [
+      {
+        "offset": 0,
+        "duration": 0.14,
+        "frequency": 880,
+        "waveform": "square",
+        "volume": 0.035
+      },
+      {
+        "offset": 0.18,
+        "duration": 0.14,
+        "frequency": 1320,
+        "waveform": "square",
+        "volume": 0.035
+      }
+    ]
+  },
+  {
+    "id": "pulse",
+    "label": "Pulse",
+    "interval": 0.7,
+    "tones": [
+      {
+        "offset": 0,
+        "duration": 0.3,
+        "frequency": 440,
+        "waveform": "triangle",
+        "volume": 0.12
+      }
+    ]
+  },
+  {
+    "id": "triple-beep",
+    "label": "Triple beep",
+    "interval": 1.2,
+    "tones": [
+      {
+        "offset": 0,
+        "duration": 0.1,
+        "frequency": 1175,
+        "waveform": "sine",
+        "volume": 0.1
+      },
+      {
+        "offset": 0.18,
+        "duration": 0.1,
+        "frequency": 1175,
+        "waveform": "sine",
+        "volume": 0.1
+      },
+      {
+        "offset": 0.36,
+        "duration": 0.1,
+        "frequency": 1175,
+        "waveform": "sine",
+        "volume": 0.1
+      }
+    ]
+  },
+  {
+    "id": "doorbell",
+    "label": "Doorbell",
+    "interval": 1.6,
+    "tones": [
+      {
+        "offset": 0,
+        "duration": 0.7,
+        "frequency": 784,
+        "waveform": "sine",
+        "volume": 0.12
+      },
+      {
+        "offset": 0.5,
+        "duration": 0.9,
+        "frequency": 622,
+        "waveform": "sine",
+        "volume": 0.1
+      }
+    ]
+  },
+  {
+    "id": "rising-chime",
+    "label": "Rising chime",
+    "interval": 1.2,
+    "tones": [
+      {
+        "offset": 0,
+        "duration": 0.35,
+        "frequency": 659,
+        "waveform": "triangle",
+        "volume": 0.09
+      },
+      {
+        "offset": 0.2,
+        "duration": 0.35,
+        "frequency": 880,
+        "waveform": "triangle",
+        "volume": 0.09
+      },
+      {
+        "offset": 0.4,
+        "duration": 0.5,
+        "frequency": 1319,
+        "waveform": "triangle",
+        "volume": 0.09
+      }
+    ]
+  },
+  {
+    "id": "falling-chime",
+    "label": "Falling chime",
+    "interval": 1.4,
+    "tones": [
+      {
+        "offset": 0,
+        "duration": 0.45,
+        "frequency": 1047,
+        "waveform": "sine",
+        "volume": 0.1
+      },
+      {
+        "offset": 0.25,
+        "duration": 0.45,
+        "frequency": 784,
+        "waveform": "sine",
+        "volume": 0.1
+      },
+      {
+        "offset": 0.5,
+        "duration": 0.65,
+        "frequency": 523,
+        "waveform": "sine",
+        "volume": 0.1
+      }
+    ]
+  },
+  {
+    "id": "sonar",
+    "label": "Sonar",
+    "interval": 1.8,
+    "tones": [
+      {
+        "offset": 0,
+        "duration": 1.1,
+        "frequency": 1397,
+        "waveform": "sine",
+        "volume": 0.1
+      },
+      {
+        "offset": 0.4,
+        "duration": 0.65,
+        "frequency": 1397,
+        "waveform": "sine",
+        "volume": 0.035
+      }
+    ]
+  },
+  {
+    "id": "buzzer",
+    "label": "Buzzer",
+    "interval": 1,
+    "tones": [
+      {
+        "offset": 0,
+        "duration": 0.22,
+        "frequency": 220,
+        "waveform": "sawtooth",
+        "volume": 0.045
+      },
+      {
+        "offset": 0.3,
+        "duration": 0.22,
+        "frequency": 277,
+        "waveform": "sawtooth",
+        "volume": 0.045
+      }
+    ]
+  },
+  {
+    "id": "soft-chime",
+    "label": "Soft chime",
+    "interval": 1.5,
+    "tones": [
+      {
+        "offset": 0,
+        "duration": 0.6,
+        "frequency": 523,
+        "waveform": "sine",
+        "volume": 0.07
+      },
+      {
+        "offset": 0.25,
+        "duration": 0.65,
+        "frequency": 659,
+        "waveform": "sine",
+        "volume": 0.07
+      },
+      {
+        "offset": 0.5,
+        "duration": 0.8,
+        "frequency": 784,
+        "waveform": "sine",
+        "volume": 0.07
+      }
+    ]
+  }
+]

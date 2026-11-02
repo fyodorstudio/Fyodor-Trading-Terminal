@@ -13,6 +13,8 @@ export function usePriceAlerts(brokerId: string | null, quotes: SymbolQuote[], l
   const current = useRef(store)
   const feed = useRef({ brokerId, quotes, live })
   useLayoutEffect(() => { feed.current = { brokerId, quotes, live } }, [brokerId, quotes, live])
+  const [previewing, setPreviewing] = useState(false)
+  const previewTimer = useRef<number | undefined>(undefined)
   const [storageError, setStorageError] = useState(false)
   const [soundBlocked, setSoundBlocked] = useState(false)
   const [customSoundName, setCustomSoundName] = useState(() => readCustomAlertSound()?.name ?? null)
@@ -24,10 +26,11 @@ export function usePriceAlerts(brokerId: string | null, quotes: SymbolQuote[], l
   const draggingAlertId = useRef<string | null>(null)
   const sound = useRef<ReturnType<typeof createPriceAlertSound> | null>(null)
   const mounted = useRef(true)
+  const stopSound = useCallback(() => { playbackRequest.current++; window.clearTimeout(previewTimer.current); sound.current?.stop(); setPreviewing(false) }, [])
   const invalidateCustom = useCallback(() => { customRequest.current++; playbackRequest.current++; loadedCustomData.current = null }, [])
   useEffect(() => {
     mounted.current = true
-    return () => { mounted.current = false; invalidateCustom(); sound.current?.dispose(); sound.current = null }
+    return () => { mounted.current = false; invalidateCustom(); window.clearTimeout(previewTimer.current); sound.current?.dispose(); sound.current = null }
   }, [invalidateCustom])
   const commit = useCallback((next: PriceAlertStore) => {
     current.current = next
@@ -58,6 +61,7 @@ export function usePriceAlerts(brokerId: string | null, quotes: SymbolQuote[], l
   const enableSound = useCallback(async () => {
     sound.current ??= createPriceAlertSound()
     const engine = sound.current
+    engine.setVolume(current.current.volume)
     setSoundBlocked(true)
     const enabled = await engine.unlock()
     await prepareCustomSound(engine)
@@ -67,6 +71,7 @@ export function usePriceAlerts(brokerId: string | null, quotes: SymbolQuote[], l
     const sync = (event: StorageEvent) => {
       if (event.key !== customAlertSoundKey && event.key !== priceAlertStorageKey && event.key !== null) return
       playbackRequest.current++
+      window.clearTimeout(previewTimer.current); setPreviewing(false)
       sound.current?.stop()
       if (event.key !== priceAlertStorageKey) {
         invalidateCustom(); sound.current?.setCustomBuffer(null)
@@ -85,22 +90,28 @@ export function usePriceAlerts(brokerId: string | null, quotes: SymbolQuote[], l
     const request = ++playbackRequest.current
     sound.current ??= createPriceAlertSound()
     const engine = sound.current
+    engine.setVolume(current.current.volume)
     setSoundBlocked(true)
     const enabled = await engine.unlock()
     const ready = await prepareCustomSound(engine)
     if (!mounted.current || sound.current !== engine || request !== playbackRequest.current) return
     const played = enabled && ready && engine.play(current.current.duration, current.current.soundId)
     setSoundBlocked(!enabled || (ready && !played))
+    setPreviewing(played)
+    window.clearTimeout(previewTimer.current)
+    if (played) previewTimer.current = window.setTimeout(() => setPreviewing(false), current.current.duration * 1000)
   }, [prepareCustomSound])
   const uploadCustomSound = useCallback(async (file: File) => {
     const request = ++customRequest.current
     playbackRequest.current++
+    window.clearTimeout(previewTimer.current); sound.current?.stop(); setPreviewing(false)
     setCustomSoundError(''); setCustomSoundLoading(true)
     try {
       if (!/\.(mp3|wav|ogg)$/i.test(file.name)) throw new Error('Choose an MP3, WAV or OGG audio file.')
       if (!file.size || file.size > customAlertSoundMaxBytes) throw new Error('Choose a nonempty audio file up to 2 MB.')
       sound.current ??= createPriceAlertSound()
       const engine = sound.current
+      engine.setVolume(current.current.volume)
       const enabled = await engine.unlock()
       const bytes = await file.arrayBuffer()
       const buffer = await engine.decodeCustom(bytes.slice(0))
@@ -117,6 +128,7 @@ export function usePriceAlerts(brokerId: string | null, quotes: SymbolQuote[], l
     }
   }, [commit])
   const playAlertSound = useCallback(() => {
+    sound.current?.setVolume(current.current.volume)
     const played = sound.current?.play(current.current.duration, current.current.soundId) ?? false
     setSoundBlocked(!played)
   }, [])
@@ -179,16 +191,21 @@ export function usePriceAlerts(brokerId: string | null, quotes: SymbolQuote[], l
     if (soundId && soundId !== current.current.soundId) {
       invalidateCustom(); setCustomSoundLoading(false); setCustomSoundError('')
     }
-    sound.current?.stop()
+    stopSound()
     commit({ ...current.current, playSound, duration, soundId: soundId ?? current.current.soundId })
     if (playSound) void enableSound()
     else sound.current?.stop()
-  }, [commit, enableSound, invalidateCustom])
+  }, [commit, enableSound, invalidateCustom, stopSound])
+  const setVolume = useCallback((volume: number) => {
+    if (!Number.isFinite(volume)) return
+    const value = Math.max(0, Math.min(100, volume))
+    sound.current?.setVolume(value); commit({ ...current.current, volume: value })
+  }, [commit])
   const brokerAlerts = useMemo(() => store.alerts.filter(alert => alert.brokerId === brokerId), [store.alerts, brokerId])
   const selectedAlertId = useMemo(() => brokerAlerts.some(alert => alert.id === selectedId) ? selectedId : null, [brokerAlerts, selectedId])
   const liveSymbols = useMemo(() => new Set(quotes.filter(quote => Number.isFinite(quote.bid) && quote.bid > 0).map(quote => quote.symbol)), [quotes])
   return { alerts: store.alerts, brokerAlerts, addAlert, updateAlert, playSound: store.playSound, duration: store.duration, soundId: store.soundId,
-    setSound, enableSound, previewSound, soundBlocked, storageError, live, liveSymbols, renameAlert, moveAlert, deleteAlert, setDraggingAlertId: changeDraggingAlert,
+    volume: store.volume, setVolume, stopSound, previewing, setSound, enableSound, previewSound, soundBlocked, storageError, live, liveSymbols, renameAlert, moveAlert, deleteAlert, setDraggingAlertId: changeDraggingAlert,
     customSoundName, customSoundError, customSoundLoading, uploadCustomSound, selectedAlertId, selectAlert }
 }
 

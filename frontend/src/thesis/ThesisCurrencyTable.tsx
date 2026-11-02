@@ -1,6 +1,7 @@
 import { memo, useState } from 'react'
 import { dailyDirectionLabel, directionStageLabel, safeThesisLink, thesisDay, type ThesisCurrency, type ThesisSource } from './thesis-model'
 import { researchAssessment, researchFacts, researchTimeline, type CurrencyResearch, type ResearchDevelopment, type ResearchTimelineEntry } from './research-model'
+import { CheckpointBell } from './CheckpointBell'
 
 const day = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', month: 'short', day: 'numeric', year: 'numeric' })
 const hour = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', hour: 'numeric', minute: '2-digit', hour12: true })
@@ -90,7 +91,7 @@ export const ThesisCurrencyTable = memo(function ThesisCurrencyTable({ data, cur
       </div> : <p>{assessment?.gap || (future ? 'Future dates stay unassessed.' : 'No saved assessment for this currency by this date.')}</p>}
       {pending && <p className="thesis-notice">Newer saved evidence has not yet been incorporated into this assessment.</p>}
       {direction && <div className="thesis-next-anchor" aria-label={currency+' next anchor'}>
-        <h4>Next anchor</h4>
+        <h4>Next anchor {checkpoint && <CheckpointBell currency={currency} at={checkpoint.event_at} />}</h4>
         {checkpoint ? <><p><strong>{checkpoint.event_at ? full.format(new Date(checkpoint.event_at)) : dated(checkpoint.event_date!)+' · Hour unknown'} · {checkpoint.title}</strong></p>
           <p>{checkpoint.note}</p><Links sources={checkpoint.sources} /></> : <p>{direction.reassessment_gap || 'No verified anchor saved.'}</p>}
       </div>}

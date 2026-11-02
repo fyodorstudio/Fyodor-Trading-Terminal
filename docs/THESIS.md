@@ -49,6 +49,10 @@ same deadline projected by the left panel, not a UI-selected substitute; elapsed
 or unresolved stages cannot silently roll forward. Anchor selection is owned by
 Assess Trade Now's single invocation anchor guidance. A relevant market opening
 can qualify without becoming a high-impact news bell or promising direction.
+Next anchor also shows verified reminder status from a small alarm-worker read.
+Its tooltip names armed occurrences at that currency/time; this does not infer an
+event identity or arm a reminder. Unknown hours stay silent, and an unavailable
+worker never appears armed. The status poll is local to the visible anchor.
 
 The combined timeline pages after 20 rows, including background and prior views;
 exports retain every row and full audit history. No development-version bodies
