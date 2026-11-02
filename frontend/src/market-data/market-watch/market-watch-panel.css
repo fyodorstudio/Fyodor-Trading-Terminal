@@ -6,43 +6,9 @@
   border-right: 1px solid var(--border);
 }
 
-.market-watch-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 18px 16px 12px;
-}
-
-.market-watch-eyebrow {
-  margin: 0 0 3px;
-  color: var(--text-faint);
-  font-size: 9px;
-  font-weight: 750;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.market-watch-heading h2 {
-  margin: 0;
-  color: var(--text-strong);
-  font-size: 16px;
-  letter-spacing: -0.02em;
-}
-
-.market-watch-count {
-  min-width: 24px;
-  padding: 3px 7px;
-  border-radius: 999px;
-  color: var(--text-muted);
-  background: var(--surface-inset);
-  text-align: center;
-  font-size: 10px;
-  font-weight: 700;
-}
-
 .market-watch-search {
   height: 36px;
-  margin: 0 12px 12px;
+  margin: 10px 12px;
   padding: 0 11px;
   display: flex;
   align-items: center;
@@ -157,6 +123,34 @@
   grid-template-columns: minmax(64px, 1fr) 85px;
   align-items: center;
 }
+
+.market-watch-date {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 3px 8px 8px;
+}
+.market-watch-date > button {
+  border: 0;
+  border-radius: 4px;
+  padding: 4px 7px;
+  color: var(--text-strong);
+  background: transparent;
+  font: inherit;
+  font-size: 18px;
+  cursor: pointer;
+}
+.market-watch-date > button:disabled { color: var(--text-muted); cursor: default; }
+.market-watch-date > button:hover:not(:disabled) { background: var(--surface-hover); }
+.market-watch-date > button:focus-visible, .market-watch-date-picker:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
+.market-watch-date-picker { position: relative; min-width: 112px; text-align: center; color: var(--text-strong); font-size: 11px; }
+.market-watch-date-picker input { position: absolute; inset: 0; width: 100%; min-width: 0; opacity: 0; cursor: pointer; }
+.market-watch-date-picker input::-webkit-calendar-picker-indicator { position: absolute; inset: 0; width: auto; height: auto; cursor: pointer; }
+.market-watch-date > .market-watch-date-status { min-width: 54px; margin-left: auto; background: var(--accent-soft); color: var(--accent); font-size: 10px; font-weight: 700; }
+.market-watch-date > .market-watch-date-status.history { background: var(--surface-inset); color: var(--text-muted); }
+.market-watch-history-state { display: flex; align-items: center; gap: 6px; padding: 8px; color: var(--text-muted); font-size: 11px; }
+.market-watch-history-state button { border: 1px solid var(--border-strong); border-radius: 4px; padding: 3px 6px; background: var(--surface-raised); color: var(--text-strong); font: inherit; cursor: pointer; }
 
 .market-watch-columns {
   height: 28px;

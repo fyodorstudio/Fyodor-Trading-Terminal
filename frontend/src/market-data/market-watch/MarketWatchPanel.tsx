@@ -6,6 +6,8 @@ import { FavouriteSections } from './FavouriteSections'
 import { categoryLabels, getSymbolCategory } from './symbol-classification'
 import { sortMarketQuotes } from './market-watch-sort'
 import './market-watch-panel.css'
+import { MarketWatchDate } from './MarketWatchDate'
+import { useMarketWatchHistory } from './use-market-watch-history'
 
 type MarketWatchPanelProps = {
   symbols: SymbolQuote[]
@@ -15,10 +17,12 @@ type MarketWatchPanelProps = {
   onSelect: (symbol: string) => void
   visible?: boolean
   brokerId?: string | null
+  generation?: number
 }
 
 export const MarketWatchPanel = memo(function MarketWatchPanel({ visible = true, ...props }: MarketWatchPanelProps) {
   const [query, setQuery] = useState('')
+  const [date, setDate] = useState<string | null>(null)
   const [preferences, setPreferences] = useState(readMarketWatchPreferences)
   useEffect(() => saveMarketWatchPreferences(preferences), [preferences])
   const favourites = useMemo(() => new Set(preferences.favourites), [preferences.favourites])
@@ -36,22 +40,25 @@ export const MarketWatchPanel = memo(function MarketWatchPanel({ visible = true,
   }, [])
   // Keep the controls' state mounted, but do no row/filter work while collapsed.
   return visible ? <MarketWatchContents {...props} query={query} onQueryChange={setQuery}
+    date={date} onDateChange={setDate}
     selectedCategory={preferences.category} onCategoryChange={setSelectedCategory}
     favourites={favourites} onToggleFavourite={toggleFavourite} sections={preferences.sections} onOrganizeFavourites={organizeFavourites}
     sort={preferences.sort} onSortChange={setSort} /> : null
 })
 
-function MarketWatchContents({ symbols, selectedSymbol, status, error, onSelect, brokerId, query, onQueryChange,
+function MarketWatchContents({ symbols: liveSymbols, selectedSymbol, status, error, onSelect, brokerId, generation = 0, query, onQueryChange, date, onDateChange,
   selectedCategory, onCategoryChange, favourites, onToggleFavourite, sections, onOrganizeFavourites, sort, onSortChange }: MarketWatchPanelProps & {
   query: string; onQueryChange: (query: string) => void
+  date: string | null; onDateChange: (date: string | null) => void
   selectedCategory: MarketCategory; onCategoryChange: (category: MarketCategory) => void
   favourites: ReadonlySet<string>; onToggleFavourite: (symbol: string) => void
   sections: FavouriteSection[]; onOrganizeFavourites: (action: FavouriteSectionAction) => void
   sort: MarketSort; onSortChange: (sort: MarketSort) => void
 }) {
+  const { quotes: symbols, message: historyMessage, retry } = useMarketWatchHistory(liveSymbols, date, brokerId, generation, selectedSymbol)
   const [sortOpen, setSortOpen] = useState(false)
   const [sortPass, setSortPass] = useState(0)
-  const rankKey = `${brokerId}:${selectedCategory}:${query}:${sort}:${sortPass}`
+  const rankKey = `${brokerId}:${generation}:${date}:${selectedCategory}:${query}:${sort}:${sortPass}`
   const [ranking, setRanking] = useState<{ key: string; values: Map<string, number | null> }>(() => ({ key: '', values: new Map() }))
   let rankValues = ranking.values
   if (ranking.key !== rankKey) {
@@ -105,14 +112,6 @@ function MarketWatchContents({ symbols, selectedSymbol, status, error, onSelect,
 
   return (
     <aside className="market-watch" aria-label="Market Watch">
-      <div className="market-watch-heading">
-        <div>
-          <p className="market-watch-eyebrow">Instruments</p>
-          <h2>Market Watch</h2>
-        </div>
-        <span className="market-watch-count">{symbols.length}</span>
-      </div>
-
       <label className="market-watch-search">
         <span aria-hidden="true">⌕</span>
         <input
@@ -136,6 +135,7 @@ function MarketWatchContents({ symbols, selectedSymbol, status, error, onSelect,
         </select>
       </div>
 
+      <MarketWatchDate date={date} onChange={onDateChange} />
       <div className="market-watch-columns">
         <div className="market-watch-sort" onBlur={event => {
           if (!event.currentTarget.contains(event.relatedTarget)) setSortOpen(false)
@@ -151,12 +151,14 @@ function MarketWatchContents({ symbols, selectedSymbol, status, error, onSelect,
               }}>{label}</button>)}
           </div>}
         </div>
-        <span title="Current price versus the previous completed Pepperstone daily candle’s close"
+        <span title="Maximum move from the broker day’s open to its high or low; the larger move determines the sign"
           aria-label={`Daily percent change${sort === 'saved' ? '' : `, ${sort === 'highest' ? 'highest first' : sort === 'lowest' ? 'lowest first' : 'biggest absolute move first'}`}`}>
           Daily % {sort === 'highest' ? '↓' : sort === 'lowest' ? '↑' : sort === 'biggest' ? '↕' : ''}</span>
       </div>
 
       <div className="market-watch-list" role="list" aria-label="Available symbols">
+        {historyMessage && <div className="market-watch-history-state" role="status">{historyMessage}
+          {historyMessage.includes('Retry') && <button type="button" onClick={retry}>Retry</button>}</div>}
         {status !== 'live' && (
           <div className={`market-watch-source-state ${status}`} role="status">
             <i />
@@ -195,8 +197,10 @@ const MarketWatchRow = memo(function MarketWatchRow({ quote, selected, onSelect,
     aria-pressed={selected} onClick={() => onSelect(quote.symbol)}>
     <span className="market-watch-identity"><strong>{quote.symbol}</strong></span>
     <span className={quote.dailyChange == null ? undefined : positive ? 'positive' : 'negative'}
-      title={quote.dailyChange == null ? 'Previous completed D1 close unavailable' : undefined}>
+      title={quote.dailyChange == null ? 'Daily open/high/low unavailable for the selected day' : 'Maximum move from the daily open'}>
       {quote.dailyChange == null ? '—' : `${positive ? '+' : ''}${quote.dailyChange.toFixed(2)}%`}</span>
     </button>
   </div>
-})
+}, (before, after) => before.quote.symbol === after.quote.symbol && Object.is(before.quote.dailyChange, after.quote.dailyChange)
+  && before.selected === after.selected && before.favourite === after.favourite
+  && before.onSelect === after.onSelect && before.onToggleFavourite === after.onToggleFavourite)

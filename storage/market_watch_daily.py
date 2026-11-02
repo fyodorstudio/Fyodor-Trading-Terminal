@@ -9,6 +9,8 @@ import subprocess
 import sys
 import threading
 import time
+from collections import OrderedDict
+from datetime import datetime, timezone
 from urllib.request import urlopen
 
 from .calendar_clock import broker_offset
@@ -31,15 +33,13 @@ def broker_day(now):
 
 
 def daily_record(rates, day):
-    """Only completed D1 bars anchor change; older bars never supply today's range."""
-    bars = sorted(rates, key=lambda bar: int(bar['time']))
-    completed = [bar for bar in bars if int(bar['time']) < day]
-    current = next((bar for bar in bars if int(bar['time']) == day), None)
-    close = float(completed[-1]['close']) if completed else None
+    """Use only the requested broker day, never a neighbouring trading candle."""
+    current = next((bar for bar in rates if int(bar['time']) == day), None)
+    opening = float(current['open']) if current is not None else None
     high = float(current['high']) if current is not None else None
     low = float(current['low']) if current is not None else None
     valid = lambda value: value is not None and math.isfinite(value) and value > 0
-    return {'previous_close': close if valid(close) else None,
+    return {'open': opening if valid(opening) else None,
             'high': high if valid(high) and valid(low) and high >= low else None,
             'low': low if valid(high) and valid(low) and high >= low else None}
 
@@ -51,6 +51,8 @@ class DailyMarketWatch:
         self.clock = clock
         self.lock = threading.Lock()
         self.cache = {}
+        self.days = OrderedDict()
+        self.live_day = None
         self.identity = None
 
     @staticmethod
@@ -70,7 +72,7 @@ class DailyMarketWatch:
             raise ValueError('Daily candle reader unavailable')
         return json.loads(result.stdout)
 
-    def snapshot(self, source_id, generation, symbols, selected):
+    def snapshot(self, source_id, generation, symbols, selected, date=None):
         # One native reader at a time; bounded subprocess also isolates MT5 hangs.
         with self.lock:
             health = self.fetch_health()
@@ -79,21 +81,40 @@ class DailyMarketWatch:
                     or health.get('generation') != generation or not health.get('terminal_path')):
                 raise ValueError('Connected Pepperstone source does not match daily candle request')
             identity = {key: health.get(key) for key in ('terminal_path', 'account_login', 'account_server', 'generation')}
-            day = broker_day(self.clock())
-            key = (tuple(identity.items()), day)
+            today = broker_day(self.clock())
+            if today != self.live_day:
+                # A formerly live candle must be reread after its completion.
+                self.days.pop(self.live_day, None)
+                self.live_day = today
+            day = int(datetime.combine(date, datetime.min.time(), timezone.utc).timestamp()) if date else today
+            if day > today:
+                raise ValueError('Future daily candles are unavailable')
+            historical = day < today
+            key = tuple(identity.items())
             if key != self.identity:
-                self.identity, self.cache = key, {}
+                self.identity = key
+                self.days.clear()
+            self.cache = self.days.setdefault(day, {})
+            self.days.move_to_end(day)
+            while len(self.days) > 8:
+                self.days.popitem(last=False)
             now = self.clock()
-            ordered = [selected, *sorted(dict.fromkeys(symbols), key=priority)]
+            # Rotate old live records within each priority group, so the bounded
+            # native reader cannot starve later symbols in a large catalog.
+            ordered = [selected, *sorted(dict.fromkeys(symbols), key=lambda symbol:
+                (min(priority(symbol), 7), self.cache.get(symbol, {}).get('checked_at', 0), priority(symbol)))]
             needed = [symbol for symbol in dict.fromkeys(ordered) if symbol and (
-                symbol not in self.cache or self.cache[symbol]['previous_close'] is None and now - self.cache[symbol]['checked_at'] >= 60
-                or symbol == selected and now - self.cache[symbol]['checked_at'] >= 5)]
+                symbol not in self.cache
+                or any(self.cache[symbol].get(field) is None for field in ('open', 'high', 'low'))
+                and now - self.cache[symbol]['checked_at'] >= 60
+                or not historical and self.cache[symbol].get('open') is not None
+                and now - self.cache[symbol]['checked_at'] >= (5 if symbol == selected else 15))]
             if needed:
                 records = self.read(identity, needed, day)
                 after = self.fetch_health()
                 if (not after.get('connected') or not after.get('process_running')
-                        or any(after.get(key) != value for key, value in identity.items()) or broker_day(self.clock()) != day):
-                    self.cache = {}
+                        or any(after.get(key) != value for key, value in identity.items()) or broker_day(self.clock()) != today):
+                    self.days.clear()
                     raise ValueError('Daily candle source changed during read')
                 wanted = set(needed)
                 for symbol, record in records.items():

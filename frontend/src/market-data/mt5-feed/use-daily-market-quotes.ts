@@ -2,9 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { chartOffsetAt } from '../../appearance/time-display/chart-clock'
 import type { SymbolQuote } from '../contracts/SymbolQuote'
 import { retainSymbolQuotes } from './market-snapshots'
-
-type DailyRecord = { previous_close: number | null; high: number | null; low: number | null; checked_at: number }
-type DailySnapshot = { source_id: string; generation: number; day: number; observed_at: number; symbols: Record<string, DailyRecord> }
+import { maximumDailyChange, type DailySnapshot } from '../market-watch/daily-change'
 
 export function pepperstoneDay(now: number) {
   const offset = chartOffsetAt(now, { brokerId: 'Pepperstone-Demo', brokerOffsetSeconds: 0 })
@@ -32,14 +30,14 @@ export function useDailyMarketQuotes(connected: boolean, generation: number, bro
       && daily.day === day && now / 1000 - daily.observed_at < 30
     const old = new Map(state.quotes.map(quote => [quote.symbol, quote]))
     const next = state.raw.map(quote => {
-      const record = valid ? daily.symbols[quote.symbol] : undefined, close = record?.previous_close
+      const record = valid ? daily.symbols[quote.symbol] : undefined
       const rangeValid = record && now / 1000 - record.checked_at < 30 && record.high != null && record.low != null
       const previous = record?.checked_at === state.rangeChecks.get(quote.symbol) ? old.get(quote.symbol) : undefined
       if (record) state.rangeChecks.set(quote.symbol, record.checked_at)
-      return { ...quote, dailyChange: close != null && Number.isFinite(close) && close > 0 && quote.bid > 0
-        ? (quote.bid / close - 1) * 100 : null,
-      dailyHigh: rangeValid ? Math.max(record.high!, quote.bid, previous?.dailyHigh ?? -Infinity) : null,
-      dailyLow: rangeValid ? Math.min(record.low!, quote.bid, previous?.dailyLow ?? Infinity) : null }
+      const bid = Number.isFinite(quote.bid) && quote.bid > 0 ? quote.bid : null
+      const high = rangeValid ? Math.max(record.high!, bid ?? -Infinity, previous?.dailyHigh ?? -Infinity) : null
+      const low = rangeValid ? Math.min(record.low!, bid ?? Infinity, previous?.dailyLow ?? Infinity) : null
+      return { ...quote, dailyChange: maximumDailyChange(record?.open, high, low), dailyHigh: high, dailyLow: low }
     })
     const quotes = retainSymbolQuotes(state.quotes, next)
     const changed = state.quotes !== quotes || state.publishedKey !== key

@@ -106,9 +106,12 @@ See [import and clock rules](docs/DATA-CONTRACT.md#runtime-and-clocks).
 ## Preserved workflow
 
 Market Watch stars save favourites locally across refreshes; NZDCHF, EURUSD and
-EURAUD form the initial shortlist. Market Watch shows Symbol and Daily %, measured
-against the previous completed Pepperstone D1 close (including opening gaps).
-Missing history shows a dash, never the old session-open change. Click Symbol to
+EURAUD form the initial shortlist. Market Watch shows Symbol and Daily %: the
+largest percentage excursion from the Pepperstone D1 open to its high or low,
+signed by that excursion (equal moves use the upward sign). The date arrows and
+picker above the columns browse broker daily candles; Today marks live values,
+and muted History returns to today when clicked. Missing candles show a dash;
+weekends/holidays never borrow another day's candle. Click Symbol to
 rank by gainers, losers or biggest absolute move; choose again to refresh the
 ranking while live values update in place. Favourites also offers Saved order;
 sorting stays within sections and never overwrites their manual arrangement.
@@ -126,8 +129,8 @@ with a now marker. Session hours follow each city's local clock, including DST;
 they are indicative dealing hours, not broker holiday/trading permissions.
 Bid/Ask columns and header quotes, spread and exchange-activity displays are omitted.
 The storage service's read-only daily-candle helper attaches to the exact running
-Pepperstone terminal/account reported by bridge health, caches completed-close
-anchors by broker day and refreshes the selected instrument's range. Missing
+Pepperstone terminal/account reported by bridge health, caches eight broker days
+and refreshes live extremes, prioritising the selected instrument. Missing
 history warms incrementally, prioritising the selected instrument and FX pairs.
 It never logs in, selects symbols or writes broker settings; the bridge is unchanged.
 Refresh the raw folder snapshot with

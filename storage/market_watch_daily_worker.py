@@ -2,6 +2,7 @@
 import json
 import sys
 import time
+from datetime import datetime, timezone
 
 from .market_watch_daily import daily_record
 
@@ -27,7 +28,9 @@ def read_daily(mt5, request):
                 break
             if symbol not in visible:
                 continue
-            rates = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_D1, 0, 3)
+            start = datetime.fromtimestamp(request['day'], timezone.utc)
+            end = datetime.fromtimestamp(request['day'] + 86399, timezone.utc)
+            rates = mt5.copy_rates_range(symbol, mt5.TIMEFRAME_D1, start, end)
             records[symbol] = daily_record(rates if rates is not None else [], request['day'])
         if not matches():
             raise ValueError('Native account changed during read')

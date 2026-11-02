@@ -157,7 +157,7 @@ globalThis.fetch = (url, options = {}) => {
     const body = JSON.parse(options.body)
     return Promise.resolve({ ok: true, json: async () => ({ source_id: broker, generation,
       day: Math.floor((now / 1000 + 10800) / 86400) * 86400, observed_at: now / 1000,
-      symbols: Object.fromEntries(body.symbols.map(symbol => [symbol, { previous_close: 1.1, high: 1.2, low: 1, checked_at: now / 1000 }])) }) })
+      symbols: Object.fromEntries(body.symbols.map(symbol => [symbol, { open: 1.1, high: 1.2, low: 1, checked_at: now / 1000 }])) }) })
   }
   if (u === '/entry-trade-api/journal') {
     if (options.method === 'POST') {

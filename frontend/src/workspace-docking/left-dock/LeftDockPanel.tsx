@@ -16,6 +16,7 @@ type LeftDockPanelProps = {
   marketWatchError: string | null
   onSelectSymbol: (symbol: string) => void
   brokerId?: string | null
+  generation?: number
   activeTab: 'market-watch' | 'price-alerts'
   onSelectTab: (tab: 'market-watch' | 'price-alerts') => void
   priceAlerts: PriceAlertsController
@@ -23,7 +24,7 @@ type LeftDockPanelProps = {
 }
 
 function LeftDockPanelComponent({ marketWatch, symbols, selectedSymbol, marketWatchStatus,
-  marketWatchError, onSelectSymbol, brokerId, activeTab, onSelectTab, priceAlerts, onCreatePriceAlert }: LeftDockPanelProps) {
+  marketWatchError, onSelectSymbol, brokerId, generation, activeTab, onSelectTab, priceAlerts, onCreatePriceAlert }: LeftDockPanelProps) {
   const { collapsed, contentId } = marketWatch
   return <aside className={`left-dock${collapsed ? ' collapsed' : ''}`} hidden={collapsed} aria-label="Market Watch and Price Alerts dock">
     <header className="left-dock-tabs">
@@ -35,7 +36,7 @@ function LeftDockPanelComponent({ marketWatch, symbols, selectedSymbol, marketWa
       </button>
     </header>
     <div id={contentId} className="left-dock-content" hidden={collapsed}>
-      <div hidden={activeTab !== 'market-watch'}><MarketWatchPanel symbols={symbols} selectedSymbol={selectedSymbol} brokerId={brokerId}
+      <div hidden={activeTab !== 'market-watch'}><MarketWatchPanel symbols={symbols} selectedSymbol={selectedSymbol} brokerId={brokerId} generation={generation}
         status={marketWatchStatus} error={marketWatchError} onSelect={onSelectSymbol} visible={!collapsed && activeTab === 'market-watch'} /></div>
       <div hidden={activeTab !== 'price-alerts'}><PriceAlertsDock controller={priceAlerts} onSelectSymbol={onSelectSymbol} onCreate={onCreatePriceAlert} brokerId={brokerId ?? null} /></div>
     </div>

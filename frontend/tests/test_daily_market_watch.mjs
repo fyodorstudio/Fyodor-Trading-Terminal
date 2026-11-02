@@ -44,11 +44,11 @@ try {
   const raw = ['EURUSD', 'NZDUSD', 'USDIDR'].map(symbol => ({ symbol, description: symbol, bid: 1.108, ask: 1.109,
     dailyChange: 99, precision: 5 }))
   const update = quotes => React.act(async () => latest.updateQuotes(quotes))
-  const reply = async ({ fail = false, generation = 1, day = pepperstoneDay(now), close = 1.1 } = {}) => {
+  const reply = async ({ fail = false, generation = 1, day = pepperstoneDay(now), open = 1.105 } = {}) => {
     const request = pending.shift(); assert.ok(request)
     await React.act(async () => request.resolve({ ok: !fail, json: async () => ({ source_id: 'Pepperstone-Demo', generation,
       day, observed_at: now / 1000, symbols: Object.fromEntries(request.body.symbols.map(symbol => [symbol,
-        { previous_close: close, high: 1.1088, low: 1.1038, checked_at: now / 1000 }])) }) }))
+        { open, high: 1.1088, low: 1.1038, checked_at: now / 1000 }])) }) }))
     return request
   }
   const poll = async () => {
@@ -59,7 +59,8 @@ try {
   await update(raw)
   assert.equal(latest.symbols[0].dailyChange, null, 'Session change is never used as a fallback')
   await reply()
-  assert.ok(Math.abs(latest.symbols[0].dailyChange - (1.108 / 1.1 - 1) * 100) < 1e-10)
+  assert.ok(Math.abs(latest.symbols[0].dailyChange - (1.1088 / 1.105 - 1) * 100) < 1e-10,
+    'Maximum excursion uses the daily high, not the current quote or previous close')
   assert.ok(host.textContent.includes('8 pips below high · 42 pips above low'))
   assert.equal(host.querySelector('.quote-summary'), null)
   assert.equal(host.querySelectorAll('.session-timeline-labels span').length, 4)
@@ -74,8 +75,12 @@ try {
   assert.equal(latest.symbols[0].dailyHigh, 1.11, 'A live quote extends the running daily high')
   await update(raw)
   assert.equal(latest.symbols[0].dailyHigh, 1.11, 'An intrapoll pullback cannot erase the new high')
-  await poll(); await reply({ close: null })
-  assert.equal(latest.symbols[0].dailyChange, null, 'Missing previous history stays unavailable')
+  assert.ok(Math.abs(latest.symbols[0].dailyChange - (1.11 / 1.105 - 1) * 100) < 1e-10)
+  await update(raw.map(quote => quote.symbol === 'EURUSD' ? { ...quote, bid: 1.09 } : quote))
+  assert.ok(Math.abs(latest.symbols[0].dailyChange - (1.09 / 1.105 - 1) * 100) < 1e-10,
+    'A larger downward excursion determines the red sign')
+  await poll(); await reply({ open: null })
+  assert.equal(latest.symbols[0].dailyChange, null, 'A missing daily open stays unavailable')
   await poll(); await reply({ fail: true })
   assert.equal(latest.symbols[0].dailyHigh, null)
   await render({ selected: 'USDIDR' })
@@ -116,7 +121,7 @@ try {
   assert.equal(renderCount, beforeClock, 'Session timing ticks stay local to the session widget')
   await React.act(async () => root.unmount())
   assert.equal(intervals.size, 0)
-  console.log('✓ Previous D1 close, daily extremes, missing history, source/rollover guards, stable polling, NDF details and four DST-aware sessions')
+  console.log('✓ Maximum daily excursions, daily extremes, missing history, source/rollover guards, stable polling, NDF details and four DST-aware sessions')
 } finally {
   await React.act(async () => root.unmount())
   await server.close(); await dom.happyDOM.close(); Date.now = originalNow

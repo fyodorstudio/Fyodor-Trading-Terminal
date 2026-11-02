@@ -37,6 +37,7 @@ export function TerminalWorkspace() {
           symbols={marketData.symbols}
           selectedSymbol={activeSymbol}
           brokerId={brokerId}
+          generation={bridge.generation}
           marketWatchStatus={marketData.marketWatchStatus}
           marketWatchError={marketData.marketWatchError}
           onSelectSymbol={selectSymbol}
