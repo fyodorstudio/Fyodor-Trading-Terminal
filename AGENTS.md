@@ -79,6 +79,11 @@ authorize trades or broker account changes.
 
 ## Market research routing
 
+Real capital may be at risk. The saved verdict and checkpoint guide the user's
+decisions and invocation timing; treat their reasoning and freshness as critical.
+A recent assessment clock does not establish that fresh evidence was weighted
+correctly. Apply the skill's test of the strongest opposite case before renewal.
+
 For live fundamentals and Thesis updates use
 [Assess Trade Now](.agents/skills/assess-trade-now/SKILL.md). For imminent release
 waits use [One Minute Before Release](.agents/skills/one-minute-before-release/SKILL.md);

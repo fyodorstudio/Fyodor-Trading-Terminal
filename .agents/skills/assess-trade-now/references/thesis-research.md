@@ -108,9 +108,14 @@ or create a duplicate verdict file.
 
 Read `pnpm analyst thesis summary --scope ALL` before research and after saving.
 Verify each affected currency's standalone verdict/intensity, assessment clock,
-original evidence anchor and next checkpoint or explicit Review needed gap.
-A focused refresh must preserve the other currencies and their clocks. When a
-gap retains an older verdict, its supporting evidence anchor must also remain
+original evidence anchor and next checkpoint or explicit source gap.
+A focused refresh must preserve unresearched currencies' verdicts, clocks,
+checkpoints and gap states. Updating shared evidence can mark other rows as
+unassessed even when their labels remain unchanged: compare the complete rows
+before and after saving. Keep a currency-only interpretation scoped to that
+currency and reuse the shared finding; do not renew other rows merely to clear
+a persistence side effect. When a gap retains an older verdict, its supporting
+evidence anchor must also remain
 the one assessed then; newer unassessed findings stay in Thesis as pending review.
 
 Also check the running `http://127.0.0.1:8002/api/v1/theses/summary` endpoint, or
@@ -121,8 +126,10 @@ local runtime/contract error within authorized scope or report the exact deliver
 gap. Do not claim the left panel updated while its summary is unavailable or
 invalid. Leave visual acceptance to the user; no browser automation is needed.
 Check that declared provisional status survives the ledger, range read and summary
-projection. Expired checkpoints and decisive gaps must visibly qualify retained
-verdicts as **Previous assessment**; a future unresolved stage says **Provisional**.
+projection. Expired checkpoints and decisive gaps must qualify the retained
+verdict under the current frontend contract (Checkpoint passed / Source gap);
+a future unresolved guidance stage says **Provisional**. Resolve the affected
+available evidence during the invocation rather than merely changing its status.
 Schema acceptance and persistence prove delivery, not financial accuracy or source
 coverage. Complete the parent's decision check separately.
 

@@ -73,6 +73,11 @@ do not simply apologise, switch grades to match the chart or adopt an unverified
 explanation of the buying. A correction identifies the exact missing fact or
 reasoning error, why it changes the balance, and whether the information was
 already available at the original cutoff. Preserve prior versions and source dates.
+Where the user supplies a reversal time, audit the information available before
+that cutoff separately from later developments. Distinguish missed discovery,
+misweighting of already-known facts and genuinely later information. Evidence
+supporting an earlier directional case does not establish the exact price trigger
+or make the reversal minute predictable.
 
 ## Release and retention check
 
@@ -92,6 +97,23 @@ belongs in the reason and may change intensity; it does not require unanimity or
 a "Review needed" result. If an essential actual or remark is genuinely unknown,
 identify it precisely and limit only the unsupported claim.
 An in-line release need not invalidate an independently supported continuing thesis.
+
+Before renewing a verdict, ask: **Without seeing the saved label, what direction
+does the current information set support over this horizon?** Build the strongest
+supported opposite case, then explain in the existing `reason` why one mechanism
+dominates now. Finding contrary news and permanently calling it an "offset" does
+not complete this work. If it now leads, reverse the verdict; if it remains
+secondary, justify that weighting. Neither recency alone nor a contrary chart
+automatically decides the sign.
+
+Persistent structural risks do not automatically dominate fresh session drivers.
+Weigh changes in costs, growth, financing and policy expectations on the stated
+horizon, including their opposing channels. Partial relief or conditional guidance
+can matter before a crisis is fully resolved or a policy move occurs; require
+only the evidence needed for the claimed effect, not an unrelated final outcome.
+A smaller intensity, fresh timestamp or longer caveat cannot rescue an unsupported
+direction. This comparison belongs in the concise assessment, not a new checklist
+or duplicated ledger entry.
 
 ### Decision check before saving
 
@@ -177,6 +199,10 @@ that stage could reinforce or defeat the reasoning. Use a verified release,
 guidance stage or relevant market opening; a domestic release is not automatically
 the nearest useful test of an external risk/funding mechanism. Resolve an elapsed
 decisive stage before choosing a later one. Unknown hours remain unknown.
+Choose the earliest material stage capable of changing this balance; do not skip
+it for a convenient later release or an already-armed bell. When the dominant
+mechanism changes, reconsider the anchor too. A checkpoint is a planned next check,
+never permission to defer material evidence already available during an invocation.
 
 A market opening belongs here only when it can challenge the active mechanism.
 Verify the relevant venue/date/time, including daylight saving, rather than

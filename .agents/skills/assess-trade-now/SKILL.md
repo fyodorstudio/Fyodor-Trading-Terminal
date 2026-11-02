@@ -12,6 +12,10 @@ A named currency/pair, research period or narrower request overrides that defaul
 A supplied chart does not require candles; fetch prices/technical levels only on
 an explicit price-aware request. No trades, broker changes or automatic monitoring.
 
+**Real capital may be at risk.** The user acts on the saved verdict and invokes
+at its checkpoint. Treat both as critical outputs: correct delivery and a recent
+assessment timestamp cannot compensate for stale reasoning or a poorly chosen anchor.
+
 The requested product is a potential-impact verdict: **event/development → currency
 potentially strengthens or weakens → Strong/Moderate/Slight → causal reason**.
 Research and give that verdict without requiring proof of realised FX demand,
@@ -68,7 +72,8 @@ after saving. Read-only/no-save instructions still win.
    Apply the [release and retention check](references/fundamental-assessment.md#release-and-retention-check):
    distinguish the policy backdrop, incremental release effect and pressure over
    the chosen horizon, including whether temporary drivers survive a relevant
-   session boundary. Rejustify the direction against new contrary evidence;
+   session boundary. Test the strongest opposite case without privileging the
+   saved label. Rejustify the direction against new contrary evidence;
    lowering intensity alone does not establish that the old direction survives.
    State the event's potential impact separately when the overall backdrop differs.
    Explain why this event changes, reinforces or merely offsets the leading
@@ -98,6 +103,8 @@ after saving. Read-only/no-save instructions still win.
    interpretation or source coverage is sound.
    Use the [single invocation anchor](references/fundamental-assessment.md#one-next-invocation-anchor)
    for the next mechanism-specific evidence check, not a recurring check schedule.
+   Material contrary information found now requires assessment now; a future
+   checkpoint never authorizes deferring it or carrying the old verdict until then.
 7. Read back the saved interval and verify the left Fundamentals panel's summary
    contract, affected verdicts, original evidence/assessment clocks and checkpoints.
    A successful ledger save alone does not prove that the panel can load its data.
