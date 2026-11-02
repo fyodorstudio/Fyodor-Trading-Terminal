@@ -61,6 +61,30 @@ class ResearchTests(TestCase):
         self.assertEqual(book['runs'][0]['evidence_versions']['CHF'],first['created_development_ids'])
         self.assertEqual(book['developments'][0]['facts'],'Verified policy facts.')
 
+    def test_new_call_freezes_evaluation_and_workflow(self):
+        r = self.request()
+        r['analyst_model'] = 'explicit-test-model'
+        r['assessments'][0]['evaluation'] = dict(until_utc='2026-07-22T11:00:00Z',
+            mechanism_tags=['funding'], intensity_reason='Funding pressure narrowly outweighs the verified competing haven mechanism.',
+            strongest_opposition='Risk deterioration can restore haven demand.', invalidation='A material funding reversal defeats the present weakness.')
+        receipt = append_research(ResearchRequest(**r), self.path)
+        self.assertEqual(receipt['learning']['status'], 'frozen')
+        from storage.analyst_learning.store import directory, read
+        rows = read(directory(self.path) / 'episodes.json', {})['episodes']
+        self.assertEqual(rows[0]['analyst_model'], 'explicit-test-model')
+        self.assertEqual(rows[0]['evaluation']['mechanism_tags'], ['funding'])
+        self.assertTrue(rows[0]['workflow'])
+        r['assessments'][0]['evaluation']['relative_preferences'] = [dict(pair='USDCHF', verdict='BUY',
+            reason='The comparison requires a supported current dollar assessment too.')]
+        with self.assertRaisesRegex(ValueError, 'both standalone'):
+            ResearchRequest(**r)
+
+    def test_learning_failure_does_not_lose_supported_research_save(self):
+        with patch('storage.analyst_learning.episodes.sync', side_effect=OSError('fixture unavailable')):
+            receipt = append_research(ResearchRequest(**self.request()), self.path)
+        self.assertEqual(receipt['learning']['status'], 'pending')
+        self.assertEqual(len(read_research(self.path)['runs']), 1)
+
     def test_range_keeps_unknown_hours_background_and_multiple_intraday_events(self):
         r=self.request();r['developments'] += [self.development('chf-old','2026-07-20'),self.development('chf-haven')]
         r['developments'][2].update(published_at='2026-07-22T08:00:00Z',facts='New haven information.')

@@ -92,6 +92,17 @@ otherwise record a manual scenario review without claiming agent-tested results.
 
 ## Research timeline acceptance
 
+Learning scenarios require original delivery clocks and frozen evidence. Check an
+expired checkpoint separately from subsequent price movement; exclude unknown
+legacy bases and incomplete paths from clean direction statistics. A winning
+Slight and a losing Moderate case must not cause automatic grade inflation.
+Compare equal grades using researched mechanisms. No-save must perform no learning
+mutation. Later news cannot establish pre-cutoff availability. Lessons carry
+exceptions and exact supporting/contrary case IDs; retrospective wins cannot
+promote a directional hypothesis. Repeat cached refreshes must add zero outcomes;
+new supersession must update overdue exposure. These are manual scenario checks
+plus deterministic storage tests, not independent agent replays.
+
 Use isolated stores for interval research. Verify multiple same-day developments
 remain separate, unknown hours remain unknown, an offset can weaken pressure
 without reversing it, and older active foundations stay visible in a narrower

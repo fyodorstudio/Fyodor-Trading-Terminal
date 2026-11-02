@@ -20,6 +20,7 @@ from .data_lock import data_lock
 from .highlight_journal import JournalSource
 from .research_instruments import Commodity
 from .thesis_reviews import CurrencyCheckpoint, DailyDirection, read_reviews
+from .analyst_learning.contracts import AssessmentEvaluation
 
 LOCK = RLock()
 ID = r'^[0-9a-f]{32}$'
@@ -109,6 +110,7 @@ class CurrencyAssessment(Payload):
     background_keys: list[str] = Field(default_factory=list, max_length=100)
     gap: str = Field(default='', max_length=3000)
     checkpoints: list[CurrencyCheckpoint] = Field(default_factory=list, max_length=30)
+    evaluation: AssessmentEvaluation | None = Field(default=None, exclude_if=lambda value: value is None)
 
 
 class ResearchRequest(Payload):
@@ -120,6 +122,7 @@ class ResearchRequest(Payload):
     assessments: list[CurrencyAssessment] = Field(default_factory=list, max_length=8)
     provenance: Literal['assessment', 'reconstruction'] = 'assessment'
     note: str = Field(default='', max_length=4000)
+    analyst_model: str = Field(default='', max_length=160, exclude_if=lambda value: not value)
 
     @model_validator(mode='after')
     def valid_request(self):
@@ -147,6 +150,16 @@ class ResearchRequest(Payload):
         for a in self.assessments:
             if a.currency not in self.currencies:
                 raise ValueError('Assessment outside the declared research scope')
+            if a.evaluation:
+                if not a.direction or a.evaluation.until_utc <= self.as_of_utc:
+                    raise ValueError('Prospective evaluation needs a direction and an end after the information cutoff')
+                if any(a.currency not in (p.pair[:3], p.pair[3:]) for p in a.evaluation.relative_preferences):
+                    raise ValueError('Relative preference must include the assessed currency')
+                assessed = {item.currency for item in self.assessments if item.direction and item.direction.basis == 'standalone'}
+                if any(not {p.pair[:3], p.pair[3:]}.issubset(assessed) for p in a.evaluation.relative_preferences):
+                    raise ValueError('Relative preference needs both standalone currencies assessed in this request')
+                if a.direction.reassessment and a.direction.reassessment.event_at and a.evaluation.until_utc > a.direction.reassessment.event_at:
+                    raise ValueError('Evaluation horizon cannot skip the next material checkpoint')
             if set(a.evidence_keys).intersection(a.background_keys):
                 raise ValueError('Keep interval evidence and older active background separate')
             for cp in [*a.checkpoints, *([a.direction.reassessment] if a.direction and a.direction.reassessment else [])]:
@@ -208,6 +221,7 @@ class ResearchRun(ResearchRequest):
     # Exact immutable versions used for each assessment, resolved at append time.
     evidence_versions: dict[str, list[str]] = Field(default_factory=dict)
     development_ids: list[str] = Field(default_factory=list)
+    workflow: dict[str, str] = Field(default_factory=dict)
 
 
 class ResearchBook(Payload):
@@ -261,6 +275,12 @@ def append_research(request, journal_path):
             book['developments'].append(item); latest[d.key] = item; created.append(item['id'])
         versions = {}
         for a in request.assessments:
+            if a.evaluation and a.evaluation.lesson_ids:
+                from .analyst_learning.store import directory as learning_directory, read as learning_read
+                lessons = learning_read(learning_directory(journal_path) / 'lessons.json', {'lessons': []})['lessons']
+                by_lesson = {lesson['id']: lesson for lesson in lessons}
+                if any(identity not in by_lesson or datetime.fromisoformat(by_lesson[identity]['recorded_utc'].replace('Z', '+00:00')) > request.as_of_utc for identity in a.evaluation.lesson_ids):
+                    raise ValueError('Applied lessons must exist before the assessment cutoff')
             chosen = []
             for key in [*a.evidence_keys, *a.background_keys]:
                 d = latest.get(key)
@@ -279,8 +299,17 @@ def append_research(request, journal_path):
                     raise ValueError('Local assessment evidence must exist')
         # Developments live once in the ledger; runs store references, not copies.
         run_data = request.model_dump(exclude={'developments'})
+        workflow = {}
+        skill_root = Path(__file__).resolve().parents[1] / '.agents/skills/assess-trade-now'
+        for name in ('SKILL.md', 'references/fundamental-assessment.md', 'references/standalone-fundamentals.md', 'references/learning.md'):
+            file = skill_root / name
+            if file.exists():
+                workflow[name] = sha256(file.read_bytes()).hexdigest()
+        agents = skill_root.parents[2] / 'AGENTS.md'
+        if agents.exists():
+            workflow['AGENTS.md'] = sha256(agents.read_bytes()).hexdigest()
         run = ResearchRun(**run_data, id=uuid4().hex, saved_utc=datetime.now(timezone.utc), evidence_versions=versions,
-            development_ids=[latest[d.key]['id'] for d in request.developments]).model_dump(mode='json')
+            workflow=workflow, development_ids=[latest[d.key]['id'] for d in request.developments]).model_dump(mode='json')
         book['runs'].append(run)
         temporary = None
         try:
@@ -293,10 +322,16 @@ def append_research(request, journal_path):
         persisted = read_research(journal_path)
         if persisted['runs'][-1]['id'] != run['id']:
             raise ValueError('Research read-back failed; preserve the ledger and inspect it')
+        # Learning is recoverable foreground bookkeeping, not a condition for delivering a live verdict.
+        try:
+            from .analyst_learning.episodes import sync
+            learning = {'status': 'frozen', **sync(journal_path)}
+        except (ValueError, OSError) as error:
+            learning = {'status': 'pending', 'error': str(error), 'next_action': 'Run pnpm analyst learning prepare.'}
         return {'id': run['id'], 'saved_utc': run['saved_utc'], 'created_development_ids': created,
                 'reused_development_ids': reused, 'assessed_currencies': [a.currency for a in request.assessments],
                 'period_start': request.period_start.isoformat(), 'period_end': request.period_end.isoformat(),
-                'read_back_verified': True, 'path': str(path)}
+                'read_back_verified': True, 'path': str(path), 'learning': learning}
 
 
 def research_snapshot(journal_path, start, end, after_revision=None, currency=None):

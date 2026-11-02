@@ -224,6 +224,23 @@ def parser():
     thesis.add_argument('--database', default='storage/data/calendar.sqlite3')
     thesis.add_argument('--input', help='ThesisRequest JSON file inside Lite for append; see docs/THESIS.md')
     thesis.add_argument('--as-of', help='Optional timezone-aware context cutoff; defaults to now, never changes evidence vintages')
+    learning = commands.add_parser('learning', help='Freeze calls, measure matured outcomes and retrieve reviewed analyst lessons')
+    learning.add_argument('action', choices=['prepare', 'sync', 'refresh', 'report', 'case', 'review', 'lesson'])
+    learning.add_argument('--scope', default='ALL')
+    learning.add_argument('--from', dest='from_date')
+    learning.add_argument('--to', dest='to_date')
+    learning.add_argument('--as-of', help='Outcome observation cutoff; cannot be future')
+    learning.add_argument('--tag', action='append', default=[])
+    learning.add_argument('--limit', type=int, choices=range(1, 21), default=5)
+    learning.add_argument('--episode')
+    learning.add_argument('--blind', action='store_true')
+    learning.add_argument('--input', action='append', help='Saved verified OHLC or one review/lesson JSON file inside Lite')
+    learning.add_argument('--output', help='Report directory inside Lite')
+    learning.add_argument('--capture', action='store_true', help='Bounded sequential read-only capture for matured outcomes')
+    learning.add_argument('--read-only', action='store_true', help='Inspect learning context without synchronizing or writing stores')
+    learning.add_argument('--max-symbols', type=int, choices=range(1, 8), default=2)
+    learning.add_argument('--max-requests', type=int, choices=range(8, 65), default=32)
+    learning.add_argument('--bridge', default='http://127.0.0.1:8001')
     journal = commands.add_parser('journal', help='Read research versions or append an agent-authored JSON entry (calendar stays read-only)')
     journal.add_argument('action', choices=['read','append'])
     journal.add_argument('highlight_id')
@@ -326,6 +343,24 @@ def parser():
 def run(args):
     if getattr(args, 'offset', 0) < 0:
         raise ValueError('Offset must be non-negative')
+    if args.command == 'learning':
+        from learning import command
+        from storage.thesis import PATH as THESIS_PATH
+        from storage.analyst_learning.store import instant
+        if args.as_of and instant(args.as_of) > datetime.now(timezone.utc):
+            raise ValueError('Learning observation cutoff cannot be future')
+        for value in (args.from_date, args.to_date):
+            if value:
+                date.fromisoformat(value)
+        if args.from_date and args.to_date and args.from_date > args.to_date:
+            raise ValueError('Choose ordered learning dates')
+        if args.input:
+            args.input = [str(local_path(name)) for name in args.input]
+        if args.output:
+            args.output = str((ROOT / args.output).resolve())
+            if not Path(args.output).is_relative_to(ROOT):
+                raise ValueError('Learning output must stay inside Lite')
+        return command(ROOT, THESIS_PATH, args, get_json)
     if args.command == 'discovery':
         from discovery_audit import capture, validate_file
         if args.action in ('record', 'finish'):

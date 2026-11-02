@@ -1,0 +1,67 @@
+{
+  "attempts": [
+    {
+      "symbol": "EURUSD",
+      "from_utc": "2026-10-20T07:36:00Z",
+      "to_utc": "2026-11-02T06:35:00Z",
+      "at": "2026-11-02T07:31:03.293943Z",
+      "ok": true,
+      "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\EURUSD-1c6fe0004e1b8b8c3b0dfdee.json",
+      "bridge_requests": 15
+    },
+    {
+      "symbol": "GBPUSD",
+      "from_utc": "2026-10-20T07:36:00Z",
+      "to_utc": "2026-11-02T06:35:00Z",
+      "at": "2026-11-02T07:31:04.132477Z",
+      "ok": true,
+      "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\GBPUSD-46e0d345f5dcc27f1306d04c.json",
+      "bridge_requests": 15
+    },
+    {
+      "symbol": "AUDUSD",
+      "from_utc": "2026-10-20T07:36:00Z",
+      "to_utc": "2026-11-02T06:35:00Z",
+      "at": "2026-11-02T07:31:07.091562Z",
+      "ok": true,
+      "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\AUDUSD-d9efd0435b7eaeb5bf1217cf.json",
+      "bridge_requests": 15
+    },
+    {
+      "symbol": "NZDUSD",
+      "from_utc": "2026-10-20T07:36:00Z",
+      "to_utc": "2026-11-02T06:35:00Z",
+      "at": "2026-11-02T07:31:08.147735Z",
+      "ok": true,
+      "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\NZDUSD-5cb3f99d636952563adaf0f8.json",
+      "bridge_requests": 15
+    },
+    {
+      "symbol": "USDJPY",
+      "from_utc": "2026-10-20T07:36:00Z",
+      "to_utc": "2026-11-02T06:35:00Z",
+      "at": "2026-11-02T07:31:11.771043Z",
+      "ok": true,
+      "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\USDJPY-ac384dfe9b075185078bbebe.json",
+      "bridge_requests": 15
+    },
+    {
+      "symbol": "USDCHF",
+      "from_utc": "2026-10-20T07:36:00Z",
+      "to_utc": "2026-11-02T06:35:00Z",
+      "at": "2026-11-02T07:31:17.985853Z",
+      "ok": true,
+      "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\USDCHF-6d61d7d13b6248dbdd4bef29.json",
+      "bridge_requests": 15
+    },
+    {
+      "symbol": "USDCAD",
+      "from_utc": "2026-10-20T07:36:00Z",
+      "to_utc": "2026-11-02T06:35:00Z",
+      "at": "2026-11-02T07:31:20.506133Z",
+      "ok": true,
+      "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\USDCAD-8996d229cc0b189ab1a90b83.json",
+      "bridge_requests": 15
+    }
+  ]
+}

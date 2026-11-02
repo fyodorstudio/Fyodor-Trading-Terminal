@@ -48,6 +48,7 @@ Optional `FYODOR_BRIDGE_API_URL` / `FYODOR_STORAGE_API_URL` override Vite's prox
 | price-alerts | Broker/symbol price-alert lines, local persistence, live Bid monitoring and browser sound |
 | thesis / storage/thesis_research.py | Currency development ledger, assessments, range view, earlier daily/pair archive and append-only versions |
 | thesis/CurrencySummary / storage/thesis_summary.py | Left-dock saved currency verdicts and chosen reassessment deadline; read-only projection |
+| storage/analyst_learning / tools/learning.py | Frozen analyst calls, matured outcome measurements, reviewed lessons and scoped retrieval; see [learning](docs/ANALYST-LEARNING.md) |
 | research | Chart date selection and named Markdown handoff |
 | Market Analyst Workflow/tools (repo root) | Read-only calendar, upcoming/Highlight/report queries, journal/lifecycle writes and bounded OHLC capture |
 | appearance, system-connectivity, system-observability, workspace-docking | Theme/time, bridge status, Activity and dock geometry |

@@ -12,7 +12,9 @@ BRENT/WTI/GOLD candidates. Respect a narrower requested scope and research perio
 The skill also surfaces exceptional clearly supported non-FX candidates encountered
 in permitted news discovery, without an exhaustive extra market scan.
 The user performs their own technical analysis and manual price alerts: do not
-fetch candles or technical levels unless explicitly requested. Never execute trades
+fetch candles or technical levels unless explicitly requested. The authorised
+[learning loop](ANALYST-LEARNING.md) separately permits bounded read-only M1
+captures for matured assessment outcomes after current verdict delivery. Never execute trades
 or change broker/account settings.
 
 Use [One Minute Before Release](../.agents/skills/one-minute-before-release/SKILL.md)

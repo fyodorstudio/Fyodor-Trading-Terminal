@@ -49,6 +49,10 @@ after saving. Read-only/no-save instructions still win.
    when they predate the visible day. Saved history is context, not proof that the
    decisive sources or policy priorities were researched. Use the
    [causal weighting](references/fundamental-assessment.md#causal-weighting) check.
+   Run the normal [learning loop](references/learning.md): retrieve relevant
+   reviewed lessons and calibration warnings with `pnpm analyst learning prepare
+   --scope ALL` (or the requested scope). Respect trial status and exceptions;
+   learned cases are context, not fresh news. Use `--read-only` for no-save work.
 3. Check the preceding hour, next six hours and overnight policy/media stages first.
    Then research the requested period broadly across policy/path, inflation,
    labour/wages, activity and material fiscal, trade, funding, commodity, haven and
@@ -105,6 +109,9 @@ after saving. Read-only/no-save instructions still win.
    for the next mechanism-specific evidence check, not a recurring check schedule.
    Material contrary information found now requires assessment now; a future
    checkpoint never authorizes deferring it or carrying the old verdict until then.
+   Freeze prospective evaluation metadata under the learning contract. After the
+   supported decision, process matured outcomes with the bounded learning refresh
+   and review relevant cases/lessons; these must not delay current release actuals.
 7. Read back the saved interval and verify the left Fundamentals panel's summary
    contract, affected verdicts, original evidence/assessment clocks and checkpoints.
    A successful ledger save alone does not prove that the panel can load its data.

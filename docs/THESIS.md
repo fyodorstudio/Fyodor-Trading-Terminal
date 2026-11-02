@@ -147,6 +147,15 @@ An unchanged recheck can reuse the development while recording a new assessment.
 Each assessment has `currency`, `evidence_keys` (findings inside the interval),
 `background_keys` (active evidence before it), optional `gap`, and `direction`:
 
+Optional `evaluation` metadata records a prospective end, mechanism tags, grade
+rationale, strongest opposition, invalidation, applied lesson versions and researched
+relative preferences under [analyst learning](ANALYST-LEARNING.md#prospective-authoring).
+It never replaces `direction`. New Assess Trade Now work supplies it; older records
+without it remain diagnostic. A request may record a known `analyst_model`; the
+writer captures skill hashes and freezes original-call versions in the separate
+learning ledger. The `learning` save receipt reports success or recoverable pending
+work without blocking delivery of a supported currency judgment.
+
 ```json
 {
   "currency": "CHF",

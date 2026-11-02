@@ -83,6 +83,11 @@ Real capital may be at risk. The saved verdict and checkpoint guide the user's
 decisions and invocation timing; treat their reasoning and freshness as critical.
 A recent assessment clock does not establish that fresh evidence was weighted
 correctly. Apply the skill's test of the strongest opposite case before renewal.
+Assess Trade Now includes [analyst learning](docs/ANALYST-LEARNING.md): retrieve
+reviewed lessons, freeze delivered calls, then measure and review matured outcomes
+within the invocation. Historical results never rewrite live verdicts or train
+model weights. Learning outcome captures are authorised; current technical scans
+still require the user's price-aware request. No background AI invocation follows.
 
 For live fundamentals and Thesis updates use
 [Assess Trade Now](.agents/skills/assess-trade-now/SKILL.md). For imminent release

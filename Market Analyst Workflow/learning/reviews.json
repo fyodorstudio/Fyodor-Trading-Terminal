@@ -1,0 +1,131 @@
+{
+  "version": 1,
+  "reviews": [
+    {
+      "episode_id": "research:5d0998625e8146b2a93570e2b1b56e83:EUR",
+      "outcome_id": "138956e345e788395f0d66b1426882a38a35a5171a88829baca4e2fae1a32462",
+      "classification": "checkpoint_failure",
+      "analysis": "The delivered EUR weakening call named France flash GDP at 06:30 UTC as its next material checkpoint. The next saved EUR assessment was delivered at 16:05:35 UTC: approximately 9 hours 35 minutes later. This is a measured reassessment gap. The primary proxy was opposed before the checkpoint; later movement is a separate exposure observation, not a freshly endorsed forecast or proof that every part of the later session rose.",
+      "known_before_cutoff": "The original reason explicitly retained conditional ECB tightening as opposition and named stronger GDP or firmer extended-tightening guidance as invalidation. The saved checkpoint already identified the activity-versus-financing question.",
+      "subsequent_information": "The chronology establishes a long interval without a saved reassessment. This review has not independently reconstructed publication availability of every intervening release and makes no claim about an exact reversal catalyst.",
+      "source_evidence": [],
+      "expected_version": null,
+      "revision_note": "",
+      "id": "c45ed86ea73e4696ab5e3a158ba16a97",
+      "recorded_utc": "2026-11-02T07:51:28.595973Z",
+      "episode_hash": "3545d8ce07b08079436d319e9be1a4e55d1d745ec94b2a8da4df98a4da9ae022",
+      "outcome_hash": "3c9850c55ee27883b78e50ce3e1d9a10bad4c2e99211060819b768599d31d933",
+      "method": "agent_review_not_independent_replay"
+    },
+    {
+      "episode_id": "research:5cfeb6a3eefe4406a4260c11f36558be:JPY",
+      "outcome_id": "67ff175c8c628cce526ba2ca026ec4ca3e3db72f99ffc39eb8d54f56f560d629",
+      "classification": "no_lesson",
+      "analysis": "The early Monday Moderate strengthening call was opposed by the complete relative FX proxy through the noon checkpoint, including zero aligned counterparts out of seven. The original rationale distinguished domestic normalisation from temporary Friday hedging and listed risk recovery as invalidation. The adverse result warrants examining the session-dependent assumption, but price alone cannot establish source omission, a policy error or the exact cause of the move. No directional rule is learned from this case.",
+      "known_before_cutoff": "The frozen call used completed BoJ guidance and weekend China news, while explicitly recording slower underlying inflation, domestic activity weakness, energy costs and foreign yield pressure as opposition.",
+      "subsequent_information": "Later risk-recovery reporting must be investigated at its own availability time. This review has not independently reopened those bodies, so it does not backdate them into the early Monday information set.",
+      "source_evidence": [],
+      "expected_version": null,
+      "revision_note": "",
+      "id": "c87bed105f2946e7ac7abaf6a9fec80b",
+      "recorded_utc": "2026-11-02T07:51:28.804005Z",
+      "episode_hash": "8ebb5b18398e011bcd4bcd311b3adb397c87722adb344a573a19d85397094013",
+      "outcome_hash": "d3a863ed231c0e5fd2636b22f99165dcd398a4a07e91f462d6125017779b9727",
+      "method": "agent_review_not_independent_replay"
+    },
+    {
+      "episode_id": "research:ac9fb362582d4c14a93c915b14cf3c28:AUD",
+      "outcome_id": "4d1cfadf4ff1f12daa313ea279d9228d69835086702316aa34c0bc73c2dcd725",
+      "classification": "supported_reasoning_aligned_outcome",
+      "analysis": "The Slight weakening call was aligned over its delivery-to-supersession diagnostic window, with all seven relative counterparts aligned. The saved rationale explicitly reduced the earlier grade after opposing private China PMI, domestic inflation and approvals evidence. This supports preserving an example of a narrow, opposed judgment that happened to align; it does not validate a universal hierarchy in which external demand always dominates domestic policy, nor establish an executable entry.",
+      "known_before_cutoff": "The original call recorded positive private China PMI, hotter domestic inflation and approvals as material opposition to weak orders and official China contraction. Its grade was narrowed rather than simply carrying the old Moderate label.",
+      "subsequent_information": "The next AUD assessment superseded this call at 06:35 UTC. This short outcome is not evidence of validity through the next day RBA package and does not include trading costs.",
+      "source_evidence": [],
+      "expected_version": null,
+      "revision_note": "",
+      "id": "e06d3b04995f4f1d8dbfe577b950d358",
+      "recorded_utc": "2026-11-02T07:51:28.999019Z",
+      "episode_hash": "4fa8db611eeffb919a310670f87704dde6eeb7723720fa48f735b9ef7916bce1",
+      "outcome_hash": "796b5ce28a4255a999811db8d374dd76a0426323bec6ff484d008143bf4b4c49",
+      "method": "agent_review_not_independent_replay"
+    },
+    {
+      "episode_id": "research:36d34d9fdb2b4533980c29f4f56f9937:USD",
+      "outcome_id": "21c33443b2febef24f86fb5657958fe33915701ff8a2f977354412ba412001c6",
+      "classification": "supported_reasoning_aligned_outcome",
+      "analysis": "The Moderate strengthening call was aligned over the approximately 38 minute post-delivery diagnostic window with seven aligned counterparts. The frozen rationale connected the full demand/inflation/labour package to the Fed stated concerns and retained the softer components as opposition. This is an example of a justified non-Slight grade in the saved history, not a proof that Moderate calls reliably outperform Slight or predict the full session.",
+      "known_before_cutoff": "The original call separately attributed the GDP survey baseline and broker model, treated monthly core PCE as in line rather than a surprise, and recorded quarterly disinflation and weak real-income evidence as offsets.",
+      "subsequent_information": "The ECB transmission checkpoint ended the measured primary window. Later price behavior cannot retrospectively enlarge this particular call horizon. The causal account is the original recorded reasoning, not an independently established flow explanation.",
+      "source_evidence": [],
+      "expected_version": null,
+      "revision_note": "",
+      "id": "2173dd40676a4618afd8d2a966a98e74",
+      "recorded_utc": "2026-11-02T07:51:29.199488Z",
+      "episode_hash": "6bc0240fc27c61106e565e9518b5fb1dd4021bf3624256bba43b642f6bc8cdad",
+      "outcome_hash": "50209cd5f4bd094e4d41dcc7013026775fe8feabc03ac32ed747e2a48411d455",
+      "method": "agent_review_not_independent_replay"
+    },
+    {
+      "episode_id": "research:5cfeb6a3eefe4406a4260c11f36558be:EUR",
+      "outcome_id": "6b0eb2c77abfaffdd9cd612cece0db6292ed1d491f2112abd9cb652798dfc19e",
+      "classification": "misweighting",
+      "analysis": "The original EUR slight-weakening rationale acknowledged resilient growth and conditional ECB tightening, but retained slower-moving financing and energy-income drag without adequately explaining why those dominated the coming session. Already-known diplomacy challenged the continuing energy-risk premise. This is a weakness in comparative weighting and retention, not proof that EURJPY STRONG BUY was objectively identifiable or that diplomacy caused the first rally minute.",
+      "known_before_cutoff": "The saved 05:46 AM information set already included October 30 euro-area GDP resilience, completed ECB and BoJ guidance, Friday hedging observations, weekend China weakness and November 1 diplomacy. No Monday-after-cutoff report is used to establish this criticism.",
+      "subsequent_information": "Verified Pepperstone H1 candles show 175.609 at the 06:00 AM Jakarta bar open and 176.557 at the 02:00 PM completed close, with intervening pullbacks. This is descriptive post-cutoff evidence, not a 05:46 AM fill, an exact catalyst or an independent blind replay. The full expected policy paths remain countervailing; no current trade recommendation is made.",
+      "source_evidence": [
+        {
+          "url": "https://www.aol.com/articles/euro-zone-growth-beats-projections-100626000.html",
+          "published_at": "2026-10-30T11:07:00Z",
+          "used_as_pre_cutoff": true,
+          "claim": "Euro-area Q3 growth was 0.4 percent versus a Reuters poll of 0.2 percent, with broad investment and consumption resilience; borrowing costs and energy risks remained.",
+          "availability_note": "Observed updated October 30 version; the same growth fact was already frozen in the original November 2 05:46 AM assessment evidence. Current reopened body is not an archived tick-by-tick news feed."
+        },
+        {
+          "url": "https://ktwb.com/2026/11/01/iranian-negotiators-in-doha-to-continue-talks-to-end-the-us-iran-war-official-says/",
+          "published_at": "2026-11-01T12:24:00Z",
+          "used_as_pre_cutoff": true,
+          "claim": "Third day of mediation and a conditional Hormuz-reopening proposal were already reported; no agreement was reached and escalation remained possible.",
+          "availability_note": "UTC clock follows the original frozen Reuters development, corroborated by dated syndications. KTWB displays 6:24 AM without a timezone; that display alone is not the UTC conversion source."
+        }
+      ],
+      "expected_version": null,
+      "revision_note": "",
+      "id": "30319a6a69be448e911556862d720a5a",
+      "recorded_utc": "2026-11-02T08:32:34.471085Z",
+      "episode_hash": "4391fb0a1567ef4d881d5af8fc40a4fce5c69ca6e70cd2e3d557d26cbef3e58c",
+      "outcome_hash": "688cc9b32eba59b3303388c24b1c867f817feaafe7eaf7bdd38513c9744b21fe",
+      "method": "agent_review_not_independent_replay"
+    },
+    {
+      "episode_id": "research:5cfeb6a3eefe4406a4260c11f36558be:JPY",
+      "outcome_id": "67ff175c8c628cce526ba2ca026ec4ca3e3db72f99ffc39eb8d54f56f560d629",
+      "classification": "misweighting",
+      "analysis": "The original JPY Moderate strengthening rationale carried Friday non-dollar hedging into early Monday alongside the domestic normalisation foundation. The same frozen evidence already contained Sunday diplomacy and no new guaranteed December commitment. Treating risk recovery only as a future invalidation did not adequately weigh an already-obtainable contrary mechanism. Reopening the dated sources identifies a reasoning failure beyond the adverse price result. Domestic BoJ tightening and weekend China weakness remain real counterevidence to a retrospective strong-buy claim.",
+      "known_before_cutoff": "The saved 05:46 AM information set already included October 30 euro-area GDP resilience, completed ECB and BoJ guidance, Friday hedging observations, weekend China weakness and November 1 diplomacy. No Monday-after-cutoff report is used to establish this criticism.",
+      "subsequent_information": "Verified Pepperstone H1 candles show 175.609 at the 06:00 AM Jakarta bar open and 176.557 at the 02:00 PM completed close, with intervening pullbacks. This is descriptive post-cutoff evidence, not a 05:46 AM fill, an exact catalyst or an independent blind replay. The full expected policy paths remain countervailing; no current trade recommendation is made.",
+      "source_evidence": [
+        {
+          "url": "https://www.aol.com/articles/euro-zone-growth-beats-projections-100626000.html",
+          "published_at": "2026-10-30T11:07:00Z",
+          "used_as_pre_cutoff": true,
+          "claim": "Euro-area Q3 growth was 0.4 percent versus a Reuters poll of 0.2 percent, with broad investment and consumption resilience; borrowing costs and energy risks remained.",
+          "availability_note": "Observed updated October 30 version; the same growth fact was already frozen in the original November 2 05:46 AM assessment evidence. Current reopened body is not an archived tick-by-tick news feed."
+        },
+        {
+          "url": "https://ktwb.com/2026/11/01/iranian-negotiators-in-doha-to-continue-talks-to-end-the-us-iran-war-official-says/",
+          "published_at": "2026-11-01T12:24:00Z",
+          "used_as_pre_cutoff": true,
+          "claim": "Third day of mediation and a conditional Hormuz-reopening proposal were already reported; no agreement was reached and escalation remained possible.",
+          "availability_note": "UTC clock follows the original frozen Reuters development, corroborated by dated syndications. KTWB displays 6:24 AM without a timezone; that display alone is not the UTC conversion source."
+        }
+      ],
+      "expected_version": "c87bed105f2946e7ac7abaf6a9fec80b",
+      "revision_note": "Focused cutoff audit now reopens dated source bodies and identifies already-known contrary information; replaces the earlier no-causal-diagnosis JPY review while preserving it.",
+      "id": "365b2d3d63534317b2a84f7691842659",
+      "recorded_utc": "2026-11-02T08:32:34.679552Z",
+      "episode_hash": "8ebb5b18398e011bcd4bcd311b3adb397c87722adb344a573a19d85397094013",
+      "outcome_hash": "d3a863ed231c0e5fd2636b22f99165dcd398a4a07e91f462d6125017779b9727",
+      "method": "agent_review_not_independent_replay"
+    }
+  ]
+}
