@@ -8,10 +8,18 @@ from ..currencies import CURRENCIES
 TAGS = ('policy', 'inflation', 'labour', 'activity', 'fiscal', 'funding', 'energy', 'risk', 'trade', 'haven', 'guidance')
 
 
+class PairRecommendation(Payload):
+    intensity: Literal['slight', 'moderate', 'strong']
+    rank: int = Field(ge=1, le=28)
+    strongest_opposition: str = Field(min_length=20, max_length=1200)
+    invalidation: str = Field(min_length=20, max_length=1200)
+
+
 class RelativePreference(Payload):
     pair: str = Field(pattern=r'^[A-Z]{6}$')
     verdict: Literal['BUY', 'SELL']
     reason: str = Field(min_length=20, max_length=1000)
+    recommendation: PairRecommendation | None = Field(default=None, exclude_if=lambda value: value is None)
 
     @model_validator(mode='after')
     def valid_pair(self):

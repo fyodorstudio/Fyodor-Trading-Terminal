@@ -197,3 +197,17 @@ Surface supported **LOOK HERE NEXT** candidates when relevant, then chronologica
 detailed findings belong in Thesis. Do not force a large chat table, 28-pair scan,
 entry window or certainty claim. Say what was actually checked and what remains
 unresolved. On closed markets distinguish next-session preparation from an entry now.
+
+For supported entry comparisons, save a short evidence-ranked shortlist through
+`evaluation.relative_preferences`; the left **Recommended Pairs** section reads
+these exact Thesis versions. Both currencies must be researched in the same pass.
+Each preference uses `pair`, `verdict`, `reason` and optional `recommendation`:
+`{intensity: strong|moderate|slight, rank: 1..28, strongest_opposition, invalidation}`.
+New recommendations supply that object, with a pair-specific grade and unique
+ordinal rank (not a score). Repeat a shared comparison identically if citing it
+from both currencies. Do not derive recommendations merely from standalone labels.
+Both assessments need completed reviews and timed next checkpoints. The saved
+window begins at delivery and ends at the earliest of either currency's checkpoint
+or evaluation end. A later assessment of either side, new unassessed evidence or
+an elapsed deadline makes the comparison due; renew it only with fresh research.
+Legacy explicit comparisons can remain visible without inventing a grade/rank.

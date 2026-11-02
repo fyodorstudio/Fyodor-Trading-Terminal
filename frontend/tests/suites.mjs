@@ -21,6 +21,7 @@ export const suites = [
   "tests/test_thesis.mjs",
   "tests/test_thesis_research.mjs",
   "tests/test_currency_summary.mjs",
+  "tests/test_recommended_pairs.mjs",
   "tests/test_entry_trade_research.mjs",
   "tests/test_entry_trade_journal_api.mjs",
   "tests/test_entry_trade_chart_contract.mjs",

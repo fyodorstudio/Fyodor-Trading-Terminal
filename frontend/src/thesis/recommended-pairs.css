@@ -1,0 +1,13 @@
+.recommended-pairs { min-width: 0; padding: 8px 10px; border-top: 1px solid var(--border-strong); color: var(--text-strong); background: var(--surface-panel); font-size: 11px; }
+.recommended-pairs h2 { margin: 0; font-size: 12px; }
+.recommended-pairs h2 button { width: 100%; padding: 0; border: 0; color: inherit; background: transparent; font: inherit; font-weight: 700; text-align: left; cursor: pointer; }
+.recommended-pairs-content { max-height: 220px; overflow-y: auto; overflow-wrap: anywhere; }
+.recommended-pairs-content[hidden] { display: none; }
+.recommended-pairs article { padding: 8px 0; border-bottom: 1px solid var(--border); }
+.recommended-pairs h3 { margin: 0; font-size: 12px; }
+.recommended-pairs h3 button { border: 0; padding: 0; color: var(--accent); background: transparent; font: inherit; cursor: pointer; }
+.recommended-pairs h3 button:disabled { color: var(--text-strong); cursor: default; }
+.recommended-pairs p { margin: 5px 0; line-height: 1.4; }
+.recommended-pairs a { color: var(--accent); }
+.recommended-pair-state { font-weight: 700; }
+.recommended-pairs button:focus-visible, .recommended-pairs a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }

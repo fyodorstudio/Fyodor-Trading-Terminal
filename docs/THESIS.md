@@ -284,6 +284,26 @@ CLI `research --scope GBP` uses that projection; `research-append` still require
 `--scope ALL`, with affected currencies selected in its JSON request.
 Unchanged replies retain revisions; the header does not certify an all-eight scan.
 
+### Recommended Pairs
+
+The collapsible left section displays up to three explicitly researched pair
+comparisons from `evaluation.relative_preferences`, ordered by the agent's saved
+ordinal `recommendation.rank` within a pass. `recommendation` contains pair-specific
+`intensity`, `rank`, `strongest_opposition` and `invalidation`; it is optional for
+legacy comparisons, whose grade/rank are never inferred from standalone labels.
+Both currencies must be assessed in the same research run. New recommendations
+require completed reviews and timed checkpoints on both sides. Identical mirrored
+preferences deduplicate; conflicting duplicates and duplicate ranks are rejected.
+
+`GET /api/v1/theses/recommended-pairs` projects those exact assessment/evidence
+versions and direct sources from the existing ledger, without another verdict
+store. The window starts at saved delivery and ends at the earliest counterpart
+checkpoint or evaluation end. New assessments or unassessed evidence mark a pair
+due; the local clock expires it without renewing research. A failed poll retains
+the previous comparison visibly outdated. Pair buttons resolve the actual broker
+symbol; absent symbols stay disabled. Collapse preference persists. This section
+has its own bounded reading area; all eight Fundamentals rows remain visible.
+
 ## Compatibility and shared dated review
 
 The saved pair entries in `journal.json` and planning days in `plan.json` were

@@ -160,6 +160,14 @@ class ResearchRequest(Payload):
                     raise ValueError('Relative preference needs both standalone currencies assessed in this request')
                 if a.direction.reassessment and a.direction.reassessment.event_at and a.evaluation.until_utc > a.direction.reassessment.event_at:
                     raise ValueError('Evaluation horizon cannot skip the next material checkpoint')
+                for preference in a.evaluation.relative_preferences:
+                    if preference.recommendation:
+                        if preference.pair not in {base+quote for n, base in enumerate(CURRENCIES) for quote in CURRENCIES[n+1:]}:
+                            raise ValueError('Recommended pairs use the supported 28 chart pair identities')
+                        sides = [item for item in self.assessments if item.currency in (preference.pair[:3], preference.pair[3:])]
+                        if any(not item.direction.reassessment or not item.direction.reassessment.event_at
+                                or item.direction.review_status != 'complete' or item.gap.strip() for item in sides):
+                            raise ValueError('Recommended pairs need completed assessments and timed checkpoints for both currencies')
             if set(a.evidence_keys).intersection(a.background_keys):
                 raise ValueError('Keep interval evidence and older active background separate')
             for cp in [*a.checkpoints, *([a.direction.reassessment] if a.direction and a.direction.reassessment else [])]:
@@ -211,6 +219,16 @@ class ResearchRequest(Payload):
                     raise ValueError('Checkpoint source date precedes this assessment')
         if self.provenance == 'reconstruction' and not self.note.strip():
             raise ValueError('Label the historical information set and retrospective research explicitly')
+        if not getattr(self, 'id', None):
+            comparisons = {}
+            for a in self.assessments:
+                for pref in a.evaluation.relative_preferences if a.evaluation else []:
+                    if pref.pair in comparisons and pref.model_dump() != comparisons[pref.pair]:
+                        raise ValueError('Both currency assessments must retain the same pair comparison')
+                    comparisons[pref.pair] = pref.model_dump()
+            ranks = [p['recommendation']['rank'] for p in comparisons.values() if p.get('recommendation')]
+            if len(set(ranks)) != len(ranks):
+                raise ValueError('Recommended pair ranks must be unique within a research pass')
         return self
 
 

@@ -28,6 +28,14 @@ Already-reviewed cases remain visible as evidence. Do not reward a late call for
 a daily high reached before delivery or hide a useful intraday move behind its
 closing return. Partial sampled paths and obsolete/unknown-basis calls stay labelled.
 
+Confront `closing_result`, `verdict_signed_close_pct`, `active_closing_result`
+and `remaining_day_closing_result` as well as excursion alignment. A favourable
+excursion followed by an opposed D1 close is not a correct closing call. Keep
+the original active horizon separate from the rest of the day; a post-checkpoint
+close cannot retrospectively extend the call. An unavailable exact endpoint or
+legacy protocol is not a pass or failure. Review both results using the frozen
+evidence and subsequent dated news before adopting a lesson.
+
 ## Make the live judgment
 
 Research current decisive and contrary facts under the parent procedure. Lessons

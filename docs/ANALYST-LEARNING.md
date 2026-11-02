@@ -27,6 +27,9 @@ Protocol v2 archives exact price documents under ignored `days/versions/` for
 each new completed observation. The record names its immutable evidence file and
 measured-as-of cutoff so day and window metrics can be replayed after the live
 cache advances. Older prototype protocol versions remain intact.
+Protocol v3 additionally separates verdict-signed closing returns from excursion
+alignment, requires the exact terminal minute and preserves the raw currency
+return. Older records are retained; their unverified closing basis is not scored.
 The authoritative live verdict remains [Thesis](THESIS.md); evaluations cannot
 alter it, its evidence dates, checkpoints, alarms or user trade journals.
 
@@ -56,6 +59,14 @@ remaining broker day and the active interval through the earliest checkpoint,
 declared end, supersession or day close. A late verdict cannot claim earlier moves;
 post-checkpoint movement never renews a call. Historical reconstructions, obsolete
 versions and unknown legacy bases remain contextual, not clean forecast rewards.
+
+The UI displays broker D1 open-to-close context, delivered-verdict-to-D1-close
+alignment, and the separate active-window closing result. Excursions remain visible
+alongside them. A favourable excursion can coexist with an opposed close. Exact
+closing endpoints permit that comparison even when an internal gap makes sampled
+extrema partial; a missing endpoint supplies no substituted close. Developing
+results are explicitly unfinished. Learning retrieval includes closing results
+and queues opposed closes alongside excursion refinement cases.
 
 Pepperstone's historical NY-close profile determines the date and boundaries.
 November 2, 2026 ends November 3 at 5 AM Jakarta; US DST days end at 4 AM. Jakarta

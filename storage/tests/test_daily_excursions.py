@@ -64,6 +64,38 @@ class DailyExcursionTests(TestCase):
         wrong=episode();wrong['direction']['verdict']='POTENTIAL WEAKENING'
         self.assertEqual(DailyBasket(doc,doc['captured_utc']).assessment(wrong)['feedback'],'refinement_candidate')
 
+    def test_aligned_excursion_can_close_opposed_and_learning_confronts_both(self):
+        def price(symbol,n):
+            return (1.02 if n==10 else .99 if n>=59 else 1.) if symbol=='EURUSD' else 1.
+        doc=document(price=price);row=episode()
+        result=DailyBasket(doc,doc['captured_utc']).assessment(row)
+        self.assertEqual(result['feedback'],'supporting_case')
+        self.assertEqual(result['after_verdict']['close_result'],'opposed')
+        self.assertAlmostEqual(result['day']['close_pct'],-1)
+        self.assertAlmostEqual(result['after_verdict']['terminal_return_pct'],-1)
+        record=dict(id='outcome',episode_id=row['id'],currency='EUR',verdict=row['direction']['verdict'],intensity='moderate',**result)
+        feedback=feedback_summary([row],[record],[],doc['captured_utc'])
+        self.assertEqual(feedback['case_queue'][0]['closing_result'],'opposed')
+        self.assertEqual(feedback['closing_counts'],{'opposed':1})
+        row['direction']['verdict']='POTENTIAL WEAKENING'
+        weak=DailyBasket(doc,doc['captured_utc']).assessment(row)
+        self.assertEqual(weak['after_verdict']['close_result'],'aligned')
+        self.assertAlmostEqual(weak['after_verdict']['terminal_return_pct'],1)
+        self.assertAlmostEqual(weak['after_verdict']['currency_return_pct'],-1)
+
+    def test_missing_exact_close_is_unavailable_but_internal_gap_keeps_exact_close(self):
+        doc=document();doc['samples']['EURUSD'].pop()
+        result=DailyBasket(doc,doc['captured_utc']).assessment(episode())
+        self.assertEqual(result['phase'],'final')
+        self.assertNotIn('close_pct',result['day'])
+        self.assertNotIn('terminal_return_pct',result['after_verdict'])
+        self.assertEqual(result['after_verdict']['terminal_status'],'unavailable')
+        doc=document();doc['samples']['EURUSD'].pop(5)
+        result=DailyBasket(doc,doc['captured_utc']).assessment(episode())
+        self.assertEqual(result['after_verdict']['status'],'partial')
+        self.assertEqual(result['after_verdict']['terminal_status'],'complete')
+        self.assertEqual(result['after_verdict']['close_result'],'flat')
+
     def test_complete_relative_basket_not_a_single_usd_pair(self):
         doc=document(price=lambda s,n:1+n/100000 if s=='EURUSD' else 1.)
         basket=DailyBasket(doc,doc['captured_utc'])

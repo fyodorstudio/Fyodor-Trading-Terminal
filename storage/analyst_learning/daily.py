@@ -7,12 +7,13 @@ from .store import digest, instant, stamp
 
 SOURCE = 'Pepperstone-Demo'
 PROTOCOL = {
-    'version': 2, 'basis': 'Equal-weight relative FX basket · synchronized M1 closes',
+    'version': 3, 'basis': 'Equal-weight relative FX basket · synchronized M1 closes',
     'day': 'Pepperstone New York-close D1; D1 opens normalize seven USD legs.',
     'daily_max': 'Largest absolute signed excursion from broker D1 opens; upward wins ties.',
     'call': 'First common completed minute after persisted delivery, within 120 seconds; no earlier prices credited.',
     'windows': 'Full remaining broker day and active interval through earliest declared end/checkpoint/supersession/day close, separately.',
     'feedback': 'Largest absolute post-call excursion aligned/opposed/flat; supporting case or refinement candidate, never causal proof or profit.',
+    'closing_comparison': 'Exact delivery-baseline to window-end return, separately from excursion alignment. No neighbouring terminal minute substituted.',
     'limits': 'Sampled maxima, not synthetic wick extrema. Missing samples stay partial. No fills/costs or automatic model training.',
     'price_provenance': 'Archive the exact source day document for each new completed observation, with its measured-as-of cutoff; live progress reuses the mutable cache.',
 }
@@ -88,6 +89,7 @@ class DailyBasket:
         peak = high if high[1] >= abs(low[1]) else low
         expected = max(0, int((self.observed // 60 * 60 - self.start) / 60))
         return {'status': 'complete' if len(path) == expected else 'partial', 'max_pct': peak[1],
+            **({'close_pct': path[-1][1]} if self.phase == 'final' and path[-1][0] == self.end else {}),
             'peak_utc': stamp(datetime.fromtimestamp(peak[0], timezone.utc)), 'up_pct': high[1], 'down_pct': low[1],
             'sample_count': len(path), 'missing_samples': max(0, expected - len(path)),
             'through_utc': stamp(datetime.fromtimestamp(self.times[-1], timezone.utc))}
@@ -109,12 +111,17 @@ class DailyBasket:
         peak = best if best[1] >= abs(worst[1]) else worst
         expected = int((terminal - baseline[0]) / 60) + 1
         status = 'complete' if len(window) == expected and window[-1][0] == terminal else 'partial'
+        exact_terminal = window[-1][0] == terminal
+        terminal_return = window[-1][1] * sign
         return {'status': status, 'favourable_pct': best[1], 'adverse_pct': worst[1],
             'adverse_before_peak_pct': min(value for at, value in signed if at <= best[0]),
             'peak_utc': stamp(datetime.fromtimestamp(best[0], timezone.utc)), 'time_to_peak_seconds': best[0] - baseline[0],
             'baseline_utc': stamp(datetime.fromtimestamp(baseline[0], timezone.utc)),
             'through_utc': stamp(datetime.fromtimestamp(window[-1][0], timezone.utc)),
-            'terminal_return_pct': window[-1][1], 'max_pct': peak[1] * sign,
+            'terminal_status': 'complete' if exact_terminal else 'unavailable',
+            **({'terminal_return_pct': terminal_return, 'currency_return_pct': terminal_return * sign,
+                'close_result': 'aligned' if terminal_return > 0 else 'opposed' if terminal_return < 0 else 'flat'} if exact_terminal else {}),
+            'max_pct': peak[1] * sign,
             'direction_result': 'aligned' if peak[1] > 0 else 'opposed' if peak[1] < 0 else 'flat',
             'missing_samples': max(0, expected - len(window)), 'sample_count': len(window)}
 

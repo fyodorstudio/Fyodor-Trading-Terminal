@@ -168,6 +168,14 @@ def create_app(directory=None, run_collector=True, highlights_path=HIGHLIGHTS_PA
         except OSError as error:
             raise HTTPException(503, 'Could not restore Highlight') from error
 
+    @app.get('/api/v1/theses/recommended-pairs')
+    def thesis_recommended_pairs(after_revision: str | None = Query(default=None, max_length=100)):
+        from .recommended_pairs import recommended_pairs
+        try:
+            return recommended_pairs(thesis_path, after_revision)
+        except (OSError, ValueError) as error:
+            raise HTTPException(503, 'Recommended pairs unavailable; saved Thesis history is preserved') from error
+
     @app.get('/api/v1/theses/summary')
     def thesis_currency_summary(after_revision: str | None = Query(default=None, max_length=100)):
         try:

@@ -175,6 +175,7 @@ globalThis.fetch = (url, options = {}) => {
     events: [{ key: 'external:treasury-fixture', reference: 'treasury-fixture', source: 'external', broker: null, title: 'Treasury fixture', currencies: ['USD'],
       at: now + 3600000, date: null, eligible: true, armed: true, note: 'Exact fixture schedule', prompt: '$one-minute-before-release Treasury fixture' }] }) })
   if (u.startsWith('/storage-api/highlights')) return Promise.resolve({ ok: true, json: async () => ({ source_id: broker, revision: 'fixture-pins', items: [] }) })
+  if (u.startsWith('/storage-api/theses/recommended-pairs')) return Promise.resolve({ ok: true, json: async () => ({ schema: 1, revision: 'pairs-fixture', items: [] }) })
   if (u.startsWith('/storage-api/theses/summary')) return Promise.resolve({ ok: true, json: async () => ({ schema: 1, revision: 'summary-fixture',
     review_id: 'a'.repeat(32), as_of_utc: '2026-10-08T11:00:00Z', rows: ['USD','EUR','GBP','JPY','CHF','CAD','AUD','NZD'].map(currency => ({ currency,
       verdict: 'POTENTIAL STRENGTHENING', verified_utc: '2026-10-08T11:00:00Z', reassessment: null, reassessment_gap: '' })) }) })
@@ -1096,6 +1097,7 @@ try {
   await click(container.querySelector('.market-watch-toggle'))
   assert.equal(container.querySelector('.left-dock').hidden, false)
   assert.equal(container.querySelectorAll('[data-currency-summary]').length, 8, 'The existing Fundamentals projection still appears after reopening')
+  assert.ok(container.querySelector('[aria-label="Recommended pairs"]'), 'Recommended Pairs returns alongside all eight Fundamentals rows')
   await React.act(async () => root.render(null))
   assert.equal(rangeListeners.size, 0); assert.equal(clickListeners.size, 0)
   assert.equal(counters.workerCreated ?? 0, 0)

@@ -14,9 +14,13 @@ Thesis shows one standalone currency at a time, selected with eight currency tab
 and Month/Day navigation. Earlier currency snapshots stay in a lazy archive;
 saved pair journals and their planning days were deleted at the user’s request.
 Release waits use One Minute Before Release; historical moves use Review Historical
-Research and must not replace the live summary. Details and comparisons stay in
-bottom Thesis; the left box shows evidence age, currency, standalone pressure
+Research and must not replace the live summary. Full evidence and learning comparisons stay in
+bottom Thesis; the left Fundamentals box shows evidence age, currency, standalone pressure
 and checkpoint countdown. Assessment time never redates underlying evidence.
+The separate Recommended Pairs section projects explicit researched comparisons
+from Thesis, with both currency versions, evidence, invalidation and a bounded
+window. New recommendations record a pair-specific grade and ordinal rank;
+standalone labels alone never create a pair recommendation. See the Thesis contract.
 The left Fundamentals panel is the user's primary monitoring view. Authorized
 live research must save its affected assessments and verify the summary API
 against the frontend contract; a chat answer or ledger-save receipt alone does
@@ -92,6 +96,9 @@ Every dated Thesis verdict must display sampled daily maximum excursion and its
 forming/final status, plus post-delivery opportunity; historical day context
 cannot reward a later call. Future research must confront scoped aligned/reward
 and opposed/refinement cases, preserve exact versions and report material limits.
+Compare post-delivery D1 closing alignment and active-window closing alignment
+separately from favourable/adverse excursions. A favourable maximum does not
+establish a correct closing verdict; missing exact endpoints remain unavailable.
 Explicitly compare Strong/Moderate/Slight; uncertainty alone is not a grade cap.
 
 For live fundamentals and Thesis updates use

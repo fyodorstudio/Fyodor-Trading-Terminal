@@ -3,6 +3,8 @@ export type ExcursionWindow = {
   favourable_pct?: number; adverse_pct?: number; adverse_before_peak_pct?: number; peak_utc?: string;
   baseline_utc?: string; through_utc?: string; missing_samples?: number; end_utc?: string;
   end_reason?: string; phase?: 'developing' | 'final'; direction_result?: 'aligned' | 'opposed' | 'flat';
+  terminal_return_pct?: number; currency_return_pct?: number; close_pct?: number;
+  terminal_status?: 'complete' | 'unavailable'; close_result?: 'aligned' | 'opposed' | 'flat';
 }
 export type AssessmentExcursion = {
   protocol_id: string; basis: string; source_id: string; broker_day: string;
@@ -15,7 +17,9 @@ const stamp = (v: unknown): v is string => typeof v === 'string' && /(?:Z|[+-]\d
 export function validExcursion(v: AssessmentExcursion) {
   const validWindow = (w: ExcursionWindow) => w && ['complete','partial','unavailable'].includes(w.status)
     && (w.gap === undefined || typeof w.gap === 'string')
-    && ['max_pct','favourable_pct','adverse_pct','adverse_before_peak_pct'].every(key => w[key as keyof ExcursionWindow] === undefined || typeof w[key as keyof ExcursionWindow] === 'number' && Number.isFinite(w[key as keyof ExcursionWindow]))
+    && ['max_pct','favourable_pct','adverse_pct','adverse_before_peak_pct','terminal_return_pct','currency_return_pct','close_pct'].every(key => w[key as keyof ExcursionWindow] === undefined || typeof w[key as keyof ExcursionWindow] === 'number' && Number.isFinite(w[key as keyof ExcursionWindow]))
+    && (w.terminal_status === undefined || ['complete','unavailable'].includes(w.terminal_status))
+    && (w.close_result === undefined || ['aligned','opposed','flat'].includes(w.close_result))
     && ['peak_utc','baseline_utc','through_utc','end_utc'].every(key => w[key as keyof ExcursionWindow] === undefined || stamp(w[key as keyof ExcursionWindow]))
     && (w.favourable_pct === undefined || [w.adverse_pct,w.adverse_before_peak_pct].every(v=>typeof v === 'number' && Number.isFinite(v)) && stamp(w.peak_utc) && stamp(w.baseline_utc))
   return v && typeof v.protocol_id === 'string' && typeof v.basis === 'string' && v.source_id === 'Pepperstone-Demo'
@@ -36,12 +40,22 @@ export function excursionLines(value?: AssessmentExcursion) {
   if (value.phase === 'developing' && value.day.through_utc) lines[0] += ` Prices through ${hour(value.day.through_utc)}.`
   if (value.refresh_gap) lines.push(`Price refresh unavailable: ${value.refresh_gap}. Retaining the last measured observations.`)
   if (value.day.status === 'unavailable') lines.push(value.day.gap || 'Daily price history unavailable.')
+  if (value.day.close_pct !== undefined) lines.push(`Broker D1 open → close: ${percent(value.day.close_pct)} · daily context, separate from the delivered call.`)
+  const closing = (prefix: string, w: ExcursionWindow, final: boolean) => {
+    const exact = w.terminal_status === 'complete'
+    if (!exact || w.terminal_return_pct === undefined) return `${prefix}: closing comparison unavailable${w.gap ? ` · ${w.gap}` : ' · exact endpoint not verified'}.`
+    const result = w.terminal_return_pct > 0 ? 'Aligned' : w.terminal_return_pct < 0 ? 'Opposed' : 'Flat'
+    return `${prefix}: ${result}${final ? '' : ' so far · Developing'} · verdict-signed return ${percent(w.terminal_return_pct)}${w.currency_return_pct === undefined ? '' : ` · currency return ${percent(w.currency_return_pct)}`}${w.status === 'partial' ? ' · Partial history; excursions incomplete' : ''}.`
+  }
+  lines.push(closing(`Verdict ${hour(value.delivery_utc)} → D1 close`, value.after_verdict, value.phase === 'final'))
+  if (value.active_window.end_utc && Date.parse(value.active_window.end_utc) < Date.parse(value.day_end_utc)) lines.push('The original call ends at its active-window deadline; later movement is remaining-day context.')
+  if (value.active_window.end_utc) lines.push(closing(`Verdict → ${hour(value.active_window.end_utc)} checkpoint/end`, value.active_window, value.active_window.phase === 'final'))
   const describe = (prefix: string, w: ExcursionWindow) => w.favourable_pct === undefined ? `${prefix}: ${w.gap || 'Measurement unavailable.'}`
     : `${prefix}: best ${percent(w.favourable_pct)} · adverse ${percent(w.adverse_pct!)} · before peak ${percent(w.adverse_before_peak_pct!)} · peak ${hour(w.peak_utc!)}${w.status === 'partial' ? ' · Partial history' : ''}.`
-  lines.push(describe(`After verdict ${hour(value.delivery_utc)} → day end`,value.after_verdict))
+  lines.push(describe(`After verdict ${hour(value.delivery_utc)} → day end excursions`,value.after_verdict))
   if (value.active_window.end_utc) lines.push(describe(`Active window → ${hour(value.active_window.end_utc)}${value.active_window.phase === 'developing' ? ' (developing)' : ''}`,value.active_window))
   if (!value.eligible) lines[0] += ' Context only: not eligible for standalone forecast feedback.'
-  else if (value.feedback === 'supporting_case') lines[lines.length-1] += ' Supporting case: active-window excursion aligned.'
-  else if (value.feedback === 'refinement_candidate') lines[lines.length-1] += ' Refinement candidate: active-window excursion opposed.'
+  else if (value.feedback === 'supporting_case') lines[lines.length-1] += ' Supporting case for excursion alignment; assess the closing result separately.'
+  else if (value.feedback === 'refinement_candidate') lines[lines.length-1] += ' Excursion opposed: investigate alongside the closing result.'
   return lines
 }

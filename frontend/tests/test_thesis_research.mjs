@@ -80,6 +80,19 @@ try {
   fixture={...fixture,revision:'final-excursion',assessments:fixture.assessments.map(a=>({...a,excursion:{...excursion,phase:'final',feedback:'supporting_case'}}))}
   await poll();assert.match(chf().querySelector('h3').textContent,/Final/)
   assert.match(chf().textContent,/Supporting case/)
+  const completed=structuredClone(excursion)
+  completed.phase='final';completed.feedback='supporting_case'
+  completed.day={...completed.day,status:'partial',close_pct:0.05}
+  completed.after_verdict={...completed.after_verdict,status:'partial',terminal_status:'complete',terminal_return_pct:-0.05,currency_return_pct:0.05,close_result:'opposed'}
+  completed.active_window={...completed.active_window,terminal_status:'complete',terminal_return_pct:0.02,currency_return_pct:-0.02,close_result:'aligned'}
+  fixture={...fixture,revision:'closing-comparison',assessments:fixture.assessments.map(a=>({...a,excursion:completed}))}
+  await poll()
+  assert.match(chf().textContent,/D1 close: Opposed · verdict-signed return -0.050%/)
+  assert.match(chf().textContent,/checkpoint\/end: Aligned/)
+  assert.match(chf().textContent,/Partial history; excursions incomplete/)
+  assert.match(chf().textContent,/Broker D1 open → close: \+0.050%/)
+  assert.ok(!chf().querySelector('.thesis-excursion-heading').title.includes('GBPUSD'))
+  assert.match(researchMarkdown(fixture,null,'CHF'),/D1 close: Opposed/,'Exports preserve the closing comparison')
   const provisional={...direction,review_status:'provisional',stage_note:'Statement only; conference Q&A pending.'}
   fixture={...fixture,revision:'provisional',assessments:fixture.assessments.map(a=>a.direction ? {...a,direction:provisional} : a)}
   await poll()
