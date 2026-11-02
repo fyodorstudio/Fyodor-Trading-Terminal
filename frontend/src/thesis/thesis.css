@@ -25,6 +25,9 @@
 .thesis-currency-heading h3, .thesis-currency-section h4 { font-size: 14px; color: var(--text-strong); margin: 8px 0; }
 .thesis-currency-section p { margin: 6px 0 12px; white-space: pre-wrap; }
 .thesis-currency-heading p { color: var(--text); }
+.thesis-excursion-heading { font-weight: 500; color: var(--text-strong); }
+.thesis-excursion { margin: 6px 0 12px; padding-left: 10px; border-left: 2px solid var(--border-strong); color: var(--text); }
+.thesis-excursion p { margin: 2px 0; }
 .thesis-current-assessment { margin: 8px 0 18px; overflow-wrap: anywhere; }
 .thesis-next-anchor { margin: 18px 0; padding: 10px 14px; border-left: 3px solid var(--accent); background: var(--surface-raised); overflow-wrap: anywhere; }
 .thesis-next-anchor h4 { margin-top: 0; }

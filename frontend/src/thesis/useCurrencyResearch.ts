@@ -25,11 +25,16 @@ export function useCurrencyResearch(from: string, to: string, enabled: boolean, 
           revision = data.revision
           const previous = cache.current.get(key)
           const old = new Map(previous?.developments.map(d => [d.id, d]) ?? [])
+          const priorAssessments = new Map(previous?.assessments.map(a=>[a.id,a]) ?? [])
           const developments = data.developments.map((d: CurrencyResearch['developments'][number]) => {
             const retained = old.get(d.id)
             return retained && JSON.stringify(retained) === JSON.stringify(d) ? retained : d
           })
-          const next = { ...data, developments }
+          const assessments = data.assessments.map((a: CurrencyResearch['assessments'][number]) => {
+            const retained = priorAssessments.get(a.id)
+            return retained && JSON.stringify(retained) === JSON.stringify(a) ? retained : a
+          })
+          const next = { ...data, developments, assessments }
           cache.current.set(key, next)
           setSnapshot({ key, data: next })
         }

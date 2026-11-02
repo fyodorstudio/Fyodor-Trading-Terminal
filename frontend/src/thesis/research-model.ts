@@ -1,5 +1,6 @@
 import { dailyVerdicts, directionIntensities, reviewCurrencies, safeThesisLink, thesisDay, validReviewStage, type CurrencyCheckpoint, type DailyDirection, type DirectionAnchor, type ThesisSource } from './thesis-model'
 import { commodityIds } from '../external-sources/research-instruments'
+import { validExcursion, type AssessmentExcursion } from './excursion-model'
 
 export type ResearchImpact = { currency: string; implication: string; thesis_effect: string }
 export type ResearchDevelopment = { id: string; key: string; title: string; facts: string; published_on: string; published_at: string | null;
@@ -8,7 +9,7 @@ export type ResearchDevelopment = { id: string; key: string; title: string; fact
   revision_note: string; expected_version: string | null; legacy?: boolean; versions?: ResearchDevelopment[];
   instruments?: string[]; instrument_note?: string; commodity_implication?: string; commodity_thesis_effect?: string }
 export type ResearchAssessment = { id: string; currency: string; as_of_utc: string; saved_utc: string; provenance: 'assessment' | 'reconstruction';
-  direction: DailyDirection | null; gap: string; evidence_ids: string[]; background_ids: string[]; period_start: string; period_end: string; legacy: boolean; checkpoints?: CurrencyCheckpoint[] }
+  direction: DailyDirection | null; gap: string; evidence_ids: string[]; background_ids: string[]; period_start: string; period_end: string; legacy: boolean; checkpoints?: CurrencyCheckpoint[]; excursion?: AssessmentExcursion }
 export type CurrencyResearch = { schema: 1; revision: string; from: string; to: string; currency?: string; developments: ResearchDevelopment[]; assessments: ResearchAssessment[] }
 
 // Apply only a recorded whitespace correction to a frozen citation's display.
@@ -54,6 +55,7 @@ export function validCurrencyResearch(value: unknown, from: string, to: string, 
     && Array.isArray(v.assessments) && v.assessments.every(a => a && typeof a.id === 'string' && reviewCurrencies.includes(a.currency as typeof reviewCurrencies[number])
       && (currency === undefined || a.currency === currency)
       && stamp(a.as_of_utc) && stamp(a.saved_utc) && thesisDay(a.as_of_utc) <= to && ['assessment','reconstruction'].includes(a.provenance)
+      && (a.excursion === undefined || validExcursion(a.excursion))
       && typeof a.gap === 'string' && strings(a.evidence_ids) && strings(a.background_ids) && date(a.period_start) && date(a.period_end)
       && (a.direction === null ? !!a.gap.trim() : validDirection(a.direction,a)))
 }
@@ -63,7 +65,7 @@ export function researchAssessment(data: CurrencyResearch, currency: string) {
     || Date.parse(b.saved_utc)-Date.parse(a.saved_utc))
   const latest=ordered[0], retained=ordered.find(a=>a.direction)
   return latest && !latest.direction && retained ? { ...latest, direction:{ ...retained.direction!,reassessment:null,reassessment_gap:latest.gap },
-    evidence_ids:retained.evidence_ids,background_ids:retained.background_ids } : latest
+    evidence_ids:retained.evidence_ids,background_ids:retained.background_ids,excursion:retained.excursion } : latest
 }
 
 export type ResearchTimelineEntry =
@@ -88,11 +90,9 @@ export function researchTimeline(data: CurrencyResearch, currency: string): Rese
   }
   const views = data.assessments.filter(a => a.currency === currency && a.direction)
     .sort((a,b) => Date.parse(a.as_of_utc)-Date.parse(b.as_of_utc) || Date.parse(a.saved_utc)-Date.parse(b.saved_utc))
-  const changes = views.filter((a,i) => !i || a.direction!.verdict !== views[i-1].direction!.verdict
-    || a.direction!.intensity !== views[i-1].direction!.intensity || a.direction!.basis !== views[i-1].direction!.basis)
-  // The current view is already visible above the ledger. Earlier changed views
+  // The current view is already visible above the ledger. Earlier delivered views
   // use assessment times, never the publication time of their supporting news.
-  for (const item of changes) {
+  for (const item of views) {
     const date = thesisDay(item.as_of_utc)
     if (item.id !== assessment?.id && date >= data.from && date <= data.to)
       rows.push({ kind:'assessment', item, date, at:item.as_of_utc })

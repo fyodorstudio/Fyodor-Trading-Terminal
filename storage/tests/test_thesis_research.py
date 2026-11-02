@@ -85,6 +85,21 @@ class ResearchTests(TestCase):
         self.assertEqual(receipt['learning']['status'], 'pending')
         self.assertEqual(len(read_research(self.path)['runs']), 1)
 
+    def test_case_review_references_must_exist_before_the_new_cutoff(self):
+        from storage.analyst_learning.store import directory, write
+        r=self.request()
+        r['assessments'][0]['evaluation']=dict(until_utc='2026-07-22T11:00:00Z', mechanism_tags=['funding'],
+            intensity_reason='A limited active funding advantage does not establish clear dominance over haven demand.',
+            strongest_opposition='Haven demand remains significant opposition.',invalidation='A material recovery of defensive demand defeats weakness.',review_ids=['review-one'])
+        with self.assertRaisesRegex(ValueError,'must exist'):
+            append_research(ResearchRequest(**r),self.path)
+        write(directory(self.path)/'reviews.json',{'reviews':[{'id':'review-one','recorded_utc':'2026-07-22T10:30:00Z'}]})
+        with self.assertRaisesRegex(ValueError,'before the assessment cutoff'):
+            append_research(ResearchRequest(**r),self.path)
+        write(directory(self.path)/'reviews.json',{'reviews':[{'id':'review-one','recorded_utc':'2026-07-22T09:00:00Z'}]})
+        append_research(ResearchRequest(**r),self.path)
+        self.assertEqual(read_research(self.path)['runs'][0]['assessments'][0]['evaluation']['review_ids'],['review-one'])
+
     def test_range_keeps_unknown_hours_background_and_multiple_intraday_events(self):
         r=self.request();r['developments'] += [self.development('chf-old','2026-07-20'),self.development('chf-haven')]
         r['developments'][2].update(published_at='2026-07-22T08:00:00Z',facts='New haven information.')

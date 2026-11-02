@@ -6,6 +6,7 @@ import csv
 import json
 
 from storage.analyst_learning import episodes, outcomes, reports, reviews
+from storage.analyst_learning.feedback import feedback_summary
 from storage.analyst_learning.store import digest, directory, instant, read, stamp, write
 from storage.data_lock import data_lock
 from ohlc import capture_lock, fetch_window, read_saved
@@ -167,10 +168,24 @@ def refresh(root, journal_path, args, get_json):
         if added:
             book['outcomes'].extend(added)
             write(target / 'outcomes.json', book)
-    return {'snapshot': receipt, 'matured': len(matured), 'new_outcomes': len(added),
+    daily = daily_backfill(root, journal_path, args, rows) if args.capture and getattr(args, 'max_days', 0) else None
+    return {'snapshot': receipt, 'matured': len(matured), 'new_outcomes': len(added), 'daily_excursions': daily,
         'capture_attempts': attempts, 'captured': captured, 'coverage': dict(Counter(o['observation']['status'] for o in generated)),
         'pending': sum(r.get('window_status') == 'pending' for r in rows),
         'next_action': 'Review material matured cases with learning case/review; preserve explicit gaps. Current verdict delivery takes priority.'}
+
+
+def daily_backfill(root, journal_path, args, rows):
+    from storage.analyst_learning.daily_market import DailyExcursionMarket
+    if args.read_only:
+        raise ValueError('Read-only learning cannot capture or persist daily observations')
+    from datetime import datetime, timezone
+    clock = (lambda: instant(args.as_of).timestamp()) if args.as_of else (lambda: datetime.now(timezone.utc).timestamp())
+    market = DailyExcursionMarket(journal_path, root / 'storage/data/analyst-learning/days', clock=clock)
+    try:
+        return market.backfill(rows, max_days=getattr(args, 'max_days', 2))
+    finally:
+        market.close()
 
 
 def command(root, journal_path, args, get_json):
@@ -179,6 +194,11 @@ def command(root, journal_path, args, get_json):
     receipt, rows = state(journal_path, args)
     target = directory(journal_path)
     recorded = read(target / 'outcomes.json', {'outcomes': []})['outcomes']
+    daily_recorded = read(target / 'daily-outcomes.json', {'outcomes': []})['outcomes']
+    case_reviews = read(target / 'reviews.json', {'reviews': []})['reviews']
+    daily_feedback = feedback_summary(rows, daily_recorded, case_reviews, args.as_of or stamp(), args.limit)
+    if args.action == 'daily-backfill':
+        return daily_backfill(root, journal_path, args, rows)
     if args.action == 'prepare':
         reviewed = {r['episode_id'] for r in read(target / 'reviews.json', {'reviews': []})['reviews']}
         latest = {o['episode_id']: o for o in recorded}
@@ -202,10 +222,11 @@ def command(root, journal_path, args, get_json):
         if aligned and aligned not in queue and len(queue) > 1:
             queue[-1] = aligned
         return {'snapshot': receipt, 'lessons': reviews.retrieve(journal_path, currencies, args.tag, args.limit, args.as_of),
+            'daily_excursion_feedback': {k:v for k,v in daily_feedback.items() if k != 'cases'},
             'case_queue': queue, 'unreviewed_cases': len(pending),
             'unmeasured_matured': sum(r.get('window_status') == 'matured' and r['id'] not in latest for r in rows),
             'calibration_checks': calibration,
-            'required': 'Freshly weigh direction and intensity, complete relevant equal-grade comparisons, choose the earliest material anchor. Apply lesson exceptions; do not force labels or wait for bookkeeping.'}
+            'required': 'Confront relevant completed excursion records: review supporting/reward cases and refinement candidates, cite exact review IDs in new evaluation metadata, and report material limitations. Explicitly compare Strong/Moderate/Slight; Slight needs a concrete reason its advantage is limited. Current first verdict takes priority; complete the bounded case review before declaring the invocation finished.'}
     if args.action == 'case':
         row = next((r for r in rows if r['id'] == args.episode), None)
         if not row:
@@ -225,7 +246,19 @@ def command(root, journal_path, args, get_json):
             post = selected.get('post_checkpoint_observation')
             if post and post.get('terminal_utc') and instant(post['terminal_utc']) > instant(args.as_of or stamp()):
                 selected['post_checkpoint_observation'] = {'status': 'pending'}
-        return {'episode': row, 'outcome': selected,
+        cutoff = instant(args.as_of or stamp())
+        daily_outcome = next((o for o in reversed(daily_recorded) if o['episode_id'] == row['id']
+            and (instant(o['day_end_utc']) <= cutoff or o['active_window'].get('phase') == 'final'
+                and instant(o['active_window']['end_utc']) <= cutoff)), None)
+        if daily_outcome:
+            daily_outcome = dict(daily_outcome)
+            if instant(daily_outcome['day_end_utc']) > cutoff:
+                daily_outcome.update(phase='developing', remaining_day_feedback='unresolved')
+            for key in ('day', 'after_verdict'):
+                observation = daily_outcome[key]
+                if observation.get('through_utc') and instant(observation['through_utc']) > cutoff:
+                    daily_outcome[key] = {'status': 'unavailable', 'gap': 'Later observations withheld at this cutoff.'}
+        return {'episode': row, 'outcome': selected, 'daily_excursion': daily_outcome,
             'reviews': [r for r in read(target / 'reviews.json', {'reviews': []})['reviews'] if r['episode_id'] == row['id']]}
     if args.action in ('review', 'lesson'):
         if args.read_only:
@@ -245,7 +278,7 @@ def command(root, journal_path, args, get_json):
             bounded.append(result)
         report = {'as_of_utc': cutoff, 'scope': args.scope, 'from_jakarta': args.from_date,
             'to_jakarta': args.to_date, 'protocols': read(target / 'protocols.json', {}),
-            **reports.summary(rows, bounded)}
+            **reports.summary(rows, bounded), 'daily_excursions': daily_feedback}
         if args.output:
             output = Path(args.output)
             output.mkdir(parents=True, exist_ok=True)
@@ -256,6 +289,11 @@ def command(root, journal_path, args, get_json):
                     writer = csv.DictWriter(stream, fieldnames=list(report['cases'][0]))
                     writer.writeheader()
                     writer.writerows(report['cases'])
+            if daily_feedback['cases']:
+                with (output / 'daily-excursions.csv').open('w', newline='', encoding='utf-8') as stream:
+                    writer = csv.DictWriter(stream, fieldnames=list(daily_feedback['cases'][0]))
+                    writer.writeheader(); writer.writerows(daily_feedback['cases'])
+        report['daily_excursions'] = {k:v for k,v in daily_feedback.items() if k != 'cases'}
         return {**{k: v for k, v in report.items() if k != 'cases'},
             'output': str(args.output) if args.output else None, 'case_preview': report['cases'][-args.limit:]}
     if args.action == 'sync':

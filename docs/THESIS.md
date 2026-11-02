@@ -7,6 +7,18 @@ There is no automatic research or news ingestion.
 
 ## Presentation
 
+Every dated assessment, including unchanged same-day rechecks and earlier legacy
+versions, pairs its original grade with Day max signed percentage and Developing/
+Final state. Values use the labelled sampled relative FX basket defined in
+[analyst learning](ANALYST-LEARNING.md#daily-opportunity-primary), not a silently
+chosen USD pair. A compact price comparison shows post-delivery opportunity and
+the separate active checkpoint/supersession window. Missing history is explicit;
+partial sampled maxima must not masquerade as exact wick extrema or realised profit.
+Broker dates and Jakarta close times stay visible across midnight/DST. The
+research endpoint merges cached price projections under its revision without
+changing the authoritative research ledger. Background price reads are bounded;
+they perform no AI research. A rollover invalidates the formerly developing day.
+
 Eight buttons (EUR, GBP, AUD, NZD, USD, CAD, CHF, JPY) select exactly one
 standalone currency, remembered across reloads. The shared Alert date revolver
 chooses the Jakarta date: five day buttons, previous/next arrows, wheel scrolling,
@@ -30,8 +42,8 @@ currency implication, effect on the thesis and source links. Separate paragraphs
 keep facts and interpretation readable; no truncation or reading disclosures.
 Paragraphs use their available column width without a character-width cap.
 Older still-active evidence joins this same timeline with its original date and
-an Active background label. Earlier changes of direction, intensity or comparison
-basis appear at assessment times, not at the events' publication times; the latest
+an Active background label. Every earlier delivered assessment, including an
+unchanged grade, appears at its assessment time with its price comparison; the latest
 view is already above the timeline. No inferred market turning points are added.
 Unknown publication hours say Hour unknown. A separately known event clock and
 material timing qualifications remain explicitly visible.

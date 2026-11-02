@@ -42,7 +42,10 @@ def data_directory():
     return Path(os.environ.get("FYODOR_STORAGE_DATA_DIR", Path(__file__).resolve().parent / "data")).resolve()
 
 
-def create_app(directory=None, run_collector=True, highlights_path=HIGHLIGHTS_PATH, external_directory=DIRECTORY, thesis_path=THESIS_PATH):
+def create_app(directory=None, run_collector=True, highlights_path=HIGHLIGHTS_PATH, external_directory=DIRECTORY, thesis_path=THESIS_PATH, excursion_market=None):
+    from .analyst_learning.daily_market import DailyExcursionMarket
+    excursions = excursion_market or DailyExcursionMarket(thesis_path, (directory or data_directory()) / 'analyst-learning/days',
+        enabled=run_collector and Path(thesis_path).resolve() == Path(THESIS_PATH).resolve())
     @asynccontextmanager
     async def lifespan(app):
         with data_lock(directory or data_directory()):
@@ -53,6 +56,7 @@ def create_app(directory=None, run_collector=True, highlights_path=HIGHLIGHTS_PA
             try:
                 yield
             finally:
+                excursions.close()
                 app.state.collector.stop()
                 app.state.store.close()
 
@@ -178,7 +182,7 @@ def create_app(directory=None, run_collector=True, highlights_path=HIGHLIGHTS_PA
                         currency: str | None = Query(default=None, pattern=r'^(EUR|GBP|AUD|NZD|USD|CAD|CHF|JPY)$')):
         from .thesis_research import research_snapshot
         try:
-            return research_snapshot(thesis_path, from_date, to_date, after_revision, currency)
+            return excursions.enrich(research_snapshot(thesis_path, from_date, to_date, None, currency), after_revision)
         except ValueError as error:
             raise HTTPException(422, str(error)) from error
         except OSError as error:

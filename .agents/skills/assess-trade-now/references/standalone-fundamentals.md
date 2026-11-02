@@ -42,6 +42,16 @@ uncertain. Explain an event's intensity in its development implication separatel
 from the saved currency assessment when other active events change the net view.
 Use the existing implication/reason fields; no extra verdict store is needed.
 
+Explicitly test Strong, then Moderate, before settling on Slight. In the existing
+evaluation intensity rationale, compare the chosen grade with the alternatives.
+Every Slight must name what makes the active advantage genuinely limited; every
+Moderate must explain the meaningful opposition that prevents clear dominance.
+Routine uncertainty, lack of unanimous data, unobserved private flows or absence
+of an already-completed price rally are not grade caps. Strong requires clear
+causal dominance, not certainty. A short, explicit horizon can merit Strong even
+with longer-run opposition; the checkpoint bounds freshness, not correctness.
+Do not inflate the grade to reward a later large candle or impose a Strong quota.
+
 Do not force a Strong label, count releases as votes or choose direction to
 match a later chart. Any decisive unresolved fact still needs honest disclosure.
 Use the same qualitative scale across all eight currencies. Its purpose includes

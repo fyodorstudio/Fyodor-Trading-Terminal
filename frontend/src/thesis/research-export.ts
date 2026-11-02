@@ -1,6 +1,7 @@
 import { dailyDirectionLabel, directionStageLabel, reviewCurrencies, safeThesisLink, thesisDay, type ThesisCurrency, type ThesisSource } from './thesis-model'
 import { researchAssessment, researchFacts, researchTimeline, type CurrencyResearch, type ResearchTimelineEntry } from './research-model'
 import { researchPrompt } from './research-prompt'
+import { excursionHeading, excursionLines } from './excursion-model'
 
 const text = (s: string) => s.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('|','\\|').replaceAll('[','\\[').replaceAll(']','\\]').replace(/\r?\n/g,'<br>')
 const links = (items: ThesisSource[]) => items.map(s => s.kind === 'web' && safeThesisLink(s.locator) ? `[${text(s.label)}](${s.locator.replaceAll('|','%7C').replaceAll('(','%28').replaceAll(')','%29')})` : text(s.label)).join(' · ')
@@ -31,6 +32,7 @@ export function researchMarkdown(data: CurrencyResearch, error: string | null = 
     const a=future ? undefined : researchAssessment(data,currency), d=a?.direction
     lines.push(`## ${currency}${d ? ' · '+dailyDirectionLabel(d) : ''}`, '')
     if (a) lines.push(`Last Assessed: ${clock(d?.verified_utc ?? a.as_of_utc)} · ${a.provenance}. Researched period: ${a.period_start} – ${a.period_end}.`, '')
+    if (d) lines.push(excursionHeading(a?.excursion), ...excursionLines(a?.excursion), '')
     if (d?.review_status) lines.push(text(directionStageLabel(d)), '')
     if (d) lines.push(text(d.reason),'',`Horizon: ${text(d.horizon || 'See original assessment.')}. ${links(d.sources)}`,'')
     if (a?.gap) lines.push(`Coverage: ${text(a.gap)}`,'')
@@ -45,7 +47,7 @@ export function researchMarkdown(data: CurrencyResearch, error: string | null = 
       || (cp.event_at ?? cp.event_date) !== (d.reassessment.event_at ?? d.reassessment.event_date)).map(cp=>[cp.title+':'+(cp.event_at ?? cp.event_date),cp])).values()]
     if (d && !d.reassessment) lines.push(`Anchor gap: ${text(d.reassessment_gap || 'No verified anchor saved.')}`, '')
     lines.push('### Assessment history','')
-    for (const item of data.assessments.filter(a=>a.currency===currency)) lines.push(`- ${clock(item.as_of_utc)} · ${item.direction ? dailyDirectionLabel(item.direction)+': '+text(item.direction.reason)+(item.direction.review_status ? ' · '+text(directionStageLabel(item.direction)) : '') : 'Unresolved: '+text(item.gap)} · version ${item.id}`)
+    for (const item of data.assessments.filter(a=>a.currency===currency)) lines.push(`- ${clock(item.as_of_utc)} · ${item.direction ? dailyDirectionLabel(item.direction)+': '+text(item.direction.reason)+(item.direction.review_status ? ' · '+text(directionStageLabel(item.direction)) : '') : 'Unresolved: '+text(item.gap)} · version ${item.id}`, excursionHeading(item.excursion), ...excursionLines(item.excursion))
     for (const cp of upcoming) lines.push(`Additional saved checkpoint: **${text(cp.title)}** · ${cp.event_at ? clock(cp.event_at) : cp.event_date+' · hour unknown'}. ${text(cp.note)} ${links(cp.sources)}`, '')
     lines.push('')
   }

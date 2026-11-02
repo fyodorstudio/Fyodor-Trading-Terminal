@@ -111,7 +111,9 @@ after saving. Read-only/no-save instructions still win.
    checkpoint never authorizes deferring it or carrying the old verdict until then.
    Freeze prospective evaluation metadata under the learning contract. After the
    supported decision, process matured outcomes with the bounded learning refresh
-   and review relevant cases/lessons; these must not delay current release actuals.
+   and confront relevant daily excursion reward/refinement cases and lessons;
+   these must not delay current release actuals. Explicitly compare intensity
+   alternatives and explain a marginal Slight rather than defaulting to it.
 7. Read back the saved interval and verify the left Fundamentals panel's summary
    contract, affected verdicts, original evidence/assessment clocks and checkpoints.
    A successful ledger save alone does not prove that the panel can load its data.

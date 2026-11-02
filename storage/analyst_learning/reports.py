@@ -79,8 +79,20 @@ def markdown(report):
         f"Grade distribution: {report['intensity_distribution']}. Window states: {report['window_status']}.",
         f"Price coverage: {report['observation_status']}.", '', report['index_limitation'], '',
         'Checkpoint/supersession proxies without a prospective explicit horizon are diagnostic, not clean forecast pass/fail scores.', '',
+        '## Daily excursion feedback', '',
+        str((report.get('daily_excursions') or {}).get('counts', {})), '',
+        (report.get('daily_excursions') or {}).get('interpretation', 'Daily observations not yet loaded.'), '',
+        '| Delivered UTC | Currency / grade | Feedback window | Best favourable % | Adverse % | Feedback / coverage |',
+        '| --- | --- | --- | --- | --- | --- |']
+    for case in (report.get('daily_excursions') or {}).get('cases', []):
+        full_day = case['feedback_window'] == 'remaining_day'
+        best = case['remaining_day_favourable_pct'] if full_day else case['favourable_pct']
+        worst = case['remaining_day_adverse_pct'] if full_day else case['adverse_pct']
+        fmt = lambda value: '—' if value is None else f'{value:+.4f}'
+        lines.append(f"| {case['delivered_utc']} | {case['currency']} / {case['intensity']} | {case['feedback_window']} | {fmt(best)} | {fmt(worst)} | {case['feedback']} / {case['coverage']} |")
+    lines.extend(['', '## Terminal-return diagnostic (secondary)', '',
         '| Delivered UTC | Currency | Verdict / grade | Window | Observation | Signed % | Breadth / 7 |',
-        '| --- | --- | --- | --- | --- | --- | --- |']
+        '| --- | --- | --- | --- | --- | --- | --- |'])
     for case in report['cases']:
         value = case['signed_return_pct']
         value = '—' if value is None else f'{value:+.4f}'

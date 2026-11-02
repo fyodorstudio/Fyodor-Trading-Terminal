@@ -3,15 +3,22 @@ import { backdropCategories, dailyDirectionLabel, safeThesisLink, thesisMonths, 
 import { useTheses } from './useTheses'
 import { downloadThesisMarkdown } from './thesis-export'
 import { LazyDetails } from './LazyDetails'
+import { useCurrencyResearch } from './useCurrencyResearch'
+import { thesisDay } from './thesis-model'
+import { AssessmentExcursion, ExcursionHeading } from './AssessmentExcursion'
 
 const clock=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Jakarta',dateStyle:'medium',timeStyle:'short',hour12:true})
 const timed=(value:string)=>clock.format(new Date(value))+' Jakarta'
 
 function SavedReview({ review, currency }: { review: ThesisReviewEntry; currency: ThesisCurrency }) {
+  const date = thesisDay(review.as_of_utc)
+  const { data } = useCurrencyResearch(date,date,true,currency)
+  const excursion = data?.assessments.find(a=>a.id===review.id+':'+currency)?.excursion
   return <div>
     <p>Research cutoff {timed(review.as_of_utc)}; saved {timed(review.saved_utc)}. {review.provenance}. {review.note}</p>
     {review.currency_views?.filter(view => view.currency === currency).map(view => <div key={view.currency}>
-      <h4>{view.currency}{view.direction ? ' · '+dailyDirectionLabel(view.direction) : ''}</h4>
+      <h4>{view.currency}{view.direction ? <> · {dailyDirectionLabel(view.direction)}<ExcursionHeading value={excursion} /></> : ''}</h4>
+      {view.direction && <AssessmentExcursion value={excursion} />}
       <p>{view.direction?.reason || view.summary || view.news_gap}</p>
       {view.news?.map((n,i) => <p key={i}>{n.published_at ? timed(n.published_at) : n.published_on+' · hour unknown'} · {n.summary} {n.sources.map((s,j) => s.kind==='web' && safeThesisLink(s.locator) ? <a key={j} href={s.locator} target="_blank" rel="noopener noreferrer">{s.label}</a> : <span key={j}>{s.label}</span>)}</p>)}
     </div>)}

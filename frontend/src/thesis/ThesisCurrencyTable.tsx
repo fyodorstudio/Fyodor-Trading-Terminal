@@ -2,6 +2,7 @@ import { memo, useState } from 'react'
 import { dailyDirectionLabel, directionStageLabel, safeThesisLink, thesisDay, type ThesisCurrency, type ThesisSource } from './thesis-model'
 import { researchAssessment, researchFacts, researchTimeline, type CurrencyResearch, type ResearchDevelopment, type ResearchTimelineEntry } from './research-model'
 import { CheckpointBell } from './CheckpointBell'
+import { AssessmentExcursion, ExcursionHeading } from './AssessmentExcursion'
 
 const day = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', month: 'short', day: 'numeric', year: 'numeric' })
 const hour = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', hour: 'numeric', minute: '2-digit', hour12: true })
@@ -35,7 +36,8 @@ const DevelopmentRow = memo(function DevelopmentRow({ item, currency, background
 const AssessmentRow = memo(function AssessmentRow({ item }: { item: Extract<ResearchTimelineEntry, {kind:'assessment'}>['item'] }) {
   return <tr data-thesis-assessment={item.id}>
     <Time date={thesisDay(item.as_of_utc)} at={item.as_of_utc} />
-    <td><p><strong>Assessment · {dailyDirectionLabel(item.direction!)}</strong>{item.provenance === 'reconstruction' && ' · Historical reconstruction'}</p>
+    <td><p><strong>Assessment · {dailyDirectionLabel(item.direction!)}</strong><ExcursionHeading value={item.excursion} />{item.provenance === 'reconstruction' && ' · Historical reconstruction'}</p>
+      <AssessmentExcursion value={item.excursion} />
       <p>{item.direction!.reason}</p>
       {item.direction!.review_status === 'provisional' && <p>{directionStageLabel(item.direction!)}</p>}
       {item.gap && <p>{item.gap}</p>}
@@ -78,10 +80,11 @@ export const ThesisCurrencyTable = memo(function ThesisCurrencyTable({ data, cur
     && d.impacts.some(i => i.currency === currency) && !assessment?.evidence_ids.includes(d.id) && Date.parse(d.verified_utc)>Date.parse(direction.verified_utc))
   return <div className="thesis-currency-research">
     <section key={currency} className="thesis-currency-section" data-thesis-currency={currency} aria-label={currency+' fundamental research'}>
-      <div className="thesis-currency-heading"><h3>{currency}{direction && ' · '+dailyDirectionLabel(direction)}</h3>
+      <div className="thesis-currency-heading"><h3>{currency}{direction && <> · {dailyDirectionLabel(direction)}<ExcursionHeading value={assessment?.excursion} /></>}</h3>
         {assessment && <p>Last Assessed: {full.format(new Date(direction?.verified_utc ?? assessment.as_of_utc))} Jakarta{assessment.provenance === 'reconstruction' && ' · Historical reconstruction'}</p>}
       </div>
       {direction ? <div className="thesis-current-assessment" aria-label={currency+' current assessment'}>
+        <AssessmentExcursion value={assessment?.excursion} />
         <p>{direction.reason}</p>
         {direction.horizon && <p>{direction.horizon}</p>}
         {direction.review_status === 'provisional' && <p>{directionStageLabel(direction)}</p>}

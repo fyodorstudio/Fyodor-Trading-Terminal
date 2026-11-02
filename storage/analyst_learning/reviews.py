@@ -54,10 +54,13 @@ def append_review(journal_path, request, now=None):
     with data_lock(target):
         episodes = {e['id']: e for e in read(target / 'episodes.json', {'episodes': []})['episodes']}
         outcomes = {o['id']: o for o in read(target / 'outcomes.json', {'outcomes': []})['outcomes']}
+        outcomes.update({o['id']: o for o in read(target / 'daily-outcomes.json', {'outcomes': []})['outcomes']})
         episode, outcome = episodes.get(request.episode_id), outcomes.get(request.outcome_id)
         if not episode or not outcome or outcome['episode_id'] != episode['id']:
             raise ValueError('Review needs an existing episode and its recorded outcome')
-        if outcome['observation']['status'] not in ('complete', 'partial') and request.classification not in ('insufficient_evidence', 'checkpoint_failure'):
+        available = outcome['observation']['status'] in ('complete', 'partial') or (
+            outcome.get('phase') == 'final' and outcome.get('after_verdict', {}).get('status') in ('complete', 'partial'))
+        if not available and request.classification not in ('insufficient_evidence', 'checkpoint_failure'):
             raise ValueError('Unavailable outcomes cannot substantiate an outcome diagnosis')
         if request.classification in ('source_omission', 'misweighting', 'later_surprise') and not request.source_evidence:
             raise ValueError('A causal diagnosis needs dated source evidence, not price alone')

@@ -92,6 +92,34 @@ otherwise record a manual scenario review without claiming agent-tested results.
 
 ## Research timeline acceptance
 
+Daily-excursion acceptance scenarios:
+
+- A daily high occurs before a later bullish invocation. Show Day max but exclude
+  that earlier high from the call's post-delivery opportunity/reward.
+- A supported buy offers a material favourable move then returns to baseline.
+  Preserve the excursion, adversity and timing; terminal zero is not the whole
+  outcome. An opposite excursion can still warrant refinement; retain both.
+- A call's checkpoint ends before the session's largest move. Keep active-window
+  and remaining-day feedback separate, freeze the completed stage immediately,
+  and append the final day after rollover without renewing the verdict.
+- At midnight Jakarta in November the prior broker day is still developing until
+  5 AM. October US-DST days close at 4 AM; unknown broker clocks never borrow this
+  offset. Weekends and missing samples remain explicit.
+- Strong causal dominance is verified before any rally, with ordinary opposition.
+  Use Strong when warranted; missing flow proof, uncertainty or no price reaction
+  must not force Slight. A genuinely marginal balance must explain its limitation.
+- A retrieved timestamp already exists but causal grade is unresolved. Call this
+  a judgment question. Ask the user to open an exact inaccessible decisive link
+  only for a genuine access/clock gap, not to conceal weak weighting.
+- A new live assessment retrieves both aligned supporting and opposed refinement
+  cases. Review their exact outcome versions and relevant source bodies, record
+  exceptions, and cite only review IDs available before the new cutoff. An aligned
+  path cannot automatically promote a causal hypothesis or train model weights.
+
+Run storage/tests/test_daily_excursions.py, test_analyst_learning.py and
+test_thesis_research.py plus frontend Thesis and assembled-terminal tests.
+The scenario review is manual, not an independently blinded agent evaluation.
+
 Learning scenarios require original delivery clocks and frozen evidence. Check an
 expired checkpoint separately from subsequent price movement; exclude unknown
 legacy bases and incomplete paths from clean direction statistics. A winning

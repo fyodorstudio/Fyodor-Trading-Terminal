@@ -27,6 +27,7 @@ class AssessmentEvaluation(Payload):
     strongest_opposition: str = Field(min_length=20, max_length=1200)
     invalidation: str = Field(min_length=20, max_length=1200)
     lesson_ids: list[str] = Field(default_factory=list, max_length=6)
+    review_ids: list[str] = Field(default_factory=list, max_length=12, exclude_if=lambda value: not value)
     relative_preferences: list[RelativePreference] = Field(default_factory=list, max_length=7)
 
     @model_validator(mode='after')
@@ -37,6 +38,8 @@ class AssessmentEvaluation(Payload):
             raise ValueError('Use distinct supported mechanism tags')
         if len(set(self.lesson_ids)) != len(self.lesson_ids):
             raise ValueError('Lesson references must be unique')
+        if len(set(self.review_ids)) != len(self.review_ids):
+            raise ValueError('Reviewed case references must be unique')
         if len({p.pair for p in self.relative_preferences}) != len(self.relative_preferences):
             raise ValueError('Record a pair preference once per assessment')
         return self

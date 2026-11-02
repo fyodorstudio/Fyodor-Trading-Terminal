@@ -62,6 +62,24 @@ try {
   assert.ok(!container.textContent.includes('Across All Currency'))
   const chf=()=>container.querySelector('[data-thesis-currency="CHF"]')
   assert.match(chf().textContent,/Slight weakening.*Last Assessed/s)
+  assert.match(chf().textContent,/Day max: —/,'Every verdict has a mandatory comparison slot, including missing data')
+  const excursion={protocol_id:'daily-v1',basis:'Equal-weight relative FX basket · synchronized M1 closes',source_id:'Pepperstone-Demo',broker_day:'2026-07-22',
+    day_start_utc:'2026-07-21T21:00:00Z',day_end_utc:'2026-07-22T21:00:00Z',delivery_utc:'2026-07-22T10:01:00Z',phase:'developing',eligible:true,feedback:'unresolved',
+    day:{status:'complete',max_pct:-0.321,peak_utc:'2026-07-22T11:00:00Z'},
+    after_verdict:{status:'complete',favourable_pct:0.17,adverse_pct:-0.04,adverse_before_peak_pct:-0.02,peak_utc:'2026-07-22T11:00:00Z',baseline_utc:'2026-07-22T10:01:00Z'},
+    active_window:{status:'complete',favourable_pct:0.12,adverse_pct:-0.04,adverse_before_peak_pct:-0.02,peak_utc:'2026-07-22T10:50:00Z',baseline_utc:'2026-07-22T10:01:00Z',end_utc:'2026-07-22T11:00:00Z',phase:'final'}}
+  fixture={...fixture,revision:'developing-excursion',assessments:fixture.assessments.map(a=>({...a,excursion}))}
+  await poll()
+  assert.match(chf().querySelector('h3').textContent,/Slight weakening.*Day max: -0.321% · Developing/)
+  assert.match(chf().textContent,/Sampled FX basket.*Broker day 2026-07-22.*Jul 23.*4:00 AM/s,'Daily boundary uses explicit UTC converted to Jakarta, not midnight')
+  assert.match(chf().textContent,/After verdict 5:01 PM.*best \+0.170%.*adverse -0.040%.*peak 6:00 PM/s)
+  assert.match(chf().textContent,/Active window.*6:00 PM.*best \+0.120%/s,'Checkpoint and full-day opportunities remain separate')
+  assert.match(researchMarkdown(fixture,null,'CHF'),/Day max: -0.321%.*Developing/s)
+  const invalidExcursion=structuredClone(fixture);invalidExcursion.assessments[0].excursion.day.max_pct=NaN
+  assert.equal(validCurrencyResearch(invalidExcursion,fixture.from,fixture.to),false,'Malformed price results cannot reach the renderer')
+  fixture={...fixture,revision:'final-excursion',assessments:fixture.assessments.map(a=>({...a,excursion:{...excursion,phase:'final',feedback:'supporting_case'}}))}
+  await poll();assert.match(chf().querySelector('h3').textContent,/Final/)
+  assert.match(chf().textContent,/Supporting case/)
   const provisional={...direction,review_status:'provisional',stage_note:'Statement only; conference Q&A pending.'}
   fixture={...fixture,revision:'provisional',assessments:fixture.assessments.map(a=>a.direction ? {...a,direction:provisional} : a)}
   await poll()
@@ -88,6 +106,10 @@ try {
   const projected=researchTimeline({...fixture,developments:[...fixture.developments,{...fixture.developments[0],id:'duplicate'}]},'CHF')
   assert.equal(projected.filter(r=>r.kind==='development' && r.item.key==='new').length,1,'Stable development keys appear once')
   assert.equal(JSON.stringify(fixture.developments).includes('duplicate'),false,'Projection does not mutate evidence')
+  const unchangedCalls={...fixture,assessments:[fixture.assessments[0],
+    {...fixture.assessments[0],id:'same-grade-one',as_of_utc:'2026-07-22T08:00:00Z'},
+    {...fixture.assessments[0],id:'same-grade-two',as_of_utc:'2026-07-22T09:00:00Z'}]}
+  assert.equal(researchTimeline(unchangedCalls,'CHF').filter(r=>r.kind==='assessment').length,2,'Unchanged grades remain separate dated calls for outcome comparison')
   const clocks={...fixture,developments:[development('utc','2026-07-22','2026-07-22T08:35:00Z'),development('offset','2026-07-22','2026-07-22T15:34:00+07:00')]}
   assert.deepEqual(researchTimeline(clocks,'CHF').map(r=>r.item.id),['utc','offset'],'Intraday sorting compares instants across source offsets')
   const longFacts='Verified facts new. '+('Additional sourced context with original qualifications. '.repeat(12))+'Final qualification remains available.'

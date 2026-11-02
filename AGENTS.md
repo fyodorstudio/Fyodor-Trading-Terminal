@@ -88,6 +88,11 @@ reviewed lessons, freeze delivered calls, then measure and review matured outcom
 within the invocation. Historical results never rewrite live verdicts or train
 model weights. Learning outcome captures are authorised; current technical scans
 still require the user's price-aware request. No background AI invocation follows.
+Every dated Thesis verdict must display sampled daily maximum excursion and its
+forming/final status, plus post-delivery opportunity; historical day context
+cannot reward a later call. Future research must confront scoped aligned/reward
+and opposed/refinement cases, preserve exact versions and report material limits.
+Explicitly compare Strong/Moderate/Slight; uncertainty alone is not a grade cap.
 
 For live fundamentals and Thesis updates use
 [Assess Trade Now](.agents/skills/assess-trade-now/SKILL.md). For imminent release

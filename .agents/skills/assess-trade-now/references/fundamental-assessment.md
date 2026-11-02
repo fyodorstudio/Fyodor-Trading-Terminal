@@ -79,6 +79,14 @@ misweighting of already-known facts and genuinely later information. Evidence
 supporting an earlier directional case does not establish the exact price trigger
 or make the reversal minute predictable.
 
+Distinguish source-access gaps from judgment gaps. Convert verified publication
+and update clocks to Jakarta and preserve both; an update clock is not first
+dissemination. Do not call an already-known timestamp unavailable because the
+grade threshold is unresolved. If a decisive source body or clock is genuinely
+inaccessible after bounded alternatives, identify the exact link and ask the user
+to check it manually while continuing independent research. A known fact that
+was insufficiently weighted is a reasoning failure, not a retrieval limitation.
+
 ## Release and retention check
 
 Identify the underlying policy backdrop, the release's incremental effect against

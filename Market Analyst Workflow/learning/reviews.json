@@ -126,6 +126,100 @@
       "episode_hash": "8ebb5b18398e011bcd4bcd311b3adb397c87722adb344a573a19d85397094013",
       "outcome_hash": "d3a863ed231c0e5fd2636b22f99165dcd398a4a07e91f462d6125017779b9727",
       "method": "agent_review_not_independent_replay"
+    },
+    {
+      "episode_id": "research:5cfeb6a3eefe4406a4260c11f36558be:EUR",
+      "outcome_id": "09c814eacf4b8b72f45d3d3cc39d40e32c02c10e761d9b0eadca29cf163b4209",
+      "classification": "misweighting",
+      "analysis": "The original EUR slight-weakening rationale acknowledged resilient growth and conditional ECB tightening, but retained slower-moving financing and energy-income drag without adequately explaining why those dominated the coming session. Already-known diplomacy challenged the continuing energy-risk premise. This is a weakness in comparative weighting and retention, not proof that EURJPY STRONG BUY was objectively identifiable or that diplomacy caused the first rally minute.",
+      "known_before_cutoff": "The saved 05:46 AM information set already included October 30 euro-area GDP resilience, completed ECB and BoJ guidance, Friday hedging observations, weekend China weakness and November 1 diplomacy. No Monday-after-cutoff report is used to establish this criticism.",
+      "subsequent_information": "The new synchronized relative basket record shows an observed maximum adverse excursion of about 0.311 percent against this EUR weakening call before its 12:03 PM supersession. Whole-day values are still developing until the broker close. These are relative basket observations, not broker EURX candles, fills or proof of the exact rally catalyst. The earlier source-based weighting criticism remains unchanged.",
+      "source_evidence": [
+        {
+          "url": "https://www.aol.com/articles/euro-zone-growth-beats-projections-100626000.html",
+          "published_at": "2026-10-30T11:07:00Z",
+          "used_as_pre_cutoff": true,
+          "claim": "Euro-area Q3 growth was 0.4 percent versus a Reuters poll of 0.2 percent, with broad investment and consumption resilience; borrowing costs and energy risks remained.",
+          "availability_note": "Observed updated October 30 version; the same growth fact was already frozen in the original November 2 05:46 AM assessment evidence. Current reopened body is not an archived tick-by-tick news feed."
+        },
+        {
+          "url": "https://ktwb.com/2026/11/01/iranian-negotiators-in-doha-to-continue-talks-to-end-the-us-iran-war-official-says/",
+          "published_at": "2026-11-01T12:24:00Z",
+          "used_as_pre_cutoff": true,
+          "claim": "Third day of mediation and a conditional Hormuz-reopening proposal were already reported; no agreement was reached and escalation remained possible.",
+          "availability_note": "UTC clock follows the original frozen Reuters development, corroborated by dated syndications. KTWB displays 6:24 AM without a timezone; that display alone is not the UTC conversion source."
+        }
+      ],
+      "expected_version": "30319a6a69be448e911556862d720a5a",
+      "revision_note": "Attach the new original-call daily basket and completed active-window record; preserve the earlier source audit and prior price measurement.",
+      "id": "b48ebf1144fa43019995aab7f08b270c",
+      "recorded_utc": "2026-11-02T18:05:45.464509Z",
+      "episode_hash": "4391fb0a1567ef4d881d5af8fc40a4fce5c69ca6e70cd2e3d557d26cbef3e58c",
+      "outcome_hash": "a908b6f158219ef8f97955092749c7f5f7384931055ed89f941dc5fd5ed19b9c",
+      "method": "agent_review_not_independent_replay"
+    },
+    {
+      "episode_id": "research:2f315c879be04c6191077c7f1a433709:GBP",
+      "outcome_id": "e69bd867d36db46585de502d1f13cfa37af308a00bf35aab98e3288386f0c8f8",
+      "classification": "supported_reasoning_aligned_outcome",
+      "analysis": "The saved Slight strengthening call describes delivered budget credibility relief and persistent inflation as support, with energy, labour and fiscal offsets. Its remaining-day sampled favourable excursion is about 0.382 percent with about 0.060 percent adverse movement, so this is an observed supporting case worth preserving. The earlier active interval was opposed: a long daily opportunity must not erase that timing limitation. One missing remaining-day sample prevents claiming a complete true maximum or an executable profit. No causal driver is proven by the price alignment.",
+      "known_before_cutoff": "The original frozen rationale recorded the delivered budget and its interpretation, prospective BoE support and substantial demand, labour and energy opposition. This review reuses that saved account rather than manufacturing a new source publication.",
+      "subsequent_information": "The active interval ended at the next saved assessment, while the largest remaining-day favourable observation occurred much later. Both windows remain in the same immutable outcome record. This is a horizon/reassessment limitation, not a reason to inflate the original grade to Strong.",
+      "source_evidence": [],
+      "expected_version": null,
+      "revision_note": "",
+      "id": "b275143441124a978b9e1377999902d6",
+      "recorded_utc": "2026-11-02T18:05:45.715836Z",
+      "episode_hash": "2a0e0130723dcae1a289f3bfa0a91fd0d8f500618287a43474eb84e28407e8ff",
+      "outcome_hash": "6b19216c5869adf1539c18e2ec67ec12799ef503b77d693f08ee644884ed67db",
+      "method": "agent_review_not_independent_replay"
+    },
+    {
+      "episode_id": "research:5cfeb6a3eefe4406a4260c11f36558be:EUR",
+      "outcome_id": "3cbbb73c6adb4edde93f1068773ecf85596b2fa1c00aa5a5610d2b3536157285",
+      "classification": "misweighting",
+      "analysis": "The original EUR slight-weakening rationale acknowledged resilient growth and conditional ECB tightening, but retained slower-moving financing and energy-income drag without adequately explaining why those dominated the coming session. Already-known diplomacy challenged the continuing energy-risk premise. This is a weakness in comparative weighting and retention, not proof that EURJPY STRONG BUY was objectively identifiable or that diplomacy caused the first rally minute.",
+      "known_before_cutoff": "The saved 05:46 AM information set already included October 30 euro-area GDP resilience, completed ECB and BoJ guidance, Friday hedging observations, weekend China weakness and November 1 diplomacy. No Monday-after-cutoff report is used to establish this criticism.",
+      "subsequent_information": "The new synchronized relative basket record shows an observed maximum adverse excursion of about 0.311 percent against this EUR weakening call before its 12:03 PM supersession. Whole-day values are still developing until the broker close. These are relative basket observations, not broker EURX candles, fills or proof of the exact rally catalyst. The earlier source-based weighting criticism remains unchanged.",
+      "source_evidence": [
+        {
+          "url": "https://www.aol.com/articles/euro-zone-growth-beats-projections-100626000.html",
+          "published_at": "2026-10-30T11:07:00Z",
+          "used_as_pre_cutoff": true,
+          "claim": "Euro-area Q3 growth was 0.4 percent versus a Reuters poll of 0.2 percent, with broad investment and consumption resilience; borrowing costs and energy risks remained.",
+          "availability_note": "Observed updated October 30 version; the same growth fact was already frozen in the original November 2 05:46 AM assessment evidence. Current reopened body is not an archived tick-by-tick news feed."
+        },
+        {
+          "url": "https://ktwb.com/2026/11/01/iranian-negotiators-in-doha-to-continue-talks-to-end-the-us-iran-war-official-says/",
+          "published_at": "2026-11-01T12:24:00Z",
+          "used_as_pre_cutoff": true,
+          "claim": "Third day of mediation and a conditional Hormuz-reopening proposal were already reported; no agreement was reached and escalation remained possible.",
+          "availability_note": "UTC clock follows the original frozen Reuters development, corroborated by dated syndications. KTWB displays 6:24 AM without a timezone; that display alone is not the UTC conversion source."
+        }
+      ],
+      "expected_version": "b48ebf1144fa43019995aab7f08b270c",
+      "revision_note": "Reference protocol v2 with immutable archived prices and measured-as-of cutoff. Economic interpretation and the measured active-window conclusion remain unchanged.",
+      "id": "a68d4b0e7fbe4a419eaef7499f118fbd",
+      "recorded_utc": "2026-11-02T18:15:26.841288Z",
+      "episode_hash": "4391fb0a1567ef4d881d5af8fc40a4fce5c69ca6e70cd2e3d557d26cbef3e58c",
+      "outcome_hash": "11b1f7d91aba2fb454b5666cc555f385bf9b2eb1ae9a5e9d0e716a771e476a1f",
+      "method": "agent_review_not_independent_replay"
+    },
+    {
+      "episode_id": "research:2f315c879be04c6191077c7f1a433709:GBP",
+      "outcome_id": "5a32c51e82d180b80d4f7a16c76a6e440348b7f8d3603c96a664fe172832833e",
+      "classification": "supported_reasoning_aligned_outcome",
+      "analysis": "The saved Slight strengthening call describes delivered budget credibility relief and persistent inflation as support, with energy, labour and fiscal offsets. Its remaining-day sampled favourable excursion is about 0.382 percent with about 0.060 percent adverse movement, so this is an observed supporting case worth preserving. The earlier active interval was opposed: a long daily opportunity must not erase that timing limitation. One missing remaining-day sample prevents claiming a complete true maximum or an executable profit. No causal driver is proven by the price alignment.",
+      "known_before_cutoff": "The original frozen rationale recorded the delivered budget and its interpretation, prospective BoE support and substantial demand, labour and energy opposition. This review reuses that saved account rather than manufacturing a new source publication.",
+      "subsequent_information": "The active interval ended at the next saved assessment, while the largest remaining-day favourable observation occurred much later. Both windows remain in the same immutable outcome record. This is a horizon/reassessment limitation, not a reason to inflate the original grade to Strong.",
+      "source_evidence": [],
+      "expected_version": "b275143441124a978b9e1377999902d6",
+      "revision_note": "Reference protocol v2 with immutable archived prices and measured-as-of cutoff. Economic interpretation and the measured active-window conclusion remain unchanged.",
+      "id": "d3cdba4b0a734607bad062a537d8a08a",
+      "recorded_utc": "2026-11-02T18:15:27.122536Z",
+      "episode_hash": "2a0e0130723dcae1a289f3bfa0a91fd0d8f500618287a43474eb84e28407e8ff",
+      "outcome_hash": "a41dcc6f82ed9f0258ae109ffd1591d69dade09dc55e1ba0c77bd22fc8221b85",
+      "method": "agent_review_not_independent_replay"
     }
   ]
 }

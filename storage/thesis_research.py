@@ -275,6 +275,12 @@ def append_research(request, journal_path):
             book['developments'].append(item); latest[d.key] = item; created.append(item['id'])
         versions = {}
         for a in request.assessments:
+            if a.evaluation and a.evaluation.review_ids:
+                from .analyst_learning.store import directory as learning_directory, read as learning_read
+                reviews = learning_read(learning_directory(journal_path) / 'reviews.json', {'reviews': []})['reviews']
+                by_review = {review['id']: review for review in reviews}
+                if any(identity not in by_review or datetime.fromisoformat(by_review[identity]['recorded_utc'].replace('Z', '+00:00')) > request.as_of_utc for identity in a.evaluation.review_ids):
+                    raise ValueError('Reviewed case versions must exist before the assessment cutoff')
             if a.evaluation and a.evaluation.lesson_ids:
                 from .analyst_learning.store import directory as learning_directory, read as learning_read
                 lessons = learning_read(learning_directory(journal_path) / 'lessons.json', {'lessons': []})['lessons']
@@ -348,9 +354,9 @@ def research_snapshot(journal_path, start, end, after_revision=None, currency=No
         latest = {key:d for key,d in latest.items() if any(i['currency'] == currency for i in d['impacts'])}
     history = read_reviews(journal_path)
     # Legacy reviews remain byte-for-byte intact. Only exact repeated facts merge.
-    legacy_reviews = {r['review_id']: r for r in history if r['scope'] == 'ALL'}
     assessments = []
-    for r in legacy_reviews.values():
+    # Every delivered legacy version remains a dated call, including later corrections.
+    for r in (review for review in history if review['scope'] == 'ALL'):
         for v in r['currency_views']:
             if currency is not None and v['currency'] != currency: continue
             legacy_key = lambda n: 'legacy-'+sha256(json.dumps([v['currency'],n['published_on'],n['summary'],n['sources']],sort_keys=True).encode()).hexdigest()[:32]

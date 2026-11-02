@@ -15,6 +15,18 @@ price observations, reviewed cases, versioned lessons and compact retrieval.
 CLI orchestration through `pnpm analyst learning`.
 `Market Analyst Workflow/learning/` holds tracked evaluation records and reports.
 Raw immutable OHLC captures live in ignored `storage/data/analyst-learning/`.
+`daily.py` owns the synchronized daily basket and excursion protocol;
+`daily_worker.py` reads seven visible USD legs from the already-connected terminal;
+`daily_market.py` owns the bounded cache and Thesis projection. It shares one day
+read across currencies, runs at most one native job, checks account/source identity
+before and after reads, and never selects symbols, logs in or changes the bridge.
+`daily-outcomes.json` appends completed active-window and final-day evaluation
+versions, separate from calls. Live day progress does not repeatedly duplicate a
+completed active interval; rollover appends its final remaining-day observation.
+Protocol v2 archives exact price documents under ignored `days/versions/` for
+each new completed observation. The record names its immutable evidence file and
+measured-as-of cutoff so day and window metrics can be replayed after the live
+cache advances. Older prototype protocol versions remain intact.
 The authoritative live verdict remains [Thesis](THESIS.md); evaluations cannot
 alter it, its evidence dates, checkpoints, alarms or user trade journals.
 
@@ -26,6 +38,41 @@ Missing legacy directions, ambiguous horizons, closed-market baselines and
 incomplete prices remain explicit limitations rather than fabricated outcomes.
 
 ## Measurement contract
+
+### Daily opportunity (primary)
+
+Every dated Thesis judgment shows a mandatory signed Day max, its Developing/Final
+state and a labelled sampled relative FX basket. All eight use the same geometric
+equal-weight basis against the other seven currencies, derived from seven USD
+legs and their broker D1 opens. This is not GBPUSD alone or a broker index clone.
+Do not combine independently timed leg highs/lows into a synthetic wick extreme.
+Use synchronized completed M1 closes; display partial paths and missing history.
+
+The largest absolute open-to-sampled-high/low excursion supplies the sign, with
+upward winning ties. It is daily context, not post-verdict credit. For each exact
+delivered version separately record favourable/adverse excursion, adverse movement
+before its best peak, peak time and time-to-peak after delivery. Retain the whole
+remaining broker day and the active interval through the earliest checkpoint,
+declared end, supersession or day close. A late verdict cannot claim earlier moves;
+post-checkpoint movement never renews a call. Historical reconstructions, obsolete
+versions and unknown legacy bases remain contextual, not clean forecast rewards.
+
+Pepperstone's historical NY-close profile determines the date and boundaries.
+November 2, 2026 ends November 3 at 5 AM Jakarta; US DST days end at 4 AM. Jakarta
+midnight is not rollover. Associate by actual delivery time, show broker-day dates
+and exact close times, and reread a previously developing day after completion.
+Never substitute neighbouring days on weekends/holidays. Current snapshots update
+while the terminal runs; a later read finalizes a closed day after downtime.
+
+An aligned observed remaining-day maximum is a supporting/reward case, an opposed
+one a refinement candidate. Their coverage is always explicit; a partial path
+does not establish the true unseen maximum. Active-window feedback separately
+requires a complete path. Neither label proves the economic explanation or profit.
+Future invocations must confront relevant successful and adverse cases with dated
+source checks, preserve corrections and report material newly identified limits.
+No automatic model-weight update or promotion of directional rules follows.
+
+### Terminal-return diagnostic (secondary)
 
 The frozen protocol selects the first synchronized completed M1 close at/after
 delivery (within 120 seconds). Primary observations end at the earliest explicit
@@ -64,6 +111,10 @@ without it and cannot be silently upgraded into prospective tests. Metadata
 supports the existing assessment, never a second verdict or numeric strength score.
 Equal qualitative grades require a researched comparison when relevant; no forced
 distribution of Strong/Moderate/Slight and no default Slight because of uncertainty.
+`review_ids` optionally freezes exact case-review versions considered before the
+cutoff; future references are rejected. The skill requires an explicit grade
+comparison and a concrete explanation for a marginal Slight advantage. Routine
+uncertainty and missing realised flows/price confirmation do not cap intensity.
 
 ## Lessons and routine operation
 
@@ -91,6 +142,12 @@ future frozen cases are needed to test whether changes improve actual operation.
 ## Commands and review payloads
 
 The ordinary skill runs this workflow; users need no additional invocation.
+`pnpm analyst learning daily-backfill --scope ALL --from 2026-10-20 --to 2026-11-02
+--max-days 20` backfills bounded native daily captures. Routine `refresh --capture`
+uses `--max-days 2` in addition to the existing OHLC symbol/request budget. Completed
+raw days are reused. Prepared context includes bounded daily feedback and a queue;
+`case` includes the exact daily outcome ID for case review. Report exports include
+`daily-excursions.csv`. Price calculations never mutate saved research or alarms.
 For diagnostics: `pnpm analyst learning prepare --scope EURUSD --limit 5`,
 `pnpm analyst learning case --episode <id>` and
 `pnpm analyst learning report --output "Market Analyst Workflow/learning/report"`.
