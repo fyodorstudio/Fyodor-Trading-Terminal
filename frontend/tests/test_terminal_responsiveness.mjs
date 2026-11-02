@@ -319,6 +319,9 @@ try {
   assertQuiet('Opening Thesis')
   assert.equal(container.querySelectorAll('[data-thesis-development]').length,20,'Large Thesis dates mount one page')
   assert.equal(counters.thesisRows,20)
+  assert.deepEqual([...container.querySelector('[aria-label="EUR evidence timeline"]').querySelectorAll('thead th')].map(cell=>cell.textContent),
+    ['Time · Jakarta','Evidence and interpretation'],'The assembled terminal uses the two-column evidence timeline')
+  assert.equal(container.querySelector('.research-detail-toggle'),null,'Routine audit buttons are absent')
   assert.ok(!container.textContent.includes('Collapsed research version'),'1,500 historical bodies stay unmounted')
   const scrollRequests=requests.length
   reset()
@@ -605,7 +608,7 @@ try {
   await pointer(drawingSvg(), 'pointermove', 480, 320)
   assert.equal(container.querySelector('.drawing-draft .drawing-range-duration .drawing-range-label').textContent, '0d 2h 0m')
   await pointer(drawingSvg(), 'pointerup', 480, 320)
-  assert.equal(container.querySelector('.drawing-range-pips .drawing-range-label').textContent, '1000.0 pips', 'The assembled range displays pips, not the raw decimal change')
+  assert.equal(container.querySelector('.drawing-range-pips .drawing-range-label').textContent, '1000.0 pips · +10.53%', 'The assembled range displays pips and percentage from its first anchor')
   // Research is a time selection, independent of prices and calendar filters.
   const { researchRangeDates } = await server.ssrLoadModule('./src/research/research-request.ts')
   assert.equal(researchRangeDates(Date.UTC(2026, 9, 25, 3, 30) / 1000, Date.UTC(2026, 9, 25, 4) / 1000,

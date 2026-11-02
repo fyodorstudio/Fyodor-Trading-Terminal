@@ -84,6 +84,9 @@ normally remain context without bells unless a current, sourced mechanism makes
 that occurrence decisive. Keep material discoveries visible even when silent.
 Treat simultaneous release components as one review checkpoint; retain separate
 decision/conference bells only when the later stage can add material guidance.
+A mechanism-specific market opening may be the Thesis invocation anchor without
+being a high-impact news event. Displaying that anchor does not authorize a
+session-opening bell or a repeated observation schedule.
 An alarm-curation request authorizes disabling previously selected low-value or
 duplicate future reminders within the reviewed horizon. Preserve explicit off
 choices and unrelated settings; read back removals as well as armed reminders.

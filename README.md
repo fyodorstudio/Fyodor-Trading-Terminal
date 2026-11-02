@@ -205,13 +205,13 @@ context tools are included.
 assessments, with append-only corrections and exact evidence references. Eight
 currency buttons select one standalone currency; the selection persists. The Alert-style
 date revolver (five days, arrows/wheel, month/year and Today) selects its Jakarta date.
-An assessment table separates rationale, reviewed stage, horizon, coverage and
-sources, then a ledger shows
-**Time | Event | Effect | Description | Source**. Recent developments precede the
-older active background, using the same columns; checkpoints and expanded history
-also use tables. Descriptions, effects and assessment text are shown in full;
-provenance and version history expand on demand. There is no
-All view, pair selector or Date range control.
+A compact current judgment and one next invocation anchor accompany a single
+**Time · Jakarta | Evidence and interpretation** timeline. Developments, older
+active foundations and earlier changed assessments keep their original dates;
+facts, implications and source links read together. All text is visible without
+reading disclosures. Routine audit clocks, references and immutable versions stay
+in storage and Markdown exports. The combined timeline pages after 20 rows.
+There is no All view, pair selector or Date range control.
 Only the selected currency renders; earlier currency reviews load on opening their
 archive, with individual snapshots expanded on demand. Prompts and Markdown exports
 follow the selected currency and date. The pair-journal entries, saved versions,

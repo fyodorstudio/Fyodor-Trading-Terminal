@@ -18,6 +18,15 @@ do not reproduce those schemas or a giant copied prompt here.
    dates/hours, sources and currency-specific implication/thesis effect. One event
    can affect several currencies differently. Link existing raw calendar/external
    identities when useful, without copying raw observations into research.
+   Write for the two-column evidence timeline: brief factual prose, then the
+   currency implication and what changes in the thesis. Keep fact, inference and
+   material opposition distinguishable without repeating the same paragraph in
+   `facts`, `implication` and `thesis_effect`. Use normal spacing and source links.
+   The assessment reason briefly states the dominant mechanism, strongest
+   opposition and concrete invalidation; keep the reviewed stage in `stage_note`
+   rather than restating it in every field. Do not add audit boilerplate to the
+   reason or use `gap` for routine coverage receipts; reserve it for an actual
+   limitation. Keep required clocks/references in their existing structured fields.
 4. Reuse existing developments. A changed fact or interpretation appends an explained
    version; the tool resolves/fixes exact evidence versions for the assessment.
    Keep still-active evidence before the interval in `background_keys`, not repeated
@@ -50,6 +59,9 @@ coverage. Apply the parent's causal weighting before retaining/reversing a view.
 Use focused currency/date fields from range responses rather than dumping complete
 ledgers or repeatedly serializing unchanged history. Reuse existing fetch/save/
 validator tooling; do not author bespoke audit scripts for each routine refresh.
+Append new developments once, reference unchanged foundations and record only
+material corrections as new versions. A new intraday assessment does not require
+rewriting the daily ledger or reauthoring background prose for the display.
 
 Check fresh dated news and source/calendar changes across the requested scope,
 including contrary and off-calendar developments. A broad refresh still assesses
@@ -136,7 +148,8 @@ A full requested refresh checks all eight. A focused release refresh resolves th
 relevant actuals/guidance and affected/decisively overdue mechanisms without
 starting unrelated investigations. Preserve unresearched rows and their clocks.
 A checkpoint is a review deadline, not a promise of direction until then; resolve
-elapsed stages before selecting a new verified stage. Shared global deadlines need
+elapsed stages before selecting the [next mechanism-specific invocation anchor](fundamental-assessment.md#one-next-invocation-anchor).
+Shared global deadlines need
 a concrete channel for each affected currency. Date-only schedules get no invented
 hour or precise bell. A missing schedule hour limits timer precision; it does not
 prevent a potential-impact verdict. Never use Review needed as the normal result

@@ -1,4 +1,4 @@
-import { dailyVerdicts, directionIntensities, reviewCurrencies, safeThesisLink, thesisDay, validReviewStage, type CurrencyCheckpoint, type DailyDirection, type ThesisSource } from './thesis-model'
+import { dailyVerdicts, directionIntensities, reviewCurrencies, safeThesisLink, thesisDay, validReviewStage, type CurrencyCheckpoint, type DailyDirection, type DirectionAnchor, type ThesisSource } from './thesis-model'
 import { commodityIds } from '../external-sources/research-instruments'
 
 export type ResearchImpact = { currency: string; implication: string; thesis_effect: string }
@@ -64,4 +64,42 @@ export function researchAssessment(data: CurrencyResearch, currency: string) {
   const latest=ordered[0], retained=ordered.find(a=>a.direction)
   return latest && !latest.direction && retained ? { ...latest, direction:{ ...retained.direction!,reassessment:null,reassessment_gap:latest.gap },
     evidence_ids:retained.evidence_ids,background_ids:retained.background_ids } : latest
+}
+
+export type ResearchTimelineEntry =
+  | { kind: 'development'; item: ResearchDevelopment; background: boolean; date: string; at: string | null }
+  | { kind: 'assessment'; item: ResearchAssessment; date: string; at: string }
+  | { kind: 'anchor'; item: DirectionAnchor & { id: string }; date: string; at: string | null }
+
+// One visible occurrence per stable development key. Frozen versions remain in exports.
+export function researchTimeline(data: CurrencyResearch, currency: string): ResearchTimelineEntry[] {
+  if (data.from > thesisDay(new Date().toISOString())) return []
+  const assessment = researchAssessment(data, currency)
+  const rows: ResearchTimelineEntry[] = [], seen = new Set<string>()
+  const relevant = data.developments.filter(d => d.impacts.some(i => i.currency === currency))
+  const recent = relevant.filter(d => d.published_on >= data.from && d.published_on <= data.to)
+  const background = relevant.filter(d => d.published_on < data.from
+    && (assessment?.background_ids.includes(d.id) || assessment?.evidence_ids.includes(d.id)))
+    .sort((a,b) => Number(!!assessment?.background_ids.includes(b.id)) - Number(!!assessment?.background_ids.includes(a.id)))
+  for (const item of [...recent, ...background]) {
+    if (seen.has(item.key)) continue
+    seen.add(item.key)
+    rows.push({ kind:'development', item, background:item.published_on < data.from, date:item.published_on, at:item.published_at })
+  }
+  const views = data.assessments.filter(a => a.currency === currency && a.direction)
+    .sort((a,b) => Date.parse(a.as_of_utc)-Date.parse(b.as_of_utc) || Date.parse(a.saved_utc)-Date.parse(b.saved_utc))
+  const changes = views.filter((a,i) => !i || a.direction!.verdict !== views[i-1].direction!.verdict
+    || a.direction!.intensity !== views[i-1].direction!.intensity || a.direction!.basis !== views[i-1].direction!.basis)
+  // The current view is already visible above the ledger. Earlier changed views
+  // use assessment times, never the publication time of their supporting news.
+  for (const item of changes) {
+    const date = thesisDay(item.as_of_utc)
+    if (item.id !== assessment?.id && date >= data.from && date <= data.to)
+      rows.push({ kind:'assessment', item, date, at:item.as_of_utc })
+  }
+  const anchor = assessment?.direction?.evidence_anchor
+  if (!seen.size && anchor && (anchor.event_at || anchor.event_date))
+    rows.push({ kind:'anchor', item:{...anchor,id:'evidence-anchor'}, date:anchor.event_at ? thesisDay(anchor.event_at) : anchor.event_date!, at:anchor.event_at })
+  return rows.sort((a,b) => b.date.localeCompare(a.date) || (b.at ? Date.parse(b.at) : -1) - (a.at ? Date.parse(a.at) : -1)
+    || a.item.id.localeCompare(b.item.id))
 }

@@ -1,15 +1,25 @@
-import { dailyDirectionLabel, directionStageLabel, reviewCurrencies, safeThesisLink, type ThesisCurrency, type ThesisSource } from './thesis-model'
-import { researchAssessment, researchFacts, type CurrencyResearch, type ResearchDevelopment } from './research-model'
+import { dailyDirectionLabel, directionStageLabel, reviewCurrencies, safeThesisLink, thesisDay, type ThesisCurrency, type ThesisSource } from './thesis-model'
+import { researchAssessment, researchFacts, researchTimeline, type CurrencyResearch, type ResearchTimelineEntry } from './research-model'
 import { researchPrompt } from './research-prompt'
 
 const text = (s: string) => s.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('|','\\|').replaceAll('[','\\[').replaceAll(']','\\]').replace(/\r?\n/g,'<br>')
 const links = (items: ThesisSource[]) => items.map(s => s.kind === 'web' && safeThesisLink(s.locator) ? `[${text(s.label)}](${s.locator.replaceAll('|','%7C').replaceAll('(','%28').replaceAll(')','%29')})` : text(s.label)).join(' · ')
 const clock = (s: string) => new Intl.DateTimeFormat('en-US', { timeZone:'Asia/Jakarta', dateStyle:'medium', timeStyle:'short', hour12:true }).format(new Date(s))+' Jakarta'
-function ledger(items: ResearchDevelopment[], currency: string) {
-  const lines = ['| Time · Jakarta | Event | Effect | Description | Source |','| --- | --- | --- | --- | --- |']
-  for (const item of items) {
-    const impact=item.impacts.find(i=>i.currency===currency); if (!impact) continue
-    lines.push(`| ${item.published_at ? clock(item.published_at) : item.published_on+' · Hour unknown'}${item.event_at ? '<br>Event: '+clock(item.event_at) : ''} | ${text(item.title)} | ${text(impact.implication || 'Not separately recorded.')}<br>Effect on existing thesis: ${text(impact.thesis_effect || 'See dated assessment.')} | ${text(researchFacts(item))} | ${links(item.sources)} |`)
+function ledger(rows: ResearchTimelineEntry[], currency: string) {
+  const lines = ['| Time · Jakarta | Evidence and interpretation |','| --- | --- |']
+  for (const row of rows) {
+    if (row.kind === 'development') {
+      const d=row.item, impact=d.impacts.find(i=>i.currency===currency)!
+      const body=[`**${row.background ? 'Active background · ' : ''}${text(d.title)}**`,text(researchFacts(d)),text(impact.implication),
+        impact.thesis_effect !== impact.implication ? text(impact.thesis_effect) : '',d.instrument_note ? text(d.instrument_note) : '',
+        d.event_at ? 'Event: '+clock(d.event_at) : '',text(d.timing_note),links(d.sources)].filter(Boolean).join('<br><br>')
+      lines.push(`| ${row.at ? clock(row.at) : row.date+' · Hour unknown'} | ${body} |`)
+    } else if (row.kind === 'assessment') {
+      const a=row.item, d=a.direction!
+      lines.push(`| ${clock(a.as_of_utc)} | **Assessment · ${dailyDirectionLabel(d)}**${a.provenance === 'reconstruction' ? ' · Historical reconstruction' : ''}<br><br>${text(d.reason)}<br>${links(d.sources)} |`)
+    } else {
+      lines.push(`| ${row.at ? clock(row.at) : row.date+' · Hour unknown'} | **Evidence event · ${text(row.item.title)}**<br><br>${text(row.item.note)} ${links(row.item.sources)} |`)
+    }
   }
   return lines
 }
@@ -17,27 +27,26 @@ export function researchMarkdown(data: CurrencyResearch, error: string | null = 
   const lines = [`# Thesis research · ${data.from} – ${data.to}`, '', `Exported ${clock(new Date().toISOString())}. Original source and assessment clocks are preserved.`, '']
   if (error) lines.push(`Load error: ${text(error)}. Export uses the last loaded snapshot.`, '')
   for (const currency of selectedCurrency ? [selectedCurrency] : reviewCurrencies) {
-    const a=researchAssessment(data,currency), d=a?.direction
+    const future=data.from > thesisDay(new Date().toISOString())
+    const a=future ? undefined : researchAssessment(data,currency), d=a?.direction
     lines.push(`## ${currency}${d ? ' · '+dailyDirectionLabel(d) : ''}`, '')
     if (a) lines.push(`Last Assessed: ${clock(d?.verified_utc ?? a.as_of_utc)} · ${a.provenance}. Researched period: ${a.period_start} – ${a.period_end}.`, '')
     if (d?.review_status) lines.push(text(directionStageLabel(d)), '')
     if (d) lines.push(text(d.reason),'',`Horizon: ${text(d.horizon || 'See original assessment.')}. ${links(d.sources)}`,'')
     if (a?.gap) lines.push(`Coverage: ${text(a.gap)}`,'')
-    const entries = data.developments.filter(item => item.published_on>=data.from && item.published_on<=data.to && item.impacts.some(i=>i.currency===currency))
-    const entryIds = new Set(entries.map(item=>item.id))
-    lines.push('### Developments','',...ledger(entries,currency),'')
-    const background = data.developments.filter(item => !entryIds.has(item.id) && (a?.background_ids.includes(item.id) || item.published_on<data.from && a?.evidence_ids.includes(item.id)))
-    if (background.length || !entries.length && d?.evidence_anchor) {
-      lines.push('### Active background','')
-      if (background.length) lines.push(...ledger(background,currency))
-      if (!background.length && d?.evidence_anchor) lines.push(`- ${d.evidence_anchor.event_at ? clock(d.evidence_anchor.event_at) : d.evidence_anchor.event_date} · ${text(d.evidence_anchor.title)}. ${text(d.evidence_anchor.note)} ${links(d.evidence_anchor.sources)}`)
-      lines.push('')
+    const rows=researchTimeline(data,currency)
+    lines.push('### Evidence timeline','',...ledger(rows,currency),'')
+    if (future) lines.push('Future dates stay unassessed.','')
+    if (d?.reassessment) {
+      const cp=d.reassessment
+      lines.push(`Next anchor: **${text(cp.title)}** · ${cp.event_at ? clock(cp.event_at) : cp.event_date+' · Hour unknown'}. ${text(cp.note)} ${links(cp.sources)}`,'')
     }
-    const upcoming=[...new Map([...(d?.reassessment ? [d.reassessment] : []),...(a?.checkpoints ?? [])].map(cp=>[cp.title+':'+(cp.event_at ?? cp.event_date),cp])).values()]
-    for (const cp of upcoming) lines.push(`Upcoming checkpoint: **${text(cp.title)}** · ${cp.event_at ? clock(cp.event_at) : cp.event_date+' · hour unknown'}. ${text(cp.note)} ${links(cp.sources)}`, '')
-    if (d && !d.reassessment) lines.push(`Review needed: ${text(d.reassessment_gap || 'No verified checkpoint saved.')}`, '')
+    const upcoming=[...new Map((a?.checkpoints ?? []).filter(cp=>cp.title !== d?.reassessment?.title
+      || (cp.event_at ?? cp.event_date) !== (d.reassessment.event_at ?? d.reassessment.event_date)).map(cp=>[cp.title+':'+(cp.event_at ?? cp.event_date),cp])).values()]
+    if (d && !d.reassessment) lines.push(`Anchor gap: ${text(d.reassessment_gap || 'No verified anchor saved.')}`, '')
     lines.push('### Assessment history','')
     for (const item of data.assessments.filter(a=>a.currency===currency)) lines.push(`- ${clock(item.as_of_utc)} · ${item.direction ? dailyDirectionLabel(item.direction)+': '+text(item.direction.reason)+(item.direction.review_status ? ' · '+text(directionStageLabel(item.direction)) : '') : 'Unresolved: '+text(item.gap)} · version ${item.id}`)
+    for (const cp of upcoming) lines.push(`Additional saved checkpoint: **${text(cp.title)}** · ${cp.event_at ? clock(cp.event_at) : cp.event_date+' · hour unknown'}. ${text(cp.note)} ${links(cp.sources)}`, '')
     lines.push('')
   }
   const commodities=selectedCurrency ? [] : data.developments.filter(d=>d.instruments?.length && d.published_on>=data.from && d.published_on<=data.to)

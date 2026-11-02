@@ -27,9 +27,13 @@ Keep all eight Fundamentals rows visible without an internal vertical scroller o
 repeated status headings. Anchor checkpoints to material currency-specific stages,
 not every routine speaker. Future alarms remain high-impact-only, with one bell
 per release package and explicit off choices preserved.
-Thesis developments and active background use a table: Time, Event, Effect,
-Description, Source. Write normal, spaced prose; never compress research into
-joined words. Keep full evidence and audit details available on expansion.
+Thesis uses one two-column timeline: Time · Jakarta | Evidence and interpretation.
+Combine developments, dated active background and earlier changed assessments;
+show sources inline, a compact current judgment and one next invocation anchor.
+Routine audit clocks/references/version bodies stay in storage and exports, not
+reading disclosures. Presentation is owned by [Thesis](docs/THESIS.md#presentation);
+the research skill owns concise authoring and mechanism-specific anchor selection.
+Write normal, spaced prose; never compress research into joined words.
 Separate currency codes, amounts and abbreviated units with spaces in research
 prose: `JPY 330 bn`, `GBP 3.9 bn`, `128 bp`, `19:40 UTC`, `October 29`.
 Keep source URLs, exact identifiers and original raw observations unchanged.

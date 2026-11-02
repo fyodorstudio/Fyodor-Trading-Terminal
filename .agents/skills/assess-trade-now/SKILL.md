@@ -67,7 +67,8 @@ after saving. Read-only/no-save instructions still win.
    in the assessment reason before upgrading, retaining or reversing a verdict.
    Apply the [release and retention check](references/fundamental-assessment.md#release-and-retention-check):
    distinguish the policy backdrop, incremental release effect and pressure over
-   the chosen horizon. Rejustify the direction against new contrary evidence;
+   the chosen horizon, including whether temporary drivers survive a relevant
+   session boundary. Rejustify the direction against new contrary evidence;
    lowering intensity alone does not establish that the old direction survives.
    State the event's potential impact separately when the overall backdrop differs.
    Explain why this event changes, reinforces or merely offsets the leading
@@ -95,6 +96,8 @@ after saving. Read-only/no-save instructions still win.
    New directions explicitly declare `review_status` and `stage_note` under the
    Thesis contract; a save validator cannot determine whether the financial
    interpretation or source coverage is sound.
+   Use the [single invocation anchor](references/fundamental-assessment.md#one-next-invocation-anchor)
+   for the next mechanism-specific evidence check, not a recurring check schedule.
 7. Read back the saved interval and verify the left Fundamentals panel's summary
    contract, affected verdicts, original evidence/assessment clocks and checkpoints.
    A successful ledger save alone does not prove that the panel can load its data.
@@ -164,6 +167,9 @@ No recurring monitor or automatic AI invocation follows.
 Lead with a material imminent/just-elapsed stage and the dated current decision:
 BUY/SELL for a researched pair, or standalone pressure for a currency. State horizon,
 dominant mechanism, strongest opposition, concrete invalidation and next checkpoint.
+Put **Next anchor: [Jakarta date/time] — [what to reassess]** immediately after
+the current decision, before the backdrop. For a broad pass lead with the nearest
+material anchor and save each currency's own; do not bury invocation timing in prose.
 For event questions, the core answer can be one sentence: "[Verified development]
 potentially gives [currency] [Strong/Moderate/Slight strengthening/weakening]
 pressure because [channel]." Expand only for material qualifications/comparisons.

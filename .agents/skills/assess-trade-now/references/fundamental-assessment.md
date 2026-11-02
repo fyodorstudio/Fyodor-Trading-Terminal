@@ -78,7 +78,13 @@ already available at the original cutoff. Preserve prior versions and source dat
 
 Identify the underlying policy backdrop, the release's incremental effect against
 attributed expectations, and the dominant pressure over the assessment's stated
-horizon. They can differ. Explain why the chosen mechanism outweighs the strongest
+horizon. They can differ: a structural tightening path does not by itself establish
+strengthening pressure in the next session. For a temporary driver such as haven
+demand, rejustify its persistence across a weekend or relevant market reopening;
+do not carry the prior session's conditions forward by default. Check what could
+sustain or reverse that driver using information available by the cutoff. This
+requires fundamental evidence, not an unsolicited candle fetch.
+Explain why the chosen mechanism outweighs the strongest
 verified opposition now; an old tightening story or a smaller intensity label is
 not sufficient justification for retaining a direction after contrary guidance.
 Change direction when the opposite mechanism dominates. Ordinary opposition
@@ -162,6 +168,29 @@ aware questions permit only bounded feedback under entry decisions; historical
 measurement uses Review Historical Research.
 
 ## Events, sources and horizons
+
+### One next invocation anchor
+
+Choose one next material anchor for each assessed currency's dominant mechanism
+and save it in the existing `direction.reassessment`. Name what information at
+that stage could reinforce or defeat the reasoning. Use a verified release,
+guidance stage or relevant market opening; a domestic release is not automatically
+the nearest useful test of an external risk/funding mechanism. Resolve an elapsed
+decisive stage before choosing a later one. Unknown hours remain unknown.
+
+A market opening belongs here only when it can challenge the active mechanism.
+Verify the relevant venue/date/time, including daylight saving, rather than
+assuming fixed Jakarta hours. A known opening does not predict its direction,
+establish a headline catalyst or make a later move foreseeable. Separate what was
+knowable before the opening from observations and reporting after it.
+
+The user's default is to invoke at an anchor, not follow a repeated pre-session /
+opening / follow-up schedule. Offer one justified next invocation, not a routine
+series of checks. Keep other significant upcoming events available as context.
+This anchor plans the next evidence check; it does not promise direction until
+then or cover unscheduled news. Selecting it creates no alarm or monitoring.
+High-impact-only news bells remain governed by [alert review](alert-review.md#significant-checkpoint-reminders);
+a session anchor alone does not qualify for a bell.
 
 Resolve material just-elapsed and imminent stages before a long backdrop.
 Decision, statement, projections, opening remarks and Q&A have separate clocks.

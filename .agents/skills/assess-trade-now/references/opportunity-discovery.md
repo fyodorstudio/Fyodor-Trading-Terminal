@@ -83,8 +83,8 @@ Surface up to three supported directional candidates near the top of the answer:
 - **Activation:** the development that would establish or reinforce the thesis.
   When already present, state it and give the supported directional verdict now.
 - **Invalidation:** one concrete change that defeats the mechanism.
-- **Next check:** the nearest material event or session checkpoint and what to
-  reassess, with verified Jakarta time or unknown hour. This creates no timer.
+- **Next check:** the [single mechanism-specific invocation anchor](fundamental-assessment.md#one-next-invocation-anchor)
+  and what to reassess, with verified Jakarta time or unknown hour. This creates no timer.
 
 An emerging candidate merits attention before it supports a full trade verdict.
 Do not hold a dominant active opposite mechanism indefinitely at watch status.

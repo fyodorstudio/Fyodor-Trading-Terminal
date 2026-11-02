@@ -14,44 +14,49 @@ separate month/year controls and Today. Dates survive reloads, including month a
 year boundaries; month changes clamp the day. New sessions default to today unless
 a valid saved choice exists. Future dates remain unassessed.
 There is no All view, pair mode or Date range control.
-Only the selected currency renders its summary (direction/intensity, assessment
-time and an Assessment/Details table with reviewed stage, rationale, horizon,
-researched period, coverage and sources), then a
-chronological table, newest dates first:
+Only the selected currency renders. A compact current judgment shows direction,
+intensity, Last Assessed, the saved reason (dominant mechanism, opposition and
+invalidation), horizon and sources. Pending guidance and actual source gaps remain
+visible; completed-stage boilerplate and routine research receipts do not need
+separate rows. A historical reconstruction stays labelled.
 
-**Time · Jakarta | Event | Effect | Description | Source**.
+One table follows, newest dates first:
 
-Each distinct development has one row. Several events on one day do not share a
-large daily cell. Date and publication hour share Time; the event title has its own
-column. Effect shows the currency implication and effect on the thesis in full.
-Description shows the complete saved text directly, without truncation or a
-disclosure. Source names are compact links with full labels in their
-accessible names/tooltips. Details expand into a full-width row for source clocks,
-references and lazy version tables. Unknown publication hours say Hour unknown.
-A separately known event clock is explicitly labelled Event, never passed off as
-a publication clock.
-Source details retain verification and recorded clocks and existing calendar or
-External Source references. Older still-active evidence is visible in **Active
-background**, after the recent development table, using the same five columns.
-An entry already shown in the recent table is not repeated as background.
-Upcoming checkpoints and expanded assessment history also use tables, separate
-from occurred facts. Assessment history expands only when recorded direction,
-intensity or basis changes; it never
-invents a verdict at every event time or a market turning point.
-Each development/background table pages after 20 entries; export retains every row. Closed
-development, assessment and earlier-version histories keep their bodies unmounted.
-The main view requests only its selected currency, reuses stable rows and caches
-visited currencies within the selected date. Scrolling performs no research/fetch.
+**Time · Jakarta | Evidence and interpretation**.
 
-Assessment rationale, stage, coverage and checkpoint text are also shown in full
-directly in their tables. No saved prose is rewritten
-or split into invented claims. Research prose uses normal spacing and readable
-paragraphs. A recorded correction
-whose revision note starts `Formatting only:` may supply improved spacing for a
-frozen citation only when its facts match exactly after removing whitespace.
-Semantic corrections never replace a frozen citation. Original versions, evidence
-IDs, publication/verification clocks and assessments remain intact; this display
-rule also applies to Markdown exports, whose history retains the raw originals.
+Each distinct development appears once per stable key. Its original publication
+date/hour occupies Time; the second cell contains the title, complete facts,
+currency implication, effect on the thesis and source links. Separate paragraphs
+keep facts and interpretation readable; no truncation or reading disclosures.
+Paragraphs use their available column width without a character-width cap.
+Older still-active evidence joins this same timeline with its original date and
+an Active background label. Earlier changes of direction, intensity or comparison
+basis appear at assessment times, not at the events' publication times; the latest
+view is already above the timeline. No inferred market turning points are added.
+Unknown publication hours say Hour unknown. A separately known event clock and
+material timing qualifications remain explicitly visible.
+
+There is no Details & history button or Verified/Recorded text in the dock.
+Verification/save clocks, exact calendar/External Source references and immutable
+versions remain in storage and Markdown exports. Corrections never overwrite
+frozen evidence. A recorded Formatting only: version can improve a frozen
+citation's spacing only if facts match exactly after removing whitespace; its
+original version and clocks remain in the export audit.
+
+One Next anchor block shows the chosen direction.reassessment and what it tests,
+or the precise saved gap. Other saved checkpoints remain in exports. This is the
+same deadline projected by the left panel, not a UI-selected substitute; elapsed
+or unresolved stages cannot silently roll forward. Anchor selection is owned by
+Assess Trade Now's single invocation anchor guidance. A relevant market opening
+can qualify without becoming a high-impact news bell or promising direction.
+
+The combined timeline pages after 20 rows, including background and prior views;
+exports retain every row and full audit history. No development-version bodies
+are mounted. The view requests only its selected currency, retains unchanged row
+identities and caches visited currencies within the selected date. Scrolling
+performs no research/fetch. Saved prose is not automatically shortened or rewritten.
+New authoring uses concise facts, implications and thesis effects without copying
+the same argument into each field; existing required storage fields stay intact.
 
 Copy research prompt uses the selected currency/date and the same skill/contract
 for every invocation. Export Markdown saves that currency’s loaded evidence, assessments,
@@ -234,8 +239,8 @@ All eight rows fit the Fundamentals section without an internal vertical scrolle
 Market Watch uses the remaining dock height. The verdict stays compact. An asterisk
 with an accessible label and tooltip qualifies a provisional call, elapsed stage or
 specific source gap without repeated status headings. Original pressure, evidence
-and assessment clocks remain; presentation performs no research. The reviewed-stage
-note also appears in bottom Thesis and Markdown exports. A newer header from a
+and assessment clocks remain; presentation performs no research. Pending-stage
+notes appear in bottom Thesis; complete stage notes remain in Markdown exports. A newer header from a
 focused pass cannot renew another row's checkpoint or imply conference completion.
 An invoked live refresh must do the substantive research and update affected rows,
 then verify the live projection. Do not clear markers by redating old evidence or
