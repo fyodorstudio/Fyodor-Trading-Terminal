@@ -9,6 +9,9 @@ export type NewsResult = {
 }
 export type NewsRow = { currency: NewsCurrency; snapshot: NewsResult | null }
 export type NewsSnapshot = { schema: 1; revision: string; rows: NewsRow[] }
+export type SavedNews = NewsSnapshot & { run_id: string; saved_at: string }
+export type NewsHistoryEntry = { run_id: string; saved_at: string; currencies: NewsCurrency[] }
+export type NewsHistory = { schema: 1; date: string; runs: NewsHistoryEntry[]; next_before: string | null }
 
 const text = (v: unknown, max: number, empty = false): v is string => typeof v === 'string' && v.length <= max && (empty || !!v.trim())
 const instant = (v: unknown): v is string => typeof v === 'string' && /T.*(?:Z|[+-]\d{2}:\d{2})$/.test(v) && Number.isFinite(Date.parse(v))
@@ -45,6 +48,25 @@ export function validNewsSnapshot(v: unknown): v is NewsSnapshot {
     return s.items.every(i => i.published_at !== null && Date.parse(i.published_at) >= start && Date.parse(i.published_at) <= checked)
       && s.background.every(i => i.published_at === null || Date.parse(i.published_at) < start)
   })
+}
+
+export function validNewsHistory(v: unknown, date: string): v is NewsHistory {
+  if (!v || typeof v !== 'object') return false
+  const h = v as NewsHistory
+  return h.schema === 1 && h.date === date && Array.isArray(h.runs) && h.runs.length <= 100
+    && h.runs.every(r => r && hash(r.run_id) && instant(r.saved_at)
+      && new Date(Date.parse(r.saved_at) + 7 * 3600000).toISOString().slice(0, 10) === date
+      && Array.isArray(r.currencies) && r.currencies.length > 0 && r.currencies.length <= 8
+      && new Set(r.currencies).size === r.currencies.length && r.currencies.every(c => newsCurrencies.includes(c)))
+    && new Set(h.runs.map(r => r.run_id)).size === h.runs.length
+    && (h.next_before === null || h.runs.length > 0 && h.next_before === h.runs.at(-1)?.run_id)
+}
+
+export function validSavedNews(v: unknown, id: string): v is SavedNews {
+  if (!validNewsSnapshot(v)) return false
+  const s = v as SavedNews
+  return s.run_id === id && s.revision === id && instant(s.saved_at) && s.rows.some(r => r.snapshot)
+    && s.rows.every(r => !r.snapshot || r.snapshot.run_id === id && r.snapshot.saved_at === s.saved_at)
 }
 
 const jakarta = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })

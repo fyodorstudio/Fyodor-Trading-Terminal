@@ -16,7 +16,7 @@ from tempfile import TemporaryDirectory
 from pathlib import Path
 import json
 from datetime import datetime, timedelta, timezone
-from storage.currency_news import NewsRefresh, save_refresh, news_snapshot
+from storage.currency_news import NewsRefresh, save_refresh, news_snapshot, news_history, news_run
 now = datetime.now(timezone.utc)-timedelta(minutes=1)
 source = dict(label='Original publisher',url='https://example.com/news')
 cad = dict(currency='CAD',checked_at=now.isoformat(),coverage='checked',coverage_note='',
@@ -28,10 +28,14 @@ quiet = dict(currency='USD',checked_at=now.isoformat(),coverage='partial',covera
 unavailable = dict(quiet,currency='NZD',coverage='unavailable',coverage_note='Relevant routes unavailable.')
 with TemporaryDirectory() as d:
  save_refresh(NewsRefresh(window_hours=3,rows=[cad,quiet,unavailable]),Path(d))
- print(json.dumps(news_snapshot(Path(d))))
+ save_refresh(NewsRefresh(window_hours=3,rows=[dict(cad,currency='JPY',reason='Saved yen interpretation.')]),Path(d))
+ day=(datetime.now(timezone.utc)+timedelta(hours=7)).date().isoformat()
+ history=news_history(Path(d),day)
+ print(json.dumps(dict(latest=news_snapshot(Path(d)),history=history,runs={r['run_id']:news_run(Path(d),r['run_id']) for r in history['runs']})))
 `], { cwd: repo, encoding: 'utf8' })
 assert.equal(produced.status, 0, produced.stderr)
-let fixture = JSON.parse(produced.stdout)
+const bundle = JSON.parse(produced.stdout)
+let fixture = bundle.latest
 const server = await createServer({ root: frontend, server: { middlewareMode: true, hmr: false }, plugins: [{
   name: 'news-row-work-count', enforce: 'pre', transform(code, id) {
     if (id.endsWith('/CurrencyNewsDock.tsx')) return code.replace('  const s = row.snapshot', '  globalThis.__newsRows++; const s = row.snapshot')
@@ -50,8 +54,16 @@ dom.setInterval = (fn, ms) => { intervals.set(++sequence, { fn, ms }); return se
 dom.clearInterval = id => intervals.delete(id)
 Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async text => { copied = text } } })
 function response(url) {
-  return { ok: !offline, status: offline ? 503 : 200, json: async () => malformed ? {} : new URL(url, 'http://localhost').searchParams.get('after_revision') === fixture.revision
-    ? { schema: 1, revision: fixture.revision, unchanged: true } : structuredClone(fixture) }
+  const route = new URL(url, 'http://localhost')
+  let value = fixture
+  if (route.pathname === '/storage-api/currency-news/history') {
+    const date = route.searchParams.get('date'), before = route.searchParams.get('before')
+    value = { schema: 1, date, runs: [], next_before: null }
+    if (date === bundle.history.date) value = before ? { ...bundle.history, runs: bundle.history.runs.slice(1) }
+      : { ...bundle.history, runs: bundle.history.runs.slice(0, 1), next_before: bundle.history.runs[0].run_id }
+  } else if (route.pathname.startsWith('/storage-api/currency-news/history/')) value = bundle.runs[route.pathname.split('/').at(-1)]
+  else if (route.searchParams.get('after_revision') === fixture.revision) value = { schema: 1, revision: fixture.revision, unchanged: true }
+  return { ok: !offline, status: offline ? 503 : 200, json: async () => malformed ? {} : structuredClone(value) }
 }
 globalThis.fetch = async (url, options) => {
   requests.push({ url, options })
@@ -69,8 +81,12 @@ const poll = async () => {
 }
 try {
   const { CurrencyNewsDock } = await server.ssrLoadModule('./src/currency-news/CurrencyNewsDock.tsx')
-  const { validNewsSnapshot } = await server.ssrLoadModule('./src/currency-news/news-model.ts')
+  const { validNewsSnapshot, validNewsHistory, validSavedNews } = await server.ssrLoadModule('./src/currency-news/news-model.ts')
+  const { newsMarkdown } = await server.ssrLoadModule('./src/currency-news/news-export.ts')
   assert.equal(validNewsSnapshot(fixture), true, 'Actual Python projection matches the frontend contract')
+  assert.equal(validNewsHistory(bundle.history, bundle.history.date), true)
+  assert.equal(validNewsHistory(bundle.history, '2020-01-01'), false)
+  for (const r of bundle.history.runs) assert.equal(validSavedNews(bundle.runs[r.run_id], r.run_id), true)
   for (const mutate of [
     d => d.rows.pop(), d => d.rows[0] = d.rows[1],
     d => d.rows.find(r => r.currency === 'CAD').snapshot.items[0].sources[0].url = 'javascript:alert(1)',
@@ -133,6 +149,60 @@ try {
   finally { Date.now = originalNow }
   assert.equal(globalThis.__newsRows, 0)
   assert.match(container.querySelector('[data-news-currency="CAD"]').textContent, /Aging — refresh on demand/)
+  await click('History')
+  assert.equal([...timers.values()].filter(t => t.fn.name === 'pollNews').length, 0, 'History stops latest polling')
+  assert.equal(intervals.size, 0, 'Historical views do not run aging clocks')
+  assert.ok(container.querySelector('[aria-label="News history date selector"]'))
+  assert.equal(button('Copy refresh prompt'), undefined, 'Historical dates cannot launch a live refresh')
+  assert.equal(container.querySelector('[aria-label="News lookback"]'), null)
+  assert.match(container.querySelector('[data-news-currency="CAD"]').textContent, /Not researched in this refresh/)
+  const beforeMore = requests.length
+  await click('Load earlier refreshes')
+  assert.equal(requests.length, beforeMore + 1, 'Paging history loads metadata, not every stored body')
+  const earlier = bundle.history.runs.find(r => r.currencies.includes('CAD'))
+  const refresh = container.querySelector('[aria-label="Saved news refresh"]')
+  await React.act(async () => { refresh.value = earlier.run_id; refresh.dispatchEvent(new dom.Event('change', { bubbles: true })) })
+  assert.match(container.querySelector('[data-news-currency="CAD"]').textContent, /Export support is partly offset/)
+  assert.ok(!container.textContent.includes('Updated mechanism'), 'A later implication never replaces its frozen earlier version')
+  assert.ok(!container.textContent.includes('Aging —'))
+  const markdown = newsMarkdown(bundle.runs[earlier.run_id], 'CAD', bundle.history.date)
+  assert.match(markdown, /saved history.*## CAD.*Publication lookback: 3 hours.*Export support.*https:\/\/example.com\/news/s)
+  assert.match(markdown, /Older background.*November 2, publication hour unknown/s)
+  assert.ok(!markdown.includes('## JPY'), 'Export follows the selected currency')
+  assert.match(markdown, new RegExp(earlier.run_id), 'Export retains the exact refresh identity')
+  const originalCreate = URL.createObjectURL, originalRevoke = URL.revokeObjectURL
+  const originalClick = dom.HTMLAnchorElement.prototype.click
+  let exported = null, filename = '', revoked = ''
+  URL.createObjectURL = blob => { exported = blob; return 'blob:news-export' }
+  URL.revokeObjectURL = value => { revoked = value }
+  dom.HTMLAnchorElement.prototype.click = function () { filename = this.download }
+  try {
+    await click('CAD'); await click('Export Markdown')
+    assert.match(filename, /currency-news-cad-\d{4}-\d{2}-\d{2}\.md/)
+    assert.equal(await exported.text(), markdown)
+    const revoke = [...timers].find(([, t]) => t.ms === 1000)
+    timers.delete(revoke[0]); revoke[1].fn(); assert.equal(revoked, 'blob:news-export')
+  } finally { URL.createObjectURL = originalCreate; URL.revokeObjectURL = originalRevoke; dom.HTMLAnchorElement.prototype.click = originalClick }
+  await React.act(async () => container.querySelector('[aria-label="Previous date"]').click())
+  assert.match(container.textContent, /No saved research for/)
+  assert.equal(container.querySelector('[data-news-currency]'), null, 'An empty date never borrows another day')
+  assert.equal(button('Export Markdown').disabled, true)
+  await click('Today')
+  offline = true; await click('Reload saved news')
+  assert.match(container.querySelector('[role="alert"]').textContent, /unavailable.*last loaded/s)
+  offline = false; await click('Reload saved news')
+  assert.equal(container.querySelector('[role="alert"]'), null)
+  // A date change aborts stale replies; leaving history also aborts its pending read.
+  hold = true
+  await React.act(async () => container.querySelector('[aria-label="Previous date"]').click())
+  assert.equal(pending.length, 1)
+  await click('Today')
+  assert.equal(pending[0].options.signal.aborted, true)
+  await click('Latest')
+  assert.ok(pending.some(p => p.url.startsWith('/storage-api/currency-news/history?') && p.options.signal.aborted))
+  hold = false
+  await React.act(async () => { for (const p of pending.splice(0)) p.resolve(response(p.url)) })
+  assert.match(container.querySelector('[data-news-currency="CAD"]').textContent, /Updated mechanism/)
   await click('CAD')
   hold = true
   const pollEntry = [...timers].find(([, t]) => t.fn.name === 'pollNews')

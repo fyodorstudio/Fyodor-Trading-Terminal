@@ -103,6 +103,42 @@ only while mounted, aborts stale replies and cancels timers. Errors preserve the
 last successfully loaded result with its original times and a visible error.
 Source links are HTTP(S), readable in both themes, and facts are rendered as text.
 
+## Saved history and exports
+
+Latest keeps the on-demand lookback and refresh prompt. History reuses the date
+revolver to browse refreshes actually **saved** on a Jakarta date. The refresh
+picker identifies each saved time and researched currencies; several updates on
+one day remain independently selectable. Empty dates show No saved research.
+Choosing a past date performs no research, reconstruction, writes or AI invocation.
+Lookback is hidden in history and never changes a saved window. Historical rows
+show their original source-check times without current aging clocks. Currencies
+not researched in that exact refresh stay explicitly empty; they never borrow
+later or other-date results. Latest polling stops while history is open.
+
+The history API lists only compact metadata, 50 refreshes at a time:
+`GET /api/v1/currency-news/history?date=YYYY-MM-DD&before=<optional-last-run-id>`.
+It returns schema 1, date, runs (`run_id`, `saved_at`, `currencies`) and
+`next_before`. The date is the Jakarta save day, not publication or check day.
+Only selecting a refresh reads its immutable body through
+`GET /api/v1/currency-news/history/<run-id>`, returning the usual eight-row
+snapshot plus `run_id` and `saved_at`. A focused run leaves other rows null.
+Date changes and unmount abort stale replies. History fetches only on navigation,
+paging or explicit reload; failures retain the matching last loaded snapshot.
+
+The atomic index now stores schema 2 with `latest` pointers and `history`
+metadata. A run becomes visible when this single index publication succeeds;
+uncommitted orphan files do not enter history. Original simple indexes remain
+readable. Legacy history reads inspect existing bodies without modifying files;
+the next authorised save adds their metadata atomically, leaving original bodies
+unchanged. Normal history pages read no unrelated run bodies. Local storage
+backups retain both the index and all immutable bodies together.
+
+Export Markdown downloads the selected latest/history view and currency scope,
+including facts, qualitative implication, coverage gaps, background, source links,
+original publication/check/save clocks and exact refresh IDs. It runs no research
+and writes no local source ledger. History remains ignored local data; use storage
+backups or these portable exports rather than committing downloaded news pages.
+
 Old records and failure evidence are preserved as described in
 [the archive note](RESEARCH-ARCHIVE.md). Current research quality rules live in
 [RESEARCH-RULES.md](RESEARCH-RULES.md); original lessons are available through the

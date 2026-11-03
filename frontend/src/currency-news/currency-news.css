@@ -3,6 +3,9 @@
 .currency-news-header h2 { font-size: 15px; margin: 0 8px 0 0; }
 .currency-news-header button, .currency-news-header select { color: var(--text-strong); background: var(--surface-panel); border: 1px solid var(--border); border-radius: 4px; padding: 5px 8px; font: inherit; }
 .currency-news-header button { cursor: pointer; }
+.currency-news-header button:disabled, .news-history-controls button:disabled { cursor: default; opacity: .65; }
+.news-history-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 6px 14px; }
+.news-history-controls select, .news-history-controls button { color: var(--text-strong); background: var(--surface-panel); border: 1px solid var(--border); border-radius: 4px; padding: 5px 8px; font: inherit; }
 .news-currencies { display: flex; gap: 3px; flex-wrap: wrap; }
 .news-currencies button[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); font-weight: 600; }
 .news-help, .news-copy-status, .news-error { margin: 4px 14px; line-height: 1.5; }

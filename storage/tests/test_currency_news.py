@@ -15,7 +15,7 @@ import uvicorn
 from pydantic import ValidationError
 
 from storage.app import create_app
-from storage.currency_news import NewsRefresh, news_snapshot, save_refresh
+from storage.currency_news import NewsRefresh, news_snapshot, save_refresh, news_history, news_run, read_run
 
 
 def payload(currency='CAD', **changes):
@@ -81,6 +81,68 @@ class CurrencyNewsTests(unittest.TestCase):
             self.save(payload())
         self.assertEqual(news_snapshot(self.news), before)
         self.assertEqual(len(list((self.news / 'runs').glob('*.json'))), 1)
+
+    def dated_save(self, currency, at):
+        body = payload(currency)
+        checked = at - timedelta(minutes=2)
+        body['rows'][0]['checked_at'] = checked.isoformat()
+        body['rows'][0]['items'][0]['published_at'] = (checked-timedelta(hours=1)).isoformat()
+        class Clock(datetime):
+            @classmethod
+            def now(cls, tz=None): return at
+        with patch('storage.currency_news.datetime', Clock):
+            return self.save(body)
+
+    def test_history_uses_jakarta_save_date_and_retains_exact_focused_versions(self):
+        first = self.dated_save('CAD', datetime(2026, 1, 1, 16, 59, 59, tzinfo=timezone.utc))
+        second = self.dated_save('CAD', datetime(2026, 1, 1, 17, tzinfo=timezone.utc))
+        third = self.dated_save('JPY', datetime(2026, 1, 1, 18, tzinfo=timezone.utc))
+        self.assertEqual([r['run_id'] for r in news_history(self.news, '2026-01-01')['runs']], [first['run_id']])
+        day = news_history(self.news, '2026-01-02')
+        self.assertEqual([r['run_id'] for r in day['runs']], [third['run_id'], second['run_id']])
+        old = news_run(self.news, first['run_id'])
+        self.assertEqual(old['rows'][5]['snapshot']['checked_at'], '2026-01-01T16:57:59Z')
+        self.assertIsNone(old['rows'][7]['snapshot'], 'A focused historical refresh does not borrow later or other-currency results')
+        self.assertEqual(old['revision'], first['run_id'])
+        self.assertEqual(news_snapshot(self.news)['rows'][5]['snapshot']['run_id'], second['run_id'])
+        self.assertEqual(news_history(self.news, '2026-01-03')['runs'], [])
+
+    def test_history_pages_metadata_without_reading_unrelated_bodies(self):
+        for hour in [17, 18, 19]:
+            self.dated_save('CAD', datetime(2026, 1, 1, hour, tzinfo=timezone.utc))
+        with patch('storage.currency_news.read_run', wraps=read_run) as read:
+            first = news_history(self.news, '2026-01-02', limit=2)
+            second = news_history(self.news, '2026-01-02', before=first['next_before'], limit=2)
+            read.assert_not_called()
+            self.assertEqual(len(first['runs']), 2); self.assertEqual(len(second['runs']), 1)
+            self.assertIsNone(second['next_before'])
+            news_run(self.news, second['runs'][0]['run_id'])
+            self.assertEqual(read.call_count, 1, 'Only the selected immutable body is loaded')
+        with self.assertRaises(ValueError): news_history(self.news, '2026-01-02', before='a'*64)
+
+    def test_legacy_history_reads_do_not_write_and_next_save_migrates_metadata(self):
+        first = self.save(payload())
+        state = self.news/'latest.json'
+        doc = json.loads(state.read_text(encoding='utf-8'))
+        state.write_text(json.dumps(doc['latest']), encoding='utf-8')
+        before = {p.relative_to(self.news): p.read_bytes() for p in self.news.rglob('*') if p.is_file()}
+        saved = news_run(self.news, first['run_id'])
+        day = datetime.fromisoformat(saved['saved_at']).astimezone(timezone(timedelta(hours=7))).date().isoformat()
+        self.assertEqual(news_history(self.news, day)['runs'][0]['run_id'], first['run_id'])
+        self.assertEqual(before, {p.relative_to(self.news): p.read_bytes() for p in self.news.rglob('*') if p.is_file()})
+        self.save(payload('JPY'))
+        self.assertEqual(json.loads(state.read_text(encoding='utf-8'))['schema'], 2)
+        self.assertEqual(news_run(self.news, first['run_id']), saved)
+
+    def test_empty_history_is_read_only_and_uncommitted_orphans_are_not_shown(self):
+        self.assertEqual(news_history(self.news, '2026-01-02')['runs'], [])
+        self.assertFalse(self.news.exists())
+        first = self.save(payload())
+        orphan = 'a'*64
+        (self.news/'runs'/f'{orphan}.json').write_text('{}', encoding='utf-8')
+        with self.assertRaises(LookupError): news_run(self.news, orphan)
+        self.assertEqual(news_snapshot(self.news)['revision'], first['revision'])
+        with self.assertRaises(LookupError): news_run(self.news, '../outside')
 
     def test_valid_quiet_result_and_background_do_not_renew_direction(self):
         body = payload(items=[], implication='no_clear_signal', reason='No qualifying fresh item verified.')
@@ -172,6 +234,12 @@ class CurrencyNewsTests(unittest.TestCase):
             self.assertEqual(get('/api/v1/currency-news?after_revision='+first['revision'])[1],
                              dict(schema=1, revision=first['revision'], unchanged=True))
             self.assertEqual(get('/api/v1/theses/summary')[0], 404)
+            saved = news_run(self.news, first['run_id'])
+            day = datetime.fromisoformat(saved['saved_at']).astimezone(timezone(timedelta(hours=7))).date().isoformat()
+            self.assertEqual(get('/api/v1/currency-news/history?date='+day)[1], news_history(self.news, day))
+            self.assertEqual(get('/api/v1/currency-news/history/'+first['run_id'])[1], saved)
+            self.assertEqual(get('/api/v1/currency-news/history?date=2026-02-30')[0], 422)
+            self.assertEqual(get('/api/v1/currency-news/history/'+'a'*64)[0], 404)
             (self.news/'latest.json').write_text('broken')
             self.assertEqual(get('/api/v1/currency-news')[0], 503)
         finally:

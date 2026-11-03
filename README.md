@@ -52,6 +52,10 @@ selected publication window (default three hours). Run the prompt in the agent
 chat. Reload saved news only reloads stored output. There is no automatic AI
 schedule or news ingestion. Publication time, source-check time, older background
 and coverage gaps stay distinct. Existing results keep their own lookback/time.
+History restores the Jakarta date revolver for saved refreshes, with a time picker
+for multiple updates. Browsing never runs research or reconstructs missing days.
+Export Markdown documents the selected currency/view with original sources and
+clocks. History remains local and is included in storage backups.
 
 ```powershell
 pnpm analyst news read --scope ALL

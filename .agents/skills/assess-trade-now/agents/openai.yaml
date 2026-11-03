@@ -1,4 +1,4 @@
 interface:
-  display_name: "Currency News"
+  display_name: "Assess Trade Now"
   short_description: "Refresh verified currency news and fundamental implications"
   default_prompt: "Use $assess-trade-now to refresh all eight currencies from the last three hours and save concise facts, qualitative implications, source clocks and links to Currency News."

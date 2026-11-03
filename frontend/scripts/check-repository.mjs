@@ -9,9 +9,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const source = path.join(root, 'frontend/src'), graph = sourceGraph(source)
 const relative = file => path.relative(root, file).replaceAll('\\', '/')
 const problems = graph.unresolved.map(({ filename, specifier }) => `${relative(filename)}: unresolved dependency ${specifier}`)
-const compatibility = ['inspector/calendar-display-range.ts', 'inspector/event-symbols.ts',
-  'inspector/storage/calendar-admission-time.ts', 'inspector/storage/calendar-snapshot-identity.ts', 'inspector/useStoredCalendar.ts']
-const entries = ['bootstrap/mount-fyodor-terminal.tsx', ...compatibility].map(file => path.join(source, file))
+const entries = [path.join(source, 'bootstrap/mount-fyodor-terminal.tsx')]
 const reached = reachableFiles(graph, entries)
 const usage = sourceUsage(graph.files)
 for (const { filename, name } of usage.unused) problems.push(`${relative(filename)}: unreferenced runtime export ${name}`)

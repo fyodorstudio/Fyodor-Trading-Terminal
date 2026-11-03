@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { validNewsSnapshot, type NewsSnapshot } from './news-model'
 
-export function useCurrencyNews() {
+export function useCurrencyNews(enabled = true) {
   const [data, setData] = useState<NewsSnapshot | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [reload, setReload] = useState(0)
   useEffect(() => {
+    if (!enabled) return
     const controller = new AbortController()
     let timer: number | undefined, previous: NewsSnapshot | null = null
     async function pollNews() {
@@ -36,6 +37,6 @@ export function useCurrencyNews() {
     }
     void pollNews()
     return () => { controller.abort(); window.clearTimeout(timer) }
-  }, [reload])
-  return { data, error, reload: () => setReload(n => n + 1) }
+  }, [reload, enabled])
+  return { data: enabled ? data : null, error: enabled ? error : null, reload: () => setReload(n => n + 1) }
 }

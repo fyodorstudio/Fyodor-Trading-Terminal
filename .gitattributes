@@ -1,2 +1,0 @@
-# The published HTML is SHA-256 pinned; checkout must preserve its exact bytes.
-frontend/public/criterion/research_report.html -text

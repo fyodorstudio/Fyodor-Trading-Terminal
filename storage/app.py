@@ -20,7 +20,7 @@ from .highlights import HIGHLIGHTS_PATH, HighlightRequest, pin_release, delete_p
 from .highlight_metadata import limitations_snapshot
 from .alert_impact import impact_snapshot
 from .external_sources import DIRECTORY, ExternalRequest, LifecycleRequest, external_snapshot, external_history, append_external, archive_external
-from .currency_news import news_snapshot
+from .currency_news import news_snapshot, news_history, news_run, SavedNewsNotFound
 from .alert_calendar import day_snapshot
 from .market_watch_daily import DailyMarketWatch
 
@@ -170,6 +170,24 @@ def create_app(directory=None, run_collector=True, highlights_path=HIGHLIGHTS_PA
             return news_snapshot(news_directory or (directory or data_directory()) / 'currency-news', after_revision)
         except (OSError, ValueError, KeyError, TypeError) as error:
             raise HTTPException(503, 'Currency news unavailable; saved refresh history is preserved') from error
+
+    @app.get('/api/v1/currency-news/history')
+    def currency_news_history(date: Date, before: str | None = Query(default=None, pattern=r'^[a-f0-9]{64}$')):
+        try:
+            return news_history(news_directory or (directory or data_directory()) / 'currency-news', date.isoformat(), before)
+        except (OSError, ValueError, KeyError, TypeError) as error:
+            raise HTTPException(503, 'News history unavailable; saved refreshes are preserved') from error
+
+    @app.get('/api/v1/currency-news/history/{run_id}')
+    def currency_news_run(run_id: str):
+        if len(run_id) != 64 or any(c not in '0123456789abcdef' for c in run_id):
+            raise HTTPException(422, 'Invalid saved refresh ID')
+        try:
+            return news_run(news_directory or (directory or data_directory()) / 'currency-news', run_id)
+        except SavedNewsNotFound as error:
+            raise HTTPException(404, 'Saved refresh not found') from error
+        except (OSError, ValueError, KeyError, TypeError) as error:
+            raise HTTPException(503, 'Saved refresh unavailable; history is preserved') from error
 
     @app.get('/api/v1/alert-impact')
     def alert_impact(source_id: str = Query(default='', max_length=160), after_revision: str | None = Query(default=None, max_length=100)):

@@ -2,7 +2,7 @@
 
 No web ingestion, price reads, reminders or research happen on a panel read.
 """
-from datetime import datetime, timedelta, timezone
+from datetime import date as Date, datetime, timedelta, timezone
 from hashlib import sha256
 import json
 import os
@@ -20,6 +20,11 @@ from .data_lock import data_lock
 
 DIRECTORY = Path(os.environ.get('FYODOR_STORAGE_DATA_DIR', Path(__file__).resolve().parent / 'data')).resolve() / 'currency-news'
 LOCK = RLock()
+JAKARTA = timezone(timedelta(hours=7))
+
+
+class SavedNewsNotFound(LookupError):
+    pass
 
 
 class NewsPayload(Payload):
@@ -120,18 +125,55 @@ def atomic_write(path, value):
         Path(name).unlink(missing_ok=True)
 
 
-def read_index(directory):
+def valid_id(value):
+    return isinstance(value, str) and len(value) == 64 and all(x in '0123456789abcdef' for x in value)
+
+
+def read_run(directory, run_id):
+    if not valid_id(run_id):
+        raise ValueError('Invalid saved refresh ID')
+    doc = json.loads((Path(directory) / 'runs' / f'{run_id}.json').read_text(encoding='utf-8'))
+    request = NewsRefresh.model_validate(doc['request'])
+    if sha256(encoded(request.model_dump(mode='json'))).hexdigest() != run_id:
+        raise ValueError('News history hash mismatch')
+    saved_at = clock(datetime.fromisoformat(doc['saved_at']))
+    if saved_at > datetime.now(timezone.utc) or any(row.checked_at > saved_at for row in request.rows):
+        raise ValueError('Invalid news save clock')
+    return request, saved_at.isoformat()
+
+
+def read_state(directory, legacy_history=False):
     path = Path(directory) / 'latest.json'
     if not path.exists():
-        return {}
-    index = json.loads(path.read_text(encoding='utf-8'))
-    if not isinstance(index, dict) or any(c not in CURRENCIES or not isinstance(v, str) or len(v) != 64 or any(x not in '0123456789abcdef' for x in v) for c, v in index.items()):
+        return {}, {}
+    state = json.loads(path.read_text(encoding='utf-8'))
+    current_format = isinstance(state, dict) and state.get('schema') == 2
+    index = state.get('latest') if current_format else state
+    if not isinstance(index, dict) or any(c not in CURRENCIES or not valid_id(v) for c, v in index.items()):
         raise ValueError('Invalid news index; existing history has been preserved')
-    return index
+    history = state.get('history') if current_format else {}
+    if not isinstance(history, dict):
+        raise ValueError('Invalid news history index')
+    for run_id, meta in history.items():
+        if not valid_id(run_id) or not isinstance(meta, dict) or not isinstance(meta.get('saved_at'), str):
+            raise ValueError('Invalid news history metadata')
+        clock(datetime.fromisoformat(meta['saved_at']))
+        currencies = meta.get('currencies')
+        if not isinstance(currencies, list) or not 1 <= len(currencies) <= 8 or any(c not in CURRENCIES for c in currencies) or len(set(currencies)) != len(currencies):
+            raise ValueError('Invalid saved refresh currencies')
+    if current_format and any(run_id not in history for run_id in index.values()):
+        raise ValueError('Latest news is missing its history entry')
+    # Legacy bodies remain byte-for-byte intact. Reads never migrate files;
+    # the next save atomically includes their metadata in the new index.
+    if legacy_history and not current_format:
+        for path in sorted((Path(directory) / 'runs').glob('*.json')):
+            request, saved_at = read_run(directory, path.stem)
+            history[path.stem] = {'saved_at': saved_at, 'currencies': [r.currency for r in request.rows]}
+    return index, history
 
 
-def read_rows(directory, index):
-    runs = {}
+def read_rows(directory, index, runs=None):
+    runs = {} if runs is None else runs
     rows = []
     for currency in CURRENCIES:
         run_id = index.get(currency)
@@ -139,12 +181,7 @@ def read_rows(directory, index):
             rows.append({'currency': currency, 'snapshot': None})
             continue
         if run_id not in runs:
-            doc = json.loads((Path(directory) / 'runs' / f'{run_id}.json').read_text(encoding='utf-8'))
-            request = NewsRefresh.model_validate(doc['request'])
-            if sha256(encoded(request.model_dump(mode='json'))).hexdigest() != run_id:
-                raise ValueError('News history hash mismatch')
-            saved_at = clock(datetime.fromisoformat(doc['saved_at']))
-            runs[run_id] = (request, saved_at.isoformat())
+            runs[run_id] = read_run(directory, run_id)
         request, saved_at = runs[run_id]
         row = next((r for r in request.rows if r.currency == currency), None)
         if row is None:
@@ -156,10 +193,39 @@ def read_rows(directory, index):
 
 def news_snapshot(directory=DIRECTORY, after_revision=None):
     # Index replace is atomic; immutable run bodies need no reader lock.
-    index = read_index(directory)
+    index, _ = read_state(directory)
     revision = sha256(encoded(index)).hexdigest()
     result = {'schema': 1, 'revision': revision}
     return {**result, 'unchanged': True} if after_revision == revision else {**result, 'rows': read_rows(directory, index)}
+
+
+def news_history(directory, selected_date, before=None, limit=50):
+    selected_date = Date.fromisoformat(selected_date).isoformat()
+    if not 1 <= limit <= 100:
+        raise ValueError('History page limit must be between 1 and 100')
+    _, history = read_state(directory, legacy_history=True)
+    entries = [{'run_id': run_id, **meta} for run_id, meta in history.items()
+        if datetime.fromisoformat(meta['saved_at']).astimezone(JAKARTA).date().isoformat() == selected_date]
+    entries.sort(key=lambda m: (datetime.fromisoformat(m['saved_at']), m['run_id']), reverse=True)
+    start = 0
+    if before is not None:
+        start = next((i + 1 for i, item in enumerate(entries) if item['run_id'] == before), None)
+        if start is None:
+            raise ValueError('History cursor does not belong to this date')
+    page = entries[start:start + limit]
+    return {'schema': 1, 'date': selected_date, 'runs': page,
+        'next_before': page[-1]['run_id'] if page and start + limit < len(entries) else None}
+
+
+def news_run(directory, run_id):
+    _, history = read_state(directory, legacy_history=True)
+    if run_id not in history:
+        raise SavedNewsNotFound('Saved refresh not found')
+    request, saved_at = read_run(directory, run_id)
+    if history[run_id] != {'saved_at': saved_at, 'currencies': [r.currency for r in request.rows]}:
+        raise ValueError('Saved refresh does not match its history entry')
+    rows = read_rows(directory, {r.currency: run_id for r in request.rows}, {run_id: (request, saved_at)})
+    return {'schema': 1, 'revision': run_id, 'run_id': run_id, 'saved_at': saved_at, 'rows': rows}
 
 
 def save_refresh(request: NewsRefresh, directory=DIRECTORY):
@@ -167,19 +233,23 @@ def save_refresh(request: NewsRefresh, directory=DIRECTORY):
     body = request.model_dump(mode='json')
     run_id = sha256(encoded(body)).hexdigest()
     with LOCK, data_lock(directory):
-        index = read_index(directory)
+        index, history = read_state(directory, legacy_history=True)
         current = {r['currency']: r['snapshot'] for r in read_rows(directory, index)}
         for row in request.rows:
             previous = current[row.currency]
             if previous and index[row.currency] != run_id and row.checked_at <= datetime.fromisoformat(previous['checked_at']):
                 raise ValueError(f'{row.currency} already has an equal or newer source check; investigate before saving')
         run_path = directory / 'runs' / f'{run_id}.json'
-        created = not run_path.exists()
+        created = run_id not in history
         if created:
+            # An uncommitted orphan from a terminated writer is replaced. Only
+            # this atomic index publication admits a run into saved history.
             atomic_write(run_path, {'schema': 1, 'saved_at': datetime.now(timezone.utc).isoformat(), 'request': body})
+        _, saved_at = read_run(directory, run_id)
         new_index = {**index, **{r.currency: run_id for r in request.rows}}
+        new_history = {**history, run_id: {'saved_at': saved_at, 'currencies': [r.currency for r in request.rows]}}
         try:
-            atomic_write(directory / 'latest.json', new_index)
+            atomic_write(directory / 'latest.json', {'schema': 2, 'latest': new_index, 'history': new_history})
         except OSError:
             if created:
                 run_path.unlink(missing_ok=True)

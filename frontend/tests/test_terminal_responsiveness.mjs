@@ -175,6 +175,18 @@ globalThis.fetch = (url, options = {}) => {
     events: [{ key: 'external:treasury-fixture', reference: 'treasury-fixture', source: 'external', broker: null, title: 'Treasury fixture', currencies: ['USD'],
       at: now + 3600000, date: null, eligible: true, armed: true, note: 'Exact fixture schedule', prompt: '$one-minute-before-release Treasury fixture' }] }) })
   if (u.startsWith('/storage-api/highlights')) return Promise.resolve({ ok: true, json: async () => ({ source_id: broker, revision: 'fixture-pins', items: [] }) })
+  if (u.startsWith('/storage-api/currency-news/history?')) {
+    const date = new URL(u, 'http://localhost').searchParams.get('date')
+    return Promise.resolve({ ok: true, json: async () => ({ schema: 1, date, next_before: null,
+      runs: date === '2026-10-08' ? [{run_id:'a'.repeat(64),saved_at:'2026-10-08T11:01:00+00:00',currencies:['CHF']}] : [] }) })
+  }
+  if (u.startsWith('/storage-api/currency-news/history/')) {
+    const run_id = 'a'.repeat(64), saved_at = '2026-10-08T11:01:00+00:00'
+    return Promise.resolve({ ok: true, json: async () => ({ schema:1,revision:run_id,run_id,saved_at,
+      rows:['EUR','GBP','AUD','NZD','USD','CAD','CHF','JPY'].map(currency => ({currency,snapshot:currency !== 'CHF' ? null : {
+        currency,run_id,saved_at,checked_at:'2026-10-08T11:00:00Z',coverage:'checked',coverage_note:'',window_hours:3,
+        items:[],background:[],implication:'no_clear_signal',reason:'Original saved history fixture.' }})) }) })
+  }
   if (u.startsWith('/storage-api/currency-news')) {
     const revision = 'a'.repeat(64)
     const unchanged = new URL(u, 'http://localhost').searchParams.get('after_revision') === revision
@@ -324,6 +336,22 @@ try {
   assertQuiet('Unchanged news poll', true)
   assert.equal(counters.newsRows ?? 0, 0, 'Unchanged polling leaves news rows alone')
   assert.equal(requests.filter(url => url.startsWith('/storage-api/currency-news')).length, newsRequestCount + 1)
+  reset()
+  await click(button('History'))
+  assert.ok(container.querySelector('[aria-label="News history date selector"]'))
+  assert.match(container.querySelector('[data-news-currency="CHF"]').textContent,/Original saved history fixture/)
+  assert.equal([...timers.values()].filter(t => t.fn.name === 'pollNews').length, 0, 'History stops the latest polling timer')
+  assertQuiet('Opening saved news history', true)
+  const historyCalls = requests.length
+  reset()
+  await click(container.querySelector('[aria-label="Previous date"]'))
+  assert.match(container.querySelector('[aria-label="Currency News"]').textContent,/No saved research/)
+  assert.equal(requests.length, historyCalls + 1, 'Date browsing loads one metadata page without any research')
+  assertQuiet('Browsing an empty saved date', true)
+  reset()
+  await click(button('Latest'))
+  assert.ok(container.querySelector('[data-news-currency="CHF"]'))
+  assertQuiet('Returning to latest news', true)
   await click(button('Currency News'))
   assert.equal(container.querySelector('[aria-label="Currency News"]'), null)
   assert.ok(container.querySelector('.external-chart-star'), 'Upcoming external record appears on the assembled chart')

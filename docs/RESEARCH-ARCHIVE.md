@@ -29,3 +29,9 @@ They are process corrections, not proof of a trading edge. The full
 explicit investigation. Consult full archives only when the task needs the
 original evidence or implementation; routine news refreshes use
 [the short rules](RESEARCH-RULES.md) and focused lesson lookup.
+
+The later cleanup also removes unused calendar compatibility wrappers, their
+unreachable admission helper, and the obsolete root attribute for a deleted HTML
+report. The old static `frontend/public/entry-trade-research.json` was copied and
+hash-verified under ignored `Market Analyst Workflow/report/retired-static-research-20261104/`
+before removal. Its Git version remains recoverable from commit `01cf3ab`.

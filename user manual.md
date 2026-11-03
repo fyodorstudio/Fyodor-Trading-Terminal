@@ -6,6 +6,13 @@ agent chat. The agent verifies sources and saves the researched currencies.
 The panel reads the saved output automatically while open. Reload saved news
 only reloads local results; it does not run research.
 
+History opens the Jakarta date revolver. Choose a day, then a saved refresh time
+to inspect what was actually recorded. Empty days stay empty. Publication and
+source-check clocks stay original; unresearched currencies do not inherit later
+results. Return to Latest to copy a new live refresh prompt. Export Markdown
+downloads the selected view/currency for documentation. History is local ignored
+data included in storage backups.
+
 Examples:
 
 - `Use $assess-trade-now to refresh all eight currencies from the last 3 hours.`
