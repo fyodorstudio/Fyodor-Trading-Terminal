@@ -15,12 +15,11 @@ The UI is read-only; research is authored in the analyst chat and saved only on
 request. Feed notes contains Discovered Limitations. Collection, archive,
 preparation, scope/view selectors and copied assessment prompts are agent workflows.
 
-For current analysis, ask "Use $assess-trade-now to assess USDJPY now." Give the
-Highlight ID, broker and date when referring to a saved occurrence. The skill
-owns near-term discovery, upcoming events, sourced decisions and verified-event
-pins; a full journal or Thesis save requires a separate request. Upcoming/live
-assessment is fundamental-first; an explicit price-aware request permits bounded
-feedback. Historical price investigations use the historical-research skill.
+For current news, use Assess Trade Now and Currency News. Give the Highlight ID,
+broker and date when asking about a saved occurrence. News saves do not pin
+releases, change chart markers, journal histories or reminders. Historical price
+investigations use the optional historical-research skill. A journal or lifecycle
+write requires the corresponding explicit request.
 
 Archive preserves the occurrence, research versions and archive-time readings.
 Restore resumes live readings with the same identity. Re-pinning restores an

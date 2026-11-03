@@ -1,0 +1,32 @@
+.currency-news-dock { display: flex; flex-direction: column; height: 100%; min-height: 0; color: var(--text-strong); font-size: 14px; }
+.currency-news-header { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 14px 4px; }
+.currency-news-header h2 { font-size: 15px; margin: 0 8px 0 0; }
+.currency-news-header button, .currency-news-header select { color: var(--text-strong); background: var(--surface-panel); border: 1px solid var(--border); border-radius: 4px; padding: 5px 8px; font: inherit; }
+.currency-news-header button { cursor: pointer; }
+.news-currencies { display: flex; gap: 3px; flex-wrap: wrap; }
+.news-currencies button[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); font-weight: 600; }
+.news-help, .news-copy-status, .news-error { margin: 4px 14px; line-height: 1.5; }
+.news-copy-status:empty { display: none; }
+.news-error { color: var(--text-strong); border-left: 3px solid var(--accent); padding-left: 8px; }
+.news-scroll { overflow: auto; min-height: 0; flex: 1; padding: 4px 14px 14px; }
+.currency-news-table { width: 100%; border-collapse: collapse; table-layout: fixed; line-height: 1.5; }
+.currency-news-table th, .currency-news-table td { padding: 12px 10px; border-bottom: 1px solid var(--border); vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+.currency-news-table thead th { position: sticky; top: 0; background: var(--surface-panel); z-index: 1; }
+.currency-news-table th:first-child { width: 7%; }
+.currency-news-table th:nth-child(2) { width: 51%; }
+.currency-news-table th:nth-child(3) { width: 25%; }
+.currency-news-table th:nth-child(4) { width: 17%; }
+.currency-news-table p { margin: 0 0 7px; white-space: pre-wrap; }
+.currency-news-table a { color: var(--accent); text-underline-offset: 2px; }
+.news-sources a { display: block; margin-bottom: 7px; }
+.news-background a { margin-right: 8px; }
+.news-checked { display: block; font-size: 12px; }
+.news-aging, .news-gap { font-weight: 600; }
+.news-background { margin-top: 8px; }
+.news-background summary { cursor: pointer; font-weight: 600; }
+.news-background p { margin-top: 8px; }
+.news-implication { display: inline-flex; align-items: center; gap: 7px; font-weight: 600; margin-bottom: 6px; }
+.news-implication i { width: 11px; height: 11px; border-radius: 50%; background: transparent; border: 1px solid currentColor; flex-shrink: 0; }
+.news-implication.supportive i { background: var(--positive); }
+.news-implication.negative i { background: var(--negative); }
+.news-implication.mixed i { background: var(--warning); }

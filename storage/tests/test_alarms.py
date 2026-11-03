@@ -251,9 +251,6 @@ class AlarmTests(TestCase):
                 self.assertEqual(data['application'], 'fyodor-alarms')
                 self.assertEqual(data['external_source_schema'], 3)
                 self.assertTrue(data['external_source_directory'])
-                status, checkpoint=await request(path='/alarms/checkpoint',query=b'currency=USD&at=1000000')
-                self.assertEqual(status,200);self.assertEqual(checkpoint['events'][0]['title'],'CPI')
-                self.assertNotIn('jobs',checkpoint,'Bell status does not serialize delivery history')
                 identity=data['jobs'][0]['id']
                 with patch.object(app.state.engine,'snapshot',side_effect=AssertionError('Full history must not be built')):
                     status, active=await request(path='/alarms/active',query=('ids='+identity).encode())

@@ -107,8 +107,9 @@ Archive/restore also require that id. A stale write fails without replacing
 anything. Use read to resolve conflicts; retain prior evidence and user notes.
 Save only within the user's requested research/lifecycle scope. Do not automatically
 turn every limitation, potential risk or search result into a confirmed event.
-Assess Trade Now supplies the scoped standing event-pin/icon authorization;
-full journals, Thesis conclusions and impact ratings retain their separate rules.
+Currency News refreshes do not pin events or change chart markers. Explicit
+external-source, journal, lifecycle and impact-rating requests retain their own
+scopes and persistence rules.
 
 ## Persistence and API
 

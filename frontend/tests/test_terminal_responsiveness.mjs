@@ -111,8 +111,8 @@ const server = await createServer({ root: path.resolve(path.dirname(fileURLToPat
         "function TerminalWorkspace() { globalThis.__terminalProbe.count('workspace');")
       if (id.endsWith('/MarketWatchPanel.tsx')) return code.replace('const positive = quote.dailyChange != null',
         "globalThis.__terminalProbe.count('quoteRows'); const positive = quote.dailyChange != null")
-      if (id.endsWith('/ThesisCurrencyTable.tsx')) return code.replace('  const impact = item.impacts.find',
-        "  globalThis.__terminalProbe.count('thesisRows'); const impact = item.impacts.find")
+      if (id.endsWith('/CurrencyNewsDock.tsx')) return code.replace('  const s = row.snapshot',
+        "  globalThis.__terminalProbe.count('newsRows'); const s = row.snapshot")
       if (id.endsWith('/MarketCandlestickChart.tsx')) return code.replace('}: MarketCandlestickChartProps) {',
         "}: MarketCandlestickChartProps) { globalThis.__terminalProbe.count('chartRender');")
       if (id.endsWith('/useCalendarNow.ts')) return code.replace('return now', 'globalThis.__terminalProbe.clocks.push(now); return now')
@@ -175,24 +175,15 @@ globalThis.fetch = (url, options = {}) => {
     events: [{ key: 'external:treasury-fixture', reference: 'treasury-fixture', source: 'external', broker: null, title: 'Treasury fixture', currencies: ['USD'],
       at: now + 3600000, date: null, eligible: true, armed: true, note: 'Exact fixture schedule', prompt: '$one-minute-before-release Treasury fixture' }] }) })
   if (u.startsWith('/storage-api/highlights')) return Promise.resolve({ ok: true, json: async () => ({ source_id: broker, revision: 'fixture-pins', items: [] }) })
-  if (u.startsWith('/storage-api/theses/recommended-pairs')) return Promise.resolve({ ok: true, json: async () => ({ schema: 1, revision: 'pairs-fixture', items: [] }) })
-  if (u.startsWith('/storage-api/theses/summary')) return Promise.resolve({ ok: true, json: async () => ({ schema: 1, revision: 'summary-fixture',
-    review_id: 'a'.repeat(32), as_of_utc: '2026-10-08T11:00:00Z', rows: ['USD','EUR','GBP','JPY','CHF','CAD','AUD','NZD'].map(currency => ({ currency,
-      verdict: 'POTENTIAL STRENGTHENING', verified_utc: '2026-10-08T11:00:00Z', reassessment: null, reassessment_gap: '' })) }) })
-  if (u.startsWith('/storage-api/theses/research')) {
-    const params = new URL(u, 'http://localhost').searchParams
-    const currency=params.get('currency'),date=params.get('from'),at=date+'T00:00:00Z'
-    const development = i => ({id:currency+i,key:currency+i,title:'Policy '+i,facts:'Current evidence '+i,published_on:date,published_at:at,event_at:null,
-      timing_note:'',verified_utc:at,saved_utc:at,sources:[{kind:'web',label:'Official',locator:'https://example.com/source',note:''}],
-      impacts:[{currency,implication:'Potential strengthening through the policy channel.',thesis_effect:'Reinforces active support.'}],references:[],revision_note:'',expected_version:null})
-    const developments=Array.from({length:60},(_,i)=>({...development(i),versions:Array.from({length:25},(_,v)=>({...development(i),id:currency+i+'v'+v,facts:'Collapsed research version '+v}))}))
-    return Promise.resolve({ ok: true, json: async () => ({ schema: 1, from: params.get('from'), to: params.get('to'), currency:params.get('currency'), revision: 'research-fixture',
-      ...(params.get('after_revision') === 'research-fixture' ? { unchanged: true } : { developments, assessments: [] }) }) })
-  }
-  if (u.startsWith('/storage-api/theses')) {
-    const params = new URL(u, 'http://localhost').searchParams
-    return Promise.resolve({ ok: true, json: async () => ({ schema: 1, scope: params.get('scope'), month: params.get('month'),
-      source_id: params.get('source_id'), revision: 'thesis-fixture', past: [], pending: [] }) })
+  if (u.startsWith('/storage-api/currency-news')) {
+    const revision = 'a'.repeat(64)
+    const unchanged = new URL(u, 'http://localhost').searchParams.get('after_revision') === revision
+    return Promise.resolve({ ok: true, json: async () => ({ schema: 1, revision, ...(unchanged ? { unchanged: true } : {
+      rows: ['EUR','GBP','AUD','NZD','USD','CAD','CHF','JPY'].map(currency => ({ currency, snapshot: {
+        currency, checked_at: '2026-10-08T11:00:00Z', coverage: 'checked', coverage_note: '', window_hours: 3,
+        run_id: revision, saved_at: '2026-10-08T11:01:00Z', items: [{ summary: 'Verified currency news.',
+          published_at: '2026-10-08T10:00:00Z', timing_note: '', sources: [{label:'Official',url:'https://example.com/release'}] }],
+        background: [], implication: 'mixed', reason: 'Policy support meets activity opposition.' } })) }) }) })
   }
   if (u.startsWith('/storage-api/external-sources')) {
     const params = new URL(u, 'http://localhost').searchParams
@@ -285,7 +276,7 @@ try {
   reset()
   await tick('pollDaily', 5000)
   assertQuiet('Unchanged daily candle poll', true)
-  assert.equal(container.querySelectorAll('[data-currency-summary]').length, 8, 'Saved fundamentals appear in the assembled left dock')
+  assert.equal(container.querySelector('[data-currency-summary]'), null, 'The retired Fundamentals projection is absent')
   const beforeSummaryClock = { ...counters }
   await React.act(async () => [...intervals.values()].find(timer => timer.ms === 30000).fn())
   for (const key of ['workspace', 'chartRender', 'setData', 'update', 'futureSetData', 'futureUpdate', 'quoteRows'])
@@ -303,51 +294,38 @@ try {
   assert.equal(plotted.length, 800)
   assert.equal(Math.floor(futureTimes.at(-1).time / 86400), Math.floor(plotted.at(-1).time / 86400) + 90)
   assert.deepEqual([...container.querySelectorAll('[aria-label="App features"] button')].map(node => node.textContent.trim().replace(/\s+\d+$/, '')),
-    ['Alert', 'Thesis', 'Inspector', 'Entry Trade', 'Activity', '⚙ Settings'])
+    ['Alert', 'Currency News', 'Inspector', 'Entry Trade', 'Activity', '⚙ Settings'])
   reset()
-  await click(button('Thesis'))
-  assert.ok(container.querySelector('[aria-label="Thesis"]'))
-  assert.equal(container.querySelector('[aria-label="Thesis pair"]'), null)
-  assert.equal(button('Across All Currency'), undefined)
-  assert.equal(container.querySelector('[aria-label="Thesis currency"]').querySelectorAll('button').length, 8)
-  assert.equal(container.querySelector('[aria-label="Thesis date range"]'), null)
-  assert.equal(container.querySelector('[aria-label="Thesis date selector"]').querySelectorAll('[aria-pressed]').length, 5)
-  assert.equal(container.querySelectorAll('[data-thesis-currency]').length, 1)
-  assert.equal(container.querySelector('[aria-label="Thesis month"]').options.length, 12)
-  assert.ok(container.querySelector('[aria-label="Thesis year"]'))
-  assert.ok(container.querySelector('[aria-label="Resize Thesis dock"]'))
-  assert.ok(container.querySelector('.status-selection').textContent.startsWith('EURUSD'), 'Standalone currency Thesis preserves the EURUSD chart')
-  assertQuiet('Opening Thesis')
-  assert.equal(container.querySelectorAll('[data-thesis-development]').length,20,'Large Thesis dates mount one page')
-  assert.equal(counters.thesisRows,20)
-  assert.deepEqual([...container.querySelector('[aria-label="EUR evidence timeline"]').querySelectorAll('thead th')].map(cell=>cell.textContent),
-    ['Time · Jakarta','Evidence and interpretation'],'The assembled terminal uses the two-column evidence timeline')
-  assert.equal(container.querySelector('.research-detail-toggle'),null,'Routine audit buttons are absent')
-  assert.ok(!container.textContent.includes('Collapsed research version'),'1,500 historical bodies stay unmounted')
-  const scrollRequests=requests.length
+  await click(button('Currency News'))
+  assert.ok(container.querySelector('[aria-label="Currency News"]'))
+  assert.equal(container.querySelector('[aria-label="News currency"]').querySelectorAll('button').length, 9)
+  assert.equal(container.querySelectorAll('[data-news-currency]').length, 8)
+  assert.ok(container.querySelector('[aria-label="Resize Currency News dock"]'))
+  assert.equal(container.querySelector('[data-currency-summary]'), null, 'The retired left Fundamentals panel is absent')
+  assertQuiet('Opening Currency News')
+  assert.equal(counters.newsRows, 16, 'Eight loading rows followed by eight saved rows')
+  const scrollRequests = requests.length
   reset()
-  await React.act(async()=>{for(let i=0;i<100;i++)container.querySelector('.thesis-scroll').dispatchEvent(new dom.Event('scroll'))})
+  await React.act(async () => { for (let i = 0; i < 100; i++) container.querySelector('.news-scroll').dispatchEvent(new dom.Event('scroll')) })
   await flush()
-  assert.equal(counters.thesisRows??0,0,'Scrolling performs zero development renders')
-  assert.equal(requests.length,scrollRequests,'Scrolling causes no requests')
-  assertQuiet('Scrolling Thesis',true)
-  const beforeCurrencySwitch = requests.length
+  assert.equal(counters.newsRows ?? 0, 0, 'Scrolling performs zero news row renders')
+  assert.equal(requests.length, scrollRequests, 'Scrolling performs no requests')
+  assertQuiet('Scrolling Currency News', true)
   reset()
-  await click(container.querySelector('[aria-label="Thesis currency"]').querySelectorAll('button')[6])
-  assert.equal(container.querySelector('[data-thesis-currency]').dataset.thesisCurrency, 'CHF')
-  assert.equal(container.querySelectorAll('[data-thesis-currency]').length, 1)
-  assert.equal(requests.length, beforeCurrencySwitch+1, 'Currency switching requests only the selected research')
-  assert.equal(new URL(requests.at(-1),'http://localhost').searchParams.get('currency'),'CHF')
-  assertQuiet('Switching Thesis currency')
+  await click([...container.querySelector('[aria-label="News currency"]').querySelectorAll('button')].find(b => b.textContent === 'CHF'))
+  assert.equal(container.querySelector('[data-news-currency]').dataset.newsCurrency, 'CHF')
+  assert.equal(container.querySelectorAll('[data-news-currency]').length, 1)
+  assert.equal(requests.length, scrollRequests, 'Filtering saved news performs no research or network work')
+  assertQuiet('Filtering Currency News')
   assert.ok(container.querySelector('.status-selection').textContent.startsWith('EURUSD'))
-  const thesisRequestCount = requests.filter(url => url.startsWith('/storage-api/theses')).length
+  const newsRequestCount = requests.filter(url => url.startsWith('/storage-api/currency-news')).length
   reset()
-  await tick('pollResearch', 5000)
-  assertQuiet('Unchanged Thesis poll', true)
-  assert.equal(counters.thesisRows??0,0,'Unchanged polling leaves development rows alone')
-  assert.equal(requests.filter(url => url.startsWith('/storage-api/theses')).length, thesisRequestCount + 1)
-  await click(button('Thesis'))
-  assert.equal(container.querySelector('[aria-label="Thesis"]'), null)
+  await tick('pollNews', 5000)
+  assertQuiet('Unchanged news poll', true)
+  assert.equal(counters.newsRows ?? 0, 0, 'Unchanged polling leaves news rows alone')
+  assert.equal(requests.filter(url => url.startsWith('/storage-api/currency-news')).length, newsRequestCount + 1)
+  await click(button('Currency News'))
+  assert.equal(container.querySelector('[aria-label="Currency News"]'), null)
   assert.ok(container.querySelector('.external-chart-star'), 'Upcoming external record appears on the assembled chart')
   assert.equal(container.querySelector('.external-chart-markers').style.bottom, '68px')
   await click(button('Alert'))
@@ -1096,8 +1074,10 @@ try {
   assert.equal(container.querySelector('.left-dock').hidden, true)
   await click(container.querySelector('.market-watch-toggle'))
   assert.equal(container.querySelector('.left-dock').hidden, false)
-  assert.equal(container.querySelectorAll('[data-currency-summary]').length, 8, 'The existing Fundamentals projection still appears after reopening')
-  assert.ok(container.querySelector('[aria-label="Recommended pairs"]'), 'Recommended Pairs returns alongside all eight Fundamentals rows')
+  assert.equal(container.querySelector('[data-currency-summary]'), null, 'Retired Fundamentals stays absent after reopening')
+  await click(button('Currency News'))
+  assert.equal(container.querySelector('[data-news-currency]').dataset.newsCurrency, 'CHF', 'Focused news selection survives reopening')
+  await click(button('Currency News'))
   await React.act(async () => root.render(null))
   assert.equal(rangeListeners.size, 0); assert.equal(clickListeners.size, 0)
   assert.equal(counters.workerCreated ?? 0, 0)

@@ -1,147 +1,20 @@
 # Agent research reference
 
-Read for market research, Thesis updates, release waits and analyst dataset work.
-General engineering instructions remain in [AGENTS.md](../AGENTS.md).
+For live on-demand Currency News read [RESEARCH-RULES.md](RESEARCH-RULES.md).
+For writes/read-back use [CURRENCY-NEWS.md](CURRENCY-NEWS.md). Routine refreshes
+need no calendar export, raw history, technical scan or outcome evaluation.
 
-## Market analysis
+## Optional research modes
 
-Use [Assess Trade Now](../.agents/skills/assess-trade-now/SKILL.md) for current
-fundamentals, opportunity comparisons and requested Thesis research. A bare
-invocation researches all eight currencies and selectively checks material
-BRENT/WTI/GOLD candidates. Respect a narrower requested scope and research period.
-The skill also surfaces exceptional clearly supported non-FX candidates encountered
-in permitted news discovery, without an exhaustive extra market scan.
-The user performs their own technical analysis and manual price alerts: do not
-fetch candles or technical levels unless explicitly requested. The authorised
-[learning loop](ANALYST-LEARNING.md) separately permits bounded read-only M1
-captures for matured assessment outcomes after current verdict delivery. Never execute trades
-or change broker/account settings.
+[One Minute Before Release](../.agents/skills/one-minute-before-release/SKILL.md)
+waits in the active chat for a named imminent release. It does no background
+scheduling. [Review Historical Research](../.agents/skills/review-historical-research/SKILL.md)
+uses a named historical brief, dated news and bounded H1/H4 evidence. Historical
+findings do not replace live news or advance live check clocks. Raw source
+values, broker identities, timing uncertainty and release vintages remain intact.
+For outside-feed evidence use [EXTERNAL-SOURCES.md](EXTERNAL-SOURCES.md).
 
-Use [One Minute Before Release](../.agents/skills/one-minute-before-release/SKILL.md)
-for bounded imminent-release waits, and
-[Review Historical Research](../.agents/skills/review-historical-research/SKILL.md)
-for historical price investigations. Read the brief first; only that historical
-mode requires broad H1/H4 plus measured release windows. Keep before/at/after
-information sets, release vintages and intervention/news timing separate.
-
-The research procedure has one owner: Assess Trade Now. The persistence, UI and
-clock contract has one owner: [Thesis](THESIS.md). Do not recreate a daily
-news quota, mandatory entry payload or duplicate verdict store in prompts.
-Apply the skill's decision check before changing or renewing pressure; declare
-the reviewed stage explicitly. An unresolved checkpoint does not freshly endorse
-the old verdict. A passing API/schema check establishes delivery, not sound research.
-
-### Research quality and source coverage
-
-Real capital may be at stake. Browse for current financial conclusions; open the
-decisive source bodies, investigate contrary developments and explain the dominant
-mechanism. Research both currencies before recommending a cross. Compare the
-expected future policy path with prior guidance and separately attributed survey
-and market pricing; a hike/hold/cut alone is not a directional signal. Components
-of one release package are not independent votes. Do not invent consensus,
-institutional flows, probabilities, pips or returns. Distinguish observed,
-reported and inferred demand. No single currency verdict establishes strength
-against all seven counterparts.
-Before weighting a release, identify the bank's current stated policy concerns and
-the active underlying inflation/services, wage/labour and activity evidence, even
-outside the selected day. Follow the skill's causal-weighting check: explain why
-the new information dominates or offsets those foundations. Do not substitute
-recency, component counts, nominal credit amounts or a universal indicator ranking
-for policy relevance. A minor release's potential impact need not reverse the
-whole currency verdict. Saved/archived research is context, not proof of coverage;
-reuse valid sources and fill decisive omissions before claiming a completed review.
-
-During broad research cover policy/path, inflation, labour/wages, activity and
-material fiscal, trade, funding, energy, haven and geopolitical developments in
-the requested period. Read the saved interval, fill intervening gaps and record
-new findings once. No item quota or forced new verdict when decisive evidence is
-missing. Preserve old active foundations with their original dates and record
-what now offsets, reinforces or supersedes them. Last Assessed and evidence age
-are different clocks; neither a fresh retrieval nor a new save makes old news new.
-For repeat assessments, use the skill's efficient refresh workflow: check changes
-for every requested currency, reuse valid dated foundations/shared sources and
-investigate material changes or gaps deeply. Do not rebuild unchanged research or
-let a failed publisher consume the review. Broad scope and contrary-news checks remain.
-
-Immediately check just-elapsed/imminent material stages and overnight remarks,
-then the relevant next seven days (or longer holding horizon). USD includes
-Treasury auctions, buyback announcements/windows/results and relevant Fed/NYFed
-operations; offered amounts are not accepted amounts or evidence of QE. Official
-schedules and dated reporting take priority over incomplete broker coverage.
-Broker/web forecasts can differ by definition, provider and capture time; keep
-both attributed and preserve raw observations. Unknown hours remain unknown.
-Bound failed retrievals and disclose the exact gap instead of claiming full coverage.
-A supported first verdict must not wait for unrelated research or bookkeeping.
-
-### Thesis and summaries
-
-Requested broad research and existing live-summary refreshes have standing save
-permission, unless read-only/chat-only/no-save. Use `thesis research-append`; save
-verified developments with currency implications and effects on the existing
-thesis, plus full or focused currency assessments. The ledger deduplicates stable
-keys, freezes evidence versions and preserves corrections. Entry opportunities
-are optional. Do not force a same-day window or copy a prior entry forward.
-
-Currency verdicts are standalone Strong / Moderate / Slight strengthening or
-weakening pressure on one shared qualitative scale, with horizon and material
-opposition. The product is potential impact: event/development → currency
-strengthening/weakening → intensity → causal reason. Do not require realised flows,
-live pricing or certainty. Compare same-direction currencies over overlapping
-horizons and explain relative dominance; equal grades trigger comparison rather
-than end it. See the skill's shared scale; do not fit grades to a chart. Known
-opposition calls for judgment, not Review needed. Reserve a missing-fact gap for
-genuinely unavailable decisive information, limiting only the unsupported claim.
-This is not a numeric score, index measurement or private positioning data.
-
-A focused release refresh saves affected currencies and explicit gaps; it does
-not trigger a new full eight-currency investigation. A broad invocation covers
-all eight. Preserve unresearched rows and identify material due/unfinished reviews.
-Resolve elapsed checkpoints using actuals and subsequent guidance before choosing
-the next material stage. Shared deadlines need a specific transmission channel
-for each currency. Alarms and date navigation perform no research, advance no
-clock and never reverse or renew a verdict automatically.
-The static Jakarta Last Assessed header means the latest completed, saved live
-research pass, with row gaps and focused scope preserved. An older evidence anchor
-is acceptable when no newer significant finding exists; age alone does not require
-a new event, changed direction or Review needed. Do not refresh that header for
-a reload, initial scan or save without completed assessment work.
-
-Thesis contains dated developments, assessments and upcoming checkpoints. Keep
-publication/event/verification/recorded clocks separate. Historical reconstructions
-never replace the live summary. Read back the saved range and live summary.
-Earlier currency reviews, July currency reconstructions and user trade notes remain
-intact. Do not recreate deleted pair journals through the Thesis UI; legacy CLI
-interfaces remain available for explicit compatibility requests.
-
-### Alert, External Sources and saved studies
-
-Saving research does not require pinning or arming every finding. Reuse exact
-calendar broker/value IDs or External Source keys when useful. Research remains
-in Thesis; outside-feed events needed in Alert/chart belong in
-[External Sources](EXTERNAL-SOURCES.md), never invented MT5 readings. Assess
-Trade Now has standing permission to pin/restore verified relevant occurrences,
-request dated chart icons and select a few significant future Invoke reminders.
-Preserve explicit off choices, global pause and offset. Follow
-[Alert and alarms](EVENTS-ALARMS.md); verify exact keys, armed state and worker
-health at `/alarm-api/alarms` or `http://127.0.0.1:8003/alarms` before claiming delivery.
-No recurring monitor or automatic AI invocation is implied.
-
-External CLI writes require `external preflight` and guarded CLI mutations; never
-bypass compatibility checks with direct Python shared-store writes. Verify pins
-and chart requests after writes. Full Highlight research journals and AI impact
-labels keep their explicit-request rules under [Highlight journal](HIGHLIGHT-JOURNAL.md).
-Impact is agent-authored for the exact occurrence, never inferred from MT5 importance.
-A discovery receipt is a supported diagnostic/audit helper; its existence is not
-proof of complete news coverage and is not a prerequisite for a Thesis save.
-
-For requested historical-release investigations, standing authorization permits
-pinning the relevant past occurrences, saving sourced studies and archiving them.
-Keep upcoming candidates active and reuse existing candles/studies when appropriate.
-A prompt-only request defers new research: save templates when requested without
-manufacturing a pre-release conclusion. Archive/restore preserves identities,
-versions and evidence; no automatic archival of unrelated records.
-
-### Dataset commands
+## Dataset commands
 
 Run from the Lite root; `pnpm analyst` uses the existing bridge Python with no
 new dependencies or API key. Calendar reads use a read-only SQLite snapshot

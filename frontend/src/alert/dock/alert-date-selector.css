@@ -1,7 +1,7 @@
 .alert-date-selector { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-:is(.events-alarm-dock, .thesis-dock) .alert-date-selector :is(button, select, input) { font: inherit; padding: 4px 8px; min-height: 28px; box-sizing: border-box; border: 1px solid var(--border-strong); border-radius: 4px; color: var(--text); background: var(--surface-panel); }
+.events-alarm-dock .alert-date-selector :is(button, select, input) { font: inherit; padding: 4px 8px; min-height: 28px; box-sizing: border-box; border: 1px solid var(--border-strong); border-radius: 4px; color: var(--text); background: var(--surface-panel); }
 .alert-date-wheel { display: flex; align-items: center; border: 1px solid var(--border-strong); border-radius: 8px; overflow: hidden; overscroll-behavior: contain; }
-:is(.events-alarm-dock, .thesis-dock) .alert-date-selector .alert-date-wheel button { border: 0; border-radius: 0; min-width: 35px; min-height: 42px; padding: 4px 7px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 14px; }
-:is(.events-alarm-dock, .thesis-dock) .alert-date-selector button[aria-pressed='true'] { background: var(--accent); color: #fff; }
+.events-alarm-dock .alert-date-selector .alert-date-wheel button { border: 0; border-radius: 0; min-width: 35px; min-height: 42px; padding: 4px 7px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 14px; }
+.events-alarm-dock .alert-date-selector button[aria-pressed='true'] { background: var(--accent); color: #fff; }
 .alert-date-wheel small { font-size: 9px; }
 .alert-date-selector input { width: 72px; }

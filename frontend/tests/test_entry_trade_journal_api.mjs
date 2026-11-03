@@ -69,5 +69,5 @@ try {
 } finally {
   await new Promise(resolve => server.close(resolve))
   assert.ok(path.resolve(directory).startsWith(runtime + path.sep))
-  fs.rmSync(directory, { recursive: true, force: true })
+  fs.rmSync(directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 20 })
 }

@@ -20,9 +20,6 @@ from storage.research_reports import REPORT_DIRECTORY, ResearchRequest, collect_
 from ohlc import fetch_window, read_saved, summarize, write_evidence, capture_lock, cached_window
 from storage.highlights import HIGHLIGHTS_PATH, HighlightRequest, highlight_snapshot, archive_pin, pin_release
 from storage.highlight_journal import JournalRequest, append_journal, read_journal
-from storage.thesis import ThesisRequest, append_thesis, thesis_snapshot
-from storage.thesis_reviews import ReviewRequest, append_review, review_context
-from storage.thesis_research import ResearchRequest as ThesisResearchRequest, append_research, research_snapshot
 from storage.currencies import CURRENCIES
 from storage.highlight_metadata import PromptRequest, append_prompt, read_prompts, LimitationRequest, append_limitation, limitations_snapshot
 from storage.alert_impact import ImpactRequest, append_impact, impact_snapshot
@@ -214,34 +211,11 @@ def parser():
     highlights.add_argument('--database', default='storage/data/calendar.sqlite3')
     highlights.add_argument('--visibility', choices=['active','archived','all'], default='active')
     query_options(highlights)
-    thesis = commands.add_parser('thesis', help='Read the monthly Thesis dock or append a sourced assessment; never changes calendar or pins')
-    thesis.add_argument('action', choices=['read', 'append', 'review-append', 'context', 'summary', 'research', 'research-append'])
-    thesis.add_argument('--from', dest='research_from', help='Inclusive Jakarta research date YYYY-MM-DD')
-    thesis.add_argument('--to', dest='research_to', help='Inclusive Jakarta research date YYYY-MM-DD')
-    thesis.add_argument('--scope', required=True, help='Pair for append/pair reads, or ALL to read Across All Currency')
-    thesis.add_argument('--month', default='2026-10', help='Jakarta calendar month YYYY-MM')
-    thesis.add_argument('--broker', help='Broker for optional linked MT5 release saves; daily records and reads need no broker')
-    thesis.add_argument('--database', default='storage/data/calendar.sqlite3')
-    thesis.add_argument('--input', help='ThesisRequest JSON file inside Lite for append; see docs/THESIS.md')
-    thesis.add_argument('--as-of', help='Optional timezone-aware context cutoff; defaults to now, never changes evidence vintages')
-    learning = commands.add_parser('learning', help='Freeze calls, measure matured outcomes and retrieve reviewed analyst lessons')
-    learning.add_argument('action', choices=['prepare', 'sync', 'refresh', 'report', 'case', 'review', 'lesson', 'daily-backfill'])
-    learning.add_argument('--scope', default='ALL')
-    learning.add_argument('--from', dest='from_date')
-    learning.add_argument('--to', dest='to_date')
-    learning.add_argument('--as-of', help='Outcome observation cutoff; cannot be future')
-    learning.add_argument('--tag', action='append', default=[])
-    learning.add_argument('--limit', type=int, choices=range(1, 21), default=5)
-    learning.add_argument('--episode')
-    learning.add_argument('--blind', action='store_true')
-    learning.add_argument('--input', action='append', help='Saved verified OHLC or one review/lesson JSON file inside Lite')
-    learning.add_argument('--output', help='Report directory inside Lite')
-    learning.add_argument('--capture', action='store_true', help='Bounded sequential read-only capture for matured outcomes')
-    learning.add_argument('--read-only', action='store_true', help='Inspect learning context without synchronizing or writing stores')
-    learning.add_argument('--max-symbols', type=int, choices=range(1, 8), default=2)
-    learning.add_argument('--max-days', type=int, choices=range(1, 32), default=2, help='Daily basket backfill budget; each day reads the seven USD legs')
-    learning.add_argument('--max-requests', type=int, choices=range(8, 65), default=32)
-    learning.add_argument('--bridge', default='http://127.0.0.1:8001')
+    news = commands.add_parser('news', help='Read/save on-demand currency news, verify panel delivery, or retrieve compact lessons')
+    news.add_argument('action', choices=['read', 'save', 'verify', 'lessons'])
+    news.add_argument('--scope', choices=['ALL', *CURRENCIES], default='ALL')
+    news.add_argument('--input', help='NewsRefresh JSON file inside Lite; see docs/CURRENCY-NEWS.md')
+    news.add_argument('--storage', default='http://127.0.0.1:8002')
     journal = commands.add_parser('journal', help='Read research versions or append an agent-authored JSON entry (calendar stays read-only)')
     journal.add_argument('action', choices=['read','append'])
     journal.add_argument('highlight_id')
@@ -344,24 +318,27 @@ def parser():
 def run(args):
     if getattr(args, 'offset', 0) < 0:
         raise ValueError('Offset must be non-negative')
-    if args.command == 'learning':
-        from learning import command
-        from storage.thesis import PATH as THESIS_PATH
-        from storage.analyst_learning.store import instant
-        if args.as_of and instant(args.as_of) > datetime.now(timezone.utc):
-            raise ValueError('Learning observation cutoff cannot be future')
-        for value in (args.from_date, args.to_date):
-            if value:
-                date.fromisoformat(value)
-        if args.from_date and args.to_date and args.from_date > args.to_date:
-            raise ValueError('Choose ordered learning dates')
-        if args.input:
-            args.input = [str(local_path(name)) for name in args.input]
-        if args.output:
-            args.output = str((ROOT / args.output).resolve())
-            if not Path(args.output).is_relative_to(ROOT):
-                raise ValueError('Learning output must stay inside Lite')
-        return command(ROOT, THESIS_PATH, args, get_json)
+    if args.command == 'news':
+        from storage.currency_news import NewsRefresh, news_snapshot, save_refresh
+        if args.action == 'lessons':
+            lessons = json.loads((ROOT / 'docs/research-lessons.json').read_text(encoding='utf-8'))
+            return {'scope': args.scope, 'lessons': [l for l in lessons['lessons'] if args.scope == 'ALL' or args.scope in l['currencies']]}
+        if args.action == 'save':
+            if not args.input:
+                raise ValueError('News save needs --input; see docs/CURRENCY-NEWS.md')
+            request = NewsRefresh.model_validate_json(local_path(args.input).read_text(encoding='utf-8-sig'))
+            if args.scope != 'ALL' and any(r.currency != args.scope for r in request.rows):
+                raise ValueError('Focused news save may only update the requested currency')
+            return save_refresh(request)
+        snapshot = news_snapshot()
+        if args.action == 'verify':
+            served = get_json(args.storage, 'currency-news')
+            if served != snapshot:
+                raise ValueError("Running storage does not serve this checkout's saved news; restart the correct stack and retry")
+            return {'panel_delivery_verified': True, 'revision': served['revision'], 'currencies': [r['currency'] for r in served['rows'] if r['snapshot'] and (args.scope == 'ALL' or r['currency'] == args.scope)]}
+        if args.scope != 'ALL':
+            snapshot = {**snapshot, 'rows': [r for r in snapshot['rows'] if r['currency'] == args.scope]}
+        return snapshot
     if args.command == 'discovery':
         from discovery_audit import capture, validate_file
         if args.action in ('record', 'finish'):
@@ -384,49 +361,6 @@ def run(args):
         output = (ROOT / args.output).resolve() if not Path(args.output).is_absolute() else Path(args.output).resolve()
         return capture(ROOT, output, args.scope, args.broker, args.as_of, args.days, args.read_only,
                        release_at=args.release_at, deadline=args.deadline)
-    if args.command == 'thesis':
-        if args.action in ('research', 'research-append'):
-            from storage.thesis import PATH as THESIS_PATH
-            if args.action == 'research':
-                if args.scope != 'ALL' and args.scope not in CURRENCIES:
-                    raise ValueError('Research reads use --scope ALL or one of the eight currencies')
-                if not args.research_from or not args.research_to:
-                    raise ValueError('Research reads need --from and --to Jakarta dates')
-                return research_snapshot(THESIS_PATH, args.research_from, args.research_to,
-                                         currency=None if args.scope == 'ALL' else args.scope)
-            if args.scope != 'ALL':
-                raise ValueError('Thesis research append uses --scope ALL; request currencies select full or focused research')
-            if not args.input:
-                raise ValueError('Research append needs --input; see docs/THESIS.md')
-            return append_research(ThesisResearchRequest.model_validate_json(local_path(args.input).read_text(encoding='utf-8-sig')), THESIS_PATH)
-        if args.action == 'summary':
-            if args.scope != 'ALL':
-                raise ValueError('Currency summary uses --scope ALL; pair verdicts are independent')
-            from storage.thesis import PATH as THESIS_PATH
-            from storage.thesis_summary import currency_summary
-            return currency_summary(THESIS_PATH)
-        if args.action == 'context':
-            from storage.thesis import PATH as THESIS_PATH
-            return review_context(THESIS_PATH, args.scope, args.as_of)
-        if args.action == 'review-append':
-            if not args.input:
-                raise ValueError('Review append needs --input; see docs/THESIS.md')
-            request = ReviewRequest.model_validate_json(local_path(args.input).read_text(encoding='utf-8-sig'))
-            if request.scope != args.scope:
-                raise ValueError('Review scope differs from the command')
-            from storage.thesis import PATH as THESIS_PATH
-            return append_review(request, THESIS_PATH)
-        if args.action == 'read':
-            return thesis_snapshot(None, args.scope, args.month, args.broker)
-        if not args.input:
-            raise ValueError('Append needs --input with a ThesisRequest JSON file')
-        request = ThesisRequest.model_validate_json(local_path(args.input).read_text(encoding='utf-8-sig'))
-        if request.scope != args.scope or request.target and request.target.kind == 'highlight' and request.target.source_id != args.broker:
-            raise ValueError('Thesis request pair/broker differs from the command')
-        if request.target is None:
-            return append_thesis(None, request)
-        with closing(CalendarStore(local_path(args.database), readonly=True)) as store:
-            return append_thesis(store, request)
     if args.command == 'external':
         if args.action == 'preflight':
             return external_preflight(EXTERNAL_DIRECTORY, args.storage)

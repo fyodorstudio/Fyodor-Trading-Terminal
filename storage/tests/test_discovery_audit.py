@@ -13,7 +13,7 @@ sys.path.insert(0, str(ROOT / 'Market Analyst Workflow/tools'))
 from discovery_audit import capture, collect_pages, required_sources, validate_receipt
 from storage.external_sources import ExternalRequest, append_external, external_history, archive_external
 
-FIXTURES = ROOT / '.agents/skills/assess-trade-now/tests/fixtures/treasury-cutoff'
+FIXTURES = ROOT / 'storage/tests/fixtures/treasury-cutoff'
 NOW = datetime(2026, 10, 21, 19, 30, tzinfo=timezone.utc)
 
 

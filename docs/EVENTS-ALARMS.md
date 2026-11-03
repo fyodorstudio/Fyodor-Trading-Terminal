@@ -48,19 +48,12 @@ Clicking a future timed group's bell registers a validated, durable subscription
 or updates the existing choice. Date-only, unknown-time and elapsed items cannot
 receive new timed reminders. An external record must be confirmed and scheduled.
 
-Assess Trade Now has standing permission to select a few verified significant
-checkpoint reminders. This is an explicit worker mutation, separate from pinning,
-Thesis saves and the left-panel UNTIL field. Preserve explicit off choices, global
-pause and offset. Read worker eligibility/keys and revision before POST
-`toggle-many`, then verify selection, armed state and runtime health. A suggested
-return time alone creates nothing; no AI invocation is scheduled.
-
-The user's default is high-impact-only Invoke reminders. Assess Trade Now applies
-its occurrence-specific materiality filter, keeps smaller items as silent context
-and groups simultaneous release information into one review checkpoint. An
-explicit alarm-curation request also permits deselecting low-value or duplicate
-future bells within the audited horizon. Pins remain available; price alerts,
-explicit off choices, global enable/pause and offset stay independent.
+Currency News refreshes do not change reminders. Explicit alarm-curation requests
+may select a few verified high-impact occurrences, one bell per release package.
+Preserve explicit off choices, global pause and offset. Read worker eligibility,
+exact keys and revision before `toggle-many`, then verify selected/armed state
+and runtime health. A suggested return time creates no reminder or AI schedule.
+Price alerts and news persistence remain independent.
 
 **Alarm Settings** opens global enable/pause, reminder offset, test and delivery
 history. A small status dot and ringing indicator preserve worker visibility.
@@ -122,10 +115,6 @@ and Snooze 5 min remain available; snooze cannot reach the event time. Terminal
 checks cover generated WAVs, duration/control wiring and native-script syntax;
 audibility and visual acceptance remain the user's checks.
 
-`GET /alarms/checkpoint?currency=JPY&at=<publication-milliseconds>` is a lightweight
-read without delivery history. Thesis shows Silent, Bell armed, sound off or an
-unavailable state, with the actual reminder names in its tooltip. It reports reminders
-at that currency/time, not a guessed identity match or automatic subscription.
 Native windows poll `/alarms/active?ids=<job IDs>` for their own status/audio only,
 without repeatedly transferring the full schedule and delivery history.
 Keep API inspections focused on settings, status counts and relevant occurrences;

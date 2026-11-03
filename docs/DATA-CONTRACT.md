@@ -6,11 +6,9 @@ calculates currency scores or modifies source observations.
 
 ## Local inventory
 
-The separate [Thesis dock](THESIS.md) reads compact, agent-authored pair assessments
-from Git-tracked `Market Analyst Workflow/thesis/journal.json`, retaining prior
-versions and distinct research/release/saved clocks. It displays only saved
-assessments; Alert owns upcoming events. Thesis reads do not query active pins,
-raw values or full research journals.
+The separate [Currency News dock](CURRENCY-NEWS.md) reads on-demand agent-authored
+news from ignored local storage. It does not mutate calendar observations or
+reminder choices.
 
 Outside-feed events are stored separately as immutable versions under
 `Market Analyst Workflow/external-sources/`; they never enter calendar observations,

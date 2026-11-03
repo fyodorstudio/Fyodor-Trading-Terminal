@@ -123,16 +123,6 @@ def create_alarm_app(directory=ALARM_DIRECTORY, loader=None, notify=None, clock=
                 'preview_playing': delivery.previewing() if isinstance(delivery, DesktopDelivery) else False,
                 'external_source_directory': str(DIRECTORY.resolve())}
 
-    @app.get('/alarms/checkpoint')
-    def checkpoint(currency: str, at: int):
-        engine = app.state.engine
-        with engine.lock:
-            return {'available': engine.error is None and engine.refreshed_at is not None
-                    and engine.clock()-engine.refreshed_at <= 15 and os.name=='nt',
-                    'sound_enabled': engine.state['audio']['enabled'] and engine.state['audio']['volume'] > 0,
-                    'events': [{'title': e['title'], 'armed': engine.enabled(e), 'selected': engine.selected(e)}
-                        for e in engine.events if currency in e['currencies'] and e['at'] == at]}
-
     @app.get('/alarms/active')
     def active(ids: str):
         identities = ids.split(',')

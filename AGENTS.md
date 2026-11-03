@@ -1,127 +1,67 @@
 # Fyodor Trading Terminal Lite
 
-## Task routing
+## Route narrowly
 
-Read this file, then only the relevant owner/contract in README.md. Implementation:
-left-panel summary → `frontend/src/thesis/CurrencySummary.tsx`,
-`storage/thesis_summary.py`, [Thesis contract](docs/THESIS.md#left-panel-summary-and-reassessment);
-manual price alarms → `frontend/src/price-alerts/`; economic Invoke reminders →
-[Alert contract](docs/EVENTS-ALARMS.md). These are separate data/notification paths.
-Current research uses Assess Trade Now. Findings and currency assessments live in
-the Thesis research ledger; the left summary is its read-only projection with
-legacy daily reviews as fallback. Read `pnpm analyst thesis summary --scope ALL`.
-Thesis shows one standalone currency at a time, selected with eight currency tabs
-and Month/Day navigation. Earlier currency snapshots stay in a lazy archive;
-saved pair journals and their planning days were deleted at the user’s request.
-Release waits use One Minute Before Release; historical moves use Review Historical
-Research and must not replace the live summary. Full evidence and learning comparisons stay in
-bottom Thesis; the left Fundamentals box shows evidence age, currency, standalone pressure
-and checkpoint countdown. Assessment time never redates underlying evidence.
-The separate Recommended Pairs section projects explicit researched comparisons
-from Thesis, with both currency versions, evidence, invalidation and a bounded
-window. New recommendations record a pair-specific grade and ordinal rank;
-standalone labels alone never create a pair recommendation. See the Thesis contract.
-The left Fundamentals panel is the user's primary monitoring view. Authorized
-live research must save its affected assessments and verify the summary API
-against the frontend contract; a chat answer or ledger-save receipt alone does
-not establish a usable panel update. Follow the skill's left-panel audit and
-leave visual acceptance to the user. Each live invocation must complete the affected
-research and refresh these rows; a save receipt or renamed status is insufficient.
-Keep all eight Fundamentals rows visible without an internal vertical scroller or
-repeated status headings. Anchor checkpoints to material currency-specific stages,
-not every routine speaker. Future alarms remain high-impact-only, with one bell
-per release package and explicit off choices preserved.
-Thesis uses one two-column timeline: Time · Jakarta | Evidence and interpretation.
-Combine developments, dated active background and earlier changed assessments;
-show sources inline, a compact current judgment and one next invocation anchor.
-Routine audit clocks/references/version bodies stay in storage and exports, not
-reading disclosures. Presentation is owned by [Thesis](docs/THESIS.md#presentation);
-the research skill owns concise authoring and mechanism-specific anchor selection.
-Write normal, spaced prose; never compress research into joined words.
-Separate currency codes, amounts and abbreviated units with spaces in research
-prose: `JPY 330 bn`, `GBP 3.9 bn`, `128 bp`, `19:40 UTC`, `October 29`.
-Keep source URLs, exact identifiers and original raw observations unchanged.
+Read this file, then the task-relevant owner in [README.md](README.md).
+Core terminal: chart/drawings, Market Watch, raw calendar Inspector, calendar
+Alert/reminders, Entry Trade, price alerts, Activity and Settings.
 
-Market Watch, chart/drawings, raw calendar Inspector, upcoming Alert, Activity and
-Settings, including agent-authored fundamental research journals and an archive
-under Highlight. Research is produced in the market-analyst session; the terminal
-may display saved research and provide occurrence-specific Copy Prompt actions.
-Entry Trade is a manual trade journal with editable incomplete entries,
-pinned arrows, sortable dates, archive/restore and one freeform journal box.
-Its entries and edit history persist in the Git-tracked
-`Market Analyst Workflow/entry-trade/journal.json`; preserve user technicals and
-notes. The UTC event anchor (`eventAt`/`eventTitle`) controls table dating; the
-chart-clock arrow time is independent and may be in future empty space. No
-completeness gate, trade execution or automatic Git commit is implied. No scoring, full Notebook workflow, Scatter Plot, Fundamental
-Settings, Roofs, Raycaster, Candy or Workspace backup UI belong here. Keep the copied bridge unchanged.
+Currency News replaces the left Fundamentals panel and bottom Thesis. Owner:
+`frontend/src/currency-news/`, `storage/currency_news.py`, and
+[the news contract](docs/CURRENCY-NEWS.md). Research runs in the agent chat on
+demand; the terminal displays saved results and copies scoped refresh prompts.
+The default publication lookback is three hours. Do not revive Thesis verdicts,
+pair rankings, D1 forecasts, outcome scoring, checkpoint renewal or the automatic
+learning loop as part of a news refresh. Mixed and no clear fresh signal are
+valid results. Refresh only researched currencies, preserving all other clocks.
 
-Read only task-relevant owners. README.md covers commands/ownership;
-docs/DATA-CONTRACT.md covers calendar, clocks and recovery. Keep docs short.
-Preserve currency-shared Inspector family selections, Save/Cancel and persistence, all eight currencies/28 pairs,
-all series, date-only timing, unknown-ID admission, blank-chart dismissal, the
-shared date viewport, future axis and saved drawing interactions.
-Display defaults to Jakarta (UTC+07:00, AM/PM). Shared broker-clock rules live in
-`config/broker-clock-profiles.json`; unknown broker history must not use today's
-offset. Preserve publication UTC independently of chart-placement availability.
-Use readable text in both themes; secondary labels must not fade into gray.
-Alert impact is agent-authored, matched by exact broker/value IDs or external key,
-and defaults to Unreviewed. Never substitute MT5 importance or another broker's rating.
+For current news use [Assess Trade Now](.agents/skills/assess-trade-now/SKILL.md).
+Read [research rules](docs/RESEARCH-RULES.md), then the schema only when writing.
+Retrieve compact relevant lessons through `pnpm analyst news lessons --scope CAD`;
+do not read full raw archives routinely. Historical investigations and imminent
+release waits remain optional separate skills. Dataset work reads only the
+relevant section of [AGENT-RESEARCH.md](docs/AGENT-RESEARCH.md).
 
-Keep polling clocks local, unchanged data/callback identities stable and viewport
-work batched by animation frame. Cancel listeners/timers and stale replies.
-Run frontend suites sequentially. For dependency/extraction changes use pnpm test,
-pnpm lint, pnpm build and pnpm check:repo. Performance changes need deterministic
-work counts and an assembled-terminal regression. Preserve storage/data.
-Leave visual audits to the user: no browser automation, computer-use or screenshot
-inspection without an explicit request.
+## Preserve terminal behavior and data
 
-The user grants standing permission to start or restart this repo's local
-development stack and services, including `pnpm run dev:all`, calendar storage
-and the alarm worker, whenever needed to load or verify changes. Proceed without
-asking again. Preserve stored data and alarm choices; this permission does not
-authorize trades or broker account changes.
+Keep the copied bridge unchanged. Preserve all eight currencies/28 FX pairs and
+all series, currency-shared Inspector family selections, Save/Cancel/persistence,
+date-only timing, unknown-ID admission, blank-chart dismissal, shared date
+viewport, future axis and saved drawing interactions. Display defaults to
+Jakarta (UTC+07:00, AM/PM). Broker historical clocks come from
+`config/broker-clock-profiles.json`; never guess old offsets from today's offset.
+Publication UTC remains independent of chart-placement availability.
 
-## Market research routing
+Calendar Alert, event Invoke reminders, manual price alerts and Currency News
+are separate paths. News saves do not change alarms or chart markers. Keep one
+bell per release package, high-impact-only agent curation when requested, and
+explicit off choices. Agent impact is sourced by exact broker/value IDs or an
+external key; never substitute MT5 importance or another broker's rating.
 
-The primary daily opportunity target is the traded pair's Pepperstone broker D1
-close versus its own open (green/red/flat), not the standalone currency basket's
-Day max. State the pair D1 target separately from BUY/SELL pressure from now and
-the next material reassessment checkpoint. New researched pair recommendations
-may freeze this target in `evaluation.relative_preferences[].daily_close`; verify
-the exact pair's native D1 open/current observation and broker close. Never derive
-its color automatically from BUY/SELL or present qualitative grades as calibrated
-probabilities. Keep an explicit Uncalibrated state until prospective pair/day
-forecasts, baseline comparisons and reliability checks support a numerical claim.
+Entry Trade is manual. Preserve user technicals, notes and edit history in the
+tracked `Market Analyst Workflow/entry-trade/journal.json`. Event UTC controls
+table dating; chart-clock arrow time is independent and may be in future space.
+No completeness gate, trade execution, broker/account changes or automatic Git
+commit is implied. Keep ignored storage, raw evidence and reminder choices.
+Legacy research is preserved per [the archive note](docs/RESEARCH-ARCHIVE.md).
+New generated payloads, logs and downloads belong in ignored `tmp/` or report
+folders; do not add them to Git.
 
-Real capital may be at risk. The saved verdict and checkpoint guide the user's
-decisions and invocation timing; treat their reasoning and freshness as critical.
-A recent assessment clock does not establish that fresh evidence was weighted
-correctly. Apply the skill's test of the strongest opposite case before renewal.
-Assess Trade Now includes [analyst learning](docs/ANALYST-LEARNING.md): retrieve
-reviewed lessons, freeze delivered calls, then measure and review matured outcomes
-within the invocation. Historical results never rewrite live verdicts or train
-model weights. Learning outcome captures are authorised; current technical scans
-still require the user's price-aware request. No background AI invocation follows.
-Every dated Thesis verdict must display sampled daily maximum excursion and its
-forming/final status, plus post-delivery opportunity; historical day context
-cannot reward a later call. Future research must confront scoped aligned/reward
-and opposed/refinement cases, preserve exact versions and report material limits.
-Compare post-delivery D1 closing alignment and active-window closing alignment
-separately from favourable/adverse excursions. A favourable maximum does not
-establish a correct closing verdict; missing exact endpoints remain unavailable.
-Explicitly compare Strong/Moderate/Slight; uncertainty alone is not a grade cap.
+## Engineering and verification
 
-For live fundamentals and Thesis updates use
-[Assess Trade Now](.agents/skills/assess-trade-now/SKILL.md). For imminent release
-waits use [One Minute Before Release](.agents/skills/one-minute-before-release/SKILL.md);
-for historical moves use [Review Historical Research](.agents/skills/review-historical-research/SKILL.md).
-Before research or analyst dataset work, read the task-relevant sections of
-[the research reference](docs/AGENT-RESEARCH.md), which preserves the research,
-source, persistence and dataset rules. Engineering-only tasks need not load it.
+Keep clocks local, unchanged data/callback identities stable and viewport work
+batched by animation frame. Cancel listeners/timers and stale replies. Text,
+including secondary labels, must remain readable in both themes. Research prose
+uses normal spacing: `JPY 330 bn`, `GBP 3.9 bn`, `128 bp`, `November 4`.
 
-## Focused verification
+Use terminal-based checks; leave visual acceptance to the user. No computer-use,
+browser automation or screenshot inspection without an explicit request.
+Run frontend suites sequentially. Focused suites:
+`pnpm --dir frontend test -- currency_news` (multiple filename fragments allowed).
+Dependency/extraction changes require `pnpm test`, `pnpm lint`, `pnpm build` and
+`pnpm check:repo`. Performance changes need deterministic work counts and an
+assembled-terminal regression.
 
-`pnpm --dir frontend test -- price_alert` runs matching suites sequentially;
-multiple filename fragments are accepted. Omit filters for the full frontend run.
-Use the ownership map in README.md to find code and contract before searching
-broadly. Extraction/dependency changes still require the full checks above.
+Standing permission covers starting/restarting this checkout's local stack,
+calendar storage and alarm worker, including `pnpm dev:all`, for verification.
+Preserve stored data and alarm choices; no trades or account changes.

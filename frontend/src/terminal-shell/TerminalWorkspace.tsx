@@ -14,7 +14,7 @@ import './terminal-shell.layout.css'
 import { ResearchReportPanel } from '../research/ResearchReportPanel'
 import { EventsDock } from '../events-alarms/EventsDock'
 import { EntryTradePanel } from '../entry-trade/dock/EntryTradePanel'
-import { ThesisDock } from '../thesis/ThesisDock'
+import { CurrencyNewsDock } from '../currency-news/CurrencyNewsDock'
 
 export function TerminalWorkspace() {
   const { timeframe, theme, chartAppearance, timeDisplay, activeDrawingTool, selectedDrawingId, setSelectedDrawingId,
@@ -126,7 +126,7 @@ export function TerminalWorkspace() {
         <BottomDockPanel
           resizeHandle={dockSize.resizeHandle}
         >
-          {bottomDockWindow === 'thesis' && <ThesisDock />}
+          {bottomDockWindow === 'currency-news' && <CurrencyNewsDock />}
           {bottomDockWindow === 'activity' && (
             <ActivityDock timeDisplay={timeDisplay} />
           )}

@@ -35,3 +35,11 @@ bridge/mql5/compile-*.log
 /Market Analyst Workflow/learning/.fyodor-storage.lock
 
 /frontend/tests/.runtime/
+
+# Generated agent payloads, downloads and diagnostic logs.
+/tmp/
+*.log
+# Retired local history stays outside active source discovery.
+/Market Analyst Workflow/learning/
+/Market Analyst Workflow/thesis/
+/Market Analyst Workflow/requests/

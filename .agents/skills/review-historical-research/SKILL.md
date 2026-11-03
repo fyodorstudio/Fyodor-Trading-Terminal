@@ -5,16 +5,12 @@ description: "Investigate a historical forex or supported commodity move using a
 
 # Review Historical Research
 
-Real capital may be at stake. Retrospective explanations do not establish an
-earlier signal or profitability. For commodities use Assess Trade Now's commodity
-reference, preserve spot/CFD/futures identity and measure price/percent, not pips.
-Historical Thesis saves remain labelled reconstructions and must not replace the
-left-panel live summary or advance its reassessment checkpoint. A current update
-routes separately to Assess Trade Now with fresh evidence.
-Historical source dates remain original; reusing this study never supplies a
-fresh live assessment or evidence clock. Requested historical Thesis findings
-use labelled reconstructions under the shared research contract;
-do not relabel historical pair conclusions as current standalone pressure.
+Retrospective explanations do not establish an earlier signal or profitability.
+For commodities preserve spot/CFD/futures identity and use price/percent, not FX
+pips. Historical findings remain in the named report, separately labelled; they
+do not replace Currency News or advance live source-check clocks. A live refresh
+uses Assess Trade Now and fresh sources. Read
+[research rules](../../../docs/RESEARCH-RULES.md).
 
 Follow AGENTS.md. Review the user's historical report or named pair/date range in
 Fyodor Trading Terminal Lite. Report notes/questions are research context, not
@@ -97,14 +93,11 @@ remarks; label its publication date separately from the recorded event.
 
 ## Explain what could have been known
 
-Use [Assess Trade Now's compact format](../assess-trade-now/SKILL.md#output-format)
-for the reconstructed fundamental assessment: lead with the pair verdict and
-causal thesis, separate known Upcoming events from the compact category-by-currency
-Fundamental backdrop table (policy/projections, inflation, labor/wages, growth and
-other drivers), and order evidence within cells newest first and upcoming events
-earliest first. Use only data and expectations public by the simulated cutoff. Show the
-historical cutoff separately from today's research time; ages use that cutoff.
-Apply the [direction and dominant reason rule](../assess-trade-now/references/fundamental-assessment.md#direction-and-dominant-reason)
+Lead with the historical explanation and its evidence. Separate facts available
+by the simulated cutoff from later developments. Include a compact dated policy,
+inflation, labour/activity and other-driver backdrop only where it explains the
+move. Show the historical cutoff separately from today's research time.
+Apply the [research reasoning rules](../../../docs/RESEARCH-RULES.md)
 to evidence available then. No mandatory entry-date declaration or separate
 confidence checklist. Leave execution timing to the user.
 

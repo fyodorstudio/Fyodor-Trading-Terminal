@@ -51,7 +51,7 @@ export function TerminalStatusBar({
       <div className="status-actions status-primary" role="group" aria-label="App features">
         <button className={`status-action${bottomDockWindow === 'alert' || bottomDockWindow === 'external-sources' ? ' active' : ''}`} type="button"
           onClick={() => onToggleBottomDock(bottomDockWindow === 'external-sources' ? 'external-sources' : 'alert')} aria-expanded={bottomDockWindow === 'alert' || bottomDockWindow === 'external-sources'}>Alert</button>
-        <button className={`status-action${bottomDockWindow === 'thesis' ? ' active' : ''}`} type="button" onClick={() => onToggleBottomDock('thesis')} aria-expanded={bottomDockWindow === 'thesis'}>Thesis</button>
+        <button className={`status-action${bottomDockWindow === 'currency-news' ? ' active' : ''}`} type="button" onClick={() => onToggleBottomDock('currency-news')} aria-expanded={bottomDockWindow === 'currency-news'}>Currency News</button>
         <button className={`status-action${bottomDockWindow === 'inspector' ? ' active' : ''}`} type="button" onClick={() => onToggleBottomDock('inspector')} aria-expanded={bottomDockWindow === 'inspector'}>
           Inspector
         </button>

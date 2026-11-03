@@ -1,4 +1,4 @@
 interface:
-  display_name: "Assess Trade Now"
-  short_description: "Find supported FX and commodity entry opportunities"
-  default_prompt: "Use $assess-trade-now to find the strongest supported opportunities now, explaining potential investor buying/selling, horizon and invalidation; real capital may be at stake."
+  display_name: "Currency News"
+  short_description: "Refresh verified currency news and fundamental implications"
+  default_prompt: "Use $assess-trade-now to refresh all eight currencies from the last three hours and save concise facts, qualitative implications, source clocks and links to Currency News."

@@ -64,6 +64,18 @@ class RecoveryTests(unittest.TestCase):
             restore_directory(self.backup, self.root / "rejected")
         self.assertFalse((self.root / "rejected").exists())
 
+    def test_news_backup_restores_projection_and_immutable_history(self):
+        from storage.currency_news import NewsRefresh, news_snapshot, save_refresh
+        from storage.tests.test_currency_news import payload
+        news = self.source / 'currency-news'
+        save_refresh(NewsRefresh.model_validate(payload()), news)
+        before = news_snapshot(news)
+        backup_directory(self.source, self.backup)
+        self.assertFalse((self.backup / 'currency-news/.fyodor-storage.lock').exists())
+        restored = self.root / 'restored news'
+        restore_directory(self.backup, restored)
+        self.assertEqual(news_snapshot(restored / 'currency-news'), before)
+
     def test_active_service_lock_blocks_second_process_and_recovery(self):
         with data_lock(self.source):
             with self.assertRaisesRegex(ValueError, "in use"):

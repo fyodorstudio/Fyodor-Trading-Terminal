@@ -20,8 +20,7 @@ from .highlights import HIGHLIGHTS_PATH, HighlightRequest, pin_release, delete_p
 from .highlight_metadata import limitations_snapshot
 from .alert_impact import impact_snapshot
 from .external_sources import DIRECTORY, ExternalRequest, LifecycleRequest, external_snapshot, external_history, append_external, archive_external
-from .thesis import PATH as THESIS_PATH, thesis_snapshot
-from .thesis_summary import currency_summary
+from .currency_news import news_snapshot
 from .alert_calendar import day_snapshot
 from .market_watch_daily import DailyMarketWatch
 
@@ -43,10 +42,7 @@ def data_directory():
     return Path(os.environ.get("FYODOR_STORAGE_DATA_DIR", Path(__file__).resolve().parent / "data")).resolve()
 
 
-def create_app(directory=None, run_collector=True, highlights_path=HIGHLIGHTS_PATH, external_directory=DIRECTORY, thesis_path=THESIS_PATH, excursion_market=None):
-    from .analyst_learning.daily_market import DailyExcursionMarket
-    excursions = excursion_market or DailyExcursionMarket(thesis_path, (directory or data_directory()) / 'analyst-learning/days',
-        enabled=run_collector and Path(thesis_path).resolve() == Path(THESIS_PATH).resolve())
+def create_app(directory=None, run_collector=True, highlights_path=HIGHLIGHTS_PATH, external_directory=DIRECTORY, news_directory=None):
     @asynccontextmanager
     async def lifespan(app):
         with data_lock(directory or data_directory()):
@@ -57,7 +53,6 @@ def create_app(directory=None, run_collector=True, highlights_path=HIGHLIGHTS_PA
             try:
                 yield
             finally:
-                excursions.close()
                 app.state.collector.stop()
                 app.state.store.close()
 
@@ -169,42 +164,12 @@ def create_app(directory=None, run_collector=True, highlights_path=HIGHLIGHTS_PA
         except OSError as error:
             raise HTTPException(503, 'Could not restore Highlight') from error
 
-    @app.get('/api/v1/theses/recommended-pairs')
-    def thesis_recommended_pairs(after_revision: str | None = Query(default=None, max_length=100)):
-        from .recommended_pairs import recommended_pairs
+    @app.get('/api/v1/currency-news')
+    def currency_news(after_revision: str | None = Query(default=None, max_length=100)):
         try:
-            return recommended_pairs(thesis_path, after_revision)
-        except (OSError, ValueError) as error:
-            raise HTTPException(503, 'Recommended pairs unavailable; saved Thesis history is preserved') from error
-
-    @app.get('/api/v1/theses/summary')
-    def thesis_currency_summary(after_revision: str | None = Query(default=None, max_length=100)):
-        try:
-            return currency_summary(thesis_path, after_revision)
-        except (OSError, ValueError) as error:
-            raise HTTPException(503, 'Currency summary unavailable; saved Thesis history is preserved') from error
-
-    @app.get('/api/v1/theses/research')
-    def thesis_research(from_date: str = Query(alias='from', pattern=r'^\d{4}-\d{2}-\d{2}$'),
-                        to_date: str = Query(alias='to', pattern=r'^\d{4}-\d{2}-\d{2}$'),
-                        after_revision: str | None = Query(default=None, max_length=100),
-                        currency: str | None = Query(default=None, pattern=r'^(EUR|GBP|AUD|NZD|USD|CAD|CHF|JPY)$')):
-        from .thesis_research import research_snapshot
-        try:
-            return excursions.enrich(research_snapshot(thesis_path, from_date, to_date, None, currency), after_revision)
-        except ValueError as error:
-            raise HTTPException(422, str(error)) from error
-        except OSError as error:
-            raise HTTPException(503, 'Thesis research unavailable; history is preserved') from error
-
-    @app.get('/api/v1/theses')
-    def theses(scope: str = Query(pattern=r'^(?:ALL|[A-Z]{6})$'), month: str = Query(pattern=r'^\d{4}-\d{2}$'),
-               source_id: str | None = Query(default=None, min_length=1, max_length=160),
-               after_revision: str | None = Query(default=None, max_length=100)):
-        try:
-            return thesis_snapshot(app.state.store, scope, month, source_id, thesis_path, highlights_path, external_directory, after_revision)
-        except OSError as error:
-            raise HTTPException(503, 'Thesis storage unavailable') from error
+            return news_snapshot(news_directory or (directory or data_directory()) / 'currency-news', after_revision)
+        except (OSError, ValueError, KeyError, TypeError) as error:
+            raise HTTPException(503, 'Currency news unavailable; saved refresh history is preserved') from error
 
     @app.get('/api/v1/alert-impact')
     def alert_impact(source_id: str = Query(default='', max_length=160), after_revision: str | None = Query(default=None, max_length=100)):
