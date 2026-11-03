@@ -52,9 +52,11 @@ selected publication window (default three hours). Run the prompt in the agent
 chat. Reload saved news only reloads stored output. There is no automatic AI
 schedule or news ingestion. Publication time, source-check time, older background
 and coverage gaps stay distinct. Existing results keep their own lookback/time.
-History restores the Jakarta date revolver for saved refreshes, with a time picker
-for multiple updates. Browsing never runs research or reconstructs missing days.
-Export Markdown documents the selected currency/view with original sources and
+The date revolver opens on Today. Each currency shows its own latest refresh saved
+on the selected Jakarta day; earlier versions are selectable in that row. Empty
+dates keep the eight-row table. All/individual currencies filter the same records
+without duplicate research. Past/future dates are browsing only; Today offers the
+refresh prompt and lookback. Markdown exports preserve selected rows and source
 clocks. History remains local and is included in storage backups.
 
 ```powershell

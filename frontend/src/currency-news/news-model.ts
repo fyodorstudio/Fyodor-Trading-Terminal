@@ -10,8 +10,9 @@ export type NewsResult = {
 export type NewsRow = { currency: NewsCurrency; snapshot: NewsResult | null }
 export type NewsSnapshot = { schema: 1; revision: string; rows: NewsRow[] }
 export type SavedNews = NewsSnapshot & { run_id: string; saved_at: string }
-export type NewsHistoryEntry = { run_id: string; saved_at: string; currencies: NewsCurrency[] }
-export type NewsHistory = { schema: 1; date: string; runs: NewsHistoryEntry[]; next_before: string | null }
+export type NewsRefreshTime = { run_id: string; saved_at: string }
+export type NewsDayRow = NewsRow & { refreshes: NewsRefreshTime[]; pending?: boolean }
+export type NewsDay = Omit<NewsSnapshot, 'rows'> & { date: string; rows: NewsDayRow[] }
 
 const text = (v: unknown, max: number, empty = false): v is string => typeof v === 'string' && v.length <= max && (empty || !!v.trim())
 const instant = (v: unknown): v is string => typeof v === 'string' && /T.*(?:Z|[+-]\d{2}:\d{2})$/.test(v) && Number.isFinite(Date.parse(v))
@@ -50,16 +51,14 @@ export function validNewsSnapshot(v: unknown): v is NewsSnapshot {
   })
 }
 
-export function validNewsHistory(v: unknown, date: string): v is NewsHistory {
-  if (!v || typeof v !== 'object') return false
-  const h = v as NewsHistory
-  return h.schema === 1 && h.date === date && Array.isArray(h.runs) && h.runs.length <= 100
-    && h.runs.every(r => r && hash(r.run_id) && instant(r.saved_at)
-      && new Date(Date.parse(r.saved_at) + 7 * 3600000).toISOString().slice(0, 10) === date
-      && Array.isArray(r.currencies) && r.currencies.length > 0 && r.currencies.length <= 8
-      && new Set(r.currencies).size === r.currencies.length && r.currencies.every(c => newsCurrencies.includes(c)))
-    && new Set(h.runs.map(r => r.run_id)).size === h.runs.length
-    && (h.next_before === null || h.runs.length > 0 && h.next_before === h.runs.at(-1)?.run_id)
+export function validNewsDay(v: unknown, date: string): v is NewsDay {
+  if (!validNewsSnapshot(v)) return false
+  const d = v as NewsDay
+  return d.date === date && d.rows.every(row => Array.isArray(row.refreshes)
+    && row.refreshes.every(r => r && hash(r.run_id) && instant(r.saved_at)
+      && new Date(Date.parse(r.saved_at) + 7 * 3600000).toISOString().slice(0, 10) === date)
+    && new Set(row.refreshes.map(r => r.run_id)).size === row.refreshes.length
+    && (row.snapshot ? row.snapshot.run_id === row.refreshes[0]?.run_id && row.snapshot.saved_at === row.refreshes[0]?.saved_at : row.refreshes.length === 0))
 }
 
 export function validSavedNews(v: unknown, id: string): v is SavedNews {

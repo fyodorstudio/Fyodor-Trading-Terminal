@@ -175,27 +175,22 @@ globalThis.fetch = (url, options = {}) => {
     events: [{ key: 'external:treasury-fixture', reference: 'treasury-fixture', source: 'external', broker: null, title: 'Treasury fixture', currencies: ['USD'],
       at: now + 3600000, date: null, eligible: true, armed: true, note: 'Exact fixture schedule', prompt: '$one-minute-before-release Treasury fixture' }] }) })
   if (u.startsWith('/storage-api/highlights')) return Promise.resolve({ ok: true, json: async () => ({ source_id: broker, revision: 'fixture-pins', items: [] }) })
-  if (u.startsWith('/storage-api/currency-news/history?')) {
-    const date = new URL(u, 'http://localhost').searchParams.get('date')
-    return Promise.resolve({ ok: true, json: async () => ({ schema: 1, date, next_before: null,
-      runs: date === '2026-10-08' ? [{run_id:'a'.repeat(64),saved_at:'2026-10-08T11:01:00+00:00',currencies:['CHF']}] : [] }) })
-  }
   if (u.startsWith('/storage-api/currency-news/history/')) {
-    const run_id = 'a'.repeat(64), saved_at = '2026-10-08T11:01:00+00:00'
-    return Promise.resolve({ ok: true, json: async () => ({ schema:1,revision:run_id,run_id,saved_at,
-      rows:['EUR','GBP','AUD','NZD','USD','CAD','CHF','JPY'].map(currency => ({currency,snapshot:currency !== 'CHF' ? null : {
-        currency,run_id,saved_at,checked_at:'2026-10-08T11:00:00Z',coverage:'checked',coverage_note:'',window_hours:3,
-        items:[],background:[],implication:'no_clear_signal',reason:'Original saved history fixture.' }})) }) })
+    const run_id='c'.repeat(64),saved_at='2026-10-08T10:01:00Z'
+    return Promise.resolve({ok:true,json:async()=>({schema:1,revision:run_id,run_id,saved_at,
+      rows:['EUR','GBP','AUD','NZD','USD','CAD','CHF','JPY'].map(currency=>({currency,snapshot:currency!=='CHF'?null:{
+        currency,run_id,saved_at,checked_at:'2026-10-08T10:00:00Z',coverage:'checked',coverage_note:'',window_hours:3,
+        items:[],background:[],implication:'no_clear_signal',reason:'Original saved history fixture.'}}))})})
   }
-  if (u.startsWith('/storage-api/currency-news')) {
-    const revision = 'a'.repeat(64)
-    const unchanged = new URL(u, 'http://localhost').searchParams.get('after_revision') === revision
-    return Promise.resolve({ ok: true, json: async () => ({ schema: 1, revision, ...(unchanged ? { unchanged: true } : {
-      rows: ['EUR','GBP','AUD','NZD','USD','CAD','CHF','JPY'].map(currency => ({ currency, snapshot: {
-        currency, checked_at: '2026-10-08T11:00:00Z', coverage: 'checked', coverage_note: '', window_hours: 3,
-        run_id: revision, saved_at: '2026-10-08T11:01:00Z', items: [{ summary: 'Verified currency news.',
-          published_at: '2026-10-08T10:00:00Z', timing_note: '', sources: [{label:'Official',url:'https://example.com/release'}] }],
-        background: [], implication: 'mixed', reason: 'Policy support meets activity opposition.' } })) }) }) })
+  if (u.startsWith('/storage-api/currency-news/day?')) {
+    const params=new URL(u,'http://localhost').searchParams,date=params.get('date'),empty=date!=='2026-10-08'
+    const revision=(empty?'e':'a').repeat(64),saved_at='2026-10-08T11:01:00Z'
+    return Promise.resolve({ok:true,json:async()=>({schema:1,date,revision,...(params.get('after_revision')===revision?{unchanged:true}:{
+      rows:['EUR','GBP','AUD','NZD','USD','CAD','CHF','JPY'].map(currency=>({currency,
+        refreshes:empty?[]:[{run_id:revision,saved_at},...(currency==='CHF'?[{run_id:'c'.repeat(64),saved_at:'2026-10-08T10:01:00Z'}]:[])],
+        snapshot:empty?null:{currency,run_id:revision,saved_at,checked_at:'2026-10-08T11:00:00Z',coverage:'checked',coverage_note:'',window_hours:3,
+          items:[{summary:'Verified currency news.',published_at:'2026-10-08T10:00:00Z',timing_note:'',sources:[{label:'Official',url:'https://example.com/release'}]}],
+          background:[],implication:'mixed',reason:'Policy support meets activity opposition.'}}))})})})
   }
   if (u.startsWith('/storage-api/external-sources')) {
     const params = new URL(u, 'http://localhost').searchParams
@@ -337,21 +332,23 @@ try {
   assert.equal(counters.newsRows ?? 0, 0, 'Unchanged polling leaves news rows alone')
   assert.equal(requests.filter(url => url.startsWith('/storage-api/currency-news')).length, newsRequestCount + 1)
   reset()
-  await click(button('History'))
-  assert.ok(container.querySelector('[aria-label="News history date selector"]'))
+  assert.equal(container.querySelector('[aria-label="News view"]'),null,'There is one date-based news view')
+  assert.ok(container.querySelector('[aria-label="Currency News date selector"]'))
+  await React.act(async()=>{const selector=container.querySelector('[aria-label="CHF saved refresh"]');selector.value='c'.repeat(64);selector.dispatchEvent(new dom.Event('change',{bubbles:true}))})
   assert.match(container.querySelector('[data-news-currency="CHF"]').textContent,/Original saved history fixture/)
-  assert.equal([...timers.values()].filter(t => t.fn.name === 'pollNews').length, 0, 'History stops the latest polling timer')
-  assertQuiet('Opening saved news history', true)
-  const historyCalls = requests.length
+  assertQuiet('Selecting an earlier currency refresh',true)
+  const historyCalls=requests.length
   reset()
   await click(container.querySelector('[aria-label="Previous date"]'))
-  assert.match(container.querySelector('[aria-label="Currency News"]').textContent,/No saved research/)
-  assert.equal(requests.length, historyCalls + 1, 'Date browsing loads one metadata page without any research')
-  assertQuiet('Browsing an empty saved date', true)
+  assert.match(container.querySelector('[data-news-currency="CHF"]').textContent,/No research saved for this date/)
+  assert.equal(container.querySelectorAll('[data-news-currency]').length,1,'The prescribed table keeps the focused currency on empty dates')
+  assert.equal(requests.length,historyCalls+1,'Browsing loads one daily projection without research')
+  assert.equal([...timers.values()].filter(t=>t.fn.name==='pollNews').length,0,'Past dates do not poll')
+  assertQuiet('Browsing an empty saved date',true)
   reset()
-  await click(button('Latest'))
+  await click(button('Today'))
   assert.ok(container.querySelector('[data-news-currency="CHF"]'))
-  assertQuiet('Returning to latest news', true)
+  assertQuiet('Returning to Today',true)
   await click(button('Currency News'))
   assert.equal(container.querySelector('[aria-label="Currency News"]'), null)
   assert.ok(container.querySelector('.external-chart-star'), 'Upcoming external record appears on the assembled chart')

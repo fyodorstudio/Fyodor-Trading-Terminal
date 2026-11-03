@@ -14,8 +14,10 @@ The default publication lookback is three hours. Do not revive Thesis verdicts,
 pair rankings, D1 forecasts, outcome scoring, checkpoint renewal or the automatic
 learning loop as part of a news refresh. Mixed and no clear fresh signal are
 valid results. Refresh only researched currencies, preserving all other clocks.
-History dates browse saved refreshes only; they do not change the live lookback
-or request historical reconstruction. Do not load history during routine refreshes.
+The single date-based news table opens on Today and assembles each currency's own
+latest saved refresh for that day. Earlier row versions/date browsing perform no
+research. All and currency filters reuse the same records. Only Today offers the
+live refresh prompt/lookback. Do not load history during routine refreshes.
 
 For current news use [Assess Trade Now](.agents/skills/assess-trade-now/SKILL.md).
 Read [research rules](docs/RESEARCH-RULES.md), then the schema only when writing.

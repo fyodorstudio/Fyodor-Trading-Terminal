@@ -319,7 +319,7 @@ def run(args):
     if getattr(args, 'offset', 0) < 0:
         raise ValueError('Offset must be non-negative')
     if args.command == 'news':
-        from storage.currency_news import NewsRefresh, news_snapshot, save_refresh
+        from storage.currency_news import NewsRefresh, news_snapshot, news_day, save_refresh, DIRECTORY as NEWS_DIRECTORY
         if args.action == 'lessons':
             lessons = json.loads((ROOT / 'docs/research-lessons.json').read_text(encoding='utf-8'))
             return {'scope': args.scope, 'lessons': [l for l in lessons['lessons'] if args.scope == 'ALL' or args.scope in l['currencies']]}
@@ -335,7 +335,11 @@ def run(args):
             served = get_json(args.storage, 'currency-news')
             if served != snapshot:
                 raise ValueError("Running storage does not serve this checkout's saved news; restart the correct stack and retry")
-            return {'panel_delivery_verified': True, 'revision': served['revision'], 'currencies': [r['currency'] for r in served['rows'] if r['snapshot'] and (args.scope == 'ALL' or r['currency'] == args.scope)]}
+            day = (datetime.now(timezone.utc)+timedelta(hours=7)).date().isoformat()
+            daily = news_day(NEWS_DIRECTORY, day)
+            if get_json(args.storage, 'currency-news/day?date='+day) != daily:
+                raise ValueError('Running storage does not serve the saved daily table; restart the correct stack and retry')
+            return {'panel_delivery_verified': True, 'date': day, 'revision': daily['revision'], 'currencies': [r['currency'] for r in daily['rows'] if r['snapshot'] and (args.scope == 'ALL' or r['currency'] == args.scope)]}
         if args.scope != 'ALL':
             snapshot = {**snapshot, 'rows': [r for r in snapshot['rows'] if r['currency'] == args.scope]}
         return snapshot

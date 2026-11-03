@@ -6,12 +6,13 @@ agent chat. The agent verifies sources and saves the researched currencies.
 The panel reads the saved output automatically while open. Reload saved news
 only reloads local results; it does not run research.
 
-History opens the Jakarta date revolver. Choose a day, then a saved refresh time
-to inspect what was actually recorded. Empty days stay empty. Publication and
-source-check clocks stay original; unresearched currencies do not inherit later
-results. Return to Latest to copy a new live refresh prompt. Export Markdown
-downloads the selected view/currency for documentation. History is local ignored
-data included in storage backups.
+The date revolver opens on Today. Each currency row shows its own latest saved
+refresh for that Jakarta date. Select an earlier refresh inside a row without
+changing the others. Empty dates still show the prescribed table. All/currency
+buttons filter the same records and never request duplicate research. Only Today
+offers the lookback and live refresh prompt; past/future dates are browsing only.
+Export Markdown downloads the selected date, currencies and row versions. Saved
+history is local ignored data included in storage backups.
 
 Examples:
 

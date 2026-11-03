@@ -20,7 +20,7 @@ from .highlights import HIGHLIGHTS_PATH, HighlightRequest, pin_release, delete_p
 from .highlight_metadata import limitations_snapshot
 from .alert_impact import impact_snapshot
 from .external_sources import DIRECTORY, ExternalRequest, LifecycleRequest, external_snapshot, external_history, append_external, archive_external
-from .currency_news import news_snapshot, news_history, news_run, SavedNewsNotFound
+from .currency_news import news_snapshot, news_day, news_history, news_run, SavedNewsNotFound
 from .alert_calendar import day_snapshot
 from .market_watch_daily import DailyMarketWatch
 
@@ -170,6 +170,13 @@ def create_app(directory=None, run_collector=True, highlights_path=HIGHLIGHTS_PA
             return news_snapshot(news_directory or (directory or data_directory()) / 'currency-news', after_revision)
         except (OSError, ValueError, KeyError, TypeError) as error:
             raise HTTPException(503, 'Currency news unavailable; saved refresh history is preserved') from error
+
+    @app.get('/api/v1/currency-news/day')
+    def currency_news_day(date: Date, after_revision: str | None = Query(default=None, max_length=100)):
+        try:
+            return news_day(news_directory or (directory or data_directory()) / 'currency-news', date.isoformat(), after_revision)
+        except (OSError, ValueError, KeyError, TypeError) as error:
+            raise HTTPException(503, 'Daily currency news unavailable; saved refreshes are preserved') from error
 
     @app.get('/api/v1/currency-news/history')
     def currency_news_history(date: Date, before: str | None = Query(default=None, pattern=r'^[a-f0-9]{64}$')):

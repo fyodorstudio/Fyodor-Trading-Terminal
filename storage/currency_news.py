@@ -217,6 +217,31 @@ def news_history(directory, selected_date, before=None, limit=50):
         'next_before': page[-1]['run_id'] if page and start + limit < len(entries) else None}
 
 
+def news_day(directory, selected_date, after_revision=None):
+    """One daily table assembled from each currency's own saved refreshes."""
+    selected_date = Date.fromisoformat(selected_date).isoformat()
+    _, history = read_state(directory, legacy_history=True)
+    entries = [(run_id, meta) for run_id, meta in history.items()
+        if datetime.fromisoformat(meta['saved_at']).astimezone(JAKARTA).date().isoformat() == selected_date]
+    entries.sort(key=lambda entry: (datetime.fromisoformat(entry[1]['saved_at']), entry[0]), reverse=True)
+    refreshes = {currency: [] for currency in CURRENCIES}
+    for run_id, meta in entries:
+        for currency in meta['currencies']:
+            refreshes[currency].append({'run_id': run_id, 'saved_at': meta['saved_at']})
+    revision = sha256(encoded({'date': selected_date, 'refreshes': refreshes})).hexdigest()
+    result = {'schema': 1, 'date': selected_date, 'revision': revision}
+    if after_revision == revision:
+        return {**result, 'unchanged': True}
+    latest = {currency: options[0]['run_id'] for currency, options in refreshes.items() if options}
+    rows = read_rows(directory, latest)
+    for row in rows:
+        options = refreshes[row['currency']]
+        if row['snapshot'] and row['snapshot']['saved_at'] != options[0]['saved_at']:
+            raise ValueError('Saved refresh does not match its daily index')
+        row['refreshes'] = options
+    return {**result, 'rows': rows}
+
+
 def news_run(directory, run_id):
     _, history = read_state(directory, legacy_history=True)
     if run_id not in history:

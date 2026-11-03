@@ -15,7 +15,7 @@ import uvicorn
 from pydantic import ValidationError
 
 from storage.app import create_app
-from storage.currency_news import NewsRefresh, news_snapshot, save_refresh, news_history, news_run, read_run
+from storage.currency_news import NewsRefresh, news_snapshot, save_refresh, news_day, news_history, news_run, read_run
 
 
 def payload(currency='CAD', **changes):
@@ -119,6 +119,36 @@ class CurrencyNewsTests(unittest.TestCase):
             news_run(self.news, second['runs'][0]['run_id'])
             self.assertEqual(read.call_count, 1, 'Only the selected immutable body is loaded')
         with self.assertRaises(ValueError): news_history(self.news, '2026-01-02', before='a'*64)
+
+    def test_daily_table_combines_focused_saves_and_keeps_each_currencies_versions(self):
+        yesterday = self.dated_save('EUR', datetime(2026, 1, 1, 16, 59, tzinfo=timezone.utc))
+        cad = self.dated_save('CAD', datetime(2026, 1, 1, 17, tzinfo=timezone.utc))
+        jpy = self.dated_save('JPY', datetime(2026, 1, 1, 18, tzinfo=timezone.utc))
+        later = self.dated_save('CAD', datetime(2026, 1, 1, 19, tzinfo=timezone.utc))
+        day = news_day(self.news, '2026-01-02')
+        rows = {row['currency']: row for row in day['rows']}
+        self.assertEqual(len(rows), 8)
+        self.assertEqual(rows['CAD']['snapshot']['run_id'], later['run_id'])
+        self.assertEqual(rows['JPY']['snapshot']['run_id'], jpy['run_id'])
+        self.assertEqual([r['run_id'] for r in rows['CAD']['refreshes']], [later['run_id'], cad['run_id']])
+        self.assertIsNone(rows['EUR']['snapshot'], 'Previous-day research never fills a new day')
+        self.assertEqual(rows['EUR']['refreshes'], [])
+        self.assertEqual(news_day(self.news, '2026-01-01')['rows'][0]['snapshot']['run_id'], yesterday['run_id'])
+        empty = news_day(self.news, '2026-01-03')
+        self.assertTrue(all(r['snapshot'] is None and not r['refreshes'] for r in empty['rows']))
+        self.assertEqual(news_day(self.news, '2026-01-02', day['revision']), dict(schema=1, date='2026-01-02', revision=day['revision'], unchanged=True))
+
+    def test_daily_projection_ignores_other_dates_and_reads_only_latest_currency_bodies(self):
+        self.dated_save('CAD', datetime(2026, 1, 1, 17, tzinfo=timezone.utc))
+        self.dated_save('CAD', datetime(2026, 1, 1, 18, tzinfo=timezone.utc))
+        self.dated_save('JPY', datetime(2026, 1, 1, 19, tzinfo=timezone.utc))
+        with patch('storage.currency_news.read_run', wraps=read_run) as read:
+            day = news_day(self.news, '2026-01-02')
+            self.assertEqual(read.call_count, 2, 'Latest body per researched currency, without loading older versions')
+            news_day(self.news, '2026-01-02', day['revision'])
+            self.assertEqual(read.call_count, 2, 'Unchanged polling reads no bodies')
+        self.dated_save('EUR', datetime(2026, 1, 2, 18, tzinfo=timezone.utc))
+        self.assertEqual(news_day(self.news, '2026-01-02')['revision'], day['revision'])
 
     def test_legacy_history_reads_do_not_write_and_next_save_migrates_metadata(self):
         first = self.save(payload())
@@ -237,6 +267,8 @@ class CurrencyNewsTests(unittest.TestCase):
             saved = news_run(self.news, first['run_id'])
             day = datetime.fromisoformat(saved['saved_at']).astimezone(timezone(timedelta(hours=7))).date().isoformat()
             self.assertEqual(get('/api/v1/currency-news/history?date='+day)[1], news_history(self.news, day))
+            self.assertEqual(get('/api/v1/currency-news/day?date='+day)[1], news_day(self.news, day))
+            self.assertEqual(get('/api/v1/currency-news/day?date=2026-02-30')[0], 422)
             self.assertEqual(get('/api/v1/currency-news/history/'+first['run_id'])[1], saved)
             self.assertEqual(get('/api/v1/currency-news/history?date=2026-02-30')[0], 422)
             self.assertEqual(get('/api/v1/currency-news/history/'+'a'*64)[0], 404)
@@ -255,9 +287,12 @@ class CurrencyNewsTests(unittest.TestCase):
         analyst = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(analyst)
         fixture = news_snapshot(self.news)
+        daily = news_day(self.news, datetime.now(timezone.utc).astimezone(timezone(timedelta(hours=7))).date().isoformat())
         args = analyst.parser().parse_args(['news', 'verify', '--scope', 'CAD'])
-        with patch('storage.currency_news.news_snapshot', return_value=fixture), patch.object(analyst, 'get_json', return_value=fixture):
+        with patch('storage.currency_news.news_snapshot', return_value=fixture), patch('storage.currency_news.news_day', return_value=daily), patch.object(analyst, 'get_json', side_effect=lambda _, route: daily if '/day?' in route else fixture):
             self.assertTrue(analyst.run(args)['panel_delivery_verified'])
+        with patch('storage.currency_news.news_snapshot', return_value=fixture), patch('storage.currency_news.news_day', return_value=daily), patch.object(analyst, 'get_json', return_value=fixture):
+            with self.assertRaisesRegex(ValueError, 'daily table'): analyst.run(args)
         with patch('storage.currency_news.news_snapshot', return_value=fixture), patch.object(analyst, 'get_json', return_value={}):
             with self.assertRaisesRegex(ValueError, 'correct stack'): analyst.run(args)
         body = self.directory/'news.json'
