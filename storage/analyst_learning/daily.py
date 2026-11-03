@@ -7,13 +7,13 @@ from .store import digest, instant, stamp
 
 SOURCE = 'Pepperstone-Demo'
 PROTOCOL = {
-    'version': 3, 'basis': 'Equal-weight relative FX basket · synchronized M1 closes',
+    'version': 4, 'basis': 'Equal-weight relative FX basket · synchronized M1 closes',
     'day': 'Pepperstone New York-close D1; D1 opens normalize seven USD legs.',
     'daily_max': 'Largest absolute signed excursion from broker D1 opens; upward wins ties.',
     'call': 'First common completed minute after persisted delivery, within 120 seconds; no earlier prices credited.',
     'windows': 'Full remaining broker day and active interval through earliest declared end/checkpoint/supersession/day close, separately.',
     'feedback': 'Largest absolute post-call excursion aligned/opposed/flat; supporting case or refinement candidate, never causal proof or profit.',
-    'closing_comparison': 'Exact delivery-baseline to window-end return, separately from excursion alignment. No neighbouring terminal minute substituted.',
+    'closing_comparison': 'Verified completed broker D1 closes for the day endpoint; exact synchronized M1 endpoints for intraday windows. Closing alignment is separate from sampled excursions. No neighbouring terminal minute substituted.',
     'limits': 'Sampled maxima, not synthetic wick extrema. Missing samples stay partial. No fills/costs or automatic model training.',
     'price_provenance': 'Archive the exact source day document for each new completed observation, with its measured-as-of cutoff; live progress reuses the mutable cache.',
 }
@@ -50,6 +50,14 @@ class DailyBasket:
         self.observed = min(instant(now).timestamp(), instant(document['captured_utc']).timestamp(), self.end)
         self.phase = 'final' if instant(now).timestamp() >= self.end and instant(document['captured_utc']).timestamp() >= self.end else 'developing'
         self.opens = document['opens']
+        self.closes = document.get('closes', {})
+        self.closing_logs = None
+        if self.phase == 'final' and instant(document.get('d1_observed_utc', document['captured_utc'])).timestamp() >= self.end and all(type(self.closes.get(symbol)) in (int, float)
+                and math.isfinite(self.closes[symbol]) and self.closes[symbol] > 0
+                and type(self.opens.get(symbol)) in (int, float) and math.isfinite(self.opens[symbol]) and self.opens[symbol] > 0
+                for symbol, _ in LEGS.values()):
+            self.closing_logs = {'USD': 0., **{c: sign * math.log(self.closes[symbol] / self.opens[symbol])
+                for c, (symbol, sign) in LEGS.items()}}
         self.points = {}
         self.gap = ''
         for symbol, _ in LEGS.values():
@@ -67,7 +75,7 @@ class DailyBasket:
         sets = [set(p) for p in self.points.values()]
         self.times = sorted(set.intersection(*sets)) if all(sets) and not self.gap else []
         self.revision = digest({'source_id': SOURCE, 'clock_profile': document['clock_profile'],
-            'day': self.day, 'opens': self.opens, 'completed_points': self.points})
+            'day': self.day, 'opens': self.opens, 'closes': self.closes if self.phase == 'final' else {}, 'completed_points': self.points})
         self.paths = {}
 
     def path(self, currency):
@@ -88,11 +96,21 @@ class DailyBasket:
         low = min([(self.start, 0.), *path], key=lambda p: p[1])
         peak = high if high[1] >= abs(low[1]) else low
         expected = max(0, int((self.observed // 60 * 60 - self.start) / 60))
-        return {'status': 'complete' if len(path) == expected else 'partial', 'max_pct': peak[1],
-            **({'close_pct': path[-1][1]} if self.phase == 'final' and path[-1][0] == self.end else {}),
+        close = self.close(currency)
+        return {'status': 'complete' if len(path) == expected else 'partial', 'max_pct': peak[1], 'current_pct': path[-1][1],
+            **({'close_pct': math.expm1(close[0]) * 100, 'close_basis': close[1]} if close else {}),
             'peak_utc': stamp(datetime.fromtimestamp(peak[0], timezone.utc)), 'up_pct': high[1], 'down_pct': low[1],
             'sample_count': len(path), 'missing_samples': max(0, expected - len(path)),
             'through_utc': stamp(datetime.fromtimestamp(self.times[-1], timezone.utc))}
+
+    def close(self, currency):
+        if self.closing_logs is not None:
+            value = self.closing_logs[currency] - sum(v for c, v in self.closing_logs.items() if c != currency) / 7
+            return value, 'broker_d1_close'
+        path = self.path(currency)
+        if self.phase == 'final' and path and path[-1][0] == self.end:
+            return path[-1][1], 'synchronized_m1_close'
+        return None
 
     def measure(self, row, end):
         ending = min(instant(end).timestamp(), self.end, self.observed)
@@ -103,7 +121,8 @@ class DailyBasket:
             return {'status': 'unavailable', 'gap': 'No common completed minute within 120 seconds after delivery.'}
         terminal = int(ending // 60 * 60)
         window = [(at, math.expm1(value - baseline[1]) * 100) for at, value in path if baseline[0] <= at <= terminal]
-        if len(window) < 2:
+        close = self.close(row['currency']) if terminal == self.end else None
+        if not window or len(window) < 2 and close is None:
             return {'status': 'unavailable', 'gap': 'No completed post-delivery interval in this window.'}
         sign = 1 if row['direction']['verdict'] == 'POTENTIAL STRENGTHENING' else -1
         signed = [(at, value * sign) for at, value in window]
@@ -111,15 +130,16 @@ class DailyBasket:
         peak = best if best[1] >= abs(worst[1]) else worst
         expected = int((terminal - baseline[0]) / 60) + 1
         status = 'complete' if len(window) == expected and window[-1][0] == terminal else 'partial'
-        exact_terminal = window[-1][0] == terminal
-        terminal_return = window[-1][1] * sign
+        exact_terminal = close is not None or window[-1][0] == terminal
+        terminal_return = (math.expm1(close[0] - baseline[1]) * 100 if close is not None else window[-1][1]) * sign
         return {'status': status, 'favourable_pct': best[1], 'adverse_pct': worst[1],
             'adverse_before_peak_pct': min(value for at, value in signed if at <= best[0]),
             'peak_utc': stamp(datetime.fromtimestamp(best[0], timezone.utc)), 'time_to_peak_seconds': best[0] - baseline[0],
             'baseline_utc': stamp(datetime.fromtimestamp(baseline[0], timezone.utc)),
             'through_utc': stamp(datetime.fromtimestamp(window[-1][0], timezone.utc)),
             'terminal_status': 'complete' if exact_terminal else 'unavailable',
-            **({'terminal_return_pct': terminal_return, 'currency_return_pct': terminal_return * sign,
+            **({'terminal_basis': close[1] if close is not None else 'synchronized_m1_close',
+                'terminal_return_pct': terminal_return, 'currency_return_pct': terminal_return * sign,
                 'close_result': 'aligned' if terminal_return > 0 else 'opposed' if terminal_return < 0 else 'flat'} if exact_terminal else {}),
             'max_pct': peak[1] * sign,
             'direction_result': 'aligned' if peak[1] > 0 else 'opposed' if peak[1] < 0 else 'flat',

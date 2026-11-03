@@ -38,10 +38,12 @@ def daily_record(rates, day):
     opening = float(current['open']) if current is not None else None
     high = float(current['high']) if current is not None else None
     low = float(current['low']) if current is not None else None
+    close = float(current['close']) if current is not None and 'close' in (current.dtype.names if hasattr(current, 'dtype') else current) else None
     valid = lambda value: value is not None and math.isfinite(value) and value > 0
     return {'open': opening if valid(opening) else None,
             'high': high if valid(high) and valid(low) and high >= low else None,
-            'low': low if valid(high) and valid(low) and high >= low else None}
+            'low': low if valid(high) and valid(low) and high >= low else None,
+            'close': close if valid(close) and valid(high) and valid(low) and low <= close <= high else None}
 
 
 class DailyMarketWatch:
@@ -72,7 +74,7 @@ class DailyMarketWatch:
             raise ValueError('Daily candle reader unavailable')
         return json.loads(result.stdout)
 
-    def snapshot(self, source_id, generation, symbols, selected, date=None):
+    def snapshot(self, source_id, generation, symbols, selected, date=None, retry=False):
         # One native reader at a time; bounded subprocess also isolates MT5 hangs.
         with self.lock:
             health = self.fetch_health()
@@ -106,7 +108,8 @@ class DailyMarketWatch:
             needed = [symbol for symbol in dict.fromkeys(ordered) if symbol and (
                 symbol not in self.cache
                 or any(self.cache[symbol].get(field) is None for field in ('open', 'high', 'low'))
-                and now - self.cache[symbol]['checked_at'] >= 60
+                and (retry or (not historical or self.cache[symbol].get('availability') != 'no_candle')
+                     and now - self.cache[symbol]['checked_at'] >= 60)
                 or not historical and self.cache[symbol].get('open') is not None
                 and now - self.cache[symbol]['checked_at'] >= (5 if symbol == selected else 15))]
             if needed:

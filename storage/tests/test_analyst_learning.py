@@ -20,6 +20,39 @@ from storage.analyst_learning.contracts import AssessmentEvaluation
 NOW = datetime(2026, 10, 30, 12, tzinfo=timezone.utc)
 
 
+class AtomicLearningStoreTests(TestCase):
+    def test_windows_transient_handle_conflict_keeps_atomic_write(self):
+        with TemporaryDirectory() as folder:
+            target = Path(folder) / 'daily-outcomes.json'
+            write(target, {'version': 'old'})
+            import os
+            real_replace = os.replace
+            transient = PermissionError('Transient Windows reader')
+            transient.winerror = 5
+            calls = []
+            def replace(source, destination):
+                calls.append(source)
+                if len(calls) < 3:
+                    self.assertEqual(read(target, None), {'version': 'old'})
+                    raise transient
+                real_replace(source, destination)
+            with patch('storage.analyst_learning.store.os.replace', side_effect=replace), patch('storage.analyst_learning.store.time.sleep') as sleep:
+                write(target, {'version': 'new'})
+                self.assertEqual(sleep.call_count, 2)
+            self.assertEqual(read(target, None), {'version': 'new'})
+            self.assertEqual(list(Path(folder).glob('*.tmp')), [])
+
+    def test_permanent_permission_error_is_bounded_and_preserves_old_store(self):
+        with TemporaryDirectory() as folder:
+            target = Path(folder) / 'outcomes.json'; write(target, {'version': 'old'})
+            error = PermissionError('Access denied'); error.winerror = 5
+            with patch('storage.analyst_learning.store.os.replace', side_effect=error) as replace, patch('storage.analyst_learning.store.time.sleep'):
+                with self.assertRaises(PermissionError): write(target, {'version': 'new'})
+                self.assertEqual(replace.call_count, 5)
+            self.assertEqual(read(target, None), {'version': 'old'})
+            self.assertEqual(list(Path(folder).glob('*.tmp')), [])
+
+
 def learning_commands():
     tools = Path(__file__).resolve().parents[2] / 'Market Analyst Workflow/tools'
     sys.path.insert(0, str(tools))

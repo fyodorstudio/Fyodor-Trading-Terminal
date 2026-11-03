@@ -1,5 +1,5 @@
 """Optional prospective evidence for evaluation; older Thesis records stay valid."""
-from datetime import datetime
+from datetime import date, datetime
 from typing import Literal
 from pydantic import Field, model_validator
 from ..contracts import Payload
@@ -15,11 +15,29 @@ class PairRecommendation(Payload):
     invalidation: str = Field(min_length=20, max_length=1200)
 
 
+class PairDailyClose(Payload):
+    source_id: Literal['Pepperstone-Demo']
+    broker_day: date
+    color: Literal['green', 'red', 'flat']
+    open_price: float = Field(gt=0, allow_inf_nan=False)
+    observed_price: float = Field(gt=0, allow_inf_nan=False)
+    observed_utc: datetime
+    closes_at: datetime
+    reason: str = Field(min_length=20, max_length=1000)
+
+    @model_validator(mode='after')
+    def valid_clock(self):
+        if self.observed_utc.tzinfo is None or self.closes_at.tzinfo is None or self.observed_utc >= self.closes_at:
+            raise ValueError('Daily close target needs an observed instant before its explicit broker close')
+        return self
+
+
 class RelativePreference(Payload):
     pair: str = Field(pattern=r'^[A-Z]{6}$')
     verdict: Literal['BUY', 'SELL']
     reason: str = Field(min_length=20, max_length=1000)
     recommendation: PairRecommendation | None = Field(default=None, exclude_if=lambda value: value is None)
+    daily_close: PairDailyClose | None = Field(default=None, exclude_if=lambda value: value is None)
 
     @model_validator(mode='after')
     def valid_pair(self):

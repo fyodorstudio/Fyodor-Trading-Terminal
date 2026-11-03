@@ -83,6 +83,16 @@ authorize trades or broker account changes.
 
 ## Market research routing
 
+The primary daily opportunity target is the traded pair's Pepperstone broker D1
+close versus its own open (green/red/flat), not the standalone currency basket's
+Day max. State the pair D1 target separately from BUY/SELL pressure from now and
+the next material reassessment checkpoint. New researched pair recommendations
+may freeze this target in `evaluation.relative_preferences[].daily_close`; verify
+the exact pair's native D1 open/current observation and broker close. Never derive
+its color automatically from BUY/SELL or present qualitative grades as calibrated
+probabilities. Keep an explicit Uncalibrated state until prospective pair/day
+forecasts, baseline comparisons and reliability checks support a numerical claim.
+
 Real capital may be at risk. The saved verdict and checkpoint guide the user's
 decisions and invocation timing; treat their reasoning and freshness as critical.
 A recent assessment clock does not establish that fresh evidence was weighted

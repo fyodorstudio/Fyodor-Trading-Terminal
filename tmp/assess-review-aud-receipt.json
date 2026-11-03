@@ -1,0 +1,23 @@
+{
+  "episode_id": "research:ac9fb362582d4c14a93c915b14cf3c28:AUD",
+  "outcome_id": "1eb94d68c23a13a456ebe18677ec608105686ecd6db12e2eab751aa7c0eda58a",
+  "classification": "supported_reasoning_aligned_outcome",
+  "analysis": "Supporting/reward case. The original Slight AUD weakening call had an aligned active-window close of +0.097888% in verdict direction, a favourable sampled excursion of 0.101764%, no adverse sampled excursion and a peak after 5,340 seconds. Its active interval ended by supersession at 06:35 UTC. The final broker-day context has a partial sampled daily maximum of -0.528382%, with 34 missing samples. Post-delivery favourable opportunity reached 0.529522% at 20:52 UTC, after supersession; it cannot be credited as active-window validity. The post-delivery path is partial and its exact D1 close is unavailable, so no successful D1 closing verdict is claimed. The active result supports preserving the narrow external-demand reasoning with known domestic-policy opposition, without inferring a unique cause, a stronger earlier grade or an executable profit.",
+  "known_before_cutoff": "The frozen call already incorporated weak Australian factory orders, the official China PMI contraction, the private PMI upside offset, approvals rebound, hotter private inflation and an expected RBA hike followed by a possible pause. Its Slight grade explicitly limited the external-demand advantage.",
+  "subsequent_information": "Later November 2 Chinese equity-support tools and the eventual mixed US technology close were not established at the original 05:03 UTC cutoff. They are current research inputs, not retroactive evidence for that earlier call. Larger later-day movement is kept outside its superseded active window.",
+  "source_evidence": [
+    {
+      "url": "https://www.rba.gov.au/speeches/2026/sp-gov-2026-10-28.html",
+      "claim": "Domestic inflation/capacity pressure is real opposition to a risk-led negative call; it was part of the frozen foundation and was reopened in this invocation.",
+      "availability_note": "Official October 28 source predates the original call, but its exact publication hour is not independently used to reconstruct the first tradable minute.",
+      "used_as_pre_cutoff": false
+    }
+  ],
+  "expected_version": "e06d3b04995f4f1d8dbfe577b950d358",
+  "revision_note": "Incorporate the newly finalized broker-day sample and current exact active closing fields; preserve earlier versions and separate D1 endpoint limits.",
+  "id": "841a208df826407ca1ba7ab45b9b4304",
+  "recorded_utc": "2026-11-02T23:59:58.231175Z",
+  "episode_hash": "4fa8db611eeffb919a310670f87704dde6eeb7723720fa48f735b9ef7916bce1",
+  "outcome_hash": "9389d0afe0079cf3ede46521477ae1301dc9fc22bcadada234f5b3053462d0c8",
+  "method": "agent_review_not_independent_replay"
+}

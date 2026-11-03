@@ -206,8 +206,9 @@ restrictions still apply; the dock reports blocked playback or storage failures.
 The drawing toolbar's delete button clears only the current pair, across all timeframes.
 Hold Shift while drawing a Trend line or Price note to keep it horizontal; release
 Shift for free movement. Price notes label their endpoint price. Date and price range
-shows elapsed days/hours/minutes, pip distance and signed percentage change from
-the first anchor (two decimals); Research date range is separate.
+shows endpoint dates with an AM/PM time range on a second line (same-day dates
+appear once), elapsed days/hours/minutes, pip distance and signed percentage
+change from the first anchor (two decimals); Research date range is separate.
 
 Use the same UI origin (normally localhost:5173) to reuse browser preferences from
 the original app. A different port has separate browser storage. Old scoring view

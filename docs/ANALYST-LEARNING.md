@@ -30,6 +30,11 @@ cache advances. Older prototype protocol versions remain intact.
 Protocol v3 additionally separates verdict-signed closing returns from excursion
 alignment, requires the exact terminal minute and preserves the raw currency
 return. Older records are retained; their unverified closing basis is not scored.
+Protocol v4 uses all seven verified, completed broker D1 closes at the day endpoint
+when rollover has no M1 candle. Intraday endpoints still require exact synchronized
+minutes. The close source is explicit; missing M1 samples remain partial and never
+become fabricated extrema. A read started before rollover cannot supply a final
+D1 endpoint. Original protocols, observations and archived prices stay intact.
 The authoritative live verdict remains [Thesis](THESIS.md); evaluations cannot
 alter it, its evidence dates, checkpoints, alarms or user trade journals.
 
@@ -106,6 +111,14 @@ forming candles. Record missing path samples and exclude incomplete paths from
 complete-path statistics. Favourable/adverse excursions use sampled closes, not
 intraminute extrema. No spreads, fills, financing or realised profit are inferred.
 Keep input/price/protocol hashes and capture provenance. Revisions append records.
+
+The user's trading target is a pair's native D1 candle color, distinct from this
+currency basket and a post-delivery return. Optional `relative_preferences[].daily_close`
+freezes that target and the observed open/current prices without mapping qualitative
+grades to percentages. A later probability feature needs independently dated
+pair-close outcomes, unchanged forecast snapshots, time-ordered validation and
+reliability checks against simple baselines; repeated correlated currency calls
+are not independent daily forecasts.
 
 Report declarations, distinct delivered intervals and currency-days separately.
 Currencies, repeated invocations and triangulated crosses are correlated; do not

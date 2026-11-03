@@ -51,6 +51,7 @@ def recommended_pairs(journal_path, after_revision=None):
                     invalidation=detail.get('invalidation', a['evaluation']['invalidation']),
                     as_of_utc=run['as_of_utc'], starts_at=run['saved_utc'], until_utc=until,
                     checkpoint=title, evidence=supporting,
+                    **({'daily_close': pref['daily_close']} if pref.get('daily_close') else {}),
                     status='provisional' if any(side['direction'].get('review_status') != 'complete' for side in sides) else 'current')
     for item in comparisons.values():
         if any(latest.get(side['currency']) != side['assessment_id'] for side in item['evidence']):

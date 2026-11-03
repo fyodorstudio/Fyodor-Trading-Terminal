@@ -25,13 +25,15 @@ def read_day(mt5, request):
         visible = {s.name for s in mt5.symbols_get() or () if s.visible}
         raw = int(datetime.fromisoformat(day).replace(tzinfo=timezone.utc).timestamp())
         start, end = datetime.fromtimestamp(raw, timezone.utc), datetime.fromtimestamp(raw + 86399, timezone.utc)
-        opens, samples = {}, {}
+        opens, closes, samples = {}, {}, {}
+        d1_observed = datetime.now(timezone.utc).isoformat()
         for symbol, _ in LEGS.values():
             if symbol not in visible:
-                opens[symbol], samples[symbol] = None, []
+                opens[symbol], closes[symbol], samples[symbol] = None, None, []
                 continue
             daily = mt5.copy_rates_range(symbol, mt5.TIMEFRAME_D1, start, end)
-            opens[symbol] = daily_record(daily if daily is not None else [], raw)['open']
+            record = daily_record(daily if daily is not None else [], raw)
+            opens[symbol], closes[symbol] = record['open'], record['close']
             observed_before_read = time.time()
             rates = mt5.copy_rates_range(symbol, mt5.TIMEFRAME_M1, start, end)
             samples[symbol] = []
@@ -45,7 +47,8 @@ def read_day(mt5, request):
             raise ValueError('Native account changed during excursion read')
         opening, closing = bounds(day)
         return dict(day=day, source_id=SOURCE, clock_profile=PROFILES[SOURCE],
-            captured_utc=datetime.now(timezone.utc).isoformat(), opens=opens, samples=samples,
+            captured_utc=datetime.now(timezone.utc).isoformat(), opens=opens, closes=closes, samples=samples,
+            d1_observed_utc=d1_observed,
             from_utc=datetime.fromtimestamp(opening, timezone.utc).isoformat(),
             to_utc=datetime.fromtimestamp(closing, timezone.utc).isoformat())
     finally:

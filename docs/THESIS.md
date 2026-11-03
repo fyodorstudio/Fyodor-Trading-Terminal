@@ -11,7 +11,9 @@ Every dated assessment, including unchanged same-day rechecks and earlier legacy
 versions, pairs its original grade with Day max signed percentage and Developing/
 Final state. Values use the labelled sampled relative FX basket defined in
 [analyst learning](ANALYST-LEARNING.md#daily-opportunity-primary), not a silently
-chosen USD pair. A compact price comparison shows post-delivery opportunity and
+chosen USD pair. The heading separately shows the basket's D1 change so far or
+verified final close; Day max can have the opposite sign and is not a pair candle
+forecast. A compact price comparison shows post-delivery opportunity and
 the separate active checkpoint/supersession window. Missing history is explicit;
 partial sampled maxima must not masquerade as exact wick extrema or realised profit.
 Broker dates and Jakarta close times stay visible across midnight/DST. The
@@ -167,6 +169,16 @@ without it remain diagnostic. A request may record a known `analyst_model`; the
 writer captures skill hashes and freezes original-call versions in the separate
 learning ledger. The `learning` save receipt reports success or recoverable pending
 work without blocking delivery of a supported currency judgment.
+
+An explicit researched pair preference may include `daily_close`: `source_id`
+(`Pepperstone-Demo`), `broker_day`, `color` (`green`, `red`, `flat`), positive
+`open_price` and `observed_price`, `observed_utc`, `closes_at` and `reason`.
+Use the exact pair's native broker D1 candle. The writer rejects future observations,
+wrong broker days and incorrect close boundaries. Recommended Pairs displays this
+frozen D1 target alongside its earlier active checkpoint. BUY/SELL from now and
+the expected daily candle color are independent. Probabilities remain uncalibrated;
+this field records a prospective target, not an automatic probability model or a
+completed pair-close outcome. Currency-basket feedback remains a separate measure.
 
 ```json
 {

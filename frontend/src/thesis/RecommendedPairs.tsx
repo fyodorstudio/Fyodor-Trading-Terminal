@@ -55,6 +55,12 @@ export const RecommendedPairs = memo(function RecommendedPairs({ symbols, onSele
           <p className="recommended-pair-state">{error ? 'Reassessment due · connection unavailable' : state}</p>
           <p>Assessed {clock.format(new Date(item.as_of_utc))} Jakarta</p>
           <p>Window: {clock.formatRange(new Date(item.starts_at),new Date(item.until_utc))} Jakarta · {item.checkpoint}</p>
+          {item.daily_close && <div aria-label={`${item.pair} daily close target`}>
+            <p><strong>D1 target: {item.daily_close.color.toUpperCase()}</strong> · broker day {item.daily_close.broker_day} · closes {clock.format(new Date(item.daily_close.closes_at))} Jakarta</p>
+            <p>D1 open {item.daily_close.open_price} · observed {item.daily_close.observed_price} at {clock.format(new Date(item.daily_close.observed_utc))} Jakarta</p>
+            <p>{item.daily_close.reason}</p>
+            <p>Probability: uncalibrated. Reassess at the comparison checkpoint; the D1 target does not extend its active window.</p>
+          </div>}
           <p>{item.reason}</p>
           <p><strong>Opposition:</strong> {item.strongest_opposition}</p>
           <p><strong>Invalidation:</strong> {item.invalidation}</p>

@@ -1,0 +1,15 @@
+{
+  "attempts": [
+    {
+      "day": "2026-11-02",
+      "status": "captured"
+    },
+    {
+      "day": "2026-11-03",
+      "status": "captured"
+    }
+  ],
+  "assessments": 41,
+  "new_versions": 33,
+  "available": 41
+}

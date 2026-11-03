@@ -364,10 +364,13 @@ try {
   const octoberRange = { ...recordFor('date-price-range'), points: [{ time: octoberStart, price: 10 }, { time: octoberEnd, price: 12 }] }
   seed(octoberRange); await render({}, 'october-horizon')
   const horizon = () => host.querySelector('.drawing-range-dates .drawing-range-label').textContent
+  const timeHorizon = () => host.querySelectorAll('.drawing-range-dates .drawing-range-label')[1].textContent
   assert.equal(horizon(), '1 Oct 2026 - 3 Oct 2026', 'Dates use the requested day/month/year format')
+  assert.equal(timeHorizon(), '10:30 PM - 10:30 PM', 'Endpoint times appear on a second line in AM/PM format')
   const clock = { brokerId: 'Elev8-Demo2', brokerOffsetSeconds: 10800, preference: { mode: 'fixed-offset', utcOffsetMinutes: 420 } }
   await render({ clock }, 'october-horizon')
   assert.equal(horizon(), '2 Oct 2026 - 4 Oct 2026', 'The horizon uses the chart display timezone after broker-clock conversion')
+  assert.equal(timeHorizon(), '02:30 AM - 02:30 AM', 'Endpoint times use the same broker conversion and display timezone as dates')
   assert.equal(host.querySelector('.drawing-range-duration .drawing-range-label').textContent, '2d 0h 0m')
   assert.equal(host.querySelector('.drawing-range-pips .drawing-range-label').textContent, '20000.0 pips · +20.00%')
   assert.deepEqual(readChartDrawings(), [octoberRange], 'Date labels never modify the saved range')
@@ -375,6 +378,22 @@ try {
   assert.equal(horizon(), '2 Oct 2026 - 5 Oct 2026', 'Editing an endpoint updates its displayed date')
   await React.act(async () => api.updateDrawingPoint(octoberRange.id, 0, { time: octoberStart, price: 0 }, true))
   assert.equal(host.querySelector('.drawing-range-pips .drawing-range-label').textContent, '120000.0 pips · % unavailable', 'A zero first price cannot provide a percentage baseline')
+  const novemberStart = Date.UTC(2026, 10, 2, 10, 5) / 1000, novemberEnd = Date.UTC(2026, 10, 2, 17, 45) / 1000
+  timeline = [{ time: novemberStart }, { time: novemberStart + 86400 }]
+  seed({ ...recordFor('date-price-range'), points: [{ time: novemberStart, price: 10 }, { time: novemberEnd, price: 12 }] })
+  await render({}, 'same-day-horizon')
+  assert.equal(horizon(), '2 Nov 2026', 'Same-day endpoints show their date only once')
+  assert.equal(timeHorizon(), '10:05 AM - 05:45 PM', 'The time range includes both endpoints across noon')
+  const dateCard = host.querySelector('.drawing-range-dates .drawing-range-measure')
+  assert.equal(Number(dateCard.querySelector('rect').getAttribute('width')), textLength(timeHorizon()) + 16, 'The card fits the wider time line')
+  assert.equal(dateCard.querySelector('rect').getAttribute('height'), '40', 'The card accommodates both lines')
+  await React.act(async () => api.updateDrawingPoints('drawing', [{ time: novemberEnd, price: 12 }, { time: novemberStart, price: 10 }], true))
+  assert.equal(timeHorizon(), '10:05 AM - 05:45 PM', 'Reversed anchors retain chronological endpoint times')
+  await React.act(async () => api.updateDrawingPoints('drawing', [{ time: novemberStart + 12 * 3600 + 25 * 60, price: 10 }, { time: novemberStart + 15 * 3600 + 25 * 60, price: 12 }], true))
+  assert.equal(horizon(), '2 Nov 2026 - 3 Nov 2026', 'Different endpoint dates remain visible')
+  await render({ clock }, 'same-day-horizon')
+  assert.equal(horizon(), '3 Nov 2026', 'Date deduplication uses the displayed dates, including midnight conversion')
+  assert.equal(timeHorizon(), '03:30 AM - 06:30 AM', 'November endpoint times use the historical broker offset')
   timeline = originalTimeline; priceSpacing = 10
 
   // Text can be reopened by double-click (including captured SVG events) or

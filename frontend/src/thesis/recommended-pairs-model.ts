@@ -5,6 +5,8 @@ export type RecommendedPair = {
   id: string; pair: string; verdict: 'BUY' | 'SELL'; intensity: 'strong' | 'moderate' | 'slight' | null; rank: number | null;
   reason: string; strongest_opposition: string; invalidation: string; as_of_utc: string; starts_at: string; until_utc: string;
   checkpoint: string; status: 'current' | 'superseded' | 'source_gap' | 'provisional';
+  daily_close?: { source_id: 'Pepperstone-Demo'; broker_day: string; color: 'green' | 'red' | 'flat';
+    open_price: number; observed_price: number; observed_utc: string; closes_at: string; reason: string };
   evidence: { currency: string; assessment_id: string; reason: string; evidence_ids: string[]; sources: ThesisSource[] }[];
 }
 export type RecommendedPairsSnapshot = { schema: 1; revision: string; items: RecommendedPair[] }
@@ -22,6 +24,11 @@ export function validRecommendedPairs(value: unknown): value is RecommendedPairs
       && [i.as_of_utc,i.starts_at,i.until_utc].every(stamp)
       && Date.parse(i.as_of_utc) <= Date.parse(i.starts_at) && Date.parse(i.starts_at) < Date.parse(i.until_utc)
       && ['current','superseded','source_gap','provisional'].includes(i.status)
+      && (i.daily_close === undefined || i.daily_close && i.daily_close.source_id === 'Pepperstone-Demo'
+        && /^\d{4}-\d\d-\d\d$/.test(i.daily_close.broker_day) && ['green','red','flat'].includes(i.daily_close.color)
+        && [i.daily_close.open_price,i.daily_close.observed_price].every(p => Number.isFinite(p) && p > 0)
+        && [i.daily_close.observed_utc,i.daily_close.closes_at].every(stamp) && text(i.daily_close.reason)
+        && Date.parse(i.daily_close.observed_utc) <= Date.parse(i.as_of_utc) && Date.parse(i.as_of_utc) < Date.parse(i.daily_close.closes_at))
       && Array.isArray(i.evidence) && i.evidence.length === 2 && i.evidence.every((e,n) => e
         && e.currency === i.pair.slice(n*3,n*3+3) && text(e.assessment_id) && text(e.reason)
         && Array.isArray(e.evidence_ids) && e.evidence_ids.length > 0 && e.evidence_ids.every(text)

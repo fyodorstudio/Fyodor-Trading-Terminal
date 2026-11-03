@@ -1,0 +1,714 @@
+{
+  "episode": {
+    "id": "research:ac9fb362582d4c14a93c915b14cf3c28:NZD",
+    "source_kind": "research",
+    "source_id": "ac9fb362582d4c14a93c915b14cf3c28",
+    "logical_id": "ac9fb362582d4c14a93c915b14cf3c28",
+    "currency": "NZD",
+    "cutoff_utc": "2026-11-02T05:03:50.634538Z",
+    "saved_utc": "2026-11-02T05:03:52.076236Z",
+    "delivered_utc": "2026-11-02T05:03:52.076236Z",
+    "provenance": "assessment",
+    "direction": {
+      "verdict": "POTENTIAL WEAKENING",
+      "reason": "Reversed slight strengthening to slight weakening. The RBNZ majority's weak domestic-demand and wage-transmission assessment outweighs treating conditional December remarks as current-session support. Jobs forecasts and coalition possibilities are not delivered outcomes. Broadening core inflation, export resilience, ANZ pricing intentions and the private China PMI beat are substantial opposition, so the negative advantage is limited. Strong jobs/wages with firmer majority guidance would defeat it. AUD's capacity and inflation case is stronger over the overlapping horizon.",
+      "verified_utc": "2026-11-02T05:03:50.634538Z",
+      "sources": [
+        {
+          "kind": "web",
+          "label": "Trading Economics: Monday NZ jobs and election backdrop",
+          "locator": "https://tradingeconomics.com/new-zealand/currency",
+          "note": "November 2 body read. Jobs +0.4%, unemployment 5.5% are forecasts; roughly 75% December hike pricing is attributed, not measured here."
+        },
+        {
+          "kind": "web",
+          "label": "RBNZ October 28 decision and complete meeting record",
+          "locator": "https://www.rbnz.govt.nz/news-and-events/news/2026/10/ocr-held-at-2-75-percent",
+          "note": "Decisive official body opened through web reader after direct HTTP 403. Majority pause rationale and conditional branches read, not merely the headline hold."
+        },
+        {
+          "kind": "web",
+          "label": "Trading Economics: October RatingDog PMI actual",
+          "locator": "https://tradingeconomics.com/china/manufacturing-pmi/news/597072",
+          "note": "Full dated news body returned in search; direct page failed. Reuters survey 51.6 differs from some calendar forecasts of 52.0."
+        },
+        {
+          "kind": "web",
+          "label": "RNZ October 28: post-decision wholesale-rate transmission",
+          "locator": "https://www.rnz.co.nz/news/business/2205241/what-will-ocr-surprise-mean-for-home-loan-rates",
+          "note": "Direct RNZ body retrieved after web-reader access failure. Page says October 28 6:06 PM NZ local time. Westpac economist reports one-year swap down about 20 bp then; no claim it is a current October 29 quote or remains down that amount."
+        }
+      ],
+      "basis": "standalone",
+      "intensity": "slight",
+      "horizon": "Current session; next planned evidence check: New Zealand Q3 employment and labour costs. This is not a promise of direction until that stage.",
+      "reassessment": {
+        "title": "New Zealand Q3 employment and labour costs",
+        "event_at": "2026-11-03T21:45:00Z",
+        "event_date": null,
+        "verified_utc": "2026-11-01T22:46:18.930902Z",
+        "sources": [
+          {
+            "kind": "web",
+            "label": "Trading Economics New Zealand release calendar",
+            "locator": "https://tradingeconomics.com/new-zealand/calendar",
+            "note": "November 3 21:45 UTC / November 4 04:45 Jakarta labour and wages corroborates existing broker/Stats NZ date. Official Stats NZ indicator body did not expose its content in this pass; exact hour is secondary/provider corroboration."
+          },
+          {
+            "kind": "web",
+            "label": "Pepperstone read-only seven-day calendar snapshot",
+            "locator": "https://www.metatrader.com/en/economic-calendar",
+            "note": "143 candidate groups, no next page; captured November 1 22:37-22:38 UTC. Official schedules take priority. Raw broker coverage gaps late in the horizon remain explicit; saved upcoming.json contains original readings and IDs."
+          }
+        ],
+        "note": "Wednesday 4:45 AM Jakarta. One jobs/wages package tests whether export gains and price-setting translate into domestic income and persistence; not three independent signals."
+      },
+      "reassessment_gap": "",
+      "evidence_anchor": {
+        "title": "Private China PMI offsets part of the official manufacturing miss",
+        "event_at": "2026-11-02T01:45:00Z",
+        "event_date": null,
+        "sources": [
+          {
+            "kind": "web",
+            "label": "Trading Economics: October RatingDog PMI actual",
+            "locator": "https://tradingeconomics.com/china/manufacturing-pmi/news/597072",
+            "note": "Full dated news body returned in search; direct page failed. Reuters survey 51.6 differs from some calendar forecasts of 52.0."
+          },
+          {
+            "kind": "web",
+            "label": "InvestingLive: China private PMI and release clock",
+            "locator": "https://images.investinglive.com/news/china-private-factory-pmi-at-52-0-beats-forecasts-output-growth-fastest-since-april/",
+            "note": "Full dated body returned in search reports 01:45 GMT data release. First article publication clock not independently reconciled."
+          }
+        ],
+        "note": "Dated assessed evidence, including material opposition. This clock is not the assessment/retrieval time."
+      },
+      "review_status": "complete",
+      "stage_note": "Reviewed Monday intervening releases and policy/risk developments through cutoff; dated domestic foundations reused."
+    },
+    "gap": "",
+    "evaluation": null,
+    "evidence": [
+      {
+        "key": "nzd-20261102-two-speed-election-economy",
+        "title": "Election-week reporting highlights uneven New Zealand demand",
+        "facts": "Reuters describes substantial regional differences ahead of the November 7 election: household cost pressure, public-sector spending cuts and weaker housing wealth coexist with stronger parts of the economy. Regional employment changes are not a new national jobs release. Coalition and fiscal outcomes remain unknown. This supports taking the existing weak household-demand foundation seriously while retaining export and business-pricing opposition.",
+        "published_on": "2026-11-02",
+        "published_at": "2026-11-01T17:07:00Z",
+        "event_at": null,
+        "timing_note": "Source publication/update clock, not first dissemination or retrieval time.",
+        "verified_utc": "2026-11-01T22:46:18.930902Z",
+        "sources": [
+          {
+            "kind": "web",
+            "label": "Reuters: New Zealand two-speed economy and election",
+            "locator": "https://new.streetinsider.com/Reuters/New%2BZealands%2Btwo-speed%2Beconomy%2Bposes%2Belection%2Bdilemma%2Bfor%2Bruling%2BNational%2Bparty%2B%C2%A0/27267727.html",
+            "note": "Published November 1 12:07 EST / 17:07 UTC; November 2 New Zealand dateline. Full accessible body read. Regional anecdotes and earlier economic observations do not replace Wednesday labour actuals."
+          }
+        ],
+        "impacts": [
+          {
+            "currency": "NZD",
+            "implication": "Slight potential weakening contribution through uneven household income and election uncertainty.",
+            "thesis_effect": "Limits conviction in the conditional tightening case. Does not invent a fresh nationwide contraction, election result or withdrawal of December guidance."
+          }
+        ],
+        "instruments": [],
+        "instrument_note": "",
+        "commodity_implication": "",
+        "commodity_thesis_effect": "",
+        "references": [],
+        "expected_version": null,
+        "revision_note": "",
+        "id": "ab2d5292f2894beca360b08dd849e49c",
+        "saved_utc": "2026-11-01T22:46:20.825343Z"
+      },
+      {
+        "key": "china-20261102-private-manufacturing-pmi",
+        "title": "Private China PMI offsets part of the official manufacturing miss",
+        "facts": "RatingDog manufacturing PMI eased to 52.0 from 52.1 but exceeded the Reuters survey of 51.6. Output growth accelerated and new orders expanded; export-order growth slowed and selling prices fell. This separate survey does not erase the official PMI's 49.3 contraction, but weakens a blanket claim of deteriorating factory demand.",
+        "published_on": "2026-11-02",
+        "published_at": null,
+        "event_at": "2026-11-02T01:45:00Z",
+        "timing_note": "Data release at 01:45 GMT is reported by InvestingLive. Article publication hours are not independently reconciled.",
+        "verified_utc": "2026-11-02T05:03:50.634538Z",
+        "sources": [
+          {
+            "kind": "web",
+            "label": "Trading Economics: October RatingDog PMI actual",
+            "locator": "https://tradingeconomics.com/china/manufacturing-pmi/news/597072",
+            "note": "Full dated news body returned in search; direct page failed. Reuters survey 51.6 differs from some calendar forecasts of 52.0."
+          },
+          {
+            "kind": "web",
+            "label": "InvestingLive: China private PMI and release clock",
+            "locator": "https://images.investinglive.com/news/china-private-factory-pmi-at-52-0-beats-forecasts-output-growth-fastest-since-april/",
+            "note": "Full dated body returned in search reports 01:45 GMT data release. First article publication clock not independently reconciled."
+          }
+        ],
+        "impacts": [
+          {
+            "currency": "AUD",
+            "implication": "Slight strengthening offset through export-demand resilience.",
+            "thesis_effect": "Reduces the force of the earlier China-led moderate weakening case."
+          },
+          {
+            "currency": "NZD",
+            "implication": "Slight strengthening offset through trading-partner demand.",
+            "thesis_effect": "Weigh against weak household demand; neither Chinese survey alone establishes the NZ policy path."
+          },
+          {
+            "currency": "EUR",
+            "implication": "Slight strengthening offset through external manufacturing demand.",
+            "thesis_effect": "Offsets part of external-growth weakness without removing domestic credit or French fiscal constraints."
+          }
+        ],
+        "instruments": [],
+        "instrument_note": "",
+        "commodity_implication": "",
+        "commodity_thesis_effect": "",
+        "references": [],
+        "expected_version": null,
+        "revision_note": "",
+        "id": "c09f4e7535fc402a8a627b951ebebddc",
+        "saved_utc": "2026-11-02T05:03:52.075263Z"
+      },
+      {
+        "key": "global-20261102-energy-risk-premium-eases",
+        "title": "Oil and European gas retreat; physical supply restoration remains unverified",
+        "facts": "Monday reports associate lower oil and European gas prices with continued Iran diplomacy. Brent was below USD 110 per barrel; European gas remained elevated despite retreating. OPEC+ kept December targets unchanged. Talks and cheaper energy do not establish a peace agreement or restored Gulf shipments.",
+        "published_on": "2026-11-02",
+        "published_at": null,
+        "event_at": null,
+        "timing_note": "Source date verified; original publication hour unspecified.",
+        "verified_utc": "2026-11-02T05:03:50.634538Z",
+        "sources": [
+          {
+            "kind": "web",
+            "label": "Trading Economics: Monday Brent diplomacy and supply-risk report",
+            "locator": "https://tradingeconomics.com/commodity/brent-crude-oil",
+            "note": "November 2 narrative read. Benchmark CFD-linked prices, not an executable oil contract; publication hour unspecified."
+          },
+          {
+            "kind": "web",
+            "label": "Trading Economics: Monday European gas supply and diplomacy report",
+            "locator": "https://tradingeconomics.com/commodity/eu-natural-gas",
+            "note": "November 2 narrative read; diplomacy is not a signed settlement or restored LNG traffic."
+          }
+        ],
+        "impacts": [
+          {
+            "currency": "CAD",
+            "implication": "Slight weakening pressure through reduced energy-export income support.",
+            "thesis_effect": "Challenges Friday's oil-led strengthening case while BoC inflation risks remain."
+          },
+          {
+            "currency": "JPY",
+            "implication": "Slight strengthening offset from lower energy-import costs.",
+            "thesis_effect": "Opposes haven-demand weakness; oil relief does not establish immediate yen buying."
+          },
+          {
+            "currency": "EUR",
+            "implication": "Slight strengthening offset through reduced imported-energy income damage.",
+            "thesis_effect": "Offsets French financing and credit risks without proving those risks resolved."
+          },
+          {
+            "currency": "GBP",
+            "implication": "Slight strengthening offset through household and business income relief.",
+            "thesis_effect": "Supports the limited positive balance, while lower energy could reduce future restraint."
+          },
+          {
+            "currency": "USD",
+            "implication": "Slight weakening pressure through less haven demand and less energy-driven policy urgency.",
+            "thesis_effect": "Limits the hawkish domestic-data advantage; no Fed commitment has changed."
+          },
+          {
+            "currency": "AUD",
+            "implication": "Slight strengthening offset through lower import-cost pressure and risk relief.",
+            "thesis_effect": "Opposes the external-demand weakness; lower inflation can also limit the future rate path."
+          },
+          {
+            "currency": "NZD",
+            "implication": "Slight strengthening offset through less imported energy pressure.",
+            "thesis_effect": "Helps incomes but can also reinforce the majority's patience on tightening."
+          }
+        ],
+        "instruments": [],
+        "instrument_note": "",
+        "commodity_implication": "",
+        "commodity_thesis_effect": "",
+        "references": [],
+        "expected_version": null,
+        "revision_note": "",
+        "id": "4f74589d4d7e4c8897458203b76520b4",
+        "saved_utc": "2026-11-02T05:03:52.075263Z"
+      },
+      {
+        "key": "nzd-20261102-jobs-election-and-majority-balance",
+        "title": "NZ jobs and election risks do not validate conditional future hikes",
+        "facts": "Current coverage puts Q3 employment growth at a forecast 0.4% and unemployment at a forecast 5.5%; these are not actuals. December hike pricing is reported near 75%. The reopened October RBNZ record identifies weak domestic spending and employment intentions alongside broadening core inflation; coalition and fiscal outcomes remain unknown.",
+        "published_on": "2026-11-02",
+        "published_at": null,
+        "event_at": null,
+        "timing_note": "Source date verified; original publication hour unspecified.",
+        "verified_utc": "2026-11-02T05:03:50.634538Z",
+        "sources": [
+          {
+            "kind": "web",
+            "label": "Trading Economics: Monday NZ jobs and election backdrop",
+            "locator": "https://tradingeconomics.com/new-zealand/currency",
+            "note": "November 2 body read. Jobs +0.4%, unemployment 5.5% are forecasts; roughly 75% December hike pricing is attributed, not measured here."
+          },
+          {
+            "kind": "web",
+            "label": "RBNZ: October 28 complete decision and meeting record",
+            "locator": "https://www.rbnz.govt.nz/news-and-events/news/2026/10/ocr-held-at-2-75-percent",
+            "note": "Full official body reopened. 4-3 hold; inflation 3.7%, non-tradables 3.3%, subdued wages and weak domestic demand; future restraint remains conditional."
+          }
+        ],
+        "impacts": [
+          {
+            "currency": "NZD",
+            "implication": "Slight weakening pressure from fragile domestic demand and conditional policy transmission.",
+            "thesis_effect": "Reverses the earlier slight strengthening weighting: conditional future-hike remarks do not dominate the majority's weak-demand assessment before jobs."
+          }
+        ],
+        "instruments": [],
+        "instrument_note": "",
+        "commodity_implication": "",
+        "commodity_thesis_effect": "",
+        "references": [],
+        "expected_version": null,
+        "revision_note": "",
+        "id": "50c95c8aad4948048f47d5bd87e751f8",
+        "saved_utc": "2026-11-02T05:03:52.075263Z"
+      },
+      {
+        "key": "nzd-20261030-silk-conditional-december-report",
+        "title": "Full Reuters interview comparison changes the AUD/NZD timing judgment",
+        "facts": "Full Reuters syndication quotes Silk supporting a December hike if CURRENT economic conditions persisted; this is a less demanding condition than the earlier TE paraphrase requiring better-than -expected resilience. Reuters reports 76% December RBNZ hike probability and 3.75%-or-higher peak; 80% RBA November hike probability versus 25% a couple of weeks earlier, with expected 4.85% rate. These are separately attributed report-time market expectations, not our matched OIS measurement. Reuters specifically identifies AUD global risk/commodity/AI exposure on crosses; Deutsche Bank says a US -centric shock can leave AUDUSD relatively flat while AUD remains vulnerable on crosses. Neither AUDUSD stability nor a higher Australian policy rate establishes AUDNZD buying. October 28 surprise RBNZ hold is old; Breman October 29 high December likelihood was already available and should have weighed more. Silk already dissented for an October hike, so her remark is not proof of a new majority vote. Full Reuters article was previously inaccessible; source version exact first availability before 04:49 UTC remains unknown. This review corrects source coverage and weighting, not a chart-dated reversal.",
+        "published_on": "2026-10-30",
+        "published_at": null,
+        "event_at": null,
+        "timing_note": "Original source/event dates preserved. Unknown publication hours remain unknown; verification is not publication.",
+        "verified_utc": "2026-10-30T16:04:29.547337Z",
+        "sources": [
+          {
+            "kind": "web",
+            "label": "Reuters Australian and New Zealand dollar comparison, full Business Recorder syndication",
+            "locator": "https://www.brecorder.com/news/40446674/",
+            "note": "Full body retrieved15:47UTC. Publisher date October30; displayed update11:51AM has no explicit timezone in extracted body. Original Reuters/remark hour unknown. Quotes Silk interview directly;80% RBA and76% RBNZ probabilities are report-time market attribution, not a captured matched OIS curve."
+          }
+        ],
+        "impacts": [
+          {
+            "currency": "AUD",
+            "implication": "Potential moderate weakening pressure: active risk-sensitive cross exposure offsets an already substantially anticipated November hike.",
+            "thesis_effect": "Retires renewed AUDNZD buy; domestic inflation support remains dated background."
+          },
+          {
+            "currency": "NZD",
+            "implication": "Potential slight strengthening pressure: conditional December restraint remains credible without an upside activity surprise requirement.",
+            "thesis_effect": "Weakens the old surprise-hold selling case despite fragile household demand."
+          }
+        ],
+        "instruments": [],
+        "instrument_note": "",
+        "commodity_implication": "",
+        "commodity_thesis_effect": "",
+        "references": [],
+        "expected_version": "315f390476684e6db15b4b85afb938a9",
+        "revision_note": "Formatting only: separate currency codes, amounts, units and date/time words. Non-whitespace content, sources and all evidence clocks are unchanged. No new research or assessment.",
+        "id": "8d2316bd212749f691bfbc1890b6bffa",
+        "saved_utc": "2026-11-01T23:58:48.805274Z"
+      },
+      {
+        "key": "nzd-20261030-anz-consumer-confidence",
+        "title": "NZ consumers: weaker current spending appetite, better future expectations",
+        "facts": "Original October table: confidence 96.2 versus 97.6, narrative rounds fall to 2 points. Current conditions 81.1 versus 87.3, future 106.2 versus 104.5. Net major-item buying appetite -17%, down 10 points; current finances -21% versus -19%, expected finances +24% versus +20%. Two-year inflation expectations 4.2% versus 4.5%, house-price expectations 2.0% versus 2.4%. ANZ sees cost-of-living pressure, export benefits and gradual expected jobs recovery, not delivered employment. No verified consensus. One mixed survey package; present-demand weakness and lower inflation expectations corroborate RBNZ waiting rationale while future optimism opposes stronger negativity.",
+        "published_on": "2026-10-30",
+        "published_at": null,
+        "event_at": null,
+        "timing_note": "Original publication date retained. Unknown source hours remain unknown; verification is this review.",
+        "verified_utc": "2026-10-30T03:31:41.862801Z",
+        "sources": [
+          {
+            "kind": "web",
+            "label": "ANZ October 30 original consumer report",
+            "locator": "https://www.anz.co.nz/content/dam/anzconz/documents/economics-and-market-research/2026/ANZ-ConsumerConfidence-20261030.pdf",
+            "note": "Original PDF extracted locally after web timeout. Two-year inflation expectations. Unknown publication hour; headline rounds the fall to 2 points, table is 97.6 to 96.2."
+          }
+        ],
+        "impacts": [
+          {
+            "currency": "NZD",
+            "implication": "Potential slight weakening: weaker current spending appetite and lower inflation expectations reinforce limited cost pass-through and patience.",
+            "thesis_effect": "Reinforces slight weakness; future optimism and conditional December hikes oppose extrapolation."
+          }
+        ],
+        "instruments": [],
+        "instrument_note": "",
+        "commodity_implication": "",
+        "commodity_thesis_effect": "",
+        "references": [],
+        "expected_version": null,
+        "revision_note": "",
+        "id": "e9ef494f65ba4ef1bffad2c286a82cc3",
+        "saved_utc": "2026-10-30T03:32:19.924218Z"
+      },
+      {
+        "key": "china-20261031-official-pmi-demand-miss",
+        "title": "China factory PMI falls below expectations; services and construction also soften",
+        "facts": "October official manufacturing PMI fell to 49.3 from 50.1, below the Reuters poll of 50.0. Non-manufacturing fell to 49.7 from 50.2. New orders, exports and production showed weakness. First months of quarters are typically softer, technology-related sectors remained stronger, and economists still expected the annual growth target to be met. The miss is fresh weekend demand information, not proof of a collapse or a new policy-stimulus announcement.",
+        "published_on": "2026-10-31",
+        "published_at": "2026-10-31T08:13:00Z",
+        "event_at": null,
+        "timing_note": "Source publication/update clock, not first dissemination or retrieval time.",
+        "verified_utc": "2026-11-01T22:46:18.930902Z",
+        "sources": [
+          {
+            "kind": "web",
+            "label": "Reuters: China October official PMI package",
+            "locator": "https://www.investing.com/news/economy-news/chinas-october-factory-activity-contracts-at-fastest-pace-in-3-months-pmi-survey-shows-4989032",
+            "note": "Full October 31 body read, including domestic-demand weakness, seasonal first-month caveat and stronger technology sectors. Reuters survey 50.0 is separately attributed; no current FX reaction measured."
+          }
+        ],
+        "impacts": [
+          {
+            "currency": "AUD",
+            "implication": "Moderate potential weakening contribution through Chinese demand, commodity exposure and risk-sensitive financing.",
+            "thesis_effect": "Adds a new demand shock to the existing negative session case; an anticipated RBA hike remains major opposition."
+          },
+          {
+            "currency": "NZD",
+            "implication": "Slight potential weakening contribution through export-demand and risk channels.",
+            "thesis_effect": "Offsets the conditional December-tightening case without establishing that the RBNZ has withdrawn its guidance."
+          },
+          {
+            "currency": "CAD",
+            "implication": "Slight potential weakening contribution through global commodity demand.",
+            "thesis_effect": "Opposes the oil-income case; demand weakness is distinct from restored Gulf supply."
+          },
+          {
+            "currency": "JPY",
+            "implication": "Slight potential strengthening contribution from risk hedging, opposed by Japanese export exposure.",
+            "thesis_effect": "Additional external support, not evidence of realised carry liquidation."
+          },
+          {
+            "currency": "EUR",
+            "implication": "Slight potential weakening contribution through external demand and industrial exposure.",
+            "thesis_effect": "Adds to credit/energy constraints without erasing resilient domestic Q3 growth."
+          }
+        ],
+        "instruments": [],
+        "instrument_note": "",
+        "commodity_implication": "",
+        "commodity_thesis_effect": "",
+        "references": [],
+        "expected_version": null,
+        "revision_note": "",
+        "id": "39fcf9953422418bb5afd44fe686a07e",
+        "saved_utc": "2026-11-01T22:46:20.824347Z"
+      },
+      {
+        "key": "nzd-20261028-review-and-hawkish-offset",
+        "title": "RBNZ hold surprise and subsequent hawkish offset",
+        "facts": "The complete official October 28 record confirms a 4-3 hold at 2.75%, against widely expected October tightening. The majority cited lower-than -expected inflation, smaller indirect fuel-price effects, subdued wages, weak consumption/investment and time to observe two previous hikes. Core near the upper target band and broader price increases were largely expected, rather than evidence of a fresh upside surprise. All members still see tighter policy likely, conditional on the outlook; the record explicitly allows future holds or easing if global demand deteriorates sharply. RNZ reports Westpac economist Eckhold observed the one-year swap rate down about 20 bp after the decision on October 28. That report is an attributed event-time observation, not a new/current October 29 yield measurement. Later conference remarks about further hikes and imported inflation are substantial opposition to weakness. The October 29 Herald interview is now verified separately; this does not verify every scheduled broadcast. Wholesale-to-retail rate pass-through and cost-to-CPI pass-through are distinct; no mechanical rate conclusion is drawn from either.",
+        "published_on": "2026-10-28",
+        "published_at": null,
+        "event_at": null,
+        "timing_note": "Original source date retained. Publication/update hour not independently established; verification does not redate the release.",
+        "verified_utc": "2026-10-29T07:47:54.197853Z",
+        "sources": [
+          {
+            "kind": "web",
+            "label": "RBNZ October 28 decision and complete meeting record",
+            "locator": "https://www.rbnz.govt.nz/news-and-events/news/2026/10/ocr-held-at-2-75-percent",
+            "note": "Decisive official body opened through web reader after direct HTTP 403. Majority pause rationale and conditional branches read, not merely the headline hold."
+          },
+          {
+            "kind": "web",
+            "label": "RNZ October 28: post-decision wholesale-rate transmission",
+            "locator": "https://www.rnz.co.nz/news/business/2205241/what-will-ocr-surprise-mean-for-home-loan-rates",
+            "note": "Direct RNZ body retrieved after web-reader access failure. Page says October 28 6:06 PM NZ local time. Westpac economist reports one-year swap down about 20 bp then; no claim it is a current October 29 quote or remains down that amount."
+          },
+          {
+            "kind": "web",
+            "label": "Interest.co.nz October 29: Breman on cost pass-through and domestic credit",
+            "locator": "https://www.interest.co.nz/economy/140864/reserve-bank-seeing-less-pass-through-wholesale-interest-rate-increases-both-deposit",
+            "note": "Direct body read. Distinguish wholesale-to-retail interest transmission from fuel/input-cost-to-CPI pass-through; they are separate channels. Published 5:00 AM local October 29, reporting October 28 conference."
+          },
+          {
+            "kind": "web",
+            "label": "InvestingLive: Breman subsequent conference",
+            "locator": "https://investinglive.com/central-banks/rbnz-s-breman-more-hikes-likely-at-coming-meetings-possibly-into-restrictive-territory/",
+            "note": "October 28 conference; distinct from the unverified October 29 breakfast interviews."
+          }
+        ],
+        "impacts": [
+          {
+            "currency": "NZD",
+            "implication": "A missed near-term hike and cautious majority remove expected policy support even though conditional future hikes remain likely. Verified event-time swap softness supports that transmission; later hawkish remarks can limit losses without establishing a new higher path.",
+            "thesis_effect": "CORRECTED the previous weighting: a future hike being likely and a firmer survey do not alone establish that strengthening dominates the pause surprise. Reassess the present session independently; no retrospective trade or price reversal is invented."
+          }
+        ],
+        "instruments": [],
+        "instrument_note": "",
+        "commodity_implication": "",
+        "commodity_thesis_effect": "",
+        "references": [],
+        "expected_version": "ef267e486f234ced8563f45053c7f029",
+        "revision_note": "Formatting only: separate currency codes, amounts, units and date/time words. Non-whitespace content, sources and all evidence clocks are unchanged. No new research or assessment.",
+        "id": "b5dfd432320e4434a62bed35e3cd2ebb",
+        "saved_utc": "2026-11-01T23:58:48.804278Z"
+      },
+      {
+        "key": "nzd-20261028-drive-weaker-pass-through",
+        "title": "Breman radio defence: indirect fuel-price effects weaker than feared",
+        "facts": "Newstalk ZB's October 28 article quotes Breman saying fuel-price effects on other prices such as food and transport have been weaker than the bank expected. This supports the majority decision to wait at 2.75% and is distinct from the later-hike guidance already saved. It is the October 28 Drive interview, not proof of what was said in the separate October 29 Herald Now/Mike Hosking breakfast windows.",
+        "published_on": "2026-10-28",
+        "published_at": null,
+        "event_at": null,
+        "timing_note": "Original source date retained; publication hour is unverified.",
+        "verified_utc": "2026-10-28T23:36:43.149296Z",
+        "sources": [
+          {
+            "kind": "web",
+            "label": "Newstalk ZB: Breman defends the surprise hold",
+            "locator": "https://www.newstalkzb.co.nz/on-air/heather-du-plessis-allan-drive/audio/anna-breman-reserve-bank-governor-on-why-the-reserve-bank-kept-the-ocr-on-hold-at-275-percent/",
+            "note": "Original station article, October 28. Its quoted text was read; no claim that audio or the separate October 29 breakfast interviews were verified."
+          },
+          {
+            "kind": "web",
+            "label": "RBNZ indicative interview and speaking schedule",
+            "locator": "https://www.rbnz.govt.nz/news-and-events/events/2026/october/governors-post-mpr-media-interview-schedule-october-2026",
+            "note": "Web reader confirms October 29 indicative Herald Now/Newstalk breakfast windows. Schedule does not establish broadcast or content."
+          }
+        ],
+        "impacts": [
+          {
+            "currency": "NZD",
+            "implication": "Less observed pass-through supports policy patience, opposed by conditional further hikes and concern over imported inflation from currency weakness.",
+            "thesis_effect": "Additional sourced context; does not resolve the missing October 29 breakfast remarks or renew the initial surprise-short."
+          }
+        ],
+        "instruments": [],
+        "instrument_note": "",
+        "commodity_implication": "",
+        "commodity_thesis_effect": "",
+        "references": [],
+        "expected_version": null,
+        "revision_note": "",
+        "id": "9234eac313974046b009f5855e41d6a7",
+        "saved_utc": "2026-10-28T23:36:44.370376Z"
+      },
+      {
+        "key": "nzd-20261029-herald-december-high",
+        "title": "Breman Herald interview: likely further hikes, uncertain timing",
+        "facts": "Reuters reports Breman told the New Zealand Herald that all committee members consider further OCR increases likely and that the chances of a December hike are high, while timing remains uncertain and depends on the outlook and inflation. Reuters attributes a 77% December hike probability to market pricing at the report time. A likely December hike does not replace the October hike that was not delivered, establish the terminal rate, or demonstrate that post-decision swap losses have been recovered. The article was published before the earlier 00:44 UTC assessment and is newly verified here, not new afternoon news.",
+        "published_on": "2026-10-29",
+        "published_at": "2026-10-29T00:22:00Z",
+        "event_at": null,
+        "timing_note": "Reuters/AOL page displays October 29 00:22 UTC, or 7:22 AM Jakarta; utterance minute unknown. Verified this afternoon, without backdating the assessment.",
+        "verified_utc": "2026-10-29T07:47:54.197853Z",
+        "sources": [
+          {
+            "kind": "web",
+            "label": "Reuters October 29 Herald interview: December hike chances high",
+            "locator": "https://www.aol.com/articles/zealand-central-bank-governor-says-002236000.html",
+            "note": "Direct body verified. Published 00:22 UTC October 29; 77% December probability is Reuters report-time market pricing, not our calculation or fresh full OIS curve. This report was available before the earlier 00:44 assessment but had not been verified then."
+          }
+        ],
+        "impacts": [
+          {
+            "currency": "NZD",
+            "implication": "Verified hawkish guidance is substantial opposition to near-term weakening and supports a possible recovery, but is conditional and partly reflected in attributed pricing.",
+            "thesis_effect": "Resolve the previously unverified Herald stage; keep its actual 00:22 UTC publication. Do not claim the survey or this quote alone establish dominant strengthening."
+          }
+        ],
+        "instruments": [],
+        "instrument_note": "",
+        "commodity_implication": "",
+        "commodity_thesis_effect": "",
+        "references": [],
+        "expected_version": null,
+        "revision_note": "",
+        "id": "c9baf84ff1274cbfbb1f93b9dd0cfcff",
+        "saved_utc": "2026-10-29T07:47:56.247936Z"
+      },
+      {
+        "key": "nzd-20261029-anz-resilience-and-price-setting",
+        "title": "NZ ANZ survey: resilient demand and firmer price-setting intentions",
+        "facts": "Original ANZ October report: business confidence 52.5 versus 51.9; own-activity outlook 46.2 versus 47.9; past activity 15.0 versus 10.8. Pricing intentions 52.2 versus 48.4; intended three-month price increase 1.92% versus 1.76%; one-year inflation expectations 3.31% versus 3.25%. Cost expectations remained 81.9; expected wage growth eased to 2.79% from 2.83%. Investment intentions eased to 18.3 from 22.6 and employment intentions to 17.4 from 17.9. ANZ describes resilient demand and only marginal wage upside risk to RBNZ forecasts. The headline confidence improvement alone understates both firmer price-setting and softer forward investment/own activity. These components form one release package. Pepperstone event 554040002/value 280445 still had no actual, forecast 48.1 and capture October 22; the direct ANZ release takes priority without overwriting the raw broker observation. There is no independently verified unique survey consensus.",
+        "published_on": "2026-10-29",
+        "published_at": null,
+        "event_at": "2026-10-29T00:00:00Z",
+        "timing_note": "ANZ PDF dated October 29; exact PDF publication hour unknown. 00:00 UTC is the broker scheduled release, not independently verified actual publication. Reuters survey report displays 00:11 UTC, and the full source was verified later this review.",
+        "verified_utc": "2026-10-29T07:47:54.197853Z",
+        "sources": [
+          {
+            "kind": "web",
+            "label": "ANZ October 29 Business Outlook: Resilient, original report",
+            "locator": "https://www.anz.co.nz/content/dam/anzconz/documents/economics-and-market-research/2026/ANZ-BusinessOutlook-20261029.pdf",
+            "note": "Full original PDF extracted, including detailed table and commentary. No aggregate survey consensus is invented."
+          },
+          {
+            "kind": "web",
+            "label": "ANZ original survey publication page",
+            "locator": "https://www.anz.co.nz/about-us/economic-markets-research/business-outlook/",
+            "note": ""
+          },
+          {
+            "kind": "web",
+            "label": "Reuters October 29 business survey report, published 00:11 UTC",
+            "locator": "https://malaysia.news.yahoo.com/zealand-businesses-stay-optimistic-despite-001108136.html",
+            "note": "Direct body opened by HTTP after web-reader failure. Its publication clock belongs to this report, not the complete ANZ PDF or the assessment."
+          }
+        ],
+        "impacts": [
+          {
+            "currency": "NZD",
+            "implication": "Resilient past activity and firmer price-setting are genuine support to the conditional tightening backdrop, opposed by softer own activity, investment, employment and wages. They do not prove reversal of the lower immediate policy path.",
+            "thesis_effect": "Reclassify as material opposition to current-session weakening, rather than sufficient proof of strengthening. No new ANZ release, immediate-policy commitment, confirmed OIS recovery or measured FX reversal is asserted."
+          }
+        ],
+        "instruments": [],
+        "instrument_note": "",
+        "commodity_implication": "",
+        "commodity_thesis_effect": "",
+        "references": [],
+        "expected_version": "c680d56a9f4f41e78d51e4c115d62f62",
+        "revision_note": "Interpretation correction only: original ANZ numbers and publication clocks are unchanged. The earlier assessment gave pricing intentions too much directional weight relative to the missed October hike and mixed survey components. Replace that interpretation prospectively while preserving the earlier assessment/version.",
+        "id": "1de1204eab394954b13a6f061495af71",
+        "saved_utc": "2026-10-29T07:47:56.247936Z"
+      }
+    ],
+    "workflow": {},
+    "analyst_model": "unrecorded",
+    "protocol_id": "ba9c464a9fa5f9b78f5379e6d7938d2c506a18bb95f5626a83ceaf8573e8f581",
+    "available_time_basis": "Persisted delivery proxy; earlier chat delivery not reconstructed.",
+    "input_hash": "8e57ebe8ce7236dab01cdd45e77160db158ca72812d84bc1a126bccc9af0404e",
+    "next_delivery_utc": "2026-11-02T19:11:02.412423Z",
+    "end_utc": "2026-11-02T19:11:02.412423Z",
+    "end_reason": "superseded",
+    "window_basis": "diagnostic_proxy",
+    "window_status": "matured",
+    "checkpoint_overdue_seconds": 0,
+    "assessment_latency_seconds": 1.441698,
+    "basis_eligible": true
+  },
+  "outcome": {
+    "id": "782948027964dbfc814eedf0edad19441b860b8c4561000309303d72eb86e9e3",
+    "episode_id": "research:ac9fb362582d4c14a93c915b14cf3c28:NZD",
+    "episode_hash": "8e57ebe8ce7236dab01cdd45e77160db158ca72812d84bc1a126bccc9af0404e",
+    "protocol_id": "ba9c464a9fa5f9b78f5379e6d7938d2c506a18bb95f5626a83ceaf8573e8f581",
+    "end_utc": "2026-11-02T19:11:02.412423Z",
+    "window_basis": "diagnostic_proxy",
+    "data_revision": "80193a6fc5e3df56ac6af6182275aa8ebd4394fdc1efd844e0f8a498377d8b0f",
+    "window_revision": "3378a1530c0c7966f123b257c56220107ae8880957e12aa125f6f8666e2a814b",
+    "recorded_utc": "2026-11-02T19:11:51.687333Z",
+    "observation": {
+      "status": "unavailable",
+      "gap": "Missing exact completed terminal minute; no neighbouring candle substituted."
+    },
+    "secondary_observations": {
+      "120": {
+        "status": "unavailable",
+        "gap": "Missing exact completed terminal minute; no neighbouring candle substituted."
+      },
+      "1440": {
+        "status": "pending"
+      }
+    },
+    "relative_preferences": [],
+    "post_checkpoint_observation": null
+  },
+  "daily_excursion": {
+    "id": "2d1196a48625cc6ac3f1e393142fe1444a6b3319e26c13ff5032981e8172a7b4",
+    "episode_id": "research:ac9fb362582d4c14a93c915b14cf3c28:NZD",
+    "episode_hash": "8e57ebe8ce7236dab01cdd45e77160db158ca72812d84bc1a126bccc9af0404e",
+    "currency": "NZD",
+    "verdict": "POTENTIAL WEAKENING",
+    "intensity": "slight",
+    "recorded_utc": "2026-11-02T19:11:55.594892Z",
+    "price_evidence": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\days\\versions\\ac706062a487f9580340aec50b34515937155aad3677bc2dbce0e1f6e4b1b661.json",
+    "price_evidence_hash": "ac706062a487f9580340aec50b34515937155aad3677bc2dbce0e1f6e4b1b661",
+    "observation": {
+      "status": "complete",
+      "favourable_pct": 0.07239620350999748,
+      "adverse_pct": -0.25533395371060713,
+      "adverse_before_peak_pct": -0.0,
+      "peak_utc": "2026-11-02T05:40:00Z",
+      "time_to_peak_seconds": 2160,
+      "baseline_utc": "2026-11-02T05:04:00Z",
+      "through_utc": "2026-11-02T19:11:00Z",
+      "terminal_return_pct": -0.04156909808290065,
+      "max_pct": 0.25533395371060713,
+      "direction_result": "opposed",
+      "missing_samples": 0,
+      "sample_count": 848,
+      "end_utc": "2026-11-02T19:11:02.412423Z",
+      "end_reason": "superseded",
+      "phase": "final"
+    },
+    "protocol_id": "9c7c581e880ecd0ccaaa3b31e12674ee8cc225e8b4efbed1813b15aa01b76034",
+    "basis": "Equal-weight relative FX basket · synchronized M1 closes",
+    "source_id": "Pepperstone-Demo",
+    "broker_day": "2026-11-02",
+    "observed_until_utc": "2026-11-02T19:11:00Z",
+    "day_start_utc": "2026-11-01T22:00:00Z",
+    "day_end_utc": "2026-11-02T22:00:00Z",
+    "phase": "developing",
+    "delivery_utc": "2026-11-02T05:03:52.076236Z",
+    "day": {
+      "status": "partial",
+      "max_pct": -0.2555316225172158,
+      "peak_utc": "2026-11-02T05:40:00Z",
+      "up_pct": 0.07159790987717826,
+      "down_pct": -0.2555316225172158,
+      "sample_count": 1238,
+      "missing_samples": 33,
+      "through_utc": "2026-11-02T19:11:00Z"
+    },
+    "after_verdict": {
+      "status": "complete",
+      "favourable_pct": 0.07239620350999748,
+      "adverse_pct": -0.25533395371060713,
+      "adverse_before_peak_pct": -0.0,
+      "peak_utc": "2026-11-02T05:40:00Z",
+      "time_to_peak_seconds": 2160,
+      "baseline_utc": "2026-11-02T05:04:00Z",
+      "through_utc": "2026-11-02T19:11:00Z",
+      "terminal_return_pct": -0.04156909808290065,
+      "max_pct": 0.25533395371060713,
+      "direction_result": "opposed",
+      "missing_samples": 0,
+      "sample_count": 848
+    },
+    "active_window": {
+      "status": "complete",
+      "favourable_pct": 0.07239620350999748,
+      "adverse_pct": -0.25533395371060713,
+      "adverse_before_peak_pct": -0.0,
+      "peak_utc": "2026-11-02T05:40:00Z",
+      "time_to_peak_seconds": 2160,
+      "baseline_utc": "2026-11-02T05:04:00Z",
+      "through_utc": "2026-11-02T19:11:00Z",
+      "terminal_return_pct": -0.04156909808290065,
+      "max_pct": 0.25533395371060713,
+      "direction_result": "opposed",
+      "missing_samples": 0,
+      "sample_count": 848,
+      "end_utc": "2026-11-02T19:11:02.412423Z",
+      "end_reason": "superseded",
+      "phase": "final"
+    },
+    "eligible": true,
+    "price_revision": "aa83886e80041b6b3ad2918d71818f6c7376a624b802b5b1fb6694b5bc398791",
+    "feedback": "refinement_candidate",
+    "day_alignment": "aligned",
+    "remaining_day_feedback": "unresolved"
+  },
+  "reviews": []
+}

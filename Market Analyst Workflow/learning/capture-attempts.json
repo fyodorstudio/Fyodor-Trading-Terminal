@@ -98,6 +98,114 @@
       "ok": true,
       "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\GBPUSD-c663d096b051af4231c75dcf.json",
       "bridge_requests": 15
+    },
+    {
+      "symbol": "EURUSD",
+      "from_utc": "2026-10-20T07:36:00Z",
+      "to_utc": "2026-11-02T19:39:00Z",
+      "at": "2026-11-02T19:40:03.720813Z",
+      "ok": true,
+      "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\EURUSD-1318ae9705d6a85564acc57f.json",
+      "bridge_requests": 15
+    },
+    {
+      "symbol": "GBPUSD",
+      "from_utc": "2026-10-20T07:36:00Z",
+      "to_utc": "2026-11-02T19:39:00Z",
+      "at": "2026-11-02T19:40:04.490008Z",
+      "ok": true,
+      "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\GBPUSD-ec815c45e1daf32984d8f462.json",
+      "bridge_requests": 15
+    },
+    {
+      "symbol": "EURUSD",
+      "from_utc": "2026-10-20T07:36:00Z",
+      "to_utc": "2026-11-02T19:53:00Z",
+      "at": "2026-11-02T19:54:20.751193Z",
+      "ok": true,
+      "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\EURUSD-b888d6f2d6c6ed848e7d35ab.json",
+      "bridge_requests": 15
+    },
+    {
+      "symbol": "GBPUSD",
+      "from_utc": "2026-10-20T07:36:00Z",
+      "to_utc": "2026-11-02T19:53:00Z",
+      "at": "2026-11-02T19:54:21.413941Z",
+      "ok": true,
+      "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\GBPUSD-c982c57bafd8f1aea8a46e2a.json",
+      "bridge_requests": 15
+    },
+    {
+      "symbol": "EURUSD",
+      "from_utc": "2026-10-20T07:36:00Z",
+      "to_utc": "2026-11-02T23:57:00Z",
+      "at": "2026-11-02T23:57:53.609866Z",
+      "ok": true,
+      "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\EURUSD-1d5653e8d7f35ad20cffcdfa.json",
+      "bridge_requests": 15
+    },
+    {
+      "symbol": "GBPUSD",
+      "from_utc": "2026-10-20T07:36:00Z",
+      "to_utc": "2026-11-02T23:57:00Z",
+      "at": "2026-11-02T23:57:54.389780Z",
+      "ok": true,
+      "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\GBPUSD-0325600076058e009d4cdb1e.json",
+      "bridge_requests": 15
+    },
+    {
+      "symbol": "EURUSD",
+      "from_utc": "2026-10-20T07:36:00Z",
+      "to_utc": "2026-11-03T00:52:00Z",
+      "at": "2026-11-03T00:53:16.310698Z",
+      "ok": true,
+      "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\EURUSD-6fa0167467ab81084ea5dc90.json",
+      "bridge_requests": 15
+    },
+    {
+      "symbol": "GBPUSD",
+      "from_utc": "2026-10-20T07:36:00Z",
+      "to_utc": "2026-11-03T00:52:00Z",
+      "at": "2026-11-03T00:53:16.885161Z",
+      "ok": true,
+      "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\GBPUSD-6dd1c4e3dd3f5cecb417e568.json",
+      "bridge_requests": 15
+    },
+    {
+      "symbol": "AUDUSD",
+      "from_utc": "2026-10-20T07:36:00Z",
+      "to_utc": "2026-11-03T00:52:00Z",
+      "at": "2026-11-03T00:53:52.402454Z",
+      "ok": true,
+      "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\AUDUSD-bb49f373ef92dec81b2e9507.json",
+      "bridge_requests": 15
+    },
+    {
+      "symbol": "NZDUSD",
+      "from_utc": "2026-10-20T07:36:00Z",
+      "to_utc": "2026-11-03T00:52:00Z",
+      "at": "2026-11-03T00:53:53.368869Z",
+      "ok": true,
+      "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\NZDUSD-0c0c90347980bda99d700a25.json",
+      "bridge_requests": 15
+    },
+    {
+      "symbol": "EURUSD",
+      "from_utc": "2026-10-20T07:36:00Z",
+      "to_utc": "2026-11-03T01:22:00Z",
+      "at": "2026-11-03T01:23:40.279630Z",
+      "ok": true,
+      "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\EURUSD-4215b6d53201a2b0db531174.json",
+      "bridge_requests": 15
+    },
+    {
+      "symbol": "GBPUSD",
+      "from_utc": "2026-10-20T07:36:00Z",
+      "to_utc": "2026-11-03T01:22:00Z",
+      "at": "2026-11-03T01:23:40.846115Z",
+      "ok": true,
+      "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\GBPUSD-b2da3c4bee894326f94da962.json",
+      "bridge_requests": 15
     }
   ]
 }

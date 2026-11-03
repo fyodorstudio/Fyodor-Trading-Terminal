@@ -42,6 +42,26 @@ class RecommendedPairsTests(TestCase):
         r['assessments'].append(gbp)
         return r
 
+    def daily_close(self):
+        return dict(source_id='Pepperstone-Demo', broker_day='2026-07-22', color='red',
+            open_price=1.2, observed_price=1.19, observed_utc='2026-07-22T10:00:00Z', closes_at='2026-07-22T21:00:00Z',
+            reason='A recovery from now can coexist with a red daily close below the earlier opening price.')
+
+    def test_pair_daily_target_is_explicit_and_separate_from_the_active_trade_direction(self):
+        r = self.request()
+        r['assessments'][1]['evaluation']['relative_preferences'][0]['daily_close'] = self.daily_close()
+        append_research(ResearchRequest(**r), self.path)
+        item = recommended_pairs(self.path)['items'][0]
+        self.assertEqual(item['verdict'], 'BUY')
+        self.assertEqual(item['daily_close']['color'], 'red', 'Never derive D1 color automatically from BUY/SELL')
+        self.assertEqual(item['daily_close']['open_price'], 1.2)
+        self.assertLess(item['until_utc'], item['daily_close']['closes_at'], 'The checkpoint still ends the active comparison before D1 closes')
+        for change in [dict(observed_utc='2026-07-22T10:01:00Z'), dict(broker_day='2026-07-21'),
+                       dict(closes_at='2026-07-22T22:00:00Z'), dict(open_price=0), dict(observed_price=float('nan'))]:
+            bad = deepcopy(r)
+            bad['assessments'][1]['evaluation']['relative_preferences'][0]['daily_close'].update(change)
+            with self.assertRaises(ValueError): ResearchRequest(**bad)
+
     def test_exact_evidence_window_ranking_and_read_only_revision(self):
         receipt = append_research(ResearchRequest(**self.request()),self.path)
         before = self.path.with_name('research.json').read_bytes()

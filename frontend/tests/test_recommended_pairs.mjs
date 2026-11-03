@@ -14,7 +14,9 @@ from storage.thesis_research import ResearchRequest, append_research
 from storage.recommended_pairs import recommended_pairs
 f=RecommendedPairsTests();f.setUp()
 try:
-    append_research(ResearchRequest(**f.request()),f.path)
+    request=f.request()
+    request['assessments'][1]['evaluation']['relative_preferences'][0]['daily_close']=f.daily_close()
+    append_research(ResearchRequest(**request),f.path)
     print(json.dumps(recommended_pairs(f.path)))
 finally:f.doCleanups()
 `],{cwd:repo,encoding:'utf8'}))
@@ -46,6 +48,10 @@ try{
   }
   const unsafe=structuredClone(fixture);unsafe.items[0].evidence[0].sources[0].locator='javascript:alert(1)';assert.equal(validRecommendedPairs(unsafe),false)
   const legacy=structuredClone(fixture);legacy.items[0].intensity=null;legacy.items[0].rank=null;assert.equal(validRecommendedPairs(legacy),true)
+  delete legacy.items[0].daily_close;assert.equal(validRecommendedPairs(legacy),true,'Earlier recommendations remain readable without a daily forecast')
+  for(const change of [{open_price:0},{observed_price:NaN},{color:'blue'},{observed_utc:'2026-07-22T10:01:00Z'}]){
+    const bad=structuredClone(fixture);Object.assign(bad.items[0].daily_close,change);assert.equal(validRecommendedPairs(bad),false)
+  }
   assert.match(recommendationState({...fixture.items[0],status:'superseded'},now),/currency updated/)
   let selected=null
   const props={symbols:[{symbol:'GBPCHF.a',description:'GBPCHF',bid:1,ask:1,dailyChange:0,precision:5}],onSelectSymbol:s=>{selected=s}}
@@ -53,6 +59,8 @@ try{
   assert.match(container.textContent,/Recommended Pairs.*GBPCHF · BUY · Moderate/s)
   assert.match(container.textContent,/Current/)
   assert.match(container.textContent,/Opposition:.*Invalidation:/s)
+  assert.match(container.textContent,/D1 target: RED.*D1 open 1.2.*observed 1.19/s)
+  assert.match(container.textContent,/Probability: uncalibrated/)
   assert.match(container.textContent,/GBP evidence:.*CHF evidence:/s)
   assert.match(container.textContent,/5:30\s*PM/,'The earlier CHF checkpoint caps the window')
   const row=container.querySelector('[data-recommended-pair]')

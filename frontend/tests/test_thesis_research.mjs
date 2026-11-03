@@ -65,12 +65,13 @@ try {
   assert.match(chf().textContent,/Day max: —/,'Every verdict has a mandatory comparison slot, including missing data')
   const excursion={protocol_id:'daily-v1',basis:'Equal-weight relative FX basket · synchronized M1 closes',source_id:'Pepperstone-Demo',broker_day:'2026-07-22',
     day_start_utc:'2026-07-21T21:00:00Z',day_end_utc:'2026-07-22T21:00:00Z',delivery_utc:'2026-07-22T10:01:00Z',phase:'developing',eligible:true,feedback:'unresolved',
-    day:{status:'complete',max_pct:-0.321,peak_utc:'2026-07-22T11:00:00Z'},
+    day:{status:'complete',max_pct:-0.321,current_pct:0.05,peak_utc:'2026-07-22T11:00:00Z'},
     after_verdict:{status:'complete',favourable_pct:0.17,adverse_pct:-0.04,adverse_before_peak_pct:-0.02,peak_utc:'2026-07-22T11:00:00Z',baseline_utc:'2026-07-22T10:01:00Z'},
     active_window:{status:'complete',favourable_pct:0.12,adverse_pct:-0.04,adverse_before_peak_pct:-0.02,peak_utc:'2026-07-22T10:50:00Z',baseline_utc:'2026-07-22T10:01:00Z',end_utc:'2026-07-22T11:00:00Z',phase:'final'}}
   fixture={...fixture,revision:'developing-excursion',assessments:fixture.assessments.map(a=>({...a,excursion}))}
   await poll()
   assert.match(chf().querySelector('h3').textContent,/Slight weakening.*Day max: -0.321% · Developing/)
+  assert.match(chf().querySelector('h3').textContent,/Basket D1 so far: \+0.050% · Day max: -0.321%/,'Current daily direction is distinct from the larger opposite excursion')
   assert.match(chf().textContent,/Sampled FX basket.*Broker day 2026-07-22.*Jul 23.*4:00 AM/s,'Daily boundary uses explicit UTC converted to Jakarta, not midnight')
   assert.match(chf().textContent,/After verdict 5:01 PM.*best \+0.170%.*adverse -0.040%.*peak 6:00 PM/s)
   assert.match(chf().textContent,/Active window.*6:00 PM.*best \+0.120%/s,'Checkpoint and full-day opportunities remain separate')
@@ -82,7 +83,7 @@ try {
   assert.match(chf().textContent,/Supporting case/)
   const completed=structuredClone(excursion)
   completed.phase='final';completed.feedback='supporting_case'
-  completed.day={...completed.day,status:'partial',close_pct:0.05}
+  completed.day={...completed.day,status:'partial',close_pct:0.05,close_basis:'broker_d1_close'}
   completed.after_verdict={...completed.after_verdict,status:'partial',terminal_status:'complete',terminal_return_pct:-0.05,currency_return_pct:0.05,close_result:'opposed'}
   completed.active_window={...completed.active_window,terminal_status:'complete',terminal_return_pct:0.02,currency_return_pct:-0.02,close_result:'aligned'}
   fixture={...fixture,revision:'closing-comparison',assessments:fixture.assessments.map(a=>({...a,excursion:completed}))}
@@ -91,6 +92,8 @@ try {
   assert.match(chf().textContent,/checkpoint\/end: Aligned/)
   assert.match(chf().textContent,/Partial history; excursions incomplete/)
   assert.match(chf().textContent,/Broker D1 open → close: \+0.050%/)
+  assert.match(chf().querySelector('h3').textContent,/Basket D1 close: \+0.050% · Day max: -0.321%/)
+  assert.match(chf().textContent,/verified broker D1 closes/)
   assert.ok(!chf().querySelector('.thesis-excursion-heading').title.includes('GBPUSD'))
   assert.match(researchMarkdown(fixture,null,'CHF'),/D1 close: Opposed/,'Exports preserve the closing comparison')
   const provisional={...direction,review_status:'provisional',stage_note:'Statement only; conference Q&A pending.'}

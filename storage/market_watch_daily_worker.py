@@ -31,7 +31,11 @@ def read_daily(mt5, request):
             start = datetime.fromtimestamp(request['day'], timezone.utc)
             end = datetime.fromtimestamp(request['day'] + 86399, timezone.utc)
             rates = mt5.copy_rates_range(symbol, mt5.TIMEFRAME_D1, start, end)
-            records[symbol] = daily_record(rates if rates is not None else [], request['day'])
+            record = daily_record(rates if rates is not None else [], request['day'])
+            record['availability'] = ('unavailable' if rates is None else 'available'
+                if all(record[field] is not None for field in ('open', 'high', 'low')) else 'no_candle'
+                if not any(int(bar['time']) == request['day'] for bar in rates) else 'unavailable')
+            records[symbol] = record
         if not matches():
             raise ValueError('Native account changed during read')
         return records

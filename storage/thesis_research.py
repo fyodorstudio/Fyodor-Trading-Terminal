@@ -161,6 +161,14 @@ class ResearchRequest(Payload):
                 if a.direction.reassessment and a.direction.reassessment.event_at and a.evaluation.until_utc > a.direction.reassessment.event_at:
                     raise ValueError('Evaluation horizon cannot skip the next material checkpoint')
                 for preference in a.evaluation.relative_preferences:
+                    if preference.daily_close:
+                        from .analyst_learning.daily import broker_date, bounds
+                        forecast = preference.daily_close
+                        if (self.provenance != 'assessment' or forecast.observed_utc > self.as_of_utc
+                                or forecast.broker_day.isoformat() != broker_date(self.as_of_utc.isoformat())
+                                or forecast.broker_day.isoformat() != broker_date(forecast.observed_utc.isoformat())
+                                or forecast.closes_at.timestamp() != bounds(forecast.broker_day.isoformat())[1]):
+                            raise ValueError('Pair D1 target must use observed current broker-day prices and the verified broker close')
                     if preference.recommendation:
                         if preference.pair not in {base+quote for n, base in enumerate(CURRENCIES) for quote in CURRENCIES[n+1:]}:
                             raise ValueError('Recommended pairs use the supported 28 chart pair identities')

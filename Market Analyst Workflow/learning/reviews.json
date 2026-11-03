@@ -368,6 +368,279 @@
       "episode_hash": "ed2bdcb23ab4e5e574bd80a7792c545a15ab40813d3f414eadf1865acb18d8f5",
       "outcome_hash": "4e04bf4d50888839349bf8bde6f53b53432160a1db46544188057a64d7e393f2",
       "method": "agent_review_not_independent_replay"
+    },
+    {
+      "episode_id": "research:5cfeb6a3eefe4406a4260c11f36558be:CHF",
+      "outcome_id": "f364c2631a07d1557750eb5df6d03d83e05df72fd56331bcc823db7fa393aa3d",
+      "classification": "supported_reasoning_adverse_outcome",
+      "analysis": "The original slight CHF strengthening case acknowledged zero-rate funding and risk recovery, but the active window suffered greater adverse than favourable excursion. Later positive performance cannot repair the original active-window result. This is an opposed/refinement case for distinguishing defensive policy background from an immediate session advantage; no single missing headline or private flow is established.",
+      "known_before_cutoff": "Before delivery the saved assessment knew the SNB zero-rate and low-inflation opposition, softer KOF and the preceding technology-risk episode. It explicitly allowed de-escalation or durable risk recovery to defeat the limited positive balance.",
+      "subsequent_information": "The sampled active window shows about 0.031% favourable versus 0.165% adverse excursion. The longer post-delivery window later shows about 0.662% favourable movement, which is a separate opportunity window. This developing-day observation does not establish why the initial window opposed the call.",
+      "source_evidence": [
+        {
+          "url": "https://www.aft.gouv.fr/en/frances-credit-ratings",
+          "claim": "France A+ with negative outlook is a dated fiscal constraint; it does not demonstrate actual CHF hedge purchases.",
+          "availability_note": "The rating action is dated October 30. Its exact publication hour was not established; the later assessment had incorporated it, but this review does not assume that the earlier assessment had retrieved it.",
+          "used_as_pre_cutoff": false
+        }
+      ],
+      "expected_version": null,
+      "revision_note": "",
+      "id": "2d3c1f7e75324573a07d35e355fa27ac",
+      "recorded_utc": "2026-11-02T19:44:50.171450Z",
+      "episode_hash": "758118cf39c177e30989361d24e63270e44af41a1b521ba3b38e9716f9e6ea4b",
+      "outcome_hash": "47427aaa452e2924255a6c1984763a50105a78e935695604af548bce320d1df9",
+      "method": "agent_review_not_independent_replay"
+    },
+    {
+      "episode_id": "research:ac9fb362582d4c14a93c915b14cf3c28:CHF",
+      "outcome_id": "95c8ffcde539245ddf45b270d403a8c9e804791fc4bb2412898b05872f3e00bf",
+      "classification": "supported_reasoning_aligned_outcome",
+      "analysis": "The later CHF assessment explicitly separated European fiscal hedging from the earlier technology shock and retained the zero-rate opposition. Its active window was directionally aligned, with about 0.171% favourable excursion and no adverse sampled close. This supports the bounded relative-risk mechanism as a candidate explanation, not proof of private hedge flows or a Strong grade. It remains the aligned/reward counterpart to the earlier opposed case.",
+      "known_before_cutoff": "The assessment had the French fiscal-rating constraint and Swiss zero-rate, low-inflation and soft-activity opposition available. It did not infer a GBPCHF trade merely from two positive standalone currency judgments.",
+      "subsequent_information": "The sampled active window ended at the checkpoint with about 0.092% terminal strength; the longer post-delivery window later reached about 0.644% favourable excursion. Those windows are kept distinct. The diagnostic fixed-horizon outcome contains exact-minute coverage gaps; the reviewed outcome here is the exact daily-excursion version.",
+      "source_evidence": [
+        {
+          "url": "https://www.aft.gouv.fr/en/frances-credit-ratings",
+          "claim": "France A+ with negative outlook is a dated fiscal constraint; it does not demonstrate actual CHF hedge purchases.",
+          "availability_note": "The rating action is dated October 30. Its exact publication hour was not established; the later assessment had incorporated it, but this review does not assume that the earlier assessment had retrieved it.",
+          "used_as_pre_cutoff": false
+        }
+      ],
+      "expected_version": null,
+      "revision_note": "",
+      "id": "cc58f7919bff4a02b045cadd03c6948f",
+      "recorded_utc": "2026-11-02T19:44:53.588714Z",
+      "episode_hash": "9492f493e8787e23253e736129c0d26ea83de662d71d3eb9230e791553e004a1",
+      "outcome_hash": "b4197d0e082dc8657e503dd0425baabc986e28b28bcee3262f853aecc0be8cf5",
+      "method": "agent_review_not_independent_replay"
+    },
+    {
+      "episode_id": "research:5cfeb6a3eefe4406a4260c11f36558be:CAD",
+      "outcome_id": "17925f81a2bff17f7e34ceabacad012f7628f804cc8ae6aaad37116196d6f110",
+      "classification": "supported_reasoning_adverse_outcome",
+      "analysis": "The slight positive CAD call explicitly weighed BoC policy and energy income against weak activity and possible supply normalisation. Its active interval opposed the call: favourable excursion was about 0.003% against 0.132% adverse. The longer post-delivery sample also opposed it. This is a refinement case for checking whether the oil-policy session premise survives diplomacy; the observed direction alone cannot identify a missing source or prove a particular flow. The expired-stage lesson applies prospectively without rewriting the original call.",
+      "known_before_cutoff": "The original assessment had the October 28 BoC tightening reaction function and the later October 30 energy-policy argument, while acknowledging weak GDP, payrolls and tariff drag. A delivered peace deal was not known or required for an incremental risk-premium retreat.",
+      "subsequent_information": "November 2 later oil reporting shows a material diplomatic risk-premium retreat. It supports challenging the earlier positive energy premise, but the source has no exact publication hour and cannot by itself identify the first contrary headline during the early active interval.",
+      "source_evidence": [
+        {
+          "url": "https://www.bankofcanada.ca/2026/10/fad-press-release-2026-10-28/",
+          "claim": "The dated BoC foundation permits further restraint but stresses excess supply, near-target underlying inflation and careful policy decisions. It is not proof of an immediate currency gain.",
+          "availability_note": "Dated October 28 foundation, already described in the frozen assessment. Exact publication hour was not independently verified; this source supports the retrospective policy check without asserting precise dissemination time.",
+          "used_as_pre_cutoff": false
+        }
+      ],
+      "expected_version": null,
+      "revision_note": "",
+      "id": "7e6d4c5aead94d0bac03337aa9a21bcb",
+      "recorded_utc": "2026-11-02T19:55:40.960316Z",
+      "episode_hash": "36fecd94b587d49e6a32f999cd29f54ac8c7d669157baa3b5f386631236b1127",
+      "outcome_hash": "c3fefca926229aa1b8cec537cc7fad48ac5cfa4eaad9e53af1758ed67ef6f1f3",
+      "method": "agent_review_not_independent_replay"
+    },
+    {
+      "episode_id": "research:5d0998625e8146b2a93570e2b1b56e83:CAD",
+      "outcome_id": "046a63bd4b5ca6753388baee1b8830f19790b399c275cc497a5c69381ccd507a",
+      "classification": "supported_reasoning_aligned_outcome",
+      "analysis": "The October 30 slight CAD strengthening call was aligned within its active interval: about 0.116% favourable versus 0.030% adverse excursion, and a positive terminal result. The longer post-delivery sample reached about 0.278% favourable excursion but contains five missing samples. Preserve this reward case while retaining the later opposed counterexample: the same policy foundation can coexist with a different energy-risk session premise. Neither outcome proves a profitable strategy or a fixed causal relationship.",
+      "known_before_cutoff": "The saved assessment explicitly balanced prospective BoC restraint and energy-export income against lagged payroll weakness, tariffs, near-target core inflation, cautious guidance and possible oil-supply relief. It did not assume nominal oil income guarantees CAD outperformance.",
+      "subsequent_information": "The sampled active window ended at the GDP checkpoint and was complete. The longer remaining-day path was only partial. Later November 2 diplomacy is outside this historical window and is not used to explain the earlier aligned result.",
+      "source_evidence": [
+        {
+          "url": "https://www.bankofcanada.ca/2026/10/fad-press-release-2026-10-28/",
+          "claim": "The dated BoC foundation permits further restraint but stresses excess supply, near-target underlying inflation and careful policy decisions. It is not proof of an immediate currency gain.",
+          "availability_note": "Dated October 28 foundation, already described in the frozen assessment. Exact publication hour was not independently verified; this source supports the retrospective policy check without asserting precise dissemination time.",
+          "used_as_pre_cutoff": false
+        }
+      ],
+      "expected_version": null,
+      "revision_note": "",
+      "id": "5f5103b46c64433dbb75f79cdd2a9b0f",
+      "recorded_utc": "2026-11-02T19:55:44.292851Z",
+      "episode_hash": "44205d87a830a41f6dd015064c5bdd63bac6060f0e9a5d4e4649b3e9f0a66c02",
+      "outcome_hash": "76af6dba645b3bcda5e639d8f97ea242c65567f869fd07ee5f612cba023e925a",
+      "method": "agent_review_not_independent_replay"
+    },
+    {
+      "episode_id": "research:ac9fb362582d4c14a93c915b14cf3c28:NZD",
+      "outcome_id": "2d1196a48625cc6ac3f1e393142fe1444a6b3319e26c13ff5032981e8172a7b4",
+      "classification": "insufficient_evidence",
+      "analysis": "Refinement candidate, with opposed excursion alignment but no verified failed closing call. The active sampled basket had 0.072396% favourable excursion, 0.255334% adverse excursion and a favourable peak 2,160 seconds after the first usable sample. The path maximum therefore opposed the negative verdict, while the sampled terminal basket return was -0.041569%, directionally aligned with weakening. Exact active-window closing alignment remains unavailable because the recorded end was supersession at 19:11:02 rather than a complete exact endpoint; the secondary diagnostic explicitly reports missing terminal minute. The broader broker-day sample was partial and developing, with 33 missing samples; remaining-day opportunity and D1 closing alignment were pending. Neither a favourable local peak nor the larger opposed excursion proves a correct or failed closing verdict. Frozen contrary China, export and December-path evidence was already acknowledged. A causal misweighting diagnosis or grade change cannot be justified from this path alone; retain the refinement flag and unresolved endpoint limitation.",
+      "known_before_cutoff": "The frozen NZD call acknowledged the private China PMI beat, business price-setting, export resilience and conditional December hike guidance against the RBNZ majority’s weak household-demand and wage-transmission rationale. It was explicitly Slight, not an unqualified bearish extrapolation.",
+      "subsequent_information": "The later China support announcement, new September consents actual and completed US-session reversal are now known but postdate the original cutoff. They must not be used to claim the original call should have anticipated their precise outcomes. The fresh consents result reinforces domestic weakness independently of this historical path.",
+      "source_evidence": [
+        {
+          "url": "https://www.zaobao.com.sg/news/china/story20261102-9935462",
+          "claim": "China announced capital-market support tools and a November 3 operation; this supplies a later positive risk offset.",
+          "availability_note": "Published November 2 at 23:34 Singapore / 15:34 UTC, after the original call. Request totals are not completed allotments.",
+          "published_at": "2026-11-02T15:34:00Z",
+          "used_as_pre_cutoff": false
+        }
+      ],
+      "expected_version": null,
+      "revision_note": "",
+      "id": "d522090d3b9d4c149f7b1612e8ce9b9d",
+      "recorded_utc": "2026-11-02T23:59:09.746459Z",
+      "episode_hash": "8e57ebe8ce7236dab01cdd45e77160db158ca72812d84bc1a126bccc9af0404e",
+      "outcome_hash": "ce88184fbb33ec0e2fbbfbb7afa6241c5152b7cb4e76ad7154bf69fc952edf60",
+      "method": "agent_review_not_independent_replay"
+    },
+    {
+      "episode_id": "research:ac9fb362582d4c14a93c915b14cf3c28:AUD",
+      "outcome_id": "1eb94d68c23a13a456ebe18677ec608105686ecd6db12e2eab751aa7c0eda58a",
+      "classification": "supported_reasoning_aligned_outcome",
+      "analysis": "Supporting/reward case. The original Slight AUD weakening call had an aligned active-window close of +0.097888% in verdict direction, a favourable sampled excursion of 0.101764%, no adverse sampled excursion and a peak after 5,340 seconds. Its active interval ended by supersession at 06:35 UTC. The final broker-day context has a partial sampled daily maximum of -0.528382%, with 34 missing samples. Post-delivery favourable opportunity reached 0.529522% at 20:52 UTC, after supersession; it cannot be credited as active-window validity. The post-delivery path is partial and its exact D1 close is unavailable, so no successful D1 closing verdict is claimed. The active result supports preserving the narrow external-demand reasoning with known domestic-policy opposition, without inferring a unique cause, a stronger earlier grade or an executable profit.",
+      "known_before_cutoff": "The frozen call already incorporated weak Australian factory orders, the official China PMI contraction, the private PMI upside offset, approvals rebound, hotter private inflation and an expected RBA hike followed by a possible pause. Its Slight grade explicitly limited the external-demand advantage.",
+      "subsequent_information": "Later November 2 Chinese equity-support tools and the eventual mixed US technology close were not established at the original 05:03 UTC cutoff. They are current research inputs, not retroactive evidence for that earlier call. Larger later-day movement is kept outside its superseded active window.",
+      "source_evidence": [
+        {
+          "url": "https://www.rba.gov.au/speeches/2026/sp-gov-2026-10-28.html",
+          "claim": "Domestic inflation/capacity pressure is real opposition to a risk-led negative call; it was part of the frozen foundation and was reopened in this invocation.",
+          "availability_note": "Official October 28 source predates the original call, but its exact publication hour is not independently used to reconstruct the first tradable minute.",
+          "used_as_pre_cutoff": false
+        }
+      ],
+      "expected_version": "e06d3b04995f4f1d8dbfe577b950d358",
+      "revision_note": "Incorporate the newly finalized broker-day sample and current exact active closing fields; preserve earlier versions and separate D1 endpoint limits.",
+      "id": "841a208df826407ca1ba7ab45b9b4304",
+      "recorded_utc": "2026-11-02T23:59:58.231175Z",
+      "episode_hash": "4fa8db611eeffb919a310670f87704dde6eeb7723720fa48f735b9ef7916bce1",
+      "outcome_hash": "9389d0afe0079cf3ede46521477ae1301dc9fc22bcadada234f5b3053462d0c8",
+      "method": "agent_review_not_independent_replay"
+    },
+    {
+      "episode_id": "research:ac9fb362582d4c14a93c915b14cf3c28:NZD",
+      "outcome_id": "d7255a6f8cb60ed0a14da4e97b0565bae35d7ba4d4155fbcbf38ba8cfe225bfb",
+      "classification": "no_lesson",
+      "analysis": "Refinement case with an aligned active close and opposed excursion alignment. The current finalized outcome now verifies the active closing result as aligned: +0.041569% in verdict direction, from a raw currency return of -0.041569%. Active favourable excursion was 0.072396% versus adverse excursion of 0.255334%; favourable peak followed after 2,160 seconds. The earlier missing-endpoint review is superseded only for this active closing field. The final day context remains a partial sample: signed daily maximum -0.267114%, 34 missing samples. Post-delivery favourable opportunity was 0.084000%, versus adverse 0.255334%; the path is partial and exact D1 close remains unavailable. A small aligned active close does not erase the materially larger adverse excursion, and the full-day move cannot extend the superseded call. Original opposition was acknowledged; neither causal misweighting nor a transferable directional lesson follows from these outcomes alone. Keep the refinement case and endpoint limitations visible.",
+      "known_before_cutoff": "The frozen NZD call acknowledged the private China PMI beat, business price-setting, export resilience and conditional December hike guidance against the RBNZ majority’s weak household-demand and wage-transmission rationale. It was explicitly Slight, not an unqualified bearish extrapolation.",
+      "subsequent_information": "The later China support announcement, new September consents actual and completed US-session reversal are now known but postdate the original cutoff. They must not be used to claim the original call should have anticipated their precise outcomes. The fresh consents result reinforces domestic weakness independently of this historical path.",
+      "source_evidence": [
+        {
+          "url": "https://www.zaobao.com.sg/news/china/story20261102-9935462",
+          "claim": "China announced capital-market support tools and a November 3 operation; this supplies a later positive risk offset.",
+          "availability_note": "Published November 2 at 23:34 Singapore / 15:34 UTC, after the original call. Request totals are not completed allotments.",
+          "published_at": "2026-11-02T15:34:00Z",
+          "used_as_pre_cutoff": false
+        }
+      ],
+      "expected_version": "d522090d3b9d4c149f7b1612e8ce9b9d",
+      "revision_note": "Incorporate the newly finalized broker-day sample and current exact active closing fields; preserve earlier versions and separate D1 endpoint limits.",
+      "id": "1a2194a8e0eb4d26bb1b99ff6551debb",
+      "recorded_utc": "2026-11-03T00:00:01.007750Z",
+      "episode_hash": "8e57ebe8ce7236dab01cdd45e77160db158ca72812d84bc1a126bccc9af0404e",
+      "outcome_hash": "b982df324fbcdc0c6958864140066aba2dd952baf2cf39325eeac82033a8c6f1",
+      "method": "agent_review_not_independent_replay"
+    },
+    {
+      "episode_id": "research:5cfeb6a3eefe4406a4260c11f36558be:EUR",
+      "outcome_id": "e8edcc14d7778e6e33b3db484bc34930f2e2559d20399a807af0e2f885832e47",
+      "classification": "misweighting",
+      "analysis": "The original Slight EUR weakening call is opposed both by its completed active-window excursion and by its active-window close. The EUR basket rose about 0.2945% through supersession, against the call; adverse excursion was 0.3107%, while favourable excursion was about 0.0004%. The earlier source-based criticism remains comparative misweighting of already-known energy-relief and growth evidence. The final whole-day sampled maximum +0.6718% is context, not credit for a later bullish call. Post-delivery adverse excursion reaches 0.6177% on a partial path; the exact remaining-day closing endpoint is unavailable. This is retrospective review, not a blind replay or proof of the rally catalyst.",
+      "known_before_cutoff": "The saved 05:46 AM information set already included October 30 euro-area GDP resilience, completed ECB and BoJ guidance, Friday hedging observations, weekend China weakness and November 1 diplomacy. No Monday-after-cutoff report is used to establish this criticism.",
+      "subsequent_information": "The broker day has ended and this exact version is final, with partial full-day samples and an unavailable exact remaining-day closing endpoint. Active-window closing alignment is available and assessed separately. Later Monday oil diplomacy, manufacturing and lending reports were outside the original cutoff and cannot rewrite the original call. Current November 3 risk conditions require new research.",
+      "source_evidence": [
+        {
+          "url": "https://www.aol.com/articles/euro-zone-growth-beats-projections-100626000.html",
+          "published_at": "2026-10-30T11:07:00Z",
+          "used_as_pre_cutoff": true,
+          "claim": "Euro-area Q3 growth was 0.4 percent versus a Reuters poll of 0.2 percent, with broad investment and consumption resilience; borrowing costs and energy risks remained.",
+          "availability_note": "Observed updated October 30 version; the same growth fact was already frozen in the original November 2 05:46 AM assessment evidence. Current reopened body is not an archived tick-by-tick news feed."
+        },
+        {
+          "url": "https://ktwb.com/2026/11/01/iranian-negotiators-in-doha-to-continue-talks-to-end-the-us-iran-war-official-says/",
+          "published_at": "2026-11-01T12:24:00Z",
+          "used_as_pre_cutoff": true,
+          "claim": "Third day of mediation and a conditional Hormuz-reopening proposal were already reported; no agreement was reached and escalation remained possible.",
+          "availability_note": "UTC clock follows the original frozen Reuters development, corroborated by dated syndications. KTWB displays 6:24 AM without a timezone; that display alone is not the UTC conversion source."
+        }
+      ],
+      "expected_version": "a68d4b0e7fbe4a419eaef7499f118fbd",
+      "revision_note": "Review the final protocol-v3 daily record and distinguish active-window closing alignment from unavailable full-day close. The original judgment and source-based interpretation remain frozen.",
+      "id": "420015383a574f47b961d01dd5ee4eff",
+      "recorded_utc": "2026-11-03T00:50:50.356545Z",
+      "episode_hash": "4391fb0a1567ef4d881d5af8fc40a4fce5c69ca6e70cd2e3d557d26cbef3e58c",
+      "outcome_hash": "5d28b498da6f01b1c8955f1cadc611c6a3b2c3038d3d9e53ca649c29d4ccd645",
+      "method": "agent_review_not_independent_replay"
+    },
+    {
+      "episode_id": "research:5fe0a3c65713444aa7359ec99b327fa8:USD",
+      "outcome_id": "3572a83b47818a54c5ac8321e531089366b771f048b3318ec019287f6df91c87",
+      "classification": "supported_reasoning_aligned_outcome",
+      "analysis": "The original Slight USD weakening call has an aligned completed active-window sampled maximum and an aligned active-window close: favourable 0.1120%, adverse -0.0040%, verdict-signed close +0.1099%. This is a supporting case for the bounded call, not evidence to upgrade current intensity. The whole remaining-day path is final but partial, with favourable 0.3760% and adverse -0.0040%; its exact closing endpoint is unavailable. The older diagnostic protocol lacks a baseline, while the native daily active interval is complete. Neither the sampled maximum nor later news establishes private flows or profitability.",
+      "known_before_cutoff": "The original dated evidence already included improving risk conditions, domestic inflation and policy opposition, and a shared European-opening checkpoint; both currencies were slightly weakening with an explicit AUDUSD comparison.",
+      "subsequent_information": "The broker day has ended and this exact version is final, with partial full-day samples and an unavailable exact remaining-day closing endpoint. Active-window closing alignment is available and assessed separately. Later Monday oil diplomacy, manufacturing and lending reports were outside the original cutoff and cannot rewrite the original call. Current November 3 risk conditions require new research.",
+      "source_evidence": [
+        {
+          "url": "https://www.marketscreener.com/news/dollar-declines-ahead-of-us-midterms-as-oil-falls-bitcoin-steadies-after-crypto-theft-ce785fd9d888f121",
+          "claim": "Later November 2 reporting records lower oil, firmer equities and weaker dollar after the US manufacturing release.",
+          "availability_note": "Observed later report at 15:56 UTC, after the original 06:35 UTC information cutoff.",
+          "published_at": "2026-11-02T15:56:00Z",
+          "used_as_pre_cutoff": false
+        }
+      ],
+      "expected_version": "7506a27aafa04d07b6d4ec055eafc536",
+      "revision_note": "Review the final protocol-v3 daily record and distinguish active-window closing alignment from unavailable full-day close. The original judgment and source-based interpretation remain frozen.",
+      "id": "f4719fb15f8747a9b2ad64220b63a88d",
+      "recorded_utc": "2026-11-03T00:50:53.660704Z",
+      "episode_hash": "2280245146f270c7c3e59c3e34aca87b8c59b9f502640d923b7d5085d61039c0",
+      "outcome_hash": "cb9465e88bf2b24d5a3005ba112381b40c94ec6c83546aaf8fa4c821d01bf46d",
+      "method": "agent_review_not_independent_replay"
+    },
+    {
+      "episode_id": "research:5cfeb6a3eefe4406a4260c11f36558be:EUR",
+      "outcome_id": "f6e4406c1047ca900b22b2f02247d17dfb535ff30f7aa3989b02ea2c9940813e",
+      "classification": "misweighting",
+      "analysis": "The original Slight EUR weakening call is opposed both by its completed active-window excursion and by its active-window close. The EUR basket rose about 0.2945% through supersession, against the call; adverse excursion was 0.3107%, while favourable excursion was about 0.0004%. The earlier source-based criticism remains comparative misweighting of already-known energy-relief and growth evidence. The final whole-day sampled maximum +0.6718% is context, not credit for a later bullish call. Post-delivery adverse excursion reaches 0.6177% on a partial path; the exact remaining-day closing endpoint is unavailable. This is retrospective review, not a blind replay or proof of the rally catalyst. Protocol v4 now supplies verified broker D1 closes: EUR verdict-signed remaining-day close -0.3491%, opposed; active-window close -0.2945%, opposed. The earlier energy-relief weighting criticism is reinforced by the separate closing result, not inferred solely from the favourable/adverse maximum.",
+      "known_before_cutoff": "The saved 05:46 AM information set already included October 30 euro-area GDP resilience, completed ECB and BoJ guidance, Friday hedging observations, weekend China weakness and November 1 diplomacy. No Monday-after-cutoff report is used to establish this criticism.",
+      "subsequent_information": "The November 2 broker D1 is final. Its verified seven-leg D1 closing prices resolve the old absent rollover-minute endpoint; full-day sampled extrema still have 34 missing common minutes and remain partial. Exact pair D1 color is a distinct future objective and cannot be inferred from these currency-basket outcomes. Later news never rewrites the original information set.",
+      "source_evidence": [
+        {
+          "url": "https://www.aol.com/articles/euro-zone-growth-beats-projections-100626000.html",
+          "published_at": "2026-10-30T11:07:00Z",
+          "used_as_pre_cutoff": true,
+          "claim": "Euro-area Q3 growth was 0.4 percent versus a Reuters poll of 0.2 percent, with broad investment and consumption resilience; borrowing costs and energy risks remained.",
+          "availability_note": "Observed updated October 30 version; the same growth fact was already frozen in the original November 2 05:46 AM assessment evidence. Current reopened body is not an archived tick-by-tick news feed."
+        },
+        {
+          "url": "https://ktwb.com/2026/11/01/iranian-negotiators-in-doha-to-continue-talks-to-end-the-us-iran-war-official-says/",
+          "published_at": "2026-11-01T12:24:00Z",
+          "used_as_pre_cutoff": true,
+          "claim": "Third day of mediation and a conditional Hormuz-reopening proposal were already reported; no agreement was reached and escalation remained possible.",
+          "availability_note": "UTC clock follows the original frozen Reuters development, corroborated by dated syndications. KTWB displays 6:24 AM without a timezone; that display alone is not the UTC conversion source."
+        }
+      ],
+      "expected_version": "420015383a574f47b961d01dd5ee4eff",
+      "revision_note": "Protocol v4 now verifies the broker D1 closing endpoint separately from incomplete sampled excursions. Preserve the previous unavailable-endpoint versions and original call.",
+      "id": "93f82367900a4e918d631cff18d13f9a",
+      "recorded_utc": "2026-11-03T01:19:46.795215Z",
+      "episode_hash": "4391fb0a1567ef4d881d5af8fc40a4fce5c69ca6e70cd2e3d557d26cbef3e58c",
+      "outcome_hash": "df993455195ebe115d6035731c2fe33434bd9ac36c95100c32a40bbcffa620b2",
+      "method": "agent_review_not_independent_replay"
+    },
+    {
+      "episode_id": "research:5fe0a3c65713444aa7359ec99b327fa8:USD",
+      "outcome_id": "b792ad5f35bc9f679aa0274f5b28cc3cc2baed32bd4747c7d76b8b6a6aaf1e8d",
+      "classification": "supported_reasoning_aligned_outcome",
+      "analysis": "The original Slight USD weakening call has an aligned completed active-window sampled maximum and an aligned active-window close: favourable 0.1120%, adverse -0.0040%, verdict-signed close +0.1099%. This is a supporting case for the bounded call, not evidence to upgrade current intensity. The whole remaining-day path is final but partial, with favourable 0.3760% and adverse -0.0040%; its exact closing endpoint is unavailable. The older diagnostic protocol lacks a baseline, while the native daily active interval is complete. Neither the sampled maximum nor later news establishes private flows or profitability. Protocol v4 now supplies verified broker D1 closes: USD verdict-signed remaining-day close +0.0739%, aligned; active-window close +0.1099%, aligned.",
+      "known_before_cutoff": "The original dated evidence already included improving risk conditions, domestic inflation and policy opposition, and a shared European-opening checkpoint; both currencies were slightly weakening with an explicit AUDUSD comparison.",
+      "subsequent_information": "The November 2 broker D1 is final. Its verified seven-leg D1 closing prices resolve the old absent rollover-minute endpoint; full-day sampled extrema still have 34 missing common minutes and remain partial. Exact pair D1 color is a distinct future objective and cannot be inferred from these currency-basket outcomes. Later news never rewrites the original information set.",
+      "source_evidence": [
+        {
+          "url": "https://www.marketscreener.com/news/dollar-declines-ahead-of-us-midterms-as-oil-falls-bitcoin-steadies-after-crypto-theft-ce785fd9d888f121",
+          "claim": "Later November 2 reporting records lower oil, firmer equities and weaker dollar after the US manufacturing release.",
+          "availability_note": "Observed later report at 15:56 UTC, after the original 06:35 UTC information cutoff.",
+          "published_at": "2026-11-02T15:56:00Z",
+          "used_as_pre_cutoff": false
+        }
+      ],
+      "expected_version": "f4719fb15f8747a9b2ad64220b63a88d",
+      "revision_note": "Protocol v4 now verifies the broker D1 closing endpoint separately from incomplete sampled excursions. Preserve the previous unavailable-endpoint versions and original call.",
+      "id": "d164682cf84741078da1adf5d960af34",
+      "recorded_utc": "2026-11-03T01:19:49.720388Z",
+      "episode_hash": "2280245146f270c7c3e59c3e34aca87b8c59b9f502640d923b7d5085d61039c0",
+      "outcome_hash": "a4f5041f88229456a9d2a576eeee7dc56d86762e04418b274ee1c7a89f68703f",
+      "method": "agent_review_not_independent_replay"
     }
   ]
 }

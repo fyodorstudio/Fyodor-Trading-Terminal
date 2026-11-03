@@ -95,8 +95,9 @@ class DailyExcursionMarket:
     def due(self, day):
         doc = self.document(day)
         if doc and instant(doc['captured_utc']).timestamp() >= bounds(day)[1]:
-            missing = any(doc['opens'].get(symbol) is None or not doc['samples'].get(symbol)
+            missing = any(doc['opens'].get(symbol) is None or not doc['samples'].get(symbol) or not doc.get('closes', {}).get(symbol)
                 for symbol in ('EURUSD','GBPUSD','AUDUSD','NZDUSD','USDJPY','USDCHF','USDCAD'))
+            missing = missing or instant(doc.get('d1_observed_utc', doc['captured_utc'])).timestamp() < bounds(day)[1]
             if missing and datetime.fromisoformat(day).weekday() < 5:
                 last = self.checked.get(day, instant(doc['captured_utc']).timestamp())
                 return self.clock() - last >= 300

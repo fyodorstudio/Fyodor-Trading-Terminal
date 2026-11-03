@@ -3,7 +3,8 @@ export type ExcursionWindow = {
   favourable_pct?: number; adverse_pct?: number; adverse_before_peak_pct?: number; peak_utc?: string;
   baseline_utc?: string; through_utc?: string; missing_samples?: number; end_utc?: string;
   end_reason?: string; phase?: 'developing' | 'final'; direction_result?: 'aligned' | 'opposed' | 'flat';
-  terminal_return_pct?: number; currency_return_pct?: number; close_pct?: number;
+  terminal_return_pct?: number; currency_return_pct?: number; close_pct?: number; current_pct?: number;
+  terminal_basis?: 'broker_d1_close' | 'synchronized_m1_close'; close_basis?: 'broker_d1_close' | 'synchronized_m1_close';
   terminal_status?: 'complete' | 'unavailable'; close_result?: 'aligned' | 'opposed' | 'flat';
 }
 export type AssessmentExcursion = {
@@ -17,7 +18,8 @@ const stamp = (v: unknown): v is string => typeof v === 'string' && /(?:Z|[+-]\d
 export function validExcursion(v: AssessmentExcursion) {
   const validWindow = (w: ExcursionWindow) => w && ['complete','partial','unavailable'].includes(w.status)
     && (w.gap === undefined || typeof w.gap === 'string')
-    && ['max_pct','favourable_pct','adverse_pct','adverse_before_peak_pct','terminal_return_pct','currency_return_pct','close_pct'].every(key => w[key as keyof ExcursionWindow] === undefined || typeof w[key as keyof ExcursionWindow] === 'number' && Number.isFinite(w[key as keyof ExcursionWindow]))
+    && ['max_pct','favourable_pct','adverse_pct','adverse_before_peak_pct','terminal_return_pct','currency_return_pct','close_pct','current_pct'].every(key => w[key as keyof ExcursionWindow] === undefined || typeof w[key as keyof ExcursionWindow] === 'number' && Number.isFinite(w[key as keyof ExcursionWindow]))
+    && ['terminal_basis','close_basis'].every(key => w[key as keyof ExcursionWindow] === undefined || ['broker_d1_close','synchronized_m1_close'].includes(w[key as keyof ExcursionWindow] as string))
     && (w.terminal_status === undefined || ['complete','unavailable'].includes(w.terminal_status))
     && (w.close_result === undefined || ['aligned','opposed','flat'].includes(w.close_result))
     && ['peak_utc','baseline_utc','through_utc','end_utc'].every(key => w[key as keyof ExcursionWindow] === undefined || stamp(w[key as keyof ExcursionWindow]))
@@ -32,7 +34,9 @@ export function validExcursion(v: AssessmentExcursion) {
 const percent = (value: number) => `${value >= 0 ? '+' : ''}${value.toFixed(3)}%`
 const hour = (value: string) => new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Jakarta',hour:'numeric',minute:'2-digit',hour12:true}).format(new Date(value))
 export function excursionHeading(value?: AssessmentExcursion) {
-  return value?.day.max_pct === undefined ? 'Day max: —' : `Day max: ${percent(value.day.max_pct)} · ${value.phase === 'final' ? 'Final' : 'Developing'}${value.day.status === 'partial' ? ' · Partial history' : ''}`
+  const closing = value?.phase === 'final' ? value.day.close_pct : value?.day.current_pct
+  const current = closing === undefined ? '' : `Basket ${value?.phase === 'final' ? 'D1 close' : 'D1 so far'}: ${percent(closing)} · `
+  return current + (value?.day.max_pct === undefined ? 'Day max: —' : `Day max: ${percent(value.day.max_pct)} · ${value.phase === 'final' ? 'Final' : 'Developing'}${value.day.status === 'partial' ? ' · Partial history' : ''}`)
 }
 export function excursionLines(value?: AssessmentExcursion) {
   if (!value) return ['Sampled FX basket · Price history not loaded.']
@@ -40,12 +44,13 @@ export function excursionLines(value?: AssessmentExcursion) {
   if (value.phase === 'developing' && value.day.through_utc) lines[0] += ` Prices through ${hour(value.day.through_utc)}.`
   if (value.refresh_gap) lines.push(`Price refresh unavailable: ${value.refresh_gap}. Retaining the last measured observations.`)
   if (value.day.status === 'unavailable') lines.push(value.day.gap || 'Daily price history unavailable.')
-  if (value.day.close_pct !== undefined) lines.push(`Broker D1 open → close: ${percent(value.day.close_pct)} · daily context, separate from the delivered call.`)
+  if (value.day.close_pct !== undefined) lines.push(`Broker D1 open → close: ${percent(value.day.close_pct)} · ${value.day.close_basis === 'broker_d1_close' ? 'verified broker D1 closes' : 'exact sampled closing endpoint'} · currency basket context, separate from the delivered call.`)
+  else if (value.day.current_pct !== undefined) lines.push(`Broker D1 open → latest sampled close: ${percent(value.day.current_pct)} · currency basket, not a pair D1 candle or a closing forecast.`)
   const closing = (prefix: string, w: ExcursionWindow, final: boolean) => {
     const exact = w.terminal_status === 'complete'
     if (!exact || w.terminal_return_pct === undefined) return `${prefix}: closing comparison unavailable${w.gap ? ` · ${w.gap}` : ' · exact endpoint not verified'}.`
     const result = w.terminal_return_pct > 0 ? 'Aligned' : w.terminal_return_pct < 0 ? 'Opposed' : 'Flat'
-    return `${prefix}: ${result}${final ? '' : ' so far · Developing'} · verdict-signed return ${percent(w.terminal_return_pct)}${w.currency_return_pct === undefined ? '' : ` · currency return ${percent(w.currency_return_pct)}`}${w.status === 'partial' ? ' · Partial history; excursions incomplete' : ''}.`
+    return `${prefix}: ${result}${final ? '' : ' so far · Developing'} · verdict-signed return ${percent(w.terminal_return_pct)}${w.currency_return_pct === undefined ? '' : ` · currency return ${percent(w.currency_return_pct)}`}${w.terminal_basis === 'broker_d1_close' ? ' · verified broker D1 closes' : ''}${w.status === 'partial' ? ' · Partial history; excursions incomplete' : ''}.`
   }
   lines.push(closing(`Verdict ${hour(value.delivery_utc)} → D1 close`, value.after_verdict, value.phase === 'final'))
   if (value.active_window.end_utc && Date.parse(value.active_window.end_utc) < Date.parse(value.day_end_utc)) lines.push('The original call ends at its active-window deadline; later movement is remaining-day context.')

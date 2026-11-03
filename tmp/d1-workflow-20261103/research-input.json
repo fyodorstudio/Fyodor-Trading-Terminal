@@ -1,0 +1,925 @@
+{
+  "as_of_utc": "2026-11-03T01:22:18.976724Z",
+  "period_start": "2026-11-02",
+  "period_end": "2026-11-03",
+  "currencies": [
+    "USD",
+    "EUR",
+    "GBP",
+    "JPY",
+    "CHF",
+    "CAD",
+    "AUD",
+    "NZD"
+  ],
+  "developments": [],
+  "assessments": [
+    {
+      "currency": "USD",
+      "evidence_keys": [
+        "usd-20261102-policy-and-yield-balance",
+        "global-20261102-energy-risk-premium-eases",
+        "audusd-20261102-later-asian-comparison",
+        "usd-20261102-october-manufacturing-actuals",
+        "usd-20261102-september-construction-actual",
+        "usd-20261102-october-sloos",
+        "global-20261102-later-diplomacy-oil-and-rates",
+        "usd-20261102-funding-schedule-review",
+        "global-20261102-oil-relief-asian-handover",
+        "global-20261102-us-close-tech-reversal",
+        "usd-20261102-financing-estimates-actual",
+        "global-20261102-after-hours-technology-and-dollar-opposition"
+      ],
+      "background_keys": [
+        "usd-20261030-later-musalem-logan-guidance",
+        "usd-20261030-q3-eci",
+        "usd-20261030-completed-operations-weekahead",
+        "global-20261030-final-session-policy-haven-balance",
+        "usd-20261029-gdp-pce-combined-release",
+        "fed-20261028-later-qa-policy-path",
+        "fed-20261028-fomc-statement",
+        "usd-20261014-september-cpi-foundation",
+        "usd-20261002-september-labour-foundation"
+      ],
+      "gap": "",
+      "direction": {
+        "basis": "standalone",
+        "review_status": "complete",
+        "stage_note": "Reviewed intervening/overnight and preceding-hour news across all eight currencies, current energy/technology narratives, country policy/inflation/labour/activity foundations, 219 broker calendar readings over seven days and official RBA timing. Pair native D1 snapshots are used only for explicit daily targets. No new last-hour pair-specific policy catalyst, signed peace/trade deal, fresh matched OIS or private flows are claimed.",
+        "verdict": "POTENTIAL WEAKENING",
+        "intensity": "slight",
+        "reason": "Retained Slight weakening. Energy relief still reduces part of the geopolitical and inflation premium, while the actual lending survey shows softer business demand. Strong US manufacturing, persistent underlying inflation and a two-year indication near 4.61% are substantial opposition. Technology stress can support defensive USD demand, so US-origin equity losses are not automatically bearish for the dollar; modestly firmer futures temper that channel. The remaining negative advantage is limited, not a prediction of a red candle in every USD pair. Broad funding stress or a materially firmer Fed path invalidates it. EURUSD has a green D1 target, independently from its Moderate BUY bias from now; EURCAD has the clearer energy contrast.",
+        "horizon": "Current session through the mechanism-specific checkpoint. Pair D1 targets concern the broker close but do not extend the active call beyond the checkpoint.",
+        "verified_utc": "2026-11-03T01:22:18.976724Z",
+        "sources": [
+          {
+            "kind": "web",
+            "label": "Early Tuesday oil and diplomacy",
+            "locator": "https://tradingeconomics.com/commodity/brent-crude-oil",
+            "note": "Current body carries Monday relief into Tuesday. Page quote sections differ near USD 104-105 and show some recovery; no continued fresh plunge or certified futures settlement is asserted. Original narrative hour unknown."
+          },
+          {
+            "kind": "web",
+            "label": "Reuters late Monday dollar and opposing haven channel",
+            "locator": "https://www.devdiscourse.com/article/international/4000890-forex-dollar-falls-ahead-of-us-midterms-as-oil-plummets",
+            "note": "Full direct body: oil relief weighs on USD, while AI investment concerns can support defensive USD demand. Original November 2 20:15:02 UTC, not fresh this hour."
+          },
+          {
+            "kind": "web",
+            "label": "Early Tuesday technology and risk balance",
+            "locator": "https://tradingeconomics.com/united-states/stock-market",
+            "note": "Full current narrative: modestly firmer broad futures despite Apple/Palantir after-hours losses. No private flows inferred; publication hour unknown."
+          },
+          {
+            "kind": "web",
+            "label": "Fed official October lending survey",
+            "locator": "https://www.federalreserve.gov/data/sloos/sloos-202610.htm",
+            "note": "Direct body rechecked in this chat. Released November 2 19:00 UTC; responses due October 5."
+          },
+          {
+            "kind": "web",
+            "label": "US two-year indication",
+            "locator": "https://tradingeconomics.com/united-states/2-year-note-yield",
+            "note": "Around 4.61%, slightly above prior session; does not verify a continuing rate decline."
+          },
+          {
+            "kind": "web",
+            "label": "Treasury borrowing actual",
+            "locator": "https://home.treasury.gov/news/press-releases/sb0675",
+            "note": "Direct body: USD 618 bn Q4, reduction mainly opening cash; not a QE announcement."
+          }
+        ],
+        "reassessment": {
+          "title": "China cash opening: test whether technology risk creates defensive dollar demand",
+          "event_at": "2026-11-03T01:30:00Z",
+          "event_date": null,
+          "verified_utc": "2026-11-03T01:22:18.976724Z",
+          "sources": [
+            {
+              "kind": "web",
+              "label": "SSE official continuous trading schedule",
+              "locator": "https://english.sse.com.cn/start/trading/schedule/",
+              "note": "Stocks continuous session starts 09:30 China time = 8:30 AM Jakarta."
+            },
+            {
+              "kind": "web",
+              "label": "SSE official 2026 holiday notice",
+              "locator": "https://www.sse.com.cn/disclosure/announcement/general/c/c_20251222_10802507.shtml",
+              "note": "November 3 is an ordinary Tuesday outside the listed 2026 holiday closures; reused verified schedule."
+            }
+          ],
+          "note": "November 3 8:30 AM Jakarta. Reassess whether Asian risk transmission and energy headlines preserve importer relief or create broad defensive dollar demand. This is one evidence checkpoint for the present hour, not an automatic news release, alarm or forecast of the opening direction."
+        },
+        "reassessment_gap": ""
+      },
+      "evaluation": {
+        "until_utc": "2026-11-03T01:30:00Z",
+        "mechanism_tags": [
+          "energy",
+          "risk",
+          "policy",
+          "activity"
+        ],
+        "intensity_reason": "Strong and Moderate are not supported because the stated policy, demand and risk offsets substantially constrain causal dominance. Slight reflects the limited active advantage described in the reason, not generic uncertainty or absent private-flow proof.",
+        "strongest_opposition": "The concrete competing policy, financing, demand and risk mechanisms in the assessment reason.",
+        "invalidation": "A verified reversal of the leading mechanism or dominance of the stated opposing case requires immediate reassessment.",
+        "lesson_ids": [
+          "d1116f75ca2f42158b5ac6bf61a1a0ce",
+          "6cce388836e1458ba56513fa93c75a5d",
+          "b653d044faad422ea444acf570d032de",
+          "cf6cc66844f948b7b72b058b7d522daa"
+        ],
+        "review_ids": [
+          "93f82367900a4e918d631cff18d13f9a",
+          "d164682cf84741078da1adf5d960af34"
+        ],
+        "relative_preferences": [
+          {
+            "pair": "EURUSD",
+            "verdict": "BUY",
+            "reason": "Moderate BUY: euro-area import-cost relief and softer US loan demand outweigh the present US-rate/haven opposition by a meaningful but bounded margin. GREEN is a separate D1-close target; it does not imply uninterrupted gains or extend the active call beyond the checkpoint.",
+            "recommendation": {
+              "intensity": "moderate",
+              "rank": 2,
+              "strongest_opposition": "Firm US short yields, strong manufacturing and possible defensive dollar demand.",
+              "invalidation": "Renewed energy escalation or a stronger US policy/funding advantage defeats the comparison."
+            },
+            "daily_close": {
+              "source_id": "Pepperstone-Demo",
+              "broker_day": "2026-11-03",
+              "color": "green",
+              "open_price": 1.11781,
+              "observed_price": 1.11876,
+              "observed_utc": "2026-11-03T01:15:49.155782+00:00",
+              "closes_at": "2026-11-03T22:00:00Z",
+              "reason": "GREEN lean versus the exact broker D1 open, supported by energy relief and modest USD pressure. Strong US manufacturing, firm short yields and defensive dollar demand oppose it. The pair is already above its open; later US data may reverse the target."
+            }
+          }
+        ]
+      }
+    },
+    {
+      "currency": "EUR",
+      "evidence_keys": [
+        "eur-20261102-energy-relief-current-weighting",
+        "china-20261102-private-manufacturing-pmi",
+        "global-20261102-energy-risk-premium-eases",
+        "global-20261102-later-diplomacy-oil-and-rates",
+        "eur-20261102-final-pmi-and-german-retail",
+        "global-20261102-oil-relief-asian-handover",
+        "global-20261102-after-hours-technology-and-dollar-opposition"
+      ],
+      "background_keys": [
+        "china-20261031-official-pmi-demand-miss",
+        "eur-20261030-lane-ai-adoption-and-annex",
+        "eur-20261030-ecb-survey-package",
+        "eur-20261029-post-december-pause-and-financing",
+        "global-20261030-final-session-policy-haven-balance",
+        "eur-20261030-q3-gdp-and-labour",
+        "eur-20261030-german-cpi-gdp",
+        "eur-20261030-fitch-negative-outlook",
+        "eur-20261029-ecb-full-qa-conditional-tightening",
+        "eur-20261027-bank-lending-transmission-background",
+        "eur-20261030-policy-remarks-panetta-kocher",
+        "eur-20261030-ing-near-term-positive-opposition"
+      ],
+      "gap": "",
+      "direction": {
+        "basis": "standalone",
+        "review_status": "complete",
+        "stage_note": "Reviewed intervening/overnight and preceding-hour news across all eight currencies, current energy/technology narratives, country policy/inflation/labour/activity foundations, 219 broker calendar readings over seven days and official RBA timing. Pair native D1 snapshots are used only for explicit daily targets. No new last-hour pair-specific policy catalyst, signed peace/trade deal, fresh matched OIS or private flows are claimed.",
+        "verdict": "POTENTIAL STRENGTHENING",
+        "intensity": "moderate",
+        "reason": "Retained Moderate strengthening. The large prior-session energy decline still eases an importer’s real-income and financing burden, reinforced by resilient manufacturing; a modest oil bounce does not erase that level relief. Weak German retail, French fiscal risk, restrictive credit and less need for ECB restraint are meaningful opposition, and renewed risk aversion could support USD. Import-cost relief still leads this session; energy re-escalation or disorderly French financing invalidates it. EURCAD is the clearest researched daily comparison: GREEN target against its own broker D1 open, separately from Moderate BUY pressure from now. EURUSD also has a GREEN target with more US-rate opposition. Reassess at the saved checkpoint before extending either active comparison.",
+        "horizon": "Current session through the mechanism-specific checkpoint. Pair D1 targets concern the broker close but do not extend the active call beyond the checkpoint.",
+        "verified_utc": "2026-11-03T01:22:18.976724Z",
+        "sources": [
+          {
+            "kind": "web",
+            "label": "Early Tuesday oil and diplomacy",
+            "locator": "https://tradingeconomics.com/commodity/brent-crude-oil",
+            "note": "Current body carries Monday relief into Tuesday. Page quote sections differ near USD 104-105 and show some recovery; no continued fresh plunge or certified futures settlement is asserted. Original narrative hour unknown."
+          },
+          {
+            "kind": "web",
+            "label": "Reuters late Monday dollar and opposing haven channel",
+            "locator": "https://www.devdiscourse.com/article/international/4000890-forex-dollar-falls-ahead-of-us-midterms-as-oil-plummets",
+            "note": "Full direct body: oil relief weighs on USD, while AI investment concerns can support defensive USD demand. Original November 2 20:15:02 UTC, not fresh this hour."
+          },
+          {
+            "kind": "web",
+            "label": "US two-year maturity indication",
+            "locator": "https://tradingeconomics.com/united-states/2-year-note-yield",
+            "note": "Around 4.61%, about 1 bp above prior session. No minute publication clock or matched current OIS repricing."
+          },
+          {
+            "kind": "web",
+            "label": "Treasury financing actual",
+            "locator": "https://home.treasury.gov/news/press-releases/sb0675",
+            "note": "Full direct body read. USD 618 bn Q4, USD 10 bn below August mainly due to cash; excluding opening cash, estimate rises USD 24 bn."
+          }
+        ],
+        "reassessment": {
+          "title": "China cash opening: test whether technology risk creates defensive dollar demand",
+          "event_at": "2026-11-03T01:30:00Z",
+          "event_date": null,
+          "verified_utc": "2026-11-03T01:22:18.976724Z",
+          "sources": [
+            {
+              "kind": "web",
+              "label": "SSE official continuous trading schedule",
+              "locator": "https://english.sse.com.cn/start/trading/schedule/",
+              "note": "Stocks continuous session starts 09:30 China time = 8:30 AM Jakarta."
+            },
+            {
+              "kind": "web",
+              "label": "SSE official 2026 holiday notice",
+              "locator": "https://www.sse.com.cn/disclosure/announcement/general/c/c_20251222_10802507.shtml",
+              "note": "November 3 is an ordinary Tuesday outside the listed 2026 holiday closures; reused verified schedule."
+            }
+          ],
+          "note": "November 3 8:30 AM Jakarta. Reassess whether Asian risk transmission and energy headlines preserve importer relief or create broad defensive dollar demand. This is one evidence checkpoint for the present hour, not an automatic news release, alarm or forecast of the opening direction."
+        },
+        "reassessment_gap": ""
+      },
+      "evaluation": {
+        "until_utc": "2026-11-03T01:30:00Z",
+        "mechanism_tags": [
+          "energy",
+          "risk",
+          "policy",
+          "activity"
+        ],
+        "intensity_reason": "Strong is not justified because policy, trade and financing opposition remains material. Moderate reflects the substantial continuing energy-income channel; Slight would understate its direct impact.",
+        "strongest_opposition": "The concrete competing policy, financing, demand and risk mechanisms in the assessment reason.",
+        "invalidation": "A verified reversal of the leading mechanism or dominance of the stated opposing case requires immediate reassessment.",
+        "lesson_ids": [
+          "d1116f75ca2f42158b5ac6bf61a1a0ce",
+          "6cce388836e1458ba56513fa93c75a5d",
+          "b653d044faad422ea444acf570d032de",
+          "cf6cc66844f948b7b72b058b7d522daa"
+        ],
+        "review_ids": [
+          "93f82367900a4e918d631cff18d13f9a",
+          "d164682cf84741078da1adf5d960af34"
+        ],
+        "relative_preferences": [
+          {
+            "pair": "EURCAD",
+            "verdict": "BUY",
+            "reason": "Moderate BUY: persistent energy relief benefits the euro-area importer and weakens Canadian export income, against BoC tightening and possible trade relief. GREEN is the separate broker D1-close target; the pair is already above its open, not a newly discovered entry. Oil recovery or a delivered trade deal can overturn it.",
+            "recommendation": {
+              "intensity": "moderate",
+              "rank": 1,
+              "strongest_opposition": "Conditional BoC tightening and possible tariff relief, plus an oil rebound.",
+              "invalidation": "Sustained energy re-escalation or verified Canadian trade relief reverses the comparison."
+            },
+            "daily_close": {
+              "source_id": "Pepperstone-Demo",
+              "broker_day": "2026-11-03",
+              "color": "green",
+              "open_price": 1.56269,
+              "observed_price": 1.56475,
+              "observed_utc": "2026-11-03T01:15:49.155782+00:00",
+              "closes_at": "2026-11-03T22:00:00Z",
+              "reason": "GREEN lean versus the exact broker D1 open: importer/exporter energy divergence remains the clearer daily mechanism. The observed pair is already above its open. This forecast is conditional on further checkpoint reviews; it is not a calibrated probability or an execution signal."
+            }
+          },
+          {
+            "pair": "EURUSD",
+            "verdict": "BUY",
+            "reason": "Moderate BUY: euro-area import-cost relief and softer US loan demand outweigh the present US-rate/haven opposition by a meaningful but bounded margin. GREEN is a separate D1-close target; it does not imply uninterrupted gains or extend the active call beyond the checkpoint.",
+            "recommendation": {
+              "intensity": "moderate",
+              "rank": 2,
+              "strongest_opposition": "Firm US short yields, strong manufacturing and possible defensive dollar demand.",
+              "invalidation": "Renewed energy escalation or a stronger US policy/funding advantage defeats the comparison."
+            },
+            "daily_close": {
+              "source_id": "Pepperstone-Demo",
+              "broker_day": "2026-11-03",
+              "color": "green",
+              "open_price": 1.11781,
+              "observed_price": 1.11876,
+              "observed_utc": "2026-11-03T01:15:49.155782+00:00",
+              "closes_at": "2026-11-03T22:00:00Z",
+              "reason": "GREEN lean versus the exact broker D1 open, supported by energy relief and modest USD pressure. Strong US manufacturing, firm short yields and defensive dollar demand oppose it. The pair is already above its open; later US data may reverse the target."
+            }
+          }
+        ]
+      }
+    },
+    {
+      "currency": "GBP",
+      "evidence_keys": [
+        "global-20261102-energy-risk-premium-eases",
+        "global-20261102-later-diplomacy-oil-and-rates",
+        "gbp-20261102-final-pmi-and-policy-opposition",
+        "gbp-20261102-later-path-risk-versus-chf",
+        "global-20261102-oil-relief-asian-handover"
+      ],
+      "background_keys": [
+        "gbp-20261030-budget-path-followthrough",
+        "global-20261101-iran-diplomacy-no-agreement",
+        "gbp-20260917-boe-policy-background",
+        "gbp-20261021-underlying-inflation-background",
+        "gbp-20261020-labour-background",
+        "gbp-20261028-obr-energy-and-fiscal-outlook",
+        "gbp-20261029-september-money-credit"
+      ],
+      "gap": "",
+      "direction": {
+        "basis": "standalone",
+        "review_status": "complete",
+        "stage_note": "Reviewed intervening/overnight and preceding-hour news across all eight currencies, current energy/technology narratives, country policy/inflation/labour/activity foundations, 219 broker calendar readings over seven days and official RBA timing. Pair native D1 snapshots are used only for explicit daily targets. No new last-hour pair-specific policy catalyst, signed peace/trade deal, fresh matched OIS or private flows are claimed.",
+        "verdict": "POTENTIAL STRENGTHENING",
+        "intensity": "slight",
+        "reason": "Retained Slight strengthening. Cheaper imported energy, resilient manufacturing and budget continuity modestly support spending power and financing. The strongest opposite case is the crowded expected BoE hiking path alongside household-credit softness and labour slack: the expected Thursday rise is baseline, and lower energy can reduce later restraint. Income relief narrowly leads, leaving a smaller advantage than EUR’s less crowded comparison. A delivered patient BoE path, renewed energy escalation or fiscal-financing deterioration defeats the balance. No GBPCHF daily target is promoted before the Swiss CPI test; higher UK rates alone do not supply one.",
+        "horizon": "Current session through the mechanism-specific checkpoint. Pair D1 targets concern the broker close but do not extend the active call beyond the checkpoint.",
+        "verified_utc": "2026-11-03T01:22:18.976724Z",
+        "sources": [
+          {
+            "kind": "web",
+            "label": "GBP current policy and session context",
+            "locator": "https://tradingeconomics.com/united-kingdom/currency",
+            "note": "Full current narrative read. Date-updated quotes do not redate underlying policy news; reported market probabilities are provider snapshots, not a fresh matched futures calculation."
+          },
+          {
+            "kind": "web",
+            "label": "Early Tuesday oil and diplomacy",
+            "locator": "https://tradingeconomics.com/commodity/brent-crude-oil",
+            "note": "Current body carries Monday relief into Tuesday. Page quote sections differ near USD 104-105 and show some recovery; no continued fresh plunge or certified futures settlement is asserted. Original narrative hour unknown."
+          },
+          {
+            "kind": "web",
+            "label": "Early Tuesday technology and risk balance",
+            "locator": "https://tradingeconomics.com/united-states/stock-market",
+            "note": "Full current narrative: modestly firmer broad futures despite Apple/Palantir after-hours losses. No private flows inferred; publication hour unknown."
+          }
+        ],
+        "reassessment": {
+          "title": "European opening: energy relief versus an overextended BoE path",
+          "event_at": "2026-11-03T08:00:00Z",
+          "event_date": null,
+          "verified_utc": "2026-11-03T01:22:18.976724Z",
+          "sources": [
+            {
+              "kind": "web",
+              "label": "LSEG: FTSE UK index opening hours",
+              "locator": "https://www.lseg.com/content/dam/ftse-russell/en_us/documents/ground-rules/ftse-uk-index-series-ground-rules-mar-22.pdf",
+              "note": "Official schedule specifies 08:00 London opening. November 2 London is GMT: 08:00 UTC / 3 PM Jakarta."
+            },
+            {
+              "kind": "web",
+              "label": "London Stock Exchange business days",
+              "locator": "https://www.londonstockexchange.com/equities-trading/business-days",
+              "note": "November 2 is a normal weekday, outside the listed 2026 holiday closures."
+            }
+          ],
+          "note": "November 3 3 PM Jakarta. Test household cost relief and fiscal reassurance against scope for the BoE to push back on several further hikes."
+        },
+        "reassessment_gap": ""
+      },
+      "evaluation": {
+        "until_utc": "2026-11-03T08:00:00Z",
+        "mechanism_tags": [
+          "energy",
+          "risk",
+          "policy",
+          "activity"
+        ],
+        "intensity_reason": "Strong and Moderate are not supported because the stated policy, demand and risk offsets substantially constrain causal dominance. Slight reflects the limited active advantage described in the reason, not generic uncertainty or absent private-flow proof.",
+        "strongest_opposition": "The concrete competing policy, financing, demand and risk mechanisms in the assessment reason.",
+        "invalidation": "A verified reversal of the leading mechanism or dominance of the stated opposing case requires immediate reassessment.",
+        "lesson_ids": [
+          "d1116f75ca2f42158b5ac6bf61a1a0ce",
+          "6cce388836e1458ba56513fa93c75a5d",
+          "b653d044faad422ea444acf570d032de",
+          "cf6cc66844f948b7b72b058b7d522daa"
+        ],
+        "review_ids": [
+          "93f82367900a4e918d631cff18d13f9a",
+          "d164682cf84741078da1adf5d960af34"
+        ],
+        "relative_preferences": []
+      }
+    },
+    {
+      "currency": "JPY",
+      "evidence_keys": [
+        "jpy-20261102-haven-support-reassessment",
+        "jpy-20261102-final-manufacturing-pmi",
+        "global-20261102-energy-risk-premium-eases",
+        "jpy-20261102-full-outlook-anchoring",
+        "global-20261102-later-diplomacy-oil-and-rates",
+        "global-20261102-oil-relief-asian-handover",
+        "global-20261102-us-close-tech-reversal",
+        "china-20261102-capital-market-tools-support"
+      ],
+      "background_keys": [
+        "boj-20261030-decision-outlook-etf",
+        "jpy-20261030-ueda-conference-completed",
+        "jpy-20261030-tokyo-october-cpi",
+        "jpy-20261030-september-labour",
+        "jpy-20261030-september-production-retail-actuals",
+        "global-20261030-final-session-policy-haven-balance",
+        "china-20261031-official-pmi-demand-miss",
+        "global-20261101-iran-diplomacy-no-agreement",
+        "jpy-20261007-august-real-wage-foundation",
+        "jpy-20261023-august-final-wages-and-release-schedule"
+      ],
+      "gap": "",
+      "direction": {
+        "basis": "standalone",
+        "review_status": "complete",
+        "stage_note": "Reviewed intervening/overnight and preceding-hour news across all eight currencies, current energy/technology narratives, country policy/inflation/labour/activity foundations, 219 broker calendar readings over seven days and official RBA timing. Pair native D1 snapshots are used only for explicit daily targets. No new last-hour pair-specific policy catalyst, signed peace/trade deal, fresh matched OIS or private flows are claimed.",
+        "verdict": "POTENTIAL STRENGTHENING",
+        "intensity": "slight",
+        "reason": "Retained Slight strengthening for the early Asian session. Renewed US technology stress after the close still offers limited protection demand, while lower imported energy and the completed BoJ underlying-inflation/normalisation message support the domestic side. Modestly firmer futures, Chinese support tools and firm foreign short yields are substantial opposition and prevent a clear stronger grade. The positive case survives as a limited balance, not because the current basket Day max is positive: it is currently negative. Durable regional risk recovery or a renewed foreign-rate advantage invalidates the view. Tokyo cash is closed today; no official intervention or guaranteed December hike is asserted.",
+        "horizon": "Current session through the mechanism-specific checkpoint. Pair D1 targets concern the broker close but do not extend the active call beyond the checkpoint.",
+        "verified_utc": "2026-11-03T01:22:18.976724Z",
+        "sources": [
+          {
+            "kind": "web",
+            "label": "JPY current policy and session context",
+            "locator": "https://tradingeconomics.com/japan/currency",
+            "note": "Full current narrative read. Date-updated quotes do not redate underlying policy news; reported market probabilities are provider snapshots, not a fresh matched futures calculation."
+          },
+          {
+            "kind": "web",
+            "label": "Early Tuesday oil and diplomacy",
+            "locator": "https://tradingeconomics.com/commodity/brent-crude-oil",
+            "note": "Current body carries Monday relief into Tuesday. Page quote sections differ near USD 104-105 and show some recovery; no continued fresh plunge or certified futures settlement is asserted. Original narrative hour unknown."
+          },
+          {
+            "kind": "web",
+            "label": "Early Tuesday technology and risk balance",
+            "locator": "https://tradingeconomics.com/united-states/stock-market",
+            "note": "Full current narrative: modestly firmer broad futures despite Apple/Palantir after-hours losses. No private flows inferred; publication hour unknown."
+          }
+        ],
+        "reassessment": {
+          "title": "First China session after the support announcement: risk transmission to JPY",
+          "event_at": "2026-11-03T01:30:00Z",
+          "event_date": null,
+          "verified_utc": "2026-11-03T01:22:18.976724Z",
+          "sources": [
+            {
+              "kind": "web",
+              "label": "Shanghai Stock Exchange trading hours",
+              "locator": "https://english.sse.com.cn/start/trading/schedule/",
+              "note": "Continuous stocks trading begins 9:30 China time = 01:30 UTC / 8:30 AM Jakarta. Opening auction begins 15 minutes earlier; checkpoint is the continuous session, not a claimed policy publication time."
+            },
+            {
+              "kind": "web",
+              "label": "SSE official 2026 holiday notice",
+              "locator": "https://www.sse.com.cn/disclosure/announcement/general/c/c_20251222_10802507.shtml",
+              "note": "November 3 is a normal Tuesday outside the listed 2026 holiday closures."
+            },
+            {
+              "kind": "web",
+              "label": "Lianhe Zaobao: November 2 China capital-market support",
+              "locator": "https://www.zaobao.com.sg/news/china/story20261102-9935462",
+              "note": "Full body opened; published 23:34 Singapore / 15:34 UTC. 31 institutions requested more than CNY 100 bn; requested amount is not completed allotment or real-economy spending. PBoC index did not expose the linked announcement body."
+            }
+          ],
+          "note": "November 3 8:30 AM Jakarta. Test whether Chinese support reverses the renewed technology-risk impulse and reduces JPY defensive support; cheaper imports and the BoJ path remain separate. Tokyo cash is on holiday."
+        },
+        "reassessment_gap": ""
+      },
+      "evaluation": {
+        "until_utc": "2026-11-03T01:30:00Z",
+        "mechanism_tags": [
+          "energy",
+          "risk",
+          "policy",
+          "activity"
+        ],
+        "intensity_reason": "Strong and Moderate are not supported because the stated policy, demand and risk offsets substantially constrain causal dominance. Slight reflects the limited active advantage described in the reason, not generic uncertainty or absent private-flow proof.",
+        "strongest_opposition": "The concrete competing policy, financing, demand and risk mechanisms in the assessment reason.",
+        "invalidation": "A verified reversal of the leading mechanism or dominance of the stated opposing case requires immediate reassessment.",
+        "lesson_ids": [
+          "d1116f75ca2f42158b5ac6bf61a1a0ce",
+          "6cce388836e1458ba56513fa93c75a5d",
+          "b653d044faad422ea444acf570d032de",
+          "cf6cc66844f948b7b72b058b7d522daa"
+        ],
+        "review_ids": [
+          "93f82367900a4e918d631cff18d13f9a",
+          "d164682cf84741078da1adf5d960af34"
+        ],
+        "relative_preferences": []
+      }
+    },
+    {
+      "currency": "CHF",
+      "evidence_keys": [
+        "global-20261102-later-diplomacy-oil-and-rates",
+        "chf-20261102-manufacturing-retail-package",
+        "global-20261102-us-close-tech-reversal"
+      ],
+      "background_keys": [
+        "chf-20261030-kof-actual",
+        "chf-20261030-china-signing-confirmed",
+        "global-20261030-final-session-policy-haven-balance",
+        "global-20261101-iran-diplomacy-no-agreement",
+        "chf-20260924-policy-growth-background",
+        "chf-20261001-september-cpi-foundation",
+        "chf-20261022-snb-discussion-foundation",
+        "eur-20261030-fitch-negative-outlook"
+      ],
+      "gap": "",
+      "direction": {
+        "basis": "standalone",
+        "review_status": "complete",
+        "stage_note": "Reviewed intervening/overnight and preceding-hour news across all eight currencies, current energy/technology narratives, country policy/inflation/labour/activity foundations, 219 broker calendar readings over seven days and official RBA timing. Pair native D1 snapshots are used only for explicit daily targets. No new last-hour pair-specific policy catalyst, signed peace/trade deal, fresh matched OIS or private flows are claimed.",
+        "verdict": "POTENTIAL STRENGTHENING",
+        "intensity": "slight",
+        "reason": "Retained Slight strengthening before October CPI. Swiss factory resilience and unresolved technology/fiscal risks provide modest support, while zero-rate funding incentives, softer household activity, reduced geopolitical premium and firmer early futures are the strongest opposition. Those offsets make the advantage narrow; there is no new SNB tightening surprise or proven carry unwind. A soft underlying CPI package or broad durable risk recovery defeats it. EUR retains the clearer cost-relief mechanism, so equal positive labels do not justify automatically recommending EURCHF or GBPCHF.",
+        "horizon": "Current session through the mechanism-specific checkpoint. Pair D1 targets concern the broker close but do not extend the active call beyond the checkpoint.",
+        "verified_utc": "2026-11-03T01:22:18.976724Z",
+        "sources": [
+          {
+            "kind": "web",
+            "label": "CHF current policy and session context",
+            "locator": "https://tradingeconomics.com/switzerland/currency",
+            "note": "Full current narrative read. Date-updated quotes do not redate underlying policy news; reported market probabilities are provider snapshots, not a fresh matched futures calculation."
+          },
+          {
+            "kind": "web",
+            "label": "Early Tuesday oil and diplomacy",
+            "locator": "https://tradingeconomics.com/commodity/brent-crude-oil",
+            "note": "Current body carries Monday relief into Tuesday. Page quote sections differ near USD 104-105 and show some recovery; no continued fresh plunge or certified futures settlement is asserted. Original narrative hour unknown."
+          },
+          {
+            "kind": "web",
+            "label": "Early Tuesday technology and risk balance",
+            "locator": "https://tradingeconomics.com/united-states/stock-market",
+            "note": "Full current narrative: modestly firmer broad futures despite Apple/Palantir after-hours losses. No private flows inferred; publication hour unknown."
+          }
+        ],
+        "reassessment": {
+          "title": "Swiss October CPI: test CHF pricing persistence against the funding-rate disadvantage",
+          "event_at": "2026-11-03T07:30:00Z",
+          "event_date": null,
+          "verified_utc": "2026-11-03T01:22:18.976724Z",
+          "sources": [
+            {
+              "kind": "web",
+              "label": "FSO official CPI release schedule",
+              "locator": "https://dam-api.bfs.admin.ch/hub/api/dam/assets/36353838/master",
+              "note": "Only the official calendar is used: October CPI November 3 08:30 Swiss time = 07:30 UTC / 2:30 PM Jakarta."
+            }
+          ],
+          "note": "November 3 2:30 PM Jakarta. A soft package can favour a GBPCHF recovery; stronger underlying persistence can reinforce CHF. November 5 BoE decision and Q&A are the later counterpart tests."
+        },
+        "reassessment_gap": ""
+      },
+      "evaluation": {
+        "until_utc": "2026-11-03T07:30:00Z",
+        "mechanism_tags": [
+          "energy",
+          "risk",
+          "policy",
+          "activity"
+        ],
+        "intensity_reason": "Strong and Moderate are not supported because the stated policy, demand and risk offsets substantially constrain causal dominance. Slight reflects the limited active advantage described in the reason, not generic uncertainty or absent private-flow proof.",
+        "strongest_opposition": "The concrete competing policy, financing, demand and risk mechanisms in the assessment reason.",
+        "invalidation": "A verified reversal of the leading mechanism or dominance of the stated opposing case requires immediate reassessment.",
+        "lesson_ids": [
+          "d1116f75ca2f42158b5ac6bf61a1a0ce",
+          "6cce388836e1458ba56513fa93c75a5d",
+          "b653d044faad422ea444acf570d032de",
+          "cf6cc66844f948b7b72b058b7d522daa"
+        ],
+        "review_ids": [
+          "93f82367900a4e918d631cff18d13f9a",
+          "d164682cf84741078da1adf5d960af34"
+        ],
+        "relative_preferences": []
+      }
+    },
+    {
+      "currency": "CAD",
+      "evidence_keys": [
+        "global-20261102-energy-risk-premium-eases",
+        "cad-20261102-trade-policy-context",
+        "usd-20261102-october-manufacturing-actuals",
+        "global-20261102-later-diplomacy-oil-and-rates",
+        "cad-20261102-manufacturing-and-later-trade-balance",
+        "cad-20261102-post-settlement-oil-pressure",
+        "global-20261102-oil-relief-asian-handover"
+      ],
+      "background_keys": [
+        "cad-20261030-august-gdp-september-advance",
+        "china-20261031-official-pmi-demand-miss",
+        "cad-20261030-later-oil-policy-weighting",
+        "oil-20261101-opec-completed-december-hold",
+        "global-20261101-iran-diplomacy-no-agreement",
+        "cad-20261028-boc-path-source-enrichment",
+        "cad-20261029-payroll-earnings-august",
+        "cad-20261015-energy-income-background"
+      ],
+      "gap": "",
+      "direction": {
+        "basis": "standalone",
+        "review_status": "complete",
+        "stage_note": "Reviewed intervening/overnight and preceding-hour news across all eight currencies, current energy/technology narratives, country policy/inflation/labour/activity foundations, 219 broker calendar readings over seven days and official RBA timing. Pair native D1 snapshots are used only for explicit daily targets. No new last-hour pair-specific policy catalyst, signed peace/trade deal, fresh matched OIS or private flows are claimed.",
+        "verdict": "POTENTIAL WEAKENING",
+        "intensity": "moderate",
+        "reason": "Retained Moderate weakening. The sharp prior-session oil repricing still reduces Canadian energy-income support despite a modest early bounce, while weak recent GDP and contracting manufacturing orders reinforce the demand constraint. The strongest opposite case is conditional BoC tightening, narrower US-Canada short yields and constructive trade discussions; no completed tariff agreement is verified. The direct export-income shock still leads over those conditional offsets. A durable oil recovery, delivered trade relief or materially firmer BoC path invalidates it. This is clearer negative pressure than AUD/NZD’s smaller pre-event balances. EURCAD has a GREEN broker D1 target and Moderate BUY bias from now, with the earlier EUR checkpoint capping the active comparison.",
+        "horizon": "Current session through the mechanism-specific checkpoint. Pair D1 targets concern the broker close but do not extend the active call beyond the checkpoint.",
+        "verified_utc": "2026-11-03T01:22:18.976724Z",
+        "sources": [
+          {
+            "kind": "web",
+            "label": "CAD current policy and session context",
+            "locator": "https://tradingeconomics.com/canada/currency",
+            "note": "Full current narrative read. Date-updated quotes do not redate underlying policy news; reported market probabilities are provider snapshots, not a fresh matched futures calculation."
+          },
+          {
+            "kind": "web",
+            "label": "Early Tuesday oil and diplomacy",
+            "locator": "https://tradingeconomics.com/commodity/brent-crude-oil",
+            "note": "Current body carries Monday relief into Tuesday. Page quote sections differ near USD 104-105 and show some recovery; no continued fresh plunge or certified futures settlement is asserted. Original narrative hour unknown."
+          },
+          {
+            "kind": "web",
+            "label": "Early Tuesday technology and risk balance",
+            "locator": "https://tradingeconomics.com/united-states/stock-market",
+            "note": "Full current narrative: modestly firmer broad futures despite Apple/Palantir after-hours losses. No private flows inferred; publication hour unknown."
+          }
+        ],
+        "reassessment": {
+          "title": "European energy session: CAD export-income loss versus trade relief",
+          "event_at": "2026-11-03T08:00:00Z",
+          "event_date": null,
+          "verified_utc": "2026-11-03T01:22:18.976724Z",
+          "sources": [
+            {
+              "kind": "web",
+              "label": "LSEG: FTSE UK index opening hours",
+              "locator": "https://www.lseg.com/content/dam/ftse-russell/en_us/documents/ground-rules/ftse-uk-index-series-ground-rules-mar-22.pdf",
+              "note": "Official schedule specifies 08:00 London opening. November 2 London is GMT: 08:00 UTC / 3 PM Jakarta."
+            },
+            {
+              "kind": "web",
+              "label": "London Stock Exchange business days",
+              "locator": "https://www.londonstockexchange.com/equities-trading/business-days",
+              "note": "November 2 is a normal weekday, outside the listed 2026 holiday closures."
+            }
+          ],
+          "note": "November 3 3 PM Jakarta. Test persistence of the oil-income shock after the Asian handover. Constructive trade comments or firmer BoC guidance can offset it; neither is assumed delivered."
+        },
+        "reassessment_gap": ""
+      },
+      "evaluation": {
+        "until_utc": "2026-11-03T01:30:00Z",
+        "mechanism_tags": [
+          "energy",
+          "risk",
+          "policy",
+          "activity"
+        ],
+        "intensity_reason": "Strong is not justified because policy, trade and financing opposition remains material. Moderate reflects the substantial continuing energy-income channel; Slight would understate its direct impact.",
+        "strongest_opposition": "The concrete competing policy, financing, demand and risk mechanisms in the assessment reason.",
+        "invalidation": "A verified reversal of the leading mechanism or dominance of the stated opposing case requires immediate reassessment.",
+        "lesson_ids": [
+          "d1116f75ca2f42158b5ac6bf61a1a0ce",
+          "6cce388836e1458ba56513fa93c75a5d",
+          "b653d044faad422ea444acf570d032de",
+          "cf6cc66844f948b7b72b058b7d522daa"
+        ],
+        "review_ids": [
+          "93f82367900a4e918d631cff18d13f9a",
+          "d164682cf84741078da1adf5d960af34"
+        ],
+        "relative_preferences": [
+          {
+            "pair": "EURCAD",
+            "verdict": "BUY",
+            "reason": "Moderate BUY: persistent energy relief benefits the euro-area importer and weakens Canadian export income, against BoC tightening and possible trade relief. GREEN is the separate broker D1-close target; the pair is already above its open, not a newly discovered entry. Oil recovery or a delivered trade deal can overturn it.",
+            "recommendation": {
+              "intensity": "moderate",
+              "rank": 1,
+              "strongest_opposition": "Conditional BoC tightening and possible tariff relief, plus an oil rebound.",
+              "invalidation": "Sustained energy re-escalation or verified Canadian trade relief reverses the comparison."
+            },
+            "daily_close": {
+              "source_id": "Pepperstone-Demo",
+              "broker_day": "2026-11-03",
+              "color": "green",
+              "open_price": 1.56269,
+              "observed_price": 1.56475,
+              "observed_utc": "2026-11-03T01:15:49.155782+00:00",
+              "closes_at": "2026-11-03T22:00:00Z",
+              "reason": "GREEN lean versus the exact broker D1 open: importer/exporter energy divergence remains the clearer daily mechanism. The observed pair is already above its open. This forecast is conditional on further checkpoint reviews; it is not a calibrated probability or an execution signal."
+            }
+          }
+        ]
+      }
+    },
+    {
+      "currency": "AUD",
+      "evidence_keys": [
+        "global-20261102-energy-risk-premium-eases",
+        "china-20261102-private-manufacturing-pmi",
+        "aud-20261102-preliminary-building-approvals",
+        "aud-20261102-october-inflation-gauge",
+        "aud-20261102-final-manufacturing-pmi",
+        "audusd-20261102-later-asian-comparison",
+        "global-20261102-later-diplomacy-oil-and-rates",
+        "global-20261102-oil-relief-asian-handover",
+        "global-20261102-us-close-tech-reversal",
+        "global-20261102-apple-q4-actual-offset",
+        "china-20261102-capital-market-tools-support"
+      ],
+      "background_keys": [
+        "global-20261101-iran-diplomacy-no-agreement",
+        "china-20261031-official-pmi-demand-miss",
+        "aud-20261030-september-quarter-ppi",
+        "aud-20261030-september-financial-aggregates",
+        "aud-20261029-trade-price-disinflation-and-exports",
+        "aud-20261028-cpi-and-capacity-reassessment",
+        "aud-20261015-september-labour-foundation"
+      ],
+      "gap": "",
+      "direction": {
+        "basis": "standalone",
+        "review_status": "complete",
+        "stage_note": "Reviewed intervening/overnight and preceding-hour news across all eight currencies, current energy/technology narratives, country policy/inflation/labour/activity foundations, 219 broker calendar readings over seven days and official RBA timing. Pair native D1 snapshots are used only for explicit daily targets. No new last-hour pair-specific policy catalyst, signed peace/trade deal, fresh matched OIS or private flows are claimed.",
+        "verdict": "POTENTIAL WEAKENING",
+        "intensity": "slight",
+        "reason": "Retained Slight weakening before the RBA decision and projections. Weak factory orders and broad technology/external-demand exposure marginally constrain the session, with softer energy receipts also relevant. The strongest opposite case is the RBA’s domestic-capacity concern, persistent underlying inflation, private China PMI resilience and announced Chinese support tools. Firmer early futures further limit the negative advantage. A widely expected 4.85% rate is not a fresh upside surprise; actual guidance on subsequent restraint can reverse this weighting. Strong or Moderate negativity is not supported against those substantial offsets. No AUD daily pair forecast is promoted before the actual decision; the official 10:30 AM Jakarta release precedes the separate 11:30 AM conference.",
+        "horizon": "Current session through the mechanism-specific checkpoint. Pair D1 targets concern the broker close but do not extend the active call beyond the checkpoint.",
+        "verified_utc": "2026-11-03T01:22:18.976724Z",
+        "sources": [
+          {
+            "kind": "web",
+            "label": "AUD current policy and session context",
+            "locator": "https://tradingeconomics.com/australia/currency",
+            "note": "Full current narrative read. Date-updated quotes do not redate underlying policy news; reported market probabilities are provider snapshots, not a fresh matched futures calculation."
+          },
+          {
+            "kind": "web",
+            "label": "Early Tuesday oil and diplomacy",
+            "locator": "https://tradingeconomics.com/commodity/brent-crude-oil",
+            "note": "Current body carries Monday relief into Tuesday. Page quote sections differ near USD 104-105 and show some recovery; no continued fresh plunge or certified futures settlement is asserted. Original narrative hour unknown."
+          },
+          {
+            "kind": "web",
+            "label": "Early Tuesday technology and risk balance",
+            "locator": "https://tradingeconomics.com/united-states/stock-market",
+            "note": "Full current narrative: modestly firmer broad futures despite Apple/Palantir after-hours losses. No private flows inferred; publication hour unknown."
+          }
+        ],
+        "reassessment": {
+          "title": "RBA decision and projections: capacity pressure versus an expected hike",
+          "event_at": "2026-11-03T03:30:00Z",
+          "event_date": null,
+          "verified_utc": "2026-11-03T01:22:18.976724Z",
+          "sources": [
+            {
+              "kind": "web",
+              "label": "RBA official November calendar",
+              "locator": "https://www.rba.gov.au/schedules-events/calendar/",
+              "note": "November 3 statement and SMP 2:30 PM AEDT = 03:30 UTC / 10:30 AM Jakarta. Conference 3:30 PM AEDT = 11:30 AM Jakarta. Broker statement timestamps are one hour later; official schedule governs research."
+            }
+          ],
+          "note": "November 3 10:30 AM Jakarta. Compare the actual decision and projections with the expected 4.85% rate and the capacity-versus-weak-activity balance. Resolve the separate 11:30 AM conference before calling the policy review complete."
+        },
+        "reassessment_gap": ""
+      },
+      "evaluation": {
+        "until_utc": "2026-11-03T03:30:00Z",
+        "mechanism_tags": [
+          "energy",
+          "risk",
+          "policy",
+          "activity"
+        ],
+        "intensity_reason": "Strong and Moderate are not supported because the stated policy, demand and risk offsets substantially constrain causal dominance. Slight reflects the limited active advantage described in the reason, not generic uncertainty or absent private-flow proof.",
+        "strongest_opposition": "The concrete competing policy, financing, demand and risk mechanisms in the assessment reason.",
+        "invalidation": "A verified reversal of the leading mechanism or dominance of the stated opposing case requires immediate reassessment.",
+        "lesson_ids": [
+          "d1116f75ca2f42158b5ac6bf61a1a0ce",
+          "6cce388836e1458ba56513fa93c75a5d",
+          "b653d044faad422ea444acf570d032de",
+          "cf6cc66844f948b7b72b058b7d522daa"
+        ],
+        "review_ids": [
+          "93f82367900a4e918d631cff18d13f9a",
+          "d164682cf84741078da1adf5d960af34"
+        ],
+        "relative_preferences": []
+      }
+    },
+    {
+      "currency": "NZD",
+      "evidence_keys": [
+        "nzd-20261102-two-speed-election-economy",
+        "china-20261102-private-manufacturing-pmi",
+        "global-20261102-energy-risk-premium-eases",
+        "nzd-20261102-jobs-election-and-majority-balance",
+        "global-20261102-later-diplomacy-oil-and-rates",
+        "global-20261102-oil-relief-asian-handover",
+        "global-20261102-us-close-tech-reversal",
+        "global-20261102-apple-q4-actual-offset",
+        "china-20261102-capital-market-tools-support",
+        "nzd-20261103-september-consents-actual"
+      ],
+      "background_keys": [
+        "nzd-20261030-silk-conditional-december-report",
+        "nzd-20261030-anz-consumer-confidence",
+        "china-20261031-official-pmi-demand-miss",
+        "nzd-20261028-review-and-hawkish-offset",
+        "nzd-20261028-drive-weaker-pass-through",
+        "nzd-20261029-herald-december-high",
+        "nzd-20261029-anz-resilience-and-price-setting"
+      ],
+      "gap": "",
+      "direction": {
+        "basis": "standalone",
+        "review_status": "complete",
+        "stage_note": "Reviewed intervening/overnight and preceding-hour news across all eight currencies, current energy/technology narratives, country policy/inflation/labour/activity foundations, 219 broker calendar readings over seven days and official RBA timing. Pair native D1 snapshots are used only for explicit daily targets. No new last-hour pair-specific policy catalyst, signed peace/trade deal, fresh matched OIS or private flows are claimed.",
+        "verdict": "POTENTIAL WEAKENING",
+        "intensity": "slight",
+        "reason": "Retained Slight weakening. The RBNZ majority’s weak household-demand and wage-transmission reasoning, the consents decline and election uncertainty still constrain the current session. High conditional December hike expectations, export/business pricing resilience, lower energy and Chinese support form the strongest opposite case; firmer early futures further narrow the advantage. These offsets do not yet replace the soft domestic-demand mechanism. Stronger majority guidance or a sustained regional-demand recovery invalidates weakness. Tomorrow’s jobs and wages remain unknown; the green/red target of a specific NZD pair cannot be inferred from this standalone label.",
+        "horizon": "Current session through the mechanism-specific checkpoint. Pair D1 targets concern the broker close but do not extend the active call beyond the checkpoint.",
+        "verified_utc": "2026-11-03T01:22:18.976724Z",
+        "sources": [
+          {
+            "kind": "web",
+            "label": "NZD current policy and session context",
+            "locator": "https://tradingeconomics.com/new-zealand/currency",
+            "note": "Full current narrative read. Date-updated quotes do not redate underlying policy news; reported market probabilities are provider snapshots, not a fresh matched futures calculation."
+          },
+          {
+            "kind": "web",
+            "label": "Early Tuesday oil and diplomacy",
+            "locator": "https://tradingeconomics.com/commodity/brent-crude-oil",
+            "note": "Current body carries Monday relief into Tuesday. Page quote sections differ near USD 104-105 and show some recovery; no continued fresh plunge or certified futures settlement is asserted. Original narrative hour unknown."
+          },
+          {
+            "kind": "web",
+            "label": "Early Tuesday technology and risk balance",
+            "locator": "https://tradingeconomics.com/united-states/stock-market",
+            "note": "Full current narrative: modestly firmer broad futures despite Apple/Palantir after-hours losses. No private flows inferred; publication hour unknown."
+          }
+        ],
+        "reassessment": {
+          "title": "First China session after the support announcement: risk transmission to NZD",
+          "event_at": "2026-11-03T01:30:00Z",
+          "event_date": null,
+          "verified_utc": "2026-11-03T01:22:18.976724Z",
+          "sources": [
+            {
+              "kind": "web",
+              "label": "Shanghai Stock Exchange trading hours",
+              "locator": "https://english.sse.com.cn/start/trading/schedule/",
+              "note": "Continuous stocks trading begins 9:30 China time = 01:30 UTC / 8:30 AM Jakarta. Opening auction begins 15 minutes earlier; checkpoint is the continuous session, not a claimed policy publication time."
+            },
+            {
+              "kind": "web",
+              "label": "SSE official 2026 holiday notice",
+              "locator": "https://www.sse.com.cn/disclosure/announcement/general/c/c_20251222_10802507.shtml",
+              "note": "November 3 is a normal Tuesday outside the listed 2026 holiday closures."
+            },
+            {
+              "kind": "web",
+              "label": "Lianhe Zaobao: November 2 China capital-market support",
+              "locator": "https://www.zaobao.com.sg/news/china/story20261102-9935462",
+              "note": "Full body opened; published 23:34 Singapore / 15:34 UTC. 31 institutions requested more than CNY 100 bn; requested amount is not completed allotment or real-economy spending. PBoC index did not expose the linked announcement body."
+            }
+          ],
+          "note": "November 3 8:30 AM Jakarta. Test whether Chinese support and cheaper energy displace domestic-demand weakness in regional risk appetite. This is the first session after the support announcement, not a recurring opening rule."
+        },
+        "reassessment_gap": ""
+      },
+      "evaluation": {
+        "until_utc": "2026-11-03T01:30:00Z",
+        "mechanism_tags": [
+          "energy",
+          "risk",
+          "policy",
+          "activity"
+        ],
+        "intensity_reason": "Strong and Moderate are not supported because the stated policy, demand and risk offsets substantially constrain causal dominance. Slight reflects the limited active advantage described in the reason, not generic uncertainty or absent private-flow proof.",
+        "strongest_opposition": "The concrete competing policy, financing, demand and risk mechanisms in the assessment reason.",
+        "invalidation": "A verified reversal of the leading mechanism or dominance of the stated opposing case requires immediate reassessment.",
+        "lesson_ids": [
+          "d1116f75ca2f42158b5ac6bf61a1a0ce",
+          "6cce388836e1458ba56513fa93c75a5d",
+          "b653d044faad422ea444acf570d032de",
+          "cf6cc66844f948b7b72b058b7d522daa"
+        ],
+        "review_ids": [
+          "93f82367900a4e918d631cff18d13f9a",
+          "d164682cf84741078da1adf5d960af34"
+        ],
+        "relative_preferences": []
+      }
+    }
+  ],
+  "provenance": "assessment"
+}

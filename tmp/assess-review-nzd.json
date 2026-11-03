@@ -1,0 +1,17 @@
+{
+  "episode_id": "research:ac9fb362582d4c14a93c915b14cf3c28:NZD",
+  "outcome_id": "2d1196a48625cc6ac3f1e393142fe1444a6b3319e26c13ff5032981e8172a7b4",
+  "classification": "insufficient_evidence",
+  "analysis": "Refinement candidate, with opposed excursion alignment but no verified failed closing call. The active sampled basket had 0.072396% favourable excursion, 0.255334% adverse excursion and a favourable peak 2,160 seconds after the first usable sample. The path maximum therefore opposed the negative verdict, while the sampled terminal basket return was -0.041569%, directionally aligned with weakening. Exact active-window closing alignment remains unavailable because the recorded end was supersession at 19:11:02 rather than a complete exact endpoint; the secondary diagnostic explicitly reports missing terminal minute. The broader broker-day sample was partial and developing, with 33 missing samples; remaining-day opportunity and D1 closing alignment were pending. Neither a favourable local peak nor the larger opposed excursion proves a correct or failed closing verdict. Frozen contrary China, export and December-path evidence was already acknowledged. A causal misweighting diagnosis or grade change cannot be justified from this path alone; retain the refinement flag and unresolved endpoint limitation.",
+  "known_before_cutoff": "The frozen NZD call acknowledged the private China PMI beat, business price-setting, export resilience and conditional December hike guidance against the RBNZ majority’s weak household-demand and wage-transmission rationale. It was explicitly Slight, not an unqualified bearish extrapolation.",
+  "subsequent_information": "The later China support announcement, new September consents actual and completed US-session reversal are now known but postdate the original cutoff. They must not be used to claim the original call should have anticipated their precise outcomes. The fresh consents result reinforces domestic weakness independently of this historical path.",
+  "source_evidence": [
+    {
+      "url": "https://www.zaobao.com.sg/news/china/story20261102-9935462",
+      "claim": "China announced capital-market support tools and a November 3 operation; this supplies a later positive risk offset.",
+      "availability_note": "Published November 2 at 23:34 Singapore / 15:34 UTC, after the original call. Request totals are not completed allotments.",
+      "published_at": "2026-11-02T15:34:00Z",
+      "used_as_pre_cutoff": false
+    }
+  ]
+}

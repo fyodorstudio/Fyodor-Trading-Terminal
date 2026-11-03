@@ -1,4 +1,5 @@
-export type DailyRecord = { open: number | null; high: number | null; low: number | null; checked_at: number }
+export type DailyRecord = { open: number | null; high: number | null; low: number | null; close?: number | null;
+  availability?: 'available' | 'no_candle' | 'unavailable'; checked_at: number }
 export type DailySnapshot = { source_id: string; generation: number; day: number; observed_at: number; symbols: Record<string, DailyRecord> }
 
 /** Largest excursion from the daily open. Equal excursions use the upward sign. */

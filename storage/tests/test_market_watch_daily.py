@@ -32,9 +32,9 @@ class DailyMarketTests(unittest.TestCase):
         bars = [{'time': self.day - 4 * 86400, 'close': 1.08},
                 {'time': self.day - 86400, 'close': 1.1},
                 {'time': self.day, 'open': 1.105, 'close': 1.11, 'high': 1.12, 'low': 1.104}]
-        self.assertEqual(daily_record(bars, self.day), {'open': 1.105, 'high': 1.12, 'low': 1.104})
-        self.assertEqual(daily_record(bars[:-1], self.day), {'open': None, 'high': None, 'low': None})
-        self.assertEqual(daily_record([], self.day), {'open': None, 'high': None, 'low': None})
+        self.assertEqual(daily_record(bars, self.day), {'open': 1.105, 'high': 1.12, 'low': 1.104, 'close': 1.11})
+        self.assertEqual(daily_record(bars[:-1], self.day), {'open': None, 'high': None, 'low': None, 'close': None})
+        self.assertEqual(daily_record([], self.day), {'open': None, 'high': None, 'low': None, 'close': None})
         self.assertIsNone(daily_record([{**bars[-1], 'open': float('nan')}], self.day)['open'])
 
     def test_cache_bounded_work_selected_refresh_and_rollover(self):
@@ -108,6 +108,29 @@ class DailyMarketTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.snapshot(self.service(rollover))
 
+    def test_no_candle_is_distinct_from_read_failure_and_retry_bypasses_cache(self):
+        attempts = []
+        def reader(identity, symbols, day):
+            attempts.append(symbols)
+            return {symbol: dict(open=None, high=None, low=None, availability='no_candle') for symbol in symbols}
+        service = self.service(reader)
+        sunday = datetime(2026, 10, 4).date()
+        result = service.snapshot('Pepperstone-Demo', 2, ['EURUSD', 'BTCUSD'], 'EURUSD', sunday)
+        self.assertEqual(result['symbols']['EURUSD']['availability'], 'no_candle')
+        self.now += 120
+        service.snapshot('Pepperstone-Demo', 2, ['EURUSD', 'BTCUSD'], 'EURUSD', sunday)
+        self.assertEqual(len(attempts), 1, 'A confirmed empty historical date is not a repeated load failure')
+        service.snapshot('Pepperstone-Demo', 2, ['EURUSD', 'BTCUSD'], 'EURUSD', sunday, retry=True)
+        self.assertEqual(len(attempts), 2, 'An explicit retry rechecks empty records immediately')
+        service = self.service(lambda *_: {'EURUSD': dict(open=None, high=None, low=None, availability='unavailable')})
+        service.snapshot('Pepperstone-Demo', 2, ['EURUSD'], 'EURUSD')
+        service.read = self.reader
+        reads = len(self.calls)
+        service.snapshot('Pepperstone-Demo', 2, ['EURUSD'], 'EURUSD')
+        self.assertEqual(len(self.calls), reads)
+        result = service.snapshot('Pepperstone-Demo', 2, ['EURUSD'], 'EURUSD', retry=True)
+        self.assertEqual(result['symbols']['EURUSD']['open'], 1.1, 'Retry bypasses the 60-second missing-history backoff')
+
     def test_native_reads_only_visible_symbols_and_never_mutates_account(self):
         native = SimpleNamespace(TIMEFRAME_D1=24, initialize=lambda **_: True,
             account_info=lambda: SimpleNamespace(server='Pepperstone-Demo', login=7),
@@ -120,11 +143,26 @@ class DailyMarketTests(unittest.TestCase):
         self.assertEqual(reads, [('EURUSD', 24, datetime.fromtimestamp(self.day, timezone.utc),
                                  datetime.fromtimestamp(self.day + 86399, timezone.utc))])
         self.assertIsNone(result['EURUSD']['open'], 'A neighbouring candle is not the requested day')
+        self.assertEqual(result['EURUSD']['availability'], 'no_candle')
         self.assertEqual(list(result), ['EURUSD'])
         native.account_info = lambda: SimpleNamespace(server='Other', login=7)
         with self.assertRaises(ValueError):
             read_daily(native, {'identity': self.health, 'symbols': ['EURUSD'], 'day': self.day})
         self.assertEqual(len(reads), 1)
+
+    def test_native_empty_day_and_failed_read_are_not_confused(self):
+        native = SimpleNamespace(TIMEFRAME_D1=24, initialize=lambda **_: True,
+            account_info=lambda: SimpleNamespace(server='Pepperstone-Demo', login=7),
+            terminal_info=lambda: SimpleNamespace(connected=True),
+            symbols_get=lambda: [SimpleNamespace(name='EURUSD', visible=True), SimpleNamespace(name='BTCUSD', visible=True)],
+            shutdown=lambda: None)
+        native.copy_rates_range = lambda symbol, *_: [] if symbol == 'EURUSD' else [dict(time=self.day,open=100,high=102,low=99,close=101)]
+        request = dict(identity=self.health, symbols=['EURUSD','BTCUSD'], day=self.day)
+        result = read_daily(native, request)
+        self.assertEqual(result['EURUSD']['availability'], 'no_candle')
+        self.assertEqual(result['BTCUSD']['availability'], 'available')
+        native.copy_rates_range = lambda *_: None
+        self.assertEqual(read_daily(native, request)['EURUSD']['availability'], 'unavailable')
 
     def test_api_contract_validation_and_unavailable(self):
         with patch('storage.app.DailyMarketWatch', return_value=self.service()):

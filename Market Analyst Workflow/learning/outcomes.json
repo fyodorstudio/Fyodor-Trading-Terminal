@@ -287224,6 +287224,2304 @@
       },
       "relative_preferences": [],
       "post_checkpoint_observation": null
+    },
+    {
+      "id": "b2ff23c7e635c56a3e96b5f11f6225c8c2f0ecb6ba62ea02c7bed5e618782b64",
+      "episode_id": "research:43c6a0d3fc6b44b6b2a37e34dcb96ffc:CHF",
+      "episode_hash": "292464ace2773ddf3f200f0af6c0c963b198708463644ed8afd19b2f84feda5e",
+      "protocol_id": "ba9c464a9fa5f9b78f5379e6d7938d2c506a18bb95f5626a83ceaf8573e8f581",
+      "end_utc": "2026-11-02T19:39:18.359011Z",
+      "window_basis": "declared",
+      "data_revision": "6ba22a579bb9f9c2b652ad936f40f0676194bf5490d02f1d04d4a69de77ed242",
+      "window_revision": "cfcc03c9cf5c6467e69f23b387c478be70ac01e0fbc79c451c51dea414dfa681",
+      "recorded_utc": "2026-11-02T19:40:09.394540Z",
+      "observation": {
+        "status": "unavailable",
+        "gap": "No common completed M1 baseline within 120 seconds of delivery."
+      },
+      "secondary_observations": {
+        "120": {
+          "status": "pending"
+        },
+        "1440": {
+          "status": "pending"
+        }
+      },
+      "relative_preferences": [],
+      "post_checkpoint_observation": null
+    },
+    {
+      "id": "6beaf88da184ccc373f0f05f7382064588a0cfeb2532b25f212336a0f1011873",
+      "episode_id": "research:43c6a0d3fc6b44b6b2a37e34dcb96ffc:GBP",
+      "episode_hash": "af0204921f334c94d8af7d81c31ea06606c012d45bf7b7657597d8f7b00a5202",
+      "protocol_id": "ba9c464a9fa5f9b78f5379e6d7938d2c506a18bb95f5626a83ceaf8573e8f581",
+      "end_utc": "2026-11-02T19:39:18.359011Z",
+      "window_basis": "declared",
+      "data_revision": "6ba22a579bb9f9c2b652ad936f40f0676194bf5490d02f1d04d4a69de77ed242",
+      "window_revision": "cfcc03c9cf5c6467e69f23b387c478be70ac01e0fbc79c451c51dea414dfa681",
+      "recorded_utc": "2026-11-02T19:40:09.396535Z",
+      "observation": {
+        "status": "unavailable",
+        "gap": "No common completed M1 baseline within 120 seconds of delivery."
+      },
+      "secondary_observations": {
+        "120": {
+          "status": "pending"
+        },
+        "1440": {
+          "status": "pending"
+        }
+      },
+      "relative_preferences": [],
+      "post_checkpoint_observation": null
+    },
+    {
+      "id": "937ba6a017870304af3b0e56ccc261ed77aff087aa11629b39c30e7cb4b4a42a",
+      "episode_id": "research:43c6a0d3fc6b44b6b2a37e34dcb96ffc:CAD",
+      "episode_hash": "8da7c528edd35b4c54441e87ace941187e6630c032dd718ca73084ecfd7eeb48",
+      "protocol_id": "ba9c464a9fa5f9b78f5379e6d7938d2c506a18bb95f5626a83ceaf8573e8f581",
+      "end_utc": "2026-11-02T19:30:00Z",
+      "window_basis": "declared",
+      "data_revision": "9738e0d87c25346c54a02e997ed534b12c441c343c8c18284bb2e07b2fbf8111",
+      "window_revision": "83d2396bce2dc61c82c7f5cca217d7f1d13123dd3d6d6e1a25fed479e624636a",
+      "recorded_utc": "2026-11-02T19:54:24.960785Z",
+      "observation": {
+        "status": "unavailable",
+        "gap": "No common completed M1 baseline within 120 seconds of delivery."
+      },
+      "secondary_observations": {
+        "120": {
+          "status": "pending"
+        },
+        "1440": {
+          "status": "pending"
+        }
+      },
+      "relative_preferences": [],
+      "post_checkpoint_observation": {
+        "status": "unavailable",
+        "gap": "No common completed M1 baseline within 120 seconds of delivery.",
+        "interpretation": "Movement while reassessment was overdue; not scored as the original forecast window."
+      }
+    },
+    {
+      "id": "78f046c4493a7027b1aed6c692aa64352e9dc19dcc65af522fb1959ed1e338a7",
+      "episode_id": "research:5cfeb6a3eefe4406a4260c11f36558be:AUD",
+      "episode_hash": "8f3ad542c77014f9e0a1bfc7592539a756fa7c3e7b7d9cad48cce44c0b31427c",
+      "protocol_id": "ba9c464a9fa5f9b78f5379e6d7938d2c506a18bb95f5626a83ceaf8573e8f581",
+      "end_utc": "2026-11-02T05:03:52.076236Z",
+      "window_basis": "diagnostic_proxy",
+      "data_revision": "01f06bcb3b5ace37cb01b3c4b6960dee0a404fdf37d8db36ec5789ead7c9069a",
+      "window_revision": "1a5946c1977386fb0a6067c5be33ca04cccf228b9f6803260d5f81ce3088b7a9",
+      "recorded_utc": "2026-11-02T23:58:05.527983Z",
+      "observation": {
+        "status": "complete",
+        "baseline_utc": "2026-11-01T22:47:00Z",
+        "terminal_utc": "2026-11-02T05:03:00Z",
+        "baseline_delay_seconds": 39.174657106399536,
+        "return_pct": 0.017515409298133576,
+        "signed_return_pct": -0.017515409298133576,
+        "direction_result": "opposed",
+        "favourable_close_excursion_pct": 0.08564359366917897,
+        "adverse_close_excursion_pct": -0.17151885989869226,
+        "counterpart_returns_pct": {
+          "USD": -0.034160783420621336,
+          "EUR": -0.24167198747066673,
+          "GBP": -0.08715385899797101,
+          "NZD": 0.1438600863599402,
+          "JPY": 0.2108986538780054,
+          "CHF": 0.0010384557401484252,
+          "CAD": 0.13053348268598114
+        },
+        "directional_breadth": 3,
+        "sample_count": 377,
+        "expected_sample_count": 377,
+        "missing_samples": 0,
+        "longest_gap_seconds": 60,
+        "price_input_hash": "844fda79340d6c6b8edb0c51b37f826c07ffb98e186fa59d5cc556f8d08992b2",
+        "provenance": [
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\GBPUSD-0325600076058e009d4cdb1e.json",
+            "sha256_content": "0325600076058e009d4cdb1ebfba85a7a3145f960d64fa4176c177923cf94b1f",
+            "broker": "Pepperstone-Demo",
+            "symbol": "GBPUSD",
+            "captured_utc": "2026-11-02T23:57:54Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          },
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\EURUSD-1d5653e8d7f35ad20cffcdfa.json",
+            "sha256_content": "1d5653e8d7f35ad20cffcdfa34689113d0dac465e5b3ae8388a6839651954a0b",
+            "broker": "Pepperstone-Demo",
+            "symbol": "EURUSD",
+            "captured_utc": "2026-11-02T23:57:54Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          },
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\NZDUSD-5cb3f99d636952563adaf0f8.json",
+            "sha256_content": "5cb3f99d636952563adaf0f87af95f2eba5f4ee1ac5347d917efe9c7f850ac88",
+            "broker": "Pepperstone-Demo",
+            "symbol": "NZDUSD",
+            "captured_utc": "2026-11-02T07:31:11Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          },
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\USDCHF-6d61d7d13b6248dbdd4bef29.json",
+            "sha256_content": "6d61d7d13b6248dbdd4bef29ddd9184caeafa4e5e30442db74ee595377856496",
+            "broker": "Pepperstone-Demo",
+            "symbol": "USDCHF",
+            "captured_utc": "2026-11-02T07:31:20Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          },
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\USDCAD-8996d229cc0b189ab1a90b83.json",
+            "sha256_content": "8996d229cc0b189ab1a90b837717ea752bb5d544fce2c92edc06e36c04b19ae5",
+            "broker": "Pepperstone-Demo",
+            "symbol": "USDCAD",
+            "captured_utc": "2026-11-02T07:31:23Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          },
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\USDJPY-ac384dfe9b075185078bbebe.json",
+            "sha256_content": "ac384dfe9b075185078bbebe5e523d077ae556297a1de953f8f053c3e04e0050",
+            "broker": "Pepperstone-Demo",
+            "symbol": "USDJPY",
+            "captured_utc": "2026-11-02T07:31:17Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          },
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\AUDUSD-d9efd0435b7eaeb5bf1217cf.json",
+            "sha256_content": "d9efd0435b7eaeb5bf1217cf822cec23fe24848472effad11e12e15b47df2e07",
+            "broker": "Pepperstone-Demo",
+            "symbol": "AUDUSD",
+            "captured_utc": "2026-11-02T07:31:07Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          }
+        ],
+        "price_basis": "Geometric equal-weight relative FX basket from synchronized USD legs; sampled M1 closes, not wick extrema or executable returns."
+      },
+      "secondary_observations": {
+        "120": {
+          "status": "complete",
+          "baseline_utc": "2026-11-01T22:47:00Z",
+          "terminal_utc": "2026-11-02T00:46:00Z",
+          "baseline_delay_seconds": 39.174657106399536,
+          "return_pct": 0.1053873281472015,
+          "signed_return_pct": -0.1053873281472015,
+          "direction_result": "opposed",
+          "favourable_close_excursion_pct": 0.08564359366917897,
+          "adverse_close_excursion_pct": -0.15907707426777226,
+          "counterpart_returns_pct": {
+            "USD": 0.04554771122750888,
+            "EUR": -0.02616245906840594,
+            "GBP": 0.04704247890010869,
+            "NZD": 0.10427137452895345,
+            "JPY": 0.25649228626062076,
+            "CHF": 0.19860428009121958,
+            "CAD": 0.11219457872612923
+          },
+          "directional_breadth": 1,
+          "sample_count": 120,
+          "expected_sample_count": 120,
+          "missing_samples": 0,
+          "longest_gap_seconds": 60,
+          "price_input_hash": "b67200350dd4d72d21bd1a3db975037a396355708f7fb8ab89c0126c0bee087f",
+          "provenance": [
+            {
+              "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\GBPUSD-0325600076058e009d4cdb1e.json",
+              "sha256_content": "0325600076058e009d4cdb1ebfba85a7a3145f960d64fa4176c177923cf94b1f",
+              "broker": "Pepperstone-Demo",
+              "symbol": "GBPUSD",
+              "captured_utc": "2026-11-02T23:57:54Z",
+              "clock_basis": "pepperstone-ny-close-v1"
+            },
+            {
+              "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\EURUSD-1d5653e8d7f35ad20cffcdfa.json",
+              "sha256_content": "1d5653e8d7f35ad20cffcdfa34689113d0dac465e5b3ae8388a6839651954a0b",
+              "broker": "Pepperstone-Demo",
+              "symbol": "EURUSD",
+              "captured_utc": "2026-11-02T23:57:54Z",
+              "clock_basis": "pepperstone-ny-close-v1"
+            },
+            {
+              "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\NZDUSD-5cb3f99d636952563adaf0f8.json",
+              "sha256_content": "5cb3f99d636952563adaf0f87af95f2eba5f4ee1ac5347d917efe9c7f850ac88",
+              "broker": "Pepperstone-Demo",
+              "symbol": "NZDUSD",
+              "captured_utc": "2026-11-02T07:31:11Z",
+              "clock_basis": "pepperstone-ny-close-v1"
+            },
+            {
+              "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\USDCHF-6d61d7d13b6248dbdd4bef29.json",
+              "sha256_content": "6d61d7d13b6248dbdd4bef29ddd9184caeafa4e5e30442db74ee595377856496",
+              "broker": "Pepperstone-Demo",
+              "symbol": "USDCHF",
+              "captured_utc": "2026-11-02T07:31:20Z",
+              "clock_basis": "pepperstone-ny-close-v1"
+            },
+            {
+              "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\USDCAD-8996d229cc0b189ab1a90b83.json",
+              "sha256_content": "8996d229cc0b189ab1a90b837717ea752bb5d544fce2c92edc06e36c04b19ae5",
+              "broker": "Pepperstone-Demo",
+              "symbol": "USDCAD",
+              "captured_utc": "2026-11-02T07:31:23Z",
+              "clock_basis": "pepperstone-ny-close-v1"
+            },
+            {
+              "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\USDJPY-ac384dfe9b075185078bbebe.json",
+              "sha256_content": "ac384dfe9b075185078bbebe5e523d077ae556297a1de953f8f053c3e04e0050",
+              "broker": "Pepperstone-Demo",
+              "symbol": "USDJPY",
+              "captured_utc": "2026-11-02T07:31:17Z",
+              "clock_basis": "pepperstone-ny-close-v1"
+            },
+            {
+              "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\AUDUSD-d9efd0435b7eaeb5bf1217cf.json",
+              "sha256_content": "d9efd0435b7eaeb5bf1217cf822cec23fe24848472effad11e12e15b47df2e07",
+              "broker": "Pepperstone-Demo",
+              "symbol": "AUDUSD",
+              "captured_utc": "2026-11-02T07:31:07Z",
+              "clock_basis": "pepperstone-ny-close-v1"
+            }
+          ],
+          "price_basis": "Geometric equal-weight relative FX basket from synchronized USD legs; sampled M1 closes, not wick extrema or executable returns."
+        },
+        "1440": {
+          "status": "unavailable",
+          "gap": "Missing exact completed terminal minute; no neighbouring candle substituted."
+        }
+      },
+      "relative_preferences": [],
+      "post_checkpoint_observation": null
+    },
+    {
+      "id": "92c07d272908f438dba174f356ac3c9c03fe644b9bc083b342a789fa8751f0cc",
+      "episode_id": "research:5cfeb6a3eefe4406a4260c11f36558be:CAD",
+      "episode_hash": "36fecd94b587d49e6a32f999cd29f54ac8c7d669157baa3b5f386631236b1127",
+      "protocol_id": "ba9c464a9fa5f9b78f5379e6d7938d2c506a18bb95f5626a83ceaf8573e8f581",
+      "end_utc": "2026-11-02T05:03:52.076236Z",
+      "window_basis": "diagnostic_proxy",
+      "data_revision": "01f06bcb3b5ace37cb01b3c4b6960dee0a404fdf37d8db36ec5789ead7c9069a",
+      "window_revision": "1a5946c1977386fb0a6067c5be33ca04cccf228b9f6803260d5f81ce3088b7a9",
+      "recorded_utc": "2026-11-02T23:58:05.538954Z",
+      "observation": {
+        "status": "complete",
+        "baseline_utc": "2026-11-01T22:47:00Z",
+        "terminal_utc": "2026-11-02T05:03:00Z",
+        "baseline_delay_seconds": 39.174657106399536,
+        "return_pct": -0.13148345119597296,
+        "signed_return_pct": -0.13148345119597296,
+        "direction_result": "opposed",
+        "favourable_close_excursion_pct": 0.0032530460021512556,
+        "adverse_close_excursion_pct": -0.1319936518846939,
+        "counterpart_returns_pct": {
+          "USD": -0.16447956520183774,
+          "EUR": -0.371720250767472,
+          "GBP": -0.21740355724919158,
+          "AUD": -0.13036331491088304,
+          "NZD": 0.013309230671644662,
+          "JPY": 0.08026040449082457,
+          "CHF": -0.12932621293606136
+        },
+        "directional_breadth": 2,
+        "sample_count": 377,
+        "expected_sample_count": 377,
+        "missing_samples": 0,
+        "longest_gap_seconds": 60,
+        "price_input_hash": "844fda79340d6c6b8edb0c51b37f826c07ffb98e186fa59d5cc556f8d08992b2",
+        "provenance": [
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\GBPUSD-0325600076058e009d4cdb1e.json",
+            "sha256_content": "0325600076058e009d4cdb1ebfba85a7a3145f960d64fa4176c177923cf94b1f",
+            "broker": "Pepperstone-Demo",
+            "symbol": "GBPUSD",
+            "captured_utc": "2026-11-02T23:57:54Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          },
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\EURUSD-1d5653e8d7f35ad20cffcdfa.json",
+            "sha256_content": "1d5653e8d7f35ad20cffcdfa34689113d0dac465e5b3ae8388a6839651954a0b",
+            "broker": "Pepperstone-Demo",
+            "symbol": "EURUSD",
+            "captured_utc": "2026-11-02T23:57:54Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          },
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\NZDUSD-5cb3f99d636952563adaf0f8.json",
+            "sha256_content": "5cb3f99d636952563adaf0f87af95f2eba5f4ee1ac5347d917efe9c7f850ac88",
+            "broker": "Pepperstone-Demo",
+            "symbol": "NZDUSD",
+            "captured_utc": "2026-11-02T07:31:11Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          },
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\USDCHF-6d61d7d13b6248dbdd4bef29.json",
+            "sha256_content": "6d61d7d13b6248dbdd4bef29ddd9184caeafa4e5e30442db74ee595377856496",
+            "broker": "Pepperstone-Demo",
+            "symbol": "USDCHF",
+            "captured_utc": "2026-11-02T07:31:20Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          },
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\USDCAD-8996d229cc0b189ab1a90b83.json",
+            "sha256_content": "8996d229cc0b189ab1a90b837717ea752bb5d544fce2c92edc06e36c04b19ae5",
+            "broker": "Pepperstone-Demo",
+            "symbol": "USDCAD",
+            "captured_utc": "2026-11-02T07:31:23Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          },
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\USDJPY-ac384dfe9b075185078bbebe.json",
+            "sha256_content": "ac384dfe9b075185078bbebe5e523d077ae556297a1de953f8f053c3e04e0050",
+            "broker": "Pepperstone-Demo",
+            "symbol": "USDJPY",
+            "captured_utc": "2026-11-02T07:31:17Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          },
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\AUDUSD-d9efd0435b7eaeb5bf1217cf.json",
+            "sha256_content": "d9efd0435b7eaeb5bf1217cf822cec23fe24848472effad11e12e15b47df2e07",
+            "broker": "Pepperstone-Demo",
+            "symbol": "AUDUSD",
+            "captured_utc": "2026-11-02T07:31:07Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          }
+        ],
+        "price_basis": "Geometric equal-weight relative FX basket from synchronized USD legs; sampled M1 closes, not wick extrema or executable returns."
+      },
+      "secondary_observations": {
+        "120": {
+          "status": "complete",
+          "baseline_utc": "2026-11-01T22:47:00Z",
+          "terminal_utc": "2026-11-02T00:46:00Z",
+          "baseline_delay_seconds": 39.174657106399536,
+          "return_pct": -0.022816062217874043,
+          "signed_return_pct": -0.022816062217874043,
+          "direction_result": "opposed",
+          "favourable_close_excursion_pct": 0.0032530460021512556,
+          "adverse_close_excursion_pct": -0.08067755044889567,
+          "counterpart_returns_pct": {
+            "USD": -0.06657217712494622,
+            "EUR": -0.13820198266229605,
+            "GBP": -0.065079084621191,
+            "AUD": -0.11206884355921473,
+            "NZD": -0.00791432475385918,
+            "JPY": 0.14413599476237518,
+            "CHF": 0.08631286301204756
+          },
+          "directional_breadth": 2,
+          "sample_count": 120,
+          "expected_sample_count": 120,
+          "missing_samples": 0,
+          "longest_gap_seconds": 60,
+          "price_input_hash": "b67200350dd4d72d21bd1a3db975037a396355708f7fb8ab89c0126c0bee087f",
+          "provenance": [
+            {
+              "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\GBPUSD-0325600076058e009d4cdb1e.json",
+              "sha256_content": "0325600076058e009d4cdb1ebfba85a7a3145f960d64fa4176c177923cf94b1f",
+              "broker": "Pepperstone-Demo",
+              "symbol": "GBPUSD",
+              "captured_utc": "2026-11-02T23:57:54Z",
+              "clock_basis": "pepperstone-ny-close-v1"
+            },
+            {
+              "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\EURUSD-1d5653e8d7f35ad20cffcdfa.json",
+              "sha256_content": "1d5653e8d7f35ad20cffcdfa34689113d0dac465e5b3ae8388a6839651954a0b",
+              "broker": "Pepperstone-Demo",
+              "symbol": "EURUSD",
+              "captured_utc": "2026-11-02T23:57:54Z",
+              "clock_basis": "pepperstone-ny-close-v1"
+            },
+            {
+              "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\NZDUSD-5cb3f99d636952563adaf0f8.json",
+              "sha256_content": "5cb3f99d636952563adaf0f87af95f2eba5f4ee1ac5347d917efe9c7f850ac88",
+              "broker": "Pepperstone-Demo",
+              "symbol": "NZDUSD",
+              "captured_utc": "2026-11-02T07:31:11Z",
+              "clock_basis": "pepperstone-ny-close-v1"
+            },
+            {
+              "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\USDCHF-6d61d7d13b6248dbdd4bef29.json",
+              "sha256_content": "6d61d7d13b6248dbdd4bef29ddd9184caeafa4e5e30442db74ee595377856496",
+              "broker": "Pepperstone-Demo",
+              "symbol": "USDCHF",
+              "captured_utc": "2026-11-02T07:31:20Z",
+              "clock_basis": "pepperstone-ny-close-v1"
+            },
+            {
+              "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\USDCAD-8996d229cc0b189ab1a90b83.json",
+              "sha256_content": "8996d229cc0b189ab1a90b837717ea752bb5d544fce2c92edc06e36c04b19ae5",
+              "broker": "Pepperstone-Demo",
+              "symbol": "USDCAD",
+              "captured_utc": "2026-11-02T07:31:23Z",
+              "clock_basis": "pepperstone-ny-close-v1"
+            },
+            {
+              "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\USDJPY-ac384dfe9b075185078bbebe.json",
+              "sha256_content": "ac384dfe9b075185078bbebe5e523d077ae556297a1de953f8f053c3e04e0050",
+              "broker": "Pepperstone-Demo",
+              "symbol": "USDJPY",
+              "captured_utc": "2026-11-02T07:31:17Z",
+              "clock_basis": "pepperstone-ny-close-v1"
+            },
+            {
+              "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\AUDUSD-d9efd0435b7eaeb5bf1217cf.json",
+              "sha256_content": "d9efd0435b7eaeb5bf1217cf822cec23fe24848472effad11e12e15b47df2e07",
+              "broker": "Pepperstone-Demo",
+              "symbol": "AUDUSD",
+              "captured_utc": "2026-11-02T07:31:07Z",
+              "clock_basis": "pepperstone-ny-close-v1"
+            }
+          ],
+          "price_basis": "Geometric equal-weight relative FX basket from synchronized USD legs; sampled M1 closes, not wick extrema or executable returns."
+        },
+        "1440": {
+          "status": "unavailable",
+          "gap": "Missing exact completed terminal minute; no neighbouring candle substituted."
+        }
+      },
+      "relative_preferences": [],
+      "post_checkpoint_observation": null
+    },
+    {
+      "id": "53e7252d4c47fb0560bcbf1c22c11f9288661b4457da988ed76f54ea5ac0b037",
+      "episode_id": "research:5cfeb6a3eefe4406a4260c11f36558be:CHF",
+      "episode_hash": "758118cf39c177e30989361d24e63270e44af41a1b521ba3b38e9716f9e6ea4b",
+      "protocol_id": "ba9c464a9fa5f9b78f5379e6d7938d2c506a18bb95f5626a83ceaf8573e8f581",
+      "end_utc": "2026-11-02T05:03:52.076236Z",
+      "window_basis": "diagnostic_proxy",
+      "data_revision": "01f06bcb3b5ace37cb01b3c4b6960dee0a404fdf37d8db36ec5789ead7c9069a",
+      "window_revision": "1a5946c1977386fb0a6067c5be33ca04cccf228b9f6803260d5f81ce3088b7a9",
+      "recorded_utc": "2026-11-02T23:58:05.552942Z",
+      "observation": {
+        "status": "complete",
+        "baseline_utc": "2026-11-01T22:47:00Z",
+        "terminal_utc": "2026-11-02T05:03:00Z",
+        "baseline_delay_seconds": 39.174657106399536,
+        "return_pct": 0.016328408070886032,
+        "signed_return_pct": 0.016328408070886032,
+        "direction_result": "aligned",
+        "favourable_close_excursion_pct": 0.030725295975915955,
+        "adverse_close_excursion_pct": -0.1645002733076985,
+        "counterpart_returns_pct": {
+          "USD": -0.03519887363604601,
+          "EUR": -0.24270792279645909,
+          "GBP": -0.08819139890947514,
+          "AUD": -0.0010384449563571674,
+          "NZD": 0.14282014749577202,
+          "JPY": 0.20985801885521405,
+          "CAD": 0.12949368221125665
+        },
+        "directional_breadth": 3,
+        "sample_count": 377,
+        "expected_sample_count": 377,
+        "missing_samples": 0,
+        "longest_gap_seconds": 60,
+        "price_input_hash": "844fda79340d6c6b8edb0c51b37f826c07ffb98e186fa59d5cc556f8d08992b2",
+        "provenance": [
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\GBPUSD-0325600076058e009d4cdb1e.json",
+            "sha256_content": "0325600076058e009d4cdb1ebfba85a7a3145f960d64fa4176c177923cf94b1f",
+            "broker": "Pepperstone-Demo",
+            "symbol": "GBPUSD",
+            "captured_utc": "2026-11-02T23:57:54Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          },
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\EURUSD-1d5653e8d7f35ad20cffcdfa.json",
+            "sha256_content": "1d5653e8d7f35ad20cffcdfa34689113d0dac465e5b3ae8388a6839651954a0b",
+            "broker": "Pepperstone-Demo",
+            "symbol": "EURUSD",
+            "captured_utc": "2026-11-02T23:57:54Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          },
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\NZDUSD-5cb3f99d636952563adaf0f8.json",
+            "sha256_content": "5cb3f99d636952563adaf0f87af95f2eba5f4ee1ac5347d917efe9c7f850ac88",
+            "broker": "Pepperstone-Demo",
+            "symbol": "NZDUSD",
+            "captured_utc": "2026-11-02T07:31:11Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          },
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\USDCHF-6d61d7d13b6248dbdd4bef29.json",
+            "sha256_content": "6d61d7d13b6248dbdd4bef29ddd9184caeafa4e5e30442db74ee595377856496",
+            "broker": "Pepperstone-Demo",
+            "symbol": "USDCHF",
+            "captured_utc": "2026-11-02T07:31:20Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          },
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\USDCAD-8996d229cc0b189ab1a90b83.json",
+            "sha256_content": "8996d229cc0b189ab1a90b837717ea752bb5d544fce2c92edc06e36c04b19ae5",
+            "broker": "Pepperstone-Demo",
+            "symbol": "USDCAD",
+            "captured_utc": "2026-11-02T07:31:23Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          },
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\USDJPY-ac384dfe9b075185078bbebe.json",
+            "sha256_content": "ac384dfe9b075185078bbebe5e523d077ae556297a1de953f8f053c3e04e0050",
+            "broker": "Pepperstone-Demo",
+            "symbol": "USDJPY",
+            "captured_utc": "2026-11-02T07:31:17Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          },
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\AUDUSD-d9efd0435b7eaeb5bf1217cf.json",
+            "sha256_content": "d9efd0435b7eaeb5bf1217cf822cec23fe24848472effad11e12e15b47df2e07",
+            "broker": "Pepperstone-Demo",
+            "symbol": "AUDUSD",
+            "captured_utc": "2026-11-02T07:31:07Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          }
+        ],
+        "price_basis": "Geometric equal-weight relative FX basket from synchronized USD legs; sampled M1 closes, not wick extrema or executable returns."
+      },
+      "secondary_observations": {
+        "120": {
+          "status": "complete",
+          "baseline_utc": "2026-11-01T22:47:00Z",
+          "terminal_utc": "2026-11-02T00:46:00Z",
+          "baseline_delay_seconds": 39.174657106399536,
+          "return_pct": -0.12134570753767152,
+          "signed_return_pct": -0.12134570753767152,
+          "direction_result": "opposed",
+          "favourable_close_excursion_pct": 0.030725295975915955,
+          "adverse_close_excursion_pct": -0.1645002733076985,
+          "counterpart_returns_pct": {
+            "USD": -0.15275319448149446,
+            "EUR": -0.22432122760045792,
+            "GBP": -0.15126138959724536,
+            "AUD": -0.1982106253057668,
+            "NZD": -0.09414592772028212,
+            "JPY": 0.05777326599039572,
+            "CAD": -0.0862384281556898
+          },
+          "directional_breadth": 1,
+          "sample_count": 120,
+          "expected_sample_count": 120,
+          "missing_samples": 0,
+          "longest_gap_seconds": 60,
+          "price_input_hash": "b67200350dd4d72d21bd1a3db975037a396355708f7fb8ab89c0126c0bee087f",
+          "provenance": [
+            {
+              "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\GBPUSD-0325600076058e009d4cdb1e.json",
+              "sha256_content": "0325600076058e009d4cdb1ebfba85a7a3145f960d64fa4176c177923cf94b1f",
+              "broker": "Pepperstone-Demo",
+              "symbol": "GBPUSD",
+              "captured_utc": "2026-11-02T23:57:54Z",
+              "clock_basis": "pepperstone-ny-close-v1"
+            },
+            {
+              "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\EURUSD-1d5653e8d7f35ad20cffcdfa.json",
+              "sha256_content": "1d5653e8d7f35ad20cffcdfa34689113d0dac465e5b3ae8388a6839651954a0b",
+              "broker": "Pepperstone-Demo",
+              "symbol": "EURUSD",
+              "captured_utc": "2026-11-02T23:57:54Z",
+              "clock_basis": "pepperstone-ny-close-v1"
+            },
+            {
+              "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\NZDUSD-5cb3f99d636952563adaf0f8.json",
+              "sha256_content": "5cb3f99d636952563adaf0f87af95f2eba5f4ee1ac5347d917efe9c7f850ac88",
+              "broker": "Pepperstone-Demo",
+              "symbol": "NZDUSD",
+              "captured_utc": "2026-11-02T07:31:11Z",
+              "clock_basis": "pepperstone-ny-close-v1"
+            },
+            {
+              "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\USDCHF-6d61d7d13b6248dbdd4bef29.json",
+              "sha256_content": "6d61d7d13b6248dbdd4bef29ddd9184caeafa4e5e30442db74ee595377856496",
+              "broker": "Pepperstone-Demo",
+              "symbol": "USDCHF",
+              "captured_utc": "2026-11-02T07:31:20Z",
+              "clock_basis": "pepperstone-ny-close-v1"
+            },
+            {
+              "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\USDCAD-8996d229cc0b189ab1a90b83.json",
+              "sha256_content": "8996d229cc0b189ab1a90b837717ea752bb5d544fce2c92edc06e36c04b19ae5",
+              "broker": "Pepperstone-Demo",
+              "symbol": "USDCAD",
+              "captured_utc": "2026-11-02T07:31:23Z",
+              "clock_basis": "pepperstone-ny-close-v1"
+            },
+            {
+              "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\USDJPY-ac384dfe9b075185078bbebe.json",
+              "sha256_content": "ac384dfe9b075185078bbebe5e523d077ae556297a1de953f8f053c3e04e0050",
+              "broker": "Pepperstone-Demo",
+              "symbol": "USDJPY",
+              "captured_utc": "2026-11-02T07:31:17Z",
+              "clock_basis": "pepperstone-ny-close-v1"
+            },
+            {
+              "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\AUDUSD-d9efd0435b7eaeb5bf1217cf.json",
+              "sha256_content": "d9efd0435b7eaeb5bf1217cf822cec23fe24848472effad11e12e15b47df2e07",
+              "broker": "Pepperstone-Demo",
+              "symbol": "AUDUSD",
+              "captured_utc": "2026-11-02T07:31:07Z",
+              "clock_basis": "pepperstone-ny-close-v1"
+            }
+          ],
+          "price_basis": "Geometric equal-weight relative FX basket from synchronized USD legs; sampled M1 closes, not wick extrema or executable returns."
+        },
+        "1440": {
+          "status": "unavailable",
+          "gap": "Missing exact completed terminal minute; no neighbouring candle substituted."
+        }
+      },
+      "relative_preferences": [],
+      "post_checkpoint_observation": null
+    },
+    {
+      "id": "b86f807bfb565b7a2a0ed214a45aae9f5b314d60775b63749c48e121b97bf2d3",
+      "episode_id": "research:5cfeb6a3eefe4406a4260c11f36558be:EUR",
+      "episode_hash": "4391fb0a1567ef4d881d5af8fc40a4fce5c69ca6e70cd2e3d557d26cbef3e58c",
+      "protocol_id": "ba9c464a9fa5f9b78f5379e6d7938d2c506a18bb95f5626a83ceaf8573e8f581",
+      "end_utc": "2026-11-02T05:03:52.076236Z",
+      "window_basis": "diagnostic_proxy",
+      "data_revision": "01f06bcb3b5ace37cb01b3c4b6960dee0a404fdf37d8db36ec5789ead7c9069a",
+      "window_revision": "1a5946c1977386fb0a6067c5be33ca04cccf228b9f6803260d5f81ce3088b7a9",
+      "recorded_utc": "2026-11-02T23:58:05.565881Z",
+      "observation": {
+        "status": "complete",
+        "baseline_utc": "2026-11-01T22:47:00Z",
+        "terminal_utc": "2026-11-02T05:03:00Z",
+        "baseline_delay_seconds": 39.174657106399536,
+        "return_pct": 0.2944774516985146,
+        "signed_return_pct": -0.2944774516985146,
+        "direction_result": "opposed",
+        "favourable_close_excursion_pct": 0.00043370676118365984,
+        "adverse_close_excursion_pct": -0.3106898239079353,
+        "counterpart_returns_pct": {
+          "USD": 0.20801391541364114,
+          "GBP": 0.15489246015960564,
+          "AUD": 0.24225745587908562,
+          "NZD": 0.38646605402426687,
+          "JPY": 0.4536670274704591,
+          "CHF": 0.24329842735569054,
+          "CAD": 0.3731071656592921
+        },
+        "directional_breadth": 0,
+        "sample_count": 377,
+        "expected_sample_count": 377,
+        "missing_samples": 0,
+        "longest_gap_seconds": 60,
+        "price_input_hash": "844fda79340d6c6b8edb0c51b37f826c07ffb98e186fa59d5cc556f8d08992b2",
+        "provenance": [
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\GBPUSD-0325600076058e009d4cdb1e.json",
+            "sha256_content": "0325600076058e009d4cdb1ebfba85a7a3145f960d64fa4176c177923cf94b1f",
+            "broker": "Pepperstone-Demo",
+            "symbol": "GBPUSD",
+            "captured_utc": "2026-11-02T23:57:54Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          },
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\EURUSD-1d5653e8d7f35ad20cffcdfa.json",
+            "sha256_content": "1d5653e8d7f35ad20cffcdfa34689113d0dac465e5b3ae8388a6839651954a0b",
+            "broker": "Pepperstone-Demo",
+            "symbol": "EURUSD",
+            "captured_utc": "2026-11-02T23:57:54Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          },
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\NZDUSD-5cb3f99d636952563adaf0f8.json",
+            "sha256_content": "5cb3f99d636952563adaf0f87af95f2eba5f4ee1ac5347d917efe9c7f850ac88",
+            "broker": "Pepperstone-Demo",
+            "symbol": "NZDUSD",
+            "captured_utc": "2026-11-02T07:31:11Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          },
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\USDCHF-6d61d7d13b6248dbdd4bef29.json",
+            "sha256_content": "6d61d7d13b6248dbdd4bef29ddd9184caeafa4e5e30442db74ee595377856496",
+            "broker": "Pepperstone-Demo",
+            "symbol": "USDCHF",
+            "captured_utc": "2026-11-02T07:31:20Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          },
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\USDCAD-8996d229cc0b189ab1a90b83.json",
+            "sha256_content": "8996d229cc0b189ab1a90b837717ea752bb5d544fce2c92edc06e36c04b19ae5",
+            "broker": "Pepperstone-Demo",
+            "symbol": "USDCAD",
+            "captured_utc": "2026-11-02T07:31:23Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          },
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\USDJPY-ac384dfe9b075185078bbebe.json",
+            "sha256_content": "ac384dfe9b075185078bbebe5e523d077ae556297a1de953f8f053c3e04e0050",
+            "broker": "Pepperstone-Demo",
+            "symbol": "USDJPY",
+            "captured_utc": "2026-11-02T07:31:17Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          },
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\AUDUSD-d9efd0435b7eaeb5bf1217cf.json",
+            "sha256_content": "d9efd0435b7eaeb5bf1217cf822cec23fe24848472effad11e12e15b47df2e07",
+            "broker": "Pepperstone-Demo",
+            "symbol": "AUDUSD",
+            "captured_utc": "2026-11-02T07:31:07Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          }
+        ],
+        "price_basis": "Geometric equal-weight relative FX basket from synchronized USD legs; sampled M1 closes, not wick extrema or executable returns."
+      },
+      "secondary_observations": {
+        "120": {
+          "status": "complete",
+          "baseline_utc": "2026-11-01T22:47:00Z",
+          "terminal_utc": "2026-11-02T00:46:00Z",
+          "baseline_delay_seconds": 39.174657106399536,
+          "return_pct": 0.13532718458064502,
+          "signed_return_pct": -0.13532718458064502,
+          "direction_result": "opposed",
+          "favourable_close_excursion_pct": 0.00043370676118365984,
+          "adverse_close_excursion_pct": -0.14913503660286767,
+          "counterpart_returns_pct": {
+            "USD": 0.07172893634952747,
+            "GBP": 0.07322409519244756,
+            "AUD": 0.02616930560227263,
+            "NZD": 0.13046796722588225,
+            "JPY": 0.28272871411313116,
+            "CHF": 0.22482555905448853,
+            "CAD": 0.1383932448705779
+          },
+          "directional_breadth": 0,
+          "sample_count": 120,
+          "expected_sample_count": 120,
+          "missing_samples": 0,
+          "longest_gap_seconds": 60,
+          "price_input_hash": "b67200350dd4d72d21bd1a3db975037a396355708f7fb8ab89c0126c0bee087f",
+          "provenance": [
+            {
+              "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\GBPUSD-0325600076058e009d4cdb1e.json",
+              "sha256_content": "0325600076058e009d4cdb1ebfba85a7a3145f960d64fa4176c177923cf94b1f",
+              "broker": "Pepperstone-Demo",
+              "symbol": "GBPUSD",
+              "captured_utc": "2026-11-02T23:57:54Z",
+              "clock_basis": "pepperstone-ny-close-v1"
+            },
+            {
+              "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\EURUSD-1d5653e8d7f35ad20cffcdfa.json",
+              "sha256_content": "1d5653e8d7f35ad20cffcdfa34689113d0dac465e5b3ae8388a6839651954a0b",
+              "broker": "Pepperstone-Demo",
+              "symbol": "EURUSD",
+              "captured_utc": "2026-11-02T23:57:54Z",
+              "clock_basis": "pepperstone-ny-close-v1"
+            },
+            {
+              "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\NZDUSD-5cb3f99d636952563adaf0f8.json",
+              "sha256_content": "5cb3f99d636952563adaf0f87af95f2eba5f4ee1ac5347d917efe9c7f850ac88",
+              "broker": "Pepperstone-Demo",
+              "symbol": "NZDUSD",
+              "captured_utc": "2026-11-02T07:31:11Z",
+              "clock_basis": "pepperstone-ny-close-v1"
+            },
+            {
+              "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\USDCHF-6d61d7d13b6248dbdd4bef29.json",
+              "sha256_content": "6d61d7d13b6248dbdd4bef29ddd9184caeafa4e5e30442db74ee595377856496",
+              "broker": "Pepperstone-Demo",
+              "symbol": "USDCHF",
+              "captured_utc": "2026-11-02T07:31:20Z",
+              "clock_basis": "pepperstone-ny-close-v1"
+            },
+            {
+              "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\USDCAD-8996d229cc0b189ab1a90b83.json",
+              "sha256_content": "8996d229cc0b189ab1a90b837717ea752bb5d544fce2c92edc06e36c04b19ae5",
+              "broker": "Pepperstone-Demo",
+              "symbol": "USDCAD",
+              "captured_utc": "2026-11-02T07:31:23Z",
+              "clock_basis": "pepperstone-ny-close-v1"
+            },
+            {
+              "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\USDJPY-ac384dfe9b075185078bbebe.json",
+              "sha256_content": "ac384dfe9b075185078bbebe5e523d077ae556297a1de953f8f053c3e04e0050",
+              "broker": "Pepperstone-Demo",
+              "symbol": "USDJPY",
+              "captured_utc": "2026-11-02T07:31:17Z",
+              "clock_basis": "pepperstone-ny-close-v1"
+            },
+            {
+              "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\AUDUSD-d9efd0435b7eaeb5bf1217cf.json",
+              "sha256_content": "d9efd0435b7eaeb5bf1217cf822cec23fe24848472effad11e12e15b47df2e07",
+              "broker": "Pepperstone-Demo",
+              "symbol": "AUDUSD",
+              "captured_utc": "2026-11-02T07:31:07Z",
+              "clock_basis": "pepperstone-ny-close-v1"
+            }
+          ],
+          "price_basis": "Geometric equal-weight relative FX basket from synchronized USD legs; sampled M1 closes, not wick extrema or executable returns."
+        },
+        "1440": {
+          "status": "unavailable",
+          "gap": "Missing exact completed terminal minute; no neighbouring candle substituted."
+        }
+      },
+      "relative_preferences": [],
+      "post_checkpoint_observation": null
+    },
+    {
+      "id": "df8ef2c933ec44efd1fec29a765ecc3815ab664b9cbcb64055c0010cc3dae09b",
+      "episode_id": "research:5cfeb6a3eefe4406a4260c11f36558be:GBP",
+      "episode_hash": "1235e56bcd89094e34bb7e594659f03c61aa8b51ad918f740ff6397731e29913",
+      "protocol_id": "ba9c464a9fa5f9b78f5379e6d7938d2c506a18bb95f5626a83ceaf8573e8f581",
+      "end_utc": "2026-11-02T05:03:52.076236Z",
+      "window_basis": "diagnostic_proxy",
+      "data_revision": "01f06bcb3b5ace37cb01b3c4b6960dee0a404fdf37d8db36ec5789ead7c9069a",
+      "window_revision": "1a5946c1977386fb0a6067c5be33ca04cccf228b9f6803260d5f81ce3088b7a9",
+      "recorded_utc": "2026-11-02T23:58:05.577849Z",
+      "observation": {
+        "status": "complete",
+        "baseline_utc": "2026-11-01T22:47:00Z",
+        "terminal_utc": "2026-11-02T05:03:00Z",
+        "baseline_delay_seconds": 39.174657106399536,
+        "return_pct": 0.11723037674235363,
+        "signed_return_pct": 0.11723037674235363,
+        "direction_result": "aligned",
+        "favourable_close_excursion_pct": 0.12460173522706361,
+        "adverse_close_excursion_pct": -0.014184411905463146,
+        "counterpart_returns_pct": {
+          "USD": 0.05303930137528381,
+          "EUR": -0.1546529144556967,
+          "AUD": 0.08722988320738567,
+          "NZD": 0.23121545855263972,
+          "JPY": 0.29831250373485485,
+          "CHF": 0.08826924479126338,
+          "CAD": 0.2178772300978603
+        },
+        "directional_breadth": 6,
+        "sample_count": 377,
+        "expected_sample_count": 377,
+        "missing_samples": 0,
+        "longest_gap_seconds": 60,
+        "price_input_hash": "844fda79340d6c6b8edb0c51b37f826c07ffb98e186fa59d5cc556f8d08992b2",
+        "provenance": [
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\GBPUSD-0325600076058e009d4cdb1e.json",
+            "sha256_content": "0325600076058e009d4cdb1ebfba85a7a3145f960d64fa4176c177923cf94b1f",
+            "broker": "Pepperstone-Demo",
+            "symbol": "GBPUSD",
+            "captured_utc": "2026-11-02T23:57:54Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          },
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\EURUSD-1d5653e8d7f35ad20cffcdfa.json",
+            "sha256_content": "1d5653e8d7f35ad20cffcdfa34689113d0dac465e5b3ae8388a6839651954a0b",
+            "broker": "Pepperstone-Demo",
+            "symbol": "EURUSD",
+            "captured_utc": "2026-11-02T23:57:54Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          },
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\NZDUSD-5cb3f99d636952563adaf0f8.json",
+            "sha256_content": "5cb3f99d636952563adaf0f87af95f2eba5f4ee1ac5347d917efe9c7f850ac88",
+            "broker": "Pepperstone-Demo",
+            "symbol": "NZDUSD",
+            "captured_utc": "2026-11-02T07:31:11Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          },
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\USDCHF-6d61d7d13b6248dbdd4bef29.json",
+            "sha256_content": "6d61d7d13b6248dbdd4bef29ddd9184caeafa4e5e30442db74ee595377856496",
+            "broker": "Pepperstone-Demo",
+            "symbol": "USDCHF",
+            "captured_utc": "2026-11-02T07:31:20Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          },
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\USDCAD-8996d229cc0b189ab1a90b83.json",
+            "sha256_content": "8996d229cc0b189ab1a90b837717ea752bb5d544fce2c92edc06e36c04b19ae5",
+            "broker": "Pepperstone-Demo",
+            "symbol": "USDCAD",
+            "captured_utc": "2026-11-02T07:31:23Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          },
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\USDJPY-ac384dfe9b075185078bbebe.json",
+            "sha256_content": "ac384dfe9b075185078bbebe5e523d077ae556297a1de953f8f053c3e04e0050",
+            "broker": "Pepperstone-Demo",
+            "symbol": "USDJPY",
+            "captured_utc": "2026-11-02T07:31:17Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          },
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\AUDUSD-d9efd0435b7eaeb5bf1217cf.json",
+            "sha256_content": "d9efd0435b7eaeb5bf1217cf822cec23fe24848472effad11e12e15b47df2e07",
+            "broker": "Pepperstone-Demo",
+            "symbol": "AUDUSD",
+            "captured_utc": "2026-11-02T07:31:07Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          }
+        ],
+        "price_basis": "Geometric equal-weight relative FX basket from synchronized USD legs; sampled M1 closes, not wick extrema or executable returns."
+      },
+      "secondary_observations": {
+        "120": {
+          "status": "complete",
+          "baseline_utc": "2026-11-01T22:47:00Z",
+          "terminal_utc": "2026-11-02T00:46:00Z",
+          "baseline_delay_seconds": 39.174657106399536,
+          "return_pct": 0.051594948996646815,
+          "signed_return_pct": 0.051594948996646815,
+          "direction_result": "aligned",
+          "favourable_close_excursion_pct": 0.07033535578115,
+          "adverse_close_excursion_pct": -0.014184411905463146,
+          "counterpart_returns_pct": {
+            "USD": -0.0014940648274685906,
+            "EUR": -0.07317051674361441,
+            "AUD": -0.04702035935747919,
+            "NZD": 0.05720198639646377,
+            "JPY": 0.20935132330841766,
+            "CHF": 0.15149053628754222,
+            "CAD": 0.06512146507455342
+          },
+          "directional_breadth": 4,
+          "sample_count": 120,
+          "expected_sample_count": 120,
+          "missing_samples": 0,
+          "longest_gap_seconds": 60,
+          "price_input_hash": "b67200350dd4d72d21bd1a3db975037a396355708f7fb8ab89c0126c0bee087f",
+          "provenance": [
+            {
+              "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\GBPUSD-0325600076058e009d4cdb1e.json",
+              "sha256_content": "0325600076058e009d4cdb1ebfba85a7a3145f960d64fa4176c177923cf94b1f",
+              "broker": "Pepperstone-Demo",
+              "symbol": "GBPUSD",
+              "captured_utc": "2026-11-02T23:57:54Z",
+              "clock_basis": "pepperstone-ny-close-v1"
+            },
+            {
+              "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\EURUSD-1d5653e8d7f35ad20cffcdfa.json",
+              "sha256_content": "1d5653e8d7f35ad20cffcdfa34689113d0dac465e5b3ae8388a6839651954a0b",
+              "broker": "Pepperstone-Demo",
+              "symbol": "EURUSD",
+              "captured_utc": "2026-11-02T23:57:54Z",
+              "clock_basis": "pepperstone-ny-close-v1"
+            },
+            {
+              "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\NZDUSD-5cb3f99d636952563adaf0f8.json",
+              "sha256_content": "5cb3f99d636952563adaf0f87af95f2eba5f4ee1ac5347d917efe9c7f850ac88",
+              "broker": "Pepperstone-Demo",
+              "symbol": "NZDUSD",
+              "captured_utc": "2026-11-02T07:31:11Z",
+              "clock_basis": "pepperstone-ny-close-v1"
+            },
+            {
+              "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\USDCHF-6d61d7d13b6248dbdd4bef29.json",
+              "sha256_content": "6d61d7d13b6248dbdd4bef29ddd9184caeafa4e5e30442db74ee595377856496",
+              "broker": "Pepperstone-Demo",
+              "symbol": "USDCHF",
+              "captured_utc": "2026-11-02T07:31:20Z",
+              "clock_basis": "pepperstone-ny-close-v1"
+            },
+            {
+              "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\USDCAD-8996d229cc0b189ab1a90b83.json",
+              "sha256_content": "8996d229cc0b189ab1a90b837717ea752bb5d544fce2c92edc06e36c04b19ae5",
+              "broker": "Pepperstone-Demo",
+              "symbol": "USDCAD",
+              "captured_utc": "2026-11-02T07:31:23Z",
+              "clock_basis": "pepperstone-ny-close-v1"
+            },
+            {
+              "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\USDJPY-ac384dfe9b075185078bbebe.json",
+              "sha256_content": "ac384dfe9b075185078bbebe5e523d077ae556297a1de953f8f053c3e04e0050",
+              "broker": "Pepperstone-Demo",
+              "symbol": "USDJPY",
+              "captured_utc": "2026-11-02T07:31:17Z",
+              "clock_basis": "pepperstone-ny-close-v1"
+            },
+            {
+              "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\AUDUSD-d9efd0435b7eaeb5bf1217cf.json",
+              "sha256_content": "d9efd0435b7eaeb5bf1217cf822cec23fe24848472effad11e12e15b47df2e07",
+              "broker": "Pepperstone-Demo",
+              "symbol": "AUDUSD",
+              "captured_utc": "2026-11-02T07:31:07Z",
+              "clock_basis": "pepperstone-ny-close-v1"
+            }
+          ],
+          "price_basis": "Geometric equal-weight relative FX basket from synchronized USD legs; sampled M1 closes, not wick extrema or executable returns."
+        },
+        "1440": {
+          "status": "unavailable",
+          "gap": "Missing exact completed terminal minute; no neighbouring candle substituted."
+        }
+      },
+      "relative_preferences": [],
+      "post_checkpoint_observation": null
+    },
+    {
+      "id": "651d6c47052dc87159225626f5a1ec66a0930186f08984a68f154db9e68f0414",
+      "episode_id": "research:5cfeb6a3eefe4406a4260c11f36558be:JPY",
+      "episode_hash": "8ebb5b18398e011bcd4bcd311b3adb397c87722adb344a573a19d85397094013",
+      "protocol_id": "ba9c464a9fa5f9b78f5379e6d7938d2c506a18bb95f5626a83ceaf8573e8f581",
+      "end_utc": "2026-11-02T05:00:00Z",
+      "window_basis": "diagnostic_proxy",
+      "data_revision": "01f06bcb3b5ace37cb01b3c4b6960dee0a404fdf37d8db36ec5789ead7c9069a",
+      "window_revision": "8c593479d048a214b6706c437dc29b46cdb4440847c9b6d760dfa0f519f2e5a8",
+      "recorded_utc": "2026-11-02T23:58:05.590815Z",
+      "observation": {
+        "status": "complete",
+        "baseline_utc": "2026-11-01T22:47:00Z",
+        "terminal_utc": "2026-11-02T05:00:00Z",
+        "baseline_delay_seconds": 39.174657106399536,
+        "return_pct": -0.2061100935336297,
+        "signed_return_pct": -0.2061100935336297,
+        "direction_result": "opposed",
+        "favourable_close_excursion_pct": 0.02697451642130749,
+        "adverse_close_excursion_pct": -0.2893281006399462,
+        "counterpart_returns_pct": {
+          "USD": -0.23063811991917227,
+          "EUR": -0.43061429155478875,
+          "GBP": -0.28054887364100406,
+          "AUD": -0.18943870239425284,
+          "NZD": -0.056526761128511044,
+          "CHF": -0.18823977526397,
+          "CAD": -0.06626755129757868
+        },
+        "directional_breadth": 0,
+        "sample_count": 374,
+        "expected_sample_count": 374,
+        "missing_samples": 0,
+        "longest_gap_seconds": 60,
+        "price_input_hash": "fc3661c0f17b3cc088e60310bacc66f59461b7bbb7cfd9306944effa38f3f7d7",
+        "provenance": [
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\GBPUSD-0325600076058e009d4cdb1e.json",
+            "sha256_content": "0325600076058e009d4cdb1ebfba85a7a3145f960d64fa4176c177923cf94b1f",
+            "broker": "Pepperstone-Demo",
+            "symbol": "GBPUSD",
+            "captured_utc": "2026-11-02T23:57:54Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          },
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\EURUSD-1d5653e8d7f35ad20cffcdfa.json",
+            "sha256_content": "1d5653e8d7f35ad20cffcdfa34689113d0dac465e5b3ae8388a6839651954a0b",
+            "broker": "Pepperstone-Demo",
+            "symbol": "EURUSD",
+            "captured_utc": "2026-11-02T23:57:54Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          },
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\NZDUSD-5cb3f99d636952563adaf0f8.json",
+            "sha256_content": "5cb3f99d636952563adaf0f87af95f2eba5f4ee1ac5347d917efe9c7f850ac88",
+            "broker": "Pepperstone-Demo",
+            "symbol": "NZDUSD",
+            "captured_utc": "2026-11-02T07:31:11Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          },
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\USDCHF-6d61d7d13b6248dbdd4bef29.json",
+            "sha256_content": "6d61d7d13b6248dbdd4bef29ddd9184caeafa4e5e30442db74ee595377856496",
+            "broker": "Pepperstone-Demo",
+            "symbol": "USDCHF",
+            "captured_utc": "2026-11-02T07:31:20Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          },
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\USDCAD-8996d229cc0b189ab1a90b83.json",
+            "sha256_content": "8996d229cc0b189ab1a90b837717ea752bb5d544fce2c92edc06e36c04b19ae5",
+            "broker": "Pepperstone-Demo",
+            "symbol": "USDCAD",
+            "captured_utc": "2026-11-02T07:31:23Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          },
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\USDJPY-ac384dfe9b075185078bbebe.json",
+            "sha256_content": "ac384dfe9b075185078bbebe5e523d077ae556297a1de953f8f053c3e04e0050",
+            "broker": "Pepperstone-Demo",
+            "symbol": "USDJPY",
+            "captured_utc": "2026-11-02T07:31:17Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          },
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\AUDUSD-d9efd0435b7eaeb5bf1217cf.json",
+            "sha256_content": "d9efd0435b7eaeb5bf1217cf822cec23fe24848472effad11e12e15b47df2e07",
+            "broker": "Pepperstone-Demo",
+            "symbol": "AUDUSD",
+            "captured_utc": "2026-11-02T07:31:07Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          }
+        ],
+        "price_basis": "Geometric equal-weight relative FX basket from synchronized USD legs; sampled M1 closes, not wick extrema or executable returns."
+      },
+      "secondary_observations": {
+        "120": {
+          "status": "complete",
+          "baseline_utc": "2026-11-01T22:47:00Z",
+          "terminal_utc": "2026-11-02T00:46:00Z",
+          "baseline_delay_seconds": 39.174657106399536,
+          "return_pct": -0.18725138068341526,
+          "signed_return_pct": -0.18725138068341526,
+          "direction_result": "opposed",
+          "favourable_close_excursion_pct": 0.02697451642130749,
+          "adverse_close_excursion_pct": -0.2274637785666092,
+          "counterpart_returns_pct": {
+            "USD": -0.2104049026878035,
+            "EUR": -0.2819316124904585,
+            "GBP": -0.20891395917031855,
+            "AUD": -0.2558360864334479,
+            "NZD": -0.1518314757083597,
+            "CHF": -0.05773990775990299,
+            "CAD": -0.1439285419267221
+          },
+          "directional_breadth": 0,
+          "sample_count": 120,
+          "expected_sample_count": 120,
+          "missing_samples": 0,
+          "longest_gap_seconds": 60,
+          "price_input_hash": "b67200350dd4d72d21bd1a3db975037a396355708f7fb8ab89c0126c0bee087f",
+          "provenance": [
+            {
+              "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\GBPUSD-0325600076058e009d4cdb1e.json",
+              "sha256_content": "0325600076058e009d4cdb1ebfba85a7a3145f960d64fa4176c177923cf94b1f",
+              "broker": "Pepperstone-Demo",
+              "symbol": "GBPUSD",
+              "captured_utc": "2026-11-02T23:57:54Z",
+              "clock_basis": "pepperstone-ny-close-v1"
+            },
+            {
+              "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\EURUSD-1d5653e8d7f35ad20cffcdfa.json",
+              "sha256_content": "1d5653e8d7f35ad20cffcdfa34689113d0dac465e5b3ae8388a6839651954a0b",
+              "broker": "Pepperstone-Demo",
+              "symbol": "EURUSD",
+              "captured_utc": "2026-11-02T23:57:54Z",
+              "clock_basis": "pepperstone-ny-close-v1"
+            },
+            {
+              "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\NZDUSD-5cb3f99d636952563adaf0f8.json",
+              "sha256_content": "5cb3f99d636952563adaf0f87af95f2eba5f4ee1ac5347d917efe9c7f850ac88",
+              "broker": "Pepperstone-Demo",
+              "symbol": "NZDUSD",
+              "captured_utc": "2026-11-02T07:31:11Z",
+              "clock_basis": "pepperstone-ny-close-v1"
+            },
+            {
+              "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\USDCHF-6d61d7d13b6248dbdd4bef29.json",
+              "sha256_content": "6d61d7d13b6248dbdd4bef29ddd9184caeafa4e5e30442db74ee595377856496",
+              "broker": "Pepperstone-Demo",
+              "symbol": "USDCHF",
+              "captured_utc": "2026-11-02T07:31:20Z",
+              "clock_basis": "pepperstone-ny-close-v1"
+            },
+            {
+              "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\USDCAD-8996d229cc0b189ab1a90b83.json",
+              "sha256_content": "8996d229cc0b189ab1a90b837717ea752bb5d544fce2c92edc06e36c04b19ae5",
+              "broker": "Pepperstone-Demo",
+              "symbol": "USDCAD",
+              "captured_utc": "2026-11-02T07:31:23Z",
+              "clock_basis": "pepperstone-ny-close-v1"
+            },
+            {
+              "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\USDJPY-ac384dfe9b075185078bbebe.json",
+              "sha256_content": "ac384dfe9b075185078bbebe5e523d077ae556297a1de953f8f053c3e04e0050",
+              "broker": "Pepperstone-Demo",
+              "symbol": "USDJPY",
+              "captured_utc": "2026-11-02T07:31:17Z",
+              "clock_basis": "pepperstone-ny-close-v1"
+            },
+            {
+              "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\AUDUSD-d9efd0435b7eaeb5bf1217cf.json",
+              "sha256_content": "d9efd0435b7eaeb5bf1217cf822cec23fe24848472effad11e12e15b47df2e07",
+              "broker": "Pepperstone-Demo",
+              "symbol": "AUDUSD",
+              "captured_utc": "2026-11-02T07:31:07Z",
+              "clock_basis": "pepperstone-ny-close-v1"
+            }
+          ],
+          "price_basis": "Geometric equal-weight relative FX basket from synchronized USD legs; sampled M1 closes, not wick extrema or executable returns."
+        },
+        "1440": {
+          "status": "unavailable",
+          "gap": "Missing exact completed terminal minute; no neighbouring candle substituted."
+        }
+      },
+      "relative_preferences": [],
+      "post_checkpoint_observation": {
+        "status": "complete",
+        "baseline_utc": "2026-11-02T05:00:00Z",
+        "terminal_utc": "2026-11-02T05:03:00Z",
+        "baseline_delay_seconds": 0.0,
+        "return_pct": -0.01693512601980306,
+        "signed_return_pct": -0.01693512601980306,
+        "direction_result": "opposed",
+        "favourable_close_excursion_pct": 0.0,
+        "adverse_close_excursion_pct": -0.01803197855447203,
+        "counterpart_returns_pct": {
+          "USD": -0.0139377237163122,
+          "EUR": -0.021094730044067037,
+          "GBP": -0.016923853071854705,
+          "AUD": -0.02105599332820447,
+          "NZD": -0.01037658604932798,
+          "CHF": -0.021218704038627113,
+          "CAD": -0.0139377237163122
+        },
+        "directional_breadth": 0,
+        "sample_count": 4,
+        "expected_sample_count": 4,
+        "missing_samples": 0,
+        "longest_gap_seconds": 60,
+        "price_input_hash": "73a73a2804f53fdce4024c7f1e6943c01792e631bfef051da7fdbf061c0b2f71",
+        "provenance": [
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\GBPUSD-0325600076058e009d4cdb1e.json",
+            "sha256_content": "0325600076058e009d4cdb1ebfba85a7a3145f960d64fa4176c177923cf94b1f",
+            "broker": "Pepperstone-Demo",
+            "symbol": "GBPUSD",
+            "captured_utc": "2026-11-02T23:57:54Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          },
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\EURUSD-1d5653e8d7f35ad20cffcdfa.json",
+            "sha256_content": "1d5653e8d7f35ad20cffcdfa34689113d0dac465e5b3ae8388a6839651954a0b",
+            "broker": "Pepperstone-Demo",
+            "symbol": "EURUSD",
+            "captured_utc": "2026-11-02T23:57:54Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          },
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\NZDUSD-5cb3f99d636952563adaf0f8.json",
+            "sha256_content": "5cb3f99d636952563adaf0f87af95f2eba5f4ee1ac5347d917efe9c7f850ac88",
+            "broker": "Pepperstone-Demo",
+            "symbol": "NZDUSD",
+            "captured_utc": "2026-11-02T07:31:11Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          },
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\USDCHF-6d61d7d13b6248dbdd4bef29.json",
+            "sha256_content": "6d61d7d13b6248dbdd4bef29ddd9184caeafa4e5e30442db74ee595377856496",
+            "broker": "Pepperstone-Demo",
+            "symbol": "USDCHF",
+            "captured_utc": "2026-11-02T07:31:20Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          },
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\USDCAD-8996d229cc0b189ab1a90b83.json",
+            "sha256_content": "8996d229cc0b189ab1a90b837717ea752bb5d544fce2c92edc06e36c04b19ae5",
+            "broker": "Pepperstone-Demo",
+            "symbol": "USDCAD",
+            "captured_utc": "2026-11-02T07:31:23Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          },
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\USDJPY-ac384dfe9b075185078bbebe.json",
+            "sha256_content": "ac384dfe9b075185078bbebe5e523d077ae556297a1de953f8f053c3e04e0050",
+            "broker": "Pepperstone-Demo",
+            "symbol": "USDJPY",
+            "captured_utc": "2026-11-02T07:31:17Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          },
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\AUDUSD-d9efd0435b7eaeb5bf1217cf.json",
+            "sha256_content": "d9efd0435b7eaeb5bf1217cf822cec23fe24848472effad11e12e15b47df2e07",
+            "broker": "Pepperstone-Demo",
+            "symbol": "AUDUSD",
+            "captured_utc": "2026-11-02T07:31:07Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          }
+        ],
+        "price_basis": "Geometric equal-weight relative FX basket from synchronized USD legs; sampled M1 closes, not wick extrema or executable returns.",
+        "interpretation": "Movement while reassessment was overdue; not scored as the original forecast window."
+      }
+    },
+    {
+      "id": "d7f2c1fe6382ba333ec3a97862fd587e4bc28bac14a40e3c3c319675ad3f6cef",
+      "episode_id": "research:5cfeb6a3eefe4406a4260c11f36558be:NZD",
+      "episode_hash": "afda0089f7a932c140e1d3570124ff4e4d38d180e927341a595267cb2a45a2a8",
+      "protocol_id": "ba9c464a9fa5f9b78f5379e6d7938d2c506a18bb95f5626a83ceaf8573e8f581",
+      "end_utc": "2026-11-02T05:03:52.076236Z",
+      "window_basis": "diagnostic_proxy",
+      "data_revision": "01f06bcb3b5ace37cb01b3c4b6960dee0a404fdf37d8db36ec5789ead7c9069a",
+      "window_revision": "1a5946c1977386fb0a6067c5be33ca04cccf228b9f6803260d5f81ce3088b7a9",
+      "recorded_utc": "2026-11-02T23:58:05.601785Z",
+      "observation": {
+        "status": "complete",
+        "baseline_utc": "2026-11-01T22:47:00Z",
+        "terminal_utc": "2026-11-02T05:03:00Z",
+        "baseline_delay_seconds": 39.174657106399536,
+        "return_pct": -0.14667183532604525,
+        "signed_return_pct": -0.14667183532604525,
+        "direction_result": "opposed",
+        "favourable_close_excursion_pct": 0.08217259858532433,
+        "adverse_close_excursion_pct": -0.20719934183173633,
+        "counterpart_returns_pct": {
+          "USD": -0.17776513670138505,
+          "EUR": -0.38497824379661416,
+          "GBP": -0.2306820859099043,
+          "AUD": -0.1436534264166382,
+          "JPY": 0.0669422643188049,
+          "CHF": -0.14261646245374232,
+          "CAD": -0.013307459551156463
+        },
+        "directional_breadth": 1,
+        "sample_count": 377,
+        "expected_sample_count": 377,
+        "missing_samples": 0,
+        "longest_gap_seconds": 60,
+        "price_input_hash": "844fda79340d6c6b8edb0c51b37f826c07ffb98e186fa59d5cc556f8d08992b2",
+        "provenance": [
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\GBPUSD-0325600076058e009d4cdb1e.json",
+            "sha256_content": "0325600076058e009d4cdb1ebfba85a7a3145f960d64fa4176c177923cf94b1f",
+            "broker": "Pepperstone-Demo",
+            "symbol": "GBPUSD",
+            "captured_utc": "2026-11-02T23:57:54Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          },
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\EURUSD-1d5653e8d7f35ad20cffcdfa.json",
+            "sha256_content": "1d5653e8d7f35ad20cffcdfa34689113d0dac465e5b3ae8388a6839651954a0b",
+            "broker": "Pepperstone-Demo",
+            "symbol": "EURUSD",
+            "captured_utc": "2026-11-02T23:57:54Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          },
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\NZDUSD-5cb3f99d636952563adaf0f8.json",
+            "sha256_content": "5cb3f99d636952563adaf0f87af95f2eba5f4ee1ac5347d917efe9c7f850ac88",
+            "broker": "Pepperstone-Demo",
+            "symbol": "NZDUSD",
+            "captured_utc": "2026-11-02T07:31:11Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          },
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\USDCHF-6d61d7d13b6248dbdd4bef29.json",
+            "sha256_content": "6d61d7d13b6248dbdd4bef29ddd9184caeafa4e5e30442db74ee595377856496",
+            "broker": "Pepperstone-Demo",
+            "symbol": "USDCHF",
+            "captured_utc": "2026-11-02T07:31:20Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          },
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\USDCAD-8996d229cc0b189ab1a90b83.json",
+            "sha256_content": "8996d229cc0b189ab1a90b837717ea752bb5d544fce2c92edc06e36c04b19ae5",
+            "broker": "Pepperstone-Demo",
+            "symbol": "USDCAD",
+            "captured_utc": "2026-11-02T07:31:23Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          },
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\USDJPY-ac384dfe9b075185078bbebe.json",
+            "sha256_content": "ac384dfe9b075185078bbebe5e523d077ae556297a1de953f8f053c3e04e0050",
+            "broker": "Pepperstone-Demo",
+            "symbol": "USDJPY",
+            "captured_utc": "2026-11-02T07:31:17Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          },
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\AUDUSD-d9efd0435b7eaeb5bf1217cf.json",
+            "sha256_content": "d9efd0435b7eaeb5bf1217cf822cec23fe24848472effad11e12e15b47df2e07",
+            "broker": "Pepperstone-Demo",
+            "symbol": "AUDUSD",
+            "captured_utc": "2026-11-02T07:31:07Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          }
+        ],
+        "price_basis": "Geometric equal-weight relative FX basket from synchronized USD legs; sampled M1 closes, not wick extrema or executable returns."
+      },
+      "secondary_observations": {
+        "120": {
+          "status": "complete",
+          "baseline_utc": "2026-11-01T22:47:00Z",
+          "terminal_utc": "2026-11-02T00:46:00Z",
+          "baseline_delay_seconds": 39.174657106399536,
+          "return_pct": -0.01377241647517684,
+          "signed_return_pct": -0.01377241647517684,
+          "direction_result": "opposed",
+          "favourable_close_excursion_pct": 0.08217259858532433,
+          "adverse_close_excursion_pct": -0.03102405515395136,
+          "counterpart_returns_pct": {
+            "USD": -0.058662495111458865,
+            "EUR": -0.1302979701129393,
+            "GBP": -0.05716928443016107,
+            "AUD": -0.10416276258465909,
+            "JPY": 0.15206235422477607,
+            "CHF": 0.09423464580180614,
+            "CAD": 0.007914951168798789
+          },
+          "directional_breadth": 3,
+          "sample_count": 120,
+          "expected_sample_count": 120,
+          "missing_samples": 0,
+          "longest_gap_seconds": 60,
+          "price_input_hash": "b67200350dd4d72d21bd1a3db975037a396355708f7fb8ab89c0126c0bee087f",
+          "provenance": [
+            {
+              "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\GBPUSD-0325600076058e009d4cdb1e.json",
+              "sha256_content": "0325600076058e009d4cdb1ebfba85a7a3145f960d64fa4176c177923cf94b1f",
+              "broker": "Pepperstone-Demo",
+              "symbol": "GBPUSD",
+              "captured_utc": "2026-11-02T23:57:54Z",
+              "clock_basis": "pepperstone-ny-close-v1"
+            },
+            {
+              "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\EURUSD-1d5653e8d7f35ad20cffcdfa.json",
+              "sha256_content": "1d5653e8d7f35ad20cffcdfa34689113d0dac465e5b3ae8388a6839651954a0b",
+              "broker": "Pepperstone-Demo",
+              "symbol": "EURUSD",
+              "captured_utc": "2026-11-02T23:57:54Z",
+              "clock_basis": "pepperstone-ny-close-v1"
+            },
+            {
+              "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\NZDUSD-5cb3f99d636952563adaf0f8.json",
+              "sha256_content": "5cb3f99d636952563adaf0f87af95f2eba5f4ee1ac5347d917efe9c7f850ac88",
+              "broker": "Pepperstone-Demo",
+              "symbol": "NZDUSD",
+              "captured_utc": "2026-11-02T07:31:11Z",
+              "clock_basis": "pepperstone-ny-close-v1"
+            },
+            {
+              "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\USDCHF-6d61d7d13b6248dbdd4bef29.json",
+              "sha256_content": "6d61d7d13b6248dbdd4bef29ddd9184caeafa4e5e30442db74ee595377856496",
+              "broker": "Pepperstone-Demo",
+              "symbol": "USDCHF",
+              "captured_utc": "2026-11-02T07:31:20Z",
+              "clock_basis": "pepperstone-ny-close-v1"
+            },
+            {
+              "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\USDCAD-8996d229cc0b189ab1a90b83.json",
+              "sha256_content": "8996d229cc0b189ab1a90b837717ea752bb5d544fce2c92edc06e36c04b19ae5",
+              "broker": "Pepperstone-Demo",
+              "symbol": "USDCAD",
+              "captured_utc": "2026-11-02T07:31:23Z",
+              "clock_basis": "pepperstone-ny-close-v1"
+            },
+            {
+              "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\USDJPY-ac384dfe9b075185078bbebe.json",
+              "sha256_content": "ac384dfe9b075185078bbebe5e523d077ae556297a1de953f8f053c3e04e0050",
+              "broker": "Pepperstone-Demo",
+              "symbol": "USDJPY",
+              "captured_utc": "2026-11-02T07:31:17Z",
+              "clock_basis": "pepperstone-ny-close-v1"
+            },
+            {
+              "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\AUDUSD-d9efd0435b7eaeb5bf1217cf.json",
+              "sha256_content": "d9efd0435b7eaeb5bf1217cf822cec23fe24848472effad11e12e15b47df2e07",
+              "broker": "Pepperstone-Demo",
+              "symbol": "AUDUSD",
+              "captured_utc": "2026-11-02T07:31:07Z",
+              "clock_basis": "pepperstone-ny-close-v1"
+            }
+          ],
+          "price_basis": "Geometric equal-weight relative FX basket from synchronized USD legs; sampled M1 closes, not wick extrema or executable returns."
+        },
+        "1440": {
+          "status": "unavailable",
+          "gap": "Missing exact completed terminal minute; no neighbouring candle substituted."
+        }
+      },
+      "relative_preferences": [],
+      "post_checkpoint_observation": null
+    },
+    {
+      "id": "21842af8f3a7c354b3ff9516a596745b35225790601cd08a191ae2b39e7a3bf3",
+      "episode_id": "research:5cfeb6a3eefe4406a4260c11f36558be:USD",
+      "episode_hash": "665ecd9d991af31748bee1c65889c97cc621122a878583bdc9b16d925cb9b5d6",
+      "protocol_id": "ba9c464a9fa5f9b78f5379e6d7938d2c506a18bb95f5626a83ceaf8573e8f581",
+      "end_utc": "2026-11-02T05:03:52.076236Z",
+      "window_basis": "diagnostic_proxy",
+      "data_revision": "01f06bcb3b5ace37cb01b3c4b6960dee0a404fdf37d8db36ec5789ead7c9069a",
+      "window_revision": "1a5946c1977386fb0a6067c5be33ca04cccf228b9f6803260d5f81ce3088b7a9",
+      "recorded_utc": "2026-11-02T23:58:05.613754Z",
+      "observation": {
+        "status": "complete",
+        "baseline_utc": "2026-11-01T22:47:00Z",
+        "terminal_utc": "2026-11-02T05:03:00Z",
+        "baseline_delay_seconds": 39.174657106399536,
+        "return_pct": 0.05657743972330775,
+        "signed_return_pct": -0.05657743972330775,
+        "direction_result": "opposed",
+        "favourable_close_excursion_pct": 0.0030860641196506933,
+        "adverse_close_excursion_pct": -0.13643998898617507,
+        "counterpart_returns_pct": {
+          "EUR": -0.20758211572701885,
+          "GBP": -0.05301118461331414,
+          "AUD": 0.03417245699964648,
+          "NZD": 0.17808170388573766,
+          "JPY": 0.24514318012946124,
+          "CHF": 0.03521126760563617,
+          "CAD": 0.1647505461838686
+        },
+        "directional_breadth": 2,
+        "sample_count": 377,
+        "expected_sample_count": 377,
+        "missing_samples": 0,
+        "longest_gap_seconds": 60,
+        "price_input_hash": "844fda79340d6c6b8edb0c51b37f826c07ffb98e186fa59d5cc556f8d08992b2",
+        "provenance": [
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\GBPUSD-0325600076058e009d4cdb1e.json",
+            "sha256_content": "0325600076058e009d4cdb1ebfba85a7a3145f960d64fa4176c177923cf94b1f",
+            "broker": "Pepperstone-Demo",
+            "symbol": "GBPUSD",
+            "captured_utc": "2026-11-02T23:57:54Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          },
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\EURUSD-1d5653e8d7f35ad20cffcdfa.json",
+            "sha256_content": "1d5653e8d7f35ad20cffcdfa34689113d0dac465e5b3ae8388a6839651954a0b",
+            "broker": "Pepperstone-Demo",
+            "symbol": "EURUSD",
+            "captured_utc": "2026-11-02T23:57:54Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          },
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\NZDUSD-5cb3f99d636952563adaf0f8.json",
+            "sha256_content": "5cb3f99d636952563adaf0f87af95f2eba5f4ee1ac5347d917efe9c7f850ac88",
+            "broker": "Pepperstone-Demo",
+            "symbol": "NZDUSD",
+            "captured_utc": "2026-11-02T07:31:11Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          },
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\USDCHF-6d61d7d13b6248dbdd4bef29.json",
+            "sha256_content": "6d61d7d13b6248dbdd4bef29ddd9184caeafa4e5e30442db74ee595377856496",
+            "broker": "Pepperstone-Demo",
+            "symbol": "USDCHF",
+            "captured_utc": "2026-11-02T07:31:20Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          },
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\USDCAD-8996d229cc0b189ab1a90b83.json",
+            "sha256_content": "8996d229cc0b189ab1a90b837717ea752bb5d544fce2c92edc06e36c04b19ae5",
+            "broker": "Pepperstone-Demo",
+            "symbol": "USDCAD",
+            "captured_utc": "2026-11-02T07:31:23Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          },
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\USDJPY-ac384dfe9b075185078bbebe.json",
+            "sha256_content": "ac384dfe9b075185078bbebe5e523d077ae556297a1de953f8f053c3e04e0050",
+            "broker": "Pepperstone-Demo",
+            "symbol": "USDJPY",
+            "captured_utc": "2026-11-02T07:31:17Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          },
+          {
+            "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\AUDUSD-d9efd0435b7eaeb5bf1217cf.json",
+            "sha256_content": "d9efd0435b7eaeb5bf1217cf822cec23fe24848472effad11e12e15b47df2e07",
+            "broker": "Pepperstone-Demo",
+            "symbol": "AUDUSD",
+            "captured_utc": "2026-11-02T07:31:07Z",
+            "clock_basis": "pepperstone-ny-close-v1"
+          }
+        ],
+        "price_basis": "Geometric equal-weight relative FX basket from synchronized USD legs; sampled M1 closes, not wick extrema or executable returns."
+      },
+      "secondary_observations": {
+        "120": {
+          "status": "complete",
+          "baseline_utc": "2026-11-01T22:47:00Z",
+          "terminal_utc": "2026-11-02T00:46:00Z",
+          "baseline_delay_seconds": 39.174657106399536,
+          "return_pct": 0.05330335998969316,
+          "signed_return_pct": -0.05330335998969316,
+          "direction_result": "opposed",
+          "favourable_close_excursion_pct": 0.0030860641196506933,
+          "adverse_close_excursion_pct": -0.05507486907884764,
+          "counterpart_returns_pct": {
+            "EUR": -0.07167752282480355,
+            "GBP": 0.0014940871500991916,
+            "AUD": -0.04552697473252709,
+            "NZD": 0.058696928194091315,
+            "JPY": 0.21084853834973694,
+            "CHF": 0.15298688683827769,
+            "CAD": 0.06661652519609425
+          },
+          "directional_breadth": 2,
+          "sample_count": 120,
+          "expected_sample_count": 120,
+          "missing_samples": 0,
+          "longest_gap_seconds": 60,
+          "price_input_hash": "b67200350dd4d72d21bd1a3db975037a396355708f7fb8ab89c0126c0bee087f",
+          "provenance": [
+            {
+              "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\GBPUSD-0325600076058e009d4cdb1e.json",
+              "sha256_content": "0325600076058e009d4cdb1ebfba85a7a3145f960d64fa4176c177923cf94b1f",
+              "broker": "Pepperstone-Demo",
+              "symbol": "GBPUSD",
+              "captured_utc": "2026-11-02T23:57:54Z",
+              "clock_basis": "pepperstone-ny-close-v1"
+            },
+            {
+              "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\EURUSD-1d5653e8d7f35ad20cffcdfa.json",
+              "sha256_content": "1d5653e8d7f35ad20cffcdfa34689113d0dac465e5b3ae8388a6839651954a0b",
+              "broker": "Pepperstone-Demo",
+              "symbol": "EURUSD",
+              "captured_utc": "2026-11-02T23:57:54Z",
+              "clock_basis": "pepperstone-ny-close-v1"
+            },
+            {
+              "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\NZDUSD-5cb3f99d636952563adaf0f8.json",
+              "sha256_content": "5cb3f99d636952563adaf0f87af95f2eba5f4ee1ac5347d917efe9c7f850ac88",
+              "broker": "Pepperstone-Demo",
+              "symbol": "NZDUSD",
+              "captured_utc": "2026-11-02T07:31:11Z",
+              "clock_basis": "pepperstone-ny-close-v1"
+            },
+            {
+              "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\USDCHF-6d61d7d13b6248dbdd4bef29.json",
+              "sha256_content": "6d61d7d13b6248dbdd4bef29ddd9184caeafa4e5e30442db74ee595377856496",
+              "broker": "Pepperstone-Demo",
+              "symbol": "USDCHF",
+              "captured_utc": "2026-11-02T07:31:20Z",
+              "clock_basis": "pepperstone-ny-close-v1"
+            },
+            {
+              "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\USDCAD-8996d229cc0b189ab1a90b83.json",
+              "sha256_content": "8996d229cc0b189ab1a90b837717ea752bb5d544fce2c92edc06e36c04b19ae5",
+              "broker": "Pepperstone-Demo",
+              "symbol": "USDCAD",
+              "captured_utc": "2026-11-02T07:31:23Z",
+              "clock_basis": "pepperstone-ny-close-v1"
+            },
+            {
+              "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\USDJPY-ac384dfe9b075185078bbebe.json",
+              "sha256_content": "ac384dfe9b075185078bbebe5e523d077ae556297a1de953f8f053c3e04e0050",
+              "broker": "Pepperstone-Demo",
+              "symbol": "USDJPY",
+              "captured_utc": "2026-11-02T07:31:17Z",
+              "clock_basis": "pepperstone-ny-close-v1"
+            },
+            {
+              "path": "C:\\dev\\Fyodor Trading Terminal Lite\\storage\\data\\analyst-learning\\candles\\AUDUSD-d9efd0435b7eaeb5bf1217cf.json",
+              "sha256_content": "d9efd0435b7eaeb5bf1217cf822cec23fe24848472effad11e12e15b47df2e07",
+              "broker": "Pepperstone-Demo",
+              "symbol": "AUDUSD",
+              "captured_utc": "2026-11-02T07:31:07Z",
+              "clock_basis": "pepperstone-ny-close-v1"
+            }
+          ],
+          "price_basis": "Geometric equal-weight relative FX basket from synchronized USD legs; sampled M1 closes, not wick extrema or executable returns."
+        },
+        "1440": {
+          "status": "unavailable",
+          "gap": "Missing exact completed terminal minute; no neighbouring candle substituted."
+        }
+      },
+      "relative_preferences": [],
+      "post_checkpoint_observation": null
+    },
+    {
+      "id": "984ba94b3494b5ec8a0876575c9321cd97e5b99e1e1ad640e34486b804c62ebc",
+      "episode_id": "research:43c6a0d3fc6b44b6b2a37e34dcb96ffc:AUD",
+      "episode_hash": "ef76e56aae7a964a805e886ab2c54c043d0ca9d6f7812f5b150196283ff5c13a",
+      "protocol_id": "ba9c464a9fa5f9b78f5379e6d7938d2c506a18bb95f5626a83ceaf8573e8f581",
+      "end_utc": "2026-11-02T20:00:00Z",
+      "window_basis": "declared",
+      "data_revision": "01f06bcb3b5ace37cb01b3c4b6960dee0a404fdf37d8db36ec5789ead7c9069a",
+      "window_revision": "5c3e8406a150890adc00512151117879eb59eb774c15e0a74c1ed2765500cabb",
+      "recorded_utc": "2026-11-02T23:58:05.654644Z",
+      "observation": {
+        "status": "unavailable",
+        "gap": "No common completed M1 baseline within 120 seconds of delivery."
+      },
+      "secondary_observations": {
+        "120": {
+          "status": "unavailable",
+          "gap": "No common completed M1 baseline within 120 seconds of delivery."
+        },
+        "1440": {
+          "status": "pending"
+        }
+      },
+      "relative_preferences": [
+        {
+          "status": "unavailable",
+          "gap": "No common completed M1 baseline within 120 seconds of delivery."
+        }
+      ],
+      "post_checkpoint_observation": null
+    },
+    {
+      "id": "1cec060b670e4ad884146f4630222c422e3f522a7ac6b3acdb323576605bd25a",
+      "episode_id": "research:43c6a0d3fc6b44b6b2a37e34dcb96ffc:CAD",
+      "episode_hash": "8da7c528edd35b4c54441e87ace941187e6630c032dd718ca73084ecfd7eeb48",
+      "protocol_id": "ba9c464a9fa5f9b78f5379e6d7938d2c506a18bb95f5626a83ceaf8573e8f581",
+      "end_utc": "2026-11-02T19:30:00Z",
+      "window_basis": "declared",
+      "data_revision": "01f06bcb3b5ace37cb01b3c4b6960dee0a404fdf37d8db36ec5789ead7c9069a",
+      "window_revision": "b26342c1925370ff3211d56d50701cd15eb0a33037e96834ffde1990a77e197c",
+      "recorded_utc": "2026-11-02T23:58:05.657636Z",
+      "observation": {
+        "status": "unavailable",
+        "gap": "No common completed M1 baseline within 120 seconds of delivery."
+      },
+      "secondary_observations": {
+        "120": {
+          "status": "unavailable",
+          "gap": "No common completed M1 baseline within 120 seconds of delivery."
+        },
+        "1440": {
+          "status": "pending"
+        }
+      },
+      "relative_preferences": [],
+      "post_checkpoint_observation": {
+        "status": "unavailable",
+        "gap": "No common completed M1 baseline within 120 seconds of delivery.",
+        "interpretation": "Movement while reassessment was overdue; not scored as the original forecast window."
+      }
+    },
+    {
+      "id": "829b84ea9db99a18c9a559a7ae3958ff84c080548ff208ef737759e1676ac07a",
+      "episode_id": "research:43c6a0d3fc6b44b6b2a37e34dcb96ffc:CHF",
+      "episode_hash": "292464ace2773ddf3f200f0af6c0c963b198708463644ed8afd19b2f84feda5e",
+      "protocol_id": "ba9c464a9fa5f9b78f5379e6d7938d2c506a18bb95f5626a83ceaf8573e8f581",
+      "end_utc": "2026-11-02T19:39:18.359011Z",
+      "window_basis": "declared",
+      "data_revision": "01f06bcb3b5ace37cb01b3c4b6960dee0a404fdf37d8db36ec5789ead7c9069a",
+      "window_revision": "07a09573f35237f5d51dd6fb71584fb44c78a936abdc13f431ce705de037999b",
+      "recorded_utc": "2026-11-02T23:58:05.659630Z",
+      "observation": {
+        "status": "unavailable",
+        "gap": "No common completed M1 baseline within 120 seconds of delivery."
+      },
+      "secondary_observations": {
+        "120": {
+          "status": "unavailable",
+          "gap": "No common completed M1 baseline within 120 seconds of delivery."
+        },
+        "1440": {
+          "status": "pending"
+        }
+      },
+      "relative_preferences": [],
+      "post_checkpoint_observation": null
+    },
+    {
+      "id": "a8f4a7259ad8e0e0d386ecf36e59b78471040a8b1d5bac4f2dbc4b298c532373",
+      "episode_id": "research:43c6a0d3fc6b44b6b2a37e34dcb96ffc:EUR",
+      "episode_hash": "51c0388d2edc78caf170b10da2b0363fe80461480ae52cc6645948c8b51df84a",
+      "protocol_id": "ba9c464a9fa5f9b78f5379e6d7938d2c506a18bb95f5626a83ceaf8573e8f581",
+      "end_utc": "2026-11-02T23:57:37.809362Z",
+      "window_basis": "declared",
+      "data_revision": "01f06bcb3b5ace37cb01b3c4b6960dee0a404fdf37d8db36ec5789ead7c9069a",
+      "window_revision": "ec82052dbb7c858d3867570726d24ea9464b5f8fff42ca5fabac743156324dc7",
+      "recorded_utc": "2026-11-02T23:58:05.661625Z",
+      "observation": {
+        "status": "unavailable",
+        "gap": "No common completed M1 baseline within 120 seconds of delivery."
+      },
+      "secondary_observations": {
+        "120": {
+          "status": "unavailable",
+          "gap": "No common completed M1 baseline within 120 seconds of delivery."
+        },
+        "1440": {
+          "status": "pending"
+        }
+      },
+      "relative_preferences": [],
+      "post_checkpoint_observation": null
+    },
+    {
+      "id": "a819ffcc22af4232cf1651f5c6d0516a33fd8298317a51c9ac2431918afa988e",
+      "episode_id": "research:43c6a0d3fc6b44b6b2a37e34dcb96ffc:GBP",
+      "episode_hash": "af0204921f334c94d8af7d81c31ea06606c012d45bf7b7657597d8f7b00a5202",
+      "protocol_id": "ba9c464a9fa5f9b78f5379e6d7938d2c506a18bb95f5626a83ceaf8573e8f581",
+      "end_utc": "2026-11-02T19:39:18.359011Z",
+      "window_basis": "declared",
+      "data_revision": "01f06bcb3b5ace37cb01b3c4b6960dee0a404fdf37d8db36ec5789ead7c9069a",
+      "window_revision": "07a09573f35237f5d51dd6fb71584fb44c78a936abdc13f431ce705de037999b",
+      "recorded_utc": "2026-11-02T23:58:05.664617Z",
+      "observation": {
+        "status": "unavailable",
+        "gap": "No common completed M1 baseline within 120 seconds of delivery."
+      },
+      "secondary_observations": {
+        "120": {
+          "status": "unavailable",
+          "gap": "No common completed M1 baseline within 120 seconds of delivery."
+        },
+        "1440": {
+          "status": "pending"
+        }
+      },
+      "relative_preferences": [],
+      "post_checkpoint_observation": null
+    },
+    {
+      "id": "92f4a9fb4168d3af29661ec1d319c0adda7b056482e36bf837304b4d18dea627",
+      "episode_id": "research:43c6a0d3fc6b44b6b2a37e34dcb96ffc:JPY",
+      "episode_hash": "35fb4e449bd0cc738b05ce542f947dedfcb0d98091970c21985fab44f0bb8e79",
+      "protocol_id": "ba9c464a9fa5f9b78f5379e6d7938d2c506a18bb95f5626a83ceaf8573e8f581",
+      "end_utc": "2026-11-02T19:24:31.377688Z",
+      "window_basis": "declared",
+      "data_revision": "01f06bcb3b5ace37cb01b3c4b6960dee0a404fdf37d8db36ec5789ead7c9069a",
+      "window_revision": "c1ba2a1f43b398e734b75ab9d1d0b9191efe79ceaeb57938937978c8253ee8dd",
+      "recorded_utc": "2026-11-02T23:58:05.666612Z",
+      "observation": {
+        "status": "unavailable",
+        "gap": "No common completed M1 baseline within 120 seconds of delivery."
+      },
+      "secondary_observations": {
+        "120": {
+          "status": "unavailable",
+          "gap": "No common completed M1 baseline within 120 seconds of delivery."
+        },
+        "1440": {
+          "status": "pending"
+        }
+      },
+      "relative_preferences": [],
+      "post_checkpoint_observation": null
+    },
+    {
+      "id": "9928fabb4da1508db4723b0295ed8a6b75cbfaf9aeb060c9b400c2e6caed2799",
+      "episode_id": "research:43c6a0d3fc6b44b6b2a37e34dcb96ffc:NZD",
+      "episode_hash": "301d27078f0c09417934743ffce3871832a8326526f1168cbbd465f572b504c9",
+      "protocol_id": "ba9c464a9fa5f9b78f5379e6d7938d2c506a18bb95f5626a83ceaf8573e8f581",
+      "end_utc": "2026-11-02T21:00:00Z",
+      "window_basis": "declared",
+      "data_revision": "01f06bcb3b5ace37cb01b3c4b6960dee0a404fdf37d8db36ec5789ead7c9069a",
+      "window_revision": "5e72926c850a03e2c415a08f9e4d6b5d2974c9c0db5f44fd7422680fb04d619b",
+      "recorded_utc": "2026-11-02T23:58:05.669604Z",
+      "observation": {
+        "status": "unavailable",
+        "gap": "No common completed M1 baseline within 120 seconds of delivery."
+      },
+      "secondary_observations": {
+        "120": {
+          "status": "unavailable",
+          "gap": "No common completed M1 baseline within 120 seconds of delivery."
+        },
+        "1440": {
+          "status": "pending"
+        }
+      },
+      "relative_preferences": [],
+      "post_checkpoint_observation": {
+        "status": "unavailable",
+        "gap": "No common completed M1 baseline within 120 seconds of delivery.",
+        "interpretation": "Movement while reassessment was overdue; not scored as the original forecast window."
+      }
+    },
+    {
+      "id": "b892b5b8aebb255b46da322a7cdebd6dea920b67dabdf32a058bf6125a85e1b6",
+      "episode_id": "research:43c6a0d3fc6b44b6b2a37e34dcb96ffc:USD",
+      "episode_hash": "cb662042d475054e30bb4a35cf1778ce4dff3c56a59f7371b3c6ae0a2f0adcbc",
+      "protocol_id": "ba9c464a9fa5f9b78f5379e6d7938d2c506a18bb95f5626a83ceaf8573e8f581",
+      "end_utc": "2026-11-02T20:00:00Z",
+      "window_basis": "declared",
+      "data_revision": "01f06bcb3b5ace37cb01b3c4b6960dee0a404fdf37d8db36ec5789ead7c9069a",
+      "window_revision": "83226e504c271081b975109f72c6f4334932fca2b665177f9395a1c2736fa64d",
+      "recorded_utc": "2026-11-02T23:58:05.674591Z",
+      "observation": {
+        "status": "unavailable",
+        "gap": "No common completed M1 baseline within 120 seconds of delivery."
+      },
+      "secondary_observations": {
+        "120": {
+          "status": "unavailable",
+          "gap": "No common completed M1 baseline within 120 seconds of delivery."
+        },
+        "1440": {
+          "status": "pending"
+        }
+      },
+      "relative_preferences": [
+        {
+          "status": "unavailable",
+          "gap": "No common completed M1 baseline within 120 seconds of delivery."
+        }
+      ],
+      "post_checkpoint_observation": {
+        "status": "unavailable",
+        "gap": "No common completed M1 baseline within 120 seconds of delivery.",
+        "interpretation": "Movement while reassessment was overdue; not scored as the original forecast window."
+      }
+    },
+    {
+      "id": "a611f6c7a48bdabc7225b872f76683fe5e00986c30568f50ba8310c6db8b5d56",
+      "episode_id": "research:cb39cda388a04ce0933c57fdd8567f31:JPY",
+      "episode_hash": "19f076f0f39bed6ebd144dc8a49fb80db6022c6c0770b39ed6358bf5060b56da",
+      "protocol_id": "ba9c464a9fa5f9b78f5379e6d7938d2c506a18bb95f5626a83ceaf8573e8f581",
+      "end_utc": "2026-11-02T21:00:00Z",
+      "window_basis": "declared",
+      "data_revision": "01f06bcb3b5ace37cb01b3c4b6960dee0a404fdf37d8db36ec5789ead7c9069a",
+      "window_revision": "5e72926c850a03e2c415a08f9e4d6b5d2974c9c0db5f44fd7422680fb04d619b",
+      "recorded_utc": "2026-11-02T23:58:05.677582Z",
+      "observation": {
+        "status": "unavailable",
+        "gap": "No common completed M1 baseline within 120 seconds of delivery."
+      },
+      "secondary_observations": {
+        "120": {
+          "status": "unavailable",
+          "gap": "No common completed M1 baseline within 120 seconds of delivery."
+        },
+        "1440": {
+          "status": "pending"
+        }
+      },
+      "relative_preferences": [],
+      "post_checkpoint_observation": {
+        "status": "unavailable",
+        "gap": "No common completed M1 baseline within 120 seconds of delivery.",
+        "interpretation": "Movement while reassessment was overdue; not scored as the original forecast window."
+      }
+    },
+    {
+      "id": "5497f8024cdca2f0c4975ed7e053f4d83c811af109d212f2f193763e3f04c485",
+      "episode_id": "research:97deff25a21f476eb66ed99c662db09c:CHF",
+      "episode_hash": "a436afb01e37fdc6627eee032d8864139954b22cb91a657a8155832d738d93d1",
+      "protocol_id": "ba9c464a9fa5f9b78f5379e6d7938d2c506a18bb95f5626a83ceaf8573e8f581",
+      "end_utc": "2026-11-02T23:57:37.809362Z",
+      "window_basis": "declared",
+      "data_revision": "01f06bcb3b5ace37cb01b3c4b6960dee0a404fdf37d8db36ec5789ead7c9069a",
+      "window_revision": "ec82052dbb7c858d3867570726d24ea9464b5f8fff42ca5fabac743156324dc7",
+      "recorded_utc": "2026-11-02T23:58:05.681572Z",
+      "observation": {
+        "status": "unavailable",
+        "gap": "No common completed M1 baseline within 120 seconds of delivery."
+      },
+      "secondary_observations": {
+        "120": {
+          "status": "unavailable",
+          "gap": "No common completed M1 baseline within 120 seconds of delivery."
+        },
+        "1440": {
+          "status": "pending"
+        }
+      },
+      "relative_preferences": [
+        {
+          "status": "unavailable",
+          "gap": "No common completed M1 baseline within 120 seconds of delivery."
+        }
+      ],
+      "post_checkpoint_observation": null
+    },
+    {
+      "id": "21543016318003d82130da341367d35bbaaa2d8143e755ecfccfcf6afac7c1fb",
+      "episode_id": "research:97deff25a21f476eb66ed99c662db09c:GBP",
+      "episode_hash": "87a0c4c1ba8811fca3645a5d0be68863f0238edd37d5af2e6a869197c89e022c",
+      "protocol_id": "ba9c464a9fa5f9b78f5379e6d7938d2c506a18bb95f5626a83ceaf8573e8f581",
+      "end_utc": "2026-11-02T23:57:37.809362Z",
+      "window_basis": "declared",
+      "data_revision": "01f06bcb3b5ace37cb01b3c4b6960dee0a404fdf37d8db36ec5789ead7c9069a",
+      "window_revision": "ec82052dbb7c858d3867570726d24ea9464b5f8fff42ca5fabac743156324dc7",
+      "recorded_utc": "2026-11-02T23:58:05.684564Z",
+      "observation": {
+        "status": "unavailable",
+        "gap": "No common completed M1 baseline within 120 seconds of delivery."
+      },
+      "secondary_observations": {
+        "120": {
+          "status": "unavailable",
+          "gap": "No common completed M1 baseline within 120 seconds of delivery."
+        },
+        "1440": {
+          "status": "pending"
+        }
+      },
+      "relative_preferences": [
+        {
+          "status": "unavailable",
+          "gap": "No common completed M1 baseline within 120 seconds of delivery."
+        }
+      ],
+      "post_checkpoint_observation": null
+    },
+    {
+      "id": "342fa3eae3e135b0a45e78db85b5de68cd1d0eac42ee07b96325f963fce48bdb",
+      "episode_id": "research:474fd1d71098441c9a7bf7fd1a66c7db:CAD",
+      "episode_hash": "5d24783376b74f878c5f823625786178238fc5738cc5e3be6cd00df71d5a7f55",
+      "protocol_id": "ba9c464a9fa5f9b78f5379e6d7938d2c506a18bb95f5626a83ceaf8573e8f581",
+      "end_utc": "2026-11-02T21:00:00Z",
+      "window_basis": "declared",
+      "data_revision": "01f06bcb3b5ace37cb01b3c4b6960dee0a404fdf37d8db36ec5789ead7c9069a",
+      "window_revision": "5e72926c850a03e2c415a08f9e4d6b5d2974c9c0db5f44fd7422680fb04d619b",
+      "recorded_utc": "2026-11-02T23:58:05.687556Z",
+      "observation": {
+        "status": "unavailable",
+        "gap": "No common completed M1 baseline within 120 seconds of delivery."
+      },
+      "secondary_observations": {
+        "120": {
+          "status": "unavailable",
+          "gap": "No common completed M1 baseline within 120 seconds of delivery."
+        },
+        "1440": {
+          "status": "pending"
+        }
+      },
+      "relative_preferences": [],
+      "post_checkpoint_observation": {
+        "status": "unavailable",
+        "gap": "No common completed M1 baseline within 120 seconds of delivery.",
+        "interpretation": "Movement while reassessment was overdue; not scored as the original forecast window."
+      }
+    },
+    {
+      "id": "9694c799d7befcc178f7b055b5db6d8ae58335808b23af54accfd16a9c4b5404",
+      "episode_id": "research:ddc59c2cdcaf4dc9b31a73944a6ab546:EUR",
+      "episode_hash": "aa8145f501a5603657d5cfba50b9b47c8f84dc256030098214728e9c63d7504d",
+      "protocol_id": "ba9c464a9fa5f9b78f5379e6d7938d2c506a18bb95f5626a83ceaf8573e8f581",
+      "end_utc": "2026-11-03T00:52:32.279591Z",
+      "window_basis": "declared",
+      "data_revision": "e96f5e83444b89b7dc8fbc1c98d7da77088c8215822e6096bd49a06e775b72f9",
+      "window_revision": "d11f03726a686b6a627d1a5f63a366c4f4225f9dada575e155b4f7c2d0ec49d3",
+      "recorded_utc": "2026-11-03T00:53:21.757220Z",
+      "observation": {
+        "status": "unavailable",
+        "gap": "No common completed M1 baseline within 120 seconds of delivery."
+      },
+      "secondary_observations": {
+        "120": {
+          "status": "pending"
+        },
+        "1440": {
+          "status": "pending"
+        }
+      },
+      "relative_preferences": [
+        {
+          "status": "unavailable",
+          "gap": "No common completed M1 baseline within 120 seconds of delivery."
+        }
+      ],
+      "post_checkpoint_observation": null
+    },
+    {
+      "id": "3b90c2c6b5f5acdccbb8cf5cdc37c35a8fb3deecadaa3094d5b0c00deed8372f",
+      "episode_id": "research:ddc59c2cdcaf4dc9b31a73944a6ab546:USD",
+      "episode_hash": "3101a36d5548181386ff9f990879207e42e9a2a369e039af1a856f7430eb2526",
+      "protocol_id": "ba9c464a9fa5f9b78f5379e6d7938d2c506a18bb95f5626a83ceaf8573e8f581",
+      "end_utc": "2026-11-03T00:52:32.279591Z",
+      "window_basis": "declared",
+      "data_revision": "e96f5e83444b89b7dc8fbc1c98d7da77088c8215822e6096bd49a06e775b72f9",
+      "window_revision": "d11f03726a686b6a627d1a5f63a366c4f4225f9dada575e155b4f7c2d0ec49d3",
+      "recorded_utc": "2026-11-03T00:53:21.758218Z",
+      "observation": {
+        "status": "unavailable",
+        "gap": "No common completed M1 baseline within 120 seconds of delivery."
+      },
+      "secondary_observations": {
+        "120": {
+          "status": "pending"
+        },
+        "1440": {
+          "status": "pending"
+        }
+      },
+      "relative_preferences": [],
+      "post_checkpoint_observation": null
+    },
+    {
+      "id": "c63f36e94a186a0226fcc723d2425302010b83e83808002cd620f8d3b4fb1db0",
+      "episode_id": "research:ddc59c2cdcaf4dc9b31a73944a6ab546:AUD",
+      "episode_hash": "c2c2b26a89064803d60aa7b9f2eb8ec5b7abb987ffa51e4d8fc020d8ef73e9e1",
+      "protocol_id": "ba9c464a9fa5f9b78f5379e6d7938d2c506a18bb95f5626a83ceaf8573e8f581",
+      "end_utc": "2026-11-03T01:22:19.683832Z",
+      "window_basis": "declared",
+      "data_revision": "39eec81bd888b43f9f1e328009d9802a437354a8f5122ffda49b9d1368567688",
+      "window_revision": "9d7d8dfa04e1243264d55fc391c0ffe15946d4da61cdef4e8ebc61141edf0387",
+      "recorded_utc": "2026-11-03T01:23:52.118748Z",
+      "observation": {
+        "status": "unavailable",
+        "gap": "No common completed M1 baseline within 120 seconds of delivery."
+      },
+      "secondary_observations": {
+        "120": {
+          "status": "pending"
+        },
+        "1440": {
+          "status": "pending"
+        }
+      },
+      "relative_preferences": [],
+      "post_checkpoint_observation": null
+    },
+    {
+      "id": "0c383a3328b10a1c1becd1f01ddbb1e9e23f6a8e57a50ba676abd855fd95dd8b",
+      "episode_id": "research:ddc59c2cdcaf4dc9b31a73944a6ab546:CAD",
+      "episode_hash": "9833944b125e9c88029063650ebe99d8686b2afb2dc3e0fcac6deb2cbe7e3931",
+      "protocol_id": "ba9c464a9fa5f9b78f5379e6d7938d2c506a18bb95f5626a83ceaf8573e8f581",
+      "end_utc": "2026-11-03T01:22:19.683832Z",
+      "window_basis": "declared",
+      "data_revision": "39eec81bd888b43f9f1e328009d9802a437354a8f5122ffda49b9d1368567688",
+      "window_revision": "9d7d8dfa04e1243264d55fc391c0ffe15946d4da61cdef4e8ebc61141edf0387",
+      "recorded_utc": "2026-11-03T01:23:52.121740Z",
+      "observation": {
+        "status": "unavailable",
+        "gap": "No common completed M1 baseline within 120 seconds of delivery."
+      },
+      "secondary_observations": {
+        "120": {
+          "status": "pending"
+        },
+        "1440": {
+          "status": "pending"
+        }
+      },
+      "relative_preferences": [
+        {
+          "status": "unavailable",
+          "gap": "No common completed M1 baseline within 120 seconds of delivery."
+        }
+      ],
+      "post_checkpoint_observation": null
+    },
+    {
+      "id": "c509c85cef8df68933adad4919319009afc4b4599406093ba4406c354c95f06c",
+      "episode_id": "research:ddc59c2cdcaf4dc9b31a73944a6ab546:CHF",
+      "episode_hash": "a78f1085099f43c4766948e52c2a98515e5afa8ec5de33b85e3dfa60f5bde04d",
+      "protocol_id": "ba9c464a9fa5f9b78f5379e6d7938d2c506a18bb95f5626a83ceaf8573e8f581",
+      "end_utc": "2026-11-03T01:22:19.683832Z",
+      "window_basis": "declared",
+      "data_revision": "39eec81bd888b43f9f1e328009d9802a437354a8f5122ffda49b9d1368567688",
+      "window_revision": "9d7d8dfa04e1243264d55fc391c0ffe15946d4da61cdef4e8ebc61141edf0387",
+      "recorded_utc": "2026-11-03T01:23:52.122737Z",
+      "observation": {
+        "status": "unavailable",
+        "gap": "No common completed M1 baseline within 120 seconds of delivery."
+      },
+      "secondary_observations": {
+        "120": {
+          "status": "pending"
+        },
+        "1440": {
+          "status": "pending"
+        }
+      },
+      "relative_preferences": [],
+      "post_checkpoint_observation": null
+    },
+    {
+      "id": "726d03ebefa2d7720dae8ab31134abb2d9899e002bb989869433c83aa73eb0d1",
+      "episode_id": "research:ddc59c2cdcaf4dc9b31a73944a6ab546:GBP",
+      "episode_hash": "720ae506b6b4e96fc48d51e5fe92c4138b0d0a4ecc1c84a14aaaa92978eb8ddf",
+      "protocol_id": "ba9c464a9fa5f9b78f5379e6d7938d2c506a18bb95f5626a83ceaf8573e8f581",
+      "end_utc": "2026-11-03T01:22:19.683832Z",
+      "window_basis": "declared",
+      "data_revision": "39eec81bd888b43f9f1e328009d9802a437354a8f5122ffda49b9d1368567688",
+      "window_revision": "9d7d8dfa04e1243264d55fc391c0ffe15946d4da61cdef4e8ebc61141edf0387",
+      "recorded_utc": "2026-11-03T01:23:52.125729Z",
+      "observation": {
+        "status": "unavailable",
+        "gap": "No common completed M1 baseline within 120 seconds of delivery."
+      },
+      "secondary_observations": {
+        "120": {
+          "status": "pending"
+        },
+        "1440": {
+          "status": "pending"
+        }
+      },
+      "relative_preferences": [],
+      "post_checkpoint_observation": null
+    },
+    {
+      "id": "709a1fe633534c137dfc9bc7bc7f9fef622180a7e4b95c4ea6b39abf53e1c737",
+      "episode_id": "research:ddc59c2cdcaf4dc9b31a73944a6ab546:JPY",
+      "episode_hash": "a24ec1afdcac096be0b0a1c59fd285f522483c5231d917c62adfe243dd28c893",
+      "protocol_id": "ba9c464a9fa5f9b78f5379e6d7938d2c506a18bb95f5626a83ceaf8573e8f581",
+      "end_utc": "2026-11-03T01:22:19.683832Z",
+      "window_basis": "declared",
+      "data_revision": "39eec81bd888b43f9f1e328009d9802a437354a8f5122ffda49b9d1368567688",
+      "window_revision": "9d7d8dfa04e1243264d55fc391c0ffe15946d4da61cdef4e8ebc61141edf0387",
+      "recorded_utc": "2026-11-03T01:23:52.126726Z",
+      "observation": {
+        "status": "unavailable",
+        "gap": "No common completed M1 baseline within 120 seconds of delivery."
+      },
+      "secondary_observations": {
+        "120": {
+          "status": "pending"
+        },
+        "1440": {
+          "status": "pending"
+        }
+      },
+      "relative_preferences": [],
+      "post_checkpoint_observation": null
+    },
+    {
+      "id": "a47eebd9f06ad8c99f9d239fbf5e5ec28f744785e9f6f6ba5140a65cf575b5b7",
+      "episode_id": "research:ddc59c2cdcaf4dc9b31a73944a6ab546:NZD",
+      "episode_hash": "783a8df7691bfd21ac7f1d7073294c79d72019d92e96be1ac94c2e6d8bc84ccc",
+      "protocol_id": "ba9c464a9fa5f9b78f5379e6d7938d2c506a18bb95f5626a83ceaf8573e8f581",
+      "end_utc": "2026-11-03T01:22:19.683832Z",
+      "window_basis": "declared",
+      "data_revision": "39eec81bd888b43f9f1e328009d9802a437354a8f5122ffda49b9d1368567688",
+      "window_revision": "9d7d8dfa04e1243264d55fc391c0ffe15946d4da61cdef4e8ebc61141edf0387",
+      "recorded_utc": "2026-11-03T01:23:52.127724Z",
+      "observation": {
+        "status": "unavailable",
+        "gap": "No common completed M1 baseline within 120 seconds of delivery."
+      },
+      "secondary_observations": {
+        "120": {
+          "status": "pending"
+        },
+        "1440": {
+          "status": "pending"
+        }
+      },
+      "relative_preferences": [],
+      "post_checkpoint_observation": null
+    },
+    {
+      "id": "663a86e8e36abefb7739936c3f19118dfbce0fb03589fb9339da5e686bb7087e",
+      "episode_id": "research:efd603b9c9b34c84a47a00ddb632701c:EUR",
+      "episode_hash": "5048139dc487a1e7c49af54d091187e59cd793cc1598bbbe6ac130fd81a5787b",
+      "protocol_id": "ba9c464a9fa5f9b78f5379e6d7938d2c506a18bb95f5626a83ceaf8573e8f581",
+      "end_utc": "2026-11-03T01:22:19.683832Z",
+      "window_basis": "declared",
+      "data_revision": "39eec81bd888b43f9f1e328009d9802a437354a8f5122ffda49b9d1368567688",
+      "window_revision": "9d7d8dfa04e1243264d55fc391c0ffe15946d4da61cdef4e8ebc61141edf0387",
+      "recorded_utc": "2026-11-03T01:23:52.131713Z",
+      "observation": {
+        "status": "unavailable",
+        "gap": "No common completed M1 baseline within 120 seconds of delivery."
+      },
+      "secondary_observations": {
+        "120": {
+          "status": "pending"
+        },
+        "1440": {
+          "status": "pending"
+        }
+      },
+      "relative_preferences": [
+        {
+          "status": "unavailable",
+          "gap": "No common completed M1 baseline within 120 seconds of delivery."
+        }
+      ],
+      "post_checkpoint_observation": null
+    },
+    {
+      "id": "925cfca78db2a2431cd999a374fb88f600a19263b883eb69e5b831037232e990",
+      "episode_id": "research:efd603b9c9b34c84a47a00ddb632701c:USD",
+      "episode_hash": "9d6bfb7607f3e8e23de1668176ed2c224e59494a310b6e537ff8c4e5ccfda39b",
+      "protocol_id": "ba9c464a9fa5f9b78f5379e6d7938d2c506a18bb95f5626a83ceaf8573e8f581",
+      "end_utc": "2026-11-03T01:22:19.683832Z",
+      "window_basis": "declared",
+      "data_revision": "39eec81bd888b43f9f1e328009d9802a437354a8f5122ffda49b9d1368567688",
+      "window_revision": "9d7d8dfa04e1243264d55fc391c0ffe15946d4da61cdef4e8ebc61141edf0387",
+      "recorded_utc": "2026-11-03T01:23:52.134705Z",
+      "observation": {
+        "status": "unavailable",
+        "gap": "No common completed M1 baseline within 120 seconds of delivery."
+      },
+      "secondary_observations": {
+        "120": {
+          "status": "pending"
+        },
+        "1440": {
+          "status": "pending"
+        }
+      },
+      "relative_preferences": [
+        {
+          "status": "unavailable",
+          "gap": "No common completed M1 baseline within 120 seconds of delivery."
+        }
+      ],
+      "post_checkpoint_observation": null
     }
   ]
 }

@@ -3,25 +3,32 @@ import type { ChartDrawingRecord } from './chart-drawing-record'
 import type { ChartDrawingScreenPoint } from './chart-drawing-screen-point'
 import { useDisplayClock } from '../../appearance/time-display/useDisplayClock'
 import { chartClockToUtc } from '../../appearance/time-display/chart-clock'
+import { formatAppTimestamp } from '../../appearance/time-display/time-display-preference'
 
 const rangeDateFormatter = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
 
-function DrawingTag({ text, x, y, note = false, centered = false, width, height }: {
-  text: string; x: number; y: number; note?: boolean; centered?: boolean; width?: number; height?: number
+function DrawingTag({ text, secondLine, x, y, note = false, centered = false, width, height }: {
+  text: string; secondLine?: string; x: number; y: number; note?: boolean; centered?: boolean; width?: number; height?: number
 }) {
-  const textRef = useRef<SVGTextElement>(null)
+  const textRef = useRef<SVGGElement>(null)
   const [measuredWidth, setMeasuredWidth] = useState(0)
   useLayoutEffect(() => {
-    setMeasuredWidth(textRef.current?.getComputedTextLength?.() ?? 0)
-  }, [text])
-  const textWidth = measuredWidth || text.length * 7
+    const lengths = [...(textRef.current?.querySelectorAll('text') ?? [])]
+      .map(line => line.getComputedTextLength?.() ?? 0)
+    setMeasuredWidth(Math.max(0, ...lengths))
+  }, [text, secondLine])
+  const textWidth = measuredWidth || Math.max(text.length, secondLine?.length ?? 0) * 7
   const cardWidth = textWidth + 16
+  const cardHeight = secondLine ? 40 : 24
   const left = x - (centered ? cardWidth / 2 : 0)
   const labelX = width === undefined ? left : Math.max(2, Math.min(left, width - cardWidth - 2))
-  const labelY = height === undefined ? y : Math.max(2, Math.min(y, height - 26))
+  const labelY = height === undefined ? y : Math.max(2, Math.min(y, height - cardHeight - 2))
   return <g className={note ? 'drawing-note-label' : 'drawing-range-measure'} transform={`translate(${labelX} ${labelY})`}>
-    <rect className={note ? 'drawing-note-background' : 'drawing-range-background'} width={cardWidth} height="24" rx="4" />
-    <text ref={textRef} className={note ? 'drawing-note' : 'drawing-range-label'} x="8" y="16">{text}</text>
+    <rect className={note ? 'drawing-note-background' : 'drawing-range-background'} width={cardWidth} height={cardHeight} rx="4" />
+    <g ref={textRef}>
+      <text className={note ? 'drawing-note' : 'drawing-range-label'} x="8" y="16">{text}</text>
+      {secondLine && <text className="drawing-range-label" x="8" y="32">{secondLine}</text>}
+    </g>
   </g>
 }
 
@@ -62,12 +69,15 @@ export function DatePriceRangeDrawing({ drawing, points, precision, width, heigh
   const from = chartClockToUtc(Math.min(start.time, end.time) * 1000, clock.scope)
   const to = chartClockToUtc(Math.max(start.time, end.time) * 1000, clock.scope)
   const date = (utc: number) => rangeDateFormatter.format(new Date(`${clock.date(utc)}T00:00:00Z`))
-  const dates = from === null || to === null ? 'Dates unavailable' : `${date(from)} - ${date(to)}`
+  const dates = from === null || to === null ? 'Dates unavailable'
+    : clock.date(from) === clock.date(to) ? date(from) : `${date(from)} - ${date(to)}`
+  const time = (utc: number) => formatAppTimestamp(utc, { ...clock.preference, hour12: true }, 'time-short').toUpperCase()
+  const times = from === null || to === null ? 'Times unavailable' : `${time(from)} - ${time(to)}`
   return <g>
     <rect className="drawing-range" x={left} y={top} width={right - left} height={bottom - top} />
     <g className="drawing-range-dates">
-      <title>Date horizon</title>
-      <DrawingTag text={dates} x={(Math.max(0, left) + Math.min(width, right)) / 2} y={top - 30} centered width={width} height={height} />
+      <title>Date and time horizon</title>
+      <DrawingTag text={dates} secondLine={times} x={(Math.max(0, left) + Math.min(width, right)) / 2} y={top - 46} centered width={width} height={height} />
     </g>
     <g className="drawing-range-duration">
       <title>Elapsed time</title>

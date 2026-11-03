@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import tempfile
+import time
 from datetime import datetime, timezone
 
 
@@ -37,7 +38,16 @@ def write(path, value):
             json.dump(value, output, ensure_ascii=False, indent=2, allow_nan=False)
             output.flush()
             os.fsync(output.fileno())
-        os.replace(temporary, path)
+        for attempt in range(5):
+            try:
+                os.replace(temporary, path)
+                break
+            except PermissionError as error:
+                # Windows readers/antivirus can briefly hold a handle without
+                # delete-sharing. Keep atomic replacement, with a bounded retry.
+                if getattr(error, 'winerror', None) not in (5, 32, 33) or attempt == 4:
+                    raise
+                time.sleep(.01 * 2 ** attempt)
     finally:
         if temporary:
             temporary.unlink(missing_ok=True)

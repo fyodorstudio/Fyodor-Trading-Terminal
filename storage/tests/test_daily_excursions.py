@@ -103,6 +103,38 @@ class DailyExcursionTests(TestCase):
         values=[basket.path(c)[100][1] for c in ('USD',*LEGS)]
         self.assertAlmostEqual(sum(values),0)
 
+    def test_verified_d1_closes_resolve_rollover_gap_without_filling_sampled_minutes(self):
+        doc = document(count=1439)
+        doc['closes'] = {symbol: 1.01 if symbol == 'EURUSD' else 1. for symbol, _ in LEGS.values()}
+        result = DailyBasket(doc, doc['captured_utc']).assessment(episode())
+        self.assertEqual(result['day']['status'], 'partial')
+        self.assertEqual(result['day']['missing_samples'], 1)
+        self.assertEqual(result['day']['max_pct'], 0, 'D1 endpoints never manufacture a synchronized M1 excursion')
+        self.assertAlmostEqual(result['day']['close_pct'], 1)
+        self.assertEqual(result['day']['close_basis'], 'broker_d1_close')
+        self.assertEqual(result['after_verdict']['terminal_basis'], 'broker_d1_close')
+        self.assertEqual(result['after_verdict']['close_result'], 'aligned')
+        self.assertAlmostEqual(result['after_verdict']['terminal_return_pct'], 1)
+        self.assertEqual(result['active_window']['terminal_basis'], 'synchronized_m1_close')
+        self.assertEqual(result['active_window']['close_result'], 'flat')
+        doc['closes']['GBPUSD'] = None
+        incomplete = DailyBasket(doc, doc['captured_utc']).assessment(episode())
+        self.assertNotIn('close_pct', incomplete['day'], 'All seven verified D1 closes are required for the basket')
+        self.assertEqual(incomplete['after_verdict']['terminal_status'], 'unavailable')
+
+    def test_forming_or_pre_close_d1_reads_never_become_final_endpoints(self):
+        doc = document(count=60, final=False)
+        doc['closes'] = {symbol: 1.2 for symbol, _ in LEGS.values()}
+        result = DailyBasket(doc, doc['captured_utc']).assessment(episode())
+        self.assertEqual(result['phase'], 'developing')
+        self.assertEqual(result['day']['current_pct'], 0)
+        self.assertNotIn('close_pct', result['day'])
+        start,end = bounds(doc['day'])
+        doc['d1_observed_utc'] = stamp(datetime.fromtimestamp(end-1, timezone.utc))
+        doc['captured_utc'] = stamp(datetime.fromtimestamp(end+1, timezone.utc))
+        result = DailyBasket(doc, doc['captured_utc']).assessment(episode())
+        self.assertNotIn('close_pct', result['day'], 'A read spanning rollover must reread completed D1 candles')
+
     def test_developing_forming_missing_and_invalid_samples(self):
         doc=document(count=10,final=False,price=lambda s,n:1.1 if s=='EURUSD' and n==9 else 1.)
         start,_=bounds(doc['day']); cutoff=stamp(datetime.fromtimestamp(start+9*60+20,timezone.utc))
@@ -249,4 +281,6 @@ class DailyMarketTests(TestCase):
         result=read_day(native,{'identity':self.health,'day':'2026-11-02'})
         self.assertEqual(native.outer,[('EURUSD','D1'),('EURUSD','M1')])
         self.assertEqual(result['samples']['EURUSD'][0][0],start)
+        self.assertEqual(result['closes']['EURUSD'], 1.)
         self.assertIsNone(result['opens']['GBPUSD'])
+        self.assertIsNone(result['closes']['GBPUSD'])

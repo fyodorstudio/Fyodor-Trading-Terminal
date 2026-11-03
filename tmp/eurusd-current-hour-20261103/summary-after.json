@@ -1,0 +1,436 @@
+{
+  "schema": 1,
+  "revision": "c164e0c4550027ef9983f5cfe4a85068f753b54f80b0cba74db31accb9387a37",
+  "review_id": "efd603b9c9b34c84a47a00ddb632701c",
+  "as_of_utc": "2026-11-03T00:52:13.519909Z",
+  "rows": [
+    {
+      "currency": "USD",
+      "verdict": "POTENTIAL WEAKENING",
+      "basis": "standalone",
+      "intensity": "slight",
+      "horizon": "Current early Asian hour through November 3 8:30 AM Jakarta; reassess unscheduled material news immediately.",
+      "review_status": "complete",
+      "stage_note": "Focused EUR/USD refresh through cutoff: checked overnight and preceding-hour news, early Tuesday energy/futures narratives, the late Reuters currency body, actual SLOOS and financing release, and contrary rate support. Goolsbee November 2 was a moderated BIS Q&A, not an assumed policy speech. IBD subscriber body and minute-exact oil publication unavailable; no last-hour EUR/USD-specific catalyst verified.",
+      "verified_utc": "2026-11-03T00:52:13.519909Z",
+      "evidence_anchor": {
+        "title": "After-hours technology losses coexist with a modest early futures recovery",
+        "event_at": "2026-11-02T21:53:32Z",
+        "event_date": null,
+        "sources": [
+          {
+            "kind": "web",
+            "label": "IBD: after-hours technology review",
+            "locator": "https://www.investors.com/market-trend/stock-market-today/dow-jones-futures-ai-trade-apple-earnings-aapl-stock-palantir-earnings-midterm-elections/",
+            "note": "Direct HTML metadata: original publication November 2 21:53:32 UTC, updated November 3 00:35:36 UTC. Public headline and summary only; full subscriber body unavailable. Update clock does not date the underlying earnings release."
+          },
+          {
+            "kind": "web",
+            "label": "Trading Economics: early Tuesday futures and earnings",
+            "locator": "https://tradingeconomics.com/united-states/stock-market",
+            "note": "Full current narrative opened: futures modestly firmer despite Apple and Palantir after-hours losses. Article publication hour unknown; generic 12:00 metadata is future at retrieval and rejected as a news clock. Derivative display values are not official cash closes."
+          },
+          {
+            "kind": "web",
+            "label": "Reuters: late Monday oil and competing dollar haven demand",
+            "locator": "https://www.devdiscourse.com/article/international/4000890-forex-dollar-falls-ahead-of-us-midterms-as-oil-plummets",
+            "note": "Full syndicated body downloaded. Published/updated November 3 01:45:02 IST = November 2 20:15:02 UTC / November 3 3:15:02 AM Jakarta. Technology worries can support dollar haven demand, opposing a one-way US-asset-outflow interpretation."
+          }
+        ],
+        "note": "Latest recorded development referenced by this assessment; the full dated evidence and offsets remain in Thesis."
+      },
+      "reassessment": {
+        "title": "China cash opening: test whether technology risk creates defensive dollar demand",
+        "event_at": "2026-11-03T01:30:00Z",
+        "event_date": null,
+        "verified_utc": "2026-11-03T00:52:13.519909Z",
+        "sources": [
+          {
+            "kind": "web",
+            "label": "SSE official continuous trading schedule",
+            "locator": "https://english.sse.com.cn/start/trading/schedule/",
+            "note": "Stocks continuous session starts 09:30 China time = 8:30 AM Jakarta."
+          },
+          {
+            "kind": "web",
+            "label": "SSE official 2026 holiday notice",
+            "locator": "https://www.sse.com.cn/disclosure/announcement/general/c/c_20251222_10802507.shtml",
+            "note": "November 3 is an ordinary Tuesday outside the listed 2026 holiday closures; reused verified schedule."
+          }
+        ],
+        "note": "November 3 8:30 AM Jakarta. Reassess whether Asian risk transmission and energy headlines preserve importer relief or create broad defensive dollar demand. This is one evidence checkpoint for the present hour, not an automatic news release, alarm or forecast of the opening direction."
+      },
+      "reassessment_gap": ""
+    },
+    {
+      "currency": "EUR",
+      "verdict": "POTENTIAL STRENGTHENING",
+      "basis": "standalone",
+      "intensity": "moderate",
+      "horizon": "Current early Asian hour through November 3 8:30 AM Jakarta; reassess unscheduled material news immediately.",
+      "review_status": "complete",
+      "stage_note": "Focused EUR/USD refresh through cutoff: checked overnight and preceding-hour news, early Tuesday energy/futures narratives, the late Reuters currency body, actual SLOOS and financing release, and contrary rate support. Goolsbee November 2 was a moderated BIS Q&A, not an assumed policy speech. IBD subscriber body and minute-exact oil publication unavailable; no last-hour EUR/USD-specific catalyst verified.",
+      "verified_utc": "2026-11-03T00:52:13.519909Z",
+      "evidence_anchor": {
+        "title": "After-hours technology losses coexist with a modest early futures recovery",
+        "event_at": "2026-11-02T21:53:32Z",
+        "event_date": null,
+        "sources": [
+          {
+            "kind": "web",
+            "label": "IBD: after-hours technology review",
+            "locator": "https://www.investors.com/market-trend/stock-market-today/dow-jones-futures-ai-trade-apple-earnings-aapl-stock-palantir-earnings-midterm-elections/",
+            "note": "Direct HTML metadata: original publication November 2 21:53:32 UTC, updated November 3 00:35:36 UTC. Public headline and summary only; full subscriber body unavailable. Update clock does not date the underlying earnings release."
+          },
+          {
+            "kind": "web",
+            "label": "Trading Economics: early Tuesday futures and earnings",
+            "locator": "https://tradingeconomics.com/united-states/stock-market",
+            "note": "Full current narrative opened: futures modestly firmer despite Apple and Palantir after-hours losses. Article publication hour unknown; generic 12:00 metadata is future at retrieval and rejected as a news clock. Derivative display values are not official cash closes."
+          },
+          {
+            "kind": "web",
+            "label": "Reuters: late Monday oil and competing dollar haven demand",
+            "locator": "https://www.devdiscourse.com/article/international/4000890-forex-dollar-falls-ahead-of-us-midterms-as-oil-plummets",
+            "note": "Full syndicated body downloaded. Published/updated November 3 01:45:02 IST = November 2 20:15:02 UTC / November 3 3:15:02 AM Jakarta. Technology worries can support dollar haven demand, opposing a one-way US-asset-outflow interpretation."
+          }
+        ],
+        "note": "Latest recorded development referenced by this assessment; the full dated evidence and offsets remain in Thesis."
+      },
+      "reassessment": {
+        "title": "China cash opening: test whether technology risk creates defensive dollar demand",
+        "event_at": "2026-11-03T01:30:00Z",
+        "event_date": null,
+        "verified_utc": "2026-11-03T00:52:13.519909Z",
+        "sources": [
+          {
+            "kind": "web",
+            "label": "SSE official continuous trading schedule",
+            "locator": "https://english.sse.com.cn/start/trading/schedule/",
+            "note": "Stocks continuous session starts 09:30 China time = 8:30 AM Jakarta."
+          },
+          {
+            "kind": "web",
+            "label": "SSE official 2026 holiday notice",
+            "locator": "https://www.sse.com.cn/disclosure/announcement/general/c/c_20251222_10802507.shtml",
+            "note": "November 3 is an ordinary Tuesday outside the listed 2026 holiday closures; reused verified schedule."
+          }
+        ],
+        "note": "November 3 8:30 AM Jakarta. Reassess whether Asian risk transmission and energy headlines preserve importer relief or create broad defensive dollar demand. This is one evidence checkpoint for the present hour, not an automatic news release, alarm or forecast of the opening direction."
+      },
+      "reassessment_gap": ""
+    },
+    {
+      "currency": "GBP",
+      "verdict": "POTENTIAL STRENGTHENING",
+      "basis": "standalone",
+      "intensity": "slight",
+      "horizon": "Current session to the saved mechanism-specific checkpoint; no automatic continuation beyond it.",
+      "review_status": "complete",
+      "stage_note": "Reviewed intervening news through cutoff, including the US close, Treasury financing actuals, early Asian oil narrative, New Zealand consents, Chinese support and available Apple results as relevant. Dated policy/inflation/labour/activity foundations retained. Apple webcast guidance, private flows and future releases are not asserted.",
+      "verified_utc": "2026-11-02T23:57:36.324334Z",
+      "evidence_anchor": {
+        "title": "BoE tightening expectations leave sterling exposed to a less aggressive delivered path",
+        "event_at": "2026-11-02T12:08:00Z",
+        "event_date": null,
+        "sources": [
+          {
+            "kind": "web",
+            "label": "Reuters November 2: sterling and BoE path expectations",
+            "locator": "https://new.streetinsider.com/Reuters/Sterling%2Bdrifts%2Bas%2BBoE%2Brate%2Bdecision%2Bcomes%2Binto%2Bfocus/27269482.html",
+            "note": "Published November 2 12:08 UTC. Report-time LSEG pricing of four hikes by next September; ING calls the pricing extreme. This is not a fresh matched OIS capture or a delivered MPC decision."
+          },
+          {
+            "kind": "web",
+            "label": "Reuters: expected November BoE hike and later-path opposition",
+            "locator": "https://www.investing.com/news/economy-news/bank-of-england-poised-to-raise-rates-but-may-push-back-on-bets-for-more-4989788",
+            "note": "Expected 4% rate and 7-2 vote remain forecasts; conference November 5 12:30 GMT."
+          }
+        ],
+        "note": "Latest recorded development referenced by this assessment; the full dated evidence and offsets remain in Thesis."
+      },
+      "reassessment": {
+        "title": "European opening: energy relief versus an overextended BoE path",
+        "event_at": "2026-11-03T08:00:00Z",
+        "event_date": null,
+        "verified_utc": "2026-11-02T23:57:36.324334Z",
+        "sources": [
+          {
+            "kind": "web",
+            "label": "LSEG: FTSE UK index opening hours",
+            "locator": "https://www.lseg.com/content/dam/ftse-russell/en_us/documents/ground-rules/ftse-uk-index-series-ground-rules-mar-22.pdf",
+            "note": "Official schedule specifies 08:00 London opening. November 2 London is GMT: 08:00 UTC / 3 PM Jakarta."
+          },
+          {
+            "kind": "web",
+            "label": "London Stock Exchange business days",
+            "locator": "https://www.londonstockexchange.com/equities-trading/business-days",
+            "note": "November 2 is a normal weekday, outside the listed 2026 holiday closures."
+          }
+        ],
+        "note": "November 3 3 PM Jakarta. Test household cost relief and fiscal reassurance against scope for the BoE to push back on several further hikes."
+      },
+      "reassessment_gap": ""
+    },
+    {
+      "currency": "JPY",
+      "verdict": "POTENTIAL STRENGTHENING",
+      "basis": "standalone",
+      "intensity": "slight",
+      "horizon": "Current session to the saved mechanism-specific checkpoint; no automatic continuation beyond it.",
+      "review_status": "complete",
+      "stage_note": "Reviewed intervening news through cutoff, including the US close, Treasury financing actuals, early Asian oil narrative, New Zealand consents, Chinese support and available Apple results as relevant. Dated policy/inflation/labour/activity foundations retained. Apple webcast guidance, private flows and future releases are not asserted.",
+      "verified_utc": "2026-11-02T23:57:36.324334Z",
+      "evidence_anchor": {
+        "title": "US close reverses the early technology rebound",
+        "event_at": null,
+        "event_date": "2026-11-03",
+        "sources": [
+          {
+            "kind": "web",
+            "label": "AP: completed November 2 US cash session",
+            "locator": "https://apnews.com/article/048328e49e47ce7afe6c1fb9d9acf13d",
+            "note": "Updated closing body returned by web search; direct page denied access. Initial article clock does not date the later closing text. TE closing news independently corroborates the direction, with different derivative index values."
+          },
+          {
+            "kind": "web",
+            "label": "Trading Economics: S&P and Nasdaq close lower",
+            "locator": "https://tradingeconomics.com/united-states/stock-market/news/597401",
+            "note": "Full closing narrative opened. Displayed 19:33 timestamp is inconsistent with a 21:00 UTC cash close if read as UTC; timezone/initial-versus-update hour unresolved. No exact publication instant asserted."
+          }
+        ],
+        "note": "Latest recorded development referenced by this assessment; the full dated evidence and offsets remain in Thesis."
+      },
+      "reassessment": {
+        "title": "First China session after the support announcement: risk transmission to JPY",
+        "event_at": "2026-11-03T01:30:00Z",
+        "event_date": null,
+        "verified_utc": "2026-11-02T23:57:36.324334Z",
+        "sources": [
+          {
+            "kind": "web",
+            "label": "Shanghai Stock Exchange trading hours",
+            "locator": "https://english.sse.com.cn/start/trading/schedule/",
+            "note": "Continuous stocks trading begins 9:30 China time = 01:30 UTC / 8:30 AM Jakarta. Opening auction begins 15 minutes earlier; checkpoint is the continuous session, not a claimed policy publication time."
+          },
+          {
+            "kind": "web",
+            "label": "SSE official 2026 holiday notice",
+            "locator": "https://www.sse.com.cn/disclosure/announcement/general/c/c_20251222_10802507.shtml",
+            "note": "November 3 is a normal Tuesday outside the listed 2026 holiday closures."
+          },
+          {
+            "kind": "web",
+            "label": "Lianhe Zaobao: November 2 China capital-market support",
+            "locator": "https://www.zaobao.com.sg/news/china/story20261102-9935462",
+            "note": "Full body opened; published 23:34 Singapore / 15:34 UTC. 31 institutions requested more than CNY 100 bn; requested amount is not completed allotment or real-economy spending. PBoC index did not expose the linked announcement body."
+          }
+        ],
+        "note": "November 3 8:30 AM Jakarta. Test whether Chinese support reverses the renewed technology-risk impulse and reduces JPY defensive support; cheaper imports and the BoJ path remain separate. Tokyo cash is on holiday."
+      },
+      "reassessment_gap": ""
+    },
+    {
+      "currency": "CHF",
+      "verdict": "POTENTIAL STRENGTHENING",
+      "basis": "standalone",
+      "intensity": "slight",
+      "horizon": "Current session to the saved mechanism-specific checkpoint; no automatic continuation beyond it.",
+      "review_status": "complete",
+      "stage_note": "Reviewed intervening news through cutoff, including the US close, Treasury financing actuals, early Asian oil narrative, New Zealand consents, Chinese support and available Apple results as relevant. Dated policy/inflation/labour/activity foundations retained. Apple webcast guidance, private flows and future releases are not asserted.",
+      "verified_utc": "2026-11-02T23:57:36.324334Z",
+      "evidence_anchor": {
+        "title": "US close reverses the early technology rebound",
+        "event_at": null,
+        "event_date": "2026-11-03",
+        "sources": [
+          {
+            "kind": "web",
+            "label": "AP: completed November 2 US cash session",
+            "locator": "https://apnews.com/article/048328e49e47ce7afe6c1fb9d9acf13d",
+            "note": "Updated closing body returned by web search; direct page denied access. Initial article clock does not date the later closing text. TE closing news independently corroborates the direction, with different derivative index values."
+          },
+          {
+            "kind": "web",
+            "label": "Trading Economics: S&P and Nasdaq close lower",
+            "locator": "https://tradingeconomics.com/united-states/stock-market/news/597401",
+            "note": "Full closing narrative opened. Displayed 19:33 timestamp is inconsistent with a 21:00 UTC cash close if read as UTC; timezone/initial-versus-update hour unresolved. No exact publication instant asserted."
+          }
+        ],
+        "note": "Latest recorded development referenced by this assessment; the full dated evidence and offsets remain in Thesis."
+      },
+      "reassessment": {
+        "title": "Swiss October CPI: test CHF pricing persistence against the funding-rate disadvantage",
+        "event_at": "2026-11-03T07:30:00Z",
+        "event_date": null,
+        "verified_utc": "2026-11-02T19:39:16.092029Z",
+        "sources": [
+          {
+            "kind": "web",
+            "label": "FSO official CPI release schedule",
+            "locator": "https://dam-api.bfs.admin.ch/hub/api/dam/assets/36353838/master",
+            "note": "Only the official calendar is used: October CPI November 3 08:30 Swiss time = 07:30 UTC / 2:30 PM Jakarta."
+          }
+        ],
+        "note": "November 3 2:30 PM Jakarta. A soft package can favour a GBPCHF recovery; stronger underlying persistence can reinforce CHF. November 5 BoE decision and Q&A are the later counterpart tests."
+      },
+      "reassessment_gap": ""
+    },
+    {
+      "currency": "CAD",
+      "verdict": "POTENTIAL WEAKENING",
+      "basis": "standalone",
+      "intensity": "moderate",
+      "horizon": "Current session to the saved mechanism-specific checkpoint; no automatic continuation beyond it.",
+      "review_status": "complete",
+      "stage_note": "Reviewed intervening news through cutoff, including the US close, Treasury financing actuals, early Asian oil narrative, New Zealand consents, Chinese support and available Apple results as relevant. Dated policy/inflation/labour/activity foundations retained. Apple webcast guidance, private flows and future releases are not asserted.",
+      "verified_utc": "2026-11-02T23:57:36.324334Z",
+      "evidence_anchor": {
+        "title": "Canadian manufacturing contracts while trade signals and yield convergence oppose weakness",
+        "event_at": "2026-11-02T18:36:00Z",
+        "event_date": null,
+        "sources": [
+          {
+            "kind": "web",
+            "label": "Reuters: Canadian manufacturing contraction",
+            "locator": "https://wsau.com/2026/11/02/canadian-factory-pmi-shows-sector-contracting-for-first-time-in-2026/",
+            "note": "November 2 08:35 AM US Central / 14:35 UTC; identifies S&P Global actuals."
+          },
+          {
+            "kind": "web",
+            "label": "Reuters: later CAD trade and yield-spread opposition",
+            "locator": "https://www.marketscreener.com/news/canadian-dollar-steadies-as-investors-weigh-officials-trade-comments-ce785fd9db8af32d",
+            "note": "November 2 18:36 UTC; no delivered tariff agreement. Two-year spread about 129 bp versus up to 161 bp last month, not a new measured intraday narrowing."
+          }
+        ],
+        "note": "Latest recorded development referenced by this assessment; the full dated evidence and offsets remain in Thesis."
+      },
+      "reassessment": {
+        "title": "European energy session: CAD export-income loss versus trade relief",
+        "event_at": "2026-11-03T08:00:00Z",
+        "event_date": null,
+        "verified_utc": "2026-11-02T23:57:36.324334Z",
+        "sources": [
+          {
+            "kind": "web",
+            "label": "LSEG: FTSE UK index opening hours",
+            "locator": "https://www.lseg.com/content/dam/ftse-russell/en_us/documents/ground-rules/ftse-uk-index-series-ground-rules-mar-22.pdf",
+            "note": "Official schedule specifies 08:00 London opening. November 2 London is GMT: 08:00 UTC / 3 PM Jakarta."
+          },
+          {
+            "kind": "web",
+            "label": "London Stock Exchange business days",
+            "locator": "https://www.londonstockexchange.com/equities-trading/business-days",
+            "note": "November 2 is a normal weekday, outside the listed 2026 holiday closures."
+          }
+        ],
+        "note": "November 3 3 PM Jakarta. Test persistence of the oil-income shock after the Asian handover. Constructive trade comments or firmer BoC guidance can offset it; neither is assumed delivered."
+      },
+      "reassessment_gap": ""
+    },
+    {
+      "currency": "AUD",
+      "verdict": "POTENTIAL WEAKENING",
+      "basis": "standalone",
+      "intensity": "slight",
+      "horizon": "Current session to the saved mechanism-specific checkpoint; no automatic continuation beyond it.",
+      "review_status": "complete",
+      "stage_note": "Reviewed intervening news through cutoff, including the US close, Treasury financing actuals, early Asian oil narrative, New Zealand consents, Chinese support and available Apple results as relevant. Dated policy/inflation/labour/activity foundations retained. Apple webcast guidance, private flows and future releases are not asserted.",
+      "verified_utc": "2026-11-02T23:57:36.324334Z",
+      "evidence_anchor": {
+        "title": "US close reverses the early technology rebound",
+        "event_at": null,
+        "event_date": "2026-11-03",
+        "sources": [
+          {
+            "kind": "web",
+            "label": "AP: completed November 2 US cash session",
+            "locator": "https://apnews.com/article/048328e49e47ce7afe6c1fb9d9acf13d",
+            "note": "Updated closing body returned by web search; direct page denied access. Initial article clock does not date the later closing text. TE closing news independently corroborates the direction, with different derivative index values."
+          },
+          {
+            "kind": "web",
+            "label": "Trading Economics: S&P and Nasdaq close lower",
+            "locator": "https://tradingeconomics.com/united-states/stock-market/news/597401",
+            "note": "Full closing narrative opened. Displayed 19:33 timestamp is inconsistent with a 21:00 UTC cash close if read as UTC; timezone/initial-versus-update hour unresolved. No exact publication instant asserted."
+          }
+        ],
+        "note": "Latest recorded development referenced by this assessment; the full dated evidence and offsets remain in Thesis."
+      },
+      "reassessment": {
+        "title": "RBA decision and projections: capacity pressure versus an expected hike",
+        "event_at": "2026-11-03T03:30:00Z",
+        "event_date": null,
+        "verified_utc": "2026-11-02T23:57:36.324334Z",
+        "sources": [
+          {
+            "kind": "web",
+            "label": "RBA November calendar",
+            "locator": "https://www.rba.gov.au/schedules-events/calendar/",
+            "note": "November 3 statement and forecasts 14:30 AEDT = 03:30 UTC / 10:30 AM Jakarta; conference 15:30 AEDT = 04:30 UTC / 11:30 AM Jakarta."
+          }
+        ],
+        "note": "November 3 10:30 AM Jakarta. A 4.85% rate is an attributed expectation. Assess forecasts and continuing path; separate conference at 11:30 AM remains a later material guidance stage."
+      },
+      "reassessment_gap": ""
+    },
+    {
+      "currency": "NZD",
+      "verdict": "POTENTIAL WEAKENING",
+      "basis": "standalone",
+      "intensity": "slight",
+      "horizon": "Current session to the saved mechanism-specific checkpoint; no automatic continuation beyond it.",
+      "review_status": "complete",
+      "stage_note": "Reviewed intervening news through cutoff, including the US close, Treasury financing actuals, early Asian oil narrative, New Zealand consents, Chinese support and available Apple results as relevant. Dated policy/inflation/labour/activity foundations retained. Apple webcast guidance, private flows and future releases are not asserted.",
+      "verified_utc": "2026-11-02T23:57:36.324334Z",
+      "evidence_anchor": {
+        "title": "US close reverses the early technology rebound",
+        "event_at": null,
+        "event_date": "2026-11-03",
+        "sources": [
+          {
+            "kind": "web",
+            "label": "AP: completed November 2 US cash session",
+            "locator": "https://apnews.com/article/048328e49e47ce7afe6c1fb9d9acf13d",
+            "note": "Updated closing body returned by web search; direct page denied access. Initial article clock does not date the later closing text. TE closing news independently corroborates the direction, with different derivative index values."
+          },
+          {
+            "kind": "web",
+            "label": "Trading Economics: S&P and Nasdaq close lower",
+            "locator": "https://tradingeconomics.com/united-states/stock-market/news/597401",
+            "note": "Full closing narrative opened. Displayed 19:33 timestamp is inconsistent with a 21:00 UTC cash close if read as UTC; timezone/initial-versus-update hour unresolved. No exact publication instant asserted."
+          }
+        ],
+        "note": "Latest recorded development referenced by this assessment; the full dated evidence and offsets remain in Thesis."
+      },
+      "reassessment": {
+        "title": "First China session after the support announcement: risk transmission to NZD",
+        "event_at": "2026-11-03T01:30:00Z",
+        "event_date": null,
+        "verified_utc": "2026-11-02T23:57:36.324334Z",
+        "sources": [
+          {
+            "kind": "web",
+            "label": "Shanghai Stock Exchange trading hours",
+            "locator": "https://english.sse.com.cn/start/trading/schedule/",
+            "note": "Continuous stocks trading begins 9:30 China time = 01:30 UTC / 8:30 AM Jakarta. Opening auction begins 15 minutes earlier; checkpoint is the continuous session, not a claimed policy publication time."
+          },
+          {
+            "kind": "web",
+            "label": "SSE official 2026 holiday notice",
+            "locator": "https://www.sse.com.cn/disclosure/announcement/general/c/c_20251222_10802507.shtml",
+            "note": "November 3 is a normal Tuesday outside the listed 2026 holiday closures."
+          },
+          {
+            "kind": "web",
+            "label": "Lianhe Zaobao: November 2 China capital-market support",
+            "locator": "https://www.zaobao.com.sg/news/china/story20261102-9935462",
+            "note": "Full body opened; published 23:34 Singapore / 15:34 UTC. 31 institutions requested more than CNY 100 bn; requested amount is not completed allotment or real-economy spending. PBoC index did not expose the linked announcement body."
+          }
+        ],
+        "note": "November 3 8:30 AM Jakarta. Test whether Chinese support and cheaper energy displace domestic-demand weakness in regional risk appetite. This is the first session after the support announcement, not a recurring opening rule."
+      },
+      "reassessment_gap": ""
+    }
+  ]
+}

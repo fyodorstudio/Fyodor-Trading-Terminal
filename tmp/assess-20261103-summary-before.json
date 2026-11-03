@@ -1,0 +1,388 @@
+{
+  "schema": 1,
+  "revision": "9ada4184edeca4ebf0cf45878c1b3081a012ec67d05c666e5bef1b8728c98c05",
+  "review_id": "474fd1d71098441c9a7bf7fd1a66c7db",
+  "as_of_utc": "2026-11-02T19:53:28.798985Z",
+  "rows": [
+    {
+      "currency": "USD",
+      "verdict": "POTENTIAL WEAKENING",
+      "basis": "standalone",
+      "intensity": "slight",
+      "horizon": "Current session and near-term continuation until fresh evidence; next invocation at the saved mechanism-specific stage. This does not promise direction until the checkpoint.",
+      "review_status": "complete",
+      "stage_note": "Reviewed intervening November 2 releases and later US-session diplomacy/risk reporting through cutoff, with dated policy/inflation/labour/activity foundations reused. Elapsed prior stages resolved. Future decisions and election outcomes remain unknown.",
+      "verified_utc": "2026-11-02T19:11:00.827838Z",
+      "evidence_anchor": {
+        "title": "October lending survey shows softer loan demand and targeted credit tightening",
+        "event_at": "2026-11-02T19:00:00Z",
+        "event_date": null,
+        "sources": [
+          {
+            "kind": "web",
+            "label": "Federal Reserve: October 2026 SLOOS",
+            "locator": "https://www.federalreserve.gov/data/sloos/sloos-202610.htm",
+            "note": "Current official October survey body opened after scheduled November 2 19:00 UTC release; last update November 2. Survey responses due October 5."
+          }
+        ],
+        "note": "Latest recorded development referenced by this assessment; the full dated evidence and offsets remain in Thesis."
+      },
+      "reassessment": {
+        "title": "Treasury financing estimates: challenge the lower-yield and funding balance",
+        "event_at": "2026-11-02T20:00:00Z",
+        "event_date": null,
+        "verified_utc": "2026-11-02T19:11:00.827838Z",
+        "sources": [
+          {
+            "kind": "web",
+            "label": "Treasury quarterly refunding release schedule",
+            "locator": "https://home.treasury.gov/policy-issues/financing-the-government/quarterly-refunding/most-recent-quarterly-refunding-documents/",
+            "note": "Official page: next financing estimates November 2, 3 PM Eastern convention; policy/refunding November 4 8:30 AM. EST applies: 20:00 and 13:30 UTC respectively."
+          }
+        ],
+        "note": "November 3 3 AM Jakarta. Compare new borrowing/cash assumptions with prior estimates and test any material funding/yield reversal; a larger issue size alone is not proof of FX demand."
+      },
+      "reassessment_gap": ""
+    },
+    {
+      "currency": "EUR",
+      "verdict": "POTENTIAL STRENGTHENING",
+      "basis": "standalone",
+      "intensity": "moderate",
+      "horizon": "Current session and near-term continuation until fresh evidence; next invocation at the saved mechanism-specific stage. This does not promise direction until the checkpoint.",
+      "review_status": "complete",
+      "stage_note": "Reviewed intervening November 2 releases and later US-session diplomacy/risk reporting through cutoff, with dated policy/inflation/labour/activity foundations reused. Elapsed prior stages resolved. Future decisions and election outcomes remain unknown.",
+      "verified_utc": "2026-11-02T19:11:00.827838Z",
+      "evidence_anchor": {
+        "title": "Euro-area manufacturing holds up while German retail disappoints",
+        "event_at": "2026-11-02T11:47:00Z",
+        "event_date": null,
+        "sources": [
+          {
+            "kind": "web",
+            "label": "Reuters: October global manufacturing and euro-area final",
+            "locator": "https://ca.marketscreener.com/news/manufacturing-solid-but-strain-of-energy-costs-supply-disruptions-starts-to-show-ce785fd8d18cf223",
+            "note": "November 2 11:47 UTC; updated 11:49 UTC. Euro-area headline 52.7 versus flash 52.4."
+          },
+          {
+            "kind": "web",
+            "label": "Reuters: German September retail miss",
+            "locator": "https://www.streetinsider.com/Reuters/German%2Bretail%2Bsales%2Bfalls%2Bunexpectedly%2Bin%2BSeptember/27267956.html",
+            "note": "November 2 07:11 UTC; Reuters forecast +0.4%."
+          }
+        ],
+        "note": "Latest recorded development referenced by this assessment; the full dated evidence and offsets remain in Thesis."
+      },
+      "reassessment": {
+        "title": "European cash opening: persistence of imported-energy and financing relief",
+        "event_at": "2026-11-03T08:00:00Z",
+        "event_date": null,
+        "verified_utc": "2026-11-02T19:11:00.827838Z",
+        "sources": [
+          {
+            "kind": "web",
+            "label": "LSEG: FTSE UK index opening hours",
+            "locator": "https://www.lseg.com/content/dam/ftse-russell/en_us/documents/ground-rules/ftse-uk-index-series-ground-rules-mar-22.pdf",
+            "note": "Official schedule specifies 08:00 London opening. November 2 London is GMT: 08:00 UTC / 3 PM Jakarta."
+          },
+          {
+            "kind": "web",
+            "label": "London Stock Exchange business days",
+            "locator": "https://www.londonstockexchange.com/equities-trading/business-days",
+            "note": "November 2 is a normal weekday, outside the listed 2026 holiday closures."
+          }
+        ],
+        "note": "November 3 3 PM Jakarta, London GMT. Test whether cheaper energy still eases real-income and French financing pressure after overnight developments. This is one mechanism check, not a recurring opening schedule."
+      },
+      "reassessment_gap": ""
+    },
+    {
+      "currency": "GBP",
+      "verdict": "POTENTIAL STRENGTHENING",
+      "basis": "standalone",
+      "intensity": "slight",
+      "horizon": "Current session and near-term continuation until fresh evidence; next invocation at the saved mechanism-specific stage. This does not promise direction until the checkpoint.",
+      "review_status": "complete",
+      "stage_note": "Focused GBP/CHF review through cutoff: current BoE path expectations, Swiss manufacturing/retail and policy foundations, energy/risk opposition and bounded current broker M1 feedback. The historical September investigation is kept separate; future CPI/MPC actuals remain unknown.",
+      "verified_utc": "2026-11-02T19:39:16.092029Z",
+      "evidence_anchor": {
+        "title": "BoE tightening expectations leave sterling exposed to a less aggressive delivered path",
+        "event_at": "2026-11-02T12:08:00Z",
+        "event_date": null,
+        "sources": [
+          {
+            "kind": "web",
+            "label": "Reuters November 2: sterling and BoE path expectations",
+            "locator": "https://new.streetinsider.com/Reuters/Sterling%2Bdrifts%2Bas%2BBoE%2Brate%2Bdecision%2Bcomes%2Binto%2Bfocus/27269482.html",
+            "note": "Published November 2 12:08 UTC. Report-time LSEG pricing of four hikes by next September; ING calls the pricing extreme. This is not a fresh matched OIS capture or a delivered MPC decision."
+          },
+          {
+            "kind": "web",
+            "label": "Reuters: expected November BoE hike and later-path opposition",
+            "locator": "https://www.investing.com/news/economy-news/bank-of-england-poised-to-raise-rates-but-may-push-back-on-bets-for-more-4989788",
+            "note": "Expected 4% rate and 7-2 vote remain forecasts; conference November 5 12:30 GMT."
+          }
+        ],
+        "note": "Latest recorded development referenced by this assessment; the full dated evidence and offsets remain in Thesis."
+      },
+      "reassessment": {
+        "title": "European cash opening: energy-cost relief versus the BoE path premium",
+        "event_at": "2026-11-03T08:00:00Z",
+        "event_date": null,
+        "verified_utc": "2026-11-02T19:11:00.827838Z",
+        "sources": [
+          {
+            "kind": "web",
+            "label": "LSEG: FTSE UK index opening hours",
+            "locator": "https://www.lseg.com/content/dam/ftse-russell/en_us/documents/ground-rules/ftse-uk-index-series-ground-rules-mar-22.pdf",
+            "note": "Official schedule specifies 08:00 London opening. November 2 London is GMT: 08:00 UTC / 3 PM Jakarta."
+          },
+          {
+            "kind": "web",
+            "label": "London Stock Exchange business days",
+            "locator": "https://www.londonstockexchange.com/equities-trading/business-days",
+            "note": "November 2 is a normal weekday, outside the listed 2026 holiday closures."
+          }
+        ],
+        "note": "November 3 3 PM Jakarta. Test whether cheaper energy and financing relief still outweigh reduced prospective tightening and household weakness; the November 5 decision is the later policy stage."
+      },
+      "reassessment_gap": ""
+    },
+    {
+      "currency": "JPY",
+      "verdict": "POTENTIAL WEAKENING",
+      "basis": "standalone",
+      "intensity": "slight",
+      "horizon": "Immediate session to the US cash close. Separately, conditional rally potential over the next 1–5 trading sessions depends on the named fresh catalysts; this is not an active broad-index BUY or an execution-level assessment.",
+      "review_status": "complete",
+      "stage_note": "Focused JPY follow-up through cutoff: completed BoJ Outlook/Q&A, current risk and import-cost opposition, final August wage vintage and forthcoming catalyst schedules. Future wage, US-data and Ueda outcomes are unknown; JPYX weights remain unverified.",
+      "verified_utc": "2026-11-02T19:24:29.556757Z",
+      "evidence_anchor": {
+        "title": "Noon BoJ Outlook resolves the checkpoint without a December promise",
+        "event_at": "2026-11-02T05:00:00Z",
+        "event_date": null,
+        "sources": [
+          {
+            "kind": "web",
+            "label": "BoJ full October Outlook, released November 2",
+            "locator": "https://www.boj.or.jp/en/mopo/outlook/gor2610b.pdf",
+            "note": "Official 82-page English PDF downloaded after the 05:00 UTC release. Bank View/policy pp. 1-9 and consumption/anchoring boxes reviewed. The public index and web cache lagged; direct HTTP returned the current PDF."
+          }
+        ],
+        "note": "Latest recorded development referenced by this assessment; the full dated evidence and offsets remain in Thesis."
+      },
+      "reassessment": {
+        "title": "US cash close: does risk relief still reduce JPY protective demand?",
+        "event_at": "2026-11-02T21:00:00Z",
+        "event_date": null,
+        "verified_utc": "2026-11-02T19:11:00.827838Z",
+        "sources": [
+          {
+            "kind": "web",
+            "label": "NYSE 2026 calendar and core session",
+            "locator": "https://www.nyse.com/markets/hours-calendars",
+            "note": "Normal November 2 core close 16:00 EST = 21:00 UTC / November 3 4 AM Jakarta; no listed holiday or early close."
+          }
+        ],
+        "note": "November 3 4 AM Jakarta. Test risk recovery against lower US yields and the completed BoJ normalisation guidance. Tokyo’s November 3 holiday does not supply an ordinary Tokyo cash opening."
+      },
+      "reassessment_gap": ""
+    },
+    {
+      "currency": "CHF",
+      "verdict": "POTENTIAL STRENGTHENING",
+      "basis": "standalone",
+      "intensity": "slight",
+      "horizon": "Current session and near-term continuation until fresh evidence; next invocation at the saved mechanism-specific stage. This does not promise direction until the checkpoint.",
+      "review_status": "complete",
+      "stage_note": "Focused GBP/CHF review through cutoff: current BoE path expectations, Swiss manufacturing/retail and policy foundations, energy/risk opposition and bounded current broker M1 feedback. The historical September investigation is kept separate; future CPI/MPC actuals remain unknown.",
+      "verified_utc": "2026-11-02T19:39:16.092029Z",
+      "evidence_anchor": {
+        "title": "Later Monday diplomacy drives a deeper oil retreat and lower US yields",
+        "event_at": null,
+        "event_date": "2026-11-02",
+        "sources": [
+          {
+            "kind": "web",
+            "label": "Trading Economics: later Monday Brent diplomacy",
+            "locator": "https://tradingeconomics.com/commodity/brent-crude-oil",
+            "note": "Current narrative says oil down around 7%; displayed CFD-linked quotes vary within the page. Publication hour unknown; not an executable futures contract."
+          },
+          {
+            "kind": "web",
+            "label": "Reuters: New York currencies after ISM",
+            "locator": "https://www.marketscreener.com/news/dollar-declines-ahead-of-us-midterms-as-oil-falls-bitcoin-steadies-after-crypto-theft-ce785fd9d888f121",
+            "note": "November 2 15:56 UTC body. Dated snapshot, not live broker pricing."
+          },
+          {
+            "kind": "web",
+            "label": "Trading Economics: US two-year yield",
+            "locator": "https://tradingeconomics.com/united-states/2-year-note-yield",
+            "note": "November 2 OTC indication near 4.59%; not a fresh OIS curve or a measured causal attribution."
+          },
+          {
+            "kind": "web",
+            "label": "Reuters: contacts continue without a breakthrough",
+            "locator": "https://new.streetinsider.com/Reuters/Iran%2Bsays%2Bcontacts%2Bover%2Bending%2Bwar%2Bcontinue%2Bas%2Btalks%2Bend%2Bwith%2Bno%2Bbreakthrough/27268268.html",
+            "note": "November 2 first publication 09:36 UTC; observed body includes later developments. No signed settlement or restored shipping is asserted."
+          },
+          {
+            "kind": "web",
+            "label": "Reuters: later CAD trade and yield-spread opposition",
+            "locator": "https://www.marketscreener.com/news/canadian-dollar-steadies-as-investors-weigh-officials-trade-comments-ce785fd9db8af32d",
+            "note": "November 2 18:36 UTC; no delivered tariff agreement. Two-year spread about 129 bp versus up to 161 bp last month, not a new measured intraday narrowing."
+          }
+        ],
+        "note": "Latest recorded development referenced by this assessment; the full dated evidence and offsets remain in Thesis."
+      },
+      "reassessment": {
+        "title": "Swiss October CPI: test CHF pricing persistence against the funding-rate disadvantage",
+        "event_at": "2026-11-03T07:30:00Z",
+        "event_date": null,
+        "verified_utc": "2026-11-02T19:39:16.092029Z",
+        "sources": [
+          {
+            "kind": "web",
+            "label": "FSO official CPI release schedule",
+            "locator": "https://dam-api.bfs.admin.ch/hub/api/dam/assets/36353838/master",
+            "note": "Only the official calendar is used: October CPI November 3 08:30 Swiss time = 07:30 UTC / 2:30 PM Jakarta."
+          }
+        ],
+        "note": "November 3 2:30 PM Jakarta. A soft package can favour a GBPCHF recovery; stronger underlying persistence can reinforce CHF. November 5 BoE decision and Q&A are the later counterpart tests."
+      },
+      "reassessment_gap": ""
+    },
+    {
+      "currency": "CAD",
+      "verdict": "POTENTIAL WEAKENING",
+      "basis": "standalone",
+      "intensity": "moderate",
+      "horizon": "Immediate remaining US session, with a new review at the US cash close; no promise that weakness persists until then.",
+      "review_status": "complete",
+      "stage_note": "Resolved the elapsed 19:30 UTC oil-stage research check using the post-stage oil context, current policy priorities and dated trade/activity opposition. No certified exchange settlement is claimed; its exact numeric value is not decisive to this potential-impact judgment. Future US-close conditions remain unknown.",
+      "verified_utc": "2026-11-02T19:53:28.798985Z",
+      "evidence_anchor": {
+        "title": "Canadian manufacturing contracts while trade signals and yield convergence oppose weakness",
+        "event_at": "2026-11-02T18:36:00Z",
+        "event_date": null,
+        "sources": [
+          {
+            "kind": "web",
+            "label": "Reuters: Canadian manufacturing contraction",
+            "locator": "https://wsau.com/2026/11/02/canadian-factory-pmi-shows-sector-contracting-for-first-time-in-2026/",
+            "note": "November 2 08:35 AM US Central / 14:35 UTC; identifies S&P Global actuals."
+          },
+          {
+            "kind": "web",
+            "label": "Reuters: later CAD trade and yield-spread opposition",
+            "locator": "https://www.marketscreener.com/news/canadian-dollar-steadies-as-investors-weigh-officials-trade-comments-ce785fd9db8af32d",
+            "note": "November 2 18:36 UTC; no delivered tariff agreement. Two-year spread about 129 bp versus up to 161 bp last month, not a new measured intraday narrowing."
+          }
+        ],
+        "note": "Latest recorded development referenced by this assessment; the full dated evidence and offsets remain in Thesis."
+      },
+      "reassessment": {
+        "title": "US cash close: CAD oil-income pressure versus trade and risk relief",
+        "event_at": "2026-11-02T21:00:00Z",
+        "event_date": null,
+        "verified_utc": "2026-11-02T19:53:28.798985Z",
+        "sources": [
+          {
+            "kind": "web",
+            "label": "NYSE 2026 calendar and core session",
+            "locator": "https://www.nyse.com/markets/hours-calendars",
+            "note": "Normal November 2 core close 16:00 EST = 21:00 UTC / November 3 4 AM Jakarta; no listed holiday or early close."
+          }
+        ],
+        "note": "November 3 4 AM Jakarta. Reassess whether the energy-income shock remains dominant through the close, against trade optimism, a softer USD and the BoC path. Shared review with JPY/NZD uses CAD-specific channels."
+      },
+      "reassessment_gap": ""
+    },
+    {
+      "currency": "AUD",
+      "verdict": "POTENTIAL WEAKENING",
+      "basis": "standalone",
+      "intensity": "slight",
+      "horizon": "Immediate session into the November 3 RBA decision. AUDUSD comparison is bounded earlier by the USD financing checkpoint; support, stop, sizing and execution remain the user’s technical decisions.",
+      "review_status": "complete",
+      "stage_note": "Reviewed intervening November 2 releases and later US-session diplomacy/risk reporting through cutoff, with dated policy/inflation/labour/activity foundations reused. Elapsed prior stages resolved. Future decisions and election outcomes remain unknown.",
+      "verified_utc": "2026-11-02T19:11:00.827838Z",
+      "evidence_anchor": {
+        "title": "AUD remains softer against USD despite an uneven recovery in risk sentiment",
+        "event_at": "2026-11-02T05:39:00Z",
+        "event_date": null,
+        "sources": [
+          {
+            "kind": "web",
+            "label": "Reuters: Monday 05:39 UTC currency update",
+            "locator": "https://ca.marketscreener.com/news/dollar-dithers-ahead-of-us-midterms-bitcoin-under-pressure-from-crypto-heist-ce785fd8dc8af422",
+            "note": "Full current body opened; publisher 00:39 EST / 05:39 UTC. Reported market snapshot, not live broker Bid or proof of support breaking."
+          },
+          {
+            "kind": "web",
+            "label": "Reuters: later Asian shares, oil and rates report",
+            "locator": "https://ca.marketscreener.com/news/stocks-bounce-as-apple-earnings-near-oil-falls-ce785fd8dc89fe2c",
+            "note": "Observed version updated November 2 04:52 UTC. Risk recovery is uneven; the yield level is not a new measured decline."
+          }
+        ],
+        "note": "Latest recorded development referenced by this assessment; the full dated evidence and offsets remain in Thesis."
+      },
+      "reassessment": {
+        "title": "RBA decision and forecasts: one hike or a stronger continuing path?",
+        "event_at": "2026-11-03T03:30:00Z",
+        "event_date": null,
+        "verified_utc": "2026-11-02T19:11:00.827838Z",
+        "sources": [
+          {
+            "kind": "web",
+            "label": "RBA November decision and conference calendar",
+            "locator": "https://www.rba.gov.au/schedules-events/calendar/",
+            "note": "November 3 decision and forecasts 14:30 AEDT = 03:30 UTC / 10:30 AM Jakarta; conference 15:30 AEDT = 04:30 UTC / 11:30 AM Jakarta."
+          }
+        ],
+        "note": "November 3 10:30 AM Jakarta. Test the path and domestic-capacity projections against the expected 4.85% decision. Review Bullock’s separate 11:30 AM conference before claiming a completed policy package."
+      },
+      "reassessment_gap": ""
+    },
+    {
+      "currency": "NZD",
+      "verdict": "POTENTIAL WEAKENING",
+      "basis": "standalone",
+      "intensity": "slight",
+      "horizon": "Current session and near-term continuation until fresh evidence; next invocation at the saved mechanism-specific stage. This does not promise direction until the checkpoint.",
+      "review_status": "complete",
+      "stage_note": "Reviewed intervening November 2 releases and later US-session diplomacy/risk reporting through cutoff, with dated policy/inflation/labour/activity foundations reused. Elapsed prior stages resolved. Future decisions and election outcomes remain unknown.",
+      "verified_utc": "2026-11-02T19:11:00.827838Z",
+      "evidence_anchor": {
+        "title": "Election-week reporting highlights uneven New Zealand demand",
+        "event_at": "2026-11-01T17:07:00Z",
+        "event_date": null,
+        "sources": [
+          {
+            "kind": "web",
+            "label": "Reuters: New Zealand two-speed economy and election",
+            "locator": "https://new.streetinsider.com/Reuters/New%2BZealands%2Btwo-speed%2Beconomy%2Bposes%2Belection%2Bdilemma%2Bfor%2Bruling%2BNational%2Bparty%2B%C2%A0/27267727.html",
+            "note": "Published November 1 12:07 EST / 17:07 UTC; November 2 New Zealand dateline. Full accessible body read. Regional anecdotes and earlier economic observations do not replace Wednesday labour actuals."
+          }
+        ],
+        "note": "Latest recorded development referenced by this assessment; the full dated evidence and offsets remain in Thesis."
+      },
+      "reassessment": {
+        "title": "US cash close: external relief versus fragile NZ domestic demand",
+        "event_at": "2026-11-02T21:00:00Z",
+        "event_date": null,
+        "verified_utc": "2026-11-02T19:11:00.827838Z",
+        "sources": [
+          {
+            "kind": "web",
+            "label": "NYSE 2026 calendar and core session",
+            "locator": "https://www.nyse.com/markets/hours-calendars",
+            "note": "Normal November 2 core close 16:00 EST = 21:00 UTC / November 3 4 AM Jakarta; no listed holiday or early close."
+          }
+        ],
+        "note": "November 3 4 AM Jakarta. Test whether energy/risk relief has displaced household and election caution. The November 4 4:45 AM Jakarta employment/wages package is the later domestic test; the nearer building-consents release is narrower."
+      },
+      "reassessment_gap": ""
+    }
+  ]
+}
