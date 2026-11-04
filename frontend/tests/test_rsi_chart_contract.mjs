@@ -13,11 +13,13 @@ const globals = { window: dom, document: dom.document, HTMLElement: dom.HTMLElem
   getComputedStyle: dom.getComputedStyle.bind(dom), IS_REACT_ACT_ENVIRONMENT: true }
 const previous = new Map([...Object.keys(globals), '__rsiChartLibrary'].map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]))
 for (const [key, value] of Object.entries(globals)) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value })
-const frames = new Map(), contexts = new WeakMap(); let frameId = 0
+const frames = new Map(), contexts = new WeakMap(), paintedText = [], paintedFills = []; let frameId = 0
 dom.requestAnimationFrame = fn => { frames.set(++frameId, fn); return frameId }
 dom.cancelAnimationFrame = id => frames.delete(id)
 dom.HTMLCanvasElement.prototype.getContext = function () {
   if (!contexts.has(this)) contexts.set(this, new Proxy({ canvas: this,
+    fillText: text => paintedText.push(String(text)),
+    fillRect(x, y, width, height) { paintedFills.push({ x, y, width, height, color: this.fillStyle, alpha: this.globalAlpha }) },
     measureText: text => ({ width: String(text).length * 7, actualBoundingBoxAscent: 10, actualBoundingBoxDescent: 3 }),
   }, { get: (target, key) => target[key] ?? (() => {}), set: (target, key, value) => { target[key] = value; return true } }))
   return contexts.get(this)
@@ -83,6 +85,28 @@ try {
   assert.equal(average.dataByIndex(26), null); assert.ok('value' in average.dataByIndex(27))
   assert.equal(line.options().color, '#7e57c2')
   assert.ok(line.priceToCoordinate(0) > line.priceToCoordinate(100), 'RSI has an independent 0–100 scale')
+  const indicatorSnapshot = line.data()
+  paintedFills.length = 0
+  chart.timeScale().setVisibleLogicalRange({ from: 115, to: 160 }); await paint()
+  assert.equal(line.priceToCoordinate(70), null, 'The native RSI API has no coordinate reference after every sample leaves view')
+  assert.ok(paintedFills.some(fill => fill.color === rsi.fillColor && fill.alpha === rsi.fillOpacity / 100 && fill.width > 0 && fill.height > 0),
+    'RSI background continues painting with all candles and RSI samples offscreen')
+  const scaleReference = chart.panes()[1].getSeries()[2]
+  assert.equal(scaleReference.options().lineVisible, false, 'The scale reference never paints a future RSI line')
+  assert.equal(scaleReference.data()[0].time, chart.panes()[0].getSeries()[1].data().at(-1).time,
+    'The RSI scale reference reuses the existing future horizon without extending the shared timeline')
+  chart.panes()[1].priceScale('right').setVisibleRange({ from: -20, to: 120 })
+  paintedFills.length = 0
+  chart.panes()[1].setHeight(150); await paint()
+  const futureFill = paintedFills.find(fill => fill.color === rsi.fillColor && fill.alpha === rsi.fillOpacity / 100)
+  close(futureFill.y, scaleReference.priceToCoordinate(70), 'Future fill follows RSI scaling and pane resizing')
+  close(futureFill.height, scaleReference.priceToCoordinate(30) - scaleReference.priceToCoordinate(70),
+    'Future fill remains between the configured RSI bands')
+  assert.deepEqual(scaleReference.priceLines().map(band => band.options().price), [70, 50, 30],
+    'Guide bands share the persistent coordinate reference')
+  assert.deepEqual(line.data(), indicatorSnapshot, 'Empty-space background rendering never adds future RSI samples')
+  chart.panes()[1].priceScale('right').applyOptions({ autoScale: true })
+  chart.timeScale().setVisibleLogicalRange(viewport); await paint()
   chart.panes()[1].setHeight(130); await paint()
   close(parseFloat(host.querySelector('.chart-price-pane-overlays').style.height), chart.paneSize(0).height,
     'Divider resizing clips every price overlay at the actual price pane boundary')
@@ -130,6 +154,56 @@ try {
   await render({ rsi: { ...rsi, enabled: false } })
   assert.equal(chart.panes().length, 1); assert.equal(host.querySelector('.rsi-legend'), null)
   assert.equal(host.querySelector('.chart-price-pane-overlays').style.height, '')
+
+  bars = makeBars(1700000000, 14400)
+  const futureDrawing = { id: 'future-price', symbol: 'GBPUSD', timeframe: 'H4', tool: 'horizontal-line',
+    createdAt: 1, points: [{ time: bars.at(-1).time + 20 * 14400, price: 100 }] }
+  await render({ bars, drawings: [futureDrawing], selectedDrawingId: futureDrawing.id })
+  chart.timeScale().setVisibleLogicalRange({ from: 65, to: 110 }); await paint()
+  const usefulRange = chart.priceScale('right').getVisibleRange()
+  paintedText.length = 0
+  chart.timeScale().setVisibleLogicalRange({ from: 115, to: 160 }); await paint()
+  assert.equal(candles.priceToCoordinate(100), null, 'The installed candle API reproduces its empty-future coordinate limitation')
+  assert.deepEqual(chart.priceScale('right').getVisibleRange(), usefulRange, 'Empty future space retains the last useful price range')
+  assert.ok(paintedText.some(text => /^\d+\.\d+$/.test(text) && Number(text) > 90 && Number(text) < 110), 'The native Y axis continues painting actual price labels in empty future space')
+  const futureHandle = host.querySelector('.drawing-resize-handle')
+  assert.ok(futureHandle, 'Saved drawings remain projected and editable with every candle off screen')
+  assert.ok(Number.isFinite(Number(futureHandle.getAttribute('cy'))))
+  const futurePrice = chart.panes()[0].getSeries()[1]
+  close(Number(futureHandle.getAttribute('cy')), futurePrice.priceToCoordinate(100), 'Drawing prices use the same native Y scale as its labels')
+  chart.priceScale('right').setVisibleRange({ from: 90, to: 110 }); await paint()
+  close(Number(host.querySelector('.drawing-resize-handle').getAttribute('cy')), futurePrice.priceToCoordinate(100), 'Manual price-scale edits still update future-space drawings')
+  let createdPoint
+  await render({ activeDrawingTool: 'horizontal-line', onCreateDrawing: (_tool, points) => { createdPoint = points[0]; return 'new-future' } })
+  await React.act(async () => host.querySelector('.chart-drawing-overlay').dispatchEvent(new dom.PointerEvent('pointerdown', {
+    bubbles: true, button: 0, clientX: 100, clientY: futurePrice.priceToCoordinate(102), pointerId: 1,
+  })))
+  assert.ok(createdPoint.time > bars.at(-1).time, 'A drawing can be created at an actual future timestamp')
+  close(createdPoint.price, 102, 'Empty-space drawing input retains the native price-coordinate round trip')
+  await render({ activeDrawingTool: null })
+  const panWindow = chart.timeScale().getVisibleLogicalRange(), candlesBeforeFocus = candles.data()
+  await render({ refocusRequest: 1 })
+  const focusedWindow = chart.timeScale().getVisibleLogicalRange()
+  close(focusedWindow.to - focusedWindow.from, panWindow.to - panWindow.from, 'Refocus retains horizontal zoom')
+  close(focusedWindow.to, bars.length - 1 + 8, 'Refocus returns to the last actual candle with a small right margin')
+  assert.equal(chart.priceScale('right').options().autoScale, true, 'Refocus restores automatic price scaling')
+  assert.deepEqual(candles.data(), candlesBeforeFocus, 'Refocus never adds or replaces candles')
+  assert.equal(creates, 1, 'Refocus keeps the chart and saved drawing lifecycle')
+  assert.equal(futureDrawing.points[0].price, 100)
+  chart.timeScale().setVisibleLogicalRange({ from: 115, to: 160 }); await paint()
+  const yenBars = bars.map(bar => ({ ...bar, open: bar.open * 1.5, high: bar.high * 1.5, low: bar.low * 1.5, close: bar.close * 1.5 }))
+  await render({ bars: yenBars, fitContentKey: 'USDJPY:H4', symbol: 'USDJPY', precision: 3, drawings: [], selectedDrawingId: null })
+  const yenRange = chart.priceScale('right').getVisibleRange()
+  assert.ok(yenRange.from >= 140 && yenRange.to <= 160, 'A symbol loaded directly in empty future space seeds its own price units')
+  assert.equal(chart.panes()[0].getSeries()[1].options().priceFormat.precision, 3, 'The future price axis uses the selected symbol precision')
+  paintedFills.length = 0
+  await render({ rsi: { ...defaultRsiPreferences, enabled: true } })
+  assert.ok(paintedFills.some(fill => fill.color === defaultRsiPreferences.fillColor && fill.alpha === 0.1 && fill.height > 0),
+    'Enabling RSI directly in empty future space also paints its background')
+  paintedFills.length = 0
+  await render({ rsi: { ...defaultRsiPreferences, enabled: true, fillVisible: false } })
+  assert.ok(!paintedFills.some(fill => fill.color === defaultRsiPreferences.fillColor && fill.alpha === 0.1),
+    'The background visibility preference still works in empty future space')
 
   let saved = null, closed = 0
   const trigger = document.createElement('button'); document.body.append(trigger); trigger.focus()

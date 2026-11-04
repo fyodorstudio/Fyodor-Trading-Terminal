@@ -14,6 +14,11 @@ export function createRsiPane(chart: IChartApi) {
   }
   const rsi = pane.addSeries(LineSeries, options)
   const average = pane.addSeries(LineSeries, { ...options, lastValueVisible: false })
+  // Reuse the existing future horizon as an unpainted scale reference. Actual
+  // RSI samples end at the last candle and cannot project prices beyond it.
+  const scaleReference = pane.addSeries(LineSeries, { ...options, lineVisible: false,
+    lastValueVisible: false, crosshairMarkerVisible: false })
+  let referenceTime: Time | undefined
   pane.priceScale('right').applyOptions({ autoScale: true, scaleMargins: { top: 0.12, bottom: 0.06 } })
   const calculator = createRsiCalculator()
   let preferences: RsiPreferences | undefined
@@ -56,7 +61,7 @@ export function createRsiPane(chart: IChartApi) {
     },
     drawBackground(target) {
       if (!preferences?.fillVisible || !preferences.fillOpacity) return
-      const upper = rsi.priceToCoordinate(preferences.upper.value), lower = rsi.priceToCoordinate(preferences.lower.value)
+      const upper = scaleReference.priceToCoordinate(preferences.upper.value), lower = scaleReference.priceToCoordinate(preferences.lower.value)
       if (upper === null || lower === null) return
       target.useMediaCoordinateSpace(({ context, mediaSize }) => {
         context.save()
@@ -71,9 +76,14 @@ export function createRsiPane(chart: IChartApi) {
   const primitive: ISeriesPrimitive<Time> = { paneViews: () => views }
   rsi.attachPrimitive(primitive)
   return {
-    sync(bars: OhlcBar[], scope: string, next: RsiPreferences) {
+    sync(bars: OhlcBar[], scope: string, next: RsiPreferences, horizonTime: Time | undefined) {
       if (destroyed) return
       const range = chart.timeScale().getVisibleLogicalRange()
+      const nextReferenceTime = bars.length ? horizonTime : undefined
+      if (referenceTime !== nextReferenceTime) {
+        referenceTime = nextReferenceTime
+        scaleReference.setData(referenceTime === undefined ? [] : [{ time: referenceTime, value: 50 }])
+      }
       if (preferences !== next) {
         rsi.applyOptions({ color: next.lineColor, lineWidth: next.lineWidth, lineVisible: next.lineVisible,
           lastValueVisible: next.lineVisible, crosshairMarkerVisible: next.lineVisible })
@@ -84,7 +94,7 @@ export function createRsiPane(chart: IChartApi) {
           const style = { price: band.value, color: band.color, lineWidth: 1 as const, lineStyle: LineStyle.Dashed,
             lineVisible: band.visible, axisLabelVisible: false, title: '' }
           if (bands[index]) bands[index].applyOptions(style)
-          else bands.push(rsi.createPriceLine(style))
+          else bands.push(scaleReference.createPriceLine(style))
         }
         legend.style.setProperty('--rsi-color', next.lineColor)
         legend.style.setProperty('--rsi-average-color', next.averageColor)
@@ -99,7 +109,7 @@ export function createRsiPane(chart: IChartApi) {
       }
       updateLegend()
     },
-    clearData() { rsi.setData([]); average.setData([]); hover = null },
+    clearData() { rsi.setData([]); average.setData([]); scaleReference.setData([]); referenceTime = undefined; hover = null },
     destroy() {
       if (destroyed) return
       destroyed = true

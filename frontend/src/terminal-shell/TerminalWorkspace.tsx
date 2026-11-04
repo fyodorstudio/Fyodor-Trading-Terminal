@@ -1,5 +1,5 @@
 import { DisplayClockProvider } from '../appearance/time-display/DisplayClock'
-import { useCallback, type CSSProperties } from 'react'
+import { useCallback, useState, type CSSProperties } from 'react'
 import { MarketCandlestickChart } from '../market-data/candlestick-chart/MarketCandlestickChart'
 import { MarketChartErrorBoundary } from '../market-data/candlestick-chart/MarketChartErrorBoundary'
 import { FloatingDrawingToolbar } from '../market-data/chart-drawings/FloatingDrawingToolbar'
@@ -18,6 +18,7 @@ import { CurrencyNewsDock } from '../currency-news/CurrencyNewsDock'
 import { RsiSettingsDialog } from '../market-data/indicators/rsi/RsiSettingsDialog'
 
 export function TerminalWorkspace() {
+  const [refocusRequest, setRefocusRequest] = useState(0)
   const { rsi, changeRsi, toggleRsi, rsiSettingsOpen, setRsiSettingsOpen,
     timeframe, theme, chartAppearance, timeDisplay, activeDrawingTool, selectedDrawingId, setSelectedDrawingId,
     drawingToolbarVisible, eventIconsVisible, toggleEventIcons, bottomDockWindow, dockSize, settingsOpen, setSettingsOpen, marketWatch, appendActivity,
@@ -57,6 +58,8 @@ export function TerminalWorkspace() {
             quote={quote}
             timeframe={timeframe}
             onSelectTimeframe={selectTimeframe}
+            onRefocus={() => setRefocusRequest(request => request + 1)}
+            refocusDisabled={!bars.length}
             rsiEnabled={rsi.enabled}
             onToggleRsi={toggleRsi}
             onOpenRsiSettings={() => setRsiSettingsOpen(true)}
@@ -82,6 +85,7 @@ export function TerminalWorkspace() {
                   timeDisplay={timeDisplay}
                   timeframe={timeframe}
                   rsi={rsi}
+                  refocusRequest={refocusRequest}
                   activeDrawingTool={activeDrawingTool}
                   drawings={drawings}
                   selectedDrawingId={selectedDrawingId}

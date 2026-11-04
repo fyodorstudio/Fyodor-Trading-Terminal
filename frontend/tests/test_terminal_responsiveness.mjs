@@ -74,7 +74,10 @@ const series = { applyOptions: () => {},
 const priceScale = { applyOptions: () => {}, getVisibleRange: () => priceRange,
   setVisibleRange: next => { priceRange = next; priceShift = (1 - next.from) * 100 } }
 const timeSeries = { setData: rows => { count('futureSetData'); futureTimes = rows },
-  update: row => { count('futureUpdate'); futureTimes = [...futureTimes, row] } }
+  update: row => { count('futureUpdate'); futureTimes = [...futureTimes, row] },
+  applyOptions() {}, attachPrimitive: primitive => primitives.add(primitive), detachPrimitive: primitive => primitives.delete(primitive),
+  priceToCoordinate: series.priceToCoordinate, coordinateToPrice: series.coordinateToPrice,
+  createPriceLine: series.createPriceLine, removePriceLine: series.removePriceLine }
 const indicatorSeries = new Set()
 const pricePane = { setStretchFactor() {}, getHeight: () => 420, getHTMLElement: () => null }
 const panes = [pricePane]
@@ -137,6 +140,8 @@ const server = await createServer({ root: path.resolve(path.dirname(fileURLToPat
         "}: MarketCandlestickChartProps) { globalThis.__terminalProbe.count('chartRender');")
       if (id.endsWith('/rsi-calculation.ts')) return code.replace('for (let i = from; i < bars.length; i++) {',
         "for (let i = from; i < bars.length; i++) { globalThis.__terminalProbe.count('rsiCandle');")
+      if (id.endsWith('/chart-price-space.ts')) return code.replace('for (let i = Math.max(0, count - 100); i < count; i++) {',
+        "for (let i = Math.max(0, count - 100); i < count; i++) { globalThis.__terminalProbe.count('priceSpaceSeed');")
       if (id.endsWith('/useCalendarNow.ts')) return code.replace('return now', 'globalThis.__terminalProbe.clocks.push(now); return now')
       if (id.endsWith('/releases/group-days.ts')) return code.replace('  if (!range) return []', "  globalThis.__terminalProbe.count('dailyGrouping'); if (!range) return []")
       if (id.endsWith('/external-markers.ts')) return code.replace('  if (!bars.length) return []', "  globalThis.__terminalProbe.count('externalBuild'); if (!bars.length) return []")
@@ -282,7 +287,7 @@ async function tick(name, ms) {
 const button = label => [...container.querySelectorAll('button')].find(element => element.textContent.trim().replace(/^⚙\s*/, '').startsWith(label))
 async function click(element) { assert.ok(element); await React.act(async () => element.click()) }
 function assertQuiet(label, workspace = false) {
-  for (const key of ['quoteRows', 'chartRender', 'setData', 'update', 'futureSetData', 'futureUpdate', 'rsiCandle', 'rsiSetData', 'rsiUpdate', 'workerPosts', 'tradeLineCreates', 'tradeMarkerCreates', ...(workspace ? ['workspace'] : [])])
+  for (const key of ['quoteRows', 'chartRender', 'setData', 'update', 'futureSetData', 'futureUpdate', 'priceSpaceSeed', 'rsiCandle', 'rsiSetData', 'rsiUpdate', 'workerPosts', 'tradeLineCreates', 'tradeMarkerCreates', ...(workspace ? ['workspace'] : [])])
     assert.equal(counters[key] ?? 0, 0, `${label}: ${key} must remain unchanged`)
 }
 let append
@@ -300,6 +305,7 @@ try {
     React.createElement(FyodorTerminalShell), React.createElement(CommandOnly))))
   await reply('health'); await reply('watch')
   while (pending.get('ohlc')?.length) await reply('ohlc')
+  assert.equal(counters.priceSpaceSeed, 100, 'Price-space initialization reads a bounded 100-candle tail')
   assert.equal(container.querySelectorAll('.market-watch-columns > span').length, 1, 'The watchlist has only the Daily % numeric column')
   assert.equal(container.querySelector('.quote-summary'), null, 'Bid/Ask is removed from the chart header')
   assert.equal(container.querySelectorAll('.session-timeline-labels span').length, 4)
@@ -329,7 +335,7 @@ try {
   const beforeRsiRange = { ...logicalRange }
   reset()
   await click(container.querySelector('[aria-label="Show RSI"]')); await flush(); drawChartFrame()
-  assert.equal(panes.length, 2); assert.equal(indicatorSeries.size, 2)
+  assert.equal(panes.length, 2); assert.equal(indicatorSeries.size, 3)
   assert.equal(counters.rsiCandle, 800, 'Enabling RSI seeds exactly the loaded candle count')
   assert.equal(counters.setData ?? 0, 0, 'Enabling RSI does not replace price candles')
   assert.equal(counters.chartCreated ?? 0, 0, 'Enabling RSI keeps the existing chart')
@@ -476,7 +482,9 @@ try {
   const sourceIconKey = 'fyodor.external-sources.chart-icons.v1'
   const sourceChoices = localStorage.getItem(sourceIconKey)
   const inspectorChoices = localStorage.getItem('fyodor.inspector.shared.v1')
-  assert.equal(container.querySelector('.timeframe-selector').nextElementSibling, container.querySelector('[aria-label="Hide event icons"]'))
+  const refocusButton = container.querySelector('[aria-label="Refocus chart"]')
+  assert.equal(container.querySelector('.timeframe-selector').nextElementSibling, refocusButton)
+  assert.equal(refocusButton.nextElementSibling, container.querySelector('[aria-label="Hide event icons"]'))
   const visibleWindow = { ...logicalRange }, beforeIconToggle = counters.setData ?? 0
   await click(container.querySelector('[aria-label="Hide event icons"]')); await flush()
   assert.equal(container.querySelector('[aria-label="Show event icons"]').getAttribute('aria-pressed'), 'false')
@@ -1175,6 +1183,13 @@ try {
   }
   await click(container.querySelector('[aria-label="Hide event icons"]'))
   assert.equal(container.querySelector('[aria-label="Hide left panel"]'), null, 'The left panel has no redundant close button')
+  const drawingsBeforeRefocus = localStorage.getItem('fyodor.chart-drawings.v1')
+  logicalRange = { from: plotted.length + 100, to: plotted.length + 130 }
+  reset(); await click(container.querySelector('[aria-label="Refocus chart"]')); await flush()
+  assert.deepEqual(logicalRange, { from: plotted.length - 23, to: plotted.length + 7 }, 'Header Refocus returns to actual candles and retains the 30-bar zoom')
+  for (const key of ['chartCreated', 'setData', 'update', 'futureSetData', 'priceSpaceSeed', 'rsiCandle', 'rsiSetData', 'rsiUpdate'])
+    assert.equal(counters[key] ?? 0, 0, `Refocus performs no ${key} work`)
+  assert.equal(localStorage.getItem('fyodor.chart-drawings.v1'), drawingsBeforeRefocus, 'Refocus leaves saved drawing anchors unchanged')
   await click(container.querySelector('.market-watch-toggle'))
   assert.equal(container.querySelector('.left-dock').hidden, true)
   await click(container.querySelector('.market-watch-toggle'))

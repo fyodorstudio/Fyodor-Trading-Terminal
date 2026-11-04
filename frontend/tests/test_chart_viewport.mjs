@@ -26,7 +26,8 @@ const scale = {
   subscribeVisibleLogicalRangeChange: fn => listeners.add(fn), unsubscribeVisibleLogicalRangeChange: fn => listeners.delete(fn),
 }
 const series = { applyOptions() {}, setData(bars) { plotted = bars; emit(bars.length ? { from: 0, to: bars.length } : null) }, update(bar) { plotted = [...plotted.slice(0, -1), bar] } }
-const futureSeries = { setData(rows) { futureSets++; future = rows }, update(row) { futureUpdates++; future = [...future, row] } }
+const futureSeries = { setData(rows) { futureSets++; future = rows }, update(row) { futureUpdates++; future = [...future, row] },
+  applyOptions() {}, attachPrimitive() {}, detachPrimitive() {}, createPriceLine() {}, removePriceLine() {} }
 globalThis.__viewportChart = { addSeries: definition => definition.type === 'line' ? futureSeries : series,
   timeScale: () => scale, priceScale: () => ({ applyOptions: () => autoscaled++ }), applyOptions() {}, remove() {} }
 const server = await createServer({ root: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'), server: { middlewareMode: true, hmr: false },

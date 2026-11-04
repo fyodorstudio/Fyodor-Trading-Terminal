@@ -4,8 +4,9 @@ export const futureTimelineSeconds = 90 * 86400
 type Timeline = readonly { time: number }[]
 type TimeSeries = Pick<ISeriesApi<'Line', Time>, 'setData'>
 // Lightweight Charts bounds scrolling by the last valued series point, even
-// when later whitespace exists. An invisible anchor on its own scale opens the
-// whole horizon; its inert value is never a candle, quote or calculation input.
+// when later whitespace exists. An unpainted anchor opens the whole horizon;
+// its inert value is never a candle, quote or calculation input. The chart's
+// price-space adapter excludes it from autoscaling on the shared price scale.
 const horizonAnchor = (time: number) => ({ time: time as UTCTimestamp, value: 0 })
 
 // Old whitespace slots may remain only where real candles now occupy them.
@@ -20,8 +21,9 @@ function filledSlotsPresent(bars: Timeline, anchor: number, last: number, step: 
 }
 
 export function createFutureTimeline(series: TimeSeries) {
-  let state: { anchor: number; last: number; step: number } | null = null
+  let state: { anchor: number; last: number; step: number; end: UTCTimestamp } | null = null
   return {
+    endTime: () => state?.end,
     clear() {
       if (state) series.setData([])
       state = null
@@ -38,7 +40,7 @@ export function createFutureTimeline(series: TimeSeries) {
         const count = Math.ceil((end - last) / step) - 1
         series.setData(Array.from({ length: count }, (_, i) => i === count - 1 ? horizonAnchor(last + count * step) :
           ({ time: (last + (i + 1) * step) as UTCTimestamp })))
-        state = { anchor: last, last, step }
+        state = { anchor: last, last, step, end: (last + count * step) as UTCTimestamp }
         return true
       } else if (last !== state.last) {
         state.last = last

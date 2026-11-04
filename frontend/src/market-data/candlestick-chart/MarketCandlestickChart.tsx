@@ -20,6 +20,7 @@ import { changedRecentBarStart } from '../mt5-feed/market-snapshots'
 import { lightweightChartOptions } from './lightweight-chart-options'
 import { captureDateWindow, projectDateWindow, type ChartDateWindow } from './chart-viewport'
 import { createFutureTimeline } from './future-timeline'
+import { createChartPriceSpace } from './chart-price-space'
 import { timeframeToSeconds } from '../chart-drawings/position-drawing-geometry'
 import { createRsiPane } from '../indicators/rsi/rsi-pane'
 import type { RsiPreferences } from '../indicators/rsi/rsi-preferences'
@@ -36,6 +37,7 @@ type MarketCandlestickChartProps = {
   timeDisplay: TimeDisplayPreference
   timeframe?: ChartTimeframe
   rsi?: RsiPreferences
+  refocusRequest?: number
   activeDrawingTool: DrawingToolId | null
   drawings: ChartDrawingRecord[]
   selectedDrawingId: string | null
@@ -68,6 +70,7 @@ function MarketCandlestickChartComponent({
   timeDisplay,
   timeframe,
   rsi,
+  refocusRequest = 0,
   activeDrawingTool,
   drawings,
   selectedDrawingId,
@@ -95,6 +98,8 @@ function MarketCandlestickChartComponent({
   const seriesRef = useRef<ISeriesApi<'Candlestick', Time> | null>(null)
   const rsiPaneRef = useRef<ReturnType<typeof createRsiPane> | null>(null)
   const futureTimelineRef = useRef<ReturnType<typeof createFutureTimeline> | null>(null)
+  const priceSpaceRef = useRef<ReturnType<typeof createChartPriceSpace> | null>(null)
+  const lastRefocusRequest = useRef(refocusRequest)
   const [chartApi, setChartApi] = useState<IChartApi | null>(null)
   const [seriesApi, setSeriesApi] = useState<ISeriesApi<'Candlestick', Time> | null>(null)
   const fittedKeyRef = useRef<string | null>(null)
@@ -138,15 +143,17 @@ function MarketCandlestickChartComponent({
       priceLineColor: initialAppearance.priceLineColor,
     })
     const timeSeries = chart.addSeries(LineSeries, {
-      priceScaleId: '', visible: false, lineVisible: false, priceLineVisible: false,
+      priceScaleId: 'right', lineVisible: false, priceLineVisible: false,
       lastValueVisible: false, crosshairMarkerVisible: false,
     })
+    const priceSpace = createChartPriceSpace(chart, series, timeSeries)
+    priceSpaceRef.current = priceSpace
     futureTimelineRef.current = createFutureTimeline(timeSeries)
 
     chartRef.current = chart
-    seriesRef.current = series
+    seriesRef.current = priceSpace.overlaySeries
     setChartApi(chart)
-    setSeriesApi(series)
+    setSeriesApi(priceSpace.overlaySeries)
 
     const handleLogicalRangeChange = (range: { from: number; to: number } | null) => {
       if (range && !applyingDataRef.current && historyPagingArmedRef.current) {
@@ -171,6 +178,8 @@ function MarketCandlestickChartComponent({
     return () => {
       rsiPaneRef.current?.destroy()
       rsiPaneRef.current = null
+      priceSpaceRef.current?.destroy()
+      priceSpaceRef.current = null
       chart.timeScale().unsubscribeVisibleLogicalRangeChange(handleLogicalRangeChange)
       seriesRef.current = null
       futureTimelineRef.current = null
@@ -244,6 +253,7 @@ function MarketCandlestickChartComponent({
     applyingDataRef.current = true
     try {
       if (!bars.length) {
+        priceSpaceRef.current?.sync(bars, true, precision)
         rsiPaneRef.current?.clearData()
         series.setData([])
         futureTimelineRef.current?.clear()
@@ -267,6 +277,7 @@ function MarketCandlestickChartComponent({
         replaced = true
         series.setData(bars)
       }
+      priceSpaceRef.current?.sync(bars, isNewKey, precision)
       const futureReplaced = futureTimelineRef.current?.sync(bars, step, isNewKey, replaced)
       // Native fitContent includes whitespace. Fit actual candles explicitly.
       if (isNewKey && !dateWindowRef.current) chart.timeScale().setVisibleLogicalRange({ from: 0, to: bars.length - 1 + 8 })
@@ -305,7 +316,7 @@ function MarketCandlestickChartComponent({
         rsiPaneRef.current = null
       } else {
         rsiPaneRef.current ??= createRsiPane(chart)
-        rsiPaneRef.current.sync(bars, `${clock.brokerId}:${fitContentKey}`, rsi)
+        rsiPaneRef.current.sync(bars, `${clock.brokerId}:${fitContentKey}`, rsi, futureTimelineRef.current?.endTime())
       }
       if (range) chart.timeScale().setVisibleLogicalRange(range)
     } finally { applyingDataRef.current = false }
@@ -392,6 +403,25 @@ function MarketCandlestickChartComponent({
     chartRef.current?.priceScale('right').applyOptions({ autoScale: true })
     if (bars.length) chartRef.current?.timeScale().setVisibleLogicalRange({ from: 0, to: bars.length - 1 + 8 })
   }
+
+  useEffect(() => {
+    if (lastRefocusRequest.current === refocusRequest) return
+    lastRefocusRequest.current = refocusRequest
+    const chart = chartRef.current
+    if (!chart || !bars.length) return
+    stopPanRef.current?.()
+    const range = chart.timeScale().getVisibleLogicalRange()
+    const span = range ? range.to - range.from : bars.length + 7
+    const to = bars.length - 1 + 8
+    applyingDataRef.current = true
+    try {
+      pendingWindowRef.current = false; dateWindowRef.current = null
+      historyPagingArmedRef.current = false
+      setMissingViewportHistory(false)
+      chart.priceScale('right').applyOptions({ autoScale: true })
+      chart.timeScale().setVisibleLogicalRange({ from: to - span, to })
+    } finally { applyingDataRef.current = false }
+  }, [refocusRequest, bars.length])
 
   return (
     <div className="market-chart-host" onPointerDownCapture={(event) => {

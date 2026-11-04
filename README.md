@@ -85,6 +85,9 @@ Market Watch keeps favourites, sections/order and sorting. Daily % is the larges
 signed excursion from the selected broker D1 open to its high/low; it is not the
 current close change. Date navigation never borrows another day's candle.
 The chart header retains high/low distances and indicative regional sessions.
+Refocus, immediately right of D1, returns to the latest candles while keeping
+horizontal zoom and restoring automatic price scaling. Empty future space keeps
+the last useful price scale and editable drawings visible.
 RSI and its settings gear sit immediately left of the timeframe controls. RSI
 opens a resizable lower pane with a shared time axis, Wilder RSI 14 on Close,
 optional smoothing (SMA 14 by default), 70/50/30 bands and a background fill.
