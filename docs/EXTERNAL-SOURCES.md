@@ -8,7 +8,8 @@ section. An elapsed time does not verify publication or an outcome.
 
 Open an event's **Sources & history** for publication/recorded clocks, evidence,
 version history and **Show icon on chart**. Feed notes contains broker-specific
-Discovered Limitations, with source links, follow-up actions and an offline cache.
+Discovered Limitations below Alert's undated items, with source links, follow-up
+actions and an offline cache.
 Agents read these with `pnpm analyst limitations --broker <broker>`.
 
 Active external records are pins in the agent interface. Archive/restore commands
@@ -32,6 +33,16 @@ countdown or moves an old event into a newer date table. Untimed watches may
 request an ongoing notice without inventing an event time. `resolved` removes
 the current notice and alarm eligibility while preserving dated stars/history.
 Resolving external context does not cancel an independent broker reminder.
+
+The Ongoing risks toggle beside Feed notes hides/restores the current notices in
+Alert and across charts. This browser preference survives reloads and ordinary
+research updates. Dated stars, saved events and reminder choices stay independent.
+Notices use a flat list inside one outlined panel rather than nested boxes. A
+separate Next scheduled row counts down to the next confirmed exact external
+release in the saved scope and rolls forward at publication. Date-only, unverified,
+resolved and archived records cannot supply that countdown. The row identifies
+the scheduled event; it never implies a next unscheduled election update or an
+armed alarm.
 
 **Show icon on chart** is a browser preference per stable record key, shared across
 matching pairs and surviving reloads. Hiding an icon preserves facts and history.

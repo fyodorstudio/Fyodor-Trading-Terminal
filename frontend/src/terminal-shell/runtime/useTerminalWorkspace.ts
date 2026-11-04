@@ -23,6 +23,8 @@ import { getPipMultiplier, type PlannedTradeState, type RegisteredTradeArrow, ty
 import { tradeMetrics } from '../../entry-trade/dock/plan-math'
 import { useRegisteredArrows } from '../../entry-trade/storage/use-registered-arrows'
 import { usePriceAlerts } from '../../price-alerts/usePriceAlerts'
+import type { AlertFocus } from '../../alert/model/alert-focus'
+import { jakartaDate } from '../../alert/model/alert-day-model'
 
 const emptyTradePlan: PlannedTradeState = { direction: 'waiting', entryPrice: null, tpPrice: null, slPrice: null, showOnChart: false }
 
@@ -42,8 +44,7 @@ export function useTerminalWorkspace() {
   useEffect(() => saveEventIconsVisible(eventIconsVisible), [eventIconsVisible])
   const toggleEventIcons = useCallback(() => setEventIconsVisible(visible => !visible), [])
   const [bottomDockWindow, setBottomDockWindow] = useState<BottomDockWindow | null>(() => new URLSearchParams(window.location.search).get('events') === 'alarms' ? 'alert' : null)
-  const [selectedExternalKey, setSelectedExternalKey] = useState<string | null>(null)
-  const [externalSelection, setExternalSelection] = useState(0)
+  const [alertFocus, setAlertFocus] = useState<AlertFocus | null>(null)
   const dockSize = useBottomDockSize(bottomDockWindow)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const marketWatch = useMarketWatchDock()
@@ -232,11 +233,19 @@ export function useTerminalWorkspace() {
     setArrowSelection(id); selectBottomDock('entry-trade')
   }, [registeredArrows.symbolArrows, updateArrow, setArrowSelection, selectBottomDock])
   const selectExternal = useCallback((key: string | null) => {
-    setSelectedExternalKey(key); setExternalSelection(value => value + 1); selectBottomDock('external-sources')
+    setAlertFocus(old => key ? { externalKey: key, request: (old?.request ?? 0) + 1 } : null); selectBottomDock('external-sources')
   }, [selectBottomDock])
   const selectChartRelease = useCallback((id: string) => {
-    setReleaseSelection(id); selectBottomDock('inspector')
-  }, [setReleaseSelection, selectBottomDock])
+    setReleaseSelection(id)
+    const release = inspector.releases.find(item => item.id === id)
+    if (!brokerId?.startsWith('Pepperstone-') || !release || release.releaseAt === null) {
+      selectBottomDock('inspector'); return
+    }
+    setAlertFocus(old => ({ request: (old?.request ?? 0) + 1, sourceId: brokerId,
+      valueIds: release.events.map(event => event.value_id), date: jakartaDate(release.releaseAt!),
+      families: release.familyIds ?? [release.familyId] }))
+    selectBottomDock('alert')
+  }, [setReleaseSelection, selectBottomDock, inspector.releases, brokerId])
   const clearChartInspection = useCallback(() => {
     setReleaseSelection(null)
     setBottomDockWindow(current => current === 'inspector' ? null : current)
@@ -271,6 +280,6 @@ export function useTerminalWorkspace() {
     recordChartData, changeTheme, changeChartAppearance, changeTimeDisplay, createDrawing, chooseDrawingTool,
     selectCrosshair, deletePairDrawings, toggleBottomDock, exitDrawingMode, toggleDrawingToolbar,
     renderChartOverlay, sourceState, sourceLabel, researchActive, researchSeed, researchError,
-    selectResearchTool, closeResearch, selectedExternalKey, externalSelection,
+    selectResearchTool, closeResearch, alertFocus,
     plannedTrade, handlePlanChange, latestBarTime, registeredArrows, selectPinnedArrow, priceAlerts, leftDockTab, setLeftDockTab }
 }

@@ -23,7 +23,27 @@ Click an event to open Overview, Sources & history, or Saved research. Sources
 keeps exact IDs, capture clocks, revised priors, raw values and external version
 history. Saved research retains original broker/as-of provenance, including legacy
 Elev8 investigations. No Prepare research action is exposed here; chart Research
-Date Range remains available. Feed notes contains Discovered Limitations.
+Date Range remains available. Feed notes opens Discovered Limitations below the
+undated items. It retains broker-wide and multi-event issues rather than copying
+them into every event. Feed notes and Ongoing risks sit beside Alarm Settings in
+the fixed header. The Ongoing risks toggle saves a browser preference
+for notices in Alert and on charts; it does not change dated stars or reminders.
+
+The outlined risk panel includes a countdown to the next confirmed, precisely
+timed saved external release, independently of the date table. Unscheduled risks
+and date-only milestones never receive invented countdowns. This is a saved
+schedule display, not automatic discovery or proof that its alarm is armed.
+
+Custom stars and supported Pepperstone calendar symbols open the original dated
+release, expand/highlight its details and scroll only Alert's scrollport after the
+data arrives. Repeated selections reuse the mounted feed. Unknown clocks or other
+brokers retain Inspector navigation; Inspector remains available for raw tables.
+Hover/focus highlights the entire publication block. Today has a horizontal Now
+line snapped to the nearest visible confirmed schedule (ties choose the upcoming
+event); it updates the time without scrolling. Historical dates omit this line.
+Clock ticks stay local to countdowns/the line, and its position changes only at
+schedule midpoints. Native dock scrolling runs no React state or layout handlers.
+Bells share one indexed alarm inventory instead of scanning it per publication.
 
 ## Dates and source identity
 

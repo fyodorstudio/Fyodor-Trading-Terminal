@@ -11,6 +11,8 @@ const previous = new Map(keys.map(key => [key, Object.getOwnPropertyDescriptor(g
 for (const key of keys.slice(0, 7)) Object.defineProperty(globalThis, key, { configurable: true, writable: true,
   value: key === 'window' ? dom : key === 'document' ? dom.document : key === 'IS_REACT_ACT_ENVIRONMENT' ? true : dom[key] })
 const frames = new Map(), timers = new Map(), intervals = new Map(); let timerId = 0
+const scrolls = []
+dom.HTMLElement.prototype.scrollTo = function(options) { scrolls.push({ node: this, ...options }); this.scrollTop = options.top }
 globalThis.requestAnimationFrame = fn => { frames.set(++timerId, fn); return timerId }
 globalThis.cancelAnimationFrame = id => frames.delete(id)
 dom.requestAnimationFrame = globalThis.requestAnimationFrame
@@ -33,7 +35,7 @@ const outside = (key, overrides = {}) => ({ id: 'a'.repeat(32), key, title: key,
 const externalItems = [outside('cpi-report', { calendar_reference: { source_id: broker, value_ids: ['1','2'] } }),
   outside('unrelated-same-time'), outside('date-only', { event_at: null, event_date: '2026-10-23' }),
   outside('saved-archived', { archived: true, event_at: new Date(now - 60000).toISOString() }),
-  outside('undated', { kind: 'watch', event_at: null })]
+  outside('undated', { kind: 'watch', event_at: null, visibility_scope: 'global', risk_status: 'ongoing', risk_checked_utc: '2026-10-22T17:00:00Z' })]
 const alarms = { application: 'fyodor-alarms', schedule_schema: 2, revision: 1, now, native_available: true, settings: { enabled: false, release_minutes: 2 },
   schedule_error: null, refreshed_at: now / 1000, events: [], jobs: [], migration: { matches: [], issues: [] } }
 const source = { publisher_status: 'live' }
@@ -81,7 +83,11 @@ globalThis.fetch = async (url, options = {}) => {
     return reply({ broker: params.get('source_id'), revision: String(impactRevision),
       ...(params.get('after_revision') === String(impactRevision) ? { unchanged: true } : { items: params.get('source_id') === broker ? impacts : [] }) })
   }
-  if (route.pathname === '/storage-api/highlight-limitations') return reply({ source_id: broker, revision: 'limits', items: [] })
+  if (route.pathname === '/storage-api/highlight-limitations') return reply({ source_id: broker, revision: 'limits', items: [{
+    id: 'issue', source_id: broker, key: 'calendar-gap', currency: 'USD', kind: 'missing-release', title: 'Calendar coverage gap',
+    description: 'A release is missing from the broker feed.', action: 'Check the publisher.', checked_utc: '2026-10-22T17:00:00Z', status: 'open',
+    official_schedule: '', stored_schedule: '', sources: [{ kind: 'web', label: 'Publisher', locator: 'https://www.bls.gov/', note: '' }],
+  }] })
   throw new Error(`Unexpected request ${url}`)
 }
 const server = await createServer({ root: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'), server: { middlewareMode: true, hmr: false } })
@@ -94,6 +100,7 @@ try {
   const { dayGroups, moveDate } = await server.ssrLoadModule('./src/alert/model/alert-day-model.ts')
   const { defaultAlertPreferences } = await server.ssrLoadModule('./src/alert/model/alert-preferences.ts')
   const render = props => React.act(async () => root.render(React.createElement(EventsDock, { brokerId: 'Elev8-Demo2', focusKey: null, ...props })))
+  const flush = () => React.act(async () => { for (const [id, fn] of frames) { frames.delete(id); fn() } })
   await render()
   assert.equal(host.querySelector('[aria-label="Event view"]'), null)
   assert.equal(host.querySelectorAll('[aria-label="Alert currency"] button').length, 9)
@@ -124,6 +131,23 @@ try {
   const groups = dayGroups(readings, externalItems, '2026-10-23', broker, defaultAlertPreferences())
   assert.equal(groups.find(group => group.release?.familyId === 'us-cpi').external.length, 1)
   assert.equal(moveDate('2026-12-31', 1), '2027-01-01')
+  const riskToggle = () => [...host.querySelectorAll('button')].find(node => node.textContent.startsWith('Ongoing risks:'))
+  const riskNotice = () => host.querySelector('[aria-label="Current ongoing risks"]')
+  assert.ok(riskNotice())
+  assert.match(riskNotice().textContent, /Next scheduled: cpi-report/)
+  assert.match(riskNotice().textContent, /Coming in 1h/)
+  assert.equal(riskToggle().closest('header'), host.querySelector('.alert-date-header'))
+  assert.equal(riskToggle().parentElement.querySelector('[aria-label="Alarm controls"]') !== null, true, 'Risk and Feed notes controls sit beside Alarm Settings')
+  await click(riskToggle())
+  assert.equal(riskToggle().getAttribute('aria-pressed'), 'false')
+  assert.equal(riskNotice(), null)
+  assert.ok(host.querySelector('[data-external-key="undated"]'), 'Hiding a notice retains its saved event')
+  assert.equal(mutations.length, 0, 'Notice visibility never changes alarms')
+  await click([...host.querySelectorAll('button')].find(node => node.textContent === 'Feed notes'))
+  const notes = host.querySelector('[aria-label="Feed notes"]')
+  assert.match(notes.textContent, /Calendar coverage gap/)
+  assert.equal(host.querySelector('.alert-date-scroll').lastElementChild, notes, 'Feed notes follow the dated table and undated items')
+  await click([...host.querySelectorAll('button')].find(node => node.textContent === 'Feed notes'))
   await click(cpi.querySelector('.event-alarm-toggle'))
   assert.equal(mutations.at(-1).action, 'subscribe')
   assert.equal(cpi.querySelector('.event-alarm-toggle').getAttribute('aria-pressed'), 'true')
@@ -220,6 +244,30 @@ try {
   assert.equal(frames.size, 1, 'Wheel changes batch into one animation frame')
   await React.act(async () => { for (const [id, fn] of frames) { frames.delete(id); fn() } })
   assert.ok(host.querySelector('[aria-current="date"]').getAttribute('aria-label').endsWith('-22'))
+  await React.act(async () => root.render(null)); await render()
+  assert.equal(riskNotice(), null, 'Notice visibility survives a dock remount')
+  await click(riskToggle())
+  assert.ok(riskNotice(), 'The same control restores ongoing notices')
+  const externalRequests = requests.filter(request => request.url.startsWith('/storage-api/external-sources?')).length
+  await render({ focus: { request: 1, externalKey: 'cpi-report' } }); await flush()
+  assert.equal(host.querySelector('[data-alert-focused="true"]').dataset.externalKey, 'cpi-report')
+  assert.ok(host.querySelector('[data-alert-focused="true"] .alert-event-details'))
+  assert.equal(scrolls.length, 1, 'A symbol selection scrolls only after its dated details are available')
+  assert.equal(scrolls[0].node, host.querySelector('.alert-date-scroll'), 'Navigation scrolls the dock rather than the page')
+  await render({ focus: { request: 2, externalKey: 'cpi-report' } }); await flush()
+  assert.equal(scrolls.length, 2, 'Repeated selection of the same symbol scrolls again')
+  assert.equal(requests.filter(request => request.url.startsWith('/storage-api/external-sources?')).length, externalRequests, 'Symbol navigation reuses mounted readers')
+  await render({ focus: { request: 3, sourceId: broker, valueIds: ['1'], date: '2026-10-23', families: ['us-cpi'] } }); await flush()
+  assert.ok(host.querySelector('[data-alert-focused="true"] [data-series-id="840030005"]'), 'Exact calendar value IDs navigate to their release package')
+  assert.equal(scrolls.length, 3)
+  await render({ focus: { request: 4, externalKey: 'undated' } }); await flush()
+  assert.equal(host.querySelector('.alert-undated').open, true)
+  assert.equal(host.querySelector('[data-alert-focused="true"]').dataset.externalKey, 'undated', 'Undated risks open before scrolling')
+  const countBeforeTick = scrolls.length
+  await React.act(async () => { now += 3600000; for (const { fn } of intervals.values()) fn() })
+  await flush()
+  assert.equal(scrolls.length, countBeforeTick, 'Clock movement never steals the user’s scroll position')
+  assert.ok(!riskNotice().textContent.includes('Next scheduled:'), 'Elapsed and date-only saved risks cannot provide a future countdown')
   await React.act(async () => root.unmount())
   assert.equal(timers.size, 0); assert.equal(intervals.size, 0); assert.equal(frames.size, 0)
   console.log('✓ Unified Alert: all/date-only/released events, named sources, exact linked packages, one opt-in bell, saved selections, clean details, chart icons, filters, date/wheel navigation, stale replies and cleanup')

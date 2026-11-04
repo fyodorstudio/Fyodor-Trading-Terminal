@@ -1,5 +1,9 @@
 import { Fragment, memo, useId, useMemo, useState } from 'react'
-import { publisherName, type AlertDayGroup } from '../alert/model/alert-day-model'
+import { jakartaDate, publisherName, type AlertDayGroup } from '../alert/model/alert-day-model'
+import { scheduledAnchors, nearestScheduledAnchor } from '../alert/model/alert-timeline'
+import { CalendarBoundary } from '../inspector/CalendarClock'
+import { useCountdownNow } from '../inspector/calendar-clock'
+import { indexAlarmEvents } from './alarm-event-index'
 import { formatInspectorValue } from '../inspector/readings/reading-values'
 import { formatAppTimestamp } from '../appearance/time-display/time-display-preference'
 import { ReleaseCountdown } from '../alert/highlights/ReleaseCountdown'
@@ -12,21 +16,44 @@ import type { useAlarms } from './useAlarms'
 import { ImpactBadge, ImpactDetails } from '../alert/impact/ImpactBadge'
 import type { useAlertImpact } from '../alert/impact/useAlertImpact'
 
-type TableProps = { groups: AlertDayGroup[]; sourceId: string; alarms: ReturnType<typeof useAlarms>; now: number; focusKey: string | null; impact: ReturnType<typeof useAlertImpact> }
+type TableProps = { groups: AlertDayGroup[]; sourceId: string; alarms: ReturnType<typeof useAlarms>; now: number; focusKey: string | null; focusRequest?: number; date?: string; impact: ReturnType<typeof useAlertImpact> }
+function NowLine({ now, at }: { now: number; at: number }) {
+  const clock = useCountdownNow(now)
+  return <tbody className="alert-now-line"><tr><td colSpan={8}>
+    <span><time>{formatAppTimestamp(clock, jakartaDisplay, 'time-short')}</time> Jakarta · Now · nearest scheduled event {formatAppTimestamp(at, jakartaDisplay, 'time-short')}</span>
+  </td></tr></tbody>
+}
 export const HighlightDock = memo(function HighlightDock({ groups, ...props }: TableProps) {
   // Visual batches are independent of publication identities and alarm choices.
   const ordered = useMemo(() => [...groups].sort((a, b) => (a.at ?? Infinity) - (b.at ?? Infinity)
     || a.currency.localeCompare(b.currency) || a.title.localeCompare(b.title) || a.key.localeCompare(b.key)), [groups])
   const sameTime = (a: AlertDayGroup, b?: AlertDayGroup) => a.at !== null && a.at === b?.at && a.currency === b.currency
-  return <table className="alert-event-table" aria-label="Events on selected date">
+  const alarmIndex = useMemo(() => indexAlarmEvents(props.alarms.data?.events ?? []), [props.alarms.data?.events])
+  const anchors = useMemo(() => scheduledAnchors(ordered), [ordered])
+  const midpoints = useMemo(() => anchors.slice(1).map((anchor, index) => Math.ceil((anchor.at + anchors[index].at) / 2)), [anchors])
+  const [anchorNow, setAnchorNow] = useState(props.now)
+  const nearest = nearestScheduledAnchor(anchors, anchorNow)
+  const showNow = props.date === jakartaDate(anchorNow)
+  return <><CalendarBoundary times={midpoints} onBoundary={setAnchorNow} timeDisplay={jakartaDisplay} />
+  <table className="alert-event-table" aria-label="Events on selected date">
     <thead><tr><th>Time · Jakarta</th><th>Event</th><th>Actual</th><th>Forecast</th><th>Previous</th><th>Source</th><th>Agent impact</th><th><span className="alert-sr-only">Alarm</span></th></tr></thead>
-    {ordered.map((group, index) => <EventGroup key={group.key} group={group}
-      startsTime={!sameTime(group, ordered[index - 1])} endsTime={!sameTime(group, ordered[index + 1])} {...props} />)}
-  </table>
+    {ordered.map((group, index) => <Fragment key={group.key}>
+      {showNow && nearest?.index === index && <NowLine now={anchorNow} at={nearest.at} />}
+      <EventGroup group={group} alarmIndex={alarmIndex}
+        startsTime={!sameTime(group, ordered[index - 1])} endsTime={!sameTime(group, ordered[index + 1])} {...props} />
+    </Fragment>)}
+  </table></>
 })
 
-const EventGroup = memo(function EventGroup({ group, startsTime, endsTime, sourceId, alarms, now, focusKey, impact }: Omit<TableProps, 'groups'> & { group: AlertDayGroup; startsTime: boolean; endsTime: boolean }) {
-  const [expanded, setExpanded] = useState(() => group.external.some(item => item.key === focusKey))
+const EventGroup = memo(function EventGroup({ group, startsTime, endsTime, sourceId, alarms, now, focusKey, focusRequest, impact, alarmIndex }: Omit<TableProps, 'groups'> & { group: AlertDayGroup; startsTime: boolean; endsTime: boolean; alarmIndex: ReturnType<typeof indexAlarmEvents> }) {
+  const focused = group.key === focusKey || group.external.some(item => item.key === focusKey)
+  const [expanded, setExpanded] = useState(focused)
+  const focusToken = focused ? focusRequest ?? focusKey : null
+  const [expandedFor, setExpandedFor] = useState(focusToken)
+  if (expandedFor !== focusToken) {
+    setExpandedFor(focusToken)
+    if (focused) setExpanded(true)
+  }
   const [tab, setTab] = useState<'overview' | 'sources' | 'research'>('overview')
   const panelId = useId(), tabId = useId(), series = group.release?.events ?? []
   const total = series.length + group.external.length
@@ -35,7 +62,7 @@ const EventGroup = memo(function EventGroup({ group, startsTime, endsTime, sourc
   const status = group.at === null ? 'Time unconfirmed' : !elapsed ? null : series.length
     ? !numeric.length ? 'Elapsed' : arrived === numeric.length ? 'Released' : arrived ? 'Partial data' : 'Awaiting data' : 'Elapsed · verify outcome'
   const shared = (first: boolean) => first ? <>
-    <td rowSpan={total}><EventAlarmButton alarms={alarms} group={group} sourceId={sourceId} now={now} /></td>
+    <td rowSpan={total}><EventAlarmButton alarms={alarms} group={group} sourceId={sourceId} now={now} alarmIndex={alarmIndex} /></td>
   </> : null
   const pending = (commentary = false, external = false) => group.at === null ? 'Time unconfirmed'
     : !elapsed ? <ReleaseCountdown at={group.at} now={now} />
@@ -46,7 +73,7 @@ const EventGroup = memo(function EventGroup({ group, startsTime, endsTime, sourc
     : <span className="alert-sr-only">{time} · {group.currency}</span>}</td>
   const toggle = (label: string) => <button type="button" className="alert-event-name" aria-expanded={expanded} aria-controls={panelId}
     onClick={() => setExpanded(value => !value)}><span aria-hidden="true">{expanded ? '▾' : '▸'}</span>{label}</button>
-  return <tbody className={`alert-event-group${startsTime ? ' alert-time-start' : ''}${endsTime ? ' alert-time-end' : ''}`} data-alert-id={group.key} data-external-key={group.external[0]?.key}>
+  return <tbody className={`alert-event-group${startsTime ? ' alert-time-start' : ''}${endsTime ? ' alert-time-end' : ''}${focused ? ' alert-event-focused' : ''}`} data-alert-focused={focused || undefined} data-alert-id={group.key} data-external-key={group.external[0]?.key}>
     {series.map((event, index) => <tr key={event.value_id} data-series-id={event.event_id}>
       {index === 0 && timeCell}
       <th scope="row">{toggle(event.name)}{'availability' in event && event.availability !== 'observed' && <small>Latest observation unavailable</small>}</th>

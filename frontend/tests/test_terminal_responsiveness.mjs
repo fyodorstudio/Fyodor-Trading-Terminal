@@ -29,6 +29,7 @@ dom.setInterval = (fn, ms) => { intervals.set(++sequence, { fn, ms }); return se
 dom.clearInterval = id => intervals.delete(id)
 dom.requestAnimationFrame = fn => { frames.set(++sequence, fn); return sequence }
 dom.cancelAnimationFrame = id => frames.delete(id)
+dom.HTMLElement.prototype.scrollTo = function(options) { count('alertScroll'); this.scrollTop = options.top }
 localStorage.setItem('fyodor.time-display.v1', JSON.stringify({ mode: 'utc', utcOffsetMinutes: 0 }))
 localStorage.setItem('fyodor.chart-drawings.v1', JSON.stringify([{ id: 'drawing', symbol: 'EURUSD', timeframe: 'H1', tool: 'parallel-channel',
   points: [{ time: now / 1000 - 5 * 3600, price: 1.1 }, { time: now / 1000 - 3 * 3600, price: 1.2 },
@@ -360,6 +361,14 @@ try {
   assert.equal(container.querySelector('[aria-label="Event view"]'), null)
   assert.equal(container.querySelector('.event-timeline-row'), null)
   assert.ok(container.querySelector('.alert-event-table [data-external-key="treasury-fixture"]'), 'External event appears beside all calendar events')
+  const beforeAlertScrollRequests = requests.length
+  reset()
+  await React.act(async () => { for (let i = 0; i < 200; i++) container.querySelector('.alert-date-scroll').dispatchEvent(new dom.Event('scroll')) })
+  await flush()
+  for (const key of ['highlightSort', 'highlightCard', 'alarmButton', 'eventsDock', 'alertScroll'])
+    assert.equal(counters[key] ?? 0, 0, `Scrolling Alert performs zero ${key} work`)
+  assert.equal(requests.length, beforeAlertScrollRequests, 'Native Alert scrolling makes no data requests')
+  assertQuiet('Scrolling Alert', true)
   reset()
   now += 1000
   await React.act(async () => { for (const timer of intervals.values()) if (timer.ms === 1000) timer.fn() })
@@ -393,7 +402,16 @@ try {
   await click(button('Alert'))
   assert.equal(container.querySelector('[aria-label="External Sources"]'), null)
   await click(container.querySelector('.external-chart-star'))
+  await flush()
   assert.ok(container.querySelector('.alert-event-details'), 'Star opens its sourced record in the unified dock')
+  const selectedEventNode = container.querySelector('[data-alert-focused="true"]')
+  assert.ok(selectedEventNode)
+  const readsBeforeRepeat = requests.filter(url => url.startsWith('/storage-api/external-sources?')).length
+  reset()
+  await click(container.querySelector('.external-chart-star')); await flush()
+  assert.equal(container.querySelector('[data-alert-focused="true"]'), selectedEventNode, 'Repeated star clicks preserve the mounted event and details')
+  assert.equal(counters.alertScroll, 1, 'Repeated symbol selection scrolls the dock exactly once')
+  assert.equal(requests.filter(url => url.startsWith('/storage-api/external-sources?')).length, readsBeforeRepeat, 'Repeated symbols do not remount the feed')
   await click([...container.querySelectorAll('[role="tab"]')].find(node => node.textContent === 'Sources & history'))
   const iconInput = container.querySelector('[aria-label="Show Treasury fixture icon on chart"]')
   await click(iconInput); await flush()
@@ -438,6 +456,9 @@ try {
   assert.equal(container.querySelector('.inspector-marker-popup'), null)
   await click(container.querySelector('[aria-label="2 nearby Inspector releases"]'))
   await click(container.querySelector('.inspector-marker-popup .inspector-currency-USD').parentElement)
+  await flush()
+  assert.ok(container.querySelector('[aria-label="Alert"] [data-alert-focused="true"]'), 'Calendar symbols open and focus their exact Alert release')
+  await click(button('Inspector'))
   const usdCount = events.filter(event => event.currency === 'USD' && event.actual !== null).length
   assert.equal(container.querySelectorAll('.inspector-panel tr[data-series-id]').length, usdCount)
   assert.equal(container.querySelector('[aria-label="Inspector view"]'), null, 'Legacy R1 preferences still open raw tables')
@@ -468,6 +489,9 @@ try {
   assert.equal(saved.symbolGrouping, 'day'); assert.equal(saved.detailView, undefined); assert.equal(saved.showHistograms, undefined)
   const dailyIcon = container.querySelector('.inspector-day-symbol.inspector-currency-USD')
   await click(dailyIcon)
+  await flush()
+  assert.ok(container.querySelector('[aria-label="Alert"] [data-alert-focused="true"]'), 'A daily symbol focuses its first original publication in Alert')
+  await click(button('Inspector'))
   assert.equal(container.querySelectorAll('.inspector-day-table tr[data-series-id]').length, Number(dailyIcon.textContent))
   assert.ok([...container.querySelectorAll('.inspector-day-table tr[data-series-id]')].every(row => row.querySelector('.inspector-day-time').textContent))
   // Current date range and anchor/QoL: twelve months before today, 90 after.
@@ -479,6 +503,7 @@ try {
   await React.act(async () => { for (const handler of clickListeners) handler({ point: { x: 100, y: 100 } }) })
   assert.equal(container.querySelector('.inspector-panel'), null, 'Blank chart deselects the icon and collapses Inspector')
   await click(dailyIcon)
+  await click(button('Inspector'))
   assert.ok(container.querySelector('.inspector-panel'))
   // Settings retains existing options, with no Workspace backup child.
   await click(button('Settings'))
@@ -540,6 +565,7 @@ try {
   while (pending.get('ohlc')?.length) await reply('ohlc')
   await flush()
   await click(container.querySelector('.inspector-day-symbol.inspector-currency-USD'))
+  await click(button('Inspector'))
   const id = events.find(event => event.currency === 'USD' && event.actual !== null).value_id
   events = events.map(event => event.value_id === id ? { ...event, actual: .8, revision: 2 } : event)
   calendarRevision++
@@ -637,7 +663,9 @@ try {
   await click(container.querySelector('[aria-label="Research date range"]'))
   assertCalendarReferences('Entering research keeps the same historical and upcoming calendar icons mounted')
   await click(calendarSymbols.at(-1))
-  assert.ok(container.querySelector('.inspector-panel'), 'Calendar icons still open Inspector during range selection')
+  assert.ok(container.querySelector('[aria-label="Alert"]'), 'Calendar icons still open their dated Alert during range selection')
+  await click(button('Inspector'))
+  assert.ok(container.querySelector('.inspector-panel'), 'The raw Inspector selection remains available')
   await click(container.querySelector('.research-range-hint button'))
   assert.equal(container.querySelector('[aria-label="Select research date range"]'), null)
   assertCalendarReferences('Cancelling research preserves calendar references')
@@ -680,6 +708,7 @@ try {
   assertQuiet('Writing research notes', true)
   assert.equal(counters.dailyGrouping ?? 0, 0, 'Typing notes does not regroup calendar history')
   await click(container.querySelector('.inspector-day-symbol.inspector-currency-USD'))
+  await click(button('Inspector'))
   const inspected = container.querySelector('.inspector-panel').textContent
   const requestsBeforeResearchPan = requests.length
   reset()

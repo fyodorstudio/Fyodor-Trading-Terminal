@@ -27,6 +27,8 @@ globalThis.fetch = (url, options = {}) => String(url).startsWith('/storage-api/h
 try {
   const { alertComingIn, alertSeriesIds } = await server.ssrLoadModule('./src/alert/model/alert-format.ts')
   const { dayGroups } = await server.ssrLoadModule('./src/alert/model/alert-day-model.ts')
+  const { scheduledAnchors, nearestScheduledAnchor } = await server.ssrLoadModule('./src/alert/model/alert-timeline.ts')
+  const { indexAlarmEvents, groupAlarmEvents } = await server.ssrLoadModule('./src/events-alarms/alarm-event-index.ts')
   const { inspectorFamilies } = await server.ssrLoadModule('./src/inspector/catalog/inspector-families.ts')
   const { alertPreferencesKey, defaultAlertPreferences, readAlertPreferences, validAlertPreferences } = await server.ssrLoadModule('./src/alert/model/alert-preferences.ts')
   const cpi = inspectorFamilies.find(family => family.id === 'us-cpi')
@@ -70,6 +72,34 @@ try {
   const outside = [external('A UK budget', 'GBP'), external('B external USD release', 'USD'),
     external('Unknown hour one', 'USD', null), external('Unknown hour two', 'USD', null)]
   const globalRisk = { ...external('Global election', 'USD'), visibility_scope: 'global' }
+  const scheduleGroups = [0, 60, 180].map((seconds, i) => ({ key: `scheduled-${i}`, at: now + seconds * 1000,
+    title: `Scheduled ${i}`, currency: 'USD', valueIds: [`value-${i}`], external: [external(`external-${i}`, 'USD', now + seconds * 1000)] }))
+  const anchors = scheduledAnchors([...scheduleGroups,
+    { ...scheduleGroups[0], key: 'headline', at: now + 20000, external: [{ ...external('headline', 'USD'), kind: 'headline' }] },
+    { ...scheduleGroups[0], key: 'unknown', at: null },
+    { ...scheduleGroups[0], key: 'resolved', at: now + 10000, external: [{ ...external('resolved', 'USD'), risk_status: 'resolved' }] }])
+  assert.deepEqual(anchors.map(anchor => anchor.key), scheduleGroups.map(group => group.key), 'The time line uses known schedules, excluding unknown times, headlines and resolved risks')
+  assert.equal(nearestScheduledAnchor(anchors, now - 1000).index, 0)
+  assert.equal(nearestScheduledAnchor(anchors, now + 29999).index, 0)
+  assert.equal(nearestScheduledAnchor(anchors, now + 30000).index, 1, 'Equal distance snaps to the upcoming event')
+  assert.equal(nearestScheduledAnchor(anchors, now + 120000).index, 2)
+  assert.equal(nearestScheduledAnchor(anchors, now + 999999).index, 2)
+  let indexReads = 0
+  const large = new Proxy(Array.from({ length: 10000 }, (_, i) => ({ at: now + i * 60000, index: i, key: String(i) })), {
+    get(target, key) { if (/^\d+$/.test(String(key))) indexReads++; return Reflect.get(target, key) },
+  })
+  assert.equal(nearestScheduledAnchor(large, now + 5100 * 60000).index, 5100)
+  assert.ok(indexReads < 25, `10,000 schedules require fewer than 25 anchor reads, got ${indexReads}`)
+  let eligibilityReads = 0
+  const inventory = Array.from({ length: 10000 }, (_, i) => ({ key: `alarm-${i}`, reference: `external-${i}`, source: 'external', at: now + i * 60000,
+    get eligible() { eligibilityReads++; return true } }))
+  const alarmIndex = indexAlarmEvents(inventory)
+  assert.equal(eligibilityReads, 10000, 'One linear inventory pass builds the shared alarm index')
+  for (let i = 0; i < 1000; i++) {
+    const matches = groupAlarmEvents(alarmIndex, { ...scheduleGroups[0], at: inventory[i].at, external: [{ key: `external-${i}` }] }, 'Pepperstone-Demo')
+    assert.equal(matches[0].key, `alarm-${i}`)
+  }
+  assert.equal(eligibilityReads, 10000, '1,000 bell lookups never rescan the inventory')
   assert.equal(dayGroups([], [globalRisk], '2026-10-05', 'Pepperstone-Demo', { ...preferences, currency: 'JPY' }).length, 1,
     'A global US event remains visible under the JPY filter without changing its currency tags')
   assert.equal(dayGroups([], [globalRisk], '2026-10-06', 'Pepperstone-Demo', preferences).length, 0,
@@ -115,6 +145,18 @@ try {
   assert.equal(container.querySelectorAll('.alert-time-start').length, 5)
   await renderTable(initialGroups.filter(group => group.currency === 'USD' && group.key !== batch[0].dataset.alertId))
   assert.ok(usdBatch()[0].querySelector('.alert-time-cell time'), 'Filtering out the first package promotes the next visible time label')
+  const { CalendarNowContext } = await server.ssrLoadModule('./src/inspector/calendar-clock.ts')
+  const renderTimeline = (clock, date = '2026-10-05') => React.act(async () => root.render(React.createElement(CalendarNowContext.Provider, { value: clock },
+    React.createElement(HighlightDock, { groups: scheduleGroups, sourceId: 'Pepperstone-Demo', alarms, now, date, focusKey: null,
+      impact: { byValueId: new Map(), byKey: new Map() } }))))
+  await renderTimeline(now)
+  assert.equal(container.querySelector('.alert-now-line').nextElementSibling.dataset.alertId, 'scheduled-0')
+  await renderTimeline(now + 30000)
+  assert.equal(container.querySelector('.alert-now-line').nextElementSibling.dataset.alertId, 'scheduled-1', 'The time line moves across the nearest-event midpoint')
+  await renderTimeline(now + 120000)
+  assert.equal(container.querySelector('.alert-now-line').nextElementSibling.dataset.alertId, 'scheduled-2')
+  await renderTimeline(now, '2026-10-04')
+  assert.equal(container.querySelector('.alert-now-line'), null, 'Historical dates never display a current-time line')
   await React.act(async () => root.unmount())
   const restored = createRoot(container)
   await React.act(async () => restored.render(React.createElement(HighlightDock, { groups: initialGroups, sourceId: 'Pepperstone-Demo',
