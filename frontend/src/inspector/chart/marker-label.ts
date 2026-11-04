@@ -12,7 +12,7 @@ export function markerLabel(marker: InspectorMarker, timeDisplay: TimeDisplayPre
   const known = cache.get(marker)
   if (known) return known
   const time = releaseTimeLabel(marker.release, timeDisplay)
-  const value = { time, description: `${marker.release.currency} · ${marker.release.label} · ${time}` }
+  const value = { time, description: `${marker.release.currency} · ${time} · ${marker.release.label}` }
   cache.set(marker, value)
   return value
 }

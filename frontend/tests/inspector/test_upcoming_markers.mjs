@@ -101,7 +101,7 @@ try {
   const markerButton = () => container.querySelector('.inspector-chart-symbol')
   assert.ok(markerButton()); assert.equal(container.querySelector('.inspector-marker-cluster').style.left, '140px')
   assert.match(container.querySelector('.inspector-release').textContent, /Upcoming/)
-  assert.match(markerButton().title, /20:15/)
+  assert.match(markerButton().title, /^USD · .*20:15 · US CPI \/ core CPI$/, 'Local tooltip orders currency, time and event name')
   await React.act(async () => markerButton().click())
   assert.equal(view.selectedRelease.id, markers[0].release.id)
   assert.match(container.querySelector('table').textContent, /CPI m\/m/)

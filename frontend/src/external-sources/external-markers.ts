@@ -24,7 +24,9 @@ export function buildExternalMarkers(items: readonly ExternalSource[], bars: rea
   const last = Number(bars.at(-1)!.time), duration = timeframeSeconds[timeframe]
   return items.flatMap((item): ExternalMarker[] => {
     if (!externalIconEnabled(item, visibility) || item.kind === 'watch' || !item.event_at && !item.event_date) return []
-    // A source date marks a day, never a fabricated publication instant.
+    // Date-only stars follow the broker's D1 boundary (00:00 chart clock).
+    // The displayed hour follows the verified broker profile, e.g. 04:00 AM
+    // Jakarta during UTC+3. This is placement only, never a publication instant.
     const at = item.event_at ? utcToChartClock(Date.parse(item.event_at), clock) : Date.parse(item.event_date! + 'T00:00:00Z')
     if (at === null || !Number.isFinite(at)) return []
     const target = at / 1000, dayEnd = item.event_date ? target + 86400 : undefined

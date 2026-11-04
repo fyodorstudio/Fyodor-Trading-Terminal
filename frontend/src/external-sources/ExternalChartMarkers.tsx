@@ -51,9 +51,10 @@ export const ExternalChartMarkers = memo(function ExternalChartMarkers({ chartAp
     {records.error && <button type="button" className="external-chart-error" title={records.error} onClick={() => onSelect(null)}>External Sources unavailable</button>}
     {clusters.map(cluster => {
       const first = cluster.markers[0], multiple = cluster.markers.length > 1
-      const description = (marker: typeof first) => `${marker.item.title} · ${marker.item.visibility_scope === 'global' ? 'Global · ' : ''}${[...marker.item.currencies, ...(marker.item.instruments ?? [])].join('/')} · ${marker.item.event_at ? utc(Date.parse(marker.item.event_at)) : `${marker.item.event_date} · hour unconfirmed`} · custom ${marker.item.status}`
+      const unconfirmedTime = cluster.markers.some(marker => !marker.item.event_at)
+      const description = (marker: typeof first) => `${marker.item.event_at ? utc(Date.parse(marker.item.event_at)) : `${marker.item.event_date} · hour unconfirmed`} · ${marker.item.title} · ${marker.item.visibility_scope === 'global' ? 'Global · ' : ''}${[...marker.item.currencies, ...(marker.item.instruments ?? [])].join(' / ')} · custom ${marker.item.status}`
       return <div className="external-chart-cluster" key={first.item.key} style={{ left: cluster.x }}>
-        <button type="button" className="external-chart-star" title={cluster.markers.map(description).join('\n')}
+        <button type="button" className={`external-chart-star${unconfirmedTime ? ' external-chart-time-unconfirmed' : ''}`} title={cluster.markers.map(description).join('\n')}
           aria-label={multiple ? `${cluster.markers.length} nearby custom events` : `Open custom event ${description(first)}`}
           aria-expanded={multiple ? expanded === first.item.key : undefined} onClick={() => {
             if (multiple) setExpanded(key => key === first.item.key ? null : first.item.key)

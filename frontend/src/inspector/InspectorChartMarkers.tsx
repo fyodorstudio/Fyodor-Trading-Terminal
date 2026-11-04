@@ -79,7 +79,7 @@ function InspectorChartMarkersComponent({ chartApi, markers, timeDisplay, onSele
           {cluster.markers.map((marker) => <button type="button" key={marker.release.id}
             onClick={() => { onSelectRelease(marker.release.id); setExpandedId(null) }}>
             <span className={`inspector-currency-${marker.release.currency}`}>{symbolGlyph(marker.symbol)} {marker.release.currency}</span>
-            {' · '}{marker.release.label} · {releaseTime(marker)}
+            {' · '}{releaseTime(marker)} · {marker.release.label}
           </button>)}
         </div>}
       </div>

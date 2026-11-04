@@ -64,6 +64,25 @@ try {
   assert.equal(buildExternalMarkers([item('gap', '2026-10-13T00:00:00Z')], bars, 'H1', utcClock).length, 0)
   const dateOnly = buildExternalMarkers([item('date-only', null, { event_date: '2026-11-04' })], bars, 'H1', utcClock)[0]
   assert.equal(dateOnly.item.event_at, null); assert.equal(dateOnly.dayEnd - dateOnly.time, 86400)
+  const { chartClockToUtc } = await server.ssrLoadModule('./src/appearance/time-display/chart-clock.ts')
+  const brokerClock = { brokerId: 'Pepperstone-Demo', brokerOffsetSeconds: 10800 }
+  for (const [date, jakartaHour] of [['2026-10-14', 4], ['2026-11-04', 5]]) {
+    const dayOpen = Date.parse(`${date}T00:00:00Z`) / 1000
+    const source = item(`unconfirmed-${date}`, null, { event_date: date })
+    const dailyBars = [dayOpen - 86400, dayOpen, dayOpen + 86400].map(time => ({ time }))
+    const daily = buildExternalMarkers([source], dailyBars, 'D1', brokerClock)[0]
+    assert.equal(daily.time, dailyBars[1].time, 'An unconfirmed star follows the source date’s daily candle')
+    const displayed = new Date(chartClockToUtc(daily.time * 1000, brokerClock) + 7 * 3600000)
+    assert.equal(displayed.toISOString().slice(0, 10), date)
+    assert.equal(displayed.getUTCHours(), jakartaHour, 'The displayed anchor follows the historical broker offset')
+    assert.equal(daily.item.event_at, null, 'A day anchor never invents a publication hour')
+    for (const [timeframe, duration] of Object.entries(durations)) {
+      const loaded = buildExternalMarkers([source], [{ time: dayOpen - duration }, { time: dayOpen }], timeframe, brokerClock)[0]
+      const projected = buildExternalMarkers([source], [{ time: dayOpen - duration }], timeframe, brokerClock)[0]
+      assert.equal(loaded.time, daily.time, `${timeframe}: loaded star aligns with the daily open`)
+      assert.equal(projected.time, daily.time, `${timeframe}: future star aligns with the daily open`)
+    }
+  }
   const historical = Array.from({ length: 10000 }, (_, index) => ({ item: beforeDst, time: last - 20000 - index }))
   coordinateReads = 0; projectExternalMarkers(scale, historical)
   assert.equal(coordinateReads, 0, 'Offscreen historical markers perform no chart coordinate queries')
@@ -82,6 +101,7 @@ try {
   assert.equal(container.querySelector('.external-chart-markers').style.bottom, '68px')
   const star = container.querySelector('.external-chart-star')
   assert.equal(star.textContent, '★'); assert.ok(star.title.includes('22:00'))
+  assert.equal(star.classList.contains('external-chart-time-unconfirmed'), false, 'Exact-time stars keep their normal color')
   await React.act(async () => star.click()); assert.equal(selected, 'future')
   await render(2)
   assert.equal(container.querySelector('.external-chart-markers').style.bottom, '102px', 'Custom row clears both daily currency icons')
@@ -119,6 +139,7 @@ try {
   items = [globalRisk]
   await React.act(async () => root.render(null)); await render(1, 'JPYX', true)
   assert.ok(container.querySelector('.external-chart-star'), 'A US global event appears on the assembled JPYX chart')
+  assert.ok(container.querySelector('.external-chart-star').classList.contains('external-chart-time-unconfirmed'), 'Date-only stars use the red unconfirmed-time style')
   const ongoing = () => container.querySelector('[aria-label="Current ongoing risks"]')
   assert.ok(ongoing()); assert.match(ongoing().textContent, /Assessed/)
   await React.act(async () => assert.equal(setOngoingRiskVisibility(false), true))
@@ -163,7 +184,7 @@ try {
   await React.act(async () => root.render(null)); await render(1)
   await React.act(async () => container.querySelector('.external-chart-star').click())
   assert.ok(container.querySelector('.external-chart-popup'))
-  await React.act(async () => [...container.querySelectorAll('.external-chart-popup button')].find(button => button.textContent.startsWith('neighbor')).click())
+  await React.act(async () => [...container.querySelectorAll('.external-chart-popup button')].find(button => button.textContent.includes(' · neighbor · ')).click())
   assert.equal(selected, 'neighbor')
   await React.act(async () => root.render(null))
   assert.equal(timers.size, 0); assert.equal(frames.size, 0); assert.equal(rangeListeners.size, 0); assert.equal(sizeListeners.size, 0); assert.equal(clickListeners.size, 0)

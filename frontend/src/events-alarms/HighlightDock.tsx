@@ -1,6 +1,6 @@
 import { Fragment, memo, useId, useMemo, useState } from 'react'
 import { jakartaDate, publisherName, type AlertDayGroup } from '../alert/model/alert-day-model'
-import { scheduledAnchors, nearestScheduledAnchor } from '../alert/model/alert-timeline'
+import { currentTimePosition } from '../alert/model/alert-timeline'
 import { CalendarBoundary } from '../inspector/CalendarClock'
 import { useCountdownNow } from '../inspector/calendar-clock'
 import { indexAlarmEvents } from './alarm-event-index'
@@ -16,10 +16,10 @@ import { ImpactBadge, ImpactDetails } from '../alert/impact/ImpactBadge'
 import type { useAlertImpact } from '../alert/impact/useAlertImpact'
 
 type TableProps = { groups: AlertDayGroup[]; sourceId: string; alarms: ReturnType<typeof useAlarms>; now: number; focusKey: string | null; focusRequest?: number; date?: string; impact: ReturnType<typeof useAlertImpact> }
-function NowLine({ now, at }: { now: number; at: number }) {
+function NowLine({ now }: { now: number }) {
   const clock = useCountdownNow(now)
   return <tbody className="alert-now-line"><tr><td colSpan={8}>
-    <span><time>{formatAppTimestamp(clock, jakartaDisplay, 'time-short')}</time> Jakarta · Now · nearest scheduled event {formatAppTimestamp(at, jakartaDisplay, 'time-short')}</span>
+    <span><time aria-label="Current time in Jakarta">{formatAppTimestamp(clock, jakartaDisplay, 'time-short')}</time></span>
   </td></tr></tbody>
 }
 export const HighlightDock = memo(function HighlightDock({ groups, ...props }: TableProps) {
@@ -28,20 +28,20 @@ export const HighlightDock = memo(function HighlightDock({ groups, ...props }: T
     || a.currency.localeCompare(b.currency) || a.title.localeCompare(b.title) || a.key.localeCompare(b.key)), [groups])
   const sameTime = (a: AlertDayGroup, b?: AlertDayGroup) => a.at !== null && a.at === b?.at && a.currency === b.currency
   const alarmIndex = useMemo(() => indexAlarmEvents(props.alarms.data?.events ?? []), [props.alarms.data?.events])
-  const anchors = useMemo(() => scheduledAnchors(ordered), [ordered])
-  const midpoints = useMemo(() => anchors.slice(1).map((anchor, index) => Math.ceil((anchor.at + anchors[index].at) / 2)), [anchors])
-  const [anchorNow, setAnchorNow] = useState(props.now)
-  const nearest = nearestScheduledAnchor(anchors, anchorNow)
-  const showNow = props.date === jakartaDate(anchorNow)
-  return <><CalendarBoundary times={midpoints} onBoundary={setAnchorNow} timeDisplay={jakartaDisplay} />
+  const times = useMemo(() => ordered.flatMap(group => group.at === null ? [] : [group.at]), [ordered])
+  const [timelineNow, setTimelineNow] = useState(props.now)
+  const position = currentTimePosition(ordered, timelineNow)
+  const showNow = times.length > 0 && props.date === jakartaDate(timelineNow)
+  return <><CalendarBoundary times={times} onBoundary={setTimelineNow} timeDisplay={jakartaDisplay} />
   <table className="alert-event-table" aria-label="Events on selected date">
     <thead><tr><th>Time · Jakarta</th><th>Event</th><th>Actual</th><th>Forecast</th><th>Previous</th><th>Source</th><th>Agent impact</th><th><span className="alert-sr-only">Alarm</span></th></tr></thead>
     {ordered.map((group, index) => <Fragment key={group.key}>
-      {showNow && nearest?.index === index && <NowLine now={anchorNow} at={nearest.at} />}
+      {showNow && position === index && <NowLine now={timelineNow} />}
       <EventGroup group={group} alarmIndex={alarmIndex}
         startsClock={group.at === null || group.at !== ordered[index - 1]?.at}
         startsTime={!sameTime(group, ordered[index - 1])} endsTime={!sameTime(group, ordered[index + 1])} {...props} />
     </Fragment>)}
+    {showNow && position === ordered.length && <NowLine now={timelineNow} />}
   </table></>
 })
 

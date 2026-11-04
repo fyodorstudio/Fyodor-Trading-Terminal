@@ -17,7 +17,18 @@ collection, search, date-sort or archive controls. Refresh both currency stories
 or the commodity mechanism before treating dated interpretation as current.
 The collection supplies no live news ingestion or background monitoring.
 
-Legacy active dated records appear as gold stars on matching currency pairs when chart
+Custom stars are red when their event date has no confirmed hour. A cluster is
+red if any member has an unconfirmed hour; exact-time stars retain gold. This
+color distinction applies in both themes and does not change timing or reminders.
+
+Hour-unconfirmed stars follow the broker's daily-candle boundary, using midnight
+in the native chart clock. In Jakarta this appears at 04:00 AM for UTC+3 broker
+dates and 05:00 AM for UTC+2 dates. The verified historical broker profile controls
+that display conversion. Tooltips retain the source date and “hour unconfirmed”;
+placement never creates a publication hour or reminder. By day Inspector icons
+retain their existing display-calendar-day behavior.
+
+Legacy active dated records appear as stars on matching currency pairs when chart
 visibility is enabled. Exact UTC times use the broker's verified chart-clock/DST
 profile; source dates stay date-only and untimed watches have no marker. Clicking
 a star opens its Alert details. Projection does not insert price candles.

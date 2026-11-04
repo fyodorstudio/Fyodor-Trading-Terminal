@@ -27,7 +27,7 @@ globalThis.fetch = (url, options = {}) => String(url).startsWith('/storage-api/h
 try {
   const { alertComingIn, alertSeriesIds } = await server.ssrLoadModule('./src/alert/model/alert-format.ts')
   const { dayGroups } = await server.ssrLoadModule('./src/alert/model/alert-day-model.ts')
-  const { scheduledAnchors, nearestScheduledAnchor } = await server.ssrLoadModule('./src/alert/model/alert-timeline.ts')
+  const { currentTimePosition } = await server.ssrLoadModule('./src/alert/model/alert-timeline.ts')
   const { indexAlarmEvents, groupAlarmEvents } = await server.ssrLoadModule('./src/events-alarms/alarm-event-index.ts')
   const { inspectorFamilies } = await server.ssrLoadModule('./src/inspector/catalog/inspector-families.ts')
   const { alertPreferencesKey, defaultAlertPreferences, readAlertPreferences, validAlertPreferences } = await server.ssrLoadModule('./src/alert/model/alert-preferences.ts')
@@ -74,21 +74,22 @@ try {
   const globalRisk = { ...external('Global election', 'USD'), visibility_scope: 'global' }
   const scheduleGroups = [0, 60, 180].map((seconds, i) => ({ key: `scheduled-${i}`, at: now + seconds * 1000,
     title: `Scheduled ${i}`, currency: 'USD', valueIds: [`value-${i}`], external: [external(`external-${i}`, 'USD', now + seconds * 1000)] }))
-  const anchors = scheduledAnchors([...scheduleGroups,
+  const timelineGroups = [
+    { ...scheduleGroups[0], key: 'archived', at: now - 1000, external: [{ ...external('archived', 'USD'), archived: true }] },
+    scheduleGroups[0],
+    { ...scheduleGroups[0], key: 'simultaneous', currency: 'JPY' },
     { ...scheduleGroups[0], key: 'headline', at: now + 20000, external: [{ ...external('headline', 'USD'), kind: 'headline' }] },
-    { ...scheduleGroups[0], key: 'unknown', at: null },
-    { ...scheduleGroups[0], key: 'resolved', at: now + 10000, external: [{ ...external('resolved', 'USD'), risk_status: 'resolved' }] }])
-  assert.deepEqual(anchors.map(anchor => anchor.key), scheduleGroups.map(group => group.key), 'The time line uses known schedules, excluding unknown times, headlines and resolved risks')
-  assert.equal(nearestScheduledAnchor(anchors, now - 1000).index, 0)
-  assert.equal(nearestScheduledAnchor(anchors, now + 29999).index, 0)
-  assert.equal(nearestScheduledAnchor(anchors, now + 30000).index, 1, 'Equal distance snaps to the upcoming event')
-  assert.equal(nearestScheduledAnchor(anchors, now + 120000).index, 2)
-  assert.equal(nearestScheduledAnchor(anchors, now + 999999).index, 2)
+    scheduleGroups[1], scheduleGroups[2], { ...scheduleGroups[0], key: 'unknown', at: null },
+  ]
+  assert.equal(currentTimePosition(timelineGroups, now - 2000), 0, 'Before all known events, the line is at the top')
+  assert.equal(currentTimePosition(timelineGroups, now), 3, 'Every same-time elapsed row precedes the line, independent of currency/source')
+  assert.equal(currentTimePosition(timelineGroups, now + 30000), 4, 'The line follows elapsed headlines rather than snapping to a nearby schedule')
+  assert.equal(currentTimePosition(timelineGroups, now + 999999), 6, 'Unknown-time rows never count as elapsed')
   let indexReads = 0
   const large = new Proxy(Array.from({ length: 10000 }, (_, i) => ({ at: now + i * 60000, index: i, key: String(i) })), {
     get(target, key) { if (/^\d+$/.test(String(key))) indexReads++; return Reflect.get(target, key) },
   })
-  assert.equal(nearestScheduledAnchor(large, now + 5100 * 60000).index, 5100)
+  assert.equal(currentTimePosition(large, now + 5100 * 60000), 5101)
   assert.ok(indexReads < 25, `10,000 schedules require fewer than 25 anchor reads, got ${indexReads}`)
   let eligibilityReads = 0
   const inventory = Array.from({ length: 10000 }, (_, i) => ({ key: `alarm-${i}`, reference: `external-${i}`, source: 'external', at: now + i * 60000,
@@ -151,15 +152,26 @@ try {
   await renderTable(initialGroups.filter(group => group.currency === 'USD' && group.key !== batch[0].dataset.alertId))
   assert.ok(usdBatch()[0].querySelector('.alert-time-cell time'), 'Filtering out the first package promotes the next visible time label')
   const { CalendarNowContext } = await server.ssrLoadModule('./src/inspector/calendar-clock.ts')
-  const renderTimeline = (clock, date = '2026-10-05') => React.act(async () => root.render(React.createElement(CalendarNowContext.Provider, { value: clock },
-    React.createElement(HighlightDock, { groups: scheduleGroups, sourceId: 'Pepperstone-Demo', alarms, now, date, focusKey: null,
+  const renderTimeline = (clock, date = '2026-10-05', timeline = scheduleGroups) => React.act(async () => root.render(React.createElement(CalendarNowContext.Provider, { value: clock },
+    React.createElement(HighlightDock, { groups: timeline, sourceId: 'Pepperstone-Demo', alarms, now, date, focusKey: null,
       impact: { byValueId: new Map(), byKey: new Map() } }))))
-  await renderTimeline(now)
+  await renderTimeline(now - 1000)
   assert.equal(container.querySelector('.alert-now-line').nextElementSibling.dataset.alertId, 'scheduled-0')
+  await renderTimeline(now)
+  assert.equal(container.querySelector('.alert-now-line').previousElementSibling.dataset.alertId, 'scheduled-0', 'At publication the elapsed row moves above the current-time divider')
+  assert.equal(container.querySelector('.alert-now-line').nextElementSibling.dataset.alertId, 'scheduled-1')
   await renderTimeline(now + 30000)
-  assert.equal(container.querySelector('.alert-now-line').nextElementSibling.dataset.alertId, 'scheduled-1', 'The time line moves across the nearest-event midpoint')
+  assert.equal(container.querySelector('.alert-now-line').nextElementSibling.dataset.alertId, 'scheduled-1', 'Midpoints no longer move the line')
   await renderTimeline(now + 120000)
+  assert.equal(container.querySelector('.alert-now-line').previousElementSibling.dataset.alertId, 'scheduled-1')
   assert.equal(container.querySelector('.alert-now-line').nextElementSibling.dataset.alertId, 'scheduled-2')
+  const timeLine = container.querySelector('.alert-now-line')
+  assert.equal(timeLine.textContent.trim(), timeLine.querySelector('time').textContent, 'The divider displays only the current clock')
+  assert.ok(!timeLine.textContent.includes('nearest'))
+  await renderTimeline(now + 180000)
+  assert.equal(container.querySelector('.alert-now-line'), container.querySelector('table').lastElementChild, 'After the final event, the line follows the last row')
+  await renderTimeline(now + 180000, '2026-10-05', [...scheduleGroups, { ...scheduleGroups[0], key: 'unknown', at: null }])
+  assert.equal(container.querySelector('.alert-now-line').nextElementSibling.dataset.alertId, 'unknown', 'Unknown-time items stay below the chronological divider')
   await renderTimeline(now, '2026-10-04')
   assert.equal(container.querySelector('.alert-now-line'), null, 'Historical dates never display a current-time line')
   const { alertDateForRelease } = await server.ssrLoadModule('./src/alert/model/alert-focus.ts')

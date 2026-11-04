@@ -66,11 +66,12 @@ Inspector heading opens the selected Pepperstone release's date, expands its
 matching details and scrolls only Alert's scrollport. Repeated selections reuse
 the mounted feed. External stars open their Alert details directly because they
 have no raw broker Inspector row. A navigation highlight fades and clears on
-collapse. Today has a horizontal Now
-line snapped to the nearest visible confirmed schedule (ties choose the upcoming
-event); it updates the time without scrolling. Historical dates omit this line.
+collapse. Today has a horizontal current-time divider showing only the Jakarta
+clock. It follows every elapsed timed event and precedes future/unknown-time
+items, moving below all same-time rows at their publication instant. It remains
+after the final timed event when all have elapsed. Historical dates omit it.
 Clock ticks stay local to countdowns/the line, and its position changes only at
-schedule midpoints. Native dock scrolling runs no React state or layout handlers.
+event times or the date boundary; it never scrolls automatically. Native dock scrolling runs no React state or layout handlers.
 Bells share one indexed alarm inventory instead of scanning it per publication.
 
 ## Dates and source identity
