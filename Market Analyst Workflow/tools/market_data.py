@@ -332,6 +332,8 @@ def run(args):
             return save_refresh(request)
         snapshot = news_snapshot()
         if args.action == 'verify':
+            from storage.currency_news_feed import news_feed, publication_date
+            from storage.currency_news import NewsItem
             served = get_json(args.storage, 'currency-news')
             if served != snapshot:
                 raise ValueError("Running storage does not serve this checkout's saved news; restart the correct stack and retry")
@@ -339,7 +341,18 @@ def run(args):
             daily = news_day(NEWS_DIRECTORY, day)
             if get_json(args.storage, 'currency-news/day?date='+day) != daily:
                 raise ValueError('Running storage does not serve the saved daily table; restart the correct stack and retry')
-            return {'panel_delivery_verified': True, 'date': day, 'revision': daily['revision'], 'currencies': [r['currency'] for r in daily['rows'] if r['snapshot'] and (args.scope == 'ALL' or r['currency'] == args.scope)]}
+            dates = {day}
+            for row in snapshot['rows']:
+                s = row['snapshot']
+                if s and (args.scope == 'ALL' or row['currency'] == args.scope):
+                    dates.update(publication_date(NewsItem.model_validate(i), datetime.fromisoformat(s['checked_at'])) for i in s['items'] + s['background'])
+            feeds = {}
+            for selected_date in sorted(dates):
+                feed = news_feed(NEWS_DIRECTORY, selected_date)
+                if get_json(args.storage, 'currency-news/feed?date='+selected_date) != feed:
+                    raise ValueError('Running storage does not serve the saved story feed; restart the correct stack and retry')
+                feeds[selected_date] = feed
+            return {'panel_delivery_verified': True, 'date': day, 'dates': sorted(dates), 'revision': feeds[day]['revision'], 'stories': len(feeds[day]['stories']), 'currencies': [r['currency'] for r in daily['rows'] if r['snapshot'] and (args.scope == 'ALL' or r['currency'] == args.scope)]}
         if args.scope != 'ALL':
             snapshot = {**snapshot, 'rows': [r for r in snapshot['rows'] if r['currency'] == args.scope]}
         return snapshot

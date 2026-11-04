@@ -111,8 +111,8 @@ const server = await createServer({ root: path.resolve(path.dirname(fileURLToPat
         "function TerminalWorkspace() { globalThis.__terminalProbe.count('workspace');")
       if (id.endsWith('/MarketWatchPanel.tsx')) return code.replace('const positive = quote.dailyChange != null',
         "globalThis.__terminalProbe.count('quoteRows'); const positive = quote.dailyChange != null")
-      if (id.endsWith('/CurrencyNewsDock.tsx')) return code.replace('  const s = row.snapshot',
-        "  globalThis.__terminalProbe.count('newsRows'); const s = row.snapshot")
+      if (id.endsWith('/CurrencyNewsDock.tsx')) return code.replace('  return <tr data-news-story=',
+        "  globalThis.__terminalProbe.count('newsRows'); return <tr data-news-story=")
       if (id.endsWith('/MarketCandlestickChart.tsx')) return code.replace('}: MarketCandlestickChartProps) {',
         "}: MarketCandlestickChartProps) { globalThis.__terminalProbe.count('chartRender');")
       if (id.endsWith('/useCalendarNow.ts')) return code.replace('return now', 'globalThis.__terminalProbe.clocks.push(now); return now')
@@ -179,18 +179,20 @@ globalThis.fetch = (url, options = {}) => {
     const run_id='c'.repeat(64),saved_at='2026-10-08T10:01:00Z'
     return Promise.resolve({ok:true,json:async()=>({schema:1,revision:run_id,run_id,saved_at,
       rows:['EUR','GBP','AUD','NZD','USD','CAD','CHF','JPY'].map(currency=>({currency,snapshot:currency!=='CHF'?null:{
-        currency,run_id,saved_at,checked_at:'2026-10-08T10:00:00Z',coverage:'checked',coverage_note:'',window_hours:3,
-        items:[],background:[],implication:'no_clear_signal',reason:'Original saved history fixture.'}}))})})
+        currency,run_id,saved_at,checked_at:'2026-10-08T10:00:00Z',coverage:'checked',coverage_note:'',window_hours:null,
+        items:[{story_id:'CHF-fixture',summary:'Verified currency news.',published_at:'2026-10-08T09:00:00Z',timing_note:'',sources:[{label:'Official',url:'https://example.com/release'}],bias:'bullish',reason:'Original saved history fixture.'}],
+        background:[],implication:'no_clear_signal',reason:''}}))})})
   }
-  if (u.startsWith('/storage-api/currency-news/day?')) {
+  if (u.startsWith('/storage-api/currency-news/feed?')) {
     const params=new URL(u,'http://localhost').searchParams,date=params.get('date'),empty=date!=='2026-10-08'
-    const revision=(empty?'e':'a').repeat(64),saved_at='2026-10-08T11:01:00Z'
-    return Promise.resolve({ok:true,json:async()=>({schema:1,date,revision,...(params.get('after_revision')===revision?{unchanged:true}:{
-      rows:['EUR','GBP','AUD','NZD','USD','CAD','CHF','JPY'].map(currency=>({currency,
-        refreshes:empty?[]:[{run_id:revision,saved_at},...(currency==='CHF'?[{run_id:'c'.repeat(64),saved_at:'2026-10-08T10:01:00Z'}]:[])],
-        snapshot:empty?null:{currency,run_id:revision,saved_at,checked_at:'2026-10-08T11:00:00Z',coverage:'checked',coverage_note:'',window_hours:3,
-          items:[{summary:'Verified currency news.',published_at:'2026-10-08T10:00:00Z',timing_note:'',sources:[{label:'Official',url:'https://example.com/release'}]}],
-          background:[],implication:'mixed',reason:'Policy support meets activity opposition.'}}))})})})
+    const revision=(empty?'e':'a').repeat(64)
+    return Promise.resolve({ok:true,json:async()=>({schema:2,date,revision,...(params.get('after_revision')===revision?{unchanged:true}:{
+      updated_at:empty?null:'2026-10-08T11:01:00Z',coverage:[],
+      stories:empty?[]:['EUR','GBP','AUD','NZD','USD','CAD','CHF','JPY'].map(currency=>({id:currency+'-fixture',
+        summary:'Verified currency news.',published_at:'2026-10-08T10:00:00Z',published_date:date,assessed_at:'2026-10-08T11:00:00Z',order_at:'2026-10-08T10:00:00Z',
+        sources:[{label:'Official',url:'https://example.com/release'}],
+        implications:[{currency,legacy:false,bias:'conditional',reason:'Policy support meets activity opposition.',bullish_if:'rate support persists',bearish_if:'activity contracts',coverage_note:'',timing_note:'',
+          versions:[{run_id:revision,assessed_at:'2026-10-08T11:00:00Z',collection:'items',position:0},...(currency==='CHF'?[{run_id:'c'.repeat(64),assessed_at:'2026-10-08T10:00:00Z',collection:'items',position:0}]:[])]}]}))})})})
   }
   if (u.startsWith('/storage-api/external-sources')) {
     const params = new URL(u, 'http://localhost').searchParams
@@ -306,11 +308,11 @@ try {
   await click(button('Currency News'))
   assert.ok(container.querySelector('[aria-label="Currency News"]'))
   assert.equal(container.querySelector('[aria-label="News currency"]').querySelectorAll('button').length, 9)
-  assert.equal(container.querySelectorAll('[data-news-currency]').length, 8)
+  assert.equal(container.querySelectorAll('[data-news-story]').length, 8)
   assert.ok(container.querySelector('[aria-label="Resize Currency News dock"]'))
   assert.equal(container.querySelector('[data-currency-summary]'), null, 'The retired left Fundamentals panel is absent')
   assertQuiet('Opening Currency News')
-  assert.equal(counters.newsRows, 16, 'Eight loading rows followed by eight saved rows')
+  assert.equal(counters.newsRows, 8, 'Eight story rows render after loading')
   const scrollRequests = requests.length
   reset()
   await React.act(async () => { for (let i = 0; i < 100; i++) container.querySelector('.news-scroll').dispatchEvent(new dom.Event('scroll')) })
@@ -320,8 +322,8 @@ try {
   assertQuiet('Scrolling Currency News', true)
   reset()
   await click([...container.querySelector('[aria-label="News currency"]').querySelectorAll('button')].find(b => b.textContent === 'CHF'))
-  assert.equal(container.querySelector('[data-news-currency]').dataset.newsCurrency, 'CHF')
-  assert.equal(container.querySelectorAll('[data-news-currency]').length, 1)
+  assert.equal(container.querySelector('[data-news-story]').dataset.newsStory, 'CHF-fixture')
+  assert.equal(container.querySelectorAll('[data-news-story]').length, 1)
   assert.equal(requests.length, scrollRequests, 'Filtering saved news performs no research or network work')
   assertQuiet('Filtering Currency News')
   assert.ok(container.querySelector('.status-selection').textContent.startsWith('EURUSD'))
@@ -334,20 +336,20 @@ try {
   reset()
   assert.equal(container.querySelector('[aria-label="News view"]'),null,'There is one date-based news view')
   assert.ok(container.querySelector('[aria-label="Currency News date selector"]'))
-  await React.act(async()=>{const selector=container.querySelector('[aria-label="CHF saved refresh"]');selector.value='c'.repeat(64);selector.dispatchEvent(new dom.Event('change',{bubbles:true}))})
-  assert.match(container.querySelector('[data-news-currency="CHF"]').textContent,/Original saved history fixture/)
+  await React.act(async()=>{const selector=container.querySelector('[aria-label="CHF-fixture CHF assessment"]');selector.value='c'.repeat(64);selector.dispatchEvent(new dom.Event('change',{bubbles:true}))})
+  assert.match(container.querySelector('[data-news-story="CHF-fixture"]').textContent,/Original saved history fixture/)
   assertQuiet('Selecting an earlier currency refresh',true)
   const historyCalls=requests.length
   reset()
   await click(container.querySelector('[aria-label="Previous date"]'))
-  assert.match(container.querySelector('[data-news-currency="CHF"]').textContent,/No research saved for this date/)
-  assert.equal(container.querySelectorAll('[data-news-currency]').length,1,'The prescribed table keeps the focused currency on empty dates')
+  assert.match(container.querySelector('.currency-news-table').textContent,/No news fundamentals saved for this date/)
+  assert.equal(container.querySelectorAll('[data-news-story]').length,0,'Empty dates never borrow stories')
   assert.equal(requests.length,historyCalls+1,'Browsing loads one daily projection without research')
   assert.equal([...timers.values()].filter(t=>t.fn.name==='pollNews').length,0,'Past dates do not poll')
   assertQuiet('Browsing an empty saved date',true)
   reset()
-  await click(button('Today'))
-  assert.ok(container.querySelector('[data-news-currency="CHF"]'))
+  await click([...container.querySelectorAll('.currency-news-header button')].find(b => b.textContent === 'Today'))
+  assert.ok(container.querySelector('[data-news-story="CHF-fixture"]'), container.querySelector('[aria-label="Currency News"]')?.textContent)
   assertQuiet('Returning to Today',true)
   await click(button('Currency News'))
   assert.equal(container.querySelector('[aria-label="Currency News"]'), null)
@@ -1101,7 +1103,7 @@ try {
   assert.equal(container.querySelector('.left-dock').hidden, false)
   assert.equal(container.querySelector('[data-currency-summary]'), null, 'Retired Fundamentals stays absent after reopening')
   await click(button('Currency News'))
-  assert.equal(container.querySelector('[data-news-currency]').dataset.newsCurrency, 'CHF', 'Focused news selection survives reopening')
+  assert.equal(container.querySelector('[data-news-story]').dataset.newsStory, 'CHF-fixture', 'Focused news selection survives reopening')
   await click(button('Currency News'))
   await React.act(async () => root.render(null))
   assert.equal(rangeListeners.size, 0); assert.equal(clickListeners.size, 0)

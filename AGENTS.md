@@ -10,14 +10,20 @@ Currency News replaces the left Fundamentals panel and bottom Thesis. Owner:
 `frontend/src/currency-news/`, `storage/currency_news.py`, and
 [the news contract](docs/CURRENCY-NEWS.md). Research runs in the agent chat on
 demand; the terminal displays saved results and copies scoped refresh prompts.
-The default publication lookback is three hours. Do not revive Thesis verdicts,
-pair rankings, D1 forecasts, outcome scoring, checkpoint renewal or the automatic
-learning loop as part of a news refresh. Mixed and no clear fresh signal are
-valid results. Refresh only researched currencies, preserving all other clocks.
-The single date-based news table opens on Today and assembles each currency's own
-latest saved refresh for that day. Earlier row versions/date browsing perform no
-research. All and currency filters reuse the same records. Only Today offers the
-live refresh prompt/lookback. Do not load history during routine refreshes.
+Prioritize newest material news and relevant earlier context without a fixed
+lookback. Do not revive Thesis verdicts, pair rankings, D1 forecasts, outcome
+scoring, checkpoint renewal or the automatic learning loop. Refresh only
+researched currencies, preserving other clocks. Shared stories appear once with
+currency-specific bullish/bearish implications; opposing mechanisms use explicit
+bullish_if/bearish_if scenarios, not a bare Mixed label. Neutral is valid.
+News Fundamentals contains source facts only; agent commentary belongs in
+Implication. Material follow-ups get distinct stable story IDs and dated rows.
+The date revolver filters by publication date. Date-only stories keep their date
+and use last assessment time for sorting/age; wholly undated stories use the
+assessment date. Assessment age never becomes an invented publication instant.
+All/currency filters reuse records. Today alone offers the live refresh prompt.
+Date and earlier-assessment browsing perform no research. Preserve immutable
+history; do not routinely load raw archives during refreshes.
 
 For current news use [Assess Trade Now](.agents/skills/assess-trade-now/SKILL.md).
 Read [research rules](docs/RESEARCH-RULES.md), then the schema only when writing.

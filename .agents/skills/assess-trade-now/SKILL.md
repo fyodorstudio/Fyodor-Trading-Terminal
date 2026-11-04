@@ -1,12 +1,13 @@
 ---
 name: assess-trade-now
-description: Refresh current currency news and qualitative fundamental implications on demand, saving scoped results to Currency News. Default publication lookback is three hours. Use for all-eight or focused currency refreshes; historical investigations and release countdowns have separate skills.
+description: Refresh current currency news and qualitative fundamental implications on demand, saving scoped results to Currency News. Prioritize the newest material stories without a fixed lookback cutoff. Use for all-eight or focused currency refreshes; historical investigations and release countdowns have separate skills.
 ---
 
 # Assess Trade Now — Currency News
 
-Research the requested currencies and publication lookback; default to all eight
-and three hours when unspecified. A pair scope means research both currencies,
+Research the requested currencies; default to all eight and prioritize the newest
+material developments plus relevant earlier context without a fixed cutoff.
+Respect any explicit user research date range. A pair scope means research both currencies,
 without automatically recommending the pair. Respect chat-only/no-save requests.
 
 Read [research rules](../../../docs/RESEARCH-RULES.md). Read the focused current
@@ -17,14 +18,24 @@ archives or run a retired scoring/learning loop for a routine refresh.
 
 Browse current sources. Open decisive original articles/releases, verify their
 publication times and facts, consolidate syndications, and check material contrary
-news. Use the actual check time to define each currency's publication window.
-A new retrieval clock or a minor article edit cannot make old facts fresh.
-Keep older still-relevant background separately dated. Do not force an item quota,
+news. Record the actual source-check instant. File each story on its publication
+date in Jakarta; when only the date is known, keep it explicit and let assessment
+time supply sorting/age. When the entire publication date is unknown, use the
+assessment date too. Never write an assumed hour into published_at. A later
+assessment may move a date-only story up without making old facts fresh. A minor
+article edit is not automatically a new development. Do not force an item quota,
 a directional conclusion or eight fresh-looking rows from narrower research.
 
-Write concise facts, qualitative implication and a short causal reason addressing
-material opposition. Supportive, negative, mixed and no clear fresh signal are
-valid. Distinguish no qualifying story from inaccessible or incomplete coverage.
+Use a stable story_id per development, shared across all researched currency
+rows. Consolidate repeated coverage; a material follow-up gets its own ID and
+dated row. Put source-faithful headlines or concise factual summaries in items,
+without agent interpretation. Put commentary and coverage limitations in the
+per-story, per-currency implication. Use bullish or bearish bias with a concise
+causal reason. When mechanisms compete, use conditional and explicit bullish_if
+and bearish_if scenarios rather than a bare Mixed label. Neutral is valid when
+no supported direction or useful scenarios can be established. New saves omit
+window_hours and background; published_date supports date-only publication.
+Distinguish no qualifying story from inaccessible or incomplete coverage.
 Do not claim exhaustive coverage. Do not turn a news refresh into pair rankings,
 D1 forecasts, price scans, future-calendar sweeps, alarm changes or evaluation.
 If the user separately asks a deeper comparison, answer that scope using the same
@@ -47,7 +58,7 @@ and API delivery. A save receipt alone does not prove panel delivery; if the
 service is stale, restart this checkout's stack under standing permission and
 retry. Leave visual acceptance to the user.
 
-Present a compact table matching Currency News: Currency | latest verified
-information (Jakarta AM/PM) | fundamental implication | direct sources. Name
+Present a compact table matching Currency News: Currencies / Sources | News
+Fundamentals (Jakarta dates/times) | Implication. Keep analysis in Implication. Name
 material coverage limits. Do not delay a useful sourced answer for unrelated
 bookkeeping. No background AI invocation follows.

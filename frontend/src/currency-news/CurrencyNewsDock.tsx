@@ -1,60 +1,50 @@
-import { memo, useCallback, useEffect, useState } from 'react'
-import { newsCurrencies, newsTime, refreshPrompt, type NewsCurrency, type NewsDayRow, type NewsItem } from './news-model'
+import { memo, useCallback, useEffect, useMemo, useState } from 'react'
+import { newsCurrencies, newsTime, newsAge, storyDate, refreshPrompt, type NewsCurrency, type NewsStory } from './news-model'
 import { useNewsDay } from './useNewsDay'
 import { downloadNews } from './news-export'
 import { AlertDateSelector } from '../alert/dock/AlertDateSelector'
 import { jakartaDate } from '../alert/model/alert-day-model'
 import './currency-news.css'
 
-const implicationLabels = { supportive: 'Supportive', negative: 'Negative', mixed: 'Mixed', no_clear_signal: 'No clear fresh signal' }
-const emptyRows: NewsDayRow[] = newsCurrencies.map(currency => ({ currency, snapshot: null, refreshes: [] }))
-function CheckedTime({ at, hours }: { at: string; hours: number }) {
+function RelativeTime({ at, label = '' }: { at: string; label?: string }) {
   const [now, setNow] = useState(Date.now)
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 60000)
     return () => window.clearInterval(timer)
-  }, [])
-  return <span className="news-checked">Checked {newsTime(at)} · {hours}-hour window
-    {now >= Date.parse(at) + hours * 3600000 && <strong className="news-aging"> · Aging — refresh on demand</strong>}</span>
+  }, [at])
+  return <span className="news-age" title={`${label}${newsTime(at)}`}>{label}{newsAge(at, now)}</span>
 }
-function Sources({ items }: { items: NewsItem[] }) {
-  const sources = [...new Map(items.flatMap(i => i.sources).map(s => [s.url, s])).values()]
-  return <>{sources.map(s => <a key={s.url} href={s.url} target="_blank" rel="noopener noreferrer">{s.label}</a>)}</>
-}
-type RowProps = { row: NewsDayRow; today: boolean; status?: 'loading' | 'unavailable'; select: (currency: NewsCurrency, id: string) => void }
-const CurrencyRow = memo(function CurrencyRow({ row, today, status, select }: RowProps) {
-  const s = row.snapshot
-  const historical = !today || s?.run_id !== row.refreshes[0]?.run_id
-  return <tr data-news-currency={row.currency}>
-    <th scope="row">{row.currency}</th>
-    <td>{row.refreshes.length > 1 && <select className="news-row-refresh" aria-label={`${row.currency} saved refresh`} value={s?.run_id ?? ''} onChange={event => select(row.currency, event.target.value === row.refreshes[0]?.run_id ? '' : event.target.value)}>
-        {row.pending && <option value="">Loading…</option>}
-        {row.refreshes.map((r, i) => <option key={r.run_id} value={r.run_id}>{i === 0 ? 'Latest · ' : ''}{newsTime(r.saved_at)} · #{i + 1}</option>)}
-      </select>}{s ? <>
-      {s.items.length ? s.items.map((item, i) => <p className="news-item" key={i}><strong>{newsTime(item.published_at!)}</strong> — {item.summary}</p>) : <p>{s.coverage === 'unavailable' ? 'News coverage unavailable.' : `No qualifying news verified in this ${s.window_hours}-hour window.`}</p>}
-      <span className="news-checked">Saved {newsTime(s.saved_at)}{s.run_id !== row.refreshes[0]?.run_id ? ' · Earlier refresh selected' : ''}</span>
-      {historical ? <span className="news-checked">Checked {newsTime(s.checked_at)} · {s.window_hours}-hour window · Saved snapshot</span> : <CheckedTime at={s.checked_at} hours={s.window_hours} />}
-      {s.coverage !== 'checked' && <p className="news-gap">{s.coverage === 'partial' ? 'Partial coverage' : 'Coverage unavailable'}: {s.coverage_note}</p>}
-      {s.coverage === 'checked' && s.coverage_note && <p>{s.coverage_note}</p>}
-      {!!s.background.length && <details className="news-background"><summary>Older background · {s.background.length}</summary>
-        {s.background.map((item, i) => <p key={i}><strong>{item.published_at ? newsTime(item.published_at) : 'Publication time unknown'}</strong> — {item.summary}
-          {item.timing_note && <span> {item.timing_note}</span>} <Sources items={[item]} /></p>)}
-      </details>}
-    </> : <p>{row.pending || status === 'loading' ? 'Loading saved news…' : status === 'unavailable' ? 'Saved research unavailable.' : 'No research saved for this date.'}</p>}</td>
-    <td>{s ? <><span className={`news-implication ${s.implication}`}><i aria-hidden="true" />{implicationLabels[s.implication]}</span><p>{s.reason}</p></> : '—'}</td>
-    <td className="news-sources">{s?.items.length ? <Sources items={s.items} /> : '—'}</td>
+const biasLabels = { bullish: 'Bullish', bearish: 'Bearish', conditional: 'Conditional', neutral: 'No clear directional bias' }
+type StoryProps = { story: NewsStory; scope: NewsCurrency | 'ALL'; select: ReturnType<typeof useNewsDay>['select'] }
+const StoryRow = memo(function StoryRow({ story, scope, select }: StoryProps) {
+  return <tr data-news-story={story.id}>
+    <th scope="row">
+      <div className="news-tags">{story.implications.map(i => <span key={i.currency}>{i.currency}</span>)}</div>
+      <RelativeTime at={story.order_at} label={story.published_at ? '' : 'Assessed '} />
+      <div className="news-sources">{story.sources.map(s => <a key={s.url} href={s.url} target="_blank" rel="noopener noreferrer">{s.label}</a>)}</div>
+    </th>
+    <td><time className="news-publication" dateTime={story.published_at ?? story.published_date}>{storyDate(story)}</time><p className="news-headline">{story.summary}</p></td>
+    <td>{story.implications.filter(i => scope === 'ALL' || i.currency === scope).map(i => <div className="news-comment" key={i.currency} data-news-implication={i.currency}>
+      <span className={`news-implication ${i.bias}`}><i aria-hidden="true" />{story.implications.length > 1 && `${i.currency} · `}{i.bias === 'conditional' && i.bullish_if && i.bearish_if ? 'Scenarios' : biasLabels[i.bias]}</span>
+      {i.pending ? <p role="status">Loading earlier assessment…</p> : <>
+        {i.bias === 'conditional' && i.bullish_if && i.bearish_if && <><p><strong>Bullish if</strong> {i.bullish_if}</p><p><strong>Bearish if</strong> {i.bearish_if}</p></>}
+        <p>{i.reason}</p>
+        {i.coverage_note && <p className="news-note">{i.coverage_note}</p>}
+      </>}
+      {i.versions.length > 1 && <select className="news-assessment" aria-label={`${story.id} ${i.currency} assessment`} value={i.selected_run ?? i.versions[0].run_id} onChange={event => select(story.id, i.currency, event.target.value === i.versions[0].run_id ? null : i.versions.find(v => v.run_id === event.target.value)!)}>
+        {i.versions.map((v, index) => <option key={v.run_id} value={v.run_id}>{index === 0 ? 'Latest assessment' : newsTime(v.assessed_at)}</option>)}
+      </select>}
+    </div>)}</td>
   </tr>
-}, (a, b) => a.today === b.today && a.status === b.status && a.select === b.select && a.row.currency === b.row.currency
-  && a.row.snapshot === b.row.snapshot && a.row.refreshes === b.row.refreshes && a.row.pending === b.row.pending)
-
+})
 function savedScope(): NewsCurrency | 'ALL' {
   try { const value = localStorage.getItem('fyodor.currency-news.scope.v1'); if (value === 'ALL' || newsCurrencies.includes(value as NewsCurrency)) return value as NewsCurrency | 'ALL' } catch { /* Session defaults. */ }
   return 'ALL'
 }
 export const CurrencyNewsDock = memo(function CurrencyNewsDock() {
   const [scope, setScope] = useState(savedScope)
-  const [hours, setHours] = useState(3)
   const [copied, setCopied] = useState<{ context: string; message: string } | null>(null)
+  const [limit, setLimit] = useState(50)
   const [calendar, setCalendar] = useState(() => { const today = jakartaDate(Date.now()); return { today, date: today } })
   useEffect(() => {
     function updateCalendar() {
@@ -66,18 +56,19 @@ export const CurrencyNewsDock = memo(function CurrencyNewsDock() {
   }, [])
   const { date } = calendar, today = date === calendar.today
   const news = useNewsDay(date, today)
-  const rows = news.data ? news.rows : emptyRows
-  const context = `${date}:${scope}:${hours}`
-  const changeDate = useCallback((value: string) => setCalendar(old => ({ ...old, date: value })), [])
+  const stories = useMemo(() => news.stories.filter(s => scope === 'ALL' || s.implications.some(i => i.currency === scope)), [news.stories, scope])
+  const context = `${date}:${scope}`
+  const changeDate = useCallback((value: string) => { setLimit(50); setCalendar(old => ({ ...old, date: value })) }, [])
   async function copy() {
     if (date !== jakartaDate(Date.now())) return
-    try { await navigator.clipboard.writeText(refreshPrompt(scope, hours)); setCopied({ context, message: 'Refresh prompt copied. Run it in your agent chat.' }) }
+    try { await navigator.clipboard.writeText(refreshPrompt(scope)); setCopied({ context, message: 'Refresh prompt copied. Run it in your agent chat.' }) }
     catch { setCopied({ context, message: 'Could not copy the prompt. Allow clipboard access and retry.' }) }
   }
   function select(value: NewsCurrency | 'ALL') {
-    setScope(value)
+    setScope(value); setLimit(50)
     try { localStorage.setItem('fyodor.currency-news.scope.v1', value) } catch { /* Retain session choice. */ }
   }
+  const coverage = news.data?.coverage.filter(c => scope === 'ALL' || c.currency === scope) ?? []
   return <section className="currency-news-dock" aria-label="Currency News">
     <header className="currency-news-header">
       <h2>Currency News</h2>
@@ -85,26 +76,29 @@ export const CurrencyNewsDock = memo(function CurrencyNewsDock() {
       <div className="news-currencies" role="group" aria-label="News currency">
         {(['ALL', ...newsCurrencies] as const).map(c => <button key={c} type="button" aria-pressed={scope === c} onClick={() => select(c)}>{c === 'ALL' ? 'All' : c}</button>)}
       </div>
-      {today && <><label>Look back <select aria-label="News lookback" value={hours} onChange={event => setHours(Number(event.target.value))}>
-        {[1, 3, 6, 12, 24].map(h => <option value={h} key={h}>{h} {h === 1 ? 'hour' : 'hours'}</option>)}
-      </select></label>
-      <button type="button" onClick={() => { void copy() }}>Copy refresh prompt</button>
-      </>}
+      {today && <button type="button" onClick={() => { void copy() }}>Copy refresh prompt</button>}
       <button type="button" onClick={news.reload}>Reload saved news</button>
-      <button type="button" disabled={!news.data || rows.some(r => r.pending)} onClick={() => {
+      <button type="button" disabled={!news.data || news.stories.some(s => s.implications.some(i => i.pending))} onClick={() => {
         if (!news.data) return
-        try { downloadNews({ ...news.data, rows }, scope, date); setCopied({ context, message: 'Markdown download requested.' }) }
+        try { downloadNews({ ...news.data, stories: news.stories }, scope, date); setCopied({ context, message: 'Markdown download requested.' }) }
         catch { setCopied({ context, message: 'Could not export Markdown. Please retry.' }) }
       }}>Export Markdown</button>
+      {news.data?.updated_at && <RelativeTime at={news.data.updated_at} label="Last updated " />}
     </header>
-    <p className="news-help">{today ? 'Today · on-demand research. Lookback applies to the next refresh request.' : 'Saved research · browsing this date does not run research.'} Each currency keeps its own saved, publication and check times · Jakarta, AM/PM.</p>
     <p className="news-copy-status" role="status">{copied?.context === context ? copied.message : ''}</p>
-    {news.error && <p className="news-error" role="alert">{news.error}{news.data ? ' Showing the last loaded news with its original check times.' : ''}</p>}
-    {!news.data && !news.error && <p role="status">Loading saved news…</p>}
-    <div className="news-scroll" tabIndex={0} aria-label="Currency news table">
-      <table className="currency-news-table"><thead><tr><th>Currency</th><th>Saved verified information · Jakarta, AM/PM</th><th>Fundamental implication</th><th>Sources</th></tr></thead>
-        <tbody>{rows.filter(r => scope === 'ALL' || scope === r.currency).map(row => <CurrencyRow key={row.currency} today={today} row={row} status={news.data ? undefined : news.error ? 'unavailable' : 'loading'} select={news.select} />)}</tbody>
+    {news.error && <p className="news-error" role="alert">{news.error}{news.data ? ' Showing the last loaded news.' : ''}</p>}
+    <div className="news-scroll" tabIndex={0} aria-label="Currency news table" onScroll={event => {
+      const element = event.currentTarget
+      if (element.scrollHeight - element.scrollTop - element.clientHeight < 200 && limit < stories.length) setLimit(n => n + 50)
+    }}>
+      <table className="currency-news-table"><thead><tr><th>Currencies / Sources</th><th>News Fundamentals</th><th>Implication</th></tr></thead>
+        <tbody>{stories.slice(0, limit).map(story => <StoryRow key={story.id} story={story} scope={scope} select={news.select} />)}
+          {!stories.length && <tr><td colSpan={3}>{!news.data ? news.error ? 'Saved research unavailable.' : 'Loading saved news…' : 'No news fundamentals saved for this date.'}
+            {coverage.map(c => <p key={c.currency}>{c.currency}: {c.note || 'No stories saved.'}</p>)}
+          </td></tr>}
+        </tbody>
       </table>
+      {stories.length > limit && <button className="news-more" type="button" onClick={() => setLimit(n => n + 50)}>Show more news</button>}
     </div>
   </section>
 })

@@ -178,6 +178,14 @@ def create_app(directory=None, run_collector=True, highlights_path=HIGHLIGHTS_PA
         except (OSError, ValueError, KeyError, TypeError) as error:
             raise HTTPException(503, 'Daily currency news unavailable; saved refreshes are preserved') from error
 
+    @app.get('/api/v1/currency-news/feed')
+    def currency_news_feed(date: Date, after_revision: str | None = Query(default=None, max_length=100)):
+        from .currency_news_feed import news_feed
+        try:
+            return news_feed(news_directory or (directory or data_directory()) / 'currency-news', date.isoformat(), after_revision)
+        except (OSError, ValueError, KeyError, TypeError, IndexError, StopIteration) as error:
+            raise HTTPException(503, 'Currency news feed unavailable; saved research is preserved') from error
+
     @app.get('/api/v1/currency-news/history')
     def currency_news_history(date: Date, before: str | None = Query(default=None, pattern=r'^[a-f0-9]{64}$')):
         try:

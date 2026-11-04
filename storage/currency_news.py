@@ -50,17 +50,29 @@ class NewsSource(NewsPayload):
 
 
 class NewsItem(NewsPayload):
+    story_id: str | None = Field(default=None, min_length=1, max_length=160, pattern=r'^[a-zA-Z0-9][a-zA-Z0-9._:-]*$')
     summary: str = Field(min_length=1, max_length=1800)
     published_at: datetime | None = None
+    published_date: Date | None = None
     timing_note: str = Field(default='', max_length=500)
     sources: list[NewsSource] = Field(min_length=1, max_length=8)
+    bias: Literal['bullish', 'bearish', 'conditional', 'neutral'] | None = None
+    reason: str = Field(default='', max_length=1800)
+    bullish_if: str = Field(default='', max_length=900)
+    bearish_if: str = Field(default='', max_length=900)
 
     @model_validator(mode='after')
     def timing(self):
         if self.published_at is not None:
             self.published_at = clock(self.published_at)
-        elif not self.timing_note:
-            raise ValueError('Unknown publication time requires a timing note; use background, not fresh news')
+            if self.published_date and self.published_date != self.published_at.astimezone(JAKARTA).date():
+                raise ValueError('Publication date must match the Jakarta publication instant')
+        if self.bias is not None and not self.reason:
+            raise ValueError('A story bias needs its currency-specific reason')
+        if self.bias == 'conditional' and (not self.bullish_if or not self.bearish_if):
+            raise ValueError('Conditional bias needs both bullish_if and bearish_if')
+        if self.bias != 'conditional' and (self.bullish_if or self.bearish_if):
+            raise ValueError('Only conditional bias uses bullish_if and bearish_if')
         return self
 
 
@@ -71,8 +83,8 @@ class CurrencyNews(NewsPayload):
     coverage_note: str = Field(default='', max_length=1200)
     items: list[NewsItem] = Field(default_factory=list, max_length=12)
     background: list[NewsItem] = Field(default_factory=list, max_length=8)
-    implication: Literal['supportive', 'negative', 'mixed', 'no_clear_signal']
-    reason: str = Field(min_length=1, max_length=1800)
+    implication: Literal['supportive', 'negative', 'mixed', 'no_clear_signal'] = 'no_clear_signal'
+    reason: str = Field(default='', max_length=1800)
 
     @model_validator(mode='after')
     def coverage_and_times(self):
@@ -88,18 +100,37 @@ class CurrencyNews(NewsPayload):
         for item in self.items + self.background:
             if item.published_at and item.published_at > self.checked_at:
                 raise ValueError('Publication cannot follow the source check')
+            if item.published_date and item.published_date > self.checked_at.astimezone(JAKARTA).date():
+                raise ValueError('Publication date cannot follow the assessment date')
         return self
 
 
 class NewsRefresh(NewsPayload):
-    window_hours: int = Field(default=3, ge=1, le=24, strict=True)
+    # Only retained to read immutable legacy refreshes. New research has no cutoff.
+    window_hours: int | None = Field(default=None, ge=1, le=24, strict=True)
     rows: list[CurrencyNews] = Field(min_length=1, max_length=8)
 
     @model_validator(mode='after')
     def windows(self):
         if len({r.currency for r in self.rows}) != len(self.rows):
             raise ValueError('Only one result per currency in a refresh')
+        shared = {}
         for row in self.rows:
+            if self.window_hours is None:
+                if row.background:
+                    raise ValueError('Put all stories in items; background is a legacy field')
+                if any(not i.story_id or i.bias is None for i in row.items):
+                    raise ValueError('Each story needs a stable story_id and per-currency bias')
+                if len({i.story_id for i in row.items}) != len(row.items):
+                    raise ValueError('Duplicate story in a currency assessment')
+                for item in row.items:
+                    facts = (item.summary, item.published_at, item.published_date)
+                    if item.story_id in shared and shared[item.story_id] != facts:
+                        raise ValueError('Shared stories must have the same source facts and publication timing')
+                    shared[item.story_id] = facts
+                continue
+            if not row.reason:
+                raise ValueError('Legacy currency reasoning cannot be blank')
             start = row.checked_at - timedelta(hours=self.window_hours)
             if any(i.published_at is None or i.published_at < start for i in row.items):
                 raise ValueError('Fresh items need a publication time inside the requested window')
@@ -134,7 +165,8 @@ def read_run(directory, run_id):
         raise ValueError('Invalid saved refresh ID')
     doc = json.loads((Path(directory) / 'runs' / f'{run_id}.json').read_text(encoding='utf-8'))
     request = NewsRefresh.model_validate(doc['request'])
-    if sha256(encoded(request.model_dump(mode='json'))).hexdigest() != run_id:
+    # Validate the original hash, without inserting newly introduced defaults.
+    if sha256(encoded(doc['request'])).hexdigest() != run_id:
         raise ValueError('News history hash mismatch')
     saved_at = clock(datetime.fromisoformat(doc['saved_at']))
     if saved_at > datetime.now(timezone.utc) or any(row.checked_at > saved_at for row in request.rows):
@@ -142,12 +174,12 @@ def read_run(directory, run_id):
     return request, saved_at.isoformat()
 
 
-def read_state(directory, legacy_history=False):
+def read_state(directory, legacy_history=False, state=None):
     path = Path(directory) / 'latest.json'
     if not path.exists():
         return {}, {}
-    state = json.loads(path.read_text(encoding='utf-8'))
-    current_format = isinstance(state, dict) and state.get('schema') == 2
+    state = json.loads(path.read_text(encoding='utf-8')) if state is None else state
+    current_format = isinstance(state, dict) and state.get('schema') in (2, 3)
     index = state.get('latest') if current_format else state
     if not isinstance(index, dict) or any(c not in CURRENCIES or not valid_id(v) for c, v in index.items()):
         raise ValueError('Invalid news index; existing history has been preserved')
@@ -256,6 +288,13 @@ def news_run(directory, run_id):
 def save_refresh(request: NewsRefresh, directory=DIRECTORY):
     directory = Path(directory)
     body = request.model_dump(mode='json')
+    if request.window_hours is not None:
+        # Keep a pre-story payload's original identity on retry across upgrades.
+        for row in body['rows']:
+            for item in row['items'] + row['background']:
+                for field in ('story_id', 'published_date', 'bias', 'reason', 'bullish_if', 'bearish_if'):
+                    if item[field] is None or item[field] == '':
+                        del item[field]
     run_id = sha256(encoded(body)).hexdigest()
     with LOCK, data_lock(directory):
         index, history = read_state(directory, legacy_history=True)
@@ -264,6 +303,8 @@ def save_refresh(request: NewsRefresh, directory=DIRECTORY):
             previous = current[row.currency]
             if previous and index[row.currency] != run_id and row.checked_at <= datetime.fromisoformat(previous['checked_at']):
                 raise ValueError(f'{row.currency} already has an equal or newer source check; investigate before saving')
+        from .currency_news_feed import story_index, add_stories
+        existing_stories = story_index(directory, history)
         run_path = directory / 'runs' / f'{run_id}.json'
         created = run_id not in history
         if created:
@@ -273,8 +314,9 @@ def save_refresh(request: NewsRefresh, directory=DIRECTORY):
         _, saved_at = read_run(directory, run_id)
         new_index = {**index, **{r.currency: run_id for r in request.rows}}
         new_history = {**history, run_id: {'saved_at': saved_at, 'currencies': [r.currency for r in request.rows]}}
+        stories = add_stories(existing_stories, request, run_id, saved_at)
         try:
-            atomic_write(directory / 'latest.json', {'schema': 2, 'latest': new_index, 'history': new_history})
+            atomic_write(directory / 'latest.json', {'schema': 3, 'latest': new_index, 'history': new_history, 'stories': stories})
         except OSError:
             if created:
                 run_path.unlink(missing_ok=True)

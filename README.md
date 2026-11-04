@@ -46,18 +46,22 @@ stays with the user; no automated UI audit is implied.
 
 ## Currency News
 
-Open Currency News in the bottom dock. All shows the eight currencies; individual
-buttons focus a currency. Copy refresh prompt asks the agent to investigate the
-selected publication window (default three hours). Run the prompt in the agent
-chat. Reload saved news only reloads stored output. There is no automatic AI
-schedule or news ingestion. Publication time, source-check time, older background
-and coverage gaps stay distinct. Existing results keep their own lookback/time.
-The date revolver opens on Today. Each currency shows its own latest refresh saved
-on the selected Jakarta day; earlier versions are selectable in that row. Empty
-dates keep the eight-row table. All/individual currencies filter the same records
-without duplicate research. Past/future dates are browsing only; Today offers the
-refresh prompt and lookback. Markdown exports preserve selected rows and source
-clocks. History remains local and is included in storage backups.
+Open Currency News in the bottom dock. All shows a shared story feed; currency
+buttons filter the same records. Copy refresh prompt prioritizes the newest
+material news and relevant earlier context, without a fixed lookback. Run it in
+the agent chat. Reload saved news only reads local output; there is no automatic
+AI schedule or ingestion.
+
+The date revolver opens on Today and filters by publication date in Jakarta.
+Date-only stories keep their date and use last assessment time for ordering/age;
+completely undated stories fall back to assessment date. Shared stories appear
+once with independent currency implications. News Fundamentals contains source
+facts; Implication contains bullish/bearish reasoning or explicit conditional
+scenarios and coverage caveats. Material follow-ups get their own dated row.
+A single Last updated age replaces repeated per-row save/check lines. Earlier
+assessments remain selectable in Implication. Only Today offers a live refresh
+prompt and polls saved data. Export Markdown follows the selected date, scope
+and assessments. History stays local and is included in storage backups.
 
 ```powershell
 pnpm analyst news read --scope ALL

@@ -22,12 +22,20 @@ failure is relevant; do not load raw archives on every invocation.
   is context, not a reason to renew it.
 - News implication is conditional currency pressure, not proof of realised
   flows, price direction, a profitable entry or strength against every peer.
-  Permit mixed/no clear fresh signal when the evidence warrants it. Research both
+  Use explicit bullish-if/bearish-if scenarios for competing mechanisms; permit
+  neutral when no supported direction or useful scenario is established. Research both
   currencies before a specifically requested pair comparison. Do not derive a
   pair recommendation or broker D1 colour from a standalone news label.
-- Separate the three-hour fresh window from older active background. Quiet
-  coverage is a valid result. A failed search is not proof that nothing happened.
-  Never copy an unresearched currency merely to make all rows look current.
+- Prioritize newest material news and relevant earlier context without a fixed
+  lookback cutoff. File each story on its known publication date, not its save
+  date. Missing hours use assessment time for sorting/age only; do not invent a
+  publication time. Reassessment can reorder a date-only story without making its
+  facts newly published. Quiet coverage is valid; a failed search is not proof
+  that nothing happened. Never copy an unresearched currency with a new clock.
+- Keep News Fundamentals source-faithful and factual. Put interpretation,
+  uncertainty and coverage limitations in Implication. Shared stories retain
+  separate currency views. Reuse a stable story ID for repeated coverage; give a
+  material follow-up a distinct ID and dated row.
 - Keep facts, attribution and inference distinguishable. No invented forecasts,
   funding flows, calibration, numerical probabilities, returns or technical levels.
   Use normal spaced prose: `JPY 330 bn`, `128 bp`, `November 4`.

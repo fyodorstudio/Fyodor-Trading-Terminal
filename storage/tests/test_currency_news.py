@@ -16,6 +16,7 @@ from pydantic import ValidationError
 
 from storage.app import create_app
 from storage.currency_news import NewsRefresh, news_snapshot, save_refresh, news_day, news_history, news_run, read_run
+from storage.currency_news_feed import news_feed
 
 
 def payload(currency='CAD', **changes):
@@ -161,7 +162,7 @@ class CurrencyNewsTests(unittest.TestCase):
         self.assertEqual(news_history(self.news, day)['runs'][0]['run_id'], first['run_id'])
         self.assertEqual(before, {p.relative_to(self.news): p.read_bytes() for p in self.news.rglob('*') if p.is_file()})
         self.save(payload('JPY'))
-        self.assertEqual(json.loads(state.read_text(encoding='utf-8'))['schema'], 2)
+        self.assertEqual(json.loads(state.read_text(encoding='utf-8'))['schema'], 3)
         self.assertEqual(news_run(self.news, first['run_id']), saved)
 
     def test_empty_history_is_read_only_and_uncommitted_orphans_are_not_shown(self):
@@ -268,6 +269,8 @@ class CurrencyNewsTests(unittest.TestCase):
             day = datetime.fromisoformat(saved['saved_at']).astimezone(timezone(timedelta(hours=7))).date().isoformat()
             self.assertEqual(get('/api/v1/currency-news/history?date='+day)[1], news_history(self.news, day))
             self.assertEqual(get('/api/v1/currency-news/day?date='+day)[1], news_day(self.news, day))
+            self.assertEqual(get('/api/v1/currency-news/feed?date='+day)[1], news_feed(self.news, day))
+            self.assertEqual(get('/api/v1/currency-news/feed?date=2026-02-30')[0], 422)
             self.assertEqual(get('/api/v1/currency-news/day?date=2026-02-30')[0], 422)
             self.assertEqual(get('/api/v1/currency-news/history/'+first['run_id'])[1], saved)
             self.assertEqual(get('/api/v1/currency-news/history?date=2026-02-30')[0], 422)
@@ -288,8 +291,9 @@ class CurrencyNewsTests(unittest.TestCase):
         spec.loader.exec_module(analyst)
         fixture = news_snapshot(self.news)
         daily = news_day(self.news, datetime.now(timezone.utc).astimezone(timezone(timedelta(hours=7))).date().isoformat())
+        feed = news_feed(self.news, daily['date'])
         args = analyst.parser().parse_args(['news', 'verify', '--scope', 'CAD'])
-        with patch('storage.currency_news.news_snapshot', return_value=fixture), patch('storage.currency_news.news_day', return_value=daily), patch.object(analyst, 'get_json', side_effect=lambda _, route: daily if '/day?' in route else fixture):
+        with patch('storage.currency_news.news_snapshot', return_value=fixture), patch('storage.currency_news.news_day', return_value=daily), patch('storage.currency_news_feed.news_feed', return_value=feed), patch.object(analyst, 'get_json', side_effect=lambda _, route: feed if '/feed?' in route else daily if '/day?' in route else fixture):
             self.assertTrue(analyst.run(args)['panel_delivery_verified'])
         with patch('storage.currency_news.news_snapshot', return_value=fixture), patch('storage.currency_news.news_day', return_value=daily), patch.object(analyst, 'get_json', return_value=fixture):
             with self.assertRaisesRegex(ValueError, 'daily table'): analyst.run(args)

@@ -16,30 +16,33 @@ from tempfile import TemporaryDirectory
 from pathlib import Path
 import json
 from datetime import datetime, timedelta, timezone
-from storage.currency_news import NewsRefresh, save_refresh, news_snapshot, news_day, news_history, news_run
+from storage.currency_news import NewsRefresh, save_refresh, news_history, news_run
+from storage.currency_news_feed import news_feed
 now = datetime.now(timezone.utc)-timedelta(minutes=1)
+day=(now+timedelta(hours=7)).date().isoformat()
+old=(now-timedelta(days=2)+timedelta(hours=7)).date().isoformat()
 source = dict(label='Original publisher',url='https://example.com/news')
-cad = dict(currency='CAD',checked_at=now.isoformat(),coverage='checked',coverage_note='',
- items=[dict(summary='Fresh Canadian export development.',published_at=(now-timedelta(hours=1)).isoformat(),sources=[source])],
- background=[dict(summary='Older policy guidance.',published_at=None,timing_note='November 2, publication hour unknown.',sources=[source])],
- implication='supportive',reason='Export support is partly offset by softer activity.')
-quiet = dict(currency='USD',checked_at=now.isoformat(),coverage='partial',coverage_note='One publisher was inaccessible.',items=[],background=[],
- implication='no_clear_signal',reason='No qualifying fresh story verified through the available routes.')
-unavailable = dict(quiet,currency='NZD',coverage='unavailable',coverage_note='Relevant routes unavailable.')
+def story(key, **values):
+ item=dict(story_id=key,summary='Source facts for '+key,published_at=(now-timedelta(minutes=10)).isoformat(),sources=[source],bias='bullish',reason='Export support outweighs the demand opposition.')
+ item.update(values)
+ return item
+def row(currency, items, seconds=0, **values):
+ result=dict(currency=currency,checked_at=(now+timedelta(seconds=seconds)).isoformat(),coverage='checked',items=items)
+ result.update(values)
+ return result
 with TemporaryDirectory() as d:
- save_refresh(NewsRefresh(window_hours=3,rows=[cad,quiet,unavailable]),Path(d))
- save_refresh(NewsRefresh(window_hours=3,rows=[dict(cad,currency='JPY',reason='Saved yen interpretation.')]),Path(d))
- save_refresh(NewsRefresh(window_hours=3,rows=[dict(cad,checked_at=(now+timedelta(seconds=1)).isoformat(),reason='Latest CAD interpretation.')]),Path(d))
- day=(datetime.now(timezone.utc)+timedelta(hours=7)).date().isoformat()
+ save_refresh(NewsRefresh(rows=[row('CAD',[story('shared'),story('unknown',published_at=None,published_date=day),story('dated',published_at=None,published_date=old)])]),Path(d))
+ save_refresh(NewsRefresh(rows=[row('JPY',[story('shared',bias='conditional',reason='Both channels matter.',bullish_if='energy costs fall',bearish_if='haven demand recedes'),story('follow-up')],1)]),Path(d))
+ save_refresh(NewsRefresh(rows=[row('CAD',[story('shared',reason='Latest CAD interpretation.'),story('unknown',published_at=None,published_date=day)],2),row('USD',[],coverage='partial',coverage_note='One publisher was inaccessible.'),row('NZD',[],coverage='unavailable',coverage_note='Relevant routes unavailable.')]),Path(d))
  history=news_history(Path(d),day)
- print(json.dumps(dict(day=news_day(Path(d),day),history=history,runs={r['run_id']:news_run(Path(d),r['run_id']) for r in history['runs']})))
+ print(json.dumps(dict(day=news_feed(Path(d),day),old=news_feed(Path(d),old),history=history,runs={r['run_id']:news_run(Path(d),r['run_id']) for r in history['runs']})))
 `], { cwd: repo, encoding: 'utf8' })
 assert.equal(produced.status, 0, produced.stderr)
 const bundle = JSON.parse(produced.stdout)
 let fixture = bundle.day
 const server = await createServer({ root: frontend, server: { middlewareMode: true, hmr: false }, plugins: [{
   name: 'news-row-work-count', enforce: 'pre', transform(code, id) {
-    if (id.endsWith('/CurrencyNewsDock.tsx')) return code.replace('  const s = row.snapshot', '  globalThis.__newsRows++; const s = row.snapshot')
+    if (id.endsWith('/CurrencyNewsDock.tsx')) return code.replace('  return <tr data-news-story=', '  globalThis.__newsRows++; return <tr data-news-story=')
   },
 }] })
 const dom = new Window({ url: 'http://localhost:5173' })
@@ -57,10 +60,10 @@ Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { wri
 function response(url) {
   const route = new URL(url, 'http://localhost')
   let value
-  if (route.pathname === '/storage-api/currency-news/day') {
+  if (route.pathname === '/storage-api/currency-news/feed') {
     const date = route.searchParams.get('date')
-    value = date === fixture.date ? fixture : {schema:1,date,revision:'d'.repeat(64),rows:fixture.rows.map(r=>({currency:r.currency,snapshot:null,refreshes:[]}))}
-    if (route.searchParams.get('after_revision') === value.revision) value = {schema:1,date,revision:value.revision,unchanged:true}
+    value = date === fixture.date ? fixture : date === bundle.old.date ? bundle.old : {schema:2,date,revision:'d'.repeat(64),updated_at:null,stories:[],coverage:[]}
+    if (route.searchParams.get('after_revision') === value.revision) value = {schema:2,date,revision:value.revision,unchanged:true}
   } else value = bundle.runs[route.pathname.split('/').at(-1)]
   return {ok:!offline,status:offline ? 503 : 200,json:async()=>malformed ? {} : structuredClone(value)}
 }
@@ -80,55 +83,56 @@ const poll = async () => {
 }
 try {
   const { CurrencyNewsDock } = await server.ssrLoadModule('./src/currency-news/CurrencyNewsDock.tsx')
-  const { validNewsDay, validSavedNews } = await server.ssrLoadModule('./src/currency-news/news-model.ts')
+  const { validNewsFeed, validSavedNews, newsAge } = await server.ssrLoadModule('./src/currency-news/news-model.ts')
   const { newsMarkdown } = await server.ssrLoadModule('./src/currency-news/news-export.ts')
-  assert.equal(validNewsDay(fixture, fixture.date), true, 'Production daily projection matches frontend')
-  assert.equal(validNewsDay(fixture, '2020-01-01'), false)
+  assert.equal(validNewsFeed(fixture, fixture.date), true, 'Production story projection matches frontend')
+  assert.equal(validNewsFeed(fixture, '2020-01-01'), false)
+  assert.equal(newsAge('2026-01-01T00:00:00Z',Date.parse('2026-01-01T01:02:00Z')),'1 hour 2 minutes ago')
   for (const r of bundle.history.runs) assert.equal(validSavedNews(bundle.runs[r.run_id], r.run_id), true)
-  for (const mutate of [d=>d.rows.pop(),d=>d.rows[0]=d.rows[1],
-    d=>d.rows.find(r=>r.currency==='CAD').snapshot.items[0].sources[0].url='javascript:alert(1)',
-    d=>d.rows.find(r=>r.currency==='CAD').refreshes=[],
-    d=>d.rows.find(r=>r.currency==='CAD').refreshes[0].saved_at='2000-01-01T00:00:00Z',
-    d=>d.rows.find(r=>r.currency==='USD').snapshot.implication='supportive']) {
-    const bad=structuredClone(fixture);mutate(bad);assert.equal(validNewsDay(bad,fixture.date),false)
+  for (const mutate of [d=>d.stories.push(d.stories[0]),d=>d.stories[0].sources[0].url='javascript:alert(1)',
+    d=>d.stories[0].published_date='2020-01-01',d=>d.stories[0].order_at='2000-01-01T00:00:00Z',
+    d=>d.stories[0].implications[0].versions=[],d=>d.coverage[0].currency='XYZ',
+    d=>d.stories.find(s=>s.id==='shared').implications.find(i=>i.currency==='JPY').bullish_if='']) {
+    const bad=structuredClone(fixture);mutate(bad);assert.equal(validNewsFeed(bad,fixture.date),false)
   }
-  // A remembered old history date no longer changes the default: always open Today.
   localStorage.setItem('fyodor.currency-news.date.v1','2020-01-01')
   await React.act(async()=>root.render(React.createElement(CurrencyNewsDock)))
-  assert.equal(container.querySelector('[aria-label="News view"]'),null)
+  const storyNode=id=>container.querySelector(`[data-news-story="${id}"]`)
   assert.ok(container.querySelector('[aria-label="Currency News date selector"]'))
-  assert.equal(container.querySelectorAll('[data-news-currency]').length,8)
-  assert.equal(globalThis.__newsRows,16)
-  assert.match(container.querySelector('[data-news-currency="CAD"]').textContent,/Latest CAD interpretation/)
-  assert.match(container.querySelector('[data-news-currency="JPY"]').textContent,/Saved yen interpretation/)
-  assert.match(container.querySelector('[data-news-currency="USD"]').textContent,/No qualifying news verified.*Partial coverage/s)
-  assert.match(container.querySelector('[data-news-currency="NZD"]').textContent,/coverage unavailable/i)
-  assert.match(container.querySelector('[data-news-currency="EUR"]').textContent,/No research saved for this date/)
-  await click('Copy refresh prompt');assert.match(copied,/all eight currencies.*last 3 hours/s)
+  assert.equal(container.querySelectorAll('[data-news-story]').length,3)
+  assert.equal(globalThis.__newsRows,3)
+  assert.equal(container.querySelector('tbody tr').dataset.newsStory,'unknown','Unknown publication time sorts by last assessment')
+  assert.match(storyNode('unknown').querySelector('.news-age').textContent,/Assessed/)
+  assert.match(storyNode('shared').textContent,/Latest CAD interpretation/)
+  assert.match(storyNode('shared').textContent,/Bullish if.*energy costs fall.*Bearish if.*haven demand recedes/s)
+  assert.equal(storyNode('dated'),null,'Date-only old story does not leak into Today')
+  for(const label of ['Older background','Publication time unknown','3-hour window','Mixed','Saved Nov','Checked Nov']) assert.ok(!container.textContent.includes(label),label)
+  assert.equal(container.querySelector('details'),null)
+  assert.equal(container.querySelector('[aria-label="News lookback"]'),null)
+  assert.deepEqual([...container.querySelectorAll('thead th')].map(n=>n.textContent),['Currencies / Sources','News Fundamentals','Implication'])
+  await click('Copy refresh prompt');assert.match(copied,/all eight currencies.*without a fixed lookback cutoff/s)
+  assert.match(copied,/bullish_if.*bearish_if/s)
   const beforeFilter=requests.length
-  await click('CAD');assert.equal(container.querySelectorAll('[data-news-currency]').length,1)
+  await click('CAD');assert.equal(container.querySelectorAll('[data-news-story]').length,2)
+  assert.equal(storyNode('shared').querySelector('[data-news-implication="JPY"]'),null)
   await click('All');assert.equal(requests.length,beforeFilter,'Scope filters do no network/research work')
-  const lookback=container.querySelector('[aria-label="News lookback"]')
-  await React.act(async()=>{lookback.value='6';lookback.dispatchEvent(new dom.Event('change',{bubbles:true}))})
-  assert.match(container.querySelector('[data-news-currency="CAD"] .news-checked').parentElement.textContent,/3-hour window/)
   globalThis.__newsRows=0
-  await poll();assert.equal(globalThis.__newsRows,0,'Unchanged day poll renders no rows')
-  const cad=fixture.rows.find(r=>r.currency==='CAD')
-  cad.snapshot.reason='Updated mechanism, with explicit opposition.';cad.snapshot.run_id='b'.repeat(64)
-  cad.refreshes.unshift({run_id:cad.snapshot.run_id,saved_at:cad.snapshot.saved_at});fixture.revision='b'.repeat(64)
-  await poll();assert.equal(globalThis.__newsRows,1,'A focused update only renders its currency row')
-  const earlier=cad.refreshes.at(-1)
-  const choose=async id=>React.act(async()=>{const select=container.querySelector('[aria-label="CAD saved refresh"]');select.value=id;select.dispatchEvent(new dom.Event('change',{bubbles:true}))})
+  await poll();assert.equal(globalThis.__newsRows,0,'Unchanged feed poll renders no stories')
+  const shared=fixture.stories.find(s=>s.id==='shared'),cad=shared.implications.find(i=>i.currency==='CAD')
+  cad.reason='Updated mechanism, with explicit opposition.';fixture.revision='b'.repeat(64)
+  await poll();assert.equal(globalThis.__newsRows,1,'A focused update only renders its shared story')
+  const earlier=cad.versions.at(-1)
+  const choose=async id=>React.act(async()=>{const select=container.querySelector('[aria-label="shared CAD assessment"]');select.value=id;select.dispatchEvent(new dom.Event('change',{bubbles:true}))})
   await choose(earlier.run_id)
-  assert.match(container.querySelector('[data-news-currency="CAD"]').textContent,/Export support is partly offset/)
-  assert.match(container.querySelector('[data-news-currency="CAD"]').textContent,/Earlier refresh selected/)
-  assert.match(container.querySelector('[data-news-currency="JPY"]').textContent,/Saved yen interpretation/)
+  assert.match(storyNode('shared').textContent,/Export support outweighs/)
+  assert.match(storyNode('shared').textContent,/energy costs fall/,'Other currency assessment is preserved')
   const afterEarlier=requests.length
-  await click('CAD');await click('All');await choose(cad.refreshes[0].run_id);await choose(earlier.run_id)
-  assert.equal(requests.length,afterEarlier,'A cached version and scope changes do not duplicate reads')
-  const exportRows=fixture.rows.map(r=>r.currency==='CAD'?{...r,snapshot:bundle.runs[earlier.run_id].rows.find(x=>x.currency==='CAD').snapshot}:r)
-  const markdown=newsMarkdown({...fixture,rows:exportRows},'CAD',fixture.date)
-  assert.match(markdown,/saved research.*## CAD.*Export support.*https:\/\/example.com\/news/s)
+  await click('CAD');await click('All');await choose(cad.versions[0].run_id);await choose(earlier.run_id)
+  assert.equal(requests.length,afterEarlier,'Cached assessments and scope changes do not duplicate reads')
+  const saved=bundle.runs[earlier.run_id].rows.find(r=>r.currency==='CAD').snapshot.items[0]
+  const exportStories=fixture.stories.map(s=>s.id==='shared'?{...s,implications:s.implications.map(i=>i.currency==='CAD'?{...i,reason:saved.reason,selected_run:earlier.run_id}:i)}:s)
+  const markdown=newsMarkdown({...fixture,stories:exportStories},'CAD',fixture.date)
+  assert.match(markdown,/Export support.*https:\/\/example.com\/news|https:\/\/example.com\/news.*Export support/s)
   const originalCreate=URL.createObjectURL,originalRevoke=URL.revokeObjectURL,originalClick=dom.HTMLAnchorElement.prototype.click
   let exported,filename='',revoked=''
   URL.createObjectURL=blob=>{exported=blob;return 'blob:news-export'};URL.revokeObjectURL=url=>{revoked=url}
@@ -138,31 +142,33 @@ try {
     assert.equal(await exported.text(),markdown);assert.match(filename,/currency-news-cad-.*\.md/)
     const revoke=[...timers].find(([,t])=>t.ms===1000);timers.delete(revoke[0]);revoke[1].fn();assert.equal(revoked,'blob:news-export')
   } finally {URL.createObjectURL=originalCreate;URL.revokeObjectURL=originalRevoke;dom.HTMLAnchorElement.prototype.click=originalClick}
-  await click('All');await choose(cad.refreshes[0].run_id)
-  cad.snapshot.run_id='f'.repeat(64);cad.refreshes.unshift({run_id:cad.snapshot.run_id,saved_at:cad.snapshot.saved_at});fixture.revision='f'.repeat(64)
-  await poll()
-  assert.equal(container.querySelector('[aria-label="CAD saved refresh"]').value,cad.snapshot.run_id,'Returning a row to Latest follows later saved updates')
-  offline=true;await poll();assert.match(container.querySelector('[role="alert"]').textContent,/HTTP 503.*last loaded/s)
-  offline=false;malformed=true;await poll();assert.match(container.querySelector('[role="alert"]').textContent,/Invalid daily news/)
-  malformed=false;await poll();assert.equal(container.querySelector('[role="alert"]'),null)
+  await click('All');await choose(cad.versions[0].run_id)
   const originalNow=Date.now
-  Date.now=()=>Date.parse(cad.snapshot.checked_at)+4*3600000
   globalThis.__newsRows=0
+  const later=originalNow()+4*3600000
+  Date.now=()=>later
   try {await React.act(async()=>{for(const timer of intervals.values())if(timer.fn.name!=='updateCalendar')timer.fn()})}
   finally {Date.now=originalNow}
-  assert.equal(globalThis.__newsRows,0,'Aging stays inside the local clock components')
-  assert.match(container.querySelector('[data-news-currency="CAD"]').textContent,/Aging/)
+  assert.equal(globalThis.__newsRows,0,'Age updates stay inside local clock components')
+  offline=true;await poll();assert.match(container.querySelector('[role="alert"]').textContent,/HTTP 503.*last loaded/s)
+  offline=false;malformed=true;await poll();assert.match(container.querySelector('[role="alert"]').textContent,/Invalid news feed/)
+  malformed=false;await poll();assert.equal(container.querySelector('[role="alert"]'),null)
   const previousDate=()=>container.querySelector('[aria-label="Previous date"]')
   await React.act(async()=>previousDate().click())
-  assert.equal(container.querySelectorAll('[data-news-currency]').length,8,'Empty dates retain the prescribed table')
-  assert.equal(container.querySelectorAll('tbody td').length,24)
-  assert.ok([...container.querySelectorAll('tbody tr')].every(r=>r.textContent.includes('No research saved for this date.')))
+  await React.act(async()=>previousDate().click())
+  assert.ok(storyNode('dated'),'Date-only story is filed two days earlier')
+  assert.ok(!storyNode('dated').querySelector('.news-publication').textContent.includes('AM'),'Date-only publication does not invent an hour')
+  await click('Today')
+  await React.act(async()=>previousDate().click())
+  assert.equal(container.querySelectorAll('[data-news-story]').length,0,'Empty dates do not borrow another day')
+  assert.equal(container.querySelectorAll('tbody td').length,1)
+  assert.ok([...container.querySelectorAll('tbody tr')].every(r=>r.textContent.includes('No news fundamentals saved for this date.')))
   assert.equal(button('Copy refresh prompt'),undefined);assert.equal(container.querySelector('[aria-label="News lookback"]'),null)
   assert.equal([...timers.values()].filter(t=>t.fn.name==='pollNews').length,0,'Past dates never poll')
   await React.act(async()=>container.querySelector('[aria-label="Next date"]').click())
   await React.act(async()=>container.querySelector('[aria-label="Next date"]').click())
   assert.equal(button('Copy refresh prompt'),undefined,'Future dates are browsing only')
-  assert.ok([...container.querySelectorAll('tbody tr')].every(r=>r.textContent.includes('No research saved for this date.')))
+  assert.ok([...container.querySelectorAll('tbody tr')].every(r=>r.textContent.includes('No news fundamentals saved for this date.')))
   // Stale date replies cannot populate the selected day.
   hold=true;await React.act(async()=>previousDate().click());assert.equal(pending.length,1)
   await React.act(async()=>previousDate().click());assert.equal(pending[0].options.signal.aborted,true)
@@ -175,7 +181,7 @@ try {
   try {
     await React.act(async()=>calendarTick())
     assert.ok(button('Copy refresh prompt'),'Today follows Jakarta midnight')
-    assert.ok([...container.querySelectorAll('tbody tr')].every(r=>r.textContent.includes('No research saved for this date.')))
+    assert.ok([...container.querySelectorAll('tbody tr')].every(r=>r.textContent.includes('No news fundamentals saved for this date.')))
     await React.act(async()=>previousDate().click())
     assert.equal(button('Copy refresh prompt'),undefined)
     const count=requests.length
@@ -184,6 +190,19 @@ try {
     assert.equal(requests.length,count,'An explicitly selected past date stays selected across midnight')
   } finally {Date.now=originalNow;await React.act(async()=>calendarTick())}
   assert.ok(requests.every(r=>r.url.startsWith('/storage-api/currency-news/')&&!r.options.body),'Browsing performs only local GETs')
+  fixture.stories.push(...Array.from({length:60},(_,index)=>({...structuredClone(fixture.stories[0]),id:`additional-${index}`,summary:`Additional source facts ${index}`})))
+  fixture.revision='c'.repeat(64)
+  globalThis.__newsRows=0
+  await poll()
+  assert.equal(container.querySelectorAll('[data-news-story]').length,50,'Initial rendering is bounded to 50 story rows')
+  assert.equal(globalThis.__newsRows,47,'Existing three story rows retain their identities')
+  assert.match(newsMarkdown(fixture,'ALL',fixture.date),/Additional source facts 59/,'Export includes stories beyond the rendered batch')
+  const beforeScroll=requests.length
+  globalThis.__newsRows=0
+  await React.act(async()=>container.querySelector('.news-scroll').dispatchEvent(new dom.Event('scroll')))
+  assert.equal(container.querySelectorAll('[data-news-story]').length,63)
+  assert.equal(globalThis.__newsRows,13,'Scrolling mounts only the next batch without rerendering existing stories')
+  assert.equal(requests.length,beforeScroll,'Scroll expansion performs no research or network work')
   hold=true
   const entry=[...timers].find(([,t])=>t.fn.name==='pollNews');timers.delete(entry[0])
   await React.act(async()=>{void entry[1].fn()});assert.equal(pending.length,1)
@@ -193,11 +212,11 @@ try {
   hold=false;offline=true
   const again=createRoot(container)
   await React.act(async()=>again.render(React.createElement(CurrencyNewsDock)))
-  assert.equal(container.querySelectorAll('[data-news-currency]').length,8)
+  assert.equal(container.querySelectorAll('[data-news-story]').length,0)
   assert.ok([...container.querySelectorAll('tbody tr')].every(r=>r.textContent.includes('Saved research unavailable.')),'An initial read failure never claims an empty journal')
   await React.act(async()=>again.unmount())
   assert.equal(timers.size,0);assert.equal(intervals.size,0)
-  console.log('Currency News: daily aggregation, independent versions, blank dates, scoped prompts/export, stable polls and cleanup')
+  console.log('Currency News: publication-dated story flow, shared currency scenarios, assessment ages/history, scoped exports, stable polls and cleanup')
 } finally {
   await server.close();await dom.happyDOM.close()
   for(const [k,descriptor]of previous)if(descriptor)Object.defineProperty(globalThis,k,descriptor);else delete globalThis[k]
