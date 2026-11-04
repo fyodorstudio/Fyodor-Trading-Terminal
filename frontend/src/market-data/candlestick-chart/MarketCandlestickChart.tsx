@@ -21,6 +21,9 @@ import { lightweightChartOptions } from './lightweight-chart-options'
 import { captureDateWindow, projectDateWindow, type ChartDateWindow } from './chart-viewport'
 import { createFutureTimeline } from './future-timeline'
 import { timeframeToSeconds } from '../chart-drawings/position-drawing-geometry'
+import { createRsiPane } from '../indicators/rsi/rsi-pane'
+import type { RsiPreferences } from '../indicators/rsi/rsi-preferences'
+import { PricePaneOverlays } from './PricePaneOverlays'
 import './market-candlestick-chart.css'
 
 type MarketCandlestickChartProps = {
@@ -32,6 +35,7 @@ type MarketCandlestickChartProps = {
   appearance: ChartAppearance
   timeDisplay: TimeDisplayPreference
   timeframe?: ChartTimeframe
+  rsi?: RsiPreferences
   activeDrawingTool: DrawingToolId | null
   drawings: ChartDrawingRecord[]
   selectedDrawingId: string | null
@@ -63,6 +67,7 @@ function MarketCandlestickChartComponent({
   appearance,
   timeDisplay,
   timeframe,
+  rsi,
   activeDrawingTool,
   drawings,
   selectedDrawingId,
@@ -88,6 +93,7 @@ function MarketCandlestickChartComponent({
   const initialTimeDisplayRef = useRef(timeDisplay)
   const chartRef = useRef<IChartApi | null>(null)
   const seriesRef = useRef<ISeriesApi<'Candlestick', Time> | null>(null)
+  const rsiPaneRef = useRef<ReturnType<typeof createRsiPane> | null>(null)
   const futureTimelineRef = useRef<ReturnType<typeof createFutureTimeline> | null>(null)
   const [chartApi, setChartApi] = useState<IChartApi | null>(null)
   const [seriesApi, setSeriesApi] = useState<ISeriesApi<'Candlestick', Time> | null>(null)
@@ -163,6 +169,8 @@ function MarketCandlestickChartComponent({
     chart.timeScale().subscribeVisibleLogicalRangeChange(handleLogicalRangeChange)
 
     return () => {
+      rsiPaneRef.current?.destroy()
+      rsiPaneRef.current = null
       chart.timeScale().unsubscribeVisibleLogicalRangeChange(handleLogicalRangeChange)
       seriesRef.current = null
       futureTimelineRef.current = null
@@ -236,6 +244,7 @@ function MarketCandlestickChartComponent({
     applyingDataRef.current = true
     try {
       if (!bars.length) {
+        rsiPaneRef.current?.clearData()
         series.setData([])
         futureTimelineRef.current?.clear()
         prevBarsRef.current = []
@@ -244,6 +253,7 @@ function MarketCandlestickChartComponent({
       }
       let replaced = false
       if (isNewKey) {
+        rsiPaneRef.current?.clearData()
         replaced = true
         lastHistoryAttemptRef.current = null
         series.setData(bars)
@@ -279,6 +289,28 @@ function MarketCandlestickChartComponent({
     } finally { applyingDataRef.current = false }
   }, [bars, fitContentKey, onDataApplied, precision, timeframe, clock.brokerId])
 
+  // Apply indicator data after price data/viewport restoration. Scope changes
+  // clear the old indicator above before replacing candles to avoid mixing two
+  // symbol/timeframe timelines during restoration.
+  useEffect(() => {
+    const chart = chartRef.current
+    if (!chart) return
+    if (!rsi?.enabled && !rsiPaneRef.current) return
+    const changingPane = Boolean(rsi?.enabled) !== Boolean(rsiPaneRef.current)
+    const range = changingPane ? chart.timeScale().getVisibleLogicalRange() : null
+    applyingDataRef.current = true
+    try {
+      if (!rsi?.enabled) {
+        rsiPaneRef.current?.destroy()
+        rsiPaneRef.current = null
+      } else {
+        rsiPaneRef.current ??= createRsiPane(chart)
+        rsiPaneRef.current.sync(bars, `${clock.brokerId}:${fitContentKey}`, rsi)
+      }
+      if (range) chart.timeScale().setVisibleLogicalRange(range)
+    } finally { applyingDataRef.current = false }
+  }, [rsi, bars, fitContentKey, clock.brokerId])
+
   useEffect(() => {
     if (!pendingWindowRef.current || !bars.length || !hasOlderData || isLoadingOlderData) return
     const attempt = `${fitContentKey}:${bars[0].time}`
@@ -300,6 +332,8 @@ function MarketCandlestickChartComponent({
     const container = containerRef.current
     if (!container) return
     const rect = container.getBoundingClientRect()
+    const paneHeight = rsi?.enabled ? chartRef.current?.paneSize(0).height : undefined
+    if (paneHeight !== undefined && event.clientY - rect.top >= paneHeight) return
     // Do not intercept if clicking on the right price scale area
     if (event.clientX > rect.right - 55) return
 
@@ -348,7 +382,10 @@ function MarketCandlestickChartComponent({
     stopPanRef.current = onPointerUp
   }
 
-  const handleDoubleClick = () => {
+  const handleDoubleClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    const paneHeight = rsi?.enabled ? chartRef.current?.paneSize(0).height : undefined
+    const top = containerRef.current?.getBoundingClientRect().top ?? 0
+    if (paneHeight !== undefined && event.clientY - top >= paneHeight) return
     pendingWindowRef.current = false
     dateWindowRef.current = null
     setMissingViewportHistory(false)
@@ -375,7 +412,8 @@ function MarketCandlestickChartComponent({
         <span>{hasOlderData ? 'Older history could not reach the selected dates.' : 'MT5 history does not cover the selected dates.'}</span>
         {hasOlderData && <button type="button" onClick={onRequestOlderData}>Retry history</button>}
       </div>}
-      {chartApi && seriesApi && renderChartOverlay?.(chartApi, seriesApi)}
+      {chartApi && seriesApi && <PricePaneOverlays chartApi={chartApi} seriesApi={seriesApi} constrained={rsi?.enabled ?? false}>
+      {renderChartOverlay?.(chartApi, seriesApi)}
       {chartApi && seriesApi && (activeDrawingTool || drawings.length > 0) && (
         <ChartDrawingOverlay
           key={fitContentKey}
@@ -399,6 +437,7 @@ function MarketCandlestickChartComponent({
           onExitDrawingMode={onExitDrawingMode}
         />
       )}
+      </PricePaneOverlays>}
     </div>
   )
 }

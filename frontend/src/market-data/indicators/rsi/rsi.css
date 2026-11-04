@@ -1,0 +1,37 @@
+.rsi-header-controls { display: flex; align-items: center; flex: 0 0 auto; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--surface-inset); overflow: hidden; }
+.rsi-header-controls button { height: 34px; padding: 0 10px; border: 0; color: var(--text-strong); background: transparent; font: inherit; font-size: 11px; font-weight: 700; cursor: pointer; }
+.rsi-header-controls button + button { display: grid; place-items: center; padding: 0 8px; border-left: 1px solid var(--border-strong); }
+.rsi-header-controls button:hover { background: var(--surface-hover); }
+.rsi-header-controls button[aria-pressed="true"] { color: #ffffff; background: var(--accent); }
+.rsi-header-controls button:focus-visible { outline: 2px solid var(--accent); outline-offset: -3px; }
+.rsi-legend { position: absolute; left: 10px; z-index: 4; display: flex; flex-wrap: wrap; gap: 8px; max-width: calc(100% - 90px); padding: 3px 6px; border-radius: 3px; background: var(--chart-background); color: var(--text-strong); font-size: 11px; line-height: 16px; pointer-events: none; }
+.rsi-legend span { font-variant-numeric: tabular-nums; }
+.rsi-legend span:nth-child(2) { color: var(--rsi-color); }
+.rsi-legend span:nth-child(3) { color: color-mix(in srgb, var(--rsi-average-color) 65%, var(--text-strong)); }
+.rsi-dialog-backdrop { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 20px; background: rgb(0 0 0 / 30%); }
+.rsi-settings-dialog { display: flex; flex-direction: column; width: min(430px, 100%); max-height: calc(100svh - 40px); border: 1px solid var(--border-strong); border-radius: 12px; background: var(--surface-panel); color: var(--text-strong); box-shadow: 0 16px 56px rgb(0 0 0 / 25%); overflow: hidden; font-size: 12px; }
+.rsi-settings-dialog header { display: flex; align-items: center; justify-content: space-between; padding: 16px 18px 8px; }
+.rsi-settings-dialog header strong { font-size: 18px; }
+.rsi-settings-dialog button { padding: 7px 12px; border: 1px solid var(--border-strong); border-radius: 6px; background: var(--surface-inset); color: var(--text-strong); font: inherit; cursor: pointer; }
+.rsi-settings-dialog button:hover { background: var(--surface-hover); }
+.rsi-settings-dialog header button { border: 0; background: transparent; font-size: 23px; line-height: 1; }
+.rsi-settings-tabs { display: flex; gap: 12px; margin: 0 18px; border-bottom: 1px solid var(--border); }
+.rsi-settings-tabs button { padding: 10px 0; border: 0; border-bottom: 3px solid transparent; border-radius: 0; background: transparent; }
+.rsi-settings-tabs button[aria-selected="true"] { border-bottom-color: var(--accent); font-weight: 700; }
+.rsi-settings-body { min-height: 0; padding: 8px 18px 18px; overflow-y: auto; }
+.rsi-settings-body fieldset { margin: 16px 0; padding: 0; border: 0; }
+.rsi-settings-body legend { margin-bottom: 12px; color: var(--text-muted); font-size: 11px; }
+.rsi-settings-body label { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 9px 0; }
+.rsi-settings-body input, .rsi-settings-body select { box-sizing: border-box; width: 132px; min-height: 32px; padding: 5px 8px; border: 1px solid var(--border-strong); border-radius: 6px; background: var(--surface-inset); color: var(--text-strong); font: inherit; }
+.rsi-settings-body input:disabled { opacity: 0.5; }
+.rsi-settings-body input[type="checkbox"] { width: 16px; min-height: 16px; margin: 0; accent-color: var(--accent); }
+.rsi-style-row { display: grid; grid-template-columns: minmax(0, 1fr) 38px 82px; gap: 10px; align-items: center; }
+.rsi-style-row label { justify-content: flex-start; }
+.rsi-style-row input, .rsi-style-row select { width: 100%; }
+.rsi-style-row input[type="color"] { width: 38px; padding: 3px; }
+.rsi-settings-body p { margin: 12px 0 0; color: var(--text-muted); line-height: 1.6; }
+.rsi-settings-body p[role="alert"] { color: var(--negative); }
+.rsi-settings-dialog footer { display: flex; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--border); }
+.rsi-settings-dialog footer button:first-child { margin-right: auto; }
+.rsi-settings-dialog button[type="submit"] { color: #ffffff; background: var(--accent); border-color: var(--accent); }
+.rsi-settings-dialog :is(button, input, select):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }

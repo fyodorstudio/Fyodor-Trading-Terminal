@@ -26,6 +26,7 @@ export function lightweightChartOptions(
       fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif',
       fontSize: 12,
       attributionLogo: true,
+      panes: { enableResize: true, separatorColor: cssColor('--chart-axis'), separatorHoverColor: cssColor('--border-strong') },
     },
     grid: {
       vertLines: { color: gridColor },

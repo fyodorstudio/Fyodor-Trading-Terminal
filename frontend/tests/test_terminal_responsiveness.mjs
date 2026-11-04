@@ -75,8 +75,27 @@ const priceScale = { applyOptions: () => {}, getVisibleRange: () => priceRange,
   setVisibleRange: next => { priceRange = next; priceShift = (1 - next.from) * 100 } }
 const timeSeries = { setData: rows => { count('futureSetData'); futureTimes = rows },
   update: row => { count('futureUpdate'); futureTimes = [...futureTimes, row] } }
+const indicatorSeries = new Set()
+const pricePane = { setStretchFactor() {}, getHeight: () => 420, getHTMLElement: () => null }
+const panes = [pricePane]
+const addIndicatorPane = () => {
+  count('rsiPaneCreates')
+  const pane = { setStretchFactor() {}, paneIndex: () => panes.indexOf(pane), getHeight: () => 140,
+    getHTMLElement: () => ({ offsetTop: 428 }), priceScale: () => ({ applyOptions() {} }),
+    addSeries: () => {
+      let rows = []
+      const line = { applyOptions() {}, setData: next => { count('rsiSetData'); rows = [...next] },
+        update: row => { count('rsiUpdate'); if (rows.at(-1)?.time === row.time) rows[rows.length - 1] = row; else rows.push(row) },
+        data: () => rows, priceToCoordinate: value => 140 - value,
+        attachPrimitive: primitive => primitives.add(primitive), detachPrimitive: primitive => primitives.delete(primitive),
+        createPriceLine: () => ({ applyOptions() {} }) }
+      indicatorSeries.add(line); return line
+    } }
+  panes.push(pane); return pane
+}
 const chart = { addSeries: definition => definition.type === 'line' ? timeSeries : series, timeScale: () => scale, priceScale: () => priceScale,
   applyOptions: () => count('chartOptions'), paneSize: () => ({ width: 900, height: 420 }),
+  addPane: addIndicatorPane, panes: () => panes, removePane: index => { panes.splice(index, 1); indicatorSeries.clear() },
   subscribeCrosshairMove: fn => hoverListeners.add(fn), unsubscribeCrosshairMove: fn => hoverListeners.delete(fn),
   subscribeClick: fn => clickListeners.add(fn), unsubscribeClick: fn => clickListeners.delete(fn),
   remove: () => count('chartRemoved'), chartElement: () => document.querySelector('.market-chart-canvas') }
@@ -116,6 +135,8 @@ const server = await createServer({ root: path.resolve(path.dirname(fileURLToPat
         "  globalThis.__terminalProbe.count('newsRows'); return <tr data-news-story=")
       if (id.endsWith('/MarketCandlestickChart.tsx')) return code.replace('}: MarketCandlestickChartProps) {',
         "}: MarketCandlestickChartProps) { globalThis.__terminalProbe.count('chartRender');")
+      if (id.endsWith('/rsi-calculation.ts')) return code.replace('for (let i = from; i < bars.length; i++) {',
+        "for (let i = from; i < bars.length; i++) { globalThis.__terminalProbe.count('rsiCandle');")
       if (id.endsWith('/useCalendarNow.ts')) return code.replace('return now', 'globalThis.__terminalProbe.clocks.push(now); return now')
       if (id.endsWith('/releases/group-days.ts')) return code.replace('  if (!range) return []', "  globalThis.__terminalProbe.count('dailyGrouping'); if (!range) return []")
       if (id.endsWith('/external-markers.ts')) return code.replace('  if (!bars.length) return []', "  globalThis.__terminalProbe.count('externalBuild'); if (!bars.length) return []")
@@ -261,7 +282,7 @@ async function tick(name, ms) {
 const button = label => [...container.querySelectorAll('button')].find(element => element.textContent.trim().replace(/^⚙\s*/, '').startsWith(label))
 async function click(element) { assert.ok(element); await React.act(async () => element.click()) }
 function assertQuiet(label, workspace = false) {
-  for (const key of ['quoteRows', 'chartRender', 'setData', 'update', 'futureSetData', 'futureUpdate', 'workerPosts', 'tradeLineCreates', 'tradeMarkerCreates', ...(workspace ? ['workspace'] : [])])
+  for (const key of ['quoteRows', 'chartRender', 'setData', 'update', 'futureSetData', 'futureUpdate', 'rsiCandle', 'rsiSetData', 'rsiUpdate', 'workerPosts', 'tradeLineCreates', 'tradeMarkerCreates', ...(workspace ? ['workspace'] : [])])
     assert.equal(counters[key] ?? 0, 0, `${label}: ${key} must remain unchanged`)
 }
 let append
@@ -303,6 +324,32 @@ try {
   await flush()
   assert.equal(plotted.length, 800)
   assert.equal(Math.floor(futureTimes.at(-1).time / 86400), Math.floor(plotted.at(-1).time / 86400) + 90)
+  const indicatorControls = container.querySelector('.rsi-header-controls')
+  assert.equal(indicatorControls.nextElementSibling.getAttribute('aria-label'), 'Chart timeframe', 'RSI controls are immediately left of timeframes')
+  const beforeRsiRange = { ...logicalRange }
+  reset()
+  await click(container.querySelector('[aria-label="Show RSI"]')); await flush(); drawChartFrame()
+  assert.equal(panes.length, 2); assert.equal(indicatorSeries.size, 2)
+  assert.equal(counters.rsiCandle, 800, 'Enabling RSI seeds exactly the loaded candle count')
+  assert.equal(counters.setData ?? 0, 0, 'Enabling RSI does not replace price candles')
+  assert.equal(counters.chartCreated ?? 0, 0, 'Enabling RSI keeps the existing chart')
+  assert.deepEqual(logicalRange, beforeRsiRange)
+  assert.equal(JSON.parse(localStorage.getItem('fyodor.indicators.rsi.v1')).enabled, true)
+  await click(container.querySelector('[aria-label="RSI settings"]'))
+  assert.ok(container.querySelector('[role="dialog"][aria-modal="true"]'))
+  await click([...container.querySelectorAll('.rsi-settings-dialog button')].find(button => button.textContent === 'Cancel'))
+  reset(); await tick('poll', 2500); await reply('watch')
+  assertQuiet('RSI enabled, unchanged watch poll')
+  reset(); await tick('poll', 2000); await reply('ohlc')
+  assert.equal(counters.rsiCandle ?? 0, 0, 'Unchanged OHLC poll performs no RSI calculation')
+  const closeBefore = bars.at(-1).close
+  bars[bars.length - 1] = { ...bars.at(-1), close: closeBefore + .001 }
+  reset(); await tick('poll', 2000); await reply('ohlc')
+  assert.equal(counters.rsiCandle, 1, 'Assembled live quote replays one RSI candle')
+  assert.equal(counters.rsiUpdate, 2, 'Assembled live quote updates RSI and smoothing once each')
+  assert.equal(counters.rsiSetData ?? 0, 0, 'A live tick does not replace indicator history')
+  bars[bars.length - 1] = { ...bars.at(-1), close: closeBefore }
+  await tick('poll', 2000); await reply('ohlc')
   assert.deepEqual([...container.querySelectorAll('[aria-label="App features"] button')].map(node => node.textContent.trim().replace(/\s+\d+$/, '')),
     ['Alert', 'Currency News', 'Inspector', 'Entry Trade', 'Activity', '⚙ Settings'])
   reset()
@@ -808,7 +855,7 @@ try {
     const pendingFrames = frames.size
     reset()
     for (let i = 1; i <= 20; i++) await pointer(svg, 'pointermove', 400, clientY + delta * 100 * i / 20)
-    assert.equal(frames.size, pendingFrames + 1, 'Line dragging batches pointer work into one animation frame')
+    assert.equal(frames.size, pendingFrames + 2, 'Line preview and native-crosshair forwarding each batch a pointer burst into one frame')
     assert.equal(counters.tradeLineUpdates ?? 0, 0)
     const savedBefore = localStorage.getItem('fyodor.registered_arrows.v1')
     await flush()
@@ -851,7 +898,7 @@ try {
     const pendingFrames = frames.size, before = localStorage.getItem('fyodor.registered_arrows.v1')
     reset()
     for (let i = 1; i <= 20; i++) await pointer(svg, 'pointermove', x + dx * i / 20, 350)
-    assert.equal(frames.size, pendingFrames + 1, 'Arrow date previews coalesce into one frame')
+    assert.equal(frames.size, pendingFrames + 2, 'Arrow date preview and native hover each coalesce into one frame')
     assert.equal(counters.tradeMarkerUpdates ?? 0, 0)
     await flush()
     assert.equal(counters.tradeMarkerUpdates, 1)
@@ -1109,6 +1156,8 @@ try {
     await click([...container.querySelectorAll('.market-watch-row')].find(row => row.querySelector('strong').textContent === symbol))
     while (pending.get('ohlc')?.length) await reply('ohlc')
     await flush()
+    assert.equal(container.querySelector('[aria-label="Hide RSI"]').getAttribute('aria-pressed'), 'true', 'Shared RSI stays enabled across symbols')
+    assert.equal(panes.length, 2, 'Symbol changes reuse the RSI pane')
     if (symbol === 'JPYX') {
       assert.equal(container.querySelector('.inspector-chart-markers'), null, 'Global hide survives switching from a pair to an index')
       assert.equal(container.querySelector('.external-chart-markers'), null)
@@ -1135,14 +1184,16 @@ try {
   assert.equal(container.querySelector('[data-news-story]').dataset.newsStory, 'CHF-fixture', 'Focused news selection survives reopening')
   await click(button('Currency News'))
   await React.act(async () => root.render(null))
+  assert.equal(indicatorSeries.size, 0); assert.equal(panes.length, 1)
   assert.equal(rangeListeners.size, 0); assert.equal(clickListeners.size, 0)
   assert.equal(counters.workerCreated ?? 0, 0)
   try {
     await React.act(async () => root.render(React.createElement(React.StrictMode, null,
       React.createElement(ActivityLogProvider, null, React.createElement(FyodorTerminalShell)))))
     assert.equal(container.querySelector('[aria-label="Show event icons"]').getAttribute('aria-pressed'), 'false', 'Universal visibility is restored after remount')
+    assert.equal(container.querySelector('[aria-label="Hide RSI"]').getAttribute('aria-pressed'), 'true', 'Shared RSI visibility is restored after StrictMode remount')
   } finally { await React.act(async () => root.render(null)) }
-  console.log('✓ Assembled Lite: navigation, filters/raw tables, dates, future axis, drawings, Entry Trade plans/pins/journal, Alert/Activity, viewport/corrections, research drag/export/retry, zero polling/pan work and StrictMode cleanup')
+  console.log('✓ Assembled Lite: shared RSI controls/pane/persistence and bounded tick work, navigation, filters/raw tables, dates, future axis, drawings, Entry Trade plans/pins/journal, Alert/Activity, viewport/corrections, research drag/export/retry, zero polling/pan work and StrictMode cleanup')
 } finally {
   await React.act(async () => root.unmount())
   assert.equal(timers.size, 0); assert.equal(intervals.size, 0); assert.equal(frames.size, 0)

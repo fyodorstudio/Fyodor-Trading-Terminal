@@ -1,5 +1,5 @@
 import { DisplayClockProvider } from '../appearance/time-display/DisplayClock'
-import { type CSSProperties } from 'react'
+import { useCallback, type CSSProperties } from 'react'
 import { MarketCandlestickChart } from '../market-data/candlestick-chart/MarketCandlestickChart'
 import { MarketChartErrorBoundary } from '../market-data/candlestick-chart/MarketChartErrorBoundary'
 import { FloatingDrawingToolbar } from '../market-data/chart-drawings/FloatingDrawingToolbar'
@@ -15,9 +15,11 @@ import { ResearchReportPanel } from '../research/ResearchReportPanel'
 import { EventsDock } from '../events-alarms/EventsDock'
 import { EntryTradePanel } from '../entry-trade/dock/EntryTradePanel'
 import { CurrencyNewsDock } from '../currency-news/CurrencyNewsDock'
+import { RsiSettingsDialog } from '../market-data/indicators/rsi/RsiSettingsDialog'
 
 export function TerminalWorkspace() {
-  const { timeframe, theme, chartAppearance, timeDisplay, activeDrawingTool, selectedDrawingId, setSelectedDrawingId,
+  const { rsi, changeRsi, toggleRsi, rsiSettingsOpen, setRsiSettingsOpen,
+    timeframe, theme, chartAppearance, timeDisplay, activeDrawingTool, selectedDrawingId, setSelectedDrawingId,
     drawingToolbarVisible, eventIconsVisible, toggleEventIcons, bottomDockWindow, dockSize, settingsOpen, setSettingsOpen, marketWatch, appendActivity,
     bridge, marketData, activeSymbol, bars, brokerId, inspector, quote, drawings, pairDrawingCount,
     updateDrawingPoint, updateDrawingPoints, updateDrawingText, updatePositionWidth, handleDeleteDrawing,
@@ -27,6 +29,7 @@ export function TerminalWorkspace() {
     selectResearchTool, closeResearch, alertFocus,
     plannedTrade, handlePlanChange, latestBarTime, registeredArrows, selectPinnedArrow, priceAlerts, leftDockTab, setLeftDockTab } = useTerminalWorkspace()
   const brokerOffsetSeconds = bridge.brokerOffsetSeconds
+  const closeRsiSettings = useCallback(() => setRsiSettingsOpen(false), [setRsiSettingsOpen])
   return (
     <DisplayClockProvider brokerId={brokerId} brokerOffsetSeconds={brokerOffsetSeconds} preference={timeDisplay}>
     <div className={`terminal-shell${bottomDockWindow ? ' bottom-dock-open' : ''}`}
@@ -54,6 +57,9 @@ export function TerminalWorkspace() {
             quote={quote}
             timeframe={timeframe}
             onSelectTimeframe={selectTimeframe}
+            rsiEnabled={rsi.enabled}
+            onToggleRsi={toggleRsi}
+            onOpenRsiSettings={() => setRsiSettingsOpen(true)}
             eventIconsVisible={eventIconsVisible}
             onToggleEventIcons={toggleEventIcons}
             drawingToolbarVisible={drawingToolbarVisible}
@@ -75,6 +81,7 @@ export function TerminalWorkspace() {
                   appearance={chartAppearance}
                   timeDisplay={timeDisplay}
                   timeframe={timeframe}
+                  rsi={rsi}
                   activeDrawingTool={activeDrawingTool}
                   drawings={drawings}
                   selectedDrawingId={selectedDrawingId}
@@ -166,6 +173,7 @@ export function TerminalWorkspace() {
           onClose={() => setSettingsOpen(false)}
         />
       )}
+      {rsiSettingsOpen && <RsiSettingsDialog preferences={rsi} onSave={changeRsi} onClose={closeRsiSettings} />}
       {researchError && <div className="research-range-hint" role="alert">{researchError}<button type="button" onClick={closeResearch}>Close</button></div>}
     </div>
     </DisplayClockProvider>

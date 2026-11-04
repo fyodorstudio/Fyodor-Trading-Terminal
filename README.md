@@ -85,6 +85,12 @@ Market Watch keeps favourites, sections/order and sorting. Daily % is the larges
 signed excursion from the selected broker D1 open to its high/low; it is not the
 current close change. Date navigation never borrows another day's candle.
 The chart header retains high/low distances and indicative regional sessions.
+RSI and its settings gear sit immediately left of the timeframe controls. RSI
+opens a resizable lower pane with a shared time axis, Wilder RSI 14 on Close,
+optional smoothing (SMA 14 by default), 70/50/30 bands and a background fill.
+Visibility and settings persist on this device across all symbols/timeframes.
+The settings dialog has Inputs/Style, OK/Cancel and Reset defaults. RSI follows
+the chart timeframe and includes the current candle; earlier history reseeds it.
 Daily-candle reads attach only to the bridge's exact terminal/account, with
 bounded caches; no login, symbol selection or broker changes.
 
