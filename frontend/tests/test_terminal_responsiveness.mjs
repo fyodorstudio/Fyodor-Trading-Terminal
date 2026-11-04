@@ -60,8 +60,12 @@ const scale = {
   coordinateToLogical: x => Math.ceil(x / 80 + logicalRange.from),
   subscribeVisibleLogicalRangeChange: fn => rangeListeners.add(fn), unsubscribeVisibleLogicalRangeChange: fn => rangeListeners.delete(fn),
   subscribeSizeChange: fn => sizeListeners.add(fn), unsubscribeSizeChange: fn => sizeListeners.delete(fn),
-  // Initial candle fit retains this fixture's fixed ten-bar canvas geometry.
-  setVisibleLogicalRange: next => { if (next.from !== 0 || next.to !== plotted.length + 7) logicalRange = next }, setVisibleRange: next => { range = next }, fitContent: () => {},
+  // This canvas fixture keeps fixed ten-bar projection geometry. Real startup
+  // spacing and refresh behavior are exercised by test_chart_viewport.mjs.
+  setVisibleLogicalRange: next => {
+    const startup = next.to === plotted.length + 7 && (next.from === 0 || Math.abs(next.to - next.from - 900 / 7) < 1e-9)
+    if (!startup) logicalRange = next
+  }, setVisibleRange: next => { range = next }, fitContent: () => {},
 }
 const series = { applyOptions: () => {},
   setData: bars => { count('setData'); plotted = [...bars] },
@@ -465,7 +469,6 @@ try {
   assert.equal(container.querySelector('[data-alert-focused="true"]'), selectedEventNode, 'Repeated star clicks preserve the mounted event and details')
   assert.equal(counters.alertScroll, 1, 'Repeated symbol selection scrolls the dock exactly once')
   assert.equal(requests.filter(url => url.startsWith('/storage-api/external-sources?')).length, readsBeforeRepeat, 'Repeated symbols do not remount the feed')
-  await click([...container.querySelectorAll('[role="tab"]')].find(node => node.textContent === 'Sources & history'))
   const iconInput = container.querySelector('[aria-label="Show Treasury fixture icon on chart"]')
   await click(iconInput); await flush()
   assert.equal(container.querySelector('.external-chart-star'), null, 'Dock checkbox immediately hides the star without removing the record')
@@ -483,6 +486,7 @@ try {
   const sourceChoices = localStorage.getItem(sourceIconKey)
   const inspectorChoices = localStorage.getItem('fyodor.inspector.shared.v1')
   const refocusButton = container.querySelector('[aria-label="Refocus chart"]')
+  assert.equal(refocusButton.textContent.trim(), '⛶')
   assert.equal(container.querySelector('.timeframe-selector').nextElementSibling, refocusButton)
   assert.equal(refocusButton.nextElementSibling, container.querySelector('[aria-label="Hide event icons"]'))
   const visibleWindow = { ...logicalRange }, beforeIconToggle = counters.setData ?? 0
@@ -512,7 +516,10 @@ try {
   await click(container.querySelector('[aria-label="2 nearby Inspector releases"]'))
   await click(container.querySelector('.inspector-marker-popup .inspector-currency-USD').parentElement)
   await flush()
-  assert.ok(container.querySelector('[aria-label="Alert"] [data-alert-focused="true"]'), 'Calendar symbols open and focus their exact Alert release')
+  assert.ok(container.querySelector('.inspector-panel'), 'Calendar symbols open Inspector first')
+  assert.equal(container.querySelector('.inspector-pin'), null)
+  await click(button('View in Alert')); await flush()
+  assert.ok(container.querySelector('[aria-label="Alert"] [data-alert-focused="true"]'), 'View in Alert focuses the exact selected release')
   await click(button('Inspector'))
   const usdCount = events.filter(event => event.currency === 'USD' && event.actual !== null).length
   assert.equal(container.querySelectorAll('.inspector-panel tr[data-series-id]').length, usdCount)
@@ -545,7 +552,9 @@ try {
   const dailyIcon = container.querySelector('.inspector-day-symbol.inspector-currency-USD')
   await click(dailyIcon)
   await flush()
-  assert.ok(container.querySelector('[aria-label="Alert"] [data-alert-focused="true"]'), 'A daily symbol focuses its first original publication in Alert')
+  assert.ok(container.querySelector('.inspector-panel'), 'A daily symbol also opens Inspector first')
+  await click(button('View in Alert')); await flush()
+  assert.ok(container.querySelector('[aria-label="Alert"] [data-alert-focused="true"]'), 'View in Alert focuses a daily selection’s original publication')
   await click(button('Inspector'))
   assert.equal(container.querySelectorAll('.inspector-day-table tr[data-series-id]').length, Number(dailyIcon.textContent))
   assert.ok([...container.querySelectorAll('.inspector-day-table tr[data-series-id]')].every(row => row.querySelector('.inspector-day-time').textContent))
@@ -558,7 +567,6 @@ try {
   await React.act(async () => { for (const handler of clickListeners) handler({ point: { x: 100, y: 100 } }) })
   assert.equal(container.querySelector('.inspector-panel'), null, 'Blank chart deselects the icon and collapses Inspector')
   await click(dailyIcon)
-  await click(button('Inspector'))
   assert.ok(container.querySelector('.inspector-panel'))
   // Settings retains existing options, with no Workspace backup child.
   await click(button('Settings'))
@@ -620,7 +628,6 @@ try {
   while (pending.get('ohlc')?.length) await reply('ohlc')
   await flush()
   await click(container.querySelector('.inspector-day-symbol.inspector-currency-USD'))
-  await click(button('Inspector'))
   const id = events.find(event => event.currency === 'USD' && event.actual !== null).value_id
   events = events.map(event => event.value_id === id ? { ...event, actual: .8, revision: 2 } : event)
   calendarRevision++
@@ -718,8 +725,7 @@ try {
   await click(container.querySelector('[aria-label="Research date range"]'))
   assertCalendarReferences('Entering research keeps the same historical and upcoming calendar icons mounted')
   await click(calendarSymbols.at(-1))
-  assert.ok(container.querySelector('[aria-label="Alert"]'), 'Calendar icons still open their dated Alert during range selection')
-  await click(button('Inspector'))
+  assert.ok(container.querySelector('.inspector-panel'), 'Calendar icons open Inspector during range selection')
   assert.ok(container.querySelector('.inspector-panel'), 'The raw Inspector selection remains available')
   await click(container.querySelector('.research-range-hint button'))
   assert.equal(container.querySelector('[aria-label="Select research date range"]'), null)
@@ -763,7 +769,6 @@ try {
   assertQuiet('Writing research notes', true)
   assert.equal(counters.dailyGrouping ?? 0, 0, 'Typing notes does not regroup calendar history')
   await click(container.querySelector('.inspector-day-symbol.inspector-currency-USD'))
-  await click(button('Inspector'))
   const inspected = container.querySelector('.inspector-panel').textContent
   const requestsBeforeResearchPan = requests.length
   reset()

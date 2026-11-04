@@ -27,7 +27,7 @@ export function TerminalWorkspace() {
     selectSymbol, selectTimeframe, recordChartData, changeTheme, changeChartAppearance, changeTimeDisplay,
     createDrawing, chooseDrawingTool, selectCrosshair, deletePairDrawings, toggleBottomDock, exitDrawingMode,
     toggleDrawingToolbar, renderChartOverlay, sourceState, sourceLabel, researchActive, researchSeed, researchError,
-    selectResearchTool, closeResearch, alertFocus,
+    selectResearchTool, closeResearch, alertFocus, viewReleaseInAlert,
     plannedTrade, handlePlanChange, latestBarTime, registeredArrows, selectPinnedArrow, priceAlerts, leftDockTab, setLeftDockTab } = useTerminalWorkspace()
   const brokerOffsetSeconds = bridge.brokerOffsetSeconds
   const closeRsiSettings = useCallback(() => setRsiSettingsOpen(false), [setRsiSettingsOpen])
@@ -148,7 +148,7 @@ export function TerminalWorkspace() {
             onSelectArrowId={selectPinnedArrow} onRegisterArrow={registeredArrows.addArrow}
             onDeleteArrow={registeredArrows.deleteArrow} onUpdateArrow={registeredArrows.updateArrow} />}
           {bottomDockWindow === 'inspector' && <InspectorDock view={inspector} symbol={activeSymbol}
-            timeDisplay={timeDisplay}
+            timeDisplay={timeDisplay} onViewInAlert={viewReleaseInAlert}
             />}
         </BottomDockPanel>
       )}

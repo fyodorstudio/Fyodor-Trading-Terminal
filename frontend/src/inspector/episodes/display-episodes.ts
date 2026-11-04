@@ -1,5 +1,5 @@
 import type { InspectorRelease } from '../../economic-calendar/releases/release'
-import { inspectorFamilyById } from '../catalog/inspector-families'
+import { inspectorFamilyForEvent } from '../catalog/inspector-families'
 
 export const episodePublications = (release: InspectorRelease) => release.pmiPublications
 export const releaseFamilyIds = (release: InspectorRelease): readonly string[] => release.familyIds ?? [release.familyId]
@@ -10,6 +10,9 @@ export function selectedPackageSeries(release: InspectorRelease, selected: reado
   const active = release.familyIds.filter(id => selected.includes(id))
   if (!active.length) return null
   if (active.length === release.familyIds.length) return release
-  const ids = new Set(active.flatMap(id => inspectorFamilyById.get(id)?.events ?? []))
-  return { ...release, familyIds: active, events: release.events.filter(event => ids.has(event.event_id)) }
+  const ids = new Set(active)
+  return { ...release, familyIds: active, events: release.events.filter(event => {
+    const family = inspectorFamilyForEvent(event)
+    return family && ids.has(family.id)
+  }) }
 }

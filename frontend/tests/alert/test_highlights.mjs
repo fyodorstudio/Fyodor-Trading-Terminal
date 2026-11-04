@@ -12,7 +12,6 @@ const globals = { window: dom, document: dom.document, HTMLElement: dom.HTMLElem
 const previous = new Map([...Object.keys(globals), 'fetch'].map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]))
 for (const [key, value] of Object.entries(globals)) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value })
 let oldService = false
-let limitationOffline = false, limitationMalformed = false
 const originalNow = Date.now
 let now = Date.UTC(2026, 9, 12, 12), serial = 0, revision = 1, offline = false, malformed = false
 let legacyTimeShift = 0
@@ -26,7 +25,7 @@ const { createRoot } = await import('react-dom/client')
 const container = document.createElement('div'); document.body.append(container)
 const root = createRoot(container)
 const at = now + 60_000, day = 86400000, display = { mode: 'utc', utcOffsetMinutes: 0 }
-const { SavedReleaseResearch } = await server.ssrLoadModule('./src/alert/highlights/SavedReleaseResearch.tsx')
+const { LegacyResearchBrowser } = await server.ssrLoadModule('./src/alert/highlights/LegacyResearchBrowser.tsx')
 const { useHighlights } = await server.ssrLoadModule('./src/alert/highlights/useHighlights.ts')
 let highlights
 function HighlightProbe({ brokerId = 'Broker-A', visibility = 'active' }) {
@@ -54,16 +53,8 @@ function snapshot(sourceId, visibility = 'active') {
 }
 globalThis.fetch = async (url, options = {}) => {
   const route = new URL(String(url), 'http://localhost'); calls.push({ path: route.pathname, options })
-  if (route.pathname === '/storage-api/highlight-limitations') {
-    if (limitationOffline) return { ok: false, status: 503, json: async () => ({}) }
-    const source_id = route.searchParams.get('source_id')
-    return { ok: true, json: async () => limitationMalformed ? { source_id, revision: 'bad', items: [{}] } :
-      route.searchParams.get('after_revision') === 'limit-1' ? { source_id, revision: 'limit-1', unchanged: true } :
-      { source_id, revision: 'limit-1', items: source_id === 'Broker-A' ? [{ id: 'limit-1', source_id, key: 'rba-time', currency: 'AUD',
-        kind: 'schedule-mismatch', title: 'RBA decision hour differs', description: 'Stored time differs from the official schedule.',
-        action: 'Use the official decision time.', checked_utc: '2026-10-12T11:00:00Z', status: 'open',
-        official_schedule: '10:30 Jakarta', stored_schedule: '11:30 Jakarta', sources: [{ kind: 'web', label: 'RBA calendar', locator: 'https://www.rba.gov.au/schedules-events/calendar/', note: '' }] }] : [] } }
-  }
+  if (route.pathname === '/storage-api/legacy-research') return { ok: true, json: async () => ({
+    highlight_schema: 2, source_id: null, revision: String(revision), items: [...new Set(pins.map(pin => pin.source_id))].flatMap(source => snapshot(source, 'all')) }) }
   if (route.pathname.startsWith('/storage-api/highlights')) {
     if (offline) return { ok: false, status: 503, json: async () => ({}) }
     if (options.method === 'POST') {
@@ -138,52 +129,45 @@ try {
   assert.equal(highlights.items.length, 0)
   await render({ visibility: 'all' })
   assert.equal(highlights.items.length, 3, 'All-history cache is distinct from active/archive caches')
-  await React.act(async () => root.render(React.createElement(SavedReleaseResearch, { sourceId: 'Broker-A', valueIds: pins[0].value_ids, currency: 'USD' })))
-  assert.ok(container.textContent.includes('Saved research · Broker-A'))
-  assert.ok(container.textContent.includes('Original inflation assessment.'))
-  assert.equal(container.querySelector('select'), null, 'Saved research is presented without the old stacked action dropdowns')
   const originalPin = pins[0]
-  pins.push({ ...structuredClone(originalPin), source_id: 'Elev8-Demo2', id: 'legacy-pin',
-    journal: originalPin.journal.map(entry => ({ ...structuredClone(entry), source_id: 'Elev8-Demo2', highlight_id: 'legacy-pin' })) }); revision++
-  const savedResearch = async () => React.act(async () => root.render(React.createElement(SavedReleaseResearch,
-    { sourceId: 'Broker-A', valueIds: originalPin.value_ids, currency: 'USD', events: rows })))
-  await React.act(async () => root.render(null)); await savedResearch()
-  assert.ok(container.textContent.includes('Saved research · Elev8-Demo2'), 'A verified historical occurrence keeps its original broker attribution')
-  legacyTimeShift = day
-  await React.act(async () => root.render(null)); await savedResearch()
-  assert.ok(!container.textContent.includes('Saved research · Elev8-Demo2'), 'Reused value IDs with a different publication time cannot attach another broker’s research')
-  const { DiscoveredLimitations } = await server.ssrLoadModule('./src/external-sources/DiscoveredLimitations.tsx')
-  const notes = async currency => React.act(async () => root.render(React.createElement(DiscoveredLimitations, { brokerId: 'Broker-A', currency })))
-  await notes('all')
-  assert.match(container.textContent, /RBA decision hour differs/)
-  assert.equal(container.querySelector('.highlight-limitation a').getAttribute('rel'), 'noopener noreferrer')
-  const beforeFilter = calls.length
-  await notes('USD')
-  assert.equal(container.querySelectorAll('.highlight-limitation').length, 0)
-  await notes('AUD')
-  assert.equal(calls.length, beforeFilter, 'Feed-note currency changes remain local')
-  limitationOffline = true; await poll()
-  assert.equal(container.querySelectorAll('.highlight-limitation').length, 1)
-  limitationOffline = false
+  originalPin.archived_utc = new Date(now).toISOString()
+  originalPin.prompts = [{ id: 'prepared', highlight_id: originalPin.id, source_id: originalPin.source_id, scope: 'EURUSD',
+    saved_utc: new Date(now).toISOString(), prepare_prompt: 'Saved preparation text', release_prompt: 'Saved release text' }]
+  pins.push({ ...structuredClone(originalPin), source_id: 'Elev8-Demo2', id: 'legacy-pin', archived_utc: null,
+    prompts: [], journal: originalPin.journal.map(entry => ({ ...structuredClone(entry), source_id: 'Elev8-Demo2', highlight_id: 'legacy-pin' })) }); revision++
+  const beforeInspection = JSON.stringify(pins), beforeCalls = calls.length
+  await React.act(async () => root.render(React.createElement(LegacyResearchBrowser, { onClose() {} })))
+  assert.match(container.textContent, /Elev8-Demo2/)
+  assert.match(container.textContent, /Archived/)
+  assert.equal(container.querySelector('.highlight-journal'), null, 'Collapsed legacy rows do not mount journal bodies or evidence tables')
+  await click(container.querySelector('.legacy-research-browser > details > summary'))
+  assert.match(container.textContent, /Original inflation assessment/)
+  assert.match(container.textContent, /Saved preparation text/)
+  assert.ok(container.querySelector('a[href="https://www.bls.gov/cpi/"]'))
+  const brokerFilter = container.querySelector('select')
+  await React.act(async () => { brokerFilter.value = 'Elev8-Demo2'; brokerFilter.dispatchEvent(new dom.Event('change', { bubbles: true })) })
+  assert.equal(container.querySelectorAll('.legacy-research-browser > details').length, 1)
+  assert.equal(calls.length, beforeCalls + 1, 'Loading all broker research takes one read; filters are local')
+  assert.ok(calls.slice(beforeCalls).every(call => !call.options.method), 'Inspection performs no mutations')
+  assert.equal(JSON.stringify(pins), beforeInspection)
   await React.act(async () => root.render(null))
   const { useInspector } = await server.ssrLoadModule('./src/inspector/useInspector.ts')
   const { InspectorPanel } = await server.ssrLoadModule('./src/inspector/InspectorPanel.tsx')
-  pins.splice(0); revision++
-  let inspector
+  let inspector, viewed
   function InspectorHarness() {
     const next = useInspector({ symbol: 'EURUSD', events: rows, bars: [{ time: at / 1000, open: 1, high: 2, low: .5, close: 1 }], timeframe: 'H1', timeDisplay: display, clockOffsetMs: 0 })
     React.useLayoutEffect(() => { inspector = next }, [next])
-    return React.createElement(React.Fragment, null,
-      React.createElement(InspectorPanel, { view: { ...next, brokerId: 'Broker-A' }, symbol: 'EURUSD', source: null, error: null, timeDisplay: display }),
-      React.createElement(HighlightProbe, { brokerId: 'Broker-A' }))
+    return React.createElement(InspectorPanel, { view: { ...next, brokerId: 'Pepperstone-Demo' }, symbol: 'EURUSD', source: null, error: null,
+      timeDisplay: display, onViewInAlert: release => { viewed = release } })
   }
   await React.act(async () => root.render(React.createElement(InspectorHarness)))
   await React.act(async () => inspector.selectRelease(inspector.releases.find(release => release.familyId === 'us-cpi').id))
-  await click(container.querySelector('.inspector-pin button'))
-  assert.equal(highlights.items.length, 1, 'Metadata listeners still synchronize Inspector saves')
+  await click(container.querySelector('.inspector-alert-link'))
+  assert.equal(viewed.familyId, 'us-cpi')
+  assert.equal(container.querySelector('.inspector-pin'), null)
   await React.act(async () => root.render(null))
   assert.equal(intervals.size, 0); assert.equal(timers.size, 0)
-  console.log('✓ Saved research: original brokers/vintages, corrections, offline caches, archive history, simplified reader, feed notes and Inspector metadata synchronization')
+  console.log('✓ Saved research: original brokers/vintages, corrections, offline caches, archive history, all-broker archive inspection, saved prompts and Inspector navigation')
 } finally {
   await React.act(async () => root.unmount()); Date.now = originalNow
   await server.close(); await dom.happyDOM.close()

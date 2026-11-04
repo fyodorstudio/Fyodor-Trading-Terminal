@@ -17,6 +17,8 @@
 .alarm-popover select { font: inherit; color: var(--text); background: var(--surface-panel); border: 1px solid var(--border-strong); padding: 4px; }
 .alarm-ringing { padding: 10px; border: 2px solid var(--accent); }
 .alarm-ringing > div { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 5px 0; }
-.events-alarm-dock .event-alarm-toggle { display: inline-flex; justify-content: center; align-items: center; width: 32px; padding: 4px; color: var(--text-muted); background: transparent; }
+.events-alarm-dock .event-alarm-toggle { display: inline-flex; justify-content: center; align-items: center; width: 32px; height: 24px; min-height: 24px; padding: 2px; vertical-align: middle; color: var(--text-muted); background: transparent; }
 .events-alarm-dock .event-alarm-toggle[aria-pressed='true'] { color: var(--accent); background: transparent; border-color: var(--accent); }
 @container (max-width: 900px) { .alarm-menu-trigger { max-width: 110px; } }
+
+.events-alarm-dock .event-alarm-toggle[aria-pressed='mixed'] { color: var(--accent); background: var(--accent-soft); border-color: var(--accent); }

@@ -1,8 +1,7 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, memo, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { AlertFocus } from '../model/alert-focus'
 import { majorCurrencies } from '../../economic-calendar/forex/currencies'
 import { useExternalSources } from '../../external-sources/useExternalSources'
-import { DiscoveredLimitations } from '../../external-sources/DiscoveredLimitations'
 import { OngoingRiskNotices } from '../../external-sources/OngoingRiskNotices'
 import { setOngoingRiskVisibility, useOngoingRiskVisibility } from '../../external-sources/ongoing-risk-visibility'
 import { CalendarBoundary, CalendarClock } from '../../inspector/CalendarClock'
@@ -19,12 +18,16 @@ import type { useAlarms } from '../../events-alarms/useAlarms'
 import { useAlertImpact } from '../impact/useAlertImpact'
 import './alert-table.css'
 
+const LegacyResearchBrowser = lazy(() => import('../highlights/LegacyResearchBrowser').then(module => ({ default: module.LegacyResearchBrowser })))
+
 export const AlertDock = memo(function AlertDock({ sourceId, alarms, focusKey = null, focus = null }: {
   sourceId: string; alarms: ReturnType<typeof useAlarms>; focusKey?: string | null; focus?: AlertFocus | null
 }) {
   const [date, setDate] = useState(() => jakartaDate(Date.now()))
   const [preferences, setPreferences] = useState(readAlertPreferences)
-  const [filtersOpen, setFiltersOpen] = useState(false), [notesOpen, setNotesOpen] = useState(false)
+  const [filtersOpen, setFiltersOpen] = useState(false)
+  const [legacyOpen, setLegacyOpen] = useState(false)
+  const closeLegacy = useCallback(() => setLegacyOpen(false), [])
   const risksVisible = useOngoingRiskVisibility()
   const [riskPreferenceError, setRiskPreferenceError] = useState<string | null>(null)
   const [boundaryNow, setBoundaryNow] = useState(Date.now)
@@ -37,7 +40,7 @@ export const AlertDock = memo(function AlertDock({ sourceId, alarms, focusKey = 
   const [applied, setApplied] = useState<AlertFocus | null>(null)
   const scrolled = useRef<AlertFocus | null>(null), scrollport = useRef<HTMLDivElement>(null)
   if (previousIncoming !== incoming) {
-    setPreviousIncoming(incoming); setNavigation(incoming)
+    setPreviousIncoming(incoming); setNavigation(incoming); setLegacyOpen(false)
   }
   const focusItem = navigation?.externalKey ? external.items.find(item => item.key === navigation.externalKey) : null
   if (navigation && applied !== navigation && (!navigation.sourceId || navigation.sourceId === sourceId)
@@ -69,7 +72,7 @@ export const AlertDock = memo(function AlertDock({ sourceId, alarms, focusKey = 
   const riskItems = useMemo(() => external.items.filter(item => item.visibility_scope === 'global' || preferences.currency === 'all'
     || item.currencies.includes(preferences.currency)), [external.items, preferences.currency])
   const selectRisk = useCallback((key: string) => setNavigation(old => ({ externalKey: key, request: (old?.request ?? 0) + 1 })), [])
-  const changeDate = useCallback((next: string) => { setNavigation(null); setDate(next) }, [])
+  const changeDate = useCallback((next: string) => { setNavigation(null); setDate(next); setLegacyOpen(false) }, [])
   const times = useMemo(() => groups.flatMap(group => group.at === null ? [] : [group.at, group.at + 1]), [groups])
   const selectedIds = useMemo(() => alertSeriesIds(preferences), [preferences])
   const partial = storage.coverage && Object.entries(storage.coverage).some(([currency, value]) =>
@@ -78,16 +81,17 @@ export const AlertDock = memo(function AlertDock({ sourceId, alarms, focusKey = 
     <div className="alert-date-dock">
       <header className="alert-date-header"><AlertDateSelector date={date} onChange={changeDate} />
         <nav className="events-currency-buttons" aria-label="Alert currency">{(['all', ...majorCurrencies] as const).map(currency =>
-          <button type="button" key={currency} aria-pressed={preferences.currency === currency} onClick={() => updatePreferences({ ...preferences, currency })}>{currency === 'all' ? 'All' : currency}</button>)}</nav>
-        <button type="button" aria-label="Alert filters" title={`${selectedIds.length} known series enabled`} onClick={() => setFiltersOpen(true)}>Filters</button>
+          <button type="button" key={currency} aria-pressed={preferences.currency === currency} onClick={() => { setLegacyOpen(false); updatePreferences({ ...preferences, currency }) }}>{currency === 'all' ? 'All' : currency}</button>)}</nav>
+        <button type="button" aria-label="Alert filters" title={`${selectedIds.length} known series enabled`} onClick={() => { setLegacyOpen(false); setFiltersOpen(true) }}>Filters</button>
         <div className="alert-header-actions"><AlarmControls alarms={alarms} />
           <button type="button" aria-pressed={risksVisible} title="Show or hide ongoing risk notices in Alert and on charts; stars and alarms stay unchanged" onClick={() => {
             setRiskPreferenceError(setOngoingRiskVisibility(!risksVisible) ? null : 'Could not save ongoing-risk visibility. Browser storage is unavailable.')
           }}>Ongoing risks: {risksVisible ? 'shown' : 'hidden'}</button>
-          <button type="button" aria-expanded={notesOpen} aria-controls="alert-feed-notes" onClick={() => setNotesOpen(value => !value)}>Feed notes</button>
+          <button type="button" aria-pressed={legacyOpen} onClick={() => setLegacyOpen(value => !value)}>Legacy pins &amp; research</button>
         </div>
       </header>
-      <div className="alert-date-scroll" ref={scrollport}>
+      {legacyOpen && <div className="alert-date-scroll"><Suspense fallback={<p role="status">Loading legacy research…</p>}><LegacyResearchBrowser onClose={closeLegacy} /></Suspense></div>}
+      <div className="alert-date-scroll" ref={scrollport} hidden={legacyOpen}>
         <div className="alert-date-meta"><span>{date} · Jakarta · Pepperstone + named publishers</span></div>
         {riskPreferenceError && <p className="alert-feed-message" role="status">{riskPreferenceError}</p>}
         {(storage.error || external.error || alarms.error) && <p className="alert-feed-message" role="status">{storage.error ?? external.error ?? alarms.error}</p>}
@@ -102,9 +106,7 @@ export const AlertDock = memo(function AlertDock({ sourceId, alarms, focusKey = 
           <summary>Undated items ({undated.length})</summary><p>No publication date is assumed for these saved watch items.</p>
           <div className="alert-table-scroll"><HighlightDock groups={undated} sourceId={sourceId} alarms={alarms} now={boundaryNow} focusKey={selectedFocusKey} focusRequest={navigation?.request} impact={impact} /></div>
         </details>}
-        {notesOpen && <section id="alert-feed-notes" className="alert-feed-notes" aria-label="Feed notes">
-          <h3>Feed notes</h3><DiscoveredLimitations brokerId={sourceId} currency={preferences.currency} />
-        </section>}
+
       </div>
       {filtersOpen && <AlertFiltersModal preferences={preferences} onSave={next => updatePreferences({ ...preferences, families: next.families })} onClose={closeFilters} />}
     </div>

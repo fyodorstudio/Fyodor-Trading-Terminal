@@ -279,8 +279,15 @@ function MarketCandlestickChartComponent({
       }
       priceSpaceRef.current?.sync(bars, isNewKey, precision)
       const futureReplaced = futureTimelineRef.current?.sync(bars, step, isNewKey, replaced)
-      // Native fitContent includes whitespace. Fit actual candles explicitly.
-      if (isNewKey && !dateWindowRef.current) chart.timeScale().setVisibleLogicalRange({ from: 0, to: bars.length - 1 + 8 })
+      // Start at recent candles using the configured pixel spacing. Fitting all
+      // loaded history shrinks candles after a browser refresh; the hidden future
+      // horizon must never determine the startup viewport either.
+      if (isNewKey && !dateWindowRef.current) {
+        const width = chart.timeScale().width?.() || containerRef.current?.clientWidth || 0
+        const span = width > 0 ? width / prevBarSpacingRef.current : Math.min(120, bars.length + 7)
+        const to = bars.length - 1 + 8
+        chart.timeScale().setVisibleLogicalRange({ from: Math.max(0, to - span), to })
+      }
       fittedKeyRef.current = fitContentKey
       prevBarsRef.current = bars
       previousStepRef.current = step

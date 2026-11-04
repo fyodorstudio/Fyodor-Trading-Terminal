@@ -128,6 +128,14 @@ def create_app(directory=None, run_collector=True, highlights_path=HIGHLIGHTS_PA
         except OSError as error:
             raise HTTPException(503, "Could not save the report; check the report folder's permissions") from error
 
+    @app.get('/api/v1/legacy-research')
+    def legacy_research():
+        # Inspection must not expand persisted pin membership or change alarms.
+        try:
+            return highlight_snapshot(app.state.store, path=highlights_path, visibility='all')
+        except (OSError, ValueError) as error:
+            raise HTTPException(503, 'Legacy research unavailable; stored records are preserved') from error
+
     @app.get('/api/v1/highlights')
     def highlights(source_id: str = Query(min_length=1, max_length=160), after_revision: str | None = Query(default=None, max_length=100),
                    visibility: str = Query(default='active', pattern='^(active|archived|all)$')):

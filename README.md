@@ -86,7 +86,8 @@ signed excursion from the selected broker D1 open to its high/low; it is not the
 current close change. Date navigation never borrows another day's candle.
 The chart header retains high/low distances and indicative regional sessions.
 Refocus, immediately right of D1, returns to the latest candles while keeping
-horizontal zoom and restoring automatic price scaling. Empty future space keeps
+horizontal zoom and restoring automatic price scaling. A fresh browser load
+opens recent candles at the configured spacing instead of fitting all history. Empty future space keeps
 the last useful price scale and editable drawings visible.
 RSI and its settings gear sit immediately left of the timeframe controls. RSI
 opens a resizable lower pane with a shared time axis, Wilder RSI 14 on Close,
@@ -97,7 +98,9 @@ the chart timeframe and includes the current candle; earlier history reseeds it.
 Daily-candle reads attach only to the bridge's exact terminal/account, with
 bounded caches; no login, symbol selection or broker changes.
 
-Inspector Save shares selected families across pairs containing each currency;
+By release combines exact-time readings for each currency into one Inspector
+table, preserving raw series, source IDs and family filters. Calendar icons open Inspector first; **View in Alert** opens the selected
+Pepperstone release in the dated Alert table. Inspector Save shares selected families across pairs containing each currency;
 icon style/grouping/colors remain chart-specific. The chart calendar toggle
 controls event icons and External Source stars without changing selections.
 All series, date-only/unknown times, unknown-ID admission, blank-chart dismissal,
@@ -109,7 +112,9 @@ rows, with source-specific Actual/Forecast/Previous. Agent impact remains source
 or Unreviewed; MT5 importance never supplies it. One bell controls each timed
 release package. Browsing, news saves and filters do not change choices. Windows
 must remain awake for the independent worker; delivery never invokes AI.
-Manual price alerts remain independent.
+Manual price alerts remain independent. Alert’s **Legacy pins & research** button
+exposes active/archived pins, Elev8 journals, evidence, versions and saved prompts
+for read-only inspection across brokers. Stored legacy data is preserved.
 
 Entry Trade preserves incomplete editable manual entries, sortable dates,
 pinned arrows, archive/restore and one journal box. The tracked journal and

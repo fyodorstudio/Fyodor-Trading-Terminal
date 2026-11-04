@@ -10,16 +10,17 @@ function validEvents(events: unknown, currency: string) {
     && [event.server_time_seconds, event.period_seconds, event.unit, event.multiplier, event.digits, event.revision].every(Number.isFinite)
     && [event.actual, event.forecast, event.previous, event.revised_previous, event.release_at].every(value => value === null || Number.isFinite(value)))
 }
-function validItems(value: unknown, sourceId: string): value is Highlight[] {
+function validHighlightItems(value: unknown, sourceId?: string): value is Highlight[] {
   return Array.isArray(value) && value.every(entry => {
     if (!entry || typeof entry !== 'object') return false
     const item = entry as Partial<Highlight>
-    return item.source_id === sourceId && typeof item.id === 'string' && typeof item.label === 'string' && typeof item.currency === 'string'
+    const broker = sourceId ?? item.source_id
+    return typeof broker === 'string' && item.source_id === broker && typeof item.id === 'string' && typeof item.label === 'string' && typeof item.currency === 'string'
       && (item.archived_utc === undefined || item.archived_utc === null || typeof item.archived_utc === 'string')
       && (item.prompts === undefined || Array.isArray(item.prompts) && item.prompts.every(prompt => prompt && prompt.highlight_id === item.id
-        && prompt.source_id === sourceId && ['id','scope','saved_utc','prepare_prompt','release_prompt'].every(key => typeof prompt[key as keyof typeof prompt] === 'string')))
+        && prompt.source_id === broker && ['id','scope','saved_utc','prepare_prompt','release_prompt'].every(key => typeof prompt[key as keyof typeof prompt] === 'string')))
       && (item.journal === undefined || Array.isArray(item.journal) && item.journal.every(entry => entry && entry.highlight_id === item.id
-        && entry.source_id === sourceId && ['before', 'after'].includes(entry.phase) && typeof entry.scope === 'string'
+        && entry.source_id === broker && ['before', 'after'].includes(entry.phase) && typeof entry.scope === 'string'
         && ['id', 'as_of_utc', 'saved_utc', 'body', 'direction', 'confidence', 'counterevidence', 'release_prompt', 'price_reaction', 'reading_vintage'].every(key => typeof entry[key as keyof typeof entry] === 'string')
         && [entry.sources, entry.expectations, entry.readings, entry.prior_highlight_ids, entry.missing_value_ids].every(Array.isArray)
         && validEvents(entry.readings, item.currency!)
@@ -37,15 +38,15 @@ function cached(sourceId: string | null): Highlight[] {
   if (!sourceId) return empty
   try {
     const value = JSON.parse(localStorage.getItem(`fyodor.highlights.${sourceId}`) ?? '[]')
-    return validItems(value, sourceId) ? value : empty
+    return validHighlightItems(value, sourceId) ? value : empty
   } catch { return empty }
 }
-export function useHighlights(sourceId: string | null, pollMs = 0, visibility: 'active' | 'archived' | 'all' = 'active') {
-  const cacheId = sourceId && (visibility === 'active' ? sourceId : `${sourceId}.${visibility === 'archived' ? 'archive' : 'all'}`)
+export function useHighlights(sourceId: string | null | undefined, pollMs = 0, visibility: 'active' | 'archived' | 'all' = 'active') {
+  const cacheId = sourceId === undefined ? 'legacy-research' : sourceId && (visibility === 'active' ? sourceId : `${sourceId}.${visibility === 'archived' ? 'archive' : 'all'}`)
   const readCache = () => {
-    if (!sourceId || !cacheId) return empty
-    if (visibility === 'active') return cached(sourceId)
-    try { const value = JSON.parse(localStorage.getItem(`fyodor.highlights.${cacheId}`) ?? '[]'); return validItems(value, sourceId) ? value : empty } catch { return empty }
+    if (sourceId === null || !cacheId) return empty
+    if (visibility === 'active' && sourceId !== undefined) return cached(sourceId)
+    try { const value = JSON.parse(localStorage.getItem(`fyodor.highlights.${cacheId}`) ?? '[]'); return validHighlightItems(value, sourceId) ? value : empty } catch { return empty }
   }
   const [snapshot, setSnapshot] = useState(() => ({ sourceId: cacheId, items: readCache() }))
   const [error, setError] = useState<string | null>(null), [busy, setBusy] = useState(false)
@@ -58,17 +59,18 @@ export function useHighlights(sourceId: string | null, pollMs = 0, visibility: '
   const origin = useRef(Symbol())
   const refresh = useCallback(async (force = false) => {
     const signal = controller.current?.signal
-    if (!sourceId || !signal || signal.aborted) return
+    if (sourceId === null || !signal || signal.aborted) return
     const token = ++sequence.current
-    const params = new URLSearchParams({ source_id: sourceId, visibility })
+    const params = new URLSearchParams({ visibility })
+    if (sourceId !== undefined) params.set('source_id', sourceId)
     if (!force && revision.current) params.set('after_revision', revision.current)
     try {
-      const response = await fetch(`/storage-api/highlights?${params}`, { signal })
+      const response = await fetch(sourceId === undefined ? '/storage-api/legacy-research' : `/storage-api/highlights?${params}`, { signal })
       if (!response.ok) throw new Error(response.status === 404 ? 'Restart calendar storage to enable Highlight.' : `Highlight unavailable (HTTP ${response.status})`)
       const data = await response.json() as { highlight_schema?: number; source_id: string; source_status?: string; revision: string; unchanged?: boolean; items?: Highlight[] }
       if (signal.aborted || token !== sequence.current) return
       if (visibility === 'archived' && data.highlight_schema !== 2) throw new Error('Restart calendar storage to enable the Highlight archive.')
-      if (data.source_id !== sourceId || !data.revision || (!data.unchanged && !validItems(data.items, sourceId))) throw new Error('Invalid Highlight response')
+      if (data.source_id !== (sourceId ?? null) || !data.revision || (!data.unchanged && !validHighlightItems(data.items, sourceId))) throw new Error('Invalid Highlight response')
       revision.current = data.revision
       setOffline(data.source_status === 'offline' || data.source_status === 'unavailable')
       if (!data.unchanged) setSnapshot(old => {

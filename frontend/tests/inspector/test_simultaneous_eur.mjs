@@ -30,7 +30,7 @@ const scale = { getVisibleRange: () => ({ from: bars[0].time, to: bars[2].time }
 const chartApi = { timeScale: () => scale }
 try {
   const data = await server.ssrLoadModule('./src/inspector/inspector-data.ts')
-  const { groupSimultaneousEurReleases: group } = await server.ssrLoadModule('./src/inspector/releases/simultaneous-eur-releases.ts')
+  const { groupSimultaneousReleases: group } = await server.ssrLoadModule('./src/inspector/releases/simultaneous-releases.ts')
   const { selectedInspectorRelease } = await server.ssrLoadModule('./src/inspector/releases/group-days.ts')
   const { useInspector } = await server.ssrLoadModule('./src/inspector/useInspector.ts')
   const { InspectorPanel } = await server.ssrLoadModule('./src/inspector/InspectorPanel.tsx')
@@ -59,9 +59,17 @@ try {
   assert.equal(group(data.groupInspectorReleases([...readings, policy])).length, 2, 'Policy stages retain their existing grouping')
   const revision = { ...readings[0], value_id: 'revision', revision: 1, actual: .4, period_seconds: period - 31 * 86400 }
   assert.ok(group(data.groupInspectorReleases([...readings, revision]))[0].events.includes(revision), 'Different reference periods stay attached to their rows')
-  let view
+  const eia = ['840200001', '840200002', '840200003'].map((id, index) => row(id, `EIA series ${index}`, 'US', { currency: 'USD' }))
+  const eiaGrouped = group(data.groupInspectorReleases(eia))
+  assert.equal(eiaGrouped.length, 1, 'All same-time EIA series open in one Inspector table')
+  assert.equal(eiaGrouped[0].events.length, eia.length)
+  const unknown = row('840999991', 'New source release', 'US', { currency: 'USD' })
+  const combinedUnknown = group(data.groupInspectorReleases([...eia, unknown]))[0]
+  const onlyUnknown = data.filterInspectorReleases([combinedUnknown], { ...preferences, families: ['usd-other'] }, range)
+  assert.equal(onlyUnknown[0].events[0], unknown, 'New event IDs survive partial filtering inside a combined release')
+  let view, activeReadings = readings
   function App() {
-    const inspector = useInspector({ events: readings, symbol: 'EURUSD', bars, timeframe: 'H1', timeDisplay: display, clockOffsetMs })
+    const inspector = useInspector({ events: activeReadings, symbol: 'EURUSD', bars, timeframe: 'H1', timeDisplay: display, clockOffsetMs })
     React.useEffect(() => { view = inspector }, [inspector])
     return React.createElement(React.Fragment, null,
       React.createElement(InspectorChartMarkers, { chartApi, markers: inspector.markers, timeDisplay: display, onSelectRelease: inspector.selectRelease }),
@@ -86,6 +94,12 @@ try {
   assert.equal(view.releases[0].events.length, readings.length)
   await React.act(async () => view.applyPreferences(preferences, 'preview'))
   assert.equal(view.selectedRelease.events.length, readings.length)
+  activeReadings = eia
+  await React.act(async () => root.render(React.createElement(App)))
+  await React.act(async () => node.querySelector('.inspector-chart-symbol').click())
+  assert.equal(node.querySelector('.inspector-marker-popup'), null)
+  assert.equal(node.querySelectorAll('tr[data-series-id]').length, eia.length, 'One click displays all same-time USD readings')
+  assert.equal(node.querySelector('.inspector-chart-symbol sup').textContent, String(eia.length), 'The combined icon keeps its release count')
   await React.act(async () => root.render(null))
   assert.equal(listeners.size, 0); assert.equal(sizes.size, 0)
   console.log('✓ Simultaneous EUR: seven publications, one icon/table, original countries/values/periods, filters, exact clocks, independent USD/policy, stable renders and daily selection')

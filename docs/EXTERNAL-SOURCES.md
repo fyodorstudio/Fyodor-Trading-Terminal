@@ -6,10 +6,9 @@ facts, dated interpretation, source links and immutable version history.
 All/eight-currency filters apply to the date table. Undated items have their own
 section. An elapsed time does not verify publication or an outcome.
 
-Open an event's **Sources & history** for publication/recorded clocks, evidence,
-version history and **Show icon on chart**. Feed notes contains broker-specific
-Discovered Limitations below Alert's undated items, with source links, follow-up
-actions and an offline cache.
+Open an event's Overview for source links and **Show icon on chart**; expand
+**Source details & version history** for publication/recorded clocks and history. Broker-specific data limitations retain source links and follow-up actions in
+storage; they no longer need their own visible Feed notes panel.
 Agents read these with `pnpm analyst limitations --broker <broker>`.
 
 Active external records are pins in the agent interface. Archive/restore commands
@@ -34,7 +33,7 @@ request an ongoing notice without inventing an event time. `resolved` removes
 the current notice and alarm eligibility while preserving dated stars/history.
 Resolving external context does not cancel an independent broker reminder.
 
-The Ongoing risks toggle beside Feed notes hides/restores the current notices in
+The Ongoing risks toggle beside Alarm Settings hides/restores the current notices in
 Alert and across charts. This browser preference survives reloads and ordinary
 research updates. Dated stars, saved events and reminder choices stay independent.
 Notices use a flat list inside one outlined panel rather than nested boxes. A

@@ -121,12 +121,7 @@ export function ChartWorkspaceHeader({
         </div>
         {onRefocus && <button type="button" className="chart-refocus-button" aria-label="Refocus chart" title="Refocus on latest candles"
           disabled={refocusDisabled} onClick={onRefocus}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M4 5v14M8 3v18M12 6v12M21 12h-6m3-3-3 3 3 3" />
-            <rect x="2.5" y="8" width="3" height="7" fill="var(--positive)" />
-            <rect x="6.5" y="6" width="3" height="10" fill="var(--positive)" />
-            <rect x="10.5" y="9" width="3" height="5" fill="var(--positive)" />
-          </svg>
+          <span aria-hidden="true">⛶</span>
         </button>}
         {onToggleEventIcons && (
           <button type="button" className={`chart-event-toggle${eventIconsVisible ? ' active' : ''}`}

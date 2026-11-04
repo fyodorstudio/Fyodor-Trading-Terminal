@@ -18,6 +18,7 @@ const timers = new Map(), listeners = new Set(), requests = []
 dom.setTimeout = fn => { timers.set(++id, fn); return id }; dom.clearTimeout = id => timers.delete(id)
 const emit = next => { range = next; for (const fn of listeners) fn(next) }
 const scale = {
+  width: () => 900,
   getVisibleLogicalRange: () => range, setVisibleLogicalRange: next => {
     if (next.from === 0 && next.to === plotted.length + 7) fitted++
     emit(next)
@@ -174,6 +175,16 @@ try {
   assert.equal(listeners.size, 1, 'StrictMode retains one chart subscription')
   await React.act(async () => root.render(null))
   assert.equal(listeners.size, 0)
+  const largeHistory = bars(Array.from({ length: 2000 }, (_, i) => base + i * 3600))
+  await renderCandles(largeHistory)
+  assert.equal(range.to, largeHistory.length + 7, 'Startup stays next to actual candles rather than the hidden future anchor')
+  assert.ok(range.from > largeHistory.length - 140, 'Startup shows recent history instead of fitting all 2,000 candles')
+  assert.ok(Math.abs((range.to - range.from) - 900 / appearance.barSpacing) < 1e-9, 'Startup respects configured pixel spacing')
+  const initialRange = { ...range }
+  await React.act(async () => root.render(null))
+  await renderCandles(largeHistory, true)
+  assert.deepEqual(range, initialRange, 'A fresh mount/StrictMode refresh needs no manual refocus')
+  await React.act(async () => root.render(null))
   console.log('✓ Shared dates, zoom and future space; serial MT5 backfill, stop/retry, missing history, stale replies, timeframe/broker scope and cleanup')
 } finally {
   await React.act(async () => root.unmount()); await server.close(); await dom.happyDOM.close()

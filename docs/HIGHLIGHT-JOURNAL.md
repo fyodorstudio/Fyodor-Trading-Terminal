@@ -1,19 +1,15 @@
 # Highlight research journal
 
 Highlight pins, archived investigations, journal versions and saved prompt
-templates remain available through the agent interface. Inspector retains its
-occurrence-specific Pin/Archive control; in By day, choose a publication from
-**Pin release**. Each pin identifies one occurrence, rather than every future
-release in the same family.
+templates remain preserved. Alert's **Legacy pins & research** browser exposes
+all brokers and active/archived records for read-only inspection. Open a record
+to read its dated investigation, original broker, scope, sources, captured
+readings, saved prompts and documentation history. New actuals never overwrite
+the readings captured with an earlier assessment.
 
-Alert shows all stored events for the selected Jakarta date. Open a calendar
-event's **Saved research** tab to read the dated investigation, original broker,
-scope, sources, frozen readings and documentation history. Matching legacy Elev8
-research retains its original attribution and exact occurrence identity. New
-actuals never overwrite the readings captured with an earlier assessment.
-The UI is read-only; research is authored in the analyst chat and saved only on
-request. Feed notes contains Discovered Limitations. Collection, archive,
-preparation, scope/view selectors and copied assessment prompts are agent workflows.
+Inspector uses **View in Alert** rather than Pin/Archive. Pin creation/lifecycle,
+preparation and research writing remain explicit agent/CLI workflows. Data
+limitations retain CLI/API access without a visible Feed notes panel.
 
 For current news, use Assess Trade Now and Currency News. Give the Highlight ID,
 broker and date when asking about a saved occurrence. News saves do not pin
@@ -108,9 +104,8 @@ LimitationRequest contains key (stable slug), currency, kind (missing-release,
 schedule-mismatch, unverified-time or data-conflict), title, description, action,
 checked_utc and sources. Optional official_schedule/stored_schedule retain the
 disagreement; status defaults to open. Append the same key with status resolved
-when evidence resolves it. The UI shows the latest version per broker/key and
-retains the source links and verification time. It is read-only and caches the last
-valid records during outages. GET `/api/v1/highlight-limitations` serves this view.
+when evidence resolves it. CLI/API reads retain the latest version per
+broker/key with source links and verification time. GET `/api/v1/highlight-limitations` retains read-only access.
 There are no browser-writing prompt or limitation endpoints.
 
 Prompt and limitation versions live separately under `Market Analyst Workflow/`

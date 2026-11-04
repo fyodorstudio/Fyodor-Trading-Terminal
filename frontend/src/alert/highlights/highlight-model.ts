@@ -29,7 +29,3 @@ export function highlightRequest(release: InspectorRelease, sourceId: string) {
       ...inspectorFamilies.filter(family => families.has(family.id)).flatMap(family => family.events)])],
     join_window_seconds: policyEpisodeRule(release.familyId) ? 3600 : 0 }
 }
-export function highlightForRelease(items: Highlight[], release: InspectorRelease) {
-  const ids = new Set(release.events.map(event => event.value_id))
-  return items.find(item => item.value_ids.some(id => ids.has(id)) || item.events.some(event => ids.has(event.value_id)))
-}

@@ -1,6 +1,0 @@
-.highlight-limitations { max-width: 100ch; line-height: 1.7; overflow-wrap: anywhere; color: var(--text); }
-.highlight-limitation { border-bottom: 1px solid var(--border); padding: 10px 0; }
-.highlight-limitation h4 { margin: 0 0 6px; font-size: 13px; }
-.highlight-limitation p { margin: 6px 0; white-space: pre-wrap; }
-.highlight-limitation a { color: var(--accent); }
-.highlight-limitation ul { margin: 10px 0; padding-left: 24px; }

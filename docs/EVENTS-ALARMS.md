@@ -1,7 +1,7 @@
 # Alert
 
 Alert is one table for the selected **Asia/Jakarta** date. A horizontal five-day
-wheel, previous/next, month/year and Today navigate dates. All/eight-currency
+wheel, previous/next, a month revolver, year and Today navigate dates. All/eight-currency
 buttons and the existing Alert filters apply without changing alarm choices.
 Every captured calendar event on the date is available, including released rows;
 no shortlist, automatic archival or manual archive control is involved.
@@ -9,36 +9,64 @@ no shortlist, automatic archival or manual archive control is involved.
 Columns: Time | Event | Actual | Forecast | Previous | Source | Agent impact | Bell.
 The table fits the dock width and wraps text; only the date wheel moves
 horizontally. The bell column includes room for its button and cell padding.
-Pending rows show a countdown under Actual; impact is agent-authored or Unreviewed.
+The time is shared across currencies at the same exact instant. Each pending
+Actual cell shows its countdown, including repeated same-time rows. Supplied
+actuals remain intact and each reading has a subtle row divider; impact is agent-authored or Unreviewed.
 Source identifies Pepperstone or the actual external publisher (for example
 Reuters), with links to evidence. External records never acquire invented calendar
 readings. Different source values stay separate. One bell covers a publication
 package; decision, statement and conference clocks remain separate stages.
+Verified publisher packages (Baker Hughes rig counts, matching Jibun/S&P PMI
+components and Ivey PMI) share one expansion panel and bell when exact IDs,
+country/currency, publication UTC and reference period match. Saved series/family
+filters and constituent reminder keys are retained. A partially selected package
+shows a mixed bell; an explicit click enables its remaining components, reusing
+existing subscriptions. Browsing alone changes no choices.
+
 Rows with the same exact publication UTC and currency always form one compact
-visual block, with the time/currency shown once, before and after release.
+visual block, with currency shown once, before and after release. A shared
+time is shown only at the first currency for that timestamp. The countdown stays
+in the Actual column.
 This display grouping preserves each publication's details and reminder choice;
 different currencies, exact times and unconfirmed hours remain separate.
 
-Click an event to open Overview, Sources & history, or Saved research. Sources
-keeps exact IDs, capture clocks, revised priors, raw values and external version
-history. Saved research retains original broker/as-of provenance, including legacy
-Elev8 investigations. No Prepare research action is exposed here; chart Research
-Date Range remains available. Feed notes opens Discovered Limitations below the
-undated items. It retains broker-wide and multi-event issues rather than copying
-them into every event. Feed notes and Ongoing risks sit beside Alarm Settings in
-the fixed header. The Ongoing risks toggle saves a browser preference
-for notices in Alert and on charts; it does not change dated stars or reminders.
+Click an event row to expand its compact Overview; bell and source-link clicks
+keep their own actions. Collapse clears the row emphasis, while keyboard focus
+remains visible on its control. Overview keeps source links and chart visibility;
+source IDs, capture clocks, raw values and external version history are available
+through disclosures. Month/year, Today, currency buttons and Filters match the
+exact 44 px outer height of the date wheel, including the nested Alarm Settings
+trigger. The month revolver supports clicks/wheel and clamps end-of-month days.
+Ordinary event rows share a 36 px height, with compact clock and bell cells so
+standalone releases do not become taller than grouped rows. Wrapped content can
+grow for readability. The event summary row also collapses Overview; no extra close button is shown.
+
+**Legacy pins & research** in the Alert header opens a read-only browser across
+all saved brokers, including Elev8, independently of the date/currency filters.
+It exposes active and archived pins, original research and documentation history,
+captured readings/evidence and saved prompts. Broker/status/search filters are
+local. Opening this browser does not expand persisted pin membership, archive,
+restore, delete, subscribe or change alarms. Existing research files stay intact.
+Legacy research is no longer hidden inside occurrence-specific tabs.
+
+Feed notes has been removed from the UI. Stored broker/data limitations remain
+readable through the CLI/API; agents do not need a dedicated visible collection.
+The normal refresh records findings in news/custom events and coverage caveats in
+Implication. Ongoing risks remains beside Alarm Settings. Its browser preference
+controls current notices in Alert and charts without changing stars or reminders.
+Forecast values and their existing attribution remain unchanged.
 
 The outlined risk panel includes a countdown to the next confirmed, precisely
 timed saved external release, independently of the date table. Unscheduled risks
 and date-only milestones never receive invented countdowns. This is a saved
 schedule display, not automatic discovery or proof that its alarm is armed.
 
-Custom stars and supported Pepperstone calendar symbols open the original dated
-release, expand/highlight its details and scroll only Alert's scrollport after the
-data arrives. Repeated selections reuse the mounted feed. Unknown clocks or other
-brokers retain Inspector navigation; Inspector remains available for raw tables.
-Hover/focus highlights the entire publication block. Today has a horizontal Now
+Calendar symbols consistently open Inspector first. **View in Alert** beside the
+Inspector heading opens the selected Pepperstone release's date, expands its
+matching details and scrolls only Alert's scrollport. Repeated selections reuse
+the mounted feed. External stars open their Alert details directly because they
+have no raw broker Inspector row. A navigation highlight fades and clears on
+collapse. Today has a horizontal Now
 line snapped to the nearest visible confirmed schedule (ties choose the upcoming
 event); it updates the time without scrolling. Historical dates omit this line.
 Clock ticks stay local to countdowns/the line, and its position changes only at

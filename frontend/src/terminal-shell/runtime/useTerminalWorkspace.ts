@@ -23,8 +23,7 @@ import { getPipMultiplier, type PlannedTradeState, type RegisteredTradeArrow, ty
 import { tradeMetrics } from '../../entry-trade/dock/plan-math'
 import { useRegisteredArrows } from '../../entry-trade/storage/use-registered-arrows'
 import { usePriceAlerts } from '../../price-alerts/usePriceAlerts'
-import type { AlertFocus } from '../../alert/model/alert-focus'
-import { jakartaDate } from '../../alert/model/alert-day-model'
+import { alertDateForRelease, type AlertFocus } from '../../alert/model/alert-focus'
 import { useRsiPreferences } from '../../market-data/indicators/rsi/useRsiPreferences'
 
 const emptyTradePlan: PlannedTradeState = { direction: 'waiting', entryPrice: null, tpPrice: null, slPrice: null, showOnChart: false }
@@ -239,15 +238,17 @@ export function useTerminalWorkspace() {
   }, [selectBottomDock])
   const selectChartRelease = useCallback((id: string) => {
     setReleaseSelection(id)
-    const release = inspector.releases.find(item => item.id === id)
-    if (!brokerId?.startsWith('Pepperstone-') || !release || release.releaseAt === null) {
-      selectBottomDock('inspector'); return
-    }
+    selectBottomDock('inspector')
+  }, [setReleaseSelection, selectBottomDock])
+  const viewReleaseInAlert = useCallback((release: NonNullable<typeof inspector.selectedRelease>) => {
+    const date = alertDateForRelease(release)
+    if (!brokerId?.startsWith('Pepperstone-') || !date) return
     setAlertFocus(old => ({ request: (old?.request ?? 0) + 1, sourceId: brokerId,
-      valueIds: release.events.map(event => event.value_id), date: jakartaDate(release.releaseAt!),
-      families: release.familyIds ?? [release.familyId] }))
+      valueIds: release.events.map(event => event.value_id), date,
+      families: [...new Set([release.familyId, ...(release.familyIds ?? []),
+        ...(release.pmiPublications ?? release.daily?.publications ?? []).flatMap(item => item.familyIds ?? [item.familyId])])] }))
     selectBottomDock('alert')
-  }, [setReleaseSelection, selectBottomDock, inspector.releases, brokerId])
+  }, [selectBottomDock, brokerId])
   const clearChartInspection = useCallback(() => {
     setReleaseSelection(null)
     setBottomDockWindow(current => current === 'inspector' ? null : current)
@@ -282,6 +283,6 @@ export function useTerminalWorkspace() {
     recordChartData, changeTheme, changeChartAppearance, changeTimeDisplay, createDrawing, chooseDrawingTool,
     selectCrosshair, deletePairDrawings, toggleBottomDock, exitDrawingMode, toggleDrawingToolbar,
     renderChartOverlay, sourceState, sourceLabel, researchActive, researchSeed, researchError,
-    selectResearchTool, closeResearch, alertFocus,
+    selectResearchTool, closeResearch, alertFocus, viewReleaseInAlert,
     plannedTrade, handlePlanChange, latestBarTime, registeredArrows, selectPinnedArrow, priceAlerts, leftDockTab, setLeftDockTab }
 }

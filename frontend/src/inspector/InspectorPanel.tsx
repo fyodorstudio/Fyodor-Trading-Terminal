@@ -15,7 +15,7 @@ import { releaseStatus } from './releases/release-status'
 import { InspectorReadingsTable } from './readings/InspectorReadingsTable'
 import { InspectorDayTable } from './readings/InspectorDayTable'
 import './inspector.css'
-import { InspectorPin } from '../alert/highlights/InspectorPin'
+import { alertDateForRelease } from '../alert/model/alert-focus'
 
 function sourceLabel(source: CalendarSourceHealth | null, error: string | null): string {
   if (error) return error
@@ -25,9 +25,10 @@ function sourceLabel(source: CalendarSourceHealth | null, error: string | null):
   if (source.status === 'awaiting-snapshot') return 'Receiving calendar snapshot'
   return 'Waiting for the calendar publisher'
 }
-export function InspectorPanel({ view, symbol, source, error, timeDisplay }: {
+export function InspectorPanel({ view, symbol, source, error, timeDisplay, onViewInAlert }: {
   view: InspectorView; symbol: string; source: CalendarSourceHealth | null; error: string | null
   timeDisplay: TimeDisplayPreference
+  onViewInAlert?: (release: InspectorRelease) => void
 }) {
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [calendarOpen, setCalendarOpen] = useState(false)
@@ -88,7 +89,10 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay }: {
       </div>}
       {view.supported && release && <InspectorReleaseHeading release={release} view={view} timeDisplay={timeDisplay}
         status={status(release)} sharedPeriod={sharedPeriod} calendarDetail={calendarDetail} coverageDetail={coverageDetail} />}
-      {view.supported && release && <InspectorPin release={release} brokerId={view.brokerId ?? null} />}
+      {view.supported && release && onViewInAlert && <button type="button" className="inspector-alert-link"
+        disabled={!view.brokerId?.startsWith('Pepperstone-') || !alertDateForRelease(release)}
+        title={!view.brokerId?.startsWith('Pepperstone-') ? 'Alert displays the Pepperstone calendar' : !alertDateForRelease(release) ? 'No publication date available' : 'Open this release in Alert'}
+        onClick={() => onViewInAlert(release)}>View in Alert</button>}
     </header>
     {!view.supported ? <p className="inspector-empty">Select a supported forex pair, currency index, Japan 225 or USD gold chart to inspect releases.</p> : <>
       <div className={`inspector-body${listOpen ? '' : ' releases-collapsed'}`}>

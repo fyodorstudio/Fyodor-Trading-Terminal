@@ -11,6 +11,7 @@ function Entry({ entry, includeEvidence = false }: { entry: JournalEntry; includ
     <p><strong>Strongest counterevidence:</strong> {entry.counterevidence}</p>
     {entry.price_reaction && <p><strong>Measured price reaction:</strong> {entry.price_reaction}</p>}
     {entry.trade_outcome && <p><strong>User-provided trade outcome:</strong> {entry.trade_outcome}</p>}
+    {entry.release_prompt && <details><summary>Saved release prompt</summary><pre>{entry.release_prompt}</pre></details>}
     {includeEvidence && <details><summary>Sources and captured evidence</summary><Evidence entry={entry} /></details>}
   </section>
 }

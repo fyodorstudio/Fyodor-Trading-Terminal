@@ -4,6 +4,7 @@ import { groupInspectorReleases } from '../../inspector/releases/group-releases'
 import { selectedPackageSeries } from '../../inspector/episodes/display-episodes'
 import type { ExternalSource } from '../../external-sources/external-source-model'
 import type { AlertPreferences } from './alert-preferences'
+import { groupAlertPublications } from './publication-packages'
 
 export const dayMs = 86400000
 export function jakartaDate(at: number) { return new Date(at + 7 * 3600000).toISOString().slice(0, 10) }
@@ -28,7 +29,7 @@ export type AlertDayGroup = { key: string; title: string; currency: string; at: 
 export function dayGroups(events: StoredCalendarEvent[], outside: ExternalSource[], selectedDate: string, sourceId: string,
   preferences: Pick<AlertPreferences, 'families' | 'currency'>): AlertDayGroup[] {
   // Keep stages separate; a CPI package shares one clock and one bell.
-  const groups: AlertDayGroup[] = groupInspectorReleases(events, false, 'publication').flatMap(original => {
+  const groups: AlertDayGroup[] = groupAlertPublications(groupInspectorReleases(events, false, 'publication')).flatMap(original => {
     const release = selectedPackageSeries(original, preferences.families)
     if (!release || !preferences.families.includes(release.familyId) && !release.familyIds?.some(id => preferences.families.includes(id))
       || preferences.currency !== 'all' && release.currency !== preferences.currency) return []

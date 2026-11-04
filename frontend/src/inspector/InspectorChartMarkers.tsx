@@ -69,8 +69,9 @@ function InspectorChartMarkersComponent({ chartApi, markers, timeDisplay, onSele
           }}>
           {majorCurrencies.map((currency) => {
             const items = cluster.markers.filter((marker) => marker.release.currency === currency)
+            const count = items.reduce((sum, marker) => sum + (marker.release.sourceReleaseIds?.length ?? 1), 0)
             return items.length ? <span key={currency} className={`inspector-currency-${currency}`}>
-              {symbolGlyph(items[0].symbol)}{multiple && <sup>{items.length}</sup>}</span> : null
+              {symbolGlyph(items[0].symbol)}{(multiple || count > 1) && <sup>{count}</sup>}</span> : null
           })}
         </button>
         {multiple && expanded && <div className="inspector-marker-popup" style={{ left: cluster.x > chartApi.timeScale().width() / 2 ? -270 : 0 }}>

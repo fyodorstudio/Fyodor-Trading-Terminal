@@ -128,7 +128,12 @@ try {
   assert.equal(batch.length, 4, 'Unrelated calendar packages and external events retain their identities')
   assert.equal(batch.filter(node => node.classList.contains('alert-time-start')).length, 1, 'Simultaneous USD releases share one visual start')
   assert.equal(batch.filter(node => node.classList.contains('alert-time-end')).length, 1, 'Only the final simultaneous release has a divider')
-  assert.equal(batch.flatMap(node => [...node.querySelectorAll('.alert-time-cell time')]).length, 1, 'Time and currency appear once across release families and sources')
+  assert.ok([...container.querySelectorAll('.alert-release-countdown')].every(node => node.closest('td.alert-value')), 'Every countdown belongs in Actual')
+  const expectedCountdowns = initialGroups.filter(group => group.at !== null && group.at > now)
+    .reduce((sum, group) => sum + (group.release?.events.filter(event => event.actual === null).length ?? 0) + group.external.length, 0)
+  assert.equal(container.querySelectorAll('.alert-release-countdown').length, expectedCountdowns, 'Every future pending reading, including same-time duplicates, keeps its countdown')
+  assert.ok(batch.every(node => node.querySelector('.alert-release-countdown')), 'Same-time groups each retain readable countdowns')
+  assert.equal(batch.flatMap(node => [...node.querySelectorAll('.alert-time-cell small:not(.alert-release-countdown)')]).length, 1, 'Currency appears once across release families and sources')
   const positions = batch.map(node => blocks().indexOf(node))
   assert.equal(positions.at(-1) - positions[0], batch.length - 1, 'Another currency cannot split the same-time USD block')
   assert.equal(container.querySelectorAll('.alert-time-start').length, 5, 'Other currencies, different seconds and both unknown hours stay separate')
@@ -157,6 +162,44 @@ try {
   assert.equal(container.querySelector('.alert-now-line').nextElementSibling.dataset.alertId, 'scheduled-2')
   await renderTimeline(now, '2026-10-04')
   assert.equal(container.querySelector('.alert-now-line'), null, 'Historical dates never display a current-time line')
+  const { alertDateForRelease } = await server.ssrLoadModule('./src/alert/model/alert-focus.ts')
+  assert.equal(alertDateForRelease({ ...groups[0].release, releaseAt: Date.UTC(2026, 9, 5, 19) }), '2026-10-06', 'Timed navigation uses Jakarta publication date')
+  assert.equal(alertDateForRelease({ ...groups[0].release, releaseAt: null, timingUncertain: true,
+    events: [{ ...events[0], server_time_seconds: Date.UTC(2026, 9, 5, 23) / 1000 }] }), '2026-10-05', 'Date-only navigation retains the source date without inventing an hour')
+  const rigRows = [row('840100001', { name: 'Oil rigs', value_id: 'rig-oil' }), row('840100002', { name: 'Total rigs', value_id: 'rig-total' })]
+  const rigGroups = dayGroups(rigRows, [], '2026-10-05', 'Pepperstone-Demo', defaultAlertPreferences())
+  assert.equal(rigGroups.length, 1, 'Baker Hughes uses one explicit release package')
+  assert.equal(rigGroups[0].release.events.length, 2)
+  assert.deepEqual(dayGroups([...rigRows].reverse(), [], '2026-10-05', 'Pepperstone-Demo', defaultAlertPreferences()).map(group => group.key), rigGroups.map(group => group.key), 'Package identity is stable across input ordering')
+  const filteredRigs = dayGroups(rigRows, [], '2026-10-05', 'Pepperstone-Demo', { ...defaultAlertPreferences(), families: [rigGroups[0].release.familyIds[0]] })
+  assert.equal(filteredRigs[0].release.events.length, 1)
+  assert.deepEqual(filteredRigs[0].valueIds, rigGroups[0].valueIds, 'Filtering preserves complete package bell membership')
+  assert.equal(dayGroups([rigRows[0], { ...rigRows[1], release_at: at + 1000 }], [], '2026-10-05', 'Pepperstone-Demo', defaultAlertPreferences()).length, 2, 'Different exact publication times stay separate')
+  assert.equal(dayGroups(rigRows.map(event => ({ ...event, time_mode: 1 })), [], '2026-10-05', 'Pepperstone-Demo', defaultAlertPreferences()).length, 2, 'Unconfirmed clocks never form a timed package')
+  const pmiRows = [row('392500002', { name: 'Services', currency: 'JPY', country_code: 'JP' }), row('392500003', { name: 'Composite', currency: 'JPY', country_code: 'JP' })]
+  assert.equal(dayGroups(pmiRows, [], '2026-10-05', 'Pepperstone-Demo', defaultAlertPreferences()).length, 1, 'Jibun services/composite share their same-time package')
+  assert.equal(dayGroups([rigRows[0], { ...rigRows[1], period_seconds: rigRows[0].period_seconds - 86400 }], [], '2026-10-05', 'Pepperstone-Demo', defaultAlertPreferences()).length, 2, 'Different reference periods cannot merge')
+  const packageActions = []
+  const packageAlarms = { data: { schedule_schema: 2, settings: { enabled: true, release_minutes: 2 }, events: [
+    { key: 'existing-oil-choice', source: 'calendar', broker: 'Pepperstone-Demo', value_ids: ['rig-oil'], at, eligible: true, selected: true },
+  ] }, mutate: async action => { packageActions.push(action); return true } }
+  await React.act(async () => root.render(React.createElement(HighlightDock, { groups: rigGroups, sourceId: 'Pepperstone-Demo',
+    alarms: packageAlarms, now, focusKey: null, impact: { byValueId: new Map(), byKey: new Map() } })))
+  assert.equal(container.querySelectorAll('.event-alarm-toggle').length, 1)
+  assert.equal(container.querySelector('.event-alarm-toggle').getAttribute('aria-pressed'), 'mixed')
+  await React.act(async () => container.querySelector('.event-alarm-toggle').click())
+  assert.deepEqual(packageActions, [
+    { action: 'toggle-many', keys: ['existing-oil-choice'], enabled: true },
+    { action: 'subscribe', broker: 'Pepperstone-Demo', value_ids: ['rig-total'], title: rigGroups[0].title, enabled: true },
+  ], 'The shared bell reuses the saved occurrence key and subscribes only missing components')
+  assert.equal(container.querySelector('.alert-event-details'), null, 'Bell clicks do not open the package')
+  await React.act(async () => container.querySelector('.alert-source-cell').click())
+  assert.equal(container.querySelectorAll('.alert-event-details').length, 1)
+  await renderTable([{ ...rigGroups[0], release: { ...rigGroups[0].release, events: [
+    { ...rigRows[0], actual: 123 }, rigRows[1],
+  ] } }])
+  assert.equal(container.querySelector('.alert-release-countdown').closest('tr').dataset.seriesId, '840100002', 'A supplied actual is never replaced by the shared countdown')
+  assert.equal(container.querySelectorAll('.alert-release-countdown').length, 1)
   await React.act(async () => root.unmount())
   const restored = createRoot(container)
   await React.act(async () => restored.render(React.createElement(HighlightDock, { groups: initialGroups, sourceId: 'Pepperstone-Demo',
