@@ -2,6 +2,7 @@ import { memo, useCallback, useMemo, useState } from 'react'
 import { majorCurrencies } from '../../economic-calendar/forex/currencies'
 import { useExternalSources } from '../../external-sources/useExternalSources'
 import { DiscoveredLimitations } from '../../external-sources/DiscoveredLimitations'
+import { OngoingRiskNotices } from '../../external-sources/OngoingRiskNotices'
 import { CalendarBoundary, CalendarClock } from '../../inspector/CalendarClock'
 import { readAlertPreferences, saveAlertPreferences, type AlertPreferences } from '../model/alert-preferences'
 import { alertSeriesIds } from '../model/alert-format'
@@ -28,9 +29,12 @@ export const AlertDock = memo(function AlertDock({ sourceId, alarms, focusKey = 
   const storage = useAlertDay(sourceId, date), external = useExternalSources('all', 'all')
   const impact = useAlertImpact(sourceId)
   const [focused, setFocused] = useState<string | null>(null)
+  const [noticeKey, setNoticeKey] = useState<string | null>(null)
+  const selectedFocusKey = noticeKey ?? focusKey
   const focusItem = external.items.find(item => item.key === focusKey)
   if (focusItem && focused !== focusKey) {
     setFocused(focusKey)
+    setNoticeKey(null)
     const item = focusItem
     const targetDate = externalDate(item)
     if (targetDate) setDate(targetDate)
@@ -38,7 +42,7 @@ export const AlertDock = memo(function AlertDock({ sourceId, alarms, focusKey = 
   }
   const groups = useMemo(() => dayGroups(storage.events, external.items, date, sourceId, preferences), [storage.events, external.items, date, sourceId, preferences])
   const undated = useMemo((): AlertDayGroup[] => external.items.filter(item => externalDate(item) === null
-    && (preferences.currency === 'all' || item.currencies.includes(preferences.currency))).map(item => ({ key: `external:${item.key}`,
+    && (item.visibility_scope === 'global' || preferences.currency === 'all' || item.currencies.includes(preferences.currency))).map(item => ({ key: `external:${item.key}`,
       title: item.title, currency: [...item.currencies, ...(item.instruments ?? [])].join(' / '), at: null, valueIds: [], external: [item] })), [external.items, preferences.currency])
   const times = useMemo(() => groups.flatMap(group => group.at === null ? [] : [group.at, group.at + 1]), [groups])
   const selectedIds = useMemo(() => alertSeriesIds(preferences), [preferences])
@@ -60,11 +64,17 @@ export const AlertDock = memo(function AlertDock({ sourceId, alarms, focusKey = 
         {storage.source?.publisher_status === 'offline' && <p className="alert-feed-message" role="status">Pepperstone publisher offline · showing saved readings.</p>}
         {!storage.loading && !storage.source && !storage.error && <p role="status">No stored Pepperstone calendar. Start its publisher to populate this date.</p>}
         {partial && <p className="alert-feed-message" role="status">Partial calendar coverage for this date. Missing events may not have been captured.</p>}
-        <div className="alert-table-scroll"><HighlightDock groups={groups} sourceId={sourceId} alarms={alarms} now={boundaryNow} focusKey={focusKey} impact={impact} /></div>
+        <OngoingRiskNotices items={external.items.filter(item => item.visibility_scope === 'global' || preferences.currency === 'all' || item.currencies.includes(preferences.currency))} onSelect={key => {
+          const item = external.items.find(item => item.key === key)
+          const targetDate = item && externalDate(item)
+          if (targetDate) setDate(targetDate)
+          setPreferences(old => ({ ...old, currency: 'all' })); setNoticeKey(key)
+        }} />
+        <div className="alert-table-scroll"><HighlightDock groups={groups} sourceId={sourceId} alarms={alarms} now={boundaryNow} focusKey={selectedFocusKey} impact={impact} /></div>
         {!groups.length && <p className="alert-empty" role="status">{storage.loading || external.loading ? 'Loading events…' : 'No matching events in the available data for this date.'}</p>}
-        {!!undated.length && <details className="alert-undated" open={undated.some(group => group.external.some(item => item.key === focusKey)) || undefined}>
+        {!!undated.length && <details className="alert-undated" open={undated.some(group => group.external.some(item => item.key === selectedFocusKey)) || undefined}>
           <summary>Undated items ({undated.length})</summary><p>No publication date is assumed for these saved watch items.</p>
-          <div className="alert-table-scroll"><HighlightDock groups={undated} sourceId={sourceId} alarms={alarms} now={boundaryNow} focusKey={focusKey} impact={impact} /></div>
+          <div className="alert-table-scroll"><HighlightDock groups={undated} sourceId={sourceId} alarms={alarms} now={boundaryNow} focusKey={selectedFocusKey} impact={impact} /></div>
         </details>}
       </div>
       {filtersOpen && <AlertFiltersModal preferences={preferences} onSave={next => updatePreferences({ ...preferences, families: next.families })} onClose={closeFilters} />}

@@ -50,7 +50,10 @@ Open Currency News in the bottom dock. All shows a shared story feed; currency
 buttons filter the same records. Copy refresh prompt prioritizes the newest
 material news and relevant earlier context, without a fixed lookback. Run it in
 the agent chat. Reload saved news only reads local output; there is no automatic
-AI schedule or ingestion.
+AI schedule or ingestion. Each agent invocation also checks global ongoing risks
+and seven days ahead, prioritizes 48 hours, and maintains verified global custom
+stars/notices and new high-impact reminders. A plain `$assess-trade-now` is enough.
+See [global risk discovery](docs/GLOBAL-RISK-WORKFLOW.md). Technicals stay manual.
 
 The date revolver opens on Today and filters by publication date in Jakarta.
 Date-only stories keep their date and use last assessment time for ordering/age;

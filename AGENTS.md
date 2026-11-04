@@ -27,6 +27,11 @@ history; do not routinely load raw archives during refreshes.
 
 For current news use [Assess Trade Now](.agents/skills/assess-trade-now/SKILL.md).
 Read [research rules](docs/RESEARCH-RULES.md), then the schema only when writing.
+Every invocation also follows [global risk discovery](docs/GLOBAL-RISK-WORKFLOW.md):
+ongoing risks and seven days ahead across currencies, prioritizing 48 hours.
+Maintain sourced global custom stars/notices and new confirmed high-impact
+reminders; preserve explicit off choices, pause, offset and existing chart hides.
+Leave technical levels and price scans to the user unless explicitly requested.
 Retrieve compact relevant lessons through `pnpm analyst news lessons --scope CAD`;
 do not read full raw archives routinely. Historical investigations and imminent
 release waits remain optional separate skills. Dataset work reads only the
@@ -44,7 +49,7 @@ Publication UTC remains independent of chart-placement availability.
 
 Calendar Alert, event Invoke reminders, manual price alerts and Currency News
 are separate paths. News saves do not change alarms or chart markers. Keep one
-bell per release package, high-impact-only agent curation when requested, and
+bell per release package, high-impact-only agent curation through the skill, and
 explicit off choices. Agent impact is sourced by exact broker/value IDs or an
 external key; never substitute MT5 importance or another broker's rating.
 

@@ -6,6 +6,16 @@ import { timeframeSeconds } from '../inspector/chart/build-markers'
 import { inspectorMarkerCoordinate } from '../inspector/marker-position'
 import type { ExternalSource } from './external-source-model'
 import { externalIconEnabled, type ExternalIconPreferences } from './external-icon-visibility'
+import { chartEventCurrencies, chartEventScope } from '../economic-calendar/forex/chart-event-scope'
+import { chartCommodity } from './research-instruments'
+
+export function externalMatchesChart(item: ExternalSource, symbol: string) {
+  const commodity = chartCommodity(symbol)
+  if (!commodity && !chartEventScope(symbol)) return false
+  return item.visibility_scope === 'global' || (commodity
+    ? item.instruments?.includes(commodity) || item.currencies.includes('USD')
+    : chartEventCurrencies(symbol).some(currency => item.currencies.includes(currency)))
+}
 
 export type ExternalMarker = { item: ExternalSource; time: number; dayEnd?: number; projection?: { anchorTime: number; barsAhead: number } }
 export type ExternalCluster = { x: number; markers: ExternalMarker[] }

@@ -7,6 +7,8 @@ export function RecordDetails({ item, timeDisplay }: { item: ExternalSource; tim
   const time = (at: string) => `${formatAppTimestamp(Date.parse(at), timeDisplay)}${timeDisplay.hour12 ? '' : ` (${at})`}`
   return <div className="external-record-details">
     <p>{item.kind === 'scheduled' ? 'Scheduled event' : item.kind === 'headline' ? 'Published headline' : 'Unscheduled watch'} · {item.status}</p>
+    {item.visibility_scope === 'global' && <p>Global visibility · currency tags identify researched channels, not a shared directional bias.</p>}
+    {item.risk_status && <p>Risk {item.risk_status}{item.risk_checked_utc ? ` · assessed ${time(item.risk_checked_utc)}` : ''}</p>}
     <p>{item.event_at ? `Event / headline reference: ${time(item.event_at)}` : item.event_date ? `Source date: ${item.event_date} · hour unconfirmed` : 'Event time unconfirmed / unscheduled'}</p>
     {item.published_utc && <p>Source publication: {time(item.published_utc)}</p>}
     <p>{item.time_note}</p>

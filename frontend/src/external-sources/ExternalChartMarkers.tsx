@@ -3,13 +3,14 @@ import type { IChartApi } from 'lightweight-charts'
 import { useDisplayClock } from '../appearance/time-display/useDisplayClock'
 import type { ChartTimeframe } from '../market-data/contracts/ChartTimeframe'
 import type { OhlcBar } from '../market-data/contracts/OhlcBar'
-import { chartEventScope, chartEventCurrencies } from '../economic-calendar/forex/chart-event-scope'
+import { chartEventScope } from '../economic-calendar/forex/chart-event-scope'
 import { useMarkerBars } from '../inspector/chart/useMarkerBars'
 import { useExternalSources } from './useExternalSources'
-import { buildExternalMarkers, projectExternalMarkers, sameExternalClusters, type ExternalCluster } from './external-markers'
+import { buildExternalMarkers, projectExternalMarkers, sameExternalClusters, externalMatchesChart, type ExternalCluster } from './external-markers'
 import './external-chart-markers.css'
-import { useExternalIconVisibility } from './external-icon-visibility'
+import { externalIconEnabled, useExternalIconVisibility } from './external-icon-visibility'
 import { chartCommodity } from './research-instruments'
+import { OngoingRiskNotices } from './OngoingRiskNotices'
 
 export const ExternalChartMarkers = memo(function ExternalChartMarkers({ chartApi, symbol, bars, timeframe, brokerRows, onSelect }: {
   chartApi: IChartApi; symbol: string; bars: OhlcBar[]; timeframe: ChartTimeframe; brokerRows: number; onSelect: (key: string | null) => void
@@ -17,13 +18,13 @@ export const ExternalChartMarkers = memo(function ExternalChartMarkers({ chartAp
   const { scope: clock, utc } = useDisplayClock()
   const commodity = chartCommodity(symbol)
   const scope = commodity ?? chartEventScope(symbol)
-  const currencies = chartEventCurrencies(symbol)
   const records = useExternalSources(scope ?? 'all', 'all')
   const visibility = useExternalIconVisibility()
   const timeline = useMarkerBars(bars)
-  const markers = useMemo(() => scope ? buildExternalMarkers(records.items.filter(item => commodity
-    ? item.instruments?.includes(commodity) || item.currencies.includes('USD') : currencies.some(currency => item.currencies.includes(currency))),
-    timeline, timeframe, clock, visibility) : [], [scope, commodity, currencies, records.items, timeline, timeframe, clock, visibility])
+  const relevant = useMemo(() => records.items.filter(item => externalMatchesChart(item, symbol)), [records.items, symbol])
+  const notices = useMemo(() => relevant.filter(item => externalIconEnabled(item, visibility)), [relevant, visibility])
+  const markers = useMemo(() => scope ? buildExternalMarkers(relevant,
+    timeline, timeframe, clock, visibility) : [], [scope, relevant, timeline, timeframe, clock, visibility])
   const [clusters, setClusters] = useState<ExternalCluster[]>([]), [expanded, setExpanded] = useState<string | null>(null)
   useEffect(() => {
     const scale = chartApi.timeScale(); let frame: number | null = null
@@ -46,10 +47,11 @@ export const ExternalChartMarkers = memo(function ExternalChartMarkers({ chartAp
   }, [chartApi, expanded])
   return <div className="external-chart-markers" aria-label="Custom External Sources stars"
     style={{ bottom: 34 + Math.max(1, brokerRows) * 34 }}>
+    <div className="external-chart-risk-notices"><OngoingRiskNotices items={notices} onSelect={onSelect} /></div>
     {records.error && <button type="button" className="external-chart-error" title={records.error} onClick={() => onSelect(null)}>External Sources unavailable</button>}
     {clusters.map(cluster => {
       const first = cluster.markers[0], multiple = cluster.markers.length > 1
-      const description = (marker: typeof first) => `${marker.item.title} · ${[...marker.item.currencies, ...(marker.item.instruments ?? [])].join('/')} · ${marker.item.event_at ? utc(Date.parse(marker.item.event_at)) : `${marker.item.event_date} · hour unconfirmed`} · custom ${marker.item.status}`
+      const description = (marker: typeof first) => `${marker.item.title} · ${marker.item.visibility_scope === 'global' ? 'Global · ' : ''}${[...marker.item.currencies, ...(marker.item.instruments ?? [])].join('/')} · ${marker.item.event_at ? utc(Date.parse(marker.item.event_at)) : `${marker.item.event_date} · hour unconfirmed`} · custom ${marker.item.status}`
       return <div className="external-chart-cluster" key={first.item.key} style={{ left: cluster.x }}>
         <button type="button" className="external-chart-star" title={cluster.markers.map(description).join('\n')}
           aria-label={multiple ? `${cluster.markers.length} nearby custom events` : `Open custom event ${description(first)}`}

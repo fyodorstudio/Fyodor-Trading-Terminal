@@ -4,6 +4,12 @@ For the usual refresher, open Currency News, choose All or a currency, and Copy
 refresh prompt. Paste it into your agent chat. The agent prioritizes the newest
 material developments, checks sources and saves the researched currencies.
 There is no fixed lookback cutoff. Reload saved news only reloads local results.
+A plain `$assess-trade-now` also reviews global ongoing risks and seven days ahead,
+prioritizing 48 hours. It maintains sourced global custom stars/notices and new
+verified high-impact reminders, respecting off choices, pause and lead time.
+These risks appear across pairs and supported currency indices, with separate
+currency implications. Unpredictable updates receive an ongoing notice; uncertain
+hours never receive a fabricated alarm. See [global risk discovery](docs/GLOBAL-RISK-WORKFLOW.md).
 
 The date revolver opens on Today and filters stories by publication date in
 Jakarta. An older headline discovered today belongs to its original date.
@@ -40,7 +46,9 @@ strength against every peer. A failed source route is not proof of no news.
 | [One Minute Before Release](.agents/skills/one-minute-before-release/SKILL.md) | Wait in this chat for a named imminent release, verify fresh actuals, then interpret the relevant currency. |
 | [Review Historical Research](.agents/skills/review-historical-research/SKILL.md) | Investigate a named historical move using a date-range brief, calendar, dated news and H1/H4 candles. |
 
-News refreshes do not change reminders or fetch current technicals. Calendar
+Currency News saves do not change reminders; the skill's separate risk review
+curates them. The agent leaves technical levels, entries and chart scans to you,
+including when you mention JPYX/USDX resistance or reversal. Calendar
 Alert bells, manual price alerts, Entry Trade and chart drawings stay independent.
 The [news contract](docs/CURRENCY-NEWS.md) owns persistence and timing.
 [Short research rules](docs/RESEARCH-RULES.md) and focused reviewed lessons retain

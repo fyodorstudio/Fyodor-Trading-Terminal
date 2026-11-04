@@ -8,6 +8,9 @@ Currency News is a date-filtered story feed. All and individual currency buttons
 reuse the same records. A shared story appears once, with all researched currency
 tags and a separate implication for each currency. Chart, Inspector, calendar
 Alert, Entry Trade, reminders and price alerts remain independent.
+Assess Trade Now separately performs [global risk discovery](GLOBAL-RISK-WORKFLOW.md)
+and authorized event/alarm curation on each invocation. News persistence itself
+has no marker or reminder side effects.
 
 ## Presentation and dates
 

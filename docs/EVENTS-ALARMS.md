@@ -48,8 +48,9 @@ Clicking a future timed group's bell registers a validated, durable subscription
 or updates the existing choice. Date-only, unknown-time and elapsed items cannot
 receive new timed reminders. An external record must be confirmed and scheduled.
 
-Currency News refreshes do not change reminders. Explicit alarm-curation requests
-may select a few verified high-impact occurrences, one bell per release package.
+Currency News persistence does not change reminders. Assess Trade Now's separate
+[global risk workflow](GLOBAL-RISK-WORKFLOW.md), or explicit alarm-curation requests,
+may select new verified high-impact occurrences, one bell per release package.
 Preserve explicit off choices, global pause and offset. Read worker eligibility,
 exact keys and revision before `toggle-many`, then verify selected/armed state
 and runtime health. A suggested return time creates no reminder or AI schedule.
@@ -95,11 +96,15 @@ committed WAL state and never change observations. Read failures suspend deliver
 Rescheduling updates jobs without replaying acknowledged reminders. Overdue jobs
 become Missed; already elapsed reminders are not replayed on startup.
 
-`GET /alarm-api/alarms` returns schedule schema 2, selections, armed state, settings,
+`GET /alarm-api/alarms` returns schedule schema 2, selections, explicit choices
+(null for no override), armed state, settings,
 worker status and history. POST accepts validated `subscribe`, `toggle-many`,
-legacy `toggle`, `settings`, `dismiss`, `snooze` or explicit `test`; optimistic
+legacy `toggle`, `curate`, `settings`, `dismiss`, `snooze` or explicit `test`; optimistic
 revision checks protect writes. Subscription clocks and eligibility come from
 SQLite, never client-supplied values. Only loopback origins can mutate the worker.
+`curate` accepts known future eligible keys and atomically preserves explicit off
+choices. It leaves pause, offset and sound settings unchanged. Resolved external
+risks are ineligible. Invoke prompts reuse pair context without choosing a pair.
 
 Sound mutations are `audio-settings`, `audio-upload`, `preview`, `stop-preview`
 and `silence`. Stop sound silences an active notification without acknowledging it.

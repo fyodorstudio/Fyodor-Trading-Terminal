@@ -119,7 +119,7 @@ def create_alarm_app(directory=ALARM_DIRECTORY, loader=None, notify=None, clock=
     @app.get('/alarms')
     def snapshot():
         from .external_sources import DIRECTORY
-        return {**app.state.engine.snapshot(), 'external_source_schema': 3,
+        return {**app.state.engine.snapshot(), 'external_source_schema': 4,
                 'preview_playing': delivery.previewing() if isinstance(delivery, DesktopDelivery) else False,
                 'external_source_directory': str(DIRECTORY.resolve())}
 

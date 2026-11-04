@@ -19,6 +19,24 @@ def event(key='cpi', at=1000000, **changes):
 
 
 class AlarmTests(TestCase):
+    def test_agent_curation_preserves_off_pause_offset_and_rejects_untimed_or_elapsed(self):
+        self.engine.reconcile([event('new', default_enabled=False), event('off', default_enabled=False)])
+        self.action(action='toggle', key='off', enabled=False)
+        self.action(action='settings', settings={'enabled': False, 'release_minutes': 5})
+        result = self.action(action='curate', keys=['new', 'off'])
+        events = {e['key']: e for e in result['events']}
+        self.assertTrue(events['new']['selected']); self.assertFalse(events['new']['armed'])
+        self.assertFalse(events['off']['selected']); self.assertFalse(events['off']['explicit_choice'])
+        self.assertEqual(result['settings'], {'enabled': False, 'release_minutes': 5})
+        self.action(action='settings', settings={'enabled': True, 'release_minutes': 5})
+        jobs = [j for j in self.engine.snapshot()['jobs'] if j['status'] == 'pending']
+        self.assertEqual(len(jobs), 1); self.assertEqual(jobs[0]['due'], 700)
+        self.assertNotIn('best-supported pair', jobs[0]['prompt'])
+        self.assertIn('technical levels to the user', jobs[0]['prompt'])
+        self.engine.reconcile([event('elapsed', at=1000), event('untimed', at=None, eligible=False)])
+        for key in ['elapsed', 'untimed']:
+            with self.assertRaises(ValueError): self.action(action='curate', keys=[key])
+
     def setUp(self):
         self.temp = TemporaryDirectory()
         self.path = Path(self.temp.name) / 'alarms.json'
@@ -249,7 +267,7 @@ class AlarmTests(TestCase):
                     return messages[0]['status'], json.loads(b''.join(m.get('body', b'') for m in messages[1:]))
                 _, data = await request()
                 self.assertEqual(data['application'], 'fyodor-alarms')
-                self.assertEqual(data['external_source_schema'], 3)
+                self.assertEqual(data['external_source_schema'], 4)
                 self.assertTrue(data['external_source_directory'])
                 identity=data['jobs'][0]['id']
                 with patch.object(app.state.engine,'snapshot',side_effect=AssertionError('Full history must not be built')):

@@ -10,6 +10,9 @@ export type ExternalSource = {
   expected_version: string | null; version_count?: number
   chart_icon_request_id?: string | null
   calendar_reference?: { source_id: string; value_ids: string[] } | null
+  visibility_scope?: 'scoped' | 'global'
+  risk_status?: 'ongoing' | 'resolved' | null
+  risk_checked_utc?: string | null
 }
 export function validExternalItems(value: unknown): value is ExternalSource[] {
   const at = (value: unknown) => value === null || typeof value === 'string' && /(?:Z|[+-]\d{2}:\d{2})$/.test(value) && Number.isFinite(Date.parse(value))
@@ -22,6 +25,10 @@ export function validExternalItems(value: unknown): value is ExternalSource[] {
       && (entry.instruments === undefined || Array.isArray(entry.instruments) && entry.instruments.every(id => commodityIds.includes(id)) && new Set(entry.instruments).size === entry.instruments.length)
       && (entry.currencies.length > 0 || !!entry.instruments?.length)
       && ['scheduled', 'headline', 'watch'].includes(entry.kind) && ['confirmed', 'reported', 'unverified'].includes(entry.status)
+      && (entry.visibility_scope === undefined || ['scoped', 'global'].includes(entry.visibility_scope))
+      && (entry.risk_status == null || ['ongoing', 'resolved'].includes(entry.risk_status))
+      && (entry.risk_checked_utc == null || at(entry.risk_checked_utc))
+      && (entry.risk_status == null || typeof entry.risk_checked_utc === 'string')
       && [entry.event_at, entry.published_utc].every(at) && typeof entry.saved_utc === 'string' && at(entry.saved_utc)
       && (entry.chart_icon_request_id == null || typeof entry.chart_icon_request_id === 'string' && /^[0-9a-f]{32}$/.test(entry.chart_icon_request_id))
       && (entry.calendar_reference == null || /^Pepperstone-[A-Za-z0-9._-]+$/.test(entry.calendar_reference.source_id)

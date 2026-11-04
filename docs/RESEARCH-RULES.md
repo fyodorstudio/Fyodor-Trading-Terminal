@@ -43,6 +43,12 @@ failure is relevant; do not load raw archives on every invocation.
   executable profit. Later facts cannot repair an earlier call. Full failure
   records remain archived; automatic scoring and outcome capture are retired.
 
-No trades, broker/account changes, automatic AI monitoring, reminder changes or
-current technical scans are part of a news refresh. A separately requested
+Each Assess Trade Now invocation also follows [global risk discovery](GLOBAL-RISK-WORKFLOW.md),
+including sourced global custom events and new confirmed high-impact reminders.
+Preserve explicit off choices, global pause, lead time and user chart hides.
+Currency News save operations themselves never change markers or alarms.
+No trades, broker/account changes, automatic AI monitoring or current technical
+scans are part of a fundamental refresh. Do not ask for chart levels when a user
+mentions JPYX/USDX, resistance or reversal; review fundamental support/opposition
+and catalysts unless technical analysis is explicitly requested. A separately requested
 historical investigation may use the existing bounded candle tools.

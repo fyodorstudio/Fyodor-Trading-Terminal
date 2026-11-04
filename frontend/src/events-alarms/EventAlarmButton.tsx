@@ -6,9 +6,13 @@ import { alarmTime } from './alarm-time'
 export const EventAlarmButton = memo(function EventAlarmButton({ alarms, group, sourceId, now }: {
   alarms: ReturnType<typeof useAlarms>; group: AlertDayGroup; sourceId: string; now: number
 }) {
-  const events = useMemo(() => alarms.data?.events.filter(event => event.eligible && event.at === group.at && (
-    event.source === 'calendar' && event.broker === sourceId && event.value_ids?.some(id => group.valueIds.includes(id))
-    || event.source === 'external' && group.external.some(item => item.key === event.reference))) ?? [], [alarms.data, group, sourceId])
+  const events = useMemo(() => {
+    const matches = alarms.data?.events.filter(event => event.eligible && event.at === group.at && (
+      event.source === 'calendar' && event.broker === sourceId && event.value_ids?.some(id => group.valueIds.includes(id))
+      || event.source === 'external' && group.external.some(item => item.key === event.reference))) ?? []
+    const calendar = matches.filter(event => event.source === 'calendar')
+    return calendar.length ? calendar : matches
+  }, [alarms.data, group, sourceId])
   const on = events.length > 0 && events.every(event => event.selected ?? event.armed)
   const unavailable = !alarms.data || !!alarms.error || !!alarms.data.schedule_error || alarms.data.schedule_schema !== 2
   const future = group.at !== null && group.at > now

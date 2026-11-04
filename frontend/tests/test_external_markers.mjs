@@ -38,7 +38,8 @@ globalThis.fetch = async url => {
 const { createRoot } = await import('react-dom/client')
 const container = document.createElement('div'); document.body.append(container); const root = createRoot(container)
 try {
-  const { buildExternalMarkers, projectExternalMarkers } = await server.ssrLoadModule('./src/external-sources/external-markers.ts')
+  const { buildExternalMarkers, projectExternalMarkers, externalMatchesChart } = await server.ssrLoadModule('./src/external-sources/external-markers.ts')
+  const { majorForexPairs } = await server.ssrLoadModule('./src/economic-calendar/forex/pairs.ts')
   const { ExternalChartMarkers } = await server.ssrLoadModule('./src/external-sources/ExternalChartMarkers.tsx')
   const { DisplayClockContext } = await server.ssrLoadModule('./src/appearance/time-display/useDisplayClock.ts')
   const { setExternalIconVisibility, externalIconEnabled } = await server.ssrLoadModule('./src/external-sources/external-icon-visibility.ts')
@@ -109,7 +110,29 @@ try {
     assert.equal(container.querySelector('.external-chart-star'), null, `${symbol}: unrelated USD context is excluded`)
   }
   const oldItems = items
+  const globalRisk = item('us-election', null, { event_date: '2026-10-14', kind: 'headline', visibility_scope: 'global',
+    risk_status: 'ongoing', risk_checked_utc: '2026-10-14T10:00:00Z' })
+  assert.equal(majorForexPairs.length, 28)
+  for (const pair of majorForexPairs) assert.equal(externalMatchesChart(globalRisk, pair), true, `${pair}: global display preserves the USD tag`)
+  assert.equal(externalMatchesChart(globalRisk, 'BTCUSD'), false, 'Global display does not invent unsupported instrument mappings')
+  items = [globalRisk]
+  await React.act(async () => root.render(null)); await render(1, 'JPYX', true)
+  assert.ok(container.querySelector('.external-chart-star'), 'A US global event appears on the assembled JPYX chart')
+  const ongoing = () => container.querySelector('[aria-label="Current ongoing risks"]')
+  assert.ok(ongoing()); assert.match(ongoing().textContent, /Assessed/)
+  await React.act(async () => ongoing().querySelector('button').click()); assert.equal(selected, 'us-election')
+  await React.act(async () => setExternalIconVisibility('us-election', false)); await render(1, 'JPYX', true)
+  assert.equal(ongoing(), null); assert.equal(container.querySelector('.external-chart-star'), null)
+  await React.act(async () => setExternalIconVisibility('us-election', true)); await render(1, 'GBPJPY', true)
+  assert.ok(ongoing(), 'Ongoing notices follow a global event across pairs')
+  items = [{ ...globalRisk, id: 'c'.repeat(32), risk_status: 'resolved' }]
+  await React.act(async () => root.render(null)); await render(1, 'JPYX', true)
+  assert.equal(ongoing(), null); assert.ok(container.querySelector('.external-chart-star'), 'Resolution preserves the dated star')
+  items = [{ ...globalRisk, id: 'd'.repeat(32), event_date: null, kind: 'watch' }]
+  await React.act(async () => root.render(null)); await render(1, 'JPYX', true)
+  assert.ok(ongoing()); assert.equal(container.querySelector('.external-chart-star'), null, 'An untimed risk never acquires a chart time')
   items = [item('oil-supply', '2026-10-14T15:00:00Z', { currencies: [], instruments: ['BRENT'], chart_icon_request_id: 'b'.repeat(32) })]
+  await React.act(async () => root.render(null))
   await render(1, 'SpotBrent', true)
   assert.ok(container.querySelector('.external-chart-star'), 'Instrument-only source appears on its Brent chart')
   await render(1, 'EURUSD')

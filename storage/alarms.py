@@ -43,7 +43,7 @@ def read_events(database, highlights=HIGHLIGHTS_PATH, external=DIRECTORY):
             at = datetime.fromisoformat(item['event_at'].replace('Z', '+00:00')).timestamp() * 1000 if item['event_at'] else None
             result.append({'key': f"external:{item['key']}", 'reference': item['key'], 'source': 'external', 'broker': None,
                 'title': item['title'], 'currencies': item['currencies'], **({'instruments': item['instruments']} if item.get('instruments') else {}), 'at': at, 'date': item['event_date'],
-                'eligible': at is not None and item['kind'] == 'scheduled' and item['status'] == 'confirmed',
+                'eligible': item.get('risk_status') != 'resolved' and at is not None and item['kind'] == 'scheduled' and item['status'] == 'confirmed',
                 'note': item['time_note']})
         if page['next_offset'] is None:
             break
@@ -57,7 +57,7 @@ def prompt_for(event, stage):
     identity = (f"Calendar alarm {event['reference']}, broker {event['broker']}, value IDs {', '.join(event.get('value_ids', []))}" if event['source'] == 'calendar'
         else f"Highlight {event['reference']}, broker {event['broker']}" if event['source'] == 'highlight' else f"External Source {event['reference']}")
     focus = ', '.join(event.get('instruments', []))
-    return f"${skill} {event['title']} — {at} (Asia/Jakarta). {identity}. " + (f'Focus on {focus} and its supported directional mechanism.' if focus else f"Focus on {', '.join(event['currencies'])} and the best-supported pair.")
+    return f"${skill} {event['title']} — {at} (Asia/Jakarta). {identity}. " + (f'Focus on {focus} and its supported directional mechanism.' if focus else f"Review {', '.join(event['currencies'])} fundamentals and cross-currency transmission. Reuse saved preparation and any user-specified pair context. Leave technical levels to the user; do not automatically select a pair.")
 
 
 class AlarmEngine:
@@ -189,7 +189,8 @@ class AlarmEngine:
                 'audio': dict(self.state['audio']), 'custom_sound_name': self.state.get('custom_audio', {}).get('name'),
                 'native_available': os.name == 'nt',
                 'schedule_schema': 2, 'migration': self.state.get('migration'),
-                'events': [{**e, 'selected': self.selected(e), 'armed': self.enabled(e), 'prompt': prompt_for(e, 'release')} for e in self.events],
+                'events': [{**e, 'selected': self.selected(e), 'explicit_choice': self.state['overrides'].get(e['key']),
+                    'armed': self.enabled(e), 'prompt': prompt_for(e, 'release')} for e in self.events],
                 'jobs': [dict(job) for job in jobs]}
 
     def mutate(self, request):
@@ -233,16 +234,22 @@ class AlarmEngine:
                 # The service adds the validated event before reconciliation.
                 self.events = [e for e in self.events if e['key'] != key] + [request['event']]
                 self.state['overrides'][key] = subscription['enabled']
-            elif action == 'toggle-many':
+            elif action in ('toggle-many', 'curate'):
                 keys = request.get('keys')
-                if not isinstance(keys, list) or not 1 <= len(keys) <= 512 or type(request.get('enabled')) is not bool:
+                if not isinstance(keys, list) or not 1 <= len(keys) <= 512 or (action == 'toggle-many' and type(request.get('enabled')) is not bool):
                     raise ValueError('Invalid reminder selection')
                 for key in keys:
                     event = next((e for e in self.events if e['key'] == key), None)
                     if not event or not event['eligible']:
                         raise ValueError('This event has no verified, alarm-eligible time')
+                    if action == 'curate' and event['at'] <= self.clock() * 1000:
+                        raise ValueError('Elapsed releases cannot receive a new reminder')
                 for key in keys:
-                    self.state['overrides'][key] = request['enabled']
+                    if action == 'curate':
+                        # Agent curation can select new risks, never undo an off choice.
+                        self.state['overrides'].setdefault(key, True)
+                    else:
+                        self.state['overrides'][key] = request['enabled']
             elif action == 'toggle':
                 event = next((e for e in self.events if e['key'] == request.get('key')), None)
                 if not event or not event['eligible'] or type(request.get('enabled')) is not bool:

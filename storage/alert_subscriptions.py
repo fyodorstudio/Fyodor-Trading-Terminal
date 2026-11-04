@@ -90,9 +90,17 @@ def load_selected_schedule(database, engine):
             page = external_snapshot(DIRECTORY, visibility='all', limit=500, offset=offset)
             for item in page['items']:
                 at = datetime.fromisoformat(item['event_at'].replace('Z', '+00:00')).timestamp() * 1000 if item['event_at'] else None
+                reference = item.get('calendar_reference')
+                linked = [event for event in result if event['source'] == 'calendar' and event['eligible']
+                    and reference and reference['source_id'] == event['broker'] and event['at'] == at
+                    and set(reference['value_ids']).issubset(event['value_ids'])
+                    and set(event['currencies']).issubset(item['currencies'])]
+                if item['kind'] == 'scheduled' and item['status'] == 'confirmed' and at is not None and len(linked) == 1:
+                    # The global context retains its own source/history, not a second job.
+                    continue
                 result.append({'key': f"external:{item['key']}", 'reference': item['key'], 'source': 'external', 'broker': None,
                     'title': item['title'], 'currencies': item['currencies'], **({'instruments': item['instruments']} if item.get('instruments') else {}), 'at': at, 'date': item['event_date'],
-                    'eligible': not item['archived'] and at is not None and item['kind'] == 'scheduled' and item['status'] == 'confirmed',
+                    'eligible': not item['archived'] and item.get('risk_status') != 'resolved' and at is not None and item['kind'] == 'scheduled' and item['status'] == 'confirmed',
                     'default_enabled': False, 'note': item['time_note']})
             if page['next_offset'] is None:
                 break

@@ -33,6 +33,7 @@ def currencies(scope):
 
 def required_sources(scope):
     required = [(family, 'ALL') for family in LOCAL_FAMILIES]
+    required.extend((family, 'GLOBAL') for family in ('risk-schedule', 'ongoing-risk-news'))
     for currency in currencies(scope):
         required.extend((family, currency) for family in ('news', 'policy', 'statistics'))
         if currency == 'USD':
@@ -90,9 +91,9 @@ def capture(root, output, scope, broker, cutoff=None, days=7, read_only=False, r
     queries = {
         'highlights': (['highlights', '--broker', broker, '--visibility', 'all'], 500),
         'limitations': (['limitations', '--broker', broker], 100),
-        'external': (['external', '--scope', scope.lower() if scope.upper() == 'ALL' else scope.upper(), '--visibility', 'all'], 500),
+        'external': (['external', '--scope', 'all', '--visibility', 'all'], 500),
         # Include the boundary day so a rolling seven-day horizon does not lose overnight stages.
-        'upcoming': (['upcoming', '--broker', broker, '--scope', 'USD' if scope.upper() in INSTRUMENTS else scope.lower() if scope.upper() == 'ALL' else scope.upper(),
+        'upcoming': (['upcoming', '--broker', broker, '--scope', 'all',
                       '--as-of', cutoff, '--days', str(min(90, days + 1))], 500),
     }
     sources, gaps = [], []
@@ -111,7 +112,7 @@ def capture(root, output, scope, broker, cutoff=None, days=7, read_only=False, r
         source['checked_utc'] = datetime.now(timezone.utc).isoformat()
         sources.append(source)
     for family, currency in required_sources(scope):
-        if currency != 'ALL':
+        if family not in LOCAL_FAMILIES:
             sources.append(dict(id=f'{currency.lower()}-{family}', family=family, currency=currency,
                 status='pending', checked_utc=None, url='', evidence_path='', note=''))
     receipt = dict(scope=scope.upper(), broker=broker, as_of_utc=cutoff, started_utc=now,
@@ -222,7 +223,8 @@ def validate_receipt(receipt, directory, external_lookup, highlight_lookup, now=
         affected = set(event.get('currencies', []))
         instruments = set(event.get('instruments', []))
         commodity_match = receipt['scope'] in instruments and receipt['scope'] in INSTRUMENTS
-        if not affected.issubset(CURRENCIES) or not instruments.issubset(INSTRUMENTS) or not (affected.intersection(scope) or commodity_match):
+        global_risk = event.get('visibility_scope') == 'global' and bool(event.get('cross_currency_note'))
+        if not affected.issubset(CURRENCIES) or not instruments.issubset(INSTRUMENTS) or not (affected.intersection(scope) or commodity_match or global_risk and (affected or instruments)):
             errors.append(f'{name}: candidate does not match the requested currency scope')
         links = event.get('source_ids', [])
         if not links or any(x not in indexed or not (indexed[x].get('status') == 'checked'
@@ -273,9 +275,11 @@ def validate_receipt(receipt, directory, external_lookup, highlight_lookup, now=
                 errors.append(f'{name}: active scoped external pin was not found')
                 continue
             actual_at = instant(stored['event_at']) if stored.get('event_at') else None
+            if global_risk and stored.get('visibility_scope') != 'global':
+                errors.append(f'{name}: global risk visibility was not persisted')
             if actual_at != at or stored.get('event_date') != event.get('event_date'):
                 errors.append(f'{name}: saved external stage/time differs from the discovery')
-            if (at or event.get('event_date')) and not stored.get('chart_icon_request_id'):
+            if status in ('saved', 'restored') and (at or event.get('event_date') or stored.get('risk_status') == 'ongoing') and not stored.get('chart_icon_request_id'):
                 errors.append(f'{name}: persisted Show icon on chart request is missing')
         elif pin.get('source') == 'highlight':
             stored = highlight_lookup(pin.get('reference'))

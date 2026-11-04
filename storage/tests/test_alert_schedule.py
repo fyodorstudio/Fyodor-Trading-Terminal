@@ -18,6 +18,27 @@ from test_calendar_storage import event
 
 
 class AlertScheduleTests(TestCase):
+    def test_linked_global_context_reuses_broker_reminder_and_resolved_risks_are_ineligible(self):
+        engine = AlarmEngine(Path(self.temp.name) / 'linked.json', lambda jobs: None, lambda: self.now)
+        key, subscription = calendar_subscription(self.store, 'Pepperstone-Demo', ['1', '2'], 'CPI', True)
+        engine.state.update(selection_version=2, calendar_subscriptions={key: subscription})
+        item = dict(key='global-cpi-context', title='Global CPI risk', currencies=['USD'], visibility_scope='global',
+            event_at=datetime.fromtimestamp(self.at / 1000, timezone.utc).isoformat(), event_date=None,
+            archived=False, kind='scheduled', status='confirmed', time_note='Verified schedule',
+            calendar_reference={'source_id': 'Pepperstone-Demo', 'value_ids': ['1', '2']})
+        with patch('storage.external_sources.external_snapshot', return_value={'items': [item], 'next_offset': None}):
+            schedule = load_selected_schedule(self.database, engine)
+        self.assertEqual([e['key'] for e in schedule], [key])
+        engine.reconcile(schedule)
+        self.assertEqual(sum(j['status'] == 'pending' for j in engine.snapshot()['jobs']), 1)
+        # A bad reference cannot swallow a genuinely separate external stage.
+        item['calendar_reference']['value_ids'] = ['999']
+        item['risk_status'] = 'resolved'
+        with patch('storage.external_sources.external_snapshot', return_value={'items': [item], 'next_offset': None}):
+            schedule = load_selected_schedule(self.database, engine)
+        self.assertEqual(len(schedule), 2)
+        self.assertFalse(schedule[-1]['eligible'])
+
     def setUp(self):
         self.temp = TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)

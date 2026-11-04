@@ -3,6 +3,8 @@
 For live on-demand Currency News read [RESEARCH-RULES.md](RESEARCH-RULES.md).
 For writes/read-back use [CURRENCY-NEWS.md](CURRENCY-NEWS.md). Routine refreshes
 need no calendar export, raw history, technical scan or outcome evaluation.
+They include the bounded [global risk workflow](GLOBAL-RISK-WORKFLOW.md), with
+cross-currency schedule discovery, custom stars/notices and high-impact reminders.
 
 ## Optional research modes
 

@@ -49,6 +49,9 @@ class ExternalRequest(Payload):
     sources: list[JournalSource] = Field(min_length=1, max_length=30)
     expected_version: str | None = Field(default=None, pattern=r'^[0-9a-f]{32}$')
     calendar_reference: CalendarReference | None = None
+    visibility_scope: Literal['scoped', 'global'] = 'scoped'
+    risk_status: Literal['ongoing', 'resolved'] | None = None
+    risk_checked_utc: datetime | None = None
     show_on_chart: bool = Field(default=False, exclude=True)
 
     @model_validator(mode='after')
@@ -61,7 +64,7 @@ class ExternalRequest(Payload):
             raise ValueError('Title, facts and timing note cannot be blank')
         if not any(source.kind == 'web' for source in self.sources):
             raise ValueError('External sources need direct web evidence')
-        for field in ('event_at', 'published_utc'):
+        for field in ('event_at', 'published_utc', 'risk_checked_utc'):
             value = getattr(self, field)
             if value is not None:
                 if value.tzinfo is None or value.utcoffset() is None:
@@ -69,6 +72,10 @@ class ExternalRequest(Payload):
                 setattr(self, field, value.astimezone(timezone.utc))
         if self.published_utc and self.published_utc > datetime.now(timezone.utc):
             raise ValueError('Publication cannot be in the future; use event_at for schedules')
+        if self.risk_status and not self.risk_checked_utc:
+            raise ValueError('An ongoing/resolved risk needs its actual assessment clock')
+        if self.risk_checked_utc and self.risk_checked_utc > datetime.now(timezone.utc):
+            raise ValueError('Risk assessment cannot be in the future')
         if self.event_at and self.event_date:
             raise ValueError('Use an exact event time or a source date, not both')
         if self.kind == 'watch' and (self.event_at or self.event_date):
@@ -94,6 +101,13 @@ class ChartRequest(Payload):
     request_id: str = Field(pattern=r'^[0-9a-f]{32}$')
 
 
+class RiskMetadata(Payload):
+    version_id: str = Field(pattern=r'^[0-9a-f]{32}$')
+    visibility_scope: Literal['scoped', 'global'] = 'scoped'
+    risk_status: Literal['ongoing', 'resolved'] | None = None
+    risk_checked_utc: datetime | None = None
+
+
 def _versions(directory):
     files = list(Path(directory).glob('*.json'))
     if len(files) > 10000:
@@ -107,6 +121,12 @@ def _versions(directory):
             if request.version_id != path.stem or raw.get('chart_icon_request_id') not in (None, request.request_id):
                 raise ValueError('External chart request identity mismatch; preserve the files')
             raw['chart_icon_request_id'] = request.request_id
+        risk_metadata = Path(directory) / 'risk-metadata' / path.name
+        if risk_metadata.exists():
+            risk = RiskMetadata.model_validate_json(risk_metadata.read_text(encoding='utf-8'))
+            if risk.version_id != path.stem:
+                raise ValueError('External risk metadata identity mismatch; preserve the files')
+            raw.update(risk.model_dump(mode='json', exclude={'version_id'}))
         item = ExternalVersion.model_validate(raw).model_dump(mode='json')
         if path.stem != item['id']:
             raise ValueError('External source identity mismatch; preserve the files')
@@ -142,38 +162,44 @@ def _write(directory, item):
     if target.exists():
         raise ValueError('Never overwrite an external source version')
     temporary = None
-    metadata_target = None
-    metadata_temporary = None
-    metadata_written = False
+    metadata_targets, metadata_temporaries = [], []
     try:
         # Old storage/alarm processes reject unknown fields. Keep new requests in
         # immutable sidecars ignored by their root-level *.json reader.
+        sidecars = []
         if item.chart_icon_request_id:
-            metadata_directory = directory / 'chart-requests'
+            sidecars.append(('chart-requests', ChartRequest(version_id=item.id, request_id=item.chart_icon_request_id)))
+        if item.visibility_scope != 'scoped' or item.risk_status or item.risk_checked_utc:
+            sidecars.append(('risk-metadata', RiskMetadata(version_id=item.id, visibility_scope=item.visibility_scope,
+                risk_status=item.risk_status, risk_checked_utc=item.risk_checked_utc)))
+        for folder, metadata in sidecars:
+            metadata_directory = directory / folder
             metadata_directory.mkdir(exist_ok=True)
             metadata_target = metadata_directory / target.name
             if metadata_target.exists():
                 raise ValueError('Never overwrite an external chart request')
             with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', dir=metadata_directory, suffix='.tmp', delete=False) as output:
                 metadata_temporary = output.name
-                output.write(ChartRequest(version_id=item.id, request_id=item.chart_icon_request_id).model_dump_json())
+                metadata_temporaries.append(metadata_temporary)
+                output.write(metadata.model_dump_json())
                 output.flush()
                 os.fsync(output.fileno())
             os.replace(metadata_temporary, metadata_target)
-            metadata_written = True
+            metadata_targets.append(metadata_target)
         with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', dir=directory, suffix='.tmp', delete=False) as output:
             temporary = output.name
-            output.write(item.model_dump_json(indent=2, exclude={'chart_icon_request_id'}))
+            output.write(item.model_dump_json(indent=2, exclude={'chart_icon_request_id', 'visibility_scope', 'risk_status', 'risk_checked_utc'}))
             output.flush()
             os.fsync(output.fileno())
         os.replace(temporary, target)
     finally:
         if temporary:
             Path(temporary).unlink(missing_ok=True)
-        if metadata_temporary:
+        for metadata_temporary in metadata_temporaries:
             Path(metadata_temporary).unlink(missing_ok=True)
-        if metadata_written and not target.exists():
-            metadata_target.unlink(missing_ok=True)
+        if not target.exists():
+            for metadata_target in metadata_targets:
+                metadata_target.unlink(missing_ok=True)
     return {'key': item.key, 'id': item.id, 'path': str(target), 'saved_utc': item.saved_utc.isoformat()}
 
 
@@ -182,7 +208,7 @@ def append_external(request, directory=DIRECTORY):
         previous = next((item for item in reversed(_versions(directory)) if item['key'] == request.key), None)
         if (previous and request.expected_version != previous['id']) or (not previous and request.expected_version):
             raise ValueError('External source changed; read its latest version before appending a correction')
-        if request.show_on_chart and (request.kind == 'watch' or not (request.event_at or request.event_date)):
+        if request.show_on_chart and not (request.event_at or request.event_date or request.risk_status == 'ongoing'):
             raise ValueError('A chart icon needs a verified date or time')
         identity = uuid4().hex
         item = ExternalVersion(**request.model_dump(), id=identity, saved_utc=datetime.now(timezone.utc),
@@ -202,7 +228,7 @@ def request_external_chart_icon(key, expected_version, directory=DIRECTORY):
             raise ValueError('External source changed; read its latest version before requesting an icon')
         if previous['archived']:
             raise ValueError('Restore the record before requesting a chart icon')
-        if previous['kind'] == 'watch' or not (previous['event_at'] or previous['event_date']):
+        if not (previous['event_at'] or previous['event_date'] or previous['risk_status'] == 'ongoing'):
             raise ValueError('A chart icon needs a verified date or time')
         identity = uuid4().hex
         return _write(directory, ExternalVersion(**{**previous, 'id': identity,
@@ -253,9 +279,9 @@ def external_snapshot(directory=DIRECTORY, after_revision=None, visibility='acti
         for item in latest.values():
             if visibility != 'all' and item['archived'] != (visibility == 'archived'):
                 continue
-            if currencies and not set(currencies).intersection(item['currencies']):
+            if item['visibility_scope'] != 'global' and currencies and not set(currencies).intersection(item['currencies']):
                 continue
-            if commodity and commodity not in item['instruments'] and 'USD' not in item['currencies']:
+            if item['visibility_scope'] != 'global' and commodity and commodity not in item['instruments'] and 'USD' not in item['currencies']:
                 continue
             if terms and not any(term in (item['key'] + ' ' + item['title'] + ' ' + item['facts']).casefold() for term in terms):
                 continue

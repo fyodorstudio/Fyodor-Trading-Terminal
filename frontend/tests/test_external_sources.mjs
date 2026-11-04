@@ -67,6 +67,9 @@ try {
   }
   const render = (props = {}) => React.act(async () => root.render(React.createElement(Probe, props)))
   assert.equal(validExternalItems(items), true)
+  assert.equal(validExternalItems([sample('global', ['USD'], { visibility_scope: 'global', risk_status: 'ongoing', risk_checked_utc: '2026-10-15T02:00:00Z' })]), true)
+  assert.equal(validExternalItems([sample('bad-risk', ['USD'], { risk_status: 'ongoing' })]), false, 'Ongoing notices need an assessment clock')
+  assert.equal(validExternalItems([sample('bad-scope', ['USD'], { visibility_scope: 'everywhere' })]), false)
   assert.equal(validExternalItems([sample('unsafe', ['USD'], { sources: [{ kind: 'web', label: 'Unsafe', locator: 'javascript:alert(1)', note: '' }] })]), false)
   await render()
   assert.equal(records.items.length, 3)

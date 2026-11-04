@@ -16,8 +16,8 @@ from test_analyst_tools import analyst
 class ExternalRuntimeTests(TestCase):
     def test_compatible_empty_runtime_same_directory_and_old_unreachable_runtime(self):
         directory = Path('isolated-external').resolve()
-        payload = dict(external_source_schema=3, chart_icon_requests=True, commodity_scopes=True, directory=str(directory))
-        worker = dict(application='fyodor-alarms', external_source_schema=3, external_source_directory=str(directory))
+        payload = dict(external_source_schema=4, chart_icon_requests=True, commodity_scopes=True, global_risks=True, directory=str(directory))
+        worker = dict(application='fyodor-alarms', external_source_schema=4, external_source_directory=str(directory))
         opened = lambda url, **kwargs: BytesIO(json.dumps(worker if url.endswith('/alarms') else payload).encode())
         self.assertEqual(preflight(directory, opener=opened)['status'], 'compatible')
         payload['directory'] = str(directory.parent)

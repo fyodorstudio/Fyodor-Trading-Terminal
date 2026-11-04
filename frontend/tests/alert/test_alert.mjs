@@ -69,6 +69,18 @@ try {
     row('840030002', { name: 'Later producer prices', value_id: 'later', release_at: at + 1000 })]
   const outside = [external('A UK budget', 'GBP'), external('B external USD release', 'USD'),
     external('Unknown hour one', 'USD', null), external('Unknown hour two', 'USD', null)]
+  const globalRisk = { ...external('Global election', 'USD'), visibility_scope: 'global' }
+  assert.equal(dayGroups([], [globalRisk], '2026-10-05', 'Pepperstone-Demo', { ...preferences, currency: 'JPY' }).length, 1,
+    'A global US event remains visible under the JPY filter without changing its currency tags')
+  assert.equal(dayGroups([], [globalRisk], '2026-10-06', 'Pepperstone-Demo', preferences).length, 0,
+    'Global display never moves a dated record into another date table')
+  const globalContext = { ...globalRisk, calendar_reference: { source_id: 'Pepperstone-Demo', value_ids: events.map(event => event.value_id) } }
+  const globalGroups = dayGroups(events, [globalContext], '2026-10-05', 'Pepperstone-Demo', { ...preferences, currency: 'JPY' })
+  assert.deepEqual(globalGroups[0].valueIds, events.map(event => event.value_id),
+    'The globally visible context retains its verified broker bell under another currency filter')
+  assert.equal(globalGroups[0].release, undefined, 'Visibility does not manufacture Japanese broker data')
+  assert.equal(dayGroups([], [{ ...globalRisk, risk_status: 'resolved' }], '2026-10-05', 'Pepperstone-Demo', preferences)[0].at, at,
+    'Resolution removes reminder eligibility, not a known publication clock')
   const displayGroups = (data = simultaneous) => dayGroups(data, outside, '2026-10-05', 'Pepperstone-Demo', defaultAlertPreferences())
   const initialGroups = displayGroups()
   const mutations = []

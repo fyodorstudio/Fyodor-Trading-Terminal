@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { priceAlertSounds } from '../price-alerts/price-alert-tones'
 
 export type AlarmEvent = { key: string; reference: string; source: 'highlight' | 'external' | 'calendar'; broker: string | null; title: string;
-  value_ids?: string[]; selected?: boolean;
+  value_ids?: string[]; selected?: boolean; explicit_choice?: boolean | null;
   currencies: string[]; at: number | null; date: string | null; eligible: boolean; armed: boolean; note: string; prompt: string }
 export type AlarmJob = { id: string; event_key: string; title: string; at: number; due: number; stage: string; prompt: string;
   status: string; error: string | null; snooze_until?: number }

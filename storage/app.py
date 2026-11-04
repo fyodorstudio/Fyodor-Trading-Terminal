@@ -232,7 +232,7 @@ def create_app(directory=None, run_collector=True, highlights_path=HIGHLIGHTS_PA
     @app.get('/api/v1/external-capabilities')
     def external_capabilities():
         # Independent of collection contents: an empty collection must still be probeable.
-        return {'external_source_schema': 3, 'chart_icon_requests': True, 'calendar_references': True, 'commodity_scopes': True,
+        return {'external_source_schema': 4, 'chart_icon_requests': True, 'calendar_references': True, 'commodity_scopes': True, 'global_risks': True,
                 'directory': str(Path(external_directory).resolve())}
 
     @app.get('/api/v1/external-sources/{key}')

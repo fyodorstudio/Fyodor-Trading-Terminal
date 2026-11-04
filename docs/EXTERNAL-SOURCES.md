@@ -17,10 +17,21 @@ collection, search, date-sort or archive controls. Refresh both currency stories
 or the commodity mechanism before treating dated interpretation as current.
 The collection supplies no live news ingestion or background monitoring.
 
-Active dated records appear as gold stars on matching currency pairs when chart
+Legacy active dated records appear as gold stars on matching currency pairs when chart
 visibility is enabled. Exact UTC times use the broker's verified chart-clock/DST
 profile; source dates stay date-only and untimed watches have no marker. Clicking
 a star opens its Alert details. Projection does not insert price candles.
+
+New curated risk events use `visibility_scope: "global"`, so every supported FX,
+currency-index and commodity chart receives the record regardless of currency
+tags. Scope queries and Alert currency filters include global records; date
+filters still use the event's original date. Legacy records default to `scoped`.
+`risk_status: "ongoing"` with actual `risk_checked_utc` supplies a current notice
+on charts and in Alert even after the dated milestone. It never supplies a
+countdown or moves an old event into a newer date table. Untimed watches may
+request an ongoing notice without inventing an event time. `resolved` removes
+the current notice and alarm eligibility while preserving dated stars/history.
+Resolving external context does not cancel an independent broker reminder.
 
 **Show icon on chart** is a browser preference per stable record key, shared across
 matching pairs and surviving reloads. Hiding an icon preserves facts and history.
@@ -33,7 +44,8 @@ arm reminders. Date-only and unverified times never supply an alarm hour.
 Assess Trade Now now owns upcoming-alert review and has standing authorization to
 pin verified material discoveries and request chart visibility, unless the user
 explicitly asks for read-only/no-save work. Official publisher schedules/results
-and fresh reporting take priority over incomplete broker coverage. The required
+and fresh reporting take priority over incomplete broker coverage. The [global risk workflow](GLOBAL-RISK-WORKFLOW.md) also selects new confirmed
+high-impact reminders, preserving off choices, pause and lead time. The required
 discovery receipt records source checks, actual retrieval clocks and pin read-back;
 it does not guarantee exhaustive news coverage or create a live monitor.
 
@@ -42,12 +54,16 @@ dated record, persists a new `chart_icon_request_id`. It supersedes a browser hi
 from before that request. The user can hide the icon again; ordinary research
 updates retain that later choice until another explicit show request. Old records
 and boolean browser preferences remain readable without migration. Untimed watches
-cannot request a marker; restore an archived record before requesting visibility.
+can request an ongoing notice, never a timed star. Restore an archived record
+before requesting visibility. Ordinary skill updates preserve later user hides.
 Read back the active scope/time/request ID and, when available, the live storage
 route before claiming success. Visual placement remains a manual UI check.
 Chart requests use immutable `chart-requests/<version-id>.json` sidecars so older
 strict storage/alarm readers keep reading the original record schema. Existing
-inline requests remain readable; no history migration is required.
+inline requests remain readable; no history migration is required. Global visibility
+and ongoing-risk fields similarly live in `risk-metadata/<version-id>.json`
+sidecars. They participate in version history/revisions while old root JSON
+remains readable by strict legacy consumers.
 
 Before analyst writes, `external preflight` probes the running storage capability
 and verifies the shared directory. It also checks the active alarm worker's
@@ -58,7 +74,8 @@ mutation enforces these checks.
 An older service, directory mismatch, timeout or malformed reply blocks the write
 before files change. A refused connection permits offline persistence, with live
 delivery unverified. Load the updated backend/UI before using chart requests;
-research does not authorize a service restart. Internal Python writers are for
+repository standing permission covers restarting this checkout for verification.
+Internal Python writers are for
 the storage service and isolated tests, not a preflight bypass in analyst work.
 
 Commodity records may use `instruments: ["BRENT", "WTI"]` or `["GOLD"]` with
@@ -68,7 +85,7 @@ WTI or GOLD; commodity scope includes USD macro context without implying USD bia
 All/search views retain instrument-only records; currency filters stay currency
 specific. Chart aliases are shared in config/research-instruments.json and route
 commodity records to their matching charts; no commodity is added to the forex
-catalog. Schema-3 runtime compatibility is required before new CLI writes.
+catalog. Schema-4 runtime compatibility is required before new CLI writes.
 
 ## Agent commands
 
@@ -107,7 +124,9 @@ Archive/restore also require that id. A stale write fails without replacing
 anything. Use read to resolve conflicts; retain prior evidence and user notes.
 Save only within the user's requested research/lifecycle scope. Do not automatically
 turn every limitation, potential risk or search result into a confirmed event.
-Currency News refreshes do not pin events or change chart markers. Explicit
+Assess Trade Now includes [global risk discovery](GLOBAL-RISK-WORKFLOW.md) and
+scoped event/marker/alarm curation. Currency News save operations themselves do
+not pin events or change markers. Explicit
 external-source, journal, lifecycle and impact-rating requests retain their own
 scopes and persistence rules.
 

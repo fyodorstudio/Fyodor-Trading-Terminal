@@ -35,17 +35,22 @@ export function dayGroups(events: StoredCalendarEvent[], outside: ExternalSource
     return [{ key: `calendar:${original.id}`, title: release.label, currency: release.currency,
       at: release.timingUncertain ? null : release.releaseAt, release, valueIds: original.events.map(event => event.value_id), external: [] }]
   })
+  const byValueId = new Map(events.map(event => [event.value_id, event]))
   for (const item of outside) {
-    if (externalDate(item) !== selectedDate || preferences.currency !== 'all' && !item.currencies.includes(preferences.currency)) continue
+    if (externalDate(item) !== selectedDate || item.visibility_scope !== 'global' && preferences.currency !== 'all' && !item.currencies.includes(preferences.currency)) continue
     const at = item.kind === 'scheduled' ? item.status === 'confirmed' && item.event_at ? Date.parse(item.event_at) : null
       : item.event_at || item.published_utc ? Date.parse(item.event_at ?? item.published_utc!) : null
     const reference = item.calendar_reference
+    const linkedRows = reference?.source_id === sourceId ? reference.value_ids.map(id => byValueId.get(id)) : []
+    const verifiedLink = item.kind === 'scheduled' && item.status === 'confirmed' && item.risk_status !== 'resolved' && at !== null
+      && linkedRows.length > 0 && linkedRows.every(row => row && row.release_at === at && row.time_mode === 0
+        && row.availability === 'observed' && item.currencies.includes(row.currency))
     // Only explicit exact-ID links may join sources. Same-time or similar text is insufficient.
     const matches = item.kind === 'scheduled' && item.status === 'confirmed' && reference?.source_id === sourceId && at !== null ? groups.filter(group => group.at === at
       && item.currencies.includes(group.currency) && reference.value_ids.every(id => group.valueIds.includes(id))) : []
     if (matches.length === 1) matches[0].external.push(item)
     else groups.push({ key: `external:${item.key}`, title: item.title, currency: [...item.currencies, ...(item.instruments ?? [])].join(' / '), at,
-      valueIds: [], external: [item] })
+      valueIds: verifiedLink ? reference!.value_ids : [], external: [item] })
   }
   return groups.sort((a, b) => (a.at ?? Infinity) - (b.at ?? Infinity) || a.title.localeCompare(b.title) || a.key.localeCompare(b.key))
 }

@@ -12,6 +12,47 @@ from storage.app import create_app
 
 
 class ExternalSourcesTests(TestCase):
+    def test_global_risk_visibility_and_ongoing_state_preserve_tags_clocks_and_legacy_bytes(self):
+        first = append_external(self.request(), self.directory)
+        original = Path(first['path']).read_bytes()
+        updated = append_external(self.request(expected_version=first['id'], visibility_scope='global',
+            risk_status='ongoing', risk_checked_utc='2026-11-04T02:00:00Z', show_on_chart=True), self.directory)
+        for scope in ['JPY', 'EURGBP', 'AUDNZD', 'GOLD', 'BRENT']:
+            record = external_snapshot(self.directory, scope=scope)['items'][0]
+            self.assertEqual(record['currencies'], ['USD'])
+            self.assertEqual(record['event_at'], '2026-08-19T12:33:00Z')
+            self.assertEqual(record['visibility_scope'], 'global')
+        raw = json.loads(Path(updated['path']).read_bytes())
+        self.assertNotIn('visibility_scope', raw)
+        self.assertNotIn('risk_status', raw, 'Strict legacy root-file consumers remain compatible')
+        self.assertEqual(Path(first['path']).read_bytes(), original)
+        self.assertEqual(external_snapshot(self.directory, scope='JPY', from_date='2026-11-04')['items'], [],
+            'Global visibility does not redraft the original event date')
+        watch = append_external(self.request(key='untimed-risk', kind='watch', event_at=None, published_utc=None,
+            visibility_scope='global', risk_status='ongoing', risk_checked_utc='2026-11-04T02:00:00Z', show_on_chart=True), self.directory)
+        record = external_history(watch['key'], self.directory)[-1]
+        self.assertIsNone(record['event_at']); self.assertIsNone(record['event_date'])
+        self.assertEqual(record['chart_icon_request_id'], watch['id'])
+        with self.assertRaises(ValueError): self.request(risk_status='ongoing')
+        with self.assertRaises(ValueError): self.request(risk_status='ongoing', risk_checked_utc='2099-01-01T00:00:00Z')
+        metadata = self.directory / 'risk-metadata' / (updated['id'] + '.json')
+        data = json.loads(metadata.read_text()); data['version_id'] = '0' * 32
+        metadata.write_text(json.dumps(data))
+        with self.assertRaisesRegex(ValueError, 'risk metadata identity mismatch'):
+            external_history(first['key'], self.directory)
+
+    def test_failed_global_sidecar_publication_leaves_no_partial_version(self):
+        original_replace = __import__('os').replace
+        def fail_record(source, target):
+            if Path(target).parent == self.directory: raise OSError('Root publication failed')
+            return original_replace(source, target)
+        with patch('storage.external_sources.os.replace', side_effect=fail_record):
+            with self.assertRaises(OSError):
+                append_external(self.request(visibility_scope='global', show_on_chart=True), self.directory)
+        self.assertEqual(external_snapshot(self.directory)['items'], [])
+        for folder in ['risk-metadata', 'chart-requests']:
+            self.assertEqual(list((self.directory / folder).glob('*')), [])
+
     def setUp(self):
         self.temporary = TemporaryDirectory()
         self.directory = Path(self.temporary.name) / 'external-sources'
@@ -168,7 +209,7 @@ class ExternalSourcesTests(TestCase):
         app = create_app(run_collector=False, external_directory=self.directory)
         endpoint = lambda path: next(route.endpoint for route in app.routes if getattr(route, 'path', '') == path)
         capabilities = endpoint('/api/v1/external-capabilities')()
-        self.assertEqual(capabilities, dict(external_source_schema=3, chart_icon_requests=True, calendar_references=True, commodity_scopes=True, directory=str(self.directory.resolve())))
+        self.assertEqual(capabilities, dict(external_source_schema=4, chart_icon_requests=True, calendar_references=True, commodity_scopes=True, global_risks=True, directory=str(self.directory.resolve())))
         # GET and POST share a path; select explicitly by method.
         save = next(route.endpoint for route in app.routes if getattr(route, 'path', '') == '/api/v1/external-sources' and 'POST' in route.methods)
         saved = save(self.request(show_on_chart=True))

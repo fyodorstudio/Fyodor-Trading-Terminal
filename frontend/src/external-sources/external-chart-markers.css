@@ -1,5 +1,6 @@
 .external-chart-markers { position: absolute; left: 0; right: 70px; height: 30px; pointer-events: none; z-index: 8; }
 .external-chart-markers:has(.external-chart-popup) { z-index: 14; }
+.external-chart-risk-notices { position: absolute; bottom: 38px; left: 8px; max-width: min(440px, 100%); max-height: 160px; overflow-y: auto; pointer-events: auto; }
 .external-chart-cluster { position: absolute; bottom: 0; transform: translateX(-50%); }
 .external-chart-star { display: flex; gap: 3px; align-items: center; pointer-events: auto; padding: 3px 6px; border: 1px solid #b7791f; color: #a16207; background: var(--surface-panel); border-radius: 5px; cursor: pointer; font-size: 19px; line-height: 1; box-shadow: 0 2px 4px #0001; }
 :root[data-theme='dark'] .external-chart-star { color: #fcd34d; }

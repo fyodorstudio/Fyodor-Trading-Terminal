@@ -94,6 +94,22 @@ class DiscoveryAuditTests(TestCase):
         receipt['sources'][0]['evidence_path'] = 'missing.json'
         self.assert_invalid('opened-source evidence is missing', receipt)
 
+    def test_focused_refresh_can_discover_global_us_risk_without_faking_jpy_tags(self):
+        self.receipt['scope'] = 'JPY'
+        for family, currency in required_sources('JPY'):
+            identity = f'{currency.lower()}-{family}'
+            if any(s['id'] == identity for s in self.sources): continue
+            path = self.directory / (identity + '.txt'); path.write_text('Opened JPY evidence')
+            self.sources.append(dict(id=identity, family=family, currency=currency, status='checked',
+                checked_utc='2026-10-21T17:18:00Z', evidence_path=path.name,
+                url='https://www.boj.or.jp/', retrieval_method='fixture'))
+        self.assert_invalid('candidate does not match')
+        self.event.update(visibility_scope='global', cross_currency_note='Foreign yield repricing can affect JPY.')
+        self.stored['visibility_scope'] = 'global'
+        self.assertTrue(self.validate()['valid'])
+        self.assertEqual(self.stored['currencies'], ['USD'])
+        self.assert_invalid('global risk visibility', stored={**self.stored, 'visibility_scope': 'scoped'})
+
     def test_before_after_information_sets_and_discovery_order(self):
         self.event.update(available_utc='2026-10-21T18:04:00Z', used_for_prompt_verdict=True)
         self.assert_invalid('leaked into prompt-time verdict')
@@ -177,7 +193,7 @@ class DiscoveryAuditTests(TestCase):
         output = self.directory / 'capture'
         result = capture(self.directory, output, 'EURUSD', 'fixture-broker', self.receipt['as_of_utc'], runner=runner)
         receipt = json.loads(Path(result['path']).read_text())
-        self.assertEqual(result['pending_web_checks'], 9)
+        self.assertEqual(result['pending_web_checks'], 11)
         self.assertTrue(all(s['status'] == 'checked' for s in receipt['sources'][:4]))
         self.assertEqual([c[0] for c in calls], ['highlights', 'limitations', 'external', 'upcoming'])
         self.assertIn('8', calls[-1], 'Include the overnight rolling-horizon boundary')
@@ -188,9 +204,9 @@ class DiscoveryAuditTests(TestCase):
         self.assertEqual(json.loads(Path(longer['path']).read_text())['horizon_days'], 120)
         self.assertIn('90', calls[-1], 'Longer web horizons retain the bounded broker query')
         oil = capture(self.directory, self.directory / 'oil', 'BRENT', 'fixture-broker', runner=runner)
-        self.assertIn('USD', calls[-1], 'Commodity macro index retains its real currency identity')
-        self.assertIn('BRENT', calls[-2], 'Commodity external query uses the instrument identity')
-        self.assertEqual(oil['pending_web_checks'], 9, 'Six USD and three commodity source families are required')
+        self.assertIn('all', calls[-1], 'Global schedule coverage also applies to a commodity refresh')
+        self.assertIn('all', calls[-2], 'Global external discovery must not be restricted by the news scope')
+        self.assertEqual(oil['pending_web_checks'], 11, 'Global risk checks supplement USD and commodity source families')
         pages = iter([dict(items=[{'id': 1}], matches=2, next_offset=1, revision='a'),
                       dict(items=[{'id': 2}], matches=2, next_offset=None, revision='a')])
         full = collect_pages(lambda args: next(pages), ['external'], 1)
