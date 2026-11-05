@@ -50,14 +50,14 @@ def backup_directory(source: Path, destination: Path):
             if inventory.is_symlink() or any(path.is_symlink() for path in inventory.rglob("*")):
                 raise ValueError("Inventory symlinks are not supported in backups")
             shutil.copytree(inventory, stage / "inventory")
-        news = source / 'currency-news'
-        if news.exists():
-            if news.is_symlink() or any(path.is_symlink() for path in news.rglob('*')):
-                raise ValueError('News symlinks are not supported in backups')
-            # The news writer has its own lock; capture its index and immutable
-            # bodies together, excluding transient files and the lock itself.
-            with data_lock(news):
-                shutil.copytree(news, stage / 'currency-news', ignore=shutil.ignore_patterns('.fyodor-storage.lock', '.news-*'))
+        for name in ('currency-news', 'currency-details'):
+            saved = source / name
+            if saved.exists():
+                if saved.is_symlink() or any(path.is_symlink() for path in saved.rglob('*')):
+                    raise ValueError('News/Detail symlinks are not supported in backups')
+                # Capture each projection and immutable bodies under its writer lock.
+                with data_lock(saved):
+                    shutil.copytree(saved, stage / name, ignore=shutil.ignore_patterns('.fyodor-storage.lock', '.news-*'))
         files = [{"path": path.relative_to(stage).as_posix(), "size": path.stat().st_size, "sha256": digest(path)}
                  for path in sorted(stage.rglob("*")) if path.is_file()]
         manifest = {"format": FORMAT, "version": 1, "created_at": datetime.now(timezone.utc).isoformat(),
@@ -82,7 +82,7 @@ def validate_backup(folder: Path):
             raise ValueError("Invalid backup file entry")
         raw = entry["path"]
         relative = PurePosixPath(raw)
-        if raw != relative.as_posix() or relative.is_absolute() or ".." in relative.parts or "\\" in raw or ":" in raw or raw in paths or not (raw == "calendar.sqlite3" or raw.startswith(("inventory/", "currency-news/"))):
+        if raw != relative.as_posix() or relative.is_absolute() or ".." in relative.parts or "\\" in raw or ":" in raw or raw in paths or not (raw == "calendar.sqlite3" or raw.startswith(("inventory/", "currency-news/", "currency-details/"))):
             raise ValueError("Invalid or duplicate backup path")
         paths.add(raw)
         target = folder / raw

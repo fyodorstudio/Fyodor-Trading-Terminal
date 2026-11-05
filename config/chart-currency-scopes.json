@@ -1,0 +1,26 @@
+{
+  "JPYX": [
+    "JPY"
+  ],
+  "EURX": [
+    "EUR"
+  ],
+  "USDX": [
+    "USD"
+  ],
+  "USDX-F": [
+    "USD"
+  ],
+  "JPN225": [
+    "JPY"
+  ],
+  "JPN225-F": [
+    "JPY"
+  ],
+  "XAUUSD": [
+    "USD"
+  ],
+  "XAUUSD-F": [
+    "USD"
+  ]
+}

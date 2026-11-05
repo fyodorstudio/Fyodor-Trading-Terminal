@@ -45,6 +45,10 @@ and the selected implication versions.
 
 ## Research and writing
 
+The refresh skill also updates [Currency Detail](CURRENCY-DETAILS.md). Start with
+`pnpm analyst details prepare --scope <scope>` to reuse scoped News and official
+routes. Share decisive evidence; retain independent news/metric/schedule clocks.
+
 Research happens in the agent chat on demand. Prioritize the newest material
 news and relevant earlier context, with no default publication cutoff. An
 explicit user research date range still applies. Open decisive source bodies,

@@ -262,6 +262,18 @@ globalThis.fetch = (url, options = {}) => {
       currencies, source_available: true, events: events.filter(event => currencies.includes(event.currency)
         && event.release_at !== null && event.release_at >= from && event.release_at <= to) }) })
   }
+  if (u.startsWith('/storage-api/currency-details')) {
+    const q = new URL(u, 'http://localhost').searchParams
+    const currencies = [q.get('scope').slice(0, 3), q.get('scope').slice(3)].filter(Boolean)
+    const registry = JSON.parse(fs.readFileSync(new URL('../../config/currency-details.json', import.meta.url), 'utf8'))
+    const revision = 'd'.repeat(64)
+    return Promise.resolve({ ok: true, json: async () => q.get('after_revision') === revision
+      ? { schema: 1, broker, currencies, revision, unchanged: true }
+      : { schema: 1, broker, currencies, revision, source_available: true, categories: registry.categories,
+          sources: registry.sources, focus: [], metrics: registry.metrics.filter(m => currencies.includes(m.currency)).map(m => ({
+            ...m, broker: null, broker_next: null, official: null, official_latest: false, comparison: 'not_checked',
+            check: null, next_releases: [], schedule_known: false, schedule_elapsed: false })) } })
+  }
   if (u.startsWith('/storage-api/health')) return Promise.resolve({ ok: true, json: async () => ({ revision: calendarRevision,
     sources: [{ id: broker, publisher_status: 'live', server_now: now / 1000, instance_id: 'fixture' }], collector_error: null }) })
   if (u.startsWith('/storage-api/calendar')) {
@@ -857,6 +869,27 @@ try {
   assert.equal(container.querySelector('.recent-events-panel'), null)
   assert.equal(container.querySelector('.research-panel-slot').hidden, false)
   assert.equal(container.querySelector('.research-panel'), researchPanel, 'Switching panels preserves the mounted research draft')
+  assert.equal(localStorage.getItem('fyodor.chart-drawings.v1'), recentDrawings)
+  assert.equal(requests.filter(url => url.startsWith('/storage-api/currency-details')).length, 0, 'Closed Detail does no data work')
+  const detailButton = container.querySelector('[aria-label="Show Detail"]')
+  assert.equal(detailButton.previousElementSibling.getAttribute('aria-label'), 'Show events')
+  reset(); await click(detailButton); await flush()
+  assert.ok(container.querySelector('.currency-detail-panel'))
+  assert.equal(container.querySelector('.research-panel-slot').hidden, true)
+  assert.equal(document.querySelector('[aria-label="Research question"]').value, 'Was this USD strength or EUR weakness?')
+  assert.equal(counters.chartCreated ?? 0, 0); assert.equal(counters.setData ?? 0, 0)
+  assert.deepEqual(logicalRange, recentWindow)
+  assert.deepEqual([...container.querySelectorAll('.currency-detail-panel thead th')].map(n => n.textContent), ['Metric', 'EUR', 'USD'])
+  reset(); await tick('pollDetail', 30000)
+  assertQuiet('Unchanged Detail poll', true)
+  await click(container.querySelector('[aria-label="Show events"]')); await flush()
+  assert.equal(container.querySelector('.currency-detail-panel'), null, 'Events and Detail are mutually exclusive')
+  assert.equal([...timers.values()].some(t => t.fn.name === 'pollDetail'), false, 'Closing Detail cancels its poll')
+  await click(container.querySelector('[aria-label="Show Detail"]')); await flush()
+  assert.equal(container.querySelector('.recent-events-panel'), null)
+  await click(container.querySelector('[aria-label="Hide Detail"]')); await flush()
+  assert.equal(container.querySelector('.research-panel-slot').hidden, false)
+  assert.equal(container.querySelector('.research-panel'), researchPanel)
   assert.equal(localStorage.getItem('fyodor.chart-drawings.v1'), recentDrawings)
   await click(container.querySelector('.inspector-day-symbol.inspector-currency-USD'))
   const inspected = container.querySelector('.inspector-panel').textContent

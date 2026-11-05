@@ -23,6 +23,9 @@ from .external_sources import DIRECTORY, ExternalRequest, LifecycleRequest, exte
 from .currency_news import news_snapshot, news_day, news_history, news_run, SavedNewsNotFound
 from .alert_calendar import day_snapshot
 from .recent_calendar import recent_snapshot
+from .currency_details import DetailRefresh, save_details
+from .detail_projection import detail_snapshot
+from .detail_registry import resolve_scope
 from .market_watch_daily import DailyMarketWatch
 
 
@@ -59,6 +62,27 @@ def create_app(directory=None, run_collector=True, highlights_path=HIGHLIGHTS_PA
 
     app = FastAPI(title="Fyodor Calendar Storage", version="1.1.0", lifespan=lifespan)
     daily_market = DailyMarketWatch()
+    details_directory = (directory or data_directory()) / 'currency-details'
+
+    @app.get('/api/v1/currency-details')
+    def currency_details(source_id: str = Query(min_length=1, max_length=160), scope: str = Query(max_length=128),
+                         after_revision: str | None = Query(default=None, max_length=64),
+                         at_utc_ms: int | None = Query(default=None, ge=0)):
+        try:
+            currencies = resolve_scope(scope)
+        except ValueError as error:
+            raise HTTPException(422, str(error)) from error
+        try:
+            return detail_snapshot(app.state.store, source_id, currencies, details_directory, after_revision, at_utc_ms)
+        except (ValueError, OSError, KeyError, StopIteration) as error:
+            raise HTTPException(503, 'Detail unavailable; saved evidence is preserved') from error
+
+    @app.post('/api/v1/currency-details')
+    def currency_details_save(request: DetailRefresh):
+        try:
+            return save_details(request, details_directory, app.state.store)
+        except OSError as error:
+            raise HTTPException(503, 'Could not save Detail; prior evidence is preserved') from error
 
     @app.post('/api/v1/market-watch/daily')
     def market_watch_daily(request: DailyMarketRequest):

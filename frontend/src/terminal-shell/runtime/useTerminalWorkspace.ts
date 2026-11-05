@@ -26,6 +26,7 @@ import { usePriceAlerts } from '../../price-alerts/usePriceAlerts'
 import { alertDateForRelease, type AlertFocus } from '../../alert/model/alert-focus'
 import { useVolumePreferences } from '../../market-data/indicators/volume/useVolumePreferences'
 import { useRsiPreferences } from '../../market-data/indicators/rsi/useRsiPreferences'
+import type { DetailReading } from '../../currency-details/detail-model'
 
 const emptyTradePlan: PlannedTradeState = { direction: 'waiting', entryPrice: null, tpPrice: null, slPrice: null, showOnChart: false }
 
@@ -40,6 +41,7 @@ export function useTerminalWorkspace() {
   const [activeDrawingTool, setActiveDrawingTool] = useState<DrawingToolId | null>(null)
   const [researchActive, setResearchActive] = useState(false)
   const [recentEventsOpen, setRecentEventsOpen] = useState(false)
+  const [detailOpen, setDetailOpen] = useState(false)
   const [researchSeed, setResearchSeed] = useState<ResearchSeed | null>(null)
   const [researchError, setResearchError] = useState<string | null>(null)
   const [selectedDrawingId, setSelectedDrawingId] = useState<string | null>(null)
@@ -202,10 +204,24 @@ export function useTerminalWorkspace() {
   const closeRecentEvents = useCallback(() => setRecentEventsOpen(false), [])
   const toggleRecentEvents = useCallback(() => {
     setRecentEventsOpen(current => !current)
+    setDetailOpen(false)
     setResearchActive(false)
   }, [])
+  const closeDetail = useCallback(() => setDetailOpen(false), [])
+  const toggleDetail = useCallback(() => {
+    setDetailOpen(current => !current)
+    setRecentEventsOpen(false)
+    setResearchActive(false)
+  }, [])
+  const viewDetailEvent = useCallback((reading: DetailReading) => {
+    if (!brokerId?.startsWith('Pepperstone-')) return
+    const date = reading.at === null ? reading.date : new Date(reading.at + 7 * 3600000).toISOString().slice(0, 10)
+    setAlertFocus(old => ({ request: (old?.request ?? 0) + 1, sourceId: brokerId, valueIds: [reading.value_id], date }))
+    setBottomDockWindow('alert')
+  }, [brokerId])
   const selectResearchTool = () => {
     setRecentEventsOpen(false)
+    setDetailOpen(false)
     setActiveDrawingTool(null); setSelectedDrawingId(null); setResearchError(null)
     setResearchActive(current => !current)
   }
@@ -293,5 +309,6 @@ export function useTerminalWorkspace() {
     selectCrosshair, deletePairDrawings, toggleBottomDock, exitDrawingMode, toggleDrawingToolbar,
     renderChartOverlay, sourceState, sourceLabel, researchActive, researchSeed, researchError,
     selectResearchTool, closeResearch, recentEventsOpen, toggleRecentEvents, closeRecentEvents, alertFocus, viewReleaseInAlert,
+    detailOpen, toggleDetail, closeDetail, viewDetailEvent,
     plannedTrade, handlePlanChange, latestBarTime, registeredArrows, selectPinnedArrow, priceAlerts, leftDockTab, setLeftDockTab }
 }

@@ -74,6 +74,8 @@ class StoreSchema:
                 basis TEXT NOT NULL, profile TEXT,
                 PRIMARY KEY(source_id,value_id));
             CREATE INDEX IF NOT EXISTS timing_range ON event_timing(source_id,chart_time_seconds);
+            CREATE INDEX IF NOT EXISTS events_detail_series ON events(
+                source_id,currency,CAST(json_extract(payload,'$.event_id') AS TEXT),server_time DESC);
         """)
         if "captured_offset_seconds" not in {row[1] for row in self.db.execute("PRAGMA table_info(jobs)")}:
             self.db.execute("ALTER TABLE jobs ADD COLUMN captured_offset_seconds INTEGER")

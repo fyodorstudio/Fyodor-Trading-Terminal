@@ -109,3 +109,13 @@ remove news, holiday or unusual-day effects. Use your existing strategy for the
 trade decision. Tick counts measure updates on this broker's feed, not lots traded.
 Bar colours follow candle direction, not buy/sell volume. The optional SMA applies
 to Raw ticks; Relative uses a 1× reference line. Settings are shared on this device.
+
+## Currency Detail
+
+Click **Detail** immediately right of Show events for fundamentals of the active
+pair. EURX, JPYX and USDX show only their currency. Expand categories and metrics
+for sources, reference periods, release stages and MT5 comparisons. Official
+values lead verified conflicts; unverified data remains labeled. Last/next release
+and verification clocks stay separate. Copy refresh prompt invokes no research
+until you run it in the agent chat. The skill refreshes News and Detail together.
+See [Currency Detail](docs/CURRENCY-DETAILS.md) for data rules and commands.

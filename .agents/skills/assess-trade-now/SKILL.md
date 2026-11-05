@@ -1,15 +1,18 @@
 ---
 name: assess-trade-now
-description: Refresh currency fundamentals and discover global volatility risks on demand, saving news, custom events and verified high-impact reminders. Use for all-eight or focused refreshes; historical investigations and imminent release waits have separate skills.
+description: Refresh Currency News and verified currency Detail together, and discover global volatility risks on demand. Use for all-eight, pair or currency-index refreshes; historical investigations and imminent release waits have separate skills.
 ---
 
-# Assess Trade Now — Currency News
+# Assess Trade Now — Currency News and Detail
 
 Research the requested currencies; default to all eight and prioritize the newest
 material developments plus relevant earlier context without a fixed cutoff.
 Respect any explicit user research date range. A pair scope means research both currencies,
 without automatically recommending the pair. Respect chat-only/no-save requests.
-Map JPYX to JPY and USDX to USD fundamental research. Interpret mentions of rallies, resistance, breakouts or reversals as
+Start with `pnpm analyst details prepare --scope <scope>` (EURX → EUR, JPYX → JPY,
+USDX → USD; broker suffixes supported). Preparation supplies scoped current News,
+metric definitions, official routes, readings and check tasks. Do not explore
+application source or raw archives on routine refreshes. Interpret mentions of rallies, resistance, breakouts or reversals as
 requests for fundamental support, opposition and upcoming catalysts. Leave price
 levels, chart scans, entries and other technical analysis to the user unless
 explicitly requested; do not ask for technical levels to perform this skill.
@@ -23,11 +26,26 @@ showing new events globally and selecting new confirmed high-impact reminders.
 Preserve explicit off choices, global pause, lead time and existing chart hides.
 Chat-only/read-only/no-save suppresses these writes; do not imply continuous monitoring.
 
-Read [research rules](../../../docs/RESEARCH-RULES.md). Read the focused current
-result with `pnpm analyst news read --scope <currency|ALL>` to reuse source routes
-and dated background. Retrieve `pnpm analyst news lessons --scope <currency>`
+Read [research rules](../../../docs/RESEARCH-RULES.md). Reuse preparation's scoped current News and source routes. Retrieve `pnpm analyst news lessons --scope <currency>`
 when a mechanism or repeated process failure is relevant; never load whole raw
 archives or run a retired scoring/learning loop for a routine refresh.
+
+Refresh Detail using the same decisive official sources as News. Prioritize new
+or overdue releases, revisions, unresolved conflicts and missing observations.
+Group checks by publisher. Unchanged MT5 does not prove no official release or
+revision occurred; check publisher updates and schedules. Preparation's daily
+recheck hints guide cost, not proof of freshness or a news lookback restriction.
+Read [the Detail contract](../../../docs/CURRENCY-DETAILS.md) when saving; use
+`pnpm analyst details save --scope <scope> --input tmp/details.json`, then
+`pnpm analyst details verify --scope <scope>`. Report unfinished metric coverage.
+Reuse unchanged verified readings without renewing clocks or rechecking every
+metric just to fill the panel. Preserve independent News, observation verification,
+schedule and optional focus clocks. Keep definitions, reference periods and
+flash/final/revised stages distinct. Attach an exact broker reference only after
+checking stage equivalence. Official values lead comparable conflicts; never
+rewrite MT5, blend forecasts or infer surprises/direction from unresolved conflicts.
+Optional policy focus needs dated sources, a causal reason and limitations;
+no automatic regime score or row reordering.
 
 Browse current sources. Open decisive original articles/releases, verify their
 publication times and facts, consolidate syndications, and check material contrary
@@ -79,3 +97,5 @@ a compact table matching Currency News: Currencies / Sources | News
 Fundamentals (Jakarta dates/times) | Implication. Keep analysis in Implication. Name
 material coverage limits. Do not delay a useful sourced answer for unrelated
 bookkeeping. No background AI invocation follows.
+
+Briefly report Detail checks, conflicts and gaps without repeating unchanged metrics.

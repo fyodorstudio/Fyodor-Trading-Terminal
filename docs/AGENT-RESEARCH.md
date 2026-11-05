@@ -18,6 +18,10 @@ For outside-feed evidence use [EXTERNAL-SOURCES.md](EXTERNAL-SOURCES.md).
 
 ## Dataset commands
 
+Routine combined News/Detail preparation uses
+`pnpm analyst details prepare --scope <currency|pair|index|ALL>`; see
+[the Detail contract](CURRENCY-DETAILS.md). No calendar export is needed.
+
 Run from the Lite root; `pnpm analyst` uses the existing bridge Python with no
 new dependencies or API key. Calendar reads use a read-only SQLite snapshot
 including WAL, work offline, and never change observations. Use `--help` on any

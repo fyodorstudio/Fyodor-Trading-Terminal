@@ -5,6 +5,10 @@
 Read this file, then the task-relevant owner in [README.md](README.md).
 Core terminal: chart/drawings, Market Watch, raw calendar Inspector, calendar
 Alert/reminders, Entry Trade, price alerts, Activity and Settings.
+Currency Detail: `frontend/src/currency-details/`, `storage/currency_details.py`,
+[Detail contract](docs/CURRENCY-DETAILS.md). Routine refresh starts with
+`pnpm analyst details prepare --scope <currency|pair|index|ALL>`; reuse evidence
+for News and Detail, preserving independent clocks and raw MT5 conflicts.
 
 Currency News replaces the left Fundamentals panel and bottom Thesis. Owner:
 `frontend/src/currency-news/`, `storage/currency_news.py`, and

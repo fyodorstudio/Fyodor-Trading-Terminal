@@ -216,6 +216,13 @@ def parser():
     news.add_argument('--scope', choices=['ALL', *CURRENCIES], default='ALL')
     news.add_argument('--input', help='NewsRefresh JSON file inside Lite; see docs/CURRENCY-NEWS.md')
     news.add_argument('--storage', default='http://127.0.0.1:8002')
+    details = commands.add_parser('details', help='Prepare/read/save verified currency Detail or verify panel delivery')
+    details.add_argument('action', choices=['prepare', 'read', 'save', 'verify'])
+    details.add_argument('--scope', default='ALL', help='Currency, FX pair or EURX/JPYX/USDX; ALL by default')
+    details.add_argument('--broker', default='Pepperstone-Demo')
+    details.add_argument('--database', default='storage/data/calendar.sqlite3')
+    details.add_argument('--input', help='DetailRefresh JSON inside Lite; see docs/CURRENCY-DETAILS.md')
+    details.add_argument('--storage', default='http://127.0.0.1:8002')
     journal = commands.add_parser('journal', help='Read research versions or append an agent-authored JSON entry (calendar stays read-only)')
     journal.add_argument('action', choices=['read','append'])
     journal.add_argument('highlight_id')
@@ -318,6 +325,9 @@ def parser():
 def run(args):
     if getattr(args, 'offset', 0) < 0:
         raise ValueError('Offset must be non-negative')
+    if args.command == 'details':
+        from details_cli import run_details
+        return run_details(args, local_path, get_json)
     if args.command == 'news':
         from storage.currency_news import NewsRefresh, news_snapshot, news_day, save_refresh, DIRECTORY as NEWS_DIRECTORY
         if args.action == 'lessons':

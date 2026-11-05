@@ -38,6 +38,7 @@ stays with the user; no automated UI audit is implied.
 | alert / events-alarms / storage/alarms | Dated calendar, occurrence bells, independent Windows delivery; [alarm contract](docs/EVENTS-ALARMS.md) |
 | external-sources | Outside-feed evidence, chart markers, limitations and versions; [source contract](docs/EXTERNAL-SOURCES.md) |
 | currency-news / storage/currency_news.py | On-demand saved news and implications; [news contract](docs/CURRENCY-NEWS.md) |
+| currency-details / storage/currency_details.py | Pair/index fundamentals, official evidence and MT5 conflicts; [Detail contract](docs/CURRENCY-DETAILS.md) |
 | entry-trade | Manual plans, pins, independent chart arrows and tracked journal |
 | price-alerts | Broker/symbol lines, local persistence, Bid monitoring and browser sound |
 | research / storage/research_reports.py | Named date-range evidence exports for optional historical studies |
@@ -78,6 +79,18 @@ checkpoints or performance evaluation. [Research rules](docs/RESEARCH-RULES.md)
 and compact reviewed lessons preserve prior failure context. The old Thesis and
 learning implementation/data are preserved per [the archive note](docs/RESEARCH-ARCHIVE.md).
 For optional release waits/historical studies see [the user guide](user%20manual.md).
+
+## Currency Detail
+
+**Detail**, immediately right of Show events, opens its own right-panel view.
+Six fixed categories compare the pair's currencies; EURX/JPYX/USDX show one.
+Latest observations have no Events-window cutoff. Expand metrics for sources,
+MT5 comparisons and independent verification clocks. Official readings lead
+verified conflicts; raw MT5 remains intact. Last/next publication stages, next
+major releases and optional dated policy focus reuse saved evidence. Browsing
+does no AI work. The skill refreshes News and Detail together, starting with
+`pnpm analyst details prepare --scope EURUSD`; see the
+[Detail workflow](docs/CURRENCY-DETAILS.md).
 
 ## Preserved terminal behavior
 
