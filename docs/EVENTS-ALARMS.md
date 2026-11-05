@@ -17,16 +17,21 @@ Reuters), with links to evidence. External records never acquire invented calend
 readings. Different source values stay separate. One bell covers a publication
 package; decision, statement and conference clocks remain separate stages.
 Verified publisher packages (Baker Hughes rig counts, matching Jibun/S&P PMI
-components and Ivey PMI) share one expansion panel and bell when exact IDs,
+components and Ivey PMI) share one bell when exact IDs,
 country/currency, publication UTC and reference period match. Saved series/family
 filters and constituent reminder keys are retained. A partially selected package
 shows a mixed bell; an explicit click enables its remaining components, reusing
-existing subscriptions. Browsing alone changes no choices.
+existing subscriptions. Browsing alone changes no choices. Every broker reading
+and external event is a flat row with its own expansion and details, including
+linked publishers and components of a reminder package. Opening or collapsing
+one row never changes a sibling row. Package membership only controls reminders;
+it does not combine event detail panels.
 
 Rows with the same exact publication UTC and currency always form one compact
 visual block, with currency shown once, before and after release. A shared
 time is shown only at the first currency for that timestamp. The countdown stays
-in the Actual column.
+in the Actual column. Darker horizontal rules frame each distinct release time;
+same-time rows keep subtle internal dividers, including currency transitions.
 This display grouping preserves each publication's details and reminder choice;
 different currencies, exact times and unconfirmed hours remain separate.
 

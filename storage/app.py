@@ -22,6 +22,7 @@ from .alert_impact import impact_snapshot
 from .external_sources import DIRECTORY, ExternalRequest, LifecycleRequest, external_snapshot, external_history, append_external, archive_external
 from .currency_news import news_snapshot, news_day, news_history, news_run, SavedNewsNotFound
 from .alert_calendar import day_snapshot
+from .recent_calendar import recent_snapshot
 from .market_watch_daily import DailyMarketWatch
 
 
@@ -120,6 +121,16 @@ def create_app(directory=None, run_collector=True, highlights_path=HIGHLIGHTS_PA
             return day_snapshot(app.state.store, source_id, date, after_revision)
         except ValueError as error:
             raise HTTPException(422, 'Invalid calendar date') from error
+
+    @app.get('/api/v1/recent-calendar')
+    def recent_calendar(source_id: str = Query(min_length=1, max_length=160),
+                        from_utc_ms: int = Query(ge=0), to_utc_ms: int = Query(ge=0),
+                        currencies: str = Query(pattern=r'^[A-Z]{3}(,[A-Z]{3}){0,7}$')):
+        selected = currencies.split(',')
+        if (not 0 < to_utc_ms - from_utc_ms <= 31 * 86400000
+                or len(set(selected)) != len(selected) or any(item not in CURRENCIES for item in selected)):
+            raise HTTPException(422, 'Invalid recent calendar interval or currency scope')
+        return recent_snapshot(app.state.store, source_id, from_utc_ms, to_utc_ms, selected)
 
     @app.post("/api/v1/reports")
     def research_report(request: ResearchRequest):

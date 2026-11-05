@@ -16,6 +16,7 @@ import { ImpactBadge, ImpactDetails } from '../alert/impact/ImpactBadge'
 import type { useAlertImpact } from '../alert/impact/useAlertImpact'
 
 type TableProps = { groups: AlertDayGroup[]; sourceId: string; alarms: ReturnType<typeof useAlarms>; now: number; focusKey: string | null; focusRequest?: number; date?: string; impact: ReturnType<typeof useAlertImpact> }
+type AlertRow = AlertDayGroup & { rowId: string; alarmGroup: AlertDayGroup; showAlarm: boolean }
 function NowLine({ now }: { now: number }) {
   const clock = useCountdownNow(now)
   return <tbody className="alert-now-line"><tr><td colSpan={8}>
@@ -24,8 +25,18 @@ function NowLine({ now }: { now: number }) {
 }
 export const HighlightDock = memo(function HighlightDock({ groups, ...props }: TableProps) {
   // Visual batches are independent of publication identities and alarm choices.
-  const ordered = useMemo(() => [...groups].sort((a, b) => (a.at ?? Infinity) - (b.at ?? Infinity)
-    || a.currency.localeCompare(b.currency) || a.title.localeCompare(b.title) || a.key.localeCompare(b.key)), [groups])
+  const ordered = useMemo((): AlertRow[] => [...groups].sort((a, b) => (a.at ?? Infinity) - (b.at ?? Infinity)
+    || a.currency.localeCompare(b.currency) || a.title.localeCompare(b.title) || a.key.localeCompare(b.key)).flatMap(group => {
+      // Packages own reminder identity only. Every displayed event owns its
+      // summary, expansion and details, including explicitly linked web rows.
+      const rows = [
+        ...(group.release?.events ?? []).map(event => ({ ...group, title: event.name,
+          rowId: `${group.key}/value/${event.value_id}`, release: { ...group.release!, events: [event] }, external: [] })),
+        ...group.external.map(item => ({ ...group, title: item.title,
+          rowId: `${group.key}/external/${item.key}`, release: undefined, external: [item] })),
+      ]
+      return rows.map((row, index) => ({ ...row, alarmGroup: group, showAlarm: index === 0 }))
+    }), [groups])
   const sameTime = (a: AlertDayGroup, b?: AlertDayGroup) => a.at !== null && a.at === b?.at && a.currency === b.currency
   const alarmIndex = useMemo(() => indexAlarmEvents(props.alarms.data?.events ?? []), [props.alarms.data?.events])
   const times = useMemo(() => ordered.flatMap(group => group.at === null ? [] : [group.at]), [ordered])
@@ -35,18 +46,19 @@ export const HighlightDock = memo(function HighlightDock({ groups, ...props }: T
   return <><CalendarBoundary times={times} onBoundary={setTimelineNow} timeDisplay={jakartaDisplay} />
   <table className="alert-event-table" aria-label="Events on selected date">
     <thead><tr><th>Time · Jakarta</th><th>Event</th><th>Actual</th><th>Forecast</th><th>Previous</th><th>Source</th><th>Agent impact</th><th><span className="alert-sr-only">Alarm</span></th></tr></thead>
-    {ordered.map((group, index) => <Fragment key={group.key}>
+    {ordered.map((group, index) => <Fragment key={group.rowId}>
       {showNow && position === index && <NowLine now={timelineNow} />}
       <EventGroup group={group} alarmIndex={alarmIndex}
         startsClock={group.at === null || group.at !== ordered[index - 1]?.at}
+        endsClock={group.at === null || group.at !== ordered[index + 1]?.at}
         startsTime={!sameTime(group, ordered[index - 1])} endsTime={!sameTime(group, ordered[index + 1])} {...props} />
     </Fragment>)}
     {showNow && position === ordered.length && <NowLine now={timelineNow} />}
   </table></>
 })
 
-const EventGroup = memo(function EventGroup({ group, startsClock, startsTime, endsTime, sourceId, alarms, now, focusKey, focusRequest, impact, alarmIndex }: Omit<TableProps, 'groups'> & { group: AlertDayGroup; startsClock: boolean; startsTime: boolean; endsTime: boolean; alarmIndex: ReturnType<typeof indexAlarmEvents> }) {
-  const focused = group.key === focusKey || group.external.some(item => item.key === focusKey)
+const EventGroup = memo(function EventGroup({ group, startsClock, endsClock, startsTime, endsTime, sourceId, alarms, now, focusKey, focusRequest, impact, alarmIndex }: Omit<TableProps, 'groups'> & { group: AlertRow; startsClock: boolean; endsClock: boolean; startsTime: boolean; endsTime: boolean; alarmIndex: ReturnType<typeof indexAlarmEvents> }) {
+  const focused = group.showAlarm && group.key === focusKey || group.external.some(item => item.key === focusKey)
   const [expanded, setExpanded] = useState(focused)
   const focusToken = focused ? focusRequest ?? focusKey : null
   const [expandedFor, setExpandedFor] = useState(focusToken)
@@ -56,19 +68,18 @@ const EventGroup = memo(function EventGroup({ group, startsClock, startsTime, en
   }
   const [hoverDismissed, setHoverDismissed] = useState(false)
   const panelId = useId(), series = group.release?.events ?? []
-  const total = series.length + group.external.length
   const numeric = series.filter(event => !isInspectorCommentary(event)), arrived = numeric.filter(event => event.actual !== null).length
   const elapsed = group.at !== null && group.at <= now
   const status = group.at === null ? 'Time unconfirmed' : !elapsed ? null : series.length
     ? !numeric.length ? 'Elapsed' : arrived === numeric.length ? 'Released' : arrived ? 'Partial data' : 'Awaiting data' : 'Elapsed · verify outcome'
   const shared = (first: boolean) => first ? <>
-    <td rowSpan={total}><EventAlarmButton alarms={alarms} group={group} sourceId={sourceId} now={now} alarmIndex={alarmIndex} /></td>
+    <td>{group.showAlarm && <EventAlarmButton alarms={alarms} group={group.alarmGroup} sourceId={sourceId} now={now} alarmIndex={alarmIndex} />}</td>
   </> : null
   const pending = (commentary = false, external = false) => group.at === null ? 'Time unconfirmed'
     : !elapsed ? <span className="alert-release-countdown"><ReleaseCountdown at={group.at} now={now} /></span>
     : external ? 'Elapsed · verify outcome' : commentary ? 'Elapsed' : 'Awaiting data'
   const time = group.at === null ? '—' : formatAppTimestamp(group.at, jakartaDisplay, 'time-short')
-  const timeCell = <td rowSpan={total} className="alert-time-cell">{startsTime
+  const timeCell = <td className="alert-time-cell">{startsTime
     ? <>{startsClock ? <time>{time}</time> : <span className="alert-sr-only">{time}</span>}<small>{group.currency}</small></>
     : <span className="alert-sr-only">{time} · {group.currency}</span>}</td>
   const changeExpanded = () => { setExpanded(value => !value); setHoverDismissed(expanded) }
@@ -78,7 +89,7 @@ const EventGroup = memo(function EventGroup({ group, startsClock, startsTime, en
   }
   const toggle = (label: string) => <button type="button" className="alert-event-name" aria-expanded={expanded} aria-controls={panelId}
     onClick={changeExpanded}><span aria-hidden="true">{expanded ? '▾' : '▸'}</span>{label}</button>
-  return <tbody className={`alert-event-group${startsTime ? ' alert-time-start' : ''}${endsTime ? ' alert-time-end' : ''}${focused && expanded ? ' alert-event-focused' : ''}${hoverDismissed ? ' alert-hover-dismissed' : ''}`} onPointerLeave={() => setHoverDismissed(false)} data-alert-focused={focused || undefined} data-alert-id={group.key} data-external-key={group.external[0]?.key}>
+  return <tbody className={`alert-event-group${startsClock ? ' alert-clock-start' : ''}${endsClock ? ' alert-clock-end' : ''}${startsTime ? ' alert-time-start' : ''}${endsTime ? ' alert-time-end' : ''}${focused && expanded ? ' alert-event-focused' : ''}${hoverDismissed ? ' alert-hover-dismissed' : ''}`} onPointerLeave={() => setHoverDismissed(false)} data-alert-focused={focused || undefined} data-alert-id={group.key} data-external-key={group.external[0]?.key}>
     {series.map((event, index) => <tr key={event.value_id} data-series-id={event.event_id} className="alert-summary-row" onClick={clickRow}>
       {index === 0 && timeCell}
       <th scope="row">{toggle(event.name)}{'availability' in event && event.availability !== 'observed' && <small>Latest observation unavailable</small>}</th>

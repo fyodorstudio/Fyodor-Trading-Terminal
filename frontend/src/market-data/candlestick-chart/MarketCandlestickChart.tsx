@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, useState, type ReactNode } from 'react'
+import { memo, useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useDisplayClock } from '../../appearance/time-display/useDisplayClock'
 import {
   CandlestickSeries,
@@ -109,12 +109,21 @@ function MarketCandlestickChartComponent({
   const requestOlderDataRef = useRef(onRequestOlderData)
   const dateWindowRef = useRef<ChartDateWindow | null>(null)
   const previousStepRef = useRef(timeframeToSeconds(timeframe))
+  const timeframeViewportRef = useRef<{ span: number; liveMargin: number | null } | null>(null)
   const viewportBrokerRef = useRef(clock.brokerId)
   const applyingDataRef = useRef(false)
   const pendingWindowRef = useRef(false)
   const lastHistoryAttemptRef = useRef<string | null>(null)
   const [missingViewportHistory, setMissingViewportHistory] = useState(false)
   const prevBarSpacingRef = useRef(appearance.barSpacing)
+  const requestedLogicalRangeRef = useRef<{ from: number; to: number } | null>(null)
+  // Native range setters are deferred until paint. Keep the requested viewport
+  // authoritative across intervening quote, clock, appearance and pane effects.
+  const readLogicalRange = useCallback(() => requestedLogicalRangeRef.current ?? chartRef.current?.timeScale().getVisibleLogicalRange() ?? null, [])
+  const setLogicalRange = useCallback((range: { from: number; to: number }) => {
+    requestedLogicalRangeRef.current = range
+    chartRef.current?.timeScale().setVisibleLogicalRange(range)
+  }, [])
 
   useEffect(() => {
     historyStateRef.current = { hasOlderData, isLoadingOlderData }
@@ -133,6 +142,7 @@ function MarketCandlestickChartComponent({
     const chart = createChart(container, lightweightChartOptions(initialAppearance, initialTimeDisplayRef.current, true, initialClock.current))
     fittedKeyRef.current = null
     prevBarsRef.current = []
+    requestedLogicalRangeRef.current = null
     const series = chart.addSeries(CandlestickSeries, {
       upColor: initialAppearance.upCandleColor,
       downColor: initialAppearance.downCandleColor,
@@ -156,8 +166,17 @@ function MarketCandlestickChartComponent({
     setSeriesApi(priceSpace.overlaySeries)
 
     const handleLogicalRangeChange = (range: { from: number; to: number } | null) => {
+      const requested = requestedLogicalRangeRef.current
+      if (requested) {
+        // A resize may change the left edge, but the requested right edge must
+        // settle before an intermediate native range can become saved dates.
+        if (!range || range.from >= range.to || Math.abs(range.to - requested.to) > 1e-6) return
+        requestedLogicalRangeRef.current = null
+        return
+      }
       if (range && !applyingDataRef.current && historyPagingArmedRef.current) {
         dateWindowRef.current = captureDateWindow(range, prevBarsRef.current, previousStepRef.current)
+        timeframeViewportRef.current = null
         pendingWindowRef.current = false
         setMissingViewportHistory(false)
       }
@@ -184,6 +203,7 @@ function MarketCandlestickChartComponent({
       seriesRef.current = null
       futureTimelineRef.current = null
       chartRef.current = null
+      requestedLogicalRangeRef.current = null
       setChartApi(null)
       setSeriesApi(null)
       chart.remove()
@@ -194,7 +214,7 @@ function MarketCandlestickChartComponent({
     const chart = chartRef.current
     if (!chart) return
 
-    const currentLogicalRange = chart.timeScale().getVisibleLogicalRange()
+    const currentLogicalRange = readLogicalRange()
     const barSpacingChanged = prevBarSpacingRef.current !== appearance.barSpacing
     prevBarSpacingRef.current = appearance.barSpacing
 
@@ -214,12 +234,12 @@ function MarketCandlestickChartComponent({
 
     if (!barSpacingChanged && currentLogicalRange) {
       try {
-        chart.timeScale().setVisibleLogicalRange(currentLogicalRange)
+        setLogicalRange(currentLogicalRange)
       } catch {
         // Ignored if range cannot be set in current state
       }
     }
-  }, [appearance, theme, timeDisplay, clock])
+  }, [appearance, theme, timeDisplay, clock, readLogicalRange, setLogicalRange])
 
   useEffect(() => {
     const series = seriesRef.current
@@ -234,11 +254,13 @@ function MarketCandlestickChartComponent({
       },
     })
 
-    const previousRange = chart.timeScale().getVisibleLogicalRange()
+    const previousRange = readLogicalRange()
+    const step = timeframeToSeconds(timeframe)
     const brokerChanged = viewportBrokerRef.current !== clock.brokerId
     if (brokerChanged) {
       viewportBrokerRef.current = clock.brokerId
       dateWindowRef.current = null
+      timeframeViewportRef.current = null
       pendingWindowRef.current = false
       lastHistoryAttemptRef.current = null
       fittedKeyRef.current = null
@@ -246,8 +268,14 @@ function MarketCandlestickChartComponent({
     } else if (!pendingWindowRef.current && prevBarsRef.current.length) {
       dateWindowRef.current = captureDateWindow(previousRange, prevBarsRef.current, previousStepRef.current) ?? dateWindowRef.current
     }
-    const step = timeframeToSeconds(timeframe)
     const prevBars = prevBarsRef.current
+    if (!brokerChanged && prevBars.length && previousRange && !timeframeViewportRef.current
+      && (step !== previousStepRef.current || fittedKeyRef.current !== fitContentKey)) {
+      const last = prevBars.length - 1
+      const liveMargin = previousRange.from <= last && previousRange.to >= last ? previousRange.to - last : null
+      if (step !== previousStepRef.current || liveMargin !== null)
+        timeframeViewportRef.current = { span: previousRange.to - previousRange.from, liveMargin }
+    }
     const isNewKey = fittedKeyRef.current !== fitContentKey
     // Ignore programmatic range notifications during replacement/restoration.
     applyingDataRef.current = true
@@ -286,26 +314,36 @@ function MarketCandlestickChartComponent({
         const width = chart.timeScale().width?.() || containerRef.current?.clientWidth || 0
         const span = width > 0 ? width / prevBarSpacingRef.current : Math.min(120, bars.length + 7)
         const to = bars.length - 1 + 8
-        chart.timeScale().setVisibleLogicalRange({ from: Math.max(0, to - span), to })
+        setLogicalRange({ from: Math.max(0, to - span), to })
       }
       fittedKeyRef.current = fitContentKey
       prevBarsRef.current = bars
       previousStepRef.current = step
       const window = dateWindowRef.current
       if (window && (replaced || futureReplaced || pendingWindowRef.current)) {
-        const range = projectDateWindow(window, bars, step)
-        if (range) chart.timeScale().setVisibleLogicalRange(range)
-        pendingWindowRef.current = window.from < bars[0].time
+        let range = projectDateWindow(window, bars, step)
+        const timeframeViewport = timeframeViewportRef.current
+        if (range && timeframeViewport) {
+          // Keep timeframe changes at the chosen candle width, and live symbol
+          // changes beside that symbol's own latest candle. Historical symbol
+          // changes continue sharing dates; deliberate future pans stay put.
+          const to = timeframeViewport.liveMargin === null ? range.to : bars.length - 1 + timeframeViewport.liveMargin
+          range = { from: to - timeframeViewport.span, to }
+          dateWindowRef.current = captureDateWindow(range, bars, step) ?? window
+        }
+        if (range) setLogicalRange(range)
+        pendingWindowRef.current = (dateWindowRef.current ?? window).from < bars[0].time
+        if (!pendingWindowRef.current) timeframeViewportRef.current = null
         setMissingViewportHistory(pendingWindowRef.current)
       }
       // The hidden horizon is now the library's last point. Retain normal live
       // following when an incrementally appended price candle was in view.
       if (!isNewKey && !replaced && bars.length === prevBars.length + 1 && previousRange &&
         previousRange.from <= prevBars.length - 1 && previousRange.to >= prevBars.length - 1) {
-        chart.timeScale().setVisibleLogicalRange({ from: previousRange.from + 1, to: previousRange.to + 1 })
+        setLogicalRange({ from: previousRange.from + 1, to: previousRange.to + 1 })
       }
     } finally { applyingDataRef.current = false }
-  }, [bars, fitContentKey, onDataApplied, precision, timeframe, clock.brokerId])
+  }, [bars, fitContentKey, onDataApplied, precision, timeframe, clock.brokerId, readLogicalRange, setLogicalRange])
 
   // Apply indicator data after price data/viewport restoration. Scope changes
   // clear the old indicator above before replacing candles to avoid mixing two
@@ -315,7 +353,7 @@ function MarketCandlestickChartComponent({
     if (!chart) return
     if (!rsi?.enabled && !rsiPaneRef.current) return
     const changingPane = Boolean(rsi?.enabled) !== Boolean(rsiPaneRef.current)
-    const range = changingPane ? chart.timeScale().getVisibleLogicalRange() : null
+    const range = changingPane || requestedLogicalRangeRef.current ? readLogicalRange() : null
     applyingDataRef.current = true
     try {
       if (!rsi?.enabled) {
@@ -325,9 +363,9 @@ function MarketCandlestickChartComponent({
         rsiPaneRef.current ??= createRsiPane(chart)
         rsiPaneRef.current.sync(bars, `${clock.brokerId}:${fitContentKey}`, rsi, futureTimelineRef.current?.endTime())
       }
-      if (range) chart.timeScale().setVisibleLogicalRange(range)
+      if (range) setLogicalRange(range)
     } finally { applyingDataRef.current = false }
-  }, [rsi, bars, fitContentKey, clock.brokerId])
+  }, [rsi, bars, fitContentKey, clock.brokerId, readLogicalRange, setLogicalRange])
 
   useEffect(() => {
     if (!pendingWindowRef.current || !bars.length || !hasOlderData || isLoadingOlderData) return
@@ -344,6 +382,7 @@ function MarketCandlestickChartComponent({
   useEffect(() => () => { stopPanRef.current?.() }, [])
 
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    requestedLogicalRangeRef.current = null
     historyPagingArmedRef.current = true
     if (event.button !== 0 || activeDrawingTool) return
 
@@ -406,9 +445,10 @@ function MarketCandlestickChartComponent({
     if (paneHeight !== undefined && event.clientY - top >= paneHeight) return
     pendingWindowRef.current = false
     dateWindowRef.current = null
+    timeframeViewportRef.current = null
     setMissingViewportHistory(false)
     chartRef.current?.priceScale('right').applyOptions({ autoScale: true })
-    if (bars.length) chartRef.current?.timeScale().setVisibleLogicalRange({ from: 0, to: bars.length - 1 + 8 })
+    if (bars.length) setLogicalRange({ from: 0, to: bars.length - 1 + 8 })
   }
 
   useEffect(() => {
@@ -417,18 +457,18 @@ function MarketCandlestickChartComponent({
     const chart = chartRef.current
     if (!chart || !bars.length) return
     stopPanRef.current?.()
-    const range = chart.timeScale().getVisibleLogicalRange()
+    const range = readLogicalRange()
     const span = range ? range.to - range.from : bars.length + 7
     const to = bars.length - 1 + 8
     applyingDataRef.current = true
     try {
-      pendingWindowRef.current = false; dateWindowRef.current = null
+      pendingWindowRef.current = false; dateWindowRef.current = null; timeframeViewportRef.current = null
       historyPagingArmedRef.current = false
       setMissingViewportHistory(false)
       chart.priceScale('right').applyOptions({ autoScale: true })
-      chart.timeScale().setVisibleLogicalRange({ from: to - span, to })
+      setLogicalRange({ from: to - span, to })
     } finally { applyingDataRef.current = false }
-  }, [refocusRequest, bars.length])
+  }, [refocusRequest, bars.length, readLogicalRange, setLogicalRange])
 
   return (
     <div className="market-chart-host" onPointerDownCapture={(event) => {
@@ -443,7 +483,7 @@ function MarketCandlestickChartComponent({
         aria-label="Candlestick chart"
         onPointerDown={handlePointerDown}
         onDoubleClick={handleDoubleClick}
-        onWheel={() => { historyPagingArmedRef.current = true }}
+        onWheel={() => { requestedLogicalRangeRef.current = null; historyPagingArmedRef.current = true }}
       />
       {missingViewportHistory && bars.length > 0 && !isLoadingOlderData && <div className="chart-viewport-notice" role="status">
         <span>{hasOlderData ? 'Older history could not reach the selected dates.' : 'MT5 history does not cover the selected dates.'}</span>

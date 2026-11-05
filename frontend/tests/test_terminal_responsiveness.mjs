@@ -65,6 +65,7 @@ const scale = {
   setVisibleLogicalRange: next => {
     const startup = next.to === plotted.length + 7 && (next.from === 0 || Math.abs(next.to - next.from - 900 / 7) < 1e-9)
     if (!startup) logicalRange = next
+    for (const notify of rangeListeners) notify(next)
   }, setVisibleRange: next => { range = next }, fitContent: () => {},
 }
 const series = { applyOptions: () => {},
@@ -249,6 +250,13 @@ globalThis.fetch = (url, options = {}) => {
         ? new Date(event.release_at + 7 * 3600000).toISOString().slice(0, 10) === date
         : new Date(event.server_time_seconds * 1000).toISOString().slice(0, 10) === date) }) })
   }
+  if (u.startsWith('/storage-api/recent-calendar')) {
+    const q = new URL(u, 'http://localhost').searchParams
+    const from = Number(q.get('from_utc_ms')), to = Number(q.get('to_utc_ms')), currencies = q.get('currencies').split(',')
+    return Promise.resolve({ ok: true, json: async () => ({ source_id: q.get('source_id'), from_utc_ms: from, to_utc_ms: to,
+      currencies, source_available: true, events: events.filter(event => currencies.includes(event.currency)
+        && event.release_at !== null && event.release_at >= from && event.release_at <= to) }) })
+  }
   if (u.startsWith('/storage-api/health')) return Promise.resolve({ ok: true, json: async () => ({ revision: calendarRevision,
     sources: [{ id: broker, publisher_status: 'live', server_now: now / 1000, instance_id: 'fixture' }], collector_error: null }) })
   if (u.startsWith('/storage-api/calendar')) {
@@ -325,11 +333,14 @@ try {
   const inspectorQuery = requests.find(url => url.startsWith('/storage-api/calendar') && new URL(url, 'http://localhost').searchParams.has('currencies'))
   assert.ok(inspectorQuery)
   const queryRange = new URL(inspectorQuery, 'http://localhost').searchParams
-  const selectedStart = Date.UTC(2025, 9, 8) / 1000, selectedEnd = (Math.floor(now / 86400000) + 91) * 86400
+  const { utcToChartClock } = await server.ssrLoadModule('./src/appearance/time-display/chart-clock.ts')
+  const clockScope = { brokerId: broker, brokerOffsetSeconds: 10800 }
+  const selectedStart = utcToChartClock(Date.UTC(2025, 9, 8), clockScope) / 1000
+  const selectedEnd = utcToChartClock((Math.floor(now / 86400000) + 91) * 86400000, clockScope) / 1000
   const queriedStart = Number(queryRange.get('from_server_seconds')), queriedEnd = Number(queryRange.get('to_server_seconds'))
   assert.ok(queriedStart <= selectedStart && queriedEnd >= selectedEnd, 'Inspector retains the full selected date window')
-  assert.ok(selectedStart - queriedStart + queriedEnd - selectedEnd <= 6 * 3600,
-    'Inspector padding is bounded to active policy/PMI companions; retired monthly ISM grouping must not fetch 20 extra days')
+  assert.ok(selectedStart - queriedStart + queriedEnd - selectedEnd <= 2 * 3600,
+    'Inspector padding is bounded to legacy policy companions; presentation does not fetch unrelated weeks')
   const flush = async () => React.act(async () => { for (const [id, fn] of frames) { frames.delete(id); fn() } })
   await flush()
   assert.equal(plotted.length, 800)
@@ -753,7 +764,7 @@ try {
   assertCalendarReferences('Research dragging preserves calendar references')
   await pointer(researchOverlay, 'pointerup', 100, 380)
   assert.equal(captures.size, 0)
-  const researchPanel = container.querySelector('.chart-research-workspace > .research-panel')
+  const researchPanel = container.querySelector('.chart-research-workspace > .research-panel-slot > .research-panel')
   assert.ok(researchPanel, 'Research shares the chart row instead of blocking the terminal in a modal')
   assertCalendarReferences('Opening the notes panel preserves the calendar icons')
   scale.logicalToCoordinate = originalLogicalCoordinate
@@ -768,6 +779,31 @@ try {
   await change(document.querySelector('[aria-label="Research question"]'), 'Was this USD strength or EUR weakness?')
   assertQuiet('Writing research notes', true)
   assert.equal(counters.dailyGrouping ?? 0, 0, 'Typing notes does not regroup calendar history')
+  const recentWindow = { ...logicalRange }, recentDrawings = localStorage.getItem('fyodor.chart-drawings.v1')
+  assert.equal(requests.filter(url => url.startsWith('/storage-api/recent-calendar')).length, 0, 'Closed recent panel does no data work')
+  const recentButton = container.querySelector('[aria-label="Show events"]')
+  assert.equal(recentButton.previousElementSibling.getAttribute('aria-label'), 'Hide drawing toolbar')
+  assert.equal(recentButton.textContent, '📆')
+  reset(); await click(recentButton); await flush()
+  assert.ok(container.querySelector('.recent-events-panel'))
+  assert.equal(container.querySelector('.research-panel-slot').hidden, true)
+  assert.equal(document.querySelector('[aria-label="Research question"]').value, 'Was this USD strength or EUR weakness?')
+  assert.deepEqual(logicalRange, recentWindow)
+  assert.equal(counters.chartCreated ?? 0, 0); assert.equal(counters.setData ?? 0, 0)
+  const recentQuery = new URL(requests.filter(url => url.startsWith('/storage-api/recent-calendar')).at(-1), 'http://localhost').searchParams
+  assert.equal(recentQuery.get('currencies'), 'EUR,USD')
+  assert.equal(container.querySelectorAll('.recent-events-panel tbody tr').length,
+    events.filter(event => ['EUR', 'USD'].includes(event.currency) && event.release_at !== null
+      && event.release_at >= Number(recentQuery.get('from_utc_ms')) && event.release_at <= Number(recentQuery.get('to_utc_ms'))).length,
+    'Recent events include all series independently of saved Inspector family filters')
+  assert.equal(container.querySelector('.event-panel-tabs [aria-selected="true"]').textContent, 'Upcoming')
+  assert.equal(container.querySelector('.recent-events-panel th').textContent, 'In')
+  assert.doesNotMatch(container.querySelector('.recent-events-panel').textContent, /UTC\+07:00|Pepperstone-Demo/)
+  await click(container.querySelector('[aria-label="Hide events"]')); await flush()
+  assert.equal(container.querySelector('.recent-events-panel'), null)
+  assert.equal(container.querySelector('.research-panel-slot').hidden, false)
+  assert.equal(container.querySelector('.research-panel'), researchPanel, 'Switching panels preserves the mounted research draft')
+  assert.equal(localStorage.getItem('fyodor.chart-drawings.v1'), recentDrawings)
   await click(container.querySelector('.inspector-day-symbol.inspector-currency-USD'))
   const inspected = container.querySelector('.inspector-panel').textContent
   const requestsBeforeResearchPan = requests.length
@@ -783,7 +819,7 @@ try {
   assertQuiet('Panning while writing research', true)
   assert.equal(requests.length, requestsBeforeResearchPan)
   assert.equal(container.querySelector('.inspector-panel').textContent, inspected, 'Chart navigation retains the inspected release while research is open')
-  assert.equal(container.querySelector('.chart-research-workspace > .research-panel'), researchPanel)
+  assert.equal(container.querySelector('.chart-research-workspace > .research-panel-slot > .research-panel'), researchPanel)
   assert.equal(document.querySelector('[aria-label="Research question"]').value, 'Was this USD strength or EUR weakness?')
   await click(button('Alert'))
   assert.ok(container.querySelector('.alert-event-group'), 'The bottom dock remains interactive beside research')

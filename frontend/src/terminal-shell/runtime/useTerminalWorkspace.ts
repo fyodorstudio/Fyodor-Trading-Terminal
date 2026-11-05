@@ -37,6 +37,7 @@ export function useTerminalWorkspace() {
   const [timeDisplay, setTimeDisplay] = useState<TimeDisplayPreference>(readTimeDisplayPreference)
   const [activeDrawingTool, setActiveDrawingTool] = useState<DrawingToolId | null>(null)
   const [researchActive, setResearchActive] = useState(false)
+  const [recentEventsOpen, setRecentEventsOpen] = useState(false)
   const [researchSeed, setResearchSeed] = useState<ResearchSeed | null>(null)
   const [researchError, setResearchError] = useState<string | null>(null)
   const [selectedDrawingId, setSelectedDrawingId] = useState<string | null>(null)
@@ -196,7 +197,13 @@ export function useTerminalWorkspace() {
   }, [appendActivity])
   const cancelResearch = useCallback(() => setResearchActive(false), [])
   const closeResearch = useCallback(() => { setResearchSeed(null); setResearchError(null) }, [])
+  const closeRecentEvents = useCallback(() => setRecentEventsOpen(false), [])
+  const toggleRecentEvents = useCallback(() => {
+    setRecentEventsOpen(current => !current)
+    setResearchActive(false)
+  }, [])
   const selectResearchTool = () => {
+    setRecentEventsOpen(false)
     setActiveDrawingTool(null); setSelectedDrawingId(null); setResearchError(null)
     setResearchActive(current => !current)
   }
@@ -283,6 +290,6 @@ export function useTerminalWorkspace() {
     recordChartData, changeTheme, changeChartAppearance, changeTimeDisplay, createDrawing, chooseDrawingTool,
     selectCrosshair, deletePairDrawings, toggleBottomDock, exitDrawingMode, toggleDrawingToolbar,
     renderChartOverlay, sourceState, sourceLabel, researchActive, researchSeed, researchError,
-    selectResearchTool, closeResearch, alertFocus, viewReleaseInAlert,
+    selectResearchTool, closeResearch, recentEventsOpen, toggleRecentEvents, closeRecentEvents, alertFocus, viewReleaseInAlert,
     plannedTrade, handlePlanChange, latestBarTime, registeredArrows, selectPinnedArrow, priceAlerts, leftDockTab, setLeftDockTab }
 }

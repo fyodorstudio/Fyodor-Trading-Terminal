@@ -230,6 +230,62 @@ try {
   await React.act(async () => root.render(React.createElement(React.StrictMode, null, React.createElement(MarketCandlestickChart, props))))
   await paint()
   assert.equal(chart.panes().length, 2); assert.equal(host.querySelectorAll('.rsi-legend').length, 1, 'StrictMode retains one live RSI pane')
+  await React.act(async () => root.render(null)); await paint()
+  const viewportBars = Array.from({ length: 2000 }, (_, i) => ({ ...bars[0], time: 1700000000 + i * 3600 }))
+  props = { ...props, bars: viewportBars, timeframe: 'H1', fitContentKey: 'EURUSD:H1', symbol: 'EURUSD',
+    rsi: { ...defaultRsiPreferences, enabled: true }, drawings: [], selectedDrawingId: null, refocusRequest: 0 }
+  await React.act(async () => root.render(React.createElement(MarketCandlestickChart, props)))
+  // Quotes/clock/parent updates can arrive before the native chart paints its
+  // queued range. A synchronous canvas fixture cannot reproduce this race.
+  props = { ...props, precision: 4 }
+  await React.act(async () => root.render(React.createElement(MarketCandlestickChart, props)))
+  await paint()
+  let actualWindow = chart.timeScale().getVisibleLogicalRange()
+  assert.ok(actualWindow.from < 1999 && actualWindow.to >= 1999, `Fresh load must contain actual candles after deferred native updates: ${JSON.stringify(actualWindow)}`)
+  assert.ok(actualWindow.to - actualWindow.from < 150, 'Fresh load preserves useful candle spacing')
+  const widthBeforePair = actualWindow.to - actualWindow.from
+  const pairBars = viewportBars.slice(-1500).map(bar => ({ ...bar, time: bar.time - 10 * 86400 }))
+  props = { ...props, bars: [], symbol: 'USDJPY', fitContentKey: 'USDJPY:H1' }
+  await React.act(async () => root.render(React.createElement(MarketCandlestickChart, props)))
+  props = { ...props, bars: pairBars }
+  await React.act(async () => root.render(React.createElement(MarketCandlestickChart, props)))
+  props = { ...props, precision: 3 }
+  await React.act(async () => root.render(React.createElement(MarketCandlestickChart, props)))
+  await paint()
+  actualWindow = chart.timeScale().getVisibleLogicalRange()
+  assert.ok(actualWindow.from < pairBars.length - 1 && actualWindow.to >= pairBars.length - 1, 'A live pair switch follows its own candles even when its latest session differs')
+  close(actualWindow.to - actualWindow.from, widthBeforePair, 'Pair switches preserve candle spacing through deferred updates')
+  for (const [frame, step] of [['D1', 86400], ['H4', 14400], ['H1', 3600], ['M30', 1800], ['M15', 900], ['M5', 300], ['M1', 60]]) {
+    props = { ...props, bars: [], symbol: 'EURX', timeframe: frame, fitContentKey: `EURX:${frame}` }
+    await React.act(async () => root.render(React.createElement(MarketCandlestickChart, props)))
+    const nextBars = viewportBars.map((bar, index) => ({ ...bar, time: 1800000000 - (1999 - index) * step }))
+    props = { ...props, bars: nextBars }
+    await React.act(async () => root.render(React.createElement(MarketCandlestickChart, props)))
+    props = { ...props, precision: props.precision === 3 ? 4 : 3 }
+    await React.act(async () => root.render(React.createElement(MarketCandlestickChart, props)))
+    await paint()
+    actualWindow = chart.timeScale().getVisibleLogicalRange()
+    assert.ok(actualWindow.from < 1999 && actualWindow.to >= 1999, `${frame}: a native frame/quote update keeps actual candles visible`)
+    close(actualWindow.to - actualWindow.from, widthBeforePair, `${frame}: native timeframe restoration retains candle spacing`)
+  }
+  for (const enabled of [false, true]) for (const strict of [false, true]) {
+    await React.act(async () => root.render(null)); await paint()
+    props = { ...props, bars: [], timeframe: 'H1', fitContentKey: 'EURUSD:H1', symbol: 'EURUSD', rsi: { ...defaultRsiPreferences, enabled } }
+    const element = () => strict ? React.createElement(React.StrictMode, null, React.createElement(MarketCandlestickChart, props)) : React.createElement(MarketCandlestickChart, props)
+    await React.act(async () => root.render(element()))
+    props = { ...props, bars: viewportBars }
+    await React.act(async () => root.render(element()))
+    props = { ...props, timeDisplay: { ...props.timeDisplay }, precision: 5 }
+    await React.act(async () => root.render(element()))
+    await paint()
+    actualWindow = chart.timeScale().getVisibleLogicalRange()
+    assert.ok(actualWindow.from < 1999 && actualWindow.to >= 1999, `Refresh RSI=${enabled}, StrictMode=${strict}: actual candles are visible`)
+    assert.ok(actualWindow.to - actualWindow.from < 150, 'Refresh keeps configured candle spacing')
+    const nativeCandles = chart.panes()[0].getSeries()[0]
+    assert.equal(nativeCandles.data().length, viewportBars.length)
+    const candleY = nativeCandles.priceToCoordinate(viewportBars.at(-1).close)
+    assert.ok(candleY !== null && candleY >= 0 && candleY <= chart.paneSize(0).height, 'The latest actual candle also has a visible native price coordinate')
+  }
   console.log('✓ RSI real chart: native panes/scale/time/crosshair, resize and gesture isolation, live/history/scope updates, style/empty/toggle, dialog drafts/validation/focus and StrictMode cleanup')
 } catch (error) {
   console.error(error)

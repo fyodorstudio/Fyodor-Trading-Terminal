@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 import React from 'react'
 import { createServer } from 'vite'
 import { Window } from 'happy-dom'
+import fs from 'node:fs'
 
 const server = await createServer({ root: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..'), server: { middlewareMode: true, hmr: false } })
 const dom = new Window({ url: 'http://localhost:5173' })
@@ -34,6 +35,7 @@ try {
   const { selectedInspectorRelease } = await server.ssrLoadModule('./src/inspector/releases/group-days.ts')
   const { useInspector } = await server.ssrLoadModule('./src/inspector/useInspector.ts')
   const { InspectorPanel } = await server.ssrLoadModule('./src/inspector/InspectorPanel.tsx')
+  const { InspectorReadingsTable } = await server.ssrLoadModule('./src/inspector/readings/InspectorReadingsTable.tsx')
   const { InspectorChartMarkers } = await server.ssrLoadModule('./src/inspector/InspectorChartMarkers.tsx')
   const sources = data.groupInspectorReleases(readings), combined = group(sources)[0]
   assert.equal(sources.length, 7, 'Original country/family publications remain distinct')
@@ -47,16 +49,24 @@ try {
   const filtered = data.filterInspectorReleases([combined], { ...preferences, families: [italy.familyId] }, range)
   const italianCpi = sources.filter(source => source.familyId === italy.familyId).flatMap(source => source.events)
   assert.deepEqual(filtered[0].events, italianCpi, 'Existing family filters exclude hidden countries/series')
+  assert.equal(selectedInspectorRelease(filtered, [combined], combined.id, display), combined,
+    'Opening an admitted same-time entry exposes its complete source package')
   assert.equal(data.filterInspectorReleases([combined], { ...preferences, families: [] }, range).length, 0)
   const us = row('840030005', 'US CPI m/m', 'US', { currency: 'USD' })
   assert.equal(group(data.groupInspectorReleases([...readings, us])).length, 2, 'USD never joins the EUR table')
-  for (const extra of [{ time_mode: 1 }, { time_mode: 3, actual: .4 }, { release_at: at + 60000, chart_time_seconds: at / 1000 + 60 },
-    { chart_time_seconds: at / 1000 + 3600 }, { release_at: null, chart_time_seconds: null }]) {
+  for (const extra of [{ time_mode: 1 }, { time_mode: 3, actual: null }, { release_at: at + 60000, chart_time_seconds: at / 1000 + 60 },
+    { release_at: null, chart_time_seconds: null }]) {
     const separate = data.groupInspectorReleases([row('380010001', 'CPI m/m'), row('999030011', 'CPI m/m', 'EU', extra)])
-    assert.equal(group(separate).length, 2, 'Only identical verified publication and chart clocks join')
+    assert.equal(group(separate).length, 2, 'Different or unconfirmed publication times stay separate')
   }
+  const clockConflict = group(data.groupInspectorReleases([readings[0], { ...readings[6], chart_time_seconds: at / 1000 + 3600 }]))
+  assert.equal(clockConflict.length, 1, 'Publication UTC determines package membership independently of chart placement')
+  assert.equal(clockConflict[0].chartTime, null, 'Conflicting chart clocks never create an invented chart coordinate')
+  assert.equal(group(data.groupInspectorReleases([readings[0], { ...readings[6], chart_time_seconds: null }])).length, 1)
+  assert.equal(group(data.groupInspectorReleases([readings[0], { ...readings[6], time_mode: 3, actual: .4 }])).length, 1,
+    'A published tentative numerical series with a verified release instant joins its same-time package')
   const policy = row('999010003', 'ECB rate', 'EU')
-  assert.equal(group(data.groupInspectorReleases([...readings, policy])).length, 2, 'Policy stages retain their existing grouping')
+  assert.equal(group(data.groupInspectorReleases([...readings, policy])).length, 1, 'A policy category never excludes a same-time publication')
   const revision = { ...readings[0], value_id: 'revision', revision: 1, actual: .4, period_seconds: period - 31 * 86400 }
   assert.ok(group(data.groupInspectorReleases([...readings, revision]))[0].events.includes(revision), 'Different reference periods stay attached to their rows')
   const eia = ['840200001', '840200002', '840200003'].map((id, index) => row(id, `EIA series ${index}`, 'US', { currency: 'USD' }))
@@ -67,6 +77,37 @@ try {
   const combinedUnknown = group(data.groupInspectorReleases([...eia, unknown]))[0]
   const onlyUnknown = data.filterInspectorReleases([combinedUnknown], { ...preferences, families: ['usd-other'] }, range)
   assert.equal(onlyUnknown[0].events[0], unknown, 'New event IDs survive partial filtering inside a combined release')
+  const tic = ['840220001', '840220002', '840220003', '840220004'].map((id, index) => row(id, `TIC reading ${index}`, 'US', { currency: 'USD' }))
+  const ticGroup = group(data.groupInspectorReleases(tic))
+  assert.equal(ticGroup.length, 1, 'All four TIC money-sector events share one release package')
+  assert.equal(ticGroup[0].events.length, 4)
+  const decision = row('840050014', 'Fed rate decision', 'US', { currency: 'USD', release_at: at - 7200000, chart_time_seconds: at / 1000 - 7200 })
+  const statement = row('840050002', 'Fed statement', 'US', { currency: 'USD', release_at: at - 5400000, chart_time_seconds: at / 1000 - 5400 })
+  const policyTimes = group(data.groupInspectorReleases([decision, statement, ...tic]))
+  assert.equal(policyTimes.length, 3, 'Legacy policy episodes are separated into their actual clocks before presentation')
+  assert.ok(policyTimes.every(release => release.events.every(event => event.release_at === release.releaseAt)))
+  const intervening = row('840200001', 'Intervening release', 'US', { currency: 'USD', release_at: at - 6300000, chart_time_seconds: at / 1000 - 6300 })
+  assert.deepEqual(group(data.groupInspectorReleases([decision, statement, intervening, ...tic])).map(release => release.releaseAt),
+    [at - 7200000, at - 6300000, at - 5400000, at], 'Splitting a legacy episode preserves chronological order around intervening releases')
+  const pmiSources = data.groupInspectorReleases([
+    row('250500002', 'France PMI', 'FR', { release_at: at - 1800000, chart_time_seconds: at / 1000 - 1800 }),
+    row('276500002', 'Germany PMI', 'DE'), row('999500002', 'Euro-area PMI', 'EU'),
+  ], false)
+  const legacyPmi = { ...pmiSources[0], pmiPublications: pmiSources, events: pmiSources.flatMap(source => source.events) }
+  assert.equal(group([legacyPmi]).length, 2, 'PMI regions share a package only at exactly the same time')
+  const catalog = JSON.parse(fs.readFileSync(new URL('../../src/economic-calendar/catalog/source-events.json', import.meta.url), 'utf8'))
+  const catalogReadings = catalog.map(item => row(item.id, item.name, item.country, { currency: item.currency }))
+  const catalogPackages = group(data.groupInspectorReleases(catalogReadings))
+  assert.equal(catalogPackages.length, 8, 'Every catalog category across all eight currencies follows one exact-time rule')
+  assert.equal(catalogPackages.flatMap(release => release.events).length, catalogReadings.length, 'The full catalog audit preserves every raw reading')
+  assert.equal(new Set(catalogPackages.flatMap(release => release.events.map(event => event.value_id))).size, catalogReadings.length)
+  assert.ok(catalogPackages.every(release => release.events.every(event => event.currency === release.currency && event.release_at === release.releaseAt)))
+  const mixedPolicy = group(data.groupInspectorReleases([...readings,
+    row('999010007', 'ECB interest rate', 'EU', { actual: 1.2, previous: 1, forecast: 1.1 })]))[0]
+  await React.act(async () => root.render(React.createElement(InspectorReadingsTable, { release: mixedPolicy, timeDisplay: display, sharedPeriod: period })))
+  assert.match(node.querySelector('thead').textContent, /A−F \(Surprise\)/, 'Mixed packages retain the rate-decision surprise column regardless of the representative family')
+  assert.equal(node.querySelector('[data-series-id="999010007"] td:last-child').textContent, '+10 bp')
+  assert.equal(node.querySelector('[data-series-id="380010001"] td:last-child').textContent, '—', 'A rate-only basis-point column is not applied to inflation readings')
   let view, activeReadings = readings
   function App() {
     const inspector = useInspector({ events: activeReadings, symbol: 'EURUSD', bars, timeframe: 'H1', timeDisplay: display, clockOffsetMs })
@@ -88,7 +129,8 @@ try {
   assert.match(node.querySelector('tr[data-series-id="380010001"]').textContent, /IT/)
   assert.match(node.querySelector('tr[data-series-id="999030011"]').textContent, /EU/)
   await React.act(async () => view.applyPreferences({ ...view.preferences, families: [italy.familyId] }, 'preview'))
-  assert.equal(node.querySelectorAll('tr[data-series-id]').length, italianCpi.length)
+  assert.equal(view.releases[0].events.length, italianCpi.length, 'Saved filters still control chart/list admission')
+  assert.equal(node.querySelectorAll('tr[data-series-id]').length, readings.length, 'The open Inspector shows every same-time source row')
   await React.act(async () => view.applyPreferences({ ...preferences, symbolGrouping: 'day' }, 'preview'))
   assert.ok(view.selectedRelease.daily, 'An open combined selection resolves when switching to By day')
   assert.equal(view.releases[0].events.length, readings.length)
@@ -100,6 +142,24 @@ try {
   assert.equal(node.querySelector('.inspector-marker-popup'), null)
   assert.equal(node.querySelectorAll('tr[data-series-id]').length, eia.length, 'One click displays all same-time USD readings')
   assert.equal(node.querySelector('.inspector-chart-symbol sup').textContent, String(eia.length), 'The combined icon keeps its release count')
+  activeReadings = ['840210001', '840210002', '840210003', '840210004', '840210005'].map((id, index) =>
+    row(id, `Michigan reading ${index}`, 'US', { currency: 'USD' }))
+  const inflationFamilies = data.inspectorFamilies.filter(family => family.events.some(id => ['840210004', '840210005'].includes(id))).map(family => family.id)
+  await React.act(async () => root.render(React.createElement(App)))
+  await React.act(async () => view.applyPreferences({ ...view.preferences, families: inflationFamilies }, 'preview'))
+  assert.equal(view.releases[0].events.length, 2, 'Only the selected inflation families admit the Michigan icon')
+  await React.act(async () => node.querySelector('.inspector-chart-symbol').click())
+  assert.equal(node.querySelector('.inspector-chart-symbol sup').textContent, '5')
+  assert.equal(node.querySelectorAll('tr[data-series-id]').length, 5, 'A five-release Michigan icon exposes all five same-time readings')
+  await React.act(async () => view.applyPreferences({ ...view.preferences, families: [] }, 'preview'))
+  assert.equal(node.querySelector('.inspector-chart-symbol'), null, 'An empty selection still hides every icon')
+  assert.equal(view.selectedRelease, null, 'A group with no admitted family is dismissed')
+  activeReadings = tic
+  await React.act(async () => { view.applyPreferences(preferences, 'preview'); root.render(React.createElement(App)) })
+  assert.equal(node.querySelectorAll('.inspector-chart-symbol').length, 1)
+  await React.act(async () => node.querySelector('.inspector-chart-symbol').click())
+  assert.equal(node.querySelector('.inspector-marker-popup'), null, 'The real Inspector opens TIC directly without four separate chooser entries')
+  assert.equal(node.querySelectorAll('tr[data-series-id]').length, 4)
   await React.act(async () => root.render(null))
   assert.equal(listeners.size, 0); assert.equal(sizes.size, 0)
   console.log('✓ Simultaneous EUR: seven publications, one icon/table, original countries/values/periods, filters, exact clocks, independent USD/policy, stable renders and daily selection')

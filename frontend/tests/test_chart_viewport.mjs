@@ -130,8 +130,10 @@ try {
 
   emit({ from: 1, to: 4 })
   const beforeFrame = captureDateWindow(range, plotted, 3600)
+  const beforeFrameSpan = range.to - range.from
   await render('USDCHF', 'M30'); await reply(pending()[0], bars(Array.from({ length: 13 }, (_, i) => base - 6 * 3600 + i * 1800)))
-  assert.deepEqual(captureDateWindow(range, plotted, 1800), beforeFrame, 'Timeframe changes preserve dates using the old step for capture')
+  assert.equal(captureDateWindow(range, plotted, 1800).to, beforeFrame.to, 'Historical timeframe changes preserve the window end using the old step for capture')
+  assert.equal(range.to - range.from, beforeFrameSpan, 'Timeframe changes preserve candle spacing instead of fitting the entire previous date span')
   await render('EURUSD', 'H1', 'B'); await reply(pending()[0], make(0, 1, 2, 3, 4, 5))
   assert.equal(fitted, 2, 'A different broker starts a fresh viewport scope')
   const canvas = container.querySelector('.market-chart-canvas')
@@ -184,6 +186,35 @@ try {
   await React.act(async () => root.render(null))
   await renderCandles(largeHistory, true)
   assert.deepEqual(range, initialRange, 'A fresh mount/StrictMode refresh needs no manual refocus')
+  await React.act(async () => root.render(null))
+  // EURX follows the same viewport rules as pairs, across asynchronous empty
+  // loading states and large D1/intraday differences. The hidden 90-day axis
+  // must never become the new visible range.
+  const end = base + 2200 * 86400
+  const frameSteps = { D1: 86400, H4: 14400, H1: 3600, M30: 1800, M15: 900, M5: 300, M1: 60 }
+  const historyFor = step => bars(Array.from({ length: 2000 }, (_, i) => end - (1999 - i) * step))
+  await render('EURX', 'D1', 'B'); await reply(pending()[0], historyFor(frameSteps.D1))
+  emit({ from: 1887, to: 2007 })
+  for (const [frame, step] of Object.entries(frameSteps).slice(1)) {
+    await render('EURX', frame, 'B')
+    assert.equal(plotted.length, 0, 'Old timeframe candles are cleared while the next frame loads')
+    await reply(pending()[0], historyFor(step))
+    assert.deepEqual(range, { from: 1887, to: 2007 }, `EURX ${frame}: keep 120 visible slots and eight slots after the latest candle`)
+  }
+  emit({ from: 1700.25, to: 1820.75 })
+  const historicalEnd = captureDateWindow(range, plotted, frameSteps.M1).to
+  await render('EURX', 'H1', 'B'); await reply(pending()[0], historyFor(frameSteps.H1))
+  assert.equal(range.to - range.from, 120.5, 'A historical index view retains its chosen candle spacing')
+  assert.ok(Math.abs(captureDateWindow(range, plotted, frameSteps.H1).to - historicalEnd) < 1e-6, 'A historical index view retains its end time')
+  emit({ from: 100, to: 220 })
+  const backfillEnd = captureDateWindow(range, plotted, frameSteps.H1).to
+  await render('EURX', 'D1', 'B')
+  await reply(pending()[0], historyFor(frameSteps.D1).slice(-6), true)
+  assert.equal(range.to - range.from, 120, 'An initially incomplete timeframe keeps the requested candle spacing')
+  await reply(pending()[0], historyFor(frameSteps.D1).slice(-206, -6), false)
+  assert.equal(range.to - range.from, 120, 'Older pages retain the restored candle spacing')
+  assert.ok(Math.abs(captureDateWindow(range, plotted, frameSteps.D1).to - backfillEnd) < 1e-6, 'Backfill retains the historical end time')
+  assert.equal(pending().length, 0, 'Timeframe backfill stops when the resized date window is covered')
   await React.act(async () => root.render(null))
   console.log('✓ Shared dates, zoom and future space; serial MT5 backfill, stop/retry, missing history, stale replies, timeframe/broker scope and cleanup')
 } finally {

@@ -106,7 +106,7 @@
 .timeframe-selector button:hover { color: var(--text-strong); background: var(--surface-hover); }
 .timeframe-selector button.active { color: #ffffff; background: var(--accent); box-shadow: 0 3px 12px color-mix(in srgb, var(--accent) 26%, transparent); }
 
-.chart-drawing-toggle, .chart-event-toggle, .chart-refocus-button {
+.chart-drawing-toggle, .chart-event-toggle, .chart-refocus-button, .chart-recent-events-toggle {
   width: 36px;
   height: 36px;
   display: grid;
@@ -120,7 +120,7 @@
   transition: all 0.15s ease;
 }
 
-.chart-drawing-toggle:hover:not(:disabled), .chart-event-toggle:hover, .chart-refocus-button:hover:not(:disabled) {
+.chart-drawing-toggle:hover:not(:disabled), .chart-event-toggle:hover, .chart-refocus-button:hover:not(:disabled), .chart-recent-events-toggle:hover {
   color: var(--text-strong);
   background: var(--surface-hover);
 }
@@ -129,7 +129,7 @@
 .chart-refocus-button:disabled { opacity: 0.45; cursor: default; }
 .chart-refocus-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-.chart-drawing-toggle.active, .chart-event-toggle.active {
+.chart-drawing-toggle.active, .chart-event-toggle.active, .chart-recent-events-toggle.active {
   color: #ffffff;
   background: var(--accent);
   border-color: var(--accent);
@@ -245,3 +245,6 @@
 }
 
 .chart-refocus-button span { font-family: "Segoe UI Symbol", sans-serif; font-size: 23px; line-height: 1; }
+.chart-recent-events-toggle span { font-size: 18px; line-height: 1; }
+.chart-recent-events-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.research-panel-slot:not([hidden]) { display: contents; }

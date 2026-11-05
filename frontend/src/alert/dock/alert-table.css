@@ -8,7 +8,7 @@
 .alert-header-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-left: auto; }
 .alert-date-meta { display: flex; justify-content: space-between; gap: 8px; align-items: center; padding: 8px 0 12px; font-size: 10px; color: var(--text-muted); }
 .alert-table-scroll { width: 100%; min-width: 0; }
-.alert-event-table { --alert-row-divider: color-mix(in srgb, var(--text-muted) 14%, transparent); border-collapse: collapse; width: 100%; table-layout: fixed; font-variant-numeric: tabular-nums; }
+.alert-event-table { --alert-row-divider: color-mix(in srgb, var(--text-muted) 14%, transparent); --alert-time-divider: color-mix(in srgb, var(--text-muted) 36%, transparent); border-collapse: collapse; width: 100%; table-layout: fixed; font-variant-numeric: tabular-nums; }
 .alert-event-table thead th { text-align: left; padding: 9px 10px; border-bottom: 2px solid var(--border-strong); color: var(--text-muted); font-size: 10px; font-weight: 600; }
 .alert-event-table thead th:nth-child(1) { width: 8%; }
 .alert-event-table thead th:nth-child(2) { width: auto; }
@@ -19,6 +19,8 @@
 .alert-event-table thead th:nth-child(8) { width: 52px; }
 .alert-time-end { border-bottom: 1px solid var(--alert-row-divider); }
 .alert-summary-row > :is(td, th) { border-bottom: 1px solid var(--alert-row-divider); }
+.alert-clock-start > tr:first-child > :is(td, th) { border-top: 1px solid var(--alert-time-divider); }
+.alert-clock-end > tr:last-child > :is(td, th) { border-bottom: 1px solid var(--alert-time-divider); }
 .alert-event-group > tr > td, .alert-event-group > tr > th { padding: 6px 10px; line-height: 18px; vertical-align: middle; text-align: left; font-weight: normal; overflow-wrap: anywhere; }
 .alert-event-group > tr > td.alert-value { text-align: right; }
 .alert-event-table small { display: block; color: var(--text-faint); font-size: 10px; margin-top: 4px; }

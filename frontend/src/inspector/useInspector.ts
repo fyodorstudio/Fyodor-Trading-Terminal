@@ -14,7 +14,6 @@ import { chartEventSymbol as inspectorPair, chartEventCurrencies as inspectorPai
 import { createInspectorReadingSelector } from '../economic-calendar/forex/select-pair-readings'
 import { useStoredCalendar } from '../economic-calendar/storage/useStoredCalendar'
 import { policyEpisodeWindowMs } from './episodes/policy-episodes'
-import { groupPmiEpisodes, pmiEpisodeWindowMs } from './episodes/pmi-episodes'
 import { groupSimultaneousReleases } from './releases/simultaneous-releases'
 import { useMarkerBars } from './chart/useMarkerBars'
 
@@ -54,10 +53,10 @@ export function useInspector({ events = noEvents, symbol, bars, timeframe, timeD
     if (!inspectorDisplayRange({ from, to }, rangeDisplay)) return
     setCustomFrom(from); setCustomTo(to); setRangePreset('custom')
   }, [rangeDisplay])
-  // Fetch only neighboring policy/PMI companions across a selected boundary.
+  // Include neighboring legacy policy companions before exact-time presentation.
   const storageRange = useMemo(() => {
     if (!range) return null
-    const margin = Math.max(policyEpisodeWindowMs,pmiEpisodeWindowMs), scope = { brokerId: brokerId ?? null, brokerOffsetSeconds }
+    const margin = policyEpisodeWindowMs, scope = { brokerId: brokerId ?? null, brokerOffsetSeconds }
     const from = utcToChartClock(range.from - margin, scope), to = utcToChartClock(range.to + margin, scope)
     // Unknown brokers still have usable publication UTC. Fetch a conservative
     // raw window for their list; never invent chart coordinates from it.
@@ -70,7 +69,7 @@ export function useInspector({ events = noEvents, symbol, bars, timeframe, timeD
   const selectPairReadings = useMemo(() => createInspectorReadingSelector(currencies), [currencies])
   const pairReadings = useMemo(() => selectPairReadings(readings), [readings, selectPairReadings])
   const allReleases = useMemo(() => groupInspectorReleases(pairReadings), [pairReadings])
-  const displayReleases = useMemo(() => groupSimultaneousReleases(groupPmiEpisodes(allReleases)), [allReleases])
+  const displayReleases = useMemo(() => groupSimultaneousReleases(allReleases), [allReleases])
   const releaseGroups = useMemo(() => supported ? filterInspectorReleases(displayReleases, preferences, range,
     release => release.timingUncertain && release.serverTime > 0 ?
       parseDisplayClockInput(`${new Date(release.serverTime * 1000).toISOString().slice(0, 10)}T00:00`, rangeDisplay) :

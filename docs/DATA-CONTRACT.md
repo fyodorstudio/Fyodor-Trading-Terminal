@@ -4,6 +4,23 @@ The bridge remains unchanged from the original terminal. Storage serves the same
 publisher/ingestion, paged calendar and recovery protocols. The frontend never
 calculates currency scores or modifies source observations.
 
+The Events right panel reads `GET /api/v1/recent-calendar` with the active broker,
+chart currencies and a rolling publication-UTC interval of at most 31 days.
+Its Upcoming/Recent bottom tabs select future or elapsed windows; Upcoming opens
+by default and sorts nearest first, while Recent sorts newest first. The range
+selector offers Next/Last 3, 7, 14 and 31 days. One bounded,
+indexed read returns all matching series, independently of Inspector selections
+and chart visibility. Captured publication UTC remains usable without chart
+placement; date-only or unverifiable publication times are omitted. Missing
+actuals remain blank and supplied Previous is distinct from revised Previous.
+Actual uses the captured MT5 value's `impact` flag: positive is green (bullish
+for that row's currency), negative is red (bearish), and unset stays uncolored.
+Missing actuals are uncolored. Forecast/Previous retain their normal text color.
+This does not infer direction from numerical comparisons, invert quote-currency
+signals, or replace the separately sourced Agent impact assessment in Alert.
+The right panel refreshes every 30 seconds while open and cancels stale requests
+on scope changes or close. This endpoint never changes observations or alarms.
+
 ## Local inventory
 
 The separate [Currency News dock](CURRENCY-NEWS.md) reads on-demand agent-authored
@@ -137,8 +154,16 @@ Published tentative numerical events can use their recorded verified clock.
 Historical symbols need a containing candle; future symbols project timeframe
 slots until actual sessions arrive. Unused projected slots are removed on a gap.
 
-Inspector fetches the pair's currencies, including new IDs, and applies family/
-date filters before grouping. Saved family selections are shared by currency;
+Inspector fetches the pair's currencies, including new IDs. Family/date filters
+admit chart icons and list entries; opening an admitted release exposes its
+complete source group at that release time, including companion families.
+By release has one package per currency and exact publication UTC across all
+categories. Policy/PMI context is separated into its actual publication clocks;
+neither a broad money-sector category nor published tentative metadata prevents
+same-time grouping. Chart availability does not change package membership;
+conflicting native chart clocks leave a package unplaced rather than inventing
+coordinates. Date-only and genuinely unconfirmed times remain separate.
+By-day entries retain their daily family selection. Saved families are shared by currency;
 grouping, symbol visibility, icons and colors remain per canonical pair. A single
 browser-storage write saves both currencies and the pair's appearance settings.
 Preview/Cancel never changes the saved shared selections. Legacy pair settings

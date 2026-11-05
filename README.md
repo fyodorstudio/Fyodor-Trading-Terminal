@@ -87,7 +87,11 @@ current close change. Date navigation never borrows another day's candle.
 The chart header retains high/low distances and indicative regional sessions.
 Refocus, immediately right of D1, returns to the latest candles while keeping
 horizontal zoom and restoring automatic price scaling. A fresh browser load
-opens recent candles at the configured spacing instead of fitting all history. Empty future space keeps
+opens recent candles at the configured spacing instead of fitting all history.
+Timeframe changes preserve candle spacing: live views stay beside the latest
+candles, while historical/future views retain their end time. Live symbol changes
+follow the new symbol's latest candle at the same spacing; historical/future
+symbol changes continue sharing the selected date window. Empty future space keeps
 the last useful price scale and editable drawings visible.
 RSI and its settings gear sit immediately left of the timeframe controls. RSI
 opens a resizable lower pane with a shared time axis, Wilder RSI 14 on Close,
@@ -99,18 +103,35 @@ Daily-candle reads attach only to the bridge's exact terminal/account, with
 bounded caches; no login, symbol selection or broker changes.
 
 By release combines exact-time readings for each currency into one Inspector
-table, preserving raw series, source IDs and family filters. Calendar icons open Inspector first; **View in Alert** opens the selected
+table across every category, including TIC/money, policy and PMI, preserving raw
+series, source IDs and family filters. Distinct publication times stay separate
+even on the same chart candle; older policy/PMI episodes do not merge those
+clocks in By release. Calendar icons open Inspector first; **View in Alert** opens the selected
 Pepperstone release in the dated Alert table. Inspector Save shares selected families across pairs containing each currency;
 icon style/grouping/colors remain chart-specific. The chart calendar toggle
 controls event icons and External Source stars without changing selections.
 All series, date-only/unknown times, unknown-ID admission, blank-chart dismissal,
 future axis and saved drawings remain supported. Jakarta AM/PM is the display
 default; publication UTC and historical broker/chart clocks remain independent.
+Family filters control chart/list admission; opening an admitted release exposes
+its complete same-time source group. By-day selections keep their daily filters.
+
+The 📆 button immediately right of the drawing-toolbar toggle opens Events
+in the right panel. Its bottom dock switches Upcoming (the default) and Recent.
+It follows the active chart's currency scope and broker, showing all timed rows
+within the next or last 3, 7, 14 or 31 rolling days. Upcoming sorts nearest first
+with In, CUR, Event and Actual/Forecast/Previous; Recent sorts newest first with
+Age instead of In. Chart family selections and icon visibility do not filter
+this list. Relative time uses publication UTC; hovering shows the timestamp
+in the selected display timezone. Date-only or unverifiable
+publication times are excluded rather than given an invented age. Browsing is
+read-only and preserves research drafts when switching the shared right panel.
 
 Alert shows all captured events for a selected Jakarta date, including released
 rows, with source-specific Actual/Forecast/Previous. Agent impact remains sourced
 or Unreviewed; MT5 importance never supplies it. One bell controls each timed
-release package. Browsing, news saves and filters do not change choices. Windows
+release package. Each event has its own flat row and independently expandable
+details, including package components and linked publishers. Browsing, news saves and filters do not change choices. Windows
 must remain awake for the independent worker; delivery never invokes AI.
 Manual price alerts remain independent. Alert’s **Legacy pins & research** button
 exposes active/archived pins, Elev8 journals, evidence, versions and saved prompts

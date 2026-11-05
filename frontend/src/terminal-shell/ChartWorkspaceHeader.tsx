@@ -23,6 +23,8 @@ type ChartWorkspaceHeaderProps = {
   onOpenRsiSettings?: () => void
   eventIconsVisible?: boolean
   onToggleEventIcons?: () => void
+  recentEventsOpen?: boolean
+  onToggleRecentEvents?: () => void
 }
 
 function PaintbrushIcon() {
@@ -59,6 +61,8 @@ export function ChartWorkspaceHeader({
   onOpenRsiSettings,
   eventIconsVisible = true,
   onToggleEventIcons,
+  recentEventsOpen = false,
+  onToggleRecentEvents,
 }: ChartWorkspaceHeaderProps) {
   const rangeLabel = quote ? dailyRangeLabel(quote) : null
   return (
@@ -148,6 +152,12 @@ export function ChartWorkspaceHeader({
             <PaintbrushIcon />
           </button>
         )}
+        {onToggleRecentEvents && <button type="button" className={`chart-recent-events-toggle${recentEventsOpen ? ' active' : ''}`}
+          aria-label={recentEventsOpen ? 'Hide events' : 'Show events'}
+          title={recentEventsOpen ? 'Hide events' : 'Show events'}
+          aria-expanded={recentEventsOpen} aria-controls="recent-events-panel" onClick={onToggleRecentEvents}>
+          <span aria-hidden="true">📆</span>
+        </button>}
       </div>
 
       <div className="chart-toolbar-right">

@@ -3,7 +3,7 @@ import { formatInspectorValue, hasRevisedPreviousChange, inspectorDelta, inspect
 import { isInspectorCommentary } from '../releases/group-releases'
 import type { InspectorRelease } from '../../economic-calendar/releases/release'
 import { InspectorReadingTime } from '../InspectorReadingTime'
-import { policyEpisodeRule } from '../episodes/policy-episodes'
+import { isPolicyRateDecision, policyEpisodeRule } from '../episodes/policy-episodes'
 import { episodePublications } from '../episodes/display-episodes'
 import { pmiSectionLabel } from '../episodes/pmi-episodes'
 
@@ -13,7 +13,7 @@ export function InspectorReadingsTable({ release, timeDisplay, sharedPeriod }: {
   release: InspectorRelease; timeDisplay: TimeDisplayPreference; sharedPeriod: number | null
 }) {
   const publications = episodePublications(release)
-  const policyTimes = !!policyEpisodeRule(release.familyId), showTimes = policyTimes || !!publications
+  const policyTimes = !!policyEpisodeRule(release.familyId) || release.events.some(event => isPolicyRateDecision(event)), showTimes = policyTimes || !!publications
   const showCountry = release.currency === 'EUR', showForecast = policyTimes || release.events.some(event => event.forecast !== null)
   const columns = 4 + Number(showTimes) + Number(showCountry) + Number(showForecast) + Number(policyTimes)
   return <div className="inspector-table-scroll"><table aria-label={`${release.label} release readings`}>
@@ -45,7 +45,7 @@ export function InspectorReadingsTable({ release, timeDisplay, sharedPeriod }: {
             {revised && revisedDelta !== null && <div className={`inspector-secondary-reading inspector-grade-${direction(revisedDelta)}`} title={prior.description}>
               {prior.delta}: {formatInspectorValue(revisedDelta, event, true)}<span className="inspector-row-grade">{directionLabel(revisedDelta)}</span>
             </div>}</td>
-          {policyTimes && <td>{commentary ? 'Not applicable' : formatInspectorValue(inspectorSurprise(event), event, true)}</td>}
+          {policyTimes && <td>{commentary ? 'Not applicable' : isPolicyRateDecision(event) ? formatInspectorValue(inspectorSurprise(event), event, true) : '—'}</td>}
         </tr>
       })}
     </tbody>)}

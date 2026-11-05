@@ -47,7 +47,10 @@ export function selectedInspectorRelease(releases: InspectorRelease[], sources: 
   const matches = (release: InspectorRelease) => release.id === id || release.sourceReleaseIds?.includes(id)
   const direct = releases.find(release => matches(release) ||
     (release.daily?.publications ?? episodePublications(release))?.some(matches))
-  if (direct) return direct
+  // Saved families admit chart/list entries. Opening an admitted release shows
+  // its complete source package, matching the count on the same-time icon.
+  // By-day entries retain their explicit daily family selection.
+  if (direct) return direct.daily ? direct : sources.find(source => source.id === direct.id) ?? direct
   const day = /^day\/([A-Z]{3})\/(\d{4}-\d{2}-\d{2})$/.exec(id)
   if (day) return releases.find(release => release.currency === day[1] &&
     (episodePublications(release) ?? [release]).some(member => publicationDate(member, display) === day[2])) ?? null

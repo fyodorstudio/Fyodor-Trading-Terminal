@@ -12,6 +12,7 @@ import { ActivityDock, InspectorDock, LiveTerminalStatusBar } from './LiveTermin
 import { useTerminalWorkspace } from './runtime/useTerminalWorkspace'
 import './terminal-shell.layout.css'
 import { ResearchReportPanel } from '../research/ResearchReportPanel'
+import { RecentEventsPanel } from '../recent-events/RecentEventsPanel'
 import { EventsDock } from '../events-alarms/EventsDock'
 import { EntryTradePanel } from '../entry-trade/dock/EntryTradePanel'
 import { CurrencyNewsDock } from '../currency-news/CurrencyNewsDock'
@@ -27,7 +28,7 @@ export function TerminalWorkspace() {
     selectSymbol, selectTimeframe, recordChartData, changeTheme, changeChartAppearance, changeTimeDisplay,
     createDrawing, chooseDrawingTool, selectCrosshair, deletePairDrawings, toggleBottomDock, exitDrawingMode,
     toggleDrawingToolbar, renderChartOverlay, sourceState, sourceLabel, researchActive, researchSeed, researchError,
-    selectResearchTool, closeResearch, alertFocus, viewReleaseInAlert,
+    selectResearchTool, closeResearch, recentEventsOpen, toggleRecentEvents, closeRecentEvents, alertFocus, viewReleaseInAlert,
     plannedTrade, handlePlanChange, latestBarTime, registeredArrows, selectPinnedArrow, priceAlerts, leftDockTab, setLeftDockTab } = useTerminalWorkspace()
   const brokerOffsetSeconds = bridge.brokerOffsetSeconds
   const closeRsiSettings = useCallback(() => setRsiSettingsOpen(false), [setRsiSettingsOpen])
@@ -67,6 +68,8 @@ export function TerminalWorkspace() {
             onToggleEventIcons={toggleEventIcons}
             drawingToolbarVisible={drawingToolbarVisible}
             onToggleDrawingToolbar={toggleDrawingToolbar}
+            recentEventsOpen={recentEventsOpen}
+            onToggleRecentEvents={toggleRecentEvents}
           />
           <div className="chart-research-workspace">
             <div className="chart-frame">
@@ -128,7 +131,10 @@ export function TerminalWorkspace() {
                 <span>{`${timeframe} · ${marketData.chartStatus === 'live' ? 'MT5 broker data' : 'Awaiting MT5 data'}`}</span>
               </div>
             </div>
-            {researchSeed && <ResearchReportPanel key={JSON.stringify(researchSeed)} seed={researchSeed} brokerId={brokerId} timeDisplay={timeDisplay} onClose={closeResearch} />}
+            {researchSeed && <div className="research-panel-slot" hidden={recentEventsOpen}>
+              <ResearchReportPanel key={JSON.stringify(researchSeed)} seed={researchSeed} brokerId={brokerId} timeDisplay={timeDisplay} onClose={closeResearch} />
+            </div>}
+            {recentEventsOpen && <RecentEventsPanel brokerId={brokerId} symbol={activeSymbol} onClose={closeRecentEvents} />}
           </div>
         </section>
       </main>
