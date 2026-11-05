@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { safeWebUrl } from '../../external-sources/external-source-model'
+import { isEventTier, type EventTier } from '../../event-tiers/event-tiers'
 
 export type AlertImpact = {
   id: string; key: string; source: 'highlight' | 'external'; reference: string; broker: string
-  level: 'high' | 'medium' | 'low'; reason: string; as_of_utc: string; saved_utc: string
+  level: EventTier | 'high' | 'medium' | 'low'; reason: string; as_of_utc: string; saved_utc: string
   sources: { kind: 'web' | 'local'; label: string; locator: string; note: string }[]
   value_ids?: string[]
 }
@@ -11,7 +12,7 @@ const empty: AlertImpact[] = []
 function validItems(value: unknown, broker: string): value is AlertImpact[] {
   return Array.isArray(value) && new Set(value.map(item => item?.key)).size === value.length && value.every(item => item
     && typeof item.id === 'string' && typeof item.reference === 'string' && typeof item.reason === 'string' && item.reason.trim()
-    && ['high', 'medium', 'low'].includes(item.level)
+    && (isEventTier(item.level) || ['high', 'medium', 'low'].includes(item.level))
     && (item.value_ids === undefined || Array.isArray(item.value_ids) && item.value_ids.every((id: unknown) => typeof id === 'string'))
     && ['as_of_utc', 'saved_utc'].every(key => typeof item[key] === 'string' && /(?:Z|[+-]\d{2}:\d{2})$/.test(item[key]) && Number.isFinite(Date.parse(item[key])))
     && (item.source === 'highlight' && item.broker === broker && item.key === `highlight:${broker}:${item.reference}`

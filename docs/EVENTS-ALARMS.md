@@ -6,14 +6,15 @@ buttons and the existing Alert filters apply without changing alarm choices.
 Every captured calendar event on the date is available, including released rows;
 no shortlist, automatic archival or manual archive control is involved.
 
-Columns: Time | Event | Actual | Forecast | Previous | Source | Agent impact | Bell.
+Columns: Time | Event | Actual | Forecast | Previous | Source | Tier | Bell.
 The table fits the dock width and wraps text; only the date wheel moves
 horizontally. The bell column includes room for its button and cell padding.
 The time is shared across currencies at the same exact instant. Each pending
 Actual cell shows its countdown, including repeated same-time rows. Supplied
-actuals remain intact and each reading has a subtle row divider; impact is agent-authored or Unreviewed.
-Source identifies Pepperstone or the actual external publisher (for example
-Reuters), with links to evidence. External records never acquire invented calendar
+actuals remain intact and each reading has a subtle row divider; S/A/B/C tiers follow the shared currency table.
+Source links to the original registered publisher, or the actual external publisher
+(for example Reuters). Calendar Actual/Previous values link there too; anonymous
+consensus forecasts retain their captured value and a source tooltip. External records never acquire invented calendar
 readings. Different source values stay separate. One bell covers a publication
 package; decision, statement and conference clocks remain separate stages.
 Verified publisher packages (Baker Hughes rig counts, matching Jibun/S&P PMI
@@ -104,7 +105,7 @@ receive new timed reminders. An external record must be confirmed and scheduled.
 
 Currency News persistence does not change reminders. Assess Trade Now's separate
 [global risk workflow](GLOBAL-RISK-WORKFLOW.md), or explicit alarm-curation requests,
-may select new verified high-impact occurrences, one bell per release package.
+may select new verified S — essential occurrences, one bell per release package.
 Preserve explicit off choices, global pause and offset. Read worker eligibility,
 exact keys and revision before `toggle-many`, then verify selected/armed state
 and runtime health. A suggested return time creates no reminder or AI schedule.
@@ -178,3 +179,14 @@ Native windows poll `/alarms/active?ids=<job IDs>` for their own status/audio on
 without repeatedly transferring the full schedule and delivery history.
 Keep API inspections focused on settings, status counts and relevant occurrences;
 do not dump the full migration receipt and delivery history for routine checks.
+
+## Shared event tiers
+
+The Tier column and [Currency Detail](CURRENCY-DETAILS.md) share exact
+currency/country/series classifications from `config/event-tiers.json`, with
+S — essential, A — major, B — supporting and C — secondary. Calendar tier lookup
+never reads broker importance or rewrites calendar values. External rows use
+sourced S/A/B/C assessments on their stable key; unknown series and unrated
+external records fall back to C with an explanatory tooltip. Historical impact
+assessments remain unchanged. Existing reminder selections, off choices, pause,
+offset, sound and delivery jobs are unaffected by classification or browsing.

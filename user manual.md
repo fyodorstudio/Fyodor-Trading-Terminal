@@ -131,10 +131,10 @@ to Raw ticks; Relative uses a 1× reference line. Settings are shared on this de
 
 ## Currency Detail
 
-Click **Detail** immediately right of Show events for fundamentals of the active
-pair. EURX, JPYX and USDX show only their currency. Expand categories and metrics
-for sources, reference periods, release stages and MT5 comparisons. Official
-values lead verified conflicts; unverified data remains labeled. Last/next release
-and verification clocks stay separate. Copy refresh prompt invokes no research
-until you run it in the agent chat. The skill refreshes News and Detail together.
-See [Currency Detail](docs/CURRENCY-DETAILS.md) for data rules and commands.
+Click **Detail** beside Show events for S/A/B/C fundamentals of the active pair.
+EURX, JPYX and USDX show only their currency. Equal-height event blocks contain the
+number, Released at, Next Release and original Source link. Hover ⚠ for a numeric
+conflict. Tier List Info shows the general reference and your active currencies'
+tier table; its Close button returns to the comparison. Alert uses the same tiers.
+Copy refresh prompt runs no research until invoked in the agent chat; the skill
+refreshes News and Detail together. See [Currency Detail](docs/CURRENCY-DETAILS.md).

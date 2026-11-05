@@ -900,7 +900,7 @@ try {
   assert.equal(document.querySelector('[aria-label="Research question"]').value, 'Was this USD strength or EUR weakness?')
   assert.equal(counters.chartCreated ?? 0, 0); assert.equal(counters.setData ?? 0, 0)
   assert.deepEqual(logicalRange, recentWindow)
-  assert.deepEqual([...container.querySelectorAll('.currency-detail-panel thead th')].map(n => n.textContent), ['Metric', 'EUR', 'USD'])
+  assert.deepEqual([...container.querySelectorAll('.currency-detail-panel thead th')].map(n => n.textContent), ['Tier', 'EUR', 'USD'])
   reset(); await tick('pollDetail', 30000)
   assertQuiet('Unchanged Detail poll', true)
   await click(container.querySelector('[aria-label="Show events"]')); await flush()

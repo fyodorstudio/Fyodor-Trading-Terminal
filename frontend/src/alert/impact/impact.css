@@ -1,8 +1,8 @@
 .alert-ai-impact { display: inline-flex; align-items: center; gap: 4px; color: var(--text-strong); font-size: 11px; white-space: nowrap; }
 .alert-ai-impact-box { width: 9px; height: 9px; flex: 0 0 9px; border: 1px solid var(--text-strong); border-radius: 1px; background: #e45757; }
-.alert-ai-impact.medium .alert-ai-impact-box { background: #ed963d; }
-.alert-ai-impact.low .alert-ai-impact-box { background: #ddc34b; }
-.alert-ai-impact.unassessed .alert-ai-impact-box { background: transparent; }
+.alert-ai-impact.tier-A .alert-ai-impact-box { background: #ed963d; }
+.alert-ai-impact.tier-B .alert-ai-impact-box { background: #ddc34b; }
+.alert-ai-impact.tier-C .alert-ai-impact-box { background: transparent; }
 .alert-ai-impact-details { border-bottom: 1px solid var(--border); margin-bottom: 10px; padding-bottom: 8px; overflow-wrap: anywhere; }
 .alert-ai-impact-details p { margin: 4px 0; }
 .alert-ai-impact-details a { color: var(--accent); margin-right: 12px; }

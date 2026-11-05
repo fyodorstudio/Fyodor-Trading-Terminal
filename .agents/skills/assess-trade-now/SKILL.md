@@ -22,7 +22,7 @@ prioritizing the next 48 hours, even for one currency. Follow the
 [global risk workflow](../../../docs/GLOBAL-RISK-WORKFLOW.md) for evidence,
 cross-currency transmission, discovery receipts, global stars and alarm curation.
 The short invocation alone authorizes saving verified material custom events,
-showing new events globally and selecting new confirmed high-impact reminders.
+showing new events globally and selecting new confirmed S — essential reminders.
 Preserve explicit off choices, global pause, lead time and existing chart hides.
 Chat-only/read-only/no-save suppresses these writes; do not imply continuous monitoring.
 
@@ -46,6 +46,13 @@ checking stage equivalence. Official values lead comparable conflicts; never
 rewrite MT5, blend forecasts or infer surprises/direction from unresolved conflicts.
 Optional policy focus needs dated sources, a causal reason and limitations;
 no automatic regime score or row reordering.
+Detail and Alert share S/A/B/C from the Detail contract's exact-series catalog.
+Do not invent a fresh calendar impact assessment just to repeat its static tier.
+For researched external occurrences, save level S/A/B/C with exact stable keys;
+retain prior High/Medium/Low history. Only confirmed S occurrences may be newly
+curated automatically; preserve all existing reminder/off/pause/offset choices.
+The compact Detail UI intentionally omits verification prose, not stored evidence.
+
 
 Browse current sources. Open decisive original articles/releases, verify their
 publication times and facts, consolidate syndications, and check material contrary

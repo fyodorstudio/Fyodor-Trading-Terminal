@@ -1,33 +1,36 @@
-.currency-detail-panel { flex: 0 0 clamp(390px, 38vw, 600px); min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; padding: 12px; border-left: 1px solid var(--border-strong); color: var(--text); background: var(--surface-panel); font-size: 11px; }
-.currency-detail-panel header { display: flex; align-items: center; gap: 10px; color: var(--text-strong); }
-.currency-detail-panel h2 { margin: 0; font-size: 13px; }
-.currency-detail-panel header > button { margin-left: auto; }
-.currency-detail-panel button { min-height: 28px; padding: 3px 6px; border: 1px solid var(--border-strong); border-radius: 4px; color: var(--text); background: var(--surface-inset); font: inherit; cursor: pointer; }
+.currency-detail-panel { flex: 0 0 clamp(460px, 42vw, 680px); min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; border-left: 1px solid var(--border-strong); color: var(--text); background: var(--surface-panel); font-size: 12px; }
+.currency-detail-panel header { display: flex; flex-shrink: 0; align-items: center; gap: 10px; padding: 12px; color: var(--text-strong); border-bottom: 1px solid var(--border); }
+.currency-detail-panel h2 { margin: 0 auto 0 0; font-size: 13px; }
+.currency-detail-panel button { min-height: 28px; padding: 3px 7px; border: 1px solid var(--border-strong); border-radius: 4px; color: var(--text); background: var(--surface-inset); font: inherit; cursor: pointer; }
 .currency-detail-panel button:hover { background: var(--surface-hover); }
+.currency-detail-panel button:focus-visible, .currency-detail-panel a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .currency-detail-panel a { color: var(--accent); overflow-wrap: anywhere; }
-.currency-detail-panel p { line-height: 1.5; }
-.currency-detail-panel small { display: block; color: var(--text-muted); line-height: 1.55; }
-.currency-detail-panel [role='alert'], .currency-detail-panel .detail-conflict { color: var(--negative); font-weight: 600; }
-.detail-body { flex: 1; min-height: 0; overflow: auto; margin-top: 10px; }
+.currency-detail-panel p { padding: 0 12px; line-height: 1.5; }
+.currency-detail-panel [role='alert'] { color: var(--negative); }
+.detail-body { flex: 1; min-height: 0; overflow: auto; }
+.detail-body[hidden] { display: none; }
 .currency-detail-panel table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-.currency-detail-panel thead th { position: sticky; top: 0; background: var(--surface-panel); z-index: 1; color: var(--text-strong); }
-.currency-detail-panel th, .currency-detail-panel td { padding: 9px 5px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; overflow-wrap: anywhere; }
-.currency-detail-panel th:first-child { width: 68px; }
-.currency-detail-panel th > button { width: 100%; text-align: left; }
-.detail-metric { margin-bottom: 13px; }
-.detail-metric:last-child { margin-bottom: 0; }
-.detail-metric summary { cursor: pointer; line-height: 1.5; }
-.detail-metric strong { display: block; color: var(--text-strong); font-size: 14px; font-variant-numeric: tabular-nums; }
-.detail-metric-label { font-weight: 600; }
-.detail-evidence { padding: 6px 0; }
-.detail-evidence p { margin: 5px 0; }
-.detail-sources a { margin-right: 6px; }
-.currency-detail-panel .detail-event-link { min-height: 0; padding: 0; border: 0; background: transparent; color: var(--accent); text-align: left; }
-.detail-major { border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 10px; line-height: 1.6; }
-.detail-major > div { margin-top: 6px; }
-.detail-major > div > span { display: block; }
-.detail-focus { padding: 6px 0; line-height: 1.5; }
-.detail-focus summary { cursor: pointer; font-weight: 600; }
-.detail-footnote { color: var(--text-muted); }
-.currency-detail-panel footer { flex-shrink: 0; border-top: 1px solid var(--border); padding-top: 8px; }
-.currency-detail-panel footer small { margin-top: 6px; }
+.currency-detail-panel thead th { position: sticky; top: 0; z-index: 1; background: var(--surface-panel); color: var(--text-strong); padding: 10px 8px; text-align: left; border-bottom: 1px solid var(--border-strong); }
+.detail-comparison thead th:first-child { width: 88px; }
+.detail-comparison tbody > tr > th { width: 88px; padding: 12px 8px; border-right: 1px solid var(--border-strong); vertical-align: top; text-align: left; font-weight: 500; line-height: 1.6; }
+.detail-comparison td { padding: 0; vertical-align: top; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.detail-comparison td:last-child { border-right: 0; }
+.detail-comparison tbody { border-bottom: 1px solid var(--border-strong); }
+.detail-metric, .detail-empty { box-sizing: border-box; height: 156px; padding: 12px 8px; }
+.detail-metric { display: grid; grid-template-rows: 36px 32px 32px 32px; }
+.detail-empty { color: var(--text-muted); }
+.detail-reading { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 8px; line-height: 18px; }
+.detail-metric-label { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.detail-number { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.detail-number strong { color: var(--text-strong); font-weight: 600; }
+.detail-conflict { margin-left: 4px; color: var(--negative); cursor: help; }
+.detail-field { display: grid; grid-template-columns: 65px minmax(0, 1fr); gap: 5px; align-items: start; line-height: 16px; font-size: 11px; }
+.detail-field > span:first-child { color: var(--text-muted); white-space: nowrap; }
+.detail-field time { font-variant-numeric: tabular-nums; }
+.currency-detail-panel .detail-event-link { min-height: 0; padding: 0; border: 0; background: transparent; color: var(--text); text-align: left; line-height: inherit; }
+.currency-detail-panel .detail-event-link:hover { color: var(--accent); }
+.currency-detail-panel footer { flex-shrink: 0; padding: 8px 12px; border-top: 1px solid var(--border); }
+.detail-tier-info table { margin-bottom: 18px; }
+.detail-tier-info th, .detail-tier-info td { padding: 12px 8px; text-align: left; vertical-align: top; line-height: 1.65; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }
+.detail-tier-info th:first-child { width: 88px; font-weight: 500; }
+.detail-tier-info td { border-left: 1px solid var(--border); }

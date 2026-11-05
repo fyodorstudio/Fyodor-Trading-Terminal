@@ -53,9 +53,10 @@ Publication UTC remains independent of chart-placement availability.
 
 Calendar Alert, event Invoke reminders, manual price alerts and Currency News
 are separate paths. News saves do not change alarms or chart markers. Keep one
-bell per release package, high-impact-only agent curation through the skill, and
-explicit off choices. Agent impact is sourced by exact broker/value IDs or an
-external key; never substitute MT5 importance or another broker's rating.
+bell per release package, essential-tier-only agent curation through the skill, and
+explicit off choices. Detail and Alert share `config/event-tiers.json`: exact
+currency/country/series IDs supply S/A/B/C; external assessments retain their
+stable keys. Preserve legacy impact history; never infer a tier from importance.
 
 Entry Trade is manual. Preserve user technicals, notes and edit history in the
 tracked `Market Analyst Workflow/entry-trade/journal.json`. Event UTC controls

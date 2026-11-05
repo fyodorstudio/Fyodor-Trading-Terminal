@@ -12,33 +12,47 @@ on close. Chart changes update scope. FX pairs have two currency columns;
 EURX/JPYX/USDX have one. Aliases share `config/chart-currency-scopes.json` with
 the calendar, outside the 28-pair catalog. Browsing is local, with no AI/web work.
 
-Fixed rows: Policy, Inflation, Labour, Activity, Growth, Consumer. Expand categories
-for additional metrics and metrics for definitions, units, sources, MT5
-Actual/Forecast/Previous/revised Previous, check dates and limitations. Latest
-observations have no Events-window cutoff. Reference period, publication and
-verification clocks are independent. Date-only readings never acquire an hour.
+The visible table is **Tier | base currency | quote currency**, or a single
+currency for indices. S — essential, A — major, B — supporting and C — secondary
+have aligned event slots with equal block height in both columns. Each block shows
+only the event name/number, Released at, Next Release and Source link. No category
+expanders, next-major-release list, verification clocks, coverage prose, repeated
+provider labels or policy commentary appear in the comparison. A conflict is the
+single U+26A0 ⚠ glyph with an accessible tooltip. Operational fetch failures remain
+visible. Definitions/reference periods stay in tooltips and stored evidence.
 
-Next major releases shows up to three distinct currency/category/publication
-packages, using saved official schedules or labeled unverified MT5 schedules.
-Metrics retain their own last/next releases and flash/final/revised/decision stages.
-Links open official sources or the exact MT5 occurrence in Alert. An elapsed
-schedule requests verification, never becomes an invented actual. Optional focus
-is dated sourced interpretation with limitations, not an automatic regime detector.
+**Tier List Info** replaces the right-panel body with a static general tier table
+and the supplied currency reference table, filtered to the active pair/index.
+Closing it (or Escape) returns to the mounted comparison and preserves scroll;
+it performs no research or writes. Escape in the main view closes Detail.
 
-## Registry and conflicts
+## Shared tiers, sources and clocks
 
-The registry defines eight currencies, stable metric IDs, S/A/B attention tiers,
-native units, frequencies, exact broker IDs and publisher routes. Tiers guide
-research; they are not measured volatility, Agent impact or reminder instructions.
-Routes aid discovery; they do not verify a current value.
+`config/event-tiers.json` owns S/A/B/C definitions, the eight currency reference
+rows, exact currency/country/series mappings and original-publisher routes. Detail
+and Alert consume this same classification; `config/currency-details.json` owns
+the numerical measures, units and broker bindings. Unknown series stay admitted
+and use secondary C with an explanatory tooltip; no broker importance is used.
+The tiers are reference priorities, not forecasts or automatic regime scores.
 
-Official observations lead when their reference period is at least as recent as
-MT5. A newer MT5 period stays **not independently checked**, with older official
-evidence accessible. Only an explicit same-series/period/publication-stage broker
-reference can produce matched/conflict status. Other vintages stay not compared.
-**Source conflict** retains both readings prominently, without surprise calculations
-or directional coloring. Forecast consensus is separately attributed. Raw MT5,
-Inspector, alarms and news history are never rewritten by Detail saves.
+Alert's Tier column replaces Agent impact labels. Calendar rows use exact-series
+tiers even when a historical High/Medium/Low assessment exists. External rows use
+a sourced S/A/B/C assessment keyed to that record, otherwise secondary C. Legacy
+assessments remain immutable and accessible in stored history; they are not blindly
+translated into a tier. Changing labels never selects, cancels or re-arms a bell.
+
+Dates prefer captured broker publication/next-occurrence clocks for convenience;
+if absent, retained official publication/schedule dates can supply a fallback.
+Unknown hours remain dates only, never guessed instants. The panel applies no
+Events-window cutoff. Reference periods, publication, capture and verification
+remain independent in storage, with no assessment prose rendered in the table.
+
+Each metric links to its original publisher, including when numbers were captured
+from the broker feed. Comparable official observations still lead numeric
+conflicts; raw MT5 and all evidence stay intact. Alert links Actual and Previous
+to the registered original publisher. Anonymous broker consensus forecasts do
+not acquire a central-bank/statistical-office link falsely implying validation;
+their source limitation is available on hover. No surprise/directional scoring.
 
 Use complete monthly Australian CPI and household spending; do not substitute
 quarterly CPI or discontinued retail trade. Keep monthly and legacy quarterly

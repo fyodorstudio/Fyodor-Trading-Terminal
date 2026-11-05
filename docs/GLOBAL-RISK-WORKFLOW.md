@@ -23,9 +23,11 @@ currency/instrument tags; do not add all eight merely to route stars everywhere.
 Use currency-specific directional or bullish-if/bearish-if implications. In a
 focused refresh, global discovery does not renew unresearched currency news clocks.
 
-High impact means the occurrence could materially change the dominant macro/policy
-outlook. Medium means a material but more conditional/confirming risk: save/show it
-without automatically arming it. Skip low-information candidates and explain gaps.
+Use the shared [tier reference](CURRENCY-DETAILS.md): S — essential, A — major,
+B — supporting, C — secondary. Exact calendar series use the shared catalog;
+external risks need a sourced occurrence-specific tier. Only newly confirmed S
+occurrences are candidates for automatic curation. A/B/C can be saved/shown
+without automatically arming them. Preserve every existing reminder choice.
 Volatility is possible, not assured; do not invent probabilities or predict a spike.
 Fundamentals are the agent's role. Even "JPYX near resistance: breakout or reverse?"
 calls for fundamental continuation/invalidation evidence and upcoming catalysts,
@@ -97,14 +99,14 @@ an unavailable historical profile never justifies guessing an offset.
 
 ## Reminders
 
-The skill has standing permission to select new confirmed high-impact reminders.
+The skill has standing permission to select new confirmed S — essential reminders.
 News save calls themselves still have no alarm side effects. Chat-only/read-only/no-save
 requests suppress event, impact, marker and reminder writes.
 
 Read `GET http://127.0.0.1:8003/alarms` and inspect only relevant future events/jobs,
 settings, revision and health. `explicit_choice: false` is an off choice; null means no explicit override.
 Always read selected/armed separately, since inherited choices may be enabled. Preserve all existing off choices, global pause, audio and lead
-time. Save a sourced occurrence-specific High impact assessment through
+time. Save a sourced occurrence-specific S tier assessment through
 `pnpm analyst impact save --input tmp/<rating>.json`; see
 [the impact contract](HIGHLIGHT-JOURNAL.md#ai-impact-in-alert).
 

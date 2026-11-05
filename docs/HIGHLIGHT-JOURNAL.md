@@ -54,19 +54,15 @@ research. --as-of narrows schedule timing, not historical data vintages.
 
 ### AI impact in Alert
 
-Alert's Agent impact column shows `High / Medium / Low`, with a colored square.
-Expanding Overview shows the agent's reason, sources and Jakarta assessment cutoff.
-Missing assessments show **Unreviewed**; MT5 importance is never a fallback.
-Calendar ratings match exact broker/value IDs through the saved Highlight identity,
-including archived pins; external ratings use their stable record key. A linked
-external row retains its own rating. Elev8 ratings never become Pepperstone ratings.
-Ratings describe expected market relevance, not direction, guaranteed volatility or
-entry quality. Judge the specific occurrence against current policy concerns,
-new information, expectations and publication stages; do not use fixed indicator tiers.
-High means the event could materially change the dominant policy or macro outlook;
-Medium means useful but more conditional or confirming information; Low means
-limited incremental information for the current outlook. A fresh Q&A can outrank a
-routine scheduled release. Reassess when the backdrop changes; preserve the cutoff.
+Alert's **Tier** column shows S — essential, A — major, B — supporting or
+C — secondary, using the same currency table as [Detail](CURRENCY-DETAILS.md).
+Calendar rows use exact currency/country/series IDs from `config/event-tiers.json`.
+External rows use a sourced S/A/B/C assessment on their stable record key, with C
+as the secondary fallback. Tier lookup never uses broker importance. Historic
+High/Medium/Low assessment bodies remain unchanged, without an automatic mapping
+into new tiers. Neither a static tier nor an assessment write changes reminders.
+New external assessments use S/A/B/C; routine calendar tier classification needs
+no repeated agent write. Agent reasons/sources remain available in Overview.
 
 Agents save ratings only when requested. Both saved-source identities are supported:
 An instruction to fill Highlight covers every active broker pin and active External
@@ -81,7 +77,7 @@ pnpm analyst impact save --input "Market Analyst Workflow/report/<report>/impact
 
 Input: `source` (`highlight` or `external`), `reference` (exact Highlight ID or stable
 external key), `broker` (required for Highlight, empty for external), `level`
-(`high`, `medium`, `low`), `reason`, timezone-aware `as_of_utc`, and `sources`
+(`S`, `A`, `B`, `C`; legacy levels remain accepted for compatibility), `reason`, timezone-aware `as_of_utc`, and `sources`
 (JournalSource format; at least one direct web URL). Read first; updates require
 `expected_version` equal to the latest assessment ID. Versions live separately in
 `Market Analyst Workflow/alert-impact/`, survive archive/restore and leave raw data,

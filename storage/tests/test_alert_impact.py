@@ -17,6 +17,21 @@ class AlertImpactTests(TestCase):
     tearDown = fixtures.ResearchReportsTests.tearDown
     add = fixtures.ResearchReportsTests.add
 
+    def test_new_tiers_append_without_rewriting_legacy_ratings_or_reminders(self):
+        identity=self.target()
+        first=append_impact(self.request(identity),self.path)
+        original=(self.directory/'alert-impact'/(first['id']+'.json')).read_bytes()
+        pin_bytes=self.path.read_bytes()
+        before=self.store.db.total_changes
+        for level in 'SABC':
+            previous=impact_snapshot('Elev8-Demo2',self.path)['items'][0]['id']
+            record=self.request(identity).model_copy(update={'level':level,'expected_version':previous})
+            append_impact(record,self.path)
+            self.assertEqual(impact_snapshot('Elev8-Demo2',self.path)['items'][0]['level'],level)
+        self.assertEqual((self.directory/'alert-impact'/(first['id']+'.json')).read_bytes(),original)
+        self.assertEqual(self.path.read_bytes(),pin_bytes)
+        self.assertEqual(self.store.db.total_changes,before)
+
     def target(self):
         self.add([event('one', currency='USD', importance='high')])
         self.path = self.directory / 'highlights.json'

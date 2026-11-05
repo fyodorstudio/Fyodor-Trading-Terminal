@@ -20,7 +20,8 @@ class ImpactRequest(Payload):
     source: Literal['highlight', 'external']
     reference: str = Field(min_length=1, max_length=160)
     broker: str = Field(default='', max_length=160)
-    level: Literal['high', 'medium', 'low']
+    # Legacy levels remain readable without rewriting immutable history.
+    level: Literal['S', 'A', 'B', 'C', 'high', 'medium', 'low']
     reason: str = Field(min_length=1, max_length=2000)
     as_of_utc: datetime
     sources: list[JournalSource] = Field(min_length=1, max_length=30)

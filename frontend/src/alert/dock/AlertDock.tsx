@@ -95,7 +95,7 @@ export const AlertDock = memo(function AlertDock({ sourceId, alarms, focusKey = 
         <div className="alert-date-meta"><span>{date} · Jakarta · Pepperstone + named publishers</span></div>
         {riskPreferenceError && <p className="alert-feed-message" role="status">{riskPreferenceError}</p>}
         {(storage.error || external.error || alarms.error) && <p className="alert-feed-message" role="status">{storage.error ?? external.error ?? alarms.error}</p>}
-        {impact.error && <p className="alert-feed-message" role="status">{impact.error} Showing saved assessments where available; other events remain Unreviewed.</p>}
+        {impact.error && <p className="alert-feed-message" role="status">{impact.error} Calendar tiers remain available.</p>}
         {storage.source?.publisher_status === 'offline' && <p className="alert-feed-message" role="status">Pepperstone publisher offline · showing saved readings.</p>}
         {!storage.loading && !storage.source && !storage.error && <p role="status">No stored Pepperstone calendar. Start its publisher to populate this date.</p>}
         {partial && <p className="alert-feed-message" role="status">Partial calendar coverage for this date. Missing events may not have been captured.</p>}

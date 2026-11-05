@@ -7,6 +7,7 @@ import time
 from .currency_details import read_records
 from .currency_news import encoded
 from .detail_registry import registry
+from .event_tiers import metric_tier
 
 
 def period_key(event, metric):
@@ -94,7 +95,7 @@ def detail_snapshot(store, broker, currencies, directory, after_revision=None, n
             schedules = check.get('next_releases') if check else None
             future = [s for s in schedules or [] if (datetime.fromisoformat(s['at']).timestamp()*1000 > now_ms if s['at'] else s['date'] >= today)]
             future.sort(key=lambda s: s['at'] or s['date'] + 'T23:59:59+00:00')
-            result_rows.append({**metric, 'broker': latest, 'broker_next': upcoming,
+            result_rows.append({**metric, 'tier': metric_tier(metric), 'broker': latest, 'broker_next': upcoming,
                 'official': official, 'official_latest': official_latest, 'comparison': comparison,
                 'check': {k: check[k] for k in ('checked_at', 'coverage', 'coverage_note', 'sources', 'schedule_checked_at')} if check else None,
                 'next_releases': future, 'schedule_known': schedules is not None,

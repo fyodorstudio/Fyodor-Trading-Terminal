@@ -1,3 +1,4 @@
+import { isEventTier, type EventTier } from '../event-tiers/event-tiers'
 export type DetailSource = { label: string; url: string }
 type Stage = 'flash' | 'preliminary' | 'advance' | 'second' | 'final' | 'revised' | 'decision' | 'regular'
 export type DetailReading = {
@@ -10,7 +11,7 @@ type Observation = { period: string; stage: Stage; value: number; lower: number 
   released_date: string; verified_at: string; sources: DetailSource[]; note: string
   broker_reference: { source_id: string; value_id: string; basis_note: string } | null }
 export type DetailMetric = {
-  id: string; currency: string; category: string; label: string; tier: 'S' | 'A' | 'B'; frequency: string
+  id: string; currency: string; category: string; label: string; tier: EventTier; frequency: string
   unit: string; definition: string; source: string; source_url?: string; broker: DetailReading | null; broker_next: DetailReading | null
   official: Observation | null; official_latest: boolean
   comparison: 'not_checked' | 'different_period' | 'different_vintage' | 'conflict' | 'matched'
@@ -55,7 +56,7 @@ export function validDetail(value: unknown, broker: string, currencies: readonly
   const ids = new Set()
   for (const m of value.metrics) {
     if (!record(m) || !text(m.id) || ids.has(m.id) || !currencies.includes(m.currency as string)
-      || !categories.includes(m.category) || !['S', 'A', 'B'].includes(m.tier as string)
+      || !categories.includes(m.category) || !isEventTier(m.tier)
       || !text(m.label) || !text(m.definition) || !text(m.source) || !(m.source in value.sources)
       || (m.source_url !== undefined && !url(m.source_url))
       || !text(m.frequency) || typeof m.unit !== 'string' || typeof m.official_latest !== 'boolean'

@@ -83,13 +83,15 @@ For optional release waits/historical studies see [the user guide](user%20manual
 ## Currency Detail
 
 **Detail**, immediately right of Show events, opens its own right-panel view.
-Six fixed categories compare the pair's currencies; EURX/JPYX/USDX show one.
-Latest observations have no Events-window cutoff. Expand metrics for sources,
-MT5 comparisons and independent verification clocks. Official readings lead
-verified conflicts; raw MT5 remains intact. Last/next publication stages, next
-major releases and optional dated policy focus reuse saved evidence. Browsing
-does no AI work. The skill refreshes News and Detail together, starting with
-`pnpm analyst details prepare --scope EURUSD`; see the
+Four shared tier groups (S/A/B/C) compare the pair's currencies; EURX/JPYX/USDX
+show one. Equal-height event blocks show the number, Released at, Next Release
+and an original-publisher link. Conflicts use a ⚠ tooltip. Dates prefer captured
+broker occurrences; no hour is invented. Latest values have no Events-window
+cutoff. Tier List Info replaces the table with the static definitions and the
+active currencies' reference rows; Close returns to the comparison.
+Alert's Tier column uses the same exact-series classification. Saved assessments
+and reminder choices remain intact. The skill refreshes News and Detail together,
+starting with `pnpm analyst details prepare --scope EURUSD`; see the
 [Detail workflow](docs/CURRENCY-DETAILS.md).
 
 ## Preserved terminal behavior
@@ -168,8 +170,8 @@ publication times are excluded rather than given an invented age. Browsing is
 read-only and preserves research drafts when switching the shared right panel.
 
 Alert shows all captured events for a selected Jakarta date, including released
-rows, with source-specific Actual/Forecast/Previous. Agent impact remains sourced
-or Unreviewed; MT5 importance never supplies it. One bell controls each timed
+rows, with source-specific Actual/Forecast/Previous. The Tier column uses the
+shared currency classification; MT5 importance never supplies it. One bell controls each timed
 release package. Each event has its own flat row and independently expandable
 details, including package components and linked publishers. Browsing, news saves and filters do not change choices. Windows
 must remain awake for the independent worker; delivery never invokes AI.

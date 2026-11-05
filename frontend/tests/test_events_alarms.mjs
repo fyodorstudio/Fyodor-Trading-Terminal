@@ -45,7 +45,7 @@ let impactFailure = false, impactRevision = 1
 const rating = (id, overrides = {}) => ({ id, source: 'highlight', reference: 'pin', broker, key: `highlight:${broker}:pin`,
   level: 'low', reason: 'This occurrence adds limited information to the current outlook.', as_of_utc: '2026-10-22T17:00:00Z',
   saved_utc: '2026-10-22T17:01:00Z', value_ids: ['1', '2'], sources: [{ kind: 'web', label: 'Assessment evidence', locator: 'https://www.bls.gov/cpi/' }], ...overrides })
-let impacts = [rating('rating-calendar'), rating('rating-external', { source: 'external', reference: 'cpi-report', broker: '', key: 'external:cpi-report', level: 'medium', value_ids: [] })]
+let impacts = [rating('rating-calendar'), rating('rating-external', { source: 'external', reference: 'cpi-report', broker: '', key: 'external:cpi-report', level: 'A', value_ids: [] })]
 const reply = body => ({ ok: true, status: 200, json: async () => structuredClone(body) })
 globalThis.fetch = async (url, options = {}) => {
   const route = new URL(String(url), 'http://localhost'), params = route.searchParams
@@ -136,11 +136,14 @@ try {
   assert.equal(cpiRows().length, 5, 'Four broker components plus linked Reuters each have their own flat entry')
   assert.ok(cpiRows().every(node => node.querySelectorAll('.alert-summary-row').length === 1))
   assert.equal(cpiRows().flatMap(node => [...node.querySelectorAll('.event-alarm-toggle')]).length, 1, 'One shared bell for the verified publication')
-  assert.ok(table.textContent.includes('Agent impact'))
-  assert.equal(cpi.querySelector('[data-series-id="840030005"] .alert-ai-impact').textContent, 'Low', 'Agent assessment and MT5 high importance remain separate')
-  assert.equal(table.querySelector('[data-series-id="840030007"] .alert-ai-impact').textContent, 'Unreviewed', 'No rating means Unreviewed, even for an MT5 high importance event')
-  assert.equal(table.querySelector('tr[data-external-key="cpi-report"] .alert-ai-impact').textContent, 'Medium', 'A linked publisher keeps its own assessment')
-  assert.equal(table.querySelector('[data-external-key="unrelated-same-time"] .alert-ai-impact').textContent, 'Unreviewed', 'Matching time does not transfer a rating')
+  assert.ok([...table.querySelectorAll('thead th')].some(node=>node.textContent==='Tier'))
+  assert.equal(cpi.querySelector('[data-series-id="840030005"] .alert-ai-impact').textContent, 'S — essential', 'The shared CPI tier replaces historical impact and broker importance')
+  assert.equal(table.querySelector('[data-series-id="840030007"] .alert-ai-impact').textContent, 'S — essential', 'Calendar tiers are available without an agent assessment')
+  assert.equal(table.querySelector('tr[data-external-key="cpi-report"] .alert-ai-impact').textContent, 'A — major', 'A linked publisher keeps its own tier assessment')
+  assert.equal(table.querySelector('[data-external-key="unrelated-same-time"] .alert-ai-impact').textContent, 'C — secondary', 'Matching time does not transfer a tier assessment')
+  const cpiValueRow=table.querySelector('[data-series-id="840030005"]')
+  assert.match(cpiValueRow.querySelector('.alert-source-cell a').href,/bls.gov/)
+  assert.equal(cpiValueRow.querySelectorAll('.alert-value')[1].querySelector('a'),null,'A publisher link does not validate anonymous forecast consensus')
   assert.equal(cpi.querySelector('.event-alarm-toggle').getAttribute('aria-pressed'), 'false')
   assert.ok(!cpi.querySelector('.event-alarm-toggle').disabled, 'Selections can be saved while global delivery is paused')
   assert.ok(host.textContent.includes('Earlier payrolls'), 'Released events stay on their selected date')
@@ -259,11 +262,11 @@ try {
   calendarOverride = null; calendarRevision++; await tick('pollAlertDay')
   impactFailure = true; await tick('pollAlertImpact')
   assert.match(host.textContent, /Impact assessments unavailable/)
-  assert.equal(host.querySelector('[data-series-id="840030005"] .alert-ai-impact').textContent, 'Low', 'A failed poll keeps saved ratings with an explicit error')
+  assert.equal(host.querySelector('[data-series-id="840030005"] .alert-ai-impact').textContent, 'S — essential', 'Calendar tiers remain available through assessment outages')
   impactFailure = false; impactRevision++
   impacts = impacts.map(item => item.source === 'highlight' ? { ...item, value_ids: ['1','2','3'] } : item)
   await tick('pollAlertImpact')
-  assert.equal(host.querySelector('[data-series-id="840030007"] .alert-ai-impact').textContent, 'Low', 'Pin membership updates apply even with an unchanged assessment ID')
+  assert.equal(host.querySelector('[data-series-id="840030007"] .alert-ai-impact').textContent, 'S — essential', 'Membership updates cannot replace the shared calendar classification')
   const wheel = host.querySelector('[aria-label="Alert date selector"]')
   await React.act(async () => wheel.dispatchEvent(new dom.WheelEvent('wheel', { deltaY: -100, cancelable: true })))
   assert.equal(frames.size, 1, 'Wheel changes batch into one animation frame')

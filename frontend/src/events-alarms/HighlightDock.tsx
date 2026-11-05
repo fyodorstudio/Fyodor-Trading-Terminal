@@ -14,6 +14,7 @@ import { jakartaDisplay } from './alarm-time'
 import type { useAlarms } from './useAlarms'
 import { ImpactBadge, ImpactDetails } from '../alert/impact/ImpactBadge'
 import type { useAlertImpact } from '../alert/impact/useAlertImpact'
+import { eventPublisher } from '../event-tiers/event-tiers'
 
 type TableProps = { groups: AlertDayGroup[]; sourceId: string; alarms: ReturnType<typeof useAlarms>; now: number; focusKey: string | null; focusRequest?: number; date?: string; impact: ReturnType<typeof useAlertImpact> }
 type AlertRow = AlertDayGroup & { rowId: string; alarmGroup: AlertDayGroup; showAlarm: boolean }
@@ -45,7 +46,7 @@ export const HighlightDock = memo(function HighlightDock({ groups, ...props }: T
   const showNow = times.length > 0 && props.date === jakartaDate(timelineNow)
   return <><CalendarBoundary times={times} onBoundary={setTimelineNow} timeDisplay={jakartaDisplay} />
   <table className="alert-event-table" aria-label="Events on selected date">
-    <thead><tr><th>Time · Jakarta</th><th>Event</th><th>Actual</th><th>Forecast</th><th>Previous</th><th>Source</th><th>Agent impact</th><th><span className="alert-sr-only">Alarm</span></th></tr></thead>
+    <thead><tr><th>Time · Jakarta</th><th>Event</th><th>Actual</th><th>Forecast</th><th>Previous</th><th>Source</th><th>Tier</th><th><span className="alert-sr-only">Alarm</span></th></tr></thead>
     {ordered.map((group, index) => <Fragment key={group.rowId}>
       {showNow && position === index && <NowLine now={timelineNow} />}
       <EventGroup group={group} alarmIndex={alarmIndex}
@@ -90,13 +91,18 @@ const EventGroup = memo(function EventGroup({ group, startsClock, endsClock, sta
   const toggle = (label: string) => <button type="button" className="alert-event-name" aria-expanded={expanded} aria-controls={panelId}
     onClick={changeExpanded}><span aria-hidden="true">{expanded ? '▾' : '▸'}</span>{label}</button>
   return <tbody className={`alert-event-group${startsClock ? ' alert-clock-start' : ''}${endsClock ? ' alert-clock-end' : ''}${startsTime ? ' alert-time-start' : ''}${endsTime ? ' alert-time-end' : ''}${focused && expanded ? ' alert-event-focused' : ''}${hoverDismissed ? ' alert-hover-dismissed' : ''}`} onPointerLeave={() => setHoverDismissed(false)} data-alert-focused={focused || undefined} data-alert-id={group.key} data-external-key={group.external[0]?.key}>
-    {series.map((event, index) => <tr key={event.value_id} data-series-id={event.event_id} className="alert-summary-row" onClick={clickRow}>
+    {series.map((event, index) => { const publisher = eventPublisher(event)
+      const value = (amount: number | null) => publisher && amount !== null
+        ? <a href={publisher.url} target="_blank" rel="noreferrer" title={`${publisher.label} · actual/previous release`}>{formatInspectorValue(amount, event)}</a>
+        : formatInspectorValue(amount, event)
+      return <tr key={event.value_id} data-series-id={event.event_id} className="alert-summary-row" onClick={clickRow}>
       {index === 0 && timeCell}
       <th scope="row">{toggle(event.name)}{'availability' in event && event.availability !== 'observed' && <small>Latest observation unavailable</small>}</th>
-      <td className={`alert-value${event.actual === null ? ' alert-value-pending' : ''}`}>{event.actual === null ? pending(isInspectorCommentary(event)) : formatInspectorValue(event.actual, event)}</td>
-      {[event.forecast, event.previous].map((value, i) => <td className="alert-value" key={i}>{formatInspectorValue(value, event)}</td>)}
-      <td className="alert-source-cell" title={sourceId}>Pepperstone</td><td><ImpactBadge item={impact.byValueId.get(event.value_id)} /></td>{shared(index === 0)}
-    </tr>)}
+      <td className={`alert-value${event.actual === null ? ' alert-value-pending' : ''}`}>{event.actual === null ? pending(isInspectorCommentary(event)) : value(event.actual)}</td>
+      <td className="alert-value" title="Captured consensus forecast; survey provider not identified">{formatInspectorValue(event.forecast, event)}</td>
+      <td className="alert-value">{value(event.previous)}</td>
+      <td className="alert-source-cell" title={sourceId}>{publisher ? <a href={publisher.url} target="_blank" rel="noreferrer">{publisher.label}</a> : '—'}</td><td><ImpactBadge event={event} item={impact.byValueId.get(event.value_id)} /></td>{shared(index === 0)}
+    </tr>})}
     {group.external.map((item, index) => { const first = series.length === 0 && index === 0; return <tr key={item.key} data-external-key={item.key} className="alert-summary-row" onClick={clickRow}>
       {first && timeCell}
       <th scope="row">{toggle(item.title)}</th><td className="alert-value alert-value-pending">{pending(false, true)}</td><td className="alert-value">—</td><td className="alert-value">—</td>
@@ -109,7 +115,7 @@ const EventGroup = memo(function EventGroup({ group, startsClock, endsClock, sta
           <p className="alert-details-status">{status ?? 'Scheduled'}{group.at === null ? ' · No exact publication hour is assumed.' : ` · ${formatAppTimestamp(group.at, jakartaDisplay)} Jakarta`}</p>
           {[...new Map([...series.flatMap(event => impact.byValueId.get(event.value_id) ?? []),
             ...group.external.flatMap(item => impact.byKey.get(`external:${item.key}`) ?? [])].map(item => [item.id, item])).values()]
-            .map(item => <ImpactDetails key={item.id} item={item} />)}
+            .map(item => <ImpactDetails key={item.id} item={item} event={series.find(event => impact.byValueId.get(event.value_id)?.id === item.id)} />)}
           {!!series.length && <dl className="alert-reading-metadata">{series.map(event => <Fragment key={event.value_id}>
             <dt>{event.name}</dt><dd>{event.period_seconds > 0 ? `Reference period: ${new Date(event.period_seconds * 1000).toISOString().slice(0, 10)} · ` : ''}
               Revision {event.revision}{event.revised_previous !== null && ` · Revised previous: ${formatInspectorValue(event.revised_previous, event)}`}</dd>
