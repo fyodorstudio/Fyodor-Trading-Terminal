@@ -12,9 +12,10 @@ on close. Chart changes update scope. FX pairs have two currency columns;
 EURX/JPYX/USDX have one. Aliases share `config/chart-currency-scopes.json` with
 the calendar, outside the 28-pair catalog. Browsing is local, with no AI/web work.
 
-The visible table is **Tier | base currency | quote currency**, or a single
-currency for indices. S — essential, A — major, B — supporting and C — secondary
-have aligned event slots with equal block height in both columns. Each block shows
+The visible table has equal-width **base currency | quote currency** columns, or
+a single currency for indices. Full-width horizontal subheaders label
+S — essential, A — major, B — supporting and C — secondary. Event slots retain
+equal block height in both columns. Each block shows
 only the event name/number, Released at, Next Release and Source link. No category
 expanders, next-major-release list, verification clocks, coverage prose, repeated
 provider labels or policy commentary appear in the comparison. A conflict is the

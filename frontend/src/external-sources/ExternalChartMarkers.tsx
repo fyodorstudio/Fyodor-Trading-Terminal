@@ -46,7 +46,7 @@ export const ExternalChartMarkers = memo(function ExternalChartMarkers({ chartAp
     return () => chartApi.unsubscribeClick(dismiss)
   }, [chartApi, expanded])
   return <div className="external-chart-markers" aria-label="Custom External Sources stars"
-    style={{ bottom: 34 + Math.max(1, brokerRows) * 34 }}>
+    style={{ bottom: `calc(var(--calendar-marker-bottom, 34px) + ${Math.max(1, brokerRows) * 34}px)` }}>
     <div className="external-chart-risk-notices"><OngoingRiskNotices items={notices} onSelect={onSelect} /></div>
     {records.error && <button type="button" className="external-chart-error" title={records.error} onClick={() => onSelect(null)}>External Sources unavailable</button>}
     {clusters.map(cluster => {

@@ -37,6 +37,7 @@ export function TerminalWorkspace() {
   const closeRsiSettings = useCallback(() => setRsiSettingsOpen(false), [setRsiSettingsOpen])
   const closeVolumeSettings = useCallback(() => setVolumeSettingsOpen(false), [setVolumeSettingsOpen])
   const changeVolumeMode = useCallback((mode: typeof volume.mode) => changeVolume({ ...volume, mode }), [volume, changeVolume])
+  const changeVolumeAxis = useCallback((axisTarget: typeof volume.axisTarget) => changeVolume({ ...volume, axisTarget }), [volume, changeVolume])
   return (
     <DisplayClockProvider brokerId={brokerId} brokerOffsetSeconds={brokerOffsetSeconds} preference={timeDisplay}>
     <div className={`terminal-shell${bottomDockWindow ? ' bottom-dock-open' : ''}`}
@@ -99,6 +100,7 @@ export function TerminalWorkspace() {
                   timeframe={timeframe}
                   volume={volume}
                   onChangeVolumeMode={changeVolumeMode}
+                  onChangeVolumeAxis={changeVolumeAxis}
                   rsi={rsi}
                   refocusRequest={refocusRequest}
                   activeDrawingTool={activeDrawingTool}

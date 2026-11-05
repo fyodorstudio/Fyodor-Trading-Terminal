@@ -64,6 +64,8 @@ export function VolumeSettingsDialog({ preferences, onSave, onClose }: {
         </> : <>
         <fieldset><legend>Pane</legend>
           <label>Show pane controls<input type="checkbox" checked={draft.paneControlsVisible} onChange={event => patch({ paneControlsVisible: event.target.checked })} /></label>
+          <label>Right axis<select value={draft.axisTarget} onChange={event => patch({ axisTarget: event.target.value as VolumePreferences['axisTarget'] })}>
+            <option value="volume">Volume bars</option><option value="relative">Relative line</option></select></label>
         </fieldset>
         <fieldset><legend>Volume bars</legend>
           <label>Up candle colour<input type="color" value={draft.upColor} onChange={event => patch({ upColor: event.target.value })} /></label>
@@ -72,7 +74,7 @@ export function VolumeSettingsDialog({ preferences, onSave, onClose }: {
         <fieldset><legend>Relative activity</legend>
           <label>Show Relative activity line<input type="checkbox" checked={draft.relativeLineVisible} onChange={event => patch({ relativeLineVisible: event.target.checked })} /></label>
           <label>Relative line colour<input type="color" value={draft.relativeLineColor} onChange={event => patch({ relativeLineColor: event.target.value })} /></label>
-          <p>Exact values, with no smoothing. Raw bars use the left × scale; Relative bars share the right × scale. The dashed 1× line marks normal activity.</p>
+          <p>Exact values, with no smoothing. Choose which series the right axis resizes; the other keeps its own automatic scale. Relative bars share the × scale. The dashed 1× line marks normal activity.</p>
         </fieldset>
         <fieldset><legend>Raw tick average</legend>
           <label>Show raw tick average<input type="checkbox" checked={draft.averageVisible} onChange={event => patch({ averageVisible: event.target.checked })} /></label>

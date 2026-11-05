@@ -9,9 +9,10 @@ no shortlist, automatic archival or manual archive control is involved.
 Columns: Time | Event | Actual | Forecast | Previous | Source | Tier | Bell.
 The table fits the dock width and wraps text; only the date wheel moves
 horizontally. The bell column includes room for its button and cell padding.
-The time is shared across currencies at the same exact instant. Each pending
-Actual cell shows its countdown, including repeated same-time rows. Supplied
-actuals remain intact and each reading has a subtle row divider; S/A/B/C tiers follow the shared currency table.
+Every event row shows its time and currency, including the same exact instant.
+Each pending Actual cell shows its countdown, including repeated same-time rows.
+Supplied actuals remain intact and each reading has an opaque horizontal divider;
+S/A/B/C tiers follow the shared currency table.
 Source links to the original registered publisher, or the actual external publisher
 (for example Reuters). Calendar Actual/Previous values link there too; anonymous
 consensus forecasts retain their captured value and a source tooltip. External records never acquire invented calendar
@@ -29,10 +30,9 @@ one row never changes a sibling row. Package membership only controls reminders;
 it does not combine event detail panels.
 
 Rows with the same exact publication UTC and currency always form one compact
-visual block, with currency shown once, before and after release. A shared
-time is shown only at the first currency for that timestamp. The countdown stays
-in the Actual column. Darker horizontal rules frame each distinct release time;
-same-time rows keep subtle internal dividers, including currency transitions.
+visual block before and after release. Each row repeats its time and currency.
+The countdown stays in the Actual column. All horizontal row rules are equally
+opaque, including same-time rows and currency transitions.
 This display grouping preserves each publication's details and reminder choice;
 different currencies, exact times and unconfirmed hours remain separate.
 
@@ -73,7 +73,9 @@ matching details and scrolls only Alert's scrollport. Repeated selections reuse
 the mounted feed. External stars open their Alert details directly because they
 have no raw broker Inspector row. A navigation highlight fades and clears on
 collapse. Today has a horizontal current-time divider showing only the Jakarta
-clock. It follows every elapsed timed event and precedes future/unknown-time
+clock on the existing row boundary without a spacer row. Horizontal dividers are
+opaque black in light mode and white in dark mode. The current-time line follows
+every elapsed timed event and precedes future/unknown-time
 items, moving below all same-time rows at their publication instant. It remains
 after the final timed event when all have elapsed. Historical dates omit it.
 Clock ticks stay local to countdowns/the line, and its position changes only at

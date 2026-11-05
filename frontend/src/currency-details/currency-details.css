@@ -11,8 +11,7 @@
 .detail-body[hidden] { display: none; }
 .currency-detail-panel table { width: 100%; border-collapse: collapse; table-layout: fixed; }
 .currency-detail-panel thead th { position: sticky; top: 0; z-index: 1; background: var(--surface-panel); color: var(--text-strong); padding: 10px 8px; text-align: left; border-bottom: 1px solid var(--border-strong); }
-.detail-comparison thead th:first-child { width: 88px; }
-.detail-comparison tbody > tr > th { width: 88px; padding: 12px 8px; border-right: 1px solid var(--border-strong); vertical-align: top; text-align: left; font-weight: 500; line-height: 1.6; }
+.detail-comparison .detail-tier-heading th { padding: 7px 8px; background: var(--surface-inset); border-block: 1px solid var(--border-strong); text-align: left; font-weight: 600; line-height: 18px; }
 .detail-comparison td { padding: 0; vertical-align: top; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); }
 .detail-comparison td:last-child { border-right: 0; }
 .detail-comparison tbody { border-bottom: 1px solid var(--border-strong); }

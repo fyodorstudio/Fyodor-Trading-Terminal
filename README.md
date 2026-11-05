@@ -84,7 +84,8 @@ For optional release waits/historical studies see [the user guide](user%20manual
 
 **Detail**, immediately right of Show events, opens its own right-panel view.
 Four shared tier groups (S/A/B/C) compare the pair's currencies; EURX/JPYX/USDX
-show one. Equal-height event blocks show the number, Released at, Next Release
+show one. Full-width tier subheaders leave the currency columns equal-width.
+Equal-height event blocks show the number, Released at, Next Release
 and an original-publisher link. Conflicts use a ⚠ tooltip. Dates prefer captured
 broker occurrences; no hour is invented. Latest values have no Events-window
 cutoff. Tier List Info replaces the table with the static definitions and the
@@ -113,7 +114,8 @@ rapid switches cannot paint new data before its viewport has been queued.
 Deferred native chart updates cannot replace that window with an intermediate
 future-axis range. Empty future space keeps
 the last useful price scale and editable drawings visible.
-RSI and its settings gear sit immediately left of the timeframe controls. RSI
+Timeframes sit immediately right of the pair/Market Watch button, followed by
+Refocus, Volume and RSI controls. A separator precedes the event-icon button. RSI
 opens a resizable lower pane with a shared time axis, Wilder RSI 14 on Close,
 optional smoothing (SMA 14 by default), 70/50/30 bands and a background fill.
 Visibility and settings persist on this device across all symbols/timeframes.
@@ -131,9 +133,12 @@ missing/zero-mean baselines stay blank. Load older or scroll left to build histo
 Volume settings use Inputs/Style tabs, matching RSI: data options in Inputs,
 visibility and colours in Style.
 Show Relative activity line overlays each candle's exact ratio with straight
-segments and no averaging or smoothing. It is enabled by default: Raw bars keep
-ticks on the right and the line uses a separate left × scale with a 1× reference;
-Relative bars and the line share the right × scale. The line stays above the
+segments and no averaging or smoothing. It is enabled by default. Raw mode has
+an **Axis: Volume / Relative** toggle: the selected series owns the
+draggable right axis and the other uses an independent hidden automatic scale.
+No left gutter is added. Relative bars and the line share the right × scale;
+a 1× reference remains visible. The fixed-field readout sits at the upper-right,
+with pipe separators between Ticks, Relative and Matches. The line stays above the
 bars when hovering. Missing baselines stay blank.
 Show pane controls hides the in-pane button strip while the header gear stays
 available. Raw mode also retains its separate optional SMA. Visibility/settings
@@ -152,13 +157,16 @@ clocks in By release. Calendar icons open Inspector first; **View in Alert** ope
 Pepperstone release in the dated Alert table. Inspector Save shares selected families across pairs containing each currency;
 icon style/grouping/colors remain chart-specific. The chart calendar toggle
 controls event icons and External Source stars without changing selections.
+Chart markers keep their original offset when indicators are hidden; with an
+indicator pane open, both local icons and custom stars sit 22px lower within
+the main price pane, preserving stacked-row clearance.
 All series, date-only/unknown times, unknown-ID admission, blank-chart dismissal,
 future axis and saved drawings remain supported. Jakarta AM/PM is the display
 default; publication UTC and historical broker/chart clocks remain independent.
 Family filters control chart/list admission; opening an admitted release exposes
 its complete same-time source group. By-day selections keep their daily filters.
 
-The 📆 button immediately right of the drawing-toolbar toggle opens Events
+The outline calendar-list button immediately right of the drawing-toolbar toggle opens Events
 in the right panel. Its bottom dock switches Upcoming (the default) and Recent.
 It follows the active chart's currency scope and broker, showing all timed rows
 within the next or last 3, 7, 14 or 31 rolling days. Upcoming sorts nearest first
@@ -172,7 +180,9 @@ read-only and preserves research drafts when switching the shared right panel.
 Alert shows all captured events for a selected Jakarta date, including released
 rows, with source-specific Actual/Forecast/Previous. The Tier column uses the
 shared currency classification; MT5 importance never supplies it. One bell controls each timed
-release package. Each event has its own flat row and independently expandable
+release package. Every row repeats its time and currency, with opaque black
+horizontal dividers in the light theme (white in dark). The current-time line
+occupies an existing row boundary without a spacer. Each event has its own flat row and independently expandable
 details, including package components and linked publishers. Browsing, news saves and filters do not change choices. Windows
 must remain awake for the independent worker; delivery never invokes AI.
 Manual price alerts remain independent. Alert’s **Legacy pins & research** button

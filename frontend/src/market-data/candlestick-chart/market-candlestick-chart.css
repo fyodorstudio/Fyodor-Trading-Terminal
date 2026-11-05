@@ -5,7 +5,7 @@
 }
 
 .chart-price-pane-overlays { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
-.chart-price-pane-overlays[data-constrained="true"] { overflow: hidden; }
+.chart-price-pane-overlays[data-constrained="true"] { overflow: hidden; --calendar-marker-bottom: 12px; }
 .chart-price-pane-overlays .research-range-overlay, .chart-price-pane-overlays .research-range-hint { pointer-events: auto; }
 
 .chart-error-fallback {

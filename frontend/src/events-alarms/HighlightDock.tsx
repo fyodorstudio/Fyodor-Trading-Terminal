@@ -80,9 +80,7 @@ const EventGroup = memo(function EventGroup({ group, startsClock, endsClock, sta
     : !elapsed ? <span className="alert-release-countdown"><ReleaseCountdown at={group.at} now={now} /></span>
     : external ? 'Elapsed · verify outcome' : commentary ? 'Elapsed' : 'Awaiting data'
   const time = group.at === null ? '—' : formatAppTimestamp(group.at, jakartaDisplay, 'time-short')
-  const timeCell = <td className="alert-time-cell">{startsTime
-    ? <>{startsClock ? <time>{time}</time> : <span className="alert-sr-only">{time}</span>}<small>{group.currency}</small></>
-    : <span className="alert-sr-only">{time} · {group.currency}</span>}</td>
+  const timeCell = <td className="alert-time-cell"><time>{time}</time><small>{group.currency}</small></td>
   const changeExpanded = () => { setExpanded(value => !value); setHoverDismissed(expanded) }
   const clickRow = (event: React.MouseEvent<HTMLTableRowElement>) => {
     if ((event.target as Element).closest('button, a, input, select, label, summary, details')) return
@@ -96,7 +94,7 @@ const EventGroup = memo(function EventGroup({ group, startsClock, endsClock, sta
         ? <a href={publisher.url} target="_blank" rel="noreferrer" title={`${publisher.label} · actual/previous release`}>{formatInspectorValue(amount, event)}</a>
         : formatInspectorValue(amount, event)
       return <tr key={event.value_id} data-series-id={event.event_id} className="alert-summary-row" onClick={clickRow}>
-      {index === 0 && timeCell}
+      {timeCell}
       <th scope="row">{toggle(event.name)}{'availability' in event && event.availability !== 'observed' && <small>Latest observation unavailable</small>}</th>
       <td className={`alert-value${event.actual === null ? ' alert-value-pending' : ''}`}>{event.actual === null ? pending(isInspectorCommentary(event)) : value(event.actual)}</td>
       <td className="alert-value" title="Captured consensus forecast; survey provider not identified">{formatInspectorValue(event.forecast, event)}</td>
@@ -104,7 +102,7 @@ const EventGroup = memo(function EventGroup({ group, startsClock, endsClock, sta
       <td className="alert-source-cell" title={sourceId}>{publisher ? <a href={publisher.url} target="_blank" rel="noreferrer">{publisher.label}</a> : '—'}</td><td><ImpactBadge event={event} item={impact.byValueId.get(event.value_id)} /></td>{shared(index === 0)}
     </tr>})}
     {group.external.map((item, index) => { const first = series.length === 0 && index === 0; return <tr key={item.key} data-external-key={item.key} className="alert-summary-row" onClick={clickRow}>
-      {first && timeCell}
+      {timeCell}
       <th scope="row">{toggle(item.title)}</th><td className="alert-value alert-value-pending">{pending(false, true)}</td><td className="alert-value">—</td><td className="alert-value">—</td>
       <td className="alert-source-cell">{item.sources.filter(source => source.kind === 'web').slice(0, 1).map(source =>
         <a href={source.locator} target="_blank" rel="noreferrer" key={source.locator}>{publisherName(source)}</a>)}</td><td><ImpactBadge item={impact.byKey.get(`external:${item.key}`)} /></td>{shared(first)}

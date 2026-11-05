@@ -40,6 +40,7 @@ type MarketCandlestickChartProps = {
   timeframe?: ChartTimeframe
   volume?: VolumePreferences
   onChangeVolumeMode?: (mode: VolumePreferences['mode']) => void
+  onChangeVolumeAxis?: (target: VolumePreferences['axisTarget']) => void
   rsi?: RsiPreferences
   refocusRequest?: number
   activeDrawingTool: DrawingToolId | null
@@ -75,6 +76,7 @@ function MarketCandlestickChartComponent({
   timeframe,
   volume,
   onChangeVolumeMode,
+  onChangeVolumeAxis,
   rsi,
   refocusRequest = 0,
   activeDrawingTool,
@@ -398,12 +400,13 @@ function MarketCandlestickChartComponent({
         volumePaneRef.current.sync(bars, `${clock.brokerId}:${fitContentKey}`, volume, clock, timeframeToSeconds(timeframe), {
           formatTime: time => displayClock.chart(time * 1000),
           changeMode: mode => onChangeVolumeMode?.(mode),
+          changeAxis: target => onChangeVolumeAxis?.(target),
           loadOlder: onRequestOlderData, hasOlder: hasOlderData, loadingOlder: isLoadingOlderData,
         })
       }
       if (range) setLogicalRange(range)
     } finally { applyingDataRef.current = false }
-  }, [volume, bars, fitContentKey, clock, timeframe, displayClock, onChangeVolumeMode, hasOlderData, isLoadingOlderData, onRequestOlderData, readLogicalRange, setLogicalRange])
+  }, [volume, bars, fitContentKey, clock, timeframe, displayClock, onChangeVolumeMode, onChangeVolumeAxis, hasOlderData, isLoadingOlderData, onRequestOlderData, readLogicalRange, setLogicalRange])
 
   useEffect(() => {
     if (!pendingWindowRef.current || !bars.length || !hasOlderData || isLoadingOlderData) return

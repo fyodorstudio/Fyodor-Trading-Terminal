@@ -67,14 +67,21 @@ prior failure context; full original records are [archived](docs/RESEARCH-ARCHIV
    the exact Relative values for individual candles with straight segments: no
    averaging or smoothing is applied to the line, so spikes and dips remain intact.
    The line stays above the bars, including while hovering over a volume bar.
-   With Raw bars, the **left × scale** belongs to the line and the **right scale**
-   shows tick counts. With Relative bars, both use the right × scale. The dashed
-   **1×** reference means normal activity; the latest line value appears on its
-   scale. Missing baselines have no line values, and nothing extends into future
-   space. The optional raw tick average is separate and does not affect this line.
+   With Raw bars, **Axis: Volume / Relative** chooses which series the right axis
+   resizes. The other keeps an independent automatic scale, without a left gutter.
+   The same choice is available under **Style → Right axis** and persists on this
+   device. Double-click the right axis to restore automatic scaling. With Relative
+   bars, both use the right × scale. The dashed
+   **1×** reference means normal activity; the latest line value appears on the
+   right scale when the Relative line owns it. Missing baselines have no line
+   values, and nothing extends into future space. The optional raw tick average
+   is separate and does not affect this line.
 
    Turn off **Show pane controls** in the Volume gear’s **Style** tab to hide Raw/Relative,
-   Select A, Select B, Clear and Load older. The title and activity readout remain.
+   Select A, Select B, Clear and Load older. The activity readout remains at the
+   upper-right with stable fields:
+   `| Ticks 13,261 | Relative 0.90x | Matches 19/20 |`. The axis toggle stays
+   available whenever Raw bars and the Relative line are both shown.
    Mode and both visibility options stay accessible through the header gear and
    are remembered on this device. Hidden controls cancel an unfinished A/B pick;
    existing selected ranges remain. Scroll left to load more history while the
@@ -132,7 +139,8 @@ to Raw ticks; Relative uses a 1× reference line. Settings are shared on this de
 ## Currency Detail
 
 Click **Detail** beside Show events for S/A/B/C fundamentals of the active pair.
-EURX, JPYX and USDX show only their currency. Equal-height event blocks contain the
+EURX, JPYX and USDX show only their currency. Full-width tier subheaders group
+equal-width currency columns. Equal-height event blocks contain the
 number, Released at, Next Release and original Source link. Hover ⚠ for a numeric
 conflict. Tier List Info shows the general reference and your active currencies'
 tier table; its Close button returns to the comparison. Alert uses the same tiers.

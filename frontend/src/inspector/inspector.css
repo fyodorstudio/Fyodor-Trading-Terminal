@@ -98,7 +98,7 @@
 .inspector-filter-save-note { flex: 1 1 200px; color: var(--text-muted); font-size: 11px; }
 .inspector-modal footer button { min-width: 80px; padding: 7px 14px; }
 .inspector-modal footer .inspector-primary { color: #fff; background: var(--accent); border-color: var(--accent); }
-.inspector-chart-markers { position: absolute; bottom: 34px; left: 0; right: 70px; height: 30px; pointer-events: none; z-index: 7; }
+.inspector-chart-markers { position: absolute; bottom: var(--calendar-marker-bottom, 34px); left: 0; right: 70px; height: 30px; pointer-events: none; z-index: 7; }
 /* Raise the owning layer: a popup's own z-index cannot escape its parent. */
 .inspector-chart-markers:has(.inspector-marker-popup) { z-index: 13; }
 .inspector-marker-cluster { position: absolute; bottom: 0; transform: translateX(-50%); }

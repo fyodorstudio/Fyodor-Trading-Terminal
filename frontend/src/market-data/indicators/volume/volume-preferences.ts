@@ -1,11 +1,11 @@
 export type VolumePreferences = {
-  enabled: boolean; mode: 'raw' | 'relative'
+  enabled: boolean; mode: 'raw' | 'relative'; axisTarget: 'volume' | 'relative'
   relativeLineVisible: boolean; paneControlsVisible: boolean; relativeLineColor: string
   lookback: number; minimumSamples: number; averageVisible: boolean; averageLength: number
   upColor: string; downColor: string; averageColor: string
 }
 export const defaultVolumePreferences: VolumePreferences = {
-  enabled: false, mode: 'raw', lookback: 20, minimumSamples: 5,
+  enabled: false, mode: 'raw', axisTarget: 'volume', lookback: 20, minimumSamples: 5,
   relativeLineVisible: true, paneControlsVisible: true, relativeLineColor: '#2962ff',
   averageVisible: false, averageLength: 20, upColor: '#089981', downColor: '#f23645', averageColor: '#b18a00',
 }
@@ -20,7 +20,7 @@ export function readVolumePreferences(): VolumePreferences {
     const color = (key: 'upColor' | 'downColor' | 'averageColor' | 'relativeLineColor') => typeof p[key] === 'string' && /^#[\da-f]{6}$/i.test(p[key]) ? p[key] as string : d[key]
     const flag = (key: 'relativeLineVisible' | 'paneControlsVisible') => typeof p[key] === 'boolean' ? p[key] : d[key]
     const lookback = integer('lookback', 5, 60)
-    return { enabled: p.enabled === true, mode: p.mode === 'relative' ? 'relative' : 'raw',
+    return { enabled: p.enabled === true, mode: p.mode === 'relative' ? 'relative' : 'raw', axisTarget: p.axisTarget === 'relative' ? 'relative' : 'volume',
       lookback,
       relativeLineVisible: flag('relativeLineVisible'), paneControlsVisible: flag('paneControlsVisible'), relativeLineColor: color('relativeLineColor'),
       minimumSamples: Math.min(integer('minimumSamples', 1, 60), lookback),

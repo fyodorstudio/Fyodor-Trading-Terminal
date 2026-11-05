@@ -98,13 +98,13 @@ try {
     await React.act(async () => { for (const [id, fn] of frames) { frames.delete(id); fn() } })
   }
   await render(1)
-  assert.equal(container.querySelector('.external-chart-markers').style.bottom, '68px')
+  assert.equal(container.querySelector('.external-chart-markers').style.bottom, 'calc(var(--calendar-marker-bottom, 34px) + 34px)')
   const star = container.querySelector('.external-chart-star')
   assert.equal(star.textContent, '★'); assert.ok(star.title.includes('22:00'))
   assert.equal(star.classList.contains('external-chart-time-unconfirmed'), false, 'Exact-time stars keep their normal color')
   await React.act(async () => star.click()); assert.equal(selected, 'future')
   await render(2)
-  assert.equal(container.querySelector('.external-chart-markers').style.bottom, '102px', 'Custom row clears both daily currency icons')
+  assert.equal(container.querySelector('.external-chart-markers').style.bottom, 'calc(var(--calendar-marker-bottom, 34px) + 68px)', 'Custom row clears both daily currency icons')
   coordinateReads = 0
   await React.act(async () => { for (let count = 0; count < 50; count++) for (const fn of rangeListeners) fn() })
   assert.equal(frames.size, 1, 'Pan notifications share one animation frame')

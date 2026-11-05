@@ -14,13 +14,12 @@ export function createVolumePane(chart: IChartApi) {
   chart.panes()[0].setStretchFactor(3); pane.setStretchFactor(1.5)
   const histogram = pane.addSeries(HistogramSeries, { priceLineVisible: false, lastValueVisible: false })
   const average = pane.addSeries(LineSeries, { priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false })
-  const initialLeftVisibility = chart.options().leftPriceScale.visible
-  const initialLeftMinimumWidth = chart.options().leftPriceScale.minimumWidth ?? 0
+  const initialRightMinimumWidth = chart.options().rightPriceScale.minimumWidth ?? 0
   const initialHoveredSeriesOnTop = chart.options().hoveredSeriesOnTop
   // Hovering a histogram must not promote its solid bars over the Relative line.
-  chart.applyOptions({ hoveredSeriesOnTop: false })
+  chart.applyOptions({ hoveredSeriesOnTop: false, rightPriceScale: { minimumWidth: Math.max(80, initialRightMinimumWidth) } })
   const compactRatio = new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 })
-  const relativeLine = pane.addSeries(LineSeries, { priceScaleId: 'left', lineType: LineType.Simple, lineWidth: 2,
+  const relativeLine = pane.addSeries(LineSeries, { priceScaleId: 'volume-relative', lineType: LineType.Simple, lineWidth: 2,
     priceLineVisible: false, lastValueVisible: true, crosshairMarkerVisible: true,
     priceFormat: { type: 'custom', minMove: 0.01, formatter: (value: number) => `${Math.abs(value) >= 1000 ? compactRatio.format(value) : value.toFixed(2)}×` },
     autoscaleInfoProvider: (original: () => AutoscaleInfo | null) => {
@@ -37,15 +36,19 @@ export function createVolumePane(chart: IChartApi) {
   let pending: 'A' | 'B' | null = null, start: number | null = null
   const ranges: { A?: VolumeRange; B?: VolumeRange } = {}
   let formatTime: (time: number) => string = String, changeMode: (mode: VolumePreferences['mode']) => void = () => {}
+  let changeAxis: (target: VolumePreferences['axisTarget']) => void = () => {}
   let loadOlder: () => void = () => {}
   let clock: ChartClockScope = { brokerId: null, brokerOffsetSeconds: 0 }
   const sessionAt = createForexSessionLookup()
   let topMargin = 0.48
+  let scaleIds = ['right', 'volume-relative']
   const legend = document.createElement('div'); legend.className = 'volume-legend'
   legend.setAttribute('aria-label', 'Volume activity and push comparison')
   const controls = document.createElement('div'); controls.className = 'volume-controls'
   const buttons = document.createElement('div'); buttons.className = 'volume-pane-controls'
-  const title = document.createElement('strong'), readout = document.createElement('div'), comparison = document.createElement('div'), sessionLabel = document.createElement('div')
+  const readout = document.createElement('div'), comparison = document.createElement('div'), sessionLabel = document.createElement('div')
+  const telemetry = document.createElement('div'), note = document.createElement('div')
+  telemetry.className = 'volume-telemetry'; note.className = 'volume-readout-note'
   sessionLabel.className = 'volume-session'
   sessionLabel.setAttribute('aria-label', 'Automatic volume session')
   sessionLabel.title = 'Indicative sessions from the header. Hover follows chart time; otherwise this shows now. Overlaps are listed together. Broker holidays may differ.'
@@ -54,13 +57,24 @@ export function createVolumePane(chart: IChartApi) {
     const element = document.createElement('button'); element.type = 'button'; element.textContent = text
     element.onclick = action; buttons.append(element); return element
   }
-  controls.append(title, buttons)
+  controls.append(buttons)
+  const axisButton = document.createElement('button'); axisButton.type = 'button'
+  axisButton.setAttribute('aria-label', 'Right axis target')
+  axisButton.onclick = () => { if (preferences) changeAxis(preferences.axisTarget === 'relative' ? 'volume' : 'relative') }
+  controls.append(axisButton)
+  const fields = ['ticks', 'relative', 'matches'].map(name => {
+    const separator = document.createElement('span'); separator.textContent = '|'; separator.setAttribute('aria-hidden', 'true')
+    const field = document.createElement('span'); field.className = `volume-readout-${name}`
+    readout.append(separator, field); return field
+  })
+  const endSeparator = document.createElement('span'); endSeparator.textContent = '|'; endSeparator.setAttribute('aria-hidden', 'true'); readout.append(endSeparator)
   const modeButton = button('Raw', () => { if (preferences) changeMode(preferences.mode === 'raw' ? 'relative' : 'raw') })
   const pick = (target: 'A' | 'B') => { pending = pending === target ? null : target; start = null; updateLegend() }
   const pickA = button('Select A', () => pick('A')), pickB = button('Select B', () => pick('B'))
   button('Clear', () => { delete ranges.A; delete ranges.B; pending = null; start = null; updateLegend(); repaint() })
   const olderButton = button('Load older', () => loadOlder())
-  legend.append(controls, sessionLabel, readout, comparison); chart.chartElement().append(legend)
+  telemetry.append(readout, sessionLabel, note)
+  legend.append(controls, telemetry, comparison); chart.chartElement().append(legend)
   const find = (time: number) => {
     let lo = 0, hi = bars.length
     while (lo < hi) { const mid = (lo + hi) >>> 1; if (bars[mid].time < time) lo = mid + 1; else hi = mid }
@@ -68,9 +82,13 @@ export function createVolumePane(chart: IChartApi) {
   }
   const updateLegend = () => {
     if (!preferences || !data || destroyed) return
-    title.textContent = 'Volume · Ticks'
     modeButton.textContent = preferences.mode === 'raw' ? 'Raw' : 'Relative'
     modeButton.title = 'Switch between raw ticks and activity relative to matching earlier sessions'
+    axisButton.hidden = preferences.mode !== 'raw' || !preferences.relativeLineVisible
+    controls.hidden = buttons.hidden && axisButton.hidden
+    axisButton.textContent = `Axis: ${preferences.axisTarget === 'relative' ? 'Relative' : 'Volume'}`
+    axisButton.setAttribute('aria-pressed', String(preferences.axisTarget === 'relative'))
+    axisButton.title = 'Drag the right axis to resize this series. Click to switch; double-click the axis to restore automatic scaling.'
     pickA.setAttribute('aria-pressed', String(pending === 'A')); pickB.setAttribute('aria-pressed', String(pending === 'B'))
     const now = Date.now()
     const hoveredUtc = hover !== null && Number.isFinite(hover) ? chartClockToUtc(hover * 1000, clock) : null
@@ -80,9 +98,14 @@ export function createVolumePane(chart: IChartApi) {
     const latest = data.rows.at(-1)
     const currentLoaded = latest?.utc !== null && latest?.utc !== undefined && now >= latest.utc && now < latest.utc + step * 1000
     const index = hover === null ? currentLoaded ? bars.length - 1 : -1 : find(hover), row = data.rows[index]
-    const relative = row?.relative === undefined ? 'Relative unavailable' : `${row.relative.toFixed(2)}× normal`
-    readout.textContent = row ? `${row.ticks === undefined ? 'Ticks unavailable' : `${row.ticks.toLocaleString()} ticks`} · ${relative} · ${row.samples}/${preferences.lookback} prior matches${step >= 86400 ? ' · daily bars' : ` · ${row.session}`}` : hover === null ? 'No current candle loaded · hover a candle to inspect it' : 'No candle at cursor'
-    if (row && row.relative === undefined) readout.textContent += row.utc === null ? ' · Broker clock unavailable' : ` · Need ${preferences.minimumSamples} prior matches with a positive mean`
+    fields[0].textContent = `Ticks ${row?.ticks === undefined ? '—' : row.ticks.toLocaleString('en-US')}`
+    fields[1].textContent = `Relative ${row?.relative === undefined ? '—' : `${row.relative.toFixed(2)}x`}`
+    fields[2].textContent = `Matches ${row ? `${row.samples}/${preferences.lookback}` : '—'}`
+    for (const field of fields) field.title = field.textContent ?? ''
+    note.textContent = !row ? hover === null ? 'No current candle loaded · hover a candle to inspect it' : 'No candle at cursor'
+      : row.relative === undefined ? row.utc === null ? 'Broker clock unavailable' : `Need ${preferences.minimumSamples} prior matches with a positive mean` : ''
+    note.hidden = !note.textContent
+    if (row && row.utc !== null) sessionLabel.textContent = `${row.session || 'No active session'}${step < 86400 && context && context.names.length > 1 ? ' · overlap' : ''} · ${hover === null ? 'now' : 'hovered candle'}`
     const lines: string[] = []
     if (pending) lines.push(`${pending}: click ${start === null ? 'the first' : 'the last'} candle of the push in the Volume pane. Esc cancels.`)
     const summary = (name: 'A' | 'B') => {
@@ -118,7 +141,7 @@ export function createVolumePane(chart: IChartApi) {
     draw() {
       const leftWidth = chart.options().leftPriceScale.visible ? pane.priceScale('left').width() : 0
       legend.style.left = `${leftWidth + 10}px`
-      legend.style.maxWidth = `${Math.max(0, chart.paneSize(pane.paneIndex()).width - 20)}px`
+      legend.style.width = `${Math.max(0, chart.paneSize(pane.paneIndex()).width - 20)}px`
       legend.style.top = `${(pane.getHTMLElement()?.offsetTop ?? chart.paneSize(0).height + 8) + 3}px`
       const height = pane.getHeight()
       legend.style.maxHeight = `${Math.max(25, height - 12)}px`
@@ -126,7 +149,7 @@ export function createVolumePane(chart: IChartApi) {
       if (height > 0 && legend.offsetHeight > 0 && Math.abs(nextMargin - topMargin) > 0.01) {
         topMargin = nextMargin
         pane.priceScale('right').applyOptions({ scaleMargins: { top: topMargin, bottom: 0 } })
-        if (preferences?.relativeLineVisible && preferences.mode === 'raw') pane.priceScale('left').applyOptions({ scaleMargins: { top: topMargin, bottom: 0 } })
+        for (const id of scaleIds) pane.priceScale(id).applyOptions({ scaleMargins: { top: topMargin, bottom: 0 } })
       }
     },
     drawBackground(target) {
@@ -148,31 +171,35 @@ export function createVolumePane(chart: IChartApi) {
   histogram.attachPrimitive(primitive)
   return {
     sync(nextBars: OhlcBar[], scope: string, next: VolumePreferences, nextClock: ChartClockScope, seconds: number,
-      options: { formatTime: (time: number) => string; changeMode: (mode: VolumePreferences['mode']) => void; loadOlder: () => void; hasOlder: boolean; loadingOlder: boolean }) {
+      options: { formatTime: (time: number) => string; changeMode: (mode: VolumePreferences['mode']) => void; changeAxis: (target: VolumePreferences['axisTarget']) => void; loadOlder: () => void; hasOlder: boolean; loadingOlder: boolean }) {
       if (destroyed) return
       if (scopeKey !== scope) {
         calculator = createVolumeCalculator()
         delete ranges.A; delete ranges.B; pending = null; start = null; hover = null
       }
-      scopeKey = scope; bars = nextBars; step = seconds; clock = nextClock; formatTime = options.formatTime; changeMode = options.changeMode; loadOlder = options.loadOlder
+      scopeKey = scope; bars = nextBars; step = seconds; clock = nextClock; formatTime = options.formatTime; changeMode = options.changeMode; changeAxis = options.changeAxis; loadOlder = options.loadOlder
       olderButton.disabled = !options.hasOlder || options.loadingOlder; olderButton.textContent = options.loadingOlder ? 'Loading…' : 'Load older'
       const styleChanged = preferences !== next
       const modeChanged = preferences?.mode !== next.mode
+      const relativeOnRight = next.mode === 'raw' && next.relativeLineVisible && next.axisTarget === 'relative'
+      const axisChanged = !preferences || modeChanged || relativeOnRight !== (preferences.mode === 'raw' && preferences.relativeLineVisible && preferences.axisTarget === 'relative')
       preferences = next
       data = calculator.sync(bars, next, clock, step)
       if (styleChanged) {
         buttons.hidden = !next.paneControlsVisible
         if (buttons.hidden) { pending = null; start = null }
-        histogram.applyOptions({ priceFormat: next.mode === 'raw' ? { type: 'volume' } : { type: 'custom', minMove: 0.01, formatter: (value: number) => `${value.toFixed(2)}×` } })
-        relativeLine.applyOptions({ priceScaleId: next.mode === 'raw' ? 'left' : 'right', color: next.relativeLineColor,
+        const tickScale = relativeOnRight ? 'volume-ticks' : 'right'
+        histogram.applyOptions({ priceScaleId: tickScale, priceFormat: next.mode === 'raw' ? { type: 'volume' } : { type: 'custom', minMove: 0.01, formatter: (value: number) => `${value.toFixed(2)}×` } })
+        average.applyOptions({ priceScaleId: tickScale })
+        relativeLine.applyOptions({ priceScaleId: next.mode === 'raw' && !relativeOnRight ? 'volume-relative' : 'right', color: next.relativeLineColor,
           visible: next.relativeLineVisible, lastValueVisible: next.relativeLineVisible, crosshairMarkerVisible: next.relativeLineVisible })
         if (relativeLine.seriesOrder() !== 2) relativeLine.setSeriesOrder(2)
-        // Keep the extra axis width stable as history clears/reloads and candle
-        // values change, so native layout cannot shift the saved date window.
-        const separateScale = next.mode === 'raw' && next.relativeLineVisible
-        chart.applyOptions({ leftPriceScale: { visible: separateScale ? true : initialLeftVisibility,
-          minimumWidth: separateScale ? Math.max(80, initialLeftMinimumWidth) : initialLeftMinimumWidth } })
-        pane.priceScale('left').applyOptions({ autoScale: true, scaleMargins: { top: topMargin, bottom: 0 } })
+        // Only the selected series owns the draggable right axis. The other
+        // uses a hidden independent scale, without reserving a left gutter.
+        if (axisChanged) pane.priceScale('right').applyOptions({ autoScale: true })
+        scaleIds = [...new Set(['right', tickScale, next.mode === 'raw' && !relativeOnRight ? 'volume-relative' : 'right'])]
+        for (const id of scaleIds)
+          pane.priceScale(id).applyOptions({ scaleMargins: { top: topMargin, bottom: 0 } })
         baseline.applyOptions({ lineVisible: next.mode === 'relative' && !next.relativeLineVisible })
         relativeBaseline.applyOptions({ lineVisible: next.relativeLineVisible })
         average.applyOptions({ color: next.averageColor, lineVisible: next.mode === 'raw' && next.averageVisible })
@@ -200,7 +227,7 @@ export function createVolumePane(chart: IChartApi) {
       if (frame !== null) window.cancelAnimationFrame(frame)
       chart.unsubscribeCrosshairMove(onHover); chart.unsubscribeClick(onClick); window.removeEventListener('keydown', onKey)
       chart.applyOptions({ hoveredSeriesOnTop: initialHoveredSeriesOnTop,
-        leftPriceScale: { visible: initialLeftVisibility, minimumWidth: initialLeftMinimumWidth } })
+        rightPriceScale: { minimumWidth: initialRightMinimumWidth } })
       histogram.detachPrimitive(primitive); legend.remove(); chart.removePane(pane.paneIndex())
     },
   }

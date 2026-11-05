@@ -110,6 +110,23 @@ export function ChartWorkspaceHeader({
       </div>
 
       <div className="chart-toolbar-center">
+        <div className="timeframe-selector" aria-label="Chart timeframe">
+          {timeframes.map((item) => (
+            <button
+              key={item}
+              type="button"
+              className={item === timeframe ? 'active' : ''}
+              aria-pressed={item === timeframe}
+              onClick={() => onSelectTimeframe(item)}
+            >
+              {item}
+            </button>
+          ))}
+        </div>
+        {onRefocus && <button type="button" className="chart-refocus-button" aria-label="Refocus chart" title="Refocus on latest candles"
+          disabled={refocusDisabled} onClick={onRefocus}>
+          <span aria-hidden="true">⛶</span>
+        </button>}
         {onToggleVolume && <div className="rsi-header-controls" role="group" aria-label="Volume indicator">
           <button type="button" aria-pressed={volumeEnabled} onClick={onToggleVolume}
             aria-label={volumeEnabled ? 'Hide Volume' : 'Show Volume'} title={volumeEnabled ? 'Hide Volume' : 'Show Volume'}>Volume</button>
@@ -130,23 +147,7 @@ export function ChartWorkspaceHeader({
             </svg>
           </button>
         </div>}
-        <div className="timeframe-selector" aria-label="Chart timeframe">
-          {timeframes.map((item) => (
-            <button
-              key={item}
-              type="button"
-              className={item === timeframe ? 'active' : ''}
-              aria-pressed={item === timeframe}
-              onClick={() => onSelectTimeframe(item)}
-            >
-              {item}
-            </button>
-          ))}
-        </div>
-        {onRefocus && <button type="button" className="chart-refocus-button" aria-label="Refocus chart" title="Refocus on latest candles"
-          disabled={refocusDisabled} onClick={onRefocus}>
-          <span aria-hidden="true">⛶</span>
-        </button>}
+        <span className="chart-toolbar-separator" role="separator" aria-orientation="vertical" />
         {onToggleEventIcons && (
           <button type="button" className={`chart-event-toggle${eventIconsVisible ? ' active' : ''}`}
             aria-pressed={eventIconsVisible}
@@ -176,11 +177,17 @@ export function ChartWorkspaceHeader({
           aria-label={recentEventsOpen ? 'Hide events' : 'Show events'}
           title={recentEventsOpen ? 'Hide events' : 'Show events'}
           aria-expanded={recentEventsOpen} aria-controls="recent-events-panel" onClick={onToggleRecentEvents}>
-          <span aria-hidden="true">📆</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <rect x="3" y="5" width="18" height="16" rx="2" /><path d="M7 3v4M17 3v4M3 11h18M8 15h8M8 18h5" />
+          </svg>
         </button>}
         {onToggleDetail && <button type="button" className={`chart-detail-toggle${detailOpen ? ' active' : ''}`}
           aria-label={detailOpen ? 'Hide Detail' : 'Show Detail'} title={detailOpen ? 'Hide Detail' : 'Show Detail'}
-          aria-expanded={detailOpen} aria-controls="currency-detail-panel" onClick={onToggleDetail}>Detail</button>}
+          aria-expanded={detailOpen} aria-controls="currency-detail-panel" onClick={onToggleDetail}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18M12 9v12M3 15h18" />
+          </svg>
+        </button>}
       </div>
 
       <div className="chart-toolbar-right">

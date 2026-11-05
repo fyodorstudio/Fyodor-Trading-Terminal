@@ -78,12 +78,13 @@ export const CurrencyDetailPanel = memo(function CurrencyDetailPanel({ brokerId,
     <div className="detail-body" hidden={info}>
       {!currencies.length ? <p>No currency Detail scope for {symbol}.</p> : !brokerId ? <p>Connect a broker to view Detail.</p> : <>
         {error && <p role="alert">{error}</p>}{loading && <p role="status">Loading Detail…</p>}
-        {data && <table className="detail-comparison" aria-label="Currency fundamentals comparison"><thead><tr><th scope="col">Tier</th>{currencies.map(c => <th key={c} scope="col">{c}</th>)}</tr></thead>
+        {data && <table className="detail-comparison" aria-label="Currency fundamentals comparison"><thead><tr>{currencies.map(c => <th key={c} scope="col">{c}</th>)}</tr></thead>
           {eventTiers.map(tier => {
             const columns = currencies.map(currency => data.metrics.filter(m => m.currency === currency && m.tier === tier.id))
             const count = Math.max(1, ...columns.map(column => column.length))
-            return <tbody key={tier.id} data-detail-tier={tier.id}>{Array.from({ length: count }, (_, index) => <tr key={index}>
-              {index === 0 && <th scope="rowgroup" rowSpan={count}>{tier.label}</th>}
+            return <tbody key={tier.id} data-detail-tier={tier.id}>
+              <tr className="detail-tier-heading"><th scope="rowgroup" colSpan={currencies.length}>{tier.label}</th></tr>
+              {Array.from({ length: count }, (_, index) => <tr key={index}>
               {columns.map((column, i) => <td key={currencies[i]}>{column[index]
                 ? <MetricCell metric={column[index]} publisher={data.sources[column[index].source]} onViewEvent={onViewEvent} />
                 : <div className="detail-empty" aria-label={`No further ${tier.label} metrics for ${currencies[i]}`}>—</div>}</td>)}

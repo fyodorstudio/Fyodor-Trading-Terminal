@@ -105,7 +105,7 @@ const addIndicatorPane = () => {
   pane.fixtureSeries = paneSeries
   panes.push(pane); return pane
 }
-const chart = { options: () => ({ leftPriceScale: { visible: false } }), addSeries: definition => definition.type === 'line' ? timeSeries : series, timeScale: () => scale, priceScale: () => priceScale,
+const chart = { options: () => ({ leftPriceScale: { visible: false }, rightPriceScale: { minimumWidth: 0 } }), addSeries: definition => definition.type === 'line' ? timeSeries : series, timeScale: () => scale, priceScale: () => priceScale,
   applyOptions: () => count('chartOptions'), paneSize: () => ({ width: 900, height: 420 }),
   addPane: addIndicatorPane, panes: () => panes, removePane: index => { const [removed] = panes.splice(index, 1); for (const item of removed.fixtureSeries) indicatorSeries.delete(item) },
   subscribeCrosshairMove: fn => hoverListeners.add(fn), unsubscribeCrosshairMove: fn => hoverListeners.delete(fn),
@@ -366,7 +366,11 @@ try {
   assert.equal(container.querySelector('[aria-label="Volume settings"] svg').outerHTML, container.querySelector('[aria-label="RSI settings"] svg').outerHTML, 'Volume and RSI use the identical gear icon')
   const indicatorControls = container.querySelector('[aria-label="Show RSI"]').parentElement
   assert.equal(container.querySelector('[aria-label="Show Volume"]').parentElement.nextElementSibling, indicatorControls, 'Volume sits beside RSI')
-  assert.equal(indicatorControls.nextElementSibling.getAttribute('aria-label'), 'Chart timeframe', 'RSI controls are immediately left of timeframes')
+  assert.equal(indicatorControls.nextElementSibling.getAttribute('role'), 'separator')
+  assert.equal(indicatorControls.nextElementSibling.nextElementSibling, container.querySelector('.chart-event-toggle'))
+  assert.equal(container.querySelector('.chart-toolbar-center').firstElementChild.getAttribute('aria-label'), 'Chart timeframe')
+  assert.equal(container.querySelector('.timeframe-selector').nextElementSibling.getAttribute('aria-label'), 'Refocus chart')
+  for (const label of ['Show events', 'Show Detail']) assert.ok(container.querySelector(`[aria-label="${label}"] svg`), 'Panel buttons use matching outline SVG icons')
   const beforeRsiRange = { ...logicalRange }
   reset()
   await click(container.querySelector('[aria-label="Show RSI"]')); await flush(); drawChartFrame()
@@ -404,7 +408,7 @@ try {
   assert.equal(counters.volumeCandle, 1, 'A volume-only feed update calculates one row')
   assert.equal(counters.volumeUpdate, 3, 'Histogram, optional average and exact Relative line each update once')
   assert.equal(counters.volumeSetData ?? 0, 0, 'A volume tick never replaces indicator history')
-  assert.match(container.querySelector('.volume-readout').textContent, /150 ticks/)
+  assert.match(container.querySelector('.volume-readout').textContent, /Ticks 150/)
   assert.match(container.querySelector('.volume-session').textContent, /London \+ New York.*overlap.*now/)
   const fireVolumeHover = async event => {
     await React.act(async () => { for (const fn of hoverListeners) fn(event) }); await flush()
@@ -424,7 +428,7 @@ try {
   now = Date.UTC(2026, 9, 10, 12)
   reset(); await React.act(async () => volumeSessionTimer.fn())
   assert.match(container.querySelector('.volume-session').textContent, /No active session.*now/)
-  assert.match(container.querySelector('.volume-readout').textContent, /No current candle loaded/, 'A historical final candle is never presented as current activity')
+  assert.match(container.querySelector('.volume-readout-note').textContent, /No current candle loaded/, 'A historical final candle is never presented as current activity')
   assert.equal(counters.workspace ?? 0, 0); assert.equal(counters.volumeCandle ?? 0, 0); assert.equal(counters.volumeSetData ?? 0, 0)
   now = originalSessionNow
   await React.act(async () => volumeSessionTimer.fn())
@@ -510,7 +514,7 @@ try {
   await click(button('Currency News'))
   assert.equal(container.querySelector('[aria-label="Currency News"]'), null)
   assert.ok(container.querySelector('.external-chart-star'), 'Upcoming external record appears on the assembled chart')
-  assert.equal(container.querySelector('.external-chart-markers').style.bottom, '68px')
+  assert.equal(container.querySelector('.external-chart-markers').style.bottom, 'calc(var(--calendar-marker-bottom, 34px) + 34px)')
   await click(button('Alert'))
   assert.ok(container.querySelector('[aria-label="Alert"]'))
   assert.equal(container.querySelector('[aria-label="Event view"]'), null)
@@ -586,7 +590,7 @@ try {
   const refocusButton = container.querySelector('[aria-label="Refocus chart"]')
   assert.equal(refocusButton.textContent.trim(), '⛶')
   assert.equal(container.querySelector('.timeframe-selector').nextElementSibling, refocusButton)
-  assert.equal(refocusButton.nextElementSibling, container.querySelector('[aria-label="Hide event icons"]'))
+  assert.equal(refocusButton.nextElementSibling.getAttribute('aria-label'), 'Volume indicator')
   const visibleWindow = { ...logicalRange }, beforeIconToggle = counters.setData ?? 0
   await click(container.querySelector('[aria-label="Hide event icons"]')); await flush()
   assert.equal(container.querySelector('[aria-label="Show event icons"]').getAttribute('aria-pressed'), 'false')
@@ -645,7 +649,7 @@ try {
   await click([...document.querySelectorAll('dialog button')].find(node => node.textContent === 'Save'))
   await flush()
   const saved = JSON.parse(localStorage.getItem('fyodor.inspector.shared.v1')).pairs.EURUSD
-  assert.equal(container.querySelector('.external-chart-markers').style.bottom, '102px', 'Custom star row stays above the two-currency daily icon stack')
+  assert.equal(container.querySelector('.external-chart-markers').style.bottom, 'calc(var(--calendar-marker-bottom, 34px) + 68px)', 'Custom star row stays above the two-currency daily icon stack')
   assert.equal(saved.symbolGrouping, 'day'); assert.equal(saved.detailView, undefined); assert.equal(saved.showHistograms, undefined)
   const dailyIcon = container.querySelector('.inspector-day-symbol.inspector-currency-USD')
   await click(dailyIcon)
@@ -870,7 +874,7 @@ try {
   assert.equal(requests.filter(url => url.startsWith('/storage-api/recent-calendar')).length, 0, 'Closed recent panel does no data work')
   const recentButton = container.querySelector('[aria-label="Show events"]')
   assert.equal(recentButton.previousElementSibling.getAttribute('aria-label'), 'Hide drawing toolbar')
-  assert.equal(recentButton.textContent, '📆')
+  assert.ok(recentButton.querySelector('svg'), 'Show events uses a monochrome outline icon')
   reset(); await click(recentButton); await flush()
   assert.ok(container.querySelector('.recent-events-panel'))
   assert.equal(container.querySelector('.research-panel-slot').hidden, true)
@@ -900,7 +904,7 @@ try {
   assert.equal(document.querySelector('[aria-label="Research question"]').value, 'Was this USD strength or EUR weakness?')
   assert.equal(counters.chartCreated ?? 0, 0); assert.equal(counters.setData ?? 0, 0)
   assert.deepEqual(logicalRange, recentWindow)
-  assert.deepEqual([...container.querySelectorAll('.currency-detail-panel thead th')].map(n => n.textContent), ['Tier', 'EUR', 'USD'])
+  assert.deepEqual([...container.querySelectorAll('.currency-detail-panel thead th')].map(n => n.textContent), ['EUR', 'USD'])
   reset(); await tick('pollDetail', 30000)
   assertQuiet('Unchanged Detail poll', true)
   await click(container.querySelector('[aria-label="Show events"]')); await flush()
