@@ -426,8 +426,9 @@ try {
   bars = viewportBars.map((bar, i) => ({ ...bar, tickVolume: 100 + i % 24, high: 105 + i / 1000 }))
   let volume = { ...defaultVolumePreferences, enabled: true }
   props = { ...props, bars, volume, rsi: { ...defaultRsiPreferences, enabled: true }, activeDrawingTool: null,
-    timeframe: 'H1', fitContentKey: 'EURUSD:H1', onChangeVolumeMode: mode => { volume = { ...volume, mode }; props = { ...props, volume } },
-    onChangeVolumeAxis: axisTarget => { volume = { ...volume, axisTarget }; props = { ...props, volume } } }
+    timeframe: 'H1', fitContentKey: 'EURUSD:H1',
+    onChangeVolumeAxis: axisTarget => { volume = { ...volume, axisTarget }; props = { ...props, volume } },
+    onToggleVolumeLayer: layer => { volume = { ...volume, [layer]: !volume[layer] }; props = { ...props, volume } } }
   await render()
   assert.equal(chart.panes().length, 3)
   const volumePane = chart.panes()[1], volumeSeries = volumePane.getSeries()[0]
@@ -436,9 +437,37 @@ try {
   assert.equal(volumeSeries.data().length, bars.length)
   assert.equal(volumeSeries.data().at(-1).value, bars.at(-1).tickVolume)
   const relativeLine = volumePane.getSeries()[2]
+  const volumeAverage = volumePane.getSeries()[1]
+  const layerToggle = async label => { await React.act(async () => host.querySelector(`[aria-label="Show ${label}"]`).click()); await render({ volume }) }
+  assert.deepEqual([...host.querySelectorAll('.volume-controls button')].map(button => button.textContent), ['Axis: Volume','Bars','Relative','Average'])
+  for (const label of ['Select A','Select B','Clear','Load older']) assert.ok(!host.querySelector('.volume-controls').textContent.includes(label))
+  const layerPriceSeries = chart.panes()[0].getSeries()[0]
+  const layerWindow = chart.timeScale().getVisibleLogicalRange(), layerCandles = layerPriceSeries.data(), layerMainHeight = chart.panes()[0].getHeight()
+  await layerToggle('volume bars')
+  assert.equal(volumeSeries.options().visible, false)
+  assert.equal(relativeLine.options().visible, true)
+  assert.equal(relativeLine.options().priceScaleId, 'right', 'A lone Relative line gets the usable right axis')
+  await layerToggle('average line')
+  assert.equal(volumeAverage.options().visible, true)
+  assert.ok(volumeAverage.data().some(point => point.value > 0), 'The average can be shown without bars')
+  await layerToggle('relative line')
+  assert.equal(relativeLine.options().visible, false)
+  assert.equal(volumeAverage.options().visible, true, 'Hiding Relative leaves the average independent')
+  await layerToggle('average line')
+  assert.ok([volumeSeries, relativeLine, volumeAverage].every(series => !series.options().visible))
+  assert.equal(chart.panes().length, 3, 'Hiding all layers preserves the Volume pane and its controls')
+  chart.panes()[0].setHeight(180); await paint()
+  assert.ok(host.querySelector('.volume-legend').style.top, 'The pane legend still follows layout with every series hidden')
+  assert.notEqual(chart.panes()[0].getHeight(), layerMainHeight)
+  chart.panes()[0].setHeight(layerMainHeight); await paint()
+  for (const label of ['volume bars', 'relative line']) await layerToggle(label)
+  assert.deepEqual(layerPriceSeries.data(), layerCandles)
+  close(chart.timeScale().getVisibleLogicalRange().from, layerWindow.from, 'Layer controls preserve the left date')
+  close(chart.timeScale().getVisibleLogicalRange().to, layerWindow.to, 'Layer controls preserve the right date')
   assert.equal(chart.options().hoveredSeriesOnTop, false, 'Hover cannot promote the histogram above the Relative line')
   assert.ok(relativeLine.seriesOrder() > volumeSeries.seriesOrder())
   captureVolumeLayers = true
+  await React.act(async () => host.querySelector('.market-chart-canvas').dispatchEvent(new dom.WheelEvent('wheel', { bubbles: true })))
   chart.timeScale().setVisibleLogicalRange({ from: 1450, to: 1550 }); await paint()
   const lastBar = volumeLayers.findLastIndex(layer => layer.kind === 'bar' && [volume.upColor, volume.downColor].includes(layer.color))
   const lastLine = volumeLayers.findLastIndex(layer => layer.kind === 'line' && layer.color === volume.relativeLineColor)
@@ -497,14 +526,14 @@ try {
   assert.equal(relativeLine.dataByIndex(0), null, 'Unavailable baselines are not fabricated as zeros')
   assert.ok(relativeLine.data().every(point => point.time <= bars.at(-1).time), 'Relative line never projects values into future space')
   const beforeLineToggle = chart.timeScale().getVisibleLogicalRange()
-  await render({ volume: { ...volume, relativeLineVisible: false, paneControlsVisible: false } })
-  assert.equal(host.querySelector('.volume-pane-controls').hidden, true)
-  assert.equal(host.querySelector('.volume-controls').hidden, true, 'No empty title/control row remains when both controls and line are hidden')
+  await render({ volume: { ...volume, relativeLineVisible: false, barsVisible: false } })
+  assert.equal(volumeSeries.options().visible, false)
+  assert.equal(host.querySelectorAll('.volume-controls button').length, 4, 'Controls remain available when all three layers are hidden')
   assert.equal(relativeLine.options().visible, false)
   assert.equal(relativeLine.data().length, 0, 'A hidden Relative line contributes no values to scaling')
   assert.equal(chart.options().leftPriceScale.visible, false)
   await render({ volume })
-  assert.equal(host.querySelector('.volume-pane-controls').hidden, false)
+  assert.equal(volumeSeries.options().visible, true)
   assert.equal(relativeLine.options().visible, true)
   checkDirectRatios(bars)
   close(chart.timeScale().getVisibleLogicalRange().from, beforeLineToggle.from, 'Line/controls toggles keep the left viewport date')
@@ -514,8 +543,7 @@ try {
   await render({ bars: volumeOnly })
   assert.equal(volumeSeries.data().at(-1).value, 999, 'Volume-only replies reach the histogram even when OHLC is unchanged')
   checkDirectRatios(volumeOnly)
-  const legend = host.querySelector('.volume-legend')
-  await React.act(async () => [...legend.querySelectorAll('button')].find(button => button.textContent === 'Raw').click())
+  volume = { ...volume, mode: 'relative' }
   await render({ volume })
   assert.equal(volumeSeries.options().priceFormat.formatter(1.5), '1.50×')
   assert.equal(relativeLine.options().priceScaleId, 'right', 'Relative histogram and line share the same ratio scale')
@@ -524,23 +552,6 @@ try {
   assert.equal(chart.options().leftPriceScale.visible, false, 'Relative mode does not leave an unused second axis')
   assert.ok(volumeSeries.data().some(row => row.value > 0), 'Relative mode has prior-day baselines')
   assert.equal(volumeSeries.dataByIndex(0), null, 'Insufficient baseline history stays blank')
-  // Use the actual public subscription with a captured subscriber, rather than
-  // browser input or private canvas internals.
-  const before = chart.subscribeClick.bind(chart)
-  let selectClick
-  chart.subscribeClick = fn => { selectClick = fn; before(fn) }
-  await render({ volume: { ...volume, enabled: false } })
-  await render({ volume })
-  const liveLegend = host.querySelector('.volume-legend')
-  await React.act(async () => [...liveLegend.querySelectorAll('button')].find(button => button.textContent === 'Select A').click())
-  selectClick({ paneIndex: 0, time: bars[1500].time })
-  assert.match(liveLegend.querySelector('.volume-comparison').textContent, /first/, 'Price pane clicks cannot select a volume range')
-  selectClick({ paneIndex: 1, time: bars[1500].time }); selectClick({ paneIndex: 1, time: bars[1503].time }); await paint()
-  assert.match(liveLegend.querySelector('.volume-comparison').textContent, /A: 4 closed bars/)
-  await React.act(async () => [...liveLegend.querySelectorAll('button')].find(button => button.textContent === 'Select B').click())
-  selectClick({ paneIndex: 1, time: bars[1524].time }); selectClick({ paneIndex: 1, time: bars[1529].time }); await paint()
-  assert.match(liveLegend.querySelector('.volume-comparison').textContent, /B vs A:/)
-  assert.match(liveLegend.querySelector('.volume-comparison').textContent, /higher price high/)
   await render({ rsi: { ...defaultRsiPreferences, enabled: false } })
   assert.equal(chart.panes().length, 2)
   assert.equal(chart.panes()[1].getSeries()[0].seriesType(), 'Histogram')
@@ -552,7 +563,6 @@ try {
   assert.equal(chart.options().hoveredSeriesOnTop, true, 'Removing Volume restores the previous hover-order preference')
   close(chart.timeScale().getVisibleLogicalRange().to, volumeWindow.to, 'Pane toggles preserve the right viewport edge')
   await render({ volume, fitContentKey: 'GBPUSD:H1' })
-  assert.equal(host.querySelector('.volume-comparison').textContent, '', 'Push selections reset across symbols')
   assert.equal(host.querySelectorAll('.volume-legend').length, 1)
   assert.ok(chart.panes()[1].getSeries()[0].data().length > 0, 'A scope change fully restores data even if the input array is reused')
   saved = null
@@ -567,11 +577,11 @@ try {
   assert.equal(dialogHost.querySelector('[role="tabpanel"]').getAttribute('aria-labelledby'), volumeTab('Style').id)
   assert.equal(dialogHost.querySelector('select').value, volume.axisTarget, 'Style exposes the persisted right-axis target')
   const checkbox = label => [...dialogHost.querySelectorAll('label')].find(element => element.textContent.trim() === label).querySelector('input')
-  await React.act(async () => reactProps(checkbox('Show pane controls')).onChange({ target: { checked: false } }))
+  await React.act(async () => reactProps(checkbox('Show volume bars')).onChange({ target: { checked: false } }))
   await React.act(async () => reactProps(checkbox('Show Relative activity line')).onChange({ target: { checked: false } }))
   await React.act(async () => dialogHost.querySelector('form').dispatchEvent(new dom.Event('submit', { bubbles: true, cancelable: true })))
   assert.equal(saved.mode, 'raw'); assert.equal(saved.enabled, true)
-  assert.equal(saved.paneControlsVisible, false); assert.equal(saved.relativeLineVisible, false)
+  assert.equal(saved.barsVisible, false); assert.equal(saved.relativeLineVisible, false)
   await React.act(async () => dialogRoot.render(null))
   saved = null
   const reopenVolume = () => dialogRoot.render(React.createElement(VolumeSettingsDialog, { preferences: volume, onSave: next => { saved = next }, onClose }))
@@ -586,16 +596,59 @@ try {
   assert.equal(dialogHost.querySelector('[aria-label="Previous sessions"]').value, '20')
   await React.act(async () => volumeTab('Inputs').dispatchEvent(new dom.KeyboardEvent('keydown', { key: 'End', bubbles: true })))
   assert.equal(volumeTab('Style').getAttribute('aria-selected'), 'true')
-  await React.act(async () => reactProps(checkbox('Show pane controls')).onChange({ target: { checked: false } }))
+  await React.act(async () => reactProps(checkbox('Show volume bars')).onChange({ target: { checked: false } }))
   await React.act(async () => volumeTab('Style').dispatchEvent(new dom.KeyboardEvent('keydown', { key: 'Home', bubbles: true })))
   assert.equal(volumeTab('Inputs').getAttribute('aria-selected'), 'true')
   await React.act(async () => [...dialogHost.querySelectorAll('button')].find(button => button.textContent === 'Cancel').click())
   assert.equal(saved, null, 'Cancel discards drafts changed across either tab')
   await React.act(async () => dialogRoot.render(null))
+  // Pane removal must unregister series data, not just hide native widgets.
+  // Otherwise 800 H1 timestamps survive and put H4 samples 798/799 at
+  // logical positions 1395/1399, exactly as in the NZDJPY Activity trace.
+  for (const which of ['volume', 'rsi', 'both']) {
+    await React.act(async () => root.render(null)); await paint()
+    const last = 1711505600
+    const h1 = Array.from({ length: 800 }, (_, i) => ({ time: last - (799 - i) * 3600,
+      open: 100, high: 106, low: 94, close: 101, tickVolume: 100 + i }))
+    const preferences = enabled => ({
+      rsi: { ...defaultRsiPreferences, enabled: enabled && which !== 'volume' },
+      volume: { ...defaultVolumePreferences, enabled: enabled && which !== 'rsi' },
+    })
+    await render({ bars: h1, timeframe: 'H1', fitContentKey: 'NZDJPY:H1', symbol: 'NZDJPY',
+      ...preferences(true), drawings: [], selectedDrawingId: null })
+    const nativeCandles = chart.panes()[0].getSeries()[0], horizon = chart.panes()[0].getSeries()[1]
+    const chartCreates = creates
+    await React.act(async () => host.querySelector('.market-chart-canvas').dispatchEvent(new dom.WheelEvent('wheel', { bubbles: true })))
+    chart.timeScale().setVisibleLogicalRange({ from: 600, to: 820 }); await paint()
+    const selectedDates = captureDateWindow(chart.timeScale().getVisibleLogicalRange(), h1, 3600)
+    for (let repeat = 0; repeat < 3; repeat++) {
+      await render(preferences(false))
+      assert.equal(chart.panes().length, 1)
+      assert.equal(host.querySelectorAll('.volume-legend, .rsi-legend').length, 0)
+      if (repeat < 2) await render(preferences(true))
+    }
+    for (const [frame, step] of [['H4', 14400], ['D1', 86400], ['H1', 3600]]) {
+      const next = h1.map((bar, i) => ({ ...bar, time: last - (799 - i) * step }))
+      await render({ bars: next, timeframe: frame, fitContentKey: `NZDJPY:${frame}` })
+      assert.ok(next.every((bar, index) => chart.timeScale().timeToIndex(bar.time) === index),
+        `${which} teardown leaves exactly 800 real historical positions on ${frame}`)
+      assert.deepEqual(nativeCandles.data(), next.map(({ time, open, high, low, close }) => ({ time, open, high, low, close })))
+      assert.equal(chart.panes()[0].getSeries()[0], nativeCandles)
+      assert.equal(chart.panes()[0].getSeries()[1], horizon)
+      assert.equal(creates, chartCreates, 'Timeframe changes retain the existing chart and overlay APIs')
+      const dates = captureDateWindow(chart.timeScale().getVisibleLogicalRange(), next, step)
+      close(dates.from, selectedDates.from, `${which} hidden, ${frame}: retain selected left date`)
+      close(dates.to, selectedDates.to, `${which} hidden, ${frame}: retain selected right date`)
+      assert.ok(horizon.data().at(-1).time > last + 89 * 86400, 'The future axis remains available')
+      // Exercise each higher timeframe's cleanup before moving to the next.
+      await render(preferences(true)); await render(preferences(false))
+    }
+  }
+  console.log('✓ Native timeframe regression: Volume/RSI teardown removes stale H1 timestamps before H4/D1, preserving OHLC, dates, future axis and chart identities')
   await React.act(async () => root.render(null)); await paint()
   await React.act(async () => root.render(React.createElement(React.StrictMode, null, React.createElement(MarketCandlestickChart, { ...props, volume }))))
   await paint(); assert.equal(host.querySelectorAll('.volume-legend').length, 1)
-  console.log('✓ Volume real chart: raw/relative/native pane order, independent toggles, live volume-only updates, manual A/B ranges, scope reset, settings and StrictMode cleanup')
+  console.log('✓ Volume real chart: raw/relative/native pane order, independent toggles, live volume-only updates, scope reset, settings and StrictMode cleanup')
   console.log('✓ RSI real chart: native panes/scale/time/crosshair, resize and gesture isolation, live/history/scope updates, style/empty/toggle, dialog drafts/validation/focus and StrictMode cleanup')
 } catch (error) {
   console.error(error)

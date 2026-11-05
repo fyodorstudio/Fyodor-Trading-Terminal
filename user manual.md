@@ -55,89 +55,46 @@ The [news contract](docs/CURRENCY-NEWS.md) owns persistence and timing.
 prior failure context; full original records are [archived](docs/RESEARCH-ARCHIVE.md).
 
 
-## Volume and push comparison
+## Volume
 
 1. Click **Volume** beside RSI in the chart header. Drag the divider to resize
    its pane. RSI and Volume can be shown independently.
-2. Click **Raw** inside the pane to switch to **Relative**, or choose the mode
-   through the Volume gear’s **Inputs** tab. **Inputs** contains Mode and baseline
-   settings; **Style** contains visibility and colours, matching RSI settings.
-   For comparing intraday pushes, use Relative.
-   **Show Relative activity line** in the Volume gear’s **Style** tab is on by default. It joins
-   the exact Relative values for individual candles with straight segments: no
-   averaging or smoothing is applied to the line, so spikes and dips remain intact.
-   The line stays above the bars, including while hovering over a volume bar.
-   With Raw bars, **Axis: Volume / Relative** chooses which series the right axis
-   resizes. The other keeps an independent automatic scale, without a left gutter.
-   The same choice is available under **Style → Right axis** and persists on this
-   device. Double-click the right axis to restore automatic scaling. With Relative
-   bars, both use the right × scale. The dashed
-   **1×** reference means normal activity; the latest line value appears on the
-   right scale when the Relative line owns it. Missing baselines have no line
-   values, and nothing extends into future space. The optional raw tick average
-   is separate and does not affect this line.
-
-   Turn off **Show pane controls** in the Volume gear’s **Style** tab to hide Raw/Relative,
-   Select A, Select B, Clear and Load older. The activity readout remains at the
-   upper-right with stable fields:
-   `| Ticks 13,261 | Relative 0.90x | Matches 19/20 |`. All four session names remain
-   visible below it; active sessions use full contrast and inactive sessions are
-   grey. Hover changes the active names; leaving hover returns to now. Both
-   indicator legends are transparent behind their text. The axis toggle stays
-   available whenever Raw bars and the Relative line are both shown.
-   Mode and both visibility options stay accessible through the header gear and
-   are remembered on this device. Hidden controls cancel an unfinished A/B pick;
-   existing selected ranges remain. Scroll left to load more history while the
-   button strip is hidden, or turn it back on when needed.
-
-3. Sessions are automatic. Hover a candle in the price chart or Volume pane to
-   see its session. Overlaps appear together, such as **London + New York**.
-   Move away from the chart to return to **now** and the current active sessions.
-   Session times match the header and follow historical daylight saving; chart
-   labels keep your display timezone. There is no Comparison clock setting.
-4. Relative bars compare each candle with the mean of matching candles in up to
-   **20 previous sessions**, requiring at least **5** earlier matches by default.
-   Matching uses the same session combination and elapsed time within that period:
-   London-only candles match London-only; London + New York candles match that
-   overlap. Hovering changes only the readout, never the plotted bars' baseline.
-   Multi-hour candles crossing boundaries match the same session mix; their ticks
-   are not artificially split. D1 compares earlier broker daily bars.
-5. If Relative shows a dash, **Load older** or scroll left to load baseline history.
-   Only earlier available session occurrences are used, never the current one or
-   future candles. Inactive periods and unknown broker clocks have no intraday
-   baseline. Weekends show **No active session**. Broker holidays may differ from
-   these indicative hours. If the loaded history has no candle covering now,
-   the pane says **No current candle loaded** rather than presenting an older
-   candle as current activity. Legacy clock preferences are ignored; your other
-   volume settings stay saved.
-6. Click **Select A**, then click the first and last candles of the first push
-   **in the Volume pane**, aligned with the price candles. Repeat **Select B** for
-   the second push. Endpoints are inclusive and may be selected in either order.
-   A is highlighted blue and B amber in the Volume pane. Hover over the comparison
-   text to verify the selected timestamps. **Esc** cancels an unfinished selection;
-   **Clear** removes both. Enlarge the pane if you want more space for its readout.
-7. Compare **average relative activity**. For example, A = 1.5× and B = 0.8× means
-   the second push averaged less activity relative to its matching earlier sessions.
-   **B vs A** reports that change and whether B reached a higher price high. These
-   are descriptive measurements, with no entry, direction or reversal signal.
-
-The comparison also reports closed-bar count, candle minutes (excluding market
-closures and other gaps), and total ticks. Average relative activity gives each
-closed candle equal weight, helping compare pushes of different lengths; total
-ticks alone increases with duration. It is not the ratio of the pushes' total
-volume. A relative comparison is shown only when every included candle in both
-ranges has a valid baseline. The current unfinished candle is excluded from push
-statistics, while its histogram and hover value continue updating. Missing tick
-counts are unavailable; genuine reported zero ticks stay zero. Selections reset
-when the broker, symbol or timeframe changes, and when Volume is hidden.
-
-Use the same settings for both pushes, and select comparable
-parts of each move consistently. A news-driven first push and a quiet second push
-can differ for reasons beyond the price structure; session adjustment does not
-remove news, holiday or unusual-day effects. Use your existing strategy for the
-trade decision. Tick counts measure updates on this broker's feed, not lots traded.
-Bar colours follow candle direction, not buy/sell volume. The optional SMA applies
-to Raw ticks; Relative uses a 1× reference line. Settings are shared on this device.
+2. The pane controls are **Axis: Volume / Relative**, then
+   **Bars**, **Relative**, **Average**. The last three buttons independently
+   show/hide the histogram, exact Relative line and raw-tick SMA. Their pressed
+   states show which layers are visible. All controls remain available with
+   every layer hidden. The Average applies in Raw mode and is disabled in
+   Relative mode. Visibility persists across symbols/reloads and matches the
+   Volume gear's **Style** tab. Use **Inputs** for average length and baseline
+   settings, including choosing Raw or Relative mode.
+3. In Raw mode, the axis button chooses which visible series the right axis
+   resizes; the other uses an independent hidden automatic scale. When only
+   one kind remains visible, the axis follows it. Relative bars and the Relative
+   line share the right × scale. In Raw mode, clicking the axis selector reveals
+   the chosen layer if hidden. Choose bar mode through **Inputs → Mode**.
+   Double-click the right axis to restore automatic
+   scaling. The Relative line joins exact candle values without smoothing, stays
+   above the bars and has a dashed **1×** reference for normal activity. The
+   optional raw average does not smooth this Relative line.
+4. The upper-right readout keeps stable fields:
+   `| Ticks 13,261 | Relative 0.90x | Matches 19/20 |`.
+   All four session names stay visible below it: active names are red, inactive
+   names grey. Hover follows the selected candle; leaving hover returns to now.
+   Sessions match the header's indicative regional hours, including overlaps
+   and historical daylight saving. Both indicator legends have transparent
+   backgrounds behind their text. Broker holidays may differ.
+5. Relative activity compares a candle with matching candles in up to **20 prior
+   sessions**, requiring at least **5** matches by default. Matching uses the same
+   session combination and elapsed time within that period. Multi-hour candles
+   match the same session mix without splitting ticks. D1 uses earlier broker
+   daily bars. Hovering never changes the plotted baseline. If Relative is a
+   dash, scroll left to load earlier history. Future candles and the current
+   session never enter their own baseline. Unknown broker clocks stay unavailable.
+6. Readouts keep genuine zero ticks as zero. Missing counts remain unavailable.
+   Without a loaded candle covering now, the readout says **No current candle
+   loaded**. Tick counts measure updates on this broker's feed, not lots traded.
+   Bar colours follow candle direction, not buy/sell volume. No entry, direction
+   or reversal signal is generated.
 
 ## Currency Detail
 

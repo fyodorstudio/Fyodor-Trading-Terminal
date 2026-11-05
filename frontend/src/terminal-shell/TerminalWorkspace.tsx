@@ -36,8 +36,11 @@ export function TerminalWorkspace() {
   const brokerOffsetSeconds = bridge.brokerOffsetSeconds
   const closeRsiSettings = useCallback(() => setRsiSettingsOpen(false), [setRsiSettingsOpen])
   const closeVolumeSettings = useCallback(() => setVolumeSettingsOpen(false), [setVolumeSettingsOpen])
-  const changeVolumeMode = useCallback((mode: typeof volume.mode) => changeVolume({ ...volume, mode }), [volume, changeVolume])
-  const changeVolumeAxis = useCallback((axisTarget: typeof volume.axisTarget) => changeVolume({ ...volume, axisTarget }), [volume, changeVolume])
+  const changeVolumeAxis = useCallback((axisTarget: typeof volume.axisTarget) => changeVolume({ ...volume, axisTarget,
+    ...(volume.mode === 'raw' && axisTarget === 'relative' ? { relativeLineVisible: true } : {}),
+    ...(volume.mode === 'raw' && axisTarget === 'volume' && !volume.barsVisible && !volume.averageVisible ? { barsVisible: true } : {}),
+  }), [volume, changeVolume])
+  const toggleVolumeLayer = useCallback((layer: 'barsVisible' | 'relativeLineVisible' | 'averageVisible') => changeVolume({ ...volume, [layer]: !volume[layer] }), [volume, changeVolume])
   const recordChartTrace = useCallback((trace: string) => appendActivity('Chart', 'Timeframe trace', trace), [appendActivity])
   return (
     <DisplayClockProvider brokerId={brokerId} brokerOffsetSeconds={brokerOffsetSeconds} preference={timeDisplay}>
@@ -100,8 +103,8 @@ export function TerminalWorkspace() {
                   timeDisplay={timeDisplay}
                   timeframe={timeframe}
                   volume={volume}
-                  onChangeVolumeMode={changeVolumeMode}
                   onChangeVolumeAxis={changeVolumeAxis}
+                  onToggleVolumeLayer={toggleVolumeLayer}
                   rsi={rsi}
                   refocusRequest={refocusRequest}
                   activeDrawingTool={activeDrawingTool}

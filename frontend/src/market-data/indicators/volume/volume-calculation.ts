@@ -5,7 +5,6 @@ import { changedRecentBarStart } from '../../mt5-feed/market-snapshots'
 import type { VolumePreferences } from './volume-preferences'
 
 export type VolumeRow = { time: OhlcBar['time']; utc: number | null; ticks?: number; relative?: number; samples: number; average?: number; session: string }
-export type VolumeRange = { from: number; to: number }
 type Sample = { day: string; ticks: number | undefined }
 
 /** Baselines contain earlier dates only. The last mutable candle is never
@@ -75,23 +74,4 @@ export function createVolumeCalculator() {
       return { rows, from, rebuilt, previousLength, work }
     },
   }
-}
-
-export function summarizeVolumeRange(bars: OhlcBar[], rows: VolumeRow[], range: VolumeRange, step: number, now: number) {
-  let lo = 0, hi = bars.length
-  while (lo < hi) { const mid = (lo + hi) >>> 1; if (bars[mid].time < range.from) lo = mid + 1; else hi = mid }
-  const start = lo
-  let candles = 0, valid = 0, relativeCount = 0, ticks = 0, relative = 0, high = -Infinity, excluded = 0, endFound = false
-  for (let i = start; i < bars.length && bars[i].time <= range.to; i++) {
-    if (bars[i].time === range.to) endFound = true
-    const row = rows[i]
-    if (!row || (i === bars.length - 1 && (row.utc === null || row.utc + step * 1000 > now))) { excluded++; continue }
-    candles++; high = Math.max(high, bars[i].high)
-    if (row.ticks !== undefined) { ticks += row.ticks; valid++ }
-    if (row.relative !== undefined) { relative += row.relative; relativeCount++ }
-  }
-  const complete = bars[start]?.time === range.from && endFound
-  return { candles, ticks: candles > 0 && valid === candles && complete ? ticks : undefined,
-    averageRelative: candles > 0 && relativeCount === candles && complete ? relative / candles : undefined,
-    relativeCount, high: candles ? high : undefined, minutes: candles * step / 60, excluded }
 }

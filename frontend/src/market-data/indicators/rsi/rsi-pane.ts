@@ -5,7 +5,7 @@ import type { RsiPreferences } from './rsi-preferences'
 
 /** One native pane shares the chart's time scale and future timeline. */
 export function createRsiPane(chart: IChartApi) {
-  const pane = chart.addPane()
+  const pane = chart.addPane(true)
   chart.panes()[0].setStretchFactor(3)
   pane.setStretchFactor(1)
   const options = {
@@ -117,6 +117,11 @@ export function createRsiPane(chart: IChartApi) {
       chart.unsubscribeCrosshairMove(onHover)
       rsi.detachPrimitive(primitive)
       legend.remove()
+      // Removing a pane alone leaves its series in the native shared timeline.
+      // Preserve the empty pane until every series has been unregistered.
+      chart.removeSeries(rsi)
+      chart.removeSeries(average)
+      chart.removeSeries(scaleReference)
       chart.removePane(pane.paneIndex())
     },
   }

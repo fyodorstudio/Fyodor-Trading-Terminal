@@ -90,6 +90,7 @@ const addIndicatorPane = () => {
   count('rsiPaneCreates')
   const paneSeries = new Set(); let volumePane = false
   const pane = { setStretchFactor() {}, paneIndex: () => panes.indexOf(pane), moveTo: index => { const old = panes.indexOf(pane); panes.splice(old, 1); panes.splice(index, 0, pane) }, getHeight: () => 140,
+    attachPrimitive: primitive => primitives.add(primitive), detachPrimitive: primitive => primitives.delete(primitive),
     getHTMLElement: () => ({ offsetTop: 428 }), priceScale: () => ({ width: () => 0, applyOptions() {} }),
     addSeries: definition => {
       if (definition?.type === 'histogram') volumePane = true
@@ -107,7 +108,9 @@ const addIndicatorPane = () => {
 }
 const chart = { options: () => ({ leftPriceScale: { visible: false }, rightPriceScale: { minimumWidth: 0 } }), addSeries: definition => definition.type === 'line' ? timeSeries : series, timeScale: () => scale, priceScale: () => priceScale,
   applyOptions: () => count('chartOptions'), paneSize: () => ({ width: 900, height: 420 }),
-  addPane: addIndicatorPane, panes: () => panes, removePane: index => { const [removed] = panes.splice(index, 1); for (const item of removed.fixtureSeries) indicatorSeries.delete(item) },
+  addPane: addIndicatorPane, panes: () => panes,
+  removeSeries: item => { indicatorSeries.delete(item); for (const pane of panes) pane.fixtureSeries?.delete(item) },
+  removePane: index => { const [removed] = panes.splice(index, 1); assert.equal(removed.fixtureSeries.size, 0, 'Indicator series must be unregistered before removing their pane') },
   subscribeCrosshairMove: fn => hoverListeners.add(fn), unsubscribeCrosshairMove: fn => hoverListeners.delete(fn),
   subscribeClick: fn => clickListeners.add(fn), unsubscribeClick: fn => clickListeners.delete(fn),
   remove: () => count('chartRemoved'), chartElement: () => document.querySelector('.market-chart-canvas') }
@@ -401,6 +404,27 @@ try {
   assert.equal(counters.volumeCandle, 800, 'Enabling Volume processes the loaded history once')
   assert.equal(counters.chartCreated ?? 0, 0); assert.equal(counters.setData ?? 0, 0)
   assert.equal(JSON.parse(localStorage.getItem('fyodor.indicators.volume.v1')).enabled, true)
+  const layerWindow = { ...logicalRange }
+  const layerControl = label => container.querySelector(`[aria-label="Show ${label}"]`)
+  reset(); await click(layerControl('volume bars')); await flush()
+  assert.equal(JSON.parse(localStorage.getItem('fyodor.indicators.volume.v1')).barsVisible, false)
+  assert.equal(counters.volumeCandle ?? 0, 0, 'Hiding bars does not recalculate baseline history')
+  assert.equal(counters.setData ?? 0, 0, 'Hiding a Volume layer never replaces price candles')
+  await click(layerControl('relative line')); await flush()
+  assert.equal(container.querySelectorAll('.volume-controls button').length, 4, 'All visibility controls remain reachable with every layer hidden')
+  const axisControl = () => container.querySelector('[aria-label="Right axis target"]')
+  assert.equal(axisControl().disabled, false, 'The Raw-mode axis selector stays clickable with hidden layers')
+  await click(axisControl()); await flush()
+  assert.equal(JSON.parse(localStorage.getItem('fyodor.indicators.volume.v1')).relativeLineVisible, true, 'Choosing the Relative axis reveals its hidden line')
+  assert.equal(axisControl().textContent, 'Axis: Relative')
+  await click(axisControl()); await flush()
+  assert.equal(JSON.parse(localStorage.getItem('fyodor.indicators.volume.v1')).barsVisible, true, 'Choosing Volume reveals bars if no tick layer was visible')
+  assert.equal(axisControl().textContent, 'Axis: Volume')
+  await click(layerControl('volume bars')); await click(layerControl('relative line')); await flush()
+  await click(layerControl('average line')); await flush()
+  assert.equal(JSON.parse(localStorage.getItem('fyodor.indicators.volume.v1')).averageVisible, true)
+  await click(layerControl('average line')); await click(layerControl('volume bars')); await click(layerControl('relative line')); await flush()
+  assert.deepEqual(logicalRange, layerWindow, 'Layer switches preserve the chart viewport')
   reset(); await tick('poll', 2000); await reply('ohlc')
   assert.equal(counters.volumeCandle ?? 0, 0, 'Unchanged replies do no Volume calculation')
   bars[bars.length - 1] = { ...bars.at(-1), tick_volume: 150 }
@@ -435,12 +459,13 @@ try {
   now = originalSessionNow
   await React.act(async () => volumeSessionTimer.fn())
   assert.deepEqual(plotted, sessionBars, 'Hover and idle session updates never change price candles')
-  const raw = [...container.querySelector('.volume-controls').querySelectorAll('button')].find(button => button.textContent === 'Raw')
-  await click(raw); await flush()
-  assert.equal(JSON.parse(localStorage.getItem('fyodor.indicators.volume.v1')).mode, 'relative')
   await click(container.querySelector('[aria-label="Volume settings"]'))
   assert.doesNotMatch(container.querySelector('[role="dialog"]').textContent, /Comparison clock/)
   assert.match(container.querySelector('[role="dialog"]').textContent, /Sessions are automatic/)
+  await React.act(async () => {
+    const mode = container.querySelector('.rsi-settings-dialog select')
+    mode.value = 'relative'; mode.dispatchEvent(new dom.Event('change', { bubbles: true }))
+  })
   const volumeStyleTab = () => [...container.querySelectorAll('[role="tab"]')].find(tab => tab.textContent === 'Style')
   await click(volumeStyleTab())
   const volumeCheckbox = text => [...container.querySelectorAll('.rsi-settings-dialog label')].find(label => label.textContent.trim() === text).querySelector('input')
@@ -448,19 +473,19 @@ try {
     const input = volumeCheckbox(text)
     input[Object.getOwnPropertyNames(input).find(key => key.startsWith('__reactProps$'))].onChange({ target: { checked } })
   })
-  await changeCheckbox('Show pane controls', false)
+  await changeCheckbox('Show volume bars', false)
   await changeCheckbox('Show Relative activity line', false)
   await click([...container.querySelectorAll('.rsi-settings-dialog button')].find(button => button.textContent === 'OK')); await flush()
-  assert.equal(container.querySelector('.volume-pane-controls').hidden, true)
-  assert.equal(JSON.parse(localStorage.getItem('fyodor.indicators.volume.v1')).paneControlsVisible, false)
+  assert.equal(container.querySelector('[aria-label="Show volume bars"]').getAttribute('aria-pressed'), 'false')
+  assert.equal(JSON.parse(localStorage.getItem('fyodor.indicators.volume.v1')).barsVisible, false)
   assert.equal(JSON.parse(localStorage.getItem('fyodor.indicators.volume.v1')).relativeLineVisible, false)
   await click(container.querySelector('[aria-label="Volume settings"]'))
   await click(volumeStyleTab())
-  assert.equal(volumeCheckbox('Show pane controls').checked, false)
-  await changeCheckbox('Show pane controls', true)
+  assert.equal(volumeCheckbox('Show volume bars').checked, false)
+  await changeCheckbox('Show volume bars', true)
   await changeCheckbox('Show Relative activity line', true)
   await click([...container.querySelectorAll('.rsi-settings-dialog button')].find(button => button.textContent === 'Cancel')); await flush()
-  assert.equal(container.querySelector('.volume-pane-controls').hidden, true, 'Cancel leaves the hidden controls preference intact')
+  assert.equal(container.querySelector('[aria-label="Show volume bars"]').getAttribute('aria-pressed'), 'false', 'Cancel leaves the saved layer visibility intact')
   await click(container.querySelector('[aria-label="Hide Volume"]')); await flush()
   assert.equal(panes.length, 2); assert.equal(indicatorSeries.size, 3, 'Volume removal preserves the RSI series')
   assert.equal(container.querySelector('.volume-legend'), null)

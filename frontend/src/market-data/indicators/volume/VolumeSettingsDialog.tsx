@@ -55,7 +55,7 @@ export function VolumeSettingsDialog({ preferences, onSave, onClose }: {
           <label>Previous sessions<input aria-label="Previous sessions" type="number" min="5" max="60" required value={draft.lookback} onChange={event => patch({ lookback: Number(event.target.value) })} /></label>
           <label>Minimum samples<input aria-label="Minimum samples" type="number" min="1" max={draft.lookback} required value={draft.minimumSamples} onChange={event => patch({ minimumSamples: Number(event.target.value) })} /></label>
           <p>Sessions are automatic, including overlaps and daylight saving. Relative values compare matching candles in earlier sessions; D1 uses earlier daily bars.</p>
-          <p>Missing history stays blank. Scroll left or use Load older to build the baseline. Uses earlier candles only.</p>
+          <p>Missing history stays blank. Scroll left to build the baseline. Uses earlier candles only.</p>
         </fieldset>
         <fieldset><legend>Raw tick average</legend>
           <label>Average length<input aria-label="Average length" type="number" min="1" max="200" required disabled={!draft.averageVisible} value={draft.averageLength} onChange={event => patch({ averageLength: Number(event.target.value) })} /></label>
@@ -63,11 +63,11 @@ export function VolumeSettingsDialog({ preferences, onSave, onClose }: {
         </fieldset>
         </> : <>
         <fieldset><legend>Pane</legend>
-          <label>Show pane controls<input type="checkbox" checked={draft.paneControlsVisible} onChange={event => patch({ paneControlsVisible: event.target.checked })} /></label>
           <label>Right axis<select value={draft.axisTarget} onChange={event => patch({ axisTarget: event.target.value as VolumePreferences['axisTarget'] })}>
             <option value="volume">Volume bars</option><option value="relative">Relative line</option></select></label>
         </fieldset>
         <fieldset><legend>Volume bars</legend>
+          <label>Show volume bars<input type="checkbox" checked={draft.barsVisible} onChange={event => patch({ barsVisible: event.target.checked })} /></label>
           <label>Up candle colour<input type="color" value={draft.upColor} onChange={event => patch({ upColor: event.target.value })} /></label>
           <label>Down candle colour<input type="color" value={draft.downColor} onChange={event => patch({ downColor: event.target.value })} /></label>
         </fieldset>

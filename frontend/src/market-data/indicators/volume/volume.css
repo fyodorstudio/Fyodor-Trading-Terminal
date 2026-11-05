@@ -1,8 +1,6 @@
 .volume-legend { position: absolute; left: 10px; z-index: 4; box-sizing: border-box; display: flex; flex-wrap: wrap; align-items: flex-start; gap: 3px 12px; overflow-y: auto; padding: 3px 0; border-radius: 3px; background: transparent; color: var(--text-strong); font-size: 11px; line-height: 17px; pointer-events: none; }
 .volume-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .volume-controls[hidden], .volume-controls button[hidden] { display: none; }
-.volume-pane-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-.volume-pane-controls[hidden] { display: none; }
 .volume-controls button { pointer-events: auto; border: 1px solid var(--border-strong); border-radius: 4px; padding: 1px 5px; background: var(--surface-inset); color: var(--text-strong); font: inherit; cursor: pointer; }
 .volume-controls button[aria-pressed="true"] { background: var(--accent); color: #ffffff; }
 .volume-controls button:disabled { color: var(--text-muted); cursor: default; }
@@ -15,7 +13,5 @@
 .volume-readout > :is(.volume-readout-ticks, .volume-readout-relative, .volume-readout-matches) { flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; text-align: left; }
 .volume-session, .volume-readout-note { color: var(--text-muted); }
 .volume-session-name { color: var(--text-faint); }
-.volume-session-name[data-active="true"] { color: var(--text-strong); }
+.volume-session-name[data-active="true"] { color: var(--negative); }
 .volume-readout-note[hidden] { display: none; }
-.volume-comparison { width: 100%; white-space: pre-line; font-variant-numeric: tabular-nums; }
-.volume-comparison:empty { display: none; }

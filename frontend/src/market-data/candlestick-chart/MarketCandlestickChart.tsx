@@ -23,7 +23,7 @@ import { createFutureTimeline } from './future-timeline'
 import { createChartPriceSpace } from './chart-price-space'
 import { timeframeToSeconds } from '../chart-drawings/position-drawing-geometry'
 import { createVolumePane } from '../indicators/volume/volume-pane'
-import type { VolumePreferences } from '../indicators/volume/volume-preferences'
+import type { VolumeLayer, VolumePreferences } from '../indicators/volume/volume-preferences'
 import { createRsiPane } from '../indicators/rsi/rsi-pane'
 import type { RsiPreferences } from '../indicators/rsi/rsi-preferences'
 import { PricePaneOverlays } from './PricePaneOverlays'
@@ -40,8 +40,8 @@ type MarketCandlestickChartProps = {
   timeDisplay: TimeDisplayPreference
   timeframe?: ChartTimeframe
   volume?: VolumePreferences
-  onChangeVolumeMode?: (mode: VolumePreferences['mode']) => void
   onChangeVolumeAxis?: (target: VolumePreferences['axisTarget']) => void
+  onToggleVolumeLayer?: (layer: VolumeLayer) => void
   rsi?: RsiPreferences
   refocusRequest?: number
   activeDrawingTool: DrawingToolId | null
@@ -77,8 +77,8 @@ function MarketCandlestickChartComponent({
   timeDisplay,
   timeframe,
   volume,
-  onChangeVolumeMode,
   onChangeVolumeAxis,
+  onToggleVolumeLayer,
   rsi,
   refocusRequest = 0,
   activeDrawingTool,
@@ -101,8 +101,7 @@ function MarketCandlestickChartComponent({
   renderChartOverlay,
 }: MarketCandlestickChartProps) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const displayClock = useDisplayClock()
-  const { scope: clock } = displayClock
+  const { scope: clock } = useDisplayClock()
   const initialClock = useRef(clock)
   const initialAppearanceRef = useRef(appearance)
   const initialTimeDisplayRef = useRef(timeDisplay)
@@ -404,15 +403,13 @@ function MarketCandlestickChartComponent({
       } else {
         volumePaneRef.current ??= createVolumePane(chart)
         volumePaneRef.current.sync(bars, `${clock.brokerId}:${fitContentKey}`, volume, clock, timeframeToSeconds(timeframe), {
-          formatTime: time => displayClock.chart(time * 1000),
-          changeMode: mode => onChangeVolumeMode?.(mode),
           changeAxis: target => onChangeVolumeAxis?.(target),
-          loadOlder: onRequestOlderData, hasOlder: hasOlderData, loadingOlder: isLoadingOlderData,
+          toggleLayer: layer => onToggleVolumeLayer?.(layer),
         })
       }
       if (range) setLogicalRange(range)
     } finally { applyingDataRef.current = false }
-  }, [volume, bars, fitContentKey, clock, timeframe, displayClock, onChangeVolumeMode, onChangeVolumeAxis, hasOlderData, isLoadingOlderData, onRequestOlderData, readLogicalRange, setLogicalRange])
+  }, [volume, bars, fitContentKey, clock, timeframe, onChangeVolumeAxis, onToggleVolumeLayer, readLogicalRange, setLogicalRange])
 
   useEffect(() => {
     if (!pendingWindowRef.current || !bars.length || !hasOlderData || isLoadingOlderData) return

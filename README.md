@@ -129,6 +129,8 @@ timeline; the flexible gap follows Refocus. A separator precedes the event-icon
 button. RSI opens a resizable lower pane with a shared time axis, Wilder RSI 14 on Close,
 optional smoothing (SMA 14 by default), 70/50/30 bands and a background fill.
 Visibility and settings persist on this device across all symbols/timeframes.
+Hiding an indicator unregisters its series from the shared native timeline, so
+old lower-timeframe timestamps cannot spread out later H4/D1 candles.
 The settings dialog has Inputs/Style, OK/Cancel and Reset defaults. RSI follows
 the chart timeframe and includes the current candle; earlier history reseeds it.
 Volume and its settings gear sit beside RSI. Volume opens a resizable native
@@ -136,29 +138,31 @@ histogram pane above RSI, sharing dates, crosshair and the future axis. Raw mode
 shows broker tick counts; Relative mode automatically matches candles from the
 same regional session or overlap at the same point in that session period. The
 readout follows the hovered candle; without hover it shows the current session,
-including overlaps. All four session names stay visible: active names use full
-contrast, inactive names grey out. Volume and RSI legends have transparent
+including overlaps. All four session names stay visible: active names are red,
+inactive names grey out. Volume and RSI legends have transparent
 backgrounds, with backgrounds retained on buttons only. Sessions reuse the
 header's indicative regional hours and
 historical DST; no comparison-clock selection is needed. D1 uses prior daily
 bars. Defaults are up to 20 prior matches and a minimum of five;
-missing/zero-mean baselines stay blank. Load older or scroll left to build history.
+missing/zero-mean baselines stay blank. Scroll left to build history.
 Volume settings use Inputs/Style tabs, matching RSI: data options in Inputs,
 visibility and colours in Style.
 Show Relative activity line overlays each candle's exact ratio with straight
 segments and no averaging or smoothing. It is enabled by default. Raw mode has
 an **Axis: Volume / Relative** toggle: the selected series owns the
 draggable right axis and the other uses an independent hidden automatic scale.
+The selector stays clickable in Raw mode; choosing a hidden axis reveals its
+Relative line or volume bars. Raw/Relative bar mode is selected in Inputs.
 No left gutter is added. Relative bars and the line share the right × scale;
 a 1× reference remains visible. The fixed-field readout sits at the upper-right,
 with pipe separators between Ticks, Relative and Matches. The line stays above the
 bars when hovering. Missing baselines stay blank.
-Show pane controls hides the in-pane button strip while the header gear stays
-available. Raw mode also retains its separate optional SMA. Visibility/settings
-persist across symbols and reloads. Select A/B then click each push's first and last candles in the Volume
-pane to compare closed-bar total ticks, duration and mean relative activity.
-Selections are temporary and reset on broker/symbol/timeframe changes. No signal
-or trade direction is generated. See [Volume usage](user%20manual.md#volume-and-push-comparison).
+**Bars**, **Relative** and **Average** buttons immediately right of the axis
+selector independently show/hide the histogram, Relative line and raw-tick SMA.
+The average applies in Raw mode. Visibility persists and matches the Style tab;
+controls remain available with every layer hidden. The axis follows the remaining
+visible series when only one kind is shown. Scroll left for earlier history.
+See [Volume usage](user%20manual.md#volume).
 A scope change records one bounded post-paint **Timeframe trace** in Activity
 under Chart: sampled raw/native OHLC, timeline indices, price coordinates,
 viewport and pane types. It adds no chart controls and does no live-tick tracing.
