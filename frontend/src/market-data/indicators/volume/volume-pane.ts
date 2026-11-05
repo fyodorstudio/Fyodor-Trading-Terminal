@@ -1,8 +1,9 @@
 import { HistogramSeries, LineSeries, LineStyle, type IChartApi, type IPrimitivePaneRenderer, type ISeriesPrimitive, type MouseEventParams, type Time } from 'lightweight-charts'
-import type { ChartClockScope } from '../../../appearance/time-display/chart-clock'
+import { chartClockToUtc, type ChartClockScope } from '../../../appearance/time-display/chart-clock'
 import type { OhlcBar } from '../../contracts/OhlcBar'
 import { createVolumeCalculator, summarizeVolumeRange, type VolumeRange } from './volume-calculation'
-import { volumeClocks, type VolumePreferences } from './volume-preferences'
+import type { VolumePreferences } from './volume-preferences'
+import { createForexSessionLookup } from '../../market-watch/forex-sessions'
 import './volume.css'
 
 export function createVolumePane(chart: IChartApi) {
@@ -22,11 +23,16 @@ export function createVolumePane(chart: IChartApi) {
   const ranges: { A?: VolumeRange; B?: VolumeRange } = {}
   let formatTime: (time: number) => string = String, changeMode: (mode: VolumePreferences['mode']) => void = () => {}
   let loadOlder: () => void = () => {}
+  let clock: ChartClockScope = { brokerId: null, brokerOffsetSeconds: 0 }
+  const sessionAt = createForexSessionLookup()
   let topMargin = 0.48
   const legend = document.createElement('div'); legend.className = 'volume-legend'
   legend.setAttribute('aria-label', 'Volume activity and push comparison')
   const controls = document.createElement('div'); controls.className = 'volume-controls'
-  const title = document.createElement('strong'), readout = document.createElement('div'), comparison = document.createElement('div')
+  const title = document.createElement('strong'), readout = document.createElement('div'), comparison = document.createElement('div'), sessionLabel = document.createElement('div')
+  sessionLabel.className = 'volume-session'
+  sessionLabel.setAttribute('aria-label', 'Automatic volume session')
+  sessionLabel.title = 'Indicative sessions from the header. Hover follows chart time; otherwise this shows now. Overlaps are listed together. Broker holidays may differ.'
   readout.className = 'volume-readout'; comparison.className = 'volume-comparison'; comparison.setAttribute('role', 'status')
   const button = (text: string, action: () => void) => {
     const element = document.createElement('button'); element.type = 'button'; element.textContent = text
@@ -38,7 +44,7 @@ export function createVolumePane(chart: IChartApi) {
   const pickA = button('Select A', () => pick('A')), pickB = button('Select B', () => pick('B'))
   button('Clear', () => { delete ranges.A; delete ranges.B; pending = null; start = null; updateLegend(); repaint() })
   const olderButton = button('Load older', () => loadOlder())
-  legend.append(controls, readout, comparison); chart.chartElement().append(legend)
+  legend.append(controls, sessionLabel, readout, comparison); chart.chartElement().append(legend)
   const find = (time: number) => {
     let lo = 0, hi = bars.length
     while (lo < hi) { const mid = (lo + hi) >>> 1; if (bars[mid].time < time) lo = mid + 1; else hi = mid }
@@ -48,13 +54,19 @@ export function createVolumePane(chart: IChartApi) {
     if (!preferences || !data || destroyed) return
     title.textContent = 'Volume · Ticks'
     modeButton.textContent = preferences.mode === 'raw' ? 'Raw' : 'Relative'
-    modeButton.title = 'Switch between raw ticks and same-time-of-day relative activity'
+    modeButton.title = 'Switch between raw ticks and activity relative to matching earlier sessions'
     pickA.setAttribute('aria-pressed', String(pending === 'A')); pickB.setAttribute('aria-pressed', String(pending === 'B'))
-    const index = hover === null ? bars.length - 1 : find(hover), row = data.rows[index]
-    const relative = row?.relative === undefined ? '—' : `${row.relative.toFixed(2)}×`
-    const clockLabel = step >= 86400 ? 'prior daily bars' : `${volumeClocks[preferences.clock]} time slots`
-    readout.textContent = row ? `${row.ticks === undefined ? 'Ticks unavailable' : `${row.ticks.toLocaleString()} ticks`} · ${relative} · ${row.samples}/${preferences.lookback} prior samples · ${clockLabel}${index === bars.length - 1 ? ' · latest candle' : ''}` : 'No candle at cursor'
-    if (row?.relative === undefined) readout.textContent += row?.utc === null ? ' · Broker clock unavailable' : ` · Need ${preferences.minimumSamples} prior samples with a positive mean`
+    const now = Date.now()
+    const hoveredUtc = hover !== null && Number.isFinite(hover) ? chartClockToUtc(hover * 1000, clock) : null
+    const reference = hover === null ? now : hoveredUtc
+    const context = reference === null ? null : sessionAt(reference)
+    sessionLabel.textContent = context ? `${context.key || 'No active session'}${context.names.length > 1 ? ' · overlap' : ''} · ${hover === null ? 'now' : 'hovered candle'}` : 'Session unavailable at cursor'
+    const latest = data.rows.at(-1)
+    const currentLoaded = latest?.utc !== null && latest?.utc !== undefined && now >= latest.utc && now < latest.utc + step * 1000
+    const index = hover === null ? currentLoaded ? bars.length - 1 : -1 : find(hover), row = data.rows[index]
+    const relative = row?.relative === undefined ? 'Relative unavailable' : `${row.relative.toFixed(2)}× normal`
+    readout.textContent = row ? `${row.ticks === undefined ? 'Ticks unavailable' : `${row.ticks.toLocaleString()} ticks`} · ${relative} · ${row.samples}/${preferences.lookback} prior matches${step >= 86400 ? ' · daily bars' : ` · ${row.session}`}` : hover === null ? 'No current candle loaded · hover a candle to inspect it' : 'No candle at cursor'
+    if (row && row.relative === undefined) readout.textContent += row.utc === null ? ' · Broker clock unavailable' : ` · Need ${preferences.minimumSamples} prior matches with a positive mean`
     const lines: string[] = []
     if (pending) lines.push(`${pending}: click ${start === null ? 'the first' : 'the last'} candle of the push in the Volume pane. Esc cancels.`)
     const summary = (name: 'A' | 'B') => {
@@ -83,6 +95,9 @@ export function createVolumePane(chart: IChartApi) {
   }
   const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape' && pending) { pending = null; start = null; updateLegend() } }
   chart.subscribeCrosshairMove(onHover); chart.subscribeClick(onClick); window.addEventListener('keydown', onKey)
+  // Only the idle session/readout needs wall time. Do not recalculate series,
+  // trigger React renders or schedule frames while a historical candle is hovered.
+  const sessionTimer = window.setInterval(() => { if (hover === null) updateLegend() }, 30_000)
   const renderer: IPrimitivePaneRenderer = {
     draw() {
       legend.style.top = `${(pane.getHTMLElement()?.offsetTop ?? chart.paneSize(0).height + 8) + 3}px`
@@ -112,14 +127,14 @@ export function createVolumePane(chart: IChartApi) {
   const primitive: ISeriesPrimitive<Time> = { paneViews: () => [{ zOrder: () => 'bottom', renderer: () => renderer }] }
   histogram.attachPrimitive(primitive)
   return {
-    sync(nextBars: OhlcBar[], scope: string, next: VolumePreferences, clock: ChartClockScope, seconds: number,
+    sync(nextBars: OhlcBar[], scope: string, next: VolumePreferences, nextClock: ChartClockScope, seconds: number,
       options: { formatTime: (time: number) => string; changeMode: (mode: VolumePreferences['mode']) => void; loadOlder: () => void; hasOlder: boolean; loadingOlder: boolean }) {
       if (destroyed) return
       if (scopeKey !== scope) {
         calculator = createVolumeCalculator()
         delete ranges.A; delete ranges.B; pending = null; start = null; hover = null
       }
-      scopeKey = scope; bars = nextBars; step = seconds; formatTime = options.formatTime; changeMode = options.changeMode; loadOlder = options.loadOlder
+      scopeKey = scope; bars = nextBars; step = seconds; clock = nextClock; formatTime = options.formatTime; changeMode = options.changeMode; loadOlder = options.loadOlder
       olderButton.disabled = !options.hasOlder || options.loadingOlder; olderButton.textContent = options.loadingOlder ? 'Loading…' : 'Load older'
       const styleChanged = preferences !== next
       const modeChanged = preferences?.mode !== next.mode
@@ -145,6 +160,7 @@ export function createVolumePane(chart: IChartApi) {
       if (destroyed) return
       destroyed = true
       window.cancelAnimationFrame(orderFrame)
+      window.clearInterval(sessionTimer)
       if (frame !== null) window.cancelAnimationFrame(frame)
       chart.unsubscribeCrosshairMove(onHover); chart.unsubscribeClick(onClick); window.removeEventListener('keydown', onKey)
       histogram.detachPrimitive(primitive); legend.remove(); chart.removePane(pane.paneIndex())

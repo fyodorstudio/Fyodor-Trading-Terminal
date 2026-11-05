@@ -40,3 +40,37 @@ export function forexSessions(now: number) {
     return { ...session, windows, active: windows.some(window => now >= window.open && now < window.close) }
   }) }
 }
+
+export type ForexSessionContext = { names: string[]; key: string; from: number; to: number }
+
+/** Reuse the header's regional hours and DST rules. Cache a bounded number of
+ * Jakarta days so historical candle processing does not format every timestamp. */
+export function createForexSessionLookup() {
+  const days = new Map<number, Array<{ name: string; open: number; close: number }>>()
+  return (at: number): ForexSessionContext => {
+    const start = Math.floor((at + 7 * hour) / (24 * hour)) * 24 * hour - 7 * hour
+    let windows = days.get(start)
+    if (!windows) {
+      const unique = new Map<string, { name: string; open: number; close: number }>()
+      // Include the preceding day: a session that already closed can define
+      // the beginning of today's remaining single-session period.
+      for (const day of [start - 1, start + 1]) for (const session of forexSessions(day).sessions)
+        for (const window of session.windows) unique.set(`${session.name}:${window.open}`, { name: session.name, open: window.open, close: window.close })
+      windows = [...unique.values()]
+      days.set(start, windows)
+      if (days.size > 32) days.delete(days.keys().next().value!)
+    }
+    const names: string[] = []
+    let from = -Infinity, to = Infinity
+    for (const window of windows) {
+      if (at >= window.open && at < window.close && !names.includes(window.name)) names.push(window.name)
+      for (const boundary of [window.open, window.close]) {
+        if (boundary <= at) from = Math.max(from, boundary)
+        else to = Math.min(to, boundary)
+      }
+    }
+    // Stable ordering matches the header, including overlaps across midnight.
+    names.sort((a, b) => sessions.findIndex(session => session.name === a) - sessions.findIndex(session => session.name === b))
+    return { names, key: names.join(' + '), from: Number.isFinite(from) ? from : start, to: Number.isFinite(to) ? to : start + 24 * hour }
+  }
+}

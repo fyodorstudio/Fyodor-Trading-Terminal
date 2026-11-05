@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import { defaultVolumePreferences, volumeClocks, type VolumePreferences } from './volume-preferences'
+import { defaultVolumePreferences, type VolumePreferences } from './volume-preferences'
 import '../rsi/rsi.css'
 
 export function VolumeSettingsDialog({ preferences, onSave, onClose }: {
@@ -29,7 +29,7 @@ export function VolumeSettingsDialog({ preferences, onSave, onClose }: {
         if (!Number.isInteger(draft.lookback) || draft.lookback < 5 || draft.lookback > 60 ||
           !Number.isInteger(draft.minimumSamples) || draft.minimumSamples < 1 || draft.minimumSamples > draft.lookback ||
           !Number.isInteger(draft.averageLength) || draft.averageLength < 1 || draft.averageLength > 200) {
-          setError('Use 5–60 baseline days, minimum samples from 1 to baseline days, and an average length from 1 to 200.'); return
+          setError('Use 5–60 previous sessions, minimum samples from 1 to previous sessions, and an average length from 1 to 200.'); return
         }
         onSave({ ...draft, enabled: preferences.enabled }); onClose()
       }}>
@@ -38,11 +38,10 @@ export function VolumeSettingsDialog({ preferences, onSave, onClose }: {
         <fieldset><legend>Activity display</legend>
           <label>Mode<select value={draft.mode} onChange={event => patch({ mode: event.target.value as VolumePreferences['mode'] })}>
             <option value="raw">Raw ticks</option><option value="relative">Relative activity</option></select></label>
-          <label>Comparison clock<select value={draft.clock} onChange={event => patch({ clock: event.target.value as VolumePreferences['clock'] })}>
-            {Object.entries(volumeClocks).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
-          <label>Baseline days<input type="number" min="5" max="60" required value={draft.lookback} onChange={event => patch({ lookback: Number(event.target.value) })} /></label>
+          <p>Sessions are automatic: hover a candle to see its session or overlap; move away to see the current session. Uses the same regional hours as the header, with daylight saving.</p>
+          <label>Previous sessions<input type="number" min="5" max="60" required value={draft.lookback} onChange={event => patch({ lookback: Number(event.target.value) })} /></label>
           <label>Minimum samples<input type="number" min="1" max={draft.lookback} required value={draft.minimumSamples} onChange={event => patch({ minimumSamples: Number(event.target.value) })} /></label>
-          <p>Relative = ticks / mean ticks in the same local time slot on up to {draft.lookback} earlier available dates. Regional clocks follow daylight saving. D1 compares earlier daily bars.</p>
+          <p>Relative bars compare activity with matching candles in up to {draft.lookback} earlier occurrences of the same session or overlap. Matching uses the same time into that session period. D1 compares earlier daily bars.</p>
           <p>At least {draft.minimumSamples} prior samples are needed. Missing history stays blank. Scroll left or use Load older in the pane to build the baseline; no future candles enter it.</p>
         </fieldset>
         <fieldset><legend>Style</legend>

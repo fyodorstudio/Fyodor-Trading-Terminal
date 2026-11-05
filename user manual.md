@@ -61,23 +61,26 @@ prior failure context; full original records are [archived](docs/RESEARCH-ARCHIV
    its pane. RSI and Volume can be shown independently.
 2. Click **Raw** inside the pane to switch to **Relative**, or choose the mode
    through the Volume gear. For comparing intraday pushes, use Relative.
-3. In the gear, select a comparison clock: London, New York, Tokyo, Sydney or UTC.
-   This selects a local time-of-day baseline; it does not hide candles outside
-   that session. London is the default. Regional clocks follow daylight saving,
-   while chart labels keep your selected display timezone (Jakarta by default).
-4. Keep **Baseline days = 20** and **Minimum samples = 5** initially. Each candle
-   is compared with the arithmetic mean of up to 20 earlier available dates at
-   its exact local start time, using the same symbol, broker and timeframe.
-   D1 compares earlier broker daily bars. H4 compares matching local start times;
-   it does not split a candle spanning several sessions.
-5. Read the prior-sample count while hovering over the candles you want to
-   compare. **Load older** fetches another history page; repeat, or scroll left,
-   until both pushes have adequate earlier history. Five samples enable a ratio;
-   closer to 20 gives a fuller baseline. Initial M1 history may cover less than
-   one day. A dash means unavailable, never zero activity. Unknown historical
-   broker clocks also leave Relative unavailable. Baselines use loaded history
-   only, exclude the current date, and never include later candles. Missing dates
-   are skipped, so 20 samples need not mean the immediately preceding 20 days.
+3. Sessions are automatic. Hover a candle in the price chart or Volume pane to
+   see its session. Overlaps appear together, such as **London + New York**.
+   Move away from the chart to return to **now** and the current active sessions.
+   Session times match the header and follow historical daylight saving; chart
+   labels keep your display timezone. There is no Comparison clock setting.
+4. Relative bars compare each candle with the mean of matching candles in up to
+   **20 previous sessions**, requiring at least **5** earlier matches by default.
+   Matching uses the same session combination and elapsed time within that period:
+   London-only candles match London-only; London + New York candles match that
+   overlap. Hovering changes only the readout, never the plotted bars' baseline.
+   Multi-hour candles crossing boundaries match the same session mix; their ticks
+   are not artificially split. D1 compares earlier broker daily bars.
+5. If Relative shows a dash, **Load older** or scroll left to load baseline history.
+   Only earlier available session occurrences are used, never the current one or
+   future candles. Inactive periods and unknown broker clocks have no intraday
+   baseline. Weekends show **No active session**. Broker holidays may differ from
+   these indicative hours. If the loaded history has no candle covering now,
+   the pane says **No current candle loaded** rather than presenting an older
+   candle as current activity. Legacy clock preferences are ignored; your other
+   volume settings stay saved.
 6. Click **Select A**, then click the first and last candles of the first push
    **in the Volume pane**, aligned with the price candles. Repeat **Select B** for
    the second push. Endpoints are inclusive and may be selected in either order.
@@ -85,7 +88,7 @@ prior failure context; full original records are [archived](docs/RESEARCH-ARCHIV
    text to verify the selected timestamps. **Esc** cancels an unfinished selection;
    **Clear** removes both. Enlarge the pane if you want more space for its readout.
 7. Compare **average relative activity**. For example, A = 1.5× and B = 0.8× means
-   the second push averaged less activity relative to its own normal time slots.
+   the second push averaged less activity relative to its matching earlier sessions.
    **B vs A** reports that change and whether B reached a higher price high. These
    are descriptive measurements, with no entry, direction or reversal signal.
 
@@ -99,7 +102,7 @@ statistics, while its histogram and hover value continue updating. Missing tick
 counts are unavailable; genuine reported zero ticks stay zero. Selections reset
 when the broker, symbol or timeframe changes, and when Volume is hidden.
 
-Use the same comparison clock and settings for both pushes, and select comparable
+Use the same settings for both pushes, and select comparable
 parts of each move consistently. A news-driven first push and a quiet second push
 can differ for reasons beyond the price structure; session adjustment does not
 remove news, holiday or unusual-day effects. Use your existing strategy for the

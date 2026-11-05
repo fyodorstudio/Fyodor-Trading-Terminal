@@ -14,9 +14,10 @@ try {
   const { defaultVolumePreferences, readVolumePreferences, saveVolumePreferences } = await server.ssrLoadModule('./src/market-data/indicators/volume/volume-preferences.ts')
   const { replaceRecentBars } = await server.ssrLoadModule('./src/market-data/mt5-feed/market-snapshots.ts')
   const { utcToChartClock } = await server.ssrLoadModule('./src/appearance/time-display/chart-clock.ts')
-  const clock = { brokerId: null, brokerOffsetSeconds: 0 }, p = { ...defaultVolumePreferences, clock: 'UTC', lookback: 5, minimumSamples: 3, averageLength: 3 }
+  const clock = { brokerId: null, brokerOffsetSeconds: 0 }, p = { ...defaultVolumePreferences, lookback: 5, minimumSamples: 3, averageLength: 3 }
   const begin = Date.UTC(2026, 8, 1)
-  const bars = Array.from({ length: 12 }, (_, day) => [candle(begin + day * 86400000 + 8 * 3600000, (day + 1) * 100), candle(begin + day * 86400000 + 9 * 3600000, (day + 1) * 1000)]).flat()
+  const dates = Array.from({ length: 30 }, (_, i) => begin + i * 86400000).filter(at => ![0,6].includes(new Date(at).getUTCDay())).slice(0,12)
+  const bars = dates.flatMap((at, day) => [candle(at + 8 * 3600000, (day + 1) * 100), candle(at + 9 * 3600000, (day + 1) * 1000)])
   const result = createVolumeCalculator().sync(bars, p, clock, 3600)
   assert.equal(result.rows[4].relative, undefined, 'Insufficient history has no invented value')
   close(result.rows[6].relative, 400 / 200)
@@ -31,15 +32,31 @@ try {
   const missing = bars.map(bar => ({ ...bar, tickVolume: undefined }))
   assert.equal(createVolumeCalculator().sync(missing, p, clock, 3600).rows.at(-1).ticks, undefined)
   assert.equal(createVolumeCalculator().sync(bars, p, { brokerId: 'unknown', brokerOffsetSeconds: 7200 }, 3600).rows.at(-1).relative, undefined, 'Unknown historical clock never borrows today’s offset')
-  // London 09:00 remains the same comparison slot on both sides of its DST change.
-  const utcDates = [Date.UTC(2026, 9, 22, 8), Date.UTC(2026, 9, 23, 8), Date.UTC(2026, 9, 26, 9), Date.UTC(2026, 9, 27, 9)]
+  const { createForexSessionLookup, forexSessions } = await server.ssrLoadModule('./src/market-data/market-watch/forex-sessions.ts')
+  const sessionAt = createForexSessionLookup()
+  for (const at of [Date.UTC(2026, 0, 6, 1), Date.UTC(2026, 0, 6, 14), Date.UTC(2026, 2, 20, 13), Date.UTC(2026, 9, 26, 13), Date.UTC(2026, 10, 2, 14)]) {
+    assert.deepEqual(sessionAt(at).names, forexSessions(at).sessions.filter(session => session.active).map(session => session.name), 'Automatic session names match the header, including both DST mismatch weeks')
+  }
+  assert.equal(sessionAt(Date.UTC(2026, 0, 6, 1)).key, 'Sydney + Tokyo')
+  assert.equal(sessionAt(Date.UTC(2026, 0, 6, 14)).key, 'London + New York')
+  assert.equal(sessionAt(Date.UTC(2026, 0, 6, 18)).from, Date.UTC(2026, 0, 6, 17), 'London closing defines the start of NY-only even across the Jakarta date boundary')
+  assert.equal(sessionAt(Date.UTC(2026, 9, 31, 12)).key, '', 'Weekend has no active session')
+  assert.equal(sessionAt(Date.UTC(2026, 0, 6, 13)).key, 'London + New York', 'Open boundary is inclusive')
+  assert.equal(sessionAt(Date.UTC(2026, 0, 6, 17)).key, 'New York', 'Close boundary is exclusive')
+  // The same hour into the London/NY overlap follows US and UK DST automatically.
+  const utcDates = [Date.UTC(2026, 9, 22, 13), Date.UTC(2026, 9, 23, 13), Date.UTC(2026, 10, 2, 14), Date.UTC(2026, 10, 3, 14)]
   const brokerClock = { brokerId: 'Pepperstone-Demo', brokerOffsetSeconds: 10800 }
   const dstBars = utcDates.map((utc, i) => ({ ...candle(utc, (i + 1) * 100), time: utcToChartClock(utc, brokerClock) / 1000 }))
-  const dst = createVolumeCalculator().sync(dstBars, { ...p, clock: 'Europe/London', minimumSamples: 2 }, brokerClock, 3600)
+  const dst = createVolumeCalculator().sync(dstBars, { ...p, minimumSamples: 2 }, brokerClock, 3600)
   close(dst.rows[2].relative, 300 / 150); close(dst.rows[3].relative, 400 / 200)
-  // Repeated local slots are excluded from later dates, not double-weighted.
-  const duplicates = [candle(Date.UTC(2026, 9, 25, 0, 30), 100), candle(Date.UTC(2026, 9, 25, 1, 30), 500), candle(Date.UTC(2026, 9, 26, 1, 30), 100)]
-  assert.equal(createVolumeCalculator().sync(duplicates, { ...p, clock: 'Europe/London', minimumSamples: 1 }, clock, 1800).rows.at(-1).relative, undefined)
+  assert.ok(dst.rows.every(row => row.session === 'London + New York'))
+  assert.notEqual(result.rows[6].session, result.rows[7].session, 'Solo and overlap baselines remain separate')
+  const weekend = [candle(Date.UTC(2026, 9, 31, 12), 100)]
+  assert.equal(createVolumeCalculator().sync(weekend, p, clock, 3600).rows[0].relative, undefined)
+  const spanning = createVolumeCalculator().sync(bars, p, clock, 14400)
+  assert.match(spanning.rows[0].session, /→/, 'Multi-hour candles explicitly identify changes of session')
+  const daily = createVolumeCalculator().sync(bars.filter((_, i) => i % 2 === 0), p, clock, 86400)
+  close(daily.rows.at(-1).relative, 1200 / 900)
   const engine = createVolumeCalculator()
   let live = bars.slice(0, -1)
   engine.sync(live, p, clock, 3600)
@@ -75,6 +92,6 @@ try {
   assert.equal(readVolumePreferences().enabled, true); assert.equal(readVolumePreferences().mode, 'relative')
   dom.localStorage.setItem('fyodor.indicators.volume.v1', JSON.stringify({ lookback: 5, minimumSamples: 50, clock: 'invalid', upColor: 'transparent' }))
   const sanitized = readVolumePreferences()
-  assert.equal(sanitized.minimumSamples, 5); assert.equal(sanitized.clock, 'Europe/London'); assert.equal(sanitized.upColor, defaultVolumePreferences.upColor)
-  console.log('✓ Volume: known same-slot ratios, prior-only baselines, DST/historical clocks, missing/zero/duplicate data, mutable tail, correction/prepend, range coverage and closed bars; 100,000-bar live work = 1')
+  assert.equal(sanitized.minimumSamples, 5); assert.equal('clock' in sanitized, false, 'Legacy clock choice is ignored without losing other preferences'); assert.equal(sanitized.upColor, defaultVolumePreferences.upColor)
+  console.log('✓ Volume: automatic sessions/overlaps/header parity, session-relative ratios, prior-only baselines, DST/historical clocks, missing/zero data, mutable tail, correction/prepend, range coverage and closed bars; 100,000-bar live work = 1')
 } finally { await server.close(); await dom.happyDOM.close(); globalThis.window = oldWindow }

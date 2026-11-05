@@ -324,7 +324,7 @@ try {
   selectClick({ paneIndex: 1, time: bars[1500].time }); selectClick({ paneIndex: 1, time: bars[1503].time }); await paint()
   assert.match(liveLegend.querySelector('.volume-comparison').textContent, /A: 4 closed bars/)
   await React.act(async () => [...liveLegend.querySelectorAll('button')].find(button => button.textContent === 'Select B').click())
-  selectClick({ paneIndex: 1, time: bars[1600].time }); selectClick({ paneIndex: 1, time: bars[1605].time }); await paint()
+  selectClick({ paneIndex: 1, time: bars[1524].time }); selectClick({ paneIndex: 1, time: bars[1529].time }); await paint()
   assert.match(liveLegend.querySelector('.volume-comparison').textContent, /B vs A:/)
   assert.match(liveLegend.querySelector('.volume-comparison').textContent, /higher price high/)
   await render({ rsi: { ...defaultRsiPreferences, enabled: false } })

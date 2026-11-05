@@ -101,10 +101,12 @@ The settings dialog has Inputs/Style, OK/Cancel and Reset defaults. RSI follows
 the chart timeframe and includes the current candle; earlier history reseeds it.
 Volume and its settings gear sit beside RSI. Volume opens a resizable native
 histogram pane above RSI, sharing dates, crosshair and the future axis. Raw mode
-shows broker tick counts; Relative mode divides ticks by the mean for the same
-local time slot on earlier available dates (London by default, with New York,
-Tokyo, Sydney and UTC options). Regional clocks follow historical DST; D1 uses
-prior daily bars. Defaults are up to 20 prior samples and a minimum of five;
+shows broker tick counts; Relative mode automatically matches candles from the
+same regional session or overlap at the same point in that session period. The
+readout follows the hovered candle; without hover it shows the current session,
+including overlaps. Sessions reuse the header's indicative regional hours and
+historical DST; no comparison-clock selection is needed. D1 uses prior daily
+bars. Defaults are up to 20 prior matches and a minimum of five;
 missing/zero-mean baselines stay blank. Load older or scroll left to build history.
 Raw mode offers an optional SMA. Visibility/settings persist across symbols and
 reloads. Select A/B then click each push's first and last candles in the Volume
