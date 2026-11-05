@@ -43,6 +43,10 @@ globalThis.fetch = (url, options = {}) => {
 const { createRoot } = await import('react-dom/client')
 const container = document.createElement('div'); document.body.appendChild(container)
 const root = createRoot(container)
+const pan = next => React.act(() => {
+  container.querySelector('.market-chart-canvas').dispatchEvent(new dom.Event('wheel', { bubbles: true }))
+  emit(next)
+})
 const bars = times => times.map(time => ({ time, open: 1, high: 2, low: .5, close: 1.5 }))
 const base = 1700000000
 const make = (...hours) => bars(hours.map(h => base + h * 3600))
@@ -56,7 +60,7 @@ async function reply(request, rows, hasOlder = false, ok = true) {
 try {
   const { captureDateWindow, projectDateWindow } = await server.ssrLoadModule('./src/market-data/candlestick-chart/chart-viewport.ts')
   const saved = captureDateWindow({ from: .5, to: 5.5 }, make(0, 1, 5, 6), 3600)
-  assert.deepEqual(saved, { from: base + 1800, to: base + 8.5 * 3600 }, 'Sub-bar start and future whitespace retained around session gaps')
+  assert.deepEqual(saved, { from: base, to: base + 9 * 3600 }, 'Outer candle edges and future whitespace retained around session gaps')
   assert.deepEqual(projectDateWindow(saved, make(-1, 0, 1, 5, 6), 3600), { from: 1.5, to: 6.5 })
   assert.equal(captureDateWindow(null, [], 3600), null)
   const { MarketCandlestickChart } = await server.ssrLoadModule('./src/market-data/candlestick-chart/MarketCandlestickChart.tsx')
@@ -84,7 +88,7 @@ try {
   assert.equal(plotted.length, 6, 'The horizon anchor never enters price candles')
   assert.equal(range.to, plotted.length + 7, 'Initial fit includes real candles and the existing margin, not 90 days')
   const setsBeforePan = futureSets, updatesBeforePan = futureUpdates
-  emit({ from: 1.25, to: 7.5 })
+  pan({ from: 1.25, to: 7.5 })
   assert.equal(futureSets, setsBeforePan); assert.equal(futureUpdates, updatesBeforePan)
   await render('USDJPY')
   assert.equal(plotted.length, 0, 'Old candles disappear while the symbol loads')
@@ -95,14 +99,14 @@ try {
   assert.equal(autoscaled, 2, 'Each new symbol refits its own price scale')
 
   // Historical window beyond the new symbol initial page: load serially until covered.
-  emit({ from: -4, to: -1 })
+  pan({ from: -4, to: -1 })
   await render('GBPUSD'); await reply(pending()[0], make(0, 1, 2, 3, 4, 5), true)
   let older = pending()[0]
   assert.equal(new URL(older.url, 'http://localhost').searchParams.get('start_pos'), '6')
   await reply(older, make(-2, -1), true)
   assert.equal(pending().length, 1, 'A second page is requested only after the first advances history')
   await reply(pending()[0], make(-5, -4, -3), true)
-  assert.deepEqual(captureDateWindow(range, plotted, 3600), { from: base - 4 * 3600, to: base - 3600 })
+  assert.deepEqual(captureDateWindow(range, plotted, 3600), { from: base - 4.5 * 3600, to: base - 0.5 * 3600 })
   assert.equal(pending().length, 0, 'Backfill stops as soon as the date window is covered')
   assert.equal(fitted, 1)
 
@@ -128,7 +132,7 @@ try {
   await reply(stale, make(-10, -9, -8), false)
   assert.deepEqual(plotted, beforeStale, 'Obsolete paging replies cannot overwrite a new currency')
 
-  emit({ from: 1, to: 4 })
+  pan({ from: 1, to: 4 })
   const beforeFrame = captureDateWindow(range, plotted, 3600)
   await render('USDCHF', 'M30'); await reply(pending()[0], bars(Array.from({ length: 13 }, (_, i) => base - 6 * 3600 + i * 1800)))
   assert.deepEqual(captureDateWindow(range, plotted, 1800), beforeFrame, 'Timeframe changes preserve both visible date bounds using the old step for capture')
@@ -152,13 +156,16 @@ try {
     React.createElement(React.StrictMode, null, candlesElement(chartBars)) : candlesElement(chartBars)))
   let liveBars = make(0, 1, 2, 3, 4, 5)
   await renderCandles(liveBars)
-  emit({ from: 1.25, to: 7.5 })
+  liveBars = liveBars.map(bar => ({ ...bar, close: 1.6 }))
+  await renderCandles(liveBars)
+  assert.equal(container.querySelector('.chart-viewport-notice'), null, 'The first candle outer edge does not request unavailable earlier history')
+  pan({ from: 1.25, to: 7.5 })
   const setsBeforeAdvance = futureSets, updatesBeforeAdvance = futureUpdates
   liveBars = replaceRecentBars(liveBars, [...liveBars.slice(-2), ...make(6)])
   await renderCandles(liveBars)
   assert.deepEqual(range, { from: 2.25, to: 8.5 }, 'A live chart still follows one genuinely new candle')
   assert.equal(futureSets, setsBeforeAdvance); assert.equal(futureUpdates, updatesBeforeAdvance, 'New candles reuse the cached day horizon')
-  emit({ from: 100.25, to: 110.75 })
+  pan({ from: 100.25, to: 110.75 })
   const futureWindow = captureDateWindow(range, liveBars, 3600)
   liveBars = replaceRecentBars(liveBars, [...liveBars.slice(-2), ...make(7)])
   await renderCandles(liveBars)
@@ -192,7 +199,7 @@ try {
   const frameSteps = { D1: 86400, H4: 14400, H1: 3600, M30: 1800, M15: 900, M5: 300, M1: 60 }
   const historyFor = step => bars(Array.from({ length: 2000 }, (_, i) => end - (1999 - i) * step))
   await render('EURX', 'D1', 'B'); await reply(pending()[0], historyFor(frameSteps.D1))
-  emit({ from: 1887, to: 2007 })
+  pan({ from: 1887, to: 2007 })
   const indexWindow = captureDateWindow(range, plotted, frameSteps.D1)
   for (const [frame, step] of Object.entries(frameSteps).slice(1)) {
     await render('EURX', frame, 'B')
@@ -200,17 +207,11 @@ try {
     await reply(pending()[0], historyFor(step))
     assert.deepEqual(captureDateWindow(range, plotted, step), indexWindow, `EURX ${frame}: keep the complete selected date window`)
   }
-  await React.act(async () => {
-    container.querySelector('.market-chart-canvas').dispatchEvent(new dom.Event('wheel', { bubbles: true }))
-    emit({ from: 1700.25, to: 1820.75 })
-  })
+  pan({ from: 1700.25, to: 1820.75 })
   const historicalWindow = captureDateWindow(range, plotted, frameSteps.M1)
   await render('EURX', 'H1', 'B'); await reply(pending()[0], historyFor(frameSteps.H1))
   assert.deepEqual(captureDateWindow(range, plotted, frameSteps.H1), historicalWindow, 'A historical index view retains both date bounds')
-  await React.act(async () => {
-    container.querySelector('.market-chart-canvas').dispatchEvent(new dom.Event('wheel', { bubbles: true }))
-    emit({ from: 100, to: 220 })
-  })
+  pan({ from: 100, to: 220 })
   const backfillWindow = captureDateWindow(range, plotted, frameSteps.H1)
   await render('EURX', 'D1', 'B')
   await reply(pending()[0], historyFor(frameSteps.D1).slice(-6), true)

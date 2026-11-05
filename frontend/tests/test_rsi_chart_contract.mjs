@@ -45,10 +45,11 @@ const { createRoot } = await import('react-dom/client')
 const host = document.createElement('div'), dialogHost = document.createElement('div'); document.body.append(host, dialogHost)
 const root = createRoot(host), dialogRoot = createRoot(dialogHost)
 const close = (actual, expected, message) => assert.ok(Math.abs(actual - expected) < 1e-6, `${message}: ${actual} vs ${expected}`)
-async function paint() {
+async function paint(inspect) {
   await React.act(async () => {
     for (let pass = 0; frames.size && pass < 20; pass++) {
       const pending = [...frames]; frames.clear(); for (const [, fn] of pending) fn(performance.now())
+      inspect?.()
     }
   })
   assert.equal(frames.size, 0, 'The pane, label and price overlays settle without a redraw loop')
@@ -58,6 +59,7 @@ try {
   const { MarketCandlestickChart } = await server.ssrLoadModule('./src/market-data/candlestick-chart/MarketCandlestickChart.tsx')
   const { defaultChartAppearance } = await server.ssrLoadModule('./src/market-data/chart-settings/chart-appearance-preference.ts')
   const { defaultRsiPreferences } = await server.ssrLoadModule('./src/market-data/indicators/rsi/rsi-preferences.ts')
+  const { defaultVolumePreferences } = await server.ssrLoadModule('./src/market-data/indicators/volume/volume-preferences.ts')
   const { RsiSettingsDialog } = await server.ssrLoadModule('./src/market-data/indicators/rsi/RsiSettingsDialog.tsx')
   const { replaceRecentBars } = await server.ssrLoadModule('./src/market-data/mt5-feed/market-snapshots.ts')
   const makeBars = (start, step = 3600) => Array.from({ length: 100 }, (_, i) => ({ time: start + i * step,
@@ -244,6 +246,7 @@ try {
   assert.ok(actualWindow.from < 1999 && actualWindow.to >= 1999, `Fresh load must contain actual candles after deferred native updates: ${JSON.stringify(actualWindow)}`)
   assert.ok(actualWindow.to - actualWindow.from < 150, 'Fresh load preserves useful candle spacing')
   const { captureDateWindow, projectDateWindow } = await server.ssrLoadModule('./src/market-data/candlestick-chart/chart-viewport.ts')
+  const { drawingCoordinates } = await server.ssrLoadModule('./src/market-data/chart-drawings/drawing-coordinates.ts')
   const pairWindow = captureDateWindow(actualWindow, viewportBars, 3600)
   const pairBars = viewportBars.slice(-1500)
   props = { ...props, bars: [], symbol: 'USDJPY', fitContentKey: 'USDJPY:H1' }
@@ -261,14 +264,14 @@ try {
   const framesToTest = [['M1', 60], ['M5', 300], ['M15', 900], ['M30', 1800], ['H1', 3600], ['H4', 14400], ['D1', 86400]]
   const endTime = viewportBars.at(-1).time
   const frameBars = step => viewportBars.map((bar, index) => ({ ...bar, time: endTime - (1999 - index) * step }))
-  const changeFrame = async (frame, nextBars) => {
+  const changeFrame = async (frame, nextBars, settle = true) => {
     props = { ...props, bars: [], symbol: 'EURX', timeframe: frame, fitContentKey: `EURX:${frame}` }
     await React.act(async () => root.render(React.createElement(MarketCandlestickChart, props)))
     props = { ...props, bars: nextBars }
     await React.act(async () => root.render(React.createElement(MarketCandlestickChart, props)))
     props = { ...props, precision: props.precision === 3 ? 4 : 3 }
     await React.act(async () => root.render(React.createElement(MarketCandlestickChart, props)))
-    await paint()
+    if (settle) await paint()
   }
   // Test both directions with date spans that the native chart can display at
   // either timeframe, including historical pans and deliberate future space.
@@ -294,6 +297,85 @@ try {
       close(visibleDates.to, dates.to, `${higher}→${lower}, future=${future}: retain end time on return`)
     }
   }
+  // A single narrow M1 view must survive the entire chain, including native
+  // zoom limits on H4/D1. Do not reset the window between timeframe changes.
+  for (const [rsiEnabled, volumeEnabled] of [[false, false], [true, false], [false, true], [true, true]]) {
+    await React.act(async () => root.render(null)); await paint()
+    props = { ...props, bars: frameBars(60), timeframe: 'M1', fitContentKey: 'EURX:M1',
+      rsi: { ...defaultRsiPreferences, enabled: rsiEnabled }, volume: { ...defaultVolumePreferences, enabled: volumeEnabled } }
+    await render()
+    const dates = captureDateWindow(chart.timeScale().getVisibleLogicalRange(), props.bars, 60)
+    const assertDates = (step, label) => {
+      const actual = captureDateWindow(chart.timeScale().getVisibleLogicalRange(), props.bars, step)
+      close(actual.from, dates.from, `${label}: left edge`)
+      close(actual.to, Math.max(dates.to, dates.from + 2 * step), `${label}: right edge (native minimum zoom)`)
+      const nativeCoordinates = drawingCoordinates(chart, chart.panes()[0].getSeries()[0], props.bars, props.timeframe)
+      assert.ok(Math.abs(nativeCoordinates.timeToX(dates.from) + 1) < 1e-3, `${label}: the saved date stays at the plot's left border`)
+    }
+    for (const [frame, step] of [...framesToTest.slice(1), ...framesToTest.slice(0, -1).reverse()]) {
+      await changeFrame(frame, frameBars(step), false)
+      await paint(() => assertDates(step, `M1 round trip ${frame}, RSI=${rsiEnabled}, Volume=${volumeEnabled}, every frame`))
+    }
+    // Multiple scopes arrive before the chart can commit a native frame.
+    for (const [frame, step] of framesToTest.slice(1)) await changeFrame(frame, frameBars(step), false)
+    await paint(() => assertDates(86400, `Rapid M1→D1, RSI=${rsiEnabled}, Volume=${volumeEnabled}, every frame`))
+    await changeFrame('M1', frameBars(60), false)
+    await paint(() => assertDates(60, `Rapid return to M1, RSI=${rsiEnabled}, Volume=${volumeEnabled}, every frame`))
+    await changeFrame('D1', frameBars(86400))
+    await React.act(async () => {
+      host.querySelector('.market-chart-canvas').dispatchEvent(new dom.Event('wheel', { bubbles: true }))
+      chart.timeScale().setVisibleLogicalRange({ from: 1995, to: 2005 })
+    })
+    await paint()
+    const manualDates = captureDateWindow(chart.timeScale().getVisibleLogicalRange(), props.bars, 86400)
+    await changeFrame('M1', frameBars(60))
+    const afterManual = captureDateWindow(chart.timeScale().getVisibleLogicalRange(), props.bars, 60)
+    close(afterManual.from, manualDates.from, 'A new user pan replaces the saved left date')
+    close(afterManual.to, manualDates.to, 'A new user zoom replaces the saved right date')
+    // The opposite extreme must also survive: a broad D1 viewport reprojected
+    // to M1 exceeds the default minimum pixel spacing. Keep the same dates even
+    // while earlier history is unavailable, and recover them on return to D1.
+    await React.act(async () => root.render(null)); await paint()
+    props = { ...props, bars: frameBars(86400), timeframe: 'D1', fitContentKey: 'EURX:D1' }
+    await render()
+    const broadDates = captureDateWindow(chart.timeScale().getVisibleLogicalRange(), props.bars, 86400)
+    for (const [frame, step] of [...framesToTest.slice(0, -1).reverse(), ...framesToTest.slice(1)]) {
+      await changeFrame(frame, frameBars(step), false)
+      await paint(() => {
+        const actual = captureDateWindow(chart.timeScale().getVisibleLogicalRange(), props.bars, step)
+        close(actual.from, broadDates.from, `D1 round trip ${frame}: left edge`)
+        close(actual.to, broadDates.to, `D1 round trip ${frame}: right edge`)
+      })
+    }
+  }
+  // A new live candle may move the view, but must not turn a higher timeframe's
+  // temporary minimum width into the user's saved zoom.
+  await React.act(async () => root.render(null)); await paint()
+  props = { ...props, bars: frameBars(60), timeframe: 'M1', fitContentKey: 'EURX:M1' }
+  await render()
+  const liveDates = { from: endTime - 26 * 3600, to: endTime + 480 }
+  await React.act(async () => {
+    host.querySelector('.market-chart-canvas').dispatchEvent(new dom.Event('wheel', { bubbles: true }))
+    chart.timeScale().setVisibleLogicalRange(projectDateWindow(liveDates, props.bars, 60))
+  })
+  await paint()
+  await changeFrame('D1', frameBars(86400))
+  const currentDay = props.bars.at(-1)
+  await render({ bars: replaceRecentBars(props.bars, [...props.bars.slice(-2), { ...currentDay, time: currentDay.time + 86400 }]) })
+  await changeFrame('M1', frameBars(60).map(bar => ({ ...bar, time: bar.time + 86400 })))
+  const followedDates = captureDateWindow(chart.timeScale().getVisibleLogicalRange(), props.bars, 60)
+  close(followedDates.from, liveDates.from + 86400, 'Live following advances the saved left date by the new candle')
+  close(followedDates.to, liveDates.to + 86400, 'Live following preserves the original narrow zoom')
+  const beforeSpacing = chart.timeScale().getVisibleLogicalRange()
+  const requestedSpacing = 11
+  const spacingDates = captureDateWindow({ from: beforeSpacing.to - chart.timeScale().width() / requestedSpacing + 1, to: beforeSpacing.to }, props.bars, 60)
+  props = { ...props, appearance: { ...props.appearance, barSpacing: requestedSpacing } }
+  await React.act(async () => root.render(React.createElement(MarketCandlestickChart, props)))
+  await changeFrame('M15', frameBars(900).map(bar => ({ ...bar, time: bar.time + 86400 })))
+  const afterSpacing = captureDateWindow(chart.timeScale().getVisibleLogicalRange(), props.bars, 900)
+  close(afterSpacing.from, spacingDates.from, 'Explicit spacing replaces the saved left date before native paint')
+  close(afterSpacing.to, spacingDates.to, 'Explicit spacing replaces the saved zoom before native paint')
+  props = { ...props, appearance: defaultChartAppearance }
   for (const enabled of [false, true]) for (const strict of [false, true]) {
     await React.act(async () => root.render(null)); await paint()
     props = { ...props, bars: [], timeframe: 'H1', fitContentKey: 'EURUSD:H1', symbol: 'EURUSD', rsi: { ...defaultRsiPreferences, enabled } }
@@ -312,7 +394,6 @@ try {
     const candleY = nativeCandles.priceToCoordinate(viewportBars.at(-1).close)
     assert.ok(candleY !== null && candleY >= 0 && candleY <= chart.paneSize(0).height, 'The latest actual candle also has a visible native price coordinate')
   }
-  const { defaultVolumePreferences } = await server.ssrLoadModule('./src/market-data/indicators/volume/volume-preferences.ts')
   const { VolumeSettingsDialog } = await server.ssrLoadModule('./src/market-data/indicators/volume/VolumeSettingsDialog.tsx')
   await React.act(async () => root.render(null)); await paint()
   bars = viewportBars.map((bar, i) => ({ ...bar, tickVolume: 100 + i % 24, high: 105 + i / 1000 }))

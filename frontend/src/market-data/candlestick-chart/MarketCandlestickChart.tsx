@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { useDisplayClock } from '../../appearance/time-display/useDisplayClock'
 import {
   CandlestickSeries,
@@ -18,7 +18,7 @@ import type { ChartTimeframe } from '../contracts/ChartTimeframe'
 import type { OhlcBar } from '../contracts/OhlcBar'
 import { changedRecentBarStart } from '../mt5-feed/market-snapshots'
 import { lightweightChartOptions } from './lightweight-chart-options'
-import { captureDateWindow, projectDateWindow, type ChartDateWindow } from './chart-viewport'
+import { advanceDateWindow, captureDateWindow, projectDateWindow, type ChartDateWindow } from './chart-viewport'
 import { createFutureTimeline } from './future-timeline'
 import { createChartPriceSpace } from './chart-price-space'
 import { timeframeToSeconds } from '../chart-drawings/position-drawing-geometry'
@@ -128,8 +128,20 @@ function MarketCandlestickChartComponent({
   // authoritative across intervening quote, clock, appearance and pane effects.
   const readLogicalRange = useCallback(() => requestedLogicalRangeRef.current ?? chartRef.current?.timeScale().getVisibleLogicalRange() ?? null, [])
   const setLogicalRange = useCallback((range: { from: number; to: number }) => {
+    const scale = chartRef.current?.timeScale()
+    if (!scale) return
     requestedLogicalRangeRef.current = range
-    chartRef.current?.timeScale().setVisibleLogicalRange(range)
+    const width = scale.width?.() || containerRef.current?.clientWidth || 0
+    if (width > 0) {
+      // Dense intraday views must not hit the native minimum pixel spacing.
+      // Keep the normal zoom-in limit, which also stays safe across resizes.
+      const spacing = width / (range.to - range.from + 1)
+      const minBarSpacing = spacing < 0.5 ? spacing / 2 : 0.5
+      const options = scale.options?.()
+      if (options?.minBarSpacing !== minBarSpacing)
+        chartRef.current?.applyOptions({ timeScale: { minBarSpacing } })
+    }
+    scale.setVisibleLogicalRange(range)
   }, [])
 
   useEffect(() => {
@@ -141,7 +153,7 @@ function MarketCandlestickChartComponent({
     historyPagingArmedRef.current = false
   }, [fitContentKey])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const container = containerRef.current
     if (!container) return
 
@@ -175,9 +187,9 @@ function MarketCandlestickChartComponent({
     const handleLogicalRangeChange = (range: { from: number; to: number } | null) => {
       const requested = requestedLogicalRangeRef.current
       if (requested) {
-        // A resize may change the left edge, but the requested right edge must
-        // settle before an intermediate native range can become saved dates.
-        if (!range || range.from >= range.to || Math.abs(range.to - requested.to) > 1e-6) return
+        // Both edges must settle. Matching only the right edge used to accept
+        // native zoom clamping and save its widened left edge as the new target.
+        if (!range || Math.abs(range.from - requested.from) > 1e-6 || Math.abs(range.to - requested.to) > 1e-6) return
         requestedLogicalRangeRef.current = null
         return
       }
@@ -218,7 +230,7 @@ function MarketCandlestickChartComponent({
     }
   }, [])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const chart = chartRef.current
     if (!chart) return
 
@@ -229,6 +241,16 @@ function MarketCandlestickChartComponent({
     chart.applyOptions(lightweightChartOptions(appearance, timeDisplay, false, clock))
     if (barSpacingChanged) {
       chart.applyOptions({ timeScale: { barSpacing: appearance.barSpacing } })
+      const width = chart.timeScale().width?.() || containerRef.current?.clientWidth || 0
+      if (currentLogicalRange && width > 0) {
+        // An explicit spacing setting is a new zoom choice. Queue and save it
+        // now so a timeframe click before native paint cannot revive old dates.
+        const range = { from: currentLogicalRange.to - width / appearance.barSpacing + 1, to: currentLogicalRange.to }
+        dateWindowRef.current = captureDateWindow(range, prevBarsRef.current, previousStepRef.current)
+        pendingWindowRef.current = Boolean(dateWindowRef.current && prevBarsRef.current.length && dateWindowRef.current.from < prevBarsRef.current[0].time - previousStepRef.current / 2)
+        setMissingViewportHistory(pendingWindowRef.current)
+        setLogicalRange(range)
+      }
     }
     seriesRef.current?.applyOptions({
       upColor: appearance.upCandleColor,
@@ -249,7 +271,7 @@ function MarketCandlestickChartComponent({
     }
   }, [appearance, theme, timeDisplay, clock, readLogicalRange, setLogicalRange])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const series = seriesRef.current
     const chart = chartRef.current
     if (!series || !chart) return
@@ -272,7 +294,9 @@ function MarketCandlestickChartComponent({
       lastHistoryAttemptRef.current = null
       fittedKeyRef.current = null
       setMissingViewportHistory(false)
-    } else if (!pendingWindowRef.current && prevBarsRef.current.length) {
+    } else if (!dateWindowRef.current && prevBarsRef.current.length) {
+      // Capture the initial view once. Only user navigation or live following
+      // can replace it; a higher timeframe's minimum zoom is not a new choice.
       dateWindowRef.current = captureDateWindow(previousRange, prevBarsRef.current, previousStepRef.current) ?? dateWindowRef.current
     }
     const prevBars = prevBarsRef.current
@@ -325,14 +349,16 @@ function MarketCandlestickChartComponent({
       if (window && (replaced || futureReplaced || pendingWindowRef.current)) {
         const range = projectDateWindow(window, bars, step)
         if (range) setLogicalRange(range)
-        pendingWindowRef.current = (dateWindowRef.current ?? window).from < bars[0].time
+        pendingWindowRef.current = (dateWindowRef.current ?? window).from < bars[0].time - step / 2
         setMissingViewportHistory(pendingWindowRef.current)
       }
       // The hidden horizon is now the library's last point. Retain normal live
       // following when an incrementally appended price candle was in view.
       if (!isNewKey && !replaced && bars.length === prevBars.length + 1 && previousRange &&
         previousRange.from <= prevBars.length - 1 && previousRange.to >= prevBars.length - 1) {
-        setLogicalRange({ from: previousRange.from + 1, to: previousRange.to + 1 })
+        const followingRange = { from: previousRange.from + 1, to: previousRange.to + 1 }
+        dateWindowRef.current = window ? advanceDateWindow(window, prevBars, bars, step) : captureDateWindow(followingRange, bars, step)
+        setLogicalRange(followingRange)
       }
     } finally { applyingDataRef.current = false }
   }, [bars, fitContentKey, onDataApplied, precision, timeframe, clock.brokerId, readLogicalRange, setLogicalRange])
@@ -340,7 +366,7 @@ function MarketCandlestickChartComponent({
   // Apply indicator data after price data/viewport restoration. Scope changes
   // clear the old indicator above before replacing candles to avoid mixing two
   // symbol/timeframe timelines during restoration.
-  useEffect(() => {
+  useLayoutEffect(() => {
     const chart = chartRef.current
     if (!chart) return
     if (!rsi?.enabled && !rsiPaneRef.current) return
@@ -359,7 +385,7 @@ function MarketCandlestickChartComponent({
     } finally { applyingDataRef.current = false }
   }, [rsi, bars, fitContentKey, clock.brokerId, readLogicalRange, setLogicalRange])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const chart = chartRef.current
     if (!chart || (!volume?.enabled && !volumePaneRef.current)) return
     const range = readLogicalRange()
@@ -462,7 +488,7 @@ function MarketCandlestickChartComponent({
     if (bars.length) setLogicalRange({ from: 0, to: bars.length - 1 + 8 })
   }
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (lastRefocusRequest.current === refocusRequest) return
     lastRefocusRequest.current = refocusRequest
     const chart = chartRef.current
