@@ -130,10 +130,8 @@ try {
 
   emit({ from: 1, to: 4 })
   const beforeFrame = captureDateWindow(range, plotted, 3600)
-  const beforeFrameSpan = range.to - range.from
   await render('USDCHF', 'M30'); await reply(pending()[0], bars(Array.from({ length: 13 }, (_, i) => base - 6 * 3600 + i * 1800)))
-  assert.equal(captureDateWindow(range, plotted, 1800).to, beforeFrame.to, 'Historical timeframe changes preserve the window end using the old step for capture')
-  assert.equal(range.to - range.from, beforeFrameSpan, 'Timeframe changes preserve candle spacing instead of fitting the entire previous date span')
+  assert.deepEqual(captureDateWindow(range, plotted, 1800), beforeFrame, 'Timeframe changes preserve both visible date bounds using the old step for capture')
   await render('EURUSD', 'H1', 'B'); await reply(pending()[0], make(0, 1, 2, 3, 4, 5))
   assert.equal(fitted, 2, 'A different broker starts a fresh viewport scope')
   const canvas = container.querySelector('.market-chart-canvas')
@@ -195,25 +193,30 @@ try {
   const historyFor = step => bars(Array.from({ length: 2000 }, (_, i) => end - (1999 - i) * step))
   await render('EURX', 'D1', 'B'); await reply(pending()[0], historyFor(frameSteps.D1))
   emit({ from: 1887, to: 2007 })
+  const indexWindow = captureDateWindow(range, plotted, frameSteps.D1)
   for (const [frame, step] of Object.entries(frameSteps).slice(1)) {
     await render('EURX', frame, 'B')
     assert.equal(plotted.length, 0, 'Old timeframe candles are cleared while the next frame loads')
     await reply(pending()[0], historyFor(step))
-    assert.deepEqual(range, { from: 1887, to: 2007 }, `EURX ${frame}: keep 120 visible slots and eight slots after the latest candle`)
+    assert.deepEqual(captureDateWindow(range, plotted, step), indexWindow, `EURX ${frame}: keep the complete selected date window`)
   }
-  emit({ from: 1700.25, to: 1820.75 })
-  const historicalEnd = captureDateWindow(range, plotted, frameSteps.M1).to
+  await React.act(async () => {
+    container.querySelector('.market-chart-canvas').dispatchEvent(new dom.Event('wheel', { bubbles: true }))
+    emit({ from: 1700.25, to: 1820.75 })
+  })
+  const historicalWindow = captureDateWindow(range, plotted, frameSteps.M1)
   await render('EURX', 'H1', 'B'); await reply(pending()[0], historyFor(frameSteps.H1))
-  assert.equal(range.to - range.from, 120.5, 'A historical index view retains its chosen candle spacing')
-  assert.ok(Math.abs(captureDateWindow(range, plotted, frameSteps.H1).to - historicalEnd) < 1e-6, 'A historical index view retains its end time')
-  emit({ from: 100, to: 220 })
-  const backfillEnd = captureDateWindow(range, plotted, frameSteps.H1).to
+  assert.deepEqual(captureDateWindow(range, plotted, frameSteps.H1), historicalWindow, 'A historical index view retains both date bounds')
+  await React.act(async () => {
+    container.querySelector('.market-chart-canvas').dispatchEvent(new dom.Event('wheel', { bubbles: true }))
+    emit({ from: 100, to: 220 })
+  })
+  const backfillWindow = captureDateWindow(range, plotted, frameSteps.H1)
   await render('EURX', 'D1', 'B')
   await reply(pending()[0], historyFor(frameSteps.D1).slice(-6), true)
-  assert.equal(range.to - range.from, 120, 'An initially incomplete timeframe keeps the requested candle spacing')
+  assert.deepEqual(captureDateWindow(range, plotted, frameSteps.D1), backfillWindow, 'An initially incomplete timeframe keeps the requested dates')
   await reply(pending()[0], historyFor(frameSteps.D1).slice(-206, -6), false)
-  assert.equal(range.to - range.from, 120, 'Older pages retain the restored candle spacing')
-  assert.ok(Math.abs(captureDateWindow(range, plotted, frameSteps.D1).to - backfillEnd) < 1e-6, 'Backfill retains the historical end time')
+  assert.deepEqual(captureDateWindow(range, plotted, frameSteps.D1), backfillWindow, 'Older pages retain both selected date bounds')
   assert.equal(pending().length, 0, 'Timeframe backfill stops when the resized date window is covered')
   await React.act(async () => root.render(null))
   console.log('✓ Shared dates, zoom and future space; serial MT5 backfill, stop/retry, missing history, stale replies, timeframe/broker scope and cleanup')

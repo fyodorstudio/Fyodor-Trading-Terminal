@@ -243,8 +243,9 @@ try {
   let actualWindow = chart.timeScale().getVisibleLogicalRange()
   assert.ok(actualWindow.from < 1999 && actualWindow.to >= 1999, `Fresh load must contain actual candles after deferred native updates: ${JSON.stringify(actualWindow)}`)
   assert.ok(actualWindow.to - actualWindow.from < 150, 'Fresh load preserves useful candle spacing')
-  const widthBeforePair = actualWindow.to - actualWindow.from
-  const pairBars = viewportBars.slice(-1500).map(bar => ({ ...bar, time: bar.time - 10 * 86400 }))
+  const { captureDateWindow, projectDateWindow } = await server.ssrLoadModule('./src/market-data/candlestick-chart/chart-viewport.ts')
+  const pairWindow = captureDateWindow(actualWindow, viewportBars, 3600)
+  const pairBars = viewportBars.slice(-1500)
   props = { ...props, bars: [], symbol: 'USDJPY', fitContentKey: 'USDJPY:H1' }
   await React.act(async () => root.render(React.createElement(MarketCandlestickChart, props)))
   props = { ...props, bars: pairBars }
@@ -253,20 +254,45 @@ try {
   await React.act(async () => root.render(React.createElement(MarketCandlestickChart, props)))
   await paint()
   actualWindow = chart.timeScale().getVisibleLogicalRange()
-  assert.ok(actualWindow.from < pairBars.length - 1 && actualWindow.to >= pairBars.length - 1, 'A live pair switch follows its own candles even when its latest session differs')
-  close(actualWindow.to - actualWindow.from, widthBeforePair, 'Pair switches preserve candle spacing through deferred updates')
-  for (const [frame, step] of [['D1', 86400], ['H4', 14400], ['H1', 3600], ['M30', 1800], ['M15', 900], ['M5', 300], ['M1', 60]]) {
+  assert.ok(actualWindow.from < pairBars.length - 1 && actualWindow.to >= pairBars.length - 1, 'A pair switch keeps actual candles visible through deferred updates')
+  const pairDates = captureDateWindow(actualWindow, pairBars, 3600)
+  close(pairDates.from, pairWindow.from, 'Pair switches preserve the selected start time')
+  close(pairDates.to, pairWindow.to, 'Pair switches preserve the selected end time')
+  const framesToTest = [['M1', 60], ['M5', 300], ['M15', 900], ['M30', 1800], ['H1', 3600], ['H4', 14400], ['D1', 86400]]
+  const endTime = viewportBars.at(-1).time
+  const frameBars = step => viewportBars.map((bar, index) => ({ ...bar, time: endTime - (1999 - index) * step }))
+  const changeFrame = async (frame, nextBars) => {
     props = { ...props, bars: [], symbol: 'EURX', timeframe: frame, fitContentKey: `EURX:${frame}` }
     await React.act(async () => root.render(React.createElement(MarketCandlestickChart, props)))
-    const nextBars = viewportBars.map((bar, index) => ({ ...bar, time: 1800000000 - (1999 - index) * step }))
     props = { ...props, bars: nextBars }
     await React.act(async () => root.render(React.createElement(MarketCandlestickChart, props)))
     props = { ...props, precision: props.precision === 3 ? 4 : 3 }
     await React.act(async () => root.render(React.createElement(MarketCandlestickChart, props)))
     await paint()
-    actualWindow = chart.timeScale().getVisibleLogicalRange()
-    assert.ok(actualWindow.from < 1999 && actualWindow.to >= 1999, `${frame}: a native frame/quote update keeps actual candles visible`)
-    close(actualWindow.to - actualWindow.from, widthBeforePair, `${frame}: native timeframe restoration retains candle spacing`)
+  }
+  // Test both directions with date spans that the native chart can display at
+  // either timeframe, including historical pans and deliberate future space.
+  for (let i = 0; i < framesToTest.length - 1; i++) {
+    const [lower, lowStep] = framesToTest[i], [higher, highStep] = framesToTest[i + 1]
+    const lowBars = frameBars(lowStep), highBars = frameBars(highStep)
+    for (const future of [false, true]) {
+      await changeFrame(lower, lowBars)
+      const dates = future ? { from: endTime + 8 * highStep, to: endTime + 16 * highStep }
+        : { from: endTime - 16 * highStep, to: endTime - 8 * highStep }
+      await React.act(async () => {
+        host.querySelector('.market-chart-canvas').dispatchEvent(new dom.Event('wheel', { bubbles: true }))
+        chart.timeScale().setVisibleLogicalRange(projectDateWindow(dates, lowBars, lowStep))
+      })
+      await paint()
+      await changeFrame(higher, highBars)
+      let visibleDates = captureDateWindow(chart.timeScale().getVisibleLogicalRange(), highBars, highStep)
+      close(visibleDates.from, dates.from, `${lower}→${higher}, future=${future}: retain start time`)
+      close(visibleDates.to, dates.to, `${lower}→${higher}, future=${future}: retain end time`)
+      await changeFrame(lower, lowBars)
+      visibleDates = captureDateWindow(chart.timeScale().getVisibleLogicalRange(), lowBars, lowStep)
+      close(visibleDates.from, dates.from, `${higher}→${lower}, future=${future}: retain start time on return`)
+      close(visibleDates.to, dates.to, `${higher}→${lower}, future=${future}: retain end time on return`)
+    }
   }
   for (const enabled of [false, true]) for (const strict of [false, true]) {
     await React.act(async () => root.render(null)); await paint()

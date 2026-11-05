@@ -117,7 +117,6 @@ function MarketCandlestickChartComponent({
   const requestOlderDataRef = useRef(onRequestOlderData)
   const dateWindowRef = useRef<ChartDateWindow | null>(null)
   const previousStepRef = useRef(timeframeToSeconds(timeframe))
-  const timeframeViewportRef = useRef<{ span: number; liveMargin: number | null } | null>(null)
   const viewportBrokerRef = useRef(clock.brokerId)
   const applyingDataRef = useRef(false)
   const pendingWindowRef = useRef(false)
@@ -184,7 +183,6 @@ function MarketCandlestickChartComponent({
       }
       if (range && !applyingDataRef.current && historyPagingArmedRef.current) {
         dateWindowRef.current = captureDateWindow(range, prevBarsRef.current, previousStepRef.current)
-        timeframeViewportRef.current = null
         pendingWindowRef.current = false
         setMissingViewportHistory(false)
       }
@@ -270,7 +268,6 @@ function MarketCandlestickChartComponent({
     if (brokerChanged) {
       viewportBrokerRef.current = clock.brokerId
       dateWindowRef.current = null
-      timeframeViewportRef.current = null
       pendingWindowRef.current = false
       lastHistoryAttemptRef.current = null
       fittedKeyRef.current = null
@@ -279,13 +276,6 @@ function MarketCandlestickChartComponent({
       dateWindowRef.current = captureDateWindow(previousRange, prevBarsRef.current, previousStepRef.current) ?? dateWindowRef.current
     }
     const prevBars = prevBarsRef.current
-    if (!brokerChanged && prevBars.length && previousRange && !timeframeViewportRef.current
-      && (step !== previousStepRef.current || fittedKeyRef.current !== fitContentKey)) {
-      const last = prevBars.length - 1
-      const liveMargin = previousRange.from <= last && previousRange.to >= last ? previousRange.to - last : null
-      if (step !== previousStepRef.current || liveMargin !== null)
-        timeframeViewportRef.current = { span: previousRange.to - previousRange.from, liveMargin }
-    }
     const isNewKey = fittedKeyRef.current !== fitContentKey
     // Ignore programmatic range notifications during replacement/restoration.
     applyingDataRef.current = true
@@ -333,19 +323,9 @@ function MarketCandlestickChartComponent({
       previousStepRef.current = step
       const window = dateWindowRef.current
       if (window && (replaced || futureReplaced || pendingWindowRef.current)) {
-        let range = projectDateWindow(window, bars, step)
-        const timeframeViewport = timeframeViewportRef.current
-        if (range && timeframeViewport) {
-          // Keep timeframe changes at the chosen candle width, and live symbol
-          // changes beside that symbol's own latest candle. Historical symbol
-          // changes continue sharing dates; deliberate future pans stay put.
-          const to = timeframeViewport.liveMargin === null ? range.to : bars.length - 1 + timeframeViewport.liveMargin
-          range = { from: to - timeframeViewport.span, to }
-          dateWindowRef.current = captureDateWindow(range, bars, step) ?? window
-        }
+        const range = projectDateWindow(window, bars, step)
         if (range) setLogicalRange(range)
         pendingWindowRef.current = (dateWindowRef.current ?? window).from < bars[0].time
-        if (!pendingWindowRef.current) timeframeViewportRef.current = null
         setMissingViewportHistory(pendingWindowRef.current)
       }
       // The hidden horizon is now the library's last point. Retain normal live
@@ -477,7 +457,6 @@ function MarketCandlestickChartComponent({
     if (paneHeight !== undefined && event.clientY - top >= paneHeight) return
     pendingWindowRef.current = false
     dateWindowRef.current = null
-    timeframeViewportRef.current = null
     setMissingViewportHistory(false)
     chartRef.current?.priceScale('right').applyOptions({ autoScale: true })
     if (bars.length) setLogicalRange({ from: 0, to: bars.length - 1 + 8 })
@@ -494,7 +473,7 @@ function MarketCandlestickChartComponent({
     const to = bars.length - 1 + 8
     applyingDataRef.current = true
     try {
-      pendingWindowRef.current = false; dateWindowRef.current = null; timeframeViewportRef.current = null
+      pendingWindowRef.current = false; dateWindowRef.current = null
       historyPagingArmedRef.current = false
       setMissingViewportHistory(false)
       chart.priceScale('right').applyOptions({ autoScale: true })

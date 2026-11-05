@@ -88,10 +88,9 @@ The chart header retains high/low distances and indicative regional sessions.
 Refocus, immediately right of D1, returns to the latest candles while keeping
 horizontal zoom and restoring automatic price scaling. A fresh browser load
 opens recent candles at the configured spacing instead of fitting all history.
-Timeframe changes preserve candle spacing: live views stay beside the latest
-candles, while historical/future views retain their end time. Live symbol changes
-follow the new symbol's latest candle at the same spacing; historical/future
-symbol changes continue sharing the selected date window. Empty future space keeps
+Timeframe and symbol changes preserve the selected date window, retaining both
+its start and end across historical views and future space. Deferred native chart
+updates cannot replace that window with an intermediate future-axis range. Empty future space keeps
 the last useful price scale and editable drawings visible.
 RSI and its settings gear sit immediately left of the timeframe controls. RSI
 opens a resizable lower pane with a shared time axis, Wilder RSI 14 on Close,
