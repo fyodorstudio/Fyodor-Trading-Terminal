@@ -1,3 +1,3 @@
 import type { CandlestickData, UTCTimestamp } from 'lightweight-charts'
 
-export type OhlcBar = CandlestickData<UTCTimestamp>
+export type OhlcBar = CandlestickData<UTCTimestamp> & { tickVolume?: number }

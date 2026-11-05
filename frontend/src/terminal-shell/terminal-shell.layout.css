@@ -77,6 +77,7 @@
 
 .chart-toolbar-center {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
 }
@@ -238,7 +239,7 @@
   .market-subtitle { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 }
 
-@container chart-workspace (max-width: 950px) {
+@container chart-workspace (max-width: 1050px) {
   .chart-toolbar { grid-template-columns: minmax(0, 1fr) minmax(200px, 250px); gap: 6px 12px; padding: 6px 12px; }
   .chart-toolbar-center { grid-row: 2; grid-column: 1 / -1; }
   .chart-toolbar-right { grid-row: 1; grid-column: 2; }

@@ -24,12 +24,14 @@ import { tradeMetrics } from '../../entry-trade/dock/plan-math'
 import { useRegisteredArrows } from '../../entry-trade/storage/use-registered-arrows'
 import { usePriceAlerts } from '../../price-alerts/usePriceAlerts'
 import { alertDateForRelease, type AlertFocus } from '../../alert/model/alert-focus'
+import { useVolumePreferences } from '../../market-data/indicators/volume/useVolumePreferences'
 import { useRsiPreferences } from '../../market-data/indicators/rsi/useRsiPreferences'
 
 const emptyTradePlan: PlannedTradeState = { direction: 'waiting', entryPrice: null, tpPrice: null, slPrice: null, showOnChart: false }
 
 export function useTerminalWorkspace() {
   const rsiState = useRsiPreferences()
+  const volumeState = useVolumePreferences()
   const [selectedSymbol, setSelectedSymbol] = useState('EURUSD')
   const [timeframe, setTimeframe] = useState<ChartTimeframe>('H1')
   const [theme, setTheme] = useState<ColorTheme>(readColorTheme)
@@ -283,7 +285,7 @@ export function useTerminalWorkspace() {
       : bridge.processRunning
         ? 'MT5 disconnected'
         : 'Waiting for MT5'
-  return { ...rsiState, timeframe, theme, chartAppearance, timeDisplay, activeDrawingTool, selectedDrawingId, setSelectedDrawingId,
+  return { ...volumeState, ...rsiState, timeframe, theme, chartAppearance, timeDisplay, activeDrawingTool, selectedDrawingId, setSelectedDrawingId,
     drawingToolbarVisible, eventIconsVisible, toggleEventIcons, bottomDockWindow, dockSize, settingsOpen, setSettingsOpen, marketWatch, appendActivity,
     bridge, marketData, activeSymbol, bars, brokerId, inspector, quote, drawings, pairDrawingCount, updateDrawingPoint,
     updateDrawingPoints, updateDrawingText, updatePositionWidth, handleDeleteDrawing, selectSymbol, selectTimeframe,

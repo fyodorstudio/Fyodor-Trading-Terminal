@@ -39,7 +39,7 @@ const server = await createServer({ root: path.resolve(path.dirname(fileURLToPat
   ssr: { noExternal: ['lightweight-charts'] },
   server: { middlewareMode: true, hmr: false }, plugins: [{ name: 'real-rsi-chart', enforce: 'pre',
     resolveId(source) { if (source === 'lightweight-charts') return '\0rsi-chart-library' },
-    load(id) { if (id === '\0rsi-chart-library') return 'export const { CandlestickSeries, LineSeries, LineStyle, ColorType, CrosshairMode, TickMarkType, createChart } = globalThis.__rsiChartLibrary' },
+    load(id) { if (id === '\0rsi-chart-library') return 'export const { CandlestickSeries, HistogramSeries, LineSeries, LineStyle, ColorType, CrosshairMode, TickMarkType, createChart } = globalThis.__rsiChartLibrary' },
   }] })
 const { createRoot } = await import('react-dom/client')
 const host = document.createElement('div'), dialogHost = document.createElement('div'); document.body.append(host, dialogHost)
@@ -286,6 +286,69 @@ try {
     const candleY = nativeCandles.priceToCoordinate(viewportBars.at(-1).close)
     assert.ok(candleY !== null && candleY >= 0 && candleY <= chart.paneSize(0).height, 'The latest actual candle also has a visible native price coordinate')
   }
+  const { defaultVolumePreferences } = await server.ssrLoadModule('./src/market-data/indicators/volume/volume-preferences.ts')
+  const { VolumeSettingsDialog } = await server.ssrLoadModule('./src/market-data/indicators/volume/VolumeSettingsDialog.tsx')
+  await React.act(async () => root.render(null)); await paint()
+  bars = viewportBars.map((bar, i) => ({ ...bar, tickVolume: 100 + i % 24, high: 105 + i / 1000 }))
+  let volume = { ...defaultVolumePreferences, enabled: true }
+  props = { ...props, bars, volume, rsi: { ...defaultRsiPreferences, enabled: true }, activeDrawingTool: null,
+    timeframe: 'H1', fitContentKey: 'EURUSD:H1', onChangeVolumeMode: mode => { volume = { ...volume, mode }; props = { ...props, volume } } }
+  await render()
+  assert.equal(chart.panes().length, 3)
+  const volumePane = chart.panes()[1], volumeSeries = volumePane.getSeries()[0]
+  assert.equal(volumeSeries.seriesType(), 'Histogram', 'Volume is always above RSI')
+  assert.equal(chart.panes()[2].getSeries()[0].seriesType(), 'Line')
+  assert.equal(volumeSeries.data().length, bars.length)
+  assert.equal(volumeSeries.data().at(-1).value, bars.at(-1).tickVolume)
+  const volumeWindow = chart.timeScale().getVisibleLogicalRange()
+  const volumeOnly = replaceRecentBars(bars, [{ ...bars.at(-1), tickVolume: 999 }])
+  await render({ bars: volumeOnly })
+  assert.equal(volumeSeries.data().at(-1).value, 999, 'Volume-only replies reach the histogram even when OHLC is unchanged')
+  const legend = host.querySelector('.volume-legend')
+  await React.act(async () => [...legend.querySelectorAll('button')].find(button => button.textContent === 'Raw').click())
+  await render({ volume })
+  assert.equal(volumeSeries.options().priceFormat.formatter(1.5), '1.50×')
+  assert.ok(volumeSeries.data().some(row => row.value > 0), 'Relative mode has prior-day baselines')
+  assert.equal(volumeSeries.dataByIndex(0), null, 'Insufficient baseline history stays blank')
+  // Use the actual public subscription with a captured subscriber, rather than
+  // browser input or private canvas internals.
+  const before = chart.subscribeClick.bind(chart)
+  let selectClick
+  chart.subscribeClick = fn => { selectClick = fn; before(fn) }
+  await render({ volume: { ...volume, enabled: false } })
+  await render({ volume })
+  const liveLegend = host.querySelector('.volume-legend')
+  await React.act(async () => [...liveLegend.querySelectorAll('button')].find(button => button.textContent === 'Select A').click())
+  selectClick({ paneIndex: 0, time: bars[1500].time })
+  assert.match(liveLegend.querySelector('.volume-comparison').textContent, /first/, 'Price pane clicks cannot select a volume range')
+  selectClick({ paneIndex: 1, time: bars[1500].time }); selectClick({ paneIndex: 1, time: bars[1503].time }); await paint()
+  assert.match(liveLegend.querySelector('.volume-comparison').textContent, /A: 4 closed bars/)
+  await React.act(async () => [...liveLegend.querySelectorAll('button')].find(button => button.textContent === 'Select B').click())
+  selectClick({ paneIndex: 1, time: bars[1600].time }); selectClick({ paneIndex: 1, time: bars[1605].time }); await paint()
+  assert.match(liveLegend.querySelector('.volume-comparison').textContent, /B vs A:/)
+  assert.match(liveLegend.querySelector('.volume-comparison').textContent, /higher price high/)
+  await render({ rsi: { ...defaultRsiPreferences, enabled: false } })
+  assert.equal(chart.panes().length, 2)
+  assert.equal(chart.panes()[1].getSeries()[0].seriesType(), 'Histogram')
+  await render({ rsi: { ...defaultRsiPreferences, enabled: true } })
+  await render({ volume: { ...volume, enabled: false } })
+  assert.equal(chart.panes().length, 2)
+  assert.equal(chart.panes()[1].getSeries()[0].seriesType(), 'Line', 'Removing Volume preserves RSI')
+  close(chart.timeScale().getVisibleLogicalRange().to, volumeWindow.to, 'Pane toggles preserve the right viewport edge')
+  await render({ volume, fitContentKey: 'GBPUSD:H1' })
+  assert.equal(host.querySelector('.volume-comparison').textContent, '', 'Push selections reset across symbols')
+  assert.equal(host.querySelectorAll('.volume-legend').length, 1)
+  assert.ok(chart.panes()[1].getSeries()[0].data().length > 0, 'A scope change fully restores data even if the input array is reused')
+  saved = null
+  await React.act(async () => dialogRoot.render(React.createElement(VolumeSettingsDialog, { preferences: volume, onSave: next => { saved = next }, onClose })))
+  await React.act(async () => { const control = dialogHost.querySelector('select'); control.value = 'raw'; control.dispatchEvent(new dom.Event('change', { bubbles: true })) })
+  await React.act(async () => dialogHost.querySelector('form').dispatchEvent(new dom.Event('submit', { bubbles: true, cancelable: true })))
+  assert.equal(saved.mode, 'raw'); assert.equal(saved.enabled, true)
+  await React.act(async () => dialogRoot.render(null))
+  await React.act(async () => root.render(null)); await paint()
+  await React.act(async () => root.render(React.createElement(React.StrictMode, null, React.createElement(MarketCandlestickChart, { ...props, volume }))))
+  await paint(); assert.equal(host.querySelectorAll('.volume-legend').length, 1)
+  console.log('✓ Volume real chart: raw/relative/native pane order, independent toggles, live volume-only updates, manual A/B ranges, scope reset, settings and StrictMode cleanup')
   console.log('✓ RSI real chart: native panes/scale/time/crosshair, resize and gesture isolation, live/history/scope updates, style/empty/toggle, dialog drafts/validation/focus and StrictMode cleanup')
 } catch (error) {
   console.error(error)

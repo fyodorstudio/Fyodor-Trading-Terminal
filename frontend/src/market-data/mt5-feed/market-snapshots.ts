@@ -20,7 +20,7 @@ function snapshotId(bars: readonly OhlcBar[]) {
   const id = ++nextId; snapshotIds.set(bars, id); return id
 }
 function sameBar(a: OhlcBar | undefined, b: OhlcBar) {
-  return !!a && a.time === b.time && a.open === b.open && a.high === b.high && a.low === b.low && a.close === b.close
+  return !!a && a.time === b.time && a.open === b.open && a.high === b.high && a.low === b.low && a.close === b.close && a.tickVolume === b.tickVolume
 }
 
 /** Sorted MT5 windows replace the recent tail. An unchanged three-bar reply

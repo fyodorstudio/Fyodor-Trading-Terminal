@@ -88,22 +88,25 @@ const pricePane = { setStretchFactor() {}, getHeight: () => 420, getHTMLElement:
 const panes = [pricePane]
 const addIndicatorPane = () => {
   count('rsiPaneCreates')
-  const pane = { setStretchFactor() {}, paneIndex: () => panes.indexOf(pane), getHeight: () => 140,
+  const paneSeries = new Set(); let volumePane = false
+  const pane = { setStretchFactor() {}, paneIndex: () => panes.indexOf(pane), moveTo: index => { const old = panes.indexOf(pane); panes.splice(old, 1); panes.splice(index, 0, pane) }, getHeight: () => 140,
     getHTMLElement: () => ({ offsetTop: 428 }), priceScale: () => ({ applyOptions() {} }),
-    addSeries: () => {
+    addSeries: definition => {
+      if (definition?.type === 'histogram') volumePane = true
       let rows = []
-      const line = { applyOptions() {}, setData: next => { count('rsiSetData'); rows = [...next] },
-        update: row => { count('rsiUpdate'); if (rows.at(-1)?.time === row.time) rows[rows.length - 1] = row; else rows.push(row) },
+      const line = { applyOptions() {}, setData: next => { count(volumePane ? 'volumeSetData' : 'rsiSetData'); rows = [...next] },
+        update: row => { count(volumePane ? 'volumeUpdate' : 'rsiUpdate'); if (rows.at(-1)?.time === row.time) rows[rows.length - 1] = row; else rows.push(row) },
         data: () => rows, priceToCoordinate: value => 140 - value,
         attachPrimitive: primitive => primitives.add(primitive), detachPrimitive: primitive => primitives.delete(primitive),
         createPriceLine: () => ({ applyOptions() {} }) }
-      indicatorSeries.add(line); return line
+      indicatorSeries.add(line); paneSeries.add(line); return line
     } }
+  pane.fixtureSeries = paneSeries
   panes.push(pane); return pane
 }
 const chart = { addSeries: definition => definition.type === 'line' ? timeSeries : series, timeScale: () => scale, priceScale: () => priceScale,
   applyOptions: () => count('chartOptions'), paneSize: () => ({ width: 900, height: 420 }),
-  addPane: addIndicatorPane, panes: () => panes, removePane: index => { panes.splice(index, 1); indicatorSeries.clear() },
+  addPane: addIndicatorPane, panes: () => panes, removePane: index => { const [removed] = panes.splice(index, 1); for (const item of removed.fixtureSeries) indicatorSeries.delete(item) },
   subscribeCrosshairMove: fn => hoverListeners.add(fn), unsubscribeCrosshairMove: fn => hoverListeners.delete(fn),
   subscribeClick: fn => clickListeners.add(fn), unsubscribeClick: fn => clickListeners.delete(fn),
   remove: () => count('chartRemoved'), chartElement: () => document.querySelector('.market-chart-canvas') }
@@ -116,7 +119,7 @@ globalThis.__terminalProbe = { count, clocks, createChart: () => { count('chartC
   } }
 globalThis.Worker = class { constructor() { count('workerCreated'); throw new Error('Lite must not create calculation workers') } }
 
-const canvasModule = `export const CandlestickSeries = {type:'candle'}, LineSeries = {type:'line'}, ColorType = { Solid: 'solid' }, CrosshairMode = { Normal: 0 },
+const canvasModule = `export const CandlestickSeries = {type:'candle'}, HistogramSeries = {type:'histogram'}, LineSeries = {type:'line'}, ColorType = { Solid: 'solid' }, CrosshairMode = { Normal: 0 },
   TickMarkType = { Year: 0, Month: 1, DayOfMonth: 2, Time: 3, TimeWithSeconds: 4 }, LineStyle = { Dotted: 1, Dashed: 2 };
   export const createChart = (...args) => globalThis.__terminalProbe.createChart(...args);
   export const createSeriesMarkers = (_series, markers) => globalThis.__terminalProbe.createMarkers(markers);`
@@ -143,6 +146,8 @@ const server = await createServer({ root: path.resolve(path.dirname(fileURLToPat
         "  globalThis.__terminalProbe.count('newsRows'); return <tr data-news-story=")
       if (id.endsWith('/MarketCandlestickChart.tsx')) return code.replace('}: MarketCandlestickChartProps) {',
         "}: MarketCandlestickChartProps) { globalThis.__terminalProbe.count('chartRender');")
+      if (id.endsWith('/volume-calculation.ts')) return code.replace('for (let i = from; i < bars.length; i++) {',
+        "for (let i = from; i < bars.length; i++) { globalThis.__terminalProbe.count('volumeCandle');")
       if (id.endsWith('/rsi-calculation.ts')) return code.replace('for (let i = from; i < bars.length; i++) {',
         "for (let i = from; i < bars.length; i++) { globalThis.__terminalProbe.count('rsiCandle');")
       if (id.endsWith('/chart-price-space.ts')) return code.replace('for (let i = Math.max(0, count - 100); i < count; i++) {',
@@ -157,7 +162,7 @@ const pending = new Map(), requests = []
 let broker = 'Pepperstone-Demo', generation = 1, observed = 0, connected = true, clockOffset = 0, failHealth = false
 let quotes = Array.from({ length: 200 }, (_, i) => ({ symbol: i === 0 ? 'EURUSD' : `TEST${i}`, description: `Quote ${i}`,
   bid: 1.1, ask: 1.2, daily_change: 0, precision: i === 1 ? 3 : 5 }))
-let bars = Array.from({ length: 800 }, (_, i) => ({ time: now / 1000 + 10800 + (i - 799) * 3600, open: 1.1, high: 1.2, low: 1, close: 1.15 }))
+let bars = Array.from({ length: 800 }, (_, i) => ({ time: now / 1000 + 10800 + (i - 799) * 3600, open: 1.1, high: 1.2, low: 1, close: 1.15, tick_volume: 100 }))
 const catalog = JSON.parse(fs.readFileSync(new URL('./inspector/fixtures/major-calendar-catalog.json', import.meta.url), 'utf8'))
 const event = (id, at, actual = .3, previous = .1) => {
   const meta = catalog.find(row => row.event_id === id)
@@ -345,7 +350,8 @@ try {
   await flush()
   assert.equal(plotted.length, 800)
   assert.equal(Math.floor(futureTimes.at(-1).time / 86400), Math.floor(plotted.at(-1).time / 86400) + 90)
-  const indicatorControls = container.querySelector('.rsi-header-controls')
+  const indicatorControls = container.querySelector('[aria-label="Show RSI"]').parentElement
+  assert.equal(container.querySelector('[aria-label="Show Volume"]').parentElement.nextElementSibling, indicatorControls, 'Volume sits beside RSI')
   assert.equal(indicatorControls.nextElementSibling.getAttribute('aria-label'), 'Chart timeframe', 'RSI controls are immediately left of timeframes')
   const beforeRsiRange = { ...logicalRange }
   reset()
@@ -371,6 +377,29 @@ try {
   assert.equal(counters.rsiSetData ?? 0, 0, 'A live tick does not replace indicator history')
   bars[bars.length - 1] = { ...bars.at(-1), close: closeBefore }
   await tick('poll', 2000); await reply('ohlc')
+  reset()
+  await click(container.querySelector('[aria-label="Show Volume"]')); await flush(); drawChartFrame()
+  assert.equal(panes.length, 3)
+  assert.equal(counters.volumeCandle, 800, 'Enabling Volume processes the loaded history once')
+  assert.equal(counters.chartCreated ?? 0, 0); assert.equal(counters.setData ?? 0, 0)
+  assert.equal(JSON.parse(localStorage.getItem('fyodor.indicators.volume.v1')).enabled, true)
+  reset(); await tick('poll', 2000); await reply('ohlc')
+  assert.equal(counters.volumeCandle ?? 0, 0, 'Unchanged replies do no Volume calculation')
+  bars[bars.length - 1] = { ...bars.at(-1), tick_volume: 150 }
+  reset(); await tick('poll', 2000); await reply('ohlc')
+  assert.equal(counters.volumeCandle, 1, 'A volume-only feed update calculates one row')
+  assert.equal(counters.volumeUpdate, 2, 'Histogram and optional average each update once')
+  assert.equal(counters.volumeSetData ?? 0, 0, 'A volume tick never replaces indicator history')
+  assert.match(container.querySelector('.volume-readout').textContent, /150 ticks/)
+  const raw = [...container.querySelector('.volume-controls').querySelectorAll('button')].find(button => button.textContent === 'Raw')
+  await click(raw); await flush()
+  assert.equal(JSON.parse(localStorage.getItem('fyodor.indicators.volume.v1')).mode, 'relative')
+  await click(container.querySelector('[aria-label="Volume settings"]'))
+  assert.match(container.querySelector('[role="dialog"]').textContent, /Comparison clock/)
+  await click([...container.querySelectorAll('.rsi-settings-dialog button')].find(button => button.textContent === 'Cancel'))
+  await click(container.querySelector('[aria-label="Hide Volume"]')); await flush()
+  assert.equal(panes.length, 2); assert.equal(indicatorSeries.size, 3, 'Volume removal preserves the RSI series')
+  assert.equal(container.querySelector('.volume-legend'), null)
   assert.deepEqual([...container.querySelectorAll('[aria-label="App features"] button')].map(node => node.textContent.trim().replace(/\s+\d+$/, '')),
     ['Alert', 'Currency News', 'Inspector', 'Entry Trade', 'Activity', '⚙ Settings'])
   reset()

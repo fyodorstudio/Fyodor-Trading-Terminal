@@ -18,6 +18,9 @@ type ChartWorkspaceHeaderProps = {
   refocusDisabled?: boolean
   drawingToolbarVisible?: boolean
   onToggleDrawingToolbar?: () => void
+  volumeEnabled?: boolean
+  onToggleVolume?: () => void
+  onOpenVolumeSettings?: () => void
   rsiEnabled?: boolean
   onToggleRsi?: () => void
   onOpenRsiSettings?: () => void
@@ -56,6 +59,9 @@ export function ChartWorkspaceHeader({
   refocusDisabled = false,
   drawingToolbarVisible = true,
   onToggleDrawingToolbar,
+  volumeEnabled = false,
+  onToggleVolume,
+  onOpenVolumeSettings,
   rsiEnabled = false,
   onToggleRsi,
   onOpenRsiSettings,
@@ -100,6 +106,11 @@ export function ChartWorkspaceHeader({
       </div>
 
       <div className="chart-toolbar-center">
+        {onToggleVolume && <div className="rsi-header-controls" role="group" aria-label="Volume indicator">
+          <button type="button" aria-pressed={volumeEnabled} onClick={onToggleVolume}
+            aria-label={volumeEnabled ? 'Hide Volume' : 'Show Volume'} title={volumeEnabled ? 'Hide Volume' : 'Show Volume'}>Volume</button>
+          <button type="button" onClick={onOpenVolumeSettings} aria-label="Volume settings" title="Volume settings" aria-haspopup="dialog">&#9881;</button>
+        </div>}
         {onToggleRsi && <div className="rsi-header-controls" role="group" aria-label="Indicators">
           <button type="button" aria-pressed={rsiEnabled} onClick={onToggleRsi}
             aria-label={rsiEnabled ? 'Hide RSI' : 'Show RSI'} title={rsiEnabled ? 'Hide RSI' : 'Show RSI'}>RSI</button>

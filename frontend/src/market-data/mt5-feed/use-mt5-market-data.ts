@@ -68,6 +68,7 @@ function toBars(response: OhlcResponse): OhlcBar[] {
     high: bar.high,
     low: bar.low,
     close: bar.close,
+    tickVolume: Number.isFinite(bar.tick_volume) && bar.tick_volume >= 0 ? bar.tick_volume : undefined,
   }))
 }
 

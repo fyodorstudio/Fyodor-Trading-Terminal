@@ -16,11 +16,12 @@ import { RecentEventsPanel } from '../recent-events/RecentEventsPanel'
 import { EventsDock } from '../events-alarms/EventsDock'
 import { EntryTradePanel } from '../entry-trade/dock/EntryTradePanel'
 import { CurrencyNewsDock } from '../currency-news/CurrencyNewsDock'
+import { VolumeSettingsDialog } from '../market-data/indicators/volume/VolumeSettingsDialog'
 import { RsiSettingsDialog } from '../market-data/indicators/rsi/RsiSettingsDialog'
 
 export function TerminalWorkspace() {
   const [refocusRequest, setRefocusRequest] = useState(0)
-  const { rsi, changeRsi, toggleRsi, rsiSettingsOpen, setRsiSettingsOpen,
+  const { volume, changeVolume, toggleVolume, volumeSettingsOpen, setVolumeSettingsOpen, rsi, changeRsi, toggleRsi, rsiSettingsOpen, setRsiSettingsOpen,
     timeframe, theme, chartAppearance, timeDisplay, activeDrawingTool, selectedDrawingId, setSelectedDrawingId,
     drawingToolbarVisible, eventIconsVisible, toggleEventIcons, bottomDockWindow, dockSize, settingsOpen, setSettingsOpen, marketWatch, appendActivity,
     bridge, marketData, activeSymbol, bars, brokerId, inspector, quote, drawings, pairDrawingCount,
@@ -32,6 +33,8 @@ export function TerminalWorkspace() {
     plannedTrade, handlePlanChange, latestBarTime, registeredArrows, selectPinnedArrow, priceAlerts, leftDockTab, setLeftDockTab } = useTerminalWorkspace()
   const brokerOffsetSeconds = bridge.brokerOffsetSeconds
   const closeRsiSettings = useCallback(() => setRsiSettingsOpen(false), [setRsiSettingsOpen])
+  const closeVolumeSettings = useCallback(() => setVolumeSettingsOpen(false), [setVolumeSettingsOpen])
+  const changeVolumeMode = useCallback((mode: typeof volume.mode) => changeVolume({ ...volume, mode }), [volume, changeVolume])
   return (
     <DisplayClockProvider brokerId={brokerId} brokerOffsetSeconds={brokerOffsetSeconds} preference={timeDisplay}>
     <div className={`terminal-shell${bottomDockWindow ? ' bottom-dock-open' : ''}`}
@@ -61,6 +64,9 @@ export function TerminalWorkspace() {
             onSelectTimeframe={selectTimeframe}
             onRefocus={() => setRefocusRequest(request => request + 1)}
             refocusDisabled={!bars.length}
+            volumeEnabled={volume.enabled}
+            onToggleVolume={toggleVolume}
+            onOpenVolumeSettings={() => setVolumeSettingsOpen(true)}
             rsiEnabled={rsi.enabled}
             onToggleRsi={toggleRsi}
             onOpenRsiSettings={() => setRsiSettingsOpen(true)}
@@ -87,6 +93,8 @@ export function TerminalWorkspace() {
                   appearance={chartAppearance}
                   timeDisplay={timeDisplay}
                   timeframe={timeframe}
+                  volume={volume}
+                  onChangeVolumeMode={changeVolumeMode}
                   rsi={rsi}
                   refocusRequest={refocusRequest}
                   activeDrawingTool={activeDrawingTool}
@@ -183,6 +191,7 @@ export function TerminalWorkspace() {
           onClose={() => setSettingsOpen(false)}
         />
       )}
+      {volumeSettingsOpen && <VolumeSettingsDialog preferences={volume} onSave={changeVolume} onClose={closeVolumeSettings} />}
       {rsiSettingsOpen && <RsiSettingsDialog preferences={rsi} onSave={changeRsi} onClose={closeRsiSettings} />}
       {researchError && <div className="research-range-hint" role="alert">{researchError}<button type="button" onClick={closeResearch}>Close</button></div>}
     </div>

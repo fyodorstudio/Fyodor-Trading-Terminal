@@ -53,3 +53,56 @@ Alert bells, manual price alerts, Entry Trade and chart drawings stay independen
 The [news contract](docs/CURRENCY-NEWS.md) owns persistence and timing.
 [Short research rules](docs/RESEARCH-RULES.md) and focused reviewed lessons retain
 prior failure context; full original records are [archived](docs/RESEARCH-ARCHIVE.md).
+
+
+## Volume and push comparison
+
+1. Click **Volume** beside RSI in the chart header. Drag the divider to resize
+   its pane. RSI and Volume can be shown independently.
+2. Click **Raw** inside the pane to switch to **Relative**, or choose the mode
+   through the Volume gear. For comparing intraday pushes, use Relative.
+3. In the gear, select a comparison clock: London, New York, Tokyo, Sydney or UTC.
+   This selects a local time-of-day baseline; it does not hide candles outside
+   that session. London is the default. Regional clocks follow daylight saving,
+   while chart labels keep your selected display timezone (Jakarta by default).
+4. Keep **Baseline days = 20** and **Minimum samples = 5** initially. Each candle
+   is compared with the arithmetic mean of up to 20 earlier available dates at
+   its exact local start time, using the same symbol, broker and timeframe.
+   D1 compares earlier broker daily bars. H4 compares matching local start times;
+   it does not split a candle spanning several sessions.
+5. Read the prior-sample count while hovering over the candles you want to
+   compare. **Load older** fetches another history page; repeat, or scroll left,
+   until both pushes have adequate earlier history. Five samples enable a ratio;
+   closer to 20 gives a fuller baseline. Initial M1 history may cover less than
+   one day. A dash means unavailable, never zero activity. Unknown historical
+   broker clocks also leave Relative unavailable. Baselines use loaded history
+   only, exclude the current date, and never include later candles. Missing dates
+   are skipped, so 20 samples need not mean the immediately preceding 20 days.
+6. Click **Select A**, then click the first and last candles of the first push
+   **in the Volume pane**, aligned with the price candles. Repeat **Select B** for
+   the second push. Endpoints are inclusive and may be selected in either order.
+   A is highlighted blue and B amber in the Volume pane. Hover over the comparison
+   text to verify the selected timestamps. **Esc** cancels an unfinished selection;
+   **Clear** removes both. Enlarge the pane if you want more space for its readout.
+7. Compare **average relative activity**. For example, A = 1.5× and B = 0.8× means
+   the second push averaged less activity relative to its own normal time slots.
+   **B vs A** reports that change and whether B reached a higher price high. These
+   are descriptive measurements, with no entry, direction or reversal signal.
+
+The comparison also reports closed-bar count, candle minutes (excluding market
+closures and other gaps), and total ticks. Average relative activity gives each
+closed candle equal weight, helping compare pushes of different lengths; total
+ticks alone increases with duration. It is not the ratio of the pushes' total
+volume. A relative comparison is shown only when every included candle in both
+ranges has a valid baseline. The current unfinished candle is excluded from push
+statistics, while its histogram and hover value continue updating. Missing tick
+counts are unavailable; genuine reported zero ticks stay zero. Selections reset
+when the broker, symbol or timeframe changes, and when Volume is hidden.
+
+Use the same comparison clock and settings for both pushes, and select comparable
+parts of each move consistently. A news-driven first push and a quiet second push
+can differ for reasons beyond the price structure; session adjustment does not
+remove news, holiday or unusual-day effects. Use your existing strategy for the
+trade decision. Tick counts measure updates on this broker's feed, not lots traded.
+Bar colours follow candle direction, not buy/sell volume. The optional SMA applies
+to Raw ticks; Relative uses a 1× reference line. Settings are shared on this device.

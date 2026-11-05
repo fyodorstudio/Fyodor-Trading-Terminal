@@ -99,6 +99,18 @@ optional smoothing (SMA 14 by default), 70/50/30 bands and a background fill.
 Visibility and settings persist on this device across all symbols/timeframes.
 The settings dialog has Inputs/Style, OK/Cancel and Reset defaults. RSI follows
 the chart timeframe and includes the current candle; earlier history reseeds it.
+Volume and its settings gear sit beside RSI. Volume opens a resizable native
+histogram pane above RSI, sharing dates, crosshair and the future axis. Raw mode
+shows broker tick counts; Relative mode divides ticks by the mean for the same
+local time slot on earlier available dates (London by default, with New York,
+Tokyo, Sydney and UTC options). Regional clocks follow historical DST; D1 uses
+prior daily bars. Defaults are up to 20 prior samples and a minimum of five;
+missing/zero-mean baselines stay blank. Load older or scroll left to build history.
+Raw mode offers an optional SMA. Visibility/settings persist across symbols and
+reloads. Select A/B then click each push's first and last candles in the Volume
+pane to compare closed-bar total ticks, duration and mean relative activity.
+Selections are temporary and reset on broker/symbol/timeframe changes. No signal
+or trade direction is generated. See [Volume usage](user%20manual.md#volume-and-push-comparison).
 Daily-candle reads attach only to the bridge's exact terminal/account, with
 bounded caches; no login, symbol selection or broker changes.
 
