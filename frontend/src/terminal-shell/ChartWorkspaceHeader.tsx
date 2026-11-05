@@ -127,6 +127,7 @@ export function ChartWorkspaceHeader({
           disabled={refocusDisabled} onClick={onRefocus}>
           <span aria-hidden="true">⛶</span>
         </button>}
+        <div className="chart-header-actions">
         {onToggleVolume && <div className="rsi-header-controls" role="group" aria-label="Volume indicator">
           <button type="button" aria-pressed={volumeEnabled} onClick={onToggleVolume}
             aria-label={volumeEnabled ? 'Hide Volume' : 'Show Volume'} title={volumeEnabled ? 'Hide Volume' : 'Show Volume'}>Volume</button>
@@ -188,6 +189,7 @@ export function ChartWorkspaceHeader({
             <rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18M12 9v12M3 15h18" />
           </svg>
         </button>}
+        </div>
       </div>
 
       <div className="chart-toolbar-right">

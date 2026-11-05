@@ -55,6 +55,7 @@ export function lightweightChartOptions(
       timeVisible: true,
       secondsVisible: false,
       ignoreWhitespaceIndices: false,
+      lockVisibleTimeRangeOnResize: true,
       ...(isInitial ? { rightOffset: 8, barSpacing: appearance.barSpacing } : {}),
       tickMarkFormatter: (time: Time, tickType: TickMarkType) => formatChartTick(time, tickType, timeDisplay, clock),
     },

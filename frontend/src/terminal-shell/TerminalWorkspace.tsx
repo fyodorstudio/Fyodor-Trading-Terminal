@@ -38,6 +38,7 @@ export function TerminalWorkspace() {
   const closeVolumeSettings = useCallback(() => setVolumeSettingsOpen(false), [setVolumeSettingsOpen])
   const changeVolumeMode = useCallback((mode: typeof volume.mode) => changeVolume({ ...volume, mode }), [volume, changeVolume])
   const changeVolumeAxis = useCallback((axisTarget: typeof volume.axisTarget) => changeVolume({ ...volume, axisTarget }), [volume, changeVolume])
+  const recordChartTrace = useCallback((trace: string) => appendActivity('Chart', 'Timeframe trace', trace), [appendActivity])
   return (
     <DisplayClockProvider brokerId={brokerId} brokerOffsetSeconds={brokerOffsetSeconds} preference={timeDisplay}>
     <div className={`terminal-shell${bottomDockWindow ? ' bottom-dock-open' : ''}`}
@@ -115,6 +116,7 @@ export function TerminalWorkspace() {
                   onDeleteDrawing={handleDeleteDrawing}
                   onExitDrawingMode={exitDrawingMode}
                   onDataApplied={recordChartData}
+                  onChartTrace={recordChartTrace}
                   hasOlderData={!marketData.chartHistoryComplete}
                   isLoadingOlderData={marketData.chartHistoryLoading}
                   onRequestOlderData={marketData.requestOlderBars}

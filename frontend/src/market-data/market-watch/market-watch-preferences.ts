@@ -15,7 +15,7 @@ export type FavouriteSectionAction =
   | { type: 'add'; id: string; name: string }
   | { type: 'rename'; id: string; name: string }
   | { type: 'remove'; id: string }
-  | { type: 'move'; symbol: string; sectionId: string; before?: string }
+  | { type: 'move'; symbol: string; sectionId: string; before?: string; visibleOrder?: string[] }
 
 function normalizeSections(value: unknown, favourites: string[]): FavouriteSection[] {
   const allowed = new Set(favourites), assigned = new Set<string>(), ids = new Set<string>()
@@ -58,13 +58,21 @@ export function updateFavouriteSections(current: MarketWatchPreferences, action:
     if (!current.favourites.includes(action.symbol) || action.before === action.symbol
       || !sections.some(section => section.id === action.sectionId
         && (action.before === undefined || section.symbols.includes(action.before)))) return current
+    if (current.sort !== 'saved' && action.visibleOrder) {
+      const rank = new Map(action.visibleOrder.map((symbol, index) => [symbol, index]))
+      sections = sections.map(section => {
+        const visible = section.symbols.filter(symbol => rank.has(symbol)).sort((a, b) => rank.get(a)! - rank.get(b)!)
+        let index = 0
+        return { ...section, symbols: section.symbols.map(symbol => rank.has(symbol) ? visible[index++] : symbol) }
+      })
+    }
     sections = sections.map(section => {
       const symbols = section.symbols.filter(symbol => symbol !== action.symbol)
       if (section.id === action.sectionId) symbols.splice(action.before === undefined ? symbols.length : symbols.indexOf(action.before), 0, action.symbol)
       return { ...section, symbols }
     })
   }
-  return { ...current, sections, favourites: sections.flatMap(section => section.symbols) }
+  return { ...current, sort: action.type === 'move' ? 'saved' : current.sort, sections, favourites: sections.flatMap(section => section.symbols) }
 }
 
 const storageKey = 'fyodor.market-watch.v1'

@@ -409,7 +409,9 @@ try {
   assert.equal(counters.volumeUpdate, 3, 'Histogram, optional average and exact Relative line each update once')
   assert.equal(counters.volumeSetData ?? 0, 0, 'A volume tick never replaces indicator history')
   assert.match(container.querySelector('.volume-readout').textContent, /Ticks 150/)
-  assert.match(container.querySelector('.volume-session').textContent, /London \+ New York.*overlap.*now/)
+  const activeSessions = () => [...container.querySelectorAll('.volume-session-name[data-active="true"]')].map(node => node.textContent)
+  assert.deepEqual([...container.querySelectorAll('.volume-session-name')].map(node => node.textContent), ['Sydney','Tokyo','London','New York'])
+  assert.deepEqual(activeSessions(), ['London', 'New York'])
   const fireVolumeHover = async event => {
     await React.act(async () => { for (const fn of hoverListeners) fn(event) }); await flush()
   }
@@ -417,17 +419,17 @@ try {
   reset()
   const tokyoUtc = Date.UTC(2026, 9, 8, 1)
   await fireVolumeHover({ point: { x: 200, y: 200 }, time: tokyoUtc / 1000 + 10800 })
-  assert.match(container.querySelector('.volume-session').textContent, /Sydney \+ Tokyo.*overlap.*hovered/)
+  assert.deepEqual(activeSessions(), ['Sydney', 'Tokyo'])
   const volumeSessionTimer = [...intervals.values()].filter(timer => timer.ms === 30000).at(-1)
   await React.act(async () => volumeSessionTimer.fn())
-  assert.match(container.querySelector('.volume-session').textContent, /Sydney \+ Tokyo/, 'A historical hover stays put while the current session clock ticks')
+  assert.deepEqual(activeSessions(), ['Sydney', 'Tokyo'], 'A historical hover stays put while the current session clock ticks')
   assert.equal(counters.volumeCandle ?? 0, 0); assert.equal(counters.volumeSetData ?? 0, 0); assert.equal(counters.volumeUpdate ?? 0, 0)
   await fireVolumeHover({})
-  assert.match(container.querySelector('.volume-session').textContent, /London \+ New York.*now/, 'Leaving hover returns to actual current time')
+  assert.deepEqual(activeSessions(), ['London', 'New York'], 'Leaving hover returns to actual current time')
   const originalSessionNow = now
   now = Date.UTC(2026, 9, 10, 12)
   reset(); await React.act(async () => volumeSessionTimer.fn())
-  assert.match(container.querySelector('.volume-session').textContent, /No active session.*now/)
+  assert.deepEqual(activeSessions(), [], 'All four session labels stay visible but inactive over the weekend')
   assert.match(container.querySelector('.volume-readout-note').textContent, /No current candle loaded/, 'A historical final candle is never presented as current activity')
   assert.equal(counters.workspace ?? 0, 0); assert.equal(counters.volumeCandle ?? 0, 0); assert.equal(counters.volumeSetData ?? 0, 0)
   now = originalSessionNow
@@ -590,7 +592,7 @@ try {
   const refocusButton = container.querySelector('[aria-label="Refocus chart"]')
   assert.equal(refocusButton.textContent.trim(), '⛶')
   assert.equal(container.querySelector('.timeframe-selector').nextElementSibling, refocusButton)
-  assert.equal(refocusButton.nextElementSibling.getAttribute('aria-label'), 'Volume indicator')
+  assert.equal(refocusButton.nextElementSibling.className, 'chart-header-actions')
   const visibleWindow = { ...logicalRange }, beforeIconToggle = counters.setData ?? 0
   await click(container.querySelector('[aria-label="Hide event icons"]')); await flush()
   assert.equal(container.querySelector('[aria-label="Show event icons"]').getAttribute('aria-pressed'), 'false')

@@ -4,7 +4,7 @@
 .rsi-header-controls button:hover { background: var(--surface-hover); }
 .rsi-header-controls button[aria-pressed="true"] { color: #ffffff; background: var(--accent); }
 .rsi-header-controls button:focus-visible { outline: 2px solid var(--accent); outline-offset: -3px; }
-.rsi-legend { position: absolute; left: 10px; z-index: 4; display: flex; flex-wrap: wrap; gap: 8px; max-width: calc(100% - 90px); padding: 3px 6px; border-radius: 3px; background: var(--chart-background); color: var(--text-strong); font-size: 11px; line-height: 16px; pointer-events: none; }
+.rsi-legend { position: absolute; left: 10px; z-index: 4; display: flex; flex-wrap: wrap; gap: 8px; max-width: calc(100% - 90px); padding: 3px 6px; border-radius: 3px; background: transparent; color: var(--text-strong); font-size: 11px; line-height: 16px; pointer-events: none; }
 .rsi-legend span { font-variant-numeric: tabular-nums; }
 .rsi-legend span:nth-child(2) { color: var(--rsi-color); }
 .rsi-legend span:nth-child(3) { color: color-mix(in srgb, var(--rsi-average-color) 65%, var(--text-strong)); }

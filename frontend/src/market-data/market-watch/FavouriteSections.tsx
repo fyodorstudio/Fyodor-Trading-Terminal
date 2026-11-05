@@ -13,16 +13,19 @@ export function FavouriteSections({ sections, quotes, onChange, renderRow, sort,
   const [name, setName] = useState('')
   const dragged = useRef<string | null>(null)
   const bySymbol = useMemo(() => new Map(quotes.map(quote => [quote.symbol, quote])), [quotes])
+  const ordered = useMemo(() => new Map(sections.map(section => [section.id,
+    sortMarketQuotes(section.symbols.flatMap(symbol => bySymbol.has(symbol) ? [bySymbol.get(symbol)!] : []), sort, sortValues)])), [sections, bySymbol, sort, sortValues])
+  const visibleOrder = sort === 'saved' ? undefined : [...ordered.values()].flatMap(rows => rows.map(row => row.symbol))
   const clearDrag = () => { dragged.current = null }
   const drop = (event: DragEvent, sectionId: string, before?: string) => {
     if (!dragged.current) return
     event.preventDefault(); event.stopPropagation()
-    onChange({ type: 'move', symbol: dragged.current, sectionId, before }); clearDrag()
+    onChange({ type: 'move', symbol: dragged.current, sectionId, before, visibleOrder }); clearDrag()
   }
   return <>
     <div className="market-watch-organize">
       <button type="button" aria-pressed={editing} onClick={() => setEditing(value => !value)}>{editing ? 'Done' : 'Edit sections'}</button>
-      <span>{sort === 'saved' ? 'Drag ⋮⋮ to reorder' : 'Choose Saved order to reorder'}</span>
+      <span>{sort === 'saved' ? 'Drag ⋮⋮ to reorder' : 'Drag ⋮⋮ to switch to Saved order'}</span>
     </div>
     {editing && <form className="market-watch-add-section" onSubmit={event => {
       event.preventDefault()
@@ -44,20 +47,20 @@ export function FavouriteSections({ sections, quotes, onChange, renderRow, sort,
         {editing && section.id !== 'default' && <button type="button" aria-label={`Delete ${section.name} section`}
           title="Move its symbols back to the first section" onClick={() => onChange({ type: 'remove', id: section.id })}>×</button>}
       </div>
-      {sortMarketQuotes(section.symbols.flatMap(symbol => bySymbol.has(symbol) ? [bySymbol.get(symbol)!] : []), sort, sortValues).flatMap(quote => {
-        const symbol = quote.symbol, index = section.symbols.indexOf(symbol)
+      {ordered.get(section.id)!.map((quote, index, rows) => {
+        const symbol = quote.symbol
         return [<div className="market-watch-draggable-row" key={symbol} onDrop={event => {
           const bounds = event.currentTarget.getBoundingClientRect()
-          drop(event, section.id, event.clientY > bounds.top + bounds.height / 2 ? section.symbols[index + 1] : symbol)
+          drop(event, section.id, event.clientY > bounds.top + bounds.height / 2 ? rows[index + 1]?.symbol : symbol)
         }}>
-          <button type="button" className="market-watch-drag-handle" draggable={sort === 'saved'} disabled={sort !== 'saved'} aria-label={`Reorder ${symbol}`}
+          <button type="button" className="market-watch-drag-handle" draggable aria-label={`Reorder ${symbol}`}
             title="Drag to move; use Up/Down keys to reorder"
             onDragStart={event => { dragged.current = symbol; event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', symbol) }}
             onDragEnd={clearDrag} onKeyDown={event => {
               if (event.key === 'ArrowUp' && index > 0) {
-                event.preventDefault(); onChange({ type: 'move', symbol, sectionId: section.id, before: section.symbols[index - 1] })
-              } else if (event.key === 'ArrowDown' && index < section.symbols.length - 1) {
-                event.preventDefault(); onChange({ type: 'move', symbol, sectionId: section.id, before: section.symbols[index + 2] })
+                event.preventDefault(); onChange({ type: 'move', symbol, sectionId: section.id, before: rows[index - 1].symbol, visibleOrder })
+              } else if (event.key === 'ArrowDown' && index < rows.length - 1) {
+                event.preventDefault(); onChange({ type: 'move', symbol, sectionId: section.id, before: rows[index + 2]?.symbol, visibleOrder })
               }
             }}>⋮⋮</button>
           {renderRow(quote)}

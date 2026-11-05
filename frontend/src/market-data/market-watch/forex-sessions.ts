@@ -5,6 +5,7 @@ const sessions = [
   { name: 'London', zone: 'Europe/London', open: 8, close: 17, color: '#b45309' },
   { name: 'New York', zone: 'America/New_York', open: 8, close: 17, color: '#059669' },
 ] as const
+export const forexSessionNames: readonly string[] = sessions.map(session => session.name)
 const formatters = new Map<string, Intl.DateTimeFormat>()
 function localParts(time: number, zone: string) {
   let formatter = formatters.get(zone)

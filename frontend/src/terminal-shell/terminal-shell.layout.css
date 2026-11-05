@@ -90,6 +90,8 @@
   background: var(--surface-inset);
 }
 
+.chart-header-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-left: auto; max-width: 100%; }
+
 .timeframe-selector button {
   min-width: 34px;
   height: 28px;

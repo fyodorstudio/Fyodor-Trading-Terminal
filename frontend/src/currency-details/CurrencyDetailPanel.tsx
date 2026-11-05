@@ -23,12 +23,19 @@ const MetricCell = memo(function MetricCell({ metric, publisher, onViewEvent }: 
   const original = official?.sources.find(s => hosts.includes(new URL(s.url).hostname))
   const source = { label: publisher.label, url: original?.url ?? m.source_url ?? publisher.url }
   const next = m.broker_next, schedule = m.next_releases[0]
+  // Do not attach an older broker vintage's previous value to a newer official observation.
+  const comparable = !official || !!broker?.period && official.period === broker.period
+  const previous = comparable ? broker?.revised_previous ?? broker?.previous : null
   const conflict = m.comparison === 'conflict'
   const description = `${m.definition}${official?.period ?? broker?.period ? ` · Reference ${official?.period ?? broker?.period}` : ''}`
   return <article className="detail-metric" data-detail-metric={m.id}>
     <div className="detail-reading"><span className="detail-metric-label" title={description}>{m.label}</span>
-      <span className="detail-number"><strong title={description}>{value}</strong>{conflict && <span className="detail-conflict" role="img" aria-label="Source conflict"
-        title={`Source conflict: publisher ${detailValue(m.official?.value, m.unit)}; captured value ${detailValue(broker?.value, m.unit)}.`}>⚠</span>}</span>
+      <div className="detail-values">
+        <div><span>Previous reading</span><span className="detail-number" title={broker?.revised_previous != null ? 'Revised previous reading' : 'Previous reading'}>{detailValue(previous, m.unit)}</span></div>
+        <div><span>Latest actual</span><span className="detail-number"><strong title={description}>{value}</strong>{conflict && <span className="detail-conflict" role="img" aria-label="Source conflict"
+          title={`Source conflict: publisher ${detailValue(m.official?.value, m.unit)}; captured value ${detailValue(broker?.value, m.unit)}.`}>⚠</span>}</span></div>
+        <div><span>Next upcoming forecast</span><span className="detail-number" title="Consensus forecast for the next upcoming release">{detailValue(next?.forecast, m.unit)}</span></div>
+      </div>
     </div>
     <div className="detail-field"><span>Released at</span>{broker ? <button type="button" className="detail-event-link" onClick={() => onViewEvent(broker)} aria-label={`Open released ${m.label}`}>
       <Publication at={broker.at} date={broker.date} /></button> : <Publication at={official?.released_at ?? null} date={official?.released_date ?? null} />}</div>

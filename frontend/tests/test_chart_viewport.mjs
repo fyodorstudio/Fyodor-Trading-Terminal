@@ -163,7 +163,7 @@ try {
   const setsBeforeAdvance = futureSets, updatesBeforeAdvance = futureUpdates
   liveBars = replaceRecentBars(liveBars, [...liveBars.slice(-2), ...make(6)])
   await renderCandles(liveBars)
-  assert.deepEqual(range, { from: 2.25, to: 8.5 }, 'A live chart still follows one genuinely new candle')
+  assert.deepEqual(range, { from: 1.25, to: 7.5 }, 'A manually navigated view stays pinned when a new candle arrives')
   assert.equal(futureSets, setsBeforeAdvance); assert.equal(futureUpdates, updatesBeforeAdvance, 'New candles reuse the cached day horizon')
   pan({ from: 100.25, to: 110.75 })
   const futureWindow = captureDateWindow(range, liveBars, 3600)

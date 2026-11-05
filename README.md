@@ -85,8 +85,12 @@ For optional release waits/historical studies see [the user guide](user%20manual
 **Detail**, immediately right of Show events, opens its own right-panel view.
 Four shared tier groups (S/A/B/C) compare the pair's currencies; EURX/JPYX/USDX
 show one. Full-width tier subheaders leave the currency columns equal-width.
-Equal-height event blocks show the number, Released at, Next Release
-and an original-publisher link. Conflicts use a ⚠ tooltip. Dates prefer captured
+Equal-height event blocks compare Previous reading, Latest actual and Next
+upcoming forecast, followed by Released at, Next Release and an original-publisher
+link. Forecast means the next scheduled release, not the latest release’s old
+consensus. Missing readings stay blank dashes; revised previous values take priority.
+A newer official observation never borrows an older broker vintage’s previous
+value. Conflicts use a ⚠ tooltip. Dates prefer captured
 broker occurrences; no hour is invented. Latest values have no Events-window
 cutoff. Tier List Info replaces the table with the static definitions and the
 active currencies' reference rows; Close returns to the comparison.
@@ -97,12 +101,17 @@ starting with `pnpm analyst details prepare --scope EURUSD`; see the
 
 ## Preserved terminal behavior
 
-Market Watch keeps favourites, sections/order and sorting. Daily % is the largest
+Market Watch keeps favourites, sections/order and sorting. Dropping a favourite
+automatically switches percentage sorting to Saved order, preserving the visible
+ranked order as its starting point. Starting/cancelling a drag changes no order.
+Daily % is the largest
 signed excursion from the selected broker D1 open to its high/low; it is not the
 current close change. Date navigation never borrows another day's candle.
 The chart header retains high/low distances and indicative regional sessions.
 Refocus, immediately right of D1, returns to the latest candles while keeping
-horizontal zoom and restoring automatic price scaling. A fresh browser load
+horizontal zoom and restoring automatic price scaling and live following. Manual
+panning/zooming pauses following until Refocus. Opening/closing panels preserves
+both date edges and the manual price range. A fresh browser load
 opens recent candles at the configured spacing instead of fitting all history.
 Timeframe and symbol changes keep the selected date window as their navigation
 target across historical views and future space. Viewport dates include the
@@ -115,8 +124,9 @@ Deferred native chart updates cannot replace that window with an intermediate
 future-axis range. Empty future space keeps
 the last useful price scale and editable drawings visible.
 Timeframes sit immediately right of the pair/Market Watch button, followed by
-Refocus, Volume and RSI controls. A separator precedes the event-icon button. RSI
-opens a resizable lower pane with a shared time axis, Wilder RSI 14 on Close,
+Refocus. Volume/RSI and the remaining action buttons align beside the session
+timeline; the flexible gap follows Refocus. A separator precedes the event-icon
+button. RSI opens a resizable lower pane with a shared time axis, Wilder RSI 14 on Close,
 optional smoothing (SMA 14 by default), 70/50/30 bands and a background fill.
 Visibility and settings persist on this device across all symbols/timeframes.
 The settings dialog has Inputs/Style, OK/Cancel and Reset defaults. RSI follows
@@ -126,7 +136,10 @@ histogram pane above RSI, sharing dates, crosshair and the future axis. Raw mode
 shows broker tick counts; Relative mode automatically matches candles from the
 same regional session or overlap at the same point in that session period. The
 readout follows the hovered candle; without hover it shows the current session,
-including overlaps. Sessions reuse the header's indicative regional hours and
+including overlaps. All four session names stay visible: active names use full
+contrast, inactive names grey out. Volume and RSI legends have transparent
+backgrounds, with backgrounds retained on buttons only. Sessions reuse the
+header's indicative regional hours and
 historical DST; no comparison-clock selection is needed. D1 uses prior daily
 bars. Defaults are up to 20 prior matches and a minimum of five;
 missing/zero-mean baselines stay blank. Load older or scroll left to build history.
@@ -146,6 +159,9 @@ persist across symbols and reloads. Select A/B then click each push's first and 
 pane to compare closed-bar total ticks, duration and mean relative activity.
 Selections are temporary and reset on broker/symbol/timeframe changes. No signal
 or trade direction is generated. See [Volume usage](user%20manual.md#volume-and-push-comparison).
+A scope change records one bounded post-paint **Timeframe trace** in Activity
+under Chart: sampled raw/native OHLC, timeline indices, price coordinates,
+viewport and pane types. It adds no chart controls and does no live-tick tracing.
 Daily-candle reads attach only to the bridge's exact terminal/account, with
 bounded caches; no login, symbol selection or broker changes.
 

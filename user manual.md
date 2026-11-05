@@ -80,7 +80,10 @@ prior failure context; full original records are [archived](docs/RESEARCH-ARCHIV
    Turn off **Show pane controls** in the Volume gear’s **Style** tab to hide Raw/Relative,
    Select A, Select B, Clear and Load older. The activity readout remains at the
    upper-right with stable fields:
-   `| Ticks 13,261 | Relative 0.90x | Matches 19/20 |`. The axis toggle stays
+   `| Ticks 13,261 | Relative 0.90x | Matches 19/20 |`. All four session names remain
+   visible below it; active sessions use full contrast and inactive sessions are
+   grey. Hover changes the active names; leaving hover returns to now. Both
+   indicator legends are transparent behind their text. The axis toggle stays
    available whenever Raw bars and the Relative line are both shown.
    Mode and both visibility options stay accessible through the header gear and
    are remembered on this device. Hidden controls cancel an unfinished A/B pick;
@@ -141,7 +144,9 @@ to Raw ticks; Relative uses a 1× reference line. Settings are shared on this de
 Click **Detail** beside Show events for S/A/B/C fundamentals of the active pair.
 EURX, JPYX and USDX show only their currency. Full-width tier subheaders group
 equal-width currency columns. Equal-height event blocks contain the
-number, Released at, Next Release and original Source link. Hover ⚠ for a numeric
+Previous reading, Latest actual and Next upcoming forecast in labelled cells,
+then Released at, Next Release and the original Source link. Missing values show
+a dash; the forecast is for the next release, not old consensus. Hover ⚠ for a numeric
 conflict. Tier List Info shows the general reference and your active currencies'
 tier table; its Close button returns to the comparison. Alert uses the same tiers.
 Copy refresh prompt runs no research until invoked in the agent chat; the skill

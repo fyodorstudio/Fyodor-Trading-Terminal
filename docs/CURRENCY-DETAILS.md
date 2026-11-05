@@ -16,7 +16,13 @@ The visible table has equal-width **base currency | quote currency** columns, or
 a single currency for indices. Full-width horizontal subheaders label
 S — essential, A — major, B — supporting and C — secondary. Event slots retain
 equal block height in both columns. Each block shows
-only the event name/number, Released at, Next Release and Source link. No category
+the event name with labelled Previous reading, Latest actual and Next upcoming
+forecast cells, then Released at, Next Release and Source link. The forecast
+belongs to the next broker occurrence; the latest release’s consensus is never
+substituted. Missing values are dashes; zero is valid. Comparable revised previous
+values take priority over initial previous values. When the official observation
+is newer than the broker vintage, its previous cell stays unavailable. Reading
+cells stack below the name in narrow currency columns, keeping equal slot heights. No category
 expanders, next-major-release list, verification clocks, coverage prose, repeated
 provider labels or policy commentary appear in the comparison. A conflict is the
 single U+26A0 ⚠ glyph with an accessible tooltip. Operational fetch failures remain

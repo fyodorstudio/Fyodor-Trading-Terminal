@@ -66,12 +66,16 @@ try {
   const makeBars = (start, step = 3600) => Array.from({ length: 100 }, (_, i) => ({ time: start + i * step,
     open: 100, high: 106, low: 94, close: 100 + Math.sin(i / 3) * 4 }))
   let bars = makeBars(1700000000), rsi = defaultRsiPreferences
+  const traces = []
   let props = { bars, rsi, fitContentKey: 'EURUSD:H1', symbol: 'EURUSD', precision: 5, theme: 'light', appearance: defaultChartAppearance,
+    onChartTrace: trace => traces.push(JSON.parse(trace)),
     timeDisplay: { mode: 'utc', utcOffsetMinutes: 0 }, timeframe: 'H1', activeDrawingTool: null, drawings: [], selectedDrawingId: null,
     onSelectDrawing() {}, onCreateDrawing() { return '' }, onUpdateDrawingPoint() {}, onUpdatePositionWidth() {},
     onExitDrawingMode() {}, onDataApplied() {}, hasOlderData: false, isLoadingOlderData: false, onRequestOlderData() {} }
   const render = async (next = {}) => { props = { ...props, ...next }; await React.act(async () => root.render(React.createElement(MarketCandlestickChart, props))); await paint() }
   await render()
+  assert.equal(traces.length, 1, 'A scope change captures one post-paint trace')
+  assert.ok(traces[0].samples.every(sample => sample.index === sample.logical && JSON.stringify(sample.ohlc) === JSON.stringify(sample.native)), 'The trace compares raw candles with native timeline samples')
   assert.equal(chart.panes().length, 1)
   chart.timeScale().setVisibleLogicalRange({ from: 65, to: 110 }); await paint()
   const viewport = chart.timeScale().getVisibleLogicalRange()
@@ -82,6 +86,17 @@ try {
   assert.equal(chart.panes().length, 2)
   assert.deepEqual(chart.timeScale().getVisibleLogicalRange(), viewport, 'Enabling RSI preserves shared dates and future space')
   assert.deepEqual(candles.data(), priceSnapshot)
+  chart.applyOptions({ autoSize: false })
+  chart.priceScale('right').setVisibleRange({ from: 90, to: 110 }); await paint()
+  const resizePriceRange = chart.priceScale('right').getVisibleRange()
+  for (const width of [650, 1100, 900, 650, 900]) {
+    chart.resize(width, 480); await paint()
+    const resizedWindow = chart.timeScale().getVisibleLogicalRange()
+    close(resizedWindow.from, viewport.from, 'Market Watch-sized resizes retain the left viewport date')
+    close(resizedWindow.to, viewport.to, 'Market Watch-sized resizes retain the right viewport date')
+    assert.deepEqual(chart.priceScale('right').getVisibleRange(), resizePriceRange, 'Resizing preserves the manual price range')
+  }
+  chart.priceScale('right').applyOptions({ autoScale: true }); await paint()
   const [line, average] = chart.panes()[1].getSeries()
   assert.equal(line.data().length, 86); assert.equal(average.data().length, 73)
   assert.equal(line.dataByIndex(13), null); assert.ok('value' in line.dataByIndex(14))
@@ -136,7 +151,9 @@ try {
   assert.equal(host.querySelector('.rsi-legend span:nth-child(2)').textContent, line.dataByIndex(85).value.toFixed(2), 'Native RSI hover shows the selected candle value')
   await hoverAt(bars.at(-1).time + 5 * 3600)
   assert.equal(host.querySelector('.rsi-legend span:nth-child(2)').textContent, '—', 'Empty future space never fabricates RSI values')
+  const tracesBeforeTick = traces.length
   bars = replaceRecentBars(bars, [{ ...bars.at(-1), close: 105 }]); await render({ bars })
+  assert.equal(traces.length, tracesBeforeTick, 'Live ticks never create diagnostic history scans or repeated trace entries')
   assert.equal(line.data().length, 86)
   bars = [ { ...bars[0], time: bars[0].time - 3600 }, ...bars ]; await render({ bars })
   assert.equal(line.data().length, 87, 'Paging reseeds and replaces the indicator history')
@@ -349,8 +366,8 @@ try {
       })
     }
   }
-  // A new live candle may move the view, but must not turn a higher timeframe's
-  // temporary minimum width into the user's saved zoom.
+  // Manual navigation pins both dates even when a higher-timeframe view still
+  // contains the newest candle. New data must not silently resume following.
   await React.act(async () => root.render(null)); await paint()
   props = { ...props, bars: frameBars(60), timeframe: 'M1', fitContentKey: 'EURX:M1' }
   await render()
@@ -369,8 +386,13 @@ try {
   await render({ bars: replaceRecentBars(props.bars, [...props.bars.slice(-2), { ...currentDay, time: currentDay.time + 86400 }]) })
   await changeFrame('M1', frameBars(60).map(bar => ({ ...bar, time: bar.time + 86400 })))
   const followedDates = captureDateWindow(chart.timeScale().getVisibleLogicalRange(), props.bars, 60)
-  close(followedDates.from, liveDates.from + 86400, 'Live following advances the saved left date by the new candle')
-  close(followedDates.to, liveDates.to + 86400, 'Live following preserves the original narrow zoom')
+  close(followedDates.from, liveDates.from, 'A new candle cannot move the saved left date after manual navigation')
+  close(followedDates.to, liveDates.to, 'A new candle cannot move the saved right date after manual navigation')
+  await render({ refocusRequest: (props.refocusRequest ?? 0) + 1 })
+  const beforeAppend = chart.timeScale().getVisibleLogicalRange(), lastFocused = props.bars.at(-1)
+  await render({ bars: replaceRecentBars(props.bars, [...props.bars.slice(-2), { ...lastFocused, time: lastFocused.time + 60 }]) })
+  close(chart.timeScale().getVisibleLogicalRange().from, beforeAppend.from + 1, 'Refocus explicitly resumes live following')
+  close(chart.timeScale().getVisibleLogicalRange().to, beforeAppend.to + 1, 'Resumed live following keeps the chosen zoom')
   const beforeSpacing = chart.timeScale().getVisibleLogicalRange()
   const requestedSpacing = 11
   const spacingDates = captureDateWindow({ from: beforeSpacing.to - chart.timeScale().width() / requestedSpacing + 1, to: beforeSpacing.to }, props.bars, 60)

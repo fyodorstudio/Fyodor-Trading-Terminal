@@ -65,12 +65,25 @@ try{
   const bad=structuredClone(fixtures.EURUSD);mutate(bad);assert.equal(validDetail(bad,'Pepperstone-Demo',['EUR','USD']),false)
  }
  assert.match(detailRefreshPrompt('EURUSD'),/details prepare --scope EURUSD/)
- await render();await reply(requests.at(-1),fixtures.EURUSD)
+ const preview=structuredClone(fixtures.EURUSD)
+ const previewInflation=preview.metrics.find(m=>m.id==='eur.hicp-yoy')
+ Object.assign(previewInflation.broker,{previous:3,revised_previous:3.1,forecast:9.9})
+ previewInflation.broker_next.forecast=0
+ // A saved official quarter newer than the last broker quarter cannot borrow its previous value.
+ const previewGdp=preview.metrics.find(m=>m.id==='eur.gdp')
+ previewGdp.official={...structuredClone(previewInflation.official),period:'2026-07-01',value:0}
+ previewGdp.official_latest=true
+ previewGdp.broker.previous=123
+ await render();await reply(requests.at(-1),preview)
  assert.deepEqual([...container.querySelectorAll('thead th')].map(n=>n.textContent),['EUR','USD'])
  assert.deepEqual([...container.querySelectorAll('[data-detail-tier]')].map(n=>n.dataset.detailTier),['S','A','B','C'])
  for(const heading of container.querySelectorAll('.detail-tier-heading th'))assert.equal(heading.colSpan,2,'Tier sections span both currency columns')
  const inflation=container.querySelector('[data-detail-metric="eur.hicp-yoy"]')
  assert.equal(inflation.querySelector('strong').textContent,'4%')
+ assert.deepEqual([...inflation.querySelectorAll('.detail-values > div > span:first-child')].map(n=>n.textContent),['Previous reading','Latest actual','Next upcoming forecast'])
+ assert.deepEqual([...inflation.querySelectorAll('.detail-number')].map(n=>n.textContent.replace('⚠','')),['3.1%','4%','0%'],'Use revised previous, official actual and the next release forecast, including zero')
+ assert.equal(container.querySelector('[data-detail-metric="eur.gdp"] .detail-number').textContent,'—','An older broker vintage supplies no previous value for a newer official actual')
+ assert.equal(container.querySelector('[data-detail-metric="usd.cpi-yoy"] .detail-values > div:last-child .detail-number').textContent,'—','Missing next forecasts never borrow the released event forecast')
  assert.equal(inflation.querySelector('[aria-label="Source conflict"]').textContent,'⚠')
  assert.match(inflation.querySelector('[aria-label="Source conflict"]').title,/publisher 4%.*captured value 3.2%/)
  assert.match(inflation.querySelector('a').href,/ec.europa.eu/)

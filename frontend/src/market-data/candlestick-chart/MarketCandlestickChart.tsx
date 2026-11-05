@@ -27,6 +27,7 @@ import type { VolumePreferences } from '../indicators/volume/volume-preferences'
 import { createRsiPane } from '../indicators/rsi/rsi-pane'
 import type { RsiPreferences } from '../indicators/rsi/rsi-preferences'
 import { PricePaneOverlays } from './PricePaneOverlays'
+import { chartDataTrace } from './chart-data-trace'
 import './market-candlestick-chart.css'
 
 type MarketCandlestickChartProps = {
@@ -56,6 +57,7 @@ type MarketCandlestickChartProps = {
   onDeleteDrawing?: (drawingId: string) => void
   onExitDrawingMode: () => void
   onDataApplied: (barCount: number) => void
+  onChartTrace?: (trace: string) => void
   hasOlderData: boolean
   isLoadingOlderData: boolean
   onRequestOlderData: () => void
@@ -92,6 +94,7 @@ function MarketCandlestickChartComponent({
   onDeleteDrawing,
   onExitDrawingMode,
   onDataApplied,
+  onChartTrace,
   hasOlderData,
   isLoadingOlderData,
   onRequestOlderData,
@@ -115,6 +118,7 @@ function MarketCandlestickChartComponent({
   const fittedKeyRef = useRef<string | null>(null)
   const prevBarsRef = useRef<OhlcBar[]>([])
   const historyPagingArmedRef = useRef(false)
+  const liveFollowingRef = useRef(true)
   const historyStateRef = useRef({ hasOlderData, isLoadingOlderData })
   const requestOlderDataRef = useRef(onRequestOlderData)
   const dateWindowRef = useRef<ChartDateWindow | null>(null)
@@ -125,6 +129,7 @@ function MarketCandlestickChartComponent({
   const lastHistoryAttemptRef = useRef<string | null>(null)
   const [missingViewportHistory, setMissingViewportHistory] = useState(false)
   const prevBarSpacingRef = useRef(appearance.barSpacing)
+  const tracedScopeRef = useRef<string | null>(null)
   const requestedLogicalRangeRef = useRef<{ from: number; to: number } | null>(null)
   // Native range setters are deferred until paint. Keep the requested viewport
   // authoritative across intervening quote, clock, appearance and pane effects.
@@ -290,6 +295,7 @@ function MarketCandlestickChartComponent({
     const step = timeframeToSeconds(timeframe)
     const brokerChanged = viewportBrokerRef.current !== clock.brokerId
     if (brokerChanged) {
+      liveFollowingRef.current = true
       viewportBrokerRef.current = clock.brokerId
       dateWindowRef.current = null
       pendingWindowRef.current = false
@@ -356,7 +362,7 @@ function MarketCandlestickChartComponent({
       }
       // The hidden horizon is now the library's last point. Retain normal live
       // following when an incrementally appended price candle was in view.
-      if (!isNewKey && !replaced && bars.length === prevBars.length + 1 && previousRange &&
+      if (liveFollowingRef.current && !isNewKey && !replaced && bars.length === prevBars.length + 1 && previousRange &&
         previousRange.from <= prevBars.length - 1 && previousRange.to >= prevBars.length - 1) {
         const followingRange = { from: previousRange.from + 1, to: previousRange.to + 1 }
         dateWindowRef.current = window ? advanceDateWindow(window, prevBars, bars, step) : captureDateWindow(followingRange, bars, step)
@@ -417,12 +423,28 @@ function MarketCandlestickChartComponent({
     onRequestOlderData()
   }, [bars, fitContentKey, hasOlderData, isLoadingOlderData, onRequestOlderData])
 
+  useEffect(() => {
+    if (!bars.length) { tracedScopeRef.current = null; return }
+    const scope = `${clock.brokerId}:${fitContentKey}`
+    if (!onChartTrace || tracedScopeRef.current === scope) return
+    let frame = window.requestAnimationFrame(() => {
+      frame = window.requestAnimationFrame(() => {
+        const chart = chartRef.current, series = seriesRef.current
+        if (!chart || !series) return
+        tracedScopeRef.current = scope
+        onChartTrace(chartDataTrace(chart, series, bars, scope))
+      })
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [bars, fitContentKey, clock.brokerId, onChartTrace])
+
   const isPanningRef = useRef(false)
   const lastClientYRef = useRef<number | null>(null)
   const stopPanRef = useRef<(() => void) | null>(null)
   useEffect(() => () => { stopPanRef.current?.() }, [])
 
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.button === 0) liveFollowingRef.current = false
     requestedLogicalRangeRef.current = null
     historyPagingArmedRef.current = true
     if (event.button !== 0 || activeDrawingTool) return
@@ -506,6 +528,7 @@ function MarketCandlestickChartComponent({
     try {
       pendingWindowRef.current = false; dateWindowRef.current = null
       historyPagingArmedRef.current = false
+      liveFollowingRef.current = true
       setMissingViewportHistory(false)
       chart.priceScale('right').applyOptions({ autoScale: true })
       setLogicalRange({ from: to - span, to })
@@ -525,7 +548,7 @@ function MarketCandlestickChartComponent({
         aria-label="Candlestick chart"
         onPointerDown={handlePointerDown}
         onDoubleClick={handleDoubleClick}
-        onWheel={() => { requestedLogicalRangeRef.current = null; historyPagingArmedRef.current = true }}
+        onWheel={() => { requestedLogicalRangeRef.current = null; historyPagingArmedRef.current = true; liveFollowingRef.current = false }}
       />
       {missingViewportHistory && bars.length > 0 && !isLoadingOlderData && <div className="chart-viewport-notice" role="status">
         <span>{hasOlderData ? 'Older history could not reach the selected dates.' : 'MT5 history does not cover the selected dates.'}</span>

@@ -3,7 +3,7 @@ import { chartClockToUtc, type ChartClockScope } from '../../../appearance/time-
 import type { OhlcBar } from '../../contracts/OhlcBar'
 import { createVolumeCalculator, summarizeVolumeRange, type VolumeRange } from './volume-calculation'
 import type { VolumePreferences } from './volume-preferences'
-import { createForexSessionLookup } from '../../market-watch/forex-sessions'
+import { createForexSessionLookup, forexSessionNames } from '../../market-watch/forex-sessions'
 import './volume.css'
 
 export function createVolumePane(chart: IChartApi) {
@@ -52,6 +52,11 @@ export function createVolumePane(chart: IChartApi) {
   sessionLabel.className = 'volume-session'
   sessionLabel.setAttribute('aria-label', 'Automatic volume session')
   sessionLabel.title = 'Indicative sessions from the header. Hover follows chart time; otherwise this shows now. Overlaps are listed together. Broker holidays may differ.'
+  const sessionNames = forexSessionNames.map((name, index) => {
+    if (index) sessionLabel.append(' · ')
+    const label = document.createElement('span'); label.className = 'volume-session-name'; label.textContent = name
+    sessionLabel.append(label); return { name, label }
+  })
   readout.className = 'volume-readout'; comparison.className = 'volume-comparison'; comparison.setAttribute('role', 'status')
   const button = (text: string, action: () => void) => {
     const element = document.createElement('button'); element.type = 'button'; element.textContent = text
@@ -94,7 +99,6 @@ export function createVolumePane(chart: IChartApi) {
     const hoveredUtc = hover !== null && Number.isFinite(hover) ? chartClockToUtc(hover * 1000, clock) : null
     const reference = hover === null ? now : hoveredUtc
     const context = reference === null ? null : sessionAt(reference)
-    sessionLabel.textContent = context ? `${context.key || 'No active session'}${context.names.length > 1 ? ' · overlap' : ''} · ${hover === null ? 'now' : 'hovered candle'}` : 'Session unavailable at cursor'
     const latest = data.rows.at(-1)
     const currentLoaded = latest?.utc !== null && latest?.utc !== undefined && now >= latest.utc && now < latest.utc + step * 1000
     const index = hover === null ? currentLoaded ? bars.length - 1 : -1 : find(hover), row = data.rows[index]
@@ -105,7 +109,10 @@ export function createVolumePane(chart: IChartApi) {
     note.textContent = !row ? hover === null ? 'No current candle loaded · hover a candle to inspect it' : 'No candle at cursor'
       : row.relative === undefined ? row.utc === null ? 'Broker clock unavailable' : `Need ${preferences.minimumSamples} prior matches with a positive mean` : ''
     note.hidden = !note.textContent
-    if (row && row.utc !== null) sessionLabel.textContent = `${row.session || 'No active session'}${step < 86400 && context && context.names.length > 1 ? ' · overlap' : ''} · ${hover === null ? 'now' : 'hovered candle'}`
+    const active = step >= 86400 && hover !== null ? [] : row && row.utc !== null && hover !== null
+      ? forexSessionNames.filter(name => row.session.includes(name)) : context?.names ?? []
+    for (const { name, label } of sessionNames) label.dataset.active = String(active.includes(name))
+    sessionLabel.title = `${hover === null ? 'Now' : 'Hovered candle'} · ${step >= 86400 && hover !== null ? 'Daily bars; no intraday session assigned' : !context ? 'Session unavailable at cursor' : active.join(' + ') || 'No active session'} · Indicative regional hours; broker holidays may differ.`
     const lines: string[] = []
     if (pending) lines.push(`${pending}: click ${start === null ? 'the first' : 'the last'} candle of the push in the Volume pane. Esc cancels.`)
     const summary = (name: 'A' | 'B') => {
