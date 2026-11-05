@@ -38,6 +38,9 @@ export function VolumeSettingsDialog({ preferences, onSave, onClose }: {
         <fieldset><legend>Activity display</legend>
           <label>Mode<select value={draft.mode} onChange={event => patch({ mode: event.target.value as VolumePreferences['mode'] })}>
             <option value="raw">Raw ticks</option><option value="relative">Relative activity</option></select></label>
+          <label>Show pane controls<input type="checkbox" checked={draft.paneControlsVisible} onChange={event => patch({ paneControlsVisible: event.target.checked })} /></label>
+          <label>Show Relative activity line<input type="checkbox" checked={draft.relativeLineVisible} onChange={event => patch({ relativeLineVisible: event.target.checked })} /></label>
+          <p>The line connects each candle's exact Relative value without averaging or smoothing. With Raw bars, read its × scale on the left; ticks stay on the right. With Relative bars, both use the right × scale. The dashed 1× line marks normal activity.</p>
           <p>Sessions are automatic: hover a candle to see its session or overlap; move away to see the current session. Uses the same regional hours as the header, with daylight saving.</p>
           <label>Previous sessions<input type="number" min="5" max="60" required value={draft.lookback} onChange={event => patch({ lookback: Number(event.target.value) })} /></label>
           <label>Minimum samples<input type="number" min="1" max={draft.lookback} required value={draft.minimumSamples} onChange={event => patch({ minimumSamples: Number(event.target.value) })} /></label>
@@ -47,6 +50,7 @@ export function VolumeSettingsDialog({ preferences, onSave, onClose }: {
         <fieldset><legend>Style</legend>
           <label>Up candle colour<input type="color" value={draft.upColor} onChange={event => patch({ upColor: event.target.value })} /></label>
           <label>Down candle colour<input type="color" value={draft.downColor} onChange={event => patch({ downColor: event.target.value })} /></label>
+          <label>Relative line colour<input type="color" value={draft.relativeLineColor} onChange={event => patch({ relativeLineColor: event.target.value })} /></label>
           <label>Show raw tick average<input type="checkbox" checked={draft.averageVisible} onChange={event => patch({ averageVisible: event.target.checked })} /></label>
           <label>Average length<input type="number" min="1" max="200" required value={draft.averageLength} onChange={event => patch({ averageLength: Number(event.target.value) })} /></label>
           <label>Average colour<input type="color" value={draft.averageColor} onChange={event => patch({ averageColor: event.target.value })} /></label>

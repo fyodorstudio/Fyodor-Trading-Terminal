@@ -9,12 +9,21 @@ export function PricePaneOverlays({ chartApi, seriesApi, constrained, children }
     if (!constrained) return
     const element = overlay.current
     if (!element) return
-    const refresh = () => { element.style.height = `${chartApi.paneSize(0).height}px` }
+    const refresh = () => {
+      const left = chartApi.options().leftPriceScale.visible ? chartApi.priceScale('left').width() : 0
+      element.style.height = `${chartApi.paneSize(0).height}px`
+      element.style.left = `${left}px`
+      element.style.width = `calc(100% - ${left}px)`
+    }
     const views = [{ renderer: () => ({ draw: refresh }) }]
     const primitive: ISeriesPrimitive<Time> = { paneViews: () => views }
     seriesApi.attachPrimitive(primitive)
-    refresh()
-    return () => { seriesApi.detachPrimitive(primitive); element.style.removeProperty('height') }
+    // Native axis widgets exist at paint, after the first layout effect.
+    element.style.height = `${chartApi.paneSize(0).height}px`
+    return () => {
+      seriesApi.detachPrimitive(primitive)
+      for (const property of ['height', 'left', 'width']) element.style.removeProperty(property)
+    }
   }, [chartApi, seriesApi, constrained])
   return <div ref={overlay} className="chart-price-pane-overlays" data-constrained={constrained || undefined}>{children}</div>
 }

@@ -76,7 +76,7 @@ const series = { applyOptions: () => {},
   createPriceLine: options => { count('tradeLineCreates'); const line = { options, applyOptions: next => { count('tradeLineUpdates'); Object.assign(options, next) } }; tradeLines.add(line); return line },
   removePriceLine: line => tradeLines.delete(line),
 }
-const priceScale = { applyOptions: () => {}, getVisibleRange: () => priceRange,
+const priceScale = { width: () => 0, applyOptions: () => {}, getVisibleRange: () => priceRange,
   setVisibleRange: next => { priceRange = next; priceShift = (1 - next.from) * 100 } }
 const timeSeries = { setData: rows => { count('futureSetData'); futureTimes = rows },
   update: row => { count('futureUpdate'); futureTimes = [...futureTimes, row] },
@@ -90,7 +90,7 @@ const addIndicatorPane = () => {
   count('rsiPaneCreates')
   const paneSeries = new Set(); let volumePane = false
   const pane = { setStretchFactor() {}, paneIndex: () => panes.indexOf(pane), moveTo: index => { const old = panes.indexOf(pane); panes.splice(old, 1); panes.splice(index, 0, pane) }, getHeight: () => 140,
-    getHTMLElement: () => ({ offsetTop: 428 }), priceScale: () => ({ applyOptions() {} }),
+    getHTMLElement: () => ({ offsetTop: 428 }), priceScale: () => ({ width: () => 0, applyOptions() {} }),
     addSeries: definition => {
       if (definition?.type === 'histogram') volumePane = true
       let rows = []
@@ -104,7 +104,7 @@ const addIndicatorPane = () => {
   pane.fixtureSeries = paneSeries
   panes.push(pane); return pane
 }
-const chart = { addSeries: definition => definition.type === 'line' ? timeSeries : series, timeScale: () => scale, priceScale: () => priceScale,
+const chart = { options: () => ({ leftPriceScale: { visible: false } }), addSeries: definition => definition.type === 'line' ? timeSeries : series, timeScale: () => scale, priceScale: () => priceScale,
   applyOptions: () => count('chartOptions'), paneSize: () => ({ width: 900, height: 420 }),
   addPane: addIndicatorPane, panes: () => panes, removePane: index => { const [removed] = panes.splice(index, 1); for (const item of removed.fixtureSeries) indicatorSeries.delete(item) },
   subscribeCrosshairMove: fn => hoverListeners.add(fn), unsubscribeCrosshairMove: fn => hoverListeners.delete(fn),
@@ -120,7 +120,7 @@ globalThis.__terminalProbe = { count, clocks, createChart: () => { count('chartC
 globalThis.Worker = class { constructor() { count('workerCreated'); throw new Error('Lite must not create calculation workers') } }
 
 const canvasModule = `export const CandlestickSeries = {type:'candle'}, HistogramSeries = {type:'histogram'}, LineSeries = {type:'line'}, ColorType = { Solid: 'solid' }, CrosshairMode = { Normal: 0 },
-  TickMarkType = { Year: 0, Month: 1, DayOfMonth: 2, Time: 3, TimeWithSeconds: 4 }, LineStyle = { Dotted: 1, Dashed: 2 };
+  TickMarkType = { Year: 0, Month: 1, DayOfMonth: 2, Time: 3, TimeWithSeconds: 4 }, LineStyle = { Dotted: 1, Dashed: 2 }, LineType = { Simple: 0 };
   export const createChart = (...args) => globalThis.__terminalProbe.createChart(...args);
   export const createSeriesMarkers = (_series, markers) => globalThis.__terminalProbe.createMarkers(markers);`
 const server = await createServer({ root: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'),
@@ -400,7 +400,7 @@ try {
   bars[bars.length - 1] = { ...bars.at(-1), tick_volume: 150 }
   reset(); await tick('poll', 2000); await reply('ohlc')
   assert.equal(counters.volumeCandle, 1, 'A volume-only feed update calculates one row')
-  assert.equal(counters.volumeUpdate, 2, 'Histogram and optional average each update once')
+  assert.equal(counters.volumeUpdate, 3, 'Histogram, optional average and exact Relative line each update once')
   assert.equal(counters.volumeSetData ?? 0, 0, 'A volume tick never replaces indicator history')
   assert.match(container.querySelector('.volume-readout').textContent, /150 ticks/)
   assert.match(container.querySelector('.volume-session').textContent, /London \+ New York.*overlap.*now/)
@@ -433,7 +433,23 @@ try {
   await click(container.querySelector('[aria-label="Volume settings"]'))
   assert.doesNotMatch(container.querySelector('[role="dialog"]').textContent, /Comparison clock/)
   assert.match(container.querySelector('[role="dialog"]').textContent, /Sessions are automatic/)
-  await click([...container.querySelectorAll('.rsi-settings-dialog button')].find(button => button.textContent === 'Cancel'))
+  const volumeCheckbox = text => [...container.querySelectorAll('.rsi-settings-dialog label')].find(label => label.textContent.trim() === text).querySelector('input')
+  const changeCheckbox = async (text, checked) => React.act(async () => {
+    const input = volumeCheckbox(text)
+    input[Object.getOwnPropertyNames(input).find(key => key.startsWith('__reactProps$'))].onChange({ target: { checked } })
+  })
+  await changeCheckbox('Show pane controls', false)
+  await changeCheckbox('Show Relative activity line', false)
+  await click([...container.querySelectorAll('.rsi-settings-dialog button')].find(button => button.textContent === 'OK')); await flush()
+  assert.equal(container.querySelector('.volume-pane-controls').hidden, true)
+  assert.equal(JSON.parse(localStorage.getItem('fyodor.indicators.volume.v1')).paneControlsVisible, false)
+  assert.equal(JSON.parse(localStorage.getItem('fyodor.indicators.volume.v1')).relativeLineVisible, false)
+  await click(container.querySelector('[aria-label="Volume settings"]'))
+  assert.equal(volumeCheckbox('Show pane controls').checked, false)
+  await changeCheckbox('Show pane controls', true)
+  await changeCheckbox('Show Relative activity line', true)
+  await click([...container.querySelectorAll('.rsi-settings-dialog button')].find(button => button.textContent === 'Cancel')); await flush()
+  assert.equal(container.querySelector('.volume-pane-controls').hidden, true, 'Cancel leaves the hidden controls preference intact')
   await click(container.querySelector('[aria-label="Hide Volume"]')); await flush()
   assert.equal(panes.length, 2); assert.equal(indicatorSeries.size, 3, 'Volume removal preserves the RSI series')
   assert.equal(container.querySelector('.volume-legend'), null)

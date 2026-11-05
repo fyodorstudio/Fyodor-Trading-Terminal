@@ -93,5 +93,11 @@ try {
   dom.localStorage.setItem('fyodor.indicators.volume.v1', JSON.stringify({ lookback: 5, minimumSamples: 50, clock: 'invalid', upColor: 'transparent' }))
   const sanitized = readVolumePreferences()
   assert.equal(sanitized.minimumSamples, 5); assert.equal('clock' in sanitized, false, 'Legacy clock choice is ignored without losing other preferences'); assert.equal(sanitized.upColor, defaultVolumePreferences.upColor)
+  assert.equal(sanitized.relativeLineVisible, true, 'Existing settings enable the new exact Relative line')
+  assert.equal(sanitized.paneControlsVisible, true, 'Existing pane buttons remain available until hidden')
+  saveVolumePreferences({ ...p, relativeLineVisible: false, paneControlsVisible: false, relativeLineColor: '#123456' })
+  assert.equal(readVolumePreferences().relativeLineVisible, false)
+  assert.equal(readVolumePreferences().paneControlsVisible, false)
+  assert.equal(readVolumePreferences().relativeLineColor, '#123456')
   console.log('✓ Volume: automatic sessions/overlaps/header parity, session-relative ratios, prior-only baselines, DST/historical clocks, missing/zero data, mutable tail, correction/prepend, range coverage and closed bars; 100,000-bar live work = 1')
 } finally { await server.close(); await dom.happyDOM.close(); globalThis.window = oldWindow }

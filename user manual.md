@@ -61,6 +61,22 @@ prior failure context; full original records are [archived](docs/RESEARCH-ARCHIV
    its pane. RSI and Volume can be shown independently.
 2. Click **Raw** inside the pane to switch to **Relative**, or choose the mode
    through the Volume gear. For comparing intraday pushes, use Relative.
+   **Show Relative activity line** in the Volume gear is on by default. It joins
+   the exact Relative values for individual candles with straight segments: no
+   averaging or smoothing is applied to the line, so spikes and dips remain intact.
+   With Raw bars, the **left × scale** belongs to the line and the **right scale**
+   shows tick counts. With Relative bars, both use the right × scale. The dashed
+   **1×** reference means normal activity; the latest line value appears on its
+   scale. Missing baselines have no line values, and nothing extends into future
+   space. The optional raw tick average is separate and does not affect this line.
+
+   Turn off **Show pane controls** in the Volume gear to hide Raw/Relative,
+   Select A, Select B, Clear and Load older. The title and activity readout remain.
+   Mode and both visibility options stay accessible through the header gear and
+   are remembered on this device. Hidden controls cancel an unfinished A/B pick;
+   existing selected ranges remain. Scroll left to load more history while the
+   button strip is hidden, or turn it back on when needed.
+
 3. Sessions are automatic. Hover a candle in the price chart or Volume pane to
    see its session. Overlaps appear together, such as **London + New York**.
    Move away from the chart to return to **now** and the current active sessions.

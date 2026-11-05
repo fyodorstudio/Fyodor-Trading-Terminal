@@ -1,5 +1,7 @@
 .volume-legend { position: absolute; left: 10px; z-index: 4; max-width: calc(100% - 85px); overflow-y: auto; padding: 3px 6px; border-radius: 3px; background: var(--chart-background); color: var(--text-strong); font-size: 11px; line-height: 17px; pointer-events: auto; }
 .volume-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.volume-pane-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.volume-pane-controls[hidden] { display: none; }
 .volume-controls button { pointer-events: auto; border: 1px solid var(--border-strong); border-radius: 4px; padding: 1px 5px; background: var(--surface-inset); color: var(--text-strong); font: inherit; cursor: pointer; }
 .volume-controls button[aria-pressed="true"] { background: var(--accent); color: #ffffff; }
 .volume-controls button:disabled { color: var(--text-muted); cursor: default; }

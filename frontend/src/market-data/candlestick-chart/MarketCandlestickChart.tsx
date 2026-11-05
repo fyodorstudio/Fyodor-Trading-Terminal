@@ -427,6 +427,8 @@ function MarketCandlestickChartComponent({
     const container = containerRef.current
     if (!container) return
     const rect = container.getBoundingClientRect()
+    const leftWidth = chartRef.current?.options().leftPriceScale.visible ? chartRef.current.priceScale('left').width() : 0
+    if (event.clientX < rect.left + leftWidth) return
     const paneHeight = (rsi?.enabled || volume?.enabled) ? chartRef.current?.paneSize(0).height : undefined
     if (paneHeight !== undefined && event.clientY - rect.top >= paneHeight) return
     // Do not intercept if clicking on the right price scale area

@@ -39,7 +39,7 @@ const server = await createServer({ root: path.resolve(path.dirname(fileURLToPat
   ssr: { noExternal: ['lightweight-charts'] },
   server: { middlewareMode: true, hmr: false }, plugins: [{ name: 'real-rsi-chart', enforce: 'pre',
     resolveId(source) { if (source === 'lightweight-charts') return '\0rsi-chart-library' },
-    load(id) { if (id === '\0rsi-chart-library') return 'export const { CandlestickSeries, HistogramSeries, LineSeries, LineStyle, ColorType, CrosshairMode, TickMarkType, createChart } = globalThis.__rsiChartLibrary' },
+    load(id) { if (id === '\0rsi-chart-library') return 'export const { CandlestickSeries, HistogramSeries, LineSeries, LineStyle, LineType, ColorType, CrosshairMode, TickMarkType, createChart } = globalThis.__rsiChartLibrary' },
   }] })
 const { createRoot } = await import('react-dom/client')
 const host = document.createElement('div'), dialogHost = document.createElement('div'); document.body.append(host, dialogHost)
@@ -356,9 +356,13 @@ try {
   const liveDates = { from: endTime - 26 * 3600, to: endTime + 480 }
   await React.act(async () => {
     host.querySelector('.market-chart-canvas').dispatchEvent(new dom.Event('wheel', { bubbles: true }))
+    // Admit this dense manual fixture with either one or two visible axes,
+    // just as production restoration lowers the native spacing floor.
+    chart.applyOptions({ timeScale: { minBarSpacing: 0.1 } })
     chart.timeScale().setVisibleLogicalRange(projectDateWindow(liveDates, props.bars, 60))
   })
   await paint()
+  close(captureDateWindow(chart.timeScale().getVisibleLogicalRange(), props.bars, 60).from, liveDates.from, 'Live-follow fixture starts at its requested date with the separate axis')
   await changeFrame('D1', frameBars(86400))
   const currentDay = props.bars.at(-1)
   await render({ bars: replaceRecentBars(props.bars, [...props.bars.slice(-2), { ...currentDay, time: currentDay.time + 86400 }]) })
@@ -407,14 +411,59 @@ try {
   assert.equal(chart.panes()[2].getSeries()[0].seriesType(), 'Line')
   assert.equal(volumeSeries.data().length, bars.length)
   assert.equal(volumeSeries.data().at(-1).value, bars.at(-1).tickVolume)
+  const relativeLine = volumePane.getSeries()[2]
+  assert.equal(relativeLine.options().lineType, library.LineType.Simple, 'Relative values use straight segments, with no curved smoothing')
+  assert.equal(relativeLine.options().priceScaleId, 'left')
+  assert.equal(relativeLine.options().lastValueVisible, true)
+  assert.equal(relativeLine.options().priceFormat.formatter(1.5), '1.50×')
+  assert.equal(volumeSeries.options().priceFormat.type, 'volume', 'Raw ticks keep their own right-hand scale')
+  assert.ok(volumePane.priceScale('left').width() > 0)
+  const priceOverlays = host.querySelector('.chart-price-pane-overlays')
+  assert.equal(priceOverlays.style.left, `${volumePane.priceScale('left').width()}px`, 'Drawing and other price overlays follow the plot past the separate Relative axis')
+  assert.ok(relativeLine.priceLines().some(line => line.options().price === 1 && line.options().lineVisible), 'Relative line shows its own 1× reference')
+  const { createVolumeCalculator } = await server.ssrLoadModule('./src/market-data/indicators/volume/volume-calculation.ts')
+  const checkDirectRatios = inputBars => {
+    const rows = createVolumeCalculator().sync(inputBars, volume, { brokerId: null, brokerOffsetSeconds: 0 }, 3600).rows
+    assert.deepEqual(relativeLine.data().map(row => ({ time: row.time, value: row.value })),
+      rows.filter(row => row.relative !== undefined).map(row => ({ time: row.time, value: row.relative })), 'Every line sample is the exact per-candle Relative value')
+    return rows
+  }
+  checkDirectRatios(bars)
+  const spikyBars = bars.map((bar, i) => i === 1500 ? { ...bar, tickVolume: 10000 } : i === 1501 ? { ...bar, tickVolume: 1 } : bar)
+  await render({ bars: spikyBars })
+  checkDirectRatios(spikyBars)
+  assert.ok(relativeLine.dataByIndex(1500).value > 80, 'An isolated activity spike remains intact')
+  assert.ok(relativeLine.dataByIndex(1501).value < 0.02, 'The very next dip remains intact without moving-average lag')
+  const spikeSnapshot = relativeLine.data()
+  await render({ volume: { ...volume, averageVisible: true, averageLength: 100 } })
+  assert.deepEqual(relativeLine.data(), spikeSnapshot, 'Legacy raw average settings cannot smooth the Relative line')
+  await render({ bars, volume })
+  assert.equal(relativeLine.dataByIndex(0), null, 'Unavailable baselines are not fabricated as zeros')
+  assert.ok(relativeLine.data().every(point => point.time <= bars.at(-1).time), 'Relative line never projects values into future space')
+  const beforeLineToggle = chart.timeScale().getVisibleLogicalRange()
+  await render({ volume: { ...volume, relativeLineVisible: false, paneControlsVisible: false } })
+  assert.equal(host.querySelector('.volume-pane-controls').hidden, true)
+  assert.match(host.querySelector('.volume-controls').textContent, /Volume/, 'Hiding pane buttons keeps the indicator title')
+  assert.equal(relativeLine.options().visible, false)
+  assert.equal(relativeLine.data().length, 0, 'A hidden Relative line contributes no values to scaling')
+  assert.equal(chart.options().leftPriceScale.visible, false)
+  await render({ volume })
+  assert.equal(host.querySelector('.volume-pane-controls').hidden, false)
+  assert.equal(relativeLine.options().visible, true)
+  checkDirectRatios(bars)
+  close(chart.timeScale().getVisibleLogicalRange().from, beforeLineToggle.from, 'Line/controls toggles keep the left viewport date')
+  close(chart.timeScale().getVisibleLogicalRange().to, beforeLineToggle.to, 'Line/controls toggles keep the right viewport date')
   const volumeWindow = chart.timeScale().getVisibleLogicalRange()
   const volumeOnly = replaceRecentBars(bars, [{ ...bars.at(-1), tickVolume: 999 }])
   await render({ bars: volumeOnly })
   assert.equal(volumeSeries.data().at(-1).value, 999, 'Volume-only replies reach the histogram even when OHLC is unchanged')
+  checkDirectRatios(volumeOnly)
   const legend = host.querySelector('.volume-legend')
   await React.act(async () => [...legend.querySelectorAll('button')].find(button => button.textContent === 'Raw').click())
   await render({ volume })
   assert.equal(volumeSeries.options().priceFormat.formatter(1.5), '1.50×')
+  assert.equal(relativeLine.options().priceScaleId, 'right', 'Relative histogram and line share the same ratio scale')
+  assert.equal(chart.options().leftPriceScale.visible, false, 'Relative mode does not leave an unused second axis')
   assert.ok(volumeSeries.data().some(row => row.value > 0), 'Relative mode has prior-day baselines')
   assert.equal(volumeSeries.dataByIndex(0), null, 'Insufficient baseline history stays blank')
   // Use the actual public subscription with a captured subscriber, rather than
@@ -441,6 +490,7 @@ try {
   await render({ volume: { ...volume, enabled: false } })
   assert.equal(chart.panes().length, 2)
   assert.equal(chart.panes()[1].getSeries()[0].seriesType(), 'Line', 'Removing Volume preserves RSI')
+  assert.equal(chart.options().leftPriceScale.visible, false, 'Removing Volume restores the chart’s original left-axis visibility')
   close(chart.timeScale().getVisibleLogicalRange().to, volumeWindow.to, 'Pane toggles preserve the right viewport edge')
   await render({ volume, fitContentKey: 'GBPUSD:H1' })
   assert.equal(host.querySelector('.volume-comparison').textContent, '', 'Push selections reset across symbols')
@@ -449,8 +499,12 @@ try {
   saved = null
   await React.act(async () => dialogRoot.render(React.createElement(VolumeSettingsDialog, { preferences: volume, onSave: next => { saved = next }, onClose })))
   await React.act(async () => { const control = dialogHost.querySelector('select'); control.value = 'raw'; control.dispatchEvent(new dom.Event('change', { bubbles: true })) })
+  const checkbox = label => [...dialogHost.querySelectorAll('label')].find(element => element.textContent.trim() === label).querySelector('input')
+  await React.act(async () => reactProps(checkbox('Show pane controls')).onChange({ target: { checked: false } }))
+  await React.act(async () => reactProps(checkbox('Show Relative activity line')).onChange({ target: { checked: false } }))
   await React.act(async () => dialogHost.querySelector('form').dispatchEvent(new dom.Event('submit', { bubbles: true, cancelable: true })))
   assert.equal(saved.mode, 'raw'); assert.equal(saved.enabled, true)
+  assert.equal(saved.paneControlsVisible, false); assert.equal(saved.relativeLineVisible, false)
   await React.act(async () => dialogRoot.render(null))
   await React.act(async () => root.render(null)); await paint()
   await React.act(async () => root.render(React.createElement(React.StrictMode, null, React.createElement(MarketCandlestickChart, { ...props, volume }))))

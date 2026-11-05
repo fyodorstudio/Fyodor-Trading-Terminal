@@ -126,8 +126,13 @@ including overlaps. Sessions reuse the header's indicative regional hours and
 historical DST; no comparison-clock selection is needed. D1 uses prior daily
 bars. Defaults are up to 20 prior matches and a minimum of five;
 missing/zero-mean baselines stay blank. Load older or scroll left to build history.
-Raw mode offers an optional SMA. Visibility/settings persist across symbols and
-reloads. Select A/B then click each push's first and last candles in the Volume
+Show Relative activity line overlays each candle's exact ratio with straight
+segments and no averaging or smoothing. It is enabled by default: Raw bars keep
+ticks on the right and the line uses a separate left × scale with a 1× reference;
+Relative bars and the line share the right × scale. Missing baselines stay blank.
+Show pane controls hides the in-pane button strip while the header gear stays
+available. Raw mode also retains its separate optional SMA. Visibility/settings
+persist across symbols and reloads. Select A/B then click each push's first and last candles in the Volume
 pane to compare closed-bar total ticks, duration and mean relative activity.
 Selections are temporary and reset on broker/symbol/timeframe changes. No signal
 or trade direction is generated. See [Volume usage](user%20manual.md#volume-and-push-comparison).
