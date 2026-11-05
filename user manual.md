@@ -60,17 +60,20 @@ prior failure context; full original records are [archived](docs/RESEARCH-ARCHIV
 1. Click **Volume** beside RSI in the chart header. Drag the divider to resize
    its pane. RSI and Volume can be shown independently.
 2. Click **Raw** inside the pane to switch to **Relative**, or choose the mode
-   through the Volume gear. For comparing intraday pushes, use Relative.
-   **Show Relative activity line** in the Volume gear is on by default. It joins
+   through the Volume gear’s **Inputs** tab. **Inputs** contains Mode and baseline
+   settings; **Style** contains visibility and colours, matching RSI settings.
+   For comparing intraday pushes, use Relative.
+   **Show Relative activity line** in the Volume gear’s **Style** tab is on by default. It joins
    the exact Relative values for individual candles with straight segments: no
    averaging or smoothing is applied to the line, so spikes and dips remain intact.
+   The line stays above the bars, including while hovering over a volume bar.
    With Raw bars, the **left × scale** belongs to the line and the **right scale**
    shows tick counts. With Relative bars, both use the right × scale. The dashed
    **1×** reference means normal activity; the latest line value appears on its
    scale. Missing baselines have no line values, and nothing extends into future
    space. The optional raw tick average is separate and does not affect this line.
 
-   Turn off **Show pane controls** in the Volume gear to hide Raw/Relative,
+   Turn off **Show pane controls** in the Volume gear’s **Style** tab to hide Raw/Relative,
    Select A, Select B, Clear and Load older. The title and activity readout remain.
    Mode and both visibility options stay accessible through the header gear and
    are remembered on this device. Hidden controls cancel an unfinished A/B pick;

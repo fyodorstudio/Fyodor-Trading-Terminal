@@ -6,6 +6,7 @@ export function VolumeSettingsDialog({ preferences, onSave, onClose }: {
   preferences: VolumePreferences; onSave: (next: VolumePreferences) => void; onClose: () => void
 }) {
   const [draft, setDraft] = useState(preferences), [error, setError] = useState('')
+  const [tab, setTab] = useState<'inputs' | 'style'>('inputs')
   const dialog = useRef<HTMLFormElement>(null), id = useId()
   useEffect(() => {
     const focus = document.activeElement as HTMLElement | null
@@ -14,6 +15,7 @@ export function VolumeSettingsDialog({ preferences, onSave, onClose }: {
       if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); onClose() }
       if (event.key !== 'Tab') return
       const controls = [...(dialog.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), select:not(:disabled)') ?? [])]
+        .filter(control => control.tabIndex >= 0)
       const first = controls[0], last = controls.at(-1)
       if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus() }
       else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
@@ -29,33 +31,54 @@ export function VolumeSettingsDialog({ preferences, onSave, onClose }: {
         if (!Number.isInteger(draft.lookback) || draft.lookback < 5 || draft.lookback > 60 ||
           !Number.isInteger(draft.minimumSamples) || draft.minimumSamples < 1 || draft.minimumSamples > draft.lookback ||
           !Number.isInteger(draft.averageLength) || draft.averageLength < 1 || draft.averageLength > 200) {
-          setError('Use 5–60 previous sessions, minimum samples from 1 to previous sessions, and an average length from 1 to 200.'); return
+          setError('Use 5–60 previous sessions, minimum samples from 1 to previous sessions, and an average length from 1 to 200.'); setTab('inputs'); return
         }
         onSave({ ...draft, enabled: preferences.enabled }); onClose()
       }}>
       <header><strong id={`${id}-title`}>Volume · Ticks</strong><button type="button" onClick={onClose} aria-label="Close Volume settings">×</button></header>
-      <div className="rsi-settings-body">
-        <fieldset><legend>Activity display</legend>
+      <div className="rsi-settings-tabs" role="tablist" aria-label="Volume settings">
+        {(['inputs', 'style'] as const).map(item => <button key={item} type="button" role="tab" id={`${id}-${item}`}
+          aria-selected={tab === item} aria-controls={`${id}-panel`} tabIndex={tab === item ? 0 : -1}
+          onKeyDown={event => {
+            if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) {
+              event.preventDefault()
+              const next = event.key === 'Home' ? 'inputs' : event.key === 'End' ? 'style' : tab === 'inputs' ? 'style' : 'inputs'
+              setTab(next); document.getElementById(`${id}-${next}`)?.focus()
+            }
+          }} onClick={() => setTab(item)}>{item === 'inputs' ? 'Inputs' : 'Style'}</button>)}
+      </div>
+      <div className="rsi-settings-body" role="tabpanel" id={`${id}-panel`} aria-labelledby={`${id}-${tab}`}>
+        {tab === 'inputs' ? <>
+        <fieldset><legend>Activity data</legend>
           <label>Mode<select value={draft.mode} onChange={event => patch({ mode: event.target.value as VolumePreferences['mode'] })}>
             <option value="raw">Raw ticks</option><option value="relative">Relative activity</option></select></label>
-          <label>Show pane controls<input type="checkbox" checked={draft.paneControlsVisible} onChange={event => patch({ paneControlsVisible: event.target.checked })} /></label>
-          <label>Show Relative activity line<input type="checkbox" checked={draft.relativeLineVisible} onChange={event => patch({ relativeLineVisible: event.target.checked })} /></label>
-          <p>The line connects each candle's exact Relative value without averaging or smoothing. With Raw bars, read its × scale on the left; ticks stay on the right. With Relative bars, both use the right × scale. The dashed 1× line marks normal activity.</p>
-          <p>Sessions are automatic: hover a candle to see its session or overlap; move away to see the current session. Uses the same regional hours as the header, with daylight saving.</p>
-          <label>Previous sessions<input type="number" min="5" max="60" required value={draft.lookback} onChange={event => patch({ lookback: Number(event.target.value) })} /></label>
-          <label>Minimum samples<input type="number" min="1" max={draft.lookback} required value={draft.minimumSamples} onChange={event => patch({ minimumSamples: Number(event.target.value) })} /></label>
-          <p>Relative bars compare activity with matching candles in up to {draft.lookback} earlier occurrences of the same session or overlap. Matching uses the same time into that session period. D1 compares earlier daily bars.</p>
-          <p>At least {draft.minimumSamples} prior samples are needed. Missing history stays blank. Scroll left or use Load older in the pane to build the baseline; no future candles enter it.</p>
+          <label>Previous sessions<input aria-label="Previous sessions" type="number" min="5" max="60" required value={draft.lookback} onChange={event => patch({ lookback: Number(event.target.value) })} /></label>
+          <label>Minimum samples<input aria-label="Minimum samples" type="number" min="1" max={draft.lookback} required value={draft.minimumSamples} onChange={event => patch({ minimumSamples: Number(event.target.value) })} /></label>
+          <p>Sessions are automatic, including overlaps and daylight saving. Relative values compare matching candles in earlier sessions; D1 uses earlier daily bars.</p>
+          <p>Missing history stays blank. Scroll left or use Load older to build the baseline. Uses earlier candles only.</p>
         </fieldset>
-        <fieldset><legend>Style</legend>
+        <fieldset><legend>Raw tick average</legend>
+          <label>Average length<input aria-label="Average length" type="number" min="1" max="200" required disabled={!draft.averageVisible} value={draft.averageLength} onChange={event => patch({ averageLength: Number(event.target.value) })} /></label>
+          <p>Optional average for Raw bars, enabled in Style. This does not smooth the Relative activity line.</p>
+        </fieldset>
+        </> : <>
+        <fieldset><legend>Pane</legend>
+          <label>Show pane controls<input type="checkbox" checked={draft.paneControlsVisible} onChange={event => patch({ paneControlsVisible: event.target.checked })} /></label>
+        </fieldset>
+        <fieldset><legend>Volume bars</legend>
           <label>Up candle colour<input type="color" value={draft.upColor} onChange={event => patch({ upColor: event.target.value })} /></label>
           <label>Down candle colour<input type="color" value={draft.downColor} onChange={event => patch({ downColor: event.target.value })} /></label>
-          <label>Relative line colour<input type="color" value={draft.relativeLineColor} onChange={event => patch({ relativeLineColor: event.target.value })} /></label>
-          <label>Show raw tick average<input type="checkbox" checked={draft.averageVisible} onChange={event => patch({ averageVisible: event.target.checked })} /></label>
-          <label>Average length<input type="number" min="1" max="200" required value={draft.averageLength} onChange={event => patch({ averageLength: Number(event.target.value) })} /></label>
-          <label>Average colour<input type="color" value={draft.averageColor} onChange={event => patch({ averageColor: event.target.value })} /></label>
-          <p>Bar colours follow candle direction. They do not measure buy or sell volume. Relative mode shows a 1× normal-activity line.</p>
         </fieldset>
+        <fieldset><legend>Relative activity</legend>
+          <label>Show Relative activity line<input type="checkbox" checked={draft.relativeLineVisible} onChange={event => patch({ relativeLineVisible: event.target.checked })} /></label>
+          <label>Relative line colour<input type="color" value={draft.relativeLineColor} onChange={event => patch({ relativeLineColor: event.target.value })} /></label>
+          <p>Exact values, with no smoothing. Raw bars use the left × scale; Relative bars share the right × scale. The dashed 1× line marks normal activity.</p>
+        </fieldset>
+        <fieldset><legend>Raw tick average</legend>
+          <label>Show raw tick average<input type="checkbox" checked={draft.averageVisible} onChange={event => patch({ averageVisible: event.target.checked })} /></label>
+          <label>Average colour<input type="color" value={draft.averageColor} onChange={event => patch({ averageColor: event.target.value })} /></label>
+        </fieldset>
+        </>}
         {error && <p role="alert">{error}</p>}
       </div>
       <footer><button type="button" onClick={() => { setDraft({ ...defaultVolumePreferences, enabled: preferences.enabled }); setError('') }}>Reset defaults</button>

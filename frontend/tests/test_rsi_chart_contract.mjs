@@ -13,13 +13,14 @@ const globals = { window: dom, document: dom.document, HTMLElement: dom.HTMLElem
   getComputedStyle: dom.getComputedStyle.bind(dom), IS_REACT_ACT_ENVIRONMENT: true }
 const previous = new Map([...Object.keys(globals), '__rsiChartLibrary'].map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]))
 for (const [key, value] of Object.entries(globals)) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value })
-const frames = new Map(), contexts = new WeakMap(), paintedText = [], paintedFills = []; let frameId = 0
+const frames = new Map(), contexts = new WeakMap(), paintedText = [], paintedFills = [], volumeLayers = []; let frameId = 0, captureVolumeLayers = false
 dom.requestAnimationFrame = fn => { frames.set(++frameId, fn); return frameId }
 dom.cancelAnimationFrame = id => frames.delete(id)
 dom.HTMLCanvasElement.prototype.getContext = function () {
   if (!contexts.has(this)) contexts.set(this, new Proxy({ canvas: this,
     fillText: text => paintedText.push(String(text)),
-    fillRect(x, y, width, height) { paintedFills.push({ x, y, width, height, color: this.fillStyle, alpha: this.globalAlpha }) },
+    stroke() { if (captureVolumeLayers) volumeLayers.push({ kind: 'line', color: this.strokeStyle }) },
+    fillRect(x, y, width, height) { if (captureVolumeLayers) volumeLayers.push({ kind: 'bar', color: this.fillStyle }); paintedFills.push({ x, y, width, height, color: this.fillStyle, alpha: this.globalAlpha }) },
     measureText: text => ({ width: String(text).length * 7, actualBoundingBoxAscent: 10, actualBoundingBoxDescent: 3 }),
   }, { get: (target, key) => target[key] ?? (() => {}), set: (target, key, value) => { target[key] = value; return true } }))
   return contexts.get(this)
@@ -412,6 +413,14 @@ try {
   assert.equal(volumeSeries.data().length, bars.length)
   assert.equal(volumeSeries.data().at(-1).value, bars.at(-1).tickVolume)
   const relativeLine = volumePane.getSeries()[2]
+  assert.equal(chart.options().hoveredSeriesOnTop, false, 'Hover cannot promote the histogram above the Relative line')
+  assert.ok(relativeLine.seriesOrder() > volumeSeries.seriesOrder())
+  captureVolumeLayers = true
+  chart.timeScale().setVisibleLogicalRange({ from: 1450, to: 1550 }); await paint()
+  const lastBar = volumeLayers.findLastIndex(layer => layer.kind === 'bar' && [volume.upColor, volume.downColor].includes(layer.color))
+  const lastLine = volumeLayers.findLastIndex(layer => layer.kind === 'line' && layer.color === volume.relativeLineColor)
+  assert.ok(lastBar >= 0 && lastLine > lastBar, 'Native canvas paints the Relative line after the volume bars')
+  captureVolumeLayers = false
   assert.equal(relativeLine.options().lineType, library.LineType.Simple, 'Relative values use straight segments, with no curved smoothing')
   assert.equal(relativeLine.options().priceScaleId, 'left')
   assert.equal(relativeLine.options().lastValueVisible, true)
@@ -463,6 +472,8 @@ try {
   await render({ volume })
   assert.equal(volumeSeries.options().priceFormat.formatter(1.5), '1.50×')
   assert.equal(relativeLine.options().priceScaleId, 'right', 'Relative histogram and line share the same ratio scale')
+  assert.ok(relativeLine.seriesOrder() > volumeSeries.seriesOrder(), 'Mode changes preserve the line above the bars')
+  assert.equal(chart.options().hoveredSeriesOnTop, false)
   assert.equal(chart.options().leftPriceScale.visible, false, 'Relative mode does not leave an unused second axis')
   assert.ok(volumeSeries.data().some(row => row.value > 0), 'Relative mode has prior-day baselines')
   assert.equal(volumeSeries.dataByIndex(0), null, 'Insufficient baseline history stays blank')
@@ -491,6 +502,7 @@ try {
   assert.equal(chart.panes().length, 2)
   assert.equal(chart.panes()[1].getSeries()[0].seriesType(), 'Line', 'Removing Volume preserves RSI')
   assert.equal(chart.options().leftPriceScale.visible, false, 'Removing Volume restores the chart’s original left-axis visibility')
+  assert.equal(chart.options().hoveredSeriesOnTop, true, 'Removing Volume restores the previous hover-order preference')
   close(chart.timeScale().getVisibleLogicalRange().to, volumeWindow.to, 'Pane toggles preserve the right viewport edge')
   await render({ volume, fitContentKey: 'GBPUSD:H1' })
   assert.equal(host.querySelector('.volume-comparison').textContent, '', 'Push selections reset across symbols')
@@ -499,12 +511,39 @@ try {
   saved = null
   await React.act(async () => dialogRoot.render(React.createElement(VolumeSettingsDialog, { preferences: volume, onSave: next => { saved = next }, onClose })))
   await React.act(async () => { const control = dialogHost.querySelector('select'); control.value = 'raw'; control.dispatchEvent(new dom.Event('change', { bubbles: true })) })
+  const volumeTab = name => [...dialogHost.querySelectorAll('[role="tab"]')].find(tab => tab.textContent === name)
+  assert.equal(volumeTab('Inputs').getAttribute('aria-selected'), 'true')
+  assert.equal(dialogHost.querySelectorAll('input[type="color"]').length, 0, 'Inputs contains data settings only')
+  await React.act(async () => volumeTab('Inputs').dispatchEvent(new dom.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })))
+  assert.equal(volumeTab('Style').getAttribute('aria-selected'), 'true')
+  assert.equal(document.activeElement, volumeTab('Style'))
+  assert.equal(dialogHost.querySelector('[role="tabpanel"]').getAttribute('aria-labelledby'), volumeTab('Style').id)
+  assert.equal(dialogHost.querySelector('select'), null, 'Style contains visual settings only')
   const checkbox = label => [...dialogHost.querySelectorAll('label')].find(element => element.textContent.trim() === label).querySelector('input')
   await React.act(async () => reactProps(checkbox('Show pane controls')).onChange({ target: { checked: false } }))
   await React.act(async () => reactProps(checkbox('Show Relative activity line')).onChange({ target: { checked: false } }))
   await React.act(async () => dialogHost.querySelector('form').dispatchEvent(new dom.Event('submit', { bubbles: true, cancelable: true })))
   assert.equal(saved.mode, 'raw'); assert.equal(saved.enabled, true)
   assert.equal(saved.paneControlsVisible, false); assert.equal(saved.relativeLineVisible, false)
+  await React.act(async () => dialogRoot.render(null))
+  saved = null
+  const reopenVolume = () => dialogRoot.render(React.createElement(VolumeSettingsDialog, { preferences: volume, onSave: next => { saved = next }, onClose }))
+  await React.act(async () => reopenVolume())
+  await React.act(async () => reactProps(dialogHost.querySelector('[aria-label="Previous sessions"]')).onChange({ target: { value: '1' } }))
+  await React.act(async () => volumeTab('Style').click())
+  await React.act(async () => dialogHost.querySelector('form').dispatchEvent(new dom.Event('submit', { bubbles: true, cancelable: true })))
+  assert.equal(saved, null)
+  assert.equal(volumeTab('Inputs').getAttribute('aria-selected'), 'true', 'Validation returns to the tab containing the invalid input')
+  assert.ok(dialogHost.querySelector('[role="alert"]'))
+  await React.act(async () => [...dialogHost.querySelectorAll('button')].find(button => button.textContent === 'Reset defaults').click())
+  assert.equal(dialogHost.querySelector('[aria-label="Previous sessions"]').value, '20')
+  await React.act(async () => volumeTab('Inputs').dispatchEvent(new dom.KeyboardEvent('keydown', { key: 'End', bubbles: true })))
+  assert.equal(volumeTab('Style').getAttribute('aria-selected'), 'true')
+  await React.act(async () => reactProps(checkbox('Show pane controls')).onChange({ target: { checked: false } }))
+  await React.act(async () => volumeTab('Style').dispatchEvent(new dom.KeyboardEvent('keydown', { key: 'Home', bubbles: true })))
+  assert.equal(volumeTab('Inputs').getAttribute('aria-selected'), 'true')
+  await React.act(async () => [...dialogHost.querySelectorAll('button')].find(button => button.textContent === 'Cancel').click())
+  assert.equal(saved, null, 'Cancel discards drafts changed across either tab')
   await React.act(async () => dialogRoot.render(null))
   await React.act(async () => root.render(null)); await paint()
   await React.act(async () => root.render(React.createElement(React.StrictMode, null, React.createElement(MarketCandlestickChart, { ...props, volume }))))

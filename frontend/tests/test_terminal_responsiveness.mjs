@@ -97,6 +97,7 @@ const addIndicatorPane = () => {
       const line = { applyOptions() {}, setData: next => { count(volumePane ? 'volumeSetData' : 'rsiSetData'); rows = [...next] },
         update: row => { count(volumePane ? 'volumeUpdate' : 'rsiUpdate'); if (rows.at(-1)?.time === row.time) rows[rows.length - 1] = row; else rows.push(row) },
         data: () => rows, priceToCoordinate: value => 140 - value,
+        seriesOrder: () => [...paneSeries].indexOf(line), setSeriesOrder() {},
         attachPrimitive: primitive => primitives.add(primitive), detachPrimitive: primitive => primitives.delete(primitive),
         createPriceLine: () => ({ applyOptions() {} }) }
       indicatorSeries.add(line); paneSeries.add(line); return line
@@ -362,6 +363,7 @@ try {
   await flush()
   assert.equal(plotted.length, 800)
   assert.equal(Math.floor(futureTimes.at(-1).time / 86400), Math.floor(plotted.at(-1).time / 86400) + 90)
+  assert.equal(container.querySelector('[aria-label="Volume settings"] svg').outerHTML, container.querySelector('[aria-label="RSI settings"] svg').outerHTML, 'Volume and RSI use the identical gear icon')
   const indicatorControls = container.querySelector('[aria-label="Show RSI"]').parentElement
   assert.equal(container.querySelector('[aria-label="Show Volume"]').parentElement.nextElementSibling, indicatorControls, 'Volume sits beside RSI')
   assert.equal(indicatorControls.nextElementSibling.getAttribute('aria-label'), 'Chart timeframe', 'RSI controls are immediately left of timeframes')
@@ -433,6 +435,8 @@ try {
   await click(container.querySelector('[aria-label="Volume settings"]'))
   assert.doesNotMatch(container.querySelector('[role="dialog"]').textContent, /Comparison clock/)
   assert.match(container.querySelector('[role="dialog"]').textContent, /Sessions are automatic/)
+  const volumeStyleTab = () => [...container.querySelectorAll('[role="tab"]')].find(tab => tab.textContent === 'Style')
+  await click(volumeStyleTab())
   const volumeCheckbox = text => [...container.querySelectorAll('.rsi-settings-dialog label')].find(label => label.textContent.trim() === text).querySelector('input')
   const changeCheckbox = async (text, checked) => React.act(async () => {
     const input = volumeCheckbox(text)
@@ -445,6 +449,7 @@ try {
   assert.equal(JSON.parse(localStorage.getItem('fyodor.indicators.volume.v1')).paneControlsVisible, false)
   assert.equal(JSON.parse(localStorage.getItem('fyodor.indicators.volume.v1')).relativeLineVisible, false)
   await click(container.querySelector('[aria-label="Volume settings"]'))
+  await click(volumeStyleTab())
   assert.equal(volumeCheckbox('Show pane controls').checked, false)
   await changeCheckbox('Show pane controls', true)
   await changeCheckbox('Show Relative activity line', true)

@@ -113,7 +113,12 @@ export function ChartWorkspaceHeader({
         {onToggleVolume && <div className="rsi-header-controls" role="group" aria-label="Volume indicator">
           <button type="button" aria-pressed={volumeEnabled} onClick={onToggleVolume}
             aria-label={volumeEnabled ? 'Hide Volume' : 'Show Volume'} title={volumeEnabled ? 'Hide Volume' : 'Show Volume'}>Volume</button>
-          <button type="button" onClick={onOpenVolumeSettings} aria-label="Volume settings" title="Volume settings" aria-haspopup="dialog">&#9881;</button>
+          <button type="button" onClick={onOpenVolumeSettings} aria-label="Volume settings" title="Volume settings" aria-haspopup="dialog">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="m9 3-.5 2.2-2 .9L4.6 5 2 9.5l1.8 1.4v2.2L2 14.5 4.6 19l1.9-1.1 2 .9L9 21h6l.5-2.2 2-.9 1.9 1.1 2.6-4.5-1.8-1.4v-2.2L22 9.5 19.4 5l-1.9 1.1-2-.9L15 3z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+          </button>
         </div>}
         {onToggleRsi && <div className="rsi-header-controls" role="group" aria-label="Indicators">
           <button type="button" aria-pressed={rsiEnabled} onClick={onToggleRsi}

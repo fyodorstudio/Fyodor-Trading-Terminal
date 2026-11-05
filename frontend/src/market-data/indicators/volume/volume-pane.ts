@@ -16,6 +16,9 @@ export function createVolumePane(chart: IChartApi) {
   const average = pane.addSeries(LineSeries, { priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false })
   const initialLeftVisibility = chart.options().leftPriceScale.visible
   const initialLeftMinimumWidth = chart.options().leftPriceScale.minimumWidth ?? 0
+  const initialHoveredSeriesOnTop = chart.options().hoveredSeriesOnTop
+  // Hovering a histogram must not promote its solid bars over the Relative line.
+  chart.applyOptions({ hoveredSeriesOnTop: false })
   const compactRatio = new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 })
   const relativeLine = pane.addSeries(LineSeries, { priceScaleId: 'left', lineType: LineType.Simple, lineWidth: 2,
     priceLineVisible: false, lastValueVisible: true, crosshairMarkerVisible: true,
@@ -163,6 +166,7 @@ export function createVolumePane(chart: IChartApi) {
         histogram.applyOptions({ priceFormat: next.mode === 'raw' ? { type: 'volume' } : { type: 'custom', minMove: 0.01, formatter: (value: number) => `${value.toFixed(2)}×` } })
         relativeLine.applyOptions({ priceScaleId: next.mode === 'raw' ? 'left' : 'right', color: next.relativeLineColor,
           visible: next.relativeLineVisible, lastValueVisible: next.relativeLineVisible, crosshairMarkerVisible: next.relativeLineVisible })
+        if (relativeLine.seriesOrder() !== 2) relativeLine.setSeriesOrder(2)
         // Keep the extra axis width stable as history clears/reloads and candle
         // values change, so native layout cannot shift the saved date window.
         const separateScale = next.mode === 'raw' && next.relativeLineVisible
@@ -195,7 +199,8 @@ export function createVolumePane(chart: IChartApi) {
       window.clearInterval(sessionTimer)
       if (frame !== null) window.cancelAnimationFrame(frame)
       chart.unsubscribeCrosshairMove(onHover); chart.unsubscribeClick(onClick); window.removeEventListener('keydown', onKey)
-      chart.applyOptions({ leftPriceScale: { visible: initialLeftVisibility, minimumWidth: initialLeftMinimumWidth } })
+      chart.applyOptions({ hoveredSeriesOnTop: initialHoveredSeriesOnTop,
+        leftPriceScale: { visible: initialLeftVisibility, minimumWidth: initialLeftMinimumWidth } })
       histogram.detachPrimitive(primitive); legend.remove(); chart.removePane(pane.paneIndex())
     },
   }
