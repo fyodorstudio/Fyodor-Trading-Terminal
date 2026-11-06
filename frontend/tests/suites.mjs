@@ -29,6 +29,7 @@ export const suites = [
   "tests/test_calendar_storage.mjs",
   "tests/test_recent_events.mjs",
   "tests/test_currency_details.mjs",
+  "tests/test_currency_ledger.mjs",
   "tests/test_broker_clocks.mjs",
   "tests/test_activity_log.mjs",
   "tests/test_publisher_activity.mjs",

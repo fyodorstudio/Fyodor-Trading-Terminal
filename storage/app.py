@@ -26,6 +26,7 @@ from .recent_calendar import recent_snapshot
 from .currency_details import DetailRefresh, save_details
 from .detail_projection import detail_snapshot
 from .detail_registry import resolve_scope
+from .currency_ledger import ledger_snapshot
 from .market_watch_daily import DailyMarketWatch
 
 
@@ -63,6 +64,16 @@ def create_app(directory=None, run_collector=True, highlights_path=HIGHLIGHTS_PA
     app = FastAPI(title="Fyodor Calendar Storage", version="1.1.0", lifespan=lifespan)
     daily_market = DailyMarketWatch()
     details_directory = (directory or data_directory()) / 'currency-details'
+
+    @app.get('/api/v1/currency-ledger')
+    def currency_ledger(source_id: str = Query(min_length=1, max_length=160),
+                        after_revision: str | None = Query(default=None, max_length=64),
+                        year: int | None = Query(default=None, ge=2015, le=2100),
+                        scope: str = Query(default='USDCAD',max_length=128)):
+        try:
+            return ledger_snapshot(app.state.store, source_id, after_revision, year=year, currencies=resolve_scope(scope))
+        except ValueError as error:
+            raise HTTPException(422, str(error)) from error
 
     @app.get('/api/v1/currency-details')
     def currency_details(source_id: str = Query(min_length=1, max_length=160), scope: str = Query(max_length=128),

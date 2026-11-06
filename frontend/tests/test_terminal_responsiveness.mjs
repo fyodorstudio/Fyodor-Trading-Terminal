@@ -49,12 +49,13 @@ const drawChartFrame = () => { for (const primitive of primitives) for (const vi
 const counters = {}, clocks = [], workerInputs = [], rangeListeners = new Set(), sizeListeners = new Set(), hoverListeners = new Set(), clickListeners = new Set()
 const count = name => { counters[name] = (counters[name] ?? 0) + 1 }
 const reset = () => { for (const key of Object.keys(counters)) delete counters[key]; clocks.length = 0 }
-let range = { from: now / 1000 + 10800 - 10 * 3600, to: now / 1000 + 10800 }, logicalRange = { from: 790, to: 800 }, plotted = []
+let range = { from: now / 1000 + 10800 - 10 * 3600, to: now / 1000 + 10800 }, logicalRange = { from: 790, to: 800 }, plotted = [], ledgerPickTime = null
 let futureTimes = []
 const scale = {
   width: () => 900, options: () => ({ barSpacing: 80 }), getVisibleRange: () => range,
   getVisibleLogicalRange: () => logicalRange,
   timeToCoordinate: time => (Number(time) - Number(range.from)) / 3600 * 80,
+  coordinateToTime: () => ledgerPickTime,
   timeToIndex: time => plotted.findIndex(bar => bar.time === time),
   logicalToCoordinate: index => Number.isInteger(index) ? (index - logicalRange.from) * 80 : 0,
   coordinateToLogical: x => Math.ceil(x / 80 + logicalRange.from),
@@ -133,6 +134,7 @@ const server = await createServer({ root: path.resolve(path.dirname(fileURLToPat
     resolveId(source) { if (source === 'lightweight-charts') return '\0terminal-canvas-fixture' },
     load(id) { if (id === '\0terminal-canvas-fixture') return canvasModule },
     transform(code, id) {
+      if (id.endsWith('/LedgerTimeline.tsx')) return code.replace('  const viewport =', "  globalThis.__terminalProbe.count('ledgerTimeline'); const viewport =")
       if (id.endsWith('/EventsDock.tsx')) return code.replace('  const alarms = useAlarms()',
         "  globalThis.__terminalProbe.count('eventsDock'); const alarms = useAlarms()")
       if (id.endsWith('/HighlightDock.tsx')) return code.replace('const [expanded, setExpanded]', "globalThis.__terminalProbe.count('highlightCard'); const [expanded, setExpanded]")
@@ -277,6 +279,19 @@ globalThis.fetch = (url, options = {}) => {
           sources: registry.sources, focus: [], metrics: registry.metrics.filter(m => currencies.includes(m.currency)).map(m => ({
             ...m, broker: null, broker_next: null, official: null, official_latest: false, comparison: 'not_checked',
             check: null, next_releases: [], schedule_known: false, schedule_elapsed: false })) } })
+  }
+  if (u.startsWith('/storage-api/currency-ledger')) {
+    const q = new URL(u, 'http://localhost').searchParams, year=Number(q.get('year')), revision = 'e'.repeat(64)
+    const registry = JSON.parse(fs.readFileSync(new URL('../../config/currency-details.json', import.meta.url), 'utf8'))
+    const day = new Date(now - 86400000).toISOString().slice(0,10),currencies=[q.get('scope').slice(0,3),q.get('scope').slice(3)]
+    return Promise.resolve({ ok: true, json: async () => q.get('after_revision') === revision
+      ? { schema: 1, broker, year, currencies, revision, unchanged: true }
+      : { schema: 1, broker, year, min_year:2015,max_year:2026,revision, currencies, from_date: `${year}-01-01`, through_date: `${year}-12-31`,
+          metrics: registry.metrics.filter(m => currencies.includes(m.currency) && (m.id.endsWith('.rate')||['usd.cpi-yoy','usd.cpi-mom'].includes(m.id))).map(m => ({ ...m,
+            source_url: registry.sources[m.source].url, entries: [{ value_id: m.id, event_id: m.broker_event_id,
+              name: m.label, value: m.currency === 'USD' ? 4 : 2.5, previous: m.currency === 'USD' ? 4 : 2.25,
+              revised_previous: null, forecast: null, period: day, at: now-86400000, date: day, day,
+              availability: 'observed', known_at: now-86400000, captured_at: new Date(now-86400000).toISOString() }] })) } })
   }
   if (u.startsWith('/storage-api/health')) return Promise.resolve({ ok: true, json: async () => ({ revision: calendarRevision,
     sources: [{ id: broker, publisher_status: 'live', server_now: now / 1000, instance_id: 'fixture' }], collector_error: null }) })
@@ -490,7 +505,15 @@ try {
   assert.equal(panes.length, 2); assert.equal(indicatorSeries.size, 3, 'Volume removal preserves the RSI series')
   assert.equal(container.querySelector('.volume-legend'), null)
   assert.deepEqual([...container.querySelectorAll('[aria-label="App features"] button')].map(node => node.textContent.trim().replace(/\s+\d+$/, '')),
-    ['Alert', 'Currency News', 'Inspector', 'Entry Trade', 'Activity', '⚙ Settings'])
+    ['Alert', 'Currency News', 'Ledger', 'Inspector', 'Entry Trade', 'Activity', '⚙ Settings'])
+  reset()
+  const ledgerRequests = requests.length
+  await click(button('Ledger'))
+  assert.ok(container.querySelector('[aria-label="Open EUR Ledger scorecard"]'))
+  assert.ok(container.querySelector('[aria-label="Resize Ledger dock"]'))
+  assert.equal(requests.slice(ledgerRequests).some(url => url.startsWith('/storage-api/currency-ledger')), true, 'Every major pair can load Ledger data')
+  assertQuiet('Opening EUR/USD Ledger')
+  await click(button('Ledger'))
   reset()
   await click(button('Currency News'))
   assert.ok(container.querySelector('[aria-label="Currency News"]'))
@@ -931,7 +954,7 @@ try {
   assert.equal(document.querySelector('[aria-label="Research question"]').value, 'Was this USD strength or EUR weakness?')
   assert.equal(counters.chartCreated ?? 0, 0); assert.equal(counters.setData ?? 0, 0)
   assert.deepEqual(logicalRange, recentWindow)
-  assert.deepEqual([...container.querySelectorAll('.currency-detail-panel thead th')].map(n => n.textContent), ['EUR', 'USD'])
+  assert.deepEqual([...container.querySelectorAll('.currency-detail-panel thead th')].map(n => n.textContent), ['Category', 'EUR', 'USD'])
   reset(); await tick('pollDetail', 30000)
   assertQuiet('Unchanged Detail poll', true)
   await click(container.querySelector('[aria-label="Show events"]')); await flush()
@@ -1378,6 +1401,108 @@ try {
   await click(button('Currency News'))
   assert.equal(container.querySelector('[data-news-story]').dataset.newsStory, 'CHF-fixture', 'Focused news selection survives reopening')
   await click(button('Currency News'))
+  // The supported Ledger shares its cutoff with existing right Detail without
+  // making chart ticks, viewport work or calendar selections depend on that clock.
+  quotes = [...quotes, { ...quotes[0], symbol: 'USDCAD', description: 'USD / CAD' }]
+  await tick('poll', 2500); await reply('watch'); await flush()
+  await switchSymbol('USDCAD')
+  for(const [id,valueId] of [['840030007','usd.cpi-yoy'],['840030005','usd.cpi-mom']]) {
+    events.push({...event(id,now-86400000,4,4),value_id:valueId})
+  }
+  calendarRevision++
+  const ledgerViewportBefore = { ...logicalRange }, ledgerDrawingsBefore = localStorage.getItem('fyodor.chart-drawings.v1')
+  reset(); await click(button('Ledger')); await flush()
+  assert.ok(container.querySelector('[aria-label="Open CAD Ledger scorecard"]'))
+  assertQuiet('Opening supported Ledger')
+  await click(container.querySelector('[aria-label="Open CAD Ledger scorecard"]')); await flush()
+  assert.equal(container.querySelector('#currency-detail-title').textContent, 'Fundamental Detail')
+  assert.ok(container.querySelector('[data-ledger-category="CAD-policy"]'))
+  assert.deepEqual(logicalRange, ledgerViewportBefore, 'Opening Ledger Detail preserves the chart viewport')
+  reset()
+  const ledgerResize=container.querySelector('[aria-label="Resize Ledger dock"]')
+  const resizeCaptures=new Set()
+  ledgerResize.setPointerCapture=id=>resizeCaptures.add(id)
+  ledgerResize.hasPointerCapture=id=>resizeCaptures.has(id)
+  ledgerResize.releasePointerCapture=id=>resizeCaptures.delete(id)
+  await React.act(async()=>props(ledgerResize).onPointerDown({button:0,pointerId:91,clientY:500,currentTarget:ledgerResize,preventDefault(){}}))
+  for(let i=0;i<40;i++) await React.act(async()=>props(ledgerResize).onPointerMove({pointerId:91,clientY:500-i*3,currentTarget:ledgerResize}))
+  await React.act(async()=>props(ledgerResize).onPointerUp({pointerId:91,currentTarget:ledgerResize}))
+  assert.equal(counters.ledgerTimeline??0,0,'Forty dock resize updates never repaint the date tape')
+  assertQuiet('Ledger dock resize')
+  reset()
+  const ledgerInput = container.querySelector('[aria-label="Ledger as-of date"]')
+  await React.act(async () => {
+    Object.getOwnPropertyDescriptor(dom.HTMLInputElement.prototype,'value').set.call(ledgerInput,'2026-09-09')
+    ledgerInput.dispatchEvent(new dom.Event('input',{bubbles:true}))
+    ledgerInput.dispatchEvent(new dom.Event('change',{bubbles:true}))
+  })
+  assertQuiet('Ledger historical cutoff', true)
+  assert.equal(container.querySelectorAll('[data-ledger-category="CAD-policy"] strong')[0].textContent, 'Unassessed')
+  const ledgerRequestCount = requests.length
+  await React.act(async () => { for (let i=0;i<100;i++) container.querySelector('.ledger-viewport').dispatchEvent(new dom.Event('scroll')) })
+  await flush()
+  assert.equal(requests.length,ledgerRequestCount)
+  assertQuiet('Ledger tape scrolling', true)
+  await tick('pollLedger',30000)
+  assertQuiet('Ledger local clock / unchanged poll', true)
+  assert.equal(ledgerInput.value,'2026-09-09')
+  assert.equal(localStorage.getItem('fyodor.chart-drawings.v1'),ledgerDrawingsBefore)
+  const pickerButton=container.querySelector('[aria-label="Pick Ledger date from a chart candle"]')
+  assert.equal(pickerButton.nextElementSibling.textContent,'Today','Cursor sits immediately left of Today')
+  assert.equal(pickerButton.textContent.trim(),'⌖')
+  reset();await click(pickerButton)
+  assertQuiet('Arming Ledger candle picker',true)
+  assert.equal(pickerButton.getAttribute('aria-pressed'),'true')
+  assert.equal(container.querySelector('.ledger-candle-picker'),null,'No overlay intercepts native crosshair movement')
+  assert.equal(chart.chartElement().dataset.ledgerPicking,'true')
+  const pickAt=async(x=100,y=50)=>React.act(async()=>{
+    for(const listener of [...clickListeners]) listener({point:{x,y},time:ledgerPickTime,paneIndex:y>=420?1:0})
+  })
+  ledgerPickTime=Number(bars.at(-1).time)+86400
+  await pickAt()
+  assert.equal(ledgerInput.value,'2026-09-09','Future whitespace cannot select a date')
+  assert.equal(chart.chartElement().dataset.ledgerPicking,'true')
+  ledgerPickTime=Number(bars.at(-10).time)
+  await pickAt(950,50);await pickAt(100,500)
+  assert.equal(ledgerInput.value,'2026-09-09','Axes and indicator-pane clicks are ignored')
+  const pickedDay=new Date(ledgerPickTime*1000+4*3600000).toISOString().slice(0,10) // October: broker UTC+3, Jakarta UTC+7.
+  await pickAt();await flush()
+  assert.equal(ledgerInput.value,pickedDay)
+  assert.equal(pickerButton.getAttribute('aria-pressed'),'false','Picking is one-use')
+  assert.equal(chart.chartElement().dataset.ledgerPicking,undefined)
+  assert.ok(container.querySelector(`[data-ledger-date="${pickedDay}"]`),'Selected candle date is brought into the tape viewport')
+  assert.deepEqual(logicalRange,ledgerViewportBefore)
+  assert.equal(localStorage.getItem('fyodor.chart-drawings.v1'),ledgerDrawingsBefore)
+  await click(pickerButton)
+  await React.act(async()=>window.dispatchEvent(new dom.KeyboardEvent('keydown',{key:'Escape',bubbles:true})))
+  assert.equal(chart.chartElement().dataset.ledgerPicking,undefined,'Escape cancels picking')
+  await click(pickerButton);await click(pickerButton.nextElementSibling)
+  assert.equal(chart.chartElement().dataset.ledgerPicking,undefined,'Today cancels picking')
+  assert.equal(ledgerInput.value,new Date(now+7*3600000).toISOString().slice(0,10))
+  const beforeInspectDate=ledgerInput.value, beforeInspectFilters=localStorage.getItem('fyodor.inspector.shared.v1')
+  const ledgerScroll=container.querySelector('.ledger-viewport'), headerScroll=container.querySelector('.ledger-release-header')
+  ledgerScroll.scrollLeft+=100;ledgerScroll.scrollTop=21;headerScroll.scrollLeft=111
+  await React.act(async()=>{ledgerScroll.dispatchEvent(new dom.Event('scroll'));headerScroll.dispatchEvent(new dom.Event('scroll'))});await flush()
+  const savedLedgerLeft=ledgerScroll.scrollLeft
+  const cpiEvent=[...container.querySelectorAll('.ledger-event')].find(n=>n.querySelector('strong').textContent==='Headline CPI YoY')
+  await click(cpiEvent);await flush()
+  assert.ok(container.querySelector('[aria-label="Inspector"]'),'Ledger event opens Inspector')
+  assert.ok(container.querySelector('[data-value-id="usd.cpi-yoy"][data-ledger-focused="true"]'),'Clicked measure is highlighted')
+  assert.ok(container.querySelector('[data-value-id="usd.cpi-mom"]'),'Complete same-time source package remains visible')
+  assert.equal(localStorage.getItem('fyodor.inspector.shared.v1'),beforeInspectFilters)
+  await click([...container.querySelectorAll('.inspector-header button')].find(n=>n.textContent==='Return to Ledger'));await flush()
+  assert.equal(container.querySelector('[aria-label="Ledger as-of date"]').value,beforeInspectDate)
+  assert.equal(container.querySelector('.ledger-viewport').scrollLeft,savedLedgerLeft)
+  assert.equal(container.querySelector('.ledger-viewport').scrollTop,21)
+  assert.equal(container.querySelector('.ledger-release-header').scrollLeft,111)
+  await click(container.querySelector('[data-ledger-header-value="usd.cpi-yoy"]'));await flush()
+  assert.ok(container.querySelector('[data-value-id="usd.cpi-yoy"][data-ledger-focused="true"]'),'Header releases use the same Inspector route')
+  await click([...container.querySelectorAll('.inspector-header button')].find(n=>n.textContent==='Return to Ledger'));await flush()
+  const restoredPickerButton=container.querySelector('[aria-label="Pick Ledger date from a chart candle"]')
+  await click(restoredPickerButton)
+  await click(container.querySelector('[aria-label="Close Detail"]')); await click(button('Ledger'))
+  assert.equal(chart.chartElement().dataset.ledgerPicking,undefined,'Closing Ledger removes its chart picker')
+  assert.equal([...timers.values()].some(t => t.fn.name==='pollLedger'),false)
   await React.act(async () => root.render(null))
   assert.equal(indicatorSeries.size, 0); assert.equal(panes.length, 1)
   assert.equal(rangeListeners.size, 0); assert.equal(clickListeners.size, 0)

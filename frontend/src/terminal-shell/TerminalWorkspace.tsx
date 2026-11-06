@@ -19,9 +19,16 @@ import { EntryTradePanel } from '../entry-trade/dock/EntryTradePanel'
 import { CurrencyNewsDock } from '../currency-news/CurrencyNewsDock'
 import { VolumeSettingsDialog } from '../market-data/indicators/volume/VolumeSettingsDialog'
 import { RsiSettingsDialog } from '../market-data/indicators/rsi/RsiSettingsDialog'
+import { chartEventCurrencies } from '../economic-calendar/forex/chart-event-scope'
+import { LedgerProvider } from '../currency-ledger/LedgerProvider'
+import { LedgerDock } from '../currency-ledger/LedgerDock'
+import { LedgerCandlePicker } from '../currency-ledger/LedgerCandlePicker'
+import { brokerClockProfile } from '../appearance/time-display/chart-clock'
+import type { IChartApi, ISeriesApi, Time } from 'lightweight-charts'
 
 export function TerminalWorkspace() {
   const [refocusRequest, setRefocusRequest] = useState(0)
+  const [ledgerRequest, setLedgerRequest] = useState(0)
   const { volume, changeVolume, toggleVolume, volumeSettingsOpen, setVolumeSettingsOpen, rsi, changeRsi, toggleRsi, rsiSettingsOpen, setRsiSettingsOpen,
     timeframe, theme, chartAppearance, timeDisplay, activeDrawingTool, selectedDrawingId, setSelectedDrawingId,
     drawingToolbarVisible, eventIconsVisible, toggleEventIcons, bottomDockWindow, dockSize, settingsOpen, setSettingsOpen, marketWatch, appendActivity,
@@ -31,9 +38,18 @@ export function TerminalWorkspace() {
     createDrawing, chooseDrawingTool, selectCrosshair, deletePairDrawings, toggleBottomDock, exitDrawingMode,
     toggleDrawingToolbar, renderChartOverlay, sourceState, sourceLabel, researchActive, researchSeed, researchError,
     selectResearchTool, closeResearch, recentEventsOpen, toggleRecentEvents, closeRecentEvents, alertFocus, viewReleaseInAlert,
-    detailOpen, toggleDetail, closeDetail, viewDetailEvent,
+    detailOpen, toggleDetail, closeDetail, openDetail, viewDetailEvent, viewLedgerEvent, returnToLedger,
     plannedTrade, handlePlanChange, latestBarTime, registeredArrows, selectPinnedArrow, priceAlerts, leftDockTab, setLeftDockTab } = useTerminalWorkspace()
   const brokerOffsetSeconds = bridge.brokerOffsetSeconds
+  const ledgerCurrencies = chartEventCurrencies(activeSymbol)
+  const ledgerSupported = ledgerCurrencies.length === 2
+  const openLedgerDetail = useCallback(() => { setLedgerRequest(n => n + 1); openDetail() }, [openDetail])
+  const pickerScope = ledgerSupported && bottomDockWindow === 'ledger' && bars.length && brokerClockProfile(brokerId) && !activeDrawingTool && !researchActive
+    ? `${brokerId}:${activeSymbol}:${timeframe}` : null
+  const renderChartWithLedger = useCallback((chartApi: IChartApi, seriesApi: ISeriesApi<'Candlestick', Time>) => <>
+    {renderChartOverlay?.(chartApi, seriesApi)}
+    <LedgerCandlePicker chartApi={chartApi} bars={bars} />
+  </>, [renderChartOverlay, bars])
   const closeRsiSettings = useCallback(() => setRsiSettingsOpen(false), [setRsiSettingsOpen])
   const closeVolumeSettings = useCallback(() => setVolumeSettingsOpen(false), [setVolumeSettingsOpen])
   const changeVolumeAxis = useCallback((axisTarget: typeof volume.axisTarget) => changeVolume({ ...volume, axisTarget,
@@ -44,6 +60,7 @@ export function TerminalWorkspace() {
   const recordChartTrace = useCallback((trace: string) => appendActivity('Chart', 'Timeframe trace', trace), [appendActivity])
   return (
     <DisplayClockProvider brokerId={brokerId} brokerOffsetSeconds={brokerOffsetSeconds} preference={timeDisplay}>
+    <LedgerProvider broker={brokerId} enabled={ledgerSupported && (detailOpen || bottomDockWindow === 'ledger')} pickerScope={pickerScope} currencies={ledgerCurrencies}>
     <div className={`terminal-shell${bottomDockWindow ? ' bottom-dock-open' : ''}`}
       style={{ '--bottom-dock-height': `${dockSize.height}px` } as CSSProperties}>
       <main className={`terminal-workspace${marketWatch.collapsed ? ' market-watch-collapsed' : ''}`}>
@@ -123,7 +140,7 @@ export function TerminalWorkspace() {
                   hasOlderData={!marketData.chartHistoryComplete}
                   isLoadingOlderData={marketData.chartHistoryLoading}
                   onRequestOlderData={marketData.requestOlderBars}
-                  renderChartOverlay={renderChartOverlay}
+                  renderChartOverlay={renderChartWithLedger}
                 />
               </MarketChartErrorBoundary>
               <MarketDataNotice status={marketData.chartStatus} symbol={activeSymbol} timeframe={timeframe} error={marketData.chartError} />
@@ -154,7 +171,7 @@ export function TerminalWorkspace() {
               <ResearchReportPanel key={JSON.stringify(researchSeed)} seed={researchSeed} brokerId={brokerId} timeDisplay={timeDisplay} onClose={closeResearch} />
             </div>}
             {recentEventsOpen && <RecentEventsPanel brokerId={brokerId} symbol={activeSymbol} onClose={closeRecentEvents} />}
-            {detailOpen && <CurrencyDetailPanel brokerId={brokerId} symbol={activeSymbol} onClose={closeDetail} onViewEvent={viewDetailEvent} />}
+            {detailOpen && <CurrencyDetailPanel brokerId={brokerId} symbol={activeSymbol} onClose={closeDetail} onViewEvent={viewDetailEvent} onViewLedgerEvent={viewLedgerEvent} ledger={ledgerSupported} ledgerRequest={ledgerRequest} />}
           </div>
         </section>
       </main>
@@ -164,6 +181,7 @@ export function TerminalWorkspace() {
           resizeHandle={dockSize.resizeHandle}
         >
           {bottomDockWindow === 'currency-news' && <CurrencyNewsDock />}
+          {bottomDockWindow === 'ledger' && <LedgerDock supported={ledgerSupported} broker={brokerId} onOpenDetail={openLedgerDetail} onViewEvent={viewLedgerEvent} />}
           {bottomDockWindow === 'activity' && (
             <ActivityDock timeDisplay={timeDisplay} />
           )}
@@ -175,6 +193,7 @@ export function TerminalWorkspace() {
             onDeleteArrow={registeredArrows.deleteArrow} onUpdateArrow={registeredArrows.updateArrow} />}
           {bottomDockWindow === 'inspector' && <InspectorDock view={inspector} symbol={activeSymbol}
             timeDisplay={timeDisplay} onViewInAlert={viewReleaseInAlert}
+            onReturnToLedger={returnToLedger}
             />}
         </BottomDockPanel>
       )}
@@ -207,6 +226,7 @@ export function TerminalWorkspace() {
       {rsiSettingsOpen && <RsiSettingsDialog preferences={rsi} onSave={changeRsi} onClose={closeRsiSettings} />}
       {researchError && <div className="research-range-hint" role="alert">{researchError}<button type="button" onClick={closeResearch}>Close</button></div>}
     </div>
+    </LedgerProvider>
     </DisplayClockProvider>
   )
 }

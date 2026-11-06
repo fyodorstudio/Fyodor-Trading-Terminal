@@ -23,11 +23,12 @@ import { parseDisplayClockInput } from '../appearance/time-display/display-clock
 
 const noEvents: EconomicCalendarEvent[] = []
 
-export function useInspector({ events = noEvents, symbol, bars, timeframe, timeDisplay, clockOffsetMs, brokerId, brokerOffsetSeconds = 0, eventIconsVisible }: {
+export function useInspector({ events = noEvents, symbol, bars, timeframe, timeDisplay, clockOffsetMs, brokerId, brokerOffsetSeconds = 0, eventIconsVisible, focusActive = true }: {
   events?: EconomicCalendarEvent[]; symbol: string; bars: OhlcBar[]; timeframe: ChartTimeframe
   timeDisplay: TimeDisplayPreference; clockOffsetMs: number
   brokerId?: string | null; brokerOffsetSeconds?: number
   eventIconsVisible?: boolean
+  focusActive?: boolean
 }) {
   const brokerTime = brokerId !== undefined
   const rangeDisplay = timeDisplay
@@ -42,6 +43,8 @@ export function useInspector({ events = noEvents, symbol, bars, timeframe, timeD
   const [customFrom, setCustomFrom] = useState(initialWeek.start)
   const [customTo, setCustomTo] = useState(initialWeek.end)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [eventFocus, setEventFocus] = useState<{ key: string; valueId: string; currency: string; at: number | null; date: string } | null>(null)
+  const focusKey = `${brokerId}:${preferenceKey}`
   if (savedPairKey !== preferenceKey) {
     setSavedPairKey(preferenceKey); setPreferences(readInspectorPreferences(symbol)); setSelectedId(null); setStorageFailed(false)
   }
@@ -64,6 +67,21 @@ export function useInspector({ events = noEvents, symbol, bars, timeframe, timeD
   }, [range, brokerId, brokerOffsetSeconds])
   const currencies = inspectorPairCurrencies(symbol)
   const storage = useStoredCalendar(brokerId, storageRange, supported && brokerTime, { currencies })
+  const focus = focusActive && eventFocus?.key === focusKey ? eventFocus : null
+  const focusRange = useMemo(() => {
+    if (!focus) return null
+    const center = focus.at ?? Date.parse(focus.date + 'T12:00:00Z'), scope = { brokerId: brokerId ?? null, brokerOffsetSeconds }
+    const from = utcToChartClock(center - 86400000, scope), to = utcToChartClock(center + 86400000, scope)
+    return { from: from ?? center - 2 * 86400000, to: to ?? center + 2 * 86400000 }
+  }, [focus, brokerId, brokerOffsetSeconds])
+  const focusCurrencies = useMemo(() => currencies.filter(c => c === focus?.currency), [currencies, focus?.currency])
+  const focusStorage = useStoredCalendar(brokerId, focusRange, !!focus && supported && brokerTime, { currencies: focusCurrencies })
+  const focusedRelease = useMemo(() => !focus ? null : groupSimultaneousReleases(groupInspectorReleases(focusStorage.events, false))
+    .find(release => release.events.some(event => event.value_id === focus.valueId)) ?? null, [focus, focusStorage.events])
+  const focusEvent = useCallback((reading: { value_id: string; at: number | null; date: string }, currency: string) => {
+    if (!currencies.includes(currency as typeof currencies[number])) return
+    setEventFocus({ key: focusKey, valueId: reading.value_id, currency, at: reading.at, date: reading.date })
+  }, [currencies, focusKey])
   const readings = useMemo(() => brokerTime ? storage.events.filter((event) => event.availability === 'observed') : events,
     [brokerTime, storage.events, events])
   const selectPairReadings = useMemo(() => createInspectorReadingSelector(currencies), [currencies])
@@ -85,8 +103,11 @@ export function useInspector({ events = noEvents, symbol, bars, timeframe, timeD
   // preserve stored preferences and their family/color/grouping selections.
   const markerPreferences = useMemo(() => eventIconsVisible === undefined ? preferences : { ...preferences, showSymbols: eventIconsVisible }, [preferences, eventIconsVisible])
   const markers = useMemo(() => buildInspectorMarkers(releases, markerPreferences, markerBars, timeframe), [releases, markerPreferences, markerBars, timeframe])
-  const selectRelease = useCallback((id: string | null) => setSelectedId(id), [])
-  const selectedRelease = selectedInspectorRelease(releases, displayReleases, selectedId, timeDisplay)
+  const selectRelease = useCallback((id: string | null) => { setEventFocus(null); setSelectedId(id) }, [])
+  const selectedRelease = focus ? focusedRelease : selectedInspectorRelease(releases, displayReleases, selectedId, timeDisplay)
+  const focusedValueId = focus?.valueId ?? null
+  const focusError = focus ? focusStorage.error ?? (!focusStorage.loading && !focusedRelease ? 'Requested release is unavailable in the stored calendar.' : null) : null
+  const focusLoading = !!focus && focusStorage.loading
   const applyPreferences = useCallback((next: InspectorPreferences, mode: InspectorPreferenceUpdate = 'save') => {
     const normalized = { ...next, symbolGrouping: next.symbolGrouping === 'day' ? 'day' as const : 'release' as const,
     }
@@ -97,8 +118,8 @@ export function useInspector({ events = noEvents, symbol, bars, timeframe, timeD
   }, [preferenceSymbol])
   return useMemo(() => ({ supported, preferences, applyPreferences, storageFailed, rangePreset, setRangePreset, customFrom, setCustomFrom,
     customTo, setCustomTo, range, rangeDates, today, selectCustomRange, allReleases, releases, markers, selectedRelease, selectRelease, now,
-    markerBars, brokerTime, brokerOffsetSeconds, brokerId, storage }),
+    markerBars, brokerTime, brokerOffsetSeconds, brokerId, storage, focusEvent, focusedValueId, focusError, focusLoading }),
     [supported, preferences, applyPreferences, storageFailed, rangePreset, customFrom, customTo, range, rangeDates, today,
-      selectCustomRange, allReleases, releases, markers, selectedRelease, selectRelease, now, markerBars, brokerTime, brokerOffsetSeconds, brokerId, storage])
+      selectCustomRange, allReleases, releases, markers, selectedRelease, selectRelease, now, markerBars, brokerTime, brokerOffsetSeconds, brokerId, storage, focusEvent, focusedValueId, focusError, focusLoading])
 }
 export type InspectorView = ReturnType<typeof useInspector>

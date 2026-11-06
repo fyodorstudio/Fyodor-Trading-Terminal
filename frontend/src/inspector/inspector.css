@@ -186,3 +186,4 @@
 @media (max-width: 550px) {
   .inspector-filter-columns > h3, .inspector-filter-columns > fieldset { grid-column: 1 !important; grid-row: auto !important; }
 }
+.inspector-panel tr[data-ledger-focused='true'] { outline: 2px solid var(--accent); outline-offset: -2px; background: var(--surface-inset); }

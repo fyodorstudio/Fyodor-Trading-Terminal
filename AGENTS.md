@@ -5,6 +5,9 @@
 Read this file, then the task-relevant owner in [README.md](README.md).
 Core terminal: chart/drawings, Market Watch, raw calendar Inspector, calendar
 Alert/reminders, Entry Trade, price alerts, Activity and Settings.
+Currency Ledger: `frontend/src/currency-ledger/`, `storage/currency_ledger.py`,
+[Ledger contract](docs/CURRENCY-LEDGER.md). All 28 pairs share eight currency histories;
+keep raw series browsing separate from canonical scoring and historical cutoffs.
 Currency Detail: `frontend/src/currency-details/`, `storage/currency_details.py`,
 [Detail contract](docs/CURRENCY-DETAILS.md). Routine refresh starts with
 `pnpm analyst details prepare --scope <currency|pair|index|ALL>`; reuse evidence

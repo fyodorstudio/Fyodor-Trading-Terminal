@@ -3,6 +3,7 @@ import { useDisplayClock } from '../appearance/time-display/useDisplayClock'
 import { formatInspectorValue } from '../inspector/readings/reading-values'
 import { useRecentEvents, type RecentDays, type EventPanelMode } from './useRecentEvents'
 import './recent-events.css'
+import { actualImpact } from '../economic-calendar/presentation/actual-impact'
 
 function age(at: number, now: number, upcoming: boolean) {
   const minutes = Math.max(0, Math.floor((upcoming ? at - now : now - at) / 60000))
@@ -43,8 +44,7 @@ export const RecentEventsPanel = memo(function RecentEventsPanel({ brokerId, sym
             <td>{event.currency}</td><td className="recent-events-name">{event.name}
               {event.availability === 'not-returned-by-latest-query' && <small>Latest observation unavailable</small>}</td>
             <td className="recent-events-values">{(['actual', 'forecast', 'previous'] as const).map((field, index) => {
-              const impact = field === 'actual' && event.actual !== null
-                && (event.impact === 'positive' || event.impact === 'negative') ? event.impact : undefined
+              const impact = field === 'actual' ? actualImpact(event.actual, event.impact) : undefined
               const title = impact ? `Actual · MT5: ${impact === 'positive' ? 'bullish' : 'bearish'} for ${event.currency}` : field
               return <span key={field} title={title} data-mt5-impact={impact}>
                 <small>{['A', 'F', 'P'][index]}</small>{formatInspectorValue(event[field], event)}</span>

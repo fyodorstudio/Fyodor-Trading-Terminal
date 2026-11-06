@@ -25,10 +25,11 @@ function sourceLabel(source: CalendarSourceHealth | null, error: string | null):
   if (source.status === 'awaiting-snapshot') return 'Receiving calendar snapshot'
   return 'Waiting for the calendar publisher'
 }
-export function InspectorPanel({ view, symbol, source, error, timeDisplay, onViewInAlert }: {
+export function InspectorPanel({ view, symbol, source, error, timeDisplay, onViewInAlert, onReturnToLedger }: {
   view: InspectorView; symbol: string; source: CalendarSourceHealth | null; error: string | null
   timeDisplay: TimeDisplayPreference
   onViewInAlert?: (release: InspectorRelease) => void
+  onReturnToLedger?: () => void
 }) {
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [calendarOpen, setCalendarOpen] = useState(false)
@@ -93,6 +94,7 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onVie
         disabled={!view.brokerId?.startsWith('Pepperstone-') || !alertDateForRelease(release)}
         title={!view.brokerId?.startsWith('Pepperstone-') ? 'Alert displays the Pepperstone calendar' : !alertDateForRelease(release) ? 'No publication date available' : 'Open this release in Alert'}
         onClick={() => onViewInAlert(release)}>View in Alert</button>}
+      {view.focusedValueId && onReturnToLedger && <button type="button" onClick={onReturnToLedger}>Return to Ledger</button>}
     </header>
     {!view.supported ? <p className="inspector-empty">Select a supported forex pair, currency index, Japan 225 or USD gold chart to inspect releases.</p> : <>
       <div className={`inspector-body${listOpen ? '' : ' releases-collapsed'}`}>
@@ -100,9 +102,9 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onVie
           selectedId={release?.id ?? null} symbols={view.preferences.symbols} timeDisplay={timeDisplay}
           now={view.now} onSelect={view.selectRelease} />
         <div className="inspector-detail" aria-live="polite">
-          {!release ? <p className="inspector-empty">Click a chart symbol or select a release to inspect Actual, Previous and A−P.</p> :
+          {view.focusError ? <p className="inspector-empty" role="alert">{view.focusError}</p> : view.focusLoading ? <p className="inspector-empty" role="status">Loading selected release…</p> : !release ? <p className="inspector-empty">Click a chart symbol or select a release to inspect Actual, Previous and A−P.</p> :
             release.daily ? <InspectorDayTable release={release} timeDisplay={timeDisplay} /> :
-            <InspectorReadingsTable release={release} timeDisplay={timeDisplay} sharedPeriod={sharedPeriod} />}
+            <InspectorReadingsTable release={release} timeDisplay={timeDisplay} sharedPeriod={sharedPeriod} focusedValueId={view.focusedValueId} />}
 
         </div>
       </div>

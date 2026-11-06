@@ -6,6 +6,7 @@ export function ChartInspectionDismiss({ chartApi, onClear }: { chartApi: IChart
   useEffect(() => {
     if (!onClear) return
     const click = (event: MouseEventParams<Time>) => {
+      if (chartApi.chartElement().dataset.ledgerPicking === 'true') return
       if (event.point && !(event.hoveredInfo?.objectId ?? event.hoveredObjectId)) onClear()
     }
     chartApi.subscribeClick(click)

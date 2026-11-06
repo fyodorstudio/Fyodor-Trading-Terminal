@@ -49,7 +49,10 @@ class RecentCalendarTests(TestCase):
         reads = [sql for sql in statements if 'SELECT e.*' in sql]
         self.assertEqual(len(reads), 1)
         plan = ' '.join(row[3] for row in self.store.db.execute('EXPLAIN QUERY PLAN ' + reads[0]))
-        self.assertIn('events_range', plan)
+        # SQLite may choose the more selective currency-first Ledger index.
+        # Both bound the same source/time read; reject a full event-table scan.
+        self.assertRegex(plan, r'SEARCH e USING INDEX events_(?:range|ledger_range)')
+        self.assertNotIn('SCAN e', plan)
         self.assertIn('server_time>?', plan)
         missing = recent_snapshot(self.store, 'Missing', self.start, self.end, ['EUR'])
         self.assertFalse(missing['source_available'])

@@ -84,7 +84,7 @@ export function useTerminalWorkspace() {
   }
   const inspector = useInspector({ symbol: activeSymbol, bars, timeframe, timeDisplay,
     clockOffsetMs: 0, brokerId, eventIconsVisible,
-    brokerOffsetSeconds: bridge.brokerOffsetSeconds })
+    brokerOffsetSeconds: bridge.brokerOffsetSeconds, focusActive: bottomDockWindow === 'inspector' })
   const quote = marketData.symbols.find((item) => item.symbol === activeSymbol) ?? null
   const latestBarTime = bars.at(-1)?.time ?? 0
   const registeredArrows = useRegisteredArrows(activeSymbol, bottomDockWindow === 'entry-trade')
@@ -208,6 +208,11 @@ export function useTerminalWorkspace() {
     setResearchActive(false)
   }, [])
   const closeDetail = useCallback(() => setDetailOpen(false), [])
+  const openDetail = useCallback(() => {
+    setDetailOpen(true)
+    setRecentEventsOpen(false)
+    setResearchActive(false)
+  }, [])
   const toggleDetail = useCallback(() => {
     setDetailOpen(current => !current)
     setRecentEventsOpen(false)
@@ -233,6 +238,11 @@ export function useTerminalWorkspace() {
     if (pair) setResearchSeed({ scope: pair, kind: 'historical', ...dates })
   }, [activeSymbol, brokerId, bridge.brokerOffsetSeconds, timeDisplay])
   const setReleaseSelection = inspector.selectRelease
+  const focusInspectorEvent = inspector.focusEvent
+  const viewLedgerEvent = useCallback((reading: DetailReading, currency: string) => {
+    focusInspectorEvent(reading, currency); setBottomDockWindow('inspector')
+  }, [focusInspectorEvent])
+  const returnToLedger = useCallback(() => setBottomDockWindow('ledger'), [])
   const setArrowSelection = registeredArrows.setSelectedArrowId
   const selectPinnedArrow = useCallback((id: string | null) => {
     const arrow = registeredArrows.allArrows.find(item => item.id === id)
@@ -309,6 +319,6 @@ export function useTerminalWorkspace() {
     selectCrosshair, deletePairDrawings, toggleBottomDock, exitDrawingMode, toggleDrawingToolbar,
     renderChartOverlay, sourceState, sourceLabel, researchActive, researchSeed, researchError,
     selectResearchTool, closeResearch, recentEventsOpen, toggleRecentEvents, closeRecentEvents, alertFocus, viewReleaseInAlert,
-    detailOpen, toggleDetail, closeDetail, viewDetailEvent,
+    detailOpen, toggleDetail, closeDetail, openDetail, viewDetailEvent, viewLedgerEvent, returnToLedger,
     plannedTrade, handlePlanChange, latestBarTime, registeredArrows, selectPinnedArrow, priceAlerts, leftDockTab, setLeftDockTab }
 }

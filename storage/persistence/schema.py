@@ -76,6 +76,7 @@ class StoreSchema:
             CREATE INDEX IF NOT EXISTS timing_range ON event_timing(source_id,chart_time_seconds);
             CREATE INDEX IF NOT EXISTS events_detail_series ON events(
                 source_id,currency,CAST(json_extract(payload,'$.event_id') AS TEXT),server_time DESC);
+            CREATE INDEX IF NOT EXISTS events_ledger_range ON events(source_id,currency,server_time);
         """)
         if "captured_offset_seconds" not in {row[1] for row in self.db.execute("PRAGMA table_info(jobs)")}:
             self.db.execute("ALTER TABLE jobs ADD COLUMN captured_offset_seconds INTEGER")
@@ -92,6 +93,9 @@ class StoreSchema:
         self.db.execute("""CREATE TRIGGER IF NOT EXISTS revision_usd_observation
             AFTER INSERT ON observations WHEN json_extract(new.payload,'$.currency')='USD'
             AND json_extract(new.payload,'$.actual') IS NOT NULL
+            BEGIN UPDATE data_revision SET value=value+1 WHERE id=1; END""")
+        self.db.execute("""CREATE TRIGGER IF NOT EXISTS revision_ledger_observation
+            AFTER INSERT ON observations WHEN json_extract(new.payload,'$.currency')!='USD'
             BEGIN UPDATE data_revision SET value=value+1 WHERE id=1; END""")
         self._restore_timing()
         self.db.execute("PRAGMA user_version=2")

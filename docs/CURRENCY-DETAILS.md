@@ -12,28 +12,21 @@ on close. Chart changes update scope. FX pairs have two currency columns;
 EURX/JPYX/USDX have one. Aliases share `config/chart-currency-scopes.json` with
 the calendar, outside the 28-pair catalog. Browsing is local, with no AI/web work.
 
-### USD/CAD decision history
+### Ledger for all 28 major pairs
 
-USD/CAD uses a decision-anchored table. Interest rate rows show each currency's
-own completed decisions, newest at the left; horizontal scrolling to the right
-reveals earlier decisions while Fundamentals and CUR stay pinned. Columns pair
-each bank's latest, previous and earlier decisions by ordinal position, not by
-an assumed shared meeting date. Each rate cell retains its publication clock,
-Actual, Forecast and Previous, a link to the original decision and the Inspector
-button. Forecast is the captured consensus for that historical decision, not the
-next release. Missing consensus stays a dash. USD is explicitly the captured Fed
-upper bound; no lower bound is inferred.
+Every major FX pair defaults to the [Ledger category scorecard](CURRENCY-LEDGER.md),
+sharing its historical cutoff with the bottom dock. The **Rate decisions** tab
+shows both currencies' retained policy decisions in the evaluated calendar year,
+newest first, with Actual/Forecast/Previous. Historical rate readings use the same
+publication/capture rules as the scorecard. USD remains the Fed target upper bound.
+Release clicks open the exact source package in Inspector. Tier List Info returns
+to the mounted view without resetting its state. Browsing does no research or writes.
 
-The initial rollout loads only completed rate decisions for the six calendar
-months ending on the current Jakarta date. Inflation, Employment, Wages &
-compensation, Demand and Growth rows are empty placeholders. Current observations
-are never inserted beneath historical decisions: future population must use only
-the publication vintage available before each currency's own decision time.
-Browsing performs no research, writes or alarm changes. Other pairs and indices
-retain the existing comparison described below. Tier List Info preserves the
-mounted history and horizontal scroll position.
+The original six-month USD/CAD `policy_history` API field and table remain for
+compatibility with non-Ledger consumers. They are not the all-pair Ledger's source.
+No current economic observations are inserted beneath historical decisions.
 
-### Existing comparison for other scopes
+### Existing comparison for indices and non-Ledger consumers
 
 The visible table has equal-width **base currency | quote currency** columns, or
 a single currency for indices. Full-width horizontal subheaders label

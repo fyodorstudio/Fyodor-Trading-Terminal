@@ -38,6 +38,7 @@ stays with the user; no automated UI audit is implied.
 | alert / events-alarms / storage/alarms | Dated calendar, occurrence bells, independent Windows delivery; [alarm contract](docs/EVENTS-ALARMS.md) |
 | external-sources | Outside-feed evidence, chart markers, limitations and versions; [source contract](docs/EXTERNAL-SOURCES.md) |
 | currency-news / storage/currency_news.py | On-demand saved news and implications; [news contract](docs/CURRENCY-NEWS.md) |
+| currency-ledger / storage/currency_ledger.py | All-pair calendar tape, retained vintages, provisional scorecard; [Ledger contract](docs/CURRENCY-LEDGER.md) |
 | currency-details / storage/currency_details.py | Pair/index fundamentals, official evidence and MT5 conflicts; [Detail contract](docs/CURRENCY-DETAILS.md) |
 | entry-trade | Manual plans, pins, independent chart arrows and tracked journal |
 | price-alerts | Broker/symbol lines, local persistence, Bid monitoring and browser sound |
@@ -83,13 +84,32 @@ For optional release waits/historical studies see [the user guide](user%20manual
 ## Currency Detail
 
 **Detail**, immediately right of Show events, opens its own right-panel view.
-USD/CAD now uses a decision-anchored history: each currency's rate decision sits
-above its own information column, newest first, with older decisions accessible
-by scrolling right and pinned Fundamentals/CUR labels. The first rollout shows
-six calendar months of completed USD/CAD rate decisions only; the economic-data
-rows remain empty until historical vintages are populated. Actual/Forecast/Previous
-refer to that decision, and USD is explicitly the Fed target upper bound.
-Other pairs and indices retain the tier comparison below.
+All 28 major FX pairs open a category scorecard linked to **Ledger** in the bottom dock.
+Ledger has a draggable date tape with separate currency lanes, one calendar year
+at a time. At the year edge, a small prompt opens the adjacent year. Dragging
+and year browsing only browse; selecting a date changes the shared historical
+cutoff. Latest readings carry forward even when their releases are offscreen.
+The fixed header compares the latest three available releases (oldest to newest)
+for each chosen rate, inflation, labor/wage and activity measure. Currency labels
+open Fundamental Detail in the existing right panel. Release clicks open the exact
+package in Inspector and highlight its measure, preserving Ledger's cutoff and
+browsing position. Return to Ledger resumes the tape. Header choices only change
+what is displayed. Today restores the current date; the ⌖ button to its left lets
+you click a candle while retaining the native crosshair/date label. Escape cancels.
+Rates, labor, growth and demand use a transparent provisional momentum formula;
+inflation stays context only. Scores show coverage and are not probabilities or
+an economy-health verdict. Backfilled evidence stays labelled and later captured
+corrections never move backwards into earlier scores. See the
+[Ledger contract](docs/CURRENCY-LEDGER.md) for the rules and historical limitations.
+All captured broker series are available, including PPI and nonnumeric events;
+only defined canonical measures contribute to scores. Actual numbers follow MT5's
+stored positive/negative impact color; F/P and boxes remain neutral. Released tape
+values stay visible after the evaluation cutoff; the header and scorecard remain
+historical. Busy cells virtualize their cards and server snapshots share currency
+caches across pairs. Missing stored coverage stays explicit.
+
+The **Rate decisions** tab shows the evaluated calendar year's decisions for both
+currencies, newest first, using the same cutoff. Indices retain the tier comparison.
 Four shared tier groups (S/A/B/C) compare the pair's currencies; EURX/JPYX/USDX
 show one. Full-width tier subheaders leave the currency columns equal-width.
 Equal-height event blocks compare Previous reading, Latest actual and Next

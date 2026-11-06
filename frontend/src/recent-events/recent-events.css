@@ -20,5 +20,3 @@
 .recent-events-values { font-variant-numeric: tabular-nums; }
 .recent-events-values span { display: flex; justify-content: space-between; gap: 6px; white-space: nowrap; line-height: 1.5; }
 .recent-events-values small { color: var(--text-muted); }
-.recent-events-values [data-mt5-impact='positive'] { color: var(--positive); }
-.recent-events-values [data-mt5-impact='negative'] { color: var(--negative); }

@@ -4,6 +4,8 @@ import { currencyTierInfo, eventTiers } from '../event-tiers/event-tiers'
 import { detailRefreshPrompt, detailValue, type DetailMetric, type DetailReading, type DetailSource } from './detail-model'
 import { useCurrencyDetails } from './useCurrencyDetails'
 import { PolicyDecisionTable } from './PolicyDecisionTable'
+import { LedgerDetail } from '../currency-ledger/LedgerDetail'
+import { LedgerRateHistory } from '../currency-ledger/LedgerRateHistory'
 import './currency-details.css'
 
 type ViewEvent = (reading: DetailReading) => void
@@ -57,11 +59,15 @@ function TierListInfo({ currencies }: { currencies: readonly string[] }) {
   </div>
 }
 
-export const CurrencyDetailPanel = memo(function CurrencyDetailPanel({ brokerId, symbol, onClose, onViewEvent }: {
-  brokerId: string | null; symbol: string; onClose: () => void; onViewEvent: ViewEvent
+export const CurrencyDetailPanel = memo(function CurrencyDetailPanel({ brokerId, symbol, onClose, onViewEvent, onViewLedgerEvent = onViewEvent, ledger = false, ledgerRequest = 0 }: {
+  brokerId: string | null; symbol: string; onClose: () => void; onViewEvent: ViewEvent; onViewLedgerEvent?: (reading:DetailReading,currency:string)=>void; ledger?: boolean; ledgerRequest?: number
 }) {
   const { data, loading, error, currencies } = useCurrencyDetails(brokerId, symbol)
   const [info, setInfo] = useState(false)
+  const [history, setHistory] = useState(false)
+  const viewKey = `${ledgerRequest}:${symbol}`
+  const [lastViewKey, setLastViewKey] = useState(viewKey)
+  if (lastViewKey !== viewKey) { setLastViewKey(viewKey); setHistory(false); setInfo(false) }
   const [copied, setCopied] = useState<{ scope: string; message: string } | null>(null)
   const copyScope = currencies.join('')
   const decisionHistory = currencies.length === 2 && currencies.includes('USD') && currencies.includes('CAD')
@@ -81,13 +87,14 @@ export const CurrencyDetailPanel = memo(function CurrencyDetailPanel({ brokerId,
   }, [])
   return <aside ref={panel} id="currency-detail-panel" className="currency-detail-panel" aria-labelledby="currency-detail-title"
     onKeyDown={e => { if (e.key === 'Escape') { e.stopPropagation(); if (info) closeInfo(); else onClose() } }}>
-    <header><span>{symbol}</span><h2 id="currency-detail-title">{info ? 'Tier List Info' : 'Detail'}</h2>
+    <header><span>{symbol}</span><h2 id="currency-detail-title">{info ? 'Tier List Info' : ledger ? 'Fundamental Detail' : 'Detail'}</h2>
       {!info && <button ref={infoButton} type="button" onClick={() => setInfo(true)}>Tier List Info</button>}
       <button type="button" aria-label={info ? 'Close Tier List Info' : 'Close Detail'} onClick={info ? closeInfo : onClose}>×</button></header>
-    <div className={`detail-body${decisionHistory ? ' detail-history-body' : ''}`} hidden={info}>
+    {ledger && !info && <nav className="detail-ledger-tabs" aria-label="Fundamental Detail views"><button type="button" aria-pressed={!history} onClick={() => setHistory(false)}>Ledger scorecard</button><button type="button" aria-pressed={history} onClick={() => setHistory(true)}>Rate decisions</button></nav>}
+    <div className={`detail-body${decisionHistory && (!ledger || history) ? ' detail-history-body' : ''}`} hidden={info}>
       {!currencies.length ? <p>No currency Detail scope for {symbol}.</p> : !brokerId ? <p>Connect a broker to view Detail.</p> : <>
         {error && <p role="alert">{error}</p>}{loading && <p role="status">Loading Detail…</p>}
-        {data && (decisionHistory
+        {ledger ? history ? <LedgerRateHistory onViewEvent={onViewLedgerEvent} /> : <LedgerDetail onViewEvent={onViewLedgerEvent} /> : data && (decisionHistory
           ? <PolicyDecisionTable key={copyScope} data={data} onViewEvent={onViewEvent} />
           : <table className="detail-comparison" aria-label="Currency fundamentals comparison"><thead><tr>{currencies.map(c => <th key={c} scope="col">{c}</th>)}</tr></thead>
           {eventTiers.map(tier => {

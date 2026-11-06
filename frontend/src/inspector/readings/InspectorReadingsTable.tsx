@@ -6,17 +6,25 @@ import { InspectorReadingTime } from '../InspectorReadingTime'
 import { isPolicyRateDecision, policyEpisodeRule } from '../episodes/policy-episodes'
 import { episodePublications } from '../episodes/display-episodes'
 import { pmiSectionLabel } from '../episodes/pmi-episodes'
+import { useLayoutEffect, useRef } from 'react'
+import { actualImpact } from '../../economic-calendar/presentation/actual-impact'
 
 const direction = (delta: number) => delta > 0 ? 'higher' : delta < 0 ? 'lower' : 'unchanged'
 const directionLabel = (delta: number) => delta > 0 ? 'Higher' : delta < 0 ? 'Lower' : 'Unchanged'
-export function InspectorReadingsTable({ release, timeDisplay, sharedPeriod }: {
-  release: InspectorRelease; timeDisplay: TimeDisplayPreference; sharedPeriod: number | null
+export function InspectorReadingsTable({ release, timeDisplay, sharedPeriod, focusedValueId }: {
+  release: InspectorRelease; timeDisplay: TimeDisplayPreference; sharedPeriod: number | null; focusedValueId?: string | null
 }) {
+  const scroll = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => {
+    if (!focusedValueId) return
+    const row = [...scroll.current?.querySelectorAll<HTMLElement>('[data-value-id]') ?? []].find(node => node.dataset.valueId === focusedValueId)
+    row?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' })
+  }, [release.id, focusedValueId])
   const publications = episodePublications(release)
   const policyTimes = !!policyEpisodeRule(release.familyId) || release.events.some(event => isPolicyRateDecision(event)), showTimes = policyTimes || !!publications
   const showCountry = release.currency === 'EUR', showForecast = policyTimes || release.events.some(event => event.forecast !== null)
   const columns = 4 + Number(showTimes) + Number(showCountry) + Number(showForecast) + Number(policyTimes)
-  return <div className="inspector-table-scroll"><table aria-label={`${release.label} release readings`}>
+  return <div ref={scroll} className="inspector-table-scroll"><table aria-label={`${release.label} release readings`}>
     <thead><tr><th scope="col">Series</th>{showCountry && <th scope="col">Country</th>}{showTimes && <th scope="col">Release time</th>}
       <th scope="col">Actual</th><th scope="col">Previous</th>{showForecast && <th scope="col">Forecast</th>}<th scope="col">A−P</th>
       {policyTimes && <th scope="col" title="Actual minus the supplied Forecast, in basis points.">A−F (Surprise)</th>}</tr></thead>
@@ -28,14 +36,15 @@ export function InspectorReadingsTable({ release, timeDisplay, sharedPeriod }: {
       {publication.events.map(event => {
         const delta = inspectorDelta(event), revised = hasRevisedPreviousChange(event), revisedDelta = inspectorRevisedDelta(event)
         const commentary = isInspectorCommentary(event), prior = suppliedPriorLabels(event)
-        return <tr key={event.value_id} data-series-id={event.event_id}>
+        return <tr key={event.value_id} data-series-id={event.event_id} data-value-id={event.value_id} data-ledger-focused={event.value_id === focusedValueId || undefined}>
           <th scope="row"><strong>{event.name || `MT5 event ${event.event_id}`}</strong>
             {event.revision > 0 && <span className="inspector-revision"> · Revision {event.revision}</span>}
             {sharedPeriod === null && event.period_seconds > 0 && <small>Period: {
               formatAppTimestamp(event.period_seconds * 1000, { mode: 'utc', utcOffsetMinutes: 0 }, 'date')}</small>}</th>
           {showCountry && <td title={event.country_name}>{event.country_code}</td>}
           {showTimes && <InspectorReadingTime event={event} timeDisplay={timeDisplay} />}
-          <td>{formatInspectorValue(event.actual, event)}</td>
+          <td data-mt5-impact={actualImpact(event.actual,event.impact)} title={`MT5 assessment: ${event.impact}`}>
+            {formatInspectorValue(event.actual, event)}</td>
           <td>{formatInspectorValue(event.previous, event)}{revised && <small title={prior.description}>
             {prior.value}: {formatInspectorValue(event.revised_previous, event)}</small>}</td>
           {showForecast && <td>{formatInspectorValue(event.forecast, event)}</td>}

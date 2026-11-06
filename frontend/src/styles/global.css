@@ -33,6 +33,11 @@ input:focus-visible {
 
 ::selection { color: #ffffff; background: var(--accent); }
 
+/* Color numerical actuals only. Forecasts, prior values and card backgrounds
+   retain their neutral theme colors; absent MT5 assessments stay neutral. */
+[data-mt5-impact='positive'] { color: var(--positive); }
+[data-mt5-impact='negative'] { color: var(--negative); }
+
 /* Custom scrollbars (CSS-Tricks showcase style) */
 * {
   scrollbar-width: thin;
