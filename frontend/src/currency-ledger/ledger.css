@@ -83,3 +83,10 @@
 .ledger-rate-columns h3 { font-size: 12px; }
 .ledger-rate-columns button { display: block; width: 100%; margin-bottom: 8px; text-align: left; }
 .ledger-rate-columns time { display: block; font-size: 11px; margin-bottom: 4px; }
+.ledger-filters-popover { right: auto; bottom: auto; border-radius: 6px; }
+.ledger-filters-popover .inspector-modal-content { padding: 14px; }
+.ledger-filter-presets { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+.ledger-filter-presets button { font: inherit; color: var(--text-strong); background: var(--surface-inset); border: 1px solid var(--border-strong); border-radius: 4px; padding: 5px 8px; }
+.ledger-filter-tiers { display: flex; flex-wrap: wrap; gap: 8px 16px; padding-top: 12px; }
+.ledger-filter-tiers label { display: flex; align-items: center; gap: 4px; }
+.ledger-filter-error { color: var(--negative); }

@@ -1,8 +1,10 @@
 import { ledgerDay, ledgerDayEnd, type LedgerData, type LedgerEntry, type LedgerMetric } from './ledger-model'
+import { createLedgerFilter, type LedgerFilters } from './ledger-filters'
 
 export type LedgerOccurrence={metric:LedgerMetric;entry:LedgerEntry;revision:boolean;eventAt:number}
-export function indexLedgerEvents(data:LedgerData){
+export function indexLedgerEvents(data:LedgerData, filters?:LedgerFilters){
   const result=new Map<string,LedgerOccurrence[]>()
+  const visible=filters?createLedgerFilter(filters):null
   const add=(metric:LedgerMetric,entry:LedgerEntry,revision:boolean)=>{
     const published=entry.at??ledgerDayEnd(entry.day)
     const eventAt=revision?Math.max(published,entry.known_at):published
@@ -10,6 +12,7 @@ export function indexLedgerEvents(data:LedgerData){
     const items=result.get(key)??[];items.push({metric,entry,revision,eventAt});result.set(key,items)
   }
   for(const metric of data.metrics){
+    if(visible&&!visible(metric))continue
     const groups=new Map<string,LedgerEntry[]>()
     for(const entry of metric.entries){const items=groups.get(entry.value_id)??[];items.push(entry);groups.set(entry.value_id,items)}
     for(const group of groups.values()){

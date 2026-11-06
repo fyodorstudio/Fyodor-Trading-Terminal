@@ -288,7 +288,7 @@ globalThis.fetch = (url, options = {}) => {
       ? { schema: 1, broker, year, currencies, revision, unchanged: true }
       : { schema: 1, broker, year, min_year:2015,max_year:2026,revision, currencies, from_date: `${year}-01-01`, through_date: `${year}-12-31`,
           metrics: registry.metrics.filter(m => currencies.includes(m.currency) && (m.id.endsWith('.rate')||['usd.cpi-yoy','usd.cpi-mom'].includes(m.id))).map(m => ({ ...m,
-            source_url: registry.sources[m.source].url, entries: [{ value_id: m.id, event_id: m.broker_event_id,
+            country:m.broker_country,event_id:m.broker_event_id,source_url: registry.sources[m.source].url, entries: [{ value_id: m.id, event_id: m.broker_event_id,
               name: m.label, value: m.currency === 'USD' ? 4 : 2.5, previous: m.currency === 'USD' ? 4 : 2.25,
               revised_previous: null, forecast: null, period: day, at: now-86400000, date: day, day,
               availability: 'observed', known_at: now-86400000, captured_at: new Date(now-86400000).toISOString() }] })) } })
@@ -1438,6 +1438,18 @@ try {
   })
   assertQuiet('Ledger historical cutoff', true)
   assert.equal(container.querySelectorAll('[data-ledger-category="CAD-policy"] strong')[0].textContent, 'Unassessed')
+  const filtersButton=container.querySelector('[aria-label="Ledger filters"]')
+  assert.equal(filtersButton.nextElementSibling.getAttribute('aria-label'),'Pick Ledger date from a chart candle')
+  const filtersBefore=localStorage.getItem('fyodor.inspector.shared.v1'),cutoffBeforeFilter=ledgerInput.value,requestsBeforeFilter=requests.length
+  reset();await click(filtersButton)
+  const filterPopover=()=>document.querySelector('.ledger-filters-popover')
+  await click([...filterPopover().querySelectorAll('button')].find(n=>n.textContent==='All events'))
+  assertQuiet('Ledger tier preview',true)
+  assert.equal(ledgerInput.value,cutoffBeforeFilter)
+  assert.equal(requests.length,requestsBeforeFilter,'Visibility filtering never fetches history')
+  await click([...filterPopover().querySelectorAll('button')].find(n=>n.textContent==='Cancel'))
+  assert.equal(filterPopover(),null)
+  assert.equal(localStorage.getItem('fyodor.inspector.shared.v1'),filtersBefore,'Ledger filters never rewrite Inspector preferences')
   const ledgerRequestCount = requests.length
   await React.act(async () => { for (let i=0;i<100;i++) container.querySelector('.ledger-viewport').dispatchEvent(new dom.Event('scroll')) })
   await flush()

@@ -14,6 +14,23 @@ an approximate series. `storage/ledger_vintages.py` owns retained capture clocks
 tape and the selected pair's two event lanes. Load one complete calendar year (January 1 through
 December 31) plus three older retained actuals per measure for carry-forward
 and the header's cross-year history.
+
+**Filters**, immediately left of ⌖, defaults to **S/A/B** across all eight currencies.
+The anchored popover reuses Inspector's family/category checkbox groups and search,
+with S/A/B, S/A-only and All events presets plus individual tier toggles. Tier and
+family selection are both required for a timeline card to appear. Exact
+currency/country/series identities use `config/event-tiers.json`; unclassified
+records use C, independently of MT5 importance or actual-impact colors. All events
+restores C and all families for the active pair. Nothing is removed from storage.
+The header, scoring inputs, Inspector preferences, chart markers and reminders
+remain independent. Presets reset active-currency family exclusions only.
+
+Changes preview locally; Save persists Ledger-only choices under
+`fyodor.ledger.filters.v1`, sharing families by currency across pairs and tiers
+globally. Cancel, Escape, outside click, closing the popover or changing scope
+restores the original preview. Failed saves remain open for retry. Saving one
+pair preserves other currencies' choices; empty selections persist. Filter
+changes do no fetching and preserve the date, year and horizontal tape position.
 Drag the tape horizontally to browse; pointer moves are batched per animation
 frame and a drag suppresses the card/date click. A thick native scrollbar remains
 available. At the year boundary a small Go to YEAR prompt opens the adjacent year:
@@ -33,7 +50,7 @@ windows without rebuilding the tape or chart.
 
 Select a date for 11:59:59 PM Jakarta, capped at the present for today.
 Captured corrections use their capture instant. Today resumes the current clock.
-The tape is a complete record browser: already released values stay visible even
+The tape can browse every captured record through All events. Already released values stay visible even
 when they are after the selected evaluation date. Its actuals use the latest
 retained capture; it does not claim to replay an original release vintage. The
 header and scorecard alone evaluate the cutoff. Premature actuals for genuinely

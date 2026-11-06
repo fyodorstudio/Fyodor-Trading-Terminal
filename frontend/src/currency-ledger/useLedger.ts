@@ -1,8 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { ledgerCards, ledgerDay, ledgerDayEnd, validLedger, type LedgerData, type LedgerSelection } from './ledger-model'
+import { useLedgerFilters } from './useLedgerFilters'
 
 export function useLedgerState(broker: string | null, enabled: boolean, pickerScope: string | null, currencies: readonly string[]) {
   const scope=currencies.join(',')
+  const { filters, applyFilters } = useLedgerFilters(currencies)
   const [selection, setSelection] = useState<LedgerSelection>(()=>({ at: null, currency: currencies[0]??'', category: null }))
   const [selectionScope,setSelectionScope]=useState(scope)
   if(selectionScope!==scope){setSelectionScope(scope);setSelection(old=>({...old,currency:currencies.includes(old.currency)?old.currency:currencies[0]??'',category:null}))}
@@ -78,9 +80,9 @@ export function useLedgerState(broker: string | null, enabled: boolean, pickerSc
   const cards = useMemo(() => scoreData ? ledgerCards(scoreData, at) : [], [scoreData, at])
   // Dock geometry belongs to the parent workspace. Keep this context stable so
   // height-only parent renders never invalidate the tape or the scorecard.
-  return useMemo(() => ({ data, scoreData, error, selection, setSelection, at, cards, now, year, setYear, currencies,
+  return useMemo(() => ({ data, scoreData, error, selection, setSelection, at, cards, now, year, setYear, currencies, filters, applyFilters,
     picking, canPick: pickerScope !== null, togglePicking, cancelPicking, pickDay, goToToday, focusRequest, headerChoices, setHeaderChoices, viewMemory, saveHeaderScroll }),
-    [data, scoreData, error, selection, at, cards, now, year, picking, pickerScope, togglePicking, cancelPicking, pickDay, goToToday, focusRequest, headerChoices, saveHeaderScroll,currencies])
+    [data, scoreData, error, selection, at, cards, now, year, picking, pickerScope, togglePicking, cancelPicking, pickDay, goToToday, focusRequest, headerChoices, saveHeaderScroll,currencies,filters,applyFilters])
 }
 export const LedgerContext = createContext<ReturnType<typeof useLedgerState> | null>(null)
 export function useLedger() {

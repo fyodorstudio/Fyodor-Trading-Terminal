@@ -107,6 +107,10 @@ stored positive/negative impact color; F/P and boxes remain neutral. Released ta
 values stay visible after the evaluation cutoff; the header and scorecard remain
 historical. Busy cells virtualize their cards and server snapshots share currency
 caches across pairs. Missing stored coverage stays explicit.
+The **Filters** button beside ⌖ defaults the timeline to S/A/B events. It reuses
+Inspector's family controls with independent Ledger choices, S/A-only and All events
+presets, preview/Save/Cancel and currency-shared persistence. Hidden events remain
+available; filtering does not change the header, scoring evidence or chart icons.
 
 The **Rate decisions** tab shows the evaluated calendar year's decisions for both
 currencies, newest first, using the same cutoff. Indices retain the tier comparison.

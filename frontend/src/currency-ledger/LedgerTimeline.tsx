@@ -3,10 +3,12 @@ import { ledgerDay, ledgerDayEnd, type LedgerData, type LedgerViewMemory } from 
 import type { DetailReading } from '../currency-details/detail-model'
 import { indexLedgerEvents } from './ledger-events'
 import { LedgerDayCell } from './LedgerDayCell'
+import type { LedgerFilters } from './ledger-filters'
 
 const dayWidth = 176, labelWidth = 64, overscan = 3
 const emptyEvents: readonly import('./ledger-events').LedgerOccurrence[]=[]
-export const LedgerTimeline = memo(function LedgerTimeline({ data, at, now, focusRequest, viewMemory, landing, onSelect, onOpenCurrency, onViewEvent, onYear }: {
+export const LedgerTimeline = memo(function LedgerTimeline({ data, filters, at, now, focusRequest, viewMemory, landing, onSelect, onOpenCurrency, onViewEvent, onYear }: {
+  filters: LedgerFilters
   data: LedgerData; at: number; now: number; focusRequest: number; landing: { year: number; edge: 'start' | 'end' } | null
   onSelect: (at: number, currency?: string, category?: string | null) => void
   onOpenCurrency: (currency: string, category?: string | null) => void
@@ -31,7 +33,7 @@ export const LedgerTimeline = memo(function LedgerTimeline({ data, at, now, focu
     }
     return result
   }, [data.year])
-  const events = useMemo(() => indexLedgerEvents(data), [data])
+  const events = useMemo(() => indexLedgerEvents(data,filters), [data,filters])
   const updateView = useCallback(() => {
     const element = viewport.current
     if (!element) return
