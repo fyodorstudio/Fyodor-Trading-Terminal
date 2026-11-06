@@ -21,12 +21,13 @@ export type DetailMetric = {
 }
 export type DetailSnapshot = { schema: 1; broker: string; currencies: string[]; revision: string; source_available: boolean
   categories: { id: string; label: string }[]; sources: Record<string, DetailSource & { schedule_url: string }>
-  metrics: DetailMetric[]; focus: { currency: string; label: string; reason: string; limitations: string; assessed_at: string; sources: DetailSource[] }[] }
+  metrics: DetailMetric[]; focus: { currency: string; label: string; reason: string; limitations: string; assessed_at: string; sources: DetailSource[] }[]
+  policy_history: { from_date: string; through_date: string; decisions: Record<string, (DetailReading & { source_url: string })[]> } | null }
 
 const record = (value: unknown): value is Record<string, unknown> => !!value && typeof value === 'object' && !Array.isArray(value)
 const finite = (n: unknown) => typeof n === 'number' && Number.isFinite(n)
 const text = (s: unknown): s is string => typeof s === 'string' && !!s.trim()
-const day = (s: unknown) => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s)
+const day = (s: unknown): s is string => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s)
   && Number.isFinite(Date.parse(s)) && new Date(s).toISOString().slice(0, 10) === s
 const instant = (s: unknown) => typeof s === 'string' && /(?:Z|[+-]\d\d:\d\d)$/.test(s) && Number.isFinite(Date.parse(s))
 const nullable = (value: unknown, check: (v: unknown) => boolean) => value === null || check(value)
@@ -53,6 +54,17 @@ export function validDetail(value: unknown, broker: string, currencies: readonly
     || !record(value.sources) || !Object.values(value.sources).every(s => record(s) && text(s.label) && url(s.url) && url(s.schedule_url))
     || !Array.isArray(value.metrics) || !Array.isArray(value.focus)) return false
   const categories = value.categories.map(c => c.id)
+  const history = value.policy_history
+  if (history !== null) {
+    if (!record(history) || !day(history.from_date) || !day(history.through_date) || history.from_date > history.through_date
+      || currencies.length !== 2 || !currencies.includes('USD') || !currencies.includes('CAD')
+      || !record(history.decisions) || Object.keys(history.decisions).sort().join(',') !== 'CAD,USD') return false
+    for (const currency of currencies) {
+      const rows = history.decisions[currency]
+      if (!Array.isArray(rows) || !rows.every(r => reading(r) && record(r) && finite(r.value) && url(r.source_url))
+        || new Set(rows.map(r => r.value_id)).size !== rows.length) return false
+    }
+  }
   const ids = new Set()
   for (const m of value.metrics) {
     if (!record(m) || !text(m.id) || ids.has(m.id) || !currencies.includes(m.currency as string)

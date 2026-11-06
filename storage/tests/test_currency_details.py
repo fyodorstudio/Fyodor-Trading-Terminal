@@ -114,6 +114,54 @@ class DetailTests(TestCase):
         self.assertIn('unresolved_source_conflict', hints)
         self.assertIn('incomplete_previous_check', hints)
 
+    def test_policy_history_is_six_months_completed_scoped_and_read_only(self):
+        def decision(identity, currency, day, value, **changes):
+            metric = next(m for m in registry()['metrics'] if m['id'] == currency.lower()+'.rate')
+            seconds = int(datetime.fromisoformat(day).replace(tzinfo=timezone.utc).timestamp())
+            return event(value_id=identity, event_id=metric['broker_event_id'], currency=currency,
+                country_code=metric['broker_country'], server_time_seconds=seconds+7200,
+                actual=value, previous=0, forecast=None, period_seconds=0, **changes)
+        rows = [decision('usd-latest','USD','2026-10-28T18:00:00',4),
+                decision('usd-older','USD','2026-06-17T18:00:00',3.75),
+                decision('cad-latest','CAD','2026-10-28T13:45:00',2.5),
+                decision('cad-zero','CAD','2026-06-10T13:45:00',0),
+                decision('usd-before','USD','2026-05-04T12:00:00',3.75),
+                decision('usd-cutoff','USD','2026-05-04T17:00:00',3.75),
+                decision('usd-next','USD','2026-12-09T19:00:00',None),
+                decision('usd-future-actual','USD','2026-11-05T02:00:00',4),
+                decision('cad-date','CAD','2026-07-15T00:00:00',2.25,time_mode=1)]
+        self.store.import_rows('policy-fixture','Pepperstone-Demo',{**self.manifest,'calendar_currencies':'USD,CAD'}, {}, rows)
+        changes = self.store.db.total_changes
+        statements = []
+        self.store.db.set_trace_callback(statements.append)
+        snapshot = self.snapshot('USDCAD')
+        self.store.db.set_trace_callback(None)
+        history = snapshot['policy_history']
+        self.assertEqual((history['from_date'],history['through_date']),('2026-05-05','2026-11-05'))
+        usd, cad = history['decisions']['USD'], history['decisions']['CAD']
+        self.assertEqual([r['value_id'] for r in usd],['usd-latest','usd-older','usd-cutoff'])
+        self.assertEqual([r['value_id'] for r in cad],['cad-latest','cad-date','cad-zero'])
+        self.assertIsNone(cad[1]['at'])
+        self.assertEqual(cad[-1]['value'],0)
+        self.assertEqual(usd[0]['previous'],0)
+        self.assertIsNone(usd[0]['forecast'])
+        self.assertEqual(usd[0]['source_url'],'https://www.federalreserve.gov/newsevents/pressreleases/monetary20261028a.htm')
+        self.assertIn('2026-10-28',cad[0]['source_url'])
+        self.assertEqual(self.store.db.total_changes,changes)
+        history_reads = [s for s in statements if 'e.server_time BETWEEN' in s]
+        self.assertEqual(len(history_reads),2)
+        for sql in history_reads:
+            self.assertIn('events_detail_series',' '.join(r[3] for r in self.store.db.execute('EXPLAIN QUERY PLAN '+sql)))
+        self.assertIsNone(self.snapshot('EURUSD')['policy_history'])
+        self.assertEqual(self.snapshot('CADUSD')['policy_history']['decisions']['USD'],usd)
+        self.assertEqual(detail_snapshot(self.store,'Other',['USD','CAD'],self.directory,now_ms=NOW)['policy_history']['decisions'],{'USD':[],'CAD':[]})
+        self.assertTrue(self.snapshot('USDCAD',after_revision=snapshot['revision'])['unchanged'])
+
+    def test_policy_history_calendar_month_cutoff_clamps_month_end(self):
+        end = int(datetime(2026,8,31,12,tzinfo=timezone.utc).timestamp()*1000)
+        history = detail_snapshot(self.store,'Pepperstone-Demo',['USD','CAD'],self.directory,now_ms=end)['policy_history']
+        self.assertEqual(history['from_date'],'2026-02-28')
+
     def test_different_period_stage_and_source_never_silently_compare(self):
         p = payload(); p['checks'][0]['observation'].pop('broker_reference')
         save_details(DetailRefresh.model_validate(p), self.directory, self.store)

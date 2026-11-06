@@ -12,12 +12,19 @@ const frontend = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'
 const python = path.join(repo, 'bridge/.venv/Scripts/python.exe')
 const produced = spawnSync(python, ['-c', `
 import json
-from storage.tests.test_currency_details import DetailTests, payload
+from storage.tests.test_currency_details import DetailTests, payload, NOW, event
+from storage.detail_registry import registry
 from storage.currency_details import DetailRefresh,save_details
 t=DetailTests();t.setUp()
 try:
  save_details(DetailRefresh.model_validate(payload()),t.directory,t.store)
- print(json.dumps({s:t.snapshot(s) for s in ['EURUSD','EURX','JPYX','USDX','GBPJPY','AUDCAD']}))
+ rows=[]
+ for currency,value in [('USD',4),('CAD',2.5)]:
+  metric=next(m for m in registry()['metrics'] if m['id']==currency.lower()+'.rate')
+  for i in range(2):
+   rows.append(event(value_id=currency+str(i),event_id=metric['broker_event_id'],currency=currency,country_code=metric['broker_country'],server_time_seconds=NOW//1000-86400-i*40*86400+7200,period_seconds=0,actual=value-i*.25,previous=value-.25-i*.25,forecast=None))
+ t.store.import_rows('history','Pepperstone-Demo',{**t.manifest,'calendar_currencies':'USD,CAD'}, {}, rows)
+ print(json.dumps({s:t.snapshot(s) for s in ['EURUSD','EURX','JPYX','USDX','GBPJPY','AUDCAD','USDCAD']}))
 finally:t.doCleanups()
 `], {cwd:repo,encoding:'utf8'})
 assert.equal(produced.status,0,produced.stderr)
@@ -133,6 +140,27 @@ try{
   await React.act(async()=>container.querySelector('aside').dispatchEvent(new dom.KeyboardEvent('keydown',{bubbles:true,key:'Escape'})))
   assert.equal(container.querySelector('[aria-label="Tier list reference"]'),null)
 
+ }
+ await render('USDCAD');await reply(requests.at(-1),fixtures.USDCAD)
+ assert.ok(container.querySelector('.detail-decision-table'),'USD/CAD uses decision anchors')
+ assert.equal(container.querySelectorAll('[data-policy-decision]').length,4)
+ assert.match(container.querySelector('[data-policy-decision="USD0"]').textContent,/Fed target upper boundActual4%Forecast—Previous3.75%/)
+ assert.match(container.querySelector('[data-policy-decision="CAD0"]').textContent,/BoC overnight targetActual2.5%Forecast—Previous2.25%/)
+ assert.equal(container.querySelectorAll('.detail-history-placeholder').length,20,'Historical fundamentals remain unpopulated, with no current readings leaked')
+ assert.match(container.querySelector('.detail-history-intro').textContent,/2026-05-05.*2026-11-05/)
+ const scroll=container.querySelector('.detail-history-scroll')
+ scroll.scrollLeft=246
+ await click(container.querySelector('[data-policy-decision="CAD0"] button'))
+ assert.equal(viewed.at(-1),'CAD0')
+ await click([...container.querySelectorAll('button')].find(b=>b.textContent==='Tier List Info'))
+ await click(container.querySelector('[aria-label="Close Tier List Info"]'))
+ assert.equal(container.querySelector('.detail-history-scroll'),scroll)
+ assert.equal(scroll.scrollLeft,246,'Info preserves horizontal history position')
+ await poll();await reply(requests.at(-1),{schema:1,broker:'Pepperstone-Demo',currencies:['USD','CAD'],revision:fixtures.USDCAD.revision,unchanged:true})
+ assert.equal(scroll.scrollLeft,246,'Unchanged polling preserves horizontal position')
+ for(const mutate of [v=>v.policy_history.decisions.USD[0].source_url='javascript:bad',v=>v.policy_history.decisions.USD[0].value=null,
+  v=>v.policy_history.decisions.EUR=[],v=>v.policy_history.decisions.USD.push(v.policy_history.decisions.USD[0])]){
+  const bad=structuredClone(fixtures.USDCAD);mutate(bad);assert.equal(validDetail(bad,'Pepperstone-Demo',['USD','CAD']),false)
  }
  await render('GBPJPY');const obsolete=requests.at(-1)
  await render('AUDCAD');assert.equal(obsolete.signal.aborted,true)

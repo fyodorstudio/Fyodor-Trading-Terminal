@@ -83,6 +83,13 @@ For optional release waits/historical studies see [the user guide](user%20manual
 ## Currency Detail
 
 **Detail**, immediately right of Show events, opens its own right-panel view.
+USD/CAD now uses a decision-anchored history: each currency's rate decision sits
+above its own information column, newest first, with older decisions accessible
+by scrolling right and pinned Fundamentals/CUR labels. The first rollout shows
+six calendar months of completed USD/CAD rate decisions only; the economic-data
+rows remain empty until historical vintages are populated. Actual/Forecast/Previous
+refer to that decision, and USD is explicitly the Fed target upper bound.
+Other pairs and indices retain the tier comparison below.
 Four shared tier groups (S/A/B/C) compare the pair's currencies; EURX/JPYX/USDX
 show one. Full-width tier subheaders leave the currency columns equal-width.
 Equal-height event blocks compare Previous reading, Latest actual and Next

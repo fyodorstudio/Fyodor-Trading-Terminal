@@ -3,6 +3,7 @@ import { useDisplayClock } from '../appearance/time-display/useDisplayClock'
 import { currencyTierInfo, eventTiers } from '../event-tiers/event-tiers'
 import { detailRefreshPrompt, detailValue, type DetailMetric, type DetailReading, type DetailSource } from './detail-model'
 import { useCurrencyDetails } from './useCurrencyDetails'
+import { PolicyDecisionTable } from './PolicyDecisionTable'
 import './currency-details.css'
 
 type ViewEvent = (reading: DetailReading) => void
@@ -63,6 +64,7 @@ export const CurrencyDetailPanel = memo(function CurrencyDetailPanel({ brokerId,
   const [info, setInfo] = useState(false)
   const [copied, setCopied] = useState<{ scope: string; message: string } | null>(null)
   const copyScope = currencies.join('')
+  const decisionHistory = currencies.length === 2 && currencies.includes('USD') && currencies.includes('CAD')
   const panel = useRef<HTMLElement>(null)
   const infoButton = useRef<HTMLButtonElement>(null)
   const wasInfo = useRef(false)
@@ -82,10 +84,12 @@ export const CurrencyDetailPanel = memo(function CurrencyDetailPanel({ brokerId,
     <header><span>{symbol}</span><h2 id="currency-detail-title">{info ? 'Tier List Info' : 'Detail'}</h2>
       {!info && <button ref={infoButton} type="button" onClick={() => setInfo(true)}>Tier List Info</button>}
       <button type="button" aria-label={info ? 'Close Tier List Info' : 'Close Detail'} onClick={info ? closeInfo : onClose}>×</button></header>
-    <div className="detail-body" hidden={info}>
+    <div className={`detail-body${decisionHistory ? ' detail-history-body' : ''}`} hidden={info}>
       {!currencies.length ? <p>No currency Detail scope for {symbol}.</p> : !brokerId ? <p>Connect a broker to view Detail.</p> : <>
         {error && <p role="alert">{error}</p>}{loading && <p role="status">Loading Detail…</p>}
-        {data && <table className="detail-comparison" aria-label="Currency fundamentals comparison"><thead><tr>{currencies.map(c => <th key={c} scope="col">{c}</th>)}</tr></thead>
+        {data && (decisionHistory
+          ? <PolicyDecisionTable key={copyScope} data={data} onViewEvent={onViewEvent} />
+          : <table className="detail-comparison" aria-label="Currency fundamentals comparison"><thead><tr>{currencies.map(c => <th key={c} scope="col">{c}</th>)}</tr></thead>
           {eventTiers.map(tier => {
             const columns = currencies.map(currency => data.metrics.filter(m => m.currency === currency && m.tier === tier.id))
             const count = Math.max(1, ...columns.map(column => column.length))
@@ -96,7 +100,7 @@ export const CurrencyDetailPanel = memo(function CurrencyDetailPanel({ brokerId,
                 ? <MetricCell metric={column[index]} publisher={data.sources[column[index].source]} onViewEvent={onViewEvent} />
                 : <div className="detail-empty" aria-label={`No further ${tier.label} metrics for ${currencies[i]}`}>—</div>}</td>)}
             </tr>)}</tbody>
-          })}</table>}
+          })}</table>)}
       </>}
     </div>
     {info && <div className="detail-body"><TierListInfo currencies={currencies} /></div>}

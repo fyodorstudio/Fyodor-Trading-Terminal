@@ -273,7 +273,7 @@ globalThis.fetch = (url, options = {}) => {
     const revision = 'd'.repeat(64)
     return Promise.resolve({ ok: true, json: async () => q.get('after_revision') === revision
       ? { schema: 1, broker, currencies, revision, unchanged: true }
-      : { schema: 1, broker, currencies, revision, source_available: true, categories: registry.categories,
+      : { schema: 1, broker, currencies, revision, source_available: true, categories: registry.categories, policy_history: null,
           sources: registry.sources, focus: [], metrics: registry.metrics.filter(m => currencies.includes(m.currency)).map(m => ({
             ...m, broker: null, broker_next: null, official: null, official_latest: false, comparison: 'not_checked',
             check: null, next_releases: [], schedule_known: false, schedule_elapsed: false })) } })

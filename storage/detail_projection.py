@@ -1,5 +1,6 @@
 """Bounded per-series reads for latest observations, never an Events lookback."""
 from datetime import datetime, timedelta, timezone
+from calendar import monthrange
 from decimal import Decimal
 from hashlib import sha256
 import time
@@ -69,6 +70,49 @@ def series_readings(store, broker, metric, now_ms):
     return tuple(broker_reading(store.event_rows(rows)[0], metric) if rows else None for rows in (latest, next_rows))
 
 
+def policy_history(store, broker, currencies, now_ms):
+    """Six calendar months of completed USD/CAD decisions, without raw archive scans.
+
+    Other fundamentals intentionally have no historical projection yet: today's
+    observations/revisions must never masquerade as information known at a meeting.
+    """
+    if len(currencies) != 2 or set(currencies) != {'USD', 'CAD'}:
+        return None
+    today = (datetime.fromtimestamp(now_ms / 1000, timezone.utc) + timedelta(hours=7)).date()
+    month = today.year * 12 + today.month - 1 - 6
+    year, month = divmod(month, 12)
+    start = today.replace(year=year, month=month + 1, day=min(today.day, monthrange(year, month + 1)[1]))
+    start_ms = int((datetime.combine(start, datetime.min.time(), timezone.utc) - timedelta(hours=7)).timestamp() * 1000)
+    history = {}
+    for currency in currencies:
+        metric = next(m for m in registry()['metrics'] if m['id'] == currency.lower() + '.rate')
+        rows = store.db.execute('''SELECT e.*,a.job_id absence_job,t.release_at,t.chart_time_seconds,
+            t.capture_offset_seconds,t.basis,t.profile FROM events e
+            LEFT JOIN event_timing t USING(source_id,value_id)
+            LEFT JOIN query_absences a USING(source_id,value_id)
+            WHERE e.source_id=? AND e.currency=? AND CAST(json_extract(e.payload,'$.event_id') AS TEXT)=?
+            AND e.server_time BETWEEN ? AND ?
+            AND json_extract(e.payload,'$.country_code')=? AND json_extract(e.payload,'$.unit')=?
+            AND json_extract(e.payload,'$.multiplier')=? AND json_extract(e.payload,'$.actual') IS NOT NULL
+            ORDER BY e.server_time DESC,e.value_id DESC''',
+            (broker, currency, metric['broker_event_id'], start_ms // 1000 - 172800, now_ms // 1000 + 172800,
+             metric['broker_country'], metric['broker_unit'], metric['broker_multiplier'])).fetchall()
+        decisions = []
+        for event in store.event_rows(rows):
+            reading = broker_reading(event, metric)
+            if (reading['at'] is not None and not start_ms <= reading['at'] <= now_ms
+                    or reading['at'] is None and not start.isoformat() <= reading['date'] <= today.isoformat()):
+                continue
+            # The broker's Fed measure is the upper bound. Never invent a lower bound.
+            day = datetime.fromtimestamp(reading['at'] / 1000, timezone.utc).date().isoformat() if reading['at'] is not None else reading['date']
+            reading['source_url'] = (f'https://www.federalreserve.gov/newsevents/pressreleases/monetary{day.replace("-", "")}a.htm'
+                if currency == 'USD' else f'https://www.bankofcanada.ca/{day[:4]}/{day[5:7]}/fad-press-release-{day}/')
+            decisions.append(reading)
+        decisions.sort(key=lambda r: (r['at'] if r['at'] is not None else int(datetime.fromisoformat(r['date']).replace(tzinfo=timezone.utc).timestamp() * 1000), r['value_id']), reverse=True)
+        history[currency] = decisions
+    return {'from_date': start.isoformat(), 'through_date': today.isoformat(), 'decisions': history}
+
+
 def detail_snapshot(store, broker, currencies, directory, after_revision=None, now_ms=None):
     now_ms = int(time.time() * 1000) if now_ms is None else now_ms
     metrics, focus = read_records(directory, currencies=currencies)
@@ -100,9 +144,10 @@ def detail_snapshot(store, broker, currencies, directory, after_revision=None, n
                 'check': {k: check[k] for k in ('checked_at', 'coverage', 'coverage_note', 'sources', 'schedule_checked_at')} if check else None,
                 'next_releases': future, 'schedule_known': schedules is not None,
                 'schedule_elapsed': bool(schedules and not future)})
+        history = policy_history(store, broker, currencies, now_ms)
     content = {'schema': 1, 'broker': broker, 'currencies': currencies, 'source_available': source is not None,
                'categories': registry()['categories'], 'sources': registry()['sources'], 'metrics': result_rows,
-               'focus': [focus[c] for c in currencies if c in focus]}
+               'focus': [focus[c] for c in currencies if c in focus], 'policy_history': history}
     revision = sha256(encoded(content)).hexdigest()
     if after_revision == revision:
         return {'schema': 1, 'broker': broker, 'currencies': currencies, 'revision': revision, 'unchanged': True}
