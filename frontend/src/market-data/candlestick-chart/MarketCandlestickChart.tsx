@@ -26,6 +26,9 @@ import { createVolumePane } from '../indicators/volume/volume-pane'
 import type { VolumeLayer, VolumePreferences } from '../indicators/volume/volume-preferences'
 import { createRsiPane } from '../indicators/rsi/rsi-pane'
 import type { RsiPreferences } from '../indicators/rsi/rsi-preferences'
+import { createMacroPane } from '../indicators/macro/macro-pane'
+import { supportsMacro, type MacroIndicator, type MacroReading } from '../indicators/macro/macro-data'
+import type { MacroMetric } from '../indicators/macro/macro-preferences'
 import { PricePaneOverlays } from './PricePaneOverlays'
 import { chartDataTrace } from './chart-data-trace'
 import './market-candlestick-chart.css'
@@ -43,6 +46,10 @@ type MarketCandlestickChartProps = {
   onChangeVolumeAxis?: (target: VolumePreferences['axisTarget']) => void
   onToggleVolumeLayer?: (layer: VolumeLayer) => void
   rsi?: RsiPreferences
+  macro?: MacroIndicator
+  onToggleMacroMetric?: (metric: MacroMetric) => void
+  onSelectMacroMetric?: (metric: MacroMetric) => void
+  onInspectMacroRelease?: (reading: MacroReading) => void
   refocusRequest?: number
   activeDrawingTool: DrawingToolId | null
   drawings: ChartDrawingRecord[]
@@ -80,6 +87,10 @@ function MarketCandlestickChartComponent({
   onChangeVolumeAxis,
   onToggleVolumeLayer,
   rsi,
+  macro,
+  onToggleMacroMetric,
+  onSelectMacroMetric,
+  onInspectMacroRelease,
   refocusRequest = 0,
   activeDrawingTool,
   drawings,
@@ -101,7 +112,8 @@ function MarketCandlestickChartComponent({
   renderChartOverlay,
 }: MarketCandlestickChartProps) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const { scope: clock } = useDisplayClock()
+  const { scope: clock, utc: formatUtc } = useDisplayClock()
+  const macroEnabled = Boolean(macro?.enabled && supportsMacro(symbol ?? ''))
   const initialClock = useRef(clock)
   const initialAppearanceRef = useRef(appearance)
   const initialTimeDisplayRef = useRef(timeDisplay)
@@ -109,6 +121,7 @@ function MarketCandlestickChartComponent({
   const seriesRef = useRef<ISeriesApi<'Candlestick', Time> | null>(null)
   const volumePaneRef = useRef<ReturnType<typeof createVolumePane> | null>(null)
   const rsiPaneRef = useRef<ReturnType<typeof createRsiPane> | null>(null)
+  const macroPaneRef = useRef<ReturnType<typeof createMacroPane> | null>(null)
   const futureTimelineRef = useRef<ReturnType<typeof createFutureTimeline> | null>(null)
   const priceSpaceRef = useRef<ReturnType<typeof createChartPriceSpace> | null>(null)
   const lastRefocusRequest = useRef(refocusRequest)
@@ -219,6 +232,8 @@ function MarketCandlestickChartComponent({
     chart.timeScale().subscribeVisibleLogicalRangeChange(handleLogicalRangeChange)
 
     return () => {
+      macroPaneRef.current?.destroy()
+      macroPaneRef.current = null
       volumePaneRef.current?.destroy()
       volumePaneRef.current = null
       rsiPaneRef.current?.destroy()
@@ -315,6 +330,7 @@ function MarketCandlestickChartComponent({
         priceSpaceRef.current?.sync(bars, true, precision)
         volumePaneRef.current?.clearData()
         rsiPaneRef.current?.clearData()
+        macroPaneRef.current?.clearData()
         series.setData([])
         futureTimelineRef.current?.clear()
         prevBarsRef.current = []
@@ -323,6 +339,7 @@ function MarketCandlestickChartComponent({
       }
       let replaced = false
       if (isNewKey) {
+        macroPaneRef.current?.clearData()
         volumePaneRef.current?.clearData()
         rsiPaneRef.current?.clearData()
         replaced = true
@@ -411,6 +428,26 @@ function MarketCandlestickChartComponent({
     } finally { applyingDataRef.current = false }
   }, [volume, bars, fitContentKey, clock, timeframe, onChangeVolumeAxis, onToggleVolumeLayer, readLogicalRange, setLogicalRange])
 
+  useLayoutEffect(() => {
+    const chart = chartRef.current
+    if (!chart || (!macroEnabled && !macroPaneRef.current)) return
+    const range = readLogicalRange()
+    applyingDataRef.current = true
+    try {
+      if (!macroEnabled || !macro) {
+        macroPaneRef.current?.destroy(); macroPaneRef.current = null
+      } else {
+        macroPaneRef.current ??= createMacroPane(chart)
+        macroPaneRef.current.sync(bars, macro, timeframeToSeconds(timeframe), formatUtc, {
+          toggleMetric: metric => onToggleMacroMetric?.(metric),
+          selectMetric: metric => onSelectMacroMetric?.(metric),
+          inspectRelease: onInspectMacroRelease,
+        })
+      }
+      if (range) setLogicalRange(range)
+    } finally { applyingDataRef.current = false }
+  }, [macroEnabled, macro, bars, fitContentKey, timeframe, formatUtc, onToggleMacroMetric, onSelectMacroMetric, onInspectMacroRelease, readLogicalRange, setLogicalRange])
+
   useEffect(() => {
     if (!pendingWindowRef.current || !bars.length || !hasOlderData || isLoadingOlderData) return
     const attempt = `${fitContentKey}:${bars[0].time}`
@@ -451,7 +488,7 @@ function MarketCandlestickChartComponent({
     const rect = container.getBoundingClientRect()
     const leftWidth = chartRef.current?.options().leftPriceScale.visible ? chartRef.current.priceScale('left').width() : 0
     if (event.clientX < rect.left + leftWidth) return
-    const paneHeight = (rsi?.enabled || volume?.enabled) ? chartRef.current?.paneSize(0).height : undefined
+    const paneHeight = (rsi?.enabled || volume?.enabled || macroEnabled) ? chartRef.current?.paneSize(0).height : undefined
     if (paneHeight !== undefined && event.clientY - rect.top >= paneHeight) return
     // Do not intercept if clicking on the right price scale area
     if (event.clientX > rect.right - 55) return
@@ -502,7 +539,7 @@ function MarketCandlestickChartComponent({
   }
 
   const handleDoubleClick = (event: React.MouseEvent<HTMLDivElement>) => {
-    const paneHeight = (rsi?.enabled || volume?.enabled) ? chartRef.current?.paneSize(0).height : undefined
+    const paneHeight = (rsi?.enabled || volume?.enabled || macroEnabled) ? chartRef.current?.paneSize(0).height : undefined
     const top = containerRef.current?.getBoundingClientRect().top ?? 0
     if (paneHeight !== undefined && event.clientY - top >= paneHeight) return
     pendingWindowRef.current = false
@@ -551,7 +588,7 @@ function MarketCandlestickChartComponent({
         <span>{hasOlderData ? 'Older history could not reach the selected dates.' : 'MT5 history does not cover the selected dates.'}</span>
         {hasOlderData && <button type="button" onClick={onRequestOlderData}>Retry history</button>}
       </div>}
-      {chartApi && seriesApi && <PricePaneOverlays chartApi={chartApi} seriesApi={seriesApi} constrained={Boolean(rsi?.enabled || volume?.enabled)}>
+      {chartApi && seriesApi && <PricePaneOverlays chartApi={chartApi} seriesApi={seriesApi} constrained={Boolean(rsi?.enabled || volume?.enabled || macroEnabled)}>
       {renderChartOverlay?.(chartApi, seriesApi)}
       {chartApi && seriesApi && (activeDrawingTool || drawings.length > 0) && (
         <ChartDrawingOverlay

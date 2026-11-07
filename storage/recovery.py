@@ -50,7 +50,7 @@ def backup_directory(source: Path, destination: Path):
             if inventory.is_symlink() or any(path.is_symlink() for path in inventory.rglob("*")):
                 raise ValueError("Inventory symlinks are not supported in backups")
             shutil.copytree(inventory, stage / "inventory")
-        for name in ('currency-news', 'currency-details'):
+        for name in ('currency-news', 'currency-details', 'fed-forecasts'):
             saved = source / name
             if saved.exists():
                 if saved.is_symlink() or any(path.is_symlink() for path in saved.rglob('*')):
@@ -82,7 +82,7 @@ def validate_backup(folder: Path):
             raise ValueError("Invalid backup file entry")
         raw = entry["path"]
         relative = PurePosixPath(raw)
-        if raw != relative.as_posix() or relative.is_absolute() or ".." in relative.parts or "\\" in raw or ":" in raw or raw in paths or not (raw == "calendar.sqlite3" or raw.startswith(("inventory/", "currency-news/", "currency-details/"))):
+        if raw != relative.as_posix() or relative.is_absolute() or ".." in relative.parts or "\\" in raw or ":" in raw or raw in paths or not (raw == "calendar.sqlite3" or raw.startswith(("inventory/", "currency-news/", "currency-details/", "fed-forecasts/"))):
             raise ValueError("Invalid or duplicate backup path")
         paths.add(raw)
         target = folder / raw

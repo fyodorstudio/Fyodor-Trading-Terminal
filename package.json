@@ -12,6 +12,7 @@
     "alarms:restart": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start-alarms.ps1 -Restart",
     "storage:import": "bridge\\.venv\\Scripts\\python.exe storage\\run.py import",
     "storage:status": "bridge\\.venv\\Scripts\\python.exe storage\\run.py status",
+    "storage:fed-forecasts": "bridge\\.venv\\Scripts\\python.exe storage\\run.py fed-forecasts",
     "install:frontend": "pnpm --dir frontend install --frozen-lockfile",
     "clean-ports": "pnpm --dir frontend run clean-ports",
     "dev:all": "pnpm --dir frontend run dev:all",

@@ -15,6 +15,7 @@ from storage.archive_import import import_export
 from storage.calendar_store import CalendarStore
 from storage.data_lock import data_lock
 from storage.recovery import backup_directory, restore_directory
+from storage.fed_forecasts import FedRefresh, read_forecasts, save_forecasts
 
 
 def main():
@@ -26,12 +27,25 @@ def main():
     importer.add_argument("folder", type=Path)
     importer.add_argument("--dry-run", action="store_true")
     commands.add_parser("status")
+    forecasts = commands.add_parser('fed-forecasts')
+    forecasts.add_argument('action', choices=('read', 'save'))
+    forecasts.add_argument('--input', type=Path)
     backup = commands.add_parser("backup")
     backup.add_argument("destination", type=Path)
     restore = commands.add_parser("restore")
     restore.add_argument("folder", type=Path)
     restore.add_argument("--destination", required=True, type=Path)
     args = parser.parse_args()
+    if args.command == 'fed-forecasts':
+        folder = data_directory() / 'fed-forecasts'
+        if args.action == 'save':
+            if not args.input:
+                parser.error('fed-forecasts save requires --input')
+            result = save_forecasts(FedRefresh.model_validate_json(args.input.read_text(encoding='utf-8-sig')), folder)
+        else:
+            result = read_forecasts(folder)
+        print(json.dumps(result, indent=2))
+        return
     if args.command == "serve":
         import uvicorn
         uvicorn.run("storage.app:app", host="127.0.0.1", port=args.port, access_log=False)

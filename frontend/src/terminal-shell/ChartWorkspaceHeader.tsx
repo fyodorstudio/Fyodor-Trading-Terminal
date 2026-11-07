@@ -4,6 +4,7 @@ import type { MarketWatchDock } from '../workspace-docking/left-dock/useMarketWa
 import { SessionTimeline } from '../market-data/market-watch/SessionTimeline'
 import { dailyRangeLabel } from '../market-data/market-watch/daily-range'
 import { isNdfSymbol } from '../market-data/market-watch/symbol-classification'
+import { supportsMacro } from '../market-data/indicators/macro/macro-data'
 import '../market-data/indicators/rsi/rsi.css'
 
 const timeframes: ChartTimeframe[] = ['M1', 'M5', 'M15', 'M30', 'H1', 'H4', 'D1']
@@ -24,6 +25,9 @@ type ChartWorkspaceHeaderProps = {
   rsiEnabled?: boolean
   onToggleRsi?: () => void
   onOpenRsiSettings?: () => void
+  macroEnabled?: boolean
+  onToggleMacro?: () => void
+  onOpenMacroSettings?: () => void
   eventIconsVisible?: boolean
   onToggleEventIcons?: () => void
   recentEventsOpen?: boolean
@@ -67,6 +71,9 @@ export function ChartWorkspaceHeader({
   rsiEnabled = false,
   onToggleRsi,
   onOpenRsiSettings,
+  macroEnabled = false,
+  onToggleMacro,
+  onOpenMacroSettings,
   eventIconsVisible = true,
   onToggleEventIcons,
   recentEventsOpen = false,
@@ -142,6 +149,17 @@ export function ChartWorkspaceHeader({
           <button type="button" aria-pressed={rsiEnabled} onClick={onToggleRsi}
             aria-label={rsiEnabled ? 'Hide RSI' : 'Show RSI'} title={rsiEnabled ? 'Hide RSI' : 'Show RSI'}>RSI</button>
           <button type="button" onClick={onOpenRsiSettings} aria-label="RSI settings" title="RSI settings" aria-haspopup="dialog">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="m9 3-.5 2.2-2 .9L4.6 5 2 9.5l1.8 1.4v2.2L2 14.5 4.6 19l1.9-1.1 2 .9L9 21h6l.5-2.2 2-.9 1.9 1.1 2.6-4.5-1.8-1.4v-2.2L22 9.5 19.4 5l-1.9 1.1-2-.9L15 3z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+          </button>
+        </div>}
+        {onToggleMacro && supportsMacro(symbol) && <div className="rsi-header-controls" role="group" aria-label="MFDI indicator">
+          <button type="button" aria-pressed={macroEnabled} onClick={onToggleMacro}
+            aria-label={macroEnabled ? 'Hide MFDI' : 'Show MFDI'}
+            title="Macro Factor Data Inspector · USDX">MFDI</button>
+          <button type="button" onClick={onOpenMacroSettings} aria-label="MFDI settings" title="MFDI settings" aria-haspopup="dialog">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="m9 3-.5 2.2-2 .9L4.6 5 2 9.5l1.8 1.4v2.2L2 14.5 4.6 19l1.9-1.1 2 .9L9 21h6l.5-2.2 2-.9 1.9 1.1 2.6-4.5-1.8-1.4v-2.2L22 9.5 19.4 5l-1.9 1.1-2-.9L15 3z" />
               <circle cx="12" cy="12" r="3" />

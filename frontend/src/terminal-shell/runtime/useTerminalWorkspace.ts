@@ -26,7 +26,9 @@ import { usePriceAlerts } from '../../price-alerts/usePriceAlerts'
 import { alertDateForRelease, type AlertFocus } from '../../alert/model/alert-focus'
 import { useVolumePreferences } from '../../market-data/indicators/volume/useVolumePreferences'
 import { useRsiPreferences } from '../../market-data/indicators/rsi/useRsiPreferences'
+import { useMacroIndicator } from '../../market-data/indicators/macro/useMacroIndicator'
 import type { DetailReading } from '../../currency-details/detail-model'
+import type { MacroReading } from '../../market-data/indicators/macro/macro-data'
 
 const emptyTradePlan: PlannedTradeState = { direction: 'waiting', entryPrice: null, tpPrice: null, slPrice: null, showOnChart: false }
 
@@ -42,6 +44,7 @@ export function useTerminalWorkspace() {
   const [researchActive, setResearchActive] = useState(false)
   const [recentEventsOpen, setRecentEventsOpen] = useState(false)
   const [detailOpen, setDetailOpen] = useState(false)
+  const [inspectorFromLedger, setInspectorFromLedger] = useState(false)
   const [researchSeed, setResearchSeed] = useState<ResearchSeed | null>(null)
   const [researchError, setResearchError] = useState<string | null>(null)
   const [selectedDrawingId, setSelectedDrawingId] = useState<string | null>(null)
@@ -71,6 +74,7 @@ export function useTerminalWorkspace() {
   const activeSymbol = marketData.activeSymbol
   const bars = marketData.bars
   const brokerId = bridge.brokerId
+  const macroState = useMacroIndicator(activeSymbol, brokerId)
   const priceAlerts = usePriceAlerts(brokerId, marketData.symbols, mt5Connected && marketData.marketWatchStatus === 'live')
   const addPriceAlert = priceAlerts.addAlert
   const enablePriceAlertSound = priceAlerts.enableSound
@@ -240,7 +244,13 @@ export function useTerminalWorkspace() {
   const setReleaseSelection = inspector.selectRelease
   const focusInspectorEvent = inspector.focusEvent
   const viewLedgerEvent = useCallback((reading: DetailReading, currency: string) => {
+    setInspectorFromLedger(true)
     focusInspectorEvent(reading, currency); setBottomDockWindow('inspector')
+  }, [focusInspectorEvent])
+  const viewMacroRelease = useCallback((reading: MacroReading) => {
+    setInspectorFromLedger(false)
+    focusInspectorEvent({ value_id: reading.id, at: reading.releasedAt, date: new Date(reading.releasedAt).toISOString().slice(0, 10) }, 'USD')
+    setBottomDockWindow('inspector')
   }, [focusInspectorEvent])
   const returnToLedger = useCallback(() => setBottomDockWindow('ledger'), [])
   const setArrowSelection = registeredArrows.setSelectedArrowId
@@ -311,7 +321,7 @@ export function useTerminalWorkspace() {
       : bridge.processRunning
         ? 'MT5 disconnected'
         : 'Waiting for MT5'
-  return { ...volumeState, ...rsiState, timeframe, theme, chartAppearance, timeDisplay, activeDrawingTool, selectedDrawingId, setSelectedDrawingId,
+  return { ...volumeState, ...rsiState, ...macroState, timeframe, theme, chartAppearance, timeDisplay, activeDrawingTool, selectedDrawingId, setSelectedDrawingId,
     drawingToolbarVisible, eventIconsVisible, toggleEventIcons, bottomDockWindow, dockSize, settingsOpen, setSettingsOpen, marketWatch, appendActivity,
     bridge, marketData, activeSymbol, bars, brokerId, inspector, quote, drawings, pairDrawingCount, updateDrawingPoint,
     updateDrawingPoints, updateDrawingText, updatePositionWidth, handleDeleteDrawing, selectSymbol, selectTimeframe,
@@ -319,6 +329,6 @@ export function useTerminalWorkspace() {
     selectCrosshair, deletePairDrawings, toggleBottomDock, exitDrawingMode, toggleDrawingToolbar,
     renderChartOverlay, sourceState, sourceLabel, researchActive, researchSeed, researchError,
     selectResearchTool, closeResearch, recentEventsOpen, toggleRecentEvents, closeRecentEvents, alertFocus, viewReleaseInAlert,
-    detailOpen, toggleDetail, closeDetail, openDetail, viewDetailEvent, viewLedgerEvent, returnToLedger,
+    detailOpen, toggleDetail, closeDetail, openDetail, viewDetailEvent, viewLedgerEvent, viewMacroRelease, returnToLedger: inspectorFromLedger ? returnToLedger : undefined,
     plannedTrade, handlePlanChange, latestBarTime, registeredArrows, selectPinnedArrow, priceAlerts, leftDockTab, setLeftDockTab }
 }

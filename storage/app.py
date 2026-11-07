@@ -28,6 +28,7 @@ from .detail_projection import detail_snapshot
 from .detail_registry import resolve_scope
 from .currency_ledger import ledger_snapshot
 from .market_watch_daily import DailyMarketWatch
+from .fed_forecasts import read_forecasts
 
 
 class DailyMarketRequest(BaseModel):
@@ -64,6 +65,13 @@ def create_app(directory=None, run_collector=True, highlights_path=HIGHLIGHTS_PA
     app = FastAPI(title="Fyodor Calendar Storage", version="1.1.0", lifespan=lifespan)
     daily_market = DailyMarketWatch()
     details_directory = (directory or data_directory()) / 'currency-details'
+
+    @app.get('/api/v1/fed-forecasts')
+    def fed_forecasts():
+        try:
+            return read_forecasts((directory or data_directory()) / 'fed-forecasts')
+        except (ValueError, OSError, KeyError) as error:
+            raise HTTPException(503, 'Fed forecasts unavailable; saved evidence is preserved') from error
 
     @app.get('/api/v1/currency-ledger')
     def currency_ledger(source_id: str = Query(min_length=1, max_length=160),

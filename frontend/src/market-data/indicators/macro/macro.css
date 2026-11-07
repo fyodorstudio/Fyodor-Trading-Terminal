@@ -1,0 +1,18 @@
+.macro-legend { position: absolute; left: 10px; z-index: 4; display: flex; flex-direction: column; gap: 3px; color: var(--text-strong); background: transparent; font-size: 11px; line-height: 16px; overflow: auto; pointer-events: none; }
+.macro-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
+.macro-controls button { padding: 3px 7px; border: 1px solid var(--border-strong); border-radius: 5px; color: var(--text-strong); background: var(--surface-inset); font: inherit; cursor: pointer; pointer-events: auto; }
+.macro-metric-item { display: flex; align-items: center; gap: 5px; flex: 0 0 auto; }
+.macro-control-color { width: 9px; height: 9px; flex: 0 0 9px; border-radius: 50%; }
+.macro-metric-control { display: flex; align-items: stretch; flex: 0 0 auto; border: 1px solid var(--border-strong); border-radius: 6px; overflow: hidden; background: var(--surface-inset); }
+.macro-metric-control button { border: 0; border-radius: 0; background: transparent; }
+.macro-metric-axis[aria-pressed="true"] { box-shadow: inset 0 -2px var(--accent); background: var(--surface-hover); }
+.macro-metric-control .macro-visibility-button { display: grid; place-items: center; padding: 3px 5px; color: var(--text-muted); }
+.macro-controls button:hover { background: var(--surface-hover); }
+.macro-controls button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.macro-readout { display: flex; flex-wrap: wrap; gap: 3px 16px; font-variant-numeric: tabular-nums; }
+.macro-field { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
+.macro-swatch { display: inline-block; width: 7px; height: 7px; border-radius: 50%; }
+.macro-release, .macro-note { color: var(--text-muted); }
+.macro-forecast-tooltip { position: absolute; z-index: 6; display: flex; flex-direction: column; gap: 4px; max-height: calc(100% - 12px); overflow: hidden; padding: 9px 11px; border: 1px solid var(--border-strong); border-radius: 6px; background: var(--surface-inset); color: var(--text-strong); font-size: 11px; line-height: 15px; font-variant-numeric: tabular-nums; pointer-events: none; box-sizing: border-box; }
+.macro-forecast-tooltip[hidden] { display: none; }
+.macro-forecast-source { color: var(--text-muted); font-size: 10px; overflow-wrap: anywhere; }

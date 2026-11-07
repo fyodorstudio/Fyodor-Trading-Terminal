@@ -151,7 +151,7 @@ const server = await createServer({ root: path.resolve(path.dirname(fileURLToPat
       if (id.endsWith('/CurrencyNewsDock.tsx')) return code.replace('  return <tr data-news-story=',
         "  globalThis.__terminalProbe.count('newsRows'); return <tr data-news-story=")
       if (id.endsWith('/MarketCandlestickChart.tsx')) return code.replace('}: MarketCandlestickChartProps) {',
-        "}: MarketCandlestickChartProps) { globalThis.__terminalProbe.count('chartRender');")
+        "}: MarketCandlestickChartProps) { globalThis.__terminalProbe.inspectMacro = onInspectMacroRelease; globalThis.__terminalProbe.count('chartRender');")
       if (id.endsWith('/volume-calculation.ts')) return code.replace('for (let i = from; i < bars.length; i++) {',
         "for (let i = from; i < bars.length; i++) { globalThis.__terminalProbe.count('volumeCandle');")
       if (id.endsWith('/rsi-calculation.ts')) return code.replace('for (let i = from; i < bars.length; i++) {',
@@ -1383,6 +1383,28 @@ try {
     reset(); await tick('poll', 2500); await reply('watch')
     assertQuiet(`${symbol}: unchanged Market Watch poll`, true)
     assert.equal(counters.dailyGrouping ?? 0, 0, `${symbol}: stable scope arrays avoid calendar regrouping`)
+    if (symbol === 'USDX') {
+      const release = events.find(row => row.event_id === '840030005' && row.actual !== null && row.release_at <= now)
+      const companion = events.find(row => row.event_id === '840030006' && row.release_at === release.release_at)
+      const savedFilters = localStorage.getItem('fyodor.inspector.shared.v1'), savedWindow = { ...logicalRange }
+      await React.act(async () => globalThis.__terminalProbe.inspectMacro({ id: release.value_id,
+        time: release.chart_time_seconds, releasedAt: release.release_at, value: release.actual }))
+      await flush()
+      assert.ok(container.querySelector('.inspector-panel'), 'An MFDI dot opens the Inspector bottom dock')
+      assert.ok(container.querySelector(`[data-value-id="${release.value_id}"][data-ledger-focused="true"]`), 'The exact clicked source value is highlighted')
+      assert.ok(container.querySelector(`[data-value-id="${companion.value_id}"]`), 'The entire CPI package accompanies the selected measure')
+      assert.ok(![...container.querySelectorAll('.inspector-header button')].some(node => node.textContent === 'Return to Ledger'))
+      await React.act(async () => globalThis.__terminalProbe.inspectMacro({ id: companion.value_id,
+        time: companion.chart_time_seconds, releasedAt: companion.release_at, value: companion.actual }))
+      await flush()
+      assert.ok(container.querySelector(`[data-value-id="${companion.value_id}"][data-ledger-focused="true"]`), 'Another dot replaces the prior focused measure')
+      assert.equal(localStorage.getItem('fyodor.inspector.shared.v1'), savedFilters)
+      assert.deepEqual(logicalRange, savedWindow, 'Inspector navigation preserves the chart window')
+      await React.act(async () => { for (const listener of [...clickListeners]) listener({ point: { x: 100, y: 100 }, paneIndex: 0 }) })
+      await flush()
+      assert.equal(container.querySelector('.inspector-panel'), null, 'A subsequent blank-chart click dismisses inspection')
+      await click(button('Inspector')); await flush()
+    }
   }
   await click(container.querySelector('[aria-label="Hide event icons"]'))
   assert.equal(container.querySelector('[aria-label="Hide left panel"]'), null, 'The left panel has no redundant close button')

@@ -19,6 +19,9 @@ import { EntryTradePanel } from '../entry-trade/dock/EntryTradePanel'
 import { CurrencyNewsDock } from '../currency-news/CurrencyNewsDock'
 import { VolumeSettingsDialog } from '../market-data/indicators/volume/VolumeSettingsDialog'
 import { RsiSettingsDialog } from '../market-data/indicators/rsi/RsiSettingsDialog'
+import { MacroSettingsDialog } from '../market-data/indicators/macro/MacroSettingsDialog'
+import { supportsMacro } from '../market-data/indicators/macro/macro-data'
+import { selectMacroMetric, toggleMacroMetric, type MacroMetric } from '../market-data/indicators/macro/macro-preferences'
 import { chartEventCurrencies } from '../economic-calendar/forex/chart-event-scope'
 import { LedgerProvider } from '../currency-ledger/LedgerProvider'
 import { LedgerDock } from '../currency-ledger/LedgerDock'
@@ -30,6 +33,7 @@ export function TerminalWorkspace() {
   const [refocusRequest, setRefocusRequest] = useState(0)
   const [ledgerRequest, setLedgerRequest] = useState(0)
   const { volume, changeVolume, toggleVolume, volumeSettingsOpen, setVolumeSettingsOpen, rsi, changeRsi, toggleRsi, rsiSettingsOpen, setRsiSettingsOpen,
+    macro, toggleMacro, macroPreferences, changeMacro, macroSettingsOpen, setMacroSettingsOpen,
     timeframe, theme, chartAppearance, timeDisplay, activeDrawingTool, selectedDrawingId, setSelectedDrawingId,
     drawingToolbarVisible, eventIconsVisible, toggleEventIcons, bottomDockWindow, dockSize, settingsOpen, setSettingsOpen, marketWatch, appendActivity,
     bridge, marketData, activeSymbol, bars, brokerId, inspector, quote, drawings, pairDrawingCount,
@@ -38,7 +42,7 @@ export function TerminalWorkspace() {
     createDrawing, chooseDrawingTool, selectCrosshair, deletePairDrawings, toggleBottomDock, exitDrawingMode,
     toggleDrawingToolbar, renderChartOverlay, sourceState, sourceLabel, researchActive, researchSeed, researchError,
     selectResearchTool, closeResearch, recentEventsOpen, toggleRecentEvents, closeRecentEvents, alertFocus, viewReleaseInAlert,
-    detailOpen, toggleDetail, closeDetail, openDetail, viewDetailEvent, viewLedgerEvent, returnToLedger,
+    detailOpen, toggleDetail, closeDetail, openDetail, viewDetailEvent, viewLedgerEvent, viewMacroRelease, returnToLedger,
     plannedTrade, handlePlanChange, latestBarTime, registeredArrows, selectPinnedArrow, priceAlerts, leftDockTab, setLeftDockTab } = useTerminalWorkspace()
   const brokerOffsetSeconds = bridge.brokerOffsetSeconds
   const ledgerCurrencies = chartEventCurrencies(activeSymbol)
@@ -52,6 +56,9 @@ export function TerminalWorkspace() {
   </>, [renderChartOverlay, bars])
   const closeRsiSettings = useCallback(() => setRsiSettingsOpen(false), [setRsiSettingsOpen])
   const closeVolumeSettings = useCallback(() => setVolumeSettingsOpen(false), [setVolumeSettingsOpen])
+  const closeMacroSettings = useCallback(() => setMacroSettingsOpen(false), [setMacroSettingsOpen])
+  const toggleMacroSeries = useCallback((metric: MacroMetric) => changeMacro(toggleMacroMetric(macroPreferences, metric)), [macroPreferences, changeMacro])
+  const selectMacroSeries = useCallback((metric: MacroMetric) => changeMacro(selectMacroMetric(macroPreferences, metric)), [macroPreferences, changeMacro])
   const changeVolumeAxis = useCallback((axisTarget: typeof volume.axisTarget) => changeVolume({ ...volume, axisTarget,
     ...(volume.mode === 'raw' && axisTarget === 'relative' ? { relativeLineVisible: true } : {}),
     ...(volume.mode === 'raw' && axisTarget === 'volume' && !volume.barsVisible && !volume.averageVisible ? { barsVisible: true } : {}),
@@ -94,6 +101,9 @@ export function TerminalWorkspace() {
             rsiEnabled={rsi.enabled}
             onToggleRsi={toggleRsi}
             onOpenRsiSettings={() => setRsiSettingsOpen(true)}
+            macroEnabled={macro.enabled}
+            onToggleMacro={toggleMacro}
+            onOpenMacroSettings={() => setMacroSettingsOpen(true)}
             eventIconsVisible={eventIconsVisible}
             onToggleEventIcons={toggleEventIcons}
             drawingToolbarVisible={drawingToolbarVisible}
@@ -123,6 +133,10 @@ export function TerminalWorkspace() {
                   onChangeVolumeAxis={changeVolumeAxis}
                   onToggleVolumeLayer={toggleVolumeLayer}
                   rsi={rsi}
+                  macro={macro}
+                  onToggleMacroMetric={toggleMacroSeries}
+                  onSelectMacroMetric={selectMacroSeries}
+                  onInspectMacroRelease={viewMacroRelease}
                   refocusRequest={refocusRequest}
                   activeDrawingTool={activeDrawingTool}
                   drawings={drawings}
@@ -223,6 +237,7 @@ export function TerminalWorkspace() {
         />
       )}
       {volumeSettingsOpen && <VolumeSettingsDialog preferences={volume} onSave={changeVolume} onClose={closeVolumeSettings} />}
+      {macroSettingsOpen && supportsMacro(activeSymbol) && <MacroSettingsDialog preferences={macroPreferences} onSave={changeMacro} onClose={closeMacroSettings} />}
       {rsiSettingsOpen && <RsiSettingsDialog preferences={rsi} onSave={changeRsi} onClose={closeRsiSettings} />}
       {researchError && <div className="research-range-hint" role="alert">{researchError}<button type="button" onClick={closeResearch}>Close</button></div>}
     </div>

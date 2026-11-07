@@ -160,6 +160,50 @@ timeline; the flexible gap follows Refocus. A separator precedes the event-icon
 button. RSI opens a resizable lower pane with a shared time axis, Wilder RSI 14 on Close,
 optional smoothing (SMA 14 by default), 70/50/30 bands and a background fill.
 Visibility and settings persist on this device across all symbols/timeframes.
+On **USDX**, **MFDI** (Macro Factor Data Inspector) beside RSI toggles a resizable
+lower pane. Its gear opens **Inputs / Style**, with draft OK/Cancel and Reset
+defaults. Five compact controls show **Fed Rate (%)**, **Payroll (k)**,
+**Unemployment (%)**, **Headline CPI m/m (%)** and **Core CPI m/m (%)**.
+A filled circle before each control matches its saved line colour. Click a label
+to select its draggable right axis and reveal that series if hidden. Each grey
+eye independently shows/hides its line, with a slash when hidden. No category
+master or pane axis dropdown remains. Former category hides migrate to the
+individual eyes, preserving effective visibility and styles.
+All five lines overlay; only the Fed rate holds its value between decisions.
+Other lines join release dots. Four scales remain independent, with both CPI
+lines sharing Inflation; both CPI labels indicate this shared selected axis.
+Each scale holds its bounds across historical scrolling, backfill, series updates,
+eye toggles and axis changes. **Fit axis**, or double-clicking the right axis,
+fits only the selected scale and then holds its new bounds. Hiding its final
+visible series moves the right axis to another visible scale when available.
+Click a plotted release dot to open its exact package in the Inspector bottom
+dock and highlight that measure. This works outside Inspector's current dates
+or family selections without changing them. Carried values, connecting line
+segments, hidden dots and blank space do not select a release.
+Dashed vertical lines mark verified upcoming releases in the pane's empty
+future area, within the existing 90-day axis. Same-time CPI/jobs companions share
+one line. These use the saved broker schedule, follow series visibility, omit
+date-only/unknown chart times and introduce no chart timestamps or forecast values.
+Inputs selects individual series visibility and the right axis. Style sets colours,
+line widths and dots for all five series. Visibility, axes and styles persist
+locally; previous series choices, styles and enabled state survive migration from
+exclusive views. Other symbols hide the controls/pane.
+All five exact stored USD series share one paged read independently of Inspector
+filters. Readouts carry the latest known actual at the hovered candle, showing
+its release date in the selected display clock. Release points align to their
+containing candle; the latest wins within one candle. Missing actuals, unverified
+clocks and future releases are excluded. Captured history uses latest stored
+vintages; nothing is inferred before the first actual or beyond loaded candles.
+MFDI displays raw data and does not calculate a composite or dispersion score.
+Hover a **Fed release dot** for Investing.com consensus, Trading Economics survey
+consensus and a separately attributed CME FedWatch probability snapshot when
+saved. A short dashed connector anchors Investing.com's forecast to the actual;
+Beat dots have an outline, with explicit Miss / In line labels in the tooltip.
+Forecasts never refit the scales. Verified official Fed upper bounds take priority
+where saved; any raw MT5 conflict stays visible in the tooltip and Inspector.
+Evidence is saved locally with capture/as-of clocks and historical-backfill labels;
+missing coverage stays Unavailable. No web request happens on hover. See the
+[Fed forecast contract](docs/MFDI-FORECASTS.md) for capture/import and coverage.
 Hiding an indicator unregisters its series from the shared native timeline, so
 old lower-timeframe timestamps cannot spread out later H4/D1 candles.
 The settings dialog has Inputs/Style, OK/Cancel and Reset defaults. RSI follows
