@@ -77,7 +77,18 @@ export function createMacroPane(chart: IChartApi) {
   const fitButton = document.createElement('button'); fitButton.type = 'button'; fitButton.textContent = 'Fit axis'
   fitButton.setAttribute('aria-label', 'Fit MFDI selected axis')
   fitButton.title = 'Fit the selected scale to the visible releases, then hold its new bounds. Other scales keep their placement.'
-  controls.append(fitButton)
+  const fitAllButton = document.createElement('button'); fitAllButton.type = 'button'; fitAllButton.textContent = 'Fit axis all'
+  fitAllButton.setAttribute('aria-label', 'Fit all MFDI axes')
+  fitAllButton.title = 'Fit every visible MFDI scale to its visible releases, then hold the new bounds.'
+  const lockButton = document.createElement('button'); lockButton.type = 'button'; lockButton.className = 'macro-lock-button'
+  const lockIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+  lockIcon.setAttribute('viewBox', '0 0 24 24'); lockIcon.setAttribute('width', '18'); lockIcon.setAttribute('height', '18')
+  lockIcon.setAttribute('fill', 'none'); lockIcon.setAttribute('stroke', 'currentColor'); lockIcon.setAttribute('stroke-width', '1.8')
+  lockIcon.setAttribute('stroke-linecap', 'round'); lockIcon.setAttribute('stroke-linejoin', 'round'); lockIcon.setAttribute('aria-hidden', 'true')
+  const lockBody = document.createElementNS(lockIcon.namespaceURI, 'path'); lockBody.setAttribute('d', 'M5 10h14v11H5z M12 14v3')
+  const lockShackle = document.createElementNS(lockIcon.namespaceURI, 'path')
+  lockIcon.append(lockBody, lockShackle); lockButton.append(lockIcon)
+  controls.append(fitButton, fitAllButton, lockButton)
   const readout = document.createElement('div'); readout.className = 'macro-readout'
   const note = document.createElement('div'); note.className = 'macro-note'
   legend.append(controls, readout, note)
@@ -95,6 +106,35 @@ export function createMacroPane(chart: IChartApi) {
   let step = 3600
   let forecastHover: { time: Time; reading: MacroReading } | undefined
   let requestUpdate = () => {}
+  let locked = false
+  let navigation: Pick<ReturnType<IChartApi['options']>, 'handleScale' | 'handleScroll'> | undefined
+  const restoreNavigation = () => {
+    if (!navigation) return
+    const previous = navigation; navigation = undefined; chart.applyOptions(previous)
+  }
+  const inPane = (event: Event) => event.target instanceof Node && pane.getHTMLElement()?.contains(event.target)
+  const startGesture = (event: Event) => {
+    if (!locked || !inPane(event) || navigation) return
+    const options = chart.options()
+    navigation = structuredClone({ handleScale: options.handleScale, handleScroll: options.handleScroll })
+    // Native clicks and crosshair motion remain enabled, but this gesture cannot
+    // move either the shared time scale or any price scale.
+    chart.applyOptions({ handleScale: false, handleScroll: false })
+  }
+  const endGesture = (event: Event) => {
+    if ('touches' in event && (event as TouchEvent).touches.length) return
+    restoreNavigation()
+  }
+  const blockNavigation = (event: Event) => {
+    if (!locked || !inPane(event)) return
+    event.preventDefault(); event.stopPropagation()
+  }
+  const chartElement = chart.chartElement()
+  chartElement.addEventListener('mousedown', startGesture, true)
+  chartElement.addEventListener('touchstart', startGesture, { capture: true, passive: true })
+  chartElement.addEventListener('wheel', blockNavigation, { capture: true, passive: false })
+  chartElement.addEventListener('dblclick', blockNavigation, true)
+  for (const event of ['mouseup', 'touchend', 'touchcancel', 'blur']) window.addEventListener(event, endGesture)
   let outlineColor = '#888888'
   const tooltipField = (text: string) => {
     const field = document.createElement('div'); field.textContent = text
@@ -128,6 +168,7 @@ export function createMacroPane(chart: IChartApi) {
   }
   const captureBounds = (axis: MacroAxis, id: string, resize: boolean) => {
     const scale = pane.priceScale(id), range = scale.getVisibleRange(), height = pane.getHeight()
+    if (locked && bounds.has(axis) && placements.get(axis)?.height === height) { applyBounds(axis, id); return }
     if (!validBounds(range) || height <= 1) return
     const key = (Object.keys(series) as MacroMetric[]).find(key => macroMetricAxis(key) === axis && plots[key]?.line.length)
     if (!key) return
@@ -165,13 +206,34 @@ export function createMacroPane(chart: IChartApi) {
     })
   }
   fitButton.onclick = () => {
-    if (!indicator) return
+    if (!indicator || locked) return
     const axis = macroAxis(indicator.preferences), id = axisScales.get(axis)
     if (!id) return
     bounds.delete(axis)
     pane.priceScale(id).setAutoScale(true)
     bindAfterPaint()
   }
+  fitAllButton.onclick = () => {
+    if (!indicator || locked) return
+    for (const [axis, id] of axisScales) {
+      bounds.delete(axis); pane.priceScale(id).setAutoScale(true)
+    }
+    bindAfterPaint()
+  }
+  const updateLock = () => {
+    lockButton.setAttribute('aria-pressed', String(locked))
+    lockButton.setAttribute('aria-label', `${locked ? 'Unlock' : 'Lock'} MFDI axes`)
+    lockButton.title = locked ? 'Unlock MFDI pan, zoom and axis fitting' : 'Lock MFDI pan, zoom and axis fitting; hover and release selection remain available'
+    lockShackle.setAttribute('d', locked ? 'M8 10V6a4 4 0 0 1 8 0v4' : 'M8 10V6a4 4 0 0 1 8 0')
+    fitButton.disabled = locked; fitAllButton.disabled = locked
+  }
+  lockButton.onclick = () => {
+    if (!locked) for (const [axis, id] of axisScales) captureBounds(axis, id, true)
+    locked = !locked
+    if (!locked) restoreNavigation()
+    updateLock()
+  }
+  updateLock()
   const updateLegend = () => {
     if (!indicator) return
     const p = indicator.preferences
@@ -459,6 +521,12 @@ export function createMacroPane(chart: IChartApi) {
     destroy() {
       if (destroyed) return
       destroyed = true
+      restoreNavigation()
+      chartElement.removeEventListener('mousedown', startGesture, true)
+      chartElement.removeEventListener('touchstart', startGesture, true)
+      chartElement.removeEventListener('wheel', blockNavigation, true)
+      chartElement.removeEventListener('dblclick', blockNavigation, true)
+      for (const event of ['mouseup', 'touchend', 'touchcancel', 'blur']) window.removeEventListener(event, endGesture)
       if (frame !== null) window.cancelAnimationFrame(frame)
       if (boundsFrame !== null) window.cancelAnimationFrame(boundsFrame)
       chart.unsubscribeCrosshairMove(onHover)

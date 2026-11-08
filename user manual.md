@@ -118,6 +118,9 @@ then holds the new bounds. Values outside those bounds can remain offscreen unti
 you resize or refit that scale. Both CPI lines always share the Inflation scale. Equal screen heights across different
 scales do not imply equal magnitudes. Hiding the final visible line on the selected scale moves the right axis
 to another visible series when available.
+**Fit axis all** fits all visible MFDI scales at once. The lock/unlock icon beside
+it freezes pan, zoom and axis fitting within MFDI; hover and dot selection still
+work. Unlock to adjust again. The lock resets when the pane is closed.
 
 The gear opens **Inputs | Style**. Inputs chooses individual series
 and the right axis. Style changes colours, line widths, dots and forecast visibility for every line,

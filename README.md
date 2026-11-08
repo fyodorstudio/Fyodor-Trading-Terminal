@@ -176,6 +176,9 @@ Each scale holds its bounds across historical scrolling, backfill, series update
 eye toggles and axis changes. **Fit axis**, or double-clicking the right axis,
 fits only the selected scale and then holds its new bounds. Hiding its final
 visible series moves the right axis to another visible scale when available.
+**Fit axis all** fits every visible scale together. The adjacent lock icon freezes
+MFDI dragging, wheel/pinch zoom and axis fitting while preserving hover and release
+selection. Unlock to adjust the axes again; the lock lasts while the pane is open.
 Resizing the MFDI pane preserves vertical position and pixels per unit on every
 scale: added height reveals canvas below instead of stretching the lines and dots.
 Click a plotted release dot to open its exact package in the Inspector bottom
