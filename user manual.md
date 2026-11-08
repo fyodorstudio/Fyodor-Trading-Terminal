@@ -58,7 +58,9 @@ prior failure context; full original records are [archived](docs/RESEARCH-ARCHIV
 ## MFDI
 
 Select **USDX**, then click **MFDI** beside Volume and RSI. MFDI means Macro
-Factor Data Inspector. Drag its pane divider to resize it. Five compact controls
+Factor Data Inspector. Drag its pane divider to resize it. This adds or removes
+canvas space below while preserving the lines' vertical position and zoom.
+Five compact controls
 appear in this order: **Fed Rate (%)**, **Payroll (k)**, **Unemployment (%)**,
 **Headline CPI m/m (%)**, **Core CPI m/m (%)**. A filled circle before each box
 matches that line's colour, including changes made in Style.
@@ -67,6 +69,14 @@ matches that line's colour, including changes made in Style.
   line reveals only that line.
 - Click its **grey eye** to hide/show just that line. A slashed eye means hidden.
   The five controls remain available when every line is hidden.
+- Click **F** to show/hide that series' forecasts. A slashed F means hidden.
+  Payroll forecasts start on; the other four start off. Each choice is saved.
+  The series eye also hides its forecasts without changing its F choice.
+- Click **N** beside F to show values above that series' actual release dots.
+  A slashed N means hidden (the default). The choice is saved per series;
+  hiding the series or its dots also hides the numbers.
+  Numbers start with ↑ for an increase or ↓ for a decrease from the previous
+  available release. First readings and equal values have no arrow.
 - Fed Rate uses the target upper bound and a step line between decisions.
   Payrolls, unemployment and CPI use lines with dots at actual releases.
   CPI values are monthly changes, not annual inflation.
@@ -77,32 +87,29 @@ readings remain visible. Inspector's saved filters and date range stay unchanged
 the source value ID identifies the release even when it is outside that range.
 Connecting segments, carried Fed-rate values and hidden dots do not open releases.
 
-Hover a **Fed release dot** to see actual versus Investing.com consensus, the
-Trading Economics **survey consensus**, and CME FedWatch's **market probabilities**
-when saved. A short vertical dashed connector joins the actual to Investing.com's
-consensus; its small end cap marks the forecast. **Beat** means a higher rate than
-consensus (hawkish surprise), **Miss** means lower (dovish surprise), and **In line**
-means equal, with the signed difference in basis points. A Beat against Investing.com
-adds an outline around the actual dot. Each survey gets its own comparison;
-FedWatch shows the most likely target range and the actual outcome's probability,
-without converting probabilities into an economist forecast. These labels do not
-predict USD returns.
+Hover a **Fed release dot** to see consensus values only. A short vertical dashed
+connector joins the actual to Investing.com's consensus, with an end cap at the
+forecast. A higher-than-consensus actual has an outline. Hovering never changes
+zoom or placement; offscreen forecast values remain readable in the tooltip.
+CME probability and retrieval/backfill text are omitted.
 
-The tooltip shows source retrieval/as-of clocks in your display timezone.
-**Historical backfill** means retrieved after the decision; it is not a captured
-pre-decision snapshot. Missing values show **Unavailable**, including unverified
-historical FedWatch probabilities. Forecast endpoints outside your scale remain
-offscreen; the tooltip retains their values. Hovering never changes zoom or placement.
-Saved official Fed upper bounds take priority over MT5; a disagreement explicitly
-shows both values, and clicking still opens the original MT5 package in Inspector.
-The [Fed forecast contract](docs/MFDI-FORECASTS.md) explains the small local cache
-and how to add verified meetings. There is no automatic website scraping.
+The supplied table covers January 2020 through October 2026, with 54 consensus
+values across 56 decisions. The March 2020 emergency decisions have no forecasts
+in the source. See the [Fed consensus reference](docs/MFDI-FORECASTS.md).
 
 Upcoming releases appear as **dashed vertical lines** in the pane's empty future
 area. Only verified exact-time schedules for visible series appear, within the
 existing 90-day future axis. CPI or jobs companions scheduled together share one
 line. Date-only/unverified times stay unplaced. These lines read the stored
 calendar and do not change reminders or imply an upcoming actual value.
+
+Forecasts form their own line, joining forecast values rather than actuals. The
+historical line uses the same colour at 60% opacity; hollow forecast rings are
+slightly larger than actual dots, so equal values remain visible. Upcoming
+forecasts continue from the last forecast with a dashed line and rings at 40%
+opacity. An upcoming release without a forecast keeps only its vertical schedule
+line and breaks that connection. Zero is a valid forecast. The existing dots
+setting also controls forecast rings; forecasts never resize the scales.
 
 Each scale keeps its own zoom and placement while you
 scroll dates, load older history, switch axes or toggle eyes. **Fit axis**
@@ -113,7 +120,7 @@ scales do not imply equal magnitudes. Hiding the final visible line on the selec
 to another visible series when available.
 
 The gear opens **Inputs | Style**. Inputs chooses individual series
-and the right axis. Style changes colours, line widths and dots for every line,
+and the right axis. Style changes colours, line widths, dots and forecast visibility for every line,
 including Payrolls. **OK** saves,
 **Cancel** discards the draft, and **Reset defaults** resets the draft.
 Preferences persist. Previous MFDI styles and enabled state are retained. Former
@@ -126,7 +133,9 @@ readouts do not create extra dots. Points align to the containing
 candle; if multiple releases share a candle, the latest actual wins. Scroll
 left for more released points. Only captured releases with verified MT5 timing
 appear, using the latest stored vintage and saved official Fed values where available.
-Forecasts stay in the hover overlay; future releases never supply actual points.
+Forecasts use the captured calendar Forecast field, with saved Investing.com
+consensus preferred at exact matching Fed releases; a blank saved consensus stays
+blank. Forecasts use the latest stored vintage. Future releases never supply actual points.
 MFDI has no composite index or dispersion calculation. Switching away
 from USDX hides the pane; returning restores it. Click **MFDI** to hide it.
 

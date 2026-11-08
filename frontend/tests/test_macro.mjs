@@ -27,8 +27,8 @@ const event = (overrides = {}) => ({ value_id: 'one', event_id: '840050014', cur
 const reply = (request, body) => React.act(async () => request.resolve({ ok: true, json: async () => body }))
 const reactProps = element => element[Object.getOwnPropertyNames(element).find(key => key.startsWith('__reactProps$'))]
 try {
-  const { macroHistory, macroUpcoming, macroPlot, supportsMacro, macroMetrics, macroEventIds, macroValue } = await server.ssrLoadModule('./src/market-data/indicators/macro/macro-data.ts')
-  const { defaultMacroPreferences, readMacroPreferences, saveMacroPreferences, macroAxis, selectMacroAxis, selectMacroMetric, toggleMacroMetric } = await server.ssrLoadModule('./src/market-data/indicators/macro/macro-preferences.ts')
+  const { macroHistory, macroUpcoming, macroPlot, macroNumberLabels, supportsMacro, macroMetrics, macroEventIds, macroValue } = await server.ssrLoadModule('./src/market-data/indicators/macro/macro-data.ts')
+  const { defaultMacroPreferences, readMacroPreferences, saveMacroPreferences, macroAxis, selectMacroAxis, selectMacroMetric, toggleMacroMetric, toggleMacroForecast, toggleMacroNumbers } = await server.ssrLoadModule('./src/market-data/indicators/macro/macro-preferences.ts')
   assert.ok(supportsMacro('USDX')); assert.ok(supportsMacro('USDX.a'))
   for (const symbol of ['EURUSD', 'USDJPY', 'EURX', 'JPYX', 'USDX-PERP', 'USDXFAKE']) assert.equal(supportsMacro(symbol), false)
   const invalid = [
@@ -47,6 +47,24 @@ try {
   assert.equal(history.payrolls[0].value, -120, 'Payrolls preserve the stored thousands, including negative changes')
   assert.equal(history.coreCpi[0].value, -0.1, 'Monthly deflation is preserved')
   assert.equal(macroValue('payrolls', -120), '-120k'); assert.equal(macroValue('coreCpi', 0.1), '0.10%')
+  const labelHistory = values => values.map((value, time) => ({ id: String(time), time, releasedAt: time * 1000, value }))
+  assert.deepEqual([...macroNumberLabels('rate', labelHistory([4.4, 4.3, 4.4, 4.4])).values()],
+    ['4.40%', '↓4.30%', '↑4.40%', '4.40%'], 'Arrows compare consecutive available releases; first and equal values have no arrow')
+  assert.deepEqual([...macroNumberLabels('payrolls', labelHistory([-120, 0, -10])).values()],
+    ['-120k', '↑0k', '↓-10k'], 'Negative and zero actuals compare numerically')
+  const preceding = labelHistory([4.4, 4.3, 4.2])
+  const latestDot = macroPlot([{ time: 2 }], preceding, 1, false)
+  assert.equal(macroNumberLabels('rate', preceding).get(latestDot.readings.get(2).time), '↓4.20%', 'A predecessor outside loaded candles still determines the arrow')
+  const forecastHistory = macroHistory([
+    ...Object.entries(macroMetrics).map(([key, metric]) => event({ value_id: key, event_id: metric.eventId,
+      unit: metric.unit, multiplier: metric.multiplier, actual: null, forecast: key === 'payrolls' ? -120 : 0 })),
+    event({ value_id: 'old-consensus', forecast: 4 }), event({ value_id: 'removed-consensus', revision: 1, forecast: null }),
+    event({ event_id: macroMetrics.payrolls.eventId, unit: 4, multiplier: 1, forecast: 999, release_at: at + 1000 }),
+    event({ event_id: macroMetrics.payrolls.eventId, unit: 4, multiplier: 1, forecast: 999, chart_time_seconds: null }),
+  ], at, 'forecast')
+  assert.deepEqual(forecastHistory.rate, [], 'A latest blank forecast never borrows the older consensus')
+  assert.equal(forecastHistory.payrolls[0].value, -120, 'Forecasts retain payroll units, negatives and verified historical clocks without requiring an actual')
+  assert.equal(forecastHistory.coreCpi[0].value, 0, 'Zero is a valid forecast')
   const bars = [-1, 0, 1, 2, 3].map(i => ({ time: start + i * 3600 }))
   const plot = macroPlot(bars, history.rate, 3600, true)
   assert.deepEqual(plot.line.map(point => point.value), [0, 0.25, 0.25, 0.25])
@@ -70,6 +88,15 @@ try {
   assert.equal(upcoming.length, 2, 'Upcoming CPI and jobs companions share one publication marker each')
   assert.deepEqual(upcoming[0].metrics, ['coreCpi', 'headlineCpi'])
   assert.deepEqual(upcoming[1].metrics, ['payrolls', 'unemployment'])
+  assert.deepEqual(upcoming[1].forecasts, { payrolls: 9, unemployment: 9 }, 'Companion forecasts retain their individual series')
+  const revisedUpcoming = macroUpcoming([
+    scheduledEvent('payrolls', 1, { forecast: 100 }),
+    scheduledEvent('payrolls', 1, { revision: 1, forecast: null }),
+    scheduledEvent('unemployment', 1, { forecast: 0 }),
+    scheduledEvent('coreCpi', 2, { forecast: NaN }),
+  ], at)
+  assert.deepEqual(revisedUpcoming[0].forecasts, { unemployment: 0 }, 'Latest blank/zero forecasts preserve their distinct meanings')
+  assert.deepEqual(revisedUpcoming[1].forecasts, {}, 'Nonnumeric upcoming values remain schedule only')
   assert.equal(macroUpcoming([scheduledEvent('coreCpi')], at + 86400000).length, 0, 'Elapsed schedules never remain upcoming')
 
   dom.localStorage.setItem('fyodor.indicators.fed-rate.v1', 'true')
@@ -86,6 +113,22 @@ try {
   const migrated = readMacroPreferences()
   assert.equal(migrated.axisTarget, 'unemployment')
   assert.equal(migrated.series.payrolls.visible, false); assert.equal(migrated.series.payrolls.color, '#123456')
+  assert.equal(migrated.series.payrolls.forecastVisible, true, 'Existing settings adopt payroll forecasts without changing visibility or style')
+  assert.equal(migrated.series.rate.forecastVisible, false, 'Other forecast layers start hidden')
+  const forecastToggled = toggleMacroForecast(migrated, 'payrolls')
+  assert.equal(forecastToggled.series.payrolls.forecastVisible, false)
+  assert.equal(forecastToggled.series.payrolls.visible, false, 'F never changes the actual-series eye')
+  assert.equal(migrated.series.payrolls.forecastVisible, true, 'F does not mutate the old preference')
+  saveMacroPreferences(forecastToggled)
+  assert.deepEqual(readMacroPreferences(), forecastToggled, 'Forecast off choices persist')
+  assert.ok(Object.values(migrated.series).every(style => !style.numbersVisible), 'Existing settings default to hidden numbers')
+  const numbered = toggleMacroNumbers(forecastToggled, 'payrolls')
+  assert.equal(numbered.series.payrolls.numbersVisible, true)
+  assert.equal(numbered.series.payrolls.visible, false, 'N preserves the series eye')
+  assert.equal(numbered.series.payrolls.forecastVisible, false, 'N preserves the forecast choice')
+  assert.equal(forecastToggled.series.payrolls.numbersVisible, false, 'N never mutates previous settings')
+  saveMacroPreferences(numbered)
+  assert.deepEqual(readMacroPreferences(), numbered, 'Number choices survive reload')
   dom.localStorage.setItem('fyodor.indicators.macro.v1', JSON.stringify({ ...defaultMacroPreferences, groups: { policy: true, labour: false, inflation: false } }))
   const flattened = readMacroPreferences()
   assert.equal(flattened.series.rate.visible, true)
@@ -130,9 +173,11 @@ try {
   await reply(requests[1], { source_id: 'A', revision: 1, timestamp_convention: 'trade_server_time', time_basis: 'chart',
     event_ids: macroEventIds, events: [event(), scheduledEvent('coreCpi', 1, { release_at: Date.now() + 86400000 })], coverage: {}, next_cursor: null })
   assert.equal(view.macro.history.rate.length, 1)
+  assert.equal(view.macro.forecastHistory.rate[0].value, 9, 'Forecast curves reuse the same captured calendar snapshot')
   assert.equal(view.macro.upcoming.length, 1)
   const count = requests.length
   await React.act(async () => view.changeMacro(toggleMacroMetric(selectMacroMetric(view.macroPreferences, 'headlineCpi'), 'rate')))
+  await React.act(async () => view.changeMacro(toggleMacroForecast(view.macroPreferences, 'headlineCpi')))
   assert.equal(requests.length, count, 'Individual eyes and axis labels reuse the same five-series snapshot')
   await render({ symbol: 'EURUSD' }); assert.equal(view.macro.enabled, false); assert.equal(timers.size, 0)
   await render({ symbol: 'USDX', broker: 'B' })
@@ -169,9 +214,12 @@ try {
   await React.act(async () => reactProps(control('Show Fed rate dots')).onChange({ target: { checked: false } }))
   await React.act(async () => { const input = control('Nonfarm Payrolls line width'); input.value = '3'; input.dispatchEvent(new dom.Event('change', { bubbles: true })) })
   await React.act(async () => reactProps(control('Show Nonfarm Payrolls dots')).onChange({ target: { checked: false } }))
+  await React.act(async () => reactProps(control('Show Nonfarm Payrolls forecasts')).onChange({ target: { checked: false } }))
+  await React.act(async () => reactProps(control('Show Core CPI MoM forecasts')).onChange({ target: { checked: true } }))
   await React.act(async () => host.querySelector('form').dispatchEvent(new dom.Event('submit', { bubbles: true, cancelable: true })))
   assert.equal(saved.axisTarget, 'inflation'); assert.equal(saved.series.rate.visible, false); assert.equal(saved.enabled, true); assert.equal(saved.series.payrolls.visible, false)
   assert.equal(saved.series.payrolls.lineWidth, 3); assert.equal(saved.series.payrolls.pointsVisible, false)
+  assert.equal(saved.series.payrolls.forecastVisible, false); assert.equal(saved.series.coreCpi.forecastVisible, true)
   assert.equal(saved.series.coreCpi.color, '#123456'); assert.equal(saved.series.coreCpi.lineWidth, 4); assert.equal(saved.series.rate.pointsVisible, false)
   assert.equal(preferences.series.coreCpi.color, defaultMacroPreferences.series.coreCpi.color, 'Drafts never mutate live settings')
   await React.act(async () => root.render(null)); assert.equal(document.activeElement, trigger)

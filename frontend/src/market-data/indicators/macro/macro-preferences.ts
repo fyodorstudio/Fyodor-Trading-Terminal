@@ -1,7 +1,7 @@
 export type MacroGroup = 'policy' | 'labour' | 'inflation'
 export type MacroMetric = 'rate' | 'payrolls' | 'unemployment' | 'coreCpi' | 'headlineCpi'
 export type MacroAxis = 'rate' | 'payrolls' | 'unemployment' | 'inflation'
-export type MacroStyle = { visible: boolean; color: string; lineWidth: 1 | 2 | 3 | 4; pointsVisible: boolean }
+export type MacroStyle = { visible: boolean; color: string; lineWidth: 1 | 2 | 3 | 4; pointsVisible: boolean; forecastVisible: boolean; numbersVisible: boolean }
 export type MacroPreferences = { enabled: boolean; axisTarget: MacroAxis; series: Record<MacroMetric, MacroStyle> }
 export const macroGroups: { id: MacroGroup; label: string; metrics: MacroMetric[] }[] = [
   { id: 'policy', label: 'Policy', metrics: ['rate'] },
@@ -14,9 +14,9 @@ export const macroAxes: { id: MacroAxis; label: string; metrics: MacroMetric[] }
   { id: 'unemployment', label: 'Unemployment (%)', metrics: ['unemployment'] },
   { id: 'inflation', label: 'Inflation (% MoM)', metrics: ['coreCpi', 'headlineCpi'] },
 ]
-const style = (color: string): MacroStyle => ({ visible: true, color, lineWidth: 2, pointsVisible: true })
+const style = (color: string, forecastVisible = false): MacroStyle => ({ visible: true, color, lineWidth: 2, pointsVisible: true, forecastVisible, numbersVisible: false })
 export const defaultMacroPreferences: MacroPreferences = { enabled: false, axisTarget: 'rate', series: {
-  rate: style('#3b82f6'), payrolls: style('#0d9488'), unemployment: style('#d97706'), coreCpi: style('#8b5cf6'), headlineCpi: style('#e05270'),
+  rate: style('#3b82f6'), payrolls: style('#0d9488', true), unemployment: style('#d97706'), coreCpi: style('#8b5cf6'), headlineCpi: style('#e05270'),
 } }
 const storageKey = 'fyodor.indicators.macro.v1'
 export function readMacroPreferences(): MacroPreferences {
@@ -34,6 +34,8 @@ export function readMacroPreferences(): MacroPreferences {
         color: typeof value?.color === 'string' && /^#[\da-f]{6}$/i.test(value.color) ? value.color : fallback.color,
         lineWidth: [1, 2, 3, 4].includes(value?.lineWidth) ? value.lineWidth : fallback.lineWidth,
         pointsVisible: typeof value?.pointsVisible === 'boolean' ? value.pointsVisible : fallback.pointsVisible,
+        forecastVisible: typeof value?.forecastVisible === 'boolean' ? value.forecastVisible : fallback.forecastVisible,
+        numbersVisible: typeof value?.numbersVisible === 'boolean' ? value.numbersVisible : fallback.numbersVisible,
       }
     }
     // Fold legacy category hides into individual eyes. Revealing one series
@@ -71,4 +73,10 @@ export function selectMacroMetric(preferences: MacroPreferences, key: MacroMetri
 }
 export function toggleMacroMetric(preferences: MacroPreferences, key: MacroMetric): MacroPreferences {
   return { ...preferences, series: { ...preferences.series, [key]: { ...preferences.series[key], visible: !preferences.series[key].visible } } }
+}
+export function toggleMacroForecast(preferences: MacroPreferences, key: MacroMetric): MacroPreferences {
+  return { ...preferences, series: { ...preferences.series, [key]: { ...preferences.series[key], forecastVisible: !preferences.series[key].forecastVisible } } }
+}
+export function toggleMacroNumbers(preferences: MacroPreferences, key: MacroMetric): MacroPreferences {
+  return { ...preferences, series: { ...preferences.series, [key]: { ...preferences.series[key], numbersVisible: !preferences.series[key].numbersVisible } } }
 }

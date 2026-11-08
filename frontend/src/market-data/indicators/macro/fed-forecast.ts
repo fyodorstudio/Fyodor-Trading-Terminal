@@ -59,7 +59,3 @@ export function fedSurprise(actual: number, forecast: number) {
   return { bp, label: bp > 0 ? 'Beat' : bp < 0 ? 'Miss' : 'In line',
     text: `${bp > 0 ? 'Beat · hawkish surprise' : bp < 0 ? 'Miss · dovish surprise' : 'In line'} · ${bp > 0 ? '+' : ''}${bp} bp` }
 }
-
-export function fedEvidenceClock(evidence: FedEvidence, format: (at: number) => string) {
-  return `${evidence.timing === 'historical_backfill' ? 'Historical backfill' : 'Pre-decision capture'} · retrieved ${format(Date.parse(evidence.captured_at))}${evidence.as_of ? ` · as of ${format(Date.parse(evidence.as_of))}` : ' · original as-of unavailable'}`
-}

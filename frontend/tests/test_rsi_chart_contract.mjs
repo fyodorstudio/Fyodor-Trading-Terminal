@@ -14,20 +14,32 @@ const globals = { window: dom, document: dom.document, HTMLElement: dom.HTMLElem
 const previous = new Map([...Object.keys(globals), '__rsiChartLibrary'].map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]))
 for (const [key, value] of Object.entries(globals)) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value })
 const frames = new Map(), contexts = new WeakMap(), paintedText = [], paintedFills = [], volumeLayers = [], upcomingStrokes = [], forecastStrokes = [], forecastRings = []; let frameId = 0, captureVolumeLayers = false
+const forecastCurveStrokes = [], forecastCurveRings = []
+const numberLabels = []
 dom.requestAnimationFrame = fn => { frames.set(++frameId, fn); return frameId }
 dom.cancelAnimationFrame = id => frames.delete(id)
 dom.HTMLCanvasElement.prototype.getContext = function () {
   if (!contexts.has(this)) contexts.set(this, new Proxy({ canvas: this,
-    fillText: text => paintedText.push(String(text)),
+    fillText(text, x, y) {
+      paintedText.push(String(text))
+      if (this.font === '11px sans-serif' && this.textBaseline === 'bottom' && this.textAlign === 'center')
+        numberLabels.push({ text: String(text), x, y, color: this.fillStyle })
+    },
     setLineDash(dash) { this.fixtureDash = [...dash] },
+    beginPath() { this.fixtureStart = undefined; this.fixtureEnd = undefined },
     moveTo(x, y) { this.fixtureStart = [x, y] }, lineTo(x, y) { this.fixtureEnd = [x, y] },
-    arc(x, y, radius) { if (radius === 6.5) forecastRings.push({ x, y, radius }) },
+    arc(x, y, radius) {
+      if (radius === 6.5) forecastRings.push({ x, y, radius })
+      if (radius === 6) forecastCurveRings.push({ x, y, radius, color: this.strokeStyle, alpha: this.globalAlpha })
+    },
     stroke() {
       if (captureVolumeLayers) volumeLayers.push({ kind: 'line', color: this.strokeStyle })
       if (this.fixtureDash?.join(',') === '4,4' && this.fixtureStart?.[0] === this.fixtureEnd?.[0] && this.fixtureStart?.[1] === 0)
         upcomingStrokes.push({ color: this.strokeStyle, from: this.fixtureStart, to: this.fixtureEnd })
       if (this.fixtureDash?.join(',') === '3,3' && this.fixtureStart?.[0] === this.fixtureEnd?.[0])
         forecastStrokes.push({ color: this.strokeStyle, from: this.fixtureStart, to: this.fixtureEnd })
+      if (this.fixtureStart && this.fixtureEnd && (this.fixtureDash?.join(',') === '5,4' || (this.fixtureDash?.length === 0 && this.globalAlpha === 0.6)))
+        forecastCurveStrokes.push({ color: this.strokeStyle, from: this.fixtureStart, to: this.fixtureEnd, alpha: this.globalAlpha, dash: this.fixtureDash })
     },
     fillRect(x, y, width, height) { if (captureVolumeLayers) volumeLayers.push({ kind: 'bar', color: this.fillStyle }); paintedFills.push({ x, y, width, height, color: this.fillStyle, alpha: this.globalAlpha }) },
     measureText: text => ({ width: String(text).length * 7, actualBoundingBoxAscent: 10, actualBoundingBoxDescent: 3 }),
@@ -668,7 +680,7 @@ try {
   const { ChartInspectionDismiss } = await server.ssrLoadModule('./src/terminal-shell/chart-overlays/ChartInspectionDismiss.tsx')
   const inspectedReleases = []; let backgroundDismissals = 0
   const renderDismiss = chartApi => React.createElement(ChartInspectionDismiss, { chartApi, onClear: () => { backgroundDismissals++ } })
-  const { defaultMacroPreferences, selectMacroMetric, toggleMacroMetric } = await server.ssrLoadModule('./src/market-data/indicators/macro/macro-preferences.ts')
+  const { defaultMacroPreferences, selectMacroMetric, toggleMacroMetric, toggleMacroForecast, toggleMacroNumbers } = await server.ssrLoadModule('./src/market-data/indicators/macro/macro-preferences.ts')
   let macro = { enabled: true, status: 'Stored MT5 actuals', preferences: { ...defaultMacroPreferences, enabled: true }, history: { rate: [
     { id: 'seed', time: macroBars[0].time - 86400, releasedAt: (macroBars[0].time - 86400) * 1000, value: 5.5 },
     { id: 'decision', time: macroBars[45].time + 1800, releasedAt: (macroBars[45].time + 1800) * 1000, value: 5.25 },
@@ -682,6 +694,8 @@ try {
   }
   await render({ bars: macroBars, symbol: 'USDX', fitContentKey: 'USDX:H1', timeframe: 'H1', macro,
     onToggleMacroMetric: metric => { macro = { ...macro, preferences: toggleMacroMetric(macro.preferences, metric) } },
+    onToggleMacroForecast: metric => { macro = { ...macro, preferences: toggleMacroForecast(macro.preferences, metric) } },
+    onToggleMacroNumbers: metric => { macro = { ...macro, preferences: toggleMacroNumbers(macro.preferences, metric) } },
     onSelectMacroMetric: metric => { macro = { ...macro, preferences: selectMacroMetric(macro.preferences, metric) } },
     onInspectMacroRelease: reading => inspectedReleases.push(reading), renderChartOverlay: renderDismiss,
     rsi: { ...defaultRsiPreferences, enabled: false }, volume: { ...defaultVolumePreferences, enabled: false } })
@@ -740,6 +754,97 @@ try {
   upcomingStrokes.length = 0; await render({ macro })
   assert.equal(upcomingStrokes.filter(stroke => stroke.color === scheduledStyles.coreCpi.color || stroke.color === scheduledStyles.headlineCpi.color).length, 0, 'Hidden series have no scheduled marker')
   macro = { ...macro, upcoming: normalUpcoming, preferences: { ...macro.preferences, series: scheduledStyles } }; await render({ macro })
+  // Forecast curves are primitive overlays on the actual scales. Even extreme
+  // forecasts and future dots must never add native samples or refit any scale.
+  const forecastPreferences = macro.preferences
+  // Enabling RSI/Volume reduces MFDI's canvas without squeezing its plots.
+  // Fit all scales explicitly before checking their on-canvas dots and labels.
+  for (const line of [rateLine, payrollLine, unemploymentLine, coreLine])
+    macroPane.priceScale(line.options().priceScaleId).setAutoScale(true)
+  await paint()
+  const originalPayrollRange = macroPane.priceScale(payrollLine.options().priceScaleId).getVisibleRange()
+  await selectAxis('payrolls')
+  macroPane.priceScale('right').setVisibleRange({ from: -200, to: 400 }); await paint()
+  const curveWindow = chart.timeScale().getVisibleLogicalRange(), originalPayrollData = payrollLine.data()
+  const numberPreferences = macro.preferences
+  assert.equal(host.querySelectorAll('[data-macro-numbers]').length, 5)
+  const toggleNumbers = async key => {
+    numberLabels.length = 0
+    await React.act(async () => host.querySelector(`[data-macro-numbers="${key}"]`).click()); await render({ macro })
+  }
+  for (const [key, line, expected] of [
+    ['rate', rateLine, '↓5.25%'], ['payrolls', payrollLine, '↑200k'], ['unemployment', unemploymentLine, '↓4.10%'],
+    ['coreCpi', coreLine, '↓-0.10%'], ['headlineCpi', headlineLine, '↑0.30%'],
+  ]) {
+    const button = host.querySelector(`[data-macro-numbers="${key}"]`)
+    assert.equal(button.getAttribute('aria-pressed'), 'false', 'Numbers start hidden')
+    assert.equal(button.querySelector('[data-numbers-slash]').getAttribute('visibility'), 'visible')
+    await toggleNumbers(key)
+    assert.equal(button.getAttribute('aria-pressed'), 'true')
+    assert.equal(button.querySelector('[data-numbers-slash]').getAttribute('visibility'), 'hidden')
+    const point = (key === 'rate' ? rateDots : line).data().at(-1)
+    const label = numberLabels.find(label => label.text === expected && label.color === macro.preferences.series[key].color)
+    assert.ok(label, `${key}: N paints the actual value with its correct units`)
+    close(label.x, chart.timeScale().timeToCoordinate(point.time), 'Number stays centered on its release dot')
+    assert.ok(label.y < line.priceToCoordinate(point.value), 'Number appears above its dot')
+    await toggleNumbers(key)
+    assert.equal(numberLabels.filter(label => label.color === macro.preferences.series[key].color).length, 0, 'Slashed N hides numbers')
+  }
+  assert.deepEqual(payrollLine.data(), originalPayrollData, 'N never adds samples or carried value labels')
+  assert.deepEqual(chart.timeScale().getVisibleLogicalRange(), curveWindow)
+  assert.deepEqual(macroPane.priceScale('right').getVisibleRange(), { from: -200, to: 400 })
+  macro = { ...macro, preferences: numberPreferences }; await render({ macro })
+  const lastForecastX = chart.timeScale().timeToCoordinate(macroBars[65].time)
+  const forecastToggle = async key => {
+    await React.act(async () => host.querySelector(`[data-macro-forecast="${key}"]`).click()); await render({ macro })
+  }
+  macro = { ...macro, forecastHistory: { ...macro.history,
+    payrolls: [monthly('nfp-f-one', 45, -120), monthly('nfp-f-two', 65, 100)] }, upcoming: [
+    { time: futureChartTime, releasedAt: Date.now() + 86400000, metrics: ['payrolls'], forecasts: { payrolls: 250 } },
+    { time: futureChartTime + 3600, releasedAt: Date.now() + 172800000, metrics: ['payrolls'] },
+    { time: futureChartTime + 7200, releasedAt: Date.now() + 259200000, metrics: ['payrolls'], forecasts: { payrolls: 0 } },
+  ] }
+  forecastCurveStrokes.length = 0; forecastCurveRings.length = 0; upcomingStrokes.length = 0
+  await render({ macro })
+  const payrollColor = macro.preferences.series.payrolls.color
+  const payrollCurves = forecastCurveStrokes.filter(row => row.color === payrollColor)
+  assert.ok(payrollCurves.some(row => row.alpha === 0.6 && row.dash.length === 0), 'Historical forecasts use a translucent solid line')
+  const dashedCurves = payrollCurves.filter(row => row.dash.join(',') === '5,4')
+  assert.ok(dashedCurves.length > 0, 'Upcoming forecasts use dashed connections')
+  for (const row of dashedCurves) {
+    close(row.from[0], lastForecastX, 'Future connection starts at the latest forecast release')
+    close(row.from[1], payrollLine.priceToCoordinate(100), 'Future connection starts at the forecast value, independently of the actual')
+    close(row.to[0], expectedFutureX, 'Upcoming dot uses the verified sub-candle schedule')
+    close(row.to[1], payrollLine.priceToCoordinate(250), 'Upcoming dot uses its forecast value')
+    assert.equal(row.alpha, 0.4)
+  }
+  assert.ok(forecastCurveRings.some(row => row.color === payrollColor && row.alpha === 1
+    && row.x === chart.timeScale().timeToCoordinate(macroBars[45].time) && row.y === payrollLine.priceToCoordinate(-120)),
+  'A larger hollow forecast ring remains around an equal actual dot')
+  assert.ok(forecastCurveRings.some(row => row.color === payrollColor && row.alpha === 0.4 && row.y === payrollLine.priceToCoordinate(0)), 'A zero forecast remains a visible faint dot after a missing forecast')
+  assert.equal(new Set(upcomingStrokes.filter(row => row.color === payrollColor).map(row => row.from[0])).size, 3, 'Missing forecasts retain their vertical schedules')
+  assert.deepEqual(payrollLine.data(), originalPayrollData)
+  assert.equal(macroPane.getSeries().length, 6, 'Forecasts introduce no native series')
+  assert.deepEqual(macroPane.priceScale('right').getVisibleRange(), { from: -200, to: 400 })
+  assert.deepEqual(chart.timeScale().getVisibleLogicalRange(), curveWindow)
+  assert.ok(macroBars.every((bar, index) => chart.timeScale().timeToIndex(bar.time) === index), 'Forecasts never introduce timeline timestamps')
+  assert.equal(host.querySelectorAll('[data-macro-forecast]').length, 5)
+  forecastCurveRings.length = 0; upcomingStrokes.length = 0
+  await forecastToggle('payrolls')
+  assert.equal(host.querySelector('[data-macro-forecast="payrolls"]').getAttribute('aria-pressed'), 'false')
+  assert.equal(host.querySelector('[data-macro-forecast="payrolls"] [data-forecast-slash]').getAttribute('visibility'), 'visible')
+  assert.equal(forecastCurveRings.filter(row => row.color === payrollColor).length, 0, 'Slashed F hides forecast dots independently')
+  assert.ok(upcomingStrokes.some(row => row.color === payrollColor), 'Slashed F preserves upcoming schedules')
+  assert.deepEqual(payrollLine.data(), originalPayrollData, 'Slashed F preserves actuals')
+  for (const key of ['rate', 'unemployment', 'headlineCpi', 'coreCpi']) {
+    forecastCurveRings.length = 0
+    await forecastToggle(key)
+    assert.ok(forecastCurveRings.some(row => row.color === macro.preferences.series[key].color), `${key}: F also enables its forecast layer`)
+    await forecastToggle(key)
+  }
+  macro = { ...macro, preferences: forecastPreferences, forecastHistory: undefined, upcoming: normalUpcoming }
+  macroPane.priceScale('right').setVisibleRange(originalPayrollRange); await render({ macro })
+  console.log('✓ MFDI forecast curves: outlined equal-value dots, lighter historical lines, dashed forecast-to-forecast future segments, zero/missing values, all five F controls and unchanged native scales/dates/samples')
   // Native drawing contracts: a transient primitive overlay never contributes
   // forecast values/timestamps to any series or to the independently bound axes.
   const forecastDateRange = chart.timeScale().getVisibleLogicalRange(), originalFedRange = macroPane.priceScale('right').getVisibleRange()
@@ -754,7 +859,7 @@ try {
       time: point.time, paneIndex: macroPane.paneIndex(), seriesData: new Map(), hoveredInfo: { series: line }, ...extra }
     await React.act(async () => { for (const listener of [...nativeCrosshairListeners]) listener(event) }); await paint()
   }
-  for (const [value, label, bp] of [[5, 'Beat', '+25 bp'], [5.5, 'Miss', '-25 bp'], [5.25, 'In line', '0 bp'], [9, 'Miss', '-375 bp']]) {
+  for (const [value, label] of [[5, 'Beat'], [5.5, 'Miss'], [5.25, 'In line'], [9, 'Miss']]) {
     const meeting = { released_at: new Date(fedDecision.releasedAt).toISOString(), actual: null, fedwatch: null,
       consensus: [{ ...forecastEvidence, provider: 'investing', value }, { ...forecastEvidence, provider: 'trading_economics', value: 5.5 }] }
     macro = { ...macro, forecasts: { meetings: new Map([[fedDecision.releasedAt, meeting]]), status: 'Saved fixture' } }
@@ -764,10 +869,9 @@ try {
     forecastStrokes.length = 0; await hoverDot()
     const tooltip = host.querySelector('[aria-label="Fed rate expectations"]')
     assert.equal(tooltip.hidden, false)
-    assert.ok(tooltip.textContent.includes(label)); assert.ok(tooltip.textContent.includes(bp))
-    assert.match(tooltip.textContent, /Trading Economics survey consensus: 5.50% · Miss/)
-    assert.match(tooltip.textContent, /Historical backfill/); assert.match(tooltip.textContent, /original as-of unavailable/)
-    assert.match(tooltip.textContent, /CME FedWatch · market probabilitiesUnavailable/)
+    assert.deepEqual([...tooltip.children].map(row => row.textContent), [
+      `Consensus (Investing.com): ${value.toFixed(2)}%`, 'Consensus (Trading Economics): 5.50%',
+    ], 'Only consensus values appear; no dates, actual, surprise labels, provenance or CME')
     assert.ok(forecastStrokes.length > 0, 'Hovered actual anchors a dashed connector')
     for (const segment of forecastStrokes) {
       close(segment.from[0], chart.timeScale().timeToCoordinate(macroBars[45].time), 'Forecast shares actual x')
@@ -794,17 +898,13 @@ try {
     forecasts: { meetings: new Map([[fedDecision.releasedAt, alternativesMeeting]]), status: 'Saved fixture' } }
   await render({ macro }); await hoverDot()
   const alternativesTooltip = host.querySelector('[aria-label="Fed rate expectations"]')
-  assert.match(alternativesTooltip.textContent, /Federal Reserve · target upper bound/)
-  assert.match(alternativesTooltip.textContent, /MT5 conflict: 5.50% · plotted official 5.25%/)
-  assert.match(alternativesTooltip.textContent, /Most likely 5.00–5.25% · 75% probability/)
-  assert.match(alternativesTooltip.textContent, /Actual outcome probability: 75%/)
-  assert.match(alternativesTooltip.textContent, /Trading Economics survey consensus: Unavailable/)
+  assert.equal(alternativesTooltip.textContent, 'Consensus (Investing.com): 5.25%', 'Even saved CME, actual and conflict metadata stay out of the consensus-only tooltip')
   assert.deepEqual(macroPane.priceScale('right').getVisibleRange(), { from: 4, to: 6 })
   macro = { ...macro, history: { ...macro.history, rate: originalFedHistory }, forecasts: undefined }; await render({ macro }); await hoverDot()
-  assert.match(host.querySelector('[aria-label="Fed rate expectations"]').textContent, /Investing.com consensus: Unavailable/)
+  assert.equal(host.querySelector('[aria-label="Fed rate expectations"]').textContent, 'Consensus (Investing.com): —')
   await hoverDot(rateDots, 0, { point: undefined })
   macroPane.priceScale('right').setVisibleRange(originalFedRange); await paint()
-  console.log('✓ Fed forecast native overlay: exact dot hover, Beat ring/Miss/In line, alternatives/backfill, zero/offscreen connector, unchanged series/dates/bound scales and leave cleanup')
+  console.log('✓ Fed forecast native overlay: consensus-only tooltip, no CME/metadata/actual, Beat ring, zero/offscreen connector, unchanged series/dates/bound scales and leave cleanup')
   const fireDotClick = async (line, index, extra = {}) => {
     const point = line.data()[index]
     const event = { point: { x: chart.timeScale().timeToCoordinate(point.time), y: line.priceToCoordinate(point.value) },
@@ -899,6 +999,21 @@ try {
   const fixedRanges = () => Object.fromEntries([
     ['rate', rateLine], ['payrolls', payrollLine], ['unemployment', unemploymentLine], ['inflation', coreLine],
   ].map(([axis, line]) => [axis, macroPane.priceScale(line.options().priceScaleId).getVisibleRange()]))
+  const originalMacroHeight = macroPane.getHeight(), resizeWindow = chart.timeScale().getVisibleLogicalRange()
+  const placement = () => [rateLine, payrollLine, unemploymentLine, coreLine, headlineLine, rateDots]
+    .map(line => [line.priceToCoordinate(0), line.priceToCoordinate(1)])
+  const originalPlacement = placement()
+  for (const height of [200, 90, 240, originalMacroHeight]) {
+    macroPane.setHeight(height); await paint()
+    placement().forEach((coordinates, index) => coordinates.forEach((value, point) => {
+      close(value, originalPlacement[index][point], 'Pane resize preserves vertical position and pixels per unit on every scale')
+    }))
+    assert.deepEqual(chart.timeScale().getVisibleLogicalRange(), resizeWindow, 'Pane resizing preserves horizontal zoom')
+  }
+  await selectAxis('rate'); await selectAxis('payrolls')
+  placement().forEach((coordinates, index) => coordinates.forEach((value, point) => {
+    close(value, originalPlacement[index][point], 'Resized placements survive axis changes')
+  }))
   const boundedRanges = fixedRanges()
   const navigateMacro = async range => {
     await React.act(async () => host.querySelector('.market-chart-canvas').dispatchEvent(new dom.WheelEvent('wheel', { bubbles: true })))

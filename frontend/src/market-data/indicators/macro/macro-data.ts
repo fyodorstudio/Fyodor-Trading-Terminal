@@ -15,28 +15,38 @@ export const macroMetrics: Record<MacroMetric, { label: string; eventId: string;
 export const macroEventIds = Object.values(macroMetrics).map(metric => metric.eventId)
 export type MacroReading = { time: number; releasedAt: number; value: number; id: string; brokerValue?: number }
 export type MacroHistory = Record<MacroMetric, MacroReading[]>
-export type MacroScheduled = { time: number; releasedAt: number; metrics: MacroMetric[] }
-export type MacroIndicator = { enabled: boolean; history: MacroHistory; upcoming: MacroScheduled[]; status: string; preferences: MacroPreferences; forecasts?: FedForecasts }
+export type MacroScheduled = { time: number; releasedAt: number; metrics: MacroMetric[]; forecasts?: Partial<Record<MacroMetric, number>> }
+export type MacroIndicator = { enabled: boolean; history: MacroHistory; forecastHistory?: MacroHistory; upcoming: MacroScheduled[]; status: string; preferences: MacroPreferences; forecasts?: FedForecasts }
 export function supportsMacro(symbol: string) { return chartEventSymbol(symbol) === 'USDX' }
 export function macroValue(metric: MacroMetric, value: number) {
   return `${value.toLocaleString('en-US', { minimumFractionDigits: metric === 'payrolls' ? 0 : 2, maximumFractionDigits: 2 })}${macroMetrics[metric].suffix}`
 }
+/** Compare actual releases, including predecessors outside the loaded candles. */
+export function macroNumberLabels(metric: MacroMetric, history: MacroReading[]) {
+  return new Map(history.map((reading, index) => {
+    const previous = history[index - 1]
+    const arrow = !previous ? '' : reading.value > previous.value ? '↑' : reading.value < previous.value ? '↓' : ''
+    return [reading.time, `${arrow}${macroValue(metric, reading.value)}`]
+  }))
+}
 /** Exact captured series, actuals and independently verified publication/chart clocks. */
-export function macroHistory(events: StoredCalendarEvent[], now: number): MacroHistory {
+export function macroHistory(events: StoredCalendarEvent[], now: number, field: 'actual' | 'forecast' = 'actual'): MacroHistory {
   const history = {} as MacroHistory
   for (const key of Object.keys(macroMetrics) as MacroMetric[]) {
     const metric = macroMetrics[key], readings = new Map<number, StoredCalendarEvent>()
     for (const event of events) {
       if (event.event_id !== metric.eventId || event.currency !== 'USD' || event.country_code !== 'US'
         || event.unit !== metric.unit || event.multiplier !== metric.multiplier || event.time_mode !== 0
-        || event.availability !== 'observed' || event.actual === null || !Number.isFinite(event.actual)
+        || event.availability !== 'observed'
+        || (field === 'actual' && (event.actual === null || !Number.isFinite(event.actual)))
         || event.release_at === null || !Number.isFinite(event.release_at) || event.release_at > now
         || event.chart_time_seconds === null || !Number.isFinite(event.chart_time_seconds)) continue
       const previous = readings.get(event.chart_time_seconds)
       if (!previous || event.revision > previous.revision || (event.revision === previous.revision && event.value_id > previous.value_id))
         readings.set(event.chart_time_seconds, event)
     }
-    history[key] = [...readings.values()].map(event => ({ time: event.chart_time_seconds!, releasedAt: event.release_at!, value: event.actual!, id: event.value_id }))
+    history[key] = [...readings.values()].filter(event => event[field] !== null && Number.isFinite(event[field]))
+      .map(event => ({ time: event.chart_time_seconds!, releasedAt: event.release_at!, value: event[field]!, id: event.value_id }))
       .sort((a, b) => a.time - b.time)
   }
   return history
@@ -47,15 +57,25 @@ export function macroUpcoming(events: StoredCalendarEvent[], now: number): Macro
   const packages = new Map<number, MacroScheduled>()
   for (const key of Object.keys(macroMetrics) as MacroMetric[]) {
     const metric = macroMetrics[key]
+    const readings = new Map<number, StoredCalendarEvent>()
     for (const event of events) {
       if (event.event_id !== metric.eventId || event.currency !== 'USD' || event.country_code !== 'US'
         || event.unit !== metric.unit || event.multiplier !== metric.multiplier || event.time_mode !== 0
         || event.availability !== 'observed' || event.release_at === null || !Number.isFinite(event.release_at) || event.release_at <= now
         || event.chart_time_seconds === null || !Number.isFinite(event.chart_time_seconds)) continue
-      const existing = packages.get(event.release_at)
+      const previous = readings.get(event.release_at)
+      if (!previous || event.revision > previous.revision || (event.revision === previous.revision && event.value_id > previous.value_id))
+        readings.set(event.release_at, event)
+    }
+    for (const event of readings.values()) {
+      const existing = packages.get(event.release_at!)
+      const forecast = event.forecast !== null && Number.isFinite(event.forecast) ? { [key]: event.forecast } : {}
       if (existing) {
-        if (existing.time === event.chart_time_seconds && !existing.metrics.includes(key)) existing.metrics.push(key)
-      } else packages.set(event.release_at, { time: event.chart_time_seconds, releasedAt: event.release_at, metrics: [key] })
+        if (existing.time === event.chart_time_seconds) {
+          existing.metrics.push(key)
+          Object.assign(existing.forecasts!, forecast)
+        }
+      } else packages.set(event.release_at!, { time: event.chart_time_seconds!, releasedAt: event.release_at!, metrics: [key], forecasts: forecast })
     }
   }
   return [...packages.values()].sort((a, b) => a.releasedAt - b.releasedAt)

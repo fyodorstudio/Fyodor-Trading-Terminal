@@ -21,7 +21,7 @@ import { VolumeSettingsDialog } from '../market-data/indicators/volume/VolumeSet
 import { RsiSettingsDialog } from '../market-data/indicators/rsi/RsiSettingsDialog'
 import { MacroSettingsDialog } from '../market-data/indicators/macro/MacroSettingsDialog'
 import { supportsMacro } from '../market-data/indicators/macro/macro-data'
-import { selectMacroMetric, toggleMacroMetric, type MacroMetric } from '../market-data/indicators/macro/macro-preferences'
+import { selectMacroMetric, toggleMacroMetric, toggleMacroForecast, toggleMacroNumbers, type MacroMetric } from '../market-data/indicators/macro/macro-preferences'
 import { chartEventCurrencies } from '../economic-calendar/forex/chart-event-scope'
 import { LedgerProvider } from '../currency-ledger/LedgerProvider'
 import { LedgerDock } from '../currency-ledger/LedgerDock'
@@ -58,6 +58,8 @@ export function TerminalWorkspace() {
   const closeVolumeSettings = useCallback(() => setVolumeSettingsOpen(false), [setVolumeSettingsOpen])
   const closeMacroSettings = useCallback(() => setMacroSettingsOpen(false), [setMacroSettingsOpen])
   const toggleMacroSeries = useCallback((metric: MacroMetric) => changeMacro(toggleMacroMetric(macroPreferences, metric)), [macroPreferences, changeMacro])
+  const toggleMacroForecastSeries = useCallback((metric: MacroMetric) => changeMacro(toggleMacroForecast(macroPreferences, metric)), [macroPreferences, changeMacro])
+  const toggleMacroNumberSeries = useCallback((metric: MacroMetric) => changeMacro(toggleMacroNumbers(macroPreferences, metric)), [macroPreferences, changeMacro])
   const selectMacroSeries = useCallback((metric: MacroMetric) => changeMacro(selectMacroMetric(macroPreferences, metric)), [macroPreferences, changeMacro])
   const changeVolumeAxis = useCallback((axisTarget: typeof volume.axisTarget) => changeVolume({ ...volume, axisTarget,
     ...(volume.mode === 'raw' && axisTarget === 'relative' ? { relativeLineVisible: true } : {}),
@@ -135,6 +137,8 @@ export function TerminalWorkspace() {
                   rsi={rsi}
                   macro={macro}
                   onToggleMacroMetric={toggleMacroSeries}
+                  onToggleMacroForecast={toggleMacroForecastSeries}
+                  onToggleMacroNumbers={toggleMacroNumberSeries}
                   onSelectMacroMetric={selectMacroSeries}
                   onInspectMacroRelease={viewMacroRelease}
                   refocusRequest={refocusRequest}

@@ -26,15 +26,13 @@ const payload = () => ({ schema: 1, meetings: [{ released_at: release, actual: {
     outcomes: [{ lower: 3.75, upper: 4, probability: 80 }, { lower: 4, upper: 4.25, probability: 20 }] } }] })
 const reply = (request, body, ok = true) => React.act(async () => request.resolve({ ok, status: ok ? 200 : 503, json: async () => body }))
 try {
-  const { parseFedForecasts, fedSurprise, fedEvidenceClock } = await server.ssrLoadModule('./src/market-data/indicators/macro/fed-forecast.ts')
+  const { parseFedForecasts, fedSurprise } = await server.ssrLoadModule('./src/market-data/indicators/macro/fed-forecast.ts')
   const parsed = parseFedForecasts(payload())
   assert.equal(parsed.get(Date.parse(release)).actual.upper, 4)
   assert.equal(fedSurprise(4, 3.75).text, 'Beat · hawkish surprise · +25 bp')
   assert.equal(fedSurprise(3.75, 4).text, 'Miss · dovish surprise · -25 bp')
   assert.equal(fedSurprise(4, 4).text, 'In line · 0 bp')
   assert.equal(fedSurprise(0.3, 0.1 + 0.2).label, 'In line', 'Float noise is not a surprise')
-  assert.match(fedEvidenceClock(evidence, at => new Date(at).toISOString()), /Historical backfill.*original as-of unavailable/)
-  assert.match(fedEvidenceClock({ ...evidence, timing: 'pre_release', as_of: '2026-10-28T17:00:00Z' }, String), /Pre-decision capture.*as of/)
   for (const mutate of [
     body => { body.meetings[0].consensus[0].provider = 'TEForecast' },
     body => { body.meetings[0].consensus[0].value = NaN },
@@ -86,6 +84,8 @@ try {
   assert.equal(view.macro.history.rate[1].value, 4); assert.equal(view.macro.history.rate[1].brokerValue, 3.75)
   assert.equal(view.macro.history.rate[1].id, 'fed-exact'); assert.equal(view.macro.history.rate[1].time, raw.chart_time_seconds)
   assert.equal(view.macro.history.rate[0].value, 3.75, 'Another release never borrows this meeting’s external evidence')
+  assert.equal(view.macro.forecastHistory.rate[1].value, 4, 'The F curve uses saved primary Fed consensus at the exact release')
+  assert.equal(view.macro.forecastHistory.rate[0].value, 999, 'A different release retains its own captured calendar forecast')
   assert.equal(raw.actual, 3.75, 'Raw calendar records are not overwritten')
   await React.act(async () => root.render(React.createElement(MacroHarness, { symbol: 'EURUSD' })))
   assert.equal(view.macro.enabled, false); assert.equal(timers.size, 0)

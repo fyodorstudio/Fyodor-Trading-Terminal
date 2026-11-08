@@ -65,7 +65,8 @@ Calendar dates are inclusive display days; default UTC. `Asia/Jakarta` and fixed
 `UTC+07:00` offsets need no timezone packages; other IANA zones need runtime zone
 data. Date-only schedules retain source dates. Default database is Lite's
 `storage/data/calendar.sqlite3`; `--database` selects another file inside Lite.
-Coverage, capture/revision, availability and raw gap clocks remain explicit.
+Coverage, capture/revision, availability and raw gap clocks remain in the data;
+they do not require extra product UI labels.
 
 OHLC needs the running bridge or saved `--input` evidence, with explicit UTC
 instants. Verify the release time from official sources first. The helper uses

@@ -1,9 +1,9 @@
 import { LineSeries, LineType, type IChartApi, type IPrimitivePaneRenderer, type IPanePrimitive, type Logical, type MouseEventParams, type Time } from 'lightweight-charts'
 import type { OhlcBar } from '../../contracts/OhlcBar'
-import { macroMetrics, macroPlot, macroValue, type MacroIndicator, type MacroReading } from './macro-data'
+import { macroMetrics, macroNumberLabels, macroPlot, macroValue, type MacroIndicator, type MacroReading } from './macro-data'
 import { claimChartClick } from '../../candlestick-chart/chart-click-selection'
 import { futureTimelineSeconds } from '../../candlestick-chart/future-timeline'
-import { fedEvidenceClock, fedSurprise, type FedEvidence } from './fed-forecast'
+import { fedSurprise } from './fed-forecast'
 import { macroAxis, macroMetricAxis, macroMetricVisible, type MacroAxis, type MacroMetric } from './macro-preferences'
 import './macro.css'
 
@@ -25,6 +25,8 @@ export function createMacroPane(chart: IChartApi) {
   legend.title = 'Macro Factor Data Inspector · Stored actuals, latest vintages; verified official Fed upper bounds where saved. Hover a Fed release dot for attributed expectations. Release dots align to their containing candle; the latest release wins within one candle. Monthly lines join released points. Only the Fed rate is held between decisions. Four independent scales; the two CPI series share Inflation. Overlapping heights do not imply comparable magnitudes.'
   const controls = document.createElement('div'); controls.className = 'macro-controls'
   let toggleMetric: (metric: MacroMetric) => void = () => {}, selectMetric: (metric: MacroMetric) => void = () => {}
+  let toggleForecast: (metric: MacroMetric) => void = () => {}
+  let toggleNumbers: (metric: MacroMetric) => void = () => {}
   const metricControls = ([
     ['rate', 'Fed Rate (%)'], ['payrolls', 'Payroll (k)'], ['unemployment', 'Unemployment (%)'],
     ['headlineCpi', 'Headline CPI m/m (%)'], ['coreCpi', 'Core CPI m/m (%)'],
@@ -51,8 +53,26 @@ export function createMacroPane(chart: IChartApi) {
     const slash = document.createElementNS(svg.namespaceURI, 'path'); slash.setAttribute('d', 'm3 3 18 18')
     slash.setAttribute('data-eye-slash', 'true'); svg.append(slash)
     eyeButton.append(svg); eyeButton.onclick = () => toggleMetric(key)
-    chip.append(axisButton, eyeButton); item.append(colorDot, chip); controls.append(item)
-    return { key, label, axisButton, eyeButton, slash, colorDot }
+    const forecastButton = document.createElement('button'); forecastButton.type = 'button'; forecastButton.className = 'macro-forecast-button'
+    forecastButton.dataset.macroForecast = key
+    const forecastIcon = svg.cloneNode(false) as SVGElement
+    const letter = document.createElementNS(svg.namespaceURI, 'text'); letter.textContent = 'F'
+    letter.setAttribute('x', '7'); letter.setAttribute('y', '18'); letter.setAttribute('font-size', '17')
+    letter.setAttribute('font-weight', '600'); letter.setAttribute('fill', 'currentColor'); letter.setAttribute('stroke', 'none')
+    const forecastSlash = slash.cloneNode(true) as SVGElement
+    forecastSlash.removeAttribute('data-eye-slash'); forecastSlash.setAttribute('data-forecast-slash', 'true')
+    forecastIcon.append(letter, forecastSlash); forecastButton.append(forecastIcon)
+    forecastButton.onclick = () => toggleForecast(key)
+    const numbersButton = document.createElement('button'); numbersButton.type = 'button'; numbersButton.className = 'macro-numbers-button'
+    numbersButton.dataset.macroNumbers = key
+    const numbersIcon = forecastIcon.cloneNode(true) as SVGElement
+    numbersIcon.querySelector('text')!.textContent = 'N'
+    numbersIcon.querySelector('text')!.setAttribute('x', '5')
+    const numbersSlash = numbersIcon.querySelector('[data-forecast-slash]')!
+    numbersSlash.removeAttribute('data-forecast-slash'); numbersSlash.setAttribute('data-numbers-slash', 'true')
+    numbersButton.append(numbersIcon); numbersButton.onclick = () => toggleNumbers(key)
+    chip.append(axisButton, eyeButton, forecastButton, numbersButton); item.append(colorDot, chip); controls.append(item)
+    return { key, label, axisButton, eyeButton, slash, forecastButton, forecastSlash, numbersButton, numbersSlash, colorDot }
   })
   const fitButton = document.createElement('button'); fitButton.type = 'button'; fitButton.textContent = 'Fit axis'
   fitButton.setAttribute('aria-label', 'Fit MFDI selected axis')
@@ -69,50 +89,29 @@ export function createMacroPane(chart: IChartApi) {
   let indicator: MacroIndicator | undefined, formatRelease: (at: number) => string = String
   let inspectRelease: ((reading: MacroReading) => void) | undefined
   let plots = {} as Partial<Record<MacroMetric, ReturnType<typeof macroPlot>>>
+  let forecastPlots = {} as typeof plots
+  let numberLabels: Partial<Record<MacroMetric, Map<number, string>>> = {}
   let latestTime: number | undefined, hover: number | null = null, frame: number | null = null, destroyed = false
   let step = 3600
   let forecastHover: { time: Time; reading: MacroReading } | undefined
   let requestUpdate = () => {}
   let outlineColor = '#888888'
-  const tooltipField = (text: string, secondary = false) => {
+  const tooltipField = (text: string) => {
     const field = document.createElement('div'); field.textContent = text
-    if (secondary) field.className = 'macro-forecast-source'
     tooltip.append(field)
-  }
-  const tooltipSource = (evidence: FedEvidence) => {
-    tooltipField(fedEvidenceClock(evidence, formatRelease), true)
-    tooltip.lastElementChild!.setAttribute('title', `${evidence.url}\n${evidence.note}`)
   }
   const updateForecast = () => {
     tooltip.replaceChildren(); tooltip.hidden = !forecastHover
     if (!forecastHover) return
-    const reading = forecastHover.reading, meeting = indicator?.forecasts?.meetings.get(reading.releasedAt)
-    tooltipField(`Fed rate · ${formatRelease(reading.releasedAt)}`)
-    tooltipField(`Actual ${macroValue('rate', reading.value)} · ${meeting?.actual ? 'Federal Reserve · target upper bound' : 'MT5 · not externally verified'}`)
-    if (meeting?.actual) tooltipSource(meeting.actual)
-    if (reading.brokerValue !== undefined && reading.brokerValue !== reading.value)
-      tooltipField(`MT5 conflict: ${macroValue('rate', reading.brokerValue)} · plotted official ${macroValue('rate', reading.value)}; raw Inspector record preserved`)
-    for (const [provider, label] of [['investing', 'Investing.com consensus'], ['trading_economics', 'Trading Economics survey consensus']] as const) {
-      const evidence = meeting?.consensus.find(row => row.provider === provider)
-      tooltipField(`${label}: ${evidence ? `${macroValue('rate', evidence.value)} · ${fedSurprise(reading.value, evidence.value).text}` : 'Unavailable'}`)
-      if (evidence) tooltipSource(evidence)
-    }
-    const fedwatch = meeting?.fedwatch
-    tooltipField('CME FedWatch · market probabilities')
-    if (fedwatch) {
-      const likely = Math.max(...fedwatch.outcomes.map(row => row.probability))
-      for (const outcome of fedwatch.outcomes.filter(row => row.probability === likely))
-        tooltipField(`Most likely ${outcome.lower.toFixed(2)}–${outcome.upper.toFixed(2)}% · ${outcome.probability}% probability`)
-      const actualOutcome = meeting?.actual ? fedwatch.outcomes.find(row => row.lower === meeting.actual!.lower && row.upper === meeting.actual!.upper) : undefined
-      tooltipField(`Actual outcome probability: ${actualOutcome ? `${actualOutcome.probability}%` : 'Unavailable'}`)
-      tooltipSource(fedwatch)
-    } else tooltipField('Unavailable · no verified pre-decision probability snapshot', true)
-    tooltipField('Dashed: Investing.com consensus · outline: Beat. Rate surprise does not predict currency returns.', true)
-    if (!meeting) tooltipField(indicator?.forecasts?.status ?? 'No saved forecast evidence for this decision', true)
-    else if (indicator?.forecasts?.status.includes('unavailable')) tooltipField(`${indicator.forecasts.status} · showing last loaded evidence`, true)
+    const meeting = indicator?.forecasts?.meetings.get(forecastHover.reading.releasedAt)
+    const primary = meeting?.consensus.find(row => row.provider === 'investing')
+    tooltipField(`Consensus (Investing.com): ${primary ? macroValue('rate', primary.value) : '—'}`)
+    const alternative = meeting?.consensus.find(row => row.provider === 'trading_economics')
+    if (alternative) tooltipField(`Consensus (Trading Economics): ${macroValue('rate', alternative.value)}`)
   }
   type Bounds = { from: number; to: number }
   const bounds = new Map<MacroAxis, Bounds>()
+  const placements = new Map<MacroAxis, { height: number; unitsPerPixel: number; topValue: number }>()
   let axisScales = new Map<MacroAxis, string>(), boundsFrame: number | null = null
   const validBounds = (range: Bounds | null): range is Bounds => range !== null
     && Number.isFinite(range.from) && Number.isFinite(range.to) && range.from < range.to
@@ -127,6 +126,28 @@ export function createMacroPane(chart: IChartApi) {
     if (scale.options().autoScale || !current || current.from !== saved.from || current.to !== saved.to)
       scale.setVisibleRange(saved)
   }
+  const captureBounds = (axis: MacroAxis, id: string, resize: boolean) => {
+    const scale = pane.priceScale(id), range = scale.getVisibleRange(), height = pane.getHeight()
+    if (!validBounds(range) || height <= 1) return
+    const key = (Object.keys(series) as MacroMetric[]).find(key => macroMetricAxis(key) === axis && plots[key]?.line.length)
+    if (!key) return
+    const fromY = series[key].priceToCoordinate(range.from), toY = series[key].priceToCoordinate(range.to)
+    if (fromY === null || toY === null || fromY <= toY) return
+    const previous = placements.get(axis)
+    if (resize && previous && previous.height !== height && !scale.options().autoScale) {
+      // Preserve the old value-to-pixel mapping at the pane's top. Using the
+      // native endpoint coordinates also accounts for the scale's margins.
+      const next = { from: previous.topValue - fromY * previous.unitsPerPixel,
+        to: previous.topValue - toY * previous.unitsPerPixel }
+      if (!validBounds(next)) return
+      bounds.set(axis, next); scale.setVisibleRange(next)
+      placements.set(axis, { ...previous, height })
+    } else {
+      const unitsPerPixel = (range.to - range.from) / (fromY - toY)
+      placements.set(axis, { height, unitsPerPixel, topValue: range.to + toY * unitsPerPixel })
+      bounds.set(axis, { ...range })
+    }
+  }
   const bindAfterPaint = () => {
     if (destroyed || boundsFrame !== null) return
     boundsFrame = window.requestAnimationFrame(() => {
@@ -137,8 +158,7 @@ export function createMacroPane(chart: IChartApi) {
         // the fitted result once, then bind it with the public range API. Hidden
         // scales need custom ranges too; autoScale=false alone is insufficient.
         if (!scale.options().autoScale || hasReference(axis)) {
-          const range = scale.getVisibleRange()
-          if (validBounds(range)) bounds.set(axis, { ...range })
+          captureBounds(axis, id, true)
         }
         applyBounds(axis, id)
       }
@@ -156,7 +176,7 @@ export function createMacroPane(chart: IChartApi) {
     if (!indicator) return
     const p = indicator.preferences
     const selectedAxis = macroAxis(p)
-    for (const { key, label, axisButton, eyeButton, slash, colorDot } of metricControls) {
+    for (const { key, label, axisButton, eyeButton, slash, forecastButton, forecastSlash, numbersButton, numbersSlash, colorDot } of metricControls) {
       const visible = macroMetricVisible(p, key)
       colorDot.style.backgroundColor = p.series[key].color
       axisButton.setAttribute('aria-pressed', String(visible && macroMetricAxis(key) === selectedAxis))
@@ -164,6 +184,16 @@ export function createMacroPane(chart: IChartApi) {
       eyeButton.setAttribute('aria-label', `${visible ? 'Hide' : 'Show'} ${label}`)
       eyeButton.title = `${visible ? 'Hide' : 'Show'} ${label}`
       slash.setAttribute('visibility', visible ? 'hidden' : 'visible')
+      const forecastsVisible = p.series[key].forecastVisible
+      forecastButton.setAttribute('aria-pressed', String(forecastsVisible))
+      forecastButton.setAttribute('aria-label', `${forecastsVisible ? 'Hide' : 'Show'} ${label} forecasts`)
+      forecastButton.title = `${forecastsVisible ? 'Hide' : 'Show'} ${label} forecasts. Forecasts follow this series' eye; upcoming schedules stay visible.`
+      forecastSlash.setAttribute('visibility', forecastsVisible ? 'hidden' : 'visible')
+      const numbersVisible = p.series[key].numbersVisible
+      numbersButton.setAttribute('aria-pressed', String(numbersVisible))
+      numbersButton.setAttribute('aria-label', `${numbersVisible ? 'Hide' : 'Show'} ${label} numbers`)
+      numbersButton.title = `${numbersVisible ? 'Hide' : 'Show'} values above actual release dots. Numbers follow this series' eye and dot settings.`
+      numbersSlash.setAttribute('visibility', numbersVisible ? 'hidden' : 'visible')
     }
     const time = hover ?? latestTime
     readout.replaceChildren()
@@ -227,13 +257,88 @@ export function createMacroPane(chart: IChartApi) {
     if (hit) { claimChartClick(event); inspectRelease!(hit.reading) }
   }
   chart.subscribeClick(onClick)
+  // Project onto the existing future axis without registering forecast timestamps
+  // or contributing forecast values to any native price scale.
+  const futureCoordinates = () => {
+    if (latestTime === undefined) return
+    const scale = chart.timeScale(), anchor = scale.timeToIndex(latestTime as Time), lastTime = latestTime
+    if (anchor === null) return
+    return (time: number) => {
+      if (time < lastTime + step || time > lastTime + futureTimelineSeconds) return null
+      const logical = Number(anchor) + (time - lastTime) / step, left = Math.floor(logical)
+      const x0 = scale.logicalToCoordinate(left as Logical), x1 = scale.logicalToCoordinate((left + 1) as Logical)
+      return x0 === null || x1 === null ? null : x0 + (x1 - x0) * (logical - left)
+    }
+  }
   const renderer: IPrimitivePaneRenderer = { draw(target) {
     legend.style.top = `${(pane.getHTMLElement()?.offsetTop ?? chart.paneSize(0).height + 8) + 4}px`
     legend.style.width = `${Math.max(0, chart.paneSize(pane.paneIndex()).width - 20)}px`
     legend.style.maxHeight = `${Math.max(24, pane.getHeight() - 10)}px`
+    for (const [axis, id] of axisScales) {
+      if (placements.has(axis) && placements.get(axis)!.height !== pane.getHeight()) bindAfterPaint()
+      else if (!pane.priceScale(id).options().autoScale) captureBounds(axis, id, false)
+    }
     if ([...axisScales].some(([axis, id]) => (!bounds.has(axis) || pane.priceScale(id).options().autoScale)
       && (Object.keys(series) as MacroMetric[]).some(key => macroMetricAxis(key) === axis && plots[key]?.line.length)))
       bindAfterPaint()
+    if (indicator) {
+      const futureX = futureCoordinates(), now = Date.now()
+      target.useMediaCoordinateSpace(({ context, mediaSize }) => {
+        context.save(); context.beginPath(); context.rect(0, 0, mediaSize.width, mediaSize.height); context.clip()
+        for (const { key } of metricControls) {
+          const style = indicator!.preferences.series[key]
+          if (!macroMetricVisible(indicator!.preferences, key) || !style.forecastVisible) continue
+          const points = (forecastPlots[key]?.dots ?? []).flatMap(point => {
+            const x = chart.timeScale().timeToCoordinate(point.time), y = series[key].priceToCoordinate(point.value)
+            return x === null || y === null ? [] : [{ x, y }]
+          })
+          context.strokeStyle = style.color; context.lineWidth = style.lineWidth
+          context.globalAlpha = 0.6; context.setLineDash([]); context.beginPath()
+          points.forEach((point, index) => { if (index === 0) context.moveTo(point.x, point.y); else context.lineTo(point.x, point.y) })
+          context.stroke()
+          const ring = (x: number, y: number, alpha: number) => {
+            if (x < 0 || x > mediaSize.width || y < 0 || y > mediaSize.height) return
+            context.globalAlpha = alpha; context.lineWidth = 1.5; context.setLineDash([])
+            context.beginPath(); context.arc(x, y, 6, 0, Math.PI * 2); context.stroke()
+          }
+          if (style.pointsVisible) for (const point of points) ring(point.x, point.y, 1)
+          let previous: { x: number; y: number } | undefined = points.at(-1)
+          for (const scheduled of indicator!.upcoming ?? []) {
+            if (scheduled.releasedAt <= now || !scheduled.metrics.includes(key)) continue
+            const value = scheduled.forecasts?.[key]
+            // A missing forecast is a schedule only; never bridge through it.
+            if (value === undefined || !Number.isFinite(value)) { previous = undefined; continue }
+            const x = futureX?.(scheduled.time), y = series[key].priceToCoordinate(value)
+            if (x === undefined || x === null || !Number.isFinite(x) || y === null) continue
+            context.globalAlpha = 0.4; context.lineWidth = style.lineWidth; context.setLineDash([5, 4])
+            if (previous) {
+              context.beginPath(); context.moveTo(previous.x, previous.y); context.lineTo(x, y); context.stroke()
+            }
+            if (style.pointsVisible) ring(x, y, 0.4)
+            previous = { x, y }
+          }
+        }
+        context.restore()
+      })
+      target.useMediaCoordinateSpace(({ context, mediaSize }) => {
+        context.save(); context.font = '11px sans-serif'; context.textAlign = 'center'; context.textBaseline = 'bottom'
+        for (const { key } of metricControls) {
+          const style = indicator!.preferences.series[key]
+          if (!macroMetricVisible(indicator!.preferences, key) || !style.pointsVisible || !style.numbersVisible) continue
+          context.fillStyle = style.color
+          for (const point of plots[key]?.dots ?? []) {
+            const x = chart.timeScale().timeToCoordinate(point.time), y = series[key].priceToCoordinate(point.value)
+            if (x === null || y === null || x < 0 || x > mediaSize.width || y < 0 || y > mediaSize.height) continue
+            const reading = plots[key]!.readings.get(point.time)
+            const text = numberLabels[key]?.get(reading!.time) ?? macroValue(key, point.value)
+            const halfWidth = context.measureText(text).width / 2
+            const labelX = Math.max(halfWidth + 2, Math.min(x, mediaSize.width - halfWidth - 2))
+            context.fillText(text, labelX, Math.max(13, y - 9))
+          }
+        }
+        context.restore()
+      })
+    }
     if (!indicator || !macroMetricVisible(indicator.preferences, 'rate') || !indicator.preferences.series.rate.pointsVisible) return
     target.useMediaCoordinateSpace(({ context, mediaSize }) => {
       context.save(); context.strokeStyle = outlineColor; context.lineWidth = 1.5; context.setLineDash([])
@@ -270,20 +375,17 @@ export function createMacroPane(chart: IChartApi) {
     })
   }, drawBackground(target) {
     if (!indicator || latestTime === undefined || !indicator.upcoming?.length) return
-    const scale = chart.timeScale(), anchor = scale.timeToIndex(latestTime as Time)
-    if (anchor === null) return
-    const now = Date.now(), lastTime = latestTime
+    const futureX = futureCoordinates()
+    if (!futureX) return
+    const now = Date.now()
     target.useMediaCoordinateSpace(({ context, mediaSize }) => {
       context.save(); context.setLineDash([4, 4]); context.lineWidth = 1; context.globalAlpha = 0.8
       for (const scheduled of indicator!.upcoming) {
-        if (scheduled.releasedAt <= now || scheduled.time < lastTime + step || scheduled.time > lastTime + futureTimelineSeconds) continue
+        if (scheduled.releasedAt <= now) continue
         const metric = scheduled.metrics.find(key => macroMetricVisible(indicator!.preferences, key))
         if (!metric) continue
-        const logical = Number(anchor) + (scheduled.time - lastTime) / step, left = Math.floor(logical)
-        const x0 = scale.logicalToCoordinate(left as Logical), x1 = scale.logicalToCoordinate((left + 1) as Logical)
-        if (x0 === null || x1 === null) continue
-        const x = x0 + (x1 - x0) * (logical - left)
-        if (!Number.isFinite(x) || x < 0 || x > mediaSize.width) continue
+        const x = futureX(scheduled.time)
+        if (x === null || !Number.isFinite(x) || x < 0 || x > mediaSize.width) continue
         context.strokeStyle = indicator!.preferences.series[metric].color
         context.beginPath(); context.moveTo(x, 0); context.lineTo(x, mediaSize.height); context.stroke()
       }
@@ -295,7 +397,8 @@ export function createMacroPane(chart: IChartApi) {
   pane.attachPrimitive(primitive)
   return {
     sync(bars: OhlcBar[], next: MacroIndicator, seconds: number, format: (at: number) => string,
-      callbacks: { toggleMetric: (metric: MacroMetric) => void; selectMetric: (metric: MacroMetric) => void; inspectRelease?: (reading: MacroReading) => void }) {
+      callbacks: { toggleMetric: (metric: MacroMetric) => void; selectMetric: (metric: MacroMetric) => void;
+        toggleForecast?: (metric: MacroMetric) => void; toggleNumbers?: (metric: MacroMetric) => void; inspectRelease?: (reading: MacroReading) => void }) {
       if (destroyed) return
       // Capture a user's drag/zoom before moving its series off the right axis.
       // Removing a scale's final source resets its native range and auto mode.
@@ -303,11 +406,12 @@ export function createMacroPane(chart: IChartApi) {
         const scale = pane.priceScale(id)
         if (scale.options().autoScale) bounds.delete(axis) // Explicit native fit.
         else {
-          const range = scale.getVisibleRange()
-          if (validBounds(range)) bounds.set(axis, { ...range })
+          captureBounds(axis, id, true)
         }
       }
       indicator = next; formatRelease = format; toggleMetric = callbacks.toggleMetric; selectMetric = callbacks.selectMetric
+      toggleForecast = callbacks.toggleForecast ?? (() => {})
+      toggleNumbers = callbacks.toggleNumbers ?? (() => {})
       inspectRelease = callbacks.inspectRelease
       forecastHover = undefined; tooltip.hidden = true
       outlineColor = getComputedStyle(chart.chartElement()).getPropertyValue('--text-strong').trim() || '#888888'
@@ -316,6 +420,8 @@ export function createMacroPane(chart: IChartApi) {
       const p = next.preferences, axis = macroAxis(p)
       const nextScales = new Map<MacroAxis, string>()
       plots = {}
+      forecastPlots = {}
+      numberLabels = {}
       for (const key of Object.keys(series) as MacroMetric[]) {
         const active = macroMetricVisible(p, key)
         const metricAxis = macroMetricAxis(key)
@@ -327,6 +433,9 @@ export function createMacroPane(chart: IChartApi) {
           pointMarkersVisible: key !== 'rate' && p.series[key].pointsVisible, pointMarkersRadius: 4 })
         const plot = active ? macroPlot(bars, next.history[key], step, key === 'rate') : undefined
         plots[key] = plot
+        if (active && p.series[key].numbersVisible) numberLabels[key] = macroNumberLabels(key, next.history[key])
+        if (active && p.series[key].forecastVisible)
+          forecastPlots[key] = macroPlot(bars, next.forecastHistory?.[key] ?? [], step, false)
         series[key].setData(plot?.line ?? [])
         if (key === 'rate') {
           rateDots.applyOptions({ priceScaleId: scaleId, visible: active && p.series.rate.pointsVisible,
@@ -345,7 +454,7 @@ export function createMacroPane(chart: IChartApi) {
     },
     clearData() {
       for (const item of Object.values(series)) item.setData([])
-      rateDots.setData([]); plots = {}; hover = null; forecastHover = undefined; tooltip.hidden = true; latestTime = undefined; updateLegend()
+      rateDots.setData([]); plots = {}; forecastPlots = {}; hover = null; forecastHover = undefined; tooltip.hidden = true; latestTime = undefined; updateLegend()
     },
     destroy() {
       if (destroyed) return

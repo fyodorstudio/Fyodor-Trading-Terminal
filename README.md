@@ -176,6 +176,8 @@ Each scale holds its bounds across historical scrolling, backfill, series update
 eye toggles and axis changes. **Fit axis**, or double-clicking the right axis,
 fits only the selected scale and then holds its new bounds. Hiding its final
 visible series moves the right axis to another visible scale when available.
+Resizing the MFDI pane preserves vertical position and pixels per unit on every
+scale: added height reveals canvas below instead of stretching the lines and dots.
 Click a plotted release dot to open its exact package in the Inspector bottom
 dock and highlight that measure. This works outside Inspector's current dates
 or family selections without changing them. Carried values, connecting line
@@ -183,7 +185,19 @@ segments, hidden dots and blank space do not select a release.
 Dashed vertical lines mark verified upcoming releases in the pane's empty
 future area, within the existing 90-day axis. Same-time CPI/jobs companions share
 one line. These use the saved broker schedule, follow series visibility, omit
-date-only/unknown chart times and introduce no chart timestamps or forecast values.
+date-only/unknown chart times and introduce no chart timestamps.
+Each control also has an **F** button: a slash means its forecast layer is hidden.
+The adjacent **N** button shows values above actual release dots when enabled;
+a slash means numbers are hidden (the default). Each series remembers its choice.
+Numbers follow the series eye and dot settings, using percentages or payroll thousands.
+An ↑ or ↓ prefix compares each actual to its previous available release, even
+outside loaded candles. First readings and unchanged values have no arrow.
+Payroll forecasts default on; the other four default off. Forecasts join their own
+release dots with a same-colour line at 60% opacity and hollow rings around actual
+dots when equal. Upcoming forecasts continue from the last forecast with a dashed
+line and rings at 40% opacity. Missing upcoming forecasts retain only their vertical
+schedule line and break the forecast connection. Forecast layers follow their
+series eye, colour, width and dot settings, persist locally and never refit scales.
 Inputs selects individual series visibility and the right axis. Style sets colours,
 line widths and dots for all five series. Visibility, axes and styles persist
 locally; previous series choices, styles and enabled state survive migration from
@@ -195,15 +209,12 @@ containing candle; the latest wins within one candle. Missing actuals, unverifie
 clocks and future releases are excluded. Captured history uses latest stored
 vintages; nothing is inferred before the first actual or beyond loaded candles.
 MFDI displays raw data and does not calculate a composite or dispersion score.
-Hover a **Fed release dot** for Investing.com consensus, Trading Economics survey
-consensus and a separately attributed CME FedWatch probability snapshot when
-saved. A short dashed connector anchors Investing.com's forecast to the actual;
-Beat dots have an outline, with explicit Miss / In line labels in the tooltip.
-Forecasts never refit the scales. Verified official Fed upper bounds take priority
-where saved; any raw MT5 conflict stays visible in the tooltip and Inspector.
-Evidence is saved locally with capture/as-of clocks and historical-backfill labels;
-missing coverage stays Unavailable. No web request happens on hover. See the
-[Fed forecast contract](docs/MFDI-FORECASTS.md) for capture/import and coverage.
+Hover a **Fed release dot** for consensus values only. A short dashed connector
+anchors Investing.com's forecast to the actual; Beat dots have an outline.
+Forecasts never refit the scales. The supplied history covers January 2020 through
+October 2026: 54 consensus values across 56 decisions, with the two emergency
+March 2020 forecasts blank in the source. CME is omitted. No web request happens
+on hover. See the [Fed consensus reference](docs/MFDI-FORECASTS.md).
 Hiding an indicator unregisters its series from the shared native timeline, so
 old lower-timeframe timestamps cannot spread out later H4/D1 candles.
 The settings dialog has Inputs/Style, OK/Cancel and Reset defaults. RSI follows

@@ -54,6 +54,9 @@ export function DatePriceRangeDrawing({ drawing, points, precision, width, heigh
   const left = Math.min(first.x, last.x), right = Math.max(first.x, last.x)
   const top = Math.min(first.y, last.y), bottom = Math.max(first.y, last.y)
   if (right < 0 || left > width || bottom < 0 || top > height) return null
+  const labelCenter = (Math.max(0, left) + Math.min(width, right)) / 2
+  // Keep the two bottom cards together when the range reaches the chart edge.
+  const bottomLabelsY = Math.max(2, Math.min(bottom + 6, height - 56))
   // Measure elapsed timestamps, including session gaps, rather than candle count.
   const seconds = Math.abs(end.time - start.time)
   const minutes = Math.floor(seconds / 60)
@@ -81,11 +84,11 @@ export function DatePriceRangeDrawing({ drawing, points, precision, width, heigh
     </g>
     <g className="drawing-range-duration">
       <title>Elapsed time</title>
-      <DrawingTag text={duration} x={(Math.max(0, left) + Math.min(width, right)) / 2} y={bottom + 6} centered width={width} height={height} />
+      <DrawingTag text={duration} x={labelCenter} y={bottomLabelsY} centered width={width} height={height} />
     </g>
     <g className="drawing-range-pips">
       <title>Price distance in pips and percentage change from the first anchor</title>
-      <DrawingTag text={`${pips} · ${percentage}`} x={right + 6} y={(Math.max(0, top) + Math.min(height, bottom)) / 2 - 12} width={width} height={height} />
+      <DrawingTag text={`${pips} · ${percentage}`} x={labelCenter} y={bottomLabelsY + 30} centered width={width} height={height} />
     </g>
   </g>
 }

@@ -60,8 +60,9 @@ counts; every selected/context reading remains in the companion. CSV quoting
 preserves tabs, pipes and newlines in names. The new folder and files are cleaned up if generation
 fails; existing files are never overwritten. Old full-table reports remain readable
 by the analyst helper. Report generation never changes calendar observations.
-Broker forecasts and web survey estimates retain separate provider/as-of attribution;
-differences alone do not establish a source error.
+Broker forecasts and web survey estimates retain separate provider/as-of attribution
+in stored data; differences alone do not establish a source error. This does not
+require retrieval/backfill text in chart tooltips.
 Alert's date table shows Pepperstone readings and named external publishers; legacy
 Highlight metadata remains separate. Alarm subscriptions are independent of research
 pins and date/filter navigation. Source values and archived history are preserved.

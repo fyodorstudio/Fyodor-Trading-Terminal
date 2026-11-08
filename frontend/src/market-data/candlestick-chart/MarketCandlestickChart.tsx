@@ -48,6 +48,8 @@ type MarketCandlestickChartProps = {
   rsi?: RsiPreferences
   macro?: MacroIndicator
   onToggleMacroMetric?: (metric: MacroMetric) => void
+  onToggleMacroForecast?: (metric: MacroMetric) => void
+  onToggleMacroNumbers?: (metric: MacroMetric) => void
   onSelectMacroMetric?: (metric: MacroMetric) => void
   onInspectMacroRelease?: (reading: MacroReading) => void
   refocusRequest?: number
@@ -89,6 +91,8 @@ function MarketCandlestickChartComponent({
   rsi,
   macro,
   onToggleMacroMetric,
+  onToggleMacroForecast,
+  onToggleMacroNumbers,
   onSelectMacroMetric,
   onInspectMacroRelease,
   refocusRequest = 0,
@@ -440,13 +444,15 @@ function MarketCandlestickChartComponent({
         macroPaneRef.current ??= createMacroPane(chart)
         macroPaneRef.current.sync(bars, macro, timeframeToSeconds(timeframe), formatUtc, {
           toggleMetric: metric => onToggleMacroMetric?.(metric),
+          toggleForecast: metric => onToggleMacroForecast?.(metric),
+          toggleNumbers: metric => onToggleMacroNumbers?.(metric),
           selectMetric: metric => onSelectMacroMetric?.(metric),
           inspectRelease: onInspectMacroRelease,
         })
       }
       if (range) setLogicalRange(range)
     } finally { applyingDataRef.current = false }
-  }, [macroEnabled, macro, bars, fitContentKey, timeframe, formatUtc, onToggleMacroMetric, onSelectMacroMetric, onInspectMacroRelease, readLogicalRange, setLogicalRange])
+  }, [macroEnabled, macro, bars, fitContentKey, timeframe, formatUtc, onToggleMacroMetric, onToggleMacroForecast, onToggleMacroNumbers, onSelectMacroMetric, onInspectMacroRelease, readLogicalRange, setLogicalRange])
 
   useEffect(() => {
     if (!pendingWindowRef.current || !bars.length || !hasOlderData || isLoadingOlderData) return
