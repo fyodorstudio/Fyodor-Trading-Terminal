@@ -10,6 +10,7 @@ export const suites = [
   "tests/test_future_timeline.mjs",
   "tests/test_volume.mjs",
   "tests/test_macro.mjs",
+  "tests/test_macro_configuration.mjs",
   "tests/test_fed_forecasts.mjs",
   "tests/test_rsi.mjs",
   "tests/test_rsi_chart_contract.mjs",

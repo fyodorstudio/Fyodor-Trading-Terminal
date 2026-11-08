@@ -1,10 +1,12 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import { macroMetrics } from './macro-data'
-import { defaultMacroPreferences, macroAxes, macroAxis, macroGroups, selectMacroAxis, type MacroMetric, type MacroPreferences, type MacroStyle } from './macro-preferences'
+import { macroCatalog } from './macro-catalog'
+import { MacroEventSelector } from './MacroEventSelector'
+import { macroDefaultStyle, macroAxis, selectedMacroMetrics, selectMacroAxis, type MacroMetric, type MacroPreferences, type MacroStyle } from './macro-preferences'
 import '../rsi/rsi.css'
+import './macro.css'
 
-export function MacroSettingsDialog({ preferences, onSave, onClose }: {
-  preferences: MacroPreferences; onSave: (next: MacroPreferences) => void; onClose: () => void
+export function MacroSettingsDialog({ preferences, onSave, onClose, symbol = 'USDX' }: {
+  preferences: MacroPreferences; symbol?: string; onSave: (next: MacroPreferences) => void; onClose: () => void
 }) {
   const [draft, setDraft] = useState(preferences), [tab, setTab] = useState<'inputs' | 'style'>('inputs')
   const dialog = useRef<HTMLFormElement>(null), id = useId()
@@ -26,9 +28,9 @@ export function MacroSettingsDialog({ preferences, onSave, onClose }: {
   const patchStyle = (key: MacroMetric, patch: Partial<MacroStyle>) => setDraft(current => ({ ...current,
     series: { ...current.series, [key]: { ...current.series[key], ...patch } } }))
   return <div className="rsi-dialog-backdrop" onPointerDown={event => { if (event.target === event.currentTarget) onClose() }}>
-    <form ref={dialog} className="rsi-settings-dialog" role="dialog" aria-modal="true" aria-labelledby={`${id}-title`}
+    <form ref={dialog} className="rsi-settings-dialog macro-settings-dialog" role="dialog" aria-modal="true" aria-labelledby={`${id}-title`}
       onSubmit={event => { event.preventDefault(); onSave({ ...draft, enabled: preferences.enabled }); onClose() }}>
-      <header><strong id={`${id}-title`}>MFDI</strong><button type="button" onClick={onClose} aria-label="Close MFDI settings">×</button></header>
+      <header><strong id={`${id}-title`}>MFDI · {symbol}</strong><button type="button" onClick={onClose} aria-label="Close MFDI settings">×</button></header>
       <div className="rsi-settings-tabs" role="tablist" aria-label="MFDI settings">
         {(['inputs', 'style'] as const).map(item => <button key={item} type="button" role="tab" id={`${id}-${item}`}
           aria-selected={tab === item} aria-controls={`${id}-panel`} tabIndex={tab === item ? 0 : -1}
@@ -42,32 +44,25 @@ export function MacroSettingsDialog({ preferences, onSave, onClose }: {
       </div>
       <div className="rsi-settings-body" role="tabpanel" id={`${id}-panel`} aria-labelledby={`${id}-${tab}`}>
         {tab === 'inputs' ? <>
-          <p>Macro Factor Data Inspector · USDX / USD</p>
-          <label>Right axis<select value={macroAxis(draft)} onChange={event => setDraft(current => selectMacroAxis(current, event.target.value as MacroPreferences['axisTarget']))}>
-            {macroAxes.map(axis => <option key={axis.id} value={axis.id}>{axis.label}</option>)}</select></label>
-          {macroGroups.map(group => <fieldset key={group.id}><legend>{group.label}</legend>
-            {group.metrics.map(key => <label key={key}>Show {macroMetrics[key].label}<input type="checkbox" checked={draft.series[key].visible}
-              onChange={event => patchStyle(key, { visible: event.target.checked })} /></label>)}
-          </fieldset>)}
-          <p>Released actuals from stored MT5 history, with saved official Fed values where available. Payrolls are in thousands; other values are percentages. Inflation uses monthly changes. Fed rate is the target upper bound.</p>
-          <p>Each series has its own eye button in the pane. Click its label to select its right axis; a hidden series is revealed. All five series use independent scales, including Headline CPI and Core CPI. Each scale holds its zoom and position across date scrolling, history loading and axis changes. Use Fit axis or double-click the right axis to fit the selected scale, or Fit axis all to fit every visible scale. The lock icon links all visible axes so dragging and scaling moves them together; unlock to adjust individual series.</p>
-          <p>F toggles forecasts for each series; a slash means forecasts are hidden. Payroll forecasts start enabled. Forecasts use the series colour with a lighter line and hollow outlined dots. Upcoming forecasts continue from the last forecast with a faint dashed line and dot; missing forecasts show only the vertical schedule. Forecasts follow the series eye and dot settings and never resize axes.</p>
-          <p>Release dates align to their containing candle. Monthly lines join released points; only the policy rate is held between releases. The readout carries the latest known actual and shows its release date. No smoothing or composite score.</p>
-          <p>Hover a Fed release dot for consensus values. A short dashed connector shows Investing.com's forecast; a Beat outlines the actual dot. Forecasts never resize your axes.</p>
-          <p>Click a plotted release dot to open its exact package in Inspector. Dashed vertical lines in empty future space show verified upcoming schedules for visible series, with one line per same-time package.</p>
-          <p>History uses latest stored vintages. Missing actuals and unverified clocks stay blank. Scroll left to load more release points.</p>
+          <MacroEventSelector preferences={draft} onChange={setDraft} />
+          <label>Right axis<select value={macroAxis(draft)} onChange={event => setDraft(current => selectMacroAxis(current, event.target.value))} disabled={!selectedMacroMetrics(draft).length}>
+            {!selectedMacroMetrics(draft).length && <option value={draft.axisTarget}>No events selected</option>}
+            {selectedMacroMetrics(draft).map(key => <option key={key} value={key}>{macroCatalog[key].controlLabel}</option>)}
+          </select></label>
+          <p>Event selections are remembered by currency. Ticking a currency restores its saved events. Each chart symbol remembers which currencies are enabled.</p>
+          <p>Each event uses an independent scale. The lock links movement and zoom; the three-line button arranges nearly flat lanes. Hover and release selection remain available.</p>
         </> : <>
-          {(Object.keys(macroMetrics) as MacroMetric[]).map(key => <fieldset key={key}><legend>{macroMetrics[key].label} · Line</legend>
-            <label>{macroMetrics[key].label} colour<input type="color" value={draft.series[key].color} onChange={event => patchStyle(key, { color: event.target.value })} /></label>
-              <label>{macroMetrics[key].label} line width<select value={draft.series[key].lineWidth} onChange={event => patchStyle(key, { lineWidth: Number(event.target.value) as MacroStyle['lineWidth'] })}>
+          {selectedMacroMetrics(draft).map(key => <fieldset key={key}><legend>{macroCatalog[key].label} · Line</legend>
+            <label>{macroCatalog[key].label} colour<input type="color" value={draft.series[key].color} onChange={event => patchStyle(key, { color: event.target.value })} /></label>
+              <label>{macroCatalog[key].label} line width<select value={draft.series[key].lineWidth} onChange={event => patchStyle(key, { lineWidth: Number(event.target.value) as MacroStyle['lineWidth'] })}>
                 {[1, 2, 3, 4].map(width => <option key={width} value={width}>{width}</option>)}</select></label>
-              <label>Show {macroMetrics[key].label} dots<input type="checkbox" checked={draft.series[key].pointsVisible} onChange={event => patchStyle(key, { pointsVisible: event.target.checked })} /></label>
-              <label>Show {macroMetrics[key].label} numbers<input type="checkbox" checked={draft.series[key].numbersVisible} onChange={event => patchStyle(key, { numbersVisible: event.target.checked })} /></label>
-              <label>Show {macroMetrics[key].label} forecasts<input type="checkbox" checked={draft.series[key].forecastVisible} onChange={event => patchStyle(key, { forecastVisible: event.target.checked })} /></label>
+              <label>Show {macroCatalog[key].label} dots<input type="checkbox" checked={draft.series[key].pointsVisible} onChange={event => patchStyle(key, { pointsVisible: event.target.checked })} /></label>
+              <label>Show {macroCatalog[key].label} numbers<input type="checkbox" checked={draft.series[key].numbersVisible} onChange={event => patchStyle(key, { numbersVisible: event.target.checked })} /></label>
+              <label>Show {macroCatalog[key].label} forecasts<input type="checkbox" checked={draft.series[key].forecastVisible} onChange={event => patchStyle(key, { forecastVisible: event.target.checked })} /></label>
           </fieldset>)}
         </>}
       </div>
-      <footer><button type="button" onClick={() => setDraft({ ...defaultMacroPreferences, enabled: preferences.enabled })}>Reset defaults</button>
+      <footer><button type="button" onClick={() => setDraft(current => ({ ...current, axisTarget: selectedMacroMetrics(current)[0] ?? 'rate', series: Object.fromEntries(Object.keys(current.series).map(key => [key, macroDefaultStyle(key)])) }))}>Reset defaults</button>
         <button type="button" onClick={onClose}>Cancel</button><button type="submit">OK</button></footer>
     </form>
   </div>

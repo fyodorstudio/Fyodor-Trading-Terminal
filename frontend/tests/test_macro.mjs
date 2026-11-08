@@ -27,10 +27,11 @@ const event = (overrides = {}) => ({ value_id: 'one', event_id: '840050014', cur
 const reply = (request, body) => React.act(async () => request.resolve({ ok: true, json: async () => body }))
 const reactProps = element => element[Object.getOwnPropertyNames(element).find(key => key.startsWith('__reactProps$'))]
 try {
-  const { macroHistory, macroUpcoming, macroPlot, macroNumberLabels, supportsMacro, macroMetrics, macroEventIds, macroValue } = await server.ssrLoadModule('./src/market-data/indicators/macro/macro-data.ts')
+  const { macroHistory, macroUpcoming, macroPlot, macroNumberLabels, supportsMacro, macroMetrics, macroValue } = await server.ssrLoadModule('./src/market-data/indicators/macro/macro-data.ts')
+  const macroEventIds = Object.values(macroMetrics).map(metric => metric.eventId)
   const { defaultMacroPreferences, readMacroPreferences, saveMacroPreferences, macroAxis, selectMacroAxis, selectMacroMetric, toggleMacroMetric, toggleMacroForecast, toggleMacroNumbers } = await server.ssrLoadModule('./src/market-data/indicators/macro/macro-preferences.ts')
   assert.ok(supportsMacro('USDX')); assert.ok(supportsMacro('USDX.a'))
-  for (const symbol of ['EURUSD', 'USDJPY', 'EURX', 'JPYX', 'USDX-PERP', 'USDXFAKE']) assert.equal(supportsMacro(symbol), false)
+  for (const symbol of ['EURUSD', 'USDJPY', 'EURX', 'JPYX', 'USDX-PERP', 'USDXFAKE']) assert.equal(supportsMacro(symbol), true)
   const invalid = [
     { event_id: '840050015' }, { country_code: 'CA' }, { currency: 'CAD' }, { unit: 0 }, { multiplier: 2 },
     { actual: null }, { actual: NaN }, { release_at: null }, { release_at: at + 100000 },
@@ -102,12 +103,14 @@ try {
   dom.localStorage.setItem('fyodor.indicators.fed-rate.v1', 'true')
   assert.equal(readMacroPreferences().enabled, true, 'The original Fed visibility migrates')
   assert.equal(dom.localStorage.getItem('fyodor.indicators.fed-rate.v1'), 'true', 'Migration preserves the old preference')
+  dom.localStorage.removeItem('fyodor.indicators.macro.v2')
   dom.localStorage.setItem('fyodor.indicators.macro.v1', JSON.stringify({ enabled: false, view: 'bad', labourAxis: 'bad',
     series: { coreCpi: { color: 'invalid', lineWidth: 9, visible: false } } }))
   const sanitized = readMacroPreferences()
   assert.equal(sanitized.enabled, false); assert.equal(sanitized.axisTarget, 'rate')
   assert.ok(Object.values(sanitized.series).filter(style => style.visible).length === 4)
   assert.equal(sanitized.series.coreCpi.visible, false); assert.equal(sanitized.series.coreCpi.color, defaultMacroPreferences.series.coreCpi.color)
+  dom.localStorage.removeItem('fyodor.indicators.macro.v2')
   dom.localStorage.setItem('fyodor.indicators.macro.v1', JSON.stringify({ enabled: true, view: 'labour', labourAxis: 'unemployment',
     series: { payrolls: { visible: false, color: '#123456', lineWidth: 3 } } }))
   const migrated = readMacroPreferences()
@@ -129,6 +132,7 @@ try {
   assert.equal(forecastToggled.series.payrolls.numbersVisible, false, 'N never mutates previous settings')
   saveMacroPreferences(numbered)
   assert.deepEqual(readMacroPreferences(), numbered, 'Number choices survive reload')
+  dom.localStorage.removeItem('fyodor.indicators.macro.v2')
   dom.localStorage.setItem('fyodor.indicators.macro.v1', JSON.stringify({ ...defaultMacroPreferences, groups: { policy: true, labour: false, inflation: false } }))
   const flattened = readMacroPreferences()
   assert.equal(flattened.series.rate.visible, true)
@@ -144,6 +148,7 @@ try {
   assert.deepEqual(readMacroPreferences(), toggled, 'Per-line visibility round-trips without a hidden category master')
   saveMacroPreferences(defaultMacroPreferences)
   assert.equal(macroAxis({ ...defaultMacroPreferences, axisTarget: 'payrolls', series: Object.fromEntries(Object.entries(defaultMacroPreferences.series).map(([key, style]) => [key, { ...style, visible: key === 'unemployment' }])) }), 'unemployment')
+  dom.localStorage.removeItem('fyodor.indicators.macro.v2')
   dom.localStorage.setItem('fyodor.indicators.macro.v1', JSON.stringify({ ...defaultMacroPreferences, axisTarget: 'inflation' }))
   assert.equal(readMacroPreferences().axisTarget, 'coreCpi', 'The former shared CPI axis migrates to Core')
   const onlyHeadline = selectMacroAxis(revealed, 'headlineCpi')
@@ -154,7 +159,7 @@ try {
   await header('USDX')
   assert.ok(host.querySelector('[aria-label="Show MFDI"]'))
   assert.equal(host.querySelector('[aria-label="MFDI settings"]').getAttribute('aria-haspopup'), 'dialog')
-  await header('EURUSD'); assert.equal(host.querySelector('[aria-label="MFDI settings"]'), null)
+  await header('EURUSD'); assert.ok(host.querySelector('[aria-label="MFDI settings"]'))
   await React.act(async () => root.render(null))
 
   const { useMacroIndicator } = await server.ssrLoadModule('./src/market-data/indicators/macro/useMacroIndicator.ts')
@@ -170,7 +175,7 @@ try {
   assert.equal(view.macro.enabled, true); assert.match(view.macro.status, /Loading/)
   await reply(requests[0], { revision: 1, sources: [{ id: 'A', coverage: {} }], collector_error: null })
   const params = new URL(requests[1].url, 'http://localhost').searchParams
-  assert.equal(params.get('event_ids'), macroEventIds.slice().sort().join(',')); assert.equal(params.get('currency'), 'USD')
+  assert.equal(params.get('event_ids'), macroEventIds.slice().sort().join(',')); assert.equal(params.get('currencies'), 'USD')
   assert.equal(params.get('time_basis'), 'chart'); assert.equal(params.get('from_server_seconds'), '0')
   await reply(requests[1], { source_id: 'A', revision: 1, timestamp_convention: 'trade_server_time', time_basis: 'chart',
     event_ids: macroEventIds, events: [event(), scheduledEvent('coreCpi', 1, { release_at: Date.now() + 86400000 })], coverage: {}, next_cursor: null })
@@ -204,7 +209,7 @@ try {
   const control = label => [...host.querySelectorAll('label')].find(element => element.textContent.startsWith(label)).querySelector('input, select')
   await open()
   assert.equal(tab('Inputs').getAttribute('aria-selected'), 'true')
-  assert.equal(host.querySelectorAll('input[type="checkbox"]').length, 5)
+  assert.equal(host.querySelectorAll('input[type="checkbox"]').length, 13)
   assert.equal(host.querySelectorAll('input[type="color"]').length, 0)
   await React.act(async () => { const input = control('Right axis'); input.value = 'coreCpi'; input.dispatchEvent(new dom.Event('change', { bubbles: true })) })
   await React.act(async () => reactProps(control('Show Fed rate')).onChange({ target: { checked: false } }))
@@ -229,7 +234,7 @@ try {
   await React.act(async () => { const input = control('Right axis'); input.value = 'payrolls'; input.dispatchEvent(new dom.Event('change', { bubbles: true })) })
   await React.act(async () => [...host.querySelectorAll('button')].find(button => button.textContent === 'Reset defaults').click())
   assert.equal(control('Right axis').value, 'rate')
-  assert.ok([...host.querySelectorAll('input[type="checkbox"]')].every(input => input.checked))
+  assert.ok([...host.querySelectorAll('.macro-selected-event input[type="checkbox"]')].every(input => input.checked))
   await React.act(async () => [...host.querySelectorAll('button')].find(button => button.textContent === 'Cancel').click())
   assert.equal(saved, null)
   await React.act(async () => dom.dispatchEvent(new dom.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })))

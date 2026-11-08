@@ -680,7 +680,7 @@ try {
   const { ChartInspectionDismiss } = await server.ssrLoadModule('./src/terminal-shell/chart-overlays/ChartInspectionDismiss.tsx')
   const inspectedReleases = []; let backgroundDismissals = 0
   const renderDismiss = chartApi => React.createElement(ChartInspectionDismiss, { chartApi, onClear: () => { backgroundDismissals++ } })
-  const { defaultMacroPreferences, selectMacroMetric, toggleMacroMetric, toggleMacroForecast, toggleMacroNumbers } = await server.ssrLoadModule('./src/market-data/indicators/macro/macro-preferences.ts')
+  const { defaultMacroPreferences, selectMacroMetric, toggleMacroMetric, toggleMacroForecast, toggleMacroNumbers, setMacroCurrency, setMacroEvents } = await server.ssrLoadModule('./src/market-data/indicators/macro/macro-preferences.ts')
   let macro = { enabled: true, status: 'Stored MT5 actuals', preferences: { ...defaultMacroPreferences, enabled: true }, history: { rate: [
     { id: 'seed', time: macroBars[0].time - 86400, releasedAt: (macroBars[0].time - 86400) * 1000, value: 5.5 },
     { id: 'decision', time: macroBars[45].time + 1800, releasedAt: (macroBars[45].time + 1800) * 1000, value: 5.25 },
@@ -1081,6 +1081,23 @@ try {
   }
   assert.equal(macro.preferences.axisTarget, selectedBeforeFitAll, 'Fit all preserves the selected axis')
   assert.deepEqual(chart.timeScale().getVisibleLogicalRange(), rateWindow, 'Fit all preserves shared dates')
+  const flatten = host.querySelector('[aria-label="Flatten MFDI lines"]')
+  assert.equal(lockAxes.nextElementSibling, flatten, 'The three-line button sits next to the lock')
+  const beforeFlat = placement(), beforeFlatData = macroPane.getSeries().map(line => line.data())
+  await React.act(async () => flatten.click()); await paint()
+  assert.equal(flatten.getAttribute('aria-pressed'), 'true')
+  for (const line of [rateLine, payrollLine, unemploymentLine, coreLine, headlineLine]) {
+    const values = line.data().filter(point => {
+      const x = chart.timeScale().timeToCoordinate(point.time)
+      return x !== null && x >= 0 && x <= chart.paneSize(macroPane.paneIndex()).width
+    }).map(point => line.priceToCoordinate(point.value))
+    assert.ok(Math.max(...values) - Math.min(...values) <= 4.000001, 'Flatten compresses real variation into nearly flat lanes')
+  }
+  assert.notDeepEqual(placement(), beforeFlat, 'Flatten changes placement')
+  assert.deepEqual(macroPane.getSeries().map(line => line.data()), beforeFlatData, 'Flatten never changes numeric values or dates')
+  await React.act(async () => flatten.click()); await paint()
+  assert.equal(flatten.getAttribute('aria-pressed'), 'false')
+  placement().forEach((values, index) => values.forEach((value, point) => close(value, beforeFlat[index][point], 'The second click restores each previous scale')))
   await React.act(async () => lockAxes.click()); await paint()
   assert.equal(lockAxes.getAttribute('aria-pressed'), 'true')
   assert.equal(lockAxes.getAttribute('aria-label'), 'Unlink MFDI axes')
@@ -1160,8 +1177,32 @@ try {
   await render({ macro })
   assert.equal(chart.panes().length, 4)
   await render({ symbol: 'EURUSD', fitContentKey: 'EURUSD:H1' })
-  assert.equal(chart.panes().length, 3, 'USDX-only enforcement also lives at the chart boundary')
-  assert.equal(host.querySelector('.macro-legend'), null)
+  assert.equal(chart.panes().length, 4, 'MFDI is available on FX pairs as well as indices')
+  assert.ok(host.querySelector('.macro-legend'))
+  const originalMacro = macro
+  macro = { ...macro, preferences: { ...defaultMacroPreferences, enabled: true, currencies: [], eventsByCurrency: {} }, history: {}, status: '' }
+  await render({ macro })
+  assert.equal(host.querySelectorAll('.macro-metric-control').length, 0, 'An empty symbol has no preselected event chips')
+  assert.match(host.querySelector('.macro-note').textContent, /Choose currencies/)
+  assert.ok(chart.panes().at(-1).getSeries().every(line => line.data().length === 0))
+  const { macroCatalog } = await server.ssrLoadModule('./src/market-data/indicators/macro/macro-catalog.ts')
+  const dynamicKey = Object.keys(macroCatalog).find(key => macroCatalog[key].currency === 'EUR')
+  const dynamicPreferences = setMacroEvents(setMacroCurrency(macro.preferences, 'EUR', true), 'EUR', [dynamicKey])
+  dynamicPreferences.series[dynamicKey] = { ...dynamicPreferences.series[dynamicKey], numbersVisible: true }
+  const dynamicReading = { ...monthly('eur-reading', 65, 0.3), currency: 'EUR', unit: 1, digits: 2 }
+  macro = { ...macro, preferences: dynamicPreferences, history: { [dynamicKey]: [dynamicReading] } }
+  const dynamicWindow = chart.timeScale().getVisibleLogicalRange()
+  await render({ macro })
+  assert.equal(host.querySelectorAll('.macro-metric-control').length, 1)
+  assert.equal(host.querySelector('[data-macro-axis]').dataset.macroAxis, dynamicKey)
+  const dynamicLine = chart.panes().at(-1).getSeries().find(line => line.data().length)
+  assert.equal(dynamicLine.data()[0].value, 0.3, 'Dynamically added events reach native plotted series')
+  assert.equal(dynamicLine.options().priceFormat.formatter(0.3), '0.30%')
+  assert.deepEqual(chart.timeScale().getVisibleLogicalRange(), dynamicWindow, 'Changing selected currencies preserves shared dates')
+  assert.equal(host.querySelector('.macro-note').hidden, true, 'Successful charts have no static source/status text')
+  await fireDotClick(dynamicLine, 0, { paneIndex: chart.panes().length - 1 })
+  assert.equal(inspectedReleases.at(-1).currency, 'EUR', 'Dynamic dots retain currency for Inspector selection')
+  macro = originalMacro
   const macroH4 = macroBars.map((bar, i) => ({ ...bar, time: macroBars[0].time + i * 14400 }))
   await render({ symbol: 'USDX', fitContentKey: 'USDX:H4', timeframe: 'H4', bars: macroH4,
     rsi: { ...defaultRsiPreferences, enabled: false }, volume: { ...defaultVolumePreferences, enabled: false } })

@@ -57,91 +57,57 @@ prior failure context; full original records are [archived](docs/RESEARCH-ARCHIV
 
 ## MFDI
 
-Select **USDX**, then click **MFDI** beside Volume and RSI. MFDI means Macro
-Factor Data Inspector. Drag its pane divider to resize it. This adds or removes
-canvas space below while preserving the lines' vertical position and zoom.
-Five compact controls
-appear in this order: **Fed Rate (%)**, **Payroll (k)**, **Unemployment (%)**,
-**Headline CPI m/m (%)**, **Core CPI m/m (%)**. A filled circle before each box
-matches that line's colour, including changes made in Style.
+Click **MFDI** beside Volume and RSI on any chart symbol. Drag its divider to add
+canvas space without stretching the plotted lines. New symbols start with no
+currencies ticked; your existing USDX setup is preserved.
 
-- Click a **label** to select its draggable right axis. Selecting a hidden
-  line reveals only that line.
-- Click its **grey eye** to hide/show just that line. A slashed eye means hidden.
-  The five controls remain available when every line is hidden.
-- Click **F** to show/hide that series' forecasts. A slashed F means hidden.
-  Payroll forecasts start on; the other four start off. Each choice is saved.
-  The series eye also hides its forecasts without changing its F choice.
-- Click **N** beside F to show values above that series' actual release dots.
-  A slashed N means hidden (the default). The choice is saved per series;
-  hiding the series or its dots also hides the numbers.
-  Numbers start with ↑ for an increase or ↓ for a decrease from the previous
-  available release. First readings and equal values have no arrow.
-- Fed Rate uses the target upper bound and a step line between decisions.
-  Payrolls, unemployment and CPI use lines with dots at actual releases.
-  CPI values are monthly changes, not annual inflation.
+Open the gear and use **Inputs**:
 
-Click a **dot on a plotted line** to open the exact release package in the
-Inspector bottom dock, with the clicked measure highlighted. Its companion
-readings remain visible. Inspector's saved filters and date range stay unchanged;
-the source value ID identifies the release even when it is outside that range.
-Connecting segments, carried Fed-rate values and hidden dots do not open releases.
+1. Tick the event currencies you want. Each currency restores its saved event list,
+   even after refreshing or when used on another symbol. Currency choices are not
+   restricted to the chart's pair: USD, EUR or JPY events can appear on any chart.
+2. Click **+ Add events**, choose an event currency and search or browse categories.
+   Tick individual measures to add them. Adding a measure also enables its currency.
+3. Use **− Remove** to remove a measure from that currency's remembered list. Simply
+   unticking the currency keeps its event list saved for the next time you tick it.
+4. Click **OK** to save, or **Cancel** to discard the draft. Each symbol remembers
+   its own enabled currencies, selected axis and MFDI on/off choice. Saved currency
+   event lists and styles are shared between symbols, independently of Inspector filters.
 
-Hover a **Fed release dot** to see consensus values only. A short vertical dashed
-connector joins the actual to Investing.com's consensus, with an end cap at the
-forecast. A higher-than-consensus actual has an outline. Hovering never changes
-zoom or placement; offscreen forecast values remain readable in the tooltip.
-CME probability and retrieval/backfill text are omitted.
+**Style** changes each selected measure's colour, width, dots, forecasts and numbers.
+**Reset defaults** restores styles and the selected axis, keeping your selected events
+and currency ticks. Missing numeric history stays blank; choose another measure or
+scroll to earlier loaded candles. No events selected means no macro calendar polling.
 
-The supplied table covers January 2020 through October 2026, with 54 consensus
-values across 56 decisions. The March 2020 emergency decisions have no forecasts
-in the source. See the [Fed consensus reference](docs/MFDI-FORECASTS.md).
+Each event has its own scale, including separate Headline and Core CPI scales:
 
-Upcoming releases appear as **dashed vertical lines** in the pane's empty future
-area. Only verified exact-time schedules for visible series appear, within the
-existing 90-day future axis. CPI or jobs companions scheduled together share one
-line. Date-only/unverified times stay unplaced. These lines read the stored
-calendar and do not change reminders or imply an upcoming actual value.
+- Click its label to select its right axis. The eye shows/hides the line.
+- **F** shows/hides its forecast curve; a slash means hidden.
+- **N** shows/hides actual values above release dots. ↑ and ↓ compare to the previous
+  available release. First and unchanged values have no arrow. Event units are retained.
+- **Fit axis** fits the selected scale; **Fit axis all** fits every visible scale.
+- The **lock** links all visible axes, selecting them together. Dragging/scaling moves
+  the group. Unlock to adjust individual scales. Hover and dot selection still work.
+- The **three-line button** arranges the series in nearly flat, evenly spaced lanes.
+  Values and dates are unchanged. Click again to restore the previous placement.
 
-Forecasts form their own line, joining forecast values rather than actuals. The
-historical line uses the same colour at 60% opacity; hollow forecast rings are
-slightly larger than actual dots, so equal values remain visible. Upcoming
-forecasts continue from the last forecast with a dashed line and rings at 40%
-opacity. An upcoming release without a forecast keeps only its vertical schedule
-line and breaks that connection. Zero is a valid forecast. The existing dots
-setting also controls forecast rings; forecasts never resize the scales.
+Click a plotted dot to open its exact release package in Inspector, using the event's
+own currency. Its selected measure is highlighted, without changing Inspector's saved
+filters or the chart date window. Hover readouts show the release time in your selected
+clock. Only released numeric actuals with verified chart timing appear. Monthly lines
+join releases; the Fed rate is held between decisions. MFDI calculates no composite score.
 
-Each scale keeps its own zoom and placement while you
-scroll dates, load older history, switch axes or toggle eyes. **Fit axis**
-(or double-clicking the right axis) fits only the selected scale to visible data,
-then holds the new bounds. Values outside those bounds can remain offscreen until
-you resize or refit that scale. Headline CPI and Core CPI have separate scales. Equal screen heights across different
-scales do not imply equal magnitudes. Hiding the final visible line on the selected scale moves the right axis
-to another visible series when available.
-**Fit axis all** fits all visible MFDI scales at once. The lock/unlock icon links
-all visible axes: drag or scale any selected axis and every line and dot moves
-together. All visible labels are highlighted. Hover and dot selection still work.
-Unlock to adjust individual series. Linking resets when the pane is closed.
+Forecasts join their own values with a lighter solid line and hollow rings. Upcoming
+forecasts continue with faint dashed lines/rings in the existing future axis. Missing
+forecasts break the connection and retain only the schedule line. Forecasts follow the
+eye/dot choices and never refit scales. Existing USDX payroll forecasts remain enabled;
+newly added event forecasts start hidden. Saved official Fed upper bounds and survey
+consensus apply only to the exact Fed rate series. Hover a Fed dot for consensus values.
+See the [Fed consensus reference](docs/MFDI-FORECASTS.md).
 
-The gear opens **Inputs | Style**. Inputs chooses individual series
-and the right axis. Style changes colours, line widths, dots and forecast visibility for every line,
-including Payrolls. **OK** saves,
-**Cancel** discards the draft, and **Reset defaults** resets the draft.
-Preferences persist. Previous MFDI styles and enabled state are retained. Former
-category hides migrate to each line's eye state, so revealing one line does not
-unexpectedly reveal a sibling.
-
-Hover a candle to see the latest known actual and its release date in your
-display timezone. Monthly lines connect only actual release points; carried
-readouts do not create extra dots. Points align to the containing
-candle; if multiple releases share a candle, the latest actual wins. Scroll
-left for more released points. Only captured releases with verified MT5 timing
-appear, using the latest stored vintage and saved official Fed values where available.
-Forecasts use the captured calendar Forecast field, with saved Investing.com
-consensus preferred at exact matching Fed releases; a blank saved consensus stays
-blank. Forecasts use the latest stored vintage. Future releases never supply actual points.
-MFDI has no composite index or dispersion calculation. Switching away
-from USDX hides the pane; returning restores it. Click **MFDI** to hide it.
+All scale bounds survive scrolling, backfill, live updates and axis switches. Linked
+movement and the flatten/restore snapshot last while the pane is open. Successful
+charts show no static source caption; loading/error/empty messages appear as needed.
 
 ## Volume
 

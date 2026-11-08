@@ -249,7 +249,7 @@ export function useTerminalWorkspace() {
   }, [focusInspectorEvent])
   const viewMacroRelease = useCallback((reading: MacroReading) => {
     setInspectorFromLedger(false)
-    focusInspectorEvent({ value_id: reading.id, at: reading.releasedAt, date: new Date(reading.releasedAt).toISOString().slice(0, 10) }, 'USD')
+    focusInspectorEvent({ value_id: reading.id, at: reading.releasedAt, date: new Date(reading.releasedAt).toISOString().slice(0, 10) }, reading.currency ?? 'USD')
     setBottomDockWindow('inspector')
   }, [focusInspectorEvent])
   const returnToLedger = useCallback(() => setBottomDockWindow('ledger'), [])

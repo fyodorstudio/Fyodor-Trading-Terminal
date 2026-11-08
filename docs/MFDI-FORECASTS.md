@@ -3,7 +3,9 @@
 Owner: `frontend/src/market-data/indicators/macro/`, `storage/fed_forecasts.py`.
 
 Each MFDI series has an independently saved **F** forecast toggle; its slash means
-hidden. Payroll forecasts default on and the other four default off. The series
+hidden. Existing USDX payroll forecasts default on; newly added event series
+default off. Currency event selections and styles persist locally and can be
+reused on any chart symbol by ticking that event currency in MFDI Inputs. The series
 eye hides both actuals and forecasts, preserving the F choice. Style also exposes
 the forecast choice with the existing OK/Cancel/Reset draft behavior.
 

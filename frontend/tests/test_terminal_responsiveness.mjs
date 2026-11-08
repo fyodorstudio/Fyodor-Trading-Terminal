@@ -384,12 +384,21 @@ try {
   assert.equal(container.querySelector('[aria-label="Volume settings"] svg').outerHTML, container.querySelector('[aria-label="RSI settings"] svg').outerHTML, 'Volume and RSI use the identical gear icon')
   const indicatorControls = container.querySelector('[aria-label="Show RSI"]').parentElement
   assert.equal(container.querySelector('[aria-label="Show Volume"]').parentElement.nextElementSibling, indicatorControls, 'Volume sits beside RSI')
-  assert.equal(indicatorControls.nextElementSibling.getAttribute('role'), 'separator')
-  assert.equal(indicatorControls.nextElementSibling.nextElementSibling, container.querySelector('.chart-event-toggle'))
+  const macroControls = indicatorControls.nextElementSibling
+  assert.equal(macroControls.getAttribute('aria-label'), 'MFDI indicator', 'MFDI is available beside RSI on FX pairs')
+  assert.equal(macroControls.nextElementSibling.getAttribute('role'), 'separator')
+  assert.equal(macroControls.nextElementSibling.nextElementSibling, container.querySelector('.chart-event-toggle'))
   assert.equal(container.querySelector('.chart-toolbar-center').firstElementChild.getAttribute('aria-label'), 'Chart timeframe')
   assert.equal(container.querySelector('.timeframe-selector').nextElementSibling.getAttribute('aria-label'), 'Refocus chart')
   for (const label of ['Show events', 'Show Detail']) assert.ok(container.querySelector(`[aria-label="${label}"] svg`), 'Panel buttons use matching outline SVG icons')
   const beforeRsiRange = { ...logicalRange }
+  const beforeEmptyMacroQueries = requests.filter(url => url.startsWith('/storage-api/calendar')).length
+  await click(container.querySelector('[aria-label="Show MFDI"]')); await flush()
+  assert.equal(panes.length, 2, 'A new FX symbol can open an empty MFDI pane')
+  assert.match(container.querySelector('.macro-note').textContent, /Choose currencies/)
+  assert.equal(requests.filter(url => url.startsWith('/storage-api/calendar')).length, beforeEmptyMacroQueries, 'An empty MFDI selection does not poll calendar history')
+  await click(container.querySelector('[aria-label="Hide MFDI"]')); await flush()
+  assert.equal(panes.length, 1)
   reset()
   await click(container.querySelector('[aria-label="Show RSI"]')); await flush(); drawChartFrame()
   assert.equal(panes.length, 2); assert.equal(indicatorSeries.size, 3)

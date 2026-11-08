@@ -1,10 +1,11 @@
-import { LineSeries, LineType, type IChartApi, type IPrimitivePaneRenderer, type IPanePrimitive, type Logical, type MouseEventParams, type Time } from 'lightweight-charts'
+import { LineSeries, LineType, type IChartApi, type ISeriesApi, type IPrimitivePaneRenderer, type IPanePrimitive, type Logical, type MouseEventParams, type Time } from 'lightweight-charts'
 import type { OhlcBar } from '../../contracts/OhlcBar'
-import { macroMetrics, macroNumberLabels, macroPlot, macroValue, type MacroIndicator, type MacroReading } from './macro-data'
+import { macroNumberLabels, macroPlot, macroValue, type MacroIndicator, type MacroReading } from './macro-data'
+import { macroCatalog } from './macro-catalog'
 import { claimChartClick } from '../../candlestick-chart/chart-click-selection'
 import { futureTimelineSeconds } from '../../candlestick-chart/future-timeline'
 import { fedSurprise } from './fed-forecast'
-import { macroAxis, macroMetricAxis, macroMetricVisible, type MacroAxis, type MacroMetric } from './macro-preferences'
+import { macroAxis, macroMetricAxis, macroMetricVisible, selectedMacroMetrics, type MacroAxis, type MacroMetric } from './macro-preferences'
 import './macro.css'
 
 export function createMacroPane(chart: IChartApi) {
@@ -19,18 +20,16 @@ export function createMacroPane(chart: IChartApi) {
     headlineCpi: pane.addSeries(LineSeries, base),
   }
   const rateDots = pane.addSeries(LineSeries, { ...base, lineVisible: false, pointMarkersRadius: 4 })
-  const series = { ...lines, payrolls }
+  const series: Record<string, ISeriesApi<'Line'>> = { ...lines, payrolls }
   const legend = document.createElement('div'); legend.className = 'macro-legend'
   legend.setAttribute('aria-label', 'MFDI values')
-  legend.title = 'Macro Factor Data Inspector · Stored actuals, latest vintages; verified official Fed upper bounds where saved. Hover a Fed release dot for attributed expectations. Release dots align to their containing candle; the latest release wins within one candle. Monthly lines join released points. Only the Fed rate is held between decisions. Five independent scales. Overlapping heights do not imply comparable magnitudes.'
+  legend.title = 'Macro Factor Data Inspector · Stored actuals, latest vintages; verified official Fed upper bounds where saved. Hover a Fed release dot for attributed expectations. Release dots align to their containing candle; the latest release wins within one candle. Monthly lines join released points. Each selected event has an independent scale. Overlapping heights do not imply comparable magnitudes.'
   const controls = document.createElement('div'); controls.className = 'macro-controls'
   let toggleMetric: (metric: MacroMetric) => void = () => {}, selectMetric: (metric: MacroMetric) => void = () => {}
   let toggleForecast: (metric: MacroMetric) => void = () => {}
   let toggleNumbers: (metric: MacroMetric) => void = () => {}
-  const metricControls = ([
-    ['rate', 'Fed Rate (%)'], ['payrolls', 'Payroll (k)'], ['unemployment', 'Unemployment (%)'],
-    ['headlineCpi', 'Headline CPI m/m (%)'], ['coreCpi', 'Core CPI m/m (%)'],
-  ] as const).map(([key, label]) => {
+  const createMetricControl = (key: string) => {
+    const label = macroCatalog[key].controlLabel
     const chip = document.createElement('div'); chip.className = 'macro-metric-control'
     chip.setAttribute('role', 'group'); chip.setAttribute('aria-label', label)
     const colorDot = document.createElement('span'); colorDot.className = 'macro-control-color'
@@ -72,8 +71,9 @@ export function createMacroPane(chart: IChartApi) {
     numbersSlash.removeAttribute('data-forecast-slash'); numbersSlash.setAttribute('data-numbers-slash', 'true')
     numbersButton.append(numbersIcon); numbersButton.onclick = () => toggleNumbers(key)
     chip.append(axisButton, eyeButton, forecastButton, numbersButton); item.append(colorDot, chip); controls.append(item)
-    return { key, label, axisButton, eyeButton, slash, forecastButton, forecastSlash, numbersButton, numbersSlash, colorDot }
-  })
+    return { key, label, item, axisButton, eyeButton, slash, forecastButton, forecastSlash, numbersButton, numbersSlash, colorDot }
+  }
+  let metricControls = ['rate', 'payrolls', 'unemployment', 'headlineCpi', 'coreCpi'].map(createMetricControl)
   const fitButton = document.createElement('button'); fitButton.type = 'button'; fitButton.textContent = 'Fit axis'
   fitButton.setAttribute('aria-label', 'Fit MFDI selected axis')
   fitButton.title = 'Fit the selected scale to the visible releases, then hold its new bounds. Other scales keep their placement.'
@@ -88,7 +88,13 @@ export function createMacroPane(chart: IChartApi) {
   const lockBody = document.createElementNS(lockIcon.namespaceURI, 'path'); lockBody.setAttribute('d', 'M5 10h14v11H5z M12 14v3')
   const lockShackle = document.createElementNS(lockIcon.namespaceURI, 'path')
   lockIcon.append(lockBody, lockShackle); lockButton.append(lockIcon)
-  controls.append(fitButton, fitAllButton, lockButton)
+  const flattenButton = document.createElement('button'); flattenButton.type = 'button'; flattenButton.className = 'macro-lock-button'
+  flattenButton.setAttribute('aria-label', 'Flatten MFDI lines'); flattenButton.setAttribute('aria-pressed', 'false')
+  flattenButton.title = 'Arrange series in nearly flat lanes; click again to restore their previous placement'
+  const flattenIcon = lockIcon.cloneNode(false) as SVGElement
+  const bars = document.createElementNS(flattenIcon.namespaceURI, 'path'); bars.setAttribute('d', 'M3 6h18 M3 12h18 M3 18h18')
+  flattenIcon.append(bars); flattenButton.append(flattenIcon)
+  controls.append(fitButton, fitAllButton, lockButton, flattenButton)
   const readout = document.createElement('div'); readout.className = 'macro-readout'
   const note = document.createElement('div'); note.className = 'macro-note'
   legend.append(controls, readout, note)
@@ -124,6 +130,7 @@ export function createMacroPane(chart: IChartApi) {
   type Bounds = { from: number; to: number }
   const bounds = new Map<MacroAxis, Bounds>()
   const placements = new Map<MacroAxis, { height: number; unitsPerPixel: number; topValue: number }>()
+  let flatSnapshot: Map<MacroAxis, { height: number; unitsPerPixel: number; topValue: number }> | null = null
   let axisScales = new Map<MacroAxis, string>(), boundsFrame: number | null = null
   const validBounds = (range: Bounds | null): range is Bounds => range !== null
     && Number.isFinite(range.from) && Number.isFinite(range.to) && range.from < range.to
@@ -236,6 +243,43 @@ export function createMacroPane(chart: IChartApi) {
     updateLock(); updateLegend()
   }
   updateLock()
+  flattenButton.onclick = () => {
+    if (!indicator) return
+    for (const [axis, id] of axisScales) captureBounds(axis, id, true)
+    const restore = flatSnapshot
+    const axes = metricControls.flatMap(({ key }) => {
+      const id = axisScales.get(key)
+      return id && plots[key]?.line.length ? [[key, id] as const] : []
+    })
+    if (!restore && !axes.length) return
+    if (!restore) flatSnapshot = new Map([...placements].map(([axis, value]) => [axis, { ...value }]))
+    const top = Math.min(pane.getHeight() / 3, Math.max(65, legend.offsetHeight + 12))
+    const spacing = Math.max(0.01, Math.max(1, pane.getHeight() - top - 18) / Math.max(1, axes.length))
+    axes.forEach(([axis, id], index) => {
+      const range = pane.priceScale(id).getVisibleRange()
+      if (!validBounds(range)) return
+      const lowY = series[axis].priceToCoordinate(range.from), highY = series[axis].priceToCoordinate(range.to)
+      if (lowY === null || highY === null) return
+      let placement = restore?.get(axis)
+      if (!restore) {
+        const values = plots[axis]!.line.filter(point => {
+          const x = chart.timeScale().timeToCoordinate(point.time)
+          return x !== null && x >= 0 && x <= chart.paneSize(pane.paneIndex()).width
+        }).map(point => point.value)
+        if (!values.length) values.push(...plots[axis]!.line.map(point => point.value))
+        const min = Math.min(...values), max = Math.max(...values)
+        const unit = Math.max(max - min, Math.abs(max) * 0.001, 0.01) / Math.min(4, spacing * 0.1)
+        placement = { height: pane.getHeight(), unitsPerPixel: unit, topValue: (min + max) / 2 + (top + (index + 0.5) * spacing) * unit }
+      }
+      if (!placement) return
+      const next = { from: placement.topValue - lowY * placement.unitsPerPixel, to: placement.topValue - highY * placement.unitsPerPixel }
+      if (!validBounds(next)) return
+      bounds.set(axis, next); pane.priceScale(id).setVisibleRange(next)
+      captureBounds(axis, id, false)
+    })
+    if (restore) flatSnapshot = null
+    flattenButton.setAttribute('aria-pressed', String(!!flatSnapshot))
+  }
   const updateLegend = () => {
     if (!indicator) return
     const p = indicator.preferences
@@ -268,15 +312,19 @@ export function createMacroPane(chart: IChartApi) {
       const swatch = document.createElement('span'); swatch.className = 'macro-swatch'; swatch.style.backgroundColor = p.series[key].color
       swatch.setAttribute('aria-hidden', 'true')
       const value = document.createElement('span')
-      value.textContent = `${macroMetrics[key].label} ${reading ? macroValue(key, reading.value) : '—'}`
+      value.textContent = `${macroCatalog[key].label} ${reading ? macroValue(key, reading.value, reading) : '—'}`
       const date = document.createElement('span'); date.className = 'macro-release'
       date.textContent = reading ? `Released ${formatRelease(reading.releasedAt)}` : 'No known actual at this candle'
       field.append(swatch, value, date); readout.append(field)
     }
     const noPoints = visible.every(key => !plots[key]?.dots.length)
-    note.textContent = `${indicator.status}${!visible.length ? ' · All series hidden; use an eye to show a series'
-      : visible.every(key => !indicator!.history[key].length) ? ' · No released actuals with verified chart timing'
-      : noPoints ? ' · No releases in loaded candles; scroll left for earlier releases' : ''}`
+    const empty = !metricControls.length ? 'Choose currencies and add events in MFDI settings'
+      : !visible.length ? 'All series hidden; use an eye to show a series'
+      : visible.every(key => !indicator!.history[key]?.length) ? 'No released numeric actuals with verified chart timing'
+      : noPoints ? 'No releases in loaded candles; scroll left for earlier releases' : ''
+    note.textContent = [indicator.status, empty].filter(Boolean).join(' · ')
+    note.hidden = !note.textContent
+
   }
   const onHover = (event: MouseEventParams<Time>) => {
     hover = event.point ? typeof event.time === 'number' ? event.time : NaN : null
@@ -395,7 +443,7 @@ export function createMacroPane(chart: IChartApi) {
             const x = chart.timeScale().timeToCoordinate(point.time), y = series[key].priceToCoordinate(point.value)
             if (x === null || y === null || x < 0 || x > mediaSize.width || y < 0 || y > mediaSize.height) continue
             const reading = plots[key]!.readings.get(point.time)
-            const text = numberLabels[key]?.get(reading!.time) ?? macroValue(key, point.value)
+            const text = numberLabels[key]?.get(reading!.time) ?? macroValue(key, point.value, reading)
             const halfWidth = context.measureText(text).width / 2
             const labelX = Math.max(halfWidth + 2, Math.min(x, mediaSize.width - halfWidth - 2))
             context.fillText(text, labelX, Math.max(13, y - 9))
@@ -483,7 +531,17 @@ export function createMacroPane(chart: IChartApi) {
       outlineColor = getComputedStyle(chart.chartElement()).getPropertyValue('--text-strong').trim() || '#888888'
       latestTime = bars.at(-1)?.time
       step = seconds
-      const p = next.preferences, axis = macroAxis(p)
+      const p = next.preferences, axis = macroAxis(p), keys = selectedMacroMetrics(p)
+      if (keys.join('|') !== metricControls.map(control => control.key).join('|')) {
+        for (const control of metricControls) control.item.remove()
+        metricControls = keys.map(createMetricControl)
+        for (const control of metricControls) controls.insertBefore(control.item, fitButton)
+        flatSnapshot = null; flattenButton.setAttribute('aria-pressed', 'false')
+      }
+      if (!keys.includes('rate')) { rateDots.setData([]); rateDots.applyOptions({ visible: false }) }
+      for (const key of Object.keys(series)) if (!keys.includes(key)) { chart.removeSeries(series[key]); delete series[key] }
+      for (const key of keys) if (!series[key]) series[key] = pane.addSeries(LineSeries,
+        { ...base, ...(macroCatalog[key].carry ? { lineType: LineType.WithSteps, crosshairMarkerVisible: false } : {}) })
       const nextScales = new Map<MacroAxis, string>()
       plots = {}
       forecastPlots = {}
@@ -493,13 +551,13 @@ export function createMacroPane(chart: IChartApi) {
         const metricAxis = macroMetricAxis(key)
         const scaleId = active && metricAxis === axis ? 'right' : `macro-${metricAxis}`
         if (active) nextScales.set(metricAxis, scaleId)
-        const priceFormat = { type: 'custom' as const, minMove: key === 'payrolls' ? 1 : 0.01, formatter: (value: number) => macroValue(key, value) }
+        const priceFormat = { type: 'custom' as const, minMove: key === 'payrolls' ? 1 : 0.01, formatter: (value: number) => macroValue(key, value, next.history[key]?.at(-1)) }
         series[key].applyOptions({ priceScaleId: scaleId, visible: active, color: p.series[key].color, priceFormat })
         series[key].applyOptions({ lineWidth: p.series[key].lineWidth,
           pointMarkersVisible: key !== 'rate' && p.series[key].pointsVisible, pointMarkersRadius: 4 })
-        const plot = active ? macroPlot(bars, next.history[key], step, key === 'rate') : undefined
+        const plot = active ? macroPlot(bars, next.history[key] ?? [], step, macroCatalog[key].carry === true) : undefined
         plots[key] = plot
-        if (active && p.series[key].numbersVisible) numberLabels[key] = macroNumberLabels(key, next.history[key])
+        if (active && p.series[key].numbersVisible) numberLabels[key] = macroNumberLabels(key, next.history[key] ?? [])
         if (active && p.series[key].forecastVisible)
           forecastPlots[key] = macroPlot(bars, next.forecastHistory?.[key] ?? [], step, false)
         series[key].setData(plot?.line ?? [])
