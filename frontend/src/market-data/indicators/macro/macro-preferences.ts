@@ -1,6 +1,6 @@
 export type MacroGroup = 'policy' | 'labour' | 'inflation'
 export type MacroMetric = 'rate' | 'payrolls' | 'unemployment' | 'coreCpi' | 'headlineCpi'
-export type MacroAxis = 'rate' | 'payrolls' | 'unemployment' | 'inflation'
+export type MacroAxis = MacroMetric
 export type MacroStyle = { visible: boolean; color: string; lineWidth: 1 | 2 | 3 | 4; pointsVisible: boolean; forecastVisible: boolean; numbersVisible: boolean }
 export type MacroPreferences = { enabled: boolean; axisTarget: MacroAxis; series: Record<MacroMetric, MacroStyle> }
 export const macroGroups: { id: MacroGroup; label: string; metrics: MacroMetric[] }[] = [
@@ -12,7 +12,8 @@ export const macroAxes: { id: MacroAxis; label: string; metrics: MacroMetric[] }
   { id: 'rate', label: 'Fed Rate (%)', metrics: ['rate'] },
   { id: 'payrolls', label: 'Payrolls (k)', metrics: ['payrolls'] },
   { id: 'unemployment', label: 'Unemployment (%)', metrics: ['unemployment'] },
-  { id: 'inflation', label: 'Inflation (% MoM)', metrics: ['coreCpi', 'headlineCpi'] },
+  { id: 'headlineCpi', label: 'Headline CPI (% MoM)', metrics: ['headlineCpi'] },
+  { id: 'coreCpi', label: 'Core CPI (% MoM)', metrics: ['coreCpi'] },
 ]
 const style = (color: string, forecastVisible = false): MacroStyle => ({ visible: true, color, lineWidth: 2, pointsVisible: true, forecastVisible, numbersVisible: false })
 export const defaultMacroPreferences: MacroPreferences = { enabled: false, axisTarget: 'rate', series: {
@@ -43,8 +44,9 @@ export function readMacroPreferences(): MacroPreferences {
     for (const group of macroGroups) if (p.groups?.[group.id] === false)
       for (const key of group.metrics) series[key] = { ...series[key], visible: false }
     // Preserve the former exclusive view's active axis, visibility and styles.
-    const legacyAxis = p.view === 'labour' ? p.labourAxis === 'unemployment' ? 'unemployment' : 'payrolls'
-      : p.view === 'inflation' ? 'inflation' : d.axisTarget
+    const legacyAxis = p.axisTarget === 'inflation' || p.view === 'inflation'
+      ? series.coreCpi.visible ? 'coreCpi' : 'headlineCpi'
+      : p.view === 'labour' ? p.labourAxis === 'unemployment' ? 'unemployment' : 'payrolls' : d.axisTarget
     return { enabled: p.enabled === true,
       axisTarget: macroAxes.some(axis => axis.id === p.axisTarget) ? p.axisTarget : legacyAxis, series }
   } catch { return d }
@@ -61,7 +63,7 @@ export function macroMetricVisible(preferences: MacroPreferences, key: MacroMetr
   return preferences.series[key].visible
 }
 export function macroMetricAxis(key: MacroMetric): MacroAxis {
-  return key === 'coreCpi' || key === 'headlineCpi' ? 'inflation' : key
+  return key
 }
 export function selectMacroAxis(preferences: MacroPreferences, axisTarget: MacroAxis): MacroPreferences {
   const axis = macroAxes.find(axis => axis.id === axisTarget)!

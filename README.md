@@ -170,15 +170,16 @@ eye independently shows/hides its line, with a slash when hidden. No category
 master or pane axis dropdown remains. Former category hides migrate to the
 individual eyes, preserving effective visibility and styles.
 All five lines overlay; only the Fed rate holds its value between decisions.
-Other lines join release dots. Four scales remain independent, with both CPI
-lines sharing Inflation; both CPI labels indicate this shared selected axis.
+Other lines join release dots. All five scales are independent, including separate
+Headline CPI and Core CPI scales.
 Each scale holds its bounds across historical scrolling, backfill, series updates,
 eye toggles and axis changes. **Fit axis**, or double-clicking the right axis,
 fits only the selected scale and then holds its new bounds. Hiding its final
 visible series moves the right axis to another visible scale when available.
-**Fit axis all** fits every visible scale together. The adjacent lock icon freezes
-MFDI dragging, wheel/pinch zoom and axis fitting while preserving hover and release
-selection. Unlock to adjust the axes again; the lock lasts while the pane is open.
+**Fit axis all** fits every visible scale. The adjacent lock icon links all visible
+axes: dragging or scaling the selected axis moves every line and dot together,
+preserving their relative placement. All visible labels show selected while linked.
+Unlock to adjust each series independently; linking lasts while the pane is open.
 Resizing the MFDI pane preserves vertical position and pixels per unit on every
 scale: added height reveals canvas below instead of stretching the lines and dots.
 Click a plotted release dot to open its exact package in the Inspector bottom

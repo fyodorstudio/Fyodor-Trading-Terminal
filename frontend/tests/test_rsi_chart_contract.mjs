@@ -724,7 +724,7 @@ try {
     await render({ macro })
   }
   const selectAxis = async axis => {
-    const key = axis === 'inflation' ? 'coreCpi' : axis
+    const key = axis
     await React.act(async () => host.querySelector(`[data-macro-axis="${key}"]`).click())
     await render({ macro })
   }
@@ -759,7 +759,7 @@ try {
   const forecastPreferences = macro.preferences
   // Enabling RSI/Volume reduces MFDI's canvas without squeezing its plots.
   // Fit all scales explicitly before checking their on-canvas dots and labels.
-  for (const line of [rateLine, payrollLine, unemploymentLine, coreLine])
+  for (const line of [rateLine, payrollLine, unemploymentLine, coreLine, headlineLine])
     macroPane.priceScale(line.options().priceScaleId).setAutoScale(true)
   await paint()
   const originalPayrollRange = macroPane.priceScale(payrollLine.options().priceScaleId).getVisibleRange()
@@ -941,8 +941,8 @@ try {
   assert.deepEqual(unemploymentLine.data().map(point => point.value), [4.2, 4.1])
   assert.equal(payrollLine.options().lineType, library.LineType.Simple)
   assert.equal(payrollLine.options().priceFormat.formatter(150), '150k')
-  assert.equal(coreLine.options().priceScaleId, 'macro-inflation')
-  assert.equal(headlineLine.options().priceScaleId, 'macro-inflation', 'CPI shares a scale even while another axis is selected')
+  assert.equal(coreLine.options().priceScaleId, 'macro-coreCpi')
+  assert.equal(headlineLine.options().priceScaleId, 'macro-headlineCpi', 'Headline and Core use independent scales')
   assert.deepEqual([...host.querySelectorAll('.macro-metric-axis')].map(button => button.textContent),
     ['Fed Rate (%)', 'Payroll (k)', 'Unemployment (%)', 'Headline CPI m/m (%)', 'Core CPI m/m (%)'])
   const colorFor = color => { const sample = document.createElement('span'); sample.style.backgroundColor = color; return sample.style.backgroundColor }
@@ -952,16 +952,16 @@ try {
     assert.equal(swatchFor(key).style.backgroundColor, colorFor(macro.preferences.series[key].color), `${key}: circle matches the line colour`)
   const headlineEye = host.querySelector('[data-macro-visibility="headlineCpi"]')
   assert.equal(headlineEye.querySelector('[data-eye-slash]').getAttribute('visibility'), 'hidden')
-  const beforeEyeBounds = macroPane.priceScale('macro-inflation').getVisibleRange()
+  const beforeEyeBounds = macroPane.priceScale('macro-coreCpi').getVisibleRange()
   await toggleLines(['headlineCpi'])
   assert.equal(headlineEye.getAttribute('aria-pressed'), 'false')
   assert.equal(headlineEye.getAttribute('aria-label'), 'Show Headline CPI m/m (%)')
   assert.equal(headlineEye.querySelector('[data-eye-slash]').getAttribute('visibility'), 'visible')
   assert.equal(headlineLine.data().length, 0); assert.equal(coreLine.data().length, 2, 'The headline eye never hides Core')
-  assert.deepEqual(macroPane.priceScale('macro-inflation').getVisibleRange(), beforeEyeBounds)
+  assert.deepEqual(macroPane.priceScale('macro-coreCpi').getVisibleRange(), beforeEyeBounds)
   await React.act(async () => host.querySelector('[data-macro-axis="headlineCpi"]').click()); await render({ macro })
   assert.equal(headlineLine.data().length, 2)
-  assert.equal(coreLine.options().priceScaleId, 'right'); assert.equal(headlineLine.options().priceScaleId, 'right')
+  assert.equal(coreLine.options().priceScaleId, 'macro-coreCpi'); assert.equal(headlineLine.options().priceScaleId, 'right')
   assert.equal(headlineEye.querySelector('[data-eye-slash]').getAttribute('visibility'), 'hidden')
   await selectAxis('rate')
   const initialCpiY = coreLine.priceToCoordinate(0)
@@ -987,17 +987,19 @@ try {
   const unselectedRateY = rateLine.priceToCoordinate(5.25)
   macroPane.priceScale('right').setVisibleRange({ from: 3, to: 5 }); await paint()
   close(rateLine.priceToCoordinate(5.25), unselectedRateY, 'Resizing unemployment leaves policy independent')
-  await selectAxis('inflation')
-  assert.equal(coreLine.options().priceScaleId, 'right'); assert.equal(headlineLine.options().priceScaleId, 'right')
+  await selectAxis('coreCpi')
+  assert.equal(coreLine.options().priceScaleId, 'right'); assert.equal(headlineLine.options().priceScaleId, 'macro-headlineCpi')
   assert.deepEqual(coreLine.data().map(point => point.value), [0, -0.1])
   assert.deepEqual(headlineLine.data().map(point => point.value), [0.2, 0.3])
   const inflationUnemploymentY = unemploymentLine.priceToCoordinate(4.1)
+  const independentHeadlineY = headlineLine.priceToCoordinate(0.3)
   macroPane.priceScale('right').setVisibleRange({ from: -1, to: 1 }); await paint()
+  close(headlineLine.priceToCoordinate(0.3), independentHeadlineY, 'Scaling Core CPI leaves Headline CPI in place')
   close(unemploymentLine.priceToCoordinate(4.1), inflationUnemploymentY, 'CPI scaling leaves unemployment independent')
   // Bind every family independently while navigating old dates and paging in
   // larger historical outliers. Native overlays must not refit on these reads.
   const fixedRanges = () => Object.fromEntries([
-    ['rate', rateLine], ['payrolls', payrollLine], ['unemployment', unemploymentLine], ['inflation', coreLine],
+    ['rate', rateLine], ['payrolls', payrollLine], ['unemployment', unemploymentLine], ['coreCpi', coreLine], ['headlineCpi', headlineLine],
   ].map(([axis, line]) => [axis, macroPane.priceScale(line.options().priceScaleId).getVisibleRange()]))
   const originalMacroHeight = macroPane.getHeight(), resizeWindow = chart.timeScale().getVisibleLogicalRange()
   const placement = () => [rateLine, payrollLine, unemploymentLine, coreLine, headlineLine, rateDots]
@@ -1019,7 +1021,7 @@ try {
     await React.act(async () => host.querySelector('.market-chart-canvas').dispatchEvent(new dom.WheelEvent('wheel', { bubbles: true })))
     chart.timeScale().setVisibleLogicalRange(range); await paint()
   }
-  for (const axis of ['payrolls', 'rate', 'unemployment', 'inflation', 'payrolls']) {
+  for (const axis of ['payrolls', 'rate', 'unemployment', 'coreCpi', 'payrolls']) {
     await selectAxis(axis)
     assert.deepEqual(fixedRanges(), boundedRanges, `${axis}: all families retain zoom/position`)
     close(payrollLine.priceToCoordinate(200), placedPayrollY, `${axis}: payroll position remains fixed`)
@@ -1052,10 +1054,10 @@ try {
   await React.act(async () => host.querySelector('[aria-label="Fit MFDI selected axis"]').click()); await paint()
   const refitted = fixedRanges()
   assert.notDeepEqual(refitted.payrolls, boundedRanges.payrolls, 'Fit axis deliberately refits the selected historical data')
-  for (const axis of ['rate', 'unemployment', 'inflation']) assert.deepEqual(refitted[axis], untouchedBounds[axis], `Fit payrolls preserves ${axis}`)
+  for (const axis of ['rate', 'unemployment', 'coreCpi', 'headlineCpi']) assert.deepEqual(refitted[axis], untouchedBounds[axis], `Fit payrolls preserves ${axis}`)
   await navigateMacro({ from: 125, to: 185 })
   assert.deepEqual(fixedRanges(), refitted, 'The fitted result is bound across subsequent scrolling')
-  await selectAxis('inflation'); await selectAxis('payrolls')
+  await selectAxis('coreCpi'); await selectAxis('payrolls')
   assert.deepEqual(fixedRanges(), refitted, 'The fitted result survives axis changes')
   macro = { ...macro, history: normalHistory }
   await render({ bars: macroBars, macro })
@@ -1065,55 +1067,56 @@ try {
   assert.notDeepEqual(nativeRefitted.payrolls, refitted.payrolls, 'Native double-click auto-fit can replace the selected bounds')
   assert.equal(macroPane.priceScale('right').options().autoScale, false, 'The native fit is bound again after paint')
   const fitAll = host.querySelector('[aria-label="Fit all MFDI axes"]')
-  const lockAxes = host.querySelector('[aria-label="Lock MFDI axes"]')
+  const lockAxes = host.querySelector('[aria-label="Link MFDI axes"]')
   assert.equal(fitAll.previousElementSibling.getAttribute('aria-label'), 'Fit MFDI selected axis')
   assert.equal(fitAll.nextElementSibling, lockAxes, 'Fit selected, Fit all and lock appear in that order')
-  for (const line of [rateLine, payrollLine, unemploymentLine, coreLine])
+  for (const line of [rateLine, payrollLine, unemploymentLine, coreLine, headlineLine])
     macroPane.priceScale(line.options().priceScaleId).setVisibleRange({ from: -10000, to: 10000 })
   await paint()
   const selectedBeforeFitAll = macro.preferences.axisTarget
   await React.act(async () => fitAll.click()); await paint()
   const allFitted = fixedRanges()
-  for (const axis of ['rate', 'payrolls', 'unemployment', 'inflation']) {
+  for (const axis of ['rate', 'payrolls', 'unemployment', 'coreCpi', 'headlineCpi']) {
     assert.notDeepEqual(allFitted[axis], { from: -10000, to: 10000 }, `${axis}: Fit all replaces its bounds`)
   }
   assert.equal(macro.preferences.axisTarget, selectedBeforeFitAll, 'Fit all preserves the selected axis')
   assert.deepEqual(chart.timeScale().getVisibleLogicalRange(), rateWindow, 'Fit all preserves shared dates')
   await React.act(async () => lockAxes.click()); await paint()
   assert.equal(lockAxes.getAttribute('aria-pressed'), 'true')
-  assert.equal(lockAxes.getAttribute('aria-label'), 'Unlock MFDI axes')
-  assert.equal(fitAll.disabled, true)
-  assert.equal(host.querySelector('[aria-label="Fit MFDI selected axis"]').disabled, true)
+  assert.equal(lockAxes.getAttribute('aria-label'), 'Unlink MFDI axes')
+  assert.equal(fitAll.disabled, false, 'Linked axes remain adjustable')
+  assert.equal(host.querySelectorAll('.macro-metric-axis[aria-pressed="true"]').length, 5, 'Linking selects all visible series')
   const nativeNavigation = structuredClone({ handleScale: chart.options().handleScale, handleScroll: chart.options().handleScroll })
   const paneElement = macroPane.getHTMLElement()
-  const wheel = new dom.WheelEvent('wheel', { bubbles: true, cancelable: true, deltaY: 50 })
+  const wheel = new dom.WheelEvent('wheel', { bubbles: true, cancelable: true })
   paneElement.dispatchEvent(wheel)
-  assert.equal(wheel.defaultPrevented, true, 'A locked MFDI wheel gesture cannot zoom or scroll')
-  const doubleClick = new dom.MouseEvent('dblclick', { bubbles: true, cancelable: true })
-  paneElement.dispatchEvent(doubleClick)
-  assert.equal(doubleClick.defaultPrevented, true, 'A locked MFDI double-click cannot refit')
-  paneElement.dispatchEvent(new dom.MouseEvent('mousedown', { bubbles: true }))
-  assert.equal(chart.options().handleScale.pinch, false, 'Locked gestures disable native pinch zoom')
-  assert.equal(chart.options().handleScale.axisPressedMouseMove.price, false, 'Locked gestures disable native axis scaling')
-  assert.equal(chart.options().handleScroll.pressedMouseMove, false, 'Locked gestures disable native dragging')
-  window.dispatchEvent(new dom.MouseEvent('mouseup', { bubbles: true }))
-  assert.deepEqual({ handleScale: chart.options().handleScale, handleScroll: chart.options().handleScroll }, nativeNavigation, 'Ending a gesture restores the original navigation options')
-  // Even a native scale change between events must not move the locked plot.
-  macroPane.priceScale('right').setVisibleRange({ from: -20000, to: 20000 }); await paint()
-  assert.deepEqual(fixedRanges(), allFitted, 'All axes retain their locked placement')
-  const selectedReleasesBeforeLock = inspectedReleases.length
+  assert.equal(wheel.defaultPrevented, false, 'Linked MFDI gestures remain enabled')
+  const groupedPlacement = placement()
+  for (const kind of ['pan', 'zoom']) {
+    const before = placement(), range = macroPane.priceScale('right').getVisibleRange(), span = range.to - range.from
+    const next = kind === 'pan' ? { from: range.from + span / 5, to: range.to + span / 5 }
+      : { from: range.from + span / 5, to: range.to - span / 5 }
+    macroPane.priceScale('right').setVisibleRange(next); await paint()
+    const after = placement(), source = 1 // Payroll is the selected right axis.
+    const zoom = (after[source][1] - after[source][0]) / (before[source][1] - before[source][0])
+    const shift = after[source][0] - before[source][0] * zoom
+    assert.ok(Math.abs(zoom - 1) > 1e-5 || Math.abs(shift) > 1, 'The selected scale actually moves')
+    after.forEach((coordinates, index) => coordinates.forEach((value, point) => {
+      close(value, before[index][point] * zoom + shift, `${kind}: every scale receives the same screen transform`)
+    }))
+  }
+  assert.notDeepEqual(placement(), groupedPlacement)
+  assert.deepEqual({ handleScale: chart.options().handleScale, handleScroll: chart.options().handleScroll }, nativeNavigation)
+  await React.act(async () => fitAll.click()); await paint()
+  const selectedReleasesBeforeLink = inspectedReleases.length
   await hoverDot(); await fireDotClick(rateDots, 0)
-  assert.equal(host.querySelector('[aria-label="Fed rate expectations"]').hidden, false, 'Hover still works while locked')
-  assert.equal(inspectedReleases.length, selectedReleasesBeforeLock + 1, 'Release selection still works while locked')
-  assert.deepEqual(fixedRanges(), allFitted, 'Hover and selection cannot move the locked axes')
+  assert.equal(host.querySelector('[aria-label="Fed rate expectations"]').hidden, false, 'Hover works with linked axes')
+  assert.equal(inspectedReleases.length, selectedReleasesBeforeLink + 1, 'Release selection works with linked axes')
   await hoverDot(rateDots, 0, { point: undefined })
   await React.act(async () => lockAxes.click()); await paint()
   assert.equal(lockAxes.getAttribute('aria-pressed'), 'false')
-  assert.equal(fitAll.disabled, false)
-  const unlockedWheel = new dom.WheelEvent('wheel', { bubbles: true, cancelable: true })
-  paneElement.dispatchEvent(unlockedWheel)
-  assert.equal(unlockedWheel.defaultPrevented, false, 'Unlocking permits native gestures again')
-  for (const [axis, line] of [['rate', rateLine], ['payrolls', payrollLine], ['unemployment', unemploymentLine], ['inflation', coreLine]])
+  assert.equal(host.querySelectorAll('.macro-metric-axis[aria-pressed="true"]').length, 1, 'Unlinking restores individual selection')
+  for (const [axis, line] of [['rate', rateLine], ['payrolls', payrollLine], ['unemployment', unemploymentLine], ['coreCpi', coreLine], ['headlineCpi', headlineLine]])
     macroPane.priceScale(line.options().priceScaleId).setVisibleRange(nativeRefitted[axis])
   await paint()
   const beforeVisibility = fixedRanges()
@@ -1128,7 +1131,7 @@ try {
   assert.equal(coreLine.options().pointMarkersVisible, false)
   assert.equal(payrollLine.options().lineWidth, 3); assert.equal(payrollLine.options().pointMarkersVisible, false)
   assert.deepEqual(coreLine.data(), coreValues); assert.deepEqual(payrollLine.data(), payrollValues)
-  await selectAxis('inflation')
+  await selectAxis('coreCpi')
   await toggleLines(['coreCpi', 'headlineCpi'])
   assert.equal(coreLine.data().length, 0); assert.equal(headlineLine.data().length, 0)
   assert.ok([rateLine, payrollLine, unemploymentLine].every(line => line.data().length > 0), 'Hiding inflation preserves the other categories')
@@ -1141,7 +1144,7 @@ try {
   assert.match(host.querySelector('.macro-note').textContent, /All series hidden/)
   assert.equal(host.querySelectorAll('.macro-metric-control').length, 5, 'All five chips survive hidden data')
   assert.equal(host.querySelectorAll('.macro-controls select').length, 0, 'The chips replace the axis dropdown')
-  await selectAxis('inflation')
+  await selectAxis('coreCpi')
   assert.equal(macro.preferences.series.coreCpi.visible, true)
   assert.equal(macro.preferences.series.rate.visible, false)
   assert.ok(coreLine.data().length > 0 && headlineLine.data().length === 0, 'Selecting Core reveals only Core, preserving the hidden Headline sibling')
@@ -1169,7 +1172,7 @@ try {
   assert.match(host.querySelector('.macro-legend').textContent, /Loading macro releases/)
   await render({ bars: [], macro })
   assert.ok(chart.panes()[1].getSeries().every(series => series.data().length === 0))
-  console.log('✓ MFDI real chart: five overlaid lines/dots, independent eye controls/four axes, shared CPI scale, raw release points, hidden/empty data, dates, Volume/RSI and scope cleanup')
+  console.log('✓ MFDI real chart: five overlaid lines/dots, independent eye controls/five axes, linked pan/zoom, separate CPI scales, raw release points, hidden/empty data, dates, Volume/RSI and scope cleanup')
   await React.act(async () => root.render(null)); await paint()
   await React.act(async () => root.render(React.createElement(React.StrictMode, null, React.createElement(MarketCandlestickChart, { ...props, bars: macroBars, macro, volume }))))
   await paint(); assert.equal(host.querySelectorAll('.volume-legend').length, 1)

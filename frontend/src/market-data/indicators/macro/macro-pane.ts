@@ -22,7 +22,7 @@ export function createMacroPane(chart: IChartApi) {
   const series = { ...lines, payrolls }
   const legend = document.createElement('div'); legend.className = 'macro-legend'
   legend.setAttribute('aria-label', 'MFDI values')
-  legend.title = 'Macro Factor Data Inspector · Stored actuals, latest vintages; verified official Fed upper bounds where saved. Hover a Fed release dot for attributed expectations. Release dots align to their containing candle; the latest release wins within one candle. Monthly lines join released points. Only the Fed rate is held between decisions. Four independent scales; the two CPI series share Inflation. Overlapping heights do not imply comparable magnitudes.'
+  legend.title = 'Macro Factor Data Inspector · Stored actuals, latest vintages; verified official Fed upper bounds where saved. Hover a Fed release dot for attributed expectations. Release dots align to their containing candle; the latest release wins within one candle. Monthly lines join released points. Only the Fed rate is held between decisions. Five independent scales. Overlapping heights do not imply comparable magnitudes.'
   const controls = document.createElement('div'); controls.className = 'macro-controls'
   let toggleMetric: (metric: MacroMetric) => void = () => {}, selectMetric: (metric: MacroMetric) => void = () => {}
   let toggleForecast: (metric: MacroMetric) => void = () => {}
@@ -39,7 +39,7 @@ export function createMacroPane(chart: IChartApi) {
     const axisButton = document.createElement('button'); axisButton.type = 'button'; axisButton.className = 'macro-metric-axis'
     axisButton.textContent = label; axisButton.dataset.macroAxis = key
     axisButton.setAttribute('aria-label', `Select ${label} axis`)
-    axisButton.title = `Resize ${label} on the right axis; select to reveal it if hidden.${key === 'coreCpi' || key === 'headlineCpi' ? ' Both CPI lines share the Inflation scale.' : ''}`
+    axisButton.title = `Resize ${label} on the right axis; select to reveal it if hidden.`
     axisButton.onclick = () => selectMetric(key)
     const eyeButton = document.createElement('button'); eyeButton.type = 'button'; eyeButton.className = 'macro-visibility-button'
     eyeButton.dataset.macroVisibility = key
@@ -106,35 +106,7 @@ export function createMacroPane(chart: IChartApi) {
   let step = 3600
   let forecastHover: { time: Time; reading: MacroReading } | undefined
   let requestUpdate = () => {}
-  let locked = false
-  let navigation: Pick<ReturnType<IChartApi['options']>, 'handleScale' | 'handleScroll'> | undefined
-  const restoreNavigation = () => {
-    if (!navigation) return
-    const previous = navigation; navigation = undefined; chart.applyOptions(previous)
-  }
-  const inPane = (event: Event) => event.target instanceof Node && pane.getHTMLElement()?.contains(event.target)
-  const startGesture = (event: Event) => {
-    if (!locked || !inPane(event) || navigation) return
-    const options = chart.options()
-    navigation = structuredClone({ handleScale: options.handleScale, handleScroll: options.handleScroll })
-    // Native clicks and crosshair motion remain enabled, but this gesture cannot
-    // move either the shared time scale or any price scale.
-    chart.applyOptions({ handleScale: false, handleScroll: false })
-  }
-  const endGesture = (event: Event) => {
-    if ('touches' in event && (event as TouchEvent).touches.length) return
-    restoreNavigation()
-  }
-  const blockNavigation = (event: Event) => {
-    if (!locked || !inPane(event)) return
-    event.preventDefault(); event.stopPropagation()
-  }
-  const chartElement = chart.chartElement()
-  chartElement.addEventListener('mousedown', startGesture, true)
-  chartElement.addEventListener('touchstart', startGesture, { capture: true, passive: true })
-  chartElement.addEventListener('wheel', blockNavigation, { capture: true, passive: false })
-  chartElement.addEventListener('dblclick', blockNavigation, true)
-  for (const event of ['mouseup', 'touchend', 'touchcancel', 'blur']) window.addEventListener(event, endGesture)
+  let linked = false, fittingAll = false
   let outlineColor = '#888888'
   const tooltipField = (text: string) => {
     const field = document.createElement('div'); field.textContent = text
@@ -168,7 +140,6 @@ export function createMacroPane(chart: IChartApi) {
   }
   const captureBounds = (axis: MacroAxis, id: string, resize: boolean) => {
     const scale = pane.priceScale(id), range = scale.getVisibleRange(), height = pane.getHeight()
-    if (locked && bounds.has(axis) && placements.get(axis)?.height === height) { applyBounds(axis, id); return }
     if (!validBounds(range) || height <= 1) return
     const key = (Object.keys(series) as MacroMetric[]).find(key => macroMetricAxis(key) === axis && plots[key]?.line.length)
     if (!key) return
@@ -189,10 +160,41 @@ export function createMacroPane(chart: IChartApi) {
       bounds.set(axis, { ...range })
     }
   }
+  const linkAxes = () => {
+    if (!linked || fittingAll || !indicator) return
+    const axis = macroAxis(indicator.preferences), id = axisScales.get(axis), previous = placements.get(axis)
+    if (!id || !previous || previous.height !== pane.getHeight()) return
+    const range = pane.priceScale(id).getVisibleRange()
+    const key = (Object.keys(series) as MacroMetric[]).find(key => macroMetricAxis(key) === axis && plots[key]?.line.length)
+    if (!key || !validBounds(range)) return
+    const fromY = series[key].priceToCoordinate(range.from), toY = series[key].priceToCoordinate(range.to)
+    if (fromY === null || toY === null || fromY <= toY) return
+    const unitsPerPixel = (range.to - range.from) / (fromY - toY)
+    const topValue = range.to + toY * unitsPerPixel
+    const zoom = previous.unitsPerPixel / unitsPerPixel, shift = (topValue - previous.topValue) / unitsPerPixel
+    if (!Number.isFinite(zoom) || zoom <= 0 || !Number.isFinite(shift)
+      || (Math.abs(zoom - 1) < 1e-10 && Math.abs(shift) < 1e-7)) return
+    // Apply the selected scale's screen-space transform to the other scales.
+    // Each retains its own units; all points move by the same pixels/zoom.
+    for (const [otherAxis, otherId] of axisScales) {
+      if (otherAxis === axis) continue
+      const old = placements.get(otherAxis), otherRange = pane.priceScale(otherId).getVisibleRange()
+      const otherKey = (Object.keys(series) as MacroMetric[]).find(key => macroMetricAxis(key) === otherAxis && plots[key]?.line.length)
+      if (!old || old.height !== previous.height || !otherKey || !validBounds(otherRange)) continue
+      const lowY = series[otherKey].priceToCoordinate(otherRange.from), highY = series[otherKey].priceToCoordinate(otherRange.to)
+      if (lowY === null || highY === null) continue
+      const unit = old.unitsPerPixel / zoom, top = old.topValue + shift * unit
+      const next = { from: top - lowY * unit, to: top - highY * unit }
+      if (!validBounds(next)) continue
+      bounds.set(otherAxis, next); pane.priceScale(otherId).setVisibleRange(next)
+    }
+    captureBounds(axis, id, false)
+  }
   const bindAfterPaint = () => {
     if (destroyed || boundsFrame !== null) return
     boundsFrame = window.requestAnimationFrame(() => {
       boundsFrame = null
+      linkAxes()
       for (const [axis, id] of axisScales) {
         const scale = pane.priceScale(id)
         // Native initial fitting and double-click fitting settle at paint. Read
@@ -203,10 +205,11 @@ export function createMacroPane(chart: IChartApi) {
         }
         applyBounds(axis, id)
       }
+      fittingAll = false
     })
   }
   fitButton.onclick = () => {
-    if (!indicator || locked) return
+    if (!indicator) return
     const axis = macroAxis(indicator.preferences), id = axisScales.get(axis)
     if (!id) return
     bounds.delete(axis)
@@ -214,24 +217,23 @@ export function createMacroPane(chart: IChartApi) {
     bindAfterPaint()
   }
   fitAllButton.onclick = () => {
-    if (!indicator || locked) return
+    if (!indicator) return
+    fittingAll = true
     for (const [axis, id] of axisScales) {
       bounds.delete(axis); pane.priceScale(id).setAutoScale(true)
     }
     bindAfterPaint()
   }
   const updateLock = () => {
-    lockButton.setAttribute('aria-pressed', String(locked))
-    lockButton.setAttribute('aria-label', `${locked ? 'Unlock' : 'Lock'} MFDI axes`)
-    lockButton.title = locked ? 'Unlock MFDI pan, zoom and axis fitting' : 'Lock MFDI pan, zoom and axis fitting; hover and release selection remain available'
-    lockShackle.setAttribute('d', locked ? 'M8 10V6a4 4 0 0 1 8 0v4' : 'M8 10V6a4 4 0 0 1 8 0')
-    fitButton.disabled = locked; fitAllButton.disabled = locked
+    lockButton.setAttribute('aria-pressed', String(linked))
+    lockButton.setAttribute('aria-label', `${linked ? 'Unlink' : 'Link'} MFDI axes`)
+    lockButton.title = linked ? 'Axes linked: drag and scale all MFDI series together. Click to adjust each independently.' : 'Link all MFDI axes to drag and scale every series together'
+    lockShackle.setAttribute('d', linked ? 'M8 10V6a4 4 0 0 1 8 0v4' : 'M8 10V6a4 4 0 0 1 8 0')
   }
   lockButton.onclick = () => {
-    if (!locked) for (const [axis, id] of axisScales) captureBounds(axis, id, true)
-    locked = !locked
-    if (!locked) restoreNavigation()
-    updateLock()
+    for (const [axis, id] of axisScales) captureBounds(axis, id, true)
+    linked = !linked
+    updateLock(); updateLegend()
   }
   updateLock()
   const updateLegend = () => {
@@ -241,7 +243,7 @@ export function createMacroPane(chart: IChartApi) {
     for (const { key, label, axisButton, eyeButton, slash, forecastButton, forecastSlash, numbersButton, numbersSlash, colorDot } of metricControls) {
       const visible = macroMetricVisible(p, key)
       colorDot.style.backgroundColor = p.series[key].color
-      axisButton.setAttribute('aria-pressed', String(visible && macroMetricAxis(key) === selectedAxis))
+      axisButton.setAttribute('aria-pressed', String(visible && (linked || macroMetricAxis(key) === selectedAxis)))
       eyeButton.setAttribute('aria-pressed', String(visible))
       eyeButton.setAttribute('aria-label', `${visible ? 'Hide' : 'Show'} ${label}`)
       eyeButton.title = `${visible ? 'Hide' : 'Show'} ${label}`
@@ -336,6 +338,7 @@ export function createMacroPane(chart: IChartApi) {
     legend.style.top = `${(pane.getHTMLElement()?.offsetTop ?? chart.paneSize(0).height + 8) + 4}px`
     legend.style.width = `${Math.max(0, chart.paneSize(pane.paneIndex()).width - 20)}px`
     legend.style.maxHeight = `${Math.max(24, pane.getHeight() - 10)}px`
+    linkAxes()
     for (const [axis, id] of axisScales) {
       if (placements.has(axis) && placements.get(axis)!.height !== pane.getHeight()) bindAfterPaint()
       else if (!pane.priceScale(id).options().autoScale) captureBounds(axis, id, false)
@@ -462,6 +465,7 @@ export function createMacroPane(chart: IChartApi) {
       callbacks: { toggleMetric: (metric: MacroMetric) => void; selectMetric: (metric: MacroMetric) => void;
         toggleForecast?: (metric: MacroMetric) => void; toggleNumbers?: (metric: MacroMetric) => void; inspectRelease?: (reading: MacroReading) => void }) {
       if (destroyed) return
+      linkAxes()
       // Capture a user's drag/zoom before moving its series off the right axis.
       // Removing a scale's final source resets its native range and auto mode.
       for (const [axis, id] of axisScales) {
@@ -521,12 +525,6 @@ export function createMacroPane(chart: IChartApi) {
     destroy() {
       if (destroyed) return
       destroyed = true
-      restoreNavigation()
-      chartElement.removeEventListener('mousedown', startGesture, true)
-      chartElement.removeEventListener('touchstart', startGesture, true)
-      chartElement.removeEventListener('wheel', blockNavigation, true)
-      chartElement.removeEventListener('dblclick', blockNavigation, true)
-      for (const event of ['mouseup', 'touchend', 'touchcancel', 'blur']) window.removeEventListener(event, endGesture)
       if (frame !== null) window.cancelAnimationFrame(frame)
       if (boundsFrame !== null) window.cancelAnimationFrame(boundsFrame)
       chart.unsubscribeCrosshairMove(onHover)
