@@ -9,6 +9,7 @@ import { macroAxis, macroMetricAxis, macroMetricVisible, selectedMacroMetrics, t
 import { macroLayout, macroSelection, patchMacroLayout } from './macro-layout'
 import { createMacroTooltip } from './macro-tooltip'
 import { createMacroLaneControls } from './macro-lane-controls'
+import { createMacroReleaseMarkers, paintMacroReleaseMarker } from './macro-release-markers'
 import './macro.css'
 
 export function createMacroPane(chart: IChartApi) {
@@ -24,6 +25,11 @@ export function createMacroPane(chart: IChartApi) {
   }
   const rateDots = pane.addSeries(LineSeries, { ...base, lineVisible: false, pointMarkersRadius: 4 })
   const series: Record<string, ISeriesApi<'Line'>> = { ...lines, payrolls }
+  const releaseMarkers = createMacroReleaseMarkers()
+  let markerSource: string | null | undefined
+  let markerSnapshot: { history: MacroIndicator['history']; upcoming: MacroIndicator['upcoming']; keys: string } | undefined
+  let markerBars: OhlcBar[] = []
+  let markerHits: { key: string; reading: MacroReading; time: Time; x: number; y: number; rx: number; ry: number }[] = []
   const colourDrafts = new Map<string, string>(), colourPreviews = new Map<string, string>()
   let colourTimer: number | null = null
   const colourFor = (key: string) => colourPreviews.get(key) ?? indicator!.preferences.series[key].color
@@ -333,7 +339,7 @@ export function createMacroPane(chart: IChartApi) {
       const forecastsVisible = p.series[key].forecastVisible
       forecastButton.setAttribute('aria-pressed', String(forecastsVisible))
       forecastButton.setAttribute('aria-label', `${forecastsVisible ? 'Hide' : 'Show'} ${label} forecasts`)
-      forecastButton.title = `${forecastsVisible ? 'Hide' : 'Show'} ${label} forecasts. Forecasts follow this series' eye; upcoming schedules stay visible.`
+      forecastButton.title = `${forecastsVisible ? 'Hide' : 'Show'} ${label} historical forecasts. Upcoming release previews stay visible.`
       forecastSlash.setAttribute('visibility', forecastsVisible ? 'hidden' : 'visible')
       const numbersVisible = p.series[key].numbersVisible
       numbersButton.setAttribute('aria-pressed', String(numbersVisible))
@@ -376,6 +382,9 @@ export function createMacroPane(chart: IChartApi) {
   const hitDot = (event: MouseEventParams<Time>) => {
     if (!indicator || !event.point || typeof event.time !== 'number' || event.paneIndex !== pane.paneIndex()) return
     const { x, y } = event.point
+    const badge = markerHits.find(hit => macroMetricVisible(indicator!.preferences, hit.key) && indicator!.preferences.series[hit.key].pointsVisible
+      && ((x - hit.x) / hit.rx) ** 2 + ((y - hit.y) / hit.ry) ** 2 <= 1)
+    if (badge) return { key: badge.key, time: badge.time, reading: badge.reading, distance: 0, preferred: true }
     let hit: { key: MacroMetric; time: Time; reading: MacroReading; distance: number; preferred: boolean } | undefined
     const preferredSeries = event.hoveredInfo?.series ?? event.hoveredSeries
     for (const { key } of metricControls) {
@@ -444,7 +453,18 @@ export function createMacroPane(chart: IChartApi) {
       return x0 === null || x1 === null ? null : x0 + (x1 - x0) * (logical - left)
     }
   }
+  const markerCoordinate = (time: number, futureX: ReturnType<typeof futureCoordinates>) => {
+    if (latestTime === undefined) return
+    if (time >= latestTime + step) { const x = futureX?.(time); return x === undefined || x === null ? undefined : { x, time } }
+    let lo = 0, hi = markerBars.length
+    while (lo < hi) { const mid = (lo + hi) >>> 1; if (markerBars[mid].time <= time) lo = mid + 1; else hi = mid }
+    const bar = markerBars[lo - 1]
+    if (!bar || time >= bar.time + step) return
+    const x = chart.timeScale().timeToCoordinate(bar.time as Time)
+    return x === null ? undefined : { x, time: bar.time }
+  }
   const renderer: IPrimitivePaneRenderer = { draw(target) {
+    markerHits = []
     legend.style.top = `${(pane.getHTMLElement()?.offsetTop ?? chart.paneSize(0).height + 8) + 4}px`
     legend.style.width = `${Math.max(0, chart.paneSize(pane.paneIndex()).width - 20)}px`
     legend.style.maxHeight = `${Math.max(24, pane.getHeight() - 10)}px`
@@ -462,7 +482,7 @@ export function createMacroPane(chart: IChartApi) {
       && (Object.keys(series) as MacroMetric[]).some(key => macroMetricAxis(key) === axis && plots[key]?.line.length)))
       bindAfterPaint()
     if (indicator) {
-      const futureX = futureCoordinates(), now = Date.now()
+      const futureX = futureCoordinates()
       if (laneMode) target.useMediaCoordinateSpace(({ context, mediaSize }) => {
         context.save(); context.beginPath(); context.rect(0, 0, mediaSize.width, mediaSize.height); context.clip()
         for (const { key } of metricControls) {
@@ -502,21 +522,6 @@ export function createMacroPane(chart: IChartApi) {
             context.beginPath(); context.arc(x, y, 6, 0, Math.PI * 2); context.stroke()
           }
           if (style.pointsVisible) for (const point of points) ring(point.x, point.y, 1)
-          let previous: { x: number; y: number } | undefined = points.at(-1)
-          for (const scheduled of indicator!.upcoming ?? []) {
-            if (scheduled.releasedAt <= now || !scheduled.metrics.includes(key)) continue
-            const value = scheduled.forecasts?.[key]
-            // A missing forecast is a schedule only; never bridge through it.
-            if (value === undefined || !Number.isFinite(value)) { previous = undefined; continue }
-            const x = futureX?.(scheduled.time), y = plotY(key, value)
-            if (x === undefined || x === null || !Number.isFinite(x) || y === null) continue
-            context.globalAlpha = 0.4; context.lineWidth = style.lineWidth; context.setLineDash([5, 4])
-            if (previous) {
-              context.beginPath(); context.moveTo(previous.x, previous.y); context.lineTo(x, y); context.stroke()
-            }
-            if (style.pointsVisible) ring(x, y, 0.4)
-            previous = { x, y }
-          }
         }
         context.restore()
       })
@@ -530,11 +535,40 @@ export function createMacroPane(chart: IChartApi) {
             const x = chart.timeScale().timeToCoordinate(point.time), y = plotY(key, point.value)
             if (x === null || y === null || x < 0 || x > mediaSize.width || y < 0 || y > mediaSize.height) continue
             const reading = plots[key]!.readings.get(point.time)
+            if (releaseMarkers.hasActual(key, reading!.releasedAt)) continue
             const text = numberLabels[key]?.get(reading!.time) ?? macroValue(key, point.value, reading)
             const halfWidth = context.measureText(text).width / 2
             const labelX = Math.max(halfWidth + 2, Math.min(x, mediaSize.width - halfWidth - 2))
             context.fillText(text, labelX, Math.max(13, y - 9))
           }
+        }
+        context.restore()
+      })
+      target.useMediaCoordinateSpace(({ context, mediaSize }) => {
+        context.save(); context.beginPath(); context.rect(0, 0, mediaSize.width, mediaSize.height); context.clip()
+        const previous = new Map<string, { x: number; y: number }>()
+        for (const { key } of metricControls) {
+          const point = plots[key]?.line.at(-1), x = point && chart.timeScale().timeToCoordinate(point.time), y = point && plotY(key, point.value)
+          if (x !== null && x !== undefined && y !== null && y !== undefined) previous.set(key, { x, y })
+        }
+        for (const marker of releaseMarkers.all()) {
+          const { key, actual, forecast } = marker, style = indicator!.preferences.series[key]
+          if (!macroMetricVisible(indicator!.preferences, key)) continue
+          const value = actual?.value ?? forecast, coordinate = markerCoordinate(marker.time, futureX)
+          if (!coordinate || (actual && plots[key]?.readings.get(coordinate.time)?.id !== actual.id)) continue
+          const y = value === undefined ? laneMode ? plotY(key, 0) : null : plotY(key, value), { x, time } = coordinate
+          if (value === undefined) previous.delete(key)
+          if (y === null) continue
+          const color = colourFor(key), from = previous.get(key)
+          if (!actual && value !== undefined) {
+            context.strokeStyle = color; context.lineWidth = style.lineWidth; context.globalAlpha = 0.25; context.setLineDash([])
+            if (from) { context.beginPath(); context.moveTo(from.x, from.y); context.lineTo(x, y); context.stroke() }
+            previous.set(key, { x, y })
+          }
+          if (!style.pointsVisible || x < 0 || x > mediaSize.width || y < 0 || y > mediaSize.height) continue
+          const text = value === undefined ? '—' : macroValue(key, value, actual ?? marker.format)
+          const bounds = paintMacroReleaseMarker(context, x, y, text, color, !!actual)
+          if (actual) markerHits.push({ ...bounds, key, reading: actual, time: time as Time })
         }
         context.restore()
       })
@@ -580,24 +614,6 @@ export function createMacroPane(chart: IChartApi) {
       }
       context.restore()
     })
-  }, drawBackground(target) {
-    if (!indicator || latestTime === undefined || !indicator.upcoming?.length) return
-    const futureX = futureCoordinates()
-    if (!futureX) return
-    const now = Date.now()
-    target.useMediaCoordinateSpace(({ context, mediaSize }) => {
-      context.save(); context.setLineDash([4, 4]); context.lineWidth = 1; context.globalAlpha = 0.8
-      for (const scheduled of indicator!.upcoming) {
-        if (scheduled.releasedAt <= now) continue
-        const metric = scheduled.metrics.find(key => macroMetricVisible(indicator!.preferences, key))
-        if (!metric) continue
-        const x = futureX(scheduled.time)
-        if (x === null || !Number.isFinite(x) || x < 0 || x > mediaSize.width) continue
-        context.strokeStyle = colourFor(metric)
-        context.beginPath(); context.moveTo(x, 0); context.lineTo(x, mediaSize.height); context.stroke()
-      }
-      context.restore()
-    })
   } }
   const views = [{ zOrder: () => 'top' as const, renderer: () => renderer }]
   const primitive: IPanePrimitive = { paneViews: () => views, attached: params => { requestUpdate = params.requestUpdate }, detached: () => { requestUpdate = () => {} } }
@@ -625,8 +641,14 @@ export function createMacroPane(chart: IChartApi) {
       forecastHover = undefined; releaseHover = undefined; releaseTooltip.hide()
       outlineColor = getComputedStyle(chart.chartElement()).getPropertyValue('--text-strong').trim() || '#888888'
       latestTime = bars.at(-1)?.time
+      markerBars = bars
       step = seconds
       const p = next.preferences, axis = selectedAxisFor(p), keys = selectedMacroMetrics(p)
+      if (markerSource !== next.sourceId) { releaseMarkers.clear(); markerSnapshot = undefined; markerSource = next.sourceId }
+      const markerKeys = keys.join('|')
+      if (!markerSnapshot || markerSnapshot.history !== next.history || markerSnapshot.upcoming !== next.upcoming || markerSnapshot.keys !== markerKeys) {
+        releaseMarkers.sync(next, Date.now()); markerSnapshot = { history: next.history, upcoming: next.upcoming, keys: markerKeys }
+      }
       for (const key of colourDrafts.keys()) if (!keys.includes(key)) { colourDrafts.delete(key); colourPreviews.delete(key) }
       if (!colourDrafts.size) stopColourTimer()
       if (keys.join('|') !== metricControls.map(control => control.key).join('|')) {
@@ -674,6 +696,7 @@ export function createMacroPane(chart: IChartApi) {
       updateLegend()
     },
     clearData() {
+      markerSnapshot = undefined; markerHits = []; markerBars = []
       clearColourPreviews()
       for (const item of Object.values(series)) item.setData([])
       rateDots.setData([]); plots = {}; forecastPlots = {}; hover = null; forecastHover = undefined; releaseHover = undefined; releaseTooltip.hide(); latestTime = undefined; updateLegend()
@@ -681,6 +704,7 @@ export function createMacroPane(chart: IChartApi) {
     destroy() {
       if (destroyed) return
       destroyed = true
+      releaseMarkers.clear(); markerSnapshot = undefined; markerHits = []; markerBars = []
       clearColourPreviews()
       if (frame !== null) window.cancelAnimationFrame(frame)
       if (boundsFrame !== null) window.cancelAnimationFrame(boundsFrame)

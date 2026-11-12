@@ -9,8 +9,9 @@ import type { FedForecasts } from './fed-forecast'
 export type MacroReading = { time: number; releasedAt: number; value: number; id: string; currency?: string; brokerValue?: number; unit?: number; multiplier?: number; digits?: number;
   forecast?: number | null; previous?: number | null; impact?: string }
 export type MacroHistory = Record<MacroMetric, MacroReading[]>
-export type MacroScheduled = { time: number; releasedAt: number; metrics: MacroMetric[]; forecasts?: Partial<Record<MacroMetric, number>> }
-export type MacroIndicator = { enabled: boolean; history: MacroHistory; forecastHistory?: MacroHistory; upcoming: MacroScheduled[]; status: string; preferences: MacroPreferences; forecasts?: FedForecasts }
+export type MacroScheduled = { time: number; releasedAt: number; metrics: MacroMetric[]; forecasts?: Partial<Record<MacroMetric, number>>;
+  formats?: Partial<Record<MacroMetric, Pick<MacroReading, 'unit' | 'multiplier' | 'digits'>>> }
+export type MacroIndicator = { enabled: boolean; history: MacroHistory; forecastHistory?: MacroHistory; upcoming: MacroScheduled[]; status: string; preferences: MacroPreferences; forecasts?: FedForecasts; sourceId?: string | null }
 export function supportsMacro(symbol: string) { return !!symbol.trim() }
 export function macroValue(metric: MacroMetric, value: number, reading?: Pick<MacroReading, 'unit' | 'multiplier' | 'digits'>) {
   const definition = macroCatalog[metric], unit = reading?.unit ?? definition?.unit
@@ -61,7 +62,7 @@ export function macroHistory(events: StoredCalendarEvent[], now: number, field: 
   return history
 }
 
-/** Scheduled metadata stays separate from actuals; one line per publication instant. */
+/** Scheduled metadata stays separate from actuals; companions share a publication instant. */
 export function macroUpcoming(events: StoredCalendarEvent[], now: number, keys: readonly string[] = Object.keys(macroMetrics)): MacroScheduled[] {
   const packages = new Map<number, MacroScheduled>()
   const byEvent = groupEvents(events)
@@ -80,12 +81,14 @@ export function macroUpcoming(events: StoredCalendarEvent[], now: number, keys: 
     for (const event of readings.values()) {
       const existing = packages.get(event.release_at!)
       const forecast = event.forecast !== null && Number.isFinite(event.forecast) ? { [key]: event.forecast } : {}
+      const format = { [key]: { unit: event.unit, multiplier: event.multiplier, digits: event.digits } }
       if (existing) {
         if (existing.time === event.chart_time_seconds) {
           existing.metrics.push(key)
           Object.assign(existing.forecasts!, forecast)
+          Object.assign(existing.formats!, format)
         }
-      } else packages.set(event.release_at!, { time: event.chart_time_seconds!, releasedAt: event.release_at!, metrics: [key], forecasts: forecast })
+      } else packages.set(event.release_at!, { time: event.chart_time_seconds!, releasedAt: event.release_at!, metrics: [key], forecasts: forecast, formats: format })
     }
   }
   return [...packages.values()].sort((a, b) => a.releasedAt - b.releasedAt)

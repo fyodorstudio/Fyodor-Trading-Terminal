@@ -47,6 +47,6 @@ export function useMacroIndicator(symbol: string, brokerId: string | null) {
     : stored.error ? `Macro history unavailable · ${stored.error}`
     : stored.collectorError ? 'Calendar collector unavailable'
     : ''
-  const macro: MacroIndicator = useMemo(() => ({ enabled: active, history, forecastHistory, upcoming, status, forecasts, preferences: macroPreferences }), [active, history, forecastHistory, upcoming, status, forecasts, macroPreferences])
+  const macro: MacroIndicator = useMemo(() => ({ enabled: active, history, forecastHistory, upcoming, status, forecasts, preferences: macroPreferences, sourceId: brokerId }), [active, history, forecastHistory, upcoming, status, forecasts, macroPreferences, brokerId])
   return { macro, macroPreferences, changeMacro, toggleMacro, macroSettingsOpen, setMacroSettingsOpen }
 }

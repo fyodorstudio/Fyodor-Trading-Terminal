@@ -248,11 +248,15 @@ selected clock and a connector to the dot. Missing values show a dash; supplied
 previous values are never substituted with a prior plotted dot. Successful charts have no static
 source/status caption; loading, errors and empty states remain visible when needed.
 
-Monthly lines connect release dots; the Fed rate holds between decisions. Forecasts
-use a same-colour line at 60% opacity and hollow rings; upcoming projections use dashed
-lines/rings at 40%. Missing forecasts break connections while retaining the verified
-vertical schedule line. Forecasts follow their series' eye and dot settings and do
-not refit scales or introduce shared timeline timestamps. Existing USDX payroll
+Monthly lines connect release dots; the Fed rate holds between decisions. Historical
+forecasts use a same-colour line at 60% opacity and hollow rings. Upcoming releases
+replace vertical schedule lines with faint dots containing their forecast values,
+and connections at 25% opacity. When the observed actual arrives, a displayed
+pending dot becomes solid and shows the actual value inside. Release previews
+remain visible with F off and follow the eye/dot choices. A missing forecast
+breaks the connection: lane view can show a dash, while numerical view omits an
+unknown-height dot. These overlays never refit scales or introduce native timeline
+timestamps. Existing USDX payroll
 forecasts default on; newly added events default off. Fed-specific official upper
 bounds and saved consensus overrides apply only to the exact Fed rate series. Its
 dot card uses the exact saved primary consensus in its Forecast column when available. See the [Fed consensus reference](docs/MFDI-FORECASTS.md).

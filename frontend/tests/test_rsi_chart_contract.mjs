@@ -15,13 +15,14 @@ const previous = new Map([...Object.keys(globals), '__rsiChartLibrary'].map(key 
 for (const [key, value] of Object.entries(globals)) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value })
 const frames = new Map(), contexts = new WeakMap(), paintedText = [], paintedFills = [], volumeLayers = [], upcomingStrokes = [], forecastStrokes = [], forecastRings = []; let frameId = 0, captureVolumeLayers = false
 const forecastCurveStrokes = [], forecastCurveRings = []
-const numberLabels = [], laneDots = []
+const numberLabels = [], laneDots = [], releaseBadges = [], releaseConnections = []
 dom.requestAnimationFrame = fn => { frames.set(++frameId, fn); return frameId }
 dom.cancelAnimationFrame = id => frames.delete(id)
 dom.HTMLCanvasElement.prototype.getContext = function () {
   if (!contexts.has(this)) contexts.set(this, new Proxy({ canvas: this,
     fillText(text, x, y) {
       paintedText.push(String(text))
+      if (this.font === '10px sans-serif' && this.textBaseline === 'middle' && this.fixtureReleaseBadge) releaseBadges.push({ ...this.fixtureReleaseBadge, text: String(text), alpha: this.globalAlpha, textColor: this.fillStyle })
       if (this.font === '11px sans-serif' && this.textBaseline === 'bottom' && this.textAlign === 'center')
         numberLabels.push({ text: String(text), x, y, color: this.fillStyle })
     },
@@ -33,7 +34,9 @@ dom.HTMLCanvasElement.prototype.getContext = function () {
       if (radius === 6.5) forecastRings.push({ x, y, radius })
       if (radius === 6) forecastCurveRings.push({ x, y, radius, color: this.strokeStyle, alpha: this.globalAlpha })
     },
+    ellipse(x, y, rx, ry) { this.fixtureReleaseBadge = { x, y, rx, ry, color: this.strokeStyle } },
     stroke() {
+      if (this.globalAlpha === 0.25 && this.fixtureDash?.length === 0 && this.fixtureStart && this.fixtureEnd) releaseConnections.push({ color: this.strokeStyle, from: this.fixtureStart, to: this.fixtureEnd, alpha: this.globalAlpha })
       if (captureVolumeLayers) volumeLayers.push({ kind: 'line', color: this.strokeStyle })
       if (this.fixtureDash?.join(',') === '4,4' && this.fixtureStart?.[0] === this.fixtureEnd?.[0] && this.fixtureStart?.[1] === 0)
         upcomingStrokes.push({ color: this.strokeStyle, from: this.fixtureStart, to: this.fixtureEnd })
@@ -919,27 +922,28 @@ try {
   const normalUpcoming = macro.upcoming
   const futureChartTime = macroBars.at(-1).time + 3.5 * 3600
   macro = { ...macro, upcoming: [
-    { time: futureChartTime, releasedAt: Date.now() + 86400000, metrics: ['coreCpi', 'headlineCpi'] },
+    { time: futureChartTime, releasedAt: Date.now() + 86400000, metrics: ['coreCpi', 'headlineCpi'], forecasts: { coreCpi: 0, headlineCpi: 0.3 } },
     { time: macroBars.at(-1).time + 1800, releasedAt: Date.now() + 3600000, metrics: ['rate'] },
     { time: futureChartTime + 3600, releasedAt: Date.now() - 1000, metrics: ['rate'] },
   ] }
-  upcomingStrokes.length = 0
+  upcomingStrokes.length = 0; releaseBadges.length = 0
   await render({ macro })
-  const scheduleLines = upcomingStrokes.filter(stroke => stroke.color === macro.preferences.series.coreCpi.color)
-  assert.ok(scheduleLines.length > 0, 'Upcoming CPI draws a vertical line in future space without candles')
   const expectedFutureX = (chart.timeScale().logicalToCoordinate(102) + chart.timeScale().logicalToCoordinate(103)) / 2
-  for (const stroke of scheduleLines) {
-    close(stroke.from[0], expectedFutureX, 'Scheduled time retains sub-candle positioning')
-    assert.ok(stroke.to[1] > stroke.from[1])
+  assert.equal(upcomingStrokes.length, 0, 'Upcoming releases no longer draw vertical schedule lines')
+  for (const [key, value, text] of [['coreCpi', 0, '0.00%'], ['headlineCpi', 0.3, '0.30%']]) {
+    const badge = releaseBadges.find(row => row.color === macro.preferences.series[key].color && row.text === text)
+    assert.ok(badge, 'Each companion has its own dot with its own forecast value inside, even with F off')
+    close(badge.x, expectedFutureX, 'Scheduled dots retain sub-candle positioning without new timestamps')
+    close(badge.y, (key === 'coreCpi' ? coreLine : headlineLine).priceToCoordinate(value), 'Numerical upcoming dots use the actual forecast height')
+    assert.equal(badge.alpha, 0.85)
   }
-  assert.equal(new Set(scheduleLines.map(stroke => stroke.from[0])).size, 1, 'The CPI package has one marker position')
-  assert.equal(upcomingStrokes.filter(stroke => stroke.color === macro.preferences.series.rate.color).length, 0, 'Elapsed and current-candle schedules are omitted')
+  assert.equal(releaseBadges.filter(row => row.color === macro.preferences.series.rate.color).length, 0, 'Missing and elapsed schedules do not invent forecast positions')
   assert.ok(macroPane.getSeries().every(line => line.data().every(point => point.time <= macroBars.at(-1).time)), 'Schedules do not add valued series points or timestamps')
   const scheduledStyles = macro.preferences.series
   macro = { ...macro, preferences: { ...macro.preferences, series: { ...scheduledStyles,
     coreCpi: { ...scheduledStyles.coreCpi, visible: false }, headlineCpi: { ...scheduledStyles.headlineCpi, visible: false } } } }
-  upcomingStrokes.length = 0; await render({ macro })
-  assert.equal(upcomingStrokes.filter(stroke => stroke.color === scheduledStyles.coreCpi.color || stroke.color === scheduledStyles.headlineCpi.color).length, 0, 'Hidden series have no scheduled marker')
+  releaseBadges.length = 0; await render({ macro })
+  assert.equal(releaseBadges.filter(row => row.color === scheduledStyles.coreCpi.color || row.color === scheduledStyles.headlineCpi.color).length, 0, 'Hidden series have no scheduled marker')
   macro = { ...macro, upcoming: normalUpcoming, preferences: { ...macro.preferences, series: scheduledStyles } }; await render({ macro })
   // Forecast curves are primitive overlays on the actual scales. Even extreme
   // forecasts and future dots must never add native samples or refit any scale.
@@ -991,37 +995,38 @@ try {
     { time: futureChartTime + 3600, releasedAt: Date.now() + 172800000, metrics: ['payrolls'] },
     { time: futureChartTime + 7200, releasedAt: Date.now() + 259200000, metrics: ['payrolls'], forecasts: { payrolls: 0 } },
   ] }
-  forecastCurveStrokes.length = 0; forecastCurveRings.length = 0; upcomingStrokes.length = 0
+  forecastCurveStrokes.length = 0; forecastCurveRings.length = 0; upcomingStrokes.length = 0; releaseBadges.length = 0; releaseConnections.length = 0
   await render({ macro })
   const payrollColor = macro.preferences.series.payrolls.color
   const payrollCurves = forecastCurveStrokes.filter(row => row.color === payrollColor)
   assert.ok(payrollCurves.some(row => row.alpha === 0.6 && row.dash.length === 0), 'Historical forecasts use a translucent solid line')
-  const dashedCurves = payrollCurves.filter(row => row.dash.join(',') === '5,4')
-  assert.ok(dashedCurves.length > 0, 'Upcoming forecasts use dashed connections')
-  for (const row of dashedCurves) {
-    close(row.from[0], lastForecastX, 'Future connection starts at the latest forecast release')
-    close(row.from[1], payrollLine.priceToCoordinate(100), 'Future connection starts at the forecast value, independently of the actual')
-    close(row.to[0], expectedFutureX, 'Upcoming dot uses the verified sub-candle schedule')
-    close(row.to[1], payrollLine.priceToCoordinate(250), 'Upcoming dot uses its forecast value')
-    assert.equal(row.alpha, 0.4)
+  const futureConnections = releaseConnections.filter(row => row.color === payrollColor)
+  assert.ok(futureConnections.length > 0, 'Upcoming release dots have faint connections')
+  for (const row of futureConnections) {
+    close(row.from[0], lastForecastX, 'The pending connection starts at the last released point')
+    close(row.from[1], payrollLine.priceToCoordinate(200), 'The pending section continues the actual series')
+    close(row.to[0], expectedFutureX, 'The upcoming dot uses its verified schedule')
+    close(row.to[1], payrollLine.priceToCoordinate(250), 'The upcoming dot uses its forecast')
+    assert.equal(row.alpha, 0.25)
   }
   assert.ok(forecastCurveRings.some(row => row.color === payrollColor && row.alpha === 1
     && row.x === chart.timeScale().timeToCoordinate(macroBars[45].time) && row.y === payrollLine.priceToCoordinate(-120)),
-  'A larger hollow forecast ring remains around an equal actual dot')
-  assert.ok(forecastCurveRings.some(row => row.color === payrollColor && row.alpha === 0.4 && row.y === payrollLine.priceToCoordinate(0)), 'A zero forecast remains a visible faint dot after a missing forecast')
-  assert.equal(new Set(upcomingStrokes.filter(row => row.color === payrollColor).map(row => row.from[0])).size, 3, 'Missing forecasts retain their vertical schedules')
+  'Historical forecasts retain their larger hollow rings')
+  assert.ok(releaseBadges.some(row => row.color === payrollColor && row.text === '250k' && row.alpha === 0.85))
+  assert.ok(releaseBadges.some(row => row.color === payrollColor && row.text === '0k' && row.y === payrollLine.priceToCoordinate(0)), 'A zero forecast remains a visible pending dot after a missing forecast')
+  assert.equal(upcomingStrokes.length, 0, 'Missing forecasts never restore the removed vertical schedule lines')
   assert.deepEqual(payrollLine.data(), originalPayrollData)
   assert.equal(macroPane.getSeries().length, 6, 'Forecasts introduce no native series')
   assert.deepEqual(macroPane.priceScale('right').getVisibleRange(), { from: -200, to: 400 })
   assert.deepEqual(chart.timeScale().getVisibleLogicalRange(), curveWindow)
   assert.ok(macroBars.every((bar, index) => chart.timeScale().timeToIndex(bar.time) === index), 'Forecasts never introduce timeline timestamps')
   assert.equal(host.querySelectorAll('[data-macro-forecast]').length, 5)
-  forecastCurveRings.length = 0; upcomingStrokes.length = 0
+  forecastCurveRings.length = 0; upcomingStrokes.length = 0; releaseBadges.length = 0
   await forecastToggle('payrolls')
   assert.equal(host.querySelector('[data-macro-forecast="payrolls"]').getAttribute('aria-pressed'), 'false')
   assert.equal(host.querySelector('[data-macro-forecast="payrolls"] [data-forecast-slash]').getAttribute('visibility'), 'visible')
   assert.equal(forecastCurveRings.filter(row => row.color === payrollColor).length, 0, 'Slashed F hides forecast dots independently')
-  assert.ok(upcomingStrokes.some(row => row.color === payrollColor), 'Slashed F preserves upcoming schedules')
+  assert.ok(releaseBadges.some(row => row.color === payrollColor && row.text === '250k'), 'Slashed F preserves upcoming release previews')
   assert.deepEqual(payrollLine.data(), originalPayrollData, 'Slashed F preserves actuals')
   for (const key of ['rate', 'unemployment', 'headlineCpi', 'coreCpi']) {
     forecastCurveRings.length = 0
@@ -1029,9 +1034,47 @@ try {
     assert.ok(forecastCurveRings.some(row => row.color === macro.preferences.series[key].color), `${key}: F also enables its forecast layer`)
     await forecastToggle(key)
   }
+  const beforeReleaseTransition = macro, realMarkerNow = Date.now, publishedAt = realMarkerNow() + 1000, markerPaneHeight = macroPane.getHeight()
+  const pendingRelease = { time: futureChartTime, releasedAt: publishedAt, metrics: ['payrolls'], forecasts: { payrolls: 250 } }
+  try {
+    macro = { ...macro, upcoming: [pendingRelease] }; releaseBadges.length = 0; await render({ macro })
+    assert.ok(releaseBadges.some(row => row.text === '250k' && row.alpha === 0.85))
+    Date.now = () => publishedAt + 1
+    macro = { ...macro, upcoming: [] }; releaseBadges.length = 0; await render({ macro })
+    assert.ok(releaseBadges.some(row => row.text === '250k' && row.alpha === 0.85), 'The last forecast remains faint after its scheduled time until an actual arrives')
+    const actualRelease = { id: 'newly-published-payrolls', time: futureChartTime, releasedAt: publishedAt, value: 275, forecast: 250, unit: 4, multiplier: 1 }
+    const releasedBars = [...macroBars, ...Array.from({ length: 5 }, (_, index) => ({ ...macroBars.at(-1), time: macroBars.at(-1).time + (index + 1) * 3600 }))]
+    macro = { ...macro, history: { ...macro.history, payrolls: [...macro.history.payrolls, actualRelease] } }
+    releaseBadges.length = 0; releaseConnections.length = 0; await render({ bars: releasedBars, macro })
+    const actualBadges = releaseBadges.filter(row => row.text === '275k' && row.color === payrollColor)
+    assert.ok(actualBadges.length > 0)
+    assert.ok(actualBadges.every(row => row.alpha === 1), 'The released dot is solid and shows the actual instead of the forecast')
+    assert.equal(releaseBadges.some(row => row.text === '250k'), false, 'Publication replaces the pending value instead of leaving a duplicate forecast dot')
+    assert.equal(payrollLine.data().at(-1).value, 275)
+    const actualBadge = actualBadges.at(-1), beforeBadgeClick = inspectedReleases.length
+    const badgeClick = { point: { x: actualBadge.x + actualBadge.rx - 4, y: actualBadge.y }, time: payrollLine.data().at(-1).time, paneIndex: macroPane.paneIndex(), seriesData: new Map() }
+    await React.act(async () => { for (const listener of [...nativeClickListeners]) listener(badgeClick) })
+    assert.equal(inspectedReleases.length, beforeBadgeClick + 1, 'The whole released value dot opens its actual release package')
+    assert.equal(inspectedReleases.at(-1).id, actualRelease.id)
+    assert.equal(releaseConnections.filter(row => row.color === payrollColor).length, 0, 'Published sections no longer have a pending connection')
+    macro = { ...macro, upcoming: [{ time: futureChartTime, releasedAt: publishedAt + 86400000, metrics: ['coreCpi'] }] }
+    await render({ macro })
+    macroPane.setHeight(300); await paint()
+    releaseBadges.length = 0; laneDots.length = 0
+    await React.act(async () => host.querySelector('[aria-label="MFDI lane view"]').click()); await paint()
+    const actualLaneBadge = releaseBadges.find(row => row.text === '275k' && row.color === payrollColor)
+    assert.ok(actualLaneBadge, 'Released value dots also render on straight category lanes')
+    close(actualLaneBadge.y, laneDots.find(row => row.color === payrollColor).y, 'The promoted value stays on its event lane')
+    assert.ok(releaseBadges.some(row => row.text === '—' && row.color === macro.preferences.series.coreCpi.color && row.alpha === 0.85), 'Lane mode can mark an upcoming release with no forecast using a dash')
+
+  } finally {
+    Date.now = realMarkerNow; macro = beforeReleaseTransition
+    macroPane.setHeight(markerPaneHeight); await paint()
+    await render({ bars: macroBars, macro })
+  }
   macro = { ...macro, preferences: forecastPreferences, forecastHistory: undefined, upcoming: normalUpcoming }
   macroPane.priceScale('right').setVisibleRange(originalPayrollRange); await render({ macro })
-  console.log('✓ MFDI forecast curves: outlined equal-value dots, lighter historical lines, dashed forecast-to-forecast future segments, zero/missing values, all five F controls and unchanged native scales/dates/samples')
+  console.log('✓ MFDI forecast curves: outlined equal-value dots, lighter historical lines, dashed forecast-to-forecast future segments, zero/missing values, all historical F controls, labelled pending dots and unchanged native scales/dates/samples')
   // Native drawing contracts: a transient primitive overlay never contributes
   // forecast values/timestamps to any series or to the independently bound axes.
   const forecastDateRange = chart.timeScale().getVisibleLogicalRange(), originalFedRange = macroPane.priceScale('right').getVisibleRange()

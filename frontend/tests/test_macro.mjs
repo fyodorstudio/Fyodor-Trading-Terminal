@@ -90,6 +90,7 @@ try {
   assert.deepEqual(upcoming[0].metrics, ['coreCpi', 'headlineCpi'])
   assert.deepEqual(upcoming[1].metrics, ['payrolls', 'unemployment'])
   assert.deepEqual(upcoming[1].forecasts, { payrolls: 9, unemployment: 9 }, 'Companion forecasts retain their individual series')
+  assert.equal(upcoming[1].formats.payrolls.unit, 4); assert.equal(upcoming[1].formats.payrolls.multiplier, 1)
   const revisedUpcoming = macroUpcoming([
     scheduledEvent('payrolls', 1, { forecast: 100 }),
     scheduledEvent('payrolls', 1, { revision: 1, forecast: null }),
@@ -100,6 +101,27 @@ try {
   assert.deepEqual(revisedUpcoming[1].forecasts, {}, 'Nonnumeric upcoming values remain schedule only')
   assert.equal(macroUpcoming([scheduledEvent('coreCpi')], at + 86400000).length, 0, 'Elapsed schedules never remain upcoming')
 
+  const { createMacroReleaseMarkers } = await server.ssrLoadModule('./src/market-data/indicators/macro/macro-release-markers.ts')
+  const markerState = createMacroReleaseMarkers(), markerAt = at + 1000
+  const markerIndicator = { enabled: true, status: '', preferences: defaultMacroPreferences, history: {}, upcoming: [
+    { time: start, releasedAt: markerAt, metrics: ['payrolls'], forecasts: { payrolls: 0 } },
+  ] }
+  markerState.sync(markerIndicator, at)
+  assert.equal(markerState.all()[0].forecast, 0)
+  markerState.sync({ ...markerIndicator, upcoming: [] }, markerAt + 1)
+  assert.equal(markerState.all()[0].forecast, 0, 'A due release keeps its last captured forecast while the actual is pending')
+  assert.equal(markerState.all()[0].actual, undefined, 'Reaching the scheduled time never fabricates an actual')
+  const publishedReading = { time: start, releasedAt: markerAt, id: 'published', value: 125 }
+  markerState.sync({ ...markerIndicator, upcoming: [], history: { payrolls: [publishedReading] } }, markerAt + 1)
+  assert.equal(markerState.all().length, 1, 'Publication replaces the forecast marker rather than adding a duplicate')
+  assert.equal(markerState.all()[0].actual, publishedReading)
+  assert.equal(markerState.hasActual('payrolls', markerAt), true)
+  markerState.clear(); assert.deepEqual(markerState.all(), [])
+  markerState.sync(markerIndicator, at)
+  markerState.sync({ ...markerIndicator, upcoming: [{ ...markerIndicator.upcoming[0], forecasts: {} }] }, at)
+  assert.equal(markerState.all()[0].forecast, undefined, 'A revised blank forecast does not borrow an older value')
+  markerState.sync({ ...markerIndicator, upcoming: [] }, at)
+  assert.deepEqual(markerState.all(), [], 'Cancelled future releases disappear')
   dom.localStorage.setItem('fyodor.indicators.fed-rate.v1', 'true')
   assert.equal(readMacroPreferences().enabled, true, 'The original Fed visibility migrates')
   assert.equal(dom.localStorage.getItem('fyodor.indicators.fed-rate.v1'), 'true', 'Migration preserves the old preference')

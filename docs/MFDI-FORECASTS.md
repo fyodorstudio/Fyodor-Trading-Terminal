@@ -15,12 +15,26 @@ at an exact matching release where available, otherwise its captured MT5 forecas
 an explicitly blank saved consensus stays blank. These are latest stored vintages,
 not reconstructed release-day consensus. Zero and negative forecasts are valid.
 
-Forecasts connect to forecasts in the saved series colour: historical lines are
-solid at 60% opacity, with hollow radius-6 dots around the radius-4 actuals so equal
-values remain distinguishable. Upcoming forecasts use 40% opacity and dashed
-connections from the last historical forecast. A missing upcoming forecast keeps
-only its vertical schedule and breaks the connection. The existing dots setting
-also controls forecast rings. No values are inferred for missing forecasts.
+Historical forecasts connect in the saved series colour: solid lines at 60%
+opacity, with hollow radius-6 dots around radius-4 actuals so equal values remain
+distinguishable. The F switch controls this historical forecast layer.
+
+Upcoming releases replace vertical schedule lines with compact rounded value
+dots. They show the captured forecast with 15% fill and 45% outline opacity,
+readable text, and a connection from the latest actual at 25% opacity. As the
+schedule markers did, these release previews remain visible with F off and follow
+the series eye/dot choices. Missing forecasts break connections. Lane view can
+place a dash on its row; numerical view omits a marker with no known height.
+Verified units/digits are preserved; zero and negative forecasts remain values.
+
+A preview already displayed in the open pane stays pending if release time has
+passed but the actual is not available yet. An observed actual at the exact
+publication replaces its forecast value and turns the dot solid. The actual uses
+its containing candle and real value, including revisions, and clicking anywhere
+inside its value dot opens its exact Inspector package. Existing historical N
+labels remain unchanged; promoted value dots do not duplicate a label above them.
+Marker state follows pair/timeframe changes in the open pane and is cleared when
+the broker/source changes or the pane is removed.
 
 The overlay projects on the existing 90-day future axis without adding native
 series, timestamps or autoscale contributions. Colour, widths, eye/F changes,

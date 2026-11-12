@@ -160,10 +160,15 @@ clock. Previous is the release's supplied previous value. Missing values show a
 dash; zero remains a value. This works in both views and for every selected event. Only released numeric actuals with verified chart timing appear. Monthly lines
 join releases; the Fed rate is held between decisions. MFDI calculates no composite score.
 
-Forecasts join their own values with a lighter solid line and hollow rings. Upcoming
-forecasts continue with faint dashed lines/rings in the existing future axis. Missing
-forecasts break the connection and retain only the schedule line. Forecasts follow the
-eye/dot choices and never refit scales. Existing USDX payroll forecasts remain enabled;
+Historical forecasts join their own values with a lighter solid line and hollow rings.
+Upcoming releases use faint value dots instead of vertical schedule lines, with
+connections at 25% opacity. These release previews stay visible with F off, and
+follow the series eye/dot choices. A displayed pending dot keeps its forecast
+until the observed actual arrives; then it becomes solid and displays the actual
+value inside. Those newly published dots remain clickable for Inspector.
+Missing forecasts break connections. Lane view can show a dash; numerical view
+leaves the unknown-height marker blank. No values or actuals are inferred.
+Existing USDX payroll forecasts remain enabled;
 newly added event forecasts start hidden. Saved official Fed upper bounds and survey
 consensus apply only to the exact Fed rate series. Its card uses that saved primary
 consensus in the Forecast column where available.
