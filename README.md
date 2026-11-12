@@ -204,6 +204,8 @@ the drawer without resizing the chart. Wheel anywhere over the popover to scroll
 its event list; hold the Series title to move the window within the chart. Drag
 the bottom-right grip to resize it (or focus the grip and use arrow keys). Its
 position and size survive redraws and close/reopen while the pane stays open.
+Opening Inspector or another bottom dock shortens the scrollable body as needed,
+keeps the title reachable, and restores the chosen size when space returns.
 The category arrow and name form one button: click to fold/expand its drawer list
 and select every child, then drag the plot to move that category together in
 either view. Folding never hides or shifts plotted lines. Drag the header to reorder.

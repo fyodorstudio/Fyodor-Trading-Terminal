@@ -783,6 +783,47 @@ try {
   assert.equal(parseFloat(seriesDrawer.style.width), beforePopoverWidth - 50, 'The resize grip changes the window size across chart redraws')
   assert.deepEqual(chart.timeScale().getVisibleLogicalRange(), drawerWindow)
   assert.deepEqual(drawerRanges(), beforeDrawerRanges, 'Popover resizing preserves native scales')
+  const chartElement = chart.chartElement(), paneElementForDock = macroPane.getHTMLElement()
+  const originalChartHeight = chart.options().height, originalAutoSize = chart.options().autoSize, beforeDockDates = chart.timeScale().getVisibleLogicalRange()
+  let dockChartHeight = originalChartHeight
+  const dockDescriptors = [[chartElement, 'clientHeight'], [chartElement, 'clientWidth'], [paneElementForDock, 'offsetTop']].map(([element, key]) => ({ element, key, descriptor: Object.getOwnPropertyDescriptor(element, key) }))
+  Object.defineProperty(chartElement, 'clientHeight', { configurable: true, get: () => dockChartHeight })
+  Object.defineProperty(chartElement, 'clientWidth', { configurable: true, get: () => chart.options().width })
+  Object.defineProperty(paneElementForDock, 'offsetTop', { configurable: true, get: () => chart.panes().slice(0, macroPane.paneIndex()).reduce((sum, item) => sum + item.getHeight() + 8, 0) })
+  try {
+    await React.act(async () => chart.applyOptions({ autoSize: false })); await paint()
+    const topBeforeDockMove = parseFloat(seriesDrawer.style.top)
+    await React.act(async () => drawerTitle.dispatchEvent(new dom.PointerEvent('pointerdown', { bubbles: true, cancelable: true, button: 0, clientX: 500, clientY: 0, pointerId: 1 })))
+    await React.act(async () => window.dispatchEvent(new dom.PointerEvent('pointermove', { clientX: 500, clientY: 70 - topBeforeDockMove, pointerId: 1 })))
+    await React.act(async () => window.dispatchEvent(new dom.PointerEvent('pointerup', { clientX: 500, clientY: 70 - topBeforeDockMove, pointerId: 1 }))); await paint()
+    const currentPopoverHeight = parseFloat(seriesDrawer.style.height)
+    await React.act(async () => drawerResize.dispatchEvent(new dom.PointerEvent('pointerdown', { bubbles: true, cancelable: true, button: 0, clientX: 500, clientY: 0, pointerId: 1 })))
+    await React.act(async () => window.dispatchEvent(new dom.PointerEvent('pointermove', { clientX: 500, clientY: 300 - currentPopoverHeight, pointerId: 1 })))
+    await React.act(async () => window.dispatchEvent(new dom.PointerEvent('pointerup', { clientX: 500, clientY: 300 - currentPopoverHeight, pointerId: 1 }))); await paint()
+    assert.equal(seriesDrawer.style.top, '70px'); assert.equal(seriesDrawer.style.height, '300px')
+    dockChartHeight = 240
+    await React.act(async () => chart.resize(900, 240)); await paint()
+    assert.equal(seriesDrawer.style.top, '70px', 'Opening a bottom dock does not push a tall Series window into the chart header')
+    assert.equal(seriesDrawer.style.height, '166px', 'The body shrinks to the space below the existing anchor')
+    await React.act(async () => drawerTitle.dispatchEvent(new dom.PointerEvent('pointerdown', { bubbles: true, cancelable: true, button: 0, clientX: 500, clientY: 70, pointerId: 1 })))
+    await React.act(async () => window.dispatchEvent(new dom.PointerEvent('pointermove', { clientX: 500, clientY: 90, pointerId: 1 })))
+    await React.act(async () => window.dispatchEvent(new dom.PointerEvent('pointerup', { clientX: 500, clientY: 90, pointerId: 1 }))); await paint()
+    assert.equal(seriesDrawer.style.top, '90px', 'The title remains draggable downwards with the bottom dock open')
+    for (let cycle = 0; cycle < 3; cycle++) {
+      dockChartHeight = originalChartHeight
+      await React.act(async () => chart.resize(900, originalChartHeight)); await paint()
+      assert.equal(seriesDrawer.style.top, '90px'); assert.equal(seriesDrawer.style.height, '300px', 'Closing the bottom dock restores the selected popover height')
+      dockChartHeight = 240
+      await React.act(async () => chart.resize(900, 240)); await paint()
+      assert.equal(seriesDrawer.style.top, '90px'); assert.equal(seriesDrawer.style.height, '146px')
+    }
+    assert.deepEqual(chart.timeScale().getVisibleLogicalRange(), beforeDockDates, 'Dock layout changes preserve shared chart dates')
+  } finally {
+    dockChartHeight = originalChartHeight
+    await React.act(async () => chart.resize(900, originalChartHeight)); await paint()
+    for (const { element, key, descriptor } of dockDescriptors) { if (descriptor) Object.defineProperty(element, key, descriptor); else delete element[key] }
+    await React.act(async () => chart.applyOptions({ autoSize: originalAutoSize })); await paint()
+  }
   const universalStyles = macro.preferences.series
   for (const [kind, field, slash] of [['visibility', 'visible', 'eye'], ['forecast', 'forecastVisible', 'forecast'], ['numbers', 'numbersVisible', 'numbers']]) {
     macro = { ...macro, preferences: { ...macro.preferences, series: { ...macro.preferences.series, rate: { ...macro.preferences.series.rate, [field]: true } } } }; await render({ macro })

@@ -38,14 +38,15 @@ export function createMacroLaneControls(element: HTMLElement, redraw: () => void
   let cancelWindowDrag = () => {}
   const placeWindow = () => {
     drawerWidth = Math.max(0, Math.min(windowSize?.width ?? 400, viewportWidth - 8))
-    if (windowSize) windowSize = { width: drawerWidth, height: Math.max(0, Math.min(windowSize.height, viewportHeight - 8)) }
-    drawer.style.width = `${drawerWidth}px`; drawer.style.height = windowSize ? `${windowSize.height}px` : ''
-    drawer.style.maxHeight = `${Math.max(40, windowSize ? viewportHeight - 8 : defaultHeight)}px`
     const point = windowPoint ?? { x: defaultLeft, y: defaultTop }
+    const requestedHeight = Math.max(0, windowSize?.height ?? defaultHeight)
+    const minimumHeight = Math.min(120, requestedHeight, Math.max(0, viewportHeight - 8))
     const x = Math.max(0, Math.min(point.x, viewportWidth - drawerWidth))
-    const y = Math.max(0, Math.min(point.y, viewportHeight - Math.min(windowSize?.height ?? (drawer.offsetHeight || 40), viewportHeight)))
+    const y = Math.max(0, Math.min(point.y, viewportHeight - minimumHeight - 4))
+    const height = Math.min(requestedHeight, Math.max(0, viewportHeight - y - 4))
+    drawer.style.width = `${drawerWidth}px`; drawer.style.height = windowSize ? `${height}px` : ''
+    drawer.style.maxHeight = `${height}px`
     drawer.style.left = `${x}px`; drawer.style.top = `${y}px`
-    if (windowPoint) windowPoint = { x, y }
   }
   const resizeWindow = (width: number, height: number, x = parseFloat(drawer.style.left), y = parseFloat(drawer.style.top)) => {
     windowPoint = { x, y }
@@ -131,7 +132,7 @@ export function createMacroLaneControls(element: HTMLElement, redraw: () => void
       if (resizing) resizeWindow(width + dx, height + dy, x, y)
       else { windowPoint = { x: x + dx, y: y + dy }; placeWindow() }
     }
-    const finish = () => cleanup()
+    const finish = () => { windowPoint = { x: parseFloat(drawer.style.left), y: parseFloat(drawer.style.top) }; cleanup() }
     const cancel = () => { windowPoint = original; windowSize = originalSize; cleanup(); placeWindow() }
     const key = (next: KeyboardEvent) => { if (next.key === 'Escape') cancel() }
     const cleanup = () => {
@@ -149,6 +150,7 @@ export function createMacroLaneControls(element: HTMLElement, redraw: () => void
     if (!direction) return
     event.preventDefault(); event.stopPropagation()
     windowPoint = { x: parseFloat(drawer.style.left) + direction[0] * 10, y: parseFloat(drawer.style.top) + direction[1] * 10 }; placeWindow()
+    windowPoint = { x: parseFloat(drawer.style.left), y: parseFloat(drawer.style.top) }
   }
   resize.onkeydown = event => {
     const direction = ({ ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] } as Record<string, number[]>)[event.key]

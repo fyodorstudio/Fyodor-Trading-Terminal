@@ -96,6 +96,8 @@ the chart (or focus the title and use arrow keys); closing/reopening retains
 that window position while the pane stays open. Drag the bottom-right grip to
 resize the window horizontally and vertically, or focus the grip and use arrow
 keys. The size also stays when you close and reopen it while the pane is open.
+When Inspector reduces the chart height, the popover body shortens while its
+title stays reachable and draggable. Closing the dock restores the chosen size.
 
 Inputs also lets you create, rename, reorder and delete categories. Use each event's
 category selector, or drag its name in the Series drawer into a category in Lane view. Rows snap
