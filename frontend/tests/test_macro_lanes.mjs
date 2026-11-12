@@ -102,6 +102,12 @@ try {
   assert.equal(chartWheels, 0, 'Popover wheels cannot reach the native chart or change its zoom')
   assert.equal(controls.y('rate'), beforeScrollY, 'Popover scrolling leaves the plotted lanes in place')
   shell.removeEventListener('wheel', chartWheel)
+  const beforeStyle = preferences, stableHeader = shell.querySelector('[aria-label="Collapse Labor"]')
+  update({ ...preferences, series: { ...preferences.series, rate: { ...preferences.series.rate, color: '#123456' } } })
+  assert.equal(shell.querySelector('[aria-label="Collapse Labor"]'), stableHeader, 'Style-only edits keep drawer nodes connected for an open native colour picker')
+  stableHeader.click()
+  assert.equal(preferences.series.rate.color, '#123456', 'A category control uses the latest preferences instead of restoring an earlier colour')
+  update(beforeStyle)
   const original = preferences
   update(patchMacroLayout(preferences, { collapsed: ['inflation'] }))
   for (const [kind, field] of [['visibility', 'visible'], ['forecast', 'forecastVisible'], ['numbers', 'numbersVisible']]) {

@@ -3,7 +3,7 @@ import { macroMetricVisible, toggleMacroAll, type MacroPreferences } from './mac
 
 type Row = { key: string; item: HTMLElement; axisButton: HTMLButtonElement }
 let drawerSequence = 0
-export function createMacroLaneControls(element: HTMLElement, redraw: () => void, change: (value: MacroPreferences) => void, options: { drawerChanged?: (open: boolean) => void } = {}) {
+export function createMacroLaneControls(element: HTMLElement, redraw: () => void, change: (value: MacroPreferences) => void, options: { drawerChanged?: (open: boolean) => void; categorySelected?: () => void } = {}) {
   const layer = document.createElement('div'); layer.className = 'macro-inline-layer'
   const scroll = document.createElement('div'); scroll.className = 'macro-lane-scroll'; scroll.setAttribute('aria-label', 'Scroll MFDI lanes'); scroll.tabIndex = 0
   const drawer = document.createElement('section'); drawer.className = 'macro-series-drawer'; drawer.hidden = true
@@ -25,6 +25,7 @@ export function createMacroLaneControls(element: HTMLElement, redraw: () => void
   const universal = document.createElement('div'); universal.className = 'macro-drawer-universal macro-metric-control'
   const allButtons: { button: HTMLButtonElement; field: 'visible' | 'forecastVisible' | 'numbersVisible'; noun: string }[] = []
   const drawerGroups = new Map<string, HTMLElement>()
+  let structure = ''
   const spacer = document.createElement('div'); scroll.append(spacer); element.append(layer, scroll)
   let rows: Row[] = [], preferences: MacroPreferences | undefined, geometry: ReturnType<typeof macroLanes> = { groups: [], height: 0 }
   let top = 0, available = 0, scrollY = 0, open = false
@@ -201,7 +202,7 @@ export function createMacroLaneControls(element: HTMLElement, redraw: () => void
       else if (keys.some(key => macroMetricVisible(preferences!, key))) start(event, 'selected', keys[0], keys)
     },
     setRows(next: Row[]) {
-      rows = next
+      rows = next; structure = ''
       universal.replaceChildren(); allButtons.length = 0
       const allName = document.createElement('strong'); allName.textContent = 'All series'; universal.append(allName)
       for (const [kind, field, noun] of [['visibility', 'visible', 'series'], ['forecast', 'forecastVisible', 'forecasts'], ['numbers', 'numbersVisible', 'numbers']] as const) {
@@ -238,6 +239,10 @@ export function createMacroLaneControls(element: HTMLElement, redraw: () => void
       }
       if (preferences !== next) {
         preferences = next; geometry = macroLanes(next)
+      }
+      const signature = JSON.stringify(geometry.groups.map(group => [group.id, group.label, group.collapsed, group.keys]))
+      if (signature !== structure) {
+        structure = signature
         const drawerScroll = drawerBody.scrollTop, focus = document.activeElement
         const restoreFocus = focus instanceof HTMLElement && drawerBody.contains(focus)
         drawerBody.replaceChildren(universal)
@@ -248,11 +253,14 @@ export function createMacroLaneControls(element: HTMLElement, redraw: () => void
           const label = document.createElement('span'); label.textContent = `${group.label} (${group.keys.length})`; collapse.append(arrow, label)
           collapse.setAttribute('aria-label', `${group.collapsed ? 'Expand' : 'Collapse'} ${group.label}`)
           collapse.setAttribute('aria-expanded', String(!group.collapsed))
-          collapse.setAttribute('aria-pressed', String(macroLayout(next).categoryTarget === group.id))
-          collapse.onclick = () => change(patchMacroLayout({ ...next,
-            axisTarget: group.keys.find(key => macroMetricVisible(next, key)) ?? group.keys[0] ?? next.axisTarget }, {
-            categoryTarget: group.id, collapsed: group.collapsed
-              ? macroLayout(next).collapsed.filter(id => id !== group.id) : [...macroLayout(next).collapsed, group.id] }))
+          collapse.onclick = () => {
+            if (!preferences) return
+            options.categorySelected?.()
+            const current = preferences, layout = macroLayout(current), collapsed = layout.collapsed.includes(group.id)
+            change(patchMacroLayout({ ...current,
+              axisTarget: group.keys.find(key => macroMetricVisible(current, key)) ?? group.keys[0] ?? current.axisTarget }, {
+              categoryTarget: group.id, collapsed: collapsed ? layout.collapsed.filter(id => id !== group.id) : [...layout.collapsed, group.id] }))
+          }
           collapse.title = 'Click to select every child and fold or expand this list; drag the plot to move the category, or drag this header to reorder it'
           collapse.onpointerdown = event => start(event, 'category', group.id)
           const section = document.createElement('section'); section.dataset.macroDrawerCategory = group.id
@@ -265,6 +273,7 @@ export function createMacroLaneControls(element: HTMLElement, redraw: () => void
         drawerBody.scrollTop = drawerScroll
         if (restoreFocus && focus.isConnected) focus.focus({ preventScroll: true })
       }
+      for (const [id, section] of drawerGroups) section.querySelector('.macro-drawer-category button')?.setAttribute('aria-pressed', String(macroLayout(next).categoryTarget === id))
       scroll.hidden = !lanes || geometry.height <= available; spacer.style.height = `${geometry.height}px`
       scrollY = Math.max(0, Math.min(scrollY, geometry.height - available)); scroll.scrollTop = scrollY
       positionRows()

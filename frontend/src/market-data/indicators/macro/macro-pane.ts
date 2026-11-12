@@ -42,7 +42,7 @@ export function createMacroPane(chart: IChartApi) {
     axisButton.textContent = label.startsWith(`${macroCatalog[key].currency} · `) ? label : `${macroCatalog[key].currency} · ${label}`; axisButton.dataset.macroAxis = key
     axisButton.setAttribute('aria-label', `Select ${label} axis`)
     axisButton.title = `Select ${label}, then drag the plot to move it. In lane view it can be placed freely; dragging the name reorders its category row.`
-    axisButton.onclick = () => selectMetric(key)
+    axisButton.onclick = () => { linked = false; updateLock(); selectMetric(key) }
     const eyeButton = document.createElement('button'); eyeButton.type = 'button'; eyeButton.className = 'macro-visibility-button'
     eyeButton.dataset.macroVisibility = key
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
@@ -75,9 +75,14 @@ export function createMacroPane(chart: IChartApi) {
     numbersButton.append(numbersIcon); numbersButton.onclick = () => toggleNumbers(key)
     const colorInput = document.createElement('input'); colorInput.type = 'color'; colorInput.className = 'macro-color-button'
     colorInput.setAttribute('aria-label', `Colour ${label}`); colorInput.title = `Change ${label} colour`
-    colorInput.onchange = () => {
-      if (indicator && /^#[\da-f]{6}$/i.test(colorInput.value)) commitPreferences({ ...indicator.preferences, series: { ...indicator.preferences.series, [key]: { ...indicator.preferences.series[key], color: colorInput.value } } })
+    const changeColour = () => {
+      const color = colorInput.value
+      if (!indicator || !/^#[\da-f]{6}$/i.test(color) || color === indicator.preferences.series[key]?.color) return
+      series[key]?.applyOptions({ color })
+      if (key === 'rate') rateDots.applyOptions({ color })
+      commitPreferences({ ...indicator.preferences, series: { ...indicator.preferences.series, [key]: { ...indicator.preferences.series[key], color } } })
     }
+    colorInput.oninput = changeColour; colorInput.onchange = changeColour
     chip.append(axisButton, eyeButton, forecastButton, numbersButton, colorInput); item.append(colorDot, chip); controls.append(item)
     return { key, label, item, axisButton, eyeButton, slash, forecastButton, forecastSlash, numbersButton, numbersSlash, colorDot, colorInput }
   }
@@ -127,11 +132,12 @@ export function createMacroPane(chart: IChartApi) {
   const applyDisplayMode = () => {
     if (!indicator) return
     for (const [key, line] of Object.entries(series)) {
-      line.applyOptions({ lineVisible: !laneMode, pointMarkersVisible: key !== 'rate' && !laneMode && indicator.preferences.series[key].pointsVisible,
+      line.applyOptions({ lineVisible: !laneMode, crosshairMarkerVisible: !laneMode && !macroCatalog[key].carry,
+        pointMarkersVisible: key !== 'rate' && !laneMode && indicator.preferences.series[key].pointsVisible,
         priceFormat: { type: 'custom', minMove: key === 'payrolls' ? 1 : 0.01,
           formatter: (value: number) => laneMode ? '' : macroValue(key, value, indicator?.history[key]?.at(-1)) } })
     }
-    rateDots.applyOptions({ visible: !laneMode && macroMetricVisible(indicator.preferences, 'rate') && indicator.preferences.series.rate.pointsVisible,
+    rateDots.applyOptions({ visible: !laneMode && macroMetricVisible(indicator.preferences, 'rate') && indicator.preferences.series.rate.pointsVisible, crosshairMarkerVisible: !laneMode,
       priceFormat: { type: 'custom', minMove: 0.01, formatter: (value: number) => laneMode ? '' : macroValue('rate', value) } })
   }
   const commitPreferences = (next: MacroPreferences) => {
@@ -143,7 +149,7 @@ export function createMacroPane(chart: IChartApi) {
   const laneControls = createMacroLaneControls(chart.chartElement(), () => requestUpdate(), commitPreferences, { drawerChanged: open => {
     seriesButton.setAttribute('aria-expanded', String(open)); releaseHover = undefined; forecastHover = undefined; releaseTooltip.hide()
     if (!open) seriesButton.focus()
-  } })
+  }, categorySelected: () => { linked = false; updateLock() } })
   seriesButton.onclick = () => laneControls.toggleDrawer()
   seriesButton.setAttribute('aria-controls', laneControls.drawerId)
   laneControls.setRows(metricControls)
@@ -287,7 +293,7 @@ export function createMacroPane(chart: IChartApi) {
     for (const { key, label, axisButton, eyeButton, slash, forecastButton, forecastSlash, numbersButton, numbersSlash, colorDot, colorInput } of metricControls) {
       const visible = macroMetricVisible(p, key)
       colorDot.style.backgroundColor = p.series[key].color
-      colorInput.value = p.series[key].color
+      if (document.activeElement !== colorInput && colorInput.value !== p.series[key].color) colorInput.value = p.series[key].color
       axisButton.setAttribute('aria-pressed', String(linked ? visible : selection.includes(key)))
       eyeButton.setAttribute('aria-pressed', String(visible))
       eyeButton.setAttribute('aria-label', `${visible ? 'Hide' : 'Show'} ${label}`)
@@ -368,9 +374,31 @@ export function createMacroPane(chart: IChartApi) {
     return hit
   }
   const onClick = (event: MouseEventParams<Time>) => {
-    const hit = inspectRelease ? hitDot(event) : undefined
-    if (hit) { claimChartClick(event); inspectRelease!(hit.reading) }
+    const hit = hitDot(event)
+    if (hit) {
+      if (inspectRelease) { claimChartClick(event); inspectRelease(hit.reading) }
+      return
+    }
+    if (event.point) resetSelection()
   }
+  const resetSelection = () => {
+    if (!indicator) return
+    const layout = indicator.preferences.layout
+    if (linked && !layout?.categoryTarget) return
+    for (const [axis, id] of axisScales) captureBounds(axis, id, true)
+    linked = true
+    if (layout?.categoryTarget) {
+      const next = { ...layout }; delete next.categoryTarget
+      commitPreferences({ ...indicator.preferences, layout: next })
+    } else { updateLock(); updateLegend(); requestUpdate() }
+  }
+  const outsideClick = (event: MouseEvent) => {
+    if (!(event.target instanceof Node) || chart.chartElement().contains(event.target)) return
+    const target = event.target instanceof HTMLElement ? event.target : event.target.parentElement
+    if (target?.closest('.macro-settings-dialog')) return
+    resetSelection()
+  }
+  chart.chartElement().ownerDocument.addEventListener('click', outsideClick)
   chart.subscribeClick(onClick)
   // Project onto the existing future axis without registering forecast timestamps
   // or contributing forecast values to any native price scale.
@@ -623,6 +651,7 @@ export function createMacroPane(chart: IChartApi) {
       if (boundsFrame !== null) window.cancelAnimationFrame(boundsFrame)
       chart.unsubscribeCrosshairMove(onHover)
       chart.unsubscribeClick(onClick)
+      chart.chartElement().ownerDocument.removeEventListener('click', outsideClick)
       chart.chartElement().removeEventListener('pointerdown', groupDrag, true)
       chart.chartElement().removeEventListener('wheel', laneWheel, true)
       laneControls.destroy(); pane.detachPrimitive(primitive); legend.remove(); releaseTooltip.destroy()

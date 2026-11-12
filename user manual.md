@@ -83,7 +83,8 @@ Open the gear and use **Inputs**:
 readout only. An explicitly saved unticked choice stays unticked.
 **Series** opens a drawer from the pane's right edge. Eye/F/N controls are aligned
 in fixed columns there, with a colour circle to the right of N. Click the circle
-to change the series colour. Event names and controls live only in the drawer.
+to change the series colour. Changes update the line, dots and forecasts live
+while the native picker stays open. Event names and controls live only in the drawer.
 The top **All series** eye/F/N row toggles the selected events together, including
 collapsed categories. If any are on, a click turns them all off; the next turns
 them all on. Unticked currencies keep their saved settings. Close the drawer with ×, Escape
@@ -101,7 +102,11 @@ header to move all its rows together. Click anywhere on its arrow/name button
 to collapse/expand its drawer list and select every child. Plotted lines stay
 visible and keep their positions in both views. With the lock off, drag the plot
 to move the selected category together; click an event name to return to selecting
-one line. The selected category is highlighted, including when its list is folded.
+one line. Selecting a category or event turns the lock off. Clicking blank chart
+space or elsewhere outside the chart returns to linked lanes and clears the
+category highlight. Series controls, MFDI settings and release-dot clicks keep
+your current selection. The selected category is highlighted, including when
+its list is folded.
 Deleting a category keeps its events under Uncategorized. The scrollbar reveals
 additional lanes. Membership follows the saved currency event lists; category/row
 order, collapse, Lane view and Hide Legend are saved separately for each symbol.

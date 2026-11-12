@@ -192,7 +192,8 @@ The adjacent three-line **Lane view** button draws perfectly straight rows, with
 actual values, arrows, dates and forecasts retained. Click again to restore the
 numerical plot. **Series** opens a right-side overlay drawer: event names occupy
 one column, followed by vertically aligned eye/F/N controls and a colour circle.
-Click the circle to choose a colour. Event/category names and controls exist only
+Click the circle to choose a colour; live picker input immediately updates the
+line, dots and forecasts without rebuilding the open picker. Event/category names and controls exist only
 in the drawer; number labels remain above the dots when N is enabled.
 The top All series eye/F/N row toggles all selected events together, including
 collapsed categories. Mixed states switch everything off; the next click switches
@@ -206,6 +207,11 @@ and select every child, then drag the plot to move that category together in
 either view. Folding never hides or shifts plotted lines. Drag the header to reorder.
 With Lane view on and the lock off, select an event name, then drag the plot to
 place that straight line freely without moving its peers or numerical scale.
+Selecting a series/category unlinks the group. A blank chart click or a click
+outside the chart returns to linked movement and clears category selection;
+Series controls, MFDI settings and release-dot clicks preserve the selection.
+Lane view suppresses native numerical crosshair dots; only its actual lane dots
+and their release cards remain interactive.
 **Fit all lanes** restores the category arrangement and fits it into the pane.
 Lane offset, spacing and individual line placements are saved per symbol.
 **Hide Legend** is ticked by default in Inputs and hides only the value/release

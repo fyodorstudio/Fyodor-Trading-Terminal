@@ -792,11 +792,27 @@ try {
     assert.ok(Object.values(macro.preferences.series).every(style => style[field]))
   }
   macro = { ...macro, preferences: { ...macro.preferences, series: universalStyles } }; await render({ macro })
-  const oldColour = macro.preferences.series.payrolls.color
+  const oldColour = macro.preferences.series.payrolls.color, colourAxis = macro.preferences.axisTarget
   const picker = host.querySelector('[data-macro-row="payrolls"] input[type="color"]')
-  await React.act(async () => { picker.value = '#1267ab'; picker.dispatchEvent(new dom.Event('change', { bubbles: true })) }); await render({ macro })
-  assert.equal(payrollLine.options().color, '#1267ab', 'The drawer colour picker updates the actual series')
+  const colourSection = picker.closest('[data-macro-drawer-category]'), colourHeader = colourSection.querySelector('.macro-drawer-category button')
+  picker.focus()
+  for (const color of ['#1267ab', '#3278bc', '#4389cd']) {
+    await React.act(async () => { picker.value = color; picker.dispatchEvent(new dom.Event('input', { bubbles: true })) })
+    assert.equal(payrollLine.options().color, color, 'Native line and dots reflect live picker input before a parent render')
+    await React.act(async () => { for (const listener of nativeCrosshairListeners) listener({ point: undefined, seriesData: new Map() }) }); await paint()
+    assert.equal(picker.value, color, 'Hover updates cannot put the old colour back into the open picker')
+    await render({ macro })
+    assert.equal(picker.closest('[data-macro-drawer-category]'), colourSection, 'Colour changes never detach the open picker from its drawer section')
+  }
+  await React.act(async () => colourHeader.click()); await render({ macro })
+  assert.equal(macro.preferences.series.payrolls.color, '#4389cd', 'Category actions cannot restore a stale colour snapshot')
+  await React.act(async () => host.querySelector('[aria-label="Expand Labor"]').click()); await render({ macro })
+  await selectAxis(colourAxis)
   await React.act(async () => { picker.value = oldColour; picker.dispatchEvent(new dom.Event('change', { bubbles: true })) }); await render({ macro })
+  const ratePicker = host.querySelector('[data-macro-row="rate"] input[type="color"]'), oldRateColour = macro.preferences.series.rate.color
+  await React.act(async () => { ratePicker.value = '#125689'; ratePicker.dispatchEvent(new dom.Event('input', { bubbles: true })) })
+  assert.equal(rateLine.options().color, '#125689'); assert.equal(rateDots.options().color, '#125689', 'Fed line and its separate native dots update together')
+  await React.act(async () => { ratePicker.value = oldRateColour; ratePicker.dispatchEvent(new dom.Event('change', { bubbles: true })) }); await render({ macro })
   host.querySelector('.macro-series-drawer').dispatchEvent(new dom.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
   assert.equal(host.querySelector('.macro-series-drawer').hidden, true)
   assert.equal(document.activeElement, seriesDrawerButton)
@@ -999,6 +1015,7 @@ try {
   await fireDotClick(payrollLine, 0, { point: { x: chart.timeScale().timeToCoordinate(point.time) + 12, y: payrollLine.priceToCoordinate(point.value) } })
   assert.equal(inspectedReleases.length, beforeMisses, 'Carried values, other panes and blank space never select a release')
   assert.ok(backgroundDismissals > 0, 'Blank-chart dismissal remains available')
+  assert.equal(host.querySelector('[aria-label="Unlink MFDI axes"]').getAttribute('aria-pressed'), 'true', 'Blank clicks switch back to linked movement')
   await fireDotClick(payrollLine, 0, { time: macroBars[44].time })
   assert.equal(inspectedReleases.at(-1).id, 'nfp-one', 'Near-dot clicks survive native snapping to a neighboring candle')
   const originalStyles = macro.preferences.series
@@ -1176,6 +1193,22 @@ try {
     assert.ok(dots.length, `${key}: lane mode draws actual release dots`)
     assert.equal(new Set(dots.map(dot => dot.y)).size, 1, 'Different numeric values occupy one perfectly horizontal lane')
   }
+  for (const line of [rateLine, payrollLine, unemploymentLine, coreLine, headlineLine, rateDots]) assert.equal(line.options().crosshairMarkerVisible, false, 'Lane view suppresses every native numerical hover dot')
+  const blankLaneRanges = fixedRanges(), blankLaneDates = chart.timeScale().getVisibleLogicalRange()
+  const blankEvent = { point: { x: 5, y: macroPane.getHeight() - 5 }, time: macroBars[20].time, paneIndex: macroPane.paneIndex(), seriesData: new Map() }
+  await React.act(async () => { for (const listener of [...nativeClickListeners]) listener(blankEvent) }); await paint()
+  assert.equal(lockAxes.getAttribute('aria-pressed'), 'true', 'Blank lane clicks return to linked lanes')
+  await selectAxis('payrolls')
+  assert.equal(lockAxes.getAttribute('aria-pressed'), 'false', 'Choosing a series switches from linked lanes to independent movement')
+  const outside = document.createElement('button'); document.body.append(outside)
+  await React.act(async () => outside.click()); await paint()
+  assert.equal(lockAxes.getAttribute('aria-pressed'), 'true', 'Clicking elsewhere on the page clears individual selection')
+  await selectAxis('payrolls')
+  const settingsSurface = document.createElement('div'); settingsSurface.className = 'macro-settings-dialog'; const settingsControl = document.createElement('button'); settingsSurface.append(settingsControl); document.body.append(settingsSurface)
+  await React.act(async () => settingsControl.click()); await paint()
+  assert.equal(lockAxes.getAttribute('aria-pressed'), 'false', 'Editing MFDI settings preserves the selected series')
+  settingsSurface.remove(); outside.remove()
+  assert.deepEqual(fixedRanges(), blankLaneRanges); assert.deepEqual(chart.timeScale().getVisibleLogicalRange(), blankLaneDates)
   await React.act(async () => seriesDrawerButton.click()); await paint()
   const beforeCategoryData = macroPane.getSeries().map(line => line.data()), beforeCategoryDates = chart.timeScale().getVisibleLogicalRange()
   laneDots.length = 0
@@ -1184,6 +1217,16 @@ try {
   assert.equal(host.querySelector('[data-macro-row="payrolls"]').style.display, 'none', 'Collapse only folds the drawer children')
   for (const key of ['payrolls', 'unemployment']) assert.equal(host.querySelector(`[data-macro-axis="${key}"]`).getAttribute('aria-pressed'), 'true', 'Every child is selected together')
   assert.equal(host.querySelector('[data-macro-axis="rate"]').getAttribute('aria-pressed'), 'false')
+  const selectedCategoryDates = chart.timeScale().getVisibleLogicalRange()
+  await React.act(async () => { for (const listener of [...nativeClickListeners]) listener(blankEvent) }); await render({ macro })
+  assert.equal(macro.preferences.layout.categoryTarget, undefined, 'Blank clicks clear the selected category')
+  assert.equal(lockAxes.getAttribute('aria-pressed'), 'true')
+  assert.equal(host.querySelector('[aria-label="Expand Labor"]').getAttribute('aria-pressed'), 'false')
+  await React.act(async () => host.querySelector('[aria-label="Expand Labor"]').click()); await paint()
+  assert.equal(lockAxes.getAttribute('aria-pressed'), 'false', 'Selecting a category returns to category-only movement')
+  await React.act(async () => host.querySelector('[aria-label="Collapse Labor"]').click()); await paint()
+  assert.deepEqual(chart.timeScale().getVisibleLogicalRange(), selectedCategoryDates)
+
   const categoryBeforeDots = Object.fromEntries(['payrolls', 'unemployment', 'rate'].map(key => [key, laneDots.find(dot => dot.color === macro.preferences.series[key].color).y]))
   const categoryNativeRanges = fixedRanges()
   laneDots.length = 0
@@ -1254,6 +1297,8 @@ try {
   assert.equal(payrollLine.options().lineVisible, false, 'Native numerical lines are replaced only visually')
   await React.act(async () => flatten.click()); await paint()
   assert.equal(flatten.getAttribute('aria-pressed'), 'false')
+  assert.equal(payrollLine.options().crosshairMarkerVisible, true, 'Numerical view restores native hover dots')
+  assert.equal(rateLine.options().crosshairMarkerVisible, false, 'Fed carry values retain their original no-hover-marker behavior')
   placement().forEach((values, index) => values.forEach((value, point) => close(value, beforeFlat[index][point], 'Leaving lane mode restores each numerical scale')))
   macroPane.setHeight(beforeLaneHeight); await paint()
   await React.act(async () => host.querySelector('[aria-label="Collapse Inflation"]').click()); await render({ macro })
