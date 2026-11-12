@@ -62,6 +62,25 @@ horizontal zoom remain unchanged. Refocus explicitly resets the current view.
 
 ## MFDI
 
+
+Named MFDI presets save currency/event selections, colours, eye/F/N and dot choices,
+categories/order/collapse, straight-lane positions, spacing, vertical scroll,
+linked movement and numerical axis placements. The working layout saves locally
+and restores after refresh across every symbol. Currency ticks hide/show without
+packing other lines upward; retained lane anchors restore when re-enabled.
+In **Series**, choose a preset to load it, enter a name and **Save as…**, or use
+**Update preset** to overwrite that saved snapshot. Working edits never silently
+overwrite named presets. In **MFDI settings → Inputs → Named presets**, load,
+create, update, rename, duplicate or delete presets, and export/import a JSON
+backup. Settings and library edits stay drafts until **OK**; **Cancel** discards
+them. Import adds copies rather than replacing existing presets. Loading a preset
+keeps the price chart's date window and does not fit the MFDI lines.
+Saved numerical mappings preserve pixels per unit and top placement when pane
+height changes. A smaller viewport may clamp scrolling while retaining the saved
+scroll for when space permits. Fit/reorder actions deliberately rearrange lines.
+Storage is local to this browser/app profile; export a backup to transfer it or
+protect it before clearing site data. A storage failure is shown in MFDI's status.
+
 Click **MFDI** beside Volume and RSI on any chart symbol. Drag its divider to add
 canvas space without stretching the plotted lines. MFDI uses one universal
 configuration on all symbols, so changing pairs retains visibility, enabled
@@ -175,7 +194,7 @@ consensus in the Forecast column where available.
 See the [Fed consensus reference](docs/MFDI-FORECASTS.md).
 
 All scale bounds survive scrolling, backfill, live updates and axis switches. Linked
-axis movement lasts while the pane is open; saved lane/category settings survive refresh. Successful
+axis movement, numerical bounds and saved lane/category settings survive refresh. Successful
 charts show no static source caption; loading/error/empty messages appear as needed.
 
 ## Volume

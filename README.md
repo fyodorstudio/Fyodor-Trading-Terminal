@@ -222,6 +222,25 @@ Lane view suppresses native numerical crosshair dots; only its actual lane dots
 and their release cards remain interactive.
 **Fit all lanes** restores the category arrangement and fits it into the pane.
 Lane offset, spacing and individual line placements are saved universally.
+
+Named MFDI presets save currency/event selections, colours, eye/F/N and dot choices,
+categories/order/collapse, straight-lane positions, spacing, vertical scroll,
+linked movement and numerical axis placements. The working layout saves locally
+and restores after refresh across every symbol. Currency ticks hide/show without
+packing other lines upward; retained lane anchors restore when re-enabled.
+In **Series**, choose a preset to load it, enter a name and **Save as…**, or use
+**Update preset** to overwrite that saved snapshot. Working edits never silently
+overwrite named presets. In **MFDI settings → Inputs → Named presets**, load,
+create, update, rename, duplicate or delete presets, and export/import a JSON
+backup. Settings and library edits stay drafts until **OK**; **Cancel** discards
+them. Import adds copies rather than replacing existing presets. Loading a preset
+keeps the price chart's date window and does not fit the MFDI lines.
+Saved numerical mappings preserve pixels per unit and top placement when pane
+height changes. A smaller viewport may clamp scrolling while retaining the saved
+scroll for when space permits. Fit/reorder actions deliberately rearrange lines.
+Storage is local to this browser/app profile; export a backup to transfer it or
+protect it before clearing site data. A storage failure is shown in MFDI's status.
+
 **Hide Legend** is ticked by default in Inputs and hides only the value/release
 readout; explicit saved choices remain unchanged. Category names, assignments and event lists are shared;
 category order, row order, collapsed state, lane mode and Hide Legend are shared
@@ -236,7 +255,7 @@ Dropping outside the drawer cancels. This works in both views; clicking the name
 only selects its chart series. Category collapse controls live in
 the drawer; the lane scrollbar reveals rows when they exceed the available pane height. Pane resizing adds canvas space below
 without stretching plots. Each scale holds its placement across scrolling, backfill,
-updates, eyes and axis changes. Linked-axis mode lasts while the pane is open.
+updates, eyes and axis changes. The linked-axis choice also survives refresh.
 
 Only selected event IDs/currencies are loaded, sharing one paged snapshot and polling
 clock. No selections means no macro calendar polling. Numeric released actuals with

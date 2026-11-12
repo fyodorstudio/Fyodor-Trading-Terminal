@@ -1,9 +1,10 @@
+import { createMacroPresetControls } from './macro-preset-controls'
 import { macroLanes, macroLayout, macroSelection, moveMacroRow, patchMacroLayout } from './macro-layout'
 import { macroMetricVisible, toggleMacroAll, type MacroPreferences } from './macro-preferences'
 
 type Row = { key: string; item: HTMLElement; dragButton: HTMLButtonElement }
 let drawerSequence = 0
-export function createMacroLaneControls(element: HTMLElement, redraw: () => void, change: (value: MacroPreferences) => void, options: { drawerChanged?: (open: boolean) => void; categorySelected?: () => void } = {}) {
+export function createMacroLaneControls(element: HTMLElement, redraw: () => void, change: (value: MacroPreferences) => void, options: { drawerChanged?: (open: boolean) => void; categorySelected?: () => void; beforePreset?: () => MacroPreferences | undefined } = {}) {
   const layer = document.createElement('div'); layer.className = 'macro-inline-layer'
   const scroll = document.createElement('div'); scroll.className = 'macro-lane-scroll'; scroll.setAttribute('aria-label', 'Scroll MFDI lanes'); scroll.tabIndex = 0
   const drawer = document.createElement('section'); drawer.className = 'macro-series-drawer'; drawer.hidden = true
@@ -22,7 +23,8 @@ export function createMacroLaneControls(element: HTMLElement, redraw: () => void
   resize.setAttribute('aria-label', 'Resize MFDI series window'); resize.title = 'Drag to resize; arrow keys also resize'
   const grip = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); grip.setAttribute('viewBox', '0 0 24 24'); grip.setAttribute('width', '18'); grip.setAttribute('height', '18'); grip.setAttribute('aria-hidden', 'true')
   const gripLines = document.createElementNS(grip.namespaceURI, 'path'); gripLines.setAttribute('d', 'M6 18 18 6 M12 18 18 12'); gripLines.setAttribute('stroke', 'currentColor'); gripLines.setAttribute('stroke-width', '1.5'); grip.append(gripLines); resize.append(grip)
-  drawerHeader.append(title, fit, close); drawer.append(drawerHeader, spacingLabel, drawerBody, resize); element.append(drawer)
+  const presets = createMacroPresetControls(change, () => { flushScroll(); return options.beforePreset?.() ?? preferences })
+  drawerHeader.append(title, fit, close); drawer.append(drawerHeader, presets.element, spacingLabel, drawerBody, resize); element.append(drawer)
   const universal = document.createElement('div'); universal.className = 'macro-drawer-universal macro-metric-control'
   const allButtons: { button: HTMLButtonElement; field: 'visible' | 'forecastVisible' | 'numbersVisible'; noun: string }[] = []
   const drawerGroups = new Map<string, HTMLElement>()
@@ -132,7 +134,15 @@ export function createMacroLaneControls(element: HTMLElement, redraw: () => void
     window.addEventListener('pointermove', move); window.addEventListener('pointerup', finish)
     window.addEventListener('pointercancel', cancel); window.addEventListener('keydown', key)
   }
-  scroll.addEventListener('scroll', () => { scrollY = scroll.scrollTop; request() })
+  let scrollTimer: number | null = null
+  const flushScroll = () => {
+    if (scrollTimer === null) return
+    if (scrollTimer !== null) { window.clearTimeout(scrollTimer); scrollTimer = null }
+    if (preferences && scrollY !== (macroLayout(preferences).laneScroll ?? 0)) { preferences = patchMacroLayout(preferences, { laneScroll: scrollY }); change(preferences) }
+  }
+  const saveScroll = () => { if (scrollTimer !== null) window.clearTimeout(scrollTimer); scrollTimer = window.setTimeout(flushScroll, 120) }
+  window.addEventListener('pagehide', flushScroll)
+  scroll.addEventListener('scroll', () => { if (!scroll.hidden && scrollY !== scroll.scrollTop) { scrollY = scroll.scrollTop; request(); saveScroll() } })
   drawer.addEventListener('wheel', event => {
     event.stopPropagation(); event.preventDefault()
     const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? drawerBody.clientHeight : 1
@@ -187,7 +197,7 @@ export function createMacroLaneControls(element: HTMLElement, redraw: () => void
     event.preventDefault(); event.stopPropagation()
     const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? available : 1
     scrollY = Math.max(0, Math.min(Math.max(0, geometry.height - available), scrollY + event.deltaY * unit))
-    scroll.scrollTop = scrollY; request()
+    scroll.scrollTop = scrollY; request(); saveScroll()
   }
   for (const target of [layer, scroll]) target.addEventListener('wheel', scrollLanes, { passive: false })
   const toggleDrawer = (value = !open) => {
@@ -208,7 +218,7 @@ export function createMacroLaneControls(element: HTMLElement, redraw: () => void
     if (!preferences || !macroLayout(preferences).laneMode || !geometry.height) return
     const unit = geometry.height / (macroLayout(preferences).laneSpacing ?? 28)
     scrollY = 0; scroll.scrollTop = 0
-    change(patchMacroLayout(preferences, { laneOffset: 0, rowOffsets: {}, laneSpacing: Math.max(0.1, Math.min(120, (available - 8) / unit)) }))
+    change(patchMacroLayout(preferences, { laneOffset: 0, rowOffsets: {}, laneScroll: 0, laneSlots: {}, laneSpacing: Math.max(0.1, Math.min(120, (available - 8) / unit)) }))
   }
   fit.onclick = fitAll
   spacing.oninput = () => { if (preferences) change(patchMacroLayout(preferences, { laneSpacing: Number(spacing.value) })) }
@@ -245,6 +255,7 @@ export function createMacroLaneControls(element: HTMLElement, redraw: () => void
       }
     },
     position(next: MacroPreferences, width: number, height: number, inset: number, offset: number) {
+      presets.sync(next)
       top = inset; available = Math.max(0, height - top)
       layer.style.top = `${offset + top}px`; layer.style.width = `${Math.max(0, width - 24)}px`; layer.style.height = `${available}px`
       scroll.style.top = layer.style.top; scroll.style.left = `${Math.max(0, width - 14)}px`; scroll.style.height = layer.style.height
@@ -262,6 +273,8 @@ export function createMacroLaneControls(element: HTMLElement, redraw: () => void
         for (const slash of button.querySelectorAll('[data-eye-slash], [data-forecast-slash], [data-numbers-slash]')) slash.setAttribute('visibility', enabled ? 'hidden' : 'visible')
       }
       if (preferences !== next) {
+        if (scrollTimer !== null && ((next.layout?.laneScroll ?? 0) !== (preferences?.layout?.laneScroll ?? 0) || next.layout?.axisRestoreId !== preferences?.layout?.axisRestoreId)) { window.clearTimeout(scrollTimer); scrollTimer = null }
+        if (scrollTimer === null) scrollY = macroLayout(next).laneScroll ?? 0
         preferences = next; geometry = macroLanes(next)
       }
       const signature = JSON.stringify(geometry.groups.map(group => [group.id, group.label, group.collapsed, group.keys]))
@@ -283,7 +296,7 @@ export function createMacroLaneControls(element: HTMLElement, redraw: () => void
             const current = preferences, layout = macroLayout(current), collapsed = layout.collapsed.includes(group.id)
             change(patchMacroLayout({ ...current,
               axisTarget: group.keys.find(key => macroMetricVisible(current, key)) ?? group.keys[0] ?? current.axisTarget }, {
-              categoryTarget: group.id, collapsed: collapsed ? layout.collapsed.filter(id => id !== group.id) : [...layout.collapsed, group.id] }))
+              linked: false, categoryTarget: group.id, collapsed: collapsed ? layout.collapsed.filter(id => id !== group.id) : [...layout.collapsed, group.id] }))
           }
           collapse.title = 'Click to select every child and fold or expand this list. Reorder categories in MFDI settings.'
           const section = document.createElement('section'); section.dataset.macroDrawerCategory = group.id
@@ -297,10 +310,11 @@ export function createMacroLaneControls(element: HTMLElement, redraw: () => void
         if (restoreFocus && focus.isConnected) focus.focus({ preventScroll: true })
       }
       updateCategorySelection()
+      if (scrollTimer === null) scrollY = macroLayout(next).laneScroll ?? 0
       scroll.hidden = !lanes || geometry.height <= available; spacer.style.height = `${geometry.height}px`
       scrollY = Math.max(0, Math.min(scrollY, geometry.height - available)); scroll.scrollTop = scrollY
       positionRows()
     },
-    destroy() { cancelWindowDrag(); cancelDrag(); element.removeEventListener('keydown', escape); layer.remove(); scroll.remove(); drawer.remove() },
+    destroy() { if (scrollTimer !== null) window.clearTimeout(scrollTimer); scrollTimer = null; window.removeEventListener('pagehide', flushScroll); cancelWindowDrag(); cancelDrag(); element.removeEventListener('keydown', escape); layer.remove(); scroll.remove(); drawer.remove() },
   }
 }

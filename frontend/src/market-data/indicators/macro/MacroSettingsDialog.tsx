@@ -1,5 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { macroCatalog } from './macro-catalog'
+import { MacroPresetSettings } from './MacroPresetSettings'
+import { readMacroPresets, writeMacroPresets } from './macro-presets'
 import { MacroEventSelector } from './MacroEventSelector'
 import { MacroCategorySettings } from './MacroCategorySettings'
 import { macroDefaultStyle, macroAxis, selectedMacroMetrics, selectMacroAxis, type MacroMetric, type MacroPreferences, type MacroStyle } from './macro-preferences'
@@ -10,6 +12,7 @@ export function MacroSettingsDialog({ preferences, onSave, onClose }: {
   preferences: MacroPreferences; onSave: (next: MacroPreferences) => void; onClose: () => void
 }) {
   const [draft, setDraft] = useState(preferences), [tab, setTab] = useState<'inputs' | 'style'>('inputs')
+  const [presets, setPresets] = useState(readMacroPresets), [error, setError] = useState('')
   const dialog = useRef<HTMLFormElement>(null), id = useId()
   useEffect(() => {
     const focus = document.activeElement as HTMLElement | null
@@ -30,7 +33,7 @@ export function MacroSettingsDialog({ preferences, onSave, onClose }: {
     series: { ...current.series, [key]: { ...current.series[key], ...patch } } }))
   return <div className="rsi-dialog-backdrop" onPointerDown={event => { if (event.target === event.currentTarget) onClose() }}>
     <form ref={dialog} className="rsi-settings-dialog macro-settings-dialog" role="dialog" aria-modal="true" aria-labelledby={`${id}-title`}
-      onSubmit={event => { event.preventDefault(); onSave({ ...draft, enabled: preferences.enabled }); onClose() }}>
+      onSubmit={event => { event.preventDefault(); try { writeMacroPresets(presets); onSave({ ...draft, enabled: preferences.enabled }); onClose() } catch { setError('Could not save presets. Local storage may be full or unavailable. Export your presets before closing.') } }}>
       <header><strong id={`${id}-title`}>MFDI · All symbols</strong><button type="button" onClick={onClose} aria-label="Close MFDI settings">×</button></header>
       <div className="rsi-settings-tabs" role="tablist" aria-label="MFDI settings">
         {(['inputs', 'style'] as const).map(item => <button key={item} type="button" role="tab" id={`${id}-${item}`}
@@ -45,6 +48,7 @@ export function MacroSettingsDialog({ preferences, onSave, onClose }: {
       </div>
       <div className="rsi-settings-body" role="tabpanel" id={`${id}-panel`} aria-labelledby={`${id}-${tab}`}>
         {tab === 'inputs' ? <>
+          <MacroPresetSettings preferences={draft} onChange={setDraft} presets={presets} onPresets={setPresets} />
           <MacroEventSelector preferences={draft} onChange={setDraft} />
           <MacroCategorySettings preferences={draft} onChange={setDraft} />
           <label>Right axis<select value={macroAxis(draft)} onChange={event => setDraft(current => selectMacroAxis(current, event.target.value))} disabled={!selectedMacroMetrics(draft).length}>
@@ -64,6 +68,7 @@ export function MacroSettingsDialog({ preferences, onSave, onClose }: {
           </fieldset>)}
         </>}
       </div>
+      {error && <p role="alert">{error}</p>}
       <footer><button type="button" onClick={() => setDraft(current => ({ ...selectMacroAxis(current, selectedMacroMetrics(current)[0] ?? 'rate'), series: Object.fromEntries(Object.keys(current.series).map(key => [key, macroDefaultStyle(key)])) }))}>Reset defaults</button>
         <button type="button" onClick={onClose}>Cancel</button><button type="submit">OK</button></footer>
     </form>

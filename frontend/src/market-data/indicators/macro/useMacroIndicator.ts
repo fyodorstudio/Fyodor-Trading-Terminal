@@ -7,9 +7,10 @@ import { useFedForecasts } from './useFedForecasts'
 
 export function useMacroIndicator(symbol: string, brokerId: string | null) {
   const [macroPreferences, setPreferences] = useState(() => readMacroPreferences(symbol))
+  const [preferencesSaved, setPreferencesSaved] = useState(true)
   useEffect(() => { saveMacroPreferences(macroPreferences) }, [macroPreferences])
   const [macroSettingsOpen, setMacroSettingsOpen] = useState(false)
-  const changeMacro = useCallback((next: MacroPreferences) => { setPreferences(next) }, [])
+  const changeMacro = useCallback((next: MacroPreferences) => { setPreferencesSaved(saveMacroPreferences(next)); setPreferences(next) }, [])
   const toggleMacro = useCallback(() => changeMacro({ ...macroPreferences, enabled: !macroPreferences.enabled }), [changeMacro, macroPreferences])
   const selection = selectedMacroMetrics(macroPreferences).join('|')
   const keys = useMemo(() => selection ? selection.split('|') : [], [selection])
@@ -42,7 +43,7 @@ export function useMacroIndicator(symbol: string, brokerId: string | null) {
     })
     return { history, forecastHistory, upcoming: macroUpcoming(stored.events, now, keys) }
   }, [stored.events, meetings, keys])
-  const status = !brokerId ? 'Connect a broker to load stored macro data'
+  const status = !preferencesSaved ? 'MFDI layout could not be saved. Local storage is full or unavailable; export a preset backup.' : !brokerId ? 'Connect a broker to load stored macro data'
     : stored.loading ? 'Loading macro releases…'
     : stored.error ? `Macro history unavailable · ${stored.error}`
     : stored.collectorError ? 'Calendar collector unavailable'

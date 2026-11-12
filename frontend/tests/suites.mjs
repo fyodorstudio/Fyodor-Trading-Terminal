@@ -12,6 +12,7 @@ export const suites = [
   "tests/test_macro.mjs",
   "tests/test_macro_configuration.mjs",
   "tests/test_macro_lanes.mjs",
+  "tests/test_macro_presets.mjs",
   "tests/test_fed_forecasts.mjs",
   "tests/test_rsi.mjs",
   "tests/test_rsi_chart_contract.mjs",

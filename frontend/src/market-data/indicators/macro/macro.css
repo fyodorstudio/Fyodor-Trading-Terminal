@@ -75,3 +75,13 @@
 .macro-tooltip-connector path { stroke: var(--text-muted); stroke-width: 1; fill: none; }
 
 .macro-series-drawer .macro-drawer-universal { position: sticky; top: -4px; z-index: 1; padding: 4px 0; border-bottom: 1px solid var(--border); background: var(--surface-panel); }
+
+.macro-preset-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.macro-preset-import { display: flex; gap: 6px; align-items: center; }
+.macro-preset-import input { max-width: 210px; }
+.macro-preset-controls { display: flex; flex: 0 0 auto; flex-wrap: wrap; gap: 4px; padding: 5px 8px; border-bottom: 1px solid var(--border); }
+.macro-preset-controls :is(select, input) { min-width: 0; width: 100%; padding: 3px; color: var(--text-strong); background: var(--surface-inset); border: 1px solid var(--border-strong); font: inherit; }
+.macro-preset-controls select { flex: 1 1 110px; }
+.macro-preset-controls input { flex: 1 1 90px; }
+.macro-preset-controls [role="status"] { width: 100%; color: var(--text-muted); }
+.macro-preset-controls [role="status"]:empty { display: none; }

@@ -6,7 +6,7 @@ import { claimChartClick } from '../../candlestick-chart/chart-click-selection'
 import { futureTimelineSeconds } from '../../candlestick-chart/future-timeline'
 import { fedSurprise } from './fed-forecast'
 import { macroAxis, macroMetricAxis, macroMetricVisible, selectedMacroMetrics, type MacroAxis, type MacroMetric, type MacroPreferences } from './macro-preferences'
-import { macroLayout, macroSelection, patchMacroLayout } from './macro-layout'
+import { macroLayout, macroSelection, patchMacroLayout, type MacroPlacement } from './macro-layout'
 import { createMacroTooltip } from './macro-tooltip'
 import { createMacroLaneControls } from './macro-lane-controls'
 import { createMacroReleaseMarkers, paintMacroReleaseMarker } from './macro-release-markers'
@@ -176,7 +176,7 @@ export function createMacroPane(chart: IChartApi) {
       priceFormat: { type: 'custom', minMove: 0.01, formatter: (value: number) => laneMode ? '' : macroValue('rate', value) } })
   }
   const commitPreferences = (next: MacroPreferences) => {
-    if (!indicator) return
+    if (destroyed || !indicator) return
     indicator = { ...indicator, preferences: next }; laneMode = macroLayout(next).laneMode
     flattenButton.setAttribute('aria-pressed', String(laneMode)); applyDisplayMode(); updateLock(); updateLegend()
     changePreferences?.(next); requestUpdate()
@@ -184,7 +184,7 @@ export function createMacroPane(chart: IChartApi) {
   const laneControls = createMacroLaneControls(chart.chartElement(), () => requestUpdate(), commitPreferences, { drawerChanged: open => {
     seriesButton.setAttribute('aria-expanded', String(open)); releaseHover = undefined; forecastHover = undefined; releaseTooltip.hide()
     if (!open) seriesButton.focus()
-  }, categorySelected: () => { linked = false; updateLock() } })
+  }, categorySelected: () => { linked = false; updateLock() }, beforePreset: () => { saveOnExit(); return indicator?.preferences } })
   seriesButton.onclick = () => laneControls.toggleDrawer()
   seriesButton.setAttribute('aria-controls', laneControls.drawerId)
   laneControls.setRows(metricControls)
@@ -205,6 +205,9 @@ export function createMacroPane(chart: IChartApi) {
   type Bounds = { from: number; to: number }
   const bounds = new Map<MacroAxis, Bounds>()
   const placements = new Map<MacroAxis, { height: number; unitsPerPixel: number; topValue: number }>()
+  let savedPlacements: Record<string, MacroPlacement> | undefined
+  let restoringPlacements = false, initialPlacements = true
+  let axisRestoreId: string | undefined
   let axisScales = new Map<MacroAxis, string>(), boundsFrame: number | null = null
   const validBounds = (range: Bounds | null): range is Bounds => range !== null
     && Number.isFinite(range.from) && Number.isFinite(range.to) && range.from < range.to
@@ -272,11 +275,26 @@ export function createMacroPane(chart: IChartApi) {
     }
     captureBounds(axis, id, false)
   }
+  const persistBounds = () => {
+    if (indicator) {
+      const snapshot = { ...savedPlacements }
+      for (const [axis, range] of bounds) { const placement = placements.get(axis); if (placement) snapshot[axis] = { ...placement, ...range } }
+      const same = (a: number, b: number) => Math.abs(a - b) <= Math.max(1, Math.abs(a), Math.abs(b)) * 1e-10
+      const changed = Object.entries(snapshot).some(([key, p]) => { const old = savedPlacements?.[key]; return !old || !(['from', 'to', 'height', 'unitsPerPixel', 'topValue'] as const).every(field => same(p[field], old[field])) })
+      if (changed) { savedPlacements = snapshot; commitPreferences(patchMacroLayout(indicator.preferences, { axisPlacements: snapshot })) }
+    }
+  }
+  const saveOnExit = () => {
+    if (destroyed) return
+    for (const [axis, id] of axisScales) captureBounds(axis, id, true)
+    persistBounds()
+  }
+  window.addEventListener('pagehide', saveOnExit)
   const bindAfterPaint = () => {
     if (destroyed || boundsFrame !== null) return
     boundsFrame = window.requestAnimationFrame(() => {
       boundsFrame = null
-      linkAxes()
+      if (!restoringPlacements) linkAxes()
       for (const [axis, id] of axisScales) {
         const scale = pane.priceScale(id)
         // Native initial fitting and double-click fitting settle at paint. Read
@@ -287,7 +305,8 @@ export function createMacroPane(chart: IChartApi) {
         }
         applyBounds(axis, id)
       }
-      fittingAll = false
+      fittingAll = false; restoringPlacements = false
+      persistBounds()
     })
   }
   fitButton.onclick = () => {
@@ -318,7 +337,7 @@ export function createMacroPane(chart: IChartApi) {
   lockButton.onclick = () => {
     for (const [axis, id] of axisScales) captureBounds(axis, id, true)
     linked = !linked
-    updateLock(); updateLegend()
+    if (indicator) commitPreferences(patchMacroLayout(indicator.preferences, { linked }))
   }
   updateLock()
   flattenButton.onclick = () => { if (indicator) commitPreferences(patchMacroLayout(indicator.preferences, { laneMode: !laneMode })) }
@@ -428,14 +447,14 @@ export function createMacroPane(chart: IChartApi) {
     for (const [axis, id] of axisScales) captureBounds(axis, id, true)
     linked = true
     if (layout?.categoryTarget) {
-      const next = { ...layout }; delete next.categoryTarget
+      const next = { ...layout, linked: true }; delete next.categoryTarget
       commitPreferences({ ...indicator.preferences, layout: next })
-    } else { updateLock(); updateLegend(); requestUpdate() }
+    } else commitPreferences(patchMacroLayout(indicator.preferences, { linked: true }))
   }
   const outsideClick = (event: MouseEvent) => {
     if (!(event.target instanceof Node) || chart.chartElement().contains(event.target)) return
     const target = event.target instanceof HTMLElement ? event.target : event.target.parentElement
-    if (target?.closest('.macro-settings-dialog')) return
+    if (target?.closest('.macro-settings-dialog, [aria-label="MFDI indicator"]')) return
     resetSelection()
   }
   chart.chartElement().ownerDocument.addEventListener('click', outsideClick)
@@ -472,15 +491,13 @@ export function createMacroPane(chart: IChartApi) {
       laneControls.position(indicator.preferences, chart.paneSize(pane.paneIndex()).width, pane.getHeight(),
         legend.offsetHeight + 12 || 36, pane.getHTMLElement()?.offsetTop ?? chart.paneSize(0).height + 8)
     }
-    linkAxes()
+    if (!restoringPlacements) linkAxes()
     for (const [axis, id] of axisScales) {
       if (laneMode && placements.get(axis)?.height === pane.getHeight()) applyBounds(axis, id)
       if (placements.has(axis) && placements.get(axis)!.height !== pane.getHeight()) bindAfterPaint()
       else if (!pane.priceScale(id).options().autoScale) captureBounds(axis, id, false)
     }
-    if ([...axisScales].some(([axis, id]) => (!bounds.has(axis) || pane.priceScale(id).options().autoScale)
-      && (Object.keys(series) as MacroMetric[]).some(key => macroMetricAxis(key) === axis && plots[key]?.line.length)))
-      bindAfterPaint()
+    bindAfterPaint()
     if (indicator) {
       const futureX = futureCoordinates()
       if (laneMode) target.useMediaCoordinateSpace(({ context, mediaSize }) => {
@@ -623,7 +640,7 @@ export function createMacroPane(chart: IChartApi) {
       callbacks: { toggleMetric: (metric: MacroMetric) => void; selectMetric: (metric: MacroMetric) => void;
         toggleForecast?: (metric: MacroMetric) => void; toggleNumbers?: (metric: MacroMetric) => void; changePreferences?: (value: MacroPreferences) => void; inspectRelease?: (reading: MacroReading) => void }) {
       if (destroyed) return
-      linkAxes()
+      if (!restoringPlacements) linkAxes()
       // Capture a user's drag/zoom before moving its series off the right axis.
       // Removing a scale's final source resets its native range and auto mode.
       for (const [axis, id] of axisScales) {
@@ -644,6 +661,15 @@ export function createMacroPane(chart: IChartApi) {
       markerBars = bars
       step = seconds
       const p = next.preferences, axis = selectedAxisFor(p), keys = selectedMacroMetrics(p)
+      linked = macroLayout(p).linked ?? linked
+      const incomingPlacements = p.layout?.axisPlacements
+      if (initialPlacements || p.layout?.axisRestoreId !== axisRestoreId) {
+        initialPlacements = false; axisRestoreId = p.layout?.axisRestoreId
+        bounds.clear(); placements.clear(); savedPlacements = incomingPlacements; restoringPlacements = true
+        for (const [key, placement] of Object.entries(incomingPlacements ?? {})) {
+          bounds.set(key, { from: placement.from, to: placement.to }); placements.set(key, { height: placement.height, unitsPerPixel: placement.unitsPerPixel, topValue: placement.topValue })
+        }
+      }
       if (markerSource !== next.sourceId) { releaseMarkers.clear(); markerSnapshot = undefined; markerSource = next.sourceId }
       const markerKeys = keys.join('|')
       if (!markerSnapshot || markerSnapshot.history !== next.history || markerSnapshot.upcoming !== next.upcoming || markerSnapshot.keys !== markerKeys) {
@@ -704,6 +730,7 @@ export function createMacroPane(chart: IChartApi) {
     destroy() {
       if (destroyed) return
       destroyed = true
+      window.removeEventListener('pagehide', saveOnExit)
       releaseMarkers.clear(); markerSnapshot = undefined; markerHits = []; markerBars = []
       clearColourPreviews()
       if (frame !== null) window.cancelAnimationFrame(frame)
