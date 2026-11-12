@@ -2,13 +2,13 @@ import { macroCatalog } from './macro-catalog'
 import { selectedMacroMetrics, type MacroPreferences } from './macro-preferences'
 
 export type MacroCategory = { id: string; label: string }
-export type MacroLayout = { hideLegend: boolean; laneMode: boolean; categoryOrder: string[]; collapsed: string[]; rowOrder: string[] }
+export type MacroLayout = { hideLegend: boolean; laneMode: boolean; categoryOrder: string[]; collapsed: string[]; rowOrder: string[]; laneOffset?: number; laneSpacing?: number }
 export const defaultMacroCategories: MacroCategory[] = [
   { id: 'policy', label: 'Policy' }, { id: 'labor', label: 'Labor' },
   { id: 'inflation', label: 'Inflation' }, { id: 'growth', label: 'Growth' }, { id: 'uncategorized', label: 'Uncategorized' },
 ]
 export function macroLayout(preferences: MacroPreferences): MacroLayout {
-  return { hideLegend: false, laneMode: false, categoryOrder: [], collapsed: [], rowOrder: [], ...preferences.layout }
+  return { hideLegend: false, laneMode: false, categoryOrder: [], collapsed: [], rowOrder: [], laneOffset: 0, laneSpacing: 28, ...preferences.layout }
 }
 export function macroCategories(preferences: MacroPreferences) {
   const categories = [...new Map((preferences.categories ?? defaultMacroCategories).map(category => [category.id, category])).values()]
@@ -28,8 +28,9 @@ export function macroLanes(preferences: MacroPreferences) {
   const groups = macroCategories(preferences).flatMap(category => {
     const keys = order.filter(key => macroCategory(preferences, key) === category.id)
     const top = y, collapsed = layout.collapsed.includes(category.id)
-    const rows = collapsed ? [] : keys.map((key, index) => ({ key, y: top + 42 + index * 32 }))
-    y += 28 + (collapsed ? 0 : keys.length * 32) + 8
+    const spacing = Math.max(0.1, Math.min(120, layout.laneSpacing ?? 28))
+    const rows = collapsed ? [] : keys.map((key, index) => ({ key, y: top + 0.8 * spacing + index * spacing }))
+    y += 0.8 * spacing + (collapsed ? 0 : keys.length * spacing)
     return [{ ...category, top, bottom: y, collapsed, rows, keys }]
   })
   return { groups, height: y }

@@ -27,7 +27,7 @@ export function MacroCategorySettings({ preferences, onChange }: { preferences: 
           {categories.map(category => <option key={category.id} value={category.id}>{category.label}</option>)}
         </select>
       </label>)}
-      <p>In lane view, drag a line label into a category to snap it into place. Drag a category header to move all its lines together. Use its arrow to collapse or expand it.</p>
+      <p>In the Series drawer, drag an event name into a category to snap it into place in lane view. Drag a category header to move all its lines together. Use its arrow to collapse or expand it.</p>
     </fieldset>
   </>
 }

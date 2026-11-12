@@ -97,7 +97,9 @@ export function readMacroPreferences(symbol = 'USDX'): MacroPreferences {
     ...(saved?.categoryByEvent && typeof saved.categoryByEvent === 'object' ? { categoryByEvent: saved.categoryByEvent } : {}),
     ...(profile?.layout ? { layout: { hideLegend: profile.layout.hideLegend === true, laneMode: profile.layout.laneMode === true,
       categoryOrder: Array.isArray(profile.layout.categoryOrder) ? profile.layout.categoryOrder : [],
-      collapsed: Array.isArray(profile.layout.collapsed) ? profile.layout.collapsed : [], rowOrder: Array.isArray(profile.layout.rowOrder) ? profile.layout.rowOrder : [] } } : {}) }
+      collapsed: Array.isArray(profile.layout.collapsed) ? profile.layout.collapsed : [], rowOrder: Array.isArray(profile.layout.rowOrder) ? profile.layout.rowOrder : [],
+      ...(Number.isFinite(profile.layout.laneOffset) ? { laneOffset: Math.max(-100000, Math.min(100000, profile.layout.laneOffset!)) } : {}),
+      ...(Number.isFinite(profile.layout.laneSpacing) ? { laneSpacing: Math.max(0.1, Math.min(120, profile.layout.laneSpacing!)) } : {}) } } : {}) }
 }
 export function saveMacroPreferences(value: MacroPreferences, symbol = 'USDX') {
   try {
@@ -155,4 +157,10 @@ export function toggleMacroForecast(preferences: MacroPreferences, key: MacroMet
 }
 export function toggleMacroNumbers(preferences: MacroPreferences, key: MacroMetric): MacroPreferences {
   return { ...preferences, series: { ...preferences.series, [key]: { ...preferences.series[key], numbersVisible: !preferences.series[key].numbersVisible } } }
+}
+export function toggleMacroAll(preferences: MacroPreferences, field: 'visible' | 'forecastVisible' | 'numbersVisible'): MacroPreferences {
+  const keys = selectedMacroMetrics(preferences), enabled = !keys.some(key => preferences.series[key][field])
+  const series = { ...preferences.series }
+  for (const key of keys) series[key] = { ...series[key], [field]: enabled }
+  return { ...preferences, series }
 }

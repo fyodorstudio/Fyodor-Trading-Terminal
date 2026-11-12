@@ -7,6 +7,7 @@ import { futureTimelineSeconds } from '../../candlestick-chart/future-timeline'
 import { fedSurprise } from './fed-forecast'
 import { macroAxis, macroMetricAxis, macroMetricVisible, selectedMacroMetrics, type MacroAxis, type MacroMetric, type MacroPreferences } from './macro-preferences'
 import { macroLayout, patchMacroLayout } from './macro-layout'
+import { createMacroTooltip } from './macro-tooltip'
 import { createMacroLaneControls } from './macro-lane-controls'
 import './macro.css'
 
@@ -25,7 +26,7 @@ export function createMacroPane(chart: IChartApi) {
   const series: Record<string, ISeriesApi<'Line'>> = { ...lines, payrolls }
   const legend = document.createElement('div'); legend.className = 'macro-legend'
   legend.setAttribute('aria-label', 'MFDI values')
-  legend.title = 'Macro Factor Data Inspector · Stored actuals, latest vintages; verified official Fed upper bounds where saved. Hover a Fed release dot for attributed expectations. Release dots align to their containing candle; the latest release wins within one candle. Monthly lines join released points. Each selected event has an independent scale. Overlapping heights do not imply comparable magnitudes.'
+  legend.title = 'Macro Factor Data Inspector · Stored actuals, latest vintages; verified official Fed upper bounds where saved. Hover a release dot for actual, forecast, previous and release time. Release dots align to their containing candle; the latest release wins within one candle. Monthly lines join released points. Each selected event has an independent scale. Overlapping heights do not imply comparable magnitudes.'
   const controls = document.createElement('div'); controls.className = 'macro-controls'
   let toggleMetric: (metric: MacroMetric) => void = () => {}, selectMetric: (metric: MacroMetric) => void = () => {}
   let toggleForecast: (metric: MacroMetric) => void = () => {}
@@ -72,8 +73,13 @@ export function createMacroPane(chart: IChartApi) {
     const numbersSlash = numbersIcon.querySelector('[data-forecast-slash]')!
     numbersSlash.removeAttribute('data-forecast-slash'); numbersSlash.setAttribute('data-numbers-slash', 'true')
     numbersButton.append(numbersIcon); numbersButton.onclick = () => toggleNumbers(key)
-    chip.append(axisButton, eyeButton, forecastButton, numbersButton); item.append(colorDot, chip); controls.append(item)
-    return { key, label, item, axisButton, eyeButton, slash, forecastButton, forecastSlash, numbersButton, numbersSlash, colorDot }
+    const colorInput = document.createElement('input'); colorInput.type = 'color'; colorInput.className = 'macro-color-button'
+    colorInput.setAttribute('aria-label', `Colour ${label}`); colorInput.title = `Change ${label} colour`
+    colorInput.onchange = () => {
+      if (indicator && /^#[\da-f]{6}$/i.test(colorInput.value)) commitPreferences({ ...indicator.preferences, series: { ...indicator.preferences.series, [key]: { ...indicator.preferences.series[key], color: colorInput.value } } })
+    }
+    chip.append(axisButton, eyeButton, forecastButton, numbersButton, colorInput); item.append(colorDot, chip); controls.append(item)
+    return { key, label, item, axisButton, eyeButton, slash, forecastButton, forecastSlash, numbersButton, numbersSlash, colorDot, colorInput }
   }
   let metricControls = ['rate', 'payrolls', 'unemployment', 'headlineCpi', 'coreCpi'].map(createMetricControl)
   const fitButton = document.createElement('button'); fitButton.type = 'button'; fitButton.textContent = 'Fit axis'
@@ -96,15 +102,15 @@ export function createMacroPane(chart: IChartApi) {
   const flattenIcon = lockIcon.cloneNode(false) as SVGElement
   const bars = document.createElementNS(flattenIcon.namespaceURI, 'path'); bars.setAttribute('d', 'M3 6h18 M3 12h18 M3 18h18')
   flattenIcon.append(bars); flattenButton.append(flattenIcon)
-  controls.append(fitButton, fitAllButton, lockButton, flattenButton)
+  const seriesButton = document.createElement('button'); seriesButton.type = 'button'; seriesButton.textContent = 'Series'
+  seriesButton.setAttribute('aria-label', 'MFDI series drawer'); seriesButton.setAttribute('aria-expanded', 'false')
+  controls.append(fitButton, fitAllButton, lockButton, flattenButton, seriesButton)
   const readout = document.createElement('div'); readout.className = 'macro-readout'
   const note = document.createElement('div'); note.className = 'macro-note'
   legend.append(controls, readout, note)
   for (const event of ['pointerdown', 'dblclick']) legend.addEventListener(event, e => e.stopPropagation())
   chart.chartElement().appendChild(legend)
-  const tooltip = document.createElement('div'); tooltip.className = 'macro-forecast-tooltip'; tooltip.hidden = true
-  tooltip.setAttribute('role', 'tooltip'); tooltip.setAttribute('aria-label', 'Fed rate expectations')
-  chart.chartElement().appendChild(tooltip)
+  const releaseTooltip = createMacroTooltip(chart.chartElement()), tooltip = releaseTooltip.element
   let indicator: MacroIndicator | undefined, formatRelease: (at: number) => string = String
   let inspectRelease: ((reading: MacroReading) => void) | undefined
   let plots = {} as Partial<Record<MacroMetric, ReturnType<typeof macroPlot>>>
@@ -112,6 +118,7 @@ export function createMacroPane(chart: IChartApi) {
   let numberLabels: Partial<Record<MacroMetric, Map<number, string>>> = {}
   let latestTime: number | undefined, hover: number | null = null, frame: number | null = null, destroyed = false
   let step = 3600
+  let releaseHover: { key: string; time: Time; reading: MacroReading } | undefined
   let forecastHover: { time: Time; reading: MacroReading } | undefined
   let requestUpdate = () => {}
   let linked = false, fittingAll = false, laneMode = false
@@ -129,25 +136,29 @@ export function createMacroPane(chart: IChartApi) {
   const commitPreferences = (next: MacroPreferences) => {
     if (!indicator) return
     indicator = { ...indicator, preferences: next }; laneMode = macroLayout(next).laneMode
-    flattenButton.setAttribute('aria-pressed', String(laneMode)); applyDisplayMode(); updateLegend()
+    flattenButton.setAttribute('aria-pressed', String(laneMode)); applyDisplayMode(); updateLock(); updateLegend()
     changePreferences?.(next); requestUpdate()
   }
-  const laneControls = createMacroLaneControls(chart.chartElement(), () => requestUpdate(), commitPreferences)
+  const laneControls = createMacroLaneControls(chart.chartElement(), () => requestUpdate(), commitPreferences, { drawerChanged: open => {
+    seriesButton.setAttribute('aria-expanded', String(open)); releaseHover = undefined; forecastHover = undefined; releaseTooltip.hide()
+    if (!open) seriesButton.focus()
+  } })
+  seriesButton.onclick = () => laneControls.toggleDrawer()
+  seriesButton.setAttribute('aria-controls', laneControls.drawerId)
   laneControls.setRows(metricControls)
+  const inPane = (event: Event) => event.target instanceof Node && pane.getHTMLElement()?.contains(event.target)
+  const groupDrag = (event: PointerEvent) => { if (linked && laneMode && inPane(event)) laneControls.startGroupDrag(event) }
+  const groupZoom = (event: WheelEvent) => { if (linked && laneMode && inPane(event)) laneControls.zoomAll(event) }
+  chart.chartElement().addEventListener('pointerdown', groupDrag, true)
+  chart.chartElement().addEventListener('wheel', groupZoom, { capture: true, passive: false })
   const plotY = (key: string, value: number) => laneMode ? laneControls.y(key) : series[key]?.priceToCoordinate(value) ?? null
   let outlineColor = '#888888'
-  const tooltipField = (text: string) => {
-    const field = document.createElement('div'); field.textContent = text
-    tooltip.append(field)
-  }
   const updateForecast = () => {
-    tooltip.replaceChildren(); tooltip.hidden = !forecastHover
-    if (!forecastHover) return
-    const meeting = indicator?.forecasts?.meetings.get(forecastHover.reading.releasedAt)
-    const primary = meeting?.consensus.find(row => row.provider === 'investing')
-    tooltipField(`Consensus (Investing.com): ${primary ? macroValue('rate', primary.value) : '—'}`)
-    const alternative = meeting?.consensus.find(row => row.provider === 'trading_economics')
-    if (alternative) tooltipField(`Consensus (Trading Economics): ${macroValue('rate', alternative.value)}`)
+    if (!releaseHover || !indicator) { releaseTooltip.hide(); return }
+    const { key, reading } = releaseHover
+    const meeting = key === 'rate' ? indicator.forecasts?.meetings.get(reading.releasedAt) : undefined
+    const forecast = meeting ? meeting.consensus.find(row => row.provider === 'investing')?.value : reading.forecast
+    releaseTooltip.show(key, reading, forecast, formatRelease)
   }
   type Bounds = { from: number; to: number }
   const bounds = new Map<MacroAxis, Bounds>()
@@ -189,7 +200,7 @@ export function createMacroPane(chart: IChartApi) {
     }
   }
   const linkAxes = () => {
-    if (!linked || fittingAll || !indicator) return
+    if (!linked || laneMode || fittingAll || !indicator) return
     const axis = macroAxis(indicator.preferences), id = axisScales.get(axis), previous = placements.get(axis)
     if (!id || !previous || previous.height !== pane.getHeight()) return
     const range = pane.priceScale(id).getVisibleRange()
@@ -238,6 +249,7 @@ export function createMacroPane(chart: IChartApi) {
   }
   fitButton.onclick = () => {
     if (!indicator) return
+    if (laneMode) { laneControls.fitAll(); return }
     const axis = macroAxis(indicator.preferences), id = axisScales.get(axis)
     if (!id) return
     bounds.delete(axis)
@@ -246,6 +258,7 @@ export function createMacroPane(chart: IChartApi) {
   }
   fitAllButton.onclick = () => {
     if (!indicator) return
+    if (laneMode) { laneControls.fitAll(); return }
     fittingAll = true
     for (const [axis, id] of axisScales) {
       bounds.delete(axis); pane.priceScale(id).setAutoScale(true)
@@ -255,7 +268,7 @@ export function createMacroPane(chart: IChartApi) {
   const updateLock = () => {
     lockButton.setAttribute('aria-pressed', String(linked))
     lockButton.setAttribute('aria-label', `${linked ? 'Unlink' : 'Link'} MFDI axes`)
-    lockButton.title = linked ? 'Axes linked: drag and scale all MFDI series together. Click to adjust each independently.' : 'Link all MFDI axes to drag and scale every series together'
+    lockButton.title = laneMode ? (linked ? 'Linked lanes: drag the plot to move all lanes; use the wheel to adjust spacing' : 'Link all lanes for group dragging and spacing') : linked ? 'Axes linked: drag and scale all MFDI series together. Click to adjust each independently.' : 'Link all MFDI axes to drag and scale every series together'
     lockShackle.setAttribute('d', linked ? 'M8 10V6a4 4 0 0 1 8 0v4' : 'M8 10V6a4 4 0 0 1 8 0')
   }
   lockButton.onclick = () => {
@@ -269,9 +282,10 @@ export function createMacroPane(chart: IChartApi) {
     if (!indicator) return
     const p = indicator.preferences
     const selectedAxis = macroAxis(p)
-    for (const { key, label, axisButton, eyeButton, slash, forecastButton, forecastSlash, numbersButton, numbersSlash, colorDot } of metricControls) {
+    for (const { key, label, axisButton, eyeButton, slash, forecastButton, forecastSlash, numbersButton, numbersSlash, colorDot, colorInput } of metricControls) {
       const visible = macroMetricVisible(p, key)
       colorDot.style.backgroundColor = p.series[key].color
+      colorInput.value = p.series[key].color
       axisButton.setAttribute('aria-pressed', String(visible && (linked || macroMetricAxis(key) === selectedAxis)))
       eyeButton.setAttribute('aria-pressed', String(visible))
       eyeButton.setAttribute('aria-label', `${visible ? 'Hide' : 'Show'} ${label}`)
@@ -315,6 +329,7 @@ export function createMacroPane(chart: IChartApi) {
   const onHover = (event: MouseEventParams<Time>) => {
     hover = event.point ? typeof event.time === 'number' ? event.time : NaN : null
     const hit = hitDot(event)
+    releaseHover = hit ? { key: hit.key, time: hit.time, reading: hit.reading } : undefined
     forecastHover = hit?.key === 'rate' ? { time: hit.time, reading: hit.reading } : undefined
     if (frame === null) frame = window.requestAnimationFrame(() => { frame = null; updateLegend(); updateForecast(); requestUpdate() })
   }
@@ -373,16 +388,12 @@ export function createMacroPane(chart: IChartApi) {
     legend.style.width = `${Math.max(0, chart.paneSize(pane.paneIndex()).width - 20)}px`
     legend.style.maxHeight = `${Math.max(24, pane.getHeight() - 10)}px`
     if (indicator) {
-      const anchors = new Map(metricControls.flatMap(({ key }) => {
-        const point = plots[key]?.line.at(-1)
-        const y = point ? series[key]?.priceToCoordinate(point.value) : null
-        return y === null || y === undefined ? [] : [[key, y] as const]
-      }))
-      laneControls.position(indicator.preferences, anchors, chart.paneSize(pane.paneIndex()).width, pane.getHeight(),
+      laneControls.position(indicator.preferences, chart.paneSize(pane.paneIndex()).width, pane.getHeight(),
         legend.offsetHeight + 12 || 36, pane.getHTMLElement()?.offsetTop ?? chart.paneSize(0).height + 8)
     }
     linkAxes()
     for (const [axis, id] of axisScales) {
+      if (laneMode && placements.get(axis)?.height === pane.getHeight()) applyBounds(axis, id)
       if (placements.has(axis) && placements.get(axis)!.height !== pane.getHeight()) bindAfterPaint()
       else if (!pane.priceScale(id).options().autoScale) captureBounds(axis, id, false)
     }
@@ -467,6 +478,17 @@ export function createMacroPane(chart: IChartApi) {
         context.restore()
       })
     }
+    if (releaseHover && indicator) {
+      const { key, time, reading } = releaseHover
+      const x = chart.timeScale().timeToCoordinate(time), y = plotY(key, reading.value)
+      const width = chart.paneSize(pane.paneIndex()).width
+      if (!macroMetricVisible(indicator.preferences, key) || x === null || y === null || x < 0 || x > width || y < 0 || y > pane.getHeight()) releaseTooltip.hide()
+      else {
+        tooltip.hidden = false
+        releaseTooltip.position(x, y, pane.getHTMLElement()?.offsetTop ?? chart.paneSize(0).height,
+          chart.chartElement().clientWidth, chart.chartElement().clientHeight)
+      }
+    }
     if (!indicator || !macroMetricVisible(indicator.preferences, 'rate') || !indicator.preferences.series.rate.pointsVisible) return
     target.useMediaCoordinateSpace(({ context, mediaSize }) => {
       context.save(); context.strokeStyle = outlineColor; context.lineWidth = 1.5; context.setLineDash([])
@@ -481,7 +503,7 @@ export function createMacroPane(chart: IChartApi) {
       if (forecastHover) {
         const x = chart.timeScale().timeToCoordinate(forecastHover.time), y = plotY('rate', forecastHover.reading.value)
         if (x === null || y === null || x < 0 || x > mediaSize.width || y < 0 || y > mediaSize.height) {
-          tooltip.hidden = true
+          releaseTooltip.hide()
         } else {
           const primary = indicator!.forecasts?.meetings.get(forecastHover.reading.releasedAt)?.consensus.find(row => row.provider === 'investing')
           const fy = primary ? plotY('rate', primary.value) : null
@@ -492,11 +514,7 @@ export function createMacroPane(chart: IChartApi) {
               context.setLineDash([]); context.beginPath(); context.moveTo(x - 4, fy); context.lineTo(x + 4, fy); context.stroke()
             }
           }
-          tooltip.hidden = false
-          const element = chart.chartElement(), offset = pane.getHTMLElement()?.offsetTop ?? chart.paneSize(0).height
-          tooltip.style.maxWidth = `${Math.max(100, Math.min(440, element.clientWidth - 20))}px`
-          tooltip.style.left = `${Math.max(6, Math.min(x + 12, element.clientWidth - tooltip.offsetWidth - 6))}px`
-          tooltip.style.top = `${Math.max(6, Math.min(offset + y + 12, element.clientHeight - tooltip.offsetHeight - 6))}px`
+
         }
       }
       context.restore()
@@ -543,7 +561,7 @@ export function createMacroPane(chart: IChartApi) {
       toggleNumbers = callbacks.toggleNumbers ?? (() => {})
       inspectRelease = callbacks.inspectRelease; changePreferences = callbacks.changePreferences
       laneMode = macroLayout(next.preferences).laneMode; flattenButton.setAttribute('aria-pressed', String(laneMode))
-      forecastHover = undefined; tooltip.hidden = true
+      forecastHover = undefined; releaseHover = undefined; releaseTooltip.hide()
       outlineColor = getComputedStyle(chart.chartElement()).getPropertyValue('--text-strong').trim() || '#888888'
       latestTime = bars.at(-1)?.time
       step = seconds
@@ -594,7 +612,7 @@ export function createMacroPane(chart: IChartApi) {
     },
     clearData() {
       for (const item of Object.values(series)) item.setData([])
-      rateDots.setData([]); plots = {}; forecastPlots = {}; hover = null; forecastHover = undefined; tooltip.hidden = true; latestTime = undefined; updateLegend()
+      rateDots.setData([]); plots = {}; forecastPlots = {}; hover = null; forecastHover = undefined; releaseHover = undefined; releaseTooltip.hide(); latestTime = undefined; updateLegend()
     },
     destroy() {
       if (destroyed) return
@@ -603,7 +621,9 @@ export function createMacroPane(chart: IChartApi) {
       if (boundsFrame !== null) window.cancelAnimationFrame(boundsFrame)
       chart.unsubscribeCrosshairMove(onHover)
       chart.unsubscribeClick(onClick)
-      laneControls.destroy(); pane.detachPrimitive(primitive); legend.remove(); tooltip.remove()
+      chart.chartElement().removeEventListener('pointerdown', groupDrag, true)
+      chart.chartElement().removeEventListener('wheel', groupZoom, true)
+      laneControls.destroy(); pane.detachPrimitive(primitive); legend.remove(); releaseTooltip.destroy()
       for (const item of Object.values(series)) chart.removeSeries(item)
       chart.removeSeries(rateDots)
       chart.removePane(pane.paneIndex())

@@ -28,8 +28,11 @@ scrolling, backfill and timeframe switches preserve native data and bound scales
 Forecast rings do not add release-selection targets; actual-dot clicks retain the
 existing exact Inspector package selection.
 
-The Fed dot tooltip shows consensus values only. It has no actual/date header,
-retrieval/backfill text, disclaimers, surprise labels or CME probabilities.
+Every actual release dot has an anchored card with its name, Actual / Forecast /
+Previous and release date/time in the app clock. The Fed Forecast column uses the
+exact saved Investing.com consensus when available; an explicitly blank saved
+consensus stays blank. Previous uses the supplied previous field, not another
+plotted dot. Cards omit retrieval/backfill text, surprise labels and CME probabilities.
 The dashed actual-to-consensus connector and Beat outline remain on the plot;
 hover does not change axes or timestamps. Clicking opens the original Inspector
 release package.

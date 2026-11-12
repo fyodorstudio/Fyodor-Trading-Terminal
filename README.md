@@ -184,17 +184,25 @@ Each selected event has its own scale, colour, eye, **F** forecast toggle and **
 number toggle. Click a label to select its draggable right axis. Labels and numbers
 use the event's actual units; arrows compare each actual with the previous available
 release. **Fit axis** fits the selected scale; **Fit axis all** fits every visible
-scale. The lock links all visible axes so dragging/scaling moves the group together.
+scale. The lock links numerical axes in numerical view; in Lane view, drag the
+plot to move all lanes together and use the wheel to adjust their spacing.
 The adjacent three-line **Lane view** button draws perfectly straight rows, with
 actual values, arrows, dates and forecasts retained. Click again to restore the
-numerical plot. Inline event labels carry the eye/F/N controls beside their lines;
-series chips no longer fill the top toolbar. **Hide Legend** in Inputs hides only
+numerical plot. **Series** opens a right-side overlay drawer: event names occupy
+one column, followed by vertically aligned eye/F/N controls and a colour circle.
+Click the circle to choose a colour. Event/category names and controls exist only
+in the drawer; number labels remain above the dots when N is enabled.
+The top All series eye/F/N row toggles all selected events together, including
+collapsed categories. Mixed states switch everything off; the next click switches
+everything on. Unticked currencies keep their saved settings. Close or Escape dismisses
+the drawer without resizing the chart. **Fit all lanes** and the spacing slider
+are available in the drawer; lane offset and spacing are saved per symbol. **Hide Legend** in Inputs hides only
 the value/release readout. Category names, assignments and event lists are shared;
 category order, row order, collapsed state, lane mode and Hide Legend save per symbol.
 Create/rename/reorder/delete categories in Inputs; deletion moves events to
-Uncategorized. Drag a row label into a category to snap it into place, or drag a
-category header to move its rows as a band. Categories can collapse; the lane
-scrollbar reveals rows when they exceed the available pane height. Pane resizing adds canvas space below
+Uncategorized. In the Series drawer, drag an event name into a category to snap
+it into place, or drag a category header to move its rows as a band. Category collapse controls live in
+the drawer; the lane scrollbar reveals rows when they exceed the available pane height. Pane resizing adds canvas space below
 without stretching plots. Each scale holds its placement across scrolling, backfill,
 updates, eyes and axis changes. Linked-axis mode lasts while the pane is open.
 
@@ -203,7 +211,9 @@ clock. No selections means no macro calendar polling. Numeric released actuals w
 verified chart timing align to their containing candle; the latest release in a
 candle wins. Missing values and unknown times stay blank. Click a dot to inspect its
 exact release package in the bottom dock, using its own currency. Hover readouts show
-actuals and release times in the selected clock. Successful charts have no static
+Actual / Forecast / Previous for the exact release, with its date/time in the
+selected clock and a connector to the dot. Missing values show a dash; supplied
+previous values are never substituted with a prior plotted dot. Successful charts have no static
 source/status caption; loading, errors and empty states remain visible when needed.
 
 Monthly lines connect release dots; the Fed rate holds between decisions. Forecasts
@@ -213,7 +223,7 @@ vertical schedule line. Forecasts follow their series' eye and dot settings and 
 not refit scales or introduce shared timeline timestamps. Existing USDX payroll
 forecasts default on; newly added events default off. Fed-specific official upper
 bounds and saved consensus overrides apply only to the exact Fed rate series. Its
-dot tooltip shows consensus values only. See the [Fed consensus reference](docs/MFDI-FORECASTS.md).
+dot card uses the exact saved primary consensus in its Forecast column when available. See the [Fed consensus reference](docs/MFDI-FORECASTS.md).
 Hiding an indicator unregisters its series from the shared native timeline, so
 old lower-timeframe timestamps cannot spread out later H4/D1 candles.
 The settings dialog has Inputs/Style, OK/Cancel and Reset defaults. RSI follows

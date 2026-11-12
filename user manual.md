@@ -80,12 +80,19 @@ Open the gear and use **Inputs**:
    event lists and styles are shared between symbols, independently of Inspector filters.
 
 **Hide Legend** in Inputs hides the coloured actual/release-time readout only.
-Eye/F/N controls stay beside each line label, rather than in top toolbar blocks.
+**Series** opens a drawer from the pane's right edge. Eye/F/N controls are aligned
+in fixed columns there, with a colour circle to the right of N. Click the circle
+to change the series colour. Event names and controls live only in the drawer.
+The top **All series** eye/F/N row toggles the selected events together, including
+collapsed categories. If any are on, a click turns them all off; the next turns
+them all on. Unticked currencies keep their saved settings. Close the drawer with ×, Escape
+or Series. Opening it does not resize the chart or change its zoom.
 
 Inputs also lets you create, rename, reorder and delete categories. Use each event's
-category selector, or drag its inline label into a category in Lane view. Rows snap
+category selector, or drag its name in the Series drawer into a category in Lane view. Rows snap
 into the category; drag within a category to change their order. Drag a category
-header to move all its rows together, or use its arrow to collapse/expand it.
+header to move all its rows together. Use the category arrow in the Series drawer
+to collapse/expand it.
 Deleting a category keeps its events under Uncategorized. The scrollbar reveals
 additional lanes. Membership follows the saved currency event lists; category/row
 order, collapse, Lane view and Hide Legend are saved separately for each symbol.
@@ -97,21 +104,28 @@ scroll to earlier loaded candles. No events selected means no macro calendar pol
 
 Each event has its own scale, including separate Headline and Core CPI scales:
 
-- Click its label to select its right axis. The eye shows/hides the line.
+- Click its drawer label to select its right axis. The eye shows/hides the line.
+- The colour circle after N opens a native colour picker; the saved colour updates the line.
 - **F** shows/hides its forecast curve; a slash means hidden.
 - **N** shows/hides actual values above release dots. ↑ and ↓ compare to the previous
   available release. First and unchanged values have no arrow. Event units are retained.
 - **Fit axis** fits the selected scale; **Fit axis all** fits every visible scale.
 - The **lock** links all visible axes, selecting them together. Dragging/scaling moves
-  the group. Unlock to adjust individual scales. Hover and dot selection still work.
+  the group in numerical view. In Lane view, drag the plot to move all rows
+  vertically together; the wheel adjusts spacing around the pointer. Unlock to
+  stop linked plot gestures. Hover and dot selection still work.
+- In the Series drawer, **Fit all lanes** brings expanded rows into view, and
+  **Lane spacing** adjusts their spacing. Offset and spacing survive refresh per symbol.
 - The **three-line button** switches to perfectly straight category lanes.
   Vertical position identifies the event row; values and dates are unchanged.
   Click again to return to the numerical plot.
 
 Click a plotted dot to open its exact release package in Inspector, using the event's
 own currency. Its selected measure is highlighted, without changing Inspector's saved
-filters or the chart date window. Hover readouts show the release time in your selected
-clock. Only released numeric actuals with verified chart timing appear. Monthly lines
+filters or the chart date window. Hover any actual release dot for an anchored
+card with Actual, Forecast, Previous and the release date/time in your selected
+clock. Previous is the release's supplied previous value. Missing values show a
+dash; zero remains a value. This works in both views and for every selected event. Only released numeric actuals with verified chart timing appear. Monthly lines
 join releases; the Fed rate is held between decisions. MFDI calculates no composite score.
 
 Forecasts join their own values with a lighter solid line and hollow rings. Upcoming
@@ -119,7 +133,8 @@ forecasts continue with faint dashed lines/rings in the existing future axis. Mi
 forecasts break the connection and retain only the schedule line. Forecasts follow the
 eye/dot choices and never refit scales. Existing USDX payroll forecasts remain enabled;
 newly added event forecasts start hidden. Saved official Fed upper bounds and survey
-consensus apply only to the exact Fed rate series. Hover a Fed dot for consensus values.
+consensus apply only to the exact Fed rate series. Its card uses that saved primary
+consensus in the Forecast column where available.
 See the [Fed consensus reference](docs/MFDI-FORECASTS.md).
 
 All scale bounds survive scrolling, backfill, live updates and axis switches. Linked

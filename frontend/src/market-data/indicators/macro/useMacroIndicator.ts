@@ -12,7 +12,8 @@ export function useMacroIndicator(symbol: string, brokerId: string | null) {
   const [macroSettingsOpen, setMacroSettingsOpen] = useState(false)
   const changeMacro = useCallback((next: MacroPreferences) => { saveMacroPreferences(next, symbol); setPreferences({ symbol, preferences: next }) }, [symbol])
   const toggleMacro = useCallback(() => changeMacro({ ...macroPreferences, enabled: !macroPreferences.enabled }), [changeMacro, macroPreferences])
-  const keys = useMemo(() => selectedMacroMetrics(macroPreferences), [macroPreferences])
+  const selection = selectedMacroMetrics(macroPreferences).join('|')
+  const keys = useMemo(() => selection ? selection.split('|') : [], [selection])
   const active = macroPreferences.enabled && supportsMacro(symbol)
   const forecasts = useFedForecasts(active && keys.includes('rate'))
   const meetings = forecasts.meetings

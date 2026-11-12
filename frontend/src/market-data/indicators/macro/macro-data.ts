@@ -6,7 +6,8 @@ import type { OhlcBar } from '../../contracts/OhlcBar'
 import type { MacroMetric, MacroPreferences } from './macro-preferences'
 import type { FedForecasts } from './fed-forecast'
 
-export type MacroReading = { time: number; releasedAt: number; value: number; id: string; currency?: string; brokerValue?: number; unit?: number; multiplier?: number; digits?: number }
+export type MacroReading = { time: number; releasedAt: number; value: number; id: string; currency?: string; brokerValue?: number; unit?: number; multiplier?: number; digits?: number;
+  forecast?: number | null; previous?: number | null; impact?: string }
 export type MacroHistory = Record<MacroMetric, MacroReading[]>
 export type MacroScheduled = { time: number; releasedAt: number; metrics: MacroMetric[]; forecasts?: Partial<Record<MacroMetric, number>> }
 export type MacroIndicator = { enabled: boolean; history: MacroHistory; forecastHistory?: MacroHistory; upcoming: MacroScheduled[]; status: string; preferences: MacroPreferences; forecasts?: FedForecasts }
@@ -53,7 +54,8 @@ export function macroHistory(events: StoredCalendarEvent[], now: number, field: 
         readings.set(event.chart_time_seconds, event)
     }
     history[key] = [...readings.values()].filter(event => event[field] !== null && Number.isFinite(event[field]))
-      .map(event => ({ time: event.chart_time_seconds!, releasedAt: event.release_at!, value: event[field]!, id: event.value_id, currency: event.currency, unit: event.unit, multiplier: event.multiplier, digits: event.digits }))
+      .map(event => ({ time: event.chart_time_seconds!, releasedAt: event.release_at!, value: event[field]!, id: event.value_id, currency: event.currency, unit: event.unit, multiplier: event.multiplier, digits: event.digits,
+        forecast: Number.isFinite(event.forecast) ? event.forecast : null, previous: Number.isFinite(event.previous) ? event.previous : null, impact: event.impact }))
       .sort((a, b) => a.time - b.time)
   }
   return history

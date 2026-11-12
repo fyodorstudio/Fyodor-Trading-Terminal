@@ -745,6 +745,35 @@ try {
     await render({ macro })
   }
   const macroPane = chart.panes().find(pane => pane.getSeries().includes(payrollLine))
+  const seriesDrawerButton = host.querySelector('button[aria-label="MFDI series drawer"]')
+  const drawerWindow = chart.timeScale().getVisibleLogicalRange()
+  assert.equal(host.querySelector('.macro-series-drawer').hidden, true)
+  await React.act(async () => seriesDrawerButton.click()); await paint()
+  assert.equal(host.querySelector('.macro-series-drawer').hidden, false)
+  assert.equal(seriesDrawerButton.getAttribute('aria-expanded'), 'true')
+  for (const key of ['rate', 'payrolls', 'unemployment', 'headlineCpi', 'coreCpi']) {
+    const input = host.querySelector(`[data-macro-row="${key}"] input[type="color"]`)
+    assert.equal(input.previousElementSibling.dataset.macroNumbers, key, 'The colour circle follows N in every drawer row')
+  }
+  const universalStyles = macro.preferences.series
+  for (const [kind, field, slash] of [['visibility', 'visible', 'eye'], ['forecast', 'forecastVisible', 'forecast'], ['numbers', 'numbersVisible', 'numbers']]) {
+    macro = { ...macro, preferences: { ...macro.preferences, series: { ...macro.preferences.series, rate: { ...macro.preferences.series.rate, [field]: true } } } }; await render({ macro })
+    await React.act(async () => host.querySelector(`[data-macro-all="${kind}"]`).click()); await render({ macro })
+    assert.ok(Object.values(macro.preferences.series).every(style => !style[field]), `${kind}: universal control hides the whole selected set`)
+    assert.equal(host.querySelector(`[data-macro-all="${kind}"] [data-${slash}-slash]`).getAttribute('visibility'), 'visible')
+    await React.act(async () => host.querySelector(`[data-macro-all="${kind}"]`).click()); await render({ macro })
+    assert.ok(Object.values(macro.preferences.series).every(style => style[field]))
+  }
+  macro = { ...macro, preferences: { ...macro.preferences, series: universalStyles } }; await render({ macro })
+  const oldColour = macro.preferences.series.payrolls.color
+  const picker = host.querySelector('[data-macro-row="payrolls"] input[type="color"]')
+  await React.act(async () => { picker.value = '#1267ab'; picker.dispatchEvent(new dom.Event('change', { bubbles: true })) }); await render({ macro })
+  assert.equal(payrollLine.options().color, '#1267ab', 'The drawer colour picker updates the actual series')
+  await React.act(async () => { picker.value = oldColour; picker.dispatchEvent(new dom.Event('change', { bubbles: true })) }); await render({ macro })
+  host.querySelector('.macro-series-drawer').dispatchEvent(new dom.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+  assert.equal(host.querySelector('.macro-series-drawer').hidden, true)
+  assert.equal(document.activeElement, seriesDrawerButton)
+  assert.deepEqual(chart.timeScale().getVisibleLogicalRange(), drawerWindow, 'Drawer use preserves the shared date viewport')
   const normalUpcoming = macro.upcoming
   const futureChartTime = macroBars.at(-1).time + 3.5 * 3600
   macro = { ...macro, upcoming: [
@@ -880,14 +909,16 @@ try {
       consensus: [{ ...forecastEvidence, provider: 'investing', value }, { ...forecastEvidence, provider: 'trading_economics', value: 5.5 }] }
     macro = { ...macro, forecasts: { meetings: new Map([[fedDecision.releasedAt, meeting]]), status: 'Saved fixture' } }
     forecastRings.length = 0; await render({ macro })
-    assert.equal(host.querySelector('[aria-label="Fed rate expectations"]').hidden, true, 'Sync clears obsolete hover evidence')
+    assert.equal(host.querySelector('[aria-label="MFDI release details"]').hidden, true, 'Sync clears obsolete hover evidence')
     assert.equal(forecastRings.length > 0, label === 'Beat', 'Only a primary consensus Beat adds an outline')
     forecastStrokes.length = 0; await hoverDot()
-    const tooltip = host.querySelector('[aria-label="Fed rate expectations"]')
+    const tooltip = host.querySelector('[aria-label="MFDI release details"]')
     assert.equal(tooltip.hidden, false)
-    assert.deepEqual([...tooltip.children].map(row => row.textContent), [
-      `Consensus (Investing.com): ${value.toFixed(2)}%`, 'Consensus (Trading Economics): 5.50%',
-    ], 'Only consensus values appear; no dates, actual, surprise labels, provenance or CME')
+    assert.deepEqual([...tooltip.querySelectorAll('th')].map(node => node.textContent), ['Actual', 'Forecast', 'Previous'])
+    assert.equal(tooltip.querySelector('[data-macro-tooltip-field="actual"]').textContent, '5.25%')
+    assert.equal(tooltip.querySelector('[data-macro-tooltip-field="forecast"]').textContent, `${value.toFixed(2)}%`)
+    assert.equal(tooltip.querySelector('[data-macro-tooltip-field="previous"]').textContent, '—')
+    assert.equal(tooltip.querySelector('time').dateTime, new Date(fedDecision.releasedAt).toISOString())
     assert.ok(forecastStrokes.length > 0, 'Hovered actual anchors a dashed connector')
     for (const segment of forecastStrokes) {
       close(segment.from[0], chart.timeScale().timeToCoordinate(macroBars[45].time), 'Forecast shares actual x')
@@ -898,7 +929,7 @@ try {
     assert.deepEqual(macroPane.priceScale('right').getVisibleRange(), { from: 4, to: 6 })
     assert.deepEqual(chart.timeScale().getVisibleLogicalRange(), forecastDateRange)
     assert.deepEqual(rateLine.data(), originalRateData); assert.deepEqual(rateDots.data(), originalDots)
-    for (const [line, index, extra] of [[rateLine, 80, {}], [payrollLine, 0, {}], [rateDots, 0, { paneIndex: 0 }], [rateDots, 0, { point: undefined }]]) {
+    for (const [line, index, extra] of [[rateLine, 80, {}], [rateDots, 0, { paneIndex: 0 }], [rateDots, 0, { point: undefined }]]) {
       forecastStrokes.length = 0; await hoverDot(line, index, extra)
       assert.equal(tooltip.hidden, true, 'Carry, other metrics/panes and chart leave do not show forecasts')
       assert.equal(forecastStrokes.length, 0)
@@ -913,14 +944,15 @@ try {
   macro = { ...macro, history: { ...macro.history, rate: originalFedHistory.map(row => row.id === 'decision' ? { ...row, brokerValue: 5.5 } : row) },
     forecasts: { meetings: new Map([[fedDecision.releasedAt, alternativesMeeting]]), status: 'Saved fixture' } }
   await render({ macro }); await hoverDot()
-  const alternativesTooltip = host.querySelector('[aria-label="Fed rate expectations"]')
-  assert.equal(alternativesTooltip.textContent, 'Consensus (Investing.com): 5.25%', 'Even saved CME, actual and conflict metadata stay out of the consensus-only tooltip')
+  const alternativesTooltip = host.querySelector('[aria-label="MFDI release details"]')
+  assert.equal(alternativesTooltip.querySelector('[data-macro-tooltip-field="forecast"]').textContent, '5.25%', 'The Fed card uses the saved exact-release consensus')
+  assert.ok(!alternativesTooltip.textContent.includes('CME'))
   assert.deepEqual(macroPane.priceScale('right').getVisibleRange(), { from: 4, to: 6 })
   macro = { ...macro, history: { ...macro.history, rate: originalFedHistory }, forecasts: undefined }; await render({ macro }); await hoverDot()
-  assert.equal(host.querySelector('[aria-label="Fed rate expectations"]').textContent, 'Consensus (Investing.com): —')
+  assert.equal(host.querySelector('[aria-label="MFDI release details"]').querySelector('[data-macro-tooltip-field="forecast"]').textContent, '—')
   await hoverDot(rateDots, 0, { point: undefined })
   macroPane.priceScale('right').setVisibleRange(originalFedRange); await paint()
-  console.log('✓ Fed forecast native overlay: consensus-only tooltip, no CME/metadata/actual, Beat ring, zero/offscreen connector, unchanged series/dates/bound scales and leave cleanup')
+  console.log('✓ Fed forecast native overlay: release cards with saved consensus, no CME/metadata, Beat ring, zero/offscreen connector, unchanged series/dates/bound scales and leave cleanup')
   const fireDotClick = async (line, index, extra = {}) => {
     const point = line.data()[index]
     const event = { point: { x: chart.timeScale().timeToCoordinate(point.time), y: line.priceToCoordinate(point.value) },
@@ -1101,7 +1133,7 @@ try {
   assert.equal(lockAxes.nextElementSibling, flatten, 'The three-line button sits next to the lock')
   macro = { ...macro, preferences: { ...macro.preferences, layout: { hideLegend: true, laneMode: false, categoryOrder: [], collapsed: [], rowOrder: [] } } }; await render({ macro })
   assert.equal(host.querySelector('.macro-readout').hidden, true, 'Hide Legend hides only the actual/release readout')
-  assert.ok(host.querySelector('[data-macro-forecast="rate"]'), 'Hide Legend retains the inline F/N/eye controls')
+  assert.ok(host.querySelector('[data-macro-forecast="rate"]'), 'Hide Legend retains the drawer F/N/eye controls')
   const beforeLaneHeight = macroPane.getHeight()
   macroPane.setHeight(300); await paint()
   const beforeFlat = placement(), beforeFlatData = macroPane.getSeries().map(line => line.data())
@@ -1109,12 +1141,15 @@ try {
   await React.act(async () => flatten.click()); await paint()
   assert.equal(flatten.getAttribute('aria-pressed'), 'true')
   assert.equal(host.querySelector('.macro-controls .macro-metric-item'), null, 'Series controls no longer occupy the top toolbar')
-  assert.ok(host.querySelector('.macro-inline-layer [data-macro-axis="rate"]'), 'Eye/F/N controls live beside inline line text')
+  assert.equal(host.querySelector('.macro-inline-layer [data-macro-axis="rate"]'), null, 'Plot labels have no visibility controls')
+  assert.ok(host.querySelector('.macro-series-drawer [data-macro-axis="rate"]'), 'Eye/F/N controls live only in the drawer')
+  assert.equal(host.querySelector('.macro-inline-layer').textContent, '', 'The plot has no event or category text')
   for (const key of ['rate', 'payrolls']) {
     const dots = laneDots.filter(dot => dot.color === macro.preferences.series[key].color)
     assert.ok(dots.length, `${key}: lane mode draws actual release dots`)
     assert.equal(new Set(dots.map(dot => dot.y)).size, 1, 'Different numeric values occupy one perfectly horizontal lane')
   }
+  await React.act(async () => seriesDrawerButton.click()); await paint()
   laneDots.length = 0
   await React.act(async () => host.querySelector('[aria-label="Collapse Labor"]').click()); await paint()
   assert.equal(laneDots.filter(dot => dot.color === macro.preferences.series.payrolls.color).length, 0, 'Collapsed categories hide their actual dots')
@@ -1125,6 +1160,25 @@ try {
   assert.equal(inspectedReleases.length, selectedBeforeLaneClick + 1, 'Straight-lane dots remain selectable')
   assert.equal(inspectedReleases.at(-1).value, -120, 'Lane hit testing retains the real actual value')
   assert.deepEqual(macroPane.getSeries().map(line => line.data()), beforeFlatData, 'Lane mode never changes numeric values or dates')
+  await React.act(async () => lockAxes.click()); await paint()
+  const nativeBeforeLaneMove = fixedRanges()
+  laneDots.length = 0; await React.act(async () => chart.applyOptions({})); await paint()
+  const tracked = laneDots.find(dot => dot.color === macro.preferences.series.payrolls.color)
+  await React.act(async () => macroPane.getHTMLElement().dispatchEvent(new dom.PointerEvent('pointerdown', { bubbles: true, button: 0, clientY: 100, pointerId: 1 })))
+  await React.act(async () => window.dispatchEvent(new dom.PointerEvent('pointermove', { bubbles: true, clientY: 120, pointerId: 1 }))); await paint()
+  await React.act(async () => window.dispatchEvent(new dom.PointerEvent('pointerup', { bubbles: true, clientY: 120, pointerId: 1 }))); await paint()
+  assert.equal(macro.preferences.layout.laneOffset, 20, 'Linked dragging moves the entire lane collection')
+  assert.deepEqual(fixedRanges(), nativeBeforeLaneMove, 'Lane dragging preserves the numerical axes underneath')
+  const oldSpacing = macro.preferences.layout.laneSpacing
+  const wheelLane = new dom.WheelEvent('wheel', { bubbles: true, cancelable: true, deltaY: 100, clientY: tracked.y })
+  Object.defineProperty(wheelLane, 'clientY', { value: tracked.y })
+  await React.act(async () => macroPane.getHTMLElement().dispatchEvent(wheelLane)); await paint()
+  assert.equal(wheelLane.defaultPrevented, true)
+  assert.ok(macro.preferences.layout.laneSpacing < oldSpacing, 'Linked wheel gestures compress the lanes together')
+  await React.act(async () => host.querySelector('[aria-label="Fit all MFDI lanes"]').click()); await paint()
+  assert.equal(macro.preferences.layout.laneOffset, 0)
+  assert.deepEqual(fixedRanges(), nativeBeforeLaneMove)
+  await React.act(async () => lockAxes.click()); await paint()
   assert.equal(payrollLine.options().lineVisible, false, 'Native numerical lines are replaced only visually')
   await React.act(async () => flatten.click()); await paint()
   assert.equal(flatten.getAttribute('aria-pressed'), 'false')
@@ -1159,7 +1213,7 @@ try {
   await React.act(async () => fitAll.click()); await paint()
   const selectedReleasesBeforeLink = inspectedReleases.length
   await hoverDot(); await fireDotClick(rateDots, 0)
-  assert.equal(host.querySelector('[aria-label="Fed rate expectations"]').hidden, false, 'Hover works with linked axes')
+  assert.equal(host.querySelector('[aria-label="MFDI release details"]').hidden, false, 'Hover works with linked axes')
   assert.equal(inspectedReleases.length, selectedReleasesBeforeLink + 1, 'Release selection works with linked axes')
   await hoverDot(rateDots, 0, { point: undefined })
   await React.act(async () => lockAxes.click()); await paint()
@@ -1191,7 +1245,7 @@ try {
   await toggleLines(['payrolls', 'unemployment'])
   assert.ok(macroPane.getSeries().every(series => series.data().length === 0))
   assert.match(host.querySelector('.macro-note').textContent, /All series hidden/)
-  assert.equal(host.querySelectorAll('.macro-metric-control').length, 5, 'All five chips survive hidden data')
+  assert.equal(host.querySelectorAll('[data-macro-row]').length, 5, 'All five drawer rows survive hidden data')
   assert.equal(host.querySelectorAll('.macro-controls select').length, 0, 'The chips replace the axis dropdown')
   await selectAxis('coreCpi')
   assert.equal(macro.preferences.series.coreCpi.visible, true)
@@ -1214,24 +1268,32 @@ try {
   const originalMacro = macro
   macro = { ...macro, preferences: { ...defaultMacroPreferences, enabled: true, currencies: [], eventsByCurrency: {} }, history: {}, status: '' }
   await render({ macro })
-  assert.equal(host.querySelectorAll('.macro-metric-control').length, 0, 'An empty symbol has no preselected event chips')
+  assert.equal(host.querySelectorAll('[data-macro-row]').length, 0, 'An empty symbol has no preselected drawer rows')
+  assert.ok([...host.querySelectorAll('[data-macro-all]')].every(button => button.disabled), 'Universal controls are disabled without selected events')
   assert.match(host.querySelector('.macro-note').textContent, /Choose currencies/)
   assert.ok(chart.panes().at(-1).getSeries().every(line => line.data().length === 0))
   const { macroCatalog } = await server.ssrLoadModule('./src/market-data/indicators/macro/macro-catalog.ts')
   const dynamicKey = Object.keys(macroCatalog).find(key => macroCatalog[key].currency === 'EUR')
   const dynamicPreferences = setMacroEvents(setMacroCurrency(macro.preferences, 'EUR', true), 'EUR', [dynamicKey])
   dynamicPreferences.series[dynamicKey] = { ...dynamicPreferences.series[dynamicKey], numbersVisible: true }
-  const dynamicReading = { ...monthly('eur-reading', 65, 0.3), currency: 'EUR', unit: 1, digits: 2 }
+  const dynamicReading = { ...monthly('eur-reading', 65, 0.3), currency: 'EUR', unit: 1, digits: 2, forecast: 0.2, previous: 0.1 }
   macro = { ...macro, preferences: dynamicPreferences, history: { [dynamicKey]: [dynamicReading] } }
   const dynamicWindow = chart.timeScale().getVisibleLogicalRange()
   await render({ macro })
-  assert.equal(host.querySelectorAll('.macro-metric-control').length, 1)
+  assert.equal(host.querySelectorAll('[data-macro-row]').length, 1)
   assert.equal(host.querySelector('[data-macro-axis]').dataset.macroAxis, dynamicKey)
   const dynamicLine = chart.panes().at(-1).getSeries().find(line => line.data().length)
   assert.equal(dynamicLine.data()[0].value, 0.3, 'Dynamically added events reach native plotted series')
   assert.equal(dynamicLine.options().priceFormat.formatter(0.3), '0.30%')
   assert.deepEqual(chart.timeScale().getVisibleLogicalRange(), dynamicWindow, 'Changing selected currencies preserves shared dates')
   assert.equal(host.querySelector('.macro-note').hidden, true, 'Successful charts have no static source/status text')
+  await React.act(async () => { for (const listener of nativeCrosshairListeners) listener({
+    point: { x: chart.timeScale().timeToCoordinate(dynamicLine.data()[0].time), y: dynamicLine.priceToCoordinate(0.3) },
+    time: dynamicLine.data()[0].time, paneIndex: chart.panes().length - 1, seriesData: new Map(), hoveredInfo: { series: dynamicLine },
+  }) }); await paint()
+  const dynamicCard = host.querySelector('[aria-label="MFDI release details"]')
+  assert.equal(dynamicCard.hidden, false, 'Non-Fed events have release cards even when Fed is not selected')
+  assert.deepEqual([...dynamicCard.querySelectorAll('td')].map(node => node.textContent), ['0.30%', '0.20%', '0.10%'])
   await fireDotClick(dynamicLine, 0, { paneIndex: chart.panes().length - 1 })
   assert.equal(inspectedReleases.at(-1).currency, 'EUR', 'Dynamic dots retain currency for Inspector selection')
   macro = originalMacro
