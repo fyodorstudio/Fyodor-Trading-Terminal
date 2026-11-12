@@ -6,6 +6,7 @@ export const suites = [
   "tests/test_market_watch_favourites.mjs",
   "tests/test_daily_market_watch.mjs",
   "tests/test_market_watch_history.mjs",
+  "tests/test_cross_asset.mjs",
   "tests/test_chart_viewport.mjs",
   "tests/test_future_timeline.mjs",
   "tests/test_volume.mjs",

@@ -9,26 +9,10 @@
 .ledger-pick-button > span { font-size: 20px; line-height: 20px; }
 .ledger-dock .ledger-pick-button[aria-pressed='true'] { color: var(--accent); border-color: var(--accent); }
 [data-ledger-picking='true'], [data-ledger-picking='true'] * { cursor: crosshair !important; }
-.ledger-release-header { flex-shrink: 0; overflow-x: auto; max-width: 100%; border-bottom: 1px solid var(--border-strong); }
-.ledger-release-header table { width: 1600px; min-width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 0; }
-.ledger-header-currency-col { width: 64px; }
-.ledger-header-group-col { width: 384px; }
-.ledger-release-header th, .ledger-release-header td { padding: 3px 5px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); text-align: left; }
-.ledger-release-header thead th { background: var(--surface-inset); }
-.ledger-release-header label { display: flex; gap: 8px; align-items: center; }
-.ledger-release-header select { min-width: 0; width: 100%; flex: 1; padding: 2px 4px; }
-.ledger-release-header label > span { flex-shrink: 0; }
-.ledger-release-header .ledger-header-currency { position: sticky; left: 0; z-index: 2; background: var(--surface-panel); color: var(--text-strong); }
-.ledger-header-currency button { width: 100%; }
-.ledger-header-metric { display: block; font-size: 10px; color: var(--text-muted); line-height: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ledger-header-readings { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 3px; }
-.ledger-dock .ledger-header-release { display: block; width: 100%; padding: 2px 3px; text-align: left; min-height: 45px; }
 .ledger-header-values { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 3px; }
 .ledger-header-values > span { display: flex; flex-direction: column; min-width: 0; }
 .ledger-header-values small { font-size: 9px; line-height: 12px; }
 .ledger-header-values strong { font-size: 11px; line-height: 14px; font-weight: 500; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
-.ledger-header-release time { display: block; color: var(--text-muted); font-size: 10px; line-height: 13px; margin-top: 2px; }
-.ledger-header-empty { display: block; min-height: 45px; color: var(--text-muted); padding: 4px; }
 .ledger-dock small, .ledger-detail small, .ledger-detail-intro > span, .ledger-summary span { color: var(--text-muted); font-size: 11px; }
 .ledger-timeline { flex: 1; min-height: 0; position: relative; }
 .ledger-viewport { height: 100%; min-height: 0; overflow: auto; scrollbar-width: auto; scrollbar-color: auto; cursor: grab; touch-action: pan-y; overflow-anchor: none; }

@@ -8,7 +8,7 @@ export type LedgerData = { schema: 1; broker: string; revision: string; currenci
   from_date: string; through_date: string; year: number; min_year: number; max_year: number; metrics: LedgerMetric[]
   source_available?: boolean; coverage?: Record<string, { missing: number[][] }> }
 export type LedgerSelection = { at: number | null; currency: string; category: string | null }
-export type LedgerViewMemory = { headerLeft: number; tape: Map<string, { left: number; top: number; day: string; request: number }>; cells: Map<string, number> }
+export type LedgerViewMemory = { tape: Map<string, { left: number; top: number; day: string; request: number }>; cells: Map<string, number> }
 
 export const ledgerCategories = [
   { id: 'policy', label: 'Rates', metrics: ['rate'], scored: ['rate'], negative: [] },
@@ -46,10 +46,6 @@ export function ledgerPublications(metric: LedgerMetric, at: number) {
   return availableReadings(metric, at, true).sort((a, b) => releaseTime(a.entry) - releaseTime(b.entry)
     || a.entry.value_id.localeCompare(b.entry.value_id))
 }
-export function ledgerHistory(metric: LedgerMetric, at: number) {
-  return ledgerPublications(metric,at).slice(-3)
-}
-
 export function ledgerReading(metric: LedgerMetric, at: number) {
   const eligible = availableReadings(metric, at)
   // New reference periods supersede old-period revisions. Never revive an older

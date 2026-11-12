@@ -12,8 +12,7 @@ an approximate series. `storage/ledger_vintages.py` owns retained capture clocks
 
 **Ledger** opens a resizable bottom dock with a chronological horizontal date
 tape and the selected pair's two event lanes. Load one complete calendar year (January 1 through
-December 31) plus three older retained actuals per measure for carry-forward
-and the header's cross-year history.
+December 31) plus three older retained actuals per measure for carry-forward.
 
 **Filters**, immediately left of ⌖, defaults to **S/A/B** across all eight currencies.
 The anchored popover reuses Inspector's family/category checkbox groups and search,
@@ -22,7 +21,7 @@ family selection are both required for a timeline card to appear. Exact
 currency/country/series identities use `config/event-tiers.json`; unclassified
 records use C, independently of MT5 importance or actual-impact colors. All events
 restores C and all families for the active pair. Nothing is removed from storage.
-The header, scoring inputs, Inspector preferences, chart markers and reminders
+Scoring inputs, Inspector preferences, chart markers and reminders
 remain independent. Presets reset active-currency family exclusions only.
 
 Changes preview locally; Save persists Ledger-only choices under
@@ -38,7 +37,7 @@ previous lands in December, next lands in January. Supported years start in 2015
 and end in the current Jakarta year; empty local history stays empty.
 
 Dragging and year browsing never change the evaluation cutoff. The date selector
-sits beside ⌖ and Today, above the category header. Today returns to the current date
+sits beside ⌖ and Today, above the timeline. Today returns to the current date
 and year. Year selection is independent of the evaluated date: the score's year
 is retained while another year is viewed, avoiding a silent change of verdict.
 The timeline mounts only viewport dates plus three days of overscan on either
@@ -53,23 +52,13 @@ Captured corrections use their capture instant. Today resumes the current clock.
 The tape can browse every captured record through All events. Already released values stay visible even
 when they are after the selected evaluation date. Its actuals use the latest
 retained capture; it does not claim to replay an original release vintage. The
-header and scorecard alone evaluate the cutoff. Premature actuals for genuinely
+scorecard alone evaluates the cutoff. Premature actuals for genuinely
 future publications are suppressed by the server; scheduled events add no points. All selected
 dates and category contributions use the same cutoff for both currencies.
 
-The fixed header has Interest rate, Inflation, Labour & wage and Activity selectors.
-Each shows the latest three releases available by the evaluation cutoff,
-oldest left and newest right, with Actual/Forecast/Previous and each currency's own
-date. Forecast belongs to that release. Missing values stay dashes. The header
-keeps its own horizontal scroll independent of the daily tape. One pinned currency
-column avoids repeated currency labels; clicking a currency opens **Fundamental
-Detail** in the existing right panel. Numeric score boxes are absent from the
-header. Selectors affect display only, leaving scoring contributions unchanged.
-Comparable presets retain each country's actual definition, including HICP,
-CPI-trim/median, quarterly CPI and national PMI surveys. Measures unavailable for
-the other currency remain blank. Additional per-currency selector options expose
-all stored series, including PPI, speeches, fiscal/trade/housing data and valid
-unknown IDs. These options change display, not the scoring formula.
+The former fixed Interest rate / Inflation / Labour & wage / Activity release
+summary and its display selectors have been removed. Clicking the pinned currency
+lane label still opens **Fundamental Detail** in the existing right panel.
 The scorecard compares each currency with its own previous reading,
 shows per-category advantage and expands the selected currency/category evidence.
 Each measure retains its latest available reference period until superseded.
@@ -78,13 +67,13 @@ reference period, release time, retained capture, previous, historical consensus
 and publisher route remain inspectable. Scorecard evidence opens the exact
 release in Inspector and never changes a bell.
 
-Clicking a header or tape release opens its exact source package in Inspector,
+Clicking a tape release opens its exact source package in Inspector,
 highlights the measure, and leaves the Ledger cutoff unchanged. This transient
 focus works outside the Inspector date window and when a family is hidden,
 including By day, without changing saved filters/grouping or chart markers.
 Inspector shows the latest retained raw broker values, which can include later
-revisions. Return to Ledger restores the selected year, date, selectors, header
-scroll and tape position. Event inspection itself never changes reminders.
+revisions. Return to Ledger restores the selected year, date and tape position.
+Event inspection itself never changes reminders.
 
 Actual numerical text uses the broker's stored MT5 `impact`: positive green,
 negative red, none/unknown neutral. Forecast, previous and card backgrounds remain

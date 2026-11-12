@@ -48,7 +48,7 @@ const reply = async (request, data) => React.act(async () => request.resolve({ o
 const flush = async () => React.act(async () => { for (const [id, fn] of [...frames]) { frames.delete(id); fn() } })
 try {
   const model = await server.ssrLoadModule('./src/currency-ledger/ledger-model.ts')
-  const { ledgerCards, ledgerReading, ledgerHistory, ledgerDayEnd, validLedger } = model
+  const { ledgerCards, ledgerReading, ledgerPublications, ledgerDayEnd, validLedger } = model
   assert.equal(validLedger(fixture, 'Pepperstone-Demo'), true)
   for (const mutate of [v => v.metrics.find(m=>m.entries.length).entries[0].value = 'bad', v => v.metrics[0].source_url = 'javascript:bad', v => v.metrics.push(v.metrics[0]), v => v.currencies = ['EUR','CAD']]) {
     const bad = structuredClone(fixture); mutate(bad); assert.equal(validLedger(bad, 'Pepperstone-Demo'), false)
@@ -59,8 +59,8 @@ try {
   assert.equal(ledgerReading(cpi, at('2026-09-11')).entry.value, 2.8, 'New release replaces old reading')
   assert.equal(ledgerReading(cpi, at('2026-09-14')).entry.value, 2.8, 'Later revision never leaks backward')
   assert.equal(ledgerReading(cpi, at('2026-09-15')).entry.value, 2.9)
-  assert.deepEqual(ledgerHistory(cpi,at('2026-09-09')).map(r=>r.entry.value_id),['prior-year','seed','aug'])
-  assert.equal(ledgerHistory(cpi,at('2026-09-11')).at(-1).entry.value,2.8,'Header history excludes later revisions')
+  assert.deepEqual(ledgerPublications(cpi,at('2026-09-09')).slice(-3).map(r=>r.entry.value_id),['prior-year','seed','aug'])
+  assert.equal(ledgerPublications(cpi,at('2026-09-11')).at(-1).entry.value,2.8,'Historical publications exclude later revisions')
   assert.equal(ledgerReading(cpi, at('2026-08-12')).backfilled, true)
   assert.equal(ledgerReading(cpi, Date.parse('2026-08-12T12:29:59Z')).entry.value, 3.1, 'No same-day actual before publication')
   const dateOnly = fixture.metrics.find(m => m.id === 'cad.cpi-yoy')
@@ -176,24 +176,12 @@ try {
   assert.ok(popover().querySelectorAll('.inspector-family').length<10,'Search narrows shared family controls')
   await click([...popover().querySelectorAll('.inspector-family input')].find(n=>n.getAttribute('aria-label')==='US CPI / core CPI'))
   assert.equal(container.querySelector('[data-ledger-event="sep"]'),null,'Family exclusions apply in addition to tiers')
-  assert.ok(container.querySelector('[data-ledger-header-value="aug"]'),'Header evidence remains available')
+  assert.ok(container.querySelector('[data-ledger-metric="usd.cpi-yoy"]'),'Detail evidence remains available independently of tape filters')
   await choose('Cancel');assert.ok(container.querySelector('[data-ledger-event="sep"]'))
   assert.equal(container.querySelector('.ledger-viewport').scrollLeft,tapeBeforeFilter)
   assert.equal(input.value,'2026-09-09')
-  const inflationHeader=()=>container.querySelector('[data-ledger-header="USD-inflation"]')
-  assert.deepEqual([...inflationHeader().querySelectorAll('[data-ledger-header-value]')].map(n=>n.dataset.ledgerHeaderValue),['prior-year','seed','aug'])
+  assert.equal(container.querySelector('.ledger-release-header'),null,'The fixed release summary has been removed')
   assert.equal(container.querySelector('.ledger-score-buttons'),null,'Numeric score boxes have been removed')
-  await click(inflationHeader().querySelector('[data-ledger-header-value="aug"]'))
-  assert.equal(inspected,'aug');assert.equal(input.value,'2026-09-09','Inspecting a header release never changes evaluation date')
-  const totalsBeforeSelector=container.querySelector('.ledger-summary').textContent
-  await React.act(async()=>{
-    const select=container.querySelector('[aria-label="Ledger Inflation measure"]');select.value='core-mom';select.dispatchEvent(new dom.Event('change',{bubbles:true}))
-  })
-  assert.match(container.querySelector('[data-ledger-header="CAD-inflation"]').textContent,/unavailable/)
-  assert.equal(container.querySelector('.ledger-summary').textContent,totalsBeforeSelector,'Header selection never changes scoring contributions')
-  await React.act(async()=>{
-    const select=container.querySelector('[aria-label="Ledger Inflation measure"]');select.value='headline-yoy';select.dispatchEvent(new dom.Event('change',{bubbles:true}))
-  })
   const evidence = () => container.querySelector('[data-ledger-metric="usd.cpi-yoy"]')
   assert.match(evidence().textContent, /3.1% → 3%/)
   const viewport = container.querySelector('.ledger-viewport'), selected = input.value
@@ -205,7 +193,7 @@ try {
   assert.equal(requests.length, requestsBefore, 'Tape scrolling is local and read-only')
   assert.ok(container.querySelector('[data-ledger-date="2026-01-01"]'))
   assert.equal([...container.querySelectorAll('button')].some(n=>n.textContent==='Go to 2025'),true)
-  const beforeYearScore=container.querySelector('[aria-label="Open USD Ledger scorecard"]').textContent
+  const beforeYearScore=container.querySelector('.ledger-summary').textContent
   await click([...container.querySelectorAll('button')].find(n=>n.textContent==='Go to 2025'))
   const yearRequests=requests.slice(requestsBefore)
   assert.equal(yearRequests.length,2,'Load the viewed year and retain the independently evaluated year')
@@ -214,7 +202,7 @@ try {
     await reply(request,fixtures[year])
   }
   assert.equal(input.value,selected,'Browsing another year never changes the score date')
-  assert.equal(container.querySelector('[aria-label="Open USD Ledger scorecard"]').textContent,beforeYearScore)
+  assert.equal(container.querySelector('.ledger-summary').textContent,beforeYearScore)
   assert.ok(container.querySelector('[data-ledger-date="2025-12-31"]'),'Previous year lands at its December end')
   await click([...container.querySelectorAll('button')].find(n=>n.textContent==='Go to 2026'))
   await reply(requests.at(-1),fixture)
@@ -254,14 +242,12 @@ try {
   assert.equal(frames.size,0);assert.equal(observers.size,0)
   // All 28 production pair identities accept the full eight-currency contract.
   const {majorForexPairs,forexPairCurrencies}=await server.ssrLoadModule('./src/economic-calendar/forex/pairs.ts')
-  const {headerOptions}=await server.ssrLoadModule('./src/currency-ledger/ledger-header-options.ts')
   let precedingPair=null
   for(const pair of majorForexPairs){
     const currencies=forexPairCurrencies(pair)
     const snapshot={...output.all,currencies:[...currencies],coverage:Object.fromEntries(currencies.map(c=>[c,output.all.coverage[c]])),metrics:output.all.metrics.filter(m=>currencies.includes(m.currency))}
     assert.ok(validLedger(snapshot,'Pepperstone-Demo',2026,currencies),pair)
     assert.deepEqual(ledgerCards(snapshot,at('2026-09-09')).map(c=>c.currency),[...currencies])
-    for(const group of ['policy','inflation','labour','activity']) assert.ok(headerOptions(snapshot,currencies,group).length,pair+group)
     await React.act(async()=>root.render(React.createElement(DisplayClockProvider,{brokerId:'Pepperstone-Demo',brokerOffsetSeconds:7200,preference},
       React.createElement(LedgerProvider,{broker:'Pepperstone-Demo',enabled:true,currencies},React.createElement(React.Fragment,null,
         React.createElement(LedgerDock,{supported:true,broker:'Pepperstone-Demo',onOpenDetail,onViewEvent:onInspect}),React.createElement(LedgerDetail,{onViewEvent}),React.createElement(LedgerRateHistory,{onViewEvent}))))))
@@ -269,7 +255,7 @@ try {
     assert.equal(new URL(requests.at(-1).url,'http://localhost').searchParams.get('scope'),pair)
     assert.equal(popover(),null,'Changing pair cancels an open filter preview')
     assert.deepEqual(readLedgerFilters().tiers,['S','A','B'])
-    assert.deepEqual([...container.querySelectorAll('.ledger-header-currency button')].map(n=>n.textContent),[...currencies])
+    assert.deepEqual([...container.querySelectorAll('.ledger-currency')].map(n=>n.textContent),[...currencies])
     assert.deepEqual([...container.querySelectorAll('.ledger-scorecard thead th')].slice(1).map(n=>n.textContent),[...currencies])
     assert.deepEqual([...container.querySelectorAll('.ledger-rate-columns h3')].map(n=>n.textContent),[...currencies])
     await click(filterButton())

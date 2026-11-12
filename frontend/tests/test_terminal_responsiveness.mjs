@@ -134,6 +134,8 @@ const server = await createServer({ root: path.resolve(path.dirname(fileURLToPat
     resolveId(source) { if (source === 'lightweight-charts') return '\0terminal-canvas-fixture' },
     load(id) { if (id === '\0terminal-canvas-fixture') return canvasModule },
     transform(code, id) {
+      if (id.endsWith('/heatmap-model.ts')) return code.replace('  const pairs = heatmapPairs(catalog), points =',
+        "  globalThis.__terminalProbe.count('heatmapBuild'); const pairs = heatmapPairs(catalog), points =")
       if (id.endsWith('/LedgerTimeline.tsx')) return code.replace('  const viewport =', "  globalThis.__terminalProbe.count('ledgerTimeline'); const viewport =")
       if (id.endsWith('/EventsDock.tsx')) return code.replace('  const alarms = useAlarms()',
         "  globalThis.__terminalProbe.count('eventsDock'); const alarms = useAlarms()")
@@ -201,6 +203,14 @@ globalThis.fetch = (url, options = {}) => {
     return Promise.resolve({ ok: true, json: async () => ({ source_id: broker, generation,
       day: Math.floor((now / 1000 + 10800) / 86400) * 86400, observed_at: now / 1000,
       symbols: Object.fromEntries(body.symbols.map(symbol => [symbol, { open: 1.1, high: 1.2, low: 1, checked_at: now / 1000 }])) }) })
+  }
+  if (u === '/storage-api/cross-asset/history') {
+    const body = JSON.parse(options.body), today = new Date(now + 3 * 3600000).toISOString().slice(0, 10)
+    const midnight = Date.parse(`${today}T00:00:00Z`) / 1000
+    return Promise.resolve({ ok: true, json: async () => ({ schema: 1, source_id: broker, generation,
+      year: body.year, today, observed_at: now / 1000, revision: 'a'.repeat(64), pending: 0,
+      symbols: Object.fromEntries(body.symbols.map(symbol => [symbol, { availability: 'available', checked_at: now / 1000,
+        bars: Array.from({ length: 5 }, (_, i) => ({ time: midnight - (4 - i) * 86400, open: 100, low: 99, high: 110, close: 100 + i })) }])) }) })
   }
   if (u === '/entry-trade-api/journal') {
     if (options.method === 'POST') {
@@ -514,7 +524,7 @@ try {
   assert.equal(panes.length, 2); assert.equal(indicatorSeries.size, 3, 'Volume removal preserves the RSI series')
   assert.equal(container.querySelector('.volume-legend'), null)
   assert.deepEqual([...container.querySelectorAll('[aria-label="App features"] button')].map(node => node.textContent.trim().replace(/\s+\d+$/, '')),
-    ['Alert', 'Currency News', 'Ledger', 'Inspector', 'Entry Trade', 'Activity', '⚙ Settings'])
+    ['Alert', 'Currency News', 'Ledger', 'Cross-Asset', 'Inspector', 'Entry Trade', 'Activity', '⚙ Settings'])
   reset()
   const ledgerRequests = requests.length
   await click(button('Ledger'))
@@ -1523,9 +1533,10 @@ try {
   assert.equal(chart.chartElement().dataset.ledgerPicking,undefined,'Today cancels picking')
   assert.equal(ledgerInput.value,new Date(now+7*3600000).toISOString().slice(0,10))
   const beforeInspectDate=ledgerInput.value, beforeInspectFilters=localStorage.getItem('fyodor.inspector.shared.v1')
-  const ledgerScroll=container.querySelector('.ledger-viewport'), headerScroll=container.querySelector('.ledger-release-header')
-  ledgerScroll.scrollLeft+=100;ledgerScroll.scrollTop=21;headerScroll.scrollLeft=111
-  await React.act(async()=>{ledgerScroll.dispatchEvent(new dom.Event('scroll'));headerScroll.dispatchEvent(new dom.Event('scroll'))});await flush()
+  const ledgerScroll=container.querySelector('.ledger-viewport')
+  assert.equal(container.querySelector('.ledger-release-header'),null,'Ledger release summary is removed')
+  ledgerScroll.scrollLeft+=100;ledgerScroll.scrollTop=21
+  await React.act(async()=>ledgerScroll.dispatchEvent(new dom.Event('scroll')));await flush()
   const savedLedgerLeft=ledgerScroll.scrollLeft
   const cpiEvent=[...container.querySelectorAll('.ledger-event')].find(n=>n.querySelector('strong').textContent==='Headline CPI YoY')
   await click(cpiEvent);await flush()
@@ -1537,15 +1548,58 @@ try {
   assert.equal(container.querySelector('[aria-label="Ledger as-of date"]').value,beforeInspectDate)
   assert.equal(container.querySelector('.ledger-viewport').scrollLeft,savedLedgerLeft)
   assert.equal(container.querySelector('.ledger-viewport').scrollTop,21)
-  assert.equal(container.querySelector('.ledger-release-header').scrollLeft,111)
-  await click(container.querySelector('[data-ledger-header-value="usd.cpi-yoy"]'));await flush()
-  assert.ok(container.querySelector('[data-value-id="usd.cpi-yoy"][data-ledger-focused="true"]'),'Header releases use the same Inspector route')
-  await click([...container.querySelectorAll('.inspector-header button')].find(n=>n.textContent==='Return to Ledger'));await flush()
   const restoredPickerButton=container.querySelector('[aria-label="Pick Ledger date from a chart candle"]')
   await click(restoredPickerButton)
   await click(container.querySelector('[aria-label="Close Detail"]')); await click(button('Ledger'))
   assert.equal(chart.chartElement().dataset.ledgerPicking,undefined,'Closing Ledger removes its chart picker')
   assert.equal([...timers.values()].some(t => t.fn.name==='pollLedger'),false)
+  const crossAssetRange = { ...logicalRange }, crossAssetDrawings = localStorage.getItem('fyodor.chart-drawings.v1')
+  reset(); await click(button('Cross-Asset')); await flush()
+  assert.ok(container.querySelector('[aria-label="Cross-asset heatmap"]'))
+  assert.ok(container.querySelector('[aria-label="Resize Cross-Asset dock"]'))
+  assert.ok(container.querySelector('[data-heatmap-cell^="symbol:EURUSD:"]'))
+  assertQuiet('Opening cross-asset history')
+  const heatmapViewport = container.querySelector('.heatmap-viewport'), heatmapDate = container.querySelector('[aria-label="Heatmap date"]').value
+  const beforeHeatmapScroll = requests.length
+  reset()
+  heatmapViewport.scrollLeft = 200
+  await React.act(async () => { for (let i = 0; i < 100; i++) heatmapViewport.dispatchEvent(new dom.Event('scroll')) })
+  assert.equal(frames.size, 1, 'Heatmap scroll bursts queue one frame in the assembled terminal')
+  await flush()
+  assertQuiet('Browsing cross-asset history', true)
+  assert.equal(counters.heatmapBuild ?? 0, 0, 'Browsing never recalculates return history')
+  assert.equal(requests.length, beforeHeatmapScroll)
+  assert.equal(container.querySelector('[aria-label="Heatmap date"]').value, heatmapDate)
+  const heatmapCaptures = new Set()
+  heatmapViewport.setPointerCapture = id => heatmapCaptures.add(id)
+  heatmapViewport.hasPointerCapture = id => heatmapCaptures.has(id)
+  heatmapViewport.releasePointerCapture = id => heatmapCaptures.delete(id)
+  const heatmapGesture = (type, x, y) => React.act(async () => props(heatmapViewport)[type]({
+    button: 0, isPrimary: true, pointerId: 92, clientX: x, clientY: y, target: heatmapViewport, currentTarget: heatmapViewport, preventDefault() {} }))
+  reset()
+  await heatmapGesture('onPointerDown', 500, 100)
+  await React.act(async () => { for (let i = 0; i < 100; i++) props(heatmapViewport).onPointerMove({
+    pointerId: 92, clientX: 500 - i, clientY: 100 - i, currentTarget: heatmapViewport, preventDefault() {} }) })
+  assert.equal(frames.size, 1, 'Both drag axes share one frame in the assembled terminal')
+  await flush()
+  assert.equal(heatmapViewport.scrollLeft, 299)
+  assert.equal(heatmapViewport.scrollTop, 99)
+  await heatmapGesture('onPointerUp', 401, 1)
+  assert.equal(heatmapCaptures.size, 0)
+  assertQuiet('Dragging cross-asset dates and rows', true)
+  assert.equal(counters.heatmapBuild ?? 0, 0)
+  assert.equal(requests.length, beforeHeatmapScroll)
+  assert.equal(container.querySelector('[aria-label="Heatmap date"]').value, heatmapDate)
+  reset(); await click(button('Weekly')); await flush()
+  assertQuiet('Weekly cross-asset view', true)
+  assert.equal(requests.length, beforeHeatmapScroll, 'Weekly uses the same history response')
+  reset(); await tick('pollHeatmap', 20000); await flush()
+  assertQuiet('Cross-asset poll', true)
+  assert.equal(counters.heatmapBuild ?? 0, 0, 'Unchanged history retains its calculation identity')
+  assert.deepEqual(logicalRange, crossAssetRange)
+  assert.equal(localStorage.getItem('fyodor.chart-drawings.v1'), crossAssetDrawings)
+  await click(button('Cross-Asset')); await flush()
+  assert.equal([...timers.values()].some(t => t.fn.name === 'pollHeatmap'), false, 'Closing the heatmap cancels its poll')
   await React.act(async () => root.render(null))
   assert.equal(indicatorSeries.size, 0); assert.equal(panes.length, 1)
   assert.equal(rangeListeners.size, 0); assert.equal(clickListeners.size, 0)

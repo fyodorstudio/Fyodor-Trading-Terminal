@@ -28,6 +28,7 @@ from .detail_projection import detail_snapshot
 from .detail_registry import resolve_scope
 from .currency_ledger import ledger_snapshot
 from .market_watch_daily import DailyMarketWatch
+from .cross_asset import CrossAssetHistory
 from .fed_forecasts import read_forecasts
 
 
@@ -37,6 +38,14 @@ class DailyMarketRequest(BaseModel):
     symbols: list[str] = Field(max_length=5000)
     selected: str = Field(default='', max_length=128)
     date: Date | None = None
+    retry: bool = False
+
+
+class CrossAssetRequest(BaseModel):
+    source_id: str = Field(min_length=1, max_length=160)
+    generation: int = Field(ge=0)
+    symbols: list[str] = Field(max_length=128)
+    year: int = Field(ge=2015, le=2100)
     retry: bool = False
 
 # The eight-currency Alert catalog exceeds the original pair-only 64-series cap.
@@ -64,6 +73,7 @@ def create_app(directory=None, run_collector=True, highlights_path=HIGHLIGHTS_PA
 
     app = FastAPI(title="Fyodor Calendar Storage", version="1.1.0", lifespan=lifespan)
     daily_market = DailyMarketWatch()
+    cross_asset = CrossAssetHistory()
     details_directory = (directory or data_directory()) / 'currency-details'
 
     @app.get('/api/v1/fed-forecasts')
@@ -111,6 +121,15 @@ def create_app(directory=None, run_collector=True, highlights_path=HIGHLIGHTS_PA
             return daily_market.snapshot(request.source_id, request.generation, request.symbols, request.selected, request.date, request.retry)
         except (ValueError, OSError, subprocess.TimeoutExpired) as error:
             raise HTTPException(503, 'Pepperstone daily candles unavailable') from error
+
+    @app.post('/api/v1/cross-asset/history')
+    def cross_asset_history(request: CrossAssetRequest):
+        if any(not s or len(s) > 128 for s in request.symbols):
+            raise HTTPException(422, 'Invalid heatmap symbol')
+        try:
+            return cross_asset.snapshot(request.source_id, request.generation, request.symbols, request.year, request.retry)
+        except (ValueError, OSError, subprocess.TimeoutExpired) as error:
+            raise HTTPException(503, 'Cross-asset history unavailable; connect the matching Pepperstone terminal and retry') from error
 
     @app.exception_handler(ValueError)
     async def invalid_transfer(_, error):

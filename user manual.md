@@ -238,6 +238,30 @@ charts show no static source caption; loading/error/empty messages appear as nee
    Bar colours follow candle direction, not buy/sell volume. No entry, direction
    or reversal signal is generated.
 
+## Cross-Asset heatmap
+
+Click **Cross-Asset** beside Ledger in the bottom bar. Drag horizontally, vertically
+or diagonally through the timeline to browse
+daily winners and losers; hover a date to see its ranking. Click a date or cell to
+pin it while researching, then **Unpin date** to resume hover. **Weekly** changes
+each column into a trading week; the current week shows week-to-date readings.
+**Today**, the date input and year arrows navigate independently of your chart.
+
+**Instruments** adds/removes broker-visible symbols and the eight synthetic
+currency baskets. Use category/search controls to find FX majors/crosses, equity
+indices, XAUUSD, SpotBrent and other instruments. Up/down controls set row order
+within groups. Save named watchlists for reuse; **Save** commits all draft edits,
+while **Cancel** discards them. These choices do not change Market Watch favourites.
+
+Cells show net change from the previous close, including gaps. Weekly compares
+against the prior week's last close. **Shading** can highlight the raw percentage
+or movement relative to each instrument's earlier volatility. Hover a cell for
+its dates and calculation details. Missing candles or incomplete seven-currency
+coverage stay blank. **Method** explains the basket construction, timing and
+limitations. **Refresh** rereads the selected instruments. This is price evidence
+for your catalyst/risk-appetite research, not a measurement of capital-flow amounts.
+See [Cross-Asset](docs/CROSS-ASSET.md).
+
 ## Currency Detail
 
 Click **Detail** beside Show events for S/A/B/C fundamentals of the active pair.

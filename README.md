@@ -39,6 +39,7 @@ stays with the user; no automated UI audit is implied.
 | external-sources | Outside-feed evidence, chart markers, limitations and versions; [source contract](docs/EXTERNAL-SOURCES.md) |
 | currency-news / storage/currency_news.py | On-demand saved news and implications; [news contract](docs/CURRENCY-NEWS.md) |
 | currency-ledger / storage/currency_ledger.py | All-pair calendar tape, retained vintages, provisional scorecard; [Ledger contract](docs/CURRENCY-LEDGER.md) |
+| cross-asset / storage/cross_asset.py | Daily/weekly heatmap, synthetic currency baskets and broker instrument rankings; [heatmap contract](docs/CROSS-ASSET.md) |
 | currency-details / storage/currency_details.py | Pair/index fundamentals, official evidence and MT5 conflicts; [Detail contract](docs/CURRENCY-DETAILS.md) |
 | entry-trade | Manual plans, pins, independent chart arrows and tracked journal |
 | price-alerts | Broker/symbol lines, local persistence, Bid monitoring and browser sound |
@@ -89,12 +90,10 @@ Ledger has a draggable date tape with separate currency lanes, one calendar year
 at a time. At the year edge, a small prompt opens the adjacent year. Dragging
 and year browsing only browse; selecting a date changes the shared historical
 cutoff. Latest readings carry forward even when their releases are offscreen.
-The fixed header compares the latest three available releases (oldest to newest)
-for each chosen rate, inflation, labor/wage and activity measure. Currency labels
-open Fundamental Detail in the existing right panel. Release clicks open the exact
+Currency lane labels open Fundamental Detail in the existing right panel. The
+former fixed category/release summary has been removed. Release clicks open the exact
 package in Inspector and highlight its measure, preserving Ledger's cutoff and
-browsing position. Return to Ledger resumes the tape. Header choices only change
-what is displayed. Today restores the current date; the ⌖ button to its left lets
+browsing position. Return to Ledger resumes the tape. Today restores the current date; the ⌖ button to its left lets
 you click a candle while retaining the native crosshair/date label. Escape cancels.
 Rates, labor, growth and demand use a transparent provisional momentum formula;
 inflation stays context only. Scores show coverage and are not probabilities or
@@ -104,13 +103,13 @@ corrections never move backwards into earlier scores. See the
 All captured broker series are available, including PPI and nonnumeric events;
 only defined canonical measures contribute to scores. Actual numbers follow MT5's
 stored positive/negative impact color; F/P and boxes remain neutral. Released tape
-values stay visible after the evaluation cutoff; the header and scorecard remain
+values stay visible after the evaluation cutoff; the scorecard remains
 historical. Busy cells virtualize their cards and server snapshots share currency
 caches across pairs. Missing stored coverage stays explicit.
 The **Filters** button beside ⌖ defaults the timeline to S/A/B events. It reuses
 Inspector's family controls with independent Ledger choices, S/A-only and All events
 presets, preview/Save/Cancel and currency-shared persistence. Hidden events remain
-available; filtering does not change the header, scoring evidence or chart icons.
+available; filtering does not change scoring evidence or chart icons.
 
 The **Rate decisions** tab shows the evaluated calendar year's decisions for both
 currencies, newest first, using the same cutoff. Indices retain the tier comparison.
@@ -129,6 +128,20 @@ Alert's Tier column uses the same exact-series classification. Saved assessments
 and reminder choices remain intact. The skill refreshes News and Detail together,
 starting with `pnpm analyst details prepare --scope EURUSD`; see the
 [Detail workflow](docs/CURRENCY-DETAILS.md).
+
+## Cross-Asset heatmap
+
+**Cross-Asset**, beside Ledger in the bottom dock, compares daily or trading-week
+price changes. Drag the timeline to browse, hover a column for its winners/losers,
+and click to pin a date. Daily uses the previous available close; weekly uses the
+previous week's final close. Current periods stay labelled incomplete. Eight
+equal-weight synthetic currency baskets require all seven counterparts with
+matching comparison dates. Individual FX pairs, equity indices, gold, Brent and
+other visible broker instruments can be added, removed and reordered through
+**Instruments**, with saved watchlists and Save/Cancel. Shading offers raw returns
+or movement relative to earlier volatility. **Method** explains calculations and
+coverage. Browsing never changes the chart, Ledger cutoff or alarms. Historical
+availability depends on broker D1 coverage. See the [heatmap contract](docs/CROSS-ASSET.md).
 
 ## Preserved terminal behavior
 

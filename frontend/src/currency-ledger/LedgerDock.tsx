@@ -3,7 +3,6 @@ import { useLedger } from './useLedger'
 import { ledgerDay, ledgerDayEnd } from './ledger-model'
 import { LedgerTimeline } from './LedgerTimeline'
 import './ledger.css'
-import { LedgerReleaseHeader } from './LedgerReleaseHeader'
 import type { DetailReading } from '../currency-details/detail-model'
 import { LedgerFiltersPopover } from './LedgerFiltersPopover'
 
@@ -40,7 +39,6 @@ export const LedgerDock = memo(function LedgerDock({ supported, broker, onOpenDe
       {error && <p role="alert">{error}</p>}
       {data?.source_available===false && <p>No stored broker calendar is available for this source.</p>}
       {data?.coverage && Object.entries(data.coverage).some(([,c])=>c.missing.length>0) && <p className="ledger-coverage">Some dates have incomplete stored coverage. Filters control which captured events are shown.</p>}
-      <LedgerReleaseHeader onViewEvent={onViewEvent} onOpenDetail={open} />
       {!data ? !error && <p role="status">Loading Ledger…</p> : <LedgerTimeline data={data} filters={filters} at={at} now={now} focusRequest={focusRequest} viewMemory={viewMemory} landing={landing?.request === focusRequest ? landing : null} onSelect={select} onOpenCurrency={open} onViewEvent={onViewEvent} onYear={changeYear} />}
     </>}
     {filtersOpen&&<LedgerFiltersPopover anchor={filterButton} currencies={currencies} filters={filters} onApply={applyFilters} onClose={closeFilters}/>}

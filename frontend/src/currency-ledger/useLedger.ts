@@ -14,9 +14,7 @@ export function useLedgerState(broker: string | null, enabled: boolean, pickerSc
   const [now, setNow] = useState(Date.now)
   const [picker, setPicker] = useState({ scope: pickerScope, armed: false })
   const [focusRequest, setFocusRequest] = useState(0)
-  const [headerChoices, setHeaderChoices] = useState<Record<string, string>>({})
-  const viewMemory = useRef({ headerLeft: 0, tape: new Map<string, { left: number; top: number; day: string; request: number }>(), cells: new Map<string, number>() })
-  const saveHeaderScroll = useCallback((left: number) => { viewMemory.current.headerLeft = left }, [])
+  const viewMemory = useRef({ tape: new Map<string, { left: number; top: number; day: string; request: number }>(), cells: new Map<string, number>() })
   if (picker.scope !== pickerScope) setPicker({ scope: pickerScope, armed: false })
   const picking = pickerScope !== null && picker.scope === pickerScope && picker.armed
   const togglePicking = useCallback(() => setPicker(old => ({ scope: pickerScope,
@@ -81,8 +79,8 @@ export function useLedgerState(broker: string | null, enabled: boolean, pickerSc
   // Dock geometry belongs to the parent workspace. Keep this context stable so
   // height-only parent renders never invalidate the tape or the scorecard.
   return useMemo(() => ({ data, scoreData, error, selection, setSelection, at, cards, now, year, setYear, currencies, filters, applyFilters,
-    picking, canPick: pickerScope !== null, togglePicking, cancelPicking, pickDay, goToToday, focusRequest, headerChoices, setHeaderChoices, viewMemory, saveHeaderScroll }),
-    [data, scoreData, error, selection, at, cards, now, year, picking, pickerScope, togglePicking, cancelPicking, pickDay, goToToday, focusRequest, headerChoices, saveHeaderScroll,currencies,filters,applyFilters])
+    picking, canPick: pickerScope !== null, togglePicking, cancelPicking, pickDay, goToToday, focusRequest, viewMemory }),
+    [data, scoreData, error, selection, at, cards, now, year, picking, pickerScope, togglePicking, cancelPicking, pickDay, goToToday, focusRequest,currencies,filters,applyFilters])
 }
 export const LedgerContext = createContext<ReturnType<typeof useLedgerState> | null>(null)
 export function useLedger() {

@@ -25,6 +25,7 @@ import { selectMacroMetric, toggleMacroMetric, toggleMacroForecast, toggleMacroN
 import { chartEventCurrencies } from '../economic-calendar/forex/chart-event-scope'
 import { LedgerProvider } from '../currency-ledger/LedgerProvider'
 import { LedgerDock } from '../currency-ledger/LedgerDock'
+import { CrossAssetDock } from '../cross-asset/CrossAssetDock'
 import { LedgerCandlePicker } from '../currency-ledger/LedgerCandlePicker'
 import { brokerClockProfile } from '../appearance/time-display/chart-clock'
 import type { IChartApi, ISeriesApi, Time } from 'lightweight-charts'
@@ -201,6 +202,7 @@ export function TerminalWorkspace() {
         >
           {bottomDockWindow === 'currency-news' && <CurrencyNewsDock />}
           {bottomDockWindow === 'ledger' && <LedgerDock supported={ledgerSupported} broker={brokerId} onOpenDetail={openLedgerDetail} onViewEvent={viewLedgerEvent} />}
+          {bottomDockWindow === 'cross-asset' && <CrossAssetDock symbols={marketData.symbols} broker={brokerId} generation={bridge.generation} />}
           {bottomDockWindow === 'activity' && (
             <ActivityDock timeDisplay={timeDisplay} />
           )}
