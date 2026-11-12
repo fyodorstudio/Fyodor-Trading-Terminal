@@ -79,7 +79,8 @@ Open the gear and use **Inputs**:
    its own enabled currencies, selected axis and MFDI on/off choice. Saved currency
    event lists and styles are shared between symbols, independently of Inspector filters.
 
-**Hide Legend** in Inputs hides the coloured actual/release-time readout only.
+**Hide Legend** in Inputs is ticked by default and hides the coloured actual/release-time
+readout only. An explicitly saved unticked choice stays unticked.
 **Series** opens a drawer from the pane's right edge. Eye/F/N controls are aligned
 in fixed columns there, with a colour circle to the right of N. Click the circle
 to change the series colour. Event names and controls live only in the drawer.
@@ -95,8 +96,10 @@ Inputs also lets you create, rename, reorder and delete categories. Use each eve
 category selector, or drag its name in the Series drawer into a category in Lane view. Rows snap
 into the category; drag within a category to change their order. Drag a category
 header to move all its rows together. Click anywhere on its arrow/name button
-to collapse/expand it. In numerical view this folds the drawer list; in Lane view
-it also hides the category lanes.
+to collapse/expand its drawer list and select every child. Plotted lines stay
+visible and keep their positions in both views. With the lock off, drag the plot
+to move the selected category together; click an event name to return to selecting
+one line. The selected category is highlighted, including when its list is folded.
 Deleting a category keeps its events under Uncategorized. The scrollbar reveals
 additional lanes. Membership follows the saved currency event lists; category/row
 order, collapse, Lane view and Hide Legend are saved separately for each symbol.

@@ -6,7 +6,7 @@ import { claimChartClick } from '../../candlestick-chart/chart-click-selection'
 import { futureTimelineSeconds } from '../../candlestick-chart/future-timeline'
 import { fedSurprise } from './fed-forecast'
 import { macroAxis, macroMetricAxis, macroMetricVisible, selectedMacroMetrics, type MacroAxis, type MacroMetric, type MacroPreferences } from './macro-preferences'
-import { macroLayout, patchMacroLayout } from './macro-layout'
+import { macroLayout, macroSelection, patchMacroLayout } from './macro-layout'
 import { createMacroTooltip } from './macro-tooltip'
 import { createMacroLaneControls } from './macro-lane-controls'
 import './macro.css'
@@ -122,6 +122,7 @@ export function createMacroPane(chart: IChartApi) {
   let forecastHover: { time: Time; reading: MacroReading } | undefined
   let requestUpdate = () => {}
   let linked = false, fittingAll = false, laneMode = false
+  const selectedAxisFor = (p: MacroPreferences) => macroSelection(p).find(key => macroMetricVisible(p, key)) ?? macroAxis(p)
   let changePreferences: ((value: MacroPreferences) => void) | undefined
   const applyDisplayMode = () => {
     if (!indicator) return
@@ -200,8 +201,9 @@ export function createMacroPane(chart: IChartApi) {
     }
   }
   const linkAxes = () => {
-    if (!linked || laneMode || fittingAll || !indicator) return
-    const axis = macroAxis(indicator.preferences), id = axisScales.get(axis), previous = placements.get(axis)
+    if (laneMode || fittingAll || !indicator || (!linked && !macroLayout(indicator.preferences).categoryTarget)) return
+    const selection = macroSelection(indicator.preferences)
+    const axis = selectedAxisFor(indicator.preferences), id = axisScales.get(axis), previous = placements.get(axis)
     if (!id || !previous || previous.height !== pane.getHeight()) return
     const range = pane.priceScale(id).getVisibleRange()
     const key = (Object.keys(series) as MacroMetric[]).find(key => macroMetricAxis(key) === axis && plots[key]?.line.length)
@@ -216,7 +218,7 @@ export function createMacroPane(chart: IChartApi) {
     // Apply the selected scale's screen-space transform to the other scales.
     // Each retains its own units; all points move by the same pixels/zoom.
     for (const [otherAxis, otherId] of axisScales) {
-      if (otherAxis === axis) continue
+      if (otherAxis === axis || (!linked && !selection.includes(otherAxis))) continue
       const old = placements.get(otherAxis), otherRange = pane.priceScale(otherId).getVisibleRange()
       const otherKey = (Object.keys(series) as MacroMetric[]).find(key => macroMetricAxis(key) === otherAxis && plots[key]?.line.length)
       if (!old || old.height !== previous.height || !otherKey || !validBounds(otherRange)) continue
@@ -250,7 +252,7 @@ export function createMacroPane(chart: IChartApi) {
   fitButton.onclick = () => {
     if (!indicator) return
     if (laneMode) { laneControls.fitAll(); return }
-    const axis = macroAxis(indicator.preferences), id = axisScales.get(axis)
+    const axis = selectedAxisFor(indicator.preferences), id = axisScales.get(axis)
     if (!id) return
     bounds.delete(axis)
     pane.priceScale(id).setAutoScale(true)
@@ -281,12 +283,12 @@ export function createMacroPane(chart: IChartApi) {
   const updateLegend = () => {
     if (!indicator) return
     const p = indicator.preferences
-    const selectedAxis = macroAxis(p)
+    const selection = macroSelection(p)
     for (const { key, label, axisButton, eyeButton, slash, forecastButton, forecastSlash, numbersButton, numbersSlash, colorDot, colorInput } of metricControls) {
       const visible = macroMetricVisible(p, key)
       colorDot.style.backgroundColor = p.series[key].color
       colorInput.value = p.series[key].color
-      axisButton.setAttribute('aria-pressed', String(visible && (linked || macroMetricAxis(key) === selectedAxis)))
+      axisButton.setAttribute('aria-pressed', String(linked ? visible : selection.includes(key)))
       eyeButton.setAttribute('aria-pressed', String(visible))
       eyeButton.setAttribute('aria-label', `${visible ? 'Hide' : 'Show'} ${label}`)
       eyeButton.title = `${visible ? 'Hide' : 'Show'} ${label}`
@@ -565,7 +567,7 @@ export function createMacroPane(chart: IChartApi) {
       outlineColor = getComputedStyle(chart.chartElement()).getPropertyValue('--text-strong').trim() || '#888888'
       latestTime = bars.at(-1)?.time
       step = seconds
-      const p = next.preferences, axis = macroAxis(p), keys = selectedMacroMetrics(p)
+      const p = next.preferences, axis = selectedAxisFor(p), keys = selectedMacroMetrics(p)
       if (keys.join('|') !== metricControls.map(control => control.key).join('|')) {
         for (const control of metricControls) control.item.remove()
         metricControls = keys.map(createMetricControl)

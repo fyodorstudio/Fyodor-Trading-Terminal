@@ -197,12 +197,15 @@ collapsed categories. Mixed states switch everything off; the next click switche
 everything on. Unticked currencies keep their saved settings. Close or Escape dismisses
 the drawer without resizing the chart. Wheel anywhere over the popover to scroll
 its event list; hold the Series title to move the window within the chart.
-The category arrow and name form one collapse/expand button (drag it to reorder).
+The category arrow and name form one button: click to fold/expand its drawer list
+and select every child, then drag the plot to move that category together in
+either view. Folding never hides or shifts plotted lines. Drag the header to reorder.
 With Lane view on and the lock off, select an event name, then drag the plot to
 place that straight line freely without moving its peers or numerical scale.
 **Fit all lanes** restores the category arrangement and fits it into the pane.
-Lane offset, spacing and individual line placements are saved per symbol. **Hide Legend** in Inputs hides only
-the value/release readout. Category names, assignments and event lists are shared;
+Lane offset, spacing and individual line placements are saved per symbol.
+**Hide Legend** is ticked by default in Inputs and hides only the value/release
+readout; explicit saved choices remain unchanged. Category names, assignments and event lists are shared;
 category order, row order, collapsed state, lane mode and Hide Legend save per symbol.
 Create/rename/reorder/delete categories in Inputs; deletion moves events to
 Uncategorized. In the Series drawer, drag an event name into a category to snap

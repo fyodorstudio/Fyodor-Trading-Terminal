@@ -64,7 +64,7 @@ export function MacroSettingsDialog({ preferences, onSave, onClose, symbol = 'US
           </fieldset>)}
         </>}
       </div>
-      <footer><button type="button" onClick={() => setDraft(current => ({ ...current, axisTarget: selectedMacroMetrics(current)[0] ?? 'rate', series: Object.fromEntries(Object.keys(current.series).map(key => [key, macroDefaultStyle(key)])) }))}>Reset defaults</button>
+      <footer><button type="button" onClick={() => setDraft(current => ({ ...selectMacroAxis(current, selectedMacroMetrics(current)[0] ?? 'rate'), series: Object.fromEntries(Object.keys(current.series).map(key => [key, macroDefaultStyle(key)])) }))}>Reset defaults</button>
         <button type="button" onClick={onClose}>Cancel</button><button type="submit">OK</button></footer>
     </form>
   </div>

@@ -95,7 +95,8 @@ export function readMacroPreferences(symbol = 'USDX'): MacroPreferences {
     eventsByCurrency, series,
     ...(Array.isArray(saved?.categories) ? { categories: saved.categories.filter(item => item && typeof item.id === 'string' && typeof item.label === 'string') } : {}),
     ...(saved?.categoryByEvent && typeof saved.categoryByEvent === 'object' ? { categoryByEvent: saved.categoryByEvent } : {}),
-    ...(profile?.layout ? { layout: { hideLegend: profile.layout.hideLegend === true, laneMode: profile.layout.laneMode === true,
+    ...(profile?.layout ? { layout: { hideLegend: profile.layout.hideLegend !== false, laneMode: profile.layout.laneMode === true,
+      ...(typeof profile.layout.categoryTarget === 'string' ? { categoryTarget: profile.layout.categoryTarget } : {}),
       categoryOrder: Array.isArray(profile.layout.categoryOrder) ? profile.layout.categoryOrder : [],
       collapsed: Array.isArray(profile.layout.collapsed) ? profile.layout.collapsed : [], rowOrder: Array.isArray(profile.layout.rowOrder) ? profile.layout.rowOrder : [],
       ...(Number.isFinite(profile.layout.laneOffset) ? { laneOffset: Math.max(-100000, Math.min(100000, profile.layout.laneOffset!)) } : {}),
@@ -149,8 +150,11 @@ export function selectMacroAxis(preferences: MacroPreferences, axisTarget: Macro
   return selectMacroMetric(preferences, axisTarget)
 }
 export function selectMacroMetric(preferences: MacroPreferences, key: MacroMetric): MacroPreferences {
+  const layout = preferences.layout && { ...preferences.layout }
+  if (layout) delete layout.categoryTarget
   return { ...preferences, axisTarget: macroMetricAxis(key), series: { ...preferences.series,
-    [key]: { ...preferences.series[key], visible: true } } }
+    [key]: { ...preferences.series[key], visible: true } },
+    ...(layout ? { layout } : {}) }
 }
 export function toggleMacroMetric(preferences: MacroPreferences, key: MacroMetric): MacroPreferences {
   return { ...preferences, series: { ...preferences.series, [key]: { ...preferences.series[key], visible: !preferences.series[key].visible } } }

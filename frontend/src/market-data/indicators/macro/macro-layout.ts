@@ -1,14 +1,14 @@
 import { macroCatalog } from './macro-catalog'
-import { selectedMacroMetrics, type MacroPreferences } from './macro-preferences'
+import { macroAxis, selectedMacroMetrics, type MacroPreferences } from './macro-preferences'
 
 export type MacroCategory = { id: string; label: string }
-export type MacroLayout = { hideLegend: boolean; laneMode: boolean; categoryOrder: string[]; collapsed: string[]; rowOrder: string[]; laneOffset?: number; laneSpacing?: number; rowOffsets?: Record<string, number> }
+export type MacroLayout = { hideLegend: boolean; laneMode: boolean; categoryOrder: string[]; collapsed: string[]; rowOrder: string[]; laneOffset?: number; laneSpacing?: number; rowOffsets?: Record<string, number>; categoryTarget?: string }
 export const defaultMacroCategories: MacroCategory[] = [
   { id: 'policy', label: 'Policy' }, { id: 'labor', label: 'Labor' },
   { id: 'inflation', label: 'Inflation' }, { id: 'growth', label: 'Growth' }, { id: 'uncategorized', label: 'Uncategorized' },
 ]
 export function macroLayout(preferences: MacroPreferences): MacroLayout {
-  return { hideLegend: false, laneMode: false, categoryOrder: [], collapsed: [], rowOrder: [], laneOffset: 0, laneSpacing: 28, rowOffsets: {}, ...preferences.layout }
+  return { hideLegend: true, laneMode: false, categoryOrder: [], collapsed: [], rowOrder: [], laneOffset: 0, laneSpacing: 28, rowOffsets: {}, ...preferences.layout }
 }
 export function macroCategories(preferences: MacroPreferences) {
   const categories = [...new Map((preferences.categories ?? defaultMacroCategories).map(category => [category.id, category])).values()]
@@ -20,6 +20,10 @@ export function macroCategory(preferences: MacroPreferences, key: string) {
   const id = preferences.categoryByEvent?.[key] ?? macroCatalog[key]?.category
   return macroCategories(preferences).some(category => category.id === id) ? id! : 'uncategorized'
 }
+export function macroSelection(preferences: MacroPreferences) {
+  const target = macroLayout(preferences).categoryTarget
+  return target ? selectedMacroMetrics(preferences).filter(key => macroCategory(preferences, key) === target) : [macroAxis(preferences)]
+}
 export function macroLanes(preferences: MacroPreferences) {
   const selected = selectedMacroMetrics(preferences), layout = macroLayout(preferences)
   if (!selected.length) return { groups: [] as { id: string; label: string; top: number; bottom: number; collapsed: boolean; rows: { key: string; y: number }[]; keys: string[] }[], height: 0 }
@@ -29,8 +33,8 @@ export function macroLanes(preferences: MacroPreferences) {
     const keys = order.filter(key => macroCategory(preferences, key) === category.id)
     const top = y, collapsed = layout.collapsed.includes(category.id)
     const spacing = Math.max(0.1, Math.min(120, layout.laneSpacing ?? 28))
-    const rows = collapsed ? [] : keys.map((key, index) => ({ key, y: top + 0.8 * spacing + index * spacing }))
-    y += 0.8 * spacing + (collapsed ? 0 : keys.length * spacing)
+    const rows = keys.map((key, index) => ({ key, y: top + 0.8 * spacing + index * spacing }))
+    y += 0.8 * spacing + keys.length * spacing
     return [{ ...category, top, bottom: y, collapsed, rows, keys }]
   })
   return { groups, height: y }
@@ -57,5 +61,8 @@ export function deleteMacroCategory(preferences: MacroPreferences, id: string): 
   const categoryByEvent = { ...preferences.categoryByEvent }
   for (const key of selectedMacroMetrics(preferences).concat(Object.keys(categoryByEvent)))
     if (macroCategory(preferences, key) === id) categoryByEvent[key] = 'uncategorized'
-  return { ...preferences, categories: (preferences.categories ?? defaultMacroCategories).filter(category => category.id !== id), categoryByEvent }
+  const layout = preferences.layout && { ...preferences.layout }
+  if (layout?.categoryTarget === id) delete layout.categoryTarget
+  return { ...preferences, categories: (preferences.categories ?? defaultMacroCategories).filter(category => category.id !== id), categoryByEvent,
+    ...(layout ? { layout } : {}) }
 }

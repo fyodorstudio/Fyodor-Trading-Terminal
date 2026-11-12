@@ -49,6 +49,7 @@
 .macro-drawer-body { flex: 1 1 auto; overflow-y: auto; overscroll-behavior: contain; min-height: 0; padding: 4px 8px 8px; }
 .macro-drawer-category { display: flex; align-items: center; gap: 4px; padding: 4px 0; color: var(--text-muted); border-bottom: 1px solid var(--border); }
 .macro-drawer-category button { display: flex; align-items: center; gap: 4px; width: 100%; text-align: left; cursor: grab; touch-action: none; }
+.macro-drawer-category button[aria-pressed="true"] { color: var(--accent); background: var(--surface-hover); box-shadow: inset 2px 0 var(--accent); }
 .macro-series-drawer .macro-metric-item { width: 100%; }
 .macro-series-drawer .macro-control-color { display: none; }
 .macro-series-drawer .macro-metric-control { display: grid; grid-template-columns: minmax(0, 1fr) repeat(4, 24px); gap: 2px; width: 100%; border: 0; border-radius: 0; background: transparent; align-items: center; }
