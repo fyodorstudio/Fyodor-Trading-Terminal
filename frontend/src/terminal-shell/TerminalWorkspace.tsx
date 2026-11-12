@@ -45,6 +45,8 @@ export function TerminalWorkspace() {
     selectResearchTool, closeResearch, recentEventsOpen, toggleRecentEvents, closeRecentEvents, alertFocus, viewReleaseInAlert,
     detailOpen, toggleDetail, closeDetail, openDetail, viewDetailEvent, viewLedgerEvent, viewMacroRelease, returnToLedger,
     plannedTrade, handlePlanChange, latestBarTime, registeredArrows, selectPinnedArrow, priceAlerts, leftDockTab, setLeftDockTab } = useTerminalWorkspace()
+  const [heatmapStarted, setHeatmapStarted] = useState(false)
+  if (bottomDockWindow === 'cross-asset' && !heatmapStarted) setHeatmapStarted(true)
   const brokerOffsetSeconds = bridge.brokerOffsetSeconds
   const ledgerCurrencies = chartEventCurrencies(activeSymbol)
   const ledgerSupported = ledgerCurrencies.length === 2
@@ -196,13 +198,16 @@ export function TerminalWorkspace() {
         </section>
       </main>
 
-      {bottomDockWindow && (
+      {(bottomDockWindow || heatmapStarted) && (
         <BottomDockPanel
           resizeHandle={dockSize.resizeHandle}
+          hidden={!bottomDockWindow}
         >
+          {heatmapStarted && <div className="cross-asset-slot" hidden={bottomDockWindow !== 'cross-asset'}>
+            <CrossAssetDock symbols={marketData.symbols} broker={brokerId} generation={bridge.generation} active={bottomDockWindow === 'cross-asset'} connected={bridge.connected} />
+          </div>}
           {bottomDockWindow === 'currency-news' && <CurrencyNewsDock />}
           {bottomDockWindow === 'ledger' && <LedgerDock supported={ledgerSupported} broker={brokerId} onOpenDetail={openLedgerDetail} onViewEvent={viewLedgerEvent} />}
-          {bottomDockWindow === 'cross-asset' && <CrossAssetDock symbols={marketData.symbols} broker={brokerId} generation={bridge.generation} />}
           {bottomDockWindow === 'activity' && (
             <ActivityDock timeDisplay={timeDisplay} />
           )}

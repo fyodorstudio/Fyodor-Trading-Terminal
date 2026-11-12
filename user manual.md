@@ -249,9 +249,39 @@ each column into a trading week; the current week shows week-to-date readings.
 
 **Instruments** adds/removes broker-visible symbols and the eight synthetic
 currency baskets. Use category/search controls to find FX majors/crosses, equity
-indices, XAUUSD, SpotBrent and other instruments. Up/down controls set row order
-within groups. Save named watchlists for reuse; **Save** commits all draft edits,
+indices, XAUUSD, SpotBrent and other instruments. In the grouped **Selected** list,
+use arrows beside a category heading to move the whole category (for example
+Metals above Energy), and arrows beside a symbol to reorder within that category.
+Save named watchlists for reuse; **Save** commits all draft edits,
 while **Cancel** discards them. These choices do not change Market Watch favourites.
+
+Adding an instrument loads its missing history while keeping existing readings
+visible. After the first opening, the heatmap keeps updating in the background
+when closed or while another dock is open. Reopening restores the warmed data,
+pinned date, category collapse and browsing position immediately.
+
+**Copy details** copies the selected date (or full week range), categories and
+percentage changes only. It includes every selected instrument with an available
+reading, sorted highest to lowest within each category, regardless of ranking
+filters or collapsed groups.
+
+Scroll to **Wildcards** at the bottom and click **+ Add wildcard**. Enter a short
+story title and your own paragraphs or source links, then **Save**. Each story
+keeps the usual row height; click its dated cells to add or edit notes. Filled
+cells have a note icon and hover preview. In Weekly mode, a cell shows its note
+count and opens that week's daily notes in date order. Notes retain their dates;
+the editor's date field can add another day, and blank details remove that day's
+note on Save. **Copy note** copies your current title/date/details.
+
+**Manage Wildcards** (also opened by clicking a story label) renames/reorders rows,
+archives/restores stories and exports saved notes as Markdown, including archived
+stories. Archive preserves all notes. Delete explicitly confirms removal of the
+whole row and its notes, then requires **Save**. **Cancel**, Escape or closing the
+editor discards drafts. Failed saves keep your draft. If another tab saved first,
+copy your draft, Cancel, **Reload Wildcards**, and reapply the edit.
+Wildcards are stored per broker in the terminal's durable storage and included in
+storage backups. Watchlists do not replace them. Notes never invoke research or
+change your chart, calendar, News, reminders or alarms.
 
 Cells show net change from the previous close, including gaps. Weekly compares
 against the prior week's last close. **Shading** can highlight the raw percentage

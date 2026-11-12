@@ -138,9 +138,17 @@ previous week's final close. Current periods stay labelled incomplete. Eight
 equal-weight synthetic currency baskets require all seven counterparts with
 matching comparison dates. Individual FX pairs, equity indices, gold, Brent and
 other visible broker instruments can be added, removed and reordered through
-**Instruments**, with saved watchlists and Save/Cancel. Shading offers raw returns
+**Instruments**, with saved watchlists and Save/Cancel. Its grouped Selected list has arrows
+for category order and separate arrows for symbols within each category. New
+symbols load independently; after first opening, history keeps updating while
+closed and reopening restores the warmed data and browsing position. Shading offers raw returns
 or movement relative to earlier volatility. **Method** explains calculations and
-coverage. Browsing never changes the chart, Ledger cutoff or alarms. Historical
+coverage. **Copy details** copies only the selected date/week and grouped percentage
+changes. **Wildcards**, at the bottom of the same timeline, holds manually titled
+stories with dated paragraph notes. Add with **+**, click a cell to edit, and use
+**Manage Wildcards** to rename/reorder/archive/delete or export saved notes.
+Notes are stored durably per broker and included in storage backups.
+Browsing never changes the chart, Ledger cutoff or alarms. Historical
 availability depends on broker D1 coverage. See the [heatmap contract](docs/CROSS-ASSET.md).
 
 ## Preserved terminal behavior

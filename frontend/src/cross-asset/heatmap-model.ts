@@ -11,8 +11,15 @@ export type HeatmapInstrument = { symbol: string; description: string }
 export type HeatmapPeriod = { day: string; end: string; label: string; partial: boolean; future: boolean }
 export type HeatmapPoint = { value: number | null; relative: number | null; coverage: number; from: string | null; through: string | null
   start: number | null; close: number | null; high: number | null; low: number | null; checkedAt: number | null; reason: string }
-export type HeatmapRow = { id: string; label: string; group: string; points: Map<string, HeatmapPoint> }
+export type HeatmapRow = { id: string; label: string; group: string; checkedAt: number | null; points: Map<string, HeatmapPoint> }
 const dayMs = 86400_000
+export function heatmapGroup(id: string, broker: string | null) {
+  return id.startsWith('basket:') ? 'Currencies · synthetic' : categoryLabels[getSymbolCategory(id.slice(7), broker)]
+}
+export function orderHeatmapGroups(groups: Iterable<string>, order: readonly string[]) {
+  const present = [...new Set(groups)]
+  return [...order.filter(g => present.includes(g)), ...present.filter(g => !order.includes(g))]
+}
 export const heatmapDate = (at: number) => new Date(at).toISOString().slice(0, 10)
 export function weekStart(day: string) {
   const at = Date.parse(day), weekday = new Date(at).getUTCDay()
@@ -103,18 +110,52 @@ function addRelative(points: Map<string, HeatmapPoint>, mode: HeatmapMode) {
   }
 }
 
-export function buildHeatmapRows(ids: string[], catalog: HeatmapInstrument[], broker: string | null, data: HeatmapHistory | null, mode: HeatmapMode): HeatmapRow[] {
+type ModelCache = { scope: string; symbols: Map<string, { bars: HeatmapBar[] | undefined; availability: string | undefined; today: string; points: Map<string, HeatmapPoint> }>
+  rows: Map<string, { inputs: Map<string, HeatmapPoint>[]; row: HeatmapRow }> }
+const emptyPoints = new Map<string, HeatmapPoint>()
+export function createHeatmapRowBuilder() {
+  const cache: ModelCache = { scope: '', symbols: new Map(), rows: new Map() }
+  return (ids: string[], catalog: HeatmapInstrument[], broker: string | null, data: HeatmapHistory | null, mode: HeatmapMode) => buildHeatmapRows(ids, catalog, broker, data, mode, cache)
+}
+
+export function buildHeatmapRows(ids: string[], catalog: HeatmapInstrument[], broker: string | null, data: HeatmapHistory | null, mode: HeatmapMode, cache?: ModelCache): HeatmapRow[] {
   const pairs = heatmapPairs(catalog), points = new Map<string, Map<string, HeatmapPoint>>()
-  for (const symbol of heatmapRequests(ids, catalog)) points.set(symbol, symbolPoints(data?.symbols[symbol], mode, data?.today ?? '0000-01-01'))
-  const periods = [...new Set([...points.values()].flatMap(p => [...p.keys()]))].sort()
+  const scope = `${broker}:${data?.generation}:${data?.year}`
+  if (cache && cache.scope !== scope) { cache.scope = scope; cache.symbols.clear(); cache.rows.clear() }
+  for (const symbol of heatmapRequests(ids, catalog)) {
+    const key = `${mode}:${symbol}`, record = data?.symbols[symbol], today = data?.today ?? '0000-01-01'
+    const saved = cache?.symbols.get(key)
+    const values = saved && saved.bars === record?.bars && saved.availability === record?.availability && saved.today === today
+      ? saved.points : symbolPoints(record, mode, today)
+    if (values !== saved?.points) addRelative(values, mode)
+    cache?.symbols.delete(key); cache?.symbols.set(key, { bars: record?.bars, availability: record?.availability, today, points: values })
+    points.set(symbol, values)
+  }
+  while (cache && cache.symbols.size > 256) cache.symbols.delete(cache.symbols.keys().next().value!)
   return ids.map(id => {
+    const key = `${mode}:${id}`, saved = cache?.rows.get(key), group = heatmapGroup(id, broker)
+    const inputs = id.startsWith('symbol:') ? [points.get(id.slice(7))!]
+      : majorForexPairs.filter(p => p.includes(id.slice(7))).map(p => points.get(pairs.get(p) ?? '') ?? emptyPoints)
+    const names = id.startsWith('symbol:') ? [id.slice(7)] : majorForexPairs.filter(p => p.includes(id.slice(7))).map(p => pairs.get(p) ?? '')
+    const checks = names.map(name => data?.symbols[name]?.checked_at).filter((v): v is number => v != null)
+    const checkedAt = checks.length ? Math.min(...checks) : null
+    if (saved && inputs.every((p, i) => p === saved.inputs[i]) && inputs.length === saved.inputs.length) {
+      const row = saved.row.checkedAt === checkedAt && saved.row.group === group ? saved.row : { ...saved.row, checkedAt, group }
+      cache?.rows.delete(key); cache?.rows.set(key, { inputs, row })
+      return row
+    }
+    function remember(row: HeatmapRow) {
+      cache?.rows.delete(key); cache?.rows.set(key, { inputs, row })
+      while (cache && cache.rows.size > 192) cache.rows.delete(cache.rows.keys().next().value!)
+      return row
+    }
     if (id.startsWith('symbol:')) {
       const symbol = id.slice(7), values = points.get(symbol) ?? new Map<string, HeatmapPoint>()
-      addRelative(values, mode)
-      return { id, label: symbol, group: categoryLabels[getSymbolCategory(symbol, broker)], points: values }
+      return remember({ id, label: symbol, group, checkedAt, points: values })
     }
     const currency = id.slice(7), values = new Map<string, HeatmapPoint>()
     const members = majorForexPairs.filter(p => p.includes(currency))
+    const periods = [...new Set(inputs.flatMap(p => [...p.keys()]))].sort()
     for (const period of periods) {
       const observations = members.map(pair => ({ pair, point: points.get(pairs.get(pair) ?? '')?.get(period) }))
       const available = observations.filter(o => o.point?.value !== null && o.point?.value !== undefined)
@@ -128,7 +169,7 @@ export function buildHeatmapRows(ids: string[], catalog: HeatmapInstrument[], br
         from: first.from, through: first.through, checkedAt: Math.min(...available.map(o => o.point!.checkedAt!)) })
     }
     addRelative(values, mode)
-    return { id, label: `${currency} basket`, group: 'Currencies · synthetic', points: values }
+    return remember({ id, label: `${currency} basket`, group, checkedAt, points: values })
   })
 }
 

@@ -19,9 +19,14 @@ have weekend candles. Calendar dates are broker session labels; Checked timestam
 follow the app display clock, defaulting to Jakarta AM/PM.
 
 Rows are grouped and groups collapse independently. Instruments offers search,
-broker categories, individual selections and up/down ordering within groups.
+broker categories and individual selections. Its Selected list has category
+sections matching the timeline. Category-header up/down arrows reorder whole
+groups (for example Metals above Energy); symbol arrows reorder only within their
+group. The chosen category order applies to timeline headers and ranking filters.
 There are at most 96 selected rows, including synthetic baskets. Named watchlists
-save row selections/order (up to 20); an existing name updates its draft snapshot.
+save row selections/order and category order (up to 20); an existing name updates
+its draft snapshot. Existing saved selections/watchlists retain their prior order
+until category ordering is explicitly changed.
 All instrument/watchlist edits remain drafts until Save. Cancel, Escape, outside
 click and close discard the draft; failed saves remain open. Empty lists persist.
 Preferences live under `fyodor.cross-asset.v1:<broker>`, independently of Market
@@ -35,6 +40,55 @@ correlated rows are not independent evidence of capital flows. The dock does not
 assign a risk-on/off score or execute research, trades, chart navigation or alarms.
 Ledger, Detail, News, chart selections, viewports, drawings and reminders remain
 independent. The removed Ledger summary does not move into this dock.
+
+## Copy details and manual Wildcards
+
+**Copy details** copies the selected daily date or Monday–Sunday weekly range,
+category names, instrument labels and raw percentage changes only. All selected
+instruments participate, independent of ranking filters and collapsed groups.
+Categories use the saved order; instruments sort highest to lowest within each.
+Unavailable readings and empty categories are omitted. No commentary, relative
+volatility, notes or research instructions enter this clipboard output. An empty
+selection disables the button; clipboard failure is reported.
+
+**Wildcards** is always the final timeline category. **+ Add wildcard** creates a
+story row with a one-line title (up to 120 characters, ellipsis/full-title tooltip)
+and optional plain-text details for the selected date. The row and its cells use
+the same 30px height and date columns as instruments. Click a cell to edit its
+date-only note; paragraphs and pasted links are retained as text without HTML
+execution. Filled cells show a neutral note icon/preview, never return shading.
+Future cells also accept notes. Each row can have one note per date; weekly
+cells show the number of that Monday–Sunday week's daily notes and open them in
+date order, including year boundaries. Editing another date in the editor retains
+the current draft; saving blank details removes only that date's note.
+
+**Manage Wildcards** edits titles/order and archive/restore choices as a draft.
+Clicking a story label opens this manager. Archive hides the story but retains
+every note. Deleting requires an explicit row-and-all-notes confirmation and still
+only applies after Save. Export saved notes downloads Markdown including archived
+stories. **Copy note** copies the current title/date/details, separately from
+Copy details. Cancel, Escape, outside click or closing the dock discard unsaved
+edits; failed saves retain drafts. The editor prevents dismissal during a save.
+
+GET/POST `/api/v1/cross-asset/wildcards` reads/replaces a broker-specific snapshot.
+Schema 1 has `source_id`, integer `revision` and ordered `rows`; each row has a
+stable ID, title, `archived` and a date-to-text `notes` map. POST requires
+`expected_revision`; a stale writer receives 409 and must reload/reconcile rather
+than overwrite newer notes. Source IDs map to hashed filenames, not paths.
+Atomic, flushed replacement and the writer lock preserve the prior snapshot on
+write failure. Invalid stored content blocks replacement rather than resetting
+it. Limits: 128 rows including archived, 3660 dated notes per row, 20000 characters
+per note, 8 MB per broker snapshot, dates 2015–2100.
+
+Snapshots live in ignored `storage/data/cross-asset-wildcards/` (or the configured
+storage data directory), included in backup/restore and independent of browser
+preferences, account connection generations, watchlists, calendar, News and alarms.
+Loading happens once per dock instance; **Reload Wildcards** explicitly rereads
+saved notes. Reads/writes have 15-second timeouts and abort on true unmount;
+obsolete replies cannot replace another connection's view. Saving notes performs
+no price fetching or basket calculations. Timeline virtualization also applies
+to stories; a visible weekly cell uses at most seven date lookups regardless of
+the story's historical length. There is no agent invocation or automatic research.
 
 ## Calculations
 
@@ -91,13 +145,32 @@ when native identity changes. Day rollover rereads formerly incomplete history.
 Failed native refreshes retain prior bars with their successful-check clock and an
 unavailable/stale notice. Missing history and invisible symbols stay explicit.
 
-Only an open dock polls (one second while batches remain, otherwise 20 seconds).
-Changing broker/generation/year/instruments or closing the dock aborts requests,
-timers and stale replies. Quote ticks preserve catalog/history identities and do
-no heatmap calculations. The timeline mounts only viewport rows/columns with
+After first opening, history polling stays active while the app runs, including
+when the dock is closed or another dock is selected (one second while batches
+remain, otherwise 20 seconds). Disconnect pauses requests; the history reader
+remains bounded. Closing removes the visual timeline, its resize observer and
+gesture frames, without discarding data, group collapse, dates or scroll memory.
+Reopening uses the warmed snapshot immediately and starts no extra request.
+Full terminal unmount cancels all polls, listeners, observers and stale replies.
+
+The frontend retains up to four broker/generation/year snapshots and 128 symbol
+records per snapshot. Changing the selected symbols preserves existing readings;
+initial missing-symbol requests include only the missing instruments and merge
+their replies. Removing/reordering fresh cached instruments performs no immediate
+fetch. Changing source/year aborts obsolete requests; cached years restore before
+paint and never mix source generations. Freshness-only updates preserve candle
+identities. Per-mode calculation caches hold at most 256 symbol projections and
+192 rows: adding an unrelated instrument computes only that instrument, while an
+FX correction invalidates only its own projection and affected currency baskets.
+Hidden updates do no row calculations or timeline rendering.
+
+Quote ticks preserve catalog/history identities and do no heatmap calculations.
+The timeline mounts only viewport rows/columns with
 overscan; scroll and drag writes batch once per animation frame. Browsing performs
 no fetching or return recomputation. Tests cover geometric inversion/all currencies,
 coverage and clock matching, weekly/year boundaries, earlier-only volatility,
 source/account guards, caching/batch work counts, failed refresh retention,
-Save/Cancel/watchlists, stale replies and assembled-terminal chart independence.
+category and symbol ordering, Save/Cancel/watchlists, incremental loading,
+background refresh, reopen/scroll restoration, correction work counts, stale
+replies and assembled-terminal chart independence.
 Visual acceptance remains manual.

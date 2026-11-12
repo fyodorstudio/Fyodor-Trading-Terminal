@@ -211,8 +211,11 @@ class CurrencyNewsTests(unittest.TestCase):
                 mutate(body)
                 with self.assertRaises(ValidationError):
                     NewsRefresh.model_validate(body)
-        for coverage in ['partial', 'unavailable']:
-            self.save(payload(items=[], implication='no_clear_signal', coverage=coverage, coverage_note='Publisher inaccessible.'))
+        checked = datetime.now(timezone.utc) - timedelta(minutes=2)
+        for index, coverage in enumerate(['partial', 'unavailable']):
+            # Distinct snapshots must not rely on the Windows wall clock advancing.
+            self.save(payload(items=[], implication='no_clear_signal', coverage=coverage,
+                coverage_note='Publisher inaccessible.', checked_at=(checked + timedelta(seconds=index)).isoformat()))
 
     def test_unknown_background_clock_retains_note_and_source(self):
         body = payload(background=[dict(summary='Policy background.', published_at=None, timing_note='November 2, hour unknown.',

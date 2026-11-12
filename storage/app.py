@@ -29,6 +29,7 @@ from .detail_registry import resolve_scope
 from .currency_ledger import ledger_snapshot
 from .market_watch_daily import DailyMarketWatch
 from .cross_asset import CrossAssetHistory
+from .cross_asset_wildcards import WildcardSave, wildcard_snapshot, save_wildcards
 from .fed_forecasts import read_forecasts
 
 
@@ -74,7 +75,22 @@ def create_app(directory=None, run_collector=True, highlights_path=HIGHLIGHTS_PA
     app = FastAPI(title="Fyodor Calendar Storage", version="1.1.0", lifespan=lifespan)
     daily_market = DailyMarketWatch()
     cross_asset = CrossAssetHistory()
+    wildcards_directory = (directory or data_directory()) / 'cross-asset-wildcards'
     details_directory = (directory or data_directory()) / 'currency-details'
+
+    @app.get('/api/v1/cross-asset/wildcards')
+    def cross_asset_wildcards(source_id: str = Query(min_length=1, max_length=160)):
+        try:
+            return wildcard_snapshot(wildcards_directory, source_id)
+        except (ValueError, OSError, KeyError, TypeError) as error:
+            raise HTTPException(503, 'Wildcards unavailable; stored notes are preserved') from error
+
+    @app.post('/api/v1/cross-asset/wildcards')
+    def cross_asset_wildcards_save(request: WildcardSave):
+        try:
+            return save_wildcards(wildcards_directory, request)
+        except (ValueError, OSError, KeyError, TypeError) as error:
+            raise HTTPException(503, 'Could not save Wildcards; stored notes are preserved') from error
 
     @app.get('/api/v1/fed-forecasts')
     def fed_forecasts():

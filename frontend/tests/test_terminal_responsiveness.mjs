@@ -196,8 +196,13 @@ const health = () => ({ api_version: '1', bridge: { status: 'running', started_a
 const reportRequests = []
 let reportFailure = false
 const journalFixture = { version: 1, revision: 0, arrows: [], deletedIds: [] }
+let wildcardFixture = { schema: 1, source_id: broker, revision: 0, rows: [] }
 globalThis.fetch = (url, options = {}) => {
   const u = String(url); requests.push(u)
+  if (u.startsWith('/storage-api/cross-asset/wildcards')) {
+    if (options.method === 'POST') wildcardFixture = { ...wildcardFixture, revision: wildcardFixture.revision + 1, rows: JSON.parse(options.body).rows }
+    return Promise.resolve({ ok: true, json: async () => structuredClone(wildcardFixture) })
+  }
   if (u === '/storage-api/market-watch/daily') {
     const body = JSON.parse(options.body)
     return Promise.resolve({ ok: true, json: async () => ({ source_id: broker, generation,
@@ -1559,6 +1564,29 @@ try {
   assert.ok(container.querySelector('[aria-label="Resize Cross-Asset dock"]'))
   assert.ok(container.querySelector('[data-heatmap-cell^="symbol:EURUSD:"]'))
   assertQuiet('Opening cross-asset history')
+  const beforeWildcardHistory = requests.filter(url => url === '/storage-api/cross-asset/history').length
+  reset(); await click(button('Manage Wildcards')); await flush()
+  assertQuiet('Opening Wildcards editor', true)
+  await click([...container.querySelectorAll('[role="dialog"] button')].find(node => node.textContent === 'Cancel')); await flush()
+  const wildcardViewport = container.querySelector('.heatmap-viewport')
+  wildcardViewport.scrollTop = 100000
+  await React.act(async () => wildcardViewport.dispatchEvent(new dom.Event('scroll'))); await flush()
+  // happy-dom does not clamp native scrolling; use the final virtual rows.
+  const heatmapGrid = container.querySelector('.heatmap-tape').style.gridTemplateRows
+  wildcardViewport.scrollTop = 42 + Number(/repeat\((\d+),/.exec(heatmapGrid)[1]) * 30 - 100
+  await React.act(async () => wildcardViewport.dispatchEvent(new dom.Event('scroll'))); await flush()
+  reset(); await click(button('+ Add wildcard')); await flush()
+  await change(container.querySelector('[aria-label="Wildcard title"]'), 'Assembled catalyst')
+  await change(container.querySelector('[aria-label="Wildcard details"]'), 'First paragraph.\n\nSecond paragraph.')
+  await click([...container.querySelectorAll('[role="dialog"] button')].find(node => node.textContent === 'Save')); await flush()
+  assert.equal(wildcardFixture.rows[0].title, 'Assembled catalyst')
+  assertQuiet('Saving Wildcards notes', true)
+  assert.equal(counters.heatmapBuild ?? 0, 0, 'Saving manual notes does no price or basket calculations')
+  assert.equal(requests.filter(url => url === '/storage-api/cross-asset/history').length, beforeWildcardHistory)
+  assert.deepEqual(logicalRange, crossAssetRange)
+  assert.equal(localStorage.getItem('fyodor.chart-drawings.v1'), crossAssetDrawings)
+  wildcardViewport.scrollTop = 0
+  await React.act(async () => wildcardViewport.dispatchEvent(new dom.Event('scroll'))); await flush()
   const heatmapViewport = container.querySelector('.heatmap-viewport'), heatmapDate = container.querySelector('[aria-label="Heatmap date"]').value
   const beforeHeatmapScroll = requests.length
   reset()
@@ -1598,8 +1626,25 @@ try {
   assert.equal(counters.heatmapBuild ?? 0, 0, 'Unchanged history retains its calculation identity')
   assert.deepEqual(logicalRange, crossAssetRange)
   assert.equal(localStorage.getItem('fyodor.chart-drawings.v1'), crossAssetDrawings)
+  const beforeCloseHeatmapRequests = requests.length
+  const savedHeatmapView = { left: heatmapViewport.scrollLeft, top: heatmapViewport.scrollTop }
   await click(button('Cross-Asset')); await flush()
-  assert.equal([...timers.values()].some(t => t.fn.name === 'pollHeatmap'), false, 'Closing the heatmap cancels its poll')
+  assert.equal([...timers.values()].some(t => t.fn.name === 'pollHeatmap'), true, 'Closing the heatmap keeps its data poll active')
+  assert.equal(container.querySelector('.heatmap-viewport'), null, 'Closed heatmap removes its visual viewport')
+  assert.equal(container.querySelector('.bottom-dock').hidden, true)
+  reset(); await tick('pollHeatmap', 20000); await flush()
+  assertQuiet('Closed heatmap background poll', true)
+  assert.equal(counters.heatmapBuild ?? 0, 0, 'Closed polling performs no row calculations')
+  await click(button('Ledger')); await flush()
+  assert.ok(container.querySelector('.ledger-viewport'))
+  assert.equal(container.querySelector('.heatmap-viewport'), null)
+  const beforeReopenHeatmap = requests.filter(url => url === '/storage-api/cross-asset/history').length
+  await click(button('Cross-Asset')); await flush()
+  assert.equal(requests.filter(url => url === '/storage-api/cross-asset/history').length, beforeReopenHeatmap, 'Switching from another dock reuses the warmed history')
+  assert.ok(beforeCloseHeatmapRequests < requests.length)
+  assert.equal(container.querySelector('.heatmap-viewport').scrollLeft, savedHeatmapView.left)
+  assert.equal(container.querySelector('.heatmap-viewport').scrollTop, savedHeatmapView.top)
+  assert.deepEqual(logicalRange, crossAssetRange)
   await React.act(async () => root.render(null))
   assert.equal(indicatorSeries.size, 0); assert.equal(panes.length, 1)
   assert.equal(rangeListeners.size, 0); assert.equal(clickListeners.size, 0)

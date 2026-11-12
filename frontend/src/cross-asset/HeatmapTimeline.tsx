@@ -1,9 +1,10 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent } from 'react'
-import { formatHeatmapChange, type HeatmapPeriod, type HeatmapPoint, type HeatmapRow } from './heatmap-model'
+import { formatHeatmapChange, orderHeatmapGroups, type HeatmapPeriod, type HeatmapPoint, type HeatmapRow } from './heatmap-model'
+import { wildcardNotes, type WildcardRow } from './wildcards-model'
 
 const labelWidth = 184, columnWidth = 92, rowHeight = 30, headerHeight = 42
 type Memory = Map<string, { left: number; top: number }>
-type TapeRow = { group: string; row: HeatmapRow | null }
+type TapeRow = { group: string; row: HeatmapRow | null; wildcard?: WildcardRow; add?: boolean }
 
 function cellTitle(row: HeatmapRow, period: HeatmapPeriod, point: HeatmapPoint | undefined, stale: boolean) {
   if (period.future) return `${row.label} · ${period.day} · Future period`
@@ -12,18 +13,23 @@ function cellTitle(row: HeatmapRow, period: HeatmapPeriod, point: HeatmapPoint |
   return `${row.label} · ${period.day}${period.partial ? ' · In progress' : ''}\n${formatHeatmapChange(point.value)} · ${point.from} → ${point.through}${prices}\nRelative to prior volatility: ${formatHeatmapChange(point.relative, '×')}${point.reason ? `\n${point.reason}` : ''}${stale ? '\nReading is stale; refresh or check the connection' : ''}`
 }
 
-export const HeatmapTimeline = memo(function HeatmapTimeline({ rows, periods, selected, shade, focusRequest, memory, memoryKey, observedAt, onHover, onPin }: {
+export const HeatmapTimeline = memo(function HeatmapTimeline({ rows, periods, selected, shade, focusRequest, memory, memoryKey, observedAt, onHover, onPin, groupOrder, collapsed, onToggleGroup,
+  wildcards, wildcardsReady, onAddWildcard, onEditWildcard, onManageWildcards }: {
   rows: HeatmapRow[]; periods: HeatmapPeriod[]; selected: string; shade: 'return' | 'relative'; focusRequest: number
   memory: Memory; memoryKey: string; observedAt: number; onHover: (day: string) => void; onPin: (day: string) => void
+  groupOrder: string[]; collapsed: string[]; onToggleGroup: (group: string) => void
+  wildcards: WildcardRow[]; wildcardsReady: boolean; onAddWildcard: () => void; onEditWildcard: (id: string, day: string) => void; onManageWildcards: () => void
 }) {
   const viewport = useRef<HTMLDivElement>(null), frame = useRef(0), pendingScroll = useRef<{ left: number; top: number } | null>(null)
   const drag = useRef<{ id: number; x: number; y: number; left: number; top: number; active: boolean } | null>(null), swallow = useRef(false)
   const swallowTimer = useRef(0)
   const [view, setView] = useState({ left: 0, top: 0, width: 900, height: 250 })
-  const [collapsed, setCollapsed] = useState<string[]>([])
-  const groups = useMemo(() => [...new Set(rows.map(r => r.group))], [rows])
-  const tapeRows = useMemo(() => groups.flatMap(group => [{ group, row: null } as TapeRow,
-    ...(!collapsed.includes(group) ? rows.filter(r => r.group === group).map(row => ({ group, row })) : [])]), [rows, groups, collapsed])
+  const groups = useMemo(() => orderHeatmapGroups(rows.map(r => r.group), groupOrder), [rows, groupOrder])
+  const tapeRows = useMemo<TapeRow[]>(() => [...groups.flatMap(group => [{ group, row: null } as TapeRow,
+    ...(!collapsed.includes(group) ? rows.filter(r => r.group === group).map(row => ({ group, row })) : [])]),
+    { group: 'Wildcards', row: null }, ...(!collapsed.includes('Wildcards') ? [
+      ...wildcards.filter(row => !row.archived).map(wildcard => ({ group: 'Wildcards', row: null, wildcard })),
+      { group: 'Wildcards', row: null, add: true }] : [])], [rows, groups, collapsed, wildcards])
   const measure = useCallback(() => {
     const el = viewport.current
     if (!el) return
@@ -45,11 +51,13 @@ export const HeatmapTimeline = memo(function HeatmapTimeline({ rows, periods, se
     })
   }, [measure])
   const selectedRef = useRef(selected)
+  const lastFocus = useRef<number | null>(null)
   useLayoutEffect(() => { selectedRef.current = selected }, [selected])
   useLayoutEffect(() => {
     const el = viewport.current
     if (!el) return
-    const saved = focusRequest === 0 ? memory.get(memoryKey) : null
+    const saved = lastFocus.current === null || lastFocus.current === focusRequest ? memory.get(memoryKey) : null
+    lastFocus.current = focusRequest
     const index = Math.max(0, periods.findIndex(p => p.day === selectedRef.current))
     el.scrollLeft = saved?.left ?? Math.max(0, (index - 3) * columnWidth)
     el.scrollTop = saved?.top ?? 0
@@ -63,7 +71,7 @@ export const HeatmapTimeline = memo(function HeatmapTimeline({ rows, periods, se
     return () => {
       observer.disconnect(); window.cancelAnimationFrame(frame.current); window.clearTimeout(swallowTimer.current)
       frame.current = 0; pendingScroll.current = null
-      memory.set(memoryKey, { left: el.scrollLeft, top: el.scrollTop })
+      swallow.current = false; delete el.dataset.dragging
       const current = drag.current; drag.current = null
       if (current && el.hasPointerCapture?.(current.id)) el.releasePointerCapture(current.id)
     }
@@ -114,8 +122,25 @@ export const HeatmapTimeline = memo(function HeatmapTimeline({ rows, periods, se
       </button>)}
       {tapeRows.slice(top, bottom).map((entry, index) => {
         const y = top + index + 2
+        if (entry.add) return <div key="wildcard:add" className="heatmap-row">
+          <button type="button" className="heatmap-label wildcard-add" style={{ gridRow: y, gridColumn: 1 }} disabled={!wildcardsReady} onClick={onAddWildcard}>+ Add wildcard</button>
+        </div>
+        if (entry.wildcard) {
+          const wildcard = entry.wildcard
+          return <div className="heatmap-row" key={`wildcard:${wildcard.id}`}>
+            <button type="button" className="heatmap-label" style={{ gridRow: y, gridColumn: 1 }} title={wildcard.title} onClick={onManageWildcards}>{wildcard.title}</button>
+            {visible.map((period, i) => {
+              const notes = wildcardNotes(wildcard, period.day, period.day === period.end ? 'daily' : 'weekly')
+              return <button type="button" key={period.day} className={`heatmap-cell wildcard-cell${period.day === selected ? ' selected' : ''}`}
+                data-wildcard-cell={`${wildcard.id}:${period.day}`} style={{ gridRow: y, gridColumn: first + i + 2 }} disabled={!wildcardsReady}
+                aria-label={`${wildcard.title} · ${period.day} · ${notes.length ? `${notes.length} notes` : 'Add note'}`}
+                title={notes.length ? notes.map(([date, text]) => `${date}\n${text.slice(0, 500)}`).join('\n\n') : `${wildcard.title} · ${period.day} · Add note`}
+                onClick={() => onEditWildcard(wildcard.id, period.day)}>{notes.length ? `▤${period.day !== period.end ? ` ${notes.length}` : ''}` : ''}</button>
+            })}
+          </div>
+        }
         if (!entry.row) return <div key={`group:${entry.group}`} className="heatmap-group" style={{ gridRow: y, gridColumn: '1 / -1' }}>
-          <button type="button" className="heatmap-label" aria-expanded={!collapsed.includes(entry.group)} onClick={() => setCollapsed(old => old.includes(entry.group) ? old.filter(g => g !== entry.group) : [...old, entry.group])}>
+          <button type="button" className="heatmap-label" aria-expanded={!collapsed.includes(entry.group)} onClick={() => onToggleGroup(entry.group)}>
             {collapsed.includes(entry.group) ? '▸' : '▾'} {entry.group}
           </button></div>
         const row = entry.row
@@ -125,7 +150,7 @@ export const HeatmapTimeline = memo(function HeatmapTimeline({ rows, periods, se
             const point = row.points.get(period.day), value = period.future ? null : point?.value ?? null
             const intensity = shade === 'relative' ? point?.relative : value
             const strength = intensity == null ? 0 : Math.min(1, Math.abs(intensity) / (shade === 'relative' ? 3 : 2))
-            const stale = !!point?.reason || period.partial && point?.checkedAt != null && observedAt - point.checkedAt > 90
+            const stale = !!point?.reason || period.partial && row.checkedAt != null && observedAt - row.checkedAt > 90
             return <button type="button" key={period.day} data-heatmap-cell={`${row.id}:${period.day}`}
               className={`heatmap-cell${period.day === selected ? ' selected' : ''}${value === null ? ' empty' : value > 0 ? ' positive' : value < 0 ? ' negative' : ''}${stale ? ' stale' : ''}`}
               style={{ gridRow: y, gridColumn: first + i + 2, '--heat-strength': intensity == null ? '0%' : `${Math.round(6 + strength * 48)}%` } as CSSProperties}

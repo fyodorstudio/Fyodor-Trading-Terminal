@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { majorCurrencies } from '../economic-calendar/forex/currencies'
-import { categoryLabels, getSymbolCategory } from '../market-data/market-watch/symbol-classification'
-import type { HeatmapInstrument } from './heatmap-model'
+import { heatmapGroup, orderHeatmapGroups, type HeatmapInstrument } from './heatmap-model'
 import type { HeatmapPreferences } from './heatmap-preferences'
 
 export function HeatmapSymbols({ catalog, broker, preferences, rows, onSave, onClose }: {
@@ -10,6 +9,7 @@ export function HeatmapSymbols({ catalog, broker, preferences, rows, onSave, onC
 }) {
   const [draft, setDraft] = useState({ ...preferences, rows }), [search, setSearch] = useState('')
   const [category, setCategory] = useState('All'), [name, setName] = useState(''), [error, setError] = useState<string | null>(null)
+  const [folded, setFolded] = useState<string[]>([])
   const dialog = useRef<HTMLElement>(null)
   useEffect(() => {
     const previousFocus = document.activeElement as HTMLElement | null
@@ -27,8 +27,9 @@ export function HeatmapSymbols({ catalog, broker, preferences, rows, onSave, onC
     return () => { window.removeEventListener('keydown', listener); previousFocus?.focus() }
   }, [onClose])
   const choices = useMemo(() => [...majorCurrencies.map(c => ({ id: `basket:${c}`, label: `${c} basket`, description: 'Equal-weight synthetic · 7 counterparts', group: 'Currencies · synthetic' })),
-    ...catalog.map(s => ({ id: `symbol:${s.symbol}`, label: s.symbol, description: s.description, group: categoryLabels[getSymbolCategory(s.symbol, broker)] }))], [catalog, broker])
+    ...catalog.map(s => ({ id: `symbol:${s.symbol}`, label: s.symbol, description: s.description, group: heatmapGroup(`symbol:${s.symbol}`, broker) }))], [catalog, broker])
   const labels = new Map(choices.map(c => [c.id, c.label]))
+  const groups = orderHeatmapGroups(draft.rows.map(id => heatmapGroup(id, broker)), draft.groupOrder)
   const filtered = choices.filter(c => (category === 'All' || c.group === category)
     && `${c.label} ${c.description}`.toLowerCase().includes(search.toLowerCase()))
   function toggle(id: string) {
@@ -37,18 +38,26 @@ export function HeatmapSymbols({ catalog, broker, preferences, rows, onSave, onC
   }
   function move(id: string, step: number) {
     setDraft(old => {
-      const next = [...old.rows], index = next.indexOf(id), target = index + step
-      if (index < 0 || target < 0 || target >= next.length) return old
-      ;[next[index], next[target]] = [next[target], next[index]]
+      const peers = old.rows.filter(r => heatmapGroup(r, broker) === heatmapGroup(id, broker))
+      const peerIndex = peers.indexOf(id), target = peers[peerIndex + step]
+      if (!target) return old
+      const next = [...old.rows], index = next.indexOf(id), targetIndex = next.indexOf(target)
+      ;[next[index], next[targetIndex]] = [next[targetIndex], next[index]]
       return { ...old, rows: next }
     })
+  }
+  function moveGroup(group: string, step: number) {
+    const order = [...groups], index = order.indexOf(group), target = index + step
+    if (target < 0 || target >= order.length) return
+    ;[order[index], order[target]] = [order[target], order[index]]
+    setDraft(old => ({ ...old, groupOrder: [...order, ...old.groupOrder.filter(g => !order.includes(g))] }))
   }
   function savePreset() {
     const title = name.trim()
     if (!title) { setError('Enter a watchlist name.'); return }
     const existing = draft.presets.some(p => p.name === title)
     if (!existing && draft.presets.length >= 20) { setError('Remove a watchlist before adding another (maximum 20).'); return }
-    setDraft(old => ({ ...old, presets: [...old.presets.filter(p => p.name !== title), { name: title, rows: [...old.rows] }] }))
+    setDraft(old => ({ ...old, presets: [...old.presets.filter(p => p.name !== title), { name: title, rows: [...old.rows], groupOrder: [...old.groupOrder] }] }))
     setName(''); setError(null)
   }
   return <div className="heatmap-modal-backdrop" onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}>
@@ -57,7 +66,7 @@ export function HeatmapSymbols({ catalog, broker, preferences, rows, onSave, onC
       <div className="heatmap-preset-controls">
         <label>Load watchlist <select aria-label="Load heatmap watchlist" value="" onChange={e => {
           const preset = draft.presets.find(p => p.name === e.target.value)
-          if (preset) setDraft(old => ({ ...old, rows: [...preset.rows] }))
+          if (preset) setDraft(old => ({ ...old, rows: [...preset.rows], groupOrder: [...preset.groupOrder] }))
         }}><option value="">Choose…</option>{draft.presets.map(p => <option key={p.name}>{p.name}</option>)}</select></label>
         <input autoFocus aria-label="Heatmap watchlist name" maxLength={60} placeholder="Watchlist name" value={name} onChange={e => setName(e.target.value)} />
         <button type="button" onClick={savePreset}>Save / update watchlist</button>
@@ -73,11 +82,20 @@ export function HeatmapSymbols({ catalog, broker, preferences, rows, onSave, onC
             {filtered.length > 200 && <p>Narrow your search to see more of the {filtered.length} matches.</p>}
             {!filtered.length && <p>No matching instruments. Only symbols already visible in broker Market Watch are available.</p>}</div>
         </section>
-        <section className="heatmap-chosen"><strong>Selected · {draft.rows.length}/96</strong><small>Order is preserved within each group.</small>
-          <div>{draft.rows.map((id, i) => <div key={id}><span>{labels.get(id) ?? id.slice(7)}</span>
-            <button type="button" aria-label={`Move ${labels.get(id) ?? id.slice(7)} up`} disabled={i === 0} onClick={() => move(id, -1)}>↑</button>
-            <button type="button" aria-label={`Move ${labels.get(id) ?? id.slice(7)} down`} disabled={i === draft.rows.length - 1} onClick={() => move(id, 1)}>↓</button>
-            <button type="button" aria-label={`Remove ${labels.get(id) ?? id.slice(7)}`} onClick={() => toggle(id)}>×</button></div>)}</div>
+        <section className="heatmap-chosen"><strong>Selected · {draft.rows.length}/96</strong><small>Category arrows reorder groups. Symbol arrows reorder within a group.</small>
+          <div>{groups.map((group, groupIndex) => {
+            const members = draft.rows.filter(id => heatmapGroup(id, broker) === group)
+            return <section key={group} className="heatmap-chosen-group" data-selected-group={group}>
+              <header><button type="button" aria-label={`Toggle selected category ${group}`} aria-expanded={!folded.includes(group)} onClick={() => setFolded(old => old.includes(group) ? old.filter(g => g !== group) : [...old, group])}>
+                {folded.includes(group) ? '▸' : '▾'} {group} · {members.length}</button>
+                <button type="button" aria-label={`Move category ${group} up`} disabled={groupIndex === 0} onClick={() => moveGroup(group, -1)}>↑</button>
+                <button type="button" aria-label={`Move category ${group} down`} disabled={groupIndex === groups.length - 1} onClick={() => moveGroup(group, 1)}>↓</button></header>
+              {!folded.includes(group) && members.map((id, i) => <div key={id}><span>{labels.get(id) ?? id.slice(7)}</span>
+                <button type="button" aria-label={`Move ${labels.get(id) ?? id.slice(7)} up`} disabled={i === 0} onClick={() => move(id, -1)}>↑</button>
+                <button type="button" aria-label={`Move ${labels.get(id) ?? id.slice(7)} down`} disabled={i === members.length - 1} onClick={() => move(id, 1)}>↓</button>
+                <button type="button" aria-label={`Remove ${labels.get(id) ?? id.slice(7)}`} onClick={() => toggle(id)}>×</button></div>)}
+            </section>
+          })}</div>
         </section>
       </div>
       {error && <p role="alert">{error}</p>}

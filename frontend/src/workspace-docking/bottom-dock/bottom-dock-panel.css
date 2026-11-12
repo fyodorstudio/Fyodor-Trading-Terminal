@@ -8,6 +8,8 @@
 }
 
 .bottom-dock-content { min-height: 0; overflow: hidden; }
+.bottom-dock[hidden], .cross-asset-slot[hidden] { display: none; }
+.cross-asset-slot { height: 100%; min-height: 0; }
 .bottom-dock.resizable { grid-template-rows: 6px minmax(0, 1fr); }
 .bottom-dock-resize-handle { cursor: ns-resize; touch-action: none; user-select: none; position: relative; background: var(--surface-raised); }
 .bottom-dock-resize-handle::after { content: ''; position: absolute; width: 42px; height: 2px; top: 2px; left: calc(50% - 21px); border-radius: 2px; background: var(--border-strong); }
