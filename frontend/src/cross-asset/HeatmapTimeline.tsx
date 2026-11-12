@@ -1,8 +1,8 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent } from 'react'
-import { formatHeatmapChange, orderHeatmapGroups, type HeatmapPeriod, type HeatmapPoint, type HeatmapRow } from './heatmap-model'
+import { formatHeatmapChange, formatHeatmapOHLC, heatmapOHLC, orderHeatmapGroups, type HeatmapPeriod, type HeatmapPoint, type HeatmapRow } from './heatmap-model'
 import { wildcardNotes, type WildcardRow } from './wildcards-model'
 
-const labelWidth = 184, columnWidth = 92, rowHeight = 30, headerHeight = 42
+const labelWidth = 184, columnWidth = 276, rowHeight = 30, headerHeight = 42
 type Memory = Map<string, { left: number; top: number }>
 type TapeRow = { group: string; row: HeatmapRow | null; wildcard?: WildcardRow; add?: boolean }
 
@@ -10,7 +10,9 @@ function cellTitle(row: HeatmapRow, period: HeatmapPeriod, point: HeatmapPoint |
   if (period.future) return `${row.label} · ${period.day} · Future period`
   if (!point || point.value === null) return `${row.label} · ${period.day} · ${point?.reason || 'No candle or history unavailable'}${row.id.startsWith('basket:') ? ` · ${point?.coverage ?? 0}/7 counterparts` : ''}`
   const prices = point.start !== null ? `\nPrevious close ${point.start} → ${point.close}\nRange ${point.low}–${point.high}` : '\nEqual-weight geometric basket · 7/7 counterparts'
-  return `${row.label} · ${period.day}${period.partial ? ' · In progress' : ''}\n${formatHeatmapChange(point.value)} · ${point.from} → ${point.through}${prices}\nRelative to prior volatility: ${formatHeatmapChange(point.relative, '×')}${point.reason ? `\n${point.reason}` : ''}${stale ? '\nReading is stale; refresh or check the connection' : ''}`
+  const extremes = point.start === null ? 'Synthetic basket O/H/L unavailable; only net C is calculated from the seven pair endpoints.'
+    : `${formatHeatmapOHLC(point)} · Open/high/low/close percentage changes versus previous close; H/L need not occur together.`
+  return `${row.label} · ${period.day}${period.partial ? ' · In progress' : ''}\n${formatHeatmapChange(point.value)} · ${point.from} → ${point.through}${prices}\n${extremes}\nRelative to prior volatility: ${formatHeatmapChange(point.relative, '×')}${point.reason ? `\n${point.reason}` : ''}${stale ? '\nReading is stale; refresh or check the connection' : ''}`
 }
 
 export const HeatmapTimeline = memo(function HeatmapTimeline({ rows, periods, selected, shade, focusRequest, memory, memoryKey, observedAt, onHover, onPin, groupOrder, collapsed, onToggleGroup,
@@ -157,7 +159,8 @@ export const HeatmapTimeline = memo(function HeatmapTimeline({ rows, periods, se
               style={{ gridRow: y, gridColumn: first + i + 2, '--heat-strength': intensity == null ? '0%' : `${Math.round(6 + strength * 48)}%` } as CSSProperties}
               disabled={period.future} title={cellTitle(row, period, point, stale)}
               onMouseEnter={() => { if (!drag.current) onHover(period.day) }} onFocus={() => onHover(period.day)} onClick={event => onPin(period.day, event.shiftKey)}>
-              {formatHeatmapChange(value)}
+              {value === null ? '—' : <span className="heatmap-ohlc">{heatmapOHLC(point).map(field => <span key={field.label} className={field.label === 'C' ? 'ohlc-close' : undefined}>
+                <small>{field.label}</small>{formatHeatmapChange(field.value)}</span>)}</span>}
             </button>
           })}
         </div>

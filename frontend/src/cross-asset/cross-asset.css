@@ -28,22 +28,27 @@
 .heatmap-label { position: sticky; left: 0; z-index: 2; background: var(--surface-panel); padding: 7px 10px; border-right: 1px solid var(--border-strong); border-bottom: 1px solid var(--border); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
 .heatmap-group { background: var(--surface-inset); border-bottom: 1px solid var(--border-strong); }
 .heatmap-group .heatmap-label { display: block; width: 184px; height: 30px; text-align: left; background: var(--surface-inset); border-radius: 0; border-width: 0 1px 0 0; font-size: 11px; }
-.heatmap-tape .heatmap-cell { border-radius: 0; border-width: 0 1px 1px 0; border-color: var(--border); background: var(--surface-panel); font-size: 12px; text-align: right; padding: 5px 9px; }
+.heatmap-tape .heatmap-cell { border-radius: 0; border-width: 0 1px 1px 0; border-color: var(--border); background: var(--surface-panel); font-size: 12px; text-align: right; padding: 2px 5px; }
+.heatmap-ohlc { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: center; gap: 7px; font-size: 11px; line-height: 20px; white-space: nowrap; }
+.heatmap-ohlc > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.heatmap-ohlc small { display: inline; font-size: 10px; font-weight: 400; margin-right: 3px; }
+.heatmap-ohlc .ohlc-close { font-weight: 600; }
 .heatmap-tape .heatmap-cell.positive { background: color-mix(in srgb, var(--positive) var(--heat-strength), var(--surface-panel)); color: var(--text-strong) !important; }
 .heatmap-tape .heatmap-cell.negative { background: color-mix(in srgb, var(--negative) var(--heat-strength), var(--surface-panel)); color: var(--text-strong) !important; }
 .heatmap-tape .heatmap-cell.empty { color: var(--text-muted); background: var(--surface-inset); }
 .heatmap-tape .selected { box-shadow: inset 2px 0 var(--accent), inset -2px 0 var(--accent); }
 .heatmap-tape .heatmap-cell.stale { text-decoration: underline dotted; }
-.heatmap-ranking { width: 244px; flex-shrink: 0; min-height: 0; display: flex; flex-direction: column; border-left: 1px solid var(--border-strong); padding: 7px 10px; }
+.heatmap-ranking { width: 304px; flex-shrink: 0; min-height: 0; display: flex; flex-direction: column; border-left: 1px solid var(--border-strong); padding: 7px 10px; }
 .heatmap-ranking header { display: flex; align-items: flex-start; flex-direction: column; gap: 3px; }
 .heatmap-ranking small { font-size: 10px; color: var(--text-muted); }
 .heatmap-ranking-controls { display: flex; flex-direction: column; gap: 4px; padding: 7px 0; }
 .heatmap-ranking-controls select { width: 100%; }
 .heatmap-ranking ol { list-style: none; margin: 5px 0 0; padding: 0; overflow: auto; min-height: 0; }
-.heatmap-ranking li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--border); font-variant-numeric: tabular-nums; }
+.heatmap-ranking li { display: flex; flex-direction: column; align-items: stretch; gap: 3px; padding: 5px 0; border-bottom: 1px solid var(--border); font-variant-numeric: tabular-nums; }
 .heatmap-ranking li > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .heatmap-ranking li > span:last-child { text-align: right; white-space: nowrap; }
 .heatmap-ranking li small { display: block; }
+.heatmap-ranking li .heatmap-ohlc small { display: inline; }
 .heatmap-modal-backdrop { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; background: #0006; padding: 24px; }
 .heatmap-symbols { width: min(920px, 100%); max-height: min(720px, 90vh); display: flex; flex-direction: column; min-height: 0; background: var(--surface-panel); border: 1px solid var(--border-strong); border-radius: 7px; box-shadow: 0 12px 48px #0005; padding: 12px; }
 .heatmap-symbols > header, .heatmap-symbols > footer { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-shrink: 0; }

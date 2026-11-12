@@ -5,7 +5,7 @@ import { formatAppTimestamp } from '../appearance/time-display/time-display-pref
 import { useDisplayClock } from '../appearance/time-display/useDisplayClock'
 import { HeatmapTimeline } from './HeatmapTimeline'
 import { HeatmapSymbols } from './HeatmapSymbols'
-import { createHeatmapRowBuilder, formatHeatmapChange, heatmapDate, heatmapDefaults, heatmapPeriods, heatmapRequests, orderHeatmapGroups, weekStart, type HeatmapInstrument } from './heatmap-model'
+import { createHeatmapRowBuilder, formatHeatmapChange, heatmapOHLC, heatmapDate, heatmapDefaults, heatmapPeriods, heatmapRequests, orderHeatmapGroups, weekStart, type HeatmapInstrument } from './heatmap-model'
 import { readHeatmapPreferences, saveHeatmapPreferences, type HeatmapPreferences } from './heatmap-preferences'
 import { useHeatmapHistory } from './useHeatmapHistory'
 import { heatmapChangesText, heatmapResearchPrompt } from './heatmap-export'
@@ -167,6 +167,7 @@ const HeatmapDock = memo(function HeatmapDock({ catalogJson, broker, generation,
     {help && <div className="heatmap-method">
       <p>Daily % compares each broker D1 close with its previous available close, including opening gaps. Weekly compares the prior week’s final available close with the selected Monday–Sunday broker week’s final close; the current week is incomplete. Dates are broker session dates, independent of the display timezone. Markets have different hours.</p>
       <p>Each synthetic currency basket is the equal-weight geometric return against the other seven currencies. All seven must have matching start/end dates. This is a custom basket, distinct from USDX/EURX/JPYX. Figures show price performance, providing evidence to research rotation and risk appetite; they do not measure capital-flow amounts or assign a risk-on/off verdict.</p>
+      <p>O · H · L · C shows opening, highest, lowest and closing price changes side by side, all measured against the same previous close. C is the net return and uses the latest available reading while in progress. Weekly uses the first available opening, whole-week extremes and final available close versus the prior week’s final close. Synthetic baskets show C only; O/H/L remains unavailable without a synchronized intraday path.</p>
       <p>Relative shading divides the return by prior return volatility: up to 60 earlier daily observations (minimum 20), or 26 earlier weeks (minimum 12). It uses no later periods. Missing baselines stay unshaded. Raw instrument returns are in their quoted currencies, without currency conversion, dividends, financing or contract adjustments.</p>
     </div>}
     <div className="heatmap-status" role="status">
@@ -189,7 +190,9 @@ const HeatmapDock = memo(function HeatmapDock({ catalogJson, broker, generation,
             <option value="highest">Highest returns</option><option value="lowest">Lowest returns</option><option value="unusual">Largest unusual moves</option></select></div>
         <small>{winners} up · {available.length - winners - available.filter(r => r.point!.value === 0).length} down · {ranking.length - available.length} unavailable</small>
         <ol>{ranking.map(({ row, point }) => <li key={row.id}><span title={row.group}>{row.label}</span><span className={point?.value == null ? '' : point.value > 0 ? 'positive' : point.value < 0 ? 'negative' : ''}>
-          {formatHeatmapChange(point?.value ?? null)}{preferences.rank === 'unusual' && <small>{formatHeatmapChange(point?.relative ?? null, '×')}</small>}</span></li>)}</ol>
+          {point?.value == null ? '—' : <span className="heatmap-ohlc" title="O/H/L/C percentage changes versus previous close; C is net return">{heatmapOHLC(point).map(field => <span key={field.label} className={field.label === 'C' ? 'ohlc-close' : undefined}>
+            <small>{field.label}</small>{formatHeatmapChange(field.value)}</span>)}</span>}
+          {preferences.rank === 'unusual' && <small>{formatHeatmapChange(point?.relative ?? null, '×')}</small>}</span></li>)}</ol>
       </aside>}
     </div>
     {manager && <HeatmapSymbols catalog={catalog} broker={broker} preferences={preferences} rows={ids}

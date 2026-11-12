@@ -261,7 +261,7 @@ when closed or while another dock is open. Reopening restores the warmed data,
 pinned date, category collapse and browsing position immediately.
 
 **Copy Details Only** copies the selected date (or full week range), categories and
-percentage changes only. It includes every selected instrument with an available
+O/H/L/C percentage changes only. It includes every selected instrument with an available
 reading, sorted highest to lowest within each category, regardless of ranking
 filters or collapsed groups.
 
@@ -284,6 +284,16 @@ Both copy buttons mark unfinished dates **In progress (day to date)** and
 unfinished weeks **In progress (week to date)**. The research prompt explains
 that those changes are provisional readings, not final closing returns, and
 distinguishes the time of copying from the last market update.
+
+**O · H · L · C appears side by side** in each timeline cell and ranking entry,
+and in both copy buttons. These are percentage changes from the same previous
+close: opening, highest, lowest and closing price. C is the net return and uses
+the latest available reading while in progress. O includes the opening gap; H/L
+includes the wicks. A small net loss can appear alongside a much deeper L reading
+after a recovery. Weekly uses its first available opening, whole-week high/low
+and last available close versus the prior week's final close. Shading and ranking
+still use C. Synthetic baskets show C with O/H/L dashes because this model does
+not construct a synchronized basket OHLC path. No extra requests are needed.
 
 Scroll to **Wildcards** at the bottom and click **+ Add wildcard**. Enter a short
 story title and your own paragraphs or source links, then **Save**. Each story

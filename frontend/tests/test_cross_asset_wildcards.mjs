@@ -80,7 +80,7 @@ try {
     { id: 'two', label: 'B', group: 'Metals', points: new Map([['2026-11-06', { value: 2 }]]) },
     { id: 'three', label: 'C', group: 'Energy', points: new Map([['2026-11-06', { value: 0 }]]) },
     { id: 'missing', label: 'Missing', group: 'Other', points: new Map() }]
-  assert.equal(heatmapChangesText(rows, '2026-11-06', 'daily', ['Energy', 'Metals']), '2026-11-06 · Daily\n\nEnergy\nC 0.00%\n\nMetals\nB +2.00%\nA -1.00%')
+  assert.equal(heatmapChangesText(rows, '2026-11-06', 'daily', ['Energy', 'Metals']), '2026-11-06 · Daily\n\nEnergy\nC O — · H — · L — · C 0.00%\n\nMetals\nB O — · H — · L — · C +2.00%\nA O — · H — · L — · C -1.00%')
   assert.equal(heatmapChangesText(rows, '2026-11-02', 'weekly', []), '')
   const weeklyText = heatmapChangesText([{ ...rows[0], points: new Map([['2025-12-29', { value: 1 }]]) }], '2025-12-29', 'weekly', [])
   assert.ok(weeklyText.startsWith('2025-12-29 – 2026-01-04 · Weekly'))
@@ -91,7 +91,7 @@ try {
   assert.equal(heatmapResearchPrompt('', 'daily', 'Pepperstone-Demo', Date.now()), '')
   const multiRows = [{ ...rows[0], points: new Map([['2026-11-05', { value: 3 }], ['2026-11-06', { value: -1 }]]) }]
   const multiText = heatmapChangesText(multiRows, ['2026-11-06', '2026-11-07', '2026-11-05', '2026-11-06'], 'daily', [])
-  assert.equal(multiText, '2026-11-05 · Daily\n\nMetals\nA +3.00%\n\n2026-11-06 · Daily\n\nMetals\nA -1.00%')
+  assert.equal(multiText, '2026-11-05 · Daily\n\nMetals\nA O — · H — · L — · C +3.00%\n\n2026-11-06 · Daily\n\nMetals\nA O — · H — · L — · C -1.00%')
   const partialText = heatmapChangesText(multiRows, ['2026-11-05', '2026-11-06'], 'daily', [], '2026-11-06')
   assert.ok(partialText.includes('2026-11-05 · Daily\n'))
   assert.ok(partialText.includes('2026-11-06 · Daily · In progress (day to date)'))
@@ -131,8 +131,12 @@ try {
   await click(button('Daily'))
   await change(field('Heatmap date'), '2026-11-06')
   await click(button('Copy Details Only'))
-  assert.ok(copied.includes('US500 +2.00%'))
-  assert.ok(copied.includes('XAUUSD -1.00%'))
+  assert.ok(copied.includes('US500 O +2.00% · H +2.00% · L +2.00% · C +2.00%'), 'Copied OHLC uses the actual candle and previous close')
+  assert.ok(copied.includes('XAUUSD O -1.00% · H -1.00% · L -1.00% · C -1.00%'))
+  const ohlcFields = [...host.querySelectorAll('[data-heatmap-cell="symbol:US500:2026-11-06"] .heatmap-ohlc > span')]
+  assert.deepEqual(ohlcFields.map(field => field.querySelector('small').textContent), ['O', 'H', 'L', 'C'], 'Every cell uses one consistent horizontal OHLC order')
+  assert.equal(host.querySelector('.heatmap-extremes'), null, 'The stacked close/extremes layout is removed')
+  assert.deepEqual([...host.querySelector('[aria-label="Selected period ranking"]').querySelectorAll('.heatmap-ohlc small')].slice(0, 4).map(field => field.textContent), ['O', 'H', 'L', 'C'])
   assert.ok(!/Wildcards|unavailable|volatility|research|7 counterparts/i.test(copied), 'Clipboard contains only dated changes')
   const singleDetails = copied, readsBeforePrompt = historyReads
   await click(button('Copy Research Prompt'))
@@ -144,6 +148,8 @@ try {
   assert.ok(copied.includes('Daily changes compare each broker D1 close'))
   assert.ok(copied.includes('equal-weight geometric returns'))
   assert.ok(copied.includes('distinct from broker USDX/EURX/JPYX'))
+  assert.ok(copied.includes('H/L are extremes reached, not current returns'))
+  assert.ok(copied.includes('Basket O/H/L is unavailable'))
   assert.ok(copied.endsWith(singleDetails), 'Research button appends exactly the details-only selection')
   assert.ok(!/invalidation|confidence score|scenario tree/.test(copied), 'Research prompt stays focused without mandatory assessment sections')
   assert.equal(historyReads, readsBeforePrompt, 'Copying a prompt does no history fetching')
@@ -157,7 +163,7 @@ try {
   assert.equal(copied, singleDetails, 'Switching back to details omits the prompt and method definitions')
   await change(field('Ranking group'), 'Metals')
   await click(button('Copy Details Only'))
-  assert.ok(copied.includes('US500 +2.00%'), 'Copy includes all selected instruments regardless of ranking filter')
+  assert.ok(copied.includes('US500 O +2.00%'), 'Copy includes all selected instruments regardless of ranking filter')
   const readsBeforeRange = historyReads
   const formatsBeforeRange = globalThis.__copyFormats
   await click(button('Copy range'))
@@ -168,7 +174,7 @@ try {
   await click(button('Copy Details Only'))
   assert.ok(copied.indexOf('2026-11-05 · Daily') < copied.indexOf('2026-11-06 · Daily'))
   assert.ok(!copied.includes('2026-11-07'), 'No-readings days are omitted, not reported as zero')
-  assert.ok(copied.includes('US500 0.00%'), 'True unchanged readings are retained')
+  assert.ok(copied.includes('US500 O 0.00%'), 'True unchanged readings are retained')
   const rangeDetails = copied
   await click(button('Copy Research Prompt'))
   assert.ok(copied.endsWith(rangeDetails), 'Research export honors multiple dates and ranking-independent instrument selection')

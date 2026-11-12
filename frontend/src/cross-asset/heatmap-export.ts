@@ -1,4 +1,4 @@
-import { formatHeatmapChange, heatmapDate, orderHeatmapGroups, type HeatmapMode, type HeatmapRow } from './heatmap-model'
+import { formatHeatmapOHLC, heatmapDate, orderHeatmapGroups, type HeatmapMode, type HeatmapRow } from './heatmap-model'
 
 export function heatmapResearchPrompt(changes: string, mode: HeatmapMode, broker: string | null, copiedAt: number) {
   if (!changes) return ''
@@ -7,7 +7,8 @@ export function heatmapResearchPrompt(changes: string, mode: HeatmapMode, broker
     : 'Daily changes compare each broker D1 close with its previous available close, including opening gaps.'
   return [instructions, `Heatmap context · ${broker ?? 'Broker'} · Copied ${new Date(copiedAt).toISOString()} (UTC)`,
     `${returns} Headings marked In progress show provisional day/week-to-date changes to the latest available reading, not final closing returns. Dates are broker session labels; markets have different closing hours. Copy time is the export time, not the last market update. Missing readings are omitted, not zero.`,
-    'Currency baskets are custom equal-weight geometric returns of each currency against the other seven among EUR, GBP, AUD, NZD, USD, CAD, CHF and JPY, requiring all seven with matching comparison dates. They are distinct from broker USDX/EURX/JPYX.',
+    'O/H/L/C are opening/highest/lowest/closing price changes versus the same previous close. C is net return (latest reading while in progress). H/L are extremes reached, not current returns. Weekly O is the first available opening and H/L covers the whole week.',
+    'Currency baskets are custom equal-weight geometric returns of each currency against the other seven among EUR, GBP, AUD, NZD, USD, CAD, CHF and JPY, requiring all seven with matching comparison dates. They are distinct from broker USDX/EURX/JPYX. Basket O/H/L is unavailable: only net C is calculated from the seven pair endpoints.',
     changes].join('\n\n')
 }
 
@@ -19,10 +20,10 @@ export function heatmapChangesText(rows: HeatmapRow[], dates: string | readonly 
     const heading = (mode === 'weekly' ? `${day} – ${end} · Weekly` : `${day} · Daily`)
       + (inProgress ? ` · In progress (${mode === 'weekly' ? 'week' : 'day'} to date)` : '')
     const sections = groups.flatMap(group => {
-      const entries = group.rows.map(row => ({ label: row.label, value: row.points.get(day)?.value }))
-        .filter((entry): entry is { label: string; value: number } => entry.value != null && Number.isFinite(entry.value))
+      const entries = group.rows.map(row => ({ label: row.label, value: row.points.get(day)?.value, point: row.points.get(day) }))
+        .filter((entry): entry is typeof entry & { value: number } => entry.value != null && Number.isFinite(entry.value))
         .sort((a, b) => b.value - a.value || a.label.localeCompare(b.label))
-      return entries.length ? [`${group.group}\n${entries.map(entry => `${entry.label} ${formatHeatmapChange(entry.value)}`).join('\n')}`] : []
+      return entries.length ? [`${group.group}\n${entries.map(entry => `${entry.label} ${formatHeatmapOHLC(entry.point)}`).join('\n')}`] : []
     })
     return sections.length ? [[heading, ...sections].join('\n\n')] : []
   }).join('\n\n')

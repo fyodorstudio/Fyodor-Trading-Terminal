@@ -10,7 +10,7 @@ export type HeatmapHistory = { schema: 1; source_id: string; generation: number;
 export type HeatmapInstrument = { symbol: string; description: string }
 export type HeatmapPeriod = { day: string; end: string; label: string; partial: boolean; future: boolean }
 export type HeatmapPoint = { value: number | null; relative: number | null; coverage: number; from: string | null; through: string | null
-  start: number | null; close: number | null; high: number | null; low: number | null; checkedAt: number | null; reason: string }
+  start: number | null; open: number | null; close: number | null; high: number | null; low: number | null; checkedAt: number | null; reason: string }
 export type HeatmapRow = { id: string; label: string; group: string; checkedAt: number | null; points: Map<string, HeatmapPoint> }
 const dayMs = 86400_000
 export function heatmapGroup(id: string, broker: string | null) {
@@ -65,7 +65,7 @@ export function heatmapRequests(ids: string[], catalog: HeatmapInstrument[]): st
 }
 
 const blank = (reason: string, coverage = 0): HeatmapPoint => ({ value: null, relative: null, coverage,
-  from: null, through: null, start: null, close: null, high: null, low: null, checkedAt: null, reason })
+  from: null, through: null, start: null, open: null, close: null, high: null, low: null, checkedAt: null, reason })
 
 function symbolPoints(record: HeatmapHistory['symbols'][string] | undefined, mode: HeatmapMode, today: string) {
   const result = new Map<string, HeatmapPoint>()
@@ -87,7 +87,7 @@ function symbolPoints(record: HeatmapHistory['symbols'][string] | undefined, mod
       : Date.parse(key) - Date.parse(from!) <= 10 * dayMs)
     const value = valid && previous ? (last.close / previous.close - 1) * 100 : null
     result.set(key, { value, relative: null, coverage: value === null ? 0 : 1, from, through, start: previous?.close ?? null,
-      close: last.close, high: Math.max(...group.map(b => b.high)), low: Math.min(...group.map(b => b.low)),
+      open: group[0].open, close: last.close, high: Math.max(...group.map(b => b.high)), low: Math.min(...group.map(b => b.low)),
       checkedAt: record.checked_at, reason: value === null ? 'Previous close unavailable or history gap'
         : record.availability === 'unavailable' ? 'History reader unavailable; retained reading may be stale' : '' })
     previous = last
@@ -177,6 +177,21 @@ export function formatHeatmapChange(value: number | null, unit = '%') {
   if (value === null || !Number.isFinite(value)) return '—'
   const rounded = Math.abs(value) < .005 ? 0 : value
   return `${rounded > 0 ? '+' : ''}${rounded.toFixed(2)}${unit}`
+}
+
+export function heatmapOHLC(point: HeatmapPoint | undefined) {
+  const baseline = point?.start
+  const usable = point?.value != null && Number.isFinite(point.value) && baseline != null && Number.isFinite(baseline) && baseline > 0
+  const change = (price: number | null | undefined) => usable && price != null && Number.isFinite(price) && price > 0 ? (price / baseline - 1) * 100 : null
+  // Basket endpoints have no OHLC path; never invent levels from separate pair wicks.
+  return [
+    { label: 'O', value: change(point?.open) }, { label: 'H', value: change(point?.high) },
+    { label: 'L', value: change(point?.low) }, { label: 'C', value: point?.value ?? null },
+  ] as const
+}
+
+export function formatHeatmapOHLC(point: HeatmapPoint | undefined) {
+  return heatmapOHLC(point).map(({ label, value }) => `${label} ${formatHeatmapChange(value)}`).join(' · ')
 }
 
 export function validHeatmapHistory(value: unknown, source: string, generation: number, year: number): value is HeatmapHistory {

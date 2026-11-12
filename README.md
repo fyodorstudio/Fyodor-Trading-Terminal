@@ -132,7 +132,8 @@ starting with `pnpm analyst details prepare --scope EURUSD`; see the
 ## Cross-Asset heatmap
 
 **Cross-Asset**, beside Ledger in the bottom dock, compares daily or trading-week
-price changes. Drag the timeline to browse, hover a column for its winners/losers,
+price changes, with O/H/L/C percentage changes side by side in each cell.
+Drag the timeline to browse, hover a column for its winners/losers,
 and click to pin a date. Daily uses the previous available close; weekly uses the
 previous week's final close. Current periods stay labelled incomplete. Eight
 equal-weight synthetic currency baskets require all seven counterparts with
@@ -143,7 +144,9 @@ for category order and separate arrows for symbols within each category. New
 symbols load independently; after first opening, history keeps updating while
 closed and reopening restores the warmed data and browsing position. Shading offers raw returns
 or movement relative to earlier volatility. **Method** explains calculations and
-coverage. **Copy Details Only** copies only the selected date/week and grouped percentage
+coverage. O/H/L/C compares the period's open/high/low/close with the same previous
+close; C is the net return (latest reading while in progress). Synthetic baskets
+show C with O/H/L unavailable. **Copy Details Only** copies grouped O/H/L/C percentage
 changes. Use **Copy range** with From/Through, or click a date then Shift-click
 another, to copy several dates/weeks from the displayed year in chronological order.
 **Copy Research Prompt** bundles those changes with brief basket/return definitions

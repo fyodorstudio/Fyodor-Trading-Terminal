@@ -44,7 +44,7 @@ independent. The removed Ledger summary does not move into this dock.
 ## Copy details and manual Wildcards
 
 **Copy Details Only** copies the selected daily date or Monday–Sunday weekly range,
-category names, instrument labels and raw percentage changes only. All selected
+category names, instrument labels and raw O/H/L/C percentage changes only. All selected
 instruments participate, independent of ranking filters and collapsed groups.
 Categories use the saved order; instruments sort highest to lowest within each.
 Unavailable readings and empty categories are omitted. No commentary, relative
@@ -132,6 +132,17 @@ close of a Monday–Sunday broker week divided by the immediately preceding week
 final available close, minus one. It is not a sum of daily percentages or rolling
 five-day change. An absent preceding week stays unavailable. A live period uses
 its latest D1 reading. Tooltips expose comparison dates, raw endpoints and range.
+O/H/L/C is visible by default as one horizontal row in each available instrument
+cell and ranking entry. Every field is `100 * (field_price / previous_close - 1)`;
+C is the net return and remains the ranking/shading metric. Both clipboard formats
+use the same O/H/L/C order. Daily uses its own candle opening, high, low and close.
+Weekly uses the first available day's opening, lowest low/highest high across
+that week's available D1 candles and final available close, all versus the previous
+week's final close. O includes the opening gap. H/L includes wicks; they are prices
+reached, not simultaneous readings, a path chronology or current returns. Live C
+uses the latest available reading and live extrema are provisional. Missing
+comparisons remain unavailable rather than zero. Cells retain 30px rows with
+276px date columns for the four inline fields; C is emphasized without stacking.
 Different markets have different closing hours; matching dates do not imply
 simultaneous trading. Broker price returns exclude dividends, financing and
 contract adjustments and are not converted into a common investor currency.
@@ -146,6 +157,13 @@ coverage produces a blank with a coverage explanation, never a reweighted basket
 These are custom equal-weight FX baskets, distinct from broker USDX/EURX/JPYX and
 trade-weighted indices; they measure appreciation/depreciation against peers, not
 an absolute currency value or the amount of capital entering a market.
+Basket O/H/L displays `—` in cells, ranking and exports; the basket model computes
+net C from the seven pair endpoints and does not construct an intraday OHLC path.
+Individual pair wicks can occur at different instants and cannot establish exact
+basket extremes. Synchronized intraday prices are not fetched by this D1 feature.
+The research prompt explains that distinction. Net baskets,
+shading, rankings and all-seven coverage rules remain unchanged; extremes use
+the existing loaded OHLC without extra requests.
 
 Optional relative shading is signed net return divided by the sample standard
 deviation of prior returns. Daily uses up to 60 earlier observations, minimum 20;
