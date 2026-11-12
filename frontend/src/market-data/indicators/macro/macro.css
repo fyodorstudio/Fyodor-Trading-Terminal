@@ -46,7 +46,8 @@
 .macro-series-drawer button { font: inherit; color: var(--text-strong); background: transparent; border: 0; padding: 3px; cursor: pointer; }
 .macro-series-drawer button:hover { background: var(--surface-hover); }
 .macro-series-drawer :is(button, input):focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
-.macro-drawer-body { flex: 1 1 auto; overflow-y: auto; overscroll-behavior: contain; min-height: 0; padding: 4px 8px 8px; }
+.macro-drawer-body { flex: 1 1 auto; overflow-y: auto; overscroll-behavior: contain; min-height: 0; padding: 4px 8px 20px; }
+.macro-series-drawer .macro-drawer-resize { position: absolute; right: 0; bottom: 0; display: grid; place-items: center; width: 22px; height: 22px; padding: 0; color: var(--text-muted); background: var(--surface-panel); cursor: nwse-resize; touch-action: none; user-select: none; }
 .macro-drawer-category { display: flex; align-items: center; gap: 4px; padding: 4px 0; color: var(--text-muted); border-bottom: 1px solid var(--border); }
 .macro-drawer-category button { display: flex; align-items: center; gap: 4px; width: 100%; text-align: left; cursor: grab; touch-action: none; }
 .macro-drawer-category button[aria-pressed="true"] { color: var(--accent); background: var(--surface-hover); box-shadow: inset 2px 0 var(--accent); }

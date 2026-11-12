@@ -185,7 +185,9 @@ number toggle. Click a label to select its draggable right axis. Labels and numb
 use the event's actual units; arrows compare each actual with the previous available
 release. **Fit axis** fits the selected scale; **Fit axis all** fits every visible
 scale. The lock links numerical axes in numerical view; in Lane view, drag the
-plot to move all lanes together and use the wheel to adjust their spacing.
+plot to move all lanes together. Wheel input scrolls the lane viewport vertically,
+with the lock on or off; it never changes spacing. Use Lane spacing in Series to
+adjust the distance between lanes.
 The adjacent three-line **Lane view** button draws perfectly straight rows, with
 actual values, arrows, dates and forecasts retained. Click again to restore the
 numerical plot. **Series** opens a right-side overlay drawer: event names occupy
@@ -196,7 +198,9 @@ The top All series eye/F/N row toggles all selected events together, including
 collapsed categories. Mixed states switch everything off; the next click switches
 everything on. Unticked currencies keep their saved settings. Close or Escape dismisses
 the drawer without resizing the chart. Wheel anywhere over the popover to scroll
-its event list; hold the Series title to move the window within the chart.
+its event list; hold the Series title to move the window within the chart. Drag
+the bottom-right grip to resize it (or focus the grip and use arrow keys). Its
+position and size survive redraws and close/reopen while the pane stays open.
 The category arrow and name form one button: click to fold/expand its drawer list
 and select every child, then drag the plot to move that category together in
 either view. Folding never hides or shifts plotted lines. Drag the header to reorder.

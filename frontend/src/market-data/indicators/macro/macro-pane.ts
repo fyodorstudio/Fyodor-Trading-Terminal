@@ -149,9 +149,9 @@ export function createMacroPane(chart: IChartApi) {
   laneControls.setRows(metricControls)
   const inPane = (event: Event) => event.target instanceof Node && pane.getHTMLElement()?.contains(event.target)
   const groupDrag = (event: PointerEvent) => { if (laneMode && inPane(event)) laneControls.startPlotDrag(event, linked) }
-  const groupZoom = (event: WheelEvent) => { if (linked && laneMode && inPane(event)) laneControls.zoomAll(event) }
+  const laneWheel = (event: WheelEvent) => { if (laneMode && inPane(event)) laneControls.scrollLanes(event) }
   chart.chartElement().addEventListener('pointerdown', groupDrag, true)
-  chart.chartElement().addEventListener('wheel', groupZoom, { capture: true, passive: false })
+  chart.chartElement().addEventListener('wheel', laneWheel, { capture: true, passive: false })
   const plotY = (key: string, value: number) => laneMode ? laneControls.y(key) : series[key]?.priceToCoordinate(value) ?? null
   let outlineColor = '#888888'
   const updateForecast = () => {
@@ -270,7 +270,7 @@ export function createMacroPane(chart: IChartApi) {
   const updateLock = () => {
     lockButton.setAttribute('aria-pressed', String(linked))
     lockButton.setAttribute('aria-label', `${linked ? 'Unlink' : 'Link'} MFDI axes`)
-    lockButton.title = laneMode ? (linked ? 'Linked lanes: drag the plot to move all lanes; use the wheel to adjust spacing' : 'Link all lanes for group dragging and spacing') : linked ? 'Axes linked: drag and scale all MFDI series together. Click to adjust each independently.' : 'Link all MFDI axes to drag and scale every series together'
+    lockButton.title = laneMode ? (linked ? 'Linked lanes: drag the plot to move all lanes; wheel scrolls vertically. Adjust spacing in Series.' : 'Link all lanes for group dragging. Wheel scrolls vertically; adjust spacing in Series.') : linked ? 'Axes linked: drag and scale all MFDI series together. Click to adjust each independently.' : 'Link all MFDI axes to drag and scale every series together'
     lockShackle.setAttribute('d', linked ? 'M8 10V6a4 4 0 0 1 8 0v4' : 'M8 10V6a4 4 0 0 1 8 0')
   }
   lockButton.onclick = () => {
@@ -624,7 +624,7 @@ export function createMacroPane(chart: IChartApi) {
       chart.unsubscribeCrosshairMove(onHover)
       chart.unsubscribeClick(onClick)
       chart.chartElement().removeEventListener('pointerdown', groupDrag, true)
-      chart.chartElement().removeEventListener('wheel', groupZoom, true)
+      chart.chartElement().removeEventListener('wheel', laneWheel, true)
       laneControls.destroy(); pane.detachPrimitive(primitive); legend.remove(); releaseTooltip.destroy()
       for (const item of Object.values(series)) chart.removeSeries(item)
       chart.removeSeries(rateDots)

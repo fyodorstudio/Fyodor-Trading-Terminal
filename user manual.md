@@ -90,7 +90,9 @@ them all on. Unticked currencies keep their saved settings. Close the drawer wit
 or Series. Opening it does not resize the chart or change its zoom. Scroll with
 the wheel anywhere over the window. Hold its **Series** title to move it around
 the chart (or focus the title and use arrow keys); closing/reopening retains
-that window position while the pane stays open.
+that window position while the pane stays open. Drag the bottom-right grip to
+resize the window horizontally and vertically, or focus the grip and use arrow
+keys. The size also stays when you close and reopen it while the pane is open.
 
 Inputs also lets you create, rename, reorder and delete categories. Use each event's
 category selector, or drag its name in the Series drawer into a category in Lane view. Rows snap
@@ -119,8 +121,9 @@ Each event has its own scale, including separate Headline and Core CPI scales:
 - **Fit axis** fits the selected scale; **Fit axis all** fits every visible scale.
 - The **lock** links all visible axes, selecting them together. Dragging/scaling moves
   the group in numerical view. In Lane view, drag the plot to move all rows
-  vertically together; the wheel adjusts spacing around the pointer. Unlock to
-  stop linked plot gestures. Hover and dot selection still work.
+  vertically together. Wheel input scrolls the pane vertically with the lock
+  either on or off, without changing spacing or horizontal zoom. Use **Lane
+  spacing** in Series to change spacing. Hover and dot selection still work.
 - With Lane view on and the lock off, click an event name in Series, then drag
   the plot to place that line freely. Other lines stay put; original numerical
   scales are retained. Dragging a name into a category restores its row position.
