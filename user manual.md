@@ -82,7 +82,8 @@ Open the gear and use **Inputs**:
 **Hide Legend** in Inputs is ticked by default and hides the coloured actual/release-time
 readout only. An explicitly saved unticked choice stays unticked.
 **Series** opens a drawer from the pane's right edge. Eye/F/N controls are aligned
-in fixed columns there, with a colour circle to the right of N. Click the circle
+in fixed columns there, with a ✥ drag handle before the eye and a colour circle
+to the right of N. Click the circle
 to change the series colour. Previews update the line, dots and forecasts
 with a small 80 ms interval to keep the picker responsive. The final colour is
 applied immediately and saved when you finish (confirmation or leaving the
@@ -100,9 +101,12 @@ When Inspector reduces the chart height, the popover body shortens while its
 title stays reachable and draggable. Closing the dock restores the chosen size.
 
 Inputs also lets you create, rename, reorder and delete categories. Use each event's
-category selector, or drag its name in the Series drawer into a category in Lane view. Rows snap
-into the category; drag within a category to change their order. Drag a category
-header to move all its rows together. Click anywhere on its arrow/name button
+category selector, or hold its ✥ handle in the Series drawer and drop it on a
+category in either view. The destination highlights, and the plot stays still
+while dragging. Rows snap into their new category on drop; dragging within a
+category changes their order. Dropping outside the popover cancels. Event names
+select the chart series and do not start category drags. Drag a category header
+to move all its rows together. Click anywhere on its arrow/name button
 to collapse/expand its drawer list and select every child. Plotted lines stay
 visible and keep their positions in both views. With the lock off, drag the plot
 to move the selected category together; click an event name to return to selecting
@@ -135,7 +139,7 @@ Each event has its own scale, including separate Headline and Core CPI scales:
   spacing** in Series to change spacing. Hover and dot selection still work.
 - With Lane view on and the lock off, click an event name in Series, then drag
   the plot to place that line freely. Other lines stay put; original numerical
-  scales are retained. Dragging a name into a category restores its row position.
+  scales are retained. Dropping its ✥ handle into a category restores its row position.
 - In the Series drawer, **Fit all lanes** restores the category arrangement and
   brings expanded rows into view; **Lane spacing** adjusts their spacing.
   Group offset, spacing and individual placements survive refresh per symbol.

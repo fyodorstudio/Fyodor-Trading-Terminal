@@ -1,7 +1,7 @@
 import { macroLanes, macroLayout, macroSelection, moveMacroCategory, moveMacroRow, patchMacroLayout } from './macro-layout'
 import { macroMetricVisible, toggleMacroAll, type MacroPreferences } from './macro-preferences'
 
-type Row = { key: string; item: HTMLElement; axisButton: HTMLButtonElement }
+type Row = { key: string; item: HTMLElement; dragButton: HTMLButtonElement }
 let drawerSequence = 0
 export function createMacroLaneControls(element: HTMLElement, redraw: () => void, change: (value: MacroPreferences) => void, options: { drawerChanged?: (open: boolean) => void; categorySelected?: () => void } = {}) {
   const layer = document.createElement('div'); layer.className = 'macro-inline-layer'
@@ -32,6 +32,7 @@ export function createMacroLaneControls(element: HTMLElement, redraw: () => void
   let drag: { kind: 'row' | 'category' | 'all' | 'selected'; id: string; keys: string[]; start: number; delta: number; origin: HTMLElement | null } | null = null
   let cancelDrag = () => {}
   let suppressClick: HTMLElement | null = null
+  let dropTarget: string | undefined
   let windowPoint: { x: number; y: number } | null = null, windowDragging = false
   let windowSize: { width: number; height: number } | null = null
   let viewportWidth = 0, viewportHeight = 0, drawerWidth = 0, defaultLeft = 0, defaultTop = 0, defaultHeight = 0
@@ -55,7 +56,7 @@ export function createMacroLaneControls(element: HTMLElement, redraw: () => void
     placeWindow()
   }
   const request = () => { positionRows(); redraw() }
-  const delta = (key: string) => drag?.kind === 'all' ? drag.delta : drag?.kind === 'row' || drag?.kind === 'selected' ? drag.keys.includes(key) ? drag.delta : 0
+  const delta = (key: string) => drag?.kind === 'all' ? drag.delta : drag?.kind === 'selected' ? drag.keys.includes(key) ? drag.delta : 0
     : drag?.kind === 'category' && geometry.groups.find(group => group.id === drag!.id)?.keys.includes(key) ? drag.delta : 0
   const y = (key: string): number | null => {
     const row = geometry.groups.flatMap(group => group.rows).find(row => row.key === key)
@@ -67,16 +68,39 @@ export function createMacroLaneControls(element: HTMLElement, redraw: () => void
     for (const row of rows) row.item.style.display = geometry.groups.some(group => group.collapsed && group.keys.includes(row.key)) ? 'none' : 'flex'
 
   }
+  const drawerDropGroup = (event: PointerEvent) => {
+    const bounds = drawer.getBoundingClientRect(), body = drawerBody.getBoundingClientRect(), all = universal.getBoundingClientRect()
+    const contains = (rect: DOMRect) => rect.width > 0 && event.clientX >= rect.left && event.clientX <= rect.right && event.clientY >= rect.top && event.clientY <= rect.bottom
+    if (!open || !contains(bounds) || (body.width > 0 && !contains(body)) || contains(all)) return
+    return geometry.groups.find(group => { const rect = drawerGroups.get(group.id)?.getBoundingClientRect(); return rect && contains(rect) })
+  }
+  const highlightDrop = (id?: string) => {
+    if (dropTarget === id) return
+    dropTarget = id
+    for (const [key, section] of drawerGroups) {
+      if (key === id) section.setAttribute('data-macro-drop-target', 'true')
+      else section.removeAttribute('data-macro-drop-target')
+    }
+  }
   const start = (event: PointerEvent, kind: 'row' | 'category' | 'all' | 'selected', id: string, keys = [id]) => {
-    if (event.button !== 0 || !preferences || !macroLayout(preferences).laneMode) return
+    if (event.button !== 0 || !preferences || ((kind === 'all' || kind === 'selected') && !macroLayout(preferences).laneMode)) return
     if (kind === 'row' || kind === 'category') event.stopPropagation()
+    if (kind === 'row') event.preventDefault()
     cancelDrag()
     drag = { kind, id, keys, start: event.clientY, delta: 0, origin: event.currentTarget instanceof HTMLElement ? event.currentTarget : null }
-    const move = (event: PointerEvent) => { if (drag) { drag.delta = event.clientY - drag.start; request() } }
+    const rowItem = kind === 'row' ? rows.find(row => row.key === id)?.item : undefined
+    rowItem?.setAttribute('data-macro-dragging', 'true')
+    const move = (event: PointerEvent) => {
+      if (!drag) return
+      drag.delta = event.clientY - drag.start
+      if (kind === 'row') highlightDrop(drawerDropGroup(event)?.id)
+      else request()
+    }
     const finish = (event: PointerEvent) => {
       const state = drag, current = preferences
       if (!state || !current) { cancelDrag(); return }
       const drop = event.clientY - layer.getBoundingClientRect().top + scrollY - (macroLayout(current).laneOffset ?? 0)
+      const rowTarget = state.kind === 'row' ? drawerDropGroup(event) : undefined
       const moved = Math.abs(state.delta) > 3
       cancelDrag()
       if (!moved) return
@@ -96,11 +120,11 @@ export function createMacroLaneControls(element: HTMLElement, redraw: () => void
         })?.id
         change(moveMacroCategory(current, state.id, before))
       } else {
-        const target = geometry.groups.find(group => inDrawer ? event.clientY < (drawerGroups.get(group.id)?.getBoundingClientRect().bottom ?? 0) : drop < group.bottom) ?? geometry.groups.at(-1)
+        const target = rowTarget
         const before = target?.rows.find(row => {
           if (row.key === state.id) return false
           const rect = rows.find(item => item.key === row.key)?.item.getBoundingClientRect()
-          return inDrawer && rect ? event.clientY < (rect.top + rect.bottom) / 2 : row.y > drop
+          return !target.collapsed && rect && rect.height > 0 && event.clientY < (rect.top + rect.bottom) / 2
         })?.key
         if (target) change(moveMacroRow(current, state.id, target.id, before))
       }
@@ -109,7 +133,8 @@ export function createMacroLaneControls(element: HTMLElement, redraw: () => void
     const key = (event: KeyboardEvent) => { if (event.key === 'Escape') cancelDrag() }
     cancelDrag = () => {
       drag = null; window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', finish)
-      window.removeEventListener('pointercancel', cancel); window.removeEventListener('keydown', key); positionRows(); redraw()
+      window.removeEventListener('pointercancel', cancel); window.removeEventListener('keydown', key)
+      rowItem?.removeAttribute('data-macro-dragging'); highlightDrop(); positionRows(); if (kind !== 'row') redraw()
     }
     const cancel = () => cancelDrag()
     window.addEventListener('pointermove', move); window.addEventListener('pointerup', finish)
@@ -207,6 +232,7 @@ export function createMacroLaneControls(element: HTMLElement, redraw: () => void
       rows = next; structure = ''
       universal.replaceChildren(); allButtons.length = 0
       const allName = document.createElement('strong'); allName.textContent = 'All series'; universal.append(allName)
+      const dragSpace = document.createElement('span'); dragSpace.setAttribute('aria-hidden', 'true'); universal.append(dragSpace)
       for (const [kind, field, noun] of [['visibility', 'visible', 'series'], ['forecast', 'forecastVisible', 'forecasts'], ['numbers', 'numbersVisible', 'numbers']] as const) {
         const sample = rows[0]?.item.querySelector<HTMLButtonElement>(`[data-macro-${kind}]`)
         const button = sample ? sample.cloneNode(true) as HTMLButtonElement : document.createElement('button')
@@ -218,7 +244,7 @@ export function createMacroLaneControls(element: HTMLElement, redraw: () => void
       const blank = document.createElement('span'); blank.setAttribute('aria-hidden', 'true'); universal.append(blank)
       for (const row of rows) {
         drawerBody.append(row.item); row.item.dataset.macroRow = row.key
-        row.axisButton.addEventListener('pointerdown', event => start(event, 'row', row.key))
+        row.dragButton.onpointerdown = event => start(event, 'row', row.key)
 
       }
     },

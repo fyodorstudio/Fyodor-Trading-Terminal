@@ -59,8 +59,10 @@ export function createMacroPane(chart: IChartApi) {
     const axisButton = document.createElement('button'); axisButton.type = 'button'; axisButton.className = 'macro-metric-axis'
     axisButton.textContent = label.startsWith(`${macroCatalog[key].currency} · `) ? label : `${macroCatalog[key].currency} · ${label}`; axisButton.dataset.macroAxis = key
     axisButton.setAttribute('aria-label', `Select ${label} axis`)
-    axisButton.title = `Select ${label}, then drag the plot to move it. In lane view it can be placed freely; dragging the name reorders its category row.`
+    axisButton.title = `Select ${label}, then drag the plot to move it. Use the ✥ handle to move it between categories.`
     axisButton.onclick = () => { linked = false; updateLock(); selectMetric(key) }
+    const dragButton = document.createElement('button'); dragButton.type = 'button'; dragButton.className = 'macro-row-drag'; dragButton.textContent = '✥'
+    dragButton.dataset.macroDrag = key; dragButton.setAttribute('aria-label', `Move ${label} between categories`); dragButton.title = `Hold and drag to move ${label} to another category`
     const eyeButton = document.createElement('button'); eyeButton.type = 'button'; eyeButton.className = 'macro-visibility-button'
     eyeButton.dataset.macroVisibility = key
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
@@ -110,8 +112,8 @@ export function createMacroPane(chart: IChartApi) {
     }
     colorInput.oninput = previewColour; colorInput.onchange = changeColour
     colorInput.onblur = () => { if (colourDrafts.has(key)) changeColour() }
-    chip.append(axisButton, eyeButton, forecastButton, numbersButton, colorInput); item.append(colorDot, chip); controls.append(item)
-    return { key, label, item, axisButton, eyeButton, slash, forecastButton, forecastSlash, numbersButton, numbersSlash, colorDot, colorInput }
+    chip.append(axisButton, dragButton, eyeButton, forecastButton, numbersButton, colorInput); item.append(colorDot, chip); controls.append(item)
+    return { key, label, item, axisButton, dragButton, eyeButton, slash, forecastButton, forecastSlash, numbersButton, numbersSlash, colorDot, colorInput }
   }
   let metricControls = ['rate', 'payrolls', 'unemployment', 'headlineCpi', 'coreCpi'].map(createMetricControl)
   const fitButton = document.createElement('button'); fitButton.type = 'button'; fitButton.textContent = 'Fit axis'

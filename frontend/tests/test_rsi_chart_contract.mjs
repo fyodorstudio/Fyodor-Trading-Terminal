@@ -754,6 +754,9 @@ try {
   assert.equal(host.querySelector('.macro-series-drawer').hidden, false)
   assert.equal(seriesDrawerButton.getAttribute('aria-expanded'), 'true')
   for (const key of ['rate', 'payrolls', 'unemployment', 'headlineCpi', 'coreCpi']) {
+    const handle = host.querySelector(`[data-macro-drag="${key}"]`)
+    assert.equal(handle.textContent, '✥')
+    assert.equal(handle.nextElementSibling.dataset.macroVisibility, key, 'The dedicated drag handle sits immediately before the eye in every row')
     const input = host.querySelector(`[data-macro-row="${key}"] input[type="color"]`)
     assert.equal(input.previousElementSibling.dataset.macroNumbers, key, 'The colour circle follows N in every drawer row')
   }
@@ -1306,6 +1309,34 @@ try {
   settingsSurface.remove(); outside.remove()
   assert.deepEqual(fixedRanges(), blankLaneRanges); assert.deepEqual(chart.timeScale().getVisibleLogicalRange(), blankLaneDates)
   await React.act(async () => seriesDrawerButton.click()); await paint()
+  const gripPreferences = macro.preferences, gripDates = chart.timeScale().getVisibleLogicalRange(), gripRanges = fixedRanges(), gripWrites = macroPreferenceWrites
+  const grip = host.querySelector('[data-macro-drag="payrolls"]'), gripBody = host.querySelector('.macro-drawer-body')
+  const gripLabor = host.querySelector('[data-macro-drawer-category="labor"]'), gripInflation = host.querySelector('[data-macro-drawer-category="inflation"]')
+  const gripTargets = [seriesDrawer, gripBody, gripLabor, gripInflation], originalGripRects = gripTargets.map(element => element.getBoundingClientRect)
+  const gripRect = (top, bottom) => ({ left: 20, right: 420, top, bottom, width: 400, height: bottom - top })
+  seriesDrawer.getBoundingClientRect = () => gripRect(20, 280); gripBody.getBoundingClientRect = () => gripRect(60, 280)
+  gripLabor.getBoundingClientRect = () => gripRect(70, 140); gripInflation.getBoundingClientRect = () => gripRect(140, 220)
+  try {
+    laneDots.length = 0; await React.act(async () => chart.applyOptions({})); await paint()
+    const beforeGripY = Object.fromEntries(['rate', 'payrolls', 'unemployment', 'headlineCpi', 'coreCpi'].map(key => [key, laneDots.find(dot => dot.color === macro.preferences.series[key].color).y]))
+    const gripDown = new dom.PointerEvent('pointerdown', { bubbles: true, cancelable: true, button: 0, clientX: 100, clientY: 100, pointerId: 1 })
+    await React.act(async () => grip.dispatchEvent(gripDown))
+    assert.equal(gripDown.defaultPrevented, true, 'The organisation handle suppresses compatibility mouse dragging on the chart')
+    await React.act(async () => window.dispatchEvent(new dom.PointerEvent('pointermove', { bubbles: true, clientX: 100, clientY: 160, pointerId: 1 })))
+    laneDots.length = 0; await React.act(async () => chart.applyOptions({})); await paint()
+    for (const key of Object.keys(beforeGripY)) close(laneDots.filter(dot => dot.color === macro.preferences.series[key].color).at(-1).y, beforeGripY[key], 'Dragging the event handle leaves every plotted line in place until drop')
+    assert.equal(host.querySelector('[data-macro-drop-target="true"]').dataset.macroDrawerCategory, 'inflation')
+    assert.equal(macroPreferenceWrites, gripWrites, 'Organisation previews never rewrite chart preferences')
+    assert.deepEqual(fixedRanges(), gripRanges)
+    await React.act(async () => window.dispatchEvent(new dom.PointerEvent('pointerup', { bubbles: true, clientX: 100, clientY: 160, pointerId: 1 }))); await render({ macro })
+    assert.equal(macro.preferences.categoryByEvent.payrolls, 'inflation')
+    assert.equal(macro.preferences.axisTarget, gripPreferences.axisTarget, 'Dropping on a category does not select another chart series')
+    assert.equal(host.querySelector('[data-macro-drop-target]'), null)
+    assert.deepEqual(chart.timeScale().getVisibleLogicalRange(), gripDates)
+  } finally {
+    gripTargets.forEach((element, index) => { element.getBoundingClientRect = originalGripRects[index] })
+    macro = { ...macro, preferences: gripPreferences }; await render({ macro })
+  }
   const beforeCategoryData = macroPane.getSeries().map(line => line.data()), beforeCategoryDates = chart.timeScale().getVisibleLogicalRange()
   laneDots.length = 0
   await React.act(async () => host.querySelector('[aria-label="Collapse Labor"] span:last-child').click()); await paint()

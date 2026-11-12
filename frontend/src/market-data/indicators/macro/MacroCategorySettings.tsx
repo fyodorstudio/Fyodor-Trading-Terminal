@@ -27,7 +27,7 @@ export function MacroCategorySettings({ preferences, onChange }: { preferences: 
           {categories.map(category => <option key={category.id} value={category.id}>{category.label}</option>)}
         </select>
       </label>)}
-      <p>In the Series drawer, drag an event name into a category to snap it into place in lane view. Drag a category header to move all its lines together. Click its arrow/name button to fold the list and select its children; drag the plot to move that group. Folding keeps its plotted lines visible.</p>
+      <p>In the Series drawer, hold an event's ✥ handle before its eye and drag it into a category. The plot stays still until you drop; the handle works in both views. Drag a category header to move all its lines together. Click its arrow/name button to fold the list and select its children; drag the plot to move that group. Folding keeps its plotted lines visible.</p>
     </fieldset>
   </>
 }

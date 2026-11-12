@@ -191,7 +191,8 @@ adjust the distance between lanes.
 The adjacent three-line **Lane view** button draws perfectly straight rows, with
 actual values, arrows, dates and forecasts retained. Click again to restore the
 numerical plot. **Series** opens a right-side overlay drawer: event names occupy
-one column, followed by vertically aligned eye/F/N controls and a colour circle.
+one column, followed by a dedicated ✥ drag handle, vertically aligned eye/F/N
+controls and a colour circle.
 Click the circle to choose a colour. While dragging, previews update at most once
 every 80 ms without saving preferences or rebuilding chart data. Confirmation
 applies the final colour immediately and saves once; blur also finishes an edit.
@@ -222,8 +223,11 @@ Lane offset, spacing and individual line placements are saved per symbol.
 readout; explicit saved choices remain unchanged. Category names, assignments and event lists are shared;
 category order, row order, collapsed state, lane mode and Hide Legend save per symbol.
 Create/rename/reorder/delete categories in Inputs; deletion moves events to
-Uncategorized. In the Series drawer, drag an event name into a category to snap
-it into place, or drag a category header to move its rows as a band. Category collapse controls live in
+Uncategorized. In the Series drawer, hold the ✥ handle before the eye and drag
+it to a category (or reorder within one). The target category highlights; the
+plot stays still during the drag, then snaps to its category placement on drop.
+Dropping outside the drawer cancels. This works in both views; clicking the name
+only selects its chart series. Drag a category header to move its rows as a band. Category collapse controls live in
 the drawer; the lane scrollbar reveals rows when they exceed the available pane height. Pane resizing adds canvas space below
 without stretching plots. Each scale holds its placement across scrolling, backfill,
 updates, eyes and axis changes. Linked-axis mode lasts while the pane is open.

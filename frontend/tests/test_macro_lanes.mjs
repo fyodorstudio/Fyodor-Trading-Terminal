@@ -26,11 +26,25 @@ try {
   const update = next => { commits++; preferences = next; position() }
   const controls = createMacroLaneControls(shell, () => draws++, update)
   const rows = ['rate', 'payrolls', 'unemployment', 'headlineCpi', 'coreCpi'].map(key => {
-    const item = document.createElement('div'), axisButton = document.createElement('button')
-    axisButton.dataset.macroAxis = key; item.append(axisButton); return { key, item, axisButton }
+    const item = document.createElement('div'), axisButton = document.createElement('button'), dragButton = document.createElement('button')
+    axisButton.dataset.macroAxis = key; item.append(axisButton, dragButton); return { key, item, axisButton, dragButton }
   })
   controls.setRows(rows)
-  const position = () => controls.position(preferences, 900, 400, 30, 0)
+  const rectangle = (left, top, right, bottom) => ({ left, top, right, bottom, width: right - left, height: bottom - top })
+  const position = () => {
+    controls.position(preferences, 900, 400, 30, 0)
+    shell.querySelector('.macro-series-drawer').getBoundingClientRect = () => rectangle(300, 0, 800, 400)
+    shell.querySelector('.macro-drawer-body').getBoundingClientRect = () => rectangle(300, 0, 800, 400)
+    const groups = macroLanes(preferences).groups
+    for (const section of shell.querySelectorAll('[data-macro-drawer-category]')) {
+      const group = groups.find(group => group.id === section.dataset.macroDrawerCategory)
+      section.getBoundingClientRect = () => rectangle(300, 30 + group.top, 800, 30 + group.bottom)
+      for (const row of rows.filter(row => group.keys.includes(row.key))) row.item.getBoundingClientRect = () => {
+        const lane = group.rows.find(lane => lane.key === row.key)
+        return group.collapsed || !lane ? rectangle(0, 0, 0, 0) : rectangle(300, 30 + lane.y - 12, 800, 30 + lane.y + 12)
+      }
+    }
+  }
   position()
   assert.equal(shell.querySelector('.macro-series-drawer').hidden, true)
   controls.toggleDrawer()
@@ -163,23 +177,33 @@ try {
   }
   update(original)
   shell.querySelector('.macro-inline-layer').getBoundingClientRect = () => ({ top: 30, left: 0, width: 900, height: 370 })
-  const pointer = (target, type, y) => target.dispatchEvent(new dom.PointerEvent(type, { bubbles: true, button: 0, clientY: y, pointerId: 1 }))
+  const pointer = (target, type, y) => target.dispatchEvent(new dom.PointerEvent(type, { bubbles: true, button: 0, clientX: 500, clientY: y, pointerId: 1 }))
   const startY = controls.y('payrolls'), otherY = controls.y('unemployment')
   const inflation = macroLanes(preferences).groups.find(group => group.id === 'inflation')
-  pointer(rows[1].axisButton, 'pointerdown', startY)
+  const nameDragPreferences = preferences
+  pointer(rows[1].axisButton, 'pointerdown', startY); pointer(window, 'pointermove', 30 + inflation.top + 35); pointer(window, 'pointerup', 30 + inflation.top + 35)
+  assert.equal(preferences, nameDragPreferences, 'Event names select only; dragging their text does not reorganize rows')
+  const beforeRowDrag = rows.map(row => controls.y(row.key)), beforeRowAxis = preferences.axisTarget
+  pointer(rows[1].dragButton, 'pointerdown', startY)
   pointer(window, 'pointermove', 30 + inflation.top + 35)
-  assert.notEqual(controls.y('payrolls'), startY, 'Dragging a row previews movement before committing')
-  assert.equal(controls.y('unemployment'), otherY, 'A row drag leaves its peers in place')
+  assert.deepEqual(rows.map(row => controls.y(row.key)), beforeRowDrag, 'Holding the dedicated category handle never moves plotted lines')
+  assert.equal(shell.querySelector('[data-macro-drop-target="true"]').dataset.macroDrawerCategory, 'inflation')
+  assert.equal(controls.y('unemployment'), otherY)
   pointer(window, 'pointerup', 30 + inflation.top + 35)
-  assert.equal(macroCategory(preferences, 'payrolls'), 'inflation', 'Dropping snaps the event into its target category')
+  assert.equal(macroCategory(preferences, 'payrolls'), 'inflation', 'Dropping the handle assigns the event to its highlighted category')
+  assert.equal(preferences.axisTarget, beforeRowAxis, 'Category organisation keeps the selected chart series unchanged')
+  assert.equal(shell.querySelector('[data-macro-drop-target]'), null)
+  const beforeOutsideDrop = preferences
+  pointer(rows[1].dragButton, 'pointerdown', controls.y('payrolls'))
+  window.dispatchEvent(new dom.PointerEvent('pointermove', { clientX: 20, clientY: 100, pointerId: 1 }))
+  window.dispatchEvent(new dom.PointerEvent('pointerup', { clientX: 20, clientY: 100, pointerId: 1 }))
+  assert.equal(preferences, beforeOutsideDrop, 'Dropping outside the popover cancels without moving or recategorising a line')
   let axisClicks = 0
   rows[1].axisButton.onclick = () => { axisClicks++ }
+  rows[1].dragButton.click()
+  assert.equal(axisClicks, 0, 'The drag handle cannot select the plotted series')
   rows[1].axisButton.click()
-  assert.equal(axisClicks, 0, 'The browser click after a drag cannot overwrite the saved drop with stale axis-selection state')
-  pointer(rows[1].axisButton, 'pointerdown', controls.y('payrolls'))
-  pointer(window, 'pointerup', controls.y('payrolls'))
-  rows[1].axisButton.click()
-  assert.equal(axisClicks, 1, 'An ordinary click still selects the axis')
+  assert.equal(axisClicks, 1, 'Clicking the event name still selects its axis')
   const beforeGroup = controls.y('unemployment'), beforePeer = controls.y('coreCpi')
   const header = shell.querySelector('[aria-label="Collapse Labor"]')
   const labor = macroLanes(preferences).groups.find(group => group.id === 'labor')
@@ -209,7 +233,7 @@ try {
   assert.equal(preferences.layout.rowOffsets.rate, undefined)
   shell.querySelector('[aria-label="Expand Inflation"]').click()
   assert.notEqual(controls.y('coreCpi'), null)
-  pointer(rows[4].axisButton, 'pointerdown', controls.y('coreCpi'))
+  pointer(rows[4].dragButton, 'pointerdown', controls.y('coreCpi'))
   pointer(window, 'pointermove', 160)
   const beforeCancel = commits
   window.dispatchEvent(new dom.KeyboardEvent('keydown', { key: 'Escape' }))
@@ -265,6 +289,10 @@ try {
   assert.equal(rows[2].item.style.display, 'none', 'Category text collapses drawer rows in numerical view too')
   shell.querySelector('[aria-label="Expand Labor"] span:last-child').click()
   assert.equal(rows[2].item.style.display, 'flex')
+  const laborDrop = macroLanes(preferences).groups.find(group => group.id === 'labor')
+  pointer(rows[4].dragButton, 'pointerdown', 200); pointer(window, 'pointermove', 30 + laborDrop.top + 5); pointer(window, 'pointerup', 30 + laborDrop.top + 5)
+  assert.equal(macroCategory(preferences, 'coreCpi'), 'labor', 'The dedicated handle also reorganises categories in numerical view')
+  update(moveMacroRow(preferences, 'coreCpi', 'inflation'))
   update(patchMacroLayout(preferences, { laneMode: true }))
   shell.querySelector('[aria-label="Close MFDI series drawer"]').click()
   assert.equal(shell.querySelector('.macro-series-drawer').hidden, true)
