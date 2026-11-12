@@ -51,6 +51,18 @@ Unavailable readings and empty categories are omitted. No commentary, relative
 volatility, notes or research instructions enter this clipboard output. An empty
 selection disables the button; clipboard failure is reported.
 
+**Copy range** enables From/Through date controls for the displayed year. Click a
+date then Shift-click another date (or instrument cell) to select the inclusive
+range directly; repeated Shift-click keeps the initial anchor. Highlighted columns
+show the copy range while the ranking still follows its own selected date. Copy
+details exports each day/week separately, earliest first, without summing returns.
+Whole periods without readings are omitted. Weekly inputs normalize to Mondays;
+year-crossing weekly headings retain their full Monday–Sunday dates. Ranges stay
+within the displayed year's loaded columns and exclude future periods. Reversed
+ranges disable copying. **Single date**, a normal date/cell click, or changing year
+or Daily/Weekly clears the range. Range selection never fetches history or changes
+the chart; copy output remains changes only.
+
 **Wildcards** is always the final timeline category. **+ Add wildcard** creates a
 story row with a one-line title (up to 120 characters, ellipsis/full-title tooltip)
 and optional plain-text details for the selected date. The row and its cells use

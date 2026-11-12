@@ -265,6 +265,14 @@ percentage changes only. It includes every selected instrument with an available
 reading, sorted highest to lowest within each category, regardless of ranking
 filters or collapsed groups.
 
+To copy several dates, enable **Copy range** and set **From / Through**, or click
+the first date then Shift-click the last date/cell. The inclusive range is
+highlighted. **Copy details** includes each date separately, earliest first,
+omitting dates without readings. Weekly mode copies each week with its full date
+range. Selection uses the displayed year's loaded columns; it does not load other
+years or add research commentary. **Single date** or a normal date/cell click
+returns to copying one date. Changing year or Daily/Weekly clears the range.
+
 Scroll to **Wildcards** at the bottom and click **+ Add wildcard**. Enter a short
 story title and your own paragraphs or source links, then **Save**. Each story
 keeps the usual row height; click its dated cells to add or edit notes. Filled

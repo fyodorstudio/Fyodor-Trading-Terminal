@@ -144,7 +144,9 @@ symbols load independently; after first opening, history keeps updating while
 closed and reopening restores the warmed data and browsing position. Shading offers raw returns
 or movement relative to earlier volatility. **Method** explains calculations and
 coverage. **Copy details** copies only the selected date/week and grouped percentage
-changes. **Wildcards**, at the bottom of the same timeline, holds manually titled
+changes. Use **Copy range** with From/Through, or click a date then Shift-click
+another, to copy several dates/weeks from the displayed year in chronological order.
+**Wildcards**, at the bottom of the same timeline, holds manually titled
 stories with dated paragraph notes. Add with **+**, click a cell to edit, and use
 **Manage Wildcards** to rename/reorder/archive/delete or export saved notes.
 Notes are stored durably per broker and included in storage backups.

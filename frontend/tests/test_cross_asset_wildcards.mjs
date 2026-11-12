@@ -11,7 +11,7 @@ const empty = () => ({ schema: 1, source_id: 'Pepperstone-Demo', revision: 0, ro
 let saved = empty()
 class ResizeObserver { constructor(fn) { this.fn = fn; observers.add(this) } observe() {} disconnect() { observers.delete(this) } }
 const globals = { window: dom, document: dom.document, localStorage: dom.localStorage, navigator: dom.navigator,
-  HTMLElement: dom.HTMLElement, Node: dom.Node, ResizeObserver, IS_REACT_ACT_ENVIRONMENT: true }
+  HTMLElement: dom.HTMLElement, Node: dom.Node, ResizeObserver, IS_REACT_ACT_ENVIRONMENT: true, __copyFormats: 0 }
 const previous = new Map([...Object.keys(globals), 'fetch'].map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]))
 for (const [key, value] of Object.entries(globals)) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value })
 Object.defineProperty(dom.navigator, 'clipboard', { configurable: true, value: { writeText: async value => { copied = value } } })
@@ -47,7 +47,10 @@ globalThis.fetch = async (url, options = {}) => {
       bars: [bar('2026-10-30', 100), bar('2026-11-05', 100), bar('2026-11-06', symbol === 'US500' ? 102 : 99)] }])) })
 }
 localStorage.setItem('fyodor.cross-asset.v1:Pepperstone-Demo', JSON.stringify({ rows: ['symbol:US500', 'symbol:XAUUSD'] }))
-const server = await createServer({ root: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'), server: { middlewareMode: true, hmr: false } })
+const server = await createServer({ root: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'), server: { middlewareMode: true, hmr: false },
+  plugins: [{ name: 'copy-format-work', enforce: 'pre', transform(code, id) {
+    if (id.endsWith('/heatmap-export.ts')) return code.replace('  const groups =', '  globalThis.__copyFormats++; const groups =')
+  } }] })
 const { createRoot } = await import('react-dom/client')
 const host = document.createElement('div'); document.body.append(host)
 const root = createRoot(host)
@@ -77,6 +80,10 @@ try {
   assert.equal(heatmapChangesText(rows, '2026-11-02', 'weekly', []), '')
   const weeklyText = heatmapChangesText([{ ...rows[0], points: new Map([['2025-12-29', { value: 1 }]]) }], '2025-12-29', 'weekly', [])
   assert.ok(weeklyText.startsWith('2025-12-29 – 2026-01-04 · Weekly'))
+  const multiRows = [{ ...rows[0], points: new Map([['2026-11-05', { value: 3 }], ['2026-11-06', { value: -1 }]]) }]
+  const multiText = heatmapChangesText(multiRows, ['2026-11-06', '2026-11-07', '2026-11-05', '2026-11-06'], 'daily', [])
+  assert.equal(multiText, '2026-11-05 · Daily\n\nMetals\nA +3.00%\n\n2026-11-06 · Daily\n\nMetals\nA -1.00%')
+  assert.equal(heatmapChangesText(multiRows, [], 'daily', []), '')
   const yearCrossing = { id: 'a'.repeat(32), title: 'Story', archived: true, notes: { '2026-01-02': 'January', '2025-12-29': 'December', '2026-01-05': 'Next week' } }
   assert.deepEqual(wildcardNotes(yearCrossing, '2025-12-29', 'weekly').map(([day]) => day), ['2025-12-29', '2026-01-02'])
   assert.deepEqual(wildcardNotes(yearCrossing, '2026-01-02', 'daily'), [['2026-01-02', 'January']])
@@ -97,6 +104,45 @@ try {
   await change(field('Ranking group'), 'Metals')
   await click(button('Copy details'))
   assert.ok(copied.includes('US500 +2.00%'), 'Copy includes all selected instruments regardless of ranking filter')
+  const readsBeforeRange = historyReads
+  const formatsBeforeRange = globalThis.__copyFormats
+  await click(button('Copy range'))
+  await change(field('Copy from date'), '2026-11-05')
+  await change(field('Copy through date'), '2026-11-07')
+  assert.equal(globalThis.__copyFormats, formatsBeforeRange, 'Changing a range never formats the full export before Copy is clicked')
+  assert.ok(host.querySelector('[data-heatmap-date="2026-11-05"]').classList.contains('copy-selected'))
+  await click(button('Copy details'))
+  assert.ok(copied.indexOf('2026-11-05 · Daily') < copied.indexOf('2026-11-06 · Daily'))
+  assert.ok(!copied.includes('2026-11-07'), 'No-readings days are omitted, not reported as zero')
+  assert.ok(copied.includes('US500 0.00%'), 'True unchanged readings are retained')
+  await change(field('Copy from date'), '2026-11-08')
+  assert.equal(button('Copy details').disabled, true, 'Reversed ranges cannot be copied')
+  assert.ok(host.querySelector('[role="alert"]').textContent.includes('From must be'))
+  await change(field('Copy from date'), '2026-11-05')
+  await change(field('Copy through date'), '2027-01-01')
+  assert.equal(field('Copy through date').value, '2026-11-07', 'Range inputs cannot claim unavailable years')
+  await click(button('Single date'))
+  assert.equal(field('Copy from date'), null)
+  const shiftClick = node => React.act(async () => node.dispatchEvent(new dom.MouseEvent('click', { bubbles: true, shiftKey: true })))
+  await shiftClick(host.querySelector('[data-heatmap-date="2026-11-05"]'))
+  assert.equal(field('Copy from date').value, '2026-11-05')
+  assert.equal(field('Copy through date').value, '2026-11-06')
+  await shiftClick(host.querySelector('[data-heatmap-date="2026-11-07"]'))
+  assert.equal(field('Copy from date').value, '2026-11-06', 'Repeated Shift-click keeps the initial anchor')
+  assert.equal(field('Copy through date').value, '2026-11-07')
+  await click(host.querySelector('[data-heatmap-date="2026-11-06"]'))
+  assert.equal(field('Copy from date'), null, 'Ordinary date click returns to single-date copy')
+  await click(button('Copy range'))
+  await click(button('Weekly'))
+  assert.equal(field('Copy from date'), null, 'Period changes reset the copy range')
+  await click(button('Copy range'))
+  await change(field('Copy from date'), '2026-10-29')
+  assert.equal(field('Copy from date').value, '2026-10-26', 'Weekly dates normalize to Monday')
+  await click(button('Copy details'))
+  assert.ok(copied.includes('2026-11-02 – 2026-11-08 · Weekly'))
+  assert.equal(historyReads, readsBeforeRange, 'Selecting and copying dates does no history fetching')
+  await click(button('Daily'))
+  await change(field('Heatmap date'), '2026-11-06')
   await click(button('+ Add wildcard'))
   await change(field('Wildcard title'), 'Iran developments')
   await change(field('Wildcard details'), 'First paragraph.\n\nSecond paragraph.\nhttps://example.com/source')

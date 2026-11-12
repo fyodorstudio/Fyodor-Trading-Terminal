@@ -1564,6 +1564,15 @@ try {
   assert.ok(container.querySelector('[aria-label="Resize Cross-Asset dock"]'))
   assert.ok(container.querySelector('[data-heatmap-cell^="symbol:EURUSD:"]'))
   assertQuiet('Opening cross-asset history')
+  const beforeCopyRangeRequests = requests.length
+  reset(); await click(button('Copy range')); await flush()
+  const copyEnd = container.querySelector('[aria-label="Copy through date"]').value
+  await change(container.querySelector('[aria-label="Copy from date"]'), new Date(Date.parse(copyEnd) - 2 * 86400_000).toISOString().slice(0, 10)); await flush()
+  assertQuiet('Selecting copy dates', true)
+  assert.equal(counters.heatmapBuild ?? 0, 0, 'Copy date selection performs no price or basket calculations')
+  assert.equal(requests.length, beforeCopyRangeRequests, 'Copy date selection uses loaded history')
+  assert.deepEqual(logicalRange, crossAssetRange)
+  await click(button('Single date')); await flush()
   const beforeWildcardHistory = requests.filter(url => url === '/storage-api/cross-asset/history').length
   reset(); await click(button('Manage Wildcards')); await flush()
   assertQuiet('Opening Wildcards editor', true)

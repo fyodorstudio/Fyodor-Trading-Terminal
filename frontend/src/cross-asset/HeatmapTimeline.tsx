@@ -14,11 +14,12 @@ function cellTitle(row: HeatmapRow, period: HeatmapPeriod, point: HeatmapPoint |
 }
 
 export const HeatmapTimeline = memo(function HeatmapTimeline({ rows, periods, selected, shade, focusRequest, memory, memoryKey, observedAt, onHover, onPin, groupOrder, collapsed, onToggleGroup,
-  wildcards, wildcardsReady, onAddWildcard, onEditWildcard, onManageWildcards }: {
+  wildcards, wildcardsReady, onAddWildcard, onEditWildcard, onManageWildcards, copyRange }: {
   rows: HeatmapRow[]; periods: HeatmapPeriod[]; selected: string; shade: 'return' | 'relative'; focusRequest: number
-  memory: Memory; memoryKey: string; observedAt: number; onHover: (day: string) => void; onPin: (day: string) => void
+  memory: Memory; memoryKey: string; observedAt: number; onHover: (day: string) => void; onPin: (day: string, extend?: boolean) => void
   groupOrder: string[]; collapsed: string[]; onToggleGroup: (group: string) => void
   wildcards: WildcardRow[]; wildcardsReady: boolean; onAddWildcard: () => void; onEditWildcard: (id: string, day: string) => void; onManageWildcards: () => void
+  copyRange: { from: string; to: string } | null
 }) {
   const viewport = useRef<HTMLDivElement>(null), frame = useRef(0), pendingScroll = useRef<{ left: number; top: number } | null>(null)
   const drag = useRef<{ id: number; x: number; y: number; left: number; top: number; active: boolean } | null>(null), swallow = useRef(false)
@@ -114,9 +115,9 @@ export const HeatmapTimeline = memo(function HeatmapTimeline({ rows, periods, se
     <div className="heatmap-tape" style={{ gridTemplateColumns: `${labelWidth}px repeat(${periods.length}, ${columnWidth}px)`,
       gridTemplateRows: `${headerHeight}px repeat(${tapeRows.length}, ${rowHeight}px)` }}>
       <div className="heatmap-corner">Instrument / date</div>
-      {visible.map((p, i) => <button key={p.day} type="button" className={`heatmap-date${p.day === selected ? ' selected' : ''}`}
+      {visible.map((p, i) => <button key={p.day} type="button" className={`heatmap-date${p.day === selected ? ' selected' : ''}${copyRange && p.day >= copyRange.from && p.day <= copyRange.to ? ' copy-selected' : ''}`}
         style={{ gridColumn: first + i + 2, gridRow: 1 }} disabled={p.future} aria-pressed={p.day === selected} data-heatmap-date={p.day}
-        onMouseEnter={() => { if (!drag.current) onHover(p.day) }} onFocus={() => onHover(p.day)} onClick={() => onPin(p.day)}>
+        onMouseEnter={() => { if (!drag.current) onHover(p.day) }} onFocus={() => onHover(p.day)} onClick={event => onPin(p.day, event.shiftKey)}>
         <span>{p.label}</span><small>{p.partial ? p.day === p.end ? 'In progress' : 'Week to date' : p.day === p.end
           ? new Date(`${p.day}T00:00:00Z`).toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' }) : `to ${p.end.slice(5)}`}</small>
       </button>)}
@@ -152,10 +153,10 @@ export const HeatmapTimeline = memo(function HeatmapTimeline({ rows, periods, se
             const strength = intensity == null ? 0 : Math.min(1, Math.abs(intensity) / (shade === 'relative' ? 3 : 2))
             const stale = !!point?.reason || period.partial && row.checkedAt != null && observedAt - row.checkedAt > 90
             return <button type="button" key={period.day} data-heatmap-cell={`${row.id}:${period.day}`}
-              className={`heatmap-cell${period.day === selected ? ' selected' : ''}${value === null ? ' empty' : value > 0 ? ' positive' : value < 0 ? ' negative' : ''}${stale ? ' stale' : ''}`}
+              className={`heatmap-cell${period.day === selected ? ' selected' : ''}${copyRange && period.day >= copyRange.from && period.day <= copyRange.to ? ' copy-selected' : ''}${value === null ? ' empty' : value > 0 ? ' positive' : value < 0 ? ' negative' : ''}${stale ? ' stale' : ''}`}
               style={{ gridRow: y, gridColumn: first + i + 2, '--heat-strength': intensity == null ? '0%' : `${Math.round(6 + strength * 48)}%` } as CSSProperties}
               disabled={period.future} title={cellTitle(row, period, point, stale)}
-              onMouseEnter={() => { if (!drag.current) onHover(period.day) }} onFocus={() => onHover(period.day)} onClick={() => onPin(period.day)}>
+              onMouseEnter={() => { if (!drag.current) onHover(period.day) }} onFocus={() => onHover(period.day)} onClick={event => onPin(period.day, event.shiftKey)}>
               {formatHeatmapChange(value)}
             </button>
           })}

@@ -44,6 +44,9 @@ const HeatmapDock = memo(function HeatmapDock({ catalogJson, broker, generation,
   const [noteEditor, setNoteEditor] = useState<{ snapshot: WildcardSnapshot; rowId?: string; day: string; mode: HeatmapPreferences['mode'] } | null>(null)
   const [wildcardManager, setWildcardManager] = useState<WildcardSnapshot | null>(null)
   const [copied, setCopied] = useState<{ key: string; message: string } | null>(null)
+  const [copyRange, setCopyRange] = useState<{ from: string; to: string; anchor: string; scope: string } | null>(null)
+  const copyScope = `${view.year}:${preferences.mode}`
+  if (copyRange && copyRange.scope !== copyScope) setCopyRange(null)
   if (!active && manager) setManager(false)
   if (!active && noteEditor) setNoteEditor(null)
   if (!active && wildcardManager) setWildcardManager(null)
@@ -59,8 +62,10 @@ const HeatmapDock = memo(function HeatmapDock({ catalogJson, broker, generation,
   const periods = useMemo(() => heatmapPeriods(view.year, preferences.mode, today), [view.year, preferences.mode, today])
   const rows = useMemo(() => active ? buildRows(ids, catalog, broker, data, preferences.mode) : [], [active, buildRows, ids, catalog, broker, data, preferences.mode])
   const selected = preferences.mode === 'weekly' ? weekStart(view.date) : view.date
-  const copyKey = `${preferences.mode}:${selected}`
-  const copyText = useMemo(() => heatmapChangesText(rows, selected, preferences.mode, preferences.groupOrder), [rows, selected, preferences.mode, preferences.groupOrder])
+  const copyFrom = copyRange?.from ?? selected, copyThrough = copyRange?.to ?? selected
+  const copyDays = useMemo(() => periods.filter(period => !period.future && period.day >= copyFrom && period.day <= copyThrough).map(period => period.day), [periods, copyFrom, copyThrough])
+  const copyKey = `${copyScope}:${copyDays.join(',')}`
+  const canCopy = useMemo(() => rows.some(row => copyDays.some(day => row.points.get(day)?.value != null)), [rows, copyDays])
   const groups = useMemo(() => orderHeatmapGroups(rows.map(r => r.group), preferences.groupOrder), [rows, preferences.groupOrder])
   const effectiveGroup = groups.includes(rankGroup) ? rankGroup : 'All'
   const ranking = useMemo(() => rows.filter(r => effectiveGroup === 'All' || r.group === effectiveGroup).map(row => ({ row, point: row.points.get(selected) }))
@@ -79,7 +84,13 @@ const HeatmapDock = memo(function HeatmapDock({ catalogJson, broker, generation,
     if (focus) setFocusRequest(n => n + 1)
   }, [])
   const hover = useCallback((day: string) => { if (!view.pinned) changeView(day, false) }, [view.pinned, changeView])
-  const pin = useCallback((day: string) => changeView(day, true), [changeView])
+  const pin = useCallback((day: string, extend = false) => {
+    if (extend) {
+      const anchor = copyRange?.anchor ?? selected
+      setCopyRange({ from: anchor < day ? anchor : day, to: anchor > day ? anchor : day, anchor, scope: copyScope })
+    } else setCopyRange(null)
+    changeView(day, true)
+  }, [changeView, copyRange, selected, copyScope])
   const closeManager = useCallback(() => setManager(false), [])
   const closeNote = useCallback(() => setNoteEditor(null), [])
   const closeWildcards = useCallback(() => setWildcardManager(null), [])
@@ -91,7 +102,7 @@ const HeatmapDock = memo(function HeatmapDock({ catalogJson, broker, generation,
   }, [wildcards.snapshot, wildcards.loading, preferences.mode])
   const manageWildcards = useCallback(() => { if (wildcards.snapshot && !wildcards.loading) setWildcardManager(wildcards.snapshot) }, [wildcards.snapshot, wildcards.loading])
   async function copyDetails() {
-    try { await navigator.clipboard.writeText(copyText); setCopied({ key: copyKey, message: 'Changes copied.' }) }
+    try { await navigator.clipboard.writeText(heatmapChangesText(rows, copyDays, preferences.mode, preferences.groupOrder)); setCopied({ key: copyKey, message: 'Changes copied.' }) }
     catch { setCopied({ key: copyKey, message: 'Clipboard unavailable. Try copying again.' }) }
   }
   function save(next: HeatmapPreferences) {
@@ -102,6 +113,13 @@ const HeatmapDock = memo(function HeatmapDock({ catalogJson, broker, generation,
     try { save(next) } catch { setSaveError('Could not save heatmap preferences. Your previous settings are preserved.') }
   }
   const chosenPeriod = periods.find(p => p.day === selected)
+  const firstCopyDay = periods[0]?.day ?? `${view.year}-01-01`
+  const lastCopyDay = periods.findLast(period => !period.future)?.day ?? firstCopyDay
+  function changeCopyRange(field: 'from' | 'to', value: string) {
+    if (!copyRange || !/^\d{4}-\d{2}-\d{2}$/.test(value) || !Number.isFinite(Date.parse(value)) || heatmapDate(Date.parse(value)) !== value) return
+    const day = preferences.mode === 'weekly' ? weekStart(value) : value
+    if (day >= firstCopyDay && day <= lastCopyDay) setCopyRange({ ...copyRange, [field]: day })
+  }
   const available = ranking.filter(r => r.point?.value != null), winners = available.filter(r => r.point!.value! > 0).length
   const requested = names ? names.split('\0') : []
   const missing = data ? requested.filter(s => !data.symbols[s]).length : requested.length
@@ -124,12 +142,20 @@ const HeatmapDock = memo(function HeatmapDock({ catalogJson, broker, generation,
         <option value="return">Return %</option><option value="relative">Relative to usual volatility</option></select></label>
       <button type="button" onClick={() => setManager(true)}>Instruments · {ids.length}</button>
       <button type="button" aria-pressed={rankingVisible} onClick={() => setRankingVisible(v => !v)}>Ranking</button>
-      <button type="button" disabled={!copyText} onClick={() => void copyDetails()}>Copy details</button>
+      <button type="button" disabled={!canCopy} onClick={() => void copyDetails()}>Copy details</button>
+      <button type="button" aria-pressed={!!copyRange} title="Set From/Through, or click a date then Shift-click another to select a range" onClick={() => setCopyRange(old => old ? null : { from: selected, to: selected, anchor: selected, scope: copyScope })}>Copy range</button>
       <button type="button" disabled={!wildcards.snapshot || wildcards.loading} onClick={manageWildcards}>Manage Wildcards</button>
       <button type="button" disabled={!broker || wildcards.loading} onClick={wildcards.reload}>Reload Wildcards</button>
       <button type="button" onClick={() => setAttempt(n => n + 1)}>Refresh</button>
       <button type="button" aria-expanded={help} onClick={() => setHelp(v => !v)}>Method</button>
     </div>
+    {copyRange && <div className="heatmap-copy-range" role="group" aria-label="Dates to copy">
+      <label>From <input type="date" aria-label="Copy from date" min={firstCopyDay} max={lastCopyDay} value={copyRange.from} onChange={event => changeCopyRange('from', event.target.value)} /></label>
+      <label>Through <input type="date" aria-label="Copy through date" min={firstCopyDay} max={lastCopyDay} value={copyRange.to} onChange={event => changeCopyRange('to', event.target.value)} /></label>
+      {copyRange.from > copyRange.to ? <span role="alert">From must be on or before Through.</span>
+        : <small>{copyDays.length} {preferences.mode === 'weekly' ? 'weeks' : 'dates'} · {view.year} timeline · Days without readings are omitted.</small>}
+      <button type="button" onClick={() => setCopyRange(null)}>Single date</button>
+    </div>}
     {(error || saveError) && <p className="heatmap-message" role="alert">{saveError ?? error}{error && data ? ' Displayed readings may be stale.' : ''}</p>}
     {wildcards.error && <p className="heatmap-message" role="alert">{wildcards.error}</p>}
     {copied?.key === copyKey && <small className="heatmap-copy-status" role="status">{copied.message}</small>}
@@ -148,6 +174,7 @@ const HeatmapDock = memo(function HeatmapDock({ catalogJson, broker, generation,
       <HeatmapTimeline rows={rows} periods={periods} selected={selected} shade={preferences.shade} focusRequest={focusRequest}
         memory={tapeMemory} memoryKey={`${broker}:${generation}:${view.year}:${preferences.mode}`} observedAt={clock / 1000} onHover={hover} onPin={pin}
         groupOrder={preferences.groupOrder} collapsed={collapsed} onToggleGroup={toggleGroup}
+        copyRange={copyRange}
         wildcards={wildcards.snapshot?.rows ?? noWildcards} wildcardsReady={!!wildcards.snapshot && !wildcards.loading}
         onAddWildcard={addWildcard} onEditWildcard={editWildcard} onManageWildcards={manageWildcards} />
       {rankingVisible && <aside className="heatmap-ranking" aria-label="Selected period ranking">
