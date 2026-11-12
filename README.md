@@ -143,9 +143,12 @@ for category order and separate arrows for symbols within each category. New
 symbols load independently; after first opening, history keeps updating while
 closed and reopening restores the warmed data and browsing position. Shading offers raw returns
 or movement relative to earlier volatility. **Method** explains calculations and
-coverage. **Copy details** copies only the selected date/week and grouped percentage
+coverage. **Copy Details Only** copies only the selected date/week and grouped percentage
 changes. Use **Copy range** with From/Through, or click a date then Shift-click
 another, to copy several dates/weeks from the displayed year in chronological order.
+**Copy Research Prompt** bundles those changes with brief basket/return definitions
+and a concise prompt focused on current directional opportunities and remaining
+repricing, ready to paste into a fresh agent chat.
 **Wildcards**, at the bottom of the same timeline, holds manually titled
 stories with dated paragraph notes. Add with **+**, click a cell to edit, and use
 **Manage Wildcards** to rename/reorder/archive/delete or export saved notes.

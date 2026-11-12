@@ -43,25 +43,46 @@ independent. The removed Ledger summary does not move into this dock.
 
 ## Copy details and manual Wildcards
 
-**Copy details** copies the selected daily date or Monday–Sunday weekly range,
+**Copy Details Only** copies the selected daily date or Monday–Sunday weekly range,
 category names, instrument labels and raw percentage changes only. All selected
 instruments participate, independent of ranking filters and collapsed groups.
 Categories use the saved order; instruments sort highest to lowest within each.
 Unavailable readings and empty categories are omitted. No commentary, relative
 volatility, notes or research instructions enter this clipboard output. An empty
 selection disables the button; clipboard failure is reported.
+Both clipboard formats explicitly mark the broker's current date as
+`In progress (day to date)` and its current Monday–Sunday week as
+`In progress (week to date)`. Older period headings remain unchanged. The
+current-period check uses the same broker session date as the timeline, not the
+UTC/display date of copying; year-crossing weeks retain this status correctly.
 
 **Copy range** enables From/Through date controls for the displayed year. Click a
 date then Shift-click another date (or instrument cell) to select the inclusive
 range directly; repeated Shift-click keeps the initial anchor. Highlighted columns
-show the copy range while the ranking still follows its own selected date. Copy
-details exports each day/week separately, earliest first, without summing returns.
+show the copy range while the ranking still follows its own selected date.
+Copy Details Only exports each day/week separately, earliest first, without summing returns.
 Whole periods without readings are omitted. Weekly inputs normalize to Mondays;
 year-crossing weekly headings retain their full Monday–Sunday dates. Ranges stay
 within the displayed year's loaded columns and exclude future periods. Reversed
 ranges disable copying. **Single date**, a normal date/cell click, or changing year
 or Daily/Weekly clears the range. Range selection never fetches history or changes
 the chart; copy output remains changes only.
+
+**Copy Research Prompt** uses the same selected dates, instruments and grouped raw
+changes, preceded by a concise instruction to research current directional
+opportunities whose repricing may still be unfolding. It asks for the best few
+market/buy-or-sell/catalyst explanations with a decisive source, using fresh
+reporting and original sources directly without repository research workflows.
+There are no mandatory scenario, invalidation or confidence sections. The context
+includes the broker, copy-time UTC timestamp, Daily/Weekly return definition,
+broker session dating, incomplete periods/missing readings, and the custom
+all-seven geometric basket definition distinct from USDX/EURX/JPYX. Copy time is
+not a market freshness timestamp; the prompt explicitly explains that In progress
+figures are provisional returns to the latest available reading rather than final
+closing returns. It requests opportunities current when
+the receiving agent runs it. Both buttons disable when there are no selected
+readings and report clipboard failures. Text is assembled only on click; copying
+performs no fetching, research, saves or alarm changes.
 
 **Wildcards** is always the final timeline category. **+ Add wildcard** creates a
 story row with a one-line title (up to 120 characters, ellipsis/full-title tooltip)
@@ -79,7 +100,7 @@ Clicking a story label opens this manager. Archive hides the story but retains
 every note. Deleting requires an explicit row-and-all-notes confirmation and still
 only applies after Save. Export saved notes downloads Markdown including archived
 stories. **Copy note** copies the current title/date/details, separately from
-Copy details. Cancel, Escape, outside click or closing the dock discard unsaved
+Copy Details Only. Cancel, Escape, outside click or closing the dock discard unsaved
 edits; failed saves retain drafts. The editor prevents dismissal during a save.
 
 GET/POST `/api/v1/cross-asset/wildcards` reads/replaces a broker-specific snapshot.

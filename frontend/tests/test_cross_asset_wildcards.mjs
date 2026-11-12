@@ -6,7 +6,7 @@ import { createServer } from 'vite'
 import { Window } from 'happy-dom'
 
 const dom = new Window({ url: 'http://localhost:5173' }), timers = new Map(), frames = new Map(), observers = new Set()
-let sequence = 0, copied = '', failure = 0, deferRead = false, deferred = null, historyReads = 0, writes = 0
+let sequence = 0, copied = '', failure = 0, clipboardFailure = false, deferRead = false, deferred = null, historyReads = 0, writes = 0
 const empty = () => ({ schema: 1, source_id: 'Pepperstone-Demo', revision: 0, rows: [] })
 let saved = empty()
 class ResizeObserver { constructor(fn) { this.fn = fn; observers.add(this) } observe() {} disconnect() { observers.delete(this) } }
@@ -14,7 +14,10 @@ const globals = { window: dom, document: dom.document, localStorage: dom.localSt
   HTMLElement: dom.HTMLElement, Node: dom.Node, ResizeObserver, IS_REACT_ACT_ENVIRONMENT: true, __copyFormats: 0 }
 const previous = new Map([...Object.keys(globals), 'fetch'].map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]))
 for (const [key, value] of Object.entries(globals)) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value })
-Object.defineProperty(dom.navigator, 'clipboard', { configurable: true, value: { writeText: async value => { copied = value } } })
+Object.defineProperty(dom.navigator, 'clipboard', { configurable: true, value: { writeText: async value => {
+  if (clipboardFailure) throw new Error('Clipboard denied')
+  copied = value
+} } })
 const originalNow = Date.now
 Date.now = () => Date.parse('2026-11-12T12:00:00Z')
 dom.setTimeout = (fn, ms) => { timers.set(++sequence, { fn, ms }); return sequence }
@@ -44,7 +47,8 @@ globalThis.fetch = async (url, options = {}) => {
   return response({ schema: 1, source_id: 'Pepperstone-Demo', generation: body.generation, year: body.year, today: '2026-11-12',
     observed_at: Date.now() / 1000, revision: 'a'.repeat(64), pending: 0,
     symbols: Object.fromEntries(body.symbols.map(symbol => [symbol, { availability: 'available', checked_at: Date.now() / 1000,
-      bars: [bar('2026-10-30', 100), bar('2026-11-05', 100), bar('2026-11-06', symbol === 'US500' ? 102 : 99)] }])) })
+      bars: [bar('2026-10-30', 100), bar('2026-11-05', 100), bar('2026-11-06', symbol === 'US500' ? 102 : 99),
+        bar('2026-11-12', symbol === 'US500' ? 103 : 98)] }])) })
 }
 localStorage.setItem('fyodor.cross-asset.v1:Pepperstone-Demo', JSON.stringify({ rows: ['symbol:US500', 'symbol:XAUUSD'] }))
 const server = await createServer({ root: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'), server: { middlewareMode: true, hmr: false },
@@ -69,7 +73,7 @@ const button = label => [...host.querySelectorAll('button')].find(node => node.t
 const field = label => host.querySelector(`[aria-label="${label}"]`)
 const flush = () => React.act(async () => { for (const [id, fn] of [...frames]) { frames.delete(id); fn() } })
 try {
-  const { heatmapChangesText } = await server.ssrLoadModule('./src/cross-asset/heatmap-export.ts')
+  const { heatmapChangesText, heatmapResearchPrompt } = await server.ssrLoadModule('./src/cross-asset/heatmap-export.ts')
   const { wildcardNotes, wildcardsMarkdown, validWildcardSnapshot } = await server.ssrLoadModule('./src/cross-asset/wildcards-model.ts')
   const { CrossAssetDock } = await server.ssrLoadModule('./src/cross-asset/CrossAssetDock.tsx')
   const rows = [{ id: 'one', label: 'A', group: 'Metals', points: new Map([['2026-11-06', { value: -1, relative: 99 }]]) },
@@ -80,9 +84,22 @@ try {
   assert.equal(heatmapChangesText(rows, '2026-11-02', 'weekly', []), '')
   const weeklyText = heatmapChangesText([{ ...rows[0], points: new Map([['2025-12-29', { value: 1 }]]) }], '2025-12-29', 'weekly', [])
   assert.ok(weeklyText.startsWith('2025-12-29 – 2026-01-04 · Weekly'))
+  const weeklyPrompt = heatmapResearchPrompt(weeklyText, 'weekly', 'Pepperstone-Demo', Date.now())
+  assert.ok(weeklyPrompt.includes('previous week’s final available close'))
+  assert.ok(weeklyPrompt.includes('Copied 2026-11-12T12:00:00.000Z (UTC)'))
+  assert.ok(weeklyPrompt.endsWith(weeklyText), 'Research context preserves weekly changes exactly, including year boundaries')
+  assert.equal(heatmapResearchPrompt('', 'daily', 'Pepperstone-Demo', Date.now()), '')
   const multiRows = [{ ...rows[0], points: new Map([['2026-11-05', { value: 3 }], ['2026-11-06', { value: -1 }]]) }]
   const multiText = heatmapChangesText(multiRows, ['2026-11-06', '2026-11-07', '2026-11-05', '2026-11-06'], 'daily', [])
   assert.equal(multiText, '2026-11-05 · Daily\n\nMetals\nA +3.00%\n\n2026-11-06 · Daily\n\nMetals\nA -1.00%')
+  const partialText = heatmapChangesText(multiRows, ['2026-11-05', '2026-11-06'], 'daily', [], '2026-11-06')
+  assert.ok(partialText.includes('2026-11-05 · Daily\n'))
+  assert.ok(partialText.includes('2026-11-06 · Daily · In progress (day to date)'))
+  assert.equal(partialText.match(/In progress/g).length, 1, 'Only the unfinished day is marked in mixed ranges')
+  const crossYearRow = { ...rows[0], points: new Map([['2025-12-29', { value: 1 }]]) }
+  assert.ok(heatmapChangesText([crossYearRow], '2025-12-29', 'weekly', [], '2026-01-01').includes('2025-12-29 – 2026-01-04 · Weekly · In progress (week to date)'))
+  assert.ok(!heatmapChangesText([crossYearRow], '2025-12-29', 'weekly', [], '2026-01-05').includes('In progress'), 'Past weeks stay completed after broker rollover')
+  assert.ok(heatmapChangesText(multiRows, '2026-11-06', 'daily', [], '2026-11-06').includes('In progress'), 'Period status uses supplied broker date, independently of the copy clock')
   assert.equal(heatmapChangesText(multiRows, [], 'daily', []), '')
   const yearCrossing = { id: 'a'.repeat(32), title: 'Story', archived: true, notes: { '2026-01-02': 'January', '2025-12-29': 'December', '2026-01-05': 'Next week' } }
   assert.deepEqual(wildcardNotes(yearCrossing, '2025-12-29', 'weekly').map(([day]) => day), ['2025-12-29', '2026-01-02'])
@@ -96,13 +113,50 @@ try {
   const quotes = ['US500', 'XAUUSD'].map(symbol => ({ symbol, description: symbol, bid: 1, ask: 1, precision: 2 }))
   const render = overrides => React.act(async () => root.render(React.createElement(CrossAssetDock, { symbols: quotes, broker: 'Pepperstone-Demo', generation: 2, ...overrides })))
   await render()
+  await click(button('Copy Details Only'))
+  assert.ok(copied.startsWith('2026-11-12 · Daily · In progress (day to date)'))
+  await click(button('Copy Research Prompt'))
+  assert.ok(copied.includes('provisional day/week-to-date changes to the latest available reading, not final closing returns'))
+  assert.ok(copied.includes('Copy time is the export time, not the last market update'))
+  assert.ok(copied.includes('2026-11-12 · Daily · In progress (day to date)'))
+  await click(button('Copy range'))
+  await change(field('Copy from date'), '2026-11-06')
+  await click(button('Copy Research Prompt'))
+  assert.ok(copied.includes('2026-11-06 · Daily\n'))
+  assert.ok(copied.includes('2026-11-12 · Daily · In progress (day to date)'))
+  await click(button('Single date'))
+  await click(button('Weekly'))
+  await click(button('Copy Research Prompt'))
+  assert.ok(copied.includes('2026-11-09 – 2026-11-15 · Weekly · In progress (week to date)'))
+  await click(button('Daily'))
   await change(field('Heatmap date'), '2026-11-06')
-  await click(button('Copy details'))
+  await click(button('Copy Details Only'))
   assert.ok(copied.includes('US500 +2.00%'))
   assert.ok(copied.includes('XAUUSD -1.00%'))
   assert.ok(!/Wildcards|unavailable|volatility|research|7 counterparts/i.test(copied), 'Clipboard contains only dated changes')
+  const singleDetails = copied, readsBeforePrompt = historyReads
+  await click(button('Copy Research Prompt'))
+  assert.ok(copied.startsWith('Research current opportunities as of when you run this prompt'))
+  assert.ok(copied.includes('repricing may still be unfolding, including moves already underway'))
+  assert.ok(copied.includes('buy/sell bias'))
+  assert.ok(copied.includes('Reuters and Bloomberg'))
+  assert.ok(copied.includes('without invoking repository research workflows'))
+  assert.ok(copied.includes('Daily changes compare each broker D1 close'))
+  assert.ok(copied.includes('equal-weight geometric returns'))
+  assert.ok(copied.includes('distinct from broker USDX/EURX/JPYX'))
+  assert.ok(copied.endsWith(singleDetails), 'Research button appends exactly the details-only selection')
+  assert.ok(!/invalidation|confidence score|scenario tree/.test(copied), 'Research prompt stays focused without mandatory assessment sections')
+  assert.equal(historyReads, readsBeforePrompt, 'Copying a prompt does no history fetching')
+  assert.equal(writes, 0, 'Copying a prompt saves no notes')
+  assert.ok(host.querySelector('.heatmap-copy-status').textContent.includes('Research prompt copied'))
+  clipboardFailure = true
+  await click(button('Copy Research Prompt'))
+  assert.ok(host.querySelector('.heatmap-copy-status').textContent.includes('Clipboard unavailable'))
+  clipboardFailure = false
+  await click(button('Copy Details Only'))
+  assert.equal(copied, singleDetails, 'Switching back to details omits the prompt and method definitions')
   await change(field('Ranking group'), 'Metals')
-  await click(button('Copy details'))
+  await click(button('Copy Details Only'))
   assert.ok(copied.includes('US500 +2.00%'), 'Copy includes all selected instruments regardless of ranking filter')
   const readsBeforeRange = historyReads
   const formatsBeforeRange = globalThis.__copyFormats
@@ -111,12 +165,16 @@ try {
   await change(field('Copy through date'), '2026-11-07')
   assert.equal(globalThis.__copyFormats, formatsBeforeRange, 'Changing a range never formats the full export before Copy is clicked')
   assert.ok(host.querySelector('[data-heatmap-date="2026-11-05"]').classList.contains('copy-selected'))
-  await click(button('Copy details'))
+  await click(button('Copy Details Only'))
   assert.ok(copied.indexOf('2026-11-05 · Daily') < copied.indexOf('2026-11-06 · Daily'))
   assert.ok(!copied.includes('2026-11-07'), 'No-readings days are omitted, not reported as zero')
   assert.ok(copied.includes('US500 0.00%'), 'True unchanged readings are retained')
+  const rangeDetails = copied
+  await click(button('Copy Research Prompt'))
+  assert.ok(copied.endsWith(rangeDetails), 'Research export honors multiple dates and ranking-independent instrument selection')
   await change(field('Copy from date'), '2026-11-08')
-  assert.equal(button('Copy details').disabled, true, 'Reversed ranges cannot be copied')
+  assert.equal(button('Copy Details Only').disabled, true, 'Reversed ranges cannot be copied')
+  assert.equal(button('Copy Research Prompt').disabled, true, 'Reversed ranges cannot be copied into a research prompt')
   assert.ok(host.querySelector('[role="alert"]').textContent.includes('From must be'))
   await change(field('Copy from date'), '2026-11-05')
   await change(field('Copy through date'), '2027-01-01')
@@ -138,10 +196,18 @@ try {
   await click(button('Copy range'))
   await change(field('Copy from date'), '2026-10-29')
   assert.equal(field('Copy from date').value, '2026-10-26', 'Weekly dates normalize to Monday')
-  await click(button('Copy details'))
+  await click(button('Copy Details Only'))
   assert.ok(copied.includes('2026-11-02 – 2026-11-08 · Weekly'))
+  const selectedWeeklyDetails = copied
+  await click(button('Copy Research Prompt'))
+  assert.ok(copied.includes('Weekly changes compare each Monday–Sunday week'))
+  assert.ok(!copied.includes('Daily changes compare'))
+  assert.ok(copied.endsWith(selectedWeeklyDetails))
   assert.equal(historyReads, readsBeforeRange, 'Selecting and copying dates does no history fetching')
   await click(button('Daily'))
+  await change(field('Heatmap date'), '2026-11-11')
+  assert.equal(button('Copy Details Only').disabled, true)
+  assert.equal(button('Copy Research Prompt').disabled, true, 'No-reading dates cannot produce a misleading data-free prompt')
   await change(field('Heatmap date'), '2026-11-06')
   await click(button('+ Add wildcard'))
   await change(field('Wildcard title'), 'Iran developments')

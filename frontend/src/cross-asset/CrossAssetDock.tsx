@@ -8,7 +8,7 @@ import { HeatmapSymbols } from './HeatmapSymbols'
 import { createHeatmapRowBuilder, formatHeatmapChange, heatmapDate, heatmapDefaults, heatmapPeriods, heatmapRequests, orderHeatmapGroups, weekStart, type HeatmapInstrument } from './heatmap-model'
 import { readHeatmapPreferences, saveHeatmapPreferences, type HeatmapPreferences } from './heatmap-preferences'
 import { useHeatmapHistory } from './useHeatmapHistory'
-import { heatmapChangesText } from './heatmap-export'
+import { heatmapChangesText, heatmapResearchPrompt } from './heatmap-export'
 import { useWildcards } from './useWildcards'
 import { WildcardEditor, WildcardManager } from './WildcardEditor'
 import type { WildcardSnapshot } from './wildcards-model'
@@ -101,8 +101,12 @@ const HeatmapDock = memo(function HeatmapDock({ catalogJson, broker, generation,
     if (wildcards.snapshot && !wildcards.loading) setNoteEditor({ snapshot: wildcards.snapshot, rowId, day, mode: preferences.mode })
   }, [wildcards.snapshot, wildcards.loading, preferences.mode])
   const manageWildcards = useCallback(() => { if (wildcards.snapshot && !wildcards.loading) setWildcardManager(wildcards.snapshot) }, [wildcards.snapshot, wildcards.loading])
-  async function copyDetails() {
-    try { await navigator.clipboard.writeText(heatmapChangesText(rows, copyDays, preferences.mode, preferences.groupOrder)); setCopied({ key: copyKey, message: 'Changes copied.' }) }
+  async function copyDetails(kind: 'details' | 'research') {
+    try {
+      const changes = heatmapChangesText(rows, copyDays, preferences.mode, preferences.groupOrder, today)
+      await navigator.clipboard.writeText(kind === 'research' ? heatmapResearchPrompt(changes, preferences.mode, broker, Date.now()) : changes)
+      setCopied({ key: copyKey, message: kind === 'research' ? 'Research prompt copied. Paste it into your agent chat.' : 'Changes copied.' })
+    }
     catch { setCopied({ key: copyKey, message: 'Clipboard unavailable. Try copying again.' }) }
   }
   function save(next: HeatmapPreferences) {
@@ -142,7 +146,8 @@ const HeatmapDock = memo(function HeatmapDock({ catalogJson, broker, generation,
         <option value="return">Return %</option><option value="relative">Relative to usual volatility</option></select></label>
       <button type="button" onClick={() => setManager(true)}>Instruments · {ids.length}</button>
       <button type="button" aria-pressed={rankingVisible} onClick={() => setRankingVisible(v => !v)}>Ranking</button>
-      <button type="button" disabled={!canCopy} onClick={() => void copyDetails()}>Copy details</button>
+      <button type="button" disabled={!canCopy} onClick={() => void copyDetails('details')}>Copy Details Only</button>
+      <button type="button" disabled={!canCopy} onClick={() => void copyDetails('research')}>Copy Research Prompt</button>
       <button type="button" aria-pressed={!!copyRange} title="Set From/Through, or click a date then Shift-click another to select a range" onClick={() => setCopyRange(old => old ? null : { from: selected, to: selected, anchor: selected, scope: copyScope })}>Copy range</button>
       <button type="button" disabled={!wildcards.snapshot || wildcards.loading} onClick={manageWildcards}>Manage Wildcards</button>
       <button type="button" disabled={!broker || wildcards.loading} onClick={wildcards.reload}>Reload Wildcards</button>

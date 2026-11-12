@@ -260,18 +260,30 @@ visible. After the first opening, the heatmap keeps updating in the background
 when closed or while another dock is open. Reopening restores the warmed data,
 pinned date, category collapse and browsing position immediately.
 
-**Copy details** copies the selected date (or full week range), categories and
+**Copy Details Only** copies the selected date (or full week range), categories and
 percentage changes only. It includes every selected instrument with an available
 reading, sorted highest to lowest within each category, regardless of ranking
 filters or collapsed groups.
 
 To copy several dates, enable **Copy range** and set **From / Through**, or click
 the first date then Shift-click the last date/cell. The inclusive range is
-highlighted. **Copy details** includes each date separately, earliest first,
+highlighted. **Copy Details Only** includes each date separately, earliest first,
 omitting dates without readings. Weekly mode copies each week with its full date
 range. Selection uses the displayed year's loaded columns; it does not load other
 years or add research commentary. **Single date** or a normal date/cell click
 returns to copying one date. Changing year or Daily/Weekly clears the range.
+
+**Copy Research Prompt** copies the same selected changes plus a short prompt and
+definitions for a fresh agent chat. Paste it into your agent when you want current
+opportunities: the prompt focuses on remaining repricing and asks for the affected
+market, buy/sell bias, a brief catalyst explanation and the decisive source. It
+includes the broker, copy time, return calculation and synthetic basket method.
+Copying does not run research or save anything; the receiving agent researches
+current conditions when you submit it.
+Both copy buttons mark unfinished dates **In progress (day to date)** and
+unfinished weeks **In progress (week to date)**. The research prompt explains
+that those changes are provisional readings, not final closing returns, and
+distinguishes the time of copying from the last market update.
 
 Scroll to **Wildcards** at the bottom and click **+ Add wildcard**. Enter a short
 story title and your own paragraphs or source links, then **Save**. Each story
