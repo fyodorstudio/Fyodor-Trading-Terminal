@@ -209,7 +209,7 @@ try {
   const control = label => [...host.querySelectorAll('label')].find(element => element.textContent.startsWith(label)).querySelector('input, select')
   await open()
   assert.equal(tab('Inputs').getAttribute('aria-selected'), 'true')
-  assert.equal(host.querySelectorAll('input[type="checkbox"]').length, 13)
+  assert.equal(host.querySelectorAll('input[type="checkbox"]').length, 14)
   assert.equal(host.querySelectorAll('input[type="color"]').length, 0)
   await React.act(async () => { const input = control('Right axis'); input.value = 'coreCpi'; input.dispatchEvent(new dom.Event('change', { bubbles: true })) })
   await React.act(async () => reactProps(control('Show Fed rate')).onChange({ target: { checked: false } }))

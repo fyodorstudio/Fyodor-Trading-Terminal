@@ -77,7 +77,7 @@ const series = { applyOptions: () => {},
   createPriceLine: options => { count('tradeLineCreates'); const line = { options, applyOptions: next => { count('tradeLineUpdates'); Object.assign(options, next) } }; tradeLines.add(line); return line },
   removePriceLine: line => tradeLines.delete(line),
 }
-const priceScale = { width: () => 0, applyOptions: () => {}, getVisibleRange: () => priceRange,
+const priceScale = { options: () => ({ autoScale: true }), width: () => 0, applyOptions: () => {}, getVisibleRange: () => priceRange,
   setVisibleRange: next => { priceRange = next; priceShift = (1 - next.from) * 100 } }
 const timeSeries = { setData: rows => { count('futureSetData'); futureTimes = rows },
   update: row => { count('futureUpdate'); futureTimes = [...futureTimes, row] },

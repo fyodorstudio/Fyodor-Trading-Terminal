@@ -28,6 +28,7 @@ import { createRsiPane } from '../indicators/rsi/rsi-pane'
 import type { RsiPreferences } from '../indicators/rsi/rsi-preferences'
 import { createMacroPane } from '../indicators/macro/macro-pane'
 import { supportsMacro, type MacroIndicator, type MacroReading } from '../indicators/macro/macro-data'
+import { createPriceViewportMemory } from './chart-price-viewport'
 import type { MacroMetric } from '../indicators/macro/macro-preferences'
 import { PricePaneOverlays } from './PricePaneOverlays'
 import { chartDataTrace } from './chart-data-trace'
@@ -50,6 +51,7 @@ type MarketCandlestickChartProps = {
   onToggleMacroMetric?: (metric: MacroMetric) => void
   onToggleMacroForecast?: (metric: MacroMetric) => void
   onToggleMacroNumbers?: (metric: MacroMetric) => void
+  onChangeMacroPreferences?: (value: MacroIndicator['preferences']) => void
   onSelectMacroMetric?: (metric: MacroMetric) => void
   onInspectMacroRelease?: (reading: MacroReading) => void
   refocusRequest?: number
@@ -93,6 +95,7 @@ function MarketCandlestickChartComponent({
   onToggleMacroMetric,
   onToggleMacroForecast,
   onToggleMacroNumbers,
+  onChangeMacroPreferences,
   onSelectMacroMetric,
   onInspectMacroRelease,
   refocusRequest = 0,
@@ -133,6 +136,8 @@ function MarketCandlestickChartComponent({
   const [seriesApi, setSeriesApi] = useState<ISeriesApi<'Candlestick', Time> | null>(null)
   const fittedKeyRef = useRef<string | null>(null)
   const prevBarsRef = useRef<OhlcBar[]>([])
+  const priceViewsRef = useRef<ReturnType<typeof createPriceViewportMemory> | null>(null)
+  priceViewsRef.current ??= createPriceViewportMemory()
   const historyPagingArmedRef = useRef(false)
   const liveFollowingRef = useRef(true)
   const historyStateRef = useRef({ hasOlderData, isLoadingOlderData })
@@ -310,6 +315,8 @@ function MarketCandlestickChartComponent({
     })
 
     const previousRange = readLogicalRange()
+    priceViewsRef.current?.switchScope(`${clock.brokerId}:${fitContentKey}`, clock.brokerId,
+      chart.priceScale('right').getVisibleRange(), chart.priceScale('right').options().autoScale)
     const step = timeframeToSeconds(timeframe)
     const brokerChanged = viewportBrokerRef.current !== clock.brokerId
     if (brokerChanged) {
@@ -361,6 +368,11 @@ function MarketCandlestickChartComponent({
       }
       priceSpaceRef.current?.sync(bars, isNewKey, precision)
       const futureReplaced = futureTimelineRef.current?.sync(bars, step, isNewKey, replaced)
+      if (isNewKey) {
+        const savedPriceRange = priceViewsRef.current?.restore(bars.at(-1)!.close, precision)
+        if (savedPriceRange) chart.priceScale('right').setVisibleRange(savedPriceRange)
+      }
+      priceViewsRef.current?.updateReference(bars.at(-1)!.close)
       // Start at recent candles using the configured pixel spacing. Fitting all
       // loaded history shrinks candles after a browser refresh; the hidden future
       // horizon must never determine the startup viewport either.
@@ -446,13 +458,14 @@ function MarketCandlestickChartComponent({
           toggleMetric: metric => onToggleMacroMetric?.(metric),
           toggleForecast: metric => onToggleMacroForecast?.(metric),
           toggleNumbers: metric => onToggleMacroNumbers?.(metric),
+          changePreferences: onChangeMacroPreferences,
           selectMetric: metric => onSelectMacroMetric?.(metric),
           inspectRelease: onInspectMacroRelease,
         })
       }
       if (range) setLogicalRange(range)
     } finally { applyingDataRef.current = false }
-  }, [macroEnabled, macro, bars, fitContentKey, timeframe, formatUtc, onToggleMacroMetric, onToggleMacroForecast, onToggleMacroNumbers, onSelectMacroMetric, onInspectMacroRelease, readLogicalRange, setLogicalRange])
+  }, [macroEnabled, macro, bars, fitContentKey, timeframe, formatUtc, onToggleMacroMetric, onToggleMacroForecast, onToggleMacroNumbers, onChangeMacroPreferences, onSelectMacroMetric, onInspectMacroRelease, readLogicalRange, setLogicalRange])
 
   useEffect(() => {
     if (!pendingWindowRef.current || !bars.length || !hasOlderData || isLoadingOlderData) return

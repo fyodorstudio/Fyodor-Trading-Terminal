@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { macroCatalog } from './macro-catalog'
 import { MacroEventSelector } from './MacroEventSelector'
+import { MacroCategorySettings } from './MacroCategorySettings'
 import { macroDefaultStyle, macroAxis, selectedMacroMetrics, selectMacroAxis, type MacroMetric, type MacroPreferences, type MacroStyle } from './macro-preferences'
 import '../rsi/rsi.css'
 import './macro.css'
@@ -45,12 +46,13 @@ export function MacroSettingsDialog({ preferences, onSave, onClose, symbol = 'US
       <div className="rsi-settings-body" role="tabpanel" id={`${id}-panel`} aria-labelledby={`${id}-${tab}`}>
         {tab === 'inputs' ? <>
           <MacroEventSelector preferences={draft} onChange={setDraft} />
+          <MacroCategorySettings preferences={draft} onChange={setDraft} />
           <label>Right axis<select value={macroAxis(draft)} onChange={event => setDraft(current => selectMacroAxis(current, event.target.value))} disabled={!selectedMacroMetrics(draft).length}>
             {!selectedMacroMetrics(draft).length && <option value={draft.axisTarget}>No events selected</option>}
             {selectedMacroMetrics(draft).map(key => <option key={key} value={key}>{macroCatalog[key].controlLabel}</option>)}
           </select></label>
           <p>Event selections are remembered by currency. Ticking a currency restores its saved events. Each chart symbol remembers which currencies are enabled.</p>
-          <p>Each event uses an independent scale. The lock links movement and zoom; the three-line button arranges nearly flat lanes. Hover and release selection remain available.</p>
+          <p>Each event uses an independent scale. The lock links movement and zoom; the three-line button switches to straight category lanes. Values, arrows, hover and release selection remain available.</p>
         </> : <>
           {selectedMacroMetrics(draft).map(key => <fieldset key={key}><legend>{macroCatalog[key].label} · Line</legend>
             <label>{macroCatalog[key].label} colour<input type="color" value={draft.series[key].color} onChange={event => patchStyle(key, { color: event.target.value })} /></label>

@@ -160,6 +160,11 @@ timeline; the flexible gap follows Refocus. A separator precedes the event-icon
 button. RSI opens a resizable lower pane with a shared time axis, Wilder RSI 14 on Close,
 optional smoothing (SMA 14 by default), 70/50/30 bands and a background fill.
 Visibility and settings persist on this device across all symbols/timeframes.
+Manual price-chart bounds are remembered per broker, pair and timeframe during
+the session. Returning to a pair restores its vertical zoom/position, including
+through empty loading states. A new pair inherits relative zoom in its own price
+units. Horizontal dates and zoom remain shared; Refocus remains an explicit reset.
+
 **MFDI** (Macro Factor Data Inspector) is available on every chart symbol, including
 all 28 FX pairs, EURX, JPYX, USDX, XAUUSD and broker-specific instruments. Its gear
 opens **Inputs / Style** with draft OK/Cancel. Existing USDX selections and styles
@@ -180,11 +185,18 @@ number toggle. Click a label to select its draggable right axis. Labels and numb
 use the event's actual units; arrows compare each actual with the previous available
 release. **Fit axis** fits the selected scale; **Fit axis all** fits every visible
 scale. The lock links all visible axes so dragging/scaling moves the group together.
-The adjacent three-line **Flatten** button distributes visible series into nearly
-flat horizontal lanes, preserving actual values, arrows, dates and forecasts. Click
-it again to restore the previous placement. Pane resizing adds canvas space below
+The adjacent three-line **Lane view** button draws perfectly straight rows, with
+actual values, arrows, dates and forecasts retained. Click again to restore the
+numerical plot. Inline event labels carry the eye/F/N controls beside their lines;
+series chips no longer fill the top toolbar. **Hide Legend** in Inputs hides only
+the value/release readout. Category names, assignments and event lists are shared;
+category order, row order, collapsed state, lane mode and Hide Legend save per symbol.
+Create/rename/reorder/delete categories in Inputs; deletion moves events to
+Uncategorized. Drag a row label into a category to snap it into place, or drag a
+category header to move its rows as a band. Categories can collapse; the lane
+scrollbar reveals rows when they exceed the available pane height. Pane resizing adds canvas space below
 without stretching plots. Each scale holds its placement across scrolling, backfill,
-updates, eyes and axis changes. Linking and flatten/restore last while the pane is open.
+updates, eyes and axis changes. Linked-axis mode lasts while the pane is open.
 
 Only selected event IDs/currencies are loaded, sharing one paged snapshot and polling
 clock. No selections means no macro calendar polling. Numeric released actuals with

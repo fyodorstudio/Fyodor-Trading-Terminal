@@ -15,7 +15,7 @@ const previous = new Map([...Object.keys(globals), '__rsiChartLibrary'].map(key 
 for (const [key, value] of Object.entries(globals)) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value })
 const frames = new Map(), contexts = new WeakMap(), paintedText = [], paintedFills = [], volumeLayers = [], upcomingStrokes = [], forecastStrokes = [], forecastRings = []; let frameId = 0, captureVolumeLayers = false
 const forecastCurveStrokes = [], forecastCurveRings = []
-const numberLabels = []
+const numberLabels = [], laneDots = []
 dom.requestAnimationFrame = fn => { frames.set(++frameId, fn); return frameId }
 dom.cancelAnimationFrame = id => frames.delete(id)
 dom.HTMLCanvasElement.prototype.getContext = function () {
@@ -29,6 +29,7 @@ dom.HTMLCanvasElement.prototype.getContext = function () {
     beginPath() { this.fixtureStart = undefined; this.fixtureEnd = undefined },
     moveTo(x, y) { this.fixtureStart = [x, y] }, lineTo(x, y) { this.fixtureEnd = [x, y] },
     arc(x, y, radius) {
+      if (radius === 4) laneDots.push({ x, y, color: this.fillStyle })
       if (radius === 6.5) forecastRings.push({ x, y, radius })
       if (radius === 6) forecastCurveRings.push({ x, y, radius, color: this.strokeStyle, alpha: this.globalAlpha })
     },
@@ -124,6 +125,20 @@ try {
     close(resizedWindow.to, viewport.to, 'Market Watch-sized resizes retain the right viewport date')
     assert.deepEqual(chart.priceScale('right').getVisibleRange(), resizePriceRange, 'Resizing preserves the manual price range')
   }
+  const switchWindow = chart.timeScale().getVisibleLogicalRange(), eurPriceBounds = chart.priceScale('right').getVisibleRange()
+  const eurLastPrice = bars.at(-1).close
+  const zoomPairBars = bars.map(bar => ({ ...bar, open: bar.open * 1.5, high: bar.high * 1.5, low: bar.low * 1.5, close: bar.close * 1.5 }))
+  await render({ bars: [], symbol: 'USDJPY', fitContentKey: 'USDJPY:H1', precision: 3 })
+  await render({ bars: zoomPairBars })
+  const inheritedPrice = chart.priceScale('right').getVisibleRange()
+  close((inheritedPrice.to - inheritedPrice.from) / zoomPairBars.at(-1).close, (eurPriceBounds.to - eurPriceBounds.from) / eurLastPrice, 'A newly opened pair inherits relative vertical zoom instead of autoscaling')
+  assert.deepEqual(chart.timeScale().getVisibleLogicalRange(), switchWindow, 'Pair switches preserve horizontal zoom and dates')
+  chart.priceScale('right').setVisibleRange({ from: 140, to: 160 }); await paint()
+  await render({ bars: [], symbol: 'EURUSD', fitContentKey: 'EURUSD:H1', precision: 5 }); await render({ bars })
+  assert.deepEqual(chart.priceScale('right').getVisibleRange(), eurPriceBounds, 'Returning to a pair restores its bounded manual price range through empty loading states')
+  await render({ bars: [], symbol: 'USDJPY', fitContentKey: 'USDJPY:H1', precision: 3 }); await render({ bars: zoomPairBars })
+  assert.deepEqual(chart.priceScale('right').getVisibleRange(), { from: 140, to: 160 }, 'Each pair keeps its own zoom and vertical position')
+  await render({ bars: [], symbol: 'EURUSD', fitContentKey: 'EURUSD:H1', precision: 5 }); await render({ bars })
   chart.priceScale('right').applyOptions({ autoScale: true }); await paint()
   const [line, average] = chart.panes()[1].getSeries()
   assert.equal(line.data().length, 86); assert.equal(average.data().length, 73)
@@ -696,6 +711,7 @@ try {
     onToggleMacroMetric: metric => { macro = { ...macro, preferences: toggleMacroMetric(macro.preferences, metric) } },
     onToggleMacroForecast: metric => { macro = { ...macro, preferences: toggleMacroForecast(macro.preferences, metric) } },
     onToggleMacroNumbers: metric => { macro = { ...macro, preferences: toggleMacroNumbers(macro.preferences, metric) } },
+    onChangeMacroPreferences: preferences => { macro = { ...macro, preferences } },
     onSelectMacroMetric: metric => { macro = { ...macro, preferences: selectMacroMetric(macro.preferences, metric) } },
     onInspectMacroRelease: reading => inspectedReleases.push(reading), renderChartOverlay: renderDismiss,
     rsi: { ...defaultRsiPreferences, enabled: false }, volume: { ...defaultVolumePreferences, enabled: false } })
@@ -944,7 +960,7 @@ try {
   assert.equal(coreLine.options().priceScaleId, 'macro-coreCpi')
   assert.equal(headlineLine.options().priceScaleId, 'macro-headlineCpi', 'Headline and Core use independent scales')
   assert.deepEqual([...host.querySelectorAll('.macro-metric-axis')].map(button => button.textContent),
-    ['Fed Rate (%)', 'Payroll (k)', 'Unemployment (%)', 'Headline CPI m/m (%)', 'Core CPI m/m (%)'])
+    ['USD · Fed Rate (%)', 'USD · Payroll (k)', 'USD · Unemployment (%)', 'USD · Headline CPI m/m (%)', 'USD · Core CPI m/m (%)'])
   const colorFor = color => { const sample = document.createElement('span'); sample.style.backgroundColor = color; return sample.style.backgroundColor }
   const swatchFor = key => host.querySelector(`[data-macro-axis="${key}"]`).closest('.macro-metric-item').querySelector('.macro-control-color')
   assert.equal(host.querySelectorAll('.macro-control-color').length, 5)
@@ -1081,23 +1097,39 @@ try {
   }
   assert.equal(macro.preferences.axisTarget, selectedBeforeFitAll, 'Fit all preserves the selected axis')
   assert.deepEqual(chart.timeScale().getVisibleLogicalRange(), rateWindow, 'Fit all preserves shared dates')
-  const flatten = host.querySelector('[aria-label="Flatten MFDI lines"]')
+  const flatten = host.querySelector('[aria-label="MFDI lane view"]')
   assert.equal(lockAxes.nextElementSibling, flatten, 'The three-line button sits next to the lock')
+  macro = { ...macro, preferences: { ...macro.preferences, layout: { hideLegend: true, laneMode: false, categoryOrder: [], collapsed: [], rowOrder: [] } } }; await render({ macro })
+  assert.equal(host.querySelector('.macro-readout').hidden, true, 'Hide Legend hides only the actual/release readout')
+  assert.ok(host.querySelector('[data-macro-forecast="rate"]'), 'Hide Legend retains the inline F/N/eye controls')
+  const beforeLaneHeight = macroPane.getHeight()
+  macroPane.setHeight(300); await paint()
   const beforeFlat = placement(), beforeFlatData = macroPane.getSeries().map(line => line.data())
+  laneDots.length = 0
   await React.act(async () => flatten.click()); await paint()
   assert.equal(flatten.getAttribute('aria-pressed'), 'true')
-  for (const line of [rateLine, payrollLine, unemploymentLine, coreLine, headlineLine]) {
-    const values = line.data().filter(point => {
-      const x = chart.timeScale().timeToCoordinate(point.time)
-      return x !== null && x >= 0 && x <= chart.paneSize(macroPane.paneIndex()).width
-    }).map(point => line.priceToCoordinate(point.value))
-    assert.ok(Math.max(...values) - Math.min(...values) <= 4.000001, 'Flatten compresses real variation into nearly flat lanes')
+  assert.equal(host.querySelector('.macro-controls .macro-metric-item'), null, 'Series controls no longer occupy the top toolbar')
+  assert.ok(host.querySelector('.macro-inline-layer [data-macro-axis="rate"]'), 'Eye/F/N controls live beside inline line text')
+  for (const key of ['rate', 'payrolls']) {
+    const dots = laneDots.filter(dot => dot.color === macro.preferences.series[key].color)
+    assert.ok(dots.length, `${key}: lane mode draws actual release dots`)
+    assert.equal(new Set(dots.map(dot => dot.y)).size, 1, 'Different numeric values occupy one perfectly horizontal lane')
   }
-  assert.notDeepEqual(placement(), beforeFlat, 'Flatten changes placement')
-  assert.deepEqual(macroPane.getSeries().map(line => line.data()), beforeFlatData, 'Flatten never changes numeric values or dates')
+  laneDots.length = 0
+  await React.act(async () => host.querySelector('[aria-label="Collapse Labor"]').click()); await paint()
+  assert.equal(laneDots.filter(dot => dot.color === macro.preferences.series.payrolls.color).length, 0, 'Collapsed categories hide their actual dots')
+  await React.act(async () => host.querySelector('[aria-label="Expand Labor"]').click()); await paint()
+  const payrollLane = laneDots.find(dot => dot.color === macro.preferences.series.payrolls.color)
+  const selectedBeforeLaneClick = inspectedReleases.length
+  await fireDotClick(payrollLine, 0, { point: { x: chart.timeScale().timeToCoordinate(payrollLine.data()[0].time), y: payrollLane.y } })
+  assert.equal(inspectedReleases.length, selectedBeforeLaneClick + 1, 'Straight-lane dots remain selectable')
+  assert.equal(inspectedReleases.at(-1).value, -120, 'Lane hit testing retains the real actual value')
+  assert.deepEqual(macroPane.getSeries().map(line => line.data()), beforeFlatData, 'Lane mode never changes numeric values or dates')
+  assert.equal(payrollLine.options().lineVisible, false, 'Native numerical lines are replaced only visually')
   await React.act(async () => flatten.click()); await paint()
   assert.equal(flatten.getAttribute('aria-pressed'), 'false')
-  placement().forEach((values, index) => values.forEach((value, point) => close(value, beforeFlat[index][point], 'The second click restores each previous scale')))
+  placement().forEach((values, index) => values.forEach((value, point) => close(value, beforeFlat[index][point], 'Leaving lane mode restores each numerical scale')))
+  macroPane.setHeight(beforeLaneHeight); await paint()
   await React.act(async () => lockAxes.click()); await paint()
   assert.equal(lockAxes.getAttribute('aria-pressed'), 'true')
   assert.equal(lockAxes.getAttribute('aria-label'), 'Unlink MFDI axes')

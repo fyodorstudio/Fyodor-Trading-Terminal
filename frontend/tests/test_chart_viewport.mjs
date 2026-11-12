@@ -30,7 +30,7 @@ const series = { applyOptions() {}, setData(bars) { plotted = bars; emit(bars.le
 const futureSeries = { setData(rows) { futureSets++; future = rows }, update(row) { futureUpdates++; future = [...future, row] },
   applyOptions() {}, attachPrimitive() {}, detachPrimitive() {}, createPriceLine() {}, removePriceLine() {} }
 globalThis.__viewportChart = { addSeries: definition => definition.type === 'line' ? futureSeries : series,
-  options: () => ({ leftPriceScale: { visible: false } }), timeScale: () => scale, priceScale: () => ({ width: () => 0, applyOptions: () => autoscaled++ }), applyOptions() {}, remove() {} }
+  options: () => ({ leftPriceScale: { visible: false } }), timeScale: () => scale, priceScale: () => ({ width: () => 0, getVisibleRange: () => null, options: () => ({ autoScale: true }), applyOptions: () => autoscaled++ }), applyOptions() {}, remove() {} }
 const server = await createServer({ root: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'), server: { middlewareMode: true, hmr: false },
   ssr: { noExternal: ['lightweight-charts'] }, plugins: [{ name: 'viewport-canvas', enforce: 'pre',
     resolveId(source) { if (source === 'lightweight-charts') return '\0viewport-canvas' },

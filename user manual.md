@@ -55,6 +55,11 @@ The [news contract](docs/CURRENCY-NEWS.md) owns persistence and timing.
 prior failure context; full original records are [archived](docs/RESEARCH-ARCHIVE.md).
 
 
+Manual price-chart zoom and position are remembered per broker/pair/timeframe
+during the session. Returning to a pair restores its bounded vertical view. New
+pairs inherit relative zoom in their own price units; the shared date window and
+horizontal zoom remain unchanged. Refocus explicitly resets the current view.
+
 ## MFDI
 
 Click **MFDI** beside Volume and RSI on any chart symbol. Drag its divider to add
@@ -74,6 +79,17 @@ Open the gear and use **Inputs**:
    its own enabled currencies, selected axis and MFDI on/off choice. Saved currency
    event lists and styles are shared between symbols, independently of Inspector filters.
 
+**Hide Legend** in Inputs hides the coloured actual/release-time readout only.
+Eye/F/N controls stay beside each line label, rather than in top toolbar blocks.
+
+Inputs also lets you create, rename, reorder and delete categories. Use each event's
+category selector, or drag its inline label into a category in Lane view. Rows snap
+into the category; drag within a category to change their order. Drag a category
+header to move all its rows together, or use its arrow to collapse/expand it.
+Deleting a category keeps its events under Uncategorized. The scrollbar reveals
+additional lanes. Membership follows the saved currency event lists; category/row
+order, collapse, Lane view and Hide Legend are saved separately for each symbol.
+
 **Style** changes each selected measure's colour, width, dots, forecasts and numbers.
 **Reset defaults** restores styles and the selected axis, keeping your selected events
 and currency ticks. Missing numeric history stays blank; choose another measure or
@@ -88,8 +104,9 @@ Each event has its own scale, including separate Headline and Core CPI scales:
 - **Fit axis** fits the selected scale; **Fit axis all** fits every visible scale.
 - The **lock** links all visible axes, selecting them together. Dragging/scaling moves
   the group. Unlock to adjust individual scales. Hover and dot selection still work.
-- The **three-line button** arranges the series in nearly flat, evenly spaced lanes.
-  Values and dates are unchanged. Click again to restore the previous placement.
+- The **three-line button** switches to perfectly straight category lanes.
+  Vertical position identifies the event row; values and dates are unchanged.
+  Click again to return to the numerical plot.
 
 Click a plotted dot to open its exact release package in Inspector, using the event's
 own currency. Its selected measure is highlighted, without changing Inspector's saved
@@ -106,7 +123,7 @@ consensus apply only to the exact Fed rate series. Hover a Fed dot for consensus
 See the [Fed consensus reference](docs/MFDI-FORECASTS.md).
 
 All scale bounds survive scrolling, backfill, live updates and axis switches. Linked
-movement and the flatten/restore snapshot last while the pane is open. Successful
+axis movement lasts while the pane is open; saved lane/category settings survive refresh. Successful
 charts show no static source caption; loading/error/empty messages appear as needed.
 
 ## Volume

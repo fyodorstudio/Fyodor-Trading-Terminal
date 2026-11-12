@@ -139,6 +139,7 @@ export function TerminalWorkspace() {
                   onToggleMacroMetric={toggleMacroSeries}
                   onToggleMacroForecast={toggleMacroForecastSeries}
                   onToggleMacroNumbers={toggleMacroNumberSeries}
+                  onChangeMacroPreferences={changeMacro}
                   onSelectMacroMetric={selectMacroSeries}
                   onInspectMacroRelease={viewMacroRelease}
                   refocusRequest={refocusRequest}

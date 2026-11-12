@@ -1,10 +1,12 @@
 import { macroCatalog } from './macro-catalog'
 import { chartEventSymbol } from '../../../economic-calendar/forex/chart-event-scope'
+import type { MacroCategory, MacroLayout } from './macro-layout'
 export type MacroGroup = 'policy' | 'labour' | 'inflation'
 export type MacroMetric = string
 export type MacroAxis = MacroMetric
 export type MacroStyle = { visible: boolean; color: string; lineWidth: 1 | 2 | 3 | 4; pointsVisible: boolean; forecastVisible: boolean; numbersVisible: boolean }
-export type MacroPreferences = { enabled: boolean; axisTarget: MacroAxis; series: Record<MacroMetric, MacroStyle>; currencies?: string[]; eventsByCurrency?: Record<string, string[]> }
+export type MacroPreferences = { enabled: boolean; axisTarget: MacroAxis; series: Record<MacroMetric, MacroStyle>; currencies?: string[]; eventsByCurrency?: Record<string, string[]>;
+  categories?: MacroCategory[]; categoryByEvent?: Record<string, string>; layout?: MacroLayout }
 export const macroGroups: { id: MacroGroup; label: string; metrics: MacroMetric[] }[] = [
   { id: 'policy', label: 'Policy', metrics: ['rate'] },
   { id: 'labour', label: 'Labour', metrics: ['payrolls', 'unemployment'] },
@@ -55,7 +57,8 @@ function readLegacyPreferences(): MacroPreferences {
 }
 const configKey = 'fyodor.indicators.macro.v2'
 type SavedMacro = { eventsByCurrency: Record<string, string[]>; styles: Record<string, MacroStyle>;
-  symbols: Record<string, { enabled: boolean; currencies: string[]; axisTarget: string }> }
+  categories?: MacroCategory[]; categoryByEvent?: Record<string, string>;
+  symbols: Record<string, { enabled: boolean; currencies: string[]; axisTarget: string; layout?: MacroLayout }> }
 const symbolKey = (symbol: string) => chartEventSymbol(symbol) ?? symbol.trim().toUpperCase()
 const colors = ['#3b82f6', '#0d9488', '#d97706', '#8b5cf6', '#e05270', '#0891b2', '#65a30d', '#db2777']
 export function macroDefaultStyle(key: string): MacroStyle {
@@ -89,14 +92,21 @@ export function readMacroPreferences(symbol = 'USDX'): MacroPreferences {
     currencies: profile && Array.isArray(profile.currencies) ? [...new Set(profile.currencies.filter(currency => currency in eventsByCurrency))]
       : key === 'USDX' ? ['USD'] : [],
     axisTarget: profile && macroCatalog[profile.axisTarget] ? profile.axisTarget : key === 'USDX' ? legacy.axisTarget : 'rate',
-    eventsByCurrency, series }
+    eventsByCurrency, series,
+    ...(Array.isArray(saved?.categories) ? { categories: saved.categories.filter(item => item && typeof item.id === 'string' && typeof item.label === 'string') } : {}),
+    ...(saved?.categoryByEvent && typeof saved.categoryByEvent === 'object' ? { categoryByEvent: saved.categoryByEvent } : {}),
+    ...(profile?.layout ? { layout: { hideLegend: profile.layout.hideLegend === true, laneMode: profile.layout.laneMode === true,
+      categoryOrder: Array.isArray(profile.layout.categoryOrder) ? profile.layout.categoryOrder : [],
+      collapsed: Array.isArray(profile.layout.collapsed) ? profile.layout.collapsed : [], rowOrder: Array.isArray(profile.layout.rowOrder) ? profile.layout.rowOrder : [] } } : {}) }
 }
 export function saveMacroPreferences(value: MacroPreferences, symbol = 'USDX') {
   try {
     const saved = savedConfig() ?? { eventsByCurrency: { USD: Object.keys(defaultMacroPreferences.series) }, styles: {}, symbols: {} }
     saved.eventsByCurrency = { ...saved.eventsByCurrency, ...value.eventsByCurrency }
     saved.styles = { ...saved.styles, ...value.series }
-    saved.symbols[symbolKey(symbol)] = { enabled: value.enabled, currencies: value.currencies ?? ['USD'], axisTarget: value.axisTarget }
+    if (value.categories) saved.categories = value.categories
+    if (value.categoryByEvent) saved.categoryByEvent = value.categoryByEvent
+    saved.symbols[symbolKey(symbol)] = { enabled: value.enabled, currencies: value.currencies ?? ['USD'], axisTarget: value.axisTarget, ...(value.layout ? { layout: value.layout } : {}) }
     window.localStorage.setItem(configKey, JSON.stringify(saved))
   } catch { /* Keep controls usable without storage. */ }
 }
