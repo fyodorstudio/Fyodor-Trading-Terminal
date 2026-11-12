@@ -192,8 +192,10 @@ The adjacent three-line **Lane view** button draws perfectly straight rows, with
 actual values, arrows, dates and forecasts retained. Click again to restore the
 numerical plot. **Series** opens a right-side overlay drawer: event names occupy
 one column, followed by vertically aligned eye/F/N controls and a colour circle.
-Click the circle to choose a colour; live picker input immediately updates the
-line, dots and forecasts without rebuilding the open picker. Event/category names and controls exist only
+Click the circle to choose a colour. While dragging, previews update at most once
+every 80 ms without saving preferences or rebuilding chart data. Confirmation
+applies the final colour immediately and saves once; blur also finishes an edit.
+Line, dot and forecast previews stay in sync without rebuilding the open picker. Event/category names and controls exist only
 in the drawer; number labels remain above the dots when N is enabled.
 The top All series eye/F/N row toggles all selected events together, including
 collapsed categories. Mixed states switch everything off; the next click switches

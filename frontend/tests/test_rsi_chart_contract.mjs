@@ -696,6 +696,7 @@ try {
   const inspectedReleases = []; let backgroundDismissals = 0
   const renderDismiss = chartApi => React.createElement(ChartInspectionDismiss, { chartApi, onClear: () => { backgroundDismissals++ } })
   const { defaultMacroPreferences, selectMacroMetric, toggleMacroMetric, toggleMacroForecast, toggleMacroNumbers, setMacroCurrency, setMacroEvents } = await server.ssrLoadModule('./src/market-data/indicators/macro/macro-preferences.ts')
+  let macroPreferenceWrites = 0
   let macro = { enabled: true, status: 'Stored MT5 actuals', preferences: { ...defaultMacroPreferences, enabled: true }, history: { rate: [
     { id: 'seed', time: macroBars[0].time - 86400, releasedAt: (macroBars[0].time - 86400) * 1000, value: 5.5 },
     { id: 'decision', time: macroBars[45].time + 1800, releasedAt: (macroBars[45].time + 1800) * 1000, value: 5.25 },
@@ -711,7 +712,7 @@ try {
     onToggleMacroMetric: metric => { macro = { ...macro, preferences: toggleMacroMetric(macro.preferences, metric) } },
     onToggleMacroForecast: metric => { macro = { ...macro, preferences: toggleMacroForecast(macro.preferences, metric) } },
     onToggleMacroNumbers: metric => { macro = { ...macro, preferences: toggleMacroNumbers(macro.preferences, metric) } },
-    onChangeMacroPreferences: preferences => { macro = { ...macro, preferences } },
+    onChangeMacroPreferences: preferences => { macroPreferenceWrites++; macro = { ...macro, preferences } },
     onSelectMacroMetric: metric => { macro = { ...macro, preferences: selectMacroMetric(macro.preferences, metric) } },
     onInspectMacroRelease: reading => inspectedReleases.push(reading), renderChartOverlay: renderDismiss,
     rsi: { ...defaultRsiPreferences, enabled: false }, volume: { ...defaultVolumePreferences, enabled: false } })
@@ -795,24 +796,78 @@ try {
   const oldColour = macro.preferences.series.payrolls.color, colourAxis = macro.preferences.axisTarget
   const picker = host.querySelector('[data-macro-row="payrolls"] input[type="color"]')
   const colourSection = picker.closest('[data-macro-drawer-category]'), colourHeader = colourSection.querySelector('.macro-drawer-category button')
-  picker.focus()
-  for (const color of ['#1267ab', '#3278bc', '#4389cd']) {
-    await React.act(async () => { picker.value = color; picker.dispatchEvent(new dom.Event('input', { bubbles: true })) })
-    assert.equal(payrollLine.options().color, color, 'Native line and dots reflect live picker input before a parent render')
-    await React.act(async () => { for (const listener of nativeCrosshairListeners) listener({ point: undefined, seriesData: new Map() }) }); await paint()
-    assert.equal(picker.value, color, 'Hover updates cannot put the old colour back into the open picker')
-    await render({ macro })
-    assert.equal(picker.closest('[data-macro-drawer-category]'), colourSection, 'Colour changes never detach the open picker from its drawer section')
+  const originalTimeout = window.setTimeout, originalClearTimeout = window.clearTimeout
+  const previewTimers = new Map(); let previewTimerId = 900000
+  window.setTimeout = (callback, delay, ...args) => {
+    if (delay !== 80) return originalTimeout.call(window, callback, delay, ...args)
+    const id = ++previewTimerId; previewTimers.set(id, () => callback(...args)); return id
   }
-  await React.act(async () => colourHeader.click()); await render({ macro })
-  assert.equal(macro.preferences.series.payrolls.color, '#4389cd', 'Category actions cannot restore a stale colour snapshot')
-  await React.act(async () => host.querySelector('[aria-label="Expand Labor"]').click()); await render({ macro })
-  await selectAxis(colourAxis)
-  await React.act(async () => { picker.value = oldColour; picker.dispatchEvent(new dom.Event('change', { bubbles: true })) }); await render({ macro })
-  const ratePicker = host.querySelector('[data-macro-row="rate"] input[type="color"]'), oldRateColour = macro.preferences.series.rate.color
-  await React.act(async () => { ratePicker.value = '#125689'; ratePicker.dispatchEvent(new dom.Event('input', { bubbles: true })) })
-  assert.equal(rateLine.options().color, '#125689'); assert.equal(rateDots.options().color, '#125689', 'Fed line and its separate native dots update together')
-  await React.act(async () => { ratePicker.value = oldRateColour; ratePicker.dispatchEvent(new dom.Event('change', { bubbles: true })) }); await render({ macro })
+  window.clearTimeout = id => { if (!previewTimers.delete(id)) originalClearTimeout.call(window, id) }
+  const flushColourPreview = async () => {
+    const callbacks = [...previewTimers.values()]; previewTimers.clear()
+    await React.act(async () => { for (const callback of callbacks) callback() }); await paint()
+  }
+  const colourMethods = [rateLine, payrollLine, unemploymentLine, coreLine, headlineLine, rateDots].map(line => ({ line, apply: line.applyOptions, data: line.setData }))
+  let colourApplies = 0, colourDataWrites = 0
+  for (const { line, apply, data } of colourMethods) {
+    line.applyOptions = function (options) { if (line === payrollLine && options.color !== undefined) colourApplies++; return apply.call(this, options) }
+    line.setData = function (...args) { colourDataWrites++; return data.apply(this, args) }
+  }
+  try {
+    picker.focus()
+    const beforeColourWrites = macroPreferenceWrites
+    const inputBurst = async finalColour => React.act(async () => {
+      for (let index = 0; index < 200; index++) { picker.value = `#${(index + 123456).toString(16).padStart(6, '0')}`; picker.dispatchEvent(new dom.Event('input', { bubbles: true })) }
+      picker.value = finalColour; picker.dispatchEvent(new dom.Event('input', { bubbles: true }))
+    })
+    await inputBurst('#1267ab')
+    assert.equal(previewTimers.size, 1, 'Hundreds of native picker inputs schedule one delayed preview')
+    assert.equal(colourApplies, 0); assert.equal(colourDataWrites, 0)
+    assert.equal(macroPreferenceWrites, beforeColourWrites, 'Picker dragging does not save preferences or trigger React chart updates')
+    await flushColourPreview()
+    assert.equal(payrollLine.options().color, '#1267ab')
+    assert.equal(colourApplies, 1, 'One preview tick applies only the latest colour once')
+    assert.equal(colourDataWrites, 0, 'Preview ticks never rebuild or replace plotted data')
+    assert.equal(macroPreferenceWrites, beforeColourWrites)
+    await React.act(async () => { for (const listener of nativeCrosshairListeners) listener({ point: undefined, seriesData: new Map() }) }); await paint()
+    assert.equal(picker.value, '#1267ab', 'Hover updates cannot put the old colour back into the open picker')
+    await render({ macro: { ...macro } })
+    assert.equal(payrollLine.options().color, '#1267ab', 'An unrelated parent refresh preserves the uncommitted colour preview')
+    assert.equal(picker.closest('[data-macro-drawer-category]'), colourSection, 'Preview refreshes never detach the open native picker')
+    colourApplies = 0; colourDataWrites = 0
+    await inputBurst('#3278bc'); await flushColourPreview()
+    assert.equal(colourApplies, 1); assert.equal(colourDataWrites, 0)
+    assert.equal(payrollLine.options().color, '#3278bc')
+    await inputBurst('#4389cd')
+    await React.act(async () => picker.dispatchEvent(new dom.Event('change', { bubbles: true })))
+    assert.equal(previewTimers.size, 0, 'Final confirmation cancels the outstanding preview timer')
+    assert.equal(payrollLine.options().color, '#4389cd', 'Final confirmation applies immediately without waiting for the preview delay')
+    assert.equal(macroPreferenceWrites, beforeColourWrites + 1, 'The entire picker gesture saves exactly once')
+    assert.equal(colourDataWrites, 0)
+    await React.act(async () => picker.dispatchEvent(new dom.Event('change', { bubbles: true })))
+    assert.equal(macroPreferenceWrites, beforeColourWrites + 1, 'A duplicate final event does not save again')
+    await render({ macro })
+    assert.equal(picker.closest('[data-macro-drawer-category]'), colourSection)
+    await React.act(async () => colourHeader.click()); await render({ macro })
+    assert.equal(macro.preferences.series.payrolls.color, '#4389cd', 'Category actions cannot restore a stale colour snapshot')
+    await React.act(async () => host.querySelector('[aria-label="Expand Labor"]').click()); await render({ macro })
+    await selectAxis(colourAxis)
+    await React.act(async () => { picker.value = oldColour; picker.dispatchEvent(new dom.Event('change', { bubbles: true })) }); await render({ macro })
+    const ratePicker = host.querySelector('[data-macro-row="rate"] input[type="color"]'), oldRateColour = macro.preferences.series.rate.color
+    const beforeRatePreviewWrites = macroPreferenceWrites
+    await React.act(async () => { ratePicker.value = '#125689'; ratePicker.dispatchEvent(new dom.Event('input', { bubbles: true })) })
+    assert.equal(rateLine.options().color, oldRateColour)
+    await flushColourPreview()
+    assert.equal(rateLine.options().color, '#125689'); assert.equal(rateDots.options().color, '#125689', 'Fed line and separate native dots share the preview tick')
+    assert.equal(macroPreferenceWrites, beforeRatePreviewWrites)
+    await React.act(async () => { ratePicker.value = oldRateColour; ratePicker.dispatchEvent(new dom.Event('change', { bubbles: true })) }); await render({ macro })
+    assert.equal(rateLine.options().color, oldRateColour); assert.equal(rateDots.options().color, oldRateColour)
+    assert.equal(macroPreferenceWrites, beforeRatePreviewWrites, 'Returning to the saved colour discards the preview without a preference write')
+    assert.equal(previewTimers.size, 0)
+  } finally {
+    window.setTimeout = originalTimeout; window.clearTimeout = originalClearTimeout
+    for (const { line, apply, data } of colourMethods) { line.applyOptions = apply; line.setData = data }
+  }
   host.querySelector('.macro-series-drawer').dispatchEvent(new dom.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
   assert.equal(host.querySelector('.macro-series-drawer').hidden, true)
   assert.equal(document.activeElement, seriesDrawerButton)

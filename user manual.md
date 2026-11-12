@@ -83,8 +83,10 @@ Open the gear and use **Inputs**:
 readout only. An explicitly saved unticked choice stays unticked.
 **Series** opens a drawer from the pane's right edge. Eye/F/N controls are aligned
 in fixed columns there, with a colour circle to the right of N. Click the circle
-to change the series colour. Changes update the line, dots and forecasts live
-while the native picker stays open. Event names and controls live only in the drawer.
+to change the series colour. Previews update the line, dots and forecasts
+with a small 80 ms interval to keep the picker responsive. The final colour is
+applied immediately and saved when you finish (confirmation or leaving the
+picker), rather than saving every drag sample. Event names and controls live only in the drawer.
 The top **All series** eye/F/N row toggles the selected events together, including
 collapsed categories. If any are on, a click turns them all off; the next turns
 them all on. Unticked currencies keep their saved settings. Close the drawer with ×, Escape
