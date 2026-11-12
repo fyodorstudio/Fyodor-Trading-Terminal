@@ -195,8 +195,13 @@ in the drawer; number labels remain above the dots when N is enabled.
 The top All series eye/F/N row toggles all selected events together, including
 collapsed categories. Mixed states switch everything off; the next click switches
 everything on. Unticked currencies keep their saved settings. Close or Escape dismisses
-the drawer without resizing the chart. **Fit all lanes** and the spacing slider
-are available in the drawer; lane offset and spacing are saved per symbol. **Hide Legend** in Inputs hides only
+the drawer without resizing the chart. Wheel anywhere over the popover to scroll
+its event list; hold the Series title to move the window within the chart.
+The category arrow and name form one collapse/expand button (drag it to reorder).
+With Lane view on and the lock off, select an event name, then drag the plot to
+place that straight line freely without moving its peers or numerical scale.
+**Fit all lanes** restores the category arrangement and fits it into the pane.
+Lane offset, spacing and individual line placements are saved per symbol. **Hide Legend** in Inputs hides only
 the value/release readout. Category names, assignments and event lists are shared;
 category order, row order, collapsed state, lane mode and Hide Legend save per symbol.
 Create/rename/reorder/delete categories in Inputs; deletion moves events to

@@ -99,7 +99,10 @@ export function readMacroPreferences(symbol = 'USDX'): MacroPreferences {
       categoryOrder: Array.isArray(profile.layout.categoryOrder) ? profile.layout.categoryOrder : [],
       collapsed: Array.isArray(profile.layout.collapsed) ? profile.layout.collapsed : [], rowOrder: Array.isArray(profile.layout.rowOrder) ? profile.layout.rowOrder : [],
       ...(Number.isFinite(profile.layout.laneOffset) ? { laneOffset: Math.max(-100000, Math.min(100000, profile.layout.laneOffset!)) } : {}),
-      ...(Number.isFinite(profile.layout.laneSpacing) ? { laneSpacing: Math.max(0.1, Math.min(120, profile.layout.laneSpacing!)) } : {}) } } : {}) }
+      ...(Number.isFinite(profile.layout.laneSpacing) ? { laneSpacing: Math.max(0.1, Math.min(120, profile.layout.laneSpacing!)) } : {}),
+      ...(profile.layout.rowOffsets && typeof profile.layout.rowOffsets === 'object' && !Array.isArray(profile.layout.rowOffsets)
+        ? { rowOffsets: Object.fromEntries(Object.entries(profile.layout.rowOffsets).filter(([key, value]) => macroCatalog[key] && Number.isFinite(value))
+          .map(([key, value]) => [key, Math.max(-100000, Math.min(100000, value))])) } : {}) } } : {}) }
 }
 export function saveMacroPreferences(value: MacroPreferences, symbol = 'USDX') {
   try {

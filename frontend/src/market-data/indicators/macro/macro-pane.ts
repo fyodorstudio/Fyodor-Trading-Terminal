@@ -41,7 +41,7 @@ export function createMacroPane(chart: IChartApi) {
     const axisButton = document.createElement('button'); axisButton.type = 'button'; axisButton.className = 'macro-metric-axis'
     axisButton.textContent = label.startsWith(`${macroCatalog[key].currency} · `) ? label : `${macroCatalog[key].currency} · ${label}`; axisButton.dataset.macroAxis = key
     axisButton.setAttribute('aria-label', `Select ${label} axis`)
-    axisButton.title = `Resize ${label} on the right axis; select to reveal it if hidden.`
+    axisButton.title = `Select ${label}, then drag the plot to move it. In lane view it can be placed freely; dragging the name reorders its category row.`
     axisButton.onclick = () => selectMetric(key)
     const eyeButton = document.createElement('button'); eyeButton.type = 'button'; eyeButton.className = 'macro-visibility-button'
     eyeButton.dataset.macroVisibility = key
@@ -147,7 +147,7 @@ export function createMacroPane(chart: IChartApi) {
   seriesButton.setAttribute('aria-controls', laneControls.drawerId)
   laneControls.setRows(metricControls)
   const inPane = (event: Event) => event.target instanceof Node && pane.getHTMLElement()?.contains(event.target)
-  const groupDrag = (event: PointerEvent) => { if (linked && laneMode && inPane(event)) laneControls.startGroupDrag(event) }
+  const groupDrag = (event: PointerEvent) => { if (laneMode && inPane(event)) laneControls.startPlotDrag(event, linked) }
   const groupZoom = (event: WheelEvent) => { if (linked && laneMode && inPane(event)) laneControls.zoomAll(event) }
   chart.chartElement().addEventListener('pointerdown', groupDrag, true)
   chart.chartElement().addEventListener('wheel', groupZoom, { capture: true, passive: false })

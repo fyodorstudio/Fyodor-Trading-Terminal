@@ -755,6 +755,24 @@ try {
     const input = host.querySelector(`[data-macro-row="${key}"] input[type="color"]`)
     assert.equal(input.previousElementSibling.dataset.macroNumbers, key, 'The colour circle follows N in every drawer row')
   }
+  const seriesDrawer = host.querySelector('.macro-series-drawer'), seriesBody = host.querySelector('.macro-drawer-body')
+  Object.defineProperty(seriesBody, 'scrollHeight', { configurable: true, value: 900 })
+  Object.defineProperty(seriesBody, 'clientHeight', { configurable: true, value: 120 })
+  const drawerRanges = () => macroPane.getSeries().map(line => macroPane.priceScale(line.options().priceScaleId).getVisibleRange())
+  const beforeDrawerRanges = drawerRanges()
+  const drawerWheel = new dom.WheelEvent('wheel', { bubbles: true, cancelable: true, deltaY: 80 })
+  await React.act(async () => seriesBody.dispatchEvent(drawerWheel)); await paint()
+  assert.equal(seriesBody.scrollTop, 80)
+  assert.equal(drawerWheel.defaultPrevented, true)
+  assert.deepEqual(chart.timeScale().getVisibleLogicalRange(), drawerWindow)
+  assert.deepEqual(drawerRanges(), beforeDrawerRanges, 'Scrolling the Series window never moves native axes')
+  const drawerTitle = host.querySelector('[aria-label="Move MFDI series window"]'), beforeDrawerLeft = parseFloat(seriesDrawer.style.left)
+  await React.act(async () => drawerTitle.dispatchEvent(new dom.PointerEvent('pointerdown', { bubbles: true, cancelable: true, button: 0, clientX: 700, clientY: 100, pointerId: 1 })))
+  await React.act(async () => window.dispatchEvent(new dom.PointerEvent('pointermove', { clientX: 660, clientY: 110, pointerId: 1 })))
+  await React.act(async () => window.dispatchEvent(new dom.PointerEvent('pointerup', { clientX: 660, clientY: 110, pointerId: 1 }))); await paint()
+  assert.equal(parseFloat(seriesDrawer.style.left), beforeDrawerLeft - 40, 'The title moves the popover instead of the plot')
+  assert.deepEqual(chart.timeScale().getVisibleLogicalRange(), drawerWindow)
+  assert.deepEqual(drawerRanges(), beforeDrawerRanges)
   const universalStyles = macro.preferences.series
   for (const [kind, field, slash] of [['visibility', 'visible', 'eye'], ['forecast', 'forecastVisible', 'forecast'], ['numbers', 'numbersVisible', 'numbers']]) {
     macro = { ...macro, preferences: { ...macro.preferences, series: { ...macro.preferences.series, rate: { ...macro.preferences.series.rate, [field]: true } } } }; await render({ macro })
@@ -1151,7 +1169,7 @@ try {
   }
   await React.act(async () => seriesDrawerButton.click()); await paint()
   laneDots.length = 0
-  await React.act(async () => host.querySelector('[aria-label="Collapse Labor"]').click()); await paint()
+  await React.act(async () => host.querySelector('[aria-label="Collapse Labor"] span:last-child').click()); await paint()
   assert.equal(laneDots.filter(dot => dot.color === macro.preferences.series.payrolls.color).length, 0, 'Collapsed categories hide their actual dots')
   await React.act(async () => host.querySelector('[aria-label="Expand Labor"]').click()); await paint()
   const payrollLane = laneDots.find(dot => dot.color === macro.preferences.series.payrolls.color)
@@ -1160,6 +1178,20 @@ try {
   assert.equal(inspectedReleases.length, selectedBeforeLaneClick + 1, 'Straight-lane dots remain selectable')
   assert.equal(inspectedReleases.at(-1).value, -120, 'Lane hit testing retains the real actual value')
   assert.deepEqual(macroPane.getSeries().map(line => line.data()), beforeFlatData, 'Lane mode never changes numeric values or dates')
+  await selectAxis('payrolls'); await paint()
+  laneDots.length = 0; await React.act(async () => chart.applyOptions({})); await paint()
+  const beforeSoloPayroll = laneDots.find(dot => dot.color === macro.preferences.series.payrolls.color).y
+  const beforeSoloRate = laneDots.find(dot => dot.color === macro.preferences.series.rate.color).y
+  const soloRanges = fixedRanges(), soloDates = chart.timeScale().getVisibleLogicalRange()
+  laneDots.length = 0
+  await React.act(async () => macroPane.getHTMLElement().dispatchEvent(new dom.PointerEvent('pointerdown', { bubbles: true, button: 0, clientY: 100, pointerId: 1 })))
+  await React.act(async () => window.dispatchEvent(new dom.PointerEvent('pointermove', { clientY: 117, pointerId: 1 }))); await paint()
+  await React.act(async () => window.dispatchEvent(new dom.PointerEvent('pointerup', { clientY: 117, pointerId: 1 }))); await paint()
+  assert.equal(macro.preferences.layout.rowOffsets.payrolls, 17, 'Unlocked plot dragging freely places the selected event in lane view')
+  close(laneDots.filter(dot => dot.color === macro.preferences.series.payrolls.color).at(-1).y, beforeSoloPayroll + 17, 'Only the selected flat line moves')
+  close(laneDots.filter(dot => dot.color === macro.preferences.series.rate.color).at(-1).y, beforeSoloRate, 'Other straight lines retain their positions')
+  assert.deepEqual(fixedRanges(), soloRanges, 'Free lane movement preserves the numerical scales for leaving lane view')
+  assert.deepEqual(chart.timeScale().getVisibleLogicalRange(), soloDates)
   await React.act(async () => lockAxes.click()); await paint()
   const nativeBeforeLaneMove = fixedRanges()
   laneDots.length = 0; await React.act(async () => chart.applyOptions({})); await paint()

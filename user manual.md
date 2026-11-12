@@ -86,13 +86,17 @@ to change the series colour. Event names and controls live only in the drawer.
 The top **All series** eye/F/N row toggles the selected events together, including
 collapsed categories. If any are on, a click turns them all off; the next turns
 them all on. Unticked currencies keep their saved settings. Close the drawer with ×, Escape
-or Series. Opening it does not resize the chart or change its zoom.
+or Series. Opening it does not resize the chart or change its zoom. Scroll with
+the wheel anywhere over the window. Hold its **Series** title to move it around
+the chart (or focus the title and use arrow keys); closing/reopening retains
+that window position while the pane stays open.
 
 Inputs also lets you create, rename, reorder and delete categories. Use each event's
 category selector, or drag its name in the Series drawer into a category in Lane view. Rows snap
 into the category; drag within a category to change their order. Drag a category
-header to move all its rows together. Use the category arrow in the Series drawer
-to collapse/expand it.
+header to move all its rows together. Click anywhere on its arrow/name button
+to collapse/expand it. In numerical view this folds the drawer list; in Lane view
+it also hides the category lanes.
 Deleting a category keeps its events under Uncategorized. The scrollbar reveals
 additional lanes. Membership follows the saved currency event lists; category/row
 order, collapse, Lane view and Hide Legend are saved separately for each symbol.
@@ -114,8 +118,12 @@ Each event has its own scale, including separate Headline and Core CPI scales:
   the group in numerical view. In Lane view, drag the plot to move all rows
   vertically together; the wheel adjusts spacing around the pointer. Unlock to
   stop linked plot gestures. Hover and dot selection still work.
-- In the Series drawer, **Fit all lanes** brings expanded rows into view, and
-  **Lane spacing** adjusts their spacing. Offset and spacing survive refresh per symbol.
+- With Lane view on and the lock off, click an event name in Series, then drag
+  the plot to place that line freely. Other lines stay put; original numerical
+  scales are retained. Dragging a name into a category restores its row position.
+- In the Series drawer, **Fit all lanes** restores the category arrangement and
+  brings expanded rows into view; **Lane spacing** adjusts their spacing.
+  Group offset, spacing and individual placements survive refresh per symbol.
 - The **three-line button** switches to perfectly straight category lanes.
   Vertical position identifies the event row; values and dates are unchanged.
   Click again to return to the numerical plot.

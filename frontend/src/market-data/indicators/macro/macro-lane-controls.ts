@@ -1,5 +1,5 @@
 import { macroLanes, macroLayout, moveMacroCategory, moveMacroRow, patchMacroLayout } from './macro-layout'
-import { toggleMacroAll, type MacroPreferences } from './macro-preferences'
+import { macroAxis, macroMetricVisible, toggleMacroAll, type MacroPreferences } from './macro-preferences'
 
 type Row = { key: string; item: HTMLElement; axisButton: HTMLButtonElement }
 let drawerSequence = 0
@@ -10,7 +10,8 @@ export function createMacroLaneControls(element: HTMLElement, redraw: () => void
   drawer.id = `mfdi-series-${++drawerSequence}`
   drawer.setAttribute('aria-label', 'MFDI series drawer')
   const drawerHeader = document.createElement('div'); drawerHeader.className = 'macro-drawer-header'
-  const title = document.createElement('strong'); title.textContent = 'Series'
+  const title = document.createElement('button'); title.type = 'button'; title.textContent = 'Series'; title.className = 'macro-drawer-title'
+  title.setAttribute('aria-label', 'Move MFDI series window'); title.title = 'Drag to move this window; arrow keys also move it'
   const close = document.createElement('button'); close.type = 'button'; close.textContent = '×'; close.setAttribute('aria-label', 'Close MFDI series drawer')
   const fit = document.createElement('button'); fit.type = 'button'; fit.textContent = 'Fit all lanes'; fit.setAttribute('aria-label', 'Fit all MFDI lanes')
   const spacing = document.createElement('input'); spacing.type = 'range'; spacing.min = '6'; spacing.max = '120'; spacing.step = '1'; spacing.setAttribute('aria-label', 'MFDI lane spacing')
@@ -23,24 +24,35 @@ export function createMacroLaneControls(element: HTMLElement, redraw: () => void
   const spacer = document.createElement('div'); scroll.append(spacer); element.append(layer, scroll)
   let rows: Row[] = [], preferences: MacroPreferences | undefined, geometry: ReturnType<typeof macroLanes> = { groups: [], height: 0 }
   let top = 0, available = 0, scrollY = 0, open = false
-  let drag: { kind: 'row' | 'category' | 'all'; id: string; start: number; delta: number; origin: HTMLElement | null } | null = null
+  let drag: { kind: 'row' | 'category' | 'all' | 'selected'; id: string; start: number; delta: number; origin: HTMLElement | null } | null = null
   let cancelDrag = () => {}
   let suppressClick: HTMLElement | null = null
+  let windowPoint: { x: number; y: number } | null = null, windowDragging = false
+  let viewportWidth = 0, viewportHeight = 0, drawerWidth = 0, defaultLeft = 0, defaultTop = 0
+  let cancelWindowDrag = () => {}
+  const placeWindow = () => {
+    const point = windowPoint ?? { x: defaultLeft, y: defaultTop }
+    const x = Math.max(0, Math.min(point.x, viewportWidth - drawerWidth))
+    const y = Math.max(0, Math.min(point.y, viewportHeight - Math.min(drawer.offsetHeight || 40, viewportHeight)))
+    drawer.style.left = `${x}px`; drawer.style.top = `${y}px`
+    if (windowPoint) windowPoint = { x, y }
+  }
   const request = () => { positionRows(); redraw() }
-  const delta = (key: string) => drag?.kind === 'all' ? drag.delta : drag?.kind === 'row' ? drag.id === key ? drag.delta : 0
+  const delta = (key: string) => drag?.kind === 'all' ? drag.delta : drag?.kind === 'row' || drag?.kind === 'selected' ? drag.id === key ? drag.delta : 0
     : drag?.kind === 'category' && geometry.groups.find(group => group.id === drag!.id)?.keys.includes(key) ? drag.delta : 0
   const y = (key: string): number | null => {
     const row = geometry.groups.flatMap(group => group.rows).find(row => row.key === key)
-    return row ? top + (macroLayout(preferences!).laneOffset ?? 0) + row.y - scrollY + delta(key) : null
+    const layout = preferences && macroLayout(preferences)
+    return row ? top + (layout?.laneOffset ?? 0) + row.y + (layout?.rowOffsets?.[key] ?? 0) - scrollY + delta(key) : null
   }
   function positionRows() {
-    if (!preferences || !macroLayout(preferences).laneMode) return
+    if (!preferences) return
     for (const row of rows) row.item.style.display = y(row.key) === null ? 'none' : 'flex'
 
   }
-  const start = (event: PointerEvent, kind: 'row' | 'category' | 'all', id: string) => {
+  const start = (event: PointerEvent, kind: 'row' | 'category' | 'all' | 'selected', id: string) => {
     if (event.button !== 0 || !preferences || !macroLayout(preferences).laneMode) return
-    if (kind !== 'all') event.stopPropagation()
+    if (kind === 'row' || kind === 'category') event.stopPropagation()
     cancelDrag()
     drag = { kind, id, start: event.clientY, delta: 0, origin: event.currentTarget instanceof HTMLElement ? event.currentTarget : null }
     const move = (event: PointerEvent) => { if (drag) { drag.delta = event.clientY - drag.start; request() } }
@@ -51,10 +63,14 @@ export function createMacroLaneControls(element: HTMLElement, redraw: () => void
       const moved = Math.abs(state.delta) > 3
       cancelDrag()
       if (!moved) return
-      suppressClick = state.kind === 'all' ? null : state.origin
+      suppressClick = state.kind === 'all' || state.kind === 'selected' ? null : state.origin
       const bounds = drawer.getBoundingClientRect()
       const inDrawer = open && event.clientX >= bounds.left && event.clientX <= bounds.right && event.clientY >= bounds.top && event.clientY <= bounds.bottom && bounds.width > 0
       if (state.kind === 'all') { change(patchMacroLayout(current, { laneOffset: (macroLayout(current).laneOffset ?? 0) + state.delta })) }
+      else if (state.kind === 'selected') {
+        const offsets = macroLayout(current).rowOffsets ?? {}
+        change(patchMacroLayout(current, { rowOffsets: { ...offsets, [state.id]: (offsets[state.id] ?? 0) + state.delta } }))
+      }
       else if (state.kind === 'category') {
         const before = geometry.groups.filter(group => group.id !== state.id).find(group => {
           const rect = drawerGroups.get(group.id)?.getBoundingClientRect()
@@ -82,6 +98,34 @@ export function createMacroLaneControls(element: HTMLElement, redraw: () => void
     window.addEventListener('pointercancel', cancel); window.addEventListener('keydown', key)
   }
   scroll.addEventListener('scroll', () => { scrollY = scroll.scrollTop; request() })
+  drawer.addEventListener('wheel', event => {
+    event.stopPropagation(); event.preventDefault()
+    const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? drawerBody.clientHeight : 1
+    drawerBody.scrollTop = Math.max(0, Math.min(drawerBody.scrollHeight - drawerBody.clientHeight, drawerBody.scrollTop + event.deltaY * unit))
+  }, { passive: false })
+  title.onpointerdown = event => {
+    if (event.button !== 0) return
+    event.preventDefault(); event.stopPropagation(); cancelDrag(); cancelWindowDrag()
+    const original = windowPoint, x = parseFloat(drawer.style.left), y = parseFloat(drawer.style.top)
+    windowDragging = true
+    const move = (next: PointerEvent) => { windowPoint = { x: x + next.clientX - event.clientX, y: y + next.clientY - event.clientY }; placeWindow() }
+    const finish = () => cleanup()
+    const cancel = () => { windowPoint = original; cleanup(); placeWindow() }
+    const key = (next: KeyboardEvent) => { if (next.key === 'Escape') cancel() }
+    const cleanup = () => {
+      windowDragging = false; window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', finish)
+      window.removeEventListener('pointercancel', cancel); window.removeEventListener('keydown', key); cancelWindowDrag = () => {}
+    }
+    cancelWindowDrag = cancel
+    window.addEventListener('pointermove', move); window.addEventListener('pointerup', finish)
+    window.addEventListener('pointercancel', cancel); window.addEventListener('keydown', key)
+  }
+  title.onkeydown = event => {
+    const direction = ({ ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] } as Record<string, number[]>)[event.key]
+    if (!direction) return
+    event.preventDefault(); event.stopPropagation()
+    windowPoint = { x: parseFloat(drawer.style.left) + direction[0] * 10, y: parseFloat(drawer.style.top) + direction[1] * 10 }; placeWindow()
+  }
   for (const root of [layer, drawer]) {
     root.addEventListener('pointerdown', () => { suppressClick = null }, true)
     root.addEventListener('keydown', () => { suppressClick = null }, true)
@@ -95,14 +139,16 @@ export function createMacroLaneControls(element: HTMLElement, redraw: () => void
     scroll.scrollTop = scrollY; request()
   }, { passive: false })
   const toggleDrawer = (value = !open) => {
+    if (!value) cancelWindowDrag()
     open = value; drawer.hidden = !open; options.drawerChanged?.(open)
-    if (open) close.focus()
+    if (open) { placeWindow(); close.focus() }
   }
   close.onclick = () => toggleDrawer(false)
   const escape = (event: KeyboardEvent) => {
     if (event.key !== 'Escape' || !open) return
     event.stopPropagation()
-    if (drag) cancelDrag()
+    if (windowDragging) cancelWindowDrag()
+    else if (drag) cancelDrag()
     else toggleDrawer(false)
   }
   element.addEventListener('keydown', escape)
@@ -110,13 +156,18 @@ export function createMacroLaneControls(element: HTMLElement, redraw: () => void
     if (!preferences || !macroLayout(preferences).laneMode || !geometry.height) return
     const unit = geometry.height / (macroLayout(preferences).laneSpacing ?? 28)
     scrollY = 0; scroll.scrollTop = 0
-    change(patchMacroLayout(preferences, { laneOffset: 0, laneSpacing: Math.max(0.1, Math.min(120, (available - 8) / unit)) }))
+    change(patchMacroLayout(preferences, { laneOffset: 0, rowOffsets: {}, laneSpacing: Math.max(0.1, Math.min(120, (available - 8) / unit)) }))
   }
   fit.onclick = fitAll
   spacing.oninput = () => { if (preferences) change(patchMacroLayout(preferences, { laneSpacing: Number(spacing.value) })) }
   return {
     y, toggleDrawer, fitAll, drawerId: drawer.id,
-    startGroupDrag: (event: PointerEvent) => start(event, 'all', 'all'),
+    startPlotDrag(event: PointerEvent, linked: boolean) {
+      if (!preferences) return
+      const key = macroAxis(preferences)
+      if (linked) start(event, 'all', 'all')
+      else if (macroMetricVisible(preferences, key) && y(key) !== null) start(event, 'selected', key)
+    },
     zoomAll(event: WheelEvent) {
       if (!preferences || !macroLayout(preferences).laneMode) return
       event.preventDefault(); event.stopPropagation()
@@ -124,7 +175,8 @@ export function createMacroLaneControls(element: HTMLElement, redraw: () => void
       const next = Math.max(0.1, Math.min(120, old * Math.exp(-event.deltaY * 0.002)))
       const pointer = Number.isFinite(event.clientY) ? event.clientY - layer.getBoundingClientRect().top : available / 2
       const anchor = pointer + scrollY
-      change(patchMacroLayout(preferences, { laneSpacing: next, laneOffset: anchor - (anchor - (layout.laneOffset ?? 0)) * next / old }))
+      change(patchMacroLayout(preferences, { laneSpacing: next, laneOffset: anchor - (anchor - (layout.laneOffset ?? 0)) * next / old,
+        rowOffsets: Object.fromEntries(Object.entries(layout.rowOffsets ?? {}).map(([key, value]) => [key, value * next / old])) }))
     },
     setRows(next: Row[]) {
       rows = next
@@ -149,8 +201,9 @@ export function createMacroLaneControls(element: HTMLElement, redraw: () => void
       top = inset; available = Math.max(0, height - top)
       layer.style.top = `${offset + top}px`; layer.style.width = `${Math.max(0, width - 24)}px`; layer.style.height = `${available}px`
       scroll.style.top = layer.style.top; scroll.style.left = `${Math.max(0, width - 14)}px`; scroll.style.height = layer.style.height
-      const drawerWidth = Math.max(0, Math.min(400, width - 20))
-      drawer.style.top = `${offset + 4}px`; drawer.style.left = `${Math.max(8, width - drawerWidth)}px`; drawer.style.width = `${drawerWidth}px`; drawer.style.maxHeight = `${Math.max(40, height - 8)}px`
+      viewportWidth = element.clientWidth || width; viewportHeight = element.clientHeight || offset + height
+      drawerWidth = Math.max(0, Math.min(400, viewportWidth - 20)); defaultLeft = Math.max(8, width - drawerWidth); defaultTop = offset + 4
+      drawer.style.width = `${drawerWidth}px`; drawer.style.maxHeight = `${Math.max(40, Math.min(height, viewportHeight) - 8)}px`; placeWindow()
       spacingLabel.hidden = !macroLayout(next).laneMode; fit.disabled = !macroLayout(next).laneMode
       spacing.value = String(macroLayout(next).laneSpacing ?? 28)
       const lanes = macroLayout(next).laneMode
@@ -168,16 +221,18 @@ export function createMacroLaneControls(element: HTMLElement, redraw: () => void
         drawerBody.replaceChildren(universal)
         drawerGroups.clear()
         for (const group of geometry.groups) {
-          const collapse = document.createElement('button'); collapse.type = 'button'; collapse.textContent = group.collapsed ? '▸' : '▾'
+          const collapse = document.createElement('button'); collapse.type = 'button'
+          const arrow = document.createElement('span'); arrow.setAttribute('aria-hidden', 'true'); arrow.textContent = group.collapsed ? '▸' : '▾'
+          const label = document.createElement('span'); label.textContent = `${group.label} (${group.keys.length})`; collapse.append(arrow, label)
           collapse.setAttribute('aria-label', `${group.collapsed ? 'Expand' : 'Collapse'} ${group.label}`)
           collapse.setAttribute('aria-expanded', String(!group.collapsed))
           collapse.onclick = () => change(patchMacroLayout(next, { collapsed: group.collapsed
             ? macroLayout(next).collapsed.filter(id => id !== group.id) : [...macroLayout(next).collapsed, group.id] }))
-          const label = document.createElement('button'); label.type = 'button'; label.textContent = `${group.label} (${group.keys.length})`
-          label.setAttribute('aria-label', `Drag category ${group.label}`); label.onpointerdown = event => start(event, 'category', group.id)
+          collapse.title = 'Click to collapse or expand; drag to reorder this category'
+          collapse.onpointerdown = event => start(event, 'category', group.id)
           const section = document.createElement('section'); section.dataset.macroDrawerCategory = group.id
           const drawerHeading = document.createElement('div'); drawerHeading.className = 'macro-drawer-category'
-          drawerHeading.append(collapse, label); section.append(drawerHeading)
+          drawerHeading.append(collapse); section.append(drawerHeading)
           for (const key of group.keys) { const row = rows.find(row => row.key === key); if (row) section.append(row.item) }
           drawerBody.append(section); drawerGroups.set(group.id, section)
         }
@@ -187,9 +242,8 @@ export function createMacroLaneControls(element: HTMLElement, redraw: () => void
       }
       scroll.hidden = !lanes || geometry.height <= available; spacer.style.height = `${geometry.height}px`
       scrollY = Math.max(0, Math.min(scrollY, geometry.height - available)); scroll.scrollTop = scrollY
-      if (lanes) positionRows()
-      else for (const row of rows) row.item.style.display = 'flex'
+      positionRows()
     },
-    destroy() { cancelDrag(); element.removeEventListener('keydown', escape); layer.remove(); scroll.remove(); drawer.remove() },
+    destroy() { cancelWindowDrag(); cancelDrag(); element.removeEventListener('keydown', escape); layer.remove(); scroll.remove(); drawer.remove() },
   }
 }
