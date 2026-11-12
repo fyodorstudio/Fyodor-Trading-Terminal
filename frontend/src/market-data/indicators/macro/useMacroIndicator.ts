@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useStoredCalendar } from '../../../economic-calendar/storage/useStoredCalendar'
 import { macroMetrics, macroHistory, macroUpcoming, supportsMacro, type MacroIndicator } from './macro-data'
 import { readMacroPreferences, saveMacroPreferences, selectedMacroMetrics, type MacroPreferences } from './macro-preferences'
@@ -6,11 +6,10 @@ import { macroCatalog } from './macro-catalog'
 import { useFedForecasts } from './useFedForecasts'
 
 export function useMacroIndicator(symbol: string, brokerId: string | null) {
-  const saved = useMemo(() => readMacroPreferences(symbol), [symbol])
-  const [current, setPreferences] = useState(() => ({ symbol, preferences: saved }))
-  const macroPreferences = current.symbol === symbol ? current.preferences : saved
+  const [macroPreferences, setPreferences] = useState(() => readMacroPreferences(symbol))
+  useEffect(() => { saveMacroPreferences(macroPreferences) }, [macroPreferences])
   const [macroSettingsOpen, setMacroSettingsOpen] = useState(false)
-  const changeMacro = useCallback((next: MacroPreferences) => { saveMacroPreferences(next, symbol); setPreferences({ symbol, preferences: next }) }, [symbol])
+  const changeMacro = useCallback((next: MacroPreferences) => { setPreferences(next) }, [])
   const toggleMacro = useCallback(() => changeMacro({ ...macroPreferences, enabled: !macroPreferences.enabled }), [changeMacro, macroPreferences])
   const selection = selectedMacroMetrics(macroPreferences).join('|')
   const keys = useMemo(() => selection ? selection.split('|') : [], [selection])

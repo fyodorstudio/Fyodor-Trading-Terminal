@@ -1446,6 +1446,9 @@ try {
   assert.equal(lockAxes.getAttribute('aria-label'), 'Unlink MFDI axes')
   assert.equal(fitAll.disabled, false, 'Linked axes remain adjustable')
   assert.equal(host.querySelectorAll('.macro-metric-axis[aria-pressed="true"]').length, 5, 'Linking selects all visible series')
+  assert.equal(host.querySelector('.macro-series-drawer').dataset.macroLinked, 'true', 'Linked movement disables visual selection highlights without changing what moves')
+  for (const button of host.querySelectorAll('.macro-metric-axis')) assert.equal(button.matches('.macro-series-drawer[data-macro-linked="false"] .macro-metric-axis[aria-pressed="true"]'), false)
+  assert.ok([...host.querySelectorAll('.macro-drawer-category button')].every(button => button.getAttribute('aria-pressed') === 'false'))
   const nativeNavigation = structuredClone({ handleScale: chart.options().handleScale, handleScroll: chart.options().handleScroll })
   const paneElement = macroPane.getHTMLElement()
   const wheel = new dom.WheelEvent('wheel', { bubbles: true, cancelable: true })
@@ -1519,8 +1522,15 @@ try {
   assert.equal(host.querySelector('.macro-legend'), null)
   await render({ macro })
   assert.equal(chart.panes().length, 4)
+  const sharedDrawerAcrossPairs = host.querySelector('.macro-series-drawer'), sharedRowsAcrossPairs = [...host.querySelectorAll('[data-macro-row]')]
+  await React.act(async () => host.querySelector('button[aria-label="MFDI series drawer"]').click()); await paint()
+  const sharedLinkAcrossPairs = host.querySelector('.macro-lock-button[aria-pressed]').getAttribute('aria-pressed')
   await render({ symbol: 'EURUSD', fitContentKey: 'EURUSD:H1' })
   assert.equal(chart.panes().length, 4, 'MFDI is available on FX pairs as well as indices')
+  assert.equal(host.querySelector('.macro-series-drawer'), sharedDrawerAcrossPairs, 'Pair changes keep the existing MFDI pane and popover')
+  assert.equal(sharedDrawerAcrossPairs.hidden, false, 'An open popover stays open when changing pairs')
+  assert.deepEqual([...host.querySelectorAll('[data-macro-row]')], sharedRowsAcrossPairs, 'Pair changes preserve the event controls')
+  assert.equal(host.querySelector('.macro-lock-button[aria-pressed]').getAttribute('aria-pressed'), sharedLinkAcrossPairs)
   assert.ok(host.querySelector('.macro-legend'))
   const originalMacro = macro
   macro = { ...macro, preferences: { ...defaultMacroPreferences, enabled: true, currencies: [], eventsByCurrency: {} }, history: {}, status: '' }

@@ -63,8 +63,10 @@ horizontal zoom remain unchanged. Refocus explicitly resets the current view.
 ## MFDI
 
 Click **MFDI** beside Volume and RSI on any chart symbol. Drag its divider to add
-canvas space without stretching the plotted lines. New symbols start with no
-currencies ticked; your existing USDX setup is preserved.
+canvas space without stretching the plotted lines. MFDI uses one universal
+configuration on all symbols, so changing pairs retains visibility, enabled
+currencies, event styles and layout. Migration adopts the current symbol’s saved
+setup and retains the older profiles. A fresh setup has no currencies ticked.
 
 Open the gear and use **Inputs**:
 
@@ -75,9 +77,9 @@ Open the gear and use **Inputs**:
    Tick individual measures to add them. Adding a measure also enables its currency.
 3. Use **− Remove** to remove a measure from that currency's remembered list. Simply
    unticking the currency keeps its event list saved for the next time you tick it.
-4. Click **OK** to save, or **Cancel** to discard the draft. Each symbol remembers
-   its own enabled currencies, selected axis and MFDI on/off choice. Saved currency
-   event lists and styles are shared between symbols, independently of Inspector filters.
+4. Click **OK** to save, or **Cancel** to discard the draft. The same enabled
+   currencies, selected axis, layout and MFDI on/off choice apply to every symbol.
+   Currency event presets remain reusable, independently of Inspector filters.
 
 **Hide Legend** in Inputs is ticked by default and hides the coloured actual/release-time
 readout only. An explicitly saved unticked choice stays unticked.
@@ -105,8 +107,9 @@ category selector, or hold its ✥ handle in the Series drawer and drop it on a
 category in either view. The destination highlights, and the plot stays still
 while dragging. Rows snap into their new category on drop; dragging within a
 category changes their order. Dropping outside the popover cancels. Event names
-select the chart series and do not start category drags. Drag a category header
-to move all its rows together. Click anywhere on its arrow/name button
+select the chart series and do not start category drags. Category headers are
+not draggable; use the up/down category buttons in settings to reorder categories.
+Click anywhere on a category arrow/name button
 to collapse/expand its drawer list and select every child. Plotted lines stay
 visible and keep their positions in both views. With the lock off, drag the plot
 to move the selected category together; click an event name to return to selecting
@@ -117,7 +120,8 @@ your current selection. The selected category is highlighted, including when
 its list is folded.
 Deleting a category keeps its events under Uncategorized. The scrollbar reveals
 additional lanes. Membership follows the saved currency event lists; category/row
-order, collapse, Lane view and Hide Legend are saved separately for each symbol.
+order, collapse, Lane view and Hide Legend use the same shared configuration
+on every symbol.
 
 **Style** changes each selected measure's colour, width, dots, forecasts and numbers.
 **Reset defaults** restores styles and the selected axis, keeping your selected events
@@ -132,7 +136,8 @@ Each event has its own scale, including separate Headline and Core CPI scales:
 - **N** shows/hides actual values above release dots. ↑ and ↓ compare to the previous
   available release. First and unchanged values have no arrow. Event units are retained.
 - **Fit axis** fits the selected scale; **Fit axis all** fits every visible scale.
-- The **lock** links all visible axes, selecting them together. Dragging/scaling moves
+- The **lock** links all visible axes, selecting them together while keeping the
+  Series popover free of persistent selection highlights. Dragging/scaling moves
   the group in numerical view. In Lane view, drag the plot to move all rows
   vertically together. Wheel input scrolls the pane vertically with the lock
   either on or off, without changing spacing or horizontal zoom. Use **Lane
@@ -142,7 +147,7 @@ Each event has its own scale, including separate Headline and Core CPI scales:
   scales are retained. Dropping its ✥ handle into a category restores its row position.
 - In the Series drawer, **Fit all lanes** restores the category arrangement and
   brings expanded rows into view; **Lane spacing** adjusts their spacing.
-  Group offset, spacing and individual placements survive refresh per symbol.
+  Group offset, spacing and individual placements survive refresh across all symbols.
 - The **three-line button** switches to perfectly straight category lanes.
   Vertical position identifies the event row; values and dates are unchanged.
   Click again to return to the numerical plot.

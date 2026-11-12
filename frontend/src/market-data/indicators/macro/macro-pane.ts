@@ -303,6 +303,7 @@ export function createMacroPane(chart: IChartApi) {
     bindAfterPaint()
   }
   const updateLock = () => {
+    laneControls.setLinked(linked)
     lockButton.setAttribute('aria-pressed', String(linked))
     lockButton.setAttribute('aria-label', `${linked ? 'Unlink' : 'Link'} MFDI axes`)
     lockButton.title = laneMode ? (linked ? 'Linked lanes: drag the plot to move all lanes; wheel scrolls vertically. Adjust spacing in Series.' : 'Link all lanes for group dragging. Wheel scrolls vertically; adjust spacing in Series.') : linked ? 'Axes linked: drag and scale all MFDI series together. Click to adjust each independently.' : 'Link all MFDI axes to drag and scale every series together'

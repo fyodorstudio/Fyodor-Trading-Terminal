@@ -87,8 +87,11 @@ try {
   assert.equal(view.macro.forecastHistory.rate[1].value, 4, 'The F curve uses saved primary Fed consensus at the exact release')
   assert.equal(view.macro.forecastHistory.rate[0].value, 999, 'A different release retains its own captured calendar forecast')
   assert.equal(raw.actual, 3.75, 'Raw calendar records are not overwritten')
+  const sharedFedHistory = view.macro.history.rate, pairRequestCount = requests.length
   await React.act(async () => root.render(React.createElement(MacroHarness, { symbol: 'EURUSD' })))
-  assert.equal(view.macro.enabled, false); assert.equal(timers.size, 0)
+  assert.equal(view.macro.enabled, true, 'The universal MFDI stays enabled when changing pairs')
+  assert.equal(view.macro.history.rate, sharedFedHistory)
+  assert.equal(requests.length, pairRequestCount, 'Changing pairs reuses the same saved Fed evidence and calendar snapshot')
   console.log('✓ Fed forecasts: separate survey/market evidence, Beat/Miss/In line, provenance/clock validation, stable local polling, recovery/cancellation, official upper bounds and raw MT5 conflicts')
 } finally {
   await React.act(async () => root.unmount()); await server.close(); await dom.happyDOM.close()

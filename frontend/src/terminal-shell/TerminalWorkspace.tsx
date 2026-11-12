@@ -242,7 +242,7 @@ export function TerminalWorkspace() {
         />
       )}
       {volumeSettingsOpen && <VolumeSettingsDialog preferences={volume} onSave={changeVolume} onClose={closeVolumeSettings} />}
-      {macroSettingsOpen && supportsMacro(activeSymbol) && <MacroSettingsDialog key={activeSymbol} symbol={activeSymbol} preferences={macroPreferences} onSave={changeMacro} onClose={closeMacroSettings} />}
+      {macroSettingsOpen && supportsMacro(activeSymbol) && <MacroSettingsDialog preferences={macroPreferences} onSave={changeMacro} onClose={closeMacroSettings} />}
       {rsiSettingsOpen && <RsiSettingsDialog preferences={rsi} onSave={changeRsi} onClose={closeRsiSettings} />}
       {researchError && <div className="research-range-hint" role="alert">{researchError}<button type="button" onClick={closeResearch}>Close</button></div>}
     </div>

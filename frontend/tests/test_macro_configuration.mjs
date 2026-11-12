@@ -19,6 +19,7 @@ try {
   const { readMacroPreferences, saveMacroPreferences, selectedMacroMetrics, setMacroCurrency, setMacroEvents, defaultMacroPreferences, toggleMacroAll } = await server.ssrLoadModule('./src/market-data/indicators/macro/macro-preferences.ts')
   const { macroHistory, macroUpcoming, macroValue, supportsMacro } = await server.ssrLoadModule('./src/market-data/indicators/macro/macro-data.ts')
   const { majorForexPairs } = await server.ssrLoadModule('./src/economic-calendar/forex/pairs.ts')
+  assert.deepEqual(selectedMacroMetrics(readMacroPreferences('USDX')), [], 'A new shared setup starts with no currencies selected')
   const legacy = { ...defaultMacroPreferences, enabled: true, series: { ...defaultMacroPreferences.series,
     payrolls: { ...defaultMacroPreferences.series.payrolls, color: '#123456', lineWidth: 4, visible: false, numbersVisible: true } } }
   dom.localStorage.setItem('fyodor.indicators.macro.v1', JSON.stringify(legacy))
@@ -29,14 +30,29 @@ try {
   for (const symbol of [...majorForexPairs, 'EURX', 'JPYX', 'XAUUSD', 'BTCUSD', 'CUSTOM-SYMBOL']) {
     assert.ok(supportsMacro(symbol))
     const p = readMacroPreferences(symbol)
-    assert.deepEqual(p.currencies, [], `${symbol}: starts with no enabled currencies`)
-    assert.deepEqual(selectedMacroMetrics(p), [])
+    assert.deepEqual(p, usd, `${symbol}: inherits the same legacy configuration before the universal profile is saved`)
   }
   const find = (currency, name) => Object.entries(macroCatalog).find(([, event]) => event.currency === currency && event.label.toLowerCase().includes(name.toLowerCase()))?.[0]
   const pce = find('USD', 'Core PCE Price Index m/m'), eur = find('EUR', 'm/m'), jpy = find('JPY', 'y/y')
   assert.ok(pce && eur && jpy)
   for (const name of ['Average Hourly Earnings m/m', 'ISM Manufacturing', 'ISM Non-Manufacturing', 'Retail Sales m/m', 'GDP'])
     assert.ok(find('USD', name), `${name} is selectable without a code change`)
+  const archivedProfiles = { USDX: { enabled: true, currencies: ['USD'], axisTarget: 'rate' }, EURUSD: {
+    enabled: false, currencies: ['EUR'], axisTarget: eur, layout: { hideLegend: false, laneMode: true, categoryOrder: [], rowOrder: [eur], collapsed: [], laneOffset: 35, laneSpacing: 40 } } }
+  dom.localStorage.setItem('fyodor.indicators.macro.v2', JSON.stringify({ eventsByCurrency: { USD: Object.keys(defaultMacroPreferences.series), EUR: [eur] }, styles: { ...legacy.series, [eur]: { ...legacy.series.rate, color: '#654321' } }, symbols: archivedProfiles }))
+  const { useMacroIndicator: useMigrationIndicator } = await server.ssrLoadModule('./src/market-data/indicators/macro/useMacroIndicator.ts')
+  let migratedView
+  function MigrationHarness() { const next = useMigrationIndicator('EURUSD', null); React.useLayoutEffect(() => { migratedView = next }, [next]); return null }
+  await React.act(async () => root.render(React.createElement(MigrationHarness)))
+  assert.deepEqual(migratedView.macroPreferences.currencies, ['EUR'], 'Migration adopts the current symbol rather than overwriting it with another profile')
+  assert.equal(migratedView.macroPreferences.layout.laneOffset, 35)
+  assert.equal(migratedView.macroPreferences.series[eur].color, '#654321')
+  const migratedStorage = JSON.parse(dom.localStorage.getItem('fyodor.indicators.macro.v2'))
+  assert.deepEqual(migratedStorage.symbols, archivedProfiles, 'Migration retains the original symbol profiles')
+  assert.deepEqual(migratedStorage.global.currencies, ['EUR'], 'Mounting seeds the shared profile before any pair change or manual save')
+  assert.deepEqual(readMacroPreferences('USDX'), migratedView.macroPreferences)
+  await React.act(async () => root.render(null))
+  dom.localStorage.removeItem('fyodor.indicators.macro.v2')
   usd = setMacroEvents(usd, 'USD', ['rate', pce])
   saveMacroPreferences(usd, 'USDX')
   let metal = setMacroCurrency(readMacroPreferences('XAUUSD'), 'USD', true)
@@ -65,8 +81,8 @@ try {
   metal = setMacroCurrency(readMacroPreferences('XAUUSD'), 'EUR', true)
   assert.ok(selectedMacroMetrics(metal).includes(eur), 'Unticking a currency never deletes its saved events')
   assert.equal(metal.series[eur].color, '#654321')
-  assert.deepEqual(readMacroPreferences('EURUSD').currencies, [], 'Another symbol does not inherit currency ticks')
-  assert.deepEqual(selectedMacroMetrics(setMacroCurrency(readMacroPreferences('EURUSD'), 'JPY', true)), [jpy], 'JPY selections are reusable independently of symbol currencies')
+  assert.deepEqual(readMacroPreferences('EURUSD'), unticked, 'All symbols now share enabled currencies, layout and styles')
+  assert.ok(selectedMacroMetrics(setMacroCurrency(readMacroPreferences('EURUSD'), 'JPY', true)).includes(jpy), 'Currency presets are reusable independently of symbol currencies')
   const at = Date.UTC(2026, 0, 1), definition = macroCatalog[pce]
   const sample = { value_id: 'pce', event_id: definition.eventId, currency: 'USD', country_code: 'US',
     actual: -0.2, forecast: 0, previous: 0.1, impact: 'negative', release_at: at, chart_time_seconds: at / 1000, revision: 0, availability: 'observed', time_mode: 0, unit: 1, multiplier: 0, digits: 2 }
@@ -96,7 +112,10 @@ try {
   const render = () => React.act(async () => root.render(React.createElement(MacroSettingsDialog, { symbol: 'EURUSD', preferences: readMacroPreferences('EURUSD'), onSave: next => { saved = next }, onClose: () => { closed++ } })))
   const button = text => [...host.querySelectorAll('button')].find(node => node.textContent === text)
   const input = label => host.querySelector(`[aria-label="${label}"]`)
+  const beforeDraft = readMacroPreferences('EURUSD')
   await render()
+  assert.match(host.querySelector('header').textContent, /All symbols/)
+  await React.act(async () => input('Show USD events').click())
   await React.act(async () => input('Show USD events').click())
   assert.ok(input(`Remove ${macroCatalog[pce].controlLabel}`), 'Currency tick restores its selected event rows')
   await React.act(async () => button('+ Add events').click())
@@ -109,7 +128,7 @@ try {
   await React.act(async () => input(`Remove ${macroCatalog[pce].controlLabel}`).click())
   assert.equal(input(`Remove ${macroCatalog[pce].controlLabel}`), null)
   assert.equal(saved, null, 'Selector edits remain drafts before OK')
-  assert.deepEqual(readMacroPreferences('EURUSD').currencies, [], 'Drafts do not leak into storage')
+  assert.deepEqual(readMacroPreferences('EURUSD'), beforeDraft, 'Drafts do not leak into the shared configuration')
   await React.act(async () => host.querySelector('form').dispatchEvent(new dom.Event('submit', { bubbles: true, cancelable: true })))
   assert.ok(selectedMacroMetrics(saved).includes(earnings))
   assert.ok(!selectedMacroMetrics(saved).includes(pce))
@@ -120,7 +139,7 @@ try {
 
   // Run the production hook with two event currencies on an unrelated symbol.
   const { useMacroIndicator } = await server.ssrLoadModule('./src/market-data/indicators/macro/useMacroIndicator.ts')
-  let profile = setMacroEvents(setMacroCurrency(readMacroPreferences('BTCUSD'), 'EUR', true), 'EUR', [eur])
+  let profile = setMacroEvents(setMacroCurrency({ ...readMacroPreferences('BTCUSD'), currencies: [] }, 'EUR', true), 'EUR', [eur])
   profile = setMacroEvents(setMacroCurrency(profile, 'JPY', true), 'JPY', [jpy])
   saveMacroPreferences({ ...profile, enabled: true }, 'BTCUSD')
   const requests = []
@@ -142,14 +161,24 @@ try {
   assert.equal(view.macro.history[eur][0].currency, 'EUR')
   assert.equal(view.macro.history[jpy][0].currency, 'JPY')
   assert.equal(view.macro.status, '', 'Successful data has no static source caption')
-  const count = requests.length, snapshot = view.macro.history
-  await React.act(async () => root.render(React.createElement(Harness, { symbol: 'CUSTOM-SYMBOL' })))
-  await React.act(async () => view.toggleMacro())
-  assert.equal(view.macro.enabled, true, 'An arbitrary symbol can open an empty MFDI pane')
+  const count = requests.length, snapshot = view.macro.history, sharedPreferences = view.macroPreferences, sharedChange = view.changeMacro
+  for (const symbol of [...majorForexPairs, 'EURX', 'JPYX', 'XAUUSD', 'CUSTOM-SYMBOL']) {
+    await React.act(async () => root.render(React.createElement(Harness, { symbol })))
+    assert.equal(view.macro.enabled, true)
+    assert.equal(view.macroPreferences, sharedPreferences, 'Changing pairs keeps the exact preferences object intact')
+    assert.equal(view.changeMacro, sharedChange, 'Changing pairs does not replace callbacks')
+    assert.equal(view.macro.history, snapshot, 'Pair changes reuse the captured macro histories')
+    assert.equal(requests.length, count, 'Pair changes do not refetch the same selected calendar')
+    assert.deepEqual(readMacroPreferences(symbol), sharedPreferences)
+  }
+  await React.act(async () => view.changeMacro({ ...view.macroPreferences, currencies: [] }))
   assert.deepEqual(selectedMacroMetrics(view.macroPreferences), [])
-  assert.equal(requests.length, count, 'An enabled pane with no selected currencies performs no calendar requests')
-  assert.notEqual(view.macro.history, snapshot, 'A blank symbol cannot show another symbol\'s data')
-  console.log('✓ MFDI configuration: legacy USDX preservation, every symbol empty by default, reusable currency event memory and styles, exact multi-currency numeric history, selector add/remove/search/draft/save')
+  assert.equal(view.macro.enabled, true)
+  assert.equal(requests.length, count, 'An enabled shared configuration without currencies performs no calendar requests')
+  await React.act(async () => view.toggleMacro())
+  await React.act(async () => root.render(React.createElement(Harness, { symbol: 'EURUSD' })))
+  assert.equal(view.macro.enabled, false, 'Indicator visibility is universal too')
+  console.log('✓ MFDI configuration: legacy USDX preservation, universal configuration across all symbols, reusable currency presets and styles, exact multi-currency numeric history, selector add/remove/search/draft/save')
 } finally {
   await React.act(async () => root.unmount()); await server.close(); await dom.happyDOM.close()
   globalThis.fetch = previousFetch

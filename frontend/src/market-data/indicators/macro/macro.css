@@ -5,7 +5,7 @@
 .macro-control-color { width: 9px; height: 9px; flex: 0 0 9px; border-radius: 50%; }
 .macro-metric-control { display: flex; align-items: stretch; flex: 0 0 auto; border: 1px solid var(--border-strong); border-radius: 6px; overflow: hidden; background: var(--surface-inset); }
 .macro-metric-control button { border: 0; border-radius: 0; background: transparent; }
-.macro-metric-axis[aria-pressed="true"] { box-shadow: inset 0 -2px var(--accent); background: var(--surface-hover); }
+.macro-series-drawer[data-macro-linked="false"] .macro-metric-axis[aria-pressed="true"] { box-shadow: inset 0 -2px var(--accent); background: var(--surface-hover); }
 .macro-metric-control .macro-visibility-button, .macro-metric-control .macro-forecast-button, .macro-metric-control .macro-numbers-button { display: grid; place-items: center; padding: 3px 5px; color: var(--text-muted); }
 .macro-forecast-button[aria-pressed="true"], .macro-numbers-button[aria-pressed="true"] { color: var(--text-strong); }
 .macro-controls button:hover { background: var(--surface-hover); }
@@ -49,8 +49,8 @@
 .macro-drawer-body { flex: 1 1 auto; overflow-y: auto; overscroll-behavior: contain; min-height: 0; padding: 4px 8px 20px; }
 .macro-series-drawer .macro-drawer-resize { position: absolute; right: 0; bottom: 0; display: grid; place-items: center; width: 22px; height: 22px; padding: 0; color: var(--text-muted); background: var(--surface-panel); cursor: nwse-resize; touch-action: none; user-select: none; }
 .macro-drawer-category { display: flex; align-items: center; gap: 4px; padding: 4px 0; color: var(--text-muted); border-bottom: 1px solid var(--border); }
-.macro-drawer-category button { display: flex; align-items: center; gap: 4px; width: 100%; text-align: left; cursor: grab; touch-action: none; }
-.macro-drawer-category button[aria-pressed="true"] { color: var(--accent); background: var(--surface-hover); box-shadow: inset 2px 0 var(--accent); }
+.macro-drawer-category button { display: flex; align-items: center; gap: 4px; width: 100%; text-align: left; }
+.macro-series-drawer[data-macro-linked="false"] .macro-drawer-category button[aria-pressed="true"] { color: var(--accent); background: var(--surface-hover); box-shadow: inset 2px 0 var(--accent); }
 .macro-series-drawer .macro-metric-item { width: 100%; }
 .macro-series-drawer .macro-control-color { display: none; }
 .macro-series-drawer .macro-metric-control { display: grid; grid-template-columns: minmax(0, 1fr) repeat(5, 24px); gap: 2px; width: 100%; border: 0; border-radius: 0; background: transparent; align-items: center; }

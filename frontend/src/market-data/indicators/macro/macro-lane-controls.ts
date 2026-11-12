@@ -1,4 +1,4 @@
-import { macroLanes, macroLayout, macroSelection, moveMacroCategory, moveMacroRow, patchMacroLayout } from './macro-layout'
+import { macroLanes, macroLayout, macroSelection, moveMacroRow, patchMacroLayout } from './macro-layout'
 import { macroMetricVisible, toggleMacroAll, type MacroPreferences } from './macro-preferences'
 
 type Row = { key: string; item: HTMLElement; dragButton: HTMLButtonElement }
@@ -9,6 +9,7 @@ export function createMacroLaneControls(element: HTMLElement, redraw: () => void
   const drawer = document.createElement('section'); drawer.className = 'macro-series-drawer'; drawer.hidden = true
   drawer.id = `mfdi-series-${++drawerSequence}`
   drawer.setAttribute('aria-label', 'MFDI series drawer')
+  drawer.dataset.macroLinked = 'false'
   const drawerHeader = document.createElement('div'); drawerHeader.className = 'macro-drawer-header'
   const title = document.createElement('button'); title.type = 'button'; title.textContent = 'Series'; title.className = 'macro-drawer-title'
   title.setAttribute('aria-label', 'Move MFDI series window'); title.title = 'Drag to move this window; arrow keys also move it'
@@ -29,7 +30,8 @@ export function createMacroLaneControls(element: HTMLElement, redraw: () => void
   const spacer = document.createElement('div'); scroll.append(spacer); element.append(layer, scroll)
   let rows: Row[] = [], preferences: MacroPreferences | undefined, geometry: ReturnType<typeof macroLanes> = { groups: [], height: 0 }
   let top = 0, available = 0, scrollY = 0, open = false
-  let drag: { kind: 'row' | 'category' | 'all' | 'selected'; id: string; keys: string[]; start: number; delta: number; origin: HTMLElement | null } | null = null
+  let drag: { kind: 'row' | 'all' | 'selected'; id: string; keys: string[]; start: number; delta: number; origin: HTMLElement | null } | null = null
+  let linked = false
   let cancelDrag = () => {}
   let suppressClick: HTMLElement | null = null
   let dropTarget: string | undefined
@@ -56,8 +58,7 @@ export function createMacroLaneControls(element: HTMLElement, redraw: () => void
     placeWindow()
   }
   const request = () => { positionRows(); redraw() }
-  const delta = (key: string) => drag?.kind === 'all' ? drag.delta : drag?.kind === 'selected' ? drag.keys.includes(key) ? drag.delta : 0
-    : drag?.kind === 'category' && geometry.groups.find(group => group.id === drag!.id)?.keys.includes(key) ? drag.delta : 0
+  const delta = (key: string) => drag?.kind === 'all' ? drag.delta : drag?.kind === 'selected' && drag.keys.includes(key) ? drag.delta : 0
   const y = (key: string): number | null => {
     const row = geometry.groups.flatMap(group => group.rows).find(row => row.key === key)
     const layout = preferences && macroLayout(preferences)
@@ -82,9 +83,9 @@ export function createMacroLaneControls(element: HTMLElement, redraw: () => void
       else section.removeAttribute('data-macro-drop-target')
     }
   }
-  const start = (event: PointerEvent, kind: 'row' | 'category' | 'all' | 'selected', id: string, keys = [id]) => {
+  const start = (event: PointerEvent, kind: 'row' | 'all' | 'selected', id: string, keys = [id]) => {
     if (event.button !== 0 || !preferences || ((kind === 'all' || kind === 'selected') && !macroLayout(preferences).laneMode)) return
-    if (kind === 'row' || kind === 'category') event.stopPropagation()
+    if (kind === 'row') event.stopPropagation()
     if (kind === 'row') event.preventDefault()
     cancelDrag()
     drag = { kind, id, keys, start: event.clientY, delta: 0, origin: event.currentTarget instanceof HTMLElement ? event.currentTarget : null }
@@ -99,27 +100,18 @@ export function createMacroLaneControls(element: HTMLElement, redraw: () => void
     const finish = (event: PointerEvent) => {
       const state = drag, current = preferences
       if (!state || !current) { cancelDrag(); return }
-      const drop = event.clientY - layer.getBoundingClientRect().top + scrollY - (macroLayout(current).laneOffset ?? 0)
       const rowTarget = state.kind === 'row' ? drawerDropGroup(event) : undefined
       const moved = Math.abs(state.delta) > 3
       cancelDrag()
       if (!moved) return
       suppressClick = state.kind === 'all' || state.kind === 'selected' ? null : state.origin
-      const bounds = drawer.getBoundingClientRect()
-      const inDrawer = open && event.clientX >= bounds.left && event.clientX <= bounds.right && event.clientY >= bounds.top && event.clientY <= bounds.bottom && bounds.width > 0
       if (state.kind === 'all') { change(patchMacroLayout(current, { laneOffset: (macroLayout(current).laneOffset ?? 0) + state.delta })) }
       else if (state.kind === 'selected') {
         const offsets = { ...macroLayout(current).rowOffsets }
         for (const key of state.keys) offsets[key] = (offsets[key] ?? 0) + state.delta
         change(patchMacroLayout(current, { rowOffsets: offsets }))
       }
-      else if (state.kind === 'category') {
-        const before = geometry.groups.filter(group => group.id !== state.id).find(group => {
-          const rect = drawerGroups.get(group.id)?.getBoundingClientRect()
-          return inDrawer && rect ? event.clientY < (rect.top + rect.bottom) / 2 : drop < (group.top + group.bottom) / 2
-        })?.id
-        change(moveMacroCategory(current, state.id, before))
-      } else {
+      else {
         const target = rowTarget
         const before = target?.rows.find(row => {
           if (row.key === state.id) return false
@@ -220,8 +212,12 @@ export function createMacroLaneControls(element: HTMLElement, redraw: () => void
   }
   fit.onclick = fitAll
   spacing.oninput = () => { if (preferences) change(patchMacroLayout(preferences, { laneSpacing: Number(spacing.value) })) }
+  const updateCategorySelection = () => {
+    for (const [id, section] of drawerGroups) section.querySelector('.macro-drawer-category button')?.setAttribute('aria-pressed', String(!linked && preferences && macroLayout(preferences).categoryTarget === id))
+  }
   return {
     y, toggleDrawer, fitAll, scrollLanes, drawerId: drawer.id,
+    setLinked(value: boolean) { linked = value; drawer.dataset.macroLinked = String(value); updateCategorySelection() },
     startPlotDrag(event: PointerEvent, linked: boolean) {
       if (!preferences) return
       const keys = macroSelection(preferences)
@@ -289,8 +285,7 @@ export function createMacroLaneControls(element: HTMLElement, redraw: () => void
               axisTarget: group.keys.find(key => macroMetricVisible(current, key)) ?? group.keys[0] ?? current.axisTarget }, {
               categoryTarget: group.id, collapsed: collapsed ? layout.collapsed.filter(id => id !== group.id) : [...layout.collapsed, group.id] }))
           }
-          collapse.title = 'Click to select every child and fold or expand this list; drag the plot to move the category, or drag this header to reorder it'
-          collapse.onpointerdown = event => start(event, 'category', group.id)
+          collapse.title = 'Click to select every child and fold or expand this list. Reorder categories in MFDI settings.'
           const section = document.createElement('section'); section.dataset.macroDrawerCategory = group.id
           const drawerHeading = document.createElement('div'); drawerHeading.className = 'macro-drawer-category'
           drawerHeading.append(collapse); section.append(drawerHeading)
@@ -301,7 +296,7 @@ export function createMacroLaneControls(element: HTMLElement, redraw: () => void
         drawerBody.scrollTop = drawerScroll
         if (restoreFocus && focus.isConnected) focus.focus({ preventScroll: true })
       }
-      for (const [id, section] of drawerGroups) section.querySelector('.macro-drawer-category button')?.setAttribute('aria-pressed', String(macroLayout(next).categoryTarget === id))
+      updateCategorySelection()
       scroll.hidden = !lanes || geometry.height <= available; spacer.style.height = `${geometry.height}px`
       scrollY = Math.max(0, Math.min(scrollY, geometry.height - available)); scroll.scrollTop = scrollY
       positionRows()

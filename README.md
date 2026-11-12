@@ -167,16 +167,18 @@ units. Horizontal dates and zoom remain shared; Refocus remains an explicit rese
 
 **MFDI** (Macro Factor Data Inspector) is available on every chart symbol, including
 all 28 FX pairs, EURX, JPYX, USDX, XAUUSD and broker-specific instruments. Its gear
-opens **Inputs / Style** with draft OK/Cancel. Existing USDX selections and styles
-are retained; other symbols begin with no event currencies selected.
+opens **Inputs / Style** with draft OK/Cancel. One shared configuration applies
+to every symbol: enabled currencies, visibility, styles, selected axis and layout
+stay intact when changing pairs. The current symbol’s saved setup seeds the
+shared configuration on migration; old symbol profiles are retained. A fresh
+setup starts with no currencies ticked.
 
 In Inputs, tick any of the eight event currencies to restore its saved event list.
 **+ Add events** opens an Inspector-style searchable catalogue, grouped by category
 and currency. Select individual measures, including CPI/Core CPI, PCE, payrolls,
 unemployment, earnings, GDP, PMIs and retail sales. **− Remove** removes a measure
-from that currency's saved list. Currency event lists and styles are shared locally;
-each symbol separately remembers its enabled currencies, indicator visibility and
-selected right axis. Unticking a currency retains its saved events for later use.
+from that currency's saved list. Currency event presets, styles and the active
+configuration are shared locally across every symbol. Unticking a currency retains its saved events for later use.
 MFDI settings are independent of Inspector's filters. Reset defaults resets styles
 and the selected axis without deleting event lists or changing currency ticks.
 
@@ -209,7 +211,8 @@ Opening Inspector or another bottom dock shortens the scrollable body as needed,
 keeps the title reachable, and restores the chosen size when space returns.
 The category arrow and name form one button: click to fold/expand its drawer list
 and select every child, then drag the plot to move that category together in
-either view. Folding never hides or shifts plotted lines. Drag the header to reorder.
+either view. Folding never hides or shifts plotted lines. Category headers do
+not drag; use the up/down category buttons in MFDI settings to reorder them.
 With Lane view on and the lock off, select an event name, then drag the plot to
 place that straight line freely without moving its peers or numerical scale.
 Selecting a series/category unlinks the group. A blank chart click or a click
@@ -218,16 +221,19 @@ Series controls, MFDI settings and release-dot clicks preserve the selection.
 Lane view suppresses native numerical crosshair dots; only its actual lane dots
 and their release cards remain interactive.
 **Fit all lanes** restores the category arrangement and fits it into the pane.
-Lane offset, spacing and individual line placements are saved per symbol.
+Lane offset, spacing and individual line placements are saved universally.
 **Hide Legend** is ticked by default in Inputs and hides only the value/release
 readout; explicit saved choices remain unchanged. Category names, assignments and event lists are shared;
-category order, row order, collapsed state, lane mode and Hide Legend save per symbol.
+category order, row order, collapsed state, lane mode and Hide Legend are shared
+across symbols too. Linked lanes still move everything together, with no persistent
+selection highlight in Series; individual/category selection highlights return
+when the lock is off.
 Create/rename/reorder/delete categories in Inputs; deletion moves events to
 Uncategorized. In the Series drawer, hold the ✥ handle before the eye and drag
 it to a category (or reorder within one). The target category highlights; the
 plot stays still during the drag, then snaps to its category placement on drop.
 Dropping outside the drawer cancels. This works in both views; clicking the name
-only selects its chart series. Drag a category header to move its rows as a band. Category collapse controls live in
+only selects its chart series. Category collapse controls live in
 the drawer; the lane scrollbar reveals rows when they exceed the available pane height. Pane resizing adds canvas space below
 without stretching plots. Each scale holds its placement across scrolling, backfill,
 updates, eyes and axis changes. Linked-axis mode lasts while the pane is open.

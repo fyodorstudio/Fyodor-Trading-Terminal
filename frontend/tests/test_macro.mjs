@@ -186,7 +186,9 @@ try {
   await React.act(async () => view.changeMacro(toggleMacroMetric(selectMacroMetric(view.macroPreferences, 'headlineCpi'), 'rate')))
   await React.act(async () => view.changeMacro(toggleMacroForecast(view.macroPreferences, 'headlineCpi')))
   assert.equal(requests.length, count, 'Individual eyes and axis labels reuse the same five-series snapshot')
-  await render({ symbol: 'EURUSD' }); assert.equal(view.macro.enabled, false); assert.equal(timers.size, 0)
+  const pairPreferences = view.macroPreferences, pairHistory = view.macro.history, pairRequestCount = requests.length
+  await render({ symbol: 'EURUSD' }); assert.equal(view.macro.enabled, true)
+  assert.equal(view.macroPreferences, pairPreferences); assert.equal(view.macro.history, pairHistory); assert.equal(requests.length, pairRequestCount, 'Changing pairs reuses the shared MFDI data and settings')
   await render({ symbol: 'USDX', broker: 'B' })
   assert.ok(Object.values(view.macro.history).every(rows => !rows.length), 'Broker changes cannot show old-source data')
   const obsolete = requests.at(-1)

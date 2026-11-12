@@ -56,9 +56,10 @@ function readLegacyPreferences(): MacroPreferences {
   } catch { return d }
 }
 const configKey = 'fyodor.indicators.macro.v2'
+type MacroProfile = { enabled: boolean; currencies: string[]; axisTarget: string; layout?: MacroLayout }
 type SavedMacro = { eventsByCurrency: Record<string, string[]>; styles: Record<string, MacroStyle>;
   categories?: MacroCategory[]; categoryByEvent?: Record<string, string>;
-  symbols: Record<string, { enabled: boolean; currencies: string[]; axisTarget: string; layout?: MacroLayout }> }
+  global?: MacroProfile; symbols: Record<string, MacroProfile> }
 const symbolKey = (symbol: string) => chartEventSymbol(symbol) ?? symbol.trim().toUpperCase()
 const colors = ['#3b82f6', '#0d9488', '#d97706', '#8b5cf6', '#e05270', '#0891b2', '#65a30d', '#db2777']
 export function macroDefaultStyle(key: string): MacroStyle {
@@ -87,11 +88,15 @@ export function readMacroPreferences(symbol = 'USDX'): MacroPreferences {
       forecastVisible: typeof raw?.forecastVisible === 'boolean' ? raw.forecastVisible : series[key]?.forecastVisible ?? fallback.forecastVisible,
       numbersVisible: typeof raw?.numbersVisible === 'boolean' ? raw.numbersVisible : series[key]?.numbersVisible ?? fallback.numbersVisible }
   }
-  const profile = saved?.symbols[key]
-  return { enabled: profile ? profile.enabled === true : key === 'USDX' && legacy.enabled,
+  const shared = saved?.global
+  const profile = shared && typeof shared === 'object' && !Array.isArray(shared) ? shared
+    : saved?.symbols[key] ?? saved?.symbols.USDX ?? Object.values(saved?.symbols ?? {}).find(item => item?.enabled) ?? Object.values(saved?.symbols ?? {})[0]
+  let hasLegacy = legacy.enabled
+  try { hasLegacy ||= window.localStorage.getItem(storageKey) !== null || window.localStorage.getItem('fyodor.indicators.fed-rate.v1') !== null } catch { /* Storage may be unavailable. */ }
+  return { enabled: profile ? profile.enabled === true : legacy.enabled,
     currencies: profile && Array.isArray(profile.currencies) ? [...new Set(profile.currencies.filter(currency => currency in eventsByCurrency))]
-      : key === 'USDX' ? ['USD'] : [],
-    axisTarget: profile && macroCatalog[profile.axisTarget] ? profile.axisTarget : key === 'USDX' ? legacy.axisTarget : 'rate',
+      : hasLegacy ? ['USD'] : [],
+    axisTarget: profile && macroCatalog[profile.axisTarget] ? profile.axisTarget : legacy.axisTarget,
     eventsByCurrency, series,
     ...(Array.isArray(saved?.categories) ? { categories: saved.categories.filter(item => item && typeof item.id === 'string' && typeof item.label === 'string') } : {}),
     ...(saved?.categoryByEvent && typeof saved.categoryByEvent === 'object' ? { categoryByEvent: saved.categoryByEvent } : {}),
@@ -105,14 +110,14 @@ export function readMacroPreferences(symbol = 'USDX'): MacroPreferences {
         ? { rowOffsets: Object.fromEntries(Object.entries(profile.layout.rowOffsets).filter(([key, value]) => macroCatalog[key] && Number.isFinite(value))
           .map(([key, value]) => [key, Math.max(-100000, Math.min(100000, value))])) } : {}) } } : {}) }
 }
-export function saveMacroPreferences(value: MacroPreferences, symbol = 'USDX') {
+export function saveMacroPreferences(value: MacroPreferences, _symbol = 'USDX') {
   try {
     const saved = savedConfig() ?? { eventsByCurrency: { USD: Object.keys(defaultMacroPreferences.series) }, styles: {}, symbols: {} }
     saved.eventsByCurrency = { ...saved.eventsByCurrency, ...value.eventsByCurrency }
     saved.styles = { ...saved.styles, ...value.series }
     if (value.categories) saved.categories = value.categories
     if (value.categoryByEvent) saved.categoryByEvent = value.categoryByEvent
-    saved.symbols[symbolKey(symbol)] = { enabled: value.enabled, currencies: value.currencies ?? ['USD'], axisTarget: value.axisTarget, ...(value.layout ? { layout: value.layout } : {}) }
+    saved.global = { enabled: value.enabled, currencies: value.currencies ?? ['USD'], axisTarget: value.axisTarget, ...(value.layout ? { layout: value.layout } : {}) }
     window.localStorage.setItem(configKey, JSON.stringify(saved))
   } catch { /* Keep controls usable without storage. */ }
 }

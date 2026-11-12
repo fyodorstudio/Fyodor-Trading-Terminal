@@ -6,8 +6,8 @@ import { macroDefaultStyle, macroAxis, selectedMacroMetrics, selectMacroAxis, ty
 import '../rsi/rsi.css'
 import './macro.css'
 
-export function MacroSettingsDialog({ preferences, onSave, onClose, symbol = 'USDX' }: {
-  preferences: MacroPreferences; symbol?: string; onSave: (next: MacroPreferences) => void; onClose: () => void
+export function MacroSettingsDialog({ preferences, onSave, onClose }: {
+  preferences: MacroPreferences; onSave: (next: MacroPreferences) => void; onClose: () => void
 }) {
   const [draft, setDraft] = useState(preferences), [tab, setTab] = useState<'inputs' | 'style'>('inputs')
   const dialog = useRef<HTMLFormElement>(null), id = useId()
@@ -31,7 +31,7 @@ export function MacroSettingsDialog({ preferences, onSave, onClose, symbol = 'US
   return <div className="rsi-dialog-backdrop" onPointerDown={event => { if (event.target === event.currentTarget) onClose() }}>
     <form ref={dialog} className="rsi-settings-dialog macro-settings-dialog" role="dialog" aria-modal="true" aria-labelledby={`${id}-title`}
       onSubmit={event => { event.preventDefault(); onSave({ ...draft, enabled: preferences.enabled }); onClose() }}>
-      <header><strong id={`${id}-title`}>MFDI · {symbol}</strong><button type="button" onClick={onClose} aria-label="Close MFDI settings">×</button></header>
+      <header><strong id={`${id}-title`}>MFDI · All symbols</strong><button type="button" onClick={onClose} aria-label="Close MFDI settings">×</button></header>
       <div className="rsi-settings-tabs" role="tablist" aria-label="MFDI settings">
         {(['inputs', 'style'] as const).map(item => <button key={item} type="button" role="tab" id={`${id}-${item}`}
           aria-selected={tab === item} aria-controls={`${id}-panel`} tabIndex={tab === item ? 0 : -1}
@@ -51,7 +51,7 @@ export function MacroSettingsDialog({ preferences, onSave, onClose, symbol = 'US
             {!selectedMacroMetrics(draft).length && <option value={draft.axisTarget}>No events selected</option>}
             {selectedMacroMetrics(draft).map(key => <option key={key} value={key}>{macroCatalog[key].controlLabel}</option>)}
           </select></label>
-          <p>Event selections are remembered by currency. Ticking a currency restores its saved events. Each chart symbol remembers which currencies are enabled.</p>
+          <p>MFDI settings apply to every symbol. Event presets are remembered by currency; ticking a currency restores its saved events. Changing pairs keeps your enabled currencies, styles and layout intact.</p>
           <p>Each event uses an independent scale. The lock links movement and zoom; the three-line button switches to straight category lanes. Values, arrows, hover and release selection remain available.</p>
         </> : <>
           {selectedMacroMetrics(draft).map(key => <fieldset key={key}><legend>{macroCatalog[key].label} · Line</legend>
