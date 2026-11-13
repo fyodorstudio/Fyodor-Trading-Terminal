@@ -10,17 +10,16 @@ export type LedgerData = { schema: 1; broker: string; revision: string; currenci
 export type LedgerSelection = { at: number | null; currency: string; category: string | null }
 export type LedgerViewMemory = { tape: Map<string, { left: number; top: number; day: string; request: number }>; cells: Map<string, number> }
 
-export const ledgerCategories = [
-  { id: 'policy', label: 'Rates', metrics: ['rate'], scored: ['rate'], negative: [] },
-  { id: 'inflation', label: 'Inflation', metrics: ['cpi-yoy', 'cpi-mom', 'core-yoy', 'core-mom', 'pce-yoy', 'pce-mom', 'trim', 'median'], scored: [], negative: [] },
-  { id: 'labour', label: 'Labor & wages', metrics: ['unemployment', 'payrolls', 'employment', 'earnings'], scored: ['unemployment', 'payrolls', 'employment'], negative: ['unemployment'] },
-  { id: 'growth', label: 'Growth & activity', metrics: ['gdp', 'gdp-quarter', 'services', 'manufacturing'], scored: ['gdp', 'gdp-quarter'], negative: [] },
-  { id: 'consumer', label: 'Demand', metrics: ['retail', 'control'], scored: ['retail'], negative: [] },
+const ledgerCategories = [
+  { id: 'policy', label: 'Rates' },
+  { id: 'inflation', label: 'Inflation' },
+  { id: 'labour', label: 'Labor & wages' },
+  { id: 'growth', label: 'Growth & activity' },
+  { id: 'consumer', label: 'Demand' },
 ]
 export const ledgerDay = (at: number) => new Date(at + 7 * 3600_000).toISOString().slice(0, 10)
 export const ledgerDayEnd = (day: string) => Date.parse(day + 'T23:59:59.999+07:00')
 const releaseTime = (e: LedgerEntry) => e.at ?? ledgerDayEnd(e.day)
-const suffix = (m: LedgerMetric) => m.id.slice(4)
 
 // A first retained actual may be a backfill. Reconstruction permits it with an
 // explicit flag. Later corrections only take effect when captured, never earlier.
@@ -55,7 +54,7 @@ export function ledgerReading(metric: LedgerMetric, at: number) {
   return eligible.at(-1) ?? null
 }
 
-export function ledgerCards(data: LedgerData, at: number) {
+export function ledgerDevelopments(data: LedgerData, at: number) {
   return data.currencies.map(currency => {
     const categories = ledgerCategories.map(category => {
       const metrics = data.metrics.filter(m => m.currency === currency && m.canonical !== false
@@ -64,24 +63,12 @@ export function ledgerCards(data: LedgerData, at: number) {
         const selected = ledgerReading(metric, at), entry = selected?.entry
         const previous = entry?.revised_previous ?? entry?.previous ?? null
         const direction = entry?.value != null && previous != null ? Math.sign(Math.round((entry.value - previous) * 1e6)) : null
-        const name = suffix(metric)
-        // Monthly GDP stays context; each country scores its defined quarterly
-        // series' direction without comparing incompatible national magnitudes.
-        const growthMeasure = ['CAD','GBP'].includes(currency) ? 'gdp-quarter' : 'gdp'
-        const scored = category.id === 'growth' ? name === growthMeasure
-          : category.id === 'consumer' ? ['retail','spending'].includes(name) : category.scored.includes(name)
-        const score = scored && direction !== null ? 50 + 50 * direction * (category.negative.includes(name) ? -1 : 1) : null
-        return { metric, selected, entry, previous, direction, score,
-          change: entry ? `${detailValue(previous, metric.unit)} → ${detailValue(entry.value, metric.unit)}` : 'Unassessed' }
+        return { metric, selected, entry, previous, direction,
+          change: entry ? `${detailValue(previous, metric.unit)} → ${detailValue(entry.value, metric.unit)}` : 'No retained reading' }
       })
-      const scores = rows.flatMap(r => r.score === null ? [] : [r.score])
-      const score = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : null
-      const expected = category.id === 'labour' ? Math.max(1,metrics.filter(m=>['unemployment','payrolls','employment'].includes(suffix(m))).length) : category.id === 'inflation' ? 0 : 1
-      return { ...category, rows, score, assessed: scores.length, expected }
+      return { ...category, rows }
     })
-    const assessed = categories.filter(c => c.score !== null)
-    return { currency, categories, score: assessed.length ? assessed.reduce((sum, c) => sum + c.score!, 0) / assessed.length : null,
-      assessed: assessed.length, backfilled: categories.some(c => c.rows.some(r => r.selected?.backfilled)) }
+    return { currency, categories, backfilled: categories.some(c => c.rows.some(r => r.selected?.backfilled)) }
   })
 }
 

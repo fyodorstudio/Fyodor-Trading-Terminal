@@ -9,7 +9,7 @@ import { LedgerFiltersPopover } from './LedgerFiltersPopover'
 export const LedgerDock = memo(function LedgerDock({ supported, broker, onOpenDetail, onViewEvent }: {
   supported: boolean; broker: string | null; onOpenDetail: () => void; onViewEvent: (reading: DetailReading, currency: string) => void
 }) {
-  const { data, scoreData, error, selection, setSelection, at, now, setYear, picking, canPick, togglePicking, cancelPicking, pickDay, goToToday, focusRequest, viewMemory, currencies, filters, applyFilters } = useLedger()
+  const { data, detailData, error, selection, setSelection, at, now, setYear, picking, canPick, togglePicking, cancelPicking, pickDay, goToToday, focusRequest, viewMemory, currencies, filters, applyFilters } = useLedger()
   const filterButton=useRef<HTMLButtonElement>(null),scope=currencies.join('')
   const [filterScope,setFilterScope]=useState<string|null>(null)
   if(filterScope!==null&&(!supported||filterScope!==scope))setFilterScope(null)
@@ -32,8 +32,8 @@ export const LedgerDock = memo(function LedgerDock({ supported, broker, onOpenDe
         <span aria-hidden="true">⌖</span>
       </button>
       <button type="button" onClick={() => { setLanding(null); goToToday() }} aria-pressed={selection.at === null}>Today</button>
-      <input aria-label="Ledger as-of date" type="date" min={`${(data ?? scoreData)?.min_year ?? 2015}-01-01`} max={ledgerDay(now)} value={ledgerDay(at)}
-        onChange={e => { if (e.target.value && e.target.value <= ledgerDay(now) && e.target.value >= `${(data ?? scoreData)?.min_year ?? 2015}-01-01`) select(ledgerDayEnd(e.target.value)) }} />
+      <input aria-label="Ledger as-of date" type="date" min={`${(data ?? detailData)?.min_year ?? 2015}-01-01`} max={ledgerDay(now)} value={ledgerDay(at)}
+        onChange={e => { if (e.target.value && e.target.value <= ledgerDay(now) && e.target.value >= `${(data ?? detailData)?.min_year ?? 2015}-01-01`) select(ledgerDayEnd(e.target.value)) }} />
     </div>}
     {!supported ? <p>Select one of the 28 major FX pairs to open Ledger.</p> : !broker ? <p>Connect a broker to load the Ledger.</p> : <>
       {error && <p role="alert">{error}</p>}

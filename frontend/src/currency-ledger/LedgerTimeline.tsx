@@ -126,7 +126,7 @@ export const LedgerTimeline = memo(function LedgerTimeline({ data, filters, at, 
           className={`ledger-date${day.date === selectedDay ? ' selected' : ''}`} type="button" aria-pressed={day.date === selectedDay}
           disabled={day.date > ledgerDay(now)} onClick={() => onSelect(ledgerDayEnd(day.date))}><span>{day.label}</span><strong>{day.day}</strong></button>)}
         {data.currencies.map((currency, row) => <div className="ledger-lane" key={currency}>
-          <button className="ledger-currency" style={{ gridRow: row + 2, gridColumn: 1 }} type="button" aria-label={`Open ${currency} Ledger scorecard`} onClick={() => onOpenCurrency(currency)}>{currency}</button>
+          <button className="ledger-currency" style={{ gridRow: row + 2, gridColumn: 1 }} type="button" aria-label={`Open ${currency} developments`} onClick={() => onOpenCurrency(currency)}>{currency}</button>
           {visible.map((day,offset)=><LedgerDayCell key={day.date} cellKey={`${currency}-${day.date}`} broker={data.broker}
             selected={day.date===selectedDay} position={{gridRow:row+2,gridColumn:view.first+offset+2}}
             memory={viewMemory} items={events.get(currency+day.date)??emptyEvents} now={now}

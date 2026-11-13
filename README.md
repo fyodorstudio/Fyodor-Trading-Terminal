@@ -38,7 +38,7 @@ stays with the user; no automated UI audit is implied.
 | alert / events-alarms / storage/alarms | Dated calendar, occurrence bells, independent Windows delivery; [alarm contract](docs/EVENTS-ALARMS.md) |
 | external-sources | Outside-feed evidence, chart markers, limitations and versions; [source contract](docs/EXTERNAL-SOURCES.md) |
 | currency-news / storage/currency_news.py | On-demand saved news and implications; [news contract](docs/CURRENCY-NEWS.md) |
-| currency-ledger / storage/currency_ledger.py | All-pair calendar tape, retained vintages, provisional scorecard; [Ledger contract](docs/CURRENCY-LEDGER.md) |
+| currency-ledger / storage/currency_ledger.py | All-pair calendar tape, retained vintages, category developments; [Ledger contract](docs/CURRENCY-LEDGER.md) |
 | cross-asset / storage/cross_asset.py | Daily/weekly heatmap, synthetic currency baskets and broker instrument rankings; [heatmap contract](docs/CROSS-ASSET.md) |
 | currency-details / storage/currency_details.py | Pair/index fundamentals, official evidence and MT5 conflicts; [Detail contract](docs/CURRENCY-DETAILS.md) |
 | entry-trade | Manual plans, pins, independent chart arrows and tracked journal |
@@ -85,7 +85,7 @@ For optional release waits/historical studies see [the user guide](user%20manual
 ## Currency Detail
 
 **Detail**, immediately right of Show events, opens its own right-panel view.
-All 28 major FX pairs open a category scorecard linked to **Ledger** in the bottom dock.
+All 28 major FX pairs open category developments linked to **Ledger** in the bottom dock.
 Ledger has a draggable date tape with separate currency lanes, one calendar year
 at a time. At the year edge, a small prompt opens the adjacent year. Dragging
 and year browsing only browse; selecting a date changes the shared historical
@@ -95,21 +95,20 @@ former fixed category/release summary has been removed. Release clicks open the 
 package in Inspector and highlight its measure, preserving Ledger's cutoff and
 browsing position. Return to Ledger resumes the tape. Today restores the current date; the ⌖ button to its left lets
 you click a candle while retaining the native crosshair/date label. Escape cancels.
-Rates, labor, growth and demand use a transparent provisional momentum formula;
-inflation stays context only. Scores show coverage and are not probabilities or
-an economy-health verdict. Backfilled evidence stays labelled and later captured
-corrections never move backwards into earlier scores. See the
+Rates, inflation, labor, growth and demand show previous-to-latest readings and
+release dates without scores or currency rankings. Backfilled evidence stays
+labelled and later captured corrections never move backwards into earlier views. See the
 [Ledger contract](docs/CURRENCY-LEDGER.md) for the rules and historical limitations.
 All captured broker series are available, including PPI and nonnumeric events;
-only defined canonical measures contribute to scores. Actual numbers follow MT5's
+the category view summarizes defined canonical measures. Actual numbers follow MT5's
 stored positive/negative impact color; F/P and boxes remain neutral. Released tape
-values stay visible after the evaluation cutoff; the scorecard remains
+values stay visible after the evaluation cutoff; the category view remains
 historical. Busy cells virtualize their cards and server snapshots share currency
 caches across pairs. Missing stored coverage stays explicit.
 The **Filters** button beside ⌖ defaults the timeline to S/A/B events. It reuses
 Inspector's family controls with independent Ledger choices, S/A-only and All events
 presets, preview/Save/Cancel and currency-shared persistence. Hidden events remain
-available; filtering does not change scoring evidence or chart icons.
+available; filtering does not change category evidence or chart icons.
 
 The **Rate decisions** tab shows the evaluated calendar year's decisions for both
 currencies, newest first, using the same cutoff. Indices retain the tier comparison.

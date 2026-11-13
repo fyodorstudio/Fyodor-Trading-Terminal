@@ -21,7 +21,7 @@ family selection are both required for a timeline card to appear. Exact
 currency/country/series identities use `config/event-tiers.json`; unclassified
 records use C, independently of MT5 importance or actual-impact colors. All events
 restores C and all families for the active pair. Nothing is removed from storage.
-Scoring inputs, Inspector preferences, chart markers and reminders
+Category details, Inspector preferences, chart markers and reminders
 remain independent. Presets reset active-currency family exclusions only.
 
 Changes preview locally; Save persists Ledger-only choices under
@@ -38,8 +38,8 @@ and end in the current Jakarta year; empty local history stays empty.
 
 Dragging and year browsing never change the evaluation cutoff. The date selector
 sits beside ⌖ and Today, above the timeline. Today returns to the current date
-and year. Year selection is independent of the evaluated date: the score's year
-is retained while another year is viewed, avoiding a silent change of verdict.
+and year. Year selection is independent of the evaluated date: the detail year
+is retained while another year is viewed, preserving the selected historical readings.
 The timeline mounts only viewport dates plus three days of overscan on either
 side. Height-only resizes do not recreate the shared context or repaint the tape.
 Cells grow with dock height and scroll vertically when needed. Busy cells mount
@@ -52,19 +52,20 @@ Captured corrections use their capture instant. Today resumes the current clock.
 The tape can browse every captured record through All events. Already released values stay visible even
 when they are after the selected evaluation date. Its actuals use the latest
 retained capture; it does not claim to replay an original release vintage. The
-scorecard alone evaluates the cutoff. Premature actuals for genuinely
-future publications are suppressed by the server; scheduled events add no points. All selected
-dates and category contributions use the same cutoff for both currencies.
+category details alone evaluate the cutoff. Premature actuals for genuinely
+future publications are suppressed by the server; scheduled events do not supply released actuals. All selected
+dates and category readings use the same cutoff for both currencies.
 
 The former fixed Interest rate / Inflation / Labour & wage / Activity release
 summary and its display selectors have been removed. Clicking the pinned currency
 lane label still opens **Fundamental Detail** in the existing right panel.
-The scorecard compares each currency with its own previous reading,
-shows per-category advantage and expands the selected currency/category evidence.
+The **Recent developments** view shows each currency’s previous-to-latest
+readings by category and expands the selected currency/category evidence.
+There are no scores, momentum advantages, category weights or currency rankings.
 Each measure retains its latest available reference period until superseded.
 Revisions to older reference periods do not replace newer periods. Reading,
 reference period, release time, retained capture, previous, historical consensus
-and publisher route remain inspectable. Scorecard evidence opens the exact
+and publisher route remain inspectable. Category evidence opens the exact
 release in Inspector and never changes a bell.
 
 Clicking a tape release opens its exact source package in Inspector,
@@ -77,7 +78,7 @@ Event inspection itself never changes reminders.
 
 Actual numerical text uses the broker's stored MT5 `impact`: positive green,
 negative red, none/unknown neutral. Forecast, previous and card backgrounds remain
-neutral. This is the feed's assessment, independent of the provisional score;
+neutral. This is the feed's assessment, independent of the category view;
 it is not inferred from Actual−Forecast or Actual−Previous. Missing actuals are
 never colored, and zero is a valid colored actual.
 
@@ -96,41 +97,26 @@ after a valid selection; Escape, Today, a second cursor click, closing Ledger or
 changing broker/symbol/timeframe/tool cancels it. Unknown broker clocks disable
 the picker. The chart viewport, drawings and event/reminder selections are unchanged.
 
-## Provisional formula v1
+## Category developments
 
-This is a **momentum score /100**, not a percentage likelihood, validated currency
-forecast, or full economy-health score. Each scoring measure compares its actual
-with its own captured revised previous value, otherwise captured previous value:
-favorable change = 100; unchanged = 50; unfavorable change = 0. Missing actual or
-previous excludes that measure; zero is valid. Magnitudes and forecast surprises
-do not affect this initial formula.
+The Detail panel summarizes Rates, Inflation, Labor & wages, Growth & activity
+and Demand for both currencies in the active pair. Each defined canonical measure
+shows its latest retained actual, captured revised previous (otherwise previous),
+release date and a descriptive Increased/Decreased/Unchanged label. Missing
+previous values remain unavailable; zero is valid. A category without evidence
+says so rather than assigning a neutral value.
 
-| Category | Scoring measures | Favorable under this proxy |
-| --- | --- | --- |
-| Rates | Each currency's defined policy rate (Fed upper bound for USD) | Increased |
-| Labor | Unemployment; payroll/employment change where mapped | Lower unemployment; increased jobs change |
-| Growth | Each country's quarterly GDP definition | Increased growth rate |
-| Demand | National retail sales or household spending series | Increased growth rate |
-| Inflation | Headline/core CPI, US core PCE, Canadian trim/median | Context only: heating/cooling |
+Currency buttons select the evidence column, and category buttons narrow the
+release details below. Evidence includes reference period, publication/capture
+clocks, release consensus, original-publisher links and an exact Inspector action.
+All five categories follow the same factual presentation. No calculation turns
+these readings into a score, weighted aggregate or currency-support verdict.
 
-Within each category, average available scoring measures. Average available
-category scores with equal category weights. Show measure coverage and categories
-assessed out of four. Missing evidence never becomes a neutral 50. Categories
-with equal scores say Balanced; either missing says Unassessed. Category advantage
-compares momentum scores, not raw national unemployment or growth levels.
-
-Wages, PMIs, monthly GDP, US retail control and additional raw calendar series
-are context only. CAD/GBP use `gdp-quarter`, other currencies use `gdp`;
-demand uses canonical `retail` or `spending`. National growth rates are not
-converted into comparable magnitudes: only each series' direction earns points.
-EUR/GBP/CHF/JPY have unemployment as their mapped labor scoring measure;
-USD/CAD/AUD/NZD also have payroll/employment change. Coverage exposes these
-unequal information sets. Unmapped Australian monthly CPI/trimmed mean and
-spending remain unavailable rather than borrowing legacy quarterly measures.
-External conditions, policy guidance and market rate expectations are not yet
-scored. Inflation needs an agreed regime interpretation before contributing.
-These omissions and the coarse directional formula limit any trading inference.
-New releases replace contributions; repeated stories/captures never add points.
+Each measure retains its latest available reference period until superseded.
+Newer publications replace earlier readings; revisions to older reference periods
+do not displace a newer period. Calendar series outside the canonical category
+mapping remain available on the tape and in Inspector. Category details keep the
+same national definitions and historical cutoff as before.
 
 ## Historical evidence
 
@@ -143,7 +129,7 @@ This remains an exploratory reconstruction, not a clean historical backtest.
 
 Preserve independent publication and capture clocks. Date-only
 publications never acquire an hour. Premature future actuals are suppressed by the server.
-Only retained broker observations are scored; current official Detail values
+Category details use only retained broker observations; current official Detail values
 are never projected backwards into history. Publisher links provide provenance
 routes, not a claim that broker values were independently verified.
 
@@ -170,10 +156,10 @@ change or raw mutation occurs.
 The shared Ledger provider polls viewed/evaluated years every 30 seconds only
 while supported Detail or Ledger is open, with a four-snapshot cache. Year/pair/broker
 changes abort stale requests; errors retain only same-broker/scope data. Scrolling performs
-no fetches or score recomputation. Clock updates remain
+no fetches or category recomputation. Clock updates remain
 inside the provider and do not drive chart rendering. Terminal tests cover real
 storage-to-UI validation for all 28 pairs, complete series admission, carry-forward,
-exact cutoffs, vintage isolation, score replacement, missing coverage, MT5 impact,
+exact cutoffs, vintage isolation, reading replacement, missing coverage, MT5 impact,
 1,000-event cell virtualization, shared cache/index work counts, assembled-terminal
 resize/scroll regressions and cleanup. Visual acceptance
 stays with the user.

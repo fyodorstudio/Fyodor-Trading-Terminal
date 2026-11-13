@@ -324,7 +324,14 @@ See [Cross-Asset](docs/CROSS-ASSET.md).
 
 ## Currency Detail
 
-Click **Detail** beside Show events for S/A/B/C fundamentals of the active pair.
+Click **Detail** beside Show events for fundamentals of the active pair.
+For major FX pairs, **Recent developments** groups both currencies’ latest
+retained readings by Rates, Inflation, Labor & wages, Growth & activity and Demand.
+It shows previous-to-latest values and release dates without scores or rankings.
+Select a currency and category to see release evidence, source links and an
+Inspector action. **Rate decisions** retains the selected year’s policy history.
+The Ledger date selection also applies to these details.
+For currency indices, the tier comparison remains available.
 EURX, JPYX and USDX show only their currency. Full-width tier subheaders group
 equal-width currency columns. Equal-height event blocks contain the
 Previous reading, Latest actual and Next upcoming forecast in labelled cells,

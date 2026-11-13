@@ -14,11 +14,15 @@ the calendar, outside the 28-pair catalog. Browsing is local, with no AI/web wor
 
 ### Ledger for all 28 major pairs
 
-Every major FX pair defaults to the [Ledger category scorecard](CURRENCY-LEDGER.md),
-sharing its historical cutoff with the bottom dock. The **Rate decisions** tab
+Every major FX pair defaults to the [Ledger category developments](CURRENCY-LEDGER.md),
+sharing its historical cutoff with the bottom dock. **Recent developments** shows
+previous-to-latest values, descriptive increases/decreases and release evidence
+for Rates, Inflation, Labor & wages, Growth & activity and Demand. There are no
+scores, momentum advantages, category weights or currency rankings.
+The **Rate decisions** tab
 shows both currencies' retained policy decisions in the evaluated calendar year,
 newest first, with Actual/Forecast/Previous. Historical rate readings use the same
-publication/capture rules as the scorecard. USD remains the Fed target upper bound.
+publication/capture rules as the category details. USD remains the Fed target upper bound.
 Release clicks open the exact source package in Inspector. Tier List Info returns
 to the mounted view without resetting its state. Browsing does no research or writes.
 

@@ -78,7 +78,7 @@ export function LedgerFiltersPopover({ anchor, currencies, filters, onApply, onC
         </Fragment>
       })}</div>
       {!matches.length && <p className="inspector-search-note" role="status">No families match your search.</p>}
-      <p className="inspector-modal-note">Events must match both a tier and a checked family. Unclassified events use C. Header, scores and Inspector filters stay unchanged.</p>
+      <p className="inspector-modal-note">Events must match both a tier and a checked family. Unclassified events use C. Category details and Inspector filters stay unchanged.</p>
       {error && <p className="ledger-filter-error" role="alert">{error}</p>}
       <footer><span className="inspector-filter-save-note">Preview changes here. Save shares Ledger choices across pairs with these currencies.</span>
         <button type="button" onClick={onClose}>Cancel</button><button type="button" className="inspector-primary" onClick={() => {

@@ -90,7 +90,7 @@ export const CurrencyDetailPanel = memo(function CurrencyDetailPanel({ brokerId,
     <header><span>{symbol}</span><h2 id="currency-detail-title">{info ? 'Tier List Info' : ledger ? 'Fundamental Detail' : 'Detail'}</h2>
       {!info && <button ref={infoButton} type="button" onClick={() => setInfo(true)}>Tier List Info</button>}
       <button type="button" aria-label={info ? 'Close Tier List Info' : 'Close Detail'} onClick={info ? closeInfo : onClose}>×</button></header>
-    {ledger && !info && <nav className="detail-ledger-tabs" aria-label="Fundamental Detail views"><button type="button" aria-pressed={!history} onClick={() => setHistory(false)}>Ledger scorecard</button><button type="button" aria-pressed={history} onClick={() => setHistory(true)}>Rate decisions</button></nav>}
+    {ledger && !info && <nav className="detail-ledger-tabs" aria-label="Fundamental Detail views"><button type="button" aria-pressed={!history} onClick={() => setHistory(false)}>Recent developments</button><button type="button" aria-pressed={history} onClick={() => setHistory(true)}>Rate decisions</button></nav>}
     <div className={`detail-body${decisionHistory && (!ledger || history) ? ' detail-history-body' : ''}`} hidden={info}>
       {!currencies.length ? <p>No currency Detail scope for {symbol}.</p> : !brokerId ? <p>Connect a broker to view Detail.</p> : <>
         {error && <p role="alert">{error}</p>}{loading && <p role="status">Loading Detail…</p>}

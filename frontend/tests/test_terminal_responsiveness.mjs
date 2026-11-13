@@ -533,7 +533,7 @@ try {
   reset()
   const ledgerRequests = requests.length
   await click(button('Ledger'))
-  assert.ok(container.querySelector('[aria-label="Open EUR Ledger scorecard"]'))
+  assert.ok(container.querySelector('[aria-label="Open EUR developments"]'))
   assert.ok(container.querySelector('[aria-label="Resize Ledger dock"]'))
   assert.equal(requests.slice(ledgerRequests).some(url => url.startsWith('/storage-api/currency-ledger')), true, 'Every major pair can load Ledger data')
   assertQuiet('Opening EUR/USD Ledger')
@@ -1447,7 +1447,7 @@ try {
   await click(button('Currency News'))
   assert.equal(container.querySelector('[data-news-story]').dataset.newsStory, 'CHF-fixture', 'Focused news selection survives reopening')
   await click(button('Currency News'))
-  // The supported Ledger shares its cutoff with existing right Detail without
+  // The supported Ledger shares its cutoff with the right Detail without
   // making chart ticks, viewport work or calendar selections depend on that clock.
   quotes = [...quotes, { ...quotes[0], symbol: 'USDCAD', description: 'USD / CAD' }]
   await tick('poll', 2500); await reply('watch'); await flush()
@@ -1458,11 +1458,14 @@ try {
   calendarRevision++
   const ledgerViewportBefore = { ...logicalRange }, ledgerDrawingsBefore = localStorage.getItem('fyodor.chart-drawings.v1')
   reset(); await click(button('Ledger')); await flush()
-  assert.ok(container.querySelector('[aria-label="Open CAD Ledger scorecard"]'))
+  assert.ok(container.querySelector('[aria-label="Open CAD developments"]'))
   assertQuiet('Opening supported Ledger')
-  await click(container.querySelector('[aria-label="Open CAD Ledger scorecard"]')); await flush()
+  await click(container.querySelector('[aria-label="Open CAD developments"]')); await flush()
   assert.equal(container.querySelector('#currency-detail-title').textContent, 'Fundamental Detail')
   assert.ok(container.querySelector('[data-ledger-category="CAD-policy"]'))
+  assert.equal(container.querySelector('.detail-ledger-tabs button').textContent, 'Recent developments')
+  assert.doesNotMatch(container.querySelector('.ledger-detail').textContent, /\/100|Momentum|Scoring rules|Contribution:|scored categories/)
+
   assert.deepEqual(logicalRange, ledgerViewportBefore, 'Opening Ledger Detail preserves the chart viewport')
   reset()
   const ledgerResize=container.querySelector('[aria-label="Resize Ledger dock"]')
@@ -1483,7 +1486,7 @@ try {
     ledgerInput.dispatchEvent(new dom.Event('change',{bubbles:true}))
   })
   assertQuiet('Ledger historical cutoff', true)
-  assert.equal(container.querySelectorAll('[data-ledger-category="CAD-policy"] strong')[0].textContent, 'Unassessed')
+  assert.match(container.querySelector('[data-ledger-category="CAD-policy"]').textContent, /No retained reading by cutoff/)
   const filtersButton=container.querySelector('[aria-label="Ledger filters"]')
   assert.equal(filtersButton.nextElementSibling.getAttribute('aria-label'),'Pick Ledger date from a chart candle')
   const filtersBefore=localStorage.getItem('fyodor.inspector.shared.v1'),cutoffBeforeFilter=ledgerInput.value,requestsBeforeFilter=requests.length

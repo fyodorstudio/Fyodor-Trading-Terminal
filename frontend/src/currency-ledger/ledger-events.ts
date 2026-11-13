@@ -18,7 +18,7 @@ export function indexLedgerEvents(data:LedgerData, filters?:LedgerFilters){
     for(const group of groups.values()){
       group.sort((a,b)=>a.known_at-b.known_at)
       const actuals=group.filter(e=>e.value!==null)
-      // The tape is a complete record browser. Header/scorecard alone evaluate
+      // The tape is a complete record browser. Category details alone evaluate
       // the chosen historical cutoff; tape actuals show latest retained values.
       add(metric,actuals.at(-1)??group.at(-1)!,false)
       for(let i=1;i<actuals.length;i++){

@@ -48,7 +48,7 @@ const reply = async (request, data) => React.act(async () => request.resolve({ o
 const flush = async () => React.act(async () => { for (const [id, fn] of [...frames]) { frames.delete(id); fn() } })
 try {
   const model = await server.ssrLoadModule('./src/currency-ledger/ledger-model.ts')
-  const { ledgerCards, ledgerReading, ledgerPublications, ledgerDayEnd, validLedger } = model
+  const { ledgerDevelopments, ledgerReading, ledgerPublications, ledgerDayEnd, validLedger } = model
   assert.equal(validLedger(fixture, 'Pepperstone-Demo'), true)
   for (const mutate of [v => v.metrics.find(m=>m.entries.length).entries[0].value = 'bad', v => v.metrics[0].source_url = 'javascript:bad', v => v.metrics.push(v.metrics[0]), v => v.currencies = ['EUR','CAD']]) {
     const bad = structuredClone(fixture); mutate(bad); assert.equal(validLedger(bad, 'Pepperstone-Demo'), false)
@@ -66,17 +66,13 @@ try {
   const dateOnly = fixture.metrics.find(m => m.id === 'cad.cpi-yoy')
   assert.equal(ledgerReading(dateOnly, at('2026-08-20')-1), null, 'Unknown hours enter only at day end')
   assert.equal(ledgerReading(dateOnly, at('2026-08-20')).entry.value, 2.5)
-  const cards = ledgerCards(fixture, at('2026-09-09'))
-  assert.equal(cards[0].categories.find(c => c.id === 'policy').score, 50)
-  assert.equal(cards[1].categories.find(c => c.id === 'policy').score, 100)
-  assert.equal(cards[0].categories.find(c => c.id === 'labour').score, 0)
-  assert.equal(cards[1].categories.find(c => c.id === 'labour').score, 100)
-  assert.equal(cards[0].categories.find(c => c.id === 'inflation').score, null)
-  assert.equal(cards[1].categories.find(c => c.id === 'consumer').score, 0, 'Zero actual is a valid reading')
-  assert.equal(cards[0].assessed, 2, 'Missing categories excluded, not assumed neutral')
-  const doubled = structuredClone(fixture)
-  doubled.metrics.find(m => m.id === 'usd.rate').entries.push(...fixture.metrics.find(m => m.id === 'usd.rate').entries)
-  assert.equal(ledgerCards(doubled, at('2026-09-09'))[0].score, cards[0].score, 'Repeated evidence never adds points')
+  const developments = ledgerDevelopments(fixture, at('2026-09-09'))
+  const rate = developments[0].categories.find(c => c.id === 'policy').rows[0]
+  assert.equal(rate.entry.value, 4)
+  assert.equal(rate.previous, 4)
+  assert.equal(rate.direction, 0)
+  assert.ok(!JSON.stringify(developments).includes('"score"'), 'Category data contains no calculated scores')
+  assert.ok(!JSON.stringify(developments).includes('"assessed"'), 'Category data contains no scoring coverage')
 
   const filtering=await server.ssrLoadModule('./src/currency-ledger/ledger-filters.ts')
   const {defaultLedgerFilters,readLedgerFilters,saveLedgerFilters,createLedgerFilter,ledgerFilterStorageKey}=filtering
@@ -117,6 +113,11 @@ try {
         React.createElement(LedgerDock, { supported: enabled, broker, onOpenDetail, onViewEvent:onInspect }),
         enabled && React.createElement(LedgerDetail, { onViewEvent }))))))
   await render(); await reply(requests.at(-1), fixture)
+  assert.doesNotMatch(container.textContent, /\/100|Momentum|Scoring rules|Contribution:|scored categories|Context only|Heating|Cooling/)
+  assert.match(container.querySelector('.ledger-detail-intro').textContent, /Recent developments/)
+  assert.deepEqual([...container.querySelectorAll('.ledger-summary button')].map(n=>n.textContent), ['USD','CAD'])
+  assert.ok(container.querySelector('[data-ledger-category="USD-policy"]').textContent.includes('4% → 4%'))
+
   assert.ok([...container.querySelectorAll('.ledger-toolbar button')].some(n=>n.textContent==='Today'))
   assert.equal([...container.querySelectorAll('.ledger-toolbar button')].some(n=>n.textContent==='Live'),false)
   assert.equal(container.querySelector('[aria-label="Ledger history basis"]'),null)
@@ -126,7 +127,7 @@ try {
   const filterButton=()=>container.querySelector('[aria-label="Ledger filters"]'),popover=()=>document.querySelector('.ledger-filters-popover')
   assert.equal(filterButton().textContent,'Filters · S/A/B')
   const choose=async label=>click([...popover().querySelectorAll('button')].find(n=>n.textContent===label))
-  const requestsBeforeFilter=requests.length,summaryBeforeFilter=container.querySelector('.ledger-summary').textContent
+  const requestsBeforeFilter=requests.length,detailsBeforeFilter=container.querySelector('.ledger-categories').textContent
   await click(filterButton());assert.equal(filterButton().getAttribute('aria-expanded'),'true')
   await choose('All events')
   assert.equal(filterButton().textContent,'Filters · S/A/B/C')
@@ -149,7 +150,7 @@ try {
   await React.act(async()=>document.body.dispatchEvent(new dom.PointerEvent('pointerdown',{bubbles:true})))
   assert.equal(popover(),null);assert.equal(filterButton().textContent,'Filters · S/A/B')
   assert.equal(requests.length,requestsBeforeFilter)
-  assert.equal(container.querySelector('.ledger-summary').textContent,summaryBeforeFilter,'Visibility filtering leaves scoring evidence intact')
+  assert.equal(container.querySelector('.ledger-categories').textContent,detailsBeforeFilter,'Visibility filtering leaves category details intact')
   const beforeGeometry = {...counts}
   for(let i=0;i<20;i++) await render()
   for(const observer of observers) observer.callback([])
@@ -193,7 +194,7 @@ try {
   assert.equal(requests.length, requestsBefore, 'Tape scrolling is local and read-only')
   assert.ok(container.querySelector('[data-ledger-date="2026-01-01"]'))
   assert.equal([...container.querySelectorAll('button')].some(n=>n.textContent==='Go to 2025'),true)
-  const beforeYearScore=container.querySelector('.ledger-summary').textContent
+  const beforeYearDetails=container.querySelector('.ledger-categories').textContent
   await click([...container.querySelectorAll('button')].find(n=>n.textContent==='Go to 2025'))
   const yearRequests=requests.slice(requestsBefore)
   assert.equal(yearRequests.length,2,'Load the viewed year and retain the independently evaluated year')
@@ -201,8 +202,8 @@ try {
     const year=Number(new URL(request.url,'http://localhost').searchParams.get('year'))
     await reply(request,fixtures[year])
   }
-  assert.equal(input.value,selected,'Browsing another year never changes the score date')
-  assert.equal(container.querySelector('.ledger-summary').textContent,beforeYearScore)
+  assert.equal(input.value,selected,'Browsing another year never changes the detail date')
+  assert.equal(container.querySelector('.ledger-categories').textContent,beforeYearDetails)
   assert.ok(container.querySelector('[data-ledger-date="2025-12-31"]'),'Previous year lands at its December end')
   await click([...container.querySelectorAll('button')].find(n=>n.textContent==='Go to 2026'))
   await reply(requests.at(-1),fixture)
@@ -225,8 +226,8 @@ try {
   assert.equal(captures.size,0)
   assert.equal(container.textContent.includes('After cutoff · values hidden'),false)
   assert.equal(container.querySelector('[data-ledger-event="sep"] .ledger-header-values strong').textContent,'2.9%','Tape keeps latest retained released values visible after the selected cutoff')
-  await click(container.querySelector('[aria-label="Open CAD Ledger scorecard"]')); assert.equal(opened, 1)
-  await click([...container.querySelectorAll('.ledger-scorecard th button')].find(n => n.textContent === 'Labor & wages'))
+  await click(container.querySelector('[aria-label="Open CAD developments"]')); assert.equal(opened, 1)
+  await click([...container.querySelectorAll('.ledger-categories th button')].find(n => n.textContent === 'Labor & wages'))
   assert.ok(container.querySelector('[data-ledger-metric="cad.unemployment"]'))
   await click(container.querySelector('[data-ledger-metric="cad.unemployment"] button')); assert.equal(viewed, 'ca-jobs')
   const [id, timer] = [...timers].find(([,t]) => t.ms === 30000); timers.delete(id)
@@ -247,7 +248,7 @@ try {
     const currencies=forexPairCurrencies(pair)
     const snapshot={...output.all,currencies:[...currencies],coverage:Object.fromEntries(currencies.map(c=>[c,output.all.coverage[c]])),metrics:output.all.metrics.filter(m=>currencies.includes(m.currency))}
     assert.ok(validLedger(snapshot,'Pepperstone-Demo',2026,currencies),pair)
-    assert.deepEqual(ledgerCards(snapshot,at('2026-09-09')).map(c=>c.currency),[...currencies])
+    assert.deepEqual(ledgerDevelopments(snapshot,at('2026-09-09')).map(c=>c.currency),[...currencies])
     await React.act(async()=>root.render(React.createElement(DisplayClockProvider,{brokerId:'Pepperstone-Demo',brokerOffsetSeconds:7200,preference},
       React.createElement(LedgerProvider,{broker:'Pepperstone-Demo',enabled:true,currencies},React.createElement(React.Fragment,null,
         React.createElement(LedgerDock,{supported:true,broker:'Pepperstone-Demo',onOpenDetail,onViewEvent:onInspect}),React.createElement(LedgerDetail,{onViewEvent}),React.createElement(LedgerRateHistory,{onViewEvent}))))))
@@ -256,7 +257,7 @@ try {
     assert.equal(popover(),null,'Changing pair cancels an open filter preview')
     assert.deepEqual(readLedgerFilters().tiers,['S','A','B'])
     assert.deepEqual([...container.querySelectorAll('.ledger-currency')].map(n=>n.textContent),[...currencies])
-    assert.deepEqual([...container.querySelectorAll('.ledger-scorecard thead th')].slice(1).map(n=>n.textContent),[...currencies])
+    assert.deepEqual([...container.querySelectorAll('.ledger-categories thead th')].slice(1).map(n=>n.textContent),[...currencies])
     assert.deepEqual([...container.querySelectorAll('.ledger-rate-columns h3')].map(n=>n.textContent),[...currencies])
     await click(filterButton())
     assert.deepEqual([...popover().querySelectorAll('.inspector-filter-columns h3')].map(n=>n.textContent.replace('Select all','')),[...currencies])
@@ -314,7 +315,7 @@ try {
   assert.equal(localStorage.getItem('fyodor.inspector.shared.v1'),preferencesBefore)
   await React.act(async()=>inspectorView.selectRelease(null))
   assert.equal(inspectorView.focusedValueId,null)
-  console.log('✓ Ledger: production storage projection, carry-forward, cutoff isolation, captured revisions, category math, no duplicate votes, local scrolling, shared scorecard, scope and cancellation')
+  console.log('✓ Ledger: production storage projection, factual category details without scoring, carry-forward, cutoff isolation, captured revisions, local scrolling, scopes and cancellation')
 } finally {
   await React.act(async () => root.unmount()); await server.close(); await dom.happyDOM.close(); Date.now = originalNow
   for (const [k, d] of previous) { if (d) Object.defineProperty(globalThis, k, d); else delete globalThis[k] }

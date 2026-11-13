@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
-import { ledgerCards, ledgerDay, ledgerDayEnd, validLedger, type LedgerData, type LedgerSelection } from './ledger-model'
+import { ledgerDevelopments, ledgerDay, ledgerDayEnd, validLedger, type LedgerData, type LedgerSelection } from './ledger-model'
 import { useLedgerFilters } from './useLedgerFilters'
 
 export function useLedgerState(broker: string | null, enabled: boolean, pickerScope: string | null, currencies: readonly string[]) {
@@ -32,14 +32,14 @@ export function useLedgerState(broker: string | null, enabled: boolean, pickerSc
     setYear(Number(ledgerDay(current).slice(0, 4))); setNow(current)
     setSelection(old => ({ ...old, at: null })); setFocusRequest(n => n + 1); cancelPicking()
   }, [cancelPicking])
-  const at = Math.min(selection.at ?? now, now), scoreYear = Number(ledgerDay(at).slice(0, 4))
+  const at = Math.min(selection.at ?? now, now), detailYear = Number(ledgerDay(at).slice(0, 4))
   useEffect(() => {
     if (!enabled || !broker) return
     const controller = new AbortController()
     let timer = 0
     async function pollLedger() {
       try {
-        const requested = [...new Set([year, scoreYear])]
+        const requested = [...new Set([year, detailYear])]
         const snapshots = await Promise.all(requested.map(async requestedYear => {
           const current = cache.current.get(`${broker}:${scope}:${requestedYear}`)
           const query = new URLSearchParams({ source_id: broker!, year: String(requestedYear), scope: currencies.join('') })
@@ -72,15 +72,15 @@ export function useLedgerState(broker: string | null, enabled: boolean, pickerSc
     }
     void pollLedger()
     return () => { controller.abort(); window.clearTimeout(timer) }
-  }, [enabled, broker, year, scoreYear, scope, currencies])
+  }, [enabled, broker, year, detailYear, scope, currencies])
   const active = state?.broker === broker && state.scope===scope ? state : null
-  const data = active?.years[year] ?? null, scoreData = active?.years[scoreYear] ?? null, error = active?.error
-  const cards = useMemo(() => scoreData ? ledgerCards(scoreData, at) : [], [scoreData, at])
+  const data = active?.years[year] ?? null, detailData = active?.years[detailYear] ?? null, error = active?.error
+  const developments = useMemo(() => detailData ? ledgerDevelopments(detailData, at) : [], [detailData, at])
   // Dock geometry belongs to the parent workspace. Keep this context stable so
-  // height-only parent renders never invalidate the tape or the scorecard.
-  return useMemo(() => ({ data, scoreData, error, selection, setSelection, at, cards, now, year, setYear, currencies, filters, applyFilters,
+  // height-only parent renders never invalidate the tape or the category details.
+  return useMemo(() => ({ data, detailData, error, selection, setSelection, at, developments, now, year, setYear, currencies, filters, applyFilters,
     picking, canPick: pickerScope !== null, togglePicking, cancelPicking, pickDay, goToToday, focusRequest, viewMemory }),
-    [data, scoreData, error, selection, at, cards, now, year, picking, pickerScope, togglePicking, cancelPicking, pickDay, goToToday, focusRequest,currencies,filters,applyFilters])
+    [data, detailData, error, selection, at, developments, now, year, picking, pickerScope, togglePicking, cancelPicking, pickDay, goToToday, focusRequest,currencies,filters,applyFilters])
 }
 export const LedgerContext = createContext<ReturnType<typeof useLedgerState> | null>(null)
 export function useLedger() {

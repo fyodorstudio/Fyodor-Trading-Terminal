@@ -5,7 +5,7 @@ import { LedgerValues } from './LedgerValues'
 import { useLedger } from './useLedger'
 
 export function LedgerRateHistory({ onViewEvent }: { onViewEvent: (reading: DetailReading,currency: string) => void }) {
-  const { scoreData: data, currencies, at } = useLedger()
+  const { detailData: data, currencies, at } = useLedger()
   const columns = useMemo(() => {
     return currencies.map(currency => {
       const metric=data?.metrics.find(m=>m.id===`${currency.toLowerCase()}.rate`)
