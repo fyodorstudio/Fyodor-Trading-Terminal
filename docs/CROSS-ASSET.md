@@ -69,18 +69,28 @@ or Daily/Weekly clears the range. Range selection never fetches history or chang
 the chart; copy output remains changes only.
 
 **Copy Research Prompt** uses the same selected dates, instruments and grouped raw
-changes, preceded by a concise instruction to research current directional
-opportunities whose repricing may still be unfolding. It asks for the best few
-market/buy-or-sell/catalyst explanations with a decisive source, using fresh
-reporting and original sources directly without repository research workflows.
-There are no mandatory scenario, invalidation or confidence sections. The context
-includes the broker, copy-time UTC timestamp, Daily/Weekly return definition,
+changes, preceded by an instruction to research current FX opportunities across
+all eight currencies whose repricing may still be unfolding. Other assets remain
+macro context only. Fresh research includes unscheduled headlines, policymaker
+remarks and changes in expectations, including which driver dominates conflicting
+news. Output is at most three concise currency/pair buy-or-sell ideas explaining
+what happened, with a verified time where available and decisive source link,
+and why it matters now: the reaction and evidence of possible remaining repricing.
+Unclear remaining potential is stated rather than invented; no supported idea
+means WAIT. There are no mandatory scenario, invalidation or confidence sections.
+The initial prompt establishes that later pasted snapshots request fresh browsing
+and an updated assessment, emphasizing material changes and retaining relevant
+conclusions from the same conversation. Copy Details Only remains data-only.
+Research uses original sources and reporting directly without repository research
+workflows. Assessment/catalyst times and the export clock use Jakarta AM/PM.
+The context includes the broker, copy-time Jakarta timestamp, Daily/Weekly return definition,
 broker session dating, incomplete periods/missing readings, and the custom
 all-seven geometric basket definition distinct from USDX/EURX/JPYX. Copy time is
 not a market freshness timestamp; the prompt explicitly explains that In progress
 figures are provisional returns to the latest available reading rather than final
-closing returns. It requests opportunities current when
-the receiving agent runs it. Both buttons disable when there are no selected
+closing returns. Selected periods can be historical; their O/H/L/C does not establish
+intraday chronology, current prices or the latest market-update time. It requests
+opportunities current when the receiving agent runs it. Both buttons disable when there are no selected
 readings and report clipboard failures. Text is assembled only on click; copying
 performs no fetching, research, saves or alarm changes.
 
