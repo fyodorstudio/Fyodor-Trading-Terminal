@@ -20,11 +20,10 @@ from .recent_calendar import recent_snapshot
 from .detail_registry import resolve_scope
 from .currency_ledger import ledger_snapshot
 from .market_watch_daily import DailyMarketWatch
-from .cross_asset import CrossAssetHistory
-from .cross_asset_intraday import CrossAssetIntraday
-from .cross_asset_wildcards import WildcardSave, wildcard_snapshot, save_wildcards
+from .heatmap import HeatmapHistory
+from .heatmap_intraday import HeatmapIntraday
+from .wildcards import WildcardChange, WildcardEntry, wildcard_snapshot, change_wildcard
 from .fed_forecasts import read_forecasts
-from .manual_news import NewsEntry, read_news, write_news
 
 
 class DailyMarketRequest(BaseModel):
@@ -36,14 +35,14 @@ class DailyMarketRequest(BaseModel):
     retry: bool = False
 
 
-class CrossAssetRequest(BaseModel):
+class HeatmapRequest(BaseModel):
     source_id: str = Field(min_length=1, max_length=160)
     generation: int = Field(ge=0)
     symbols: list[str] = Field(max_length=128)
     year: int = Field(ge=2015, le=2100)
     retry: bool = False
 
-class CrossAssetIntradayRequest(BaseModel):
+class HeatmapIntradayRequest(BaseModel):
     source_id: str = Field(min_length=1, max_length=160)
     generation: int = Field(ge=0)
     symbols: list[str] = Field(max_length=128)
@@ -77,24 +76,35 @@ def create_app(directory=None, run_collector=True):
 
     app = FastAPI(title="Fyodor Calendar Storage", version="1.1.0", lifespan=lifespan)
     daily_market = DailyMarketWatch()
-    cross_asset = CrossAssetHistory()
-    cross_asset_intraday = CrossAssetIntraday()
-    wildcards_directory = (directory or data_directory()) / 'cross-asset-wildcards'
-    news_directory = (directory or data_directory()) / 'manual-news'
+    heatmap = HeatmapHistory()
+    heatmap_intraday = HeatmapIntraday()
+    wildcard_root = directory or data_directory()
 
-    @app.get('/api/v1/cross-asset/wildcards')
-    def cross_asset_wildcards(source_id: str = Query(min_length=1, max_length=160)):
+    @app.get('/api/v1/wildcards')
+    def wildcards():
         try:
-            return wildcard_snapshot(wildcards_directory, source_id)
+            return wildcard_snapshot(wildcard_root)
         except (ValueError, OSError, KeyError, TypeError) as error:
-            raise HTTPException(503, 'Wildcards unavailable; stored notes are preserved') from error
+            raise HTTPException(503, 'Could not load Wildcards; saved entries are preserved') from error
 
-    @app.post('/api/v1/cross-asset/wildcards')
-    def cross_asset_wildcards_save(request: WildcardSave):
+    def change(request=None, identity=None, delete=False, revision=0):
         try:
-            return save_wildcards(wildcards_directory, request)
+            entry = WildcardEntry.model_validate(request.model_dump(exclude={'expected_revision'})) if request else None
+            return change_wildcard(wildcard_root, request.expected_revision if request else revision, entry, identity, delete)
         except (ValueError, OSError, KeyError, TypeError) as error:
-            raise HTTPException(503, 'Could not save Wildcards; stored notes are preserved') from error
+            raise HTTPException(503, 'Could not save Wildcards; your draft is preserved') from error
+
+    @app.post('/api/v1/wildcards')
+    def add_wildcard(request: WildcardChange):
+        return change(request)
+
+    @app.put('/api/v1/wildcards/{identity}')
+    def edit_wildcard(identity: str, request: WildcardChange):
+        return change(request, identity)
+
+    @app.delete('/api/v1/wildcards/{identity}')
+    def delete_wildcard(identity: str, expected_revision: int = Query(ge=0)):
+        return change(identity=identity, delete=True, revision=expected_revision)
 
     @app.get('/api/v1/fed-forecasts')
     def fed_forecasts():
@@ -122,22 +132,22 @@ def create_app(directory=None, run_collector=True):
         except (ValueError, OSError, subprocess.TimeoutExpired) as error:
             raise HTTPException(503, 'Pepperstone daily candles unavailable') from error
 
-    @app.post('/api/v1/cross-asset/intraday')
-    def intraday_history(request: CrossAssetIntradayRequest):
+    @app.post('/api/v1/heatmap/intraday')
+    def intraday_history(request: HeatmapIntradayRequest):
         try:
-            return cross_asset_intraday.snapshot(request.source_id, request.generation, request.symbols,
+            return heatmap_intraday.snapshot(request.source_id, request.generation, request.symbols,
                 request.from_utc, request.through_utc, request.retry)
         except (ValueError, OSError, subprocess.TimeoutExpired) as error:
             raise HTTPException(503, 'Intraday history unavailable: ' + str(error)) from error
 
-    @app.post('/api/v1/cross-asset/history')
-    def cross_asset_history(request: CrossAssetRequest):
+    @app.post('/api/v1/heatmap/history')
+    def heatmap_history(request: HeatmapRequest):
         if any(not s or len(s) > 128 for s in request.symbols):
             raise HTTPException(422, 'Invalid heatmap symbol')
         try:
-            return cross_asset.snapshot(request.source_id, request.generation, request.symbols, request.year, request.retry)
+            return heatmap.snapshot(request.source_id, request.generation, request.symbols, request.year, request.retry)
         except (ValueError, OSError, subprocess.TimeoutExpired) as error:
-            raise HTTPException(503, 'Cross-asset history unavailable; connect the matching Pepperstone terminal and retry') from error
+            raise HTTPException(503, 'Heatmap history unavailable; connect the matching Pepperstone terminal and retry') from error
 
     @app.exception_handler(ValueError)
     async def invalid_transfer(_, error):
@@ -201,33 +211,6 @@ def create_app(directory=None, run_collector=True):
                 or len(set(selected)) != len(selected) or any(item not in CURRENCIES for item in selected)):
             raise HTTPException(422, 'Invalid recent calendar interval or currency scope')
         return recent_snapshot(app.state.store, source_id, from_utc_ms, to_utc_ms, selected)
-
-    @app.get('/api/v1/currency-news')
-    def manual_news():
-        try:
-            return read_news(news_directory)
-        except (ValueError, OSError) as error:
-            raise HTTPException(503, 'Could not load news') from error
-
-    def change_news(entry=None, identity=None, delete=False):
-        try:
-            return write_news(news_directory, entry, identity, delete)
-        except KeyError as error:
-            raise HTTPException(404, 'News entry not found') from error
-        except (ValueError, OSError) as error:
-            raise HTTPException(503, 'Could not save news') from error
-
-    @app.post('/api/v1/currency-news')
-    def add_news(entry: NewsEntry):
-        return change_news(entry)
-
-    @app.put('/api/v1/currency-news/{identity}')
-    def edit_news(identity: str, entry: NewsEntry):
-        return change_news(entry, identity)
-
-    @app.delete('/api/v1/currency-news/{identity}')
-    def delete_news(identity: str):
-        return change_news(identity=identity, delete=True)
 
     return app
 

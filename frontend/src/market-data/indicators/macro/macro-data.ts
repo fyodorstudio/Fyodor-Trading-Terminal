@@ -11,7 +11,8 @@ export type MacroReading = { time: number; releasedAt: number; value: number; id
 export type MacroHistory = Record<MacroMetric, MacroReading[]>
 export type MacroScheduled = { time: number; releasedAt: number; metrics: MacroMetric[]; forecasts?: Partial<Record<MacroMetric, number>>;
   formats?: Partial<Record<MacroMetric, Pick<MacroReading, 'unit' | 'multiplier' | 'digits'>>> }
-export type MacroIndicator = { enabled: boolean; history: MacroHistory; forecastHistory?: MacroHistory; upcoming: MacroScheduled[]; status: string; preferences: MacroPreferences; forecasts?: FedForecasts; sourceId?: string | null }
+export type MacroTextEvent = { id: string; time: number; at: number | null; title: string; details: string; wildcardId?: string }
+export type MacroIndicator = { enabled: boolean; history: MacroHistory; forecastHistory?: MacroHistory; upcoming: MacroScheduled[]; status: string; preferences: MacroPreferences; forecasts?: FedForecasts; sourceId?: string | null; events?: MacroTextEvent[]; eventStatus?: string }
 export function supportsMacro(symbol: string) { return !!symbol.trim() }
 export function macroValue(metric: MacroMetric, value: number, reading?: Pick<MacroReading, 'unit' | 'multiplier' | 'digits'>) {
   const definition = macroCatalog[metric], unit = reading?.unit ?? definition?.unit

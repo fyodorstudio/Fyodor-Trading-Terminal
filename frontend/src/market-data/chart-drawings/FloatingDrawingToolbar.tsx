@@ -14,6 +14,9 @@ type FloatingDrawingToolbarProps = {
   onSelectCrosshair: () => void
   onToolChange: (tool: DrawingToolId | null) => void
   onClearPair: () => void
+  wildcardActive?: boolean
+  wildcardDisabled?: boolean
+  onAddWildcard?: () => void
   priceAlertDisabled?: boolean
 }
 
@@ -25,6 +28,9 @@ export function FloatingDrawingToolbar({
   onToolChange,
   onClearPair,
   priceAlertDisabled = false,
+  wildcardActive = false,
+  wildcardDisabled = false,
+  onAddWildcard,
 }: FloatingDrawingToolbarProps) {
   const toolbarRef = useRef<HTMLDivElement>(null)
   const [position, setPosition] = useState<FloatingToolbarPosition>(readFloatingToolbarPosition)
@@ -128,15 +134,16 @@ export function FloatingDrawingToolbar({
         <span aria-hidden="true">⠿</span>
       </button>
       <button
-        className={activeTool === null ? 'drawing-toolbar-crosshair active' : 'drawing-toolbar-crosshair'}
+        className={activeTool === null && !wildcardActive ? 'drawing-toolbar-crosshair active' : 'drawing-toolbar-crosshair'}
         type="button"
         onClick={onSelectCrosshair}
-        aria-pressed={activeTool === null}
+        aria-pressed={activeTool === null && !wildcardActive}
         aria-label="Crosshair and chart navigation"
         title="Crosshair · deselect drawing tool"
       >
         <span className="crosshair-glyph" aria-hidden="true" />
       </button>
+      {onAddWildcard && <button type="button" className={wildcardActive ? 'active' : ''} aria-label="Add wildcard on chart" aria-pressed={wildcardActive} disabled={wildcardDisabled} onClick={onAddWildcard} title="Add wildcard · select a candle">✦</button>}
       {drawingTools.map((tool) => (
         <button
           key={tool.id}

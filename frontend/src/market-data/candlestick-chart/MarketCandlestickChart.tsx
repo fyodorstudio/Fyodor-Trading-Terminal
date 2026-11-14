@@ -454,7 +454,7 @@ function MarketCandlestickChartComponent({
         macroPaneRef.current?.destroy(); macroPaneRef.current = null
       } else {
         macroPaneRef.current ??= createMacroPane(chart)
-        macroPaneRef.current.sync(bars, macro, timeframeToSeconds(timeframe), formatUtc, {
+        const changed = macroPaneRef.current.sync(bars, macro, timeframeToSeconds(timeframe), formatUtc, {
           toggleMetric: metric => onToggleMacroMetric?.(metric),
           toggleForecast: metric => onToggleMacroForecast?.(metric),
           toggleNumbers: metric => onToggleMacroNumbers?.(metric),
@@ -462,6 +462,7 @@ function MarketCandlestickChartComponent({
           selectMetric: metric => onSelectMacroMetric?.(metric),
           inspectRelease: onInspectMacroRelease,
         })
+        if (changed === false) return
       }
       if (range) setLogicalRange(range)
     } finally { applyingDataRef.current = false }

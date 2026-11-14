@@ -15,8 +15,8 @@ The bridge supplies market data and calendar transport; storage owns persistence
 | `market-data` | OHLC, Market Watch, chart navigation, drawings and indicators |
 | `economic-calendar`, `inspector` | Event catalogue, filters, release packages and raw readings |
 | `alert`, `events-alarms`, `price-alerts` | Calendar reminders and price notifications |
-| `currency-ledger`, `currency-details`, `currency-news` | Timeline, metric comparisons and saved news |
-| `cross-asset` | Returns, synthetic baskets, rankings and wildcard notes |
+| `currency-ledger`, `currency-details`, `wildcards` | Timeline, metric comparisons and global manual events |
+| `heatmap` | Returns, synthetic baskets, rankings and wildcard notes |
 | `entry-trade` | Manual plans and journal |
 | `appearance`, `system-connectivity`, `system-observability` | Theme, clocks, connection state and Activity |
 
@@ -31,12 +31,21 @@ include sources, events, observations, coverage, jobs and event timing.
 `storage/data/calendar.sqlite3`; `FYODOR_STORAGE_DATA_DIR` changes the data directory.
 SQLite uses WAL mode.
 
-Manual News entries are stored in `storage/data/manual-news/news.json`. The model
-and CRUD operations are in `storage/manual_news.py`; the API supports GET/POST and
-PUT/DELETE by entry ID at `/api/v1/currency-news`. Entries contain date, currencies,
-title, details and an optional source URL.
+Global Wildcards are stored in `storage/data/wildcards/wildcards.json`.
+`storage/wildcards.py` provides revision-checked, atomic CRUD at `/api/v1/wildcards`.
+An entry has a title, details, optional source URL, Jakarta date and optional UTC
+timestamp. Entries apply to all instruments and brokers. The first read migrates
+current manual News and broker wildcard notes; their original files remain intact.
+Identical broker notes merge into one global entry. Backup/restore includes the
+shared store and legacy files.
 
-Fed readings, wildcard notes and alarm state use local data subdirectories.
+`frontend/src/wildcards/` owns the shared state and editor. The dock, chart icons,
+Heatmap cells and Detail all use that state. Drawing-toolbar placement converts the
+selected candle into a saved UTC timestamp. Chart timeframe changes regroup icons
+without changing saved times. Heatmap groups timed entries by broker candle day;
+date-only entries retain their entered date.
+
+Fed readings and alarm state use local data subdirectories.
 `storage/run.py` provides service, import, status, backup, restore and Fed-data
 commands. Manual trade journals retain their existing application path.
 
@@ -47,7 +56,11 @@ broker candle coordinates are separate fields. Historical broker offsets are
 configured in `config/broker-clock-profiles.json`. Date-only events have no exact
 publication timestamp. Calendar measure definitions are in `config/calendar-measures.json`.
 Detail groups calendar readings into Monetary policy, Inflation, Labor and Growth.
-Ledger and Detail use the same selected date.
+Ledger and Detail use the same selected time. Detail's cursor-follow mode batches
+hover updates by animation frame; clicking pins the candle time. Its Wildcards
+section shows the selected day during hover, or the preceding seven days when
+pinned, excluding entries after the selected time. Date-only entries become
+eligible at the end of their Jakarta date.
 
 Manual calendar corrections live in `config/calendar-overrides/*.json` and are
 applied by `storage/calendar_overrides.py` when reading calendar and Ledger data.
@@ -67,7 +80,11 @@ official table. Older CPI history has not been verified by these correction file
 Implementation: `frontend/src/market-data/indicators/macro/`.
 The event catalogue maps exact calendar series to chart measures. The shared
 browser configuration stores currency/event selection, styles, categories and
-layout. Named presets are separate snapshots with JSON import/export.
+layout. Currency tabs restore independent axes and lane arrangements while
+retaining each currency's selections and styles. Named presets include these views
+and support JSON import/export. One optional non-numerical row combines the active
+currency's scheduled speeches/announcements with global Wildcards; grouped dots
+show text tooltips and do not create numerical series.
 
 Actuals are plotted on their containing chart candles. Numerical plots use each
 measure's own scale; lane view places them on straight rows. Forecast visibility
@@ -75,13 +92,13 @@ is independent per measure. The existing Fed supplement is implemented by
 `storage/fed_forecasts.py` and stored in `storage/data/fed-forecasts/`.
 `pnpm storage:fed-forecasts --help` lists its commands.
 
-## Cross-Asset
+## Heatmap
 
 Daily returns compare OHLC with the previous available D1 close; weekly returns
 compare the week's OHLC with the preceding week's final close. Synthetic currency
 baskets use equal-weight geometric returns across seven counterparts. Event-window
 views use a fixed pre-window baseline. These calculations live in
-`frontend/src/cross-asset/`.
+`frontend/src/heatmap/`.
 
 ## Alarms
 

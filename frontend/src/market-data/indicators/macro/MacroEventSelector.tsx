@@ -3,12 +3,12 @@ import { majorCurrencies } from '../../../economic-calendar/forex/currencies'
 import { inspectorCategories } from '../../../inspector/catalog/inspector-families'
 import { macroCatalog } from './macro-catalog'
 import { macroCategories, macroCategory, moveMacroRow } from './macro-layout'
-import { selectedMacroMetrics, setMacroCurrency, setMacroEvents, type MacroPreferences } from './macro-preferences'
+import { selectedMacroEvents, setMacroCurrency, setMacroEvents, type MacroPreferences } from './macro-preferences'
 
 export function MacroEventSelector({ preferences, onChange }: { preferences: MacroPreferences; onChange: (next: MacroPreferences) => void }) {
   const [currency, setCurrency] = useState('USD'), [search, setSearch] = useState(''), [open, setOpen] = useState(false)
   const enabled = preferences.currencies ?? ['USD']
-  const categories = macroCategories(preferences), selected = selectedMacroMetrics(preferences)
+  const categories = macroCategories(preferences), selected = selectedMacroEvents(preferences, true)
   const savedKeys = (code: string) => preferences.eventsByCurrency?.[code]
     ?? Object.keys(preferences.series).filter(key => macroCatalog[key]?.currency === code)
   const terms = search.toLowerCase().trim().split(/\s+/).filter(Boolean)

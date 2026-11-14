@@ -194,6 +194,7 @@ try {
   await header('EURUSD'); assert.ok(host.querySelector('[aria-label="MFDI settings"]'))
   await React.act(async () => root.render(null))
 
+  saveMacroPreferences({...readMacroPreferences(),showEventRow:false})
   const { useMacroIndicator } = await server.ssrLoadModule('./src/market-data/indicators/macro/useMacroIndicator.ts')
   let view
   function Harness({ symbol = 'USDX', broker = 'A' }) {

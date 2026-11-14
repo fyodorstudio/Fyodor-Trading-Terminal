@@ -1,4 +1,4 @@
-"""Manually entered currency news."""
+"""Legacy manual News file support for migration and older backups."""
 from datetime import date
 import json
 import os

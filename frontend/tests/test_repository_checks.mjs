@@ -10,7 +10,7 @@ import { suites } from './suites.mjs'
 
 assert.equal(selectSuites(suites,[]),suites,'Default retains the full suite')
 assert.ok(selectSuites(suites,['price_alerts']).every(suite=>suite.includes('price_alerts')))
-assert.deepEqual(selectSuites(suites,['currency_news','currency_news']),suites.filter(suite=>suite.includes('currency_news')),'Overlapping filters do not run a suite twice')
+assert.deepEqual(selectSuites(suites,['wildcards','wildcards']),suites.filter(suite=>suite.includes('wildcards')),'Overlapping filters do not run a suite twice')
 assert.throws(()=>selectSuites(suites,['misspelled_suite']),/No frontend suite matches/)
 
 const runtime = fileURLToPath(new URL('./.runtime/', import.meta.url))

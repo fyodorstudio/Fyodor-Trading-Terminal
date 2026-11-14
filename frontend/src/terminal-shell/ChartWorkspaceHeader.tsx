@@ -175,7 +175,7 @@ export function ChartWorkspaceHeader({
           <button type="button" className={`chart-event-toggle${eventIconsVisible ? ' active' : ''}`}
             aria-pressed={eventIconsVisible}
             aria-label={eventIconsVisible ? 'Hide event icons' : 'Show event icons'}
-            title={eventIconsVisible ? 'Hide all event icons (Inspector and External Sources)' : 'Show all event icons (Inspector and External Sources)'}
+            title={eventIconsVisible ? 'Hide all event icons (Inspector and Wildcards)' : 'Show all event icons (Inspector and Wildcards)'}
             onClick={onToggleEventIcons}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <rect x="3" y="5" width="18" height="16" rx="2" />
@@ -212,8 +212,8 @@ export function ChartWorkspaceHeader({
           </svg>
         </button>}
         {onToggleRanking && <button type="button" className={`chart-detail-toggle${rankingOpen ? ' active' : ''}`}
-          aria-label={rankingOpen ? 'Hide Cross-Asset Ranking' : 'Show Cross-Asset Ranking'} title="Cross-Asset Ranking"
-          aria-expanded={rankingOpen} aria-controls="cross-asset-ranking-panel" onClick={onToggleRanking}>
+          aria-label={rankingOpen ? 'Hide Heatmap Ranking' : 'Show Heatmap Ranking'} title="Heatmap Ranking"
+          aria-expanded={rankingOpen} aria-controls="heatmap-ranking-panel" onClick={onToggleRanking}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M4 20h16M6 17V9h3v8M11 17V4h3v13M16 17v-5h3v5"/></svg>
         </button>}
         </div>

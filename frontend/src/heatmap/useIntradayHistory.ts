@@ -16,7 +16,7 @@ export function useIntradayHistory(broker:string|null,generation:number,names:st
       controller=new AbortController();timeout=globalThis.window.setTimeout(()=>controller?.abort(),22000)
       try{
         const missing=selected.filter(s=>!current?.symbols[s]),requested=force||!missing.length?selected:missing
-        const response=await fetch('/storage-api/cross-asset/intraday',{method:'POST',signal:controller.signal,headers:{'Content-Type':'application/json'},
+        const response=await fetch('/storage-api/heatmap/intraday',{method:'POST',signal:controller.signal,headers:{'Content-Type':'application/json'},
           body:JSON.stringify({source_id:broker,generation,symbols:requested,from_utc:from/1000,through_utc:through/1000,retry:force})})
         force=false
         if(!response.ok)throw new Error(`Intraday history unavailable (HTTP ${response.status}). Check the connection and retry.`)

@@ -37,8 +37,8 @@ try {
   assert.ok(pce && eur && jpy)
   for (const name of ['Average Hourly Earnings m/m', 'ISM Manufacturing', 'ISM Non-Manufacturing', 'Retail Sales m/m', 'GDP'])
     assert.ok(find('USD', name), `${name} is selectable without a code change`)
-  const archivedProfiles = { USDX: { enabled: true, currencies: ['USD'], axisTarget: 'rate' }, EURUSD: {
-    enabled: false, currencies: ['EUR'], axisTarget: eur, layout: { hideLegend: false, laneMode: true, categoryOrder: [], rowOrder: [eur], collapsed: [], laneOffset: 35, laneSpacing: 40 } } }
+  const archivedProfiles = { USDX: { enabled: true, currencies: ['USD'], axisTarget: 'rate', showEventRow:false }, EURUSD: {
+    enabled: false, currencies: ['EUR'], axisTarget: eur, showEventRow:false, layout: { hideLegend: false, laneMode: true, categoryOrder: [], rowOrder: [eur], collapsed: [], laneOffset: 35, laneSpacing: 40 } } }
   dom.localStorage.setItem('fyodor.indicators.macro.v2', JSON.stringify({ eventsByCurrency: { USD: Object.keys(defaultMacroPreferences.series), EUR: [eur] }, styles: { ...legacy.series, [eur]: { ...legacy.series.rate, color: '#654321' } }, symbols: archivedProfiles }))
   const { useMacroIndicator: useMigrationIndicator } = await server.ssrLoadModule('./src/market-data/indicators/macro/useMacroIndicator.ts')
   let migratedView
@@ -141,7 +141,7 @@ try {
   const { useMacroIndicator } = await server.ssrLoadModule('./src/market-data/indicators/macro/useMacroIndicator.ts')
   let profile = setMacroEvents(setMacroCurrency({ ...readMacroPreferences('BTCUSD'), currencies: [] }, 'EUR', true), 'EUR', [eur])
   profile = setMacroEvents(setMacroCurrency(profile, 'JPY', true), 'JPY', [jpy])
-  saveMacroPreferences({ ...profile, enabled: true }, 'BTCUSD')
+  saveMacroPreferences({ ...profile, enabled: true, activeCurrency:'EUR', showEventRow:false }, 'BTCUSD')
   const requests = []
   globalThis.fetch = (url, options) => new Promise(resolve => requests.push({ url: String(url), signal: options.signal, resolve }))
   let view
@@ -154,12 +154,12 @@ try {
   assert.equal(requests.length, 1, 'Only the selected calendar is requested; unrelated Fed evidence is not fetched')
   await React.act(async () => requests[0].resolve({ ok: true, json: async () => ({ revision: 1, sources: [{ id: 'A', coverage: {} }], collector_error: null }) }))
   const calendar = requests.at(-1), params = new URL(calendar.url, 'http://localhost').searchParams
-  assert.equal(params.get('event_ids'), [macroCatalog[eur].eventId, macroCatalog[jpy].eventId].sort().join(','))
-  assert.equal(params.get('currencies'), 'EUR,JPY')
+  assert.equal(params.get('event_ids'), macroCatalog[eur].eventId)
+  assert.equal(params.get('currencies'), 'EUR')
   const rows = [eur, jpy].map(key => ({ ...sample, value_id: key, event_id: macroCatalog[key].eventId, currency: macroCatalog[key].currency, country_code: macroCatalog[key].country }))
   await React.act(async () => calendar.resolve({ ok: true, json: async () => ({ source_id: 'A', revision: 1, timestamp_convention: 'trade_server_time', time_basis: 'chart', event_ids: params.get('event_ids').split(','), events: rows, next_cursor: null }) }))
   assert.equal(view.macro.history[eur][0].currency, 'EUR')
-  assert.equal(view.macro.history[jpy][0].currency, 'JPY')
+  assert.equal(view.macro.history[jpy],undefined,'Only the active currency is plotted')
   assert.equal(view.macro.status, '', 'Successful data has no static source caption')
   const count = requests.length, snapshot = view.macro.history, sharedPreferences = view.macroPreferences, sharedChange = view.changeMacro
   for (const symbol of [...majorForexPairs, 'EURX', 'JPYX', 'XAUUSD', 'CUSTOM-SYMBOL']) {

@@ -113,7 +113,7 @@ export const HeatmapTimeline = memo(function HeatmapTimeline({ rows, periods, se
   const top = Math.max(0, Math.floor((view.top - headerHeight) / rowHeight) - 3)
   const bottom = Math.min(tapeRows.length, Math.ceil((view.top + view.height) / rowHeight) + 3)
   const visible = periods.slice(first, last)
-  return <div ref={viewport} className="heatmap-viewport" tabIndex={0} aria-label="Cross-asset timeline; drag or scroll to browse, click a date to pin"
+  return <div ref={viewport} className="heatmap-viewport" tabIndex={0} aria-label="Heatmap timeline; drag or scroll to browse, click a date to pin"
     onScroll={queue} onPointerDown={down} onPointerMove={move} onPointerUp={finish} onPointerCancel={finish} onLostPointerCapture={finish}
     onClickCapture={e => { if (swallow.current) { e.preventDefault(); e.stopPropagation(); swallow.current = false } }}>
     <div className="heatmap-tape" style={{ gridTemplateColumns: `${labelWidth}px repeat(${periods.length}, ${columnWidth}px)`,

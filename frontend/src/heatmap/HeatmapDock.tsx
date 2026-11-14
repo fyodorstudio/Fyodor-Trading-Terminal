@@ -10,26 +10,25 @@ import { createHeatmapRowBuilder, formatHeatmapChange, heatmapOHLC, heatmapDate,
 import { readHeatmapPreferences, saveHeatmapPreferences, type HeatmapPreferences } from './heatmap-preferences'
 import { useHeatmapHistory } from './useHeatmapHistory'
 import { heatmapChangesText, heatmapResearchPrompt, heatmapRankingText } from './heatmap-export'
-import { useWildcards } from './useWildcards'
-import { WildcardEditor, WildcardManager } from './WildcardEditor'
-import type { WildcardSnapshot } from './wildcards-model'
+import { useWildcards } from '../wildcards/useWildcards'
+import { wildcardHeatmapDay } from '../wildcards/wildcard-model'
+import { wildcardHeatmapRows } from './wildcards-model'
 import { HeatmapFields, HeatmapCopyOptions } from './HeatmapOptions'
 import { EventWindowControls } from './EventWindowControls'
 import { eventRows, eventPeriods, eventChangesText, jakartaTime, type EventWindow } from './event-window'
 import { useIntradayHistory } from './useIntradayHistory'
-import './cross-asset.css'
+import './heatmap.css'
 
 const tapeMemory = new Map<string, { left: number; top: number }>()
 const sessions = new Map<string, { date: string; pinned: boolean; year: number }>()
-const noWildcards: WildcardSnapshot['rows'] = []
 
 // Quote ticks do not invalidate the history, basket calculations or timeline.
-export function CrossAssetDock({ symbols, broker, generation, active = true, connected = true, dockActive = active, rankingTarget = null, onCloseRanking }: { symbols: SymbolQuote[]; broker: string | null; generation: number; active?: boolean; connected?: boolean; dockActive?: boolean; rankingTarget?: HTMLElement | null; onCloseRanking?: () => void }) {
+export function HeatmapDock({ symbols, broker, generation, active = true, connected = true, dockActive = active, rankingTarget = null, onCloseRanking }: { symbols: SymbolQuote[]; broker: string | null; generation: number; active?: boolean; connected?: boolean; dockActive?: boolean; rankingTarget?: HTMLElement | null; onCloseRanking?: () => void }) {
   const catalog = JSON.stringify(symbols.map(s => ({ symbol: s.symbol, description: s.description })))
-  return <HeatmapDock key={`${broker}:${generation}`} catalogJson={catalog} broker={broker} generation={generation} active={active} connected={connected} dockActive={dockActive} rankingTarget={rankingTarget} onCloseRanking={onCloseRanking} />
+  return <HeatmapContent key={`${broker}:${generation}`} catalogJson={catalog} broker={broker} generation={generation} active={active} connected={connected} dockActive={dockActive} rankingTarget={rankingTarget} onCloseRanking={onCloseRanking} />
 }
 
-const HeatmapDock = memo(function HeatmapDock({ catalogJson, broker, generation, active, connected, dockActive, rankingTarget, onCloseRanking }: { catalogJson: string; broker: string | null; generation: number; active: boolean; connected: boolean; dockActive: boolean; rankingTarget: HTMLElement | null; onCloseRanking?: () => void }) {
+const HeatmapContent = memo(function HeatmapContent({ catalogJson, broker, generation, active, connected, dockActive, rankingTarget, onCloseRanking }: { catalogJson: string; broker: string | null; generation: number; active: boolean; connected: boolean; dockActive: boolean; rankingTarget: HTMLElement | null; onCloseRanking?: () => void }) {
   const catalog: HeatmapInstrument[] = useMemo(() => JSON.parse(catalogJson), [catalogJson])
   const { preference } = useDisplayClock()
   const [eventMode, setEventMode] = useState(false)
@@ -48,16 +47,14 @@ const HeatmapDock = memo(function HeatmapDock({ catalogJson, broker, generation,
     while (sessions.size > 8) sessions.delete(sessions.keys().next().value!)
   }, [view, broker, generation])
   const [manager, setManager] = useState(false), [saveError, setSaveError] = useState<string | null>(null)
-  const wildcards = useWildcards(broker)
-  const [noteEditor, setNoteEditor] = useState<{ snapshot: WildcardSnapshot; rowId?: string; day: string; mode: HeatmapPreferences['mode'] } | null>(null)
-  const [wildcardManager, setWildcardManager] = useState<WildcardSnapshot | null>(null)
+  const wildcards = useWildcards()
+  const { openNew, openDay, snapshot } = wildcards
+  const wildcardRows = useMemo(() => wildcardHeatmapRows(snapshot?.items ?? [], { brokerId: broker, brokerOffsetSeconds: 0 }), [snapshot?.items, broker])
   const [copied, setCopied] = useState<{ key: string; message: string } | null>(null)
   const [copyRange, setCopyRange] = useState<{ from: string; to: string; anchor: string; scope: string } | null>(null)
   const copyScope = eventMode ? `${eventWindow.from}:${eventWindow.through}:${eventWindow.minutes}` : `${view.year}:${preferences.mode}`
   if (copyRange && copyRange.scope !== copyScope) setCopyRange(null)
   if (!active && manager) setManager(false)
-  if ((!active || !dockActive) && noteEditor) setNoteEditor(null)
-  if ((!active || !dockActive) && wildcardManager) setWildcardManager(null)
   const [collapsed, setCollapsed] = useState<string[]>([])
   const toggleGroup = useCallback((group: string) => setCollapsed(old => old.includes(group) ? old.filter(g => g !== group) : [...old, group]), [])
   const [buildRows] = useState(createHeatmapRowBuilder)
@@ -106,15 +103,16 @@ const HeatmapDock = memo(function HeatmapDock({ catalogJson, broker, generation,
     changeView(day, true)
   }, [changeView, copyRange, selected, copyScope, eventMode])
   const closeManager = useCallback(() => setManager(false), [])
-  const closeNote = useCallback(() => setNoteEditor(null), [])
-  const closeWildcards = useCallback(() => setWildcardManager(null), [])
-  const addWildcard = useCallback(() => {
-    if (wildcards.snapshot && !wildcards.loading) setNoteEditor({ snapshot: wildcards.snapshot, day: selected, mode: preferences.mode })
-  }, [wildcards.snapshot, wildcards.loading, selected, preferences.mode])
-  const editWildcard = useCallback((rowId: string, day: string) => {
-    if (wildcards.snapshot && !wildcards.loading) setNoteEditor({ snapshot: wildcards.snapshot, rowId, day, mode: preferences.mode })
-  }, [wildcards.snapshot, wildcards.loading, preferences.mode])
-  const manageWildcards = useCallback(() => { if (wildcards.snapshot && !wildcards.loading) setWildcardManager(wildcards.snapshot) }, [wildcards.snapshot, wildcards.loading])
+  const addWildcard = useCallback(() => openNew(undefined, eventMode ? heatmapDate(eventWindow.from) : view.date), [openNew, eventMode, eventWindow.from, view.date])
+  const editWildcard = useCallback((_rowId: string, day: string) => {
+    const end = preferences.mode === 'weekly' ? heatmapDate(Date.parse(day) + 6 * 86400_000) : day
+    const items = (snapshot?.items ?? []).filter(entry => {
+      const date = wildcardHeatmapDay(entry, { brokerId: broker, brokerOffsetSeconds: 0 })
+      return !entry.archived && date !== null && date >= day && date <= end
+    })
+    openDay(day, items)
+  }, [preferences.mode, snapshot?.items, openDay, broker])
+  const manageWildcards = useCallback(() => openDay(view.date, snapshot?.items.filter(entry => !entry.archived) ?? []), [openDay, snapshot?.items, view.date])
   async function copyDetails(kind: 'details' | 'research') {
     try {
       const changes = eventMode ? eventChangesText(exportRows, eventWindow, exportFields, preferences.copyFormat, preferences.groupOrder, intraday.data?.observed_at ?? clock/1000) : heatmapChangesText(exportRows, copyDays, preferences.mode, preferences.groupOrder, today, exportFields)
@@ -178,9 +176,9 @@ const HeatmapDock = memo(function HeatmapDock({ catalogJson, broker, generation,
     const day=e.target.value;if(day>='2015-01-01'&&day<=today&&Number.isFinite(Date.parse(day)))changeView(day,true,true)
   }}/></label>
   if (!active) return null
-  return <><section className="cross-asset-dock" hidden={!dockActive} style={{"--heat-fields":preferences.fields.length} as import('react').CSSProperties} aria-label="Cross-asset heatmap">
+  return <><section className="heatmap-dock" hidden={!dockActive} style={{"--heat-fields":preferences.fields.length} as import('react').CSSProperties} aria-label="Heatmap">
     <div className="heatmap-toolbar">
-      <strong>Cross-Asset</strong>
+      <strong>Heatmap</strong>
       {periodControls}{fieldControls}
       <button type="button" onClick={todayAction}>Today</button>
       {dateControl}
@@ -195,8 +193,8 @@ const HeatmapDock = memo(function HeatmapDock({ catalogJson, broker, generation,
       <button type="button" disabled={!canCopy} onClick={() => void copyDetails('research')}>Copy Research Prompt</button>
       {copyOptions}
       <button type="button" disabled={eventMode} aria-pressed={!!copyRange} title="Set From/Through, or click a date then Shift-click another to select a range" onClick={() => setCopyRange(old => old ? null : { from: selected, to: selected, anchor: selected, scope: copyScope })}>Copy range</button>
-      <button type="button" disabled={!wildcards.snapshot || wildcards.loading} onClick={manageWildcards}>Manage Wildcards</button>
-      <button type="button" disabled={!broker || wildcards.loading} onClick={wildcards.reload}>Reload Wildcards</button>
+      <button type="button" disabled={!wildcards.snapshot} onClick={manageWildcards}>Manage Wildcards</button>
+      <button type="button" disabled={!broker || !wildcards.snapshot} onClick={wildcards.reload}>Reload Wildcards</button>
       <button type="button" onClick={() => setAttempt(n => n + 1)}>Refresh</button>
       <button type="button" aria-expanded={help} onClick={() => setHelp(v => !v)}>Method</button>
     </div>
@@ -229,16 +227,14 @@ const HeatmapDock = memo(function HeatmapDock({ catalogJson, broker, generation,
         memory={tapeMemory} memoryKey={`${broker}:${generation}:${eventMode?copyScope:view.year+preferences.mode}:${preferences.fields}`} observedAt={clock / 1000} onHover={hover} onPin={pin}
         groupOrder={preferences.groupOrder} collapsed={collapsed} onToggleGroup={toggleGroup}
         copyRange={eventMode?null:copyRange}
-        wildcards={wildcards.snapshot?.rows ?? noWildcards} wildcardsReady={!!wildcards.snapshot && !wildcards.loading}
+        wildcards={wildcardRows} wildcardsReady={!!wildcards.snapshot}
         onAddWildcard={addWildcard} onEditWildcard={editWildcard} onManageWildcards={manageWildcards} />}
       {rankingVisible && !rankingTarget && rankingView}
     </div>
     {dockActive && !rankingTarget && manager && <HeatmapSymbols catalog={catalog} broker={broker} preferences={preferences} rows={ids}
       onSave={next => { save(next); setManager(false) }} onClose={closeManager} />}
-    {noteEditor && <WildcardEditor {...noteEditor} onSave={wildcards.save} onClose={closeNote} />}
-    {wildcardManager && <WildcardManager snapshot={wildcardManager} onSave={wildcards.save} onClose={closeWildcards} />}
   </section>
-    {rankingTarget && createPortal(<div onKeyDown={e=>{if(e.key==='Escape'){e.stopPropagation();onCloseRanking?.()}}} className="cross-asset-dock heatmap-ranking-panel" style={{'--heat-fields':preferences.fields.length} as import('react').CSSProperties}>
+    {rankingTarget && createPortal(<div onKeyDown={e=>{if(e.key==='Escape'){e.stopPropagation();onCloseRanking?.()}}} className="heatmap-dock heatmap-ranking-panel" style={{'--heat-fields':preferences.fields.length} as import('react').CSSProperties}>
       <div className="heatmap-toolbar">{periodControls}<button type="button" onClick={todayAction}>Today</button>{dateControl}{fieldControls}
         <button type="button" onClick={()=>setManager(true)}>Instruments · {ids.length}</button><button type="button" onClick={()=>setAttempt(n=>n+1)}>Refresh</button>{copyOptions}</div>
       {eventControls}{!eventMode && !data && <p role="status">Loading broker daily history…</p>}{error && <p role="alert" className="heatmap-message">{error}</p>}{saveError && <p role="alert" className="heatmap-message">{saveError}</p>}

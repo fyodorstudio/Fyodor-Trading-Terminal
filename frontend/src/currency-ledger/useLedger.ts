@@ -14,6 +14,17 @@ export function useLedgerState(broker: string | null, enabled: boolean, pickerSc
   const [now, setNow] = useState(Date.now)
   const [picker, setPicker] = useState({ scope: pickerScope, armed: false })
   const [focusRequest, setFocusRequest] = useState(0)
+  const [following, setFollowing] = useState(false), [detailPinned, setDetailPinned] = useState(false)
+  const [followingScope, setFollowingScope] = useState(pickerScope)
+  if (followingScope !== pickerScope) { setFollowingScope(pickerScope); if (following) setFollowing(false) }
+  const followChart = useCallback(() => { setPicker(old => old.armed ? { ...old, armed: false } : old); setFollowing(value => !value) }, [])
+  const stopFollowing = useCallback(() => setFollowing(false), [])
+  const pickTime = useCallback((utc: number, pin: boolean) => {
+    if (!Number.isFinite(utc) || utc < Date.parse('2015-01-01T00:00:00+07:00') || utc > Date.now()) return
+    setSelection(old => old.at === utc ? old : { ...old, at: utc })
+    setDetailPinned(pin)
+    if (pin) { setFollowing(false); setYear(Number(ledgerDay(utc).slice(0, 4))); setFocusRequest(n => n + 1) }
+  }, [])
   const viewMemory = useRef({ tape: new Map<string, { left: number; top: number; day: string; request: number }>(), cells: new Map<string, number>() })
   if (picker.scope !== pickerScope) setPicker({ scope: pickerScope, armed: false })
   const picking = pickerScope !== null && picker.scope === pickerScope && picker.armed
@@ -25,12 +36,14 @@ export function useLedgerState(broker: string | null, enabled: boolean, pickerSc
     if (!Number.isFinite(end) || day < '2015-01-01' || day > ledgerDay(current)) return
     setYear(Number(day.slice(0, 4))); setNow(current)
     setSelection(old => ({ ...old, at: Math.min(end, current) }))
+    setFollowing(false); setDetailPinned(true)
     setFocusRequest(n => n + 1); cancelPicking()
   }, [cancelPicking])
   const goToToday = useCallback(() => {
     const current = Date.now()
     setYear(Number(ledgerDay(current).slice(0, 4))); setNow(current)
     setSelection(old => ({ ...old, at: null })); setFocusRequest(n => n + 1); cancelPicking()
+    setFollowing(false); setDetailPinned(false)
   }, [cancelPicking])
   const at = Math.min(selection.at ?? now, now), detailYear = Number(ledgerDay(at).slice(0, 4))
   useEffect(() => {
@@ -79,8 +92,9 @@ export function useLedgerState(broker: string | null, enabled: boolean, pickerSc
   // Dock geometry belongs to the parent workspace. Keep this context stable so
   // height-only parent renders never invalidate the tape or the category details.
   return useMemo(() => ({ data, detailData, error, selection, setSelection, at, developments, now, year, setYear, currencies, filters, applyFilters,
-    picking, canPick: pickerScope !== null, togglePicking, cancelPicking, pickDay, goToToday, focusRequest, viewMemory }),
-    [data, detailData, error, selection, at, developments, now, year, picking, pickerScope, togglePicking, cancelPicking, pickDay, goToToday, focusRequest,currencies,filters,applyFilters])
+    picking, canPick: pickerScope !== null, togglePicking, cancelPicking, pickDay, goToToday, focusRequest, viewMemory,
+    following, detailPinned, followChart, stopFollowing, pickTime }),
+    [data, detailData, error, selection, at, developments, now, year, picking, pickerScope, togglePicking, cancelPicking, pickDay, goToToday, focusRequest,currencies,filters,applyFilters, following, detailPinned, followChart, stopFollowing, pickTime])
 }
 export const LedgerContext = createContext<ReturnType<typeof useLedgerState> | null>(null)
 export function useLedger() {

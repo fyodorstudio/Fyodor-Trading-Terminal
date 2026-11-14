@@ -13,6 +13,10 @@ export const macroMetrics: Record<string, MacroDefinition> = {
 const byId = new Map(Object.entries(macroMetrics).map(([key, value]) => [value.eventId, key]))
 const families = new Map(eventFamilyOptions.flatMap(family => family.events.map(id => [id, family] as const)))
 export const macroCatalog: Record<string, MacroDefinition> = { ...macroMetrics }
+export function isMacroTextEvent(key: string) {
+  const definition = macroCatalog[key]
+  return !!definition && (/speech|speeches|speaks|statement|minutes|press conference|testimony|testifies/i.test(definition.controlLabel) || definition.category === 'speeches')
+}
 for (const event of sourceEvents) {
   if (byId.has(event.id) || event.sector === 'holidays') continue
   const key = `${event.currency}:${event.country}:${event.id}`

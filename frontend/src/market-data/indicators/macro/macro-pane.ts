@@ -5,7 +5,9 @@ import { macroCatalog } from './macro-catalog'
 import { claimChartClick } from '../../candlestick-chart/chart-click-selection'
 import { futureTimelineSeconds } from '../../candlestick-chart/future-timeline'
 import { fedSurprise } from './fed-forecast'
-import { macroAxis, macroMetricAxis, macroMetricVisible, selectedMacroMetrics, type MacroAxis, type MacroMetric, type MacroPreferences } from './macro-preferences'
+import { macroAxis, macroMetricAxis, macroMetricVisible, selectedMacroMetrics, switchMacroCurrency, type MacroAxis, type MacroMetric, type MacroPreferences } from './macro-preferences'
+import { majorCurrencies } from '../../../economic-calendar/forex/currencies'
+import { createMacroEventsRow } from './macro-events-row'
 import { macroLayout, macroSelection, patchMacroLayout, type MacroPlacement } from './macro-layout'
 import { createMacroTooltip } from './macro-tooltip'
 import { createMacroLaneControls } from './macro-lane-controls'
@@ -26,6 +28,7 @@ export function createMacroPane(chart: IChartApi) {
   const rateDots = pane.addSeries(LineSeries, { ...base, lineVisible: false, pointMarkersRadius: 4 })
   const series: Record<string, ISeriesApi<'Line'>> = { ...lines, payrolls }
   const releaseMarkers = createMacroReleaseMarkers()
+  let numericalInput: unknown[] | undefined
   let markerSource: string | null | undefined
   let markerSnapshot: { history: MacroIndicator['history']; upcoming: MacroIndicator['upcoming']; keys: string } | undefined
   let markerBars: OhlcBar[] = []
@@ -49,6 +52,21 @@ export function createMacroPane(chart: IChartApi) {
     updateLegend(); requestUpdate()
   }
   const legend = document.createElement('div'); legend.className = 'macro-legend'
+  const eventRow = createMacroEventsRow(chart)
+  const currencyTabs = document.createElement('div'); currencyTabs.className = 'macro-currency-tabs'; currencyTabs.setAttribute('role', 'tablist'); currencyTabs.setAttribute('aria-label', 'MFDI currency')
+  const currencyButtons = majorCurrencies.map(currency => {
+    const button = document.createElement('button'); button.type = 'button'; button.textContent = currency; button.setAttribute('role', 'tab'); button.dataset.macroCurrency = currency
+    button.onclick = () => { if (indicator) { saveOnExit(); commitPreferences(switchMacroCurrency(indicator.preferences, currency)) } }
+    button.onkeydown = event => {
+      if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return
+      event.preventDefault()
+      const index = majorCurrencies.indexOf(currency), next = event.key === 'Home' ? 0 : event.key === 'End' ? majorCurrencies.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : majorCurrencies.length - 1)) % majorCurrencies.length
+      currencyButtons[next].click(); currencyButtons[next].focus()
+    }
+    currencyTabs.append(button); return button
+  })
+  const eventsButton = document.createElement('button'); eventsButton.type = 'button'; eventsButton.textContent = 'Events'; eventsButton.setAttribute('aria-label', 'Show MFDI event row')
+  eventsButton.onclick = () => { if (indicator) commitPreferences({ ...indicator.preferences, showEventRow: indicator.preferences.showEventRow === false }) }
   legend.setAttribute('aria-label', 'MFDI values')
   legend.title = 'Macro Factor Data Inspector · Stored actuals, latest vintages; verified official Fed upper bounds where saved. Hover a release dot for actual, forecast, previous and release time. Release dots align to their containing candle; the latest release wins within one candle. Monthly lines join released points. Each selected event has an independent scale. Overlapping heights do not imply comparable magnitudes.'
   const controls = document.createElement('div'); controls.className = 'macro-controls'
@@ -147,7 +165,8 @@ export function createMacroPane(chart: IChartApi) {
   controls.append(fitButton, fitAllButton, lockButton, flattenButton, seriesButton)
   const readout = document.createElement('div'); readout.className = 'macro-readout'
   const note = document.createElement('div'); note.className = 'macro-note'
-  legend.append(controls, readout, note)
+  const currencyHeader = document.createElement('div'); currencyHeader.className = 'macro-currency-header'; currencyHeader.append(currencyTabs, eventsButton)
+  legend.append(currencyHeader, controls, readout, note)
   for (const event of ['pointerdown', 'dblclick']) legend.addEventListener(event, e => e.stopPropagation())
   chart.chartElement().appendChild(legend)
   const releaseTooltip = createMacroTooltip(chart.chartElement()), tooltip = releaseTooltip.element
@@ -344,6 +363,9 @@ export function createMacroPane(chart: IChartApi) {
   const updateLegend = () => {
     if (!indicator) return
     const p = indicator.preferences
+    const activeCurrency = p.activeCurrency ?? p.currencies?.[0] ?? 'USD'
+    for (const button of currencyButtons) { const selected = button.dataset.macroCurrency === activeCurrency; button.setAttribute('aria-selected', String(selected)); button.tabIndex = selected ? 0 : -1 }
+    eventsButton.setAttribute('aria-pressed', String(p.showEventRow !== false))
     const selection = macroSelection(p)
     for (const { key, label, axisButton, eyeButton, slash, forecastButton, forecastSlash, numbersButton, numbersSlash, colorDot, colorInput } of metricControls) {
       const visible = macroMetricVisible(p, key)
@@ -386,7 +408,7 @@ export function createMacroPane(chart: IChartApi) {
       : !visible.length ? 'All series hidden; use an eye to show a series'
       : visible.every(key => !indicator!.history[key]?.length) ? 'No released numeric actuals with verified chart timing'
       : noPoints ? 'No releases in loaded candles; scroll left for earlier releases' : ''
-    note.textContent = [indicator.status, empty].filter(Boolean).join(' · ')
+    note.textContent = [indicator.status, p.showEventRow !== false ? indicator.eventStatus : '', empty].filter(Boolean).join(' · ')
     note.hidden = !note.textContent
 
   }
@@ -487,6 +509,7 @@ export function createMacroPane(chart: IChartApi) {
     legend.style.top = `${(pane.getHTMLElement()?.offsetTop ?? chart.paneSize(0).height + 8) + 4}px`
     legend.style.width = `${Math.max(0, chart.paneSize(pane.paneIndex()).width - 20)}px`
     legend.style.maxHeight = `${Math.max(24, pane.getHeight() - 10)}px`
+    eventRow.position((pane.getHTMLElement()?.offsetTop ?? chart.paneSize(0).height + 8) + Math.max(0, pane.getHeight() - 28), chart.paneSize(pane.paneIndex()).width)
     if (indicator) {
       laneControls.position(indicator.preferences, chart.paneSize(pane.paneIndex()).width, pane.getHeight(),
         legend.offsetHeight + 12 || 36, pane.getHTMLElement()?.offsetTop ?? chart.paneSize(0).height + 8)
@@ -640,6 +663,15 @@ export function createMacroPane(chart: IChartApi) {
       callbacks: { toggleMetric: (metric: MacroMetric) => void; selectMetric: (metric: MacroMetric) => void;
         toggleForecast?: (metric: MacroMetric) => void; toggleNumbers?: (metric: MacroMetric) => void; changePreferences?: (value: MacroPreferences) => void; inspectRelease?: (reading: MacroReading) => void }) {
       if (destroyed) return
+      eventRow.sync(next.events ?? [], bars, seconds, next.preferences.showEventRow !== false, format)
+      const input = [bars, next.history, next.forecastHistory, next.upcoming, next.preferences, next.sourceId, next.status, next.forecasts, seconds, format]
+      if (numericalInput?.every((value, index) => value === input[index])) {
+        indicator = next; formatRelease = format; toggleMetric = callbacks.toggleMetric; selectMetric = callbacks.selectMetric
+        toggleForecast = callbacks.toggleForecast ?? (() => {}); toggleNumbers = callbacks.toggleNumbers ?? (() => {})
+        inspectRelease = callbacks.inspectRelease; changePreferences = callbacks.changePreferences
+        updateLegend(); requestUpdate(); return false
+      }
+      numericalInput = input
       if (!restoringPlacements) linkAxes()
       // Capture a user's drag/zoom before moving its series off the right axis.
       // Removing a scale's final source resets its native range and auto mode.
@@ -720,8 +752,11 @@ export function createMacroPane(chart: IChartApi) {
       applyDisplayMode()
       bindAfterPaint()
       updateLegend()
+      return true
     },
     clearData() {
+      numericalInput = undefined
+      eventRow.sync([], [], step, false, formatRelease)
       markerSnapshot = undefined; markerHits = []; markerBars = []
       clearColourPreviews()
       for (const item of Object.values(series)) item.setData([])
@@ -740,7 +775,7 @@ export function createMacroPane(chart: IChartApi) {
       chart.chartElement().ownerDocument.removeEventListener('click', outsideClick)
       chart.chartElement().removeEventListener('pointerdown', groupDrag, true)
       chart.chartElement().removeEventListener('wheel', laneWheel, true)
-      laneControls.destroy(); pane.detachPrimitive(primitive); legend.remove(); releaseTooltip.destroy()
+      eventRow.destroy(); laneControls.destroy(); pane.detachPrimitive(primitive); legend.remove(); releaseTooltip.destroy()
       for (const item of Object.values(series)) chart.removeSeries(item)
       chart.removeSeries(rateDots)
       chart.removePane(pane.paneIndex())

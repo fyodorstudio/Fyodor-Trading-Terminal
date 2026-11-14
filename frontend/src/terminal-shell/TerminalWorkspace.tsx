@@ -15,7 +15,7 @@ import { RecentEventsPanel } from '../recent-events/RecentEventsPanel'
 import { CurrencyDetailPanel } from '../currency-details/CurrencyDetailPanel'
 import { EventsDock } from '../events-alarms/EventsDock'
 import { EntryTradePanel } from '../entry-trade/dock/EntryTradePanel'
-import { CurrencyNewsDock } from '../currency-news/CurrencyNewsDock'
+import { WildcardsDock } from '../wildcards/WildcardsDock'
 import { VolumeSettingsDialog } from '../market-data/indicators/volume/VolumeSettingsDialog'
 import { RsiSettingsDialog } from '../market-data/indicators/rsi/RsiSettingsDialog'
 import { MacroSettingsDialog } from '../market-data/indicators/macro/MacroSettingsDialog'
@@ -24,12 +24,21 @@ import { selectMacroMetric, toggleMacroMetric, toggleMacroForecast, toggleMacroN
 import { chartEventCurrencies } from '../economic-calendar/forex/chart-event-scope'
 import { LedgerProvider } from '../currency-ledger/LedgerProvider'
 import { LedgerDock } from '../currency-ledger/LedgerDock'
-import { CrossAssetDock } from '../cross-asset/CrossAssetDock'
+import { HeatmapDock } from '../heatmap/HeatmapDock'
 import { LedgerCandlePicker } from '../currency-ledger/LedgerCandlePicker'
 import { brokerClockProfile } from '../appearance/time-display/chart-clock'
+import { WildcardsProvider } from '../wildcards/WildcardsProvider'
+import { useWildcards } from '../wildcards/useWildcards'
+import { WildcardChartLayer } from '../wildcards/WildcardChartLayer'
+import { timeframeToSeconds } from '../market-data/chart-drawings/position-drawing-geometry'
 import type { IChartApi, ISeriesApi, Time } from 'lightweight-charts'
 
 export function TerminalWorkspace() {
+  return <WildcardsProvider><TerminalWorkspaceContent /></WildcardsProvider>
+}
+
+function TerminalWorkspaceContent() {
+  const wildcards = useWildcards()
   const [refocusRequest, setRefocusRequest] = useState(0)
   const [rankingTarget, setRankingTarget] = useState<HTMLDivElement | null>(null)
     const { volume, changeVolume, toggleVolume, volumeSettingsOpen, setVolumeSettingsOpen, rsi, changeRsi, toggleRsi, rsiSettingsOpen, setRsiSettingsOpen,
@@ -45,17 +54,18 @@ export function TerminalWorkspace() {
     rankingOpen, toggleRanking, closeRanking, detailOpen, toggleDetail, closeDetail, openDetail, viewLedgerEvent, viewMacroRelease, returnToLedger,
     plannedTrade, handlePlanChange, latestBarTime, registeredArrows, selectPinnedArrow, priceAlerts, leftDockTab, setLeftDockTab } = useTerminalWorkspace()
   const [heatmapStarted, setHeatmapStarted] = useState(false)
-  if ((bottomDockWindow === 'cross-asset' || rankingOpen) && !heatmapStarted) setHeatmapStarted(true)
+  if ((bottomDockWindow === 'heatmap' || rankingOpen) && !heatmapStarted) setHeatmapStarted(true)
   const brokerOffsetSeconds = bridge.brokerOffsetSeconds
   const ledgerCurrencies = chartEventCurrencies(activeSymbol)
   const ledgerSupported = ledgerCurrencies.length === 2
   const openLedgerDetail = useCallback(() => { openDetail() }, [openDetail])
-  const pickerScope = ledgerSupported && bottomDockWindow === 'ledger' && bars.length && brokerClockProfile(brokerId) && !activeDrawingTool
+  const pickerScope = (ledgerSupported || detailOpen) && (bottomDockWindow === 'ledger' || detailOpen) && bars.length && brokerClockProfile(brokerId) && !activeDrawingTool && !wildcards.placing && !wildcards.editor
     ? `${brokerId}:${activeSymbol}:${timeframe}` : null
   const renderChartWithLedger = useCallback((chartApi: IChartApi, seriesApi: ISeriesApi<'Candlestick', Time>) => <>
     {renderChartOverlay?.(chartApi, seriesApi)}
     <LedgerCandlePicker chartApi={chartApi} bars={bars} />
-  </>, [renderChartOverlay, bars])
+    <WildcardChartLayer chartApi={chartApi} seriesApi={seriesApi} bars={bars} step={timeframeToSeconds(timeframe)} visible={eventIconsVisible} context={`${brokerId}:${activeSymbol}:${timeframe}`} />
+  </>, [renderChartOverlay, bars, timeframe, eventIconsVisible, brokerId, activeSymbol])
   const closeRsiSettings = useCallback(() => setRsiSettingsOpen(false), [setRsiSettingsOpen])
   const closeVolumeSettings = useCallback(() => setVolumeSettingsOpen(false), [setVolumeSettingsOpen])
   const closeMacroSettings = useCallback(() => setMacroSettingsOpen(false), [setMacroSettingsOpen])
@@ -176,8 +186,11 @@ export function TerminalWorkspace() {
                 symbol={activeSymbol}
                 activeTool={activeDrawingTool}
                 drawingCount={pairDrawingCount}
-                onSelectCrosshair={selectCrosshair}
-                onToolChange={chooseDrawingTool}
+                onSelectCrosshair={() => { wildcards.setPlacing(false); selectCrosshair() }}
+                onToolChange={tool => { wildcards.setPlacing(false); chooseDrawingTool(tool) }}
+                wildcardActive={wildcards.placing}
+                wildcardDisabled={!wildcards.snapshot || !bars.length || !brokerClockProfile(brokerId)}
+                onAddWildcard={() => { selectCrosshair(); wildcards.setPlacing(value => !value) }}
                 onClearPair={deletePairDrawings}
 
                 priceAlertDisabled={!brokerId || !quote || !priceAlerts.live}
@@ -189,8 +202,8 @@ export function TerminalWorkspace() {
               </div>
             </div>
             {recentEventsOpen && <RecentEventsPanel brokerId={brokerId} symbol={activeSymbol} onClose={closeRecentEvents} />}
-            {rankingOpen && <aside id="cross-asset-ranking-panel" className="cross-asset-ranking-slot" aria-label="Cross-Asset Ranking" onKeyDown={e=>{if(e.key==='Escape'){e.stopPropagation();closeRanking()}}}>
-              <header><strong>Cross-Asset Ranking</strong><button type="button" aria-label="Close Cross-Asset Ranking" autoFocus onClick={closeRanking}>×</button></header>
+            {rankingOpen && <aside id="heatmap-ranking-panel" className="heatmap-ranking-slot" aria-label="Heatmap Ranking" onKeyDown={e=>{if(e.key==='Escape'){e.stopPropagation();closeRanking()}}}>
+              <header><strong>Heatmap Ranking</strong><button type="button" aria-label="Close Heatmap Ranking" autoFocus onClick={closeRanking}>×</button></header>
               <div ref={setRankingTarget}/>
             </aside>}
             {detailOpen && <CurrencyDetailPanel brokerId={brokerId} symbol={activeSymbol} onClose={closeDetail} />}
@@ -203,10 +216,10 @@ export function TerminalWorkspace() {
           resizeHandle={dockSize.resizeHandle}
           hidden={!bottomDockWindow}
         >
-          {heatmapStarted && <div className="cross-asset-slot" hidden={bottomDockWindow !== 'cross-asset'}>
-            <CrossAssetDock symbols={marketData.symbols} broker={brokerId} generation={bridge.generation} active={bottomDockWindow === 'cross-asset' || rankingOpen} dockActive={bottomDockWindow === 'cross-asset'} rankingTarget={rankingTarget} onCloseRanking={closeRanking} connected={bridge.connected} />
+          {heatmapStarted && <div className="heatmap-slot" hidden={bottomDockWindow !== 'heatmap'}>
+            <HeatmapDock symbols={marketData.symbols} broker={brokerId} generation={bridge.generation} active={bottomDockWindow === 'heatmap' || rankingOpen} dockActive={bottomDockWindow === 'heatmap'} rankingTarget={rankingTarget} onCloseRanking={closeRanking} connected={bridge.connected} />
           </div>}
-          {bottomDockWindow === 'currency-news' && <CurrencyNewsDock />}
+          {bottomDockWindow === 'wildcards' && <WildcardsDock />}
           {bottomDockWindow === 'ledger' && <LedgerDock supported={ledgerSupported} broker={brokerId} onOpenDetail={openLedgerDetail} onViewEvent={viewLedgerEvent} />}
           {bottomDockWindow === 'activity' && (
             <ActivityDock timeDisplay={timeDisplay} />

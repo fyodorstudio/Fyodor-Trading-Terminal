@@ -1,4 +1,4 @@
-"""Bounded, read-only broker D1 history for the cross-asset heatmap."""
+"""Bounded, read-only broker D1 history for the heatmap heatmap."""
 from __future__ import annotations
 
 import hashlib
@@ -14,7 +14,7 @@ import time
 from .market_watch_daily import DailyMarketWatch, broker_day
 
 
-class CrossAssetHistory:
+class HeatmapHistory:
     def __init__(self, fetch_health=None, read=None, clock=time.time):
         self.fetch_health = fetch_health or DailyMarketWatch._health
         self.read = read or self._read
@@ -25,13 +25,13 @@ class CrossAssetHistory:
 
     @staticmethod
     def _read(identity, symbols, starts, end):
-        result = subprocess.run([sys.executable, '-m', 'storage.cross_asset_worker'],
+        result = subprocess.run([sys.executable, '-m', 'storage.heatmap_worker'],
             input=json.dumps(dict(identity=identity, symbols=symbols, starts=starts, end=end)),
             text=True, capture_output=True, timeout=18,
             cwd=Path(__file__).resolve().parents[1],
             creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
         if result.returncode:
-            raise ValueError('Cross-asset candle reader unavailable')
+            raise ValueError('Heatmap candle reader unavailable')
         return json.loads(result.stdout)
 
     def snapshot(self, source_id, generation, symbols, year, retry=False):

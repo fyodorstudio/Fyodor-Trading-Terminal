@@ -7,10 +7,10 @@ import subprocess
 import sys
 
 from .calendar_clock import broker_offset
-from .cross_asset import CrossAssetHistory
+from .heatmap import HeatmapHistory
 
 
-class CrossAssetIntraday(CrossAssetHistory):
+class HeatmapIntraday(HeatmapHistory):
     @staticmethod
     def _read(identity, symbols, starts, end):
         # Include all possible historical offsets in the native query; the worker
@@ -20,7 +20,7 @@ class CrossAssetIntraday(CrossAssetHistory):
             raise ValueError('Historical broker clock unavailable')
         request = dict(identity=identity, symbols=symbols, starts={s: starts[s] + 7200 for s in symbols},
                        end=end + 10800, intraday=True, utc_from=beginning, utc_through=end)
-        result = subprocess.run([sys.executable, '-m', 'storage.cross_asset_worker'],
+        result = subprocess.run([sys.executable, '-m', 'storage.heatmap_worker'],
             input=json.dumps(request), text=True, capture_output=True, timeout=18,
             cwd=Path(__file__).resolve().parents[1], creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
         if result.returncode:

@@ -41,6 +41,11 @@ Named presets are available in Series and the Presets tab. **Save as** creates a
 presets between browser profiles. Working edits do not overwrite named presets.
 Browser data clearing removes local settings unless exported.
 
+Use the currency tabs above MFDI to switch between saved currency setups. Each
+tab remembers its selected events, axes and line/lane arrangement. **Events**
+toggles one row containing speeches, other non-numerical announcements and global
+Wildcards. Hover a dot to read the event; overlapping events share a dot and tooltip.
+
 ## RSI and Volume
 
 RSI and Volume can be shown independently and resized with their pane dividers.
@@ -51,14 +56,15 @@ Volume supports Raw tick counts and Relative activity. **Bars**, **Relative** an
 Relative activity compares matching session candles from earlier days. Scrolling
 left loads more history for comparison. Tick volume counts broker price updates.
 
-## Cross-Asset
+## Heatmap
 
-Open **Cross-Asset** in the bottom dock. Switch Daily/Weekly, browse dates and
+Open **Heatmap** in the bottom dock. Switch Daily/Weekly, browse dates and
 pin a column to inspect its ranking. **Instruments** edits the watchlist and order.
 **Visible fields** selects O/H/L/C. **Copy Details Only** exports selected readings;
 **Copy Research Prompt** adds a short request and calculation context.
 **Copy range** selects several dates. **Event window** provides intraday views
-between selected times. **Wildcards** stores dated notes independently of prices.
+between selected times. The **Wildcards** row shows the same global entries as the
+Wildcards dock and chart icons. Click a cell to view, edit or add entries.
 
 ## Calendar and alarms
 
@@ -79,12 +85,25 @@ open Inspector. Detail shows four categories of calendar readings for the select
 The four rows are Monetary policy, Inflation, Labor and Growth; values show the
 previous reading and latest actual at the selected Ledger date.
 
-## Currency News
+In Detail, **Follow chart cursor** updates the four-category table as you hover
+candles. Click a candle to pin its exact time; Escape stops following. **Today**
+returns to current readings. Wildcards appear below the table: the selected day's
+entries up to the cursor time while hovering, or the preceding seven days up to a
+pinned candle. Entries after the selected time stay excluded.
 
-Open **Currency News**, then choose All or a currency and a date. **Add news**
-opens a form for date, currencies, title, details and an optional source URL.
-**Save** stores the entry; **Cancel** discards the draft. Each row has **Edit** and
-**Delete** controls. Delete asks for confirmation. This collection starts empty.
+## Wildcards
+
+Wildcards are manual events shared globally across instruments and brokers.
+Use **Add wildcard** in the dock, or **✦ Add wildcard** in the drawing toolbar and
+click a candle. Enter a title, details and an optional source link, then Save.
+Chart placement fills the candle's precise time; dock entries can have an optional
+Jakarta time or remain date-only. Cancel leaves saved entries unchanged.
+
+Click a chart wildcard icon or a Heatmap wildcard cell to view and edit the same
+entries. Several entries can share a candle or day. **Edit / Delete** in the dock
+opens the editor; deleting removes the entry from every view. Archived entries
+remain accessible through **Include archived**. **All dates** and Search help browse
+older entries. Existing manual News and wildcard notes migrate automatically.
 
 ## Entry Trade
 

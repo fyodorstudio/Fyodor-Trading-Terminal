@@ -13,6 +13,16 @@ export function validateMacroSnapshot(value: unknown): MacroPreferences {
   if (!object(value) || typeof value.enabled !== 'boolean' || typeof value.axisTarget !== 'string' || !knownKey(value.axisTarget)
     || !strings(value.currencies) || !value.currencies.every(code => ['USD', 'EUR', 'GBP', 'JPY', 'CHF', 'CAD', 'AUD', 'NZD'].includes(code))
     || !object(value.series) || !object(value.eventsByCurrency)) return invalid()
+  const currencies = ['USD', 'EUR', 'GBP', 'JPY', 'CHF', 'CAD', 'AUD', 'NZD']
+  if (value.activeCurrency !== undefined && (typeof value.activeCurrency !== 'string' || !currencies.includes(value.activeCurrency))) return invalid()
+  if (value.showEventRow !== undefined && typeof value.showEventRow !== 'boolean') return invalid()
+  if (value.currencyViews !== undefined) {
+    if (!object(value.currencyViews)) return invalid()
+    for (const [currency, view] of Object.entries(value.currencyViews)) {
+      if (!currencies.includes(currency) || !object(view) || typeof view.axisTarget !== 'string' || !knownKey(view.axisTarget)) return invalid()
+      validateMacroSnapshot({ ...value, currencyViews: undefined, axisTarget: view.axisTarget, layout: view.layout })
+    }
+  }
   for (const [key, style] of Object.entries(value.series)) if (!knownKey(key) || !object(style)
     || typeof style.color !== 'string' || !/^#[\da-f]{6}$/i.test(style.color) || ![1, 2, 3, 4].includes(style.lineWidth as number)
     || !['visible', 'pointsVisible', 'forecastVisible', 'numbersVisible'].every(field => typeof style[field] === 'boolean')) return invalid()
@@ -67,7 +77,7 @@ export function saveMacroPreset(presets: MacroPreset[], name: string, preference
   return presets.some(preset => preset.id === id) ? presets.map(preset => preset.id === id ? item : preset) : [...presets, item]
 }
 export function loadMacroPreset(preset: MacroPreset, enabled: boolean): MacroPreferences {
-  return { ...clone(preset.preferences), categories: clone(preset.preferences.categories ?? defaultMacroCategories), categoryByEvent: clone(preset.preferences.categoryByEvent ?? {}), enabled, presetId: preset.id, layout: { ...clone(macroLayout(preset.preferences)), axisRestoreId: crypto.randomUUID() } }
+  return { ...clone(preset.preferences), activeCurrency: preset.preferences.activeCurrency ?? preset.preferences.currencies?.[0] ?? 'USD', categories: clone(preset.preferences.categories ?? defaultMacroCategories), categoryByEvent: clone(preset.preferences.categoryByEvent ?? {}), enabled, presetId: preset.id, layout: { ...clone(macroLayout(preset.preferences)), axisRestoreId: crypto.randomUUID() } }
 }
 export function importMacroPresets(current: MacroPreset[], text: string): MacroPreset[] {
   const imported = parseMacroPresets(text).map(preset => ({ ...preset, id: crypto.randomUUID() }))

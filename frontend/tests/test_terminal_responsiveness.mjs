@@ -150,7 +150,7 @@ const server = await createServer({ root: path.resolve(path.dirname(fileURLToPat
         "function TerminalWorkspace() { globalThis.__terminalProbe.count('workspace');")
       if (id.endsWith('/MarketWatchPanel.tsx')) return code.replace('const positive = quote.dailyChange != null',
         "globalThis.__terminalProbe.count('quoteRows'); const positive = quote.dailyChange != null")
-      if (id.endsWith('/CurrencyNewsDock.tsx')) return code.replace('  return <tr data-news-story=',
+      if (id.endsWith('/WildcardsDock.tsx')) return code.replace('  return <tr data-news-story=',
         "  globalThis.__terminalProbe.count('newsRows'); return <tr data-news-story=")
       if (id.endsWith('/MarketCandlestickChart.tsx')) return code.replace('}: MarketCandlestickChartProps) {',
         "}: MarketCandlestickChartProps) { globalThis.__terminalProbe.inspectMacro = onInspectMacroRelease; globalThis.__terminalProbe.count('chartRender');")
@@ -193,11 +193,11 @@ const health = () => ({ api_version: '1', bridge: { status: 'running', started_a
   mt5: { connected, process_running: true, generation, account_server: broker },
   calendar: { status: 'live', instance_id: 'fixture', server_utc_offset_seconds: 10800 }, operations: {} })
 const journalFixture = { version: 1, revision: 0, arrows: [], deletedIds: [] }
-let wildcardFixture = { schema: 1, source_id: broker, revision: 0, rows: [] }
+let wildcardFixture = { schema: 1, revision: 0, items: [] }
 globalThis.fetch = (url, options = {}) => {
   const u = String(url); requests.push(u)
-  if (u.startsWith('/storage-api/cross-asset/wildcards')) {
-    if (options.method === 'POST') wildcardFixture = { ...wildcardFixture, revision: wildcardFixture.revision + 1, rows: JSON.parse(options.body).rows }
+  if (u.startsWith('/storage-api/wildcards')) {
+    if (options.method === 'POST') wildcardFixture = { ...wildcardFixture, revision: wildcardFixture.revision + 1, items: [...wildcardFixture.items,{id:String(wildcardFixture.revision),...JSON.parse(options.body)}] }
     return Promise.resolve({ ok: true, json: async () => structuredClone(wildcardFixture) })
   }
   if (u === '/storage-api/market-watch/daily') {
@@ -206,7 +206,7 @@ globalThis.fetch = (url, options = {}) => {
       day: Math.floor((now / 1000 + 10800) / 86400) * 86400, observed_at: now / 1000,
       symbols: Object.fromEntries(body.symbols.map(symbol => [symbol, { open: 1.1, high: 1.2, low: 1, checked_at: now / 1000 }])) }) })
   }
-  if (u === '/storage-api/cross-asset/history') {
+  if (u === '/storage-api/heatmap/history') {
     const body = JSON.parse(options.body), today = new Date(now + 3 * 3600000).toISOString().slice(0, 10)
     const midnight = Date.parse(`${today}T00:00:00Z`) / 1000
     return Promise.resolve({ ok: true, json: async () => ({ schema: 1, source_id: broker, generation,
@@ -229,7 +229,6 @@ globalThis.fetch = (url, options = {}) => {
     settings: { enabled: true, release_minutes: 2 }, native_available: true, schedule_error: null, refreshed_at: now / 1000, jobs: [],
     events: [] }) })
   if (u.startsWith('/storage-api/highlights')) return Promise.resolve({ ok: true, json: async () => ({ source_id: broker, revision: 'fixture-pins', items: [] }) })
-  if (u.startsWith('/storage-api/currency-news')) return Promise.resolve({ok:true,json:async()=>({items:[]})})
   if (u.startsWith('/storage-api/alert-calendar')) {
     const params = new URL(u, 'http://localhost').searchParams
     const date = params.get('date')
@@ -496,7 +495,7 @@ try {
   assert.equal(panes.length, 2); assert.equal(indicatorSeries.size, 3, 'Volume removal preserves the RSI series')
   assert.equal(container.querySelector('.volume-legend'), null)
   assert.deepEqual([...container.querySelectorAll('[aria-label="App features"] button')].map(node => node.textContent.trim().replace(/\s+\d+$/, '')),
-    ['Alert', 'Currency News', 'Ledger', 'Cross-Asset', 'Inspector', 'Entry Trade', 'Activity', '⚙ Settings'])
+    ['Alert', 'Wildcards', 'Ledger', 'Heatmap', 'Inspector', 'Entry Trade', 'Activity', '⚙ Settings'])
   reset()
   const ledgerRequests = requests.length
   await click(button('Ledger'))
@@ -506,12 +505,12 @@ try {
   assertQuiet('Opening EUR/USD Ledger')
   await click(button('Ledger'))
   reset()
-  await click(button('Currency News'))
-  assert.ok(container.querySelector('[aria-label="Currency News"]'))
-  assert.ok([...container.querySelectorAll('.currency-news-header button')].some(n=>n.textContent==='Add news'))
+  await click(button('Wildcards'))
+  assert.ok(container.querySelector('[aria-label="Wildcards"]'))
+  assert.ok([...container.querySelectorAll('.wildcards-dock header button')].some(n=>n.textContent==='Add wildcard'))
   assert.equal(container.querySelectorAll('[data-news-story]').length,0)
-  assertQuiet('Opening manual Currency News')
-  await click(button('Currency News'))
+  assertQuiet('Opening manual Wildcards')
+  await click(button('Wildcards'))
   await click(button('Alert'))
   assert.ok(container.querySelector('[aria-label="Alert"]'))
   assert.equal(container.querySelector('[aria-label="Event view"]'), null)
@@ -766,7 +765,7 @@ try {
   assertChartContainment()
   assert.deepEqual([...container.querySelectorAll('.ledger-categories thead th')].map(n=>n.textContent),['Category','EUR','USD'])
   assert.equal(container.querySelectorAll('.ledger-categories tbody > tr').length,4)
-  assert.equal(container.querySelectorAll('.currency-detail-panel button').length,1)
+  assert.equal(container.querySelectorAll('.currency-detail-panel button').length,3)
   assert.deepEqual(logicalRange,recentWindow);assert.equal(counters.setData??0,0)
   await click(container.querySelector('[aria-label="Close Detail"]'));await flush()
   assertChartContainment()
@@ -1160,9 +1159,9 @@ try {
   await click(container.querySelector('.market-watch-toggle'))
   assert.equal(container.querySelector('.left-dock').hidden, false)
   assert.equal(container.querySelector('[data-currency-summary]'), null, 'Retired Fundamentals stays absent after reopening')
-  await click(button('Currency News'))
+  await click(button('Wildcards'))
   assert.equal(container.querySelectorAll('[data-news-story]').length,0,'Manual news starts empty when reopened')
-  await click(button('Currency News'))
+  await click(button('Wildcards'))
   // The supported Ledger shares its cutoff with the right Detail without
   // making chart ticks, viewport work or calendar selections depend on that clock.
   quotes = [...quotes, { ...quotes[0], symbol: 'USDCAD', description: 'USD / CAD' }]
@@ -1277,12 +1276,12 @@ try {
   await click(container.querySelector('[aria-label="Close Detail"]')); await click(button('Ledger'))
   assert.equal(chart.chartElement().dataset.ledgerPicking,undefined,'Closing Ledger removes its chart picker')
   assert.equal([...timers.values()].some(t => t.fn.name==='pollLedger'),false)
-  const crossAssetRange = { ...logicalRange }, crossAssetDrawings = localStorage.getItem('fyodor.chart-drawings.v1')
-  reset(); await click(button('Cross-Asset')); await flush()
-  assert.ok(container.querySelector('[aria-label="Cross-asset heatmap"]'))
-  assert.ok(container.querySelector('[aria-label="Resize Cross-Asset dock"]'))
+  const heatmapRange = { ...logicalRange }, heatmapDrawings = localStorage.getItem('fyodor.chart-drawings.v1')
+  reset(); await click(button('Heatmap')); await flush()
+  assert.ok(container.querySelector('[aria-label="Heatmap"]'))
+  assert.ok(container.querySelector('[aria-label="Resize Heatmap dock"]'))
   assert.ok(container.querySelector('[data-heatmap-cell^="symbol:EURUSD:"]'))
-  assertQuiet('Opening cross-asset history')
+  assertQuiet('Opening heatmap history')
   const beforeCopyRangeRequests = requests.length
   reset(); await click(button('Copy range')); await flush()
   const copyEnd = container.querySelector('[aria-label="Copy through date"]').value
@@ -1290,12 +1289,12 @@ try {
   assertQuiet('Selecting copy dates', true)
   assert.equal(counters.heatmapBuild ?? 0, 0, 'Copy date selection performs no price or basket calculations')
   assert.equal(requests.length, beforeCopyRangeRequests, 'Copy date selection uses loaded history')
-  assert.deepEqual(logicalRange, crossAssetRange)
+  assert.deepEqual(logicalRange, heatmapRange)
   await click(button('Single date')); await flush()
-  const beforeWildcardHistory = requests.filter(url => url === '/storage-api/cross-asset/history').length
+  const beforeWildcardHistory = requests.filter(url => url === '/storage-api/heatmap/history').length
   reset(); await click(button('Manage Wildcards')); await flush()
   assertQuiet('Opening Wildcards editor', true)
-  await click([...container.querySelectorAll('[role="dialog"] button')].find(node => node.textContent === 'Cancel')); await flush()
+  await click([...container.querySelectorAll('[role="dialog"] button')].find(node => node.textContent === 'Close')); await flush()
   const wildcardViewport = container.querySelector('.heatmap-viewport')
   wildcardViewport.scrollTop = 100000
   await React.act(async () => wildcardViewport.dispatchEvent(new dom.Event('scroll'))); await flush()
@@ -1307,12 +1306,12 @@ try {
   await change(container.querySelector('[aria-label="Wildcard title"]'), 'Assembled catalyst')
   await change(container.querySelector('[aria-label="Wildcard details"]'), 'First paragraph.\n\nSecond paragraph.')
   await click([...container.querySelectorAll('[role="dialog"] button')].find(node => node.textContent === 'Save')); await flush()
-  assert.equal(wildcardFixture.rows[0].title, 'Assembled catalyst')
+  assert.equal(wildcardFixture.items[0].title, 'Assembled catalyst')
   assertQuiet('Saving Wildcards notes', true)
   assert.equal(counters.heatmapBuild ?? 0, 0, 'Saving manual notes does no price or basket calculations')
-  assert.equal(requests.filter(url => url === '/storage-api/cross-asset/history').length, beforeWildcardHistory)
-  assert.deepEqual(logicalRange, crossAssetRange)
-  assert.equal(localStorage.getItem('fyodor.chart-drawings.v1'), crossAssetDrawings)
+  assert.equal(requests.filter(url => url === '/storage-api/heatmap/history').length, beforeWildcardHistory)
+  assert.deepEqual(logicalRange, heatmapRange)
+  assert.equal(localStorage.getItem('fyodor.chart-drawings.v1'), heatmapDrawings)
   wildcardViewport.scrollTop = 0
   await React.act(async () => wildcardViewport.dispatchEvent(new dom.Event('scroll'))); await flush()
   const heatmapViewport = container.querySelector('.heatmap-viewport'), heatmapDate = container.querySelector('[aria-label="Heatmap date"]').value
@@ -1322,7 +1321,7 @@ try {
   await React.act(async () => { for (let i = 0; i < 100; i++) heatmapViewport.dispatchEvent(new dom.Event('scroll')) })
   assert.equal(frames.size, 1, 'Heatmap scroll bursts queue one frame in the assembled terminal')
   await flush()
-  assertQuiet('Browsing cross-asset history', true)
+  assertQuiet('Browsing heatmap history', true)
   assert.equal(counters.heatmapBuild ?? 0, 0, 'Browsing never recalculates return history')
   assert.equal(requests.length, beforeHeatmapScroll)
   assert.equal(container.querySelector('[aria-label="Heatmap date"]').value, heatmapDate)
@@ -1342,21 +1341,21 @@ try {
   assert.equal(heatmapViewport.scrollTop, 99)
   await heatmapGesture('onPointerUp', 401, 1)
   assert.equal(heatmapCaptures.size, 0)
-  assertQuiet('Dragging cross-asset dates and rows', true)
+  assertQuiet('Dragging heatmap dates and rows', true)
   assert.equal(counters.heatmapBuild ?? 0, 0)
   assert.equal(requests.length, beforeHeatmapScroll)
   assert.equal(container.querySelector('[aria-label="Heatmap date"]').value, heatmapDate)
   reset(); await click(button('Weekly')); await flush()
-  assertQuiet('Weekly cross-asset view', true)
+  assertQuiet('Weekly heatmap view', true)
   assert.equal(requests.length, beforeHeatmapScroll, 'Weekly uses the same history response')
   reset(); await tick('pollHeatmap', 20000); await flush()
-  assertQuiet('Cross-asset poll', true)
+  assertQuiet('Heatmap poll', true)
   assert.equal(counters.heatmapBuild ?? 0, 0, 'Unchanged history retains its calculation identity')
-  assert.deepEqual(logicalRange, crossAssetRange)
-  assert.equal(localStorage.getItem('fyodor.chart-drawings.v1'), crossAssetDrawings)
+  assert.deepEqual(logicalRange, heatmapRange)
+  assert.equal(localStorage.getItem('fyodor.chart-drawings.v1'), heatmapDrawings)
   const beforeCloseHeatmapRequests = requests.length
   const savedHeatmapView = { left: heatmapViewport.scrollLeft, top: heatmapViewport.scrollTop }
-  await click(button('Cross-Asset')); await flush()
+  await click(button('Heatmap')); await flush()
   assert.equal([...timers.values()].some(t => t.fn.name === 'pollHeatmap'), true, 'Closing the heatmap keeps its data poll active')
   assert.equal(container.querySelector('.heatmap-viewport'), null, 'Closed heatmap removes its visual viewport')
   assert.equal(container.querySelector('.bottom-dock').hidden, true)
@@ -1366,28 +1365,28 @@ try {
   await click(button('Ledger')); await flush()
   assert.ok(container.querySelector('.ledger-viewport'))
   assert.equal(container.querySelector('.heatmap-viewport'), null)
-  const beforeReopenHeatmap = requests.filter(url => url === '/storage-api/cross-asset/history').length
-  await click(button('Cross-Asset')); await flush()
-  assert.equal(requests.filter(url => url === '/storage-api/cross-asset/history').length, beforeReopenHeatmap, 'Switching from another dock reuses the warmed history')
+  const beforeReopenHeatmap = requests.filter(url => url === '/storage-api/heatmap/history').length
+  await click(button('Heatmap')); await flush()
+  assert.equal(requests.filter(url => url === '/storage-api/heatmap/history').length, beforeReopenHeatmap, 'Switching from another dock reuses the warmed history')
   assert.ok(beforeCloseHeatmapRequests < requests.length)
   assert.equal(container.querySelector('.heatmap-viewport').scrollLeft, savedHeatmapView.left)
   assert.equal(container.querySelector('.heatmap-viewport').scrollTop, savedHeatmapView.top)
-  await click(button('Cross-Asset')); await flush()
-  const rankingWindow = {...logicalRange}, rankingRequests = requests.filter(url=>url.startsWith('/storage-api/cross-asset/history')).length
-  reset(); await click(container.querySelector('[aria-label="Show Cross-Asset Ranking"]')); await flush()
-  assert.ok(container.querySelector('#cross-asset-ranking-panel .heatmap-ranking'))
+  await click(button('Heatmap')); await flush()
+  const rankingWindow = {...logicalRange}, rankingRequests = requests.filter(url=>url.startsWith('/storage-api/heatmap/history')).length
+  reset(); await click(container.querySelector('[aria-label="Show Heatmap Ranking"]')); await flush()
+  assert.ok(container.querySelector('#heatmap-ranking-panel .heatmap-ranking'))
   assert.equal(container.querySelector('.heatmap-viewport'),null,'Standalone ranking never mounts a hidden timeline')
-  assert.equal(requests.filter(url=>url.startsWith('/storage-api/cross-asset/history')).length,rankingRequests,'The ranking reuses the warmed heatmap request')
+  assert.equal(requests.filter(url=>url.startsWith('/storage-api/heatmap/history')).length,rankingRequests,'The ranking reuses the warmed heatmap request')
   assert.deepEqual(logicalRange,rankingWindow)
-  assertQuiet('Standalone Cross-Asset ranking')
-  await React.act(async()=>container.querySelector('#cross-asset-ranking-panel .heatmap-ranking').dispatchEvent(new dom.KeyboardEvent('keydown',{key:'Escape',bubbles:true})))
-  assert.equal(container.querySelector('#cross-asset-ranking-panel'),null,'Escape closes portal-rendered ranking content')
-  await click(container.querySelector('[aria-label="Show Cross-Asset Ranking"]')); await flush()
+  assertQuiet('Standalone Heatmap ranking')
+  await React.act(async()=>container.querySelector('#heatmap-ranking-panel .heatmap-ranking').dispatchEvent(new dom.KeyboardEvent('keydown',{key:'Escape',bubbles:true})))
+  assert.equal(container.querySelector('#heatmap-ranking-panel'),null,'Escape closes portal-rendered ranking content')
+  await click(container.querySelector('[aria-label="Show Heatmap Ranking"]')); await flush()
   await click(container.querySelector('[aria-label="Show Detail"]')); await flush()
-  assert.equal(container.querySelector('#cross-asset-ranking-panel'),null,'Detail and ranking use the shared right panel')
+  assert.equal(container.querySelector('#heatmap-ranking-panel'),null,'Detail and ranking use the shared right panel')
   await click(container.querySelector('[aria-label="Hide Detail"]')); await flush()
 
-  assert.deepEqual(logicalRange, crossAssetRange)
+  assert.deepEqual(logicalRange, heatmapRange)
   await React.act(async () => root.render(null))
   assert.equal(indicatorSeries.size, 0); assert.equal(panes.length, 1)
   assert.equal(rangeListeners.size, 0); assert.equal(clickListeners.size, 0)

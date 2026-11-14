@@ -42,7 +42,8 @@ try {
   p = { ...p, series: { ...p.series, rate: { ...p.series.rate, color: '#112233' } } }
   assert.equal(readMacroPresets()[0].preferences.series.rate.color, '#aabbcc', 'Working edits cannot mutate a named snapshot')
   const restored = loadMacroPreset(readMacroPresets()[0], true)
-  assert.deepEqual(anchors(restored), beforeOff); assert.equal(restored.layout.laneScroll, 60)
+  assert.equal(restored.activeCurrency, 'USD', 'Older combined presets open on one currency tab')
+  assert.deepEqual(anchors({ ...restored, activeCurrency: undefined }), beforeOff, 'Hidden currency anchors remain in the saved layout'); assert.equal(restored.layout.laneScroll, 60)
   assert.deepEqual(restored.layout.axisPlacements.rate, p.layout.axisPlacements.rate)
   presets = saveMacroPreset(presets, 'USD + EUR', p, id)
   writeMacroPresets(presets)

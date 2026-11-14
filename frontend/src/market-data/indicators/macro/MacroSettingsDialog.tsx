@@ -5,7 +5,8 @@ import { readMacroPresets, writeMacroPresets } from './macro-presets'
 import { MacroEventSelector } from './MacroEventSelector'
 import { MacroCategorySettings } from './MacroCategorySettings'
 import { MacroStyleSettings } from './MacroStyleSettings'
-import { macroDefaultStyle, macroAxis, selectedMacroMetrics, selectMacroAxis, type MacroPreferences } from './macro-preferences'
+import { macroDefaultStyle, macroAxis, selectedMacroMetrics, selectMacroAxis, switchMacroCurrency, type MacroPreferences } from './macro-preferences'
+import { majorCurrencies } from '../../../economic-calendar/forex/currencies'
 import './macro-settings.css'
 
 const tabs = ['Events', 'Layout', 'Style', 'Presets'] as const
@@ -48,6 +49,7 @@ export function MacroSettingsDialog({ preferences, onSave, onClose }: {
           }} onClick={() => setTab(item)}>{item}</button>)}
       </div>
       <div className="macro-settings-body">
+        <label className="macro-setting-row">Currency setup<select aria-label="MFDI currency setup" value={draft.activeCurrency ?? draft.currencies?.[0] ?? 'USD'} onChange={event => setDraft(current => switchMacroCurrency(current, event.target.value))}>{majorCurrencies.map(currency => <option key={currency}>{currency}</option>)}</select></label>
         <section role="tabpanel" id={`${id}-Events-panel`} aria-labelledby={`${id}-Events`} hidden={tab !== 'Events'}>
           <MacroEventSelector preferences={draft} onChange={setDraft} />
           <p>Selections apply to every symbol. Each currency remembers its selected events.</p>

@@ -4,10 +4,28 @@ import type { OhlcBar } from '../market-data/contracts/OhlcBar'
 import { chartClockToUtc } from '../appearance/time-display/chart-clock'
 import { useDisplayClock } from '../appearance/time-display/useDisplayClock'
 import { ledgerDay } from './ledger-model'
+import { claimChartClick } from '../market-data/candlestick-chart/chart-click-selection'
 import { useLedger } from './useLedger'
 
 export const LedgerCandlePicker = memo(function LedgerCandlePicker({ chartApi, bars }: { chartApi: IChartApi; bars: OhlcBar[] }) {
-  const { picking, cancelPicking, pickDay } = useLedger(), { scope } = useDisplayClock()
+  const { picking, cancelPicking, pickDay, following, stopFollowing, pickTime } = useLedger(), { scope } = useDisplayClock()
+  useEffect(() => {
+    if (!following) return
+    let frame: number | null = null, pending: number | null = null
+    const time = (event: MouseEventParams<Time>) => {
+      if (typeof event.time !== 'number' || !event.point || event.paneIndex != null && event.paneIndex !== 0
+        || event.point.x < 0 || event.point.x >= chartApi.timeScale().width() || event.point.y < 0 || event.point.y >= chartApi.paneSize(0).height) return null
+      return chartClockToUtc(event.time * 1000, scope)
+    }
+    const hover = (event: MouseEventParams<Time>) => {
+      pending = time(event)
+      if (pending !== null && frame === null) frame = window.requestAnimationFrame(() => { frame = null; if (pending !== null) pickTime(pending, false) })
+    }
+    const pin = (event: MouseEventParams<Time>) => { const utc = time(event); if (utc !== null) { pending = null; claimChartClick(event); pickTime(utc, true) } }
+    const cancel = (event: KeyboardEvent) => { if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); stopFollowing() } }
+    chartApi.subscribeCrosshairMove(hover); chartApi.subscribeClick(pin); window.addEventListener('keydown', cancel, true)
+    return () => { if (frame !== null) window.cancelAnimationFrame(frame); chartApi.unsubscribeCrosshairMove(hover); chartApi.unsubscribeClick(pin); window.removeEventListener('keydown', cancel, true) }
+  }, [following, chartApi, scope, pickTime, stopFollowing])
   useEffect(() => {
     if (!picking) return
     const element = chartApi.chartElement()

@@ -11,7 +11,7 @@ from pydantic import ValidationError
 
 from storage.app import create_app
 from storage.calendar_store import CalendarStore
-from storage.cross_asset_wildcards import WildcardSave, wildcard_snapshot, save_wildcards
+from storage.legacy_wildcards import WildcardSave, wildcard_snapshot, save_wildcards
 from storage.recovery import backup_directory, restore_directory
 
 
@@ -19,7 +19,7 @@ class WildcardTests(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
         self.root = Path(self.temporary.name)
-        self.directory = self.root / 'data' / 'cross-asset-wildcards'
+        self.directory = self.root / 'data' / 'heatmap-wildcards'
         self.row = dict(id='a' * 32, title='Iran developments', archived=False,
                         notes={'2026-11-12': 'First paragraph.\n\nSecond paragraph.\nhttps://example.com/source'})
 
@@ -58,7 +58,7 @@ class WildcardTests(unittest.TestCase):
 
     def test_atomic_write_failure_preserves_snapshot_and_removes_temporary(self):
         before = self.save()
-        with patch('storage.cross_asset_wildcards.os.replace', side_effect=OSError('Disk failure')):
+        with patch('storage.legacy_wildcards.os.replace', side_effect=OSError('Disk failure')):
             with self.assertRaises(OSError):
                 self.save([], 1)
         self.assertEqual(wildcard_snapshot(self.directory, 'Pepperstone-Demo'), before)
@@ -95,35 +95,8 @@ class WildcardTests(unittest.TestCase):
         (self.directory / '.wildcards-incomplete').write_text('partial', encoding='utf-8')
         backup = self.root / 'backup'
         backup_directory(data, backup)
-        self.assertFalse((backup / 'cross-asset-wildcards/.fyodor-storage.lock').exists())
-        self.assertFalse((backup / 'cross-asset-wildcards/.wildcards-incomplete').exists())
+        self.assertFalse((backup / 'heatmap-wildcards/.fyodor-storage.lock').exists())
+        self.assertFalse((backup / 'heatmap-wildcards/.wildcards-incomplete').exists())
         restored = self.root / 'restored'
         restore_directory(backup, restored)
-        self.assertEqual(wildcard_snapshot(restored / 'cross-asset-wildcards', 'Pepperstone-Demo'), expected)
-
-    def test_api_validation_conflicts_and_failures(self):
-        app = create_app(directory=self.directory.parent, run_collector=False)
-
-        async def request(method='GET', body=None, source='Pepperstone-Demo'):
-            messages = []
-            async def receive():
-                return dict(type='http.request', body=json.dumps(body).encode(), more_body=False)
-            async def send(message):
-                messages.append(message)
-            await app(dict(type='http', method=method, path='/api/v1/cross-asset/wildcards',
-                           query_string=urlencode({'source_id': source}).encode(), headers=[(b'content-type', b'application/json')],
-                           scheme='http', server=('test', 80), client=('test', 1), http_version='1.1'), receive, send)
-            return messages[0]['status'], json.loads(messages[1]['body'])
-
-        self.assertEqual(asyncio.run(request())[1]['revision'], 0)
-        body = dict(source_id='Pepperstone-Demo', expected_revision=0, rows=[self.row])
-        status, saved = asyncio.run(request('POST', body))
-        self.assertEqual(status, 200)
-        self.assertEqual(asyncio.run(request())[1], saved)
-        self.assertEqual(asyncio.run(request('POST', body))[0], 409)
-        self.assertEqual(asyncio.run(request('POST', {**body, 'rows': [{**self.row, 'notes': {'2026-02-30': 'bad'}}]}))[0], 422)
-        with patch('storage.cross_asset_wildcards.os.replace', side_effect=OSError('Disk failure')):
-            self.assertEqual(asyncio.run(request('POST', {**body, 'expected_revision': 1}))[0], 503)
-        self.assertEqual(asyncio.run(request())[1], saved)
-        next(self.directory.glob('*.json')).write_text('broken', encoding='utf-8')
-        self.assertEqual(asyncio.run(request())[0], 503)
+        self.assertEqual(wildcard_snapshot(restored / 'heatmap-wildcards', 'Pepperstone-Demo'), expected)

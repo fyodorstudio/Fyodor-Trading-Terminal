@@ -1,7 +1,7 @@
 # Fyodor Trading Terminal Lite
 
 Local trading terminal with MT5 charts, economic calendar, MFDI, RSI, volume,
-cross-asset heatmaps, Currency News, Ledger, Detail, alarms and a manual trade journal.
+Heatmap, Wildcards, Ledger, Detail, alarms and a manual trade journal.
 
 ## Run
 
@@ -47,7 +47,7 @@ A frontend suite can be selected with `pnpm --dir frontend test -- <filename-fra
 
 ## Data
 
-Local calendar and manual News live in Git-ignored `storage/data/`. Journals use
+Local calendar and global Wildcards live in Git-ignored `storage/data/`. Journals use
 `Market Analyst Workflow/` subdirectories. Browser settings include drawings,
 filters and MFDI presets. Calendar backups do not include browser settings;
 MFDI presets have JSON export/import controls.

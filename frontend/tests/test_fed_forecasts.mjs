@@ -69,7 +69,7 @@ try {
   // UTC while retaining the raw MT5 reading and identity for Inspector.
   const { useMacroIndicator } = await server.ssrLoadModule('./src/market-data/indicators/macro/useMacroIndicator.ts')
   const { defaultMacroPreferences, saveMacroPreferences } = await server.ssrLoadModule('./src/market-data/indicators/macro/macro-preferences.ts')
-  saveMacroPreferences({ ...defaultMacroPreferences, enabled: true })
+  saveMacroPreferences({ ...defaultMacroPreferences, enabled: true, showEventRow: false })
   function MacroHarness({ symbol = 'USDX' }) { const next = useMacroIndicator(symbol, 'A'); React.useLayoutEffect(() => { view = next }, [next]); return null }
   await React.act(async () => root.render(React.createElement(MacroHarness)))
   const forecastRequest = requests.findLast(row => row.url === '/storage-api/fed-forecasts')

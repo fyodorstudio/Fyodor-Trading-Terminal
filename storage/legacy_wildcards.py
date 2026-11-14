@@ -1,4 +1,4 @@
-"""Manual, date-only cross-asset notes. No calendar, news or alarm side effects."""
+"""Legacy broker note file support for migration and older backups."""
 from datetime import date
 from hashlib import sha256
 import json

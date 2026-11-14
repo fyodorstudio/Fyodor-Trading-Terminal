@@ -23,7 +23,7 @@ export function useHeatmapHistory(broker: string | null, generation: number, nam
       try {
         const missing = selected.filter(s => !current?.symbols[s])
         const requested = force || !missing.length ? selected : missing
-        const response = await fetch('/storage-api/cross-asset/history', { method: 'POST', signal: controller.signal,
+        const response = await fetch('/storage-api/heatmap/history', { method: 'POST', signal: controller.signal,
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ source_id: broker, generation, year, symbols: requested, retry: force }) })
         force = false

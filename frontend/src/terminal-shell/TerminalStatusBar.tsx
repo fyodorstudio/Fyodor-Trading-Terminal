@@ -51,9 +51,9 @@ export function TerminalStatusBar({
       <div className="status-actions status-primary" role="group" aria-label="App features">
         <button className={`status-action${bottomDockWindow === 'alert' ? ' active' : ''}`} type="button"
           onClick={() => onToggleBottomDock('alert')} aria-expanded={bottomDockWindow === 'alert'}>Alert</button>
-        <button className={`status-action${bottomDockWindow === 'currency-news' ? ' active' : ''}`} type="button" onClick={() => onToggleBottomDock('currency-news')} aria-expanded={bottomDockWindow === 'currency-news'}>Currency News</button>
+        <button className={`status-action${bottomDockWindow === 'wildcards' ? ' active' : ''}`} type="button" onClick={() => onToggleBottomDock('wildcards')} aria-expanded={bottomDockWindow === 'wildcards'}>Wildcards</button>
         <button className={`status-action${bottomDockWindow === 'ledger' ? ' active' : ''}`} type="button" onClick={() => onToggleBottomDock('ledger')} aria-expanded={bottomDockWindow === 'ledger'}>Ledger</button>
-        <button className={`status-action${bottomDockWindow === 'cross-asset' ? ' active' : ''}`} type="button" onClick={() => onToggleBottomDock('cross-asset')} aria-expanded={bottomDockWindow === 'cross-asset'}>Cross-Asset</button>
+        <button className={`status-action${bottomDockWindow === 'heatmap' ? ' active' : ''}`} type="button" onClick={() => onToggleBottomDock('heatmap')} aria-expanded={bottomDockWindow === 'heatmap'}>Heatmap</button>
         <button className={`status-action${bottomDockWindow === 'inspector' ? ' active' : ''}`} type="button" onClick={() => onToggleBottomDock('inspector')} aria-expanded={bottomDockWindow === 'inspector'}>
           Inspector
         </button>

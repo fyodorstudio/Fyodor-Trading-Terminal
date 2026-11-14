@@ -16,7 +16,7 @@ Date.now=()=>now
 dom.setTimeout=(fn,ms)=>{timers.set(++serial,{fn,ms});return serial};dom.clearTimeout=id=>timers.delete(id)
 dom.requestAnimationFrame=fn=>{fn();return ++serial};dom.cancelAnimationFrame=()=>{}
 Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async text=>copied=text}})
-globalThis.fetch=(url,options)=>url.includes('wildcards')?Promise.resolve({ok:true,json:async()=>({schema:1,source_id:'Pepperstone-Demo',revision:0,rows:[]})}):new Promise(resolve=>pending.push({url,options,body:JSON.parse(options.body),resolve}))
+globalThis.fetch=(url,options)=>url.includes('wildcards')?Promise.resolve({ok:true,json:async()=>({schema:1,revision:0,items:[]})}):new Promise(resolve=>pending.push({url,options,body:JSON.parse(options.body),resolve}))
 const frontend=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..')
 const server=await createServer({root:frontend,server:{middlewareMode:true,hmr:false},plugins:[{name:'minute-work',enforce:'pre',transform(code,id){if(id.endsWith('/event-window.ts'))return code.replace('for(const bar of record.bars) {','for(const bar of record.bars) { globalThis.__eventVisit();')}}]})
 const {createRoot}=await import('react-dom/client'),host=document.createElement('div'),target=document.createElement('div')
@@ -28,9 +28,9 @@ const check=node=>React.act(async()=>props(node).onChange({target:{checked:!node
 const button=(label,scope=host)=>[...scope.querySelectorAll('button')].find(n=>n.textContent===label)
 const reply=(request,data)=>React.act(async()=>request.resolve({ok:true,json:async()=>structuredClone(data)}))
 try{
-  const model=await server.ssrLoadModule('./src/cross-asset/event-window.ts')
-  const heatmap=await server.ssrLoadModule('./src/cross-asset/heatmap-model.ts')
-  const exports=await server.ssrLoadModule('./src/cross-asset/heatmap-export.ts')
+  const model=await server.ssrLoadModule('./src/heatmap/event-window.ts')
+  const heatmap=await server.ssrLoadModule('./src/heatmap/heatmap-model.ts')
+  const exports=await server.ssrLoadModule('./src/heatmap/heatmap-export.ts')
   const {majorForexPairs}=await server.ssrLoadModule('./src/economic-calendar/forex/pairs.ts')
   const from=now-3600000,window={from,through:now,anchor:from,minutes:5}
   assert.equal(model.parseJakarta('2026-11-12T18:00'),from)
@@ -67,11 +67,13 @@ try{
   assert.deepEqual(heatmap.heatmapOHLC(baskets[0].points.get('window')).slice(0,3).map(f=>f.value),[null,null,null])
   allData.symbols.USDJPY={...record,bars:bars.slice(0,-1)}
   assert.equal(model.eventRows(['basket:USD'],pairCatalog,'Pepperstone-Demo',allData,window)[0].points.get('window').value,null,'Mismatched counterpart endpoint cannot form a basket')
-  localStorage.setItem('fyodor.cross-asset.v1:Pepperstone-Demo',JSON.stringify({rows:ids}))
-  const {CrossAssetDock}=await server.ssrLoadModule('./src/cross-asset/CrossAssetDock.tsx')
+  localStorage.setItem('fyodor.heatmap.v1:Pepperstone-Demo',JSON.stringify({rows:ids}))
+  const {HeatmapDock:HeatmapComponent}=await server.ssrLoadModule('./src/heatmap/HeatmapDock.tsx')
+  const {WildcardsProvider}=await server.ssrLoadModule('./src/wildcards/WildcardsProvider.tsx')
+  const HeatmapDock=props=>React.createElement(WildcardsProvider,null,React.createElement(HeatmapComponent,props))
   const {DisplayClockProvider}=await server.ssrLoadModule('./src/appearance/time-display/DisplayClock.tsx')
   const render=(panel=false)=>React.act(async()=>root.render(React.createElement(DisplayClockProvider,{brokerId:'Pepperstone-Demo',brokerOffsetSeconds:7200,preference:{mode:'fixed-offset',utcOffsetMinutes:420,hour12:true}},
-    React.createElement(CrossAssetDock,{symbols:catalog,broker:'Pepperstone-Demo',generation:2,active:true,dockActive:!panel,rankingTarget:panel?target:null}))))
+    React.createElement(HeatmapDock,{symbols:catalog,broker:'Pepperstone-Demo',generation:2,active:true,dockActive:!panel,rankingTarget:panel?target:null}))))
   await render()
   await reply(pending.shift(),{schema:1,source_id:'Pepperstone-Demo',generation:2,year:2026,today:'2026-11-12',observed_at:now/1000,revision:'a'.repeat(64),pending:0,symbols:Object.fromEntries(catalog.map(s=>[s.symbol,{...record,bars:[{...bars[0],time:Date.parse('2026-11-11')/1000},{...bars[1],time:Date.parse('2026-11-12')/1000}]}]))})
   for(const field of ['O','H','L'])await check(host.querySelector(`[aria-label="Visible fields ${field}"]`))
@@ -88,7 +90,7 @@ try{
   assert.equal(host.querySelector('.heatmap-viewport'),null)
   assert.ok(target.querySelector('.heatmap-ranking'));assert.equal(pending.length,count,'Ranking and dock share the same history owner')
   await click(button('Event window',target))
-  const initial=pending.shift();assert.equal(initial.url,'/storage-api/cross-asset/intraday')
+  const initial=pending.shift();assert.equal(initial.url,'/storage-api/heatmap/intraday')
   await reply(initial,data)
   assert.match(target.querySelector('.heatmap-ranking').textContent,/Window summary/)
   await change(target.querySelector('[aria-label="Event anchor"]'),'2026-11-12T18:30')
@@ -105,7 +107,7 @@ try{
   await click(button('Copy displayed ranking',target));assert.match(copied,/Event-window ranking/)
   await React.act(async()=>root.unmount())
   assert.equal(timers.size,0);assert.equal(observers.size,0)
-  console.log('✓ Cross-asset event windows: bounded minute aggregation, anchor semantics, coverage, baskets, field sizing, copy selection, shared ranking and stale-request cleanup')
+  console.log('✓ Heatmap event windows: bounded minute aggregation, anchor semantics, coverage, baskets, field sizing, copy selection, shared ranking and stale-request cleanup')
 }finally{
   await React.act(async()=>root.unmount());await server.close();await dom.happyDOM.close();Date.now=originalNow
   for(const [key,descriptor] of previous){if(descriptor)Object.defineProperty(globalThis,key,descriptor);else delete globalThis[key]}

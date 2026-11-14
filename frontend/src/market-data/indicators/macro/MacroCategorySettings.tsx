@@ -6,6 +6,8 @@ export function MacroCategorySettings({ preferences, onChange }: { preferences: 
   const [name, setName] = useState('')
   const categories = macroCategories(preferences)
   return <>
+    <label className="macro-setting-row">Non-numerical events and Wildcards<input type="checkbox" aria-label="Show MFDI event row" checked={preferences.showEventRow !== false}
+      onChange={event => onChange({ ...preferences, showEventRow: event.target.checked })} /></label>
     <label className="macro-setting-row">Hide Legend<input type="checkbox" aria-label="Hide MFDI Legend" checked={macroLayout(preferences).hideLegend}
       onChange={event => onChange(patchMacroLayout(preferences, { hideLegend: event.target.checked }))} /></label>
     <fieldset><legend>Categories</legend>
