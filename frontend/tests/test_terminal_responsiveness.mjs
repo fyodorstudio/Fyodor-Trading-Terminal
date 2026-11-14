@@ -274,8 +274,24 @@ globalThis.fetch = (url, options = {}) => {
   })
 }
 const { createRoot } = await import('react-dom/client')
+// SSR drops CSS imports; include the real layout rules for chart containment checks.
+const layoutStyles = document.createElement('style')
+layoutStyles.textContent = ['terminal-shell/terminal-shell.layout.css', 'market-data/candlestick-chart/market-candlestick-chart.css']
+  .map(file => fs.readFileSync(new URL(`../src/${file}`, import.meta.url), 'utf8')).join('\n')
+document.head.appendChild(layoutStyles)
 const container = document.createElement('div'); document.body.appendChild(container)
 const root = createRoot(container)
+function assertChartContainment() {
+  const row = container.querySelector('.chart-workspace-row'), frame = row.querySelector(':scope > .chart-frame')
+  assert.equal(dom.getComputedStyle(row).display, 'flex', 'The chart row distributes its bounded height to the chart and side panels')
+  assert.equal(parseFloat(dom.getComputedStyle(row).minHeight), 0)
+  assert.equal(dom.getComputedStyle(frame).flexGrow, '1', 'The chart frame fills the available row instead of collapsing around absolute children')
+  assert.equal(parseFloat(dom.getComputedStyle(frame).minWidth), 0)
+  assert.equal(dom.getComputedStyle(frame).position, 'relative', 'Chart canvases and calendar overlays stay anchored inside the chart frame')
+  const host = frame.querySelector('.market-chart-host')
+  assert.ok(host)
+  assert.equal(dom.getComputedStyle(host).position, 'absolute')
+}
 const props = element => element[Object.getOwnPropertyNames(element).find(key => key.startsWith('__reactProps$'))]
 async function reply(name) {
   await React.act(async () => {
@@ -316,6 +332,7 @@ try {
   }
   await React.act(async () => root.render(React.createElement(ActivityLogProvider, null,
     React.createElement(FyodorTerminalShell), React.createElement(CommandOnly))))
+  assertChartContainment()
   await reply('health'); await reply('watch')
   while (pending.get('ohlc')?.length) await reply('ohlc')
   assert.equal(counters.priceSpaceSeed, 100, 'Price-space initialization reads a bounded 100-candle tail')
@@ -746,11 +763,13 @@ try {
   assert.deepEqual(logicalRange,recentWindow);assert.equal(counters.setData??0,0)
   await click(container.querySelector('[aria-label="Hide events"]'));await flush()
   reset();await click(container.querySelector('[aria-label="Show Detail"]'));await flush()
+  assertChartContainment()
   assert.deepEqual([...container.querySelectorAll('.ledger-categories thead th')].map(n=>n.textContent),['Category','EUR','USD'])
   assert.equal(container.querySelectorAll('.ledger-categories tbody > tr').length,4)
   assert.equal(container.querySelectorAll('.currency-detail-panel button').length,1)
   assert.deepEqual(logicalRange,recentWindow);assert.equal(counters.setData??0,0)
   await click(container.querySelector('[aria-label="Close Detail"]'));await flush()
+  assertChartContainment()
   assert.equal(localStorage.getItem('fyodor.chart-drawings.v1'),recentDrawings)
   // Entry Trade uses the real shell, storage and chart callbacks.
   await click(button('Entry Trade'))

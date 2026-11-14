@@ -148,6 +148,8 @@
 .market-instrument-badge { padding: 2px 4px; border: 1px solid var(--border-strong); border-radius: 3px; color: var(--text-strong); }
 .active-market .market-daily-range { white-space: normal; font-size: 9px; line-height: 1.35; color: var(--text-strong); }
 
+.chart-workspace-row { display: flex; min-width: 0; min-height: 0; }
+.chart-workspace-row > .chart-frame { flex: 1; min-width: 0; }
 .chart-frame { min-height: 0; position: relative; }
 
 .market-subtitle {
