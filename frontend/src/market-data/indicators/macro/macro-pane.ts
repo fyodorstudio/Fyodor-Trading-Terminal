@@ -5,10 +5,10 @@ import { macroCatalog } from './macro-catalog'
 import { claimChartClick } from '../../candlestick-chart/chart-click-selection'
 import { futureTimelineSeconds } from '../../candlestick-chart/future-timeline'
 import { fedSurprise } from './fed-forecast'
-import { macroAxis, macroMetricAxis, macroMetricVisible, selectedMacroMetrics, switchMacroCurrency, type MacroAxis, type MacroMetric, type MacroPreferences } from './macro-preferences'
+import { macroAxis, macroMetricAxis, macroMetricVisible, selectedMacroMetrics, setMacroEvents, selectMacroMetric, toggleMacroMetric, toggleMacroForecast, toggleMacroNumbers, switchMacroCurrency, type MacroAxis, type MacroMetric, type MacroPreferences } from './macro-preferences'
 import { macroEventRowKey } from './macro-event-key'
 import { macroCategoryColor } from './macro-essentials'
-import { macroCategory } from './macro-layout'
+import { macroCategory, macroRowVisible } from './macro-layout'
 import { majorCurrencies } from '../../../economic-calendar/forex/currencies'
 import { createMacroEventsRow } from './macro-events-row'
 import { macroLayout, macroSelection, patchMacroLayout, type MacroPlacement } from './macro-layout'
@@ -70,8 +70,6 @@ export function createMacroPane(chart: IChartApi) {
     }
     currencyTabs.append(button); return button
   })
-  const eventsButton = document.createElement('button'); eventsButton.type = 'button'; eventsButton.textContent = 'Events'; eventsButton.setAttribute('aria-label', 'Show MFDI event row')
-  eventsButton.onclick = () => { if (indicator) commitPreferences({ ...indicator.preferences, showEventRow: indicator.preferences.showEventRow === false }) }
   legend.setAttribute('aria-label', 'MFDI values')
   legend.title = 'Macro Factor Data Inspector · Stored actuals, latest vintages; verified official Fed upper bounds where saved. Hover a release dot for actual, forecast, previous and release time. Release dots align to their containing candle; the latest release wins within one candle. Monthly lines join released points. Each selected event has an independent scale. Overlapping heights do not imply comparable magnitudes.'
   const controls = document.createElement('div'); controls.className = 'macro-controls'
@@ -88,8 +86,8 @@ export function createMacroPane(chart: IChartApi) {
     const axisButton = document.createElement('button'); axisButton.type = 'button'; axisButton.className = 'macro-metric-axis'
     axisButton.textContent = label.startsWith(`${macroCatalog[key].currency} · `) ? label : `${macroCatalog[key].currency} · ${label}`; axisButton.dataset.macroAxis = key
     axisButton.setAttribute('aria-label', `Select ${label} axis`)
-    axisButton.title = `Select ${label}, then drag the plot to move it. Use the ✥ handle to move it between categories.`
-    axisButton.onclick = () => { linked = false; updateLock(); selectMetric(key) }
+    axisButton.title = `Select ${label}. Drag its ✥ handle to reorder chart lanes or change category.`
+    axisButton.onclick = () => { linked = false; if (indicator && changePreferences) commitPreferences(selectMacroMetric(indicator.preferences, key)); else { updateLock(); selectMetric(key) } }
     const dragButton = document.createElement('button'); dragButton.type = 'button'; dragButton.className = 'macro-row-drag'; dragButton.textContent = '✥'
     dragButton.dataset.macroDrag = key; dragButton.setAttribute('aria-label', `Move ${label} between categories`); dragButton.title = `Hold and drag to move ${label} to another category`
     const eyeButton = document.createElement('button'); eyeButton.type = 'button'; eyeButton.className = 'macro-visibility-button'
@@ -103,7 +101,7 @@ export function createMacroPane(chart: IChartApi) {
     }
     const slash = document.createElementNS(svg.namespaceURI, 'path'); slash.setAttribute('d', 'm3 3 18 18')
     slash.setAttribute('data-eye-slash', 'true'); svg.append(slash)
-    eyeButton.append(svg); eyeButton.onclick = () => toggleMetric(key)
+    eyeButton.append(svg); eyeButton.onclick = () => { if (indicator && changePreferences) commitPreferences(toggleMacroMetric(indicator.preferences, key)); else toggleMetric(key) }
     const forecastButton = document.createElement('button'); forecastButton.type = 'button'; forecastButton.className = 'macro-forecast-button'
     forecastButton.dataset.macroForecast = key
     const forecastIcon = svg.cloneNode(false) as SVGElement
@@ -113,7 +111,7 @@ export function createMacroPane(chart: IChartApi) {
     const forecastSlash = slash.cloneNode(true) as SVGElement
     forecastSlash.removeAttribute('data-eye-slash'); forecastSlash.setAttribute('data-forecast-slash', 'true')
     forecastIcon.append(letter, forecastSlash); forecastButton.append(forecastIcon)
-    forecastButton.onclick = () => toggleForecast(key)
+    forecastButton.onclick = () => { if (indicator && changePreferences) commitPreferences(toggleMacroForecast(indicator.preferences, key)); else toggleForecast(key) }
     const numbersButton = document.createElement('button'); numbersButton.type = 'button'; numbersButton.className = 'macro-numbers-button'
     numbersButton.dataset.macroNumbers = key
     const numbersIcon = forecastIcon.cloneNode(true) as SVGElement
@@ -121,7 +119,7 @@ export function createMacroPane(chart: IChartApi) {
     numbersIcon.querySelector('text')!.setAttribute('x', '5')
     const numbersSlash = numbersIcon.querySelector('[data-forecast-slash]')!
     numbersSlash.removeAttribute('data-forecast-slash'); numbersSlash.setAttribute('data-numbers-slash', 'true')
-    numbersButton.append(numbersIcon); numbersButton.onclick = () => toggleNumbers(key)
+    numbersButton.append(numbersIcon); numbersButton.onclick = () => { if (indicator && changePreferences) commitPreferences(toggleMacroNumbers(indicator.preferences, key)); else toggleNumbers(key) }
     const colorInput = document.createElement('input'); colorInput.type = 'color'; colorInput.className = 'macro-color-button'
     colorInput.setAttribute('aria-label', `Colour ${label}`); colorInput.title = `Change ${label} colour`
     const previewColour = () => {
@@ -141,16 +139,27 @@ export function createMacroPane(chart: IChartApi) {
     }
     colorInput.oninput = previewColour; colorInput.onchange = changeColour
     colorInput.onblur = () => { if (colourDrafts.has(key)) changeColour() }
-    chip.append(axisButton, dragButton, eyeButton, forecastButton, numbersButton, colorInput); item.append(colorDot, chip); controls.append(item)
-    return { key, label, item, axisButton, dragButton, eyeButton, slash, forecastButton, forecastSlash, numbersButton, numbersSlash, colorDot, colorInput }
+    const more = document.createElement('button'); more.type = 'button'; more.textContent = '⋯'; more.setAttribute('aria-label', `Edit ${label}`)
+    const details = document.createElement('div'); details.className = 'macro-row-options'; details.hidden = true
+    const widthLabel = document.createElement('label'); widthLabel.append('Line width ')
+    const width = document.createElement('select'); width.setAttribute('aria-label', `${label} line width`)
+    for (const value of [1, 2, 3, 4]) { const option = document.createElement('option'); option.value = String(value); option.textContent = String(value); width.append(option) }
+    width.onchange = () => { if (indicator) commitPreferences({ ...indicator.preferences, series: { ...indicator.preferences.series, [key]: { ...indicator.preferences.series[key], lineWidth: Number(width.value) as 1 | 2 | 3 | 4 } } }) }
+    const remove = document.createElement('button'); remove.type = 'button'; remove.textContent = 'Remove event'; remove.setAttribute('aria-label', `Remove ${label}`)
+    remove.onclick = () => { if (indicator) { const currency = macroCatalog[key].currency; commitPreferences(setMacroEvents(indicator.preferences, currency, (indicator.preferences.eventsByCurrency?.[currency] ?? []).filter(item => item !== key))) } }
+    widthLabel.append(width); details.append(widthLabel, remove)
+    more.onclick = () => { details.hidden = !details.hidden; more.setAttribute('aria-expanded', String(!details.hidden)) }; more.setAttribute('aria-expanded', 'false')
+    chip.append(axisButton, dragButton, eyeButton, forecastButton, numbersButton, colorInput, more); item.append(colorDot, chip, details); controls.append(item)
+    return { key, label, item, axisButton, dragButton, eyeButton, slash, forecastButton, forecastSlash, numbersButton, numbersSlash, colorDot, colorInput, width }
   }
   const eventItem = document.createElement('div'); eventItem.className = 'macro-metric-item'
   const eventChip = document.createElement('div'); eventChip.className = 'macro-metric-control'
   const eventName = document.createElement('button'); eventName.type = 'button'; eventName.className = 'macro-metric-axis'; eventName.textContent = 'Speeches / Wildcards'
   const eventDrag = document.createElement('button'); eventDrag.type = 'button'; eventDrag.className = 'macro-row-drag'; eventDrag.textContent = '✥'; eventDrag.setAttribute('aria-label', 'Move Speeches / Wildcards between categories')
   const eventEye = document.createElement('button'); eventEye.type = 'button'; eventEye.dataset.macroEventVisibility = 'true'
-  eventEye.onclick = eventName.onclick = () => { if (indicator) commitPreferences({ ...indicator.preferences, showEventRow: indicator.preferences.showEventRow === false }) }
-  eventChip.append(eventName, eventDrag, eventEye, document.createElement('span'), document.createElement('span'), document.createElement('span')); eventItem.append(eventChip)
+  eventName.onclick = () => { if (indicator) { linked = false; commitPreferences(patchMacroLayout(indicator.preferences, { linked: false, categoryTarget: undefined, rowTarget: macroEventRowKey })) } }
+  eventEye.onclick = () => { if (indicator) { const p = indicator.preferences; commitPreferences({ ...p, showEventRow: !macroRowVisible(p, macroEventRowKey), layout: { ...macroLayout(p), hiddenCategories: macroLayout(p).hiddenCategories?.filter(id => id !== macroCategory(p, macroEventRowKey)) } }) } }
+  eventChip.append(eventName, eventDrag, eventEye, document.createElement('span'), document.createElement('span'), document.createElement('span'), document.createElement('span')); eventItem.append(eventChip)
   const eventControl = { key: macroEventRowKey, item: eventItem, dragButton: eventDrag }
   let metricControls = ['rate', 'payrolls', 'unemployment', 'headlineCpi', 'coreCpi'].map(createMetricControl)
   const fitButton = document.createElement('button'); fitButton.type = 'button'; fitButton.textContent = 'Fit axis'
@@ -178,7 +187,7 @@ export function createMacroPane(chart: IChartApi) {
   controls.append(fitButton, fitAllButton, lockButton, flattenButton, seriesButton)
   const readout = document.createElement('div'); readout.className = 'macro-readout'
   const note = document.createElement('div'); note.className = 'macro-note'
-  const currencyHeader = document.createElement('div'); currencyHeader.className = 'macro-currency-header'; currencyHeader.append(currencyTabs, eventsButton)
+  const currencyHeader = document.createElement('div'); currencyHeader.className = 'macro-currency-header'; currencyHeader.append(currencyTabs)
   legend.append(currencyHeader, controls, readout, note)
   for (const event of ['pointerdown', 'dblclick']) legend.addEventListener(event, e => e.stopPropagation())
   chart.chartElement().appendChild(legend)
@@ -216,7 +225,7 @@ export function createMacroPane(chart: IChartApi) {
   const laneControls = createMacroLaneControls(chart.chartElement(), () => requestUpdate(), commitPreferences, { drawerChanged: open => {
     seriesButton.setAttribute('aria-expanded', String(open)); releaseHover = undefined; forecastHover = undefined; releaseTooltip.hide()
     if (!open) seriesButton.focus()
-  }, categorySelected: () => { linked = false; updateLock() }, beforePreset: () => { saveOnExit(); return indicator?.preferences } })
+  }, categorySelected: () => { linked = false; updateLock() } })
   seriesButton.onclick = () => laneControls.toggleDrawer()
   seriesButton.setAttribute('aria-controls', laneControls.drawerId)
   laneControls.setRows([...metricControls, eventControl])
@@ -365,9 +374,12 @@ export function createMacroPane(chart: IChartApi) {
   }
   const updateLock = () => {
     laneControls.setLinked(linked)
+    lockButton.disabled = laneMode
+    fitButton.hidden = laneMode
+    fitAllButton.textContent = laneMode ? 'Fit lanes' : 'Fit all axes'
     lockButton.setAttribute('aria-pressed', String(linked))
     lockButton.setAttribute('aria-label', `${linked ? 'Unlink' : 'Link'} MFDI axes`)
-    lockButton.title = laneMode ? (linked ? 'Linked lanes: drag the plot to move all lanes; wheel scrolls vertically. Adjust spacing in Series.' : 'Link all lanes for group dragging. Wheel scrolls vertically; adjust spacing in Series.') : linked ? 'Axes linked: drag and scale all MFDI series together. Click to adjust each independently.' : 'Link all MFDI axes to drag and scale every series together'
+    lockButton.title = laneMode ? 'Drag the chart to move all lanes. Reorder rows in Series; the wheel scrolls vertically.' : linked ? 'Axes linked: drag and scale all MFDI series together. Click to adjust each independently.' : 'Link all MFDI axes to drag and scale every series together'
     lockShackle.setAttribute('d', linked ? 'M8 10V6a4 4 0 0 1 8 0v4' : 'M8 10V6a4 4 0 0 1 8 0')
   }
   lockButton.onclick = () => {
@@ -382,14 +394,15 @@ export function createMacroPane(chart: IChartApi) {
     const p = indicator.preferences
     const activeCurrency = p.activeCurrency ?? p.currencies?.[0] ?? 'USD'
     for (const button of currencyButtons) { const selected = button.dataset.macroCurrency === activeCurrency; button.setAttribute('aria-selected', String(selected)); button.tabIndex = selected ? 0 : -1 }
-    eventsButton.setAttribute('aria-pressed', String(p.showEventRow !== false))
-    eventEye.textContent = p.showEventRow !== false ? '◉' : '○'
-    eventEye.setAttribute('aria-label', `${p.showEventRow !== false ? 'Hide' : 'Show'} Speeches / Wildcards`)
-    eventEye.setAttribute('aria-pressed', String(p.showEventRow !== false))
+    eventName.setAttribute('aria-pressed', String(!linked && macroSelection(p).includes(macroEventRowKey)))
+    eventEye.textContent = macroRowVisible(p, macroEventRowKey) ? '◉' : '○'
+    eventEye.setAttribute('aria-label', `${macroRowVisible(p, macroEventRowKey) ? 'Hide' : 'Show'} Speeches / Wildcards`)
+    eventEye.setAttribute('aria-pressed', String(macroRowVisible(p, macroEventRowKey)))
     const selection = macroSelection(p)
-    for (const { key, label, axisButton, eyeButton, slash, forecastButton, forecastSlash, numbersButton, numbersSlash, colorDot, colorInput } of metricControls) {
+    for (const { key, label, axisButton, eyeButton, slash, forecastButton, forecastSlash, numbersButton, numbersSlash, colorDot, colorInput, width } of metricControls) {
       const visible = macroMetricVisible(p, key)
       colorDot.style.backgroundColor = colourFor(key)
+      if (document.activeElement !== width) width.value = String(p.series[key].lineWidth)
       const inputColour = colourDrafts.get(key) ?? colourFor(key)
       if (document.activeElement !== colorInput && colorInput.value !== inputColour) colorInput.value = inputColour
       axisButton.setAttribute('aria-pressed', String(linked ? visible : selection.includes(key)))
@@ -400,7 +413,7 @@ export function createMacroPane(chart: IChartApi) {
       const forecastsVisible = p.series[key].forecastVisible
       forecastButton.setAttribute('aria-pressed', String(forecastsVisible))
       forecastButton.setAttribute('aria-label', `${forecastsVisible ? 'Hide' : 'Show'} ${label} forecasts`)
-      forecastButton.title = `${forecastsVisible ? 'Hide' : 'Show'} ${label} historical forecasts. Upcoming release previews stay visible.`
+      forecastButton.title = `${forecastsVisible ? 'Hide' : 'Show'} ${label} forecasts, including upcoming releases.`
       forecastSlash.setAttribute('visibility', forecastsVisible ? 'hidden' : 'visible')
       const numbersVisible = p.series[key].numbersVisible
       numbersButton.setAttribute('aria-pressed', String(numbersVisible))
@@ -409,7 +422,7 @@ export function createMacroPane(chart: IChartApi) {
       numbersSlash.setAttribute('visibility', numbersVisible ? 'hidden' : 'visible')
     }
     const time = hover ?? latestTime
-    readout.hidden = macroLayout(p).hideLegend
+    readout.hidden = !(p.showReadout ?? !macroLayout(p).hideLegend)
     readout.replaceChildren()
     const visible = metricControls.map(({ key }) => key).filter(key => macroMetricVisible(p, key))
     for (const key of visible) {
@@ -424,9 +437,9 @@ export function createMacroPane(chart: IChartApi) {
       field.append(swatch, value, date); readout.append(field)
     }
     const noPoints = visible.every(key => !plots[key]?.dots.length)
-    const empty = !metricControls.length ? 'Choose currencies and add events in MFDI settings'
-      : !visible.length ? 'All series hidden; use an eye to show a series'
-      : visible.every(key => !indicator!.history[key]?.length) ? 'No released numeric actuals with verified chart timing'
+    const empty = !metricControls.length ? 'No numerical events selected. Use + Events in Series.'
+      : !visible.length ? 'All numerical series hidden; use an eye to show a series'
+      : visible.every(key => !indicator!.history[key]?.length) ? 'No released numerical readings loaded'
       : noPoints ? 'No releases in loaded candles; scroll left for earlier releases' : ''
     note.textContent = [indicator.status, p.showEventRow !== false ? indicator.eventStatus : '', empty].filter(Boolean).join(' · ')
     note.hidden = !note.textContent
@@ -476,7 +489,8 @@ export function createMacroPane(chart: IChartApi) {
     return hit
   }
   const hitScheduled = (event: MouseEventParams<Time>) => event.point && event.paneIndex === pane.paneIndex()
-    ? pendingHits.find(hit => Math.abs(event.point!.x - hit.x) <= hit.rx && Math.abs(event.point!.y - hit.y) <= hit.ry) : undefined
+    ? pendingHits.find(hit => indicator && macroMetricVisible(indicator.preferences, hit.key) && indicator.preferences.series[hit.key].forecastVisible
+      && indicator.preferences.series[hit.key].pointsVisible && Math.abs(event.point!.x - hit.x) <= hit.rx && Math.abs(event.point!.y - hit.y) <= hit.ry) : undefined
   const onClick = (event: MouseEventParams<Time>) => {
     const hit = hitDot(event)
     if (hit) {
@@ -489,11 +503,11 @@ export function createMacroPane(chart: IChartApi) {
   const resetSelection = () => {
     if (!indicator) return
     const layout = indicator.preferences.layout
-    if (linked && !layout?.categoryTarget) return
+    if (linked && !layout?.categoryTarget && !layout?.rowTarget) return
     for (const [axis, id] of axisScales) captureBounds(axis, id, true)
     linked = true
-    if (layout?.categoryTarget) {
-      const next = { ...layout, linked: true }; delete next.categoryTarget
+    if (layout?.categoryTarget || layout?.rowTarget) {
+      const next = { ...layout, linked: true }; delete next.categoryTarget; delete next.rowTarget
       commitPreferences({ ...indicator.preferences, layout: next })
     } else commitPreferences(patchMacroLayout(indicator.preferences, { linked: true }))
   }
@@ -537,7 +551,7 @@ export function createMacroPane(chart: IChartApi) {
       laneControls.position(indicator.preferences, chart.paneSize(pane.paneIndex()).width, pane.getHeight(),
         legend.offsetHeight + 12 || 36, pane.getHTMLElement()?.offsetTop ?? chart.paneSize(0).height + 8)
       const eventY = laneControls.y(macroEventRowKey)
-      eventRow.position((pane.getHTMLElement()?.offsetTop ?? chart.paneSize(0).height + 8) + (eventY ?? 0) - 10, chart.paneSize(pane.paneIndex()).width,
+      eventRow.position((pane.getHTMLElement()?.offsetTop ?? chart.paneSize(0).height + 8) + (eventY ?? 0) - 12, chart.paneSize(pane.paneIndex()).width,
         eventY !== null && eventY >= (legend.offsetHeight + 12 || 36) && eventY < pane.getHeight() - 10, macroCategoryColor(indicator.preferences, macroCategory(indicator.preferences, macroEventRowKey)))
     }
     if (!restoringPlacements) linkAxes()
@@ -629,7 +643,7 @@ export function createMacroPane(chart: IChartApi) {
         }
         for (const marker of releaseMarkers.all()) {
           const { key, actual, forecast } = marker, style = indicator!.preferences.series[key]
-          if (!macroMetricVisible(indicator!.preferences, key)) continue
+          if (!macroMetricVisible(indicator!.preferences, key) || (!actual && !style.forecastVisible)) continue
           const value = actual?.value ?? forecast, coordinate = markerCoordinate(marker.time, futureX)
           if (!coordinate || (actual && plots[key]?.readings.get(coordinate.time)?.id !== actual.id)) continue
           const y = value === undefined ? laneMode ? plotY(key, 0) : null : plotY(key, value), { x, time } = coordinate
@@ -644,9 +658,16 @@ export function createMacroPane(chart: IChartApi) {
           if (!style.pointsVisible || x < 0 || x > mediaSize.width || y < 0 || y > mediaSize.height) continue
           const text = value === undefined ? '—' : macroValue(key, value, actual ?? marker.format)
           const pending = { key, releasedAt: marker.releasedAt, forecast: marker.forecast, format: marker.format, x, y, rx: 7, ry: 7 }
-          if (indicator!.preferences.numberPlacement === 'dots' || (actual && !style.numbersVisible)) {
+          if (indicator!.preferences.numberPlacement === 'dots' || !style.numbersVisible) {
             if (!actual) pendingHits.push(pending)
             context.save(); context.fillStyle = color; context.strokeStyle = color; context.beginPath(); context.arc(x, y, 4, 0, Math.PI * 2); if (actual) context.fill(); else context.stroke(); context.restore(); continue
+          }
+          if (indicator!.preferences.numberPlacement === 'above') {
+            context.save(); context.fillStyle = color; context.strokeStyle = color; context.beginPath(); context.arc(x, y, 4, 0, Math.PI * 2)
+            if (actual) context.fill(); else context.stroke()
+            context.font = '11px sans-serif'; context.textAlign = 'center'; context.textBaseline = 'bottom'; context.fillText(text, x, Math.max(13, y - 9)); context.restore()
+            if (actual) markerHits.push({ key, reading: actual, time: time as Time, x, y, rx: 7, ry: 7 }); else pendingHits.push(pending)
+            continue
           }
           context.font = '10px sans-serif'
           const measured = macroMarkerBounds(context, x, y, text)
@@ -717,7 +738,7 @@ export function createMacroPane(chart: IChartApi) {
       callbacks: { toggleMetric: (metric: MacroMetric) => void; selectMetric: (metric: MacroMetric) => void;
         toggleForecast?: (metric: MacroMetric) => void; toggleNumbers?: (metric: MacroMetric) => void; changePreferences?: (value: MacroPreferences) => void; inspectRelease?: (reading: MacroReading) => void }) {
       if (destroyed) return
-      eventRow.sync(next.events ?? [], bars, seconds, next.preferences.showEventRow !== false, format)
+      eventRow.sync(next.events ?? [], bars, seconds, macroRowVisible(next.preferences, macroEventRowKey), format)
       const input = [bars, next.history, next.forecastHistory, next.upcoming, next.preferences, next.sourceId, next.status, next.forecasts, seconds, format]
       if (numericalInput?.every((value, index) => value === input[index])) {
         indicator = next; formatRelease = format; toggleMetric = callbacks.toggleMetric; selectMetric = callbacks.selectMetric
@@ -805,6 +826,7 @@ export function createMacroPane(chart: IChartApi) {
         else pane.priceScale(id).setAutoScale(true)
       }
       applyDisplayMode()
+      updateLock()
       bindAfterPaint()
       updateLegend()
       return true

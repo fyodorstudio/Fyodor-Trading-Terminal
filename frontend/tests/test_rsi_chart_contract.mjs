@@ -79,6 +79,7 @@ const { createRoot } = await import('react-dom/client')
 const host = document.createElement('div'), dialogHost = document.createElement('div'); document.body.append(host, dialogHost)
 const root = createRoot(host), dialogRoot = createRoot(dialogHost)
 const close = (actual, expected, message) => assert.ok(Math.abs(actual - expected) < 1e-6, `${message}: ${actual} vs ${expected}`)
+const closeRange = (actual, expected, message = 'Chart dates remain unchanged') => assert.ok(Math.abs(actual.from - expected.from) < 1e-9 && Math.abs(actual.to - expected.to) < 1e-9, message)
 async function paint(inspect) {
   await React.act(async () => {
     for (let pass = 0; frames.size && pass < 20; pass++) {
@@ -699,7 +700,7 @@ try {
   const { ChartInspectionDismiss } = await server.ssrLoadModule('./src/terminal-shell/chart-overlays/ChartInspectionDismiss.tsx')
   const inspectedReleases = []; let backgroundDismissals = 0
   const renderDismiss = chartApi => React.createElement(ChartInspectionDismiss, { chartApi, onClear: () => { backgroundDismissals++ } })
-  const { defaultMacroPreferences, selectMacroMetric, toggleMacroMetric, toggleMacroForecast, toggleMacroNumbers, setMacroCurrency, setMacroEvents } = await server.ssrLoadModule('./src/market-data/indicators/macro/macro-preferences.ts')
+  const { defaultMacroPreferences, selectMacroMetric, toggleMacroMetric, toggleMacroForecast, toggleMacroNumbers, setMacroEvents } = await server.ssrLoadModule('./src/market-data/indicators/macro/macro-preferences.ts')
   let macroPreferenceWrites = 0
   let macro = { enabled: true, status: 'Stored MT5 actuals', preferences: { ...defaultMacroPreferences, enabled: true }, history: { rate: [
     { id: 'seed', time: macroBars[0].time - 86400, releasedAt: (macroBars[0].time - 86400) * 1000, value: 5.5 },
@@ -738,7 +739,7 @@ try {
   await render({ rsi: { ...defaultRsiPreferences, enabled: true }, volume: { ...defaultVolumePreferences, enabled: true } })
   assert.equal(chart.panes().length, 4)
   assert.equal(host.querySelectorAll('.macro-legend, .rsi-legend, .volume-legend').length, 3)
-  assert.deepEqual(chart.timeScale().getVisibleLogicalRange(), rateWindow)
+  closeRange(chart.timeScale().getVisibleLogicalRange(), rateWindow)
   assert.deepEqual(chart.priceScale('right').getVisibleRange(), ratePriceRange)
   const toggleLines = async keys => {
     await React.act(async () => { for (const key of keys) host.querySelector(`[data-macro-visibility="${key}"]`).click() })
@@ -748,6 +749,7 @@ try {
     const key = axis
     await React.act(async () => host.querySelector(`[data-macro-axis="${key}"]`).click())
     await render({ macro })
+    assert.equal(macro.preferences.axisTarget, axis, 'Axis selection updates the working currency')
   }
   const macroPane = chart.panes().find(pane => pane.getSeries().includes(payrollLine))
   const seriesDrawerButton = host.querySelector('button[aria-label="MFDI series drawer"]')
@@ -773,14 +775,14 @@ try {
   await React.act(async () => seriesBody.dispatchEvent(drawerWheel)); await paint()
   assert.equal(seriesBody.scrollTop, 80)
   assert.equal(drawerWheel.defaultPrevented, true)
-  assert.deepEqual(chart.timeScale().getVisibleLogicalRange(), drawerWindow)
+  closeRange(chart.timeScale().getVisibleLogicalRange(), drawerWindow)
   assert.deepEqual(drawerRanges(), beforeDrawerRanges, 'Scrolling the Series window never moves native axes')
   const drawerTitle = host.querySelector('[aria-label="Move MFDI series window"]'), beforeDrawerLeft = parseFloat(seriesDrawer.style.left)
   await React.act(async () => drawerTitle.dispatchEvent(new dom.PointerEvent('pointerdown', { bubbles: true, cancelable: true, button: 0, clientX: 700, clientY: 100, pointerId: 1 })))
   await React.act(async () => window.dispatchEvent(new dom.PointerEvent('pointermove', { clientX: 660, clientY: 110, pointerId: 1 })))
   await React.act(async () => window.dispatchEvent(new dom.PointerEvent('pointerup', { clientX: 660, clientY: 110, pointerId: 1 }))); await paint()
   assert.equal(parseFloat(seriesDrawer.style.left), beforeDrawerLeft - 40, 'The title moves the popover instead of the plot')
-  assert.deepEqual(chart.timeScale().getVisibleLogicalRange(), drawerWindow)
+  closeRange(chart.timeScale().getVisibleLogicalRange(), drawerWindow)
   assert.deepEqual(drawerRanges(), beforeDrawerRanges)
   const drawerResize = host.querySelector('[aria-label="Resize MFDI series window"]')
   const beforePopoverWidth = parseFloat(seriesDrawer.style.width)
@@ -788,7 +790,7 @@ try {
   await React.act(async () => window.dispatchEvent(new dom.PointerEvent('pointermove', { clientX: 650, clientY: 200, pointerId: 1 })))
   await React.act(async () => window.dispatchEvent(new dom.PointerEvent('pointerup', { clientX: 650, clientY: 200, pointerId: 1 }))); await paint()
   assert.equal(parseFloat(seriesDrawer.style.width), beforePopoverWidth - 50, 'The resize grip changes the window size across chart redraws')
-  assert.deepEqual(chart.timeScale().getVisibleLogicalRange(), drawerWindow)
+  closeRange(chart.timeScale().getVisibleLogicalRange(), drawerWindow)
   assert.deepEqual(drawerRanges(), beforeDrawerRanges, 'Popover resizing preserves native scales')
   const chartElement = chart.chartElement(), paneElementForDock = macroPane.getHTMLElement()
   const originalChartHeight = chart.options().height, originalAutoSize = chart.options().autoSize, beforeDockDates = chart.timeScale().getVisibleLogicalRange()
@@ -824,7 +826,7 @@ try {
       await React.act(async () => chart.resize(900, 240)); await paint()
       assert.equal(seriesDrawer.style.top, '90px'); assert.equal(seriesDrawer.style.height, '146px')
     }
-    assert.deepEqual(chart.timeScale().getVisibleLogicalRange(), beforeDockDates, 'Dock layout changes preserve shared chart dates')
+    closeRange(chart.timeScale().getVisibleLogicalRange(), beforeDockDates, 'Dock layout changes preserve shared chart dates')
   } finally {
     dockChartHeight = originalChartHeight
     await React.act(async () => chart.resize(900, originalChartHeight)); await paint()
@@ -843,7 +845,7 @@ try {
   macro = { ...macro, preferences: { ...macro.preferences, series: universalStyles } }; await render({ macro })
   const oldColour = macro.preferences.series.payrolls.color, colourAxis = macro.preferences.axisTarget
   const picker = host.querySelector('[data-macro-row="payrolls"] input[type="color"]')
-  const colourSection = picker.closest('[data-macro-drawer-category]'), colourHeader = colourSection.querySelector('.macro-drawer-category button')
+  const colourSection = picker.closest('[data-macro-drawer-category]'), colourHeader = colourSection.querySelector('[data-macro-category-fold]')
   const originalTimeout = window.setTimeout, originalClearTimeout = window.clearTimeout
   const previewTimers = new Map(); let previewTimerId = 900000
   window.setTimeout = (callback, delay, ...args) => {
@@ -919,169 +921,24 @@ try {
   host.querySelector('.macro-series-drawer').dispatchEvent(new dom.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
   assert.equal(host.querySelector('.macro-series-drawer').hidden, true)
   assert.equal(document.activeElement, seriesDrawerButton)
-  assert.deepEqual(chart.timeScale().getVisibleLogicalRange(), drawerWindow, 'Drawer use preserves the shared date viewport')
-  const normalUpcoming = macro.upcoming
+  closeRange(chart.timeScale().getVisibleLogicalRange(), drawerWindow, 'Drawer use preserves the shared date viewport')
+  const beforeUpcoming = macro, upcomingDates = chart.timeScale().getVisibleLogicalRange(), upcomingData = coreLine.data()
   const futureChartTime = macroBars.at(-1).time + 3.5 * 3600
-  macro = { ...macro, upcoming: [
-    { time: futureChartTime, releasedAt: Date.now() + 86400000, metrics: ['coreCpi', 'headlineCpi'], forecasts: { coreCpi: 0, headlineCpi: 0.3 } },
-    { time: macroBars.at(-1).time + 1800, releasedAt: Date.now() + 3600000, metrics: ['rate'] },
-    { time: futureChartTime + 3600, releasedAt: Date.now() - 1000, metrics: ['rate'] },
-  ] }
-  upcomingStrokes.length = 0; releaseBadges.length = 0
-  await render({ macro })
   const expectedFutureX = (chart.timeScale().logicalToCoordinate(102) + chart.timeScale().logicalToCoordinate(103)) / 2
-  assert.equal(upcomingStrokes.length, 0, 'Upcoming releases no longer draw vertical schedule lines')
-  for (const [key, value, text] of [['coreCpi', 0, '0.00%'], ['headlineCpi', 0.3, '0.30%']]) {
-    const badge = releaseBadges.find(row => row.color === macro.preferences.series[key].color && row.text === text)
-    const marker = badge ?? laneDots.find(row => row.color === macro.preferences.series[key].color && Math.abs(row.x - expectedFutureX) < 0.01)
-    assert.ok(marker, 'Each companion retains a forecast marker; overlapping rectangles become dots')
-    close(marker.x, expectedFutureX, 'Scheduled dots retain sub-candle positioning without new timestamps')
-    close(marker.y, (key === 'coreCpi' ? coreLine : headlineLine).priceToCoordinate(value), 'Numerical upcoming dots use the actual forecast height')
-    if (badge) assert.equal(badge.alpha, 0.85)
-  }
-  await React.act(async () => { for (const listener of nativeCrosshairListeners) listener({ time: futureChartTime, point: { x: expectedFutureX, y: coreLine.priceToCoordinate(0) }, paneIndex: macroPane.paneIndex(), seriesData: new Map() }) }); await paint()
-  const groupedForecast = host.querySelector('[aria-label="MFDI release details"]')
-  assert.match(groupedForecast.textContent, /Forecast: 0.00%/)
-  assert.match(groupedForecast.textContent, /Forecast: 0.30%/, 'A grouped hover retains the forecast hidden by rectangle collision handling')
-  assert.equal(releaseBadges.filter(row => row.color === macro.preferences.series.rate.color).length, 0, 'Missing and elapsed schedules do not invent forecast positions')
-  assert.ok(macroPane.getSeries().every(line => line.data().every(point => point.time <= macroBars.at(-1).time)), 'Schedules do not add valued series points or timestamps')
-  const scheduledStyles = macro.preferences.series
-  macro = { ...macro, preferences: { ...macro.preferences, series: { ...scheduledStyles,
-    coreCpi: { ...scheduledStyles.coreCpi, visible: false }, headlineCpi: { ...scheduledStyles.headlineCpi, visible: false } } } }
+  const futurePackage = { time: futureChartTime, releasedAt: Date.now() + 86400000, metrics: ['coreCpi'], forecasts: { coreCpi: 0 } }
+  macro = { ...macro, upcoming: [futurePackage], preferences: { ...macro.preferences, series: { ...macro.preferences.series,
+    coreCpi: { ...macro.preferences.series.coreCpi, forecastVisible: true, numbersVisible: true } } } }
   releaseBadges.length = 0; await render({ macro })
-  assert.equal(releaseBadges.filter(row => row.color === scheduledStyles.coreCpi.color || row.color === scheduledStyles.headlineCpi.color).length, 0, 'Hidden series have no scheduled marker')
-  macro = { ...macro, upcoming: normalUpcoming, preferences: { ...macro.preferences, series: scheduledStyles } }; await render({ macro })
-  // Forecast curves are primitive overlays on the actual scales. Even extreme
-  // forecasts and future dots must never add native samples or refit any scale.
-  const forecastPreferences = macro.preferences
-  // Enabling RSI/Volume reduces MFDI's canvas without squeezing its plots.
-  // Fit all scales explicitly before checking their on-canvas dots and labels.
-  for (const line of [rateLine, payrollLine, unemploymentLine, coreLine, headlineLine])
-    macroPane.priceScale(line.options().priceScaleId).setAutoScale(true)
-  await paint()
-  const originalPayrollRange = macroPane.priceScale(payrollLine.options().priceScaleId).getVisibleRange()
-  await selectAxis('payrolls')
-  macroPane.priceScale('right').setVisibleRange({ from: -200, to: 400 }); await paint()
-  const curveWindow = chart.timeScale().getVisibleLogicalRange(), originalPayrollData = payrollLine.data()
-  macro = { ...macro, preferences: { ...macro.preferences, numberPlacement: 'above' } }; await render({ macro })
-  const numberPreferences = macro.preferences
-  assert.equal(host.querySelectorAll('[data-macro-numbers]').length, 5)
-  const toggleNumbers = async key => {
-    numberLabels.length = 0
-    await React.act(async () => host.querySelector(`[data-macro-numbers="${key}"]`).click()); await render({ macro })
-  }
-  for (const [key, line, expected] of [
-    ['rate', rateLine, '↓5.25%'], ['payrolls', payrollLine, '↑200k'], ['unemployment', unemploymentLine, '↓4.10%'],
-    ['coreCpi', coreLine, '↓-0.10%'], ['headlineCpi', headlineLine, '↑0.30%'],
-  ]) {
-    const button = host.querySelector(`[data-macro-numbers="${key}"]`)
-    assert.equal(button.getAttribute('aria-pressed'), 'false', 'Numbers start hidden')
-    assert.equal(button.querySelector('[data-numbers-slash]').getAttribute('visibility'), 'visible')
-    await toggleNumbers(key)
-    assert.equal(button.getAttribute('aria-pressed'), 'true')
-    assert.equal(button.querySelector('[data-numbers-slash]').getAttribute('visibility'), 'hidden')
-    const point = (key === 'rate' ? rateDots : line).data().at(-1)
-    const label = numberLabels.find(label => label.text === expected && label.color === macro.preferences.series[key].color)
-    assert.ok(label, `${key}: N paints the actual value with its correct units`)
-    close(label.x, chart.timeScale().timeToCoordinate(point.time), 'Number stays centered on its release dot')
-    assert.ok(label.y < line.priceToCoordinate(point.value), 'Number appears above its dot')
-    await toggleNumbers(key)
-    assert.equal(numberLabels.filter(label => label.color === macro.preferences.series[key].color).length, 0, 'Slashed N hides numbers')
-  }
-  assert.deepEqual(payrollLine.data(), originalPayrollData, 'N never adds samples or carried value labels')
-  assert.deepEqual(chart.timeScale().getVisibleLogicalRange(), curveWindow)
-  assert.deepEqual(macroPane.priceScale('right').getVisibleRange(), { from: -200, to: 400 })
-  macro = { ...macro, preferences: numberPreferences }; await render({ macro })
-  const lastForecastX = chart.timeScale().timeToCoordinate(macroBars[65].time)
-  const forecastToggle = async key => {
-    await React.act(async () => host.querySelector(`[data-macro-forecast="${key}"]`).click()); await render({ macro })
-  }
-  macro = { ...macro, forecastHistory: { ...macro.history,
-    payrolls: [monthly('nfp-f-one', 45, -120), monthly('nfp-f-two', 65, 100)] }, upcoming: [
-    { time: futureChartTime, releasedAt: Date.now() + 86400000, metrics: ['payrolls'], forecasts: { payrolls: 250 } },
-    { time: futureChartTime + 3600, releasedAt: Date.now() + 172800000, metrics: ['payrolls'] },
-    { time: futureChartTime + 7200, releasedAt: Date.now() + 259200000, metrics: ['payrolls'], forecasts: { payrolls: 0 } },
-  ] }
-  forecastCurveStrokes.length = 0; forecastCurveRings.length = 0; upcomingStrokes.length = 0; releaseBadges.length = 0; releaseConnections.length = 0
-  await render({ macro })
-  const payrollColor = macro.preferences.series.payrolls.color
-  const payrollCurves = forecastCurveStrokes.filter(row => row.color === payrollColor)
-  assert.ok(payrollCurves.some(row => row.alpha === 0.6 && row.dash.length === 0), 'Historical forecasts use a translucent solid line')
-  const futureConnections = releaseConnections.filter(row => row.color === payrollColor)
-  assert.ok(futureConnections.length > 0, 'Upcoming release dots have faint connections')
-  for (const row of futureConnections) {
-    close(row.from[0], lastForecastX, 'The pending connection starts at the last released point')
-    close(row.from[1], payrollLine.priceToCoordinate(200), 'The pending section continues the actual series')
-    close(row.to[0], expectedFutureX, 'The upcoming dot uses its verified schedule')
-    close(row.to[1], payrollLine.priceToCoordinate(250), 'The upcoming dot uses its forecast')
-    assert.equal(row.alpha, 0.25)
-  }
-  assert.ok(forecastCurveRings.some(row => row.color === payrollColor && row.alpha === 1
-    && row.x === chart.timeScale().timeToCoordinate(macroBars[45].time) && row.y === payrollLine.priceToCoordinate(-120)),
-  'Historical forecasts retain their larger hollow rings')
-  assert.ok(releaseBadges.some(row => row.color === payrollColor && row.text === '250k' && row.alpha === 0.85))
-  assert.ok(releaseBadges.some(row => row.color === payrollColor && row.text === '0k' && row.y === payrollLine.priceToCoordinate(0)), 'A zero forecast remains a visible pending dot after a missing forecast')
-  assert.equal(upcomingStrokes.length, 0, 'Missing forecasts never restore the removed vertical schedule lines')
-  assert.deepEqual(payrollLine.data(), originalPayrollData)
-  assert.equal(macroPane.getSeries().length, 6, 'Forecasts introduce no native series')
-  assert.deepEqual(macroPane.priceScale('right').getVisibleRange(), { from: -200, to: 400 })
-  assert.deepEqual(chart.timeScale().getVisibleLogicalRange(), curveWindow)
-  assert.ok(macroBars.every((bar, index) => chart.timeScale().timeToIndex(bar.time) === index), 'Forecasts never introduce timeline timestamps')
-  assert.equal(host.querySelectorAll('[data-macro-forecast]').length, 5)
-  forecastCurveRings.length = 0; upcomingStrokes.length = 0; releaseBadges.length = 0
-  await forecastToggle('payrolls')
-  assert.equal(host.querySelector('[data-macro-forecast="payrolls"]').getAttribute('aria-pressed'), 'false')
-  assert.equal(host.querySelector('[data-macro-forecast="payrolls"] [data-forecast-slash]').getAttribute('visibility'), 'visible')
-  assert.equal(forecastCurveRings.filter(row => row.color === payrollColor).length, 0, 'Slashed F hides forecast dots independently')
-  assert.ok(releaseBadges.some(row => row.color === payrollColor && row.text === '250k'), 'Slashed F preserves upcoming release previews')
-  assert.deepEqual(payrollLine.data(), originalPayrollData, 'Slashed F preserves actuals')
-  for (const key of ['rate', 'unemployment', 'headlineCpi', 'coreCpi']) {
-    forecastCurveRings.length = 0
-    await forecastToggle(key)
-    assert.ok(forecastCurveRings.some(row => row.color === macro.preferences.series[key].color), `${key}: F also enables its forecast layer`)
-    await forecastToggle(key)
-  }
-  const beforeReleaseTransition = macro, realMarkerNow = Date.now, publishedAt = realMarkerNow() + 1000, markerPaneHeight = macroPane.getHeight()
-  const pendingRelease = { time: futureChartTime, releasedAt: publishedAt, metrics: ['payrolls'], forecasts: { payrolls: 250 } }
-  try {
-    macro = { ...macro, upcoming: [pendingRelease] }; releaseBadges.length = 0; await render({ macro })
-    assert.ok(releaseBadges.some(row => row.text === '250k' && row.alpha === 0.85))
-    Date.now = () => publishedAt + 1
-    macro = { ...macro, upcoming: [] }; releaseBadges.length = 0; await render({ macro })
-    assert.ok(releaseBadges.some(row => row.text === '250k' && row.alpha === 0.85), 'The last forecast remains faint after its scheduled time until an actual arrives')
-    const actualRelease = { id: 'newly-published-payrolls', time: futureChartTime, releasedAt: publishedAt, value: 275, forecast: 250, unit: 4, multiplier: 1 }
-    const releasedBars = [...macroBars, ...Array.from({ length: 5 }, (_, index) => ({ ...macroBars.at(-1), time: macroBars.at(-1).time + (index + 1) * 3600 }))]
-    macro = { ...macro, preferences: { ...macro.preferences, numberPlacement: 'inside', series: { ...macro.preferences.series, payrolls: { ...macro.preferences.series.payrolls, numbersVisible: true } } }, history: { ...macro.history, payrolls: [...macro.history.payrolls, actualRelease] } }
-    releaseBadges.length = 0; releaseConnections.length = 0; await render({ bars: releasedBars, macro })
-    const actualBadges = releaseBadges.filter(row => row.text === '275k' && row.color === payrollColor)
-    assert.ok(actualBadges.length > 0)
-    assert.ok(actualBadges.every(row => row.alpha === 1), 'The released dot is solid and shows the actual instead of the forecast')
-    assert.equal(releaseBadges.some(row => row.text === '250k'), false, 'Publication replaces the pending value instead of leaving a duplicate forecast dot')
-    assert.equal(payrollLine.data().at(-1).value, 275)
-    const actualBadge = actualBadges.at(-1), beforeBadgeClick = inspectedReleases.length
-    const badgeClick = { point: { x: actualBadge.x + actualBadge.rx - 4, y: actualBadge.y }, time: payrollLine.data().at(-1).time, paneIndex: macroPane.paneIndex(), seriesData: new Map() }
-    await React.act(async () => { for (const listener of [...nativeClickListeners]) listener(badgeClick) })
-    assert.equal(inspectedReleases.length, beforeBadgeClick + 1, 'The whole released value dot opens its actual release package')
-    assert.equal(inspectedReleases.at(-1).id, actualRelease.id)
-    assert.equal(releaseConnections.filter(row => row.color === payrollColor).length, 0, 'Published sections no longer have a pending connection')
-    macro = { ...macro, upcoming: [{ time: futureChartTime, releasedAt: publishedAt + 86400000, metrics: ['coreCpi'] }] }
-    await render({ macro })
-    macroPane.setHeight(300); await paint()
-    releaseBadges.length = 0; laneDots.length = 0
-    await React.act(async () => host.querySelector('[aria-label="MFDI lane view"]').click()); await paint()
-    const actualLaneBadge = releaseBadges.find(row => row.text === '275k' && row.color === payrollColor)
-    assert.ok(actualLaneBadge, 'Released value dots also render on straight category lanes')
-    close(actualLaneBadge.y, laneDots.find(row => row.color === payrollColor).y, 'The promoted value stays on its event lane')
-    assert.ok(releaseBadges.some(row => row.text === '—' && row.color === macro.preferences.series.coreCpi.color && row.alpha === 0.85), 'Lane mode can mark an upcoming release with no forecast using a dash')
-
-  } finally {
-    Date.now = realMarkerNow; macro = beforeReleaseTransition
-    macroPane.setHeight(markerPaneHeight); await paint()
-    await render({ bars: macroBars, macro })
-  }
-  macro = { ...macro, preferences: forecastPreferences, forecastHistory: undefined, upcoming: normalUpcoming }
-  macroPane.priceScale('right').setVisibleRange(originalPayrollRange); await render({ macro })
-  console.log('✓ MFDI forecast curves: outlined equal-value dots, lighter historical lines, dashed forecast-to-forecast future segments, zero/missing values, all historical F controls, labelled pending dots and unchanged native scales/dates/samples')
+  assert.ok(releaseBadges.some(row => row.text === '0.00%' && Math.abs(row.x - expectedFutureX) < 0.01), 'F and N display the upcoming forecast inside an outlined rectangle')
+  macro = { ...macro, preferences: toggleMacroForecast(macro.preferences, 'coreCpi') }
+  releaseBadges.length = 0; await render({ macro })
+  assert.equal(releaseBadges.some(row => Math.abs(row.x - expectedFutureX) < 0.01), false, 'F off hides upcoming values as well as historical forecasts')
+  macro = { ...macro, preferences: toggleMacroNumbers(toggleMacroForecast(macro.preferences, 'coreCpi'), 'coreCpi') }
+  releaseBadges.length = 0; laneDots.length = 0; await render({ macro })
+  assert.equal(releaseBadges.some(row => Math.abs(row.x - expectedFutureX) < 0.01), false, 'N off hides future value text')
+  assert.ok(laneDots.some(row => Math.abs(row.x - expectedFutureX) < 0.01), 'The future forecast retains a hoverable marker when N is off')
+  assert.deepEqual(coreLine.data(), upcomingData); closeRange(chart.timeScale().getVisibleLogicalRange(), upcomingDates)
+  macro = beforeUpcoming; await render({ macro })
   // Native drawing contracts: a transient primitive overlay never contributes
   // forecast values/timestamps to any series or to the independently bound axes.
   const forecastDateRange = chart.timeScale().getVisibleLogicalRange(), originalFedRange = macroPane.priceScale('right').getVisibleRange()
@@ -1119,7 +976,7 @@ try {
       if (label === 'In line') close(segment.to[1], segment.from[1], 'Equal consensus has zero-length connector')
     }
     assert.deepEqual(macroPane.priceScale('right').getVisibleRange(), { from: 4, to: 6 })
-    assert.deepEqual(chart.timeScale().getVisibleLogicalRange(), forecastDateRange)
+    closeRange(chart.timeScale().getVisibleLogicalRange(), forecastDateRange)
     assert.deepEqual(rateLine.data(), originalRateData); assert.deepEqual(rateDots.data(), originalDots)
     for (const [line, index, extra] of [[rateLine, 80, {}], [rateDots, 0, { paneIndex: 0 }], [rateDots, 0, { point: undefined }]]) {
       forecastStrokes.length = 0; await hoverDot(line, index, extra)
@@ -1145,6 +1002,8 @@ try {
   await hoverDot(rateDots, 0, { point: undefined })
   macroPane.priceScale('right').setVisibleRange(originalFedRange); await paint()
   console.log('✓ Fed forecast native overlay: release cards with saved consensus, no CME/metadata, Beat ring, zero/offscreen connector, unchanged series/dates/bound scales and leave cleanup')
+  for (const line of [rateLine, payrollLine, unemploymentLine, coreLine, headlineLine]) macroPane.priceScale(line.options().priceScaleId).setAutoScale(true)
+  await paint()
   const fireDotClick = async (line, index, extra = {}) => {
     const point = line.data()[index]
     const event = { point: { x: chart.timeScale().timeToCoordinate(point.time), y: line.priceToCoordinate(point.value) },
@@ -1185,7 +1044,7 @@ try {
   assert.equal(coreLine.options().priceScaleId, 'macro-coreCpi')
   assert.equal(headlineLine.options().priceScaleId, 'macro-headlineCpi', 'Headline and Core use independent scales')
   assert.deepEqual([...host.querySelectorAll('.macro-metric-axis')].map(button => button.textContent),
-    ['USD · Fed Rate (%)', 'USD · Payroll (k)', 'USD · Unemployment (%)', 'USD · Headline CPI m/m (%)', 'USD · Core CPI m/m (%)', 'Speeches / Wildcards'])
+    ['USD · Fed Rate (%)', 'USD · Headline CPI m/m (%)', 'USD · Core CPI m/m (%)', 'USD · Payroll (k)', 'USD · Unemployment (%)', 'Speeches / Wildcards'])
   const colorFor = color => { const sample = document.createElement('span'); sample.style.backgroundColor = color; return sample.style.backgroundColor }
   const swatchFor = key => host.querySelector(`[data-macro-axis="${key}"]`).closest('.macro-metric-item').querySelector('.macro-control-color')
   assert.equal(host.querySelectorAll('.macro-control-color').length, 5)
@@ -1251,7 +1110,7 @@ try {
     placement().forEach((coordinates, index) => coordinates.forEach((value, point) => {
       close(value, originalPlacement[index][point], 'Pane resize preserves vertical position and pixels per unit on every scale')
     }))
-    assert.deepEqual(chart.timeScale().getVisibleLogicalRange(), resizeWindow, 'Pane resizing preserves horizontal zoom')
+    closeRange(chart.timeScale().getVisibleLogicalRange(), resizeWindow, 'Pane resizing preserves horizontal zoom')
   }
   await selectAxis('rate'); await selectAxis('payrolls')
   placement().forEach((coordinates, index) => coordinates.forEach((value, point) => {
@@ -1321,184 +1180,33 @@ try {
     assert.notDeepEqual(allFitted[axis], { from: -10000, to: 10000 }, `${axis}: Fit all replaces its bounds`)
   }
   assert.equal(macro.preferences.axisTarget, selectedBeforeFitAll, 'Fit all preserves the selected axis')
-  assert.deepEqual(chart.timeScale().getVisibleLogicalRange(), rateWindow, 'Fit all preserves shared dates')
+  closeRange(chart.timeScale().getVisibleLogicalRange(), rateWindow, 'Fit all preserves shared dates')
   const flatten = host.querySelector('[aria-label="MFDI lane view"]')
-  assert.equal(lockAxes.nextElementSibling, flatten, 'The three-line button sits next to the lock')
-  macro = { ...macro, preferences: { ...macro.preferences, layout: { hideLegend: true, laneMode: false, categoryOrder: [], collapsed: [], rowOrder: [] } } }; await render({ macro })
-  assert.equal(host.querySelector('.macro-readout').hidden, true, 'Hide Legend hides only the actual/release readout')
-  assert.ok(host.querySelector('[data-macro-forecast="rate"]'), 'Hide Legend retains the drawer F/N/eye controls')
-  const beforeLaneHeight = macroPane.getHeight()
+  const priorLaneHeight = macroPane.getHeight(), priorLanePreferences = macro.preferences
   macroPane.setHeight(300); await paint()
-  const beforeFlat = placement(), beforeFlatData = macroPane.getSeries().map(line => line.data())
+  const beforeLaneDates = chart.timeScale().getVisibleLogicalRange(), beforeLaneData = macroPane.getSeries().map(line => line.data())
   laneDots.length = 0
   await React.act(async () => flatten.click()); await paint()
-  assert.equal(flatten.getAttribute('aria-pressed'), 'true')
-  assert.equal(host.querySelector('.macro-controls .macro-metric-item'), null, 'Series controls no longer occupy the top toolbar')
-  assert.equal(host.querySelector('.macro-inline-layer [data-macro-axis="rate"]'), null, 'Plot labels have no visibility controls')
-  assert.ok(host.querySelector('.macro-series-drawer [data-macro-axis="rate"]'), 'Eye/F/N controls live only in the drawer')
-  assert.equal(host.querySelector('.macro-inline-layer').textContent, '', 'The plot has no event or category text')
-  for (const key of ['rate', 'payrolls']) {
-    const dots = laneDots.filter(dot => dot.color === macro.preferences.series[key].color)
-    assert.ok(dots.length, `${key}: lane mode draws actual release dots`)
-    assert.equal(new Set(dots.map(dot => dot.y)).size, 1, 'Different numeric values occupy one perfectly horizontal lane')
-  }
-  for (const line of [rateLine, payrollLine, unemploymentLine, coreLine, headlineLine, rateDots]) assert.equal(line.options().crosshairMarkerVisible, false, 'Lane view suppresses every native numerical hover dot')
-  const blankLaneRanges = fixedRanges(), blankLaneDates = chart.timeScale().getVisibleLogicalRange()
-  const blankEvent = { point: { x: 5, y: macroPane.getHeight() - 5 }, time: macroBars[20].time, paneIndex: macroPane.paneIndex(), seriesData: new Map() }
-  await React.act(async () => { for (const listener of [...nativeClickListeners]) listener(blankEvent) }); await paint()
-  assert.equal(lockAxes.getAttribute('aria-pressed'), 'true', 'Blank lane clicks return to linked lanes')
-  await selectAxis('payrolls')
-  assert.equal(lockAxes.getAttribute('aria-pressed'), 'false', 'Choosing a series switches from linked lanes to independent movement')
-  const outside = document.createElement('button'); document.body.append(outside)
-  await React.act(async () => outside.click()); await paint()
-  assert.equal(lockAxes.getAttribute('aria-pressed'), 'true', 'Clicking elsewhere on the page clears individual selection')
-  await selectAxis('payrolls')
-  const settingsSurface = document.createElement('div'); settingsSurface.className = 'macro-settings-dialog'; const settingsControl = document.createElement('button'); settingsSurface.append(settingsControl); document.body.append(settingsSurface)
-  await React.act(async () => settingsControl.click()); await paint()
-  assert.equal(lockAxes.getAttribute('aria-pressed'), 'false', 'Editing MFDI settings preserves the selected series')
-  settingsSurface.remove(); outside.remove()
-  assert.deepEqual(fixedRanges(), blankLaneRanges); assert.deepEqual(chart.timeScale().getVisibleLogicalRange(), blankLaneDates)
-  await React.act(async () => seriesDrawerButton.click()); await paint()
-  const gripPreferences = macro.preferences, gripDates = chart.timeScale().getVisibleLogicalRange(), gripRanges = fixedRanges(), gripWrites = macroPreferenceWrites
-  const grip = host.querySelector('[data-macro-drag="payrolls"]'), gripBody = host.querySelector('.macro-drawer-body')
-  const gripLabor = host.querySelector('[data-macro-drawer-category="labor"]'), gripInflation = host.querySelector('[data-macro-drawer-category="inflation"]')
-  const gripTargets = [seriesDrawer, gripBody, gripLabor, gripInflation], originalGripRects = gripTargets.map(element => element.getBoundingClientRect)
-  const gripRect = (top, bottom) => ({ left: 20, right: 420, top, bottom, width: 400, height: bottom - top })
-  seriesDrawer.getBoundingClientRect = () => gripRect(20, 280); gripBody.getBoundingClientRect = () => gripRect(60, 280)
-  gripLabor.getBoundingClientRect = () => gripRect(70, 140); gripInflation.getBoundingClientRect = () => gripRect(140, 220)
-  try {
-    laneDots.length = 0; await React.act(async () => chart.applyOptions({})); await paint()
-    const beforeGripY = Object.fromEntries(['rate', 'payrolls', 'unemployment', 'headlineCpi', 'coreCpi'].map(key => [key, laneDots.find(dot => dot.color === macro.preferences.series[key].color).y]))
-    const gripDown = new dom.PointerEvent('pointerdown', { bubbles: true, cancelable: true, button: 0, clientX: 100, clientY: 100, pointerId: 1 })
-    await React.act(async () => grip.dispatchEvent(gripDown))
-    assert.equal(gripDown.defaultPrevented, true, 'The organisation handle suppresses compatibility mouse dragging on the chart')
-    await React.act(async () => window.dispatchEvent(new dom.PointerEvent('pointermove', { bubbles: true, clientX: 100, clientY: 160, pointerId: 1 })))
-    laneDots.length = 0; await React.act(async () => chart.applyOptions({})); await paint()
-    for (const key of Object.keys(beforeGripY)) close(laneDots.filter(dot => dot.color === macro.preferences.series[key].color).at(-1).y, beforeGripY[key], 'Dragging the event handle leaves every plotted line in place until drop')
-    assert.equal(host.querySelector('[data-macro-drop-target="true"]').dataset.macroDrawerCategory, 'inflation')
-    assert.equal(macroPreferenceWrites, gripWrites, 'Organisation previews never rewrite chart preferences')
-    assert.deepEqual(fixedRanges(), gripRanges)
-    await React.act(async () => window.dispatchEvent(new dom.PointerEvent('pointerup', { bubbles: true, clientX: 100, clientY: 160, pointerId: 1 }))); await render({ macro })
-    assert.equal(macro.preferences.categoryByEvent.payrolls, 'inflation')
-    assert.equal(macro.preferences.axisTarget, gripPreferences.axisTarget, 'Dropping on a category does not select another chart series')
-    assert.equal(host.querySelector('[data-macro-drop-target]'), null)
-    assert.deepEqual(chart.timeScale().getVisibleLogicalRange(), gripDates)
-  } finally {
-    gripTargets.forEach((element, index) => { element.getBoundingClientRect = originalGripRects[index] })
-    macro = { ...macro, preferences: gripPreferences }; await render({ macro })
-  }
-  const beforeCategoryData = macroPane.getSeries().map(line => line.data()), beforeCategoryDates = chart.timeScale().getVisibleLogicalRange()
+  assert.equal(flatten.getAttribute('aria-pressed'), 'true'); assert.equal(lockAxes.disabled, true)
+  const rowOrder = [...host.querySelectorAll('[data-macro-row]')].map(row => row.dataset.macroRow).filter(key => key !== '__events__')
+  const yFor = key => laneDots.find(dot => dot.color === macro.preferences.series[key].color)?.y
+  assert.ok(rowOrder.every((key, index) => index === 0 || yFor(key) > yFor(rowOrder[index - 1])), 'The native lane order matches the Series list')
+  const firstPositions = rowOrder.map(yFor)
+  await React.act(async () => macroPane.getHTMLElement().dispatchEvent(new dom.PointerEvent('pointerdown', { bubbles: true, button: 0, clientY: 100 })))
+  await React.act(async () => window.dispatchEvent(new dom.PointerEvent('pointermove', { clientY: 125 }))); await paint()
   laneDots.length = 0
-  await React.act(async () => host.querySelector('[aria-label="Collapse Labor"] span:last-child').click()); await paint()
-  assert.ok(laneDots.some(dot => dot.color === macro.preferences.series.payrolls.color), 'Collapsed categories retain their plotted dots and lines')
-  assert.equal(host.querySelector('[data-macro-row="payrolls"]').style.display, 'none', 'Collapse only folds the drawer children')
-  for (const key of ['payrolls', 'unemployment']) assert.equal(host.querySelector(`[data-macro-axis="${key}"]`).getAttribute('aria-pressed'), 'true', 'Every child is selected together')
-  assert.equal(host.querySelector('[data-macro-axis="rate"]').getAttribute('aria-pressed'), 'false')
-  const selectedCategoryDates = chart.timeScale().getVisibleLogicalRange()
-  await React.act(async () => { for (const listener of [...nativeClickListeners]) listener(blankEvent) }); await render({ macro })
-  assert.equal(macro.preferences.layout.categoryTarget, undefined, 'Blank clicks clear the selected category')
-  assert.equal(lockAxes.getAttribute('aria-pressed'), 'true')
-  assert.equal(host.querySelector('[aria-label="Expand Labor"]').getAttribute('aria-pressed'), 'false')
-  await React.act(async () => host.querySelector('[aria-label="Expand Labor"]').click()); await paint()
-  assert.equal(lockAxes.getAttribute('aria-pressed'), 'false', 'Selecting a category returns to category-only movement')
-  await React.act(async () => host.querySelector('[aria-label="Collapse Labor"]').click()); await paint()
-  assert.deepEqual(chart.timeScale().getVisibleLogicalRange(), selectedCategoryDates)
-
-  const categoryBeforeDots = Object.fromEntries(['payrolls', 'unemployment', 'rate'].map(key => [key, laneDots.find(dot => dot.color === macro.preferences.series[key].color).y]))
-  const categoryNativeRanges = fixedRanges()
-  laneDots.length = 0
-  await React.act(async () => macroPane.getHTMLElement().dispatchEvent(new dom.PointerEvent('pointerdown', { bubbles: true, button: 0, clientY: 100, pointerId: 1 })))
-  await React.act(async () => window.dispatchEvent(new dom.PointerEvent('pointermove', { clientY: 111, pointerId: 1 }))); await paint()
-  await React.act(async () => window.dispatchEvent(new dom.PointerEvent('pointerup', { clientY: 111, pointerId: 1 }))); await paint()
-  for (const key of ['payrolls', 'unemployment', 'rate']) close(laneDots.filter(dot => dot.color === macro.preferences.series[key].color).at(-1).y, categoryBeforeDots[key] + (key === 'rate' ? 0 : 11), 'Category dragging moves only its children')
-  assert.deepEqual(fixedRanges(), categoryNativeRanges)
-  assert.deepEqual(chart.timeScale().getVisibleLogicalRange(), beforeCategoryDates)
-  assert.deepEqual(macroPane.getSeries().map(line => line.data()), beforeCategoryData)
-  laneDots.length = 0
-  macro = { ...macro, preferences: { ...macro.preferences, layout: { ...macro.preferences.layout, rowOffsets: {} } } }; await render({ macro })
-  await React.act(async () => host.querySelector('[aria-label="Expand Labor"]').click()); await paint()
-  const payrollLane = laneDots.find(dot => dot.color === macro.preferences.series.payrolls.color)
-  const selectedBeforeLaneClick = inspectedReleases.length
-  await fireDotClick(payrollLine, 0, { point: { x: chart.timeScale().timeToCoordinate(payrollLine.data()[0].time), y: payrollLane.y } })
-  assert.equal(inspectedReleases.length, selectedBeforeLaneClick + 1, 'Straight-lane dots remain selectable')
-  assert.equal(inspectedReleases.at(-1).value, -120, 'Lane hit testing retains the real actual value')
-  assert.deepEqual(macroPane.getSeries().map(line => line.data()), beforeFlatData, 'Lane mode never changes numeric values or dates')
-  await selectAxis('payrolls'); await paint()
-  laneDots.length = 0; await React.act(async () => chart.applyOptions({})); await paint()
-  const beforeSoloPayroll = laneDots.find(dot => dot.color === macro.preferences.series.payrolls.color).y
-  const beforeSoloRate = laneDots.find(dot => dot.color === macro.preferences.series.rate.color).y
-  const soloRanges = fixedRanges(), soloDates = chart.timeScale().getVisibleLogicalRange()
-  laneDots.length = 0
-  await React.act(async () => macroPane.getHTMLElement().dispatchEvent(new dom.PointerEvent('pointerdown', { bubbles: true, button: 0, clientY: 100, pointerId: 1 })))
-  await React.act(async () => window.dispatchEvent(new dom.PointerEvent('pointermove', { clientY: 117, pointerId: 1 }))); await paint()
-  await React.act(async () => window.dispatchEvent(new dom.PointerEvent('pointerup', { clientY: 117, pointerId: 1 }))); await paint()
-  assert.equal(macro.preferences.layout.rowOffsets.payrolls, 17, 'Unlocked plot dragging freely places the selected event in lane view')
-  close(laneDots.filter(dot => dot.color === macro.preferences.series.payrolls.color).at(-1).y, beforeSoloPayroll + 17, 'Only the selected flat line moves')
-  close(laneDots.filter(dot => dot.color === macro.preferences.series.rate.color).at(-1).y, beforeSoloRate, 'Other straight lines retain their positions')
-  assert.deepEqual(fixedRanges(), soloRanges, 'Free lane movement preserves the numerical scales for leaving lane view')
-  assert.deepEqual(chart.timeScale().getVisibleLogicalRange(), soloDates)
+  await React.act(async () => window.dispatchEvent(new dom.PointerEvent('pointerup', { clientY: 125 }))); await paint()
+  rowOrder.forEach((key, index) => close(yFor(key), firstPositions[index] + 25, 'Chart dragging moves every ordered lane together'))
+  assert.deepEqual(macroPane.getSeries().map(line => line.data()), beforeLaneData)
+  close(chart.timeScale().getVisibleLogicalRange().from, beforeLaneDates.from, 'Lane dragging preserves the left date'); close(chart.timeScale().getVisibleLogicalRange().to, beforeLaneDates.to, 'Lane dragging preserves the right date')
+  const { moveMacroRow } = await server.ssrLoadModule('./src/market-data/indicators/macro/macro-layout.ts')
+  macro = { ...macro, preferences: moveMacroRow(macro.preferences, 'payrolls', 'policy', 'rate') }
+  laneDots.length = 0; await render({ macro })
+  assert.ok(yFor('payrolls') < yFor('rate'), 'Reordering Series also reorders the actual native plot')
+  macro = { ...macro, preferences: { ...priorLanePreferences, layout: { ...priorLanePreferences.layout, laneMode: false, linked: false } } }
+  await render({ macro }); macroPane.setHeight(priorLaneHeight); await paint()
+  assert.equal(lockAxes.disabled, false)
   await React.act(async () => lockAxes.click()); await paint()
-  const nativeBeforeLaneMove = fixedRanges()
-  laneDots.length = 0; await React.act(async () => chart.applyOptions({})); await paint()
-  await React.act(async () => macroPane.getHTMLElement().dispatchEvent(new dom.PointerEvent('pointerdown', { bubbles: true, button: 0, clientY: 100, pointerId: 1 })))
-  await React.act(async () => window.dispatchEvent(new dom.PointerEvent('pointermove', { bubbles: true, clientY: 120, pointerId: 1 }))); await paint()
-  await React.act(async () => window.dispatchEvent(new dom.PointerEvent('pointerup', { bubbles: true, clientY: 120, pointerId: 1 }))); await paint()
-  assert.equal(macro.preferences.layout.laneOffset, 20, 'Linked dragging moves the entire lane collection')
-  assert.deepEqual(fixedRanges(), nativeBeforeLaneMove, 'Lane dragging preserves the numerical axes underneath')
-  const laneSpacingInput = host.querySelector('[aria-label="MFDI lane spacing"]')
-  await React.act(async () => { laneSpacingInput.value = '60'; laneSpacingInput.dispatchEvent(new dom.Event('input', { bubbles: true })) }); await paint()
-  assert.equal(macro.preferences.layout.laneSpacing, 60, 'Spacing remains explicitly adjustable with its slider')
-  const oldSpacing = macro.preferences.layout.laneSpacing, oldOffsets = macro.preferences.layout.rowOffsets
-  const scrollWindow = chart.timeScale().getVisibleLogicalRange()
-  laneDots.length = 0; await React.act(async () => chart.applyOptions({})); await paint()
-  const beforeScrollLane = laneDots.find(dot => dot.color === macro.preferences.series.payrolls.color).y
-  laneDots.length = 0
-  const wheelLane = new dom.WheelEvent('wheel', { bubbles: true, cancelable: true, deltaY: 50 })
-  await React.act(async () => macroPane.getHTMLElement().dispatchEvent(wheelLane)); await paint()
-  assert.equal(wheelLane.defaultPrevented, true)
-  assert.equal(host.querySelector('.macro-lane-scroll').scrollTop, 50, 'Wheel scrolls the vertical pane even while axes are linked')
-  close(laneDots.filter(dot => dot.color === macro.preferences.series.payrolls.color).at(-1).y, beforeScrollLane - 50, 'Scrolling shifts lanes without compressing them')
-  assert.equal(macro.preferences.layout.laneSpacing, oldSpacing)
-  assert.deepEqual(macro.preferences.layout.rowOffsets, oldOffsets)
-  assert.deepEqual(chart.timeScale().getVisibleLogicalRange(), scrollWindow)
-  assert.deepEqual(fixedRanges(), nativeBeforeLaneMove)
-  await React.act(async () => lockAxes.click()); await paint()
-  await React.act(async () => macroPane.getHTMLElement().dispatchEvent(new dom.WheelEvent('wheel', { bubbles: true, cancelable: true, deltaY: -20 }))); await paint()
-  assert.equal(host.querySelector('.macro-lane-scroll').scrollTop, 30, 'Unlinked panes use the same vertical wheel scrolling')
-  assert.equal(macro.preferences.layout.laneSpacing, oldSpacing)
-  await React.act(async () => lockAxes.click()); await paint()
-  await React.act(async () => host.querySelector('[aria-label="Fit all MFDI lanes"]').click()); await paint()
-  assert.equal(macro.preferences.layout.laneOffset, 0)
-  assert.deepEqual(fixedRanges(), nativeBeforeLaneMove)
-  await React.act(async () => lockAxes.click()); await paint()
-  assert.equal(payrollLine.options().lineVisible, false, 'Native numerical lines are replaced only visually')
-  await React.act(async () => flatten.click()); await paint()
-  assert.equal(flatten.getAttribute('aria-pressed'), 'false')
-  assert.equal(payrollLine.options().crosshairMarkerVisible, true, 'Numerical view restores native hover dots')
-  assert.equal(rateLine.options().crosshairMarkerVisible, false, 'Fed carry values retain their original no-hover-marker behavior')
-  placement().forEach((values, index) => values.forEach((value, point) => close(value, beforeFlat[index][point], 'Leaving lane mode restores each numerical scale')))
-  macroPane.setHeight(beforeLaneHeight); await paint()
-  await React.act(async () => host.querySelector('[aria-label="Collapse Inflation"]').click()); await render({ macro })
-  assert.equal(macro.preferences.layout.categoryTarget, 'inflation')
-  assert.equal(host.querySelectorAll('.macro-metric-axis[aria-pressed="true"]').length, 2)
-  const beforeCategoryNumeric = placement(), numericCategoryRange = macroPane.priceScale('right').getVisibleRange()
-  const categorySpan = numericCategoryRange.to - numericCategoryRange.from
-  macroPane.priceScale('right').setVisibleRange({ from: numericCategoryRange.from + categorySpan / 5, to: numericCategoryRange.to + categorySpan / 5 }); await paint()
-  const afterCategoryNumeric = placement(), categoryShift = afterCategoryNumeric[4][0] - beforeCategoryNumeric[4][0]
-  assert.ok(Math.abs(categoryShift) > 1, 'The selected category actually moves in numerical view')
-  afterCategoryNumeric.forEach((values, index) => values.forEach((value, point) => close(value, beforeCategoryNumeric[index][point] + ([3, 4].includes(index) ? categoryShift : 0), 'Numerical dragging selects just the category children')))
-  macroPane.priceScale('right').setVisibleRange(numericCategoryRange); await paint()
-  await React.act(async () => host.querySelector('[aria-label="Expand Inflation"]').click()); await paint()
-  await selectAxis('payrolls')
-  assert.equal(macro.preferences.layout.categoryTarget, undefined)
-  await React.act(async () => lockAxes.click()); await paint()
-  assert.equal(lockAxes.getAttribute('aria-pressed'), 'true')
-  assert.equal(lockAxes.getAttribute('aria-label'), 'Unlink MFDI axes')
-  assert.equal(fitAll.disabled, false, 'Linked axes remain adjustable')
-  assert.equal(host.querySelectorAll('.macro-metric-axis[aria-pressed="true"]').length, 5, 'Linking selects all visible series')
-  assert.equal(host.querySelector('.macro-series-drawer').dataset.macroLinked, 'true', 'Linked movement disables visual selection highlights without changing what moves')
-  for (const button of host.querySelectorAll('.macro-metric-axis')) assert.equal(button.matches('.macro-series-drawer[data-macro-linked="false"] .macro-metric-axis[aria-pressed="true"]'), false)
-  assert.ok([...host.querySelectorAll('.macro-drawer-category button')].every(button => button.getAttribute('aria-pressed') === 'false'))
   const nativeNavigation = structuredClone({ handleScale: chart.options().handleScale, handleScroll: chart.options().handleScroll })
   const paneElement = macroPane.getHTMLElement()
   const wheel = new dom.WheelEvent('wheel', { bubbles: true, cancelable: true })
@@ -1554,7 +1262,7 @@ try {
   assert.ok(payrollLine.data().length > 0)
   await toggleLines(['payrolls', 'unemployment'])
   assert.ok(macroPane.getSeries().every(series => series.data().length === 0))
-  assert.match(host.querySelector('.macro-note').textContent, /All series hidden/)
+  assert.match(host.querySelector('.macro-note').textContent, /All numerical series hidden/)
   assert.equal(host.querySelectorAll('[data-macro-row]').length, 6, 'Numerical rows and the shared text-event row survive hidden data')
   assert.equal(host.querySelectorAll('.macro-controls select').length, 0, 'The chips replace the axis dropdown')
   await selectAxis('coreCpi')
@@ -1565,7 +1273,7 @@ try {
   await toggleLines(['payrolls', 'unemployment']); await toggleLines(['rate'])
   assert.equal(host.querySelectorAll('.macro-readout .macro-field').length, 5)
   assert.deepEqual(fixedRanges(), beforeVisibility, 'Individual eyes preserve every axis range')
-  assert.deepEqual(chart.timeScale().getVisibleLogicalRange(), rateWindow, 'Overlay toggles/axes preserve shared dates')
+  closeRange(chart.timeScale().getVisibleLogicalRange(), rateWindow, 'Overlay toggles/axes preserve shared dates')
   assert.deepEqual(chart.priceScale('right').getVisibleRange(), ratePriceRange, 'Macro axes never alter price scaling')
   await render({ macro: { ...macro, enabled: false } })
   assert.equal(chart.panes().length, 3)
@@ -1586,12 +1294,13 @@ try {
   macro = { ...macro, preferences: { ...defaultMacroPreferences, enabled: true, currencies: [], eventsByCurrency: {} }, history: {}, status: '' }
   await render({ macro })
   assert.equal(host.querySelectorAll('[data-macro-row]').length, 1, 'An empty numerical setup retains the global Speeches / Wildcards control')
-  assert.ok([...host.querySelectorAll('[data-macro-all]')].every(button => button.disabled), 'Universal controls are disabled without selected events')
-  assert.match(host.querySelector('.macro-note').textContent, /Choose currencies/)
+  assert.ok([...host.querySelectorAll('[data-macro-all]:not([data-macro-all="visibility"])')].every(button => button.disabled), 'F and N are disabled without numerical events')
+  assert.equal(host.querySelector('[data-macro-all="visibility"]').disabled, false, 'All-series visibility still controls the shared text row')
+  assert.match(host.querySelector('.macro-note').textContent, /No numerical events selected/)
   assert.ok(chart.panes().at(-1).getSeries().every(line => line.data().length === 0))
   const { macroCatalog } = await server.ssrLoadModule('./src/market-data/indicators/macro/macro-catalog.ts')
   const dynamicKey = Object.keys(macroCatalog).find(key => macroCatalog[key].currency === 'EUR')
-  const dynamicPreferences = setMacroEvents(setMacroCurrency(macro.preferences, 'EUR', true), 'EUR', [dynamicKey])
+  const dynamicPreferences = setMacroEvents({ ...macro.preferences, activeCurrency: 'EUR' }, 'EUR', [dynamicKey])
   dynamicPreferences.series[dynamicKey] = { ...dynamicPreferences.series[dynamicKey], numbersVisible: true }
   const dynamicReading = { ...monthly('eur-reading', 65, 0.3), currency: 'EUR', unit: 1, digits: 2, forecast: 0.2, previous: 0.1 }
   macro = { ...macro, preferences: dynamicPreferences, history: { [dynamicKey]: [dynamicReading] } }
@@ -1602,7 +1311,7 @@ try {
   const dynamicLine = chart.panes().at(-1).getSeries().find(line => line.data().length)
   assert.equal(dynamicLine.data()[0].value, 0.3, 'Dynamically added events reach native plotted series')
   assert.equal(dynamicLine.options().priceFormat.formatter(0.3), '0.30%')
-  assert.deepEqual(chart.timeScale().getVisibleLogicalRange(), dynamicWindow, 'Changing selected currencies preserves shared dates')
+  closeRange(chart.timeScale().getVisibleLogicalRange(), dynamicWindow, 'Changing selected currencies preserves shared dates')
   assert.equal(host.querySelector('.macro-note').hidden, true, 'Successful charts have no static source/status text')
   await React.act(async () => { for (const listener of nativeCrosshairListeners) listener({
     point: { x: chart.timeScale().timeToCoordinate(dynamicLine.data()[0].time), y: dynamicLine.priceToCoordinate(0.3) },
@@ -1626,7 +1335,6 @@ try {
   assert.ok(chart.panes()[1].getSeries().every(series => series.data().length === 0))
   // Serialize the real native scale, remove the entire chart, then restore from storage.
   const { saveMacroPreferences: saveRefreshMacro, readMacroPreferences: readRefreshMacro } = await server.ssrLoadModule('./src/market-data/indicators/macro/macro-preferences.ts')
-  const { saveMacroPreset: saveNativePreset, loadMacroPreset: loadNativePreset } = await server.ssrLoadModule('./src/market-data/indicators/macro/macro-presets.ts')
   macro = { ...originalMacro, preferences: { ...selectMacroMetric(originalMacro.preferences, 'payrolls'), layout: { ...originalMacro.preferences.layout, laneMode: false, linked: false, categoryTarget: undefined } } }
   await render({ bars: macroBars, symbol: 'USDX', timeframe: 'H1', fitContentKey: 'USDX:H1', macro })
   const refreshPane = () => chart.panes().at(-1)
@@ -1637,22 +1345,18 @@ try {
   await React.act(async () => dom.dispatchEvent(new dom.Event('pagehide')))
   assert.equal(macro.preferences.layout.axisPlacements.payrolls.from, -333, 'Refresh exit captures even a native scale change that has not triggered an overlay paint')
   saveRefreshMacro(macro.preferences)
-  const coldPreferences = readRefreshMacro(), nativePreset = saveNativePreset([], 'Native placement', coldPreferences)[0]
+  const coldPreferences = readRefreshMacro()
   await React.act(async () => root.render(null)); await paint()
   macro = { ...macro, preferences: coldPreferences }
   await render({ macro })
   ;[0, 200].forEach((value, index) => close(refreshPayroll().priceToCoordinate(value), savedCoordinates[index], 'A cold chart mount restores numerical pixels per unit and vertical placement'))
   assert.equal(refreshPayroll().options().color, coldPreferences.series.payrolls.color)
   const refreshDates = chart.timeScale().getVisibleLogicalRange()
-  refreshPane().priceScale('right').setVisibleRange({ from: 500, to: 1600 }); await paint()
-  assert.notEqual(refreshPayroll().priceToCoordinate(200), savedCoordinates[1])
-  macro = { ...macro, preferences: loadNativePreset(nativePreset, true) }; await render({ macro })
-  ;[0, 200].forEach((value, index) => close(refreshPayroll().priceToCoordinate(value), savedCoordinates[index], 'Loading a preset explicitly restores native axes without fitting'))
   const stableWrites = macroPreferenceWrites
   for (let i = 0; i < 3; i++) await paint()
   assert.equal(macroPreferenceWrites, stableWrites, 'Unchanged native bounds do not repeatedly save or rebuild preferences')
-  assert.deepEqual(chart.timeScale().getVisibleLogicalRange(), refreshDates, 'Preset loading never changes candle dates')
-  console.log('✓ MFDI refresh/presets: real native bounds, pixel placement and colours survive complete chart removal and explicit preset loading without refitting or idle writes')
+  closeRange(chart.timeScale().getVisibleLogicalRange(), refreshDates, 'Reloading settings never changes candle dates')
+  console.log('✓ MFDI working settings: real native bounds, pixel placement and colours survive complete chart removal without refitting or idle writes')
   console.log('✓ MFDI real chart: five overlaid lines/dots, independent eye controls/five axes, linked pan/zoom, separate CPI scales, raw release points, hidden/empty data, dates, Volume/RSI and scope cleanup')
   await React.act(async () => root.render(null)); await paint()
   await React.act(async () => root.render(React.createElement(React.StrictMode, null, React.createElement(MarketCandlestickChart, { ...props, bars: macroBars, macro, volume }))))

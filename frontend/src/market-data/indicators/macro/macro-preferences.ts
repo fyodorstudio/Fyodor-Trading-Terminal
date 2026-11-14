@@ -1,15 +1,15 @@
 import { macroEventRowKey } from './macro-event-key'
 import { isMacroTextEvent, macroCatalog } from './macro-catalog'
 import { chartEventSymbol } from '../../../economic-calendar/forex/chart-event-scope'
-import { macroCategory, rememberMacroLanes, type MacroCategory, type MacroLayout } from './macro-layout'
+import { macroCategory, macroLayout, macroRowVisible, type MacroCategory, type MacroLayout } from './macro-layout'
 export type MacroGroup = 'policy' | 'labour' | 'inflation'
 export type MacroMetric = string
 export type MacroAxis = MacroMetric
 export type MacroStyle = { visible: boolean; color: string; lineWidth: 1 | 2 | 3 | 4; pointsVisible: boolean; forecastVisible: boolean; numbersVisible: boolean }
 export type MacroPreferences = { enabled: boolean; axisTarget: MacroAxis; series: Record<MacroMetric, MacroStyle>; currencies?: string[]; eventsByCurrency?: Record<string, string[]>;
-  categories?: MacroCategory[]; categoryByEvent?: Record<string, string>; layout?: MacroLayout; presetId?: string;
-  categoryColors?: Record<string, string>; numberPlacement?: 'inside' | 'above' | 'dots'; essentialsVersion?: number;
-  activeCurrency?: string; currencyViews?: Record<string, { axisTarget: string; layout?: MacroLayout }>; showEventRow?: boolean }
+  categories?: MacroCategory[]; categoryByEvent?: Record<string, string>; layout?: MacroLayout;
+  categoryColors?: Record<string, string>; numberPlacement?: 'inside' | 'above' | 'dots'; essentialsVersion?: number; workspaceVersion?: number; showReadout?: boolean;
+  activeCurrency?: string; currencyViews?: Record<string, { axisTarget: string; layout?: MacroLayout; showEventRow?: boolean }>; showEventRow?: boolean }
 export const macroGroups: { id: MacroGroup; label: string; metrics: MacroMetric[] }[] = [
   { id: 'policy', label: 'Policy', metrics: ['rate'] },
   { id: 'labour', label: 'Labour', metrics: ['payrolls', 'unemployment'] },
@@ -59,7 +59,7 @@ function readLegacyPreferences(): MacroPreferences {
   } catch { return d }
 }
 const configKey = 'fyodor.indicators.macro.v2'
-type MacroProfile = Pick<MacroPreferences, 'enabled' | 'axisTarget' | 'layout' | 'presetId' | 'activeCurrency' | 'currencyViews' | 'showEventRow' | 'numberPlacement' | 'essentialsVersion'> & { currencies: string[] }
+type MacroProfile = Pick<MacroPreferences, 'enabled' | 'axisTarget' | 'layout' | 'activeCurrency' | 'currencyViews' | 'showEventRow' | 'numberPlacement' | 'essentialsVersion' | 'workspaceVersion' | 'showReadout'> & { currencies: string[] }
 type SavedMacro = { eventsByCurrency: Record<string, string[]>; styles: Record<string, MacroStyle>;
   categories?: MacroCategory[]; categoryByEvent?: Record<string, string>; categoryColors?: Record<string, string>;
   global?: MacroProfile; symbols: Record<string, MacroProfile> }
@@ -103,7 +103,9 @@ export function readMacroPreferences(symbol = 'USDX'): MacroPreferences {
     eventsByCurrency, series,
     ...(saved?.categoryColors ? { categoryColors: saved.categoryColors } : {}),
     ...(profile?.numberPlacement ? { numberPlacement: profile.numberPlacement } : {}),
-    ...(profile?.essentialsVersion ? { essentialsVersion: profile.essentialsVersion } : {}), ...(typeof profile?.presetId === 'string' ? { presetId: profile.presetId } : {}),
+    ...(profile?.essentialsVersion ? { essentialsVersion: profile.essentialsVersion } : {}),
+    ...(profile?.workspaceVersion ? { workspaceVersion: profile.workspaceVersion } : {}),
+    ...(typeof profile?.showReadout === 'boolean' ? { showReadout: profile.showReadout } : {}),
     ...(profile?.activeCurrency ? { activeCurrency: profile.activeCurrency } : {}),
     ...(profile?.currencyViews ? { currencyViews: profile.currencyViews } : {}),
     ...(typeof profile?.showEventRow === 'boolean' ? { showEventRow: profile.showEventRow } : {}),
@@ -113,7 +115,6 @@ export function readMacroPreferences(symbol = 'USDX'): MacroPreferences {
       ...(typeof profile.layout.axisRestoreId === 'string' ? { axisRestoreId: profile.layout.axisRestoreId } : {}),
       ...(typeof profile.layout.linked === 'boolean' ? { linked: profile.layout.linked } : {}),
       ...(Number.isFinite(profile.layout.laneScroll) ? { laneScroll: Math.max(0, profile.layout.laneScroll!) } : {}),
-      ...(profile.layout.laneSlots ? { laneSlots: Object.fromEntries(Object.entries(profile.layout.laneSlots).filter(([key, value]) => (macroCatalog[key] || key === macroEventRowKey) && Number.isFinite(value))) } : {}),
       ...(profile.layout.axisPlacements ? { axisPlacements: Object.fromEntries(Object.entries(profile.layout.axisPlacements).filter(([key, value]) => macroCatalog[key] && value
         && [value.from, value.to, value.height, value.unitsPerPixel, value.topValue].every(Number.isFinite) && value.from < value.to && value.height > 1 && value.unitsPerPixel > 0)) } : {}),
       ...(typeof profile.layout.categoryTarget === 'string' ? { categoryTarget: profile.layout.categoryTarget } : {}),
@@ -121,9 +122,8 @@ export function readMacroPreferences(symbol = 'USDX'): MacroPreferences {
       collapsed: Array.isArray(profile.layout.collapsed) ? profile.layout.collapsed : [], rowOrder: Array.isArray(profile.layout.rowOrder) ? profile.layout.rowOrder : [],
       ...(Number.isFinite(profile.layout.laneOffset) ? { laneOffset: Math.max(-100000, Math.min(100000, profile.layout.laneOffset!)) } : {}),
       ...(Number.isFinite(profile.layout.laneSpacing) ? { laneSpacing: Math.max(0.1, Math.min(120, profile.layout.laneSpacing!)) } : {}),
-      ...(profile.layout.rowOffsets && typeof profile.layout.rowOffsets === 'object' && !Array.isArray(profile.layout.rowOffsets)
-        ? { rowOffsets: Object.fromEntries(Object.entries(profile.layout.rowOffsets).filter(([key, value]) => (macroCatalog[key] || key === macroEventRowKey) && Number.isFinite(value))
-          .map(([key, value]) => [key, Math.max(-100000, Math.min(100000, value))])) } : {}) } } : {}) }
+      ...(Array.isArray(profile.layout.hiddenCategories) ? { hiddenCategories: profile.layout.hiddenCategories } : {}),
+      ...(typeof profile.layout.rowTarget === 'string' ? { rowTarget: profile.layout.rowTarget } : {}) } } : {}) }
 }
 export function saveMacroPreferences(value: MacroPreferences, _symbol = 'USDX') {
   try {
@@ -133,15 +133,16 @@ export function saveMacroPreferences(value: MacroPreferences, _symbol = 'USDX') 
     if (value.categories) saved.categories = value.categories
     if (value.categoryByEvent) saved.categoryByEvent = value.categoryByEvent
     if (value.categoryColors) saved.categoryColors = value.categoryColors
-    saved.global = { enabled: value.enabled, currencies: value.currencies ?? ['USD'], axisTarget: value.axisTarget, ...(value.layout ? { layout: value.layout } : {}), ...(value.presetId ? { presetId: value.presetId } : {}),
+    saved.global = { enabled: value.enabled, currencies: value.currencies ?? ['USD'], axisTarget: value.axisTarget, ...(value.layout ? { layout: value.layout } : {}),
       ...(value.activeCurrency ? { activeCurrency: value.activeCurrency } : {}), ...(value.currencyViews ? { currencyViews: value.currencyViews } : {}), ...(value.showEventRow !== undefined ? { showEventRow: value.showEventRow } : {}),
-      ...(value.numberPlacement ? { numberPlacement: value.numberPlacement } : {}), ...(value.essentialsVersion ? { essentialsVersion: value.essentialsVersion } : {}) }
+      ...(value.numberPlacement ? { numberPlacement: value.numberPlacement } : {}), ...(value.essentialsVersion ? { essentialsVersion: value.essentialsVersion } : {}),
+      ...(value.workspaceVersion ? { workspaceVersion: value.workspaceVersion } : {}), ...(value.showReadout !== undefined ? { showReadout: value.showReadout } : {}) }
     window.localStorage.setItem(configKey, JSON.stringify(saved))
     return true
   } catch { return false }
 }
 export function selectedMacroEvents(preferences: MacroPreferences, allCurrencies = false): string[] {
-  const currencies = !allCurrencies && preferences.activeCurrency ? (preferences.currencies?.includes(preferences.activeCurrency) ? [preferences.activeCurrency] : []) : preferences.currencies
+  const currencies = !allCurrencies && preferences.activeCurrency ? [preferences.activeCurrency] : preferences.currencies
   const keys = currencies ? currencies.flatMap(currency => preferences.eventsByCurrency?.[currency] ?? []) : Object.keys(preferences.series)
   const order = ['rate', 'payrolls', 'unemployment', 'headlineCpi', 'coreCpi']
   return [...new Set(keys)].filter(key => macroCatalog[key] && preferences.series[key])
@@ -150,27 +151,19 @@ export function selectedMacroEvents(preferences: MacroPreferences, allCurrencies
 export function selectedMacroMetrics(preferences: MacroPreferences): string[] { return selectedMacroEvents(preferences).filter(key => !isMacroTextEvent(key)) }
 export function switchMacroCurrency(preferences: MacroPreferences, currency: string): MacroPreferences {
   const current = preferences.activeCurrency ?? preferences.currencies?.[0] ?? 'USD'
-  if (current === currency && preferences.activeCurrency && preferences.currencies?.includes(currency)) return preferences
-  const remembered = rememberMacroLanes(preferences)
-  const currencyViews = { ...preferences.currencyViews, [current]: { axisTarget: preferences.axisTarget, layout: remembered.layout } }
+  if (current === currency && preferences.activeCurrency) return preferences
+  const currencyViews = { ...preferences.currencyViews, [current]: { axisTarget: preferences.axisTarget, layout: preferences.layout ?? macroLayout(preferences), showEventRow: preferences.showEventRow !== false } }
   const saved = currencyViews[currency]
   const key = preferences.eventsByCurrency?.[currency]?.find(key => !isMacroTextEvent(key)) ?? 'rate'
-  return { ...preferences, activeCurrency: currency, currencies: [...new Set([...(preferences.currencies ?? []), currency])], currencyViews,
+  return { ...preferences, activeCurrency: currency, currencyViews,
     eventsByCurrency: { ...preferences.eventsByCurrency, [currency]: preferences.eventsByCurrency?.[currency] ?? [] },
-    axisTarget: saved?.axisTarget ?? key,
+    axisTarget: saved?.axisTarget ?? key, showEventRow: saved?.showEventRow ?? true,
     layout: { ...(saved?.layout ?? { hideLegend: preferences.layout?.hideLegend ?? true, laneMode: preferences.layout?.laneMode ?? false, categoryOrder: [], collapsed: [], rowOrder: [] }), axisRestoreId: crypto.randomUUID() } }
 }
-export function setMacroCurrency(preferences: MacroPreferences, currency: string, enabled: boolean): MacroPreferences {
-  preferences = rememberMacroLanes(preferences)
-  const currencies = preferences.currencies ?? ['USD']
-  return { ...preferences, currencies: enabled ? [...new Set([...currencies, currency])] : currencies.filter(item => item !== currency),
-    eventsByCurrency: { ...preferences.eventsByCurrency, [currency]: preferences.eventsByCurrency?.[currency] ?? [] } }
-}
 export function setMacroEvents(preferences: MacroPreferences, currency: string, keys: string[]): MacroPreferences {
-  preferences = rememberMacroLanes(preferences)
   const series = { ...preferences.series }
   const admitted = [...new Set(keys)].filter(key => macroCatalog[key]?.currency === currency)
-  for (const key of admitted) series[key] ??= { ...macroDefaultStyle(key), ...(preferences.categoryColors?.[macroCategory(preferences, key)] ? { color: preferences.categoryColors[macroCategory(preferences, key)] } : {}) }
+  for (const key of admitted) series[key] ??= { ...macroDefaultStyle(key), numbersVisible: true, ...(preferences.categoryColors?.[macroCategory(preferences, key)] ? { color: preferences.categoryColors[macroCategory(preferences, key)] } : {}) }
   return { ...preferences, series, eventsByCurrency: { ...preferences.eventsByCurrency, [currency]: admitted } }
 }
 export function macroAxis(preferences: MacroPreferences): MacroAxis {
@@ -180,24 +173,24 @@ export function macroAxis(preferences: MacroPreferences): MacroAxis {
 }
 export function macroMetricVisible(preferences: MacroPreferences, key: MacroMetric) {
   const currency = macroCatalog[key]?.currency
-  return !!preferences.series[key]?.visible && (!preferences.currencies ||
-    preferences.currencies.includes(currency) && !!preferences.eventsByCurrency?.[currency]?.includes(key)) && (!preferences.activeCurrency || currency === preferences.activeCurrency)
+  return !macroLayout(preferences).hiddenCategories?.includes(macroCategory(preferences, key)) && !!preferences.series[key]?.visible && (!preferences.currencies ||
+    (!!preferences.activeCurrency || preferences.currencies.includes(currency)) && !!preferences.eventsByCurrency?.[currency]?.includes(key)) && (!preferences.activeCurrency || currency === preferences.activeCurrency)
 }
 export function macroMetricAxis(key: MacroMetric): MacroAxis {
   return key
 }
-export function selectMacroAxis(preferences: MacroPreferences, axisTarget: MacroAxis): MacroPreferences {
-  return selectMacroMetric(preferences, axisTarget)
-}
 export function selectMacroMetric(preferences: MacroPreferences, key: MacroMetric): MacroPreferences {
   const layout = preferences.layout && { ...preferences.layout }
-  if (layout) { delete layout.categoryTarget; layout.linked = false }
+  if (layout) { delete layout.categoryTarget; delete layout.rowTarget; layout.linked = false; layout.hiddenCategories = layout.hiddenCategories?.filter(id => id !== macroCategory(preferences, key)) }
   return { ...preferences, axisTarget: macroMetricAxis(key), series: { ...preferences.series,
     [key]: { ...preferences.series[key], visible: true } },
     ...(layout ? { layout } : {}) }
 }
 export function toggleMacroMetric(preferences: MacroPreferences, key: MacroMetric): MacroPreferences {
-  return { ...preferences, series: { ...preferences.series, [key]: { ...preferences.series[key], visible: !preferences.series[key].visible } } }
+  const hidden = macroLayout(preferences).hiddenCategories ?? [], category = macroCategory(preferences, key)
+  const revealing = hidden.includes(category) || !preferences.series[key].visible
+  return { ...preferences, layout: { ...macroLayout(preferences), hiddenCategories: revealing ? hidden.filter(id => id !== category) : hidden },
+    series: { ...preferences.series, [key]: { ...preferences.series[key], visible: revealing } } }
 }
 export function toggleMacroForecast(preferences: MacroPreferences, key: MacroMetric): MacroPreferences {
   return { ...preferences, series: { ...preferences.series, [key]: { ...preferences.series[key], forecastVisible: !preferences.series[key].forecastVisible } } }
@@ -206,8 +199,10 @@ export function toggleMacroNumbers(preferences: MacroPreferences, key: MacroMetr
   return { ...preferences, series: { ...preferences.series, [key]: { ...preferences.series[key], numbersVisible: !preferences.series[key].numbersVisible } } }
 }
 export function toggleMacroAll(preferences: MacroPreferences, field: 'visible' | 'forecastVisible' | 'numbersVisible'): MacroPreferences {
-  const keys = selectedMacroMetrics(preferences), enabled = !keys.some(key => preferences.series[key][field])
+  const keys = selectedMacroMetrics(preferences), enabled = field === 'visible'
+    ? !keys.some(key => macroMetricVisible(preferences, key)) && !macroRowVisible(preferences, macroEventRowKey)
+    : !keys.some(key => preferences.series[key][field])
   const series = { ...preferences.series }
   for (const key of keys) series[key] = { ...series[key], [field]: enabled }
-  return { ...preferences, series }
+  return { ...preferences, series, ...(field === 'visible' ? { showEventRow: enabled, layout: { ...macroLayout(preferences), hiddenCategories: [] } } : {}) }
 }

@@ -4,80 +4,106 @@ import { macroAxis, selectedMacroMetrics, type MacroPreferences } from './macro-
 
 export type MacroCategory = { id: string; label: string }
 export type MacroPlacement = { from: number; to: number; height: number; unitsPerPixel: number; topValue: number }
-export type MacroLayout = { hideLegend: boolean; laneMode: boolean; categoryOrder: string[]; collapsed: string[]; rowOrder: string[]; laneOffset?: number; laneSpacing?: number; rowOffsets?: Record<string, number>; categoryTarget?: string; laneSlots?: Record<string, number>; laneScroll?: number; axisPlacements?: Record<string, MacroPlacement>; linked?: boolean; axisRestoreId?: string }
+export type MacroLayout = { hideLegend: boolean; laneMode: boolean; categoryOrder: string[]; collapsed: string[]; rowOrder: string[]; laneOffset?: number; laneSpacing?: number; hiddenCategories?: string[]; categoryTarget?: string; rowTarget?: string; laneScroll?: number; axisPlacements?: Record<string, MacroPlacement>; linked?: boolean; axisRestoreId?: string }
 export const defaultMacroCategories: MacroCategory[] = [
-  { id: 'policy', label: 'Policy' }, { id: 'labor', label: 'Labor' },
-  { id: 'inflation', label: 'Inflation' }, { id: 'growth', label: 'Growth' }, { id: 'uncategorized', label: 'Uncategorized' },
+  { id: 'policy', label: 'Monetary Policy' }, { id: 'inflation', label: 'Inflation' }, { id: 'labor', label: 'Labor' },
+  { id: 'growth', label: 'Growth' }, { id: 'uncategorized', label: 'Uncategorized' },
 ]
 export function macroLayout(preferences: MacroPreferences): MacroLayout {
-  return { hideLegend: true, laneMode: false, categoryOrder: [], collapsed: [], rowOrder: [], laneOffset: 0, laneSpacing: 28, rowOffsets: {}, ...preferences.layout }
+  return { hideLegend: true, laneMode: false, categoryOrder: [], collapsed: [], rowOrder: [], laneOffset: 0, laneSpacing: 24, hiddenCategories: [], ...preferences.layout }
+}
+function categoryDefinitions(preferences: MacroPreferences) {
+  const aliases = new Map<string, string>(), names = new Map<string, string>(), categories: MacroCategory[] = []
+  const standard = new Map(defaultMacroCategories.map(category => [category.id, category]))
+  const known: Record<string, string> = { policy: 'policy', monetarypolicy: 'policy', inflation: 'inflation', labor: 'labor', labour: 'labor', growth: 'growth', uncategorized: 'uncategorized', uncategorised: 'uncategorized' }
+  for (const category of preferences.categories ?? defaultMacroCategories) {
+    const name = category.label.trim(), token = name.toLowerCase().replace(/[^a-z0-9]/g, '')
+    const id = standard.has(category.id) ? category.id : known[token] ?? names.get(name.toLowerCase()) ?? category.id
+    aliases.set(category.id, id); names.set(name.toLowerCase(), id)
+    if (!categories.some(item => item.id === id)) categories.push({ id, label: standard.get(id)?.label ?? (name || 'Category') })
+  }
+  if (!categories.some(category => category.id === 'uncategorized')) categories.push({ id: 'uncategorized', label: 'Uncategorized' })
+  return { categories, aliases }
+}
+/** Merge former category IDs and their references, including inactive currency layouts. */
+export function normalizeMacroCategories(preferences: MacroPreferences): MacroPreferences {
+  const { categories, aliases } = categoryDefinitions(preferences), resolve = (id: string) => aliases.get(id) ?? id
+  const normalizeLayout = (layout: MacroLayout | undefined): MacroLayout | undefined => {
+    if (!layout) return layout
+    const { categoryOrder, collapsed, hiddenCategories, categoryTarget, ...rest } = layout
+    const cleaned = { ...rest } as MacroLayout & { rowOffsets?: unknown; laneSlots?: unknown }
+    delete cleaned.rowOffsets; delete cleaned.laneSlots
+    return { ...cleaned, categoryOrder: [...new Set(categoryOrder.map(resolve))], collapsed: [...new Set(collapsed.map(resolve))],
+      hiddenCategories: [...new Set((hiddenCategories ?? []).map(resolve))], ...(categoryTarget ? { categoryTarget: resolve(categoryTarget) } : {}) }
+  }
+  const categoryColors: Record<string, string> = {}
+  for (const category of preferences.categories ?? []) {
+    const color = preferences.categoryColors?.[category.id]
+    if (color) categoryColors[resolve(category.id)] ??= color
+  }
+  for (const [id, color] of Object.entries(preferences.categoryColors ?? {})) categoryColors[resolve(id)] ??= color
+  return { ...preferences, categories, categoryColors,
+    categoryByEvent: Object.fromEntries(Object.entries(preferences.categoryByEvent ?? {}).map(([key, id]) => [key, resolve(id)])),
+    ...(preferences.layout ? { layout: normalizeLayout(preferences.layout) } : {}),
+    ...(preferences.currencyViews ? { currencyViews: Object.fromEntries(Object.entries(preferences.currencyViews).map(([currency, view]) => [currency, { ...view, layout: normalizeLayout(view.layout) }])) } : {}) }
 }
 export function macroCategories(preferences: MacroPreferences) {
-  const categories = [...new Map((preferences.categories ?? defaultMacroCategories).map(category => [category.id, category])).values()]
-  if (!categories.some(category => category.id === 'uncategorized')) categories.push({ id: 'uncategorized', label: 'Uncategorized' })
-  const order = macroLayout(preferences).categoryOrder
-  return [...categories].sort((a, b) => (order.includes(a.id) ? order.indexOf(a.id) : order.length) - (order.includes(b.id) ? order.indexOf(b.id) : order.length))
+  const { categories, aliases } = categoryDefinitions(preferences)
+  const order = [...new Set(macroLayout(preferences).categoryOrder.map(id => aliases.get(id) ?? id))]
+  return categories.sort((a, b) => (order.includes(a.id) ? order.indexOf(a.id) : order.length) - (order.includes(b.id) ? order.indexOf(b.id) : order.length))
 }
 export function macroCategory(preferences: MacroPreferences, key: string) {
-  const id = preferences.categoryByEvent?.[key] ?? macroCatalog[key]?.category
-  return macroCategories(preferences).some(category => category.id === id) ? id! : 'uncategorized'
+  const { aliases, categories } = categoryDefinitions(preferences), original = preferences.categoryByEvent?.[key] ?? macroCatalog[key]?.category
+  const id = aliases.get(original) ?? original
+  return categories.some(category => category.id === id) ? id : 'uncategorized'
+}
+export function macroRowVisible(preferences: MacroPreferences, key: string) {
+  return !macroLayout(preferences).hiddenCategories?.includes(macroCategory(preferences, key))
+    && (key === macroEventRowKey ? preferences.showEventRow !== false : preferences.series[key]?.visible === true)
 }
 export function macroSelection(preferences: MacroPreferences) {
-  const target = macroLayout(preferences).categoryTarget
-  return target ? [...selectedMacroMetrics(preferences), macroEventRowKey].filter(key => macroCategory(preferences, key) === target) : [macroAxis(preferences)]
+  const layout = macroLayout(preferences)
+  return layout.categoryTarget ? [...selectedMacroMetrics(preferences), macroEventRowKey].filter(key => macroCategory(preferences, key) === layout.categoryTarget)
+    : [layout.rowTarget === macroEventRowKey ? macroEventRowKey : macroAxis(preferences)]
 }
 export function macroLanes(preferences: MacroPreferences) {
   const selected = [...selectedMacroMetrics(preferences), macroEventRowKey], layout = macroLayout(preferences)
-  if (!selected.length) return { groups: [] as { id: string; label: string; top: number; bottom: number; collapsed: boolean; rows: { key: string; y: number }[]; keys: string[] }[], height: Math.max(0, ...Object.values(layout.laneSlots ?? {}).map(slot => (slot + 1) * (layout.laneSpacing ?? 28))) }
-  const slots = { ...layout.laneSlots }, frozen = Object.keys(slots).length > 0
-  let nextSlot = Math.max(0, ...Object.values(slots)) + 1
   const order = [...new Set([...layout.rowOrder, ...selected])].filter(key => selected.includes(key))
+  const spacing = Math.max(16, Math.min(120, layout.laneSpacing ?? 24))
   let y = 0
-  const groups = macroCategories(preferences).flatMap(category => {
-    const keys = order.filter(key => macroCategory(preferences, key) === category.id)
-    const top = y, collapsed = layout.collapsed.includes(category.id)
-    const spacing = Math.max(0.1, Math.min(120, layout.laneSpacing ?? 28))
-    const rows = keys.map((key, index) => {
-      if (frozen && slots[key] === undefined) slots[key] = nextSlot++
-      return { key, y: frozen ? slots[key] * spacing : top + 0.8 * spacing + index * spacing }
-    })
-    y += 0.8 * spacing + keys.length * spacing
-    return [{ ...category, top, bottom: y, collapsed, rows, keys }]
+  const groups = macroCategories(preferences).map(category => {
+    const keys = order.filter(key => macroCategory(preferences, key) === category.id), top = y
+    const visible = keys.filter(key => macroRowVisible(preferences, key))
+    const rows = visible.map((key, index) => ({ key, y: top + (index + 0.5) * spacing }))
+    y += visible.length * spacing
+    return { ...category, top, bottom: y, collapsed: layout.collapsed.includes(category.id), hidden: layout.hiddenCategories?.includes(category.id) === true, rows, keys }
   })
-  return { groups, height: frozen ? Math.max(y, ...Object.values(slots).map(slot => (slot + 1) * (layout.laneSpacing ?? 28))) : y }
-}
-/** Capture current row anchors before a selection changes; hidden currencies keep their slots. */
-export function rememberMacroLanes(preferences: MacroPreferences): MacroPreferences {
-  const layout = macroLayout(preferences), laneSlots = { ...layout.laneSlots }, spacing = layout.laneSpacing ?? 28
-  for (const group of macroLanes(preferences).groups) for (const row of group.rows) laneSlots[row.key] = row.y / spacing
-  return patchMacroLayout(preferences, { laneSlots })
+  return { groups, height: y }
 }
 export function patchMacroLayout(preferences: MacroPreferences, patch: Partial<MacroLayout>): MacroPreferences {
-  return { ...preferences, layout: { ...macroLayout(preferences), ...patch } }
+  return { ...preferences, layout: Object.fromEntries(Object.entries({ ...macroLayout(preferences), ...patch }).filter(([, value]) => value !== undefined)) as MacroLayout }
 }
 export function moveMacroRow(preferences: MacroPreferences, key: string, category: string, before?: string): MacroPreferences {
-  const layout = macroLayout(preferences), rowOffsets = { ...layout.rowOffsets }
-  delete rowOffsets[key]
-  const order = [...new Set([...layout.rowOrder, ...selectedMacroMetrics(preferences), macroEventRowKey])].filter(item => item !== key)
+  const layout = macroLayout(preferences), order = [...new Set([...layout.rowOrder, ...selectedMacroMetrics(preferences), macroEventRowKey])].filter(item => item !== key)
   const index = before ? order.indexOf(before) : -1
   order.splice(index < 0 ? order.length : index, 0, key)
   const color = preferences.categoryColors?.[category]
-  return { ...patchMacroLayout(preferences, { rowOrder: order, rowOffsets, laneSlots: {} }), categoryByEvent: { ...preferences.categoryByEvent, [key]: category },
+  return { ...patchMacroLayout(preferences, { rowOrder: order }), categoryByEvent: { ...preferences.categoryByEvent, [key]: category },
     ...(color && preferences.series[key] ? { series: { ...preferences.series, [key]: { ...preferences.series[key], color } } } : {}) }
 }
 export function moveMacroCategory(preferences: MacroPreferences, id: string, before?: string) {
   const order = macroCategories(preferences).map(category => category.id).filter(key => key !== id)
   const index = before ? order.indexOf(before) : -1
   order.splice(index < 0 ? order.length : index, 0, id)
-  return patchMacroLayout(preferences, { categoryOrder: order, laneSlots: {} })
+  return patchMacroLayout(preferences, { categoryOrder: order })
+}
+export function toggleMacroCategory(preferences: MacroPreferences, id: string) {
+  const hidden = macroLayout(preferences).hiddenCategories ?? []
+  return patchMacroLayout(preferences, { hiddenCategories: hidden.includes(id) ? hidden.filter(key => key !== id) : [...hidden, id] })
 }
 export function deleteMacroCategory(preferences: MacroPreferences, id: string): MacroPreferences {
-  if (id === 'uncategorized') return preferences
+  if (defaultMacroCategories.some(category => category.id === id)) return preferences
   const categoryByEvent = { ...preferences.categoryByEvent }
-  for (const key of selectedMacroMetrics(preferences).concat(Object.keys(categoryByEvent)))
-    if (macroCategory(preferences, key) === id) categoryByEvent[key] = 'uncategorized'
-  const layout = preferences.layout && { ...preferences.layout }
-  if (layout?.categoryTarget === id) delete layout.categoryTarget
-  return { ...preferences, categories: (preferences.categories ?? defaultMacroCategories).filter(category => category.id !== id), categoryByEvent,
-    ...(layout ? { layout } : {}) }
+  for (const key of [...Object.keys(preferences.series), macroEventRowKey]) if (macroCategory(preferences, key) === id) categoryByEvent[key] = 'uncategorized'
+  return { ...preferences, categories: macroCategories(preferences).filter(category => category.id !== id), categoryByEvent }
 }

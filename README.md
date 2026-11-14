@@ -49,8 +49,8 @@ A frontend suite can be selected with `pnpm --dir frontend test -- <filename-fra
 
 Local calendar and global Wildcards live in Git-ignored `storage/data/`. Journals use
 `Market Analyst Workflow/` subdirectories. Browser settings include drawings,
-filters and MFDI presets. Calendar backups do not include browser settings;
-MFDI presets have JSON export/import controls.
+filters and the MFDI working configuration. Calendar backups do not include
+browser settings.
 
 ```powershell
 pnpm storage:status

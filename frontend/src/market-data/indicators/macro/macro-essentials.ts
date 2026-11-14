@@ -1,5 +1,5 @@
 import { macroCatalog } from './macro-catalog'
-import { defaultMacroCategories, macroCategories, macroCategory, macroLayout, rememberMacroLanes } from './macro-layout'
+import { defaultMacroCategories, macroCategories, macroCategory, macroLayout, normalizeMacroCategories } from './macro-layout'
 import { macroDefaultStyle, type MacroPreferences } from './macro-preferences'
 
 // Exact MT5 series already present in the terminal's calendar catalog.
@@ -55,11 +55,8 @@ export function setMacroCategoryColor(preferences: MacroPreferences, category: s
   return { ...preferences, categoryColors: { ...preferences.categoryColors, [category]: color }, series }
 }
 export function applyMacroEssentials(preferences: MacroPreferences): MacroPreferences {
-  const layout = preferences.layout ? rememberMacroLanes(preferences).layout! : { ...macroLayout(preferences), laneMode: true }
-  if (preferences.essentialsVersion !== 1 && layout.laneSlots) {
-    layout.laneSlots = { ...layout.laneSlots }
-    delete layout.laneSlots.__events__
-  }
+  preferences = normalizeMacroCategories(preferences)
+  const layout = preferences.layout ?? { ...macroLayout(preferences), laneMode: true }
   const eventsByCurrency = { ...preferences.eventsByCurrency }, series = { ...preferences.series }, categoryByEvent = { ...preferences.categoryByEvent }
   const categoryColors = { ...defaultMacroCategoryColors, ...preferences.categoryColors }
   for (const [currency, groups] of Object.entries(macroEssentials)) {
@@ -85,6 +82,5 @@ export function applyMacroEssentials(preferences: MacroPreferences): MacroPrefer
     }])), ...preferences.currencyViews },
   }
   for (const category of macroCategories(next)) next = setMacroCategoryColor(next, category.id, macroCategoryColor(next, category.id))
-  delete next.presetId
   return next
 }

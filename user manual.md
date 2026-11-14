@@ -10,55 +10,48 @@ Display timezone and theme are available in Settings.
 
 ## MFDI
 
-Click **MFDI** beside RSI and Volume. Its settings gear opens a resizable window
-with Events, Layout, Style and Presets tabs.
+Click MFDI beside RSI and Volume. Select a currency tab, then open **Series**.
+The window title identifies the currency being edited. Each currency starts with
+essential policy, inflation, labor and growth events and remembers later edits.
 
-Each currency tab starts with essential policy, inflation, labor and growth
-events. Your previous working setup is saved as **Before MFDI essentials** when
-the update first loads. Existing selected events remain, and later removals stay
-removed. The Events tab lists any missing calendar series for the selected currency.
+**+ Events** opens that currency's searchable calendar. Check or uncheck events
+there; choose a destination category when adding a numerical series. Selected
+speeches and announcements share the **Speeches / Wildcards** row with global
+manual Wildcards. Missing catalog series are identified in the event picker.
 
-1. Tick currencies in Events and use **+ Add events** to select measures.
-2. Create categories and arrange the selected events.
-3. Use **OK** to save or **Cancel** to discard settings edits.
+Drag event handles within or between categories. Drag category handles to reorder
+whole groups. Focused handles also support Up/Down keys. The vertical chart order
+matches the Series list. The fold arrow folds only the list; a category's eye hides
+its plotted rows while retaining individual event visibility choices. Click a
+category name to select it. **Empty groups** reveals unused category drop targets.
 
-One configuration applies across chart symbols. Unticking a currency retains its
-event list. **Reset defaults** resets styles and the selected axis, retaining events.
+Use **+ Category** for groups such as CFTC. A custom category's **⋯** button opens
+Rename and Delete. Deleting a category moves its events to Uncategorized. Category
+names and colors are shared across currency tabs; order, folding and hiding are
+remembered separately for each currency.
 
-**Series** opens the event drawer. Its controls are eye (visibility), **F**
-(forecasts), **N** (numbers) and a colour picker. The top row toggles all selected
-series. The drag handle moves events within or between categories. Category
-arrows collapse the drawer list without hiding plotted lines.
+Each numerical row has an eye, **F** for all forecasts, **N** for value text, a
+color picker and **⋯** for line width/removal. A category color updates its events
+across currency tabs; individual event colors remain editable. **All series**
+visibility includes the shared text row. Its F/N controls apply to numerical rows.
 
-Click an event name to select its axis. **Fit axis** fits that measure and
-**Fit axis all** fits every visible measure. The lock links movement.
-**Lane view** switches between numerical plots and straight rows. In lane view,
-the wheel scrolls vertically; **Lane spacing** adjusts row spacing. With the lock
-off, a selected event or category can be dragged independently. **Fit all lanes**
-restores the arrangement.
+**Lane view** uses straight rows. Drag the chart to move all lanes together, and
+use the wheel to scroll. **Lane spacing** adjusts spacing; **Fit lanes** resets
+pan/scroll and fits as many readable lanes as possible. In numerical view, selecting
+an event chooses its right axis. The lock links numerical-axis movement.
+**Fit axis** and **Fit all axes** deliberately fit visible readings.
 
-Hover a release dot for Actual/Forecast/Previous and its release time. Click it to
-open the release in Inspector. Number arrows compare successive actual readings.
-Upcoming forecast dots become actual dots when the reading arrives.
+Actual rectangles are filled; forecasts are outlined. Dense views retain dots
+where value boxes overlap. Hover for values and release time; click an actual to
+open Inspector. Number arrows compare successive actual readings. Hover shared
+text dots for their contents; click to keep their tooltip open.
 
-In **Style**, choose values inside rectangles, values above dots, or dots alone.
-Actual rectangles are filled; upcoming forecast rectangles are outlined. Dense
-views omit overlapping value boxes; hover their remaining dots to read the values.
-**Category colours** changes a whole category across all currency tabs. Individual
-event colours remain editable, and newly added events inherit their category colour.
-
-Named presets are available in Series and the Presets tab. **Save as** creates a snapshot;
-**Update preset** replaces the selected snapshot. JSON export/import transfers
-presets between browser profiles. Working edits do not overwrite named presets.
-Browser data clearing removes local settings unless exported.
-
-Use the currency tabs above MFDI to switch between saved currency setups. Each
-tab remembers its selected events, axes and line/lane arrangement. **Events**
-toggles one row containing speeches, other non-numerical announcements and global
-Wildcards. Hover a dot to read the event; overlapping events share a dot and tooltip.
-This row starts in **Uncategorized**. Move its drawer handle between categories,
-or choose its category in Events settings. It follows lane scrolling and category
-movement. Its eye hides the row; clicking a dot holds its tooltip open.
+The settings gear opens **Appearance**: value placement, value readout and line
+width across all currencies. OK saves the draft; Cancel discards it. **Reset
+appearance · all currencies** restores category colors, line widths and value
+markers while retaining event selections and visibility. Series edits save
+immediately. Working settings live in the browser profile; clearing browser data
+removes them.
 
 ## RSI and Volume
 

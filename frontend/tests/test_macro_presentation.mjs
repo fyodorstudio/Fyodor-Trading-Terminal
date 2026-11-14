@@ -25,9 +25,8 @@ try {
   const { macroEssentials, applyMacroEssentials, setMacroCategoryColor } = await server.ssrLoadModule('./src/market-data/indicators/macro/macro-essentials.ts')
   const { macroEventRowKey } = await server.ssrLoadModule('./src/market-data/indicators/macro/macro-event-key.ts')
   const layout = await server.ssrLoadModule('./src/market-data/indicators/macro/macro-layout.ts')
-  const presets = await server.ssrLoadModule('./src/market-data/indicators/macro/macro-presets.ts')
   const original = { ...p.defaultMacroPreferences, enabled: false, activeCurrency: 'USD', currencies: ['USD'],
-    eventsByCurrency: { USD: ['rate', 'payrolls'] }, layout: { ...layout.macroLayout(p.defaultMacroPreferences), laneMode: true, laneSpacing: 35, rowOffsets: { rate: 10 } } }
+    eventsByCurrency: { USD: ['rate', 'payrolls'] }, layout: { ...layout.macroLayout(p.defaultMacroPreferences), laneMode: true, laneSpacing: 35 } }
   const before = JSON.stringify(original), expanded = applyMacroEssentials(original)
   assert.equal(JSON.stringify(original), before, 'Population never mutates the original setup')
   for (const [currency, groups] of Object.entries(macroEssentials)) {
@@ -58,23 +57,16 @@ try {
   const moved = layout.moveMacroRow(expanded, macroEventRowKey, 'growth')
   assert.ok(layout.macroLanes(moved).groups.find(group => group.id === 'growth').keys.includes(macroEventRowKey))
   assert.ok(!p.selectedMacroMetrics(moved).includes(macroEventRowKey), 'The Events row never becomes a numerical series')
-  assert.deepEqual(presets.validateMacroSnapshot(moved), moved)
-  assert.throws(() => presets.validateMacroSnapshot({ ...moved, numberPlacement: 'capsule' }))
-  assert.throws(() => presets.validateMacroSnapshot({ ...moved, categoryColors: { inflation: 'red' } }))
   p.saveMacroPreferences(original)
   const { useMacroIndicator } = await server.ssrLoadModule('./src/market-data/indicators/macro/useMacroIndicator.ts')
   let view
   function Harness() { const next = useMacroIndicator('EURUSD', null); React.useLayoutEffect(() => { view = next }, [next]); return null }
   await React.act(async () => root.render(React.createElement(Harness)))
   assert.equal(view.macroPreferences.essentialsVersion, 1)
-  const backup = presets.readMacroPresets().find(item => item.id === 'before-mfdi-essentials-v1')
-  assert.deepEqual(backup.preferences.eventsByCurrency, original.eventsByCurrency)
-  assert.deepEqual(backup.preferences.series, original.series)
   await React.act(async () => view.changeMacro(p.setMacroEvents(view.macroPreferences, 'USD', ['rate'])))
   await React.act(async () => root.render(null))
   await React.act(async () => root.render(React.createElement(Harness)))
   assert.deepEqual(view.macroPreferences.eventsByCurrency.USD, ['rate'], 'A later deletion survives remount; essentials are applied once')
-  assert.equal(presets.readMacroPresets().length, 1, 'The original backup is never overwritten or duplicated')
   await React.act(async () => root.render(null))
 
   const { createMacroPane } = await server.ssrLoadModule('./src/market-data/indicators/macro/macro-pane.ts')
@@ -117,17 +109,22 @@ try {
   draw()
   const texts = operations.filter(item => item[0] === 'text')
   assert.ok(texts.length > 0 && texts.length < 3, 'Dense rectangles omit overlapping labels while retaining release points')
-  const rateY = 12 + layout.macroLanes(preferences).groups.flatMap(group => group.rows).find(row => row.key === 'rate').y + 10
+  const rateY = 12 + layout.macroLanes(preferences).groups.flatMap(group => group.rows).find(row => row.key === 'rate').y
   assert.equal(texts[0][3], rateY, 'Historical value text is centered on its lane')
   const firstTop = parseFloat(shell.querySelector('.macro-events-row').style.top)
-  preferences = layout.patchMacroLayout(preferences, { rowOffsets: { ...preferences.layout.rowOffsets, [macroEventRowKey]: 30 } })
+  preferences = layout.patchMacroLayout(preferences, { laneOffset: 30 })
   indicator = { ...indicator, preferences }; sync(); draw()
   assert.equal(parseFloat(shell.querySelector('.macro-events-row').style.top), firstTop + 30, 'The text-event row moves with its own saved lane offset')
   shell.querySelector('[data-macro-event-visibility]').click(); sync(); draw()
   assert.equal(shell.querySelector('.macro-events-row').hidden, true)
+  shell.querySelector('[data-macro-axis="payrolls"]').click()
+  assert.equal(preferences.axisTarget, 'payrolls', 'Series selection updates the working state before a later chart frame can save older axes')
+  shell.querySelector('[data-macro-visibility="rate"]').click()
+  shell.querySelector('[data-macro-visibility="payrolls"]').click()
+  assert.equal(preferences.series.rate.visible, false); assert.equal(preferences.series.payrolls.visible, false, 'Consecutive eye changes share the latest working state')
   viewPane.destroy()
   assert.equal(primitives.size, 0); assert.equal(lines.size, 0); assert.equal(hover.size, 0); assert.equal(clicks.size, 0); assert.equal(listeners.size, 0); assert.equal(frames.size, 0)
-  console.log('✓ MFDI essentials: eight exact currency setups, one-time backup/population, shared palette/inheritance, movable Events lane, rectangular centered values and bounded collision handling')
+  console.log('✓ MFDI essentials: eight exact currency setups, one-time population, shared palette/inheritance, movable Events lane, rectangular centered values and bounded collision handling')
 } finally {
   await React.act(async () => root.unmount()); await server.close(); await dom.happyDOM.close()
   for (const [key, descriptor] of previous) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete globalThis[key] }

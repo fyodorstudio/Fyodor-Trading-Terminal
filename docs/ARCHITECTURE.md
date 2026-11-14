@@ -78,32 +78,36 @@ official table. Older CPI history has not been verified by these correction file
 ## MFDI
 
 Implementation: `frontend/src/market-data/indicators/macro/`.
-The event catalogue maps exact calendar series to chart measures. The shared
-browser configuration stores currency/event selection, styles, categories and
-layout. Currency tabs restore independent axes and lane arrangements while
-retaining each currency's selections and styles. Named presets include these views
-and support JSON import/export. On first use after the MFDI essentials update,
-the previous setup is saved as **Before MFDI essentials** and exact calendar
-selections are added for all eight currency tabs. Subsequent removals are retained.
-`macro-essentials.ts` defines the selections and current catalog gaps. Existing
-selections and lane anchors remain; the update applies the category palette and
-enables values for essential events. It never overwrites existing named presets.
+The exact calendar catalog supplies numerical series and selectable announcements.
+One browser configuration applies across instruments. Currency tabs choose the
+active event list and restore its axes, lane order, spacing, folded/hidden groups,
+and visibility of the shared announcement/Wildcards row. Category definitions and
+colors are shared across currencies. Custom categories support editing and hiding.
+Duplicate category names and former standard-category IDs are merged with their
+saved assignments, colors and references in every currency view.
 
-Category colors apply across the working currency setups. Individual series can
-override them, and newly selected series inherit their category color. Actual
-values use filled rectangles centered on the plot; upcoming forecasts use outlined
-rectangles. Style settings also offer labels above dots or dots alone. A spatial
-grid suppresses overlapping value boxes while preserving their underlying points.
-One optional non-numerical row combines the active currency's scheduled
-speeches/announcements with global Wildcards. It belongs to Uncategorized by
-default and uses the shared category ordering, lane movement, scrolling and saved
-placement. Grouped dots show text tooltips and never create numerical series.
+Series owns event selection, removal, row appearance and category organization.
+Pointer and keyboard handles reorder rows/categories; chart lanes follow the same
+order. Hidden rows and empty categories consume no lane height. Folding a group
+only folds its drawer list. Category visibility retains individual eye choices.
+Lane dragging moves all rows together; numerical plots retain independent scales
+and linked-axis navigation. UI listeners and timers are cancelled on scope changes
+and removal. Appearance settings use drafts with OK/Cancel; working Series changes
+persist immediately. `macro-essentials.ts` defines initial numerical selections and
+catalog gaps. Initial announcement selections remain editable thereafter.
 
-Actuals are plotted on their containing chart candles. Numerical plots use each
-measure's own scale; lane view places them on straight rows. Forecast visibility
-is independent per measure. The existing Fed supplement is implemented by
-`storage/fed_forecasts.py` and stored in `storage/data/fed-forecasts/`.
-`pnpm storage:fed-forecasts --help` lists its commands.
+Actual values use filled rectangles; forecast values use outlined rectangles.
+A spatial grid suppresses overlapping labels while preserving hoverable dots.
+F controls historical and upcoming forecasts; N controls value text. Placement can
+be inside rectangles or above markers. Category colors apply across currency tabs,
+with individual series overrides. Appearance reset retains event selections and
+visibility. The Settings window contains only global appearance controls.
+
+The shared text row combines selected active-currency announcements with global
+Wildcards. Its contents do not create numerical series. Actuals align to containing
+chart candles. Policy rates carry forward; other series join released points.
+The Fed supplement remains in `storage/fed_forecasts.py` and
+`storage/data/fed-forecasts/`. `pnpm storage:fed-forecasts --help` lists its commands.
 
 ## Heatmap
 

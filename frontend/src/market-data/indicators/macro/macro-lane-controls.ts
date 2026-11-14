@@ -1,150 +1,116 @@
-import { createMacroPresetControls } from './macro-preset-controls'
 import { macroEventRowKey } from './macro-event-key'
-import { macroLanes, macroLayout, macroSelection, moveMacroRow, patchMacroLayout } from './macro-layout'
+import { createMacroEventPicker, createMacroCategoryForm } from './macro-series-editor'
+import { macroCategoryColor, setMacroCategoryColor } from './macro-essentials'
+import { defaultMacroCategories, deleteMacroCategory, macroLanes, macroLayout, moveMacroCategory, moveMacroRow, patchMacroLayout, toggleMacroCategory } from './macro-layout'
 import { macroMetricVisible, toggleMacroAll, type MacroPreferences } from './macro-preferences'
 
 type Row = { key: string; item: HTMLElement; dragButton: HTMLButtonElement }
 let drawerSequence = 0
-export function createMacroLaneControls(element: HTMLElement, redraw: () => void, change: (value: MacroPreferences) => void, options: { drawerChanged?: (open: boolean) => void; categorySelected?: () => void; beforePreset?: () => MacroPreferences | undefined } = {}) {
+export function createMacroLaneControls(element: HTMLElement, redraw: () => void, change: (value: MacroPreferences) => void, options: { drawerChanged?: (open: boolean) => void; categorySelected?: () => void } = {}) {
+  const makeButton = (label: string, text: string, action: () => void) => {
+    const button = document.createElement('button'); button.type = 'button'; button.setAttribute('aria-label', label); button.title = label; button.textContent = text; button.onclick = action; return button
+  }
   const layer = document.createElement('div'); layer.className = 'macro-inline-layer'
   const scroll = document.createElement('div'); scroll.className = 'macro-lane-scroll'; scroll.setAttribute('aria-label', 'Scroll MFDI lanes'); scroll.tabIndex = 0
   const drawer = document.createElement('section'); drawer.className = 'macro-series-drawer'; drawer.hidden = true
-  drawer.id = `mfdi-series-${++drawerSequence}`
-  drawer.setAttribute('aria-label', 'MFDI series drawer')
-  drawer.dataset.macroLinked = 'false'
+  drawer.id = `mfdi-series-${++drawerSequence}`; drawer.setAttribute('aria-label', 'MFDI series drawer'); drawer.dataset.macroLinked = 'false'
   const drawerHeader = document.createElement('div'); drawerHeader.className = 'macro-drawer-header'
-  const title = document.createElement('button'); title.type = 'button'; title.textContent = 'Series'; title.className = 'macro-drawer-title'
-  title.setAttribute('aria-label', 'Move MFDI series window'); title.title = 'Drag to move this window; arrow keys also move it'
-  const close = document.createElement('button'); close.type = 'button'; close.textContent = '×'; close.setAttribute('aria-label', 'Close MFDI series drawer')
-  const fit = document.createElement('button'); fit.type = 'button'; fit.textContent = 'Fit all lanes'; fit.setAttribute('aria-label', 'Fit all MFDI lanes')
-  const spacing = document.createElement('input'); spacing.type = 'range'; spacing.min = '6'; spacing.max = '120'; spacing.step = '1'; spacing.setAttribute('aria-label', 'MFDI lane spacing')
+  const title = makeButton('Move MFDI series window', 'Series', () => {}); title.className = 'macro-drawer-title'; title.title = 'Drag to move; arrow keys also move the window'
+  const close = makeButton('Close MFDI series drawer', '×', () => toggleDrawer(false))
+  const fit = makeButton('Fit all MFDI lanes', 'Fit lanes', () => fitAll())
+  const addEvents = makeButton('Add MFDI events', '+ Events', () => picker.toggle()); addEvents.dataset.macroAddEvents = 'true'
+  const spacing = document.createElement('input'); spacing.type = 'range'; spacing.min = '16'; spacing.max = '120'; spacing.step = '1'; spacing.setAttribute('aria-label', 'MFDI lane spacing')
   const spacingLabel = document.createElement('label'); spacingLabel.className = 'macro-drawer-spacing'; spacingLabel.append('Lane spacing', spacing)
   const drawerBody = document.createElement('div'); drawerBody.className = 'macro-drawer-body'
-  const resize = document.createElement('button'); resize.type = 'button'; resize.className = 'macro-drawer-resize'
-  resize.setAttribute('aria-label', 'Resize MFDI series window'); resize.title = 'Drag to resize; arrow keys also resize'
-  const grip = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); grip.setAttribute('viewBox', '0 0 24 24'); grip.setAttribute('width', '18'); grip.setAttribute('height', '18'); grip.setAttribute('aria-hidden', 'true')
-  const gripLines = document.createElementNS(grip.namespaceURI, 'path'); gripLines.setAttribute('d', 'M6 18 18 6 M12 18 18 12'); gripLines.setAttribute('stroke', 'currentColor'); gripLines.setAttribute('stroke-width', '1.5'); grip.append(gripLines); resize.append(grip)
-  const presets = createMacroPresetControls(change, () => { flushScroll(); return options.beforePreset?.() ?? preferences })
-  drawerHeader.append(title, fit, close); drawer.append(drawerHeader, presets.element, spacingLabel, drawerBody, resize); element.append(drawer)
+  const resize = makeButton('Resize MFDI series window', '◢', () => {}); resize.className = 'macro-drawer-resize'; resize.title = 'Drag to resize; arrow keys also resize'
+  const picker = createMacroEventPicker(commit)
+  const footer = document.createElement('div'); footer.className = 'macro-drawer-footer'
+  const newCategory = makeButton('Add MFDI category', '+ Category', () => {
+    if (footer.querySelector('.macro-category-form')) return
+    const form = createMacroCategoryForm(() => preferences, next => {
+      revealedCategory = next.categories?.find(category => !geometry.groups.some(group => group.id === category.id))?.id
+      commit(next)
+    }); footer.append(form.element); form.focus()
+  })
+  const emptyLabel = document.createElement('label'), empty = document.createElement('input'); empty.type = 'checkbox'; empty.setAttribute('aria-label', 'Show empty MFDI categories'); emptyLabel.append(empty, 'Empty groups')
+  empty.onchange = () => { structure = ''; redraw() }
+  footer.append(newCategory, emptyLabel)
+  drawerHeader.append(title, addEvents, fit, close); drawer.append(drawerHeader, picker.element, spacingLabel, drawerBody, footer, resize); element.append(drawer)
   const universal = document.createElement('div'); universal.className = 'macro-drawer-universal macro-metric-control'
   const allButtons: { button: HTMLButtonElement; field: 'visible' | 'forecastVisible' | 'numbersVisible'; noun: string }[] = []
   const drawerGroups = new Map<string, HTMLElement>()
-  let structure = ''
+  let structure = '', revealedCategory: string | undefined
   const spacer = document.createElement('div'); scroll.append(spacer); element.append(layer, scroll)
   let rows: Row[] = [], preferences: MacroPreferences | undefined, geometry: ReturnType<typeof macroLanes> = { groups: [], height: 0 }
-  let top = 0, available = 0, scrollY = 0, open = false
-  let drag: { kind: 'row' | 'all' | 'selected'; id: string; keys: string[]; start: number; delta: number; origin: HTMLElement | null } | null = null
-  let linked = false
-  let cancelDrag = () => {}
-  let suppressClick: HTMLElement | null = null
-  let dropTarget: string | undefined
-  let windowPoint: { x: number; y: number } | null = null, windowDragging = false
-  let windowSize: { width: number; height: number } | null = null
+  let top = 0, available = 0, scrollY = 0, open = false, linked = false
+  let drag: { kind: 'row' | 'category' | 'all'; id: string; start: number; delta: number; origin: HTMLElement | null } | null = null
+  let cancelDrag = () => {}, suppressClick: HTMLElement | null = null
+  let windowPoint: { x: number; y: number } | null = null, windowDragging = false, windowSize: { width: number; height: number } | null = null
   let viewportWidth = 0, viewportHeight = 0, drawerWidth = 0, defaultLeft = 0, defaultTop = 0, defaultHeight = 0
-  let cancelWindowDrag = () => {}
+  let cancelWindowDrag = () => {}, scrollTimer: number | null = null
   const placeWindow = () => {
-    drawerWidth = Math.max(0, Math.min(windowSize?.width ?? 400, viewportWidth - 8))
-    const point = windowPoint ?? { x: defaultLeft, y: defaultTop }
-    const requestedHeight = Math.max(0, windowSize?.height ?? defaultHeight)
+    drawerWidth = Math.max(0, Math.min(windowSize?.width ?? 560, viewportWidth - 8))
+    const point = windowPoint ?? { x: defaultLeft, y: defaultTop }, requestedHeight = Math.max(0, windowSize?.height ?? defaultHeight)
     const minimumHeight = Math.min(120, requestedHeight, Math.max(0, viewportHeight - 8))
-    const x = Math.max(0, Math.min(point.x, viewportWidth - drawerWidth))
-    const y = Math.max(0, Math.min(point.y, viewportHeight - minimumHeight - 4))
+    const x = Math.max(0, Math.min(point.x, viewportWidth - drawerWidth)), y = Math.max(0, Math.min(point.y, viewportHeight - minimumHeight - 4))
     const height = Math.min(requestedHeight, Math.max(0, viewportHeight - y - 4))
-    drawer.style.width = `${drawerWidth}px`; drawer.style.height = windowSize ? `${height}px` : ''
-    drawer.style.maxHeight = `${height}px`
-    drawer.style.left = `${x}px`; drawer.style.top = `${y}px`
+    drawer.style.width = `${drawerWidth}px`; drawer.style.height = `${height}px`; drawer.style.maxHeight = `${height}px`; drawer.style.left = `${x}px`; drawer.style.top = `${y}px`
   }
   const resizeWindow = (width: number, height: number, x = parseFloat(drawer.style.left), y = parseFloat(drawer.style.top)) => {
-    windowPoint = { x, y }
-    windowSize = { width: Math.min(Math.max(240, width), Math.max(0, viewportWidth - x - 4)),
-      height: Math.min(Math.max(120, height), Math.max(0, viewportHeight - y - 4)) }
-    placeWindow()
+    windowPoint = { x, y }; windowSize = { width: Math.min(Math.max(280, width), Math.max(0, viewportWidth - x - 4)), height: Math.min(Math.max(120, height), Math.max(0, viewportHeight - y - 4)) }; placeWindow()
   }
-  const request = () => { positionRows(); redraw() }
-  const delta = (key: string) => drag?.kind === 'all' ? drag.delta : drag?.kind === 'selected' && drag.keys.includes(key) ? drag.delta : 0
   const y = (key: string): number | null => {
     const row = geometry.groups.flatMap(group => group.rows).find(row => row.key === key)
-    const layout = preferences && macroLayout(preferences)
-    return row ? top + (layout?.laneOffset ?? 0) + row.y + (layout?.rowOffsets?.[key] ?? 0) - scrollY + delta(key) : null
+    return row ? top + (preferences ? macroLayout(preferences).laneOffset ?? 0 : 0) + row.y - scrollY + (drag?.kind === 'all' ? drag.delta : 0) : null
   }
   function positionRows() {
-    if (!preferences) return
     for (const row of rows) row.item.style.display = geometry.groups.some(group => group.collapsed && group.keys.includes(row.key)) ? 'none' : 'flex'
-
   }
+  const request = () => { positionRows(); redraw() }
+  function commit(next: MacroPreferences) { preferences = next; geometry = macroLanes(next); picker.sync(next); change(next); request() }
   const drawerDropGroup = (event: PointerEvent) => {
-    const bounds = drawer.getBoundingClientRect(), body = drawerBody.getBoundingClientRect(), all = universal.getBoundingClientRect()
+    const bounds = drawer.getBoundingClientRect(), body = drawerBody.getBoundingClientRect()
     const contains = (rect: DOMRect) => rect.width > 0 && event.clientX >= rect.left && event.clientX <= rect.right && event.clientY >= rect.top && event.clientY <= rect.bottom
-    if (!open || !contains(bounds) || (body.width > 0 && !contains(body)) || contains(all)) return
+    if (!open || !contains(bounds) || !contains(body)) return
     return geometry.groups.find(group => { const rect = drawerGroups.get(group.id)?.getBoundingClientRect(); return rect && contains(rect) })
   }
   const highlightDrop = (id?: string) => {
-    if (dropTarget === id) return
-    dropTarget = id
-    for (const [key, section] of drawerGroups) {
-      if (key === id) section.setAttribute('data-macro-drop-target', 'true')
-      else section.removeAttribute('data-macro-drop-target')
-    }
+    for (const [key, section] of drawerGroups) { if (key === id) section.setAttribute('data-macro-drop-target', 'true'); else section.removeAttribute('data-macro-drop-target') }
   }
-  const start = (event: PointerEvent, kind: 'row' | 'all' | 'selected', id: string, keys = [id]) => {
-    if (event.button !== 0 || !preferences || ((kind === 'all' || kind === 'selected') && !macroLayout(preferences).laneMode)) return
-    if (kind === 'row') event.stopPropagation()
-    if (kind === 'row') event.preventDefault()
-    cancelDrag()
-    drag = { kind, id, keys, start: event.clientY, delta: 0, origin: event.currentTarget instanceof HTMLElement ? event.currentTarget : null }
-    const rowItem = kind === 'row' ? rows.find(row => row.key === id)?.item : undefined
-    rowItem?.setAttribute('data-macro-dragging', 'true')
-    const move = (event: PointerEvent) => {
-      if (!drag) return
-      drag.delta = event.clientY - drag.start
-      if (kind === 'row') highlightDrop(drawerDropGroup(event)?.id)
-      else request()
-    }
+  const start = (event: PointerEvent, kind: 'row' | 'category' | 'all', id: string) => {
+    if (event.button !== 0 || !preferences || (kind === 'all' && !macroLayout(preferences).laneMode)) return
+    if (kind !== 'all') { event.stopPropagation(); event.preventDefault() }
+    cancelDrag(); drag = { kind, id, start: event.clientY, delta: 0, origin: event.currentTarget instanceof HTMLElement ? event.currentTarget : null }
+    const move = (event: PointerEvent) => { if (!drag) return; drag.delta = event.clientY - drag.start; if (kind === 'all') request(); else highlightDrop(drawerDropGroup(event)?.id) }
     const finish = (event: PointerEvent) => {
-      const state = drag, current = preferences
+      const state = drag, current = preferences, target = kind !== 'all' ? drawerDropGroup(event) : undefined
       if (!state || !current) { cancelDrag(); return }
-      const rowTarget = state.kind === 'row' ? drawerDropGroup(event) : undefined
-      const moved = Math.abs(state.delta) > 3
-      cancelDrag()
-      if (!moved) return
-      suppressClick = state.kind === 'all' || state.kind === 'selected' ? null : state.origin
-      if (state.kind === 'all') { change(patchMacroLayout(current, { laneOffset: (macroLayout(current).laneOffset ?? 0) + state.delta })) }
-      else if (state.kind === 'selected') {
-        const offsets = { ...macroLayout(current).rowOffsets }
-        for (const key of state.keys) offsets[key] = (offsets[key] ?? 0) + state.delta
-        change(patchMacroLayout(current, { rowOffsets: offsets }))
+      const moved = Math.abs(state.delta) > 3; cancelDrag(); if (!moved) return
+      suppressClick = kind === 'all' ? null : state.origin
+      if (kind === 'all') commit(patchMacroLayout(current, { laneOffset: (macroLayout(current).laneOffset ?? 0) + state.delta }))
+      else if (target && kind === 'row') {
+        const before = target.keys.find(key => { const rect = rows.find(row => row.key === key)?.item.getBoundingClientRect(); return key !== id && !target.collapsed && rect && rect.height > 0 && event.clientY < (rect.top + rect.bottom) / 2 })
+        commit(moveMacroRow(current, id, target.id, before))
+      } else if (target && target.id !== id) {
+        const rect = drawerGroups.get(target.id)!.getBoundingClientRect(), index = geometry.groups.findIndex(group => group.id === target.id)
+        commit(moveMacroCategory(current, id, event.clientY < (rect.top + rect.bottom) / 2 ? target.id : geometry.groups[index + 1]?.id))
       }
-      else {
-        const target = rowTarget
-        const before = target?.rows.find(row => {
-          if (row.key === state.id) return false
-          const rect = rows.find(item => item.key === row.key)?.item.getBoundingClientRect()
-          return !target.collapsed && rect && rect.height > 0 && event.clientY < (rect.top + rect.bottom) / 2
-        })?.key
-        if (target) change(moveMacroRow(current, state.id, target.id, before))
-      }
-      request()
     }
     const key = (event: KeyboardEvent) => { if (event.key === 'Escape') cancelDrag() }
-    cancelDrag = () => {
-      drag = null; window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', finish)
-      window.removeEventListener('pointercancel', cancel); window.removeEventListener('keydown', key)
-      rowItem?.removeAttribute('data-macro-dragging'); highlightDrop(); positionRows(); if (kind !== 'row') redraw()
-    }
     const cancel = () => cancelDrag()
-    window.addEventListener('pointermove', move); window.addEventListener('pointerup', finish)
-    window.addEventListener('pointercancel', cancel); window.addEventListener('keydown', key)
+    cancelDrag = () => { drag = null; window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', finish); window.removeEventListener('pointercancel', cancel); window.removeEventListener('keydown', key); highlightDrop(); request() }
+    window.addEventListener('pointermove', move); window.addEventListener('pointerup', finish); window.addEventListener('pointercancel', cancel); window.addEventListener('keydown', key)
   }
-  let scrollTimer: number | null = null
   const flushScroll = () => {
     if (scrollTimer === null) return
-    if (scrollTimer !== null) { window.clearTimeout(scrollTimer); scrollTimer = null }
-    if (preferences && scrollY !== (macroLayout(preferences).laneScroll ?? 0)) { preferences = patchMacroLayout(preferences, { laneScroll: scrollY }); change(preferences) }
+    window.clearTimeout(scrollTimer); scrollTimer = null
+    if (preferences && scrollY !== (macroLayout(preferences).laneScroll ?? 0)) commit(patchMacroLayout(preferences, { laneScroll: scrollY }))
   }
   const saveScroll = () => { if (scrollTimer !== null) window.clearTimeout(scrollTimer); scrollTimer = window.setTimeout(flushScroll, 120) }
   window.addEventListener('pagehide', flushScroll)
   scroll.addEventListener('scroll', () => { if (!scroll.hidden && scrollY !== scroll.scrollTop) { scrollY = scroll.scrollTop; request(); saveScroll() } })
   drawer.addEventListener('wheel', event => {
+    if ((event.target as HTMLElement)?.closest('.macro-picker-results')) { event.stopPropagation(); return }
     event.stopPropagation(); event.preventDefault()
     const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? drawerBody.clientHeight : 1
     drawerBody.scrollTop = Math.max(0, Math.min(drawerBody.scrollHeight - drawerBody.clientHeight, drawerBody.scrollTop + event.deltaY * unit))
@@ -188,7 +154,6 @@ export function createMacroLaneControls(element: HTMLElement, redraw: () => void
   }
   for (const root of [layer, drawer]) {
     root.addEventListener('pointerdown', () => { suppressClick = null }, true)
-    root.addEventListener('keydown', () => { suppressClick = null }, true)
     root.addEventListener('click', event => { const origin = suppressClick; suppressClick = null; if (origin && event.target instanceof Node && origin.contains(event.target)) { event.preventDefault(); event.stopImmediatePropagation() } }, true)
     for (const event of ['pointerdown', 'mousedown', 'touchstart', 'dblclick']) root.addEventListener(event, event => event.stopPropagation())
   }
@@ -201,122 +166,123 @@ export function createMacroLaneControls(element: HTMLElement, redraw: () => void
     scroll.scrollTop = scrollY; request(); saveScroll()
   }
   for (const target of [layer, scroll]) target.addEventListener('wheel', scrollLanes, { passive: false })
-  const toggleDrawer = (value = !open) => {
-    if (!value) cancelWindowDrag()
-    open = value; drawer.hidden = !open; options.drawerChanged?.(open)
-    if (open) { placeWindow(); close.focus() }
-  }
-  close.onclick = () => toggleDrawer(false)
-  const escape = (event: KeyboardEvent) => {
-    if (event.key !== 'Escape' || !open) return
-    event.stopPropagation()
-    if (windowDragging) cancelWindowDrag()
-    else if (drag) cancelDrag()
-    else toggleDrawer(false)
-  }
+  const toggleDrawer = (value = !open) => { if (!value) cancelWindowDrag(); open = value; drawer.hidden = !open; options.drawerChanged?.(open); if (open) { placeWindow(); close.focus() } }
+  const escape = (event: KeyboardEvent) => { if (event.key !== 'Escape' || !open) return; event.stopPropagation(); if (windowDragging) cancelWindowDrag(); else if (drag) cancelDrag(); else toggleDrawer(false) }
   element.addEventListener('keydown', escape)
   const fitAll = () => {
     if (!preferences || !macroLayout(preferences).laneMode || !geometry.height) return
-    const unit = geometry.height / (macroLayout(preferences).laneSpacing ?? 28)
+    const count = geometry.groups.reduce((sum, group) => sum + group.rows.length, 0)
     scrollY = 0; scroll.scrollTop = 0
-    change(patchMacroLayout(preferences, { laneOffset: 0, rowOffsets: {}, laneScroll: 0, laneSlots: {}, laneSpacing: Math.max(0.1, Math.min(120, (available - 8) / unit)) }))
+    commit(patchMacroLayout(preferences, { laneOffset: 0, laneScroll: 0, laneSpacing: Math.max(16, Math.min(120, (available - 8) / count)) }))
   }
-  fit.onclick = fitAll
-  spacing.oninput = () => { if (preferences) change(patchMacroLayout(preferences, { laneSpacing: Number(spacing.value) })) }
+  spacing.oninput = () => { if (preferences) commit(patchMacroLayout(preferences, { laneSpacing: Number(spacing.value) })) }
   const updateCategorySelection = () => {
-    for (const [id, section] of drawerGroups) section.querySelector('.macro-drawer-category button')?.setAttribute('aria-pressed', String(!linked && preferences && macroLayout(preferences).categoryTarget === id))
+    for (const [id, section] of drawerGroups) section.querySelector('[data-macro-category-select]')?.setAttribute('aria-pressed', String(!linked && preferences && macroLayout(preferences).categoryTarget === id))
+  }
+  const rebuild = () => {
+    if (!preferences) return
+    const focus = document.activeElement, previousScroll = drawerBody.scrollTop
+    drawerBody.replaceChildren(universal); drawerGroups.clear()
+    for (const group of geometry.groups) {
+      if (!group.keys.length && !empty.checked && group.id !== revealedCategory) continue
+      const section = document.createElement('section'); section.dataset.macroDrawerCategory = group.id
+      const heading = document.createElement('div'); heading.className = 'macro-drawer-category'
+      const dragHandle = makeButton(`Move category ${group.label}`, '✥', () => {}); dragHandle.className = 'macro-row-drag'
+      dragHandle.onpointerdown = event => start(event, 'category', group.id)
+      dragHandle.onkeydown = event => {
+        if (!preferences || !['ArrowUp', 'ArrowDown'].includes(event.key)) return
+        event.preventDefault(); event.stopPropagation(); const categories = geometry.groups, index = categories.findIndex(item => item.id === group.id)
+        if (event.key === 'ArrowUp' && index > 0) commit(moveMacroCategory(preferences, group.id, categories[index - 1].id))
+        if (event.key === 'ArrowDown' && index < categories.length - 1) commit(moveMacroCategory(preferences, group.id, categories[index + 2]?.id))
+      }
+      const collapse = makeButton(`Collapse ${group.label}`, '▾', () => {
+        if (!preferences) return
+        const folded = macroLayout(preferences).collapsed
+        commit(patchMacroLayout(preferences, { collapsed: folded.includes(group.id) ? folded.filter(id => id !== group.id) : [...folded, group.id] }))
+      }); collapse.dataset.macroCategoryFold = group.id
+      const select = makeButton(`Select category ${group.label}`, `${group.label} (${group.keys.length})`, () => {
+        if (!preferences) return
+        options.categorySelected?.()
+        commit(patchMacroLayout(preferences, { linked: false, categoryTarget: group.id, rowTarget: undefined }))
+      }); select.dataset.macroCategorySelect = group.id
+      const eye = makeButton(`Hide category ${group.label}`, '◉', () => { if (preferences) commit(toggleMacroCategory(preferences, group.id)) }); eye.dataset.macroCategoryVisibility = group.id
+      const color = document.createElement('input'); color.type = 'color'; color.className = 'macro-color-button'; color.setAttribute('aria-label', `${group.label} category colour`); color.title = 'Category colour · all currencies'
+      color.onchange = () => { if (preferences) commit(setMacroCategoryColor(preferences, group.id, color.value)) }
+      heading.append(dragHandle, collapse, select, eye, color)
+      if (!defaultMacroCategories.some(category => category.id === group.id)) {
+        const edit = makeButton(`Edit category ${group.label}`, '⋯', () => {
+          if (section.querySelector('.macro-category-form')) return
+          const form = createMacroCategoryForm(() => preferences, commit, group.id)
+          const remove = makeButton(`Delete category ${group.label}`, 'Delete category', () => { if (preferences) commit(deleteMacroCategory(preferences, group.id)) })
+          form.element.append(remove); heading.after(form.element); form.focus()
+        }); heading.append(edit)
+      }
+      section.append(heading)
+      for (const key of group.keys) { const row = rows.find(row => row.key === key); if (row) section.append(row.item) }
+      drawerBody.append(section); drawerGroups.set(group.id, section)
+    }
+    drawerBody.scrollTop = previousScroll
+    if (focus instanceof HTMLElement && focus.isConnected) focus.focus({ preventScroll: true })
   }
   return {
     y, toggleDrawer, fitAll, scrollLanes, drawerId: drawer.id,
     setLinked(value: boolean) { linked = value; drawer.dataset.macroLinked = String(value); updateCategorySelection() },
-    startPlotDrag(event: PointerEvent, linked: boolean) {
-      if (!preferences) return
-      const keys = macroSelection(preferences)
-      if (linked) start(event, 'all', 'all')
-      else if (keys.some(key => key === macroEventRowKey ? preferences!.showEventRow !== false : macroMetricVisible(preferences!, key))) start(event, 'selected', keys[0], keys)
-    },
+    startPlotDrag(event: PointerEvent, _linked: boolean) { start(event, 'all', 'all') },
     setRows(next: Row[]) {
-      rows = next; structure = ''
-      universal.replaceChildren(); allButtons.length = 0
-      const allName = document.createElement('strong'); allName.textContent = 'All series'; universal.append(allName)
-      const dragSpace = document.createElement('span'); dragSpace.setAttribute('aria-hidden', 'true'); universal.append(dragSpace)
+      rows = next; structure = ''; universal.replaceChildren(); allButtons.length = 0
+      const name = document.createElement('strong'); name.textContent = 'All series'; universal.append(name, document.createElement('span'))
       for (const [kind, field, noun] of [['visibility', 'visible', 'series'], ['forecast', 'forecastVisible', 'forecasts'], ['numbers', 'numbersVisible', 'numbers']] as const) {
-        const sample = rows[0]?.item.querySelector<HTMLButtonElement>(`[data-macro-${kind}]`)
-        const button = sample ? sample.cloneNode(true) as HTMLButtonElement : document.createElement('button')
-        button.type = 'button'; button.removeAttribute(`data-macro-${kind}`); button.dataset.macroAll = kind
-        if (!sample) button.textContent = kind === 'visibility' ? '◉' : kind === 'forecast' ? 'F' : 'N'
-        button.onclick = () => { if (preferences) change(toggleMacroAll(preferences, field)) }
-        allButtons.push({ button, field, noun }); universal.append(button)
+        const sample = rows.find(row => row.key !== macroEventRowKey)?.item.querySelector<HTMLButtonElement>(`[data-macro-${kind}]`)
+        const button = sample ? sample.cloneNode(true) as HTMLButtonElement : makeButton('', kind === 'visibility' ? '◉' : kind === 'forecast' ? 'F' : 'N', () => {})
+        button.removeAttribute(`data-macro-${kind}`); button.dataset.macroAll = kind
+        button.onclick = () => { if (preferences) commit(toggleMacroAll(preferences, field)) }; allButtons.push({ button, field, noun }); universal.append(button)
       }
-      const blank = document.createElement('span'); blank.setAttribute('aria-hidden', 'true'); universal.append(blank)
+      universal.append(document.createElement('span'), document.createElement('span'))
       for (const row of rows) {
-        drawerBody.append(row.item); row.item.dataset.macroRow = row.key
-        row.dragButton.onpointerdown = event => start(event, 'row', row.key)
-
+        row.item.dataset.macroRow = row.key; row.dragButton.onpointerdown = event => start(event, 'row', row.key)
+        row.dragButton.onkeydown = event => {
+          if (!preferences || !['ArrowUp', 'ArrowDown'].includes(event.key)) return
+          event.preventDefault(); event.stopPropagation(); const group = geometry.groups.find(group => group.keys.includes(row.key)); if (!group) return
+          const index = group.keys.indexOf(row.key)
+          if (event.key === 'ArrowUp' && index > 0) commit(moveMacroRow(preferences, row.key, group.id, group.keys[index - 1]))
+          if (event.key === 'ArrowDown' && index < group.keys.length - 1) commit(moveMacroRow(preferences, row.key, group.id, group.keys[index + 2]))
+        }
       }
     },
     position(next: MacroPreferences, width: number, height: number, inset: number, offset: number) {
-      presets.sync(next)
+      if (preferences?.activeCurrency !== next.activeCurrency) { cancelDrag(); if (scrollTimer !== null) window.clearTimeout(scrollTimer); scrollTimer = null; picker.element.hidden = true; revealedCategory = undefined }
+      preferences = next; geometry = macroLanes(next); picker.sync(next); title.textContent = `${next.activeCurrency ?? next.currencies?.[0] ?? 'USD'} · Series`
       top = inset; available = Math.max(0, height - top)
       layer.style.top = `${offset + top}px`; layer.style.width = `${Math.max(0, width - 24)}px`; layer.style.height = `${available}px`
       scroll.style.top = layer.style.top; scroll.style.left = `${Math.max(0, width - 14)}px`; scroll.style.height = layer.style.height
       viewportWidth = element.clientWidth || width; viewportHeight = element.clientHeight || offset + height
-      defaultLeft = Math.max(8, width - Math.min(400, viewportWidth - 8)); defaultTop = offset + 4
-      defaultHeight = Math.min(height, viewportHeight) - 8; placeWindow()
-      spacingLabel.hidden = !macroLayout(next).laneMode; fit.disabled = !macroLayout(next).laneMode
-      spacing.value = String(macroLayout(next).laneSpacing ?? 28)
-      const lanes = macroLayout(next).laneMode
+      defaultHeight = Math.min(Math.max(height, 380), viewportHeight) - 8
+      defaultLeft = Math.max(8, width - Math.min(560, viewportWidth - 8)); defaultTop = Math.max(4, Math.min(offset + 4, viewportHeight - defaultHeight - 4)); placeWindow()
+      spacingLabel.hidden = !macroLayout(next).laneMode; fit.disabled = !macroLayout(next).laneMode; spacing.value = String(macroLayout(next).laneSpacing ?? 24)
       const numericRows = rows.filter(row => next.series[row.key])
       for (const { button, field, noun } of allButtons) {
-        const enabled = numericRows.filter(row => next.series[row.key]?.[field]).length
-        const state = enabled === 0 ? 'false' : enabled === numericRows.length ? 'true' : 'mixed'
-        button.disabled = numericRows.length === 0; button.setAttribute('aria-pressed', state)
+        const states = numericRows.map(row => field === 'visible' ? macroMetricVisible(next, row.key) : next.series[row.key][field])
+        if (field === 'visible') states.push(next.showEventRow !== false && !macroLayout(next).hiddenCategories?.includes(geometry.groups.find(group => group.keys.includes(macroEventRowKey))?.id ?? 'uncategorized'))
+        const enabled = states.filter(Boolean).length
+        button.disabled = states.length === 0; button.setAttribute('aria-pressed', enabled === 0 ? 'false' : enabled === states.length ? 'true' : 'mixed')
         button.setAttribute('aria-label', `${enabled ? 'Hide' : 'Show'} all MFDI ${noun}`); button.title = button.getAttribute('aria-label')!
         for (const slash of button.querySelectorAll('[data-eye-slash], [data-forecast-slash], [data-numbers-slash]')) slash.setAttribute('visibility', enabled ? 'hidden' : 'visible')
       }
-      if (preferences !== next) {
-        if (scrollTimer !== null && ((next.layout?.laneScroll ?? 0) !== (preferences?.layout?.laneScroll ?? 0) || next.layout?.axisRestoreId !== preferences?.layout?.axisRestoreId)) { window.clearTimeout(scrollTimer); scrollTimer = null }
-        if (scrollTimer === null) scrollY = macroLayout(next).laneScroll ?? 0
-        preferences = next; geometry = macroLanes(next)
+      if (revealedCategory && geometry.groups.some(group => group.id === revealedCategory && group.keys.length > 0)) revealedCategory = undefined
+      const signature = JSON.stringify([empty.checked, revealedCategory, geometry.groups.map(group => [group.id, group.label, group.keys])])
+      if (signature !== structure) { structure = signature; rebuild() }
+      for (const group of geometry.groups) {
+        const section = drawerGroups.get(group.id); if (!section) continue
+        const fold = section.querySelector<HTMLButtonElement>('[data-macro-category-fold]')!
+        fold.textContent = group.collapsed ? '▸' : '▾'; fold.setAttribute('aria-label', `${group.collapsed ? 'Expand' : 'Collapse'} ${group.label}`); fold.setAttribute('aria-expanded', String(!group.collapsed))
+        const eye = section.querySelector<HTMLButtonElement>('[data-macro-category-visibility]')!
+        eye.textContent = group.hidden ? '○' : '◉'; eye.setAttribute('aria-label', `${group.hidden ? 'Show' : 'Hide'} category ${group.label}`); eye.setAttribute('aria-pressed', String(!group.hidden))
+        const color = section.querySelector<HTMLInputElement>('input[type=color]')!; if (document.activeElement !== color) color.value = macroCategoryColor(next, group.id)
       }
-      const signature = JSON.stringify(geometry.groups.map(group => [group.id, group.label, group.collapsed, group.keys]))
-      if (signature !== structure) {
-        structure = signature
-        const drawerScroll = drawerBody.scrollTop, focus = document.activeElement
-        const restoreFocus = focus instanceof HTMLElement && drawerBody.contains(focus)
-        drawerBody.replaceChildren(universal)
-        drawerGroups.clear()
-        for (const group of geometry.groups) {
-          const collapse = document.createElement('button'); collapse.type = 'button'
-          const arrow = document.createElement('span'); arrow.setAttribute('aria-hidden', 'true'); arrow.textContent = group.collapsed ? '▸' : '▾'
-          const label = document.createElement('span'); label.textContent = `${group.label} (${group.keys.length})`; collapse.append(arrow, label)
-          collapse.setAttribute('aria-label', `${group.collapsed ? 'Expand' : 'Collapse'} ${group.label}`)
-          collapse.setAttribute('aria-expanded', String(!group.collapsed))
-          collapse.onclick = () => {
-            if (!preferences) return
-            options.categorySelected?.()
-            const current = preferences, layout = macroLayout(current), collapsed = layout.collapsed.includes(group.id)
-            change(patchMacroLayout({ ...current,
-              axisTarget: group.keys.find(key => macroMetricVisible(current, key)) ?? group.keys.find(key => current.series[key]) ?? current.axisTarget }, {
-              linked: false, categoryTarget: group.id, collapsed: collapsed ? layout.collapsed.filter(id => id !== group.id) : [...layout.collapsed, group.id] }))
-          }
-          collapse.title = 'Click to select every child and fold or expand this list. Reorder categories in MFDI settings.'
-          const section = document.createElement('section'); section.dataset.macroDrawerCategory = group.id
-          const drawerHeading = document.createElement('div'); drawerHeading.className = 'macro-drawer-category'
-          drawerHeading.append(collapse); section.append(drawerHeading)
-          for (const key of group.keys) { const row = rows.find(row => row.key === key); if (row) section.append(row.item) }
-          drawerBody.append(section); drawerGroups.set(group.id, section)
-        }
-        if (!geometry.groups.length) { const empty = document.createElement('p'); empty.textContent = 'No events selected. Add events in MFDI settings.'; drawerBody.append(empty) }
-        drawerBody.scrollTop = drawerScroll
-        if (restoreFocus && focus.isConnected) focus.focus({ preventScroll: true })
-      }
-      updateCategorySelection()
-      if (scrollTimer === null) scrollY = macroLayout(next).laneScroll ?? 0
-      scroll.hidden = !lanes || geometry.height <= available; spacer.style.height = `${geometry.height}px`
-      scrollY = Math.max(0, Math.min(scrollY, geometry.height - available)); scroll.scrollTop = scrollY
-      positionRows()
+      updateCategorySelection(); if (scrollTimer === null) scrollY = macroLayout(next).laneScroll ?? 0
+      scroll.hidden = !macroLayout(next).laneMode || geometry.height <= available; spacer.style.height = `${geometry.height}px`
+      scrollY = Math.max(0, Math.min(scrollY, geometry.height - available)); scroll.scrollTop = scrollY; positionRows()
     },
-    destroy() { if (scrollTimer !== null) window.clearTimeout(scrollTimer); scrollTimer = null; window.removeEventListener('pagehide', flushScroll); cancelWindowDrag(); cancelDrag(); element.removeEventListener('keydown', escape); layer.remove(); scroll.remove(); drawer.remove() },
+    destroy() { if (scrollTimer !== null) window.clearTimeout(scrollTimer); window.removeEventListener('pagehide', flushScroll); cancelWindowDrag(); cancelDrag(); element.removeEventListener('keydown', escape); layer.remove(); scroll.remove(); drawer.remove() },
   }
 }

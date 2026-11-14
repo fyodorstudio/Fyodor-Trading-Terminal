@@ -16,16 +16,14 @@ const chart={chartElement:()=>shell,timeScale:()=>scale}
 const flush=()=>{for(let n=0;frames.size&&n<8;n++){const work=[...frames.values()];frames.clear();work.forEach(fn=>fn())}}
 try{
   const p=await server.ssrLoadModule('./src/market-data/indicators/macro/macro-preferences.ts'),{macroCatalog,isMacroTextEvent}=await server.ssrLoadModule('./src/market-data/indicators/macro/macro-catalog.ts')
-  const {defaultMacroCategories}=await server.ssrLoadModule('./src/market-data/indicators/macro/macro-layout.ts'),{validateMacroSnapshot}=await server.ssrLoadModule('./src/market-data/indicators/macro/macro-presets.ts')
+  const {defaultMacroCategories}=await server.ssrLoadModule('./src/market-data/indicators/macro/macro-layout.ts')
   const chf=Object.keys(macroCatalog).find(key=>macroCatalog[key].currency==='CHF'&&!isMacroTextEvent(key));assert.ok(chf)
   let preferences=p.setMacroEvents({...p.defaultMacroPreferences,enabled:true,currencies:['USD'],eventsByCurrency:{USD:['rate']},activeCurrency:'USD',categories:defaultMacroCategories,categoryByEvent:{},layout:{hideLegend:true,laneMode:true,categoryOrder:[],collapsed:[],rowOrder:['rate'],rowOffsets:{rate:35},laneSpacing:33}},'CHF',[chf])
   preferences=p.switchMacroCurrency(preferences,'CHF');assert.deepEqual(p.selectedMacroMetrics(preferences),[chf]);assert.equal(preferences.axisTarget,chf)
   preferences={...preferences,layout:{...preferences.layout,rowOffsets:{[chf]:80},laneSpacing:44},series:{...preferences.series,[chf]:{...preferences.series[chf],color:'#123456'}}}
-  preferences=p.switchMacroCurrency(preferences,'USD');assert.deepEqual(p.selectedMacroMetrics(preferences),['rate']);assert.equal(preferences.layout.rowOffsets.rate,35);assert.equal(preferences.layout.laneSpacing,33)
-  preferences=p.switchMacroCurrency(preferences,'CHF');assert.equal(preferences.layout.rowOffsets[chf],80);assert.equal(preferences.layout.laneSpacing,44);assert.equal(preferences.series[chf].color,'#123456')
+  preferences=p.switchMacroCurrency(preferences,'USD');assert.deepEqual(p.selectedMacroMetrics(preferences),['rate']);assert.equal(preferences.layout.laneSpacing,33)
+  preferences=p.switchMacroCurrency(preferences,'CHF');assert.equal(preferences.layout.laneSpacing,44);assert.equal(preferences.series[chf].color,'#123456')
   assert.ok(p.saveMacroPreferences(preferences));assert.deepEqual(p.readMacroPreferences().currencyViews,preferences.currencyViews)
-  assert.deepEqual(validateMacroSnapshot(preferences),preferences,'Currency views survive preset validation and export/import')
-  assert.throws(()=>validateMacroSnapshot({...preferences,currencyViews:{USD:{axisTarget:'missing'}}}),/Invalid MFDI/)
   const speech=Object.keys(macroCatalog).find(key=>isMacroTextEvent(key)&&macroCatalog[key].currency==='USD');assert.ok(speech,'Scheduled speeches are identified independently of their calendar category')
   assert.equal(p.selectedMacroMetrics({...preferences,activeCurrency:'USD',eventsByCurrency:{USD:[speech]}}).length,0,'Speech selections never create empty numeric series')
   const {createMacroEventsRow}=await server.ssrLoadModule('./src/market-data/indicators/macro/macro-events-row.ts')
@@ -40,5 +38,5 @@ try{
   tooltip.querySelector('button').click();assert.equal(tooltip.hidden,true)
   row.sync(events,bars,3600,false,String);flush();assert.equal(shell.querySelector('.macro-events-row').hidden,true)
   row.destroy();assert.equal(listeners.size,0);assert.equal(frames.size,0);assert.equal(shell.children.length,0)
-  console.log('✓ MFDI: independent currency selection/layout/style persistence, preset validation and one optional non-numerical row with combined speech/Wildcard tooltips')
+  console.log('✓ MFDI: independent currency selection/layout/style persistence, working settings and one optional non-numerical row with combined speech/Wildcard tooltips')
 }finally{await server.close();await dom.happyDOM.close();for(const[k,d]of previous){if(d)Object.defineProperty(globalThis,k,d);else delete globalThis[k]}}
