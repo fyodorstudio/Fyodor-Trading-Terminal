@@ -8,6 +8,7 @@ export function createMacroEventsRow(chart: IChartApi) {
   const tooltip = document.createElement('div'); tooltip.className = 'macro-events-tooltip'; tooltip.setAttribute('role', 'tooltip'); tooltip.hidden = true
   chart.chartElement().append(element, tooltip)
   let events: readonly MacroTextEvent[] = [], bars: readonly OhlcBar[] = [], seconds = 3600, frame: number | null = null
+  let inBounds = true
   let top = 0, width = 0, signature = '', visible = false, pinned = false, format: (at: number) => string = String
   const buttons = new Map<string, HTMLButtonElement>()
   const hideTooltip = () => { pinned = false; tooltip.hidden = true }
@@ -28,8 +29,8 @@ export function createMacroEventsRow(chart: IChartApi) {
   }
   function draw() {
     frame = null
-    element.hidden = !visible; element.style.top = `${top}px`; element.style.width = `${width}px`
-    if (!visible) { hideTooltip(); return }
+    element.hidden = !visible || !inBounds; element.style.top = `${top}px`; element.style.width = `${width}px`
+    if (!visible || !inBounds) { hideTooltip(); return }
     const groups: { x: number; items: MacroTextEvent[] }[] = []
     const range = chart.timeScale().getVisibleRange()
     const from = typeof range?.from === 'number' ? range.from - seconds : -Infinity, through = typeof range?.to === 'number' ? range.to + seconds : Infinity
@@ -80,7 +81,10 @@ export function createMacroEventsRow(chart: IChartApi) {
       if (events !== items || bars !== candles || seconds !== step || visible !== shown || format !== formatter) signature = ''
       events = items; bars = candles; seconds = step; visible = shown; format = formatter; schedule()
     },
-    position(nextTop: number, nextWidth: number) { if (top !== nextTop || width !== nextWidth) { top = nextTop; width = nextWidth; schedule() } },
+    position(nextTop: number, nextWidth: number, shown = true, color = '#64748b') {
+      element.style.setProperty('--macro-event-color', color)
+      if (top !== nextTop || width !== nextWidth || inBounds !== shown) { top = nextTop; width = nextWidth; inBounds = shown; signature = ''; schedule() }
+    },
     destroy() { if (frame !== null) window.cancelAnimationFrame(frame); scale.unsubscribeVisibleLogicalRangeChange(schedule); scale.unsubscribeSizeChange(schedule); document.removeEventListener('pointerdown', outside, true); document.removeEventListener('keydown', escape); element.remove(); tooltip.remove() },
   }
 }

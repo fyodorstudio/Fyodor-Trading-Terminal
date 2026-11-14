@@ -34,15 +34,39 @@ export function createMacroReleaseMarkers() {
   }
 }
 
-export function paintMacroReleaseMarker(context: CanvasRenderingContext2D, x: number, y: number, text: string, color: string, actual: boolean) {
+export function macroMarkerBounds(context: CanvasRenderingContext2D, x: number, y: number, text: string) {
+  return { x, y, rx: Math.max(11, context.measureText(text).width / 2 + 5), ry: 8 }
+}
+
+/** A small spatial grid keeps dense label placement proportional to visible markers. */
+export function createMacroLabelLayout() {
+  const occupied = new Map<string, ReturnType<typeof macroMarkerBounds>[]>()
+  return { claim(bounds: ReturnType<typeof macroMarkerBounds>, width: number, height: number) {
+    const { x, y, rx, ry } = bounds
+    if (x - rx < 0 || x + rx > width || y - ry < 0 || y + ry > height) return false
+    const cells: string[] = []
+    for (let col = Math.floor((x - rx - 1) / 8); col <= Math.floor((x + rx + 1) / 8); col++)
+      for (let row = Math.floor((y - ry - 1) / 8); row <= Math.floor((y + ry + 1) / 8); row++) cells.push(`${col}:${row}`)
+    for (const cell of cells) for (const other of occupied.get(cell) ?? [])
+      if (Math.abs(x - other.x) < rx + other.rx + 2 && Math.abs(y - other.y) < ry + other.ry + 2) return false
+    for (const cell of cells) {
+      const entries = occupied.get(cell)
+      if (entries) entries.push(bounds)
+      else occupied.set(cell, [bounds])
+    }
+    return true
+  } }
+}
+
+export function paintMacroReleaseMarker(context: CanvasRenderingContext2D, x: number, y: number, text: string, color: string, actual: boolean, background = '#ffffff') {
   context.save(); context.font = '10px sans-serif'; context.textAlign = 'center'; context.textBaseline = 'middle'
-  const rx = Math.max(11, Math.min(64, context.measureText(text).width / 2 + 6)), ry = 10
+  const { rx, ry } = macroMarkerBounds(context, x, y, text)
   context.fillStyle = color; context.strokeStyle = color; context.lineWidth = 1.5; context.setLineDash([])
-  context.globalAlpha = actual ? 1 : 0.15
-  context.beginPath(); context.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); context.fill()
-  context.globalAlpha = actual ? 1 : 0.45; context.stroke()
-  const rgb = [1, 3, 5].map(index => parseInt(color.slice(index, index + 2), 16))
-  const contrast = rgb[0] * 0.299 + rgb[1] * 0.587 + rgb[2] * 0.114 > 150 ? '#111827' : '#ffffff'
+  context.globalAlpha = 1; context.fillStyle = actual ? color : background
+  context.beginPath(); context.rect(x - rx, y - ry, rx * 2, ry * 2); context.fill(); context.stroke()
+  const rgb = [1, 3, 5].map(index => parseInt(color.slice(index, index + 2), 16) / 255).map(value => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4)
+  const luminance = rgb[0] * 0.2126 + rgb[1] * 0.7152 + rgb[2] * 0.0722
+  const contrast = (luminance + 0.05) / 0.059 > 1.05 / (luminance + 0.05) ? '#111827' : '#ffffff'
   context.globalAlpha = actual ? 1 : 0.85; context.fillStyle = actual ? contrast : color
   context.fillText(text, x, y, rx * 2 - 8); context.restore()
   return { x, y, rx, ry }

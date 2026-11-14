@@ -1,3 +1,4 @@
+import { macroEventRowKey } from './macro-event-key'
 import { macroCatalog } from './macro-catalog'
 import { macroAxis, selectedMacroMetrics, type MacroPreferences } from './macro-preferences'
 
@@ -23,10 +24,10 @@ export function macroCategory(preferences: MacroPreferences, key: string) {
 }
 export function macroSelection(preferences: MacroPreferences) {
   const target = macroLayout(preferences).categoryTarget
-  return target ? selectedMacroMetrics(preferences).filter(key => macroCategory(preferences, key) === target) : [macroAxis(preferences)]
+  return target ? [...selectedMacroMetrics(preferences), macroEventRowKey].filter(key => macroCategory(preferences, key) === target) : [macroAxis(preferences)]
 }
 export function macroLanes(preferences: MacroPreferences) {
-  const selected = selectedMacroMetrics(preferences), layout = macroLayout(preferences)
+  const selected = [...selectedMacroMetrics(preferences), macroEventRowKey], layout = macroLayout(preferences)
   if (!selected.length) return { groups: [] as { id: string; label: string; top: number; bottom: number; collapsed: boolean; rows: { key: string; y: number }[]; keys: string[] }[], height: Math.max(0, ...Object.values(layout.laneSlots ?? {}).map(slot => (slot + 1) * (layout.laneSpacing ?? 28))) }
   const slots = { ...layout.laneSlots }, frozen = Object.keys(slots).length > 0
   let nextSlot = Math.max(0, ...Object.values(slots)) + 1
@@ -57,10 +58,12 @@ export function patchMacroLayout(preferences: MacroPreferences, patch: Partial<M
 export function moveMacroRow(preferences: MacroPreferences, key: string, category: string, before?: string): MacroPreferences {
   const layout = macroLayout(preferences), rowOffsets = { ...layout.rowOffsets }
   delete rowOffsets[key]
-  const order = [...new Set([...layout.rowOrder, ...selectedMacroMetrics(preferences)])].filter(item => item !== key)
+  const order = [...new Set([...layout.rowOrder, ...selectedMacroMetrics(preferences), macroEventRowKey])].filter(item => item !== key)
   const index = before ? order.indexOf(before) : -1
   order.splice(index < 0 ? order.length : index, 0, key)
-  return { ...patchMacroLayout(preferences, { rowOrder: order, rowOffsets, laneSlots: {} }), categoryByEvent: { ...preferences.categoryByEvent, [key]: category } }
+  const color = preferences.categoryColors?.[category]
+  return { ...patchMacroLayout(preferences, { rowOrder: order, rowOffsets, laneSlots: {} }), categoryByEvent: { ...preferences.categoryByEvent, [key]: category },
+    ...(color && preferences.series[key] ? { series: { ...preferences.series, [key]: { ...preferences.series[key], color } } } : {}) }
 }
 export function moveMacroCategory(preferences: MacroPreferences, id: string, before?: string) {
   const order = macroCategories(preferences).map(category => category.id).filter(key => key !== id)

@@ -194,7 +194,7 @@ try {
   await header('EURUSD'); assert.ok(host.querySelector('[aria-label="MFDI settings"]'))
   await React.act(async () => root.render(null))
 
-  saveMacroPreferences({...readMacroPreferences(),showEventRow:false})
+  saveMacroPreferences({...readMacroPreferences(), essentialsVersion:1, showEventRow:false})
   const { useMacroIndicator } = await server.ssrLoadModule('./src/market-data/indicators/macro/useMacroIndicator.ts')
   let view
   function Harness({ symbol = 'USDX', broker = 'A' }) {
@@ -275,7 +275,7 @@ try {
   await React.act(async () => tab('Events').dispatchEvent(new dom.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })))
   assert.equal(document.activeElement, tab('Layout'))
   await React.act(async () => tab('Layout').dispatchEvent(new dom.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })))
-  assert.equal(document.activeElement, tab('Style')); assert.equal(host.querySelectorAll('input[type="color"]').length, 5)
+  assert.equal(document.activeElement, tab('Style')); assert.equal(host.querySelectorAll('.macro-style-table input[type="color"]').length, 5)
   await React.act(async () => reactProps(control('Core CPI MoM colour')).onChange({ target: { value: '#123456' } }))
   await React.act(async () => { const input = control('Core CPI MoM line width'); input.value = '4'; input.dispatchEvent(new dom.Event('change', { bubbles: true })) })
   await React.act(async () => reactProps(control('Show Fed rate dots')).onChange({ target: { checked: false } }))

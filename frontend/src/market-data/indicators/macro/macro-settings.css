@@ -68,3 +68,7 @@
   .macro-settings-dialog > footer { padding-inline: 16px; }
   .macro-currency-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+.macro-category-colours { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px 20px; }
+.macro-category-colours label { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.macro-category-colours input { width: 32px; height: 25px; padding: 1px; cursor: pointer; }
+.macro-catalog-gap { padding: 8px 10px; background: var(--surface-inset); border-left: 2px solid var(--text-muted); }

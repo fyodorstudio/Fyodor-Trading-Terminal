@@ -6,12 +6,22 @@ import { isMacroTextEvent, macroCatalog } from './macro-catalog'
 import { useFedForecasts } from './useFedForecasts'
 import { useOptionalWildcards } from '../../../wildcards/useWildcards'
 import { wildcardChartTime } from '../../../wildcards/wildcard-model'
+import { applyMacroEssentials } from './macro-essentials'
+import { readMacroPresets, saveMacroPreset, writeMacroPresets } from './macro-presets'
 const noMacroEvents: MacroTextEvent[] = []
 
 export function useMacroIndicator(symbol: string, brokerId: string | null) {
   const [macroPreferences, setPreferences] = useState<MacroPreferences>(() => {
     const saved = readMacroPreferences(symbol)
-    return { ...saved, activeCurrency: saved.activeCurrency ?? saved.currencies?.[0] ?? 'USD' }
+    const current = { ...saved, activeCurrency: saved.activeCurrency ?? saved.currencies?.[0] ?? 'USD' }
+    if (saved.essentialsVersion === 1) return current
+    try {
+      const presets = readMacroPresets()
+      const id = 'before-mfdi-essentials-v1'
+      if (!presets.some(preset => preset.id === id) && (saved.currencies?.length || saved.enabled))
+        writeMacroPresets(saveMacroPreset(presets, 'Before MFDI essentials', { ...current, currencies: current.currencies ?? ['USD'], eventsByCurrency: current.eventsByCurrency ?? { USD: Object.keys(current.series) } }, id))
+      return applyMacroEssentials(current)
+    } catch { return current } // Keep the existing setup if its backup cannot be saved.
   })
   const [preferencesSaved, setPreferencesSaved] = useState(true)
   useEffect(() => { saveMacroPreferences(macroPreferences) }, [macroPreferences])

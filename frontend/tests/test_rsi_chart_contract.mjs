@@ -35,6 +35,7 @@ dom.HTMLCanvasElement.prototype.getContext = function () {
       if (radius === 6) forecastCurveRings.push({ x, y, radius, color: this.strokeStyle, alpha: this.globalAlpha })
     },
     ellipse(x, y, rx, ry) { this.fixtureReleaseBadge = { x, y, rx, ry, color: this.strokeStyle } },
+    rect(x, y, width, height) { if (height === 16 && width >= 22) this.fixtureReleaseBadge = { x: x + width / 2, y: y + height / 2, rx: width / 2, ry: height / 2, color: this.strokeStyle } },
     stroke() {
       if (this.globalAlpha === 0.25 && this.fixtureDash?.length === 0 && this.fixtureStart && this.fixtureEnd) releaseConnections.push({ color: this.strokeStyle, from: this.fixtureStart, to: this.fixtureEnd, alpha: this.globalAlpha })
       if (captureVolumeLayers) volumeLayers.push({ kind: 'line', color: this.strokeStyle })
@@ -932,11 +933,16 @@ try {
   assert.equal(upcomingStrokes.length, 0, 'Upcoming releases no longer draw vertical schedule lines')
   for (const [key, value, text] of [['coreCpi', 0, '0.00%'], ['headlineCpi', 0.3, '0.30%']]) {
     const badge = releaseBadges.find(row => row.color === macro.preferences.series[key].color && row.text === text)
-    assert.ok(badge, 'Each companion has its own dot with its own forecast value inside, even with F off')
-    close(badge.x, expectedFutureX, 'Scheduled dots retain sub-candle positioning without new timestamps')
-    close(badge.y, (key === 'coreCpi' ? coreLine : headlineLine).priceToCoordinate(value), 'Numerical upcoming dots use the actual forecast height')
-    assert.equal(badge.alpha, 0.85)
+    const marker = badge ?? laneDots.find(row => row.color === macro.preferences.series[key].color && Math.abs(row.x - expectedFutureX) < 0.01)
+    assert.ok(marker, 'Each companion retains a forecast marker; overlapping rectangles become dots')
+    close(marker.x, expectedFutureX, 'Scheduled dots retain sub-candle positioning without new timestamps')
+    close(marker.y, (key === 'coreCpi' ? coreLine : headlineLine).priceToCoordinate(value), 'Numerical upcoming dots use the actual forecast height')
+    if (badge) assert.equal(badge.alpha, 0.85)
   }
+  await React.act(async () => { for (const listener of nativeCrosshairListeners) listener({ time: futureChartTime, point: { x: expectedFutureX, y: coreLine.priceToCoordinate(0) }, paneIndex: macroPane.paneIndex(), seriesData: new Map() }) }); await paint()
+  const groupedForecast = host.querySelector('[aria-label="MFDI release details"]')
+  assert.match(groupedForecast.textContent, /Forecast: 0.00%/)
+  assert.match(groupedForecast.textContent, /Forecast: 0.30%/, 'A grouped hover retains the forecast hidden by rectangle collision handling')
   assert.equal(releaseBadges.filter(row => row.color === macro.preferences.series.rate.color).length, 0, 'Missing and elapsed schedules do not invent forecast positions')
   assert.ok(macroPane.getSeries().every(line => line.data().every(point => point.time <= macroBars.at(-1).time)), 'Schedules do not add valued series points or timestamps')
   const scheduledStyles = macro.preferences.series
@@ -957,6 +963,7 @@ try {
   await selectAxis('payrolls')
   macroPane.priceScale('right').setVisibleRange({ from: -200, to: 400 }); await paint()
   const curveWindow = chart.timeScale().getVisibleLogicalRange(), originalPayrollData = payrollLine.data()
+  macro = { ...macro, preferences: { ...macro.preferences, numberPlacement: 'above' } }; await render({ macro })
   const numberPreferences = macro.preferences
   assert.equal(host.querySelectorAll('[data-macro-numbers]').length, 5)
   const toggleNumbers = async key => {
@@ -1044,7 +1051,7 @@ try {
     assert.ok(releaseBadges.some(row => row.text === '250k' && row.alpha === 0.85), 'The last forecast remains faint after its scheduled time until an actual arrives')
     const actualRelease = { id: 'newly-published-payrolls', time: futureChartTime, releasedAt: publishedAt, value: 275, forecast: 250, unit: 4, multiplier: 1 }
     const releasedBars = [...macroBars, ...Array.from({ length: 5 }, (_, index) => ({ ...macroBars.at(-1), time: macroBars.at(-1).time + (index + 1) * 3600 }))]
-    macro = { ...macro, history: { ...macro.history, payrolls: [...macro.history.payrolls, actualRelease] } }
+    macro = { ...macro, preferences: { ...macro.preferences, numberPlacement: 'inside', series: { ...macro.preferences.series, payrolls: { ...macro.preferences.series.payrolls, numbersVisible: true } } }, history: { ...macro.history, payrolls: [...macro.history.payrolls, actualRelease] } }
     releaseBadges.length = 0; releaseConnections.length = 0; await render({ bars: releasedBars, macro })
     const actualBadges = releaseBadges.filter(row => row.text === '275k' && row.color === payrollColor)
     assert.ok(actualBadges.length > 0)
@@ -1178,7 +1185,7 @@ try {
   assert.equal(coreLine.options().priceScaleId, 'macro-coreCpi')
   assert.equal(headlineLine.options().priceScaleId, 'macro-headlineCpi', 'Headline and Core use independent scales')
   assert.deepEqual([...host.querySelectorAll('.macro-metric-axis')].map(button => button.textContent),
-    ['USD · Fed Rate (%)', 'USD · Payroll (k)', 'USD · Unemployment (%)', 'USD · Headline CPI m/m (%)', 'USD · Core CPI m/m (%)'])
+    ['USD · Fed Rate (%)', 'USD · Payroll (k)', 'USD · Unemployment (%)', 'USD · Headline CPI m/m (%)', 'USD · Core CPI m/m (%)', 'Speeches / Wildcards'])
   const colorFor = color => { const sample = document.createElement('span'); sample.style.backgroundColor = color; return sample.style.backgroundColor }
   const swatchFor = key => host.querySelector(`[data-macro-axis="${key}"]`).closest('.macro-metric-item').querySelector('.macro-control-color')
   assert.equal(host.querySelectorAll('.macro-control-color').length, 5)
@@ -1548,7 +1555,7 @@ try {
   await toggleLines(['payrolls', 'unemployment'])
   assert.ok(macroPane.getSeries().every(series => series.data().length === 0))
   assert.match(host.querySelector('.macro-note').textContent, /All series hidden/)
-  assert.equal(host.querySelectorAll('[data-macro-row]').length, 5, 'All five drawer rows survive hidden data')
+  assert.equal(host.querySelectorAll('[data-macro-row]').length, 6, 'Numerical rows and the shared text-event row survive hidden data')
   assert.equal(host.querySelectorAll('.macro-controls select').length, 0, 'The chips replace the axis dropdown')
   await selectAxis('coreCpi')
   assert.equal(macro.preferences.series.coreCpi.visible, true)
@@ -1578,7 +1585,7 @@ try {
   const originalMacro = macro
   macro = { ...macro, preferences: { ...defaultMacroPreferences, enabled: true, currencies: [], eventsByCurrency: {} }, history: {}, status: '' }
   await render({ macro })
-  assert.equal(host.querySelectorAll('[data-macro-row]').length, 0, 'An empty symbol has no preselected drawer rows')
+  assert.equal(host.querySelectorAll('[data-macro-row]').length, 1, 'An empty numerical setup retains the global Speeches / Wildcards control')
   assert.ok([...host.querySelectorAll('[data-macro-all]')].every(button => button.disabled), 'Universal controls are disabled without selected events')
   assert.match(host.querySelector('.macro-note').textContent, /Choose currencies/)
   assert.ok(chart.panes().at(-1).getSeries().every(line => line.data().length === 0))
@@ -1590,7 +1597,7 @@ try {
   macro = { ...macro, preferences: dynamicPreferences, history: { [dynamicKey]: [dynamicReading] } }
   const dynamicWindow = chart.timeScale().getVisibleLogicalRange()
   await render({ macro })
-  assert.equal(host.querySelectorAll('[data-macro-row]').length, 1)
+  assert.equal(host.querySelectorAll('[data-macro-row]').length, 2)
   assert.equal(host.querySelector('[data-macro-axis]').dataset.macroAxis, dynamicKey)
   const dynamicLine = chart.panes().at(-1).getSeries().find(line => line.data().length)
   assert.equal(dynamicLine.data()[0].value, 0.3, 'Dynamically added events reach native plotted series')

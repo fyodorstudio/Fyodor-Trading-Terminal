@@ -10,6 +10,7 @@ export const macroMetrics: Record<string, MacroDefinition> = {
   coreCpi: { label: 'Core CPI MoM', controlLabel: 'Core CPI m/m (%)', eventId: '840030006', currency: 'USD', country: 'US', category: 'inflation', unit: 1, multiplier: 0, suffix: '%' },
   headlineCpi: { label: 'Headline CPI MoM', controlLabel: 'Headline CPI m/m (%)', eventId: '840030005', currency: 'USD', country: 'US', category: 'inflation', unit: 1, multiplier: 0, suffix: '%' },
 }
+const policyRates = new Set(['999010006', '999010007', '826020009', '392060022', '756010001', '124040006', '36030008', '554020009'])
 const byId = new Map(Object.entries(macroMetrics).map(([key, value]) => [value.eventId, key]))
 const families = new Map(eventFamilyOptions.flatMap(family => family.events.map(id => [id, family] as const)))
 export const macroCatalog: Record<string, MacroDefinition> = { ...macroMetrics }
@@ -21,5 +22,5 @@ for (const event of sourceEvents) {
   if (byId.has(event.id) || event.sector === 'holidays') continue
   const key = `${event.currency}:${event.country}:${event.id}`
   macroCatalog[key] = { label: `${event.currency} · ${event.name}`, controlLabel: `${event.currency} · ${event.name}`,
-    eventId: event.id, currency: event.currency, country: event.country, category: families.get(event.id)?.category ?? 'other' }
+    eventId: event.id, currency: event.currency, country: event.country, category: families.get(event.id)?.category ?? 'other', ...(policyRates.has(event.id) ? { carry: true } : {}) }
 }

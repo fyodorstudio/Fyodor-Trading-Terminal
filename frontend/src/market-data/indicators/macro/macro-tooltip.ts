@@ -25,6 +25,17 @@ export function createMacroTooltip(container: HTMLElement) {
       const time = document.createElement('time'); time.dateTime = new Date(reading.releasedAt).toISOString(); time.textContent = format(reading.releasedAt)
       element.append(title, table, time); element.hidden = false
     },
+    showScheduled(items: { key: string; forecast?: number; releasedAt: number; format?: Pick<MacroReading, 'unit' | 'multiplier' | 'digits'> }[], format: (time: number) => string) {
+      element.replaceChildren()
+      for (const item of items) {
+        const title = document.createElement('strong'), forecast = document.createElement('p'), time = document.createElement('time')
+        title.textContent = macroCatalog[item.key].controlLabel
+        forecast.textContent = `Forecast: ${item.forecast === undefined ? '—' : macroValue(item.key, item.forecast, item.format)}`
+        time.dateTime = new Date(item.releasedAt).toISOString(); time.textContent = format(item.releasedAt)
+        element.append(title, forecast, time)
+      }
+      element.hidden = false
+    },
     position(x: number, y: number, offset: number, width: number, height: number) {
       element.style.maxWidth = `${Math.max(100, Math.min(440, width - 16))}px`
       const cardWidth = element.offsetWidth, cardHeight = element.offsetHeight

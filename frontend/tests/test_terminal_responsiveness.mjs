@@ -31,6 +31,9 @@ dom.requestAnimationFrame = fn => { frames.set(++sequence, fn); return sequence 
 dom.cancelAnimationFrame = id => frames.delete(id)
 dom.HTMLElement.prototype.scrollTo = function(options) { count('alertScroll'); this.scrollTop = options.top }
 localStorage.setItem('fyodor.time-display.v1', JSON.stringify({ mode: 'utc', utcOffsetMinutes: 0 }))
+// This regression exercises a user's intentionally empty MFDI setup after initial population.
+localStorage.setItem('fyodor.indicators.macro.v2', JSON.stringify({ eventsByCurrency: {}, styles: {}, symbols: {},
+  global: { enabled: false, currencies: [], axisTarget: 'rate', essentialsVersion: 1 } }))
 localStorage.setItem('fyodor.chart-drawings.v1', JSON.stringify([{ id: 'drawing', symbol: 'EURUSD', timeframe: 'H1', tool: 'parallel-channel',
   points: [{ time: now / 1000 - 5 * 3600, price: 1.1 }, { time: now / 1000 - 3 * 3600, price: 1.2 },
     { time: now / 1000 - 5 * 3600, price: 1 }], createdAt: 1 },

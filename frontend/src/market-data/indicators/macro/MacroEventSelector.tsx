@@ -4,11 +4,13 @@ import { inspectorCategories } from '../../../inspector/catalog/inspector-famili
 import { macroCatalog } from './macro-catalog'
 import { macroCategories, macroCategory, moveMacroRow } from './macro-layout'
 import { selectedMacroEvents, setMacroCurrency, setMacroEvents, type MacroPreferences } from './macro-preferences'
+import { macroEssentialGaps } from './macro-essentials'
+import { macroEventRowKey } from './macro-event-key'
 
 export function MacroEventSelector({ preferences, onChange }: { preferences: MacroPreferences; onChange: (next: MacroPreferences) => void }) {
-  const [currency, setCurrency] = useState('USD'), [search, setSearch] = useState(''), [open, setOpen] = useState(false)
+  const [currency, setCurrency] = useState(preferences.activeCurrency ?? 'USD'), [search, setSearch] = useState(''), [open, setOpen] = useState(false)
   const enabled = preferences.currencies ?? ['USD']
-  const categories = macroCategories(preferences), selected = selectedMacroEvents(preferences, true)
+  const categories = macroCategories(preferences), selected = selectedMacroEvents(preferences)
   const savedKeys = (code: string) => preferences.eventsByCurrency?.[code]
     ?? Object.keys(preferences.series).filter(key => macroCatalog[key]?.currency === code)
   const terms = search.toLowerCase().trim().split(/\s+/).filter(Boolean)
@@ -20,6 +22,7 @@ export function MacroEventSelector({ preferences, onChange }: { preferences: Mac
     onChange(checked ? setMacroCurrency(next, currency, true) : next)
   }
   return <>
+    {macroEssentialGaps[preferences.activeCurrency ?? 'USD'] && <p className="macro-catalog-gap">{macroEssentialGaps[preferences.activeCurrency ?? 'USD']}</p>}
     <fieldset><legend>Event currencies · saved selections</legend>
       <div className="macro-currency-options">{majorCurrencies.map(code => <label key={code}>
         <input type="checkbox" aria-label={`Show ${code} events`} checked={enabled.includes(code)}
@@ -27,6 +30,10 @@ export function MacroEventSelector({ preferences, onChange }: { preferences: Mac
         {code} <span>({savedKeys(code).length})</span>
       </label>)}</div>
     </fieldset>
+    <label className="macro-setting-row">Speeches / Wildcards category<select aria-label="Speeches and Wildcards category" value={macroCategory(preferences, macroEventRowKey)}
+      onChange={event => onChange(moveMacroRow(preferences, macroEventRowKey, event.target.value))}>
+      {categories.map(category => <option key={category.id} value={category.id}>{category.label}</option>)}
+    </select></label>
     <div className="macro-settings-section-heading"><h3>Selected events <span>({selected.length})</span></h3>
       <button type="button" onClick={() => setOpen(value => !value)} aria-expanded={open}>+ Add events</button></div>
     {open && <section className="macro-event-picker" aria-label="MFDI event selector">

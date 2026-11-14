@@ -4,11 +4,11 @@
 .macro-currency-header button { padding: 3px 8px; border: 1px solid var(--border-strong); border-radius: 4px; background: var(--surface-panel); color: var(--text-strong); cursor: pointer; font: inherit; }
 .macro-currency-tabs button[aria-selected='true'], .macro-currency-header > button[aria-pressed='true'] { color: var(--accent); border-color: var(--accent); }
 .macro-currency-header button:focus-visible { outline: 2px solid var(--accent); }
-.macro-events-row { position: absolute; left: 0; height: 24px; z-index: 6; pointer-events: none; background: var(--surface-panel); border-top: 1px solid var(--border); color: var(--text-muted); font-size: 11px; }
+.macro-events-row { position: absolute; left: 0; height: 24px; z-index: 6; pointer-events: none; background: transparent; color: var(--macro-event-color); font-size: 11px; }
 .macro-events-row[hidden], .macro-events-tooltip[hidden] { display: none; }
-.macro-events-row > span { position: absolute; left: 6px; top: 5px; }
-.macro-events-row::after { content: ''; position: absolute; left: 50px; right: 8px; top: 12px; border-top: 1px solid var(--border-strong); z-index: -1; }
-.macro-events-row > button { position: absolute; top: 3px; transform: translateX(-50%); width: 18px; height: 18px; padding: 0; border: 0; border-radius: 50%; background: var(--surface-panel); color: var(--accent); pointer-events: auto; cursor: pointer; font-size: 11px; }
+.macro-events-row > span { display: none; }
+.macro-events-row::after { content: ''; position: absolute; left: 0; right: 8px; top: 12px; border-top: 1px solid var(--macro-event-color); z-index: -1; }
+.macro-events-row > button { position: absolute; top: 3px; transform: translateX(-50%); width: 18px; height: 18px; padding: 0; border: 0; border-radius: 50%; background: var(--surface-panel); color: var(--macro-event-color); pointer-events: auto; cursor: pointer; font-size: 11px; }
 .macro-events-tooltip { position: absolute; z-index: 12; max-width: min(330px, calc(100% - 16px)); max-height: 260px; overflow: auto; padding: 10px; background: var(--surface-panel); border: 1px solid var(--border-strong); color: var(--text-strong); border-radius: 5px; pointer-events: auto; font-size: 12px; box-shadow: 0 4px 16px #0003; }
 .macro-events-tooltip strong, .macro-events-tooltip small { display: block; }
 .macro-events-tooltip small { color: var(--text-muted); }

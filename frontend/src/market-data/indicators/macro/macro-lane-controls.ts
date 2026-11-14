@@ -1,4 +1,5 @@
 import { createMacroPresetControls } from './macro-preset-controls'
+import { macroEventRowKey } from './macro-event-key'
 import { macroLanes, macroLayout, macroSelection, moveMacroRow, patchMacroLayout } from './macro-layout'
 import { macroMetricVisible, toggleMacroAll, type MacroPreferences } from './macro-preferences'
 
@@ -232,7 +233,7 @@ export function createMacroLaneControls(element: HTMLElement, redraw: () => void
       if (!preferences) return
       const keys = macroSelection(preferences)
       if (linked) start(event, 'all', 'all')
-      else if (keys.some(key => macroMetricVisible(preferences!, key))) start(event, 'selected', keys[0], keys)
+      else if (keys.some(key => key === macroEventRowKey ? preferences!.showEventRow !== false : macroMetricVisible(preferences!, key))) start(event, 'selected', keys[0], keys)
     },
     setRows(next: Row[]) {
       rows = next; structure = ''
@@ -265,10 +266,11 @@ export function createMacroLaneControls(element: HTMLElement, redraw: () => void
       spacingLabel.hidden = !macroLayout(next).laneMode; fit.disabled = !macroLayout(next).laneMode
       spacing.value = String(macroLayout(next).laneSpacing ?? 28)
       const lanes = macroLayout(next).laneMode
+      const numericRows = rows.filter(row => next.series[row.key])
       for (const { button, field, noun } of allButtons) {
-        const enabled = rows.filter(row => next.series[row.key]?.[field]).length
-        const state = enabled === 0 ? 'false' : enabled === rows.length ? 'true' : 'mixed'
-        button.disabled = rows.length === 0; button.setAttribute('aria-pressed', state)
+        const enabled = numericRows.filter(row => next.series[row.key]?.[field]).length
+        const state = enabled === 0 ? 'false' : enabled === numericRows.length ? 'true' : 'mixed'
+        button.disabled = numericRows.length === 0; button.setAttribute('aria-pressed', state)
         button.setAttribute('aria-label', `${enabled ? 'Hide' : 'Show'} all MFDI ${noun}`); button.title = button.getAttribute('aria-label')!
         for (const slash of button.querySelectorAll('[data-eye-slash], [data-forecast-slash], [data-numbers-slash]')) slash.setAttribute('visibility', enabled ? 'hidden' : 'visible')
       }
@@ -295,7 +297,7 @@ export function createMacroLaneControls(element: HTMLElement, redraw: () => void
             options.categorySelected?.()
             const current = preferences, layout = macroLayout(current), collapsed = layout.collapsed.includes(group.id)
             change(patchMacroLayout({ ...current,
-              axisTarget: group.keys.find(key => macroMetricVisible(current, key)) ?? group.keys[0] ?? current.axisTarget }, {
+              axisTarget: group.keys.find(key => macroMetricVisible(current, key)) ?? group.keys.find(key => current.series[key]) ?? current.axisTarget }, {
               linked: false, categoryTarget: group.id, collapsed: collapsed ? layout.collapsed.filter(id => id !== group.id) : [...layout.collapsed, group.id] }))
           }
           collapse.title = 'Click to select every child and fold or expand this list. Reorder categories in MFDI settings.'

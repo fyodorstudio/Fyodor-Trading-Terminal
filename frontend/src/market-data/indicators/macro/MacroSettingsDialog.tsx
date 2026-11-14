@@ -51,7 +51,7 @@ export function MacroSettingsDialog({ preferences, onSave, onClose }: {
       <div className="macro-settings-body">
         <label className="macro-setting-row">Currency setup<select aria-label="MFDI currency setup" value={draft.activeCurrency ?? draft.currencies?.[0] ?? 'USD'} onChange={event => setDraft(current => switchMacroCurrency(current, event.target.value))}>{majorCurrencies.map(currency => <option key={currency}>{currency}</option>)}</select></label>
         <section role="tabpanel" id={`${id}-Events-panel`} aria-labelledby={`${id}-Events`} hidden={tab !== 'Events'}>
-          <MacroEventSelector preferences={draft} onChange={setDraft} />
+          <MacroEventSelector key={draft.activeCurrency ?? 'all'} preferences={draft} onChange={setDraft} />
           <p>Selections apply to every symbol. Each currency remembers its selected events.</p>
         </section>
         <section role="tabpanel" id={`${id}-Layout-panel`} aria-labelledby={`${id}-Layout`} hidden={tab !== 'Layout'}>

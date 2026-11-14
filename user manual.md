@@ -13,6 +13,11 @@ Display timezone and theme are available in Settings.
 Click **MFDI** beside RSI and Volume. Its settings gear opens a resizable window
 with Events, Layout, Style and Presets tabs.
 
+Each currency tab starts with essential policy, inflation, labor and growth
+events. Your previous working setup is saved as **Before MFDI essentials** when
+the update first loads. Existing selected events remain, and later removals stay
+removed. The Events tab lists any missing calendar series for the selected currency.
+
 1. Tick currencies in Events and use **+ Add events** to select measures.
 2. Create categories and arrange the selected events.
 3. Use **OK** to save or **Cancel** to discard settings edits.
@@ -36,6 +41,12 @@ Hover a release dot for Actual/Forecast/Previous and its release time. Click it 
 open the release in Inspector. Number arrows compare successive actual readings.
 Upcoming forecast dots become actual dots when the reading arrives.
 
+In **Style**, choose values inside rectangles, values above dots, or dots alone.
+Actual rectangles are filled; upcoming forecast rectangles are outlined. Dense
+views omit overlapping value boxes; hover their remaining dots to read the values.
+**Category colours** changes a whole category across all currency tabs. Individual
+event colours remain editable, and newly added events inherit their category colour.
+
 Named presets are available in Series and the Presets tab. **Save as** creates a snapshot;
 **Update preset** replaces the selected snapshot. JSON export/import transfers
 presets between browser profiles. Working edits do not overwrite named presets.
@@ -45,6 +56,9 @@ Use the currency tabs above MFDI to switch between saved currency setups. Each
 tab remembers its selected events, axes and line/lane arrangement. **Events**
 toggles one row containing speeches, other non-numerical announcements and global
 Wildcards. Hover a dot to read the event; overlapping events share a dot and tooltip.
+This row starts in **Uncategorized**. Move its drawer handle between categories,
+or choose its category in Events settings. It follows lane scrolling and category
+movement. Its eye hides the row; clicking a dot holds its tooltip open.
 
 ## RSI and Volume
 

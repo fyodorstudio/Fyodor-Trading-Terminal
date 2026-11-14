@@ -82,9 +82,22 @@ The event catalogue maps exact calendar series to chart measures. The shared
 browser configuration stores currency/event selection, styles, categories and
 layout. Currency tabs restore independent axes and lane arrangements while
 retaining each currency's selections and styles. Named presets include these views
-and support JSON import/export. One optional non-numerical row combines the active
-currency's scheduled speeches/announcements with global Wildcards; grouped dots
-show text tooltips and do not create numerical series.
+and support JSON import/export. On first use after the MFDI essentials update,
+the previous setup is saved as **Before MFDI essentials** and exact calendar
+selections are added for all eight currency tabs. Subsequent removals are retained.
+`macro-essentials.ts` defines the selections and current catalog gaps. Existing
+selections and lane anchors remain; the update applies the category palette and
+enables values for essential events. It never overwrites existing named presets.
+
+Category colors apply across the working currency setups. Individual series can
+override them, and newly selected series inherit their category color. Actual
+values use filled rectangles centered on the plot; upcoming forecasts use outlined
+rectangles. Style settings also offer labels above dots or dots alone. A spatial
+grid suppresses overlapping value boxes while preserving their underlying points.
+One optional non-numerical row combines the active currency's scheduled
+speeches/announcements with global Wildcards. It belongs to Uncategorized by
+default and uses the shared category ordering, lane movement, scrolling and saved
+placement. Grouped dots show text tooltips and never create numerical series.
 
 Actuals are plotted on their containing chart candles. Numerical plots use each
 measure's own scale; lane view places them on straight rows. Forecast visibility
