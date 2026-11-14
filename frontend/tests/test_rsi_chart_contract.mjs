@@ -339,6 +339,39 @@ try {
     await React.act(async () => root.render(React.createElement(MarketCandlestickChart, props)))
     if (settle) await paint()
   }
+  // Revisiting a timeframe must use the view just left, rather than resurrecting
+  // that timeframe's older zoom. Exercise empty loading states and both directions.
+  await changeFrame('H1', frameBars(3600))
+  chart.priceScale('right').setVisibleRange({ from: 85, to: 115 }); await paint()
+  for (const [frame, step] of [...framesToTest, ...framesToTest.slice().reverse()]) {
+    await changeFrame(frame, frameBars(step))
+    assert.deepEqual(chart.priceScale('right').getVisibleRange(), { from: 85, to: 115 }, `${frame}: timeframe changes preserve exact vertical bounds`)
+  }
+  chart.priceScale('right').setVisibleRange({ from: 70, to: 95 }); await paint()
+  await changeFrame('H4', frameBars(14400)); await changeFrame('M1', frameBars(60))
+  assert.deepEqual(chart.priceScale('right').getVisibleRange(), { from: 70, to: 95 }, 'An old timeframe cannot restore a superseded vertical view')
+  chart.priceScale('right').setAutoScale(true); await paint()
+  const automaticFrameBounds = chart.priceScale('right').getVisibleRange()
+  await changeFrame('D1', frameBars(86400))
+  assert.deepEqual(chart.priceScale('right').getVisibleRange(), automaticFrameBounds, 'Switching timeframe also binds a previously automatic price view')
+  const scaledPairBars = frameBars(14400).map(bar => ({ ...bar, open: bar.open / 100, high: bar.high / 100, low: bar.low / 100, close: bar.close / 100 }))
+  const pairViewDates = captureDateWindow(chart.timeScale().getVisibleLogicalRange(), props.bars, 86400)
+  await render({ bars: [], symbol: 'AUDCAD', timeframe: 'H4', fitContentKey: 'AUDCAD:H4' }); await render({ bars: scaledPairBars })
+  const scaledPairBounds = chart.priceScale('right').getVisibleRange()
+  close(scaledPairBounds.from, automaticFrameBounds.from / 100, 'A new pair preserves proportional vertical position in its own price units')
+  close(scaledPairBounds.to, automaticFrameBounds.to / 100, 'A new pair preserves proportional vertical zoom in its own price units')
+  const scaledPairDates = captureDateWindow(chart.timeScale().getVisibleLogicalRange(), scaledPairBars, 14400)
+  close(scaledPairDates.from, pairViewDates.from, 'Changing pair and timeframe together preserves the left date')
+  close(scaledPairDates.to, pairViewDates.to, 'Changing pair and timeframe together preserves the right date')
+  await changeFrame('H1', frameBars(3600))
+  assert.deepEqual(chart.priceScale('right').getVisibleRange(), automaticFrameBounds, 'Returning to an instrument restores its view across a different timeframe')
+  chart.priceScale('right').setVisibleRange({ from: 80, to: 92 }); await paint()
+  await changeFrame('M5', frameBars(300))
+  const scaledDailyPairBars = frameBars(86400).map(bar => ({ ...bar, open: bar.open / 100, high: bar.high / 100, low: bar.low / 100, close: bar.close / 100 }))
+  await render({ bars: [], symbol: 'AUDCAD', timeframe: 'D1', fitContentKey: 'AUDCAD:D1' }); await render({ bars: scaledDailyPairBars })
+  assert.deepEqual(chart.priceScale('right').getVisibleRange(), scaledPairBounds, 'Revisiting another pair on a new timeframe retains its own bound price view')
+  await changeFrame('H1', frameBars(3600))
+  assert.deepEqual(chart.priceScale('right').getVisibleRange(), { from: 80, to: 92 }, 'A changed view survives both pair and timeframe round trips')
   // Test both directions with date spans that the native chart can display at
   // either timeframe, including historical pans and deliberate future space.
   for (let i = 0; i < framesToTest.length - 1; i++) {
@@ -353,14 +386,17 @@ try {
         chart.timeScale().setVisibleLogicalRange(projectDateWindow(dates, lowBars, lowStep))
       })
       await paint()
+      const verticalBounds = chart.priceScale('right').getVisibleRange()
       await changeFrame(higher, highBars)
       let visibleDates = captureDateWindow(chart.timeScale().getVisibleLogicalRange(), highBars, highStep)
       close(visibleDates.from, dates.from, `${lower}→${higher}, future=${future}: retain start time`)
       close(visibleDates.to, dates.to, `${lower}→${higher}, future=${future}: retain end time`)
+      assert.deepEqual(chart.priceScale('right').getVisibleRange(), verticalBounds, `${lower}→${higher}: retain vertical bounds`)
       await changeFrame(lower, lowBars)
       visibleDates = captureDateWindow(chart.timeScale().getVisibleLogicalRange(), lowBars, lowStep)
       close(visibleDates.from, dates.from, `${higher}→${lower}, future=${future}: retain start time on return`)
       close(visibleDates.to, dates.to, `${higher}→${lower}, future=${future}: retain end time on return`)
+      assert.deepEqual(chart.priceScale('right').getVisibleRange(), verticalBounds, `${higher}→${lower}: retain vertical bounds on return`)
     }
   }
   // A single narrow M1 view must survive the entire chain, including native
@@ -1105,13 +1141,62 @@ try {
   const placement = () => [rateLine, payrollLine, unemploymentLine, coreLine, headlineLine, rateDots]
     .map(line => [line.priceToCoordinate(0), line.priceToCoordinate(1)])
   const originalPlacement = placement()
+  let resizeSetData = 0, resizeRangeRestores = 0
+  const restoreMethods = macroPane.getSeries().map(line => {
+    const original = line.setData.bind(line)
+    line.setData = rows => { resizeSetData++; return original(rows) }
+    return () => { line.setData = original }
+  })
+  const originalSetRange = chart.timeScale().setVisibleLogicalRange.bind(chart.timeScale())
+  chart.timeScale().setVisibleLogicalRange = range => { resizeRangeRestores++; return originalSetRange(range) }
   for (const height of [200, 90, 240, originalMacroHeight]) {
     macroPane.setHeight(height); await paint()
     placement().forEach((coordinates, index) => coordinates.forEach((value, point) => {
       close(value, originalPlacement[index][point], 'Pane resize preserves vertical position and pixels per unit on every scale')
     }))
     closeRange(chart.timeScale().getVisibleLogicalRange(), resizeWindow, 'Pane resizing preserves horizontal zoom')
+    await render({ macro })
   }
+  assert.equal(resizeSetData, 0, 'Resize placement saves and React updates never replace release-series data')
+  assert.equal(resizeRangeRestores, 0, 'Resize placement saves never restore or re-zoom the shared date axis')
+  const divider = macroPane.getHTMLElement().previousElementSibling.lastElementChild.lastElementChild
+  chart.priceScale('right').setVisibleRange({ from: 90, to: 110 }); await paint()
+  const dividerPriceRange = chart.priceScale('right').getVisibleRange(), dividerDates = chart.timeScale().getVisibleLogicalRange()
+  const dividerHeight = macroPane.getHeight(), priceHeight = chart.paneSize(0).height
+  const beforeDividerWrites = macroPreferenceWrites
+  const dividerMouse = (type, y) => {
+    const event = new dom.MouseEvent(type, { bubbles: true, button: 0, buttons: type === 'mouseup' ? 0 : 1, clientX: 100, clientY: y, view: window })
+    // happy-dom does not derive page coordinates from client coordinates.
+    Object.defineProperties(event, { pageX: { value: 100 }, pageY: { value: y } })
+    return event
+  }
+  await React.act(async () => divider.dispatchEvent(new dom.PointerEvent('pointerdown', { bubbles: true, button: 0, clientX: 100, clientY: priceHeight - 2 })))
+  divider.dispatchEvent(dividerMouse('mousedown', priceHeight - 2))
+  for (const delta of [-10, -20, -30, -40]) {
+    window.dispatchEvent(new dom.PointerEvent('pointermove', { clientX: 100, clientY: priceHeight - 2 + delta }))
+    document.documentElement.dispatchEvent(dividerMouse('mousemove', priceHeight - 2 + delta))
+    await paint()
+    assert.deepEqual(chart.priceScale('right').getVisibleRange(), dividerPriceRange, 'Divider grab overlap cannot start price panning')
+    closeRange(chart.timeScale().getVisibleLogicalRange(), dividerDates, 'The real divider preserves the date window')
+    assert.equal(macroPreferenceWrites, beforeDividerWrites, 'Divider moves do not persist intermediate axis placements')
+  }
+  assert.notEqual(macroPane.getHeight(), dividerHeight, 'The native divider actually resizes the pane')
+  document.documentElement.dispatchEvent(dividerMouse('mouseup', priceHeight - 42))
+  window.dispatchEvent(new dom.PointerEvent('pointerup', { clientX: 100, clientY: priceHeight - 42 })); await paint()
+  assert.deepEqual(chart.priceScale('right').getVisibleRange(), dividerPriceRange)
+  assert.equal(macroPreferenceWrites, beforeDividerWrites + 1, 'Resize persists one final placement')
+  assert.equal(resizeSetData, 0, 'The actual divider does not rebuild released or forecast data')
+  await render({ macro }); assert.equal(resizeSetData, 0)
+  chart.priceScale('right').setAutoScale(true); await paint()
+  divider.dispatchEvent(new dom.PointerEvent('pointerdown', { bubbles: true, button: 0 }))
+  assert.equal(chart.priceScale('right').options().autoScale, false, 'Automatic fitting is held while grabbing the divider')
+  window.dispatchEvent(new dom.PointerEvent('pointercancel')); await paint()
+  assert.equal(chart.priceScale('right').options().autoScale, true, 'Cancelling a divider gesture restores the original automatic fitting choice')
+  closeRange(chart.timeScale().getVisibleLogicalRange(), dividerDates)
+  chart.priceScale('right').setVisibleRange(dividerPriceRange); await paint()
+  chart.timeScale().setVisibleLogicalRange = originalSetRange
+  restoreMethods.forEach(restore => restore())
+  macroPane.setHeight(originalMacroHeight); await paint()
   await selectAxis('rate'); await selectAxis('payrolls')
   placement().forEach((coordinates, index) => coordinates.forEach((value, point) => {
     close(value, originalPlacement[index][point], 'Resized placements survive axis changes')
@@ -1187,16 +1272,27 @@ try {
   const beforeLaneDates = chart.timeScale().getVisibleLogicalRange(), beforeLaneData = macroPane.getSeries().map(line => line.data())
   laneDots.length = 0
   await React.act(async () => flatten.click()); await paint()
-  assert.equal(flatten.getAttribute('aria-pressed'), 'true'); assert.equal(lockAxes.disabled, true)
+  assert.equal(flatten.getAttribute('aria-pressed'), 'true'); assert.equal(lockAxes.disabled, false)
+  for (const notify of nativeClickListeners) notify({ point: { x: 890, y: 1 }, paneIndex: macroPane.paneIndex() })
+  await paint()
+  assert.equal(lockAxes.getAttribute('aria-pressed'), 'true', 'Blank space restores the group-drag lock in lane view')
+  assert.equal(host.querySelectorAll('.macro-metric-axis[aria-pressed="true"]').length, 0, 'Locked Series has no highlighted event')
+  laneDots.length = 0
+  macro = { ...macro, preferences: { ...macro.preferences, layout: { ...macro.preferences.layout, laneSpacing: 56 } } }; await render({ macro })
   const rowOrder = [...host.querySelectorAll('[data-macro-row]')].map(row => row.dataset.macroRow).filter(key => key !== '__events__')
   const yFor = key => laneDots.find(dot => dot.color === macro.preferences.series[key].color)?.y
   assert.ok(rowOrder.every((key, index) => index === 0 || yFor(key) > yFor(rowOrder[index - 1])), 'The native lane order matches the Series list')
   const firstPositions = rowOrder.map(yFor)
+  const releasePointerDot = laneDots.find(dot => dot.color === macro.preferences.series.rate.color && dot.x > 20 && dot.x < 850)
+  assert.ok(releasePointerDot)
+  const releasePointer = new dom.PointerEvent('pointerdown', { bubbles: true, cancelable: true, button: 0, clientX: releasePointerDot.x, clientY: releasePointerDot.y + macroPane.getHTMLElement().getBoundingClientRect().top })
+  macroPane.getHTMLElement().dispatchEvent(releasePointer)
+  assert.equal(releasePointer.defaultPrevented, false, 'The group-drag lock preserves native release-marker clicks')
   await React.act(async () => macroPane.getHTMLElement().dispatchEvent(new dom.PointerEvent('pointerdown', { bubbles: true, button: 0, clientY: 100 })))
-  await React.act(async () => window.dispatchEvent(new dom.PointerEvent('pointermove', { clientY: 125 }))); await paint()
+  await React.act(async () => window.dispatchEvent(new dom.PointerEvent('pointermove', { clientY: 75 }))); await paint()
   laneDots.length = 0
-  await React.act(async () => window.dispatchEvent(new dom.PointerEvent('pointerup', { clientY: 125 }))); await paint()
-  rowOrder.forEach((key, index) => close(yFor(key), firstPositions[index] + 25, 'Chart dragging moves every ordered lane together'))
+  await React.act(async () => window.dispatchEvent(new dom.PointerEvent('pointerup', { clientY: 75 }))); await paint()
+  rowOrder.filter(key => yFor(key) !== undefined).forEach(key => close(yFor(key), firstPositions[rowOrder.indexOf(key)] - 25, 'Chart dragging scrolls every ordered lane together'))
   assert.deepEqual(macroPane.getSeries().map(line => line.data()), beforeLaneData)
   close(chart.timeScale().getVisibleLogicalRange().from, beforeLaneDates.from, 'Lane dragging preserves the left date'); close(chart.timeScale().getVisibleLogicalRange().to, beforeLaneDates.to, 'Lane dragging preserves the right date')
   const { moveMacroRow } = await server.ssrLoadModule('./src/market-data/indicators/macro/macro-layout.ts')

@@ -21,6 +21,7 @@ import { lightweightChartOptions } from './lightweight-chart-options'
 import { advanceDateWindow, captureDateWindow, projectDateWindow, type ChartDateWindow } from './chart-viewport'
 import { createFutureTimeline } from './future-timeline'
 import { createChartPriceSpace } from './chart-price-space'
+import { createChartPaneResize, isChartPaneDivider } from './chart-pane-resize'
 import { timeframeToSeconds } from '../chart-drawings/position-drawing-geometry'
 import { createVolumePane } from '../indicators/volume/volume-pane'
 import type { VolumeLayer, VolumePreferences } from '../indicators/volume/volume-preferences'
@@ -129,6 +130,7 @@ function MarketCandlestickChartComponent({
   const volumePaneRef = useRef<ReturnType<typeof createVolumePane> | null>(null)
   const rsiPaneRef = useRef<ReturnType<typeof createRsiPane> | null>(null)
   const macroPaneRef = useRef<ReturnType<typeof createMacroPane> | null>(null)
+  const paneResizeRef = useRef<ReturnType<typeof createChartPaneResize> | null>(null)
   const futureTimelineRef = useRef<ReturnType<typeof createFutureTimeline> | null>(null)
   const priceSpaceRef = useRef<ReturnType<typeof createChartPriceSpace> | null>(null)
   const lastRefocusRequest = useRef(refocusRequest)
@@ -204,6 +206,8 @@ function MarketCandlestickChartComponent({
       lastValueVisible: false, crosshairMarkerVisible: false,
     })
     const priceSpace = createChartPriceSpace(chart, series, timeSeries)
+    const paneResize = createChartPaneResize(chart, series)
+    paneResizeRef.current = paneResize
     priceSpaceRef.current = priceSpace
     futureTimelineRef.current = createFutureTimeline(timeSeries)
 
@@ -241,6 +245,8 @@ function MarketCandlestickChartComponent({
     chart.timeScale().subscribeVisibleLogicalRangeChange(handleLogicalRangeChange)
 
     return () => {
+      paneResize.destroy()
+      paneResizeRef.current = null
       macroPaneRef.current?.destroy()
       macroPaneRef.current = null
       volumePaneRef.current?.destroy()
@@ -315,8 +321,9 @@ function MarketCandlestickChartComponent({
     })
 
     const previousRange = readLogicalRange()
-    priceViewsRef.current?.switchScope(`${clock.brokerId}:${fitContentKey}`, clock.brokerId,
-      chart.priceScale('right').getVisibleRange(), chart.priceScale('right').options().autoScale)
+    const instrument = symbol ?? fitContentKey.slice(0, fitContentKey.lastIndexOf(':'))
+    priceViewsRef.current?.switchScope(`${clock.brokerId}:${fitContentKey}`, `${clock.brokerId}:${instrument}`, clock.brokerId,
+      chart.priceScale('right').getVisibleRange())
     const step = timeframeToSeconds(timeframe)
     const brokerChanged = viewportBrokerRef.current !== clock.brokerId
     if (brokerChanged) {
@@ -334,6 +341,7 @@ function MarketCandlestickChartComponent({
     }
     const prevBars = prevBarsRef.current
     const isNewKey = fittedKeyRef.current !== fitContentKey
+    if (isNewKey) paneResizeRef.current?.cancel()
     // Ignore programmatic range notifications during replacement/restoration.
     applyingDataRef.current = true
     try {
@@ -401,7 +409,7 @@ function MarketCandlestickChartComponent({
         setLogicalRange(followingRange)
       }
     } finally { applyingDataRef.current = false }
-  }, [bars, fitContentKey, onDataApplied, precision, timeframe, clock.brokerId, readLogicalRange, setLogicalRange])
+  }, [bars, fitContentKey, symbol, onDataApplied, precision, timeframe, clock.brokerId, readLogicalRange, setLogicalRange])
 
   // Apply indicator data after price data/viewport restoration. Scope changes
   // clear the old indicator above before replacing candles to avoid mixing two
@@ -453,7 +461,7 @@ function MarketCandlestickChartComponent({
       if (!macroEnabled || !macro) {
         macroPaneRef.current?.destroy(); macroPaneRef.current = null
       } else {
-        macroPaneRef.current ??= createMacroPane(chart)
+        macroPaneRef.current ??= createMacroPane(chart, () => paneResizeRef.current?.active ?? false)
         const changed = macroPaneRef.current.sync(bars, macro, timeframeToSeconds(timeframe), formatUtc, {
           toggleMetric: metric => onToggleMacroMetric?.(metric),
           toggleForecast: metric => onToggleMacroForecast?.(metric),
@@ -498,6 +506,7 @@ function MarketCandlestickChartComponent({
   useEffect(() => () => { stopPanRef.current?.() }, [])
 
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (chartRef.current && isChartPaneDivider(chartRef.current, event.target)) return
     if (event.button === 0) liveFollowingRef.current = false
     requestedLogicalRangeRef.current = null
     historyPagingArmedRef.current = true
@@ -559,6 +568,7 @@ function MarketCandlestickChartComponent({
   }
 
   const handleDoubleClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (chartRef.current && isChartPaneDivider(chartRef.current, event.target)) return
     const paneHeight = (rsi?.enabled || volume?.enabled || macroEnabled) ? chartRef.current?.paneSize(0).height : undefined
     const top = containerRef.current?.getBoundingClientRect().top ?? 0
     if (paneHeight !== undefined && event.clientY - top >= paneHeight) return
@@ -591,6 +601,7 @@ function MarketCandlestickChartComponent({
 
   return (
     <div className="market-chart-host" onPointerDownCapture={(event) => {
+      if (chartRef.current && isChartPaneDivider(chartRef.current, event.target)) return
       const target = event.target as Element
       if (event.button === 0 && selectedDrawingId && !target.closest('.drawing-object, .drawing-text-foreign-object, .trade-level-handle, .trade-arrow-handle, .price-alert-handle, [data-ledger-picking="true"]')) {
         onSelectDrawing(null)

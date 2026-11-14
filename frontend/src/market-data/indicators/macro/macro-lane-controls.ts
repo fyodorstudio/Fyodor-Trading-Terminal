@@ -3,6 +3,7 @@ import { createMacroEventPicker, createMacroCategoryForm } from './macro-series-
 import { macroCategoryColor, setMacroCategoryColor } from './macro-essentials'
 import { defaultMacroCategories, deleteMacroCategory, macroLanes, macroLayout, moveMacroCategory, moveMacroRow, patchMacroLayout, toggleMacroCategory } from './macro-layout'
 import { macroMetricVisible, toggleMacroAll, type MacroPreferences } from './macro-preferences'
+import { macroCatalog } from './macro-catalog'
 
 type Row = { key: string; item: HTMLElement; dragButton: HTMLButtonElement }
 let drawerSequence = 0
@@ -43,7 +44,10 @@ export function createMacroLaneControls(element: HTMLElement, redraw: () => void
   const spacer = document.createElement('div'); scroll.append(spacer); element.append(layer, scroll)
   let rows: Row[] = [], preferences: MacroPreferences | undefined, geometry: ReturnType<typeof macroLanes> = { groups: [], height: 0 }
   let top = 0, available = 0, scrollY = 0, open = false, linked = false
-  let drag: { kind: 'row' | 'category' | 'all'; id: string; start: number; delta: number; origin: HTMLElement | null } | null = null
+  const laneYs = new Map<string, number>(), laneLabels = new Map<string, HTMLSpanElement>()
+  let positionedPreferences: MacroPreferences | undefined
+  let positionSize = '', drawFrame: number | null = null
+  let drag: { kind: 'row' | 'category' | 'all'; id: string; start: number; delta: number; scroll: number; origin: HTMLElement | null } | null = null
   let cancelDrag = () => {}, suppressClick: HTMLElement | null = null
   let windowPoint: { x: number; y: number } | null = null, windowDragging = false, windowSize: { width: number; height: number } | null = null
   let viewportWidth = 0, viewportHeight = 0, drawerWidth = 0, defaultLeft = 0, defaultTop = 0, defaultHeight = 0
@@ -60,14 +64,31 @@ export function createMacroLaneControls(element: HTMLElement, redraw: () => void
     windowPoint = { x, y }; windowSize = { width: Math.min(Math.max(280, width), Math.max(0, viewportWidth - x - 4)), height: Math.min(Math.max(120, height), Math.max(0, viewportHeight - y - 4)) }; placeWindow()
   }
   const y = (key: string): number | null => {
-    const row = geometry.groups.flatMap(group => group.rows).find(row => row.key === key)
-    return row ? top + (preferences ? macroLayout(preferences).laneOffset ?? 0 : 0) + row.y - scrollY + (drag?.kind === 'all' ? drag.delta : 0) : null
+    const row = laneYs.get(key)
+    return row === undefined ? null : top + row - scrollY
+  }
+  const clampScroll = (value: number) => Math.max(0, Math.min(Math.max(0, geometry.height - available), value))
+  const updateGeometry = (next: MacroPreferences) => {
+    geometry = macroLanes(next); laneYs.clear()
+    for (const group of geometry.groups) for (const row of group.rows) laneYs.set(row.key, row.y)
+  }
+  const positionLabels = () => {
+    const visible = preferences && macroLayout(preferences).laneMode
+    for (const [key, label] of laneLabels) {
+      const rowY = y(key)
+      const hidden = !visible || rowY === null || rowY < top + 8 || rowY > top + available - 8
+      if (label.hidden !== hidden) label.hidden = hidden
+      if (rowY !== null) { const value = `${rowY - top - 8}px`; if (label.style.top !== value) label.style.top = value }
+    }
   }
   function positionRows() {
     for (const row of rows) row.item.style.display = geometry.groups.some(group => group.collapsed && group.keys.includes(row.key)) ? 'none' : 'flex'
   }
-  const request = () => { positionRows(); redraw() }
-  function commit(next: MacroPreferences) { preferences = next; geometry = macroLanes(next); picker.sync(next); change(next); request() }
+  const request = () => {
+    if (drawFrame !== null) return
+    drawFrame = window.requestAnimationFrame(() => { drawFrame = null; positionLabels(); redraw() })
+  }
+  function commit(next: MacroPreferences) { preferences = next; change(next); request() }
   const drawerDropGroup = (event: PointerEvent) => {
     const bounds = drawer.getBoundingClientRect(), body = drawerBody.getBoundingClientRect()
     const contains = (rect: DOMRect) => rect.width > 0 && event.clientX >= rect.left && event.clientX <= rect.right && event.clientY >= rect.top && event.clientY <= rect.bottom
@@ -78,16 +99,21 @@ export function createMacroLaneControls(element: HTMLElement, redraw: () => void
     for (const [key, section] of drawerGroups) { if (key === id) section.setAttribute('data-macro-drop-target', 'true'); else section.removeAttribute('data-macro-drop-target') }
   }
   const start = (event: PointerEvent, kind: 'row' | 'category' | 'all', id: string) => {
-    if (event.button !== 0 || !preferences || (kind === 'all' && !macroLayout(preferences).laneMode)) return
-    if (kind !== 'all') { event.stopPropagation(); event.preventDefault() }
-    cancelDrag(); drag = { kind, id, start: event.clientY, delta: 0, origin: event.currentTarget instanceof HTMLElement ? event.currentTarget : null }
-    const move = (event: PointerEvent) => { if (!drag) return; drag.delta = event.clientY - drag.start; if (kind === 'all') request(); else highlightDrop(drawerDropGroup(event)?.id) }
+    if (event.button !== 0 || !preferences || (kind === 'all' && (!macroLayout(preferences).laneMode || !linked))) return
+    event.stopPropagation(); event.preventDefault()
+    flushScroll(); cancelDrag(); drag = { kind, id, start: event.clientY, delta: 0, scroll: scrollY, origin: event.currentTarget instanceof HTMLElement ? event.currentTarget : null }
+    const move = (event: PointerEvent) => {
+      if (!drag) return
+      drag.delta = event.clientY - drag.start
+      if (kind === 'all') { scrollY = clampScroll(drag.scroll - drag.delta); scroll.scrollTop = scrollY; request() }
+      else highlightDrop(drawerDropGroup(event)?.id)
+    }
     const finish = (event: PointerEvent) => {
       const state = drag, current = preferences, target = kind !== 'all' ? drawerDropGroup(event) : undefined
       if (!state || !current) { cancelDrag(); return }
-      const moved = Math.abs(state.delta) > 3; cancelDrag(); if (!moved) return
+      const moved = Math.abs(state.delta) > 3, finalScroll = scrollY; cancelDrag(); if (!moved) return
       suppressClick = kind === 'all' ? null : state.origin
-      if (kind === 'all') commit(patchMacroLayout(current, { laneOffset: (macroLayout(current).laneOffset ?? 0) + state.delta }))
+      if (kind === 'all') { scrollY = finalScroll; scroll.scrollTop = scrollY; commit(patchMacroLayout(current, { laneOffset: 0, laneScroll: scrollY })) }
       else if (target && kind === 'row') {
         const before = target.keys.find(key => { const rect = rows.find(row => row.key === key)?.item.getBoundingClientRect(); return key !== id && !target.collapsed && rect && rect.height > 0 && event.clientY < (rect.top + rect.bottom) / 2 })
         commit(moveMacroRow(current, id, target.id, before))
@@ -98,13 +124,16 @@ export function createMacroLaneControls(element: HTMLElement, redraw: () => void
     }
     const key = (event: KeyboardEvent) => { if (event.key === 'Escape') cancelDrag() }
     const cancel = () => cancelDrag()
-    cancelDrag = () => { drag = null; window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', finish); window.removeEventListener('pointercancel', cancel); window.removeEventListener('keydown', key); highlightDrop(); request() }
+    cancelDrag = () => {
+      if (drag?.kind === 'all') { scrollY = clampScroll(drag.scroll); scroll.scrollTop = scrollY }
+      drag = null; window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', finish); window.removeEventListener('pointercancel', cancel); window.removeEventListener('keydown', key); highlightDrop(); request()
+    }
     window.addEventListener('pointermove', move); window.addEventListener('pointerup', finish); window.addEventListener('pointercancel', cancel); window.addEventListener('keydown', key)
   }
   const flushScroll = () => {
     if (scrollTimer === null) return
     window.clearTimeout(scrollTimer); scrollTimer = null
-    if (preferences && scrollY !== (macroLayout(preferences).laneScroll ?? 0)) commit(patchMacroLayout(preferences, { laneScroll: scrollY }))
+    if (preferences && (scrollY !== (macroLayout(preferences).laneScroll ?? 0) || macroLayout(preferences).laneOffset)) commit(patchMacroLayout(preferences, { laneScroll: scrollY, laneOffset: 0 }))
   }
   const saveScroll = () => { if (scrollTimer !== null) window.clearTimeout(scrollTimer); scrollTimer = window.setTimeout(flushScroll, 120) }
   window.addEventListener('pagehide', flushScroll)
@@ -162,7 +191,7 @@ export function createMacroLaneControls(element: HTMLElement, redraw: () => void
     if (!preferences || !macroLayout(preferences).laneMode) return
     event.preventDefault(); event.stopPropagation()
     const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? available : 1
-    scrollY = Math.max(0, Math.min(Math.max(0, geometry.height - available), scrollY + event.deltaY * unit))
+    scrollY = clampScroll(scrollY + event.deltaY * unit)
     scroll.scrollTop = scrollY; request(); saveScroll()
   }
   for (const target of [layer, scroll]) target.addEventListener('wheel', scrollLanes, { passive: false })
@@ -225,9 +254,10 @@ export function createMacroLaneControls(element: HTMLElement, redraw: () => void
     if (focus instanceof HTMLElement && focus.isConnected) focus.focus({ preventScroll: true })
   }
   return {
-    y, toggleDrawer, fitAll, scrollLanes, drawerId: drawer.id,
+    y, toggleDrawer, fitAll, scrollLanes, flushScroll, drawerId: drawer.id,
+    get contentTop() { return top },
     setLinked(value: boolean) { linked = value; drawer.dataset.macroLinked = String(value); updateCategorySelection() },
-    startPlotDrag(event: PointerEvent, _linked: boolean) { start(event, 'all', 'all') },
+    startPlotDrag(event: PointerEvent, value: boolean) { linked = value; start(event, 'all', 'all') },
     setRows(next: Row[]) {
       rows = next; structure = ''; universal.replaceChildren(); allButtons.length = 0
       const name = document.createElement('strong'); name.textContent = 'All series'; universal.append(name, document.createElement('span'))
@@ -251,7 +281,21 @@ export function createMacroLaneControls(element: HTMLElement, redraw: () => void
     },
     position(next: MacroPreferences, width: number, height: number, inset: number, offset: number) {
       if (preferences?.activeCurrency !== next.activeCurrency) { cancelDrag(); if (scrollTimer !== null) window.clearTimeout(scrollTimer); scrollTimer = null; picker.element.hidden = true; revealedCategory = undefined }
-      preferences = next; geometry = macroLanes(next); picker.sync(next); title.textContent = `${next.activeCurrency ?? next.currencies?.[0] ?? 'USD'} · Series`
+      const changed = positionedPreferences !== next
+      preferences = next
+      if (changed) {
+        updateGeometry(next); picker.sync(next); title.textContent = `${next.activeCurrency ?? next.currencies?.[0] ?? 'USD'} · Series`
+        for (const key of laneLabels.keys()) if (!laneYs.has(key)) { laneLabels.get(key)!.remove(); laneLabels.delete(key) }
+        for (const key of laneYs.keys()) {
+          let label = laneLabels.get(key)
+          if (!label) { label = document.createElement('span'); label.className = 'macro-lane-label'; label.dataset.macroLaneLabel = key; layer.append(label); laneLabels.set(key, label) }
+          label.textContent = key === macroEventRowKey ? 'Speeches / Wildcards' : macroCatalog[key]?.label ?? key
+          label.style.color = key === macroEventRowKey ? macroCategoryColor(next, geometry.groups.find(group => group.keys.includes(key))?.id ?? 'uncategorized') : next.series[key].color
+        }
+      }
+      const dimensions = `${width}|${height}|${inset}|${offset}|${element.clientWidth}|${element.clientHeight}`
+      if (!changed && positionSize === dimensions && structure) { positionLabels(); return }
+      positionSize = dimensions
       top = inset; available = Math.max(0, height - top)
       layer.style.top = `${offset + top}px`; layer.style.width = `${Math.max(0, width - 24)}px`; layer.style.height = `${available}px`
       scroll.style.top = layer.style.top; scroll.style.left = `${Math.max(0, width - 14)}px`; scroll.style.height = layer.style.height
@@ -259,30 +303,33 @@ export function createMacroLaneControls(element: HTMLElement, redraw: () => void
       defaultHeight = Math.min(Math.max(height, 380), viewportHeight) - 8
       defaultLeft = Math.max(8, width - Math.min(560, viewportWidth - 8)); defaultTop = Math.max(4, Math.min(offset + 4, viewportHeight - defaultHeight - 4)); placeWindow()
       spacingLabel.hidden = !macroLayout(next).laneMode; fit.disabled = !macroLayout(next).laneMode; spacing.value = String(macroLayout(next).laneSpacing ?? 24)
-      const numericRows = rows.filter(row => next.series[row.key])
-      for (const { button, field, noun } of allButtons) {
-        const states = numericRows.map(row => field === 'visible' ? macroMetricVisible(next, row.key) : next.series[row.key][field])
-        if (field === 'visible') states.push(next.showEventRow !== false && !macroLayout(next).hiddenCategories?.includes(geometry.groups.find(group => group.keys.includes(macroEventRowKey))?.id ?? 'uncategorized'))
-        const enabled = states.filter(Boolean).length
-        button.disabled = states.length === 0; button.setAttribute('aria-pressed', enabled === 0 ? 'false' : enabled === states.length ? 'true' : 'mixed')
-        button.setAttribute('aria-label', `${enabled ? 'Hide' : 'Show'} all MFDI ${noun}`); button.title = button.getAttribute('aria-label')!
-        for (const slash of button.querySelectorAll('[data-eye-slash], [data-forecast-slash], [data-numbers-slash]')) slash.setAttribute('visibility', enabled ? 'hidden' : 'visible')
+      if (changed || !structure) {
+        const numericRows = rows.filter(row => next.series[row.key])
+        for (const { button, field, noun } of allButtons) {
+          const states = numericRows.map(row => field === 'visible' ? macroMetricVisible(next, row.key) : next.series[row.key][field])
+          if (field === 'visible') states.push(next.showEventRow !== false && !macroLayout(next).hiddenCategories?.includes(geometry.groups.find(group => group.keys.includes(macroEventRowKey))?.id ?? 'uncategorized'))
+          const enabled = states.filter(Boolean).length
+          button.disabled = states.length === 0; button.setAttribute('aria-pressed', enabled === 0 ? 'false' : enabled === states.length ? 'true' : 'mixed')
+          button.setAttribute('aria-label', `${enabled ? 'Hide' : 'Show'} all MFDI ${noun}`); button.title = button.getAttribute('aria-label')!
+          for (const slash of button.querySelectorAll('[data-eye-slash], [data-forecast-slash], [data-numbers-slash]')) slash.setAttribute('visibility', enabled ? 'hidden' : 'visible')
+        }
+        if (revealedCategory && geometry.groups.some(group => group.id === revealedCategory && group.keys.length > 0)) revealedCategory = undefined
+        const signature = JSON.stringify([empty.checked, revealedCategory, geometry.groups.map(group => [group.id, group.label, group.keys])])
+        if (signature !== structure) { structure = signature; rebuild() }
+        for (const group of geometry.groups) {
+          const section = drawerGroups.get(group.id); if (!section) continue
+          const fold = section.querySelector<HTMLButtonElement>('[data-macro-category-fold]')!
+          fold.textContent = group.collapsed ? '▸' : '▾'; fold.setAttribute('aria-label', `${group.collapsed ? 'Expand' : 'Collapse'} ${group.label}`); fold.setAttribute('aria-expanded', String(!group.collapsed))
+          const eye = section.querySelector<HTMLButtonElement>('[data-macro-category-visibility]')!
+          eye.textContent = group.hidden ? '○' : '◉'; eye.setAttribute('aria-label', `${group.hidden ? 'Show' : 'Hide'} category ${group.label}`); eye.setAttribute('aria-pressed', String(!group.hidden))
+          const color = section.querySelector<HTMLInputElement>('input[type=color]')!; if (document.activeElement !== color) color.value = macroCategoryColor(next, group.id)
+        }
+        updateCategorySelection(); positionRows()
+        if (scrollTimer === null && !drag) scrollY = Math.max(0, (macroLayout(next).laneScroll ?? 0) - (macroLayout(next).laneOffset ?? 0))
       }
-      if (revealedCategory && geometry.groups.some(group => group.id === revealedCategory && group.keys.length > 0)) revealedCategory = undefined
-      const signature = JSON.stringify([empty.checked, revealedCategory, geometry.groups.map(group => [group.id, group.label, group.keys])])
-      if (signature !== structure) { structure = signature; rebuild() }
-      for (const group of geometry.groups) {
-        const section = drawerGroups.get(group.id); if (!section) continue
-        const fold = section.querySelector<HTMLButtonElement>('[data-macro-category-fold]')!
-        fold.textContent = group.collapsed ? '▸' : '▾'; fold.setAttribute('aria-label', `${group.collapsed ? 'Expand' : 'Collapse'} ${group.label}`); fold.setAttribute('aria-expanded', String(!group.collapsed))
-        const eye = section.querySelector<HTMLButtonElement>('[data-macro-category-visibility]')!
-        eye.textContent = group.hidden ? '○' : '◉'; eye.setAttribute('aria-label', `${group.hidden ? 'Show' : 'Hide'} category ${group.label}`); eye.setAttribute('aria-pressed', String(!group.hidden))
-        const color = section.querySelector<HTMLInputElement>('input[type=color]')!; if (document.activeElement !== color) color.value = macroCategoryColor(next, group.id)
-      }
-      updateCategorySelection(); if (scrollTimer === null) scrollY = macroLayout(next).laneScroll ?? 0
       scroll.hidden = !macroLayout(next).laneMode || geometry.height <= available; spacer.style.height = `${geometry.height}px`
-      scrollY = Math.max(0, Math.min(scrollY, geometry.height - available)); scroll.scrollTop = scrollY; positionRows()
+      scrollY = clampScroll(scrollY); scroll.scrollTop = scrollY; positionLabels(); positionedPreferences = next
     },
-    destroy() { if (scrollTimer !== null) window.clearTimeout(scrollTimer); window.removeEventListener('pagehide', flushScroll); cancelWindowDrag(); cancelDrag(); element.removeEventListener('keydown', escape); layer.remove(); scroll.remove(); drawer.remove() },
+    destroy() { flushScroll(); window.removeEventListener('pagehide', flushScroll); cancelWindowDrag(); cancelDrag(); if (drawFrame !== null) window.cancelAnimationFrame(drawFrame); element.removeEventListener('keydown', escape); layer.remove(); scroll.remove(); drawer.remove() },
   }
 }

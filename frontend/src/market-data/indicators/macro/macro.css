@@ -33,6 +33,8 @@
 .macro-swatch { display: inline-block; width: 7px; height: 7px; border-radius: 50%; }
 .macro-release, .macro-note { color: var(--text-muted); }
 .macro-inline-layer { position: absolute; left: 8px; z-index: 4; overflow: hidden; pointer-events: none; font-size: 11px; }
+.macro-lane-label { position: absolute; left: 0; max-width: min(145px, 30%); padding: 0 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 16px; background: var(--surface-panel); opacity: 0.9; }
+.macro-lane-label[hidden] { display: none; }
 .macro-lane-scroll { position: absolute; z-index: 5; width: 14px; overflow-y: auto; pointer-events: auto; }
 .macro-lane-scroll[hidden] { display: none; }
 .macro-series-drawer { position: absolute; z-index: 8; display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--border-strong); border-radius: 5px; background: var(--surface-panel); color: var(--text-strong); box-shadow: 0 4px 16px #0003; font-size: 11px; pointer-events: auto; box-sizing: border-box; }

@@ -33,6 +33,7 @@ export function normalizeMacroCategories(preferences: MacroPreferences): MacroPr
     const { categoryOrder, collapsed, hiddenCategories, categoryTarget, ...rest } = layout
     const cleaned = { ...rest } as MacroLayout & { rowOffsets?: unknown; laneSlots?: unknown }
     delete cleaned.rowOffsets; delete cleaned.laneSlots
+    if (cleaned.laneOffset) { cleaned.laneScroll = Math.max(0, (cleaned.laneScroll ?? 0) - cleaned.laneOffset); cleaned.laneOffset = 0 }
     return { ...cleaned, categoryOrder: [...new Set(categoryOrder.map(resolve))], collapsed: [...new Set(collapsed.map(resolve))],
       hiddenCategories: [...new Set((hiddenCategories ?? []).map(resolve))], ...(categoryTarget ? { categoryTarget: resolve(categoryTarget) } : {}) }
   }

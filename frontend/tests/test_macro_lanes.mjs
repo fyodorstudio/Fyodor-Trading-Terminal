@@ -7,6 +7,10 @@ const previous = new Map(Object.keys(globals).map(key => [key, Object.getOwnProp
 for (const [key, value] of Object.entries(globals)) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value })
 const server = await createServer({ root: process.cwd(), server: { middlewareMode: true, hmr: false }, appType: 'custom' })
 const shell = document.createElement('div'); document.body.append(shell)
+const frames = new Map(); let sequence = 0
+dom.requestAnimationFrame = fn => { frames.set(++sequence, fn); return sequence }
+dom.cancelAnimationFrame = id => frames.delete(id)
+const paint = () => { const work = [...frames.values()]; frames.clear(); work.forEach(fn => fn()) }
 try {
   const p = await server.ssrLoadModule('./src/market-data/indicators/macro/macro-preferences.ts')
   const m = await server.ssrLoadModule('./src/market-data/indicators/macro/macro-layout.ts')
@@ -17,19 +21,22 @@ try {
   const duplicate = m.normalizeMacroCategories({ ...p.defaultMacroPreferences, categories: [
     { id: 'old-inflation', label: 'Inflation' }, ...m.defaultMacroCategories, { id: 'cftc', label: 'CFTC' }
   ], categoryByEvent: { coreCpi: 'old-inflation' }, categoryColors: { 'old-inflation': '#123456', inflation: '#abcdef' },
-  layout: { ...layout, categoryOrder: ['old-inflation', 'inflation'], hiddenCategories: ['old-inflation'], collapsed: ['old-inflation'] },
-  currencyViews: { CHF: { axisTarget: 'rate', layout: { ...layout, categoryOrder: ['old-inflation'] } } } })
+  layout: { ...layout, laneOffset: -50, laneScroll: 10, categoryOrder: ['old-inflation', 'inflation'], hiddenCategories: ['old-inflation'], collapsed: ['old-inflation'] },
+  currencyViews: { CHF: { axisTarget: 'rate', layout: { ...layout, laneOffset: -25, categoryOrder: ['old-inflation'] } } } })
   assert.equal(duplicate.categories.filter(category => category.label === 'Inflation').length, 1)
   assert.equal(duplicate.categoryByEvent.coreCpi, 'inflation'); assert.equal(duplicate.categoryColors.inflation, '#123456')
   assert.deepEqual(duplicate.layout.hiddenCategories, ['inflation']); assert.deepEqual(duplicate.currencyViews.CHF.layout.categoryOrder, ['inflation'])
+  assert.equal(duplicate.layout.laneScroll, 60); assert.equal(duplicate.layout.laneOffset, 0)
+  assert.equal(duplicate.currencyViews.CHF.layout.laneScroll, 25, 'Inactive currencies migrate to the same single scroll position')
   assert.ok(duplicate.categories.some(category => category.id === 'cftc'))
   let preferences = { ...p.defaultMacroPreferences, activeCurrency: 'USD', currencies: ['USD'], eventsByCurrency: { USD: ['rate', 'coreCpi', 'headlineCpi'] }, layout }
   const chartRows = () => m.macroLanes(preferences).groups.flatMap(group => group.rows).map(row => row.key)
   assert.equal(m.macroLanes(preferences).height, 4 * 24, 'Empty categories add no chart padding')
   let writes = 0, draws = 0, controls
   const rectangle = (left, top, right, bottom) => ({ left, top, right, bottom, width: right - left, height: bottom - top })
+  let height = 300
   const position = () => {
-    controls.position(preferences, 900, 300, 30, 0)
+    controls.position(preferences, 900, height, 30, 0)
     shell.querySelector('.macro-series-drawer').getBoundingClientRect = () => rectangle(0, 0, 900, 800)
     shell.querySelector('.macro-drawer-body').getBoundingClientRect = () => rectangle(0, 0, 900, 800)
     for (const [index, section] of [...shell.querySelectorAll('[data-macro-drawer-category]')].entries()) {
@@ -91,10 +98,33 @@ try {
   shell.querySelector('[data-macro-all="visibility"]').click()
   assert.equal(preferences.showEventRow, false); assert.ok(p.selectedMacroMetrics(preferences).every(key => !preferences.series[key].visible))
   shell.querySelector('[data-macro-all="visibility"]').click(); assert.equal(preferences.showEventRow, true)
-  position(); const beforePan = controls.y('rate')
+  height = 80; position(); const beforePan = controls.y('rate')
+  const beforeUnlocked = writes
   controls.startPlotDrag(new dom.PointerEvent('pointerdown', { button: 0, clientY: 100 }), false)
-  pointer(window, 'pointermove', 500, 125); pointer(window, 'pointerup', 500, 125)
-  assert.equal(controls.y('rate'), beforePan + 25); assert.equal(preferences.layout.laneOffset, 25)
+  pointer(window, 'pointermove', 500, 75); pointer(window, 'pointerup', 500, 75)
+  assert.equal(writes, beforeUnlocked); assert.equal(controls.y('rate'), beforePan, 'Individual selection does not drag every lane')
+  controls.startPlotDrag(new dom.PointerEvent('pointerdown', { button: 0, clientY: 100 }), true)
+  paint(); const beforeGestureDraws = draws, beforeGestureWrites = writes
+  for (let y = 99; y >= 75; y--) pointer(window, 'pointermove', 500, y)
+  assert.equal(writes, beforeGestureWrites, 'Pointer moves do not save preferences')
+  assert.equal(frames.size, 1, 'A burst of pointer movement schedules one update')
+  paint(); assert.equal(draws, beforeGestureDraws + 1)
+  pointer(window, 'pointerup', 500, 75)
+  assert.equal(controls.y('rate'), beforePan - 25); assert.equal(preferences.layout.laneScroll, 25); assert.equal(preferences.layout.laneOffset, 0)
+  const scrollbar = shell.querySelector('.macro-lane-scroll')
+  assert.equal(scrollbar.scrollTop, 25, 'Drag and scrollbar use the same position')
+  controls.scrollLanes(new dom.WheelEvent('wheel', { cancelable: true, deltaY: 10000 }))
+  position()
+  const geometry = m.macroLanes(preferences), last = geometry.groups.flatMap(group => group.rows).at(-1)
+  assert.equal(controls.y(last.key), height - 12, 'The final row is reachable at the bottom limit')
+  controls.scrollLanes(new dom.WheelEvent('wheel', { cancelable: true, deltaY: -10000 }))
+  position(); assert.equal(controls.y(chartRows()[0]), 42, 'The first row is reachable at the top limit')
+  window.dispatchEvent(new dom.Event('pagehide'))
+  preferences = m.patchMacroLayout(preferences, { laneScroll: 0, laneOffset: -10000 }); position()
+  assert.equal(controls.y(last.key), height - 12, 'Former free offsets are brought inside the reachable scroll range')
+  controls.startPlotDrag(new dom.PointerEvent('pointerdown', { button: 0, clientY: 100 }), true)
+  pointer(window, 'pointermove', 500, 150); window.dispatchEvent(new dom.KeyboardEvent('keydown', { key: 'Escape' }))
+  assert.equal(controls.y(last.key), height - 12, 'Escape restores the pre-drag scroll position')
   let selectedAfterPan = 0; const nameAfterPan = rows[0].item.querySelector('button'); nameAfterPan.onclick = () => selectedAfterPan++
   nameAfterPan.click(); assert.equal(selectedAfterPan, 1, 'Panning the chart cannot swallow the next keyboard activation in Series')
   const chf = Object.keys(macroCatalog).find(key => macroCatalog[key].eventId === '756010001')
@@ -102,7 +132,7 @@ try {
   assert.equal(shell.querySelector('.macro-drawer-title').textContent, 'CHF · Series')
   assert.equal(shell.querySelector('.macro-drawer-picker').hidden, true)
   p.saveMacroPreferences(preferences); assert.deepEqual(p.readMacroPreferences().currencyViews, preferences.currencyViews)
-  controls.destroy(); assert.equal(shell.children.length, 0); assert.ok(draws > 0)
+  controls.destroy(); assert.equal(shell.children.length, 0); assert.equal(frames.size, 0); assert.ok(draws > 0)
   console.log('✓ MFDI Series: category merge, compact ordered lanes, independent folding/eyes, drag/drop/cancel, custom categories, active-currency event picker, global visibility and persistence')
 } finally {
   await server.close(); await dom.happyDOM.close()

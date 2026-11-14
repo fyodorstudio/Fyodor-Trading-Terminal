@@ -1,4 +1,4 @@
-import { LineSeries, LineType, type IChartApi, type ISeriesApi, type IPrimitivePaneRenderer, type IPanePrimitive, type Logical, type MouseEventParams, type Time } from 'lightweight-charts'
+import { LineSeries, LineType, type Coordinate, type IChartApi, type ISeriesApi, type IPrimitivePaneRenderer, type IPanePrimitive, type Logical, type MouseEventParams, type Time } from 'lightweight-charts'
 import type { OhlcBar } from '../../contracts/OhlcBar'
 import { macroNumberLabels, macroPlot, macroValue, type MacroIndicator, type MacroReading } from './macro-data'
 import { macroCatalog } from './macro-catalog'
@@ -17,7 +17,7 @@ import { createMacroLaneControls } from './macro-lane-controls'
 import { createMacroReleaseMarkers, paintMacroReleaseMarker, macroMarkerBounds, createMacroLabelLayout } from './macro-release-markers'
 import './macro.css'
 
-export function createMacroPane(chart: IChartApi) {
+export function createMacroPane(chart: IChartApi, resizing: () => boolean = () => false) {
   const pane = chart.addPane(true)
   chart.panes()[0].setStretchFactor(3); pane.setStretchFactor(1.25)
   const base = { priceLineVisible: false, lastValueVisible: false }
@@ -61,7 +61,7 @@ export function createMacroPane(chart: IChartApi) {
   const currencyTabs = document.createElement('div'); currencyTabs.className = 'macro-currency-tabs'; currencyTabs.setAttribute('role', 'tablist'); currencyTabs.setAttribute('aria-label', 'MFDI currency')
   const currencyButtons = majorCurrencies.map(currency => {
     const button = document.createElement('button'); button.type = 'button'; button.textContent = currency; button.setAttribute('role', 'tab'); button.dataset.macroCurrency = currency
-    button.onclick = () => { if (indicator) { saveOnExit(); commitPreferences(switchMacroCurrency(indicator.preferences, currency)) } }
+    button.onclick = () => { if (indicator) { laneControls.flushScroll(); saveOnExit(); commitPreferences(switchMacroCurrency(indicator.preferences, currency)) } }
     button.onkeydown = event => {
       if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return
       event.preventDefault()
@@ -218,8 +218,10 @@ export function createMacroPane(chart: IChartApi) {
   }
   const commitPreferences = (next: MacroPreferences) => {
     if (destroyed || !indicator) return
+    const changedMode = laneMode !== macroLayout(next).laneMode
     indicator = { ...indicator, preferences: next }; laneMode = macroLayout(next).laneMode
-    flattenButton.setAttribute('aria-pressed', String(laneMode)); applyDisplayMode(); updateLock(); updateLegend()
+    linked = macroLayout(next).linked ?? linked
+    flattenButton.setAttribute('aria-pressed', String(laneMode)); if (changedMode) applyDisplayMode(); updateLock(); updateLegend()
     changePreferences?.(next); requestUpdate()
   }
   const laneControls = createMacroLaneControls(chart.chartElement(), () => requestUpdate(), commitPreferences, { drawerChanged: open => {
@@ -230,7 +232,16 @@ export function createMacroPane(chart: IChartApi) {
   seriesButton.setAttribute('aria-controls', laneControls.drawerId)
   laneControls.setRows([...metricControls, eventControl])
   const inPane = (event: Event) => event.target instanceof Node && pane.getHTMLElement()?.contains(event.target)
-  const groupDrag = (event: PointerEvent) => { if (laneMode && inPane(event)) laneControls.startPlotDrag(event, linked) }
+  const groupDrag = (event: PointerEvent) => {
+    if (!laneMode || !inPane(event)) return
+    const x = event.clientX - chart.chartElement().getBoundingClientRect().left - pane.priceScale('left').width()
+    const y = event.clientY - pane.getHTMLElement()!.getBoundingClientRect().top
+    const time = chart.timeScale().coordinateToTime(x as Coordinate)
+    const point: MouseEventParams<Time> = { point: { x: x as Coordinate, y: y as Coordinate }, time: time ?? undefined, paneIndex: pane.paneIndex(), seriesData: new Map() }
+    // Let native clicks on release markers reach Inspector. Only blank-space
+    // drags consume the pointer gesture, keeping it out of horizontal navigation.
+    if (!hitDot(point) && !hitScheduled(point)) laneControls.startPlotDrag(event, linked)
+  }
   const laneWheel = (event: WheelEvent) => { if (laneMode && inPane(event)) laneControls.scrollLanes(event) }
   chart.chartElement().addEventListener('pointerdown', groupDrag, true)
   chart.chartElement().addEventListener('wheel', laneWheel, { capture: true, passive: false })
@@ -351,7 +362,7 @@ export function createMacroPane(chart: IChartApi) {
         applyBounds(axis, id)
       }
       fittingAll = false; restoringPlacements = false
-      persistBounds()
+      if (!resizing()) persistBounds()
     })
   }
   fitButton.onclick = () => {
@@ -374,12 +385,12 @@ export function createMacroPane(chart: IChartApi) {
   }
   const updateLock = () => {
     laneControls.setLinked(linked)
-    lockButton.disabled = laneMode
+    lockButton.disabled = false
     fitButton.hidden = laneMode
     fitAllButton.textContent = laneMode ? 'Fit lanes' : 'Fit all axes'
     lockButton.setAttribute('aria-pressed', String(linked))
     lockButton.setAttribute('aria-label', `${linked ? 'Unlink' : 'Link'} MFDI axes`)
-    lockButton.title = laneMode ? 'Drag the chart to move all lanes. Reorder rows in Series; the wheel scrolls vertically.' : linked ? 'Axes linked: drag and scale all MFDI series together. Click to adjust each independently.' : 'Link all MFDI axes to drag and scale every series together'
+    lockButton.title = laneMode ? linked ? 'Drag to scroll all lanes together. Click to select individual rows; the wheel always scrolls vertically.' : 'Click blank space or the lock to move all lanes together. Select and reorder rows in Series.' : linked ? 'Axes linked: drag and scale all MFDI series together. Click to adjust each independently.' : 'Link all MFDI axes to drag and scale every series together'
     lockShackle.setAttribute('d', linked ? 'M8 10V6a4 4 0 0 1 8 0v4' : 'M8 10V6a4 4 0 0 1 8 0')
   }
   lockButton.onclick = () => {
@@ -405,7 +416,7 @@ export function createMacroPane(chart: IChartApi) {
       if (document.activeElement !== width) width.value = String(p.series[key].lineWidth)
       const inputColour = colourDrafts.get(key) ?? colourFor(key)
       if (document.activeElement !== colorInput && colorInput.value !== inputColour) colorInput.value = inputColour
-      axisButton.setAttribute('aria-pressed', String(linked ? visible : selection.includes(key)))
+      axisButton.setAttribute('aria-pressed', String(!linked && selection.includes(key)))
       eyeButton.setAttribute('aria-pressed', String(visible))
       eyeButton.setAttribute('aria-label', `${visible ? 'Hide' : 'Show'} ${label}`)
       eyeButton.title = `${visible ? 'Hide' : 'Show'} ${label}`
@@ -457,6 +468,7 @@ export function createMacroPane(chart: IChartApi) {
   const hitDot = (event: MouseEventParams<Time>) => {
     if (!indicator || !event.point || typeof event.time !== 'number' || event.paneIndex !== pane.paneIndex()) return
     const { x, y } = event.point
+    if (laneMode && y < laneControls.contentTop) return
     const badge = markerHits.find(hit => macroMetricVisible(indicator!.preferences, hit.key) && indicator!.preferences.series[hit.key].pointsVisible
       && Math.abs(x - hit.x) <= hit.rx && Math.abs(y - hit.y) <= hit.ry)
     if (badge) return { key: badge.key, time: badge.time, reading: badge.reading, distance: 0, preferred: true }
@@ -476,7 +488,7 @@ export function createMacroPane(chart: IChartApi) {
           if (px === null) continue
           if ((direction < 0 && px < x - 7) || (direction > 0 && px > x + 7)) break
           const py = plotY(key, point.value)
-          if (py === null || py < 0 || py > pane.getHeight()) continue
+          if (py === null || py < (laneMode ? laneControls.contentTop : 0) || py > pane.getHeight()) continue
           const distance = (px - x) ** 2 + (py - y) ** 2
           if (distance > 49) continue
           const reading = plot.readings.get(point.time)
@@ -498,7 +510,7 @@ export function createMacroPane(chart: IChartApi) {
       return
     }
     if (hitScheduled(event)) { claimChartClick(event); return }
-    if (event.point) resetSelection()
+    if (event.point && !resizing()) resetSelection()
   }
   const resetSelection = () => {
     if (!indicator) return
@@ -544,15 +556,20 @@ export function createMacroPane(chart: IChartApi) {
   }
   const renderer: IPrimitivePaneRenderer = { draw(target) {
     markerHits = []; pendingHits = []
-    legend.style.top = `${(pane.getHTMLElement()?.offsetTop ?? chart.paneSize(0).height + 8) + 4}px`
-    legend.style.width = `${Math.max(0, chart.paneSize(pane.paneIndex()).width - 20)}px`
-    legend.style.maxHeight = `${Math.max(24, pane.getHeight() - 10)}px`
+    const width = chart.paneSize(pane.paneIndex()).width, height = pane.getHeight()
+    const offset = pane.getHTMLElement()?.offsetTop ?? chart.paneSize(0).height + 8
+    // Read geometry before writing overlay styles; unchanged paint frames do not
+    // dirty layout or rebuild Series controls.
+    const inset = legend.offsetHeight + 12 || 36
+    const topStyle = `${offset + 4}px`, widthStyle = `${Math.max(0, width - 20)}px`, heightStyle = `${Math.max(24, height - 10)}px`
+    if (legend.style.top !== topStyle) legend.style.top = topStyle
+    if (legend.style.width !== widthStyle) legend.style.width = widthStyle
+    if (legend.style.maxHeight !== heightStyle) legend.style.maxHeight = heightStyle
     if (indicator) {
-      laneControls.position(indicator.preferences, chart.paneSize(pane.paneIndex()).width, pane.getHeight(),
-        legend.offsetHeight + 12 || 36, pane.getHTMLElement()?.offsetTop ?? chart.paneSize(0).height + 8)
+      laneControls.position(indicator.preferences, width, height, inset, offset)
       const eventY = laneControls.y(macroEventRowKey)
-      eventRow.position((pane.getHTMLElement()?.offsetTop ?? chart.paneSize(0).height + 8) + (eventY ?? 0) - 12, chart.paneSize(pane.paneIndex()).width,
-        eventY !== null && eventY >= (legend.offsetHeight + 12 || 36) && eventY < pane.getHeight() - 10, macroCategoryColor(indicator.preferences, macroCategory(indicator.preferences, macroEventRowKey)))
+      eventRow.position(offset + (eventY ?? 0) - 12, width,
+        eventY !== null && eventY >= inset && eventY < height - 10, macroCategoryColor(indicator.preferences, macroCategory(indicator.preferences, macroEventRowKey)))
     }
     if (!restoringPlacements) linkAxes()
     for (const [axis, id] of axisScales) {
@@ -565,10 +582,10 @@ export function createMacroPane(chart: IChartApi) {
       const futureX = futureCoordinates()
       const labels = createMacroLabelLayout()
       if (laneMode) target.useMediaCoordinateSpace(({ context, mediaSize }) => {
-        context.save(); context.beginPath(); context.rect(0, 0, mediaSize.width, mediaSize.height); context.clip()
+        context.save(); context.beginPath(); context.rect(0, laneMode ? laneControls.contentTop : 0, mediaSize.width, Math.max(0, mediaSize.height - (laneMode ? laneControls.contentTop : 0))); context.clip()
         for (const { key } of metricControls) {
           const y = plotY(key, 0), style = indicator!.preferences.series[key]
-          if (y === null || y < 0 || y > mediaSize.height || !macroMetricVisible(indicator!.preferences, key)) continue
+          if (y === null || y < (laneMode ? laneControls.contentTop : 0) || y > mediaSize.height || !macroMetricVisible(indicator!.preferences, key)) continue
           context.strokeStyle = colourFor(key); context.fillStyle = colourFor(key); context.lineWidth = style.lineWidth
           context.globalAlpha = 0.2; context.setLineDash([]); context.beginPath(); context.moveTo(0, y); context.lineTo(mediaSize.width, y); context.stroke()
           const points = plots[key]?.line ?? []
@@ -585,7 +602,7 @@ export function createMacroPane(chart: IChartApi) {
         context.restore()
       })
       target.useMediaCoordinateSpace(({ context, mediaSize }) => {
-        context.save(); context.beginPath(); context.rect(0, 0, mediaSize.width, mediaSize.height); context.clip()
+        context.save(); context.beginPath(); context.rect(0, laneMode ? laneControls.contentTop : 0, mediaSize.width, Math.max(0, mediaSize.height - (laneMode ? laneControls.contentTop : 0))); context.clip()
         for (const { key } of metricControls) {
           const style = indicator!.preferences.series[key]
           if (!macroMetricVisible(indicator!.preferences, key) || !style.forecastVisible) continue
@@ -598,7 +615,7 @@ export function createMacroPane(chart: IChartApi) {
           points.forEach((point, index) => { if (index === 0) context.moveTo(point.x, point.y); else context.lineTo(point.x, point.y) })
           context.stroke()
           const ring = (x: number, y: number, alpha: number) => {
-            if (x < 0 || x > mediaSize.width || y < 0 || y > mediaSize.height) return
+            if (x < 0 || x > mediaSize.width || y < (laneMode ? laneControls.contentTop : 0) || y > mediaSize.height) return
             context.globalAlpha = alpha; context.lineWidth = 1.5; context.setLineDash([])
             context.beginPath(); context.arc(x, y, 6, 0, Math.PI * 2); context.stroke()
           }
@@ -614,7 +631,7 @@ export function createMacroPane(chart: IChartApi) {
           context.fillStyle = colourFor(key)
           for (const point of [...(plots[key]?.dots ?? [])].reverse()) {
             const x = chart.timeScale().timeToCoordinate(point.time), y = plotY(key, point.value)
-            if (x === null || y === null || x < 0 || x > mediaSize.width || y < 0 || y > mediaSize.height) continue
+            if (x === null || y === null || x < 0 || x > mediaSize.width || y < (laneMode ? laneControls.contentTop : 0) || y > mediaSize.height) continue
             const reading = plots[key]!.readings.get(point.time)
             if (releaseMarkers.hasActual(key, reading!.releasedAt)) continue
             const text = numberLabels[key]?.get(reading!.time) ?? macroValue(key, point.value, reading)
@@ -635,7 +652,7 @@ export function createMacroPane(chart: IChartApi) {
         context.restore()
       })
       target.useMediaCoordinateSpace(({ context, mediaSize }) => {
-        context.save(); context.beginPath(); context.rect(0, 0, mediaSize.width, mediaSize.height); context.clip()
+        context.save(); context.beginPath(); context.rect(0, laneMode ? laneControls.contentTop : 0, mediaSize.width, Math.max(0, mediaSize.height - (laneMode ? laneControls.contentTop : 0))); context.clip()
         const previous = new Map<string, { x: number; y: number }>()
         for (const { key } of metricControls) {
           const point = plots[key]?.line.at(-1), x = point && chart.timeScale().timeToCoordinate(point.time), y = point && plotY(key, point.value)
@@ -655,7 +672,7 @@ export function createMacroPane(chart: IChartApi) {
             if (from) { context.beginPath(); context.moveTo(from.x, from.y); context.lineTo(x, y); context.stroke() }
             previous.set(key, { x, y })
           }
-          if (!style.pointsVisible || x < 0 || x > mediaSize.width || y < 0 || y > mediaSize.height) continue
+          if (!style.pointsVisible || x < 0 || x > mediaSize.width || y < (laneMode ? laneControls.contentTop : 0) || y > mediaSize.height) continue
           const text = value === undefined ? '—' : macroValue(key, value, actual ?? marker.format)
           const pending = { key, releasedAt: marker.releasedAt, forecast: marker.forecast, format: marker.format, x, y, rx: 7, ry: 7 }
           if (indicator!.preferences.numberPlacement === 'dots' || !style.numbersVisible) {
@@ -691,7 +708,7 @@ export function createMacroPane(chart: IChartApi) {
       const { key, time, reading } = releaseHover
       const x = chart.timeScale().timeToCoordinate(time), y = plotY(key, reading.value)
       const width = chart.paneSize(pane.paneIndex()).width
-      if (!macroMetricVisible(indicator.preferences, key) || x === null || y === null || x < 0 || x > width || y < 0 || y > pane.getHeight()) releaseTooltip.hide()
+      if (!macroMetricVisible(indicator.preferences, key) || x === null || y === null || x < 0 || x > width || y < (laneMode ? laneControls.contentTop : 0) || y > pane.getHeight()) releaseTooltip.hide()
       else {
         tooltip.hidden = false
         releaseTooltip.position(x, y, pane.getHTMLElement()?.offsetTop ?? chart.paneSize(0).height,
@@ -707,12 +724,12 @@ export function createMacroPane(chart: IChartApi) {
         const primary = indicator!.forecasts?.meetings.get(reading.releasedAt)?.consensus.find(row => row.provider === 'investing')
         if (!primary || fedSurprise(reading.value, primary.value).bp <= 0) continue
         const x = chart.timeScale().timeToCoordinate(point.time), y = plotY('rate', point.value)
-        if (x === null || y === null || x < 0 || x > mediaSize.width || y < 0 || y > mediaSize.height) continue
+        if (x === null || y === null || x < 0 || x > mediaSize.width || y < (laneMode ? laneControls.contentTop : 0) || y > mediaSize.height) continue
         context.beginPath(); context.arc(x, y, 6.5, 0, Math.PI * 2); context.stroke()
       }
       if (forecastHover) {
         const x = chart.timeScale().timeToCoordinate(forecastHover.time), y = plotY('rate', forecastHover.reading.value)
-        if (x === null || y === null || x < 0 || x > mediaSize.width || y < 0 || y > mediaSize.height) {
+        if (x === null || y === null || x < 0 || x > mediaSize.width || y < (laneMode ? laneControls.contentTop : 0) || y > mediaSize.height) {
           releaseTooltip.hide()
         } else {
           const primary = indicator!.forecasts?.meetings.get(forecastHover.reading.releasedAt)?.consensus.find(row => row.provider === 'investing')
@@ -739,12 +756,19 @@ export function createMacroPane(chart: IChartApi) {
         toggleForecast?: (metric: MacroMetric) => void; toggleNumbers?: (metric: MacroMetric) => void; changePreferences?: (value: MacroPreferences) => void; inspectRelease?: (reading: MacroReading) => void }) {
       if (destroyed) return
       eventRow.sync(next.events ?? [], bars, seconds, macroRowVisible(next.preferences, macroEventRowKey), format)
-      const input = [bars, next.history, next.forecastHistory, next.upcoming, next.preferences, next.sourceId, next.status, next.forecasts, seconds, format]
+      const keys = selectedMacroMetrics(next.preferences)
+      // Navigation and saved placement changes do not replace chart data or restore
+      // the shared time window. Only numerical inputs and styles need that work.
+      const presentation = JSON.stringify([selectedAxisFor(next.preferences), keys.map(key => [key, macroMetricVisible(next.preferences, key), next.preferences.series[key]])])
+      const input = [bars, next.history, next.forecastHistory, next.upcoming, presentation, next.preferences.layout?.axisRestoreId, next.sourceId, next.status, next.forecasts, seconds, format]
       if (numericalInput?.every((value, index) => value === input[index])) {
+        const changedMode = laneMode !== macroLayout(next.preferences).laneMode
         indicator = next; formatRelease = format; toggleMetric = callbacks.toggleMetric; selectMetric = callbacks.selectMetric
         toggleForecast = callbacks.toggleForecast ?? (() => {}); toggleNumbers = callbacks.toggleNumbers ?? (() => {})
         inspectRelease = callbacks.inspectRelease; changePreferences = callbacks.changePreferences
-        updateLegend(); requestUpdate(); return false
+        laneMode = macroLayout(next.preferences).laneMode; linked = macroLayout(next.preferences).linked ?? linked
+        flattenButton.setAttribute('aria-pressed', String(laneMode)); if (changedMode) applyDisplayMode()
+        updateLock(); updateLegend(); requestUpdate(); return false
       }
       numericalInput = input
       if (!restoringPlacements) linkAxes()
@@ -768,7 +792,7 @@ export function createMacroPane(chart: IChartApi) {
       latestTime = bars.at(-1)?.time
       markerBars = bars
       step = seconds
-      const p = next.preferences, axis = selectedAxisFor(p), keys = selectedMacroMetrics(p)
+      const p = next.preferences, axis = selectedAxisFor(p)
       linked = macroLayout(p).linked ?? linked
       const incomingPlacements = p.layout?.axisPlacements
       if (initialPlacements || p.layout?.axisRestoreId !== axisRestoreId) {
@@ -841,6 +865,7 @@ export function createMacroPane(chart: IChartApi) {
     },
     destroy() {
       if (destroyed) return
+      laneControls.flushScroll()
       destroyed = true
       window.removeEventListener('pagehide', saveOnExit)
       releaseMarkers.clear(); markerSnapshot = undefined; markerHits = []; pendingHits = []; pendingHover = undefined; markerBars = []

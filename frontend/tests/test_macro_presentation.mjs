@@ -112,9 +112,9 @@ try {
   const rateY = 12 + layout.macroLanes(preferences).groups.flatMap(group => group.rows).find(row => row.key === 'rate').y
   assert.equal(texts[0][3], rateY, 'Historical value text is centered on its lane')
   const firstTop = parseFloat(shell.querySelector('.macro-events-row').style.top)
-  preferences = layout.patchMacroLayout(preferences, { laneOffset: 30 })
+  preferences = layout.patchMacroLayout(preferences, { laneOffset: -10000 })
   indicator = { ...indicator, preferences }; sync(); draw()
-  assert.equal(parseFloat(shell.querySelector('.macro-events-row').style.top), firstTop + 30, 'The text-event row moves with its own saved lane offset')
+  assert.equal(parseFloat(shell.querySelector('.macro-events-row').style.top), firstTop, 'A stale free offset cannot push a fitting Events row out of reach')
   shell.querySelector('[data-macro-event-visibility]').click(); sync(); draw()
   assert.equal(shell.querySelector('.macro-events-row').hidden, true)
   shell.querySelector('[data-macro-axis="payrolls"]').click()

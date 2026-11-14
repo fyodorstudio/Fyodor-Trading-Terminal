@@ -23,6 +23,13 @@ The bridge supplies market data and calendar transport; storage owns persistence
 Features support USD, EUR, GBP, JPY, CHF, CAD, AUD and NZD and their 28 FX pairs.
 `config/chart-currency-scopes.json` also maps supported indices and other symbols.
 
+Chart navigation retains a date window across pair and timeframe changes. Price
+bounds are remembered per broker/instrument and shared across its timeframes,
+including empty loading states. A new instrument inherits proportional price zoom
+and position; revisiting one restores its own bounds. Explicit navigation and
+Refocus replace the view. The native minimum candle span can temporarily widen a
+very narrow higher-timeframe view; the original date target survives the return.
+
 ## Storage
 
 `storage/persistence/schema.py` defines the SQLite calendar schema. Its tables
@@ -90,8 +97,15 @@ Series owns event selection, removal, row appearance and category organization.
 Pointer and keyboard handles reorder rows/categories; chart lanes follow the same
 order. Hidden rows and empty categories consume no lane height. Folding a group
 only folds its drawer list. Category visibility retains individual eye choices.
-Lane dragging moves all rows together; numerical plots retain independent scales
-and linked-axis navigation. UI listeners and timers are cancelled on scope changes
+Lane dragging and the scrollbar share one bounded vertical position; legacy free
+offsets are folded into that position. The lock enables group dragging in both
+views. Blank-space clicks restore the lock and clear Series highlights. Numerical
+plots retain independent scales and linked-axis navigation. Layout-only updates
+reuse plotted data and leave the shared time window alone. Divider gestures are
+excluded from price panning, hold the price/date view, and persist final MFDI
+placements after release. Pointer redraws are batched by animation frame; lane
+geometry and Series controls are refreshed only when their inputs change.
+UI listeners and timers are cancelled on scope changes
 and removal. Appearance settings use drafts with OK/Cancel; working Series changes
 persist immediately. `macro-essentials.ts` defines initial numerical selections and
 catalog gaps. Initial announcement selections remain editable thereafter.

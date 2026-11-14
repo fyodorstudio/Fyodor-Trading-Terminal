@@ -4,6 +4,11 @@
 
 Select a symbol in Market Watch and choose a timeframe in the chart header.
 Pan or zoom to browse history. **Refocus** returns to the latest candles.
+Timeframe changes retain the selected dates and price bounds in either direction.
+Pairs remember their own price bounds; a new pair inherits proportional vertical
+zoom and position in its own price units. The selected dates carry across pairs.
+Very narrow views may temporarily widen at the chart's minimum candle span on a
+higher timeframe; returning restores the original dates.
 The drawing toolbar adds and edits chart drawings. **Inspector** opens calendar
 release details; **Show events** opens recent/upcoming releases.
 Display timezone and theme are available in Settings.
@@ -35,10 +40,14 @@ color picker and **⋯** for line width/removal. A category color updates its ev
 across currency tabs; individual event colors remain editable. **All series**
 visibility includes the shared text row. Its F/N controls apply to numerical rows.
 
-**Lane view** uses straight rows. Drag the chart to move all lanes together, and
-use the wheel to scroll. **Lane spacing** adjusts spacing; **Fit lanes** resets
-pan/scroll and fits as many readable lanes as possible. In numerical view, selecting
-an event chooses its right axis. The lock links numerical-axis movement.
+**Lane view** uses straight rows with event names at the left. With the lock on,
+drag vertically to scroll all lanes; the wheel and scrollbar use the same position.
+The first and last rows remain reachable. **Lane spacing** adjusts spacing;
+**Fit lanes** resets scrolling and fits as many readable lanes as possible.
+Click blank space to turn the lock on and clear Series selection highlights.
+Selecting an event or category turns it off. In numerical view, selecting an
+event chooses its right axis; the lock links numerical-axis movement.
+Resizing the pane changes its height without panning or zooming the price chart.
 **Fit axis** and **Fit all axes** deliberately fit visible readings.
 
 Actual rectangles are filled; forecasts are outlined. Dense views retain dots
