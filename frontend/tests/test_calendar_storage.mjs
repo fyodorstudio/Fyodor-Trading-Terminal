@@ -69,6 +69,13 @@ try {
   await poll(); await reply(requests.at(-1), health(3, 'A', { USD: { missing: [] } }))
   await reply(requests.at(-1), page([row('a', .8), row('b')], 3))
   assert.equal(view.events, corrected, 'Identical refreshed data retains array identity')
+  // File corrections reload even when the raw MT5 database revision is unchanged.
+  await poll(); await reply(requests.at(-1), { ...health(3, 'A', { USD: { missing: [] } }), override_revision: 'rba-v1' })
+  await reply(requests.at(-1), { ...page([row('a', .9), row('b')], 3), override_revision: 'rba-v1' })
+  assert.equal(view.events[0].actual, .9)
+  const afterOverrides = requests.length
+  await poll(); await reply(requests.at(-1), { ...health(3, 'A', { USD: { missing: [] } }), override_revision: 'rba-v1' })
+  assert.equal(requests.length, afterOverrides + 1, 'Unchanged correction files require no extra calendar fetch')
   await render({ dates: { from: at - 86400000, to: range.to } })
   await reply(requests.at(-1), health(3))
   const obsolete = requests.at(-1)

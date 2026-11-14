@@ -62,6 +62,8 @@ def retained_entries(store, broker, rows, key, metric, now_ms, offsets, transiti
             offsets[offset_key] = store._capture_offset(broker, row['observed_at'], json.loads(provenance))[0]
         at, _ = project(broker, event['server_time_seconds'], offsets[offset_key]) if publication_time_known(event) else (None, None)
         event.update(release_at=at, observed_at=row['observed_at'], availability='observed')
+        event = store.overrides.apply(broker, event)
+        at = event['release_at']
         reading = broker_reading(event, metric)
         day = datetime.fromtimestamp(at/1000+7*3600, timezone.utc).date().isoformat() if at is not None else reading['date']
         # Preserve scheduled occurrences without revealing premature provider actuals.

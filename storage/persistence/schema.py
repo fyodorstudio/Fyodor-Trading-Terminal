@@ -6,6 +6,8 @@ import time
 from pathlib import Path
 from typing import Callable
 
+from ..calendar_overrides import calendar_overrides
+
 
 class StoreSchema:
 
@@ -18,10 +20,13 @@ class StoreSchema:
         self.db = sqlite3.connect(path.resolve().as_uri() + "?mode=ro" if readonly else path,
                                   uri=readonly, check_same_thread=False, timeout=10)
         self.db.row_factory = sqlite3.Row
+        self.overrides = calendar_overrides()
         if readonly:
             if self.db.execute("PRAGMA user_version").fetchone()[0] != 2:
                 self.db.close()
                 raise ValueError("Status needs storage schema 2; start storage to migrate supported older data")
+            self.overrides.install(self.db)
+            self.db.commit()
             self.db.execute("BEGIN")  # All status queries use one read-only snapshot.
             return
         self.db.execute("PRAGMA journal_mode=WAL")
@@ -99,6 +104,8 @@ class StoreSchema:
             BEGIN UPDATE data_revision SET value=value+1 WHERE id=1; END""")
         self._restore_timing()
         self.db.execute("PRAGMA user_version=2")
+        self.db.commit()
+        self.overrides.install(self.db)
         self.db.commit()
 
     def close(self):

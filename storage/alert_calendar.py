@@ -23,18 +23,14 @@ def day_snapshot(store, source_id, day, after_revision=None):
         coverage = {currency: {'missing': missing_intervals(raw_start, raw_start + 86400, store._covered(source_id, currency, source['server_now']))}
                     for currency in ('USD', 'EUR', 'GBP', 'JPY', 'CHF', 'CAD', 'AUD', 'NZD')} if source else {}
         digest = hashlib.sha256(json.dumps(coverage, sort_keys=True).encode()).hexdigest()[:16]
-        signature = f"{revision}:{source['publisher_status'] if source else 'missing'}:{digest}"
+        signature = f"{revision}:{store.overrides.revision}:{source['publisher_status'] if source else 'missing'}:{digest}"
         result = {'source_id': source_id, 'date': day, 'revision': signature, 'source': source}
         if after_revision == signature:
             return {**result, 'unchanged': True}
-        known = "(json_extract(e.payload,'$.time_mode')=0 OR (json_extract(e.payload,'$.time_mode')=3 AND json_extract(e.payload,'$.actual') IS NOT NULL AND e.server_time%86400!=0))"
-        rows = store.db.execute(f'''SELECT e.*,a.job_id absence_job,t.release_at,t.chart_time_seconds,
-            t.capture_offset_seconds,t.basis,t.profile FROM events e
-            LEFT JOIN event_timing t USING(source_id,value_id)
-            LEFT JOIN query_absences a USING(source_id,value_id)
+        rows = store.db.execute('''SELECT e.* FROM calendar_readings e
             WHERE e.source_id=? AND e.server_time>=? AND e.server_time<? AND (
-                ({known} AND t.release_at>=? AND t.release_at<?)
-                OR ((NOT {known} OR t.release_at IS NULL)
+                (e.release_at>=? AND e.release_at<?)
+                OR (e.release_at IS NULL
                     AND e.server_time>=? AND e.server_time<?)) ORDER BY e.server_time,e.value_id''',
             # Ingestion bounds offsets to ±14 hours. Use the existing broker/time
             # index to inspect only the possible source days, not all history.

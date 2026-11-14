@@ -8,14 +8,17 @@ from .support import canonical, DAY, HISTORY_START, missing_intervals
 
 class StoreQueries:
 
-    @staticmethod
-    def event_rows(rows, chart=True):
-        return [{**json.loads(row["payload"]), "origin": row["origin"], "observed_at": row["observed_at"],
+    def event_rows(self, rows, chart=True):
+        events = [self.overrides.apply(row['source_id'], {**json.loads(row["payload"]), "origin": row["origin"], "observed_at": row["observed_at"],
             "availability": "not-returned-by-latest-query" if row["absence_job"] else "observed",
             "absence_job_id": row["absence_job"], "release_at": row["release_at"] if chart else None,
             "chart_time_seconds": row["chart_time_seconds"] if chart else None,
             "timing_basis": row["basis"], "chart_clock_profile": row["profile"],
-            "capture_offset_seconds": row["capture_offset_seconds"]} for row in rows]
+            "capture_offset_seconds": row["capture_offset_seconds"]}) for row in rows]
+        if not chart:
+            for event in events:
+                event.update(release_at=None, chart_time_seconds=None)
+        return events
 
     def values(self, source_id, value_ids):
         with self.lock:
@@ -23,10 +26,7 @@ class StoreQueries:
             ids = list(dict.fromkeys(value_ids))
             for start in range(0, len(ids), 500):
                 chunk = ids[start:start + 500]
-                rows = self.db.execute(f"""SELECT e.*,a.job_id absence_job,t.release_at,t.chart_time_seconds,
-                    t.capture_offset_seconds,t.basis,t.profile FROM events e
-                    LEFT JOIN event_timing t ON t.source_id=e.source_id AND t.value_id=e.value_id
-                    LEFT JOIN query_absences a ON a.source_id=e.source_id AND a.value_id=e.value_id
+                rows = self.db.execute(f"""SELECT e.* FROM calendar_readings e
                     WHERE e.source_id=? AND e.value_id IN ({','.join('?' for _ in chunk)})""", (source_id, *chunk)).fetchall()
                 result.extend(self.event_rows(rows))
             return sorted(result, key=lambda event: (event['server_time_seconds'], event['value_id']))
@@ -51,7 +51,8 @@ class StoreQueries:
             jobs = [dict(row) for row in self.db.execute("SELECT id,source_id,currency,start,end,state,attempts,error_code FROM jobs WHERE state!='complete'")]
             return {"service_version": "1.1.0", "schema_version": 2, "timestamp_convention": "trade_server_time",
                     "sources": sources, "pending_jobs": jobs,
-                    "revision": self.db.execute("SELECT value FROM data_revision WHERE id=1").fetchone()[0]}
+                    "revision": self.db.execute("SELECT value FROM data_revision WHERE id=1").fetchone()[0],
+                    "override_revision": self.overrides.revision}
 
     def planned_schedules(self, source_id, as_of):
         """Dates actually captured before the chosen clock, never inferred from actuals."""
@@ -104,7 +105,7 @@ class StoreQueries:
     def query(self, source_id, start, end, currency=None, limit=1000, after_time=None, after_id=None, time_basis="raw", event_ids=None, r1_as_of=None, r1_history=False, currencies=None):
         with self.lock:
             chart = time_basis == "chart"
-            axis = "coalesce(t.chart_time_seconds,e.server_time)" if chart else "e.server_time"
+            axis = "coalesce(e.chart_time_seconds,e.server_time)" if chart else "e.server_time"
             # Native chart dates can differ from raw calendar dates near midnight.
             params = [source_id, max(0, start - DAY) if chart else start, end + DAY if chart else end]
             where = "e.source_id=? AND e.server_time>=? AND e.server_time<?"
@@ -123,10 +124,7 @@ class StoreQueries:
             if after_time is not None and after_id is not None:
                 where += f" AND ({axis}>? OR ({axis}=? AND e.value_id>?))"
                 params.extend((after_time, after_time, after_id))
-            rows = self.db.execute(f"""SELECT e.*,a.job_id absence_job,t.release_at,t.chart_time_seconds,
-                t.capture_offset_seconds,t.basis,t.profile,{axis} axis_time FROM events e
-                LEFT JOIN event_timing t ON t.source_id=e.source_id AND t.value_id=e.value_id
-                LEFT JOIN query_absences a ON a.source_id=e.source_id AND a.value_id=e.value_id WHERE {where}
+            rows = self.db.execute(f"""SELECT e.*,{axis} axis_time FROM calendar_readings e WHERE {where}
                 ORDER BY {axis},e.value_id LIMIT ?""", (*params, limit + 1)).fetchall()
             has_more = len(rows) > limit
             rows = rows[:limit]
@@ -147,4 +145,5 @@ class StoreQueries:
                     **({'r1_source_version': 1} if r1_as_of is not None or r1_history else {}),
                     **({"r1_schedules": self.planned_schedules(source_id, r1_as_of)} if r1_as_of is not None and after_time is None else {}),
                     "time_basis": time_basis, "event_ids": event_ids, "coverage": coverage, "revision": self.db.execute("SELECT value FROM data_revision WHERE id=1").fetchone()[0],
+                    "override_revision": self.overrides.revision,
                     "next_cursor": {"after_time": last["axis_time"], "after_id": last["value_id"]} if last else None}

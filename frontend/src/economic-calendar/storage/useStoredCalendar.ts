@@ -11,8 +11,9 @@ export type StoredCalendarEvent = EconomicCalendarEvent & {
 type Coverage = Record<string, { missing: number[][] }>
 type StorageSource = { id: string; publisher_status: string; server_now: number; instance_id: string | null;
   coverage?: Record<string, { covered: number[][]; missing: number[][] }> }
-type Health = { revision: number; sources: StorageSource[]; collector_error: string | null }
+type Health = { revision: number; override_revision?: string; sources: StorageSource[]; collector_error: string | null }
 type Page = { source_id: string; revision: number; timestamp_convention: string; time_basis: string; events: StoredCalendarEvent[];
+  override_revision?: string;
   event_ids?: string[] | null;
   coverage: Coverage; next_cursor: { after_time: number; after_id: string } | null }
 type Snapshot = { key: string; events: StoredCalendarEvent[]; coverage: Coverage; loading: boolean;
@@ -34,7 +35,7 @@ export function useStoredCalendar(brokerId: string | null | undefined, range: Ca
     const controller = new AbortController()
     let cancelled = false
     let timer: number | undefined
-    let revision: number | null = null
+    let revision: string | null = null
     let coverageSignature: string | undefined
     const current = () => !cancelled
     async function get<T>(path: string): Promise<T> {
@@ -49,7 +50,8 @@ export function useStoredCalendar(brokerId: string | null | undefined, range: Ca
         const source = health.sources.find((item) => item.id === brokerId) ?? null
         if (!source) throw new Error(`No stored calendar for ${brokerId}. Start Publisher V2 or import its inventory.`)
         const currentCoverage = JSON.stringify(source.coverage)
-        if (health.revision === revision && currentCoverage === coverageSignature) {
+        const healthRevision = `${health.revision}:${health.override_revision ?? ''}`
+        if (healthRevision === revision && currentCoverage === coverageSignature) {
           if (current()) setSnapshot((old) => old?.key === key ? { ...old, source, collectorError: health.collector_error, error: null } : old)
           return
         }
@@ -58,7 +60,7 @@ export function useStoredCalendar(brokerId: string | null | undefined, range: Ca
         for (let attempt = 0; attempt < 3; attempt++) {
           const events: StoredCalendarEvent[] = []
           let cursor: Page['next_cursor'] = null
-          let pageRevision: number | null = null
+          let pageRevision: string | null = null
           let coverage: Coverage = {}
           let changed = false
           const visited = new Set<string>()
@@ -76,8 +78,9 @@ export function useStoredCalendar(brokerId: string | null | undefined, range: Ca
               throw new Error('Restart calendar storage to enable series-filtered history.')
             if (page.source_id !== brokerId || page.timestamp_convention !== 'trade_server_time' || !Number.isSafeInteger(page.revision))
               throw new Error('Calendar storage returned an incompatible response')
-            if (pageRevision !== null && pageRevision !== page.revision) { changed = true; break }
-            pageRevision = page.revision
+            const responseRevision = `${page.revision}:${page.override_revision ?? ''}`
+            if (pageRevision !== null && pageRevision !== responseRevision) { changed = true; break }
+            pageRevision = responseRevision
             events.push(...page.events)
             coverage = page.coverage
             cursor = page.next_cursor

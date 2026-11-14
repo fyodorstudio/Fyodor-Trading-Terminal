@@ -49,6 +49,16 @@ publication timestamp. Calendar measure definitions are in `config/calendar-meas
 Detail groups calendar readings into Monetary policy, Inflation, Labor and Growth.
 Ledger and Detail use the same selected date.
 
+Manual calendar corrections live in `config/calendar-overrides/*.json` and are
+applied by `storage/calendar_overrides.py` when reading calendar and Ledger data.
+Each file identifies a currency, country and MT5 event ID; each release identifies
+its value ID and the fields to replace (`actual`, `forecast`, `previous`,
+`revised_previous`, or `released_at`). Omitted fields keep their MT5 values;
+`null` clears a numeric field. Release timestamps include their timezone and are
+converted to each broker's chart clock. Raw SQLite records stay unchanged.
+Restart storage after editing these files. The RBA history uses the supplied
+Investing.com table, with pasted times interpreted as Asia/Jakarta.
+
 ## MFDI
 
 Implementation: `frontend/src/market-data/indicators/macro/`.

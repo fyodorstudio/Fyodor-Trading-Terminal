@@ -1,0 +1,1118 @@
+{
+  "schema": 1,
+  "event_id": "36030008",
+  "currency": "AUD",
+  "country": "AU",
+  "source": "Investing.com history supplied by the user",
+  "source_file": "config/RBA Rate Decision investing.com.txt",
+  "time_zone": "Asia/Jakarta",
+  "releases": [
+    {
+      "value_id": "258539",
+      "set": {
+        "released_at": "2026-11-03T10:30:00+07:00",
+        "actual": 4.85,
+        "forecast": 4.85,
+        "previous": 4.6
+      }
+    },
+    {
+      "value_id": "258538",
+      "set": {
+        "released_at": "2026-09-29T11:30:00+07:00",
+        "actual": 4.6,
+        "forecast": 4.6,
+        "previous": 4.35
+      }
+    },
+    {
+      "value_id": "258537",
+      "set": {
+        "released_at": "2026-08-11T11:30:00+07:00",
+        "actual": 4.35,
+        "forecast": 4.35,
+        "previous": 4.35
+      }
+    },
+    {
+      "value_id": "258536",
+      "set": {
+        "released_at": "2026-06-16T11:30:00+07:00",
+        "actual": 4.35,
+        "forecast": 4.35,
+        "previous": 4.35
+      }
+    },
+    {
+      "value_id": "258535",
+      "set": {
+        "released_at": "2026-05-05T11:30:00+07:00",
+        "actual": 4.35,
+        "forecast": 4.35,
+        "previous": 4.1
+      }
+    },
+    {
+      "value_id": "258534",
+      "set": {
+        "released_at": "2026-03-17T10:30:00+07:00",
+        "actual": 4.1,
+        "forecast": 4.1,
+        "previous": 3.85
+      }
+    },
+    {
+      "value_id": "258533",
+      "set": {
+        "released_at": "2026-02-03T10:30:00+07:00",
+        "actual": 3.85,
+        "forecast": 3.85,
+        "previous": 3.6
+      }
+    },
+    {
+      "value_id": "258532",
+      "set": {
+        "released_at": "2025-12-09T10:30:00+07:00",
+        "actual": 3.6,
+        "forecast": 3.6,
+        "previous": 3.6
+      }
+    },
+    {
+      "value_id": "258531",
+      "set": {
+        "released_at": "2025-11-04T10:30:00+07:00",
+        "actual": 3.6,
+        "forecast": 3.6,
+        "previous": 3.6
+      }
+    },
+    {
+      "value_id": "258530",
+      "set": {
+        "released_at": "2025-09-30T11:30:00+07:00",
+        "actual": 3.6,
+        "forecast": 3.6,
+        "previous": 3.6
+      }
+    },
+    {
+      "value_id": "258529",
+      "set": {
+        "released_at": "2025-08-12T11:30:00+07:00",
+        "actual": 3.6,
+        "forecast": 3.6,
+        "previous": 3.85
+      }
+    },
+    {
+      "value_id": "258528",
+      "set": {
+        "released_at": "2025-07-08T11:30:00+07:00",
+        "actual": 3.85,
+        "forecast": 3.6,
+        "previous": 3.85
+      }
+    },
+    {
+      "value_id": "243606",
+      "set": {
+        "released_at": "2025-05-20T11:30:00+07:00",
+        "actual": 3.85,
+        "forecast": 3.85,
+        "previous": 4.1
+      }
+    },
+    {
+      "value_id": "243605",
+      "set": {
+        "released_at": "2025-04-01T10:30:00+07:00",
+        "actual": 4.1,
+        "forecast": 4.1,
+        "previous": 4.1
+      }
+    },
+    {
+      "value_id": "243604",
+      "set": {
+        "released_at": "2025-02-18T10:30:00+07:00",
+        "actual": 4.1,
+        "forecast": 4.1,
+        "previous": 4.35
+      }
+    },
+    {
+      "value_id": "196326",
+      "set": {
+        "released_at": "2024-12-10T10:30:00+07:00",
+        "actual": 4.35,
+        "forecast": 4.35,
+        "previous": 4.35
+      }
+    },
+    {
+      "value_id": "196325",
+      "set": {
+        "released_at": "2024-11-05T10:30:00+07:00",
+        "actual": 4.35,
+        "forecast": 4.35,
+        "previous": 4.35
+      }
+    },
+    {
+      "value_id": "196324",
+      "set": {
+        "released_at": "2024-09-24T11:30:00+07:00",
+        "actual": 4.35,
+        "forecast": 4.35,
+        "previous": 4.35
+      }
+    },
+    {
+      "value_id": "196323",
+      "set": {
+        "released_at": "2024-08-06T11:30:00+07:00",
+        "actual": 4.35,
+        "forecast": 4.35,
+        "previous": 4.35
+      }
+    },
+    {
+      "value_id": "196322",
+      "set": {
+        "released_at": "2024-06-18T11:30:00+07:00",
+        "actual": 4.35,
+        "forecast": 4.35,
+        "previous": 4.35
+      }
+    },
+    {
+      "value_id": "196321",
+      "set": {
+        "released_at": "2024-05-07T11:30:00+07:00",
+        "actual": 4.35,
+        "forecast": 4.35,
+        "previous": 4.35
+      }
+    },
+    {
+      "value_id": "196320",
+      "set": {
+        "released_at": "2024-03-19T10:30:00+07:00",
+        "actual": 4.35,
+        "forecast": 4.35,
+        "previous": 4.35
+      }
+    },
+    {
+      "value_id": "196319",
+      "set": {
+        "released_at": "2024-02-06T10:30:00+07:00",
+        "actual": 4.35,
+        "forecast": 4.35,
+        "previous": 4.35
+      }
+    },
+    {
+      "value_id": "171721",
+      "set": {
+        "released_at": "2023-12-05T10:30:00+07:00",
+        "actual": 4.35,
+        "forecast": 4.35,
+        "previous": 4.35
+      }
+    },
+    {
+      "value_id": "171720",
+      "set": {
+        "released_at": "2023-11-07T10:30:00+07:00",
+        "actual": 4.35,
+        "forecast": 4.35,
+        "previous": 4.1
+      }
+    },
+    {
+      "value_id": "171719",
+      "set": {
+        "released_at": "2023-10-03T10:30:00+07:00",
+        "actual": 4.1,
+        "forecast": 4.1,
+        "previous": 4.1
+      }
+    },
+    {
+      "value_id": "171718",
+      "set": {
+        "released_at": "2023-09-05T11:30:00+07:00",
+        "actual": 4.1,
+        "forecast": 4.1,
+        "previous": 4.1
+      }
+    },
+    {
+      "value_id": "171717",
+      "set": {
+        "released_at": "2023-08-01T11:30:00+07:00",
+        "actual": 4.1,
+        "forecast": 4.35,
+        "previous": 4.1
+      }
+    },
+    {
+      "value_id": "171716",
+      "set": {
+        "released_at": "2023-07-04T11:30:00+07:00",
+        "actual": 4.1,
+        "forecast": 4.35,
+        "previous": 4.1
+      }
+    },
+    {
+      "value_id": "171715",
+      "set": {
+        "released_at": "2023-06-06T11:30:00+07:00",
+        "actual": 4.1,
+        "forecast": 3.85,
+        "previous": 3.85
+      }
+    },
+    {
+      "value_id": "171714",
+      "set": {
+        "released_at": "2023-05-02T11:30:00+07:00",
+        "actual": 3.85,
+        "forecast": 3.6,
+        "previous": 3.6
+      }
+    },
+    {
+      "value_id": "171713",
+      "set": {
+        "released_at": "2023-04-04T11:30:00+07:00",
+        "actual": 3.6,
+        "forecast": 3.6,
+        "previous": 3.6
+      }
+    },
+    {
+      "value_id": "171712",
+      "set": {
+        "released_at": "2023-03-07T10:30:00+07:00",
+        "actual": 3.6,
+        "forecast": 3.6,
+        "previous": 3.35
+      }
+    },
+    {
+      "value_id": "171711",
+      "set": {
+        "released_at": "2023-02-07T10:30:00+07:00",
+        "actual": 3.35,
+        "forecast": 3.35,
+        "previous": 3.1
+      }
+    },
+    {
+      "value_id": "158177",
+      "set": {
+        "released_at": "2022-12-06T10:30:00+07:00",
+        "actual": 3.1,
+        "forecast": 3.1,
+        "previous": 2.85
+      }
+    },
+    {
+      "value_id": "158176",
+      "set": {
+        "released_at": "2022-11-01T10:30:00+07:00",
+        "actual": 2.85,
+        "forecast": 2.85,
+        "previous": 2.6
+      }
+    },
+    {
+      "value_id": "158175",
+      "set": {
+        "released_at": "2022-10-04T10:30:00+07:00",
+        "actual": 2.6,
+        "forecast": 2.85,
+        "previous": 2.35
+      }
+    },
+    {
+      "value_id": "158174",
+      "set": {
+        "released_at": "2022-09-06T11:30:00+07:00",
+        "actual": 2.35,
+        "forecast": 2.35,
+        "previous": 1.85
+      }
+    },
+    {
+      "value_id": "158173",
+      "set": {
+        "released_at": "2022-08-02T11:30:00+07:00",
+        "actual": 1.85,
+        "forecast": 1.85,
+        "previous": 1.35
+      }
+    },
+    {
+      "value_id": "158172",
+      "set": {
+        "released_at": "2022-07-05T11:30:00+07:00",
+        "actual": 1.35,
+        "forecast": 1.35,
+        "previous": 0.85
+      }
+    },
+    {
+      "value_id": "158171",
+      "set": {
+        "released_at": "2022-06-07T11:30:00+07:00",
+        "actual": 0.85,
+        "forecast": 0.6,
+        "previous": 0.35
+      }
+    },
+    {
+      "value_id": "158170",
+      "set": {
+        "released_at": "2022-05-03T11:30:00+07:00",
+        "actual": 0.35,
+        "forecast": 0.25,
+        "previous": 0.1
+      }
+    },
+    {
+      "value_id": "158169",
+      "set": {
+        "released_at": "2022-04-05T11:30:00+07:00",
+        "actual": 0.1,
+        "forecast": 0.1,
+        "previous": 0.1
+      }
+    },
+    {
+      "value_id": "158168",
+      "set": {
+        "released_at": "2022-03-01T10:30:00+07:00",
+        "actual": 0.1,
+        "forecast": 0.1,
+        "previous": 0.1
+      }
+    },
+    {
+      "value_id": "158167",
+      "set": {
+        "released_at": "2022-02-01T10:30:00+07:00",
+        "actual": 0.1,
+        "forecast": 0.1,
+        "previous": 0.1
+      }
+    },
+    {
+      "value_id": "144902",
+      "set": {
+        "released_at": "2021-12-07T10:30:00+07:00",
+        "actual": 0.1,
+        "forecast": 0.1,
+        "previous": 0.1
+      }
+    },
+    {
+      "value_id": "144897",
+      "set": {
+        "released_at": "2021-11-02T10:30:00+07:00",
+        "actual": 0.1,
+        "forecast": 0.1,
+        "previous": 0.1
+      }
+    },
+    {
+      "value_id": "144896",
+      "set": {
+        "released_at": "2021-10-05T10:30:00+07:00",
+        "actual": 0.1,
+        "forecast": 0.1,
+        "previous": 0.1
+      }
+    },
+    {
+      "value_id": "144895",
+      "set": {
+        "released_at": "2021-09-07T11:30:00+07:00",
+        "actual": 0.1,
+        "forecast": 0.1,
+        "previous": 0.1
+      }
+    },
+    {
+      "value_id": "144891",
+      "set": {
+        "released_at": "2021-08-03T11:30:00+07:00",
+        "actual": 0.1,
+        "forecast": 0.1,
+        "previous": 0.1
+      }
+    },
+    {
+      "value_id": "144890",
+      "set": {
+        "released_at": "2021-07-06T11:30:00+07:00",
+        "actual": 0.1,
+        "forecast": 0.1,
+        "previous": 0.1
+      }
+    },
+    {
+      "value_id": "144889",
+      "set": {
+        "released_at": "2021-06-01T11:30:00+07:00",
+        "actual": 0.1,
+        "forecast": 0.1,
+        "previous": 0.1
+      }
+    },
+    {
+      "value_id": "144888",
+      "set": {
+        "released_at": "2021-05-04T11:30:00+07:00",
+        "actual": 0.1,
+        "forecast": 0.1,
+        "previous": 0.1
+      }
+    },
+    {
+      "value_id": "144883",
+      "set": {
+        "released_at": "2021-04-06T11:30:00+07:00",
+        "actual": 0.1,
+        "forecast": 0.1,
+        "previous": 0.1
+      }
+    },
+    {
+      "value_id": "144882",
+      "set": {
+        "released_at": "2021-03-02T10:30:00+07:00",
+        "actual": 0.1,
+        "forecast": 0.1,
+        "previous": 0.1
+      }
+    },
+    {
+      "value_id": "144881",
+      "set": {
+        "released_at": "2021-02-02T10:30:00+07:00",
+        "actual": 0.1,
+        "forecast": 0.1,
+        "previous": 0.1
+      }
+    },
+    {
+      "value_id": "110939",
+      "set": {
+        "released_at": "2020-12-01T10:30:00+07:00",
+        "actual": 0.1,
+        "forecast": 0.1,
+        "previous": 0.1
+      }
+    },
+    {
+      "value_id": "110934",
+      "set": {
+        "released_at": "2020-11-03T10:30:00+07:00",
+        "actual": 0.1,
+        "forecast": 0.1,
+        "previous": 0.25
+      }
+    },
+    {
+      "value_id": "110930",
+      "set": {
+        "released_at": "2020-10-06T10:30:00+07:00",
+        "actual": 0.25,
+        "forecast": 0.25,
+        "previous": 0.25
+      }
+    },
+    {
+      "value_id": "110925",
+      "set": {
+        "released_at": "2020-09-01T11:30:00+07:00",
+        "actual": 0.25,
+        "forecast": 0.25,
+        "previous": 0.25
+      }
+    },
+    {
+      "value_id": "110920",
+      "set": {
+        "released_at": "2020-08-04T11:30:00+07:00",
+        "actual": 0.25,
+        "forecast": 0.25,
+        "previous": 0.25
+      }
+    },
+    {
+      "value_id": "110916",
+      "set": {
+        "released_at": "2020-07-07T11:30:00+07:00",
+        "actual": 0.25,
+        "forecast": 0.25,
+        "previous": 0.25
+      }
+    },
+    {
+      "value_id": "110911",
+      "set": {
+        "released_at": "2020-06-02T11:30:00+07:00",
+        "actual": 0.25,
+        "forecast": 0.25,
+        "previous": 0.25
+      }
+    },
+    {
+      "value_id": "110906",
+      "set": {
+        "released_at": "2020-05-05T11:30:00+07:00",
+        "actual": 0.25,
+        "forecast": 0.25,
+        "previous": 0.25
+      }
+    },
+    {
+      "value_id": "110902",
+      "set": {
+        "released_at": "2020-04-07T11:30:00+07:00",
+        "actual": 0.25,
+        "forecast": 0.25,
+        "previous": 0.25
+      }
+    },
+    {
+      "value_id": "130180",
+      "set": {
+        "released_at": "2020-03-19T10:30:00+07:00",
+        "actual": 0.25,
+        "forecast": null,
+        "previous": 0.5
+      }
+    },
+    {
+      "value_id": "110897",
+      "set": {
+        "released_at": "2020-03-03T10:30:00+07:00",
+        "actual": 0.5,
+        "forecast": 0.75,
+        "previous": 0.75
+      }
+    },
+    {
+      "value_id": "110892",
+      "set": {
+        "released_at": "2020-02-04T10:30:00+07:00",
+        "actual": 0.75,
+        "forecast": 0.75,
+        "previous": 0.75
+      }
+    },
+    {
+      "value_id": "66022",
+      "set": {
+        "released_at": "2019-12-03T10:30:00+07:00",
+        "actual": 0.75,
+        "forecast": 0.75,
+        "previous": 0.75
+      }
+    },
+    {
+      "value_id": "66018",
+      "set": {
+        "released_at": "2019-11-05T10:30:00+07:00",
+        "actual": 0.75,
+        "forecast": 0.75,
+        "previous": 0.75
+      }
+    },
+    {
+      "value_id": "66014",
+      "set": {
+        "released_at": "2019-10-01T11:30:00+07:00",
+        "actual": 0.75,
+        "forecast": 0.75,
+        "previous": 1.0
+      }
+    },
+    {
+      "value_id": "66011",
+      "set": {
+        "released_at": "2019-09-03T11:30:00+07:00",
+        "actual": 1.0,
+        "forecast": 1.0,
+        "previous": 1.0
+      }
+    },
+    {
+      "value_id": "66007",
+      "set": {
+        "released_at": "2019-08-06T11:30:00+07:00",
+        "actual": 1.0,
+        "forecast": 1.0,
+        "previous": 1.0
+      }
+    },
+    {
+      "value_id": "66004",
+      "set": {
+        "released_at": "2019-07-02T11:30:00+07:00",
+        "actual": 1.0,
+        "forecast": 1.0,
+        "previous": 1.25
+      }
+    },
+    {
+      "value_id": "66001",
+      "set": {
+        "released_at": "2019-06-04T11:30:00+07:00",
+        "actual": 1.25,
+        "forecast": 1.25,
+        "previous": 1.5
+      }
+    },
+    {
+      "value_id": "65997",
+      "set": {
+        "released_at": "2019-05-07T11:30:00+07:00",
+        "actual": 1.5,
+        "forecast": 1.5,
+        "previous": 1.5
+      }
+    },
+    {
+      "value_id": "65993",
+      "set": {
+        "released_at": "2019-04-02T10:30:00+07:00",
+        "actual": 1.5,
+        "forecast": 1.5,
+        "previous": 1.5
+      }
+    },
+    {
+      "value_id": "65990",
+      "set": {
+        "released_at": "2019-03-05T10:30:00+07:00",
+        "actual": 1.5,
+        "forecast": 1.5,
+        "previous": 1.5
+      }
+    },
+    {
+      "value_id": "65986",
+      "set": {
+        "released_at": "2019-02-05T10:30:00+07:00",
+        "actual": 1.5,
+        "forecast": 1.5,
+        "previous": 1.5
+      }
+    },
+    {
+      "value_id": "51404",
+      "set": {
+        "released_at": "2018-12-04T10:30:00+07:00",
+        "actual": 1.5,
+        "forecast": 1.5,
+        "previous": 1.5
+      }
+    },
+    {
+      "value_id": "51400",
+      "set": {
+        "released_at": "2018-11-06T10:30:00+07:00",
+        "actual": 1.5,
+        "forecast": 1.5,
+        "previous": 1.5
+      }
+    },
+    {
+      "value_id": "51396",
+      "set": {
+        "released_at": "2018-10-02T11:30:00+07:00",
+        "actual": 1.5,
+        "forecast": 1.5,
+        "previous": 1.5
+      }
+    },
+    {
+      "value_id": "51392",
+      "set": {
+        "released_at": "2018-09-04T11:30:00+07:00",
+        "actual": 1.5,
+        "forecast": 1.5,
+        "previous": 1.5
+      }
+    },
+    {
+      "value_id": "51388",
+      "set": {
+        "released_at": "2018-08-07T11:30:00+07:00",
+        "actual": 1.5,
+        "forecast": 1.5,
+        "previous": 1.5
+      }
+    },
+    {
+      "value_id": "51385",
+      "set": {
+        "released_at": "2018-07-03T11:30:00+07:00",
+        "actual": 1.5,
+        "forecast": 1.5,
+        "previous": 1.5
+      }
+    },
+    {
+      "value_id": "51351",
+      "set": {
+        "released_at": "2018-06-05T11:30:00+07:00",
+        "actual": 1.5,
+        "forecast": 1.5,
+        "previous": 1.5
+      }
+    },
+    {
+      "value_id": "51347",
+      "set": {
+        "released_at": "2018-05-01T11:30:00+07:00",
+        "actual": 1.5,
+        "forecast": 1.5,
+        "previous": 1.5
+      }
+    },
+    {
+      "value_id": "51343",
+      "set": {
+        "released_at": "2018-04-03T11:30:00+07:00",
+        "actual": 1.5,
+        "forecast": 1.5,
+        "previous": 1.5
+      }
+    },
+    {
+      "value_id": "51339",
+      "set": {
+        "released_at": "2018-03-06T10:30:00+07:00",
+        "actual": 1.5,
+        "forecast": 1.5,
+        "previous": 1.5
+      }
+    },
+    {
+      "value_id": "51335",
+      "set": {
+        "released_at": "2018-02-06T10:30:00+07:00",
+        "actual": 1.5,
+        "forecast": 1.5,
+        "previous": 1.5
+      }
+    },
+    {
+      "value_id": "51331",
+      "set": {
+        "released_at": "2017-12-05T10:30:00+07:00",
+        "actual": 1.5,
+        "forecast": 1.5,
+        "previous": 1.5
+      }
+    },
+    {
+      "value_id": "51286",
+      "set": {
+        "released_at": "2017-11-07T10:30:00+07:00",
+        "actual": 1.5,
+        "forecast": 1.5,
+        "previous": 1.5
+      }
+    },
+    {
+      "value_id": "50108",
+      "set": {
+        "released_at": "2017-10-03T10:30:00+07:00",
+        "actual": 1.5,
+        "forecast": 1.5,
+        "previous": 1.5
+      }
+    },
+    {
+      "value_id": "50107",
+      "set": {
+        "released_at": "2017-09-05T11:30:00+07:00",
+        "actual": 1.5,
+        "forecast": 1.5,
+        "previous": 1.5
+      }
+    },
+    {
+      "value_id": "50106",
+      "set": {
+        "released_at": "2017-08-01T11:30:00+07:00",
+        "actual": 1.5,
+        "forecast": 1.5,
+        "previous": 1.5
+      }
+    },
+    {
+      "value_id": "50105",
+      "set": {
+        "released_at": "2017-07-04T11:30:00+07:00",
+        "actual": 1.5,
+        "forecast": 1.5,
+        "previous": 1.5
+      }
+    },
+    {
+      "value_id": "50104",
+      "set": {
+        "released_at": "2017-06-06T11:30:00+07:00",
+        "actual": 1.5,
+        "forecast": 1.5,
+        "previous": 1.5
+      }
+    },
+    {
+      "value_id": "50103",
+      "set": {
+        "released_at": "2017-05-02T11:30:00+07:00",
+        "actual": 1.5,
+        "forecast": 1.5,
+        "previous": 1.5
+      }
+    },
+    {
+      "value_id": "50102",
+      "set": {
+        "released_at": "2017-04-04T11:30:00+07:00",
+        "actual": 1.5,
+        "forecast": 1.5,
+        "previous": 1.5
+      }
+    },
+    {
+      "value_id": "50101",
+      "set": {
+        "released_at": "2017-03-07T10:30:00+07:00",
+        "actual": 1.5,
+        "forecast": 1.5,
+        "previous": 1.5
+      }
+    },
+    {
+      "value_id": "50100",
+      "set": {
+        "released_at": "2017-02-07T10:30:00+07:00",
+        "actual": 1.5,
+        "forecast": 1.5,
+        "previous": 1.5
+      }
+    },
+    {
+      "value_id": "50099",
+      "set": {
+        "released_at": "2016-12-06T10:30:00+07:00",
+        "actual": 1.5,
+        "forecast": 1.5,
+        "previous": 1.5
+      }
+    },
+    {
+      "value_id": "50098",
+      "set": {
+        "released_at": "2016-11-01T10:30:00+07:00",
+        "actual": 1.5,
+        "forecast": 1.5,
+        "previous": 1.5
+      }
+    },
+    {
+      "value_id": "50097",
+      "set": {
+        "released_at": "2016-10-04T10:30:00+07:00",
+        "actual": 1.5,
+        "forecast": 1.5,
+        "previous": 1.5
+      }
+    },
+    {
+      "value_id": "50096",
+      "set": {
+        "released_at": "2016-09-06T11:30:00+07:00",
+        "actual": 1.5,
+        "forecast": 1.5,
+        "previous": 1.5
+      }
+    },
+    {
+      "value_id": "50095",
+      "set": {
+        "released_at": "2016-08-02T11:30:00+07:00",
+        "actual": 1.5,
+        "forecast": 1.5,
+        "previous": 1.75
+      }
+    },
+    {
+      "value_id": "50094",
+      "set": {
+        "released_at": "2016-07-05T11:30:00+07:00",
+        "actual": 1.75,
+        "forecast": 1.75,
+        "previous": 1.75
+      }
+    },
+    {
+      "value_id": "50093",
+      "set": {
+        "released_at": "2016-06-07T11:30:00+07:00",
+        "actual": 1.75,
+        "forecast": 1.75,
+        "previous": 1.75
+      }
+    },
+    {
+      "value_id": "50092",
+      "set": {
+        "released_at": "2016-05-03T11:30:00+07:00",
+        "actual": 1.75,
+        "forecast": 2.0,
+        "previous": 2.0
+      }
+    },
+    {
+      "value_id": "50091",
+      "set": {
+        "released_at": "2016-04-05T11:30:00+07:00",
+        "actual": 2.0,
+        "forecast": 2.0,
+        "previous": 2.0
+      }
+    },
+    {
+      "value_id": "50090",
+      "set": {
+        "released_at": "2016-03-01T10:30:00+07:00",
+        "actual": 2.0,
+        "forecast": 2.0,
+        "previous": 2.0
+      }
+    },
+    {
+      "value_id": "50089",
+      "set": {
+        "released_at": "2016-02-02T10:30:00+07:00",
+        "actual": 2.0,
+        "forecast": 2.0,
+        "previous": 2.0
+      }
+    },
+    {
+      "value_id": "50088",
+      "set": {
+        "released_at": "2015-12-01T10:30:00+07:00",
+        "actual": 2.0,
+        "forecast": 2.0,
+        "previous": 2.0
+      }
+    },
+    {
+      "value_id": "50087",
+      "set": {
+        "released_at": "2015-11-03T10:30:00+07:00",
+        "actual": 2.0,
+        "forecast": 2.0,
+        "previous": 2.0
+      }
+    },
+    {
+      "value_id": "50086",
+      "set": {
+        "released_at": "2015-10-06T10:30:00+07:00",
+        "actual": 2.0,
+        "forecast": 2.0,
+        "previous": 2.0
+      }
+    },
+    {
+      "value_id": "50085",
+      "set": {
+        "released_at": "2015-09-01T11:30:00+07:00",
+        "actual": 2.0,
+        "forecast": 2.0,
+        "previous": 2.0
+      }
+    },
+    {
+      "value_id": "50084",
+      "set": {
+        "released_at": "2015-08-04T11:30:00+07:00",
+        "actual": 2.0,
+        "forecast": 2.0,
+        "previous": 2.0
+      }
+    },
+    {
+      "value_id": "50083",
+      "set": {
+        "released_at": "2015-07-07T11:30:00+07:00",
+        "actual": 2.0,
+        "forecast": 2.0,
+        "previous": 2.0
+      }
+    },
+    {
+      "value_id": "50082",
+      "set": {
+        "released_at": "2015-06-02T11:30:00+07:00",
+        "actual": 2.0,
+        "forecast": 2.0,
+        "previous": 2.0
+      }
+    },
+    {
+      "value_id": "50081",
+      "set": {
+        "released_at": "2015-05-05T11:30:00+07:00",
+        "actual": 2.0,
+        "forecast": 2.0,
+        "previous": 2.25
+      }
+    },
+    {
+      "value_id": "50080",
+      "set": {
+        "released_at": "2015-04-07T11:30:00+07:00",
+        "actual": 2.25,
+        "forecast": 2.25,
+        "previous": 2.25
+      }
+    },
+    {
+      "value_id": "50079",
+      "set": {
+        "released_at": "2015-03-03T10:30:00+07:00",
+        "actual": 2.25,
+        "forecast": 2.0,
+        "previous": 2.25
+      }
+    },
+    {
+      "value_id": "50078",
+      "set": {
+        "released_at": "2015-02-03T10:30:00+07:00",
+        "actual": 2.25,
+        "forecast": 2.5,
+        "previous": 2.5
+      }
+    }
+  ]
+}

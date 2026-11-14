@@ -59,11 +59,13 @@ def _currency_year(store, broker, currency, year, revision, now_ms):
         _, country, event_id, unit, multiplier = skey
         if event_id is None:
             continue
-        rows = store.db.execute('''SELECT value_id FROM events WHERE source_id=? AND currency=?
+        corrected_ids = store.overrides.actual_ids(event_id, currency, country)
+        corrected = f" OR value_id IN ({','.join('?' for _ in corrected_ids)})" if corrected_ids else ''
+        rows = store.db.execute(f'''SELECT value_id FROM events WHERE source_id=? AND currency=?
             AND CAST(json_extract(payload,'$.event_id') AS TEXT)=? AND server_time<?
             AND json_extract(payload,'$.country_code')=? AND json_extract(payload,'$.unit')=?
-            AND json_extract(payload,'$.multiplier')=? AND json_extract(payload,'$.actual') IS NOT NULL
-            ORDER BY server_time DESC,value_id DESC LIMIT 3''', (broker,currency,event_id,lo,country,unit,multiplier))
+            AND json_extract(payload,'$.multiplier')=? AND (json_extract(payload,'$.actual') IS NOT NULL{corrected})
+            ORDER BY server_time DESC,value_id DESC LIMIT 3''', (broker,currency,event_id,lo,country,unit,multiplier,*corrected_ids))
         for row in rows:
             ids.add(row[0]); keys_by_id[row[0]] = skey
     vintages = defaultdict(list)

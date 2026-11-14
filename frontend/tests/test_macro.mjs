@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 import React from 'react'
 import { createServer } from 'vite'
 import { Window } from 'happy-dom'
+import fs from 'node:fs'
 
 // Terminal contracts: production hooks/dialog/data; no browser or visual audit.
 const dom = new Window({ url: 'http://localhost:5173' })
@@ -28,6 +29,15 @@ const reply = (request, body) => React.act(async () => request.resolve({ ok: tru
 const reactProps = element => element[Object.getOwnPropertyNames(element).find(key => key.startsWith('__reactProps$'))]
 try {
   const { macroHistory, macroUpcoming, macroPlot, macroNumberLabels, supportsMacro, macroMetrics, macroValue } = await server.ssrLoadModule('./src/market-data/indicators/macro/macro-data.ts')
+  const rba = JSON.parse(fs.readFileSync(new URL('../../config/calendar-overrides/AUD-RBA-rate.json', import.meta.url), 'utf8'))
+  const latestRba = rba.releases[0], rbaAt = Date.parse(latestRba.set.released_at), rbaChart = rbaAt / 1000 + 7200
+  const rbaKey = 'AUD:AU:36030008'
+  const correctedRba = event({ event_id: rba.event_id, value_id: latestRba.value_id, currency: 'AUD', country_code: 'AU',
+    time_mode: 0, actual: latestRba.set.actual, forecast: latestRba.set.forecast, release_at: rbaAt, chart_time_seconds: rbaChart })
+  const rbaHistory = macroHistory([correctedRba], rbaAt, 'actual', [rbaKey])[rbaKey]
+  assert.deepEqual(macroPlot([{ time: rbaChart }], rbaHistory, 3600, true).dots, [{ time: rbaChart, value: 4.85 }], 'Corrected RBA releases produce MFDI dots')
+  assert.equal(macroHistory([correctedRba], rbaAt, 'forecast', [rbaKey])[rbaKey][0].value, 4.85)
+  assert.deepEqual(macroHistory([{ ...correctedRba, time_mode: 1, release_at: null, chart_time_seconds: null }], rbaAt, 'actual', [rbaKey])[rbaKey], [], 'Uncorrected date-only rows still need timing')
   const macroEventIds = Object.values(macroMetrics).map(metric => metric.eventId)
   const { defaultMacroPreferences, readMacroPreferences, saveMacroPreferences, macroAxis, selectMacroAxis, selectMacroMetric, toggleMacroMetric, toggleMacroForecast, toggleMacroNumbers } = await server.ssrLoadModule('./src/market-data/indicators/macro/macro-preferences.ts')
   assert.ok(supportsMacro('USDX')); assert.ok(supportsMacro('USDX.a'))
