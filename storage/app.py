@@ -29,6 +29,7 @@ from .detail_registry import resolve_scope
 from .currency_ledger import ledger_snapshot
 from .market_watch_daily import DailyMarketWatch
 from .cross_asset import CrossAssetHistory
+from .cross_asset_intraday import CrossAssetIntraday
 from .cross_asset_wildcards import WildcardSave, wildcard_snapshot, save_wildcards
 from .fed_forecasts import read_forecasts
 
@@ -48,6 +49,15 @@ class CrossAssetRequest(BaseModel):
     symbols: list[str] = Field(max_length=128)
     year: int = Field(ge=2015, le=2100)
     retry: bool = False
+
+class CrossAssetIntradayRequest(BaseModel):
+    source_id: str = Field(min_length=1, max_length=160)
+    generation: int = Field(ge=0)
+    symbols: list[str] = Field(max_length=128)
+    from_utc: int = Field(ge=1420070400)
+    through_utc: int = Field(ge=1420070400)
+    retry: bool = False
+
 
 # The eight-currency Alert catalog exceeds the original pair-only 64-series cap.
 # Keep a bound below SQLite's conservative 999-parameter limit, including dates.
@@ -75,6 +85,7 @@ def create_app(directory=None, run_collector=True, highlights_path=HIGHLIGHTS_PA
     app = FastAPI(title="Fyodor Calendar Storage", version="1.1.0", lifespan=lifespan)
     daily_market = DailyMarketWatch()
     cross_asset = CrossAssetHistory()
+    cross_asset_intraday = CrossAssetIntraday()
     wildcards_directory = (directory or data_directory()) / 'cross-asset-wildcards'
     details_directory = (directory or data_directory()) / 'currency-details'
 
@@ -137,6 +148,14 @@ def create_app(directory=None, run_collector=True, highlights_path=HIGHLIGHTS_PA
             return daily_market.snapshot(request.source_id, request.generation, request.symbols, request.selected, request.date, request.retry)
         except (ValueError, OSError, subprocess.TimeoutExpired) as error:
             raise HTTPException(503, 'Pepperstone daily candles unavailable') from error
+
+    @app.post('/api/v1/cross-asset/intraday')
+    def intraday_history(request: CrossAssetIntradayRequest):
+        try:
+            return cross_asset_intraday.snapshot(request.source_id, request.generation, request.symbols,
+                request.from_utc, request.through_utc, request.retry)
+        except (ValueError, OSError, subprocess.TimeoutExpired) as error:
+            raise HTTPException(503, 'Intraday history unavailable: ' + str(error)) from error
 
     @app.post('/api/v1/cross-asset/history')
     def cross_asset_history(request: CrossAssetRequest):

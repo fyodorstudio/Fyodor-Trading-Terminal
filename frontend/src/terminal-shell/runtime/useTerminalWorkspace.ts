@@ -44,6 +44,7 @@ export function useTerminalWorkspace() {
   const [researchActive, setResearchActive] = useState(false)
   const [recentEventsOpen, setRecentEventsOpen] = useState(false)
   const [detailOpen, setDetailOpen] = useState(false)
+  const [rankingOpen, setRankingOpen] = useState(false)
   const [inspectorFromLedger, setInspectorFromLedger] = useState(false)
   const [researchSeed, setResearchSeed] = useState<ResearchSeed | null>(null)
   const [researchError, setResearchError] = useState<string | null>(null)
@@ -209,18 +210,25 @@ export function useTerminalWorkspace() {
   const toggleRecentEvents = useCallback(() => {
     setRecentEventsOpen(current => !current)
     setDetailOpen(false)
+    setRankingOpen(false)
     setResearchActive(false)
   }, [])
   const closeDetail = useCallback(() => setDetailOpen(false), [])
   const openDetail = useCallback(() => {
     setDetailOpen(true)
+    setRankingOpen(false)
     setRecentEventsOpen(false)
     setResearchActive(false)
   }, [])
   const toggleDetail = useCallback(() => {
     setDetailOpen(current => !current)
+    setRankingOpen(false)
     setRecentEventsOpen(false)
     setResearchActive(false)
+  }, [])
+  const closeRanking = useCallback(() => setRankingOpen(false), [])
+  const toggleRanking = useCallback(() => {
+    setRankingOpen(current => !current); setRecentEventsOpen(false); setDetailOpen(false); setResearchActive(false)
   }, [])
   const viewDetailEvent = useCallback((reading: DetailReading) => {
     if (!brokerId?.startsWith('Pepperstone-')) return
@@ -231,6 +239,7 @@ export function useTerminalWorkspace() {
   const selectResearchTool = () => {
     setRecentEventsOpen(false)
     setDetailOpen(false)
+    setRankingOpen(false)
     setActiveDrawingTool(null); setSelectedDrawingId(null); setResearchError(null)
     setResearchActive(current => !current)
   }
@@ -329,6 +338,6 @@ export function useTerminalWorkspace() {
     selectCrosshair, deletePairDrawings, toggleBottomDock, exitDrawingMode, toggleDrawingToolbar,
     renderChartOverlay, sourceState, sourceLabel, researchActive, researchSeed, researchError,
     selectResearchTool, closeResearch, recentEventsOpen, toggleRecentEvents, closeRecentEvents, alertFocus, viewReleaseInAlert,
-    detailOpen, toggleDetail, closeDetail, openDetail, viewDetailEvent, viewLedgerEvent, viewMacroRelease, returnToLedger: inspectorFromLedger ? returnToLedger : undefined,
+    rankingOpen, toggleRanking, closeRanking, detailOpen, toggleDetail, closeDetail, openDetail, viewDetailEvent, viewLedgerEvent, viewMacroRelease, returnToLedger: inspectorFromLedger ? returnToLedger : undefined,
     plannedTrade, handlePlanChange, latestBarTime, registeredArrows, selectPinnedArrow, priceAlerts, leftDockTab, setLeftDockTab }
 }

@@ -1,28 +1,30 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent } from 'react'
-import { formatHeatmapChange, formatHeatmapOHLC, heatmapOHLC, orderHeatmapGroups, type HeatmapPeriod, type HeatmapPoint, type HeatmapRow } from './heatmap-model'
+import { formatHeatmapChange, formatHeatmapOHLC, heatmapOHLC, orderHeatmapGroups, heatmapFields, type HeatmapField, type HeatmapPeriod, type HeatmapPoint, type HeatmapRow } from './heatmap-model'
 import { wildcardNotes, type WildcardRow } from './wildcards-model'
 
-const labelWidth = 184, columnWidth = 276, rowHeight = 30, headerHeight = 42
+const labelWidth = 184, rowHeight = 30, headerHeight = 42
 type Memory = Map<string, { left: number; top: number }>
 type TapeRow = { group: string; row: HeatmapRow | null; wildcard?: WildcardRow; add?: boolean }
 
 function cellTitle(row: HeatmapRow, period: HeatmapPeriod, point: HeatmapPoint | undefined, stale: boolean) {
   if (period.future) return `${row.label} · ${period.day} · Future period`
   if (!point || point.value === null) return `${row.label} · ${period.day} · ${point?.reason || 'No candle or history unavailable'}${row.id.startsWith('basket:') ? ` · ${point?.coverage ?? 0}/7 counterparts` : ''}`
-  const prices = point.start !== null ? `\nPrevious close ${point.start} → ${point.close}\nRange ${point.low}–${point.high}` : '\nEqual-weight geometric basket · 7/7 counterparts'
+  const prices = point.start !== null ? `\n${period.caption ? 'Anchor baseline' : 'Previous close'} ${point.start} → ${point.close}\nRange ${point.low}–${point.high}` : '\nEqual-weight geometric basket · 7/7 counterparts'
   const extremes = point.start === null ? 'Synthetic basket O/H/L unavailable; only net C is calculated from the seven pair endpoints.'
-    : `${formatHeatmapOHLC(point)} · Open/high/low/close percentage changes versus previous close; H/L need not occur together.`
+    : `${formatHeatmapOHLC(point)} · Open/high/low/close percentage changes versus ${period.caption ? 'the anchor baseline' : 'previous close'}; H/L need not occur together.`
   return `${row.label} · ${period.day}${period.partial ? ' · In progress' : ''}\n${formatHeatmapChange(point.value)} · ${point.from} → ${point.through}${prices}\n${extremes}\nRelative to prior volatility: ${formatHeatmapChange(point.relative, '×')}${point.reason ? `\n${point.reason}` : ''}${stale ? '\nReading is stale; refresh or check the connection' : ''}`
 }
 
 export const HeatmapTimeline = memo(function HeatmapTimeline({ rows, periods, selected, shade, focusRequest, memory, memoryKey, observedAt, onHover, onPin, groupOrder, collapsed, onToggleGroup,
-  wildcards, wildcardsReady, onAddWildcard, onEditWildcard, onManageWildcards, copyRange }: {
+  wildcards, wildcardsReady, onAddWildcard, onEditWildcard, onManageWildcards, copyRange, fields = heatmapFields, showWildcards = true }: {
   rows: HeatmapRow[]; periods: HeatmapPeriod[]; selected: string; shade: 'return' | 'relative'; focusRequest: number
   memory: Memory; memoryKey: string; observedAt: number; onHover: (day: string) => void; onPin: (day: string, extend?: boolean) => void
   groupOrder: string[]; collapsed: string[]; onToggleGroup: (group: string) => void
   wildcards: WildcardRow[]; wildcardsReady: boolean; onAddWildcard: () => void; onEditWildcard: (id: string, day: string) => void; onManageWildcards: () => void
+  fields?: readonly HeatmapField[]; showWildcards?: boolean
   copyRange: { from: string; to: string } | null
 }) {
+  const columnWidth = 12 + 66 * fields.length
   const viewport = useRef<HTMLDivElement>(null), frame = useRef(0), pendingScroll = useRef<{ left: number; top: number } | null>(null)
   const drag = useRef<{ id: number; x: number; y: number; left: number; top: number; active: boolean } | null>(null), swallow = useRef(false)
   const swallowTimer = useRef(0)
@@ -30,9 +32,9 @@ export const HeatmapTimeline = memo(function HeatmapTimeline({ rows, periods, se
   const groups = useMemo(() => orderHeatmapGroups(rows.map(r => r.group), groupOrder), [rows, groupOrder])
   const tapeRows = useMemo<TapeRow[]>(() => [...groups.flatMap(group => [{ group, row: null } as TapeRow,
     ...(!collapsed.includes(group) ? rows.filter(r => r.group === group).map(row => ({ group, row })) : [])]),
-    { group: 'Wildcards', row: null }, ...(!collapsed.includes('Wildcards') ? [
+    ...(showWildcards ? [{ group: 'Wildcards', row: null }, ...(!collapsed.includes('Wildcards') ? [
       ...wildcards.filter(row => !row.archived).map(wildcard => ({ group: 'Wildcards', row: null, wildcard })),
-      { group: 'Wildcards', row: null, add: true }] : [])], [rows, groups, collapsed, wildcards])
+      { group: 'Wildcards', row: null, add: true }] : [])] : [])], [rows, groups, collapsed, wildcards, showWildcards])
   const measure = useCallback(() => {
     const el = viewport.current
     if (!el) return
@@ -65,7 +67,7 @@ export const HeatmapTimeline = memo(function HeatmapTimeline({ rows, periods, se
     el.scrollLeft = saved?.left ?? Math.max(0, (index - 3) * columnWidth)
     el.scrollTop = saved?.top ?? 0
     measure()
-  }, [memory, memoryKey, periods, focusRequest, measure])
+  }, [memory, memoryKey, periods, focusRequest, measure, columnWidth])
   useEffect(() => {
     const el = viewport.current
     if (!el) return
@@ -115,13 +117,13 @@ export const HeatmapTimeline = memo(function HeatmapTimeline({ rows, periods, se
     onScroll={queue} onPointerDown={down} onPointerMove={move} onPointerUp={finish} onPointerCancel={finish} onLostPointerCapture={finish}
     onClickCapture={e => { if (swallow.current) { e.preventDefault(); e.stopPropagation(); swallow.current = false } }}>
     <div className="heatmap-tape" style={{ gridTemplateColumns: `${labelWidth}px repeat(${periods.length}, ${columnWidth}px)`,
-      gridTemplateRows: `${headerHeight}px repeat(${tapeRows.length}, ${rowHeight}px)` }}>
+      gridTemplateRows: `${headerHeight}px repeat(${tapeRows.length}, ${rowHeight}px)`, '--heat-fields': fields.length } as CSSProperties}>
       <div className="heatmap-corner">Instrument / date</div>
       {visible.map((p, i) => <button key={p.day} type="button" className={`heatmap-date${p.day === selected ? ' selected' : ''}${copyRange && p.day >= copyRange.from && p.day <= copyRange.to ? ' copy-selected' : ''}`}
-        style={{ gridColumn: first + i + 2, gridRow: 1 }} disabled={p.future} aria-pressed={p.day === selected} data-heatmap-date={p.day}
+        style={{ gridColumn: first + i + 2, gridRow: 1 }} disabled={p.future} aria-pressed={p.day === selected} title={p.caption ?? `${p.day} → ${p.end}`} data-heatmap-date={p.day}
         onMouseEnter={() => { if (!drag.current) onHover(p.day) }} onFocus={() => onHover(p.day)} onClick={event => onPin(p.day, event.shiftKey)}>
-        <span>{p.label}</span><small>{p.partial ? p.day === p.end ? 'In progress' : 'Week to date' : p.day === p.end
-          ? new Date(`${p.day}T00:00:00Z`).toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' }) : `to ${p.end.slice(5)}`}</small>
+        <span>{p.label}</span><small>{p.caption ?? (p.partial ? p.day === p.end ? 'In progress' : 'Week to date' : p.day === p.end
+          ? new Date(`${p.day}T00:00:00Z`).toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' }) : `to ${p.end.slice(5)}`)}</small>
       </button>)}
       {tapeRows.slice(top, bottom).map((entry, index) => {
         const y = top + index + 2
@@ -159,7 +161,7 @@ export const HeatmapTimeline = memo(function HeatmapTimeline({ rows, periods, se
               style={{ gridRow: y, gridColumn: first + i + 2, '--heat-strength': intensity == null ? '0%' : `${Math.round(6 + strength * 48)}%` } as CSSProperties}
               disabled={period.future} title={cellTitle(row, period, point, stale)}
               onMouseEnter={() => { if (!drag.current) onHover(period.day) }} onFocus={() => onHover(period.day)} onClick={event => onPin(period.day, event.shiftKey)}>
-              {value === null ? '—' : <span className="heatmap-ohlc">{heatmapOHLC(point).map(field => <span key={field.label} className={field.label === 'C' ? 'ohlc-close' : undefined}>
+              {value === null ? '—' : <span className="heatmap-ohlc">{heatmapOHLC(point).filter(field => fields.includes(field.label)).map(field => <span key={field.label} className={field.label === 'C' ? 'ohlc-close' : undefined}>
                 <small>{field.label}</small>{formatHeatmapChange(field.value)}</span>)}</span>}
             </button>
           })}

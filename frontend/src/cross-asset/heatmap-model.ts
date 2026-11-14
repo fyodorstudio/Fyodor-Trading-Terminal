@@ -2,13 +2,15 @@ import { majorCurrencies } from '../economic-calendar/forex/currencies'
 import { forexPair, majorForexPairs } from '../economic-calendar/forex/pairs'
 import { categoryLabels, getSymbolCategory } from '../market-data/market-watch/symbol-classification'
 
+export const heatmapFields = ['O', 'H', 'L', 'C'] as const
+export type HeatmapField = typeof heatmapFields[number]
 export type HeatmapMode = 'daily' | 'weekly'
 export type HeatmapBar = { time: number; open: number; high: number; low: number; close: number }
 export type HeatmapHistory = { schema: 1; source_id: string; generation: number; year: number; today: string
   observed_at: number; revision: string; pending: number
   symbols: Record<string, { bars: HeatmapBar[]; availability: 'available' | 'unavailable' | 'no_history' | 'not_visible'; checked_at: number }> }
 export type HeatmapInstrument = { symbol: string; description: string }
-export type HeatmapPeriod = { day: string; end: string; label: string; partial: boolean; future: boolean }
+export type HeatmapPeriod = { day: string; end: string; label: string; partial: boolean; future: boolean; caption?: string }
 export type HeatmapPoint = { value: number | null; relative: number | null; coverage: number; from: string | null; through: string | null
   start: number | null; open: number | null; close: number | null; high: number | null; low: number | null; checkedAt: number | null; reason: string }
 export type HeatmapRow = { id: string; label: string; group: string; checkedAt: number | null; points: Map<string, HeatmapPoint> }
@@ -190,11 +192,11 @@ export function heatmapOHLC(point: HeatmapPoint | undefined) {
   ] as const
 }
 
-export function formatHeatmapOHLC(point: HeatmapPoint | undefined) {
-  return heatmapOHLC(point).map(({ label, value }) => `${label} ${formatHeatmapChange(value)}`).join(' · ')
+export function formatHeatmapOHLC(point: HeatmapPoint | undefined, fields: readonly HeatmapField[] = heatmapFields) {
+  return heatmapOHLC(point).filter(field => fields.includes(field.label)).map(({ label, value }) => `${label} ${formatHeatmapChange(value)}`).join(' · ')
 }
 
-export function validHeatmapHistory(value: unknown, source: string, generation: number, year: number): value is HeatmapHistory {
+export function validHeatmapHistory(value: unknown, source: string, generation: number, year: number, maxBars = 1000): value is HeatmapHistory {
   if (!value || typeof value !== 'object') return false
   const data = value as HeatmapHistory
   const day = (s: unknown): s is string => typeof s === 'string' && /^\d{4}-\d\d-\d\d$/.test(s)
@@ -202,9 +204,14 @@ export function validHeatmapHistory(value: unknown, source: string, generation: 
   return data.schema === 1 && data.source_id === source && data.generation === generation && data.year === year
     && day(data.today) && Number.isFinite(data.observed_at) && /^[a-f0-9]{64}$/.test(data.revision)
     && Number.isInteger(data.pending) && data.pending >= 0 && data.pending <= 128
-    && !!data.symbols && typeof data.symbols === 'object' && !Array.isArray(data.symbols) && Object.keys(data.symbols).length <= 128
-    && Object.values(data.symbols).every(r => r && ['available', 'unavailable', 'no_history', 'not_visible'].includes(r.availability)
-      && Number.isFinite(r.checked_at) && Array.isArray(r.bars) && r.bars.length <= 1000
+    && validHeatmapRecords(data.symbols, maxBars)
+}
+
+export function validHeatmapRecords(value: unknown, maxBars: number): value is HeatmapHistory['symbols'] {
+  const symbols = value as HeatmapHistory['symbols']
+  return !!symbols && typeof symbols === 'object' && !Array.isArray(symbols) && Object.keys(symbols).length <= 128
+    && Object.values(symbols).every(r => r && ['available', 'unavailable', 'no_history', 'not_visible'].includes(r.availability)
+      && Number.isFinite(r.checked_at) && Array.isArray(r.bars) && r.bars.length <= maxBars
       && r.bars.every((b, i) => b && Number.isInteger(b.time) && b.time > 0 && (i === 0 || b.time > r.bars[i - 1].time)
         && ['open', 'high', 'low', 'close'].every(k => Number.isFinite(b[k as keyof HeatmapBar]) && b[k as keyof HeatmapBar] > 0)
         && b.low <= Math.min(b.open, b.close) && b.high >= Math.max(b.open, b.close)))

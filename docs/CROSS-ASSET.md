@@ -5,7 +5,20 @@ Owner: `frontend/src/cross-asset/`, `storage/cross_asset.py` and its isolated
 
 ## Interaction and independence
 
-Cross-Asset opens a resizable bottom dock beside Ledger. Daily/Weekly changes
+Cross-Asset opens a resizable bottom dock beside Ledger. The chart-header
+**Cross-Asset Ranking** button opens a standalone right panel, sharing the same
+instruments, fields, selected period/window and ranking controls. It operates with
+the bottom dock closed and reuses the warmed daily data without another polling
+owner. Events, Detail and Ranking switch the shared right panel; research drafts
+remain mounted. The right panel's **Copy displayed ranking** follows the visible
+group and sort order, independently of the general export instrument selection.
+
+**Visible fields** has independent O/H/L/C checkboxes, retaining at least one.
+Date columns resize to the number selected (78/144/210/276px), including virtual
+scroll geometry. Ranking values use the same fields; C remains the sorting and
+shading metric even while hidden. Preferences are saved per broker.
+
+Daily/Weekly changes
 column granularity, using the same D1 history. Drag horizontally, vertically or
 diagonally to browse dates and instrument rows; native scroll remains available.
 Both drag axes share one animation-frame update and clamp at the tape edges.
@@ -44,8 +57,11 @@ independent. The removed Ledger summary does not move into this dock.
 ## Copy details and manual Wildcards
 
 **Copy Details Only** copies the selected daily date or Monday–Sunday weekly range,
-category names, instrument labels and raw O/H/L/C percentage changes only. All selected
-instruments participate, independent of ranking filters and collapsed groups.
+category names, instrument labels and the chosen raw percentage fields only.
+**Copy options** defaults to Match visible fields; uncheck it to choose export
+O/H/L/C independently. Individual instrument and whole-category checkboxes choose
+which selected rows are exported, independent of ranking filters/collapsed groups.
+All instruments is the default; an explicit empty copy selection disables copying.
 Categories use the saved order; instruments sort highest to lowest within each.
 Unavailable readings and empty categories are omitted. No commentary, relative
 volatility, notes or research instructions enter this clipboard output. An empty
@@ -142,17 +158,17 @@ close of a Monday–Sunday broker week divided by the immediately preceding week
 final available close, minus one. It is not a sum of daily percentages or rolling
 five-day change. An absent preceding week stays unavailable. A live period uses
 its latest D1 reading. Tooltips expose comparison dates, raw endpoints and range.
-O/H/L/C is visible by default as one horizontal row in each available instrument
+All O/H/L/C fields are initially visible as one horizontal row in each available instrument
 cell and ranking entry. Every field is `100 * (field_price / previous_close - 1)`;
 C is the net return and remains the ranking/shading metric. Both clipboard formats
-use the same O/H/L/C order. Daily uses its own candle opening, high, low and close.
+retain O/H/L/C order while omitting fields excluded by Copy options. Daily uses its own candle opening, high, low and close.
 Weekly uses the first available day's opening, lowest low/highest high across
 that week's available D1 candles and final available close, all versus the previous
 week's final close. O includes the opening gap. H/L includes wicks; they are prices
 reached, not simultaneous readings, a path chronology or current returns. Live C
 uses the latest available reading and live extrema are provisional. Missing
 comparisons remain unavailable rather than zero. Cells retain 30px rows with
-276px date columns for the four inline fields; C is emphasized without stacking.
+date columns sized to the visible fields (276px with all four); C is emphasized without stacking.
 Different markets have different closing hours; matching dates do not imply
 simultaneous trading. Broker price returns exclude dividends, financing and
 contract adjustments and are not converted into a common investor currency.
@@ -182,6 +198,51 @@ never enter their own baseline. Zero/insufficient volatility stays unavailable a
 unshaded; the number in each cell remains the raw percentage. Raw shading saturates
 at a 2% absolute return, relative shading at 3 times volatility. Tooltips explain
 coverage; fresh reads and stale retained data are distinguished.
+
+## Intraday event windows
+
+**Event window** accepts From, Through (exclusive) and Anchor/event time in
+Jakarta (WIB), with an explicit Apply window action. Windows span 1 minute to
+72 hours, start in the past (2015 onward), and contain the anchor. Candle intervals
+are M1/M5/M15/M30/H1/H4/D1, built from M1 prices and aligned to From rather than
+silently borrowing a broker candle that straddles the chosen boundary. The final
+interval may be shorter. Today resets to the latest hour. Daily/Weekly remain
+independent; Wildcards retain their date-only daily/weekly meaning.
+
+A Window summary column precedes the chronological candles. Selecting a column
+changes the ranking; hover does not move an event selection. Each instrument's
+last completed minute close at or before Anchor is its fixed baseline for every
+O/H/L/C in the window. This also supports pre-event context, whose values are
+relative to that anchor. The actual baseline and endpoint clocks are retained,
+including Friday baselines after a weekend. Missing minutes/market closures,
+failed refresh retention and unmatched basket clocks remain explicit. Synthetic
+basket C requires all seven counterparts with identical baseline/end instants;
+O/H/L remain unavailable. Relative-volatility sorting/shading is unavailable in
+this mode because there is no comparable historical event-window baseline.
+
+Copy options offers **Window summary** or **Candle sequence**. Exports carry the
+range, interval, anchor, per-instrument baseline/end times, coverage notes and
+in-progress status, with the selected instruments and fields. Summary OHLC does
+not establish intrainterval chronology. Event research prompts request the dated
+reaction and reversals, distinguishing what was knowable before/after publication;
+they do not equate a historical reaction with a current entry opportunity.
+
+POST `/api/v1/cross-asset/intraday` takes source_id, generation, symbols (at most
+128), from_utc and through_utc in minute-aligned UTC seconds, and optional retry.
+It uses a separate bounded cache (four windows, 128 symbols per window), batches
+of twelve, the existing isolated worker/deadlines and account guards before/after
+native reads. The query includes three preceding days for baseline availability;
+each symbol is capped at 10,080 M1 bars. Native broker candle clocks resolve through
+`config/broker-clock-profiles.json`; ambiguous/unknown times are excluded, never
+assigned today's offset. Returned minute timestamps are UTC, unlike the D1 session
+labels. The inherited bridge remains untouched.
+
+Intraday polling runs only while the event view or its ranking is visible and
+connected. Pending batches continue after one second, otherwise twenty seconds;
+server historical caches refresh hourly and failures back off for a minute.
+Changes/unmount cancel requests and timeouts. Frontend caches retain four windows
+and only requested symbols. Minute grouping makes one pass per symbol, followed
+by candle aggregation; it does not rescan history for each output interval.
 
 ## Data and bounded work
 

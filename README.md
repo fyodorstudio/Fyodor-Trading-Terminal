@@ -145,8 +145,13 @@ closed and reopening restores the warmed data and browsing position. Shading off
 or movement relative to earlier volatility. **Method** explains calculations and
 coverage. O/H/L/C compares the period's open/high/low/close with the same previous
 close; C is the net return (latest reading while in progress). Synthetic baskets
-show C with O/H/L unavailable. **Copy Details Only** copies grouped O/H/L/C percentage
-changes. Use **Copy range** with From/Through, or click a date then Shift-click
+show C with O/H/L unavailable. **Visible fields** independently toggles O/H/L/C and resizes the date columns.
+**Copy Details Only** uses the selected fields and instruments; **Copy options**
+can match the display or choose separate clipboard fields.
+**Event window** adds Jakarta From/Through/Anchor inputs and M1–D1 candle
+intervals for up to 72 hours of intraday behaviour, with a fixed pre-anchor
+baseline and summary/candle-sequence exports. The chart-header **Cross-Asset
+Ranking** button shows the shared ranking in a standalone right panel. Use **Copy range** with From/Through, or click a date then Shift-click
 another, to copy several dates/weeks from the displayed year in chronological order.
 **Copy Research Prompt** bundles those changes with brief basket/return definitions
 and a concise prompt focused on current directional opportunities and remaining

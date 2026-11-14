@@ -29,7 +29,7 @@
 .heatmap-group { background: var(--surface-inset); border-bottom: 1px solid var(--border-strong); }
 .heatmap-group .heatmap-label { display: block; width: 184px; height: 30px; text-align: left; background: var(--surface-inset); border-radius: 0; border-width: 0 1px 0 0; font-size: 11px; }
 .heatmap-tape .heatmap-cell { border-radius: 0; border-width: 0 1px 1px 0; border-color: var(--border); background: var(--surface-panel); font-size: 12px; text-align: right; padding: 2px 5px; }
-.heatmap-ohlc { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: center; gap: 7px; font-size: 11px; line-height: 20px; white-space: nowrap; }
+.heatmap-ohlc { display: grid; grid-template-columns: repeat(var(--heat-fields, 4), minmax(0, 1fr)); align-items: center; gap: 7px; font-size: 11px; line-height: 20px; white-space: nowrap; }
 .heatmap-ohlc > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .heatmap-ohlc small { display: inline; font-size: 10px; font-weight: 400; margin-right: 3px; }
 .heatmap-ohlc .ohlc-close { font-weight: 600; }
@@ -98,3 +98,29 @@
 .wildcard-manage-row > div { display: flex; gap: 4px; }
 .wildcard-manage-row > .wildcard-delete { flex-basis: 100%; flex-wrap: wrap; }
 .wildcard-delete > p { flex-basis: 100%; }
+
+.cross-asset-dock[hidden] { display: none; }
+.heatmap-fields { display: inline-flex; align-items: center; gap: 7px; margin: 0; padding: 2px 6px 4px; border: 1px solid var(--border); border-radius: 4px; }
+.heatmap-fields legend { font-size: 10px; color: var(--text-muted); padding: 0 3px; }
+.heatmap-fields label { display: inline-flex; align-items: center; gap: 2px; }
+.heatmap-copy-options { position: relative; }
+.heatmap-copy-options > summary { cursor: pointer; padding: 4px 7px; border: 1px solid var(--border-strong); border-radius: 4px; }
+.heatmap-copy-options > div { position: absolute; top: 100%; right: 0; z-index: 15; width: min(330px, 75vw); max-height: 360px; overflow: auto; padding: 10px; background: var(--surface-panel); border: 1px solid var(--border-strong); box-shadow: 0 4px 16px #0004; }
+.heatmap-copy-options label { display: flex; align-items: center; gap: 6px; padding: 3px 0; }
+.heatmap-copy-options fieldset { border: 1px solid var(--border); margin: 5px 0; }
+.heatmap-copy-options .heatmap-fields label { display: inline-flex; }
+.heatmap-event-controls { display: flex; flex-wrap: wrap; flex-shrink: 0; align-items: center; gap: 7px; padding: 7px 10px; border-bottom: 1px solid var(--border); max-height: 220px; overflow: auto; }
+.heatmap-event-controls label { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.heatmap-event-controls small { color: var(--text-muted); }
+.heatmap-event-controls [role='alert'] { color: var(--negative); }
+.cross-asset-ranking-slot { flex: 0 0 clamp(300px, 30vw, 440px); min-width: 0; min-height: 0; display: flex; flex-direction: column; border-left: 1px solid var(--border-strong); background: var(--surface-panel); color: var(--text); font-size: 12px; }
+.cross-asset-ranking-slot > header { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+.cross-asset-ranking-slot > header button { color: var(--text); background: var(--surface-inset); border: 1px solid var(--border-strong); padding: 3px 8px; cursor: pointer; }
+.cross-asset-ranking-slot > div { flex: 1; min-height: 0; }
+.heatmap-ranking-panel .heatmap-ranking { flex: 1; width: auto; border-left: 0; overflow: hidden; }
+.heatmap-ranking-panel > .heatmap-toolbar { max-height: 230px; overflow: auto; }
+.heatmap-ranking-panel .heatmap-copy-options { position: static; }
+.heatmap-ranking-panel .heatmap-copy-options > div { position: static; width: auto; max-height: 180px; }
+.heatmap-ranking-panel .heatmap-ranking .heatmap-ohlc { grid-template-columns: repeat(var(--heat-fields, 4), max-content); justify-content: end; }
+
+.heatmap-date > span, .heatmap-date > small { max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }

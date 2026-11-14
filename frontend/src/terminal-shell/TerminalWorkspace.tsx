@@ -32,6 +32,7 @@ import type { IChartApi, ISeriesApi, Time } from 'lightweight-charts'
 
 export function TerminalWorkspace() {
   const [refocusRequest, setRefocusRequest] = useState(0)
+  const [rankingTarget, setRankingTarget] = useState<HTMLDivElement | null>(null)
   const [ledgerRequest, setLedgerRequest] = useState(0)
   const { volume, changeVolume, toggleVolume, volumeSettingsOpen, setVolumeSettingsOpen, rsi, changeRsi, toggleRsi, rsiSettingsOpen, setRsiSettingsOpen,
     macro, toggleMacro, macroPreferences, changeMacro, macroSettingsOpen, setMacroSettingsOpen,
@@ -43,10 +44,10 @@ export function TerminalWorkspace() {
     createDrawing, chooseDrawingTool, selectCrosshair, deletePairDrawings, toggleBottomDock, exitDrawingMode,
     toggleDrawingToolbar, renderChartOverlay, sourceState, sourceLabel, researchActive, researchSeed, researchError,
     selectResearchTool, closeResearch, recentEventsOpen, toggleRecentEvents, closeRecentEvents, alertFocus, viewReleaseInAlert,
-    detailOpen, toggleDetail, closeDetail, openDetail, viewDetailEvent, viewLedgerEvent, viewMacroRelease, returnToLedger,
+    rankingOpen, toggleRanking, closeRanking, detailOpen, toggleDetail, closeDetail, openDetail, viewDetailEvent, viewLedgerEvent, viewMacroRelease, returnToLedger,
     plannedTrade, handlePlanChange, latestBarTime, registeredArrows, selectPinnedArrow, priceAlerts, leftDockTab, setLeftDockTab } = useTerminalWorkspace()
   const [heatmapStarted, setHeatmapStarted] = useState(false)
-  if (bottomDockWindow === 'cross-asset' && !heatmapStarted) setHeatmapStarted(true)
+  if ((bottomDockWindow === 'cross-asset' || rankingOpen) && !heatmapStarted) setHeatmapStarted(true)
   const brokerOffsetSeconds = bridge.brokerOffsetSeconds
   const ledgerCurrencies = chartEventCurrencies(activeSymbol)
   const ledgerSupported = ledgerCurrencies.length === 2
@@ -115,6 +116,8 @@ export function TerminalWorkspace() {
             onToggleDrawingToolbar={toggleDrawingToolbar}
             recentEventsOpen={recentEventsOpen}
             onToggleRecentEvents={toggleRecentEvents}
+            rankingOpen={rankingOpen}
+            onToggleRanking={toggleRanking}
             detailOpen={detailOpen}
             onToggleDetail={toggleDetail}
           />
@@ -189,10 +192,14 @@ export function TerminalWorkspace() {
                 <span>{`${timeframe} · ${marketData.chartStatus === 'live' ? 'MT5 broker data' : 'Awaiting MT5 data'}`}</span>
               </div>
             </div>
-            {researchSeed && <div className="research-panel-slot" hidden={recentEventsOpen || detailOpen}>
+            {researchSeed && <div className="research-panel-slot" hidden={recentEventsOpen || detailOpen || rankingOpen}>
               <ResearchReportPanel key={JSON.stringify(researchSeed)} seed={researchSeed} brokerId={brokerId} timeDisplay={timeDisplay} onClose={closeResearch} />
             </div>}
             {recentEventsOpen && <RecentEventsPanel brokerId={brokerId} symbol={activeSymbol} onClose={closeRecentEvents} />}
+            {rankingOpen && <aside id="cross-asset-ranking-panel" className="cross-asset-ranking-slot" aria-label="Cross-Asset Ranking" onKeyDown={e=>{if(e.key==='Escape'){e.stopPropagation();closeRanking()}}}>
+              <header><strong>Cross-Asset Ranking</strong><button type="button" aria-label="Close Cross-Asset Ranking" autoFocus onClick={closeRanking}>×</button></header>
+              <div ref={setRankingTarget}/>
+            </aside>}
             {detailOpen && <CurrencyDetailPanel brokerId={brokerId} symbol={activeSymbol} onClose={closeDetail} onViewEvent={viewDetailEvent} onViewLedgerEvent={viewLedgerEvent} ledger={ledgerSupported} ledgerRequest={ledgerRequest} />}
           </div>
         </section>
@@ -204,7 +211,7 @@ export function TerminalWorkspace() {
           hidden={!bottomDockWindow}
         >
           {heatmapStarted && <div className="cross-asset-slot" hidden={bottomDockWindow !== 'cross-asset'}>
-            <CrossAssetDock symbols={marketData.symbols} broker={brokerId} generation={bridge.generation} active={bottomDockWindow === 'cross-asset'} connected={bridge.connected} />
+            <CrossAssetDock symbols={marketData.symbols} broker={brokerId} generation={bridge.generation} active={bottomDockWindow === 'cross-asset' || rankingOpen} dockActive={bottomDockWindow === 'cross-asset'} rankingTarget={rankingTarget} onCloseRanking={closeRanking} connected={bridge.connected} />
           </div>}
           {bottomDockWindow === 'currency-news' && <CurrencyNewsDock />}
           {bottomDockWindow === 'ledger' && <LedgerDock supported={ledgerSupported} broker={brokerId} onOpenDetail={openLedgerDetail} onViewEvent={viewLedgerEvent} />}

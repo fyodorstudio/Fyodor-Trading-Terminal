@@ -5,6 +5,8 @@ import sys
 import time
 from datetime import datetime, timezone
 
+from .calendar_clock import chart_utc
+
 
 def read_history(mt5, request):
     identity = request['identity']
@@ -25,7 +27,7 @@ def read_history(mt5, request):
             if symbol not in visible:
                 records[symbol] = dict(bars=[], availability='not_visible')
                 continue
-            rates = mt5.copy_rates_range(symbol, mt5.TIMEFRAME_D1,
+            rates = mt5.copy_rates_range(symbol, mt5.TIMEFRAME_M1 if request.get('intraday') else mt5.TIMEFRAME_D1,
                 datetime.fromtimestamp(request['starts'][symbol], timezone.utc),
                 datetime.fromtimestamp(request['end'], timezone.utc))
             bars = []
@@ -37,6 +39,10 @@ def read_history(mt5, request):
                             and all(math.isfinite(v) and v > 0 for v in values.values())
                             and values['low'] <= min(values['open'], values['close'])
                             and values['high'] >= max(values['open'], values['close'])):
+                        if request.get('intraday'):
+                            at = chart_utc(identity['account_server'], at)
+                            if at is None or not request['utc_from'] <= at < request['utc_through']:
+                                continue
                         bars.append(dict(time=at, **values))
             bars = sorted({b['time']: b for b in bars}.values(), key=lambda b: b['time'])
             records[symbol] = dict(bars=bars, availability='unavailable' if rates is None

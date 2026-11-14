@@ -322,6 +322,20 @@ limitations. **Refresh** rereads the selected instruments. This is price evidenc
 for your catalyst/risk-appetite research, not a measurement of capital-flow amounts.
 See [Cross-Asset](docs/CROSS-ASSET.md).
 
+For a compact view alongside the chart, use the header’s **Cross-Asset Ranking**
+button. It shares your Cross-Asset selections and works with the bottom dock closed.
+**Visible fields** lets you tick O, H, L and C independently; date columns shrink
+with the selection. In **Copy options**, leave Match visible fields enabled or
+choose separate clipboard fields and individual instruments/categories.
+
+For an after-event study, select **Event window**, enter Jakarta From/Through and
+Anchor/event time, choose a candle interval, then **Apply window**. Through is
+exclusive; windows span up to 72 hours. All changes use each instrument’s last
+completed minute close at/before the anchor, with missing coverage disclosed.
+Use Window summary to compare the full episode, or select a candle to rank that
+interval. Copy options offers a summary or chronological candle sequence for
+pasting into your agent chat. M1 history depends on the broker’s availability.
+
 ## Currency Detail
 
 Click **Detail** beside Show events for fundamentals of the active pair.
