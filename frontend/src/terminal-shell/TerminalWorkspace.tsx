@@ -11,7 +11,6 @@ import { ChartWorkspaceHeader } from './ChartWorkspaceHeader'
 import { ActivityDock, InspectorDock, LiveTerminalStatusBar } from './LiveTerminalPanels'
 import { useTerminalWorkspace } from './runtime/useTerminalWorkspace'
 import './terminal-shell.layout.css'
-import { ResearchReportPanel } from '../research/ResearchReportPanel'
 import { RecentEventsPanel } from '../recent-events/RecentEventsPanel'
 import { CurrencyDetailPanel } from '../currency-details/CurrencyDetailPanel'
 import { EventsDock } from '../events-alarms/EventsDock'
@@ -33,8 +32,7 @@ import type { IChartApi, ISeriesApi, Time } from 'lightweight-charts'
 export function TerminalWorkspace() {
   const [refocusRequest, setRefocusRequest] = useState(0)
   const [rankingTarget, setRankingTarget] = useState<HTMLDivElement | null>(null)
-  const [ledgerRequest, setLedgerRequest] = useState(0)
-  const { volume, changeVolume, toggleVolume, volumeSettingsOpen, setVolumeSettingsOpen, rsi, changeRsi, toggleRsi, rsiSettingsOpen, setRsiSettingsOpen,
+    const { volume, changeVolume, toggleVolume, volumeSettingsOpen, setVolumeSettingsOpen, rsi, changeRsi, toggleRsi, rsiSettingsOpen, setRsiSettingsOpen,
     macro, toggleMacro, macroPreferences, changeMacro, macroSettingsOpen, setMacroSettingsOpen,
     timeframe, theme, chartAppearance, timeDisplay, activeDrawingTool, selectedDrawingId, setSelectedDrawingId,
     drawingToolbarVisible, eventIconsVisible, toggleEventIcons, bottomDockWindow, dockSize, settingsOpen, setSettingsOpen, marketWatch, appendActivity,
@@ -42,17 +40,17 @@ export function TerminalWorkspace() {
     updateDrawingPoint, updateDrawingPoints, updateDrawingText, updatePositionWidth, handleDeleteDrawing,
     selectSymbol, selectTimeframe, recordChartData, changeTheme, changeChartAppearance, changeTimeDisplay,
     createDrawing, chooseDrawingTool, selectCrosshair, deletePairDrawings, toggleBottomDock, exitDrawingMode,
-    toggleDrawingToolbar, renderChartOverlay, sourceState, sourceLabel, researchActive, researchSeed, researchError,
-    selectResearchTool, closeResearch, recentEventsOpen, toggleRecentEvents, closeRecentEvents, alertFocus, viewReleaseInAlert,
-    rankingOpen, toggleRanking, closeRanking, detailOpen, toggleDetail, closeDetail, openDetail, viewDetailEvent, viewLedgerEvent, viewMacroRelease, returnToLedger,
+    toggleDrawingToolbar, renderChartOverlay, sourceState, sourceLabel,
+    recentEventsOpen, toggleRecentEvents, closeRecentEvents, alertFocus, viewReleaseInAlert,
+    rankingOpen, toggleRanking, closeRanking, detailOpen, toggleDetail, closeDetail, openDetail, viewLedgerEvent, viewMacroRelease, returnToLedger,
     plannedTrade, handlePlanChange, latestBarTime, registeredArrows, selectPinnedArrow, priceAlerts, leftDockTab, setLeftDockTab } = useTerminalWorkspace()
   const [heatmapStarted, setHeatmapStarted] = useState(false)
   if ((bottomDockWindow === 'cross-asset' || rankingOpen) && !heatmapStarted) setHeatmapStarted(true)
   const brokerOffsetSeconds = bridge.brokerOffsetSeconds
   const ledgerCurrencies = chartEventCurrencies(activeSymbol)
   const ledgerSupported = ledgerCurrencies.length === 2
-  const openLedgerDetail = useCallback(() => { setLedgerRequest(n => n + 1); openDetail() }, [openDetail])
-  const pickerScope = ledgerSupported && bottomDockWindow === 'ledger' && bars.length && brokerClockProfile(brokerId) && !activeDrawingTool && !researchActive
+  const openLedgerDetail = useCallback(() => { openDetail() }, [openDetail])
+  const pickerScope = ledgerSupported && bottomDockWindow === 'ledger' && bars.length && brokerClockProfile(brokerId) && !activeDrawingTool
     ? `${brokerId}:${activeSymbol}:${timeframe}` : null
   const renderChartWithLedger = useCallback((chartApi: IChartApi, seriesApi: ISeriesApi<'Candlestick', Time>) => <>
     {renderChartOverlay?.(chartApi, seriesApi)}
@@ -73,7 +71,7 @@ export function TerminalWorkspace() {
   const recordChartTrace = useCallback((trace: string) => appendActivity('Chart', 'Timeframe trace', trace), [appendActivity])
   return (
     <DisplayClockProvider brokerId={brokerId} brokerOffsetSeconds={brokerOffsetSeconds} preference={timeDisplay}>
-    <LedgerProvider broker={brokerId} enabled={ledgerSupported && (detailOpen || bottomDockWindow === 'ledger')} pickerScope={pickerScope} currencies={ledgerCurrencies}>
+    <LedgerProvider broker={brokerId} enabled={ledgerCurrencies.length > 0 && (detailOpen || bottomDockWindow === 'ledger')} pickerScope={pickerScope} currencies={ledgerCurrencies}>
     <div className={`terminal-shell${bottomDockWindow ? ' bottom-dock-open' : ''}`}
       style={{ '--bottom-dock-height': `${dockSize.height}px` } as CSSProperties}>
       <main className={`terminal-workspace${marketWatch.collapsed ? ' market-watch-collapsed' : ''}`}>
@@ -121,7 +119,7 @@ export function TerminalWorkspace() {
             detailOpen={detailOpen}
             onToggleDetail={toggleDetail}
           />
-          <div className="chart-research-workspace">
+          <div className="chart-workspace-row">
             <div className="chart-frame">
               <MarketChartErrorBoundary
                 symbol={activeSymbol}
@@ -181,9 +179,7 @@ export function TerminalWorkspace() {
                 onSelectCrosshair={selectCrosshair}
                 onToolChange={chooseDrawingTool}
                 onClearPair={deletePairDrawings}
-                researchActive={researchActive}
-                researchDisabled={!inspector.supported || !brokerId || !bars.length}
-                onSelectResearch={selectResearchTool}
+
                 priceAlertDisabled={!brokerId || !quote || !priceAlerts.live}
               />
               )}
@@ -192,15 +188,12 @@ export function TerminalWorkspace() {
                 <span>{`${timeframe} · ${marketData.chartStatus === 'live' ? 'MT5 broker data' : 'Awaiting MT5 data'}`}</span>
               </div>
             </div>
-            {researchSeed && <div className="research-panel-slot" hidden={recentEventsOpen || detailOpen || rankingOpen}>
-              <ResearchReportPanel key={JSON.stringify(researchSeed)} seed={researchSeed} brokerId={brokerId} timeDisplay={timeDisplay} onClose={closeResearch} />
-            </div>}
             {recentEventsOpen && <RecentEventsPanel brokerId={brokerId} symbol={activeSymbol} onClose={closeRecentEvents} />}
             {rankingOpen && <aside id="cross-asset-ranking-panel" className="cross-asset-ranking-slot" aria-label="Cross-Asset Ranking" onKeyDown={e=>{if(e.key==='Escape'){e.stopPropagation();closeRanking()}}}>
               <header><strong>Cross-Asset Ranking</strong><button type="button" aria-label="Close Cross-Asset Ranking" autoFocus onClick={closeRanking}>×</button></header>
               <div ref={setRankingTarget}/>
             </aside>}
-            {detailOpen && <CurrencyDetailPanel brokerId={brokerId} symbol={activeSymbol} onClose={closeDetail} onViewEvent={viewDetailEvent} onViewLedgerEvent={viewLedgerEvent} ledger={ledgerSupported} ledgerRequest={ledgerRequest} />}
+            {detailOpen && <CurrencyDetailPanel brokerId={brokerId} symbol={activeSymbol} onClose={closeDetail} />}
           </div>
         </section>
       </main>
@@ -218,7 +211,7 @@ export function TerminalWorkspace() {
           {bottomDockWindow === 'activity' && (
             <ActivityDock timeDisplay={timeDisplay} />
           )}
-          {(bottomDockWindow === 'external-sources' || bottomDockWindow === 'alert') && <EventsDock brokerId={brokerId} focusKey={null} focus={alertFocus} />}
+          {bottomDockWindow === 'alert' && <EventsDock brokerId={brokerId} focus={alertFocus} />}
           {bottomDockWindow === 'entry-trade' && <EntryTradePanel selectedSymbol={activeSymbol} quote={quote} quotes={marketData.symbols}
             saveStatus={registeredArrows.saveStatus} onArchiveArrow={registeredArrows.archiveArrow} importError={registeredArrows.importError} latestBarTime={latestBarTime} plan={plannedTrade} registeredArrows={registeredArrows.allArrows}
             selectedArrowId={registeredArrows.selectedArrowId} onPlanChange={handlePlanChange}
@@ -258,7 +251,6 @@ export function TerminalWorkspace() {
       {volumeSettingsOpen && <VolumeSettingsDialog preferences={volume} onSave={changeVolume} onClose={closeVolumeSettings} />}
       {macroSettingsOpen && supportsMacro(activeSymbol) && <MacroSettingsDialog preferences={macroPreferences} onSave={changeMacro} onClose={closeMacroSettings} />}
       {rsiSettingsOpen && <RsiSettingsDialog preferences={rsi} onSave={changeRsi} onClose={closeRsiSettings} />}
-      {researchError && <div className="research-range-hint" role="alert">{researchError}<button type="button" onClick={closeResearch}>Close</button></div>}
     </div>
     </LedgerProvider>
     </DisplayClockProvider>

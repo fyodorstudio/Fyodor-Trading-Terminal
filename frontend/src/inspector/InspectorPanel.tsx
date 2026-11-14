@@ -52,8 +52,8 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onVie
   const calendarLoading = view.brokerTime ? view.storage.loading : source?.status === 'awaiting-snapshot'
   const pairCurrencies: readonly string[] = inspectorPairCurrencies(symbol)
   const missingCoverage = Object.entries(view.storage.coverage).filter(([currency, coverage]) => pairCurrencies.includes(currency) && coverage.missing.length).map(([currency]) => currency)
-  const coverageDetail = view.brokerTime && missingCoverage.length > 0 ?
-    `Coverage pending for ${missingCoverage.join(' and ')} in this range; stored readings remain available.` : null
+  const coverageDetail = view.brokerTime && view.range && missingCoverage.length > 0 ?
+    `Calendar history not loaded: ${missingCoverage.join(' and ')} · ${new Date(view.range!.from).toISOString().slice(0,10)} through ${new Date(view.range!.to).toISOString().slice(0,10)}. The MT5 publisher has not supplied all dates in this range.` : null
   const unplaced = view.releases.filter((item) => item.chartTime === null).length
   const sharedPeriod = release?.events.length && release.events[0].period_seconds > 0 &&
     release.events.every((event) => event.period_seconds === release.events[0].period_seconds) ? release.events[0].period_seconds : null

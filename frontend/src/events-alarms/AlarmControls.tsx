@@ -80,16 +80,13 @@ export function AlarmControls({ alarms }: { alarms: Alarms }) {
     </div>
     <p>Invoke reminder: {data?.settings.release_minutes ?? 2} minutes before · Jakarta. Keep Windows awake.</p>
     <p>{alarmWorkerLabel(data, error)}. New events start with no alarm selected.</p>
-    {data?.migration && <details><summary>Broker migration · {data.migration.matches.length} matched · {data.migration.issues.length} need review</summary>
-      {data.migration.issues.map(issue => <p key={issue.key}>{issue.title}: {issue.reason}</p>)}
-      {!data.migration.issues.length && <p>Existing choices transferred to matching Pepperstone occurrences. Original history is preserved.</p>}
-    </details>}
+
     {(error || data?.schedule_error) && <p role="alert">{error || data?.schedule_error}</p>}
     {message && <p role="status">{message}</p>}
     {settingsOpen && data && <Settings key={JSON.stringify(data.settings)} value={data.settings} busy={busy} onSave={settings => void mutate({ action: 'settings', settings })} />}
     {data && <SoundSettings key={JSON.stringify(data.audio ?? defaultAlarmAudio)} alarms={alarms} />}
     {ringing.length > 0 && <div className="alarm-ringing" role="alert"><strong>Reminder ringing</strong>{ringing.map(job => <div key={job.id}>
-      <span>{job.title} · {job.stage === 'prepare' ? 'Prepare now' : 'Invoke now'}</span>
+      <span>{job.title} · Reminder</span>
       <button disabled={busy} onClick={() => void mutate({ action: 'dismiss', ids: [job.id] })}>Dismiss</button>
       <button disabled={busy} onClick={() => void mutate({ action: 'silence', ids: [job.id] })}>Stop sound</button>
       <button disabled={busy || job.at <= now + 300000} onClick={() => void mutate({ action: 'snooze', ids: [job.id] })}>Snooze 5 min</button>

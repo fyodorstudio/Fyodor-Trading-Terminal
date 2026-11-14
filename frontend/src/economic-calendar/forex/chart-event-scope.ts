@@ -3,7 +3,7 @@ import type { MajorCurrency } from './currencies'
 import currencyScopes from '../../../../config/chart-currency-scopes.json'
 
 // Calendar relevance is separate from tradable forex-pair identity. Never add
-// index/metal aliases to the 28-pair catalog used by research and trade journals.
+// index/metal aliases to the 28-pair catalog used by trade journals.
 const singleCurrencyScopes = currencyScopes as Record<string, readonly MajorCurrency[]>
 const chartAliases = Object.keys(singleCurrencyScopes).sort((a, b) => b.length - a.length)
   .map(alias => ({ alias, pattern: new RegExp(`^${alias}(?:[._].*|[a-z]*)$`) }))
@@ -17,8 +17,4 @@ export function chartEventSymbol(symbol: string): string | null {
 export function chartEventCurrencies(symbol: string): readonly MajorCurrency[] {
   const key = chartEventSymbol(symbol)
   return key && singleCurrencyScopes[key] || forexPairCurrencies(symbol)
-}
-export function chartEventScope(symbol: string): string | null {
-  const key = chartEventSymbol(symbol)
-  return key ? forexPair(key) ?? chartEventCurrencies(key)[0] : null
 }

@@ -11,12 +11,12 @@ bridge/mql5/compile-*.log
 .pytest_cache/
 *.egg-info/
 
-# Durable local calendar inventory, database, transfer staging and provenance.
+# Local calendar inventory, database and transfer staging.
 # Service code and setup instructions under storage/ remain tracked.
 /storage/data/
 /storage/tests/.runtime/
 
-# Personal analyst handoffs, generated locally.
+# Local reports and saved content.
 /Market Analyst Workflow/report/*
 /Market Analyst Workflow/highlights.json
 /Market Analyst Workflow/journal/
@@ -30,16 +30,16 @@ bridge/mql5/compile-*.log
 /report/
 
 # Entry Trade plans and journal are intentionally Git tracked.
-# Thesis assessments are tracked; the writer's temporary lock is local.
+# Local content locks.
 /Market Analyst Workflow/thesis/.fyodor-storage.lock
 /Market Analyst Workflow/learning/.fyodor-storage.lock
 
 /frontend/tests/.runtime/
 
-# Generated agent payloads, downloads and diagnostic logs.
+# Temporary files, downloads and diagnostic logs.
 /tmp/
 *.log
-# Retired local history stays outside active source discovery.
+# Older local content.
 /Market Analyst Workflow/learning/
 /Market Analyst Workflow/thesis/
 /Market Analyst Workflow/requests/

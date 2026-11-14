@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 @lru_cache(maxsize=1)
 def registry():
-    return json.loads((ROOT / 'config/currency-details.json').read_text(encoding='utf-8'))
+    return json.loads((ROOT / 'config/calendar-measures.json').read_text(encoding='utf-8'))
 
 
 def resolve_scope(scope):
@@ -26,10 +26,3 @@ def resolve_scope(scope):
     if not currencies or len(set(currencies)) != len(currencies) or any(c not in CURRENCIES for c in currencies):
         raise ValueError('Choose a supported currency, FX pair or chart currency index')
     return currencies
-
-
-def metric_by_id(identity):
-    metric = next((m for m in registry()['metrics'] if m['id'] == identity), None)
-    if metric is None:
-        raise ValueError('Unknown Detail metric: ' + identity)
-    return metric

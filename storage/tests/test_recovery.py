@@ -64,17 +64,6 @@ class RecoveryTests(unittest.TestCase):
             restore_directory(self.backup, self.root / "rejected")
         self.assertFalse((self.root / "rejected").exists())
 
-    def test_news_backup_restores_projection_and_immutable_history(self):
-        from storage.currency_news import NewsRefresh, news_snapshot, save_refresh
-        from storage.tests.test_currency_news import payload
-        news = self.source / 'currency-news'
-        save_refresh(NewsRefresh.model_validate(payload()), news)
-        before = news_snapshot(news)
-        backup_directory(self.source, self.backup)
-        self.assertFalse((self.backup / 'currency-news/.fyodor-storage.lock').exists())
-        restored = self.root / 'restored news'
-        restore_directory(self.backup, restored)
-        self.assertEqual(news_snapshot(restored / 'currency-news'), before)
 
     def test_active_service_lock_blocks_second_process_and_recovery(self):
         with data_lock(self.source):
@@ -98,15 +87,6 @@ class RecoveryTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(json.loads(result.stdout)["events"], 1)
 
-    def test_cli_status_reads_configured_directory_without_migration_or_write_lock(self):
-        import os
-        before = digest(self.source / "calendar.sqlite3")
-        with data_lock(self.source):
-            result = subprocess.run([sys.executable, str(Path(__file__).resolve().parents[1] / "run.py"), "status"],
-                env={**os.environ, "FYODOR_STORAGE_DATA_DIR": str(self.source)}, capture_output=True, text=True)
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(json.loads(result.stdout)["sources"][0]["events"], 1)
-        self.assertEqual(digest(self.source / "calendar.sqlite3"), before)
 
 
 if __name__ == "__main__":

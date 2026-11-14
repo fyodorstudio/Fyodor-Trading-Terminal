@@ -17,8 +17,6 @@ import { useTerminalChartOverlay } from '../chart-overlays/useTerminalChartOverl
 import type { BottomDockWindow } from '../../workspace-docking/bottom-dock/bottom-dock-window'
 import { useBottomDockSize } from '../../workspace-docking/bottom-dock/useBottomDockSize'
 import { useMarketWatchDock } from '../../workspace-docking/left-dock/useMarketWatchDock'
-import { researchRangeDates, type ResearchSeed } from '../../research/research-request'
-import { forexPair } from '../../economic-calendar/forex/pairs'
 import { getPipMultiplier, type PlannedTradeState, type RegisteredTradeArrow, type TradePriceField } from '../../entry-trade/contracts/entry-trade-types'
 import { tradeMetrics } from '../../entry-trade/dock/plan-math'
 import { useRegisteredArrows } from '../../entry-trade/storage/use-registered-arrows'
@@ -41,13 +39,10 @@ export function useTerminalWorkspace() {
   const [chartAppearance, setChartAppearance] = useState<ChartAppearance>(readChartAppearance)
   const [timeDisplay, setTimeDisplay] = useState<TimeDisplayPreference>(readTimeDisplayPreference)
   const [activeDrawingTool, setActiveDrawingTool] = useState<DrawingToolId | null>(null)
-  const [researchActive, setResearchActive] = useState(false)
   const [recentEventsOpen, setRecentEventsOpen] = useState(false)
   const [detailOpen, setDetailOpen] = useState(false)
   const [rankingOpen, setRankingOpen] = useState(false)
   const [inspectorFromLedger, setInspectorFromLedger] = useState(false)
-  const [researchSeed, setResearchSeed] = useState<ResearchSeed | null>(null)
-  const [researchError, setResearchError] = useState<string | null>(null)
   const [selectedDrawingId, setSelectedDrawingId] = useState<string | null>(null)
   const [drawingToolbarVisible, setDrawingToolbarVisible] = useState<boolean>(readDrawingToolbarVisible)
   const [eventIconsVisible, setEventIconsVisible] = useState(() => readEventIconsVisible(readInspectorPreferences(selectedSymbol).showSymbols))
@@ -81,12 +76,6 @@ export function useTerminalWorkspace() {
   const enablePriceAlertSound = priceAlerts.enableSound
   const priceAlertSoundEnabled = priceAlerts.playSound
   const openMarketWatch = marketWatch.open
-  const researchContextKey = `${brokerId}:${timeDisplay.mode}:${timeDisplay.utcOffsetMinutes}`
-  const [savedResearchContext, setSavedResearchContext] = useState(researchContextKey)
-  if (savedResearchContext !== researchContextKey) {
-    setSavedResearchContext(researchContextKey)
-    setResearchActive(false); setResearchSeed(null); setResearchError(null)
-  }
   const inspector = useInspector({ symbol: activeSymbol, bars, timeframe, timeDisplay,
     clockOffsetMs: 0, brokerId, eventIconsVisible,
     brokerOffsetSeconds: bridge.brokerOffsetSeconds, focusActive: bottomDockWindow === 'inspector' })
@@ -119,7 +108,6 @@ export function useTerminalWorkspace() {
   const selectSymbol = useCallback((symbol: string) => {
     if (symbol === selectedSymbol) return
     setSelectedSymbol(symbol)
-    setResearchActive(false); setResearchError(null)
     setSelectedDrawingId(null)
     appendActivity('Market Watch', 'Symbol selected', symbol)
   }, [selectedSymbol, appendActivity])
@@ -127,7 +115,6 @@ export function useTerminalWorkspace() {
   const selectTimeframe = useCallback((nextTimeframe: ChartTimeframe) => {
     if (nextTimeframe === timeframe) return
     setTimeframe(nextTimeframe)
-    setResearchActive(false); setResearchError(null)
     setSelectedDrawingId(null)
     appendActivity('Chart', 'Timeframe selected', `${activeSymbol} ${nextTimeframe}`)
   }, [timeframe, activeSymbol, appendActivity])
@@ -174,13 +161,11 @@ export function useTerminalWorkspace() {
       setLeftDockTab('price-alerts'); openMarketWatch()
       if (priceAlertSoundEnabled) void enablePriceAlertSound()
     }
-    setResearchActive(false)
     setActiveDrawingTool(tool)
     setSelectedDrawingId(null)
   }
 
   const selectCrosshair = () => {
-    setResearchActive(false)
     setActiveDrawingTool(null)
     setSelectedDrawingId(null)
   }
@@ -202,54 +187,28 @@ export function useTerminalWorkspace() {
       return next
     })
     setActiveDrawingTool(null)
-    setResearchActive(false)
   }, [appendActivity])
-  const cancelResearch = useCallback(() => setResearchActive(false), [])
-  const closeResearch = useCallback(() => { setResearchSeed(null); setResearchError(null) }, [])
   const closeRecentEvents = useCallback(() => setRecentEventsOpen(false), [])
   const toggleRecentEvents = useCallback(() => {
     setRecentEventsOpen(current => !current)
     setDetailOpen(false)
     setRankingOpen(false)
-    setResearchActive(false)
   }, [])
   const closeDetail = useCallback(() => setDetailOpen(false), [])
   const openDetail = useCallback(() => {
     setDetailOpen(true)
     setRankingOpen(false)
     setRecentEventsOpen(false)
-    setResearchActive(false)
   }, [])
   const toggleDetail = useCallback(() => {
     setDetailOpen(current => !current)
     setRankingOpen(false)
     setRecentEventsOpen(false)
-    setResearchActive(false)
   }, [])
   const closeRanking = useCallback(() => setRankingOpen(false), [])
   const toggleRanking = useCallback(() => {
-    setRankingOpen(current => !current); setRecentEventsOpen(false); setDetailOpen(false); setResearchActive(false)
+    setRankingOpen(current => !current); setRecentEventsOpen(false); setDetailOpen(false)
   }, [])
-  const viewDetailEvent = useCallback((reading: DetailReading) => {
-    if (!brokerId?.startsWith('Pepperstone-')) return
-    const date = reading.at === null ? reading.date : new Date(reading.at + 7 * 3600000).toISOString().slice(0, 10)
-    setAlertFocus(old => ({ request: (old?.request ?? 0) + 1, sourceId: brokerId, valueIds: [reading.value_id], date }))
-    setBottomDockWindow('alert')
-  }, [brokerId])
-  const selectResearchTool = () => {
-    setRecentEventsOpen(false)
-    setDetailOpen(false)
-    setRankingOpen(false)
-    setActiveDrawingTool(null); setSelectedDrawingId(null); setResearchError(null)
-    setResearchActive(current => !current)
-  }
-  const selectResearchRange = useCallback((from: number, to: number) => {
-    const dates = researchRangeDates(from, to, { brokerId, brokerOffsetSeconds: bridge.brokerOffsetSeconds }, timeDisplay)
-    setResearchActive(false)
-    if (!dates) { setResearchError('These chart dates have no verified time. Select another range.'); return }
-    const pair = forexPair(activeSymbol)
-    if (pair) setResearchSeed({ scope: pair, kind: 'historical', ...dates })
-  }, [activeSymbol, brokerId, bridge.brokerOffsetSeconds, timeDisplay])
   const setReleaseSelection = inspector.selectRelease
   const focusInspectorEvent = inspector.focusEvent
   const viewLedgerEvent = useCallback((reading: DetailReading, currency: string) => {
@@ -287,9 +246,6 @@ export function useTerminalWorkspace() {
     if (time !== arrow.time) updateArrow(id, { time })
     setArrowSelection(id); selectBottomDock('entry-trade')
   }, [registeredArrows.symbolArrows, updateArrow, setArrowSelection, selectBottomDock])
-  const selectExternal = useCallback((key: string | null) => {
-    setAlertFocus(old => key ? { externalKey: key, request: (old?.request ?? 0) + 1 } : null); selectBottomDock('external-sources')
-  }, [selectBottomDock])
   const selectChartRelease = useCallback((id: string) => {
     setReleaseSelection(id)
     selectBottomDock('inspector')
@@ -310,13 +266,13 @@ export function useTerminalWorkspace() {
   const renderChartOverlay = useTerminalChartOverlay({ supported: inspector.supported, markers: inspector.markers,
     arrows: registeredArrows.symbolArrows, selectedArrowId: registeredArrows.selectedArrowId,
     draftPlan: plannedTrade, onSelectArrow: selectChartArrow,
-    onPriceChange: changeTradePrice, precision: quote?.precision ?? 5, dragEnabled: !activeDrawingTool && !researchActive,
+    onPriceChange: changeTradePrice, precision: quote?.precision ?? 5, dragEnabled: !activeDrawingTool,
     onTimeChange: changeTradeTime,
     scopeKey: `${activeSymbol}:${timeframe}:${brokerId}`,
     currencyColors: inspector.preferences.currencyColors, timeDisplay, onSelectRelease: selectChartRelease,
-    onClearInspection: !activeDrawingTool && !researchActive && !researchSeed && inspector.selectedRelease ? clearChartInspection : undefined,
-    researchActive, bars, timeframe, onResearchRange: selectResearchRange, onCancelResearch: cancelResearch,
-    symbol: activeSymbol, onSelectExternal: selectExternal, eventIconsVisible, priceAlerts: priceAlerts.brokerAlerts, selectedAlertId: priceAlerts.selectedAlertId,
+    onClearInspection: !activeDrawingTool && inspector.selectedRelease ? clearChartInspection : undefined,
+    bars, timeframe,
+    symbol: activeSymbol, eventIconsVisible, priceAlerts: priceAlerts.brokerAlerts, selectedAlertId: priceAlerts.selectedAlertId,
     onAlertPriceChange: priceAlerts.moveAlert, onAlertDragChange: priceAlerts.setDraggingAlertId, onDeleteAlert: priceAlerts.deleteAlert })
   const sourceState: 'error' | 'live' | 'waiting' = !bridge.reachable || marketData.marketWatchStatus === 'unavailable'
     ? 'error'
@@ -336,8 +292,8 @@ export function useTerminalWorkspace() {
     updateDrawingPoints, updateDrawingText, updatePositionWidth, handleDeleteDrawing, selectSymbol, selectTimeframe,
     recordChartData, changeTheme, changeChartAppearance, changeTimeDisplay, createDrawing, chooseDrawingTool,
     selectCrosshair, deletePairDrawings, toggleBottomDock, exitDrawingMode, toggleDrawingToolbar,
-    renderChartOverlay, sourceState, sourceLabel, researchActive, researchSeed, researchError,
-    selectResearchTool, closeResearch, recentEventsOpen, toggleRecentEvents, closeRecentEvents, alertFocus, viewReleaseInAlert,
-    rankingOpen, toggleRanking, closeRanking, detailOpen, toggleDetail, closeDetail, openDetail, viewDetailEvent, viewLedgerEvent, viewMacroRelease, returnToLedger: inspectorFromLedger ? returnToLedger : undefined,
+    renderChartOverlay, sourceState, sourceLabel,
+    recentEventsOpen, toggleRecentEvents, closeRecentEvents, alertFocus, viewReleaseInAlert,
+    rankingOpen, toggleRanking, closeRanking, detailOpen, toggleDetail, closeDetail, openDetail, viewLedgerEvent, viewMacroRelease, returnToLedger: inspectorFromLedger ? returnToLedger : undefined,
     plannedTrade, handlePlanChange, latestBarTime, registeredArrows, selectPinnedArrow, priceAlerts, leftDockTab, setLeftDockTab }
 }

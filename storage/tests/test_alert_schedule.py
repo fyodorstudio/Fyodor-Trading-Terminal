@@ -18,26 +18,6 @@ from test_calendar_storage import event
 
 
 class AlertScheduleTests(TestCase):
-    def test_linked_global_context_reuses_broker_reminder_and_resolved_risks_are_ineligible(self):
-        engine = AlarmEngine(Path(self.temp.name) / 'linked.json', lambda jobs: None, lambda: self.now)
-        key, subscription = calendar_subscription(self.store, 'Pepperstone-Demo', ['1', '2'], 'CPI', True)
-        engine.state.update(selection_version=2, calendar_subscriptions={key: subscription})
-        item = dict(key='global-cpi-context', title='Global CPI risk', currencies=['USD'], visibility_scope='global',
-            event_at=datetime.fromtimestamp(self.at / 1000, timezone.utc).isoformat(), event_date=None,
-            archived=False, kind='scheduled', status='confirmed', time_note='Verified schedule',
-            calendar_reference={'source_id': 'Pepperstone-Demo', 'value_ids': ['1', '2']})
-        with patch('storage.external_sources.external_snapshot', return_value={'items': [item], 'next_offset': None}):
-            schedule = load_selected_schedule(self.database, engine)
-        self.assertEqual([e['key'] for e in schedule], [key])
-        engine.reconcile(schedule)
-        self.assertEqual(sum(j['status'] == 'pending' for j in engine.snapshot()['jobs']), 1)
-        # A bad reference cannot swallow a genuinely separate external stage.
-        item['calendar_reference']['value_ids'] = ['999']
-        item['risk_status'] = 'resolved'
-        with patch('storage.external_sources.external_snapshot', return_value={'items': [item], 'next_offset': None}):
-            schedule = load_selected_schedule(self.database, engine)
-        self.assertEqual(len(schedule), 2)
-        self.assertFalse(schedule[-1]['eligible'])
 
     def setUp(self):
         self.temp = TemporaryDirectory()
@@ -54,20 +34,6 @@ class AlertScheduleTests(TestCase):
         for source in ('Elev8-Demo2', 'Pepperstone-Demo'):
             self.store.import_rows(f'seed-{source}', source, self.manifest, {}, self.rows)
 
-    def test_commodity_schedule_keeps_instrument_prompt_and_starts_off(self):
-        engine = AlarmEngine(Path(self.temp.name) / 'state.json', lambda jobs: None, lambda: self.now)
-        engine.state.update(selection_version=2, calendar_subscriptions={})
-        item = dict(key='eia-oil', title='Oil inventories', currencies=[], instruments=['BRENT', 'WTI'],
-            event_at=datetime.fromtimestamp(self.at / 1000, timezone.utc).isoformat(), event_date=None,
-            archived=False, kind='scheduled', status='confirmed', time_note='Verified inventory release')
-        with patch('storage.external_sources.external_snapshot', return_value={'items': [item], 'next_offset': None}):
-            schedule = load_selected_schedule(self.database, engine)
-        engine.reconcile(schedule)
-        event = engine.snapshot()['events'][0]
-        self.assertFalse(event['selected'])
-        self.assertFalse(event['armed'])
-        self.assertIn('BRENT, WTI', event['prompt'])
-        self.assertNotIn('best-supported pair', event['prompt'])
 
     def test_jakarta_date_edges_date_only_and_no_chart_clock_or_mutation(self):
         edge = datetime(2026, 10, 22, 17, tzinfo=timezone.utc).timestamp()
@@ -122,42 +88,7 @@ class AlertScheduleTests(TestCase):
         restored = AlarmEngine(engine.path, lambda jobs: None, lambda: self.now)
         self.assertEqual(restored.state['calendar_subscriptions'][key], subscription)
 
-    def test_exact_migration_preserves_off_choices_and_reports_missing_matches(self):
-        legacy = [dict(key='old-on', reference='pin', source='highlight', broker='Elev8-Demo2', title='CPI', currencies=['USD'],
-            at=self.at, date=None, eligible=True, note='', value_ids=['1']),
-            dict(key='old-off', reference='pin2', source='highlight', broker='Elev8-Demo2', title='Core CPI', currencies=['USD'],
-            at=self.at, date=None, eligible=True, note='', value_ids=['2']),
-            dict(key='unmatched', reference='pin3', source='highlight', broker='Elev8-Demo2', title='Missing', currencies=['USD'],
-            at=self.at, date=None, eligible=True, note='', value_ids=['999'])]
-        engine = AlarmEngine(Path(self.temp.name) / 'state.json', lambda jobs: None, lambda: self.now)
-        engine.state['overrides']['old-off'] = False
-        with patch('storage.alarms.read_events', return_value=legacy), patch('storage.external_sources.external_snapshot', return_value={'items': [], 'next_offset': None}):
-            loaded = load_selected_schedule(self.database, engine)
-            self.assertEqual(len(loaded), 2)
-            self.assertTrue(all(item['broker'] == 'Pepperstone-Demo' for item in loaded))
-            engine.reconcile(loaded)
-            self.assertEqual(sum(item['selected'] for item in engine.snapshot()['events']), 1)
-            self.assertEqual(len(engine.state['migration']['matches']), 2)
-            self.assertEqual(len(engine.state['migration']['issues']), 1)
-            before = deepcopy(engine.state)
-            load_selected_schedule(self.database, engine)
-            self.assertEqual(engine.state, before, 'Migration is idempotent and preserves its receipt')
-            self.assertEqual(json.loads(engine.path.read_text())['selection_version'], 2)
 
-    def test_schedule_change_and_atomic_failure_never_drop_or_partially_arm_choices(self):
-        engine = AlarmEngine(Path(self.temp.name) / 'state.json', lambda jobs: None, lambda: self.now)
-        engine.state.update(selection_version=2, calendar_subscriptions={})
-        key, subscription = calendar_subscription(self.store, 'Pepperstone-Demo', ['1', '2'], 'CPI', True)
-        engine.state['calendar_subscriptions'][key] = subscription
-        with patch('storage.external_sources.external_snapshot', return_value={'items': [], 'next_offset': None}):
-            loaded = load_selected_schedule(self.database, engine)
-        engine.reconcile(loaded)
-        before = deepcopy(engine.state)
-        with patch.object(engine, 'save', side_effect=OSError('disk full')):
-            with self.assertRaises(OSError):
-                engine.mutate({'action': 'toggle-many', 'expected_revision': engine.state['revision'], 'keys': [key], 'enabled': False})
-        self.assertEqual(engine.state, before)
-        self.assertTrue(engine.snapshot()['events'][0]['selected'])
 
     def test_real_date_and_subscription_api_validate_and_preserve_raw_data(self):
         async def request(app, path, query=b'', body=None):

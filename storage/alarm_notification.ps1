@@ -23,8 +23,8 @@ $alarmText.ScrollBars = 'Vertical'
 $alarmText.Dock = 'Fill'
 $alarmText.Text = ($alarmJobs | ForEach-Object {
     $jakartaTime = [DateTimeOffset]::FromUnixTimeMilliseconds([long]$_.at).ToOffset([TimeSpan]::FromHours(7)).ToString('MMM d, yyyy h:mm tt')
-    $instruction = if ($_.stage -eq 'prepare') { 'PREPARE NOW' } elseif ($_.stage -eq 'test') { 'TEST ALARM' } else { 'INVOKE YOUR AGENT NOW' }
-    "$instruction`r`n$($_.title)`r`nEvent: $jakartaTime Jakarta`r`n`r`n$($_.prompt)"
+    $notice = if ($_.stage -eq 'test') { 'TEST ALARM' } else { 'CALENDAR REMINDER' }
+    "$notice`r`n$($_.title)`r`nEvent: $jakartaTime Jakarta"
 }) -join "`r`n`r`n--------------------`r`n`r`n"
 $alarmButtons = New-Object System.Windows.Forms.FlowLayoutPanel
 $alarmButtons.Dock = 'Bottom'
@@ -40,7 +40,7 @@ function Send-AlarmAction([string]$action) {
     $null = Invoke-RestMethod -Uri "$($alarmPayload.api)/alarms" -Method Post -ContentType 'application/json' -Body $alarmBody -TimeoutSec 3
     $script:alarmAcknowledged = $true
 }
-foreach ($label in @('Open terminal', 'Copy prompt', 'Stop sound', 'Snooze 5 min', 'Dismiss')) {
+foreach ($label in @('Open terminal', 'Stop sound', 'Snooze 5 min', 'Dismiss')) {
     $alarmButton = New-Object System.Windows.Forms.Button
     $alarmButton.Text = $label
     $alarmButton.AutoSize = $true
@@ -48,7 +48,6 @@ foreach ($label in @('Open terminal', 'Copy prompt', 'Stop sound', 'Snooze 5 min
         try {
             switch ($this.Text) {
                 'Open terminal' { Start-Process $alarmPayload.terminal }
-                'Copy prompt' { [System.Windows.Forms.Clipboard]::SetText(($alarmJobs.prompt -join "`r`n`r`n")) }
                 'Snooze 5 min' { Send-AlarmAction 'snooze'; $alarmWindow.Close() }
                 'Stop sound' { Stop-AlarmAudio; if (-not $isTestAlarm) { Send-AlarmAction 'silence'; $script:alarmAcknowledged = $false } }
                 'Dismiss' { Send-AlarmAction 'dismiss'; $alarmWindow.Close() }

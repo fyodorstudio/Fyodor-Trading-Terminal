@@ -1,13 +1,11 @@
-"""Alarm selection is independent of browsing, pins and research lifecycles."""
+"""Calendar subscriptions and selected reminder schedules."""
 from collections import defaultdict
 from copy import deepcopy
-from datetime import datetime, timezone
 import hashlib
 from pathlib import Path
 
 from .calendar_store import CalendarStore
 
-TARGET = 'Pepperstone-Demo'
 
 
 def calendar_subscription(store, broker, ids, title, enabled):
@@ -28,49 +26,9 @@ def calendar_subscription(store, broker, ids, title, enabled):
 
 
 def load_selected_schedule(database, engine):
-    # Legacy loader is retained for saved research and one-time choice migration.
-    from .alarms import read_events
-    from .external_sources import DIRECTORY, external_snapshot
     store = CalendarStore(Path(database), readonly=True)
     try:
         with engine.lock:
-            previous = deepcopy(engine.state)
-            try:
-                if engine.state.get('selection_version') != 2:
-                    legacy = read_events(database)
-                    subscriptions, issues, migrated = {}, [], []
-                    for item in legacy:
-                        selected = engine.state['overrides'].get(item['key'], True)
-                        if item['source'] == 'external':
-                            engine.state['overrides'].setdefault(item['key'], selected)
-                            continue
-                        if not item['eligible'] or item['at'] is None or item['at'] <= engine.clock() * 1000:
-                            continue
-                        original = store.values(item['broker'], item.get('value_ids', []))
-                        target = store.values(TARGET, item.get('value_ids', []))
-                        def identity(row):
-                            return tuple(row.get(k) for k in ('event_id', 'currency', 'country_code', 'period_seconds', 'time_mode', 'release_at'))
-                        old = {row['value_id']: row for row in original}
-                        if len(target) != len(old) or not old or any(identity(row) != identity(old[row['value_id']]) for row in target):
-                            issues.append({'key': item['key'], 'title': item['title'], 'reason': 'No exact Pepperstone occurrence match; old reminder retired to avoid hidden Elev8 delivery.'})
-                            continue
-                        try:
-                            key, subscription = calendar_subscription(store, TARGET, [row['value_id'] for row in target], item['title'], selected)
-                        except ValueError as error:
-                            issues.append({'key': item['key'], 'title': item['title'], 'reason': str(error)})
-                            continue
-                        # Conflicting prior choices are surfaced, never silently rearmed.
-                        if key in subscriptions and subscriptions[key]['enabled'] != selected:
-                            subscription['enabled'] = False
-                            issues.append({'key': key, 'title': item['title'], 'reason': 'Conflicting old alarm choices; transferred off.'})
-                        subscriptions[key] = subscription
-                        migrated.append({'from': item['key'], 'to': key, 'enabled': subscription['enabled']})
-                    engine.state.update(selection_version=2, calendar_subscriptions=subscriptions,
-                        migration={'completed_utc': datetime.now(timezone.utc).isoformat(), 'matches': migrated, 'issues': issues})
-                    engine.save()
-            except Exception:
-                engine.state = previous
-                raise
             subscriptions = deepcopy(engine.state.get('calendar_subscriptions', {}))
         result = []
         for key, subscription in subscriptions.items():
@@ -85,26 +43,6 @@ def load_selected_schedule(database, engine):
                     'at': at, 'date': None, 'eligible': at is not None and len(rows) == len(subscription['value_ids'])
                         and all(r['time_mode'] == 0 and r['availability'] == 'observed' for r in members),
                     'default_enabled': subscription['enabled'], 'note': 'Verified broker publication. Alarm choice is independent of date and filters.'})
-        offset = 0
-        while True:
-            page = external_snapshot(DIRECTORY, visibility='all', limit=500, offset=offset)
-            for item in page['items']:
-                at = datetime.fromisoformat(item['event_at'].replace('Z', '+00:00')).timestamp() * 1000 if item['event_at'] else None
-                reference = item.get('calendar_reference')
-                linked = [event for event in result if event['source'] == 'calendar' and event['eligible']
-                    and reference and reference['source_id'] == event['broker'] and event['at'] == at
-                    and set(reference['value_ids']).issubset(event['value_ids'])
-                    and set(event['currencies']).issubset(item['currencies'])]
-                if item['kind'] == 'scheduled' and item['status'] == 'confirmed' and at is not None and len(linked) == 1:
-                    # The global context retains its own source/history, not a second job.
-                    continue
-                result.append({'key': f"external:{item['key']}", 'reference': item['key'], 'source': 'external', 'broker': None,
-                    'title': item['title'], 'currencies': item['currencies'], **({'instruments': item['instruments']} if item.get('instruments') else {}), 'at': at, 'date': item['event_date'],
-                    'eligible': not item['archived'] and item.get('risk_status') != 'resolved' and at is not None and item['kind'] == 'scheduled' and item['status'] == 'confirmed',
-                    'default_enabled': False, 'note': item['time_note']})
-            if page['next_offset'] is None:
-                break
-            offset = page['next_offset']
         return result
     finally:
         store.close()

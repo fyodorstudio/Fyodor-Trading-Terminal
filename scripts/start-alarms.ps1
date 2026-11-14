@@ -28,14 +28,14 @@ function Get-FyodorAlarmProcess($OwnerId, $Runtime) {
 function Invoke-FyodorAlarmWorker($Root, [switch]$Restart) {
     $alarmUri = 'http://127.0.0.1:8003/alarms'
     $runtime = Join-Path $Root 'bridge\.venv\Scripts\python.exe'
-    $sourceDirectory = Join-Path $Root 'Market Analyst Workflow\external-sources'
+    $alarmDirectory = Join-Path $Root 'storage\data\alarms'
     $ownerId = Get-FyodorAlarmListener
     if ($ownerId) {
         $worker = Get-FyodorAlarmProcess $ownerId $runtime
         $health = $null
         try { $health = Invoke-RestMethod -Uri $alarmUri -TimeoutSec 2 } catch { }
         if ($health -and ($health.application -ne 'fyodor-alarms' -or
-            ($health.external_source_directory -and $health.external_source_directory -ne $sourceDirectory))) {
+            ($health.data_directory -and $health.data_directory -ne $alarmDirectory))) {
             throw 'Port 8003 reports another application or checkout; no process was stopped.'
         }
         if (!$Restart) {
@@ -66,8 +66,8 @@ function Invoke-FyodorAlarmWorker($Root, [switch]$Restart) {
             $health = Invoke-RestMethod -Uri $alarmUri -TimeoutSec 1
             $newOwner = Get-FyodorAlarmListener
             $newWorker = Get-FyodorAlarmProcess $newOwner $runtime
-            if ($health.application -eq 'fyodor-alarms' -and $health.external_source_schema -ge 3 -and
-                $health.external_source_directory -eq $sourceDirectory -and
+            if ($health.application -eq 'fyodor-alarms' -and $health.schedule_schema -eq 2 -and
+                $health.data_directory -eq $alarmDirectory -and
                 ($newWorker.ProcessId -eq $process.Id -or $newWorker.ParentProcessId -eq $process.Id)) {
                 Write-Output "Fyodor alarm worker ready (PID $newOwner). Browser may close; keep Windows awake."
                 return

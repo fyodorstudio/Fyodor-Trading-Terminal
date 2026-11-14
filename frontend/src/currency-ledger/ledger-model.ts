@@ -11,11 +11,10 @@ export type LedgerSelection = { at: number | null; currency: string; category: s
 export type LedgerViewMemory = { tape: Map<string, { left: number; top: number; day: string; request: number }>; cells: Map<string, number> }
 
 const ledgerCategories = [
-  { id: 'policy', label: 'Rates' },
+  { id: 'policy', label: 'Monetary policy' },
   { id: 'inflation', label: 'Inflation' },
-  { id: 'labour', label: 'Labor & wages' },
-  { id: 'growth', label: 'Growth & activity' },
-  { id: 'consumer', label: 'Demand' },
+  { id: 'labour', label: 'Labor' },
+  { id: 'growth', label: 'Growth' },
 ]
 export const ledgerDay = (at: number) => new Date(at + 7 * 3600_000).toISOString().slice(0, 10)
 export const ledgerDayEnd = (day: string) => Date.parse(day + 'T23:59:59.999+07:00')
@@ -41,10 +40,6 @@ function availableReadings(metric: LedgerMetric, at: number, includeNonNumeric =
   return eligible
 }
 
-export function ledgerPublications(metric: LedgerMetric, at: number) {
-  return availableReadings(metric, at, true).sort((a, b) => releaseTime(a.entry) - releaseTime(b.entry)
-    || a.entry.value_id.localeCompare(b.entry.value_id))
-}
 export function ledgerReading(metric: LedgerMetric, at: number) {
   const eligible = availableReadings(metric, at)
   // New reference periods supersede old-period revisions. Never revive an older
@@ -58,7 +53,7 @@ export function ledgerDevelopments(data: LedgerData, at: number) {
   return data.currencies.map(currency => {
     const categories = ledgerCategories.map(category => {
       const metrics = data.metrics.filter(m => m.currency === currency && m.canonical !== false
-        && (category.id === 'growth' ? ['growth','activity'].includes(m.category) : m.category === category.id))
+        && (category.id === 'growth' ? ['growth','activity','consumer'].includes(m.category) : m.category === category.id))
       const rows = metrics.map(metric => {
         const selected = ledgerReading(metric, at), entry = selected?.entry
         const previous = entry?.revised_previous ?? entry?.previous ?? null

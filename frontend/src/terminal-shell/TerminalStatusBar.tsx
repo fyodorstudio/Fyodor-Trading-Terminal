@@ -49,8 +49,8 @@ export function TerminalStatusBar({
       <span className="status-clock">{formatAppTimestamp(now, timeDisplay, 'time')} · {timeDisplayLabel(timeDisplay)}</span>
       <span className="status-selection">{selectedSymbol} · {timeframe} · {barCount} bars</span>
       <div className="status-actions status-primary" role="group" aria-label="App features">
-        <button className={`status-action${bottomDockWindow === 'alert' || bottomDockWindow === 'external-sources' ? ' active' : ''}`} type="button"
-          onClick={() => onToggleBottomDock(bottomDockWindow === 'external-sources' ? 'external-sources' : 'alert')} aria-expanded={bottomDockWindow === 'alert' || bottomDockWindow === 'external-sources'}>Alert</button>
+        <button className={`status-action${bottomDockWindow === 'alert' ? ' active' : ''}`} type="button"
+          onClick={() => onToggleBottomDock('alert')} aria-expanded={bottomDockWindow === 'alert'}>Alert</button>
         <button className={`status-action${bottomDockWindow === 'currency-news' ? ' active' : ''}`} type="button" onClick={() => onToggleBottomDock('currency-news')} aria-expanded={bottomDockWindow === 'currency-news'}>Currency News</button>
         <button className={`status-action${bottomDockWindow === 'ledger' ? ' active' : ''}`} type="button" onClick={() => onToggleBottomDock('ledger')} aria-expanded={bottomDockWindow === 'ledger'}>Ledger</button>
         <button className={`status-action${bottomDockWindow === 'cross-asset' ? ' active' : ''}`} type="button" onClick={() => onToggleBottomDock('cross-asset')} aria-expanded={bottomDockWindow === 'cross-asset'}>Cross-Asset</button>

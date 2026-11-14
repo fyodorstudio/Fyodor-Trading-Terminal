@@ -3,7 +3,7 @@
   "categories": [
     {
       "id": "policy",
-      "label": "Policy"
+      "label": "Monetary policy"
     },
     {
       "id": "inflation",
@@ -11,146 +11,113 @@
     },
     {
       "id": "labour",
-      "label": "Labour"
-    },
-    {
-      "id": "activity",
-      "label": "Activity"
+      "label": "Labor"
     },
     {
       "id": "growth",
       "label": "Growth"
-    },
-    {
-      "id": "consumer",
-      "label": "Consumer"
     }
   ],
   "sources": {
     "ecb": {
       "label": "ECB",
-      "url": "https://www.ecb.europa.eu/press/govcdec/mopo/html/index.en.html",
-      "schedule_url": "https://www.ecb.europa.eu/press/calendars/mgcgc/html/index.en.html"
+      "url": "https://www.ecb.europa.eu/press/govcdec/mopo/html/index.en.html"
     },
     "eurostat": {
       "label": "Eurostat",
-      "url": "https://ec.europa.eu/eurostat/web/products-euro-indicators",
-      "schedule_url": "https://ec.europa.eu/eurostat/news/euro-indicators/release-calendar"
+      "url": "https://ec.europa.eu/eurostat/web/products-euro-indicators"
     },
     "fed": {
       "label": "Federal Reserve",
-      "url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
-      "schedule_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm"
+      "url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm"
     },
     "bls-cpi": {
       "label": "BLS CPI",
-      "url": "https://www.bls.gov/news.release/cpi.toc.htm",
-      "schedule_url": "https://www.bls.gov/schedule/news_release/cpi.htm"
+      "url": "https://www.bls.gov/news.release/cpi.toc.htm"
     },
     "bls-jobs": {
       "label": "BLS Employment Situation",
-      "url": "https://www.bls.gov/news.release/empsit.toc.htm",
-      "schedule_url": "https://www.bls.gov/schedule/news_release/empsit.htm"
+      "url": "https://www.bls.gov/news.release/empsit.toc.htm"
     },
     "bea": {
       "label": "BEA",
-      "url": "https://www.bea.gov/news/current-releases",
-      "schedule_url": "https://www.bea.gov/news/schedule"
+      "url": "https://www.bea.gov/news/current-releases"
     },
     "census": {
       "label": "US Census Bureau",
-      "url": "https://www.census.gov/retail/index.html",
-      "schedule_url": "https://www.census.gov/economic-indicators/"
+      "url": "https://www.census.gov/retail/index.html"
     },
     "ism": {
       "label": "ISM",
-      "url": "https://www.ismworld.org/supply-management-news-and-reports/reports/ism-report-on-business/",
-      "schedule_url": "https://www.ismworld.org/supply-management-news-and-reports/reports/ism-report-on-business/"
+      "url": "https://www.ismworld.org/supply-management-news-and-reports/reports/ism-report-on-business/"
     },
     "boe": {
       "label": "Bank of England",
-      "url": "https://www.bankofengland.co.uk/monetary-policy",
-      "schedule_url": "https://www.bankofengland.co.uk/monetary-policy/upcoming-mpc-dates"
+      "url": "https://www.bankofengland.co.uk/monetary-policy"
     },
     "ons": {
       "label": "ONS",
-      "url": "https://www.ons.gov.uk/releases",
-      "schedule_url": "https://www.ons.gov.uk/releasecalendar"
+      "url": "https://www.ons.gov.uk/releases"
     },
     "boj": {
       "label": "Bank of Japan",
-      "url": "https://www.boj.or.jp/en/mopo/mpmdeci/index.htm",
-      "schedule_url": "https://www.boj.or.jp/en/mopo/mpmsche_minu/index.htm"
+      "url": "https://www.boj.or.jp/en/mopo/mpmdeci/index.htm"
     },
     "jp-stat": {
       "label": "Statistics Bureau of Japan",
-      "url": "https://www.stat.go.jp/english/data/index.html",
-      "schedule_url": "https://www.stat.go.jp/english/data/cpi/1582.htm"
+      "url": "https://www.stat.go.jp/english/data/index.html"
     },
     "jp-gdp": {
       "label": "Cabinet Office Japan",
-      "url": "https://www.esri.cao.go.jp/en/sna/menu.html",
-      "schedule_url": "https://www.esri.cao.go.jp/en/sna/menu.html"
+      "url": "https://www.esri.cao.go.jp/en/sna/menu.html"
     },
     "jp-wages": {
       "label": "MHLW Japan",
-      "url": "https://www.mhlw.go.jp/toukei/list/30-1.html",
-      "schedule_url": "https://www.mhlw.go.jp/toukei/list/30-1.html"
+      "url": "https://www.mhlw.go.jp/toukei/list/30-1.html"
     },
     "snb": {
       "label": "Swiss National Bank",
-      "url": "https://www.snb.ch/en/the-snb/mandates-goals/monetary-policy/decisions",
-      "schedule_url": "https://www.snb.ch/en/services-events/digital-services/event-schedule"
+      "url": "https://www.snb.ch/en/the-snb/mandates-goals/monetary-policy/decisions"
     },
     "ch-stat": {
       "label": "Swiss Federal Statistical Office",
-      "url": "https://www.bfs.admin.ch/bfs/en/home.html",
-      "schedule_url": "https://www.bfs.admin.ch/bfs/en/home/news/whats-new.html"
+      "url": "https://www.bfs.admin.ch/bfs/en/home.html"
     },
     "seco": {
       "label": "SECO",
-      "url": "https://www.seco.admin.ch/seco/en/home.html",
-      "schedule_url": "https://www.seco.admin.ch/seco/en/home.html"
+      "url": "https://www.seco.admin.ch/seco/en/home.html"
     },
     "procure": {
       "label": "procure.ch",
-      "url": "https://www.procure.ch/en/",
-      "schedule_url": "https://www.procure.ch/en/"
+      "url": "https://www.procure.ch/en/"
     },
     "boc": {
       "label": "Bank of Canada",
-      "url": "https://www.bankofcanada.ca/rates/indicators/key-variables/",
-      "schedule_url": "https://www.bankofcanada.ca/core-functions/monetary-policy/key-interest-rate/"
+      "url": "https://www.bankofcanada.ca/rates/indicators/key-variables/"
     },
     "statcan": {
       "label": "Statistics Canada",
-      "url": "https://www150.statcan.gc.ca/n1/dai-quo/index-eng.htm",
-      "schedule_url": "https://www150.statcan.gc.ca/n1/dai-quo/cal1-eng.htm"
+      "url": "https://www150.statcan.gc.ca/n1/dai-quo/index-eng.htm"
     },
     "rba": {
       "label": "Reserve Bank of Australia",
-      "url": "https://www.rba.gov.au/monetary-policy/int-rate-decisions/",
-      "schedule_url": "https://www.rba.gov.au/schedules-events/board-meeting-dates.html"
+      "url": "https://www.rba.gov.au/monetary-policy/int-rate-decisions/"
     },
     "abs": {
       "label": "Australian Bureau of Statistics",
-      "url": "https://www.abs.gov.au/statistics",
-      "schedule_url": "https://www.abs.gov.au/release-calendar"
+      "url": "https://www.abs.gov.au/statistics"
     },
     "rbnz": {
       "label": "Reserve Bank of New Zealand",
-      "url": "https://www.rbnz.govt.nz/monetary-policy/monetary-policy-decisions",
-      "schedule_url": "https://www.rbnz.govt.nz/news-and-events/events"
+      "url": "https://www.rbnz.govt.nz/monetary-policy/monetary-policy-decisions"
     },
     "statsnz": {
       "label": "Stats NZ",
-      "url": "https://www.stats.govt.nz/indicators/",
-      "schedule_url": "https://www.stats.govt.nz/release-calendar/"
+      "url": "https://www.stats.govt.nz/indicators/"
     },
     "spglobal": {
       "label": "S&P Global PMI",
       "url": "https://www.pmi.spglobal.com/Public/Release/PressReleases",
-      "schedule_url": "https://www.pmi.spglobal.com/Public/Release/ReleaseDates",
       "allowed_hosts": [
         "www.pmi.spglobal.com",
         "pmi.spglobal.com",
@@ -159,8 +126,7 @@
     },
     "bnz": {
       "label": "BusinessNZ",
-      "url": "https://businessnz.org.nz/",
-      "schedule_url": "https://businessnz.org.nz/"
+      "url": "https://businessnz.org.nz/"
     }
   },
   "metrics": [
@@ -169,7 +135,6 @@
       "currency": "EUR",
       "category": "policy",
       "label": "ECB deposit rate",
-      "tier": "S",
       "frequency": "decision",
       "unit": "%",
       "definition": "Deposit facility rate; percent",
@@ -184,7 +149,6 @@
       "currency": "EUR",
       "category": "inflation",
       "label": "Headline HICP YoY",
-      "tier": "S",
       "frequency": "monthly",
       "unit": "%",
       "definition": "Euro area all-items HICP; annual rate, unadjusted",
@@ -199,7 +163,6 @@
       "currency": "EUR",
       "category": "inflation",
       "label": "Headline HICP MoM",
-      "tier": "S",
       "frequency": "monthly",
       "unit": "%",
       "definition": "Headline HICP MoM",
@@ -214,7 +177,6 @@
       "currency": "EUR",
       "category": "inflation",
       "label": "Core HICP YoY",
-      "tier": "S",
       "frequency": "monthly",
       "unit": "%",
       "definition": "HICP excluding energy, food, alcohol and tobacco; annual rate",
@@ -229,7 +191,6 @@
       "currency": "EUR",
       "category": "inflation",
       "label": "Core HICP MoM",
-      "tier": "S",
       "frequency": "monthly",
       "unit": "%",
       "definition": "Core HICP MoM",
@@ -244,7 +205,6 @@
       "currency": "EUR",
       "category": "inflation",
       "label": "HICP ex energy/unprocessed food YoY",
-      "tier": "S",
       "frequency": "monthly",
       "unit": "%",
       "definition": "HICP ex energy/unprocessed food YoY",
@@ -259,7 +219,6 @@
       "currency": "EUR",
       "category": "labour",
       "label": "Unemployment rate",
-      "tier": "B",
       "frequency": "monthly",
       "unit": "%",
       "definition": "Unemployment rate",
@@ -274,7 +233,6 @@
       "currency": "EUR",
       "category": "labour",
       "label": "Wage costs YoY",
-      "tier": "A",
       "frequency": "quarterly",
       "unit": "%",
       "definition": "Wage costs YoY",
@@ -287,9 +245,8 @@
     {
       "id": "eur.services",
       "currency": "EUR",
-      "category": "activity",
+      "category": "growth",
       "label": "Services PMI",
-      "tier": "A",
       "frequency": "monthly",
       "unit": " pts",
       "definition": "Services PMI",
@@ -302,9 +259,8 @@
     {
       "id": "eur.manufacturing",
       "currency": "EUR",
-      "category": "activity",
+      "category": "growth",
       "label": "Manufacturing PMI",
-      "tier": "A",
       "frequency": "monthly",
       "unit": " pts",
       "definition": "Manufacturing PMI",
@@ -319,7 +275,6 @@
       "currency": "EUR",
       "category": "growth",
       "label": "GDP QoQ",
-      "tier": "A",
       "frequency": "quarterly",
       "unit": "%",
       "definition": "Real GDP; seasonally adjusted quarter-on-quarter, not annualized",
@@ -332,9 +287,8 @@
     {
       "id": "eur.retail",
       "currency": "EUR",
-      "category": "consumer",
+      "category": "growth",
       "label": "Retail sales MoM",
-      "tier": "B",
       "frequency": "monthly",
       "unit": "%",
       "definition": "Retail sales MoM",
@@ -349,7 +303,6 @@
       "currency": "USD",
       "category": "policy",
       "label": "Fed target range",
-      "tier": "S",
       "frequency": "decision",
       "unit": "%",
       "definition": "Federal funds target range; broker series is compared with upper bound",
@@ -364,7 +317,6 @@
       "currency": "USD",
       "category": "inflation",
       "label": "Headline CPI YoY",
-      "tier": "S",
       "frequency": "monthly",
       "unit": "%",
       "definition": "Headline CPI YoY",
@@ -379,7 +331,6 @@
       "currency": "USD",
       "category": "inflation",
       "label": "Headline CPI MoM",
-      "tier": "S",
       "frequency": "monthly",
       "unit": "%",
       "definition": "All urban consumers; seasonally adjusted monthly rate",
@@ -394,7 +345,6 @@
       "currency": "USD",
       "category": "inflation",
       "label": "Core CPI YoY",
-      "tier": "S",
       "frequency": "monthly",
       "unit": "%",
       "definition": "CPI excluding food and energy; annual rate",
@@ -409,7 +359,6 @@
       "currency": "USD",
       "category": "inflation",
       "label": "Core CPI MoM",
-      "tier": "S",
       "frequency": "monthly",
       "unit": "%",
       "definition": "Core CPI MoM",
@@ -424,7 +373,6 @@
       "currency": "USD",
       "category": "inflation",
       "label": "Core PCE YoY",
-      "tier": "A",
       "frequency": "monthly",
       "unit": "%",
       "definition": "Core PCE YoY",
@@ -439,7 +387,6 @@
       "currency": "USD",
       "category": "inflation",
       "label": "Core PCE MoM",
-      "tier": "A",
       "frequency": "monthly",
       "unit": "%",
       "definition": "Core PCE MoM",
@@ -454,7 +401,6 @@
       "currency": "USD",
       "category": "labour",
       "label": "Nonfarm payroll change",
-      "tier": "S",
       "frequency": "monthly",
       "unit": "k",
       "definition": "Seasonally adjusted monthly change; thousands",
@@ -469,7 +415,6 @@
       "currency": "USD",
       "category": "labour",
       "label": "Unemployment rate",
-      "tier": "S",
       "frequency": "monthly",
       "unit": "%",
       "definition": "Unemployment rate",
@@ -484,7 +429,6 @@
       "currency": "USD",
       "category": "labour",
       "label": "Hourly earnings YoY",
-      "tier": "S",
       "frequency": "monthly",
       "unit": "%",
       "definition": "Hourly earnings YoY",
@@ -497,9 +441,8 @@
     {
       "id": "usd.services",
       "currency": "USD",
-      "category": "activity",
+      "category": "growth",
       "label": "ISM services PMI",
-      "tier": "A",
       "frequency": "monthly",
       "unit": " pts",
       "definition": "ISM services PMI",
@@ -512,9 +455,8 @@
     {
       "id": "usd.manufacturing",
       "currency": "USD",
-      "category": "activity",
+      "category": "growth",
       "label": "ISM manufacturing PMI",
-      "tier": "A",
       "frequency": "monthly",
       "unit": " pts",
       "definition": "ISM manufacturing PMI",
@@ -529,7 +471,6 @@
       "currency": "USD",
       "category": "growth",
       "label": "GDP QoQ annualized",
-      "tier": "A",
       "frequency": "quarterly",
       "unit": "%",
       "definition": "Real GDP; seasonally adjusted annualized quarterly growth",
@@ -542,9 +483,8 @@
     {
       "id": "usd.retail",
       "currency": "USD",
-      "category": "consumer",
+      "category": "growth",
       "label": "Retail sales MoM",
-      "tier": "A",
       "frequency": "monthly",
       "unit": "%",
       "definition": "Retail sales MoM",
@@ -557,9 +497,8 @@
     {
       "id": "usd.control",
       "currency": "USD",
-      "category": "consumer",
+      "category": "growth",
       "label": "Retail control MoM",
-      "tier": "A",
       "frequency": "monthly",
       "unit": "%",
       "definition": "Retail control MoM",
@@ -574,7 +513,6 @@
       "currency": "GBP",
       "category": "policy",
       "label": "BoE Bank Rate",
-      "tier": "S",
       "frequency": "decision",
       "unit": "%",
       "definition": "BoE Bank Rate",
@@ -589,7 +527,6 @@
       "currency": "GBP",
       "category": "inflation",
       "label": "Headline CPI YoY",
-      "tier": "S",
       "frequency": "monthly",
       "unit": "%",
       "definition": "Headline CPI YoY",
@@ -605,7 +542,6 @@
       "currency": "GBP",
       "category": "inflation",
       "label": "Core CPI YoY",
-      "tier": "S",
       "frequency": "monthly",
       "unit": "%",
       "definition": "Core CPI YoY",
@@ -621,7 +557,6 @@
       "currency": "GBP",
       "category": "inflation",
       "label": "Services CPI YoY",
-      "tier": "S",
       "frequency": "monthly",
       "unit": "%",
       "definition": "CPI services annual rate; no exact local series mapping",
@@ -637,7 +572,6 @@
       "currency": "GBP",
       "category": "labour",
       "label": "Unemployment rate",
-      "tier": "S",
       "frequency": "monthly",
       "unit": "%",
       "definition": "ILO unemployment rate; rolling three-month period",
@@ -652,7 +586,6 @@
       "currency": "GBP",
       "category": "labour",
       "label": "Regular pay YoY",
-      "tier": "S",
       "frequency": "monthly",
       "unit": "%",
       "definition": "Average weekly earnings excluding bonuses; three-month annual growth",
@@ -665,9 +598,8 @@
     {
       "id": "gbp.services",
       "currency": "GBP",
-      "category": "activity",
+      "category": "growth",
       "label": "Services PMI",
-      "tier": "A",
       "frequency": "monthly",
       "unit": " pts",
       "definition": "Services PMI",
@@ -680,9 +612,8 @@
     {
       "id": "gbp.manufacturing",
       "currency": "GBP",
-      "category": "activity",
+      "category": "growth",
       "label": "Manufacturing PMI",
-      "tier": "A",
       "frequency": "monthly",
       "unit": " pts",
       "definition": "Manufacturing PMI",
@@ -697,7 +628,6 @@
       "currency": "GBP",
       "category": "growth",
       "label": "GDP MoM",
-      "tier": "A",
       "frequency": "monthly",
       "unit": "%",
       "definition": "GDP MoM",
@@ -712,7 +642,6 @@
       "currency": "GBP",
       "category": "growth",
       "label": "GDP QoQ",
-      "tier": "A",
       "frequency": "quarterly",
       "unit": "%",
       "definition": "GDP QoQ",
@@ -725,9 +654,8 @@
     {
       "id": "gbp.retail",
       "currency": "GBP",
-      "category": "consumer",
+      "category": "growth",
       "label": "Retail sales MoM",
-      "tier": "A",
       "frequency": "monthly",
       "unit": "%",
       "definition": "Retail sales MoM",
@@ -742,7 +670,6 @@
       "currency": "JPY",
       "category": "policy",
       "label": "BoJ policy rate",
-      "tier": "S",
       "frequency": "decision",
       "unit": "%",
       "definition": "BoJ policy rate",
@@ -757,7 +684,6 @@
       "currency": "JPY",
       "category": "inflation",
       "label": "National CPI YoY",
-      "tier": "S",
       "frequency": "monthly",
       "unit": "%",
       "definition": "National CPI YoY",
@@ -773,7 +699,6 @@
       "currency": "JPY",
       "category": "inflation",
       "label": "National CPI ex fresh food YoY",
-      "tier": "S",
       "frequency": "monthly",
       "unit": "%",
       "definition": "Excludes fresh food; includes energy",
@@ -789,7 +714,6 @@
       "currency": "JPY",
       "category": "inflation",
       "label": "Tokyo CPI ex fresh food YoY",
-      "tier": "S",
       "frequency": "monthly",
       "unit": "%",
       "definition": "Tokyo CPI ex fresh food YoY",
@@ -805,7 +729,6 @@
       "currency": "JPY",
       "category": "labour",
       "label": "Cash earnings YoY",
-      "tier": "A",
       "frequency": "monthly",
       "unit": "%",
       "definition": "Cash earnings YoY",
@@ -820,7 +743,6 @@
       "currency": "JPY",
       "category": "labour",
       "label": "Unemployment rate",
-      "tier": "B",
       "frequency": "monthly",
       "unit": "%",
       "definition": "Unemployment rate",
@@ -834,9 +756,8 @@
     {
       "id": "jpy.services",
       "currency": "JPY",
-      "category": "activity",
+      "category": "growth",
       "label": "Services PMI",
-      "tier": "A",
       "frequency": "monthly",
       "unit": " pts",
       "definition": "Services PMI",
@@ -849,9 +770,8 @@
     {
       "id": "jpy.manufacturing",
       "currency": "JPY",
-      "category": "activity",
+      "category": "growth",
       "label": "Manufacturing PMI",
-      "tier": "A",
       "frequency": "monthly",
       "unit": " pts",
       "definition": "Manufacturing PMI",
@@ -864,9 +784,8 @@
     {
       "id": "jpy.tankan",
       "currency": "JPY",
-      "category": "activity",
+      "category": "growth",
       "label": "Tankan large manufacturers",
-      "tier": "A",
       "frequency": "quarterly",
       "unit": " pts",
       "definition": "Large manufacturers business conditions diffusion index",
@@ -881,7 +800,6 @@
       "currency": "JPY",
       "category": "growth",
       "label": "GDP QoQ",
-      "tier": "A",
       "frequency": "quarterly",
       "unit": "%",
       "definition": "Real GDP; quarterly change, not annualized",
@@ -894,9 +812,8 @@
     {
       "id": "jpy.spending",
       "currency": "JPY",
-      "category": "consumer",
+      "category": "growth",
       "label": "Household spending YoY",
-      "tier": "B",
       "frequency": "monthly",
       "unit": "%",
       "definition": "Household spending YoY",
@@ -912,7 +829,6 @@
       "currency": "CHF",
       "category": "policy",
       "label": "SNB policy rate",
-      "tier": "S",
       "frequency": "decision",
       "unit": "%",
       "definition": "SNB policy rate",
@@ -927,7 +843,6 @@
       "currency": "CHF",
       "category": "inflation",
       "label": "Headline CPI YoY",
-      "tier": "S",
       "frequency": "monthly",
       "unit": "%",
       "definition": "Headline CPI YoY",
@@ -942,7 +857,6 @@
       "currency": "CHF",
       "category": "inflation",
       "label": "Headline CPI MoM",
-      "tier": "S",
       "frequency": "monthly",
       "unit": "%",
       "definition": "Headline CPI MoM",
@@ -957,7 +871,6 @@
       "currency": "CHF",
       "category": "labour",
       "label": "Unemployment rate SA",
-      "tier": "B",
       "frequency": "monthly",
       "unit": "%",
       "definition": "Unemployment rate SA",
@@ -970,9 +883,8 @@
     {
       "id": "chf.manufacturing",
       "currency": "CHF",
-      "category": "activity",
+      "category": "growth",
       "label": "Manufacturing PMI",
-      "tier": "A",
       "frequency": "monthly",
       "unit": " pts",
       "definition": "Manufacturing PMI",
@@ -987,7 +899,6 @@
       "currency": "CHF",
       "category": "growth",
       "label": "GDP QoQ",
-      "tier": "A",
       "frequency": "quarterly",
       "unit": "%",
       "definition": "Seasonally adjusted real GDP quarterly growth; verify sports-event adjustment basis",
@@ -1000,9 +911,8 @@
     {
       "id": "chf.retail",
       "currency": "CHF",
-      "category": "consumer",
+      "category": "growth",
       "label": "Retail sales YoY",
-      "tier": "B",
       "frequency": "monthly",
       "unit": "%",
       "definition": "Retail sales YoY",
@@ -1017,7 +927,6 @@
       "currency": "CAD",
       "category": "policy",
       "label": "BoC overnight target",
-      "tier": "S",
       "frequency": "decision",
       "unit": "%",
       "definition": "BoC overnight target",
@@ -1032,7 +941,6 @@
       "currency": "CAD",
       "category": "inflation",
       "label": "Headline CPI YoY",
-      "tier": "S",
       "frequency": "monthly",
       "unit": "%",
       "definition": "Headline CPI YoY",
@@ -1047,7 +955,6 @@
       "currency": "CAD",
       "category": "inflation",
       "label": "Headline CPI MoM",
-      "tier": "S",
       "frequency": "monthly",
       "unit": "%",
       "definition": "Headline CPI MoM",
@@ -1062,7 +969,6 @@
       "currency": "CAD",
       "category": "inflation",
       "label": "CPI-trim YoY",
-      "tier": "S",
       "frequency": "monthly",
       "unit": "%",
       "definition": "CPI-trim YoY",
@@ -1078,7 +984,6 @@
       "currency": "CAD",
       "category": "inflation",
       "label": "CPI-median YoY",
-      "tier": "S",
       "frequency": "monthly",
       "unit": "%",
       "definition": "CPI-median YoY",
@@ -1094,7 +999,6 @@
       "currency": "CAD",
       "category": "labour",
       "label": "Employment change",
-      "tier": "S",
       "frequency": "monthly",
       "unit": "k",
       "definition": "Employment change",
@@ -1109,7 +1013,6 @@
       "currency": "CAD",
       "category": "labour",
       "label": "Unemployment rate",
-      "tier": "S",
       "frequency": "monthly",
       "unit": "%",
       "definition": "Unemployment rate",
@@ -1122,9 +1025,8 @@
     {
       "id": "cad.manufacturing",
       "currency": "CAD",
-      "category": "activity",
+      "category": "growth",
       "label": "Manufacturing PMI",
-      "tier": "A",
       "frequency": "monthly",
       "unit": " pts",
       "definition": "Manufacturing PMI",
@@ -1139,7 +1041,6 @@
       "currency": "CAD",
       "category": "growth",
       "label": "GDP MoM",
-      "tier": "A",
       "frequency": "monthly",
       "unit": "%",
       "definition": "GDP MoM",
@@ -1154,7 +1055,6 @@
       "currency": "CAD",
       "category": "growth",
       "label": "GDP QoQ annualized",
-      "tier": "A",
       "frequency": "quarterly",
       "unit": "%",
       "definition": "GDP QoQ annualized",
@@ -1167,9 +1067,8 @@
     {
       "id": "cad.retail",
       "currency": "CAD",
-      "category": "consumer",
+      "category": "growth",
       "label": "Retail sales MoM",
-      "tier": "A",
       "frequency": "monthly",
       "unit": "%",
       "definition": "Retail sales MoM",
@@ -1184,7 +1083,6 @@
       "currency": "AUD",
       "category": "policy",
       "label": "RBA cash rate target",
-      "tier": "S",
       "frequency": "decision",
       "unit": "%",
       "definition": "RBA cash rate target",
@@ -1199,7 +1097,6 @@
       "currency": "AUD",
       "category": "inflation",
       "label": "Monthly headline CPI YoY",
-      "tier": "S",
       "frequency": "monthly",
       "unit": "%",
       "definition": "Complete monthly CPI; distinct from quarterly CPI",
@@ -1215,7 +1112,6 @@
       "currency": "AUD",
       "category": "inflation",
       "label": "Monthly trimmed mean YoY",
-      "tier": "S",
       "frequency": "monthly",
       "unit": "%",
       "definition": "Complete monthly underlying CPI; distinct from legacy quarterly calculation",
@@ -1231,7 +1127,6 @@
       "currency": "AUD",
       "category": "inflation",
       "label": "Quarterly trimmed mean QoQ",
-      "tier": "S",
       "frequency": "quarterly",
       "unit": "%",
       "definition": "Quarterly trimmed mean using pre-October 2025 collection frequency; verify methodology",
@@ -1247,7 +1142,6 @@
       "currency": "AUD",
       "category": "labour",
       "label": "Employment change",
-      "tier": "S",
       "frequency": "monthly",
       "unit": "k",
       "definition": "Employment change",
@@ -1263,7 +1157,6 @@
       "currency": "AUD",
       "category": "labour",
       "label": "Unemployment rate",
-      "tier": "S",
       "frequency": "monthly",
       "unit": "%",
       "definition": "Unemployment rate",
@@ -1279,7 +1172,6 @@
       "currency": "AUD",
       "category": "labour",
       "label": "Wage price index YoY",
-      "tier": "A",
       "frequency": "quarterly",
       "unit": "%",
       "definition": "Wage price index YoY",
@@ -1293,9 +1185,8 @@
     {
       "id": "aud.services",
       "currency": "AUD",
-      "category": "activity",
+      "category": "growth",
       "label": "Services PMI",
-      "tier": "A",
       "frequency": "monthly",
       "unit": " pts",
       "definition": "Services PMI",
@@ -1308,9 +1199,8 @@
     {
       "id": "aud.manufacturing",
       "currency": "AUD",
-      "category": "activity",
+      "category": "growth",
       "label": "Manufacturing PMI",
-      "tier": "A",
       "frequency": "monthly",
       "unit": " pts",
       "definition": "Manufacturing PMI",
@@ -1325,7 +1215,6 @@
       "currency": "AUD",
       "category": "growth",
       "label": "GDP QoQ",
-      "tier": "A",
       "frequency": "quarterly",
       "unit": "%",
       "definition": "GDP QoQ",
@@ -1339,9 +1228,8 @@
     {
       "id": "aud.spending",
       "currency": "AUD",
-      "category": "consumer",
+      "category": "growth",
       "label": "Household spending MoM",
-      "tier": "A",
       "frequency": "monthly",
       "unit": "%",
       "definition": "Monthly Household Spending Indicator; SA current prices; replaces discontinued retail trade",
@@ -1357,7 +1245,6 @@
       "currency": "NZD",
       "category": "policy",
       "label": "RBNZ official cash rate",
-      "tier": "S",
       "frequency": "decision",
       "unit": "%",
       "definition": "RBNZ official cash rate",
@@ -1372,7 +1259,6 @@
       "currency": "NZD",
       "category": "inflation",
       "label": "Headline CPI YoY",
-      "tier": "S",
       "frequency": "quarterly",
       "unit": "%",
       "definition": "Headline CPI YoY",
@@ -1387,7 +1273,6 @@
       "currency": "NZD",
       "category": "inflation",
       "label": "Headline CPI QoQ",
-      "tier": "S",
       "frequency": "quarterly",
       "unit": "%",
       "definition": "Headline CPI QoQ",
@@ -1402,7 +1287,6 @@
       "currency": "NZD",
       "category": "labour",
       "label": "Unemployment rate",
-      "tier": "S",
       "frequency": "quarterly",
       "unit": "%",
       "definition": "Unemployment rate",
@@ -1417,7 +1301,6 @@
       "currency": "NZD",
       "category": "labour",
       "label": "Employment QoQ",
-      "tier": "S",
       "frequency": "quarterly",
       "unit": "%",
       "definition": "Employment QoQ",
@@ -1430,9 +1313,8 @@
     {
       "id": "nzd.manufacturing",
       "currency": "NZD",
-      "category": "activity",
+      "category": "growth",
       "label": "Manufacturing PMI",
-      "tier": "B",
       "frequency": "monthly",
       "unit": " pts",
       "definition": "Manufacturing PMI",
@@ -1445,9 +1327,8 @@
     {
       "id": "nzd.services",
       "currency": "NZD",
-      "category": "activity",
+      "category": "growth",
       "label": "Services PSI",
-      "tier": "B",
       "frequency": "monthly",
       "unit": " pts",
       "definition": "Services PSI",
@@ -1462,7 +1343,6 @@
       "currency": "NZD",
       "category": "growth",
       "label": "GDP QoQ",
-      "tier": "A",
       "frequency": "quarterly",
       "unit": "%",
       "definition": "GDP QoQ",
@@ -1475,9 +1355,8 @@
     {
       "id": "nzd.retail",
       "currency": "NZD",
-      "category": "consumer",
+      "category": "growth",
       "label": "Retail sales volume QoQ",
-      "tier": "A",
       "frequency": "quarterly",
       "unit": "%",
       "definition": "Seasonally adjusted retail sales volumes; quarterly change",

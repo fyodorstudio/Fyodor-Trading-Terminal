@@ -23,7 +23,6 @@ try {
   const data = await server.ssrLoadModule('./src/inspector/inspector-data.ts')
   const { groupInspectorDays, selectedInspectorRelease } = await server.ssrLoadModule('./src/inspector/releases/group-days.ts')
   const { dayGroups } = await server.ssrLoadModule('./src/alert/model/alert-day-model.ts')
-  const { highlightRequest } = await server.ssrLoadModule('./src/alert/highlights/highlight-model.ts')
   const { InspectorChartMarkers } = await server.ssrLoadModule('./src/inspector/InspectorChartMarkers.tsx')
   const { InspectorReadingsTable } = await server.ssrLoadModule('./src/inspector/readings/InspectorReadingsTable.tsx')
   const groups = data.groupInspectorReleases(readings), release = groups[0]
@@ -40,12 +39,10 @@ try {
   assert.equal(filtered.length, 1); assert.equal(filtered[0].events.length, 2)
   assert.ok(filtered[0].events.every(event => event.name.startsWith('HICP')), 'CPI-only/HICP-only saved selections remain effective')
   assert.equal(data.filterInspectorReleases(groups, { ...preferences, families: [] }, range).length, 0)
-  assert.equal(dayGroups(readings, [], '2026-10-15', 'Pepperstone-Demo', { families: [hicpFamily], currency: 'all' })[0].release.events.length, 2)
+  assert.equal(dayGroups(readings, { families: [hicpFamily], currency: 'all' })[0].release.events.length, 2)
   const daily = groupInspectorDays(groups, [hicpFamily], range, { mode: 'utc' }, { brokerId: null, brokerOffsetSeconds: 0 })
   assert.equal(daily[0].daily.sections[0].releaseCount, 1)
   assert.equal(daily[0].events.length, 2)
-  const request = highlightRequest(release, 'fixture')
-  assert.equal(request.value_ids.length, 4); assert.equal(request.event_ids.length, 4, 'Pin captures the entire package')
   assert.equal(data.groupInspectorReleases(readings.map(event => ({ ...event, time_mode: 1 }))).length, 4, 'Unverified hours are not merged by apparent proximity')
   const later = readings.map((event, i) => i === 3 ? { ...event, release_at: at + 60000, chart_time_seconds: at / 1000 + 60 } : event)
   assert.equal(data.groupInspectorReleases(later).length, 2, 'Different publication times remain distinct')
@@ -77,7 +74,7 @@ try {
   assert.equal(node.querySelector('.inspector-publication-heading'), null, 'Same-publication series use one flat CPI-style table')
   assert.equal(node.querySelector('.inspector-marker-popup'), null)
   await React.act(async () => root.render(null)); assert.equal(listeners.size, 0); assert.equal(sizes.size, 0)
-  console.log('✓ French CPI/HICP: one release/icon/table, all four original series, exact country/time/period boundaries, revisions, family filters, legacy selections, day counts and complete pins')
+  console.log('✓ French CPI/HICP: one release/icon/table, all four original series, exact country/time/period boundaries, revisions, family filters, legacy selections, day counts')
 } finally {
   await React.act(async () => root.unmount()); await server.close(); await dom.happyDOM.close()
   for (const [key, descriptor] of previous) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete globalThis[key] }

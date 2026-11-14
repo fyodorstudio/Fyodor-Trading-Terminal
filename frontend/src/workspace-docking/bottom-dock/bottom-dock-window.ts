@@ -1,1 +1,1 @@
-export type BottomDockWindow = 'activity' | 'external-sources' | 'inspector' | 'alert' | 'entry-trade' | 'currency-news' | 'ledger' | 'cross-asset'
+export type BottomDockWindow = 'activity' | 'inspector' | 'alert' | 'entry-trade' | 'currency-news' | 'ledger' | 'cross-asset'

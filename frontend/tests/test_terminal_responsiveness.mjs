@@ -188,13 +188,10 @@ for (const currency of ['USD','EUR','GBP','JPY','CHF','CAD','AUD','NZD']) {
   const meta = catalog.find(row => currency === 'EUR' ? row.event_id === '999010006' : row.country_currency === currency)
   events.push(event(meta.event_id, now + 86400000, null))
 }
-let externalRevision = 'external-fixture'
 let calendarRevision = 1
 const health = () => ({ api_version: '1', bridge: { status: 'running', started_at: 1, now: now + clockOffset },
   mt5: { connected, process_running: true, generation, account_server: broker },
   calendar: { status: 'live', instance_id: 'fixture', server_utc_offset_seconds: 10800 }, operations: {} })
-const reportRequests = []
-let reportFailure = false
 const journalFixture = { version: 1, revision: 0, arrows: [], deletedIds: [] }
 let wildcardFixture = { schema: 1, source_id: broker, revision: 0, rows: [] }
 globalThis.fetch = (url, options = {}) => {
@@ -230,44 +227,9 @@ globalThis.fetch = (url, options = {}) => {
   }
   if (u.startsWith('/alarm-api/alarms')) return Promise.resolve({ ok: true, json: async () => ({ application: 'fyodor-alarms', schedule_schema: 2, revision: 1, now,
     settings: { enabled: true, release_minutes: 2 }, native_available: true, schedule_error: null, refreshed_at: now / 1000, jobs: [],
-    events: [{ key: 'external:treasury-fixture', reference: 'treasury-fixture', source: 'external', broker: null, title: 'Treasury fixture', currencies: ['USD'],
-      at: now + 3600000, date: null, eligible: true, armed: true, note: 'Exact fixture schedule', prompt: '$one-minute-before-release Treasury fixture' }] }) })
+    events: [] }) })
   if (u.startsWith('/storage-api/highlights')) return Promise.resolve({ ok: true, json: async () => ({ source_id: broker, revision: 'fixture-pins', items: [] }) })
-  if (u.startsWith('/storage-api/currency-news/history/')) {
-    const run_id='c'.repeat(64),saved_at='2026-10-08T10:01:00Z'
-    return Promise.resolve({ok:true,json:async()=>({schema:1,revision:run_id,run_id,saved_at,
-      rows:['EUR','GBP','AUD','NZD','USD','CAD','CHF','JPY'].map(currency=>({currency,snapshot:currency!=='CHF'?null:{
-        currency,run_id,saved_at,checked_at:'2026-10-08T10:00:00Z',coverage:'checked',coverage_note:'',window_hours:null,
-        items:[{story_id:'CHF-fixture',summary:'Verified currency news.',published_at:'2026-10-08T09:00:00Z',timing_note:'',sources:[{label:'Official',url:'https://example.com/release'}],bias:'bullish',reason:'Original saved history fixture.'}],
-        background:[],implication:'no_clear_signal',reason:''}}))})})
-  }
-  if (u.startsWith('/storage-api/currency-news/feed?')) {
-    const params=new URL(u,'http://localhost').searchParams,date=params.get('date'),empty=date!=='2026-10-08'
-    const revision=(empty?'e':'a').repeat(64)
-    return Promise.resolve({ok:true,json:async()=>({schema:2,date,revision,...(params.get('after_revision')===revision?{unchanged:true}:{
-      updated_at:empty?null:'2026-10-08T11:01:00Z',coverage:[],
-      stories:empty?[]:['EUR','GBP','AUD','NZD','USD','CAD','CHF','JPY'].map(currency=>({id:currency+'-fixture',
-        summary:'Verified currency news.',published_at:'2026-10-08T10:00:00Z',published_date:date,assessed_at:'2026-10-08T11:00:00Z',order_at:'2026-10-08T10:00:00Z',
-        sources:[{label:'Official',url:'https://example.com/release'}],
-        implications:[{currency,legacy:false,bias:'conditional',reason:'Policy support meets activity opposition.',bullish_if:'rate support persists',bearish_if:'activity contracts',coverage_note:'',timing_note:'',
-          versions:[{run_id:revision,assessed_at:'2026-10-08T11:00:00Z',collection:'items',position:0},...(currency==='CHF'?[{run_id:'c'.repeat(64),assessed_at:'2026-10-08T10:00:00Z',collection:'items',position:0}]:[])]}]}))})})})
-  }
-  if (u.startsWith('/storage-api/external-sources')) {
-    const params = new URL(u, 'http://localhost').searchParams
-    const external = { id: 'a'.repeat(32), key: 'treasury-fixture', title: 'Treasury fixture', currencies: ['USD'], kind: 'scheduled', status: 'confirmed',
-      facts: 'Official schedule fixture', interpretation: '', event_at: new Date(now + 3600000).toISOString(), event_date: null, published_utc: null,
-      time_note: 'Exact fixture schedule', saved_utc: '2026-10-07T12:00:00Z', archived: false, expected_version: null, version_count: 1,
-      sources: [{ kind: 'web', label: 'Treasury', locator: 'https://home.treasury.gov/', note: '' }] }
-    const externalItems = params.get('visibility') !== 'archived' && ['all', 'EURUSD', 'USD'].includes(params.get('scope')) ? [external] : []
-    return Promise.resolve({ ok: true, json: async () => ({ revision: externalRevision, scope: params.get('scope'), visibility: params.get('visibility'),
-      matches: externalItems.length, offset: 0, next_offset: null, ...(params.get('after_revision') === externalRevision ? { unchanged: true } : { items: externalItems }) }) })
-  }
-  if (u === '/storage-api/reports') {
-    reportRequests.push(JSON.parse(options.body))
-    return Promise.resolve({ ok: !reportFailure, status: reportFailure ? 503 : 200, json: async () => reportFailure
-      ? { detail: 'Report folder unavailable' }
-      : { filename: 'brief.md', path: 'C:\\dev\\Fyodor Trading Terminal Lite\\Market Analyst Workflow\\report\\named\\brief.md', readings: 70, context_readings: 190, coverage_incomplete: true } })
-  }
+  if (u.startsWith('/storage-api/currency-news')) return Promise.resolve({ok:true,json:async()=>({items:[]})})
   if (u.startsWith('/storage-api/alert-calendar')) {
     const params = new URL(u, 'http://localhost').searchParams
     const date = params.get('date')
@@ -283,21 +245,9 @@ globalThis.fetch = (url, options = {}) => {
       currencies, source_available: true, events: events.filter(event => currencies.includes(event.currency)
         && event.release_at !== null && event.release_at >= from && event.release_at <= to) }) })
   }
-  if (u.startsWith('/storage-api/currency-details')) {
-    const q = new URL(u, 'http://localhost').searchParams
-    const currencies = [q.get('scope').slice(0, 3), q.get('scope').slice(3)].filter(Boolean)
-    const registry = JSON.parse(fs.readFileSync(new URL('../../config/currency-details.json', import.meta.url), 'utf8'))
-    const revision = 'd'.repeat(64)
-    return Promise.resolve({ ok: true, json: async () => q.get('after_revision') === revision
-      ? { schema: 1, broker, currencies, revision, unchanged: true }
-      : { schema: 1, broker, currencies, revision, source_available: true, categories: registry.categories, policy_history: null,
-          sources: registry.sources, focus: [], metrics: registry.metrics.filter(m => currencies.includes(m.currency)).map(m => ({
-            ...m, broker: null, broker_next: null, official: null, official_latest: false, comparison: 'not_checked',
-            check: null, next_releases: [], schedule_known: false, schedule_elapsed: false })) } })
-  }
   if (u.startsWith('/storage-api/currency-ledger')) {
     const q = new URL(u, 'http://localhost').searchParams, year=Number(q.get('year')), revision = 'e'.repeat(64)
-    const registry = JSON.parse(fs.readFileSync(new URL('../../config/currency-details.json', import.meta.url), 'utf8'))
+    const registry = JSON.parse(fs.readFileSync(new URL('../../config/calendar-measures.json', import.meta.url), 'utf8'))
     const day = new Date(now - 86400000).toISOString().slice(0,10),currencies=[q.get('scope').slice(0,3),q.get('scope').slice(3)]
     return Promise.resolve({ ok: true, json: async () => q.get('after_revision') === revision
       ? { schema: 1, broker, year, currencies, revision, unchanged: true }
@@ -541,59 +491,14 @@ try {
   reset()
   await click(button('Currency News'))
   assert.ok(container.querySelector('[aria-label="Currency News"]'))
-  assert.equal(container.querySelector('[aria-label="News currency"]').querySelectorAll('button').length, 9)
-  assert.equal(container.querySelectorAll('[data-news-story]').length, 8)
-  assert.ok(container.querySelector('[aria-label="Resize Currency News dock"]'))
-  assert.equal(container.querySelector('[data-currency-summary]'), null, 'The retired left Fundamentals panel is absent')
-  assertQuiet('Opening Currency News')
-  assert.equal(counters.newsRows, 8, 'Eight story rows render after loading')
-  const scrollRequests = requests.length
-  reset()
-  await React.act(async () => { for (let i = 0; i < 100; i++) container.querySelector('.news-scroll').dispatchEvent(new dom.Event('scroll')) })
-  await flush()
-  assert.equal(counters.newsRows ?? 0, 0, 'Scrolling performs zero news row renders')
-  assert.equal(requests.length, scrollRequests, 'Scrolling performs no requests')
-  assertQuiet('Scrolling Currency News', true)
-  reset()
-  await click([...container.querySelector('[aria-label="News currency"]').querySelectorAll('button')].find(b => b.textContent === 'CHF'))
-  assert.equal(container.querySelector('[data-news-story]').dataset.newsStory, 'CHF-fixture')
-  assert.equal(container.querySelectorAll('[data-news-story]').length, 1)
-  assert.equal(requests.length, scrollRequests, 'Filtering saved news performs no research or network work')
-  assertQuiet('Filtering Currency News')
-  assert.ok(container.querySelector('.status-selection').textContent.startsWith('EURUSD'))
-  const newsRequestCount = requests.filter(url => url.startsWith('/storage-api/currency-news')).length
-  reset()
-  await tick('pollNews', 5000)
-  assertQuiet('Unchanged news poll', true)
-  assert.equal(counters.newsRows ?? 0, 0, 'Unchanged polling leaves news rows alone')
-  assert.equal(requests.filter(url => url.startsWith('/storage-api/currency-news')).length, newsRequestCount + 1)
-  reset()
-  assert.equal(container.querySelector('[aria-label="News view"]'),null,'There is one date-based news view')
-  assert.ok(container.querySelector('[aria-label="Currency News date selector"]'))
-  await React.act(async()=>{const selector=container.querySelector('[aria-label="CHF-fixture CHF assessment"]');selector.value='c'.repeat(64);selector.dispatchEvent(new dom.Event('change',{bubbles:true}))})
-  assert.match(container.querySelector('[data-news-story="CHF-fixture"]').textContent,/Original saved history fixture/)
-  assertQuiet('Selecting an earlier currency refresh',true)
-  const historyCalls=requests.length
-  reset()
-  await click(container.querySelector('[aria-label="Previous date"]'))
-  assert.match(container.querySelector('.currency-news-table').textContent,/No news fundamentals saved for this date/)
-  assert.equal(container.querySelectorAll('[data-news-story]').length,0,'Empty dates never borrow stories')
-  assert.equal(requests.length,historyCalls+1,'Browsing loads one daily projection without research')
-  assert.equal([...timers.values()].filter(t=>t.fn.name==='pollNews').length,0,'Past dates do not poll')
-  assertQuiet('Browsing an empty saved date',true)
-  reset()
-  await click([...container.querySelectorAll('.currency-news-header button')].find(b => b.textContent === 'Today'))
-  assert.ok(container.querySelector('[data-news-story="CHF-fixture"]'), container.querySelector('[aria-label="Currency News"]')?.textContent)
-  assertQuiet('Returning to Today',true)
+  assert.ok([...container.querySelectorAll('.currency-news-header button')].some(n=>n.textContent==='Add news'))
+  assert.equal(container.querySelectorAll('[data-news-story]').length,0)
+  assertQuiet('Opening manual Currency News')
   await click(button('Currency News'))
-  assert.equal(container.querySelector('[aria-label="Currency News"]'), null)
-  assert.ok(container.querySelector('.external-chart-star'), 'Upcoming external record appears on the assembled chart')
-  assert.equal(container.querySelector('.external-chart-markers').style.bottom, 'calc(var(--calendar-marker-bottom, 34px) + 34px)')
   await click(button('Alert'))
   assert.ok(container.querySelector('[aria-label="Alert"]'))
   assert.equal(container.querySelector('[aria-label="Event view"]'), null)
   assert.equal(container.querySelector('.event-timeline-row'), null)
-  assert.ok(container.querySelector('.alert-event-table [data-external-key="treasury-fixture"]'), 'External event appears beside all calendar events')
   const beforeAlertScrollRequests = requests.length
   reset()
   await React.act(async () => { for (let i = 0; i < 200; i++) container.querySelector('.alert-date-scroll').dispatchEvent(new dom.Event('scroll')) })
@@ -617,49 +522,9 @@ try {
   now -= 1000 // Keep the later drawing-coordinate fixtures anchored to their original clock.
   assert.ok(container.querySelector('.alert-event-group'), 'Alert retains the date table')
   assert.ok(container.querySelector('.alert-event-table'))
-  reset()
-  await tick('poll', 5000)
-  assertQuiet('External Sources unchanged poll', true)
-  assert.equal(counters.externalBuild ?? 0, 0, 'Unchanged external polling does not rebuild marker data')
-  assert.equal(counters.externalLookup ?? 0, 0, 'Unchanged external revisions perform no version matching')
-  const externalRow = container.querySelector('[data-external-key="treasury-fixture"]')
-  externalRevision = 'external-fixture-2'; reset()
-  const externalPolls = [...timers.values()].filter(timer => timer.fn.name === 'poll' && timer.ms === 5000).length
-  for (let i = 0; i < externalPolls; i++) await tick('poll', 5000)
-  assert.equal(counters.externalIndex, externalPolls, 'Each mounted reader indexes its one previous record once')
-  assert.equal(counters.externalLookup, externalPolls, 'Each reader performs one incoming lookup')
-  assert.equal(container.querySelector('[data-external-key="treasury-fixture"]'), externalRow)
-  assert.equal(counters.externalBuild ?? 0, 0, 'Unchanged record versions preserve assembled chart markers')
-  assertQuiet('Changed collection revision with stable versions', true)
-
   await click(button('Alert'))
-  assert.equal(container.querySelector('[aria-label="External Sources"]'), null)
-  await click(container.querySelector('.external-chart-star'))
-  await flush()
-  assert.ok(container.querySelector('.alert-event-details'), 'Star opens its sourced record in the unified dock')
-  const selectedEventNode = container.querySelector('[data-alert-focused="true"]')
-  assert.ok(selectedEventNode)
-  const readsBeforeRepeat = requests.filter(url => url.startsWith('/storage-api/external-sources?')).length
-  reset()
-  await click(container.querySelector('.external-chart-star')); await flush()
-  assert.equal(container.querySelector('[data-alert-focused="true"]'), selectedEventNode, 'Repeated star clicks preserve the mounted event and details')
-  assert.equal(counters.alertScroll, 1, 'Repeated symbol selection scrolls the dock exactly once')
-  assert.equal(requests.filter(url => url.startsWith('/storage-api/external-sources?')).length, readsBeforeRepeat, 'Repeated symbols do not remount the feed')
-  const iconInput = container.querySelector('[aria-label="Show Treasury fixture icon on chart"]')
-  await click(iconInput); await flush()
-  assert.equal(container.querySelector('.external-chart-star'), null, 'Dock checkbox immediately hides the star without removing the record')
-  assert.ok(container.querySelector('.alert-external-evidence'))
-  await click(iconInput); await flush()
-  assert.ok(container.querySelector('.external-chart-star'), 'Dock checkbox restores the star')
-  await click(button('Alert'))
-  assert.equal(container.querySelector('[aria-label="Fundamental tools"]'), null)
-  assert.equal(container.querySelector('[aria-label="Experimental features"]'), null)
-  assert.deepEqual([...container.querySelectorAll('[aria-label="Chart timeframe"] button')].map(node => node.textContent), ['M1','M5','M15','M30','H1','H4','D1'])
-  assert.ok(container.querySelector('[aria-label="Text"]'))
   // One header switch hides both calendar layers without editing their choices.
   const iconKey = 'fyodor.chart-event-icons-visible.v1'
-  const sourceIconKey = 'fyodor.external-sources.chart-icons.v1'
-  const sourceChoices = localStorage.getItem(sourceIconKey)
   const inspectorChoices = localStorage.getItem('fyodor.inspector.shared.v1')
   const refocusButton = container.querySelector('[aria-label="Refocus chart"]')
   assert.equal(refocusButton.textContent.trim(), '⛶')
@@ -669,20 +534,16 @@ try {
   await click(container.querySelector('[aria-label="Hide event icons"]')); await flush()
   assert.equal(container.querySelector('[aria-label="Show event icons"]').getAttribute('aria-pressed'), 'false')
   assert.equal(container.querySelector('.inspector-chart-markers'), null)
-  assert.equal(container.querySelector('.external-chart-markers'), null)
   assert.equal(localStorage.getItem(iconKey), 'false')
   assert.deepEqual(logicalRange, visibleWindow)
   assert.equal(counters.setData ?? 0, beforeIconToggle, 'Visibility changes do not rewrite candle data')
   await click([...container.querySelectorAll('[aria-label="Chart timeframe"] button')].find(node => node.textContent === 'M30'))
   while (pending.get('ohlc')?.length) await reply('ohlc')
   await flush()
-  assert.equal(container.querySelector('.external-chart-markers'), null, 'The hidden choice survives timeframe changes')
   await click([...container.querySelectorAll('[aria-label="Chart timeframe"] button')].find(node => node.textContent === 'H1'))
   while (pending.get('ohlc')?.length) await reply('ohlc')
   await click(container.querySelector('[aria-label="Show event icons"]')); await flush()
   assert.ok(container.querySelector('.inspector-chart-markers'))
-  assert.ok(container.querySelector('.external-chart-star'))
-  assert.equal(localStorage.getItem(sourceIconKey), sourceChoices)
   assert.equal(localStorage.getItem('fyodor.inspector.shared.v1'), inspectorChoices)
   // A nearby-release chooser dismisses on blank chart clicks before selecting.
   await click(container.querySelector('[aria-label="2 nearby Inspector releases"]'))
@@ -723,7 +584,6 @@ try {
   await click([...document.querySelectorAll('dialog button')].find(node => node.textContent === 'Save'))
   await flush()
   const saved = JSON.parse(localStorage.getItem('fyodor.inspector.shared.v1')).pairs.EURUSD
-  assert.equal(container.querySelector('.external-chart-markers').style.bottom, 'calc(var(--calendar-marker-bottom, 34px) + 68px)', 'Custom star row stays above the two-currency daily icon stack')
   assert.equal(saved.symbolGrouping, 'day'); assert.equal(saved.detailView, undefined); assert.equal(saved.showHistograms, undefined)
   const dailyIcon = container.querySelector('.inspector-day-symbol.inspector-currency-USD')
   await click(dailyIcon)
@@ -879,181 +739,19 @@ try {
   assert.equal(container.querySelector('.drawing-draft .drawing-range-duration .drawing-range-label').textContent, '0d 2h 0m')
   await pointer(drawingSvg(), 'pointerup', 480, 320)
   assert.equal(container.querySelector('.drawing-range-pips .drawing-range-label').textContent, '1000.0 pips · +10.53%', 'The assembled range displays pips and percentage from its first anchor')
-  // Research is a time selection, independent of prices and calendar filters.
-  const { researchRangeDates } = await server.ssrLoadModule('./src/research/research-request.ts')
-  assert.equal(researchRangeDates(Date.UTC(2026, 9, 25, 3, 30) / 1000, Date.UTC(2026, 9, 25, 4) / 1000,
-    { brokerId: 'Elev8-Demo2', brokerOffsetSeconds: 0 }, { mode: 'utc', utcOffsetMinutes: 0 }), null,
-    'Ambiguous broker wall clocks must not create a guessed research date')
-  assert.deepEqual(researchRangeDates(Date.UTC(2026, 9, 5, 3) / 1000, Date.UTC(2026, 8, 9, 3) / 1000,
-    { brokerId: 'Elev8-Demo2', brokerOffsetSeconds: 0 }, { mode: 'utc', utcOffsetMinutes: 0 }), { from: '2026-09-09', to: '2026-10-05' })
-  const savedDrawings = localStorage.getItem('fyodor.chart-drawings.v1')
-  // Zoom out enough to include tomorrow's projected releases alongside history.
-  const originalLogicalCoordinate = scale.logicalToCoordinate
-  scale.logicalToCoordinate = index => (index - logicalRange.from) * 20
-  await React.act(async () => { for (const notify of rangeListeners) notify() })
-  await flush()
-  const calendarSymbols = [...container.querySelectorAll('.inspector-chart-symbol')]
-  assert.ok(calendarSymbols.length >= 3, 'Historical USD/EUR and upcoming EUR icons are visible before research')
-  const assertCalendarReferences = message => {
-    const current = [...container.querySelectorAll('.inspector-chart-symbol')]
-    assert.ok(current.length === calendarSymbols.length && current.every((node, i) => node === calendarSymbols[i]), message)
-  }
-  await click(container.querySelector('[aria-label="Research date range"]'))
-  assertCalendarReferences('Entering research keeps the same historical and upcoming calendar icons mounted')
-  await click(calendarSymbols.at(-1))
-  assert.ok(container.querySelector('.inspector-panel'), 'Calendar icons open Inspector during range selection')
-  assert.ok(container.querySelector('.inspector-panel'), 'The raw Inspector selection remains available')
-  await click(container.querySelector('.research-range-hint button'))
-  assert.equal(container.querySelector('[aria-label="Select research date range"]'), null)
-  assertCalendarReferences('Cancelling research preserves calendar references')
-  await click(container.querySelector('[aria-label="Research date range"]'))
-  let researchOverlay = container.querySelector('[aria-label="Select research date range"]')
-  assert.ok(researchOverlay)
-  const overlayStyles = document.createElement('style')
-  overlayStyles.textContent = fs.readFileSync(new URL('../src/research/research.css', import.meta.url), 'utf8') +
-    fs.readFileSync(new URL('../src/inspector/inspector.css', import.meta.url), 'utf8')
-  document.head.appendChild(overlayStyles)
-  assert.ok(Number(getComputedStyle(container.querySelector('.inspector-chart-markers')).zIndex) >
-    Number(getComputedStyle(researchOverlay).zIndex), 'Calendar buttons stay above the research drag surface')
-  overlayStyles.remove()
-  researchOverlay.getBoundingClientRect = () => ({ left: 0, top: 0 })
-  await pointer(researchOverlay, 'pointerdown', 700, 20)
-  reset()
-  const requestCount = requests.length, pendingFrames = frames.size
-  for (let index = 0; index < 20; index++) await pointer(researchOverlay, 'pointermove', 650 - index * 20, 380)
-  assert.equal(frames.size, pendingFrames + 1, 'Research pointer movement batches presentation into one frame')
-  await flush()
-  assertQuiet('Research drag')
-  assert.equal(counters.dailyGrouping ?? 0, 0, 'Research dragging does not regroup calendar history')
-  assert.equal(requests.length, requestCount, 'Research dragging does not fetch or export data')
-  assertCalendarReferences('Research dragging preserves calendar references')
-  await pointer(researchOverlay, 'pointerup', 100, 380)
-  assert.equal(captures.size, 0)
-  const researchPanel = container.querySelector('.chart-research-workspace > .research-panel-slot > .research-panel')
-  assert.ok(researchPanel, 'Research shares the chart row instead of blocking the terminal in a modal')
-  assertCalendarReferences('Opening the notes panel preserves the calendar icons')
-  scale.logicalToCoordinate = originalLogicalCoordinate
-  await React.act(async () => { for (const notify of rangeListeners) notify() })
-  await flush()
-  assert.equal(document.querySelector('dialog[open]'), null)
-  assert.equal(localStorage.getItem('fyodor.chart-drawings.v1'), savedDrawings, 'Research selection preserves saved drawings')
-  await change(document.querySelector('[aria-label="Report name"]'), 'September bearish move')
-  await change(document.querySelector('[aria-label="Research from date"]'), '2026-09-09')
-  await change(document.querySelector('[aria-label="Research through date"]'), '2026-10-05')
-  reset()
-  await change(document.querySelector('[aria-label="Research question"]'), 'Was this USD strength or EUR weakness?')
-  assertQuiet('Writing research notes', true)
-  assert.equal(counters.dailyGrouping ?? 0, 0, 'Typing notes does not regroup calendar history')
-  const recentWindow = { ...logicalRange }, recentDrawings = localStorage.getItem('fyodor.chart-drawings.v1')
-  assert.equal(requests.filter(url => url.startsWith('/storage-api/recent-calendar')).length, 0, 'Closed recent panel does no data work')
-  const recentButton = container.querySelector('[aria-label="Show events"]')
-  assert.equal(recentButton.previousElementSibling.getAttribute('aria-label'), 'Hide drawing toolbar')
-  assert.ok(recentButton.querySelector('svg'), 'Show events uses a monochrome outline icon')
-  reset(); await click(recentButton); await flush()
+  // Opening data panels leaves chart state intact.
+  const recentWindow={...logicalRange},recentDrawings=localStorage.getItem('fyodor.chart-drawings.v1')
+  reset();await click(container.querySelector('[aria-label="Show events"]'));await flush()
   assert.ok(container.querySelector('.recent-events-panel'))
-  assert.equal(container.querySelector('.research-panel-slot').hidden, true)
-  assert.equal(document.querySelector('[aria-label="Research question"]').value, 'Was this USD strength or EUR weakness?')
-  assert.deepEqual(logicalRange, recentWindow)
-  assert.equal(counters.chartCreated ?? 0, 0); assert.equal(counters.setData ?? 0, 0)
-  const recentQuery = new URL(requests.filter(url => url.startsWith('/storage-api/recent-calendar')).at(-1), 'http://localhost').searchParams
-  assert.equal(recentQuery.get('currencies'), 'EUR,USD')
-  assert.equal(container.querySelectorAll('.recent-events-panel tbody tr').length,
-    events.filter(event => ['EUR', 'USD'].includes(event.currency) && event.release_at !== null
-      && event.release_at >= Number(recentQuery.get('from_utc_ms')) && event.release_at <= Number(recentQuery.get('to_utc_ms'))).length,
-    'Recent events include all series independently of saved Inspector family filters')
-  assert.equal(container.querySelector('.event-panel-tabs [aria-selected="true"]').textContent, 'Upcoming')
-  assert.equal(container.querySelector('.recent-events-panel th').textContent, 'In')
-  assert.doesNotMatch(container.querySelector('.recent-events-panel').textContent, /UTC\+07:00|Pepperstone-Demo/)
-  await click(container.querySelector('[aria-label="Hide events"]')); await flush()
-  assert.equal(container.querySelector('.recent-events-panel'), null)
-  assert.equal(container.querySelector('.research-panel-slot').hidden, false)
-  assert.equal(container.querySelector('.research-panel'), researchPanel, 'Switching panels preserves the mounted research draft')
-  assert.equal(localStorage.getItem('fyodor.chart-drawings.v1'), recentDrawings)
-  assert.equal(requests.filter(url => url.startsWith('/storage-api/currency-details')).length, 0, 'Closed Detail does no data work')
-  const detailButton = container.querySelector('[aria-label="Show Detail"]')
-  assert.equal(detailButton.previousElementSibling.getAttribute('aria-label'), 'Show events')
-  reset(); await click(detailButton); await flush()
-  assert.ok(container.querySelector('.currency-detail-panel'))
-  assert.equal(container.querySelector('.research-panel-slot').hidden, true)
-  assert.equal(document.querySelector('[aria-label="Research question"]').value, 'Was this USD strength or EUR weakness?')
-  assert.equal(counters.chartCreated ?? 0, 0); assert.equal(counters.setData ?? 0, 0)
-  assert.deepEqual(logicalRange, recentWindow)
-  assert.deepEqual([...container.querySelectorAll('.currency-detail-panel thead th')].map(n => n.textContent), ['Category', 'EUR', 'USD'])
-  reset(); await tick('pollDetail', 30000)
-  assertQuiet('Unchanged Detail poll', true)
-  await click(container.querySelector('[aria-label="Show events"]')); await flush()
-  assert.equal(container.querySelector('.currency-detail-panel'), null, 'Events and Detail are mutually exclusive')
-  assert.equal([...timers.values()].some(t => t.fn.name === 'pollDetail'), false, 'Closing Detail cancels its poll')
-  await click(container.querySelector('[aria-label="Show Detail"]')); await flush()
-  assert.equal(container.querySelector('.recent-events-panel'), null)
-  await click(container.querySelector('[aria-label="Hide Detail"]')); await flush()
-  assert.equal(container.querySelector('.research-panel-slot').hidden, false)
-  assert.equal(container.querySelector('.research-panel'), researchPanel)
-  assert.equal(localStorage.getItem('fyodor.chart-drawings.v1'), recentDrawings)
-  await click(container.querySelector('.inspector-day-symbol.inspector-currency-USD'))
-  const inspected = container.querySelector('.inspector-panel').textContent
-  const requestsBeforeResearchPan = requests.length
-  reset()
-  await pointer(canvasForDrawing, 'pointerdown', 100, 300)
-  await pointer(window, 'pointermove', 110, 315)
-  await React.act(async () => {
-    drawChartFrame()
-    for (const handler of clickListeners) handler({ point: { x: 100, y: 100 } })
-  })
-  await pointer(window, 'pointerup', 110, 315)
-  await flush()
-  assertQuiet('Panning while writing research', true)
-  assert.equal(requests.length, requestsBeforeResearchPan)
-  assert.equal(container.querySelector('.inspector-panel').textContent, inspected, 'Chart navigation retains the inspected release while research is open')
-  assert.equal(container.querySelector('.chart-research-workspace > .research-panel-slot > .research-panel'), researchPanel)
-  assert.equal(document.querySelector('[aria-label="Research question"]').value, 'Was this USD strength or EUR weakness?')
-  await click(button('Alert'))
-  assert.ok(container.querySelector('.alert-event-group'), 'The bottom dock remains interactive beside research')
-  await click(button('Inspector'))
-  assert.ok(container.querySelector('.inspector-panel'))
-  await click([...container.querySelectorAll('[aria-label="Chart timeframe"] button')].find(node => node.textContent === 'H4'))
-  while (pending.get('ohlc')?.length) await reply('ohlc')
-  assert.equal(document.querySelector('[aria-label="Report name"]').value, 'September bearish move')
-  assert.equal(document.querySelector('[aria-label="Research question"]').value, 'Was this USD strength or EUR weakness?', 'Timeframe changes preserve the draft')
-  await click([...container.querySelectorAll('[aria-label="Chart timeframe"] button')].find(node => node.textContent === 'H1'))
-  while (pending.get('ohlc')?.length) await reply('ohlc')
-  await flush()
-  await React.act(async () => document.querySelector('.research-panel form').dispatchEvent(new dom.Event('submit', { bubbles: true, cancelable: true })))
-  assert.equal(reportRequests.length, 1)
-  assert.equal(reportRequests[0].scope, 'EURUSD')
-  assert.equal(reportRequests[0].title, 'September bearish move')
-  assert.equal(reportRequests[0].context_days, 90)
-  assert.equal(reportRequests[0].question, 'Was this USD strength or EUR weakness?')
-  assert.ok(!('families' in reportRequests[0]) && !('event_ids' in reportRequests[0]), 'Visible filters never enter the export request')
-  assert.match(document.querySelector('[aria-label="Saved report path"]').value, /Lite\\Market Analyst Workflow\\report\\named\\brief\.md$/)
-  assert.match(document.querySelector('.research-panel').textContent, /coverage is missing/)
-  await click([...document.querySelectorAll('.research-panel button')].find(node => node.textContent === 'Done'))
-  await click(container.querySelector('[aria-label="Research date range"]'))
-  researchOverlay = container.querySelector('[aria-label="Select research date range"]')
-  researchOverlay.getBoundingClientRect = () => ({ left: 0, top: 0 })
-  await pointer(researchOverlay, 'pointerdown', 300, 100)
-  await pointer(researchOverlay, 'pointermove', 500, 100)
-  await React.act(async () => window.dispatchEvent(new dom.KeyboardEvent('keydown', { key: 'Escape' })))
-  assert.equal(container.querySelector('[aria-label="Select research date range"]'), null)
-  assert.equal(captures.size, 0, 'Cancelling research releases pointer capture and frames')
-  assert.equal(reportRequests.length, 1)
-  await click(button('Alert'))
-  assert.equal(container.querySelector('[aria-label^="Prepare research for"]'), null, 'Alert no longer starts research exports')
-  await click(container.querySelector('[aria-label="Research date range"]'))
-  researchOverlay = container.querySelector('[aria-label="Select research date range"]')
-  researchOverlay.getBoundingClientRect = () => ({ left: 0, top: 0 })
-  await pointer(researchOverlay, 'pointerdown', 300, 100)
-  await pointer(researchOverlay, 'pointerup', 500, 100)
-  assert.ok(document.querySelector('.research-panel form'))
-  reportFailure = true
-  await React.act(async () => document.querySelector('.research-panel form').dispatchEvent(new dom.Event('submit', { bubbles: true, cancelable: true })))
-  assert.match(document.querySelector('.research-panel [role="alert"]').textContent, /Report folder unavailable/)
-  assert.equal(reportRequests[1].kind, 'historical')
-  assert.equal(reportRequests[1].scope, 'EURUSD')
-  reportFailure = false
-  await React.act(async () => document.querySelector('.research-panel form').dispatchEvent(new dom.Event('submit', { bubbles: true, cancelable: true })))
-  assert.ok(document.querySelector('[aria-label="Saved report path"]'), 'A failed save can be retried')
-  await click([...document.querySelectorAll('.research-panel button')].find(node => node.textContent === 'Done'))
+  assert.deepEqual(logicalRange,recentWindow);assert.equal(counters.setData??0,0)
+  await click(container.querySelector('[aria-label="Hide events"]'));await flush()
+  reset();await click(container.querySelector('[aria-label="Show Detail"]'));await flush()
+  assert.deepEqual([...container.querySelectorAll('.ledger-categories thead th')].map(n=>n.textContent),['Category','EUR','USD'])
+  assert.equal(container.querySelectorAll('.ledger-categories tbody > tr').length,4)
+  assert.equal(container.querySelectorAll('.currency-detail-panel button').length,1)
+  assert.deepEqual(logicalRange,recentWindow);assert.equal(counters.setData??0,0)
+  await click(container.querySelector('[aria-label="Close Detail"]'));await flush()
+  assert.equal(localStorage.getItem('fyodor.chart-drawings.v1'),recentDrawings)
   // Entry Trade uses the real shell, storage and chart callbacks.
   await click(button('Entry Trade'))
   const entryPanel = () => container.querySelector('[aria-label="Entry Trade"]')
@@ -1395,7 +1093,6 @@ try {
     assert.equal(panes.length, 2, 'Symbol changes reuse the RSI pane')
     if (symbol === 'JPYX') {
       assert.equal(container.querySelector('.inspector-chart-markers'), null, 'Global hide survives switching from a pair to an index')
-      assert.equal(container.querySelector('.external-chart-markers'), null)
       await click(container.querySelector('[aria-label="Show event icons"]')); await flush()
     }
     assert.deepEqual(logicalRange, windowBefore, `${symbol}: the shared date viewport survives symbol changes`)
@@ -1445,7 +1142,7 @@ try {
   assert.equal(container.querySelector('.left-dock').hidden, false)
   assert.equal(container.querySelector('[data-currency-summary]'), null, 'Retired Fundamentals stays absent after reopening')
   await click(button('Currency News'))
-  assert.equal(container.querySelector('[data-news-story]').dataset.newsStory, 'CHF-fixture', 'Focused news selection survives reopening')
+  assert.equal(container.querySelectorAll('[data-news-story]').length,0,'Manual news starts empty when reopened')
   await click(button('Currency News'))
   // The supported Ledger shares its cutoff with the right Detail without
   // making chart ticks, viewport work or calendar selections depend on that clock.
@@ -1461,9 +1158,9 @@ try {
   assert.ok(container.querySelector('[aria-label="Open CAD developments"]'))
   assertQuiet('Opening supported Ledger')
   await click(container.querySelector('[aria-label="Open CAD developments"]')); await flush()
-  assert.equal(container.querySelector('#currency-detail-title').textContent, 'Fundamental Detail')
+  assert.equal(container.querySelector('#currency-detail-title').textContent, 'Detail')
   assert.ok(container.querySelector('[data-ledger-category="CAD-policy"]'))
-  assert.equal(container.querySelector('.detail-ledger-tabs button').textContent, 'Recent developments')
+  assert.equal(container.querySelector('.detail-ledger-tabs'), null)
   assert.doesNotMatch(container.querySelector('.ledger-detail').textContent, /\/100|Momentum|Scoring rules|Contribution:|scored categories/)
 
   assert.deepEqual(logicalRange, ledgerViewportBefore, 'Opening Ledger Detail preserves the chart viewport')
@@ -1486,14 +1183,14 @@ try {
     ledgerInput.dispatchEvent(new dom.Event('change',{bubbles:true}))
   })
   assertQuiet('Ledger historical cutoff', true)
-  assert.match(container.querySelector('[data-ledger-category="CAD-policy"]').textContent, /No retained reading by cutoff/)
+  assert.match(container.querySelector('[data-ledger-category="CAD-policy"]').textContent, /—/)
   const filtersButton=container.querySelector('[aria-label="Ledger filters"]')
   assert.equal(filtersButton.nextElementSibling.getAttribute('aria-label'),'Pick Ledger date from a chart candle')
   const filtersBefore=localStorage.getItem('fyodor.inspector.shared.v1'),cutoffBeforeFilter=ledgerInput.value,requestsBeforeFilter=requests.length
   reset();await click(filtersButton)
   const filterPopover=()=>document.querySelector('.ledger-filters-popover')
   await click([...filterPopover().querySelectorAll('button')].find(n=>n.textContent==='All events'))
-  assertQuiet('Ledger tier preview',true)
+  assertQuiet('Ledger family preview',true)
   assert.equal(ledgerInput.value,cutoffBeforeFilter)
   assert.equal(requests.length,requestsBeforeFilter,'Visibility filtering never fetches history')
   await click([...filterPopover().querySelectorAll('button')].find(n=>n.textContent==='Cancel'))
@@ -1682,7 +1379,7 @@ try {
     assert.equal(container.querySelector('[aria-label="Show event icons"]').getAttribute('aria-pressed'), 'false', 'Universal visibility is restored after remount')
     assert.equal(container.querySelector('[aria-label="Hide RSI"]').getAttribute('aria-pressed'), 'true', 'Shared RSI visibility is restored after StrictMode remount')
   } finally { await React.act(async () => root.render(null)) }
-  console.log('✓ Assembled Lite: shared RSI controls/pane/persistence and bounded tick work, navigation, filters/raw tables, dates, future axis, drawings, Entry Trade plans/pins/journal, Alert/Activity, viewport/corrections, research drag/export/retry, zero polling/pan work and StrictMode cleanup')
+  console.log('✓ Assembled Lite: shared RSI controls/pane/persistence and bounded tick work, navigation, filters/raw tables, dates, future axis, drawings, Entry Trade plans/pins/journal, Alert/Activity, viewport/corrections, zero polling/pan work and StrictMode cleanup')
 } finally {
   await React.act(async () => root.unmount())
   assert.equal(timers.size, 0); assert.equal(intervals.size, 0); assert.equal(frames.size, 0)

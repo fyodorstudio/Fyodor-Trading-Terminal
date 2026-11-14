@@ -8,34 +8,17 @@ from tempfile import TemporaryDirectory
 from unittest import TestCase
 from unittest.mock import patch
 
-from storage.alarms import AlarmEngine, read_events
+from storage.alarms import AlarmEngine
 from storage.alarm_service import create_alarm_app
 from storage.alarm_audio import DEFAULT_AUDIO, PRESETS, audio_path
 
 
 def event(key='cpi', at=1000000, **changes):
-    return {**dict(key=key, reference=key, source='external', broker=None, title=key.upper(), currencies=['USD'],
+    return {**dict(key=key, reference=key, source='calendar', broker='Pepperstone-Demo', title=key.upper(), currencies=['USD'],
         at=at, date=None, eligible=True, note='Confirmed official schedule'), **changes}
 
 
 class AlarmTests(TestCase):
-    def test_agent_curation_preserves_off_pause_offset_and_rejects_untimed_or_elapsed(self):
-        self.engine.reconcile([event('new', default_enabled=False), event('off', default_enabled=False)])
-        self.action(action='toggle', key='off', enabled=False)
-        self.action(action='settings', settings={'enabled': False, 'release_minutes': 5})
-        result = self.action(action='curate', keys=['new', 'off'])
-        events = {e['key']: e for e in result['events']}
-        self.assertTrue(events['new']['selected']); self.assertFalse(events['new']['armed'])
-        self.assertFalse(events['off']['selected']); self.assertFalse(events['off']['explicit_choice'])
-        self.assertEqual(result['settings'], {'enabled': False, 'release_minutes': 5})
-        self.action(action='settings', settings={'enabled': True, 'release_minutes': 5})
-        jobs = [j for j in self.engine.snapshot()['jobs'] if j['status'] == 'pending']
-        self.assertEqual(len(jobs), 1); self.assertEqual(jobs[0]['due'], 700)
-        self.assertNotIn('best-supported pair', jobs[0]['prompt'])
-        self.assertIn('technical levels to the user', jobs[0]['prompt'])
-        self.engine.reconcile([event('elapsed', at=1000), event('untimed', at=None, eligible=False)])
-        for key in ['elapsed', 'untimed']:
-            with self.assertRaises(ValueError): self.action(action='curate', keys=[key])
 
     def setUp(self):
         self.temp = TemporaryDirectory()
@@ -120,8 +103,6 @@ class AlarmTests(TestCase):
         self.advance(880)
         self.assertEqual(len(self.deliveries), 1)
         self.assertEqual(len(self.deliveries[0]), 2, 'Simultaneous package rings once')
-        self.assertIn('$one-minute-before-release', self.deliveries[0][0]['prompt'])
-        self.assertIn('Asia/Jakarta', self.deliveries[0][0]['prompt'])
         ids = [j['id'] for j in self.deliveries[0]]
         self.action(action='dismiss', ids=ids)
         restored = AlarmEngine(self.path, self.deliveries.append, lambda: self.now)
@@ -130,7 +111,6 @@ class AlarmTests(TestCase):
         self.assertTrue(all(restored.state['jobs'][i]['status'] == 'dismissed' for i in ids))
         self.advance(940)
         self.assertEqual(len(self.deliveries), 1)
-        self.assertIn('$one-minute-before-release', self.deliveries[-1][0]['prompt'])
 
     def test_rescheduling_archive_toggle_and_settings_survive_restart(self):
         self.engine.reconcile([event()])
@@ -210,26 +190,6 @@ class AlarmTests(TestCase):
             with self.assertRaises(ValueError):
                 self.action(action='settings', settings=settings)
 
-    def test_loader_stages_pagination_and_readonly_source_contract(self):
-        def reading(at, identity):
-            return dict(release_at=at, value_id=identity, time_mode=0, availability='observed')
-        pins = [{'id': 'p', 'source_id': 'demo', 'label': 'Policy stages', 'currency': 'AUD', 'server_time': 1000,
-            'missing_value_ids': [], 'events': [reading(1000000, 'a'), reading(1600000, 'b')]}]
-        class Store:
-            closed = False
-            def close(self): self.closed = True
-        store = Store()
-        pages = [dict(items=[dict(key='date-only', title='Unknown hour', event_at=None, event_date='2026-10-15',
-            currencies=['USD'], status='confirmed', kind='scheduled', time_note='Hour unconfirmed')], next_offset=500),
-            dict(items=[], next_offset=None)]
-        with patch('storage.alarms.CalendarStore', return_value=store) as constructor, patch('storage.alarms.highlight_snapshot', return_value={'items': pins}), patch('storage.alarms.external_snapshot', side_effect=pages) as external:
-            items = read_events('fixture.sqlite3')
-            constructor.assert_called_once_with(Path('fixture.sqlite3'), readonly=True)
-            self.assertTrue(store.closed)
-            self.assertEqual(len(items), 3)
-            self.assertFalse(items[-1]['eligible'])
-            self.assertEqual(external.call_args.kwargs['offset'], 500)
-            self.assertEqual(len({i['key'] for i in items}), 3)
 
     def test_failed_write_never_claims_delivery_or_persists_partial_settings(self):
         self.engine.reconcile([event()])
@@ -267,8 +227,6 @@ class AlarmTests(TestCase):
                     return messages[0]['status'], json.loads(b''.join(m.get('body', b'') for m in messages[1:]))
                 _, data = await request()
                 self.assertEqual(data['application'], 'fyodor-alarms')
-                self.assertEqual(data['external_source_schema'], 4)
-                self.assertTrue(data['external_source_directory'])
                 identity=data['jobs'][0]['id']
                 with patch.object(app.state.engine,'snapshot',side_effect=AssertionError('Full history must not be built')):
                     status, active=await request(path='/alarms/active',query=('ids='+identity).encode())

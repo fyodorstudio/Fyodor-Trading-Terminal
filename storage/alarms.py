@@ -1,5 +1,4 @@
-"""Durable, occurrence-specific reminders. No calendar/research writes or AI execution."""
-from datetime import datetime, timezone, timedelta
+"""Durable calendar reminders and desktop delivery state."""
 import hashlib
 from copy import deepcopy
 import json
@@ -9,55 +8,9 @@ import tempfile
 from threading import RLock
 import time
 
-from .calendar_store import CalendarStore
-from .highlights import HIGHLIGHTS_PATH, highlight_snapshot
-from .external_sources import DIRECTORY, external_snapshot
 from .alarm_audio import DEFAULT_AUDIO, validate_audio, custom_audio
 
-JAKARTA = timezone(timedelta(hours=7))
 DEFAULT_SETTINGS = {'enabled': True, 'release_minutes': 2}
-
-
-def read_events(database, highlights=HIGHLIGHTS_PATH, external=DIRECTORY):
-    store = CalendarStore(Path(database), readonly=True)
-    try:
-        pins = highlight_snapshot(store, path=highlights)['items']
-    finally:
-        store.close()
-    result = []
-    for pin in pins:
-        # Preserve separate decision/statement/conference stages. Never guess an hour.
-        observed = [e for e in pin['events'] if e.get('availability') == 'observed']
-        times = sorted({e['release_at'] for e in observed if e['time_mode'] == 0 and e['release_at'] is not None})
-        source_date = datetime.fromtimestamp(pin['server_time'], timezone.utc).date().isoformat() if pin['server_time'] else None
-        for stage_index, at in enumerate(times or [None]):
-            result.append({'key': f"highlight:{pin['source_id']}:{pin['id']}:{stage_index}", 'reference': pin['id'],
-                'source': 'highlight', 'broker': pin['source_id'], 'title': pin['label'], 'currencies': [pin['currency']],
-                'at': at, 'date': source_date if at is None else None, 'eligible': at is not None and not pin['missing_value_ids'],
-                'value_ids': [e['value_id'] for e in observed if e['release_at'] == at],
-                'note': 'Pinned calendar occurrence. Stored schedule; confirm the official time during preparation.'})
-    offset = 0
-    while True:
-        page = external_snapshot(external, limit=500, offset=offset)
-        for item in page['items']:
-            at = datetime.fromisoformat(item['event_at'].replace('Z', '+00:00')).timestamp() * 1000 if item['event_at'] else None
-            result.append({'key': f"external:{item['key']}", 'reference': item['key'], 'source': 'external', 'broker': None,
-                'title': item['title'], 'currencies': item['currencies'], **({'instruments': item['instruments']} if item.get('instruments') else {}), 'at': at, 'date': item['event_date'],
-                'eligible': item.get('risk_status') != 'resolved' and at is not None and item['kind'] == 'scheduled' and item['status'] == 'confirmed',
-                'note': item['time_note']})
-        if page['next_offset'] is None:
-            break
-        offset = page['next_offset']
-    return result
-
-
-def prompt_for(event, stage):
-    at = datetime.fromtimestamp(event['at'] / 1000, JAKARTA).strftime('%b %d, %Y %I:%M %p') if event['at'] else event['date'] or 'time unconfirmed'
-    skill = 'assess-trade-now' if stage == 'prepare' else 'one-minute-before-release'
-    identity = (f"Calendar alarm {event['reference']}, broker {event['broker']}, value IDs {', '.join(event.get('value_ids', []))}" if event['source'] == 'calendar'
-        else f"Highlight {event['reference']}, broker {event['broker']}" if event['source'] == 'highlight' else f"External Source {event['reference']}")
-    focus = ', '.join(event.get('instruments', []))
-    return f"${skill} {event['title']} — {at} (Asia/Jakarta). {identity}. " + (f'Focus on {focus} and its supported directional mechanism.' if focus else f"Review {', '.join(event['currencies'])} fundamentals and cross-currency transmission. Reuse saved preparation and any user-specified pair context. Leave technical levels to the user; do not automatically select a pair.")
 
 
 class AlarmEngine:
@@ -79,6 +32,7 @@ class AlarmEngine:
                 self.state['settings'] = {'enabled': self.state['settings']['enabled'], 'release_minutes': 2}
             self.validate_settings(self.state['settings'])
             for job in self.state['jobs'].values():
+                job.pop('prompt', None)
                 if job['stage'] == 'prepare' and job['status'] in ('pending', 'snoozed', 'ringing'):
                     job.update(status='cancelled', error=None)
                 elif job['status'] == 'ringing':
@@ -129,13 +83,13 @@ class AlarmEngine:
                     job = self.state['jobs'].get(identity)
                     if job is None:
                         self.state['jobs'][identity] = {'id': identity, 'event_key': event['key'], 'title': event['title'],
-                            'at': event['at'], 'due': due, 'stage': stage, 'prompt': prompt_for(event, stage),
+                            'at': event['at'], 'due': due, 'stage': stage,
                             'status': 'pending' if due >= now else 'elapsed', 'error': None}
                         changed = True
                     else:
-                        title, prompt = event['title'], prompt_for(event, stage)
-                        if job['title'] != title or job['prompt'] != prompt:
-                            job.update(title=title, prompt=prompt); changed = True
+                        title = event['title']
+                        if job['title'] != title:
+                            job.update(title=title); changed = True
                         if job['status'] == 'cancelled' and due > now:
                             job.update(status='pending', error=None); changed = True
             for identity, job in self.state['jobs'].items():
@@ -184,13 +138,13 @@ class AlarmEngine:
     def snapshot(self):
         with self.lock:
             jobs = sorted(self.state['jobs'].values(), key=lambda job: job.get('fired_at', job['due']), reverse=True)
-            return {'application': 'fyodor-alarms', 'revision': self.state['revision'], 'now': self.clock() * 1000,
+            return {'application': 'fyodor-alarms', 'data_directory': str(self.path.parent.resolve()), 'revision': self.state['revision'], 'now': self.clock() * 1000,
                 'settings': dict(self.state['settings']), 'schedule_error': self.error or ('Alarm scheduler heartbeat is stale' if self.refreshed_at is None or self.clock() - self.refreshed_at > 15 else None), 'refreshed_at': self.refreshed_at,
                 'audio': dict(self.state['audio']), 'custom_sound_name': self.state.get('custom_audio', {}).get('name'),
                 'native_available': os.name == 'nt',
-                'schedule_schema': 2, 'migration': self.state.get('migration'),
+                'schedule_schema': 2,
                 'events': [{**e, 'selected': self.selected(e), 'explicit_choice': self.state['overrides'].get(e['key']),
-                    'armed': self.enabled(e), 'prompt': prompt_for(e, 'release')} for e in self.events],
+                    'armed': self.enabled(e)} for e in self.events],
                 'jobs': [dict(job) for job in jobs]}
 
     def mutate(self, request):
@@ -234,22 +188,16 @@ class AlarmEngine:
                 # The service adds the validated event before reconciliation.
                 self.events = [e for e in self.events if e['key'] != key] + [request['event']]
                 self.state['overrides'][key] = subscription['enabled']
-            elif action in ('toggle-many', 'curate'):
+            elif action == 'toggle-many':
                 keys = request.get('keys')
-                if not isinstance(keys, list) or not 1 <= len(keys) <= 512 or (action == 'toggle-many' and type(request.get('enabled')) is not bool):
+                if not isinstance(keys, list) or not 1 <= len(keys) <= 512 or type(request.get('enabled')) is not bool:
                     raise ValueError('Invalid reminder selection')
                 for key in keys:
                     event = next((e for e in self.events if e['key'] == key), None)
                     if not event or not event['eligible']:
                         raise ValueError('This event has no verified, alarm-eligible time')
-                    if action == 'curate' and event['at'] <= self.clock() * 1000:
-                        raise ValueError('Elapsed releases cannot receive a new reminder')
                 for key in keys:
-                    if action == 'curate':
-                        # Agent curation can select new risks, never undo an off choice.
-                        self.state['overrides'].setdefault(key, True)
-                    else:
-                        self.state['overrides'][key] = request['enabled']
+                    self.state['overrides'][key] = request['enabled']
             elif action == 'toggle':
                 event = next((e for e in self.events if e['key'] == request.get('key')), None)
                 if not event or not event['eligible'] or type(request.get('enabled')) is not bool:

@@ -10,7 +10,6 @@ export function alertDateForRelease(release: InspectorRelease): string | null {
 
 export type AlertFocus = {
   request: number
-  externalKey?: string
   sourceId?: string
   valueIds?: string[]
   date?: string

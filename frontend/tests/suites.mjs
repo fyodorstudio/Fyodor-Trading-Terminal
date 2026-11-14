@@ -26,14 +26,12 @@ export const suites = [
   "tests/test_custom_price_alert_sound.mjs",
   "tests/test_price_alert_chart_contract.mjs",
   "tests/test_terminal_responsiveness.mjs",
-  "tests/test_external_sources.mjs",
   "tests/test_events_alarms.mjs",
   "tests/test_alarm_audio.mjs",
   "tests/test_currency_news.mjs",
   "tests/test_entry_trade_research.mjs",
   "tests/test_entry_trade_journal_api.mjs",
   "tests/test_entry_trade_chart_contract.mjs",
-  "tests/test_external_markers.mjs",
   "tests/test_calendar_storage.mjs",
   "tests/test_recent_events.mjs",
   "tests/test_currency_details.mjs",
@@ -48,5 +46,4 @@ export const suites = [
   "tests/inspector/test_daily_inspector.mjs",
   "tests/inspector/test_upcoming_markers.mjs",
   "tests/alert/test_alert.mjs",
-  "tests/alert/test_highlights.mjs"
 ]

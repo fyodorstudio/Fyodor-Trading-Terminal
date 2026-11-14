@@ -251,4 +251,3 @@
 
 .chart-refocus-button span { font-family: "Segoe UI Symbol", sans-serif; font-size: 23px; line-height: 1; }
 .chart-recent-events-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.research-panel-slot:not([hidden]) { display: contents; }

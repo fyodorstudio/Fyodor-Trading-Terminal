@@ -5,12 +5,16 @@ from hashlib import sha256
 import json
 import time
 
-from .currency_news import encoded
+
 from .currencies import CURRENCIES
 from .detail_registry import registry
 from .ledger_catalog import canonical_definition, metric_key, raw_definition, series_key
 from .ledger_vintages import retained_entries
 from .persistence.support import HISTORY_START, missing_intervals
+
+
+def encoded(value):
+    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(',', ':')).encode('utf-8')
 
 
 def _currency_year(store, broker, currency, year, revision, now_ms):

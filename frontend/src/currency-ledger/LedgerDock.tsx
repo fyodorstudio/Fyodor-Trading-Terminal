@@ -26,7 +26,7 @@ export const LedgerDock = memo(function LedgerDock({ supported, broker, onOpenDe
   return <section className="ledger-dock" aria-label="Ledger">
     {supported && <div className="ledger-toolbar">
       <button ref={filterButton} type="button" aria-label="Ledger filters" aria-haspopup="dialog" aria-expanded={filtersOpen}
-        onClick={()=>{cancelPicking();setFilterScope(filtersOpen?null:scope)}}>Filters · {filters.tiers.join('/')||'None'}</button>
+        onClick={()=>{cancelPicking();setFilterScope(filtersOpen?null:scope)}}>Filters</button>
       <button type="button" className="ledger-pick-button" aria-label="Pick Ledger date from a chart candle" title={picking ? 'Click a candle · Escape to cancel' : 'Pick Ledger date from a chart candle'}
         disabled={!canPick} aria-pressed={picking} onClick={togglePicking}>
         <span aria-hidden="true">⌖</span>

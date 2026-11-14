@@ -118,10 +118,7 @@ def create_alarm_app(directory=ALARM_DIRECTORY, loader=None, notify=None, clock=
 
     @app.get('/alarms')
     def snapshot():
-        from .external_sources import DIRECTORY
-        return {**app.state.engine.snapshot(), 'external_source_schema': 4,
-                'preview_playing': delivery.previewing() if isinstance(delivery, DesktopDelivery) else False,
-                'external_source_directory': str(DIRECTORY.resolve())}
+        return {**app.state.engine.snapshot(), 'preview_playing': delivery.previewing() if isinstance(delivery, DesktopDelivery) else False}
 
     @app.get('/alarms/active')
     def active(ids: str):
@@ -160,7 +157,7 @@ def create_alarm_app(directory=ALARM_DIRECTORY, loader=None, notify=None, clock=
                 now = clock() if clock else time.time()
                 identity = 'preview' if data['action'] == 'preview' else 'test'
                 app.state.engine.notify([{'id': identity, 'title': 'Sound preview' if identity=='preview' else 'Test alarm — Fyodor Events & Alarms', 'stage': 'test',
-                    'at': (now + 3600) * 1000, 'prompt': 'Sound and desktop window test. No agent has been invoked.'}])
+                    'at': (now + 3600) * 1000}])
                 return snapshot() if identity=='preview' else {'accepted': True}
             if data.get('action') == 'subscribe':
                 store = CalendarStore(database, readonly=True)

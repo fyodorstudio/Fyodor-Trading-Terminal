@@ -1,2 +1,0 @@
-# Retain downloaded publisher evidence bytes across Windows checkouts.
-*.xml -text

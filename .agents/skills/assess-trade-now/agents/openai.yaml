@@ -1,4 +1,0 @@
-interface:
-  display_name: "Assess Trade Now"
-  short_description: "Refresh fundamentals, global risks and upcoming alerts"
-  default_prompt: "Use $assess-trade-now to refresh currency fundamentals, check global ongoing risks and upcoming catalysts, and maintain sourced custom stars and verified high-impact reminders."

@@ -23,11 +23,10 @@ for (const file of graph.files) {
     problems.push(`${relative(file)}: retired feature in Lite`)
   if (/new\s+Worker\s*\(/.test(fs.readFileSync(file, 'utf8'))) problems.push(`${relative(file)}: calculation worker in Lite`)
 }
-// The inherited bridge is byte-for-byte unchanged, including its old README.
-// Validate maintained Lite documents.
+// Validate local links in the application documentation.
 let links = 0
-const documents = ['README.md', 'AGENTS.md', 'user manual.md', ...listFiles(path.join(root, 'docs')).filter(file => file.endsWith('.md')).map(relative),
-  ...listFiles(path.join(root, '.agents')).filter(file => file.endsWith('.md')).map(relative)]
+const documents = ['README.md', 'user manual.md', 'bridge/README.md',
+  ...listFiles(path.join(root, 'docs')).filter(file => file.endsWith('.md')).map(relative)]
 for (const file of documents) {
   const filename = path.join(root, file)
   if (!fs.existsSync(filename)) { problems.push(`${file}: missing canonical document`); continue }

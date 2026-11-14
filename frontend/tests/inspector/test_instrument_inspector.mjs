@@ -37,7 +37,7 @@ const click = async selector => { const node = document.querySelector(selector);
 const action = async label => React.act(async () => [...document.querySelectorAll('dialog button')].find(node => node.textContent === label).click())
 try {
   const data = await server.ssrLoadModule('./src/inspector/inspector-data.ts')
-  const { chartEventSymbol, chartEventCurrencies, chartEventScope } = await server.ssrLoadModule('./src/economic-calendar/forex/chart-event-scope.ts')
+  const { chartEventSymbol, chartEventCurrencies } = await server.ssrLoadModule('./src/economic-calendar/forex/chart-event-scope.ts')
   const { forexPair, majorForexPairs } = await server.ssrLoadModule('./src/economic-calendar/forex/pairs.ts')
   const { useInspector } = await server.ssrLoadModule('./src/inspector/useInspector.ts')
   const { InspectorPanel } = await server.ssrLoadModule('./src/inspector/InspectorPanel.tsx')
@@ -60,7 +60,6 @@ try {
   assert.equal(majorForexPairs.length, 28)
   for (const [symbol, currency] of Object.entries(scopes)) {
     assert.equal(forexPair(symbol), null, 'Instrument support must not change forex identities')
-    assert.equal(chartEventScope(symbol), currency)
     assert.equal(chartEventSymbol(`${symbol}.pro`), symbol)
     assert.equal(chartEventCurrencies(symbol), chartEventCurrencies(`${symbol}.pro`), 'Scope arrays stay stable across reads/suffixes')
     await render(symbol)

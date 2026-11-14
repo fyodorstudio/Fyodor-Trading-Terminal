@@ -1,6 +1,5 @@
 import { Fragment, useEffect, useId, useLayoutEffect, useRef, useState, type RefObject } from 'react'
 import { createPortal } from 'react-dom'
-import { eventTiers, type EventTier } from '../event-tiers/event-tiers'
 import { inspectorFamilies } from '../inspector/catalog/inspector-families'
 import { FamilyFilterGroups } from '../inspector/filters/FamilyFilterGroups'
 import { inspectorFilterRows } from '../inspector/filters/inspector-filter-rows'
@@ -48,7 +47,6 @@ export function LedgerFiltersPopover({ anchor, currencies, filters, onApply, onC
   const toggle = (ids: string[], checked: boolean) => update({ ...draft,
     families: checked ? [...new Set([...draft.families, ...ids])] : draft.families.filter(id => !ids.includes(id)) })
   const activeFamilies = inspectorFamilies.filter(f => currencies.includes(f.currency))
-  const preset = (tiers: EventTier[]) => update({ tiers, families: [...draft.families.filter(id => !activeFamilies.some(f => f.id === id)), ...activeFamilies.map(f => f.id)] })
   const terms = search.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean)
   const matches = inspectorFilterRows.filter(f => currencies.includes(f.currency) && terms.every(term =>
     `${f.label} ${f.search ?? ''} ${f.category} ${f.currency} ${f.ids.join(' ')}`.toLocaleLowerCase().includes(term)))
@@ -57,14 +55,7 @@ export function LedgerFiltersPopover({ anchor, currencies, filters, onApply, onC
     <div className="inspector-modal-content">
       <header><div><h2 id={titleId}>Ledger filters · {currencies.join(' / ')}</h2><p>Timeline visibility</p></div>
         <button type="button" aria-label="Close Ledger filters" onClick={onClose}>×</button></header>
-      <div className="ledger-filter-presets" aria-label="Ledger filter presets">
-        <button type="button" onClick={() => preset(['S', 'A', 'B'])}>S/A/B · recommended</button>
-        <button type="button" onClick={() => preset(['S', 'A'])}>S/A only</button>
-        <button type="button" onClick={() => preset(['S', 'A', 'B', 'C'])}>All events</button>
-      </div>
-      <div className="ledger-filter-tiers">{eventTiers.map(tier => <label key={tier.id} title={tier.events}>
-        <input type="checkbox" aria-label={`Show ${tier.label}`} checked={draft.tiers.includes(tier.id)}
-          onChange={event => update({ ...draft, tiers: event.target.checked ? [...draft.tiers, tier.id] : draft.tiers.filter(t => t !== tier.id) })} />{tier.label}</label>)}</div>
+      <button type="button" onClick={() => update({ families: [...new Set([...draft.families, ...activeFamilies.map(f => f.id)])] })}>All events</button>
       <div className="inspector-filter-tools"><div className="inspector-filter-search"><input type="search" aria-label="Search Ledger families"
         placeholder="Search families…" value={search} onChange={event => setSearch(event.target.value)} />
         {search && <button type="button" aria-label="Clear Ledger family search" onClick={() => setSearch('')}>×</button>}</div></div>
@@ -78,7 +69,6 @@ export function LedgerFiltersPopover({ anchor, currencies, filters, onApply, onC
         </Fragment>
       })}</div>
       {!matches.length && <p className="inspector-search-note" role="status">No families match your search.</p>}
-      <p className="inspector-modal-note">Events must match both a tier and a checked family. Unclassified events use C. Category details and Inspector filters stay unchanged.</p>
       {error && <p className="ledger-filter-error" role="alert">{error}</p>}
       <footer><span className="inspector-filter-save-note">Preview changes here. Save shares Ledger choices across pairs with these currencies.</span>
         <button type="button" onClick={onClose}>Cancel</button><button type="button" className="inspector-primary" onClick={() => {

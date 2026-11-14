@@ -14,9 +14,6 @@ type FloatingDrawingToolbarProps = {
   onSelectCrosshair: () => void
   onToolChange: (tool: DrawingToolId | null) => void
   onClearPair: () => void
-  researchActive?: boolean
-  researchDisabled?: boolean
-  onSelectResearch?: () => void
   priceAlertDisabled?: boolean
 }
 
@@ -27,9 +24,6 @@ export function FloatingDrawingToolbar({
   onSelectCrosshair,
   onToolChange,
   onClearPair,
-  researchActive = false,
-  researchDisabled = false,
-  onSelectResearch,
   priceAlertDisabled = false,
 }: FloatingDrawingToolbarProps) {
   const toolbarRef = useRef<HTMLDivElement>(null)
@@ -134,10 +128,10 @@ export function FloatingDrawingToolbar({
         <span aria-hidden="true">⠿</span>
       </button>
       <button
-        className={activeTool === null && !researchActive ? 'drawing-toolbar-crosshair active' : 'drawing-toolbar-crosshair'}
+        className={activeTool === null ? 'drawing-toolbar-crosshair active' : 'drawing-toolbar-crosshair'}
         type="button"
         onClick={onSelectCrosshair}
-        aria-pressed={activeTool === null && !researchActive}
+        aria-pressed={activeTool === null}
         aria-label="Crosshair and chart navigation"
         title="Crosshair · deselect drawing tool"
       >
@@ -162,10 +156,7 @@ export function FloatingDrawingToolbar({
         </button>
       ))}
 
-      {onSelectResearch && <button type="button" aria-label="Research date range" title="Research date range · drag across chart dates"
-        className={researchActive ? 'active' : ''} aria-pressed={researchActive} disabled={researchDisabled} onClick={onSelectResearch}>
-        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 20 20"><path d="M3 3v14M17 3v14M3 6h14M3 14h14" fill="none" stroke="currentColor" strokeWidth="1.5" /><path d="M6 9h8M6 11h5" stroke="currentColor" /></svg>
-      </button>}
+
 
       <span className="drawing-toolbar-separator" aria-hidden="true" />
       <button

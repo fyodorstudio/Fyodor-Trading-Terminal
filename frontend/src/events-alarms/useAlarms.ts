@@ -1,16 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { priceAlertSounds } from '../price-alerts/price-alert-tones'
 
-export type AlarmEvent = { key: string; reference: string; source: 'highlight' | 'external' | 'calendar'; broker: string | null; title: string;
+export type AlarmEvent = { key: string; reference: string; source: 'calendar'; broker: string | null; title: string;
   value_ids?: string[]; selected?: boolean; explicit_choice?: boolean | null;
-  currencies: string[]; at: number | null; date: string | null; eligible: boolean; armed: boolean; note: string; prompt: string }
-export type AlarmJob = { id: string; event_key: string; title: string; at: number; due: number; stage: string; prompt: string;
+  currencies: string[]; at: number | null; date: string | null; eligible: boolean; armed: boolean; note: string }
+export type AlarmJob = { id: string; event_key: string; title: string; at: number; due: number; stage: string;
   status: string; error: string | null; snooze_until?: number }
 export type AlarmSettings = { enabled: boolean; release_minutes: number }
 export type AlarmAudioSettings = { enabled: boolean; volume: number; duration: number; sound_id: string; repeat: boolean }
 export const defaultAlarmAudio: AlarmAudioSettings = { enabled:true, volume:30, duration:3, sound_id:'thin', repeat:false }
 export type AlarmSnapshot = { application: 'fyodor-alarms'; revision: number; now: number; native_available: boolean;
-  schedule_schema?: number; migration?: { matches: { from: string; to: string; enabled: boolean }[]; issues: { key: string; title: string; reason: string }[] } | null;
+  schedule_schema?: number;
   audio?: AlarmAudioSettings; custom_sound_name?: string | null; preview_playing?: boolean;
   settings: AlarmSettings; events: AlarmEvent[]; jobs: AlarmJob[]; schedule_error: string | null; refreshed_at: number | null }
 function valid(value: unknown): value is AlarmSnapshot {
@@ -23,10 +23,10 @@ function valid(value: unknown): value is AlarmSnapshot {
       && [1,3,5,10].includes(data.audio.duration) && (data.audio.sound_id==='custom' || priceAlertSounds.some(s=>s.id===data.audio!.sound_id)))
     && Number.isInteger(data.settings.release_minutes) && data.settings.release_minutes >= 1 && data.settings.release_minutes <= 120
     && (data.schedule_error === null || typeof data.schedule_error === 'string')
-    && Array.isArray(data.events) && data.events.every(event => event && ['key', 'reference', 'title', 'note', 'prompt'].every(key => typeof event[key as keyof AlarmEvent] === 'string')
-      && ['highlight', 'external', 'calendar'].includes(event.source) && Array.isArray(event.currencies) && event.currencies.every(currency => typeof currency === 'string')
+    && Array.isArray(data.events) && data.events.every(event => event && ['key', 'reference', 'title', 'note'].every(key => typeof event[key as keyof AlarmEvent] === 'string')
+      && event.source === 'calendar' && Array.isArray(event.currencies) && event.currencies.every(currency => typeof currency === 'string')
       && (event.at === null || Number.isFinite(event.at)) && (event.date === null || typeof event.date === 'string') && typeof event.armed === 'boolean' && typeof event.eligible === 'boolean')
-    && Array.isArray(data.jobs) && data.jobs.every(job => job && ['id', 'title', 'stage', 'status', 'prompt'].every(key => typeof job[key as keyof AlarmJob] === 'string')
+    && Array.isArray(data.jobs) && data.jobs.every(job => job && ['id', 'title', 'stage', 'status'].every(key => typeof job[key as keyof AlarmJob] === 'string')
       && [job.at, job.due].every(Number.isFinite))
 }
 export function useAlarms(pollMs = 2000) {

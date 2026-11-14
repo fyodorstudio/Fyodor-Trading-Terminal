@@ -3,7 +3,7 @@ $ErrorActionPreference = 'Stop'
 
 $testRoot = 'C:\fixture\Lite'
 $testRuntime = Join-Path $testRoot 'bridge\.venv\Scripts\python.exe'
-$testSources = Join-Path $testRoot 'Market Analyst Workflow\external-sources'
+$testSources = Join-Path $testRoot 'storage\data\alarms'
 
 function Assert($Condition, $Message) {
     if (!$Condition) { throw "Assertion failed: $Message" }
@@ -69,7 +69,7 @@ function Start-Process { param($FilePath, $ArgumentList, $WorkingDirectory, $Win
     $script:starts++
     $script:owner = 51
     $script:processes[51] = [pscustomobject]@{ ProcessId = 51; ParentProcessId = 50; ExecutablePath = $testRuntime; CommandLine = 'python -m storage.alarm_service'; CreationDate = 3 }
-    $script:health = @{ application = 'fyodor-alarms'; external_source_schema = $(if ($script:oldSchema) { 2 } else { 3 }); external_source_directory = $testSources }
+    $script:health = @{ application = 'fyodor-alarms'; schedule_schema = $(if ($script:oldSchema) { 1 } else { 2 }); data_directory = $testSources }
     return [pscustomobject]@{ Id = 51; HasExited = $false }
 }
 function Start-Sleep { param($Milliseconds)
@@ -108,7 +108,7 @@ Assert-Fails { Invoke-FyodorAlarmWorker $testRoot -Restart } 'does not belong to
 Assert ($script:stops.Count -eq 0) 'Identical module from another checkout stays untouched'
 
 Reset-Fixture
-$script:health.external_source_directory = 'C:\other-checkout\external-sources'
+$script:health.data_directory = 'C:\other-checkout\external-sources'
 Assert-Fails { Invoke-FyodorAlarmWorker $testRoot -Restart } 'another application or checkout'
 Assert ($script:stops.Count -eq 0) 'Conflicting HTTP identity prevents restart'
 

@@ -15,9 +15,9 @@
 .alert-event-table thead th:nth-child(2) { width: auto; }
 .alert-event-table thead th:nth-child(3), .alert-event-table thead th:nth-child(4), .alert-event-table thead th:nth-child(5) { width: 7%; text-align: right; }
 .alert-event-table thead th:nth-child(3) { width: 14%; }
-.alert-event-table thead th:nth-child(6), .alert-event-table thead th:nth-child(7) { width: 10%; }
+
 /* The 32px bell plus 10px cell padding on each side must fit its column. */
-.alert-event-table thead th:nth-child(8) { width: 52px; }
+.alert-event-table thead th:nth-child(6) { width: 52px; }
 .alert-time-end { border-bottom: 1px solid var(--alert-row-divider); }
 .alert-summary-row > :is(td, th) { border-bottom: 1px solid var(--alert-row-divider); }
 .alert-clock-start > tr:first-child > :is(td, th) { border-top: 1px solid var(--alert-time-divider); }
@@ -27,16 +27,13 @@
 .alert-event-table small { display: block; color: var(--text-faint); font-size: 10px; margin-top: 4px; }
 .alert-event-group .alert-time-cell { padding-top: 2px; padding-bottom: 2px; vertical-align: top; }
 .alert-time-cell small { margin-top: 0; line-height: 12px; }
-.alert-event-table .alert-release-countdown { color: var(--negative); }
 .alert-time-cell time { color: var(--text-strong); font-size: 11px; }
 .events-alarm-dock .alert-event-name { display: flex; align-items: center; gap: 6px; width: 100%; padding: 0; min-height: 0; border: 0; background: transparent; border-radius: 2px; color: var(--text-strong); text-align: left; line-height: 1.5; }
 .alert-event-name > span { color: var(--text-faint); flex-shrink: 0; }
-.alert-source-cell { color: var(--text-muted); font-size: 11px; }
-.alert-source-cell a, .alert-event-details a { color: var(--accent); text-decoration: none; }
-.alert-source-cell a:hover, .alert-event-details a:hover { text-decoration: underline; }
+ .alert-event-details a { color: var(--accent); text-decoration: none; }
+ .alert-event-details a:hover { text-decoration: underline; }
 .alert-value-pending { color: var(--text-muted); font-size: 11px; font-weight: normal; }
 .alert-summary-row { height: 36px; cursor: pointer; }
-.alert-event-group:not(.alert-hover-dismissed):has(.alert-summary-row:hover) > .alert-summary-row { background: var(--accent-soft); }
 .alert-event-focused > .alert-summary-row { animation: alert-arrival 1.6s ease-out; }
 @keyframes alert-arrival { from { background: var(--accent-soft); } to { background: transparent; } }
 @media (prefers-reduced-motion: reduce) { .alert-event-focused > .alert-summary-row { animation: none; } }
@@ -53,17 +50,8 @@
 .alert-event-details h3 { margin: 0; color: var(--text-strong); font-size: 14px; }
 .alert-event-details h4 { margin: 12px 0 6px; font-size: 12px; }
 .alert-event-details p, .alert-event-details li { line-height: 1.5; max-width: 100ch; white-space: pre-wrap; }
-.alert-reading-metadata { display: grid; grid-template-columns: minmax(120px, 1fr) 2fr; gap: 4px 16px; margin: 8px 0; }
-.alert-reading-metadata dt { color: var(--text); }
-.alert-reading-metadata dd { margin: 0; color: var(--text-muted); font-size: 11px; line-height: 1.5; }
 .alert-event-details details { margin: 8px 0 0; }
 .alert-event-details summary { cursor: pointer; color: var(--text-muted); }
-.alert-event-details .highlight-series { overflow-x: auto; }
-.alert-event-details .highlight-series table { border-collapse: collapse; width: 100%; }
-.alert-event-details .highlight-series td, .alert-event-details .highlight-series th { padding: 6px; border-bottom: 1px solid var(--border); text-align: left; }
-.alert-chart-choice { display: flex; gap: 6px; align-items: center; }
-.alert-undated { margin-top: 16px; color: var(--text-muted); }
-.alert-undated > summary { padding: 8px 0; cursor: pointer; }
 .alert-feed-message, .alert-empty { color: var(--text-muted); padding: 8px 0; }
 .alarm-status-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-left: 5px; background: var(--text-faint); }
 .alarm-status-dot.enabled { background: var(--positive); }
@@ -75,16 +63,3 @@
 .events-alarm-dock .alert-header-actions > button,
 .events-alarm-dock .alert-date-header .alarm-menu-trigger { height: 44px; min-height: 44px; box-sizing: border-box; }
 .events-alarm-dock .alert-date-selector > :is(button, input) { min-height: 44px; }
-.alert-event-details .alert-overview-label { color: var(--accent); }
-.alert-details-status { margin: 6px 0; color: var(--text-muted); }
-.alert-fact-summary h4 { margin-bottom: 4px; }
-.alert-fact-summary p { margin: 4px 0; }
-.legacy-research-browser { padding: 12px 0; overflow-wrap: anywhere; }
-.legacy-research-browser > header, .legacy-research-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
-.legacy-research-browser > header { justify-content: space-between; }
-.legacy-research-browser h3 { margin: 0; color: var(--text-strong); }
-.legacy-research-browser > details { border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; margin: 8px 0; }
-.legacy-research-browser summary { cursor: pointer; color: var(--text-strong); }
-.legacy-research-browser pre { white-space: pre-wrap; overflow-wrap: anywhere; color: var(--text); }
-.legacy-research-browser label { display: flex; align-items: center; gap: 6px; }
-@container (max-width: 650px) { .alert-reading-metadata { grid-template-columns: 1fr; } }
