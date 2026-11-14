@@ -118,3 +118,19 @@ class CalendarOverrideTests(TestCase):
         self.assertEqual(rows[-1]['set']['released_at'], '2015-02-03T10:30:00+07:00')
         emergency = next(r for r in rows if r['set']['released_at'].startswith('2020-03-19'))
         self.assertIsNone(emergency['set']['forecast'])
+
+    def test_eurostat_corrections_fix_headline_flash_values_and_keep_core_series_separate(self):
+        for event_id, value_id, wrong, expected in [('999030011', '322108', 3.8, .4),
+                                                   ('999030013', '322110', 3.2, 4.0)]:
+            row = event(event_id=event_id, value_id=value_id, currency='EUR', country_code='EU',
+                        actual=wrong, actual_raw_scaled_1e6=str(int(wrong * 1000000)), forecast=2.9)
+            corrected = self.store.overrides.apply(self.broker, row)
+            self.assertEqual(corrected['actual'], expected)
+            self.assertEqual(corrected['actual_raw_scaled_1e6'], str(int(expected * 1000000)))
+            self.assertEqual(corrected['server_time_seconds'], row['server_time_seconds'])
+            if event_id == '999030011':
+                self.assertIsNone(corrected['forecast'])
+            else:
+                self.assertEqual(corrected['forecast'], 2.9)
+        core = event(event_id='999030010', value_id='322107', currency='EUR', country_code='EU', actual=.3)
+        self.assertIs(self.store.overrides.apply(self.broker, core), core)

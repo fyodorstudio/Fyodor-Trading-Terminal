@@ -10,9 +10,10 @@ Display timezone and theme are available in Settings.
 
 ## MFDI
 
-Click **MFDI** beside RSI and Volume. Its settings gear opens Inputs and Style.
+Click **MFDI** beside RSI and Volume. Its settings gear opens a resizable window
+with Events, Layout, Style and Presets tabs.
 
-1. Tick currencies in Inputs and use **+ Add events** to select measures.
+1. Tick currencies in Events and use **+ Add events** to select measures.
 2. Create categories and arrange the selected events.
 3. Use **OK** to save or **Cancel** to discard settings edits.
 
@@ -35,7 +36,7 @@ Hover a release dot for Actual/Forecast/Previous and its release time. Click it 
 open the release in Inspector. Number arrows compare successive actual readings.
 Upcoming forecast dots become actual dots when the reading arrives.
 
-Named presets are available in Series and Inputs. **Save as** creates a snapshot;
+Named presets are available in Series and the Presets tab. **Save as** creates a snapshot;
 **Update preset** replaces the selected snapshot. JSON export/import transfers
 presets between browser profiles. Working edits do not overwrite named presets.
 Browser data clearing removes local settings unless exported.

@@ -2,11 +2,13 @@ import { useState } from 'react'
 import { majorCurrencies } from '../../../economic-calendar/forex/currencies'
 import { inspectorCategories } from '../../../inspector/catalog/inspector-families'
 import { macroCatalog } from './macro-catalog'
+import { macroCategories, macroCategory, moveMacroRow } from './macro-layout'
 import { selectedMacroMetrics, setMacroCurrency, setMacroEvents, type MacroPreferences } from './macro-preferences'
 
 export function MacroEventSelector({ preferences, onChange }: { preferences: MacroPreferences; onChange: (next: MacroPreferences) => void }) {
   const [currency, setCurrency] = useState('USD'), [search, setSearch] = useState(''), [open, setOpen] = useState(false)
   const enabled = preferences.currencies ?? ['USD']
+  const categories = macroCategories(preferences), selected = selectedMacroMetrics(preferences)
   const savedKeys = (code: string) => preferences.eventsByCurrency?.[code]
     ?? Object.keys(preferences.series).filter(key => macroCatalog[key]?.currency === code)
   const terms = search.toLowerCase().trim().split(/\s+/).filter(Boolean)
@@ -25,7 +27,8 @@ export function MacroEventSelector({ preferences, onChange }: { preferences: Mac
         {code} <span>({savedKeys(code).length})</span>
       </label>)}</div>
     </fieldset>
-    <button type="button" onClick={() => setOpen(value => !value)} aria-expanded={open}>+ Add events</button>
+    <div className="macro-settings-section-heading"><h3>Selected events <span>({selected.length})</span></h3>
+      <button type="button" onClick={() => setOpen(value => !value)} aria-expanded={open}>+ Add events</button></div>
     {open && <section className="macro-event-picker" aria-label="MFDI event selector">
       <div className="macro-event-tools"><label>Event currency<select aria-label="Event currency" value={currency} onChange={event => setCurrency(event.target.value)}>
         {majorCurrencies.map(code => <option key={code}>{code}</option>)}
@@ -39,16 +42,20 @@ export function MacroEventSelector({ preferences, onChange }: { preferences: Mac
         </fieldset> : null
       })}{!matches.length && <p role="status">No events match this search.</p>}</div>
     </section>}
-    <fieldset><legend>Selected events</legend>
-      {!selectedMacroMetrics(preferences).length && <p>Tick a currency to restore its saved events, or add events above.</p>}
-      {selectedMacroMetrics(preferences).map(key => <div className="macro-selected-event" key={key}>
-        <label>Show {macroCatalog[key].label}<input type="checkbox" checked={preferences.series[key].visible}
-          onChange={event => onChange({ ...preferences, series: { ...preferences.series, [key]: { ...preferences.series[key], visible: event.target.checked } } })} /></label>
-        <button type="button" aria-label={`Remove ${macroCatalog[key].controlLabel}`} onClick={() => {
+    {!selected.length ? <p>Tick a currency to restore its saved events, or add events above.</p>
+      : <div className="macro-settings-table-scroll"><table className="macro-settings-table macro-events-table">
+        <thead><tr><th scope="col">Show</th><th scope="col">Event</th><th scope="col">Category</th><th scope="col"><span className="macro-setting-label">Actions</span></th></tr></thead>
+        <tbody>{selected.map(key => <tr className="macro-selected-event" key={key}>
+          <td><label><span className="macro-setting-label">Show {macroCatalog[key].label}</span><input type="checkbox" checked={preferences.series[key].visible}
+            onChange={event => onChange({ ...preferences, series: { ...preferences.series, [key]: { ...preferences.series[key], visible: event.target.checked } } })} /></label></td>
+          <th scope="row">{macroCatalog[key].label}</th>
+          <td><select aria-label={`Category for ${macroCatalog[key].controlLabel}`} value={macroCategory(preferences, key)}
+            onChange={event => onChange(moveMacroRow(preferences, key, event.target.value))}>
+            {categories.map(category => <option key={category.id} value={category.id}>{category.label}</option>)}</select></td>
+          <td><button type="button" aria-label={`Remove ${macroCatalog[key].controlLabel}`} onClick={() => {
           const code = macroCatalog[key].currency
           onChange(setMacroEvents(preferences, code, savedKeys(code).filter(item => item !== key)))
-        }}>− Remove</button>
-      </div>)}
-    </fieldset>
+          }}>Remove</button></td>
+        </tr>)}</tbody></table></div>}
   </>
 }

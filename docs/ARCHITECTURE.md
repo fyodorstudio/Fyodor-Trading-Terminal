@@ -58,6 +58,9 @@ its value ID and the fields to replace (`actual`, `forecast`, `previous`,
 converted to each broker's chart clock. Raw SQLite records stay unchanged.
 Restart storage after editing these files. The RBA history uses the supplied
 Investing.com table, with pasted times interpreted as Asia/Jakarta.
+Eurozone CPI corrections cover the 21 release dates in 2026 through 4 November,
+using Eurostat's release-specific HICP tables. Each corrected release links to its
+official table. Older CPI history has not been verified by these correction files.
 
 ## MFDI
 

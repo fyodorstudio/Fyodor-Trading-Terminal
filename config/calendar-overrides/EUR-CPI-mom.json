@@ -1,0 +1,176 @@
+{
+  "schema": 1,
+  "event_id": "999030011",
+  "currency": "EUR",
+  "country": "EU",
+  "source": "Eurostat HICP release tables",
+  "note": "Verified 2026 release dates through 4 November. Flash and final actuals use their own release tables. Incorrect monthly forecasts are cleared; Eurostat does not publish market consensus forecasts.",
+  "releases": [
+    {
+      "value_id": "278776",
+      "source_url": "https://ec.europa.eu/eurostat/web/products-euro-indicators/w/2-07012026-ap",
+      "set": {
+        "forecast": null
+      }
+    },
+    {
+      "value_id": "280534",
+      "source_url": "https://ec.europa.eu/eurostat/web/products-euro-indicators/w/2-19012026-ap",
+      "set": {
+        "forecast": null
+      }
+    },
+    {
+      "value_id": "282461",
+      "source_url": "https://ec.europa.eu/eurostat/web/products-euro-indicators/w/2-04022026-ap",
+      "set": {
+        "actual": -0.5,
+        "forecast": null
+      }
+    },
+    {
+      "value_id": "284964",
+      "source_url": "https://ec.europa.eu/eurostat/web/products-euro-indicators/w/2-25022026-ap",
+      "set": {
+        "forecast": null,
+        "previous": 0.2
+      }
+    },
+    {
+      "value_id": "286277",
+      "source_url": "https://ec.europa.eu/eurostat/web/products-euro-indicators/w/2-03032026-ap",
+      "set": {
+        "actual": 0.7,
+        "forecast": null
+      }
+    },
+    {
+      "value_id": "289087",
+      "source_url": "https://ec.europa.eu/eurostat/web/products-euro-indicators/w/2-18032026-ap",
+      "set": {
+        "forecast": null,
+        "previous": -0.6
+      }
+    },
+    {
+      "value_id": "291136",
+      "source_url": "https://ec.europa.eu/eurostat/web/products-euro-indicators/w/2-31032026-ap",
+      "set": {
+        "actual": 1.2,
+        "forecast": null
+      }
+    },
+    {
+      "value_id": "292622",
+      "source_url": "https://ec.europa.eu/eurostat/web/products-euro-indicators/w/2-16042026-ap",
+      "set": {
+        "forecast": null,
+        "previous": 0.6
+      }
+    },
+    {
+      "value_id": "294776",
+      "source_url": "https://ec.europa.eu/eurostat/web/products-euro-indicators/w/2-30042026-ap",
+      "set": {
+        "actual": 1,
+        "forecast": null
+      }
+    },
+    {
+      "value_id": "298185",
+      "source_url": "https://ec.europa.eu/eurostat/web/products-euro-indicators/w/2-20052026-ap",
+      "set": {
+        "forecast": null,
+        "previous": 1.3
+      }
+    },
+    {
+      "value_id": "300908",
+      "source_url": "https://ec.europa.eu/eurostat/web/products-euro-indicators/w/2-02062026-ap",
+      "set": {
+        "actual": 0.1,
+        "forecast": null
+      }
+    },
+    {
+      "value_id": "303302",
+      "source_url": "https://ec.europa.eu/eurostat/web/products-euro-indicators/w/2-17062026-ap",
+      "set": {
+        "forecast": null,
+        "previous": 1
+      }
+    },
+    {
+      "value_id": "305060",
+      "source_url": "https://ec.europa.eu/eurostat/web/products-euro-indicators/w/2-01072026-ap",
+      "set": {
+        "actual": -0.1,
+        "forecast": null
+      }
+    },
+    {
+      "value_id": "306950",
+      "source_url": "https://ec.europa.eu/eurostat/web/products-euro-indicators/w/2-17072026-ap",
+      "set": {
+        "forecast": null,
+        "previous": 0.1
+      }
+    },
+    {
+      "value_id": "309109",
+      "source_url": "https://ec.europa.eu/eurostat/web/products-euro-indicators/w/2-31072026-ap",
+      "set": {
+        "actual": 0.2,
+        "forecast": null
+      }
+    },
+    {
+      "value_id": "311606",
+      "source_url": "https://ec.europa.eu/eurostat/web/products-euro-indicators/w/2-19082026-ap",
+      "set": {
+        "forecast": null,
+        "previous": -0.1
+      }
+    },
+    {
+      "value_id": "313357",
+      "source_url": "https://ec.europa.eu/eurostat/web/products-euro-indicators/w/2-01092026-ap",
+      "set": {
+        "actual": 0.4,
+        "forecast": null
+      }
+    },
+    {
+      "value_id": "315327",
+      "source_url": "https://ec.europa.eu/eurostat/web/products-euro-indicators/w/2-17092026-ap",
+      "set": {
+        "forecast": null,
+        "previous": 0.2
+      }
+    },
+    {
+      "value_id": "316792",
+      "source_url": "https://ec.europa.eu/eurostat/web/products-euro-indicators/w/2-02102026-ap",
+      "set": {
+        "actual": 0.6,
+        "forecast": null
+      }
+    },
+    {
+      "value_id": "319081",
+      "source_url": "https://ec.europa.eu/eurostat/web/products-euro-indicators/w/2-16102026-ap",
+      "set": {
+        "forecast": null,
+        "previous": 0.4
+      }
+    },
+    {
+      "value_id": "322108",
+      "source_url": "https://ec.europa.eu/eurostat/web/products-euro-indicators/w/2-04112026-ap",
+      "set": {
+        "actual": 0.4,
+        "forecast": null
+      }
+    }
+  ]
+}

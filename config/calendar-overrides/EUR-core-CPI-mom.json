@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "event_id": "999030010",
+  "currency": "EUR",
+  "country": "EU",
+  "source": "Eurostat HICP release tables",
+  "note": "Verified 2026 release dates through 4 November. Flash and final actuals use their own release tables. Incorrect monthly forecasts are cleared; Eurostat does not publish market consensus forecasts.",
+  "releases": [
+    {
+      "value_id": "282460",
+      "source_url": "https://ec.europa.eu/eurostat/web/products-euro-indicators/w/2-04022026-ap",
+      "set": {
+        "actual": -1.1,
+        "forecast": null
+      }
+    }
+  ]
+}

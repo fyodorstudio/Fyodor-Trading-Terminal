@@ -1,13 +1,12 @@
 import { useState } from 'react'
-import { macroCatalog } from './macro-catalog'
-import { defaultMacroCategories, macroCategories, macroCategory, macroLayout, moveMacroCategory, moveMacroRow, deleteMacroCategory, patchMacroLayout } from './macro-layout'
-import { selectedMacroMetrics, type MacroPreferences } from './macro-preferences'
+import { defaultMacroCategories, macroCategories, macroLayout, moveMacroCategory, deleteMacroCategory, patchMacroLayout } from './macro-layout'
+import type { MacroPreferences } from './macro-preferences'
 
 export function MacroCategorySettings({ preferences, onChange }: { preferences: MacroPreferences; onChange: (value: MacroPreferences) => void }) {
   const [name, setName] = useState('')
   const categories = macroCategories(preferences)
   return <>
-    <label>Hide Legend<input type="checkbox" aria-label="Hide MFDI Legend" checked={macroLayout(preferences).hideLegend}
+    <label className="macro-setting-row">Hide Legend<input type="checkbox" aria-label="Hide MFDI Legend" checked={macroLayout(preferences).hideLegend}
       onChange={event => onChange(patchMacroLayout(preferences, { hideLegend: event.target.checked }))} /></label>
     <fieldset><legend>Categories</legend>
       {categories.map((category, index) => <div key={category.id} className="macro-category-setting">
@@ -17,17 +16,11 @@ export function MacroCategorySettings({ preferences, onChange }: { preferences: 
         <button type="button" aria-label={`Move ${category.label} down`} disabled={index === categories.length - 1} onClick={() => onChange(moveMacroCategory(preferences, category.id, categories[index + 2]?.id))}>↓</button>
         <button type="button" disabled={category.id === 'uncategorized'} aria-label={`Delete category ${category.label}`} onClick={() => onChange(deleteMacroCategory(preferences, category.id))}>−</button>
       </div>)}
-      <div className="macro-category-setting"><input aria-label="New category name" placeholder="New category…" value={name} onChange={event => setName(event.target.value)} />
+      <div className="macro-category-add"><input aria-label="New category name" placeholder="New category…" value={name} onChange={event => setName(event.target.value)} />
         <button type="button" disabled={!name.trim()} onClick={() => {
           onChange({ ...preferences, categories: [...(preferences.categories ?? defaultMacroCategories), { id: `custom-${crypto.randomUUID()}`, label: name.trim() }] }); setName('')
         }}>+ Category</button></div>
-      {selectedMacroMetrics(preferences).map(key => <label key={key}>{macroCatalog[key].controlLabel}
-        <select aria-label={`Category for ${macroCatalog[key].controlLabel}`} value={macroCategory(preferences, key)}
-          onChange={event => onChange(moveMacroRow(preferences, key, event.target.value))}>
-          {categories.map(category => <option key={category.id} value={category.id}>{category.label}</option>)}
-        </select>
-      </label>)}
-      <p>Reorder categories with the up/down buttons here. In Series, an event's ✥ handle moves it between categories without moving the plot during the drag. Click a category to fold its list and select its children, then drag the plot to move that group. Category headers do not drag.</p>
+      <p>Use the arrows to reorder categories. Assign events to categories in the Events tab.</p>
     </fieldset>
   </>
 }

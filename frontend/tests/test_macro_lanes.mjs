@@ -319,6 +319,7 @@ try {
   let saved
   await React.act(async () => root.render(React.createElement(MacroSettingsDialog, { preferences, onSave: next => { saved = next }, onClose() {} })))
   const hide = host.querySelector('[aria-label="Hide MFDI Legend"]')
+  await React.act(async () => [...host.querySelectorAll('[role="tab"]')].find(button => button.textContent === 'Layout').click())
   assert.equal(hide.checked, true)
   await React.act(async () => hide.click())
   await React.act(async () => host.querySelector('form').dispatchEvent(new dom.Event('submit', { bubbles: true, cancelable: true })))
@@ -328,6 +329,7 @@ try {
   const reordered = { ...patchMacroLayout(preferences, { categoryOrder: ['inflation', 'labor', 'policy'] }), categories: defaultMacroCategories }
   await React.act(async () => root.render(React.createElement(MacroSettingsDialog, { preferences: reordered, onSave: next => { saved = next }, onClose() {} })))
   const rename = host.querySelector('[aria-label="Category name inflation"]')
+  await React.act(async () => [...host.querySelectorAll('[role="tab"]')].find(button => button.textContent === 'Layout').click())
   const reactProps = rename[Object.getOwnPropertyNames(rename).find(key => key.startsWith('__reactProps$'))]
   await React.act(async () => reactProps.onChange({ target: { value: 'Price releases' } }))
   await React.act(async () => host.querySelector('form').dispatchEvent(new dom.Event('submit', { bubbles: true, cancelable: true })))
