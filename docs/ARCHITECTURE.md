@@ -17,6 +17,7 @@ The bridge supplies market data and calendar transport; storage owns persistence
 | `alert`, `events-alarms`, `price-alerts` | Calendar reminders and price notifications |
 | `currency-ledger`, `currency-details`, `wildcards` | Timeline, metric comparisons and global manual events |
 | `heatmap` | Returns, synthetic baskets, rankings and wildcard notes |
+| `news-flow` | Right-panel RSS/Atom reader, provider setup and headline filters |
 | `entry-trade` | Manual plans and journal |
 | `appearance`, `system-connectivity`, `system-observability` | Theme, clocks, connection state and Activity |
 
@@ -53,6 +54,12 @@ without changing saved times. Heatmap groups timed entries by broker candle day;
 date-only entries retain their entered date.
 
 Fed readings and alarm state use local data subdirectories.
+News Flow is isolated in `frontend/src/news-flow/` and `storage/news_flow/`.
+The storage service collects feeds independently of MT5 and the panel, using
+one-second sequential requests per provider with conditional GET and error
+backoff. Providers and history live in `storage/data/news-flow/news.sqlite3`,
+included in offline backup/restore. Display filters and width are browser-local.
+See the feature READMEs in those folders for entry points and test commands.
 `storage/run.py` provides service, import, status, backup, restore and Fed-data
 commands. Manual trade journals retain their existing application path.
 

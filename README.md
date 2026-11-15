@@ -1,7 +1,7 @@
 # Fyodor Trading Terminal Lite
 
 Local trading terminal with MT5 charts, economic calendar, MFDI, RSI, volume,
-Heatmap, Wildcards, Ledger, Detail, alarms and a manual trade journal.
+Heatmap, News Flow, Wildcards, Ledger, Detail, alarms and a manual trade journal.
 
 ## Run
 
@@ -33,6 +33,9 @@ MT5 can be disconnected while the UI runs. Publisher/exporter programs are in
 | `storage/` | Calendar, saved content, alarms and HTTP APIs |
 | `config/` | Broker clocks, calendar measures, currencies and instrument definitions |
 | `Market Analyst Workflow/entry-trade/` | Saved trade journal |
+
+News Flow ownership: [frontend guide](frontend/src/news-flow/README.md) ·
+[backend guide](storage/news_flow/README.md).
 
 ## Checks
 

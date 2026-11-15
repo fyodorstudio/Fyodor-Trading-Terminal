@@ -24,6 +24,9 @@ from .heatmap import HeatmapHistory
 from .heatmap_intraday import HeatmapIntraday
 from .wildcards import WildcardChange, WildcardEntry, wildcard_snapshot, change_wildcard
 from .fed_forecasts import read_forecasts
+from .news_flow.api import news_router
+from .news_flow.collector import NewsCollector
+from .news_flow.store import NewsStore
 
 
 class DailyMarketRequest(BaseModel):
@@ -61,6 +64,8 @@ def data_directory():
 
 
 def create_app(directory=None, run_collector=True):
+    news_store = NewsStore(directory or data_directory())
+    news_collector = NewsCollector(news_store)
     @asynccontextmanager
     async def lifespan(app):
         with data_lock(directory or data_directory()):
@@ -68,13 +73,16 @@ def create_app(directory=None, run_collector=True):
             app.state.collector = BridgeCollector(app.state.store)
             if run_collector:
                 app.state.collector.start()
+                news_collector.start()
             try:
                 yield
             finally:
+                news_collector.stop()
                 app.state.collector.stop()
                 app.state.store.close()
 
     app = FastAPI(title="Fyodor Calendar Storage", version="1.1.0", lifespan=lifespan)
+    app.include_router(news_router(news_store, news_collector))
     daily_market = DailyMarketWatch()
     heatmap = HeatmapHistory()
     heatmap_intraday = HeatmapIntraday()

@@ -34,6 +34,8 @@ type ChartWorkspaceHeaderProps = {
   onToggleRecentEvents?: () => void
   rankingOpen?: boolean
   onToggleRanking?: () => void
+  newsOpen?: boolean
+  onToggleNews?: () => void
   detailOpen?: boolean
   onToggleDetail?: () => void
 }
@@ -82,6 +84,8 @@ export function ChartWorkspaceHeader({
   onToggleRecentEvents,
   rankingOpen = false,
   onToggleRanking,
+  newsOpen = false,
+  onToggleNews,
   detailOpen = false,
   onToggleDetail,
 }: ChartWorkspaceHeaderProps) {
@@ -215,6 +219,11 @@ export function ChartWorkspaceHeader({
           aria-label={rankingOpen ? 'Hide Heatmap Ranking' : 'Show Heatmap Ranking'} title="Heatmap Ranking"
           aria-expanded={rankingOpen} aria-controls="heatmap-ranking-panel" onClick={onToggleRanking}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M4 20h16M6 17V9h3v8M11 17V4h3v13M16 17v-5h3v5"/></svg>
+        </button>}
+        {onToggleNews && <button type="button" className={`chart-detail-toggle${newsOpen ? ' active' : ''}`}
+          aria-label={newsOpen ? 'Hide News Flow' : 'Show News Flow'} title="News Flow"
+          aria-expanded={newsOpen} aria-controls="news-flow-panel" onClick={onToggleNews}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h4v4H7zM14 8h3M14 12h3M7 16h10"/></svg>
         </button>}
         </div>
       </div>

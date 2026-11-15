@@ -1,0 +1,39 @@
+.news-flow-panel { position:relative; width:var(--news-width,380px); max-width:50vw; flex-shrink:0; min-width:280px; min-height:0; display:flex; flex-direction:column; border-left:1px solid var(--border-strong); background:var(--surface-panel); color:var(--text); font-size:12px; }
+.news-flow-panel button, .news-flow-panel input, .news-flow-panel select { box-sizing:border-box; min-width:0; min-height:28px; border:1px solid var(--border-strong); border-radius:4px; background:var(--surface-inset); color:var(--text); padding:4px 6px; font:inherit; }
+.news-flow-panel button, .news-flow-panel select { cursor:pointer; }
+.news-flow-panel button:hover:not(:disabled) { background:var(--surface-hover); }
+.news-flow-panel button:disabled { cursor:default; opacity:.45; }
+.news-flow-panel button[aria-pressed='true'] { color:var(--accent); border-color:var(--accent); }
+.news-flow-panel :focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+.news-header { display:flex; align-items:center; gap:5px; padding:8px 10px; border-bottom:1px solid var(--border); }
+.news-header h2 { flex:1; margin:0; font-size:13px; white-space:nowrap; }
+.news-header button { display:grid; place-items:center; width:28px; flex-shrink:0; }
+.news-header select { width:77px; }
+.news-items { flex:1; min-height:0; overflow:auto; overflow-anchor:none; scrollbar-gutter:stable; padding:0 14px; }
+.news-items article { padding:16px 0; border-bottom:1px solid var(--border); overflow-wrap:anywhere; }
+.news-items article > a { color:var(--text-strong); text-decoration:none; font-size:13px; font-weight:600; line-height:1.55; }
+.news-items article > a:hover { color:var(--accent); text-decoration:underline; }
+.news-items article > p { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; margin:6px 0 0; line-height:1.5; color:var(--text-muted); }
+.news-byline { display:flex; flex-wrap:wrap; gap:5px; margin-top:8px; font-size:11px; color:var(--text-muted); }
+.news-message { margin:12px; line-height:1.5; color:var(--text-muted); }
+.news-flow-panel [role='alert'] { color:var(--negative); }
+.news-footer { padding:7px 10px; border-top:1px solid var(--border); }
+.news-footer > div { display:flex; gap:6px; align-items:center; }
+.news-footer span { flex:1; color:var(--text-muted); font-size:11px; }
+.news-footer small { display:block; margin-top:5px; color:var(--text-muted); font-size:10px; }
+.news-new-items { margin:6px 10px; color:var(--accent); }
+.news-date-filter { display:flex; flex-wrap:wrap; align-items:end; gap:6px; padding:8px 10px; border-bottom:1px solid var(--border); }
+.news-date-filter label { display:grid; gap:3px; }
+.news-date-filter small { flex-basis:100%; color:var(--text-muted); }
+.news-resize { position:absolute; top:0; bottom:0; left:-4px; width:7px; cursor:col-resize; touch-action:none; z-index:2; }
+.news-resize:hover { background:var(--accent-soft); }
+.news-configuration { position:absolute; right:10px; top:47px; width:350px; max-width:calc(100vw - 32px); max-height:calc(100svh - 180px); overflow:auto; z-index:20; box-sizing:border-box; padding:12px; background:var(--surface-panel); border:1px solid var(--border-strong); border-radius:6px; box-shadow:0 12px 32px #0005; }
+.news-configuration header, .news-configuration nav { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+.news-configuration header strong, .news-configuration nav strong { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.news-configuration label { display:grid; gap:5px; margin-bottom:10px; }
+.news-configuration input:not([type='checkbox']), .news-configuration select { width:100%; }
+.news-configuration .news-checkbox { display:flex; align-items:center; margin-top:10px; }
+.news-configuration input[type='checkbox'] { min-height:0; }
+.news-configuration fieldset { border:0; border-top:1px solid var(--border); padding:12px 0 0; margin:14px 0 0; min-width:0; }
+.news-configuration legend { color:var(--text-muted); padding-right:8px; }
+.news-configuration p { font-size:11px; line-height:1.5; color:var(--text-muted); }

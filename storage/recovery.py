@@ -9,6 +9,7 @@ import sqlite3
 import tempfile
 
 from .data_lock import data_lock
+from .news_flow.store import backup_news
 
 FORMAT = "fyodor-calendar-backup"
 
@@ -58,6 +59,7 @@ def backup_directory(source: Path, destination: Path):
                 # Capture each projection and immutable bodies under its writer lock.
                 with data_lock(saved):
                     shutil.copytree(saved, stage / name, ignore=shutil.ignore_patterns('.fyodor-storage.lock', '.news-*', '.wildcards-*'))
+        backup_news(source, stage)
         files = [{"path": path.relative_to(stage).as_posix(), "size": path.stat().st_size, "sha256": digest(path)}
                  for path in sorted(stage.rglob("*")) if path.is_file()]
         manifest = {"format": FORMAT, "version": 1, "created_at": datetime.now(timezone.utc).isoformat(),
@@ -82,7 +84,7 @@ def validate_backup(folder: Path):
             raise ValueError("Invalid backup file entry")
         raw = entry["path"]
         relative = PurePosixPath(raw)
-        if raw != relative.as_posix() or relative.is_absolute() or ".." in relative.parts or "\\" in raw or ":" in raw or raw in paths or not (raw == "calendar.sqlite3" or raw.startswith(("inventory/", "wildcards/", "manual-news/", "fed-forecasts/", "cross-asset-wildcards/", "heatmap-wildcards/"))):
+        if raw != relative.as_posix() or relative.is_absolute() or ".." in relative.parts or "\\" in raw or ":" in raw or raw in paths or not (raw in ("calendar.sqlite3", "news-flow/news.sqlite3") or raw.startswith(("inventory/", "wildcards/", "manual-news/", "fed-forecasts/", "cross-asset-wildcards/", "heatmap-wildcards/"))):
             raise ValueError("Invalid or duplicate backup path")
         paths.add(raw)
         target = folder / raw

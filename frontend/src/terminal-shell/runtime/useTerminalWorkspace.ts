@@ -42,6 +42,7 @@ export function useTerminalWorkspace() {
   const [recentEventsOpen, setRecentEventsOpen] = useState(false)
   const [detailOpen, setDetailOpen] = useState(false)
   const [rankingOpen, setRankingOpen] = useState(false)
+  const [newsOpen, setNewsOpen] = useState(false)
   const [inspectorFromLedger, setInspectorFromLedger] = useState(false)
   const [selectedDrawingId, setSelectedDrawingId] = useState<string | null>(null)
   const [drawingToolbarVisible, setDrawingToolbarVisible] = useState<boolean>(readDrawingToolbarVisible)
@@ -190,24 +191,33 @@ export function useTerminalWorkspace() {
   }, [appendActivity])
   const closeRecentEvents = useCallback(() => setRecentEventsOpen(false), [])
   const toggleRecentEvents = useCallback(() => {
+    setNewsOpen(false)
     setRecentEventsOpen(current => !current)
     setDetailOpen(false)
     setRankingOpen(false)
   }, [])
   const closeDetail = useCallback(() => setDetailOpen(false), [])
   const openDetail = useCallback(() => {
+    setNewsOpen(false)
     setDetailOpen(true)
     setRankingOpen(false)
     setRecentEventsOpen(false)
   }, [])
   const toggleDetail = useCallback(() => {
+    setNewsOpen(false)
     setDetailOpen(current => !current)
     setRankingOpen(false)
     setRecentEventsOpen(false)
   }, [])
   const closeRanking = useCallback(() => setRankingOpen(false), [])
   const toggleRanking = useCallback(() => {
+    setNewsOpen(false)
     setRankingOpen(current => !current); setRecentEventsOpen(false); setDetailOpen(false)
+  }, [])
+  const closeNews = useCallback(() => setNewsOpen(false), [])
+  const toggleNews = useCallback(() => {
+    setNewsOpen(current => !current)
+    setRankingOpen(false); setRecentEventsOpen(false); setDetailOpen(false)
   }, [])
   const setReleaseSelection = inspector.selectRelease
   const focusInspectorEvent = inspector.focusEvent
@@ -294,6 +304,6 @@ export function useTerminalWorkspace() {
     selectCrosshair, deletePairDrawings, toggleBottomDock, exitDrawingMode, toggleDrawingToolbar,
     renderChartOverlay, sourceState, sourceLabel,
     recentEventsOpen, toggleRecentEvents, closeRecentEvents, alertFocus, viewReleaseInAlert,
-    rankingOpen, toggleRanking, closeRanking, detailOpen, toggleDetail, closeDetail, openDetail, viewLedgerEvent, viewMacroRelease, returnToLedger: inspectorFromLedger ? returnToLedger : undefined,
+    rankingOpen, toggleRanking, closeRanking, newsOpen, toggleNews, closeNews, detailOpen, toggleDetail, closeDetail, openDetail, viewLedgerEvent, viewMacroRelease, returnToLedger: inspectorFromLedger ? returnToLedger : undefined,
     plannedTrade, handlePlanChange, latestBarTime, registeredArrows, selectPinnedArrow, priceAlerts, leftDockTab, setLeftDockTab }
 }

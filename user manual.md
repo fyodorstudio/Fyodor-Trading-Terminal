@@ -13,6 +13,31 @@ The drawing toolbar adds and edits chart drawings. **Inspector** opens calendar
 release details; **Show events** opens recent/upcoming releases.
 Display timezone and theme are available in Settings.
 
+## News Flow
+
+Click the newspaper button immediately right of **Heatmap Ranking** in the chart
+header. The right panel lists collected headlines; click a title to open its
+source. Drag its left edge to resize it. Escape or × closes it.
+
+The tag button opens configuration. Reuters through Google News is included.
+Use **+** to add a provider with a name and RSS/Atom URL; arrows navigate your
+providers. **Save provider** edits the selected name/URL. **Show this provider**
+controls display without deleting its history or stopping collection.
+
+Include/exclude keywords are comma-separated words or phrases, matched without
+case sensitivity against headlines and available feed summaries. Choose any/all
+for included terms; exclusions take priority. Empty keywords show everything.
+The calendar filters publication dates in your display timezone; **All dates**
+clears it. **Newest/Oldest** changes ordering, and Previous/Next browses history.
+Changed headlines wait behind an update button when you are reading down the list.
+
+The storage service checks feeds one second after each successful fetch, with
+automatic slowdown on errors. It collects while the panel is closed and MT5 is
+disconnected, while the computer and storage service remain running. Feed
+publication/indexing delays remain outside the app's control. Saved headlines
+survive restarts and are included in storage backups. Provider setup is local;
+view preferences remain in your browser. Wildcards remain manually managed.
+
 ## MFDI
 
 Click MFDI beside RSI and Volume. Select a currency tab, then open **Series**.

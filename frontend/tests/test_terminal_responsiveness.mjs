@@ -203,6 +203,13 @@ globalThis.fetch = (url, options = {}) => {
     if (options.method === 'POST') wildcardFixture = { ...wildcardFixture, revision: wildcardFixture.revision + 1, items: [...wildcardFixture.items,{id:String(wildcardFixture.revision),...JSON.parse(options.body)}] }
     return Promise.resolve({ ok: true, json: async () => structuredClone(wildcardFixture) })
   }
+  if (u === '/storage-api/news-flow/sources') return Promise.resolve({ ok: true, json: async () => ({ sources: [
+    { id: 'reuters', name: 'Reuters', url: 'https://example.com/rss', last_success: now, error: '' },
+  ] }) })
+  if (u.startsWith('/storage-api/news-flow/items')) return Promise.resolve({ ok: true, json: async () => ({ items: [
+    { id: 'news-1', source_id: 'reuters', source_name: 'Reuters', publisher: 'Reuters', title: 'Reuters headline',
+      summary: '', url: 'https://example.com/story', published_at: now - 60000, first_seen: now },
+  ], total: 1 }) })
   if (u === '/storage-api/market-watch/daily') {
     const body = JSON.parse(options.body)
     return Promise.resolve({ ok: true, json: async () => ({ source_id: broker, generation,
@@ -1388,6 +1395,20 @@ try {
   await click(container.querySelector('[aria-label="Show Detail"]')); await flush()
   assert.equal(container.querySelector('#heatmap-ranking-panel'),null,'Detail and ranking use the shared right panel')
   await click(container.querySelector('[aria-label="Hide Detail"]')); await flush()
+
+  const rankingButton = container.querySelector('[aria-label="Show Heatmap Ranking"]')
+  assert.equal(rankingButton.nextElementSibling.getAttribute('aria-label'), 'Show News Flow', 'News button is immediately right of Heatmap Ranking')
+  reset(); await click(container.querySelector('[aria-label="Show News Flow"]')); await flush()
+  assert.ok(container.querySelector('#news-flow-panel'))
+  assert.match(container.querySelector('#news-flow-panel').textContent, /Reuters headline/)
+  assert.equal(container.querySelector('#currency-detail-panel'), null)
+  assertQuiet('Opening News Flow')
+  await click(container.querySelector('[aria-label="Show Heatmap Ranking"]')); await flush()
+  assert.equal(container.querySelector('#news-flow-panel'), null, 'Ranking replaces News Flow in the right panel')
+  await click(container.querySelector('[aria-label="Show News Flow"]')); await flush()
+  assert.equal(container.querySelector('#heatmap-ranking-panel'), null, 'News Flow replaces ranking')
+  await React.act(async () => container.querySelector('#news-flow-panel').dispatchEvent(new dom.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })))
+  assert.equal(container.querySelector('#news-flow-panel'), null)
 
   assert.deepEqual(logicalRange, heatmapRange)
   await React.act(async () => root.render(null))

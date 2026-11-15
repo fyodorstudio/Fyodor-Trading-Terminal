@@ -16,6 +16,7 @@ import { CurrencyDetailPanel } from '../currency-details/CurrencyDetailPanel'
 import { EventsDock } from '../events-alarms/EventsDock'
 import { EntryTradePanel } from '../entry-trade/dock/EntryTradePanel'
 import { WildcardsDock } from '../wildcards/WildcardsDock'
+import { NewsFlowPanel } from '../news-flow/NewsFlowPanel'
 import { VolumeSettingsDialog } from '../market-data/indicators/volume/VolumeSettingsDialog'
 import { RsiSettingsDialog } from '../market-data/indicators/rsi/RsiSettingsDialog'
 import { MacroSettingsDialog } from '../market-data/indicators/macro/MacroSettingsDialog'
@@ -51,7 +52,7 @@ function TerminalWorkspaceContent() {
     createDrawing, chooseDrawingTool, selectCrosshair, deletePairDrawings, toggleBottomDock, exitDrawingMode,
     toggleDrawingToolbar, renderChartOverlay, sourceState, sourceLabel,
     recentEventsOpen, toggleRecentEvents, closeRecentEvents, alertFocus, viewReleaseInAlert,
-    rankingOpen, toggleRanking, closeRanking, detailOpen, toggleDetail, closeDetail, openDetail, viewLedgerEvent, viewMacroRelease, returnToLedger,
+    rankingOpen, toggleRanking, closeRanking, newsOpen, toggleNews, closeNews, detailOpen, toggleDetail, closeDetail, openDetail, viewLedgerEvent, viewMacroRelease, returnToLedger,
     plannedTrade, handlePlanChange, latestBarTime, registeredArrows, selectPinnedArrow, priceAlerts, leftDockTab, setLeftDockTab } = useTerminalWorkspace()
   const [heatmapStarted, setHeatmapStarted] = useState(false)
   if ((bottomDockWindow === 'heatmap' || rankingOpen) && !heatmapStarted) setHeatmapStarted(true)
@@ -126,6 +127,8 @@ function TerminalWorkspaceContent() {
             onToggleRecentEvents={toggleRecentEvents}
             rankingOpen={rankingOpen}
             onToggleRanking={toggleRanking}
+            newsOpen={newsOpen}
+            onToggleNews={toggleNews}
             detailOpen={detailOpen}
             onToggleDetail={toggleDetail}
           />
@@ -207,6 +210,7 @@ function TerminalWorkspaceContent() {
               <div ref={setRankingTarget}/>
             </aside>}
             {detailOpen && <CurrencyDetailPanel brokerId={brokerId} symbol={activeSymbol} onClose={closeDetail} />}
+            {newsOpen && <NewsFlowPanel onClose={closeNews} />}
           </div>
         </section>
       </main>

@@ -30,6 +30,7 @@ export const suites = [
   "tests/test_events_alarms.mjs",
   "tests/test_alarm_audio.mjs",
   "tests/test_wildcards.mjs",
+  "src/news-flow/tests/test_news_flow.mjs",
   "tests/test_entry_trade_research.mjs",
   "tests/test_entry_trade_journal_api.mjs",
   "tests/test_entry_trade_chart_contract.mjs",
