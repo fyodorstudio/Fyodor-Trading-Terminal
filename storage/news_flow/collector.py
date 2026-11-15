@@ -31,6 +31,7 @@ class NewsCollector:
         self.stopped = Event()
         self.lock = Lock()
         self.pending, self.schedule = {}, {}
+        self.source_locks = {}
         self.thread = None
         self.pool = None
 
@@ -55,6 +56,10 @@ class NewsCollector:
         # Manual refresh advances healthy feeds, but respects a server's retry delay.
         with self.lock:
             self.schedule = {key: value for key, value in self.schedule.items() if value[1] > 0}
+
+    def source_lock(self, identity):
+        with self.lock:
+            return self.source_locks.setdefault(identity, Lock())
 
     def _run(self):
         while not self.stopped.is_set():
@@ -85,8 +90,9 @@ class NewsCollector:
     def _fetch(self, source, failures):
         delay = 5
         try:
-            items, etag, modified = self.fetcher(source)
-            self.store.success(source, items, etag, modified, int(time.time() * 1000))
+            with self.source_lock(source['id']):
+                items, etag, modified = self.fetcher(source)
+                self.store.success(source, items, etag, modified, int(time.time() * 1000))
             delay, failures = 1, 0
         except Exception as error:
             failures += 1

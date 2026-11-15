@@ -3,9 +3,23 @@ from typing import Literal
 import sqlite3
 
 from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from .feeds import http_url
+from .history import NewsHistory
+
+
+class HistoryInput(BaseModel):
+    start: int = Field(ge=0, le=4102444800000)
+    end: int = Field(ge=0, le=4102444800000)
+    source: list[str] = Field(default_factory=list, max_length=100)
+    force: bool = False
+
+    @model_validator(mode='after')
+    def single_day(self):
+        if not 0 < self.end - self.start <= 36 * 3600_000:
+            raise ValueError('Choose a single calendar day')
+        return self
 
 
 class ProviderInput(BaseModel):
@@ -23,6 +37,7 @@ class ProviderInput(BaseModel):
 
 def news_router(store, collector):
     router = APIRouter(prefix='/api/v1/news-flow')
+    history = NewsHistory(store, collector)
 
     @router.get('/sources')
     def sources():
@@ -48,10 +63,14 @@ def news_router(store, collector):
 
     @router.get('/items')
     def items(source: list[str] = Query(default=[]), include: str = Query(default='', max_length=2000),
-              exclude: str = Query(default='', max_length=2000), match: Literal['any', 'all'] = 'any',
+              exclude: str = Query(default='', max_length=2000),
               start: int | None = None, end: int | None = None, order: Literal['newest', 'oldest'] = 'newest',
               offset: int = Query(default=0, ge=0), limit: int = Query(default=100, ge=1, le=200)):
-        return store.query(source, include, exclude, match, start, end, order, offset, limit)
+        return store.query(source, include, exclude, start, end, order, offset, limit)
+
+    @router.post('/history')
+    def historical_search(body: HistoryInput):
+        return history.search(body.start, body.end, body.source, body.force)
 
     @router.post('/refresh', status_code=202)
     def refresh():

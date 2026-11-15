@@ -73,3 +73,38 @@ export async function saveNewsSource(name: string, url: string, identity?: strin
 export async function refreshNews(signal?: AbortSignal) {
   await responseJson(await fetch('/storage-api/news-flow/refresh', { method: 'POST', signal }))
 }
+
+type HistoryResult = { searched: number; cached: number; found: number; unsupported: string[]; errors: string[] }
+
+export function useNewsHistory(start: number | null, end: number | null, sources: NewsSource[], hidden: string[]) {
+  const selected = sources.filter(source => !hidden.includes(source.id)).map(source => ({ id: source.id, url: source.url }))
+  // Success timestamps change every second; only dates and provider URLs start searches.
+  const key = start !== null && end !== null && selected.length ? JSON.stringify({ start, end, selected }) : ''
+  const [attempt, setAttempt] = useState(0), force = useRef(false)
+  const requestKey = `${key}:${attempt}`
+  const [outcome, setOutcome] = useState<{ key: string; result: HistoryResult | null; error: string } | null>(null)
+  useEffect(() => {
+    if (!key) return
+    const controller = new AbortController(), value = JSON.parse(key), forced = force.current
+    force.current = false
+    async function search() {
+      try {
+        const body = await responseJson(await fetch('/storage-api/news-flow/history', { method: 'POST',
+          headers: { 'Content-Type': 'application/json' }, signal: controller.signal,
+          body: JSON.stringify({ start: value.start, end: value.end, source: value.selected.map((source: { id: string }) => source.id), force: forced }),
+        }))
+        if (!['searched', 'cached', 'found'].every(field => Number.isSafeInteger(body[field]) && body[field] >= 0)
+          || !['unsupported', 'errors'].every(field => Array.isArray(body[field]) && body[field].every((entry: unknown) => typeof entry === 'string')))
+          throw new Error('Invalid historical news response')
+        if (!controller.signal.aborted) setOutcome({ key: requestKey, result: body, error: '' })
+      } catch (cause) {
+        if (!controller.signal.aborted) setOutcome({ key: requestKey, result: null, error: cause instanceof Error ? cause.message : 'Historical search unavailable' })
+      }
+    }
+    void search()
+    return () => controller.abort()
+  }, [key, requestKey])
+  const retry = useCallback(() => { if (key) { force.current = true; setAttempt(value => value + 1) } }, [key])
+  return { loading: !!key && outcome?.key !== requestKey, result: key && outcome?.key === requestKey ? outcome.result : null,
+    error: key && outcome?.key === requestKey ? outcome.error : '', retry }
+}

@@ -59,6 +59,11 @@ The storage service collects feeds independently of MT5 and the panel, using
 one-second sequential requests per provider with conditional GET and error
 backoff. Providers and history live in `storage/data/news-flow/news.sqlite3`,
 included in offline backup/restore. Display filters and width are browser-local.
+The centered configuration modal owns include/exclude rules; All/Filtered mode
+bypasses/applies them without clearing them. Date selection can backfill Google
+News search feeds through `storage/news_flow/history.py`, independently of the
+live URL. Imports enforce the selected UTC range, share per-provider fetch locks
+and cache search outcomes; direct RSS feeds retain local-history-only behavior.
 See the feature READMEs in those folders for entry points and test commands.
 `storage/run.py` provides service, import, status, backup, restore and Fed-data
 commands. Manual trade journals retain their existing application path.

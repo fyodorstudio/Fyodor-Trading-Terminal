@@ -1,18 +1,20 @@
 export type NewsSource = { id: string; name: string; url: string; last_success: number | null; error: string }
 export type NewsItem = { id: string; source_id: string; source_name: string; publisher: string; title: string; summary: string; url: string; published_at: number | null; first_seen: number }
 export type NewsPage = { items: NewsItem[]; total: number }
-export type NewsSettings = { hiddenSources: string[]; include: string; exclude: string; match: 'any' | 'all'; date: string; order: 'newest' | 'oldest'; width: number }
+export type NewsSettings = { hiddenSources: string[]; include: string; exclude: string; mode: 'all' | 'filtered'; date: string; order: 'newest' | 'oldest'; width: number }
 
 const key = 'fyodor.news-flow.v1'
-const defaults: NewsSettings = { hiddenSources: [], include: '', exclude: '', match: 'any', date: '', order: 'newest', width: 380 }
+const defaults: NewsSettings = { hiddenSources: [], include: '', exclude: '', mode: 'all', date: '', order: 'newest', width: 380 }
 
 export function readNewsSettings(): NewsSettings {
   try {
     const saved = JSON.parse(window.localStorage.getItem(key) ?? '{}')
+    const include = typeof saved.include === 'string' ? saved.include.slice(0, 2000) : ''
+    const exclude = typeof saved.exclude === 'string' ? saved.exclude.slice(0, 2000) : ''
     return { hiddenSources: Array.isArray(saved.hiddenSources) ? saved.hiddenSources.filter((id: unknown) => typeof id === 'string') : [],
-      include: typeof saved.include === 'string' ? saved.include.slice(0, 2000) : '',
-      exclude: typeof saved.exclude === 'string' ? saved.exclude.slice(0, 2000) : '',
-      match: saved.match === 'all' ? 'all' : 'any', date: /^\d{4}-\d{2}-\d{2}$/.test(saved.date) ? saved.date : '',
+      include, exclude,
+      mode: saved.mode === 'all' || saved.mode === 'filtered' ? saved.mode : include.trim() || exclude.trim() ? 'filtered' : 'all',
+      date: /^\d{4}-\d{2}-\d{2}$/.test(saved.date) ? saved.date : '',
       order: saved.order === 'oldest' ? 'oldest' : 'newest', width: Number.isFinite(saved.width) ? Math.min(640, Math.max(280, saved.width)) : 380 }
   } catch { return { ...defaults } }
 }
@@ -23,7 +25,7 @@ export function saveNewsSettings(settings: NewsSettings) {
 
 // Start/end come from the app's display clock, so date filtering agrees with timestamps.
 export function newsQuery(settings: NewsSettings, sources: NewsSource[], page: number, start: number | null, end: number | null) {
-  const query = new URLSearchParams({ include: settings.include, exclude: settings.exclude, match: settings.match,
+  const query = new URLSearchParams({ include: settings.mode === 'filtered' ? settings.include : '', exclude: settings.mode === 'filtered' ? settings.exclude : '',
     order: settings.order, offset: String(page * 100), limit: '100' })
   if (settings.hiddenSources.length) {
     const visible = sources.filter(source => !settings.hiddenSources.includes(source.id))

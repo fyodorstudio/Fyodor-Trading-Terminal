@@ -34,6 +34,11 @@ class NewsStore:
                             UNIQUE(source_id, identity));
                         CREATE INDEX IF NOT EXISTS news_time ON items(COALESCE(published_at, first_seen) DESC, id);
                         CREATE INDEX IF NOT EXISTS news_source ON items(source_id);
+                        CREATE TABLE IF NOT EXISTS history_searches (
+                            source_id TEXT NOT NULL, url TEXT NOT NULL, start INTEGER NOT NULL, end INTEGER NOT NULL,
+                            searched_at INTEGER NOT NULL, found INTEGER NOT NULL, error TEXT NOT NULL,
+                            retry_at INTEGER NOT NULL, failures INTEGER NOT NULL,
+                            PRIMARY KEY(source_id,url,start,end));
                     ''')
                     if not db.execute('SELECT 1 FROM sources LIMIT 1').fetchone():
                         db.execute('INSERT INTO sources(id,name,url) VALUES (?,?,?)', ('reuters', 'Reuters', DEFAULT_URL))
@@ -59,12 +64,12 @@ class NewsStore:
                            (name, url, url, '', url, '', '', identity))
             return identity
 
-    def success(self, source, items, etag, modified, now):
+    def success(self, source, items, etag, modified, now, update_status=True):
         with self.database() as db:
             # Ignore an in-flight response if the user changed this feed's URL.
             current = db.execute('SELECT url FROM sources WHERE id=?', (source['id'],)).fetchone()
             if current is None or current['url'] != source['url']:
-                return
+                return False
             for item in items or []:
                 db.execute('''INSERT INTO items(id,source_id,identity,title,summary,publisher,url,published_at,first_seen)
                     VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT(source_id,identity) DO UPDATE SET
@@ -72,13 +77,25 @@ class NewsStore:
                     published_at=COALESCE(excluded.published_at,items.published_at)''',
                     (source['id'] + ':' + item['identity'], source['id'], item['identity'], item['title'], item['summary'],
                      item['publisher'], item['url'], item['published_at'], now))
-            db.execute('UPDATE sources SET etag=?,modified=?,last_success=?,error=? WHERE id=?', (etag, modified, now, '', source['id']))
+            if update_status:
+                db.execute('UPDATE sources SET etag=?,modified=?,last_success=?,error=? WHERE id=?', (etag, modified, now, '', source['id']))
+            return True
 
     def failure(self, source, error):
         with self.database() as db:
             db.execute('UPDATE sources SET error=? WHERE id=? AND url=?', (error[:300], source['id'], source['url']))
 
-    def query(self, sources=(), include='', exclude='', match='any', start=None, end=None, order='newest', offset=0, limit=100):
+    def history_search(self, source, start, end):
+        with self.database() as db:
+            row = db.execute('SELECT * FROM history_searches WHERE source_id=? AND url=? AND start=? AND end=?', (source['id'], source['url'], start, end)).fetchone()
+            return dict(row) if row else None
+
+    def save_history_search(self, source, start, end, now, found, error='', retry_at=0, failures=0):
+        with self.database() as db:
+            db.execute('INSERT OR REPLACE INTO history_searches VALUES (?,?,?,?,?,?,?,?,?)',
+                       (source['id'], source['url'], start, end, now, found, error, retry_at, failures))
+
+    def query(self, sources=(), include='', exclude='', start=None, end=None, order='newest', offset=0, limit=100):
         clauses, args = [], []
         if sources:
             clauses.append('i.source_id IN (' + ','.join('?' for _ in sources) + ')')
@@ -86,8 +103,7 @@ class NewsStore:
         for value, negate in ((include, False), (exclude, True)):
             terms = [part.strip().casefold() for part in value.replace('\n', ',').split(',') if part.strip()][:50]
             if terms:
-                joiner = ' OR ' if negate or match == 'any' else ' AND '
-                condition = joiner.join('instr(casefold(i.title || char(10) || i.summary), ?) > 0' for _ in terms)
+                condition = ' OR '.join('instr(casefold(i.title || char(10) || i.summary), ?) > 0' for _ in terms)
                 clauses.append(('NOT ' if negate else '') + '(' + condition + ')')
                 args.extend(terms)
         for bound, sign in ((start, '>='), (end, '<')):

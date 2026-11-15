@@ -15,6 +15,7 @@ import xml.etree.ElementTree as ET
 from storage.news_flow.collector import NewsCollector, retry_delay
 from storage.news_flow.feeds import MAX_FEED_BYTES, fetch_feed, parse_feed
 from storage.news_flow.store import NewsStore
+from storage.news_flow.history import NewsHistory, historical_url
 
 RSS = b'''<rss version="2.0"><channel><title>Reuters</title>
 <item><guid>oil-1</guid><title>Iran &amp; OPEC: oil falls</title>
@@ -79,9 +80,8 @@ class NewsFlowTests(unittest.TestCase):
         self.store.success(source, parse_feed(ATOM), '', '', self.now)
         self.assertEqual(self.store.query(include='OPEC')['total'], 1)
         self.assertEqual(self.store.query(include='comments')['total'], 1, 'Search includes feed summaries')
-        self.assertEqual(self.store.query(include='iran, rates', match='any')['total'], 2)
-        self.assertEqual(self.store.query(include='iran, rates', match='all')['total'], 0)
-        self.assertEqual(self.store.query(include='iran, opec', match='all', exclude='supply')['total'], 0)
+        self.assertEqual(self.store.query(include='iran, rates')['total'], 2, 'Any included term matches')
+        self.assertEqual(self.store.query(include='iran, opec', exclude='supply')['total'], 0)
         self.assertEqual(self.store.query(include='%')['total'], 0, 'SQL wildcard characters remain literal')
         self.assertEqual(self.store.query(sources=[bank])['total'], 1)
         self.assertEqual(self.store.query(start=self.items[0]['published_at'], end=self.items[0]['published_at'] + 1)['total'], 1)
@@ -90,6 +90,83 @@ class NewsFlowTests(unittest.TestCase):
         newest = self.store.query()['items']; oldest = self.store.query(order='oldest')['items']
         self.assertEqual([row['id'] for row in newest], [row['id'] for row in oldest][::-1])
         self.assertEqual(self.store.query()['total'], 3)
+
+    def test_exclusion_only_and_included_but_excluded_stories(self):
+        self.ingest()
+        self.store.success(self.source, [{**self.items[0], 'identity': 'india', 'title': 'India oil demand', 'summary': ''}], '', '', self.now)
+        self.assertEqual(self.store.query(include='oil')['total'], 2)
+        self.assertEqual(self.store.query(include='oil', exclude='INDIA')['total'], 1, 'Exclusion overrides a matching inclusion')
+        self.assertEqual(self.store.query(exclude='india')['total'], 2, 'An empty inclusion allows everything except exclusions')
+        self.assertEqual(self.store.query()['total'], 3, 'All mode leaves collected stories intact')
+
+    def test_historical_date_search_preserves_live_feed_cache_and_exact_timezone_window(self):
+        self.ingest()
+        # August 19 in Jakarta spans two UTC dates.
+        start, end = 1787072400000, 1787158800000
+        seen = []
+        def fetch(source):
+            seen.append(source)
+            return [{**self.items[0], 'identity': 'august', 'published_at': start + 1000},
+                    {**self.items[0], 'identity': 'too-early', 'published_at': start - 1},
+                    {**self.items[0], 'identity': 'too-late', 'published_at': end},
+                    {**self.items[0], 'identity': 'undated', 'published_at': None}], 'archive-etag', ''
+        collector = NewsCollector(self.store)
+        history = NewsHistory(self.store, collector, fetch)
+        original = self.store.sources()[0]
+        result = history.search(start, end)
+        self.assertEqual(result['searched'], 1); self.assertEqual(result['found'], 1)
+        self.assertEqual(self.store.query(start=start, end=end)['total'], 1)
+        self.assertEqual(self.store.query()['total'], 3)
+        self.assertEqual(seen[0]['etag'], '')
+        self.assertNotIn('when%3A', seen[0]['url'])
+        self.assertIn('after%3A2026-08-18', seen[0]['url'])
+        self.assertIn('before%3A2026-08-20', seen[0]['url'])
+        self.assertEqual(self.store.sources()[0], original, 'Historical results do not overwrite live URL, validators, success time or error')
+        self.assertEqual(history.search(start, end)['cached'], 1)
+        self.assertEqual(len(seen), 1)
+        history.search(start, end, force=True)
+        self.assertEqual(len(seen), 2)
+        self.assertEqual(self.store.query(start=start, end=end)['total'], 1, 'Backfill deduplicates on retries')
+        bank = self.store.save_source('Fed', 'https://www.federalreserve.gov/feeds/speeches.xml')
+        self.assertEqual(history.search(start, end, [bank])['unsupported'], ['Fed'])
+        self.assertEqual(history.search(start, end, ['__none__'])['searched'], 0)
+        self.assertIsNone(historical_url('https://example.com/rss', start, end))
+
+    def test_historical_errors_respect_retry_after_and_keep_saved_news(self):
+        self.ingest()
+        headers = Message(); headers['Retry-After'] = '60'
+        calls = []
+        def offline(source):
+            calls.append(source)
+            raise HTTPError(source['url'], 429, 'Throttled', headers, None)
+        history = NewsHistory(self.store, NewsCollector(self.store), offline)
+        result = history.search(self.now - 86400000, self.now)
+        self.assertIn('60s', result['errors'][0])
+        self.assertEqual(history.search(self.now - 86400000, self.now, force=True)['cached'], 1)
+        self.assertEqual(len(calls), 1, 'Even forced refresh respects Retry-After')
+        self.assertEqual(self.store.query()['total'], 2)
+
+    def test_history_serializes_with_live_provider_fetches(self):
+        entered, release, archive_entered = Event(), Event(), Event()
+        def live(source):
+            entered.set(); release.wait(3)
+            return self.items, 'live-etag', ''
+        def archive(source):
+            archive_entered.set()
+            return self.items, 'archive-etag', ''
+        collector = NewsCollector(self.store, live)
+        history = NewsHistory(self.store, collector, archive)
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            try:
+                live_job = pool.submit(collector._fetch, self.source, 0)
+                self.assertTrue(entered.wait(1))
+                history_job = pool.submit(history.search, self.now - 86400000, self.now)
+                self.assertFalse(archive_entered.wait(0.05))
+                release.set(); live_job.result(timeout=3); history_job.result(timeout=3)
+                self.assertTrue(archive_entered.is_set())
+                self.assertEqual(self.store.sources()[0]['etag'], 'live-etag')
+            finally:
+                release.set()
 
     def test_conditional_get_and_retry_after(self):
         self.ingest()
@@ -168,4 +245,11 @@ class NewsFlowTests(unittest.TestCase):
             self.assertEqual((await request('GET', prefix + '/items?order=broken'))[0], 422)
             self.assertEqual((await request('GET', prefix + '/items?limit=9999'))[0], 422)
             self.assertEqual((await request('POST', prefix + '/refresh'))[0], 202)
+            history_result = {'searched': 1, 'cached': 0, 'found': 1, 'unsupported': [], 'errors': []}
+            with patch('storage.news_flow.history.NewsHistory.search', return_value=history_result) as search:
+                status, body = await request('POST', prefix + '/history', {'start': self.now - 86400000, 'end': self.now, 'source': ['reuters']})
+                self.assertEqual(status, 200); self.assertEqual(body, history_result)
+                search.assert_called_once_with(self.now - 86400000, self.now, ['reuters'], False)
+            for body in ({'start': self.now, 'end': self.now}, {'start': 0, 'end': self.now}, {'start': -1, 'end': 1}):
+                self.assertEqual((await request('POST', prefix + '/history', body))[0], 422)
         asyncio.run(run())

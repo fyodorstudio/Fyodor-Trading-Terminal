@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { createPortal } from 'react-dom'
 import { type NewsSettings, type NewsSource } from './model'
 import { saveNewsSource } from './useNewsFlow'
 
@@ -11,15 +12,25 @@ export function NewsConfiguration({ sources, settings, onChange, onSaved, onClos
   const [draft, setDraft] = useState<{ id: string; name: string; url: string } | null>(null)
   const { name, url } = draft?.id === activeId ? draft : { name: source?.name ?? '', url: source?.url ?? '' }
   const [saving, setSaving] = useState(false), [error, setError] = useState('')
-  const dialog = useRef<HTMLDivElement>(null), request = useRef<AbortController | null>(null)
+  const dialog = useRef<HTMLDivElement>(null), backdrop = useRef<HTMLDivElement>(null), request = useRef<AbortController | null>(null)
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null
+    const background = [...document.body.children].filter(element => element !== backdrop.current)
+      .map(element => ({ element, inert: element.getAttribute('inert') }))
+    for (const { element } of background) element.setAttribute('inert', '')
+    const overflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
     dialog.current?.querySelector<HTMLElement>('button, input')?.focus()
-    const outside = (event: PointerEvent) => {
-      if (!dialog.current?.contains(event.target as Node) && !(event.target as Element).closest?.('[aria-controls="news-configuration"]')) onClose()
+    const containFocus = (event: FocusEvent) => {
+      if (!dialog.current?.contains(event.target as Node)) dialog.current?.querySelector<HTMLElement>('button, input')?.focus()
     }
-    document.addEventListener('pointerdown', outside)
-    return () => { document.removeEventListener('pointerdown', outside); request.current?.abort(); if (previous?.isConnected) previous.focus() }
+    document.addEventListener('focusin', containFocus)
+    return () => {
+      document.removeEventListener('focusin', containFocus); request.current?.abort()
+      for (const { element, inert } of background) { if (inert === null) element.removeAttribute('inert'); else element.setAttribute('inert', inert) }
+      document.body.style.overflow = overflow
+      if (previous?.isConnected) previous.focus()
+    }
   }, [onClose])
   async function submit(event: FormEvent) {
     event.preventDefault()
@@ -32,9 +43,21 @@ export function NewsConfiguration({ sources, settings, onChange, onSaved, onClos
     } catch (cause) { if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : 'Could not save provider') }
     finally { if (!controller.signal.aborted) setSaving(false) }
   }
-  return <div ref={dialog} id="news-configuration" className="news-configuration" role="dialog" aria-label="News Flow configuration"
-    onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); onClose() } }}>
+  return createPortal(<div ref={backdrop} className="news-modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) onClose() }}>
+    <div ref={dialog} id="news-configuration" className="news-configuration" role="dialog" aria-modal="true" aria-label="News Flow configuration"
+    onKeyUp={event => event.stopPropagation()}
+    onKeyDown={event => {
+      event.stopPropagation()
+      if (event.key === 'Escape') onClose()
+      if (event.key === 'Tab') {
+        const controls = [...dialog.current!.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), select:not(:disabled)')]
+        const next = event.shiftKey && document.activeElement === controls[0] ? controls.at(-1)
+          : !event.shiftKey && document.activeElement === controls.at(-1) ? controls[0] : null
+        if (next) { event.preventDefault(); next.focus() }
+      }
+    }}>
     <header><strong>Configure News Flow</strong><button type="button" aria-label="Close news configuration" onClick={onClose}>×</button></header>
+    <div className="news-configuration-body"><section aria-label="Provider setup">
     <nav aria-label="News providers">
       <button type="button" aria-label="Previous provider" disabled={saving || (!adding && index <= 0)} onClick={() => { setAdding(false); setIndex(Math.max(0, index - 1)) }}>←</button>
       <strong>{adding ? 'New provider' : source?.name ?? 'Providers'}</strong>
@@ -48,13 +71,15 @@ export function NewsConfiguration({ sources, settings, onChange, onSaved, onClos
       {source && <label className="news-checkbox"><input type="checkbox" checked={!settings.hiddenSources.includes(source.id)} onChange={event => onChange({ ...settings,
         hiddenSources: event.target.checked ? settings.hiddenSources.filter(id => id !== source.id) : [...settings.hiddenSources, source.id] })} />Show this provider</label>}
       {error && <p role="alert">{error}</p>}
-    </form>
+    </form></section>
     <fieldset><legend>Keywords · all providers</legend>
-      <label>Include<input aria-label="Include keywords" maxLength={2000} value={settings.include} placeholder="Iran, OPEC, interest rates" onChange={event => onChange({ ...settings, include: event.target.value })} /></label>
-      <label>Match<select aria-label="Keyword matching" value={settings.match} onChange={event => onChange({ ...settings, match: event.target.value as 'any' | 'all' })}><option value="any">Any included term</option><option value="all">All included terms</option></select></label>
-      <label>Exclude<input aria-label="Exclude keywords" maxLength={2000} value={settings.exclude} placeholder="hockey, football" onChange={event => onChange({ ...settings, exclude: event.target.value })} /></label>
-      <p>Separate words or phrases with commas. Matches headlines and available feed summaries; exclusions take priority.</p>
-      <button type="button" onClick={() => onChange({ ...settings, hiddenSources: [], include: '', exclude: '', match: 'any' })}>Show all headlines</button>
+      <label>Include words<input aria-label="Include keywords" maxLength={2000} value={settings.include} placeholder="Iran, oil, interest rates" onChange={event => onChange({ ...settings, include: event.target.value })} /></label>
+      <p>Show stories containing any of these words or phrases. Leave empty to include everything.</p>
+      <label>Exclude words<input aria-label="Exclude keywords" maxLength={2000} value={settings.exclude} placeholder="India, hockey" onChange={event => onChange({ ...settings, exclude: event.target.value })} /></label>
+      <p>Hide stories containing any excluded word or phrase, even if an included word matches.</p>
+      <p>Separate entries with commas. Searches ignore case and cover headlines and available feed summaries. Switch the panel to <strong>Filtered</strong> to apply these rules; <strong>All</strong> keeps them saved without applying them.</p>
     </fieldset>
-  </div>
+    </div>
+    </div>
+  </div>, document.body)
 }
