@@ -6,6 +6,7 @@ import { refreshNews, useNewsHistory, useNewsPage, useNewsSources } from './useN
 import { useNewsSettings } from './settings'
 import { newsDateBounds } from './date-range'
 import { Headlines, HistoryStatus } from './Headlines'
+import { NewsFilterTabs } from './NewsTabs'
 import './news-flow.css'
 
 export const NewsFlowPanel = memo(function NewsFlowPanel({ onClose }: { onClose: () => void }) {
@@ -35,7 +36,7 @@ export const NewsFlowPanel = memo(function NewsFlowPanel({ onClose }: { onClose:
   }
   const failures = sources.filter(source => source.error)
   const lastSuccess = Math.max(0, ...sources.map(source => source.last_success ?? 0))
-  const filterActive = settings.hiddenSources.length > 0 || settings.mode === 'filtered' && (!!settings.include || !!settings.exclude)
+  const filterActive = settings.hiddenSources.length > 0 || settings.mode !== 'all'
   return <aside id="news-flow-panel" className="news-flow-panel" aria-label="News Flow" style={{ '--news-width': `${settings.width}px` } as CSSProperties}
     onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); onClose() } }}>
     <div className="news-resize" role="separator" aria-label="Resize News Flow" aria-orientation="vertical" tabIndex={0}
@@ -46,9 +47,7 @@ export const NewsFlowPanel = memo(function NewsFlowPanel({ onClose }: { onClose:
       onPointerUp={event => { resize.current = null; if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId) }}
       onLostPointerCapture={() => { resize.current = null }} />
     <header className="news-header"><h2>News Flow</h2>
-      <button type="button" className="news-mode-toggle" aria-label="Filter news by keywords" aria-pressed={settings.mode === 'filtered'}
-        title={settings.mode === 'all' ? 'Show only headlines matching configured keywords' : 'Show all headlines without keyword rules'}
-        onClick={() => change({ ...settings, mode: settings.mode === 'all' ? 'filtered' : 'all' })}>{settings.mode === 'all' ? 'All' : 'Filtered'}</button>
+      <NewsFilterTabs value={settings.mode} onChange={mode => change({ ...settings, mode })} controls="news-items-panel" />
       <button type="button" aria-label="Filter news by date" aria-expanded={calendar} aria-controls="news-date-filter" aria-pressed={!!settings.date} onClick={() => setCalendar(value => !value)} title="Date filter">📅</button>
       <button type="button" aria-label="Configure News Flow" aria-haspopup="dialog" aria-expanded={configuration} aria-controls="news-configuration" aria-pressed={filterActive} onClick={() => setConfiguration(value => !value)} title="Providers and keywords">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M3 3h8l10 10-8 8L3 11z"/><circle cx="7.5" cy="7.5" r="1"/></svg>
@@ -62,7 +61,7 @@ export const NewsFlowPanel = memo(function NewsFlowPanel({ onClose }: { onClose:
     <HistoryStatus history={history} />
     {(error || sourceError || refreshError) && <p className="news-message" role="alert">{error || sourceError || refreshError}</p>}
     {pending && <button type="button" className="news-new-items" onClick={() => { paused.current = false; if (scroll.current) scroll.current.scrollTop = 0; reveal() }}>Updated headlines · show latest</button>}
-    <div className="news-items" ref={scroll} onScroll={event => { paused.current = event.currentTarget.scrollTop > 60 }}>
+    <div id="news-items-panel" role="tabpanel" aria-labelledby={`news-items-panel-${settings.mode}-tab`} className="news-items" ref={scroll} onScroll={event => { paused.current = event.currentTarget.scrollTop > 60 }}>
       {!page && !error && <p className="news-message">Loading headlines…</p>}
       {page && <Headlines items={page.items} dated={!!settings.date} />}
       {page && !page.items.length && <p className="news-message">{filterActive ? 'No headlines match these filters.'

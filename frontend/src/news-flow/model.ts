@@ -1,19 +1,24 @@
-export type NewsSource = { id: string; name: string; url: string; last_success: number | null; error: string }
-export type NewsItem = { id: string; source_id: string; source_name: string; publisher: string; title: string; summary: string; url: string; published_at: number | null; first_seen: number }
+import { keywordTags, starterKeywords } from './keywords'
+export type NewsSource = { id: string; name: string; url: string; last_success: number | null; error: string; poll_seconds?: number; retry_at?: number }
+export type NewsItem = { id: string; source_id: string; source_name: string; publisher: string; title: string; summary: string; url: string; published_at: number | null; first_seen: number; pinned?: boolean | number; priority_reason?: string }
 export type NewsPage = { items: NewsItem[]; total: number }
-export type NewsSettings = { hiddenSources: string[]; include: string; exclude: string; mode: 'all' | 'filtered'; date: string; session: { start: number; end: number } | null; order: 'newest' | 'oldest'; width: number; soundEnabled: boolean; sound: 'chime' | 'bell' | 'pulse' }
+export type NewsMode = 'all' | 'included' | 'excluded'
+export type NewsSettings = { hiddenSources: string[]; include: string; exclude: string; mode: NewsMode; presetVersion: number; includedColor: string; excludedColor: string; date: string; session: { start: number; end: number } | null; order: 'newest' | 'oldest'; width: number; soundEnabled: boolean; sound: 'chime' | 'bell' | 'pulse' }
 
 const key = 'fyodor.news-flow.v1'
-const defaults: NewsSettings = { hiddenSources: [], include: '', exclude: '', mode: 'all', date: '', session: null, order: 'newest', width: 380, soundEnabled: false, sound: 'chime' }
+const defaults: NewsSettings = { hiddenSources: [], include: starterKeywords.join(', '), exclude: '', mode: 'all', presetVersion: 1, includedColor: '#ef4444', excludedColor: '#737373', date: '', session: null, order: 'newest', width: 380, soundEnabled: false, sound: 'chime' }
 
 export function readNewsSettings(): NewsSettings {
   try {
     const saved = JSON.parse(window.localStorage.getItem(key) ?? '{}')
-    const include = typeof saved.include === 'string' ? saved.include.slice(0, 2000) : ''
-    const exclude = typeof saved.exclude === 'string' ? saved.exclude.slice(0, 2000) : ''
+    const previous = typeof saved.include === 'string' ? saved.include : ''
+    const include = keywordTags(saved.presetVersion === 1 ? previous : [previous, ...starterKeywords].join(',')).join(', ')
+    const exclude = keywordTags(typeof saved.exclude === 'string' ? saved.exclude : '').join(', ')
     return { hiddenSources: Array.isArray(saved.hiddenSources) ? saved.hiddenSources.filter((id: unknown) => typeof id === 'string') : [],
       include, exclude,
-      mode: saved.mode === 'all' || saved.mode === 'filtered' ? saved.mode : include.trim() || exclude.trim() ? 'filtered' : 'all',
+      mode: saved.mode === 'included' || saved.mode === 'excluded' ? saved.mode : saved.mode === 'filtered' ? 'included' : 'all', presetVersion: 1,
+      includedColor: /^#[0-9a-f]{6}$/i.test(saved.includedColor) ? saved.includedColor : defaults.includedColor,
+      excludedColor: /^#[0-9a-f]{6}$/i.test(saved.excludedColor) ? saved.excludedColor : defaults.excludedColor,
       date: /^\d{4}-\d{2}-\d{2}$/.test(saved.date) ? saved.date : '',
       session: Number.isFinite(saved.session?.start) && Number.isFinite(saved.session?.end) && saved.session.end > saved.session.start && saved.session.end - saved.session.start <= 36 * 3600_000 ? { start: saved.session.start, end: saved.session.end } : null,
       order: saved.order === 'oldest' ? 'oldest' : 'newest', width: Number.isFinite(saved.width) ? Math.min(640, Math.max(280, saved.width)) : 380,
@@ -27,7 +32,7 @@ export function saveNewsSettings(settings: NewsSettings) {
 
 // Start/end come from the app's display clock, so date filtering agrees with timestamps.
 export function newsQuery(settings: NewsSettings, sources: NewsSource[], page: number, start: number | null, end: number | null) {
-  const query = new URLSearchParams({ include: settings.mode === 'filtered' ? settings.include : '', exclude: settings.mode === 'filtered' ? settings.exclude : '',
+  const query = new URLSearchParams({ mode: settings.mode, include: settings.mode !== 'all' ? settings.include : '', exclude: settings.mode !== 'all' ? settings.exclude : '',
     order: settings.order, offset: String(page * 100), limit: '100' })
   if (settings.hiddenSources.length) {
     const visible = sources.filter(source => !settings.hiddenSources.includes(source.id))

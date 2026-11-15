@@ -1,58 +1,86 @@
 # News Flow frontend
 
-Open with the newspaper button immediately right of Heatmap Ranking. It shares
-the right panel with Detail, Events and Ranking. Rows show headline links,
-provider and publication time; duplicate article URLs collapse after filtering.
-Wildcard entry remains manual.
+Open with the newspaper button beside Heatmap Ranking. The right panel and
+near-full-window **News Flow Extended View** share simple headline rows, colours,
+Priority stars and Add Wildcard actions. Provider/date scopes remain explicit.
 
-- `NewsFlowPanel.tsx`: combined reader, date/sort controls, width and paging.
-- `NewsConfiguration.tsx`: large centered modal with Browse providers and
-  Settings tabs. Body portal, inert background, focus trap/restoration and
-  keyboard shortcut containment. Tabs support Left/Right/Home/End.
-- `ProviderBrowser.tsx`: one provider's recent or dated headlines, ignoring
-  combined-feed visibility and keyword filters. Its date remains independent
-  of the right panel and survives tab switches while the modal is open.
-- `Headlines.tsx`: simple links/timestamps and truthful historical lookup status.
-- `model.ts`: preferences, query serialization and response validation.
-- `settings.ts`: shared browser settings subscription; Heatmap date entry point.
-- `date-range.ts`: display-date and historical broker-session UTC boundaries.
-- `useNewsFlow.ts`: sources/items/history requests. One-second local API reads
-  are sequential, cancelled on scope changes/unmount, and retain good snapshots.
-  Changes wait behind an update button when reading down the combined list.
-- `NewsSoundAlerts.tsx`: workspace-level optional alert listener, independent
-  of panel visibility, selected historical date, and All/Filtered mode.
-- `sound.ts`: three built-in Web Audio tones, unlocked through a user gesture.
+## Ownership
 
-Settings use `fyodor.news-flow.v1`: hidden providers, comma-separated
-Include/Exclude, All/Filtered, date/session bounds, sort, width and sound.
-Rules match literal case-insensitive substrings in headline text only. Any
-Include matches; any Exclude wins; empty Include allows non-excluded stories.
-All bypasses keywords without clearing them. Hidden providers keep collecting.
+- `NewsFlowPanel.tsx`: combined reader, classification tabs, dates, paging/resize.
+- `NewsConfiguration.tsx`: Browse providers / Priority / Settings modal, named
+  provider tabs, provider polling controls, colours, keywords and sound settings.
+  Portal, inert background and keyboard focus containment; suspends while a
+  Wildcard draft is open, retaining date/tab/scroll state when returning.
+- `ProviderBrowser.tsx`: provider or Priority page with independent date, paging
+  and on-demand history. Provider browsing can inspect hidden providers; Priority
+  combines visible providers independently of Include/Exclude classification.
+- `Headlines.tsx`: coloured rows, classification reasons, candidate labels,
+  persistent Priority star requests and prefilled manual Wildcard drafts.
+- `NewsTabs.tsx`, `KeywordTags.tsx`: keyboard-accessible tabs and removable tags.
+- `keywords.ts`: editable cross-asset market preset, normalization/matching.
+- `model.ts`, `settings.ts`, `date-range.ts`: preferences/shared subscription,
+  API queries/validation and display/broker-session date boundaries.
+- `useNewsFlow.ts`: network boundary (except the independent sound listener).
+- `NewsSoundAlerts.tsx`, `sound.ts`: optional workspace-level built-in tones.
 
-Sound is off by default. Settings offers on/off, Chime/Bell/Pulse and Preview.
-Alerts need nonempty Include terms and reject Exclude/hidden providers. Each
-matching batch rings once. Initial snapshots, initial provider loads, updates,
-historical imports and duplicate links stay silent. The listener starts from a
-server cursor and ignores stories published before it was enabled. Backend also
-rejects undated, more-than-15-minute-old, or over-one-minute-future publications.
-This freshness guard avoids old backfills ringing as breaking news. Audio works
-while this terminal page remains open, even with the panel closed; another app's
-backend alarm worker is not involved. Browser suspension can delay delivery.
+## Classification and tags
 
-Calendar dates use the display timezone. The Heatmap's daily **News for this date**
-button opens the panel for that broker session, preserving source/keyword rules.
-Saved explicit UTC session bounds survive closing/reopening the panel; manual
-calendar edits clear them and return to display-zone dates. Unknown historical
-broker clocks disable the shortcut. Weekly/event-window shortcuts are disabled.
+All shows every fetched headline within the provider/date scope. Included needs
+any Include match and no Exclude match. Excluded is the complement, including
+unmatched headlines. An empty Include makes Included empty and Excluded contain
+everything. All retains colours (red/grey defaults, configurable), with text
+reasons distinguishing an explicit Exclude from No include match.
 
-Dates trigger on-demand historical searches plus local cache reads. Known
-starter RSS providers use scoped Google News searches; Treasury uses its official
-yearly announcement index. Custom RSS feeds without an adapter report historical
-lookup unavailable, retaining cached headlines. Historical coverage may be
-incomplete; an empty result is not proof no news was published. Search outcomes
-cache for 15 minutes; Refresh/Retry can bypass successful caches, not retry delays.
-No article versions, causal analysis, full-text extraction or paid service is used.
-The existing SQLite cache persists across restarts, without automatic expiry.
+Keywords are case-insensitive literal words/phrases with word boundaries; AI
+never matches said/retail, nor Fed Federer. NFKC/whitespace normalization and
+compact/slashed currency-pair normalization let EURUSD match USD/EUR tags.
+Frontend and backend apply corresponding rules. Each list supports 500 tags and
+16000 characters, with visible validation instead of silently dropping terms.
+Enter/comma adds a tag, multi-term paste imports tags, X removes one.
 
-Backend ownership: `storage/news_flow/`. Small shell/Heatmap connections only.
-Run: `pnpm --dir frontend test -- test_news_flow test_heatmap_wildcards test_terminal_responsiveness`.
+The market preset covers currencies, policy, data, bonds/liquidity, energy,
+geopolitics, major equities/AI, metals and positioning. A one-time browser
+migration merges it with existing Include terms; existing Exclude terms remain.
+Preset version prevents removed tags returning. Settings can add the preset
+again. Old Filtered mode migrates to Included. Settings remain browser-local.
+
+## Priority, dates and sound
+
+Priority lists manually starred links first, then expectations candidates in
+publication order. Candidate detection uses only headline/feed text and is not
+confirmation that information was available before an event. Dates and source
+links remain visible. A targeted free Reuters expectations search supplements
+the broad feed. No article-body extraction, generated probabilities, causal
+analysis or instrument-return badges are implemented. Pins live in SQLite.
+
+Calendar dates use the display zone. Heatmap's daily News for this date preserves
+broker-session UTC bounds, including DST, until a manual date edit. Historical
+lookup uses scoped Google searches for known RSS providers and Treasury's own
+index; custom unsupported feeds explicitly show cached-only coverage. Results
+may be incomplete. Cache persists across restarts; no article-version archive.
+
+Provider fetch cadence defaults to 1 second and can be manually overridden
+(1–3600 seconds; 60–300 means 1–5 minutes). Browser cache reads remain sequential
+1-second requests. Publisher cooldowns survive restarts, Refresh and interval
+edits. Hiding a provider affects combined reading/alerts, not collection.
+
+Sound defaults off, offers Chime/Bell/Pulse and Preview, and uses the same word
+rules as Included regardless of the selected tab/date. Initial snapshots,
+provider priming, edits, history imports and duplicate links stay silent. Fresh
+matching arrivals ring once per batch while this terminal is open, including
+with the panel closed. Undated/stale publications stay silent. Browser audio
+requires a user gesture; suspension can delay delivery.
+
+## Wildcards
+
+Add Wildcard opens the existing editor with title, URL, available feed text and
+publication time. Missing publication time uses first_seen, explicitly labelled
+Collected at, never invented Google indexing time. Save is manual; placement is
+automatic. Existing Wildcard chart mapping uses a containing candle or a nearby
+real candle across market gaps (earlier wins ties), retaining original UTC time.
+Very long holes/distant missing history do not snap to an unrelated chart edge.
+Chart tooltips retain original time and identify nearest-candle display.
+
+Run: `pnpm --dir frontend test -- test_news_flow test_wildcards test_heatmap_wildcards test_terminal_responsiveness`.
+Backend: `storage/news_flow/`. Shared Wildcard editor/marker changes stay in
+`frontend/src/wildcards/`; shell/Heatmap connections remain small.

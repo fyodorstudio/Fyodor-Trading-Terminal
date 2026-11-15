@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { validWildcards, wildcardDay, type WildcardDraft, type WildcardEntry, type WildcardSnapshot } from './wildcard-model'
 
-type Editor = { entry?: WildcardEntry; at?: number; date?: string } | { items: WildcardEntry[]; date: string }
+type Editor = { entry?: WildcardEntry; at?: number; date?: string; draft?: WildcardDraft } | { items: WildcardEntry[]; date: string }
 export function useWildcardsState() {
   const [snapshot, setSnapshot] = useState<WildcardSnapshot | null>(null)
   const [error, setError] = useState(''), [saving, setSaving] = useState(false), [attempt, setAttempt] = useState(0)
@@ -32,6 +32,7 @@ export function useWildcardsState() {
   const reload = useCallback(() => setAttempt(value => value + 1), [])
   const close = useCallback(() => { if (!busy.current) setEditor(null) }, [])
   const openNew = useCallback((at?: number, date?: string) => { draftRevision.current = snapshotRef.current?.revision ?? null; setPlacing(false); setEditor({ at, date: date ?? wildcardDay(at ?? Date.now()) }) }, [])
+  const openDraft = useCallback((draft: WildcardDraft) => { draftRevision.current = snapshotRef.current?.revision ?? null; setPlacing(false); setEditor({ draft }) }, [])
   const openEntry = useCallback((entry: WildcardEntry) => { draftRevision.current = snapshotRef.current?.revision ?? null; setPlacing(false); setEditor({ entry }) }, [])
   const openDay = useCallback((date: string, items: WildcardEntry[]) => { setPlacing(false); setEditor({ date, items }) }, [])
   const mutate = useCallback(async (entry: WildcardDraft | null, identity?: string) => {
@@ -58,8 +59,8 @@ export function useWildcardsState() {
       if (!controller.signal.aborted) setSaving(false)
     }
   }, [reload])
-  return useMemo(() => ({ snapshot, error, saving, reload, editor, close, openNew, openEntry, openDay, mutate, placing, setPlacing }),
-    [snapshot, error, saving, reload, editor, close, openNew, openEntry, openDay, mutate, placing])
+  return useMemo(() => ({ snapshot, error, saving, reload, editor, close, openNew, openDraft, openEntry, openDay, mutate, placing, setPlacing }),
+    [snapshot, error, saving, reload, editor, close, openNew, openDraft, openEntry, openDay, mutate, placing])
 }
 export const WildcardsContext = createContext<ReturnType<typeof useWildcardsState> | null>(null)
 export function useWildcards() {

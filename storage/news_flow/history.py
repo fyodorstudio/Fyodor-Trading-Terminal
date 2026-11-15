@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 import re
 import time
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+from urllib.error import HTTPError
 
 from .collector import retry_delay
 from .feeds import fetch_feed, treasury_url, treasury_data_url
@@ -45,6 +46,10 @@ class NewsHistory:
             # Also serializes with the live collector and other browser tabs.
             with self.collector.source_lock(source['id']):
                 now = int(time.time() * 1000)
+                shared_host = urlsplit(url).hostname == urlsplit(source['url']).hostname
+                if shared_host and source['retry_at'] > now:
+                    result['errors'].append(f"{source['name']}: Provider cooldown until {datetime.fromtimestamp(source['retry_at'] / 1000, timezone.utc):%Y-%m-%d %H:%M UTC}")
+                    continue
                 cached = self.store.history_search(source, start, end)
                 if cached and ((cached['error'] and cached['retry_at'] > now) or
                                (not cached['error'] and not force and now - cached['searched_at'] < 900_000)):
@@ -71,5 +76,7 @@ class NewsHistory:
                     delay = retry_delay(error, failures, time.time())
                     message = f'{error}. Retry after {int(delay)}s.'[:500]
                     self.store.save_history_search(source, start, end, now, 0, message, int(time.time() * 1000 + delay * 1000), failures)
+                    if shared_host and isinstance(error, HTTPError) and error.code in (429, 503):
+                        self.store.failure(source, message, int(time.time() * 1000 + delay * 1000), failures)
                     result['errors'].append(f"{source['name']}: {message}")
         return result

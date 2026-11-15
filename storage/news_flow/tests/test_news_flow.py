@@ -1,7 +1,9 @@
 import asyncio
+from contextlib import closing
 from concurrent.futures import ThreadPoolExecutor
 from email.message import Message
 import json
+import sqlite3
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from threading import Event
@@ -16,6 +18,7 @@ from storage.news_flow.collector import NewsCollector, retry_delay
 from storage.news_flow.feeds import MAX_FEED_BYTES, fetch_feed, parse_feed, parse_treasury
 from storage.news_flow.store import NewsStore
 from storage.news_flow.providers import PROVIDERS, TREASURY_URL
+from storage.news_flow.rules import matches, patterns, priority_reason
 from storage.news_flow.history import NewsHistory, historical_url
 
 RSS = b'''<rss version="2.0"><channel><title>Reuters</title>
@@ -44,6 +47,82 @@ class NewsFlowTests(unittest.TestCase):
 
     def ingest(self):
         self.store.success(self.source, self.items, 'version-1', '', self.now)
+
+    def test_keyword_boundaries_limits_and_classification_partition(self):
+        for title, rule, expected in [('Retail chair said Federer won', 'AI, Fed', 0), ('AI and Fed policy', 'ai, FED', 1),
+                                      ('EURUSD moves', 'USD', 1), ('EUR/USD moves', 'EURUSD', 1),
+                                      ('USDCAD falls', 'USD/CAD', 1), ('OPEC+ meets', 'OPEC+', 1),
+                                      ('Bad crops', 'ADP', 0), ('Oil prices move', 'oil', 1)]:
+            with self.subTest(title=title, rule=rule): self.assertEqual(matches(title, rule), expected)
+        many = ','.join(f'keyword{i}' for i in range(150))
+        self.assertEqual(matches('keyword149 arrives', many), 1, 'Rules past the old 50-term limit work')
+        with self.assertRaises(ValueError): patterns(','.join(f'word{i}' for i in range(501)))
+        self.ingest()
+        self.store.success(self.source, [{**self.items[0], 'identity': 'excluded', 'url': 'https://example.com/india', 'title': 'India oil demand'}], '', '', self.now)
+        all_items = self.store.query()['items']
+        included = self.store.query(include='oil', exclude='India', mode='included')['items']
+        excluded = self.store.query(include='oil', exclude='India', mode='excluded')['items']
+        self.assertEqual(len(included), 1)
+        self.assertEqual(len(excluded), 2, 'Explicit exclusions and unmatched titles are Excluded')
+        self.assertEqual({row['id'] for row in all_items}, {row['id'] for row in included + excluded})
+        self.assertEqual(self.store.query(mode='included')['total'], 0)
+        self.assertEqual(self.store.query(mode='excluded')['total'], len(all_items))
+
+    def test_priority_candidates_pins_date_scope_and_no_false_probability(self):
+        self.ingest()
+        candidate = {**self.items[0], 'identity': 'preview', 'url': 'https://example.com/preview', 'title': 'RBA preview ahead of Tuesday decision', 'summary': 'A hike is around 80% priced.'}
+        self.store.success(self.source, [candidate], '', '', self.now)
+        self.assertTrue(priority_reason('Global watch', 'RBA hike is around 80% priced.'))
+        self.assertEqual(priority_reason('RBA hikes as expected', 'Markets implied an 88% chance of a hike.'), '')
+        self.assertEqual(priority_reason('Stock falls 88%', ''), '')
+        self.assertTrue(priority_reason('RBA expected to cut interest rates', ''))
+        self.assertEqual(self.store.query(priority=True)['total'], 1)
+        self.store.pin(self.items[0]['url'], True)
+        priority = self.store.query(priority=True, include='impossible', exclude='Iran')['items']
+        self.assertEqual(len(priority), 2, 'Priority is independent of Include/Exclude')
+        self.assertEqual(priority[0]['url'], self.items[0]['url'], 'Manual stars sort before automatic candidates')
+        self.assertEqual(NewsStore(self.root).query(priority=True)['total'], 2)
+        self.assertEqual(self.store.query(priority=True, start=self.now+1)['total'], 0)
+        self.store.pin(self.items[0]['url'], False)
+        self.assertEqual(self.store.query(priority=True)['total'], 1)
+
+    def test_poll_override_and_retry_deadline_survive_restart_and_refresh(self):
+        self.ingest()
+        self.assertTrue(all(source['poll_seconds'] == 1 for source in self.store.sources()))
+        self.store.save_source(self.source['name'], self.source['url'], self.source['id'], 300)
+        self.assertEqual(self.store.sources()[0]['poll_seconds'], 300)
+        self.assertEqual(self.store.sources()[0]['next_fetch_at'], self.now + 300000)
+        headers = Message(); headers['Retry-After'] = '1800'
+        def throttled(source): raise HTTPError(source['url'], 429, 'Throttled', headers, None)
+        NewsCollector(self.store, throttled)._fetch(self.source, 0)
+        retry_at = self.store.sources()[0]['retry_at']
+        self.assertGreater(retry_at, time.time()*1000 + 1790000)
+        reopened = NewsStore(self.root)
+        reopened.save_source(self.source['name'], self.source['url'], self.source['id'], 1)
+        collector = NewsCollector(reopened)
+        collector.refresh()
+        self.assertEqual(reopened.sources()[0]['retry_at'], retry_at)
+        collector.pool = ThreadPoolExecutor(max_workers=1)
+        try:
+            collector.tick()
+            self.assertEqual(collector.pending, {}, 'Restart/manual refresh/interval edits cannot bypass a cooldown')
+        finally: collector.stop()
+
+    def test_old_database_retry_message_migrates_without_bypassing_cooldown(self):
+        root = self.root / 'old-install'
+        directory = root / 'news-flow'; directory.mkdir(parents=True)
+        with closing(sqlite3.connect(directory / 'news.sqlite3')) as db:
+            db.execute("CREATE TABLE sources(id TEXT PRIMARY KEY,name TEXT NOT NULL,url TEXT NOT NULL UNIQUE,etag TEXT NOT NULL DEFAULT '',modified TEXT NOT NULL DEFAULT '',last_success INTEGER,error TEXT NOT NULL DEFAULT '')")
+            db.execute('INSERT INTO sources(id,name,url,error) VALUES (?,?,?,?)', ('reuters', 'My feed', self.source['url'], 'HTTP Error 429. Retrying in 1800s.'))
+            db.commit()
+        source = NewsStore(root).sources()[0]
+        self.assertEqual(source['poll_seconds'], 1)
+        self.assertGreater(source['retry_at'], time.time()*1000 + 1790000)
+        reopened = NewsStore(root)
+        original = reopened.sources()[0]['retry_at']
+        reopened.save_source('Renamed', self.source['url'], 'reuters', 300)
+        self.assertEqual(reopened.sources()[0]['retry_at'], original)
+        self.assertIn('429', reopened.sources()[0]['error'])
 
     def test_starter_sources_migrate_once_without_overwriting_customizations(self):
         root = self.root / 'new-install'
@@ -156,11 +235,11 @@ class NewsFlowTests(unittest.TestCase):
         bank = self.store.save_source('Central bank', 'https://example.com/feed')
         source = next(source for source in self.store.sources() if source['id'] == bank)
         self.store.success(source, parse_feed(ATOM), '', '', self.now)
-        self.assertEqual(self.store.query(include='OPEC')['total'], 1)
-        self.assertEqual(self.store.query(include='comments')['total'], 0, 'Only visible headline text matches')
-        self.assertEqual(self.store.query(include='iran, rates')['total'], 2, 'Any included term matches')
-        self.assertEqual(self.store.query(include='iran, opec', exclude='iran')['total'], 0)
-        self.assertEqual(self.store.query(include='%')['total'], 0, 'SQL wildcard characters remain literal')
+        self.assertEqual(self.store.query(mode='included', include='OPEC')['total'], 1)
+        self.assertEqual(self.store.query(mode='included', include='comments')['total'], 0, 'Only visible headline text matches')
+        self.assertEqual(self.store.query(mode='included', include='iran, rates')['total'], 2, 'Any included term matches')
+        self.assertEqual(self.store.query(mode='included', include='iran, opec', exclude='iran')['total'], 0)
+        self.assertEqual(self.store.query(mode='included', include='%')['total'], 0, 'SQL wildcard characters remain literal')
         self.assertEqual(self.store.query(sources=[bank])['total'], 1)
         self.assertEqual(self.store.query(start=self.items[0]['published_at'], end=self.items[0]['published_at'] + 1)['total'], 1)
         self.assertEqual(self.store.query(limit=1, offset=2)['total'], 3)
@@ -172,9 +251,9 @@ class NewsFlowTests(unittest.TestCase):
     def test_exclusion_only_and_included_but_excluded_stories(self):
         self.ingest()
         self.store.success(self.source, [{**self.items[0], 'identity': 'india', 'url': 'https://example.com/india', 'title': 'India oil demand', 'summary': ''}], '', '', self.now)
-        self.assertEqual(self.store.query(include='oil')['total'], 2)
-        self.assertEqual(self.store.query(include='oil', exclude='INDIA')['total'], 1, 'Exclusion overrides a matching inclusion')
-        self.assertEqual(self.store.query(exclude='india')['total'], 2, 'An empty inclusion allows everything except exclusions')
+        self.assertEqual(self.store.query(mode='included', include='oil')['total'], 2)
+        self.assertEqual(self.store.query(mode='included', include='oil', exclude='INDIA')['total'], 1, 'Exclusion overrides a matching inclusion')
+        self.assertEqual(self.store.query(mode='excluded', exclude='india')['total'], 3, 'Empty Include classifies every headline as Excluded')
         self.assertEqual(self.store.query()['total'], 3, 'All mode leaves collected stories intact')
 
     def test_historical_date_search_preserves_live_feed_cache_and_exact_timezone_window(self):
@@ -220,7 +299,7 @@ class NewsFlowTests(unittest.TestCase):
         history = NewsHistory(self.store, NewsCollector(self.store), offline)
         result = history.search(self.now - 86400000, self.now)
         self.assertIn('60s', result['errors'][0])
-        self.assertEqual(history.search(self.now - 86400000, self.now, force=True)['cached'], 1)
+        self.assertIn('cooldown', history.search(self.now - 86400000, self.now, force=True)['errors'][0])
         self.assertEqual(len(calls), 1, 'Even forced refresh respects Retry-After')
         self.assertEqual(self.store.query()['total'], 2)
 
@@ -277,9 +356,9 @@ class NewsFlowTests(unittest.TestCase):
             def offline(source): raise OSError('Offline')
             collector.fetcher = offline
             collector._fetch(self.source, 0)
-            scheduled = collector.schedule[self.source['id']]
+            scheduled = self.store.sources()[0]['retry_at']
             collector.refresh()
-            self.assertEqual(collector.schedule[self.source['id']], scheduled)
+            self.assertEqual(self.store.sources()[0]['retry_at'], scheduled)
             self.assertEqual(self.store.query()['total'], 2)
             self.assertIn('Offline', self.store.sources()[0]['error'])
         finally:
@@ -311,7 +390,7 @@ class NewsFlowTests(unittest.TestCase):
             prefix = '/api/v1/news-flow'
             status, body = await request('GET', prefix + '/sources')
             self.assertEqual(status, 200); self.assertNotIn('etag', body['sources'][0])
-            status, body = await request('GET', prefix + '/items?include=IRAN&limit=1')
+            status, body = await request('GET', prefix + '/items?mode=included&include=IRAN&limit=1')
             self.assertEqual(status, 200); self.assertEqual(body['total'], 1)
             for url in ('javascript:bad', 'file:///etc/passwd', 'https://user:pass@example.com/rss'):
                 self.assertEqual((await request('POST', prefix + '/sources', {'name': 'Bad', 'url': url}))[0], 422)
@@ -326,6 +405,16 @@ class NewsFlowTests(unittest.TestCase):
             self.assertEqual(status, 200); self.assertEqual(arrivals['items'], [])
             self.assertIsInstance(arrivals['cursor'], int)
             self.assertEqual((await request('GET', prefix + '/arrivals?after=-1'))[0], 422)
+            for poll in (0, 3601, 1.5, '300'):
+                self.assertEqual((await request('POST', prefix + '/sources', {'name': 'Bad poll', 'url': 'https://example.com/poll', 'poll_seconds': poll}))[0], 422)
+            status, _ = await request('PUT', prefix + '/priority', {'url': self.items[0]['url'], 'pinned': True})
+            self.assertEqual(status, 200)
+            status, priority = await request('GET', prefix + '/items?priority=true')
+            self.assertEqual(priority['total'], 1); self.assertEqual(priority['items'][0]['pinned'], 1)
+            self.assertEqual((await request('PUT', prefix + '/priority', {'url': 'javascript:bad', 'pinned': True}))[0], 422)
+            too_many = ','.join(f'word{i}' for i in range(501))
+            self.assertEqual((await request('GET', prefix + '/items?mode=included&include=' + too_many))[0], 422)
+            self.assertEqual((await request('GET', prefix + '/items?mode=invalid'))[0], 422)
             self.assertEqual((await request('POST', prefix + '/refresh'))[0], 202)
             history_result = {'searched': 1, 'cached': 0, 'found': 1, 'unsupported': [], 'errors': []}
             with patch('storage.news_flow.history.NewsHistory.search', return_value=history_result) as search:

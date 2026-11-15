@@ -5,12 +5,12 @@ import { chartClockToUtc } from '../appearance/time-display/chart-clock'
 import { useDisplayClock } from '../appearance/time-display/useDisplayClock'
 import { claimChartClick } from '../market-data/candlestick-chart/chart-click-selection'
 import { useWildcards } from './useWildcards'
-import { containingWildcardCandle, wildcardChartTime, type WildcardEntry } from './wildcard-model'
+import { containingWildcardCandle, wildcardCandle, wildcardChartTime, type WildcardEntry } from './wildcard-model'
 
 export function WildcardChartLayer({ chartApi, seriesApi, bars, step, visible, context }: {
   chartApi: IChartApi; seriesApi: ISeriesApi<'Candlestick', Time>; bars: OhlcBar[]; step: number; visible: boolean; context: string
 }) {
-  const { snapshot, placing, setPlacing, openNew, openEntry, openDay } = useWildcards(), { scope } = useDisplayClock()
+  const { snapshot, placing, setPlacing, openNew, openEntry, openDay } = useWildcards(), clock = useDisplayClock(), { scope } = clock
   const [positions, setPositions] = useState<{ x: number; items: WildcardEntry[] }[]>([])
   const [height, setHeight] = useState(0)
   const indexed = useMemo(() => {
@@ -18,7 +18,7 @@ export function WildcardChartLayer({ chartApi, seriesApi, bars, step, visible, c
     for (const entry of snapshot?.items ?? []) {
       if (entry.archived) continue
       const time = wildcardChartTime(entry, scope)
-      const candle = time === null ? null : containingWildcardCandle(time, bars, step)
+      const candle = time === null ? null : wildcardCandle(time, bars, step)
       if (candle !== null) groups.set(candle, [...(groups.get(candle) ?? []), entry])
     }
     return [...groups].sort(([a], [b]) => a - b)
@@ -65,7 +65,10 @@ export function WildcardChartLayer({ chartApi, seriesApi, bars, step, visible, c
   return <div className="wildcard-chart-layer" aria-label="Wildcard chart icons">
     {placing && <span className="wildcard-chart-hint">Click a candle to add a wildcard · Escape to cancel</span>}
     {visible && positions.map(position => <button type="button" className="wildcard-chart-icon" key={position.items[0].id} style={{ left: position.x, top: Math.max(0, height - 63) }}
-      title={position.items.map(entry => `${entry.title}\n${entry.details}`).join('\n\n')} aria-label={position.items.length === 1 ? `Wildcard: ${position.items[0].title}` : `${position.items.length} wildcards`}
+      title={position.items.map(entry => {
+        const original = wildcardChartTime(entry, scope)
+        return `${entry.title}\n${entry.at ? 'Original time: ' + clock.utc(Date.parse(entry.at)) : entry.date}\n${original !== null && containingWildcardCandle(original, bars, step) === null ? 'Displayed on nearest available candle.\n' : ''}${entry.details}`
+      }).join('\n\n')} aria-label={position.items.length === 1 ? `Wildcard: ${position.items[0].title}` : `${position.items.length} wildcards`}
       onPointerDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); if (position.items.length === 1) openEntry(position.items[0]); else openDay(position.items[0].date, position.items) }}>✦{position.items.length > 1 ? position.items.length : ''}</button>)}
   </div>
 }

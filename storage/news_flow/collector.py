@@ -30,7 +30,7 @@ class NewsCollector:
         self.store, self.fetcher = store, fetcher
         self.stopped = Event()
         self.lock = Lock()
-        self.pending, self.schedule = {}, {}
+        self.pending = {}
         self.source_locks = {}
         self.thread = None
         self.pool = None
@@ -54,8 +54,7 @@ class NewsCollector:
 
     def refresh(self):
         # Manual refresh advances healthy feeds, but respects a server's retry delay.
-        with self.lock:
-            self.schedule = {key: value for key, value in self.schedule.items() if value[1] > 0}
+        self.store.refresh()
 
     def source_lock(self, identity):
         with self.lock:
@@ -70,35 +69,29 @@ class NewsCollector:
             self.stopped.wait(0.2)
 
     def tick(self):
-        now = time.monotonic()
+        now = time.time() * 1000
         with self.lock:
             for source in self.store.sources():
                 identity = source['id']
-                scheduled = self.schedule.get(identity, (0, 0, source['url']))
-                due, failures, previous_url = scheduled
+                due = max(source['next_fetch_at'], source['retry_at'])
                 future = self.pending.get(identity)
                 if future is not None:
                     if not future.done():
                         continue
                     self.pending.pop(identity)
                     # Worker records its outcome and schedules the next request.
-                if source['url'] != previous_url:
-                    due = 0
                 if due <= now and self.pool is not None:
-                    self.pending[identity] = self.pool.submit(self._fetch, source, failures if source['url'] == previous_url else 0)
+                    self.pending[identity] = self.pool.submit(self._fetch, source, source['failures'])
 
     def _fetch(self, source, failures):
-        delay = 5
-        try:
-            with self.source_lock(source['id']):
-                items, etag, modified = self.fetcher(source)
-                self.store.success(source, items, etag, modified, int(time.time() * 1000))
-            delay, failures = 1, 0
-        except Exception as error:
-            failures += 1
-            delay = retry_delay(error, failures, time.time())
-            self.store.failure(source, f'{error}. Retrying in {int(delay)}s.')
-        finally:
-            # Schedule after completion, never overlap a slow feed's requests.
-            with self.lock:
-                self.schedule[source['id']] = (time.monotonic() + delay, failures, source['url'])
+        with self.source_lock(source['id']):
+            current = next((row for row in self.store.sources() if row['id'] == source['id'] and row['url'] == source['url']), None)
+            if current is None or current['retry_at'] > time.time() * 1000:
+                return
+            try:
+                items, etag, modified = self.fetcher(current)
+                self.store.success(current, items, etag, modified, int(time.time() * 1000))
+            except Exception as error:
+                failures = max(failures, current['failures']) + 1
+                delay = retry_delay(error, failures, time.time())
+                self.store.failure(current, f'{error}. Retrying in {int(delay)}s.', int(time.time() * 1000 + delay * 1000), failures)

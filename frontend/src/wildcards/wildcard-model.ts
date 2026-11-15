@@ -36,3 +36,19 @@ export function containingWildcardCandle(time: number, bars: readonly OhlcBar[],
   const candle = bars[lo - 1]
   return candle && time < Number(candle.time) + step ? Number(candle.time) : null
 }
+
+export function wildcardCandle(time: number, bars: readonly OhlcBar[], step: number) {
+  const containing = containingWildcardCandle(time, bars, step)
+  if (containing !== null || !Number.isFinite(time) || !bars.length) return containing
+  let lo = 0, hi = bars.length
+  while (lo < hi) { const mid = (lo + hi) >>> 1; if (Number(bars[mid].time) < time) lo = mid + 1; else hi = mid }
+  const before = bars[lo - 1] ? Number(bars[lo - 1].time) : null, after = bars[lo] ? Number(bars[lo].time) : null
+  if (before !== null && after !== null) {
+    // A long missing-history hole is not evidence of a market closure.
+    if (after - before > 7 * 86400 + step) return null
+    return time - before <= after - time ? before : after
+  }
+  const closest = before ?? after, day = new Date(time * 1000).getUTCDay()
+  // At a history edge only bridge a nearby weekend, never a distant unknown date.
+  return closest !== null && (day === 0 || day === 6) && Math.abs(closest - time) <= 3 * 86400 + step ? closest : null
+}

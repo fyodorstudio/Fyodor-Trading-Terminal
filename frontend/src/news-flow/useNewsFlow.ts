@@ -64,10 +64,14 @@ export function useNewsPage(query: string, paused: RefObject<boolean>) {
     reveal: () => { if (pending?.query === query) { setSnapshot(pending); setPending(null) } } }
 }
 
-export async function saveNewsSource(name: string, url: string, identity?: string, signal?: AbortSignal) {
+export async function saveNewsSource(name: string, url: string, identity?: string, signal?: AbortSignal, pollSeconds?: number) {
   return responseJson(await fetch('/storage-api/news-flow/sources' + (identity ? `/${encodeURIComponent(identity)}` : ''), {
-    method: identity ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, url }), signal,
+    method: identity ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, url, poll_seconds: pollSeconds }), signal,
   })) as Promise<{ id: string }>
+}
+
+export async function pinNews(url: string, pinned: boolean, signal?: AbortSignal) {
+  await responseJson(await fetch('/storage-api/news-flow/priority', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url, pinned }), signal }))
 }
 
 export async function refreshNews(signal?: AbortSignal) {

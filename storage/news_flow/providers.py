@@ -6,6 +6,7 @@ DEFAULT_URL = 'https://news.google.com/rss/search?q=when:24h+site:reuters.com&ce
 # The final field scopes optional Google historical searches; live reads use RSS.
 PROVIDERS = (
     ('reuters', 'Reuters', DEFAULT_URL, ''),
+    ('reuters-previews', 'Reuters · Expectations', 'https://news.google.com/rss/search?' + urlencode({'q': 'when:7d site:reuters.com (Fed OR FOMC OR ECB OR RBA OR BoE OR BoJ OR RBNZ OR SNB OR inflation OR payrolls) ("priced in" OR "odds" OR "preview" OR "expected to" OR "markets price")', 'ceid': 'US:en', 'hl': 'en-US', 'gl': 'US'}), ''),
     ('fxstreet', 'FXStreet', 'https://www.fxstreet.com/rss', 'site:fxstreet.com/news'),
     ('fed-policy', 'Federal Reserve · Policy', 'https://www.federalreserve.gov/feeds/press_monetary.xml', 'site:federalreserve.gov/newsevents/pressreleases monetary'),
     ('fed-speeches', 'Federal Reserve · Speeches', 'https://www.federalreserve.gov/feeds/speeches.xml', 'site:federalreserve.gov/newsevents/speech'),

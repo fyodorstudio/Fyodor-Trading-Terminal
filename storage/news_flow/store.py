@@ -3,10 +3,12 @@ from contextlib import closing, contextmanager
 from pathlib import Path
 import sqlite3
 import time
+import re
 from threading import RLock
 from uuid import uuid4
 
 from .providers import PROVIDERS
+from .rules import matches, priority_reason
 
 
 class NewsStore:
@@ -22,6 +24,8 @@ class NewsStore:
             with closing(sqlite3.connect(self.path, timeout=10)) as db:
                 db.row_factory = sqlite3.Row
                 db.create_function('casefold', 1, lambda value: value.casefold())
+                db.create_function('news_matches', 2, matches, deterministic=True)
+                db.create_function('news_priority', 2, priority_reason, deterministic=True)
                 if not self.initialized:
                     db.executescript('''
                         CREATE TABLE IF NOT EXISTS sources (
@@ -37,6 +41,7 @@ class NewsStore:
                         CREATE INDEX IF NOT EXISTS news_source ON items(source_id);
                         CREATE INDEX IF NOT EXISTS news_url ON items(url);
                         CREATE TABLE IF NOT EXISTS migrations (name TEXT PRIMARY KEY);
+                        CREATE TABLE IF NOT EXISTS pins (url TEXT PRIMARY KEY);
                         CREATE TABLE IF NOT EXISTS arrivals (
                             sequence INTEGER PRIMARY KEY AUTOINCREMENT, item_id TEXT NOT NULL UNIQUE,
                             received_at INTEGER NOT NULL);
@@ -46,10 +51,23 @@ class NewsStore:
                             retry_at INTEGER NOT NULL, failures INTEGER NOT NULL,
                             PRIMARY KEY(source_id,url,start,end));
                     ''')
-                    if not db.execute('SELECT 1 FROM migrations WHERE name=?', ('starter-providers-v1',)).fetchone():
+                    columns = {row['name'] for row in db.execute('PRAGMA table_info(sources)')}
+                    for column, definition in (('poll_seconds', 'INTEGER NOT NULL DEFAULT 1'), ('next_fetch_at', 'INTEGER NOT NULL DEFAULT 0'),
+                                               ('retry_at', 'INTEGER NOT NULL DEFAULT 0'), ('failures', 'INTEGER NOT NULL DEFAULT 0')):
+                        if column not in columns:
+                            db.execute(f'ALTER TABLE sources ADD COLUMN {column} {definition}')
+                    if 'retry_at' not in columns:
+                        # Older versions only persisted the retry message. Conservatively
+                        # honour its full delay once instead of bypassing it on upgrade.
+                        for source in db.execute("SELECT id,error FROM sources WHERE error<>''").fetchall():
+                            delay = re.search(r'(?:Retrying in|Retry after) (\d+)s', source['error'])
+                            if delay:
+                                deadline = int(time.time() * 1000) + min(86400, int(delay[1])) * 1000
+                                db.execute('UPDATE sources SET retry_at=?,next_fetch_at=?,failures=1 WHERE id=?', (deadline, deadline, source['id']))
+                    if not db.execute('SELECT 1 FROM migrations WHERE name=?', ('starter-providers-v2',)).fetchone():
                         for identity, name, url, _ in PROVIDERS:
                             db.execute('INSERT OR IGNORE INTO sources(id,name,url) VALUES (?,?,?)', (identity, name, url))
-                        db.execute('INSERT INTO migrations VALUES (?)', ('starter-providers-v1',))
+                        db.execute('INSERT INTO migrations VALUES (?)', ('starter-providers-v2',))
                     db.commit()
                     self.initialized = True
                 with db:
@@ -59,23 +77,25 @@ class NewsStore:
         with self.database() as db:
             return [dict(row) for row in db.execute('SELECT * FROM sources ORDER BY rowid')]
 
-    def save_source(self, name, url, identity=None):
+    def save_source(self, name, url, identity=None, poll_seconds=None):
         with self.database() as db:
             if identity is None:
                 identity = uuid4().hex
-                db.execute('INSERT INTO sources(id,name,url) VALUES (?,?,?)', (identity, name, url))
+                db.execute('INSERT INTO sources(id,name,url,poll_seconds) VALUES (?,?,?,?)', (identity, name, url, poll_seconds or 1))
             else:
                 current = db.execute('SELECT url FROM sources WHERE id=?', (identity,)).fetchone()
                 if current is None:
                     raise KeyError('Provider not found')
-                db.execute('UPDATE sources SET name=?,url=?,etag=CASE WHEN url=? THEN etag ELSE ? END, modified=CASE WHEN url=? THEN modified ELSE ? END, last_success=CASE WHEN url=? THEN last_success ELSE NULL END, error=? WHERE id=?',
-                           (name, url, url, '', url, '', url, '', identity))
+                db.execute('UPDATE sources SET name=?,url=?,etag=CASE WHEN url=? THEN etag ELSE ? END, modified=CASE WHEN url=? THEN modified ELSE ? END, last_success=CASE WHEN url=? THEN last_success ELSE NULL END,next_fetch_at=CASE WHEN url=? THEN next_fetch_at ELSE 0 END WHERE id=?',
+                           (name, url, url, '', url, '', url, url, identity))
+                if poll_seconds is not None:
+                    db.execute('UPDATE sources SET poll_seconds=?,next_fetch_at=COALESCE(last_success,0)+? WHERE id=?', (poll_seconds, poll_seconds * 1000, identity))
             return identity
 
     def success(self, source, items, etag, modified, now, update_status=True):
         with self.database() as db:
             # Ignore an in-flight response if the user changed this feed's URL.
-            current = db.execute('SELECT url,last_success FROM sources WHERE id=?', (source['id'],)).fetchone()
+            current = db.execute('SELECT url,last_success,poll_seconds FROM sources WHERE id=?', (source['id'],)).fetchone()
             if current is None or current['url'] != source['url']:
                 return False
             for item in items or []:
@@ -91,12 +111,23 @@ class NewsStore:
                 if update_status and not known and current['last_success'] is not None:
                     db.execute('INSERT OR IGNORE INTO arrivals(item_id,received_at) VALUES (?,?)', (identity, now))
             if update_status:
-                db.execute('UPDATE sources SET etag=?,modified=?,last_success=?,error=? WHERE id=?', (etag, modified, now, '', source['id']))
+                db.execute('UPDATE sources SET etag=?,modified=?,last_success=?,error=?,next_fetch_at=?,retry_at=0,failures=0 WHERE id=?', (etag, modified, now, '', now + current['poll_seconds'] * 1000, source['id']))
             return True
 
-    def failure(self, source, error):
+    def failure(self, source, error, retry_at=0, failures=0):
         with self.database() as db:
-            db.execute('UPDATE sources SET error=? WHERE id=? AND url=?', (error[:300], source['id'], source['url']))
+            db.execute('UPDATE sources SET error=?,retry_at=?,next_fetch_at=?,failures=? WHERE id=? AND url=?', (error[:300], retry_at, retry_at, failures, source['id'], source['url']))
+
+    def refresh(self):
+        with self.database() as db:
+            db.execute('UPDATE sources SET next_fetch_at=0 WHERE retry_at<=?', (int(time.time() * 1000),))
+
+    def pin(self, url, pinned):
+        with self.database() as db:
+            if pinned:
+                db.execute('INSERT OR IGNORE INTO pins VALUES (?)', (url,))
+            else:
+                db.execute('DELETE FROM pins WHERE url=?', (url,))
 
     def history_search(self, source, start, end):
         with self.database() as db:
@@ -108,17 +139,18 @@ class NewsStore:
             db.execute('INSERT OR REPLACE INTO history_searches VALUES (?,?,?,?,?,?,?,?,?)',
                        (source['id'], source['url'], start, end, now, found, error, retry_at, failures))
 
-    def query(self, sources=(), include='', exclude='', start=None, end=None, order='newest', offset=0, limit=100):
+    def query(self, sources=(), include='', exclude='', start=None, end=None, order='newest', offset=0, limit=100, mode='all', priority=False):
         clauses, args = [], []
         if sources:
             clauses.append('i.source_id IN (' + ','.join('?' for _ in sources) + ')')
             args.extend(sources)
-        for value, negate in ((include, False), (exclude, True)):
-            terms = [part.strip().casefold() for part in value.replace('\n', ',').split(',') if part.strip()][:50]
-            if terms:
-                condition = ' OR '.join('instr(casefold(i.title), ?) > 0' for _ in terms)
-                clauses.append(('NOT ' if negate else '') + '(' + condition + ')')
-                args.extend(terms)
+        if mode in ('included', 'excluded'):
+            condition = '(news_matches(i.title,?)=1 AND news_matches(i.title,?)=0)'
+            clauses.append(('NOT ' if mode == 'excluded' else '') + condition)
+            args.extend((include, exclude))
+        if priority:
+            clauses.append('(news_priority(i.title,i.summary)<>? OR p.url IS NOT NULL)')
+            args.append('')
         for bound, sign in ((start, '>='), (end, '<')):
             if bound is not None:
                 clauses.append(f'COALESCE(i.published_at,i.first_seen) {sign} ?')
@@ -127,10 +159,10 @@ class NewsStore:
         direction = 'ASC' if order == 'oldest' else 'DESC'
         with self.database() as db:
             # Deduplicate overlapping feeds after filtering, preserving per-provider browsing.
-            candidates = 'WITH candidates AS (SELECT i.*,s.name AS source_name,ROW_NUMBER() OVER (PARTITION BY i.url ORDER BY i.first_seen,i.id) AS duplicate FROM items i JOIN sources s ON s.id=i.source_id' + where + ') '
+            candidates = 'WITH candidates AS (SELECT i.*,s.name AS source_name,p.url IS NOT NULL AS pinned,ROW_NUMBER() OVER (PARTITION BY i.url ORDER BY i.first_seen,i.id) AS duplicate FROM items i JOIN sources s ON s.id=i.source_id LEFT JOIN pins p ON p.url=i.url' + where + ') '
             total = db.execute(candidates + 'SELECT count(*) FROM candidates WHERE duplicate=1', args).fetchone()[0]
-            rows = db.execute(candidates + 'SELECT * FROM candidates WHERE duplicate=1' +
-                              f' ORDER BY COALESCE(published_at,first_seen) {direction},id {direction} LIMIT ? OFFSET ?', [*args, limit, offset])
+            rows = db.execute(candidates + 'SELECT *,news_priority(title,summary) AS priority_reason FROM candidates WHERE duplicate=1' +
+                              (' ORDER BY pinned DESC,' if priority else ' ORDER BY ') + f'COALESCE(published_at,first_seen) {direction},id {direction} LIMIT ? OFFSET ?', [*args, limit, offset])
             return {'items': [{key: value for key, value in dict(row).items() if key != 'duplicate'} for row in rows], 'total': total}
 
     def arrivals(self, after=None, include='', exclude='', hidden=(), now=None):
@@ -141,13 +173,8 @@ class NewsStore:
                 return {'cursor': cursor, 'items': []}
             clauses = ['a.sequence>?', 'a.sequence<=?', 'i.published_at>=?', 'i.published_at<=?', 'a.received_at>=?']
             args = [after, cursor, now - 900_000, now + 60_000, now - 900_000]
-            for value, negate in ((include, False), (exclude, True)):
-                terms = [term.strip().casefold() for term in value.replace('\n', ',').split(',') if term.strip()][:50]
-                if terms:
-                    clauses.append(('NOT ' if negate else '') + '(' + ' OR '.join('instr(casefold(i.title),?)>0' for _ in terms) + ')')
-                    args.extend(terms)
-                elif not negate:
-                    return {'cursor': cursor, 'items': []}
+            clauses.extend(('news_matches(i.title,?)=1', 'news_matches(i.title,?)=0'))
+            args.extend((include, exclude))
             if hidden:
                 clauses.append('i.source_id NOT IN (' + ','.join('?' for _ in hidden) + ')')
                 args.extend(hidden)

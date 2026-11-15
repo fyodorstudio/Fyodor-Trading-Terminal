@@ -59,12 +59,21 @@ The storage service collects free starter feeds independently of MT5 and the
 panel, using conditional requests, one-second success cadence and error backoff.
 Providers/current headline cache live in `storage/data/news-flow/news.sqlite3`,
 included in offline backup/restore. No article-version archive is built.
-The large modal separates provider/date browsing from Settings. Combined-feed
-rules use literal headline Include/Exclude; All bypasses rules without erasing
-them. A workspace-level listener plays optional built-in keyword sounds using a
-server live-arrival cursor. Startup snapshots, history imports and duplicate
-URLs stay silent; it runs even when the panel is closed. Preferences are shared
-through a small browser settings subscription inside the feature folder.
+News Flow Extended View uses provider tabs plus Browse/Priority/Settings.
+Shared classification is All/Included/Excluded: Include matches without Exclude
+matches are Included; the complement is Excluded, including unmatched titles.
+Colour labels remain in All. Browser tag preferences use word boundaries and
+currency-pair normalization; the matching backend rules live in `rules.py`.
+A workspace-level listener plays optional built-in keyword sounds using a live
+arrival cursor. Startup snapshots, history imports and duplicate URLs stay silent.
+Provider polling defaults to 1s with per-source overrides and persisted retry
+and next-fetch deadlines. Refresh/edits/restarts preserve cooldowns. Priority
+combines explicit per-URL SQLite stars and conservative feed-text preview
+candidates; no article-body extraction or generated odds. Headline actions open
+the existing manual Wildcard editor with original publication time (or labelled
+collection-time fallback). Chart markers bridge nearby market gaps to real
+candles without altering stored event times. Extended modal state is retained
+while the existing Wildcard editor owns focus.
 Historical lookup uses scoped Google date queries for starter RSS providers and
 Treasury's official yearly announcement index, with exact UTC window filtering,
 shared per-provider locks and cached outcomes. Custom unsupported feeds explicitly

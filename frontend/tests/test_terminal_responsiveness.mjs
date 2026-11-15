@@ -1404,7 +1404,7 @@ try {
   assert.match(container.querySelector('#news-flow-panel').textContent, /Reuters headline/)
   assert.equal(container.querySelector('#currency-detail-panel'), null)
   assertQuiet('Opening News Flow')
-  assert.equal(container.querySelector('[aria-label="Filter news by keywords"]').nextElementSibling.getAttribute('aria-label'), 'Filter news by date')
+  assert.equal(container.querySelector('#news-items-panel-all-tab').parentElement.nextElementSibling.getAttribute('aria-label'), 'Filter news by date')
   await click(container.querySelector('[aria-label="Configure News Flow"]')); await flush()
   assert.equal(document.querySelector('#news-configuration').getAttribute('aria-modal'), 'true')
   assert.equal(container.hasAttribute('inert'), true)

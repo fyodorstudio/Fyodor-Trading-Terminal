@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 
 from .feeds import http_url
 from .history import NewsHistory
+from .rules import patterns, MAX_RULE_CHARS
 
 
 class HistoryInput(BaseModel):
@@ -25,6 +26,7 @@ class HistoryInput(BaseModel):
 class ProviderInput(BaseModel):
     name: str = Field(min_length=1, max_length=100)
     url: str = Field(min_length=1, max_length=2000)
+    poll_seconds: int | None = Field(default=None, ge=1, le=3600, strict=True)
 
     @field_validator('name', 'url')
     @classmethod
@@ -33,6 +35,16 @@ class ProviderInput(BaseModel):
         if not value:
             raise ValueError('Enter a provider name and feed URL')
         return http_url(value) if info.field_name == 'url' else value
+
+
+class PinInput(BaseModel):
+    url: str = Field(max_length=2000)
+    pinned: bool
+
+    @field_validator('url')
+    @classmethod
+    def valid_url(cls, value):
+        return http_url(value)
 
 
 def news_router(store, collector):
@@ -45,12 +57,11 @@ def news_router(store, collector):
 
     def save(body, identity=None):
         try:
-            identity = store.save_source(body.name, body.url, identity)
+            identity = store.save_source(body.name, body.url, identity, body.poll_seconds)
         except sqlite3.IntegrityError as error:
             raise HTTPException(409, 'This feed URL is already configured') from error
         except KeyError as error:
             raise HTTPException(404, 'Provider not found') from error
-        collector.refresh()
         return {'id': identity}
 
     @router.post('/sources')
@@ -62,19 +73,32 @@ def news_router(store, collector):
         return save(body, identity)
 
     @router.get('/items')
-    def items(source: list[str] = Query(default=[]), include: str = Query(default='', max_length=2000),
-              exclude: str = Query(default='', max_length=2000),
+    def items(source: list[str] = Query(default=[]), include: str = Query(default='', max_length=MAX_RULE_CHARS),
+              exclude: str = Query(default='', max_length=MAX_RULE_CHARS), mode: Literal['all', 'included', 'excluded'] = 'all', priority: bool = False,
               start: int | None = None, end: int | None = None, order: Literal['newest', 'oldest'] = 'newest',
               offset: int = Query(default=0, ge=0), limit: int = Query(default=100, ge=1, le=200)):
-        return store.query(source, include, exclude, start, end, order, offset, limit)
+        validate_rules(include, exclude)
+        return store.query(source, include, exclude, start, end, order, offset, limit, mode, priority)
+
+    def validate_rules(include, exclude):
+        try:
+            patterns(include); patterns(exclude)
+        except ValueError as error:
+            raise HTTPException(422, str(error)) from error
+
+    @router.put('/priority')
+    def pin(body: PinInput):
+        store.pin(body.url, body.pinned)
+        return {'saved': True}
 
     @router.post('/history')
     def historical_search(body: HistoryInput):
         return history.search(body.start, body.end, body.source, body.force)
 
     @router.get('/arrivals')
-    def arrivals(after: int | None = Query(default=None, ge=0), include: str = Query(default='', max_length=2000),
-                 exclude: str = Query(default='', max_length=2000), hidden: list[str] = Query(default=[])):
+    def arrivals(after: int | None = Query(default=None, ge=0), include: str = Query(default='', max_length=MAX_RULE_CHARS),
+                 exclude: str = Query(default='', max_length=MAX_RULE_CHARS), hidden: list[str] = Query(default=[])):
+        validate_rules(include, exclude)
         return store.arrivals(after, include, exclude, hidden)
 
     @router.post('/refresh', status_code=202)

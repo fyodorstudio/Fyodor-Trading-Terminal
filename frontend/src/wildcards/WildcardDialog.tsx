@@ -6,7 +6,7 @@ export function WildcardDialog() {
   const { editor, close, saving, mutate, openEntry, openNew } = useWildcards()
   const list = editor && 'items' in editor ? editor : null
   const source = editor && !('items' in editor) ? editor : null
-  const [draft, setDraft] = useState<WildcardDraft>(() => source?.entry ?? { date: source?.date ?? wildcardDay(Date.now()),
+  const [draft, setDraft] = useState<WildcardDraft>(() => source?.entry ?? source?.draft ?? { date: source?.date ?? wildcardDay(Date.now()),
     at: source?.at !== undefined ? new Date(source.at).toISOString() : null, title: '', details: '', url: '', archived: false })
   const [time, setTime] = useState(() => draft.at ? wildcardLocalTime(Date.parse(draft.at)) : '')
   const [error, setError] = useState(''), [deleting, setDeleting] = useState(false)

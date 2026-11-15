@@ -19,52 +19,67 @@ Click the newspaper button immediately right of **Heatmap Ranking** in the chart
 header. The right panel lists collected headlines; click a title to open its
 source. Drag its left edge to resize it. Escape or × closes it.
 
-The tag button opens a large centered modal with **Browse providers** and
-**Settings** tabs. Browse shows one provider's headlines, with its own date and
-**Recent** button. Its provider/date selection does not change the combined feed.
-Browse ignores keyword rules and includes providers hidden from the right panel.
+The tag button opens **News Flow Extended View**, a wide centered modal with
+**Browse providers / Priority / Settings** tabs. Named provider tabs replace the
+dropdown and arrows. Browse has its own date and Recent control; it does not
+change the combined right panel's date. Provider tabs scroll horizontally.
 
-Settings contains provider editing, Include/Exclude and sound controls. Use **+**
-to add an RSS/Atom provider; arrows navigate providers. **Show this provider**
-controls the combined feed and its alerts, without stopping collection.
-Reuters through Google News, FXStreet, Fed policy/speeches, ECB, BoE, BoC, RBA,
-BoJ and US Treasury announcements are included automatically. Existing custom
-providers are preserved. RBNZ and SNB are not included yet.
+**All / Included / Excluded** classify headlines in either reader. All shows
+everything in the selected provider/date scope. Included requires an Include
+keyword match and no Exclude match. Everything else is Excluded, including
+headlines matching neither list. Empty Include makes everything Excluded.
+Included/excluded rows default to red/grey; Settings lets you choose both
+colours. Text labels explain explicit exclusions versus No include match.
+Colours represent relevance, not market direction.
 
-Include/Exclude accept comma-separated words or phrases, matched without case
-sensitivity against headline text. Any included term qualifies; any excluded
-term hides a headline. Empty Include shows everything except exclusions.
-The **All / Filtered** toggle immediately left of the date button switches
-keyword rules off/on without erasing them. Provider/date selections still apply.
+Keywords appear as removable tags. Type a word/phrase and Enter, or paste a
+comma-separated list; X removes a tag. Matching ignores case and uses word
+boundaries, so AI does not match said/retail. Currency pairs such as EURUSD also
+match USD/EUR tags. Each list supports 500 tags/16000 characters. A broad editable
+market preset is added once to existing Include tags, covering currencies and
+cross-asset drivers. Existing Exclude tags are preserved; new lists start empty.
 
-Sound is off by default. Enable it in Settings, choose **Chime**, **Bell** or
-**Pulse**, and use **Preview** to hear it and enable browser audio. New live
-headlines matching Include play a sound unless excluded or from a hidden
-provider. Empty Include stays silent. A batch plays once; startup snapshots,
-historical lookups, repeated links and headline edits stay silent. Alerts are
-independent of All/Filtered and work with the panel closed while the terminal
-page is open. Undated/old publications stay silent to avoid backfill alerts.
+**Priority** combines starred links and automatically flagged expectations
+candidates from visible providers. Use a headline's star button to keep it there.
+Candidates use only headline/supplied feed text, so verify the event and timing
+in the source. Numbers buried inside articles are not extracted. Old previews
+remain dated snapshots, not live odds. Priority is independent of Include/Exclude
+and retains classification colours. A focused Reuters expectations query helps
+retrieve previews alongside the existing free sources.
 
-The calendar searches older headlines on demand for the selected display-zone
-date. **Recent** clears the date; **Newest/Oldest** changes ordering. Previous/Next
-pages through results. From a daily Heatmap selection, **News for this date**
-opens News Flow using that broker session's exact boundaries. Manual date edits
-return to the display timezone. Weekly/event-window shortcuts are disabled.
+Settings contains provider editing, polling, visibility, keywords, colours and
+sound. The fetch interval defaults to **1 second** for every provider. Set an
+individual provider to 60/120/180/300 seconds for 1/2/3/5 minutes, or another value
+up to 3600 seconds, then Save provider. Rate-limit cooldowns remain respected
+through Refresh, interval edits and restarts. Source errors identify retry times.
+**Show this provider** affects the combined reader/alerts without stopping collection.
 
-Starter RSS providers use scoped Google historical searches; Treasury uses its
-official announcement index. Custom feeds without historical support explicitly
-report that only cached headlines are available. Older results may be incomplete:
-empty results do not prove no news was released. Refresh/Retry repeats a search,
-respecting server retry delays. Local cache speeds repeated lookups and survives
-restarts; there is no separate article-version archive. Click headlines to read
-the source website. Wildcards remain manually entered.
+Sound is off by default. Enable it, choose Chime/Bell/Pulse and use Preview to
+unlock browser audio. New live Include matches ring once per batch unless
+explicitly excluded or from a hidden provider. The selected classification tab
+and historical date do not change sound rules. Startup/history/duplicates stay
+silent; missing/stale publication times also stay silent. Alerts work with the
+panel closed while the terminal page is open.
 
-The storage service checks feeds one second after each successful fetch, slowing
-down on errors. It collects while the panel is closed and MT5 disconnected,
-while the computer/storage service run. Publisher/indexing delays remain outside
-the app's control. Cache and provider setup are included in storage backups;
-view and sound preferences remain browser-local. Changed headlines wait behind
-an update button when you are reading down the combined list.
+Each headline has **Add Wildcard**. It opens the existing editor with title,
+source link, available feed text and publication time. Missing publication times
+use the terminal's first collection time, labelled Collected at. This is not
+Google's indexing time or proof of the underlying event's release time.
+Save to place the marker automatically on the containing candle, or nearest
+real candle across a market gap; equal distances choose the earlier candle.
+The original timestamp stays unchanged. Nearby weekend markers can use a chart
+edge, but distant missing history never snaps to an unrelated candle. Marker
+tooltips retain the original time. Return from the editor to the extended view
+without losing its selected date/tab/scroll position. Existing manual entries
+remain editable; there is no required chart-placement click for news drafts.
+
+The calendar fetches older headlines on demand. Heatmap's daily **News for this
+date** opens News Flow using broker-session boundaries, including DST. Manual
+date edits return to the display timezone. Weekly/event-window shortcuts remain
+disabled. Historical coverage may be incomplete; custom unsupported feeds report
+cached-only results. Refresh/Retry respects provider cooldowns. Local cache and
+Priority stars survive restarts and storage backups; browser preferences remain
+browser-local. No article-version archive or per-headline price-return boxes.
 
 ## MFDI
 

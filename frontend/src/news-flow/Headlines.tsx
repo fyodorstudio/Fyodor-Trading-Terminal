@@ -1,15 +1,50 @@
 import { useDisplayClock } from '../appearance/time-display/useDisplayClock'
-import { newsAge, type NewsItem } from './model'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { newsAge, type NewsItem, type NewsSettings } from './model'
 import type { useNewsHistory } from './useNewsFlow'
+import { pinNews } from './useNewsFlow'
+import { useNewsSettings } from './settings'
+import { matchingKeyword } from './keywords'
+import { useOptionalWildcards } from '../wildcards/useWildcards'
+import { wildcardDay } from '../wildcards/wildcard-model'
 
 export function Headlines({ items, dated = false }: { items: NewsItem[]; dated?: boolean }) {
+  const [settings] = useNewsSettings()
+  return items.map(item => <Headline key={item.id} item={item} dated={dated} settings={settings} />)
+}
+
+function Headline({ item, dated, settings }: { item: NewsItem; dated: boolean; settings: NewsSettings }) {
   const clock = useDisplayClock()
-  return items.map(item => <article key={item.id}>
+  const wildcards = useOptionalWildcards(), [pinning, setPinning] = useState(false), [error, setError] = useState('')
+  const request = useRef<AbortController | null>(null)
+  const [pin, setPin] = useState<{ original: NewsItem['pinned']; value: boolean } | null>(null)
+  const pinned = pin && pin.original === item.pinned ? pin.value : !!item.pinned
+  const excluded = matchingKeyword(item.title, settings.exclude), included = matchingKeyword(item.title, settings.include)
+  const category = included && !excluded ? 'included' : 'excluded'
+  useEffect(() => () => request.current?.abort(), [])
+  async function togglePin() {
+    const controller = new AbortController(); request.current = controller
+    setPinning(true); setError('')
+    try { await pinNews(item.url, !pinned, controller.signal); if (!controller.signal.aborted) setPin({ original: item.pinned, value: !pinned }) }
+    catch (cause) { if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : 'Could not star headline') }
+    finally { if (!controller.signal.aborted) setPinning(false) }
+  }
+  function addWildcard() {
+    const at = item.published_at ?? item.first_seen
+    wildcards?.openDraft({ date: wildcardDay(at), at: new Date(at).toISOString(), title: item.title.slice(0, 300), url: item.url, archived: false,
+      details: `${item.title}\n${item.publisher || item.source_name}\n${item.published_at === null ? 'Collected at (publication time unavailable)' : 'Feed publication time (underlying event may be earlier)'}: ${new Date(at).toISOString()}\n${item.summary}` })
+  }
+  return <article data-news-category={category} style={{ '--news-category': category === 'included' ? settings.includedColor : settings.excludedColor } as CSSProperties}>
     <a href={item.url} target="_blank" rel="noopener noreferrer">{item.title}</a>
     <div className="news-byline"><span>{item.publisher || item.source_name}</span><span>·</span>
       <time dateTime={new Date(item.published_at ?? item.first_seen).toISOString()} title={`${item.published_at === null ? 'First collected: ' : ''}${clock.utc(item.published_at ?? item.first_seen)}`}>
-        {item.published_at === null ? 'Collected ' : ''}{dated ? clock.utc(item.published_at ?? item.first_seen) : newsAge(item.published_at ?? item.first_seen)}</time></div>
-  </article>)
+        {item.published_at === null ? 'Collected at ' : ''}{dated ? clock.utc(item.published_at ?? item.first_seen) : newsAge(item.published_at ?? item.first_seen)}</time></div>
+    <div className="news-row-labels"><span>{category === 'included' ? `Included · ${included}` : excluded ? `Excluded keyword · ${excluded}` : 'No include match'}</span>
+      {item.priority_reason && <span title="Detected from the headline or supplied feed text; verify when the information was available.">Expectations candidate</span>}</div>
+    <div className="news-row-actions"><button type="button" aria-label={`${pinned ? 'Unstar' : 'Star'} headline: ${item.title}`} aria-pressed={pinned} disabled={pinning} onClick={() => void togglePin()}>{pinned ? '★ Starred' : '☆ Priority'}</button>
+      <button type="button" aria-label={`Add Wildcard: ${item.title}`} disabled={!wildcards?.snapshot || wildcards.saving} onClick={addWildcard}>✦ Add Wildcard</button></div>
+    {error && <p role="alert">{error}</p>}
+  </article>
 }
 
 export function HistoryStatus({ history }: { history: ReturnType<typeof useNewsHistory> }) {

@@ -73,6 +73,13 @@ try{
   assert.equal(model.wildcardHeatmapDay({...baseline,date:'2026-11-15',at:'2026-11-14T18:30:00Z'},scope),'2026-11-14','Heatmap uses the broker candle day across Jakarta midnight')
   assert.equal(model.containingWildcardCandle(start+950,bars,900),start+900)
   assert.equal(model.containingWildcardCandle(start-1,bars,900),null)
+  const friday=Date.parse('2026-11-13T23:00:00Z')/1000,monday=Date.parse('2026-11-16T00:00:00Z')/1000
+  const gapBars=[{...bars[0],time:friday},{...bars[0],time:monday}]
+  assert.equal(model.wildcardCandle(friday+120,gapBars,3600),friday,'Normal timestamps stay in their containing candle')
+  assert.equal(model.wildcardCandle(Date.parse('2026-11-15T18:00:00Z')/1000,gapBars,3600),monday,'Sunday news anchors to the nearest Monday candle')
+  assert.equal(model.wildcardCandle((friday+monday)/2,gapBars,3600),friday,'Equal-distance gaps choose the earlier candle')
+  assert.equal(model.wildcardCandle(Date.parse('2026-10-01T00:00:00Z')/1000,gapBars,3600),null,'Missing distant history is never snapped to the chart edge')
+  assert.equal(model.wildcardCandle(Date.parse('2026-11-15T18:00:00Z')/1000,[gapBars[0]],3600),friday,'Before reopening, weekend news can use the nearby last real candle')
   await click(button('Edit / Delete'));await click(button('Delete…'));await click(button('Confirm delete'));await flush();assert.equal(saved.items.length,1)
   assert.ok(calls.every(([url])=>url.startsWith('/storage-api/wildcards')))
   await React.act(async()=>root.render(null));assert.equal(primitives.size,0);assert.equal(rangeListeners.size,0);assert.equal(clickListeners.size,0);assert.equal(timers.size,0)
