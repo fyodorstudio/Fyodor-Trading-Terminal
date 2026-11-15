@@ -70,7 +70,11 @@ pending valid tags when focus moves outside the editor. The panel has a provider
 checkbox selector and debounced literal headline search; source/date/keyword and
 search scopes apply before backend counting/deduplication/pagination. Row actions
 are top-right icons. A separate 15-second UI clock updates relative ages without
-feed changes; future-dated feed timestamps are labelled explicitly.
+feed changes; missing/future publication times display labelled first-collection
+ages and retain the feed time in the tooltip. The calendar icon is an overlaid
+native date input, opening directly without a collapsible form; an active date
+chip clears the scope. Provider labels keep their native checkbox activation
+through transient null-focus transitions, and the full row is a padded target.
 A workspace-level listener plays optional built-in keyword sounds using a live
 arrival cursor. Startup snapshots, history imports and duplicate URLs stay silent.
 Provider polling defaults to 1s with per-source overrides and persisted retry

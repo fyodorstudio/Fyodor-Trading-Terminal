@@ -22,6 +22,8 @@ Left of the calendar, the provider button opens a checkbox list with All/None.
 The search button to its left searches cached headlines within the selected
 providers, date and classification tab, including results beyond the current
 page. Clear the search with ×. Provider visibility shares the Settings preference.
+Each provider's whole row, including its name, toggles its checkbox. The calendar
+icon opens the date picker directly; the selected date's × clears that filter.
 
 The tag button opens **News Flow Extended View**, a wide centered modal with
 **Browse providers / Priority / Settings** tabs. Named provider tabs replace the
@@ -69,8 +71,10 @@ silent; missing/stale publication times also stay silent. Alerts work with the
 panel closed while the terminal page is open.
 
 The top-right star and **Add Wildcard** icons have hover tooltips. Relative ages
-update even when the feed is unchanged. A future-dated feed entry says
-**Future feed timestamp**; hover its time for the exact supplied date/time.
+update even when the feed is unchanged. Missing or future publication times show
+**First collected … ago**, using when the terminal first saw the item. This age
+does not reset on polling and is not the release time. Hover to see the original
+feed-supplied future time, when available, and the exact first-collection time.
 
 **Add Wildcard** opens the existing editor with title,
 source link, available feed text and publication time. Missing publication times

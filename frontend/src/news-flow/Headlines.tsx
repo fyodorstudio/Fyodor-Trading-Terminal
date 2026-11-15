@@ -30,6 +30,9 @@ function Headline({ item, dated, settings, now }: { item: NewsItem; dated: boole
   const pinned = pin && pin.original === item.pinned ? pin.value : !!item.pinned
   const excluded = matchingKeyword(item.title, settings.exclude), included = matchingKeyword(item.title, settings.include)
   const category = included && !excluded ? 'included' : 'excluded'
+  const collected = item.published_at === null || item.published_at - now >= 60000
+  const displayedAt = collected ? item.first_seen : item.published_at!
+  const timeTitle = collected ? `First collected: ${clock.utc(item.first_seen)}. ${item.published_at === null ? 'Publication time unavailable.' : `Feed-supplied future publication time: ${clock.utc(item.published_at)}.`}` : clock.utc(displayedAt)
   useEffect(() => () => request.current?.abort(), [])
   async function togglePin() {
     const controller = new AbortController(); request.current = controller
@@ -48,8 +51,8 @@ function Headline({ item, dated, settings, now }: { item: NewsItem; dated: boole
       <div className="news-row-actions"><button type="button" title="Add Wildcard" aria-label={`Add Wildcard: ${item.title}`} disabled={!wildcards?.snapshot || wildcards.saving} onClick={addWildcard}>✦</button>
         <button type="button" title={pinned ? 'Remove from Priority' : 'Add to Priority'} aria-label={`${pinned ? 'Unstar' : 'Star'} headline: ${item.title}`} aria-pressed={pinned} disabled={pinning} onClick={() => void togglePin()}>{pinned ? '★' : '☆'}</button></div></div>
     <div className="news-byline"><span>{item.publisher || item.source_name}</span><span>·</span>
-      <time dateTime={new Date(item.published_at ?? item.first_seen).toISOString()} title={`${item.published_at === null ? 'First collected: ' : ''}${clock.utc(item.published_at ?? item.first_seen)}`}>
-        {item.published_at === null ? 'Collected at ' : ''}{dated ? clock.utc(item.published_at ?? item.first_seen) : newsAge(item.published_at ?? item.first_seen, now)}</time></div>
+      <time dateTime={new Date(displayedAt).toISOString()} title={timeTitle}>
+        {collected ? 'First collected ' : ''}{dated ? clock.utc(displayedAt) : newsAge(displayedAt, now)}</time></div>
     <div className="news-row-labels"><span>{category === 'included' ? `Included · ${included}` : excluded ? `Excluded keyword · ${excluded}` : 'No include match'}</span>
       {item.priority_reason && <span title="Detected from the headline or supplied feed text; verify when the information was available.">Expectations candidate</span>}</div>
     {error && <p role="alert">{error}</p>}

@@ -10,7 +10,12 @@ Priority stars and Add Wildcard actions. Provider/date scopes remain explicit.
   server-side headline search, paging/resize. Search intersects provider/date/tab
   filters across the matching cache before pagination.
 - `NewsProviderSelector.tsx`: header checkbox selector shares hidden-provider
-  preferences with Settings and alerts; All/None and keyboard dismissal.
+  preferences with Settings and alerts; All/None and keyboard dismissal. Full
+  padded label rows activate checkboxes; transient null focus from native label
+  activation does not unmount the menu before the checkbox changes.
+- `NewsDateFilter.tsx`: calendar icon with a full-area native date input. Opens
+  the picker directly, without an intermediate collapsible form or Recent button.
+  The active-date chip clears the filter while preserving broker-session rules.
 - `NewsConfiguration.tsx`: Browse providers / Priority / Settings modal, named
   provider tabs, provider polling controls, colours, keywords and sound settings.
   Portal, inert background and keyboard focus containment; suspends while a
@@ -62,8 +67,11 @@ the broad feed. No article-body extraction, generated probabilities, causal
 analysis or instrument-return badges are implemented. Pins live in SQLite.
 Star and Add Wildcard are icon-only actions at the top right of each row, with
 tooltips and accessible names. Relative ages update every 15 seconds even when
-responses are identical; future-dated feed entries are explicitly labelled
-Future feed timestamp rather than remaining Just now. Exact time is in the tooltip.
+responses are identical. Missing/future publication timestamps use first_seen
+for a labelled First collected age, never the provider polling timestamp. The
+tooltip retains exact collection time and any future feed-supplied publication
+time. Stored timestamps, historical date selection and Wildcard drafts retain
+the original semantics.
 
 Calendar dates use the display zone. Heatmap's daily News for this date preserves
 broker-session UTC bounds, including DST, until a manual date edit. Historical

@@ -53,7 +53,6 @@ export function validNewsPage(value: unknown): value is NewsPage {
 }
 
 export function newsAge(at: number, now = Date.now()) {
-  if (at - now >= 60000) return 'Future feed timestamp'
   const seconds = Math.max(0, Math.floor((now - at) / 1000))
   return seconds < 60 ? 'Just now' : seconds < 3600 ? `${Math.floor(seconds / 60)}m ago`
     : seconds < 86400 ? `${Math.floor(seconds / 3600)}h ago` : `${Math.floor(seconds / 86400)}d ago`

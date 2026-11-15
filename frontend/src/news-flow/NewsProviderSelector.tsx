@@ -13,7 +13,9 @@ export function NewsProviderSelector({ sources, hidden, onChange }: { sources: N
     return () => document.removeEventListener('pointerdown', outside)
   }, [open])
   return <div className="news-provider-selector" ref={container} onBlur={event => {
-    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setOpen(false)
+    // Label clicks can briefly move focus to the document before the native
+    // checkbox activation. Outside pointer presses are already handled above.
+    if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget as Node)) setOpen(false)
   }} onKeyDown={event => {
     if (event.key === 'Escape' && open) { event.stopPropagation(); setOpen(false); trigger.current?.focus() }
   }}>

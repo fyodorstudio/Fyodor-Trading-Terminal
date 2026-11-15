@@ -1406,7 +1406,7 @@ try {
   assertQuiet('Opening News Flow')
   assert.equal(container.querySelector('#news-items-panel-all-tab').parentElement.nextElementSibling.getAttribute('aria-label'), 'Search news')
   assert.equal(container.querySelector('[aria-label="Search news"]').nextElementSibling.contains(container.querySelector('[aria-label="Select news providers"]')), true)
-  assert.equal(container.querySelector('[aria-label="Select news providers"]').parentElement.nextElementSibling.getAttribute('aria-label'), 'Filter news by date')
+  assert.equal(container.querySelector('[aria-label="Select news providers"]').parentElement.nextElementSibling.contains(container.querySelector('[aria-label="News publication date"]')), true)
   await click(container.querySelector('[aria-label="Configure News Flow"]')); await flush()
   assert.equal(document.querySelector('#news-configuration').getAttribute('aria-modal'), 'true')
   assert.equal(container.hasAttribute('inert'), true)
