@@ -3,6 +3,9 @@
 Open with the newspaper button beside Heatmap Ranking. The right panel and
 near-full-window **News Flow Extended View** share simple headline rows, colours,
 Priority stars and Add Wildcard actions. Provider/date scopes remain explicit.
+The expanded backend pack seeds 34 subscriptions; new feeds join this existing
+combined stream, selector and provider tabs without separate frontend adapters.
+See [the source catalogue](../../../storage/news_flow/SOURCES.md) for coverage.
 
 ## Ownership
 

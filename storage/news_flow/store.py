@@ -7,7 +7,7 @@ import re
 from threading import RLock
 from uuid import uuid4
 
-from .providers import PROVIDERS
+from .providers import PROVIDERS, PROVIDER_MIGRATION
 from .rules import matches, priority_reason
 
 
@@ -64,10 +64,10 @@ class NewsStore:
                             if delay:
                                 deadline = int(time.time() * 1000) + min(86400, int(delay[1])) * 1000
                                 db.execute('UPDATE sources SET retry_at=?,next_fetch_at=?,failures=1 WHERE id=?', (deadline, deadline, source['id']))
-                    if not db.execute('SELECT 1 FROM migrations WHERE name=?', ('starter-providers-v2',)).fetchone():
+                    if not db.execute('SELECT 1 FROM migrations WHERE name=?', (PROVIDER_MIGRATION,)).fetchone():
                         for identity, name, url, _ in PROVIDERS:
                             db.execute('INSERT OR IGNORE INTO sources(id,name,url) VALUES (?,?,?)', (identity, name, url))
-                        db.execute('INSERT INTO migrations VALUES (?)', ('starter-providers-v2',))
+                        db.execute('INSERT INTO migrations VALUES (?)', (PROVIDER_MIGRATION,))
                     db.commit()
                     self.initialized = True
                 with db:

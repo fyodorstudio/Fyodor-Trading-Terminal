@@ -17,7 +17,7 @@ import xml.etree.ElementTree as ET
 from storage.news_flow.collector import NewsCollector, retry_delay
 from storage.news_flow.feeds import MAX_FEED_BYTES, fetch_feed, parse_feed, parse_treasury
 from storage.news_flow.store import NewsStore
-from storage.news_flow.providers import PROVIDERS, TREASURY_URL
+from storage.news_flow.providers import PROVIDERS, PROVIDER_MIGRATION, TREASURY_URL
 from storage.news_flow.rules import matches, patterns, priority_reason
 from storage.news_flow.history import NewsHistory, historical_url
 
@@ -159,6 +159,42 @@ class NewsFlowTests(unittest.TestCase):
         self.assertEqual(len(migrated), len(PROVIDERS))
         self.assertEqual(migrated[0]['url'], 'https://example.com/custom.xml')
 
+    def test_expanded_pack_upgrades_v2_and_preserves_existing_provider_state(self):
+        self.ingest()
+        self.store.save_source('My Reuters', self.source['url'], 'reuters', 300)
+        self.store.failure(self.source, 'Keep cooldown', self.now + 1800000, 2)
+        custom_id = self.store.save_source('My custom feed', 'https://example.com/custom.xml')
+        with self.store.database() as db:
+            db.execute('DELETE FROM sources WHERE id NOT IN (?,?)', ('reuters', custom_id))
+            db.execute('DELETE FROM migrations WHERE name=?', (PROVIDER_MIGRATION,))
+            db.execute('INSERT OR IGNORE INTO migrations VALUES (?)', ('starter-providers-v2',))
+        before = self.store.sources()[0]
+        upgraded = NewsStore(self.root)
+        sources = upgraded.sources()
+        self.assertEqual(sources[0], before)
+        self.assertEqual(len(sources), len(PROVIDERS) + 1)
+        self.assertEqual(upgraded.query()['total'], 2, 'Cached headlines survive the provider-pack upgrade')
+        self.assertEqual(NewsStore(self.root).sources(), sources, 'The expansion migration runs once')
+        with upgraded.database() as db:
+            self.assertIsNotNone(db.execute('SELECT 1 FROM migrations WHERE name=?', (PROVIDER_MIGRATION,)).fetchone())
+
+    def test_expansion_pack_has_unique_feeds_history_scopes_and_explicit_google_delivery(self):
+        self.assertEqual(len({row[0] for row in PROVIDERS}), len(PROVIDERS))
+        self.assertEqual(len({row[2] for row in PROVIDERS}), len(PROVIDERS))
+        expanded = PROVIDERS[14:]
+        self.assertGreaterEqual(len(expanded), 6)
+        for identity, name, url, _ in expanded:
+            with self.subTest(provider=identity):
+                history_url = historical_url(url, self.now - 86400000, self.now)
+                self.assertIn('after%3A', history_url)
+                self.assertNotIn('when%3A', history_url)
+                if urlsplit(url).hostname == 'news.google.com':
+                    self.assertIn('Google News', name)
+        self.assertTrue({'rbnz', 'snb', 'bea', 'bls', 'eurostat', 'ons', 'statcan', 'abs', 'stats-nz',
+                         'swiss-statistics', 'japan-economy', 'japan-mof', 'eia-releases', 'eia-analysis',
+                         'eia-petroleum', 'kitco', 'reuters-fx', 'reuters-oil', 'reuters-equities', 'reuters-metals'}
+                        <= {row[0] for row in expanded})
+
     def test_link_duplicates_preserve_provider_views_and_distinct_articles(self):
         self.ingest()
         bank = self.store.save_source('Second feed', 'https://example.com/feed')
@@ -231,6 +267,45 @@ class NewsFlowTests(unittest.TestCase):
                     b'<!DOCTYPE rss [<!ENTITY a "x">]><rss/>', '<!DOCTYPE rss><rss/>'.encode('utf-16')):
             with self.subTest(xml=xml[:50]), self.assertRaises((ValueError, ET.ParseError)):
                 parse_feed(xml)
+
+    def test_relative_article_links_and_atom_xhtml_text(self):
+        eia = b'''<rss><channel>
+            <item><guid>/release/one</guid><title>Oil outlook</title><link>/pressroom/releases/one.php</link>
+            <pubDate>Tue, 10 Nov 2026 12:00:00 EST</pubDate><description>Forecast &amp; inventories</description></item>
+            <item><title>Unsafe</title><link>javascript:alert(1)</link></item>
+            <item><title>Credentials</title><link>https://user:pass@example.com/story</link></item>
+            <item><title>No article link</title></item>
+            </channel></rss>'''
+        self.assertEqual(parse_feed(eia), [], 'Relative links need a known feed base')
+        items = parse_feed(eia, 'https://www.eia.gov/rss/press_rss.xml')
+        self.assertEqual(len(items), 1)
+        self.assertEqual(items[0]['url'], 'https://www.eia.gov/pressroom/releases/one.php')
+        self.assertEqual(items[0]['summary'], 'Forecast & inventories')
+        self.assertEqual(items[0]['published_at'], 1794330000000)
+        statcan = b'''<feed xmlns="http://www.w3.org/2005/Atom" xmlns:h="http://www.w3.org/1999/xhtml">
+            <entry><title type="xhtml"><h:div>Labour Force Survey, <h:span>October 2026</h:span></h:div></title>
+            <link rel="self" href="https://example.com/api"/><link href="../daily/jobs.htm"/>
+            <summary type="xhtml"><h:div>Employment <h:strong>increased</h:strong> in October.</h:div></summary>
+            <updated>2026-11-06T08:30:00-05:00</updated></entry></feed>'''
+        item = parse_feed(statcan, 'https://www.statcan.gc.ca/feeds/all.atom')[0]
+        self.assertEqual(item['title'], 'Labour Force Survey, October 2026')
+        self.assertEqual(item['summary'], 'Employment increased in October.')
+        self.assertEqual(item['url'], 'https://www.statcan.gc.ca/daily/jobs.htm')
+        self.assertNotIn('<', item['summary'])
+
+    def test_fetch_resolves_relative_links_against_final_redirect_url(self):
+        class Response:
+            url = 'https://www.eia.gov/rss/press_rss.xml'
+            headers = {'ETag': 'new-version'}
+            def read(self, limit):
+                return b'<rss><channel><item><title>Energy outlook</title><link>../pressroom/releases/outlook.php</link></item></channel></rss>'
+            def __enter__(self): return self
+            def __exit__(self, *args): pass
+        with patch('storage.news_flow.feeds.urlopen', return_value=Response()):
+            items, etag, modified = fetch_feed({**self.source, 'url': 'https://example.com/redirecting-feed'})
+        self.assertEqual(items[0]['url'], 'https://www.eia.gov/pressroom/releases/outlook.php')
+        self.assertEqual(etag, 'new-version')
+        self.assertEqual(modified, '')
 
     def test_persistence_upsert_missing_dates_and_provider_changes(self):
         self.ingest(); self.ingest()

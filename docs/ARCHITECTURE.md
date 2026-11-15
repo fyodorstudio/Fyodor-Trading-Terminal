@@ -59,6 +59,13 @@ The storage service collects free starter feeds independently of MT5 and the
 panel, using conditional requests, one-second success cadence and error backoff.
 Providers/current headline cache live in `storage/data/news-flow/news.sqlite3`,
 included in offline backup/restore. No article-version archive is built.
+The v3 source pack adds 20 subscriptions (34 defaults total): targeted Reuters
+FX/oil/equities/metals and Japan economic news, Kitco, RBNZ/SNB, economic releases
+across the currency regions, Japan MOF and EIA. Google delivery is named where
+direct feeds are blocked/unavailable. `storage/news_flow/SOURCES.md` records
+coverage, discovery links and limitations. The additive migration preserves
+provider customizations and cached items. RSS/Atom parsing resolves relative
+article URLs against the final feed URL and reads XHTML text constructs.
 News Flow Extended View uses provider tabs plus Browse/Priority/Settings.
 Shared classification is All/Included/Excluded: Include matches without Exclude
 matches are Included; the complement is Excluded, including unmatched titles.

@@ -55,7 +55,7 @@ class FeedTreeBuilder(ET.TreeBuilder):
         raise ValueError('Feed document types are not supported')
 
 
-def parse_feed(body):
+def parse_feed(body, base_url=''):
     if len(body) > MAX_FEED_BYTES or re.search(br'<!\s*(?:DOCTYPE|ENTITY)', body, re.I):
         raise ValueError('Unsupported or oversized feed XML')
     root = ET.fromstring(body, parser=ET.XMLParser(target=FeedTreeBuilder()))
@@ -66,10 +66,22 @@ def parse_feed(body):
         raise ValueError('The URL did not return an RSS or Atom feed')
     entries = root.findall('.//item') if root.tag != 'feed' else root.findall('entry')
     items = []
+    def content(entry, name, limit):
+        node = entry.find(name)
+        if node is None:
+            return ''
+        # Atom text constructs can contain XHTML, not just escaped HTML text.
+        value = ET.tostring(node, encoding='unicode') if len(node) else node.text
+        return text(value, limit)
+
     for entry in entries[:2000]:
-        title = text(entry.findtext('title'), 2000)
+        title = content(entry, 'title', 2000)
         links = entry.findall('link')
         link = next((node.get('href') or node.text or '' for node in links if node.get('rel', 'alternate') == 'alternate'), '').strip()
+        # Resolve publisher-relative article URLs only against the fetched feed.
+        # Explicit unsafe schemes still fail the same HTTP(S) validation below.
+        if link and base_url:
+            link = urljoin(base_url, link)
         try:
             http_url(link)
         except ValueError:
@@ -78,8 +90,8 @@ def parse_feed(body):
             continue
         guid = entry.findtext('guid') or entry.findtext('id') or link
         items.append({'identity': sha256(guid.encode()).hexdigest(), 'title': title, 'url': link,
-                      'summary': text(entry.findtext('description') or entry.findtext('summary') or entry.findtext('content'), 8000),
-                      'publisher': text(entry.findtext('source'), 200),
+                      'summary': content(entry, 'description', 8000) or content(entry, 'summary', 8000) or content(entry, 'content', 8000),
+                      'publisher': content(entry, 'source', 200),
                       'published_at': timestamp(entry.findtext('pubDate') or entry.findtext('published') or entry.findtext('date') or entry.findtext('updated'))})
     return items
 
@@ -128,7 +140,7 @@ def fetch_feed(source):
             body = response.read(MAX_FEED_BYTES + 1)
             if len(body) > MAX_FEED_BYTES:
                 raise ValueError('Oversized provider response')
-            return (parse_treasury(body) if treasury else parse_feed(body)), response.headers.get('ETag', ''), response.headers.get('Last-Modified', '')
+            return (parse_treasury(body) if treasury else parse_feed(body, response.url)), response.headers.get('ETag', ''), response.headers.get('Last-Modified', '')
     except HTTPError as error:
         if error.code == 304:
             error.close()

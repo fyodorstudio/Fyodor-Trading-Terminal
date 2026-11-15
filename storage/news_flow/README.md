@@ -8,9 +8,16 @@ with MT5 disconnected and the panel closed, while the service/computer run.
 - `providers.py`: starter pack (including a targeted Reuters expectations query) and historical scopes. Additive
   migration seeds Reuters via Google News, FXStreet, Fed policy/speeches, ECB,
   BoE news/speeches, BoC releases/speeches, RBA releases/speeches, BoJ and Treasury.
-  Existing names/URLs and custom providers are preserved. RBNZ/SNB are not seeded.
+  The v3 expansion adds 20 entries (34 defaults): targeted Reuters market and
+  Japan searches, Kitco, RBNZ/SNB, BEA/BLS/Eurostat/ONS/Statistics Canada, regional
+  economic releases, Japan MOF and EIA. Google delivery is explicit in new names.
+  Existing names/URLs, polling, cooldowns and custom providers are preserved.
+  See [SOURCES.md](SOURCES.md) for coverage, verified discovery links and limits.
 - `feeds.py`: bounded 4MB HTTP reads with 10-second timeout, conditional GET,
-  RSS/Atom parser, plain text and validated article URLs. The exact Treasury
+  RSS/Atom parser, plain text and validated article URLs. Relative article URLs
+  resolve against the final feed URL; Atom XHTML title/summary constructs are
+  flattened safely to plain text. This supports EIA and Statistics Canada.
+  The exact Treasury
   press-release index URL is handled by a dedicated JSON adapter using Treasury's
   own `/news-data/press-releases/search/{year}.json` index; no full article scrape.
 - `store.py`: isolated `<storage data>/news-flow/news.sqlite3`. Providers, current

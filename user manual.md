@@ -30,6 +30,14 @@ The tag button opens **News Flow Extended View**, a wide centered modal with
 dropdown and arrows. Browse has its own date and Recent control; it does not
 change the combined right panel's date. Provider tabs scroll horizontally.
 
+The expanded pack has 34 default subscriptions, adding targeted Reuters
+FX/oil/equities/metals/Japan economic news, Kitco, RBNZ, SNB, regional economic
+releases, Japan MOF and EIA. All enabled sources merge into the combined feed.
+Some arrive directly by RSS/Atom; additions delivered through Google News say so
+in their provider names. After restarting storage, the upgrade adds the new
+sources while preserving your provider settings, cached headlines and keywords.
+See the [source catalogue](storage/news_flow/SOURCES.md) for exact coverage.
+
 **All / Included / Excluded** classify headlines in either reader. All shows
 everything in the selected provider/date scope. Included requires an Include
 keyword match and no Exclude match. Everything else is Excluded, including
