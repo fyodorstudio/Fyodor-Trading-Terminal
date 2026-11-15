@@ -5,10 +5,14 @@ import time
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from .collector import retry_delay
-from .feeds import fetch_feed
+from .feeds import fetch_feed, treasury_url, treasury_data_url
+from .providers import historical_feed_url
 
 
 def historical_url(url, start, end):
+    if treasury_url(url):
+        return treasury_data_url(datetime.fromtimestamp(start / 1000, timezone.utc).year)
+    url = historical_feed_url(url)
     parsed = urlsplit(url)
     if parsed.hostname != 'news.google.com' or parsed.path.rstrip('/') != '/rss/search':
         return None
@@ -52,6 +56,11 @@ class NewsHistory:
                 result['searched'] += 1
                 try:
                     items, _, _ = self.fetcher({**source, 'url': url, 'etag': '', 'modified': ''})
+                    if treasury_url(source['url']):
+                        last_url = treasury_data_url(datetime.fromtimestamp((end - 1) / 1000, timezone.utc).year)
+                        if last_url != url:
+                            extra, _, _ = self.fetcher({**source, 'url': last_url, 'etag': '', 'modified': ''})
+                            items = (items or []) + (extra or [])
                     dated = [item for item in items or [] if item['published_at'] is not None and start <= item['published_at'] < end]
                     if not self.store.success(source, dated, '', '', now, update_status=False):
                         raise ValueError('Provider changed during the search; select the date again')

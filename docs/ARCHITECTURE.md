@@ -55,15 +55,21 @@ date-only entries retain their entered date.
 
 Fed readings and alarm state use local data subdirectories.
 News Flow is isolated in `frontend/src/news-flow/` and `storage/news_flow/`.
-The storage service collects feeds independently of MT5 and the panel, using
-one-second sequential requests per provider with conditional GET and error
-backoff. Providers and history live in `storage/data/news-flow/news.sqlite3`,
-included in offline backup/restore. Display filters and width are browser-local.
-The centered configuration modal owns include/exclude rules; All/Filtered mode
-bypasses/applies them without clearing them. Date selection can backfill Google
-News search feeds through `storage/news_flow/history.py`, independently of the
-live URL. Imports enforce the selected UTC range, share per-provider fetch locks
-and cache search outcomes; direct RSS feeds retain local-history-only behavior.
+The storage service collects free starter feeds independently of MT5 and the
+panel, using conditional requests, one-second success cadence and error backoff.
+Providers/current headline cache live in `storage/data/news-flow/news.sqlite3`,
+included in offline backup/restore. No article-version archive is built.
+The large modal separates provider/date browsing from Settings. Combined-feed
+rules use literal headline Include/Exclude; All bypasses rules without erasing
+them. A workspace-level listener plays optional built-in keyword sounds using a
+server live-arrival cursor. Startup snapshots, history imports and duplicate
+URLs stay silent; it runs even when the panel is closed. Preferences are shared
+through a small browser settings subscription inside the feature folder.
+Historical lookup uses scoped Google date queries for starter RSS providers and
+Treasury's official yearly announcement index, with exact UTC window filtering,
+shared per-provider locks and cached outcomes. Custom unsupported feeds explicitly
+report cached-only results. Heatmap's daily shortcut opens News Flow using
+historical broker-session UTC bounds, with source/keyword selections preserved.
 See the feature READMEs in those folders for entry points and test commands.
 `storage/run.py` provides service, import, status, backup, restore and Fed-data
 commands. Manual trade journals retain their existing application path.

@@ -19,31 +19,52 @@ Click the newspaper button immediately right of **Heatmap Ranking** in the chart
 header. The right panel lists collected headlines; click a title to open its
 source. Drag its left edge to resize it. Escape or × closes it.
 
-The tag button opens a larger centered configuration dialog. Escape or × closes
-the dialog and returns focus to the panel. Reuters through Google News is included.
-Use **+** to add a provider with a name and RSS/Atom URL; arrows navigate your
-providers. **Save provider** edits the selected name/URL. **Show this provider**
-controls display without deleting its history or stopping collection.
+The tag button opens a large centered modal with **Browse providers** and
+**Settings** tabs. Browse shows one provider's headlines, with its own date and
+**Recent** button. Its provider/date selection does not change the combined feed.
+Browse ignores keyword rules and includes providers hidden from the right panel.
 
-Include/exclude keywords are comma-separated words or phrases, matched without
-case sensitivity against headlines and available feed summaries. A story needs
-any included term; any excluded term hides it. Leave Include empty to show
-everything except excluded terms, such as `India`.
+Settings contains provider editing, Include/Exclude and sound controls. Use **+**
+to add an RSS/Atom provider; arrows navigate providers. **Show this provider**
+controls the combined feed and its alerts, without stopping collection.
+Reuters through Google News, FXStreet, Fed policy/speeches, ECB, BoE, BoC, RBA,
+BoJ and US Treasury announcements are included automatically. Existing custom
+providers are preserved. RBNZ and SNB are not included yet.
+
+Include/Exclude accept comma-separated words or phrases, matched without case
+sensitivity against headline text. Any included term qualifies; any excluded
+term hides a headline. Empty Include shows everything except exclusions.
 The **All / Filtered** toggle immediately left of the date button switches
 keyword rules off/on without erasing them. Provider/date selections still apply.
-The calendar filters publication dates in your display timezone and searches
-older Google News headlines for that day, saving returned items locally. Google
-history can be incomplete; direct provider RSS feeds use locally saved history.
-Refresh retries the selected date, respecting any server retry delay. **All dates**
-clears the date selection. **Newest/Oldest** changes ordering, and Previous/Next browses history.
-Changed headlines wait behind an update button when you are reading down the list.
 
-The storage service checks feeds one second after each successful fetch, with
-automatic slowdown on errors. It collects while the panel is closed and MT5 is
-disconnected, while the computer and storage service remain running. Feed
-publication/indexing delays remain outside the app's control. Saved headlines
-survive restarts and are included in storage backups. Provider setup is local;
-view preferences remain in your browser. Wildcards remain manually managed.
+Sound is off by default. Enable it in Settings, choose **Chime**, **Bell** or
+**Pulse**, and use **Preview** to hear it and enable browser audio. New live
+headlines matching Include play a sound unless excluded or from a hidden
+provider. Empty Include stays silent. A batch plays once; startup snapshots,
+historical lookups, repeated links and headline edits stay silent. Alerts are
+independent of All/Filtered and work with the panel closed while the terminal
+page is open. Undated/old publications stay silent to avoid backfill alerts.
+
+The calendar searches older headlines on demand for the selected display-zone
+date. **Recent** clears the date; **Newest/Oldest** changes ordering. Previous/Next
+pages through results. From a daily Heatmap selection, **News for this date**
+opens News Flow using that broker session's exact boundaries. Manual date edits
+return to the display timezone. Weekly/event-window shortcuts are disabled.
+
+Starter RSS providers use scoped Google historical searches; Treasury uses its
+official announcement index. Custom feeds without historical support explicitly
+report that only cached headlines are available. Older results may be incomplete:
+empty results do not prove no news was released. Refresh/Retry repeats a search,
+respecting server retry delays. Local cache speeds repeated lookups and survives
+restarts; there is no separate article-version archive. Click headlines to read
+the source website. Wildcards remain manually entered.
+
+The storage service checks feeds one second after each successful fetch, slowing
+down on errors. It collects while the panel is closed and MT5 disconnected,
+while the computer/storage service run. Publisher/indexing delays remain outside
+the app's control. Cache and provider setup are included in storage backups;
+view and sound preferences remain browser-local. Changed headlines wait behind
+an update button when you are reading down the combined list.
 
 ## MFDI
 

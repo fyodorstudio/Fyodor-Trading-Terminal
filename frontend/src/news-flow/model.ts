@@ -1,10 +1,10 @@
 export type NewsSource = { id: string; name: string; url: string; last_success: number | null; error: string }
 export type NewsItem = { id: string; source_id: string; source_name: string; publisher: string; title: string; summary: string; url: string; published_at: number | null; first_seen: number }
 export type NewsPage = { items: NewsItem[]; total: number }
-export type NewsSettings = { hiddenSources: string[]; include: string; exclude: string; mode: 'all' | 'filtered'; date: string; order: 'newest' | 'oldest'; width: number }
+export type NewsSettings = { hiddenSources: string[]; include: string; exclude: string; mode: 'all' | 'filtered'; date: string; session: { start: number; end: number } | null; order: 'newest' | 'oldest'; width: number; soundEnabled: boolean; sound: 'chime' | 'bell' | 'pulse' }
 
 const key = 'fyodor.news-flow.v1'
-const defaults: NewsSettings = { hiddenSources: [], include: '', exclude: '', mode: 'all', date: '', order: 'newest', width: 380 }
+const defaults: NewsSettings = { hiddenSources: [], include: '', exclude: '', mode: 'all', date: '', session: null, order: 'newest', width: 380, soundEnabled: false, sound: 'chime' }
 
 export function readNewsSettings(): NewsSettings {
   try {
@@ -15,7 +15,9 @@ export function readNewsSettings(): NewsSettings {
       include, exclude,
       mode: saved.mode === 'all' || saved.mode === 'filtered' ? saved.mode : include.trim() || exclude.trim() ? 'filtered' : 'all',
       date: /^\d{4}-\d{2}-\d{2}$/.test(saved.date) ? saved.date : '',
-      order: saved.order === 'oldest' ? 'oldest' : 'newest', width: Number.isFinite(saved.width) ? Math.min(640, Math.max(280, saved.width)) : 380 }
+      session: Number.isFinite(saved.session?.start) && Number.isFinite(saved.session?.end) && saved.session.end > saved.session.start && saved.session.end - saved.session.start <= 36 * 3600_000 ? { start: saved.session.start, end: saved.session.end } : null,
+      order: saved.order === 'oldest' ? 'oldest' : 'newest', width: Number.isFinite(saved.width) ? Math.min(640, Math.max(280, saved.width)) : 380,
+      soundEnabled: saved.soundEnabled === true, sound: saved.sound === 'bell' || saved.sound === 'pulse' ? saved.sound : 'chime' }
   } catch { return { ...defaults } }
 }
 

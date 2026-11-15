@@ -35,10 +35,13 @@ const button=text=>[...host.querySelectorAll('button')].find(node=>node.textCont
 const click=async node=>{assert.ok(node);await React.act(async()=>node.click())}
 const change=async(label,value)=>React.act(async()=>{const input=host.querySelector(`[aria-label="${label}"]`);Object.getOwnPropertyDescriptor(dom.HTMLInputElement.prototype,'value').set.call(input,value);input.dispatchEvent(new dom.Event('input',{bubbles:true}));input.dispatchEvent(new dom.Event('change',{bubbles:true}))})
 async function flush(){await React.act(async()=>{for(let n=0;frames.size&&n<8;n++){const pending=[...frames.values()];frames.clear();pending.forEach(fn=>fn())}})}
-const render=(broker='Pepperstone-Demo')=>React.act(async()=>root.render(React.createElement(WildcardsProvider,null,React.createElement(WildcardsDock),React.createElement(HeatmapDock,{symbols,broker,generation:1}))))
+const newsDates=[]
+const render=(broker='Pepperstone-Demo')=>React.act(async()=>root.render(React.createElement(WildcardsProvider,null,React.createElement(WildcardsDock),React.createElement(HeatmapDock,{symbols,broker,generation:1,onOpenNews:date=>newsDates.push(date)}))))
 async function reveal(){const viewport=host.querySelector('.heatmap-viewport');const template=host.querySelector('.heatmap-tape').style.gridTemplateRows;viewport.scrollTop=Math.max(0,42+Number(/repeat\((\d+),/.exec(template)[1])*30-130);await React.act(async()=>viewport.dispatchEvent(new dom.Event('scroll')));await flush()}
 try{
   await render();await flush();await reveal()
+  await click(host.querySelector('[aria-label="Open news for selected heatmap date"]'))
+  assert.deepEqual(newsDates,['2026-11-12'],'Heatmap forwards the selected daily date to News Flow')
   const cell=host.querySelector('[data-wildcard-cell="global:2026-11-12"]');assert.ok(cell);assert.match(cell.title,/First development/);assert.match(cell.title,/Second development/)
   const before=historyReads;await click(cell);assert.equal(host.querySelectorAll('.wildcards-list > button').length,2)
   await click([...host.querySelectorAll('.wildcards-list > button')].find(node=>node.textContent.includes('First development')))

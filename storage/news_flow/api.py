@@ -72,6 +72,11 @@ def news_router(store, collector):
     def historical_search(body: HistoryInput):
         return history.search(body.start, body.end, body.source, body.force)
 
+    @router.get('/arrivals')
+    def arrivals(after: int | None = Query(default=None, ge=0), include: str = Query(default='', max_length=2000),
+                 exclude: str = Query(default='', max_length=2000), hidden: list[str] = Query(default=[])):
+        return store.arrivals(after, include, exclude, hidden)
+
     @router.post('/refresh', status_code=202)
     def refresh():
         collector.refresh()

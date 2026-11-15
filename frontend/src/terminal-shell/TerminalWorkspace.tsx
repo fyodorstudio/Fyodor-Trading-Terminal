@@ -17,6 +17,9 @@ import { EventsDock } from '../events-alarms/EventsDock'
 import { EntryTradePanel } from '../entry-trade/dock/EntryTradePanel'
 import { WildcardsDock } from '../wildcards/WildcardsDock'
 import { NewsFlowPanel } from '../news-flow/NewsFlowPanel'
+import { NewsSoundAlerts } from '../news-flow/NewsSoundAlerts'
+import { heatmapNewsSelection } from '../news-flow/date-range'
+import { selectNewsDate } from '../news-flow/settings'
 import { VolumeSettingsDialog } from '../market-data/indicators/volume/VolumeSettingsDialog'
 import { RsiSettingsDialog } from '../market-data/indicators/rsi/RsiSettingsDialog'
 import { MacroSettingsDialog } from '../market-data/indicators/macro/MacroSettingsDialog'
@@ -52,11 +55,15 @@ function TerminalWorkspaceContent() {
     createDrawing, chooseDrawingTool, selectCrosshair, deletePairDrawings, toggleBottomDock, exitDrawingMode,
     toggleDrawingToolbar, renderChartOverlay, sourceState, sourceLabel,
     recentEventsOpen, toggleRecentEvents, closeRecentEvents, alertFocus, viewReleaseInAlert,
-    rankingOpen, toggleRanking, closeRanking, newsOpen, toggleNews, closeNews, detailOpen, toggleDetail, closeDetail, openDetail, viewLedgerEvent, viewMacroRelease, returnToLedger,
+    rankingOpen, toggleRanking, closeRanking, newsOpen, toggleNews, closeNews, openNews, detailOpen, toggleDetail, closeDetail, openDetail, viewLedgerEvent, viewMacroRelease, returnToLedger,
     plannedTrade, handlePlanChange, latestBarTime, registeredArrows, selectPinnedArrow, priceAlerts, leftDockTab, setLeftDockTab } = useTerminalWorkspace()
   const [heatmapStarted, setHeatmapStarted] = useState(false)
   if ((bottomDockWindow === 'heatmap' || rankingOpen) && !heatmapStarted) setHeatmapStarted(true)
   const brokerOffsetSeconds = bridge.brokerOffsetSeconds
+  const showHeatmapNews = useCallback((date: string) => {
+    const selection = heatmapNewsSelection(date, { brokerId, brokerOffsetSeconds })
+    if (selection) { selectNewsDate(selection); openNews() }
+  }, [brokerId, brokerOffsetSeconds, openNews])
   const ledgerCurrencies = chartEventCurrencies(activeSymbol)
   const ledgerSupported = ledgerCurrencies.length === 2
   const openLedgerDetail = useCallback(() => { openDetail() }, [openDetail])
@@ -82,6 +89,7 @@ function TerminalWorkspaceContent() {
   const recordChartTrace = useCallback((trace: string) => appendActivity('Chart', 'Timeframe trace', trace), [appendActivity])
   return (
     <DisplayClockProvider brokerId={brokerId} brokerOffsetSeconds={brokerOffsetSeconds} preference={timeDisplay}>
+    <NewsSoundAlerts />
     <LedgerProvider broker={brokerId} enabled={ledgerCurrencies.length > 0 && (detailOpen || bottomDockWindow === 'ledger')} pickerScope={pickerScope} currencies={ledgerCurrencies}>
     <div className={`terminal-shell${bottomDockWindow ? ' bottom-dock-open' : ''}`}
       style={{ '--bottom-dock-height': `${dockSize.height}px` } as CSSProperties}>
@@ -221,7 +229,7 @@ function TerminalWorkspaceContent() {
           hidden={!bottomDockWindow}
         >
           {heatmapStarted && <div className="heatmap-slot" hidden={bottomDockWindow !== 'heatmap'}>
-            <HeatmapDock symbols={marketData.symbols} broker={brokerId} generation={bridge.generation} active={bottomDockWindow === 'heatmap' || rankingOpen} dockActive={bottomDockWindow === 'heatmap'} rankingTarget={rankingTarget} onCloseRanking={closeRanking} connected={bridge.connected} />
+            <HeatmapDock symbols={marketData.symbols} broker={brokerId} generation={bridge.generation} active={bottomDockWindow === 'heatmap' || rankingOpen} dockActive={bottomDockWindow === 'heatmap'} rankingTarget={rankingTarget} onCloseRanking={closeRanking} onOpenNews={showHeatmapNews} connected={bridge.connected} />
           </div>}
           {bottomDockWindow === 'wildcards' && <WildcardsDock />}
           {bottomDockWindow === 'ledger' && <LedgerDock supported={ledgerSupported} broker={brokerId} onOpenDetail={openLedgerDetail} onViewEvent={viewLedgerEvent} />}

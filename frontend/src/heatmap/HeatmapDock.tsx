@@ -1,7 +1,7 @@
 import { createPortal } from 'react-dom'
 import { memo, useCallback, useEffect, useMemo, useState } from 'react'
 import type { SymbolQuote } from '../market-data/contracts/SymbolQuote'
-import { chartOffsetAt } from '../appearance/time-display/chart-clock'
+import { chartOffsetAt, brokerClockProfile } from '../appearance/time-display/chart-clock'
 import { formatAppTimestamp } from '../appearance/time-display/time-display-preference'
 import { useDisplayClock } from '../appearance/time-display/useDisplayClock'
 import { HeatmapTimeline } from './HeatmapTimeline'
@@ -23,12 +23,12 @@ const tapeMemory = new Map<string, { left: number; top: number }>()
 const sessions = new Map<string, { date: string; pinned: boolean; year: number }>()
 
 // Quote ticks do not invalidate the history, basket calculations or timeline.
-export function HeatmapDock({ symbols, broker, generation, active = true, connected = true, dockActive = active, rankingTarget = null, onCloseRanking }: { symbols: SymbolQuote[]; broker: string | null; generation: number; active?: boolean; connected?: boolean; dockActive?: boolean; rankingTarget?: HTMLElement | null; onCloseRanking?: () => void }) {
+export function HeatmapDock({ symbols, broker, generation, active = true, connected = true, dockActive = active, rankingTarget = null, onCloseRanking, onOpenNews }: { symbols: SymbolQuote[]; broker: string | null; generation: number; active?: boolean; connected?: boolean; dockActive?: boolean; rankingTarget?: HTMLElement | null; onCloseRanking?: () => void; onOpenNews?: (date: string) => void }) {
   const catalog = JSON.stringify(symbols.map(s => ({ symbol: s.symbol, description: s.description })))
-  return <HeatmapContent key={`${broker}:${generation}`} catalogJson={catalog} broker={broker} generation={generation} active={active} connected={connected} dockActive={dockActive} rankingTarget={rankingTarget} onCloseRanking={onCloseRanking} />
+  return <HeatmapContent key={`${broker}:${generation}`} catalogJson={catalog} broker={broker} generation={generation} active={active} connected={connected} dockActive={dockActive} rankingTarget={rankingTarget} onCloseRanking={onCloseRanking} onOpenNews={onOpenNews} />
 }
 
-const HeatmapContent = memo(function HeatmapContent({ catalogJson, broker, generation, active, connected, dockActive, rankingTarget, onCloseRanking }: { catalogJson: string; broker: string | null; generation: number; active: boolean; connected: boolean; dockActive: boolean; rankingTarget: HTMLElement | null; onCloseRanking?: () => void }) {
+const HeatmapContent = memo(function HeatmapContent({ catalogJson, broker, generation, active, connected, dockActive, rankingTarget, onCloseRanking, onOpenNews }: { catalogJson: string; broker: string | null; generation: number; active: boolean; connected: boolean; dockActive: boolean; rankingTarget: HTMLElement | null; onCloseRanking?: () => void; onOpenNews?: (date: string) => void }) {
   const catalog: HeatmapInstrument[] = useMemo(() => JSON.parse(catalogJson), [catalogJson])
   const { preference } = useDisplayClock()
   const [eventMode, setEventMode] = useState(false)
@@ -140,6 +140,7 @@ const HeatmapContent = memo(function HeatmapContent({ catalogJson, broker, gener
   const requested = names ? names.split('\0') : []
   const missing = data ? requested.filter(s => !data.symbols[s]).length : requested.length
   const unavailable = data ? requested.filter(s => data.symbols[s] && data.symbols[s].availability !== 'available').length : 0
+  const newsAction = onOpenNews && <button type="button" aria-label="Open news for selected heatmap date" disabled={eventMode || preferences.mode !== 'daily' || (!!broker && !brokerClockProfile(broker))} onClick={() => onOpenNews(view.date)}>News for this date</button>
   const rankingView = <aside className="heatmap-ranking" style={{ width: rankingTarget ? undefined : 76 + 57 * preferences.fields.length }} aria-label="Selected period ranking">
         <header><strong>{eventMode ? selected==='window'?'Window summary':jakartaTime(Date.parse(selected)) : selected}{!eventMode && preferences.mode === 'weekly' ? ' · Week' : ''}</strong><small>{eventMode ? 'Common anchor · '+jakartaTime(eventWindow.anchor) : view.pinned ? 'Pinned' : 'Following hover'}{chosenPeriod?.partial ? ' · In progress' : ''}</small></header>
         <div className="heatmap-ranking-controls"><select aria-label="Ranking group" value={effectiveGroup} onChange={e => setRankGroup(e.target.value)}><option>All</option>{groups.map(g => <option key={g}>{g}</option>)}</select>
@@ -155,6 +156,7 @@ const HeatmapContent = memo(function HeatmapContent({ catalogJson, broker, gener
             await navigator.clipboard.writeText(text); setCopied({key:copyKey,message:'Displayed ranking copied.'})
           } catch { setCopied({key:copyKey,message:'Clipboard unavailable. Try copying again.'}) }
         }}>Copy displayed ranking</button>
+        {newsAction}
         <ol>{ranking.map(({ row, point }) => <li key={row.id} title={point?.reason || undefined}><span title={row.group}>{row.label}</span><span className={point?.value == null ? '' : point.value > 0 ? 'positive' : point.value < 0 ? 'negative' : ''}>
           {point?.value == null ? '—' : <span className="heatmap-ohlc" title={eventMode ? 'Percent changes versus the common anchor baseline; ranking uses C' : 'Percent changes versus previous close; ranking uses C'}>{heatmapOHLC(point).filter(field => preferences.fields.includes(field.label)).map(field => <span key={field.label} className={field.label === 'C' ? 'ohlc-close' : undefined}>
             <small>{field.label}</small>{formatHeatmapChange(field.value)}</span>)}</span>}
@@ -181,7 +183,7 @@ const HeatmapContent = memo(function HeatmapContent({ catalogJson, broker, gener
       <strong>Heatmap</strong>
       {periodControls}{fieldControls}
       <button type="button" onClick={todayAction}>Today</button>
-      {dateControl}
+      {dateControl}{newsAction}
       {!eventMode && <><button type="button" aria-label="Previous heatmap year" disabled={view.year <= 2015} onClick={() => changeView(`${view.year - 1}-12-31`, true, true)}>‹</button>
       <span>{view.year}</span><button type="button" aria-label="Next heatmap year" disabled={view.year >= maxYear} onClick={() => changeView(`${view.year + 1}-01-01`, true, true)}>›</button>
       {view.pinned && <button type="button" onClick={() => changeView(view.date, false)}>Unpin date</button>}</>}

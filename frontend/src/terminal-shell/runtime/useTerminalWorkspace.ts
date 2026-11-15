@@ -215,6 +215,9 @@ export function useTerminalWorkspace() {
     setRankingOpen(current => !current); setRecentEventsOpen(false); setDetailOpen(false)
   }, [])
   const closeNews = useCallback(() => setNewsOpen(false), [])
+  const openNews = useCallback(() => {
+    setNewsOpen(true); setRankingOpen(false); setRecentEventsOpen(false); setDetailOpen(false)
+  }, [])
   const toggleNews = useCallback(() => {
     setNewsOpen(current => !current)
     setRankingOpen(false); setRecentEventsOpen(false); setDetailOpen(false)
@@ -304,6 +307,6 @@ export function useTerminalWorkspace() {
     selectCrosshair, deletePairDrawings, toggleBottomDock, exitDrawingMode, toggleDrawingToolbar,
     renderChartOverlay, sourceState, sourceLabel,
     recentEventsOpen, toggleRecentEvents, closeRecentEvents, alertFocus, viewReleaseInAlert,
-    rankingOpen, toggleRanking, closeRanking, newsOpen, toggleNews, closeNews, detailOpen, toggleDetail, closeDetail, openDetail, viewLedgerEvent, viewMacroRelease, returnToLedger: inspectorFromLedger ? returnToLedger : undefined,
+    rankingOpen, toggleRanking, closeRanking, newsOpen, toggleNews, closeNews, openNews, detailOpen, toggleDetail, closeDetail, openDetail, viewLedgerEvent, viewMacroRelease, returnToLedger: inspectorFromLedger ? returnToLedger : undefined,
     plannedTrade, handlePlanChange, latestBarTime, registeredArrows, selectPinnedArrow, priceAlerts, leftDockTab, setLeftDockTab }
 }

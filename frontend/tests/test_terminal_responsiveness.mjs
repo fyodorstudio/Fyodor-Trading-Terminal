@@ -210,6 +210,7 @@ globalThis.fetch = (url, options = {}) => {
     { id: 'news-1', source_id: 'reuters', source_name: 'Reuters', publisher: 'Reuters', title: 'Reuters headline',
       summary: '', url: 'https://example.com/story', published_at: now - 60000, first_seen: now },
   ], total: 1 }) })
+  if (u === '/storage-api/news-flow/history') return Promise.resolve({ ok: true, json: async () => ({ searched: 0, cached: 0, found: 0, unsupported: ['Reuters'], errors: [] }) })
   if (u === '/storage-api/market-watch/daily') {
     const body = JSON.parse(options.body)
     return Promise.resolve({ ok: true, json: async () => ({ source_id: broker, generation,
@@ -1417,6 +1418,23 @@ try {
   assert.equal(container.querySelector('#heatmap-ranking-panel'), null, 'News Flow replaces ranking')
   await React.act(async () => container.querySelector('#news-flow-panel').dispatchEvent(new dom.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })))
   assert.equal(container.querySelector('#news-flow-panel'), null)
+
+  await click(container.querySelector('[aria-label="Show Heatmap Ranking"]')); await flush()
+  assert.equal(container.querySelector('#heatmap-ranking-panel [aria-label="Open news for selected heatmap date"]').disabled, true, 'Weekly research requires a daily selection')
+  await click([...container.querySelectorAll('#heatmap-ranking-panel button')].find(node => node.textContent === 'Daily')); await flush()
+  const researchDate = container.querySelector('#heatmap-ranking-panel [aria-label="Heatmap date"]').value
+  const expectedSession = await server.ssrLoadModule('./src/news-flow/date-range.ts').then(module => module.heatmapNewsSelection(researchDate, { brokerId: broker, brokerOffsetSeconds: 10800 }))
+  const priceRequestsBeforeNews = requests.filter(url => url === '/storage-api/heatmap/history').length
+  reset(); await click(container.querySelector('#heatmap-ranking-panel [aria-label="Open news for selected heatmap date"]')); await flush()
+  assert.ok(container.querySelector('#news-flow-panel'), 'Heatmap action opens the combined feed')
+  assert.equal(container.querySelector('#heatmap-ranking-panel'), null, 'The action replaces ranking in the shared right panel')
+  assert.equal(container.querySelector('[aria-label="News publication date"]').value, researchDate)
+  const selectedNewsQuery = new URL(requests.findLast(url => url.startsWith('/storage-api/news-flow/items')), 'http://localhost').searchParams
+  assert.equal(Number(selectedNewsQuery.get('start')), expectedSession.start)
+  assert.equal(Number(selectedNewsQuery.get('end')), expectedSession.end)
+  assert.equal(requests.filter(url => url === '/storage-api/heatmap/history').length, priceRequestsBeforeNews)
+  assertQuiet('Opening historical news from Heatmap')
+  await click(container.querySelector('[aria-label="Close News Flow"]')); await flush()
 
   assert.deepEqual(logicalRange, heatmapRange)
   await React.act(async () => root.render(null))

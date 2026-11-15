@@ -1,13 +1,15 @@
 """Small RSS/Atom reader. Feed markup is converted to text, never executed."""
-from datetime import datetime
+from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 from hashlib import sha256
 from html.parser import HTMLParser
 import re
+import json
 from urllib.error import HTTPError
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, urljoin
 from urllib.request import Request, urlopen
 import xml.etree.ElementTree as ET
+from .providers import TREASURY_URL
 
 MAX_FEED_BYTES = 4 * 1024 * 1024
 
@@ -82,17 +84,51 @@ def parse_feed(body):
     return items
 
 
+def treasury_url(url):
+    parsed = urlsplit(url)
+    return parsed.hostname == 'home.treasury.gov' and parsed.path.rstrip('/') == '/news/press-releases' and not parsed.query
+
+
+def treasury_data_url(year):
+    return f'https://home.treasury.gov/news-data/press-releases/search/{year}.json'
+
+
+def parse_treasury(body):
+    data = json.loads(body)
+    if not isinstance(data, dict) or not isinstance(data.get('items'), list):
+        raise ValueError('Treasury announcement index format changed')
+    items = []
+    for row in data['items'][:10000]:
+        if not isinstance(row, dict):
+            continue
+        link = urljoin(TREASURY_URL, str(row.get('url', '')))
+        parsed = urlsplit(link)
+        title = text(str(row.get('title', '')), 2000)
+        if parsed.hostname != 'home.treasury.gov' or not re.fullmatch(r'/news/press-releases/[^/]+/?', parsed.path) or not title:
+            continue
+        items.append({'identity': sha256(link.rstrip('/').encode()).hexdigest(), 'title': title, 'url': link,
+                      'summary': '', 'publisher': 'US Treasury', 'published_at': timestamp(row.get('datetime'))})
+    return items
+
+
 def fetch_feed(source):
+    url = source['url']
+    if treasury_url(url):
+        url = treasury_data_url(datetime.now(timezone.utc).year)
+    parsed = urlsplit(url)
+    treasury = parsed.hostname == 'home.treasury.gov' and re.fullmatch(r'/news-data/press-releases/search/\d{4}\.json', parsed.path)
     headers = {'User-Agent': 'Fyodor-News-Flow/1.0', 'Accept': 'application/rss+xml, application/atom+xml, application/xml, text/xml'}
     if source['etag']:
         headers['If-None-Match'] = source['etag']
     if source['modified']:
         headers['If-Modified-Since'] = source['modified']
     try:
-        with urlopen(Request(http_url(source['url']), headers=headers), timeout=10) as response:
+        with urlopen(Request(http_url(url), headers=headers), timeout=10) as response:
             http_url(response.url)
             body = response.read(MAX_FEED_BYTES + 1)
-            return parse_feed(body), response.headers.get('ETag', ''), response.headers.get('Last-Modified', '')
+            if len(body) > MAX_FEED_BYTES:
+                raise ValueError('Oversized provider response')
+            return (parse_treasury(body) if treasury else parse_feed(body)), response.headers.get('ETag', ''), response.headers.get('Last-Modified', '')
     except HTTPError as error:
         if error.code == 304:
             error.close()

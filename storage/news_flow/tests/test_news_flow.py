@@ -13,8 +13,9 @@ from urllib.parse import urlsplit
 import xml.etree.ElementTree as ET
 
 from storage.news_flow.collector import NewsCollector, retry_delay
-from storage.news_flow.feeds import MAX_FEED_BYTES, fetch_feed, parse_feed
+from storage.news_flow.feeds import MAX_FEED_BYTES, fetch_feed, parse_feed, parse_treasury
 from storage.news_flow.store import NewsStore
+from storage.news_flow.providers import PROVIDERS, TREASURY_URL
 from storage.news_flow.history import NewsHistory, historical_url
 
 RSS = b'''<rss version="2.0"><channel><title>Reuters</title>
@@ -35,11 +36,88 @@ class NewsFlowTests(unittest.TestCase):
         self.root = Path(self.temp.name) / 'data'
         self.store = NewsStore(self.root)
         self.source = self.store.sources()[0]
+        # Most cases exercise one feed; starter-pack migration has its own case.
+        with self.store.database() as db:
+            db.execute("DELETE FROM sources WHERE id!='reuters'")
         self.items = parse_feed(RSS)
         self.now = 1794711600000
 
     def ingest(self):
         self.store.success(self.source, self.items, 'version-1', '', self.now)
+
+    def test_starter_sources_migrate_once_without_overwriting_customizations(self):
+        root = self.root / 'new-install'
+        store = NewsStore(root)
+        sources = store.sources()
+        self.assertEqual(len(sources), len(PROVIDERS))
+        store.save_source('My Reuters', 'https://example.com/custom.xml', 'reuters')
+        store.save_source('My bank', 'https://example.com/bank.xml')
+        reopened = NewsStore(root).sources()
+        self.assertEqual(len(reopened), len(PROVIDERS) + 1)
+        self.assertEqual(reopened[0]['name'], 'My Reuters')
+        # Simulate an existing Reuters-only database before the pack migration.
+        with store.database() as db:
+            db.execute("DELETE FROM sources WHERE id!='reuters'")
+            db.execute('DELETE FROM migrations')
+        migrated = NewsStore(root).sources()
+        self.assertEqual(len(migrated), len(PROVIDERS))
+        self.assertEqual(migrated[0]['url'], 'https://example.com/custom.xml')
+
+    def test_link_duplicates_preserve_provider_views_and_distinct_articles(self):
+        self.ingest()
+        bank = self.store.save_source('Second feed', 'https://example.com/feed')
+        other = next(source for source in self.store.sources() if source['id'] == bank)
+        self.store.success(other, [self.items[0]], '', '', self.now + 1)
+        self.assertEqual(self.store.query()['total'], 2)
+        self.assertEqual(self.store.query(sources=[bank])['items'][0]['source_id'], bank)
+        self.store.success(other, [{**self.items[0], 'identity': 'distinct', 'url': 'https://example.com/distinct'}], '', '', self.now + 2)
+        self.assertEqual(self.store.query()['total'], 3)
+
+    def test_alert_cursor_keyword_exclusions_history_duplicates_and_freshness(self):
+        self.ingest()
+        self.assertEqual(self.store.arrivals(0, 'iran', now=self.now)['items'], [], 'First provider load is primed silently')
+        baseline = self.store.arrivals(include='iran', now=self.now)
+        self.assertEqual(baseline['items'], [], 'Opening the alert listener only establishes a cursor')
+        def add(identity, title, **kwargs):
+            self.store.success(self.source, [{**self.items[0], 'identity': identity, 'url': f'https://example.com/{identity}',
+                                           'title': title, 'published_at': self.now, **kwargs}], '', '', self.now + 1)
+        add('fresh', 'Iran oil supply changes')
+        add('excluded', 'India and Iran oil trade')
+        add('old', 'Iran historical story', published_at=self.now - 1000000)
+        add('undated', 'Iran undated story', published_at=None)
+        self.store.success(self.source, [{**self.items[0], 'identity': 'historical', 'url': 'https://example.com/history'}], '', '', self.now, update_status=False)
+        result = self.store.arrivals(baseline['cursor'], 'IRAN', 'india', now=self.now + 2)
+        self.assertEqual([row['title'] for row in result['items']], ['Iran oil supply changes'])
+        self.assertEqual(self.store.arrivals(result['cursor'], 'iran', now=self.now + 2)['items'], [])
+        self.assertEqual(self.store.arrivals(baseline['cursor'], '', now=self.now + 2)['items'], [])
+        self.assertEqual(self.store.arrivals(baseline['cursor'], ',\n', now=self.now + 2)['items'], [])
+        self.assertEqual(self.store.arrivals(baseline['cursor'], 'iran', hidden=['reuters'], now=self.now + 2)['items'], [])
+        # Later copies of the same article on overlapping feeds stay silent.
+        identity = self.store.save_source('Other', 'https://example.com/feed')
+        other = next(source for source in self.store.sources() if source['id'] == identity)
+        self.store.success(other, [{**self.items[0], 'identity': 'copy', 'url': 'https://example.com/fresh', 'published_at': self.now}], '', '', self.now + 3)
+        self.assertEqual(self.store.arrivals(result['cursor'], 'iran', now=self.now + 4)['items'], [])
+
+    def test_treasury_parser_and_historical_year_boundary(self):
+        entries = parse_treasury(json.dumps({'items': [
+            {'title': 'Treasury doubles buybacks', 'url': '/news/press-releases/sb0607/', 'datetime': '2026-08-19T15:00:00Z'},
+            {'title': 'Unsafe', 'url': 'https://example.com/news/press-releases/fake', 'datetime': '2026-08-19T15:00:00Z'}]}).encode())
+        self.assertEqual(len(entries), 1)
+        self.assertEqual(entries[0]['url'], TREASURY_URL + '/sb0607/')
+        self.assertEqual(entries[0]['publisher'], 'US Treasury')
+        fed = next(provider for provider in PROVIDERS if provider[0] == 'fed-speeches')
+        self.assertIn('federalreserve.gov', historical_url(fed[2], self.now - 86400000, self.now))
+        treasury = self.store.save_source('Treasury', TREASURY_URL)
+        calls = []
+        def fetch(source):
+            calls.append(source['url'])
+            return entries, '', ''
+        history = NewsHistory(self.store, NewsCollector(self.store), fetch)
+        start, end = 1798758000000, 1798844400000  # UTC days straddling New Year.
+        history.search(start, end, [treasury])
+        self.assertEqual(len(calls), 2)
+        self.assertTrue(calls[0].endswith('/2026.json'))
+        self.assertTrue(calls[1].endswith('/2027.json'))
 
     def test_rss_atom_text_links_dates_and_invalid_xml(self):
         self.assertEqual(len(self.items), 2)
@@ -79,9 +157,9 @@ class NewsFlowTests(unittest.TestCase):
         source = next(source for source in self.store.sources() if source['id'] == bank)
         self.store.success(source, parse_feed(ATOM), '', '', self.now)
         self.assertEqual(self.store.query(include='OPEC')['total'], 1)
-        self.assertEqual(self.store.query(include='comments')['total'], 1, 'Search includes feed summaries')
+        self.assertEqual(self.store.query(include='comments')['total'], 0, 'Only visible headline text matches')
         self.assertEqual(self.store.query(include='iran, rates')['total'], 2, 'Any included term matches')
-        self.assertEqual(self.store.query(include='iran, opec', exclude='supply')['total'], 0)
+        self.assertEqual(self.store.query(include='iran, opec', exclude='iran')['total'], 0)
         self.assertEqual(self.store.query(include='%')['total'], 0, 'SQL wildcard characters remain literal')
         self.assertEqual(self.store.query(sources=[bank])['total'], 1)
         self.assertEqual(self.store.query(start=self.items[0]['published_at'], end=self.items[0]['published_at'] + 1)['total'], 1)
@@ -93,7 +171,7 @@ class NewsFlowTests(unittest.TestCase):
 
     def test_exclusion_only_and_included_but_excluded_stories(self):
         self.ingest()
-        self.store.success(self.source, [{**self.items[0], 'identity': 'india', 'title': 'India oil demand', 'summary': ''}], '', '', self.now)
+        self.store.success(self.source, [{**self.items[0], 'identity': 'india', 'url': 'https://example.com/india', 'title': 'India oil demand', 'summary': ''}], '', '', self.now)
         self.assertEqual(self.store.query(include='oil')['total'], 2)
         self.assertEqual(self.store.query(include='oil', exclude='INDIA')['total'], 1, 'Exclusion overrides a matching inclusion')
         self.assertEqual(self.store.query(exclude='india')['total'], 2, 'An empty inclusion allows everything except exclusions')
@@ -106,7 +184,7 @@ class NewsFlowTests(unittest.TestCase):
         seen = []
         def fetch(source):
             seen.append(source)
-            return [{**self.items[0], 'identity': 'august', 'published_at': start + 1000},
+            return [{**self.items[0], 'identity': 'august', 'url': 'https://example.com/august', 'published_at': start + 1000},
                     {**self.items[0], 'identity': 'too-early', 'published_at': start - 1},
                     {**self.items[0], 'identity': 'too-late', 'published_at': end},
                     {**self.items[0], 'identity': 'undated', 'published_at': None}], 'archive-etag', ''
@@ -127,7 +205,7 @@ class NewsFlowTests(unittest.TestCase):
         history.search(start, end, force=True)
         self.assertEqual(len(seen), 2)
         self.assertEqual(self.store.query(start=start, end=end)['total'], 1, 'Backfill deduplicates on retries')
-        bank = self.store.save_source('Fed', 'https://www.federalreserve.gov/feeds/speeches.xml')
+        bank = self.store.save_source('Fed', 'https://example.com/custom-bank.xml')
         self.assertEqual(history.search(start, end, [bank])['unsupported'], ['Fed'])
         self.assertEqual(history.search(start, end, ['__none__'])['searched'], 0)
         self.assertIsNone(historical_url('https://example.com/rss', start, end))
@@ -244,6 +322,10 @@ class NewsFlowTests(unittest.TestCase):
             self.assertEqual((await request('PUT', prefix + '/sources/' + body['id'], {'name': 'Bank news', 'url': 'https://example.com/rss2'}))[0], 200)
             self.assertEqual((await request('GET', prefix + '/items?order=broken'))[0], 422)
             self.assertEqual((await request('GET', prefix + '/items?limit=9999'))[0], 422)
+            status, arrivals = await request('GET', prefix + '/arrivals?include=Iran')
+            self.assertEqual(status, 200); self.assertEqual(arrivals['items'], [])
+            self.assertIsInstance(arrivals['cursor'], int)
+            self.assertEqual((await request('GET', prefix + '/arrivals?after=-1'))[0], 422)
             self.assertEqual((await request('POST', prefix + '/refresh'))[0], 202)
             history_result = {'searched': 1, 'cached': 0, 'found': 1, 'unsupported': [], 'errors': []}
             with patch('storage.news_flow.history.NewsHistory.search', return_value=history_result) as search:

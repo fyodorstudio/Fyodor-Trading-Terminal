@@ -1,31 +1,29 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { useDisplayClock } from '../appearance/time-display/useDisplayClock'
-import { parseDisplayClockInput } from '../appearance/time-display/display-clock-input'
 import { NewsConfiguration } from './NewsConfiguration'
-import { newsAge, newsQuery, readNewsSettings, saveNewsSettings, type NewsSettings } from './model'
+import { newsQuery, type NewsSettings } from './model'
 import { refreshNews, useNewsHistory, useNewsPage, useNewsSources } from './useNewsFlow'
+import { useNewsSettings } from './settings'
+import { newsDateBounds } from './date-range'
+import { Headlines, HistoryStatus } from './Headlines'
 import './news-flow.css'
 
 export const NewsFlowPanel = memo(function NewsFlowPanel({ onClose }: { onClose: () => void }) {
-  const [settings, setSettings] = useState(readNewsSettings), [configuration, setConfiguration] = useState(false)
-  const [calendar, setCalendar] = useState(false), [pageIndex, setPageIndex] = useState(0)
+  const [settings, setSettings] = useNewsSettings(), [configuration, setConfiguration] = useState(false)
+  const [calendar, setCalendar] = useState(false), [pagination, setPagination] = useState({ scope: '', index: 0 })
   const [refreshError, setRefreshError] = useState(''), [refreshing, setRefreshing] = useState(false)
   const clock = useDisplayClock(), { sources, error: sourceError, reload } = useNewsSources()
   const scroll = useRef<HTMLDivElement>(null), paused = useRef(false), refreshRequest = useRef<AbortController | null>(null)
   const closeConfiguration = useCallback(() => setConfiguration(false), [])
-  const bounds = useMemo(() => {
-    if (!settings.date) return [null, null]
-    const next = new Date(`${settings.date}T00:00:00Z`); next.setUTCDate(next.getUTCDate() + 1)
-    return [parseDisplayClockInput(`${settings.date}T00:00`, clock.preference),
-      parseDisplayClockInput(`${next.toISOString().slice(0, 10)}T00:00`, clock.preference)]
-  }, [settings.date, clock.preference])
+  const bounds = useMemo(() => settings.date && settings.session ? [settings.session.start, settings.session.end] : newsDateBounds(settings.date, clock.preference), [settings.date, clock.preference, settings.session])
+  const scope = newsQuery(settings, sources, 0, bounds[0], bounds[1])
+  const pageIndex = pagination.scope === scope ? pagination.index : 0
   const query = newsQuery(settings, sources, pageIndex, bounds[0], bounds[1])
   const { page, pending, error, reveal } = useNewsPage(query, paused)
   const history = useNewsHistory(bounds[0], bounds[1], sources, settings.hiddenSources)
-  useEffect(() => { saveNewsSettings(settings) }, [settings])
   useEffect(() => { paused.current = false; if (scroll.current) scroll.current.scrollTop = 0 }, [query])
   useEffect(() => () => refreshRequest.current?.abort(), [])
-  const change = useCallback((value: NewsSettings) => { setSettings(value); setPageIndex(0) }, [])
+  const change = useCallback((value: NewsSettings) => { setSettings(value); setPagination({ scope: '', index: 0 }) }, [setSettings])
   const resize = useRef<{ x: number; width: number } | null>(null)
   async function refresh() {
     if (refreshing) return
@@ -59,30 +57,20 @@ export const NewsFlowPanel = memo(function NewsFlowPanel({ onClose }: { onClose:
       <button type="button" aria-label="Close News Flow" onClick={onClose} autoFocus>×</button>
     </header>
     {configuration && <NewsConfiguration sources={sources} settings={settings} onChange={change} onSaved={reload} onClose={closeConfiguration} />}
-    {(calendar || settings.date) && <div id="news-date-filter" className="news-date-filter"><label>Date<input type="date" aria-label="News publication date" value={settings.date} onChange={event => change({ ...settings, date: event.target.value })} /></label>
-      <button type="button" onClick={() => { change({ ...settings, date: '' }); setCalendar(false) }}>All dates</button><small>{clock.zone}</small></div>}
-    {history.loading && <p className="news-message" role="status">Searching historical headlines…</p>}
-    {history.error && <p className="news-message" role="alert">Historical search: {history.error}. Saved headlines remain available.</p>}
-    {history.result && <div className="news-history-status" role="status">
-      {(history.result.searched > 0 || history.result.cached > 0) && <p>Google News history may be incomplete.</p>}
-      {!!history.result.unsupported.length && <p>Saved history only: {history.result.unsupported.join(', ')}.</p>}
-      {history.result.errors.map(message => <p key={message}>Historical search: {message}</p>)}
-    </div>}
+    {(calendar || settings.date) && <div id="news-date-filter" className="news-date-filter"><label>Date<input type="date" aria-label="News publication date" value={settings.date} onChange={event => change({ ...settings, date: event.target.value, session: null })} /></label>
+      <button type="button" onClick={() => { change({ ...settings, date: '', session: null }); setCalendar(false) }}>Recent</button><small>{settings.session ? 'Heatmap broker session' : clock.zone}</small></div>}
+    <HistoryStatus history={history} />
     {(error || sourceError || refreshError) && <p className="news-message" role="alert">{error || sourceError || refreshError}</p>}
     {pending && <button type="button" className="news-new-items" onClick={() => { paused.current = false; if (scroll.current) scroll.current.scrollTop = 0; reveal() }}>Updated headlines · show latest</button>}
     <div className="news-items" ref={scroll} onScroll={event => { paused.current = event.currentTarget.scrollTop > 60 }}>
       {!page && !error && <p className="news-message">Loading headlines…</p>}
-      {page?.items.map(item => <article key={item.id}>
-        <a href={item.url} target="_blank" rel="noopener noreferrer">{item.title}</a>
-        {item.summary && item.summary !== item.title && <p>{item.summary}</p>}
-        <div className="news-byline"><span>{item.publisher || item.source_name}</span><span>·</span><time dateTime={new Date(item.published_at ?? item.first_seen).toISOString()} title={`${item.published_at === null ? 'First collected: ' : ''}${clock.utc(item.published_at ?? item.first_seen)}`}>{item.published_at === null ? 'Collected ' : ''}{newsAge(item.published_at ?? item.first_seen)}</time></div>
-      </article>)}
+      {page && <Headlines items={page.items} dated={!!settings.date} />}
       {page && !page.items.length && <p className="news-message">{filterActive ? 'No headlines match these filters.'
         : history.loading ? 'No saved headlines for this date yet.' : settings.date ? 'No headlines available for this date.' : 'Waiting for the first headlines.'}</p>}
     </div>
     <footer className="news-footer"><div><button type="button" aria-label="Refresh news" disabled={refreshing} onClick={() => void refresh()}>↻</button><span>{page?.total ?? 0} headlines</span>
-      <button type="button" disabled={!pageIndex} onClick={() => setPageIndex(value => value - 1)}>Previous</button>
-      <button type="button" disabled={!page || (pageIndex + 1) * 100 >= page.total} onClick={() => setPageIndex(value => value + 1)}>Next</button></div>
+      <button type="button" disabled={!pageIndex} onClick={() => setPagination({ scope, index: pageIndex - 1 })}>Previous</button>
+      <button type="button" disabled={!page || (pageIndex + 1) * 100 >= page.total} onClick={() => setPagination({ scope, index: pageIndex + 1 })}>Next</button></div>
       {failures.length ? <small role="status" title={failures.map(source => `${source.name}: ${source.error}`).join('\n')}>{failures.map(source => source.name).join(', ')} unavailable · retrying</small>
         : <small title={lastSuccess ? clock.utc(lastSuccess) : undefined}>{lastSuccess ? 'Updating automatically' : 'Connecting to feeds…'}</small>}
     </footer>
