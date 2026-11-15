@@ -139,7 +139,7 @@ class NewsStore:
             db.execute('INSERT OR REPLACE INTO history_searches VALUES (?,?,?,?,?,?,?,?,?)',
                        (source['id'], source['url'], start, end, now, found, error, retry_at, failures))
 
-    def query(self, sources=(), include='', exclude='', start=None, end=None, order='newest', offset=0, limit=100, mode='all', priority=False):
+    def query(self, sources=(), include='', exclude='', start=None, end=None, order='newest', offset=0, limit=100, mode='all', priority=False, search=''):
         clauses, args = [], []
         if sources:
             clauses.append('i.source_id IN (' + ','.join('?' for _ in sources) + ')')
@@ -151,6 +151,9 @@ class NewsStore:
         if priority:
             clauses.append('(news_priority(i.title,i.summary)<>? OR p.url IS NOT NULL)')
             args.append('')
+        if search.strip():
+            clauses.append('instr(casefold(i.title),casefold(?))>0')
+            args.append(search.strip())
         for bound, sign in ((start, '>='), (end, '<')):
             if bound is not None:
                 clauses.append(f'COALESCE(i.published_at,i.first_seen) {sign} ?')

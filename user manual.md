@@ -18,6 +18,10 @@ Display timezone and theme are available in Settings.
 Click the newspaper button immediately right of **Heatmap Ranking** in the chart
 header. The right panel lists collected headlines; click a title to open its
 source. Drag its left edge to resize it. Escape or × closes it.
+Left of the calendar, the provider button opens a checkbox list with All/None.
+The search button to its left searches cached headlines within the selected
+providers, date and classification tab, including results beyond the current
+page. Clear the search with ×. Provider visibility shares the Settings preference.
 
 The tag button opens **News Flow Extended View**, a wide centered modal with
 **Browse providers / Priority / Settings** tabs. Named provider tabs replace the
@@ -38,6 +42,9 @@ boundaries, so AI does not match said/retail. Currency pairs such as EURUSD also
 match USD/EUR tags. Each list supports 500 tags/16000 characters. A broad editable
 market preset is added once to existing Include tags, covering currencies and
 cross-asset drivers. Existing Exclude tags are preserved; new lists start empty.
+Typing narrows the existing tags and flags duplicates. Moving to another setting
+also saves a pending valid keyword. Japan matches Japanese; Democrat matches
+Democrats/Democratic. These variants also apply to Exclude and sound alerts.
 
 **Priority** combines starred links and automatically flagged expectations
 candidates from visible providers. Use a headline's star button to keep it there.
@@ -61,7 +68,11 @@ and historical date do not change sound rules. Startup/history/duplicates stay
 silent; missing/stale publication times also stay silent. Alerts work with the
 panel closed while the terminal page is open.
 
-Each headline has **Add Wildcard**. It opens the existing editor with title,
+The top-right star and **Add Wildcard** icons have hover tooltips. Relative ages
+update even when the feed is unchanged. A future-dated feed entry says
+**Future feed timestamp**; hover its time for the exact supplied date/time.
+
+**Add Wildcard** opens the existing editor with title,
 source link, available feed text and publication time. Missing publication times
 use the terminal's first collection time, labelled Collected at. This is not
 Google's indexing time or proof of the underlying event's release time.

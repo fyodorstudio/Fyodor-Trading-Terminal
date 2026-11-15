@@ -6,7 +6,11 @@ Priority stars and Add Wildcard actions. Provider/date scopes remain explicit.
 
 ## Ownership
 
-- `NewsFlowPanel.tsx`: combined reader, classification tabs, dates, paging/resize.
+- `NewsFlowPanel.tsx`: combined reader, classification tabs, dates, debounced
+  server-side headline search, paging/resize. Search intersects provider/date/tab
+  filters across the matching cache before pagination.
+- `NewsProviderSelector.tsx`: header checkbox selector shares hidden-provider
+  preferences with Settings and alerts; All/None and keyboard dismissal.
 - `NewsConfiguration.tsx`: Browse providers / Priority / Settings modal, named
   provider tabs, provider polling controls, colours, keywords and sound settings.
   Portal, inert background and keyboard focus containment; suspends while a
@@ -37,6 +41,10 @@ compact/slashed currency-pair normalization let EURUSD match USD/EUR tags.
 Frontend and backend apply corresponding rules. Each list supports 500 tags and
 16000 characters, with visible validation instead of silently dropping terms.
 Enter/comma adds a tag, multi-term paste imports tags, X removes one.
+Typing filters/highlights existing tags and marks exact duplicates. Moving focus
+outside the keyword editor commits a pending valid tag. Japan also matches
+Japanese, and Democrat matches Democrats/Democratic, on frontend and backend
+(including exclusions and sound). Other tags retain literal word boundaries.
 
 The market preset covers currencies, policy, data, bonds/liquidity, energy,
 geopolitics, major equities/AI, metals and positioning. A one-time browser
@@ -52,6 +60,10 @@ confirmation that information was available before an event. Dates and source
 links remain visible. A targeted free Reuters expectations search supplements
 the broad feed. No article-body extraction, generated probabilities, causal
 analysis or instrument-return badges are implemented. Pins live in SQLite.
+Star and Add Wildcard are icon-only actions at the top right of each row, with
+tooltips and accessible names. Relative ages update every 15 seconds even when
+responses are identical; future-dated feed entries are explicitly labelled
+Future feed timestamp rather than remaining Just now. Exact time is in the tooltip.
 
 Calendar dates use the display zone. Heatmap's daily News for this date preserves
 broker-session UTC bounds, including DST, until a manual date edit. Historical

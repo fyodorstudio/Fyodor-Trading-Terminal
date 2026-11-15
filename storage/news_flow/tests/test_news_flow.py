@@ -52,7 +52,10 @@ class NewsFlowTests(unittest.TestCase):
         for title, rule, expected in [('Retail chair said Federer won', 'AI, Fed', 0), ('AI and Fed policy', 'ai, FED', 1),
                                       ('EURUSD moves', 'USD', 1), ('EUR/USD moves', 'EURUSD', 1),
                                       ('USDCAD falls', 'USD/CAD', 1), ('OPEC+ meets', 'OPEC+', 1),
-                                      ('Bad crops', 'ADP', 0), ('Oil prices move', 'oil', 1)]:
+                                      ('Bad crops', 'ADP', 0), ('Oil prices move', 'oil', 1),
+                                      ("Japan's Sakamoto wins", 'japan', 1), ('Japanese Yen moves', 'japan', 1),
+                                      ('Democrats split', 'democrat', 1), ('Democratic senator speaks', 'democrat', 1),
+                                      ('Democratization debate', 'democrat', 0)]:
             with self.subTest(title=title, rule=rule): self.assertEqual(matches(title, rule), expected)
         many = ','.join(f'keyword{i}' for i in range(150))
         self.assertEqual(matches('keyword149 arrives', many), 1, 'Rules past the old 50-term limit work')
@@ -67,6 +70,20 @@ class NewsFlowTests(unittest.TestCase):
         self.assertEqual({row['id'] for row in all_items}, {row['id'] for row in included + excluded})
         self.assertEqual(self.store.query(mode='included')['total'], 0)
         self.assertEqual(self.store.query(mode='excluded')['total'], len(all_items))
+
+    def test_search_is_literal_case_insensitive_and_scoped_before_paging(self):
+        self.ingest()
+        items = [{**self.items[0], 'identity': str(i), 'url': f'https://example.com/search/{i}',
+                  'title': f'Democratic senator headline {i}'} for i in range(120)]
+        self.store.success(self.source, items, '', '', self.now)
+        self.assertEqual(self.store.query(search='DEMOCRATIC', limit=1, offset=110)['total'], 120)
+        self.assertEqual(len(self.store.query(search='DEMOCRATIC', limit=1, offset=110)['items']), 1)
+        self.assertEqual(self.store.query(search='senator', include='democrat', mode='included')['total'], 120)
+        self.assertEqual(self.store.query(search='senator', include='democrat', exclude='senator', mode='included')['total'], 0)
+        self.assertEqual(self.store.query(search='senator', sources=['__none__'])['total'], 0)
+        self.assertEqual(self.store.query(search='senator', start=self.now+1)['total'], 0)
+        self.assertEqual(self.store.query(search='%')['total'], 0)
+        self.assertEqual(self.store.query(search="' OR 1=1 --")['total'], 0)
 
     def test_priority_candidates_pins_date_scope_and_no_false_probability(self):
         self.ingest()
@@ -392,6 +409,9 @@ class NewsFlowTests(unittest.TestCase):
             self.assertEqual(status, 200); self.assertNotIn('etag', body['sources'][0])
             status, body = await request('GET', prefix + '/items?mode=included&include=IRAN&limit=1')
             self.assertEqual(status, 200); self.assertEqual(body['total'], 1)
+            status, body = await request('GET', prefix + '/items?search=oPeC')
+            self.assertEqual(status, 200); self.assertEqual(body['total'], 1)
+            self.assertEqual((await request('GET', prefix + '/items?search=' + 'x'*501))[0], 422)
             for url in ('javascript:bad', 'file:///etc/passwd', 'https://user:pass@example.com/rss'):
                 self.assertEqual((await request('POST', prefix + '/sources', {'name': 'Bad', 'url': url}))[0], 422)
             self.assertEqual((await request('POST', prefix + '/sources', {'name': ' ', 'url': 'https://example.com/rss'}))[0], 422)

@@ -19,9 +19,13 @@ with MT5 disconnected and the panel closed, while the service/computer run.
   Source/date filters run before exact-URL deduplication. All is unfiltered;
   Included requires any Include and no Exclude; Excluded is the complement,
   including unmatched items. Empty Include means no Included items.
+  Optional literal case-insensitive headline search intersects these scopes
+  before counting, deduplication and pagination; SQL metacharacters stay literal.
 - `rules.py`: bounded, cached, literal whole-word/phrase rules with NFKC and
   currency-pair normalization. Up to 500 tags/16000 characters per list; API
   rejects excess rules rather than truncating. Sound and reading share rules.
+  Explicit variants: Japan includes Japanese; Democrat includes Democrats and
+  Democratic. Other keywords keep literal word/phrase boundaries.
   Conservative expectations-candidate detection reads headline/feed text only,
   suppresses obvious post-decision headlines and never extracts implied odds.
   Priority queries combine candidates and persistent per-URL manual stars,
@@ -41,7 +45,7 @@ with MT5 disconnected and the panel closed, while the service/computer run.
   Successful/empty search outcomes cache 15 minutes; forced refresh bypasses
   success caches, never failure backoff. Custom unsupported feeds are named in
   the response. Google results can be incomplete and are not exhaustive archives.
-- `api.py`: sources GET/POST/PUT, items GET (mode/priority), priority PUT, arrivals GET, refresh/history POST.
+- `api.py`: sources GET/POST/PUT, items GET (mode/priority/search), priority PUT, arrivals GET, refresh/history POST.
   Only provider name/HTTP(S) URL required. URL edits clear validators and prime
   the new feed silently; stale in-flight responses are ignored. Existing
   cooldown deadlines remain visible and honoured.

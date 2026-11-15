@@ -76,9 +76,9 @@ def news_router(store, collector):
     def items(source: list[str] = Query(default=[]), include: str = Query(default='', max_length=MAX_RULE_CHARS),
               exclude: str = Query(default='', max_length=MAX_RULE_CHARS), mode: Literal['all', 'included', 'excluded'] = 'all', priority: bool = False,
               start: int | None = None, end: int | None = None, order: Literal['newest', 'oldest'] = 'newest',
-              offset: int = Query(default=0, ge=0), limit: int = Query(default=100, ge=1, le=200)):
+              offset: int = Query(default=0, ge=0), limit: int = Query(default=100, ge=1, le=200), search: str = Query(default='', max_length=500)):
         validate_rules(include, exclude)
-        return store.query(source, include, exclude, start, end, order, offset, limit, mode, priority)
+        return store.query(source, include, exclude, start, end, order, offset, limit, mode, priority, search)
 
     def validate_rules(include, exclude):
         try:

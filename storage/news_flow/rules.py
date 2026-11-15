@@ -6,6 +6,7 @@ import unicodedata
 MAX_KEYWORDS = 500
 MAX_RULE_CHARS = 16000
 _currency = r'(usd|eur|gbp|jpy|chf|cad|aud|nzd|cny|cnh|xau|xag)'
+_variants = {'japan': r'(?:japan|japanese)', 'democrat': r'(?:democrat|democrats|democratic)'}
 
 
 def normalized(value):
@@ -18,7 +19,7 @@ def patterns(value):
     terms = list(dict.fromkeys(part.strip() for part in re.split(r'[,\n]', value) if part.strip()))
     if len(terms) > MAX_KEYWORDS or len(value) > MAX_RULE_CHARS:
         raise ValueError(f'Use at most {MAX_KEYWORDS} keywords and {MAX_RULE_CHARS} characters')
-    return tuple(re.compile(r'(?<!\w)' + re.escape(normalized(term)) + r'(?!\w)') for term in terms)
+    return tuple(re.compile(r'(?<!\w)' + _variants.get(normalized(term), re.escape(normalized(term))) + r'(?!\w)') for term in terms)
 
 
 def matches(title, value):

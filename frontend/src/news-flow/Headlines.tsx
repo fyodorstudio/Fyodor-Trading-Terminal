@@ -10,10 +10,19 @@ import { wildcardDay } from '../wildcards/wildcard-model'
 
 export function Headlines({ items, dated = false }: { items: NewsItem[]; dated?: boolean }) {
   const [settings] = useNewsSettings()
-  return items.map(item => <Headline key={item.id} item={item} dated={dated} settings={settings} />)
+  const [now, setNow] = useState(Date.now)
+  const live = !dated && items.length > 0
+  useEffect(() => {
+    if (!live) return
+    let timer = 0
+    const update = () => { setNow(Date.now()); timer = window.setTimeout(update, 15000) }
+    timer = window.setTimeout(update, 15000)
+    return () => window.clearTimeout(timer)
+  }, [live])
+  return items.map(item => <Headline key={item.id} item={item} dated={dated} settings={settings} now={now} />)
 }
 
-function Headline({ item, dated, settings }: { item: NewsItem; dated: boolean; settings: NewsSettings }) {
+function Headline({ item, dated, settings, now }: { item: NewsItem; dated: boolean; settings: NewsSettings; now: number }) {
   const clock = useDisplayClock()
   const wildcards = useOptionalWildcards(), [pinning, setPinning] = useState(false), [error, setError] = useState('')
   const request = useRef<AbortController | null>(null)
@@ -35,14 +44,14 @@ function Headline({ item, dated, settings }: { item: NewsItem; dated: boolean; s
       details: `${item.title}\n${item.publisher || item.source_name}\n${item.published_at === null ? 'Collected at (publication time unavailable)' : 'Feed publication time (underlying event may be earlier)'}: ${new Date(at).toISOString()}\n${item.summary}` })
   }
   return <article data-news-category={category} style={{ '--news-category': category === 'included' ? settings.includedColor : settings.excludedColor } as CSSProperties}>
-    <a href={item.url} target="_blank" rel="noopener noreferrer">{item.title}</a>
+    <div className="news-row-heading"><a href={item.url} target="_blank" rel="noopener noreferrer">{item.title}</a>
+      <div className="news-row-actions"><button type="button" title="Add Wildcard" aria-label={`Add Wildcard: ${item.title}`} disabled={!wildcards?.snapshot || wildcards.saving} onClick={addWildcard}>✦</button>
+        <button type="button" title={pinned ? 'Remove from Priority' : 'Add to Priority'} aria-label={`${pinned ? 'Unstar' : 'Star'} headline: ${item.title}`} aria-pressed={pinned} disabled={pinning} onClick={() => void togglePin()}>{pinned ? '★' : '☆'}</button></div></div>
     <div className="news-byline"><span>{item.publisher || item.source_name}</span><span>·</span>
       <time dateTime={new Date(item.published_at ?? item.first_seen).toISOString()} title={`${item.published_at === null ? 'First collected: ' : ''}${clock.utc(item.published_at ?? item.first_seen)}`}>
-        {item.published_at === null ? 'Collected at ' : ''}{dated ? clock.utc(item.published_at ?? item.first_seen) : newsAge(item.published_at ?? item.first_seen)}</time></div>
+        {item.published_at === null ? 'Collected at ' : ''}{dated ? clock.utc(item.published_at ?? item.first_seen) : newsAge(item.published_at ?? item.first_seen, now)}</time></div>
     <div className="news-row-labels"><span>{category === 'included' ? `Included · ${included}` : excluded ? `Excluded keyword · ${excluded}` : 'No include match'}</span>
       {item.priority_reason && <span title="Detected from the headline or supplied feed text; verify when the information was available.">Expectations candidate</span>}</div>
-    <div className="news-row-actions"><button type="button" aria-label={`${pinned ? 'Unstar' : 'Star'} headline: ${item.title}`} aria-pressed={pinned} disabled={pinning} onClick={() => void togglePin()}>{pinned ? '★ Starred' : '☆ Priority'}</button>
-      <button type="button" aria-label={`Add Wildcard: ${item.title}`} disabled={!wildcards?.snapshot || wildcards.saving} onClick={addWildcard}>✦ Add Wildcard</button></div>
     {error && <p role="alert">{error}</p>}
   </article>
 }

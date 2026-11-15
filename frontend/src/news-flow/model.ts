@@ -31,7 +31,7 @@ export function saveNewsSettings(settings: NewsSettings) {
 }
 
 // Start/end come from the app's display clock, so date filtering agrees with timestamps.
-export function newsQuery(settings: NewsSettings, sources: NewsSource[], page: number, start: number | null, end: number | null) {
+export function newsQuery(settings: NewsSettings, sources: NewsSource[], page: number, start: number | null, end: number | null, search = '') {
   const query = new URLSearchParams({ mode: settings.mode, include: settings.mode !== 'all' ? settings.include : '', exclude: settings.mode !== 'all' ? settings.exclude : '',
     order: settings.order, offset: String(page * 100), limit: '100' })
   if (settings.hiddenSources.length) {
@@ -40,6 +40,7 @@ export function newsQuery(settings: NewsSettings, sources: NewsSource[], page: n
     if (!visible.length) query.append('source', '__none__')
   }
   if (start !== null && end !== null) { query.set('start', String(start)); query.set('end', String(end)) }
+  if (search.trim()) query.set('search', search.trim())
   return query.toString()
 }
 
@@ -51,8 +52,9 @@ export function validNewsPage(value: unknown): value is NewsPage {
     && /^https?:\/\//.test(item.url) && Number.isFinite(item.first_seen) && (item.published_at === null || Number.isFinite(item.published_at)))
 }
 
-export function newsAge(at: number) {
-  const seconds = Math.max(0, Math.floor((Date.now() - at) / 1000))
+export function newsAge(at: number, now = Date.now()) {
+  if (at - now >= 60000) return 'Future feed timestamp'
+  const seconds = Math.max(0, Math.floor((now - at) / 1000))
   return seconds < 60 ? 'Just now' : seconds < 3600 ? `${Math.floor(seconds / 60)}m ago`
     : seconds < 86400 ? `${Math.floor(seconds / 3600)}h ago` : `${Math.floor(seconds / 86400)}d ago`
 }

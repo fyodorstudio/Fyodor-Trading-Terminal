@@ -4,6 +4,9 @@ import { keywordTags, keywordLimit, keywordCharacters } from './keywords'
 export function KeywordTags({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
   const [draft, setDraft] = useState(''), [error, setError] = useState('')
   const tags = keywordTags(value)
+  const needle = draft.normalize('NFKC').trim().replace(/\s+/g, ' ').toLowerCase()
+  const visible = needle ? tags.filter(tag => tag.toLowerCase().includes(needle)) : tags
+  const duplicate = tags.some(tag => tag.toLowerCase() === needle)
   function add(text = draft) {
     const next = keywordTags([value, text].join(',')), serialized = next.join(', ')
     if (next.length > keywordLimit || serialized.length > keywordCharacters) { setError(`Use at most ${keywordLimit} tags and ${keywordCharacters} characters.`); return }
@@ -12,10 +15,13 @@ export function KeywordTags({ label, value, onChange }: { label: string; value: 
   function keydown(event: KeyboardEvent<HTMLInputElement>) {
     if (event.key === 'Enter' || event.key === ',') { event.preventDefault(); add() }
   }
-  return <div className="news-keyword-editor"><label>{label}<input aria-label={`${label} keyword input`} value={draft} placeholder="Type a word or phrase, then Enter" onChange={event => setDraft(event.target.value)} onKeyDown={keydown}
+  return <div className="news-keyword-editor" onBlur={event => {
+    if (draft.trim() && event.relatedTarget && !event.currentTarget.contains(event.relatedTarget as Node)) add()
+  }}><label>{label}<input aria-label={`${label} keyword input`} value={draft} placeholder="Type a word or phrase, then Enter" onChange={event => { setDraft(event.target.value); setError('') }} onKeyDown={keydown}
     onPaste={event => { const pasted = event.clipboardData.getData('text'); if (/[,\n]/.test(pasted)) { event.preventDefault(); add(draft + pasted) } }} /></label>
-    <button type="button" onClick={() => add()} disabled={!draft.trim()} aria-label={`Add ${label.toLowerCase()} keyword`}>Add tag</button>
-    <div className="news-keyword-tags" aria-label={`${label} keywords`}>{tags.map(tag => <span key={tag.toLowerCase()}>{tag}<button type="button" aria-label={`Remove ${label.toLowerCase()} keyword ${tag}`} onClick={() => { onChange(tags.filter(term => term !== tag).join(', ')); setError('') }}>×</button></span>)}</div>
+    <button type="button" onClick={() => add()} disabled={!draft.trim() || duplicate} aria-label={`Add ${label.toLowerCase()} keyword`}>{duplicate ? 'Already added' : 'Add tag'}</button>
+    {needle && <small role="status">{duplicate ? 'This keyword already exists.' : `${visible.length} existing keywords match your typing.`} Press Enter or Add tag to save a new keyword.</small>}
+    <div className="news-keyword-tags" aria-label={`${label} keywords`}>{visible.map(tag => <span key={tag.toLowerCase()} data-keyword-match={!!needle}>{tag}<button type="button" aria-label={`Remove ${label.toLowerCase()} keyword ${tag}`} onClick={() => { onChange(tags.filter(term => term !== tag).join(', ')); setError('') }}>×</button></span>)}</div>
     <small>{tags.length} / {keywordLimit} tags</small>
     {(error || tags.length > keywordLimit || value.length > keywordCharacters) && <p role="alert">{error || `Use at most ${keywordLimit} tags and ${keywordCharacters} characters.`}</p>}
   </div>

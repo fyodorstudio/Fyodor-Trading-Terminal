@@ -7,23 +7,31 @@ import { useNewsSettings } from './settings'
 import { newsDateBounds } from './date-range'
 import { Headlines, HistoryStatus } from './Headlines'
 import { NewsFilterTabs } from './NewsTabs'
+import { NewsProviderSelector } from './NewsProviderSelector'
 import './news-flow.css'
 
 export const NewsFlowPanel = memo(function NewsFlowPanel({ onClose }: { onClose: () => void }) {
   const [settings, setSettings] = useNewsSettings(), [configuration, setConfiguration] = useState(false)
   const [calendar, setCalendar] = useState(false), [pagination, setPagination] = useState({ scope: '', index: 0 })
+  const [searching, setSearching] = useState(false), [search, setSearch] = useState(''), [searchTerm, setSearchTerm] = useState('')
+  const searchInput = useRef<HTMLInputElement>(null), searchButton = useRef<HTMLButtonElement>(null)
   const [refreshError, setRefreshError] = useState(''), [refreshing, setRefreshing] = useState(false)
   const clock = useDisplayClock(), { sources, error: sourceError, reload } = useNewsSources()
   const scroll = useRef<HTMLDivElement>(null), paused = useRef(false), refreshRequest = useRef<AbortController | null>(null)
   const closeConfiguration = useCallback(() => setConfiguration(false), [])
   const bounds = useMemo(() => settings.date && settings.session ? [settings.session.start, settings.session.end] : newsDateBounds(settings.date, clock.preference), [settings.date, clock.preference, settings.session])
-  const scope = newsQuery(settings, sources, 0, bounds[0], bounds[1])
+  const scope = newsQuery(settings, sources, 0, bounds[0], bounds[1], searchTerm)
   const pageIndex = pagination.scope === scope ? pagination.index : 0
-  const query = newsQuery(settings, sources, pageIndex, bounds[0], bounds[1])
+  const query = newsQuery(settings, sources, pageIndex, bounds[0], bounds[1], searchTerm)
   const { page, pending, error, reveal } = useNewsPage(query, paused)
   const history = useNewsHistory(bounds[0], bounds[1], sources, settings.hiddenSources)
   useEffect(() => { paused.current = false; if (scroll.current) scroll.current.scrollTop = 0 }, [query])
   useEffect(() => () => refreshRequest.current?.abort(), [])
+  useEffect(() => {
+    const timer = window.setTimeout(() => setSearchTerm(search.trim()), 200)
+    return () => window.clearTimeout(timer)
+  }, [search])
+  useEffect(() => { if (searching) searchInput.current?.focus() }, [searching])
   const change = useCallback((value: NewsSettings) => { setSettings(value); setPagination({ scope: '', index: 0 }) }, [setSettings])
   const resize = useRef<{ x: number; width: number } | null>(null)
   async function refresh() {
@@ -36,7 +44,7 @@ export const NewsFlowPanel = memo(function NewsFlowPanel({ onClose }: { onClose:
   }
   const failures = sources.filter(source => source.error)
   const lastSuccess = Math.max(0, ...sources.map(source => source.last_success ?? 0))
-  const filterActive = settings.hiddenSources.length > 0 || settings.mode !== 'all'
+  const filterActive = settings.hiddenSources.length > 0 || settings.mode !== 'all' || !!searchTerm
   return <aside id="news-flow-panel" className="news-flow-panel" aria-label="News Flow" style={{ '--news-width': `${settings.width}px` } as CSSProperties}
     onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); onClose() } }}>
     <div className="news-resize" role="separator" aria-label="Resize News Flow" aria-orientation="vertical" tabIndex={0}
@@ -48,6 +56,10 @@ export const NewsFlowPanel = memo(function NewsFlowPanel({ onClose }: { onClose:
       onLostPointerCapture={() => { resize.current = null }} />
     <header className="news-header"><h2>News Flow</h2>
       <NewsFilterTabs value={settings.mode} onChange={mode => change({ ...settings, mode })} controls="news-items-panel" />
+      <button ref={searchButton} type="button" aria-label="Search news" title="Search headlines" aria-expanded={searching} aria-controls="news-search" aria-pressed={!!searchTerm} onClick={() => { setSearching(value => !value); if (searching) { setSearch(''); setSearchTerm('') } }}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m15 15 6 6"/></svg>
+      </button>
+      <NewsProviderSelector sources={sources} hidden={settings.hiddenSources} onChange={hiddenSources => change({ ...settings, hiddenSources })} />
       <button type="button" aria-label="Filter news by date" aria-expanded={calendar} aria-controls="news-date-filter" aria-pressed={!!settings.date} onClick={() => setCalendar(value => !value)} title="Date filter">📅</button>
       <button type="button" aria-label="Configure News Flow" aria-haspopup="dialog" aria-expanded={configuration} aria-controls="news-configuration" aria-pressed={filterActive} onClick={() => setConfiguration(value => !value)} title="Providers and keywords">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M3 3h8l10 10-8 8L3 11z"/><circle cx="7.5" cy="7.5" r="1"/></svg>
@@ -56,6 +68,10 @@ export const NewsFlowPanel = memo(function NewsFlowPanel({ onClose }: { onClose:
       <button type="button" aria-label="Close News Flow" onClick={onClose} autoFocus>×</button>
     </header>
     {configuration && <NewsConfiguration sources={sources} settings={settings} onChange={change} onSaved={reload} onClose={closeConfiguration} />}
+    {searching && <div id="news-search" className="news-search" onKeyDown={event => {
+      if (event.key === 'Escape') { event.stopPropagation(); setSearching(false); setSearch(''); setSearchTerm(''); searchButton.current?.focus() }
+    }}><input ref={searchInput} type="search" aria-label="Search headlines" maxLength={500} placeholder="Search headlines…" value={search} onChange={event => setSearch(event.target.value)} />
+      <button type="button" aria-label="Clear news search" disabled={!search} onClick={() => { setSearch(''); setSearchTerm(''); searchInput.current?.focus() }}>×</button></div>}
     {(calendar || settings.date) && <div id="news-date-filter" className="news-date-filter"><label>Date<input type="date" aria-label="News publication date" value={settings.date} onChange={event => change({ ...settings, date: event.target.value, session: null })} /></label>
       <button type="button" onClick={() => { change({ ...settings, date: '', session: null }); setCalendar(false) }}>Recent</button><small>{settings.session ? 'Heatmap broker session' : clock.zone}</small></div>}
     <HistoryStatus history={history} />

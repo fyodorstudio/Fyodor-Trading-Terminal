@@ -114,7 +114,7 @@ export function NewsConfiguration({ sources, settings, onChange, onSaved, onClos
               </section><section><fieldset><legend>Keywords · all providers</legend>
                 <KeywordTags label="Include" value={settings.include} onChange={include => onChange({ ...settings, include })} />
                 <KeywordTags label="Exclude" value={settings.exclude} onChange={exclude => onChange({ ...settings, exclude })} />
-                <p>Any Include matches; any Exclude wins. Neither matching means Excluded. Case-insensitive words and phrases; short tags such as AI/Fed match whole words. Currency pairs such as EURUSD also match USD/EUR.</p>
+                <p>Any Include matches; any Exclude wins. Neither matching means Excluded. Case-insensitive words and phrases; AI/Fed match whole words. Japan also matches Japanese; Democrat matches Democrats/Democratic. Currency pairs such as EURUSD also match USD/EUR.</p>
                 <button type="button" onClick={() => {
                   const tags = keywordTags([settings.include, ...starterKeywords].join(',')), include = tags.join(', ')
                   if (tags.length > keywordLimit || include.length > keywordCharacters) setKeywordError(`The combined preset would exceed ${keywordLimit} tags or ${keywordCharacters} characters. Remove some tags first.`)

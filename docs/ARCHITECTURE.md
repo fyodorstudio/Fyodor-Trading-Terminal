@@ -64,6 +64,13 @@ Shared classification is All/Included/Excluded: Include matches without Exclude
 matches are Included; the complement is Excluded, including unmatched titles.
 Colour labels remain in All. Browser tag preferences use word boundaries and
 currency-pair normalization; the matching backend rules live in `rules.py`.
+Explicit Japan/Japanese and Democrat/Democrats/Democratic variants apply to both
+classifiers and alerts. Tag inputs narrow existing labels while typing and save
+pending valid tags when focus moves outside the editor. The panel has a provider
+checkbox selector and debounced literal headline search; source/date/keyword and
+search scopes apply before backend counting/deduplication/pagination. Row actions
+are top-right icons. A separate 15-second UI clock updates relative ages without
+feed changes; future-dated feed timestamps are labelled explicitly.
 A workspace-level listener plays optional built-in keyword sounds using a live
 arrival cursor. Startup snapshots, history imports and duplicate URLs stay silent.
 Provider polling defaults to 1s with per-source overrides and persisted retry

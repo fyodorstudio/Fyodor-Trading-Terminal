@@ -26,10 +26,11 @@ function normalize(value: string) {
   return value.normalize('NFKC').toLowerCase().replace(/\s+/g, ' ').replace(/\b(usd|eur|gbp|jpy|chf|cad|aud|nzd|cny|cnh|xau|xag)[/_-]?(usd|eur|gbp|jpy|chf|cad|aud|nzd|cny|cnh|xau|xag)\b/g, '$1 $2')
 }
 const compiled = new Map<string, { term: string; pattern: RegExp }[]>()
+const variants: Record<string, string> = { japan: '(?:japan|japanese)', democrat: '(?:democrat|democrats|democratic)' }
 export function matchingKeyword(title: string, value: string) {
   let rules = compiled.get(value)
   if (!rules) {
-    rules = keywordTags(value).map(term => ({ term, pattern: new RegExp(`(?<![\\p{L}\\p{N}_])${normalize(term).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\p{L}\\p{N}_])`, 'u') }))
+    rules = keywordTags(value).map(term => ({ term, pattern: new RegExp(`(?<![\\p{L}\\p{N}_])${variants[normalize(term)] ?? normalize(term).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\p{L}\\p{N}_])`, 'u') }))
     if (compiled.size >= 128) compiled.delete(compiled.keys().next().value!)
     compiled.set(value, rules)
   }
