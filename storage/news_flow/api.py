@@ -76,9 +76,11 @@ def news_router(store, collector):
     def items(source: list[str] = Query(default=[]), include: str = Query(default='', max_length=MAX_RULE_CHARS),
               exclude: str = Query(default='', max_length=MAX_RULE_CHARS), mode: Literal['all', 'included', 'excluded'] = 'all', priority: bool = False,
               start: int | None = None, end: int | None = None, order: Literal['newest', 'oldest'] = 'newest',
-              offset: int = Query(default=0, ge=0), limit: int = Query(default=100, ge=1, le=200), search: str = Query(default='', max_length=500)):
+              offset: int = Query(default=0, ge=0), limit: int = Query(default=100, ge=1, le=200), search: str = Query(default='', max_length=500),
+              organizer: Literal['all', 'central-banks', 'expectations', 'starred'] = 'all',
+              currency: Literal['all', 'USD', 'EUR', 'GBP', 'JPY', 'CHF', 'CAD', 'AUD', 'NZD'] = 'all'):
         validate_rules(include, exclude)
-        return store.query(source, include, exclude, start, end, order, offset, limit, mode, priority, search)
+        return store.query(source, include, exclude, start, end, order, offset, limit, mode, priority, search, organizer, currency)
 
     def validate_rules(include, exclude):
         try:
@@ -97,9 +99,10 @@ def news_router(store, collector):
 
     @router.get('/arrivals')
     def arrivals(after: int | None = Query(default=None, ge=0), include: str = Query(default='', max_length=MAX_RULE_CHARS),
-                 exclude: str = Query(default='', max_length=MAX_RULE_CHARS), hidden: list[str] = Query(default=[])):
+                 exclude: str = Query(default='', max_length=MAX_RULE_CHARS), hidden: list[str] = Query(default=[]),
+                 mode: Literal['included', 'all'] = 'included'):
         validate_rules(include, exclude)
-        return store.arrivals(after, include, exclude, hidden)
+        return store.arrivals(after, include, exclude, hidden, mode=mode)
 
     @router.post('/refresh', status_code=202)
     def refresh():

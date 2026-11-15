@@ -19,6 +19,7 @@ from storage.news_flow.feeds import MAX_FEED_BYTES, fetch_feed, parse_feed, pars
 from storage.news_flow.store import NewsStore
 from storage.news_flow.providers import PROVIDERS, PROVIDER_MIGRATION, TREASURY_URL
 from storage.news_flow.rules import matches, patterns, priority_reason
+from storage.news_flow.policy import policy_currencies, policy_details
 from storage.news_flow.history import NewsHistory, historical_url
 
 RSS = b'''<rss version="2.0"><channel><title>Reuters</title>
@@ -219,7 +220,7 @@ class NewsFlowTests(unittest.TestCase):
         add('undated', 'Iran undated story', published_at=None)
         self.store.success(self.source, [{**self.items[0], 'identity': 'historical', 'url': 'https://example.com/history'}], '', '', self.now, update_status=False)
         result = self.store.arrivals(baseline['cursor'], 'IRAN', 'india', now=self.now + 2)
-        self.assertEqual([row['title'] for row in result['items']], ['Iran oil supply changes'])
+        self.assertEqual([row['title'] for row in result['items']], ['Iran oil supply changes', 'Iran undated story'])
         self.assertEqual(self.store.arrivals(result['cursor'], 'iran', now=self.now + 2)['items'], [])
         self.assertEqual(self.store.arrivals(baseline['cursor'], '', now=self.now + 2)['items'], [])
         self.assertEqual(self.store.arrivals(baseline['cursor'], ',\n', now=self.now + 2)['items'], [])
@@ -229,6 +230,96 @@ class NewsFlowTests(unittest.TestCase):
         other = next(source for source in self.store.sources() if source['id'] == identity)
         self.store.success(other, [{**self.items[0], 'identity': 'copy', 'url': 'https://example.com/fresh', 'published_at': self.now}], '', '', self.now + 3)
         self.assertEqual(self.store.arrivals(result['cursor'], 'iran', now=self.now + 4)['items'], [])
+
+    def test_timeline_orders_filters_and_survives_future_dates_refresh_and_restart(self):
+        def add(identity, published, collected):
+            self.store.success(self.source, [{**self.items[0], 'identity': identity, 'url': f'https://example.com/{identity}',
+                                             'published_at': published}], '', '', collected)
+        add('scheduled-speech', self.now + 86400000, self.now - 10800000)
+        add('new-release', self.now - 60000, self.now)
+        add('missing-time', None, self.now - 3600000)
+        expected = ['new-release', 'missing-time', 'scheduled-speech']
+        rows = self.store.query()['items']
+        self.assertEqual([row['identity'] for row in rows], expected)
+        self.assertEqual(rows[-1]['timeline_at'], self.now - 10800000)
+        self.assertEqual(rows[-1]['published_at'], self.now + 86400000, 'Original metadata remains available')
+        add('scheduled-speech', self.now + 86400000, self.now + 2 * 86400000)
+        self.assertEqual([row['identity'] for row in NewsStore(self.root).query()['items']], expected)
+        self.assertEqual([row['identity'] for row in self.store.query(order='oldest')['items']], expected[::-1])
+        self.assertEqual(self.store.query(start=self.now - 120000, end=self.now + 1)['total'], 1)
+        self.assertEqual(self.store.query(start=self.now + 86400000, end=self.now + 86400001)['total'], 0,
+                         'A scheduled announcement belongs to its collection date, not the future event date')
+
+    def test_policy_organization_currency_intersections_and_wording_evidence(self):
+        cases = [
+            ('Fed Waller speaks on monetary policy', '', 'reuters', 'USD'),
+            ('ECB guidance and BoE rate outlook', '', 'reuters', 'EUR GBP'),
+            ('BoJ signals policy change', '', 'reuters', 'JPY'),
+            ('SNB rate decision', '', 'snb', 'CHF'),
+            ('Speech: Edmonton Chamber of Commerce', '', 'boc-speeches', 'CAD'),
+            ('RBA policy statement', '', 'reuters', 'AUD'),
+            ('Reserve Bank of New Zealand holds rates', '', 'reuters', 'NZD'),
+            ('FedEx earnings', '', 'reuters', ''),
+            ('New banknote distribution', '', 'rba-news', ''),
+            ('Sports results', '', 'reuters', ''),
+        ]
+        for title, summary, source, codes in cases:
+            feed_url = 'https://www.bankofcanada.ca/content_type/speeches/feed/' if source == 'boc-speeches' else ''
+            self.assertEqual(' '.join(policy_currencies(title, summary, source, 'https://example.com/news', feed_url)), codes)
+        self.assertEqual(policy_currencies('Sports final', '', 'fed-speeches', 'https://example.com/story', 'https://example.com/feed'), (),
+                         'Editing a starter source to a different feed must not retain its old bank attribution')
+        self.assertEqual(policy_currencies('Monetary policy', '', 'snb', 'https://news.google.com/rss/articles/1',
+                                          'https://news.google.com/rss/search?q=site%3Asnb.ch'), ('CHF',))
+        self.assertEqual(policy_currencies('Monetary policy speech', '', 'custom', 'https://www.bankofcanada.ca/speech'), ('CAD',))
+        self.assertEqual(policy_currencies('Monetary policy speech', '', 'custom', 'https://bankofcanada.ca.fake.com/speech'), ())
+        self.assertEqual(policy_details('Fed hawkish remarks', '', 'reuters', '')['stance'], 'hawkish')
+        self.assertEqual(policy_details('Fed outlook', 'Officials described the policy as dovish.', 'reuters', '')['stance'], 'dovish')
+        self.assertEqual(policy_details('Fed not hawkish', '', 'reuters', '')['stance'], 'unclassified')
+        self.assertEqual(policy_details('Fed less hawkish', '', 'reuters', '')['stance'], 'unclassified')
+        self.assertEqual(policy_details('Fed hawkish, ECB dovish', '', 'reuters', '')['stance'], 'mixed')
+        self.assertEqual(policy_details('Fed cuts rates', '', 'reuters', '')['stance'], 'unclassified', 'Do not infer stance from the action alone')
+        detail = policy_details('Fed outlook', 'Analysts call the remarks dovish.', 'reuters', '')
+        self.assertEqual(detail['stance_evidence'], [{'origin': 'feed summary', 'text': 'Analysts call the remarks dovish.'}])
+        self.ingest()
+        entries = [('policy', 'Fed Waller speech', ''), ('preview', 'RBA preview ahead of rate decision', '80% priced in'),
+                   ('unrelated', 'Football final', '')]
+        self.store.success(self.source, [{**self.items[0], 'identity': identity, 'title': title, 'summary': summary,
+                                          'url': f'https://example.com/{identity}'} for identity, title, summary in entries], '', '', self.now)
+        self.store.pin('https://example.com/unrelated', True)
+        self.assertEqual(self.store.query(priority=True)['total'], 3)
+        self.assertEqual(self.store.query(priority=True, organizer='central-banks')['total'], 2)
+        self.assertEqual(self.store.query(priority=True, organizer='expectations')['total'], 1)
+        self.assertEqual(self.store.query(priority=True, organizer='starred')['total'], 1)
+        page = self.store.query(priority=True, currency='USD', include='never', exclude='Fed', limit=1)
+        self.assertEqual(page['total'], 1)
+        self.assertEqual(page['items'][0]['policy_banks'], [{'currency': 'USD', 'bank': 'Fed'}])
+        self.assertEqual(self.store.query(priority=True, currency='USD', organizer='expectations')['total'], 0)
+        self.assertEqual(self.store.query(priority=True, sources=['__none__'])['total'], 0)
+
+    def test_global_all_alerts_ignore_keywords_but_respect_priming_scope_history_and_age(self):
+        self.ingest()
+        baseline = self.store.arrivals(mode='all', now=self.now)['cursor']
+        def add(identity, title, published, historical=False):
+            self.store.success(self.source, [{**self.items[0], 'identity': identity, 'title': title, 'url': f'https://example.com/{identity}',
+                                             'published_at': published}], '', '', self.now + 1, update_status=not historical)
+        add('unmatched', 'Sports final', self.now)
+        add('excluded', 'India oil trade', self.now)
+        add('undated-all', 'Undated headline', None)
+        add('scheduled-all', 'Scheduled speech announcement', self.now + 86400000)
+        add('stale-all', 'Old article', self.now - 1000000)
+        add('history-all', 'Historical backfill', self.now, historical=True)
+        self.assertEqual(self.store.arrivals(baseline, include='', now=self.now + 2)['items'], [])
+        result = self.store.arrivals(baseline, include='never', exclude='India', now=self.now + 2, mode='all')
+        self.assertEqual([row['identity'] for row in result['items']], ['unmatched', 'excluded', 'undated-all', 'scheduled-all'])
+        self.assertEqual(self.store.arrivals(baseline, hidden=['reuters'], now=self.now + 2, mode='all')['items'], [])
+        self.assertEqual(self.store.arrivals(result['cursor'], now=self.now + 2, mode='all')['items'], [])
+        self.assertEqual(self.store.arrivals(baseline, now=self.now + 1000000, mode='all')['items'], [])
+        # More than a page of eligible headlines must not disappear behind a jumped cursor.
+        self.store.success(self.source, [{**self.items[0], 'identity': f'burst{i}', 'url': f'https://example.com/burst/{i}',
+                                          'published_at': self.now} for i in range(205)], '', '', self.now + 3)
+        page = self.store.arrivals(result['cursor'], now=self.now + 4, mode='all')
+        self.assertEqual(len(page['items']), 200)
+        self.assertEqual(len(self.store.arrivals(page['cursor'], now=self.now + 4, mode='all')['items']), 5)
 
     def test_treasury_parser_and_historical_year_boundary(self):
         entries = parse_treasury(json.dumps({'items': [
@@ -495,11 +586,15 @@ class NewsFlowTests(unittest.TestCase):
             self.assertEqual(status, 200)
             self.assertEqual((await request('PUT', prefix + '/sources/' + body['id'], {'name': 'Bank news', 'url': 'https://example.com/rss2'}))[0], 200)
             self.assertEqual((await request('GET', prefix + '/items?order=broken'))[0], 422)
+            self.assertEqual((await request('GET', prefix + '/items?organizer=broken'))[0], 422)
+            self.assertEqual((await request('GET', prefix + '/items?currency=XYZ'))[0], 422)
             self.assertEqual((await request('GET', prefix + '/items?limit=9999'))[0], 422)
             status, arrivals = await request('GET', prefix + '/arrivals?include=Iran')
             self.assertEqual(status, 200); self.assertEqual(arrivals['items'], [])
             self.assertIsInstance(arrivals['cursor'], int)
             self.assertEqual((await request('GET', prefix + '/arrivals?after=-1'))[0], 422)
+            self.assertEqual((await request('GET', prefix + '/arrivals?mode=broken'))[0], 422)
+            self.assertEqual((await request('GET', prefix + '/arrivals?mode=all'))[0], 200)
             for poll in (0, 3601, 1.5, '300'):
                 self.assertEqual((await request('POST', prefix + '/sources', {'name': 'Bad poll', 'url': 'https://example.com/poll', 'poll_seconds': poll}))[0], 422)
             status, _ = await request('PUT', prefix + '/priority', {'url': self.items[0]['url'], 'pinned': True})

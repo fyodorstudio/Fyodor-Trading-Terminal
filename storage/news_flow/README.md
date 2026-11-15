@@ -35,8 +35,15 @@ with MT5 disconnected and the panel closed, while the service/computer run.
   Democratic. Other keywords keep literal word/phrase boundaries.
   Conservative expectations-candidate detection reads headline/feed text only,
   suppresses obvious post-decision headlines and never extracts implied odds.
-  Priority queries combine candidates and persistent per-URL manual stars,
-  independently of Include/Exclude. Stars sort first; date/source scopes apply.
+  Priority queries combine policy coverage, candidates and persistent per-URL
+  manual stars, independently of Include/Exclude. All / Central banks /
+  Expectations / Starred and currency filters precede counting/paging. Stars
+  sort first; date/source scopes apply.
+- `policy.py`: institution-based policy/currency grouping for eight central
+  banks. Headline/feed-summary hawkish/dovish wording has bounded attributed
+  evidence; mixed or qualified language is distinguished, and missing wording
+  stays unclassified. No official-name roster, article extraction or inferred
+  stance from rate actions.
 - `collector.py`: max four concurrent providers, one request per provider.
   `poll_seconds` defaults to 1, adjustable 1–3600 per provider. `next_fetch_at`,
   `retry_at` and failures persist in SQLite. Success uses the latest interval;
@@ -57,17 +64,21 @@ with MT5 disconnected and the panel closed, while the service/computer run.
   the new feed silently; stale in-flight responses are ignored. Existing
   cooldown deadlines remain visible and honoured.
 
-All times are UTC milliseconds. Undated feed items retain null publication time,
-with clearly labelled first_seen fallback. Local cache persists across restarts
+All times are UTC milliseconds. Raw publication metadata remains unchanged.
+`timeline_at` is publication unless missing or >= first_seen + 60 seconds,
+otherwise stable first_seen. Sort order, date scopes, display and Wildcard drafts
+agree; scheduled dates becoming past do not promote announcements. Local cache persists across restarts
 and has no automatic expiry. Offline SQLite backup/restore includes it.
 
 `arrivals` is a monotonic delivery cursor, not an article-version archive. Only
 new live items from already-primed feeds create arrivals; historical imports,
 first loads, edits and existing article URLs do not. Initial listener requests
-return only the cursor. Later requests apply the same Include/Exclude rules and
-hidden providers, returning up to 200 matches and advancing the cursor atomically.
-Undated or stale (>15min) publications and >1min-future timestamps stay silent.
-Frontend coalesces batches into one sound, and requires publication after the
+return only the cursor. `mode=included` applies Include/Exclude; `mode=all`
+ignores keywords. Both honor hidden providers and return up to 200 eligible
+arrivals; paged batches do not skip remaining matches. Freshness uses timeline_at
+and received_at (15 minutes), with at most one minute clock skew. Undated or
+scheduled live items use first collection, not a claim of release time.
+Frontend coalesces batches into one sound and requires timeline time after the
 listener was enabled. This is a relevance alert, not a volatility prediction.
 
 No new Python dependency, paid API, full-text scraping or backend Wildcard mutation.

@@ -20,7 +20,10 @@ See [the source catalogue](../../../storage/news_flow/SOURCES.md) for coverage.
   the picker directly, without an intermediate collapsible form or Recent button.
   The active-date chip clears the filter while preserving broker-session rules.
 - `NewsConfiguration.tsx`: Browse providers / Priority / Settings modal, named
-  provider tabs, provider polling controls, colours, keywords and sound settings.
+  provider tabs and provider polling controls. Settings separates Global from
+  Providers; global settings have no provider navigation.
+- `NewsGlobalSettings.tsx`: shared keywords/colours and sound trigger
+  Off / Included keywords / All new headlines, sound selection and Preview.
   Portal, inert background and keyboard focus containment; suspends while a
   Wildcard draft is open, retaining date/tab/scroll state when returning.
 - `ProviderBrowser.tsx`: provider or Priority page with independent date, paging
@@ -62,8 +65,12 @@ again. Old Filtered mode migrates to Included. Settings remain browser-local.
 
 ## Priority, dates and sound
 
-Priority lists manually starred links first, then expectations candidates in
-publication order. Candidate detection uses only headline/feed text and is not
+Priority lists manual stars first, then policy/expectations in timeline order.
+All / Central banks / Expectations / Starred filters and eight policy-currency
+buttons run server-side before counting/paging. Currency badges are clickable
+in Priority. Hawkish/dovish/mixed wording is attributed to explicit source text,
+with highlighted excerpts; qualified/missing language stays unclassified.
+No stance is inferred from rate actions, and no buy/sell direction is generated. Candidate detection uses only headline/feed text and is not
 confirmation that information was available before an event. Dates and source
 links remain visible. A targeted free Reuters expectations search supplements
 the broad feed. No article-body extraction, generated probabilities, causal
@@ -73,8 +80,10 @@ tooltips and accessible names. Relative ages update every 15 seconds even when
 responses are identical. Missing/future publication timestamps use first_seen
 for a labelled First collected age, never the provider polling timestamp. The
 tooltip retains exact collection time and any future feed-supplied publication
-time. Stored timestamps, historical date selection and Wildcard drafts retain
-the original semantics.
+time. `newsTimestamp` agrees with the server's timeline_at: publication unless
+missing or at least 60 seconds beyond first_seen, otherwise first_seen. The
+fallback never switches when the scheduled date passes. Display, ordering,
+calendar scopes and Wildcard drafts agree; raw publication metadata is retained.
 
 Calendar dates use the display zone. Heatmap's daily News for this date preserves
 broker-session UTC bounds, including DST, until a manual date edit. Historical
@@ -87,18 +96,21 @@ Provider fetch cadence defaults to 1 second and can be manually overridden
 1-second requests. Publisher cooldowns survive restarts, Refresh and interval
 edits. Hiding a provider affects combined reading/alerts, not collection.
 
-Sound defaults off, offers Chime/Bell/Pulse and Preview, and uses the same word
-rules as Included regardless of the selected tab/date. Initial snapshots,
-provider priming, edits, history imports and duplicate links stay silent. Fresh
-matching arrivals ring once per batch while this terminal is open, including
-with the panel closed. Undated/stale publications stay silent. Browser audio
+Global sound defaults off and offers Included keywords / All new headlines,
+Chime/Bell/Pulse and Preview. Old enabled preferences migrate to keyword mode.
+All ignores keyword rules and works with empty Include. Both honor provider
+visibility regardless of tab/date. Initial snapshots, provider priming, edits,
+history imports and duplicate links stay silent. Recent live arrivals ring once
+per batch, including while the panel is closed. Undated/scheduled items use
+stable first collection; stale publication times remain silent. Browser audio
 requires a user gesture; suspension can delay delivery.
 
 ## Wildcards
 
 Add Wildcard opens the existing editor with title, URL, available feed text and
-publication time. Missing publication time uses first_seen, explicitly labelled
-Collected at, never invented Google indexing time. Save is manual; placement is
+timeline time. Missing/scheduled publication time uses first_seen, explicitly
+labelled Collected at; original scheduled metadata remains in the details.
+No invented Google indexing time. Save is manual; placement is
 automatic. Existing Wildcard chart mapping uses a containing candle or a nearby
 real candle across market gaps (earlier wins ties), retaining original UTC time.
 Very long holes/distant missing history do not snap to an unrelated chart edge.

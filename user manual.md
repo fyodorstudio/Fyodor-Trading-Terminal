@@ -56,37 +56,52 @@ Typing narrows the existing tags and flags duplicates. Moving to another setting
 also saves a pending valid keyword. Japan matches Japanese; Democrat matches
 Democrats/Democratic. These variants also apply to Exclude and sound alerts.
 
-**Priority** combines starred links and automatically flagged expectations
-candidates from visible providers. Use a headline's star button to keep it there.
-Candidates use only headline/supplied feed text, so verify the event and timing
-in the source. Numbers buried inside articles are not extracted. Old previews
-remain dated snapshots, not live odds. Priority is independent of Include/Exclude
-and retains classification colours. A focused Reuters expectations query helps
-retrieve previews alongside the existing free sources.
+**Priority** organizes central-bank policy, expectations candidates and your
+starred links from selected providers. Its All / Central banks / Expectations /
+Starred filters are independent of Include/Exclude and retain relevance colours.
+Currency buttons narrow to the associated central banks; clicking a USD/Fed or
+other bank badge does the same. These badges identify policy coverage, not a
+claim about which instruments will move. Stars sort first.
 
-Settings contains provider editing, polling, visibility, keywords, colours and
-sound. The fetch interval defaults to **1 second** for every provider. Set an
+Hawkish/Dovish/Mixed wording labels quote explicit language in the headline or
+supplied feed summary, with the supporting excerpt highlighted. Qualified or
+missing wording stays unclassified; a rate hike/cut alone does not establish a
+stance or a market surprise. Check the linked source for timing and context.
+No article-body extraction, invented odds or automated trade direction. Old
+expectations previews are dated snapshots, not current pricing.
+
+Settings has **Global** and **Providers** tabs. Global contains keywords,
+colours and the single sound setting for all selected providers. Providers
+contains provider editing, polling and visibility. The fetch interval defaults to **1 second** for every provider. Set an
 individual provider to 60/120/180/300 seconds for 1/2/3/5 minutes, or another value
 up to 3600 seconds, then Save provider. Rate-limit cooldowns remain respected
 through Refresh, interval edits and restarts. Source errors identify retry times.
 **Show this provider** affects the combined reader/alerts without stopping collection.
 
-Sound is off by default. Enable it, choose Chime/Bell/Pulse and use Preview to
-unlock browser audio. New live Include matches ring once per batch unless
-explicitly excluded or from a hidden provider. The selected classification tab
-and historical date do not change sound rules. Startup/history/duplicates stay
-silent; missing/stale publication times also stay silent. Alerts work with the
-panel closed while the terminal page is open.
+In Global, choose the sound trigger: **Off / Included keywords / All new
+headlines**, choose Chime/Bell/Pulse and use Preview to unlock browser audio.
+Included keywords respects Include/Exclude; All new headlines ignores keyword
+rules, including an empty Include list. Both use the selected providers and ring
+once per arriving batch, independent of the displayed tab/date. Startup, first
+provider loads, historical imports and duplicate headlines stay silent. Stale
+publications stay silent; undated/scheduled live arrivals use first collection,
+which does not prove the article was just published. Alerts work with the panel
+closed while the terminal page is open. Existing enabled alerts retain keyword
+mode when upgrading.
 
 The top-right star and **Add Wildcard** icons have hover tooltips. Relative ages
 update even when the feed is unchanged. Missing or future publication times show
 **First collected … ago**, using when the terminal first saw the item. This age
-does not reset on polling and is not the release time. Hover to see the original
-feed-supplied future time, when available, and the exact first-collection time.
+does not reset on polling and is not the release time. Ordering and calendar
+filters use this same timestamp. A time at least one minute beyond first
+collection is treated as scheduled; the fallback remains stable after that
+scheduled date passes. Hover to see the original feed-supplied time and the exact
+first-collection time.
 
 **Add Wildcard** opens the existing editor with title,
-source link, available feed text and publication time. Missing publication times
-use the terminal's first collection time, labelled Collected at. This is not
+source link, available feed text and the timeline timestamp. Missing or scheduled
+publication times use first collection, labelled Collected at; the draft details
+retain an original scheduled timestamp when supplied. This is not
 Google's indexing time or proof of the underlying event's release time.
 Save to place the marker automatically on the containing candle, or nearest
 real candle across a market gap; equal distances choose the earlier candle.

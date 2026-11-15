@@ -1,12 +1,13 @@
 import { keywordTags, starterKeywords } from './keywords'
 export type NewsSource = { id: string; name: string; url: string; last_success: number | null; error: string; poll_seconds?: number; retry_at?: number }
-export type NewsItem = { id: string; source_id: string; source_name: string; publisher: string; title: string; summary: string; url: string; published_at: number | null; first_seen: number; pinned?: boolean | number; priority_reason?: string }
+export type NewsItem = { id: string; source_id: string; source_name: string; publisher: string; title: string; summary: string; url: string; published_at: number | null; first_seen: number; timeline_at?: number; pinned?: boolean | number; priority_reason?: string;
+  policy_banks?: { currency: string; bank: string }[]; stance?: string; stance_evidence?: { origin: string; text: string }[] }
 export type NewsPage = { items: NewsItem[]; total: number }
 export type NewsMode = 'all' | 'included' | 'excluded'
-export type NewsSettings = { hiddenSources: string[]; include: string; exclude: string; mode: NewsMode; presetVersion: number; includedColor: string; excludedColor: string; date: string; session: { start: number; end: number } | null; order: 'newest' | 'oldest'; width: number; soundEnabled: boolean; sound: 'chime' | 'bell' | 'pulse' }
+export type NewsSettings = { hiddenSources: string[]; include: string; exclude: string; mode: NewsMode; presetVersion: number; includedColor: string; excludedColor: string; date: string; session: { start: number; end: number } | null; order: 'newest' | 'oldest'; width: number; soundEnabled: boolean; soundMode: 'included' | 'all'; sound: 'chime' | 'bell' | 'pulse' }
 
 const key = 'fyodor.news-flow.v1'
-const defaults: NewsSettings = { hiddenSources: [], include: starterKeywords.join(', '), exclude: '', mode: 'all', presetVersion: 1, includedColor: '#ef4444', excludedColor: '#737373', date: '', session: null, order: 'newest', width: 380, soundEnabled: false, sound: 'chime' }
+const defaults: NewsSettings = { hiddenSources: [], include: starterKeywords.join(', '), exclude: '', mode: 'all', presetVersion: 1, includedColor: '#ef4444', excludedColor: '#737373', date: '', session: null, order: 'newest', width: 380, soundEnabled: false, soundMode: 'included', sound: 'chime' }
 
 export function readNewsSettings(): NewsSettings {
   try {
@@ -22,7 +23,7 @@ export function readNewsSettings(): NewsSettings {
       date: /^\d{4}-\d{2}-\d{2}$/.test(saved.date) ? saved.date : '',
       session: Number.isFinite(saved.session?.start) && Number.isFinite(saved.session?.end) && saved.session.end > saved.session.start && saved.session.end - saved.session.start <= 36 * 3600_000 ? { start: saved.session.start, end: saved.session.end } : null,
       order: saved.order === 'oldest' ? 'oldest' : 'newest', width: Number.isFinite(saved.width) ? Math.min(640, Math.max(280, saved.width)) : 380,
-      soundEnabled: saved.soundEnabled === true, sound: saved.sound === 'bell' || saved.sound === 'pulse' ? saved.sound : 'chime' }
+      soundEnabled: saved.soundEnabled === true, soundMode: saved.soundMode === 'all' ? 'all' : 'included', sound: saved.sound === 'bell' || saved.sound === 'pulse' ? saved.sound : 'chime' }
   } catch { return { ...defaults } }
 }
 
@@ -49,7 +50,16 @@ export function validNewsPage(value: unknown): value is NewsPage {
   const page = value as NewsPage
   return Number.isSafeInteger(page.total) && page.total >= 0 && Array.isArray(page.items) && page.items.every(item =>
     item && ['id', 'source_id', 'source_name', 'publisher', 'title', 'summary', 'url'].every(key => typeof item[key as keyof NewsItem] === 'string')
-    && /^https?:\/\//.test(item.url) && Number.isFinite(item.first_seen) && (item.published_at === null || Number.isFinite(item.published_at)))
+    && /^https?:\/\//.test(item.url) && Number.isFinite(item.first_seen) && (item.published_at === null || Number.isFinite(item.published_at))
+    && (item.timeline_at === undefined || Number.isFinite(item.timeline_at))
+    && (item.policy_banks === undefined || Array.isArray(item.policy_banks) && item.policy_banks.every(bank => bank && typeof bank.currency === 'string' && typeof bank.bank === 'string'))
+    && (item.stance === undefined || typeof item.stance === 'string')
+    && (item.stance_evidence === undefined || Array.isArray(item.stance_evidence) && item.stance_evidence.every(entry => entry && typeof entry.origin === 'string' && typeof entry.text === 'string')))
+}
+
+// Matches the backend's stable timeline; old responses can omit timeline_at.
+export function newsTimestamp(item: NewsItem) {
+  return item.timeline_at ?? (item.published_at === null || item.published_at - item.first_seen >= 60000 ? item.first_seen : item.published_at)
 }
 
 export function newsAge(at: number, now = Date.now()) {

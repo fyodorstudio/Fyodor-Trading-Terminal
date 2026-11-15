@@ -9,6 +9,11 @@ from uuid import uuid4
 
 from .providers import PROVIDERS, PROVIDER_MIGRATION
 from .rules import matches, priority_reason
+from .policy import policy_currencies, policy_details
+
+# Freeze the fallback against first collection, so a scheduled date never promotes
+# an old announcement when wall-clock time catches up with the feed timestamp.
+TIMELINE = 'CASE WHEN i.published_at IS NULL OR i.published_at-i.first_seen>=60000 THEN i.first_seen ELSE i.published_at END'
 
 
 class NewsStore:
@@ -26,6 +31,7 @@ class NewsStore:
                 db.create_function('casefold', 1, lambda value: value.casefold())
                 db.create_function('news_matches', 2, matches, deterministic=True)
                 db.create_function('news_priority', 2, priority_reason, deterministic=True)
+                db.create_function('news_banks', 5, lambda *args: '|'.join(policy_currencies(*args)), deterministic=True)
                 if not self.initialized:
                     db.executescript('''
                         CREATE TABLE IF NOT EXISTS sources (
@@ -139,7 +145,7 @@ class NewsStore:
             db.execute('INSERT OR REPLACE INTO history_searches VALUES (?,?,?,?,?,?,?,?,?)',
                        (source['id'], source['url'], start, end, now, found, error, retry_at, failures))
 
-    def query(self, sources=(), include='', exclude='', start=None, end=None, order='newest', offset=0, limit=100, mode='all', priority=False, search=''):
+    def query(self, sources=(), include='', exclude='', start=None, end=None, order='newest', offset=0, limit=100, mode='all', priority=False, search='', organizer='all', currency='all'):
         clauses, args = [], []
         if sources:
             clauses.append('i.source_id IN (' + ','.join('?' for _ in sources) + ')')
@@ -148,41 +154,50 @@ class NewsStore:
             condition = '(news_matches(i.title,?)=1 AND news_matches(i.title,?)=0)'
             clauses.append(('NOT ' if mode == 'excluded' else '') + condition)
             args.extend((include, exclude))
+        bank_expression = 'news_banks(i.title,i.summary,i.source_id,i.url,s.url)'
         if priority:
-            clauses.append('(news_priority(i.title,i.summary)<>? OR p.url IS NOT NULL)')
-            args.append('')
+            clauses.append({'central-banks': bank_expression + "<>''", 'expectations': "news_priority(i.title,i.summary)<>''",
+                            'starred': 'p.url IS NOT NULL'}.get(organizer,
+                            "(news_priority(i.title,i.summary)<>'' OR " + bank_expression + "<>'' OR p.url IS NOT NULL)"))
+            if currency != 'all':
+                clauses.append("instr('|'||" + bank_expression + "||'|',?)>0")
+                args.append('|' + currency + '|')
         if search.strip():
             clauses.append('instr(casefold(i.title),casefold(?))>0')
             args.append(search.strip())
         for bound, sign in ((start, '>='), (end, '<')):
             if bound is not None:
-                clauses.append(f'COALESCE(i.published_at,i.first_seen) {sign} ?')
+                clauses.append(f'{TIMELINE} {sign} ?')
                 args.append(bound)
         where = ' WHERE ' + ' AND '.join(clauses) if clauses else ''
         direction = 'ASC' if order == 'oldest' else 'DESC'
         with self.database() as db:
             # Deduplicate overlapping feeds after filtering, preserving per-provider browsing.
-            candidates = 'WITH candidates AS (SELECT i.*,s.name AS source_name,p.url IS NOT NULL AS pinned,ROW_NUMBER() OVER (PARTITION BY i.url ORDER BY i.first_seen,i.id) AS duplicate FROM items i JOIN sources s ON s.id=i.source_id LEFT JOIN pins p ON p.url=i.url' + where + ') '
+            candidates = 'WITH candidates AS (SELECT i.*,' + TIMELINE + ' AS timeline_at,s.name AS source_name,s.url AS source_feed,p.url IS NOT NULL AS pinned,ROW_NUMBER() OVER (PARTITION BY i.url ORDER BY i.first_seen,i.id) AS duplicate FROM items i JOIN sources s ON s.id=i.source_id LEFT JOIN pins p ON p.url=i.url' + where + ') '
             total = db.execute(candidates + 'SELECT count(*) FROM candidates WHERE duplicate=1', args).fetchone()[0]
             rows = db.execute(candidates + 'SELECT *,news_priority(title,summary) AS priority_reason FROM candidates WHERE duplicate=1' +
-                              (' ORDER BY pinned DESC,' if priority else ' ORDER BY ') + f'COALESCE(published_at,first_seen) {direction},id {direction} LIMIT ? OFFSET ?', [*args, limit, offset])
-            return {'items': [{key: value for key, value in dict(row).items() if key != 'duplicate'} for row in rows], 'total': total}
+                              (' ORDER BY pinned DESC,' if priority else ' ORDER BY ') + f'timeline_at {direction},id {direction} LIMIT ? OFFSET ?', [*args, limit, offset])
+            return {'items': [{**{key: value for key, value in dict(row).items() if key not in ('duplicate', 'source_feed')},
+                               **policy_details(row['title'], row['summary'], row['source_id'], row['url'], row['source_feed'])} for row in rows], 'total': total}
 
-    def arrivals(self, after=None, include='', exclude='', hidden=(), now=None):
+    def arrivals(self, after=None, include='', exclude='', hidden=(), now=None, mode='included'):
         now = int(time.time() * 1000) if now is None else now
         with self.database() as db:
             cursor = db.execute('SELECT COALESCE(MAX(sequence),0) FROM arrivals').fetchone()[0]
-            if after is None or not include.strip():
+            if after is None or mode == 'included' and not include.strip():
                 return {'cursor': cursor, 'items': []}
-            clauses = ['a.sequence>?', 'a.sequence<=?', 'i.published_at>=?', 'i.published_at<=?', 'a.received_at>=?']
+            clauses = ['a.sequence>?', 'a.sequence<=?', TIMELINE + '>=?', TIMELINE + '<=?', 'a.received_at>=?']
             args = [after, cursor, now - 900_000, now + 60_000, now - 900_000]
-            clauses.extend(('news_matches(i.title,?)=1', 'news_matches(i.title,?)=0'))
-            args.extend((include, exclude))
+            if mode == 'included':
+                clauses.extend(('news_matches(i.title,?)=1', 'news_matches(i.title,?)=0'))
+                args.extend((include, exclude))
             if hidden:
                 clauses.append('i.source_id NOT IN (' + ','.join('?' for _ in hidden) + ')')
                 args.extend(hidden)
-            rows = db.execute('SELECT i.*,s.name AS source_name FROM arrivals a JOIN items i ON i.id=a.item_id JOIN sources s ON s.id=i.source_id WHERE ' + ' AND '.join(clauses) + ' ORDER BY a.sequence LIMIT 200', args)
-            return {'cursor': cursor, 'items': [dict(row) for row in rows]}
+            rows = db.execute('SELECT i.*,' + TIMELINE + ' AS timeline_at,s.name AS source_name,a.sequence FROM arrivals a JOIN items i ON i.id=a.item_id JOIN sources s ON s.id=i.source_id WHERE ' + ' AND '.join(clauses) + ' ORDER BY a.sequence LIMIT 200', args)
+            items = [dict(row) for row in rows]
+            # A large batch must not skip eligible arrivals beyond this page.
+            return {'cursor': items[-1]['sequence'] if len(items) == 200 else cursor, 'items': items}
 
 
 def backup_news(source, destination):

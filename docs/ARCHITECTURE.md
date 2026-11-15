@@ -67,6 +67,8 @@ coverage, discovery links and limitations. The additive migration preserves
 provider customizations and cached items. RSS/Atom parsing resolves relative
 article URLs against the final feed URL and reads XHTML text constructs.
 News Flow Extended View uses provider tabs plus Browse/Priority/Settings.
+Settings separates Global (keywords, colours, sound) from Providers (URL,
+polling, visibility), with global controls owned by `NewsGlobalSettings.tsx`.
 Shared classification is All/Included/Excluded: Include matches without Exclude
 matches are Included; the complement is Excluded, including unmatched titles.
 Colour labels remain in All. Browser tag preferences use word boundaries and
@@ -78,16 +80,26 @@ checkbox selector and debounced literal headline search; source/date/keyword and
 search scopes apply before backend counting/deduplication/pagination. Row actions
 are top-right icons. A separate 15-second UI clock updates relative ages without
 feed changes; missing/future publication times display labelled first-collection
-ages and retain the feed time in the tooltip. The calendar icon is an overlaid
+ages and retain the feed time in the tooltip. Backend timeline_at and frontend
+newsTimestamp freeze the fallback against first_seen (60-second future tolerance),
+so sorting/date scopes/Wildcard drafts agree and scheduled dates cannot promote
+old announcements. The calendar icon is an overlaid
 native date input, opening directly without a collapsible form; an active date
 chip clears the scope. Provider labels keep their native checkbox activation
 through transient null-focus transitions, and the full row is a padded target.
-A workspace-level listener plays optional built-in keyword sounds using a live
-arrival cursor. Startup snapshots, history imports and duplicate URLs stay silent.
+A workspace-level listener plays optional built-in sounds using a live arrival
+cursor. Global triggers are Off / Included keywords / All new headlines; All
+ignores keyword rules but both honor selected providers. Startup snapshots,
+history imports and duplicate URLs stay silent. Missing/scheduled live timestamps
+use stable first collection; old published items remain silent. Arrival batches
+page without skipping matches.
 Provider polling defaults to 1s with per-source overrides and persisted retry
 and next-fetch deadlines. Refresh/edits/restarts preserve cooldowns. Priority
-combines explicit per-URL SQLite stars and conservative feed-text preview
-candidates; no article-body extraction or generated odds. Headline actions open
+combines explicit per-URL SQLite stars, institution-based policy coverage and
+conservative feed-text previews. `policy.py` owns bank/currency grouping and
+bounded source-wording evidence. All / Central banks / Expectations / Starred and
+currency filters apply before pagination. Stance wording is quoted, with no
+inferred buy/sell direction, article-body extraction or generated odds. Headline actions open
 the existing manual Wildcard editor with original publication time (or labelled
 collection-time fallback). Chart markers bridge nearby market gaps to real
 candles without altering stored event times. Extended modal state is retained
