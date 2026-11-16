@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom'
-import { memo, useCallback, useEffect, useMemo, useState } from 'react'
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { SymbolQuote } from '../market-data/contracts/SymbolQuote'
 import { chartOffsetAt, brokerClockProfile } from '../appearance/time-display/chart-clock'
 import { formatAppTimestamp } from '../appearance/time-display/time-display-preference'
@@ -22,7 +22,7 @@ import { useIntradayHistory } from './useIntradayHistory'
 import './heatmap.css'
 
 const tapeMemory = new Map<string, { left: number; top: number }>()
-const sessions = new Map<string, { date: string; pinned: boolean; year: number }>()
+const sessions = new Map<string, { date: string; pinned: boolean; month: string }>()
 
 // Quote ticks do not invalidate the history, basket calculations or timeline.
 export function HeatmapDock({ symbols, broker, generation, active = true, connected = true, dockActive = active, rankingTarget = null, onCloseRanking, onOpenNews }: { symbols: SymbolQuote[]; broker: string | null; generation: number; active?: boolean; connected?: boolean; dockActive?: boolean; rankingTarget?: HTMLElement | null; onCloseRanking?: () => void; onOpenNews?: (date: string) => void }) {
@@ -43,7 +43,12 @@ const HeatmapContent = memo(function HeatmapContent({ catalogJson, broker, gener
   }, [])
   const brokerToday = () => heatmapDate(clock + (chartOffsetAt(clock, { brokerId: broker, brokerOffsetSeconds: 0 }) ?? 0))
   const [preferences, setPreferences] = useState(() => readHeatmapPreferences(broker ?? ''))
-  const [view, setView] = useState(() => sessions.get(`${broker}:${generation}`) ?? { date: brokerToday(), year: Number(brokerToday().slice(0, 4)), pinned: false })
+  const [view, setView] = useState(() => sessions.get(`${broker}:${generation}`) ?? { date: brokerToday(), month: brokerToday().slice(0, 7), pinned: false })
+  const year = Number(view.month.slice(0, 4)), month = Number(view.month.slice(5, 7))
+  // Wildcard actions need the latest date without invalidating the cached grid
+  // every time hover changes the active ranking period.
+  const viewDate = useRef(view.date)
+  useLayoutEffect(() => { viewDate.current = view.date }, [view.date])
   useEffect(() => {
     sessions.set(`${broker}:${generation}`, view)
     while (sessions.size > 8) sessions.delete(sessions.keys().next().value!)
@@ -54,7 +59,7 @@ const HeatmapContent = memo(function HeatmapContent({ catalogJson, broker, gener
   const wildcardRows = useMemo(() => wildcardHeatmapRows(snapshot?.items ?? [], { brokerId: broker, brokerOffsetSeconds: 0 }), [snapshot?.items, broker])
   const [copied, setCopied] = useState<{ key: string; message: string } | null>(null)
   const [selection, setSelection] = useState<HeatmapSelection | null>(null)
-  const copyScope = eventMode ? `event:${eventWindow.from}:${eventWindow.through}:${eventWindow.anchor}:${eventWindow.minutes}` : `${view.year}:${preferences.mode}`
+  const copyScope = eventMode ? `event:${eventWindow.from}:${eventWindow.through}:${eventWindow.anchor}:${eventWindow.minutes}` : `${view.month}:${preferences.mode}`
   if (selection && selection.scope !== copyScope) setSelection(null)
   const currentSelection = selection?.scope === copyScope ? selection : null
   const copyRange = currentSelection?.kind === 'columns' ? currentSelection : null
@@ -70,12 +75,12 @@ const HeatmapContent = memo(function HeatmapContent({ catalogJson, broker, gener
     setSelection(cells.length ? { ...currentSelection, cells } : null)
   }
   const names = useMemo(() => heatmapRequests(ids, catalog).join('\0'), [ids, catalog])
-  const { data, error: dailyError } = useHeatmapHistory(broker, generation, names, view.year, attempt, connected)
-  const today = data?.today ?? brokerToday(), maxYear = Number(today.slice(0, 4))
+  const { data, error: dailyError } = useHeatmapHistory(broker, generation, names, year, attempt, connected)
+  const today = data?.today ?? brokerToday(), maxMonth = today.slice(0, 7)
   const intraday = useIntradayHistory(broker, generation, names, eventWindow, attempt, eventMode && active && connected)
   const error = eventMode ? (!connected ? 'Broker disconnected. Intraday readings may be stale.' : intraday.error) : dailyError
   const eventClock = eventMode ? clock : 0
-  const periods = useMemo(() => eventMode ? eventPeriods(eventWindow, eventClock) : heatmapPeriods(view.year, preferences.mode, today), [view.year, preferences.mode, today, eventMode, eventWindow, eventClock])
+  const periods = useMemo(() => eventMode ? eventPeriods(eventWindow, eventClock) : heatmapPeriods(year, preferences.mode, today, month), [year, month, preferences.mode, today, eventMode, eventWindow, eventClock])
   const rows = useMemo(() => active ? eventMode ? eventRows(ids, catalog, broker, intraday.data, eventWindow) : buildRows(ids, catalog, broker, data, preferences.mode) : [], [active, buildRows, ids, catalog, broker, data, preferences.mode, eventMode, intraday.data, eventWindow])
   const selected = eventMode ? eventSelected : preferences.mode === 'weekly' ? weekStart(view.date) : view.date
   const copyFrom = copyRange?.from ?? selected, copyThrough = copyRange?.to ?? selected
@@ -92,7 +97,8 @@ const HeatmapContent = memo(function HeatmapContent({ catalogJson, broker, gener
   const effectiveGroup = groups.includes(rankGroup) ? rankGroup : 'All'
   const ranking = useMemo(() => rows.filter(r => effectiveGroup === 'All' || r.group === effectiveGroup).map(row => ({ row, point: row.points.get(selected) }))
     .sort((a, b) => {
-      const metric = (entry: typeof a) => preferences.rank === 'unusual' ? Math.abs(entry.point?.relative ?? NaN) : entry.point?.value ?? NaN
+      const metric = (entry: typeof a) => preferences.rank === 'unusual' ? Math.abs(entry.point?.relative ?? NaN)
+        : preferences.rank === 'largest' ? Math.abs(entry.point?.value ?? NaN) : entry.point?.value ?? NaN
       const left = metric(a), right = metric(b)
       if (!Number.isFinite(left)) return Number.isFinite(right) ? 1 : 0
       if (!Number.isFinite(right)) return -1
@@ -100,8 +106,8 @@ const HeatmapContent = memo(function HeatmapContent({ catalogJson, broker, gener
     }), [rows, effectiveGroup, selected, preferences.rank])
   const changeView = useCallback((date: string, pinned: boolean, focus = false) => {
     setView(old => {
-      const year = focus ? Number(date.slice(0, 4)) : old.year
-      return old.date === date && old.pinned === pinned && old.year === year ? old : { date, pinned, year }
+      const month = focus ? date.slice(0, 7) : old.month
+      return old.date === date && old.pinned === pinned && old.month === month ? old : { date, pinned, month }
     })
     if (focus) setFocusRequest(n => n + 1)
   }, [])
@@ -120,7 +126,7 @@ const HeatmapContent = memo(function HeatmapContent({ catalogJson, broker, gener
   }, [currentSelection, copyScope, rows, periods, eventMode, changeView])
   const clearSelection = useCallback(() => setSelection(null), [])
   const closeManager = useCallback(() => setManager(false), [])
-  const addWildcard = useCallback(() => openNew(undefined, eventMode ? heatmapDate(eventWindow.from) : view.date), [openNew, eventMode, eventWindow.from, view.date])
+  const addWildcard = useCallback(() => openNew(undefined, eventMode ? heatmapDate(eventWindow.from) : viewDate.current), [openNew, eventMode, eventWindow.from])
   const editWildcard = useCallback((_rowId: string, day: string) => {
     const end = preferences.mode === 'weekly' ? heatmapDate(Date.parse(day) + 6 * 86400_000) : day
     const items = (snapshot?.items ?? []).filter(entry => {
@@ -129,7 +135,7 @@ const HeatmapContent = memo(function HeatmapContent({ catalogJson, broker, gener
     })
     openDay(day, items)
   }, [preferences.mode, snapshot?.items, openDay, broker])
-  const manageWildcards = useCallback(() => openDay(view.date, snapshot?.items.filter(entry => !entry.archived) ?? []), [openDay, snapshot?.items, view.date])
+  const manageWildcards = useCallback(() => openDay(viewDate.current, snapshot?.items.filter(entry => !entry.archived) ?? []), [openDay, snapshot?.items])
   async function copyDetails(kind: 'details' | 'research') {
     try {
       const readings = eventMode ? eventChangesText(exportRows, eventWindow, exportFields, preferences.copyFormat, preferences.groupOrder, intraday.data?.observed_at ?? clock/1000, currentSelection ? copyDays : undefined) : heatmapChangesText(exportRows, copyDays, preferences.mode, preferences.groupOrder, today, exportFields)
@@ -140,15 +146,15 @@ const HeatmapContent = memo(function HeatmapContent({ catalogJson, broker, gener
     }
     catch { setCopied({ key: copyKey, message: 'Clipboard unavailable. Try copying again.' }) }
   }
-  function save(next: HeatmapPreferences) {
+  const save = useCallback((next: HeatmapPreferences) => {
     saveHeatmapPreferences(broker ?? '', next)
     setPreferences(next); setSaveError(null)
-  }
-  function option(next: HeatmapPreferences) {
+  }, [broker])
+  const option = useCallback((next: HeatmapPreferences) => {
     try { save(next) } catch { setSaveError('Could not save heatmap preferences. Your previous settings are preserved.') }
-  }
+  }, [save])
   const chosenPeriod = periods.find(p => p.day === selected)
-  const firstCopyDay = periods[0]?.day ?? `${view.year}-01-01`
+  const firstCopyDay = periods[0]?.day ?? `${view.month}-01`
   const lastCopyDay = periods.findLast(period => !period.future)?.day ?? firstCopyDay
   function changeCopyRange(field: 'from' | 'to', value: string) {
     if (!copyRange || !/^\d{4}-\d{2}-\d{2}$/.test(value) || !Number.isFinite(Date.parse(value)) || heatmapDate(Date.parse(value)) !== value) return
@@ -185,12 +191,24 @@ const HeatmapContent = memo(function HeatmapContent({ catalogJson, broker, gener
   const periodControls = <div className="heatmap-segmented" role="group" aria-label="Heatmap period">
     <button type="button" aria-pressed={!eventMode && preferences.mode==='daily'} onClick={()=>{setEventMode(false);option({...preferences,mode:'daily'})}}>Daily</button>
     <button type="button" aria-pressed={!eventMode && preferences.mode==='weekly'} onClick={()=>{setEventMode(false);option({...preferences,mode:'weekly'})}}>Weekly</button>
-    <button type="button" aria-pressed={eventMode} onClick={()=>{setEventMode(true);if(preferences.rank==='unusual')option({...preferences,rank:'highest'})}}>Event window</button>
+    <button type="button" aria-pressed={eventMode} onClick={()=>{setEventMode(true);if(preferences.rank==='unusual')option({...preferences,rank:'largest'})}}>Event window</button>
   </div>
   const eventControls = eventMode && <EventWindowControls key={eventWindow.from+':'+eventWindow.through+':'+eventWindow.anchor+':'+eventWindow.minutes} value={eventWindow} onApply={next=>{setEventWindow(next);setEventSelected('window');setFocusRequest(n=>n+1)}} />
   const dateControl = !eventMode && <label>Date <input aria-label="Heatmap date" type="date" min="2015-01-01" max={today} value={view.date} onChange={e=>{
     const day=e.target.value;if(day>='2015-01-01'&&day<=today&&Number.isFinite(Date.parse(day))){clearSelection();changeView(day,true,true)}
   }}/></label>
+  function changeMonth(next: string) {
+    if (!/^\d{4}-\d{2}$/.test(next) || Number(next.slice(5)) < 1 || Number(next.slice(5)) > 12 || next < '2015-01' || next > maxMonth) return
+    const last = heatmapDate(Date.UTC(Number(next.slice(0, 4)), Number(next.slice(5, 7)), 0))
+    const date = `${next}-${String(Math.min(Number(view.date.slice(8)), Number(last.slice(8)))).padStart(2, '0')}`
+    clearSelection()
+    changeView(date > today ? today : date, true, true)
+  }
+  const monthControls = !eventMode && <div className="heatmap-month-controls" role="group" aria-label="Displayed heatmap month">
+    <button type="button" aria-label="Previous heatmap month" disabled={view.month <= '2015-01'} onClick={() => changeMonth(heatmapDate(Date.UTC(year, month - 2, 1)).slice(0, 7))}>‹</button>
+    <input type="month" aria-label="Heatmap month" min="2015-01" max={maxMonth} value={view.month} onChange={e => changeMonth(e.target.value)} />
+    <button type="button" aria-label="Next heatmap month" disabled={view.month >= maxMonth} onClick={() => changeMonth(heatmapDate(Date.UTC(year, month, 1)).slice(0, 7))}>›</button>
+  </div>
   const exportControls = <div className="heatmap-toolbar-group heatmap-export-controls" role="group" aria-label="Selection and export">
     <span className="heatmap-selection-count" role="status">{currentSelection ? `${selectedCount} ${selectedCount === 1 ? 'cell' : 'cells'} selected` : 'Active period'}</span>
     {currentSelection && <button type="button" onClick={clearSelection} title="Clear selection (Escape)">Clear</button>}
@@ -203,7 +221,7 @@ const HeatmapContent = memo(function HeatmapContent({ catalogJson, broker, gener
     <label>From <input type="date" aria-label="Copy from date" min={firstCopyDay} max={lastCopyDay} value={copyRange.from} onChange={event => changeCopyRange('from', event.target.value)} /></label>
     <label>Through <input type="date" aria-label="Copy through date" min={firstCopyDay} max={lastCopyDay} value={copyRange.to} onChange={event => changeCopyRange('to', event.target.value)} /></label>
     {copyRange.from > copyRange.to ? <span role="alert">From must be on or before Through.</span>
-      : <small>{copyDays.length} {preferences.mode === 'weekly' ? 'weeks' : 'dates'} · {view.year} timeline · Days without readings are omitted.</small>}
+      : <small>{copyDays.length} {preferences.mode === 'weekly' ? 'weeks' : 'dates'} · {view.month} timeline · Days without readings are omitted.</small>}
     <button type="button" onClick={clearSelection}>Clear range</button>
   </div>
   if (!active) return null
@@ -214,9 +232,8 @@ const HeatmapContent = memo(function HeatmapContent({ catalogJson, broker, gener
       <div className="heatmap-toolbar-group" role="group" aria-label="Period and navigation">{periodControls}
       <button type="button" onClick={todayAction}>Today</button>
       {dateControl}
-      {!eventMode && <><button type="button" aria-label="Previous heatmap year" disabled={view.year <= 2015} onClick={() => changeView(`${view.year - 1}-12-31`, true, true)}>‹</button>
-      <span className="heatmap-year">{view.year}</span><button type="button" aria-label="Next heatmap year" disabled={view.year >= maxYear} onClick={() => changeView(`${view.year + 1}-01-01`, true, true)}>›</button>
-      {view.pinned && <button type="button" onClick={() => { clearSelection(); changeView(view.date, false) }}>Unpin date</button>}</>}
+      {monthControls}
+      {!eventMode && view.pinned && <button type="button" onClick={() => { clearSelection(); changeView(view.date, false) }}>Unpin date</button>}
       </div>
       <div className="heatmap-toolbar-group" role="group" aria-label="Heatmap display">{fieldControls}
       <label>Shading <select aria-label="Heatmap shading" disabled={eventMode} value={preferences.shade} onChange={e => option({ ...preferences, shade: e.target.value as HeatmapPreferences['shade'] })}>
@@ -254,7 +271,7 @@ const HeatmapContent = memo(function HeatmapContent({ catalogJson, broker, gener
     </div>
     <div className="heatmap-body">
       {dockActive && <HeatmapTimeline fields={preferences.fields} showWildcards={!eventMode} rows={rows} periods={periods} selected={selected} shade={eventMode ? 'return' : preferences.shade} focusRequest={focusRequest}
-        memory={tapeMemory} memoryKey={`${broker}:${generation}:${eventMode?copyScope:view.year+preferences.mode}:${preferences.fields}`} observedAt={clock / 1000} onHover={hover} onPin={pin}
+        memory={tapeMemory} memoryKey={`${broker}:${generation}:${copyScope}:${preferences.fields}`} observedAt={clock / 1000} onHover={hover} onPin={pin} hoverEnabled={!eventMode && !view.pinned && !currentSelection}
         groupOrder={preferences.groupOrder} collapsed={collapsed} onToggleGroup={toggleGroup}
         selection={currentSelection} onSelectCell={selectCell}
         wildcards={wildcardRows} wildcardsReady={!!wildcards.snapshot}
@@ -266,7 +283,7 @@ const HeatmapContent = memo(function HeatmapContent({ catalogJson, broker, gener
   </section>
     {rankingTarget && createPortal(<div onKeyDown={e=>{if(e.key==='Escape' && !(e.target as HTMLElement).closest('input, select, textarea, [contenteditable="true"]')){e.stopPropagation();if(currentSelection)clearSelection();else onCloseRanking?.()}}} className="heatmap-dock heatmap-ranking-panel" style={{'--heat-fields':preferences.fields.length} as import('react').CSSProperties}>
       <div className="heatmap-toolbar">
-        <div className="heatmap-toolbar-group">{periodControls}<button type="button" onClick={todayAction}>Today</button>{dateControl}</div>
+        <div className="heatmap-toolbar-group">{periodControls}<button type="button" onClick={todayAction}>Today</button>{dateControl}{monthControls}</div>
         <div className="heatmap-toolbar-group">{preferences.rankingView === 'details' && fieldControls}<button type="button" onClick={()=>setManager(true)}>Instruments · {ids.length}</button><button type="button" onClick={()=>setAttempt(n=>n+1)}>Refresh</button></div>
         <details className="heatmap-panel-export"><summary>Research &amp; export</summary>{exportControls}{rangeControls}</details>
       </div>

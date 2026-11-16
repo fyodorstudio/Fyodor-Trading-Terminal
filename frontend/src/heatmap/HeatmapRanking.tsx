@@ -27,6 +27,7 @@ export function HeatmapRanking({ entries, fields, heading, status, groups, group
     <div className="heatmap-ranking-controls">
       <select aria-label="Ranking group" value={group} onChange={e => onGroup(e.target.value)}><option>All</option>{groups.map(g => <option key={g}>{g}</option>)}</select>
       <select aria-label="Rank instruments" value={preferences.rank} onChange={e => onChange({ ...preferences, rank: e.target.value as HeatmapPreferences['rank'] })}>
+        <option value="largest">Largest moves</option>
         <option value="highest">Highest returns</option><option value="lowest">Lowest returns</option><option value="unusual" disabled={eventMode}>Largest unusual moves</option>
       </select>
     </div>

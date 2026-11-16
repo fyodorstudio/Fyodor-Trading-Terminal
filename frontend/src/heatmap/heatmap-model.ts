@@ -15,6 +15,7 @@ export type HeatmapPoint = { value: number | null; relative: number | null; cove
   start: number | null; open: number | null; close: number | null; high: number | null; low: number | null; checkedAt: number | null; reason: string }
 export type HeatmapRow = { id: string; label: string; group: string; checkedAt: number | null; points: Map<string, HeatmapPoint> }
 const dayMs = 86400_000
+const periodDateFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })
 export function heatmapGroup(id: string, broker: string | null) {
   return id.startsWith('basket:') ? 'Currencies · synthetic' : categoryLabels[getSymbolCategory(id.slice(7), broker)]
 }
@@ -28,12 +29,13 @@ export function weekStart(day: string) {
   return heatmapDate(at - ((weekday + 6) % 7) * dayMs)
 }
 
-export function heatmapPeriods(year: number, mode: HeatmapMode, today: string): HeatmapPeriod[] {
-  const result: HeatmapPeriod[] = [], beginning = `${year}-01-01`
+export function heatmapPeriods(year: number, mode: HeatmapMode, today: string, month?: number): HeatmapPeriod[] {
+  const result: HeatmapPeriod[] = [], beginning = heatmapDate(Date.UTC(year, month === undefined ? 0 : month - 1, 1))
   const first = mode === 'weekly' ? weekStart(beginning) : beginning
-  for (let at = Date.parse(first); at < Date.UTC(year + 1, 0, 1); at += dayMs * (mode === 'weekly' ? 7 : 1)) {
+  const through = month === undefined ? Date.UTC(year + 1, 0, 1) : Date.UTC(year, month, 1)
+  for (let at = Date.parse(first); at < through; at += dayMs * (mode === 'weekly' ? 7 : 1)) {
     const day = heatmapDate(at), end = heatmapDate(at + (mode === 'weekly' ? 6 : 0) * dayMs)
-    result.push({ day, end, label: new Date(at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' }),
+    result.push({ day, end, label: periodDateFormatter.format(at),
       partial: day <= today && end >= today, future: day > today })
   }
   return result

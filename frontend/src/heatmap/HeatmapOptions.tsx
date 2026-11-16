@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { heatmapFields, type HeatmapField, type HeatmapRow } from './heatmap-model'
 import type { HeatmapPreferences } from './heatmap-preferences'
 
@@ -7,7 +8,7 @@ export function HeatmapFields({value,onChange,label='Visible fields',disabled=fa
       onChange={()=>onChange(heatmapFields.filter(f=>f===field?!value.includes(f):value.includes(f)))}/>{field}</label>)}</fieldset>
 }
 
-export function HeatmapCopyOptions({preferences,rows,onChange,eventMode,selectionActive=false}:{preferences:HeatmapPreferences;rows:HeatmapRow[];onChange:(next:HeatmapPreferences)=>void;eventMode:boolean;selectionActive?:boolean}) {
+export const HeatmapCopyOptions = memo(function HeatmapCopyOptions({preferences,rows,onChange,eventMode,selectionActive=false}:{preferences:HeatmapPreferences;rows:HeatmapRow[];onChange:(next:HeatmapPreferences)=>void;eventMode:boolean;selectionActive?:boolean}) {
   const chosen=preferences.copyRows??rows.map(r=>r.id)
   return <details className="heatmap-copy-options"><summary>Copy options</summary><div>
     <label><input type="checkbox" aria-label="Match visible fields" checked={preferences.matchFields} onChange={()=>onChange({...preferences,matchFields:!preferences.matchFields})}/>Match visible fields</label>
@@ -25,4 +26,4 @@ export function HeatmapCopyOptions({preferences,rows,onChange,eventMode,selectio
         onChange={()=>onChange({...preferences,copyRows:chosen.includes(row.id)?chosen.filter(id=>id!==row.id):[...chosen,row.id]})}/>{row.label}</label>)}</fieldset>)}
     </fieldset>
   </div></details>
-}
+})

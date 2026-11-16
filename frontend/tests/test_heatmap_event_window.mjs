@@ -99,7 +99,24 @@ try{
   const render=(panel=false)=>React.act(async()=>root.render(React.createElement(DisplayClockProvider,{brokerId:'Pepperstone-Demo',brokerOffsetSeconds:7200,preference:{mode:'fixed-offset',utcOffsetMinutes:420,hour12:true}},
     React.createElement(HeatmapDock,{symbols:catalog,broker:'Pepperstone-Demo',generation:2,active:true,dockActive:!panel,rankingTarget:panel?target:null}))))
   await render()
-  await reply(pending.shift(),{schema:1,source_id:'Pepperstone-Demo',generation:2,year:2026,today:'2026-11-12',observed_at:now/1000,revision:'a'.repeat(64),pending:0,symbols:Object.fromEntries(catalog.map(s=>[s.symbol,{...record,bars:[{...bars[0],close:99,time:Date.parse('2026-11-10')/1000},{...bars[0],time:Date.parse('2026-11-11')/1000},{...bars[1],time:Date.parse('2026-11-12')/1000}]}]))})
+  const dailySymbols=Object.fromEntries(catalog.map(s=>[s.symbol,{...record,bars:[
+    {...bars[0],close:99,time:Date.parse('2026-11-10')/1000},
+    {...bars[0],time:Date.parse('2026-11-11')/1000},
+    {...bars[1],...(s.symbol==='XAUUSD'?{close:96,low:95}:{}),time:Date.parse('2026-11-12')/1000}
+  ]}]))
+  await reply(pending.shift(),{schema:1,source_id:'Pepperstone-Demo',generation:2,year:2026,today:'2026-11-12',observed_at:now/1000,revision:'a'.repeat(64),pending:0,symbols:dailySymbols})
+  assert.equal(host.querySelector('[aria-label="Rank instruments"]').value,'largest','Largest moves is the default ranking')
+  const rankedIds=()=>[...host.querySelectorAll('[data-ranking-row]')].map(node=>node.getAttribute('data-ranking-row'))
+  assert.deepEqual(rankedIds(),['symbol:XAUUSD','symbol:EURUSD'],'A -4% loser ranks above a +2% winner by absolute C return')
+  assert.equal(host.querySelectorAll('.heatmap-ranking-name small').length,0,'Largest moves has no volatility multiplier badge')
+  await click(button('Copy displayed ranking'));assert.doesNotMatch(copied,/×/)
+  assert.ok(copied.indexOf('XAUUSD')<copied.indexOf('EURUSD'),'Copied ranking preserves magnitude order and signed percentages')
+  await change(host.querySelector('[aria-label="Rank instruments"]'),'highest')
+  assert.deepEqual(rankedIds(),['symbol:EURUSD','symbol:XAUUSD'],'Highest returns remains a separate directional sort')
+  await change(host.querySelector('[aria-label="Rank instruments"]'),'unusual')
+  assert.equal(host.querySelectorAll('.heatmap-ranking-name small').length,2,'The original unusualness selector remains available')
+  await change(host.querySelector('[aria-label="Rank instruments"]'),'largest')
+  assert.equal(readHeatmapPreferences('Pepperstone-Demo').rank,'largest')
   for(const field of ['O','H','L'])await check(host.querySelector(`[aria-label="Visible fields ${field}"]`))
   assert.match(host.querySelector('.heatmap-tape').style.gridTemplateColumns,/78px/,'C-only view shrinks the actual date column')
   assert.equal(host.querySelector('.heatmap-cell .heatmap-ohlc').children.length,1)

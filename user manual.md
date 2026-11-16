@@ -222,8 +222,10 @@ left loads more history for comparison. Tick volume counts broker price updates.
 
 ## Heatmap
 
-Open **Heatmap** in the bottom dock. Switch Daily/Weekly, browse dates and
-click a date header to select a column and inspect its ranking. **Instruments** edits the watchlist and order.
+Open **Heatmap** in the bottom dock. Daily/Weekly shows one month at a time;
+use the month picker or previous/next buttons to browse, or jump with Date.
+Weekly columns retain the full weeks overlapping that month. Click a date header
+to select a column and inspect its ranking. **Instruments** edits the watchlist and order.
 **Visible fields** selects O/H/L/C. **Copy Details Only** exports selected readings;
 **Copy Research Prompt** adds currency-focused research instructions for potential
 incomplete repricing, supporting cross-asset evidence, and calculation context.
@@ -233,13 +235,17 @@ whole date columns between the original selection and the clicked date.
 **Clear** or **Escape** clears highlights. Dragging still scrolls the heatmap.
 Highlights determine exactly which readings are copied; **Copy options** controls
 fields and the default instruments used when no cells are highlighted.
-**Copy range** also lets you enter date boundaries. **Event window** provides
+**Copy range** also lets you enter date boundaries within the displayed month.
+Changing months clears highlights. **Event window** provides
 intraday views between selected times; highlights override its default summary
 or candle-sequence export format.
 
 Ranking offers **Details** (O/H/L/C) and **Bars** (net C return), with the same
 remembered choice in the bottom dock and standalone **Heatmap Ranking** panel.
-Bars share a symmetric scale around zero. Sorting by **Largest unusual moves**
+Bars share a symmetric scale around zero. The default **Largest moves** sort ranks
+gainers and losers by the size of their net percentage return, without a multiplier.
+Other sort choices are remembered after this default is introduced.
+Sorting by **Largest unusual moves**
 keeps bars measured in return percent and shows unusualness separately in ×.
 Ranking follows the active period and group, independently of highlighted cells;
 **Copy displayed ranking** copies its visible fields in displayed order.

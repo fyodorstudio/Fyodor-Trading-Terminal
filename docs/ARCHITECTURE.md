@@ -218,6 +218,12 @@ column ranges, independently of the active ranking period. Exports filter each
 row's points to avoid expanding scattered selections into extra readings.
 The dock and standalone panel share the Details/Bars ranking component and a
 broker-scoped view preference; bars always show C on a symmetric return scale.
+Daily/weekly timelines display one calendar month (including overlapping whole
+weeks); year history remains cached for previous-close and volatility baselines.
+Pointer hover coalesces to one update per animation frame, while memoized grid rows
+and copy controls avoid rebuilding cell values, tooltips and instrument filters.
+Largest moves sorts by absolute C return by default, independently of the unusual
+move sort, which uses prior volatility.
 
 ## Alarms
 

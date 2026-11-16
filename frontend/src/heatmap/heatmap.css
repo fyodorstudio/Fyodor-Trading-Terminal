@@ -16,7 +16,9 @@
 .heatmap-dock .heatmap-primary { color: #fff; background: var(--accent); border-color: var(--accent); font-weight: 600; }
 .heatmap-dock .heatmap-primary:hover { background: var(--accent-hover); }
 .heatmap-dock .heatmap-primary:disabled { color: var(--text-muted); background: var(--surface-inset); border-color: var(--border); }
-.heatmap-year, .heatmap-selection-count { font-variant-numeric: tabular-nums; color: var(--text-muted); white-space: nowrap; }
+.heatmap-month-controls { display: inline-flex; align-items: center; gap: 3px; }
+.heatmap-month-controls input { width: 135px; min-width: 0; }
+.heatmap-selection-count { font-variant-numeric: tabular-nums; color: var(--text-muted); white-space: nowrap; }
 .heatmap-selection-count { font-size: 11px; }
 .heatmap-toolbar label { display: flex; align-items: center; gap: 5px; }
 .heatmap-toolbar input[type='date'] { width: 125px; }
