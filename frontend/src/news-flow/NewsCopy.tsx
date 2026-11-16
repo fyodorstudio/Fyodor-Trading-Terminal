@@ -3,7 +3,7 @@ import { exportNews } from './useNewsFlow'
 
 export function NewsCopy({ query, enabled = true, id = 'news-copy' }: { query: string; enabled?: boolean; id?: string }) {
   const params = new URLSearchParams(query)
-  for (const name of ['start', 'end', 'order', 'offset', 'limit']) params.delete(name)
+  for (const name of ['start', 'end', 'order', 'sort_by', 'offset', 'limit']) params.delete(name)
   // Changing a provider/filter cancels the old request and clears its result.
   return <CopyControl key={params.toString()} scope={params.toString()} enabled={enabled} id={id} />
 }

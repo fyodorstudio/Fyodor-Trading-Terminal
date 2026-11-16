@@ -24,9 +24,15 @@ def patterns(value):
     return tuple(re.compile(r'(?<!\w)' + _variants.get(normalized(term), re.escape(normalized(term))) + r'(?!\w)') for term in terms)
 
 
+@lru_cache(maxsize=128)
+def combined_pattern(value):
+    rules = patterns(value)
+    return re.compile('|'.join(pattern.pattern for pattern in rules)) if rules else None
+
+
 def matches(title, value):
-    text = normalized(title)
-    return int(any(pattern.search(text) for pattern in patterns(value)))
+    pattern = combined_pattern(value)
+    return int(bool(pattern and pattern.search(normalized(title))))
 
 
 _event = re.compile(r'\b(fed|fomc|ecb|boe|boj|boc|rba|rbnz|snb|opec|cpi|pce|payrolls|inflation|central bank|interest rates?|rate (?:hike|cut|decision)|treasury|auction)\b', re.I)

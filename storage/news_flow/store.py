@@ -11,7 +11,7 @@ from .providers import PROVIDERS, PROVIDER_MIGRATION, RETIRED
 from .rules import matches, priority_reason
 from .policy import policy_currencies, policy_details
 from .diagnostics import SCHEMA, record_check, snapshot as diagnostic_snapshot
-from .relevance import classify
+from .importance import decision, level
 
 # Freeze the fallback against first collection, so a scheduled date never promotes
 # an old announcement when wall-clock time catches up with the feed timestamp.
@@ -33,7 +33,7 @@ class NewsStore:
                 db.row_factory = sqlite3.Row
                 db.create_function('casefold', 1, lambda value: value.casefold())
                 db.create_function('news_matches', 2, matches, deterministic=True)
-                db.create_function('news_relevant', 7, lambda *args: int(classify(*args)['included']), deterministic=True)
+                db.create_function('news_level', 8, level, deterministic=True)
                 db.create_function('news_priority', 2, priority_reason, deterministic=True)
                 db.create_function('news_banks', 5, lambda *args: '|'.join(policy_currencies(*args)), deterministic=True)
                 if not self.initialized:
@@ -184,16 +184,17 @@ class NewsStore:
             db.execute('INSERT OR REPLACE INTO history_searches VALUES (?,?,?,?,?,?,?,?,?)',
                        (source['id'], source['url'], start, end, now, found, error, retry_at, failures))
 
-    def query(self, sources=(), include='', exclude='', start=None, end=None, order='newest', offset=0, limit=100, mode='all', priority=False, search='', organizer='all', currency='all', headlines_only=False, market_relevance=False):
+    def query(self, sources=(), include='', exclude='', start=None, end=None, order='newest', offset=0, limit=100, mode='all', priority=False, search='', organizer='all', currency='all', headlines_only=False, market_relevance=False, sort_by='published'):
         clauses, args = [], []
         if sources:
             clauses.append('i.source_id IN (' + ','.join('?' for _ in sources) + ')')
             args.extend(sources)
-        if mode in ('included', 'excluded'):
-            condition = '(news_relevant(i.title,i.source_id,i.url,s.url,?,?,?)=1)'
-            clauses.append(('NOT ' if mode == 'excluded' else '') + condition)
+        if mode in ('included', 'excluded', 'priority'):
+            clauses.append('news_level(i.title,i.source_id,i.url,s.url,?,?,?,p.url IS NOT NULL)=' + str({'excluded': 0, 'included': 1, 'priority': 2}[mode]))
             args.extend((include, exclude, market_relevance))
         bank_expression = 'news_banks(i.title,i.summary,i.source_id,i.url,s.url)'
+        # Compatibility for old research links. Current reading tabs use
+        # mode=priority and news_level above, never these broad organizer scopes.
         if priority:
             clauses.append({'central-banks': bank_expression + "<>''", 'expectations': "news_priority(i.title,i.summary)<>''",
                             'starred': 'p.url IS NOT NULL'}.get(organizer,
@@ -210,6 +211,7 @@ class NewsStore:
                 args.append(bound)
         where = ' WHERE ' + ' AND '.join(clauses) if clauses else ''
         direction = 'ASC' if order == 'oldest' else 'DESC'
+        sort_column = 'first_seen' if sort_by == 'collected' else 'timeline_at'
         with self.database() as db:
             # Deduplicate overlapping feeds after filtering, preserving per-provider browsing.
             candidates = 'WITH candidates AS (SELECT i.*,' + TIMELINE + ' AS timeline_at,s.name AS source_name,s.url AS source_feed,p.url IS NOT NULL AS pinned,ROW_NUMBER() OVER (PARTITION BY i.url ORDER BY i.first_seen,i.id) AS duplicate FROM items i JOIN sources s ON s.id=i.source_id LEFT JOIN pins p ON p.url=i.url' + where + ') '
@@ -217,12 +219,12 @@ class NewsStore:
             if headlines_only:
                 if total > MAX_EXPORT_ITEMS:
                     raise OverflowError(f'More than {MAX_EXPORT_ITEMS:,} headlines match. Choose a shorter range or fewer providers.')
-                rows = db.execute(candidates + f'SELECT title,url FROM candidates WHERE duplicate=1 ORDER BY timeline_at {direction},id {direction}', args)
+                rows = db.execute(candidates + f'SELECT title,url FROM candidates WHERE duplicate=1 ORDER BY {sort_column} {direction},id {direction}', args)
                 return {'items': [dict(row) for row in rows], 'total': total}
             rows = db.execute(candidates + 'SELECT *,news_priority(title,summary) AS priority_reason FROM candidates WHERE duplicate=1' +
-                              (' ORDER BY pinned DESC,' if priority else ' ORDER BY ') + f'timeline_at {direction},id {direction} LIMIT ? OFFSET ?', [*args, limit, offset])
+                              (' ORDER BY pinned DESC,' if priority else ' ORDER BY ') + f'{sort_column} {direction},id {direction} LIMIT ? OFFSET ?', [*args, limit, offset])
             return {'items': [{**{key: value for key, value in dict(row).items() if key not in ('duplicate', 'source_feed')},
-                               **({'relevance': classify(row['title'], row['source_id'], row['url'], row['source_feed'], include, exclude, True)} if market_relevance else {}),
+                               'relevance': decision(row['title'], row['source_id'], row['url'], row['source_feed'], include, exclude, market_relevance, row['pinned']),
                                **policy_details(row['title'], row['summary'], row['source_id'], row['url'], row['source_feed'])} for row in rows], 'total': total}
 
     def export_headlines(self, **scope):
@@ -236,21 +238,22 @@ class NewsStore:
         now = int(time.time() * 1000) if now is None else now
         with self.database() as db:
             cursor = db.execute('SELECT COALESCE(MAX(sequence),0) FROM arrivals').fetchone()[0]
-            if after is None or mode == 'included' and not include.strip() and not market_relevance:
+            if after is None:
                 return {'cursor': cursor, 'items': []}
             # Live discovery, not publication age. A feed may expose an article
             # long after publication. Backfills never enter this table.
             clauses = ['a.sequence>?', 'a.sequence<=?', 'a.received_at>=?']
             args = [after, cursor, now - 900_000]
             if mode == 'included':
-                clauses.append('news_relevant(i.title,i.source_id,i.url,s.url,?,?,?)=1')
+                # Included delivery covers both relevant levels; tabs are disjoint.
+                clauses.append('news_level(i.title,i.source_id,i.url,s.url,?,?,?,p.url IS NOT NULL)>0')
                 args.extend((include, exclude, market_relevance))
             if hidden:
                 clauses.append('i.source_id NOT IN (' + ','.join('?' for _ in hidden) + ')')
                 args.extend(hidden)
-            rows = db.execute('SELECT i.*,' + TIMELINE + ' AS timeline_at,s.name AS source_name,s.url AS source_feed,a.sequence,a.received_at FROM arrivals a JOIN items i ON i.id=a.item_id JOIN sources s ON s.id=i.source_id WHERE ' + ' AND '.join(clauses) + ' ORDER BY a.sequence LIMIT 200', args)
+            rows = db.execute('SELECT i.*,' + TIMELINE + ' AS timeline_at,s.name AS source_name,s.url AS source_feed,p.url IS NOT NULL AS pinned,a.sequence,a.received_at FROM arrivals a JOIN items i ON i.id=a.item_id JOIN sources s ON s.id=i.source_id LEFT JOIN pins p ON p.url=i.url WHERE ' + ' AND '.join(clauses) + ' ORDER BY a.sequence LIMIT 200', args)
             items = [{**{key: value for key, value in dict(row).items() if key != 'source_feed'},
-                      **({'relevance': classify(row['title'], row['source_id'], row['url'], row['source_feed'], include, exclude, True)} if market_relevance else {})} for row in rows]
+                      'relevance': decision(row['title'], row['source_id'], row['url'], row['source_feed'], include, exclude, market_relevance, row['pinned'])} for row in rows]
             # A large batch must not skip eligible arrivals beyond this page.
             return {'cursor': items[-1]['sequence'] if len(items) == 200 else cursor, 'items': items}
 

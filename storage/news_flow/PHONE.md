@@ -14,7 +14,7 @@ private local phone service. No Docker, paid API or public ntfy account is neede
    Add this user for that server in ntfy if the app requests authentication.
 5. Allow Android notifications; keep ntfy **Instant delivery** enabled. If Android
    restricts its background connection, allow the app's background/battery access.
-6. Choose **Included keywords** or **All new headlines** for Phone trigger, then
+6. Choose **Included headlines** or **All new headlines** for Phone trigger, then
    press **Send test notification**. Confirm receipt on the actual phone.
 7. Open **Phone news page** in your phone browser. Use the same reader login.
    Bookmark it or add a home-screen shortcut. Notification taps open the publisher
@@ -62,7 +62,7 @@ create alerts. Service/listener startup establishes a silent baseline. Enabling
 phone alerts does not replay items collected while off. Rule edits keep the cursor.
 
 The backend polls arrivals every 0.5 seconds and coalesces a batch into one ntfy
-notification (up to ten headline/link previews, count retained). Failed publishing
+notification (up to eight compact previews, count retained). Failed publishing
 keeps the cursor and retries after five seconds; arrivals older than 15 minutes
 are not replayed. A request acknowledged by ntfy is **sent**, not confirmed receipt
 on the handset. A network timeout after acceptance can result in a duplicate retry.
@@ -95,3 +95,19 @@ The one-time preset revision 3 migration preserves custom terms, exclusions,
 selected providers and Off. Enabled old All profiles switch to Included; users
 can explicitly choose All again afterward. Local backups retain prior settings.
 No ntfy subscription or login changes are required. See [RELEVANCE.md](RELEVANCE.md).
+
+
+## Compact notification content
+
+`notification_format.py` owns the plain-text payload. Single cards put the full
+headline once in the title (UTF-8 bounded to 1000 bytes); the body has source,
+Priority/Included/Excluded level and explicit UTC publication/collection times.
+Unknown/future publication times are labelled unavailable. Raw links are kept
+in click/view actions, never repeated in the body. Single-story taps open the
+article; batches open the LAN reader when its runtime address is available.
+Open article / Open News Flow view actions provide labelled destinations.
+Batches preserve one notification/sound and preview at most eight headlines.
+Bodies stay below 4096 bytes and titles below 1024 bytes; no URL shortener or
+extra network lookup is needed. Earlier saved ntfy cards are not rewritten.
+Android urgency remains unchanged and is separate from the market-attention tier.
+Included delivery includes Priority + Included; Off/All and credentials are retained.

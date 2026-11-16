@@ -83,7 +83,9 @@ def phone_app(directory, assets, setup, executable=None, config=None):
         base = os.environ.get('FYODOR_STORAGE_API_URL', 'http://127.0.0.1:8002').rstrip('/')
         upstream = UrlRequest(f'{base}/api/v1/news-flow/{action}?{request.url.query}')
         try:
-            with urlopen(upstream, timeout=10) as response:
+            # A newly edited relevance profile can classify the full local cache
+            # on its first request; warm queries reuse bounded compiled/results caches.
+            with urlopen(upstream, timeout=30) as response:
                 return Response(response.read(16 * 1024 * 1024), media_type='application/json',
                                 headers={'Cache-Control': 'no-store'})
         except HTTPError as error:

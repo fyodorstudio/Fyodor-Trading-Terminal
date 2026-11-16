@@ -1,0 +1,1 @@
+from storage.news_flow.tests.test_attention import NewsAttentionTests

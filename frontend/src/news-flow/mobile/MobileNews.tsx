@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
-import { newsQuery, newsTimestamp, delayedCollection, headlineClassification } from '../model'
+import { newsQuery, newsTimestamp, delayedCollection, headlineClassification, headlineTier } from '../model'
 import { useNewsSettings } from '../settings'
 import { useNewsPage, useNewsSources } from '../useNewsFlow'
 import { NewsProviderSelector } from '../NewsProviderSelector'
 import { NewsFilterTabs } from '../NewsTabs'
 import { NewsCopy } from '../NewsCopy'
+import { NewsSort } from '../NewsSort'
 
 export function MobileNews() {
   const [settings, change] = useNewsSettings(), { sources, error: sourceError } = useNewsSources()
@@ -36,10 +37,10 @@ export function MobileNews() {
     const [year, month, day] = date.split('-').map(Number)
     start = new Date(year, month - 1, day).getTime(); end = new Date(year, month - 1, day + 1).getTime()
   }
-  const scope = newsQuery({ ...settings, order: 'newest' }, sources, 0, start, end, term)
+  const scope = newsQuery(settings, sources, 0, start, end, term)
   const [previousScope, setPreviousScope] = useState(scope)
   if (previousScope !== scope) { setPreviousScope(scope); setIndex(0) }
-  const query = newsQuery({ ...settings, order: 'newest' }, sources, index, start, end, term)
+  const query = newsQuery(settings, sources, index, start, end, term)
   const { page, error, pending, reveal } = useNewsPage(query, paused)
   useEffect(() => { paused.current = false; if (scroll.current) scroll.current.scrollTop = 0 }, [query])
   return <main className="news-mobile">
@@ -50,8 +51,9 @@ export function MobileNews() {
         <label>Date<input aria-label="Phone news date" type="date" value={date} onChange={event => setDate(event.target.value)} /></label>
         {date && <button type="button" onClick={() => setDate('')}>Clear date</button>}
         <NewsCopy query={scope} enabled={sources.length > 0} id="phone-news-copy" /></div>
+      <NewsSort settings={settings} onChange={change} />
       <input type="search" aria-label="Search phone headlines" placeholder="Search headlines…" value={search} onChange={event => setSearch(event.target.value)} maxLength={500} />
-      <small>Dates and times use your phone timezone. Date searches show headlines already collected on your PC.</small>
+      <small>Calendar: publication date · Phone timezone. Searches use headlines already collected on your PC.</small>
     </section>
     {(error || sourceError) && <p role="alert">{error || sourceError}</p>}
     {pending && <button className="news-new-items" type="button" onClick={() => { paused.current = false; if (scroll.current) scroll.current.scrollTop = 0; reveal() }}>Updated headlines · show latest</button>}
@@ -59,13 +61,14 @@ export function MobileNews() {
       {!page && !error && <p>Connecting to your PC…</p>}
       {page?.items.map(item => {
         const relevance = headlineClassification(item, settings)
+        const tier = headlineTier(item, settings)
         const at = newsTimestamp(item)
         const collected = item.published_at === null || at !== item.published_at
-        return <article key={item.id} style={{ borderLeftColor: relevance.included ? settings.includedColor : settings.excludedColor }}>
+        return <article key={item.id} data-news-category={tier} style={{ borderLeftColor: tier !== 'excluded' ? settings.includedColor : settings.excludedColor }}>
           <a href={item.url} target="_blank" rel="noopener noreferrer">{item.title}</a>
           <p>{item.publisher || item.source_name} · {collected ? 'First collected ' : 'Published '}<time dateTime={new Date(at).toISOString()}>{new Date(at).toLocaleString()}</time>
-            {delayedCollection(item) && <> · Collected <time dateTime={new Date(item.first_seen).toISOString()}>{new Date(item.first_seen).toLocaleString()}</time></>}</p>
-          <small>{relevance.reason}</small>
+            {!collected && (delayedCollection(item) || settings.sortBy === 'collected') && <> · Collected <time data-sort-time={settings.sortBy === 'collected'} dateTime={new Date(item.first_seen).toISOString()}>{new Date(item.first_seen).toLocaleString()}</time></>}</p>
+          <small>{tier === 'priority' ? `Priority · ${item.relevance?.priority_reason || 'Manually starred'}` : relevance.reason}</small>
         </article>
       })}
       {page && !page.items.length && <p>No collected headlines match this view.</p>}

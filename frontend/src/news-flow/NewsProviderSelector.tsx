@@ -28,7 +28,7 @@ export function NewsProviderSelector({ sources, hidden, onChange }: { sources: N
   }} onKeyDown={event => {
     if (event.key === 'Escape' && open) { event.stopPropagation(); setOpen(false); trigger.current?.focus() }
   }}>
-    <button ref={trigger} type="button" aria-label="Select news providers" title={`Providers: ${count} of ${sources.length} shown`} aria-expanded={open} aria-controls="news-visible-providers" aria-pressed={count < sources.length} onClick={() => setOpen(value => !value)}>
+    <button ref={trigger} type="button" aria-label="Select news providers" title={`Providers: ${count} of ${sources.length} shown`} aria-expanded={open} aria-controls="news-visible-providers" data-filtered={count < sources.length} onClick={() => setOpen(value => !value)}>
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M4 5h16M4 12h16M4 19h16"/><path d="m6 3 3 2-3 2m8 3 3 2-3 2m-8 3 3 2-3 2"/></svg>
     </button>
     {open && <div id="news-visible-providers" className="news-provider-options" role="group" aria-label="Visible news providers">

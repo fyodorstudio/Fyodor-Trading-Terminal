@@ -33,7 +33,7 @@ that filter.
 The copy icon beside the right-panel paging buttons, and beside the date controls
 in Extended View, opens **Copy headlines and links**. Choose Last 1 hour/day or a
 custom number of hours/days, then Copy. The range ends now; a day means 24 hours.
-It uses that view's provider, classification, search and Priority/currency filters
+It uses that view's provider, classification and search filters
 across all matching pages, newest first. It replaces the calendar date with the
 rolling range and copies collected news only; it does not fetch missing history.
 The clipboard contains only each headline and its link, separated by blank lines.
@@ -42,7 +42,7 @@ select the provided text and copy manually. More than 10,000 matching headlines
 requires a shorter range or narrower filters; results are never silently cut off.
 
 The tag button opens **News Flow Extended View**, a wide centered modal with
-**Browse providers / Priority / Settings** tabs. Named provider tabs replace the
+**Browse providers / Settings** tabs. Named provider tabs replace the
 dropdown and arrows. Browse has its own date and Recent control; it does not
 change the combined right panel's date. Provider tabs scroll horizontally.
 
@@ -57,7 +57,7 @@ in their provider names. After restarting storage, the upgrade adds the new
 sources while preserving your provider settings, cached headlines and keywords.
 See the [source catalogue](storage/news_flow/SOURCES.md) for exact coverage.
 
-**All / Included / Excluded** classify headlines in either reader. All shows
+**All / Priority / Included / Excluded** classify headlines in either reader. All shows
 everything in the selected provider/date scope. **Trading relevance** in Global
 settings is enabled by default. It focuses Included on eight currencies, Brent,
 gold/silver and stock-index drivers. Broad terms such as Trump, Japan, earnings,
@@ -79,19 +79,19 @@ Typing narrows the existing tags and flags duplicates. Moving to another setting
 also saves a pending valid keyword. Japan matches Japanese; Democrat matches
 Democrats/Democratic. These variants also apply to Exclude and sound alerts.
 
-**Priority** organizes central-bank policy, expectations candidates and your
-starred links from selected providers. Its All / Central banks / Expectations /
-Starred filters are independent of Include/Exclude and retain relevance colours.
-Currency buttons narrow to the associated central banks; clicking a USD/Fed or
-other bank badge does the same. These badges identify policy coverage, not a
-claim about which instruments will move. Stars sort first.
+**Priority** shows strong attention candidates and your manually starred links.
+**Included** shows other relevant material with unknown importance; **Excluded**
+shows irrelevant material. The three tabs are separate. A central-bank mention or
+ordinary forecast does not automatically become Priority. A short label explains
+why a headline was promoted. Explicit Exclude still wins. Priority is not a
+prediction of volatility, direction or a suitable trade entry.
 
-Hawkish/Dovish/Mixed wording labels quote explicit language in the headline or
-supplied feed summary, with the supporting excerpt highlighted. Qualified or
-missing wording stays unclassified; a rate hike/cut alone does not establish a
-stance or a market surprise. Check the linked source for timing and context.
-No article-body extraction, invented odds or automated trade direction. Old
-expectations previews are dated snapshots, not current pricing.
+The sort selector offers **Newest collected / Oldest collected / Newest published /
+Oldest published** on desktop and phone. Newest collected is the default so late
+feed discoveries appear first. Repeated polling does not reset collection time.
+Both timestamps remain visible; the calendar still means publication date, and
+Wildcard drafts retain publication time. Missing/future dates use labelled fallback.
+Copy's rolling window continues to use publication time, irrespective of sorting.
 
 Settings has **Global** and **Providers** tabs. Global contains keywords,
 colours and the single sound setting for all selected providers. Providers
@@ -104,7 +104,7 @@ through Refresh, interval edits and restarts. Source errors identify retry times
 The **bell immediately right of Search** opens headline alarms and phone setup.
 The same controls appear in Global. Choose **Off / Included headlines / All new
 headlines**, Chime/Bell/Pulse and Preview / enable audio. Included headlines
-respects Include/Exclude; All ignores keyword rules. Both use selected providers,
+covers both Priority and Included; All ignores keyword rules. Both use selected providers,
 independent of displayed tab/date. New collection can alert even when publication
 was earlier. Startup snapshots, first provider loads, historical imports, edits
 and known URLs stay silent. Blocked audio is shown as waiting, with one coalesced
@@ -308,3 +308,10 @@ older entries. Existing manual News and wildcard notes migrate automatically.
 
 Entry Trade stores manual plans, notes, pins and journal entries. Saved plans can
 be archived or restored. Journals remain in their existing application data directory.
+
+Phone notifications show each headline once, without raw Google News URLs in the
+body. Open article opens a single story; Open News Flow opens your authenticated
+phone reader. Batches show a count and up to eight compact previews, with the rest
+available in the reader. Publication and collection times are explicit UTC; Android
+notification urgency is separate from the market Priority label. Existing ntfy
+subscriptions and credentials need no change. Old notification cards are unchanged.

@@ -7,15 +7,15 @@ direction, probability or trade-entry prediction. No article bodies or AI calls.
 
 ## One decision, all delivery paths
 
-`relevance.py` is the authority. `relevance.json` owns the editable seed (471
+`relevance.py` decides relevance; `importance.py` decides the reading tier. `relevance.json` owns the editable seed (471
 terms), aliases, context patterns, trusted institutional domains and observed
 speaker aliases. `rules.py` keeps literal matching and normalization. Frontend
 imports the same JSON for editable tags and literal aliases; it never implements
 a second contextual classifier.
 
-- SQL classification runs before count/paging for Included and Excluded, including
+- SQL classification runs before count/paging for Priority, Included and Excluded, including
   copied results. All still returns all matching provider/date/search rows.
-- Responses carry `relevance: {included, reason, keyword}`. Desktop/mobile use that
+- Responses carry `relevance: {included, reason, keyword, tier, priority_reason}`. Desktop/mobile use that
   result for colour/reason labels, including official releases with no literal hit.
 - Desktop sounds request the current scope from storage. Rule changes abort stale
   requests and keep the cursor. Blocked playback holds its cursor for at most one
@@ -88,3 +88,30 @@ including the observed Swiss GDP/equity/speech misses, cross-asset exceptions an
 noise cases. It verifies reader/export/arrivals/phone agreement, trusted-source
 boundaries and migration. The frontend relevance suite verifies migration, server
 labels, aliases, sync, stale-response rejection and cursor continuity.
+
+## Attention levels and chronology
+
+Priority / Included / Excluded are disjoint reading/export scopes. The boolean
+included means relevant at either Priority or Included level; Included alarms
+select both. Explicit Exclude overrides stars. Other manual stars can promote
+research outside automatic relevance. Automatic Priority requires relevance and
+explicit headline evidence of a rate decision, policy change, intervention, data
+surprise, supply disruption, systemic stress, a major geopolitical development,
+or quantified policy expectations. Preview/question/speculation guards keep
+ordinary commentary at Included. A vague official speech is protected for relevance,
+not automatically high importance. No article-body inference is introduced.
+
+Routine low-level trading appointments, promotional/how-to stories and generic
+fund retrospectives have narrow noise guards. Index-company CEO and AI leadership
+changes remain eligible. Avoid blanket country/personnel/company exclusions.
+
+sort_by=collected uses immutable first_seen; published uses stable timeline_at.
+Both support newest/oldest and stable ID ties. Date predicates and export windows
+remain publication-based, with the existing missing/future fallback. URL dedup
+chooses the earliest collection in the selected provider scope before ordering.
+Legacy priority/organizer/currency research query parameters remain for older
+clients; current UI uses mode=priority and this shared tier contract.
+
+`tests/test_attention.py` verifies tier boundaries, previews, manual stars,
+reader/export/phone agreement, stable collection sorts, duplicate fetches,
+publication date scopes, API validation and bounded ntfy formatting.

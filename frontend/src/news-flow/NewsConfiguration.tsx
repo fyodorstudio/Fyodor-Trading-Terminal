@@ -75,14 +75,13 @@ export function NewsConfiguration({ sources, settings, onChange, onSaved, onClos
       }}>
       <header><strong>News Flow Extended View</strong><button type="button" aria-label="Close news configuration" onClick={onClose}>×</button></header>
       <NewsTabs label="News Flow configuration tabs" value={tab} onChange={setTab} controls="news-config-panel"
-        items={[{ id: 'browse', label: 'Browse providers' }, { id: 'priority', label: 'Priority' }, { id: 'settings', label: 'Settings' }]} />
+        items={[{ id: 'browse', label: 'Browse providers' }, { id: 'settings', label: 'Settings' }]} />
       <div id="news-config-panel" className="news-config-panel" role="tabpanel" aria-labelledby={`news-config-panel-${tab}-tab`}>
         {tab === 'settings' && <NewsTabs label="News settings sections" value={settingsTab} onChange={setSettingsTab} controls="news-settings-panel"
           items={[{ id: 'global', label: 'Global' }, { id: 'providers', label: 'Providers' }]} />}
         {(tab === 'browse' || tab === 'settings' && settingsTab === 'providers') && <NewsTabs label="News providers" value={activeId} onChange={selectProvider} controls="news-source-panel"
           items={[...sources.map(source => ({ id: source.id, label: source.name })), { id: 'new', label: 'Add provider' }]} />}
-        {tab === 'priority' ? <ProviderBrowser key="priority" sources={sources} priority date={browseDate} onDateChange={setBrowseDate} />
-          : <div id={tab === 'settings' ? 'news-settings-panel' : 'news-source-panel'} className="news-source-panel" role="tabpanel"
+        <div id={tab === 'settings' ? 'news-settings-panel' : 'news-source-panel'} className="news-source-panel" role="tabpanel"
             aria-labelledby={tab === 'settings' ? `news-settings-panel-${settingsTab}-tab` : `news-source-panel-${activeId}-tab`}>
             {tab === 'browse' ? <ProviderBrowser sources={sources} selectedId={source?.id} date={browseDate} onDateChange={setBrowseDate} />
               : settingsTab === 'global' ? <NewsGlobalSettings settings={settings} onChange={onChange} />
@@ -105,7 +104,7 @@ export function NewsConfiguration({ sources, settings, onChange, onSaved, onClos
                 </form>
                 {source && <NewsFetchDiagnostics key={source.id} source={source.id} />}
               </section></div>}
-          </div>}
+          </div>
       </div>
     </div>
   </div>, document.body)

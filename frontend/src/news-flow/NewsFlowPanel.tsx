@@ -11,6 +11,7 @@ import { NewsProviderSelector } from './NewsProviderSelector'
 import { NewsDateFilter } from './NewsDateFilter'
 import { NewsCopy } from './NewsCopy'
 import { NewsAlarmButton } from './NewsAlarm'
+import { NewsSort } from './NewsSort'
 import './news-flow.css'
 
 export const NewsFlowPanel = memo(function NewsFlowPanel({ onClose }: { onClose: () => void }) {
@@ -59,17 +60,17 @@ export const NewsFlowPanel = memo(function NewsFlowPanel({ onClose }: { onClose:
       onLostPointerCapture={() => { resize.current = null }} />
     <header className="news-header"><h2>News Flow</h2>
       <NewsFilterTabs value={settings.mode} onChange={mode => change({ ...settings, mode })} controls="news-items-panel" />
-      <button ref={searchButton} type="button" aria-label="Search news" title="Search headlines" aria-expanded={searching} aria-controls="news-search" aria-pressed={!!searchTerm} onClick={() => { setSearching(value => !value); if (searching) { setSearch(''); setSearchTerm('') } }}>
+      <button ref={searchButton} type="button" aria-label="Search news" title="Search headlines" aria-expanded={searching} aria-controls="news-search" data-filtered={!!searchTerm} onClick={() => { setSearching(value => !value); if (searching) { setSearch(''); setSearchTerm('') } }}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m15 15 6 6"/></svg>
       </button>
       <NewsAlarmButton />
       <NewsProviderSelector sources={sources} hidden={settings.hiddenSources} onChange={hiddenSources => change({ ...settings, hiddenSources })} />
       <NewsDateFilter settings={settings} zone={clock.zone} onChange={change} />
-      <button type="button" aria-label="Configure News Flow" aria-haspopup="dialog" aria-expanded={configuration} aria-controls="news-configuration" aria-pressed={filterActive} onClick={() => setConfiguration(value => !value)} title="Providers and keywords">
+      <button type="button" aria-label="Configure News Flow" aria-haspopup="dialog" aria-expanded={configuration} aria-controls="news-configuration" onClick={() => setConfiguration(value => !value)} title="Providers and keywords">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M3 3h8l10 10-8 8L3 11z"/><circle cx="7.5" cy="7.5" r="1"/></svg>
       </button>
-      <select aria-label="News sort order" value={settings.order} onChange={event => change({ ...settings, order: event.target.value as 'newest' | 'oldest' })}><option value="newest">Newest</option><option value="oldest">Oldest</option></select>
-      <button type="button" aria-label="Close News Flow" onClick={onClose} autoFocus>×</button>
+      <NewsSort settings={settings} onChange={change} />
+      <button type="button" className="news-close" aria-label="Close News Flow" onClick={onClose} autoFocus>×</button>
     </header>
     {configuration && <NewsConfiguration sources={sources} settings={settings} onChange={change} onSaved={reload} onClose={closeConfiguration} />}
     {searching && <div id="news-search" className="news-search" onKeyDown={event => {
@@ -87,7 +88,7 @@ export const NewsFlowPanel = memo(function NewsFlowPanel({ onClose }: { onClose:
       {page && !page.items.length && <p className="news-message">{filterActive ? 'No headlines match these filters.'
         : history.loading ? 'No saved headlines for this date yet.' : settings.date ? 'No headlines available for this date.' : 'Waiting for the first headlines.'}</p>}
     </div>
-    <footer className="news-footer"><div><button type="button" aria-label="Refresh news" disabled={refreshing} onClick={() => void refresh()}>↻</button><span>{page?.total ?? 0} headlines</span>
+    <footer className="news-footer"><div><button type="button" aria-label="Refresh news" disabled={refreshing} onClick={() => void refresh()}>↻</button><span>{page?.total ?? 0} headlines{filterActive ? ' · Filtered' : ''}</span>
       <button type="button" disabled={!pageIndex} onClick={() => setPagination({ scope, index: pageIndex - 1 })}>Previous</button>
       <button type="button" disabled={!page || (pageIndex + 1) * 100 >= page.total} onClick={() => setPagination({ scope, index: pageIndex + 1 })}>Next</button>
       <NewsCopy query={scope} enabled={sources.length > 0} /></div>

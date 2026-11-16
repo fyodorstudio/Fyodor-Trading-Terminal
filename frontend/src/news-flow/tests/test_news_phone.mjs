@@ -81,6 +81,19 @@ try {
   let query = new URL(pending('/items').url, 'http://localhost').searchParams
   assert.equal(Number(query.get('start')), new Date(2026, 10, 9).getTime())
   assert.equal(Number(query.get('end')), new Date(2026, 10, 10).getTime())
+  assert.equal(control('News sort order').value, 'newest-collected')
+  const originalStart=query.get('start'), originalEnd=query.get('end')
+  await change('News sort order','oldest-published')
+  query=new URL(pending('/items').url,'http://localhost').searchParams
+  assert.equal(query.get('sort_by'),'published'); assert.equal(query.get('order'),'oldest')
+  assert.equal(query.get('start'),originalStart); assert.equal(query.get('end'),originalEnd)
+  await click('Priority')
+  query=new URL(pending('/items').url,'http://localhost').searchParams
+  assert.equal(query.get('mode'),'priority')
+  const priority={...headline,relevance:{included:true,tier:'priority',reason:'Included · Japan',keyword:'Japan',priority_reason:'Reported currency intervention'}}
+  await reply(pending('/items'),{items:[priority],total:1})
+  assert.equal(host.querySelector('article').dataset.newsCategory,'priority')
+  assert.match(host.textContent,/Priority · Reported currency intervention/)
   assert.ok(requests.slice(before).every(request => !request.method || request.method === 'GET'), 'Phone browsing only reads the API')
   assert.equal(pending('/history'), undefined, 'Phone dates do not initiate external historical searches')
   await React.act(async () => root.render(null))

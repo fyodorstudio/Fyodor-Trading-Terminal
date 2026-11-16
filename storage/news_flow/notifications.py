@@ -5,6 +5,7 @@ from threading import Event, RLock, Thread
 import time
 from urllib.request import Request, urlopen
 from .relevance import migrate_include
+from .notification_format import payload
 
 
 def publish(setup, payload):
@@ -124,14 +125,11 @@ class NewsNotifier:
                 setup = self.setup()
                 items = page['items']
                 first = items[0]
-                lines = [f"{item['title']}\n{item['url']}" for item in items[:10]]
-                message = '\n\n'.join(lines)
-                # ntfy's default message limit is 4096 bytes. Keep UTF-8 intact.
-                message = message.encode()[:3800].decode('utf-8', errors='ignore')
-                if len(items) > 10:
-                    message += f"\n\n+{len(items)-10} more headlines in News Flow."
-                self.sender(setup, {'topic': setup['topic'], 'title': first['title'][:180],
-                                    'message': message, 'click': first['url'], 'priority': 4})
+                try:
+                    reader = json.loads((self.root / 'address.json').read_text(encoding='utf-8')).get('reader', '')
+                except (FileNotFoundError, ValueError):
+                    reader = ''
+                self.sender(setup, payload(items, setup['topic'], reader))
                 self.last_sent = {'at': int(time.time() * 1000), 'count': len(items),
                                   'title': first['title'], 'url': first['url'],
                                   'received_at': first['received_at'], 'published_at': first['published_at']}

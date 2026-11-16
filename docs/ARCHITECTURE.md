@@ -73,7 +73,7 @@ be displayed beside publication without changing timeline order. The isolated
 diagnostics module retains 24-hour minute summaries and collector heartbeats;
 new live discoveries keep a previous-check timestamp. No feed-body archive or
 claim of access to paid institutional wires is introduced.
-News Flow Extended View uses provider tabs plus Browse/Priority/Settings.
+News Flow Extended View uses provider tabs plus Browse/Settings.
 Settings separates Global (keywords, colours, sound) from Providers (URL,
 polling, visibility), with global controls owned by `NewsGlobalSettings.tsx`.
 Shared classification is All/Included/Excluded. Trading relevance defaults on;
@@ -93,7 +93,7 @@ are top-right icons. A separate 15-second UI clock updates relative ages without
 feed changes; missing/future publication times display labelled first-collection
 ages and retain the feed time in the tooltip. Backend timeline_at and frontend
 newsTimestamp freeze the fallback against first_seen (60-second future tolerance),
-so sorting/date scopes/Wildcard drafts agree and scheduled dates cannot promote
+so publication sorting/date scopes/Wildcard drafts agree and scheduled dates cannot promote
 old announcements. The calendar icon is an overlaid
 native date input, opening directly without a collapsible form; an active date
 chip clears the scope. Provider labels keep their native checkbox activation
@@ -108,7 +108,7 @@ All matching rows are copied newest first; >10,000 is rejected without truncatio
 The local cache is exported without historical backfill. Browser clipboard denial
 leaves selectable plain text; cancellation/scope changes cannot copy stale data.
 A workspace-level listener plays optional built-in sounds using a live arrival
-cursor. Global triggers are Off / Included keywords / All new headlines; All
+cursor. Global triggers are Off / Included headlines / All new headlines; All
 ignores keyword rules but both honor selected providers. Startup snapshots,
 history imports and duplicate URLs stay silent. Missing/scheduled live timestamps
 use stable first collection. New live discoveries alert even with older publication
@@ -121,12 +121,14 @@ read endpoints are proxied. Its ntfy child (8004) has separate read/write accoun
 The startup helper validates checkout ownership, verifies the pinned official binary
 on download and scopes the firewall to the routed LAN. See storage/news_flow/PHONE.md.
 Provider polling defaults to 1s with per-source overrides and persisted retry
-and next-fetch deadlines. Refresh/edits/restarts preserve cooldowns. Priority
-combines explicit per-URL SQLite stars, institution-based policy coverage and
-conservative feed-text previews. `policy.py` owns bank/currency grouping and
-bounded source-wording evidence. All / Central banks / Expectations / Starred and
-currency filters apply before pagination. Stance wording is quoted, with no
-inferred buy/sell direction, article-body extraction or generated odds. Headline actions open
+and next-fetch deadlines. Refresh/edits/restarts preserve cooldowns.
+The current reading tabs are All/Priority/Included/Excluded. importance.py owns
+conservative headline attention rules and stars, after relevance.py exclusions.
+Included alarms cover Priority plus Included. No separate organizer/currency or
+stance UI remains. Newest/Oldest published/collected ordering is shared on PC and
+phone; date/copy windows and Wildcards stay on publication timeline. Compact ntfy
+cards keep destinations in actions, print each headline once and label both times.
+Headline actions open
 the existing manual Wildcard editor with original publication time (or labelled
 collection-time fallback). Chart markers bridge nearby market gaps to real
 candles without altering stored event times. Extended modal state is retained

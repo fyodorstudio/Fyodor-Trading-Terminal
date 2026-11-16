@@ -29,16 +29,16 @@ See [the source catalogue](../../../storage/news_flow/SOURCES.md) for coverage.
 - `NewsDateFilter.tsx`: calendar icon with a full-area native date input. Opens
   the picker directly, without an intermediate collapsible form or Recent button.
   The active-date chip clears the filter while preserving broker-session rules.
-- `NewsConfiguration.tsx`: Browse providers / Priority / Settings modal, named
+- `NewsConfiguration.tsx`: Browse providers / Settings modal, named
   provider tabs and provider polling controls. Settings separates Global from
   Providers; global settings have no provider navigation. Portal, inert
   background and keyboard focus containment; suspends while a Wildcard draft
   is open, retaining date/tab/scroll state when returning.
 - `NewsGlobalSettings.tsx`: shared keywords/colours and sound trigger
-  Off / Included keywords / All new headlines, sound selection and Preview.
-- `ProviderBrowser.tsx`: provider or Priority page with independent date, paging
-  and on-demand history. Provider browsing can inspect hidden providers; Priority
-  combines visible providers independently of Include/Exclude classification.
+  Off / Included headlines / All new headlines, sound selection and Preview.
+- `ProviderBrowser.tsx`: per-provider browsing with independent date, classification,
+  paging and on-demand history. Browsing can inspect hidden providers.
+- `NewsSort.tsx`: shared four-choice publication/collection ordering on PC and phone.
 - `NewsFetchDiagnostics.tsx`: lazy provider check summaries and collector run/heartbeat evidence.
 - `Headlines.tsx`: coloured rows, classification reasons, candidate labels,
   persistent Priority star requests and prefilled manual Wildcard drafts.
@@ -86,16 +86,20 @@ again. Old Filtered mode migrates to Included. Settings remain browser-local.
 
 ## Priority, dates and sound
 
-Priority lists manual stars first, then policy/expectations in timeline order.
-All / Central banks / Expectations / Starred filters and eight policy-currency
-buttons run server-side before counting/paging. Currency badges are clickable
-in Priority. Hawkish/dovish/mixed wording is attributed to explicit source text,
-with highlighted excerpts; qualified/missing language stays unclassified.
-No stance is inferred from rate actions, and no buy/sell direction is generated. Candidate detection uses only headline/feed text and is not
-confirmation that information was available before an event. Dates and source
-links remain visible. A targeted free Reuters expectations search supplements
-the broad feed. No article-body extraction, generated probabilities, causal
-analysis or instrument-return badges are implemented. Pins live in SQLite.
+The reading tabs are All / Priority / Included / Excluded. Priority and Included
+are disjoint: `importance.py` combines relevance with conservative headline-only
+attention rules and manual stars. A bank mention or forecast alone is insufficient.
+Each candidate has a reason; no importance, volatility or direction guarantee.
+Explicit Exclude wins even over a manual star. Included delivery covers both
+relevant tiers, independently of the displayed tab. There is no separate Priority
+page, institution/expectations subtabs, currency filtering or stance UI.
+
+Sorting is Newest/Oldest collected/published, defaulting to Newest collected for
+old settings without a sortBy. First collection is immutable across repeat checks;
+URL deduplication uses the earliest row within the selected provider scope.
+Calendar bounds, rolling copy windows and Wildcard drafts still use the stable
+publication timeline with missing/future-time fallback. Ordering never changes
+those windows. The chosen collection timestamp is emphasized on each row.
 Star and Add Wildcard are icon-only actions at the top right of each row, with
 tooltips and accessible names. Relative ages update every 15 seconds even when
 responses are identical. Missing/future publication timestamps use first_seen
@@ -103,12 +107,12 @@ for a labelled First collected age, never the provider polling timestamp. The
 tooltip retains exact collection time and any future feed-supplied publication
 time. `newsTimestamp` agrees with the server's timeline_at: publication unless
 missing or at least 60 seconds beyond first_seen, otherwise first_seen. The
-fallback never switches when the scheduled date passes. Display, ordering,
+fallback never switches when the scheduled date passes. Display, publication sorting,
 calendar scopes and Wildcard drafts agree; raw publication metadata is retained.
 Valid publication/collection gaps of at least a minute show both ages (or absolute
 dates in dated views). The Collected tooltip keeps exact first_seen and, for newly
 discovered live items, the previous successful source check. Old rows/backfills
-have unknown prior-check evidence. These additions never change chronology.
+have unknown prior-check evidence. The sort selector controls chronology explicitly.
 Provider settings lazily query /diagnostics: bounded minute summaries and collector
 starts/heartbeats distinguish healthy checks, HTTP 304, 429, errors and run gaps.
 No response bodies are stored and historical feed availability is not inferred.
@@ -124,7 +128,7 @@ Provider fetch cadence defaults to 1 second and can be manually overridden
 1-second requests. Publisher cooldowns survive restarts, Refresh and interval
 edits. Hiding a provider affects combined reading/alerts, not collection.
 
-Global sound defaults off and offers Included keywords / All new headlines,
+Global sound defaults off and offers Included headlines / All new headlines,
 Chime/Bell/Pulse and Preview. Old enabled preferences migrate to keyword mode.
 All ignores keyword rules and works with empty Include. Both honor provider
 visibility regardless of tab/date. Initial snapshots, provider priming, headline edits,
@@ -157,3 +161,8 @@ Chart tooltips retain original time and identify nearest-candle display.
 Run: `pnpm --dir frontend test -- test_news_flow test_news_controls test_news_phone test_news_relevance test_wildcards test_heatmap_wildcards test_terminal_responsiveness`.
 Backend: `storage/news_flow/`. Shared Wildcard editor/marker changes stay in
 `frontend/src/wildcards/`; shell/Heatmap connections remain small.
+
+Settings use rectangular keyword tags and bordered sections. Last-alert content
+has a bounded scroll area. Menu buttons highlight when expanded; filtering and
+enabled-sound states use small indicators rather than persistent selected colour.
+Keyboard focus uses focus-visible. Visual verification remains a manual user check.

@@ -23,8 +23,8 @@ export function NewsAlarmControls({ settings, onChange }: { settings: NewsSettin
     <button type="button" aria-label="Preview news sound" onClick={() => void enableNewsSound().then(ok => setPreviewError(ok && playNewsSound(settings.sound) ? '' : 'Audio unavailable in this browser.'))}>Preview / enable audio</button>
     <p role="status">{settings.soundEnabled ? status.ready ? 'Audio ready' : 'Audio needs a click to enable' : 'Desktop sound off'}{status.pending ? ` · ${status.pending} waiting` : ''}</p>
     {(previewError || status.error) && <p role="alert">{previewError || status.error}</p>}
-    <p>Included headlines uses the reader’s relevance decision, including protected official releases. All new headlines ignores relevance and keywords. Initial loading, historical imports and repeat headlines stay silent. Alerts follow collection, even if publication was earlier.</p>
-    {status.last && <div><strong>{status.last.played ? 'Last sound' : 'Last alert · sound blocked'} · {clock.utc(status.last.at)}</strong>
+    <p>Included headlines alerts on both Priority and Included. Priority is an attention label, not a volatility guarantee. All new headlines ignores relevance and keywords. Initial loading, historical imports and repeat headlines stay silent. Alerts follow collection, even if publication was earlier.</p>
+    {status.last && <div className="news-last-alert"><strong>{status.last.played ? 'Last sound' : 'Last alert · sound blocked'} · {clock.utc(status.last.at)}</strong>
       {status.last.items.map(item => <p key={item.id}><a href={item.url} target="_blank" rel="noopener noreferrer">{item.title}</a><br />
         Collected {clock.utc(item.received_at ?? item.first_seen)}{item.published_at !== null ? ` · Feed publication ${clock.utc(item.published_at)}` : ' · Publication time unavailable'}</p>)}</div>}
   </fieldset>
@@ -79,7 +79,7 @@ export function PhoneNewsSettings({ settings }: { settings: NewsSettings }) {
     <label>Phone trigger<select aria-label="Phone news trigger" disabled={!status || busy} value={status?.mode ?? 'off'} onChange={event => void save(event.target.value as PhoneStatus['mode'])}>
       <option value="off">Off</option><option value="included">Included headlines</option><option value="all">All new headlines</option>
     </select></label>
-    <p>Uses desktop keywords and selected providers. Keeps working when this browser closes, while the PC and dev:all services remain running. Phone sound is controlled in Android/ntfy.</p>
+    <p>Uses desktop rules and selected providers. Included headlines covers Priority + Included. Works while the PC and services run; Android/ntfy controls phone sound.</p>
     {status?.connection ? <>
       <p>In ntfy, add a subscription using your own server:</p>
       <label>Server<input aria-label="ntfy server" readOnly value={status.connection.server} onFocus={event => event.currentTarget.select()} /></label>
@@ -110,7 +110,7 @@ export function NewsAlarmButton() {
     if (event.key === 'Escape' && open) { event.stopPropagation(); setOpen(false); trigger.current?.focus() }
   }} onBlur={event => { if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget as Node)) setOpen(false) }}>
     <button ref={trigger} type="button" aria-label="Headline alarms" title="Headline alarms and phone setup" aria-expanded={open} aria-controls="news-alarm-options"
-      aria-pressed={settings.soundEnabled} data-attention={status.pending > 0} onClick={() => { setOpen(value => !value); if (settings.soundEnabled) void enableNewsSound() }}>
+      data-enabled={settings.soundEnabled} data-attention={status.pending > 0} onClick={() => { setOpen(value => !value); if (settings.soundEnabled) void enableNewsSound() }}>
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" /></svg>
     </button>
     {open && <div className="news-alarm-options" id="news-alarm-options" role="group" aria-label="Headline alarm settings">

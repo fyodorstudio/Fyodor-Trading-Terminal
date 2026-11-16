@@ -25,7 +25,7 @@ async def request(app, method, path, body=None, login=None):
     async def send(message):
         messages.append(message)
     await app({'type': 'http', 'http_version': '1.1', 'scheme': 'http', 'method': method,
-               'path': path, 'query_string': b'', 'headers': headers,
+               'path': path.partition('?')[0], 'query_string': path.partition('?')[2].encode(), 'headers': headers,
                'client': ('127.0.0.1', 1), 'server': ('test', 80)}, receive, send)
     return messages[0]['status'], b''.join(message.get('body', b'') for message in messages if message['type'] == 'http.response.body')
 

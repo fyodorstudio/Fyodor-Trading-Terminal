@@ -96,7 +96,7 @@ def news_router(store, collector, notifier=None):
         return save(body, identity)
 
     def item_scope(source: list[str] = Query(default=[]), include: str = Query(default='', max_length=MAX_RULE_CHARS),
-              exclude: str = Query(default='', max_length=MAX_RULE_CHARS), mode: Literal['all', 'included', 'excluded'] = 'all', priority: bool = False,
+              exclude: str = Query(default='', max_length=MAX_RULE_CHARS), mode: Literal['all', 'priority', 'included', 'excluded'] = 'all', priority: bool = False,
               search: str = Query(default='', max_length=500),
               organizer: Literal['all', 'central-banks', 'expectations', 'starred'] = 'all',
               market_relevance: bool = False,
@@ -106,8 +106,8 @@ def news_router(store, collector, notifier=None):
 
     @router.get('/items')
     def items(scope: dict = Depends(item_scope), start: int | None = None, end: int | None = None,
-              order: Literal['newest', 'oldest'] = 'newest', offset: int = Query(default=0, ge=0), limit: int = Query(default=100, ge=1, le=200)):
-        return store.query(**scope, start=start, end=end, order=order, offset=offset, limit=limit)
+              order: Literal['newest', 'oldest'] = 'newest', sort_by: Literal['published', 'collected'] = 'published', offset: int = Query(default=0, ge=0), limit: int = Query(default=100, ge=1, le=200)):
+        return store.query(**scope, start=start, end=end, order=order, sort_by=sort_by, offset=offset, limit=limit)
 
     @router.get('/export')
     def export(scope: dict = Depends(item_scope), amount: int = Query(default=1, ge=1, le=87600), unit: Literal['hours', 'days'] = 'hours'):

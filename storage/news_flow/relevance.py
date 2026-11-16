@@ -25,6 +25,7 @@ _market_event = re.compile(r'\b(gdp|inflation|cpi|pce|payrolls|monetary|interest
 _companies = ','.join(PROFILE['groups']['Index companies and systemic banks'])
 _publisher_suffix = re.compile(r'\s+-\s+(?:Reuters|Bloomberg(?:\.com)?|Investing\.com(?:\s+[\w ]+)?|Financial Times|FXStreet|WSJ|MarketWatch|Barron.?s|Seeking Alpha|IntelliNews(?: Lambda)?|CNBC|BeInCrypto)\s*$', re.I)
 _systemic = re.compile(r'\b(?:bank run|banking crisis|systemic|contagion|sovereign default|capital controls|capital flight|bailout|liquidity crisis|credit freeze|deleveraging)\b', re.I)
+_routine = re.compile(r'\b(?:hires?|hiring|appoints?|names?)\b.{0,100}\b(?:trading veteran|head (?:of|up) (?:sales|trading|oil products)|portfolio manager|sales director|marketing director)\b|\b(?:how to (?:buy|invest|trade|choose)|best (?:brokers|trading apps)|sponsored content|paid promotion)\b|\bwhen\b.{0,60}\bstumbled\b.{0,60}\b(?:funds|etfs) delivered\b', re.I)
 
 
 def tags(value):
@@ -99,6 +100,8 @@ def _classify(title, source_id, url, feed_url, profile):
         return {'included': False, 'reason': 'Excluded keyword · ' + exclusion, 'keyword': exclusion}
     if enabled:
         title = _publisher_suffix.sub('', title)
+        if _routine.search(title) and not _systemic.search(title):
+            return {'included': False, 'reason': 'Excluded · routine personnel/promotional/retrospective story', 'keyword': ''}
     if enabled and official_policy(title, url, feed_url):
         return {'included': True, 'reason': 'Official central-bank policy/speech', 'keyword': ''}
     if enabled and official_host(url, feed_url, PROFILE['official_economic_domains']) and _rx['official_economic'].search(title):

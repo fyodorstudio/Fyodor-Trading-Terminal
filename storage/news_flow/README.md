@@ -33,7 +33,7 @@ with MT5 disconnected and the panel closed, while the service/computer run.
   With market_relevance=true the shared contextual classifier decides Included;
   explicit Exclude wins and Excluded is the complement. Raw mode preserves literal
   Include/Exclude behavior. Context classification applies before counts and paging,
-  including unmatched items. Empty Include means no Included items.
+  including unmatched items. Official protections and manual stars can qualify without Include terms.
   Optional literal case-insensitive headline search intersects these scopes
   before counting, deduplication and pagination; SQL metacharacters stay literal.
   Export reuses these filters and exact-URL deduplication in one locked snapshot,
@@ -51,10 +51,13 @@ with MT5 disconnected and the panel closed, while the service/computer run.
   Democratic. Other keywords keep literal word/phrase boundaries.
   Conservative expectations-candidate detection reads headline/feed text only,
   suppresses obvious post-decision headlines and never extracts implied odds.
-  Priority queries combine policy coverage, candidates and persistent per-URL
-  manual stars, independently of Include/Exclude. All / Central banks /
-  Expectations / Starred and currency filters precede counting/paging. Stars
-  sort first; date/source scopes apply.
+  Old research-query parameters remain for compatibility. Current reading modes
+  use importance.py: disjoint Priority/Included/Excluded and explicit Exclude
+  precedence, with conservative automatic candidates and manual stars.
+- `importance.py`: headline-only attention rules; Included delivery unions both
+  relevant levels. See RELEVANCE.md for the contract.
+- `notification_format.py`: bounded single/batch ntfy content and view actions;
+  no duplicated title/body or printed URLs, explicit UTC publication/collection.
 - `policy.py`: institution-based policy/currency grouping for eight central
   banks. Headline/feed-summary hawkish/dovish wording has bounded attributed
   evidence; mixed or qualified language is distinguished, and missing wording
