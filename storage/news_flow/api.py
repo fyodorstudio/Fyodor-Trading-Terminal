@@ -68,6 +68,13 @@ def news_router(store, collector, notifier=None):
     def sources():
         return {'sources': [{key: value for key, value in source.items() if key not in ('etag', 'modified')} for source in store.sources()]}
 
+    @router.get('/diagnostics')
+    def diagnostics(source: str = Query(min_length=1, max_length=100)):
+        try:
+            return store.diagnostics(source)
+        except KeyError as error:
+            raise HTTPException(404, 'Provider not found') from error
+
     def save(body, identity=None):
         try:
             identity = store.save_source(body.name, body.url, identity, body.poll_seconds)

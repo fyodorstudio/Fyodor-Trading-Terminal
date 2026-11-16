@@ -3,7 +3,7 @@
 Open with the newspaper button beside Heatmap Ranking. The right panel and
 near-full-window **News Flow Extended View** share simple headline rows, colours,
 Priority stars and Add Wildcard actions. Provider/date scopes remain explicit.
-The expanded backend pack seeds 34 subscriptions; new feeds join this existing
+The expanded backend pack seeds 47 subscriptions; new feeds join this existing
 combined stream, selector and provider tabs without separate frontend adapters.
 See [the source catalogue](../../../storage/news_flow/SOURCES.md) for coverage.
 
@@ -39,6 +39,7 @@ See [the source catalogue](../../../storage/news_flow/SOURCES.md) for coverage.
 - `ProviderBrowser.tsx`: provider or Priority page with independent date, paging
   and on-demand history. Provider browsing can inspect hidden providers; Priority
   combines visible providers independently of Include/Exclude classification.
+- `NewsFetchDiagnostics.tsx`: lazy provider check summaries and collector run/heartbeat evidence.
 - `Headlines.tsx`: coloured rows, classification reasons, candidate labels,
   persistent Priority star requests and prefilled manual Wildcard drafts.
 - `NewsTabs.tsx`, `KeywordTags.tsx`: keyboard-accessible tabs and removable tags.
@@ -100,6 +101,13 @@ time. `newsTimestamp` agrees with the server's timeline_at: publication unless
 missing or at least 60 seconds beyond first_seen, otherwise first_seen. The
 fallback never switches when the scheduled date passes. Display, ordering,
 calendar scopes and Wildcard drafts agree; raw publication metadata is retained.
+Valid publication/collection gaps of at least a minute show both ages (or absolute
+dates in dated views). The Collected tooltip keeps exact first_seen and, for newly
+discovered live items, the previous successful source check. Old rows/backfills
+have unknown prior-check evidence. These additions never change chronology.
+Provider settings lazily query /diagnostics: bounded minute summaries and collector
+starts/heartbeats distinguish healthy checks, HTTP 304, 429, errors and run gaps.
+No response bodies are stored and historical feed availability is not inferred.
 
 Calendar dates use the display zone. Heatmap's daily News for this date preserves
 broker-session UTC bounds, including DST, until a manual date edit. Historical

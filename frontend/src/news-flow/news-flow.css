@@ -28,6 +28,9 @@
 .news-row-heading > a:hover { color:var(--accent); text-decoration:underline; }
 .news-byline { display:flex; flex-wrap:wrap; gap:5px; margin-top:8px; font-size:11px; color:var(--text-muted); }
 .news-message { margin:12px; line-height:1.5; color:var(--text-muted); }
+.news-fetch-diagnostics { margin-top:18px; overflow:auto; }
+.news-fetch-diagnostics table { border-collapse:collapse; width:100%; font-size:11px; }
+.news-fetch-diagnostics th, .news-fetch-diagnostics td { padding:6px; text-align:left; border-bottom:1px solid var(--border); }
 .news-history-status { padding:0 12px; color:var(--text-muted); font-size:11px; }
 .news-history-status p { margin:6px 0; line-height:1.5; }
 .news-flow-panel [role='alert'], .news-configuration [role='alert'] { color:var(--negative); }

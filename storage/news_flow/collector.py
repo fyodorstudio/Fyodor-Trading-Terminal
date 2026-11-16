@@ -37,11 +37,14 @@ class NewsCollector:
         self.source_locks = {}
         self.thread = None
         self.pool = None
+        self.run_id = None
+        self.last_heartbeat = 0
 
     def start(self):
         if self.thread is not None:
             return
         self.stopped.clear()
+        self.run_id = self.store.collection_run()
         self.pool = ThreadPoolExecutor(max_workers=WORKERS, thread_name_prefix='news-feed')
         self.thread = Thread(target=self._run, name='news-flow', daemon=True)
         self.thread.start()
@@ -54,6 +57,9 @@ class NewsCollector:
         if self.pool is not None:
             self.pool.shutdown(wait=True, cancel_futures=True)
             self.pool = None
+        if self.run_id is not None:
+            self.store.collection_run(self.run_id, stopped=True)
+            self.run_id = None
 
     def refresh(self):
         # Manual refresh advances healthy feeds, but respects a server's retry delay.
@@ -67,6 +73,9 @@ class NewsCollector:
         while not self.stopped.is_set():
             try:
                 self.tick()
+                if time.monotonic() - self.last_heartbeat >= 30:
+                    self.store.collection_run(self.run_id)
+                    self.last_heartbeat = time.monotonic()
             except Exception:
                 logger.exception('News Flow collection failed; retrying without discarding history')
             self.stopped.wait(0.2)
@@ -102,12 +111,17 @@ class NewsCollector:
                 return
             started = time.time() * 1000
             queued = started - max(current['next_fetch_at'], current['retry_at']) if current['next_fetch_at'] else 0
+            metadata = {'http_status': 200}
             try:
-                items, etag, modified = self.fetcher(current)
+                result = self.fetcher(current)
+                items, etag, modified = result
+                metadata.update(getattr(result, 'diagnostics', {'item_count': len(items) if items is not None else None}))
                 self.store.success(current, items, etag, modified, int(time.time() * 1000))
             except Exception as error:
+                metadata.update(http_status=error.code if isinstance(error, HTTPError) else None, failed=True)
                 failures = max(failures, current['failures']) + 1
                 delay = retry_delay(error, failures, time.time())
                 self.store.failure(current, f'{error}. Retrying in {int(delay)}s.', int(time.time() * 1000 + delay * 1000), failures)
             finally:
-                self.store.fetch_timing(current, time.time() * 1000 - started, queued)
+                completed = time.time() * 1000
+                self.store.fetch_timing(current, completed - started, queued, metadata, started, completed)

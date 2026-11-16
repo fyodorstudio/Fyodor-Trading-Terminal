@@ -1,16 +1,16 @@
 # News Flow source pack
 
-The source of truth is `providers.py`: 34 default provider entries. The expansion
-adds 20 entries to the previous 14. All use free public feeds or Google News RSS;
+The source of truth is `providers.py`: 47 default provider entries. The v3 pack
+added 20 entries to the previous 14; v4 adds 13 public market-news subscriptions. All use free public feeds or Google News RSS;
 no account, paid API or article-body extraction is required.
 
-`starter-providers-v3` adds missing entries once. Existing provider names, URLs,
+`starter-providers-v4` adds missing entries once. Existing provider names, URLs,
 polling intervals, cooldowns and cached items stay intact. If a user already
 added a feed under another name, its unique URL prevents a second subscription.
 Browser keyword, visibility, colour and sound preferences are not migrated.
 New entries are visible by default and can be hidden with the provider selector.
 
-## New entries
+## V3 expansion entries
 
 | Provider ID | Coverage | Live delivery |
 | --- | --- | --- |
@@ -88,3 +88,41 @@ too sparse/generic to seed; the targeted Reuters Japan economy feed is used.
 Keep provider changes and parser fixtures in this feature folder. A new pack
 requires a new migration marker, migration-preservation tests, a live bounded
 fetch check, and a historical-scope check before enabling it by default.
+
+
+## V4 public market-news expansion (16 November 2026)
+
+All 13 endpoints below returned parsed headlines during bounded live checks.
+They are added once without changing existing names, URLs, polls, cooldowns,
+keywords, visibility or ntfy credentials/modes. New feeds prime silently and are
+visible by default. Existing exact-URL deduplication remains; direct and Google
+versions with different URLs may overlap.
+
+| ID | Delivery | Parsed items in live check |
+| --- | --- | --- |
+| bloomberg-markets | feeds.bloomberg.com/markets/news.rss | 20 |
+| bloomberg-economics | feeds.bloomberg.com/economics/news.rss | 14 |
+| bloomberg-google | Google site:bloomberg.com | 100 |
+| bloomberg-fx | Google Bloomberg currencies/forex scope | 100 |
+| wsj-markets | feeds.content.dowjones.io/public/rss/RSSMarketsMain | 60 |
+| wsj-google | Google site:wsj.com | 100 |
+| marketwatch | feeds.content.dowjones.io/public/rss/mw_topstories | 10 |
+| barrons | Google site:barrons.com | 100 |
+| ft | www.ft.com/?format=rss | 12 |
+| ft-google | Google site:ft.com | 100 |
+| cnbc | www.cnbc.com/id/100003114/device/rss/rss.html | 30 |
+| investinglive | investinglive.com/feed/news | 25 |
+| investing-news | Google Investing.com/news market scope | 100 |
+
+Bloomberg, Dow Jones publications (WSJ/MarketWatch/Barron's), and Financial Times
+are grouped in the provider selector on desktop and phone. Original publisher
+labels remain on headlines. ForexLive is now investingLive.
+
+Google indexes Bloomberg and Dow Jones publications. A broad dowjones.com search
+returned mostly corporate/product/login pages, so it is not seeded. A query for
+Dow Jones Newswires mentions on third-party sites returned results, but attribution
+and completeness were not dependable enough to label it a dedicated newswire feed.
+Public headlines are free to fetch; linked articles may require subscriptions.
+There is no paywall bypass, paid API, complete Bloomberg Terminal/Dow Jones wire,
+latency guarantee or promise that every critical item is covered. Direct feeds
+reduce reliance on Google discovery; Google searches supplement their short windows.

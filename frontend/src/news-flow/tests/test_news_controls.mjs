@@ -50,6 +50,15 @@ try {
     source('mixed', 'Mixed search', 'https://news.google.com/rss/search?q=(site:reuters.com+OR+site:eia.gov)'),
     source('unknown', 'Another search', 'https://news.google.com/rss/search?q=oil')]
   assert.equal(providerGroups([...sources, ...custom]).length, 7, 'Unknown/mixed Google feeds and edited URLs do not inherit a false publisher')
+  const publishers = providerGroups([
+    source('bb-direct', 'Bloomberg Markets', 'https://feeds.bloomberg.com/markets/news.rss'),
+    source('bb-google', 'Bloomberg FX', 'https://news.google.com/rss/search?q=site:bloomberg.com'),
+    source('wsj', 'WSJ', 'https://feeds.content.dowjones.io/public/rss/RSSMarketsMain'),
+    source('barrons', "Barron's", 'https://news.google.com/rss/search?q=site:barrons.com'),
+    source('mw', 'MarketWatch', 'https://news.google.com/rss/search?q=site:marketwatch.com'),
+    source('il', 'investingLive', 'https://news.google.com/rss/search?q=(site:investinglive.com+OR+site:forexlive.com)'),
+  ])
+  assert.deepEqual(publishers.map(group => [group.name, group.sources.length]), [['Bloomberg', 2], ['Dow Jones publications', 3], ['investingLive', 1]])
   function Providers() {
     const [value, setValue] = React.useState(['orphan', 'reuters-oil'])
     React.useEffect(() => { hidden = value }, [value])

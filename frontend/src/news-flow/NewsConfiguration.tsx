@@ -6,6 +6,7 @@ import { ProviderBrowser } from './ProviderBrowser'
 import { NewsTabs } from './NewsTabs'
 import { NewsGlobalSettings } from './NewsGlobalSettings'
 import { useOptionalWildcards } from '../wildcards/useWildcards'
+import { NewsFetchDiagnostics } from './NewsFetchDiagnostics'
 
 export function NewsConfiguration({ sources, settings, onChange, onSaved, onClose }: {
   sources: NewsSource[]; settings: NewsSettings; onChange: (value: NewsSettings) => void; onSaved: () => void; onClose: () => void
@@ -91,11 +92,14 @@ export function NewsConfiguration({ sources, settings, onChange, onSaved, onClos
                   <datalist id="news-poll-options"><option value="1">1 second · default</option><option value="60">1 minute</option><option value="120">2 minutes</option><option value="180">3 minutes</option><option value="300">5 minutes</option></datalist>
                   <p>Default: 1 second. Override only this provider; 60–300 seconds is 1–5 minutes. Server cooldowns remain in effect.</p>
                   {source?.fetch_ms != null && <p>Last request: {(source.fetch_ms / 1000).toFixed(2)}s · waited {(Math.max(0, source.queue_ms ?? 0) / 1000).toFixed(2)}s after due. Feed publication/indexing delays are outside this measurement.</p>}
+                  {source?.error && <p role="status">{source.error}</p>}
+                  {source?.error.includes('429') && <p>Rate limited: consider a 60–300 second override for this provider. Its current cooldown must finish first.</p>}
                   <button type="submit" disabled={saving || !name.trim() || !url.trim()}>{saving ? 'Saving…' : adding ? 'Add provider' : 'Save provider'}</button>
                   {source && <label className="news-checkbox"><input type="checkbox" aria-label="Show this provider" checked={!settings.hiddenSources.includes(source.id)} onChange={event => onChange({ ...settings,
                     hiddenSources: event.target.checked ? settings.hiddenSources.filter(id => id !== source.id) : [...settings.hiddenSources, source.id] })} />Show this provider</label>}
                   {error && <p role="alert">{error}</p>}
                 </form>
+                {source && <NewsFetchDiagnostics key={source.id} source={source.id} />}
               </section></div>}
           </div>}
       </div>

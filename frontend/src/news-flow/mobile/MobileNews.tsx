@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { newsQuery, newsTimestamp } from '../model'
+import { newsQuery, newsTimestamp, delayedCollection } from '../model'
 import { useNewsSettings } from '../settings'
 import { useNewsPage, useNewsSources } from '../useNewsFlow'
 import { matchingKeyword } from '../keywords'
@@ -64,7 +64,8 @@ export function MobileNews() {
         const collected = item.published_at === null || at !== item.published_at
         return <article key={item.id} style={{ borderLeftColor: included ? settings.includedColor : settings.excludedColor }}>
           <a href={item.url} target="_blank" rel="noopener noreferrer">{item.title}</a>
-          <p>{item.publisher || item.source_name} · {collected ? 'First collected ' : ''}<time dateTime={new Date(at).toISOString()}>{new Date(at).toLocaleString()}</time></p>
+          <p>{item.publisher || item.source_name} · {collected ? 'First collected ' : 'Published '}<time dateTime={new Date(at).toISOString()}>{new Date(at).toLocaleString()}</time>
+            {delayedCollection(item) && <> · Collected <time dateTime={new Date(item.first_seen).toISOString()}>{new Date(item.first_seen).toLocaleString()}</time></>}</p>
         </article>
       })}
       {page && !page.items.length && <p>No collected headlines match this view.</p>}

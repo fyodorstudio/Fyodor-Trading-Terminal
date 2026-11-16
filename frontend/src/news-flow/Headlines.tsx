@@ -1,6 +1,6 @@
 import { useDisplayClock } from '../appearance/time-display/useDisplayClock'
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
-import { newsAge, newsTimestamp, type NewsItem, type NewsSettings } from './model'
+import { newsAge, newsTimestamp, delayedCollection, type NewsItem, type NewsSettings } from './model'
 import type { useNewsHistory } from './useNewsFlow'
 import { pinNews } from './useNewsFlow'
 import { useNewsSettings } from './settings'
@@ -33,6 +33,7 @@ function Headline({ item, dated, settings, now, policyDetails, onCurrency }: { i
   const collected = item.published_at === null || item.published_at - item.first_seen >= 60000
   const displayedAt = newsTimestamp(item)
   const timeTitle = collected ? `First collected: ${clock.utc(item.first_seen)}. ${item.published_at === null ? 'Publication time unavailable.' : `Feed-supplied future publication time: ${clock.utc(item.published_at)}.`}` : clock.utc(displayedAt)
+  const collectionTitle = `First collected: ${clock.utc(item.first_seen)}.${item.previous_check_at != null ? ` Previous successful check of this feed: ${clock.utc(item.previous_check_at)}. This exact item was not yet collected then.` : ' Previous check evidence unavailable.'} This does not establish when the feed first exposed it.`
   useEffect(() => () => request.current?.abort(), [])
   async function togglePin() {
     const controller = new AbortController(); request.current = controller
@@ -52,7 +53,9 @@ function Headline({ item, dated, settings, now, policyDetails, onCurrency }: { i
         <button type="button" title={pinned ? 'Remove from Priority' : 'Add to Priority'} aria-label={`${pinned ? 'Unstar' : 'Star'} headline: ${item.title}`} aria-pressed={pinned} disabled={pinning} onClick={() => void togglePin()}>{pinned ? '★' : '☆'}</button></div></div>
     <div className="news-byline"><span>{item.publisher || item.source_name}</span><span>·</span>
       <time dateTime={new Date(displayedAt).toISOString()} title={timeTitle}>
-        {collected ? 'First collected ' : ''}{dated ? clock.utc(displayedAt) : newsAge(displayedAt, now)}</time></div>
+        {collected ? 'First collected ' : 'Published '}{dated ? clock.utc(displayedAt) : newsAge(displayedAt, now)}</time>
+      {delayedCollection(item) && <><span>·</span><time dateTime={new Date(item.first_seen).toISOString()} title={collectionTitle}>Collected {dated ? clock.utc(item.first_seen) : newsAge(item.first_seen, now)}</time></>}
+    </div>
     <div className="news-row-labels"><span>{category === 'included' ? `Included · ${included}` : excluded ? `Excluded keyword · ${excluded}` : 'No include match'}</span>
       {item.priority_reason && <span title="Detected from the headline or supplied feed text; verify when the information was available.">Expectations candidate</span>}
       {item.policy_banks?.map(bank => onCurrency ? <button type="button" className="news-policy-badge" key={bank.currency} aria-label={`Show ${bank.currency} policy`} onClick={() => onCurrency(bank.currency)}>{bank.currency} · {bank.bank}</button>

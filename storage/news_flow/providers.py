@@ -3,7 +3,7 @@ from urllib.parse import urlencode
 
 TREASURY_URL = 'https://home.treasury.gov/news/press-releases'
 DEFAULT_URL = 'https://news.google.com/rss/search?q=when:24h+site:reuters.com&ceid=US:en&hl=en-US&gl=US'
-PROVIDER_MIGRATION = 'starter-providers-v3'
+PROVIDER_MIGRATION = 'starter-providers-v4'
 
 
 def google_feed(query, window='7d'):
@@ -57,6 +57,20 @@ PROVIDERS = (
     ('eia-releases', 'EIA · Press releases', 'https://www.eia.gov/rss/press_rss.xml', 'site:eia.gov/pressroom/releases'),
     ('eia-analysis', 'EIA · Today in Energy', 'https://www.eia.gov/rss/todayinenergy.xml', 'site:eia.gov/todayinenergy'),
     ('eia-petroleum', 'EIA · Petroleum reports (Google News)', google_feed('site:eia.gov ("Weekly Petroleum Status Report" OR "This Week in Petroleum")', '30d'), ''),
+    # Public headline feeds only; publisher article access can still be paid.
+    ('bloomberg-markets', 'Bloomberg · Markets', 'https://feeds.bloomberg.com/markets/news.rss', 'site:bloomberg.com markets'),
+    ('bloomberg-economics', 'Bloomberg · Economics', 'https://feeds.bloomberg.com/economics/news.rss', 'site:bloomberg.com economics'),
+    ('bloomberg-google', 'Bloomberg · Headlines (Google News)', google_feed('site:bloomberg.com'), ''),
+    ('bloomberg-fx', 'Bloomberg · FX (Google News)', google_feed('site:bloomberg.com (dollar OR euro OR yen OR sterling OR franc OR "Australian dollar" OR "New Zealand dollar" OR "Canadian dollar" OR currencies OR forex)'), ''),
+    ('wsj-markets', 'WSJ · Markets', 'https://feeds.content.dowjones.io/public/rss/RSSMarketsMain', 'site:wsj.com markets'),
+    ('wsj-google', 'WSJ · Headlines (Google News)', google_feed('site:wsj.com'), ''),
+    ('marketwatch', 'MarketWatch · Top stories', 'https://feeds.content.dowjones.io/public/rss/mw_topstories', 'site:marketwatch.com'),
+    ('barrons', "Barron's · Headlines (Google News)", google_feed('site:barrons.com'), ''),
+    ('ft', 'Financial Times · Headlines', 'https://www.ft.com/?format=rss', 'site:ft.com'),
+    ('ft-google', 'Financial Times · Headlines (Google News)', google_feed('site:ft.com'), ''),
+    ('cnbc', 'CNBC · Top news', 'https://www.cnbc.com/id/100003114/device/rss/rss.html', 'site:cnbc.com'),
+    ('investinglive', 'investingLive · Markets (formerly ForexLive)', 'https://investinglive.com/feed/news', '(site:investinglive.com OR site:forexlive.com)'),
+    ('investing-news', 'Investing.com · Markets (Google News)', google_feed('site:investing.com/news (forex OR commodities OR economy OR "stock market")'), ''),
 )
 
 

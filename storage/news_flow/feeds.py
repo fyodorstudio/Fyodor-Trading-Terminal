@@ -14,6 +14,21 @@ from .providers import TREASURY_URL
 MAX_FEED_BYTES = 4 * 1024 * 1024
 
 
+class FeedResult(tuple):
+    """Preserves the three-value parser contract while exposing HTTP diagnostics."""
+    def __new__(cls, items, etag, modified, status=200, headers=None):
+        result = super().__new__(cls, (items, etag, modified))
+        headers = headers or {}
+        try:
+            age = max(0, min(604800, int(headers.get('Age', ''))))
+        except (TypeError, ValueError):
+            age = None
+        result.diagnostics = {'http_status': status, 'cache_age': age,
+                              'response_at': timestamp(headers.get('Date')),
+                              'item_count': len(items) if items is not None else None}
+        return result
+
+
 def http_url(value):
     parsed = urlsplit(value)
     if parsed.scheme not in ('http', 'https') or not parsed.hostname or parsed.username or parsed.password or any(c.isspace() for c in value):
@@ -140,10 +155,11 @@ def fetch_feed(source):
             body = response.read(MAX_FEED_BYTES + 1)
             if len(body) > MAX_FEED_BYTES:
                 raise ValueError('Oversized provider response')
-            return (parse_treasury(body) if treasury else parse_feed(body, response.url)), response.headers.get('ETag', ''), response.headers.get('Last-Modified', '')
+            return FeedResult(parse_treasury(body) if treasury else parse_feed(body, response.url), response.headers.get('ETag', ''), response.headers.get('Last-Modified', ''), headers=response.headers)
     except HTTPError as error:
         if error.code == 304:
+            result = FeedResult(None, source['etag'], source['modified'], 304, error.headers)
             error.close()
-            return None, source['etag'], source['modified']
+            return result
         error.close()
         raise

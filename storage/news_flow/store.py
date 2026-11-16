@@ -10,6 +10,7 @@ from uuid import uuid4
 from .providers import PROVIDERS, PROVIDER_MIGRATION
 from .rules import matches, priority_reason
 from .policy import policy_currencies, policy_details
+from .diagnostics import SCHEMA, record_check, snapshot as diagnostic_snapshot
 
 # Freeze the fallback against first collection, so a scheduled date never promotes
 # an old announcement when wall-clock time catches up with the feed timestamp.
@@ -58,6 +59,10 @@ class NewsStore:
                             retry_at INTEGER NOT NULL, failures INTEGER NOT NULL,
                             PRIMARY KEY(source_id,url,start,end));
                     ''')
+                    db.executescript(SCHEMA)
+                    item_columns = {row['name'] for row in db.execute('PRAGMA table_info(items)')}
+                    if 'previous_check_at' not in item_columns:
+                        db.execute('ALTER TABLE items ADD COLUMN previous_check_at INTEGER')
                     columns = {row['name'] for row in db.execute('PRAGMA table_info(sources)')}
                     for column, definition in (('poll_seconds', 'INTEGER NOT NULL DEFAULT 1'), ('next_fetch_at', 'INTEGER NOT NULL DEFAULT 0'),
                                                ('retry_at', 'INTEGER NOT NULL DEFAULT 0'), ('failures', 'INTEGER NOT NULL DEFAULT 0')):
@@ -111,12 +116,12 @@ class NewsStore:
             for item in items or []:
                 identity = source['id'] + ':' + item['identity']
                 known = db.execute('SELECT 1 FROM items WHERE id=? OR url=? LIMIT 1', (identity, item['url'])).fetchone()
-                db.execute('''INSERT INTO items(id,source_id,identity,title,summary,publisher,url,published_at,first_seen)
-                    VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT(source_id,identity) DO UPDATE SET
+                db.execute('''INSERT INTO items(id,source_id,identity,title,summary,publisher,url,published_at,first_seen,previous_check_at)
+                    VALUES (?,?,?,?,?,?,?,?,?,?) ON CONFLICT(source_id,identity) DO UPDATE SET
                     title=excluded.title,summary=excluded.summary,publisher=excluded.publisher,url=excluded.url,
                     published_at=COALESCE(excluded.published_at,items.published_at)''',
                     (source['id'] + ':' + item['identity'], source['id'], item['identity'], item['title'], item['summary'],
-                     item['publisher'], item['url'], item['published_at'], now))
+                     item['publisher'], item['url'], item['published_at'], now, current['last_success'] if update_status and not known else None))
                 # Historical imports and subsequent edits never create live alerts.
                 if update_status and not known and current['last_success'] is not None:
                     db.execute('INSERT OR IGNORE INTO arrivals(item_id,received_at) VALUES (?,?)', (identity, now))
@@ -128,10 +133,27 @@ class NewsStore:
         with self.database() as db:
             db.execute('UPDATE sources SET error=?,retry_at=?,next_fetch_at=?,failures=? WHERE id=? AND url=?', (error[:300], retry_at, retry_at, failures, source['id'], source['url']))
 
-    def fetch_timing(self, source, elapsed, queued):
+    def fetch_timing(self, source, elapsed, queued, metadata=None, started=None, completed=None):
         with self.database() as db:
-            db.execute('UPDATE sources SET fetch_ms=?,queue_ms=? WHERE id=? AND url=?',
-                       (max(0, int(elapsed)), max(0, int(queued)), source['id'], source['url']))
+            elapsed, queued = max(0, int(elapsed)), max(0, int(queued))
+            updated = db.execute('UPDATE sources SET fetch_ms=?,queue_ms=? WHERE id=? AND url=?',
+                                 (elapsed, queued, source['id'], source['url']))
+            if metadata is not None and updated.rowcount:
+                record_check(db, source, int(started), int(completed), elapsed, queued, metadata)
+
+    def diagnostics(self, source_id, now=None):
+        with self.database() as db:
+            return diagnostic_snapshot(db, source_id, int(time.time() * 1000) if now is None else now)
+
+    def collection_run(self, identity=None, stopped=False):
+        now = int(time.time() * 1000)
+        with self.database() as db:
+            if identity is None:
+                identity = uuid4().hex
+                db.execute('INSERT INTO collection_runs VALUES (?,?,?,NULL)', (identity, now, now))
+            else:
+                db.execute('UPDATE collection_runs SET heartbeat_at=?,stopped_at=? WHERE id=?', (now, now if stopped else None, identity))
+        return identity
 
     def refresh(self):
         with self.database() as db:

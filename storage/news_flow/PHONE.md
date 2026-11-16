@@ -80,3 +80,7 @@ one-second default remains a minimum delay after completion, subject to capacity
 and HTTP backoff. Provider settings expose request duration and lateness after due.
 These are local measurements, not proof of the time a feed first exposed an item.
 Publisher RSS and Google discovery delays remain outside the terminal's control.
+
+The v4 provider pack expands automatically to 47 subscriptions. Phone logins and
+ntfy subscriptions do not need changing. Delayed articles show both publication
+and collection times; PC provider settings expose the bounded fetch diagnostics.

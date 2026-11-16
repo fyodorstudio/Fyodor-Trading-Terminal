@@ -169,6 +169,7 @@ class NewsFlowTests(unittest.TestCase):
             db.execute('DELETE FROM sources WHERE id NOT IN (?,?)', ('reuters', custom_id))
             db.execute('DELETE FROM migrations WHERE name=?', (PROVIDER_MIGRATION,))
             db.execute('INSERT OR IGNORE INTO migrations VALUES (?)', ('starter-providers-v2',))
+            db.execute('INSERT OR IGNORE INTO migrations VALUES (?)', ('starter-providers-v3',))
         before = self.store.sources()[0]
         upgraded = NewsStore(self.root)
         sources = upgraded.sources()

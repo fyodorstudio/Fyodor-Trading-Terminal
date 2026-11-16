@@ -8,9 +8,13 @@ with MT5 disconnected and the panel closed, while the service/computer run.
 - `providers.py`: starter pack (including a targeted Reuters expectations query) and historical scopes. Additive
   migration seeds Reuters via Google News, FXStreet, Fed policy/speeches, ECB,
   BoE news/speeches, BoC releases/speeches, RBA releases/speeches, BoJ and Treasury.
-  The v3 expansion adds 20 entries (34 defaults): targeted Reuters market and
+  The v3 expansion added 20 entries (34 at that time): targeted Reuters market and
   Japan searches, Kitco, RBNZ/SNB, BEA/BLS/Eurostat/ONS/Statistics Canada, regional
-  economic releases, Japan MOF and EIA. Google delivery is explicit in new names.
+  economic releases, Japan MOF and EIA. V4 adds 13 feeds (47 defaults): Bloomberg
+  direct Markets/Economics and Google headlines/FX; WSJ direct Markets/Google,
+  MarketWatch direct, Barron's Google; FT direct/Google, CNBC, investingLive and
+  Investing.com Google. Google delivery is explicit in names. Public headlines
+  do not grant subscription article access or the full institutional newswires.
   Existing names/URLs, polling, cooldowns and custom providers are preserved.
   See [SOURCES.md](SOURCES.md) for coverage, verified discovery links and limits.
 - `feeds.py`: bounded 4MB HTTP reads with 10-second timeout, conditional GET,
@@ -58,6 +62,12 @@ with MT5 disconnected and the panel closed, while the service/computer run.
   recheck cooldowns after obtaining the source lock. Legacy retry messages are
   conservatively migrated with their full stated delay once. Source edits do
   not issue an extra global refresh or erase active errors/cooldowns.
+- `diagnostics.py`: 24-hour minute summaries of 200/304/429/errors, durations,
+  HTTP Date/Age and parsed counts; no response bodies. Collector runs persist
+  starts, 30-second heartbeats and clean stops. API diagnostics GET returns the
+  current source URL's last hour and five runs. URL edits isolate old evidence.
+  Newly discovered live rows retain previous_check_at; backfills/legacy rows do
+  not invent it. First collection and publication remain separate.
 - `history.py`: on-demand best-effort Google date searches for configured Google
   feeds and known starter RSS scopes; Treasury fetches the requested UTC year(s).
   Exact UTC window filtering after retrieval. Per-source locks shared with live

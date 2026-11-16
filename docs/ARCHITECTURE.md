@@ -59,13 +59,20 @@ The storage service collects free starter feeds independently of MT5 and the
 panel, using conditional requests, one-second success cadence and error backoff.
 Providers/current headline cache live in `storage/data/news-flow/news.sqlite3`,
 included in offline backup/restore. No article-version archive is built.
-The v3 source pack adds 20 subscriptions (34 defaults total): targeted Reuters
+The v3 source pack added 20 subscriptions (34 at that time): targeted Reuters
 FX/oil/equities/metals and Japan economic news, Kitco, RBNZ/SNB, economic releases
 across the currency regions, Japan MOF and EIA. Google delivery is named where
 direct feeds are blocked/unavailable. `storage/news_flow/SOURCES.md` records
 coverage, discovery links and limitations. The additive migration preserves
 provider customizations and cached items. RSS/Atom parsing resolves relative
 article URLs against the final feed URL and reads XHTML text constructs.
+News Flow v4 adds 13 public subscriptions (47 total) including Bloomberg direct
+and Google, Dow Jones publications, FT, CNBC, investingLive and Investing.com.
+Publisher families group related feeds on desktop/mobile. First collection can
+be displayed beside publication without changing timeline order. The isolated
+diagnostics module retains 24-hour minute summaries and collector heartbeats;
+new live discoveries keep a previous-check timestamp. No feed-body archive or
+claim of access to paid institutional wires is introduced.
 News Flow Extended View uses provider tabs plus Browse/Priority/Settings.
 Settings separates Global (keywords, colours, sound) from Providers (URL,
 polling, visibility), with global controls owned by `NewsGlobalSettings.tsx`.
