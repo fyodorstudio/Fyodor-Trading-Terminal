@@ -166,3 +166,6 @@ Settings use rectangular keyword tags and bordered sections. Last-alert content
 has a bounded scroll area. Menu buttons highlight when expanded; filtering and
 enabled-sound states use small indicators rather than persistent selected colour.
 Keyboard focus uses focus-visible. Visual verification remains a manual user check.
+
+The panel header has separate title, classification and tool rows. Classification
+is a non-shrinking four-column grid; it must not share tool flex allocation.

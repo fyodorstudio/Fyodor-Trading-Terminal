@@ -115,3 +115,10 @@ clients; current UI uses mode=priority and this shared tier contract.
 `tests/test_attention.py` verifies tier boundaries, previews, manual stars,
 reader/export/phone agreement, stable collection sorts, duplicate fetches,
 publication date scopes, API validation and bounded ntfy formatting.
+
+Observed recall fixes include the publisher spelling Nvida, Google/Alphabet,
+US labor-market wording, hyphenated stock-market titles, two-way AI funding/risk
+and semiconductor trade-control context, and named sector bellwethers. Official
+ECB speech article paths and central-bank statistical releases receive verified
+protection. Country-only, generic AI entertainment and small-company guidance
+remain excluded; explicit Exclude still wins. No preset reseed is required.

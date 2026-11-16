@@ -16,7 +16,7 @@ PRESET = PROFILE['preset']
 CONTEXTUAL = set(PROFILE['contextual'])
 _rx = {key: re.compile(PROFILE[key], re.I) for key in (
     'country_macro', 'global_market', 'geopolitics', 'geo_event', 'politics', 'other_market',
-    'crypto', 'crypto_bridge', 'noise', 'local_quote', 'local_quote_bridge', 'official_policy', 'official_admin', 'official_economic')}
+    'crypto', 'crypto_bridge', 'noise', 'local_quote', 'local_quote_bridge', 'official_policy', 'official_admin', 'official_economic', 'market_transmission', 'sector_bellwethers', 'semiconductor_policy')}
 _strong = ','.join(term for term in PRESET if normalized(term) not in CONTEXTUAL)
 _spillover = ','.join(term for group in ('Indices', 'Index companies and systemic banks', 'Energy', 'Metals and context commodities')
                       for term in PROFILE['groups'][group])
@@ -68,7 +68,10 @@ def official_policy(title, url, feed_url):
     feed = urlsplit(feed_url)
     if not official_host(url, feed_url, PROFILE['official_domains']) or _rx['official_admin'].search(title):
         return False
-    dedicated = any(word in feed.path.lower() for word in ('speeches', 'press_monetary', 'cb-speeches')) and feed.hostname != 'news.google.com'
+    article = urlsplit(url)
+    speech_path = re.search(r'/(?:speeches?|press/key|press/inter)/', article.path, re.I)
+    verified_article = official_host(url, '', PROFILE['official_domains'])
+    dedicated = bool(speech_path and verified_article) or (any(word in feed.path.lower() for word in ('speeches', 'press_monetary', 'cb-speeches')) and feed.hostname != 'news.google.com')
     return dedicated or bool(_rx['official_policy'].search(title))
 
 
@@ -104,7 +107,7 @@ def _classify(title, source_id, url, feed_url, profile):
             return {'included': False, 'reason': 'Excluded · routine personnel/promotional/retrospective story', 'keyword': ''}
     if enabled and official_policy(title, url, feed_url):
         return {'included': True, 'reason': 'Official central-bank policy/speech', 'keyword': ''}
-    if enabled and official_host(url, feed_url, PROFILE['official_economic_domains']) and _rx['official_economic'].search(title):
+    if enabled and official_host(url, feed_url, PROFILE['official_economic_domains'] + PROFILE['official_domains']) and _rx['official_economic'].search(title):
         return {'included': True, 'reason': 'Official economic release', 'keyword': ''}
     if enabled and financial_remarks(title, url, feed_url):
         return {'included': True, 'reason': 'Target-market remarks · financial news source', 'keyword': ''}
@@ -120,14 +123,14 @@ def _classify(title, source_id, url, feed_url, profile):
         return {'included': False, 'reason': 'Excluded · crypto-only news', 'keyword': hits[0]}
     if _rx['local_quote'].search(text) and not _rx['local_quote_bridge'].search(text):
         return {'included': False, 'reason': 'Excluded · local retail metal quote', 'keyword': hits[0]}
-    spillover = matches(text, _spillover) or matches(text, _banks)
+    spillover = matches(text, _spillover) or matches(text, _banks) or _rx['semiconductor_policy'].search(text) or _rx['sector_bellwethers'].search(text)
     geopolitics = _rx['geopolitics'].search(text) and _rx['geo_event'].search(text)
     if _rx['other_market'].search(text) and not spillover and not geopolitics and not _systemic.search(text):
         return {'included': False, 'reason': 'Excluded · other-market domestic news', 'keyword': hits[0]}
     if _rx['noise'].search(text) and not matches(text, _companies) and not _market_event.search(text):
         return {'included': False, 'reason': 'Excluded · non-market topic', 'keyword': hits[0]}
     country_macro = bool(_rx['country_macro'].search(text))
-    market_context = matches(text, _strong) or country_macro or _rx['global_market'].search(text) or (_rx['crypto'].search(text) and _rx['crypto_bridge'].search(text))
+    market_context = matches(text, _strong) or country_macro or _rx['global_market'].search(text) or _rx['market_transmission'].search(text) or _rx['sector_bellwethers'].search(text) or (_rx['crypto'].search(text) and _rx['crypto_bridge'].search(text))
     politics = _rx['politics'].search(text)
     # Avoid a broad geography tag becoming its own circular market context.
     for term in hits:

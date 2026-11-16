@@ -1277,7 +1277,7 @@
     "refinery": "refiner(?:y|ies)",
     "tanker": "tankers?",
     "semiconductor": "semiconductors?",
-    "nvidia": "(?:nvidia|nvda|jensen huang|alice huang)",
+    "nvidia": "(?:nvidia|nvida|nvda|jensen huang|alice huang)",
     "s&p 500": "(?:s\\s*&\\s*p\\s*500|standard\\s*&?\\s*poor\\x27?s?\\s*500|spx500|sp500)",
     "s&p500": "(?:s\\s*&\\s*p\\s*500|standard\\s*&?\\s*poor\\x27?s?\\s*500|spx500|sp500)",
     "nasdaq 100": "nasdaq[ -]?100",
@@ -1290,14 +1290,21 @@
     "people’s bank of china": "people[\\x27’]s bank of china",
     "inflation": "inflation(?:ary)?",
     "currency": "currenc(?:y|ies)",
-    "currencies": "currenc(?:y|ies)"
+    "currencies": "currenc(?:y|ies)",
+    "alphabet": "(?:alphabet|google|googl|goog)",
+    "employment": "(?:employment|labou?r market)",
+    "stock market": "stock[ -]markets?",
+    "commodities": "(?:commodit(?:y|ies)|metals)",
+    "oil": "(?:oil|oilfields?)",
+    "natural gas": "(?:natural gas|lng|lpg)",
+    "fed": "(?:fed|fedspeak)"
   },
-  "country_macro": "(?:\\b(?:u\\.?s\\.?|united states|american|global|world|eurozone|euro area|european|german|germany|france|french|italy|italian|britain|british|uk|u\\.?k\\.?|japan|japanese|swiss|switzerland|canada|canadian|australia|australian|new zealand|china|chinese)\\b.{0,65}\\b(?:econom(?:y|ic)|gdp|inflation|prices?|growth|employment|jobs|wages|manufacturing|domestic activity|economic data|activity data|factory output|factories|output|production|home price|house price|property|domestic demand|services|exports|imports|retail|housing|consumption|spending|trade|budget|fiscal|tax|taxes|borrowing|bonds?|yields?|rates?|deficit|debt)\\b|\\b(?:gdp|inflation|economy|employment|jobs|wages|manufacturing|growth|exports|imports|retail sales|consumption)\\b.{0,65}\\b(?:us|united states|eurozone|europe|uk|britain|japan|switzerland|canada|australia|new zealand|china)\\b)",
-  "global_market": "\\b(?:global|world|emerging|asian|asia|european|europe|us|u\\.s\\.|japanese|japan|chinese|china|australian|australia|british|uk|swiss|canadian) (?:stocks|shares|equities|markets|bonds|yields|currencies|forex)\\b|^(?:stocks|shares|equities|bonds|stock futures) (?:rise|fall|slide|rally|gain|drop|climb|slip|sink|surge|plunge|advance|retreat|rebound|open|close|edge|extend|brace)\\b|\\b(?:equities|stocks) (?:rally|selloff|sell-off|rout|slump|rotation)\\b|\\bbonds?\\b.{0,55}\\b(?:yields?|income|prices|sales|auction|selloff|sell-off|debt|issuance|investors)\\b|\\b(?:tech|technology|chip|semiconductor|bank|banking|financial|energy|retail|defence|defense|luxury|auto|automotive|real estate|property|healthcare)(?:makers?)? (?:sector|shares|stocks|equities|index)\\b|\\b(?:ai|artificial intelligence)\\b.{0,90}\\b(?:banking|financing|capex|infrastructure|supply chains?|export|investment|regulation|profits|revenue|earnings|data cent)|\\b(?:chip|chips|semiconductor)\\b.{0,85}\\b(?:sales?|exports?|deal|funding|investment|financing|production|restrictions|curbs|ban|bans)\\b",
+  "country_macro": "(?:\\b(?:u\\.?s\\.?|united states|american|global|world|eurozone|euro area|european|german|germany|france|french|italy|italian|britain|british|uk|u\\.?k\\.?|japan|japanese|swiss|switzerland|canada|canadian|australia|australian|new zealand|china|chinese)\\b.{0,65}\\b(?:econom(?:y|ic)|gdp|inflation|prices?|growth|employment|jobs|wages|manufacturing|manufacturers|labou?r market|domestic activity|economic data|activity data|factory output|factories|output|production|home price|house price|property|domestic demand|services|exports|imports|retail|housing|consumption|spending|trade|budget|fiscal|tax|taxes|borrowing|bonds?|yields?|rates?|deficit|debt)\\b|\\b(?:gdp|inflation|economy|employment|jobs|wages|manufacturing|growth|exports|imports|retail sales|consumption)\\b.{0,65}\\b(?:us|united states|eurozone|europe|uk|britain|japan|switzerland|canada|australia|new zealand|china)\\b)",
+  "global_market": "\\b(?:global|world|emerging|asian|asia|european|europe|us|u\\.s\\.|japanese|japan|chinese|china|australian|australia|british|uk|swiss|canadian) (?:stocks|shares|equities|markets|bonds|yields|currencies|forex)\\b|^(?:stocks|shares|equities|bonds|stock futures) (?:rise|fall|slide|rally|gain|drop|climb|slip|sink|surge|plunge|advance|retreat|rebound|open|close|edge|extend|brace)\\b|\\b(?:equities|stocks) (?:rally|selloff|sell-off|rout|slump|rotation)\\b|\\bbonds?\\b.{0,55}\\b(?:yields?|income|prices|sales|auction|selloff|sell-off|debt|issuance|investors)\\b|\\b(?:tech|technology|chip|semiconductor|bank|banking|financial|energy|retail|defence|defense|luxury|auto|automotive|real estate|property|healthcare)(?:makers?)? (?:sector|shares|stocks|equities|index)\\b|\\b(?:ai|artificial intelligence)\\b.{0,90}\\b(?:banking|financing|capex|infrastructure|supply chains?|export|investment|regulation|profits|revenue|earnings|data cent)|\\b(?:chip|chips|semiconductor)\\b.{0,85}\\b(?:sales?|exports?|deal|funding|investment|financing|production|restrictions|curbs|ban|bans)\\b|\\b(?:global|world|european|us|u\\.s\\.|asian|japanese|japan|emerging[ -]markets?)\\s+(?:stock[ -]markets?|stock index(?:es)?|stock indices|stocks|equities|shares|currencies)\\b|\\b(?:stocks|equities|shares)\\s+(?:end|finish|trade|close|open)\\s+(?:higher|lower|mixed|flat)\\b|\\b(?:equity|stock) markets?\\b|\\b(?:stock|equity)[ -]markets?\\s+bubbles?\\b",
   "geopolitics": "\\b(?:iran|israel|taiwan|russia|ukraine|middle east|hormuz|red sea|saudi|venezuela|china|us|united states|trump)\\b",
   "geo_event": "\\b(?:war|wars|military|targets?|bombs?|bombing|military base|airstrikes?|strikes?|attacks?|missiles?|drones?|invasion|ceasefire|peace talks|nuclear|denuclearisation|denuclearization|meeting|talks|apec|naval|blockade|sanctions?|tariffs?|export controls|embargo|trade deal|trade war|summit|mobilization|weapons|peace deal|hostilities)\\b",
   "politics": "\\b(?:elections?|midterms|senate|congress|white house|house|trump|president|presidency|prime minister|chancellor|government|democrats?|republicans?|parliament)\\b.{0,85}\\b(?:win|wins|won|lose|loses|lost|control|majority|budget|tax|taxes|fiscal|debt|tariff|shutdown|spending|polls|polling|results|resigns|resignation|confidence vote)\\b|\\b(?:government shutdown|debt ceiling|capital controls|capital flight|bank run|banking crisis|sovereign default|liquidity crisis|credit downgrade)\\b",
-  "other_market": "\\b(?:india|indian|inr|rupee|nifty|sensex|pakistan|pakistani|bangladesh|nigeria|nigerian|kenya|kenyan|south africa|south african|zambia|argentina|argentine|turkey|turkish|brazil|brazilian|mexico|mexican|philippines|philippine|vietnam|vietnamese|thailand|thai|indonesia|indonesian)\\b",
+  "other_market": "\\b(?:india|indian|inr|rupee|nifty|sensex|pakistan|pakistani|bangladesh|nigeria|nigerian|kenya|kenyan|south africa|south african|zambia|argentina|argentine|turkey|turkish|brazil|brazilian|mexico|mexican|philippines|philippine|vietnam|vietnamese|thailand|thai|indonesia|indonesian)\\b|\\b(?:singapore dollar|sgd|hong kong dollar|hkd)\\b",
   "crypto": "\\b(?:stablecoin|tether|usdt|usdc|bitcoin|btc|ethereum|ether|eth|xrp|dogecoin|doge|solana|shiba|altcoins?|memecoins?|meme coins?|pi network|crypto|cryptocurrency|token|tokens|defi|nft|nfts)\\b",
   "crypto_bridge": "\\b(?:fed|fomc|ecb|boj|boe|snb|rba|rbnz|bank of canada|treasur(?:y|ies)|dxy|dollar index|inflation|cpi|pce|payrolls|interest rates?|rate hikes?|rate cuts?|gold|silver|oil|brent|wti|nasdaq|s&p|equities|stocks|nvidia|bank runs?|banking crisis|systemic|contagion|dollar funding|liquidity crisis)\\b|\\b(?:stablecoin|tether|usdt|usdc)\\b.{0,80}\\b(?:depeg|redemptions|reserves|treasury|bank|liquidity)\\b",
   "noise": "\\b(?:coach|football|soccer|cricket|baseball|basketball|nhl|nba|nfl|olympics?|medals?|tennis|hockey|horoscope|zodiac|lottery|lotteries|coupon|coupons|recipe|recipes|pound cake|video game|gaming review|match preview|movie review|film review|red carpet|celebrity wedding|golf course|golf-course)\\b|\\b(?:kiwi bird|kiwifruit|film premiere|silver award|gold award|golden globe)\\b|^(?:my|our)\\b.{0,90}\\b(?:wife|husband|father|mother|brother|sister|inheritance|divorce|landlord)\\b",
@@ -1328,7 +1335,7 @@
     "esri.cao.go.jp",
     "ec.europa.eu"
   ],
-  "official_economic": "\\b(?:gdp|gross domestic|national econom|economic|economy|growth|inflation|consumer price|producer price|employment|unemployment|labour|labor|wages|earnings|retail|industrial|manufacturing|pmi|trade|exports|imports|personal income|outlays|consumption|housing|construction|business confidence|business conditions|business investment|population estimates)",
+  "official_economic": "\\b(?:gdp|gross domestic|national econom|economic|economy|growth|inflation|consumer price|producer price|employment|unemployment|labour|labor|wages|earnings|retail|industrial|manufacturing|pmi|trade|exports|imports|personal income|outlays|consumption|housing|construction|business confidence|business conditions|business investment|population estimates)|\\b(?:corporate goods price|money stock|money supply|bank lending|job vacancies|portfolio holdings|loan[ -]to[ -]value|lvr settings)\\b",
   "speaker_aliases": [
     "Waller",
     "Bullock",
@@ -1350,5 +1357,8 @@
     "seekingalpha.com",
     "intellinews.com",
     "kitco.com"
-  ]
+  ],
+  "market_transmission": "\\b(?:ai|artificial intelligence|chips?|semiconductors?|gpus?)\\b.{0,110}\\b(?:sell[ -]?off|rout|bubble|burst|collapse|crunch|debt|credit|lending|funding|financing|spending|valuations?|allocation|exposure|equity risk|fraud|scandal|governance|misconduct|downfall|exit|costs?)\\b|\\b(?:sell[ -]?off|rout|bubble|burst|collapse|crunch|debt|credit|lending|funding|financing|spending|valuations?|allocation|exposure|equity risk|fraud|scandal|governance|misconduct|downfall|exit|costs?)\\b.{0,110}\\b(?:ai|artificial intelligence|chips?|semiconductors?|gpus?)\\b|\\b(?:chips?|semiconductors?|gpus?)\\b.{0,110}\\b(?:exports?|re[ -]?exported|exporting|curbs?|access|bans?|restrictions?|controls?|sanctions?|shortages?|deals?|crunch)\\b|\\b(?:exports?|re[ -]?exported|exporting|curbs?|access|bans?|restrictions?|controls?|sanctions?|shortages?|deals?|crunch)\\b.{0,110}\\b(?:chips?|semiconductors?|gpus?)\\b",
+  "sector_bellwethers": "\\b(?:applied materials|amat|cisco|coreweave)\\b",
+  "semiconductor_policy": "\\b(?:chips?|semiconductors?|gpus?)\\b.{0,110}\\b(?:exports?|re[ -]?exported|exporting|curbs?|access|bans?|restrictions?|controls?|sanctions?|shortages?|deals?|crunch)\\b|\\b(?:exports?|re[ -]?exported|exporting|curbs?|access|bans?|restrictions?|controls?|sanctions?|shortages?|deals?|crunch)\\b.{0,110}\\b(?:chips?|semiconductors?|gpus?)\\b"
 }

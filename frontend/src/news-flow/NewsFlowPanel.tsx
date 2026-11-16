@@ -58,8 +58,13 @@ export const NewsFlowPanel = memo(function NewsFlowPanel({ onClose }: { onClose:
       onPointerMove={event => { if (resize.current) setSettings(old => ({ ...old, width: Math.min(640, Math.max(280, resize.current!.width + resize.current!.x - event.clientX)) })) }}
       onPointerUp={event => { resize.current = null; if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId) }}
       onLostPointerCapture={() => { resize.current = null }} />
-    <header className="news-header"><h2>News Flow</h2>
+    <header className="news-header"><div className="news-title-row"><h2>News Flow</h2>
+      <button type="button" className="news-close" aria-label="Close News Flow" onClick={onClose} autoFocus>×</button>
+    </div>
+    <div className="news-classification-row">
       <NewsFilterTabs value={settings.mode} onChange={mode => change({ ...settings, mode })} controls="news-items-panel" />
+    </div>
+    <div className="news-tools">
       <button ref={searchButton} type="button" aria-label="Search news" title="Search headlines" aria-expanded={searching} aria-controls="news-search" data-filtered={!!searchTerm} onClick={() => { setSearching(value => !value); if (searching) { setSearch(''); setSearchTerm('') } }}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m15 15 6 6"/></svg>
       </button>
@@ -70,7 +75,7 @@ export const NewsFlowPanel = memo(function NewsFlowPanel({ onClose }: { onClose:
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M3 3h8l10 10-8 8L3 11z"/><circle cx="7.5" cy="7.5" r="1"/></svg>
       </button>
       <NewsSort settings={settings} onChange={change} />
-      <button type="button" className="news-close" aria-label="Close News Flow" onClick={onClose} autoFocus>×</button>
+    </div>
     </header>
     {configuration && <NewsConfiguration sources={sources} settings={settings} onChange={change} onSaved={reload} onClose={closeConfiguration} />}
     {searching && <div id="news-search" className="news-search" onKeyDown={event => {

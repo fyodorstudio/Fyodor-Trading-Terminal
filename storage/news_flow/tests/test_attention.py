@@ -104,7 +104,7 @@ class NewsAttentionTests(unittest.TestCase):
         single=payload([item],'test',reader)
         self.assertEqual(single['title'],item['title']); self.assertNotIn(item['title'],single['message'])
         self.assertNotIn('http',single['message']); self.assertIn('Nov 09',single['message']); self.assertIn('Nov 16',single['message'])
-        self.assertIn('UTC',single['message']); self.assertIn('Priority',single['message'])
+        self.assertIn('WIB',single['message']); self.assertIn('PM',single['message']); self.assertNotIn('UTC',single['message']); self.assertIn('Priority',single['message'])
         self.assertEqual(single['click'],item['url']); self.assertEqual([a['label'] for a in single['actions']],['Open article','Open News Flow'])
         batch=payload([{**item,'title':'Headline '+str(i)+'長'*1000} for i in range(25)],'test',reader)
         self.assertLess(len(batch['message'].encode()),4096); self.assertLessEqual(len(batch['title'].encode()),1024)
@@ -113,6 +113,27 @@ class NewsAttentionTests(unittest.TestCase):
         self.assertIn('Publication time unavailable',unknown['message'])
         future=payload([{**item,'published_at':item['first_seen']+86400000}],'test',reader)
         self.assertIn('Publication time unavailable',future['message'])
+
+    def test_jakarta_batch_groups_provider_and_collection_once_without_losing_item_times(self):
+        from storage.news_flow.notification_format import stamp
+        from datetime import datetime, timezone
+        at = int(datetime(2026,11,16,14,44,tzinfo=timezone.utc).timestamp()*1000)
+        base = dict(url='https://example.com', publisher='FXStreet', source_name='FXStreet',first_seen=at,received_at=at,relevance={'tier':'included'})
+        items = [{**base,'title':f'Story {i}','published_at':at-i*60000} for i in range(4)]
+        batch = payload(items,'test','http://192.168.0.100:8005/news')
+        self.assertEqual(stamp(at),'Nov 16, 9:44 PM WIB')
+        self.assertEqual(stamp(at+12*3600000),'Nov 17, 9:44 AM WIB')
+        self.assertEqual(batch['message'].count('Collected '),1)
+        self.assertEqual(batch['message'].count('FXStreet'),1)
+        self.assertEqual(batch['message'].count('Published '),4)
+        self.assertEqual(batch['message'].count('Included'),1)
+        mixed = payload([items[0],{**items[1],'publisher':'Reuters','received_at':at+60000},
+                         {**items[2],'relevance':{'tier':'priority'}}],'test')
+        self.assertEqual(mixed['message'].count('Collected '),1)
+        self.assertEqual(mixed['message'].count('FXStreet'),1)
+        self.assertEqual(mixed['message'].count('Reuters'),1)
+        self.assertIn('Priority',mixed['message']); self.assertIn('Included',mixed['message'])
+        self.assertIn('9:44 PM WIB',mixed['message']); self.assertIn('9:45 PM WIB',mixed['message'])
 
     def test_api_validates_sorting_and_exposes_new_mode(self):
         from storage.app import create_app

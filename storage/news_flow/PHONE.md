@@ -101,7 +101,7 @@ No ntfy subscription or login changes are required. See [RELEVANCE.md](RELEVANCE
 
 `notification_format.py` owns the plain-text payload. Single cards put the full
 headline once in the title (UTF-8 bounded to 1000 bytes); the body has source,
-Priority/Included/Excluded level and explicit UTC publication/collection times.
+Priority/Included/Excluded level and Jakarta (WIB, UTC+7) publication/collection times in AM/PM.
 Unknown/future publication times are labelled unavailable. Raw links are kept
 in click/view actions, never repeated in the body. Single-story taps open the
 article; batches open the LAN reader when its runtime address is available.
@@ -111,3 +111,7 @@ Bodies stay below 4096 bytes and titles below 1024 bytes; no URL shortener or
 extra network lookup is needed. Earlier saved ntfy cards are not rewritten.
 Android urgency remains unchanged and is separate from the market-attention tier.
 Included delivery includes Priority + Included; Off/All and credentials are retained.
+
+Batch cards print collection time once (a range when needed) and group previews
+by provider, with one provider header per group. Shared relevance labels appear
+once per group; mixed levels and individual publication times stay explicit.

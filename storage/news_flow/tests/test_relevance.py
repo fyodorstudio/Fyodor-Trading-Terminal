@@ -11,6 +11,21 @@ from storage.news_flow.notifications import NewsNotifier
 
 INCLUDE = ', '.join(PRESET)
 POSITIVE = [
+    'We could, conceivably, get a burst bubble if Nvida earnings fail to impress',
+    "US to curb China's access to AI chips as Trump heads to Asia - Reuters",
+    'US Reportedly Eyeing Tougher Curbs on China Chip Access',
+    'Google unveils new AI chip variants as cloud demand surges - Reuters',
+    'Applied Materials forecasts quarterly revenue above estimates on strong AI chip demand - Reuters',
+    'Banks, investors grow wary of AI debt, spooked by market selloff - Kitco',
+    'AI selloff has investors scrambling to measure their true exposure',
+    'European Stock Indexes Higher as Investors Rotate Away From AI - WSJ',
+    'Emerging-Market Stocks, Currencies Fall as AI Concerns Persist - Bloomberg',
+    'Stocks end higher as CoreWeave results ease AI spending worries - Reuters',
+    'Malaysia probing whether chips linked to Megaspeed unit were re-exported - Reuters',
+    "Japan manufacturers' mood hits more than 5-year high on chip demand - Reuters",
+    'US labor market resilient; existing home sales hit more than 16-year low in October - Reuters',
+    'Well, that did not last long: Chips collapse, 10-year hits 5.15%',
+    'Opinion | Rational Investing and Stock-Market Bubbles',
     'Swiss economy grows 0.2% in third quarter of 2026',
     'Swiss economy grows 0.2% By Investing.com - Investing.com South Africa',
     'European shares hover near record highs; tech stocks lag By Reuters - Investing.com Nigeria',
@@ -63,6 +78,10 @@ POSITIVE = [
     'Argentina sovereign default sparks contagion fears',
 ]
 NEGATIVE = [
+    'Singapore Dollar: Bearish bias capped against US Dollar - UOB',
+    'New awards show celebrates AI music and its creators - Reuters',
+    'Top scorer on South Korean tax exam confesses to cheating with AI - Reuters',
+    'Global broker Elev8 introduces AI access to help clients see more of their trading data',
     'Grafton Group keeps profit guidance despite GB decline; shares down 2%',
     'Small Company raises earnings guidance', 'UnknownCo shares rise on investor update',
     'Trump golf course closure blocked by judge', 'Trump Administration Cannot Close D.C. Golf Course for Now',
@@ -115,6 +134,19 @@ class NewsRelevanceTests(unittest.TestCase):
         self.assertFalse(classify('India gold demand rises', include=INCLUDE, exclude='India', enabled=True)['included'])
         self.assertFalse(classify('Swiss GDP grows - Investing.com South Africa', include=INCLUDE, exclude='South Africa', enabled=True)['included'], 'Explicit Exclude examines the complete original title')
         self.assertTrue(classify('Trump visits golf course', include='Trump', enabled=False)['included'], 'Literal mode remains available')
+
+    def test_official_speech_paths_and_central_bank_statistics_are_protected(self):
+        cases = [
+            ('Philip R. Lane: AI adoption in Europe','https://www.ecb.europa.eu//press/key/date/2026/html/speech.html','https://www.ecb.europa.eu/rss/press.html'),
+            ('Integrated, open and resilient','https://www.ecb.europa.eu/press/key/date/2026/speech.html','https://www.ecb.europa.eu/rss/press.html'),
+            ('Money Stock (Oct.)','https://www.boj.or.jp/en/statistics/money/ms/release.pdf','https://www.boj.or.jp/en/rss/whatsnew.xml'),
+            ('Corporate Goods Price Index (Oct.)','https://www.boj.or.jp/en/statistics/pi/release.pdf','https://www.boj.or.jp/en/rss/whatsnew.xml'),
+        ]
+        for title,url,feed in cases:
+            with self.subTest(title=title):
+                self.assertTrue(classify(title,'custom',url,feed,'','',True)['included'])
+                self.assertFalse(classify(title,'custom',url,feed,'',title,True)['included'])
+                self.assertFalse(classify(title,'custom',url.replace('ecb.europa.eu','example.com').replace('boj.or.jp','example.com'),'https://example.com/feed','','',True)['included'])
 
     def test_reader_export_arrivals_and_phone_share_one_decision(self):
         with TemporaryDirectory() as root:

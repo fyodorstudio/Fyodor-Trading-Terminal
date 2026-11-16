@@ -312,6 +312,6 @@ be archived or restored. Journals remain in their existing application data dire
 Phone notifications show each headline once, without raw Google News URLs in the
 body. Open article opens a single story; Open News Flow opens your authenticated
 phone reader. Batches show a count and up to eight compact previews, with the rest
-available in the reader. Publication and collection times are explicit UTC; Android
+available in the reader. Publication and collection times use Jakarta/WIB with AM/PM; Android
 notification urgency is separate from the market Priority label. Existing ntfy
 subscriptions and credentials need no change. Old notification cards are unchanged.
