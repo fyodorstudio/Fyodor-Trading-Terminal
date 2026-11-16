@@ -76,12 +76,16 @@ claim of access to paid institutional wires is introduced.
 News Flow Extended View uses provider tabs plus Browse/Priority/Settings.
 Settings separates Global (keywords, colours, sound) from Providers (URL,
 polling, visibility), with global controls owned by `NewsGlobalSettings.tsx`.
-Shared classification is All/Included/Excluded: Include matches without Exclude
-matches are Included; the complement is Excluded, including unmatched titles.
-Colour labels remain in All. Browser tag preferences use word boundaries and
-currency-pair normalization; the matching backend rules live in `rules.py`.
-Explicit Japan/Japanese and Democrat/Democrats/Democratic variants apply to both
-classifiers and alerts. Tag inputs narrow existing labels while typing and save
+Shared classification is All/Included/Excluded. Trading relevance defaults on;
+`storage/news_flow/relevance.py` and its JSON own contextual classification, with
+explicit Exclude precedence and verified official-release protection. SQL applies
+the decision before count/paging/export; desktop/mobile colours and both alert
+paths share it. Literal mode remains available. The preset revision 3 migration
+backs up prior settings, preserves custom tags and Off, and changes enabled old
+All alerts to Included. V5 adds six specialist feeds and pauses the original
+broad Investing.com query without deleting history: 52 active starter feeds.
+Provider collection can be paused independently of browsing visibility.
+Tag inputs narrow existing labels while typing and save
 pending valid tags when focus moves outside the editor. The panel has a provider
 checkbox selector and debounced literal headline search; source/date/keyword and
 search scopes apply before backend counting/deduplication/pagination. Row actions

@@ -70,9 +70,9 @@ export function useNewsPage(query: string, paused: RefObject<boolean>) {
     reveal: () => { if (pending?.query === query) { setSnapshot(pending); setPending(null) } } }
 }
 
-export async function saveNewsSource(name: string, url: string, identity?: string, signal?: AbortSignal, pollSeconds?: number) {
+export async function saveNewsSource(name: string, url: string, identity?: string, signal?: AbortSignal, pollSeconds?: number, collectEnabled?: boolean) {
   return responseJson(await fetch('/storage-api/news-flow/sources' + (identity ? `/${encodeURIComponent(identity)}` : ''), {
-    method: identity ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, url, poll_seconds: pollSeconds }), signal,
+    method: identity ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, url, poll_seconds: pollSeconds, ...(collectEnabled === undefined ? {} : { collect_enabled: collectEnabled }) }), signal,
   })) as Promise<{ id: string }>
 }
 

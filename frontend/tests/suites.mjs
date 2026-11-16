@@ -34,6 +34,7 @@ export const suites = [
   "src/news-flow/tests/test_news_controls.mjs",
   "src/news-flow/tests/test_news_phone.mjs",
   "src/news-flow/tests/test_news_diagnostics.mjs",
+  "src/news-flow/tests/test_news_relevance.mjs",
   "tests/test_entry_trade_research.mjs",
   "tests/test_entry_trade_journal_api.mjs",
   "tests/test_entry_trade_chart_contract.mjs",

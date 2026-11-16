@@ -18,6 +18,8 @@ export function NewsConfiguration({ sources, settings, onChange, onSaved, onClos
   const [draft, setDraft] = useState<{ id: string; name: string; url: string; poll: string } | null>(null)
   const { name, url, poll } = draft?.id === activeId ? draft : { name: source?.name ?? '', url: source?.url ?? '', poll: String(source?.poll_seconds ?? 1) }
   const [saving, setSaving] = useState(false), [error, setError] = useState('')
+  const [collectDraft, setCollectDraft] = useState<{ id: string; enabled: boolean } | null>(null)
+  const collectEnabled = collectDraft?.id === activeId ? collectDraft.enabled : source?.collect_enabled !== 0 && source?.collect_enabled !== false
   const wildcards = useOptionalWildcards(), suspended = !!wildcards?.editor
   const dialog = useRef<HTMLDivElement>(null), backdrop = useRef<HTMLDivElement>(null), request = useRef<AbortController | null>(null)
   const opener = useRef<HTMLElement | null>(null)
@@ -49,14 +51,14 @@ export function NewsConfiguration({ sources, settings, onChange, onSaved, onClos
     const controller = new AbortController(); request.current = controller
     setSaving(true); setError('')
     try {
-      await saveNewsSource(name.trim(), url.trim(), source?.id, controller.signal, Number(poll))
+      await saveNewsSource(name.trim(), url.trim(), source?.id, controller.signal, Number(poll), collectDraft?.id === activeId ? collectEnabled : undefined)
       if (!controller.signal.aborted) { onSaved(); if (adding) setIndex(sources.length); setAdding(false) }
     } catch (cause) { if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : 'Could not save provider') }
     finally { if (!controller.signal.aborted) setSaving(false) }
   }
   function selectProvider(id: string) {
     if (saving) return
-    setError(''); setDraft(null)
+    setError(''); setDraft(null); setCollectDraft(null)
     if (id === 'new') { setAdding(true); setTab('settings'); setSettingsTab('providers') }
     else { setAdding(false); setIndex(sources.findIndex(source => source.id === id)) }
   }
@@ -91,6 +93,8 @@ export function NewsConfiguration({ sources, settings, onChange, onSaved, onClos
                   <label>Fetch every (seconds)<input aria-label="Provider polling interval" type="number" required min="1" max="3600" step="1" list="news-poll-options" disabled={saving} value={poll} onChange={event => setDraft({ id: activeId, name, url, poll: event.target.value })} /></label>
                   <datalist id="news-poll-options"><option value="1">1 second · default</option><option value="60">1 minute</option><option value="120">2 minutes</option><option value="180">3 minutes</option><option value="300">5 minutes</option></datalist>
                   <p>Default: 1 second. Override only this provider; 60–300 seconds is 1–5 minutes. Server cooldowns remain in effect.</p>
+                  <label className="news-checkbox"><input type="checkbox" aria-label="Collect this provider" disabled={saving} checked={collectEnabled} onChange={event => setCollectDraft({ id: activeId, enabled: event.target.checked })} />Collect this provider (Save to apply)</label>
+                  {!collectEnabled && <p>Collection paused. Existing headlines remain available for historical browsing.</p>}
                   {source?.fetch_ms != null && <p>Last request: {(source.fetch_ms / 1000).toFixed(2)}s · waited {(Math.max(0, source.queue_ms ?? 0) / 1000).toFixed(2)}s after due. Feed publication/indexing delays are outside this measurement.</p>}
                   {source?.error && <p role="status">{source.error}</p>}
                   {source?.error.includes('429') && <p>Rate limited: consider a 60–300 second override for this provider. Its current cooldown must finish first.</p>}

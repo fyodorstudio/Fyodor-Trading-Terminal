@@ -45,7 +45,7 @@ export const NewsFlowPanel = memo(function NewsFlowPanel({ onClose }: { onClose:
     catch (cause) { if (!controller.signal.aborted) setRefreshError(cause instanceof Error ? cause.message : 'Could not refresh news') }
     finally { if (!controller.signal.aborted) setRefreshing(false) }
   }
-  const failures = sources.filter(source => source.error)
+  const failures = sources.filter(source => source.error && source.collect_enabled !== 0 && source.collect_enabled !== false)
   const lastSuccess = Math.max(0, ...sources.map(source => source.last_success ?? 0))
   const filterActive = settings.hiddenSources.length > 0 || settings.mode !== 'all' || !!searchTerm
   return <aside id="news-flow-panel" className="news-flow-panel" aria-label="News Flow" style={{ '--news-width': `${settings.width}px` } as CSSProperties}

@@ -2,15 +2,17 @@
 from functools import lru_cache
 import re
 import unicodedata
+import json
+from pathlib import Path
 
 MAX_KEYWORDS = 500
 MAX_RULE_CHARS = 16000
 _currency = r'(usd|eur|gbp|jpy|chf|cad|aud|nzd|cny|cnh|xau|xag)'
-_variants = {'japan': r'(?:japan|japanese)', 'democrat': r'(?:democrat|democrats|democratic)'}
+_variants = json.loads(Path(__file__).with_name('relevance.json').read_text(encoding='utf-8'))['aliases']
 
 
 def normalized(value):
-    value = ' '.join(unicodedata.normalize('NFKC', value).lower().split())
+    value = ' '.join(unicodedata.normalize('NFKC', value).lower().translate(str.maketrans({'’': "'", '‘': "'", '‐': '-', '‑': '-', '‒': '-', '–': '-', '—': '-'})).split())
     return re.sub(r'\b' + _currency + r'[/_-]?' + _currency + r'\b', r'\1 \2', value)
 
 

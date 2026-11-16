@@ -10,6 +10,8 @@ const families: [string, string, string?][] = [
   ['barrons.com', 'Dow Jones publications', 'dowjones.com'], ['dowjones.io', 'Dow Jones publications', 'dowjones.com'],
   ['investinglive.com', 'investingLive', 'investinglive.com'], ['forexlive.com', 'investingLive', 'investinglive.com'],
   ['investing.com', 'Investing.com'],
+  ['iea.org', 'IEA'], ['gold.org', 'World Gold Council'], ['silverinstitute.org', 'Silver Institute'],
+  ['stats.gov.cn', 'China NBS'], ['seekingalpha.com', 'Seeking Alpha'], ['intellinews.com', 'IntelliNews'],
 ]
 
 function family(source: NewsSource) {

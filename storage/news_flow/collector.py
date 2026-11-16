@@ -93,6 +93,8 @@ class NewsCollector:
             # Never fill an unbounded executor queue. Oldest due request goes
             # first; one host (notably Google) cannot occupy every worker.
             for source in sorted(sources, key=lambda row: max(row['next_fetch_at'], row['retry_at'])):
+                if not source.get('collect_enabled', 1):
+                    continue
                 identity = source['id']
                 due = max(source['next_fetch_at'], source['retry_at'])
                 host = hosts[identity]
@@ -107,7 +109,7 @@ class NewsCollector:
     def _fetch(self, source, failures):
         with self.source_lock(source['id']):
             current = next((row for row in self.store.sources() if row['id'] == source['id'] and row['url'] == source['url']), None)
-            if current is None or current['retry_at'] > time.time() * 1000:
+            if current is None or not current.get('collect_enabled', 1) or current['retry_at'] > time.time() * 1000:
                 return
             started = time.time() * 1000
             queued = started - max(current['next_fetch_at'], current['retry_at']) if current['next_fetch_at'] else 0

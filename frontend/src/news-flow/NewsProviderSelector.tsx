@@ -12,7 +12,7 @@ export function NewsProviderSelector({ sources, hidden, onChange }: { sources: N
     onChange(visible ? hidden.filter(id => !ids.includes(id)) : [...new Set([...hidden, ...ids])])
   }
   function sourceRow(source: NewsSource) {
-    return <label key={source.id}><input type="checkbox" aria-label={`Show provider ${source.name}`} checked={!hidden.includes(source.id)} onChange={event => toggle([source.id], event.target.checked)} />{source.name}</label>
+    return <label key={source.id}><input type="checkbox" aria-label={`Show provider ${source.name}`} checked={!hidden.includes(source.id)} onChange={event => toggle([source.id], event.target.checked)} />{source.name}{(source.collect_enabled === 0 || source.collect_enabled === false) && ' · collection paused'}</label>
   }
   useEffect(() => {
     if (!open) return

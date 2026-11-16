@@ -1,10 +1,11 @@
 # News Flow source pack
 
-The source of truth is `providers.py`: 47 default provider entries. The v3 pack
+The source of truth is `providers.py`: 52 active default provider entries. The v3 pack
 added 20 entries to the previous 14; v4 adds 13 public market-news subscriptions. All use free public feeds or Google News RSS;
 no account, paid API or article-body extraction is required.
 
-`starter-providers-v4` adds missing entries once. Existing provider names, URLs,
+`starter-providers-v5` adds missing entries once; the known broad Investing.com
+feed is paused if its configured URL is unchanged. Cache/custom overrides remain. Existing provider names, URLs,
 polling intervals, cooldowns and cached items stay intact. If a user already
 added a feed under another name, its unique URL prevents a second subscription.
 Browser keyword, visibility, colour and sound preferences are not migrated.
@@ -126,3 +127,29 @@ Public headlines are free to fetch; linked articles may require subscriptions.
 There is no paywall bypass, paid API, complete Bloomberg Terminal/Dow Jones wire,
 latency guarantee or promise that every critical item is covered. Direct feeds
 reduce reliance on Google discovery; Google searches supplement their short windows.
+
+## V5 trading-focused expansion (16 November 2026)
+
+Six endpoints returned parsed items in bounded live checks. New subscriptions
+prime silently; existing provider URLs, polling settings and cache are preserved.
+The original broad Investing.com query is paused once if its URL is unchanged,
+because its low-value company/crypto volume duplicates stronger coverage. Cached
+items remain searchable and collection can be re-enabled in provider settings.
+There are 52 active starter subscriptions (53 rows on a migrated installation).
+
+| ID | Delivery | Parsed items in live check |
+| --- | --- | --- |
+| iea-oil | Google official IEA Oil Market Reports | 3 |
+| world-gold-council | Google official ETF/demand/commentary reports | 40 |
+| silver-institute | silverinstitute.org/feed/ | 10 |
+| china-nbs | Google official English NBS releases | 15 |
+| seekingalpha-macro | Google targeted cross-asset/FX market news | 100 |
+| intellinews-macro | Google targeted Japan, energy, bonds and sanctions | 100 |
+
+Google supplements blocked or unavailable direct feeds; it is not a full archive
+or a real-time wire. Public headlines are free; linked articles may be paywalled.
+The tested PBoC English query returned no usable items and is not seeded.
+BeInCrypto is not added: occasional macro coverage overlaps existing sources,
+while most of its output falls outside the target trading universe.
+
+Classification and its limits are documented in [RELEVANCE.md](RELEVANCE.md).

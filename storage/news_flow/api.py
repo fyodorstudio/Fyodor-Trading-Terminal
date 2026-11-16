@@ -29,6 +29,7 @@ class ProviderInput(BaseModel):
     name: str = Field(min_length=1, max_length=100)
     url: str = Field(min_length=1, max_length=2000)
     poll_seconds: int | None = Field(default=None, ge=1, le=3600, strict=True)
+    collect_enabled: bool | None = None
 
     @field_validator('name', 'url')
     @classmethod
@@ -53,6 +54,8 @@ class NotificationRules(BaseModel):
     include: str = Field(default='', max_length=MAX_RULE_CHARS)
     exclude: str = Field(default='', max_length=MAX_RULE_CHARS)
     hidden: list[str] = Field(default_factory=list, max_length=1000)
+    market_relevance: bool = True
+    preset_version: int = Field(default=3, ge=1, le=3)
 
 
 class NotificationInput(NotificationRules):
@@ -77,7 +80,7 @@ def news_router(store, collector, notifier=None):
 
     def save(body, identity=None):
         try:
-            identity = store.save_source(body.name, body.url, identity, body.poll_seconds)
+            identity = store.save_source(body.name, body.url, identity, body.poll_seconds, body.collect_enabled)
         except sqlite3.IntegrityError as error:
             raise HTTPException(409, 'This feed URL is already configured') from error
         except KeyError as error:
@@ -96,9 +99,10 @@ def news_router(store, collector, notifier=None):
               exclude: str = Query(default='', max_length=MAX_RULE_CHARS), mode: Literal['all', 'included', 'excluded'] = 'all', priority: bool = False,
               search: str = Query(default='', max_length=500),
               organizer: Literal['all', 'central-banks', 'expectations', 'starred'] = 'all',
+              market_relevance: bool = False,
               currency: Literal['all', 'USD', 'EUR', 'GBP', 'JPY', 'CHF', 'CAD', 'AUD', 'NZD'] = 'all'):
         validate_rules(include, exclude)
-        return dict(sources=source, include=include, exclude=exclude, mode=mode, priority=priority, search=search, organizer=organizer, currency=currency)
+        return dict(sources=source, include=include, exclude=exclude, mode=mode, priority=priority, search=search, organizer=organizer, currency=currency, market_relevance=market_relevance)
 
     @router.get('/items')
     def items(scope: dict = Depends(item_scope), start: int | None = None, end: int | None = None,
@@ -161,9 +165,9 @@ def news_router(store, collector, notifier=None):
     @router.get('/arrivals')
     def arrivals(after: int | None = Query(default=None, ge=0), include: str = Query(default='', max_length=MAX_RULE_CHARS),
                  exclude: str = Query(default='', max_length=MAX_RULE_CHARS), hidden: list[str] = Query(default=[]),
-                 mode: Literal['included', 'all'] = 'included'):
+                 mode: Literal['included', 'all'] = 'included', market_relevance: bool = False):
         validate_rules(include, exclude)
-        return store.arrivals(after, include, exclude, hidden, mode=mode)
+        return store.arrivals(after, include, exclude, hidden, mode=mode, market_relevance=market_relevance)
 
     @router.post('/refresh', status_code=202)
     def refresh():

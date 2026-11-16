@@ -46,7 +46,7 @@ The tag button opens **News Flow Extended View**, a wide centered modal with
 dropdown and arrows. Browse has its own date and Recent control; it does not
 change the combined right panel's date. Provider tabs scroll horizontally.
 
-The expanded pack has 47 default subscriptions, including targeted Reuters
+The expanded pack has 52 active default subscriptions, including targeted Reuters
 FX/oil/equities/metals/Japan economic news, Kitco, RBNZ, SNB, regional economic
 releases, Japan MOF and EIA. New public feeds add Bloomberg, WSJ, MarketWatch,
 Barron's, Financial Times, CNBC, investingLive and Investing.com. Fetching
@@ -58,9 +58,13 @@ sources while preserving your provider settings, cached headlines and keywords.
 See the [source catalogue](storage/news_flow/SOURCES.md) for exact coverage.
 
 **All / Included / Excluded** classify headlines in either reader. All shows
-everything in the selected provider/date scope. Included requires an Include
-keyword match and no Exclude match. Everything else is Excluded, including
-headlines matching neither list. Empty Include makes everything Excluded.
+everything in the selected provider/date scope. **Trading relevance** in Global
+settings is enabled by default. It focuses Included on eight currencies, Brent,
+gold/silver and stock-index drivers. Broad terms such as Trump, Japan, earnings,
+AI and stock need market context. Verified official policy/speech and economic
+releases can qualify even without a keyword. Explicit Exclude always wins;
+everything else is Excluded. Uncheck Trading relevance for literal matching.
+Read the label on each headline for its reason; All/Excluded remain inspectable.
 Included/excluded rows default to red/grey; Settings lets you choose both
 colours. Text labels explain explicit exclusions versus No include match.
 Colours represent relevance, not market direction.
@@ -98,8 +102,8 @@ through Refresh, interval edits and restarts. Source errors identify retry times
 **Show this provider** affects the combined reader/alerts without stopping collection.
 
 The **bell immediately right of Search** opens headline alarms and phone setup.
-The same controls appear in Global. Choose **Off / Included keywords / All new
-headlines**, Chime/Bell/Pulse and Preview / enable audio. Included keywords
+The same controls appear in Global. Choose **Off / Included headlines / All new
+headlines**, Chime/Bell/Pulse and Preview / enable audio. Included headlines
 respects Include/Exclude; All ignores keyword rules. Both use selected providers,
 independent of displayed tab/date. New collection can alert even when publication
 was earlier. Startup snapshots, first provider loads, historical imports, edits
@@ -225,6 +229,17 @@ pin a column to inspect its ranking. **Instruments** edits the watchlist and ord
 **Copy range** selects several dates. **Event window** provides intraday views
 between selected times. The **Wildcards** row shows the same global entries as the
 Wildcards dock and chart icons. Click a cell to view, edit or add entries.
+
+News Flow's Trading relevance preset contains 471 editable terms and shared
+aliases for currencies, policy, macro, energy, metals, indices and systemic risks.
+Broad terms require context. Official policy/speech and economic releases have
+source-verified protection; explicit Exclude still wins. All and Excluded keep
+rejected headlines inspectable. Uncheck Trading relevance for literal matching.
+A one-time upgrade preserves custom tags and Off, backs up prior settings locally,
+and changes enabled old All alerts to Included. You can choose All again afterward.
+Provider settings can pause collection without deleting cached history.
+Relevance is not a volatility or trade-direction prediction; free feeds can lag
+or omit stories. See [filter details](storage/news_flow/RELEVANCE.md).
 
 ## Calendar and alarms
 

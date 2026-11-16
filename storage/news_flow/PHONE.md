@@ -81,6 +81,17 @@ and HTTP backoff. Provider settings expose request duration and lateness after d
 These are local measurements, not proof of the time a feed first exposed an item.
 Publisher RSS and Google discovery delays remain outside the terminal's control.
 
-The v4 provider pack expands automatically to 47 subscriptions. Phone logins and
+The v5 provider pack has 52 active starter subscriptions. Phone logins and
 ntfy subscriptions do not need changing. Delayed articles show both publication
 and collection times; PC provider settings expose the bounded fetch diagnostics.
+
+
+## Trading relevance
+
+Reader colours, desktop sounds and phone notifications use the same backend
+classification. Trading relevance defaults on and protects official policy and
+economic releases while requiring context for broad words. Explicit Exclude wins.
+The one-time preset revision 3 migration preserves custom terms, exclusions,
+selected providers and Off. Enabled old All profiles switch to Included; users
+can explicitly choose All again afterward. Local backups retain prior settings.
+No ntfy subscription or login changes are required. See [RELEVANCE.md](RELEVANCE.md).

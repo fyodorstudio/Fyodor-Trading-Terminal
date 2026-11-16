@@ -13,7 +13,9 @@ with MT5 disconnected and the panel closed, while the service/computer run.
   economic releases, Japan MOF and EIA. V4 adds 13 feeds (47 defaults): Bloomberg
   direct Markets/Economics and Google headlines/FX; WSJ direct Markets/Google,
   MarketWatch direct, Barron's Google; FT direct/Google, CNBC, investingLive and
-  Investing.com Google. Google delivery is explicit in names. Public headlines
+  Investing.com Google. V5 adds six specialist/primary/macro feeds and pauses the
+  noisy broad Investing.com collector without deleting its cache (52 active starter
+  feeds). Collection can be re-enabled in Provider settings. Google delivery is explicit in names. Public headlines
   do not grant subscription article access or the full institutional newswires.
   Existing names/URLs, polling, cooldowns and custom providers are preserved.
   See [SOURCES.md](SOURCES.md) for coverage, verified discovery links and limits.
@@ -28,7 +30,9 @@ with MT5 disconnected and the panel closed, while the service/computer run.
   item snapshots, first-seen timestamps, cached searches, Priority pins and live-arrival cursors.
   Repeated GUIDs update current items. No article-version archive is built.
   Source/date filters run before exact-URL deduplication. All is unfiltered;
-  Included requires any Include and no Exclude; Excluded is the complement,
+  With market_relevance=true the shared contextual classifier decides Included;
+  explicit Exclude wins and Excluded is the complement. Raw mode preserves literal
+  Include/Exclude behavior. Context classification applies before counts and paging,
   including unmatched items. Empty Include means no Included items.
   Optional literal case-insensitive headline search intersects these scopes
   before counting, deduplication and pagination; SQL metacharacters stay literal.
@@ -36,6 +40,10 @@ with MT5 disconnected and the panel closed, while the service/computer run.
   with a title/link-only projection, newest first, across all matching rows.
   More than MAX_EXPORT_ITEMS (10,000) is rejected with HTTP 413 instead of partial
   text. Export does not trigger history searches or mutate collection state.
+- `relevance.py`, `relevance.json`: the single trading-relevance authority,
+  official-source protection, contextual guards, edition-suffix handling, shared
+  aliases/preset and profile migration. Reader/export/arrivals/phone use one result.
+  See [classification and limits](RELEVANCE.md).
 - `rules.py`: bounded, cached, literal whole-word/phrase rules with NFKC and
   currency-pair normalization. Up to 500 tags/16000 characters per list; API
   rejects excess rules rather than truncating. Sound and reading share rules.

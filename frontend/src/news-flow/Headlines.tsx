@@ -1,10 +1,9 @@
 import { useDisplayClock } from '../appearance/time-display/useDisplayClock'
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
-import { newsAge, newsTimestamp, delayedCollection, type NewsItem, type NewsSettings } from './model'
+import { newsAge, newsTimestamp, delayedCollection, headlineClassification, type NewsItem, type NewsSettings } from './model'
 import type { useNewsHistory } from './useNewsFlow'
 import { pinNews } from './useNewsFlow'
 import { useNewsSettings } from './settings'
-import { matchingKeyword } from './keywords'
 import { useOptionalWildcards } from '../wildcards/useWildcards'
 import { wildcardDay } from '../wildcards/wildcard-model'
 
@@ -28,8 +27,8 @@ function Headline({ item, dated, settings, now, policyDetails, onCurrency }: { i
   const request = useRef<AbortController | null>(null)
   const [pin, setPin] = useState<{ original: NewsItem['pinned']; value: boolean } | null>(null)
   const pinned = pin && pin.original === item.pinned ? pin.value : !!item.pinned
-  const excluded = matchingKeyword(item.title, settings.exclude), included = matchingKeyword(item.title, settings.include)
-  const category = included && !excluded ? 'included' : 'excluded'
+  const relevance = headlineClassification(item, settings)
+  const category = relevance.included ? 'included' : 'excluded'
   const collected = item.published_at === null || item.published_at - item.first_seen >= 60000
   const displayedAt = newsTimestamp(item)
   const timeTitle = collected ? `First collected: ${clock.utc(item.first_seen)}. ${item.published_at === null ? 'Publication time unavailable.' : `Feed-supplied future publication time: ${clock.utc(item.published_at)}.`}` : clock.utc(displayedAt)
@@ -56,7 +55,7 @@ function Headline({ item, dated, settings, now, policyDetails, onCurrency }: { i
         {collected ? 'First collected ' : 'Published '}{dated ? clock.utc(displayedAt) : newsAge(displayedAt, now)}</time>
       {delayedCollection(item) && <><span>·</span><time dateTime={new Date(item.first_seen).toISOString()} title={collectionTitle}>Collected {dated ? clock.utc(item.first_seen) : newsAge(item.first_seen, now)}</time></>}
     </div>
-    <div className="news-row-labels"><span>{category === 'included' ? `Included · ${included}` : excluded ? `Excluded keyword · ${excluded}` : 'No include match'}</span>
+    <div className="news-row-labels"><span>{relevance.reason}</span>
       {item.priority_reason && <span title="Detected from the headline or supplied feed text; verify when the information was available.">Expectations candidate</span>}
       {item.policy_banks?.map(bank => onCurrency ? <button type="button" className="news-policy-badge" key={bank.currency} aria-label={`Show ${bank.currency} policy`} onClick={() => onCurrency(bank.currency)}>{bank.currency} · {bank.bank}</button>
         : <span className="news-policy-badge" key={bank.currency}>{bank.currency} · {bank.bank}</span>)}

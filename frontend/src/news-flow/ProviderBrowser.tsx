@@ -19,7 +19,7 @@ export function ProviderBrowser({ sources, selectedId, date, onDateChange, prior
   const source = sources.find(entry => entry.id === selectedId)
   const visible = priority ? sources.filter(source => !settings.hiddenSources.includes(source.id)) : source ? [source] : []
   const query = new URLSearchParams({ order: 'newest', limit: '100', offset: String(offset), mode: priority ? 'all' : mode,
-    include: !priority && mode !== 'all' ? settings.include : '', exclude: !priority && mode !== 'all' ? settings.exclude : '' })
+    include: settings.marketRelevance || !priority && mode !== 'all' ? settings.include : '', exclude: settings.marketRelevance || !priority && mode !== 'all' ? settings.exclude : '', market_relevance: String(settings.marketRelevance) })
   if (priority) { query.set('priority', 'true'); query.set('organizer', organizer); query.set('currency', currency) }
   for (const entry of visible) query.append('source', entry.id)
   if (!visible.length) query.append('source', '__none__')

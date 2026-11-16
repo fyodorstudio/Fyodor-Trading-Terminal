@@ -35,7 +35,7 @@ async function reply(request, body, status = 200) {
 }
 try {
   const { NewsAlarmButton } = await server.ssrLoadModule('./src/news-flow/NewsAlarm.tsx')
-  dom.localStorage.setItem('fyodor.news-flow.v1', JSON.stringify({ presetVersion: 1, include: 'oil', exclude: 'India', hiddenSources: ['sports'] }))
+  dom.localStorage.setItem('fyodor.news-flow.v1', JSON.stringify({ presetVersion: 3, marketRelevance: false, include: 'oil', exclude: 'India', hiddenSources: ['sports'] }))
   await React.act(async () => root.render(React.createElement(NewsAlarmButton)))
   await click('Headline alarms')
   const phone = { mode: 'off', error: '', last_sent: null, connection: { server: 'http://192.168.1.10:8004',
@@ -49,7 +49,7 @@ try {
   await change('Phone news trigger', 'included')
   const save = pending('/notifications')
   assert.equal(save.method, 'PUT')
-  assert.deepEqual(JSON.parse(save.body), { mode: 'included', include: 'oil', exclude: 'India', hidden: ['sports'] })
+  assert.deepEqual(JSON.parse(save.body), { mode: 'included', include: 'oil', exclude: 'India', hidden: ['sports'], market_relevance: false, preset_version: 3 })
   await reply(save, { ...phone, mode: 'included' })
   assert.equal(control('Phone news trigger').value, 'included')
   await React.act(async () => [...host.querySelectorAll('button')].find(button => button.textContent === 'Send test notification').click())

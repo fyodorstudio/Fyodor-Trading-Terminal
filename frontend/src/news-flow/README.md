@@ -3,7 +3,7 @@
 Open with the newspaper button beside Heatmap Ranking. The right panel and
 near-full-window **News Flow Extended View** share simple headline rows, colours,
 Priority stars and Add Wildcard actions. Provider/date scopes remain explicit.
-The expanded backend pack seeds 47 subscriptions; new feeds join this existing
+The expanded backend pack seeds 52 active subscriptions; new feeds join this existing
 combined stream, selector and provider tabs without separate frontend adapters.
 See [the source catalogue](../../../storage/news_flow/SOURCES.md) for coverage.
 
@@ -43,7 +43,8 @@ See [the source catalogue](../../../storage/news_flow/SOURCES.md) for coverage.
 - `Headlines.tsx`: coloured rows, classification reasons, candidate labels,
   persistent Priority star requests and prefilled manual Wildcard drafts.
 - `NewsTabs.tsx`, `KeywordTags.tsx`: keyboard-accessible tabs and removable tags.
-- `keywords.ts`: editable cross-asset market preset, normalization/matching.
+- `keywords.ts`: shared JSON preset/aliases and browser migration; contextual
+  authority stays in storage/news_flow/relevance.py, not a duplicate client engine.
 - `model.ts`, `settings.ts`, `date-range.ts`: preferences/shared subscription,
   API queries/validation and display/broker-session date boundaries.
 - `useNewsFlow.ts`: network boundary (except the independent sound listener).
@@ -57,11 +58,14 @@ See [the source catalogue](../../../storage/news_flow/SOURCES.md) for coverage.
 
 ## Classification and tags
 
-All shows every fetched headline within the provider/date scope. Included needs
-any Include match and no Exclude match. Excluded is the complement, including
-unmatched headlines. An empty Include makes Included empty and Excluded contain
-everything. All retains colours (red/grey defaults, configurable), with text
-reasons distinguishing an explicit Exclude from No include match.
+All shows every fetched headline within the provider/date scope. Trading relevance
+is enabled by default: backend relevance.py/relevance.json classify the eight FX
+currencies, Brent, gold/silver and index transmission. Include tags have strong and
+context-required aliases; verified official policy/economic sources can qualify
+without a literal hit. Explicit Exclude wins. Excluded is the complement. Raw literal
+mode remains available by unchecking Trading relevance. Response relevance metadata
+controls desktop/mobile colours/reasons, SQL filters, copy and alert scope.
+See [the relevance contract](../../../storage/news_flow/RELEVANCE.md).
 
 Keywords are case-insensitive literal words/phrases with word boundaries; AI
 never matches said/retail, nor Fed Federer. NFKC/whitespace normalization and
@@ -75,8 +79,8 @@ Japanese, and Democrat matches Democrats/Democratic, on frontend and backend
 (including exclusions and sound). Other tags retain literal word boundaries.
 
 The market preset covers currencies, policy, data, bonds/liquidity, energy,
-geopolitics, major equities/AI, metals and positioning. A one-time browser
-migration merges it with existing Include terms; existing Exclude terms remain.
+geopolitics, major equities/AI, metals and positioning. Profile revision 3 replaces the old seed and preserves custom Include terms;
+existing Exclude terms remain. Original settings have a one-time local backup.
 Preset version prevents removed tags returning. Settings can add the preset
 again. Old Filtered mode migrates to Included. Settings remain browser-local.
 
@@ -123,7 +127,7 @@ edits. Hiding a provider affects combined reading/alerts, not collection.
 Global sound defaults off and offers Included keywords / All new headlines,
 Chime/Bell/Pulse and Preview. Old enabled preferences migrate to keyword mode.
 All ignores keyword rules and works with empty Include. Both honor provider
-visibility regardless of tab/date. Initial snapshots, provider priming, edits,
+visibility regardless of tab/date. Initial snapshots, provider priming, headline edits,
 history imports and duplicate links stay silent. Recent live arrivals ring once
 per batch, including while the panel is closed. Collection received_at, not
 publication age, determines live delivery. Rules are applied at response time
@@ -150,6 +154,6 @@ real candle across market gaps (earlier wins ties), retaining original UTC time.
 Very long holes/distant missing history do not snap to an unrelated chart edge.
 Chart tooltips retain original time and identify nearest-candle display.
 
-Run: `pnpm --dir frontend test -- test_news_flow test_news_controls test_news_phone test_wildcards test_heatmap_wildcards test_terminal_responsiveness`.
+Run: `pnpm --dir frontend test -- test_news_flow test_news_controls test_news_phone test_news_relevance test_wildcards test_heatmap_wildcards test_terminal_responsiveness`.
 Backend: `storage/news_flow/`. Shared Wildcard editor/marker changes stay in
 `frontend/src/wildcards/`; shell/Heatmap connections remain small.

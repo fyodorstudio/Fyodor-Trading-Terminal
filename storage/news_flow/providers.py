@@ -3,7 +3,7 @@ from urllib.parse import urlencode
 
 TREASURY_URL = 'https://home.treasury.gov/news/press-releases'
 DEFAULT_URL = 'https://news.google.com/rss/search?q=when:24h+site:reuters.com&ceid=US:en&hl=en-US&gl=US'
-PROVIDER_MIGRATION = 'starter-providers-v4'
+PROVIDER_MIGRATION = 'starter-providers-v5'
 
 
 def google_feed(query, window='7d'):
@@ -70,8 +70,17 @@ PROVIDERS = (
     ('ft-google', 'Financial Times · Headlines (Google News)', google_feed('site:ft.com'), ''),
     ('cnbc', 'CNBC · Top news', 'https://www.cnbc.com/id/100003114/device/rss/rss.html', 'site:cnbc.com'),
     ('investinglive', 'investingLive · Markets (formerly ForexLive)', 'https://investinglive.com/feed/news', '(site:investinglive.com OR site:forexlive.com)'),
-    ('investing-news', 'Investing.com · Markets (Google News)', google_feed('site:investing.com/news (forex OR commodities OR economy OR "stock market")'), ''),
+    ('iea-oil', 'IEA · Oil Market Report (Google News)', google_feed('site:iea.org/reports/ intitle:"Oil Market Report"', '90d'), ''),
+    ('world-gold-council', 'World Gold Council · Demand & flows (Google News)', google_feed('site:gold.org ("ETF flows" OR "Gold Demand Trends" OR "Gold Market Commentary" OR "central bank buying")', '90d'), ''),
+    ('silver-institute', 'Silver Institute · Research & releases', 'https://silverinstitute.org/feed/', 'site:silverinstitute.org'),
+    ('china-nbs', 'China NBS · Economic releases (Google News)', google_feed('site:stats.gov.cn/english/PressRelease/ -intitle:"Latest Releases"', '30d'), ''),
+    ('seekingalpha-macro', 'Seeking Alpha · Macro markets (Google News)', google_feed('site:seekingalpha.com/news ("Asian markets" OR "European markets" OR forex OR "central bank" OR "oil market" OR "gold prices" OR "stock index")'), ''),
+    ('intellinews-macro', 'IntelliNews · FX & energy (Google News)', google_feed('site:intellinews.com (Japan OR yen OR oil OR "bond yields" OR sanctions OR "central bank")'), ''),
 )
+
+# Broad regional syndication produced substantial duplicate/small-company noise.
+# Existing cached rows remain browsable; collection can be re-enabled in Settings.
+RETIRED = {'investing-news': google_feed('site:investing.com/news (forex OR commodities OR economy OR "stock market")')}
 
 
 def historical_feed_url(url):

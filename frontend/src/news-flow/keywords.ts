@@ -1,32 +1,30 @@
+import profile from '../../../storage/news_flow/relevance.json'
 export const keywordLimit = 500
 export const keywordCharacters = 16000
-export const starterKeywords = [
-  'USD', 'EUR', 'GBP', 'JPY', 'CHF', 'CAD', 'AUD', 'NZD', 'dollar', 'euro', 'sterling', 'pound', 'yen', 'franc', 'Aussie', 'kiwi', 'greenback', 'DXY', 'yuan', 'renminbi',
-  'Fed', 'Federal Reserve', 'FOMC', 'ECB', 'BoE', 'BoJ', 'BoC', 'RBA', 'RBNZ', 'SNB', 'PBoC', 'monetary policy', 'interest rate', 'interest rates', 'cash rate', 'rate hike', 'rate cut', 'tightening', 'easing', 'hawkish', 'dovish', 'Waller', 'Bullock',
-  'inflation', 'disinflation', 'CPI', 'PCE', 'PPI', 'payrolls', 'NFP', 'unemployment', 'employment', 'wages', 'jobless claims', 'JOLTS', 'ADP', 'GDP', 'PMI', 'ISM', 'retail sales', 'consumer confidence', 'recession', 'stagflation',
-  'Treasury', 'yields', 'bonds', 'gilts', 'Bunds', 'JGBs', 'buyback', 'buybacks', 'auction', 'refunding', 'issuance', 'debt ceiling', 'deficit', 'stimulus', 'quantitative tightening', 'quantitative easing', 'liquidity', 'repo', 'credit spreads',
-  'oil', 'crude', 'Brent', 'WTI', 'OPEC', 'OPEC+', 'production cuts', 'output cuts', 'inventories', 'refinery', 'pipeline', 'natural gas', 'LNG', 'supply disruption', 'Hormuz',
-  'Trump', 'Iran', 'Israel', 'China', 'Taiwan', 'Russia', 'Ukraine', 'Middle East', 'ceasefire', 'peace talks', 'attack', 'missile', 'sanctions', 'tariffs', 'export controls', 'embargo', 'election', 'midterms', 'Congress', 'government shutdown',
-  'Nvidia', 'NVDA', 'Huang', 'artificial intelligence', 'AI', 'semiconductor', 'chips', 'TSMC', 'Microsoft', 'Apple', 'Alphabet', 'Amazon', 'Meta', 'Tesla', 'Nasdaq', 'S&P 500', 'Nikkei', 'DAX', 'FTSE', 'ASX', 'VIX', 'earnings', 'guidance', 'capex', 'financing', 'data centres', 'data centers',
-  'gold', 'silver', 'copper', 'platinum', 'palladium', 'iron ore', 'aluminium', 'aluminum', 'nickel', 'lithium', 'rare earths', 'mining', 'commodities', 'XAU', 'XAG',
-  'risk appetite', 'risk aversion', 'safe haven', 'positioning', 'short covering', 'short squeeze', 'carry trade', 'carry unwind', 'deleveraging', 'liquidation', 'margin calls', 'default', 'bailout', 'banking crisis', 'contagion',
-  'priced in', 'expected', 'unexpected', 'surprise', 'split vote', 'dissent', 'pause', 'forward guidance', 'terminal rate', 'repricing', 'profit taking', 'sell the fact',
-]
+export const starterKeywords: string[] = profile.preset
+
+export function upgradeKeywords(value: string, version: number) {
+  if (version >= 3 || !value.trim()) return value
+  const legacy = new Set(profile.legacy_preset.map(term => term.toLowerCase()))
+  const custom = keywordTags(value).filter(term => !legacy.has(term.toLowerCase()))
+  const tags = keywordTags([...starterKeywords, ...custom].join(','))
+  return tags.length <= keywordLimit && tags.join(', ').length <= keywordCharacters ? tags.join(', ') : value
+}
 
 export function keywordTags(value: string): string[] {
   const seen = new Set<string>()
   return value.split(/[,\n]/).map(term => term.normalize('NFKC').trim().replace(/\s+/g, ' ')).filter(term => {
-    const key = term.toLowerCase()
+    const key = normalize(term)
     if (!key || seen.has(key)) return false
     seen.add(key); return true
   })
 }
 
 function normalize(value: string) {
-  return value.normalize('NFKC').toLowerCase().replace(/\s+/g, ' ').replace(/\b(usd|eur|gbp|jpy|chf|cad|aud|nzd|cny|cnh|xau|xag)[/_-]?(usd|eur|gbp|jpy|chf|cad|aud|nzd|cny|cnh|xau|xag)\b/g, '$1 $2')
+  return value.normalize('NFKC').toLowerCase().replace(/[’‘]/g, "'").replace(/[‐‑‒–—]/g, '-').replace(/\s+/g, ' ').replace(/\b(usd|eur|gbp|jpy|chf|cad|aud|nzd|cny|cnh|xau|xag)[/_-]?(usd|eur|gbp|jpy|chf|cad|aud|nzd|cny|cnh|xau|xag)\b/g, '$1 $2')
 }
 const compiled = new Map<string, { term: string; pattern: RegExp }[]>()
-const variants: Record<string, string> = { japan: '(?:japan|japanese)', democrat: '(?:democrat|democrats|democratic)' }
+const variants: Record<string, string> = profile.aliases
 export function matchingKeyword(title: string, value: string) {
   let rules = compiled.get(value)
   if (!rules) {

@@ -64,7 +64,7 @@ try {
   dom.localStorage.setItem('fyodor.news-flow.v1', JSON.stringify({ include: 'Iran', exclude: 'India', match: 'all' }))
   assert.equal(readNewsSettings().mode, 'all'); assert.ok(readNewsSettings().include.includes('Nvidia'), 'Market preset is added without dropping custom tags')
   assert.equal(readNewsSettings().soundMode, 'included', 'Existing sound preferences keep keyword mode')
-  dom.localStorage.setItem('fyodor.news-flow.v1', JSON.stringify({ presetVersion: 1, include: '', exclude: '' }))
+  dom.localStorage.setItem('fyodor.news-flow.v1', JSON.stringify({ presetVersion: 3, marketRelevance: false, include: '', exclude: '' }))
   const onClose = () => closes++
   const render = () => React.act(async () => root.render(React.createElement(DisplayClockProvider, {
     brokerId: null, preference: { mode: 'fixed-offset', utcOffsetMinutes: 420, hour12: true },
@@ -312,8 +312,8 @@ try {
   await React.act(async () => root.render(React.createElement(SoundHarness)))
   const arrival = () => pendingRequest('/arrivals')
   assert.equal(query(arrival()).has('after'), false)
-  assert.equal(query(arrival()).get('include'), null)
-  assert.equal(query(arrival()).get('mode'), 'all', 'Fetch arrivals once; classify using current preferences')
+  assert.equal(query(arrival()).get('include'), 'Iran, interest rates')
+  assert.equal(query(arrival()).get('mode'), 'included', 'Storage classifies the active scope; cursor survives rule edits')
   await reply(arrival(), { cursor: 10, items: [item('seed')] })
   assert.equal(audioStarts, soundBaseline, 'Initial snapshot is silent')
   await tick()
@@ -336,8 +336,8 @@ try {
   assert.equal(audioStarts, soundBaseline + 2, 'Disabling sound prevents late responses from ringing')
   await click('Test all news sounds')
   assert.equal(query(arrival()).get('mode'), 'all')
-  assert.equal(query(arrival()).get('include'), null, 'All mode works with empty Include')
-  assert.equal(query(arrival()).get('exclude'), null, 'All mode ignores keyword exclusions')
+  assert.equal(query(arrival()).get('include'), '', 'All mode works with empty Include')
+  assert.equal(query(arrival()).get('exclude'), 'India', 'All mode ignores keyword exclusions on storage')
   await reply(arrival(), { cursor: 14, items: [item('startup')] })
   assert.equal(audioStarts, soundBaseline + 2, 'Re-enabling silently establishes a cursor')
   await tick()
@@ -354,8 +354,8 @@ try {
   assert.equal(audioStarts, soundBaseline + 3)
   assert.match(host.textContent, /1 headline alerts waiting for audio/, 'Blocked playback is retained visibly, not discarded')
   await tick()
-  assert.equal(query(arrival()).get('after'), '16', 'Cursor advances while the pending sound remains separately retained')
-  await reply(arrival(), { cursor: 16, items: [] })
+  assert.equal(query(arrival()).get('after'), '15', 'Blocked audio retains the arrival cursor until played or expired')
+  await reply(arrival(), { cursor: 16, items: [{ ...item('blocked-sound'), published_at: now - 300000, received_at: now }] })
   await React.act(async () => dom.dispatchEvent(new dom.Event('pointerdown', { bubbles: true })))
   assert.equal(audioStarts, soundBaseline + 4, 'A user gesture unlocks audio and plays one pending batch')
   assert.doesNotMatch(host.textContent, /waiting for audio/)
@@ -370,7 +370,7 @@ try {
     assert.equal(matchingKeyword(title, term), expected)
   assert.equal(matchingKeyword('term149 arrives', Array.from({ length: 150 }, (_, i) => `term${i}`).join(',')), 'term149')
   assert.deepEqual(keywordTags('Oil, oil, OIL\nIran'), ['Oil', 'Iran'])
-  dom.localStorage.setItem('fyodor.news-flow.v1', JSON.stringify({ ...readNewsSettings(), presetVersion: 1, include: 'Nvidia', exclude: 'India', mode: 'all', date: '', session: null,
+  dom.localStorage.setItem('fyodor.news-flow.v1', JSON.stringify({ ...readNewsSettings(), presetVersion: 3, marketRelevance: false, include: 'Nvidia', exclude: 'India', mode: 'all', date: '', session: null,
     includedColor: '#dd2222', excludedColor: '#777777' }))
   const { WildcardsProvider } = await server.ssrLoadModule('./src/wildcards/WildcardsProvider.tsx')
   await React.act(async () => root.render(React.createElement(WildcardsProvider, null, React.createElement(DisplayClockProvider, {

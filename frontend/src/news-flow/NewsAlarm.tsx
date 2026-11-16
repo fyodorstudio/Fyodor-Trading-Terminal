@@ -16,14 +16,14 @@ export function NewsAlarmControls({ settings, onChange }: { settings: NewsSettin
       const mode = event.target.value
       onChange({ ...settings, soundEnabled: mode !== 'off', soundMode: mode === 'all' ? 'all' : 'included' })
       if (mode !== 'off') void enableNewsSound()
-    }}><option value="off">Off</option><option value="included">Included keywords</option><option value="all">All new headlines</option></select></label>
+    }}><option value="off">Off</option><option value="included">Included headlines</option><option value="all">All new headlines</option></select></label>
     <label>Sound<select aria-label="News alert sound" value={settings.sound} onChange={event => onChange({ ...settings, sound: event.target.value as NewsSettings['sound'] })}>
       <option value="chime">Chime</option><option value="bell">Bell</option><option value="pulse">Pulse</option>
     </select></label>
     <button type="button" aria-label="Preview news sound" onClick={() => void enableNewsSound().then(ok => setPreviewError(ok && playNewsSound(settings.sound) ? '' : 'Audio unavailable in this browser.'))}>Preview / enable audio</button>
     <p role="status">{settings.soundEnabled ? status.ready ? 'Audio ready' : 'Audio needs a click to enable' : 'Desktop sound off'}{status.pending ? ` · ${status.pending} waiting` : ''}</p>
     {(previewError || status.error) && <p role="alert">{previewError || status.error}</p>}
-    <p>Included keywords respects Include/Exclude; All new headlines ignores keywords. Initial loading, historical imports and repeat headlines stay silent. Alerts follow collection, even if publication was earlier.</p>
+    <p>Included headlines uses the reader’s relevance decision, including protected official releases. All new headlines ignores relevance and keywords. Initial loading, historical imports and repeat headlines stay silent. Alerts follow collection, even if publication was earlier.</p>
     {status.last && <div><strong>{status.last.played ? 'Last sound' : 'Last alert · sound blocked'} · {clock.utc(status.last.at)}</strong>
       {status.last.items.map(item => <p key={item.id}><a href={item.url} target="_blank" rel="noopener noreferrer">{item.title}</a><br />
         Collected {clock.utc(item.received_at ?? item.first_seen)}{item.published_at !== null ? ` · Feed publication ${clock.utc(item.published_at)}` : ' · Publication time unavailable'}</p>)}</div>}
@@ -58,7 +58,7 @@ export function PhoneNewsSettings({ settings }: { settings: NewsSettings }) {
     setBusy(true); setMessage('')
     try {
       const response = await fetch('/storage-api/news-flow/notifications', { method: 'PUT', signal: controller.signal,
-        headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mode, include: settings.include, exclude: settings.exclude, hidden: settings.hiddenSources }) })
+        headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mode, include: settings.include, exclude: settings.exclude, hidden: settings.hiddenSources, market_relevance: settings.marketRelevance, preset_version: 3 }) })
       if (!response.ok) throw new Error('Could not save phone alerts')
       const body = await response.json()
       if (!controller.signal.aborted) { setStatus(body); setError('') }
@@ -77,7 +77,7 @@ export function PhoneNewsSettings({ settings }: { settings: NewsSettings }) {
   }
   return <fieldset><legend>Android notifications · ntfy</legend>
     <label>Phone trigger<select aria-label="Phone news trigger" disabled={!status || busy} value={status?.mode ?? 'off'} onChange={event => void save(event.target.value as PhoneStatus['mode'])}>
-      <option value="off">Off</option><option value="included">Included keywords</option><option value="all">All new headlines</option>
+      <option value="off">Off</option><option value="included">Included headlines</option><option value="all">All new headlines</option>
     </select></label>
     <p>Uses desktop keywords and selected providers. Keeps working when this browser closes, while the PC and dev:all services remain running. Phone sound is controlled in Android/ntfy.</p>
     {status?.connection ? <>

@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { newsQuery, newsTimestamp, delayedCollection } from '../model'
+import { newsQuery, newsTimestamp, delayedCollection, headlineClassification } from '../model'
 import { useNewsSettings } from '../settings'
 import { useNewsPage, useNewsSources } from '../useNewsFlow'
-import { matchingKeyword } from '../keywords'
 import { NewsProviderSelector } from '../NewsProviderSelector'
 import { NewsFilterTabs } from '../NewsTabs'
 import { NewsCopy } from '../NewsCopy'
@@ -23,7 +22,7 @@ export function MobileNews() {
         // Share keyword edits; only seed provider visibility once so the phone
         // retains its own browsing filters without changing desktop alerts.
         const seeded = window.localStorage.getItem('fyodor.news-phone.seeded')
-        change(old => ({ ...old, include: profile.include, exclude: profile.exclude, hiddenSources: seeded ? old.hiddenSources : profile.hidden }))
+        change(old => ({ ...old, include: profile.include, exclude: profile.exclude, marketRelevance: profile.market_relevance !== false, hiddenSources: seeded ? old.hiddenSources : profile.hidden }))
         window.localStorage.setItem('fyodor.news-phone.seeded', '1')
       } catch { /* Reader still works with its previous keyword profile. */ }
       finally { if (!controller.signal.aborted) timer = window.setTimeout(loadProfile, 30000) }
@@ -59,13 +58,14 @@ export function MobileNews() {
     <div id="phone-news-items" role="tabpanel" aria-labelledby={`phone-news-items-${settings.mode}-tab`} className="news-items" ref={scroll} onScroll={event => { paused.current = event.currentTarget.scrollTop > 60 }}>
       {!page && !error && <p>Connecting to your PC…</p>}
       {page?.items.map(item => {
-        const included = matchingKeyword(item.title, settings.include) && !matchingKeyword(item.title, settings.exclude)
+        const relevance = headlineClassification(item, settings)
         const at = newsTimestamp(item)
         const collected = item.published_at === null || at !== item.published_at
-        return <article key={item.id} style={{ borderLeftColor: included ? settings.includedColor : settings.excludedColor }}>
+        return <article key={item.id} style={{ borderLeftColor: relevance.included ? settings.includedColor : settings.excludedColor }}>
           <a href={item.url} target="_blank" rel="noopener noreferrer">{item.title}</a>
           <p>{item.publisher || item.source_name} · {collected ? 'First collected ' : 'Published '}<time dateTime={new Date(at).toISOString()}>{new Date(at).toLocaleString()}</time>
             {delayedCollection(item) && <> · Collected <time dateTime={new Date(item.first_seen).toISOString()}>{new Date(item.first_seen).toLocaleString()}</time></>}</p>
+          <small>{relevance.reason}</small>
         </article>
       })}
       {page && !page.items.length && <p>No collected headlines match this view.</p>}

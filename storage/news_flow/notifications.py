@@ -4,6 +4,7 @@ import json
 from threading import Event, RLock, Thread
 import time
 from urllib.request import Request, urlopen
+from .relevance import migrate_include
 
 
 def publish(setup, payload):
@@ -28,10 +29,24 @@ class NewsNotifier:
         self.last_sent = None
 
     def settings(self):
+        with self.lock:
+            return self._settings()
+
+    def _settings(self):
         try:
-            return json.loads((self.root / 'notifications.json').read_text())
+            result = json.loads((self.root / 'notifications.json').read_text())
+            if result.get('preset_version', 1) < 3:
+                backup = self.root / 'notifications.before-relevance-v2.json'
+                if not backup.exists():
+                    backup.write_text(json.dumps(result), encoding='utf-8')
+                result.update(include=migrate_include(result.get('include', ''), 1), market_relevance=True, preset_version=3,
+                              mode='off' if result.get('mode') == 'off' else 'included')
+                temporary = self.root / 'notifications.json.tmp'
+                temporary.write_text(json.dumps(result), encoding='utf-8')
+                temporary.replace(self.root / 'notifications.json')
+            return result
         except FileNotFoundError:
-            return {'mode': 'off', 'include': '', 'exclude': '', 'hidden': []}
+            return {'mode': 'off', 'include': '', 'exclude': '', 'hidden': [], 'market_relevance': True, 'preset_version': 3}
 
     def configure(self, rules, mode=None):
         with self.lock:
@@ -104,7 +119,7 @@ class NewsNotifier:
                 return
             config = self.settings()
             page = self.store.arrivals(self.cursor, config['include'], config['exclude'], config['hidden'],
-                                       mode='all' if config['mode'] == 'off' else config['mode'])
+                                       mode='all' if config['mode'] == 'off' else config['mode'], market_relevance=config.get('market_relevance', True))
             if config['mode'] != 'off' and page['items']:
                 setup = self.setup()
                 items = page['items']
