@@ -1302,7 +1302,7 @@ try {
   assert.equal(counters.heatmapBuild ?? 0, 0, 'Copy date selection performs no price or basket calculations')
   assert.equal(requests.length, beforeCopyRangeRequests, 'Copy date selection uses loaded history')
   assert.deepEqual(logicalRange, heatmapRange)
-  await click(button('Single date')); await flush()
+  await click(button('Clear range')); await flush()
   const beforeWildcardHistory = requests.filter(url => url === '/storage-api/heatmap/history').length
   reset(); await click(button('Manage Wildcards')); await flush()
   assertQuiet('Opening Wildcards editor', true)

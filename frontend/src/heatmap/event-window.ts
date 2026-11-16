@@ -81,8 +81,8 @@ export function eventRows(ids:string[],catalog:HeatmapInstrument[],broker:string
     return {id,label:`${currency} basket`,group,checkedAt:checks.length?Math.min(...checks):null,points}
   })
 }
-export function eventChangesText(rows:HeatmapRow[], window:EventWindow, fields:readonly HeatmapField[], format:'summary'|'candles',groupOrder:string[],observedAt:number) {
-  const periods=eventPeriods(window,observedAt*1000).filter(p=>!p.future&&(format==='summary'?p.day==='window':p.day!=='window'))
+export function eventChangesText(rows:HeatmapRow[], window:EventWindow, fields:readonly HeatmapField[], format:'summary'|'candles',groupOrder:string[],observedAt:number, selectedDays?: readonly string[]) {
+  const periods=eventPeriods(window,observedAt*1000).filter(p=>!p.future&&(selectedDays ? selectedDays.includes(p.day) : format==='summary'?p.day==='window':p.day!=='window'))
   const sections=periods.flatMap(period=>{
     const groups=orderHeatmapGroups(rows.map(r=>r.group),groupOrder).flatMap(group=>{
       const entries=rows.filter(r=>r.group===group&&r.points.get(period.day)?.value!=null).sort((a,b)=>b.points.get(period.day)!.value!-a.points.get(period.day)!.value!)

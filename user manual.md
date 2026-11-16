@@ -223,12 +223,30 @@ left loads more history for comparison. Tick volume counts broker price updates.
 ## Heatmap
 
 Open **Heatmap** in the bottom dock. Switch Daily/Weekly, browse dates and
-pin a column to inspect its ranking. **Instruments** edits the watchlist and order.
+click a date header to select a column and inspect its ranking. **Instruments** edits the watchlist and order.
 **Visible fields** selects O/H/L/C. **Copy Details Only** exports selected readings;
-**Copy Research Prompt** adds a short request and calculation context.
-**Copy range** selects several dates. **Event window** provides intraday views
-between selected times. The **Wildcards** row shows the same global entries as the
-Wildcards dock and chart icons. Click a cell to view, edit or add entries.
+**Copy Research Prompt** adds currency-focused research instructions for potential
+incomplete repricing, supporting cross-asset evidence, and calculation context.
+Click an instrument cell to select just that instrument/date. **Ctrl-click** adds
+or removes individual cells, including scattered dates. **Shift-click** selects
+whole date columns between the original selection and the clicked date.
+**Clear** or **Escape** clears highlights. Dragging still scrolls the heatmap.
+Highlights determine exactly which readings are copied; **Copy options** controls
+fields and the default instruments used when no cells are highlighted.
+**Copy range** also lets you enter date boundaries. **Event window** provides
+intraday views between selected times; highlights override its default summary
+or candle-sequence export format.
+
+Ranking offers **Details** (O/H/L/C) and **Bars** (net C return), with the same
+remembered choice in the bottom dock and standalone **Heatmap Ranking** panel.
+Bars share a symmetric scale around zero. Sorting by **Largest unusual moves**
+keeps bars measured in return percent and shows unusualness separately in ×.
+Ranking follows the active period and group, independently of highlighted cells;
+**Copy displayed ranking** copies its visible fields in displayed order.
+The standalone panel keeps research copying and copy options under
+**Research & export**. **More** in the bottom dock contains news, Wildcards and
+method controls. The **Wildcards** row shows the same global entries as the
+Wildcards dock and chart icons. Click a wildcard cell to view, edit or add entries.
 
 News Flow's Trading relevance preset contains 471 editable terms and shared
 aliases for currencies, policy, macro, energy, metals, indices and systemic risks.

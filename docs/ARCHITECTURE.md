@@ -212,8 +212,12 @@ The Fed supplement remains in `storage/fed_forecasts.py` and
 Daily returns compare OHLC with the previous available D1 close; weekly returns
 compare the week's OHLC with the preceding week's final close. Synthetic currency
 baskets use equal-weight geometric returns across seven counterparts. Event-window
-views use a fixed pre-window baseline. These calculations live in
-`frontend/src/heatmap/`.
+views use a fixed common anchor. These calculations live in
+`frontend/src/heatmap/`. Selection records exact instrument/period cells or whole
+column ranges, independently of the active ranking period. Exports filter each
+row's points to avoid expanding scattered selections into extra readings.
+The dock and standalone panel share the Details/Bars ranking component and a
+broker-scoped view preference; bars always show C on a symmetric return scale.
 
 ## Alarms
 

@@ -4,10 +4,12 @@ export function heatmapResearchPrompt(changes: string, mode: HeatmapMode, broker
   if (!changes) return ''
   const copiedTime = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', year: 'numeric', month: 'short', day: '2-digit',
     hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }).format(copiedAt)
-  if (eventWindow) return ['Explain the market moves in this selected event window.', `Event-window context · ${broker ?? 'Broker'} · Copied ${copiedTime} WIB.`, changes].join('\n\n')
+  const focus = 'These are the market moves shown in my selected heatmap readings. Keep your response focused on summarizing what is happening and identifying potential currency trade entries where repricing may still be incomplete. I mainly trade currencies; use the other selected asset classes as supporting evidence of possible capital rotation. Identify the most likely winning and losing currencies today and over the next few days, explain the supporting evidence, and distinguish observed moves from hypotheses. For potential entries, state the confirmation needed and what would invalidate the setup. If the evidence does not support an opportunity, say so.'
+  const context = 'Price moves suggest possible rotation; they do not directly measure capital flows. Respect the selected period: historical readings are not necessarily ongoing moves and require current confirmation before suggesting an opportunity today. Do not invent current prices, catalysts, or precise entry levels that the available evidence cannot establish.'
+  if (eventWindow) return ['Explain the market moves in this selected event window.', focus, context, `Event-window context · ${broker ?? 'Broker'} · Copied ${copiedTime} WIB.`, changes].join('\n\n')
   const returns = mode === 'weekly' ? 'Weekly changes compare each Monday–Sunday week’s final available close with the previous week’s final available close.'
     : 'Daily changes compare each broker D1 close with its previous available close, including opening gaps.'
-  return ['Explain the market moves in this heatmap.', `Heatmap context · ${broker ?? 'Broker'} · Copied ${copiedTime} WIB (Asia/Jakarta, UTC+07:00)`,
+  return ['Explain the market moves in this heatmap.', focus, context, `Heatmap context · ${broker ?? 'Broker'} · Copied ${copiedTime} WIB (Asia/Jakarta, UTC+07:00)`,
     `${returns} O/H/L/C are percentage changes relative to that same previous close. In progress periods contain partial readings. Dates label broker sessions.`,
     'Currency baskets use equal-weight geometric returns against the other seven currencies. They are distinct from broker USDX/EURX/JPYX. Basket O/H/L is unavailable; C is the net return.',
     changes].join('\n\n')
@@ -24,16 +26,16 @@ export function heatmapChangesText(rows: HeatmapRow[], dates: string | readonly 
       const entries = group.rows.map(row => ({ label: row.label, value: row.points.get(day)?.value, point: row.points.get(day) }))
         .filter((entry): entry is typeof entry & { value: number } => entry.value != null && Number.isFinite(entry.value))
         .sort((a, b) => b.value - a.value || a.label.localeCompare(b.label))
-      return entries.length ? [`${group.group}\n${entries.map(entry => `${entry.label} ${formatHeatmapOHLC(entry.point, fields)}`).join('\n')}`] : []
+      return entries.length ? [`${group.group}\n${entries.map(entry => `${entry.label} ${formatHeatmapOHLC(entry.point, fields)}${entry.point?.reason ? ' · ' + entry.point.reason : ''}`).join('\n')}`] : []
     })
     return sections.length ? [[heading, ...sections].join('\n\n')] : []
   }).join('\n\n')
 }
 
-export function heatmapRankingText(rows: HeatmapRow[], selected: string, fields: readonly HeatmapField[], heading: string) {
+export function heatmapRankingText(rows: HeatmapRow[], selected: string, fields: readonly HeatmapField[], heading: string, unusual = false) {
   const entries = rows.flatMap(row => {
     const point = row.points.get(selected)
-    return point?.value == null ? [] : [`${row.label} · ${row.group} · ${formatHeatmapOHLC(point, fields)} · Baseline ${point.from ?? 'unavailable'} · Through ${point.through ?? 'unavailable'}${point.reason ? ' · ' + point.reason : ''}`]
+    return point?.value == null ? [] : [`${row.label} · ${row.group} · ${formatHeatmapOHLC(point, fields)}${unusual ? ` · Unusual ${point.relative == null ? '—' : point.relative.toFixed(2) + '×'}` : ''} · Baseline ${point.from ?? 'unavailable'} · Through ${point.through ?? 'unavailable'}${point.reason ? ' · ' + point.reason : ''}`]
   })
   return entries.length ? [heading, 'Displayed ranking order. O/H/L/C use each instrument’s stated baseline; H/L are extremes, C is the net return. Timestamped endpoints are UTC; date-only endpoints are broker sessions. Missing entries omitted.', ...entries].join('\n') : ''
 }
