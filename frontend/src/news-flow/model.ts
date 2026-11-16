@@ -1,6 +1,6 @@
 import { keywordTags, starterKeywords } from './keywords'
-export type NewsSource = { id: string; name: string; url: string; last_success: number | null; error: string; poll_seconds?: number; retry_at?: number }
-export type NewsItem = { id: string; source_id: string; source_name: string; publisher: string; title: string; summary: string; url: string; published_at: number | null; first_seen: number; timeline_at?: number; pinned?: boolean | number; priority_reason?: string;
+export type NewsSource = { id: string; name: string; url: string; last_success: number | null; error: string; poll_seconds?: number; retry_at?: number; fetch_ms?: number | null; queue_ms?: number | null }
+export type NewsItem = { id: string; source_id: string; source_name: string; publisher: string; title: string; summary: string; url: string; published_at: number | null; first_seen: number; received_at?: number; timeline_at?: number; pinned?: boolean | number; priority_reason?: string;
   policy_banks?: { currency: string; bank: string }[]; stance?: string; stance_evidence?: { origin: string; text: string }[] }
 export type NewsPage = { items: NewsItem[]; total: number }
 export type NewsMode = 'all' | 'included' | 'excluded'
@@ -52,6 +52,7 @@ export function validNewsPage(value: unknown): value is NewsPage {
     item && ['id', 'source_id', 'source_name', 'publisher', 'title', 'summary', 'url'].every(key => typeof item[key as keyof NewsItem] === 'string')
     && /^https?:\/\//.test(item.url) && Number.isFinite(item.first_seen) && (item.published_at === null || Number.isFinite(item.published_at))
     && (item.timeline_at === undefined || Number.isFinite(item.timeline_at))
+    && (item.received_at === undefined || Number.isFinite(item.received_at))
     && (item.policy_banks === undefined || Array.isArray(item.policy_banks) && item.policy_banks.every(bank => bank && typeof bank.currency === 'string' && typeof bank.bank === 'string'))
     && (item.stance === undefined || typeof item.stance === 'string')
     && (item.stance_evidence === undefined || Array.isArray(item.stance_evidence) && item.stance_evidence.every(entry => entry && typeof entry.origin === 'string' && typeof entry.text === 'string')))

@@ -10,6 +10,7 @@ import { NewsFilterTabs } from './NewsTabs'
 import { NewsProviderSelector } from './NewsProviderSelector'
 import { NewsDateFilter } from './NewsDateFilter'
 import { NewsCopy } from './NewsCopy'
+import { NewsAlarmButton } from './NewsAlarm'
 import './news-flow.css'
 
 export const NewsFlowPanel = memo(function NewsFlowPanel({ onClose }: { onClose: () => void }) {
@@ -61,6 +62,7 @@ export const NewsFlowPanel = memo(function NewsFlowPanel({ onClose }: { onClose:
       <button ref={searchButton} type="button" aria-label="Search news" title="Search headlines" aria-expanded={searching} aria-controls="news-search" aria-pressed={!!searchTerm} onClick={() => { setSearching(value => !value); if (searching) { setSearch(''); setSearchTerm('') } }}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m15 15 6 6"/></svg>
       </button>
+      <NewsAlarmButton />
       <NewsProviderSelector sources={sources} hidden={settings.hiddenSources} onChange={hiddenSources => change({ ...settings, hiddenSources })} />
       <NewsDateFilter settings={settings} zone={clock.zone} onChange={change} />
       <button type="button" aria-label="Configure News Flow" aria-haspopup="dialog" aria-expanded={configuration} aria-controls="news-configuration" aria-pressed={filterActive} onClick={() => setConfiguration(value => !value)} title="Providers and keywords">

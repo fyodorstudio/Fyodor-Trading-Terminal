@@ -4,11 +4,14 @@ from email.utils import parsedate_to_datetime
 import logging
 from threading import Event, Lock, Thread
 import time
+from urllib.parse import urlsplit
 from urllib.error import HTTPError
 
 from .feeds import fetch_feed
 
 logger = logging.getLogger(__name__)
+WORKERS = 8
+PER_HOST = 2
 
 
 def retry_delay(error, failures, now):
@@ -39,7 +42,7 @@ class NewsCollector:
         if self.thread is not None:
             return
         self.stopped.clear()
-        self.pool = ThreadPoolExecutor(max_workers=4, thread_name_prefix='news-feed')
+        self.pool = ThreadPoolExecutor(max_workers=WORKERS, thread_name_prefix='news-feed')
         self.thread = Thread(target=self._run, name='news-flow', daemon=True)
         self.thread.start()
 
@@ -71,23 +74,34 @@ class NewsCollector:
     def tick(self):
         now = time.time() * 1000
         with self.lock:
-            for source in self.store.sources():
+            sources = self.store.sources()
+            hosts = {source['id']: urlsplit(source['url']).hostname for source in sources}
+            self.pending = {key: future for key, future in self.pending.items() if not future.done()}
+            busy = {}
+            for identity in self.pending:
+                host = hosts.get(identity)
+                busy[host] = busy.get(host, 0) + 1
+            # Never fill an unbounded executor queue. Oldest due request goes
+            # first; one host (notably Google) cannot occupy every worker.
+            for source in sorted(sources, key=lambda row: max(row['next_fetch_at'], row['retry_at'])):
                 identity = source['id']
                 due = max(source['next_fetch_at'], source['retry_at'])
-                future = self.pending.get(identity)
-                if future is not None:
-                    if not future.done():
-                        continue
-                    self.pending.pop(identity)
-                    # Worker records its outcome and schedules the next request.
+                host = hosts[identity]
+                if len(self.pending) >= WORKERS:
+                    break
+                if identity in self.pending or busy.get(host, 0) >= PER_HOST:
+                    continue
                 if due <= now and self.pool is not None:
                     self.pending[identity] = self.pool.submit(self._fetch, source, source['failures'])
+                    busy[host] = busy.get(host, 0) + 1
 
     def _fetch(self, source, failures):
         with self.source_lock(source['id']):
             current = next((row for row in self.store.sources() if row['id'] == source['id'] and row['url'] == source['url']), None)
             if current is None or current['retry_at'] > time.time() * 1000:
                 return
+            started = time.time() * 1000
+            queued = started - max(current['next_fetch_at'], current['retry_at']) if current['next_fetch_at'] else 0
             try:
                 items, etag, modified = self.fetcher(current)
                 self.store.success(current, items, etag, modified, int(time.time() * 1000))
@@ -95,3 +109,5 @@ class NewsCollector:
                 failures = max(failures, current['failures']) + 1
                 delay = retry_delay(error, failures, time.time())
                 self.store.failure(current, f'{error}. Retrying in {int(delay)}s.', int(time.time() * 1000 + delay * 1000), failures)
+            finally:
+                self.store.fetch_timing(current, time.time() * 1000 - started, queued)

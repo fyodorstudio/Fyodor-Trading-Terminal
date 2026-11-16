@@ -46,7 +46,13 @@ See [the source catalogue](../../../storage/news_flow/SOURCES.md) for coverage.
 - `model.ts`, `settings.ts`, `date-range.ts`: preferences/shared subscription,
   API queries/validation and display/broker-session date boundaries.
 - `useNewsFlow.ts`: network boundary (except the independent sound listener).
-- `NewsSoundAlerts.tsx`, `sound.ts`: optional workspace-level built-in tones.
+- `NewsSoundAlerts.tsx`, `sound.ts`, `alert-status.ts`: workspace built-in tones,
+  collection cursor, visible audio readiness/pending state and phone rule sync.
+- `NewsAlarm.tsx`: header bell, reusable desktop controls, last alert evidence,
+  persisted phone triggers and private local ntfy setup/test.
+- `mobile/`: separate read-only mobile entry, provider/search/date/classification
+  filters and scoped copy. Built by vite.news.config.ts to ignored dist-news;
+  served by the authenticated phone gateway, not by exposing the trading app.
 
 ## Classification and tags
 
@@ -111,9 +117,19 @@ Chime/Bell/Pulse and Preview. Old enabled preferences migrate to keyword mode.
 All ignores keyword rules and works with empty Include. Both honor provider
 visibility regardless of tab/date. Initial snapshots, provider priming, edits,
 history imports and duplicate links stay silent. Recent live arrivals ring once
-per batch, including while the panel is closed. Undated/scheduled items use
-stable first collection; stale publication times remain silent. Browser audio
-requires a user gesture; suspension can delay delivery.
+per batch, including while the panel is closed. Collection received_at, not
+publication age, determines live delivery. Rules are applied at response time
+without resetting the cursor on edits. Audio readiness is visible; blocked
+batches can produce one tone within one minute after a gesture, with no old
+sound replay. The bell shows last-alert links and both timestamps.
+
+Backend Android delivery has independent Off / Included / All controls. Desktop
+workspace syncs keyword/visibility changes even with sound off; backend delivery
+continues after browser closure. Phone provider filters remain device-local;
+keyword edits synchronize from desktop. Phone setup uses self-hosted ntfy,
+with generated private credentials revealed only on request. Its mobile reader
+is read-only and supports collected-date queries; it does not fetch history.
+See [phone setup](../../../storage/news_flow/PHONE.md).
 
 ## Wildcards
 
@@ -126,6 +142,6 @@ real candle across market gaps (earlier wins ties), retaining original UTC time.
 Very long holes/distant missing history do not snap to an unrelated chart edge.
 Chart tooltips retain original time and identify nearest-candle display.
 
-Run: `pnpm --dir frontend test -- test_news_flow test_news_controls test_wildcards test_heatmap_wildcards test_terminal_responsiveness`.
+Run: `pnpm --dir frontend test -- test_news_flow test_news_controls test_news_phone test_wildcards test_heatmap_wildcards test_terminal_responsiveness`.
 Backend: `storage/news_flow/`. Shared Wildcard editor/marker changes stay in
 `frontend/src/wildcards/`; shell/Heatmap connections remain small.

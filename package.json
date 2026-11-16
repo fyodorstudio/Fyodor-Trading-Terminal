@@ -9,6 +9,8 @@
     "dev:storage": "bridge\\.venv\\Scripts\\python.exe storage\\run.py serve",
     "alarms:start": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start-alarms.ps1",
     "alarms:restart": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start-alarms.ps1 -Restart",
+    "news:phone": "pnpm --dir frontend build:news && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start-news-phone.ps1",
+    "news:phone:restart": "pnpm --dir frontend build:news && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start-news-phone.ps1 -Restart",
     "storage:import": "bridge\\.venv\\Scripts\\python.exe storage\\run.py import",
     "storage:status": "bridge\\.venv\\Scripts\\python.exe storage\\run.py status",
     "storage:fed-forecasts": "bridge\\.venv\\Scripts\\python.exe storage\\run.py fed-forecasts",

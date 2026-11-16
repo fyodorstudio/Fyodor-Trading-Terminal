@@ -1,4 +1,5 @@
 import type { NewsSettings } from './model'
+import { updateNewsAlertStatus } from './alert-status'
 
 let context: AudioContext | null = null
 const tones = { chime: [660, 880], bell: [1047], pulse: [440, 440, 440] }
@@ -6,9 +7,12 @@ const tones = { chime: [660, 880], bell: [1047], pulse: [440, 440, 440] }
 export async function enableNewsSound() {
   try {
     context ??= new AudioContext()
+    context.onstatechange = () => updateNewsAlertStatus({ ready: context?.state === 'running' })
     if (context.state !== 'running') await context.resume()
-    return context.state === 'running'
-  } catch { return false }
+    const ready = context.state === 'running'
+    updateNewsAlertStatus({ ready })
+    return ready
+  } catch { updateNewsAlertStatus({ ready: false }); return false }
 }
 
 export function playNewsSound(sound: NewsSettings['sound']) {

@@ -48,7 +48,9 @@ with MT5 disconnected and the panel closed, while the service/computer run.
   evidence; mixed or qualified language is distinguished, and missing wording
   stays unclassified. No official-name roster, article extraction or inferred
   stance from rate actions.
-- `collector.py`: max four concurrent providers, one request per provider.
+- `collector.py`: max eight active providers, two per host, one request per provider.
+  Oldest-due scheduling avoids an executor backlog; fetch_ms/queue_ms expose
+  request duration and lateness after due (not upstream availability).
   `poll_seconds` defaults to 1, adjustable 1–3600 per provider. `next_fetch_at`,
   `retry_at` and failures persist in SQLite. Success uses the latest interval;
   errors use exponential backoff/Retry-After up to one day. Refresh cannot bypass
@@ -82,11 +84,26 @@ new live items from already-primed feeds create arrivals; historical imports,
 first loads, edits and existing article URLs do not. Initial listener requests
 return only the cursor. `mode=included` applies Include/Exclude; `mode=all`
 ignores keywords. Both honor hidden providers and return up to 200 eligible
-arrivals; paged batches do not skip remaining matches. Freshness uses timeline_at
-and received_at (15 minutes), with at most one minute clock skew. Undated or
-scheduled live items use first collection, not a claim of release time.
-Frontend coalesces batches into one sound and requires timeline time after the
-listener was enabled. This is a relevance alert, not a volatility prediction.
+arrivals; paged batches do not skip remaining matches. Freshness uses received_at
+(15 minutes), never publication age. Responses expose received_at separately from
+the unchanged publication/timeline metadata. Frontend classifies current rules
+at response time, retains its cursor across edits, and coalesces each batch.
+Blocked audio is visible and recoverable for one minute without backlog replay.
+This is a relevance alert, not a volatility prediction.
+
+`notifications.py` owns backend phone delivery and persisted rules/mode, independent
+of browser audio. API notifications GET/PUT, notifications/rules PUT, and test POST
+are desktop-only; phone-profile GET exposes only keyword/provider rules. Storage
+lifespan starts/stops the notifier with a silent baseline. Failed publishing keeps
+the cursor for retry. See [Android setup](PHONE.md) for ntfy ownership, delivery
+limits, authentication, local state and startup.
+
+`phone.py` exposes an authenticated read-only LAN reader on 8005, proxying only
+items/sources/export/phone-profile GETs to loopback storage. It manages the ntfy
+child on 8004; phone_setup.py pins/checksums the official Windows binary and
+provisions separate read-only/write-only accounts. The startup helper validates
+checkout process identities and opens only the scoped LAN ports. No trading,
+provider editing, notification credentials or Wildcard mutation routes are proxied.
 
 No new Python dependency, paid API, full-text scraping or backend Wildcard mutation.
 The frontend can open an existing manual Wildcard draft from a headline.

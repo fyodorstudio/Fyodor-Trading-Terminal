@@ -277,6 +277,7 @@ globalThis.fetch = (url, options = {}) => {
         event.chart_time_seconds <= Number(params.get('to_server_seconds'))), coverage: {}, next_cursor: null }) })
   }
   if (u.includes('/activity')) return Promise.resolve({ ok: true, json: async () => ({ events: [], latest_sequence: 0 }) })
+  if (u.includes('/news-flow/notifications/rules')) return Promise.resolve({ ok: true, json: async () => ({ mode: 'off' }) })
   const name = u.includes('/market-watch') ? 'watch' : u.includes('/ohlc') ? 'ohlc' : 'health'
   return new Promise((resolve, reject) => {
     const queue = pending.get(name) ?? []; queue.push({ url: u, resolve, reject, signal: options.signal }); pending.set(name, queue)
@@ -1405,7 +1406,8 @@ try {
   assert.equal(container.querySelector('#currency-detail-panel'), null)
   assertQuiet('Opening News Flow')
   assert.equal(container.querySelector('#news-items-panel-all-tab').parentElement.nextElementSibling.getAttribute('aria-label'), 'Search news')
-  assert.equal(container.querySelector('[aria-label="Search news"]').nextElementSibling.contains(container.querySelector('[aria-label="Select news providers"]')), true)
+  assert.equal(container.querySelector('[aria-label="Search news"]').nextElementSibling.contains(container.querySelector('[aria-label="Headline alarms"]')), true)
+  assert.equal(container.querySelector('[aria-label="Headline alarms"]').parentElement.nextElementSibling.contains(container.querySelector('[aria-label="Select news providers"]')), true)
   assert.equal(container.querySelector('[aria-label="Select news providers"]').parentElement.nextElementSibling.contains(container.querySelector('[aria-label="News publication date"]')), true)
   await click(container.querySelector('[aria-label="Configure News Flow"]')); await flush()
   assert.equal(document.querySelector('#news-configuration').getAttribute('aria-modal'), 'true')

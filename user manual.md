@@ -94,16 +94,26 @@ up to 3600 seconds, then Save provider. Rate-limit cooldowns remain respected
 through Refresh, interval edits and restarts. Source errors identify retry times.
 **Show this provider** affects the combined reader/alerts without stopping collection.
 
-In Global, choose the sound trigger: **Off / Included keywords / All new
-headlines**, choose Chime/Bell/Pulse and use Preview to unlock browser audio.
-Included keywords respects Include/Exclude; All new headlines ignores keyword
-rules, including an empty Include list. Both use the selected providers and ring
-once per arriving batch, independent of the displayed tab/date. Startup, first
-provider loads, historical imports and duplicate headlines stay silent. Stale
-publications stay silent; undated/scheduled live arrivals use first collection,
-which does not prove the article was just published. Alerts work with the panel
-closed while the terminal page is open. Existing enabled alerts retain keyword
-mode when upgrading.
+The **bell immediately right of Search** opens headline alarms and phone setup.
+The same controls appear in Global. Choose **Off / Included keywords / All new
+headlines**, Chime/Bell/Pulse and Preview / enable audio. Included keywords
+respects Include/Exclude; All ignores keyword rules. Both use selected providers,
+independent of displayed tab/date. New collection can alert even when publication
+was earlier. Startup snapshots, first provider loads, historical imports, edits
+and known URLs stay silent. Blocked audio is shown as waiting, with one coalesced
+sound recoverable within one minute after a gesture; older sounds do not replay.
+The bell retains matching links plus collection/publication times for the last
+alert. Desktop sound works with the panel closed while the page stays open.
+
+For Android, install **ntfy** from Google Play. `pnpm dev:all` also builds the
+mobile reader and starts private local ntfy. The bell shows Server, Topic and a
+concealed reader login: add your own server subscription in ntfy, allow Android
+notifications and keep Instant delivery enabled. Choose Phone trigger and Send
+test notification, then confirm receipt on the handset. Open Phone news page in
+the phone browser with the same login. It shares PC headlines and keyword rules;
+phone browsing filters do not change PC alerts. Notifications continue when the
+browser closes while PC/storage run. Home LAN only; no public hosting or paid API.
+See [Android setup and troubleshooting](storage/news_flow/PHONE.md).
 
 The top-right star and **Add Wildcard** icons have hover tooltips. Relative ages
 update even when the feed is unchanged. Missing or future publication times show

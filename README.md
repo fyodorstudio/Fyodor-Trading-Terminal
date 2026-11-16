@@ -19,8 +19,13 @@ pnpm dev:all
 | Storage | http://127.0.0.1:8002 |
 | Alarm worker | http://127.0.0.1:8003 |
 
-`pnpm dev:all` starts the stack and restarts this checkout's alarm worker.
-`pnpm dev:ui` uses existing services. `pnpm alarms:restart` restarts only the worker.
+`pnpm dev:all` starts the stack, restarts this checkout's alarm worker and builds/
+starts the private Android news service (ntfy 8004, read-only phone page 8005).
+Open the News Flow bell for connection details. First start downloads the pinned,
+checksum-verified official Windows ntfy binary into ignored local storage.
+`pnpm dev:ui` uses existing services. `pnpm alarms:restart` restarts only alarms;
+`pnpm news:phone:restart` rebuilds/restarts only phone news.
+See [Android news setup](storage/news_flow/PHONE.md).
 MT5 can be disconnected while the UI runs. Publisher/exporter programs are in
 `bridge/mql5/Active/`; the bridge connects to the local MT5 installation.
 

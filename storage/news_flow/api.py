@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 from .feeds import http_url
 from .history import NewsHistory
 from .rules import patterns, MAX_RULE_CHARS
+from .notifications import NewsNotifier
 
 
 class HistoryInput(BaseModel):
@@ -48,9 +49,20 @@ class PinInput(BaseModel):
         return http_url(value)
 
 
-def news_router(store, collector):
+class NotificationRules(BaseModel):
+    include: str = Field(default='', max_length=MAX_RULE_CHARS)
+    exclude: str = Field(default='', max_length=MAX_RULE_CHARS)
+    hidden: list[str] = Field(default_factory=list, max_length=1000)
+
+
+class NotificationInput(NotificationRules):
+    mode: Literal['off', 'included', 'all']
+
+
+def news_router(store, collector, notifier=None):
     router = APIRouter(prefix='/api/v1/news-flow')
     history = NewsHistory(store, collector)
+    notifier = notifier or NewsNotifier(store)
 
     @router.get('/sources')
     def sources():
@@ -102,6 +114,33 @@ def news_router(store, collector):
             patterns(include); patterns(exclude)
         except ValueError as error:
             raise HTTPException(422, str(error)) from error
+
+    @router.get('/notifications')
+    def notification_status():
+        return notifier.status()
+
+    @router.get('/phone-profile')
+    def phone_profile():
+        # Read-only gateway can expose the last desktop keyword/provider rules,
+        # never ntfy setup credentials or publisher permissions.
+        return {key: value for key, value in notifier.settings().items() if key != 'mode'}
+
+    @router.put('/notifications')
+    def notification_settings(body: NotificationInput):
+        validate_rules(body.include, body.exclude)
+        return notifier.configure(body.model_dump(exclude={'mode'}), body.mode)
+
+    @router.put('/notifications/rules')
+    def notification_rules(body: NotificationRules):
+        validate_rules(body.include, body.exclude)
+        return notifier.configure(body.model_dump())
+
+    @router.post('/notifications/test')
+    def notification_test():
+        try:
+            return notifier.test()
+        except Exception as error:
+            raise HTTPException(503, 'Could not reach local ntfy. Start pnpm run dev:all and check the phone service.') from error
 
     @router.put('/priority')
     def pin(body: PinInput):

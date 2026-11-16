@@ -6,10 +6,12 @@ import { createServer } from 'vite'
 import { Window } from 'happy-dom'
 
 const dom = new Window({ url: 'http://localhost:5173' }), timers = new Map(), requests = []
+let audioInstance
 let sequence = 0, closes = 0, audioStarts = 0, now = Date.parse('2026-11-15T03:00:00Z')
 const originalNow = Date.now
 Date.now = () => now
 class AudioContext {
+  constructor() { audioInstance = this }
   state = 'running'; currentTime = 0; destination = {}
   async resume() { this.state = 'running' }
   createOscillator() { return { type: '', frequency: { setValueAtTime() {} }, connect() {}, disconnect() {}, start() { audioStarts++ }, stop() {} } }
@@ -72,7 +74,8 @@ try {
   assert.equal(query(pendingRequest('/items')).get('order'), 'newest')
   assert.equal(control('All').getAttribute('aria-selected'), 'true')
   assert.equal(control('All').parentElement.nextElementSibling, control('Search news'))
-  assert.equal(control('Search news').nextElementSibling.contains(control('Select news providers')), true)
+  assert.equal(control('Search news').nextElementSibling.contains(control('Headline alarms')), true)
+  assert.equal(control('Headline alarms').parentElement.nextElementSibling.contains(control('Select news providers')), true)
   assert.equal(control('Select news providers').parentElement.nextElementSibling.contains(control('News publication date')), true)
   assert.equal(document.getElementById('news-date-filter'), null, 'There is no intermediate collapsible date form')
   let pickerOpened = 0
@@ -309,41 +312,56 @@ try {
   await React.act(async () => root.render(React.createElement(SoundHarness)))
   const arrival = () => pendingRequest('/arrivals')
   assert.equal(query(arrival()).has('after'), false)
-  assert.equal(query(arrival()).get('include'), 'Iran, interest rates')
-  assert.equal(query(arrival()).get('mode'), 'included')
+  assert.equal(query(arrival()).get('include'), null)
+  assert.equal(query(arrival()).get('mode'), 'all', 'Fetch arrivals once; classify using current preferences')
   await reply(arrival(), { cursor: 10, items: [item('seed')] })
   assert.equal(audioStarts, soundBaseline, 'Initial snapshot is silent')
   await tick()
   assert.equal(query(arrival()).get('after'), '10')
   now += 1000
-  await reply(arrival(), { cursor: 12, items: [{ ...item('fresh-1'), published_at: now }, { ...item('fresh-2'), published_at: now }] })
+  await reply(arrival(), { cursor: 12, items: [{ ...item('fresh-1', 'Iran fresh headline'), published_at: now }, { ...item('fresh-2', 'Iran another headline'), published_at: now }] })
   assert.equal(audioStarts, soundBaseline + 1, 'One bell for a matching batch, with News Flow closed')
   await tick()
   await reply(arrival(), { cursor: 12, items: [] })
   assert.equal(audioStarts, soundBaseline + 1, 'No repeated sound for an unchanged cursor')
   await tick()
-  await reply(arrival(), { cursor: 13, items: [{ ...item('before-open'), published_at: now - 10000 }] })
-  assert.equal(audioStarts, soundBaseline + 1, 'Headlines published before enabling alerts remain silent')
+  await reply(arrival(), { cursor: 13, items: [{ ...item('before-open', 'Iran delayed headline'), published_at: now - 300000, received_at: now }] })
+  assert.equal(audioStarts, soundBaseline + 2, 'A new collection alerts even when publication precedes enabling by five minutes')
   await tick()
   const disabledRequest = arrival()
   await click('Toggle test sound')
   assert.equal(disabledRequest.signal.aborted, true)
   assert.equal(timers.size, 0)
   await reply(disabledRequest, { cursor: 14, items: [{ ...item('stale-alert'), published_at: now }] })
-  assert.equal(audioStarts, soundBaseline + 1, 'Disabling sound prevents late responses from ringing')
+  assert.equal(audioStarts, soundBaseline + 2, 'Disabling sound prevents late responses from ringing')
   await click('Test all news sounds')
   assert.equal(query(arrival()).get('mode'), 'all')
-  assert.equal(query(arrival()).get('include'), '', 'All mode works with empty Include')
-  assert.equal(query(arrival()).get('exclude'), '', 'All mode ignores keyword exclusions')
+  assert.equal(query(arrival()).get('include'), null, 'All mode works with empty Include')
+  assert.equal(query(arrival()).get('exclude'), null, 'All mode ignores keyword exclusions')
   await reply(arrival(), { cursor: 14, items: [item('startup')] })
-  assert.equal(audioStarts, soundBaseline + 1, 'Changing alert mode silently establishes a cursor')
+  assert.equal(audioStarts, soundBaseline + 2, 'Re-enabling silently establishes a cursor')
   await tick()
   now += 1000
   await reply(arrival(), { cursor: 15, items: [{ ...item('any-new', 'Unmatched headline'), published_at: null, first_seen: now, timeline_at: now }] })
-  assert.equal(audioStarts, soundBaseline + 2, 'All mode rings for a new live arrival using first collection when undated')
+  assert.equal(audioStarts, soundBaseline + 3, 'All mode rings for a new live arrival using first collection when undated')
   await tick()
   await reply(arrival(), { cursor: 15, items: [] })
-  assert.equal(audioStarts, soundBaseline + 2)
+  assert.equal(audioStarts, soundBaseline + 3)
+  audioInstance.state = 'suspended'
+  await tick()
+  now += 1000
+  await reply(arrival(), { cursor: 16, items: [{ ...item('blocked-sound'), published_at: now - 300000, received_at: now }] })
+  assert.equal(audioStarts, soundBaseline + 3)
+  assert.match(host.textContent, /1 headline alerts waiting for audio/, 'Blocked playback is retained visibly, not discarded')
+  await tick()
+  assert.equal(query(arrival()).get('after'), '16', 'Cursor advances while the pending sound remains separately retained')
+  await reply(arrival(), { cursor: 16, items: [] })
+  await React.act(async () => dom.dispatchEvent(new dom.Event('pointerdown', { bubbles: true })))
+  assert.equal(audioStarts, soundBaseline + 4, 'A user gesture unlocks audio and plays one pending batch')
+  assert.doesNotMatch(host.textContent, /waiting for audio/)
+  await tick()
+  await reply(arrival(), { cursor: 16, items: [] })
+  assert.equal(audioStarts, soundBaseline + 4, 'Unlock does not replay a batch repeatedly')
   await React.act(async () => root.render(null))
 
   const { matchingKeyword, keywordTags } = await server.ssrLoadModule('./src/news-flow/keywords.ts')

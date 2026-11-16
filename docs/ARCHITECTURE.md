@@ -100,8 +100,15 @@ A workspace-level listener plays optional built-in sounds using a live arrival
 cursor. Global triggers are Off / Included keywords / All new headlines; All
 ignores keyword rules but both honor selected providers. Startup snapshots,
 history imports and duplicate URLs stay silent. Missing/scheduled live timestamps
-use stable first collection; old published items remain silent. Arrival batches
-page without skipping matches.
+use stable first collection. New live discoveries alert even with older publication
+metadata; arrival freshness uses received_at. Batches page without skipping matches.
+The header bell owns desktop audio readiness/pending/last-alert evidence and phone
+setup. Browser rule edits synchronize to a backend-owned NewsNotifier, so Android
+ntfy delivery does not depend on an open browser. The separate mobile entry is built
+to dist-news and served behind reader authentication on LAN port 8005; only news
+read endpoints are proxied. Its ntfy child (8004) has separate read/write accounts.
+The startup helper validates checkout ownership, verifies the pinned official binary
+on download and scopes the firewall to the routed LAN. See storage/news_flow/PHONE.md.
 Provider polling defaults to 1s with per-source overrides and persisted retry
 and next-fetch deadlines. Refresh/edits/restarts preserve cooldowns. Priority
 combines explicit per-URL SQLite stars, institution-based policy coverage and

@@ -26,4 +26,8 @@ if (process.platform === 'win32') {
   const result = spawnSync('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', script], { encoding: 'utf8' })
   assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`)
   console.log(result.stdout.trim())
+  const phoneScript = fileURLToPath(new URL('../../scripts/tests/test-start-news-phone.ps1', import.meta.url))
+  const phone = spawnSync('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', phoneScript], { encoding: 'utf8' })
+  assert.equal(phone.status, 0, `${phone.stdout}\n${phone.stderr}`)
+  console.log(phone.stdout.trim())
 }

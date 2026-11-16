@@ -32,6 +32,7 @@ export const suites = [
   "tests/test_wildcards.mjs",
   "src/news-flow/tests/test_news_flow.mjs",
   "src/news-flow/tests/test_news_controls.mjs",
+  "src/news-flow/tests/test_news_phone.mjs",
   "tests/test_entry_trade_research.mjs",
   "tests/test_entry_trade_journal_api.mjs",
   "tests/test_entry_trade_chart_contract.mjs",

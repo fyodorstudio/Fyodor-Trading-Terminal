@@ -63,6 +63,9 @@ class NewsStore:
                                                ('retry_at', 'INTEGER NOT NULL DEFAULT 0'), ('failures', 'INTEGER NOT NULL DEFAULT 0')):
                         if column not in columns:
                             db.execute(f'ALTER TABLE sources ADD COLUMN {column} {definition}')
+                    for column in ('fetch_ms', 'queue_ms'):
+                        if column not in columns:
+                            db.execute(f'ALTER TABLE sources ADD COLUMN {column} INTEGER')
                     if 'retry_at' not in columns:
                         # Older versions only persisted the retry message. Conservatively
                         # honour its full delay once instead of bypassing it on upgrade.
@@ -124,6 +127,11 @@ class NewsStore:
     def failure(self, source, error, retry_at=0, failures=0):
         with self.database() as db:
             db.execute('UPDATE sources SET error=?,retry_at=?,next_fetch_at=?,failures=? WHERE id=? AND url=?', (error[:300], retry_at, retry_at, failures, source['id'], source['url']))
+
+    def fetch_timing(self, source, elapsed, queued):
+        with self.database() as db:
+            db.execute('UPDATE sources SET fetch_ms=?,queue_ms=? WHERE id=? AND url=?',
+                       (max(0, int(elapsed)), max(0, int(queued)), source['id'], source['url']))
 
     def refresh(self):
         with self.database() as db:
@@ -199,15 +207,17 @@ class NewsStore:
             cursor = db.execute('SELECT COALESCE(MAX(sequence),0) FROM arrivals').fetchone()[0]
             if after is None or mode == 'included' and not include.strip():
                 return {'cursor': cursor, 'items': []}
-            clauses = ['a.sequence>?', 'a.sequence<=?', TIMELINE + '>=?', TIMELINE + '<=?', 'a.received_at>=?']
-            args = [after, cursor, now - 900_000, now + 60_000, now - 900_000]
+            # Live discovery, not publication age. A feed may expose an article
+            # long after publication. Backfills never enter this table.
+            clauses = ['a.sequence>?', 'a.sequence<=?', 'a.received_at>=?']
+            args = [after, cursor, now - 900_000]
             if mode == 'included':
                 clauses.extend(('news_matches(i.title,?)=1', 'news_matches(i.title,?)=0'))
                 args.extend((include, exclude))
             if hidden:
                 clauses.append('i.source_id NOT IN (' + ','.join('?' for _ in hidden) + ')')
                 args.extend(hidden)
-            rows = db.execute('SELECT i.*,' + TIMELINE + ' AS timeline_at,s.name AS source_name,a.sequence FROM arrivals a JOIN items i ON i.id=a.item_id JOIN sources s ON s.id=i.source_id WHERE ' + ' AND '.join(clauses) + ' ORDER BY a.sequence LIMIT 200', args)
+            rows = db.execute('SELECT i.*,' + TIMELINE + ' AS timeline_at,s.name AS source_name,a.sequence,a.received_at FROM arrivals a JOIN items i ON i.id=a.item_id JOIN sources s ON s.id=i.source_id WHERE ' + ' AND '.join(clauses) + ' ORDER BY a.sequence LIMIT 200', args)
             items = [dict(row) for row in rows]
             # A large batch must not skip eligible arrivals beyond this page.
             return {'cursor': items[-1]['sequence'] if len(items) == 200 else cursor, 'items': items}
