@@ -87,6 +87,15 @@ old announcements. The calendar icon is an overlaid
 native date input, opening directly without a collapsible form; an active date
 chip clears the scope. Provider labels keep their native checkbox activation
 through transient null-focus transitions, and the full row is a padded target.
+`provider-groups.ts` identifies publisher families from direct feed domains or
+Google site scopes; mixed/unknown searches stay separate. Group checkboxes update
+existing hidden-source preferences in one operation, with expandable members.
+`NewsCopy.tsx` provides rolling hours/days copy in the panel and extended reader.
+The backend export route shares validated reader scopes and one locked query,
+replacing date/paging with the relative window and a title/link-only projection.
+All matching rows are copied newest first; >10,000 is rejected without truncation.
+The local cache is exported without historical backfill. Browser clipboard denial
+leaves selectable plain text; cancellation/scope changes cannot copy stale data.
 A workspace-level listener plays optional built-in sounds using a live arrival
 cursor. Global triggers are Off / Included keywords / All new headlines; All
 ignores keyword rules but both honor selected providers. Startup snapshots,

@@ -9,6 +9,12 @@ async function responseJson(response: Response) {
   return response.json()
 }
 
+export async function exportNews(query: string, signal: AbortSignal) {
+  const body = await responseJson(await fetch(`/storage-api/news-flow/export?${query}`, { signal }))
+  if (!body || typeof body.text !== 'string' || !Number.isSafeInteger(body.count) || body.count < 0 || (body.count > 0 && !body.text)) throw new Error('Invalid headline export; nothing copied.')
+  return body as { text: string; count: number }
+}
+
 export function useNewsSources() {
   const [sources, setSources] = useState<NewsSource[]>([]), [error, setError] = useState(''), [attempt, setAttempt] = useState(0)
   useEffect(() => {

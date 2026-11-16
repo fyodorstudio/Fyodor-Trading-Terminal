@@ -9,6 +9,7 @@ import { Headlines, HistoryStatus } from './Headlines'
 import { NewsFilterTabs } from './NewsTabs'
 import { NewsProviderSelector } from './NewsProviderSelector'
 import { NewsDateFilter } from './NewsDateFilter'
+import { NewsCopy } from './NewsCopy'
 import './news-flow.css'
 
 export const NewsFlowPanel = memo(function NewsFlowPanel({ onClose }: { onClose: () => void }) {
@@ -86,7 +87,8 @@ export const NewsFlowPanel = memo(function NewsFlowPanel({ onClose }: { onClose:
     </div>
     <footer className="news-footer"><div><button type="button" aria-label="Refresh news" disabled={refreshing} onClick={() => void refresh()}>↻</button><span>{page?.total ?? 0} headlines</span>
       <button type="button" disabled={!pageIndex} onClick={() => setPagination({ scope, index: pageIndex - 1 })}>Previous</button>
-      <button type="button" disabled={!page || (pageIndex + 1) * 100 >= page.total} onClick={() => setPagination({ scope, index: pageIndex + 1 })}>Next</button></div>
+      <button type="button" disabled={!page || (pageIndex + 1) * 100 >= page.total} onClick={() => setPagination({ scope, index: pageIndex + 1 })}>Next</button>
+      <NewsCopy query={scope} enabled={sources.length > 0} /></div>
       {failures.length ? <small role="status" title={failures.map(source => `${source.name}: ${source.error}`).join('\n')}>{failures.map(source => source.name).join(', ')} unavailable · retrying</small>
         : <small title={lastSuccess ? clock.utc(lastSuccess) : undefined}>{lastSuccess ? 'Updating automatically' : 'Connecting to feeds…'}</small>}
     </footer>

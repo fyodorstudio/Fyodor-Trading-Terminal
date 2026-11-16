@@ -14,6 +14,7 @@ from .policy import policy_currencies, policy_details
 # Freeze the fallback against first collection, so a scheduled date never promotes
 # an old announcement when wall-clock time catches up with the feed timestamp.
 TIMELINE = 'CASE WHEN i.published_at IS NULL OR i.published_at-i.first_seen>=60000 THEN i.first_seen ELSE i.published_at END'
+MAX_EXPORT_ITEMS = 10000
 
 
 class NewsStore:
@@ -145,7 +146,7 @@ class NewsStore:
             db.execute('INSERT OR REPLACE INTO history_searches VALUES (?,?,?,?,?,?,?,?,?)',
                        (source['id'], source['url'], start, end, now, found, error, retry_at, failures))
 
-    def query(self, sources=(), include='', exclude='', start=None, end=None, order='newest', offset=0, limit=100, mode='all', priority=False, search='', organizer='all', currency='all'):
+    def query(self, sources=(), include='', exclude='', start=None, end=None, order='newest', offset=0, limit=100, mode='all', priority=False, search='', organizer='all', currency='all', headlines_only=False):
         clauses, args = [], []
         if sources:
             clauses.append('i.source_id IN (' + ','.join('?' for _ in sources) + ')')
@@ -175,10 +176,22 @@ class NewsStore:
             # Deduplicate overlapping feeds after filtering, preserving per-provider browsing.
             candidates = 'WITH candidates AS (SELECT i.*,' + TIMELINE + ' AS timeline_at,s.name AS source_name,s.url AS source_feed,p.url IS NOT NULL AS pinned,ROW_NUMBER() OVER (PARTITION BY i.url ORDER BY i.first_seen,i.id) AS duplicate FROM items i JOIN sources s ON s.id=i.source_id LEFT JOIN pins p ON p.url=i.url' + where + ') '
             total = db.execute(candidates + 'SELECT count(*) FROM candidates WHERE duplicate=1', args).fetchone()[0]
+            if headlines_only:
+                if total > MAX_EXPORT_ITEMS:
+                    raise OverflowError(f'More than {MAX_EXPORT_ITEMS:,} headlines match. Choose a shorter range or fewer providers.')
+                rows = db.execute(candidates + f'SELECT title,url FROM candidates WHERE duplicate=1 ORDER BY timeline_at {direction},id {direction}', args)
+                return {'items': [dict(row) for row in rows], 'total': total}
             rows = db.execute(candidates + 'SELECT *,news_priority(title,summary) AS priority_reason FROM candidates WHERE duplicate=1' +
                               (' ORDER BY pinned DESC,' if priority else ' ORDER BY ') + f'timeline_at {direction},id {direction} LIMIT ? OFFSET ?', [*args, limit, offset])
             return {'items': [{**{key: value for key, value in dict(row).items() if key not in ('duplicate', 'source_feed')},
                                **policy_details(row['title'], row['summary'], row['source_id'], row['url'], row['source_feed'])} for row in rows], 'total': total}
+
+    def export_headlines(self, **scope):
+        # One locked snapshot, all matching rows, same scopes and URL deduplication
+        # as the reader. No page walking while collection changes the list.
+        page = self.query(**scope, headlines_only=True)
+        text = '\n\n'.join(row['title'] + '\n' + row['url'] for row in page['items'])
+        return {'text': text, 'count': page['total']}
 
     def arrivals(self, after=None, include='', exclude='', hidden=(), now=None, mode='included'):
         now = int(time.time() * 1000) if now is None else now

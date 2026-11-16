@@ -28,6 +28,10 @@ with MT5 disconnected and the panel closed, while the service/computer run.
   including unmatched items. Empty Include means no Included items.
   Optional literal case-insensitive headline search intersects these scopes
   before counting, deduplication and pagination; SQL metacharacters stay literal.
+  Export reuses these filters and exact-URL deduplication in one locked snapshot,
+  with a title/link-only projection, newest first, across all matching rows.
+  More than MAX_EXPORT_ITEMS (10,000) is rejected with HTTP 413 instead of partial
+  text. Export does not trigger history searches or mutate collection state.
 - `rules.py`: bounded, cached, literal whole-word/phrase rules with NFKC and
   currency-pair normalization. Up to 500 tags/16000 characters per list; API
   rejects excess rules rather than truncating. Sound and reading share rules.
@@ -59,7 +63,10 @@ with MT5 disconnected and the panel closed, while the service/computer run.
   Successful/empty search outcomes cache 15 minutes; forced refresh bypasses
   success caches, never failure backoff. Custom unsupported feeds are named in
   the response. Google results can be incomplete and are not exhaustive archives.
-- `api.py`: sources GET/POST/PUT, items GET (mode/priority/search), priority PUT, arrivals GET, refresh/history POST.
+- `api.py`: sources GET/POST/PUT, items/export GET, priority PUT, arrivals GET,
+  refresh/history POST. Shared item_scope validates provider/keyword/search/
+  organizer/currency filters for both the reader and export. Export ends at
+  server UTC now and accepts integer amount + hours/days (up to 10 years).
   Only provider name/HTTP(S) URL required. URL edits clear validators and prime
   the new feed silently; stale in-flight responses are ignored. Existing
   cooldown deadlines remain visible and honoured.

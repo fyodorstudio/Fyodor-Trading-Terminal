@@ -557,6 +557,27 @@ class NewsFlowTests(unittest.TestCase):
         self.assertEqual(NewsStore(restored).query(), self.store.query())
         self.assertEqual(NewsStore(restored).sources(), self.store.sources())
 
+    def test_export_all_matching_headlines_links_order_scope_dedup_and_size_guard(self):
+        entries = [{**self.items[0], 'identity': f'copy{i}', 'url': f'https://example.com/copy/{i}',
+                    'title': f'Oil headline {i}', 'published_at': self.now - i * 1000} for i in range(205)]
+        self.store.success(self.source, entries, '', '', self.now)
+        other_id = self.store.save_source('Other feed', 'https://example.com/other.xml')
+        other = next(source for source in self.store.sources() if source['id'] == other_id)
+        self.store.success(other, [entries[0], {**entries[0], 'identity': 'different', 'url': 'https://example.com/other', 'title': 'Oil other provider'}], '', '', self.now)
+        scope = dict(start=self.now - 3600000, end=self.now + 1, sources=['reuters'], mode='included', include='oil', exclude='India')
+        result = self.store.export_headlines(**scope)
+        self.assertEqual(result['count'], 205, 'Copy includes matches beyond the first reader page')
+        expected = '\n\n'.join(f'Oil headline {i}\nhttps://example.com/copy/{i}' for i in range(205))
+        self.assertEqual(result['text'], expected, 'Only titles and links, newest first; no summary, dates, publisher or template')
+        self.assertEqual(self.store.export_headlines(start=scope['start'], end=scope['end'])['count'], 206, 'Overlapping URLs appear once')
+        self.assertEqual(self.store.export_headlines(**{**scope, 'search': 'headline 204'})['text'], 'Oil headline 204\nhttps://example.com/copy/204')
+        self.assertEqual(self.store.export_headlines(**{**scope, 'sources': ['__none__']})['text'], '')
+        self.assertEqual(self.store.export_headlines(**{**scope, 'start': self.now + 1, 'end': self.now + 2})['count'], 0)
+        self.store.pin(entries[-1]['url'], True)
+        self.assertEqual(self.store.export_headlines(**scope, priority=True, organizer='starred')['text'], 'Oil headline 204\nhttps://example.com/copy/204')
+        with patch('storage.news_flow.store.MAX_EXPORT_ITEMS', 2), self.assertRaises(OverflowError):
+            self.store.export_headlines(**scope)
+
     def test_http_routes_validation_provider_setup_and_pagination(self):
         from storage.app import create_app
         app = create_app(self.root, run_collector=False)
@@ -589,6 +610,19 @@ class NewsFlowTests(unittest.TestCase):
             self.assertEqual((await request('GET', prefix + '/items?organizer=broken'))[0], 422)
             self.assertEqual((await request('GET', prefix + '/items?currency=XYZ'))[0], 422)
             self.assertEqual((await request('GET', prefix + '/items?limit=9999'))[0], 422)
+            with patch('storage.news_flow.api.time.time', return_value=self.now / 1000):
+                status, export = await request('GET', prefix + '/export?amount=1&unit=hours&search=OPEC&source=reuters')
+                self.assertEqual(status, 200)
+                self.assertEqual(export, {'count': 1, 'text': self.items[0]['title'] + '\n' + self.items[0]['url']})
+                self.assertEqual((await request('GET', prefix + '/export?source=__none__'))[1], {'text': '', 'count': 0})
+                with patch.object(NewsStore, 'export_headlines', return_value={'text': '', 'count': 0}) as export_call:
+                    self.assertEqual((await request('GET', prefix + '/export?amount=3&unit=days'))[0], 200)
+                    self.assertEqual(export_call.call_args.kwargs['start'], self.now - 3 * 86400000)
+                    self.assertEqual(export_call.call_args.kwargs['end'], self.now + 1)
+                with patch('storage.news_flow.store.MAX_EXPORT_ITEMS', 0):
+                    self.assertEqual((await request('GET', prefix + '/export'))[0], 413)
+            for suffix in ('amount=0', 'amount=-1', 'amount=1.5', 'amount=100000', 'amount=3651&unit=days', 'unit=weeks', 'mode=broken'):
+                self.assertEqual((await request('GET', prefix + '/export?' + suffix))[0], 422)
             status, arrivals = await request('GET', prefix + '/arrivals?include=Iran')
             self.assertEqual(status, 200); self.assertEqual(arrivals['items'], [])
             self.assertIsInstance(arrivals['cursor'], int)

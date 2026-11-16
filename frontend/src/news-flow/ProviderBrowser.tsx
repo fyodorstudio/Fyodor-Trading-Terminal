@@ -6,6 +6,7 @@ import type { NewsSource, NewsMode } from './model'
 import { useNewsHistory, useNewsPage } from './useNewsFlow'
 import { useNewsSettings } from './settings'
 import { NewsFilterTabs, NewsTabs } from './NewsTabs'
+import { NewsCopy } from './NewsCopy'
 
 export function ProviderBrowser({ sources, selectedId, date, onDateChange, priority = false }: { sources: NewsSource[]; selectedId?: string; date: string; onDateChange: (date: string) => void; priority?: boolean }) {
   const [paging, setPaging] = useState({ scope: '', offset: 0 }), [mode, setMode] = useState<NewsMode>('all')
@@ -30,6 +31,7 @@ export function ProviderBrowser({ sources, selectedId, date, onDateChange, prior
       <label>Date<input type="date" aria-label="Provider publication date" value={date} onChange={event => onDateChange(event.target.value)} /></label>
       <button type="button" aria-pressed={!date} onClick={() => onDateChange('')}>Recent</button>
       <small>{clock.zone}</small>
+      <NewsCopy query={query.toString()} enabled={visible.length > 0} id="news-extended-copy" />
     </div>
     {priority ? <>
       <NewsTabs label="Priority organization" value={organizer} onChange={setOrganizer} controls="news-provider-items"

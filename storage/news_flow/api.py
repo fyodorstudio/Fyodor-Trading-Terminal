@@ -2,7 +2,8 @@
 from typing import Literal
 import sqlite3
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
+import time
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from .feeds import http_url
@@ -72,15 +73,29 @@ def news_router(store, collector):
     def update_source(identity: str, body: ProviderInput):
         return save(body, identity)
 
-    @router.get('/items')
-    def items(source: list[str] = Query(default=[]), include: str = Query(default='', max_length=MAX_RULE_CHARS),
+    def item_scope(source: list[str] = Query(default=[]), include: str = Query(default='', max_length=MAX_RULE_CHARS),
               exclude: str = Query(default='', max_length=MAX_RULE_CHARS), mode: Literal['all', 'included', 'excluded'] = 'all', priority: bool = False,
-              start: int | None = None, end: int | None = None, order: Literal['newest', 'oldest'] = 'newest',
-              offset: int = Query(default=0, ge=0), limit: int = Query(default=100, ge=1, le=200), search: str = Query(default='', max_length=500),
+              search: str = Query(default='', max_length=500),
               organizer: Literal['all', 'central-banks', 'expectations', 'starred'] = 'all',
               currency: Literal['all', 'USD', 'EUR', 'GBP', 'JPY', 'CHF', 'CAD', 'AUD', 'NZD'] = 'all'):
         validate_rules(include, exclude)
-        return store.query(source, include, exclude, start, end, order, offset, limit, mode, priority, search, organizer, currency)
+        return dict(sources=source, include=include, exclude=exclude, mode=mode, priority=priority, search=search, organizer=organizer, currency=currency)
+
+    @router.get('/items')
+    def items(scope: dict = Depends(item_scope), start: int | None = None, end: int | None = None,
+              order: Literal['newest', 'oldest'] = 'newest', offset: int = Query(default=0, ge=0), limit: int = Query(default=100, ge=1, le=200)):
+        return store.query(**scope, start=start, end=end, order=order, offset=offset, limit=limit)
+
+    @router.get('/export')
+    def export(scope: dict = Depends(item_scope), amount: int = Query(default=1, ge=1, le=87600), unit: Literal['hours', 'days'] = 'hours'):
+        window = amount * (3600_000 if unit == 'hours' else 86400_000)
+        if window > 3650 * 86400_000:
+            raise HTTPException(422, 'Choose up to 3650 days or 87600 hours')
+        now = int(time.time() * 1000)
+        try:
+            return store.export_headlines(start=now - window, end=now + 1, **scope)
+        except OverflowError as error:
+            raise HTTPException(413, str(error)) from error
 
     def validate_rules(include, exclude):
         try:

@@ -65,7 +65,7 @@ export function NewsConfiguration({ sources, settings, onChange, onSaved, onClos
         event.stopPropagation()
         if (event.key === 'Escape') onClose()
         if (event.key === 'Tab') {
-          const controls = [...dialog.current!.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), select:not(:disabled), a[href]')].filter(element => element.tabIndex >= 0)
+          const controls = [...dialog.current!.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href]')].filter(element => element.tabIndex >= 0)
           const next = event.shiftKey && document.activeElement === controls[0] ? controls.at(-1) : !event.shiftKey && document.activeElement === controls.at(-1) ? controls[0] : null
           if (next) { event.preventDefault(); next.focus() }
         }

@@ -15,17 +15,27 @@ See [the source catalogue](../../../storage/news_flow/SOURCES.md) for coverage.
 - `NewsProviderSelector.tsx`: header checkbox selector shares hidden-provider
   preferences with Settings and alerts; All/None and keyboard dismissal. Full
   padded label rows activate checkboxes; transient null focus from native label
-  activation does not unmount the menu before the checkbox changes.
+  activation does not unmount the menu before the checkbox changes. Collapsed
+  publisher families have mixed-state bulk checkboxes and expandable member rows.
+- `provider-groups.ts`: groups feeds by actual publisher domains, including Google
+  site scopes. Unknown/mixed Google searches stay separate; delivery via Google
+  alone never establishes a publisher family.
+- `NewsCopy.tsx`: rolling hours/days selector in the panel footer and extended
+  reader. Preserves provider/classification/search/organizer/currency scopes,
+  ignores calendar/paging/sort, and requests newest-first snapshot export. Only
+  title/link blocks reach the clipboard. Empty/errors preserve the clipboard;
+  denied access leaves a selectable textarea. Closing/unmount/scope changes abort
+  requests; a selectable fallback is included in modal keyboard containment.
 - `NewsDateFilter.tsx`: calendar icon with a full-area native date input. Opens
   the picker directly, without an intermediate collapsible form or Recent button.
   The active-date chip clears the filter while preserving broker-session rules.
 - `NewsConfiguration.tsx`: Browse providers / Priority / Settings modal, named
   provider tabs and provider polling controls. Settings separates Global from
-  Providers; global settings have no provider navigation.
+  Providers; global settings have no provider navigation. Portal, inert
+  background and keyboard focus containment; suspends while a Wildcard draft
+  is open, retaining date/tab/scroll state when returning.
 - `NewsGlobalSettings.tsx`: shared keywords/colours and sound trigger
   Off / Included keywords / All new headlines, sound selection and Preview.
-  Portal, inert background and keyboard focus containment; suspends while a
-  Wildcard draft is open, retaining date/tab/scroll state when returning.
 - `ProviderBrowser.tsx`: provider or Priority page with independent date, paging
   and on-demand history. Provider browsing can inspect hidden providers; Priority
   combines visible providers independently of Include/Exclude classification.
@@ -116,6 +126,6 @@ real candle across market gaps (earlier wins ties), retaining original UTC time.
 Very long holes/distant missing history do not snap to an unrelated chart edge.
 Chart tooltips retain original time and identify nearest-candle display.
 
-Run: `pnpm --dir frontend test -- test_news_flow test_wildcards test_heatmap_wildcards test_terminal_responsiveness`.
+Run: `pnpm --dir frontend test -- test_news_flow test_news_controls test_wildcards test_heatmap_wildcards test_terminal_responsiveness`.
 Backend: `storage/news_flow/`. Shared Wildcard editor/marker changes stay in
 `frontend/src/wildcards/`; shell/Heatmap connections remain small.

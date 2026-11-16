@@ -22,8 +22,24 @@ Left of the calendar, the provider button opens a checkbox list with All/None.
 The search button to its left searches cached headlines within the selected
 providers, date and classification tab, including results beyond the current
 page. Clear the search with ×. Provider visibility shares the Settings preference.
-Each provider's whole row, including its name, toggles its checkbox. The calendar
-icon opens the date picker directly; the selected date's × clears that filter.
+Each provider's whole row, including its name, toggles its checkbox. Related
+feeds share publisher groups: Reuters, Federal Reserve, Bank of England, Bank of
+Canada, RBA and EIA, when multiple feeds are configured. A group checkbox toggles
+all its feeds; a mixed checkbox means some are selected. Expand the group to
+change individual feeds. This also updates the providers used for sound alerts.
+The calendar icon opens the date picker directly; the selected date's × clears
+that filter.
+
+The copy icon beside the right-panel paging buttons, and beside the date controls
+in Extended View, opens **Copy headlines and links**. Choose Last 1 hour/day or a
+custom number of hours/days, then Copy. The range ends now; a day means 24 hours.
+It uses that view's provider, classification, search and Priority/currency filters
+across all matching pages, newest first. It replaces the calendar date with the
+rolling range and copies collected news only; it does not fetch missing history.
+The clipboard contains only each headline and its link, separated by blank lines.
+Empty/failed exports leave the clipboard alone. If clipboard permission is denied,
+select the provided text and copy manually. More than 10,000 matching headlines
+requires a shorter range or narrower filters; results are never silently cut off.
 
 The tag button opens **News Flow Extended View**, a wide centered modal with
 **Browse providers / Priority / Settings** tabs. Named provider tabs replace the
