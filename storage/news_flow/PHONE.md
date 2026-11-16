@@ -14,13 +14,13 @@ private local phone service. No Docker, paid API or public ntfy account is neede
    Add this user for that server in ntfy if the app requests authentication.
 5. Allow Android notifications; keep ntfy **Instant delivery** enabled. If Android
    restricts its background connection, allow the app's background/battery access.
-6. Choose **Included headlines** or **All new headlines** for Phone trigger, then
+6. Choose **Included headlines** or **All new headlines** for News alert trigger, then
    press **Send test notification**. Confirm receipt on the actual phone.
 7. Open **Phone news page** in your phone browser. Use the same reader login.
    Bookmark it or add a home-screen shortcut. Notification taps open the publisher
    link directly. Reading the full feed happens on the separate phone news page.
 
-Phone delivery and desktop sound have separate on/off modes. Phone alerts use the
+Phone delivery and desktop sound share one server-owned trigger and publication-age limit. Phone alerts use the
 desktop Include/Exclude and provider visibility last synchronized by the workspace.
 They keep running after the browser closes while storage and the PC remain awake.
 The reader shares those keyword rules (refreshes every 30 seconds), but its own
@@ -115,3 +115,20 @@ Included delivery includes Priority + Included; Off/All and credentials are reta
 Batch cards print collection time once (a range when needed) and group previews
 by provider, with one provider header per group. Shared relevance labels appear
 once per group; mixed levels and individual publication times stay explicit.
+
+## Shared alert policy
+
+News alerts has one Off / Included / All trigger for desktop and ntfy. The server
+owns this mode and max_age_seconds; alert-profile.ts shares one subscription and
+save state across controls. Keyword/provider sync cannot overwrite delivery policy.
+The one-time browser migration preserves an enabled phone or legacy desktop
+trigger, then marks unified_alerts=true. Sound selection remains desktop-local;
+Android chooses the phone sound. Credentials and subscriptions are preserved.
+
+Publication age defaults to 24 hours. Choose a whole number of hours or days and
+Apply age limit; disabling the checkbox permits any age. The backend enforces
+this for both phone and configured desktop arrivals, including All mode. Unknown,
+future or originally scheduled publication dates cannot pass an enabled limit.
+Reader/history/export remain available; suppressed arrivals advance the cursor
+and are not replayed by later widening the limit. Desktop rechecks age before
+playing a buffered sound. Initial snapshots/history/repeats stay silent.

@@ -55,6 +55,8 @@ function AlertRow({ alert, controller, onSelectSymbol, brokerId }: {
         <svg className="price-alert-symbol-icon" aria-hidden="true" width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="10" cy="11" r="6" /><path d="M10 7v4l3 2M3 5l3-3M14 2l3 3" /></svg>
         <span>{alert.name ? crossing : alert.symbol}</span><span aria-hidden="true">•</span>
         <span className={`price-alert-state ${statusClass}`}>{status}</span>
+        {alert.soundStatus && alert.status === 'triggered' && <span className={`price-alert-sound-state ${alert.soundStatus}`}>{
+          alert.soundStatus === 'pending' ? 'Sound pending' : alert.soundStatus === 'missed' ? 'Sound not played' : alert.soundStatus === 'muted' ? 'Sound silenced' : 'Sound played'}</span>}
         {alert.triggeredAt !== null && <><span aria-hidden="true">•</span><time dateTime={new Date(alert.triggeredAt).toISOString()} title="Asia/Jakarta (UTC+07:00)">
           {triggerClock.format(alert.triggeredAt).replaceAll(',', '')}</time></>}
       </span>
@@ -130,6 +132,7 @@ export function PriceAlertsDock({ controller, onSelectSymbol, onCreate, brokerId
       {!controller.live && <p role="status">Monitoring paused · waiting for live broker quotes.</p>}
       {controller.storageError && <p role="alert">Browser storage unavailable. Changes are kept for this session only.</p>}
       {controller.soundBlocked && <p role="alert">Sound is blocked. <button type="button" onClick={() => void controller.enableSound()}>Enable sound</button></p>}
+      {controller.playSound && controller.volume === 0 && <p role="alert">Price alert volume is 0. Alerts will be silent.</p>}
     </div>
     <div className="price-alert-list" aria-live="polite">
       {groups.map(group => <section key={group.key} className="price-alert-group" aria-label={`${group.symbol} price alerts · ${group.brokerId}`}>

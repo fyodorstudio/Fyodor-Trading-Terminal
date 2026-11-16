@@ -38,3 +38,8 @@
 .price-alerts-dock .price-alert-actions button:hover { background: var(--surface-inset); color: var(--accent); }
 .price-alert-rename { margin: 0; padding: 6px 60px 6px 10px; min-height: 50px; display: flex; align-items: flex-start; }
 .price-alert-rename input { width: 100%; min-width: 0; box-sizing: border-box; }
+
+.price-alert-delivery-notice { position:fixed; z-index:9001; left:12px; bottom:38px; max-width:min(390px,calc(100vw - 24px)); box-sizing:border-box; display:flex; flex-wrap:wrap; gap:8px; padding:12px; border:1px solid var(--negative); border-radius:4px; background:var(--surface-panel); color:var(--text); box-shadow:0 8px 24px #0004; font-size:12px; }
+.price-alert-delivery-notice strong, .price-alert-delivery-notice span { flex-basis:100%; }
+.price-alert-delivery-notice button { border:1px solid var(--border-strong); padding:6px 8px; background:var(--surface-inset); color:var(--text); border-radius:3px; cursor:pointer; }
+.price-alert-sound-state.pending, .price-alert-sound-state.missed { color:var(--negative); font-weight:600; }

@@ -25,6 +25,7 @@ export const suites = [
   "tests/test_drawing_chart_contract.mjs",
   "tests/test_price_alerts.mjs",
   "tests/test_custom_price_alert_sound.mjs",
+  "tests/test_price_alert_delivery.mjs",
   "tests/test_price_alert_chart_contract.mjs",
   "tests/test_terminal_responsiveness.mjs",
   "tests/test_events_alarms.mjs",

@@ -122,3 +122,13 @@ and semiconductor trade-control context, and named sector bellwethers. Official
 ECB speech article paths and central-bank statistical releases receive verified
 protection. Country-only, generic AI entertainment and small-company guidance
 remain excluded; explicit Exclude still wins. No preset reseed is required.
+
+## Delivery age is separate from relevance
+
+arrivals(max_age_seconds=...) filters raw trusted publication time, not first_seen.
+The shared trigger selects both relevant tiers for Included and any tier for All;
+either mode still enforces the age limit. /notifications/settings changes only
+mode and age. /notifications/rules changes only keywords/providers. The desktop
+uses /arrivals?configured=true and ntfy uses the same saved profile. Default age
+is 86400 seconds; whole hours up to 365 days or null for unrestricted. Unknown
+publication cannot be certified recent. Historical browsing is never age-filtered.

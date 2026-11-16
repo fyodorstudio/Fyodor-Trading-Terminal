@@ -123,3 +123,10 @@
 .news-byline [data-sort-time='true'] { font-weight:600; color:var(--text-strong); }
 .news-header button[data-filtered='true'], .news-header button[data-enabled='true'], .news-mobile button[data-filtered='true'] { position:relative; }
 .news-header button[data-filtered='true']::after, .news-header button[data-enabled='true']::after, .news-mobile button[data-filtered='true']::after { content:''; position:absolute; right:3px; bottom:3px; width:4px; height:4px; background:var(--text-muted); border-radius:1px; }
+
+.news-alert-age { margin:14px 0; padding:12px; border:1px solid var(--border); border-radius:4px; }
+.news-alert-age-range { display:flex; flex-wrap:wrap; gap:8px; align-items:end; }
+.news-alert-age-range label { flex:1; min-width:70px; margin:0; }
+.news-alert-age-range button { align-self:end; }
+.news-alert-note { color:var(--text-muted); }
+.news-alarm-options .news-alert-age-range button { min-height:30px; }

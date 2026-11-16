@@ -48,12 +48,12 @@ class NewsNotificationTests(unittest.TestCase):
 
     def add(self, identity, title='Oil supply surprise', published=None, history=False):
         self.store.success(self.source, [{'identity': identity, 'title': title, 'url': f'https://example.com/{identity}',
-                           'summary': '', 'publisher': 'Reuters', 'published_at': published}], '', '', self.now + 1, update_status=not history)
+                           'summary': '', 'publisher': 'Reuters', 'published_at': self.now if published is None else published}], '', '', self.now + 1, update_status=not history)
 
     def test_late_collection_filters_edits_history_and_restart_without_browser(self):
         rules = {'include': 'oil', 'exclude': 'India', 'hidden': []}
         self.notifier.configure(rules, 'included')
-        self.add('late', published=self.now - 86400000)
+        self.add('late', published=self.now - 6*3600000)
         self.add('excluded', 'India oil trade')
         self.add('unmatched', 'Football results')
         self.add('archive', history=True)
@@ -144,7 +144,7 @@ class NewsNotificationTests(unittest.TestCase):
             await request(app, 'PUT', prefix + '/notifications/rules', {'include': 'yen', 'exclude': 'India', 'hidden': [], 'market_relevance': True, 'preset_version': 3})
             self.assertEqual(json.loads((await request(app, 'GET', prefix + '/notifications'))[1])['mode'], 'included')
             profile = json.loads((await request(app, 'GET', prefix + '/phone-profile'))[1])
-            self.assertEqual(profile, {'include': 'yen', 'exclude': 'India', 'hidden': [], 'market_relevance': True, 'preset_version': 3})
+            self.assertEqual(profile, {'include': 'yen', 'exclude': 'India', 'hidden': [], 'market_relevance': True, 'preset_version': 3, 'max_age_seconds': 86400})
             self.assertNotIn('reader_password', profile)
             self.assertEqual((await request(app, 'PUT', prefix + '/notifications', {'mode': 'bad'}))[0], 422)
             self.assertEqual((await request(app, 'PUT', prefix + '/notifications', {'mode': 'all', 'include': ','.join(f'word{i}' for i in range(501))}))[0], 422)

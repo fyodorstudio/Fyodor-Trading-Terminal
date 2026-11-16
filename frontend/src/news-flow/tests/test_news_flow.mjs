@@ -7,6 +7,7 @@ import { Window } from 'happy-dom'
 
 const dom = new Window({ url: 'http://localhost:5173' }), timers = new Map(), requests = []
 let audioInstance
+let sharedProfile = { mode: 'off', max_age_seconds: 86400, unified_alerts: true, connection: null, error: '', last_sent: null }
 let sequence = 0, closes = 0, audioStarts = 0, now = Date.parse('2026-11-15T03:00:00Z')
 const originalNow = Date.now
 Date.now = () => now
@@ -23,7 +24,13 @@ const previous = new Map([...Object.keys(globals), 'fetch'].map(key => [key, Obj
 for (const [key, value] of Object.entries(globals)) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value })
 dom.setTimeout = (fn, ms) => { timers.set(++sequence, { fn, ms }); return sequence }
 dom.clearTimeout = id => timers.delete(id)
-globalThis.fetch = (url, options = {}) => new Promise(resolve => requests.push({ url, ...options, resolve, answered: false }))
+globalThis.fetch = (url, options = {}) => new Promise(resolve => {
+  const request = { url, ...options, resolve, answered: false }; requests.push(request)
+  if (url === '/storage-api/news-flow/notifications' || url.endsWith('/notifications/rules') || url.endsWith('/notifications/settings')) {
+    if (url.endsWith('/notifications/settings')) sharedProfile = { ...sharedProfile, ...JSON.parse(options.body), unified_alerts: true }
+    request.answered = true; resolve({ ok: true, json: async () => sharedProfile })
+  }
+})
 const server = await createServer({ root: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..'), server: { middlewareMode: true, hmr: false }, appType: 'custom' })
 const { createRoot } = await import('react-dom/client')
 const host = document.createElement('div'); document.body.append(host)
@@ -70,7 +77,7 @@ try {
     brokerId: null, preference: { mode: 'fixed-offset', utcOffsetMinutes: 420, hour12: true },
   }, React.createElement(NewsFlowPanel, { onClose }))))
   await render()
-  assert.equal(requests.length, 2)
+  assert.equal(requests.length, 3, 'Sources, headlines and the shared alert profile load once')
   assert.equal(query(pendingRequest('/items')).get('order'), 'newest')
   assert.equal(control('All').getAttribute('aria-selected'), 'true')
   const classifications = host.querySelector('.news-classification-row')
@@ -147,18 +154,18 @@ try {
   await setTags('Exclude', 'India')
   assert.ok(requests.length > beforeRules, 'All refreshes authoritative classification without hiding headlines')
   assert.equal(unfiltered.signal.aborted, true)
-  assert.equal(control('News sound trigger').value, 'off')
-  await change('News sound trigger', 'included')
+  assert.equal(control('News alert trigger').value, 'off')
+  await change('News alert trigger', 'included')
   await change('News alert sound', 'bell')
   await click('Preview news sound')
   assert.equal(audioStarts, 1)
-  assert.equal(readNewsSettings().soundEnabled, true)
+  assert.equal(sharedProfile.mode, 'included')
   assert.equal(readNewsSettings().sound, 'bell')
-  await change('News sound trigger', 'all')
-  assert.equal(readNewsSettings().soundMode, 'all')
-  await change('News sound trigger', 'included')
+  await change('News alert trigger', 'all')
+  assert.equal(sharedProfile.mode, 'all')
+  await change('News alert trigger', 'included')
   await click('Providers')
-  assert.equal(control('News sound trigger'), null, 'Sound is not configured for each provider')
+  assert.equal(control('News alert trigger'), null, 'Sound is not configured for each provider')
   await click('Show this provider')
   assert.equal(query(pendingRequest('/items')).get('source'), '__none__')
   await click('Show this provider')
@@ -306,18 +313,19 @@ try {
   await React.act(async () => root.render(null))
 
   const { NewsSoundAlerts } = await server.ssrLoadModule('./src/news-flow/NewsSoundAlerts.tsx')
+  const { saveNewsAlertProfile } = await server.ssrLoadModule('./src/news-flow/alert-profile.ts')
   function SoundHarness() {
     const [settings, changeSettings] = useNewsSettings()
     return React.createElement(React.Fragment, null, React.createElement(NewsSoundAlerts), React.createElement('button', {
-      'aria-label': 'Toggle test sound', onClick: () => changeSettings({ ...settings, soundEnabled: !settings.soundEnabled }),
-    }), React.createElement('button', { 'aria-label': 'Test all news sounds', onClick: () => changeSettings({ ...settings, include: '', soundMode: 'all', soundEnabled: true }) }))
+      'aria-label': 'Toggle test sound', onClick: () => saveNewsAlertProfile(sharedProfile.mode === 'off' ? 'included' : 'off', sharedProfile.max_age_seconds),
+    }), React.createElement('button', { 'aria-label': 'Test all news sounds', onClick: () => { changeSettings({ ...settings, include: '' }); void saveNewsAlertProfile('all', sharedProfile.max_age_seconds) } }))
   }
   const soundBaseline = audioStarts
   await React.act(async () => root.render(React.createElement(SoundHarness)))
   const arrival = () => pendingRequest('/arrivals')
   assert.equal(query(arrival()).has('after'), false)
-  assert.equal(query(arrival()).get('include'), 'Iran, interest rates')
-  assert.equal(query(arrival()).get('mode'), 'included', 'Storage classifies the active scope; cursor survives rule edits')
+  assert.equal(query(arrival()).get('configured'), 'true')
+  assert.equal(query(arrival()).has('mode'), false, 'Storage owns the shared alert mode')
   await reply(arrival(), { cursor: 10, items: [item('seed')] })
   assert.equal(audioStarts, soundBaseline, 'Initial snapshot is silent')
   await tick()
@@ -335,19 +343,18 @@ try {
   const disabledRequest = arrival()
   await click('Toggle test sound')
   assert.equal(disabledRequest.signal.aborted, true)
-  assert.equal(timers.size, 0)
+  assert.equal([...timers.values()].some(timer => timer.ms === 1000), false, 'Turning alerts off stops the arrival listener')
   await reply(disabledRequest, { cursor: 14, items: [{ ...item('stale-alert'), published_at: now }] })
   assert.equal(audioStarts, soundBaseline + 2, 'Disabling sound prevents late responses from ringing')
   await click('Test all news sounds')
-  assert.equal(query(arrival()).get('mode'), 'all')
-  assert.equal(query(arrival()).get('include'), '', 'All mode works with empty Include')
-  assert.equal(query(arrival()).get('exclude'), 'India', 'All mode ignores keyword exclusions on storage')
+  assert.equal(sharedProfile.mode, 'all')
+  assert.equal(query(arrival()).get('configured'), 'true')
   await reply(arrival(), { cursor: 14, items: [item('startup')] })
   assert.equal(audioStarts, soundBaseline + 2, 'Re-enabling silently establishes a cursor')
   await tick()
   now += 1000
-  await reply(arrival(), { cursor: 15, items: [{ ...item('any-new', 'Unmatched headline'), published_at: null, first_seen: now, timeline_at: now }] })
-  assert.equal(audioStarts, soundBaseline + 3, 'All mode rings for a new live arrival using first collection when undated')
+  await reply(arrival(), { cursor: 15, items: [{ ...item('any-new', 'Unmatched headline'), published_at: now, first_seen: now, timeline_at: now }] })
+  assert.equal(audioStarts, soundBaseline + 3, 'All mode rings for a new, recent live arrival regardless of relevance')
   await tick()
   await reply(arrival(), { cursor: 15, items: [] })
   assert.equal(audioStarts, soundBaseline + 3)

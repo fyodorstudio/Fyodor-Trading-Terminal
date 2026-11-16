@@ -115,7 +115,7 @@ alert. Desktop sound works with the panel closed while the page stays open.
 For Android, install **ntfy** from Google Play. `pnpm dev:all` also builds the
 mobile reader and starts private local ntfy. The bell shows Server, Topic and a
 concealed reader login: add your own server subscription in ntfy, allow Android
-notifications and keep Instant delivery enabled. Choose Phone trigger and Send
+notifications and keep Instant delivery enabled. Choose the shared News alert trigger and Send
 test notification, then confirm receipt on the handset. Open Phone news page in
 the phone browser with the same login. It shares PC headlines and keyword rules;
 phone browsing filters do not change PC alerts. Notifications continue when the
@@ -315,3 +315,17 @@ phone reader. Batches show a count and up to eight compact previews, with the re
 available in the reader. Publication and collection times use Jakarta/WIB with AM/PM; Android
 notification urgency is separate from the market Priority label. Existing ntfy
 subscriptions and credentials need no change. Old notification cards are unchanged.
+
+News Flow alarms now have one **News alerts - desktop + phone** trigger. Off
+stops both, Included covers Priority + Included, and All covers every relevance
+level. **Only alert on recent publications** defaults to 24 hours. Enter hours
+or days and choose **Apply age limit**. Older/unknown/scheduled publications stay
+readable but silent; disabling the limit allows any age. Desktop sound selection
+is local; ntfy/Android chooses the phone sound.
+
+Price alert crossings now retain pending sound until it starts, for up to five
+minutes. Interaction can unlock browser audio; a notice remains visible outside
+the dock when playback is pending or missed. Each row shows sound state. Silence
+acknowledges delivery without rearming the price level. Missing custom sounds
+fall back to Thin for actual alerts. Keep the terminal open with live quotes;
+Windows/browser mute, sleep and audio-device settings still affect audibility.

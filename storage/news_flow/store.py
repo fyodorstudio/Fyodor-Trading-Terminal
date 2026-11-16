@@ -234,7 +234,7 @@ class NewsStore:
         text = '\n\n'.join(row['title'] + '\n' + row['url'] for row in page['items'])
         return {'text': text, 'count': page['total']}
 
-    def arrivals(self, after=None, include='', exclude='', hidden=(), now=None, mode='included', market_relevance=False):
+    def arrivals(self, after=None, include='', exclude='', hidden=(), now=None, mode='included', market_relevance=False, max_age_seconds=None):
         now = int(time.time() * 1000) if now is None else now
         with self.database() as db:
             cursor = db.execute('SELECT COALESCE(MAX(sequence),0) FROM arrivals').fetchone()[0]
@@ -244,6 +244,12 @@ class NewsStore:
             # long after publication. Backfills never enter this table.
             clauses = ['a.sequence>?', 'a.sequence<=?', 'a.received_at>=?']
             args = [after, cursor, now - 900_000]
+            if max_age_seconds is not None:
+                # Publication age, not discovery age. Unknown/scheduled dates
+                # must not turn an old story into a fresh alert via first_seen.
+                clauses.extend(('i.published_at IS NOT NULL', 'i.published_at-i.first_seen<60000',
+                                'i.published_at>=?', 'i.published_at<=?'))
+                args.extend((now - max_age_seconds * 1000, now))
             if mode == 'included':
                 # Included delivery covers both relevant levels; tabs are disjoint.
                 clauses.append('news_level(i.title,i.source_id,i.url,s.url,?,?,?,p.url IS NOT NULL)>0')

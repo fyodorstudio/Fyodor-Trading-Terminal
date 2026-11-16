@@ -13,6 +13,8 @@ export type PriceAlert = {
   createdAt: number
   triggeredAt: number | null
   triggeredBid: number | null
+  soundStatus?: 'pending' | 'played' | 'missed' | 'muted'
+  soundDeliveryId?: string
 }
 
 export type PriceAlertStore = { alerts: PriceAlert[]; playSound: boolean; duration: number; soundId: PriceAlertSoundId; volume: number }
@@ -29,6 +31,8 @@ function validAlert(value: unknown): value is PriceAlert {
     && (item.direction === null || item.direction === 'above' || item.direction === 'below')
     && Number.isFinite(item.createdAt) && (item.triggeredAt === null || Number.isFinite(item.triggeredAt))
     && (item.triggeredBid === null || Number.isFinite(item.triggeredBid))
+    && (item.soundStatus === undefined || ['pending', 'played', 'missed', 'muted'].includes(item.soundStatus))
+    && (item.soundDeliveryId === undefined || typeof item.soundDeliveryId === 'string')
 }
 
 export function readPriceAlerts(): PriceAlertStore {

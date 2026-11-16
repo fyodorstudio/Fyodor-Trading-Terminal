@@ -35,7 +35,7 @@ class NewsNotifier:
 
     def _settings(self):
         try:
-            result = json.loads((self.root / 'notifications.json').read_text())
+            result = json.loads((self.root / 'notifications.json').read_text(encoding='utf-8'))
             if result.get('preset_version', 1) < 3:
                 backup = self.root / 'notifications.before-relevance-v2.json'
                 if not backup.exists():
@@ -45,9 +45,10 @@ class NewsNotifier:
                 temporary = self.root / 'notifications.json.tmp'
                 temporary.write_text(json.dumps(result), encoding='utf-8')
                 temporary.replace(self.root / 'notifications.json')
+            result.setdefault('max_age_seconds', 86400)
             return result
         except FileNotFoundError:
-            return {'mode': 'off', 'include': '', 'exclude': '', 'hidden': [], 'market_relevance': True, 'preset_version': 3}
+            return {'mode': 'off', 'include': '', 'exclude': '', 'hidden': [], 'market_relevance': True, 'preset_version': 3, 'max_age_seconds': 86400}
 
     def configure(self, rules, mode=None):
         with self.lock:
@@ -78,7 +79,7 @@ class NewsNotifier:
                 connection.update(runtime)
             except (FileNotFoundError, KeyError, ValueError):
                 connection = None
-            return {'mode': configured['mode'], 'connection': connection,
+            return {'mode': configured['mode'], 'max_age_seconds': configured['max_age_seconds'], 'unified_alerts': configured.get('unified_alerts', False), 'connection': connection,
                     'error': self.error, 'last_sent': self.last_sent}
 
     def test(self):
@@ -120,7 +121,7 @@ class NewsNotifier:
                 return
             config = self.settings()
             page = self.store.arrivals(self.cursor, config['include'], config['exclude'], config['hidden'],
-                                       mode='all' if config['mode'] == 'off' else config['mode'], market_relevance=config.get('market_relevance', True))
+                                       mode='all' if config['mode'] == 'off' else config['mode'], market_relevance=config.get('market_relevance', True), max_age_seconds=config['max_age_seconds'])
             if config['mode'] != 'off' and page['items']:
                 setup = self.setup()
                 items = page['items']

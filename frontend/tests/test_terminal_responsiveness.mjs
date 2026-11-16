@@ -277,6 +277,7 @@ globalThis.fetch = (url, options = {}) => {
         event.chart_time_seconds <= Number(params.get('to_server_seconds'))), coverage: {}, next_cursor: null }) })
   }
   if (u.includes('/activity')) return Promise.resolve({ ok: true, json: async () => ({ events: [], latest_sequence: 0 }) })
+  if (u.endsWith('/news-flow/notifications')) return Promise.resolve({ ok: true, json: async () => ({ mode: 'off', max_age_seconds: 86400, unified_alerts: true, connection: null, error: '', last_sent: null }) })
   if (u.includes('/news-flow/notifications/rules')) return Promise.resolve({ ok: true, json: async () => ({ mode: 'off' }) })
   const name = u.includes('/market-watch') ? 'watch' : u.includes('/ohlc') ? 'ohlc' : 'health'
   return new Promise((resolve, reject) => {

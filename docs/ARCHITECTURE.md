@@ -235,3 +235,11 @@ live under `storage/data/alarms/`. Price alerts have independent browser setting
 Notifications operate while the worker and Windows are running. Alarm selections
 refer to MT5 calendar release packages. Desktop notifications support opening
 the terminal, sound control, snooze and dismiss.
+
+News alert delivery is server-owned: one shared Off/Included/All mode and optional
+publication-age limit (24h default) govern desktop and ntfy. alert-profile.ts owns
+the client subscription; configured arrivals and the notifier use one policy.
+Price alerts remain browser-local. Their persisted sound delivery state/token is
+separate from the one-shot crossing. A bounded recovery queue resumes blocked
+audio, retries transient errors and records missed delivery with a workspace
+notice. See frontend/src/price-alerts/README.md for boundaries and tests.

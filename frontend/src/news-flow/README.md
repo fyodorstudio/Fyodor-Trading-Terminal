@@ -169,3 +169,13 @@ Keyboard focus uses focus-visible. Visual verification remains a manual user che
 
 The panel header has separate title, classification and tool rows. Classification
 is a non-shrinking four-column grid; it must not share tool flex allocation.
+
+## Shared delivery settings
+
+alert-profile.ts owns a shared server-backed subscription and serialized save
+state. NewsAlarmControls is the only trigger/age editor; PhoneNewsSettings is
+connection/test setup only. NewsSoundAlerts synchronizes rules separately, then
+uses configured arrivals. It waits for rules to sync, aborts stale scopes, retains
+the cursor across edits and rechecks publication age before buffered playback.
+Default age is 24h, configurable in hours/days or unlimited. Legacy soundEnabled
+and soundMode are retained only for one-time unification; sound remains local.

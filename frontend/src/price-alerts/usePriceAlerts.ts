@@ -3,6 +3,7 @@ import type { SymbolQuote } from '../market-data/contracts/SymbolQuote'
 import { alertDirection, evaluatePriceAlerts, priceAlertStorageKey, readPriceAlerts, savePriceAlerts,
   type PriceAlertStore } from './price-alert-store'
 import { createPriceAlertSound } from './price-alert-sound'
+import { usePriceAlertDelivery } from './usePriceAlertDelivery'
 import type { PriceAlertSoundId } from './price-alert-tones'
 import { customAlertSoundKey, customAlertSoundMaxBytes, decodeCustomAlertSound, encodeCustomAlertSound,
   readCustomAlertSound, saveCustomAlertSound } from './custom-alert-sound'
@@ -26,11 +27,14 @@ export function usePriceAlerts(brokerId: string | null, quotes: SymbolQuote[], l
   const draggingAlertId = useRef<string | null>(null)
   const sound = useRef<ReturnType<typeof createPriceAlertSound> | null>(null)
   const mounted = useRef(true)
-  const stopSound = useCallback(() => { playbackRequest.current++; window.clearTimeout(previewTimer.current); sound.current?.stop(); setPreviewing(false) }, [])
+  const deliveryFlush = useRef<() => Promise<void>>(async () => {})
+  const silenceDelivery = useRef<() => void>(() => {})
+  const customDeliveryTimer = useRef(0)
+  const stopSound = useCallback(() => { silenceDelivery.current(); playbackRequest.current++; window.clearTimeout(previewTimer.current); sound.current?.stop(); setPreviewing(false) }, [])
   const invalidateCustom = useCallback(() => { customRequest.current++; playbackRequest.current++; loadedCustomData.current = null }, [])
   useEffect(() => {
     mounted.current = true
-    return () => { mounted.current = false; invalidateCustom(); window.clearTimeout(previewTimer.current); sound.current?.dispose(); sound.current = null }
+    return () => { mounted.current = false; window.clearTimeout(customDeliveryTimer.current); invalidateCustom(); window.clearTimeout(previewTimer.current); sound.current?.dispose(); sound.current = null }
   }, [invalidateCustom])
   const commit = useCallback((next: PriceAlertStore) => {
     current.current = next
@@ -62,10 +66,9 @@ export function usePriceAlerts(brokerId: string | null, quotes: SymbolQuote[], l
     sound.current ??= createPriceAlertSound()
     const engine = sound.current
     engine.setVolume(current.current.volume)
-    setSoundBlocked(true)
     const enabled = await engine.unlock()
     await prepareCustomSound(engine)
-    if (mounted.current && sound.current === engine) setSoundBlocked(!enabled)
+    if (mounted.current && sound.current === engine) { setSoundBlocked(!enabled); await deliveryFlush.current() }
   }, [prepareCustomSound])
   useEffect(() => {
     const sync = (event: StorageEvent) => {
@@ -127,21 +130,45 @@ export function usePriceAlerts(brokerId: string | null, quotes: SymbolQuote[], l
       if (mounted.current && request === customRequest.current) setCustomSoundLoading(false)
     }
   }, [commit])
-  const playAlertSound = useCallback(() => {
-    sound.current?.setVolume(current.current.volume)
-    const played = sound.current?.play(current.current.duration, current.current.soundId) ?? false
-    setSoundBlocked(!played)
-  }, [])
+  const attemptDelivery = useCallback(async (valid: () => boolean) => {
+    const request = ++playbackRequest.current
+    sound.current ??= createPriceAlertSound()
+    const engine = sound.current
+    engine.setVolume(current.current.volume)
+    const enabled = await engine.unlock()
+    if (!mounted.current || sound.current !== engine || !valid() || request !== playbackRequest.current) return false
+    if (!enabled) { setSoundBlocked(true); return false }
+    let ready = false
+    try {
+      ready = await Promise.race([prepareCustomSound(engine), new Promise<boolean>(resolve => { customDeliveryTimer.current = window.setTimeout(() => resolve(false), 2000) })])
+    } finally { window.clearTimeout(customDeliveryTimer.current) }
+    if (!mounted.current || sound.current !== engine || !valid() || request !== playbackRequest.current) return false
+    if (!ready) setCustomSoundError('Custom sound unavailable; using Thin for this price alert. Re-upload the file to restore it.')
+    engine.setVolume(current.current.volume)
+    const played = engine.play(current.current.duration, ready ? current.current.soundId : 'thin')
+    setSoundBlocked(!played); setPreviewing(false)
+    return played
+  }, [prepareCustomSound])
+  const delivery = usePriceAlertDelivery(store, current, commit, attemptDelivery)
+  useLayoutEffect(() => { deliveryFlush.current = delivery.flush; silenceDelivery.current = delivery.silence }, [delivery.flush, delivery.silence])
+  useEffect(() => {
+    // Restored alerts and idle/suspended browsers also need audio preparation,
+    // not only the drawing-toolbar path used when initially creating an alert.
+    const prepare = () => { if (current.current.playSound && current.current.alerts.some(alert => alert.status === 'armed' || alert.soundStatus === 'pending')) void enableSound() }
+    window.addEventListener('pointerdown', prepare); window.addEventListener('keydown', prepare)
+    return () => { window.removeEventListener('pointerdown', prepare); window.removeEventListener('keydown', prepare) }
+  }, [enableSound])
   const checkAlerts = useCallback(() => {
     const { brokerId, quotes, live } = feed.current
     if (!live || !brokerId) return
     const evaluated = evaluatePriceAlerts(current.current.alerts, brokerId, quotes, Date.now(), draggingAlertId.current)
     if (evaluated.alerts === current.current.alerts) return
-    const next = { ...current.current, alerts: evaluated.alerts }
-    // Persist the one-shot transition before requesting sound, even if playback fails.
+    const triggered = new Set(evaluated.triggered.map(alert => alert.id))
+    const next: PriceAlertStore = { ...current.current, alerts: evaluated.alerts.map(alert => triggered.has(alert.id) ?
+      { ...alert, soundDeliveryId: crypto.randomUUID(), soundStatus: current.current.playSound && current.current.volume > 0 ? 'pending' : 'muted' } : alert) }
+    // Save the crossing and pending delivery together; retry never re-evaluates it.
     commit(next)
-    if (evaluated.triggered.length && next.playSound) playAlertSound()
-  }, [commit, playAlertSound])
+  }, [commit])
   useEffect(checkAlerts, [brokerId, quotes, live, store, checkAlerts])
   const changeDraggingAlert = useCallback((id: string | null) => {
     draggingAlertId.current = id
@@ -168,12 +195,12 @@ export function usePriceAlerts(brokerId: string | null, quotes: SymbolQuote[], l
       if (alert.id !== id) return [alert]
       if (action === 'move' && (alert.brokerId !== brokerId || alert.status === 'triggered')) return [alert]
       if (action === 'delete') return []
-      if (action === 'pause') return [{ ...alert, status: 'paused' as const }]
+      if (action === 'pause') return [{ ...alert, status: 'paused' as const, soundStatus: alert.soundStatus === 'pending' ? 'muted' as const : alert.soundStatus }]
       const target = action === 'price' || action === 'move' ? Number(price!.toFixed(alert.precision)) : alert.price
       if (target <= 0) return [alert]
       const bid = live && alert.brokerId === brokerId ? quotes.find(quote => quote.symbol === alert.symbol)?.bid : undefined
       return [{ ...alert, price: target, direction: alertDirection(target, bid), status: action === 'move' ? alert.status : 'armed' as const,
-        triggeredAt: null, triggeredBid: null }]
+        triggeredAt: null, triggeredBid: null, soundStatus: undefined, soundDeliveryId: undefined }]
     })
     commit({ ...current.current, alerts })
   }, [commit])
@@ -191,11 +218,11 @@ export function usePriceAlerts(brokerId: string | null, quotes: SymbolQuote[], l
     if (soundId && soundId !== current.current.soundId) {
       invalidateCustom(); setCustomSoundLoading(false); setCustomSoundError('')
     }
-    stopSound()
+    playbackRequest.current++; window.clearTimeout(previewTimer.current); sound.current?.stop(); setPreviewing(false)
     commit({ ...current.current, playSound, duration, soundId: soundId ?? current.current.soundId })
     if (playSound) void enableSound()
     else sound.current?.stop()
-  }, [commit, enableSound, invalidateCustom, stopSound])
+  }, [commit, enableSound, invalidateCustom])
   const setVolume = useCallback((volume: number) => {
     if (!Number.isFinite(volume)) return
     const value = Math.max(0, Math.min(100, volume))
@@ -206,7 +233,7 @@ export function usePriceAlerts(brokerId: string | null, quotes: SymbolQuote[], l
   const liveSymbols = useMemo(() => new Set(quotes.filter(quote => Number.isFinite(quote.bid) && quote.bid > 0).map(quote => quote.symbol)), [quotes])
   return { alerts: store.alerts, brokerAlerts, addAlert, updateAlert, playSound: store.playSound, duration: store.duration, soundId: store.soundId,
     volume: store.volume, setVolume, stopSound, previewing, setSound, enableSound, previewSound, soundBlocked, storageError, live, liveSymbols, renameAlert, moveAlert, deleteAlert, setDraggingAlertId: changeDraggingAlert,
-    customSoundName, customSoundError, customSoundLoading, uploadCustomSound, selectedAlertId, selectAlert }
+    customSoundName, customSoundError, customSoundLoading, uploadCustomSound, selectedAlertId, selectAlert, pendingSounds: delivery.pendingSounds, missedSounds: delivery.missedSounds, dismissSoundWarnings: stopSound }
 }
 
 export type PriceAlertsController = ReturnType<typeof usePriceAlerts>

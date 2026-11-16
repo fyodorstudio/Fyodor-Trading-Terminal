@@ -8,7 +8,7 @@ export function NewsGlobalSettings({ settings, onChange }: { settings: NewsSetti
   const [keywordError, setKeywordError] = useState('')
   return <div className="news-configuration-body"><section aria-label="Global news settings">
     <NewsAlarmControls settings={settings} onChange={onChange} />
-    <PhoneNewsSettings settings={settings} />
+    <PhoneNewsSettings />
     <fieldset><legend>Headline colours · all providers</legend>
       <label>Relevant (Priority + Included)<input type="color" aria-label="Included headline colour" value={settings.includedColor} onChange={event => onChange({ ...settings, includedColor: event.target.value })} /></label>
       <label>Excluded<input type="color" aria-label="Excluded headline colour" value={settings.excludedColor} onChange={event => onChange({ ...settings, excludedColor: event.target.value })} /></label>

@@ -18,6 +18,7 @@ import { EntryTradePanel } from '../entry-trade/dock/EntryTradePanel'
 import { WildcardsDock } from '../wildcards/WildcardsDock'
 import { NewsFlowPanel } from '../news-flow/NewsFlowPanel'
 import { NewsSoundAlerts } from '../news-flow/NewsSoundAlerts'
+import { PriceAlertDeliveryNotice } from '../price-alerts/PriceAlertDeliveryNotice'
 import { heatmapNewsSelection } from '../news-flow/date-range'
 import { selectNewsDate } from '../news-flow/settings'
 import { VolumeSettingsDialog } from '../market-data/indicators/volume/VolumeSettingsDialog'
@@ -90,6 +91,7 @@ function TerminalWorkspaceContent() {
   return (
     <DisplayClockProvider brokerId={brokerId} brokerOffsetSeconds={brokerOffsetSeconds} preference={timeDisplay}>
     <NewsSoundAlerts />
+    <PriceAlertDeliveryNotice controller={priceAlerts} />
     <LedgerProvider broker={brokerId} enabled={ledgerCurrencies.length > 0 && (detailOpen || bottomDockWindow === 'ledger')} pickerScope={pickerScope} currencies={ledgerCurrencies}>
     <div className={`terminal-shell${bottomDockWindow ? ' bottom-dock-open' : ''}`}
       style={{ '--bottom-dock-height': `${dockSize.height}px` } as CSSProperties}>

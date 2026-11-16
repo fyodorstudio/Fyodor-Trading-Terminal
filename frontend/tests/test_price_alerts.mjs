@@ -188,7 +188,8 @@ try {
   await render({ quotes: [quote('EURUSD', 1)] }, 'reload')
   assert.equal(api.alerts.find(item => item.id === down).status, 'triggered', 'Exact touch triggers')
   assert.ok(host.querySelector('.price-alert-row').textContent.includes('EURUSD Crossing 1.00000'),'Newest trigger appears first')
-  assert.equal(api.soundBlocked, true, 'After reload, a trigger reports locked sound immediately instead of waiting for a gesture')
+  assert.equal(api.soundBlocked, false, 'A fresh trigger attempts bounded resume instead of silently losing playback after reload')
+  assert.equal(api.alerts.find(item => item.id === down).soundStatus, 'played')
   await command(() => api.setSound(false, 1))
   let dragged
   await command(() => { dragged = api.addAlert('EURUSD', 1.5, 5); api.setDraggingAlertId(dragged) })

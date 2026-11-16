@@ -62,6 +62,11 @@ class NotificationInput(NotificationRules):
     mode: Literal['off', 'included', 'all']
 
 
+class NotificationDelivery(BaseModel):
+    mode: Literal['off', 'included', 'all']
+    max_age_seconds: int | None = Field(default=86400, ge=3600, le=31536000, multiple_of=3600, strict=True)
+
+
 def news_router(store, collector, notifier=None):
     router = APIRouter(prefix='/api/v1/news-flow')
     history = NewsHistory(store, collector)
@@ -146,6 +151,10 @@ def news_router(store, collector, notifier=None):
         validate_rules(body.include, body.exclude)
         return notifier.configure(body.model_dump())
 
+    @router.put('/notifications/settings')
+    def notification_delivery(body: NotificationDelivery):
+        return notifier.configure({'max_age_seconds': body.max_age_seconds, 'unified_alerts': True}, body.mode)
+
     @router.post('/notifications/test')
     def notification_test():
         try:
@@ -165,7 +174,15 @@ def news_router(store, collector, notifier=None):
     @router.get('/arrivals')
     def arrivals(after: int | None = Query(default=None, ge=0), include: str = Query(default='', max_length=MAX_RULE_CHARS),
                  exclude: str = Query(default='', max_length=MAX_RULE_CHARS), hidden: list[str] = Query(default=[]),
-                 mode: Literal['included', 'all'] = 'included', market_relevance: bool = False):
+                 mode: Literal['included', 'all'] = 'included', market_relevance: bool = False, configured: bool = False):
+        if configured:
+            profile = notifier.settings()
+            page = store.arrivals(after, profile['include'], profile['exclude'], profile['hidden'],
+                                  mode='all' if profile['mode'] == 'off' else profile['mode'],
+                                  market_relevance=profile.get('market_relevance', True), max_age_seconds=profile['max_age_seconds'])
+            if profile['mode'] == 'off':
+                page['items'] = []
+            return page
         validate_rules(include, exclude)
         return store.arrivals(after, include, exclude, hidden, mode=mode, market_relevance=market_relevance)
 
