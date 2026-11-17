@@ -5,11 +5,11 @@ import type { HeatmapPreferences } from './heatmap-preferences'
 type Entry = { row: HeatmapRow; point: HeatmapPoint | undefined }
 const direction = (value: number | null | undefined) => value == null ? '' : value > 0 ? 'positive' : value < 0 ? 'negative' : 'neutral'
 
-export function HeatmapRanking({ entries, fields, heading, status, groups, group, onGroup, preferences, onChange, eventMode, actions }: {
+export function HeatmapRanking({ entries, fields, heading, status, groups, group, onGroup, preferences, onChange, eventMode, actions, onOpenRow }: {
   entries: Entry[]; fields: readonly HeatmapField[]; heading: string; status: string
   groups: string[]; group: string; onGroup: (group: string) => void
   preferences: HeatmapPreferences; onChange: (next: HeatmapPreferences) => void
-  eventMode: boolean; actions: ReactNode
+  eventMode: boolean; actions: ReactNode; onOpenRow?: (rowId: string) => void
 }) {
   const bars = preferences.rankingView === 'bars'
   const available = entries.filter(entry => entry.point?.value != null)
@@ -38,6 +38,8 @@ export function HeatmapRanking({ entries, fields, heading, status, groups, group
       const value = point?.value ?? null
       const width = value == null || maximum === 0 ? 0 : Math.abs(value) / maximum * 50
       return <li key={row.id} data-ranking-row={row.id} title={point?.reason || undefined}>
+        <button type="button" className="heatmap-ranking-entry" disabled={!onOpenRow} onClick={() => onOpenRow?.(row.id)}
+          aria-label={row.id.startsWith('basket:') ? `Search Market Watch for ${row.id.slice(7)}` : `Open chart for ${row.label}`}>
         <div className="heatmap-ranking-name"><span title={`${row.label} · ${row.group}`}>{row.label}</span>
           {preferences.rank === 'unusual' && <small title="Return relative to usual volatility">{formatHeatmapChange(point?.relative ?? null, '×')}</small>}
         </div>
@@ -52,6 +54,7 @@ export function HeatmapRanking({ entries, fields, heading, status, groups, group
             <small>{field.label}</small>{formatHeatmapChange(field.value)}
           </span>)}
         </div>}
+        </button>
       </li>
     })}</ol>
     {!entries.length && <p className="heatmap-ranking-empty">No instruments in this group.</p>}

@@ -1295,6 +1295,7 @@ try {
   assert.equal(chart.chartElement().dataset.ledgerPicking,undefined,'Closing Ledger removes its chart picker')
   assert.equal([...timers.values()].some(t => t.fn.name==='pollLedger'),false)
   const heatmapRange = { ...logicalRange }, heatmapDrawings = localStorage.getItem('fyodor.chart-drawings.v1')
+  localStorage.setItem(`fyodor.heatmap.v1:${broker}`,JSON.stringify({rows:[...['EUR','GBP','AUD','NZD','USD','CAD','CHF','JPY'].map(currency=>`basket:${currency}`),'symbol:EURUSD','symbol:TEST1']}))
   reset(); await click(button('Heatmap')); await flush()
   assert.ok(container.querySelector('[aria-label="Heatmap"]'))
   assert.ok(container.querySelector('[aria-label="Resize Heatmap dock"]'))
@@ -1393,6 +1394,7 @@ try {
   const rankingWindow = {...logicalRange}, rankingRequests = requests.filter(url=>url.startsWith('/storage-api/heatmap/history')).length
   reset(); await click(container.querySelector('[aria-label="Show Heatmap Ranking"]')); await flush()
   assert.ok(container.querySelector('#heatmap-ranking-panel .heatmap-ranking'))
+  assert.equal(container.querySelector('#heatmap-ranking-panel .heatmap-toolbar'),null,'Standalone ranking omits the duplicated bottom-dock controls')
   assert.equal(container.querySelector('.heatmap-viewport'),null,'Standalone ranking never mounts a hidden timeline')
   assert.equal(requests.filter(url=>url.startsWith('/storage-api/heatmap/history')).length,rankingRequests,'The ranking reuses the warmed heatmap request')
   assert.deepEqual(logicalRange,rankingWindow)
@@ -1434,8 +1436,10 @@ try {
 
   await click(container.querySelector('[aria-label="Show Heatmap Ranking"]')); await flush()
   assert.equal(container.querySelector('#heatmap-ranking-panel [aria-label="Open news for selected heatmap date"]').disabled, true, 'Weekly research requires a daily selection')
-  await click([...container.querySelectorAll('#heatmap-ranking-panel button')].find(node => node.textContent === 'Daily')); await flush()
-  const researchDate = container.querySelector('#heatmap-ranking-panel [aria-label="Heatmap date"]').value
+  await click(button('Heatmap')); await flush()
+  await click([...container.querySelectorAll('[aria-label="Heatmap"] button')].find(node => node.textContent === 'Daily')); await flush()
+  const researchDate = container.querySelector('[aria-label="Heatmap"] [aria-label="Heatmap date"]').value
+  await click(button('Heatmap')); await flush()
   const expectedSession = await server.ssrLoadModule('./src/news-flow/date-range.ts').then(module => module.heatmapNewsSelection(researchDate, { brokerId: broker, brokerOffsetSeconds: 10800 }))
   const priceRequestsBeforeNews = requests.filter(url => url === '/storage-api/heatmap/history').length
   reset(); await click(container.querySelector('#heatmap-ranking-panel [aria-label="Open news for selected heatmap date"]')); await flush()
@@ -1450,6 +1454,28 @@ try {
   await click(container.querySelector('[aria-label="Close News Flow"]')); await flush()
 
   assert.deepEqual(logicalRange, heatmapRange)
+  await click(container.querySelector('[aria-label="Show Heatmap Ranking"]')); await flush()
+  if (container.querySelector('[aria-label="Show Market Watch"]')) await click(container.querySelector('[aria-label="Show Market Watch"]'))
+  await change(container.querySelector('[aria-label="Symbol category filter"]'),'favourites')
+  await click(button('Price Alerts'))
+  await click(container.querySelector('[aria-label="Collapse Market Watch"]'))
+  const beforeCurrencyNavigation=requests.filter(url=>url==='/storage-api/heatmap/history').length
+  const chartBeforeCurrencyNavigation=container.querySelector('.chart-workspace').getAttribute('aria-label')
+  reset();await click(container.querySelector('#heatmap-ranking-panel [aria-label="Search Market Watch for USD"]'));await flush()
+  assert.equal(container.querySelector('.left-dock').hidden,false,'Synthetic blocks reopen Market Watch')
+  assert.equal(button('Market Watch').getAttribute('aria-pressed'),'true','Synthetic navigation selects the Market Watch tab')
+  assert.equal(container.querySelector('[aria-label="Search symbols"]').value,'USD')
+  assert.equal(container.querySelector('[aria-label="Symbol category filter"]').value,'all')
+  assert.equal(container.querySelector('.chart-workspace').getAttribute('aria-label'),chartBeforeCurrencyNavigation,'Synthetic navigation does not choose an arbitrary pair')
+  assert.equal(requests.filter(url=>url==='/storage-api/heatmap/history').length,beforeCurrencyNavigation)
+  for(const key of ['chartRender','setData','update','rsiCandle','workerPosts'])
+    assert.equal(counters[key]??0,0,`Currency search does not perform chart work: ${key}`)
+  const chartDestination=chartBeforeCurrencyNavigation==='EURUSD chart workspace'?'TEST1':'EURUSD'
+  await click(container.querySelector(`#heatmap-ranking-panel [aria-label="Open chart for ${chartDestination}"]`))
+  while(pending.get('ohlc')?.length)await reply('ohlc')
+  await flush()
+  assert.ok(container.querySelector(`[aria-label="${chartDestination} chart workspace"]`),'Instrument blocks open the exact instrument chart')
+  assert.ok(container.querySelector('#heatmap-ranking-panel'),'Chart navigation keeps the light ranking open')
   await React.act(async () => root.render(null))
   assert.equal(indicatorSeries.size, 0); assert.equal(panes.length, 1)
   assert.equal(rangeListeners.size, 0); assert.equal(clickListeners.size, 0)

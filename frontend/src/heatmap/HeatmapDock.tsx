@@ -25,12 +25,12 @@ const tapeMemory = new Map<string, { left: number; top: number }>()
 const sessions = new Map<string, { date: string; pinned: boolean; month: string }>()
 
 // Quote ticks do not invalidate the history, basket calculations or timeline.
-export function HeatmapDock({ symbols, broker, generation, active = true, connected = true, dockActive = active, rankingTarget = null, onCloseRanking, onOpenNews }: { symbols: SymbolQuote[]; broker: string | null; generation: number; active?: boolean; connected?: boolean; dockActive?: boolean; rankingTarget?: HTMLElement | null; onCloseRanking?: () => void; onOpenNews?: (date: string) => void }) {
+export function HeatmapDock({ symbols, broker, generation, active = true, connected = true, dockActive = active, rankingTarget = null, onCloseRanking, onOpenNews, onOpenRow }: { symbols: SymbolQuote[]; broker: string | null; generation: number; active?: boolean; connected?: boolean; dockActive?: boolean; rankingTarget?: HTMLElement | null; onCloseRanking?: () => void; onOpenNews?: (date: string) => void; onOpenRow?: (rowId: string) => void }) {
   const catalog = JSON.stringify(symbols.map(s => ({ symbol: s.symbol, description: s.description })))
-  return <HeatmapContent key={`${broker}:${generation}`} catalogJson={catalog} broker={broker} generation={generation} active={active} connected={connected} dockActive={dockActive} rankingTarget={rankingTarget} onCloseRanking={onCloseRanking} onOpenNews={onOpenNews} />
+  return <HeatmapContent key={`${broker}:${generation}`} catalogJson={catalog} broker={broker} generation={generation} active={active} connected={connected} dockActive={dockActive} rankingTarget={rankingTarget} onCloseRanking={onCloseRanking} onOpenNews={onOpenNews} onOpenRow={onOpenRow} />
 }
 
-const HeatmapContent = memo(function HeatmapContent({ catalogJson, broker, generation, active, connected, dockActive, rankingTarget, onCloseRanking, onOpenNews }: { catalogJson: string; broker: string | null; generation: number; active: boolean; connected: boolean; dockActive: boolean; rankingTarget: HTMLElement | null; onCloseRanking?: () => void; onOpenNews?: (date: string) => void }) {
+const HeatmapContent = memo(function HeatmapContent({ catalogJson, broker, generation, active, connected, dockActive, rankingTarget, onCloseRanking, onOpenNews, onOpenRow }: { catalogJson: string; broker: string | null; generation: number; active: boolean; connected: boolean; dockActive: boolean; rankingTarget: HTMLElement | null; onCloseRanking?: () => void; onOpenNews?: (date: string) => void; onOpenRow?: (rowId: string) => void }) {
   const catalog: HeatmapInstrument[] = useMemo(() => JSON.parse(catalogJson), [catalogJson])
   const { preference } = useDisplayClock()
   const [eventMode, setEventMode] = useState(false)
@@ -63,7 +63,7 @@ const HeatmapContent = memo(function HeatmapContent({ catalogJson, broker, gener
   if (selection && selection.scope !== copyScope) setSelection(null)
   const currentSelection = selection?.scope === copyScope ? selection : null
   const copyRange = currentSelection?.kind === 'columns' ? currentSelection : null
-  if (!active && manager) setManager(false)
+  if ((!active || !dockActive) && manager) setManager(false)
   const [collapsed, setCollapsed] = useState<string[]>([])
   const toggleGroup = useCallback((group: string) => setCollapsed(old => old.includes(group) ? old.filter(g => g !== group) : [...old, group]), [])
   const [buildRows] = useState(createHeatmapRowBuilder)
@@ -167,7 +167,7 @@ const HeatmapContent = memo(function HeatmapContent({ catalogJson, broker, gener
   const missing = data ? requested.filter(s => !data.symbols[s]).length : requested.length
   const unavailable = data ? requested.filter(s => data.symbols[s] && data.symbols[s].availability !== 'available').length : 0
   const newsAction = onOpenNews && <button type="button" aria-label="Open news for selected heatmap date" disabled={eventMode || preferences.mode !== 'daily' || (!!broker && !brokerClockProfile(broker))} onClick={() => onOpenNews(view.date)}>News for this date</button>
-  const rankingView = <HeatmapRanking entries={ranking} fields={preferences.fields} preferences={preferences} onChange={option}
+  const rankingView = <HeatmapRanking entries={ranking} fields={preferences.fields} preferences={preferences} onChange={option} onOpenRow={onOpenRow}
     heading={`${eventMode ? selected === 'window' ? 'Window summary' : jakartaTime(Date.parse(selected)) : selected}${!eventMode && preferences.mode === 'weekly' ? ' · Week' : ''}`}
     status={`${eventMode ? 'Common anchor · ' + jakartaTime(eventWindow.anchor) : view.pinned ? 'Pinned' : 'Following hover'}${chosenPeriod?.partial ? ' · In progress' : ''}`}
     groups={groups} group={effectiveGroup} onGroup={setRankGroup} eventMode={eventMode} actions={<>
@@ -279,21 +279,15 @@ const HeatmapContent = memo(function HeatmapContent({ catalogJson, broker, gener
         onAddWildcard={addWildcard} onEditWildcard={editWildcard} onManageWildcards={manageWildcards} />}
       {rankingVisible && !rankingTarget && rankingView}
     </div>
-    {dockActive && !rankingTarget && manager && <HeatmapSymbols catalog={catalog} broker={broker} preferences={preferences} rows={ids}
+    {dockActive && manager && <HeatmapSymbols catalog={catalog} broker={broker} preferences={preferences} rows={ids}
       onSave={next => { save(next); setManager(false) }} onClose={closeManager} />}
   </section>
     {rankingTarget && createPortal(<div onKeyDown={e=>{if(e.key==='Escape' && !(e.target as HTMLElement).closest('input, select, textarea, [contenteditable="true"]')){e.stopPropagation();if(currentSelection)clearSelection();else onCloseRanking?.()}}} className="heatmap-dock heatmap-ranking-panel" style={{'--heat-fields':preferences.fields.length} as import('react').CSSProperties}>
-      <div className="heatmap-toolbar">
-        <div className="heatmap-toolbar-group">{periodControls}<button type="button" onClick={todayAction}>Today</button>{dateControl}{monthControls}</div>
-        <div className="heatmap-toolbar-group">{preferences.rankingView === 'details' && fieldControls}<button type="button" onClick={()=>setManager(true)}>Instruments · {ids.length}</button><button type="button" onClick={()=>setAttempt(n=>n+1)}>Refresh</button></div>
-        <details className="heatmap-panel-export"><summary>Research &amp; export</summary>{exportControls}{rangeControls}</details>
-      </div>
-      {eventControls}{!eventMode && !data && <p role="status">Loading broker daily history…</p>}{error && <p role="alert" className="heatmap-message">{error}</p>}{saveError && <p role="alert" className="heatmap-message">{saveError}</p>}
+      {!eventMode && !data && <p role="status">Loading broker daily history…</p>}{error && <p role="alert" className="heatmap-message">{error}</p>}{saveError && <p role="alert" className="heatmap-message">{saveError}</p>}
       {copied?.key===copyKey && <small role="status">{copied.message}</small>}
       {eventMode && !intraday.data && <p role="status">Loading intraday history…</p>}
       {eventMode && eventWindow.anchor>clock && <p role="status">Waiting for the anchor time before calculating returns.</p>}
       {rankingView}
-      {manager && <HeatmapSymbols catalog={catalog} broker={broker} preferences={preferences} rows={ids} onSave={next=>{save(next);setManager(false)}} onClose={closeManager}/>}
     </div>,rankingTarget)}
   </>
 })

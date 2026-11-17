@@ -257,8 +257,11 @@ Sorting by **Largest unusual moves**
 keeps bars measured in return percent and shows unusualness separately in ×.
 Ranking follows the active period and group, independently of highlighted cells;
 **Copy displayed ranking** copies its visible fields in displayed order.
-The standalone panel keeps research copying and copy options under
-**Research & export**. **More** in the bottom dock contains news, Wildcards and
+The standalone panel is a light ranking view; period, date, instrument and export
+settings stay in the bottom dock. Click a ranking block in either Details or Bars
+to open that instrument's chart. Synthetic currency baskets open Market Watch
+with the currency code already entered in its search and the category set to All.
+**More** in the bottom dock contains news, Wildcards and
 method controls. The **Wildcards** row shows the same global entries as the
 Wildcards dock and chart icons. Click a wildcard cell to view, edit or add entries.
 

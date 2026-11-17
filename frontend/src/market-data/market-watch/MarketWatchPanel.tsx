@@ -18,12 +18,19 @@ type MarketWatchPanelProps = {
   visible?: boolean
   brokerId?: string | null
   generation?: number
+  searchRequest?: { query: string; revision: number } | null
 }
 
-export const MarketWatchPanel = memo(function MarketWatchPanel({ visible = true, ...props }: MarketWatchPanelProps) {
+export const MarketWatchPanel = memo(function MarketWatchPanel({ visible = true, searchRequest, ...props }: MarketWatchPanelProps) {
   const [query, setQuery] = useState('')
   const [date, setDate] = useState<string | null>(null)
   const [preferences, setPreferences] = useState(readMarketWatchPreferences)
+  const [appliedSearchRequest, setAppliedSearchRequest] = useState<MarketWatchPanelProps['searchRequest']>()
+  if (searchRequest && searchRequest !== appliedSearchRequest) {
+    setAppliedSearchRequest(searchRequest)
+    setQuery(searchRequest.query)
+    setPreferences(current => current.category === 'all' ? current : { ...current, category: 'all' })
+  }
   useEffect(() => saveMarketWatchPreferences(preferences), [preferences])
   const favourites = useMemo(() => new Set(preferences.favourites), [preferences.favourites])
   const toggleFavourite = useCallback((symbol: string) => {

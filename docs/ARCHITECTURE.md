@@ -226,6 +226,9 @@ Pointer hover coalesces to one update per animation frame, while memoized grid r
 and copy controls avoid rebuilding cell values, tooltips and instrument filters.
 Largest moves sorts by absolute C return by default, independently of the unusual
 move sort, which uses prior volatility.
+The standalone ranking omits the dock's configuration/export toolbar. Ranking
+blocks use the existing chart selection action for broker symbols; synthetic
+baskets open the Market Watch tab with a currency search request and All category.
 
 ## Alarms
 

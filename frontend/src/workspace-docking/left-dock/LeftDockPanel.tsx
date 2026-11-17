@@ -36,7 +36,7 @@ function LeftDockPanelComponent({ marketWatch, symbols, selectedSymbol, marketWa
     </header>
     <div id={contentId} className="left-dock-content" hidden={collapsed}>
       <div hidden={activeTab !== 'market-watch'}><MarketWatchPanel symbols={symbols} selectedSymbol={selectedSymbol} brokerId={brokerId} generation={generation}
-        status={marketWatchStatus} error={marketWatchError} onSelect={onSelectSymbol} visible={!collapsed && activeTab === 'market-watch'} /></div>
+        status={marketWatchStatus} error={marketWatchError} onSelect={onSelectSymbol} searchRequest={marketWatch.searchRequest} visible={!collapsed && activeTab === 'market-watch'} /></div>
       <div hidden={activeTab !== 'price-alerts'}><PriceAlertsDock controller={priceAlerts} onSelectSymbol={onSelectSymbol} onCreate={onCreatePriceAlert} brokerId={brokerId ?? null} /></div>
     </div>
   </aside>

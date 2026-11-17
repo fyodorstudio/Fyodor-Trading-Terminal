@@ -66,6 +66,14 @@ function TerminalWorkspaceContent() {
     const selection = heatmapNewsSelection(date, { brokerId, brokerOffsetSeconds })
     if (selection) { selectNewsDate(selection); openNews() }
   }, [brokerId, brokerOffsetSeconds, openNews])
+  const searchMarketWatch = marketWatch.search
+  const openHeatmapInstrument = useCallback((rowId: string) => {
+    if (rowId.startsWith('symbol:')) selectSymbol(rowId.slice(7))
+    else if (rowId.startsWith('basket:')) {
+      setLeftDockTab('market-watch')
+      searchMarketWatch(rowId.slice(7))
+    }
+  }, [selectSymbol, setLeftDockTab, searchMarketWatch])
   const ledgerCurrencies = chartEventCurrencies(activeSymbol)
   const ledgerSupported = ledgerCurrencies.length === 2
   const openLedgerDetail = useCallback(() => { openDetail() }, [openDetail])
@@ -237,7 +245,7 @@ function TerminalWorkspaceContent() {
           hidden={!bottomDockWindow}
         >
           {heatmapStarted && <div className="heatmap-slot" hidden={bottomDockWindow !== 'heatmap'}>
-            <HeatmapDock symbols={marketData.symbols} broker={brokerId} generation={bridge.generation} active={bottomDockWindow === 'heatmap' || rankingOpen} dockActive={bottomDockWindow === 'heatmap'} rankingTarget={rankingTarget} onCloseRanking={closeRanking} onOpenNews={showHeatmapNews} connected={bridge.connected} />
+            <HeatmapDock symbols={marketData.symbols} broker={brokerId} generation={bridge.generation} active={bottomDockWindow === 'heatmap' || rankingOpen} dockActive={bottomDockWindow === 'heatmap'} rankingTarget={rankingTarget} onCloseRanking={closeRanking} onOpenNews={showHeatmapNews} onOpenRow={openHeatmapInstrument} connected={bridge.connected} />
           </div>}
           {bottomDockWindow === 'wildcards' && <WildcardsDock />}
           {bottomDockWindow === 'ledger' && <LedgerDock supported={ledgerSupported} broker={brokerId} onOpenDetail={openLedgerDetail} onViewEvent={viewLedgerEvent} />}

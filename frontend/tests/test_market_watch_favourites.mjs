@@ -252,7 +252,21 @@ try {
   await render({ symbols: ranked }, 'sorted-sections')
   assert.deepEqual(symbols(), ['EURUSD', 'EURAUD', 'NZDCHF'], 'Sorting stays within custom sections, preserving section order')
   assert.deepEqual([...host.querySelectorAll('.market-watch-section-heading strong')].map(node => node.textContent), ['First section', 'Second section'])
-  console.log('✓ Market Watch favourites: requested initial stars, independent buttons, search/categories, persistence/empty lists, broker symbols, outage/quotes and bounded row work')
+  const searchRequest={query:'USD',revision:1}
+  await render({symbols:ranked,searchRequest},'sorted-sections')
+  assert.equal(host.querySelector('[aria-label="Search symbols"]').value,'USD','Currency navigation prefills the search')
+  assert.equal(categorySelect().value,'all','Currency navigation clears a conflicting category filter')
+  assert.ok(symbols().includes('GBPUSD'),'Search includes matching instruments outside favourites')
+  await search('XAU')
+  await render({symbols:[...ranked],searchRequest},'sorted-sections')
+  assert.equal(host.querySelector('[aria-label="Search symbols"]').value,'XAU','Unchanged navigation requests do not overwrite manual typing')
+  await render({symbols:ranked,searchRequest:{query:'USD',revision:2}},'sorted-sections')
+  assert.equal(host.querySelector('[aria-label="Search symbols"]').value,'USD','Clicking the same currency again reapplies its search')
+  const hiddenSearch={query:'GBP',revision:3}
+  await render({symbols:ranked,visible:false,searchRequest:hiddenSearch},'sorted-sections')
+  await render({symbols:ranked,searchRequest:hiddenSearch},'sorted-sections')
+  assert.deepEqual(symbols(),['GBPUSD'],'A request received while collapsed is ready when the dock opens')
+  console.log('✓ Market Watch favourites: requested initial stars, independent buttons, currency search navigation, persistence/empty lists, broker symbols, outage/quotes and bounded row work')
 } finally {
   await React.act(async () => root.unmount())
   await server.close(); await dom.happyDOM.close()

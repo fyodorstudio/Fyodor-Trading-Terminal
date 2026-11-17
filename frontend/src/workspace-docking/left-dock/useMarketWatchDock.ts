@@ -8,6 +8,7 @@ function readCollapsed() {
 
 export function useMarketWatchDock() {
   const [collapsed, setCollapsed] = useState(readCollapsed)
+  const [searchRequest, setSearchRequest] = useState<{ query: string; revision: number } | null>(null)
   const contentId = useId()
   const toggle = useCallback(() => {
     const next = !collapsed
@@ -18,7 +19,11 @@ export function useMarketWatchDock() {
     setCollapsed(false)
     try { localStorage.setItem(marketWatchCollapsedKey, 'false') } catch { /* Retain the session preference. */ }
   }, [])
-  return useMemo(() => ({ collapsed, contentId, toggle, open }), [collapsed, contentId, toggle, open])
+  const search = useCallback((query: string) => {
+    open()
+    setSearchRequest(previous => ({ query, revision: (previous?.revision ?? 0) + 1 }))
+  }, [open])
+  return useMemo(() => ({ collapsed, contentId, toggle, open, search, searchRequest }), [collapsed, contentId, toggle, open, search, searchRequest])
 }
 
 export type MarketWatchDock = ReturnType<typeof useMarketWatchDock>
