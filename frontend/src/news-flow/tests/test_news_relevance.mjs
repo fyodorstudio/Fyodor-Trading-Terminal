@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 import React from 'react'
 import { createServer } from 'vite'
 import { Window } from 'happy-dom'
+import { checkBrowserPopups } from './browser-popup-checks.mjs'
 
 const dom = new Window({ url: 'http://localhost:5173' }), requests = [], timers = new Map()
 let timerId = 0
@@ -93,6 +94,7 @@ try {
   assert.equal(JSON.parse(dom.localStorage.getItem('fyodor.news-flow.v1.before-relevance-v2')).presetVersion,1,'Original browser settings are backed up once')
   await React.act(async()=>root.render(null))
   assert.equal(timers.size,0)
+  await checkBrowserPopups({ server, dom, root, React, control, pending, reply, click, timers, requests })
   console.log('✓ Trading relevance UI: migration/custom rules, aliases, authoritative labels, phone sync, scoped alerts, cursor continuity and stale-response rejection')
 } finally {
   await React.act(async () => root.unmount())

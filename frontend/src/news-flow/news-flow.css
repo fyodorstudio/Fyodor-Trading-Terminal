@@ -130,3 +130,7 @@
 .news-alert-age-range button { align-self:end; }
 .news-alert-note { color:var(--text-muted); }
 .news-alarm-options .news-alert-age-range button { min-height:30px; }
+
+.news-popup-settings { margin:14px 0; padding:12px; border:1px solid var(--border); border-radius:4px; }
+.news-popup-settings .news-checkbox { display:flex; align-items:center; gap:8px; margin-top:0; cursor:pointer; }
+.news-popup-settings input[type='checkbox'] { width:16px; height:16px; min-height:16px; flex-shrink:0; padding:0; margin:0; }

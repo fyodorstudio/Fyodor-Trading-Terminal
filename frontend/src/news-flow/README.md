@@ -179,3 +179,30 @@ uses configured arrivals. It waits for rules to sync, aborts stale scopes, retai
 the cursor across edits and rechecks publication age before buffered playback.
 Default age is 24h, configurable in hours/days or unlimited. Legacy soundEnabled
 and soundMode are retained only for one-time unification; sound remains local.
+
+## Windows/browser headline popups
+
+The headline alarm settings and Global settings expose **Windows headline popups**
+and **Test popup**. This browser-local switch defaults off. Enabling requests
+notification permission only from the user click; a denied/dismissed prompt never
+opts in automatically. Closing settings cancels a pending enable operation.
+Unsupported/insecure origins explain the limitation; use localhost or HTTPS.
+
+`NewsPopupSettings.tsx` owns the control; `browser-notifications.ts` owns native
+browser banners, safe article click-through, WIB/AM-PM metadata and bounded URL
+hash deduplication. Banners request silent, nonpersistent interaction behaviour;
+existing sound and ntfy delivery remain independent. The terminal tab must remain
+open (minimized is fine). Browser/Windows notification settings, Focus Assist,
+sleep and background tab throttling can prevent or delay visible banners. A
+successful browser API call or test request does not confirm the user saw it.
+
+The existing configured arrival stream supplies the same trigger, selected
+providers, keywords and publication-age rule. A separate popup cursor advances
+while popups are off or sound is blocked, preventing sound retries and toggle-on
+from replaying old headlines. Publication eligibility is rechecked after any
+cross-tab lock wait. Startup/imports remain silent. A bounded browser-local
+journal (2,000 URL hashes) and stable tags suppress duplicate articles, including
+reloads and overlapping providers; Web Locks serialize tabs where available.
+At most 100 banner objects are retained, with old objects closed as that bound
+is reached. Switching off or unmounting closes this page's outstanding banners.
+There is no service worker, background push subscription or additional feed poll.

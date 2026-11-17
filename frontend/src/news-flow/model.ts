@@ -4,10 +4,10 @@ export type NewsItem = { id: string; source_id: string; source_name: string; pub
   sequence?: number; relevance?: { included: boolean; reason: string; keyword: string; tier?: 'priority' | 'included' | 'excluded'; priority_reason?: string }; policy_banks?: { currency: string; bank: string }[]; stance?: string; stance_evidence?: { origin: string; text: string }[] }
 export type NewsPage = { items: NewsItem[]; total: number }
 export type NewsMode = 'all' | 'priority' | 'included' | 'excluded'
-export type NewsSettings = { hiddenSources: string[]; include: string; exclude: string; mode: NewsMode; presetVersion: number; marketRelevance: boolean; includedColor: string; excludedColor: string; date: string; session: { start: number; end: number } | null; order: 'newest' | 'oldest'; sortBy: 'published' | 'collected'; width: number; soundEnabled: boolean; soundMode: 'included' | 'all'; sound: 'chime' | 'bell' | 'pulse' }
+export type NewsSettings = { hiddenSources: string[]; include: string; exclude: string; mode: NewsMode; presetVersion: number; marketRelevance: boolean; includedColor: string; excludedColor: string; date: string; session: { start: number; end: number } | null; order: 'newest' | 'oldest'; sortBy: 'published' | 'collected'; width: number; browserNotifications: boolean; soundEnabled: boolean; soundMode: 'included' | 'all'; sound: 'chime' | 'bell' | 'pulse' }
 
 const key = 'fyodor.news-flow.v1'
-const defaults: NewsSettings = { hiddenSources: [], include: starterKeywords.join(', '), exclude: '', mode: 'all', presetVersion: 3, marketRelevance: true, includedColor: '#ef4444', excludedColor: '#737373', date: '', session: null, order: 'newest', sortBy: 'collected', width: 380, soundEnabled: false, soundMode: 'included', sound: 'chime' }
+const defaults: NewsSettings = { hiddenSources: [], include: starterKeywords.join(', '), exclude: '', mode: 'all', presetVersion: 3, marketRelevance: true, includedColor: '#ef4444', excludedColor: '#737373', date: '', session: null, order: 'newest', sortBy: 'collected', width: 380, browserNotifications: false, soundEnabled: false, soundMode: 'included', sound: 'chime' }
 
 export function readNewsSettings(): NewsSettings {
   try {
@@ -23,7 +23,7 @@ export function readNewsSettings(): NewsSettings {
       date: /^\d{4}-\d{2}-\d{2}$/.test(saved.date) ? saved.date : '',
       session: Number.isFinite(saved.session?.start) && Number.isFinite(saved.session?.end) && saved.session.end > saved.session.start && saved.session.end - saved.session.start <= 36 * 3600_000 ? { start: saved.session.start, end: saved.session.end } : null,
       order: saved.order === 'oldest' ? 'oldest' : 'newest', sortBy: saved.sortBy === 'published' ? 'published' : 'collected', width: Number.isFinite(saved.width) ? Math.min(640, Math.max(280, saved.width)) : 380,
-      soundEnabled: saved.soundEnabled === true, soundMode: saved.presetVersion >= 3 && saved.soundMode === 'all' ? 'all' : 'included', sound: saved.sound === 'bell' || saved.sound === 'pulse' ? saved.sound : 'chime' }
+      browserNotifications: saved.browserNotifications === true, soundEnabled: saved.soundEnabled === true, soundMode: saved.presetVersion >= 3 && saved.soundMode === 'all' ? 'all' : 'included', sound: saved.sound === 'bell' || saved.sound === 'pulse' ? saved.sound : 'chime' }
   } catch { return { ...defaults } }
 }
 

@@ -4,6 +4,7 @@ import { enableNewsSound, playNewsSound } from './sound'
 import { validNewsPage, type NewsItem } from './model'
 import { updateNewsAlertStatus, useNewsAlertStatus } from './alert-status'
 import { saveNewsAlertProfile, useNewsAlertProfile } from './alert-profile'
+import { showNewsPopups, stopNewsPopups, useNewsPopupError } from './browser-notifications'
 
 function publicationAllowed(item: NewsItem, seconds: number | null) {
   const now = Date.now()
@@ -14,11 +15,19 @@ function publicationAllowed(item: NewsItem, seconds: number | null) {
 // rule edits; aborted requests cannot sound using the previous scope.
 export function NewsSoundAlerts() {
   const [settings, save] = useNewsSettings(), status = useNewsAlertStatus(), profile = useNewsAlertProfile()
+  const popupError = useNewsPopupError(), popupEnabled = useRef(settings.browserNotifications), popupCursor = useRef<number | null>(null)
+  const popupVersion = useRef(0)
   const [synchronized, setSynchronized] = useState(''), [syncError, setSyncError] = useState('')
   const cursor = useRef<number | null>(null)
   const blockedSince = useRef(0)
   const migrationRetryAt = useRef(0)
   useEffect(() => { save(old => old) }, [save])
+  useEffect(() => {
+    popupVersion.current++
+    popupEnabled.current = settings.browserNotifications
+    if (!settings.browserNotifications) stopNewsPopups()
+    return () => { popupEnabled.current = false; stopNewsPopups() }
+  }, [settings.browserNotifications])
   useEffect(() => {
     if (!profile.data || profile.data.unified_alerts || profile.saving || Date.now() < migrationRetryAt.current) return
     // One-time unification preserves an already-enabled phone or desktop trigger.
@@ -46,7 +55,7 @@ export function NewsSoundAlerts() {
     mode: profile.data.mode, max_age_seconds: profile.data.max_age_seconds, rules, sound: settings.sound }) : ''
   useEffect(() => {
     if (!scope) {
-      if (profile.data?.mode === 'off' && !profile.saving) { cursor.current = null; blockedSince.current = 0 }
+      if (profile.data?.mode === 'off' && !profile.saving) { cursor.current = null; popupCursor.current = null; blockedSince.current = 0 }
       updateNewsAlertStatus({ pending: 0, error: '' }); return
     }
     const active = JSON.parse(scope), controller = new AbortController()
@@ -74,6 +83,16 @@ export function NewsSoundAlerts() {
         if (!controller.signal.aborted) {
           updateNewsAlertStatus({ error: '' })
           const items = body.items.filter((item: NewsItem) => (item.sequence === undefined || item.sequence > (cursor.current ?? -1)) && publicationAllowed(item, active.max_age_seconds))
+          // Popup progress is independent of blocked/retried audio. Track it even
+          // while disabled, so switching popups on cannot replay pending sounds.
+          const previousPopupCursor = popupCursor.current
+          popupCursor.current = Math.max(popupCursor.current ?? 0, body.cursor)
+          if (popupEnabled.current && previousPopupCursor !== null) {
+            const fresh = items.filter((item: NewsItem) => (item.sequence ?? body.cursor) > previousPopupCursor)
+            const version = popupVersion.current
+            void showNewsPopups(fresh, () => !controller.signal.aborted && popupEnabled.current && popupVersion.current === version,
+              item => publicationAllowed(item, active.max_age_seconds))
+          }
           if (cursor.current !== null && body.cursor > cursor.current && items.length) {
             const expired = blockedSince.current > 0 && Date.now() - blockedSince.current > 60000
             const played = !expired && playNewsSound(active.sound)
@@ -89,7 +108,8 @@ export function NewsSoundAlerts() {
     void poll()
     return () => { controller.abort(); window.clearTimeout(timer); window.removeEventListener('pointerdown', unlock); window.removeEventListener('keydown', unlock) }
   }, [scope, profile.data?.mode, profile.saving])
-  return profile.error || syncError || status.error || status.pending > 0 ? <div className="news-sound-status" role="status">
-    {profile.error || syncError || status.error || `${status.pending} headline alerts waiting for audio. Tap the News Flow bell to enable sound.`}
+  const deliveryError = profile.error || syncError || status.error || (settings.browserNotifications ? popupError : '')
+  return deliveryError || status.pending > 0 ? <div className="news-sound-status" role="status">
+    {deliveryError || `${status.pending} headline alerts waiting for audio. Tap the News Flow bell to enable sound.`}
   </div> : null
 }

@@ -5,6 +5,7 @@ import { enableNewsSound, playNewsSound } from './sound'
 import { useNewsAlertStatus } from './alert-status'
 import { useDisplayClock } from '../appearance/time-display/useDisplayClock'
 import { saveNewsAlertProfile, useNewsAlertProfile } from './alert-profile'
+import { NewsPopupSettings } from './NewsPopupSettings'
 
 export function NewsAlarmControls({ settings, onChange }: { settings: NewsSettings; onChange: (settings: NewsSettings) => void }) {
   const status = useNewsAlertStatus(), clock = useDisplayClock(), profile = useNewsAlertProfile()
@@ -21,7 +22,7 @@ export function NewsAlarmControls({ settings, onChange }: { settings: NewsSettin
       if (mode !== 'off') void enableNewsSound()
       void saveNewsAlertProfile(mode, age)
     }}><option value="off">Off</option><option value="included">Included headlines</option><option value="all">All new headlines</option></select></label>
-    <p className="news-alert-note">One trigger for desktop sound and ntfy. Included covers Priority + Included.</p>
+    <p className="news-alert-note">One trigger for desktop sound, Windows popups and ntfy. Included covers Priority + Included.</p>
     <form className="news-alert-age" onSubmit={event => { event.preventDefault(); if (valid && !disabled) void saveNewsAlertProfile(profile.data!.mode, seconds) }}>
       <label className="news-checkbox"><input aria-label="Limit news publication age" type="checkbox" disabled={disabled} checked={value.enabled} onChange={event => setDraft({ ...value, enabled: event.target.checked })} />Only alert on recent publications</label>
       <div className="news-alert-age-range"><label>Published within<input aria-label="News publication age amount" type="number" min="1" max={value.unit === 'hours' ? 8760 : 365} step="1" disabled={disabled || !value.enabled} value={value.amount} onChange={event => setDraft({ ...value, amount: event.target.value })} /></label>
@@ -30,6 +31,7 @@ export function NewsAlarmControls({ settings, onChange }: { settings: NewsSettin
       <p>Applies to both devices. Older headlines stay readable but silent. Missing or scheduled publication times cannot pass an enabled limit.</p>
     </form>
     {profile.error && <p role="alert">{profile.error}</p>}
+    <NewsPopupSettings />
     <label>Desktop sound<select aria-label="News alert sound" value={settings.sound} onChange={event => onChange({ ...settings, sound: event.target.value as NewsSettings['sound'] })}>
       <option value="chime">Chime</option><option value="bell">Bell</option><option value="pulse">Pulse</option>
     </select></label>
