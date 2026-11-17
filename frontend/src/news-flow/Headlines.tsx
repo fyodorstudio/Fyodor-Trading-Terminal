@@ -10,7 +10,7 @@ import { wildcardDay } from '../wildcards/wildcard-model'
 export function Headlines({ items, dated = false }: { items: NewsItem[]; dated?: boolean }) {
   const [settings] = useNewsSettings()
   const [now, setNow] = useState(Date.now)
-  const live = !dated && items.length > 0
+  const live = items.length > 0
   useEffect(() => {
     if (!live) return
     let timer = 0
@@ -55,8 +55,11 @@ function Headline({ item, dated, settings, now }: { item: NewsItem; dated: boole
         {collected ? 'First collected ' : 'Published '}{dated ? clock.utc(displayedAt) : newsAge(displayedAt, now)}</time>
       {!collected && (delayedCollection(item) || settings.sortBy === 'collected') && <><span>·</span><time data-sort-time={settings.sortBy === 'collected'} dateTime={new Date(item.first_seen).toISOString()} title={collectionTitle}>Collected {dated ? clock.utc(item.first_seen) : newsAge(item.first_seen, now)}</time></>}
     </div>
-    <div className="news-row-labels"><span title={relevance.reason}>{category === 'priority' ? `Priority · ${pinned ? 'Manually starred' : item.relevance?.priority_reason || 'Attention candidate'}` : relevance.reason}</span>
-    </div>
+    <div className="news-row-footer"><div className="news-row-labels"><span title={relevance.reason}>{category === 'priority' ? `Priority · ${pinned ? 'Manually starred' : item.relevance?.priority_reason || 'Attention candidate'}` : relevance.reason}</span>
+    </div><div className="news-row-age">
+      <time dateTime={new Date(displayedAt).toISOString()} title={timeTitle}>{collected ? 'First collected ' : 'Published '}{newsAge(displayedAt, now)}</time>
+      {!collected && (delayedCollection(item) || settings.sortBy === 'collected') && <time dateTime={new Date(item.first_seen).toISOString()} title={collectionTitle}>Collected {newsAge(item.first_seen, now)}</time>}
+    </div></div>
     {error && <p role="alert">{error}</p>}
   </article>
 }
