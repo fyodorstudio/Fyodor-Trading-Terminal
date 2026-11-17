@@ -19,7 +19,7 @@ export function HeatmapRanking({ entries, fields, heading, status, groups, group
   const flat = available.length - up - down
   const maximum = Math.max(0, ...available.map(entry => Math.abs(entry.point!.value!)))
   const root = useRef<HTMLElement>(null)
-  useRankingMotion({ root, entries, fields, enabled: animate, bars, maximum, unusual: preferences.rank === 'unusual',
+  useRankingMotion({ root, entries, fields, enabled: animate, bars, unusual: preferences.rank === 'unusual',
     scope: JSON.stringify([motionScope, group, preferences.rank, preferences.rankingView, fields]) })
   return <aside ref={root} className={`heatmap-ranking${bars ? ' heatmap-ranking-bars' : ''}`} style={{ '--heat-ranking-width': `${bars ? 320 : Math.max(280, 76 + 57 * fields.length)}px` } as CSSProperties} aria-label="Selected period ranking">
     <header><div><strong>{heading}</strong><small>{status}</small></div>
@@ -49,7 +49,7 @@ export function HeatmapRanking({ entries, fields, heading, status, groups, group
         </div>
         {bars ? <div className="heatmap-bar-row">
           <div className="heatmap-bar-track" aria-hidden="true">
-            {value != null && <span className={`heatmap-bar-fill ${direction(value)}`} style={{ left: `${value < 0 ? 50 - width : 50}%`, width: `${width}%` }}><span className="heatmap-bar-tip" /></span>}
+            {value != null && <span className={`heatmap-bar-fill ${direction(value)}`} style={{ left: `${value < 0 ? 50 - width : 50}%`, width: `${width}%` }} />}
             {value === 0 && <span className="heatmap-bar-zero" />}
           </div>
           <span data-rank-field="C" className={`heatmap-bar-value ${direction(value)}`}>{formatHeatmapChange(value)}</span>

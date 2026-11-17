@@ -262,8 +262,8 @@ The standalone panel is a light ranking view; period, date, instrument and expor
 settings stay in the bottom dock. Click a ranking block in either Details or Bars
 to open that instrument's chart. Synthetic currency baskets open Market Watch
 with the currency code already entered in its search and the category set to All.
-Only the right panel flashes changed numbers: green for an increase since the
-previous reading, red for a decrease. Bars move smoothly and pulse at the endpoint.
+Only the right panel flashes the whole instrument block when a displayed number
+changes: gray in light mode and pale gray in dark mode, fading out in 450 ms.
 Changing dates, filters, sort or view does not trigger flashes. Reduced-motion
 settings disable these effects. The refresh frequency is unchanged.
 **More** in the bottom dock contains news, Wildcards and
