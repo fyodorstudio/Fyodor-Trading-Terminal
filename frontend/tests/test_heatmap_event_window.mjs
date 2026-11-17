@@ -32,6 +32,7 @@ try{
   const model=await server.ssrLoadModule('./src/heatmap/event-window.ts')
   const heatmap=await server.ssrLoadModule('./src/heatmap/heatmap-model.ts')
   const exports=await server.ssrLoadModule('./src/heatmap/heatmap-export.ts')
+  const copiedHeader='Copied at Nov 12, 2026, 07:00:00 PM WIB (Asia/Jakarta, UTC+07:00)'
   const selection=await server.ssrLoadModule('./src/heatmap/heatmap-selection.ts')
   const {majorForexPairs}=await server.ssrLoadModule('./src/economic-calendar/forex/pairs.ts')
   const from=now-3600000,window={from,through:now,anchor:from,minutes:5}
@@ -100,6 +101,7 @@ try{
     React.createElement(HeatmapDock,{symbols:catalog,broker:'Pepperstone-Demo',generation:2,active:true,dockActive:!panel,rankingTarget:panel?target:null}))))
   await render()
   const dailySymbols=Object.fromEntries(catalog.map(s=>[s.symbol,{...record,bars:[
+    {...bars[0],close:99,time:Date.parse('2026-11-06')/1000},
     {...bars[0],close:99,time:Date.parse('2026-11-10')/1000},
     {...bars[0],time:Date.parse('2026-11-11')/1000},
     {...bars[1],...(s.symbol==='XAUUSD'?{close:96,low:95}:{}),time:Date.parse('2026-11-12')/1000}
@@ -122,6 +124,11 @@ try{
   assert.equal(host.querySelector('.heatmap-cell .heatmap-ohlc').children.length,1)
   assert.equal(host.querySelector('[aria-label="Visible fields C"]').disabled,true,'At least one field remains visible')
   await click(button('Copy Details Only'));assert.doesNotMatch(copied,/ O | H | L /)
+  assert.ok(copied.startsWith(copiedHeader+'\n\n'),'Details include the actual copy time with seconds and an explicit Jakarta timezone')
+  Date.now=()=>now+1000
+  await click(button('Copy Details Only'))
+  assert.ok(copied.startsWith(copiedHeader.replace('07:00:00','07:00:01')),'Each copy captures a fresh timestamp rather than using the heatmap polling clock')
+  Date.now=()=>now
   await check(host.querySelector('[aria-label="Match visible fields"]'))
   await click(button('Copy Details Only'));assert.match(copied,/O .*H .*L .*C /)
   await check(host.querySelector('[aria-label="Copy XAUUSD"]'))
@@ -150,6 +157,7 @@ try{
   await modifiedClick(host.querySelector('[data-heatmap-date="2026-11-11"]'))
   assert.equal(host.querySelectorAll('[data-heatmap-cell][aria-pressed="true"]').length,2,'Date headers select entire columns')
   await click(button('Weekly'));assert.equal(host.querySelectorAll('[data-heatmap-cell][aria-pressed="true"]').length,0,'Changing period mode clears selection')
+  await click(button('Copy Details Only'));assert.ok(copied.startsWith(copiedHeader));assert.match(copied,/Weekly/)
   await click(button('Daily'))
   await click(button('Today'))
   await click(button('Bars'))
@@ -167,6 +175,7 @@ try{
   await reply(initial,data)
   assert.match(target.querySelector('.heatmap-ranking').textContent,/Window summary/)
   await render(false)
+  await click(button('Copy Details Only'));assert.ok(copied.startsWith(copiedHeader));assert.match(copied,/Window summary/)
   const eventCell=(name,day)=>host.querySelector(`[data-heatmap-cell="symbol:${name}:${day}"]`)
   const firstCandle=new Date(from).toISOString(),secondCandle=new Date(from+5*60000).toISOString()
   await modifiedClick(eventCell('EURUSD',firstCandle))

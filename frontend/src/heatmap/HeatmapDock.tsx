@@ -11,7 +11,7 @@ import { HeatmapRanking } from './HeatmapRanking'
 import { heatmapColumnSelected, heatmapColumnSelection, selectedHeatmapRows, toggleHeatmapCell, type HeatmapSelection } from './heatmap-selection'
 import { readHeatmapPreferences, saveHeatmapPreferences, type HeatmapPreferences } from './heatmap-preferences'
 import { useHeatmapHistory } from './useHeatmapHistory'
-import { heatmapChangesText, heatmapResearchPrompt, heatmapRankingText } from './heatmap-export'
+import { heatmapChangesText, heatmapDetailsText, heatmapResearchPrompt, heatmapRankingText } from './heatmap-export'
 import { useWildcards } from '../wildcards/useWildcards'
 import { wildcardHeatmapDay } from '../wildcards/wildcard-model'
 import { wildcardHeatmapRows } from './wildcards-model'
@@ -138,10 +138,11 @@ const HeatmapContent = memo(function HeatmapContent({ catalogJson, broker, gener
   const manageWildcards = useCallback(() => openDay(viewDate.current, snapshot?.items.filter(entry => !entry.archived) ?? []), [openDay, snapshot?.items])
   async function copyDetails(kind: 'details' | 'research') {
     try {
+      const copiedAt = Date.now()
       const readings = eventMode ? eventChangesText(exportRows, eventWindow, exportFields, preferences.copyFormat, preferences.groupOrder, intraday.data?.observed_at ?? clock/1000, currentSelection ? copyDays : undefined) : heatmapChangesText(exportRows, copyDays, preferences.mode, preferences.groupOrder, today, exportFields)
       const stale = !connected || !!error || exportRows.some(row => exportDays.some(day => periods.find(p => p.day === day)?.partial && row.checkedAt != null && clock / 1000 - row.checkedAt > 90))
       const changes = readings && `${stale ? 'Some readings may be stale; confirm current prices.\n\n' : ''}${readings}`
-      await navigator.clipboard.writeText(kind === 'research' ? heatmapResearchPrompt(changes, preferences.mode, broker, Date.now(), eventMode) : changes)
+      await navigator.clipboard.writeText(kind === 'research' ? heatmapResearchPrompt(changes, preferences.mode, broker, copiedAt, eventMode) : heatmapDetailsText(changes, copiedAt))
       setCopied({ key: copyKey, message: kind === 'research' ? 'Research prompt copied. Paste it into your agent chat.' : 'Changes copied.' })
     }
     catch { setCopied({ key: copyKey, message: 'Clipboard unavailable. Try copying again.' }) }

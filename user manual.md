@@ -226,7 +226,8 @@ Open **Heatmap** in the bottom dock. Daily/Weekly shows one month at a time;
 use the month picker or previous/next buttons to browse, or jump with Date.
 Weekly columns retain the full weeks overlapping that month. Click a date header
 to select a column and inspect its ranking. **Instruments** edits the watchlist and order.
-**Visible fields** selects O/H/L/C. **Copy Details Only** exports selected readings;
+**Visible fields** selects O/H/L/C. **Copy Details Only** exports selected readings
+with the copy date and time, including seconds, in WIB (Asia/Jakarta, UTC+07:00).
 **Copy Research Prompt** ranks potential incomplete-repricing opportunities across
 all selected asset classes, preferring FX when setups are comparable, and adds
 calculation context.

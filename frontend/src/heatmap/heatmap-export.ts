@@ -1,9 +1,15 @@
 import { formatHeatmapOHLC, heatmapDate, orderHeatmapGroups, heatmapFields, type HeatmapField, type HeatmapMode, type HeatmapRow } from './heatmap-model'
 
+const copiedTimeFormatter = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', year: 'numeric', month: 'short', day: '2-digit',
+  hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })
+
+export function heatmapDetailsText(changes: string, copiedAt: number) {
+  return changes ? `Copied at ${copiedTimeFormatter.format(copiedAt)} WIB (Asia/Jakarta, UTC+07:00)\n\n${changes}` : ''
+}
+
 export function heatmapResearchPrompt(changes: string, mode: HeatmapMode, broker: string | null, copiedAt: number, eventWindow = false) {
   if (!changes) return ''
-  const copiedTime = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', year: 'numeric', month: 'short', day: '2-digit',
-    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }).format(copiedAt)
+  const copiedTime = copiedTimeFormatter.format(copiedAt)
   const focus = 'These are the market moves shown in my selected heatmap readings. Keep your response focused on summarizing what is happening and identifying potential trade entries where repricing may still be incomplete. I mainly trade currencies, but consider every instrument in my selected heatmap as a potential trading opportunity, including commodities, metals, and stock indices. Use cross-asset movements as evidence of possible capital rotation and rank opportunities across all selected asset classes. Prioritize FX when opportunities are comparable, but recommend non-FX trades when their catalysts, incomplete repricing, and risk/reward are more compelling. Identify the most likely winners and losers today and over the next few days across the selected markets, explain the supporting evidence, and distinguish observed moves from hypotheses. For potential entries, explain the catalyst, why repricing may be incomplete, the confirmation needed, the risk/reward rationale, and what would invalidate the setup. If the evidence does not support an opportunity, say so.'
   const context = 'Price moves suggest possible rotation; they do not directly measure capital flows. Respect the selected period: historical readings are not necessarily ongoing moves and require current confirmation before suggesting an opportunity today. Do not invent current prices, catalysts, or precise entry levels that the available evidence cannot establish.'
   if (eventWindow) return ['Explain the market moves in this selected event window.', focus, context, `Event-window context · ${broker ?? 'Broker'} · Copied ${copiedTime} WIB.`, changes].join('\n\n')
