@@ -10,6 +10,9 @@ from .feeds import http_url
 from .history import NewsHistory
 from .rules import patterns, MAX_RULE_CHARS
 from .notifications import NewsNotifier
+from .filter_policy import canonical_policy
+from .relevance import matching_terms
+from .importance import decision
 
 
 class HistoryInput(BaseModel):
@@ -56,6 +59,23 @@ class NotificationRules(BaseModel):
     hidden: list[str] = Field(default_factory=list, max_length=1000)
     market_relevance: bool = True
     preset_version: int = Field(default=3, ge=1, le=3)
+    filter_policy: str | None = Field(default=None, max_length=16000)
+
+    @field_validator('filter_policy')
+    @classmethod
+    def automatic_filters(cls, value):
+        return canonical_policy(value) if value is not None else None
+
+
+class HeadlineCheck(NotificationRules):
+    title: str = Field(min_length=1, max_length=2000)
+    url: str = Field(default='', max_length=2000)
+    feed_url: str = Field(default='', max_length=4000)
+
+    @field_validator('url', 'feed_url')
+    @classmethod
+    def context_urls(cls, value):
+        return http_url(value) if value else ''
 
 
 class NotificationInput(NotificationRules):
@@ -105,9 +125,23 @@ def news_router(store, collector, notifier=None):
               search: str = Query(default='', max_length=500),
               organizer: Literal['all', 'central-banks', 'expectations', 'starred'] = 'all',
               market_relevance: bool = False,
+              filter_policy: str = Query(default='', max_length=16000),
               currency: Literal['all', 'USD', 'EUR', 'GBP', 'JPY', 'CHF', 'CAD', 'AUD', 'NZD'] = 'all'):
         validate_rules(include, exclude)
-        return dict(sources=source, include=include, exclude=exclude, mode=mode, priority=priority, search=search, organizer=organizer, currency=currency, market_relevance=market_relevance)
+        try:
+            filters = canonical_policy(filter_policy)
+        except ValueError as error:
+            raise HTTPException(422, 'Invalid automatic filter settings') from error
+        return dict(sources=source, include=include, exclude=exclude, mode=mode, priority=priority, search=search, organizer=organizer, currency=currency, market_relevance=market_relevance, filter_policy=filters)
+
+    @router.post('/classify')
+    def check_headline(body: HeadlineCheck):
+        validate_rules(body.include, body.exclude)
+        return {'relevance': decision(body.title, url=body.url, feed_url=body.feed_url,
+                                      include=body.include, exclude=body.exclude, enabled=body.market_relevance,
+                                      filter_policy=body.filter_policy or '{}'),
+                'matched_include': matching_terms(body.title, body.include),
+                'matched_exclude': matching_terms(body.title, body.exclude)}
 
     @router.get('/items')
     def items(scope: dict = Depends(item_scope), start: int | None = None, end: int | None = None,
@@ -144,12 +178,12 @@ def news_router(store, collector, notifier=None):
     @router.put('/notifications')
     def notification_settings(body: NotificationInput):
         validate_rules(body.include, body.exclude)
-        return notifier.configure(body.model_dump(exclude={'mode'}), body.mode)
+        return notifier.configure(body.model_dump(exclude={'mode'}, exclude_none=True), body.mode)
 
     @router.put('/notifications/rules')
     def notification_rules(body: NotificationRules):
         validate_rules(body.include, body.exclude)
-        return notifier.configure(body.model_dump())
+        return notifier.configure(body.model_dump(exclude_none=True))
 
     @router.put('/notifications/settings')
     def notification_delivery(body: NotificationDelivery):
@@ -174,17 +208,22 @@ def news_router(store, collector, notifier=None):
     @router.get('/arrivals')
     def arrivals(after: int | None = Query(default=None, ge=0), include: str = Query(default='', max_length=MAX_RULE_CHARS),
                  exclude: str = Query(default='', max_length=MAX_RULE_CHARS), hidden: list[str] = Query(default=[]),
-                 mode: Literal['included', 'all'] = 'included', market_relevance: bool = False, configured: bool = False):
+                 mode: Literal['included', 'all'] = 'included', market_relevance: bool = False, configured: bool = False,
+                 filter_policy: str = Query(default='', max_length=16000)):
         if configured:
             profile = notifier.settings()
             page = store.arrivals(after, profile['include'], profile['exclude'], profile['hidden'],
                                   mode='all' if profile['mode'] == 'off' else profile['mode'],
-                                  market_relevance=profile.get('market_relevance', True), max_age_seconds=profile['max_age_seconds'])
+                                  market_relevance=profile.get('market_relevance', True), max_age_seconds=profile['max_age_seconds'], filter_policy=profile.get('filter_policy', '{}'))
             if profile['mode'] == 'off':
                 page['items'] = []
             return page
         validate_rules(include, exclude)
-        return store.arrivals(after, include, exclude, hidden, mode=mode, market_relevance=market_relevance)
+        try:
+            filters = canonical_policy(filter_policy)
+        except ValueError as error:
+            raise HTTPException(422, 'Invalid automatic filter settings') from error
+        return store.arrivals(after, include, exclude, hidden, mode=mode, market_relevance=market_relevance, filter_policy=filters)
 
     @router.post('/refresh', status_code=202)
     def refresh():

@@ -6,6 +6,7 @@ import { NewsProviderSelector } from '../NewsProviderSelector'
 import { NewsFilterTabs } from '../NewsTabs'
 import { NewsCopy } from '../NewsCopy'
 import { NewsSort } from '../NewsSort'
+import { readFilterPolicy } from '../filter-policy'
 
 export function MobileNews() {
   const [settings, change] = useNewsSettings(), { sources, error: sourceError } = useNewsSources()
@@ -23,7 +24,7 @@ export function MobileNews() {
         // Share keyword edits; only seed provider visibility once so the phone
         // retains its own browsing filters without changing desktop alerts.
         const seeded = window.localStorage.getItem('fyodor.news-phone.seeded')
-        change(old => ({ ...old, include: profile.include, exclude: profile.exclude, marketRelevance: profile.market_relevance !== false, hiddenSources: seeded ? old.hiddenSources : profile.hidden }))
+        change(old => ({ ...old, include: profile.include, exclude: profile.exclude, marketRelevance: profile.market_relevance !== false, automaticFilters: readFilterPolicy(profile.filter_policy), hiddenSources: seeded ? old.hiddenSources : profile.hidden }))
         window.localStorage.setItem('fyodor.news-phone.seeded', '1')
       } catch { /* Reader still works with its previous keyword profile. */ }
       finally { if (!controller.signal.aborted) timer = window.setTimeout(loadProfile, 30000) }

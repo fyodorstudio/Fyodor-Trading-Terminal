@@ -1,13 +1,14 @@
 import { keywordTags, starterKeywords, upgradeKeywords, matchingKeyword } from './keywords'
+import { readFilterPolicy, encodeFilterPolicy, defaultFilterPolicy, type NewsFilterPolicy } from './filter-policy'
 export type NewsSource = { id: string; name: string; url: string; last_success: number | null; error: string; poll_seconds?: number; retry_at?: number; fetch_ms?: number | null; queue_ms?: number | null; collect_enabled?: number | boolean }
 export type NewsItem = { id: string; source_id: string; source_name: string; publisher: string; title: string; summary: string; url: string; published_at: number | null; first_seen: number; previous_check_at?: number | null; received_at?: number; timeline_at?: number; pinned?: boolean | number; priority_reason?: string;
   sequence?: number; relevance?: { included: boolean; reason: string; keyword: string; tier?: 'priority' | 'included' | 'excluded'; priority_reason?: string }; policy_banks?: { currency: string; bank: string }[]; stance?: string; stance_evidence?: { origin: string; text: string }[] }
 export type NewsPage = { items: NewsItem[]; total: number }
 export type NewsMode = 'all' | 'priority' | 'included' | 'excluded'
-export type NewsSettings = { hiddenSources: string[]; include: string; exclude: string; mode: NewsMode; presetVersion: number; marketRelevance: boolean; includedColor: string; excludedColor: string; date: string; session: { start: number; end: number } | null; order: 'newest' | 'oldest'; sortBy: 'published' | 'collected'; width: number; browserNotifications: boolean; soundEnabled: boolean; soundMode: 'included' | 'all'; sound: 'chime' | 'bell' | 'pulse' }
+export type NewsSettings = { hiddenSources: string[]; include: string; exclude: string; mode: NewsMode; presetVersion: number; marketRelevance: boolean; automaticFilters: NewsFilterPolicy; includedColor: string; excludedColor: string; date: string; session: { start: number; end: number } | null; order: 'newest' | 'oldest'; sortBy: 'published' | 'collected'; width: number; browserNotifications: boolean; soundEnabled: boolean; soundMode: 'included' | 'all'; sound: 'chime' | 'bell' | 'pulse' }
 
 const key = 'fyodor.news-flow.v1'
-const defaults: NewsSettings = { hiddenSources: [], include: starterKeywords.join(', '), exclude: '', mode: 'all', presetVersion: 3, marketRelevance: true, includedColor: '#ef4444', excludedColor: '#737373', date: '', session: null, order: 'newest', sortBy: 'collected', width: 380, browserNotifications: false, soundEnabled: false, soundMode: 'included', sound: 'chime' }
+const defaults: NewsSettings = { hiddenSources: [], include: starterKeywords.join(', '), exclude: '', mode: 'all', presetVersion: 3, marketRelevance: true, automaticFilters: { ...defaultFilterPolicy }, includedColor: '#ef4444', excludedColor: '#737373', date: '', session: null, order: 'newest', sortBy: 'collected', width: 380, browserNotifications: false, soundEnabled: false, soundMode: 'included', sound: 'chime' }
 
 export function readNewsSettings(): NewsSettings {
   try {
@@ -17,7 +18,7 @@ export function readNewsSettings(): NewsSettings {
     const exclude = keywordTags(typeof saved.exclude === 'string' ? saved.exclude : '').join(', ')
     return { hiddenSources: Array.isArray(saved.hiddenSources) ? saved.hiddenSources.filter((id: unknown) => typeof id === 'string') : [],
       include, exclude,
-      mode: ['priority', 'included', 'excluded'].includes(saved.mode) ? saved.mode : saved.mode === 'filtered' ? 'included' : 'all', presetVersion: 3, marketRelevance: saved.presetVersion < 3 || saved.marketRelevance !== false,
+      mode: ['priority', 'included', 'excluded'].includes(saved.mode) ? saved.mode : saved.mode === 'filtered' ? 'included' : 'all', presetVersion: 3, marketRelevance: saved.presetVersion < 3 || saved.marketRelevance !== false, automaticFilters: readFilterPolicy(saved.automaticFilters),
       includedColor: /^#[0-9a-f]{6}$/i.test(saved.includedColor) ? saved.includedColor : defaults.includedColor,
       excludedColor: /^#[0-9a-f]{6}$/i.test(saved.excludedColor) ? saved.excludedColor : defaults.excludedColor,
       date: /^\d{4}-\d{2}-\d{2}$/.test(saved.date) ? saved.date : '',
@@ -38,7 +39,7 @@ export function saveNewsSettings(settings: NewsSettings) {
 // Start/end come from the app's display clock, so date filtering agrees with timestamps.
 export function newsQuery(settings: NewsSettings, sources: NewsSource[], page: number, start: number | null, end: number | null, search = '') {
   const query = new URLSearchParams({ mode: settings.mode, include: settings.include, exclude: settings.exclude, market_relevance: String(settings.marketRelevance),
-    order: settings.order, sort_by: settings.sortBy, offset: String(page * 100), limit: '100' })
+    filter_policy: encodeFilterPolicy(settings.automaticFilters), order: settings.order, sort_by: settings.sortBy, offset: String(page * 100), limit: '100' })
   if (settings.hiddenSources.length) {
     const visible = sources.filter(source => !settings.hiddenSources.includes(source.id))
     for (const source of visible) query.append('source', source.id)

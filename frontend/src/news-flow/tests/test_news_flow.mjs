@@ -143,7 +143,7 @@ try {
   dom.removeEventListener('keydown', backgroundShortcut)
   assert.equal(backgroundKeys, 0, 'Modal keystrokes do not reach global chart shortcuts')
   await React.act(async () => modalClose.dispatchEvent(new dom.KeyboardEvent('keydown', { bubbles: true, key: 'Tab', shiftKey: true })))
-  assert.equal(document.activeElement?.textContent, 'Add market keyword preset', 'Shift+Tab wraps inside the modal')
+  assert.equal(document.activeElement?.getAttribute('aria-label'), 'Check headline text', 'Shift+Tab wraps inside the modal')
   await React.act(async () => document.activeElement.dispatchEvent(new dom.KeyboardEvent('keydown', { bubbles: true, key: 'Tab' })))
   assert.equal(document.activeElement === modalClose, true)
   control('News publication date').focus()

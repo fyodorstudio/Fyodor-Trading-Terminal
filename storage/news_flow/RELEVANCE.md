@@ -174,3 +174,37 @@ coverage is evidence for these cases, not an exhaustive accuracy guarantee.
 Rules reclassify existing history on read; they do not generate new arrivals or
 replay consumed alerts. User keywords, provider selections, age limits and phone
 credentials require no migration or reset.
+
+## Editable automatic filters (November 17, 2026)
+
+`filter_policy.py` validates all 11 automatic filter/protection switches and the
+editable other-market and cross-market exception keyword lists. Defaults live in
+`relevance.json.filter_defaults`, shared with the frontend. There is no separate
+hardcoded other-market country list. Both policy keyword lists match literal
+whole words/phrases; unlike Include/Exclude, they do not expand hidden aliases.
+Explicit Exclude remains authoritative, including over manual stars.
+
+A country mention cannot defeat a configured cross-market exception such as a
+Treasury sell-off. Clear moves in the eight traded currencies and target-country
+macro releases also qualify when cross-market protection is enabled. Simply
+mentioning USD as an unrelated currency's counterpart is insufficient. Treasury
+meeting readouts stay eligible; explicit local crime/cartel sanctions without a
+funding, energy or major geopolitical driver remain under the visible routine
+notice filter. Each filtered/kept headline has a reason identifying the rule or
+exception. These are heuristic relevance decisions, not a complete news guarantee.
+
+The canonical `filter_policy` string contains only nondefault overrides, keeping
+normal reading URLs small. `/items`, `/export`, `/arrivals`, configured desktop
+alerts, ntfy and the read-only phone profile use the same policy. Missing fields
+retain defaults; old notification-rule clients that omit the field preserve an
+existing custom policy. Existing Include/Exclude tags, source selections, alert
+mode, publication-age limit, credentials and stored news require no reset.
+
+Settings expose the switches, editable lists and searchable keyword-group views.
+The text-only `/classify` preview returns the decision and all Include/Exclude
+matches without fetching articles or creating arrivals/alerts. Source-protection
+checks need an actual article/feed context; the text-only UI explicitly states
+that limit. Preview and rule changes never replay consumed arrivals. Tests in
+`tests/test_filter_policy.py` cover the reported rupiah/Treasury case, narrow
+local-news guards, every switch, editable lists, schema validation and consistent
+reader/export/desktop/phone behaviour.

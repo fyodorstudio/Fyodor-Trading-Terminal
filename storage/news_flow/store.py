@@ -33,7 +33,7 @@ class NewsStore:
                 db.row_factory = sqlite3.Row
                 db.create_function('casefold', 1, lambda value: value.casefold())
                 db.create_function('news_matches', 2, matches, deterministic=True)
-                db.create_function('news_level', 8, level, deterministic=True)
+                db.create_function('news_level', 9, level, deterministic=True)
                 db.create_function('news_priority', 2, priority_reason, deterministic=True)
                 db.create_function('news_banks', 5, lambda *args: '|'.join(policy_currencies(*args)), deterministic=True)
                 if not self.initialized:
@@ -184,16 +184,16 @@ class NewsStore:
             db.execute('INSERT OR REPLACE INTO history_searches VALUES (?,?,?,?,?,?,?,?,?)',
                        (source['id'], source['url'], start, end, now, found, error, retry_at, failures))
 
-    def query(self, sources=(), include='', exclude='', start=None, end=None, order='newest', offset=0, limit=100, mode='all', priority=False, search='', organizer='all', currency='all', headlines_only=False, market_relevance=False, sort_by='published'):
+    def query(self, sources=(), include='', exclude='', start=None, end=None, order='newest', offset=0, limit=100, mode='all', priority=False, search='', organizer='all', currency='all', headlines_only=False, market_relevance=False, sort_by='published', filter_policy=''):
         clauses, args = [], []
         if sources:
             clauses.append('i.source_id IN (' + ','.join('?' for _ in sources) + ')')
             args.extend(sources)
         if mode in ('included', 'excluded', 'priority'):
             # Included is the complete relevant feed, with Priority as a subset.
-            clauses.append('news_level(i.title,i.source_id,i.url,s.url,?,?,?,p.url IS NOT NULL)' +
+            clauses.append('news_level(i.title,i.source_id,i.url,s.url,?,?,?,p.url IS NOT NULL,?)' +
                            {'excluded': '=0', 'included': '>0', 'priority': '=2'}[mode])
-            args.extend((include, exclude, market_relevance))
+            args.extend((include, exclude, market_relevance, filter_policy))
         bank_expression = 'news_banks(i.title,i.summary,i.source_id,i.url,s.url)'
         # Compatibility for old research links. Current reading tabs use
         # mode=priority and news_level above, never these broad organizer scopes.
@@ -226,7 +226,7 @@ class NewsStore:
             rows = db.execute(candidates + 'SELECT *,news_priority(title,summary) AS priority_reason FROM candidates WHERE duplicate=1' +
                               (' ORDER BY pinned DESC,' if priority else ' ORDER BY ') + f'{sort_column} {direction},id {direction} LIMIT ? OFFSET ?', [*args, limit, offset])
             return {'items': [{**{key: value for key, value in dict(row).items() if key not in ('duplicate', 'source_feed')},
-                               'relevance': decision(row['title'], row['source_id'], row['url'], row['source_feed'], include, exclude, market_relevance, row['pinned']),
+                               'relevance': decision(row['title'], row['source_id'], row['url'], row['source_feed'], include, exclude, market_relevance, row['pinned'], filter_policy),
                                **policy_details(row['title'], row['summary'], row['source_id'], row['url'], row['source_feed'])} for row in rows], 'total': total}
 
     def export_headlines(self, **scope):
@@ -236,7 +236,7 @@ class NewsStore:
         text = '\n\n'.join(row['title'] + '\n' + row['url'] for row in page['items'])
         return {'text': text, 'count': page['total']}
 
-    def arrivals(self, after=None, include='', exclude='', hidden=(), now=None, mode='included', market_relevance=False, max_age_seconds=None):
+    def arrivals(self, after=None, include='', exclude='', hidden=(), now=None, mode='included', market_relevance=False, max_age_seconds=None, filter_policy=''):
         now = int(time.time() * 1000) if now is None else now
         with self.database() as db:
             cursor = db.execute('SELECT COALESCE(MAX(sequence),0) FROM arrivals').fetchone()[0]
@@ -254,14 +254,14 @@ class NewsStore:
                 args.extend((now - max_age_seconds * 1000, now))
             if mode == 'included':
                 # Match the Included reading/export scope: both relevant levels.
-                clauses.append('news_level(i.title,i.source_id,i.url,s.url,?,?,?,p.url IS NOT NULL)>0')
-                args.extend((include, exclude, market_relevance))
+                clauses.append('news_level(i.title,i.source_id,i.url,s.url,?,?,?,p.url IS NOT NULL,?)>0')
+                args.extend((include, exclude, market_relevance, filter_policy))
             if hidden:
                 clauses.append('i.source_id NOT IN (' + ','.join('?' for _ in hidden) + ')')
                 args.extend(hidden)
             rows = db.execute('SELECT i.*,' + TIMELINE + ' AS timeline_at,s.name AS source_name,s.url AS source_feed,p.url IS NOT NULL AS pinned,a.sequence,a.received_at FROM arrivals a JOIN items i ON i.id=a.item_id JOIN sources s ON s.id=i.source_id LEFT JOIN pins p ON p.url=i.url WHERE ' + ' AND '.join(clauses) + ' ORDER BY a.sequence LIMIT 200', args)
             items = [{**{key: value for key, value in dict(row).items() if key != 'source_feed'},
-                      'relevance': decision(row['title'], row['source_id'], row['url'], row['source_feed'], include, exclude, market_relevance, row['pinned'])} for row in rows]
+                      'relevance': decision(row['title'], row['source_id'], row['url'], row['source_feed'], include, exclude, market_relevance, row['pinned'], filter_policy)} for row in rows]
             # A large batch must not skip eligible arrivals beyond this page.
             return {'cursor': items[-1]['sequence'] if len(items) == 200 else cursor, 'items': items}
 

@@ -206,3 +206,26 @@ reloads and overlapping providers; Web Locks serialize tabs where available.
 At most 100 banner objects are retained, with old objects closed as that bound
 is reached. Switching off or unmounting closes this page's outstanding banners.
 There is no service worker, background push subscription or additional feed poll.
+
+## Automatic filtering controls
+
+Global settings group Include tags into Currencies, Policy, Macro, Bonds and
+funding, Energy, Metals, Indices, Index companies, Context required and Custom.
+Typing searches all groups to preserve duplicate prevention. Filtering a group
+never deletes or deactivates tags in another group.
+
+`NewsAutomaticFilters.tsx` exposes every optional automatic filter/protection,
+the exact other-market keyword list and editable cross-market exceptions. These
+policy lists match literal whole words/phrases. `filter-policy.ts` reads defaults
+from the backend-owned JSON and serializes only overrides. User choices persist
+with existing news settings, travel in reading/copy queries and sync to the PC
+notifier; the phone reader loads the same profile. Disabling the master Trading
+relevance switch bypasses the rules while preserving individual choices. Reset
+only resets automatic filters, never Include/Exclude, sources or alert settings.
+
+The headline checker uses the authoritative text-only backend classifier to show
+matches and the final reason. Changing rules or the headline cancels stale checks;
+unmount also aborts them. It does not fetch articles or send notifications. UI
+source-protection limitations are explicit. No raw regular-expression editor or
+AI classifier is introduced. Group and checkbox layout uses existing rectangular
+controls and theme colours. Visual verification remains a user check.

@@ -46,6 +46,7 @@ class NewsNotifier:
                 temporary.write_text(json.dumps(result), encoding='utf-8')
                 temporary.replace(self.root / 'notifications.json')
             result.setdefault('max_age_seconds', 86400)
+            result.setdefault('filter_policy', '{}')
             return result
         except FileNotFoundError:
             return {'mode': 'off', 'include': '', 'exclude': '', 'hidden': [], 'market_relevance': True, 'preset_version': 3, 'max_age_seconds': 86400}
@@ -121,7 +122,7 @@ class NewsNotifier:
                 return
             config = self.settings()
             page = self.store.arrivals(self.cursor, config['include'], config['exclude'], config['hidden'],
-                                       mode='all' if config['mode'] == 'off' else config['mode'], market_relevance=config.get('market_relevance', True), max_age_seconds=config['max_age_seconds'])
+                                       mode='all' if config['mode'] == 'off' else config['mode'], market_relevance=config.get('market_relevance', True), max_age_seconds=config['max_age_seconds'], filter_policy=config.get('filter_policy', '{}'))
             if config['mode'] != 'off' and page['items']:
                 setup = self.setup()
                 items = page['items']

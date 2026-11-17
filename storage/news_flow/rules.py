@@ -17,21 +17,21 @@ def normalized(value):
 
 
 @lru_cache(maxsize=256)
-def patterns(value):
+def patterns(value, aliases=True):
     terms = list(dict.fromkeys(part.strip() for part in re.split(r'[,\n]', value) if part.strip()))
     if len(terms) > MAX_KEYWORDS or len(value) > MAX_RULE_CHARS:
         raise ValueError(f'Use at most {MAX_KEYWORDS} keywords and {MAX_RULE_CHARS} characters')
-    return tuple(re.compile(r'(?<!\w)' + _variants.get(normalized(term), re.escape(normalized(term))) + r'(?!\w)') for term in terms)
+    return tuple(re.compile(r'(?<!\w)' + (_variants.get(normalized(term), re.escape(normalized(term))) if aliases else re.escape(normalized(term))) + r'(?!\w)') for term in terms)
 
 
 @lru_cache(maxsize=128)
-def combined_pattern(value):
-    rules = patterns(value)
+def combined_pattern(value, aliases=True):
+    rules = patterns(value, aliases)
     return re.compile('|'.join(pattern.pattern for pattern in rules)) if rules else None
 
 
-def matches(title, value):
-    pattern = combined_pattern(value)
+def matches(title, value, aliases=True):
+    pattern = combined_pattern(value, aliases)
     return int(bool(pattern and pattern.search(normalized(title))))
 
 

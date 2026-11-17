@@ -144,7 +144,7 @@ class NewsNotificationTests(unittest.TestCase):
             await request(app, 'PUT', prefix + '/notifications/rules', {'include': 'yen', 'exclude': 'India', 'hidden': [], 'market_relevance': True, 'preset_version': 3})
             self.assertEqual(json.loads((await request(app, 'GET', prefix + '/notifications'))[1])['mode'], 'included')
             profile = json.loads((await request(app, 'GET', prefix + '/phone-profile'))[1])
-            self.assertEqual(profile, {'include': 'yen', 'exclude': 'India', 'hidden': [], 'market_relevance': True, 'preset_version': 3, 'max_age_seconds': 86400})
+            self.assertEqual(profile, {'include': 'yen', 'exclude': 'India', 'hidden': [], 'market_relevance': True, 'preset_version': 3, 'max_age_seconds': 86400, 'filter_policy': '{}'})
             self.assertNotIn('reader_password', profile)
             self.assertEqual((await request(app, 'PUT', prefix + '/notifications', {'mode': 'bad'}))[0], 422)
             self.assertEqual((await request(app, 'PUT', prefix + '/notifications', {'mode': 'all', 'include': ','.join(f'word{i}' for i in range(501))}))[0], 422)

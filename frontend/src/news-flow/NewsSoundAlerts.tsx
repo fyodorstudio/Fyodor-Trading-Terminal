@@ -5,6 +5,7 @@ import { validNewsPage, type NewsItem } from './model'
 import { updateNewsAlertStatus, useNewsAlertStatus } from './alert-status'
 import { saveNewsAlertProfile, useNewsAlertProfile } from './alert-profile'
 import { showNewsPopups, stopNewsPopups, useNewsPopupError } from './browser-notifications'
+import { encodeFilterPolicy } from './filter-policy'
 
 function publicationAllowed(item: NewsItem, seconds: number | null) {
   const now = Date.now()
@@ -36,7 +37,7 @@ export function NewsSoundAlerts() {
     void saveNewsAlertProfile(mode, profile.data.max_age_seconds)
   }, [profile.data, profile.saving, settings.soundEnabled, settings.soundMode])
   const rules = JSON.stringify({ include: settings.include, exclude: settings.exclude, hidden: settings.hiddenSources,
-    market_relevance: settings.marketRelevance, preset_version: 3 })
+    market_relevance: settings.marketRelevance, preset_version: 3, filter_policy: encodeFilterPolicy(settings.automaticFilters) })
   useEffect(() => {
     const controller = new AbortController()
     let timer = 0

@@ -74,7 +74,7 @@ try {
   const { MobileNews } = await server.ssrLoadModule('./src/news-flow/mobile/MobileNews.tsx')
   const before = requests.length
   await React.act(async () => root.render(React.createElement(MobileNews)))
-  await reply(pending('/phone-profile'), { include: 'Japan', exclude: '', hidden: [] })
+  await reply(pending('/phone-profile'), { include: 'Japan', exclude: '', hidden: [], filter_policy: '{"other_markets":false}' })
   const source = { id: 'reuters', name: 'Reuters', url: 'https://news.google.com/rss/search?q=site:reuters.com', error: '', last_success: 1 }
   await reply(pending('/sources'), { sources: [source] })
   const now = Date.now(), headline = { id: 'yen', source_id: 'reuters', source_name: 'Reuters', publisher: 'Reuters', title: 'Japanese Yen intervention warning',
@@ -88,6 +88,7 @@ try {
   assert.equal([...host.querySelectorAll('button')].some(button => /Wildcard|Star headline/.test(button.getAttribute('aria-label') || '')), false)
   await change('Phone news date', '2026-11-09')
   let query = new URL(pending('/items').url, 'http://localhost').searchParams
+  assert.equal(JSON.parse(query.get('filter_policy')).other_markets, false, 'Phone reading uses the shared automatic filters')
   assert.equal(Number(query.get('start')), new Date(2026, 10, 9).getTime())
   assert.equal(Number(query.get('end')), new Date(2026, 10, 10).getTime())
   assert.equal(control('News sort order').value, 'newest-collected')

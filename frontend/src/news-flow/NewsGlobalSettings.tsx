@@ -3,6 +3,8 @@ import type { NewsSettings } from './model'
 import { NewsAlarmControls, PhoneNewsSettings } from './NewsAlarm'
 import { KeywordTags } from './KeywordTags'
 import { keywordTags, starterKeywords, keywordLimit, keywordCharacters } from './keywords'
+import { keywordGroups } from './filter-policy'
+import { NewsAutomaticFilters } from './NewsAutomaticFilters'
 
 export function NewsGlobalSettings({ settings, onChange }: { settings: NewsSettings; onChange: (settings: NewsSettings) => void }) {
   const [keywordError, setKeywordError] = useState('')
@@ -16,8 +18,8 @@ export function NewsGlobalSettings({ settings, onChange }: { settings: NewsSetti
     </fieldset>
   </section><section><fieldset><legend>Keywords · all providers</legend>
     <label className="news-checkbox"><input type="checkbox" aria-label="Trading relevance" checked={settings.marketRelevance} onChange={event => onChange({ ...settings, marketRelevance: event.target.checked })} />Trading relevance: eight currencies, Brent, gold/silver and stock indices</label>
-    <p>Priority highlights explicit developments and your stars. Included is other relevant news with unknown importance. Excluded is irrelevant. Alerts set to Included headlines cover both relevant levels.</p>
-    <KeywordTags label="Include" value={settings.include} onChange={include => onChange({ ...settings, include })} />
+    <p>Priority highlights explicit developments and your stars. Included contains Priority and other relevant news. Excluded contains headlines rejected by the current keyword/filter settings. Included alerts cover both relevant levels.</p>
+    <KeywordTags label="Include" value={settings.include} groups={keywordGroups} onChange={include => onChange({ ...settings, include })} />
     <KeywordTags label="Exclude" value={settings.exclude} onChange={exclude => onChange({ ...settings, exclude })} />
     <p>Broad tags need market context. Verified official policy and economic releases remain eligible without keywords. Routine personnel, promotions, crypto-only stories and local retail quotes are filtered with cross-market exceptions.</p>
     <p>Explicit Exclude always wins, including over stars. Uncheck Trading relevance for literal matching. All keeps everything inspectable. Priority is an attention candidate, not a prediction of volatility or direction.</p>
@@ -28,5 +30,5 @@ export function NewsGlobalSettings({ settings, onChange }: { settings: NewsSetti
     }}>Add market keyword preset</button>
     {keywordError && <p role="alert">{keywordError}</p>}
     <p>Preset covers currencies, policy, economic releases, funding, energy, geopolitical transmission, index companies and metals. Exclude stays empty unless you add terms; avoid broad country or scandal exclusions that can hide spillovers.</p>
-  </fieldset></section></div>
+  </fieldset><NewsAutomaticFilters settings={settings} onChange={onChange} /></section></div>
 }

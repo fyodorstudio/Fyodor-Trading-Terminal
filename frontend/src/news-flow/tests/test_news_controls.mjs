@@ -87,7 +87,7 @@ try {
   await React.act(async () => root.render(null))
 
   const { NewsCopy } = await server.ssrLoadModule('./src/news-flow/NewsCopy.tsx')
-  const scope = 'source=reuters&source=fed-policy&mode=included&include=oil&exclude=India&search=OPEC&priority=true&organizer=expectations&currency=USD&start=1&end=2&offset=100&limit=100&order=oldest'
+  const scope = 'source=reuters&source=fed-policy&mode=included&include=oil&exclude=India&search=OPEC&priority=true&organizer=expectations&currency=USD&start=1&end=2&offset=100&limit=100&order=oldest&filter_policy=%7B%22other_markets%22%3Afalse%7D'
   const render = query => React.act(async () => root.render(React.createElement(NewsCopy, { query })))
   await render(scope)
   await click('Copy news headlines')
@@ -97,6 +97,7 @@ try {
   const first = requests.at(-1), params = query(first)
   assert.equal(params.get('amount'), '1'); assert.equal(params.get('unit'), 'hours')
   assert.deepEqual(params.getAll('source'), ['reuters', 'fed-policy'])
+  assert.equal(JSON.parse(params.get('filter_policy')).other_markets, false, 'Copy preserves the reader’s automatic filters')
   for (const name of ['start', 'end', 'offset', 'limit', 'order']) assert.equal(params.has(name), false, name)
   for (const [name, value] of [['mode', 'included'], ['include', 'oil'], ['exclude', 'India'], ['search', 'OPEC'], ['priority', 'true'], ['currency', 'USD'], ['organizer', 'expectations']]) assert.equal(params.get(name), value)
   const text = 'Oil & OPEC update\nhttps://example.com/oil\n\nFed remarks\nhttps://example.com/fed'
