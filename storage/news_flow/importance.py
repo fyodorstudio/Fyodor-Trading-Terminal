@@ -5,8 +5,10 @@ import re
 from .relevance import classify, normalized, profile_rules
 
 _bank = r'(?:fed|fomc|ecb|boe|boj|boc|rba|rbnz|snb|central bank|federal reserve|bank of england|bank of japan|bank of canada|reserve bank of (?:australia|new zealand)|swiss national bank)'
-_policy = re.compile(r'\b' + _bank + r"(?:'s)?\b.{0,65}\b(?:raises?|raised|hikes?|hiked|cuts?|cut|holds?|held|keeps?|kept|leaves?|left)\b.{0,45}\b(?:rates|(?:interest|cash|policy|deposit|benchmark|key|lending) rates?|borrowing costs?)\b", re.I)
+_policy = re.compile(r'\b' + _bank + r"(?:'s)?\b.{0,65}?\b(?P<action>raises?|raised|hikes?|hiked|cuts?|cut|holds?|held|keeps?|kept|leaves?|left)\b.{0,45}\b(?:rates|(?:interest|cash|policy|deposit|benchmark|key|lending) rates?|borrowing costs?)\b", re.I)
 _preview = re.compile(r'\b(?:may|might|could|should|would|expected|expects|forecasts?|predicts|preview|ahead of|seen|likely|unlikely|odds|chance)\b', re.I)
+_proposal = re.compile(r'\b(?:calls? for|urges?|advocates?|plans? to|reuters poll|economists? (?:say|see|expect)|say economists)\b', re.I)
+_retrospective = re.compile(r'\bminutes(?:\s+(?:show|reveal|indicate|confirm|from)|:)|\b(?:previous|last) (?:meeting|decision|month|year)\b', re.I)
 _quantified = re.compile(r'\b\d+(?:\.\d+)?\s*(?:%|percent|per cent)\s+(?:chance|probability|odds|priced|pricing)\b|\b(?:markets? (?:imply|implies|implied|price|prices|priced|pricing)|odds|chance|probability)\b.{0,45}\b\d+(?:\.\d+)?\s*(?:%|percent|per cent)', re.I)
 _policy_change = re.compile(r'\b(?:yield curve control|ycc|quantitative easing|quantitative tightening|balance sheet runoff|asset purchases|bond purchases|forward guidance)\b', re.I)
 _change = re.compile(r'\b(?:ends?|ended|scraps?|scrapped|abandons?|abandoned|launches?|launched|halts?|halted|suspends?|suspended|doubles?|doubled|expands?|expanded|accelerates?|accelerated)\b', re.I)
@@ -30,8 +32,9 @@ def attention_reason(title):
     if '?' in text:
         return ''
     reported = re.sub(r'\bas expected\b', '', text)
-    if not _preview.search(reported):
-        if _policy.search(text):
+    if not _preview.search(reported) and not _proposal.search(text) and not _retrospective.search(text):
+        policy = _policy.search(text)
+        if policy and not re.search(r'\bto\s*$', text[:policy.start('action')]):
             return 'Reported central-bank rate decision'
         if re.search(r'\b' + _bank + r'\b', text) and _policy_change.search(text) and _change.search(text):
             return 'Explicit monetary-policy change'

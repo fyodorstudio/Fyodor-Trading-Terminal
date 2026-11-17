@@ -104,6 +104,125 @@ NEGATIVE = [
 
 
 class NewsRelevanceTests(unittest.TestCase):
+    def test_archive_audit_recall_and_noise_regressions(self):
+        cases = json.loads(Path(__file__).with_name('relevance_audit_cases.json').read_text(encoding='utf-8'))
+        for case in cases:
+            with self.subTest(title=case['title']):
+                result = classify(case['title'], url=case['url'], feed_url=case['feed_url'], include=INCLUDE, enabled=True)
+                self.assertEqual(result['included'], case['included'], result)
+
+    def test_subject_context_does_not_hide_actual_company_or_cross_market_news(self):
+        relevant = [
+            'Amazon shares slump as Black Friday sales disappoint',
+            'Amazon buys James Bond rights in a billion-dollar acquisition',
+            'Apple cuts revenue forecast after Watch sales miss estimates',
+            'Microsoft faces new fraud allegations after shares tumble',
+            'Nvidia CEO resigns amid misconduct allegations',
+            'UBS raises Nvidia stock price target after earnings beat',
+            'Wells Fargo raises S&P 500 target on easing inflation',
+            'UBS warns of liquidity crisis and depositor withdrawals',
+            'JPMorgan stock falls after regulators reveal capital shortfall',
+            'Nasdaq falls after small-company earnings disappoint',
+            'Gold rises as USD weakens',
+            'EUR/USD slides below 1.10',
+            'AI retreat fuels India stock comeback in global rotation',
+            'Serbian bank run sparks global contagion fears',
+            'FDA rejects Novo Nordisk drug after safety concerns',
+            'Apache North Sea workers strike, production halted',
+            'Nvidia gets two more price target cuts from analysts ahead of earnings',
+            'The market is seeing a reset, not a bubble (QQQ:NASDAQ)',
+            'Iran warns US bases are targets and vows response',
+            'Trump administration targets further limits on skilled foreign workers',
+            'Fed governor to present at upcoming investor conference',
+            'Dell and HPE Stocks Are Getting Hammered. Why the Selloff May Be Overdone.',
+            'Nebius Stock Plummets After Earnings as CEO Warns of Revenue Delay',
+            'GlobalFoundries announces groundbreaking for first Malta fab under US-Japan initiative',
+            'Constellation Energy jumps 10% after earnings beat, guidance hike',
+        ]
+        noise = [
+            'TinyCo jumps after earnings beat (TINY:NASDAQ)',
+            'TinyCo jumps after earnings beat (TINY:NYSE)',
+            'TinyCo stock reaches 14.25 USD',
+            'TinyCo shares hit 18.50 EUR',
+            'CPI Card Group announces new product',
+            'Dianthus at UBS biopharma conference: pipeline update',
+            'China firm targets higher revenue after product launch',
+            'Serbian central bank raises key interest rate to 6%',
+            'Job openings at Swiss Federal Statistical Office',
+            'India small business increases spending on AI projects',
+            'US FDA rejects Summit\'s China-originated lung cancer drug',
+            'GlobalFoundries promotes a chip-themed colouring contest',
+        ]
+        for expected, titles in [(True, relevant), (False, noise)]:
+            for title in titles:
+                with self.subTest(title=title):
+                    result = classify(title, include=INCLUDE, enabled=True)
+                    self.assertEqual(result['included'], expected, result)
+        self.assertTrue(classify(noise[0], include='NASDAQ', enabled=False)['included'])
+        self.assertTrue(classify(noise[2], include='USD', enabled=False)['included'])
+        self.assertFalse(classify(relevant[5], include=INCLUDE, exclude='UBS', enabled=True)['included'])
+        self.assertFalse(classify('Swiss GDP grows - Investing.com South Africa', include=INCLUDE, exclude='South Africa', enabled=True)['included'])
+
+    def test_verified_official_macro_wording_without_literal_hits(self):
+        cases = [
+            ('Consumer prices increased by 0.2% in October', 'https://bfs.admin.ch/news/release', ''),
+            ('Household spending rises 0.6%', '', 'https://news.google.com/rss/search?q=site:abs.gov.au'),
+            ('Total dwelling approvals rise 5.1%', '', 'https://news.google.com/rss/search?q=site:abs.gov.au'),
+            ('Index of Services, UK: September', 'https://www.ons.gov.uk/releases/services', ''),
+            ('Canada international investment position', 'https://statcan.gc.ca/daily/report', ''),
+            ('Foreign Exchange Intervention Operations', '', 'https://news.google.com/rss/search?q=site:mof.go.jp/english'),
+            ('Report on Foreign Holdings of US Securities', 'https://home.treasury.gov/news/report', ''),
+            ('Operation Targets Iran\'s Shadow Fleet Networks', 'https://home.treasury.gov/news/release', ''),
+            ('Operation Disrupts Iranian Shadow Banking Networks', 'https://home.treasury.gov/news/release', ''),
+            ('Governor to present at upcoming investor conference', 'https://www.federalreserve.gov/newsevents/speech/test.htm', ''),
+        ]
+        for title, url, feed in cases:
+            with self.subTest(title=title):
+                self.assertTrue(classify(title, url=url, feed_url=feed, enabled=True)['included'])
+                self.assertFalse(classify(title, url=url, feed_url=feed, exclude=title, enabled=True)['included'])
+                self.assertFalse(classify(title, url='https://example.com/report', feed_url='https://example.com/rss', enabled=True)['included'])
+        self.assertFalse(classify('Household spending rises', feed_url='https://news.google.com/rss/search?q=site:abs.gov.au+OR+site:example.com', enabled=True)['included'])
+        self.assertFalse(classify('New Guidance Unlocks Economic Opportunity for Communities', url='https://home.treasury.gov/news/release', enabled=True)['included'])
+
+    def test_audited_cases_agree_across_reader_export_arrivals_and_notifier(self):
+        cases = json.loads(Path(__file__).with_name('relevance_audit_cases.json').read_text(encoding='utf-8'))
+        with TemporaryDirectory() as root:
+            store = NewsStore(root); now = int(time.time() * 1000)
+            sources = {s['url']: s for s in store.sources()}
+            feeds = {case['feed_url'] for case in cases}
+            for feed in feeds:
+                if feed not in sources:
+                    identity = store.save_source('Audit fixture', feed)
+                    sources[feed] = next(s for s in store.sources() if s['id'] == identity)
+                store.success(sources[feed], [], '', '', now)
+            cursor = store.arrivals(mode='all')['cursor']
+            expected = set()
+            for index, case in enumerate(cases):
+                # Keep the original host where official-article verification matters.
+                url = case['url'].split('?')[0] + '/audit-' + str(index)
+                item = dict(identity=str(index), title=case['title'], url=url,
+                            publisher='Audit fixture', summary='', published_at=now)
+                store.success(sources[case['feed_url']], [item], '', '', now+1)
+                if case['included']:
+                    expected.add(url)
+            page = store.query(include=INCLUDE, market_relevance=True, limit=200)
+            self.assertEqual({i['url'] for i in page['items'] if i['relevance']['included']}, expected)
+            export = store.export_headlines(include=INCLUDE, mode='included', market_relevance=True)
+            self.assertEqual(export['count'], len(expected))
+            self.assertEqual({line for line in export['text'].splitlines() if line.startswith('https://')}, expected)
+            arrivals = store.arrivals(cursor, INCLUDE, market_relevance=True, max_age_seconds=86400)
+            self.assertEqual({i['url'] for i in arrivals['items']}, expected)
+            sent = []
+            notifier = NewsNotifier(store, lambda setup, body: sent.append(body))
+            notifier.configure(dict(include=INCLUDE, exclude='', hidden=[], market_relevance=True, preset_version=3), 'included')
+            notifier.root.joinpath('setup.json').write_text(json.dumps({'topic':'test'}), encoding='utf-8')
+            notifier.cursor = cursor
+            notifier.tick()
+            self.assertEqual(notifier.last_sent['count'], len(expected))
+            self.assertEqual(len(sent), 1)
+            notifier.tick()
+            self.assertEqual(len(sent), 1, 'Reclassification cannot replay already consumed arrivals')
+
     def test_labeled_cross_asset_recall_and_noise_cases(self):
         for title in POSITIVE:
             with self.subTest(expected='include', title=title):

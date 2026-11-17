@@ -42,7 +42,7 @@ try {
   assert.ok(migrated.include.includes('Swiss economy')); assert.ok(migrated.include.includes('MY CUSTOM PHRASE'))
   assert.equal(migrated.exclude, original.exclude)
   assert.equal(migrated.include.split(',').length <= 500, true)
-  for (const [title, term] of [['European stocks rally', 'stock'], ['JGB yield rises','JGBs'], ['S&P500 drops','S&P 500'], ['Jensen Huang resigns','Nvidia'], ['Nvida earnings fail to impress','Nvidia'], ['Google unveils new AI chip','Alphabet'], ['People\'s Bank of China cuts rates','People’s Bank of China']]) assert.equal(matchingKeyword(title,term),term)
+  for (const [title, term] of [['Consumer prices rise briskly','CPI'], ['U.S. 10-Year Treasurys rally','Treasury'], ['Switzerland’s economy grows','Swiss economy'], ['Supertanker rates plunge','tanker'], ['Data-centre stocks slide','data centres'], ['New Zealand services PSI rises','PMI'], ['Foreign exchange intervention operations','currency intervention'], ['European gas prices fall','natural gas'], ['European stocks rally', 'stock'], ['JGB yield rises','JGBs'], ['S&P500 drops','S&P 500'], ['Jensen Huang resigns','Nvidia'], ['Nvida earnings fail to impress','Nvidia'], ['Google unveils new AI chip','Alphabet'], ['People\'s Bank of China cuts rates','People’s Bank of China']]) assert.equal(matchingKeyword(title,term),term)
   const now = Date.now(), make = (id,title,relevance) => ({ id, title, source_id:'r', source_name:'Reuters', publisher:'Reuters',
     summary:'', url:`https://example.com/${id}`, published_at:now, first_seen:now, relevance })
   const items = [make('speech','Speech: Edmonton Chamber of Commerce',{included:true,reason:'Official central-bank policy/speech',keyword:''}),

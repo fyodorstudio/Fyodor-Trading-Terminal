@@ -21,7 +21,8 @@ a second contextual classifier.
   requests and keep the cursor. Blocked playback holds its cursor for at most one
   minute, including across rule edits; a later scope cannot replay an expired tone.
 - The backend phone notifier uses the same store selection, independently of an
-  open browser. Off / Included / All remain separate device delivery choices.
+  open browser. Off / Included / All and the publication-age limit are shared
+  by desktop and phone; only the desktop tone is browser-local.
 - `market_relevance=false` retains literal Include/Exclude semantics. The UI
   checkbox is **Trading relevance**, in Global settings. All and Excluded retain
   access to rejected material for inspection.
@@ -132,3 +133,43 @@ mode and age. /notifications/rules changes only keywords/providers. The desktop
 uses /arrivals?configured=true and ntfy uses the same saved profile. Default age
 is 86400 seconds; whole hours up to 365 days or null for unrestricted. Unknown
 publication cannot be certified recent. Historical browsing is never age-filtered.
+
+## Archive audit refinements (November 17, 2026)
+
+The 471 editable tags remain unchanged. Expanded shared aliases cover consumer/
+producer prices, PSI and regional manufacturing indices, Swiss economy wording,
+Treasurys, data-center/data-centre, supertankers and European gas. Specific
+context rules retain chip shipment limits, AI/data-center financing and risk,
+equity fund flows, intervention warnings and target-market housing reports.
+Unrelated domestic-market stories do not gain a blanket AI/spending exemption;
+explicit AI/semiconductor risk and rotation can qualify as cross-market context.
+
+Swiss statistical hosts now receive the same verified macro-release protection
+as other official sources. Official household spending, dwelling approvals,
+services/production indices and international positions/payments are recognized.
+Verified MOF/Treasury intervention, portfolio-holdings and relevant sanctions
+headlines have a separate narrow rule; Treasury readouts and administrative
+announcements do not automatically become economic releases.
+
+Contextual matching removes an exchange label from a trailing ticker annotation
+while preserving its actual symbol, so QQQ/NVDA still count and NASDAQ alone
+cannot promote an unrelated company. Quoted currency amounts, analyst attribution,
+CPI Card Group and clinical pipelines no longer act as target-market subjects.
+Quote/category pages, routine Form 4/8.3 filings and corporate conference
+invitations are rejected. Policy-speaker invitations stay eligible. Narrow
+consumer/entertainment guards preserve material company events, governance,
+earnings and reported stock moves. Originals, links and explicit Exclude checks
+use the complete unchanged headline; literal mode remains available.
+
+Priority distinguishes a reported decision from "to raise", calls for a hike,
+Reuters polls and retrospective minutes. These remain relevant when qualified,
+without being labelled a newly completed rate decision. Quantified policy
+expectations and manual stars retain their existing behaviour.
+
+`tests/relevance_audit_cases.json` holds 50 source/context examples from the frozen
+archive audit. Tests cover these decisions, subject-versus-attribution boundaries,
+source verification and matching reader/export/arrivals/ntfy selection. Regression
+coverage is evidence for these cases, not an exhaustive accuracy guarantee.
+Rules reclassify existing history on read; they do not generate new arrivals or
+replay consumed alerts. User keywords, provider selections, age limits and phone
+credentials require no migration or reset.

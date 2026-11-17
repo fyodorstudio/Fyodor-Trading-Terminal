@@ -16,7 +16,7 @@ PRESET = PROFILE['preset']
 CONTEXTUAL = set(PROFILE['contextual'])
 _rx = {key: re.compile(PROFILE[key], re.I) for key in (
     'country_macro', 'global_market', 'geopolitics', 'geo_event', 'politics', 'other_market',
-    'crypto', 'crypto_bridge', 'noise', 'local_quote', 'local_quote_bridge', 'official_policy', 'official_admin', 'official_economic', 'market_transmission', 'sector_bellwethers', 'semiconductor_policy')}
+    'crypto', 'crypto_bridge', 'noise', 'local_quote', 'local_quote_bridge', 'official_policy', 'official_admin', 'official_economic', 'official_fiscal_release', 'market_transmission', 'sector_bellwethers', 'semiconductor_policy')}
 _strong = ','.join(term for term in PRESET if normalized(term) not in CONTEXTUAL)
 _spillover = ','.join(term for group in ('Indices', 'Index companies and systemic banks', 'Energy', 'Metals and context commodities')
                       for term in PROFILE['groups'][group])
@@ -26,6 +26,31 @@ _companies = ','.join(PROFILE['groups']['Index companies and systemic banks'])
 _publisher_suffix = re.compile(r'\s+-\s+(?:Reuters|Bloomberg(?:\.com)?|Investing\.com(?:\s+[\w ]+)?|Financial Times|FXStreet|WSJ|MarketWatch|Barron.?s|Seeking Alpha|IntelliNews(?: Lambda)?|CNBC|BeInCrypto)\s*$', re.I)
 _systemic = re.compile(r'\b(?:bank run|banking crisis|systemic|contagion|sovereign default|capital controls|capital flight|bailout|liquidity crisis|credit freeze|deleveraging)\b', re.I)
 _routine = re.compile(r'\b(?:hires?|hiring|appoints?|names?)\b.{0,100}\b(?:trading veteran|head (?:of|up) (?:sales|trading|oil products)|portfolio manager|sales director|marketing director)\b|\b(?:how to (?:buy|invest|trade|choose)|best (?:brokers|trading apps)|sponsored content|paid promotion)\b|\bwhen\b.{0,60}\bstumbled\b.{0,60}\b(?:funds|etfs) delivered\b', re.I)
+_not_release = re.compile(r'^tag:|\bstock price\s*\||\bstock quote\s*\(|\|\s*(?:stock price\s*&|stock quote)|^check out .{0,160}stock price.{0,60}in real time|^u\.?s\.? energy information administration\s*-\s*eia\b|\b(?:net asset values?|transaction in own shares|total voting rights)\b|^form\s+(?:4|8\.3)\b', re.I)
+_invitation = re.compile(r'\bto (?:present|participate)\b.{0,70}\b(?:investor conferences?|upcoming conferences?|investment conference)\b', re.I)
+_consumer = re.compile(r'\b(?:amazon (?:deforestation|rainforest|river|basin|visit)|peru amazon|james bond|black friday deals|your apple watch|movie review|film review)\b', re.I)
+_company_event = re.compile(r'\b(?:shares?|stocks?|earnings|revenues?|profits?|sales|losses|acquir\w*|buys?|merger|funding|financing|capex|lawsuit|antitrust|governance|misconduct|fraud|resigns?|ouster|outage|default|exports?|tariffs?)\b', re.I)
+_listing = re.compile(r'\s*\((?:[a-z0-9_./-]+:){1,3}[a-z0-9_./-]*\)\s*$', re.I)
+_analyst_call = re.compile(r'\b(?:stock (?:price target|rating)|price target|re-rating|(?:buy|sell|neutral|overweight|underweight|hold|outperform|underperform|sector weight) rating|stock with)\b', re.I)
+_attribution = re.compile(r'^(?:ubs|wells fargo|deutsche bank|jpmorgan|goldman sachs|morgan stanley|bank of america|citigroup|barclays|hsbc|bnp paribas|societe generale)\s+(?=(?:raises?|cuts?|lowers?|lifts?|initiates?|reiterates?|maintains?|upgrades?|downgrades?|sees?)\b)', re.I)
+_exchanges = {'nasdaq', 'nyse', 'nysearca', 'nyseamerican', 'asx', 'tsx', 'tsxv', 'lse', 'com', 'commodity'}
+_cross_market_risk = re.compile(r'\b(?:ai|artificial intelligence|chips?|semiconductors?)\b.{0,100}\b(?:sell[ -]?off|rout|retreat|bubble|unravels?|frenzy fades|concentration risk)\b|\b(?:sell[ -]?off|rout|retreat|bubble)\b.{0,100}\b(?:ai|artificial intelligence|chips?|semiconductors?)\b', re.I)
+
+
+def market_text(title):
+    """Remove metadata/ambiguous uses, not the headline displayed or excluded."""
+    text = normalized(_listing.sub(lambda match: ' ' + ' '.join(
+        token for token in re.findall(r'[a-z0-9_./-]+', match[0], re.I)
+        if token.lower() not in _exchanges), _publisher_suffix.sub('', title)))
+    # An institution making a small-company stock call is not itself the subject.
+    if _analyst_call.search(text):
+        text = _attribution.sub('', text, count=1)
+    text = re.sub(r'\bat (?:ubs|barclays|jpmorgan|goldman sachs|morgan stanley)\b(?=.{0,45}\bconference\b)', 'at', text)
+    text = re.sub(r'\b\d[\d,.]*\s*(?:usd|eur|gbp|jpy|chf|cad|aud|nzd)\b', 'quoted amount', text)
+    text = re.sub(r'\bcpi(?= card group\b)', '', text)
+    if re.search(r'\b(?:biopharma|biotech|pharmaceutical|therapeutics|drug|clinical|oncology)\b', text):
+        text = re.sub(r'\bpipeline\b|\bsummit\x27s\b', '', text)
+    return text
 
 
 def tags(value):
@@ -103,12 +128,19 @@ def _classify(title, source_id, url, feed_url, profile):
         return {'included': False, 'reason': 'Excluded keyword · ' + exclusion, 'keyword': exclusion}
     if enabled:
         title = _publisher_suffix.sub('', title)
+        if _not_release.search(title) or (_invitation.search(title) and not official_policy(title, url, feed_url) and not matches(title, _banks)):
+            return {'included': False, 'reason': 'Excluded · quote/category page or routine filing/invitation', 'keyword': ''}
+        if _consumer.search(title) and not _company_event.search(title):
+            return {'included': False, 'reason': 'Excluded · consumer/entertainment or nonfinancial meaning', 'keyword': ''}
         if _routine.search(title) and not _systemic.search(title):
             return {'included': False, 'reason': 'Excluded · routine personnel/promotional/retrospective story', 'keyword': ''}
+        title = market_text(title)
     if enabled and official_policy(title, url, feed_url):
         return {'included': True, 'reason': 'Official central-bank policy/speech', 'keyword': ''}
     if enabled and official_host(url, feed_url, PROFILE['official_economic_domains'] + PROFILE['official_domains']) and _rx['official_economic'].search(title):
         return {'included': True, 'reason': 'Official economic release', 'keyword': ''}
+    if enabled and official_host(url, feed_url, PROFILE['official_fiscal_domains']) and _rx['official_fiscal_release'].search(title):
+        return {'included': True, 'reason': 'Official funding/intervention/sanctions release', 'keyword': ''}
     if enabled and financial_remarks(title, url, feed_url):
         return {'included': True, 'reason': 'Target-market remarks · financial news source', 'keyword': ''}
     hits = matching_terms(title, include)
@@ -123,14 +155,14 @@ def _classify(title, source_id, url, feed_url, profile):
         return {'included': False, 'reason': 'Excluded · crypto-only news', 'keyword': hits[0]}
     if _rx['local_quote'].search(text) and not _rx['local_quote_bridge'].search(text):
         return {'included': False, 'reason': 'Excluded · local retail metal quote', 'keyword': hits[0]}
-    spillover = matches(text, _spillover) or matches(text, _banks) or _rx['semiconductor_policy'].search(text) or _rx['sector_bellwethers'].search(text)
+    spillover = matches(text, _spillover) or matches(text, _banks) or _rx['semiconductor_policy'].search(text) or _rx['sector_bellwethers'].search(text) or _cross_market_risk.search(text)
     geopolitics = _rx['geopolitics'].search(text) and _rx['geo_event'].search(text)
     if _rx['other_market'].search(text) and not spillover and not geopolitics and not _systemic.search(text):
         return {'included': False, 'reason': 'Excluded · other-market domestic news', 'keyword': hits[0]}
     if _rx['noise'].search(text) and not matches(text, _companies) and not _market_event.search(text):
         return {'included': False, 'reason': 'Excluded · non-market topic', 'keyword': hits[0]}
     country_macro = bool(_rx['country_macro'].search(text))
-    market_context = matches(text, _strong) or country_macro or _rx['global_market'].search(text) or _rx['market_transmission'].search(text) or _rx['sector_bellwethers'].search(text) or (_rx['crypto'].search(text) and _rx['crypto_bridge'].search(text))
+    market_context = matches(text, _strong) or country_macro or _rx['global_market'].search(text) or _rx['market_transmission'].search(text) or _rx['semiconductor_policy'].search(text) or _rx['sector_bellwethers'].search(text) or (_rx['crypto'].search(text) and _rx['crypto_bridge'].search(text))
     politics = _rx['politics'].search(text)
     # Avoid a broad geography tag becoming its own circular market context.
     for term in hits:

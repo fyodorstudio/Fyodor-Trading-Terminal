@@ -17,6 +17,8 @@ INCLUDE = ', '.join(PRESET)
 class NewsAttentionTests(unittest.TestCase):
     def test_explicit_attention_and_routine_commentary_are_distinct(self):
         high = [
+            'Fed cuts interest rates to keep the economy growing',
+            'Fed cuts interest rates minutes before stocks close',
             'ECB cuts interest rates by 25 basis points', 'RBA holds cash rate as expected',
             'Markets implied an 88% chance of the November 3 RBA hike',
             'RBA hike is around 80% priced',
@@ -28,6 +30,12 @@ class NewsAttentionTests(unittest.TestCase):
             'Banking crisis sparks flight to gold',
         ]
         routine = [
+            'Hawkish BOJ policymaker Takata calls for swift hike in rates',
+            'Fed to raise rates once more in December: Reuters poll',
+            'Bank of England to wait until February to next raise rates, say economists',
+            'RBA Raised Rates as Price Risks Remained to Upside, Minutes Show',
+            'Minutes: RBA raised cash rate at previous meeting',
+            'Fed urges banks to raise lending rates',
             'Fed Waller delivers hawkish remarks', 'Bank of Canada speech: Edmonton Chamber of Commerce',
             'RBA expected to cut interest rates', 'Fed may cut rates next month',
             'British Pound: Limited downside versus US Dollar', 'Gold steadies as hawkish Fed caps gains',
@@ -50,7 +58,7 @@ class NewsAttentionTests(unittest.TestCase):
             self.assertEqual(decision(title, include=INCLUDE, enabled=True)['tier'], 'excluded')
         self.assertEqual(decision('Nvidia appoints new CEO amid crisis', include=INCLUDE, enabled=True)['tier'], 'included')
         self.assertEqual(decision('Microsoft appoints head of AI unit', include=INCLUDE, enabled=True)['tier'], 'included')
-        self.assertEqual(decision(high[0], include=INCLUDE, exclude='ECB', enabled=True, pinned=True)['tier'], 'excluded')
+        self.assertEqual(decision('ECB cuts rates', include=INCLUDE, exclude='ECB', enabled=True, pinned=True)['tier'], 'excluded')
         self.assertEqual(decision('My research headline', include=INCLUDE, enabled=True, pinned=True)['tier'], 'priority')
 
     def test_disjoint_tabs_exports_and_inclusive_delivery(self):
