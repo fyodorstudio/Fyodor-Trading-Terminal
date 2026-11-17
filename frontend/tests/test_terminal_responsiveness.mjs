@@ -378,6 +378,11 @@ try {
   assert.equal(container.querySelector('[aria-label="Volume settings"] svg').outerHTML, container.querySelector('[aria-label="RSI settings"] svg').outerHTML, 'Volume and RSI use the identical gear icon')
   const indicatorControls = container.querySelector('[aria-label="Show RSI"]').parentElement
   assert.equal(container.querySelector('[aria-label="Show Volume"]').parentElement.nextElementSibling, indicatorControls, 'Volume sits beside RSI')
+  assert.equal(container.querySelector('[aria-label="Show ATR"]').parentElement.nextElementSibling,
+    container.querySelector('[aria-label="Show Volume"]').parentElement, 'ATR sits immediately left of Volume')
+  await click(container.querySelector('[aria-label="ATR settings"]')); await flush()
+  assert.equal(container.querySelector('[aria-label="ATR length"]').value, '14')
+  await click([...container.querySelectorAll('.rsi-settings-dialog button')].find(button => button.textContent === 'Cancel')); await flush()
   const macroControls = indicatorControls.nextElementSibling
   assert.equal(macroControls.getAttribute('aria-label'), 'MFDI indicator', 'MFDI is available beside RSI on FX pairs')
   assert.equal(macroControls.nextElementSibling.getAttribute('role'), 'separator')

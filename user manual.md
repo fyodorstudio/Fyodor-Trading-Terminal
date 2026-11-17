@@ -210,9 +210,15 @@ markers while retaining event selections and visibility. Series edits save
 immediately. Working settings live in the browser profile; clearing browser data
 removes them.
 
-## RSI and Volume
+## ATR, RSI and Volume
 
-RSI and Volume can be shown independently and resized with their pane dividers.
+ATR, RSI and Volume can be shown independently and resized with their pane dividers.
+Click **ATR**, immediately left of Volume in the chart header, to show or hide its pane.
+The ATR gear opens settings for length, line color and thickness. ATR defaults to
+14-period Wilder smoothing (RMA) of true range, including gaps from the previous
+close. Values use price units and the active chart timeframe, and update with the
+current candle. Hover over a candle for its ATR value. Visibility and settings
+are saved across reloads and shared across symbols and timeframes.
 RSI settings include period, smoothing and bands.
 
 Volume supports Raw tick counts and Relative activity. **Bars**, **Relative** and

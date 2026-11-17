@@ -26,6 +26,8 @@ import { timeframeToSeconds } from '../chart-drawings/position-drawing-geometry'
 import { createVolumePane } from '../indicators/volume/volume-pane'
 import type { VolumeLayer, VolumePreferences } from '../indicators/volume/volume-preferences'
 import { createRsiPane } from '../indicators/rsi/rsi-pane'
+import { createAtrPane } from '../indicators/atr/atr-pane'
+import type { AtrPreferences } from '../indicators/atr/atr-preferences'
 import type { RsiPreferences } from '../indicators/rsi/rsi-preferences'
 import { createMacroPane } from '../indicators/macro/macro-pane'
 import { supportsMacro, type MacroIndicator, type MacroReading } from '../indicators/macro/macro-data'
@@ -48,6 +50,7 @@ type MarketCandlestickChartProps = {
   onChangeVolumeAxis?: (target: VolumePreferences['axisTarget']) => void
   onToggleVolumeLayer?: (layer: VolumeLayer) => void
   rsi?: RsiPreferences
+  atr?: AtrPreferences
   macro?: MacroIndicator
   onToggleMacroMetric?: (metric: MacroMetric) => void
   onToggleMacroForecast?: (metric: MacroMetric) => void
@@ -92,6 +95,7 @@ function MarketCandlestickChartComponent({
   onChangeVolumeAxis,
   onToggleVolumeLayer,
   rsi,
+  atr,
   macro,
   onToggleMacroMetric,
   onToggleMacroForecast,
@@ -129,6 +133,7 @@ function MarketCandlestickChartComponent({
   const seriesRef = useRef<ISeriesApi<'Candlestick', Time> | null>(null)
   const volumePaneRef = useRef<ReturnType<typeof createVolumePane> | null>(null)
   const rsiPaneRef = useRef<ReturnType<typeof createRsiPane> | null>(null)
+  const atrPaneRef = useRef<ReturnType<typeof createAtrPane> | null>(null)
   const macroPaneRef = useRef<ReturnType<typeof createMacroPane> | null>(null)
   const paneResizeRef = useRef<ReturnType<typeof createChartPaneResize> | null>(null)
   const futureTimelineRef = useRef<ReturnType<typeof createFutureTimeline> | null>(null)
@@ -253,6 +258,8 @@ function MarketCandlestickChartComponent({
       volumePaneRef.current = null
       rsiPaneRef.current?.destroy()
       rsiPaneRef.current = null
+      atrPaneRef.current?.destroy()
+      atrPaneRef.current = null
       priceSpaceRef.current?.destroy()
       priceSpaceRef.current = null
       chart.timeScale().unsubscribeVisibleLogicalRangeChange(handleLogicalRangeChange)
@@ -349,6 +356,7 @@ function MarketCandlestickChartComponent({
         priceSpaceRef.current?.sync(bars, true, precision)
         volumePaneRef.current?.clearData()
         rsiPaneRef.current?.clearData()
+        atrPaneRef.current?.clearData()
         macroPaneRef.current?.clearData()
         series.setData([])
         futureTimelineRef.current?.clear()
@@ -361,6 +369,7 @@ function MarketCandlestickChartComponent({
         macroPaneRef.current?.clearData()
         volumePaneRef.current?.clearData()
         rsiPaneRef.current?.clearData()
+        atrPaneRef.current?.clearData()
         replaced = true
         lastHistoryAttemptRef.current = null
         series.setData(bars)
@@ -432,6 +441,23 @@ function MarketCandlestickChartComponent({
       if (range) setLogicalRange(range)
     } finally { applyingDataRef.current = false }
   }, [rsi, bars, fitContentKey, clock.brokerId, readLogicalRange, setLogicalRange])
+
+  useLayoutEffect(() => {
+    const chart = chartRef.current
+    if (!chart || (!atr?.enabled && !atrPaneRef.current)) return
+    const changingPane = Boolean(atr?.enabled) !== Boolean(atrPaneRef.current)
+    const range = changingPane || requestedLogicalRangeRef.current ? readLogicalRange() : null
+    applyingDataRef.current = true
+    try {
+      if (!atr?.enabled) {
+        atrPaneRef.current?.destroy(); atrPaneRef.current = null
+      } else {
+        atrPaneRef.current ??= createAtrPane(chart)
+        atrPaneRef.current.sync(bars, `${clock.brokerId}:${fitContentKey}`, atr, futureTimelineRef.current?.endTime(), precision)
+      }
+      if (range) setLogicalRange(range)
+    } finally { applyingDataRef.current = false }
+  }, [atr, bars, fitContentKey, clock.brokerId, precision, readLogicalRange, setLogicalRange])
 
   useLayoutEffect(() => {
     const chart = chartRef.current
@@ -517,7 +543,7 @@ function MarketCandlestickChartComponent({
     const rect = container.getBoundingClientRect()
     const leftWidth = chartRef.current?.options().leftPriceScale.visible ? chartRef.current.priceScale('left').width() : 0
     if (event.clientX < rect.left + leftWidth) return
-    const paneHeight = (rsi?.enabled || volume?.enabled || macroEnabled) ? chartRef.current?.paneSize(0).height : undefined
+    const paneHeight = (atr?.enabled || rsi?.enabled || volume?.enabled || macroEnabled) ? chartRef.current?.paneSize(0).height : undefined
     if (paneHeight !== undefined && event.clientY - rect.top >= paneHeight) return
     // Do not intercept if clicking on the right price scale area
     if (event.clientX > rect.right - 55) return
@@ -569,7 +595,7 @@ function MarketCandlestickChartComponent({
 
   const handleDoubleClick = (event: React.MouseEvent<HTMLDivElement>) => {
     if (chartRef.current && isChartPaneDivider(chartRef.current, event.target)) return
-    const paneHeight = (rsi?.enabled || volume?.enabled || macroEnabled) ? chartRef.current?.paneSize(0).height : undefined
+    const paneHeight = (atr?.enabled || rsi?.enabled || volume?.enabled || macroEnabled) ? chartRef.current?.paneSize(0).height : undefined
     const top = containerRef.current?.getBoundingClientRect().top ?? 0
     if (paneHeight !== undefined && event.clientY - top >= paneHeight) return
     pendingWindowRef.current = false
@@ -619,7 +645,7 @@ function MarketCandlestickChartComponent({
         <span>{hasOlderData ? 'Older history could not reach the selected dates.' : 'MT5 history does not cover the selected dates.'}</span>
         {hasOlderData && <button type="button" onClick={onRequestOlderData}>Retry history</button>}
       </div>}
-      {chartApi && seriesApi && <PricePaneOverlays chartApi={chartApi} seriesApi={seriesApi} constrained={Boolean(rsi?.enabled || volume?.enabled || macroEnabled)}>
+      {chartApi && seriesApi && <PricePaneOverlays chartApi={chartApi} seriesApi={seriesApi} constrained={Boolean(atr?.enabled || rsi?.enabled || volume?.enabled || macroEnabled)}>
       {renderChartOverlay?.(chartApi, seriesApi)}
       {chartApi && seriesApi && (activeDrawingTool || drawings.length > 0) && (
         <ChartDrawingOverlay
