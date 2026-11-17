@@ -61,7 +61,7 @@ class NewsAttentionTests(unittest.TestCase):
         self.assertEqual(decision('ECB cuts rates', include=INCLUDE, exclude='ECB', enabled=True, pinned=True)['tier'], 'excluded')
         self.assertEqual(decision('My research headline', include=INCLUDE, enabled=True, pinned=True)['tier'], 'priority')
 
-    def test_disjoint_tabs_exports_and_inclusive_delivery(self):
+    def test_included_contains_priority_in_reader_export_and_delivery(self):
         with TemporaryDirectory() as root:
             store = NewsStore(root); source = store.sources()[0]; now = int(time.time()*1000)
             store.success(source, [], '', '', now)
@@ -71,18 +71,28 @@ class NewsAttentionTests(unittest.TestCase):
             titles = ['ECB cuts rates', 'Gold steadies', 'Football final', 'My research headline']
             entries = [dict(identity=str(i), title=title, url=f'https://example.com/{i}', publisher='Reuters', summary='', published_at=now) for i,title in enumerate(titles)]
             store.success(source, entries, '', '', now+1)
+            overlap = store.save_source('Overlapping feed', 'https://other.example/rss')
+            store.success(next(s for s in store.sources() if s['id'] == overlap), [entries[0]], '', '', now+2)
             store.pin(entries[-1]['url'], True)
             scopes = {mode: store.query(mode=mode, include=INCLUDE, market_relevance=True) for mode in ('priority','included','excluded')}
-            self.assertEqual([scopes[mode]['total'] for mode in scopes], [2,1,1])
+            self.assertEqual([scopes[mode]['total'] for mode in scopes], [2,3,1])
             urls = {mode: {r['url'] for r in page['items']} for mode,page in scopes.items()}
-            self.assertFalse(urls['priority'] & urls['included']); self.assertFalse(urls['priority'] & urls['excluded'])
+            self.assertLess(urls['priority'], urls['included'])
+            self.assertFalse(urls['included'] & urls['excluded'])
             self.assertEqual(store.export_headlines(mode='priority', include=INCLUDE, market_relevance=True)['count'], 2)
+            copied = store.export_headlines(mode='included', include=INCLUDE, market_relevance=True)
+            self.assertEqual(copied['count'], 3)
+            self.assertEqual({line for line in copied['text'].splitlines() if line.startswith('https://')}, urls['included'])
+            self.assertEqual(copied['text'].count(entries[0]['title']), 1)
+            self.assertEqual(store.query(mode='included', include=INCLUDE, market_relevance=True, limit=1)['total'], 3)
             notifier.tick()
             self.assertEqual(notifier.last_sent['count'], 3, 'Included delivery covers Priority and Included')
             self.assertEqual(sent[0]['title'], 'News Flow · 3 new headlines')
             self.assertNotIn('Football final', sent[0]['message'])
             store.pin(entries[-1]['url'], False)
             self.assertEqual(store.query(mode='priority', include=INCLUDE, market_relevance=True)['total'], 1)
+            self.assertEqual(store.query(mode='included', include=INCLUDE, market_relevance=True)['total'], 2)
+            self.assertEqual(store.query(mode='included', include=INCLUDE, exclude='ECB', market_relevance=True)['total'], 1)
 
     def test_collection_sort_is_stable_and_does_not_change_publication_date_scope(self):
         with TemporaryDirectory() as root:

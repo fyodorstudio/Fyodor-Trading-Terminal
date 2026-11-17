@@ -190,7 +190,9 @@ class NewsStore:
             clauses.append('i.source_id IN (' + ','.join('?' for _ in sources) + ')')
             args.extend(sources)
         if mode in ('included', 'excluded', 'priority'):
-            clauses.append('news_level(i.title,i.source_id,i.url,s.url,?,?,?,p.url IS NOT NULL)=' + str({'excluded': 0, 'included': 1, 'priority': 2}[mode]))
+            # Included is the complete relevant feed, with Priority as a subset.
+            clauses.append('news_level(i.title,i.source_id,i.url,s.url,?,?,?,p.url IS NOT NULL)' +
+                           {'excluded': '=0', 'included': '>0', 'priority': '=2'}[mode])
             args.extend((include, exclude, market_relevance))
         bank_expression = 'news_banks(i.title,i.summary,i.source_id,i.url,s.url)'
         # Compatibility for old research links. Current reading tabs use
@@ -251,7 +253,7 @@ class NewsStore:
                                 'i.published_at>=?', 'i.published_at<=?'))
                 args.extend((now - max_age_seconds * 1000, now))
             if mode == 'included':
-                # Included delivery covers both relevant levels; tabs are disjoint.
+                # Match the Included reading/export scope: both relevant levels.
                 clauses.append('news_level(i.title,i.source_id,i.url,s.url,?,?,?,p.url IS NOT NULL)>0')
                 args.extend((include, exclude, market_relevance))
             if hidden:

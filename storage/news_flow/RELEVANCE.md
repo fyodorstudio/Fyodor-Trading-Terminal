@@ -92,9 +92,10 @@ labels, aliases, sync, stale-response rejection and cursor continuity.
 
 ## Attention levels and chronology
 
-Priority / Included / Excluded are disjoint reading/export scopes. The boolean
-included means relevant at either Priority or Included level; Included alarms
-select both. Explicit Exclude overrides stars. Other manual stars can promote
+Priority is a subset of the Included reading/export scope. Included shows both
+Priority and regular relevant headlines, so one copy captures both without URL
+duplicates. Priority remains available on its own; Excluded is separate. The
+boolean included and Included alarms also cover both relevant levels. Explicit Exclude overrides stars. Other manual stars can promote
 research outside automatic relevance. Automatic Priority requires relevance and
 explicit headline evidence of a rate decision, policy change, intervention, data
 surprise, supply disruption, systemic stress, a major geopolitical development,

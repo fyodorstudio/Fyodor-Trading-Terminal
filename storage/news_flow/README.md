@@ -52,7 +52,7 @@ with MT5 disconnected and the panel closed, while the service/computer run.
   Conservative expectations-candidate detection reads headline/feed text only,
   suppresses obvious post-decision headlines and never extracts implied odds.
   Old research-query parameters remain for compatibility. Current reading modes
-  use importance.py: disjoint Priority/Included/Excluded and explicit Exclude
+  use importance.py: Priority as a subset of Included, plus Excluded and explicit Exclude
   precedence, with conservative automatic candidates and manual stars.
 - `importance.py`: headline-only attention rules; Included delivery unions both
   relevant levels. See RELEVANCE.md for the contract.

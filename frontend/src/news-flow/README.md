@@ -86,11 +86,11 @@ again. Old Filtered mode migrates to Included. Settings remain browser-local.
 
 ## Priority, dates and sound
 
-The reading tabs are All / Priority / Included / Excluded. Priority and Included
-are disjoint: `importance.py` combines relevance with conservative headline-only
+The reading tabs are All / Priority / Included / Excluded. Included contains Priority as well as regular relevant headlines.
+Priority remains a separate focused view: `importance.py` combines relevance with conservative headline-only
 attention rules and manual stars. A bank mention or forecast alone is insufficient.
 Each candidate has a reason; no importance, volatility or direction guarantee.
-Explicit Exclude wins even over a manual star. Included delivery covers both
+Explicit Exclude wins even over a manual star. Included reading, copying and delivery cover both
 relevant tiers, independently of the displayed tab. There is no separate Priority
 page, institution/expectations subtabs, currency filtering or stance UI.
 
