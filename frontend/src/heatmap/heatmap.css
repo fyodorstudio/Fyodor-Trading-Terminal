@@ -87,6 +87,9 @@
 .heatmap-bar-fill.negative { background: var(--negative); }
 .heatmap-bar-zero { position: absolute; left: calc(50% - 2px); top: 4px; width: 4px; height: 4px; border-radius: 50%; background: var(--text-muted); z-index: 1; }
 .heatmap-bar-value { text-align: right; white-space: nowrap; font-size: 11px; }
+.heatmap-ranking [data-rank-field] { border-radius: 3px; }
+.heatmap-bar-tip { position: absolute; right: -2px; top: 2px; width: 6px; height: 6px; border-radius: 50%; opacity: 0; pointer-events: none; }
+.heatmap-bar-fill.negative .heatmap-bar-tip { right: auto; left: -2px; }
 @container (min-width: 350px) { .heatmap-dock .heatmap-ranking-bars .heatmap-ranking-entry { grid-template-columns: 90px minmax(0, 1fr); } }
 .heatmap-modal-backdrop { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; background: #0006; padding: 24px; }
 .heatmap-symbols { width: min(920px, 100%); max-height: min(720px, 90vh); display: flex; flex-direction: column; min-height: 0; background: var(--surface-panel); border: 1px solid var(--border-strong); border-radius: 7px; box-shadow: 0 12px 48px #0005; padding: 12px; }

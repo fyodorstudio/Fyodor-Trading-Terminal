@@ -1435,14 +1435,15 @@ try {
   assert.equal(container.querySelector('#news-flow-panel'), null)
 
   await click(container.querySelector('[aria-label="Show Heatmap Ranking"]')); await flush()
-  assert.equal(container.querySelector('#heatmap-ranking-panel [aria-label="Open news for selected heatmap date"]').disabled, true, 'Weekly research requires a daily selection')
+  assert.equal(container.querySelector('#heatmap-ranking-panel [aria-label="Open news for selected heatmap date"]'),null,'The light ranking omits the news action')
   await click(button('Heatmap')); await flush()
   await click([...container.querySelectorAll('[aria-label="Heatmap"] button')].find(node => node.textContent === 'Daily')); await flush()
   const researchDate = container.querySelector('[aria-label="Heatmap"] [aria-label="Heatmap date"]').value
-  await click(button('Heatmap')); await flush()
+  await click(container.querySelector('[aria-label="Close Heatmap Ranking"]')); await flush()
   const expectedSession = await server.ssrLoadModule('./src/news-flow/date-range.ts').then(module => module.heatmapNewsSelection(researchDate, { brokerId: broker, brokerOffsetSeconds: 10800 }))
   const priceRequestsBeforeNews = requests.filter(url => url === '/storage-api/heatmap/history').length
-  reset(); await click(container.querySelector('#heatmap-ranking-panel [aria-label="Open news for selected heatmap date"]')); await flush()
+  await click(container.querySelector('[aria-label="Heatmap"] .heatmap-utilities summary'))
+  reset(); await click(container.querySelector('[aria-label="Heatmap"] .heatmap-utilities [aria-label="Open news for selected heatmap date"]')); await flush()
   assert.ok(container.querySelector('#news-flow-panel'), 'Heatmap action opens the combined feed')
   assert.equal(container.querySelector('#heatmap-ranking-panel'), null, 'The action replaces ranking in the shared right panel')
   assert.equal(container.querySelector('[aria-label="News publication date"]').value, researchDate)
@@ -1452,6 +1453,7 @@ try {
   assert.equal(requests.filter(url => url === '/storage-api/heatmap/history').length, priceRequestsBeforeNews)
   assertQuiet('Opening historical news from Heatmap')
   await click(container.querySelector('[aria-label="Close News Flow"]')); await flush()
+  await click(button('Heatmap')); await flush()
 
   assert.deepEqual(logicalRange, heatmapRange)
   await click(container.querySelector('[aria-label="Show Heatmap Ranking"]')); await flush()

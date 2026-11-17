@@ -257,10 +257,15 @@ Sorting by **Largest unusual moves**
 keeps bars measured in return percent and shows unusualness separately in ×.
 Ranking follows the active period and group, independently of highlighted cells;
 **Copy displayed ranking** copies its visible fields in displayed order.
+It adds one copy timestamp in UTC+7 and omits repeated per-instrument Baseline/Through dates.
 The standalone panel is a light ranking view; period, date, instrument and export
 settings stay in the bottom dock. Click a ranking block in either Details or Bars
 to open that instrument's chart. Synthetic currency baskets open Market Watch
 with the currency code already entered in its search and the category set to All.
+Only the right panel flashes changed numbers: green for an increase since the
+previous reading, red for a decrease. Bars move smoothly and pulse at the endpoint.
+Changing dates, filters, sort or view does not trigger flashes. Reduced-motion
+settings disable these effects. The refresh frequency is unchanged.
 **More** in the bottom dock contains news, Wildcards and
 method controls. The **Wildcards** row shows the same global entries as the
 Wildcards dock and chart icons. Click a wildcard cell to view, edit or add entries.

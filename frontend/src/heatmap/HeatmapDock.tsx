@@ -168,6 +168,7 @@ const HeatmapContent = memo(function HeatmapContent({ catalogJson, broker, gener
   const unavailable = data ? requested.filter(s => data.symbols[s] && data.symbols[s].availability !== 'available').length : 0
   const newsAction = onOpenNews && <button type="button" aria-label="Open news for selected heatmap date" disabled={eventMode || preferences.mode !== 'daily' || (!!broker && !brokerClockProfile(broker))} onClick={() => onOpenNews(view.date)}>News for this date</button>
   const rankingView = <HeatmapRanking entries={ranking} fields={preferences.fields} preferences={preferences} onChange={option} onOpenRow={onOpenRow}
+    animate={!!rankingTarget} motionScope={`${copyScope}:${selected}`}
     heading={`${eventMode ? selected === 'window' ? 'Window summary' : jakartaTime(Date.parse(selected)) : selected}${!eventMode && preferences.mode === 'weekly' ? ' · Week' : ''}`}
     status={`${eventMode ? 'Common anchor · ' + jakartaTime(eventWindow.anchor) : view.pinned ? 'Pinned' : 'Following hover'}${chosenPeriod?.partial ? ' · In progress' : ''}`}
     groups={groups} group={effectiveGroup} onGroup={setRankGroup} eventMode={eventMode} actions={<>
@@ -176,11 +177,11 @@ const HeatmapContent = memo(function HeatmapContent({ catalogJson, broker, gener
             const shown = ranking.map(entry => entry.row)
             const text = heatmapRankingText(shown, selected, preferences.rankingView === 'bars' ? ['C'] : preferences.fields, eventMode
               ? `Event-window ranking · ${selected==='window' ? jakartaTime(eventWindow.from)+' → '+jakartaTime(eventWindow.through) : jakartaTime(Date.parse(selected))} · Anchor ${jakartaTime(eventWindow.anchor)} · ${eventWindow.minutes}-minute candles${chosenPeriod?.partial?' · In progress':''}`
-              : `${selected} · ${preferences.mode}${chosenPeriod?.partial?' · In progress':''} · ${preferences.rank}`, preferences.rank === 'unusual')
+              : `${selected} · ${preferences.mode}${chosenPeriod?.partial?' · In progress':''} · ${preferences.rank}`, preferences.rank === 'unusual', Date.now())
             await navigator.clipboard.writeText(text); setCopied({key:copyKey,message:'Displayed ranking copied.'})
           } catch { setCopied({key:copyKey,message:'Clipboard unavailable. Try copying again.'}) }
         }}>Copy displayed ranking</button>
-        {newsAction}
+        {!rankingTarget && newsAction}
       </>} />
   const todayAction = () => {
     clearSelection()

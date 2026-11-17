@@ -1,15 +1,16 @@
-import type { CSSProperties, ReactNode } from 'react'
+import { useRef, type CSSProperties, type ReactNode } from 'react'
 import { formatHeatmapChange, heatmapOHLC, type HeatmapField, type HeatmapPoint, type HeatmapRow } from './heatmap-model'
 import type { HeatmapPreferences } from './heatmap-preferences'
+import { useRankingMotion } from './useRankingMotion'
 
 type Entry = { row: HeatmapRow; point: HeatmapPoint | undefined }
 const direction = (value: number | null | undefined) => value == null ? '' : value > 0 ? 'positive' : value < 0 ? 'negative' : 'neutral'
 
-export function HeatmapRanking({ entries, fields, heading, status, groups, group, onGroup, preferences, onChange, eventMode, actions, onOpenRow }: {
+export function HeatmapRanking({ entries, fields, heading, status, groups, group, onGroup, preferences, onChange, eventMode, actions, onOpenRow, animate = false, motionScope = '' }: {
   entries: Entry[]; fields: readonly HeatmapField[]; heading: string; status: string
   groups: string[]; group: string; onGroup: (group: string) => void
   preferences: HeatmapPreferences; onChange: (next: HeatmapPreferences) => void
-  eventMode: boolean; actions: ReactNode; onOpenRow?: (rowId: string) => void
+  eventMode: boolean; actions: ReactNode; onOpenRow?: (rowId: string) => void; animate?: boolean; motionScope?: string
 }) {
   const bars = preferences.rankingView === 'bars'
   const available = entries.filter(entry => entry.point?.value != null)
@@ -17,7 +18,10 @@ export function HeatmapRanking({ entries, fields, heading, status, groups, group
   const down = available.filter(entry => entry.point!.value! < 0).length
   const flat = available.length - up - down
   const maximum = Math.max(0, ...available.map(entry => Math.abs(entry.point!.value!)))
-  return <aside className={`heatmap-ranking${bars ? ' heatmap-ranking-bars' : ''}`} style={{ '--heat-ranking-width': `${bars ? 320 : Math.max(280, 76 + 57 * fields.length)}px` } as CSSProperties} aria-label="Selected period ranking">
+  const root = useRef<HTMLElement>(null)
+  useRankingMotion({ root, entries, fields, enabled: animate, bars, maximum, unusual: preferences.rank === 'unusual',
+    scope: JSON.stringify([motionScope, group, preferences.rank, preferences.rankingView, fields]) })
+  return <aside ref={root} className={`heatmap-ranking${bars ? ' heatmap-ranking-bars' : ''}`} style={{ '--heat-ranking-width': `${bars ? 320 : Math.max(280, 76 + 57 * fields.length)}px` } as CSSProperties} aria-label="Selected period ranking">
     <header><div><strong>{heading}</strong><small>{status}</small></div>
       <div className="heatmap-segmented" role="group" aria-label="Ranking view">
         <button type="button" aria-pressed={!bars} onClick={() => onChange({ ...preferences, rankingView: 'details' })}>Details</button>
@@ -41,16 +45,16 @@ export function HeatmapRanking({ entries, fields, heading, status, groups, group
         <button type="button" className="heatmap-ranking-entry" disabled={!onOpenRow} onClick={() => onOpenRow?.(row.id)}
           aria-label={row.id.startsWith('basket:') ? `Search Market Watch for ${row.id.slice(7)}` : `Open chart for ${row.label}`}>
         <div className="heatmap-ranking-name"><span title={`${row.label} · ${row.group}`}>{row.label}</span>
-          {preferences.rank === 'unusual' && <small title="Return relative to usual volatility">{formatHeatmapChange(point?.relative ?? null, '×')}</small>}
+          {preferences.rank === 'unusual' && <small data-rank-field="relative" title="Return relative to usual volatility">{formatHeatmapChange(point?.relative ?? null, '×')}</small>}
         </div>
         {bars ? <div className="heatmap-bar-row">
           <div className="heatmap-bar-track" aria-hidden="true">
-            {value != null && value !== 0 && <span className={`heatmap-bar-fill ${direction(value)}`} style={{ left: `${value < 0 ? 50 - width : 50}%`, width: `${width}%` }} />}
+            {value != null && <span className={`heatmap-bar-fill ${direction(value)}`} style={{ left: `${value < 0 ? 50 - width : 50}%`, width: `${width}%` }}><span className="heatmap-bar-tip" /></span>}
             {value === 0 && <span className="heatmap-bar-zero" />}
           </div>
-          <span className={`heatmap-bar-value ${direction(value)}`}>{formatHeatmapChange(value)}</span>
+          <span data-rank-field="C" className={`heatmap-bar-value ${direction(value)}`}>{formatHeatmapChange(value)}</span>
         </div> : <div className="heatmap-ohlc" title={eventMode ? 'Percent changes versus the common anchor baseline; ranking uses C' : 'Percent changes versus previous close; ranking uses C'}>
-          {heatmapOHLC(point).filter(field => fields.includes(field.label)).map(field => <span key={field.label} className={`${direction(field.value)}${field.label === 'C' ? ' ohlc-close' : ''}`}>
+          {heatmapOHLC(point).filter(field => fields.includes(field.label)).map(field => <span key={field.label} data-rank-field={field.label} className={`${direction(field.value)}${field.label === 'C' ? ' ohlc-close' : ''}`}>
             <small>{field.label}</small>{formatHeatmapChange(field.value)}
           </span>)}
         </div>}

@@ -68,6 +68,10 @@ try{
   assert.match(eventRequest,/I mainly trade currencies/)
   const ranked=exports.heatmapRankingText([...rows].reverse(),'window',['C'],'Ranking')
   assert.ok(ranked.indexOf('XAUUSD')<ranked.indexOf('EURUSD'),'Copy ranking preserves displayed order')
+  assert.ok(ranked.startsWith('This heatmap is copied at 7:00 PM 11/12/2026 UTC+7\n'))
+  assert.doesNotMatch(ranked,/Baseline|Through/,'Copied ranking omits repeated per-instrument endpoints')
+  assert.equal((ranked.match(/This heatmap is copied at/g)||[]).length,1)
+  assert.ok(exports.heatmapRankingText(rows,'window',['C'],'Ranking',false,Date.parse('2026-11-17T10:28:00Z')).startsWith('This heatmap is copied at 5:28 PM 11/17/2026 UTC+7'))
   const {HeatmapRanking}=await server.ssrLoadModule('./src/heatmap/HeatmapRanking.tsx')
   const {readHeatmapPreferences}=await server.ssrLoadModule('./src/heatmap/heatmap-preferences.ts')
   const {renderToStaticMarkup}=await import('react-dom/server')
@@ -75,7 +79,7 @@ try{
   const markup=renderToStaticMarkup(React.createElement(HeatmapRanking,{entries,fields:['C'],heading:'Test',status:'In progress',groups:[],group:'All',onGroup(){},preferences:{...readHeatmapPreferences('new'),rankingView:'bars'},onChange(){},eventMode:false,actions:null}))
   const sample=document.createElement('div');sample.innerHTML=markup
   const fills=sample.querySelectorAll('.heatmap-bar-fill')
-  assert.deepEqual([...fills].map(node=>[node.style.left,node.style.width]),[['50%','50%'],['0%','50%'],['50%','25%']],'Bar lengths share a symmetric scale across both signs')
+  assert.deepEqual([...fills].map(node=>[node.style.left,node.style.width]),[['50%','50%'],['0%','50%'],['50%','25%'],['50%','0%']],'Bar lengths share a symmetric scale across both signs')
   assert.equal(sample.querySelectorAll('.heatmap-bar-zero').length,1,'Zero is numeric and distinct from unavailable')
   assert.match(sample.querySelector('[data-ranking-row="test:4"]').textContent,/—/)
   const sparse={kind:'cells',scope:'test',anchor:'window',cells:[{rowId:rows[0].id,day:'window'},{rowId:rows[1].id,day:new Date(from).toISOString()}]}

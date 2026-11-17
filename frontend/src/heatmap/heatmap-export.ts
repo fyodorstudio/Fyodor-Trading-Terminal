@@ -2,6 +2,8 @@ import { formatHeatmapOHLC, heatmapDate, orderHeatmapGroups, heatmapFields, type
 
 const copiedTimeFormatter = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', year: 'numeric', month: 'short', day: '2-digit',
   hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })
+const rankingCopyTime = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', hour: 'numeric', minute: '2-digit', hour12: true })
+const rankingCopyDate = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jakarta', year: 'numeric', month: '2-digit', day: '2-digit' })
 
 export function heatmapDetailsText(changes: string, copiedAt: number) {
   return changes ? `Copied at ${copiedTimeFormatter.format(copiedAt)} WIB (Asia/Jakarta, UTC+07:00)\n\n${changes}` : ''
@@ -38,10 +40,11 @@ export function heatmapChangesText(rows: HeatmapRow[], dates: string | readonly 
   }).join('\n\n')
 }
 
-export function heatmapRankingText(rows: HeatmapRow[], selected: string, fields: readonly HeatmapField[], heading: string, unusual = false) {
+export function heatmapRankingText(rows: HeatmapRow[], selected: string, fields: readonly HeatmapField[], heading: string, unusual = false, copiedAt = Date.now()) {
   const entries = rows.flatMap(row => {
     const point = row.points.get(selected)
-    return point?.value == null ? [] : [`${row.label} · ${row.group} · ${formatHeatmapOHLC(point, fields)}${unusual ? ` · Unusual ${point.relative == null ? '—' : point.relative.toFixed(2) + '×'}` : ''} · Baseline ${point.from ?? 'unavailable'} · Through ${point.through ?? 'unavailable'}${point.reason ? ' · ' + point.reason : ''}`]
+    return point?.value == null ? [] : [`${row.label} · ${row.group} · ${formatHeatmapOHLC(point, fields)}${unusual ? ` · Unusual ${point.relative == null ? '—' : point.relative.toFixed(2) + '×'}` : ''}${point.reason ? ' · ' + point.reason : ''}`]
   })
-  return entries.length ? [heading, 'Displayed ranking order. O/H/L/C use each instrument’s stated baseline; H/L are extremes, C is the net return. Timestamped endpoints are UTC; date-only endpoints are broker sessions. Missing entries omitted.', ...entries].join('\n') : ''
+  return entries.length ? [`This heatmap is copied at ${rankingCopyTime.format(copiedAt)} ${rankingCopyDate.format(copiedAt)} UTC+7`, heading,
+    'Displayed ranking order. H/L are extremes; C is the net return. Missing entries omitted.', ...entries].join('\n') : ''
 }

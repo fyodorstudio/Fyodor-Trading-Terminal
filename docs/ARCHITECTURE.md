@@ -229,6 +229,9 @@ move sort, which uses prior volatility.
 The standalone ranking omits the dock's configuration/export toolbar. Ranking
 blocks use the existing chart selection action for broker symbols; synthetic
 baskets open the Market Watch tab with a currency search request and All category.
+Only the standalone ranking animates live reading changes, using native browser
+animations without React animation loops. Comparison snapshots reset on period,
+filter, sort and view changes; reduced motion and unmount cancel active effects.
 
 ## Alarms
 
