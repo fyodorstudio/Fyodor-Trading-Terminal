@@ -227,8 +227,9 @@ use the month picker or previous/next buttons to browse, or jump with Date.
 Weekly columns retain the full weeks overlapping that month. Click a date header
 to select a column and inspect its ranking. **Instruments** edits the watchlist and order.
 **Visible fields** selects O/H/L/C. **Copy Details Only** exports selected readings;
-**Copy Research Prompt** adds currency-focused research instructions for potential
-incomplete repricing, supporting cross-asset evidence, and calculation context.
+**Copy Research Prompt** ranks potential incomplete-repricing opportunities across
+all selected asset classes, preferring FX when setups are comparable, and adds
+calculation context.
 Click an instrument cell to select just that instrument/date. **Ctrl-click** adds
 or removes individual cells, including scattered dates. **Shift-click** selects
 whole date columns between the original selection and the clicked date.
