@@ -4,7 +4,8 @@ from tempfile import TemporaryDirectory
 import time
 import unittest
 
-from storage.news_flow.relevance import classify, PRESET, migrate_include
+from storage.news_flow.relevance import classify, PRESET, PROFILE, migrate_include
+from storage.news_flow.filter_policy import migrate_policy, parse_policy, DEFAULTS
 from storage.news_flow.providers import RETIRED, PROVIDER_MIGRATION
 from storage.news_flow.store import NewsStore
 from storage.news_flow.notifications import NewsNotifier
@@ -104,6 +105,164 @@ NEGATIVE = [
 
 
 class NewsRelevanceTests(unittest.TestCase):
+    def test_november_18_archive_recall_and_noise(self):
+        cases = json.loads(Path(__file__).with_name('relevance_audit_20261118.json').read_text(encoding='utf-8'))
+        for case in cases:
+            with self.subTest(title=case['title']):
+                result = classify(case['title'], url=case['url'], feed_url=case['feed_url'], include=INCLUDE, enabled=True)
+                self.assertEqual(result['included'], case['included'], result)
+
+    def test_watchlist_and_ambiguous_words_without_article_body_inference(self):
+        positive = [
+            'Why is Adobe stock sliding today?', 'Why is Salesforce stock sliding today?',
+            'Why is ServiceNow stock sliding today?', 'ADBE shares slide after guidance cut',
+            'CRM shares tumble after export curbs', 'CSCO earnings beat estimates',
+            'Adobe Photoshop tutorial becomes revenue driver as shares surge',
+            'Salesforce stock underperforms market after earnings warning',
+            'Adobe stock falls Tuesday, underperforms market as Nasdaq slumps',
+            'ServiceNow stock falls on the day after regulator opens investigation',
+            'Dell shares fall on weak enterprise demand', 'HPE raises earnings forecast',
+            'Palo Alto Networks faces outage across enterprise customers',
+            'Nvidia advisor Pattinson criticizes board oversight',
+            'CoreWeave financing constraints threaten AI capacity expansion',
+            'Apollo CEO warns neocloud financing access could disappear',
+            'Europe Gas Edges Higher', 'Drilling rig count slips in Baker Hughes survey',
+            'US factory output rises', 'U.S. import prices beat forecasts',
+            'German investor morale rises as ZEW outlook improves',
+            'UK job vacancies slide as pay growth slows',
+            'UK energy bills rise sharply', 'FX option expiries for 18 November',
+            'US and Thailand conclude trade deal',
+            "Germany's net payment to EU budget rises as Poland receives more",
+            'Hungary targets euro adoption by 2030',
+            'Ukraine brings down Crimean Bridge after missile strikes',
+            'Taiwan flags incursions by Russian aircraft',
+            'Widespread outages hit banks and air travel',
+            'Nationwide FAA ground stop disrupts US flights',
+            'Oil pipeline sales increase as refinery investment expands',
+            'Capstone outlines data center pipeline to support AI power demand',
+        ]
+        negative = [
+            'Why is UnknownCo stock sliding today?',
+            'BTIG cuts Ispire Technology stock price target on business pivot',
+            'This defense tech stock rises on record backlog',
+            'Adobe Inc. stock falls Tuesday, underperforms market',
+            'Adobe Inc. stock falls Tuesday, underperforms market (NASDAQ:ADBE)',
+            'Salesforce stock outperforms competitors on strong trading day',
+            'Dollar Tree shares may move on earnings release',
+            'Dollar General stock receives a new Buy rating',
+            'Research Solutions signals pipeline well over $5M in ARR as AI reads top 33M',
+            'TinyCo sales pipeline expands with new customers',
+            "I'm a psychologist: signs you have fallen into a common rut",
+            "IPC indice su tutte le basi dell'indice", 'Buy now stock photography for your blog',
+            'Cost shares among friends with this new tool',
+            'Deezer launches AI music filter as user demand grows',
+            'Anadyr Horizon CEO on using AI simulation in risk analysis',
+            'Why China AI generation is going back home to build',
+            'Amazon Bezos says he helped pick Pattinson as Bond',
+            'Federal Reserve - Barron\'s', 'Market Data Center - Barron\'s',
+            'ADBE | Adobe Inc. Stock Overview (U.S.: Nasdaq)',
+            'Exness launches Anthropic CFD following market debut',
+            'Before Nvidia reports: discounted stocks with 55% off InvestingPro',
+            'Romania inflation accelerates as domestic prices rise',
+            'Bulgaria retail sales rise', 'Albania trade deficit widens',
+            'Indian Rupee rises ahead of local GDP figures',
+            'Singapore Dollar: Bearish bias capped against US Dollar - UOB',
+        ]
+        for expected, titles in [(True, positive), (False, negative)]:
+            for title in titles:
+                with self.subTest(title=title):
+                    self.assertEqual(classify(title, include=INCLUDE, enabled=True)['included'], expected)
+        from storage.news_flow.importance import decision
+        adobe = decision(positive[0], include=INCLUDE, enabled=True)
+        self.assertEqual(adobe['tier'], 'included', 'A company-move headline does not prove the unseen export-control driver or high importance')
+        self.assertFalse(classify(positive[0], include=INCLUDE, exclude='Adobe', enabled=True)['included'])
+        self.assertFalse(classify(positive[0], include='USD, EUR', enabled=True)['included'], 'Custom narrow watchlists are respected')
+        self.assertTrue(classify('Dollar Tree shares may move on earnings release', include=INCLUDE, enabled=True, filter_policy='{"subject_context":false}')['included'])
+        self.assertTrue(classify('Adobe Inc. stock falls Tuesday, underperforms market', include=INCLUDE, enabled=True, filter_policy='{"routine":false}')['included'])
+
+    def test_incremental_preset_upgrade_preserves_user_decisions_and_limits(self):
+        additions = PROFILE['preset_additions']
+        old = [term for term in PRESET if term not in additions and term != 'gold']
+        previous = ', '.join([*old, 'MY CUSTOM WORD'])
+        upgraded = migrate_include(previous, 3)
+        self.assertIn('Adobe', upgraded)
+        self.assertIn('MY CUSTOM WORD', upgraded)
+        self.assertNotIn('gold', [term.strip() for term in upgraded.split(',')])
+        self.assertEqual(migrate_include(upgraded, 4), upgraded)
+        self.assertEqual(migrate_include('oil, MY CUSTOM WORD', 3), 'oil, MY CUSTOM WORD')
+        self.assertEqual(migrate_include('', 3), '')
+        full = ', '.join([*old, *('custom'+str(i) for i in range(500-len(old)))])
+        self.assertEqual(migrate_include(full, 3), full, 'A full custom list is preserved without truncation')
+        self.assertEqual(len(PRESET), len(set(PRESET)))
+        self.assertLessEqual(len(PRESET), 500)
+        legacy = json.dumps({'other_market_terms': PROFILE['filter_previous_other_market_terms'], 'routine': False, 'exceptions': 'MY EXCEPTION'})
+        policy = parse_policy(migrate_policy(legacy, 3))
+        self.assertEqual(policy.other_market_terms, DEFAULTS['other_market_terms'])
+        self.assertFalse(policy.routine)
+        self.assertEqual(policy.exceptions, 'MY EXCEPTION')
+        custom = '{"other_market_terms":"MY COUNTRY"}'
+        self.assertEqual(parse_policy(migrate_policy(custom, 3)).other_market_terms, 'MY COUNTRY')
+        with TemporaryDirectory() as root:
+            store = NewsStore(root)
+            store.sources()
+            notifier = NewsNotifier(store, lambda setup, payload: self.fail('Migration must not send a notification'))
+            notifier.root.mkdir(parents=True, exist_ok=True)
+            saved = {'include': previous, 'exclude': 'PERSONAL EXCLUDE', 'hidden': ['one'], 'mode': 'all',
+                     'market_relevance': False, 'preset_version': 3, 'max_age_seconds': 3600, 'unified_alerts': True,
+                     'filter_policy': legacy}
+            notifier.root.joinpath('notifications.json').write_text(json.dumps(saved), encoding='utf-8')
+            result = notifier.settings()
+            for key in ['exclude', 'hidden', 'mode', 'market_relevance', 'max_age_seconds', 'unified_alerts']:
+                self.assertEqual(result[key], saved[key], key)
+            self.assertEqual(result['preset_version'], 4)
+            self.assertEqual(result['include'], upgraded)
+            self.assertEqual(json.loads(notifier.root.joinpath('notifications.before-relevance-v4.json').read_text(encoding='utf-8')), saved)
+            self.assertEqual(notifier.settings(), result, 'The upgrade is idempotent')
+
+    def test_official_cash_rate_and_economic_shorthand(self):
+        from storage.news_flow.importance import decision
+        for title in ['OCR held at 2.75%', 'OCR increased by 25 basis points to 2.75%', 'OCR on hold at 2.25%']:
+            with self.subTest(title=title):
+                result = decision(title, feed_url='https://www.rbnz.govt.nz/rss', include=INCLUDE, enabled=True)
+                self.assertEqual(result['tier'], 'priority', result)
+                self.assertFalse(decision(title, feed_url='https://www.rbnz.govt.nz/rss', include=INCLUDE, exclude='OCR', enabled=True)['included'])
+        self.assertFalse(classify('New OCR software reads banknotes', include=INCLUDE, enabled=True)['included'])
+        for title in ['Energy supply and demand, 2025', 'Monthly credit aggregates, August 2026', 'New motor vehicle sales, September 2026']:
+            self.assertTrue(classify(title, feed_url='https://www.statcan.gc.ca/rss', enabled=True)['included'], title)
+            self.assertFalse(classify(title, feed_url='https://untrusted.example/rss', enabled=True)['included'], title)
+
+    def test_new_watchlist_shared_reader_export_and_alert_selection(self):
+        with TemporaryDirectory() as root:
+            store = NewsStore(root); source = store.sources()[0]; now = int(time.time() * 1000)
+            store.success(source, [], '', '', now)
+            cursor = store.arrivals()['cursor']
+            titles = ['Why is Adobe stock sliding today?', 'Salesforce falls 10% on sector jitters',
+                      'US factory output rises', 'Dollar Tree shares rise on earnings',
+                      'UnknownCo shares rally', 'Why is ServiceNow stock sliding today?']
+            for i, title in enumerate(titles):
+                store.success(source, [dict(identity=str(i), title=title, summary='', publisher='Test',
+                                            url=f'https://example.com/nov18/{i}', published_at=now if i != 5 else now - 6*86400000)], '', '', now+1)
+            scope = dict(include=INCLUDE, exclude='', market_relevance=True)
+            expected = set(titles[:3] + [titles[5]])
+            self.assertEqual(store.query(mode='included', limit=1, **scope)['total'], 4)
+            self.assertEqual({r['title'] for r in store.query(mode='included', **scope)['items']}, expected)
+            exported = store.export_headlines(mode='included', **scope)
+            self.assertEqual(exported['count'], 4)
+            for title in expected:
+                self.assertIn(title, exported['text'])
+            arrival = store.arrivals(cursor, max_age_seconds=3600, **scope)
+            self.assertEqual({r['title'] for r in arrival['items']}, set(titles[:3]), 'Old relevant articles remain research-only under the age limit')
+            sent = []; notifier = NewsNotifier(store, lambda setup, message: sent.append(message))
+            notifier.configure({**scope, 'hidden': [], 'preset_version': 4, 'max_age_seconds': 3600}, 'included')
+            notifier.root.joinpath('setup.json').write_text(json.dumps({'topic': 'test'}), encoding='utf-8')
+            notifier.cursor = cursor
+            notifier.tick()
+            self.assertEqual(notifier.last_sent['count'], 3)
+            self.assertEqual(len(sent), 1)
+            notifier.configure({'exclude': 'Adobe'})
+            notifier.tick()
+            self.assertEqual(len(sent), 1, 'Rule edits never replay consumed headlines')
+
     def test_archive_audit_recall_and_noise_regressions(self):
         cases = json.loads(Path(__file__).with_name('relevance_audit_cases.json').read_text(encoding='utf-8'))
         for case in cases:

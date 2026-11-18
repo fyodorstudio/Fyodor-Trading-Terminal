@@ -210,7 +210,7 @@ There is no service worker, background push subscription or additional feed poll
 ## Automatic filtering controls
 
 Global settings group Include tags into Currencies, Policy, Macro, Bonds and
-funding, Energy, Metals, Indices, Index companies, Context required and Custom.
+funding, Energy, Metals, Indices, Index companies, Sector bellwethers, Cross-market drivers, Context required and Custom.
 Typing searches all groups to preserve duplicate prevention. Filtering a group
 never deletes or deactivates tags in another group.
 
@@ -229,3 +229,9 @@ unmount also aborts them. It does not fetch articles or send notifications. UI
 source-protection limitations are explicit. No raw regular-expression editor or
 AI classifier is introduced. Group and checkbox layout uses existing rectangular
 controls and theme colours. Visual verification remains a user check.
+
+Revision 4 adds editable bellwether/driver tags and extends broad preset-based
+profiles incrementally. Removed old tags, curated/empty lists and full lists stay
+unchanged. Browser backup: fyodor.news-flow.v1.before-relevance-v4. Legacy
+untouched other-market lists upgrade; custom lists and switches persist. Alert
+mode, age limit, providers and notification permissions are not reset.

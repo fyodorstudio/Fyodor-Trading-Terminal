@@ -21,7 +21,7 @@ _rx = {key: re.compile(PROFILE[key], re.I) for key in (
 _strong = ','.join(term for term in PRESET if normalized(term) not in CONTEXTUAL)
 _banks = ','.join(PROFILE['groups']['Policy'][:PROFILE['groups']['Policy'].index('monetary policy')])
 _market_event = re.compile(r'\b(gdp|inflation|cpi|pce|payrolls|monetary|interest rates?|central bank|economy|tariffs?|sanctions?|earnings|revenue|demand|supply|inventories|prices?|futures|shares|stocks|markets?|yields?|bonds?|exports?|imports?|financial|liquidity|credit|banking|debt)\b', re.I)
-_companies = ','.join(PROFILE['groups']['Index companies and systemic banks'])
+_companies = ','.join(PROFILE['groups']['Index companies and systemic banks'] + PROFILE['groups']['Sector bellwethers'])
 _publisher_suffix = re.compile(r'\s+-\s+(?:Reuters|Bloomberg(?:\.com)?|Investing\.com(?:\s+[\w ]+)?|Financial Times|FXStreet|WSJ|MarketWatch|Barron.?s|Seeking Alpha|IntelliNews(?: Lambda)?|CNBC|BeInCrypto)\s*$', re.I)
 _systemic = re.compile(r'\b(?:bank run|banking crisis|systemic|contagion|sovereign default|capital controls|capital flight|bailout|liquidity crisis|credit freeze|deleveraging)\b', re.I)
 _routine = re.compile(r'\b(?:hires?|hiring|appoints?|names?)\b.{0,100}\b(?:trading veteran|head (?:of|up) (?:sales|trading|oil products)|portfolio manager|sales director|marketing director)\b|\b(?:how to (?:buy|invest|trade|choose)|best (?:brokers|trading apps)|sponsored content|paid promotion)\b|\bwhen\b.{0,60}\bstumbled\b.{0,60}\b(?:funds|etfs) delivered\b', re.I)
@@ -32,12 +32,17 @@ _invitation = re.compile(r'\bto (?:present|participate)\b.{0,70}\b(?:investor co
 _consumer = re.compile(r'\b(?:amazon (?:deforestation|rainforest|river|basin|visit)|peru amazon|james bond|black friday deals|your apple watch|movie review|film review)\b', re.I)
 _company_event = re.compile(r'\b(?:shares?|stocks?|earnings|revenues?|profits?|sales|losses|acquir\w*|buys?|merger|funding|financing|capex|lawsuit|antitrust|governance|misconduct|fraud|resigns?|ouster|outage|default|exports?|tariffs?)\b', re.I)
 _listing = re.compile(r'\s*\((?:[a-z0-9_./-]+:){1,3}[a-z0-9_./-]*\)\s*$', re.I)
-_analyst_call = re.compile(r'\b(?:stock (?:price target|rating)|price target|re-rating|(?:buy|sell|neutral|overweight|underweight|hold|outperform|underperform|sector weight) rating|stock with)\b', re.I)
+_analyst_call = re.compile(r'\b(?:stock (?:price target|rating)|price target|re-rating|(?:buy|sell|neutral|overweight|underweight|hold|outperform|underperform|sector weight) rating|stock with|to (?:buy|sell|neutral|overweight|underweight|hold|outperform|underperform))\b', re.I)
 _attribution = re.compile(r'^(?:ubs|wells fargo|deutsche bank|jpmorgan|goldman sachs|morgan stanley|bank of america|citigroup|barclays|hsbc|bnp paribas|societe generale)\s+(?=(?:raises?|cuts?|lowers?|lifts?|initiates?|reiterates?|maintains?|upgrades?|downgrades?|sees?)\b)', re.I)
 _exchanges = {'nasdaq', 'nyse', 'nysearca', 'nyseamerican', 'asx', 'tsx', 'tsxv', 'lse', 'com', 'commodity'}
 _cross_market_risk = re.compile(r'\b(?:ai|artificial intelligence|chips?|semiconductors?)\b.{0,100}\b(?:sell[ -]?off|rout|retreat|bubble|unravels?|frenzy fades|concentration risk)\b|\b(?:sell[ -]?off|rout|retreat|bubble)\b.{0,100}\b(?:ai|artificial intelligence|chips?|semiconductors?)\b', re.I)
 _currency_driver = re.compile(r'\b(?:us dollar|u\.s\. dollar|usd|dxy|dollar index|greenback|euro|sterling|british pound|yen|swiss franc|canadian dollar|australian dollar|new zealand dollar|(?<!singapore )(?<!hong kong )dollar)\b\s+(?:(?:is|are|remains?|extends?)\s+)?(?:weaken\w*|strengthen\w*|falls?|falling|rises?|rising|rall\w*|slid\w*|slips?|surges?|plunges?|sell[ -]?off|gains?|losses|weakness|strength)\b', re.I)
 _macro_driver = re.compile(r'\b(?:us|u\.s\.|uk|u\.k\.|eurozone|euro area|german|japan(?:ese)?|swiss|canadian|australian|new zealand)\s+(?:(?:core|headline)\s+)?(?:cpi|pce|ppi|gdp|pmi|nfp|payrolls|inflation|retail sales|jobs report|jobless claims|bond yields|government bonds)\b', re.I)
+_fiscal_driver = re.compile(r"\b(?:us|u\.s\.|united states|uk|u\.k\.|germany|german|eurozone|euro area|japan|japanese|swiss|switzerland|canada|canadian|australia|australian|new zealand)(?:'s)?\b.{0,65}\b(?:budget|fiscal|tax treaty|government debt|deficit|net payment|tax hikes?|tax cuts?)\b|\b(?:euro adoption|euro peg|erm ii|danish central bank.{0,40}fx peg)\b", re.I)
+_promotion = re.compile(r'\b(?:discounted stocks|\d+% off investingpro|our ai models say|(?:launches?|introduces?|offers?)\b.{0,80}\bcfds?)\b', re.I)
+_category = re.compile(r'^(?:federal reserve|energy|china|stocks\s*\|\s*market data center|market data center|base[ -]metals news|feed news|videos)\s*$|\bstock overview\s*\(|description=\{page_description\}', re.I)
+_retrospective_quote = re.compile(r'\bstock (?:outperforms?|underperforms?|rises?|falls?)\b.{0,70}\b(?:competitors|on (?:strong trading|the) day|(?:when compared to|underperforms?|outperforms?) market)\b', re.I)
+_material_driver = re.compile(r'\b(?:earnings|revenues?|profits?|guidance|forecasts?|exports?|tariffs?|curbs?|restrictions?|ceo|chief|outages?|lawsuits?|fraud|scandal|governance|merger|acquisition|ipo|bankrupt\w*|defaults?|investigat\w*|probes?|fed|fomc|ecb|boj|boe|rba|rbnz|snb|treasur\w*|nasdaq|s&p|dow jones|sector|sell[ -]?off|rout|rotation|chips?|semiconductors?|inflation|gdp|payrolls|nfp|retail sales|opec|oil|brent|gas|gold|silver|dxy|dollar index|credit|systemic|contagion)\b', re.I)
 
 
 def market_text(title):
@@ -53,6 +58,13 @@ def market_text(title):
     text = re.sub(r'\bcpi(?= card group\b)', '', text)
     if re.search(r'\b(?:biopharma|biotech|pharmaceutical|therapeutics|drug|clinical|oncology)\b', text):
         text = re.sub(r'\bpipeline\b|\bsummit\x27s\b', '', text)
+    if re.search(r'\b(?:sales|marketing|recruitment|clinical|drug|commercial) pipeline\b|\bpipeline\b.{0,55}\b(?:in arr|in mrr|candidates|therapeutics)\b', text):
+        text = re.sub(r'\bpipeline\b', 'business backlog', text)
+    text = re.sub(r'\bdollar (?:tree|general)\b', 'retail chain', text)
+    text = re.sub(r'\b(?:a|common) rut\b', 'habit', text)
+    text = re.sub(r'\badp(?= stock\b)', 'payroll company', text)
+    text = re.sub(r'\b(?:credo|research solutions) technology(?= shares?\b)', 'company', text)
+    text = re.sub(r'\bglobal-e online\b', 'online retailer', text)
     return text
 
 
@@ -79,6 +91,16 @@ def term_patterns(value, aliases=True):
 def migrate_include(value, version):
     if version >= PROFILE['version'] or not value.strip():
         return value
+    if version >= 3:
+        previous = {normalized(term) for term in PRESET if term not in PROFILE['preset_additions']}
+        current = {normalized(term) for term in tags(value)}
+        # Only extend a broad preset-based profile. A short curated Include list
+        # remains intentional, and removed old keywords are never reseeded.
+        if len(previous & current) < len(previous) * .75:
+            return value
+        result = list(dict.fromkeys([*tags(value), *PROFILE['preset_additions']]))
+        upgraded = ', '.join(result)
+        return upgraded if len(result) <= 500 and len(upgraded) <= MAX_RULE_CHARS else value
     # Replace the old seed, preserve custom additions, and leave a local backup
     # to callers. Context-only terms no longer trigger unrelated headlines alone.
     legacy = {normalized(term) for term in PROFILE['legacy_preset']}
@@ -138,12 +160,14 @@ def _classify(title, source_id, url, feed_url, profile):
         return {'included': False, 'reason': 'Excluded keyword · ' + exclusion, 'keyword': exclusion}
     if enabled:
         title = _publisher_suffix.sub('', title)
-        if options.metadata and _not_release.search(title):
+        if options.metadata and (_not_release.search(title) or _category.search(title)):
             return {'included': False, 'reason': 'Excluded · quote/category page or routine filing/invitation', 'keyword': ''}
-        if options.non_market and _consumer.search(title) and not _company_event.search(title):
+        if options.non_market and (_consumer.search(title) or re.search(r'\b(?:pattinson|007|bezos)\b.{0,70}\bbond\b|\bbond\b.{0,70}\b(?:pattinson|007)\b|\bpick.{0,45}as bond\b', title, re.I)) and not _company_event.search(title):
             return {'included': False, 'reason': 'Excluded · consumer/entertainment or nonfinancial meaning', 'keyword': ''}
         if options.routine and _treasury_notice.search(title) and not _notice_driver.search(title) and not matches(title, _banks) and not matches(title, _companies):
             return {'included': False, 'reason': 'Excluded · routine Treasury crime notice', 'keyword': ''}
+        if options.routine and (_promotion.search(title) or (_retrospective_quote.search(title) and not _material_driver.search(market_text(title) if options.subject_context else title))):
+            return {'included': False, 'reason': 'Excluded · promotion or routine single-stock recap', 'keyword': ''}
         if options.routine and ((_routine.search(title) and not _systemic.search(title)) or (_invitation.search(title) and not official_policy(title, url, feed_url) and not matches(title, _banks))):
             return {'included': False, 'reason': 'Excluded · routine personnel/promotional/retrospective story', 'keyword': ''}
         if options.subject_context:
@@ -173,7 +197,7 @@ def _classify(title, source_id, url, feed_url, profile):
     exception, currency_driver, cross_market = '', None, False
     if other_market and options.cross_market:
         exception = first_literal_term(text, options.exceptions)
-        currency_driver = _currency_driver.search(text) or _macro_driver.search(text)
+        currency_driver = _currency_driver.search(text) or _macro_driver.search(text) or _fiscal_driver.search(text)
         cross_market = exception or currency_driver or _rx['semiconductor_policy'].search(text) or _rx['sector_bellwethers'].search(text) or _cross_market_risk.search(text) or geopolitics or _systemic.search(text)
     if options.other_markets and other_market and not cross_market:
         return {'included': False, 'reason': 'Excluded · other-market domestic news · ' + other_market, 'keyword': hits[0]}

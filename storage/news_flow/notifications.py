@@ -4,7 +4,8 @@ import json
 from threading import Event, RLock, Thread
 import time
 from urllib.request import Request, urlopen
-from .relevance import migrate_include
+from .relevance import migrate_include, PROFILE
+from .filter_policy import migrate_policy
 from .notification_format import payload
 
 
@@ -36,12 +37,15 @@ class NewsNotifier:
     def _settings(self):
         try:
             result = json.loads((self.root / 'notifications.json').read_text(encoding='utf-8'))
-            if result.get('preset_version', 1) < 3:
-                backup = self.root / 'notifications.before-relevance-v2.json'
+            version = result.get('preset_version', 1)
+            if version < PROFILE['version']:
+                backup = self.root / ('notifications.before-relevance-v2.json' if version < 3 else 'notifications.before-relevance-v4.json')
                 if not backup.exists():
                     backup.write_text(json.dumps(result), encoding='utf-8')
-                result.update(include=migrate_include(result.get('include', ''), 1), market_relevance=True, preset_version=3,
-                              mode='off' if result.get('mode') == 'off' else 'included')
+                if version < 3:
+                    result.update(market_relevance=True, mode='off' if result.get('mode') == 'off' else 'included')
+                result.update(include=migrate_include(result.get('include', ''), version), preset_version=PROFILE['version'],
+                              filter_policy=migrate_policy(result.get('filter_policy', ''), version))
                 temporary = self.root / 'notifications.json.tmp'
                 temporary.write_text(json.dumps(result), encoding='utf-8')
                 temporary.replace(self.root / 'notifications.json')
@@ -49,7 +53,7 @@ class NewsNotifier:
             result.setdefault('filter_policy', '{}')
             return result
         except FileNotFoundError:
-            return {'mode': 'off', 'include': '', 'exclude': '', 'hidden': [], 'market_relevance': True, 'preset_version': 3, 'max_age_seconds': 86400}
+            return {'mode': 'off', 'include': '', 'exclude': '', 'hidden': [], 'market_relevance': True, 'preset_version': PROFILE['version'], 'max_age_seconds': 86400}
 
     def configure(self, rules, mode=None):
         with self.lock:

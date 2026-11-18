@@ -2,9 +2,18 @@ import profile from '../../../storage/news_flow/relevance.json'
 export const keywordLimit = 500
 export const keywordCharacters = 16000
 export const starterKeywords: string[] = profile.preset
+export const keywordVersion = profile.version
 
 export function upgradeKeywords(value: string, version: number) {
-  if (version >= 3 || !value.trim()) return value
+  if (version >= keywordVersion || !value.trim()) return value
+  if (version >= 3) {
+    const additions = new Set(profile.preset_additions)
+    const previous = starterKeywords.filter(term => !additions.has(term))
+    const tags = keywordTags(value), current = new Set(tags.map(normalize))
+    if (previous.filter(term => current.has(normalize(term))).length < previous.length * .75) return value
+    const upgraded = keywordTags([...tags, ...profile.preset_additions].join(','))
+    return upgraded.length <= keywordLimit && upgraded.join(', ').length <= keywordCharacters ? upgraded.join(', ') : value
+  }
   const legacy = new Set(profile.legacy_preset.map(term => term.toLowerCase()))
   const custom = keywordTags(value).filter(term => !legacy.has(term.toLowerCase()))
   const tags = keywordTags([...starterKeywords, ...custom].join(','))

@@ -11,7 +11,7 @@ from .history import NewsHistory
 from .rules import patterns, MAX_RULE_CHARS
 from .notifications import NewsNotifier
 from .filter_policy import canonical_policy
-from .relevance import matching_terms
+from .relevance import matching_terms, PROFILE
 from .importance import decision
 
 
@@ -58,7 +58,7 @@ class NotificationRules(BaseModel):
     exclude: str = Field(default='', max_length=MAX_RULE_CHARS)
     hidden: list[str] = Field(default_factory=list, max_length=1000)
     market_relevance: bool = True
-    preset_version: int = Field(default=3, ge=1, le=3)
+    preset_version: int = Field(default=PROFILE['version'], ge=1, le=PROFILE['version'])
     filter_policy: str | None = Field(default=None, max_length=16000)
 
     @field_validator('filter_policy')

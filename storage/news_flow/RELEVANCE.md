@@ -7,7 +7,7 @@ direction, probability or trade-entry prediction. No article bodies or AI calls.
 
 ## One decision, all delivery paths
 
-`relevance.py` decides relevance; `importance.py` decides the reading tier. `relevance.json` owns the editable seed (471
+`relevance.py` decides relevance; `importance.py` decides the reading tier. `relevance.json` owns the editable seed (497
 terms), aliases, context patterns, trusted institutional domains and observed
 speaker aliases. `rules.py` keeps literal matching and normalization. Frontend
 imports the same JSON for editable tags and literal aliases; it never implements
@@ -208,3 +208,45 @@ that limit. Preview and rule changes never replay consumed arrivals. Tests in
 `tests/test_filter_policy.py` cover the reported rupiah/Treasury case, narrow
 local-news guards, every switch, editable lists, schema validation and consistent
 reader/export/desktop/phone behaviour.
+
+
+## Archive audit refinements (November 18, 2026)
+
+A frozen read-only snapshot contained 10,917 provider entries and 7,809 distinct
+headline strings. Full classification was followed by targeted review of market-
+related exclusions, likely noise and every changed decision. This is regression
+evidence, not a statistically labelled accuracy or completeness guarantee.
+`tests/relevance_audit_20261118.json` adds 128 reviewed source/context cases;
+additional tests cover near-miss counterexamples and reader/export/alert parity.
+
+Revision 4 adds 26 editable Include tags (497 total). The Sector bellwethers group
+contains Adobe, Salesforce, ServiceNow, networking/chip/AI-infrastructure names,
+Equinor and major retail/housing context. Separate tags cover private credit,
+energy, widespread market disruption and trade deals. Existing aliases cover
+factory output, import/export prices, ZEW/NAHB, job cuts/pay growth, neoclouds,
+Europe gas, drilling rigs, DJI and Bab al-Mandeb spelling. No provider or body
+fetching change is needed. A vague company-move headline qualifies as Included;
+it does not prove an unseen macro driver or automatically gain Priority.
+
+Verified RBNZ OCR hold/change releases qualify as cash-rate decisions. Explicit
+numeric completed OCR decisions can receive Priority; previews retain the usual
+guards. Selected official credit, lending, investment, housing and energy series
+are retained; unrelated official health/admin releases do not gain blanket trust.
+
+Narrow guards reject broker CFD/discount promotions, stock-overview/category pages,
+placeholder pages and boilerplate daily single-stock performance recaps without
+an explicit material driver. Dollar Tree/General, ordinary "rut", a quoted price,
+sales/clinical pipelines and exchange/analyst attribution are not sufficient target
+subjects. Material earnings, governance, export restrictions and reported company
+news stay eligible. New countries in the editable other-market list reduce local
+macro noise; explicit target-market fiscal, currency, energy and systemic context
+still protects spillovers. No broad user Exclude blacklist is seeded.
+
+The incremental upgrade appends only new terms to broad preset-based profiles
+(at least 75% of the previous vocabulary). It preserves removed older tags and
+custom additions; empty, short curated and full-capacity lists are unchanged.
+Existing custom Exclude, provider selections, Trading relevance opt-out, delivery
+mode, publication-age limit and credentials are preserved. Browser and server
+retain before-relevance-v4 backups for version-3 profiles. Only an untouched old
+other-market list is extended; customized policy lists remain unchanged. Revision
+4 does not repeat the old version-3 sound-mode migration or replay consumed alerts.

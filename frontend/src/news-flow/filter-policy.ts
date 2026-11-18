@@ -23,3 +23,9 @@ export function encodeFilterPolicy(value: NewsFilterPolicy) {
   const normalized = readFilterPolicy(value)
   return JSON.stringify(Object.fromEntries(Object.entries(normalized).filter(([key, next]) => next !== defaultFilterPolicy[key as keyof NewsFilterPolicy])))
 }
+
+export function upgradeFilterPolicy(value: unknown, version: number) {
+  const policy = readFilterPolicy(value)
+  if (version < 4 && policy.other_market_terms === profile.filter_previous_other_market_terms) policy.other_market_terms = defaultFilterPolicy.other_market_terms
+  return policy
+}

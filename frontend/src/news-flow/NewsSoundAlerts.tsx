@@ -37,7 +37,7 @@ export function NewsSoundAlerts() {
     void saveNewsAlertProfile(mode, profile.data.max_age_seconds)
   }, [profile.data, profile.saving, settings.soundEnabled, settings.soundMode])
   const rules = JSON.stringify({ include: settings.include, exclude: settings.exclude, hidden: settings.hiddenSources,
-    market_relevance: settings.marketRelevance, preset_version: 3, filter_policy: encodeFilterPolicy(settings.automaticFilters) })
+    market_relevance: settings.marketRelevance, preset_version: settings.presetVersion, filter_policy: encodeFilterPolicy(settings.automaticFilters) })
   useEffect(() => {
     const controller = new AbortController()
     let timer = 0

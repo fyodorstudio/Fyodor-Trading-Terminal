@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { readFileSync } from 'node:fs'
 import React from 'react'
 import { createServer } from 'vite'
 import { Window } from 'happy-dom'
@@ -30,16 +31,46 @@ async function reply(request, body, status = 200) {
   await React.act(async () => request.resolve({ ok: status < 400, status, json: async () => body }))
 }
 try {
-  const { readNewsSettings } = await server.ssrLoadModule('./src/news-flow/model.ts')
+  const { readNewsSettings, saveNewsSettings } = await server.ssrLoadModule('./src/news-flow/model.ts')
   const { useNewsSettings } = await server.ssrLoadModule('./src/news-flow/settings.ts')
   const { NewsSoundAlerts } = await server.ssrLoadModule('./src/news-flow/NewsSoundAlerts.tsx')
   const { NewsGlobalSettings } = await server.ssrLoadModule('./src/news-flow/NewsGlobalSettings.tsx')
   const { Headlines } = await server.ssrLoadModule('./src/news-flow/Headlines.tsx')
-  const { matchingKeyword } = await server.ssrLoadModule('./src/news-flow/keywords.ts')
+  const { matchingKeyword, upgradeKeywords, starterKeywords } = await server.ssrLoadModule('./src/news-flow/keywords.ts')
+  const { upgradeFilterPolicy, defaultFilterPolicy } = await server.ssrLoadModule('./src/news-flow/filter-policy.ts')
+  const keywordProfile = JSON.parse(readFileSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../../storage/news_flow/relevance.json'), 'utf8'))
+  const additions = new Set(keywordProfile.preset_additions)
+  const oldSeed = starterKeywords.filter(term => !additions.has(term) && term !== 'gold')
+  const oldInclude = [...oldSeed, 'MY CUSTOM WORD'].join(', ')
+  const upgraded = upgradeKeywords(oldInclude, 3)
+  assert.ok(upgraded.includes('Adobe')); assert.ok(upgraded.includes('MY CUSTOM WORD'))
+  assert.equal(upgraded.split(', ').includes('gold'), false, 'Incremental upgrade does not reseed a removed keyword')
+  assert.equal(upgradeKeywords(upgraded, 4), upgraded)
+  assert.equal(upgradeKeywords('oil, MY CUSTOM WORD', 3), 'oil, MY CUSTOM WORD', 'Short curated watchlists stay unchanged')
+  assert.equal(upgradeKeywords('', 3), '')
+  const fullList = [...oldSeed, ...Array.from({ length: 500 - oldSeed.length }, (_, i) => `custom${i}`)].join(', ')
+  assert.equal(upgradeKeywords(fullList, 3), fullList, 'No truncation of a full custom list')
+  const upgradedPolicy = upgradeFilterPolicy({ other_market_terms: keywordProfile.filter_previous_other_market_terms, routine: false, exceptions: 'MY EXCEPTION' }, 3)
+  assert.equal(upgradedPolicy.other_market_terms, defaultFilterPolicy.other_market_terms)
+  assert.equal(upgradedPolicy.routine, false); assert.equal(upgradedPolicy.exceptions, 'MY EXCEPTION')
+  assert.equal(upgradeFilterPolicy({ other_market_terms: 'MY COUNTRY' }, 3).other_market_terms, 'MY COUNTRY')
+  for (const [title, keyword] of [['ADBE shares tumble', 'Adobe'], ['CRM shares slide', 'Salesforce'], ['CSCO earnings rise', 'Cisco'], ['US factory output rises', 'industrial production'], ['UK pay growth slows', 'layoffs'], ['Europe gas rises', 'natural gas'], ['OCR held at 2.75%', 'cash rate']]) assert.equal(matchingKeyword(title, keyword), keyword)
+  for (const [title, keyword] of [["su tutte le basi dell'indice", 'Dell'], ['Buy now stock photography', 'ServiceNow'], ['Cost shares among friends', 'Costco']]) assert.equal(matchingKeyword(title, keyword), '')
+  const oldSettings = { presetVersion: 3, include: oldInclude, exclude: 'PERSONAL EXCLUDE', marketRelevance: false,
+    mode: 'included', hiddenSources: ['one'], sortBy: 'published', date: '2026-11-17', soundMode: 'all', sound: 'bell',
+    browserNotifications: true, automaticFilters: { other_market_terms: keywordProfile.filter_previous_other_market_terms, routine: false, exceptions: 'MY EXCEPTION' } }
+  dom.localStorage.setItem('fyodor.news-flow.v1', JSON.stringify(oldSettings))
+  const revision4 = readNewsSettings()
+  for (const key of ['exclude', 'marketRelevance', 'mode', 'sortBy', 'date', 'soundMode', 'sound', 'browserNotifications']) assert.equal(revision4[key], oldSettings[key], key)
+  assert.deepEqual(revision4.hiddenSources, ['one'])
+  assert.equal(revision4.include, upgraded)
+  assert.equal(revision4.automaticFilters.routine, false)
+  saveNewsSettings(revision4)
+  assert.deepEqual(JSON.parse(dom.localStorage.getItem('fyodor.news-flow.v1.before-relevance-v4')), oldSettings)
   const original = { presetVersion: 1, include: 'Nvidia, MY CUSTOM PHRASE', exclude: 'personal blacklist', soundEnabled: true, soundMode: 'all' }
   dom.localStorage.setItem('fyodor.news-flow.v1', JSON.stringify(original))
   const migrated = readNewsSettings()
-  assert.equal(migrated.presetVersion, 3); assert.equal(migrated.marketRelevance, true)
+  assert.equal(migrated.presetVersion, 4); assert.equal(migrated.marketRelevance, true)
   assert.equal(migrated.soundMode, 'included', 'One-time upgrade scopes existing enabled alerts to relevance')
   assert.ok(migrated.include.includes('Swiss economy')); assert.ok(migrated.include.includes('MY CUSTOM PHRASE'))
   assert.equal(migrated.exclude, original.exclude)
@@ -64,7 +95,7 @@ try {
   assert.equal(host.querySelectorAll('[aria-label="News alert trigger"]').length,1)
   assert.equal(control('Phone news trigger'),null)
   const sync = pending('/notifications/rules')
-  assert.equal(JSON.parse(sync.body).market_relevance,true); assert.equal(JSON.parse(sync.body).preset_version,3)
+  assert.equal(JSON.parse(sync.body).market_relevance,true); assert.equal(JSON.parse(sync.body).preset_version,4)
   await reply(sync,{mode:'included'})
   let arrival = pending('/arrivals')
   let params = new URL(arrival.url,'http://localhost').searchParams

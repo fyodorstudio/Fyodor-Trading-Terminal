@@ -7,7 +7,15 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from .rules import patterns, MAX_RULE_CHARS
 
-DEFAULTS = json.loads(Path(__file__).with_name('relevance.json').read_text(encoding='utf-8'))['filter_defaults']
+_profile = json.loads(Path(__file__).with_name('relevance.json').read_text(encoding='utf-8'))
+DEFAULTS = _profile['filter_defaults']
+
+
+def migrate_policy(value, version):
+    policy = parse_policy(value or '')
+    if version < 4 and policy.other_market_terms == _profile['filter_previous_other_market_terms']:
+        policy = policy.model_copy(update={'other_market_terms': DEFAULTS['other_market_terms']})
+    return canonical_policy(policy.model_dump_json())
 
 
 class FilterPolicy(BaseModel):

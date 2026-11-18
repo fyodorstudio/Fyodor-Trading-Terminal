@@ -33,6 +33,8 @@ def attention_reason(title):
         return ''
     reported = re.sub(r'\bas expected\b', '', text)
     if not _preview.search(reported) and not _proposal.search(text) and not _retrospective.search(text):
+        if re.search(r'\bocr (?:held|increased|reduced|cut|on hold|hiked)\b.{0,55}\d+(?:\.\d+)?%', text):
+            return 'Reported official cash-rate decision'
         policy = _policy.search(text)
         if policy and not re.search(r'\bto\s*$', text[:policy.start('action')]):
             return 'Reported central-bank rate decision'
