@@ -11,8 +11,8 @@ type TapeRow = { group: string; row: HeatmapRow | null; wildcard?: WildcardRow; 
 function cellTitle(row: HeatmapRow, period: HeatmapPeriod, point: HeatmapPoint | undefined, stale: boolean) {
   if (period.future) return `${row.label} · ${period.day} · Future period`
   if (!point || point.value === null) return `${row.label} · ${period.day} · ${point?.reason || 'No candle or history unavailable'}${row.id.startsWith('basket:') ? ` · ${point?.coverage ?? 0}/7 counterparts` : ''}`
-  const prices = point.start !== null ? `\n${period.caption ? 'Anchor baseline' : 'Previous close'} ${point.start} → ${point.close}\nRange ${point.low}–${point.high}` : '\nEqual-weight geometric basket · 7/7 counterparts'
-  const extremes = point.start === null ? 'Synthetic basket O/H/L unavailable; only net C is calculated from the seven pair endpoints.'
+  const prices = row.id.startsWith('basket:') ? '\nEqual-weight geometric basket · 7/7 counterparts' : point.start !== null ? `\n${period.caption ? 'Anchor baseline' : 'Previous close'} ${point.start} → ${point.close}\nRange ${point.low}–${point.high}` : '\nEqual-weight geometric basket · 7/7 counterparts'
+  const extremes = point.start === null ? 'Basket O/H/L loading or unavailable; C uses the seven pair endpoints.'
     : `${formatHeatmapOHLC(point)} · Open/high/low/close percentage changes versus ${period.caption ? 'the anchor baseline' : 'previous close'}; H/L need not occur together.`
   return `${row.label} · ${period.day}${period.partial ? ' · In progress' : ''}\n${formatHeatmapChange(point.value)} · ${point.from} → ${point.through}${prices}\n${extremes}\nRelative to prior volatility: ${formatHeatmapChange(point.relative, '×')}${point.reason ? `\n${point.reason}` : ''}${stale ? '\nReading is stale; refresh or check the connection' : ''}`
 }

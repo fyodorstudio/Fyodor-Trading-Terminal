@@ -1,5 +1,6 @@
 import { majorCurrencies } from '../economic-calendar/forex/currencies'
 import { majorForexPairs } from '../economic-calendar/forex/pairs'
+import { withBasketRange } from './basket-ranges'
 import { heatmapPairs, heatmapGroup, heatmapDate, validHeatmapRecords, formatHeatmapOHLC, orderHeatmapGroups,
   type HeatmapHistory, type HeatmapInstrument, type HeatmapPoint, type HeatmapRow, type HeatmapPeriod, type HeatmapField } from './heatmap-model'
 
@@ -37,6 +38,7 @@ const empty=(reason:string):HeatmapPoint=>({value:null,relative:null,coverage:0,
 export function eventRows(ids:string[],catalog:HeatmapInstrument[],broker:string|null,data:IntradayHistory|null,window:EventWindow):HeatmapRow[] {
   const periods=eventPeriods(window,data?data.observed_at*1000:Date.now()),pairs=heatmapPairs(catalog)
   const projections=new Map<string,Map<string,HeatmapPoint>>()
+  const minuteMaps = new Map(Object.entries(data?.symbols ?? {}).map(([name, record]) => [name, new Map(record.bars.map(bar => [bar.time, bar]))]))
   for(const [name,record] of Object.entries(data?.symbols??{})) {
     const baseline=window.anchor>data!.observed_at*1000?undefined:record.bars.findLast(b=>(b.time+60)*1000<=Math.min(window.anchor,data!.observed_at*1000))
     const points=new Map<string,HeatmapPoint>()
@@ -67,6 +69,24 @@ export function eventRows(ids:string[],catalog:HeatmapInstrument[],broker:string
     if(id.startsWith('symbol:')) {const name=id.slice(7);return {id,label:name,group,checkedAt:data?.symbols[name]?.checked_at??null,points:projections.get(name)??new Map()}}
     const currency=id.slice(7),points=new Map<string,HeatmapPoint>()
     if(!majorCurrencies.some(c=>c===currency))return {id,label:currency,group,checkedAt:null,points}
+    const members = majorForexPairs.filter(p => p.includes(currency)).map(pair => ({ pair, name: pairs.get(pair) ?? '', baseline: projections.get(pairs.get(pair) ?? '')?.get('window') }))
+    const path = new Map<string, { open: number; high: number; low: number; samples: number }>()
+    const baseline = members[0]?.baseline
+    if (members.length === 7 && baseline?.start && members.every(m => m.baseline?.start && m.baseline.from === baseline.from)) {
+      for (const bar of data?.symbols[members[0].name]?.bars ?? []) {
+        const at = bar.time * 1000
+        if (at < window.from || at >= window.through) continue
+        const observations = members.map(m => ({ ...m, bar: minuteMaps.get(m.name)?.get(bar.time) }))
+        if (observations.some(m => !m.bar)) continue
+        const reading = (field: 'open' | 'close') => Math.expm1(observations.reduce((sum, m) => sum + Math.log(m.bar![field] / m.baseline!.start!) * (m.pair.startsWith(currency) ? 1 : -1), 0) / 7) * 100
+        const open = reading('open'), close = reading('close')
+        const key = new Date(window.from + Math.floor((at - window.from) / (window.minutes * 60000)) * window.minutes * 60000).toISOString()
+        for (const day of ['window', key]) {
+          const previous = path.get(day)
+          path.set(day, { open: previous?.open ?? open, high: Math.max(previous?.high ?? -Infinity, open, close), low: Math.min(previous?.low ?? Infinity, open, close), samples: (previous?.samples ?? 0) + 1 })
+        }
+      }
+    }
     for(const period of periods){
       const counterparts=majorForexPairs.filter(p=>p.includes(currency)).map(pair=>({pair,point:projections.get(pairs.get(pair)??'')?.get(period.day)}))
       const available=counterparts.filter(c=>c.point?.value!=null),first=available[0]?.point
@@ -76,6 +96,12 @@ export function eventRows(ids:string[],catalog:HeatmapInstrument[],broker:string
       const log=available.reduce((sum,c)=>sum+Math.log1p(c.point!.value!/100)*(c.pair.startsWith(currency)?1:-1),0)/7
       points.set(period.day,{...empty(available.some(c=>c.point!.reason)?'One or more counterparts have gaps or retained readings':''),value:Math.expm1(log)*100,coverage:7,
         from:first.from,through:first.through,checkedAt:Math.min(...available.map(c=>c.point!.checkedAt!))})
+      const range = path.get(period.day), point = points.get(period.day)!
+      if (range) {
+        const from = period.day === 'window' ? window.from : Date.parse(period.day)
+        const expected = Math.ceil((Math.min(Date.parse(period.end), data!.observed_at * 1000) - from) / 60000)
+        points.set(period.day, withBasketRange(point, range.open, range.high, range.low, 'M1-sampled basket range' + (range.samples < expected ? '; gaps or market closure' : '')))
+      } else points.set(period.day, { ...point, reason: [point.reason, 'No synchronized minute path for basket O/H/L'].filter(Boolean).join('; ') })
     }
     const checks=[...points.values()].flatMap(p=>p.checkedAt==null?[]:[p.checkedAt])
     return {id,label:`${currency} basket`,group,checkedAt:checks.length?Math.min(...checks):null,points}
@@ -91,6 +117,6 @@ export function eventChangesText(rows:HeatmapRow[], window:EventWindow, fields:r
     return groups.length?[`${period.day==='window'?'Window summary':jakartaTime(Date.parse(period.day))+' → '+jakartaTime(Date.parse(period.end))}${period.partial?' · In progress':''}\n\n${groups.join('\n\n')}`]:[]
   })
   return sections.length?[`Event-window market behaviour · ${jakartaTime(window.from)} → ${jakartaTime(window.through)} · ${window.minutes}-minute candles`,
-    `Common anchor ${jakartaTime(window.anchor)}. Each instrument uses its last completed M1 close at or before the anchor; actual baseline/end times are listed. All O/H/L/C percentages use that same instrument baseline throughout the window. Candles aggregate broker M1 prices in intervals anchored to From; Through is exclusive. Gaps are disclosed. Synthetic baskets have C only and require seven matching endpoints.`,
+    `Common anchor ${jakartaTime(window.anchor)}. Each instrument uses its last completed M1 close at or before the anchor; actual baseline/end times are listed. All O/H/L/C percentages use that same instrument baseline throughout the window. Candles aggregate broker M1 prices in intervals anchored to From; Through is exclusive. Gaps are disclosed. Synthetic basket O/H/L use synchronized M1 opening/closing observations across all seven counterparts; H/L may miss intraminute extremes. C requires seven matching endpoints.`,
     `History response checked ${jakartaTime(observedAt*1000)}; this is not a last-tick timestamp. Historical reaction data does not establish a current opportunity.`,...sections].join('\n\n'):''
 }

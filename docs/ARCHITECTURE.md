@@ -218,6 +218,17 @@ views use a fixed common anchor. These calculations live in
 `frontend/src/heatmap/`. Selection records exact instrument/period cells or whole
 column ranges, independently of the active ranking period. Exports filter each
 row's points to avoid expanding scattered selections into extra readings.
+Basket O/H/L measure each basket's own path across seven synchronized M1 opening
+and closing observations; constituent wicks are never combined. H/L are sampled
+extremes, not tick-exact extremes. `storage/heatmap_baskets.py` backfills only the
+visible month's broker sessions (including overlapping weeks), one session per
+request, reusing D1 baselines and discarding M1 arrays after aggregation. Small
+aggregate caches retain 96 sessions and two partial reads; source/account changes
+invalidate them. Closing returns stay available while ranges load or history is
+missing. Weekly ranges compound daily paths onto the previous week's baseline;
+all required daily paths must be available. Event windows calculate the same
+sampled ranges directly from their existing minute history. Exports disclose
+sampling, gaps, and retained readings.
 The dock and standalone panel share the Details/Bars ranking component and a
 broker-scoped view preference; bars always show C on a symmetric return scale.
 Daily/weekly timelines display one calendar month (including overlapping whole

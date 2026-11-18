@@ -105,6 +105,15 @@ NEGATIVE = [
 
 
 class NewsRelevanceTests(unittest.TestCase):
+    def test_fx_cross_asset_audit_recall_and_attribution_boundaries(self):
+        cases = json.loads(Path(__file__).with_name('relevance_audit_fx_cross_asset.json').read_text(encoding='utf-8'))
+        for case in cases:
+            with self.subTest(title=case['title']):
+                result = classify(case['title'], url=case['url'], feed_url=case['feed_url'], include=INCLUDE, enabled=True)
+                self.assertEqual(result['included'], case['included'], result)
+                excluded = classify(case['title'], url=case['url'], feed_url=case['feed_url'], include=INCLUDE, exclude=case['title'], enabled=True)
+                self.assertFalse(excluded['included'], 'Explicit user Exclude still wins')
+
     def test_november_18_archive_recall_and_noise(self):
         cases = json.loads(Path(__file__).with_name('relevance_audit_20261118.json').read_text(encoding='utf-8'))
         for case in cases:

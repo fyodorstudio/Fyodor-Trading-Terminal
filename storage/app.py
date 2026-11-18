@@ -22,6 +22,7 @@ from .currency_ledger import ledger_snapshot
 from .market_watch_daily import DailyMarketWatch
 from .heatmap import HeatmapHistory
 from .heatmap_intraday import HeatmapIntraday
+from .heatmap_baskets import HeatmapBaskets
 from .wildcards import WildcardChange, WildcardEntry, wildcard_snapshot, change_wildcard
 from .fed_forecasts import read_forecasts
 from .news_flow.api import news_router
@@ -52,6 +53,15 @@ class HeatmapIntradayRequest(BaseModel):
     symbols: list[str] = Field(max_length=128)
     from_utc: int = Field(ge=1420070400)
     through_utc: int = Field(ge=1420070400)
+    retry: bool = False
+
+
+class HeatmapBasketRequest(BaseModel):
+    source_id: str = Field(min_length=1, max_length=160)
+    generation: int = Field(ge=0)
+    pairs: dict[str, str] = Field(max_length=28)
+    currencies: list[str] = Field(min_length=1, max_length=8)
+    days: list[Date] = Field(min_length=1, max_length=42)
     retry: bool = False
 
 
@@ -90,6 +100,7 @@ def create_app(directory=None, run_collector=True):
     daily_market = DailyMarketWatch()
     heatmap = HeatmapHistory()
     heatmap_intraday = HeatmapIntraday()
+    heatmap_baskets = HeatmapBaskets(heatmap)
     wildcard_root = directory or data_directory()
 
     @app.get('/api/v1/wildcards')
@@ -143,6 +154,14 @@ def create_app(directory=None, run_collector=True):
             return daily_market.snapshot(request.source_id, request.generation, request.symbols, request.selected, request.date, request.retry)
         except (ValueError, OSError, subprocess.TimeoutExpired) as error:
             raise HTTPException(503, 'Pepperstone daily candles unavailable') from error
+
+    @app.post('/api/v1/heatmap/baskets')
+    def basket_history(request: HeatmapBasketRequest):
+        try:
+            return heatmap_baskets.snapshot(request.source_id, request.generation, request.pairs,
+                request.currencies, [d.isoformat() for d in request.days], request.retry)
+        except (ValueError, OSError, subprocess.TimeoutExpired) as error:
+            raise HTTPException(503, 'Basket ranges unavailable: ' + str(error)) from error
 
     @app.post('/api/v1/heatmap/intraday')
     def intraday_history(request: HeatmapIntradayRequest):

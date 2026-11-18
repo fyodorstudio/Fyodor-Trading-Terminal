@@ -1,5 +1,13 @@
 # Trading relevance
 
+The FX/cross-asset follow-up audit is recorded in
+[FX_CROSS_ASSET_AUDIT.md](FX_CROSS_ASSET_AUDIT.md). It adds recall for credit-market
+stress, broad metal prices, target-market energy/trade policy and US banking
+disruptions. Analyst attribution no longer promotes unrelated local markets;
+reversed local metal-price titles and additional crypto-only token names receive
+the existing noise guards. All changes use the shared profile without reseeding
+keywords, changing custom filters, or creating historical alerts.
+
 News Flow targets USD, EUR, GBP, JPY, CHF, CAD, AUD and NZD; Brent, gold/silver,
 and broad stock indices. Other commodities, China, bonds, index companies and
 geopolitics matter as transmission channels. Relevance is not a volatility,

@@ -187,7 +187,7 @@ export function heatmapOHLC(point: HeatmapPoint | undefined) {
   const baseline = point?.start
   const usable = point?.value != null && Number.isFinite(point.value) && baseline != null && Number.isFinite(baseline) && baseline > 0
   const change = (price: number | null | undefined) => usable && price != null && Number.isFinite(price) && price > 0 ? (price / baseline - 1) * 100 : null
-  // Basket endpoints have no OHLC path; never invent levels from separate pair wicks.
+  // Endpoint-only baskets stay blank until synchronized M1 ranges are available.
   return [
     { label: 'O', value: change(point?.open) }, { label: 'H', value: change(point?.high) },
     { label: 'L', value: change(point?.low) }, { label: 'C', value: point?.value ?? null },

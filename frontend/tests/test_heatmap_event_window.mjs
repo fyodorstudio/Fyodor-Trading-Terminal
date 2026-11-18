@@ -94,7 +94,11 @@ try{
   const allData={...data,symbols:Object.fromEntries(majorForexPairs.map(pair=>[pair,record]))}
   const baskets=model.eventRows(['basket:USD'],pairCatalog,'Pepperstone-Demo',allData,window)
   assert.equal(baskets[0].points.get('window').coverage,7)
-  assert.deepEqual(heatmap.heatmapOHLC(baskets[0].points.get('window')).slice(0,3).map(f=>f.value),[null,null,null])
+  const basketFields = heatmap.heatmapOHLC(baskets[0].points.get('window'))
+  assert.ok(basketFields.every(f => Number.isFinite(f.value)))
+  assert.equal(basketFields[0].value, 0)
+  assert.ok(basketFields[1].value >= basketFields[3].value && basketFields[2].value <= basketFields[3].value)
+  assert.match(baskets[0].points.get('window').reason, /M1-sampled/)
   allData.symbols.USDJPY={...record,bars:bars.slice(0,-1)}
   assert.equal(model.eventRows(['basket:USD'],pairCatalog,'Pepperstone-Demo',allData,window)[0].points.get('window').value,null,'Mismatched counterpart endpoint cannot form a basket')
   localStorage.setItem('fyodor.heatmap.v1:Pepperstone-Demo',JSON.stringify({rows:ids}))

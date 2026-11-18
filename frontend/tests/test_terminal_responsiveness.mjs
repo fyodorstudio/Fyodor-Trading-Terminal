@@ -217,6 +217,10 @@ globalThis.fetch = (url, options = {}) => {
       day: Math.floor((now / 1000 + 10800) / 86400) * 86400, observed_at: now / 1000,
       symbols: Object.fromEntries(body.symbols.map(symbol => [symbol, { open: 1.1, high: 1.2, low: 1, checked_at: now / 1000 }])) }) })
   }
+  if (u === '/storage-api/heatmap/baskets') {
+    const body = JSON.parse(options.body)
+    return Promise.resolve({ ok: true, json: async () => ({ source_id: body.source_id, generation: body.generation, sampling: 'M1', days: {}, pending: 0 }) })
+  }
   if (u === '/storage-api/heatmap/history') {
     const body = JSON.parse(options.body), today = new Date(now + 3 * 3600000).toISOString().slice(0, 10)
     const midnight = Date.parse(`${today}T00:00:00Z`) / 1000

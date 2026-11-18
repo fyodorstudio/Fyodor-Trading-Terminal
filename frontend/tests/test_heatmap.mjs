@@ -22,7 +22,9 @@ const captures = new Set()
 dom.HTMLElement.prototype.setPointerCapture = id => captures.add(id)
 dom.HTMLElement.prototype.hasPointerCapture = id => captures.has(id)
 dom.HTMLElement.prototype.releasePointerCapture = id => captures.delete(id)
-globalThis.fetch = (url, options) => String(url).startsWith('/storage-api/wildcards')
+globalThis.fetch = (url, options) => String(url) === '/storage-api/heatmap/baskets'
+  ? Promise.resolve({ ok: true, json: async () => ({ source_id: 'Pepperstone-Demo', generation: 2, sampling: 'M1', days: {}, pending: 0 }) })
+  : String(url).startsWith('/storage-api/wildcards')
   ? Promise.resolve({ ok: true, json: async () => ({ schema: 1, revision: 0, items: [] }) })
   : new Promise(resolve => pending.push({ url, options, body: JSON.parse(options.body), resolve }))
 const server = await createServer({ root: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'), server: { middlewareMode: true, hmr: false },
@@ -70,7 +72,7 @@ try {
     assert.ok(Math.abs(row.points.get('2026-11-06').value - expected) < 1e-10, `${row.label} geometric quote inversion`)
     assert.equal(row.points.get('2026-11-06').coverage, 7)
     assert.equal(row.points.has('2026-11-07'), false, 'Weekend never borrows Friday')
-    assert.ok(m.formatHeatmapOHLC(row.points.get('2026-11-06')).startsWith('O — · H — · L — · C '), 'Synthetic rows retain only their computed net C')
+    assert.ok(m.formatHeatmapOHLC(row.points.get('2026-11-06')).startsWith('O — · H — · L — · C '), 'Synthetic O/H/L await synchronized M1 ranges')
   }
   const missing = structuredClone(data); delete missing.symbols.AUDJPY
   const partial = m.buildHeatmapRows(ids, catalog, 'Pepperstone-Demo', missing, 'daily')

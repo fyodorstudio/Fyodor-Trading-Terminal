@@ -19,6 +19,8 @@ import { HeatmapFields, HeatmapCopyOptions } from './HeatmapOptions'
 import { EventWindowControls } from './EventWindowControls'
 import { eventRows, eventPeriods, eventChangesText, jakartaTime, type EventWindow } from './event-window'
 import { useIntradayHistory } from './useIntradayHistory'
+import { useBasketRanges } from './useBasketRanges'
+import { basketRequest, applyBasketRanges } from './basket-ranges'
 import './heatmap.css'
 
 const tapeMemory = new Map<string, { left: number; top: number }>()
@@ -78,10 +80,15 @@ const HeatmapContent = memo(function HeatmapContent({ catalogJson, broker, gener
   const { data, error: dailyError } = useHeatmapHistory(broker, generation, names, year, attempt, connected)
   const today = data?.today ?? brokerToday(), maxMonth = today.slice(0, 7)
   const intraday = useIntradayHistory(broker, generation, names, eventWindow, attempt, eventMode && active && connected)
-  const error = eventMode ? (!connected ? 'Broker disconnected. Intraday readings may be stale.' : intraday.error) : dailyError
   const eventClock = eventMode ? clock : 0
   const periods = useMemo(() => eventMode ? eventPeriods(eventWindow, eventClock) : heatmapPeriods(year, preferences.mode, today, month), [year, month, preferences.mode, today, eventMode, eventWindow, eventClock])
-  const rows = useMemo(() => active ? eventMode ? eventRows(ids, catalog, broker, intraday.data, eventWindow) : buildRows(ids, catalog, broker, data, preferences.mode) : [], [active, buildRows, ids, catalog, broker, data, preferences.mode, eventMode, intraday.data, eventWindow])
+  // Warm overlapping weeks once, so Daily/Weekly switches reuse the same ranges.
+  const rangeRequest = useMemo(() => eventMode ? '' : basketRequest(ids, catalog, heatmapPeriods(year, 'weekly', today, month), today), [eventMode, ids, catalog, year, month, today])
+  const ranges = useBasketRanges(broker, generation, rangeRequest, attempt, active && connected && !eventMode && !!data && data.pending === 0)
+  const error = eventMode ? (!connected ? 'Broker disconnected. Intraday readings may be stale.' : intraday.error) : dailyError || ranges.error
+  const baseRows = useMemo(() => active ? eventMode ? eventRows(ids, catalog, broker, intraday.data, eventWindow) : buildRows(ids, catalog, broker, data, preferences.mode) : [], [active, buildRows, ids, catalog, broker, data, preferences.mode, eventMode, intraday.data, eventWindow])
+  const dailyRows = useMemo(() => active && !eventMode && preferences.mode === 'weekly' && ranges.data && Object.keys(ranges.data.days).length ? buildRows(ids, catalog, broker, data, 'daily') : baseRows, [active, eventMode, preferences.mode, ranges.data, buildRows, ids, catalog, broker, data, baseRows])
+  const rows = useMemo(() => eventMode ? baseRows : applyBasketRanges(baseRows, dailyRows, ranges.data, preferences.mode), [eventMode, baseRows, dailyRows, ranges.data, preferences.mode])
   const selected = eventMode ? eventSelected : preferences.mode === 'weekly' ? weekStart(view.date) : view.date
   const copyFrom = copyRange?.from ?? selected, copyThrough = copyRange?.to ?? selected
   const copyDays = useMemo(() => periods.filter(period => !period.future && (currentSelection?.kind === 'cells'
@@ -261,10 +268,11 @@ const HeatmapContent = memo(function HeatmapContent({ catalogJson, broker, gener
     {help && <div className="heatmap-method">
       <p>Daily % compares each broker D1 close with its previous available close, including opening gaps. Weekly compares the prior week’s final available close with the selected Monday–Sunday broker week’s final close; the current week is incomplete. Dates are broker session dates, independent of the display timezone. Markets have different hours.</p>
       <p>Each synthetic currency basket is the equal-weight geometric return against the other seven currencies. All seven must have matching start/end dates. This is a custom basket, distinct from USDX/EURX/JPYX. Figures show price performance, providing evidence to research rotation and risk appetite; they do not measure capital-flow amounts or assign a risk-on/off verdict.</p>
-      <p>O · H · L · C shows opening, highest, lowest and closing price changes side by side, all measured against the same previous close. C is the net return and uses the latest available reading while in progress. Weekly uses the first available opening, whole-week extremes and final available close versus the prior week’s final close. Synthetic baskets show C only; O/H/L remains unavailable without a synchronized intraday path.</p>
+      <p>O · H · L · C shows opening, highest, lowest and closing price changes side by side, all measured against the same previous close. C is the net return and uses the latest available reading while in progress. Weekly uses the first available opening, whole-week extremes and final available close versus the prior week’s final close. Synthetic basket O/H/L use synchronized one-minute opening/closing samples across all seven counterparts. H/L show the basket’s own sampled extremes and may miss intraminute extremes. Ranges load by broker session; gaps and missing history are disclosed.</p>
       <p>Relative shading divides the return by prior return volatility: up to 60 earlier daily observations (minimum 20), or 26 earlier weeks (minimum 12). It uses no later periods. Missing baselines stay unshaded. Raw instrument returns are in their quoted currencies, without currency conversion, dividends, financing or contract adjustments.</p>
     </div>}
     <div className="heatmap-status" role="status">
+      {!eventMode && rangeRequest && data && !ranges.error && (!ranges.data || ranges.data.pending > 0) && <span>Loading basket ranges…</span>}
       {eventMode ? <span>{intraday.data ? `${rows.length} rows · ${intraday.data.pending} instruments pending · Common anchor ${jakartaTime(eventWindow.anchor)}` : 'Loading intraday history…'}</span> : <>
       {!broker ? 'Connect your broker to load the heatmap.' : !catalog.length ? 'Waiting for broker Market Watch symbols…' : !ids.length ? 'Choose instruments to start your heatmap.'
         : !data && names ? 'Loading broker daily history…' : missing || data?.pending ? `Loading history · ${missing || data?.pending} instruments remaining…`

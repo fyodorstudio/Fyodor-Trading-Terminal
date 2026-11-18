@@ -45,8 +45,14 @@ _retrospective_quote = re.compile(r'\bstock (?:outperforms?|underperforms?|rises
 _material_driver = re.compile(r'\b(?:earnings|revenues?|profits?|guidance|forecasts?|exports?|tariffs?|curbs?|restrictions?|ceo|chief|outages?|lawsuits?|fraud|scandal|governance|merger|acquisition|ipo|bankrupt\w*|defaults?|investigat\w*|probes?|fed|fomc|ecb|boj|boe|rba|rbnz|snb|treasur\w*|nasdaq|s&p|dow jones|sector|sell[ -]?off|rout|rotation|chips?|semiconductors?|inflation|gdp|payrolls|nfp|retail sales|opec|oil|brent|gas|gold|silver|dxy|dollar index|credit|systemic|contagion)\b', re.I)
 
 
+_analyst_names = r'(?:ubs|wells fargo|deutsche bank|jpmorgan|goldman sachs|morgan stanley|bank of america|citigroup|barclays|hsbc|bnp paribas|societe generale)'
+_analyst_suffix = re.compile(r'\s+[–—-]\s+' + _analyst_names + r'\s*$', re.I)
+_analyst_explanation = re.compile(r'\b' + _analyst_names + r'(?=\s+(?:explains?\b|(?:upgrades?|downgrades?)\s+(?!(?:its|their|our)\b).{0,90}\b(?:stocks?|shares?|equities|rating|overweight|underweight)\b))', re.I)
+
+
 def market_text(title):
     """Remove metadata/ambiguous uses, not the headline displayed or excluded."""
+    title = _analyst_explanation.sub('analyst', _analyst_suffix.sub('', title))
     text = normalized(_listing.sub(lambda match: ' ' + ' '.join(
         token for token in re.findall(r'[a-z0-9_./-]+', match[0], re.I)
         if token.lower() not in _exchanges), _publisher_suffix.sub('', title)))

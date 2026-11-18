@@ -19,7 +19,7 @@ export function heatmapResearchPrompt(changes: string, mode: HeatmapMode, broker
     : 'Daily changes compare each broker D1 close with its previous available close, including opening gaps.'
   return ['Explain the market moves in this heatmap.', focus, context, `Heatmap context · ${broker ?? 'Broker'} · Copied ${copiedTime} WIB (Asia/Jakarta, UTC+07:00)`,
     `${returns} O/H/L/C are percentage changes relative to that same previous close. In progress periods contain partial readings. Dates label broker sessions.`,
-    'Currency baskets use equal-weight geometric returns against the other seven currencies. They are distinct from broker USDX/EURX/JPYX. Basket O/H/L is unavailable; C is the net return.',
+    'Currency baskets use equal-weight geometric returns against the other seven currencies. They are distinct from broker USDX/EURX/JPYX. Basket O/H/L are derived from synchronized M1 opening/closing samples; H/L are the basket’s own sampled extremes and may miss intraminute extremes. C is the net return.',
     changes].join('\n\n')
 }
 

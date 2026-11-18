@@ -7,6 +7,7 @@ export const suites = [
   "tests/test_daily_market_watch.mjs",
   "tests/test_market_watch_history.mjs",
   "tests/test_heatmap.mjs",
+  "tests/test_heatmap_baskets.mjs",
   "tests/test_heatmap_motion.mjs",
   "tests/test_heatmap_event_window.mjs",
   "tests/test_heatmap_wildcards.mjs",
