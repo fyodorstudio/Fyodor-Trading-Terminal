@@ -40,7 +40,7 @@
 .macro-lane-label[hidden] { display: none; }
 .macro-lane-scroll { position: absolute; z-index: 5; width: 14px; overflow-y: auto; pointer-events: auto; }
 .macro-lane-scroll[hidden] { display: none; }
-.macro-series-drawer { position: absolute; z-index: 8; display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--border-strong); border-radius: 5px; background: var(--surface-panel); color: var(--text-strong); box-shadow: 0 4px 16px #0003; font-size: 11px; pointer-events: auto; box-sizing: border-box; }
+.macro-series-drawer { position: absolute; z-index: 70; display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--border-strong); border-radius: 5px; background: var(--surface-panel); color: var(--text-strong); box-shadow: 0 4px 16px #0003; font-size: 11px; pointer-events: auto; box-sizing: border-box; }
 .macro-series-drawer[hidden] { display: none; }
 .macro-drawer-header { display: flex; flex: 0 0 auto; align-items: center; gap: 8px; padding: 7px 8px; border-bottom: 1px solid var(--border); }
 .macro-series-drawer .macro-drawer-title { flex: 1; text-align: left; cursor: move; touch-action: none; user-select: none; font-weight: 600; }
@@ -67,14 +67,14 @@
 .macro-color-button::-webkit-color-swatch-wrapper { padding: 0; }
 .macro-color-button::-webkit-color-swatch { border: 0; border-radius: 50%; }
 .macro-color-button::-moz-color-swatch { border: 0; border-radius: 50%; }
-.macro-release-tooltip { position: absolute; z-index: 7; pointer-events: none; box-sizing: border-box; padding: 12px; border: 1px solid var(--border-strong); border-radius: 4px; background: var(--surface-panel); color: var(--text-strong); font-size: 12px; line-height: 1.4; box-shadow: 0 3px 12px #0002; }
+.macro-release-tooltip { position: absolute; z-index: 60; pointer-events: none; box-sizing: border-box; padding: 12px; border: 1px solid var(--border-strong); border-radius: 4px; background: var(--surface-panel); color: var(--text-strong); font-size: 12px; line-height: 1.4; box-shadow: 0 3px 12px #0002; }
 .macro-release-tooltip[hidden] { display: none; }
 .macro-release-tooltip strong { display: block; font-size: 17px; margin-bottom: 10px; font-weight: 500; }
 .macro-release-tooltip table { width: 100%; min-width: 230px; border-collapse: collapse; font-variant-numeric: tabular-nums; }
 .macro-release-tooltip th, .macro-release-tooltip td { padding: 5px 10px 5px 0; text-align: left; border-bottom: 1px solid var(--border); }
 .macro-release-tooltip th { font-weight: 500; color: var(--text-muted); font-size: 11px; }
 .macro-release-tooltip time { display: block; margin-top: 12px; font-size: 13px; }
-.macro-tooltip-connector { position: absolute; left: 0; top: 0; z-index: 6; pointer-events: none; overflow: visible; }
+.macro-tooltip-connector { position: absolute; left: 0; top: 0; z-index: 59; pointer-events: none; overflow: visible; }
 .macro-tooltip-connector path { stroke: var(--text-muted); stroke-width: 1; fill: none; }
 
 .macro-series-drawer .macro-drawer-universal { position: sticky; top: -4px; z-index: 1; padding: 4px 0; border-bottom: 1px solid var(--border); background: var(--surface-panel); }

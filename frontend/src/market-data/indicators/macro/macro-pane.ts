@@ -604,12 +604,19 @@ export function createMacroPane(chart: IChartApi, resizing: () => boolean = () =
           context.globalAlpha = 1
           if (indicator!.preferences.colorMode === 'ap-delta') {
             const segments = plots[key]?.segments ?? []
+            const lastActual = segments.at(-1)?.reading.releasedAt ?? -Infinity
+            const forecast = style.forecastVisible ? releaseMarkers.all().find(marker => marker.key === key && !marker.actual && marker.releasedAt > lastActual) : undefined
+            const forecastX = forecast && markerCoordinate(forecast.time, futureX)?.x
             for (let index = 0; index < segments.length; index++) {
               const x = chart.timeScale().timeToCoordinate(segments[index].time)
-              const end = index + 1 < segments.length ? chart.timeScale().timeToCoordinate(segments[index + 1].time) : mediaSize.width
+              const end = index + 1 < segments.length ? chart.timeScale().timeToCoordinate(segments[index + 1].time) : forecastX ?? mediaSize.width
               if (x === null || end === null) continue
               context.strokeStyle = readingColour(key, segments[index].reading)
               context.beginPath(); context.moveTo(x, y); context.lineTo(end, y); context.stroke()
+            }
+            if (forecastX !== undefined) {
+              context.strokeStyle = '#6b7280'
+              context.beginPath(); context.moveTo(forecastX, y); context.lineTo(mediaSize.width, y); context.stroke()
             }
           } else if (firstX !== null && lastX !== null) { context.beginPath(); context.moveTo(firstX, y); context.lineTo(lastX, y); context.stroke() }
           if (style.pointsVisible) for (const point of plots[key]?.dots ?? []) {

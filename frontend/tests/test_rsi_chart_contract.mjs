@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import React from 'react'
@@ -1229,6 +1230,29 @@ try {
     Object.defineProperties(event, { pageX: { value: 100 }, pageY: { value: y } })
     return event
   }
+  const overlayStyles = document.createElement('style')
+  overlayStyles.textContent = ['../src/market-data/indicators/macro/macro.css', '../src/inspector/inspector.css']
+    .map(file => readFileSync(new URL(file, import.meta.url), 'utf8')).join('\n')
+  document.head.append(overlayStyles)
+  const markerLayer = document.createElement('div'); markerLayer.className = 'inspector-chart-markers'
+  const markerPopup = document.createElement('div'); markerPopup.className = 'inspector-marker-popup'; markerLayer.append(markerPopup)
+  chart.chartElement().append(markerLayer)
+  const layerOrder = element => Number(getComputedStyle(element).zIndex)
+  const macroTooltip = host.querySelector('.macro-release-tooltip'), macroConnector = host.querySelector('.macro-tooltip-connector')
+  assert.ok(layerOrder(seriesDrawer) > layerOrder(divider), 'Series sits above the real native resize handle')
+  assert.ok(layerOrder(macroTooltip) > layerOrder(markerLayer), 'Release details sit above event icons and their open popup')
+  assert.ok(layerOrder(macroConnector) > layerOrder(markerLayer) && layerOrder(macroConnector) < layerOrder(macroTooltip))
+  assert.ok(layerOrder(seriesDrawer) > layerOrder(macroTooltip), 'The interactive Series window stays above hover details')
+  const drawerWasHidden = seriesDrawer.hidden
+  if (drawerWasHidden) { await React.act(async () => seriesDrawerButton.click()); await paint() }
+  seriesBody.dispatchEvent(new dom.PointerEvent('pointerdown', { bubbles: true, button: 0, clientX: 100, clientY: priceHeight - 2 }))
+  seriesBody.dispatchEvent(dividerMouse('mousedown', priceHeight - 2))
+  document.documentElement.dispatchEvent(dividerMouse('mousemove', priceHeight - 30))
+  document.documentElement.dispatchEvent(dividerMouse('mouseup', priceHeight - 30))
+  window.dispatchEvent(new dom.PointerEvent('pointerup')); await paint()
+  assert.equal(macroPane.getHeight(), dividerHeight, 'Dragging Series content over a divider cannot resize the MFDI pane')
+  if (drawerWasHidden) { await React.act(async () => seriesDrawerButton.click()); await paint() }
+  markerLayer.remove(); overlayStyles.remove()
   await React.act(async () => divider.dispatchEvent(new dom.PointerEvent('pointerdown', { bubbles: true, button: 0, clientX: 100, clientY: priceHeight - 2 })))
   divider.dispatchEvent(dividerMouse('mousedown', priceHeight - 2))
   for (const delta of [-10, -20, -30, -40]) {
