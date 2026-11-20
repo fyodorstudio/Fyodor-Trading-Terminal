@@ -31,6 +31,8 @@ try {
   assert.equal(preferences.series[eur].color, '#123456')
   p.saveMacroPreferences(preferences)
   assert.deepEqual(p.readMacroPreferences('BTCUSD'), preferences, 'All instruments share one working configuration')
+  const deltaPreferences = p.switchMacroCurrency({ ...preferences, colorMode: 'ap-delta' }, 'CHF')
+  assert.equal(deltaPreferences.colorMode, 'ap-delta', 'The color mode stays active when changing currency tabs')
   const calendarAt = Date.UTC(2026, 0, 1), definition = macroCatalog[eur]
   const event = { value_id: 'eur', event_id: definition.eventId, currency: 'EUR', country_code: definition.country, actual: 2, forecast: 0,
     previous: 1.75, release_at: calendarAt, chart_time_seconds: calendarAt / 1000, availability: 'observed', time_mode: 0, revision: 0, unit: 1, multiplier: 0, digits: 2 }

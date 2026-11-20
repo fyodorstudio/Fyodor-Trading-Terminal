@@ -27,7 +27,7 @@ const event = (overrides = {}) => ({ value_id: 'one', event_id: '840050014', cur
   release_at: at, chart_time_seconds: start, availability: 'observed', revision: 0, ...overrides })
 const reply = (request, body) => React.act(async () => request.resolve({ ok: true, json: async () => body }))
 try {
-  const { macroHistory, macroUpcoming, macroPlot, macroNumberLabels, supportsMacro, macroMetrics, macroValue } = await server.ssrLoadModule('./src/market-data/indicators/macro/macro-data.ts')
+  const { macroHistory, macroUpcoming, macroPlot, macroNumberLabels, macroDeltaColor, supportsMacro, macroMetrics, macroValue } = await server.ssrLoadModule('./src/market-data/indicators/macro/macro-data.ts')
   const rba = JSON.parse(fs.readFileSync(new URL('../../config/calendar-overrides/AUD-RBA-rate.json', import.meta.url), 'utf8'))
   const latestRba = rba.releases[0], rbaAt = Date.parse(latestRba.set.released_at), rbaChart = rbaAt / 1000 + 7200
   const rbaKey = 'AUD:AU:36030008'
@@ -87,6 +87,25 @@ try {
   assert.equal(carried.line.length, 0); assert.equal(carried.readings.get(bars[3].time).value, 0.25)
   assert.deepEqual(macroPlot([], history.rate, 3600, true).line, [])
   assert.deepEqual(macroPlot([{ time: start }], history.rate, 86400, true).dots, [{ time: start, value: 0.25 }])
+  const deltaReadings = [
+    { id: 'up', time: start, releasedAt: at, value: .3, previous: .2 },
+    { id: 'down', time: start + 7200, releasedAt: at + 7200000, value: -.1, previous: 0 },
+    { id: 'equal', time: start + 14400, releasedAt: at + 14400000, value: 0, previous: 0 },
+  ]
+  const deltaColor = reading => macroDeltaColor(reading, '#123456')
+  assert.deepEqual(deltaReadings.map(deltaColor), ['#16a34a', '#dc2626', '#6b7280'])
+  for (const previous of [null, undefined, NaN, Infinity]) assert.equal(deltaColor({ ...deltaReadings[0], previous }), '#123456')
+  assert.equal(deltaColor({ value: 4.1, previous: 4.2 }), '#dc2626', 'Lower unemployment uses the same numeric rule')
+  assert.equal(deltaColor({ value: 0, previous: -.1 }), '#16a34a')
+  const deltaBars = Array.from({ length: 6 }, (_, i) => ({ time: start + i * 3600 }))
+  const deltaPlot = macroPlot(deltaBars, deltaReadings, 3600, true, deltaColor)
+  assert.deepEqual(deltaPlot.line.map(point => point.color), ['#16a34a', '#16a34a', '#dc2626', '#dc2626', '#6b7280', '#6b7280'], 'The most recent release colors the following line')
+  assert.deepEqual(deltaPlot.dots.map(point => point.color), deltaReadings.map(deltaColor))
+  const scrolled = macroPlot(deltaBars.slice(1), deltaReadings, 3600, false, deltaColor)
+  assert.equal(scrolled.segments[0].reading.id, 'up', 'Offscreen releases still color the beginning of a lane')
+  assert.equal(scrolled.segments[0].time, deltaBars[1].time)
+  assert.deepEqual([...macroNumberLabels('coreCpi', deltaReadings, 'ap-delta').values()], ['↑0.30%', '↓-0.10%', '0.00%'])
+  assert.equal(macroNumberLabels('coreCpi', [{ ...deltaReadings[1], previous: -.2 }], 'ap-delta').get(start + 7200), '↑-0.10%', 'A-P arrows use reported Previous, even without a preceding box')
   const scheduledEvent = (key, days = 1, patch = {}) => event({ value_id: `next-${key}`, event_id: macroMetrics[key].eventId,
     unit: macroMetrics[key].unit, multiplier: macroMetrics[key].multiplier, actual: null,
     release_at: at + days * 86400000, chart_time_seconds: start + days * 86400, ...patch })
@@ -163,6 +182,10 @@ try {
   assert.equal(forecastToggled.series.payrolls.numbersVisible, false, 'N never mutates previous settings')
   saveMacroPreferences(numbered)
   assert.deepEqual(readMacroPreferences(), numbered, 'Number choices survive reload')
+  assert.equal(numbered.colorMode, 'custom', 'Existing settings default to Custom Color')
+  saveMacroPreferences({ ...numbered, colorMode: 'ap-delta' })
+  assert.equal(readMacroPreferences('EURUSD').colorMode, 'ap-delta', 'The mode persists across instruments')
+  assert.deepEqual(readMacroPreferences().series, numbered.series, 'Delta mode keeps saved custom colors')
   dom.localStorage.removeItem('fyodor.indicators.macro.v2')
   dom.localStorage.setItem('fyodor.indicators.macro.v1', JSON.stringify({ ...defaultMacroPreferences, groups: { policy: true, labour: false, inflation: false } }))
   const flattened = readMacroPreferences()

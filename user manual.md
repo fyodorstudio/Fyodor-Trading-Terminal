@@ -13,6 +13,13 @@ The drawing toolbar adds and edits chart drawings. **Inspector** opens calendar
 release details; **Show events** opens recent/upcoming releases.
 Display timezone and theme are available in Settings.
 
+MFDI's currency tabs, Fit, lock and lane controls share one toolbar row.
+Choose **A-P Delta** beside Series to color actual releases by Actual minus
+reported Previous: higher green, lower red, unchanged gray. Each box's color
+continues along the following line until the next actual release; the final lane
+segment keeps the last result's color. Missing Previous values and forecast
+markers keep their custom colors. **Custom Color** restores your saved styling.
+
 ## News Flow
 
 Click the newspaper button immediately right of **Heatmap Ranking** in the chart

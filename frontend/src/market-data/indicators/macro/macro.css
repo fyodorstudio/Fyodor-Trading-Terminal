@@ -1,6 +1,8 @@
 .macro-legend { position: absolute; left: 10px; z-index: 4; display: flex; flex-direction: column; gap: 3px; color: var(--text-strong); background: transparent; font-size: 11px; line-height: 16px; overflow: auto; pointer-events: none; }
 .macro-currency-header, .macro-currency-tabs { display: flex; align-items: center; gap: 4px; pointer-events: auto; }
-.macro-currency-tabs { overflow-x: auto; }
+.macro-currency-header { overflow-x: auto; flex-shrink: 0; }
+.macro-currency-tabs { flex: 0 0 auto; }
+.macro-currency-header .macro-controls { flex: 0 0 auto; flex-wrap: nowrap; white-space: nowrap; }
 .macro-currency-header button { padding: 3px 8px; border: 1px solid var(--border-strong); border-radius: 4px; background: var(--surface-panel); color: var(--text-strong); cursor: pointer; font: inherit; }
 .macro-currency-tabs button[aria-selected='true'], .macro-currency-header > button[aria-pressed='true'] { color: var(--accent); border-color: var(--accent); }
 .macro-currency-header button:focus-visible { outline: 2px solid var(--accent); }
@@ -26,6 +28,7 @@
 .macro-controls button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .macro-controls .macro-lock-button { display: grid; place-items: center; padding: 3px 5px; }
 .macro-lock-button[aria-pressed="true"] { color: var(--accent); background: var(--surface-hover); }
+.macro-controls [data-macro-color-mode][aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }
 .macro-controls button:disabled { opacity: 0.45; cursor: default; }
 .macro-readout { display: flex; flex-wrap: wrap; gap: 3px 16px; font-variant-numeric: tabular-nums; }
 .macro-readout[hidden] { display: none; }

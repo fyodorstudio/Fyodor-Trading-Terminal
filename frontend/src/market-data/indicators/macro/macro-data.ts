@@ -22,12 +22,16 @@ export function macroValue(metric: MacroMetric, value: number, reading?: Pick<Ma
   return `${value.toLocaleString('en-US', { minimumFractionDigits: unit === 1 ? 2 : 0, maximumFractionDigits: digits })}${suffix}`
 }
 /** Compare actual releases, including predecessors outside the loaded candles. */
-export function macroNumberLabels(metric: MacroMetric, history: MacroReading[]) {
+export function macroNumberLabels(metric: MacroMetric, history: MacroReading[], colorMode: MacroPreferences['colorMode'] = 'custom') {
   return new Map(history.map((reading, index) => {
-    const previous = history[index - 1]
-    const arrow = !previous ? '' : reading.value > previous.value ? '↑' : reading.value < previous.value ? '↓' : ''
+    const previous = colorMode === 'ap-delta' ? reading.previous : history[index - 1]?.value
+    const arrow = previous == null || !Number.isFinite(previous) ? '' : reading.value > previous ? '↑' : reading.value < previous ? '↓' : ''
     return [reading.time, `${arrow}${macroValue(metric, reading.value, reading)}`]
   }))
+}
+export function macroDeltaColor(reading: MacroReading | undefined, fallback: string) {
+  if (!reading || reading.previous == null || !Number.isFinite(reading.previous) || !Number.isFinite(reading.value)) return fallback
+  return reading.value > reading.previous ? '#16a34a' : reading.value < reading.previous ? '#dc2626' : '#6b7280'
 }
 function groupEvents(events: StoredCalendarEvent[]) {
   const grouped = new Map<string, StoredCalendarEvent[]>()
@@ -96,8 +100,9 @@ export function macroUpcoming(events: StoredCalendarEvent[], now: number, keys: 
 }
 
 /** Only candle timestamps enter the shared native timeline. Carry-forward is explicit. */
-export function macroPlot(bars: OhlcBar[], history: MacroReading[], step: number, carryLine: boolean) {
+export function macroPlot(bars: OhlcBar[], history: MacroReading[], step: number, carryLine: boolean, color?: (reading: MacroReading) => string) {
   const line: LineData<UTCTimestamp>[] = [], dots: LineData<UTCTimestamp>[] = []
+  const segments: { time: UTCTimestamp; reading: MacroReading }[] = []
   const readings = new Map<number, MacroReading>()
   let index = 0, current: MacroReading | undefined
   for (const bar of bars) {
@@ -107,10 +112,11 @@ export function macroPlot(bars: OhlcBar[], history: MacroReading[], step: number
       releasedInCandle = current.time >= bar.time
     }
     if (!current) continue
-    const point = { time: bar.time, value: current.value }
+    const point = { time: bar.time, value: current.value, ...(color ? { color: color(current) } : {}) }
+    if (segments.at(-1)?.reading !== current) segments.push({ time: bar.time, reading: current })
     readings.set(bar.time, current)
     if (carryLine || releasedInCandle) line.push(point)
     if (releasedInCandle) dots.push(point)
   }
-  return { line, dots, readings }
+  return { line, dots, readings, segments }
 }

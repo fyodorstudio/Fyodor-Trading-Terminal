@@ -1,6 +1,6 @@
 import { LineSeries, LineType, type Coordinate, type IChartApi, type ISeriesApi, type IPrimitivePaneRenderer, type IPanePrimitive, type Logical, type MouseEventParams, type Time } from 'lightweight-charts'
 import type { OhlcBar } from '../../contracts/OhlcBar'
-import { macroNumberLabels, macroPlot, macroValue, type MacroIndicator, type MacroReading } from './macro-data'
+import { macroDeltaColor, macroNumberLabels, macroPlot, macroValue, type MacroIndicator, type MacroReading } from './macro-data'
 import { macroCatalog } from './macro-catalog'
 import { claimChartClick } from '../../candlestick-chart/chart-click-selection'
 import { futureTimelineSeconds } from '../../candlestick-chart/future-timeline'
@@ -41,6 +41,8 @@ export function createMacroPane(chart: IChartApi, resizing: () => boolean = () =
   const colourDrafts = new Map<string, string>(), colourPreviews = new Map<string, string>()
   let colourTimer: number | null = null
   const colourFor = (key: string) => colourPreviews.get(key) ?? indicator!.preferences.series[key].color
+  const readingColour = (key: string, reading?: MacroReading) => indicator?.preferences.colorMode === 'ap-delta'
+    ? macroDeltaColor(reading, colourFor(key)) : colourFor(key)
   const stopColourTimer = () => { if (colourTimer !== null) window.clearTimeout(colourTimer); colourTimer = null }
   const clearColourPreviews = () => { stopColourTimer(); colourDrafts.clear(); colourPreviews.clear() }
   const paintColour = (key: string, color: string) => {
@@ -184,11 +186,18 @@ export function createMacroPane(chart: IChartApi, resizing: () => boolean = () =
   flattenIcon.append(bars); flattenButton.append(flattenIcon)
   const seriesButton = document.createElement('button'); seriesButton.type = 'button'; seriesButton.textContent = 'Series'
   seriesButton.setAttribute('aria-label', 'MFDI series drawer'); seriesButton.setAttribute('aria-expanded', 'false')
-  controls.append(fitButton, fitAllButton, lockButton, flattenButton, seriesButton)
+  const colorButtons = (['custom', 'ap-delta'] as const).map(mode => {
+    const button = document.createElement('button'); button.type = 'button'; button.dataset.macroColorMode = mode
+    button.textContent = mode === 'ap-delta' ? 'A-P Delta' : 'Custom Color'
+    button.title = mode === 'ap-delta' ? 'Actual minus reported Previous: higher green, lower red, unchanged gray' : 'Use saved series and category colors'
+    button.onclick = () => { if (indicator && (indicator.preferences.colorMode ?? 'custom') !== mode) commitPreferences({ ...indicator.preferences, colorMode: mode }) }
+    return button
+  })
+  controls.append(fitButton, fitAllButton, lockButton, flattenButton, ...colorButtons, seriesButton)
   const readout = document.createElement('div'); readout.className = 'macro-readout'
   const note = document.createElement('div'); note.className = 'macro-note'
-  const currencyHeader = document.createElement('div'); currencyHeader.className = 'macro-currency-header'; currencyHeader.append(currencyTabs)
-  legend.append(currencyHeader, controls, readout, note)
+  const currencyHeader = document.createElement('div'); currencyHeader.className = 'macro-currency-header'; currencyHeader.append(currencyTabs, controls)
+  legend.append(currencyHeader, readout, note)
   for (const event of ['pointerdown', 'dblclick']) legend.addEventListener(event, e => e.stopPropagation())
   chart.chartElement().appendChild(legend)
   const releaseTooltip = createMacroTooltip(chart.chartElement()), tooltip = releaseTooltip.element
@@ -403,6 +412,7 @@ export function createMacroPane(chart: IChartApi, resizing: () => boolean = () =
   const updateLegend = () => {
     if (!indicator) return
     const p = indicator.preferences
+    for (const button of colorButtons) button.setAttribute('aria-pressed', String(button.dataset.macroColorMode === (p.colorMode ?? 'custom')))
     const activeCurrency = p.activeCurrency ?? p.currencies?.[0] ?? 'USD'
     for (const button of currencyButtons) { const selected = button.dataset.macroCurrency === activeCurrency; button.setAttribute('aria-selected', String(selected)); button.tabIndex = selected ? 0 : -1 }
     eventName.setAttribute('aria-pressed', String(!linked && macroSelection(p).includes(macroEventRowKey)))
@@ -439,7 +449,7 @@ export function createMacroPane(chart: IChartApi, resizing: () => boolean = () =
     for (const key of visible) {
       const reading = time === undefined ? undefined : plots[key]?.readings.get(time)
       const field = document.createElement('span'); field.className = 'macro-field'
-      const swatch = document.createElement('span'); swatch.className = 'macro-swatch'; swatch.style.backgroundColor = colourFor(key)
+      const swatch = document.createElement('span'); swatch.className = 'macro-swatch'; swatch.style.backgroundColor = readingColour(key, reading)
       swatch.setAttribute('aria-hidden', 'true')
       const value = document.createElement('span')
       value.textContent = `${macroCatalog[key].label} ${reading ? macroValue(key, reading.value, reading) : '—'}`
@@ -592,10 +602,20 @@ export function createMacroPane(chart: IChartApi, resizing: () => boolean = () =
           const firstX = points.length ? chart.timeScale().timeToCoordinate(points[0].time) : null
           const lastX = points.length ? chart.timeScale().timeToCoordinate(points.at(-1)!.time) : null
           context.globalAlpha = 1
-          if (firstX !== null && lastX !== null) { context.beginPath(); context.moveTo(firstX, y); context.lineTo(lastX, y); context.stroke() }
+          if (indicator!.preferences.colorMode === 'ap-delta') {
+            const segments = plots[key]?.segments ?? []
+            for (let index = 0; index < segments.length; index++) {
+              const x = chart.timeScale().timeToCoordinate(segments[index].time)
+              const end = index + 1 < segments.length ? chart.timeScale().timeToCoordinate(segments[index + 1].time) : mediaSize.width
+              if (x === null || end === null) continue
+              context.strokeStyle = readingColour(key, segments[index].reading)
+              context.beginPath(); context.moveTo(x, y); context.lineTo(end, y); context.stroke()
+            }
+          } else if (firstX !== null && lastX !== null) { context.beginPath(); context.moveTo(firstX, y); context.lineTo(lastX, y); context.stroke() }
           if (style.pointsVisible) for (const point of plots[key]?.dots ?? []) {
             const x = chart.timeScale().timeToCoordinate(point.time)
             if (x === null || x < 0 || x > mediaSize.width) continue
+            context.fillStyle = readingColour(key, plots[key]!.readings.get(point.time))
             context.beginPath(); context.arc(x, y, 4, 0, Math.PI * 2); context.fill()
           }
         }
@@ -613,7 +633,7 @@ export function createMacroPane(chart: IChartApi, resizing: () => boolean = () =
           context.strokeStyle = colourFor(key); context.lineWidth = style.lineWidth
           context.globalAlpha = 0.6; context.setLineDash([]); context.beginPath()
           points.forEach((point, index) => { if (index === 0) context.moveTo(point.x, point.y); else context.lineTo(point.x, point.y) })
-          context.stroke()
+          if (!laneMode || indicator!.preferences.colorMode !== 'ap-delta') context.stroke()
           const ring = (x: number, y: number, alpha: number) => {
             if (x < 0 || x > mediaSize.width || y < (laneMode ? laneControls.contentTop : 0) || y > mediaSize.height) return
             context.globalAlpha = alpha; context.lineWidth = 1.5; context.setLineDash([])
@@ -634,6 +654,7 @@ export function createMacroPane(chart: IChartApi, resizing: () => boolean = () =
             if (x === null || y === null || x < 0 || x > mediaSize.width || y < (laneMode ? laneControls.contentTop : 0) || y > mediaSize.height) continue
             const reading = plots[key]!.readings.get(point.time)
             if (releaseMarkers.hasActual(key, reading!.releasedAt)) continue
+            const color = readingColour(key, reading); context.fillStyle = color
             const text = numberLabels[key]?.get(reading!.time) ?? macroValue(key, point.value, reading)
             if ((indicator!.preferences.numberPlacement ?? 'inside') === 'dots') continue
             if ((indicator!.preferences.numberPlacement ?? 'inside') === 'above') {
@@ -644,7 +665,7 @@ export function createMacroPane(chart: IChartApi, resizing: () => boolean = () =
               context.font = '10px sans-serif'
               const bounds = macroMarkerBounds(context, x, y, text)
               if (!labels.claim(bounds, mediaSize.width, mediaSize.height)) continue
-              paintMacroReleaseMarker(context, x, y, text, colourFor(key), true, markerBackground)
+              paintMacroReleaseMarker(context, x, y, text, color, true, markerBackground)
               markerHits.push({ ...bounds, key, reading: reading!, time: point.time })
             }
           }
@@ -666,8 +687,8 @@ export function createMacroPane(chart: IChartApi, resizing: () => boolean = () =
           const y = value === undefined ? laneMode ? plotY(key, 0) : null : plotY(key, value), { x, time } = coordinate
           if (value === undefined) previous.delete(key)
           if (y === null) continue
-          const color = colourFor(key), from = previous.get(key)
-          if (!actual && value !== undefined) {
+          const color = readingColour(key, actual), from = previous.get(key)
+          if (!actual && value !== undefined && (!laneMode || indicator!.preferences.colorMode !== 'ap-delta')) {
             context.strokeStyle = color; context.lineWidth = style.lineWidth; context.globalAlpha = 0.25; context.setLineDash([])
             if (from) { context.beginPath(); context.moveTo(from.x, from.y); context.lineTo(x, y); context.stroke() }
             previous.set(key, { x, y })
@@ -759,7 +780,7 @@ export function createMacroPane(chart: IChartApi, resizing: () => boolean = () =
       const keys = selectedMacroMetrics(next.preferences)
       // Navigation and saved placement changes do not replace chart data or restore
       // the shared time window. Only numerical inputs and styles need that work.
-      const presentation = JSON.stringify([selectedAxisFor(next.preferences), keys.map(key => [key, macroMetricVisible(next.preferences, key), next.preferences.series[key]])])
+      const presentation = JSON.stringify([selectedAxisFor(next.preferences), next.preferences.colorMode, keys.map(key => [key, macroMetricVisible(next.preferences, key), next.preferences.series[key]])])
       const input = [bars, next.history, next.forecastHistory, next.upcoming, presentation, next.preferences.layout?.axisRestoreId, next.sourceId, next.status, next.forecasts, seconds, format]
       if (numericalInput?.every((value, index) => value === input[index])) {
         const changedMode = laneMode !== macroLayout(next.preferences).laneMode
@@ -831,9 +852,10 @@ export function createMacroPane(chart: IChartApi, resizing: () => boolean = () =
         series[key].applyOptions({ priceScaleId: scaleId, visible: active, color: colourFor(key), priceFormat })
         series[key].applyOptions({ lineWidth: p.series[key].lineWidth,
           pointMarkersVisible: key !== 'rate' && p.series[key].pointsVisible, pointMarkersRadius: 4 })
-        const plot = active ? macroPlot(bars, next.history[key] ?? [], step, macroCatalog[key].carry === true) : undefined
+        const plot = active ? macroPlot(bars, next.history[key] ?? [], step, macroCatalog[key].carry === true,
+          p.colorMode === 'ap-delta' ? reading => readingColour(key, reading) : undefined) : undefined
         plots[key] = plot
-        if (active && p.series[key].numbersVisible) numberLabels[key] = macroNumberLabels(key, next.history[key] ?? [])
+        if (active && p.series[key].numbersVisible) numberLabels[key] = macroNumberLabels(key, next.history[key] ?? [], p.colorMode)
         if (active && p.series[key].forecastVisible)
           forecastPlots[key] = macroPlot(bars, next.forecastHistory?.[key] ?? [], step, false)
         series[key].setData(plot?.line ?? [])

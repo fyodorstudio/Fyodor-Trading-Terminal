@@ -85,7 +85,11 @@ try {
     paneSize: () => ({ width: 800, height: 400 }), removeSeries: line => lines.delete(line), removePane() {},
     subscribeCrosshairMove: fn => hover.add(fn), unsubscribeCrosshairMove: fn => hover.delete(fn), subscribeClick: fn => clicks.add(fn), unsubscribeClick: fn => clicks.delete(fn) }
   const { paintMacroReleaseMarker, createMacroLabelLayout } = await server.ssrLoadModule('./src/market-data/indicators/macro/macro-release-markers.ts')
+  let pathPoints = []
   const operations = [], context = new Proxy({ font: '', measureText: text => ({ width: text.length * 6 }),
+    beginPath() { pathPoints = [] }, moveTo: (...args) => pathPoints.push(['move', ...args]), lineTo: (...args) => pathPoints.push(['line', ...args]),
+    stroke() { operations.push(['stroke', context.strokeStyle, context.globalAlpha, [...pathPoints]]) },
+    fill() { operations.push(['fill', context.fillStyle, [...pathPoints]]) },
     save() {}, restore() {}, rect: (...args) => operations.push(['rect', ...args]), ellipse: () => assert.fail('Markers must be rectangles'),
     fillText: (...args) => operations.push(['text', ...args]) }, { get: (target, key) => key in target ? target[key] : () => {} })
   paintMacroReleaseMarker(context, 100, 50, '4.35%', '#dc2626', true)
@@ -122,6 +126,31 @@ try {
   shell.querySelector('[data-macro-visibility="rate"]').click()
   shell.querySelector('[data-macro-visibility="payrolls"]').click()
   assert.equal(preferences.series.rate.visible, false); assert.equal(preferences.series.payrolls.visible, false, 'Consecutive eye changes share the latest working state')
+  const header = shell.querySelector('.macro-currency-header')
+  assert.ok(header.contains(shell.querySelector('.macro-controls')), 'Currency tabs and chart actions share one toolbar row')
+  const deltaButton = shell.querySelector('[data-macro-color-mode="ap-delta"]'), customButton = shell.querySelector('[data-macro-color-mode="custom"]')
+  assert.equal(deltaButton.nextElementSibling, shell.querySelector('[aria-label="MFDI series drawer"]'))
+  const savedColor = preferences.series.rate.color
+  preferences = { ...preferences, series: { ...preferences.series, rate: { ...preferences.series.rate, visible: true, forecastVisible: true } } }
+  indicator = { ...indicator, preferences, history: { rate: [
+    { id: 'up', time: bars[0].time, releasedAt: bars[0].time * 1000, value: 5, previous: 4 },
+    { id: 'down', time: bars[3].time, releasedAt: bars[3].time * 1000, value: 4, previous: 5 },
+    { id: 'equal', time: bars[6].time, releasedAt: bars[6].time * 1000, value: 4, previous: 4 },
+    { id: 'last', time: bars[8].time, releasedAt: bars[8].time * 1000, value: 3, previous: 4 },
+  ] }, upcoming: [{ time: bars[9].time, releasedAt: Date.now() + 60000, metrics: ['rate'], forecasts: { rate: 3.5 } }] }; sync()
+  deltaButton.click(); sync(); draw()
+  assert.equal(deltaButton.getAttribute('aria-pressed'), 'true')
+  assert.equal(customButton.getAttribute('aria-pressed'), 'false')
+  assert.equal(preferences.series.rate.color, savedColor)
+  for (const color of ['#16a34a', '#dc2626', '#6b7280']) assert.ok(operations.some(op => op[0] === 'fill' && op[1] === color), `${color}: actual box is filled`)
+  const strokes = operations.filter(op => op[0] === 'stroke' && op[2] === 1)
+  assert.ok(strokes.some(op => op[1] === '#16a34a' && op[3][0]?.[1] === 100 && op[3][1]?.[1] === 160), 'Green carries forward until the red release')
+  assert.ok(strokes.some(op => op[1] === '#dc2626' && op[3][0]?.[1] === 260 && op[3][1]?.[1] === 800), 'The last result colors the line to the right edge')
+  assert.ok(!operations.some(op => op[0] === 'stroke' && op[1] === savedColor && op[2] === .25), 'Forecast connectors do not paint over the latest result in delta lanes')
+  assert.ok(strokes.some(op => op[1] === savedColor && op[3].length === 0), 'Pending forecast markers retain their custom outline')
+  customButton.click(); sync(); draw()
+  assert.equal(customButton.getAttribute('aria-pressed'), 'true')
+  assert.ok(!operations.some(op => op[0] === 'stroke' && ['#16a34a', '#dc2626', '#6b7280'].includes(op[1])))
   viewPane.destroy()
   assert.equal(primitives.size, 0); assert.equal(lines.size, 0); assert.equal(hover.size, 0); assert.equal(clicks.size, 0); assert.equal(listeners.size, 0); assert.equal(frames.size, 0)
   console.log('✓ MFDI essentials: eight exact currency setups, one-time population, shared palette/inheritance, movable Events lane, rectangular centered values and bounded collision handling')
