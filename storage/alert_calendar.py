@@ -3,6 +3,7 @@ from datetime import date, datetime, time, timedelta, timezone
 import hashlib
 import json
 from .persistence.support import missing_intervals
+from .current_calendar import current_events
 
 JAKARTA = timezone(timedelta(hours=7))
 
@@ -23,7 +24,7 @@ def day_snapshot(store, source_id, day, after_revision=None):
         coverage = {currency: {'missing': missing_intervals(raw_start, raw_start + 86400, store._covered(source_id, currency, source['server_now']))}
                     for currency in ('USD', 'EUR', 'GBP', 'JPY', 'CHF', 'CAD', 'AUD', 'NZD')} if source else {}
         digest = hashlib.sha256(json.dumps(coverage, sort_keys=True).encode()).hexdigest()[:16]
-        signature = f"{revision}:{store.overrides.revision}:{source['publisher_status'] if source else 'missing'}:{digest}"
+        signature = f"2:{revision}:{store.overrides.revision}:{source['publisher_status'] if source else 'missing'}:{digest}"
         result = {'source_id': source_id, 'date': day, 'revision': signature, 'source': source}
         if after_revision == signature:
             return {**result, 'unchanged': True}
@@ -36,4 +37,4 @@ def day_snapshot(store, source_id, day, after_revision=None):
             # index to inspect only the possible source days, not all history.
             (source_id, min(start - 50400, source_day), max(end + 50400, source_day + 86400),
              start * 1000, end * 1000, source_day, source_day + 86400)).fetchall()
-        return {**result, 'events': store.event_rows(rows), 'coverage': coverage}
+        return {**result, 'events': current_events(store.event_rows(rows)), 'coverage': coverage}

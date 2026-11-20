@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from ..calendar_clock import PROFILES, project
 from ..currencies import CURRENCIES
+from ..current_calendar import current_events, occurrence_key
 from .support import canonical, DAY, HISTORY_START, missing_intervals
 
 
@@ -34,6 +35,23 @@ class StoreQueries:
     def publisher_sources(self):
         with self.lock:
             return [dict(row) for row in self.db.execute("SELECT * FROM sources WHERE instance_id IS NOT NULL")]
+
+    def current_values(self, source_id, value_ids):
+        with self.lock:
+            selected = self.values(source_id, value_ids)
+            candidates = {}
+            for day in {event['server_time_seconds'] // DAY for event in selected}:
+                rows = self.db.execute('''SELECT e.* FROM calendar_readings e
+                    WHERE e.source_id=? AND e.server_time>=? AND e.server_time<?''',
+                    (source_id, (day - 1) * DAY, (day + 2) * DAY)).fetchall()
+                for event in self.event_rows(rows):
+                    candidates[event['value_id']] = event
+            current = {occurrence_key(event): event for event in current_events(candidates.values())}
+            result = {}
+            for event in selected:
+                replacement = current.get(occurrence_key(event), event)
+                result[replacement['value_id']] = replacement
+            return list(result.values())
 
     def status(self):
         with self.lock:

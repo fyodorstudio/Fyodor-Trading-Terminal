@@ -130,7 +130,7 @@ It helps investigate future delays; earlier feed availability cannot be recreate
 The top-right star and **Add Wildcard** icons have hover tooltips. Relative ages
 update even when the feed is unchanged. A publication-to-collection gap of at
 least a minute shows **Published ... ago / Collected ... ago** separately (exact
-times in dated views). Hover Collected for prior-check evidence when available.
+times in dated views). Hover Collected to see the previous successful check when available.
 Ordering still follows publication; collection does not claim the news is fresh.
 Missing or future publication times show
 **First collected … ago**, using when the terminal first saw the item. This age

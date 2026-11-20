@@ -1,4 +1,5 @@
 """Read-only recent releases, dated by publication UTC rather than chart placement."""
+from .current_calendar import current_events
 
 
 def recent_snapshot(store, source_id, start_ms, end_ms, currencies):
@@ -15,4 +16,4 @@ def recent_snapshot(store, source_id, start_ms, end_ms, currencies):
              *currencies, start_ms, end_ms)).fetchall()
         return {'source_id': source_id, 'from_utc_ms': start_ms, 'to_utc_ms': end_ms,
                 'currencies': currencies, 'source_available': source is not None,
-                'events': store.event_rows(rows)}
+                'events': current_events(store.event_rows(rows))}

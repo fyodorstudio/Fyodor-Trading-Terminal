@@ -57,7 +57,7 @@ class StoreObservations:
             ON CONFLICT(id) DO UPDATE SET server_now=max(server_now, excluded.server_now)""",
             (source_id, server_now))
 
-    def _observe(self, source_id, event, origin, observed_at, provenance, priority=1):
+    def _observe(self, source_id, event, origin, observed_at, provenance, priority=1, confirmed_at=None):
         previous = self.db.execute("SELECT * FROM events WHERE source_id=? AND value_id=?",
                                    (source_id, event["value_id"])).fetchone()
         if previous:
@@ -77,6 +77,14 @@ class StoreObservations:
                 if priority > previous["priority"]:
                     self.db.execute("UPDATE events SET priority=?,observed_at=?,origin=? WHERE source_id=? AND value_id=?",
                                     (priority, observed_at, origin, source_id, event["value_id"]))
+                # A fresh full snapshot can confirm an unchanged row. Cached
+                # rows accompanying unrelated deltas cannot confirm reappearance.
+                if priority >= previous["priority"] and priority > 0 and confirmed_at is not None:
+                    if priority == previous["priority"] and confirmed_at > previous["observed_at"]:
+                        self.db.execute("UPDATE events SET observed_at=? WHERE source_id=? AND value_id=?",
+                                        (confirmed_at, source_id, event["value_id"]))
+                    self.db.execute("DELETE FROM query_absences WHERE source_id=? AND value_id=? AND observed_at<=?",
+                                    (source_id, event["value_id"], confirmed_at))
                 return
             if priority < previous["priority"] or (priority == previous["priority"] and observed_at < previous["observed_at"]):
                 return
@@ -99,14 +107,15 @@ class StoreObservations:
             self.db.execute("UPDATE sources SET instance_id=?,offset_seconds=?,publisher_seen_at=? WHERE id=?",
                             (context.instance_id, context.server_utc_offset_seconds, self.clock(), context.source_id))
 
-    def collect(self, source_id, events, instance_id, observed_at=None, capture_offset_seconds=None):
+    def collect(self, source_id, events, instance_id, observed_at=None, capture_offset_seconds=None, snapshot_at=None):
         with self.lock, self.db:
             source = self.db.execute("SELECT * FROM sources WHERE id=?", (source_id,)).fetchone()
             if not source or source["instance_id"] != instance_id:
                 return False
             for event in events:
                 self._observe(source_id, event, "live", self.clock() if observed_at is None else observed_at,
-                    {"instance_id": instance_id, "capture_offset_seconds": capture_offset_seconds if capture_offset_seconds is not None else source["offset_seconds"]})
+                    {"instance_id": instance_id, "capture_offset_seconds": capture_offset_seconds if capture_offset_seconds is not None else source["offset_seconds"]},
+                    confirmed_at=snapshot_at)
             # Bridge windows roll on heartbeat; they do NOT certify queried
             # coverage. Only completed imports and explicit backfill jobs do.
             return True

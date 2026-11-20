@@ -32,7 +32,8 @@ def load_selected_schedule(database, engine):
             subscriptions = deepcopy(engine.state.get('calendar_subscriptions', {}))
         result = []
         for key, subscription in subscriptions.items():
-            rows = store.values(subscription['broker'], subscription['value_ids'])
+            complete = len(store.values(subscription['broker'], subscription['value_ids'])) == len(subscription['value_ids'])
+            rows = store.current_values(subscription['broker'], subscription['value_ids'])
             stages = defaultdict(list)
             for row in rows:
                 stages[row['release_at']].append(row)
@@ -40,7 +41,7 @@ def load_selected_schedule(database, engine):
                 stage_key = key if len(stages) == 1 else f'{key}:{at}'
                 result.append({'key': stage_key, 'reference': key, 'source': 'calendar', 'broker': subscription['broker'],
                     'value_ids': [r['value_id'] for r in members], 'title': subscription['title'], 'currencies': sorted({r['currency'] for r in members}),
-                    'at': at, 'date': None, 'eligible': at is not None and len(rows) == len(subscription['value_ids'])
+                    'at': at, 'date': None, 'eligible': at is not None and complete
                         and all(r['time_mode'] == 0 and r['availability'] == 'observed' for r in members),
                     'default_enabled': subscription['enabled'], 'note': 'Verified broker publication. Alarm choice is independent of date and filters.'})
         return result

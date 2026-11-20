@@ -14,6 +14,8 @@ from storage.alarms import AlarmEngine
 from storage.calendar_store import CalendarStore
 from storage.app import create_app
 from storage.alarm_service import create_alarm_app
+from storage.recent_calendar import recent_snapshot
+from storage.current_calendar import current_events
 from test_calendar_storage import event
 
 
@@ -87,6 +89,57 @@ class AlertScheduleTests(TestCase):
         self.assertFalse(engine.snapshot()['events'][0]['armed'])
         restored = AlarmEngine(engine.path, lambda jobs: None, lambda: self.now)
         self.assertEqual(restored.state['calendar_subscriptions'][key], subscription)
+
+    def test_duplicate_release_ids_collapse_in_date_lists_and_keep_existing_alarm(self):
+        key, subscription = calendar_subscription(self.store, 'Pepperstone-Demo', ['1', '2'], 'CPI', True)
+        engine = AlarmEngine(Path(self.temp.name) / 'state.json', lambda jobs: None, lambda: self.now)
+        engine.state['calendar_subscriptions'] = {key: subscription}
+        first_schedule = load_selected_schedule(self.database, engine)
+        engine.reconcile(first_schedule)
+        first_job = next(iter(engine.state['jobs']))
+
+        replacements = [{**row, 'value_id': str(int(row['value_id']) + offset)}
+                        for offset in (10, 100) for row in self.rows]
+        self.store.import_rows('replacement-ids', 'Pepperstone-Demo', self.manifest, {}, replacements)
+        with self.store.db:
+            for row in self.rows:
+                self.store.db.execute('INSERT INTO query_absences VALUES (?,?,?,?)',
+                                     ('Pepperstone-Demo', row['value_id'], 'refresh', self.now))
+        day = day_snapshot(self.store, 'Pepperstone-Demo', '2026-10-23')
+        self.assertEqual({row['value_id'] for row in day['events']}, {'101', '102'})
+        recent = recent_snapshot(self.store, 'Pepperstone-Demo', self.at - 1, self.at + 1, ['USD'])
+        self.assertEqual({row['value_id'] for row in recent['events']}, {'101', '102'})
+        self.assertTrue(all(row['availability'] == 'observed' for row in day['events']))
+        calendar_subscription(self.store, 'Pepperstone-Demo', [row['value_id'] for row in day['events']], 'CPI', True)
+
+        schedule = load_selected_schedule(self.database, engine)
+        self.assertEqual(len(schedule), 1)
+        self.assertTrue(schedule[0]['eligible'])
+        self.assertEqual(set(schedule[0]['value_ids']), {'101', '102'})
+        self.assertEqual(schedule[0]['key'], key)
+        engine.reconcile(schedule)
+        self.assertEqual(list(engine.state['jobs']), [first_job], 'ID replacement keeps the selected reminder')
+
+    def test_current_readings_choose_latest_revision_and_keep_separate_releases(self):
+        base = {**self.rows[0], 'release_at': self.at, 'availability': 'observed', 'observed_at': self.now}
+        variants = [
+            {**base, 'value_id': '10'},
+            {**base, 'value_id': '9'},
+            {**base, 'value_id': '11', 'availability': 'not-returned-by-latest-query'},
+            {**base, 'value_id': '12', 'revision': 1, 'actual': 0},
+            {**base, 'value_id': '13', 'revision': 1, 'observed_at': self.now + 1},
+            {**base, 'value_id': '14', 'period_seconds': base['period_seconds'] - 86400},
+            {**base, 'value_id': '15', 'event_id': 'other-series'},
+            {**base, 'value_id': '16', 'release_at': self.at + 1000},
+            {**base, 'value_id': '17', 'country_code': 'CA'},
+            {**base, 'value_id': '18', 'unit': base['unit'] + 1},
+        ]
+        expected = {'12', '14', '15', '16', '17', '18'}
+        self.assertEqual({row['value_id'] for row in current_events(variants)}, expected)
+        self.assertEqual({row['value_id'] for row in current_events(list(reversed(variants)))}, expected)
+        self.assertEqual(current_events(variants[:3])[0]['value_id'], '10', 'Numeric IDs break ties consistently')
+        newer = {**base, 'value_id': '8', 'observed_at': self.now + 1, 'forecast': .3}
+        self.assertEqual(current_events([base, newer])[0]['forecast'], .3)
 
 
 

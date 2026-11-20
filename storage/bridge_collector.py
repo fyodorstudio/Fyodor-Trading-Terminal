@@ -44,7 +44,8 @@ class BridgeCollector:
                 events = [CalendarEvent.model_validate({key: value for key, value in row.items() if key in CalendarEvent.model_fields}).model_dump()
                           for row in snapshot["events"] if row["currency"] in CURRENCIES]
                 if self.store.collect(source["id"], events, health["instance_id"], snapshot["source"]["last_update_at"] / 1000,
-                                      snapshot["source"].get("server_utc_offset_seconds")):
+                                      snapshot["source"].get("server_utc_offset_seconds"),
+                                      snapshot_at=snapshot["source"]["last_snapshot_at"] / 1000):
                     self.revisions[source["id"]] = (snapshot["source"]["instance_id"], snapshot["source"]["last_update_at"], snapshot["source"]["event_count"])
             self.error = None
         except Exception as error:

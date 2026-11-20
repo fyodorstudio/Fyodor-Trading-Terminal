@@ -264,6 +264,53 @@ class StorageTests(unittest.TestCase):
         self.assertEqual(self.query()["events"][0]["actual"], .4)
         self.assertEqual(self.store.db.execute("SELECT count(*) FROM observations").fetchone()[0], 3)
 
+    def test_fresh_snapshot_restores_unchanged_reading_but_old_cache_does_not(self):
+        self.store.register(context())
+        self.store.collect('Broker-Demo', [event()], 'publisher-1', self.time, snapshot_at=self.time)
+        original = self.time
+        self.time += 1
+        job = self.store.next_job(context())
+        self.store.receive(chunk(job))
+        self.assertEqual(self.query()['events'][0]['availability'], 'not-returned-by-latest-query')
+
+        self.time += 1
+        self.store.collect('Broker-Demo', [event()], 'publisher-1', self.time, snapshot_at=original)
+        self.assertEqual(self.query()['events'][0]['availability'], 'not-returned-by-latest-query')
+        self.store.collect('Broker-Demo', [event()], 'publisher-1', self.time, snapshot_at=self.time)
+        self.assertEqual(self.query()['events'][0]['availability'], 'observed')
+        revision = self.query()['revision']
+        self.store.collect('Broker-Demo', [event()], 'publisher-1', self.time, snapshot_at=self.time)
+        self.assertEqual(self.query()['revision'], revision)
+
+    def test_snapshot_confirmation_after_lease_wins_an_older_empty_backfill(self):
+        self.store.register(context())
+        self.store.collect('Broker-Demo', [event()], 'publisher-1')
+        self.time += 1
+        job = self.store.next_job(context())
+        self.time += 1
+        self.store.collect('Broker-Demo', [event()], 'publisher-1', self.time, snapshot_at=self.time)
+        self.store.receive(chunk(job))
+        self.assertEqual(self.query()['events'][0]['availability'], 'observed')
+
+    def test_collector_uses_snapshot_time_to_restore_an_unchanged_reading(self):
+        self.store.register(context())
+        health = {'instance_id': 'publisher-1', 'last_snapshot_at': self.time * 1000,
+                  'last_update_at': self.time * 1000, 'event_count': 1}
+        responses = {'/health': {'calendar': health}, '/calendar': {'source': health, 'events': [event()]}}
+        collector = BridgeCollector(self.store, fetch=lambda path: responses[path])
+        collector.poll()
+        self.time += 1
+        self.store.receive(chunk(self.store.next_job(context())))
+        self.time += 1
+        health['last_update_at'] = self.time * 1000
+        collector.poll()
+        self.assertEqual(self.query()['events'][0]['availability'], 'not-returned-by-latest-query')
+        self.time += 1
+        health.update(last_snapshot_at=self.time * 1000, last_update_at=self.time * 1000)
+        collector.poll()
+        self.assertIsNone(collector.error)
+        self.assertEqual(self.query()['events'][0]['availability'], 'observed')
+
     def test_exact_raw_missing_revisions_pagination_and_broker_separation(self):
         self.store.register(context())
         rows = [event(value_id=str(i), actual_raw_scaled_1e6="8000", actual=.01) for i in range(3)]
