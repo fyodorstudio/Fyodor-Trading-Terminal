@@ -1144,6 +1144,30 @@ try {
     reset(); await tick('poll', 2500); await reply('watch')
     assertQuiet(`${symbol}: unchanged Market Watch poll`, true)
     assert.equal(counters.dailyGrouping ?? 0, 0, `${symbol}: stable scope arrays avoid calendar regrouping`)
+    if (symbol === 'JPYX') {
+      await click([...container.querySelectorAll('[aria-label="Chart timeframe"] button')].find(node => node.textContent === 'D1'))
+      while (pending.get('ohlc')?.length) await reply('ohlc')
+      const cpiAt = Date.parse('2024-07-11T12:30:00Z')
+      const historicalCpi = [
+        ['191640', '840030005', -.1, 0], ['191652', '840030006', .1, .2],
+        ['191664', '840030007', 3, 3.3], ['191676', '840030008', 3.3, 3.4],
+      ].map(([value_id, eventId, actual, previous]) => ({ ...event(eventId, cpiAt, actual, previous), value_id,
+        period_seconds: Date.UTC(2024, 5, 1) / 1000 }))
+      events.push(...historicalCpi); calendarRevision++
+      const savedFilters = localStorage.getItem('fyodor.inspector.shared.v1'), savedWindow = { ...logicalRange }
+      const { macroHistory } = await server.ssrLoadModule('./src/market-data/indicators/macro/macro-data.ts')
+      const reading = macroHistory(historicalCpi, now, 'actual', ['coreCpi']).coreCpi[0]
+      await React.act(async () => globalThis.__terminalProbe.inspectMacro(reading)); await flush()
+      assert.ok(container.querySelector('[data-value-id="191652"][data-ledger-focused="true"]'), 'JPYX D1 opens the clicked 11 July 2024 USD Core CPI actual')
+      for (const row of historicalCpi) assert.ok(container.querySelector(`[data-value-id="${row.value_id}"]`), 'All four CPI measures accompany the selected block')
+      assert.equal(localStorage.getItem('fyodor.inspector.shared.v1'), savedFilters)
+      assert.deepEqual(logicalRange, savedWindow, 'Cross-currency inspection keeps the JPYX viewport')
+      await React.act(async () => { for (const listener of [...clickListeners]) listener({ point: { x: 100, y: 100 }, paneIndex: 0 }) }); await flush()
+      assert.equal(container.querySelector('.inspector-panel'), null)
+      await click(button('Inspector')); await flush()
+      await click([...container.querySelectorAll('[aria-label="Chart timeframe"] button')].find(node => node.textContent === 'H1'))
+      while (pending.get('ohlc')?.length) await reply('ohlc')
+    }
     if (symbol === 'USDX') {
       const release = events.find(row => row.event_id === '840030005' && row.actual !== null && row.release_at <= now)
       const companion = events.find(row => row.event_id === '840030006' && row.release_at === release.release_at)

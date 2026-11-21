@@ -5,6 +5,7 @@ export { macroMetrics } from './macro-catalog'
 import type { OhlcBar } from '../../contracts/OhlcBar'
 import type { MacroMetric, MacroPreferences } from './macro-preferences'
 import type { FedForecasts } from './fed-forecast'
+import { isPublishedTentative } from '../../../inspector/releases/group-releases'
 
 export type MacroReading = { time: number; releasedAt: number; value: number; id: string; currency?: string; brokerValue?: number; unit?: number; multiplier?: number; digits?: number;
   forecast?: number | null; previous?: number | null; impact?: string }
@@ -42,6 +43,12 @@ function groupEvents(events: StoredCalendarEvent[]) {
   }
   return grouped
 }
+function newerReading(event: StoredCalendarEvent, previous: StoredCalendarEvent) {
+  if (event.period_seconds !== previous.period_seconds) return event.period_seconds > previous.period_seconds
+  if (event.revision !== previous.revision) return event.revision > previous.revision
+  return /^\d+$/.test(event.value_id) && /^\d+$/.test(previous.value_id)
+    ? BigInt(event.value_id) > BigInt(previous.value_id) : event.value_id > previous.value_id
+}
 /** Exact captured series, actuals and independently verified publication/chart clocks. */
 export function macroHistory(events: StoredCalendarEvent[], now: number, field: 'actual' | 'forecast' = 'actual', keys: readonly string[] = Object.keys(macroMetrics)): MacroHistory {
   const history = {} as MacroHistory
@@ -50,13 +57,13 @@ export function macroHistory(events: StoredCalendarEvent[], now: number, field: 
     const metric = macroCatalog[key], readings = new Map<number, StoredCalendarEvent>()
     for (const event of byEvent.get(metric.eventId) ?? []) {
       if (event.event_id !== metric.eventId || event.currency !== metric.currency || event.country_code !== metric.country
-        || (metric.unit !== undefined && event.unit !== metric.unit) || (metric.multiplier !== undefined && event.multiplier !== metric.multiplier) || event.time_mode !== 0
+        || (metric.unit !== undefined && event.unit !== metric.unit) || (metric.multiplier !== undefined && event.multiplier !== metric.multiplier)
+        || event.time_mode !== 0 && !isPublishedTentative(event, true)
         || event.availability !== 'observed'
-        || (field === 'actual' && (event.actual === null || !Number.isFinite(event.actual)))
         || event.release_at === null || !Number.isFinite(event.release_at) || event.release_at > now
         || event.chart_time_seconds === null || !Number.isFinite(event.chart_time_seconds)) continue
       const previous = readings.get(event.chart_time_seconds)
-      if (!previous || event.revision > previous.revision || (event.revision === previous.revision && event.value_id > previous.value_id))
+      if (!previous || newerReading(event, previous))
         readings.set(event.chart_time_seconds, event)
     }
     history[key] = [...readings.values()].filter(event => event[field] !== null && Number.isFinite(event[field]))
@@ -80,7 +87,7 @@ export function macroUpcoming(events: StoredCalendarEvent[], now: number, keys: 
         || event.availability !== 'observed' || event.release_at === null || !Number.isFinite(event.release_at) || event.release_at <= now
         || event.chart_time_seconds === null || !Number.isFinite(event.chart_time_seconds)) continue
       const previous = readings.get(event.release_at)
-      if (!previous || event.revision > previous.revision || (event.revision === previous.revision && event.value_id > previous.value_id))
+      if (!previous || newerReading(event, previous))
         readings.set(event.release_at, event)
     }
     for (const event of readings.values()) {

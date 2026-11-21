@@ -48,14 +48,14 @@ try {
       server_time_seconds: chartAt, chart_time_seconds: chartAt, release_at: at, availability: 'observed', period_seconds: 0,
       revision: 0, actual: .3, previous: .1, revised_previous: null, forecast: .4, unit: 1, multiplier: 0, digits: 1, time_mode: 0 }
   })
-  function Harness({ symbol }) {
-    const next = useInspector({ symbol, bars, timeframe: 'H1', timeDisplay: utc, clockOffsetMs, brokerId: broker, brokerOffsetSeconds: 10800 })
+  function Harness({ symbol, timeframe = 'H1' }) {
+    const next = useInspector({ symbol, bars, timeframe, timeDisplay: utc, clockOffsetMs, brokerId: broker, brokerOffsetSeconds: 10800 })
     React.useLayoutEffect(() => { view = next }, [next])
     return React.createElement(React.Fragment, null,
       React.createElement(InspectorChartMarkers, { chartApi, markers: next.markers, timeDisplay: utc, onSelectRelease: next.selectRelease }),
       React.createElement(InspectorPanel, { symbol, view: next, source: null, error: null, timeDisplay: utc }))
   }
-  const render = symbol => React.act(async () => root.render(React.createElement(Harness, { symbol })))
+  const render = (symbol, timeframe = 'H1') => React.act(async () => root.render(React.createElement(Harness, { symbol, timeframe })))
   const scopes = { JPYX: 'JPY', EURX: 'EUR', USDX: 'USD', 'USDX-F': 'USD', JPN225: 'JPY', 'JPN225-F': 'JPY', XAUUSD: 'USD', 'XAUUSD-F': 'USD' }
   assert.equal(majorForexPairs.length, 28)
   for (const [symbol, currency] of Object.entries(scopes)) {
@@ -95,6 +95,44 @@ try {
   assert.equal(data.readInspectorPreferences('USDX').showSymbols, true, 'Forward and cash appearance remain separate')
   await render('JPYX')
   assert.equal(view.markers.length, 0, 'Saved appearance survives symbol switching')
+  const cpiAt = Date.parse('2024-07-11T12:30:00Z')
+  const cpi = [
+    ['191640', '840030005', 'CPI m/m', -.1, 0], ['191652', '840030006', 'Core CPI m/m', .1, .2],
+    ['191664', '840030007', 'CPI y/y', 3, 3.3], ['191676', '840030008', 'Core CPI y/y', 3.3, 3.4],
+  ].map(([value_id, event_id, name, actual, previous]) => ({ ...rows.find(row => row.currency === 'USD'), value_id, event_id, name, actual, previous,
+    release_at: cpiAt, server_time_seconds: cpiAt / 1000 + 10800, chart_time_seconds: cpiAt / 1000 + 10800,
+    period_seconds: Date.UTC(2024, 5, 1) / 1000 }))
+  rows = [...rows, ...cpi]
+  await render('JPYX', 'D1')
+  const savedFilters = localStorage.getItem(data.inspectorSharedStorageKey), savedDates = { ...view.rangeDates }
+  const chartReleaseIds = view.allReleases.map(release => release.id), chartMarkerCount = view.markers.length
+  const { macroHistory } = await server.ssrLoadModule('./src/market-data/indicators/macro/macro-data.ts')
+  const reading = macroHistory(cpi, at, 'actual', ['coreCpi']).coreCpi[0]
+  assert.equal(reading.id, '191652')
+  await React.act(async () => view.focusEvent({ value_id: reading.id, at: reading.releasedAt, date: '2024-07-11' }, reading.currency))
+  assert.equal(view.focusError, null)
+  assert.equal(view.focusedValueId, '191652', 'JPYX D1 accepts the July 2024 USD MFDI selection')
+  assert.equal(view.selectedRelease.currency, 'USD')
+  assert.equal(view.selectedRelease.events.length, 4, 'The full CPI package accompanies the focused measure')
+  assert.ok(host.querySelector('[data-value-id="191652"][data-ledger-focused="true"]'))
+  assert.match(host.querySelector('[data-value-id="191652"]').textContent, /0\.1%/)
+  const focusQuery = new URL(requests.filter(request => request.url.includes('/calendar?')).at(-1).url, 'http://localhost').searchParams
+  assert.equal(focusQuery.get('currencies'), 'USD', 'Focused history fetches USD, not the chart currency or all currencies')
+  assert.ok(Number(focusQuery.get('from_server_seconds')) <= reading.time && Number(focusQuery.get('to_server_seconds')) > reading.time)
+  assert.deepEqual(view.allReleases.map(release => release.id), chartReleaseIds, 'Normal JPY admission is unchanged')
+  assert.equal(view.markers.length, chartMarkerCount)
+  assert.deepEqual(view.rangeDates, savedDates)
+  assert.equal(localStorage.getItem(data.inspectorSharedStorageKey), savedFilters)
+  const beforeInvalid = requests.length
+  await React.act(async () => view.focusEvent({ value_id: 'invalid', at: cpiAt, date: '2024-07-11' }, 'BTC'))
+  assert.equal(view.focusedValueId, '191652'); assert.equal(requests.length, beforeInvalid)
+  await React.act(async () => view.selectRelease(null))
+  assert.equal(view.focusedValueId, null)
+  await render('NAS100', 'D1')
+  assert.equal(view.supported, false)
+  await React.act(async () => view.focusEvent({ value_id: reading.id, at: reading.releasedAt, date: '2024-07-11' }, 'USD'))
+  assert.ok(host.querySelector('[data-value-id="191652"][data-ledger-focused="true"]'), 'An explicit MFDI release can be inspected on other chart instruments')
+  assert.equal(host.querySelector('[data-inspector-filter-trigger]').disabled, true, 'Focused inspection does not enable unrelated chart filters')
   await React.act(async () => root.render(null))
   assert.equal(timers.size, 0)
   assert.ok(requests.every(request => request.signal.aborted), 'Symbol switches/unmount cancel outstanding calendar work')

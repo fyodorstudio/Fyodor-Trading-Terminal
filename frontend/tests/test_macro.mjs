@@ -23,11 +23,41 @@ const host = document.createElement('div'); document.body.append(host)
 const root = createRoot(host)
 const at = Date.UTC(2026, 0, 1), start = at / 1000
 const event = (overrides = {}) => ({ value_id: 'one', event_id: '840050014', currency: 'USD', country_code: 'US',
+  server_time_seconds: start + 10800, period_seconds: start - 30 * 86400,
   time_mode: 0, unit: 1, multiplier: 0, actual: 4.5, forecast: 9, previous: 8, revised_previous: 7,
   release_at: at, chart_time_seconds: start, availability: 'observed', revision: 0, ...overrides })
 const reply = (request, body) => React.act(async () => request.resolve({ ok: true, json: async () => body }))
 try {
   const { macroHistory, macroUpcoming, macroPlot, macroNumberLabels, macroDeltaColor, supportsMacro, macroMetrics, macroValue } = await server.ssrLoadModule('./src/market-data/indicators/macro/macro-data.ts')
+  const { macroCatalog } = await server.ssrLoadModule('./src/market-data/indicators/macro/macro-catalog.ts')
+  const keyForId = id => Object.keys(macroCatalog).find(key => macroCatalog[key].eventId === id)
+  for (const [eventId, currency, country, actual] of [['392060022', 'JPY', 'JP', 1.3], ['554050001', 'NZD', 'NZ', -2.4]]) {
+    const key = keyForId(eventId), row = event({ event_id: eventId, currency, country_code: country, time_mode: 3, actual })
+    const published = macroHistory([row], at, 'actual', [key])[key]
+    assert.equal(published.length, 1, `${eventId}: published tentative readings appear in MFDI`)
+    assert.equal(published[0].value, actual)
+    assert.equal(macroPlot([{ time: start }], published, 86400, true).dots[0].value, actual, 'Published readings reach D1 release boxes')
+    assert.equal(macroHistory([row], at, 'forecast', [key])[key][0].value, row.forecast)
+    for (const patch of [{ actual: null }, { server_time_seconds: Math.floor(start / 86400) * 86400 }, { release_at: null }, { chart_time_seconds: null }, { release_at: at + 1 }])
+      assert.deepEqual(macroHistory([{ ...row, ...patch }], at, 'actual', [key])[key], [], 'Pending or unplaced tentative rows stay out of numerical history')
+    assert.equal(macroUpcoming([{ ...row, actual: null, release_at: at + 86400000 }], at, [key]).length, 0, 'An unconfirmed BOJ schedule does not acquire an exact forecast position')
+  }
+  const pceKey = keyForId('840010004'), pcePublication = Date.parse('2019-04-29T12:30:00Z')
+  const marchPce = event({ event_id: '840010004', value_id: '61934', actual: 1.5, forecast: 1.7,
+    release_at: pcePublication, chart_time_seconds: 1556551800, period_seconds: Date.UTC(2019, 2, 1) / 1000 })
+  const februaryPce = { ...marchPce, value_id: '96505', actual: 1.3, forecast: 1.1, period_seconds: Date.UTC(2019, 1, 1) / 1000, revision: 9 }
+  for (const rows of [[marchPce, februaryPce], [februaryPce, marchPce]]) {
+    const actuals = macroHistory(rows, at, 'actual', [pceKey])[pceKey]
+    assert.equal(actuals[0].id, '61934', 'Latest reference period wins before revision or value ID')
+    assert.equal(actuals[0].value, 1.5)
+    assert.equal(macroHistory(rows, at, 'forecast', [pceKey])[pceKey][0].value, 1.7)
+    const scheduled = rows.map(row => ({ ...row, actual: null, release_at: at + 86400000, chart_time_seconds: start + 86400 }))
+    assert.equal(macroUpcoming(scheduled, at, [pceKey])[0].forecasts[pceKey], 1.7, 'Upcoming forecasts use the same reference-period selection')
+  }
+  assert.deepEqual(macroHistory([februaryPce, { ...marchPce, actual: null }], at, 'actual', [pceKey])[pceKey], [], 'A blank latest period does not fall back to an older month')
+  assert.deepEqual(macroHistory([februaryPce, { ...marchPce, forecast: null }], at, 'forecast', [pceKey])[pceKey], [])
+  const numericIds = [event({ value_id: '99999', actual: 1 }), event({ value_id: '100000', actual: 2 })]
+  assert.equal(macroHistory(numericIds, at).rate[0].value, 2, 'Numeric value IDs break same-period ties without string ordering')
   const rba = JSON.parse(fs.readFileSync(new URL('../../config/calendar-overrides/AUD-RBA-rate.json', import.meta.url), 'utf8'))
   const latestRba = rba.releases[0], rbaAt = Date.parse(latestRba.set.released_at), rbaChart = rbaAt / 1000 + 7200
   const rbaKey = 'AUD:AU:36030008'

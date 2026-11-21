@@ -16,6 +16,7 @@ import { useStoredCalendar } from '../economic-calendar/storage/useStoredCalenda
 import { policyEpisodeWindowMs } from './episodes/policy-episodes'
 import { groupSimultaneousReleases } from './releases/simultaneous-releases'
 import { useMarkerBars } from './chart/useMarkerBars'
+import { isMajorCurrency, type MajorCurrency } from '../economic-calendar/forex/currencies'
 
 import { useCalendarNow } from './useCalendarNow'
 import { chartClockToUtc, utcToChartClock } from '../appearance/time-display/chart-clock'
@@ -43,7 +44,7 @@ export function useInspector({ events = noEvents, symbol, bars, timeframe, timeD
   const [customFrom, setCustomFrom] = useState(initialWeek.start)
   const [customTo, setCustomTo] = useState(initialWeek.end)
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [eventFocus, setEventFocus] = useState<{ key: string; valueId: string; currency: string; at: number | null; date: string } | null>(null)
+  const [eventFocus, setEventFocus] = useState<{ key: string; valueId: string; currency: MajorCurrency; at: number | null; date: string } | null>(null)
   const focusKey = `${brokerId}:${preferenceKey}`
   if (savedPairKey !== preferenceKey) {
     setSavedPairKey(preferenceKey); setPreferences(readInspectorPreferences(symbol)); setSelectedId(null); setStorageFailed(false)
@@ -74,14 +75,15 @@ export function useInspector({ events = noEvents, symbol, bars, timeframe, timeD
     const from = utcToChartClock(center - 86400000, scope), to = utcToChartClock(center + 86400000, scope)
     return { from: from ?? center - 2 * 86400000, to: to ?? center + 2 * 86400000 }
   }, [focus, brokerId, brokerOffsetSeconds])
-  const focusCurrencies = useMemo(() => currencies.filter(c => c === focus?.currency), [currencies, focus?.currency])
-  const focusStorage = useStoredCalendar(brokerId, focusRange, !!focus && supported && brokerTime, { currencies: focusCurrencies })
+  const focusCurrency = focus?.currency
+  const focusCurrencies = useMemo(() => focusCurrency ? [focusCurrency] : [], [focusCurrency])
+  const focusStorage = useStoredCalendar(brokerId, focusRange, !!focus && brokerTime, { currencies: focusCurrencies })
   const focusedRelease = useMemo(() => !focus ? null : groupSimultaneousReleases(groupInspectorReleases(focusStorage.events, false))
     .find(release => release.events.some(event => event.value_id === focus.valueId)) ?? null, [focus, focusStorage.events])
   const focusEvent = useCallback((reading: { value_id: string; at: number | null; date: string }, currency: string) => {
-    if (!currencies.includes(currency as typeof currencies[number])) return
+    if (!isMajorCurrency(currency)) return
     setEventFocus({ key: focusKey, valueId: reading.value_id, currency, at: reading.at, date: reading.date })
-  }, [currencies, focusKey])
+  }, [focusKey])
   const readings = useMemo(() => brokerTime ? storage.events.filter((event) => event.availability === 'observed') : events,
     [brokerTime, storage.events, events])
   const selectPairReadings = useMemo(() => createInspectorReadingSelector(currencies), [currencies])

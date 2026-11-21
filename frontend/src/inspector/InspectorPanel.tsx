@@ -45,6 +45,7 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onVie
   const [listOpen, setListOpen] = useState(false)
   const panelId = useId()
   const release = view.selectedRelease
+  const canInspect = view.supported || !!view.focusedValueId
   const status = (item: InspectorRelease) => releaseStatus(item, view.now)
   const storageStatus = view.storage.loading ? 'Loading stored calendar' : view.storage.error ??
     (view.storage.source ? 'Stored calendar available' : 'Waiting for the broker calendar')
@@ -88,15 +89,15 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onVie
         {view.brokerTime && unplaced > 0 && <span>{unplaced} releases have no verified chart time; they remain available in the list.</span>}
         {outsideCoverage && <span>Part of this range is outside the available calendar coverage.</span>}
       </div>}
-      {view.supported && release && <InspectorReleaseHeading release={release} view={view} timeDisplay={timeDisplay}
+      {canInspect && release && <InspectorReleaseHeading release={release} view={view} timeDisplay={timeDisplay}
         status={status(release)} sharedPeriod={sharedPeriod} calendarDetail={calendarDetail} coverageDetail={coverageDetail} />}
-      {view.supported && release && onViewInAlert && <button type="button" className="inspector-alert-link"
+      {canInspect && release && onViewInAlert && <button type="button" className="inspector-alert-link"
         disabled={!view.brokerId?.startsWith('Pepperstone-') || !alertDateForRelease(release)}
         title={!view.brokerId?.startsWith('Pepperstone-') ? 'Alert displays the Pepperstone calendar' : !alertDateForRelease(release) ? 'No publication date available' : 'Open this release in Alert'}
         onClick={() => onViewInAlert(release)}>View in Alert</button>}
       {view.focusedValueId && onReturnToLedger && <button type="button" onClick={onReturnToLedger}>Return to Ledger</button>}
     </header>
-    {!view.supported ? <p className="inspector-empty">Select a supported forex pair, currency index, Japan 225 or USD gold chart to inspect releases.</p> : <>
+    {!canInspect ? <p className="inspector-empty">Select a supported forex pair, currency index, Japan 225 or USD gold chart to inspect releases.</p> : <>
       <div className={`inspector-body${listOpen ? '' : ' releases-collapsed'}`}>
         <InspectorReleaseList id={`${panelId}-releases`} hidden={!listOpen} releases={view.releases}
           selectedId={release?.id ?? null} symbols={view.preferences.symbols} timeDisplay={timeDisplay}
