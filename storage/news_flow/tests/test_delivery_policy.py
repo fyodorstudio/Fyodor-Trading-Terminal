@@ -52,6 +52,10 @@ class NewsDeliveryPolicyTests(unittest.TestCase):
             'Japan issues fresh FX intervention warnings',
         ]
         high += [
+            'Trump weighs another strike on Iran as Hormuz shipping risks mount',
+            'The Oil Market Is Brimming With Crude Despite Tanker Attacks',
+            'Gulf attacks lift Crude Oil, but most of Monday drop stays',
+            'Vujcic Says Bets on ECB Hike in 2027 Do Not Seem Unreasonable',
             'Kashkari says markets see more Fed hikes than officials do',
             'Gold Steadies Near 14-Month Low as Fed Signals More Rate Hikes',
             'Asian markets trade mixed as Nvidia earnings lift Kospi and Nikkei; Hong Kong slips on US chip curbs',
@@ -71,10 +75,7 @@ class NewsDeliveryPolicyTests(unittest.TestCase):
             'Applied Materials sinks 11% amid broad chip stock pullback (AMAT:NASDAQ)',
             'PDF Solutions sinks 12% as tech stocks retreat (PDFS:NASDAQ)',
             'UK Stocks, AI Adoption Drive FTSE 250 Gains as Oil Drops 20%',
-            'Trump weighs another strike on Iran as Hormuz shipping risks mount',
             'Diamondback strikes $5bn deal to expand drilling in oil-rich Permian Basin',
-            'The Oil Market Is Brimming With Crude Despite Tanker Attacks',
-            'Gulf attacks lift Crude Oil, but most of Monday drop stays',
             'European gas futures climb as recovering oil exports overshadow shipping attacks',
             'US Treasury confirms currency intervention in July',
             'Japan confirms currency intervention in July',
@@ -85,7 +86,6 @@ class NewsDeliveryPolicyTests(unittest.TestCase):
             'Fed could signal faster rate increases next week',
             'BOJ Ueda Says Food Sales Tax Cut Likely to Help Spur Growth',
             'Bank of Canada Says April Scenario Analysis Telegraphed Hike',
-            'Vujcic Says Bets on ECB Hike in 2027 Do Not Seem Unreasonable',
         ]
         for title in high:
             with self.subTest(title=title):

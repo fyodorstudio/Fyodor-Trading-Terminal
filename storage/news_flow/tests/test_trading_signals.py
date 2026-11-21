@@ -76,6 +76,55 @@ class TradingSignalTests(unittest.TestCase):
             with self.subTest(title=title):
                 self.assertEqual(decision(title, include=INCLUDE, enabled=True)['tier'], 'excluded')
 
+    def test_routine_data_and_unrelated_word_meanings_stay_below_priority_one(self):
+        for title in [
+            'US Treasury announces next week’s bond auction schedule',
+            'US Treasury auctions $16B of 20 year bonds at a yield of 5.459%',
+            'Treasury yields edge higher ahead of CPI data',
+            'Treasury yields hold steady as investors await retail sales',
+            'ECB reserve requirements remain unchanged',
+            'PBOC sets USD/CNY reference rate at 6.7141 vs. 6.7152 previous',
+            'PBOC sets USD/CNY reference rate at 6.7141 (vs. estimate at 6.7132)',
+            'PBOC is expected to set USD/CNY reference rate at 6.6654 – Reuters estimate',
+            'Toyota unveils 2027 Sienna with improved fuel economy By Investing.com - Investing.com UK',
+            'Fed cuts pay raises for regional-bank staff',
+            'Van Gogh painting sells at auction after strong demand',
+            'Taiwan factory holds a staff meeting about short sales of equipment',
+            'US 10-year treasury yield signals major bullish breakout toward 6.15%',
+            'U.S. 10-Year Treasury Yield Expected to Fall to 4.9% by End-2027, BofA Survey Says',
+            'KBRA Plans First Japan Rating in 2027, Expands Tokyo Team',
+            'Romania’s central bank raises inflation forecast on fuel and energy prices',
+        ]:
+            with self.subTest(title=title):
+                self.assertNotEqual(decision(title, include=INCLUDE, enabled=True)['tier'], 'priority')
+        auction = decision('The US Treasury auctions $16B of 20 year bonds at a yield of 5.459%',
+                           include=INCLUDE, enabled=True,
+                           summary='Tail of 0.0 basis points. Bid to cover matched the average; demand was stable.')
+        self.assertNotEqual(auction['tier'], 'priority', auction)
+
+    def test_current_comparisons_and_fx_drivers_keep_both_risk_directions(self):
+        for title in [
+            'Treasury Two-Year Yields Sink Most Since 2025 as AI Worries Bite',
+            'Treasury yields spike as inflation fears return',
+            'Treasuries rise as risk-averse investors dump stocks, buy bonds',
+            'Treasury yields move sharply lower as investors flee to safe havens',
+            'Japan delays floating-rate JGB launch as demand weakens',
+            'US 30-year bond auction tails as demand disappoints',
+            'PBOC sets USD/CNY central rate at 6.7132 (vs. estimate at 6.6715)',
+            'Japanese Yen retreats as intervention fears fade and risk appetite returns',
+            'Japan inflation picks up less than forecast as core-core slows to 2.2%',
+            'Germany corrects October inflation data, showing stronger pace',
+            'Three ships struck by drones in Black Sea near Romanian shipping canal, PM says',
+            'Taiwan bans short sales of stocks in new move to calm markets',
+            'Moody’s rating agency downgrades US sovereign debt as fiscal risks worsen',
+        ]:
+            with self.subTest(title=title):
+                self.assertEqual(decision(title, include=INCLUDE, enabled=True)['tier'], 'priority')
+        controls = 'Taiwan bans short sales of stocks in new move to calm markets'
+        for cross_market, tier in [(False, 'excluded'), (True, 'priority')]:
+            policy = json.dumps(dict(other_market_terms='Taiwan', cross_market=cross_market))
+            self.assertEqual(decision(controls, include=INCLUDE, enabled=True, filter_policy=policy)['tier'], tier)
+
     def test_summary_decisions_agree_across_reader_copy_desktop_phone_and_checker(self):
         with TemporaryDirectory() as root:
             store = NewsStore(root)

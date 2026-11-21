@@ -49,6 +49,15 @@ the reason label describes their mechanism without claiming a confirmed event.
 Price reactions and recaps qualify when they contain that context. Both risk-on
 and risk-off developments matter, including information that challenges a thesis.
 
+FX coverage includes intervention-watch developments, sovereign yield and auction
+stress, central-bank guidance on liquidity/reserve tools, inflation corrections
+and expectations, and material labour/growth changes. Strategic shipping attacks
+and market-wide restrictions on major equity markets can qualify through their
+cross-asset impact. Routine auction schedules, unchanged settings and small daily
+fixing updates remain context. A PBOC fixing at least 0.25% away from the published
+estimate qualifies; changes from the previous fixing alone do not. Comparisons
+such as "biggest move since 2025" describe current news, not historical events.
+
 Explicit policy/data surprises, energy shocks and exceptional index moves also
 qualify. The fallback index thresholds in `priority.py` (3%, or 20% for VIX) are
 not prerequisites for recognizing risk sentiment or cross-asset transmission.

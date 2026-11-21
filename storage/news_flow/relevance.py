@@ -13,7 +13,7 @@ from urllib.parse import urlsplit, parse_qs
 from .rules import MAX_RULE_CHARS, combined_pattern, matches, normalized, patterns
 from .filter_policy import canonical_policy, parse_policy
 from .headline_filters import catalyst_reason, routine_reason
-from .signals import market_signal
+from .signals import cross_market_signal, market_signal
 
 PROFILE = json.loads(Path(__file__).with_name('relevance.json').read_text(encoding='utf-8'))
 PRESET = PROFILE['preset']
@@ -254,7 +254,7 @@ def _classify(title, source_id, url, feed_url, profile, summary):
         cross_market = exception or currency_driver or _rx['semiconductor_policy'].search(text) or _rx['sector_bellwethers'].search(text) or _cross_market_risk.search(text) or geopolitics or _systemic.search(text)
         # A trade's tracked-market participant and explicit global transmission
         # matter even when the other participant is in the domestic-noise list.
-        cross_market = cross_market or bool(signal and (re.search(r'\b(?:global|world markets|wall street|nasdaq|s&p|carry.trade|trade (?:deal|agreement)|export controls)\b', driver_text) or _rx['crypto_bridge'].search(normalized(summary))))
+        cross_market = cross_market or cross_market_signal(title, summary) or bool(signal and (re.search(r'\b(?:global|world markets|wall street|nasdaq|s&p|carry.trade|trade (?:deal|agreement)|export controls)\b', driver_text) or _rx['crypto_bridge'].search(normalized(summary))))
     if options.other_markets and other_market and not cross_market:
         return {'included': False, 'reason': 'Excluded · other-market domestic news · ' + other_market, 'keyword': keyword}
     if options.non_market and _rx['noise'].search(text) and not matches(text, _companies) and not _market_event.search(text):
