@@ -3,11 +3,12 @@ from functools import lru_cache
 import re
 
 from .relevance import classify, normalized, profile_rules
+from .headline_filters import catalyst_reason
 
 _bank = r'(?:fed|fomc|ecb|boe|boj|boc|rba|rbnz|snb|central bank|federal reserve|bank of england|bank of japan|bank of canada|reserve bank of (?:australia|new zealand)|swiss national bank)'
 _policy = re.compile(r'\b' + _bank + r"(?:'s)?\b.{0,65}?\b(?P<action>raises?|raised|hikes?|hiked|cuts?|cut|holds?|held|keeps?|kept|leaves?|left)\b.{0,45}\b(?:rates|(?:interest|cash|policy|deposit|benchmark|key|lending) rates?|borrowing costs?)\b", re.I)
 _preview = re.compile(r'\b(?:may|might|could|should|would|expected|expects|forecasts?|predicts|preview|ahead of|seen|likely|unlikely|odds|chance)\b', re.I)
-_proposal = re.compile(r'\b(?:calls? for|urges?|advocates?|plans? to|reuters poll|economists? (?:say|see|expect)|say economists)\b', re.I)
+_proposal = re.compile(r'\b(?:calls? for|urges?|advocates?|plans? to|reuters poll|economists? (?:say|see|expect)|say economists)\b|^(?:goldman sachs|ubs|morgan stanley)\b.{0,50}\b(?:says?|sees?|expects?|forecasts?)\b', re.I)
 _retrospective = re.compile(r'\bminutes(?:\s+(?:show|reveal|indicate|confirm|from)|:)|\b(?:previous|last) (?:meeting|decision|month|year)\b', re.I)
 _quantified = re.compile(r'\b\d+(?:\.\d+)?\s*(?:%|percent|per cent)\s+(?:chance|probability|odds|priced|pricing)\b|\b(?:markets? (?:imply|implies|implied|price|prices|priced|pricing)|odds|chance|probability)\b.{0,45}\b\d+(?:\.\d+)?\s*(?:%|percent|per cent)', re.I)
 _policy_change = re.compile(r'\b(?:yield curve control|ycc|quantitative easing|quantitative tightening|balance sheet runoff|asset purchases|bond purchases|forward guidance)\b', re.I)
@@ -15,9 +16,8 @@ _change = re.compile(r'\b(?:ends?|ended|scraps?|scrapped|abandons?|abandoned|lau
 _intervention = re.compile(r'\b(?:intervenes?|intervened|intervention)\b', re.I)
 _actual = re.compile(r'\b(?:conducts?|conducted|confirms?|confirmed|launches?|launched|intervenes?|intervened)\b', re.I)
 _fx = re.compile(r'\b(?:yen|franc|dollar|currency|fx|foreign exchange|japan|snb|boj)\b', re.I)
-_data = re.compile(r'\b(?:cpi|pce|inflation|payrolls|nfp|gdp|unemployment|jobs report|retail sales|pmi|ism)\b', re.I)
 _surprise = re.compile(r'\b(?:unexpectedly|surprise|surprises|surprised|above (?:estimates|expectations|consensus)|below (?:estimates|expectations|consensus)|beats? (?:estimates|expectations|consensus)|misses? (?:estimates|expectations|consensus))\b', re.I)
-_energy = re.compile(r'\b(?:opec|oil|crude|brent|hormuz|refineries|refinery|pipeline|tankers?|lng)\b', re.I)
+_energy = re.compile(r'\b(?:opec|oil|crude|brent|hormuz|lng|gas|petroleum|fuel|energy)\b', re.I)
 _supply = re.compile(r'\b(?:halts?|halted|shuts?|shut|shutdown|shuts down|closed|closes|closure|blockade|blockades|blocked|disrupted|disruption|suspends?|suspended|outage|outages|embargo|production cuts?|output cuts?|supply cuts?)\b', re.I)
 _conflict = re.compile(r'\b(?:iran|israel|hormuz|middle east|taiwan|russia|ukraine)\b', re.I)
 _development = re.compile(r'\b(?:ceasefire (?:agreed|deal|begins|collapses)|agrees? (?:to )?(?:a )?ceasefire|peace deal|launches? (?:an? )?(?:attack|invasion)|invades?|blockade|further attacks?.{0,30}unlikely|attacks?.{0,30}ruled out)\b', re.I)
@@ -27,10 +27,13 @@ _systemic = re.compile(r'\b(?:bank run|banking crisis|credit freeze|emergency ba
 @lru_cache(maxsize=8192)
 def attention_reason(title):
     text = normalized(title)
-    if re.search(r'\b' + _bank + r'\b', text) and _quantified.search(text):
-        return 'Quantified policy expectations · verify event date'
     if '?' in text:
         return ''
+    if re.search(r'\b' + _bank + r'\b', text) and _quantified.search(text) and not re.search(r'\b(?:why|opinion)\b', text):
+        return 'Quantified policy expectations · verify event date'
+    catalyst = catalyst_reason(title)
+    if catalyst:
+        return catalyst
     reported = re.sub(r'\bas expected\b', '', text)
     if not _preview.search(reported) and not _proposal.search(text) and not _retrospective.search(text):
         if re.search(r'\bocr (?:held|increased|reduced|cut|on hold|hiked)\b.{0,55}\d+(?:\.\d+)?%', text):
@@ -42,8 +45,6 @@ def attention_reason(title):
             return 'Explicit monetary-policy change'
         if _fx.search(text) and _intervention.search(text) and _actual.search(text):
             return 'Reported currency intervention'
-        if _data.search(text) and _surprise.search(text):
-            return 'Reported economic-data surprise'
         if _energy.search(text) and _supply.search(text):
             return 'Reported energy-supply development'
         if _systemic.search(text):

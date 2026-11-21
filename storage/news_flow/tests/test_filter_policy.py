@@ -50,7 +50,7 @@ class NewsFilterPolicyTests(unittest.TestCase):
     def test_each_visible_switch_changes_its_own_behaviour(self):
         blocked = [
             ('other_markets', 'Indonesian Rupiah rises before local GDP release'),
-            ('crypto_only', 'Bitcoin Price Forecast: BTC/USD falls below support'),
+            ('crypto_only', 'Bitcoin/USD rallies as token buyers return'),
             ('retail_quotes', 'Saudi Arabia Gold price today: Gold falls'),
             ('non_market', 'Japanese skater wins gold medal'),
             ('routine', 'Best brokers for gold trading'),

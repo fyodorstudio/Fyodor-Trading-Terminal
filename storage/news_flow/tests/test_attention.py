@@ -28,9 +28,9 @@ class NewsAttentionTests(unittest.TestCase):
             'Trump says further attacks on Iran unlikely',
             'US Treasury unexpectedly doubles long-term bond buybacks',
             'Banking crisis sparks flight to gold',
+            'Hawkish BOJ policymaker Takata calls for swift hike in rates',
         ]
         routine = [
-            'Hawkish BOJ policymaker Takata calls for swift hike in rates',
             'Fed to raise rates once more in December: Reuters poll',
             'Bank of England to wait until February to next raise rates, say economists',
             'RBA Raised Rates as Price Risks Remained to Upside, Minutes Show',
@@ -39,7 +39,7 @@ class NewsAttentionTests(unittest.TestCase):
             'Fed Waller delivers hawkish remarks', 'Bank of Canada speech: Edmonton Chamber of Commerce',
             'RBA expected to cut interest rates', 'Fed may cut rates next month',
             'British Pound: Limited downside versus US Dollar', 'Gold steadies as hawkish Fed caps gains',
-            'US Dollar momentum extends on Fed repricing', 'Nvidia earnings preview',
+            'US Dollar momentum extends on Fed repricing',
             'Markets expect RBA hike', 'US payrolls preview ahead of Friday release',
             'Goldman forecasts oil supply cuts', 'Fed says 88% of households face higher prices',
             'Fed cuts rate expectations', 'Could Iran agree a ceasefire?',
@@ -54,10 +54,11 @@ class NewsAttentionTests(unittest.TestCase):
             with self.subTest(title=title):
                 self.assertEqual(decision(title, include=INCLUDE, enabled=True)['tier'], 'included')
         for title in ['Mercuria Hires Ex-Shell Trading Veteran to Head Up Oil Products',
-                      'When Nvidia Stumbled, Equal-Weight Funds Delivered', 'Best brokers for gold trading']:
+                      'When Nvidia Stumbled, Equal-Weight Funds Delivered', 'Best brokers for gold trading',
+                      'Nvidia earnings preview']:
             self.assertEqual(decision(title, include=INCLUDE, enabled=True)['tier'], 'excluded')
         self.assertEqual(decision('Nvidia appoints new CEO amid crisis', include=INCLUDE, enabled=True)['tier'], 'included')
-        self.assertEqual(decision('Microsoft appoints head of AI unit', include=INCLUDE, enabled=True)['tier'], 'included')
+        self.assertEqual(decision('Microsoft appoints head of AI unit', include=INCLUDE, enabled=True)['tier'], 'excluded')
         self.assertEqual(decision('ECB cuts rates', include=INCLUDE, exclude='ECB', enabled=True, pinned=True)['tier'], 'excluded')
         self.assertEqual(decision('My research headline', include=INCLUDE, enabled=True, pinned=True)['tier'], 'priority')
 

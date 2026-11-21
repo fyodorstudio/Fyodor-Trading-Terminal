@@ -3,13 +3,13 @@
     "title": "Why is ServiceNow stock sliding today? By Investing.com - Investing.com South Africa",
     "url": "https://news.google.com/rss/articles/CBMinwFBVV95cUxNQlpCcVhERElvY3NsTEZHQm00WjBDUmhkMVRNUkljTGxFUWh6NWxpWnpOSmVhYlVpdFRISDFOdTk2UEJBcFNwSkN5bnpONU5ndkQ0VFNESGE3X1JQQ3BtMXd0c21EWGwtdmdUTFB0aEpHbnlwcEhRX3UwRUZwQ09oVm42S0lfT1hkeEwxUDFIekhkN2ZWejhBX0hob2RxbVk?oc=5",
     "feed_url": "https://news.google.com/rss/search?q=when%3A7d+site%3Ainvesting.com%2Fnews+%28forex+OR+commodities+OR+economy+OR+%22stock+market%22%29&ceid=US%3Aen&hl=en-US&gl=US",
-    "included": true
+    "included": false
   },
   {
     "title": "Home Depot names Richard McPhail as new CEO, beats earnings expectations - CNBC",
     "url": "https://news.google.com/rss/articles/CBMidkFVX3lxTE9QTzNuX1BGWUJiUFl0OU9kcWlLS1pRdnYwczFWN1BaVGFPdVlSMkNSLVZqRFVqcDgxNGZkN2pKUzBxSmxfck9MQW4wS19Nc1R4M1dobFhwd1h5cEoyc0tZM2EwaVVNVUFrUVphSGVMc296bEM5a1E?oc=5",
     "feed_url": "https://www.cnbc.com/id/100003114/device/rss/rss.html",
-    "included": true
+    "included": false
   },
   {
     "title": "China Stock Bull Sees Up to 15% Upside on Earnings, Valuation - Bloomberg",
@@ -105,13 +105,13 @@
     "title": "Why is Adobe stock sliding today? By Investing.com - Investing.com South Africa",
     "url": "https://news.google.com/rss/articles/CBMimAFBVV95cUxOd1RlMGxVSUtaNWRFclYxU1gtbkl4Z1VIY1dkTEN4SGwxTEs3dnJ6U1V2d1F5dUFNUmItVF9ubkp3SFRmTFN2UWZLZlgwVVJVcnhkZ1Jjd01rOWhOYXphSW83Q0FLdXpHUGVyTlpBekF2RWJqUlBOcUZ4QjZfU0FnLUk4TDEwbmlOU3VVNEQzQVNESl9NZzl2bQ?oc=5",
     "feed_url": "https://news.google.com/rss/search?q=when%3A7d+site%3Ainvesting.com%2Fnews+%28forex+OR+commodities+OR+economy+OR+%22stock+market%22%29&ceid=US%3Aen&hl=en-US&gl=US",
-    "included": true
+    "included": false
   },
   {
     "title": "Why is Salesforce stock sliding today? By Investing.com - Investing.com South Africa",
     "url": "https://news.google.com/rss/articles/CBMinwFBVV95cUxQR2NTZVJTR3E4ZExCeG9oS29kcGFyWEVqZmJWNUtua1Vjak54TURCbUNkM0E1MEhkRmZkckhNekktN3M4aTdaT1NPeng3bjN0emd4T3BxYjQtdmJTMFNPQjltdUdVY0lqbTRjdm00QjdSNDROTXVwRldOcEhXNElOYWxrT2ZGLVlBNkZwTExuM2pjc0hxaFNLMHRWMVRJdzA?oc=5",
     "feed_url": "https://news.google.com/rss/search?q=when%3A7d+site%3Ainvesting.com%2Fnews+%28forex+OR+commodities+OR+economy+OR+%22stock+market%22%29&ceid=US%3Aen&hl=en-US&gl=US",
-    "included": true
+    "included": false
   },
   {
     "title": "A generational flight from tech to defensive stocks is underway. How we’re capitalizing - CNBC",
@@ -225,7 +225,7 @@
     "title": "Baidu quarterly revenue slips as advertising weakness overshadows AI demand - Reuters",
     "url": "https://news.google.com/rss/articles/CBMiuAFBVV95cUxOUnVvOFNNWnBOdktJZDFDc0J4TkI0MDBoaHdBN1VGZG0xakZmam40R0F5TTd1VlRhNWI0RWdYbWdjSTNVZ0ZpUV92S3B0ZlVBY2w3RmV0VXJyOFFVbkRERkpRdE8ySWNKVXlDdkJ4VkItQl9QLVA0YTd5dFF3R2Y0bkRPYk5BLWZCdHZ3a2hodHRkN1RUaXJaOG5talBzYm1YRkFISzZTUG1LNkVaWnFzTHRqeU9tSmcz?oc=5",
     "feed_url": "https://news.google.com/rss/search?q=when%3A7d+site%3Areuters.com+%28stocks+OR+equities+OR+Nasdaq+OR+%22S%26P+500%22+OR+Nvidia+OR+earnings%29&ceid=US%3Aen&hl=en-US&gl=US",
-    "included": true
+    "included": false
   },
   {
     "title": "UK puts forward plans to curb youth welfare payments and tackle joblessness - Reuters",
@@ -261,7 +261,7 @@
     "title": "Why is Palo Alto Networks stock sliding today? By Investing.com - Investing.com UK",
     "url": "https://news.google.com/rss/articles/CBMiqgFBVV95cUxPVERPVm1sYVhrVlc5elhveEhSX1lMOUZXb0RZbC03NWc1Ynd6ZGZwa1h3MWpTTW5VdmZ2dTNnMU9BUHVwMzltNHdCUFZvV2plakVSdUxFY1dJNEl2dFRtbl9HN1NlREhNV1JxblF3YlpMXzd0M0dick02MDZKTlBsVWxqTV8wTnN5b1VaTUp3Z2I0RmVFT05TRkt1ZW1xYlFrRDkzTV8zT3MzZw?oc=5",
     "feed_url": "https://news.google.com/rss/search?q=when%3A7d+site%3Ainvesting.com%2Fnews+%28forex+OR+commodities+OR+economy+OR+%22stock+market%22%29&ceid=US%3Aen&hl=en-US&gl=US",
-    "included": true
+    "included": false
   },
   {
     "title": "US Sept business inventories +0.5% vs +0.4% prior - investingLive",
@@ -423,7 +423,7 @@
     "title": "FX option expiries for 17 November 10am New York cut - investingLive",
     "url": "https://news.google.com/rss/articles/CBMijwFBVV95cUxQQTBIcU9Kd1kyUjdoNDFBNmw4UHBHcVg2SkdHYUR6M1dpYnlwWHFqQWk0YTMtaC1nSjVHRVNoMks4Yzl6eVI0TDRqOWxOdDd5YkkwVUpTTVFfLW1tYllKSE9PRk5ybklzZ25TalNKdGN5d003YzNidWQyNzhWY1BGTWlMcjROODk2SmR2NTdyUQ?oc=5",
     "feed_url": "https://investinglive.com/feed/news",
-    "included": true
+    "included": false
   },
   {
     "title": "China AI Highflier Crashes 85% as Chip Fears Hit Model Makers - Bloomberg.com",
@@ -495,7 +495,7 @@
     "title": "FX option expiries for 16 November 10am New York cut - investingLive",
     "url": "https://news.google.com/rss/articles/CBMijwFBVV95cUxQSHZmR3BveE5Ba1JWNWFjLV92Rm5UekRvaHdwUDFSZGZZTEhVc2JGU0cyYXlYTGN3cVREYktuOFlGaWxaa0lsbzZ2YWV5YTFONHNDUGpWZEM1cks2UVItaG5SblVkamxvQVB6TTN3enpvNXdNX2JZZjJDclk0VmtBRlNENDllRVBTTVF1RUhlUQ?oc=5",
     "feed_url": "https://investinglive.com/feed/news",
-    "included": true
+    "included": false
   },
   {
     "title": "Exclusive | China’s Moonshot AI Restructures to Pave Way for IPO - WSJ",

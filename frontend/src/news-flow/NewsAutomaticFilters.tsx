@@ -8,7 +8,7 @@ const filters: [keyof NewsFilterPolicy, string, string][] = [
   ['crypto_only', 'Hide crypto-only stories', 'Retains headlines with explicit transmission to your traded markets or known index companies.'],
   ['retail_quotes', 'Hide local retail gold/silver quotes', 'Retains supply, demand, duties, imports, exports and reserve developments.'],
   ['non_market', 'Hide non-market and consumer topics', 'Sports, entertainment and product-use stories; material company events can still qualify.'],
-  ['routine', 'Hide routine personnel, promotions and agency notices', 'Low-level hiring, broker promotions, corporate invitations, boilerplate single-stock daily recaps and Treasury crime/cartel notices without a market driver. Material company news, Treasury meeting readouts and policy speeches stay eligible.'],
+  ['routine', 'Hide routine news and technical commentary', 'Technical forecasts, routine previews/recaps, analyst currency outlooks, stock recommendations, ordinary company results/deals, promotions and agency notices. Explicit policy catalysts, intervention warnings and market-wide shocks stay eligible.'],
   ['metadata', 'Hide quote pages and routine filings', 'Stock-quote/category pages, tag pages, Form 4/8.3 notices and routine share-count announcements.'],
   ['subject_context', 'Check the actual market subject', 'Avoid treating a quoted USD amount, Dollar Tree/General, NASDAQ exchange label, analyst bank name or sales/clinical pipeline as the story’s market subject.'],
   ['broad_context', 'Require market context for broad keywords', 'Broad words such as Japan, AI, stock and earnings need market context. Turn off to let those Include matches qualify directly.'],

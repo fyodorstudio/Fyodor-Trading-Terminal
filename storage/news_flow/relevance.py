@@ -11,6 +11,7 @@ from urllib.parse import urlsplit, parse_qs
 
 from .rules import MAX_RULE_CHARS, matches, normalized, patterns
 from .filter_policy import canonical_policy, parse_policy
+from .headline_filters import catalyst_reason, routine_reason
 
 PROFILE = json.loads(Path(__file__).with_name('relevance.json').read_text(encoding='utf-8'))
 PRESET = PROFILE['preset']
@@ -22,7 +23,8 @@ _strong = ','.join(term for term in PRESET if normalized(term) not in CONTEXTUAL
 _banks = ','.join(PROFILE['groups']['Policy'][:PROFILE['groups']['Policy'].index('monetary policy')])
 _market_event = re.compile(r'\b(gdp|inflation|cpi|pce|payrolls|monetary|interest rates?|central bank|economy|tariffs?|sanctions?|earnings|revenue|demand|supply|inventories|prices?|futures|shares|stocks|markets?|yields?|bonds?|exports?|imports?|financial|liquidity|credit|banking|debt)\b', re.I)
 _companies = ','.join(PROFILE['groups']['Index companies and systemic banks'] + PROFILE['groups']['Sector bellwethers'])
-_publisher_suffix = re.compile(r'\s+-\s+(?:Reuters|Bloomberg(?:\.com)?|Investing\.com(?:\s+[\w ]+)?|Financial Times|FXStreet|WSJ|MarketWatch|Barron.?s|Seeking Alpha|IntelliNews(?: Lambda)?|CNBC|BeInCrypto)\s*$', re.I)
+_publisher_suffix = re.compile(r'\s+-\s+(?:Reuters|Bloomberg(?:\.com)?|Investing\.com(?:\s+[\w ]+)?|Financial Times|FXStreet|WSJ|MarketWatch|Barron.?s|Seeking Alpha|(?:bne )?IntelliNews(?: Lambda)?|CNBC|Kitco|BeInCrypto)\s*$', re.I)
+_publisher_attribution = re.compile(r'\b(?:Wall Street Journal|Bloomberg News|Reuters|Financial Times)\s+(?:reports?|reported|says?|said)\b', re.I)
 _systemic = re.compile(r'\b(?:bank run|banking crisis|systemic|contagion|sovereign default|capital controls|capital flight|bailout|liquidity crisis|credit freeze|deleveraging)\b', re.I)
 _routine = re.compile(r'\b(?:hires?|hiring|appoints?|names?)\b.{0,100}\b(?:trading veteran|head (?:of|up) (?:sales|trading|oil products)|portfolio manager|sales director|marketing director)\b|\b(?:how to (?:buy|invest|trade|choose)|best (?:brokers|trading apps)|sponsored content|paid promotion)\b|\bwhen\b.{0,60}\bstumbled\b.{0,60}\b(?:funds|etfs) delivered\b', re.I)
 _treasury_notice = re.compile(r'^treasury sanctions\b.{0,160}\b(?:drug trafficking|cocaine|cartels?|narco|casinos|criminal network)\b', re.I)
@@ -40,7 +42,7 @@ _currency_driver = re.compile(r'\b(?:us dollar|u\.s\. dollar|usd|dxy|dollar inde
 _macro_driver = re.compile(r'\b(?:us|u\.s\.|uk|u\.k\.|eurozone|euro area|german|japan(?:ese)?|swiss|canadian|australian|new zealand)\s+(?:(?:core|headline)\s+)?(?:cpi|pce|ppi|gdp|pmi|nfp|payrolls|inflation|retail sales|jobs report|jobless claims|bond yields|government bonds)\b', re.I)
 _fiscal_driver = re.compile(r"\b(?:us|u\.s\.|united states|uk|u\.k\.|germany|german|eurozone|euro area|japan|japanese|swiss|switzerland|canada|canadian|australia|australian|new zealand)(?:'s)?\b.{0,65}\b(?:budget|fiscal|tax treaty|government debt|deficit|net payment|tax hikes?|tax cuts?)\b|\b(?:euro adoption|euro peg|erm ii|danish central bank.{0,40}fx peg)\b", re.I)
 _promotion = re.compile(r'\b(?:discounted stocks|\d+% off investingpro|our ai models say|(?:launches?|introduces?|offers?)\b.{0,80}\bcfds?)\b', re.I)
-_category = re.compile(r'^(?:federal reserve|energy|china|stocks\s*\|\s*market data center|market data center|base[ -]metals news|feed news|videos)\s*$|\bstock overview\s*\(|description=\{page_description\}', re.I)
+_category = re.compile(r'^(?:federal reserve|energy|china|stocks\s*\|\s*market data center|market data center|base[ -]metals news|feed news|videos)\s*$|^print edition\b|\bstock overview\s*\(|description=\{page_description\}', re.I)
 _retrospective_quote = re.compile(r'\bstock (?:outperforms?|underperforms?|rises?|falls?)\b.{0,70}\b(?:competitors|on (?:strong trading|the) day|(?:when compared to|underperforms?|outperforms?) market)\b', re.I)
 _material_driver = re.compile(r'\b(?:earnings|revenues?|profits?|guidance|forecasts?|exports?|tariffs?|curbs?|restrictions?|ceo|chief|outages?|lawsuits?|fraud|scandal|governance|merger|acquisition|ipo|bankrupt\w*|defaults?|investigat\w*|probes?|fed|fomc|ecb|boj|boe|rba|rbnz|snb|treasur\w*|nasdaq|s&p|dow jones|sector|sell[ -]?off|rout|rotation|chips?|semiconductors?|inflation|gdp|payrolls|nfp|retail sales|opec|oil|brent|gas|gold|silver|dxy|dollar index|credit|systemic|contagion)\b', re.I)
 
@@ -52,7 +54,7 @@ _analyst_explanation = re.compile(r'\b' + _analyst_names + r'(?=\s+(?:explains?\
 
 def market_text(title):
     """Remove metadata/ambiguous uses, not the headline displayed or excluded."""
-    title = _analyst_explanation.sub('analyst', _analyst_suffix.sub('', title))
+    title = _publisher_attribution.sub('publisher reports', _analyst_explanation.sub('analyst', _analyst_suffix.sub('', title)))
     text = normalized(_listing.sub(lambda match: ' ' + ' '.join(
         token for token in re.findall(r'[a-z0-9_./-]+', match[0], re.I)
         if token.lower() not in _exchanges), _publisher_suffix.sub('', title)))
@@ -165,7 +167,7 @@ def _classify(title, source_id, url, feed_url, profile):
     if exclusion:
         return {'included': False, 'reason': 'Excluded keyword · ' + exclusion, 'keyword': exclusion}
     if enabled:
-        title = _publisher_suffix.sub('', title)
+        headline = title = _publisher_suffix.sub('', title)
         if options.metadata and (_not_release.search(title) or _category.search(title)):
             return {'included': False, 'reason': 'Excluded · quote/category page or routine filing/invitation', 'keyword': ''}
         if options.non_market and (_consumer.search(title) or re.search(r'\b(?:pattinson|007|bezos)\b.{0,70}\bbond\b|\bbond\b.{0,70}\b(?:pattinson|007)\b|\bpick.{0,45}as bond\b', title, re.I)) and not _company_event.search(title):
@@ -184,6 +186,10 @@ def _classify(title, source_id, url, feed_url, profile):
         return {'included': True, 'reason': 'Official economic release', 'keyword': ''}
     if enabled and options.protect_official and official_host(url, feed_url, PROFILE['official_fiscal_domains']) and _rx['official_fiscal_release'].search(title):
         return {'included': True, 'reason': 'Official funding/intervention/sanctions release', 'keyword': ''}
+    if enabled and options.routine:
+        noise = routine_reason(_publisher_attribution.sub('publisher reports', headline), company=bool(matches(title, _companies)))
+        if noise:
+            return {'included': False, 'reason': 'Excluded · ' + noise, 'keyword': ''}
     if enabled and options.protect_remarks and financial_remarks(title, url, feed_url):
         return {'included': True, 'reason': 'Target-market remarks · financial news source', 'keyword': ''}
     hits = matching_terms(title, include)
@@ -209,6 +215,9 @@ def _classify(title, source_id, url, feed_url, profile):
         return {'included': False, 'reason': 'Excluded · other-market domestic news · ' + other_market, 'keyword': hits[0]}
     if options.non_market and _rx['noise'].search(text) and not matches(text, _companies) and not _market_event.search(text):
         return {'included': False, 'reason': 'Excluded · non-market topic', 'keyword': hits[0]}
+    catalyst = catalyst_reason(text)
+    if catalyst:
+        return {'included': True, 'reason': 'Included · ' + catalyst, 'keyword': hits[0]}
     if options.other_markets and other_market and cross_market:
         why = exception or (currency_driver[0] if currency_driver else 'global policy, sector or systemic event')
         return {'included': True, 'reason': 'Included · cross-market exception · ' + why, 'keyword': hits[0]}

@@ -12,11 +12,8 @@ from storage.news_flow.notifications import NewsNotifier
 
 INCLUDE = ', '.join(PRESET)
 POSITIVE = [
-    'We could, conceivably, get a burst bubble if Nvida earnings fail to impress',
     "US to curb China's access to AI chips as Trump heads to Asia - Reuters",
     'US Reportedly Eyeing Tougher Curbs on China Chip Access',
-    'Google unveils new AI chip variants as cloud demand surges - Reuters',
-    'Applied Materials forecasts quarterly revenue above estimates on strong AI chip demand - Reuters',
     'Banks, investors grow wary of AI debt, spooked by market selloff - Kitco',
     'AI selloff has investors scrambling to measure their true exposure',
     'European Stock Indexes Higher as Investors Rotate Away From AI - WSJ',
@@ -57,7 +54,7 @@ POSITIVE = [
     'Global Banks Back AI-Linked Asia Currencies to Lead Next Year',
     'IMF chief warns about global economy as AI circular financing hits $1 trillion',
     'AI is reshaping banking jobs but ability to drive profits remains unclear',
-    'Nvidia CEO faces affair allegations', 'Alice Huang allegations deepen Nvidia governance concerns',
+    'Alice Huang allegations deepen Nvidia governance concerns',
     'Jensen Huang resigns after misconduct allegations', 'SK Hynix warns on AI demand',
     'Apple cuts revenue guidance', 'UBS warns of funding stress', 'Toyota shuts factories after earthquake',
     'Brent rises as OPEC cuts supply', 'Diesel Falls Below $6 a Gallon, Easing Key Inflationary Pressure',
@@ -79,6 +76,10 @@ POSITIVE = [
     'Argentina sovereign default sparks contagion fears',
 ]
 NEGATIVE = [
+    'We could, conceivably, get a burst bubble if Nvida earnings fail to impress',
+    'Google unveils new AI chip variants as cloud demand surges - Reuters',
+    'Applied Materials forecasts quarterly revenue above estimates on strong AI chip demand - Reuters',
+    'Nvidia CEO faces affair allegations',
     'Singapore Dollar: Bearish bias capped against US Dollar - UOB',
     'New awards show celebrates AI music and its creators - Reuters',
     'Top scorer on South Korean tax exam confesses to cheating with AI - Reuters',
@@ -123,9 +124,8 @@ class NewsRelevanceTests(unittest.TestCase):
 
     def test_watchlist_and_ambiguous_words_without_article_body_inference(self):
         positive = [
-            'Why is Adobe stock sliding today?', 'Why is Salesforce stock sliding today?',
-            'Why is ServiceNow stock sliding today?', 'ADBE shares slide after guidance cut',
-            'CRM shares tumble after export curbs', 'CSCO earnings beat estimates',
+            'ADBE shares slide after guidance cut',
+            'CRM shares tumble after export curbs',
             'Adobe Photoshop tutorial becomes revenue driver as shares surge',
             'Salesforce stock underperforms market after earnings warning',
             'Adobe stock falls Tuesday, underperforms market as Nasdaq slumps',
@@ -139,7 +139,7 @@ class NewsRelevanceTests(unittest.TestCase):
             'US factory output rises', 'U.S. import prices beat forecasts',
             'German investor morale rises as ZEW outlook improves',
             'UK job vacancies slide as pay growth slows',
-            'UK energy bills rise sharply', 'FX option expiries for 18 November',
+            'UK energy bills rise sharply',
             'US and Thailand conclude trade deal',
             "Germany's net payment to EU budget rises as Poland receives more",
             'Hungary targets euro adoption by 2030',
@@ -151,6 +151,9 @@ class NewsRelevanceTests(unittest.TestCase):
             'Capstone outlines data center pipeline to support AI power demand',
         ]
         negative = [
+            'Why is Adobe stock sliding today?', 'Why is Salesforce stock sliding today?',
+            'Why is ServiceNow stock sliding today?', 'CSCO earnings beat estimates',
+            'FX option expiries for 18 November',
             'Why is UnknownCo stock sliding today?',
             'BTIG cuts Ispire Technology stock price target on business pivot',
             'This defense tech stock rises on record backlog',
@@ -182,11 +185,11 @@ class NewsRelevanceTests(unittest.TestCase):
                 with self.subTest(title=title):
                     self.assertEqual(classify(title, include=INCLUDE, enabled=True)['included'], expected)
         from storage.news_flow.importance import decision
-        adobe = decision(positive[0], include=INCLUDE, enabled=True)
-        self.assertEqual(adobe['tier'], 'included', 'A company-move headline does not prove the unseen export-control driver or high importance')
+        adobe = decision('Why is Adobe stock sliding today?', include=INCLUDE, enabled=True)
+        self.assertEqual(adobe['tier'], 'excluded', 'A single-stock explainer without a stated catalyst is routine noise')
         self.assertFalse(classify(positive[0], include=INCLUDE, exclude='Adobe', enabled=True)['included'])
         self.assertFalse(classify(positive[0], include='USD, EUR', enabled=True)['included'], 'Custom narrow watchlists are respected')
-        self.assertTrue(classify('Dollar Tree shares may move on earnings release', include=INCLUDE, enabled=True, filter_policy='{"subject_context":false}')['included'])
+        self.assertTrue(classify('Dollar Tree shares rise', include=INCLUDE, enabled=True, filter_policy='{"subject_context":false}')['included'])
         self.assertTrue(classify('Adobe Inc. stock falls Tuesday, underperforms market', include=INCLUDE, enabled=True, filter_policy='{"routine":false}')['included'])
 
     def test_incremental_preset_upgrade_preserves_user_decisions_and_limits(self):
@@ -245,9 +248,9 @@ class NewsRelevanceTests(unittest.TestCase):
             store = NewsStore(root); source = store.sources()[0]; now = int(time.time() * 1000)
             store.success(source, [], '', '', now)
             cursor = store.arrivals()['cursor']
-            titles = ['Why is Adobe stock sliding today?', 'Salesforce falls 10% on sector jitters',
+            titles = ['ADBE shares slide after guidance cut', 'Salesforce falls 10% on sector jitters',
                       'US factory output rises', 'Dollar Tree shares rise on earnings',
-                      'UnknownCo shares rally', 'Why is ServiceNow stock sliding today?']
+                      'UnknownCo shares rally', 'ServiceNow shares slide after funding shortfall']
             for i, title in enumerate(titles):
                 store.success(source, [dict(identity=str(i), title=title, summary='', publisher='Test',
                                             url=f'https://example.com/nov18/{i}', published_at=now if i != 5 else now - 6*86400000)], '', '', now+1)
@@ -282,11 +285,9 @@ class NewsRelevanceTests(unittest.TestCase):
     def test_subject_context_does_not_hide_actual_company_or_cross_market_news(self):
         relevant = [
             'Amazon shares slump as Black Friday sales disappoint',
-            'Amazon buys James Bond rights in a billion-dollar acquisition',
             'Apple cuts revenue forecast after Watch sales miss estimates',
             'Microsoft faces new fraud allegations after shares tumble',
             'Nvidia CEO resigns amid misconduct allegations',
-            'UBS raises Nvidia stock price target after earnings beat',
             'Wells Fargo raises S&P 500 target on easing inflation',
             'UBS warns of liquidity crisis and depositor withdrawals',
             'JPMorgan stock falls after regulators reveal capital shortfall',
@@ -297,7 +298,6 @@ class NewsRelevanceTests(unittest.TestCase):
             'Serbian bank run sparks global contagion fears',
             'FDA rejects Novo Nordisk drug after safety concerns',
             'Apache North Sea workers strike, production halted',
-            'Nvidia gets two more price target cuts from analysts ahead of earnings',
             'The market is seeing a reset, not a bubble (QQQ:NASDAQ)',
             'Iran warns US bases are targets and vows response',
             'Trump administration targets further limits on skilled foreign workers',
@@ -308,6 +308,9 @@ class NewsRelevanceTests(unittest.TestCase):
             'Constellation Energy jumps 10% after earnings beat, guidance hike',
         ]
         noise = [
+            'Amazon buys James Bond rights in a billion-dollar acquisition',
+            'UBS raises Nvidia stock price target after earnings beat',
+            'Nvidia gets two more price target cuts from analysts ahead of earnings',
             'TinyCo jumps after earnings beat (TINY:NASDAQ)',
             'TinyCo jumps after earnings beat (TINY:NYSE)',
             'TinyCo stock reaches 14.25 USD',
@@ -326,9 +329,9 @@ class NewsRelevanceTests(unittest.TestCase):
                 with self.subTest(title=title):
                     result = classify(title, include=INCLUDE, enabled=True)
                     self.assertEqual(result['included'], expected, result)
-        self.assertTrue(classify(noise[0], include='NASDAQ', enabled=False)['included'])
-        self.assertTrue(classify(noise[2], include='USD', enabled=False)['included'])
-        self.assertFalse(classify(relevant[5], include=INCLUDE, exclude='UBS', enabled=True)['included'])
+        self.assertTrue(classify('TinyCo jumps after earnings beat (TINY:NASDAQ)', include='NASDAQ', enabled=False)['included'])
+        self.assertTrue(classify('TinyCo stock reaches 14.25 USD', include='USD', enabled=False)['included'])
+        self.assertFalse(classify('UBS warns of liquidity crisis and depositor withdrawals', include=INCLUDE, exclude='UBS', enabled=True)['included'])
         self.assertFalse(classify('Swiss GDP grows - Investing.com South Africa', include=INCLUDE, exclude='South Africa', enabled=True)['included'])
 
     def test_verified_official_macro_wording_without_literal_hits(self):
